@@ -67,10 +67,6 @@ def create_segmentation_measured_feature_manifest(
 
     big_table = calculate_derived_data_dynamics_independent(big_table)
 
-    # add the size of the crop used to get DiffAE features at full res
-    crop_size = 256
-    big_table["crop_size"] = crop_size
-
     # filter the segprops data to remove regions that
     # touch the image borders and keep only tracks that
     # have a minimum number of datapoints after this
@@ -127,7 +123,7 @@ def main(
         for dataset_name in tqdm(
             dataset_name_list,
             total=len(dataset_name_list),
-            desc="Processing datasets (1P)",
+            desc="Processing datasets",
             unit="datasets",
         ):
             create_segmentation_measured_feature_manifest(dataset_name, out_dir)

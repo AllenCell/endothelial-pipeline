@@ -25,5 +25,6 @@ else:
 
 FMS = FileManagementSystem.from_env(FMS_ENV)
 FMS_FILE_ID = FileLevelMetadataKeys.FILE_ID.value
+FMS_FILE_NAME = FileLevelMetadataKeys.FILE_NAME.value
 
 logger.info("Initialized FMS environment [ %s ]", FMS_ENV)

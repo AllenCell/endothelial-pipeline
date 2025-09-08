@@ -11,8 +11,6 @@ from cyto_dl.api import CytoDLModel
 from endo_pipeline.configs import (
     CytoDLModelConfig,
     DatasetConfig,
-    get_available_zarr_files,
-    get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
 )
 from endo_pipeline.io import (
@@ -21,9 +19,13 @@ from endo_pipeline.io import (
     load_dataframe,
     upload_file_to_fms,
 )
-from endo_pipeline.library.model.image_loading import build_zarr_image_loading_dataframe
+from endo_pipeline.library.model.image_loading import (
+    build_zarr_image_loading_dataframe,
+    get_exclude_frames,
+    get_z_offset_information,
+)
 from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
-from endo_pipeline.library.process.z_stack_selection import get_plane_indices
+from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.manifests import (
     DataframeLocation,
     DataframeManifest,
@@ -82,7 +84,8 @@ def load_overrides(overrides: str | dict | None) -> dict:
     elif isinstance(overrides, dict):
         overrides_dict = overrides
     elif not isinstance(overrides, dict):
-        raise ValueError("Overrides must be a dictionary or a string")
+        logger.error("Overrides must be a dictionary or a path to a .json file.")
+        raise ValueError("Overrides must be a dictionary or a path to a .json file.")
     return overrides_dict
 
 
@@ -195,10 +198,94 @@ def generate_overrides_for_track_based_crops(
     return overrides
 
 
+def add_diffae_model_eval_crop_columns(
+    df: pd.DataFrame, diffae_resolution_level: int = 1, crop_size: int = 256
+) -> pd.DataFrame:
+    """
+    Add columns to the dataframe for DiffAE model evaluation crops.
+
+    **Note on image resolution**
+
+    The centroids, image sizes, and crop sizes are for the images loaded at the native resolution
+    (i.e. a resolution level of 0). The diffae_resolution_level parameter will be used to
+    downsample those values prior to being passed along to the DiffAE model for evaluation.
+    The diffae_resolution_level parameter will also be passed along to the model and used to load
+    the images at the appropriate resolution level. The "start" and "end" columns returned by
+    this function will determine the crop locations at the same resolution as the centroids.
+
+    **Input dataframe**
+
+    The input dataframe requires the following columns:
+        - centroid_X: x-coordinate of the centroid
+        - centroid_Y: y-coordinate of the centroid
+        - image_size_x: width of the image
+        - image_size_y: height of the image
+
+    **Output dataframe**
+
+    The output dataframe has the following additional columns:
+        - start_x: x-coordinate of the top-left corner of the crop
+        - start_y: y-coordinate of the top-left corner of the crop
+        - end_x: x-coordinate of the bottom-right corner of the crop
+        - end_y: y-coordinate of the bottom-right corner of the crop
+        - bbox_is_in_bounds: boolean indicating if the bounding box is within image bounds
+
+    **Crop extraction and downsampling**
+
+    Consider and input dataframe is one that has centroids from an image of size
+    2048x2048 at resolution level 0 and ``diffae_resolution_level``=1 and ``crop_size``=256.
+    A crop with size 256x256 is taken around the centroid coordinates and returned under the
+    ``start_x``, ``start_y``, ``end_x``, and ``end_y`` columns of the output dataframe.
+
+    These start and end columns are later downsampled by ``diffae_resolution_level``=1
+    (-> 2**1 = downsample factor of 2), resulting in crops of size 128x128.
+    The ``diffae_resolution_level=1``, and downsampled ``start_x``, ``start_y``, ``end_x``,
+    and ``end_y`` columns are passed along to the DiffAE model for evaluation.
+
+    The DiffAE model loads images at resolution level 1 (therefore a size of 1024x1024)
+    and extracts each crop according to the ``start_x``, ``start_y``, ``end_x``, ``end_y``
+    columns (therefore each crop has a size of 128x128).
+
+    Parameters
+    ----------
+    df
+        Dataframe to operate on.
+    diffae_resolution_level
+        Level of binning to use when loading the images
+    crop_size
+        Size of the square crop to extract around each centroid
+
+    Returns
+    -------
+    :
+        Dataframe with additional columns for DiffAE model evaluation crops.
+    """
+    # add the size of the crop used to get DiffAE features at full res
+    df["crop_size"] = crop_size
+
+    # convert centroids to bounding box coordinates and add them as columns
+    df["start_x"] = (df["centroid_X"] - df["crop_size"] / 2).astype(int)
+    df["start_y"] = (df["centroid_Y"] - df["crop_size"] / 2).astype(int)
+    df["end_x"] = (df["centroid_X"] + df["crop_size"] / 2).astype(int)
+    df["end_y"] = (df["centroid_Y"] + df["crop_size"] / 2).astype(int)
+
+    # add a column indicating if the size of the bounding box does
+    # not match the downsampled crop size (because the model expects
+    # identically sized square crops)
+    # check if bounding boxes fit in image bounds without being clipped
+    df["bbox_is_in_bounds"] = bbox_in_image_bounds(df, diffae_resolution_level)
+
+    # Add column for the resolution level to load images at for DiffAE model:
+    # Note from Erin 8/21/25: this has updated now that we have resolution level 1
+    # zarr files, removed downsample transform from the model config
+    df["diffae_resolution_level_to_use"] = diffae_resolution_level
+
+    return df
+
+
 def preprocess_tracking_manifest_for_model_eval(
     dataset_config: DatasetConfig,
     save_dir: Path,
-    downsample_factor: int = 2,
 ) -> Path:
     """Preprocess the manifest for a dataset to prepare it for model prediction."""
 
@@ -209,33 +296,31 @@ def preprocess_tracking_manifest_for_model_eval(
     # keep only rows that were not filtered out by filter_global
     df = df[~df["filter_global"]]
 
+    # filter the dataframe in-place to remove clipped bounding boxes
+    df = df[df["bbox_is_in_bounds"]]
+
     # filter the dataframe to include only the relevant columns
-    colums_to_keep = [
+    columns_to_keep = [
         "zarr_path",
         "image_index",
         "track_id",
         "label",
-        "centroid_X",
-        "centroid_Y",
+        "start_x",
+        "start_y",
+        "end_x",
+        "end_y",
         "image_size_x",
         "image_size_y",
         "crop_size",
+        "diffae_resolution_level_to_use",
     ]
-    df = df[colums_to_keep]
+    df = df[columns_to_keep]
 
-    # convert centroids to bounding boxes and downsample
-    # by half to match currently used model resolution
-    # this is currently always 2
-    df = _centroid_to_bbox(df, downsample_factor)
-
-    # filter the dataframe to exclude anything where the size of
-    # the bounding box does not match the downsampled crop size
-    # (because the model expects identically sized square crops)
-    # check if bounding boxes fit in image bounds without being clipped
-    bbox_size_is_correct = _bbox_in_image_bounds(df, downsample_factor)
-    # filter the dataframe in-place to remove clipped bounding boxess
-    df = df[bbox_size_is_correct]
-
+    # Adjust the crop coordinates to be consistent with the resolution level
+    resolution = sequence_to_scalar(df["diffae_resolution_level_to_use"])
+    columns_to_downsample = ["start_x", "start_y", "end_x", "end_y"]
+    for col in columns_to_downsample:
+        df[col] = df[col] // (2**resolution)
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = (
         df.groupby(["zarr_path", "image_index"])
@@ -250,60 +335,53 @@ def preprocess_tracking_manifest_for_model_eval(
         )
         .reset_index()
     )
+    # Add which channel to evaluate to the model and what resolution to load it at
     grouped_df["channel"] = ZARR_BF_CHANNEL
-    # Note "resolution" below determines what resolution the images will
-    # be loaded at, and currently the model loads at native resolution
-    # and downsamples in the transforms; therefore this value must be 0
-    # The "start" and "end" column values determine the crop locations
-    # after downsampling, thus they were adjusted by downsample_factor
+    grouped_df["resolution"] = resolution
 
-    # Note from Erin 8/21/25: this has updated now that we have resolution level 1
-    # zarr files, removed downsample transform from the model config
-    # This needs to change if we want to produce new feature tables
-    grouped_df["resolution"] = 0
     # only run a single timepoint from zarr
     grouped_df["start"] = grouped_df["image_index"]
     grouped_df["stop"] = grouped_df["image_index"]
-    grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1, inplace=True)
+    grouped_df = grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1)
 
+    # save the dataframe to a CSV file that the DiffAE model will use to load cropped images
     save_path = save_dir / "aggregated_crop_manifest.csv"
     grouped_df.to_csv(save_path, index=False)
     return save_path
 
 
-def _centroid_to_bbox(df: pd.DataFrame, downsample_factor: int = 2) -> pd.DataFrame:
-    """
-    Convert centroids to bounding boxes.
-
-    Note: coordinates are downsampled by half (downsample_factor = 2)
-    to match current model resolution.
-    """
-    df["start_x"] = ((df["centroid_X"] - df["crop_size"] / 2) / downsample_factor).astype(int)
-    df["start_y"] = ((df["centroid_Y"] - df["crop_size"] / 2) / downsample_factor).astype(int)
-    df["end_x"] = ((df["centroid_X"] + df["crop_size"] / 2) / downsample_factor).astype(int)
-    df["end_y"] = ((df["centroid_Y"] + df["crop_size"] / 2) / downsample_factor).astype(int)
-    return df
-
-
-def _bbox_in_image_bounds(df: pd.DataFrame, downsample_factor: int = 2) -> pd.Series:
+def bbox_in_image_bounds(df: pd.DataFrame, resolution_level: int = 1) -> pd.Series:
+    """Indicate if bounding boxes fit in image bounds without being clipped."""
     # adjust the image size according to the desired downsample factor
-    df["image_size_x"] = df["image_size_x"] // downsample_factor
-    df["image_size_y"] = df["image_size_y"] // downsample_factor
+    downsample_factor = 2**resolution_level
+    cols_to_downsample = [
+        "image_size_x",
+        "image_size_y",
+        "start_x",
+        "start_y",
+        "end_x",
+        "end_y",
+        "crop_size",
+    ]
+    df_temp = df[cols_to_downsample].copy(deep=True)
+    for col in cols_to_downsample:
+        df_temp[col] = df[col] // downsample_factor
 
     # limit start and end of x and y bboxes to be within image size limits
-    df["start_x"] = df["start_x"].transform(lambda x: max(0, x))
-    df["start_y"] = df["start_y"].transform(lambda y: max(0, y))
-    df["end_x"] = df[["end_x", "image_size_x"]].min(axis=1)
-    df["end_y"] = df[["end_y", "image_size_y"]].min(axis=1)
+    df_temp["start_x"] = df_temp["start_x"].transform(lambda x: max(0, x))
+    df_temp["start_y"] = df_temp["start_y"].transform(lambda y: max(0, y))
+    df_temp["end_x"] = df_temp[["end_x", "image_size_x"]].min(axis=1)
+    df_temp["end_y"] = df_temp[["end_y", "image_size_y"]].min(axis=1)
 
     # filter the dataframe to exclude anything where the size of
     # the bounding box does not match the downsampled crop size
     # (because the model expects identically sized square crops)
-    bbox_size_y = df.end_y - df.start_y
-    bbox_size_x = df.end_x - df.start_x
-    bbox_size_is_correct = (bbox_size_y == (df["crop_size"] // downsample_factor)) & (
-        bbox_size_x == (df["crop_size"] // downsample_factor)
-    )  # ask if both x and y bbox dimensions equal downsampled crop size
+    bbox_size_y = df_temp.end_y - df_temp.start_y
+    bbox_size_x = df_temp.end_x - df_temp.start_x
+    # ask if both x and y bbox dimensions equal downsampled crop size
+    bbox_size_is_correct = (bbox_size_y == df_temp["crop_size"]) & (
+        bbox_size_x == df_temp["crop_size"]
+    )
     return bbox_size_is_correct
 
 
@@ -366,40 +444,6 @@ def update_prediction_from_tracks_with_metadata(
     pred_df.to_parquet(prediction_path)
 
 
-def _get_z_offset_information(
-    dataset_config: DatasetConfig,
-    z_stack_offsets: tuple[int, int],
-    slice_by_global_center: bool = True,
-) -> dict[int, dict[str, int]]:
-    """
-    Get a dataframe with zarr loading metadata when z-slice selection is based
-    on the center slice for each position in the dataset.
-    """
-    # if z_stack_offsets is not None, get z-slice ranges
-    # for each position in the dataset (i.e., zarr file)
-    z_slice_by_position = None
-    available_zarr_files = get_available_zarr_files(dataset_config)
-    if z_stack_offsets is not None:
-        z_slice_by_position = {}
-        for zarr_file_path in available_zarr_files:
-            # get position from zarr path as an integer (e.g., 'P0' -> 0)
-            position_as_int = get_position_integer_from_zarr_file_path(zarr_file_path)
-            # get z-slice indices for the given position
-            z_slices = get_plane_indices(
-                dataset_config,
-                position_as_int,
-                lower_offset=z_stack_offsets[0],
-                upper_offset=z_stack_offsets[1],
-                slice_by_global_center=slice_by_global_center,
-            )
-            z_slice_by_position[position_as_int] = {
-                "z_start": z_slices[0],
-                "z_stop": z_slices[-1],
-            }
-
-    return z_slice_by_position
-
-
 def apply_model_on_grid_of_crops_from_one_dataset(
     model_config: CytoDLModelConfig,
     dataset_config: DatasetConfig,
@@ -411,7 +455,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     frame_start: int | None = None,
     frame_stop: int | None = None,
     frame_step: int | None = None,
-    only_positions: list[int] | None = None,
+    only_include_positions: list[int] | None = None,
 ) -> None:
     """
     Apply a DiffAE model to a single dataset.
@@ -502,29 +546,21 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     file_name = f"{file_name}_{timestamp}.parquet"
     dataset_save_path = save_path / file_name
 
+    # parse dataset annotations to get z-slice information,
+    # positions to include, and frames to exclude
+    z_slice_per_position = get_z_offset_information(
+        dataset_config, z_stack_offsets, slice_by_global_center
+    )
+    exclude_frames = get_exclude_frames(dataset_config)
+
     if z_stack_offsets is not None:
         # load timepoints 0, 250, and 500 for z-stack offsets summary
         frame_start = 0
         frame_stop = -1
         frame_step = 250
-        logger.debug(
-            "Using z-stack offsets: [ %s ] with slice_by_global_center = [ %s ] ",
-            z_stack_offsets,
-            slice_by_global_center,
-        )
         logger.debug("Z-stack offsets provided, getting features only for frames 0, 250, and 500.")
 
-        z_slice_by_position = _get_z_offset_information(
-            dataset_config,
-            z_stack_offsets=z_stack_offsets,
-            slice_by_global_center=slice_by_global_center,
-        )
-    else:
-        # if no z-stack offsets are provided, pass in None
-        # to the dataframe builder
-        logger.debug("No z-stack offsets provided, loading all z-slices.")
-        z_slice_by_position = None
-
+    # build dataframe with zarr loading metadata
     df = build_zarr_image_loading_dataframe(
         dataset_config,
         resolution_level=resolution_level,
@@ -532,8 +568,9 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         frame_start=frame_start,
         frame_stop=frame_stop,
         frame_step=frame_step,
-        z_slice_info_per_position=z_slice_by_position,
-        only_positions=only_positions,
+        z_slice_per_position=z_slice_per_position,
+        only_include_positions=only_include_positions,
+        exclude_frames=exclude_frames,
     )
 
     # save the dataframe to a parquet file
@@ -547,8 +584,8 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     logger.debug("Using [ %d ] workers for data loading.", num_workers)
     overrides = generate_overrides_for_model_eval(
         load_overrides(user_overrides),
-        save_path=str(save_path),
-        data_path=str(dataset_save_path),
+        save_path=save_path.as_posix(),
+        data_path=dataset_save_path.as_posix(),
         ckpt_path=path_dict["checkpoint_path"],
         dataset_name=dataset_config.name,
         model_name=model_config.name,
@@ -665,8 +702,8 @@ def apply_model_on_tracked_crops_from_one_dataset(
     # apply overrides
     overrides = generate_overrides_for_track_based_crops(
         overrides,
-        save_path=str(save_path),
-        data_path=str(data_path),
+        save_path=save_path.as_posix(),
+        data_path=data_path.as_posix(),
         ckpt_path=path_dict["checkpoint_path"],
         dataset_name=dataset_config.name,
         model_name=model_config.name,

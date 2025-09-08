@@ -74,7 +74,7 @@ def load_zarr_as_dask_array(
     return image
 
 
-def load_image_from_path(path: Path) -> np.ndarray:
+def load_image_from_path(path: Path, squeeze: bool = True) -> dask.array.Array:
     """
     Load image from path.
 
@@ -97,13 +97,16 @@ def load_image_from_path(path: Path) -> np.ndarray:
 
     if path.suffixes == [".ome", ".tiff"]:
         logger.info("Loading path [ %s ] as OME TIFF file", path)
-        return BioImage(path).get_image_dask_data("TCZYX").compute().squeeze()
+        if squeeze:
+            return BioImage(path).get_image_dask_data("TCZYX").compute().squeeze()
+        else:
+            return BioImage(path).get_image_dask_data("TCZYX").compute()
 
     logger.error("Path [ %s ] cannot be loaded as image", path)
     raise ValueError(f"Invalid image file format '{path.suffix}'")
 
 
-def load_image(location: ImageLocation) -> np.ndarray:
+def load_image(location: ImageLocation, squeeze: bool = True) -> dask.array.Array:
     """
     Load image from location.
 
@@ -114,7 +117,7 @@ def load_image(location: ImageLocation) -> np.ndarray:
     """
 
     if location.path is not None:
-        return load_image_from_path(location.path)
+        return load_image_from_path(location.path, squeeze)
 
     logger.error("Location does not have a path.")
     raise FileNotFoundError("Unable to load image; no available locations.")

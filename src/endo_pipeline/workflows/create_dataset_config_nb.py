@@ -74,6 +74,22 @@ dataset = DatasetConfig(
     # valid_timepoints=ValidTimepoints(start=[0], stop=[0]),
     # include_scenes=[0, 0, 0],
     # notes="",
+    # exclude_timepoints={
+    #     0: [],
+    #     1: [],
+    #     2: [],
+    #     3: [],
+    #     4: [],
+    #     5: []
+    # },
+    # center_z_plane={
+    #     0: 10,
+    #     1: 10,
+    #     2: 10,
+    #     3: 10,
+    #     4: 10,
+    #     5: 10
+    # }
 )
 
 save_dataset_config(dataset)
