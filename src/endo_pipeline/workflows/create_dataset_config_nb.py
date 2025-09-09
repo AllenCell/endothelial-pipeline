@@ -32,6 +32,8 @@ from endo_pipeline.configs import (
     ChannelIndices,
     DatasetConfig,
     FlowCondition,
+    PositionAnnotation,
+    TimepointAnnotation,
     ValidTimepoints,
     save_dataset_config,
 )
@@ -68,30 +70,54 @@ dataset = DatasetConfig(
         channel_488=0,
     ),
     flow_conditions=[
-        FlowCondition(start=0, stop=0, shear_stress=0.0),
+        FlowCondition(start=0, stop=576, shear_stress=0.0),
     ],
     # ============================ OPTIONAL FIELDS =============================
     # valid_timepoints=ValidTimepoints(start=[0], stop=[0]),
     # include_scenes=[0, 0, 0],
     # notes="",
-    # exclude_timepoints={
-    #     0: [],
-    #     1: [],
-    #     2: [],
-    #     3: [],
-    #     4: [],
-    #     5: []
-    # },
-    # center_z_plane={
-    #     0: 10,
-    #     1: 10,
-    #     2: 10,
-    #     3: 10,
-    #     4: 10,
-    #     5: 10
-    # }
+    #     timepoint_annotations={
+    #         TimepointAnnotation.BF_SCOPE_ERROR: {
+    #             0: [],
+    #             1: [],
+    #             2: [],
+    #             3: [],
+    #             4: [],
+    #             5: []
+    #         },
+    #         TimepointAnnotation.BF_TEMP_ARTIFACT: {
+    #             0: [],
+    #             1: [],
+    #             2: [],
+    #             3: [],
+    #             4: [],
+    #             5: []
+    #         },
+    #         TimepointAnnotation.XY_SHIFT: {
+    #             0: [],
+    #             1: [],
+    #             2: [],
+    #             3: [],
+    #             4: [],
+    #             5: []
+    #         },
+    #         TimepointAnnotation.Z_SHIFT: {
+    #             0: [],
+    #             1: [],
+    #             2: [],
+    #             3: [],
+    #             4: [],
+    #             5: []
+    #         },
+    #         TimepointAnnotation.UNFED: {
+    #             0: [(118, 256)],
+    #             1: [(118, 256)],
+    #             2: [(118, 256)],
+    #             3: [(118, 256)],
+    #             4: [(118, 256)],
+    #             5: [(118, 256)]
+    #         },
+    #     }
 )
-
 save_dataset_config(dataset)
-
 # %%

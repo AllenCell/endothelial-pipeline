@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable
 from pathlib import Path
 from typing import cast
@@ -9,6 +10,8 @@ from dask.array import Array
 from endo_pipeline.configs import DatasetConfig, get_zarr_file_for_position
 from endo_pipeline.io import load_zarr_as_dask_array, save_plot_to_path
 from endo_pipeline.library.process.image_processing import contrast_stretching
+
+logger = logging.getLogger(__name__)
 
 
 def calculate_global_center_plane(
@@ -137,7 +140,12 @@ def get_plane_indices(
         A list of plane indices within the specified range, constrained between 0 and 24.
     """
     if slice_by_global_center:
-        global_center_plane = get_center_plane_for_position(dataset_config, position)
+        if dataset_config.center_z_plane is None:
+            logger.error(
+                "Center z-plane information is missing for dataset [ %s ].", dataset_config.name
+            )
+            raise ValueError("Center z-plane information is missing in the dataset configuration.")
+        global_center_plane = dataset_config.center_z_plane[position]
         lower_bound = max(0, global_center_plane - lower_offset)
         upper_bound = min(24, global_center_plane + upper_offset)
     else:
