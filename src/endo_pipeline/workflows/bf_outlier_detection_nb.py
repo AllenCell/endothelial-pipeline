@@ -36,6 +36,7 @@ for dataset_name in datasets:
         tp_annotations[TimepointAnnotation.AUTO_BF_SCOPE_ERROR][position].extend(bf_scope_error)
         tp_annotations[TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT][position].extend(bf_temp_artifact)
 
+    dataset_config.timepoint_annotations = tp_annotations
     save_dataset_config(dataset_config)
 
 
