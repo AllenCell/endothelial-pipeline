@@ -97,7 +97,7 @@ def get_nuclei_features_from_image(
 
     # get intensities in the segmented nuclei regions
     # for each channel
-    nuc_props_on_intens = dict()
+    nuc_props_on_intens = {}
     for i in range(len(fluorescence_images)):
         nuc_props_on_intens[fluor_img_names[i]] = {
             prop.label: prop
@@ -110,7 +110,7 @@ def get_nuclei_features_from_image(
     reg_props = regionprops(label_image=cdh5_seg, intensity_image=nuc_seg)
 
     # Set up some initial data containers to populate
-    nuc_feats_ls: list = list()
+    nuc_feats_ls: list = []
 
     feats_with_list_of_lists: dict[str, Callable] = {
         "nuc_seg_intens_means": np.mean,

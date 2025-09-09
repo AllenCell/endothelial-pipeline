@@ -36,7 +36,14 @@ valid_timepoints:
 include_scenes: null
 notes: Caution, some patchiness occurs after TP489 & cells are very crowded by the
   end of the movie. No other artifacts noted.
-timepoint_annotations: null
+timepoint_annotations:
+  cell_piling:
+    0: [[352, 576]]
+    1: [[352, 576]]
+    2: [[352, 576]]
+    3: [[352, 576]]
+    4: [[352, 576]]
+    5: [[352, 576]]
 position_annotations: null
 center_z_plane:
   0: 11
