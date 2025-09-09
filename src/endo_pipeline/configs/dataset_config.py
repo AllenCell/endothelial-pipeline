@@ -25,6 +25,9 @@ class TimepointAnnotation(StrEnum):
     BF_TEMP_ARTIFACT = "bf_temp_artifact"
     """Manually Temporary brightfield artifact."""
 
+    CELL_PILING = "cell_piling"
+    """Manually annotated range of timepoints where cells pile up (> 30% of FOV)."""
+
     GFP_SCOPE_ERROR = "gfp_scope_error"
     """Manually annotated error with GFP scope."""
 
@@ -176,7 +179,7 @@ class DatasetConfig:
     timepoint_annotations: (
         dict[TimepointAnnotation, dict[int, list[int | tuple[int, int]]]] | None
     ) = None
-    """Manually annotated timepoints for each position. Individual tps (int) or start, stops (tuple)."""
+    """Manually annotated timepoints per position. Individual tps (int) or start, stops (tuple)."""
 
     position_annotations: dict[PositionAnnotation, list[int]] | None = None
     """Manually annotated positions."""

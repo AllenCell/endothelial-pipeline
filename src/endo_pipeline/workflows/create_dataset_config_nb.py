@@ -28,15 +28,10 @@ if __name__ != "__main__":
     raise ImportError("This module is a notebook and is not meant to be imported")
 
 # %%
-from endo_pipeline.configs import (
-    ChannelIndices,
-    DatasetConfig,
-    FlowCondition,
-    PositionAnnotation,
-    TimepointAnnotation,
-    ValidTimepoints,
-    save_dataset_config,
-)
+from endo_pipeline.configs import PositionAnnotation  # noqa: F401, I001
+from endo_pipeline.configs import TimepointAnnotation  # noqa: F401
+from endo_pipeline.configs import ValidTimepoints  # noqa: F401
+from endo_pipeline.configs import ChannelIndices, DatasetConfig, FlowCondition, save_dataset_config
 
 # %%
 dataset = DatasetConfig(
@@ -92,6 +87,14 @@ dataset = DatasetConfig(
     #             3: [],
     #             4: [],
     #             5: []
+    #         },
+    #         TimepointAnnotation.CELL_PILING: {
+    #             0: [(356, 550)],
+    #             1: [(356, 550)],
+    #             2: [(356, 550)],
+    #             3: [(356, 550)],
+    #             4: [(356, 550)],
+    #             5: [(356, 550)]
     #         },
     #         TimepointAnnotation.XY_SHIFT: {
     #             0: [],

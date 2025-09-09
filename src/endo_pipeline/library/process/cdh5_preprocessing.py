@@ -1,10 +1,6 @@
-from pathlib import Path
-from typing import Any
-
 import networkx
 import numpy as np
-import yaml
-from bioio import BioImage
+from dask.array import Array
 from scipy.ndimage import distance_transform_edt
 from skimage.exposure import rescale_intensity
 from skimage.feature import peak_local_max
@@ -26,9 +22,6 @@ from skimage.segmentation import (
     relabel_sequential,
     watershed,
 )
-
-from endo_pipeline.configs.dataset_io import extract_T
-from endo_pipeline.library.process.general_image_preprocessing import get_dim_map
 
 
 def preprocess(
@@ -622,10 +615,10 @@ def generate_segmentations(
 
 
 def split_multinucleate_regions(
-    cell_segmentations: np.ndarray,
-    nuclei_segmentations: np.ndarray,
-    cell_boundary_thresh: np.ndarray,
-    cell_boundary_image: np.ndarray,
+    cell_segmentations: np.ndarray | Array,
+    nuclei_segmentations: np.ndarray | Array,
+    cell_boundary_thresh: np.ndarray | Array,
+    cell_boundary_image: np.ndarray | Array,
     min_size_filter: int = 500,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
@@ -653,7 +646,7 @@ def split_multinucleate_regions(
     # keep only nuclei that have more than half of their area in a
     # single segmented region
     nuclei_ambiguity_threshold = 0.5
-    nuclei_labels_per_region = dict()
+    nuclei_labels_per_region = {}
     for prop in reg_props:
         nuc_labels = []
         for nuc_lab in np.unique(prop.intensity_image):
@@ -689,7 +682,7 @@ def split_multinucleate_regions(
     anucleate_skels = np.isin(seg_skels, list(anucleate_regions.keys())) * cell_segmentations
     mononucleate_skels = np.isin(seg_skels, list(mononucleate_regions.keys())) * cell_segmentations
     mononucleate_nuclei_labels = set(
-        [lab for nuc_labs in mononucleate_regions.values() for lab in nuc_labs if lab != 0]
+        lab for nuc_labs in mononucleate_regions.values() for lab in nuc_labs if lab != 0
     )
     mononucleate_seeds = (
         np.isin(cell_segmentations, list(mononucleate_regions.keys()))
@@ -702,7 +695,7 @@ def split_multinucleate_regions(
     # use the nuclei in the multinucleate regions as seeds and
     # combine these with the skeleton-seeds from above
     multinucleate_nuclei_labels = set(
-        [lab for nuc_labs in multinucleate_regions.values() for lab in nuc_labs if lab != 0]
+        lab for nuc_labs in multinucleate_regions.values() for lab in nuc_labs if lab != 0
     )
     multinucleate_seeds = (
         np.isin(cell_segmentations, list(multinucleate_regions.keys()))

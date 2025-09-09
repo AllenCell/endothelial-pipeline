@@ -5,16 +5,13 @@ from bioio import BioImage
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
     get_original_path,
-    get_zarr_name,
-    get_zarr_path,
     ipython_cli_flexecute,
-    load_dataset_position_as_dask_array,
 )
-from endo_pipeline.io import get_output_path, load_image
+from endo_pipeline.io import get_output_path, load_image, load_zarr_as_dask_array
 from endo_pipeline.library.process import cdh5_preprocessing as preproc
 from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
@@ -91,16 +88,11 @@ def generate_results(
             )
     else:
         print(f"T={T} -- loading dataset from zarr") if verbose else None
-        zarr_name = get_zarr_name(dataset_name, position)
-        zarr_path = Path(get_zarr_path(dataset_name)[zarr_name])
-        img = BioImage(zarr_path)  # only using BioImage here to pass pixel sizes to output
-        raw_dask_arr = load_dataset_position_as_dask_array(
-            dataset_name=dataset_name,
-            position=position,
-            channels=["EGFP"],
-            time_start=T,
-            time_end=T,
-            level=img_bin_level,
+        dataset_config = load_dataset_config(dataset_name)
+        zarr_file = get_zarr_file_for_position(dataset_config, position)
+        img = BioImage(zarr_file)
+        raw_dask_arr = load_zarr_as_dask_array(
+            path=zarr_file, channels=["EGFP"], timepoints=T, level=img_bin_level
         )
 
     raw_arr_MIP = raw_dask_arr.max(axis=dim_map["Z"], keepdims=True).compute().squeeze()
@@ -167,8 +159,8 @@ def generate_results(
                     "segmentations_initial",
                     "segmentations_merged",
                     "nuclei_predictions",
-                    "cdh5_segmentations_split_by_nuclei",  # name for the augmented segmentation
-                    "cdh5_segmentations_split_by_nuclei_borders",  # name for the augmented segmentation boundaries
+                    "cdh5_segmentations_split_by_nuclei",  # name for augmented segmentation
+                    "cdh5_segmentations_split_by_nuclei_borders",  # name for aug seg boundaries
                 ],
                 "channel_colors": [
                     (255, 255, 255),
@@ -180,7 +172,7 @@ def generate_results(
                     (0, 255, 0),  # color for the augmented segmentation
                     (0, 0, 255),  # color for the augmented segmentation boundaries
                 ],
-                "physical_pixel_sizes": img.physical_pixel_sizes,  # img_metadata['physical_pixel_sizes'],
+                "physical_pixel_sizes": img.physical_pixel_sizes,
                 "dim_order": "YX",
                 "dtype": None,
             }
@@ -201,7 +193,7 @@ def generate_results(
             "channel_colors": [
                 (255, 255, 255),
             ],
-            "physical_pixel_sizes": img.physical_pixel_sizes,  # img_metadata['physical_pixel_sizes'],
+            "physical_pixel_sizes": img.physical_pixel_sizes,
             "dim_order": "YX",
         }
         save_image_output(out_path, images_out, images_out_metadata)
@@ -246,6 +238,7 @@ def main(
                             analysis_queue,
                             chunksize=5,
                         ),
+                        desc="Segmenting (MP)",
                         total=len(analysis_queue),
                     )
                 )
@@ -253,7 +246,9 @@ def main(
                 pool.join()
             print("Done multiprocessing.")
     else:
-        for dataset_name_and_args in analysis_queue:
+        for dataset_name_and_args in tqdm(
+            analysis_queue, desc="Segmenting (1P)", total=len(analysis_queue)
+        ):
             generate_results_multiproc_wrapper(dataset_name_and_args)
 
     print("\N{MICROSCOPE} Done analysis.")
