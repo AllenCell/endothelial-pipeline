@@ -1,6 +1,5 @@
 import json
 import logging
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -528,23 +527,20 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     # set default output path
     save_path = get_output_path("models", model_config.name, dataset_config.name)
 
-    # use timestamp to get unique file name for FMS upload later
-    timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
-
     # load model
     model = CytoDLModel()
     model.load_config_from_file(path_dict["config_path"])
 
     logger.debug("Applying model [ %s ] to dataset [ %s ]", model_config.name, dataset_config.name)
-    # get unique name for the CSV file
+    # get unique name for the parquet file
     file_name = "dataset"
     if z_stack_offsets is not None:
         file_name = f"{file_name}_z_stack_{z_stack_offsets[0]}_{z_stack_offsets[1]}"
         if slice_by_global_center:
             file_name = f"{file_name}_ctr"
 
-    file_name = f"{file_name}_{timestamp}.parquet"
-    dataset_save_path = save_path / file_name
+    file_name_with_extension = f"{file_name}.parquet"
+    dataset_save_path = save_path / file_name_with_extension
 
     # parse dataset annotations to get z-slice information,
     # positions to include, and frames to exclude
@@ -577,7 +573,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     df.to_parquet(dataset_save_path, index=False)
 
     # apply overrides
-    prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features_{timestamp}"
+    prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features"
     # having issues with zarr loading when using z-slices from global center,
     # need to decrease the num_workers
     num_workers = 64 if (z_stack_offsets is not None and slice_by_global_center) else 128
@@ -696,9 +692,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
     data_path = preprocess_tracking_manifest_for_model_eval(dataset_config, save_path)
 
     # use timestamp to get unique file name for FMS upload later
-    timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
     prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_tracked_crop_features"
-    prediction_filename_suffix = f"{prediction_filename_suffix}_{timestamp}"
     # apply overrides
     overrides = generate_overrides_for_track_based_crops(
         overrides,
