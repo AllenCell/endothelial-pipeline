@@ -9,11 +9,10 @@ from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_confi
 from endo_pipeline.io import load_zarr_as_dask_array
 from endo_pipeline.io.output import get_output_path, save_plot_to_path
 from endo_pipeline.library.process.image_processing import contrast_stretching
+from endo_pipeline.settings import LOWER_Z_SLICE_OFFSET, UPPER_Z_SLICE_OFFSET
 
 # %%
 TIMEPOINT = 90
-Z_SLICE_LOWER_OFFSET = 4
-Z_SLICE_UPPER_OFFSET = 11
 
 
 # %%
@@ -98,21 +97,21 @@ for dataset in datasets:
         top_slice = 24
         available_slices_above = top_slice - center_slice
 
-        if Z_SLICE_UPPER_OFFSET > available_slices_above:
+        if UPPER_Z_SLICE_OFFSET > available_slices_above:
             print(f"Not enough slices above center for dataset {dataset_config.name}, skipping...")
             continue
 
         # Brightfield (bf) variables
         bf_center = bf_stack[center_slice, :, :].compute()
         bf_top = bf_stack[top_slice, :, :].compute()
-        bf_lower_offset = bf_stack[center_slice - Z_SLICE_LOWER_OFFSET, :, :].compute()
-        bf_upper_offset = bf_stack[center_slice + Z_SLICE_UPPER_OFFSET, :, :].compute()
+        bf_lower_offset = bf_stack[center_slice - LOWER_Z_SLICE_OFFSET, :, :].compute()
+        bf_upper_offset = bf_stack[center_slice + UPPER_Z_SLICE_OFFSET, :, :].compute()
 
         # CDH5 (cdh5) variables
         cdh5_center = cdh5_stack[center_slice, :, :].compute()
         cdh5_top = cdh5_stack[top_slice, :, :].compute()
-        cdh5_lower_offset = cdh5_stack[center_slice - Z_SLICE_LOWER_OFFSET, :, :].compute()
-        cdh5_upper_offset = cdh5_stack[center_slice + Z_SLICE_UPPER_OFFSET, :, :].compute()
+        cdh5_lower_offset = cdh5_stack[center_slice - LOWER_Z_SLICE_OFFSET, :, :].compute()
+        cdh5_upper_offset = cdh5_stack[center_slice + UPPER_Z_SLICE_OFFSET, :, :].compute()
 
         # Brightfield (bf) min and max calculations
         min_bf = np.percentile(bf_center, 0.2)
@@ -141,9 +140,9 @@ for dataset in datasets:
         bf_slices = [bf_lower_offset, bf_center, bf_upper_offset, bf_top]
         cdh5_slices = [cdh5_lower_offset, cdh5_center, cdh5_upper_offset, cdh5_top]
         titles = [
-            f"Lower Offset Slice - {center_slice - Z_SLICE_LOWER_OFFSET}",
+            f"Lower Offset Slice - {center_slice - LOWER_Z_SLICE_OFFSET}",
             f"Center Slice - {center_slice}",
-            f"Upper Offset Slice - {center_slice + Z_SLICE_UPPER_OFFSET}",
+            f"Upper Offset Slice - {center_slice + UPPER_Z_SLICE_OFFSET}",
             "Top Slice - 24",
         ]
 
@@ -163,7 +162,7 @@ for dataset in datasets:
         plt.tight_layout()
         plt.show()
         save_dir = get_output_path(
-            "z_range_selection", f"offsets_{Z_SLICE_LOWER_OFFSET}_{Z_SLICE_UPPER_OFFSET}", "images"
+            "z_range_selection", f"offsets_{LOWER_Z_SLICE_OFFSET}_{UPPER_Z_SLICE_OFFSET}", "images"
         )
         save_plot_to_path(
             fig, save_dir, f"{dataset_config.name}_pos{position}_tp{TIMEPOINT}_im_slices"
@@ -223,7 +222,7 @@ for POSITION in range(6):
     for i, dataset in enumerate(datasets):
         dataset_config = load_dataset_config(dataset)
         save_dir = get_output_path(
-            "z_range_selection", f"offsets_{Z_SLICE_LOWER_OFFSET}_{Z_SLICE_UPPER_OFFSET}"
+            "z_range_selection", f"offsets_{LOWER_Z_SLICE_OFFSET}_{UPPER_Z_SLICE_OFFSET}"
         )
         zarr_file = get_zarr_file_for_position(dataset_config, POSITION)
 
@@ -243,7 +242,7 @@ for POSITION in range(6):
         top_slice = 24
         available_slices_above = top_slice - center_slice
 
-        if Z_SLICE_UPPER_OFFSET > available_slices_above:
+        if UPPER_Z_SLICE_OFFSET > available_slices_above:
             print(f"Not enough slices above center for dataset {dataset_config.name}, skipping...")
             continue
 
@@ -278,27 +277,27 @@ for POSITION in range(6):
     plot_vlines(
         axes[0],
         0,
-        Z_SLICE_LOWER_OFFSET,
-        Z_SLICE_UPPER_OFFSET,
+        LOWER_Z_SLICE_OFFSET,
+        UPPER_Z_SLICE_OFFSET,
         y_min=axes[0].get_ylim()[0],
         y_max=axes[0].get_ylim()[1],
     )
     plot_vlines(
         axes[1],
         0,
-        Z_SLICE_LOWER_OFFSET,
-        Z_SLICE_UPPER_OFFSET,
+        LOWER_Z_SLICE_OFFSET,
+        UPPER_Z_SLICE_OFFSET,
         y_min=axes[1].get_ylim()[0],
         y_max=axes[1].get_ylim()[1],
     )
     axes[1].legend(bbox_to_anchor=(1.05, 0.5), loc="center left", borderaxespad=0.0)
     plt.suptitle(
-        f"Position {POSITION} Timepoint {TIMEPOINT}, Offset Range: -{Z_SLICE_LOWER_OFFSET} to +{Z_SLICE_UPPER_OFFSET}"
+        f"Position {POSITION} Timepoint {TIMEPOINT}, Offset Range: -{LOWER_Z_SLICE_OFFSET} to +{UPPER_Z_SLICE_OFFSET}"
     )
     plt.show()
     save_dir = get_output_path(
         "z_range_selection",
-        f"offsets_{Z_SLICE_LOWER_OFFSET}_{Z_SLICE_UPPER_OFFSET}",
+        f"offsets_{LOWER_Z_SLICE_OFFSET}_{UPPER_Z_SLICE_OFFSET}",
         "normalized_profiles",
     )
     save_plot_to_path(fig, save_dir, f"pos{POSITION}_tp{TIMEPOINT}_normalized_profiles")
@@ -311,7 +310,7 @@ for dataset in datasets:
         center_slice = dataset_config.center_z_plane[POSITION]
 
         save_dir = get_output_path(
-            "z_range_selection", f"offsets_{Z_SLICE_LOWER_OFFSET}_{Z_SLICE_UPPER_OFFSET}"
+            "z_range_selection", f"offsets_{LOWER_Z_SLICE_OFFSET}_{UPPER_Z_SLICE_OFFSET}"
         )
         zarr_file = get_zarr_file_for_position(dataset_config, POSITION)
 
@@ -355,27 +354,27 @@ for dataset in datasets:
     plot_vlines(
         axes[0],
         0,
-        Z_SLICE_LOWER_OFFSET,
-        Z_SLICE_UPPER_OFFSET,
+        LOWER_Z_SLICE_OFFSET,
+        UPPER_Z_SLICE_OFFSET,
         y_min=axes[0].get_ylim()[0],
         y_max=axes[0].get_ylim()[1],
     )
     plot_vlines(
         axes[1],
         0,
-        Z_SLICE_LOWER_OFFSET,
-        Z_SLICE_UPPER_OFFSET,
+        LOWER_Z_SLICE_OFFSET,
+        UPPER_Z_SLICE_OFFSET,
         y_min=axes[1].get_ylim()[0],
         y_max=axes[1].get_ylim()[1],
     )
     axes[1].legend(bbox_to_anchor=(1.05, 0.5), loc="center left", borderaxespad=0.0)
     plt.suptitle(
-        f"{dataset_config.name} TP {TIMEPOINT}, Offset Range: -{Z_SLICE_LOWER_OFFSET} to +{Z_SLICE_UPPER_OFFSET}"
+        f"{dataset_config.name} TP {TIMEPOINT}, Offset Range: -{LOWER_Z_SLICE_OFFSET} to +{UPPER_Z_SLICE_OFFSET}"
     )
     plt.show()
     save_dir = get_output_path(
         "z_range_selection",
-        f"offsets_{Z_SLICE_LOWER_OFFSET}_{Z_SLICE_UPPER_OFFSET}",
+        f"offsets_{LOWER_Z_SLICE_OFFSET}_{UPPER_Z_SLICE_OFFSET}",
         "normalized_profiles",
     )
     save_plot_to_path(fig, save_dir, f"{dataset_config.name}_tp{TIMEPOINT}_normalized_profiles")
