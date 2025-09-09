@@ -4,9 +4,24 @@ TAGS = ["diffae_model_training"]
 def main(
     resolution_level: int = 1,
     crop_size: int = 128,
+    exclude_cell_piling: bool = False,
 ) -> None:
     """
     Train a DiffAE model using the provided configuration.
+
+    **Cell piling exclusion**
+
+    By default, timepoints marked as having cell piling annotations are included in the training
+    and validation datasets created by ``create-diffae-training-dataframe``, unless the input
+    parameter ``exclude_cell_piling`` is set to True. This means that by default, the model
+    will be trained on data that includes cell piling. To train a model that does not "see"
+    cell piling, first run the ``create-diffae-training-dataframe`` script with the flag
+    ``--exclude-cell-piling``, and then run this training script with the same flag.
+
+    When ``exclude_cell_piling`` is False, the workflow will use the "standard" DataframeManifest
+    object named ``diffae_training_dataframe_resolution_{resolution_level}`` for training.
+    When True, the workflow will find the DataframeManifest object with the suffix
+    ``_exclude_cell_piling`` and use the corresponding training and validation datasets.
 
     **Workflow demo**
 
@@ -21,6 +36,9 @@ def main(
         The resolution level of the zarr files to be used for training.
     crop_size
         The length of the 2D image crop in pixels to use for model training.
+    exclude_cell_piling
+        If True, use training and validation datasets that exclude cell piling timepoints.
+
 
     Returns
     -------
@@ -58,9 +76,10 @@ def main(
         max_num_epochs = 1000
         log_every_n_steps = 50
 
-    # get training and validation datasets based on zarr resolution
-    # by loading the DataframeManifest from the model directory
-    # and using the DatasetLocation objects to get the paths
+    # "_exclude_cell_piling" suffix if cell piling exclusion is requested
+    if exclude_cell_piling:
+        name_suffix = f"_exclude_cell_piling{name_suffix}"
+
     manifest_name = f"diffae_training_dataframe_resolution_{resolution_level}{name_suffix}"
 
     try:
@@ -89,6 +108,11 @@ def main(
 
     # set model name via zarr resolution, crop size, and current timestamp
     model_name = f"diffae_resolution_{resolution_level}_patch_{crop_size}x{crop_size}"
+    # add info about cell piling inclusion/exclusion
+    if exclude_cell_piling:
+        model_name = f"{model_name}_exclude_cell_piling"
+    else:
+        model_name = f"{model_name}_include_cell_piling"
     # append timestamp to get unique model name
     model_name_unique = make_path_name_unique(Path(model_name)).as_posix()
     logger.info("Model name: [ %s ]", model_name)

@@ -23,7 +23,7 @@ from .image_loading import (
     build_zarr_image_loading_dataframe,
     get_exclude_frames,
     get_include_positions,
-    get_z_offset_information,
+    get_z_slice_bounds_per_position,
 )
 from .latent_walk_utils import (
     get_latent_coords,
@@ -68,7 +68,7 @@ __all__ = [
     "get_valid_csv_path_for_finetuning",
     "get_valid_dataframe_path_for_training",
     "get_walk",
-    "get_z_offset_information",
+    "get_z_slice_bounds_per_position",
     "initialize_diffae_model",
     "initialize_diffae_model_for_finetuning",
     "load_mlflow_model",

@@ -21,7 +21,7 @@ from endo_pipeline.io import (
 from endo_pipeline.library.model.image_loading import (
     build_zarr_image_loading_dataframe,
     get_exclude_frames,
-    get_z_offset_information,
+    get_z_slice_bounds_per_position,
 )
 from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
@@ -481,14 +481,20 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Resolution level to at which to load images (zarr file format) at.
     upload_to_fms
         Whether to upload the prediction file to FMS. Default is True.
-    save_path
-        Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
     user_overrides
         Optional user overrides to apply to the model config.
     z_stack_offsets
         Lower and upper bounds for z-slicing.
     slice_by_global_center
         Get global center plane per position for z-slicing if True, use offsets directly if False.
+    frame_start
+        First frame to include, if None, include from the start.
+    frame_stop
+        Last frame to include, if None, include to the end.
+    frame_step
+        Step size for frame inclusion, if None, include every frame.
+    only_include_positions
+        List of position indices to include, if None, include all positions.
 
     Returns
     -------
@@ -544,7 +550,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
     # parse dataset annotations to get z-slice information,
     # positions to include, and frames to exclude
-    z_slice_per_position = get_z_offset_information(
+    z_slice_bounds_per_position = get_z_slice_bounds_per_position(
         dataset_config, z_stack_offsets, slice_by_global_center
     )
     exclude_frames = get_exclude_frames(dataset_config)
@@ -564,7 +570,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         frame_start=frame_start,
         frame_stop=frame_stop,
         frame_step=frame_step,
-        z_slice_per_position=z_slice_per_position,
+        z_slice_bounds_per_position=z_slice_bounds_per_position,
         only_include_positions=only_include_positions,
         exclude_frames=exclude_frames,
     )

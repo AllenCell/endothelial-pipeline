@@ -67,7 +67,7 @@ def run_workflow(queue: Sequence) -> None:
         else:
             scene_index = None
             raw_filepath = None
-            raw_channel = None
+            raw_channel = 0
 
         run_tracking(
             in_dir=seg_filepaths,
@@ -95,7 +95,10 @@ def run_workflow(queue: Sequence) -> None:
 
     else:
         logger.info(
-            f"No segmentation images found for {dataset_name}. Skipping tracking analysis. If this is unexpected check that the IS_TEST argument is set to False."
+            f"""
+            No segmentation images found for {dataset_name}. Skipping tracking analysis.
+            If this is unexpected check that the IS_TEST argument is set to False.
+            """
         )
         return
 
