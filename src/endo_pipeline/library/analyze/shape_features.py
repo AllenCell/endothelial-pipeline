@@ -271,19 +271,19 @@ def get_neighbor_nodes_and_edges(
         (
             label,
             get_neighboring_labels(
-                nodes_lab[(*w,)] == label, edges_lab[(*w,)], bad_neighbors=bad_neighbors
+                nodes_lab[(*window,)] == label, edges_lab[(*window,)], bad_neighbors=bad_neighbors
             ),
         )
-        for label, w in nodes_lab_windows
+        for label, window in nodes_lab_windows
     ]
     edge_neighbors_nodelabs = [
         (
             label,
             get_neighboring_labels(
-                edges_lab[(*w,)] == label, nodes_lab[(*w,)], bad_neighbors=bad_neighbors
+                edges_lab[(*window,)] == label, nodes_lab[(*window,)], bad_neighbors=bad_neighbors
             ),
         )
-        for label, w in edges_lab_windows
+        for label, window in edges_lab_windows
     ]
 
     ## Use the combination of node_neighbors_edgelabs and edge_neighbors_nodelabs to
