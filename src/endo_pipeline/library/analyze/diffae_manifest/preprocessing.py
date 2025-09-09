@@ -166,7 +166,7 @@ def get_dataframe_for_dynamics_workflows(
     df = load_dataframe(location)
 
     if filter_to_valid:
-        df_valid = get_valid_subset(df, dataset_name, verbose=False)
+        df_valid = get_valid_subset(df, dataset_name)
     else:
         df_valid = df.copy()
 
