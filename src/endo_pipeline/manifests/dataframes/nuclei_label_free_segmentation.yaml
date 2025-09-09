@@ -32,6 +32,21 @@ locations:
   20250611_20X:
     fmsid: d3837f49c4a2416b8310612262d13651
     s3uri: null
+  20250618_20X:
+    fmsid: 9b6e85b01b0b4f52a011710bc0fa8dc9
+    s3uri: null
+  20250714_20X:
+    fmsid: dce72aca67f742d2a8294120b9e1289d
+    s3uri: null
+  20250716_20X:
+    fmsid: 24d2d48a64134a3a956f6c95275b2054
+    s3uri: null
+  20250728_20X:
+    fmsid: 7f106d91b98445d9ac69ab294e3d771c
+    s3uri: null
+  20250806_20X:
+    fmsid: 285252482d9f4debb02b1c693a81eb36
+    s3uri: null
   20250813_20X:
     fmsid: 372bb3f6532d4ca191815b7e068ebecf
     s3uri: null
