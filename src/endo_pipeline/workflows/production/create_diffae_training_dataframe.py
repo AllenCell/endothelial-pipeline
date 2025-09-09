@@ -5,6 +5,7 @@ def main(
     resolution_level: int = 1,
     z_stack_offsets: tuple[int, int] | None = None,
     slice_by_global_center: bool = True,
+    exclude_cell_piling: bool = False,
 ) -> None:
     """
     Generate dataframes with paths to zarr files for training a DiffAE model.
@@ -39,6 +40,13 @@ def main(
     indicate the number of slices to include below and above the center plane. Else, the
     ``z_stack_offsets`` are used directly as the range bounds.
 
+    **Cell piling exclusion**
+
+    By default, timepoints marked as having cell piling annotations are included in the training
+    and validation datasets. This behavior can be changed by setting the ``exclude_cell_piling``
+    parameter to True. This allows for toggling between training a model that "sees" cell piling
+    versus one that does not.
+
     **Workflow testing**
 
     The ``--testing-mode`` (aka ``-x``) flag can be used to run a simplified version of this
@@ -55,6 +63,8 @@ def main(
         Lower and upper bounds for z-slicing.
     slice_by_global_center
         Get global center plane per position for z-slicing if True, use offsets directly if False.
+    exclude_cell_piling
+        Exclude cell piling timepoints if True, include them if False.
 
 
     Returns
@@ -76,7 +86,7 @@ def main(
         build_zarr_image_loading_dataframe,
         get_exclude_frames,
         get_include_positions,
-        get_z_offset_information,
+        get_z_slice_bounds_per_position,
     )
 
     output_savedir = get_output_path("dataframes")
@@ -88,11 +98,11 @@ def main(
     for dataset_config in dataset_config_list:
         # parse dataset annotations to get z-slice information,
         # positions to include, and frames to exclude
-        z_slice_per_position = get_z_offset_information(
+        z_slice_bounds_per_position = get_z_slice_bounds_per_position(
             dataset_config, z_stack_offsets, slice_by_global_center
         )
         only_include_positions = get_include_positions(dataset_config)
-        exclude_frames = get_exclude_frames(dataset_config)
+        exclude_frames = get_exclude_frames(dataset_config, exclude_cell_piling=exclude_cell_piling)
 
         # When running workflow in demo mode, only use the first position from each
         # dataset and first two timepoints to speed up the data loading process (if
@@ -100,12 +110,10 @@ def main(
         # default frame start and stop values (i.e. all timepoints) and keep all
         # rows in the dataset CSV.
         if DEMO_MODE:
-            name_suffix = "_test_workflow"
             frame_start = 0
             frame_stop = 1 if dataset_config.is_timelapse else 0
             only_include_positions = only_include_positions[0:1]
         else:
-            name_suffix = ""
             frame_start = None
             frame_stop = None
 
@@ -121,7 +129,7 @@ def main(
                 ],
                 frame_start=frame_start,
                 frame_stop=frame_stop,
-                z_slice_per_position=z_slice_per_position,
+                z_slice_bounds_per_position=z_slice_bounds_per_position,
                 only_include_positions=only_include_positions,
                 exclude_frames=exclude_frames,
             )
@@ -134,6 +142,13 @@ def main(
     # (percent split is by number of rows, i.e. positions x datasets)
     train, val = train_test_split(df, test_size=0.2, random_state=42)
 
+    # add "_test_workflow" suffix to manifest name if in demo mode
+    name_suffix = "_test_workflow" if DEMO_MODE else ""
+
+    # add "_exclude_cell_piling" to manifest name if cell piling is excluded
+    if exclude_cell_piling:
+        name_suffix = f"_exclude_cell_piling{name_suffix}"
+
     # Upload dataframes to FMS, then build and save out DataframeManifest
     # object with FMS IDs to be used in the DiffAE model training script.
     # Note that this can be swapped out with uploading to S3 later on.
@@ -142,6 +157,9 @@ def main(
         train,
         val,
         resolution_level,
+        z_stack_offsets,
+        slice_by_global_center,
+        exclude_cell_piling,
         dataset_config_list,
         output_savedir,
         manifest_name,
