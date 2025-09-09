@@ -4,7 +4,7 @@ TAGS = ["diffae_features"]
 def main(
     dataset_name: str = "3d_flow_field_analysis",
     model_name: str = "diffae_04_10",
-    bootstrap_samples: int = 500,
+    bootstrap_samples: int = 1000,
 ) -> None:
     """
     Run auto and cross correlation analysis on DiffAE feature time series data.
@@ -22,6 +22,7 @@ def main(
     """
     import logging
 
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import (
         get_available_dataset_collection_names,
         get_available_dataset_names,
@@ -72,6 +73,14 @@ def main(
 
     # fit PCA object for the given model that generates the model manifests
     pca = fit_pca(model_name=model_name)
+
+    # if demo mode, limit bootstrap samples to 50 if > 50
+    if DEMO_MODE and bootstrap_samples > 50:
+        logger.warning(
+            "Running workflow in demo mode, reducing bootstrap samples" " from [ %s ] to 50.",
+            bootstrap_samples,
+        )
+        bootstrap_samples = 50
 
     # get cross and autocorrelation for pc features for each dataset
     # in the list of model manifests
