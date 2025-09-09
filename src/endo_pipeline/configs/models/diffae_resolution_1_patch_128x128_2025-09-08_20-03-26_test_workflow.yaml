@@ -1,18 +1,13 @@
-name: timelapse
-description: All timelapse datasets
-datasets:
+name: diffae_resolution_1_patch_128x128_2025-09-08_20-03-26_test_workflow
+mlflow_run_id: c3c7e4b6a95349ccb5aaa4446a5b275a
+training_datasets:
 - 20241120_20X
 - 20241217_20X
 - 20250224_20X
 - 20250319_20X
 - 20250326_20X
-- 20250331_20X
-- 20250402_20X
 - 20250409_20X
 - 20250428_20X
-- 20250604_20X
-- 20250611_20X
-- 20250618_20X
 - 20250716_20X
 - 20250728_20X
 - 20250806_20X

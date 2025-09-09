@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable
 from pathlib import Path
 from typing import cast
@@ -9,6 +10,60 @@ from dask.array import Array
 from endo_pipeline.configs import DatasetConfig, get_zarr_file_for_position
 from endo_pipeline.io import load_zarr_as_dask_array, save_plot_to_path
 from endo_pipeline.library.process.image_processing import contrast_stretching
+
+logger = logging.getLogger(__name__)
+
+
+def calculate_global_center_plane(
+    dataset_config: DatasetConfig, position: int, save_dir: Path
+) -> dict[str, int]:
+    """
+    Calculate the global center plane for a single position in a dataset.
+
+    This function computes the center plane for each frame in a brightfield (BF) z-stack
+    by finding the slice with the minimum standard deviation. It then calculates the
+    mean and standard deviation of the center planes across all frames and optionally
+    visualizes the results.
+
+    Parameters
+    ----------
+    dataset_config
+        Configuration object containing metadata and paths for the dataset.
+    position
+        The position index within the dataset to analyze.
+    save_dir
+        Directory where the visualization of the global center plane will be saved.
+
+    Returns
+    -------
+    A dictionary containing:
+    - "position": The analyzed position index.
+    - "mean_center_plane": The mean center plane across all frames.
+    - "std_dev_center_plane": The standard deviation of the center plane across all frames.
+    """
+    zarr_file = get_zarr_file_for_position(dataset_config, position)
+    bf_stack_all_frames = load_zarr_as_dask_array(zarr_file, channels=["BF"], level=1)
+
+    center_planes = []
+
+    for frame in range(0, dataset_config.duration, 1):
+        # Extract the BF stack for the current frame
+        bf_stack = bf_stack_all_frames[frame].squeeze()
+
+        # Compute standard deviations for all slices in the current frame
+        stdevs = bf_stack.std(axis=(1, 2)).compute()
+
+        # Find the center plane with the minimum standard deviation
+        center_plane = max(0, np.argmin(stdevs))
+        center_planes.append(center_plane)
+
+    mean, std_dev = plot_global_center_plane(center_planes, dataset_config.name, position, save_dir)
+
+    return {
+        "position": position,
+        "mean_center_plane": round(mean),
+        "std_dev_center_plane": round(std_dev),
+    }
 
 
 def get_center_plane_for_position(dataset_config: DatasetConfig, position: int) -> int:
@@ -85,7 +140,12 @@ def get_plane_indices(
         A list of plane indices within the specified range, constrained between 0 and 24.
     """
     if slice_by_global_center:
-        global_center_plane = get_center_plane_for_position(dataset_config, position)
+        if dataset_config.center_z_plane is None:
+            logger.error(
+                "Center z-plane information is missing for dataset [ %s ].", dataset_config.name
+            )
+            raise ValueError("Center z-plane information is missing in the dataset configuration.")
+        global_center_plane = dataset_config.center_z_plane[position]
         lower_bound = max(0, global_center_plane - lower_offset)
         upper_bound = min(24, global_center_plane + upper_offset)
     else:
@@ -290,6 +350,7 @@ def plot_global_center_plane(
     fname = f"global_center_plane_{dataset}_P{position}"
     save_plot_to_path(fig, output_dir, fname)
     plt.show()
+    plt.close(fig)
 
     return mean_center_plane, std_center_plane
 

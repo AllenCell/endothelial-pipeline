@@ -4,7 +4,7 @@ task_name: train
 tags:
 - dev
 model:
-  _target_: src.endo_pipeline.library.model.DiffAEFinetune
+  _target_: endo_pipeline.library.model.DiffAEFinetune
   save_images_every_n_epochs: 10
   save_dir: null
   image_shape:
@@ -85,14 +85,14 @@ data:
     persistent_workers: false
     shuffle: true
     dataset:
-      _target_: src.endo_pipeline.library.model.image_loading.MultiDimImageDataset
+      _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
       num_workers: 64
       dataframe_path: null
       spatial_dims: 2
       transform:
         _target_: monai.transforms.Compose
         transforms:
-        - _target_: src.endo_pipeline.library.model.image_loading.BioIOImageLoaderd
+        - _target_: endo_pipeline.library.model.image_loading.BioIOImageLoaderd
           path_key: original_path
           out_key: raw
           dask_load: false
@@ -168,7 +168,7 @@ data:
     persistent_workers: false
     shuffle: false
     dataset:
-      _target_: src.endo_pipeline.library.model.image_loading.MultiDimImageDataset
+      _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
       cache_num: 0
       num_workers: 8
       dataframe_path: null
@@ -176,7 +176,7 @@ data:
       transform:
         _target_: monai.transforms.Compose
         transforms:
-        - _target_: src.endo_pipeline.library.model.image_loading.BioIOImageLoaderd
+        - _target_: endo_pipeline.library.model.image_loading.BioIOImageLoaderd
           path_key: original_path
           out_key: raw_moving
           dask_load: true
@@ -204,14 +204,14 @@ data:
     persistent_workers: false
     shuffle: false
     dataset:
-      _target_: src.endo_pipeline.library.model.image_loading.MultiDimImageDataset
+      _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
       num_workers: 8
       dataframe_path: null
       spatial_dims: 2
       transform:
         _target_: monai.transforms.Compose
         transforms:
-        - _target_: src.endo_pipeline.library.model.image_loading.BioIOImageLoaderd
+        - _target_: endo_pipeline.library.model.image_loading.BioIOImageLoaderd
           path_key: original_path
           out_key: raw
           dask_load: false

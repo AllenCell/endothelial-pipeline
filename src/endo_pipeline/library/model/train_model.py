@@ -32,13 +32,6 @@ def _generate_overrides_for_model_training(
     """
     Generate overrides for the DiffAE model training configuration.
 
-    **Workflow testing**
-
-    If the training workflow is being run in testing mode, the model will be trained for
-    only one epoch. That is, the ``max_num_epochs`` input will be set to 1, which overrides
-    the configuration value of ``trainer.max_epochs`` in the training config. The value
-    of ``log_every_n_steps`` will also be set to 1.
-
     Parameters
     ----------
     model_name
@@ -61,9 +54,8 @@ def _generate_overrides_for_model_training(
         A dictionary of configuration overrides for the DiffAE model training.
     """
     # create output directories if they do not exist
-    training_run_output_path = get_output_path("models", model_name, "train")
-    _ = get_output_path("models", model_name, "train", "logs")
-    _ = get_output_path("models", model_name, "train", "checkpoints")
+    training_run_checkpoint_path = get_output_path("models", model_name, "train", "checkpoints")
+    training_run_log_path = get_output_path("models", model_name, "train", "logs")
 
     overrides = {
         # set path to train and val datasets
@@ -71,12 +63,12 @@ def _generate_overrides_for_model_training(
         "data.predict_dataloaders.dataset.dataframe_path": val_dataframe_path,
         "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path,
         # get repo root directory and current working directory
-        "paths.root_dir": Path(__file__).resolve().parents[3],
+        "paths.root_dir": Path(__file__).resolve().parents[3].as_posix(),
         "paths.work_dir": os.getcwd(),
         # save outputs to user-specified directory
-        "paths.output_dir": training_run_output_path / "logs",
+        "paths.output_dir": training_run_log_path.as_posix(),
         "paths.log_dir": "${paths.output_dir}",
-        "callbacks.model_checkpoint.dirpath": training_run_output_path / "checkpoints",
+        "callbacks.model_checkpoint.dirpath": training_run_checkpoint_path.as_posix(),
         # update run name
         "run_name": model_name,
         # set crop size from input via model.image_shape,
@@ -102,13 +94,6 @@ def _generate_overrides_for_finetuning(
     """
     Generate overrides for finetuning a DiffAE model.
 
-    **Workflow testing**
-
-    If the finetuning workflow is being run in testing mode, the model will be trained for
-    only one epoch. That is, the ``max_num_epochs`` input will be set to 1, which overrides
-    the configuration value of ``trainer.max_epochs`` in the finetuning config. The value
-    of ``log_every_n_steps`` will also be set to 1.
-
     Parameters
     ----------
     finetuned_model_name
@@ -117,7 +102,7 @@ def _generate_overrides_for_finetuning(
         The path to the image loading metadata file for the training dataset.
     val_dataframe_path
         The path to the image loading metadata file for the validation dataset.
-    ckpt_path: Path
+    ckpt_path
         The path to the DiffAE checkpoint to finetune.
     max_num_epochs
         The maximum number of epochs to train the model for.
@@ -129,12 +114,12 @@ def _generate_overrides_for_finetuning(
         "finetune_paired_dataset",
         finetuned_model_name,
     )
-    _ = get_output_path(
+    training_run_checkpoint_path = get_output_path(
         "finetune_paired_dataset",
         finetuned_model_name,
         "checkpoints",
     )
-    _ = get_output_path(
+    training_run_log_path = get_output_path(
         "finetune_paired_dataset",
         finetuned_model_name,
         "logs",
@@ -146,14 +131,14 @@ def _generate_overrides_for_finetuning(
         "data.predict_dataloaders.dataset.dataframe_path": val_dataframe_path,
         "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path,
         # load diffae checkpoint to finetune
-        "checkpoint.ckpt_path": ckpt_path,
+        "checkpoint.ckpt_path": ckpt_path.as_posix(),
         "checkpoint.weights_only": True,
         "checkpoint.strict": False,
         # save to user-specified directory
-        "model.save_dir": training_run_output_path / "logs",
-        "trainer.default_root_dir": training_run_output_path,
-        "callbacks.model_checkpoint.dirpath": training_run_output_path / "checkpoints",
-        "paths.output_dir": training_run_output_path / "logs",
+        "model.save_dir": training_run_log_path.as_posix(),
+        "trainer.default_root_dir": training_run_output_path.as_posix(),
+        "callbacks.model_checkpoint.dirpath": training_run_checkpoint_path.as_posix(),
+        "paths.output_dir": training_run_log_path.as_posix(),
         # do training
         "train": True,
         # turn off config printing, will get saved locally instead
@@ -179,13 +164,6 @@ def initialize_diffae_model(
 ) -> CytoDLModel:
     """
     Initialize a DiffAE model for training.
-
-    **Workflow testing**
-
-    If the training workflow is being run in testing mode, the model will be trained for
-    only one epoch. That is, the ``max_num_epochs`` input will be set to 1, which overrides
-    the configuration value of ``trainer.max_epochs`` in the training config. The value
-    of ``log_every_n_steps`` will also be set to 1.
 
     Parameters
     ----------
@@ -393,13 +371,6 @@ def initialize_diffae_model_for_finetuning(
 ) -> CytoDLModel:
     """
     Initialize a DiffAE model for training.
-
-    **Workflow testing**
-
-    If the finetuning workflow is being run in testing mode, the model will be trained for
-    only one epoch. That is, the ``max_num_epochs`` input will be set to 1, which overrides
-    the configuration value of ``trainer.max_epochs`` in the finetuning config. The value
-    of ``log_every_n_steps`` will also be set to 1.
 
     Parameters
     ----------

@@ -1,6 +1,6 @@
 """Data structures for dataset configs."""
 
-from dataclasses import field
+from enum import StrEnum
 from typing import Literal
 
 from mashumaro.config import BaseConfig
@@ -14,6 +14,41 @@ SampleType = Literal["live", "fixed", "fixed-methanol"]
 
 ObjectiveType = Literal["20X", "40X"]
 """Valid objective types."""
+
+
+class TimepointAnnotation(StrEnum):
+    """Annotations for timepoints that should be excluded from model training and/or analysis."""
+
+    BF_SCOPE_ERROR = "bf_scope_error"
+    """Manually annotated error with brightfield scope."""
+
+    BF_TEMP_ARTIFACT = "bf_temp_artifact"
+    """Manually Temporary brightfield artifact."""
+
+    GFP_SCOPE_ERROR = "gfp_scope_error"
+    """Manually annotated error with GFP scope."""
+
+    AUTO_BF_SCOPE_ERROR = "auto_bf_scope_error"
+    """Auto detected error with brightfield scope."""
+
+    AUTO_BF_TEMP_ARTIFACT = "auto_bf_temp_artifact"
+    """Auto detected Temporary brightfield artifact."""
+
+    XY_SHIFT = "xy_shift"
+    """Manually annotated shift in the XY position."""
+
+    Z_SHIFT = "z_shift"
+    """Manually annotated shift in the Z focus."""
+
+    UNFED = "unfed"
+    """Manually annotated timepoint where cells are more than 3hrs since last feeding."""
+
+
+class PositionAnnotation(StrEnum):
+    """Annotations for positions that should be excluded from model training and/or analysis."""
+
+    DUST_ARTIFACT = "dust_artifact"
+    """Manually annotated position includes a dust artifact."""
 
 
 @dataclass
@@ -117,9 +152,6 @@ class DatasetConfig:
     time_interval_in_minutes: float | None
     """Time interval between frames in minutes."""
 
-    flow: list
-    """Flow conditions for the dataset."""
-
     n_total_positions: int
     """Total number of positions captured."""
 
@@ -129,7 +161,7 @@ class DatasetConfig:
     zarr_channel_indices: ChannelIndices
     """Channel indices for dataset converted to Zarr format."""
 
-    flow_conditions: list[FlowCondition] = field(default_factory=list)
+    flow_conditions: list[FlowCondition]
     """List of flow conditions for the dataset."""
 
     valid_timepoints: ValidTimepoints | None = None
@@ -140,6 +172,17 @@ class DatasetConfig:
 
     notes: str = ""
     """"Additional notes about dataset."""
+
+    timepoint_annotations: (
+        dict[TimepointAnnotation, dict[int, list[int | tuple[int, int]]]] | None
+    ) = None
+    """Manually annotated timepoints for each position. Individual tps (int) or start, stops (tuple)."""
+
+    position_annotations: dict[PositionAnnotation, list[int]] | None = None
+    """Manually annotated positions."""
+
+    center_z_plane: dict[int, int] | None = None
+    """For each zarr position, the calculated and visually validated center Z-plane"""
 
     class Config(BaseConfig):
         """Settings for dataset config."""

@@ -8,3 +8,6 @@ datasets:
 - 20250326_20X # 15 dyn
 - 20250409_20X # low flow
 - 20250428_20X # 9 dyn
+- 20250716_20X # 9 dyn
+- 20250728_20X # no flow
+- 20250806_20X # high to low

@@ -5,7 +5,9 @@ from .dataset_config import (
     FlowCondition,
     MicroscopeType,
     ObjectiveType,
+    PositionAnnotation,
     SampleType,
+    TimepointAnnotation,
     ValidTimepoints,
 )
 from .dataset_config_io import (
@@ -23,6 +25,8 @@ from .dataset_config_io import (
     validate_dataset_config,
 )
 from .dataset_config_utils import (
+    get_annotated_positions,
+    get_annotated_timepoints_for_position,
     get_available_channels_for_all_positions,
     get_available_channels_for_position,
     get_available_zarr_files,
@@ -62,8 +66,12 @@ __all__ = [
     "MicroscopeType",
     "ModelConfig",
     "ObjectiveType",
+    "PositionAnnotation",
     "SampleType",
+    "TimepointAnnotation",
     "ValidTimepoints",
+    "get_annotated_positions",
+    "get_annotated_timepoints_for_position",
     "get_available_channels_for_all_positions",
     "get_available_channels_for_position",
     "get_available_dataset_collection_names",

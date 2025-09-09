@@ -13,7 +13,6 @@ shear_stress_regime: intermediate
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
-flow: [[0, 0, 13.5]]
 n_total_positions: 10
 original_channel_indices:
   brightfield: 2
@@ -35,3 +34,6 @@ valid_timepoints: null
 include_scenes: [0, 1, 2, 4]
 notes: This is the set flow rate not the actual flow rate. Under flow for 24 hours
   prior to fix.
+timepoint_annotations: null
+position_annotations: null
+center_z_plane: null

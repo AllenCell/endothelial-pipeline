@@ -13,7 +13,6 @@ shear_stress_regime: intermediate
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
-flow: [[0, 577, 8.6]]
 n_total_positions: 6
 original_channel_indices:
   brightfield: 1
@@ -35,5 +34,14 @@ valid_timepoints:
   start: [217]
   stop: [351]
 include_scenes: null
-notes: This is an intermediate flow dataset. There cells are very crowded by the end
-  of the movie.
+notes: Caution, some patchiness occurs after TP489 & cells are very crowded by the
+  end of the movie. No other artifacts noted.
+timepoint_annotations: null
+position_annotations: null
+center_z_plane:
+  0: 11
+  1: 12
+  2: 12
+  3: 12
+  4: 12
+  5: 12
