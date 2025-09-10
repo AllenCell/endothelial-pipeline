@@ -3,10 +3,12 @@ from typing import Sequence
 import numpy as np
 
 from endo_pipeline.configs.dataset_io import extract_P
+from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.integration import track_integration
 from endo_pipeline.library.model.apply_model import apply_model_on_array, get_model_for_array_inputs
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.process.get_images import get_zarr_img_for_dataset
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
 
 def apply_model_on_array_test(
@@ -72,15 +74,18 @@ def get_image_crop_for_model(
 
 if __name__ == "__main__":
 
-    ds = "20250428_20X"
+    ds = "20241120_20X"
     position = 0
 
-    df_precomp = track_integration.get_preprocessed_manifests_and_km_bounds(dataset_name=ds)[1]
-    df_precomp = df_precomp.query("position == @position").reset_index(drop=True)
-    df_precomp["position"] = df_precomp["position"].transform(extract_P)
+    # df_precomp = track_integration.get_preprocessed_manifests_and_km_bounds(dataset_name=ds)[0]
+    diffae_track_manifest = load_dataframe_manifest("diffae_tracking_integration")
+    diffae_track_location = get_dataframe_location_for_dataset(diffae_track_manifest, ds)
+    df_precomp = load_dataframe(diffae_track_location)
+    if not df_precomp["position"].astype(str).str.isdigit().all():
+        df_precomp["position"] = df_precomp["position"].transform(extract_P)
+    df_precomp = df_precomp.query("position == @position")
     crop_size_x = sequence_to_scalar(df_precomp.crop_size_x)
     crop_size_y = sequence_to_scalar(df_precomp.crop_size_y)
-
     model_name = sequence_to_scalar(df_precomp["model_name"])
 
     samples = df_precomp.sample(n=12, random_state=0)
