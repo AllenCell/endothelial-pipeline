@@ -44,8 +44,8 @@ def get_image_crop_for_model(
     timeframe_list: Sequence = [0],
     start_x_list: Sequence = [0],
     start_y_list: Sequence = [0],
-    crop_size_x: Sequence = 128,
-    crop_size_y: Sequence = 128,
+    crop_size_x: int = 128,
+    crop_size_y: int = 128,
 ) -> list[np.ndarray]:
     # load image
     img = get_zarr_img_for_dataset(dataset_name, position, resolution_level=1)
@@ -72,7 +72,7 @@ def get_image_crop_for_model(
 
 if __name__ == "__main__":
 
-    ds = "20241120_20X"
+    ds = "20250428_20X"
     position = 0
     model_name = "diffae_04_10"
 
@@ -86,9 +86,9 @@ if __name__ == "__main__":
     img_arr_crop_bf_list = get_image_crop_for_model(
         dataset_name=ds,
         position=position,
-        timeframe_list=samples.frame_number,
-        start_x_list=samples.start_x,
-        start_y_list=samples.start_y,
+        timeframe_list=samples.frame_number.values.tolist(),
+        start_x_list=samples.start_x.values.tolist(),
+        start_y_list=samples.start_y.values.tolist(),
         crop_size_x=crop_size_x,
         crop_size_y=crop_size_y,
     )
@@ -103,7 +103,9 @@ if __name__ == "__main__":
     feat_columns = [f"feat_{i}" for i in range(8)]
     feats = samples[feat_columns].astype(float)
 
-    print(feats, feats_calc)
+    print(ds, position)
+    print(feats)
+    print(feats_calc)
 
     # for idx, row in samples.iterrows():
     #     features, affine = apply_model_on_array_test(
