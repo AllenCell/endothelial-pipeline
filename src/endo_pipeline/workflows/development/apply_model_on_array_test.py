@@ -50,3 +50,4 @@ if __name__ == "__main__":
             start_y=row.start_y,
             crop_size_y=row.crop_size_y,
         )
+        print(ds, idx, features)
