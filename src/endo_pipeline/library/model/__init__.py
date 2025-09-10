@@ -19,6 +19,7 @@ from .diffae import (
 )
 from .image_loading import (
     BioIOImageLoaderd,
+    LogImage,
     MultiDimImageDataset,
     build_zarr_image_loading_dataframe,
 )

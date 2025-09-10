@@ -22,6 +22,65 @@ from endo_pipeline.configs import (
 logger = logging.getLogger(__name__)
 
 
+class LogImage(Transform):
+    """
+    Apply logarithmic transformation to image data in a dictionary.
+
+    This transform takes an input dictionary containing image data under a specified key,
+    applies a logarithmic transformation to the image data, and stores the transformed
+    image back in the dictionary under a specified output key. The transformation is
+    performed using the formula: `log_image = log(image + 1e-12)`.
+
+    Parameters
+    ----------
+    keys : str
+        Key in the input dictionary where the original image data is stored.
+    output_key : str
+        Key in the output dictionary where the transformed image data will be stored.
+        If not provided, the transformed image will overwrite the original image.
+    """
+
+    def __init__(self, keys: str = "image") -> None:
+        """
+        Initialize the LogImage transform.
+
+        Parameters
+        ----------
+        keys : str
+            Key in the input dictionary where the original image data is stored.
+        """
+        super().__init__()
+        self.keys = keys
+
+    def __call__(self, data: dict) -> dict:
+        """
+        Apply logarithmic transformation to the image data.
+
+        Parameters
+        ----------
+        data : dict
+            Input dictionary containing image data under `keys`.
+
+        Returns
+        -------
+        dict
+            Output dictionary with transformed image data under `output_key`.
+        """
+        if self.keys not in data:
+            logger.error("Input key '%s' not found in data dictionary.", self.keys)
+            raise KeyError(f"Input key '{self.keys}' not found in data dictionary.")
+
+        img = data[self.keys]
+
+        # Apply logarithmic transformation
+        log_img = np.log(img + 1e-12)
+
+        # Store transformed image in output dictionary
+        data[self.keys] = log_img
+
+        return data
+
+
 class BioIOImageLoaderd(Transform):
     """
     Enumerates scenes and timepoints for dictionary with format.
