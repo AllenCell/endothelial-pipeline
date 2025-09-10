@@ -1,10 +1,7 @@
 import numpy as np
 
-from src.endo_pipeline.library.model.apply_model import (
-    apply_model_on_array,
-    get_model_for_array_inputs,
-)
-from src.endo_pipeline.library.process.get_images import get_zarr_img_for_dataset
+from endo_pipeline.library.model.apply_model import apply_model_on_array, get_model_for_array_inputs
+from endo_pipeline.library.process.get_images import get_zarr_img_for_dataset
 
 
 def apply_model_on_array_test(
