@@ -847,7 +847,7 @@ def get_model_for_array_inputs(
     return model
 
 
-def apply_model_on_array(model: CytoDLModel, bf_img_arr_4d: np.ndarray) -> np.ndarray:
+def apply_model_on_array(model: CytoDLModel, bf_img_arr_4d_list: list) -> np.ndarray:
     """
     bf_img_arr_4d must be an array with 4 dimensions in this order: CZYX
     This function applies the DiffAE model to the provided 4D array.
@@ -861,11 +861,12 @@ def apply_model_on_array(model: CytoDLModel, bf_img_arr_4d: np.ndarray) -> np.nd
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available. Must run on a GPU machine.")
 
-    if not bf_img_arr_4d.ndim == 4:
-        raise ValueError(
-            "Input array must have 4 dimensions in the order CZYX (i.e. Channels, Z, Y, X)."
-        )
+    for bf_img_arr_4d in bf_img_arr_4d_list:
+        if not bf_img_arr_4d.ndim == 4:
+            raise ValueError(
+                "Input array must have 4 dimensions in the order CZYX (i.e. Channels, Z, Y, X)."
+            )
 
-    _, _, cytodl_output = model.predict(data=bf_img_arr_4d)
+    _, _, cytodl_output = model.predict(data=bf_img_arr_4d_list)
 
     return cytodl_output
