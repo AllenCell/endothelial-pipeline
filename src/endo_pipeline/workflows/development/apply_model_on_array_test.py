@@ -79,11 +79,11 @@ if __name__ == "__main__":
     position = 0
 
     # load the manifest for the given dataset and filter for the given position
-    # df_precomp = track_integration.get_preprocessed_manifests_and_km_bounds(dataset_name=ds)[0]
-    df_manifest = load_dataframe_manifest("live_merged_seg_features")
-    df_location = get_dataframe_location_for_dataset(df_manifest, ds)
-    df_precomp = load_dataframe(df_location)
-    df_precomp = df_precomp.query("bbox_is_in_bounds")
+    df_precomp = track_integration.get_preprocessed_manifests_and_km_bounds(dataset_name=ds)[1]
+    # df_manifest = load_dataframe_manifest("live_merged_seg_features")
+    # df_location = get_dataframe_location_for_dataset(df_manifest, ds)
+    # df_precomp = load_dataframe(df_location)
+    # df_precomp = df_precomp.query("bbox_is_in_bounds")
     if not df_precomp["position"].astype(str).str.isdigit().all():
         df_precomp["position"] = df_precomp["position"].transform(extract_P)
     df_precomp = df_precomp.query("position == @position")
@@ -98,7 +98,7 @@ if __name__ == "__main__":
     else:
         model_name = "diffae_04_10"
 
-    samples = df_precomp.sample(n=1, random_state=0)
+    samples = df_precomp.sample(n=1, random_state=42)
 
     if "frame_number" in df_precomp.columns:
         timeframe_list = samples.frame_number.values.tolist()
@@ -114,7 +114,7 @@ if __name__ == "__main__":
         start_y_list=samples.start_y.values.tolist(),
         crop_size_x=crop_size_x,
         crop_size_y=crop_size_y,
-        resolution_level=0,
+        resolution_level=1,
     )
 
     # load the diffae model and modify the config to accept array inputs
