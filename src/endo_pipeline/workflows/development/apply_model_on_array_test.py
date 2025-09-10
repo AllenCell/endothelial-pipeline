@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Literal, Sequence
 
 import numpy as np
 
@@ -48,9 +48,10 @@ def get_image_crop_for_model(
     start_y_list: Sequence = [0],
     crop_size_x: int = 128,
     crop_size_y: int = 128,
+    resolution_level: Literal[0, 1] = 1,
 ) -> list[np.ndarray]:
     # load image
-    img = get_zarr_img_for_dataset(dataset_name, position, resolution_level=1)
+    img = get_zarr_img_for_dataset(dataset_name, position, resolution_level)
     dim_order = "TCZYX"
     img_arr = img.get_image_dask_data(dim_order)
     # make slice objects for cropping
@@ -77,33 +78,49 @@ if __name__ == "__main__":
     ds = "20241120_20X"
     position = 0
 
+    # load the manifest for the given dataset and filter for the given position
     # df_precomp = track_integration.get_preprocessed_manifests_and_km_bounds(dataset_name=ds)[0]
-    diffae_track_manifest = load_dataframe_manifest("diffae_tracking_integration")
-    diffae_track_location = get_dataframe_location_for_dataset(diffae_track_manifest, ds)
-    df_precomp = load_dataframe(diffae_track_location)
+    df_manifest = load_dataframe_manifest("live_merged_seg_features")
+    df_location = get_dataframe_location_for_dataset(df_manifest, ds)
+    df_precomp = load_dataframe(df_location)
+    df_precomp = df_precomp.query("bbox_is_in_bounds")
     if not df_precomp["position"].astype(str).str.isdigit().all():
         df_precomp["position"] = df_precomp["position"].transform(extract_P)
     df_precomp = df_precomp.query("position == @position")
-    crop_size_x = sequence_to_scalar(df_precomp.crop_size_x)
-    crop_size_y = sequence_to_scalar(df_precomp.crop_size_y)
-    model_name = sequence_to_scalar(df_precomp["model_name"])
+    if "crop_size_x" in df_precomp.columns and "crop_size_y" in df_precomp.columns:
+        crop_size_x = sequence_to_scalar(df_precomp.crop_size_x)
+        crop_size_y = sequence_to_scalar(df_precomp.crop_size_y)
+    else:
+        crop_size_x = sequence_to_scalar(df_precomp["end_x"] - df_precomp["start_x"])
+        crop_size_y = sequence_to_scalar(df_precomp["end_y"] - df_precomp["start_y"])
+    if "model_name" in df_precomp.columns:
+        model_name = sequence_to_scalar(df_precomp["model_name"])
+    else:
+        model_name = "diffae_04_10"
 
-    samples = df_precomp.sample(n=12, random_state=0)
+    samples = df_precomp.sample(n=1, random_state=0)
 
+    if "frame_number" in df_precomp.columns:
+        timeframe_list = samples.frame_number.values.tolist()
+    else:
+        timeframe_list = samples.image_index.values.tolist()
+
+    # load the images for the given dataset and position and crop them according to the manifest
     img_arr_crop_bf_list = get_image_crop_for_model(
         dataset_name=ds,
         position=position,
-        timeframe_list=samples.frame_number.values.tolist(),
+        timeframe_list=timeframe_list,
         start_x_list=samples.start_x.values.tolist(),
         start_y_list=samples.start_y.values.tolist(),
         crop_size_x=crop_size_x,
         crop_size_y=crop_size_y,
+        resolution_level=0,
     )
 
     # load the diffae model and modify the config to accept array inputs
     diffae_model = get_model_for_array_inputs(model_name, save_config_locally=True)
 
-    # run th model on the example image crop
+    # run the model on the example image crop
     cytodl_output = apply_model_on_array(diffae_model, img_arr_crop_bf_list)
     feats_calc, affine = zip(*cytodl_output)
 
@@ -113,23 +130,3 @@ if __name__ == "__main__":
     print(ds, position)
     print(feats)
     print(feats_calc)
-
-    # for idx, row in samples.iterrows():
-    #     features, affine = apply_model_on_array_test(
-    #         dataset_name=ds,
-    #         start_x=row.start_x,
-    #         crop_size_x=row.crop_size_x,
-    #         start_y=row.start_y,
-    #         crop_size_y=row.crop_size_y,
-    #     )
-    #     print(ds, idx, features, row["feat_0":"feat_7"].values.astype(float))
-
-    # for idx, row in samples.iterrows():
-    #     features, affine = apply_model_on_array_test(
-    #         dataset_name=ds,
-    #         start_x=row.start_x,
-    #         crop_size_x=row.crop_size_x,
-    #         start_y=row.start_y,
-    #         crop_size_y=row.crop_size_y,
-    #     )
-    #     print(ds, idx, features)
