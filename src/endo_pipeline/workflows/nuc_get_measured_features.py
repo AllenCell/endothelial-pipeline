@@ -5,29 +5,22 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from dask.array import Array
 from skimage.measure import regionprops
 from tqdm import tqdm
 
-from src.endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-from src.endo_pipeline.configs.dataset_io import (
+from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
+from endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
     fire_parse_generate_dataset_name_list,
     ipython_cli_flexecute,
 )
-from src.endo_pipeline.io import (
-    configure_logging,
-    get_output_path,
-    load_segmentation,
-    load_zarr_as_dask_array,
-)
-from src.endo_pipeline.library.process.general_image_preprocessing import (
+from endo_pipeline.io import configure_logging, get_output_path, load_image, load_zarr_as_dask_array
+from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     get_default_dim_order,
 )
-from src.endo_pipeline.manifests import (
-    get_segmentation_location_for_dataset,
-    load_segmentation_manifest,
-)
+from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +52,8 @@ def get_and_save_nuclei_features(
 
 
 def get_nuclei_features_from_image(
-    cdh5_seg: np.ndarray,
-    nuc_seg: np.ndarray,
+    cdh5_seg: np.ndarray | Array,
+    nuc_seg: np.ndarray | Array,
     fluorescence_images: list[np.ndarray],
     fluor_img_names: list[str] | None = None,
     seg_dim_order: str = "YX",
@@ -104,7 +97,7 @@ def get_nuclei_features_from_image(
 
     # get intensities in the segmented nuclei regions
     # for each channel
-    nuc_props_on_intens = dict()
+    nuc_props_on_intens = {}
     for i in range(len(fluorescence_images)):
         nuc_props_on_intens[fluor_img_names[i]] = {
             prop.label: prop
@@ -117,7 +110,7 @@ def get_nuclei_features_from_image(
     reg_props = regionprops(label_image=cdh5_seg, intensity_image=nuc_seg)
 
     # Set up some initial data containers to populate
-    nuc_feats_ls: list = list()
+    nuc_feats_ls: list = []
 
     feats_with_list_of_lists: dict[str, Callable] = {
         "nuc_seg_intens_means": np.mean,
@@ -190,13 +183,13 @@ def get_nuclei_features_from_dataset_at_T(
     # Load segmentations and image
     dim_order = get_default_dim_order()
 
-    nuc_manifest = load_segmentation_manifest("nuclear_labelfree")
-    nuc_location = get_segmentation_location_for_dataset(nuc_manifest, dataset_name, position, T)
-    nuc_seg = load_segmentation(nuc_location)
+    nuc_manifest = load_image_manifest("nuclear_labelfree_seg")
+    nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_name, position, T)
+    nuc_seg = load_image(nuc_location)
 
-    cdh5_manifest = load_segmentation_manifest("cdh5_classic")
-    cdh5_location = get_segmentation_location_for_dataset(cdh5_manifest, dataset_name, position, T)
-    cdh5_seg = load_segmentation(cdh5_location)
+    cdh5_manifest = load_image_manifest("cdh5_classic_seg")
+    cdh5_location = get_image_location_for_dataset(cdh5_manifest, dataset_name, position, T)
+    cdh5_seg = load_image(cdh5_location)
 
     dataset_config = load_dataset_config(dataset_name)
     img_path = get_zarr_file_for_position(dataset_config, position)
@@ -213,7 +206,7 @@ def get_nuclei_features_from_dataset_at_T(
     nuc_feats_df = get_nuclei_features_from_image(
         cdh5_seg=cdh5_seg,
         nuc_seg=nuc_seg,
-        fluorescence_images=channel_arrs,
+        fluorescence_images=channel_arrs,  # type:ignore[arg-type]
         fluor_img_names=channel_names,
         seg_dim_order="YX",
     )
@@ -247,7 +240,7 @@ def main(
     concatenate_tables_only: bool = False,
 ) -> None:
 
-    out_dir = get_output_path(Path(__file__).stem)
+    out_dir = get_output_path(__file__)
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
 

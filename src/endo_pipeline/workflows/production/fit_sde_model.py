@@ -25,9 +25,9 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
     import pysindy as ps
 
-    from src.endo_pipeline.configs import dynamics_io
-    from src.endo_pipeline.io import get_output_path
-    from src.endo_pipeline.library.analyze.diffae_features import (
+    from endo_pipeline.configs import dynamics_io
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.analyze.diffae_features import (
         build_diff_lib,
         build_drift_lib,
         load_train_test,
@@ -114,6 +114,6 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

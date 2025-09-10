@@ -8,9 +8,22 @@ from typing import Literal
 from git import Repo
 from matplotlib.figure import Figure
 
-from src.endo_pipeline.configs import DatasetConfig, ModelConfig
+from endo_pipeline.configs import DatasetConfig, ModelConfig
 
 logger = logging.getLogger(__name__)
+
+
+def get_timestamp() -> str:
+    """
+    Get current timestamp as YYYY-MM-DD.
+
+    Returns
+    -------
+    :
+        Current timestamp formatted as YYYY-MM-DD.
+    """
+
+    return datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d")
 
 
 def get_output_dir() -> Path:
@@ -60,7 +73,7 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
     output_dir = get_output_dir()
 
     if include_timestamp:
-        timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d")
+        timestamp = get_timestamp()
         output_path = Path(output_dir, timestamp, Path(workflow_name).stem, *subdirs)
     else:
         output_path = Path(output_dir, Path(workflow_name).stem, *subdirs)
@@ -69,6 +82,36 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
     logger.info("Created output directory [ %s ]", output_path)
 
     return output_path
+
+
+def make_path_name_unique(path: Path) -> Path:
+    """
+    Make name of the given file path unique by appending a timestamp.
+
+    Examples
+    --------
+    >>> make_path_name_unique(Path("/path/to/file.png"))
+    Path("/path/to/file_YYYYMMDD_HHmmss.png")
+
+    >>> make_path_name_unique(Path("/path/to/file.ome.zarr"))
+    Path("/path/to/file_YYYYMMDD_HHmmss.ome.zarr")
+
+    Parameters
+    ----------
+    path
+        Original file path.
+
+    Returns
+    -------
+    :
+        Modified file path with unique file name.
+    """
+
+    suffixes = "".join(path.suffixes)
+    original_name = path.name.split(".")[0]
+    timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("_%Y%m%d_%H%M%S")
+
+    return path.with_name(f"{original_name}{timestamp}{suffixes}")
 
 
 def build_fms_annotations(
@@ -130,7 +173,7 @@ def build_fms_annotations(
         Additional relevant notes to append to notes annotation.
     """
 
-    from src.endo_pipeline.io.fms import FMS
+    from endo_pipeline.io.fms import FMS
 
     metadata_builder = FMS.create_file_metadata_builder("Endothelial")
 
@@ -195,10 +238,23 @@ def upload_file_to_fms(
         logger.error("File [ %s ] could not be found", file_path)
         raise FileNotFoundError(f"No such file '{file_path}'")
 
-    from src.endo_pipeline.io.fms import FMS
+    from endo_pipeline.io.fms import FMS, FMS_FILE_NAME
 
-    logger.debug("Starting upload of [ %s ] to FMS", file_path)
-    fms_file = FMS.upload_file(str(file_path), file_type, annotations, should_be_in_local=True)
+    # FMS does not allow the same file name to be uploaded multiple times. If
+    # a file of the same name is found, we instead append a timestamp to the
+    # current file upload to create a unique name.
+    logger.debug("Checking if [ %s ] already exists in FMS", file_path)
+    record = list(FMS.find(annotations={FMS_FILE_NAME: file_path.name}))
+    file_name = make_path_name_unique(file_path).name if record else file_path.name
+
+    logger.debug("Starting upload of [ %s ] to FMS as [ %s ]", file_path, file_name)
+    fms_file = FMS.upload_file(
+        file_reference=file_path,
+        file_type=file_type,
+        annotations=annotations,
+        file_name=file_name,
+        should_be_in_local=True,
+    )
     logger.debug("Finished upload of [ %s ] to FMS with file id [ %s ]", file_path, fms_file.id)
 
     return fms_file.id

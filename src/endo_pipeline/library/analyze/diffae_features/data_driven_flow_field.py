@@ -7,16 +7,16 @@ from scipy import interpolate as spinterp
 from scipy.integrate import solve_ivp
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.library.analyze.diffae_manifest import (
+from endo_pipeline.library.analyze.diffae_manifest import (
     get_dataframe_for_dynamics_workflows,
     get_dataset_descriptions,
     get_pc_column_names,
     get_traj_and_diff,
 )
-from src.endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
-from src.endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data, get_bins
-from src.endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
-from src.endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
+from endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data, get_bins
+from endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
+from endo_pipeline.manifests import DataframeManifest
 
 
 def _ddff_model_analysis(

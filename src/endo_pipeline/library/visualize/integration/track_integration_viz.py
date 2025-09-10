@@ -12,12 +12,12 @@ from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from tqdm import tqdm
 
-from src.endo_pipeline.io import save_plot_to_path
-from src.endo_pipeline.library.analyze.integration.track_integration import (
+from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.library.analyze.integration.track_integration import (
     get_coarse_grained_trajectory_heatmap_data,
 )
-from src.endo_pipeline.library.analyze.numerics.binning import get_bins
-from src.endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
+from endo_pipeline.library.analyze.numerics.binning import get_bins
+from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     get_slice_indexes,
     plot_one_slice_quiver,
     plot_quiver_slices,

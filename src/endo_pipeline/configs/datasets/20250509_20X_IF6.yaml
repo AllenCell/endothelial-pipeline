@@ -13,7 +13,6 @@ shear_stress_regime: 24hr_low
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
-flow: [[0, 0, 5.98]]
 n_total_positions: 2
 original_channel_indices:
   brightfield: 4
@@ -34,3 +33,6 @@ flow_conditions:
 valid_timepoints: null
 include_scenes: null
 notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
+timepoint_annotations: null
+position_annotations: null
+center_z_plane: null

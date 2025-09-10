@@ -1,22 +1,19 @@
 import logging
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
 from tqdm import tqdm
 
-from src.endo_pipeline.configs import (
-    load_all_dataset_configs,
-    load_dataset_config,
-    load_model_config,
-)
-from src.endo_pipeline.configs.model_config_utils import get_labelfree_nuclei_prediction_model_name
-from src.endo_pipeline.io import (
+from endo_pipeline.configs import load_all_dataset_configs, load_dataset_config, load_model_config
+from endo_pipeline.configs.model_config_utils import get_labelfree_nuclei_prediction_model_name
+from endo_pipeline.io import (
     build_fms_annotations,
     configure_logging,
     get_output_path,
     upload_file_to_fms,
 )
-from src.endo_pipeline.manifests import (
+from endo_pipeline.manifests import (
     DataframeLocation,
     DataframeManifest,
     load_dataframe_manifest,
@@ -31,7 +28,7 @@ in a Linux or MacOS environment through the CLI.
 """
 
 logger = logging.getLogger(__name__)
-out_dir = get_output_path(Path(__file__).stem, include_timestamp=False)
+out_dir = get_output_path(__file__, include_timestamp=False)
 configure_logging(out_dir, logger, verbose=True)
 
 
@@ -213,6 +210,11 @@ def main(
             "20250428_20X",
             "20250604_20X",
             "20250611_20X",
+            "20250618_20X",
+            "20250714_20X",
+            "20250716_20X",
+            "20250728_20X",
+            "20250806_20X",
         ]
     else:
         pass
@@ -234,7 +236,7 @@ def main(
             "suffix": "_nuclei_labelfree_features.parquet",
         },
         "merged_live_data_manifests": {
-            "subdir": "segmentation_features",
+            "subdir": "cdh5_live_seg_features",
             "suffix": "_live_segmentation_features.parquet",
         },
     }
@@ -253,10 +255,17 @@ def main(
             f"Manifest file {manifest_filepath} does not exist. "
             "Please double check the file location."
         )
-        fms_upload_func_dict[manifest_kind](dataset_name, manifest_filepath)
+        # add timestamp to the manifest filename and rename it
+        timestamp = datetime.now(UTC).strftime("%Y%m%d")
+        manifest_filepath_timestamped = manifest_filepath.with_name(
+            f"{manifest_filepath.stem}_fms{timestamp}{manifest_filepath.suffix}"
+        )
+        manifest_filepath.rename(manifest_filepath_timestamped)
+
+        fms_upload_func_dict[manifest_kind](dataset_name, manifest_filepath_timestamped)
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

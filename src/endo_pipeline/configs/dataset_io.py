@@ -19,12 +19,9 @@ import re
 from collections.abc import Callable, Sequence
 from typing import Any, Literal
 
-from src.endo_pipeline.__main__ import workflow_cli
-from src.endo_pipeline.configs import get_datasets_in_collection
-from src.endo_pipeline.configs.dataset_config_io import (
-    get_available_dataset_names,
-    load_dataset_config,
-)
+from endo_pipeline.__main__ import workflow_cli
+from endo_pipeline.configs import get_datasets_in_collection
+from endo_pipeline.configs.dataset_config_io import get_available_dataset_names, load_dataset_config
 
 logger = logging.getLogger(__name__)
 
@@ -360,7 +357,7 @@ def get_zarr_dir(dataset_name: str) -> str:
     """
 This method is deprecated and will be removed. Use the following replacement:
 
-    from src.endo_pipeline.configs import get_available_zarr_files
+    from endo_pipeline.configs import get_available_zarr_files
 
 This method will return a list of Path objects to Zarr files for all positions
 in the given dataset config. If you need the name of the Zarr file, use .name on
@@ -395,7 +392,7 @@ This method is deprecated and will be removed. Instead use:
 
 The recommended pattern is:
 
-    from src.endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
+    from endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
 
     dataset_config = load_dataset_config(dataset_name)
     channels = get_available_channels_for_all_positions(dataset_config)
@@ -421,7 +418,7 @@ This method is deprecated and will be removed. Instead use:
 
 To recreate the behavior of this method, use:
 
-    from src.endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
+    from endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
 
     dataset_config = load_dataset_config(dataset_name)
     channels = get_available_channels_for_position(dataset_config, 0)
@@ -451,7 +448,7 @@ def get_channel_names(dataset_name: str) -> list[str]:
     """
 This method is deprecated and will be removed. Instead use:
 
-    from src.endo_pipeline.configs import get_channel_indices_for_all_positions
+    from endo_pipeline.configs import get_channel_indices_for_all_positions
     get_channel_indices_for_all_positions(dataset_config, position, channel_names)
 """
 )
@@ -479,7 +476,7 @@ def get_channel_index(
     """
 This method is deprecated and will be removed. Use the following replacement:
 
-    from src.endo_pipeline.configs import get_zarr_file_for_position
+    from endo_pipeline.configs import get_zarr_file_for_position
 
 This method will a Path to the Zarr file for the given dataset and position. If
 you need the name of the Zarr file, use .name on the returned Path object.
@@ -527,8 +524,8 @@ def get_total_number_of_positions(dataset_name: str) -> int:
 This method is deprecated and will be removed. The new pattern for loading Zarr
 datasets is:
 
-    from src.endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
-    from src.endo_pipeline.io import load_zarr_as_dask_array
+    from endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
+    from endo_pipeline.io import load_zarr_as_dask_array
 
     dataset_config = load_dataset_config(dataset_name)
     zarr_file = get_zarr_file_for_position(dataset_config, position)
@@ -537,8 +534,8 @@ datasets is:
 To recreate the behavior of this specific method (loading Zarrs for all positions
 of a dataset into a dictionary, use:
 
-    from src.endo_pipeline.configs import load_dataset_config, get_available_zarr_files
-    from src.endo_pipeline.io import load_zarr_as_dask_array
+    from endo_pipeline.configs import load_dataset_config, get_available_zarr_files
+    from endo_pipeline.io import load_zarr_as_dask_array
 
     dataset_config = load_dataset_config(dataset_name)
     zarr_files = get_available_zarr_files(dataset_config)
@@ -579,8 +576,8 @@ def load_dataset(
 This method is deprecated and will be removed. The new pattern for loading Zarr
 datasets is:
 
-    from src.endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
-    from src.endo_pipeline.io import load_zarr_as_dask_array
+    from endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
+    from endo_pipeline.io import load_zarr_as_dask_array
 
     dataset_config = load_dataset_config(dataset_name)
     zarr_file = get_zarr_file_for_position(dataset_config, position)
@@ -675,86 +672,6 @@ The field can then be accessed using:
 def get_time_interval_in_minutes(dataset_name: str) -> float:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["time_interval_in_minutes"]
-
-
-@deprecated(
-    """
-Use one of the following methods to load the dataset config:
-
-        configs.load_all_dataset_configs
-        configs.load_dataset_config(dataset_name)
-
-The field can then be accessed using:
-
-        dataset.flow
-"""
-)
-def get_flow_info(dataset_name: str) -> list:
-    dataset_info = get_dataset_info(dataset_name)
-    return dataset_info["flow"]
-
-
-@deprecated(
-    """
-This method will be removed. Use one of these alternative methods:
-
-        configs.get_frame_before_flow_change
-        configs.get_frame_after_flow_change
-"""
-)
-def get_flow_change_frame(dataset_name: str) -> int:
-    """
-    Get frame number at which flow changes in dataset ds_name.
-
-    Inputs:
-    - dataset_name: str, name of dataset to get flow change frame for
-        - This string must match the dataset name in data_config.yaml
-
-    Outputs:
-    - change_frame: int, frame number at which flow changes in dataset dataset_name
-    """
-    # load config for dataset from data_config.yaml
-    flow_info = get_flow_info(dataset_name)
-
-    # get frame number at which flow changes
-    change_frame = flow_info[0][1]
-
-    return change_frame
-
-
-@deprecated(
-    """
-This method will be removed. Use one of these alternative methods:
-
-        configs.get_flow_at_frame
-"""
-)
-def get_flow_for_frame(dataset_name: str, frame: int) -> float:
-    """
-    Retrieve the flow value for a specific frame in a dataset.
-
-    This function searches the flow list for the given dataset and returns the
-    flow value corresponding to the specified frame. If the frame is not found
-    in the flow list, a ValueError is raised.
-
-    Parameters
-    ----------
-    dataset_name : str
-        The name of the dataset to retrieve the flow information from.
-    frame : int
-        The frame index for which to retrieve the flow value.
-
-    Returns
-    -------
-    float
-        The flow value for the specified frame.
-    """
-    config = load_dataset_config(dataset_name)
-    flow_list = config.flow
-    for t_start, t_stop, flow in flow_list:
-        if t_start <= frame <= t_stop:
-            return flow
-    raise ValueError(f"Frame {frame} not found in flow list for dataset '{dataset_name}'.")
 
 
 @deprecated(
@@ -918,7 +835,7 @@ def fire_parse_generate_dataset_name_list(
     If it is a list of strings, it will be returned as is.
 
     To enter a list of datasets to analyze, use the following format:
-    '\"20241016_20X\",\"20241120_20X\"'
+    '\"20241217_20X\",\"20241120_20X\"'
     """
     if fire_dataset_name_input is None:
         dataset_name_list = get_datasets_in_collection("pca_reference")
@@ -1123,74 +1040,6 @@ def extract_P(
         print("""No 'P[0-9]+' found in filename. Using P == default_if_not_found.""")
 
     return position_value if int_only else f"P{position_value}"
-
-
-@deprecated(
-    """
-This method is deprecated and will be removed. To provide git versioning
-information when uploading files to FMS, use the `include_git_info=True` flag
-(`True` by default) in `src.endo_pipeline.io.build_fms_annotations`.
-"""
-)
-def get_git_versioning_info() -> dict[str, str]:
-    """
-    Return versioning info about the script, including the branch
-    name, commit hash, uncommitted changes, and timestamp of when
-    the script was run.
-    """
-    # get some versioning info about when this script was run and
-    # what version of the script was used to produce the output
-    # to save alongside the output
-    # the branch name:
-    git_branch_name = (
-        subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
-        .decode("ascii")
-        .strip()
-    )
-    # the current commit hash:
-    git_commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
-    # if there were any uncommitted changes when this script was run:
-    git_uncommitted_changes = (
-        subprocess.check_output(["git", "diff", "HEAD", "--name-only"]).decode("ascii").strip()
-        or "None"
-    )
-    # the timestamp that this script was run:
-    timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %X")
-
-    git_branch_info = {
-        "timestamp": str(timestamp),
-        "git_branch_name": str(git_branch_name),
-        "git_commit_hash": str(git_commit_hash),
-        "git_uncommitted_changes": str(git_uncommitted_changes),
-    }
-    return git_branch_info
-
-
-@deprecated(
-    """
-This method is deprecated and will be removed. Git versioning info should only
-be saved with files uploaded to FMS. Use the `include_git_info=True` flag
-(`True` by default) in `src.endo_pipeline.io.build_fms_annotations` to include
-git versioning info when uploading to FMS.
-"""
-)
-def save_git_versioning_info(
-    out_dir: Path,
-    filename_prefix: str,
-    verbose: bool = True,
-) -> None:
-    """
-    Save git versioning info to a .txt file in the specified output directory.
-    The filename will be prepended with the provided filename_prefix.
-    output_dir should be a path that exists already, it will not be created.
-    """
-    git_info = get_git_versioning_info()
-    output_path = out_dir / f"{filename_prefix}_git_versioning_info.txt"
-    with output_path.open("w") as git_versioning_file:
-        for key, value in git_info.items():
-            git_versioning_file.write(f"{key}: {value}\n")
-    print(f"Git versioning info saved to {output_path}.") if verbose else None
-    return None
 
 
 def concatenate_and_save_feature_tables(

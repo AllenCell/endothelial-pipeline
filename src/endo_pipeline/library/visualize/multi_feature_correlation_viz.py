@@ -21,15 +21,12 @@ from matplotlib.ticker import MaxNLocator
 from scipy import stats as spstats
 from scipy.cluster.hierarchy import linkage
 
-from src.endo_pipeline.io.output import save_plot_to_path
-from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import get_valid_subset
-from src.endo_pipeline.library.analyze.integration.track_integration import (
+from endo_pipeline.io.output import save_plot_to_path
+from endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import get_valid_subset
+from endo_pipeline.library.analyze.integration.track_integration import (
     get_preprocessed_manifests_and_km_bounds,
 )
-from src.endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
-    add_num_nuclei_in_crop_column,
-)
-from src.endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 
 
 def add_feature_scatter_plot(
@@ -494,9 +491,6 @@ def get_df_for_feature_correlation_viz(
             dataset_name, datasets_for_bounds=dataset_name_list
         )
 
-        # add the number of nuclei columns
-        merged_feats_df = add_num_nuclei_in_crop_column(merged_feats_df, use_precomputed=True)
-
         # check that the chosen measurement column names
         # are actually in the DataFrame
         columns_to_check = classical_feature_columns + dataset_info_columns
@@ -512,7 +506,6 @@ def get_df_for_feature_correlation_viz(
         merged_feats_df_ss = get_valid_subset(
             df=merged_feats_df,
             dataset_name=dataset_name,
-            verbose=False,
         )
 
         # keep only the columns that will be used

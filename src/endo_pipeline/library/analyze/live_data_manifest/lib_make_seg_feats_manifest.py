@@ -14,17 +14,15 @@ from scipy.ndimage import gaussian_filter1d
 from skimage.measure import regionprops
 from tqdm import tqdm
 
-from src.endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.io.input import load_segmentation
-from src.endo_pipeline.library.process.general_image_preprocessing import (
+from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
+from endo_pipeline.io import get_output_path
+from endo_pipeline.io.input import load_image
+from endo_pipeline.library.model.apply_model import add_diffae_model_eval_crop_columns
+from endo_pipeline.library.process.general_image_preprocessing import (
     get_default_dim_order,
     sequence_to_scalar,
 )
-from src.endo_pipeline.manifests import (
-    get_segmentation_location_for_dataset,
-    load_segmentation_manifest,
-)
+from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +61,7 @@ def merge_measured_segmentation_features_tables(
         "cell_perimeter (px)",
         "touches_border",
     ]
-    big_table.drop(columns=duplicate_cols, inplace=True)
+    big_table = big_table.drop(columns=duplicate_cols)
 
     return big_table
 
@@ -386,8 +384,8 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
         new_cols[(ds_nm, pos)] = {
             "image_size_x": image_size_x,
             "image_size_y": image_size_y,
-            "EGFP_channel_index_zarr": data_config.channel_488_index,
-            "brightfield_channel_index_zarr": data_config.brightfield_channel_index,
+            "EGFP_channel_index_zarr": data_config.zarr_channel_indices.channel_488,
+            "brightfield_channel_index_zarr": data_config.zarr_channel_indices.brightfield,
         }
     big_table = big_table.merge(
         big_table.groupby(["dataset_name", "position"])
@@ -429,6 +427,42 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
         big_table["nuc_pos_rel_cell_Y"], big_table["nuc_pos_rel_cell_X"]
     )
     big_table["nuc_pos_rel_cell_angle_deg"] = np.rad2deg(big_table["nuc_pos_rel_cell_angle"])
+
+    # add the DiffAE crop locations and binning level; these can be used to load
+    # a crop from the zarr files and compute the number of nuclei in that crop
+    big_table = add_diffae_model_eval_crop_columns(big_table)
+
+    # compute the number of nuclei found in a defined crop size
+    # (first take a subset using only the required columns to reduce memory usage)
+    required_columns = [
+        "dataset_name",
+        "position",
+        "image_index",
+        "track_id",
+        "label",
+        "centroid_Y",
+        "centroid_X",
+        "image_size_y",
+        "image_size_x",
+        "crop_size",
+        "start_y",
+        "end_y",
+        "start_x",
+        "end_x",
+        "diffae_resolution_level_to_use",
+    ]
+    num_nuclei_in_crop_df = add_num_nuclei_in_crop_column(
+        big_table[required_columns], use_precomputed=False
+    )
+    crops = ["dataset_name", "position", "image_index", "track_id"]
+    added_cols = list(set(num_nuclei_in_crop_df.columns) - set(big_table.columns))
+    big_table = pd.merge(
+        left=big_table,
+        right=num_nuclei_in_crop_df[crops + added_cols],
+        on=crops,
+        how="left",
+        validate="one_to_one",
+    )
 
     return big_table
 
@@ -488,6 +522,10 @@ def calculate_derived_data_dynamics_dependent(big_table: pd.DataFrame) -> pd.Dat
 
     big_table["dalignment_dt_deg_rel_to_flow"] = (
         big_table["alignment_deg_rel_to_flow"].diff() / big_table["time_minutes"].diff()
+    )
+
+    big_table["cell_nuc_orientation_deg_rel_to_migration"] = (
+        big_table["nuc_pos_rel_cell_angle_deg"] - big_table["centroid_velocity_angle_deg"]
     )
 
     # add column for the number of tracks at a given
@@ -579,42 +617,11 @@ def get_nuclei_rel_to_cell_position(
 
 def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
     dataset = load_dataset_config(dataset_name)
-    manifest = load_segmentation_manifest("cdh5_classic")
+    manifest = load_image_manifest("cdh5_classic_seg")
     return {
-        timepoint: get_segmentation_location_for_dataset(
-            manifest, dataset_name, position, timepoint
-        )
+        timepoint: get_image_location_for_dataset(manifest, dataset_name, position, timepoint)
         for timepoint in range(dataset.duration)
     }
-
-
-def adjust_crop_bounds_to_0th_bin_level(
-    merged_feats_df: pd.DataFrame,
-) -> pd.DataFrame:
-    """
-    Adjust the crop bounds to the 0th level of resolution for the imaging data.
-    Context: the start_y, end_y, start_x, end_x columns that are used to define
-    a crop in the merged_feats_df DataFrame are recorded for the image at bin
-    level 1 since that is what the DiffAE model was learning at the time.
-
-    Parameters
-    ----------
-    merged_feats_df : pd.DataFrame
-        The DataFrame containing crop bound columns in the form of
-        (starty, end_y, start_x, end_x) and a column "resolution_level"
-    Returns
-    -------
-    pd.DataFrame
-        The DataFrame with the crop bounds adjusted to the 0th level of resolution.
-    """
-    # adjust the crop bounds to the 0th level of resolution
-    resolution_level = merged_feats_df["resolution_level"] + 1
-
-    merged_feats_df["start_y"] = (merged_feats_df["start_y"] * resolution_level).astype(int)
-    merged_feats_df["end_y"] = (merged_feats_df["end_y"] * resolution_level).astype(int)
-    merged_feats_df["start_x"] = (merged_feats_df["start_x"] * resolution_level).astype(int)
-    merged_feats_df["end_x"] = (merged_feats_df["end_x"] * resolution_level).astype(int)
-    return merged_feats_df
 
 
 def get_nuclei_coords(
@@ -781,17 +788,17 @@ def compute_nuclei_centroids(
 
     # get the nuclei prediction
     dim_order = get_default_dim_order()
-    seg_manifest = load_segmentation_manifest("nuclear_labelfree")
-    seg_location = get_segmentation_location_for_dataset(
+    seg_manifest = load_image_manifest("nuclear_labelfree_seg")
+    seg_location = get_image_location_for_dataset(
         manifest=seg_manifest,
         dataset_name=dataset_name,
         position=position,
         timepoint=timeframe,
     )
-    nuc_seg = load_segmentation(seg_location)
+    nuc_seg = load_image(seg_location, squeeze=False)
 
     # get nuclei segmentation properties and dimension order of those properties
-    props = regionprops(nuc_seg)
+    props = regionprops(nuc_seg.squeeze())
     dim_shapes = dict(zip(dim_order, nuc_seg.shape))
     dim_order_squeezed = "".join([d for d in dim_order if dim_shapes[d] > 1])
 
@@ -831,6 +838,7 @@ def compute_nuclei_centroids_multiproc(args: tuple[str, int, int]) -> dict:
 def add_num_nuclei_in_crop_column(
     merged_feats_df: pd.DataFrame,
     use_precomputed: bool = False,
+    max_cores: int | None = None,
 ) -> pd.DataFrame:
     """
     Add the number of nuclei in each crop to the merged features DataFrame.
@@ -860,8 +868,6 @@ def add_num_nuclei_in_crop_column(
     - "dataset_name": the name of the dataset to analyze
     - "position": the position in the dataset to analyze
     - "image_index": the timeframe in the dataset to analyze
-    - "coords_Y": the Y coordinates of the nuclei centroids
-    - "coords_X": the X coordinates of the nuclei centroids
     - "start_y": the start Y coordinate of the crop
     - "end_y": the end Y coordinate of the crop
     - "start_x": the start X coordinate of the crop
@@ -870,11 +876,6 @@ def add_num_nuclei_in_crop_column(
     nuclei coordinates to a file locally so that it does not have to
     be computed each time this function is called.
     """
-
-    # adjust the crop coordinates back to the native resolution since
-    # the label-free nuclei predictions are saved at that resolution
-    merged_feats_df = adjust_crop_bounds_to_0th_bin_level(merged_feats_df)
-
     # get the nuclei coordinates
     nuclei_centroids_dir = get_output_path(__file__, "nuclei_coords", include_timestamp=False)
     dataset_name = sequence_to_scalar(merged_feats_df["dataset_name"])
@@ -887,17 +888,25 @@ def add_num_nuclei_in_crop_column(
     # (this will take about 60 minutes divided by n_cores used)
     else:
         # compute the nuclei prediction centroids
-        max_cores = None
         groups = merged_feats_df.groupby(["dataset_name", "position", "image_index"])
         args = groups.groups.keys()
-        with concurrent.futures.ProcessPoolExecutor(max_workers=max_cores) as executor:
-            results = list(
-                tqdm(
-                    executor.map(compute_nuclei_centroids_multiproc, args),
-                    total=len(groups),
-                    desc=f"Computing nuclei centroids: {dataset_name}",
+        if max_cores == 1:
+            results = [  # type:ignore[misc]
+                compute_nuclei_centroids(dataset_name, position, timeframe)  # type:ignore[has-type]
+                for dataset_name, position, timeframe in tqdm(
+                    args,
+                    desc=f"Computing nuclei centroids (SP): {dataset_name}",
                 )
-            )
+            ]
+        else:
+            with concurrent.futures.ProcessPoolExecutor(max_workers=max_cores) as executor:
+                results = list(
+                    tqdm(
+                        executor.map(compute_nuclei_centroids_multiproc, args),
+                        total=len(groups),
+                        desc=f"Computing nuclei centroids (MP): {dataset_name}",
+                    )
+                )
         # convert results to DataFrame
         nuc_centroid_indices = pd.DataFrame(results)
         # save results for so this step doesn't have to be rerun each time
@@ -926,4 +935,6 @@ def add_num_nuclei_in_crop_column(
     merged_feats_df["num_nuclei_in_crop"] = pd.concat(
         num_nuclei_in_crop, axis=0, ignore_index=False
     )
+    # drop the nuclei coordinates lists since they are not needed anymore
+    merged_feats_df = merged_feats_df.drop(columns=["coords_Y", "coords_X"])
     return merged_feats_df

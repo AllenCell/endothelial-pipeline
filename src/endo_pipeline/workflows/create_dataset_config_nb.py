@@ -28,12 +28,10 @@ if __name__ != "__main__":
     raise ImportError("This module is a notebook and is not meant to be imported")
 
 # %%
-from src.endo_pipeline.configs import (
-    ChannelIndices,
-    DatasetConfig,
-    ValidTimepoints,
-    save_dataset_config,
-)
+from endo_pipeline.configs import PositionAnnotation  # noqa: F401, I001
+from endo_pipeline.configs import TimepointAnnotation  # noqa: F401
+from endo_pipeline.configs import ValidTimepoints  # noqa: F401
+from endo_pipeline.configs import ChannelIndices, DatasetConfig, FlowCondition, save_dataset_config
 
 # %%
 dataset = DatasetConfig(
@@ -56,24 +54,73 @@ dataset = DatasetConfig(
     shear_stress_regime="shear_stress_regime",
     pixel_size_xy_in_um=0.382,  # 3i 20X
     duration=0,
-    time_interval_in_minutes=0.0,
-    flow=[(0, 0, 0.0)],
-    n_total_positions=0,
-    original_channels=ChannelIndices(
+    time_interval_in_minutes=5.0,
+    n_total_positions=6,
+    original_channel_indices=ChannelIndices(
         brightfield=1,
         channel_488=0,
     ),
-    zarr_channels=ChannelIndices(
+    zarr_channel_indices=ChannelIndices(
         brightfield=1,
         channel_488=0,
     ),
+    flow_conditions=[
+        FlowCondition(start=0, stop=576, shear_stress=0.0),
+    ],
     # ============================ OPTIONAL FIELDS =============================
-    # flow_conditions=[[0,0,0.0]],
     # valid_timepoints=ValidTimepoints(start=[0], stop=[0]),
     # include_scenes=[0, 0, 0],
     # notes="",
+    #     timepoint_annotations={
+    #         TimepointAnnotation.BF_SCOPE_ERROR: {
+    #             0: [],
+    #             1: [],
+    #             2: [],
+    #             3: [],
+    #             4: [],
+    #             5: []
+    #         },
+    #         TimepointAnnotation.BF_TEMP_ARTIFACT: {
+    #             0: [],
+    #             1: [],
+    #             2: [],
+    #             3: [],
+    #             4: [],
+    #             5: []
+    #         },
+    #         TimepointAnnotation.CELL_PILING: {
+    #             0: [(356, 550)],
+    #             1: [(356, 550)],
+    #             2: [(356, 550)],
+    #             3: [(356, 550)],
+    #             4: [(356, 550)],
+    #             5: [(356, 550)]
+    #         },
+    #         TimepointAnnotation.XY_SHIFT: {
+    #             0: [],
+    #             1: [],
+    #             2: [],
+    #             3: [],
+    #             4: [],
+    #             5: []
+    #         },
+    #         TimepointAnnotation.Z_SHIFT: {
+    #             0: [],
+    #             1: [],
+    #             2: [],
+    #             3: [],
+    #             4: [],
+    #             5: []
+    #         },
+    #         TimepointAnnotation.UNFED: {
+    #             0: [(118, 256)],
+    #             1: [(118, 256)],
+    #             2: [(118, 256)],
+    #             3: [(118, 256)],
+    #             4: [(118, 256)],
+    #             5: [(118, 256)]
+    #         },
+    #     }
 )
-
 save_dataset_config(dataset)
-
 # %%

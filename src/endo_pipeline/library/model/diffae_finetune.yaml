@@ -1,5 +1,10 @@
+experiment_name: endo_diffae
+run_name: diffae_finetune
+task_name: train
+tags:
+- dev
 model:
-  _target_: src.endo_pipeline.library.model.DiffAEFinetune
+  _target_: endo_pipeline.library.model.DiffAEFinetune
   save_images_every_n_epochs: 10
   save_dir: null
   image_shape:
@@ -80,26 +85,18 @@ data:
     persistent_workers: false
     shuffle: true
     dataset:
-      _target_: cyto_dl.datamodules.multidim_image.MultiDimImageDataset
+      _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
       num_workers: 64
-      csv_path: null
+      dataframe_path: null
       spatial_dims: 2
       transform:
         _target_: monai.transforms.Compose
         transforms:
-        - _target_: cyto_dl.image.io.bioio_loader.BioIOImageLoaderd
+        - _target_: endo_pipeline.library.model.image_loading.BioIOImageLoaderd
           path_key: original_path
           out_key: raw
           dask_load: false
           dtype: numpy.float32
-        - _target_: monai.transforms.Zoomd
-          zoom:
-          - 0.5
-          - 0.5
-          mode: nearest
-          keep_size: false
-          keys:
-          - raw
         - _target_: monai.transforms.SplitDimd
           keys: raw
           output_postfixes:
@@ -171,38 +168,19 @@ data:
     persistent_workers: false
     shuffle: false
     dataset:
-      _target_: cyto_dl.datamodules.multidim_image.MultiDimImageDataset
+      _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
       cache_num: 0
       num_workers: 8
-      csv_path: null
+      dataframe_path: null
       spatial_dims: 3
-      dict_meta:
-        path:
-        - //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241016_230d119061e749d98c1abde77f2f4fa3/20241016_230d119061e749d98c1abde77f2f4fa3_P0.ome.zarr
-        channel:
-        - - 0
-          - 1
-        start:
-        - 0
-        stop:
-        - 1
       transform:
         _target_: monai.transforms.Compose
         transforms:
-        - _target_: cyto_dl.image.io.bioio_loader.BioIOImageLoaderd
+        - _target_: endo_pipeline.library.model.image_loading.BioIOImageLoaderd
           path_key: original_path
           out_key: raw_moving
           dask_load: true
           dtype: numpy.float32
-        - _target_: monai.transforms.Zoomd
-          zoom:
-          - 1
-          - 0.5
-          - 0.5
-          mode: nearest
-          keep_size: false
-          keys:
-          - raw_moving
         - _target_: cyto_dl.image.transforms.Projectd
           keys:
           - raw_moving
@@ -226,26 +204,18 @@ data:
     persistent_workers: false
     shuffle: false
     dataset:
-      _target_: cyto_dl.datamodules.multidim_image.MultiDimImageDataset
+      _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
       num_workers: 8
-      csv_path: null
+      dataframe_path: null
       spatial_dims: 2
       transform:
         _target_: monai.transforms.Compose
         transforms:
-        - _target_: cyto_dl.image.io.bioio_loader.BioIOImageLoaderd
+        - _target_: endo_pipeline.library.model.image_loading.BioIOImageLoaderd
           path_key: original_path
           out_key: raw
           dask_load: false
           dtype: numpy.float32
-        - _target_: monai.transforms.Zoomd
-          zoom:
-          - 0.5
-          - 0.5
-          mode: nearest
-          keep_size: false
-          keys:
-          - raw
         - _target_: monai.transforms.SplitDimd
           keys: raw
           output_postfixes:
@@ -278,6 +248,12 @@ data:
           - raw_fixed
           - raw_moving
           dtype: float16
+logger:
+  mlflow:
+    _target_: cyto_dl.loggers.MLFlowLogger
+    tracking_uri: https://production.int.allencell.org/mlflow/
+    experiment_name: ${experiment_name}
+    run_name: ${run_name}
 trainer:
   _target_: lightning.Trainer
   default_root_dir: null
@@ -291,12 +267,13 @@ trainer:
   max_time: null
   num_sanity_val_steps: 1
   gradient_clip_val: 5
+  enable_model_summary: False
 callbacks:
   model_checkpoint:
     _target_: lightning.pytorch.callbacks.ModelCheckpoint
     dirpath: null
     filename: epoch_{epoch:03d}
-    monitor: val/loss
+    monitor: null
     verbose: false
     save_last: true
     save_top_k: 1
@@ -307,9 +284,7 @@ callbacks:
     train_time_interval: null
     every_n_epochs: 1
     save_on_train_epoch_end: null
-  model_summary:
-    _target_: lightning.pytorch.callbacks.RichModelSummary
-    max_depth: -1
+  model_summary: null
   rich_progress_bar:
     _target_: lightning.pytorch.callbacks.RichProgressBar
   prediction_saver:
@@ -334,9 +309,6 @@ extras:
   precision:
     _target_: torch.set_float32_matmul_precision
     precision: medium
-task_name: train
-tags:
-- dev
 checkpoint:
   ckpt_path: null
   weights_only: null

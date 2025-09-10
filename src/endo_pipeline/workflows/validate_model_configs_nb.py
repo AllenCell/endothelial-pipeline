@@ -27,20 +27,20 @@ if __name__ != "__main__":
 # %%
 import logging
 
-from src.endo_pipeline.configs import (
+from endo_pipeline.configs import (
     CytoDLModelConfig,
     get_available_model_names,
     load_dataset_config,
     load_model_config,
     validate_model_config,
 )
-from src.endo_pipeline.io import load_dataframe_from_fms
+from endo_pipeline.io import load_dataframe_from_fms
 
 # try to import from a module that requires
 # the ml_workflows extra dependencies
 # if this fails, raise an ImportError with a helpful message
 try:
-    from src.endo_pipeline.library.model import get_ckpt_path
+    from endo_pipeline.library.model import get_ckpt_path
 except ImportError as e:
     raise ImportError(
         "This notebook requires the `ml_workflows` extra dependencies to run. "
@@ -51,7 +51,7 @@ except ImportError as e:
 DEFAULT_TRACKING_URI = "https://production.int.allencell.org/mlflow/"
 
 # filter out INFO-level messages from srrc.endo_pipeline.io.input
-logging.getLogger("src.endo_pipeline.io.input").setLevel(logging.WARNING)
+logging.getLogger("endo_pipeline.io.input").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)

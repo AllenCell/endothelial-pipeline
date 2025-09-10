@@ -4,12 +4,14 @@ import logging
 import re
 from pathlib import Path
 
-from src.endo_pipeline.configs import (
+from endo_pipeline.configs import (
     DatasetCollectionConfig,
     DatasetConfig,
     MicroscopeType,
     ObjectiveType,
+    PositionAnnotation,
     SampleType,
+    TimepointAnnotation,
     load_all_dataset_configs,
     load_dataset_collection_config,
     load_dataset_config,
@@ -163,6 +165,55 @@ def get_duration_at_flow(dataset: DatasetConfig, shear_stress: float) -> int:
             duration = duration + (condition.stop - condition.start)
 
     return duration
+
+
+def get_annotated_positions(
+    dataset: DatasetConfig, annotations: list[PositionAnnotation] | None = None
+) -> list[int]:
+    """Get all positions for given annotations."""
+
+    annotated_positions: list[int] = []
+
+    if dataset.position_annotations is None:
+        logger.info("Dataset [ %s ] does not have any annotated positions", dataset.name)
+        return annotated_positions
+
+    for annotation, positions in dataset.position_annotations.items():
+        if annotations is None or annotation in annotations:
+            annotated_positions.extend(positions)
+
+    return annotated_positions
+
+
+def get_annotated_timepoints_for_position(
+    dataset: DatasetConfig, position: int, annotations: list[TimepointAnnotation] | None = None
+) -> list[int]:
+    """Get all timepoints for given annotations at the given position."""
+
+    annotated_timepoints: list[int] = []
+
+    if dataset.timepoint_annotations is None:
+        logger.info("Dataset [ %s ] does not have any annotated timepoints", dataset.name)
+        return annotated_timepoints
+
+    for annotation, positions in dataset.timepoint_annotations.items():
+        if position not in positions:
+            logger.info(
+                "Dataset [ %s ] does not have any [ %s ] annotations for position [ %d ]",
+                dataset.name,
+                annotation.value,
+                position,
+            )
+            continue
+
+        if annotations is None or annotation in annotations:
+            for timepoint in positions[position]:
+                if isinstance(timepoint, int):
+                    annotated_timepoints.append(timepoint)
+                else:
+                    annotated_timepoints.extend(list(range(timepoint[0], timepoint[1] + 1)))
+
+    return sorted(set(annotated_timepoints))
 
 
 def get_filtered_dataset_collection_name(
