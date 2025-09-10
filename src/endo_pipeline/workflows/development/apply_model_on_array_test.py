@@ -74,14 +74,16 @@ if __name__ == "__main__":
 
     ds = "20250428_20X"
     position = 0
-    model_name = "diffae_04_10"
 
     df_precomp = track_integration.get_preprocessed_manifests_and_km_bounds(dataset_name=ds)[1]
+    df_precomp = df_precomp.query("position == @position").reset_index(drop=True)
     df_precomp["position"] = df_precomp["position"].transform(extract_P)
-    samples = df_precomp.query("position==@position").sample(n=12, random_state=0)
+    crop_size_x = sequence_to_scalar(df_precomp.crop_size_x)
+    crop_size_y = sequence_to_scalar(df_precomp.crop_size_y)
 
-    crop_size_x = sequence_to_scalar(samples.crop_size_x)
-    crop_size_y = sequence_to_scalar(samples.crop_size_y)
+    model_name = sequence_to_scalar(df_precomp["model_name"])
+
+    samples = df_precomp.sample(n=12, random_state=0)
 
     img_arr_crop_bf_list = get_image_crop_for_model(
         dataset_name=ds,
