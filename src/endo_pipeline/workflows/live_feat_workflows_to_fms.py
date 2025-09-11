@@ -180,7 +180,7 @@ def main(
         "nuclei_labelfree",
         "merged_live_data_manifests",
     ],
-    dataset_name_list: list | None = None,
+    datasets: str | None = None,
     endo_project_analysis_dir: (
         str | Path
     ) = "//allen/aics/endothelial/morphological_features/analysis",
@@ -202,10 +202,12 @@ def main(
         "nuclei_labelfree": fms_upload_nuc_get_measured_features,
         "merged_live_data_manifests": fms_upload_make_seg_feats_manifest,
     }
-    if dataset_name_list is None:
+    if datasets is None:
         # Get the list of all analyzed datasets
-        dataset_name_list = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
+        datasets = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
     else:
+        datasets = datasets.split(",")
+        print(f"Uploading {datasets}")
         pass
 
     all_available_datasets = load_all_dataset_configs()
@@ -230,7 +232,7 @@ def main(
         },
     }
 
-    for dataset_name in tqdm(dataset_name_list):
+    for dataset_name in tqdm(datasets):
         assert dataset_name in available_live_datasets, (
             f"Dataset {dataset_name} is not in the list of available live datasets: "
             f"{available_live_datasets}"
