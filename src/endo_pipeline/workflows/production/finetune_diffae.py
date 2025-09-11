@@ -28,7 +28,6 @@ def main(
         MLflow run ID and the list of datasets used for training.
     """
     import logging
-    from pathlib import Path
     from typing import cast
 
     from omegaconf import OmegaConf
