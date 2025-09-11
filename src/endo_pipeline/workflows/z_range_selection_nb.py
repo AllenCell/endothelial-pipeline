@@ -1,5 +1,5 @@
 # %%
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
 from endo_pipeline.io.output import get_output_path
 from endo_pipeline.library.process.z_stack_selection import (
     plot_histogram_upper_slices_available,
@@ -9,28 +9,7 @@ from endo_pipeline.library.process.z_stack_selection import (
 from endo_pipeline.settings import LOWER_Z_SLICE_OFFSET, UPPER_Z_SLICE_OFFSET
 
 # %%
-datasets = [
-    # "20241120_20X", # To be excluded
-    # "20241217_20X", # To be excluded
-    "20250224_20X",
-    "20250319_20X",
-    "20250326_20X",
-    "20250331_20X",
-    "20250402_20X",
-    "20250409_20X",
-    "20250428_20X",
-    "20250604_20X",
-    "20250611_20X",
-    "20250618_20X",
-    "20250714_20X",
-    "20250716_20X",
-    "20250728_20X",
-    "20250806_20X",
-    "20250813_20X",
-    "20250818_20X",
-    "20250825_20X",
-    "20250827_20X",
-]
+datasets = get_datasets_in_collection("timelapse")
 
 # %%
 save_dir = get_output_path(
