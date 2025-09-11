@@ -84,17 +84,20 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
     return output_path
 
 
-def make_path_name_unique(path: Path) -> Path:
+def make_name_unique(path: Path | str) -> Path:
     """
     Make name of the given file path unique by appending a timestamp.
 
     Examples
     --------
-    >>> make_path_name_unique(Path("/path/to/file.png"))
+    >>> make_name_unique(Path("/path/to/file.png"))
     Path("/path/to/file_YYYYMMDD_HHmmss.png")
 
-    >>> make_path_name_unique(Path("/path/to/file.ome.zarr"))
+    >>> make_name_unique(Path("/path/to/file.ome.zarr"))
     Path("/path/to/file_YYYYMMDD_HHmmss.ome.zarr")
+
+    >>> make_name_unique("/path/to/file.tiff")
+    Path("/path/to/file_YYYYMMDD_HHmmss.tiff")
 
     Parameters
     ----------
@@ -107,6 +110,7 @@ def make_path_name_unique(path: Path) -> Path:
         Modified file path with unique file name.
     """
 
+    path = Path(path)
     suffixes = "".join(path.suffixes)
     original_name = path.name.split(".")[0]
     timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("_%Y%m%d_%H%M%S")
@@ -245,7 +249,7 @@ def upload_file_to_fms(
     # current file upload to create a unique name.
     logger.debug("Checking if [ %s ] already exists in FMS", file_path)
     record = list(FMS.find(annotations={FMS_FILE_NAME: file_path.name}))
-    file_name = make_path_name_unique(file_path).name if record else file_path.name
+    file_name = make_name_unique(file_path).name if record else file_path.name
 
     logger.debug("Starting upload of [ %s ] to FMS as [ %s ]", file_path, file_name)
     fms_file = FMS.upload_file(

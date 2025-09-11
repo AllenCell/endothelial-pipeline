@@ -35,7 +35,7 @@ def main(
 
     from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import CytoDLModelConfig, load_model_config, save_model_config
-    from endo_pipeline.io import get_output_path, make_path_name_unique
+    from endo_pipeline.io import get_output_path, make_name_unique
     from endo_pipeline.library.model import (
         download_mlflow_artifact,
         get_ckpt_path,
@@ -103,7 +103,7 @@ def main(
     # initialize model for finetuning
     finetuned_model_name = f"{model_name}_finetuned_for_{dataset_pair_type}"
     # get unique model name to avoid overwriting existing configs
-    finetuned_model_name_unique = make_path_name_unique(Path(finetuned_model_name)).as_posix()
+    finetuned_model_name_unique = make_name_unique(finetuned_model_name).as_posix()
     model = initialize_diffae_model_for_finetuning(
         template_finetune_config=template_finetune_config,
         finetuned_model_name=finetuned_model_name_unique,

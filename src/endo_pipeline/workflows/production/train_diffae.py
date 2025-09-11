@@ -53,7 +53,7 @@ def main(
 
     from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import CytoDLModelConfig, save_model_config
-    from endo_pipeline.io import get_output_path, make_path_name_unique
+    from endo_pipeline.io import get_output_path, make_name_unique
     from endo_pipeline.library.model import (
         get_dataset_names_used_for_training,
         get_model_dir,
@@ -114,7 +114,7 @@ def main(
     else:
         model_name = f"{model_name}_include_cell_piling"
     # append timestamp to get unique model name
-    model_name_unique = make_path_name_unique(Path(model_name)).as_posix()
+    model_name_unique = make_name_unique(model_name).as_posix()
     logger.info("Model name: [ %s ]", model_name)
 
     # initialize DiffAE model: generates config overrides and sets up output directories
