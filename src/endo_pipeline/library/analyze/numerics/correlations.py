@@ -15,6 +15,8 @@ from endo_pipeline.manifests import DataframeManifest
 logger = logging.getLogger(__name__)
 
 CROSS_CORR_INDEX_COMBINATIONS = [(0, 1), (0, 2), (1, 2)]
+# use lags going from - to + {num_timepoints}/NUM_TIMEPOINT_FRAC for CCF/ACF calculation
+NUM_TIMEPOINT_FRAC = 4
 
 
 def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -> np.ndarray:
@@ -22,10 +24,14 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
     num_traj = data_feat1.shape[0]
     num_timepoints = data_feat1.shape[1]
 
-    # pad 0s to nearest power of 2 to 2*num_timepoints-1
+    # Get nearest power of 2 greater than 2*num_timepoints-1.
+    # This is to pass into np.fft.fft to pad the signal with
+    # zeros for efficient FFT computation (Cooley-Tukey algorithm)
     num_pad = 2 ** int(np.ceil(np.log2(2 * num_timepoints - 1)))
 
     for traj_index in range(num_traj):
+        # Center data by subtracting mean, get standard deviation
+        # for normalization of CCF.
         data_mean1 = np.mean(data_feat1[traj_index])
         data_stdev1 = np.std(data_feat1[traj_index])
         x_t_i_ctr = data_feat1[traj_index] - data_mean1
@@ -34,57 +40,44 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
         data_stdev2 = np.std(data_feat2[traj_index])
         x_t_j_ctr = data_feat2[traj_index] - data_mean2
 
+        # By the convolution theorem, the CCF is the inverse FFT of the cross power spectrum
+        # (i.e., X1^{*}(f) * X2(f) where X1 and X2 are the FFTs of the two signals).
+
+        # Get the FFT of the centered data, padding with zeros to length num_pad.
         cf_1 = np.fft.fft(x_t_i_ctr, n=num_pad)
         cf_2 = np.fft.fft(x_t_j_ctr, n=num_pad)
-        sf = cf_1.conjugate() * cf_2
-        corr = np.fft.ifft(sf).real / (data_stdev1 * data_stdev2 * num_timepoints)
-        # running sum over trajectories
-        if traj_index == 0:
-            corr_shifted = np.fft.fftshift(corr)[
-                num_pad // 2 - (num_timepoints // 4 - 1) : num_pad // 2 + (num_timepoints // 4)
-            ]
-        else:
-            corr_shifted = (
-                corr_shifted
-                + np.fft.fftshift(corr)[
-                    num_pad // 2 - (num_timepoints // 4 - 1) : num_pad // 2 + (num_timepoints // 4)
-                ]
-            )
+        # Compute the cross power spectrum of the padded signals (normalized by num_timepoints).
+        sf = cf_1.conjugate() * cf_2 / num_timepoints
 
-    return corr_shifted / num_traj
+        # Compute the inverse FFT of the power spectrum to get the CCF,
+        # normalizing by product of standard deviations (definition of scaled CCF)
+        corr_unshifted = np.fft.ifft(sf).real / (data_stdev1 * data_stdev2)
+
+        # Shift the CCF so that zero lag is in the center of the array.
+        corr_shifted = np.fft.fftshift(corr_unshifted)
+        # Extract the middle half of the CCF (corresponding to lags going from
+        # - to + num_timepoints / NUM_TIMEPOINT_FRAC) to get the actual CCF of the un-padded signal.
+        index_lb = num_pad // 2 - (num_timepoints // NUM_TIMEPOINT_FRAC - 1)
+        index_ub = num_pad // 2 + (num_timepoints // NUM_TIMEPOINT_FRAC)
+        corr = corr_shifted[index_lb:index_ub]
+
+        # Running sum over trajectories to get average.
+        if traj_index == 0:
+            corr_sum = corr
+        else:
+            corr_sum = corr_sum + corr
+
+    # Return average over number of trajectories.
+    return corr_sum / num_traj
 
 
 def autocorrelation_function(data: np.ndarray, component_index: int) -> np.ndarray:
     """Get the normalized autocorrelation function (ACF) for a specific component."""
+    # Extract the specified component from the data array.
     x_t_j = data[..., component_index]
-    num_traj = data.shape[0]
-    num_timepoints = data.shape[1]
 
-    # pad 0s to nearest power of 2 to 2*num_timepoints-1
-    num_pad = 2 ** int(np.ceil(np.log2(2 * num_timepoints - 1)))
-
-    for traj_index in range(num_traj):
-        data_mean = np.mean(x_t_j[traj_index])
-        data_var = np.var(x_t_j[traj_index])
-        x_t_j_ctr = x_t_j[traj_index] - data_mean
-
-        cf = np.fft.fft(x_t_j_ctr, n=num_pad)
-        sf = cf.conjugate() * cf
-        corr = np.fft.ifft(sf).real / (data_var * num_timepoints)
-        # running sum over trajectories
-        if traj_index == 0:
-            corr_shifted = np.fft.fftshift(corr)[
-                num_pad // 2 - (num_timepoints // 4 - 1) : num_pad // 2 + (num_timepoints // 4)
-            ]
-        else:
-            corr_shifted = (
-                corr_shifted
-                + np.fft.fftshift(corr)[
-                    num_pad // 2 - (num_timepoints // 4 - 1) : num_pad // 2 + (num_timepoints // 4)
-                ]
-            )
-
-    return corr_shifted / num_traj
+    # Pass to cross_correlation_function with itself to get ACF.
+    return cross_correlation_function(x_t_j, x_t_j)
 
 
 def fit_exp_decay_and_get_relaxation_timescale(
@@ -336,10 +329,14 @@ def _compute_correlations_for_one_dataset(
     # make sure lags are symmetric around zero
     if num_timepoints % 2 == 0:
         # even number of timepoints
-        lags = np.arange(-num_timepoints // 4 + 1, num_timepoints // 4)
+        lags = np.arange(
+            -num_timepoints // NUM_TIMEPOINT_FRAC + 1, num_timepoints // NUM_TIMEPOINT_FRAC
+        )
     else:
         # odd number of timepoints
-        lags = np.arange(-num_timepoints // 4 + 2, num_timepoints // 4)
+        lags = np.arange(
+            -num_timepoints // NUM_TIMEPOINT_FRAC + 2, num_timepoints // NUM_TIMEPOINT_FRAC
+        )
 
     num_lags = len(lags)
     # autocorrelation
