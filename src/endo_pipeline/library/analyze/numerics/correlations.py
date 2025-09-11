@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 CROSS_CORR_INDEX_COMBINATIONS = [(0, 1), (0, 2), (1, 2)]
 # use lags going from - to + {num_timepoints}/NUM_TIMEPOINT_FRAC for CCF/ACF calculation
-NUM_TIMEPOINT_FRAC = 4
+NUM_TIMEPOINT_FRAC = 2
 
 
 def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -> np.ndarray:
