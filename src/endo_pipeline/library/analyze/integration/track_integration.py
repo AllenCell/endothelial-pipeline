@@ -169,6 +169,12 @@ def merge_diffae_feats_liveseg_feats_tables(
     )
     live_seg_feats_df["track_id"] = live_seg_feats_df["track_id"].astype(int)
 
+    # there are columns with the same names in some cases, so make them unique
+    cols_to_rename_live_seg = {
+        col: f"{col}_level0" for col in ["start_y", "start_x", "end_y", "end_x", "crop_size"]
+    }
+    live_seg_feats_df = live_seg_feats_df.rename(columns=cols_to_rename_live_seg)
+
     logging.debug("merging segmentation properties and track-based DiffAE data...")
     merged_feats_df = pd.merge(
         left=live_seg_feats_df,

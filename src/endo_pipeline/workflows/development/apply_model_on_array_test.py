@@ -1,6 +1,7 @@
 from typing import Literal, Sequence
 
 import numpy as np
+import pandas as pd
 
 from endo_pipeline.configs.dataset_io import extract_P
 from endo_pipeline.io import load_dataframe
@@ -73,43 +74,38 @@ def get_image_crop_for_model(
     return img_arr_crop_bf_list
 
 
+def preprocess_column_names_for_model(df_precomp: pd.DataFrame) -> pd.DataFrame:
+    if not df_precomp["position"].astype(str).str.isdigit().all():
+        df_precomp["position"] = df_precomp["position"].transform(extract_P)
+    if "frame_number" not in df_precomp.columns:
+        df_precomp["frame_number"] = df_precomp["image_index"]
+    return df_precomp
+
+
 if __name__ == "__main__":
 
     ds = "20241120_20X"
     position = 0
 
+    kind = "cell"
+    df_kind = {"cell": 0, "grid": 1}
+
     # load the manifest for the given dataset and filter for the given position
-    df_precomp = track_integration.get_preprocessed_manifests_and_km_bounds(dataset_name=ds)[1]
-    # df_manifest = load_dataframe_manifest("live_merged_seg_features")
-    # df_location = get_dataframe_location_for_dataset(df_manifest, ds)
-    # df_precomp = load_dataframe(df_location)
-    # df_precomp = df_precomp.query("bbox_is_in_bounds")
-    if not df_precomp["position"].astype(str).str.isdigit().all():
-        df_precomp["position"] = df_precomp["position"].transform(extract_P)
+    df_precomp = track_integration.get_preprocessed_manifests_and_km_bounds(ds)[df_kind[kind]]
+
+    df_precomp = preprocess_column_names_for_model(df_precomp)  # type:ignore
     df_precomp = df_precomp.query("position == @position")
-    if "crop_size_x" in df_precomp.columns and "crop_size_y" in df_precomp.columns:
-        crop_size_x = sequence_to_scalar(df_precomp.crop_size_x)
-        crop_size_y = sequence_to_scalar(df_precomp.crop_size_y)
-    else:
-        crop_size_x = sequence_to_scalar(df_precomp["end_x"] - df_precomp["start_x"])
-        crop_size_y = sequence_to_scalar(df_precomp["end_y"] - df_precomp["start_y"])
-    if "model_name" in df_precomp.columns:
-        model_name = sequence_to_scalar(df_precomp["model_name"])
-    else:
-        model_name = "diffae_04_10"
+    crop_size_x = int(sequence_to_scalar(df_precomp.crop_size_x))
+    crop_size_y = int(sequence_to_scalar(df_precomp.crop_size_y))
+    model_name = sequence_to_scalar(df_precomp["model_name"])
 
     samples = df_precomp.sample(n=1, random_state=42)
-
-    if "frame_number" in df_precomp.columns:
-        timeframe_list = samples.frame_number.values.tolist()
-    else:
-        timeframe_list = samples.image_index.values.tolist()
 
     # load the images for the given dataset and position and crop them according to the manifest
     img_arr_crop_bf_list = get_image_crop_for_model(
         dataset_name=ds,
         position=position,
-        timeframe_list=timeframe_list,
+        timeframe_list=samples.frame_number.values.tolist(),
         start_x_list=samples.start_x.values.tolist(),
         start_y_list=samples.start_y.values.tolist(),
         crop_size_x=crop_size_x,
