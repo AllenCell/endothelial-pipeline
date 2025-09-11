@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from dask.array import Array
+from matplotlib import colormaps
 from matplotlib.ticker import MaxNLocator
 
 from endo_pipeline.configs import DatasetConfig, get_zarr_file_for_position, load_dataset_config
@@ -686,3 +687,133 @@ def plot_histogram_upper_slices_available(datasets: list[str], save_dir: Path) -
 
     plt.show()
     save_plot_to_path(fig, save_dir, "available_slices_above_center_histogram")
+
+
+def compute_profiles(zarr_file, center_slice: int, timepoint: int):
+    """Compute normalized BF std and CDH5 hist profiles for a given position/timepoint."""
+
+    # Load stacks
+    bf_stack = load_zarr_as_dask_array(
+        zarr_file, channels=["BF"], timepoints=timepoint, level=1, squeeze=True
+    )
+    cdh5_stack = load_zarr_as_dask_array(
+        zarr_file, channels=["EGFP"], timepoints=timepoint, level=1, squeeze=True
+    )
+
+    # Calculate histograms
+    cdh5_hist = np.array(
+        [np.sum(cdh5_stack[z, :, :].compute()) for z in range(cdh5_stack.shape[0])]
+    )
+    bf_std = np.array([np.std(bf_stack[z, :, :].compute()) for z in range(bf_stack.shape[0])])
+
+    # Normalize
+    normalized_x = np.arange(len(bf_std)) - center_slice
+    bf_std_norm = bf_std / bf_std[center_slice] if bf_std[center_slice] != 0 else bf_std
+    cdh5_hist_norm = cdh5_hist / np.max(cdh5_hist) if np.max(cdh5_hist) != 0 else cdh5_hist
+
+    return normalized_x, bf_std_norm, cdh5_hist_norm
+
+
+def plot_normalized_profiles(
+    datasets: list[str],
+    timepoints: list[int],
+    save_dir: Path,
+    mode: str = "by_position",
+    lower_offset: int = LOWER_Z_SLICE_OFFSET,
+    upper_offset: int = UPPER_Z_SLICE_OFFSET,
+) -> None:
+    """
+    Plot normalized BF std and CDH5 hist profiles.
+
+    Args:
+        datasets: list of dataset names
+        timepoints: list of timepoints (e.g., [0, 90, 180, 270])
+        positions: list of positions (used in 'by_dataset' mode)
+        mode: "by_position" -> loop positions, inner loop datasets
+              "by_dataset"  -> loop datasets, inner loop positions
+        lower_offset, upper_offset: z-slice offsets
+    """
+
+    colormap = colormaps["tab20"]
+    colors = [colormap(i / len(datasets)) for i in range(len(datasets))]
+
+    if mode == "by_position":
+        for timepoint in timepoints:
+            for position in range(6):
+                fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+                for i, dataset in enumerate(datasets):
+                    dataset_config = load_dataset_config(dataset)
+                    if dataset_config.center_z_plane is None:
+                        print(f"Center slice is None for dataset {dataset_config.name}, skipping")
+                        continue
+                    center_slice = dataset_config.center_z_plane[position]
+                    zarr_file = get_zarr_file_for_position(dataset_config, position)
+
+                    x, bf_std_norm, cdh5_hist_norm = compute_profiles(
+                        zarr_file, center_slice, timepoint
+                    )
+
+                    axes[0].plot(x, bf_std_norm, color=colors[i])
+                    axes[1].plot(x, cdh5_hist_norm, label=dataset_config.name, color=colors[i])
+
+                # formatting + vlines
+                axes[0].set_xlabel("Normalized Z Slice (Center = 0)")
+                axes[0].set_ylabel("Normalized BF Standard Deviation")
+                axes[0].set_ylim(0.99, 1.35)
+
+                axes[1].set_xlabel("Normalized Z Slice (Center = 0)")
+                axes[1].set_ylabel("Normalized CDH5 Total Intensity")
+                axes[1].set_ylim(0.84, 1.1)
+                axes[1].legend(bbox_to_anchor=(1.05, 0.5), loc="center left", borderaxespad=0.0)
+
+                plot_vlines(axes[0], 0, lower_offset, upper_offset, *axes[0].get_ylim())
+                plot_vlines(axes[1], 0, lower_offset, upper_offset, *axes[1].get_ylim())
+
+                plt.suptitle(
+                    f"Position {position} TP {timepoint}, Offset -{lower_offset} to +{upper_offset}"
+                )
+                save_plot_to_path(fig, save_dir, f"pos{position}_tp{timepoint}_normalized_profiles")
+                plt.show()
+
+    elif mode == "by_dataset":
+        for timepoint in timepoints:
+            for dataset in datasets:
+                dataset_config = load_dataset_config(dataset)
+
+                fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+                for position in dataset_config.zarr_positions:
+                    center_slice = dataset_config.center_z_plane[position]
+                    zarr_file = get_zarr_file_for_position(dataset_config, position)
+
+                    x, bf_std_norm, cdh5_hist_norm = compute_profiles(
+                        zarr_file, center_slice, timepoint
+                    )
+
+                    axes[0].plot(x, bf_std_norm)
+                    axes[1].plot(x, cdh5_hist_norm, label=f"P{position}")
+
+                # formatting + vlines
+                axes[0].set_xlabel("Normalized Z Slice (Center = 0)")
+                axes[0].set_ylabel("Normalized BF Standard Deviation")
+                axes[0].set_ylim(0.99, 1.35)
+
+                axes[1].set_xlabel("Normalized Z Slice (Center = 0)")
+                axes[1].set_ylabel("Normalized CDH5 Total Intensity")
+                axes[1].set_ylim(0.84, 1.1)
+                axes[1].legend(bbox_to_anchor=(1.05, 0.5), loc="center left", borderaxespad=0.0)
+
+                plot_vlines(axes[0], 0, lower_offset, upper_offset, *axes[0].get_ylim())
+                plot_vlines(axes[1], 0, lower_offset, upper_offset, *axes[1].get_ylim())
+
+                plt.suptitle(
+                    f"{dataset_config.name} TP {timepoint}, Offset -{lower_offset} to +{upper_offset}"
+                )
+                save_plot_to_path(
+                    fig, save_dir, f"{dataset_config.name}_tp{timepoint}_normalized_profiles"
+                )
+                plt.show()
+
+    else:
+        raise ValueError("mode must be 'by_position' or 'by_dataset'")
