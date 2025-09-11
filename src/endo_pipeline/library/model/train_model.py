@@ -1,4 +1,3 @@
-import datetime
 import logging
 import os
 from pathlib import Path
@@ -221,11 +220,10 @@ def _upload_zarr_dataframe_to_fms(
 ) -> str:
     # save the dataframes to parquet files locally as intermediates
     # use timestamp to ensure unique filenames
-    timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y%m%d_%H%M")
-    output_filename = f"{dataset_type}_resolution_{resolution_level}_{timestamp}.parquet"
+    output_filename = f"{dataset_type}_resolution_{resolution_level}.parquet"
     output_path = output_savedir / output_filename
     dataframe.to_parquet(output_path, index=False)
-    logger.debug("Saved % s dataframe to \n %s", dataset_type, output_path)
+    logger.debug("Saved [ %s ] dataframe to \n %s", dataset_type, output_path)
 
     # upload dataframes to fms
     logger.debug("Building FMS annotations for training and validation dataframes...")
