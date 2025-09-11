@@ -204,10 +204,10 @@ def main(
     }
     if datasets is None:
         # Get the list of all analyzed datasets
-        datasets = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
+        dataset_name_list = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
     else:
-        datasets = datasets.split(",")
-        print(f"Uploading {datasets}")
+        dataset_name_list = datasets.split(",")
+        print(f"Uploading {dataset_name_list}")
         pass
 
     all_available_datasets = load_all_dataset_configs()
@@ -232,7 +232,7 @@ def main(
         },
     }
 
-    for dataset_name in tqdm(datasets):
+    for dataset_name in tqdm(dataset_name_list):
         assert dataset_name in available_live_datasets, (
             f"Dataset {dataset_name} is not in the list of available live datasets: "
             f"{available_live_datasets}"

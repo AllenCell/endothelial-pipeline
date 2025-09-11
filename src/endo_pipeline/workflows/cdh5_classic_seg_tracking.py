@@ -11,7 +11,7 @@ from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
     extract_T,
-    fire_parse_generate_dataset_name_list,
+    parse_generate_dataset_name_user_input,
     get_original_path,
     get_zarr_name,
     get_zarr_path,
@@ -114,7 +114,7 @@ def main(
 
     out_dir = get_output_path(__file__)
 
-    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
+    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
 
     configure_logging(out_dir, logger, verbose=verbose)
     logger.info(f"datasets analyzed: {dataset_name_list}")

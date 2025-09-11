@@ -7,7 +7,7 @@ from bioio import BioImage
 from bioio.writers.timeseries_writer import TimeseriesWriter
 
 from endo_pipeline.configs.dataset_io import (
-    fire_parse_generate_dataset_name_list,
+    parse_generate_dataset_name_user_input,
     ipython_cli_flexecute,
 )
 from endo_pipeline.library.process import cdh5_preprocessing as preproc
@@ -49,7 +49,7 @@ def main(
     is_test: bool = False,
 ) -> None:
 
-    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
+    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
 
     for dataset_name in dataset_name_list:
         # create some paths of interest

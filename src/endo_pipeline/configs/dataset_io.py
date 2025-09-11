@@ -812,21 +812,8 @@ def get_tracking_data_filtered(dataset_name_list: list, as_dask: bool = False) -
     return tracking_dataframe
 
 
-# fire argparsing methods
-def fire_parse_list_from_CLI(fire_str_or_list_like_input: Sequence) -> list[str]:
-    if isinstance(fire_str_or_list_like_input, str):
-        list_of_strings = [fire_str_or_list_like_input]
-    elif isinstance(fire_str_or_list_like_input, Sequence):
-        list_of_strings = list(fire_str_or_list_like_input)
-    else:
-        raise ValueError(
-            f"Invalid input {fire_str_or_list_like_input}. Must be a string or list of strings."
-        )
-    return list_of_strings
-
-
-def fire_parse_generate_dataset_name_list(
-    fire_dataset_name_input: Sequence | None,
+def parse_generate_dataset_name_user_input(
+    dataset_name_user_input: str | None,
 ) -> list[str]:
     """
     Parse a list of dataset names from the command line.
@@ -834,13 +821,15 @@ def fire_parse_generate_dataset_name_list(
     If it is a string, it will be turned into a list of strings.
     If it is a list of strings, it will be returned as is.
 
-    To enter a list of datasets to analyze, use the following format:
-    '\"20241217_20X\",\"20241120_20X\"'
+    To enter a list of datasets to analyze, use the following format (either with or
+    without quotation marks):
+    '20241217_20X,20241120_20X'
     """
-    if fire_dataset_name_input is None:
+    if dataset_name_user_input is None:
         dataset_name_list = get_datasets_in_collection("pca_reference")
     else:
-        dataset_name_list = fire_parse_list_from_CLI(fire_dataset_name_input)
+        # dataset_name_list = fire_parse_list_from_CLI(fire_dataset_name_input)
+        dataset_name_list = dataset_name_user_input.split(",")
 
     # check that the dataset names are valid
     available_datasets = get_available_dataset_names()
@@ -937,9 +926,11 @@ def ipython_cli_flexecute(
             raise NameError
     except NameError:
         print("Using non-interactive shell.")
-        import fire
+        # import fire
+        from endo_pipeline.__main__ import workflow_cli
 
-        results = fire.Fire(function)
+        # results = fire.Fire(function)
+        results = workflow_cli(function)
 
     return results if return_results else None
 
