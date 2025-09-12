@@ -96,7 +96,6 @@ def generate_overrides_for_model_eval(
     dataset_name: str,
     model_name: str,
     prediction_filename_suffix: str | None = None,
-    num_workers: int = 128,
 ) -> dict:
     """
     Generate overrides for the CytoDLModel configuration
@@ -108,7 +107,6 @@ def generate_overrides_for_model_eval(
         # and might be slow to instantiate (e.g. if they cache data)
         "data.train_dataloaders": None,
         "data.val_dataloaders": None,
-        "data.predict_dataloaders.num_workers": num_workers,
         "data.predict_dataloaders.dataset.dataframe_path": data_path,
         "paths.output_dir": save_path,
         # change checkpoint path to the one downloaded from mlflow
@@ -561,8 +559,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
     # apply overrides
     prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features"
-    num_workers = 64
-    logger.debug("Using [ %d ] workers for data loading.", num_workers)
     overrides = generate_overrides_for_model_eval(
         load_overrides(user_overrides),
         save_path=save_path.as_posix(),
@@ -571,7 +567,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         dataset_name=dataset_config.name,
         model_name=model_config.name,
         prediction_filename_suffix=prediction_filename_suffix,
-        num_workers=num_workers,
     )
     model.override_config(overrides)
     local_config_save_path = get_output_path("models", "evaluation_configs")
