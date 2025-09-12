@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Callable
 from pathlib import Path
-from typing import cast
+from typing import Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -672,7 +672,7 @@ def plot_histogram_upper_slices_available(datasets: list[str], save_dir: Path) -
         fontsize=10,
         verticalalignment="top",
         horizontalalignment="right",
-        bbox=dict(facecolor="white", alpha=0.8),
+        bbox={"facecolor": "white", "alpha": 0.8},
     )
 
     plt.show()
@@ -708,24 +708,35 @@ def plot_normalized_profiles(
     datasets: list[str],
     timepoints: list[int],
     save_dir: Path,
-    mode: str = "by_position",
+    mode: Literal["by_position", "by_dataset"] = "by_position",
     lower_offset: int = LOWER_Z_SLICE_OFFSET,
     upper_offset: int = UPPER_Z_SLICE_OFFSET,
 ) -> None:
     """
     Plot normalized BF std and CDH5 hist profiles.
 
-    Args:
-        datasets: list of dataset names
-        timepoints: list of timepoints (e.g., [0, 90, 180, 270])
-        positions: list of positions (used in 'by_dataset' mode)
-        mode: "by_position" -> loop positions, inner loop datasets
-              "by_dataset"  -> loop datasets, inner loop positions
-        lower_offset, upper_offset: z-slice offsets
+    Parameters
+    ----------
+    datasets
+        List of dataset names.
+    timepoints
+        List of timepoints (e.g., [0, 90, 180, 270]).
+    save_dir
+        Directory to save the plots.
+    mode
+        Mode for looping (e.g., "by_position" or "by_dataset").
+    lower_offset
+        Z-slice offset below the center slice.
+    upper_offset
+        Z-slice offset above the center slice.
     """
 
     colormap = colormaps["tab20"]
     colors = [colormap(i / len(datasets)) for i in range(len(datasets))]
+
+    if mode not in ["by_position", "by_dataset"]:
+        logger.error("Invalid mode: [ %s ]. Choose 'by_position' or 'by_dataset'.", mode)
+        raise ValueError("mode must be 'by_position' or 'by_dataset'")
 
     if mode == "by_position":
         for timepoint in timepoints:
@@ -798,7 +809,8 @@ def plot_normalized_profiles(
                 plot_vlines(axes[1], 0, lower_offset, upper_offset, *axes[1].get_ylim())
 
                 plt.suptitle(
-                    f"{dataset_config.name} TP {timepoint}, Offset -{lower_offset} to +{upper_offset}"
+                    f"{dataset_config.name} TP {timepoint}, "
+                    f"Offset -{lower_offset} to +{upper_offset}"
                 )
                 save_plot_to_path(
                     fig, save_dir, f"{dataset_config.name}_tp{timepoint}_normalized_profiles"

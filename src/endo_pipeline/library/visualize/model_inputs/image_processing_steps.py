@@ -45,17 +45,23 @@ def process_brightfield(bf_stack: Any) -> tuple[np.ndarray, np.ndarray, np.ndarr
 
 def process_cdh5(cdh5_stack: Any) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Process a CDH5 image stack following the same steps as the diffae model DataLoader:
-    type conversion, maximum projection, and intensity scaling.
+    Process a CDH5 image stack following the same steps as the DiffAE DataLoader.
 
-    Args:
-        cdh5_stack (Any): Input CDH5 image stack as a Dask array.
+    Processing steps include type conversion, maximum projection, and intensity scaling.
 
-    Returns:
-        Tuple[np.ndarray, np.ndarray, np.ndarray]: A tuple containing:
-            - cdh5_stack_float32_computed: The CDH5 stack as a computed np.ndarray in float32 format.
-            - max_proj_im: The maximum projection along the Z-axis.
-            - scaled_im: The image scaled to a specified intensity range.
+    Parameters
+    ----------
+    cdh5_stack
+        Input CDH5 image stack as a Dask array.
+
+    Returns
+    -------
+    :
+        The CDH5 stack as a computed np.ndarray in float32 format.
+    :
+        The maximum projection along the Z-axis.
+    :
+        The image scaled to a specified intensity range.
     """
     # STEP 1: Load the CDH5 stack as a Dask array, convert to float32
     cdh5_stack_float32 = cdh5_stack.astype("float32")

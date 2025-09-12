@@ -9,7 +9,7 @@ import pandas as pd
 import tqdm
 from bioio import BioImage
 from cyto_dl.utils.arg_checking import get_dtype
-from monai.data import CacheDataset, MetaTensor, SmartCacheDataset
+from monai.data import MetaTensor, SmartCacheDataset
 from monai.transforms import Transform
 from numpy.typing import DTypeLike
 
