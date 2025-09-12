@@ -396,7 +396,7 @@ def _make_all_ccf_plots(
     ax.set_xlabel("Lag $\\tau$ (hours)")
     ax.set_ylabel("$\Delta C_{ij}(\\tau)$")
     ax.legend()
-    ax.set_ylim(-0.5, 0.6)
+    ax.set_ylim(-0.5, 0.75)
     # print integral of delta ccf near zero on plot
     ci_bounds = None
     if bootstrap_samples > 0:
@@ -555,7 +555,6 @@ def _plot_correlation_metrics_vs_shear_stress(
     )
     ax.legend()
     ax.set_ylabel("$\\langle |\\Delta C_{ij} |\\rangle$")
-    ax.set_ylim((-0.05, 2.25))
     ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
     save_plot_to_path(
         fig,
@@ -568,7 +567,6 @@ def _plot_correlation_metrics_vs_shear_stress(
     )
     ax.legend()
     ax.set_ylabel("$\\overline{|\\Delta C_{ij}|}$")
-    ax.set_ylim((-0.05, 1.75))
     ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
     save_plot_to_path(
         fig,
@@ -584,7 +582,6 @@ def _plot_correlation_metrics_vs_shear_stress(
     )
     ax.legend()
     ax.set_ylabel("Relaxation timescale (hours)")
-    ax.set_ylim((0.75, 4.75))
     ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
     save_plot_to_path(
         fig,
