@@ -97,6 +97,7 @@ def generate_overrides_for_model_eval(
     model_name: str,
     prediction_filename_suffix: str | None = None,
     num_workers: int = 128,
+    cache_rate: float = 1.0,
 ) -> dict:
     """
     Generate overrides for the CytoDLModel configuration
@@ -110,6 +111,7 @@ def generate_overrides_for_model_eval(
         "data.val_dataloaders": None,
         "data.predict_dataloaders.num_workers": num_workers,
         "data.predict_dataloaders.dataset.dataframe_path": data_path,
+        "data.predict_dataloaders.dataset.cache_rate": cache_rate,
         "paths.output_dir": save_path,
         # change checkpoint path to the one downloaded from mlflow
         "checkpoint.ckpt_path": ckpt_path,
