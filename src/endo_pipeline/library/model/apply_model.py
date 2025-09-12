@@ -10,6 +10,7 @@ from cyto_dl.api import CytoDLModel
 from endo_pipeline.configs import (
     CytoDLModelConfig,
     DatasetConfig,
+    get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
 )
 from endo_pipeline.io import (
@@ -281,6 +282,9 @@ def add_diffae_model_eval_crop_columns(
 def preprocess_tracking_manifest_for_model_eval(
     dataset_config: DatasetConfig,
     save_dir: Path,
+    z_slice_bounds_per_position: dict[int, dict[str, int]] | None = None,
+    only_include_positions: list[int] | None = None,
+    exclude_frames: dict[int, list[int]] | None = None,
 ) -> Path:
     """Preprocess the manifest for a dataset to prepare it for model prediction."""
 
@@ -335,13 +339,46 @@ def preprocess_tracking_manifest_for_model_eval(
     grouped_df["resolution"] = resolution
 
     # only run a single timepoint from zarr
-    grouped_df["start"] = grouped_df["image_index"]
-    grouped_df["stop"] = grouped_df["image_index"]
+    grouped_df["frame_start"] = grouped_df["image_index"]
+    grouped_df["frame_stop"] = grouped_df["image_index"]
     grouped_df = grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1)
 
-    # save the dataframe to a CSV file that the DiffAE model will use to load cropped images
-    save_path = save_dir / "aggregated_crop_manifest.csv"
-    grouped_df.to_csv(save_path, index=False)
+    # add temporary column with position index for filtering
+    df["position_index"] = df["path"].apply(lambda x: get_position_integer_from_zarr_file_path(x))
+
+    # only load images for specified position indices
+    if only_include_positions is not None:
+        logger.debug(
+            "Filtering Zarr files to only include positions: [ %s ]", only_include_positions
+        )
+
+        df = df[df["position_index"].isin(only_include_positions)]
+
+    # add column for excluding frames, if specified
+    if exclude_frames is not None:
+        # if position has no frames to exclude, set to None
+        df["exclude_frames"] = df["position_index"].apply(lambda x: exclude_frames.get(x, None))
+
+    # if start and stop for loading z slices are specified, add to dataframe
+    if z_slice_bounds_per_position is not None:
+        # get z info dict for each position index
+        # unpack the start, stop, and step values from those dictionaries
+        df["z_start"] = df["position_index"].apply(
+            lambda x: z_slice_bounds_per_position.get(x, {}).get("z_start", 0)
+        )
+        df["z_stop"] = df["position_index"].apply(
+            lambda x: z_slice_bounds_per_position.get(x, {}).get("z_stop", -1)
+        )
+        df["z_step"] = df["position_index"].apply(
+            lambda x: z_slice_bounds_per_position.get(x, {}).get("z_step", 1)
+        )
+
+    # remove temporary column with position index
+    df = df.drop(columns=["position_index"])
+
+    # save the dataframe to a Parquet file that the DiffAE model will use to load cropped images
+    save_path = save_dir / "aggregated_crop_manifest.parquet"
+    grouped_df.to_parquet(save_path, index=False)
     return save_path
 
 
@@ -627,6 +664,8 @@ def apply_model_on_tracked_crops_from_one_dataset(
     save_path: str | Path | None = None,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
+    z_slice_offsets: tuple[int, int] | None = None,
+    only_include_positions: list[int] | None = None,
 ) -> None:
     """
     Apply a DiffAE model to a single dataset with
@@ -634,18 +673,22 @@ def apply_model_on_tracked_crops_from_one_dataset(
 
     Parameters
     ----------
-    model_config: CytoDLModelConfig
+    model_config
         Configuration of the model to apply.
-    dataset_config: DatasetConfig
+    dataset_config
         Configuration of the dataset to apply the model to.
-    resolution_level: int
-        Resolution level to apply the model at. Default is 0 (highest resolution)
-    upload_to_fms: bool
-        Whether to upload the prediction file to FMS. Default is True.
-    save_path: str or Path | None
-        Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
-    user_overrides: str or dict or None
+    resolution_level
+        Resolution level to apply the model at.
+    upload_to_fms
+        Upload the prediction file to FMS if True, else only save locally.
+    save_path
+        Path to save the prediction file
+    user_overrides
         Optional user overrides to apply to the model config.
+    z_slice_offsets
+        Lower and upper bounds for z-slicing.
+    only_include_positions
+        List of position indices to include, if None, include all positions.
     """
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
@@ -667,7 +710,18 @@ def apply_model_on_tracked_crops_from_one_dataset(
     model = CytoDLModel()
     model.load_config_from_file(path_dict["config_path"])
 
-    data_path = preprocess_tracking_manifest_for_model_eval(dataset_config, save_path)
+    # parse dataset annotations to get z-slice information,
+    # positions to include, and frames to exclude
+    z_slice_bounds_per_position = get_z_slice_bounds_per_position(dataset_config, z_slice_offsets)
+    exclude_frames = get_exclude_frames(dataset_config)
+
+    data_path = preprocess_tracking_manifest_for_model_eval(
+        dataset_config,
+        save_path,
+        z_slice_bounds_per_position=z_slice_bounds_per_position,
+        only_include_positions=only_include_positions,
+        exclude_frames=exclude_frames,
+    )
 
     # use timestamp to get unique file name for FMS upload later
     prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_tracked_crop_features"

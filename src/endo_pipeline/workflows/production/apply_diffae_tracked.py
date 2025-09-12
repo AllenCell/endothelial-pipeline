@@ -40,6 +40,8 @@ def main(
 
     from endo_pipeline.configs import CytoDLModelConfig, load_dataset_config, load_model_config
     from endo_pipeline.library.model import apply_model_on_tracked_crops_from_one_dataset
+    from endo_pipeline.library.model.image_loading import get_include_positions
+    from endo_pipeline.settings import Z_SLICE_OFFSETS
 
     if isinstance(dataset_names, str):
         dataset_names = [dataset_names]
@@ -50,12 +52,16 @@ def main(
 
     # apply model to each dataset
     for dataset_config in dataset_config_list:
+        only_include_positions = get_include_positions(dataset_config)
+
         apply_model_on_tracked_crops_from_one_dataset(
             model_config=model_config,
             dataset_config=dataset_config,
             upload_to_fms=upload_to_fms,
             save_path=save_path,
             user_overrides=user_overrides,
+            z_slice_offsets=Z_SLICE_OFFSETS,
+            only_include_positions=only_include_positions,
         )
 
 
