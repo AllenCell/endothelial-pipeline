@@ -22,6 +22,7 @@ from endo_pipeline.configs import (
     get_position_integer_from_zarr_file_path,
 )
 from endo_pipeline.library.process.z_stack_selection import get_plane_indices
+from endo_pipeline.settings.image_data import LOG_EPSILON
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ class LogImaged(Transform):
         img = data[self.keys]
 
         # Apply logarithmic transformation
-        log_img = np.log(img + 1e-12)
+        log_img = np.log(img + LOG_EPSILON)
 
         # convert to MetaTensor to preserve metadata if available
         log_image_tensor = MetaTensor(log_img, meta=getattr(img, "meta", None))

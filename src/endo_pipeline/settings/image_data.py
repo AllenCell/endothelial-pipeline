@@ -8,3 +8,6 @@ UPPER_Z_SLICE_OFFSET = 11
 
 Z_SLICE_OFFSETS = (LOWER_Z_SLICE_OFFSET, UPPER_Z_SLICE_OFFSET)
 """Tuple containing the lower and upper Z-offsets for projections."""
+
+LOG_EPSILON = 1e-12
+"""Small constant used to avoid log(0) errors."""

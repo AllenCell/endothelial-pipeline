@@ -10,6 +10,7 @@ from endo_pipeline.library.process.image_processing import (
     std_dev,
     z_score_normalize_intensity,
 )
+from endo_pipeline.settings.image_data import LOG_EPSILON
 
 
 def process_brightfield(bf_stack: Any) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -36,7 +37,9 @@ def process_brightfield(bf_stack: Any) -> tuple[np.ndarray, np.ndarray, np.ndarr
     standard_dev_proj = std_dev(bf_stack_float32, axis=0, unbiased=False).astype("float32")
 
     # STEP 3: Log transform the standard deviation projection
-    standard_dev_proj_log = np.log(standard_dev_proj + 1e-12)  # Add small constant to avoid log(0)
+    standard_dev_proj_log = np.log(
+        standard_dev_proj + LOG_EPSILON
+    )  # Add small constant to avoid log(0)
 
     # STEP 3: Clip image by percentiles
     clipped_im = clip_image(standard_dev_proj_log, low_pct=0.1, high_pct=99.9)
