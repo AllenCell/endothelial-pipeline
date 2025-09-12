@@ -37,6 +37,9 @@ class TimepointAnnotation(StrEnum):
     AUTO_BF_TEMP_ARTIFACT = "auto_bf_temp_artifact"
     """Auto detected Temporary brightfield artifact."""
 
+    AUTO_GFP_SCOPE_ERROR = "auto_gfp_scope_error"
+    """Auto detected error with GFP scope."""
+
     XY_SHIFT = "xy_shift"
     """Manually annotated shift in the XY position."""
 
