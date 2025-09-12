@@ -6,6 +6,7 @@ from scipy.signal import find_peaks
 from endo_pipeline.configs import DatasetConfig, get_available_zarr_files
 from endo_pipeline.io.input import load_zarr_as_dask_array
 from endo_pipeline.io.output import get_output_path, save_plot_to_path
+from endo_pipeline.settings.image_data import NUM_ZSLICES
 
 THRESHOLD1 = 0.004
 """Percentage to use for thresholding partial dark outliers."""
@@ -15,9 +16,6 @@ THRESHOLD2 = 0.01
 
 ROLLING_WINDOW = 100
 """Number of z-slices per to use for rolling window calculation (4 timepoints)."""
-
-NUM_ZSLICES = 25
-"""Number of z-slices per timepoint."""
 
 
 def plot_bf_outliers(
