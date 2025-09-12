@@ -341,13 +341,13 @@ def preprocess_tracking_manifest_for_model_eval(
     grouped_df["resolution"] = resolution
 
     # only run a single timepoint from zarr
-    grouped_df["start"] = grouped_df["image_index"]
-    grouped_df["stop"] = grouped_df["image_index"]
+    grouped_df["frame_start"] = grouped_df["image_index"]
+    grouped_df["frame_stop"] = grouped_df["image_index"]
     grouped_df = grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1)
 
     # save the dataframe to a CSV file that the DiffAE model will use to load cropped images
-    save_path = save_dir / "aggregated_crop_manifest.csv"
-    grouped_df.to_csv(save_path, index=False)
+    save_path = save_dir / "aggregated_crop_manifest.parquet"
+    grouped_df.to_parquet(save_path, index=False)
     return save_path
 
 
