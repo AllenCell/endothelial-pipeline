@@ -42,6 +42,8 @@ data:
           keys:
           - raw_bf
           projection_type: std
+        - _target_: endo_pipeline.library.model.image_loading.LogImaged
+          keys: raw_bf
         - _target_: cyto_dl.image.transforms.Projectd
           keys:
           - raw_cdh5
@@ -101,6 +103,8 @@ data:
           keys:
           - raw_bf
           projection_type: std
+        - _target_: endo_pipeline.library.model.image_loading.LogImaged
+          keys: raw_bf
         - _target_: cyto_dl.image.transforms.clip.Clipd
           keys:
           - raw_bf
@@ -147,6 +151,8 @@ data:
           keys:
           - raw_bf
           projection_type: std
+        - _target_: endo_pipeline.library.model.image_loading.LogImaged
+          keys: raw_bf
         - _target_: cyto_dl.image.transforms.Projectd
           keys:
           - raw_cdh5
