@@ -105,8 +105,6 @@ def generate_overrides_for_model_eval(
     overrides = {
         # train and val dataloaders are unnecessary for prediction
         # and might be slow to instantiate (e.g. if they cache data)
-        "data.train_dataloaders": None,
-        "data.val_dataloaders": None,
         "data.predict_dataloaders.dataset.dataframe_path": data_path,
         "paths.output_dir": save_path,
         # change checkpoint path to the one downloaded from mlflow
