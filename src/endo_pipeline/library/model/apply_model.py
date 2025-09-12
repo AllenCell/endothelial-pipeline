@@ -97,6 +97,8 @@ def generate_overrides_for_model_eval(
     dataset_name: str,
     model_name: str,
     prediction_filename_suffix: str | None = None,
+    num_workers: int = 128,
+    cache_rate: float = 1.0,
 ) -> dict:
     """
     Generate overrides for the CytoDLModel configuration
@@ -107,6 +109,7 @@ def generate_overrides_for_model_eval(
         # train and val dataloaders are unnecessary for prediction
         # and might be slow to instantiate (e.g. if they cache data)
         "data.predict_dataloaders.dataset.dataframe_path": data_path,
+        "data.predict_dataloaders.dataset.cache_rate": cache_rate,
         "paths.output_dir": save_path,
         # change checkpoint path to the one downloaded from mlflow
         "checkpoint.ckpt_path": ckpt_path,
@@ -697,6 +700,15 @@ def apply_model_on_tracked_crops_from_one_dataset(
     mlflow_id = model_config.mlflow_run_id
     model_path = get_output_path("models", model_config.name, include_timestamp=False)
     path_dict = download_model(mlflow_id, model_path)
+
+    # right now, need to use the tracked version of the config if using the
+    # "legacy" model "diffae_04_10" (temporary workaround until we are only using
+    # models trained with the new pipeline)
+    if model_config.name == "diffae_04_10":
+        path_dict["config_path"] = get_model_dir() / "diffae_04_10_eval.yaml"
+        logger.info(
+            "Loading legacy model config for diffae_04_10 from [ %s ]", path_dict["config_path"]
+        )
 
     if save_path is None:
         # if no save path is provided, use the default path
