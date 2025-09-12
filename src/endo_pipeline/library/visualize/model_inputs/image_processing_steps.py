@@ -1,6 +1,7 @@
 # %%
 from typing import Any
 
+import dask.array as da
 import numpy as np
 
 from endo_pipeline.library.process.image_processing import (
@@ -13,7 +14,13 @@ from endo_pipeline.library.process.image_processing import (
 from endo_pipeline.settings.image_data import LOG_EPSILON
 
 
-def process_brightfield(bf_stack: Any) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def process_brightfield(bf_stack: da.Array) -> tuple[
+    da.Array,
+    np.ndarray[Any, np.dtype[Any]],
+    np.ndarray[Any, Any],
+    np.ndarray[Any, Any],
+    np.ndarray[Any, Any],
+]:
     """
     Process a brightfield image stack following the same steps as the diffae model DataLoader:
     type conversion, standard deviation projection, clipping, and normalization.

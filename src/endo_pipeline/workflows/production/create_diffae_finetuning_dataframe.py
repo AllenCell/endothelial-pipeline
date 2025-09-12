@@ -98,6 +98,8 @@ def main(
         train,
         val,
         resolution_level,
+        Z_SLICE_OFFSETS,
+        False,
         dataset_config_list,
         save_path,
         manifest_name,

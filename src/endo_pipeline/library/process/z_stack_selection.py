@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Callable
 from pathlib import Path
-from typing import Literal, cast
+from typing import Any, Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,6 +13,7 @@ from matplotlib.ticker import MaxNLocator
 from endo_pipeline.configs import DatasetConfig, get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.io import load_zarr_as_dask_array, save_plot_to_path
 from endo_pipeline.library.process.image_processing import contrast_stretching
+from endo_pipeline.library.visualize.viz_base import init_subplots
 from endo_pipeline.settings import LOWER_Z_SLICE_OFFSET, UPPER_Z_SLICE_OFFSET
 
 logger = logging.getLogger(__name__)
@@ -191,8 +192,8 @@ def plot_standard_devs_per_slice(
 
 
 def visualize_slice_selection(
-    bf_stack: np.ndarray,
-    cdh5_stack: np.ndarray,
+    bf_stack: Array,
+    cdh5_stack: Array,
     center_plane: int,
     lower_offset: int,
     upper_offest: int,
@@ -239,7 +240,7 @@ def visualize_slice_selection(
     cdh5_above = contrast_stretching(cdh5_stack[center_plane + upper_offest].compute())
 
     # Create subplots with a 2x3 grid
-    fig, axes = plt.subplots(
+    fig, axes = init_subplots(
         2, 3, figsize=(15, 10)
     )  # Adjusted figure size for 2 rows and 3 columns
 
@@ -298,7 +299,7 @@ def plot_global_center_plane(
     tuple
         Mean and standard deviation of center planes.
     """
-    fig, ax = plt.subplots(2, 1, figsize=(10, 10))  # Create two subplots
+    fig, ax = init_subplots(2, 1, figsize=(10, 10))  # Create two subplots
 
     # Compute mean and standard deviation of center planes
     mean_center_plane = np.mean(center_planes)
@@ -642,7 +643,20 @@ def plot_histogram_upper_slices_available(datasets: list[str], save_dir: Path) -
     for dataset in datasets:
         dataset_config = load_dataset_config(dataset)
         for position in dataset_config.zarr_positions:
-            center_slice = dataset_config.center_z_plane[position]
+            if dataset_config.center_z_plane is None:
+                logger.warning(
+                    "Center z-plane information is missing for" " dataset [ %s ], skipping", dataset
+                )
+                continue
+            center_slice = dataset_config.center_z_plane.get(position)
+            if center_slice is None:
+                logger.warning(
+                    "Center z-slice information missing for position [ %s ] "
+                    "in dataset [ %s ], skipping.",
+                    position,
+                    dataset,
+                )
+                continue
             top_slice = 24
             available_slices_above = top_slice - center_slice
             data.append(
@@ -679,7 +693,9 @@ def plot_histogram_upper_slices_available(datasets: list[str], save_dir: Path) -
     save_plot_to_path(fig, save_dir, "available_slices_above_center_histogram")
 
 
-def compute_profiles(zarr_file, center_slice: int, timepoint: int):
+def compute_profiles(
+    zarr_file: Any, center_slice: int, timepoint: int
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compute normalized BF std and CDH5 hist profiles for a given position/timepoint."""
 
     # Load stacks
@@ -746,9 +762,20 @@ def plot_normalized_profiles(
                 for i, dataset in enumerate(datasets):
                     dataset_config = load_dataset_config(dataset)
                     if dataset_config.center_z_plane is None:
-                        print(f"Center slice is None for dataset {dataset_config.name}, skipping")
+                        logger.warning(
+                            "Center z-plane information is missing for dataset [ %s ], skipping",
+                            dataset,
+                        )
                         continue
-                    center_slice = dataset_config.center_z_plane[position]
+                    center_slice = dataset_config.center_z_plane.get(position)
+                    if center_slice is None:
+                        logger.warning(
+                            "Center z-slice information missing for position [ %s ] "
+                            "in dataset [ %s ], skipping",
+                            position,
+                            dataset,
+                        )
+                        continue
                     zarr_file = get_zarr_file_for_position(dataset_config, position)
 
                     x, bf_std_norm, cdh5_hist_norm = compute_profiles(
@@ -785,7 +812,21 @@ def plot_normalized_profiles(
                 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
                 for position in dataset_config.zarr_positions:
-                    center_slice = dataset_config.center_z_plane[position]
+                    if dataset_config.center_z_plane is None:
+                        logger.warning(
+                            "Center z-plane information is missing for dataset [ %s ], skipping",
+                            dataset,
+                        )
+                        continue
+                    center_slice = dataset_config.center_z_plane.get(position)
+                    if center_slice is None:
+                        logger.warning(
+                            "Center z-slice information missing for position [ %s ] "
+                            "in dataset [ %s ], skipping",
+                            position,
+                            dataset,
+                        )
+                        continue
                     zarr_file = get_zarr_file_for_position(dataset_config, position)
 
                     x, bf_std_norm, cdh5_hist_norm = compute_profiles(
