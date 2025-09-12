@@ -22,11 +22,71 @@ from endo_pipeline.configs import (
     get_position_integer_from_zarr_file_path,
 )
 from endo_pipeline.library.process.z_stack_selection import get_plane_indices
+from endo_pipeline.settings.image_data import LOG_EPSILON
 
 logger = logging.getLogger(__name__)
 
 MIN_Z_BOUND = 0
 MAX_Z_BOUND = 24
+
+
+class LogImaged(Transform):
+    """
+    Apply logarithmic transformation to image data in a dictionary.
+
+    This transform takes an input dictionary containing image data under a specified key,
+    applies a logarithmic transformation to the image data, and stores the transformed
+    image back in the dictionary under a specified output key. The transformation is
+    performed using the formula: `log_image = log(image + 1e-12)`.
+
+    Parameters
+    ----------
+    keys : str
+        Key in the input dictionary where the original image data is stored.
+    """
+
+    def __init__(self, keys: str = "image") -> None:
+        """
+        Initialize the LogImage transform.
+
+        Parameters
+        ----------
+        keys : str
+            Key in the input dictionary where the original image data is stored.
+        """
+        super().__init__()
+        self.keys = keys
+
+    def __call__(self, data: dict) -> dict:
+        """
+        Apply logarithmic transformation to the image data.
+
+        Parameters
+        ----------
+        data : dict
+            Input dictionary containing image data under `keys`.
+
+        Returns
+        -------
+        dict
+            Output dictionary with transformed image data under `keys`, overwriting data in place.
+        """
+        if self.keys not in data:
+            logger.error("Input key '%s' not found in data dictionary.", self.keys)
+            raise KeyError(f"Input key '{self.keys}' not found in data dictionary.")
+
+        img = data[self.keys]
+
+        # Apply logarithmic transformation
+        log_img = np.log(img + LOG_EPSILON)
+
+        # convert to MetaTensor to preserve metadata if available
+        log_image_tensor = MetaTensor(log_img, meta=getattr(img, "meta", None))
+
+        # Store transformed image in output dictionary
+        data[self.keys] = log_image_tensor
+
+        return data
 
 
 class BioIOImageLoaderd(Transform):

@@ -36,14 +36,19 @@ for dataset in datasets:
         zarr_file, channels=["BF"], timepoints=TIMEPOINT, level=1, squeeze=True
     )
 
-    bf_stack_float32_computed, standard_dev_proj, clipped_im, normalized_im = process_brightfield(
-        bf_stack
-    )
+    (
+        bf_stack_float32_computed,
+        standard_dev_proj,
+        standard_dev_proj_log,
+        clipped_im,
+        normalized_im,
+    ) = process_brightfield(bf_stack)
 
     visualize_images_with_histograms(
         [
             ("BF Slice", bf_stack_float32_computed[15]),
             ("Std Dev Projection", standard_dev_proj),
+            ("Log Std Dev Projection", standard_dev_proj_log),
             ("Clipped Std Dev Projection", clipped_im),
             ("Z-score Normalized Image", normalized_im),
         ],
