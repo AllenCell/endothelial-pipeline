@@ -65,15 +65,17 @@ def main(
 
     # Adjust workflow settings for demo mode. Append a suffix to the manifest
     # and model names to indicate that they were generated from a workflow demo,
-    # and reduce the number of epochs and logging steps.
+    # and reduce the number of epochs and logging steps. Also adjust the cache rate.
     if DEMO_MODE:
         name_suffix = "_test_workflow"
         max_num_epochs = 1
         log_every_n_steps = 1
+        cache_rate = 1.0  # use 100% of data for demo mode
     else:
         name_suffix = ""
         max_num_epochs = 1000
         log_every_n_steps = 50
+        cache_rate = 0.01  # use 1% of data for training
 
     # "_exclude_cell_piling" suffix if cell piling exclusion is requested
     if exclude_cell_piling:
@@ -125,6 +127,7 @@ def main(
         val_dataframe_path,
         max_num_epochs=max_num_epochs,
         log_every_n_steps=log_every_n_steps,
+        cache_rate=cache_rate,
     )
     local_config_save_path = get_output_path("models", "training_configs")
     model.save_config(local_config_save_path / f"{model_name_unique}_train.yaml")
