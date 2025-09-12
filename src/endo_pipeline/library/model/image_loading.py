@@ -82,8 +82,11 @@ class LogImaged(Transform):
         # Apply logarithmic transformation
         log_img = np.log(img + 1e-12)
 
+        # convert to MetaTensor to preserve metadata if available
+        log_image_tensor = MetaTensor(log_img, meta=getattr(img, "meta", None))
+
         # Store transformed image in output dictionary
-        data[self.keys] = log_img
+        data[self.keys] = log_image_tensor
 
         return data
 
