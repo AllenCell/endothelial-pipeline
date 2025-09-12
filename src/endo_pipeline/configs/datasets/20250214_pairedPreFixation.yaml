@@ -5,7 +5,7 @@ zarr_positions: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 fmsid: 070e32c7355a40a288df2e68ae19adbc
 barcode: GE00006747
 cell_lines: [AICS-126]
-live_or_fixed_sample: fixed
+live_or_fixed_sample: live
 is_timelapse: false
 microscope: 3i
 objective: 20X
@@ -35,4 +35,14 @@ include_scenes: null
 notes: ''
 timepoint_annotations: null
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 7
+  1: 10
+  2: 10
+  3: 9
+  4: 10
+  5: 9
+  6: 10
+  7: 10
+  8: 9
+  9: 10
