@@ -345,7 +345,7 @@ def preprocess_tracking_manifest_for_model_eval(
     grouped_df["frame_stop"] = grouped_df["image_index"]
     grouped_df = grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1)
 
-    # save the dataframe to a CSV file that the DiffAE model will use to load cropped images
+    # save the dataframe to a parquet file that the DiffAE model will use to load cropped images
     save_path = save_dir / "aggregated_crop_manifest.parquet"
     grouped_df.to_parquet(save_path, index=False)
     return save_path
@@ -684,6 +684,15 @@ def apply_model_on_tracked_crops_from_one_dataset(
     mlflow_id = model_config.mlflow_run_id
     model_path = get_output_path("models", model_config.name, include_timestamp=False)
     path_dict = download_model(mlflow_id, model_path)
+
+    # right now, need to use the tracked version of the config if using the
+    # "legacy" model "diffae_04_10" (temporary workaround until we are only using
+    # models trained with the new pipeline)
+    if model_config.name == "diffae_04_10":
+        path_dict["config_path"] = get_model_dir() / "diffae_04_10_eval.yaml"
+        logger.info(
+            "Loading legacy model config for diffae_04_10 from [ %s ]", path_dict["config_path"]
+        )
 
     if save_path is None:
         # if no save path is provided, use the default path
