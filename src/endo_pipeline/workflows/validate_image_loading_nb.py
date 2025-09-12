@@ -22,10 +22,10 @@ resolution_level = 2
 channel = [0, 1]
 frame_start = 0
 frame_stop = 450
-z_stack_offsets = (5, 15)
+z_slice_offsets = (5, 15)
 
 # %%
-z_slice_bounds_per_position = get_z_slice_bounds_per_position(dataset_config, z_stack_offsets)
+z_slice_bounds_per_position = get_z_slice_bounds_per_position(dataset_config, z_slice_offsets)
 only_include_positions = get_include_positions(dataset_config)
 exclude_cell_piling = True
 exclude_frames_by_position = get_exclude_frames(dataset_config, exclude_cell_piling=True)
@@ -40,8 +40,8 @@ annotated_positions = get_annotated_positions(dataset_config)
 for position in dataset_config.zarr_positions:
     z_slice_bounds = z_slice_bounds_per_position[position]
     global_center = dataset_config.center_z_plane[position]
-    assert z_slice_bounds["z_start"] == max(0, global_center - z_stack_offsets[0])
-    assert z_slice_bounds["z_stop"] == min(24, global_center + z_stack_offsets[1])
+    assert z_slice_bounds["z_start"] == max(0, global_center - z_slice_offsets[0])
+    assert z_slice_bounds["z_stop"] == min(24, global_center + z_slice_offsets[1])
 
     if position not in annotated_positions:
         assert position in only_include_positions

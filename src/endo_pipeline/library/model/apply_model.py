@@ -449,7 +449,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     resolution_level: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
-    z_stack_offsets: tuple[int, int] | None = None,
+    z_slice_offsets: tuple[int, int] | None = None,
     frame_start: int | None = None,
     frame_stop: int | None = None,
     frame_step: int | None = None,
@@ -460,8 +460,8 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
     **Z-stack offsets**
 
-    The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
-    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load
+    The ``z_slice_offsets`` parameter allows for flexible control over the z-slice loading.
+    If ``z_slice_offsets`` is provided, it limits the number of z-slices to load
     by slicing about a global center (annotated in dataset config). If it
     is ``None``, all z-slices are loaded from the raw brightfield images.
 
@@ -477,7 +477,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Whether to upload the prediction file to FMS. Default is True.
     user_overrides
         Optional user overrides to apply to the model config.
-    z_stack_offsets
+    z_slice_offsets
         Lower and upper bounds for z-slicing.
     frame_start
         First frame to include, if None, include from the start.
@@ -532,18 +532,18 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     logger.debug("Applying model [ %s ] to dataset [ %s ]", model_config.name, dataset_config.name)
     # get unique name for the parquet file
     file_name = "dataset"
-    if z_stack_offsets is not None:
-        file_name = f"{file_name}_z_stack_{z_stack_offsets[0]}_{z_stack_offsets[1]}"
+    if z_slice_offsets is not None:
+        file_name = f"{file_name}_z_stack_{z_slice_offsets[0]}_{z_slice_offsets[1]}"
 
     file_name_with_extension = f"{file_name}.parquet"
     dataset_save_path = save_path / file_name_with_extension
 
     # parse dataset annotations to get z-slice information,
     # positions to include, and frames to exclude
-    z_slice_bounds_per_position = get_z_slice_bounds_per_position(dataset_config, z_stack_offsets)
+    z_slice_bounds_per_position = get_z_slice_bounds_per_position(dataset_config, z_slice_offsets)
     exclude_frames = get_exclude_frames(dataset_config)
 
-    if z_stack_offsets is not None:
+    if z_slice_offsets is not None:
         # load timepoints 0, 250, and 500 for z-stack offsets summary
         frame_start = 0
         frame_stop = -1
@@ -618,9 +618,9 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         manifest_name = model_config.name
         workflow_name = "apply_diffae_grid"
 
-        if z_stack_offsets is not None:
-            manifest_name = f"{manifest_name}_z_stack_{z_stack_offsets[0]}_{z_stack_offsets[1]}"
-            parameters = {"z_stack_offsets": z_stack_offsets}
+        if z_slice_offsets is not None:
+            manifest_name = f"{manifest_name}_z_stack_{z_slice_offsets[0]}_{z_slice_offsets[1]}"
+            parameters = {"z_slice_offsets": z_slice_offsets}
         else:
             parameters = {}
 

@@ -2,7 +2,7 @@ name: diffae_training_dataframe_resolution_1
 workflow: create_diffae_training_dataframe
 parameters:
   resolution_level: 1
-  z_stack_offsets: null
+  z_slice_offsets: null
   exclude_cell_piling: false
 locations:
   training:

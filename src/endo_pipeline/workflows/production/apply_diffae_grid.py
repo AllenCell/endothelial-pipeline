@@ -7,7 +7,7 @@ def main(
     resolution_level: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
-    z_stack_offsets: tuple[int, int] | None = None,
+    z_slice_offsets: tuple[int, int] | None = None,
 ) -> None:
     """
     Apply a trained DiffAE model to grid-based crops of images from multiple datasets.
@@ -22,8 +22,8 @@ def main(
 
     **Z-stack offsets**
 
-    The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
-    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load
+    The ``z_slice_offsets`` parameter allows for flexible control over the z-slice loading.
+    If ``z_slice_offsets`` is provided, it limits the number of z-slices to load
     by slicing about a global center (annotated in the dataset configs). If it
     is ``None``, all z-slices are loaded from the raw brightfield images.
 
@@ -47,7 +47,7 @@ def main(
         True to upload the prediction file for each dataset to FMS, False to only save locally.
     user_overrides
         Optional user overrides to apply to the model config.
-    z_stack_offsets
+    z_slice_offsets
         Lower and upper bounds for z-slicing.
 
     Returns
@@ -129,7 +129,7 @@ def main(
             resolution_level=resolution_level,
             upload_to_fms=upload_to_fms,
             user_overrides=user_overrides,
-            z_stack_offsets=z_stack_offsets,
+            z_slice_offsets=z_slice_offsets,
             frame_start=frame_start,
             frame_stop=frame_stop,
             only_include_positions=only_include_positions,
