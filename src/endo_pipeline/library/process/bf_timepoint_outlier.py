@@ -20,7 +20,7 @@ NUM_ZSLICES = 25
 """Number of z-slices per timepoint."""
 
 
-def plot_outliers(
+def plot_bf_outliers(
     data_np: np.ndarray,
     rolling_median_np: np.ndarray,
     dark_threshold: np.ndarray,
@@ -155,7 +155,7 @@ def plot_outliers(
     plt.close(fig)
 
 
-def detect_outliers(
+def detect_bf_outliers(
     dataset_config: DatasetConfig, position: int, visualize: bool = False
 ) -> tuple[list[int], list[int]]:
     """
@@ -217,7 +217,7 @@ def detect_outliers(
     )
 
     if visualize:
-        plot_outliers(
+        plot_bf_outliers(
             data_np,
             rolling_median_np,
             dark_threshold,
