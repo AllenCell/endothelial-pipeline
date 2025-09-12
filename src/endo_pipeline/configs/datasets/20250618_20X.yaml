@@ -33,22 +33,9 @@ flow_conditions:
 valid_timepoints: null
 include_scenes: null
 notes: Cells are very overgrown by end of experiment. A small hole appears in the
-  timelapse partway through and doesn't close. Manually adjusted the center_z_plane from 14 to 13.
+  timelapse partway through and doesn't close. Manually adjusted the center_z_plane
+  from 14 to 13.
 timepoint_annotations:
-  bf_scope_error:
-    0: [6, 529, 557]
-    1: [6, 529, 540, 563]
-    2: [540]
-    3: [0, 529, 540]
-    4: [529, 540]
-    5: [528, 540]
-  bf_temp_artifact:
-    0: [52, 273, 337, 379]
-    1: [36, 69, 114, 171, 192, 272, 332]
-    2: [304]
-    3: [292]
-    4: [14, 191, 241, 294]
-    5: [89, 356, 554]
   auto_bf_scope_error:
     0: [6, 13, 52, 99, 166, 212, 220, 222, 273, 337, 359, 365, 529, 538, 541, 544,
       554, 555, 557, 560]
@@ -65,6 +52,27 @@ timepoint_annotations:
     3: [0, 292, 529, 540, 559]
     4: [14, 294, 341, 529, 540]
     5: [356, 527, 528, 534, 540, 554]
+  bf_scope_error:
+    0: [6, 529, 557]
+    1: [6, 529, 540, 563]
+    2: [540]
+    3: [0, 529, 540]
+    4: [529, 540]
+    5: [528, 540]
+  bf_temp_artifact:
+    0: [52, 273, 337, 379]
+    1: [36, 69, 114, 171, 192, 272, 332]
+    2: [304]
+    3: [292]
+    4: [14, 191, 241, 294]
+    5: [89, 356, 554]
+  cell_piling:
+    0: [[460, 576]]
+    1: [[419, 576]]
+    2: [[226, 576]]
+    3: [[487, 576]]
+    4: [[371, 576]]
+    5: [[228, 576]]
 position_annotations: null
 center_z_plane:
   0: 13

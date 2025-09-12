@@ -131,8 +131,15 @@ def save_dataset_config(dataset: DatasetConfig) -> None:
         flow_style = not (len(data) > 0 and isinstance(data[0], dict))
         return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=flow_style)
 
+    def dict_representer(dumper, data):
+        # This representer saves dict with ordered keys only if it is a dict of dicts.
+        if isinstance(data[next(iter(data))], dict):
+            return dumper.represent_dict(dict(sorted(data.items())))
+        return dumper.represent_dict(data)
+
     def yaml_encoder(data):
         yaml.SafeDumper.add_representer(list, list_representer)
+        yaml.SafeDumper.add_representer(dict, dict_representer)
         return yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
 
     try:
