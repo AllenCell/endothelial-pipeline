@@ -13,6 +13,7 @@ from endo_pipeline.library.model import (
     get_include_positions,
     get_z_slice_bounds_per_position,
 )
+from endo_pipeline.settings import Z_SLICE_OFFSETS
 
 # %%
 dataset_config = load_dataset_config("20250319_20X")
@@ -22,7 +23,7 @@ resolution_level = 2
 channel = [0, 1]
 frame_start = 0
 frame_stop = 450
-z_slice_offsets = (5, 15)
+z_slice_offsets = Z_SLICE_OFFSETS
 
 # %%
 z_slice_bounds_per_position = get_z_slice_bounds_per_position(dataset_config, z_slice_offsets)

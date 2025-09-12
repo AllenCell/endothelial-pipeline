@@ -7,7 +7,6 @@ def main(
     resolution_level: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
-    z_slice_offsets: tuple[int, int] | None = None,
 ) -> None:
     """
     Apply a trained DiffAE model to grid-based crops of images from multiple datasets.
@@ -19,13 +18,6 @@ def main(
 
     If demo mode is enabled, the model will only be evaluated on the first few
     timepoints of the first position of the first dataset.
-
-    **Z-stack offsets**
-
-    The ``z_slice_offsets`` parameter allows for flexible control over the z-slice loading.
-    If ``z_slice_offsets`` is provided, it limits the number of z-slices to load
-    by slicing about a global center (annotated in the dataset configs). If it
-    is ``None``, all z-slices are loaded from the raw brightfield images.
 
     **Example usage**
 
@@ -47,15 +39,13 @@ def main(
         True to upload the prediction file for each dataset to FMS, False to only save locally.
     user_overrides
         Optional user overrides to apply to the model config.
-    z_slice_offsets
-        Lower and upper bounds for z-slicing.
 
     Returns
     -------
     :
         Saves the model config with the applied model and model manifest objects.
         The model config is saved to [ endo_pipeline/configs/models/{model_name}.yaml ].
-    """  # noqa: E501
+    """
 
     import logging
     from typing import cast
@@ -71,6 +61,7 @@ def main(
     )
     from endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
     from endo_pipeline.library.model.image_loading import get_include_positions
+    from endo_pipeline.settings import Z_SLICE_OFFSETS
 
     logger = logging.getLogger(__name__)
 
@@ -129,7 +120,7 @@ def main(
             resolution_level=resolution_level,
             upload_to_fms=upload_to_fms,
             user_overrides=user_overrides,
-            z_slice_offsets=z_slice_offsets,
+            z_slice_offsets=Z_SLICE_OFFSETS,
             frame_start=frame_start,
             frame_stop=frame_stop,
             only_include_positions=only_include_positions,

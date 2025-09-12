@@ -3,7 +3,6 @@ TAGS = ["diffae_model_training"]
 
 def main(
     resolution_level: int = 1,
-    z_slice_offsets: tuple[int, int] | None = None,
     exclude_cell_piling: bool = False,
 ) -> None:
     """
@@ -21,18 +20,10 @@ def main(
     The datasets are defined in the ``diffae_model_training`` dataset collection
     configuration.
 
-
     **Zarr resolution**
 
     Zarr files used by training can be used as different resolutions. The
     default resolution of 1 corresponds to downsampling by half.
-
-    **Z-stack offsets**
-
-    The ``z_slice_offsets`` parameter allows for flexible control over the z-slice loading.
-    If ``z_slice_offsets`` is provided, it limits the number of z-slices to load
-    by slicing about a global center (annotated in the dataset configs). If it
-    is ``None``, all z-slices are loaded from the raw brightfield images.
 
     **Cell piling exclusion**
 
@@ -41,20 +32,17 @@ def main(
     parameter to True. This allows for toggling between training a model that "sees" cell piling
     versus one that does not.
 
-    **Workflow testing**
+    **Workflow demo**
 
-    The ``--testing-mode`` (aka ``-x``) flag can be used to run a simplified version of this
+    The ``--demo-mode`` (aka ``-d``) flag can be used to run a simplified version of this
     workflow for testing purposes (e.g. during code review). The training and validation datasets
     will only keep one position and minimal timepoints, which speeds up the data loading process
-    during model training. Furthermore, the script will use the staging (``stg``) environment
-    instead of the production (``prod``) environment for FMS uploads.
+    during model training.
 
     Parameters
     ----------
     resolution_level
         The resolution level of the zarr files to load for training.
-    z_slice_offsets
-        Lower and upper bounds for z-slicing.
     exclude_cell_piling
         Exclude cell piling timepoints if True, include them if False.
 
@@ -80,6 +68,7 @@ def main(
         get_include_positions,
         get_z_slice_bounds_per_position,
     )
+    from endo_pipeline.settings import Z_SLICE_OFFSETS
 
     output_savedir = get_output_path("dataframes")
 
@@ -91,7 +80,7 @@ def main(
         # parse dataset annotations to get z-slice information,
         # positions to include, and frames to exclude
         z_slice_bounds_per_position = get_z_slice_bounds_per_position(
-            dataset_config, z_slice_offsets
+            dataset_config, z_slice_offsets=Z_SLICE_OFFSETS
         )
         only_include_positions = get_include_positions(dataset_config)
         exclude_frames = get_exclude_frames(dataset_config, exclude_cell_piling=exclude_cell_piling)
@@ -149,7 +138,7 @@ def main(
         train,
         val,
         resolution_level,
-        z_slice_offsets,
+        Z_SLICE_OFFSETS,
         exclude_cell_piling,
         dataset_config_list,
         output_savedir,

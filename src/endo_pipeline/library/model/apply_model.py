@@ -543,13 +543,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     z_slice_bounds_per_position = get_z_slice_bounds_per_position(dataset_config, z_slice_offsets)
     exclude_frames = get_exclude_frames(dataset_config)
 
-    if z_slice_offsets is not None:
-        # load timepoints 0, 250, and 500 for z-stack offsets summary
-        frame_start = 0
-        frame_stop = -1
-        frame_step = 250
-        logger.debug("Z-stack offsets provided, getting features only for frames 0, 250, and 500.")
-
     # build dataframe with zarr loading metadata
     df = build_zarr_image_loading_dataframe(
         dataset_config,
