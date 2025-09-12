@@ -553,7 +553,6 @@ def _plot_correlation_metrics_vs_shear_stress(
     fig, ax = _plot_single_correlation_metric_vs_shear_stress(
         delta_ccf_integral_values, shear_stresses, ci_bounds=delta_ccf_integral_ci_bounds
     )
-    # TO DO: write script to add error bars for integral values
     ax.legend()
     ax.set_ylabel("$\\langle |\\Delta C_{ij} |\\rangle$")
     ax.set_ylim((-0.05, 2.25))
