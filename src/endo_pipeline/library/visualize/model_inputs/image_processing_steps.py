@@ -15,26 +15,33 @@ from endo_pipeline.settings.image_data import LOG_EPSILON
 
 
 def process_brightfield(bf_stack: da.Array) -> tuple[
-    da.Array,
-    np.ndarray[Any, np.dtype[Any]],
-    np.ndarray[Any, Any],
-    np.ndarray[Any, Any],
-    np.ndarray[Any, Any],
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
 ]:
     """
     Process a brightfield image stack following the same steps as the diffae model DataLoader:
     type conversion, standard deviation projection, clipping, and normalization.
 
-    Args:
-        bf_stack (Any): Input brightfield image stack as a Dask array.
+    Parameters
+    ----------
+    bf_stack
+        Input brightfield image stack as a Dask array.
 
-    Returns:
-        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: A tuple containing:
-            - bf_stack_float32_computed: The bf stack as a computed np.ndarray in float32 format.
-            - standard_dev_proj: The standard deviation projection along the Z-axis.
-            - standard_dev_proj_log: The log of the standard deviation projection.
-            - clipped_im: The image clipped by specified percentiles.
-            - normalized_im: The Z-score normalized image.
+    Returns
+    -------
+    :
+        The brightfield stack as a computed np.ndarray in float32 format.
+    :
+        The standard deviation projection along the Z-axis.
+    :
+        The log of the standard deviation projection.
+    :
+        The image clipped by specified percentiles.
+    :
+        The Z-score normalized image.
     """
     # STEP 1: Load the brightfield stack as a Dask array, convert to float32
     bf_stack_float32 = bf_stack.astype("float32")
