@@ -36,7 +36,10 @@ flow_conditions:
 valid_timepoints: null
 include_scenes: null
 notes: some cell death that occurs after the switch to high SS
-timepoint_annotations: null
+timepoint_annotations:
+  cell_piling:
+    2: [[469, 576]]
+    5: [[545, 576]]
 position_annotations: null
 center_z_plane:
   0: 10
