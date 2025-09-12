@@ -8,7 +8,6 @@ def main(
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
     z_stack_offsets: tuple[int, int] | None = None,
-    slice_by_global_center: bool = True,
 ) -> None:
     """
     Apply a trained DiffAE model to grid-based crops of images from multiple datasets.
@@ -24,15 +23,15 @@ def main(
     **Z-stack offsets**
 
     The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
-    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load, either
-    by slicing about a global center or by using the provided offsets directly. If it
+    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load
+    by slicing about a global center (annotated in the dataset configs). If it
     is ``None``, all z-slices are loaded from the raw brightfield images.
 
     **Example usage**
 
     .. code-block:: bash
 
-        endopipe -vg apply-diffae-grid --dataset-name 20250409_20X --z-stack-offsets 0 16 --no-slice-by-global-center
+        endopipe -vg apply-diffae-grid --dataset-name 20250409_20X
 
 
     Parameters
@@ -50,8 +49,6 @@ def main(
         Optional user overrides to apply to the model config.
     z_stack_offsets
         Lower and upper bounds for z-slicing.
-    slice_by_global_center
-        Slice about a global center if True, or use z_stack_offsets directly if False.
 
     Returns
     -------
@@ -133,7 +130,6 @@ def main(
             upload_to_fms=upload_to_fms,
             user_overrides=user_overrides,
             z_stack_offsets=z_stack_offsets,
-            slice_by_global_center=slice_by_global_center,
             frame_start=frame_start,
             frame_stop=frame_stop,
             only_include_positions=only_include_positions,

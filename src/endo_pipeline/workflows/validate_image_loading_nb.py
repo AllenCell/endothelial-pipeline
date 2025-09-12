@@ -23,12 +23,9 @@ channel = [0, 1]
 frame_start = 0
 frame_stop = 450
 z_stack_offsets = (5, 15)
-slice_by_global_center = True
 
 # %%
-z_slice_bounds_per_position = get_z_slice_bounds_per_position(
-    dataset_config, z_stack_offsets, slice_by_global_center
-)
+z_slice_bounds_per_position = get_z_slice_bounds_per_position(dataset_config, z_stack_offsets)
 only_include_positions = get_include_positions(dataset_config)
 exclude_cell_piling = True
 exclude_frames_by_position = get_exclude_frames(dataset_config, exclude_cell_piling=True)

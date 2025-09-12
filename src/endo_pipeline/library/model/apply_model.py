@@ -450,7 +450,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
     z_stack_offsets: tuple[int, int] | None = None,
-    slice_by_global_center: bool = True,
     frame_start: int | None = None,
     frame_stop: int | None = None,
     frame_step: int | None = None,
@@ -462,14 +461,9 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     **Z-stack offsets**
 
     The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
-    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load, either
-    by slicing about a global center or by using the provided offsets directly. If it
+    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load
+    by slicing about a global center (annotated in dataset config). If it
     is ``None``, all z-slices are loaded from the raw brightfield images.
-
-    If ``slice_by_global_center`` is set to True, the z-slice range is calculated based on
-    the global center plane for the given position. In this case, ``z_stack_offsets`` should
-    indicate the number of slices to include below and above the center plane. Else, the
-    ``z_stack_offsets`` are used directly as the range bounds.
 
     Parameters
     ----------
@@ -485,8 +479,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Optional user overrides to apply to the model config.
     z_stack_offsets
         Lower and upper bounds for z-slicing.
-    slice_by_global_center
-        Get global center plane per position for z-slicing if True, use offsets directly if False.
     frame_start
         First frame to include, if None, include from the start.
     frame_stop
@@ -542,17 +534,13 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     file_name = "dataset"
     if z_stack_offsets is not None:
         file_name = f"{file_name}_z_stack_{z_stack_offsets[0]}_{z_stack_offsets[1]}"
-        if slice_by_global_center:
-            file_name = f"{file_name}_ctr"
 
     file_name_with_extension = f"{file_name}.parquet"
     dataset_save_path = save_path / file_name_with_extension
 
     # parse dataset annotations to get z-slice information,
     # positions to include, and frames to exclude
-    z_slice_bounds_per_position = get_z_slice_bounds_per_position(
-        dataset_config, z_stack_offsets, slice_by_global_center
-    )
+    z_slice_bounds_per_position = get_z_slice_bounds_per_position(dataset_config, z_stack_offsets)
     exclude_frames = get_exclude_frames(dataset_config)
 
     if z_stack_offsets is not None:
@@ -580,9 +568,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
     # apply overrides
     prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features"
-    # having issues with zarr loading when using z-slices from global center,
-    # need to decrease the num_workers
-    num_workers = 64 if (z_stack_offsets is not None and slice_by_global_center) else 128
+    num_workers = 64
     logger.debug("Using [ %d ] workers for data loading.", num_workers)
     overrides = generate_overrides_for_model_eval(
         load_overrides(user_overrides),

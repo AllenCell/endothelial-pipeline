@@ -115,11 +115,11 @@ def get_plane_indices(
     position: int,
     lower_offset: int,
     upper_offset: int,
-    slice_by_global_center: bool = True,
 ) -> list[int]:
     """
-    Get a list of plane indices based on the specified offsets and slicing mode. The indices
-    are constrained between 0 and 24.
+    Get a list of plane indices based on the provided outputs about the global center.
+
+    The indices are constrained between 0 and 24.
 
     Parameters
     ----------
@@ -128,33 +128,23 @@ def get_plane_indices(
     position
         The position index for which the plane indices are calculated.
     lower_offset
-        The number of planes below the center plane (or starting index if
-        `slice_by_global_center` is False) to include.
+        The number of planes below the center plane to include.
     upper_offset
-        The number of planes above the center plane (or ending index if
-        `slice_by_global_center` is False) to include.
-    slice_by_global_center
-        If True, calculate the range of indices based on the global center plane
-        for the given position. If False, use `lower_offset` and `upper_offset`
-        directly as the range bounds. Defaults to True.
+        The number of planes above the center plane to include.
 
     Returns
     -------
     list
         A list of plane indices within the specified range, constrained between 0 and 24.
     """
-    if slice_by_global_center:
-        if dataset_config.center_z_plane is None:
-            logger.error(
-                "Center z-plane information is missing for dataset [ %s ].", dataset_config.name
-            )
-            raise ValueError("Center z-plane information is missing in the dataset configuration.")
-        global_center_plane = dataset_config.center_z_plane[position]
-        lower_bound = max(0, global_center_plane - lower_offset)
-        upper_bound = min(24, global_center_plane + upper_offset)
-    else:
-        lower_bound = lower_offset
-        upper_bound = upper_offset
+    if dataset_config.center_z_plane is None:
+        logger.error(
+            "Center z-plane information is missing for dataset [ %s ].", dataset_config.name
+        )
+        raise ValueError("Center z-plane information is missing in the dataset configuration.")
+    global_center_plane = dataset_config.center_z_plane[position]
+    lower_bound = max(0, global_center_plane - lower_offset)
+    upper_bound = min(24, global_center_plane + upper_offset)
 
     return list(range(lower_bound, upper_bound + 1))
 

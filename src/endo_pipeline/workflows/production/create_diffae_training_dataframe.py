@@ -4,7 +4,6 @@ TAGS = ["diffae_model_training"]
 def main(
     resolution_level: int = 1,
     z_stack_offsets: tuple[int, int] | None = None,
-    slice_by_global_center: bool = True,
     exclude_cell_piling: bool = False,
 ) -> None:
     """
@@ -31,14 +30,9 @@ def main(
     **Z-stack offsets**
 
     The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
-    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load, either
-    by slicing about a global center or by using the provided offsets directly. If it
+    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load
+    by slicing about a global center (annotated in the dataset configs). If it
     is ``None``, all z-slices are loaded from the raw brightfield images.
-
-    If ``slice_by_global_center`` is set to True, the z-slice range is calculated based on
-    the global center plane for the given position. In this case, ``z_stack_offsets`` should
-    indicate the number of slices to include below and above the center plane. Else, the
-    ``z_stack_offsets`` are used directly as the range bounds.
 
     **Cell piling exclusion**
 
@@ -61,8 +55,6 @@ def main(
         The resolution level of the zarr files to load for training.
     z_stack_offsets
         Lower and upper bounds for z-slicing.
-    slice_by_global_center
-        Get global center plane per position for z-slicing if True, use offsets directly if False.
     exclude_cell_piling
         Exclude cell piling timepoints if True, include them if False.
 
@@ -99,7 +91,7 @@ def main(
         # parse dataset annotations to get z-slice information,
         # positions to include, and frames to exclude
         z_slice_bounds_per_position = get_z_slice_bounds_per_position(
-            dataset_config, z_stack_offsets, slice_by_global_center
+            dataset_config, z_stack_offsets
         )
         only_include_positions = get_include_positions(dataset_config)
         exclude_frames = get_exclude_frames(dataset_config, exclude_cell_piling=exclude_cell_piling)
@@ -158,7 +150,6 @@ def main(
         val,
         resolution_level,
         z_stack_offsets,
-        slice_by_global_center,
         exclude_cell_piling,
         dataset_config_list,
         output_savedir,
