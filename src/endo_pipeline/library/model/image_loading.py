@@ -43,9 +43,6 @@ class LogImaged(Transform):
     ----------
     keys : str
         Key in the input dictionary where the original image data is stored.
-    output_key : str
-        Key in the output dictionary where the transformed image data will be stored.
-        If not provided, the transformed image will overwrite the original image.
     """
 
     def __init__(self, keys: str = "image") -> None:
@@ -72,7 +69,7 @@ class LogImaged(Transform):
         Returns
         -------
         dict
-            Output dictionary with transformed image data under `output_key`.
+            Output dictionary with transformed image data under `keys`, overwriting data in place.
         """
         if self.keys not in data:
             logger.error("Input key '%s' not found in data dictionary.", self.keys)
