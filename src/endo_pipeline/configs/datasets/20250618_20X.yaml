@@ -33,7 +33,7 @@ flow_conditions:
 valid_timepoints: null
 include_scenes: null
 notes: Cells are very overgrown by end of experiment. A small hole appears in the
-  timelapse partway through and doesn't close
+  timelapse partway through and doesn't close. Manually adjusted the center_z_plane from 14 to 13.
 timepoint_annotations:
   bf_scope_error:
     0: [6, 529, 557]
@@ -67,9 +67,9 @@ timepoint_annotations:
     5: [356, 527, 528, 534, 540, 554]
 position_annotations: null
 center_z_plane:
-  0: 14
-  1: 14
-  2: 14
-  3: 14
+  0: 13
+  1: 13
+  2: 13
+  3: 13
   4: 13
-  5: 14
+  5: 13

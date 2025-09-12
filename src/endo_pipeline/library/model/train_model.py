@@ -1,4 +1,3 @@
-import datetime
 import logging
 import os
 from pathlib import Path
@@ -221,11 +220,10 @@ def _upload_zarr_dataframe_to_fms(
 ) -> str:
     # save the dataframes to parquet files locally as intermediates
     # use timestamp to ensure unique filenames
-    timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y%m%d_%H%M")
-    output_filename = f"{dataset_type}_resolution_{resolution_level}_{timestamp}.parquet"
+    output_filename = f"{dataset_type}_resolution_{resolution_level}.parquet"
     output_path = output_savedir / output_filename
     dataframe.to_parquet(output_path, index=False)
-    logger.debug("Saved % s dataframe to \n %s", dataset_type, output_path)
+    logger.debug("Saved [ %s ] dataframe to \n %s", dataset_type, output_path)
 
     # upload dataframes to fms
     logger.debug("Building FMS annotations for training and validation dataframes...")
@@ -251,6 +249,9 @@ def build_and_save_dataframe_manifest_for_training(
     train_dataframe: pd.DataFrame,
     val_dataframe: pd.DataFrame,
     resolution_level: int,
+    z_stack_offsets: tuple[int, int] | None,
+    slice_by_global_center: bool,
+    exclude_cell_piling: bool,
     dataset_config_list: list[DatasetConfig],
     output_savedir: Path,
     manifest_name: str,
@@ -267,6 +268,12 @@ def build_and_save_dataframe_manifest_for_training(
         The validation dataframe containing paths to zarr files and other metadata.
     resolution_level
         The resolution level of the zarr files to be used for training.
+    z_stack_offsets
+        Lower and upper bounds for z-slicing.
+    slice_by_global_center
+        Get global center plane per position for z-slicing if True, use offsets directly if False.
+    exclude_cell_piling
+        Exclude cell piling timepoints if True, include them if False.
     dataset_config_list
         A list of DatasetConfig objects for the datasets used in training.
     output_savedir
@@ -307,7 +314,12 @@ def build_and_save_dataframe_manifest_for_training(
     dataframe_manifest = DataframeManifest(
         name=manifest_name,
         workflow=workflow_name,
-        parameters={"resolution_level": resolution_level},
+        parameters={
+            "resolution_level": resolution_level,
+            "z_stack_offsets": z_stack_offsets,
+            "slice_by_global_center": slice_by_global_center,
+            "exclude_cell_piling": exclude_cell_piling,
+        },
         locations={
             "training": DataframeLocation(fmsid=train_fmsid, s3uri=None),
             "validation": DataframeLocation(fmsid=val_fmsid, s3uri=None),

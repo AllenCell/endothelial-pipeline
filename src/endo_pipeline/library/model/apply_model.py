@@ -1,6 +1,5 @@
 import json
 import logging
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +21,7 @@ from endo_pipeline.io import (
 from endo_pipeline.library.model.image_loading import (
     build_zarr_image_loading_dataframe,
     get_exclude_frames,
-    get_z_offset_information,
+    get_z_slice_bounds_per_position,
 )
 from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
@@ -482,14 +481,20 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Resolution level to at which to load images (zarr file format) at.
     upload_to_fms
         Whether to upload the prediction file to FMS. Default is True.
-    save_path
-        Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
     user_overrides
         Optional user overrides to apply to the model config.
     z_stack_offsets
         Lower and upper bounds for z-slicing.
     slice_by_global_center
         Get global center plane per position for z-slicing if True, use offsets directly if False.
+    frame_start
+        First frame to include, if None, include from the start.
+    frame_stop
+        Last frame to include, if None, include to the end.
+    frame_step
+        Step size for frame inclusion, if None, include every frame.
+    only_include_positions
+        List of position indices to include, if None, include all positions.
 
     Returns
     -------
@@ -528,27 +533,24 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     # set default output path
     save_path = get_output_path("models", model_config.name, dataset_config.name)
 
-    # use timestamp to get unique file name for FMS upload later
-    timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
-
     # load model
     model = CytoDLModel()
     model.load_config_from_file(path_dict["config_path"])
 
     logger.debug("Applying model [ %s ] to dataset [ %s ]", model_config.name, dataset_config.name)
-    # get unique name for the CSV file
+    # get unique name for the parquet file
     file_name = "dataset"
     if z_stack_offsets is not None:
         file_name = f"{file_name}_z_stack_{z_stack_offsets[0]}_{z_stack_offsets[1]}"
         if slice_by_global_center:
             file_name = f"{file_name}_ctr"
 
-    file_name = f"{file_name}_{timestamp}.parquet"
-    dataset_save_path = save_path / file_name
+    file_name_with_extension = f"{file_name}.parquet"
+    dataset_save_path = save_path / file_name_with_extension
 
     # parse dataset annotations to get z-slice information,
     # positions to include, and frames to exclude
-    z_slice_per_position = get_z_offset_information(
+    z_slice_bounds_per_position = get_z_slice_bounds_per_position(
         dataset_config, z_stack_offsets, slice_by_global_center
     )
     exclude_frames = get_exclude_frames(dataset_config)
@@ -568,7 +570,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         frame_start=frame_start,
         frame_stop=frame_stop,
         frame_step=frame_step,
-        z_slice_per_position=z_slice_per_position,
+        z_slice_bounds_per_position=z_slice_bounds_per_position,
         only_include_positions=only_include_positions,
         exclude_frames=exclude_frames,
     )
@@ -577,7 +579,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     df.to_parquet(dataset_save_path, index=False)
 
     # apply overrides
-    prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features_{timestamp}"
+    prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features"
     # having issues with zarr loading when using z-slices from global center,
     # need to decrease the num_workers
     num_workers = 64 if (z_stack_offsets is not None and slice_by_global_center) else 128
@@ -696,9 +698,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
     data_path = preprocess_tracking_manifest_for_model_eval(dataset_config, save_path)
 
     # use timestamp to get unique file name for FMS upload later
-    timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
     prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_tracked_crop_features"
-    prediction_filename_suffix = f"{prediction_filename_suffix}_{timestamp}"
     # apply overrides
     overrides = generate_overrides_for_track_based_crops(
         overrides,
