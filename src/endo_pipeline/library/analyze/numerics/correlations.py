@@ -15,8 +15,8 @@ from endo_pipeline.manifests import DataframeManifest
 logger = logging.getLogger(__name__)
 
 CROSS_CORR_INDEX_COMBINATIONS = [(0, 1), (0, 2), (1, 2)]
-# use lags going from - to + {num_timepoints}/NUM_TIMEPOINT_FRAC for CCF/ACF calculation
-NUM_TIMEPOINT_FRAC = 2
+# use lags going from - to + {num_timepoints}//NUM_TIMEPOINT_FRAC for CCF/ACF calculation
+NUM_TIMEPOINT_FRAC = 3
 
 
 def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -> np.ndarray:
@@ -56,9 +56,10 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
         # Shift the CCF so that zero lag is in the center of the array.
         corr_shifted = np.fft.fftshift(corr_unshifted)
         # Extract the middle half of the CCF (corresponding to lags going from
-        # - to + num_timepoints / NUM_TIMEPOINT_FRAC) to get the actual CCF of the un-padded signal.
-        index_lb = num_pad // 2 - (num_timepoints // NUM_TIMEPOINT_FRAC - 1)
-        index_ub = num_pad // 2 + (num_timepoints // NUM_TIMEPOINT_FRAC)
+        # - to + num_timepoints//NUM_TIMEPOINT_FRAC) to get the actual CCF of the unpadded signal.
+        max_lag = num_timepoints // NUM_TIMEPOINT_FRAC
+        index_lb = num_pad // 2 - max_lag
+        index_ub = num_pad // 2 + max_lag + 1
         corr = corr_shifted[index_lb:index_ub]
 
         # Running sum over trajectories to get average.
@@ -98,21 +99,13 @@ def fit_exp_decay_and_get_relaxation_timescale(
             "Invalid exp_decay_func provided to _fit_exp_decay_and_get_relaxation_timescale."
         )
 
-    # fit only to positive ACF values to avoid errors
-    if any(acf < 0):
-        acf_where_positive = acf > 0
-        lags_pos = lags[acf_where_positive]
-        acf_pos = acf[acf_where_positive]
-    else:
-        lags_pos = lags
-        acf_pos = acf
     if exp_decay_func == "exponential_decay":
         p0 = [0.5, 0.5, 0.5]  # initial guess for a, b, and c
-        exp_fit, _ = curve_fit(exponential_decay, lags_pos, acf_pos, maxfev=maxfev, p0=p0)
+        exp_fit, _ = curve_fit(exponential_decay, lags, acf, maxfev=maxfev, p0=p0)
         relaxation_time = 1 / exp_fit[1]
     else:
         p0 = [0.5, 0.5, 0.5, 0.5, 0.5]  # initial guess for a1, b1, a2, b2, and c
-        exp_fit, _ = curve_fit(double_exponential_decay, lags_pos, acf_pos, maxfev=maxfev, p0=p0)
+        exp_fit, _ = curve_fit(double_exponential_decay, lags, acf, maxfev=maxfev, p0=p0)
         # choose the relaxation time corresponding to the larger weight
         which_weight_is_larger = np.argmax(np.abs(exp_fit[[0, 2]]))
         relaxation_time = 1 / exp_fit[[1, 3][which_weight_is_larger]]
@@ -327,16 +320,8 @@ def _compute_correlations_for_one_dataset(
 
     num_timepoints = feats.shape[1]
     # make sure lags are symmetric around zero
-    if num_timepoints % 2 == 0:
-        # even number of timepoints
-        lags = np.arange(
-            -num_timepoints // NUM_TIMEPOINT_FRAC + 1, num_timepoints // NUM_TIMEPOINT_FRAC
-        )
-    else:
-        # odd number of timepoints
-        lags = np.arange(
-            -num_timepoints // NUM_TIMEPOINT_FRAC + 2, num_timepoints // NUM_TIMEPOINT_FRAC
-        )
+    max_lags = num_timepoints // NUM_TIMEPOINT_FRAC
+    lags = np.arange(-max_lags, max_lags + 1)
 
     num_lags = len(lags)
     # autocorrelation
