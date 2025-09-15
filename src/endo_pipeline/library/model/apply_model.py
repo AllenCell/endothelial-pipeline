@@ -348,7 +348,9 @@ def preprocess_tracking_manifest_for_model_eval(
     grouped_df = grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1)
 
     # add temporary column with position index for filtering
-    df["position_index"] = df["path"].apply(lambda x: get_position_integer_from_zarr_file_path(x))
+    grouped_df["position_index"] = grouped_df["zarr_path"].apply(
+        lambda x: get_position_integer_from_zarr_file_path(x)
+    )
 
     # only load images for specified position indices
     if only_include_positions is not None:
@@ -356,29 +358,31 @@ def preprocess_tracking_manifest_for_model_eval(
             "Filtering Zarr files to only include positions: [ %s ]", only_include_positions
         )
 
-        df = df[df["position_index"].isin(only_include_positions)]
+        grouped_df = grouped_df[grouped_df["position_index"].isin(only_include_positions)]
 
     # add column for excluding frames, if specified
     if exclude_frames is not None:
         # if position has no frames to exclude, set to None
-        df["exclude_frames"] = df["position_index"].apply(lambda x: exclude_frames.get(x, None))
+        grouped_df["exclude_frames"] = grouped_df["position_index"].apply(
+            lambda x: exclude_frames.get(x, None)
+        )
 
     # if start and stop for loading z slices are specified, add to dataframe
     if z_slice_bounds_per_position is not None:
         # get z info dict for each position index
         # unpack the start, stop, and step values from those dictionaries
-        df["z_start"] = df["position_index"].apply(
+        grouped_df["z_start"] = grouped_df["position_index"].apply(
             lambda x: z_slice_bounds_per_position.get(x, {}).get("z_start", 0)
         )
-        df["z_stop"] = df["position_index"].apply(
+        grouped_df["z_stop"] = grouped_df["position_index"].apply(
             lambda x: z_slice_bounds_per_position.get(x, {}).get("z_stop", -1)
         )
-        df["z_step"] = df["position_index"].apply(
+        grouped_df["z_step"] = grouped_df["position_index"].apply(
             lambda x: z_slice_bounds_per_position.get(x, {}).get("z_step", 1)
         )
 
     # remove temporary column with position index
-    df = df.drop(columns=["position_index"])
+    grouped_df = grouped_df.drop(columns=["position_index"])
 
     # save the dataframe to a Parquet file that the DiffAE model will use to load cropped images
     save_path = save_dir / "aggregated_crop_manifest.parquet"
