@@ -97,7 +97,6 @@ def generate_overrides_for_model_eval(
     dataset_name: str,
     model_name: str,
     prediction_filename_suffix: str | None = None,
-    num_workers: int = 128,
     cache_rate: float = 1.0,
 ) -> dict:
     """
@@ -108,6 +107,8 @@ def generate_overrides_for_model_eval(
     overrides = {
         # train and val dataloaders are unnecessary for prediction
         # and might be slow to instantiate (e.g. if they cache data)
+        "data.train_dataloaders": None,
+        "data.val_dataloaders": None,
         "data.predict_dataloaders.dataset.dataframe_path": data_path,
         "data.predict_dataloaders.dataset.cache_rate": cache_rate,
         "paths.output_dir": save_path,
@@ -601,7 +602,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         load_overrides(user_overrides),
         save_path=save_path.as_posix(),
         data_path=dataset_save_path.as_posix(),
-        ckpt_path=path_dict["checkpoint_path"],
+        ckpt_path=path_dict["checkpoint_path"].as_posix(),
         dataset_name=dataset_config.name,
         model_name=model_config.name,
         prediction_filename_suffix=prediction_filename_suffix,
