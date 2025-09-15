@@ -6,7 +6,7 @@ TAGS = ["apply_diffae_model", "diffae_features"]
 
 def main(
     model_name: str = "diffae_04_10",
-    dataset_names: list[str] = "20250319_20X",
+    dataset_name: str = "20250319_20X",  # "live_cdh5_seg_based_feat_datasets"
     upload_to_fms: bool = True,
     save_path: str | Path | None = None,
     user_overrides: str | dict | None = None,
@@ -21,8 +21,9 @@ def main(
     ----------
     model_name
         Name of the model to apply.
-    dataset_names
-        Names of the datasets from which to load images.
+    dataset_name
+        Dataset(s) to load images from, either a single dataset name or the name
+        of a dataset collection.
     upload_to_fms
         True to upload the prediction file for each dataset to FMS, False to only save locally.
     save_path
@@ -36,15 +37,39 @@ def main(
         Saves the model config with the applied model and model manifest objects.
         The model config is saved to :code:`endo_pipeline/configs/models/{model_name}.yaml`.
     """
+    import logging
     from typing import cast
 
-    from endo_pipeline.configs import CytoDLModelConfig, load_dataset_config, load_model_config
+    from endo_pipeline.configs import (
+        CytoDLModelConfig,
+        get_available_dataset_collection_names,
+        get_available_dataset_names,
+        get_datasets_in_collection,
+        load_dataset_config,
+        load_model_config,
+    )
     from endo_pipeline.library.model import apply_model_on_tracked_crops_from_one_dataset
     from endo_pipeline.library.model.image_loading import get_include_positions
     from endo_pipeline.settings import Z_SLICE_OFFSETS
 
-    if isinstance(dataset_names, str):
-        dataset_names = [dataset_names]
+    logger = logging.getLogger(__name__)
+
+    # check if input is a dataset collection or a single dataset name
+    if dataset_name in get_available_dataset_collection_names():
+        # if it is a dataset collection, load all datasets in the collection
+        dataset_names = get_datasets_in_collection(dataset_name)
+    elif dataset_name in get_available_dataset_names():
+        # if it is a single dataset name, keep it as is
+        dataset_names = [dataset_name]
+    else:
+        logger.error(
+            "Dataset name [ %s ] is not a valid dataset or dataset collection name",
+            dataset_name,
+        )
+        raise ValueError(
+            f"Dataset name [ {dataset_name} ] is not a valid",
+            "dataset or dataset collection name.",
+        )
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_names]
 
     # load model config
