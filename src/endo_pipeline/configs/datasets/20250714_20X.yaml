@@ -37,13 +37,9 @@ valid_timepoints: null
 include_scenes: null
 notes: some cell death that occurs after the switch to high SS
 timepoint_annotations:
-  auto_gfp_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
+  cell_piling:
+    2: [[469, 576]]
+    5: [[545, 576]]
 position_annotations: null
 center_z_plane:
   0: 10

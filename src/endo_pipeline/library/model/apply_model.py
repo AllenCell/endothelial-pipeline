@@ -97,6 +97,7 @@ def generate_overrides_for_model_eval(
     model_name: str,
     prediction_filename_suffix: str | None = None,
     num_workers: int = 128,
+    cache_rate: float = 1.0,
 ) -> dict:
     """
     Generate overrides for the CytoDLModel configuration
@@ -110,6 +111,7 @@ def generate_overrides_for_model_eval(
         "data.val_dataloaders": None,
         "data.predict_dataloaders.num_workers": num_workers,
         "data.predict_dataloaders.dataset.dataframe_path": data_path,
+        "data.predict_dataloaders.dataset.cache_rate": cache_rate,
         "paths.output_dir": save_path,
         # change checkpoint path to the one downloaded from mlflow
         "checkpoint.ckpt_path": ckpt_path,
@@ -339,13 +341,13 @@ def preprocess_tracking_manifest_for_model_eval(
     grouped_df["resolution"] = resolution
 
     # only run a single timepoint from zarr
-    grouped_df["start"] = grouped_df["image_index"]
-    grouped_df["stop"] = grouped_df["image_index"]
+    grouped_df["frame_start"] = grouped_df["image_index"]
+    grouped_df["frame_stop"] = grouped_df["image_index"]
     grouped_df = grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1)
 
-    # save the dataframe to a CSV file that the DiffAE model will use to load cropped images
-    save_path = save_dir / "aggregated_crop_manifest.csv"
-    grouped_df.to_csv(save_path, index=False)
+    # save the dataframe to a parquet file that the DiffAE model will use to load cropped images
+    save_path = save_dir / "aggregated_crop_manifest.parquet"
+    grouped_df.to_parquet(save_path, index=False)
     return save_path
 
 
@@ -682,6 +684,15 @@ def apply_model_on_tracked_crops_from_one_dataset(
     mlflow_id = model_config.mlflow_run_id
     model_path = get_output_path("models", model_config.name, include_timestamp=False)
     path_dict = download_model(mlflow_id, model_path)
+
+    # right now, need to use the tracked version of the config if using the
+    # "legacy" model "diffae_04_10" (temporary workaround until we are only using
+    # models trained with the new pipeline)
+    if model_config.name == "diffae_04_10":
+        path_dict["config_path"] = get_model_dir() / "diffae_04_10_eval.yaml"
+        logger.info(
+            "Loading legacy model config for diffae_04_10 from [ %s ]", path_dict["config_path"]
+        )
 
     if save_path is None:
         # if no save path is provided, use the default path

@@ -27,6 +27,7 @@ def _generate_overrides_for_model_training(
     val_dataframe_path: str,
     max_num_epochs: int = 1000,
     log_every_n_steps: int = 50,
+    cache_rate: float = 0.01,
 ) -> dict:
     """
     Generate overrides for the DiffAE model training configuration.
@@ -46,6 +47,8 @@ def _generate_overrides_for_model_training(
         The maximum number of epochs to train the model for.
     log_every_n_steps
         The interval at which to log training metrics.
+    cache_rate
+        The fraction of the dataset to cache in memory for training.
 
     Returns
     -------
@@ -59,8 +62,10 @@ def _generate_overrides_for_model_training(
     overrides = {
         # set path to train and val datasets
         "data.train_dataloaders.dataset.dataframe_path": train_dataframe_path,
+        "data.train_dataloaders.dataset.cache_rate": cache_rate,
         "data.predict_dataloaders.dataset.dataframe_path": val_dataframe_path,
         "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path,
+        "data.val_dataloaders.dataset.cache_rate": cache_rate,
         # get repo root directory and current working directory
         "paths.root_dir": Path(__file__).resolve().parents[3].as_posix(),
         "paths.work_dir": os.getcwd(),
@@ -160,6 +165,7 @@ def initialize_diffae_model(
     val_dataframe_path: str,
     max_num_epochs: int = 1000,
     log_every_n_steps: int = 50,
+    cache_rate: float = 0.01,
 ) -> CytoDLModel:
     """
     Initialize a DiffAE model for training.
@@ -180,6 +186,8 @@ def initialize_diffae_model(
         The maximum number of epochs to train the model for.
     log_every_n_steps
         The interval at which to log training metrics.
+    cache_rate
+        The fraction of the dataset to cache in memory for training.
 
     Returns
     -------
@@ -201,6 +209,7 @@ def initialize_diffae_model(
         val_dataframe_path,
         max_num_epochs=max_num_epochs,
         log_every_n_steps=log_every_n_steps,
+        cache_rate=cache_rate,
     )
 
     # init model

@@ -50,13 +50,6 @@ timepoint_annotations:
     3: [8]
     4: [527, 529, 531]
     5: [527, 529]
-  auto_gfp_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
   bf_scope_error:
     0: [527]
     1: [527]

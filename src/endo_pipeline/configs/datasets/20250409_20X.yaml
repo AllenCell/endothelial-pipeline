@@ -50,13 +50,6 @@ timepoint_annotations:
     3: [209, 240, 271, 326, 457, 458, 524]
     4: [50, 58, 112, 222, 524]
     5: [0, 51, 121, 271, 529]
-  auto_gfp_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
   bf_scope_error:
     3: [524]
   bf_temp_artifact:

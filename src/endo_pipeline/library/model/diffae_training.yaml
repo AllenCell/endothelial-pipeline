@@ -20,7 +20,6 @@ data:
     shuffle: true
     dataset:
       _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
-      # num_workers: 12
       dataframe_path: null
       spatial_dims: 3
       transform:
@@ -90,8 +89,6 @@ data:
     shuffle: false
     dataset:
       _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
-      # cache_num: 0c
-      # num_workers: 12
       spatial_dims: 3
       dataframe_path: null
       transform:
@@ -132,7 +129,6 @@ data:
     shuffle: false
     dataset:
       _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
-      # num_workers: 12
       dataframe_path: null
       spatial_dims: 3
       transform:

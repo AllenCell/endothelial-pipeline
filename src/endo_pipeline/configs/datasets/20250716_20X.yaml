@@ -50,13 +50,6 @@ timepoint_annotations:
     3: [3, 257, 278, 279, 557]
     4: [78, 278, 557]
     5: [0, 3, 557, 562]
-  auto_gfp_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
   bf_scope_error:
     2: [0]
 position_annotations: null

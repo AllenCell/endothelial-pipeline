@@ -48,13 +48,6 @@ timepoint_annotations:
     3: [24, 330, 349, 544]
     4: [24, 84, 330, 340, 349]
     5: [330, 349]
-  auto_gfp_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
   bf_scope_error:
     2: [289, 349]
     3: [330]
@@ -62,6 +55,12 @@ timepoint_annotations:
     5: [330, 349]
   bf_temp_artifact:
     5: [45]
+  cell_piling:
+    0: [[553, 576]]
+    1: [[555, 576]]
+    2: [[429, 576]]
+    4: [[442, 576]]
+    5: [[430, 576]]
 position_annotations: null
 center_z_plane:
   0: 9

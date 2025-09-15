@@ -5,8 +5,8 @@ TAGS = ["apply_diffae_model", "diffae_features"]
 
 
 def main(
-    model_name: str,
-    dataset_names: list[str],
+    model_name: str = "diffae_04_10",
+    dataset_names: list[str] = "20250319_20X",
     upload_to_fms: bool = True,
     save_path: str | Path | None = None,
     user_overrides: str | dict | None = None,
