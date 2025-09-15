@@ -37,6 +37,13 @@ include_scenes: null
 notes: Caution, some patchiness occurs after TP489 & cells are very crowded by the
   end of the movie. No other artifacts noted.
 timepoint_annotations:
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
   cell_piling:
     0: [[352, 576]]
     1: [[352, 576]]

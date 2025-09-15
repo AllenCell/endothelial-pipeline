@@ -1,85 +1,83 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 from endo_pipeline.configs import DatasetConfig, get_available_zarr_files
 from endo_pipeline.io.input import load_zarr_as_dask_array
 from endo_pipeline.io.output import get_output_path, save_plot_to_path
 from endo_pipeline.settings.image_data import NUM_ZSLICES
 
+THRESHOLD = 1
+"""Percentage to use for thresholding dark and bright outliers."""
 
-def plot_gfp_outliers_std(
-    data_np: np.ndarray,
-    mean_val: float,
-    lower_threshold: float,
-    upper_threshold: float,
+ROLLING_WINDOW = 12
+"""Number of timepoints to use for rolling window calculation (1 hour)."""
+
+
+def plot_gfp_outliers_rolling(
+    tp_means: np.ndarray,
+    rolling_mean: np.ndarray,
+    lower_threshold: np.ndarray,
+    upper_threshold: np.ndarray,
     dark_outliers: list[int],
     bright_outliers: list[int],
     dataset_name: str,
     position: int,
-    num_zslices: int = NUM_ZSLICES,
-    n_std: int = 3,
+    window: int = ROLLING_WINDOW,
+    percent: float = THRESHOLD,
 ) -> None:
     """
-    Plot intensity data with global mean ± N*std thresholds and outliers.
+    Plot TP-level mean intensities with rolling mean ± percentage thresholds and outliers.
     """
-    fig, ax = plt.subplots(figsize=(12, 10))
-    ax.plot(data_np, label="Intensity", color="black", alpha=0.6)
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.plot(tp_means, label="TP Mean Intensity", color="black", alpha=0.7)
+    ax.plot(rolling_mean, label=f"Rolling Mean (window={window})", color="blue", alpha=0.9)
 
-    # Plot mean + thresholds
-    ax.axhline(mean_val, color="blue", linestyle="--", label="Mean")
-    ax.axhline(
-        lower_threshold, color="red", linestyle="--", label=f"Lower Threshold ({lower_threshold})"
-    )
-    ax.axhline(upper_threshold, color="orange", linestyle="--", label=f"Upper Threshold ({n_std}σ)")
+    # Threshold curves
+    ax.plot(lower_threshold, color="red", linestyle="--", label=f"Lower ({int(percent*100)}%)")
+    ax.plot(upper_threshold, color="orange", linestyle="--", label=f"Upper ({int(percent*100)}%)")
 
-    # Scatter outliers
-    ax.scatter(dark_outliers, data_np[dark_outliers], color="red", label="Dark Outliers", zorder=5)
-    ax.scatter(
-        bright_outliers, data_np[bright_outliers], color="orange", label="Bright Outliers", zorder=5
-    )
+    # Outliers
+    if dark_outliers:
+        ax.scatter(
+            dark_outliers, tp_means[dark_outliers], color="red", label="Dark Outliers", zorder=5
+        )
+    if bright_outliers:
+        ax.scatter(
+            bright_outliers,
+            tp_means[bright_outliers],
+            color="orange",
+            label="Bright Outliers",
+            zorder=5,
+        )
 
-    # Annotate grouped outliers by timepoint
-    outlier_groups = [("Dark", dark_outliers), ("Bright", bright_outliers)]
-    info_lines = ["timepoint: [z-slices]\n"]
-    for title, indices in outlier_groups:
-        d = {
-            t: [i % num_zslices for i in indices if i // num_zslices == t]
-            for t in sorted(set(i // num_zslices for i in indices))
-        }
-        if d:
-            info_lines.append(f"{title}:\n" + "\n".join(f"{t}: {z}" for t, z in d.items()))
+    # Annotate text
+    info_lines = []
+    if dark_outliers:
+        info_lines.append(f"Dark: {dark_outliers}")
+    if bright_outliers:
+        info_lines.append(f"Bright: {bright_outliers}")
 
-    if len(info_lines) > 1:
+    if info_lines:
         fig.text(
             1.02,
             0.5,
-            "\n\n".join(info_lines),
+            "\n".join(info_lines),
             fontsize=10,
             va="center",
             ha="left",
             transform=ax.transAxes,
         )
 
-    # Secondary x-axis for timepoints
-    def index_to_tp(x):
-        return x // num_zslices
-
-    def tp_to_index(t):
-        return t * num_zslices
-
-    secax = ax.secondary_xaxis("top", functions=(index_to_tp, tp_to_index))
-    secax.set_xlabel("Timepoint (every 25 Z-slices)")
-    max_tp = data_np.shape[0] // num_zslices
-    secax.set_xticks(np.arange(0, max_tp + 1, 25))
-
-    ax.set_xlabel("Flattened Index (T, Z-slices)")
-    ax.set_ylabel("Intensity")
-    ax.set_title(f"{dataset_name} - Position {position}\n")
+    ax.set_xlabel("Timepoint")
+    ax.set_ylabel("Mean Intensity (across Z)")
+    ax.set_title(f"{dataset_name} - Position {position}")
     ax.legend()
+
     fig.tight_layout(rect=[0, 0, 0.8, 1])
     plt.show()
 
-    save_dir = get_output_path(f"gfp_outliers_{n_std}std", dataset_name)
+    save_dir = get_output_path(f"gfp_outliers_{int(percent*100)}pct", dataset_name)
     save_plot_to_path(fig, save_dir, f"gfp_outliers_P{position}")
     plt.close(fig)
 
@@ -88,50 +86,58 @@ def detect_egfp_scope_errors(
     dataset_config: DatasetConfig,
     position: int,
     visualize: bool = False,
-    n_std: int = 3,
-) -> tuple[list[int], list[int]]:
+    window: int = ROLLING_WINDOW,
+    percent: float = THRESHOLD,
+) -> list[int]:
     """
-    Detect EGFP scope errors based on global mean ± N*std thresholds.
-    Returns lists of dark and bright outlier indices.
+    Detect EGFP scope errors based on per-timepoint mean with rolling mean ± percentage thresholds.
+    Uses all z-slices in a timepoint to compute the per-tp mean.
+    Returns list of outlier timepoints.
     """
     zarr_files = get_available_zarr_files(dataset_config)
     gfp_zarr = load_zarr_as_dask_array(
         zarr_files[position], channels=["EGFP"], level=1, squeeze=True
     )
 
-    # 1 Compute mean intensity over x/y axes
-    intensity_array = gfp_zarr.mean(axis=(-2, -1))
-    flattened_img_data = intensity_array.flatten()
+    # Compute mean intensity across spatial dimensions (Y, X)
+    intensity_array = gfp_zarr.mean(axis=(-2, -1))  # now (T, Z)
 
-    # 2 Convert to pandas Series for rolling median
-    data_np = flattened_img_data.compute()
+    # Compute per-timepoint mean (across Z)
+    tp_means = intensity_array.mean(axis=1).compute().astype(float)  # shape (T,)
 
-    # Compute global mean/std
-    mean_val = np.mean(data_np)
-    std_val = np.std(data_np)
+    # Rolling median
+    series = pd.Series(tp_means)
+    rolling_median = series.rolling(window, center=True).median()
 
-    lower_threshold = 100
-    upper_threshold = mean_val + n_std * std_val
+    # Pad edges
+    start_val = np.nanmedian(tp_means[:window])
+    end_val = np.nanmedian(tp_means[-window:])
+    rolling_median.iloc[: window // 2] = start_val
+    rolling_median.iloc[-window // 2 :] = end_val
+    rolling_median = rolling_median.to_numpy()
 
-    # Outlier indices
-    dark_outliers = np.where(data_np < lower_threshold)[0].tolist()
-    bright_outliers = np.where(data_np > upper_threshold)[0].tolist()
+    # Thresholds
+    lower_threshold = rolling_median * (1 - percent)
+    upper_threshold = rolling_median * (1 + percent)
 
-    egfp_scope_error = sorted(
-        {int(idx // NUM_ZSLICES) for idx in set(dark_outliers + bright_outliers)}
-    )
+    # Outlier timepoints
+    dark_outliers = np.where(tp_means < lower_threshold)[0].tolist()
+    bright_outliers = np.where(tp_means > upper_threshold)[0].tolist()
+
+    egfp_scope_error = sorted(set(dark_outliers + bright_outliers))
 
     if visualize:
-        plot_gfp_outliers_std(
-            data_np,
-            mean_val,
+        plot_gfp_outliers_rolling(
+            tp_means,
+            rolling_median,
             lower_threshold,
             upper_threshold,
             dark_outliers,
             bright_outliers,
             dataset_config.name,
             position,
-            n_std=n_std,
+            window=window,
+            percent=percent,
         )
 
     return egfp_scope_error

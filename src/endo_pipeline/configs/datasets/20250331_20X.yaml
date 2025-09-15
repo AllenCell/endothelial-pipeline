@@ -37,17 +37,6 @@ valid_timepoints: null
 include_scenes: null
 notes: All positions have dust artifacts
 timepoint_annotations:
-  bf_scope_error:
-    0: [315]
-    1: [316]
-    2: [0]
-  bf_temp_artifact:
-    0: [522]
-    1: [413]
-    2: [451]
-    3: [413, 522]
-    4: [451]
-    5: [413]
   auto_bf_scope_error:
     0: [0, 48, 53, 258, 269, 303, 378, 380, 417, 427, 464, 494, 499, 521, 544, 552]
     1: [48, 53, 269, 301, 303, 427, 430, 445, 455, 467, 475, 539, 552, 565]
@@ -66,6 +55,24 @@ timepoint_annotations:
     3: [307, 343, 454]
     4: [431, 439, 451, 543]
     5: [0, 13, 271, 272, 290, 462]
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  bf_scope_error:
+    0: [315]
+    1: [316]
+    2: [0]
+  bf_temp_artifact:
+    0: [522]
+    1: [413]
+    2: [451]
+    3: [413, 522]
+    4: [451]
+    5: [413]
 position_annotations:
   dust_artifact: [0, 1, 2, 3, 4, 5]
 center_z_plane:
