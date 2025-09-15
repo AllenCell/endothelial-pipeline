@@ -348,7 +348,7 @@ def preprocess_tracking_manifest_for_model_eval(
     grouped_df = grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1)
 
     # add temporary column with position index for filtering
-    grouped_df["position_index"] = grouped_df["zarr_path"].apply(
+    grouped_df["position_index"] = grouped_df["path"].apply(
         lambda x: get_position_integer_from_zarr_file_path(x)
     )
 
@@ -747,7 +747,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
         overrides,
         save_path=save_path.as_posix(),
         data_path=data_path.as_posix(),
-        ckpt_path=path_dict["checkpoint_path"],
+        ckpt_path=path_dict["checkpoint_path"].as_posix(),
         dataset_name=dataset_config.name,
         model_name=model_config.name,
         prediction_filename_suffix=prediction_filename_suffix,
