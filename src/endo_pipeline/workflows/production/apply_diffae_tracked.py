@@ -40,6 +40,7 @@ def main(
     import logging
     from typing import cast
 
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import (
         CytoDLModelConfig,
         get_available_dataset_collection_names,
@@ -78,6 +79,13 @@ def main(
     # apply model to each dataset
     for dataset_config in dataset_config_list:
         only_include_positions = get_include_positions(dataset_config)
+        if DEMO_MODE:
+            only_include_positions = only_include_positions[:1]
+            logger.warning(
+                "Workflow demo is enabled, only processing first few "
+                "timepoints of the first position of dataset: [ %s ]",
+                dataset_config.name,
+            )
 
         apply_model_on_tracked_crops_from_one_dataset(
             model_config=model_config,
@@ -88,6 +96,10 @@ def main(
             z_slice_offsets=Z_SLICE_OFFSETS,
             only_include_positions=only_include_positions,
         )
+
+        if DEMO_MODE:
+            # only apply model to the first dataset in demo mode
+            break
 
 
 if __name__ == "__main__":
