@@ -10,11 +10,11 @@ from endo_pipeline.configs import (
     save_dataset_config,
 )
 from endo_pipeline.io.output import get_output_path
-from endo_pipeline.library.process.bf_timepoint_outlier import detect_bf_outliers
+from endo_pipeline.library.process.gfp_timepoint_outlier import detect_egfp_scope_errors
 
 # %% UPDATE ANNOTATIONS IN DATASET CONFIGS
-datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
-# for dataset_name in [datasets[0]]: # For testing with a single dataset
+datasets = get_datasets_in_collection("timelapse")
+# dataset_name = datasets[0] # For testing with a single dataset
 for dataset_name in datasets:
     dataset_config = load_dataset_config(dataset_name)
     tp_annotations = (
@@ -23,20 +23,14 @@ for dataset_name in datasets:
         else {}
     )
 
-    tp_annotations[TimepointAnnotation.AUTO_BF_SCOPE_ERROR] = {
-        position: [] for position in dataset_config.zarr_positions
-    }
-    tp_annotations[TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT] = {
+    tp_annotations[TimepointAnnotation.AUTO_GFP_SCOPE_ERROR] = {
         position: [] for position in dataset_config.zarr_positions
     }
 
     for position in dataset_config.zarr_positions:
-        bf_scope_error, bf_temp_artifact = detect_bf_outliers(
-            dataset_config, position, visualize=True
-        )
+        egfp_scope_error = detect_egfp_scope_errors(dataset_config, position, visualize=True)
 
-        tp_annotations[TimepointAnnotation.AUTO_BF_SCOPE_ERROR][position].extend(bf_scope_error)
-        tp_annotations[TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT][position].extend(bf_temp_artifact)
+        tp_annotations[TimepointAnnotation.AUTO_GFP_SCOPE_ERROR][position].extend(egfp_scope_error)
 
     dataset_config.timepoint_annotations = tp_annotations
     save_dataset_config(dataset_config)
@@ -48,18 +42,12 @@ datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
 for dataset_name in datasets:
     dataset_config = load_dataset_config(dataset_name)
     for position in dataset_config.zarr_positions:
-        manual_annotations = [
-            TimepointAnnotation.BF_SCOPE_ERROR,
-            TimepointAnnotation.BF_TEMP_ARTIFACT,
-        ]
+        manual_annotations = [TimepointAnnotation.GFP_SCOPE_ERROR]
         manual_tps = set(
             get_annotated_timepoints_for_position(dataset_config, position, manual_annotations)
         )
 
-        auto_annotations = [
-            TimepointAnnotation.AUTO_BF_SCOPE_ERROR,
-            TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT,
-        ]
+        auto_annotations = [TimepointAnnotation.AUTO_GFP_SCOPE_ERROR]
         auto_tps = set(
             get_annotated_timepoints_for_position(dataset_config, position, auto_annotations)
         )
@@ -79,12 +67,12 @@ for dataset_name in datasets:
         )
 # %%
 df = pd.DataFrame(stats)
-save_dir = get_output_path("brightfield_outlier_detection")
-df.to_parquet(save_dir / "bf_outlier_detection_stats.parquet", index=False)
+save_dir = get_output_path("gfp_outlier_detection")
+df.to_parquet(save_dir / "gfp_outlier_detection_stats.parquet", index=False)
 
 total_manual = df["n_manual_annotated"].sum()
 total_auto = df["n_auto_detected"].sum()
-total_missed = df["n_missed"].sum() - 1  # -1 b/c one annotation is not expected to be detected
+total_missed = df["n_missed"].sum()
 percent_missed = (total_missed / total_manual) * 100 if total_manual > 0 else 0
 total_timepoints = df["n_tps_assessed"].sum()
 percent_artifact = (total_auto + total_missed) / total_timepoints * 100
