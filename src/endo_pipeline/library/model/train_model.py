@@ -258,8 +258,7 @@ def build_and_save_dataframe_manifest_for_training(
     train_dataframe: pd.DataFrame,
     val_dataframe: pd.DataFrame,
     resolution_level: int,
-    z_stack_offsets: tuple[int, int] | None,
-    slice_by_global_center: bool,
+    z_slice_offsets: tuple[int, int] | None,
     exclude_cell_piling: bool,
     dataset_config_list: list[DatasetConfig],
     output_savedir: Path,
@@ -277,10 +276,8 @@ def build_and_save_dataframe_manifest_for_training(
         The validation dataframe containing paths to zarr files and other metadata.
     resolution_level
         The resolution level of the zarr files to be used for training.
-    z_stack_offsets
+    z_slice_offsets
         Lower and upper bounds for z-slicing.
-    slice_by_global_center
-        Get global center plane per position for z-slicing if True, use offsets directly if False.
     exclude_cell_piling
         Exclude cell piling timepoints if True, include them if False.
     dataset_config_list
@@ -325,8 +322,7 @@ def build_and_save_dataframe_manifest_for_training(
         workflow=workflow_name,
         parameters={
             "resolution_level": resolution_level,
-            "z_stack_offsets": z_stack_offsets,
-            "slice_by_global_center": slice_by_global_center,
+            "z_slice_offsets": z_slice_offsets,
             "exclude_cell_piling": exclude_cell_piling,
         },
         locations={

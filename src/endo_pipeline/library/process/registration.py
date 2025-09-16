@@ -556,8 +556,7 @@ def align_all_positions(
     fixed_dataset_name: str,
     moving_dataset_name: str,
     resolution_level: int,
-    z_stack_offsets: tuple[int, int] | None,
-    slice_by_global_center: bool,
+    z_slice_offsets: tuple[int, int] | None,
     savedir: Path,
     alignment_method: Literal["sift", "template"],
     align_fluo: bool = True,
@@ -581,10 +580,8 @@ def align_all_positions(
         The name of the moving dataset.
     resolution_level
         The resolution level of the zarr files to load for alignment.
-    z_stack_offsets
+    z_slice_offsets
         Lower and upper bounds for z-slicing.
-    slice_by_global_center
-        Get global center plane per position for z-slicing if True, use offsets directly if False.
     savedir
         The directory where the aligned images will be saved.
     alignment_method
@@ -614,13 +611,9 @@ def align_all_positions(
     fixed_zarr_files = sorted(get_available_zarr_files(fixed_dataset_config))
 
     # get image loading args for moving and fixed datasets
-    moving_z_slice = get_z_slice_bounds_per_position(
-        moving_dataset_config, z_stack_offsets, slice_by_global_center
-    )
+    moving_z_slice = get_z_slice_bounds_per_position(moving_dataset_config, z_slice_offsets)
     moving_include_pos = get_include_positions(moving_dataset_config)
-    fixed_z_slice = get_z_slice_bounds_per_position(
-        fixed_dataset_config, z_stack_offsets, slice_by_global_center
-    )
+    fixed_z_slice = get_z_slice_bounds_per_position(fixed_dataset_config, z_slice_offsets)
     fixed_include_pos = get_include_positions(fixed_dataset_config)
 
     data_list = []
@@ -699,8 +692,7 @@ def _get_paired_dataset_dict(
 def align_and_save_paired_images(
     dataset_pair_type: Literal["live_fixed", "20X_40X"],
     resolution_level: int,
-    z_stack_offsets: tuple[int, int] | None,
-    slice_by_global_center: bool,
+    z_slice_offsets: tuple[int, int] | None,
     save_path: Path,
     num_datasets_to_align: int | None = None,
     num_positions_to_align: int | None = None,
@@ -710,15 +702,10 @@ def align_and_save_paired_images(
 
     **Z-stack offsets**
 
-    The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
-    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load, either
-    by slicing about a global center or by using the provided offsets directly. If it
+    The ``z_slice_offsets`` parameter allows for flexible control over the z-slice loading.
+    If ``z_slice_offsets`` is provided, it limits the number of z-slices to load,
+    by slicing about a global center (annotated in the dataset config). If it
     is ``None``, all z-slices are loaded from the raw brightfield images.
-
-    If ``slice_by_global_center`` is set to True, the z-slice range is calculated based on
-    the global center plane for the given position. In this case, ``z_stack_offsets`` should
-    indicate the number of slices to include below and above the center plane. Else, the
-    ``z_stack_offsets`` are used directly as the range bounds.
 
     Parameters
     ----------
@@ -726,10 +713,8 @@ def align_and_save_paired_images(
         The type of dataset pair to align.
     resolution_level
         The resolution level of the zarr files to load for alignment.
-    z_stack_offsets
+    z_slice_offsets
         Lower and upper bounds for z-slicing.
-    slice_by_global_center
-        Get global center plane per position for z-slicing if True, use offsets directly if False.
     save_path
         The directory where the aligned images will be saved.
     num_datasets_to_align
@@ -770,8 +755,7 @@ def align_and_save_paired_images(
                 fixed,
                 moving,
                 resolution_level,
-                z_stack_offsets,
-                slice_by_global_center,
+                z_slice_offsets,
                 save_path,
                 alignment_method=alignment_method,
                 num_positions_to_align=num_positions_to_align,
