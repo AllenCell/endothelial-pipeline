@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Callable
 from pathlib import Path
-from typing import cast
+from typing import Any, Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,6 +13,7 @@ from matplotlib.ticker import MaxNLocator
 from endo_pipeline.configs import DatasetConfig, get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.io import load_zarr_as_dask_array, save_plot_to_path
 from endo_pipeline.library.process.image_processing import contrast_stretching
+from endo_pipeline.library.visualize.viz_base import init_subplots
 from endo_pipeline.settings import LOWER_Z_SLICE_OFFSET, UPPER_Z_SLICE_OFFSET
 
 logger = logging.getLogger(__name__)
@@ -115,11 +116,11 @@ def get_plane_indices(
     position: int,
     lower_offset: int,
     upper_offset: int,
-    slice_by_global_center: bool = True,
 ) -> list[int]:
     """
-    Get a list of plane indices based on the specified offsets and slicing mode. The indices
-    are constrained between 0 and 24.
+    Get a list of plane indices based on the provided outputs about the global center.
+
+    The indices are constrained between 0 and 24.
 
     Parameters
     ----------
@@ -128,33 +129,23 @@ def get_plane_indices(
     position
         The position index for which the plane indices are calculated.
     lower_offset
-        The number of planes below the center plane (or starting index if
-        `slice_by_global_center` is False) to include.
+        The number of planes below the center plane to include.
     upper_offset
-        The number of planes above the center plane (or ending index if
-        `slice_by_global_center` is False) to include.
-    slice_by_global_center
-        If True, calculate the range of indices based on the global center plane
-        for the given position. If False, use `lower_offset` and `upper_offset`
-        directly as the range bounds. Defaults to True.
+        The number of planes above the center plane to include.
 
     Returns
     -------
     list
         A list of plane indices within the specified range, constrained between 0 and 24.
     """
-    if slice_by_global_center:
-        if dataset_config.center_z_plane is None:
-            logger.error(
-                "Center z-plane information is missing for dataset [ %s ].", dataset_config.name
-            )
-            raise ValueError("Center z-plane information is missing in the dataset configuration.")
-        global_center_plane = dataset_config.center_z_plane[position]
-        lower_bound = max(0, global_center_plane - lower_offset)
-        upper_bound = min(24, global_center_plane + upper_offset)
-    else:
-        lower_bound = lower_offset
-        upper_bound = upper_offset
+    if dataset_config.center_z_plane is None:
+        logger.error(
+            "Center z-plane information is missing for dataset [ %s ].", dataset_config.name
+        )
+        raise ValueError("Center z-plane information is missing in the dataset configuration.")
+    global_center_plane = dataset_config.center_z_plane[position]
+    lower_bound = max(0, global_center_plane - lower_offset)
+    upper_bound = min(24, global_center_plane + upper_offset)
 
     return list(range(lower_bound, upper_bound + 1))
 
@@ -201,8 +192,8 @@ def plot_standard_devs_per_slice(
 
 
 def visualize_slice_selection(
-    bf_stack: np.ndarray,
-    cdh5_stack: np.ndarray,
+    bf_stack: Array,
+    cdh5_stack: Array,
     center_plane: int,
     lower_offset: int,
     upper_offest: int,
@@ -249,7 +240,7 @@ def visualize_slice_selection(
     cdh5_above = contrast_stretching(cdh5_stack[center_plane + upper_offest].compute())
 
     # Create subplots with a 2x3 grid
-    fig, axes = plt.subplots(
+    fig, axes = init_subplots(
         2, 3, figsize=(15, 10)
     )  # Adjusted figure size for 2 rows and 3 columns
 
@@ -308,7 +299,7 @@ def plot_global_center_plane(
     tuple
         Mean and standard deviation of center planes.
     """
-    fig, ax = plt.subplots(2, 1, figsize=(10, 10))  # Create two subplots
+    fig, ax = init_subplots(2, 1, figsize=(10, 10))  # Create two subplots
 
     # Compute mean and standard deviation of center planes
     mean_center_plane = np.mean(center_planes)
@@ -652,7 +643,20 @@ def plot_histogram_upper_slices_available(datasets: list[str], save_dir: Path) -
     for dataset in datasets:
         dataset_config = load_dataset_config(dataset)
         for position in dataset_config.zarr_positions:
-            center_slice = dataset_config.center_z_plane[position]
+            if dataset_config.center_z_plane is None:
+                logger.warning(
+                    "Center z-plane information is missing for" " dataset [ %s ], skipping", dataset
+                )
+                continue
+            center_slice = dataset_config.center_z_plane.get(position)
+            if center_slice is None:
+                logger.warning(
+                    "Center z-slice information missing for position [ %s ] "
+                    "in dataset [ %s ], skipping.",
+                    position,
+                    dataset,
+                )
+                continue
             top_slice = 24
             available_slices_above = top_slice - center_slice
             data.append(
@@ -682,14 +686,16 @@ def plot_histogram_upper_slices_available(datasets: list[str], save_dir: Path) -
         fontsize=10,
         verticalalignment="top",
         horizontalalignment="right",
-        bbox=dict(facecolor="white", alpha=0.8),
+        bbox={"facecolor": "white", "alpha": 0.8},
     )
 
     plt.show()
     save_plot_to_path(fig, save_dir, "available_slices_above_center_histogram")
 
 
-def compute_profiles(zarr_file, center_slice: int, timepoint: int):
+def compute_profiles(
+    zarr_file: Any, center_slice: int, timepoint: int
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compute normalized BF std and CDH5 hist profiles for a given position/timepoint."""
 
     # Load stacks
@@ -718,24 +724,35 @@ def plot_normalized_profiles(
     datasets: list[str],
     timepoints: list[int],
     save_dir: Path,
-    mode: str = "by_position",
+    mode: Literal["by_position", "by_dataset"] = "by_position",
     lower_offset: int = LOWER_Z_SLICE_OFFSET,
     upper_offset: int = UPPER_Z_SLICE_OFFSET,
 ) -> None:
     """
     Plot normalized BF std and CDH5 hist profiles.
 
-    Args:
-        datasets: list of dataset names
-        timepoints: list of timepoints (e.g., [0, 90, 180, 270])
-        positions: list of positions (used in 'by_dataset' mode)
-        mode: "by_position" -> loop positions, inner loop datasets
-              "by_dataset"  -> loop datasets, inner loop positions
-        lower_offset, upper_offset: z-slice offsets
+    Parameters
+    ----------
+    datasets
+        List of dataset names.
+    timepoints
+        List of timepoints (e.g., [0, 90, 180, 270]).
+    save_dir
+        Directory to save the plots.
+    mode
+        Mode for looping (e.g., "by_position" or "by_dataset").
+    lower_offset
+        Z-slice offset below the center slice.
+    upper_offset
+        Z-slice offset above the center slice.
     """
 
     colormap = colormaps["tab20"]
     colors = [colormap(i / len(datasets)) for i in range(len(datasets))]
+
+    if mode not in ["by_position", "by_dataset"]:
+        logger.error("Invalid mode: [ %s ]. Choose 'by_position' or 'by_dataset'.", mode)
+        raise ValueError("mode must be 'by_position' or 'by_dataset'")
 
     if mode == "by_position":
         for timepoint in timepoints:
@@ -745,9 +762,20 @@ def plot_normalized_profiles(
                 for i, dataset in enumerate(datasets):
                     dataset_config = load_dataset_config(dataset)
                     if dataset_config.center_z_plane is None:
-                        print(f"Center slice is None for dataset {dataset_config.name}, skipping")
+                        logger.warning(
+                            "Center z-plane information is missing for dataset [ %s ], skipping",
+                            dataset,
+                        )
                         continue
-                    center_slice = dataset_config.center_z_plane[position]
+                    center_slice = dataset_config.center_z_plane.get(position)
+                    if center_slice is None:
+                        logger.warning(
+                            "Center z-slice information missing for position [ %s ] "
+                            "in dataset [ %s ], skipping",
+                            position,
+                            dataset,
+                        )
+                        continue
                     zarr_file = get_zarr_file_for_position(dataset_config, position)
 
                     x, bf_std_norm, cdh5_hist_norm = compute_profiles(
@@ -784,7 +812,21 @@ def plot_normalized_profiles(
                 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
                 for position in dataset_config.zarr_positions:
-                    center_slice = dataset_config.center_z_plane[position]
+                    if dataset_config.center_z_plane is None:
+                        logger.warning(
+                            "Center z-plane information is missing for dataset [ %s ], skipping",
+                            dataset,
+                        )
+                        continue
+                    center_slice = dataset_config.center_z_plane.get(position)
+                    if center_slice is None:
+                        logger.warning(
+                            "Center z-slice information missing for position [ %s ] "
+                            "in dataset [ %s ], skipping",
+                            position,
+                            dataset,
+                        )
+                        continue
                     zarr_file = get_zarr_file_for_position(dataset_config, position)
 
                     x, bf_std_norm, cdh5_hist_norm = compute_profiles(
@@ -808,7 +850,8 @@ def plot_normalized_profiles(
                 plot_vlines(axes[1], 0, lower_offset, upper_offset, *axes[1].get_ylim())
 
                 plt.suptitle(
-                    f"{dataset_config.name} TP {timepoint}, Offset -{lower_offset} to +{upper_offset}"
+                    f"{dataset_config.name} TP {timepoint}, "
+                    f"Offset -{lower_offset} to +{upper_offset}"
                 )
                 save_plot_to_path(
                     fig, save_dir, f"{dataset_config.name}_tp{timepoint}_normalized_profiles"

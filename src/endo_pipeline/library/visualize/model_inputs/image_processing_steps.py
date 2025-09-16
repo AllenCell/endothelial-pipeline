@@ -1,6 +1,7 @@
 # %%
 from typing import Any
 
+import dask.array as da
 import numpy as np
 
 from endo_pipeline.library.process.image_processing import (
@@ -13,21 +14,34 @@ from endo_pipeline.library.process.image_processing import (
 from endo_pipeline.settings.image_data import LOG_EPSILON
 
 
-def process_brightfield(bf_stack: Any) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def process_brightfield(bf_stack: da.Array) -> tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+]:
     """
     Process a brightfield image stack following the same steps as the diffae model DataLoader:
     type conversion, standard deviation projection, clipping, and normalization.
 
-    Args:
-        bf_stack (Any): Input brightfield image stack as a Dask array.
+    Parameters
+    ----------
+    bf_stack
+        Input brightfield image stack as a Dask array.
 
-    Returns:
-        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: A tuple containing:
-            - bf_stack_float32_computed: The bf stack as a computed np.ndarray in float32 format.
-            - standard_dev_proj: The standard deviation projection along the Z-axis.
-            - standard_dev_proj_log: The log of the standard deviation projection.
-            - clipped_im: The image clipped by specified percentiles.
-            - normalized_im: The Z-score normalized image.
+    Returns
+    -------
+    :
+        The brightfield stack as a computed np.ndarray in float32 format.
+    :
+        The standard deviation projection along the Z-axis.
+    :
+        The log of the standard deviation projection.
+    :
+        The image clipped by specified percentiles.
+    :
+        The Z-score normalized image.
     """
     # STEP 1: Load the brightfield stack as a Dask array, convert to float32
     bf_stack_float32 = bf_stack.astype("float32")
@@ -58,17 +72,23 @@ def process_brightfield(bf_stack: Any) -> tuple[np.ndarray, np.ndarray, np.ndarr
 
 def process_cdh5(cdh5_stack: Any) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Process a CDH5 image stack following the same steps as the diffae model DataLoader:
-    type conversion, maximum projection, and intensity scaling.
+    Process a CDH5 image stack following the same steps as the DiffAE DataLoader.
 
-    Args:
-        cdh5_stack (Any): Input CDH5 image stack as a Dask array.
+    Processing steps include type conversion, maximum projection, and intensity scaling.
 
-    Returns:
-        Tuple[np.ndarray, np.ndarray, np.ndarray]: A tuple containing:
-            - cdh5_stack_float32_computed: The CDH5 stack as a computed np.ndarray in float32 format.
-            - max_proj_im: The maximum projection along the Z-axis.
-            - scaled_im: The image scaled to a specified intensity range.
+    Parameters
+    ----------
+    cdh5_stack
+        Input CDH5 image stack as a Dask array.
+
+    Returns
+    -------
+    :
+        The CDH5 stack as a computed np.ndarray in float32 format.
+    :
+        The maximum projection along the Z-axis.
+    :
+        The image scaled to a specified intensity range.
     """
     # STEP 1: Load the CDH5 stack as a Dask array, convert to float32
     cdh5_stack_float32 = cdh5_stack.astype("float32")

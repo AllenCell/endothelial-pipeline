@@ -11,3 +11,6 @@ Z_SLICE_OFFSETS = (LOWER_Z_SLICE_OFFSET, UPPER_Z_SLICE_OFFSET)
 
 LOG_EPSILON = 1e-12
 """Small constant used to avoid log(0) errors."""
+
+NUM_ZSLICES = 25
+"""Number of z-slices per timepoint."""

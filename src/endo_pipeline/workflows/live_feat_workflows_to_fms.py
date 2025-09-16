@@ -5,7 +5,12 @@ from typing import Literal
 
 from tqdm import tqdm
 
-from endo_pipeline.configs import load_all_dataset_configs, load_dataset_config, load_model_config
+from endo_pipeline.configs import (
+    get_datasets_in_collection,
+    load_all_dataset_configs,
+    load_dataset_config,
+    load_model_config,
+)
 from endo_pipeline.configs.model_config_utils import get_labelfree_nuclei_prediction_model_name
 from endo_pipeline.io import (
     build_fms_annotations,
@@ -198,24 +203,8 @@ def main(
         "merged_live_data_manifests": fms_upload_make_seg_feats_manifest,
     }
     if dataset_name_list is None:
-        # This is the current list of all analyzed datasets
-        dataset_name_list = [
-            "20241120_20X",
-            "20241217_20X",
-            "20250224_20X",
-            "20250319_20X",
-            "20250326_20X",
-            "20250331_20X",
-            "20250409_20X",
-            "20250428_20X",
-            "20250604_20X",
-            "20250611_20X",
-            "20250618_20X",
-            "20250714_20X",
-            "20250716_20X",
-            "20250728_20X",
-            "20250806_20X",
-        ]
+        # Get the list of all analyzed datasets
+        dataset_name_list = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
     else:
         pass
 
