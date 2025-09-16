@@ -7,23 +7,23 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from src.endo_pipeline.configs.dataset_io import (
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
     extract_T,
     fire_parse_generate_dataset_name_list,
-    get_cdh5_classic_segmentation_path,
-    get_dataset_info,
     get_original_path,
     get_zarr_name,
     get_zarr_path,
     ipython_cli_flexecute,
 )
-from src.endo_pipeline.io import configure_logging, get_output_path
-from src.endo_pipeline.library.process.general_image_preprocessing import (
+from endo_pipeline.io import configure_logging, get_output_path
+from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     sequence_to_scalar,
 )
-from src.endo_pipeline.library.process.lib_tracking import run_tracking
+from endo_pipeline.library.process.lib_tracking import run_tracking
+from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -40,16 +40,14 @@ def run_workflow(queue: Sequence) -> None:
     use_sldy_data = sequence_to_scalar(queue_df["use_sldy_data"])
 
     # get the segmentation images
-    seg_dir = get_cdh5_classic_segmentation_path(dataset_name, position=position)
-    if seg_dir is not None:
-        seg_dir = Path(seg_dir)
-    else:
-        logger.info(
-            f"No segmentation directory found for {dataset_name}. Skipping tracking analysis."
-        )
-        return
+    dataset = load_dataset_config(dataset_name)
+    manifest = load_image_manifest("cdh5_classic_seg")
+    seg_locations = [
+        get_image_location_for_dataset(manifest, dataset_name, position, timepoint)
+        for timepoint in range(dataset.duration)
+    ]
+    seg_filepaths = [location.path for location in seg_locations if location.path is not None]
 
-    seg_filepaths = sorted(seg_dir.glob("*.ome.tif*"), key=lambda fp: extract_T(fp.name))
     segmentation_channel = 0  # the segmentation images only contain a single channel
 
     # run the tracking workflow
@@ -58,7 +56,8 @@ def run_workflow(queue: Sequence) -> None:
             # get the raw cadherin channel from either original data or the zarr version
             scene_index = int(sequence_to_scalar(queue_df["scene_index"]))
             if use_sldy_data:
-                raw_channel = get_dataset_info(dataset_name)["channel_488_index"]
+                dataset_config = load_dataset_config(dataset_name)
+                raw_channel = dataset_config.original_channel_indices.channel_488
                 raw_filepath = Path(get_original_path(dataset_name))
             else:
                 raw_channel = 0  # zarr files are created such that the first channel is always Cdh5
@@ -68,7 +67,7 @@ def run_workflow(queue: Sequence) -> None:
         else:
             scene_index = None
             raw_filepath = None
-            raw_channel = None
+            raw_channel = 0
 
         run_tracking(
             in_dir=seg_filepaths,
@@ -89,16 +88,17 @@ def run_workflow(queue: Sequence) -> None:
         )
 
         # add the dataset name and position to the output table
-        tracking_table = pd.read_csv(out_dir / f"{out_filename_prefix}_tracking.tsv", sep="\t")
+        tracking_table = pd.read_parquet(out_dir / f"{out_filename_prefix}_tracking.parquet")
         tracking_table["dataset_name"] = dataset_name
         tracking_table["position"] = position
-        tracking_table.to_csv(
-            out_dir / f"{out_filename_prefix}_tracking.tsv", sep="\t", index=False
-        )
+        tracking_table.to_parquet(out_dir / f"{out_filename_prefix}_tracking.parquet", index=False)
 
     else:
         logger.info(
-            f"No segmentation images found for {dataset_name}. Skipping tracking analysis. If this is unexpected check that the IS_TEST argument is set to False."
+            f"""
+            No segmentation images found for {dataset_name}. Skipping tracking analysis.
+            If this is unexpected check that the IS_TEST argument is set to False.
+            """
         )
         return
 
@@ -112,7 +112,7 @@ def main(
     verbose: bool = False,
 ) -> None:
 
-    out_dir = get_output_path(Path(__file__).stem)
+    out_dir = get_output_path(__file__)
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
 
@@ -158,11 +158,11 @@ def main(
         for dataset_name in tqdm(
             dataset_name_list, desc="Replacing individual tables with combined table..."
         ):
-            table_path_out = concatenate_and_save_feature_tables(
+            concatenate_and_save_feature_tables(
                 out_dir=out_dir,
                 dataset_name=dataset_name,
                 out_file_suffix="tracking",
-                file_extension=".tsv",
+                file_extension=".parquet",
                 remove_initial_files_and_folders=True,
             )
 

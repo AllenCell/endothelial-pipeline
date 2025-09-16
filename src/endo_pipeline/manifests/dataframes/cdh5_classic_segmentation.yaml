@@ -2,36 +2,54 @@ name: cdh5_classic_segmentation
 workflow: live_feat_workflows_to_fms
 parameters: {}
 locations:
-  20241016_20X:
-    fmsid: 64ec576b74c14369b03cb892ff680dda
-    s3uri: null
   20241120_20X:
-    fmsid: ba1ceb2b3fb64d8e8c12093214f18200
+    fmsid: 66d49e07a6a240e8a48d9399bee49453
     s3uri: null
   20241217_20X:
-    fmsid: 98367f152b7340f0830f92e2afecb325
+    fmsid: f27f2159f7d94ac1b9df9efcdb2fecbc
     s3uri: null
   20250224_20X:
-    fmsid: 373c001b7bbc4eb3a3d688d65494111b
+    fmsid: d8e39bbc5191473491c7c5137b6bf58c
     s3uri: null
   20250319_20X:
-    fmsid: af1b341a31584107a7dc1f534bdf65f5
+    fmsid: ce7ffd2fceeb45da92cc886fc615e288
     s3uri: null
   20250326_20X:
-    fmsid: 5388ed6732fb43dbbb5f6fbace82032f
+    fmsid: 982767e477cc472da47ec8070a38997b
     s3uri: null
   20250331_20X:
-    fmsid: 52895b0142ae4880a21d0b180c6abe7d
+    fmsid: 8a20526083164cff90396c28792c372d
     s3uri: null
   20250409_20X:
-    fmsid: bd57c3bba115432f85080f99aba7a3a9
+    fmsid: 497bbebb6d5a4a0ea6a6a34b7e84463d
     s3uri: null
   20250428_20X:
-    fmsid: b92927389eb14f3c8ca9b1733a93849c
+    fmsid: 681b25e8507d4e7581673a5a0a281df5
     s3uri: null
   20250604_20X:
-    fmsid: d377ced196fc4c92a342bf2871eff6e8
+    fmsid: a23356d5bec4401991b0491f2bdf2e22
     s3uri: null
   20250611_20X:
-    fmsid: e9313febe6c343ccaa860da7e44c8a41
+    fmsid: d2cbe889ebd64869ac0ca00f43681686
+    s3uri: null
+  20250618_20X:
+    fmsid: a7328fbbd6524dcba95aef0348f8e9f0
+    s3uri: null
+  20250714_20X:
+    fmsid: 2442bd73efb34586be2c0306a374068a
+    s3uri: null
+  20250716_20X:
+    fmsid: bf0f536e51434bc8b3647a709688c4fe
+    s3uri: null
+  20250728_20X:
+    fmsid: b4ce02a4d87e4a2b90400d082c6ff3bd
+    s3uri: null
+  20250806_20X:
+    fmsid: ba33dcd16d364dbca0789a7e41ae6e6d
+    s3uri: null
+  20250813_20X:
+    fmsid: d9c99cc1d7d74fdfa4656b179e6397e4
+    s3uri: null
+  20250818_20X:
+    fmsid: 345f74104b1a4561a7dd279211a0b32f
     s3uri: null

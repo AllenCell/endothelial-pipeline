@@ -2,36 +2,54 @@ name: nuclei_label_free_segmentation
 workflow: live_feat_workflows_to_fms
 parameters: {}
 locations:
-  20241016_20X:
-    fmsid: 10454b6f02094692a15478d149c1d1f7
-    s3uri: null
   20241120_20X:
-    fmsid: 0d55f05c699d4ef29571b7516ed585b2
+    fmsid: d76185570ad24399b97fb380492b4ed9
     s3uri: null
   20241217_20X:
-    fmsid: c0cc01fad68b474cab68495e804c6586
+    fmsid: e322dfea9ade4def90618e9ef0cff2c6
     s3uri: null
   20250224_20X:
-    fmsid: 9f631215b2734f578b596fa5219e11e1
+    fmsid: da7714a478c243848b1eeb0645367848
     s3uri: null
   20250319_20X:
-    fmsid: a9c2d08eecfc45a19a43239dd06a4b22
+    fmsid: acd8ee71960e4190b3b1554d6bbc1fcb
     s3uri: null
   20250326_20X:
-    fmsid: 424a99e77b954739badbd39cf769e916
+    fmsid: 193cf373fcfe45bcafafa02475c0d9e1
     s3uri: null
   20250331_20X:
-    fmsid: 1d5007fa233c4c43bfd01e13d899936c
+    fmsid: fd192672f6034b28b49e956be608cd75
     s3uri: null
   20250409_20X:
-    fmsid: 3574a82885504d5aab6d67650cc08a8a
+    fmsid: 95cda1f7c2e94d9db761f59a63c935fc
     s3uri: null
   20250428_20X:
-    fmsid: 5d7cc8ee141f489688688da9aed75974
+    fmsid: c57e555dc452436ea8c46e1b8a97f911
     s3uri: null
   20250604_20X:
-    fmsid: 2fcf929538b744d7ae74e753d94fbe07
+    fmsid: 9d6e7330a6d1474499269d986ce56abe
     s3uri: null
   20250611_20X:
-    fmsid: 0d166ccc19a94eb394a6104c76f6a864
+    fmsid: d3837f49c4a2416b8310612262d13651
+    s3uri: null
+  20250618_20X:
+    fmsid: 9b6e85b01b0b4f52a011710bc0fa8dc9
+    s3uri: null
+  20250714_20X:
+    fmsid: dce72aca67f742d2a8294120b9e1289d
+    s3uri: null
+  20250716_20X:
+    fmsid: 24d2d48a64134a3a956f6c95275b2054
+    s3uri: null
+  20250728_20X:
+    fmsid: 7f106d91b98445d9ac69ab294e3d771c
+    s3uri: null
+  20250806_20X:
+    fmsid: 285252482d9f4debb02b1c693a81eb36
+    s3uri: null
+  20250813_20X:
+    fmsid: 372bb3f6532d4ca191815b7e068ebecf
+    s3uri: null
+  20250818_20X:
+    fmsid: 5a6ca447e39c42b489b27cc2574bcda9
     s3uri: null

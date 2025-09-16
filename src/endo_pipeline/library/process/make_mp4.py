@@ -53,9 +53,7 @@ def make_mp4(
         img_path_list = list(img_path_as_path.glob("*"))
         img_path_list = [fp for fp in img_path_list if fp.is_file()]  # only keep files
         if sorting_function:
-            img_path_list = sorted(
-                img_path_list, key=lambda fp: sorting_function(fp.stem)
-            )
+            img_path_list = sorted(img_path_list, key=lambda fp: sorting_function(fp.stem))
     else:
         img_path_list = [img_path_as_path]
 

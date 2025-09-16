@@ -15,15 +15,11 @@ from skimage.exposure import rescale_intensity
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
-from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_io import (
-    get_dataset_info,
-    get_original_path,
-    ipython_cli_flexecute,
-    load_config,
-)
-from src.endo_pipeline.library.process import get_sldy_metadata as sldmd
-from src.endo_pipeline.library.process.general_image_preprocessing import (
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs.dataset_io import get_original_path, ipython_cli_flexecute, load_config
+from endo_pipeline.io import get_output_path
+from endo_pipeline.library.process import get_sldy_metadata as sldmd
+from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     get_default_dim_order,
     get_dim_map,
@@ -69,7 +65,7 @@ def get_scenes_to_use(dataset_name: str | None = None) -> dict:
 def get_training_data_output_dirs(
     kind: list[Literal["images", "labels"]] | None = None,
 ) -> list:
-    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
+    out_dir = get_output_path(__file__)
     out_dir_labels = out_dir / "training_data/cellpose_base_nuclei_model_nuclei_segmentations/"
     out_dir_images = out_dir / "training_data/cellpose_base_nuclei_model_brightfield_std/"
     out_dirs = {"images": out_dir_images, "labels": out_dir_labels}
@@ -94,8 +90,10 @@ def get_image_data_from_original(
 
     channel_names = sldmd.get_channel_name(img.metadata)
     channel_names = [chan.split("/")[0] for chan in channel_names]
-    nuc_chan = get_dataset_info(dataset_name)["channel_405_index"]
-    bf_chan = get_dataset_info(dataset_name)["brightfield_channel_index"]
+    dataset_config = load_dataset_config(dataset_name)
+    nuc_chan = dataset_config.original_channel_indices.channel_405
+    bf_chan = dataset_config.original_channel_indices.brightfield
+
     img_dask_arr_nuc = img.get_image_dask_data(dim_order, C=[nuc_chan], T=T).max(
         axis=dim_map["Z"], keepdims=True
     )
@@ -322,7 +320,7 @@ def main(
 ) -> None:
 
     datasets_to_use = list(get_scenes_to_use().keys())
-    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
+    out_dir = get_output_path(__file__)
 
     analysis_queue = build_analysis_queue(
         datasets_to_use,
@@ -502,7 +500,9 @@ def main(
 
     # load the test image
     test_img_path = Path(get_original_path("20241120_20X"))
-    test_img_bf_chan = get_dataset_info("20241120_20X")["brightfield_channel_index"]
+    dataset_config = load_dataset_config("20241120_20X")
+    test_img_bf_chan = dataset_config.original_channel_indices.brightfield
+
     test_img = BioImage(test_img_path)
     test_img_dask_arr = test_img.get_image_dask_data(
         default_dim_order, T=[0], C=test_img_bf_chan

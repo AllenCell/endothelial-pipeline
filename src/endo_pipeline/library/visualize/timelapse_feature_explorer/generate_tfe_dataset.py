@@ -3,23 +3,21 @@ from pathlib import Path
 
 from colorizer_data import convert_colorizer_data
 
-from src.endo_pipeline.configs import get_datasets_in_collection, get_model_manifest
-
-# from src.endo_pipeline.io import load_dataframe
-from src.endo_pipeline.library.analyze.integration.track_integration import (
-    get_diffae_feats_liveseg_feats_merged_table,
+from endo_pipeline.configs import get_datasets_in_collection
+from endo_pipeline.io import load_dataframe
+from endo_pipeline.library.analyze.integration.track_integration import (
     get_preprocessed_manifests_and_km_bounds,
 )
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
+from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     generate_backdrops,
 )
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import LABEL_MAP
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.tfe_manifest_formatting import (
+from endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import LABEL_MAP
+from endo_pipeline.library.visualize.timelapse_feature_explorer.tfe_manifest_formatting import (
     add_dynamic_features_with_filtering,
     add_feature_metadata,
     update_manifest_for_tfe,
 )
-from src.endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -51,9 +49,7 @@ def generate_tfe_dataset(
     # Load dataframe with the diffae features and computed PCs
     datasets_for_bounds = list(set([dataset, *get_datasets_in_collection("pca_reference")]))
     # only take the dataframe from the output (which is the 0th element)
-    df_tracks = get_preprocessed_manifests_and_km_bounds(
-        dataset, datasets_for_bounds, apply_filter=False
-    )[0]
+    df_tracks = get_preprocessed_manifests_and_km_bounds(dataset, datasets_for_bounds)[0]
     df_position = df_tracks[df_tracks["position"] == position]
 
     df = add_dynamic_features_with_filtering(df_position)

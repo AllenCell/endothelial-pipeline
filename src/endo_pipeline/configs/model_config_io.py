@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 from mashumaro.codecs.yaml import YAMLDecoder, YAMLEncoder
 
-from src.endo_pipeline.configs import ModelConfig
+from endo_pipeline.configs import ModelConfig
 
 logger = logging.getLogger(__name__)
 

@@ -13,10 +13,19 @@ shear_stress_regime: 24hr_low-to-24hr_high
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
-flow: [[0, 262, 5.83], [263, 576, 22.0]]
 n_total_positions: 6
-channel_488_index: 0
-brightfield_channel_index: 1
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
 flow_conditions:
 - start: -29
   stop: 262
@@ -24,12 +33,43 @@ flow_conditions:
 - start: 263
   stop: 576
   shear_stress: 22.0
-channel_405_index: null
-channel_561_index: null
-channel_640_index: null
-nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250224_20X
-nuclear_stain_seg_path: null
-cdh5_seg_path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250224_20X
 valid_timepoints: null
 include_scenes: null
 notes: ''
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [114, 316, 320]
+    1: [0, 8, 46, 51, 66, 94, 125, 144, 257, 312, 313, 322, 512]
+    2: [0, 117, 188, 259, 306, 316, 318, 512]
+    3: [0, 23, 28, 39, 45, 74, 176, 259, 306, 315, 512]
+    4: [0, 23, 53, 67, 68, 77, 88, 130, 260, 302, 305, 315, 316, 512]
+    5: [43, 66, 211, 257, 511]
+  auto_bf_temp_artifact:
+    0: [512]
+    1: [0, 35, 80, 172, 512]
+    2: [7, 22, 34, 42, 322, 512]
+    3: [306, 320, 512]
+    4: [124, 511]
+    5: [0, 9, 57, 180]
+  bf_scope_error:
+    0: [0, 512]
+    1: [0, 512]
+    2: [0]
+    3: [0, 512]
+    4: [0, 511]
+    5: [0]
+  bf_temp_artifact:
+    0: [122]
+    1: [8, 35, 46, 80, 125, 144, 172, 254]
+    2: [22, 34, 42, 188]
+    3: [23, 28, 39, 45, 176, 306]
+    4: [67, 68, 77, 88, 124, 130, 219]
+    5: [9, 43, 57, 66, 180, 211]
+position_annotations: null
+center_z_plane:
+  0: 13
+  1: 13
+  2: 13
+  3: 13
+  4: 13
+  5: 13

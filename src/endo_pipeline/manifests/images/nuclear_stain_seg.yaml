@@ -1,0 +1,28 @@
+name: nuclear_stain_seg
+workflow: segment_nuclear_stain (manifest updated manually)
+parameters: {}
+locations:
+  20250509_20X_IF1:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF1/P{{position}}/20250509_20X_IF1_P{{position}}_T{{timepoint}}.ome.tiff
+  20250509_20X_IF2:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF2/P{{position}}/20250509_20X_IF2_P{{position}}_T{{timepoint}}.ome.tiff
+  20250509_20X_IF3:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF3/P{{position}}/20250509_20X_IF3_P{{position}}_T{{timepoint}}.ome.tiff
+  20250509_20X_IF4:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF4/P{{position}}/20250509_20X_IF4_P{{position}}_T{{timepoint}}.ome.tiff
+  20250509_20X_IF5:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF5/P{{position}}/20250509_20X_IF5_P{{position}}_T{{timepoint}}.ome.tiff
+  20250509_20X_IF6:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF6/P{{position}}/20250509_20X_IF6_P{{position}}_T{{timepoint}}.ome.tiff
+  20250509_20X_IF7:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF7/P{{position}}/20250509_20X_IF7_P{{position}}_T{{timepoint}}.ome.tiff
+  20250509_20X_IF8:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF8/P{{position}}/20250509_20X_IF8_P{{position}}_T{{timepoint}}.ome.tiff
+  20250509_20X_IF9:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF9/P{{position}}/20250509_20X_IF9_P{{position}}_T{{timepoint}}.ome.tiff
+  20250509_20X_IF10:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF10/P{{position}}/20250509_20X_IF10_P{{position}}_T{{timepoint}}.ome.tiff
+  20250509_20X_IF11:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF11/P{{position}}/20250509_20X_IF11_P{{position}}_T{{timepoint}}.ome.tiff
+  20250509_20X_IF12:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF12/P{{position}}/20250509_20X_IF12_P{{position}}_T{{timepoint}}.ome.tiff

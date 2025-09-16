@@ -4,10 +4,10 @@ from bioio import BioImage
 from bioio.writers import ome_zarr_writer_2 as ome_zarr_writer
 from bioio_base.types import PhysicalPixelSizes
 
-from src.endo_pipeline.configs import dataset_io
+from endo_pipeline.configs import dataset_io
 
-DEFAULT_XY_SCALING = [0.5]
-DEFAULT_Z_SCALING = [1.0]
+DEFAULT_XY_SCALING = [0.5, 0.5]
+DEFAULT_Z_SCALING = [1.0, 1.0]
 
 
 def get_sldy_metadata(dataset: str) -> dict:

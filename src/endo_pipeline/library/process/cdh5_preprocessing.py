@@ -1,10 +1,6 @@
-from pathlib import Path
-from typing import Any
-
 import networkx
 import numpy as np
-import yaml
-from bioio import BioImage
+from dask.array import Array
 from scipy.ndimage import distance_transform_edt
 from skimage.exposure import rescale_intensity
 from skimage.feature import peak_local_max
@@ -26,9 +22,6 @@ from skimage.segmentation import (
     relabel_sequential,
     watershed,
 )
-
-from src.endo_pipeline.configs.dataset_io import extract_T
-from src.endo_pipeline.library.process.general_image_preprocessing import get_dim_map
 
 
 def preprocess(
@@ -622,10 +615,10 @@ def generate_segmentations(
 
 
 def split_multinucleate_regions(
-    cell_segmentations: np.ndarray,
-    nuclei_segmentations: np.ndarray,
-    cell_boundary_thresh: np.ndarray,
-    cell_boundary_image: np.ndarray,
+    cell_segmentations: np.ndarray | Array,
+    nuclei_segmentations: np.ndarray | Array,
+    cell_boundary_thresh: np.ndarray | Array,
+    cell_boundary_image: np.ndarray | Array,
     min_size_filter: int = 500,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
@@ -653,7 +646,7 @@ def split_multinucleate_regions(
     # keep only nuclei that have more than half of their area in a
     # single segmented region
     nuclei_ambiguity_threshold = 0.5
-    nuclei_labels_per_region = dict()
+    nuclei_labels_per_region = {}
     for prop in reg_props:
         nuc_labels = []
         for nuc_lab in np.unique(prop.intensity_image):
@@ -689,7 +682,7 @@ def split_multinucleate_regions(
     anucleate_skels = np.isin(seg_skels, list(anucleate_regions.keys())) * cell_segmentations
     mononucleate_skels = np.isin(seg_skels, list(mononucleate_regions.keys())) * cell_segmentations
     mononucleate_nuclei_labels = set(
-        [lab for nuc_labs in mononucleate_regions.values() for lab in nuc_labs if lab != 0]
+        lab for nuc_labs in mononucleate_regions.values() for lab in nuc_labs if lab != 0
     )
     mononucleate_seeds = (
         np.isin(cell_segmentations, list(mononucleate_regions.keys()))
@@ -702,7 +695,7 @@ def split_multinucleate_regions(
     # use the nuclei in the multinucleate regions as seeds and
     # combine these with the skeleton-seeds from above
     multinucleate_nuclei_labels = set(
-        [lab for nuc_labs in multinucleate_regions.values() for lab in nuc_labs if lab != 0]
+        lab for nuc_labs in multinucleate_regions.values() for lab in nuc_labs if lab != 0
     )
     multinucleate_seeds = (
         np.isin(cell_segmentations, list(multinucleate_regions.keys()))
@@ -768,127 +761,3 @@ def split_multinucleate_regions(
     seeds = seeds_cleaned * np.isin(seeds_cleaned, np.unique(seg[np.nonzero(seg)])) * seg_mask_final
 
     return seg, seeds
-
-
-def get_cdh5_classic_segmentation_paths(dataset_name: str, sort_paths: bool = True) -> list:
-    """
-    Return the filepaths to the cdh5 classic segmentations (segmentations are saved
-    as individual timepoints).
-
-    Parameters
-    ----------
-    dataset_name: str
-        The dataset to get classic segmentations from.
-
-    Returns
-    -------
-    filepaths: list
-        A list of Path objects pointing to each image file (one image per timepoint).
-    """
-
-    prj_dir = Path("../").resolve()
-    config_file = prj_dir / "cdh5_seg_config.yaml"
-    assert config_file.exists()
-    with open(config_file) as file:
-        config_data = yaml.safe_load(file)
-    segmentation_dirs = [
-        prj_dir / data["segmentation_dir"] for data in config_data if data["name"] == dataset_name
-    ]
-    filepaths = [fp for seg_dir in segmentation_dirs for fp in list(Path(seg_dir).glob("*.tif*"))]
-
-    if sort_paths:
-        filepaths = sorted(filepaths, key=lambda fpath: extract_T(fpath.name))
-
-    return filepaths
-
-
-def get_cdh5_classic_segmentation(
-    dataset_name: str,
-    T: int,
-    channels: list[str] | None = None,
-    crop_y: slice | None = None,
-    crop_x: slice | None = None,
-    as_dask: bool = False,
-) -> list[Any]:
-    """
-    Return the cdh5 classic segmentation as a list of arrays, where each array in the
-    list corresponds to a channel.
-    The channel argument is either None or a list where each entry is the channel name (a string).
-        If None will use all channels in the image. Default is None.
-
-    Parameters
-    ----------
-    dataset_name: str
-        The dataset to get classic segmentations from.
-
-    T: int
-        The desired timepoint in the dataset.
-
-    channels: list or None
-        The channels to load. Each element in the list is a string and can
-        be one of:
-        'raw', 'processed', 'hysteresis_threshold', 'segmentations_initial',
-        'segmentations_merged', or 'segmentations_merged_borders'.
-        If channel=None then a list with all channels will be returned.
-        Default is None.
-
-    crop_y: slice or None
-        A slice of the imaging data along the Y-axis.
-        Default is None.
-
-    crop_x: slice or None
-        A slice of the imaging data along the X-axis.
-        Default is None.
-
-    as_dask: bool
-        Whether to return the image arrays as dask arrays.
-        Default is False.
-
-    Returns
-    -------
-    img_arrays: list of numpy arrays or dask arrays
-        The selected channels of the classic segmentation output.
-    """
-
-    filepaths = get_cdh5_classic_segmentation_paths(dataset_name)
-    filepaths_dict = {fpath: extract_T(fpath) for fpath in filepaths}
-    fpath = [fpath for fpath in filepaths_dict if filepaths_dict[fpath] == T]
-    assert len(fpath) == 1, (
-        f"Multiple files found for timepoint {T}."
-        if len(fpath) > 1
-        else f"No files found for timepoint {T}."
-    )
-
-    dim_map = get_dim_map("TCZYX")
-    dim_order = sorted(dim_map, key=lambda d: dim_map[d])
-    img = BioImage(*fpath)
-    chan_map = {name: index for index, name in enumerate(img.channel_names)}
-    channels = channels or img.channel_names
-    channel_crops = [slice(chan_map[chan], chan_map[chan] + 1) for chan in channels]
-    crop_maps = [
-        {
-            "T": slice(None, None),
-            "C": C,
-            "Z": slice(None, None),
-            "Y": crop_y or slice(None, None),
-            "X": crop_x or slice(None, None),
-        }
-        for C in channel_crops
-    ]
-
-    # The reason for using the crop maps above instead of loading individual
-    # crops by specifying T, C, Y, and X in img.get_image_data is because
-    # .get_image_data does not accept slice objects and also the files are
-    # split up by timepoint. Using the slice objects is favoured over tuples
-    # because it is easier to crop an array with them over tuples and using
-    # an integer when slicing an array reduces its dimensionality.
-    crops = [
-        {d: range(int(*img.dims[d]))[crop_map[d]] for d in dim_order} for crop_map in crop_maps
-    ]
-    dim_order_string = "".join(dim_order)
-    if not as_dask:
-        nd_arrays = [img.get_image_data(dim_order_string, **crop) for crop in crops]
-        return nd_arrays
-    else:
-        dask_arrays = [img.get_image_dask_data(dim_order_string, **crop) for crop in crops]
-        return dask_arrays

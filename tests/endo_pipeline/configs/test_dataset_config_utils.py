@@ -3,8 +3,17 @@ from pathlib import Path
 import bioio
 import pytest
 
-from src.endo_pipeline.configs import DatasetConfig, FlowCondition, load_dataset_config
-from src.endo_pipeline.configs.dataset_config_utils import (
+from endo_pipeline.configs import (
+    ChannelIndices,
+    DatasetConfig,
+    FlowCondition,
+    PositionAnnotation,
+    TimepointAnnotation,
+    load_dataset_config,
+)
+from endo_pipeline.configs.dataset_config_utils import (
+    get_annotated_positions,
+    get_annotated_timepoints_for_position,
     get_available_channels_for_all_positions,
     get_available_channels_for_position,
     get_available_zarr_files,
@@ -14,8 +23,8 @@ from src.endo_pipeline.configs.dataset_config_utils import (
     get_flow_at_frame,
     get_frame_after_flow_change,
     get_frame_before_flow_change,
-    get_nuclear_prediction_path,
-    get_specific_channel_order,
+    get_position_integer_from_zarr_file_path,
+    get_position_string_from_zarr_file_path,
     get_zarr_file_for_position,
     make_filtered_dataset_collection,
 )
@@ -39,10 +48,10 @@ def dataset():
         pixel_size_xy_in_um=0.0,
         duration=0,
         time_interval_in_minutes=0.0,
-        flow=[(0, 0, 0.0)],
+        flow_conditions=[],
         n_total_positions=0,
-        brightfield_channel_index=0,
-        channel_488_index=0,
+        original_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
+        zarr_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
     )
 
 
@@ -144,30 +153,6 @@ def test_get_channel_indices_for_position(dataset, position, expected):
     assert indices == expected
 
 
-def test_get_specific_channel_order_no_null_channels(dataset):
-    dataset.brightfield_channel_index = 1
-    dataset.channel_488_index = 2
-    dataset.channel_405_index = 3
-    dataset.channel_561_index = 4
-    dataset.channel_640_index = 5
-
-    channel_order = get_specific_channel_order(dataset)
-
-    assert channel_order == (2, 1, 3, 4, 5)
-
-
-def test_get_specific_channel_order_with_null_channels(dataset):
-    dataset.brightfield_channel_index = 1
-    dataset.channel_488_index = 2
-    dataset.channel_405_index = None
-    dataset.channel_561_index = None
-    dataset.channel_640_index = 5
-
-    channel_order = get_specific_channel_order(dataset)
-
-    assert channel_order == (2, 1, None, None, 5)
-
-
 def test_get_frame_before_flow_change_valid_flow_condition(dataset):
     dataset.flow_conditions = [
         FlowCondition(start=0, stop=5, shear_stress=1),
@@ -233,27 +218,59 @@ def test_get_duration_at_flow(dataset, flow, expected_duration):
 
 
 @pytest.mark.parametrize(
-    "nuc_seg_type,position,expected",
+    "annotations,positions",
+    [(None, [1, 2, 3]), ([PositionAnnotation.DUST_ARTIFACT], [1, 2, 3]), ([], [])],
+)
+def test_get_annotated_positions_with_annotations(dataset, annotations, positions):
+    dataset.position_annotations = {PositionAnnotation.DUST_ARTIFACT: [1, 2, 3]}
+
+    assert get_annotated_positions(dataset, annotations) == positions
+
+
+@pytest.mark.parametrize(
+    "position,annotations,timepoints",
     [
-        ("label_free", 1, "/path/to/label/free/seg/P1"),
-        ("stain", 2, "/path/to/stain/seg/P2"),
+        (0, None, [1, 2, 3, 7, 8, 9, 13, 14, 15]),
+        (1, None, [4, 5, 6, 10, 11, 12, 13]),
+        (2, None, [16, 17, 18]),
+        (0, [TimepointAnnotation.BF_SCOPE_ERROR], [1, 2, 3]),
+        (1, [TimepointAnnotation.BF_SCOPE_ERROR], [4, 5, 6]),
+        (2, [TimepointAnnotation.BF_SCOPE_ERROR], []),
+        (0, [TimepointAnnotation.GFP_SCOPE_ERROR], [7, 8, 9]),
+        (1, [TimepointAnnotation.GFP_SCOPE_ERROR], [10, 11, 12, 13]),
+        (2, [TimepointAnnotation.GFP_SCOPE_ERROR], []),
+        (0, [TimepointAnnotation.XY_SHIFT], [13, 14, 15]),
+        (1, [TimepointAnnotation.XY_SHIFT], []),
+        (2, [TimepointAnnotation.XY_SHIFT], [16, 17, 18]),
+        (0, [], []),
+        (1, [], []),
+        (2, [], []),
     ],
 )
-def test_get_nuclear_prediction_path_valid_paths(dataset, nuc_seg_type, position, expected):
-    dataset.nuclear_label_free_seg_path = "/path/to/label/free/seg"
-    dataset.nuclear_stain_seg_path = "/path/to/stain/seg/"
+def test_get_annotated_timepoints_for_position_with_annotations(
+    dataset, position, annotations, timepoints
+):
+    dataset.timepoint_annotations = {
+        TimepointAnnotation.BF_SCOPE_ERROR: {
+            0: [1, 2, 3],
+            1: [[4, 6]],
+        },
+        TimepointAnnotation.GFP_SCOPE_ERROR: {
+            0: [7, 8, 9],
+            1: [[11, 13], 10],
+        },
+        TimepointAnnotation.XY_SHIFT: {
+            0: [13, 14, 15],
+            1: [],
+            2: [16, 17, 18],
+        },
+    }
 
-    nuclear_prediction_path = get_nuclear_prediction_path(dataset, position, nuc_seg_type)
-    assert nuclear_prediction_path.as_posix() == expected
+    assert get_annotated_timepoints_for_position(dataset, position, annotations) == timepoints
 
 
-@pytest.mark.parametrize("nuc_seg_type", ["label_free", "stain", "invalid"])
-def test_get_nuclear_prediction_path_invalid_paths(dataset, nuc_seg_type):
-    dataset.nuclear_label_free_seg_path = None
-    dataset.nuclear_stain_seg_path = None
-
-    with pytest.raises(ValueError):
-        get_nuclear_prediction_path(dataset, 0, nuc_seg_type)
+def test_get_annotated_timepoints_for_position_no_annotations(dataset):
+    assert get_annotated_timepoints_for_position(dataset, 0, None) == []
 
 
 @pytest.mark.parametrize(
@@ -294,3 +311,59 @@ def test_make_filtered_dataset_collection(sample_type, objective, microscope):
 
     if microscope is not None:
         assert all(config.microscope == microscope for config in dataset_configs)
+
+
+@pytest.mark.parametrize(
+    "path,expected_position",
+    [
+        ("/path/to/file/P1.ome.zarr", "P1"),
+        ("/path/to/file/before_P2.ome.zarr", "P2"),
+        ("/path/to/file/P3_after.ome.zarr", "P3"),
+        ("/path/to/file/before_P4_after.ome.zarr", "P4"),
+    ],
+)
+def test_get_position_string_from_zarr_file_path_valid_position(path, expected_position):
+    position = get_position_string_from_zarr_file_path(path)
+
+    assert position == expected_position
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        ("/path/to/file/no_position.ome.zarr"),
+        ("/path/to/file/P1/position_only_in_path.ome.zarr"),
+        ("/path/to/file/lowercase_position_p1.ome.zarr"),
+    ],
+)
+def test_get_position_string_from_zarr_file_path_invalid_position(path):
+    with pytest.raises(ValueError):
+        get_position_string_from_zarr_file_path(path)
+
+
+@pytest.mark.parametrize(
+    "path,expected_position",
+    [
+        ("/path/to/file/P1.ome.zarr", 1),
+        ("/path/to/file/before_P2.ome.zarr", 2),
+        ("/path/to/file/P3_after.ome.zarr", 3),
+        ("/path/to/file/before_P14_after.ome.zarr", 14),
+    ],
+)
+def test_get_position_integer_from_zarr_file_path_valid_position(path, expected_position):
+    position = get_position_integer_from_zarr_file_path(path)
+
+    assert position == expected_position
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        ("/path/to/file/no_position.ome.zarr"),
+        ("/path/to/file/P1/position_only_in_path.ome.zarr"),
+        ("/path/to/file/lowercase_position_p1.ome.zarr"),
+    ],
+)
+def test_get_position_integer_from_zarr_file_path_invalid_position(path):
+    with pytest.raises(ValueError):
+        get_position_integer_from_zarr_file_path(path)

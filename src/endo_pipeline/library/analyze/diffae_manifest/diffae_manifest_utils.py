@@ -1,107 +1,133 @@
+import logging
+
 import numpy as np
 import pandas as pd
 
-from src.endo_pipeline.configs import DatasetConfig, load_dataset_config
+from endo_pipeline.configs import DatasetConfig, get_frame_after_flow_change, load_dataset_config
+
+logger = logging.getLogger(__name__)
 
 
-def get_dataset_descriptions(list_of_datasets: list[str], simple: bool = False) -> dict:
+def get_dataset_descriptions(
+    list_of_datasets: list[str],
+    include_duration: bool = True,
+    simple: bool = False,
+    include_shear_stress: bool = False,
+) -> dict[str, str]:
     """
     Get descriptive metadata for each dataset given in the list of datasets.
 
     Describes the experimental conditions for each dataset,
-        e.g., "48_hours_at_30_dyncm2".
+        e.g., "48hr_High_Shear_Stress_30_dyncm2".
 
-    Inputs:
-    - list_of_datasets: list, list of dataset names to get descriptions for
-        - Each string should match the appropriate dataset name in data_config.yaml
-    - simple (optional): bool, whether to use simple description (e.g., "48hr_High")
+    Parameters
+    ----------
+    list_of_datasets
+        List of dataset names for which to get descriptions
+    include_duration
+        Include duration of each flow condition in description if true.
+    simple
+        Include description of shear regime (e.g., "High_Shear_Stress") if true.
+    include_shear_stress
+        Include exact shear stress value (e.g., "30_dyncm2") in description if true.
 
 
-    Outputs:
-    - description_dic: dict, dictionary of dataset names and their descriptive metadata
+    Returns
+    -------
+    :
+        A dictionary where keys are dataset names and values are descriptions.
     """
 
     # initialize dictionary to store descriptions
-    description_dic = {}
+    description_dict = {}
     for dataset_name in list_of_datasets:
         data_config = load_dataset_config(dataset_name)  # get dataset info from data_config.yaml
-        flow_config = data_config.flow  # get flow conditions for dataset
-        num_flows = len(flow_config)  # number of flow conditions in dataset
+        flow_conditions = data_config.flow_conditions  # get flow conditions for dataset
+        num_flows = len(flow_conditions)  # number of flow conditions in dataset
 
-        # get shear rate for each flow condition,
+        # get shear stress for each flow condition,
         # last element in each list in flow_config
-        shear_rate = [int(flow_config[i][-1]) for i in range(num_flows)]
+        shear_stress = [int(flow_conditions[i].shear_stress) for i in range(num_flows)]
+        shear_stress_strings: list[str] = []
         if simple:  # if simple description, use qualitative description of shear stress level
-            shear_rate_str = []
-            for shear in shear_rate:
+            shear_stress_strings = []
+            for i, shear in enumerate(shear_stress):
                 if shear >= 20:
-                    shear_rate_str.append("High")
+                    shear_stress_str = "High_Shear_Stress"
                 elif shear > 7:
-                    shear_rate_str.append(f"Intermediate_{int(shear)}")
+                    shear_stress_str = "Intermediate_Shear_Stress"
                 elif shear > 0:
-                    shear_rate_str.append("Low")
+                    shear_stress_str = "Low_Shear_Stress"
                 else:
-                    shear_rate_str.append("No")
+                    shear_stress_str = "No_Shear_Stress"
+
+                if include_duration:
+                    duration_in_frames = flow_conditions[i].stop - flow_conditions[i].start
+                    duration_in_hours = int(duration_in_frames * 5 / 60)
+                    shear_stress_str = f"{duration_in_hours}hr_{shear_stress_str}"
+
+                if include_shear_stress:
+                    shear_stress_str = f"{shear_stress_str}_{int(shear)}dyncm2"
+
+                shear_stress_strings.append(shear_stress_str)
         else:
-            shear_rate_str = [
-                f"{int(i)}_dyncm2" for i in shear_rate
-            ]  # convert shear rates to strings
+            for i, shear in enumerate(shear_stress):
+                shear_stress_str = f"{int(shear)}_dyncm2"
+                if include_duration:
+                    duration_in_frames = flow_conditions[i].stop - flow_conditions[i].start
+                    duration_in_hours = int(duration_in_frames * 5 / 60)  # convert to hours
+                    shear_stress_str = f"{duration_in_hours}hr_{shear_stress_str}"
+                shear_stress_strings.append(shear_stress_str)
 
-        time_str = [
-            f"{int((flow_config[i][1]-flow_config[i][0])*5/60)}hr" for i in range(num_flows)
-        ]  # get duration of each flow condition in hours
         description = "_".join(
-            [time_str[i] + "_" + shear_rate_str[i] for i in range(num_flows)]
+            [shear_stress_strings[i] for i in range(num_flows)]
         )  # concatenate time and shear rate for each flow condition
-        description_dic[dataset_name] = description  # add description to dictionary
+        description_dict[dataset_name] = description  # add description to dictionary
 
-    return description_dic
+    return description_dict
 
 
 def split_dataset_by_flow(
-    df_proj: pd.DataFrame, dataset_config: DatasetConfig, verbose: bool = True
+    df_proj: pd.DataFrame, dataset_config: DatasetConfig
 ) -> tuple[list, list]:
     """
-    Get crop-based feature data (Diffusion AE output) for
-    different flow conditions present in a dataset.
+    Get crop-based feature data (Diffusion AE output) for each flow condition present in a dataset.
 
-    Inputs:
-    - df_proj: pandas dataframe containing the dataset of interest,
-        projected onto all principal component axes
-        (change of basis, no dimensionality reduction)
-    - dataset_config: DatasetConfig object containing dataset configuration
-        (used to get flow information)
-    - verbose: boolean, if True, print information about flow conditions
+    If there is only one flow condition, this method returns a lists of length 1
+    containing the original dataframe and single shear stress value.
 
-    Outputs:
-    - data_all: list of dataframes, each containing
-        the feature data for one flow condition
-    - shear_list: list of shear stress conditions for each flow condition
+    Parameters
+    ----------
+    df_proj
+        DataFrame containing the PCA-projected feature data for one dataset.
+    dataset_config
+        DatasetConfig object for the given dataset.
 
-    If there is only one flow condition, data_all and shear_list
-    are still lists (of length 1), respectively containing the
-    original dataframe and single shear stress condition.
+    Returns
+    -------
+    :
+        List of DataFrames, each containing the feature data for one flow condition.
+    :
+        List of shear stress values for each flow condition.
     """
 
-    # load flow information from data_config.yaml
-    flow_info = dataset_config.flow
+    # get flow condition information from dataset config
+    flow_conditions = dataset_config.flow_conditions
 
     # split out data by flow condition,
     # starting with first flow condition
-    first_shear = float(flow_info[0][-1])
+    first_shear = flow_conditions[0].shear_stress
     # initialize list of shear stress conditions
     shear_list = [first_shear]
     # if there is a change in flow condition
-    if len(flow_info) > 1:
-        # get frame number where flow condition
-        # changes (reported in hours in data_config.yaml)
-        change_frame = flow_info[0][-1]
+    if len(flow_conditions) > 1:
+        # get frame number where second flow condition starts
+        change_frame = get_frame_after_flow_change(dataset_config)
         # get second shear stress condition
-        second_shear = float(flow_info[1][-1])
+        second_shear = flow_conditions[1].shear_stress
         shear_list.append(second_shear)
-        if verbose:
-            print(f"Shear stress {first_shear} dyn/cm^2 until frame {change_frame}")
-            print(f"Shear stress {second_shear} dyn/cm^2 after frame {change_frame} \n")
+        logger.debug("Shear stress [ %s ] dyn/cm^2 until frame [ %s ]", first_shear, change_frame)
+        logger.debug("Shear stress [ %s ] dyn/cm^2 after frame [ %s ]", second_shear, change_frame)
         # separate data into two dataframes based on
         # frame number where flow condition changes
         data_flow1 = df_proj[df_proj["frame_number"] < change_frame].copy()
@@ -110,8 +136,7 @@ def split_dataset_by_flow(
         data_all = [data_flow1, data_flow2]
     # else, there is only one flow condition
     else:
-        if verbose:
-            print("Constant shear stress at", first_shear, "dyn/cm^2 \n")
+        logger.debug("Constant shear stress [ %s ] dyn/cm^2", first_shear)
         # list of dataframes for one flow condition
         # = list containing the original dataframe
         data_all = [df_proj.copy()]
@@ -121,33 +146,38 @@ def split_dataset_by_flow(
 
 def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, list]:
     """
-    Get list of per-crop trajectories, the corresponding
-    displacement vectors, and time differences along
-    the trajectory for each crop in the dataset.
+    Get trajectories and displacement vectors for each crop in feature space.
 
-    Inputs:
-    - data: pandas DataFrame with columns for each feature.
-        Should have a column for time and a column for
-        the crop index. This data should be for one
-        dataset and one flow condition.
-    - pc_column_names: list of strings, names of the
-        columns in the DataFrame that contain the
-        PC features (feature columns).
+    **Input dataframe**
 
-    Outputs:
-    - traj_list: list of numpy arrays, each array is the
-        trajectory of a single crop in feature space
-    - d_traj_list: list of numpy arrays, each array
-        is the displacement vectors along that trajectory
-        for a single crop in feature space
+    The input dataframe should have columns for:
+    - frame_number: timepoint of the crop
+    - crop_index: unique index for each crop
+    - columns for each feature (e.g., pc0, pc1, pc2, ...) matching input ``pc_column_names``
+
+    Parameters
+    ----------
+    data
+        DataFrame with columns for each feature.
+    pc_column_names
+        List of column names corresponding to the PC features in the DataFrame.
+
+    Returns
+    -------
+    :
+        List of individual crop trajectories in feature space.
+    :
+        List of displacement vectors along each trajectory in feature space.
     """
     if "frame_number" not in data.columns:
-        raise ValueError("Data must have a column for time")
+        logger.error("Data must have the column [ frame_number ] to indicate timepoints.")
+        raise ValueError("Data must have the column [ frame_number ] to indicate timepoints.")
     if "crop_index" not in data.columns:
-        raise ValueError("Data must have a column for crop_index")
+        logger.error("Data must have the column [ crop_index ] to indicate unique crops.")
+        raise ValueError("Data must have the column [ crop_index ] to indicate unique crops.")
 
     # get list of unique crop indices
-    crop_list = data["crop_index"].unique()
+    crop_list = data["crop_index"].unique().tolist()
 
     # initialize lists for storing outputs
     traj_list = []
@@ -176,12 +206,10 @@ def get_timepoints_for_plotting_pcs(
     no_flow_name: str = "20241217_20X",
 ) -> dict:
     """
-    Get timepoints for plotting scatter plot in PC
-    space of data used to fit PCA.
+    Get timepoints for plotting scatter plot in PC space of data used to fit PCA.
 
-    Used to remove later block of timepoints from the
-    20241217_20X no flow dataset for generating "simplified"
-    scatter plots for the 2025 SAC presentation.
+    Used to remove later block of timepoints from the 20241217_20X no flow dataset for
+    generating "simplified" scatter plots for the 2025 SAC presentation.
     """
     # initialize dictionary to store timepoints for each dataset
     timepoints_to_use = {}
@@ -189,16 +217,16 @@ def get_timepoints_for_plotting_pcs(
     for dataset_config in list_of_datasets:
         # get range of valid timepoints for each dataset
         # loaded from dataset config
-        timepoint_dict = dataset_config.valid_timepoints
+        valid_timepoints = dataset_config.valid_timepoints
 
         # if no valid timepoints are specified, use all timepoints
-        if timepoint_dict is None:
-            timepoints_list = [[0, dataset_config.flow[0][1]]]
+        if valid_timepoints is None:
+            timepoints_list = [[0, dataset_config.flow_conditions[-1].stop]]
 
         # otherwise, get the start and stop timepoints
         else:
-            starts = timepoint_dict.start
-            stops = timepoint_dict.stop
+            starts = valid_timepoints.start
+            stops = valid_timepoints.stop
             timepoints_list = []
             for start, stop in zip(starts, stops, strict=True):
                 # hard coded because this is the no-flow dataset that
@@ -218,33 +246,37 @@ def get_timepoints_for_plotting_pcs(
     return timepoints_to_use
 
 
-def get_valid_subset(df: pd.DataFrame, dataset_name: str, verbose: bool = True) -> pd.DataFrame:
+def get_valid_subset(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
     """
-    Select timepoints from a dataframe annotated as valid
-    if annotation is present, otherwise use all timepoints.
+    Filter dataframe to only include valid timepoints for a given dataset.
 
-    Inputs:
-    - df: pd.DataFrame, containing the metadata for the dataset name and timepoints
-    - dataset_name: str, name of the dataset to get valid timepoints for
+    **Input dataframe**
 
-    Outputs:
-    - df: pd.DataFrame, subset of the input dataframe containing only the valid timepoints
+    The input dataframe should have a column "frame_number" indicating the timepoint of each crop.
+
+    Parameters
+    ----------
+    df
+        DataFrame of feature data for a given dataset.
+    dataset_name
+        Name of the given dataset.
     """
     df["valid"] = False
     # check that the necessary datasets are present for fitting PCA
     valid_timepoints = load_dataset_config(dataset_name).valid_timepoints
     if valid_timepoints is None:
-        if verbose:
-            print(f"Using all timepoints from dataset {dataset_name} for analysis")
+        logger.debug("Using all timepoints from dataset [ %s ] for analysis", dataset_name)
         df["valid"] = True
     else:
-        if verbose:
-            print(f"Valid timepoints for dataset {dataset_name}: ")
         tps = []
         for start, stop in zip(valid_timepoints.start, valid_timepoints.stop, strict=True):
             tps.extend(list(range(start, stop + 1)))
-            if verbose:
-                print(f"   - {start} to {stop}")
+            logger.debug(
+                "Using timepoints [ %s - %s ] from dataset [ %s ] for analysis",
+                start,
+                stop,
+                dataset_name,
+            )
         valid_subset = df.frame_number.isin(tps)
         df["valid"] = valid_subset
     return df[df.valid]
@@ -265,10 +297,7 @@ def get_pc_column_names(df: pd.DataFrame, pc_axes: list[int] | None = None) -> l
 
 
 def get_feature_column_names(df: pd.DataFrame) -> list:
-    """
-    Extract columns corresponding to DiffAE model
-    features from dataframe (loaded DiffAE manifest).
-    """
+    """Get the names of the latent feature columns in the DataFrame."""
     feature_column_names = [c for c in df.columns if c.startswith("feat_")]
     feature_column_names = sorted(feature_column_names, key=lambda x: int(x.split("_")[1]))
     return feature_column_names

@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -6,6 +7,8 @@ import yaml
 from hydra.utils import get_class
 
 DEFAULT_TRACKING_URI = "https://production.int.allencell.org/mlflow/"
+
+logger = logging.getLogger(__name__)
 
 
 def _get_options(available_artifacts: list[str], patterns: list[str]) -> str:
@@ -18,13 +21,20 @@ def _get_options(available_artifacts: list[str], patterns: list[str]) -> str:
         if len(matches) == 1:
             return matches[0]
         if len(matches) > 1:
+            logger.error("Multiple artifacts found for pattern [ %s ]: [ %s ]", p, matches)
             raise ValueError(
-                f"Multiple artifacts found for pattern {p}: {matches}."
-                + "Please specify the artifact path."
+                f"Multiple artifacts found for pattern {p}: {matches}. "
+                "Please specify the artifact path."
             )
+
+    logger.error(
+        "No artifacts found for patterns [ %s ]. Available artifacts: [ %s ]",
+        patterns,
+        available_artifacts,
+    )
     raise FileNotFoundError(
-        f"None of the patterns {patterns} matched any artifacts."
-        + f"Available artifacts: {available_artifacts}"
+        f"None of the patterns {patterns} matched any artifacts.",
+        f"Available artifacts: {available_artifacts}",
     )
 
 
@@ -32,8 +42,7 @@ def _get_available_artifacts(
     run_id: str,
     artifact_path: str | Path,
     tracking_uri: str = DEFAULT_TRACKING_URI,
-    verbose: bool = True,
-    _current_recursion_level: int = 0,  # Internal parameter to manage verbose printing
+    _current_recursion_level: int = 0,  # Internal parameter to manage logging
 ) -> list[str]:
     """
     Recursively lists all files and directories contained within a given MLflow artifact path
@@ -63,24 +72,29 @@ def _get_available_artifacts(
                 run_id=run_id,
                 artifact_path=full_item_path,
                 tracking_uri=tracking_uri,
-                verbose=False,
                 _current_recursion_level=_current_recursion_level + 1,
             )
             all_found_artifacts.extend(recursive_artifacts)
         else:
             all_found_artifacts.append(full_item_path)
-            if verbose and _current_recursion_level == 0:
-                print(f"Found file: {full_item_path}")
+            if _current_recursion_level == 0:
+                logger.debug("Found file: [ %s ]", full_item_path)
 
     # print found items from top level call
-    if verbose and _current_recursion_level == 0:
+    if _current_recursion_level == 0:
         if all_found_artifacts:
-            print(f"\n--- All artifacts found for run {run_id} ---")
-            for artifact in sorted(all_found_artifacts):
-                print(f"- {artifact}")
-            print("-------------------------------------------------")
+            logger.debug(
+                "Artifacts found for run [ %s ] under path [ %s ]: \n %s",
+                run_id,
+                artifact_path,
+                all_found_artifacts,
+            )
         else:
-            print(f"\nNo artifacts found for run {run_id} under path '{artifact_path}'.")
+            logger.warning(
+                "No artifacts found for run [ %s ] under path [ %s ].",
+                run_id,
+                artifact_path,
+            )
 
     return all_found_artifacts
 
@@ -136,7 +150,11 @@ def download_mlflow_artifact(
     """
 
     if (dst_path / artifact_path).exists():
-        print(f"Artifact exists! Skipping download of {artifact_path}...")
+        logger.debug(
+            "Artifact [ %s ] already exists at destination [ %s ]. Skipping download.",
+            artifact_path,
+            dst_path,
+        )
         return
 
     available_artifacts = _get_available_artifacts(
@@ -146,9 +164,15 @@ def download_mlflow_artifact(
     )
 
     if str(artifact_path) not in available_artifacts:
+        logger.error(
+            "Artifact [ %s ] not found in run [ %s ]. Available artifacts: [ %s ]",
+            artifact_path,
+            run_id,
+            available_artifacts,
+        )
         raise ValueError(
-            f"Artifact {artifact_path} not found in run {run_id}."
-            + f"Available artifacts: {available_artifacts}"
+            f"Artifact {artifact_path} not found in run {run_id}.",
+            f"Available artifacts: {available_artifacts}",
         )
 
     if not dst_path.exists():

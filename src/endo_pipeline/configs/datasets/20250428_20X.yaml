@@ -13,23 +13,42 @@ shear_stress_regime: intermediate
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
-flow: [[0, 577, 8.6]]
 n_total_positions: 6
-channel_488_index: 0
-brightfield_channel_index: 1
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
 flow_conditions:
 - start: -14
   stop: 577
   shear_stress: 8.6
-channel_405_index: null
-channel_561_index: null
-channel_640_index: null
-nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250428_20X
-nuclear_stain_seg_path: null
-cdh5_seg_path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250428_20X
 valid_timepoints:
   start: [217]
   stop: [351]
 include_scenes: null
-notes: This is an intermediate flow dataset. There cells are very crowded by the end
-  of the movie.
+notes: Caution, some patchiness occurs after TP489 & cells are very crowded by the
+  end of the movie. No other artifacts noted.
+timepoint_annotations:
+  cell_piling:
+    0: [[472, 576]]
+    1: [[403, 576]]
+    2: [[482, 576]]
+    3: [[475, 576]]
+    4: [[315, 576]]
+    5: [[340, 576]]
+position_annotations: null
+center_z_plane:
+  0: 11
+  1: 12
+  2: 12
+  3: 12
+  4: 12
+  5: 12

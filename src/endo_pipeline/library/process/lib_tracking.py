@@ -10,12 +10,9 @@ from skimage.measure import regionprops
 from skimage.segmentation import clear_border
 from tqdm import tqdm
 
-from src.endo_pipeline.configs.dataset_io import extract_T
-from src.endo_pipeline.library.analyze.shape_features import numpy_mesh_coords
-from src.endo_pipeline.library.process.general_image_preprocessing import (
-    get_dim_map,
-    save_image_output,
-)
+from endo_pipeline.configs.dataset_io import extract_T
+from endo_pipeline.library.analyze.shape_features import numpy_mesh_coords
+from endo_pipeline.library.process.general_image_preprocessing import get_dim_map, save_image_output
 
 
 ## NOTE THIS BLOCK SHOULD MAYBE BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE
@@ -1453,7 +1450,7 @@ def run_tracking(
                 )
 
     out_filename_prefix = out_filename_prefix or out_dir.stem
-    table_out_name = f"{out_filename_prefix}_tracking.tsv"
+    table_out_name = f"{out_filename_prefix}_tracking.parquet"
     out_path = out_dir / table_out_name
     out_dir.mkdir(parents=True, exist_ok=True)
     print(f"Saving tracking table to {out_path}") if verbose else None
@@ -1468,7 +1465,11 @@ def run_tracking(
         for i in range(num_centroid_dims):
             dim = centroid_dims[i]
             track_table[f"centroid_{dim}"] = centroid_subdf[i]
-    track_table.to_csv(out_path, index=False, sep="\t")
+    # replace masked values with NaN for columns `matched_query_label`
+    # and `optimized_metric_value` since .parquet cannot save those
+    for col in ["matched_query_label", "optimized_metric_value"]:
+        track_table[col] = track_table[col].transform(lambda arr: np.ma.filled(arr, np.nan))
+    track_table.to_parquet(out_path, index=False)
 
 
 def update_track_table(

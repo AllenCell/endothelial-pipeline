@@ -13,20 +13,19 @@ seed: 12345
 data:
   train_dataloaders:
     _target_: monai.data.DataLoader
-    num_workers: 8
+    num_workers: 24
     batch_size: 1
     pin_memory: true
     persistent_workers: false
     shuffle: true
     dataset:
-      _target_: cyto_dl.datamodules.multidim_image.MultiDimImageDataset
-      num_workers: 64
-      csv_path: null
+      _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
+      dataframe_path: null
       spatial_dims: 3
       transform:
         _target_: monai.transforms.Compose
         transforms:
-        - _target_: cyto_dl.image.io.bioio_loader.BioIOImageLoaderd
+        - _target_: endo_pipeline.library.model.image_loading.BioIOImageLoaderd
           path_key: original_path
           out_key: raw
           dask_load: true
@@ -43,6 +42,8 @@ data:
           keys:
           - raw_bf
           projection_type: std
+        - _target_: endo_pipeline.library.model.image_loading.LogImaged
+          keys: raw_bf
         - _target_: cyto_dl.image.transforms.Projectd
           keys:
           - raw_cdh5
@@ -75,23 +76,25 @@ data:
           - raw_cdh5
           - raw_bf
           dtype: float16
+      cache_rate: 0.01
+      replace_rate: 0.5
+      num_init_workers: 64
+      num_replace_workers: 64
   predict_dataloaders:
     _target_: monai.data.DataLoader
-    num_workers: 8
+    num_workers: 24
     batch_size: 1
     pin_memory: true
     persistent_workers: false
     shuffle: false
     dataset:
-      _target_: cyto_dl.datamodules.multidim_image.MultiDimImageDataset
-      cache_num: 0
-      num_workers: 8
+      _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
       spatial_dims: 3
-      csv_path: null
+      dataframe_path: null
       transform:
         _target_: monai.transforms.Compose
         transforms:
-        - _target_: cyto_dl.image.io.bioio_loader.BioIOImageLoaderd
+        - _target_: endo_pipeline.library.model.image_loading.BioIOImageLoaderd
           path_key: original_path
           out_key: raw_bf
           dask_load: true
@@ -100,6 +103,8 @@ data:
           keys:
           - raw_bf
           projection_type: std
+        - _target_: endo_pipeline.library.model.image_loading.LogImaged
+          keys: raw_bf
         - _target_: cyto_dl.image.transforms.clip.Clipd
           keys:
           - raw_bf
@@ -111,22 +116,25 @@ data:
           keys:
           - raw_bf
           dtype: float16
+      cache_rate: 0.01
+      replace_rate: 0.5
+      num_init_workers: 64
+      num_replace_workers: 64
   val_dataloaders:
     _target_: monai.data.DataLoader
-    num_workers: 8
+    num_workers: 24
     batch_size: 1
     pin_memory: true
     persistent_workers: false
     shuffle: false
     dataset:
-      _target_: cyto_dl.datamodules.multidim_image.MultiDimImageDataset
-      num_workers: 8
-      csv_path: null
+      _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
+      dataframe_path: null
       spatial_dims: 3
       transform:
         _target_: monai.transforms.Compose
         transforms:
-        - _target_: cyto_dl.image.io.bioio_loader.BioIOImageLoaderd
+        - _target_: endo_pipeline.library.model.image_loading.BioIOImageLoaderd
           path_key: original_path
           out_key: raw
           dask_load: true
@@ -143,6 +151,8 @@ data:
           keys:
           - raw_bf
           projection_type: std
+        - _target_: endo_pipeline.library.model.image_loading.LogImaged
+          keys: raw_bf
         - _target_: cyto_dl.image.transforms.Projectd
           keys:
           - raw_cdh5
@@ -175,6 +185,11 @@ data:
           - raw_cdh5
           - raw_bf
           dtype: float16
+      cache_rate: 0.01
+      replace_rate: 0.5
+      num_init_workers: 64
+      num_replace_workers: 64
+
 model:
   _target_: cyto_dl.models.im2im.diffusion_autoencoder.DiffusionAutoEncoder
   save_images_every_n_epochs: 10
@@ -272,9 +287,7 @@ callbacks:
     stopping_threshold: null
     divergence_threshold: null
     check_on_train_epoch_end: null
-  model_summary:
-    _target_: lightning.pytorch.callbacks.RichModelSummary
-    max_depth: -1
+  model_summary: null
   rich_progress_bar:
     _target_: lightning.pytorch.callbacks.RichProgressBar
   latent_walk:
@@ -286,13 +299,14 @@ logger:
   mlflow:
     _target_: cyto_dl.loggers.MLFlowLogger
     tracking_uri: https://production.int.allencell.org/mlflow/
-    experiment_name: endo_diffae
+    experiment_name: ${experiment_name}
     run_name: ${run_name}
 trainer:
   _target_: lightning.Trainer
   default_root_dir: ${paths.output_dir}
-  min_epochs: 1
-  max_epochs: 1000
+  min_epochs: 15000
+  max_epochs: 20000
+  log_every_n_steps: 20
   accelerator: gpu
   devices: 1
   precision: 16-mixed
@@ -300,6 +314,7 @@ trainer:
   deterministic: false
   detect_anomaly: false
   max_time: null
+  enable_model_summary: False
 paths:
   root_dir: null
   data_dir: null

@@ -13,23 +13,29 @@ shear_stress_regime: no_flow
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
-flow: [[0, 0, 0.0]]
 n_total_positions: 10
-channel_488_index: 0
-brightfield_channel_index: 1
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
 flow_conditions:
 - start: -576
   stop: 0
   shear_stress: 0.0
-channel_405_index: null
-channel_561_index: null
-channel_640_index: null
-nuclear_label_free_seg_path: null
-nuclear_stain_seg_path: null
-cdh5_seg_path: null
 valid_timepoints: null
 include_scenes: null
 notes: These cells were fed about 2 hours before fixation (previously the cells had
   not been fed prior to fixation). This sample was imaged at a later date than the
   pre-fix sample due to blobs / bubbles appearing in the sample after fixation which
   had to be washed out first. Was permeabilized which is why it looked better on 20250219.
+timepoint_annotations: null
+position_annotations: null
+center_z_plane: null

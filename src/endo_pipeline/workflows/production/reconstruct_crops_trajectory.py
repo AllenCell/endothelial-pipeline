@@ -22,13 +22,13 @@ def main(model_name: str = "diffae_04_10") -> None:
     import numpy as np
     from bioio.writers import OmeTiffWriter
 
-    from src.endo_pipeline.io import get_output_path
-    from src.endo_pipeline.library.analyze.diffae_features import (
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.analyze.diffae_features import (
         convert_coordinates_from_pc_to_latent,
         interpolate_on_curve,
     )
-    from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
-    from src.endo_pipeline.library.model import generate_from_coords_batch
+    from endo_pipeline.library.analyze.diffae_manifest import fit_pca
+    from endo_pipeline.library.model import generate_from_coords_batch
 
     # Create output folder if does not exist yet
     output_savedir = get_output_path(
@@ -89,6 +89,6 @@ def main(model_name: str = "diffae_04_10") -> None:
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

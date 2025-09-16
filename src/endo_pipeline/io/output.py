@@ -8,9 +8,22 @@ from typing import Literal
 from git import Repo
 from matplotlib.figure import Figure
 
-from src.endo_pipeline.configs import DatasetConfig, ModelConfig
+from endo_pipeline.configs import DatasetConfig, ModelConfig
 
 logger = logging.getLogger(__name__)
+
+
+def get_timestamp() -> str:
+    """
+    Get current timestamp as YYYY-MM-DD.
+
+    Returns
+    -------
+    :
+        Current timestamp formatted as YYYY-MM-DD.
+    """
+
+    return datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d")
 
 
 def get_output_dir() -> Path:
@@ -60,7 +73,7 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
     output_dir = get_output_dir()
 
     if include_timestamp:
-        timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d")
+        timestamp = get_timestamp()
         output_path = Path(output_dir, timestamp, Path(workflow_name).stem, *subdirs)
     else:
         output_path = Path(output_dir, Path(workflow_name).stem, *subdirs)
@@ -71,21 +84,53 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
     return output_path
 
 
+def make_name_unique(path: Path | str) -> Path:
+    """
+    Make name of the given file path unique by appending a timestamp.
+
+    Examples
+    --------
+    >>> make_name_unique(Path("/path/to/file.png"))
+    Path("/path/to/file_YYYYMMDD_HHmmss.png")
+
+    >>> make_name_unique(Path("/path/to/file.ome.zarr"))
+    Path("/path/to/file_YYYYMMDD_HHmmss.ome.zarr")
+
+    >>> make_name_unique("/path/to/file.tiff")
+    Path("/path/to/file_YYYYMMDD_HHmmss.tiff")
+
+    Parameters
+    ----------
+    path
+        Original file path.
+
+    Returns
+    -------
+    :
+        Modified file path with unique file name.
+    """
+
+    path = Path(path)
+    suffixes = "".join(path.suffixes)
+    original_name = path.name.split(".")[0]
+    timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("_%Y%m%d_%H%M%S")
+
+    return path.with_name(f"{original_name}{timestamp}{suffixes}")
+
+
 def build_fms_annotations(
     dataset: DatasetConfig | list[DatasetConfig],
     include_timestamp: bool = True,
     include_git_info: bool = True,
     model: ModelConfig | None = None,
-    effort: Literal["Core", "Parallel"] = "Core",
     additional_notes: str = "",
-    env: Literal["prod", "stg"] = "prod",
 ) -> dict[str, list]:
     """
     Build the annotations dictionary for upload to FMS.
 
     The following annotations are included:
 
-    - Program = "Endothelial" (prod only)
+    - Program = "Endothelial"
     - Produced By = "python code"
     - mlflow run id = MLFlow run id from model config object, if provided
     - Notes = additional notes
@@ -95,7 +140,6 @@ def build_fms_annotations(
         This file was produced by the Endothelial Pipeline repository.
 
         Dataset: <dataset name> (<original dataset FMS file id>)
-        Effort: "Core" or "Parallel"
         Timestamp: YYYY-MM-DD HH:mm:ss (if `include_timestamp` is selected)
         Branch: <current branch name> (if `include_git_info` is selected)
         Commit: <latest commit hash> (if `include_git_info` is selected)
@@ -111,7 +155,6 @@ def build_fms_annotations(
           - <dataset name> (<original dataset FMS file id>)
           - <dataset name> (<original dataset FMS file id>)
           - ...
-        Effort: "Core" or "Parallel"
         Timestamp: YYYY-MM-DD HH:mm:ss (if `include_timestamp` is selected)
         Branch: <current branch name> (if `include_git_info` is selected)
         Commit: <latest commit hash> (if `include_git_info` is selected)
@@ -130,32 +173,13 @@ def build_fms_annotations(
         file to the annotations, False otherwise.
     model
         The model config used to generate the file, if applicable.
-    effort
-        The program effort for the file ("Core" or "Parallel").
     additional_notes
         Additional relevant notes to append to notes annotation.
-    env
-        The FMS environment to validate annotations against. Valid options
-        include: "prod" for production or "stg" for staging.
     """
 
-    try:
-        from aicsfiles import fms
-    except ModuleNotFoundError:
-        logger.error("Required dependency [ aicsfiles ] not found")
-        raise
-    except ImportError:
-        logger.error("Unable to import [ fms ] from [ aicsfiles ]")
-        raise
+    from endo_pipeline.io.fms import FMS
 
-    metadata_builder = fms.create_file_metadata_builder()
-
-    # Currently, only the prod environment has "Endothelial as a valid Program
-    # annotation. Program annotations will become required in a future release
-    # of aicsfiles (see aics-int/aicsfiles-python#131) so we will need to add
-    # Endothelial as a valid Program option in the stg environment.
-    if env == "prod":
-        metadata_builder.add_annotation("Program", "Endothelial")
+    metadata_builder = FMS.create_file_metadata_builder("Endothelial")
 
     metadata_builder.add_annotation("Produced By", "python code")
 
@@ -166,8 +190,6 @@ def build_fms_annotations(
         notes.extend([f"  - {item.name} ({item.fmsid})" for item in dataset])
     else:
         notes.append(f"Dataset: {dataset.name} ({dataset.fmsid})")
-
-    notes.append(f"Effort: {effort}")
 
     if include_timestamp:
         timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")
@@ -194,7 +216,6 @@ def upload_file_to_fms(
     file_path: Path | str,
     annotations: dict[str, list],
     file_type: Literal["parquet", "csv", "tsv"],
-    env: Literal["prod", "stg"] = "prod",
 ) -> str:
     """
     Upload a file to FMS with the associated annotations.
@@ -207,9 +228,6 @@ def upload_file_to_fms(
         The annotations associated with the file.
     file_type
         The file type. Valid options include: csv, tsv, parquet.
-    env
-        The FMS environment to upload to. Valid options include: "prod" for
-        production or "stg" for staging.
 
     Returns
     -------
@@ -224,22 +242,24 @@ def upload_file_to_fms(
         logger.error("File [ %s ] could not be found", file_path)
         raise FileNotFoundError(f"No such file '{file_path}'")
 
-    try:
-        from aicsfiles import FileManagementSystem
-    except ModuleNotFoundError:
-        logger.error("Required dependency [ aicsfiles ] not found")
-        raise
-    except ImportError:
-        logger.error("Unable to import [ FileManagementSystem ] from [ aicsfiles ]")
-        raise
+    from endo_pipeline.io.fms import FMS, FMS_FILE_NAME
 
-    fms = FileManagementSystem.from_env(env)
+    # FMS does not allow the same file name to be uploaded multiple times. If
+    # a file of the same name is found, we instead append a timestamp to the
+    # current file upload to create a unique name.
+    logger.debug("Checking if [ %s ] already exists in FMS", file_path)
+    record = list(FMS.find(annotations={FMS_FILE_NAME: file_path.name}))
+    file_name = make_name_unique(file_path).name if record else file_path.name
 
-    logger.debug("Starting upload of [ %s ] to [ %s ] FMS", file_path, env)
-    fms_file = fms.upload_file(str(file_path), file_type, annotations)
-    logger.debug(
-        "Finished upload of [ %s ] to [ %s ] FMS with file id [ %s ]", file_path, env, fms_file.id
+    logger.debug("Starting upload of [ %s ] to FMS as [ %s ]", file_path, file_name)
+    fms_file = FMS.upload_file(
+        file_reference=file_path,
+        file_type=file_type,
+        annotations=annotations,
+        file_name=file_name,
+        should_be_in_local=True,
     )
+    logger.debug("Finished upload of [ %s ] to FMS with file id [ %s ]", file_path, fms_file.id)
 
     return fms_file.id
 

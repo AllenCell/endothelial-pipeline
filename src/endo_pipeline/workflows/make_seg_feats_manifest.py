@@ -5,20 +5,17 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from src.endo_pipeline.configs.dataset_io import (
+from endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
     ipython_cli_flexecute,
 )
-from src.endo_pipeline.io import configure_logging, get_output_path, load_dataframe
-from src.endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
-    add_cell_segmentation_path_column,
+from endo_pipeline.io import configure_logging, get_output_path, load_dataframe
+from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     add_filter_columns,
-    calculate_derived_data_dynamics_dependent,
     calculate_derived_data_dynamics_independent,
-    filter_and_save_track_data_for_landscape_integration,
     merge_measured_segmentation_features_tables,
 )
-from src.endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -68,12 +65,7 @@ def create_segmentation_measured_feature_manifest(
     # depend on dynamics / require clean tracks
     logger.info("Calculating dynamics-independent metrics from existing measurements...")
 
-    big_table = add_cell_segmentation_path_column(big_table)
     big_table = calculate_derived_data_dynamics_independent(big_table)
-
-    # add the size of the crop used to get DiffAE features at full res
-    crop_size = 256
-    big_table["crop_size"] = crop_size
 
     # filter the segprops data to remove regions that
     # touch the image borders and keep only tracks that
@@ -83,42 +75,14 @@ def create_segmentation_measured_feature_manifest(
     )
 
     big_table = add_filter_columns(big_table, out_dir, min_track_duration=24, max_area_change=0.1)
-    big_table_filtered = big_table[~big_table["filter_global"]]
 
     # NOTE THIS TABLE WILL BE UPLOADED TO FMS
     # save the raw combined data tables
     # (we want to have an accessible version of the raw data)
-    out_dir_raw = out_dir / "segmentation_features_manifests/"
+    out_dir_raw = out_dir / "segmentation_features_dataframes/"
     out_dir_raw.mkdir(parents=True, exist_ok=True)
-    out_path_raw = out_dir_raw / f"{dataset_name}_live_segmentation_features.tsv"
-    big_table.to_csv(out_path_raw, sep="\t", index=False)
-
-    # add some columns that are calculated from the
-    # existing columns include:
-    # orientation in degrees, velocities, nematic order,
-    # aspect ratio, number of tracks (i.e. approximate
-    # number of detected cells)
-    logger.info("Calculating dynamics-dependent metrics from existing measurements...")
-
-    big_table_filtered = calculate_derived_data_dynamics_dependent(
-        big_table_filtered.copy(deep=True)
-    )
-
-    # create a subset of the data that is used for cell track integration
-    logger.info("Outputting a subset of the cell tracking data for integration with landscapes...")
-
-    out_dir_for_integration = Path(out_dir) / "single_cell_track_integration/"
-    out_dir_for_integration.mkdir(parents=True, exist_ok=True)
-    out_path_integration_table = (
-        out_dir_for_integration / f"{dataset_name}_single_cell_track_integration.csv"
-    )
-    filter_and_save_track_data_for_landscape_integration(
-        big_table_filtered,
-        out_path_integration_table,
-        crop_size=crop_size,
-        min_num_points_per_track=120,
-        return_df=False,
-    )
+    out_path_raw = out_dir_raw / f"{dataset_name}_live_segmentation_features.parquet"
+    big_table.to_parquet(out_path_raw, index=False)
 
 
 def main(
@@ -128,7 +92,7 @@ def main(
 ) -> None:
 
     # set the directory where the output will be saved
-    out_dir = get_output_path(Path(__file__).stem)
+    out_dir = get_output_path(__file__)
     configure_logging(out_dir, logger, verbose)
 
     # create a list of datasets to analyze if not provided
@@ -159,7 +123,7 @@ def main(
         for dataset_name in tqdm(
             dataset_name_list,
             total=len(dataset_name_list),
-            desc="Processing datasets (1P)",
+            desc="Processing datasets",
             unit="datasets",
         ):
             create_segmentation_measured_feature_manifest(dataset_name, out_dir)

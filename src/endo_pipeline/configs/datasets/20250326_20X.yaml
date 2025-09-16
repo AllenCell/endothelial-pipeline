@@ -13,22 +13,62 @@ shear_stress_regime: intermediate
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
-flow: [[0, 576, 15.74]]
 n_total_positions: 6
-channel_488_index: 0
-brightfield_channel_index: 1
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
 flow_conditions:
 - start: -16
   stop: 576
   shear_stress: 15.74
-channel_405_index: null
-channel_561_index: null
-channel_640_index: null
-nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250326_20X
-nuclear_stain_seg_path: null
-cdh5_seg_path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250326_20X
 valid_timepoints:
   start: [129]
   stop: [345]
 include_scenes: null
 notes: ''
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [529, 531]
+    1: [8]
+    2: [529, 531]
+    3: [527]
+    4: [527, 529]
+    5: [527, 529, 544]
+  auto_bf_temp_artifact:
+    0: [531]
+    1: [531, 533]
+    2: []
+    3: [8]
+    4: [527, 529, 531]
+    5: [527, 529]
+  bf_scope_error:
+    0: [527]
+    1: [527]
+    2: [527]
+    3: [527]
+    4: [527]
+    5: [527]
+  cell_piling:
+    0: [[346, 576]]
+    1: [[346, 576]]
+    2: [[346, 576]]
+    3: [[346, 576]]
+    4: [[346, 576]]
+    5: [[346, 576]]
+position_annotations: null
+center_z_plane:
+  0: 11
+  1: 10
+  2: 10
+  3: 11
+  4: 10
+  5: 10

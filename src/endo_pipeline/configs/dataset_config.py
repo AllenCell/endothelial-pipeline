@@ -1,6 +1,6 @@
 """Data structures for dataset configs."""
 
-from dataclasses import field
+from enum import StrEnum
 from typing import Literal
 
 from mashumaro.config import BaseConfig
@@ -14,6 +14,47 @@ SampleType = Literal["live", "fixed", "fixed-methanol"]
 
 ObjectiveType = Literal["20X", "40X"]
 """Valid objective types."""
+
+
+class TimepointAnnotation(StrEnum):
+    """Annotations for timepoints that should be excluded from model training and/or analysis."""
+
+    AUTO_BF_SCOPE_ERROR = "auto_bf_scope_error"
+    """Auto detected error with brightfield scope."""
+
+    AUTO_BF_TEMP_ARTIFACT = "auto_bf_temp_artifact"
+    """Auto detected Temporary brightfield artifact."""
+
+    AUTO_GFP_SCOPE_ERROR = "auto_gfp_scope_error"
+    """Auto detected error with GFP scope."""
+
+    BF_SCOPE_ERROR = "bf_scope_error"
+    """Manually annotated error with brightfield scope."""
+
+    BF_TEMP_ARTIFACT = "bf_temp_artifact"
+    """Manually Temporary brightfield artifact."""
+
+    CELL_PILING = "cell_piling"
+    """Manually annotated range of timepoints where cells pile up (> 30% of FOV)."""
+
+    GFP_SCOPE_ERROR = "gfp_scope_error"
+    """Manually annotated error with GFP scope."""
+
+    UNFED = "unfed"
+    """Manually annotated timepoint where cells are more than 3hrs since last feeding."""
+
+    XY_SHIFT = "xy_shift"
+    """Manually annotated shift in the XY position."""
+
+    Z_SHIFT = "z_shift"
+    """Manually annotated shift in the Z focus."""
+
+
+class PositionAnnotation(StrEnum):
+    """Annotations for positions that should be excluded from model training and/or analysis."""
+
+    DUST_ARTIFACT = "dust_artifact"
+    """Manually annotated position includes a dust artifact."""
 
 
 @dataclass
@@ -46,6 +87,26 @@ class FlowCondition:
 
     shear_stress: float
     """Shear stress in dynes/cm^2 for the flow condition."""
+
+
+@dataclass
+class ChannelIndices:
+    """Indices of individual channels."""
+
+    brightfield: int
+    """Index of the brightfield channel."""
+
+    channel_488: int
+    """Index of the 488 channel."""
+
+    channel_405: int | None = None
+    """Index of the 405 channel."""
+
+    channel_561: int | None = None
+    """Index of the 561 channel."""
+
+    channel_640: int | None = None
+    """Index of the 640 channel."""
 
 
 @dataclass
@@ -97,38 +158,17 @@ class DatasetConfig:
     time_interval_in_minutes: float | None
     """Time interval between frames in minutes."""
 
-    flow: list
-    """Flow conditions for the dataset."""
-
     n_total_positions: int
     """Total number of positions captured."""
 
-    channel_488_index: int
-    """Index of the 488 channel."""
+    original_channel_indices: ChannelIndices
+    """Channel indices for original dataset."""
 
-    brightfield_channel_index: int
-    """Index of the brightfield channel."""
+    zarr_channel_indices: ChannelIndices
+    """Channel indices for dataset converted to Zarr format."""
 
-    flow_conditions: list[FlowCondition] = field(default_factory=list)
+    flow_conditions: list[FlowCondition]
     """List of flow conditions for the dataset."""
-
-    channel_405_index: int | None = None
-    """Index of the 405 channel."""
-
-    channel_561_index: int | None = None
-    """Index of the 561 channel."""
-
-    channel_640_index: int | None = None
-    """Index of the 640 channel."""
-
-    nuclear_label_free_seg_path: str | None = None
-    """Path to nuclear label free segmentation."""
-
-    nuclear_stain_seg_path: str | None = None
-    """Path to nuclear stain segmentation."""
-
-    cdh5_seg_path: str | None = None
-    """Path to Cdh5 segmentations."""
 
     valid_timepoints: ValidTimepoints | None = None
     """List of valid timepoint ranges. None if all timepoints are valid."""
@@ -138,6 +178,17 @@ class DatasetConfig:
 
     notes: str = ""
     """"Additional notes about dataset."""
+
+    timepoint_annotations: (
+        dict[TimepointAnnotation, dict[int, list[int | tuple[int, int]]]] | None
+    ) = None
+    """Manually annotated timepoints per position. Individual tps (int) or start, stops (tuple)."""
+
+    position_annotations: dict[PositionAnnotation, list[int]] | None = None
+    """Manually annotated positions."""
+
+    center_z_plane: dict[int, int] | None = None
+    """For each zarr position, the calculated and visually validated center Z-plane"""
 
     class Config(BaseConfig):
         """Settings for dataset config."""

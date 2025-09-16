@@ -1,11 +1,11 @@
 import argparse
 from pathlib import Path
 
-from src.endo_pipeline.configs.dataset_io import get_cdh5_classic_segmentation_path
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (
+from endo_pipeline.io import get_output_path
+from endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (
     generate_tfe_dataset,
 )
+from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
 
 def main() -> None:
@@ -90,20 +90,23 @@ def main() -> None:
     for dataset in args.datasets:
         for position in args.positions:
             if args.segmentation == "CDH5":
-                source_dir = get_cdh5_classic_segmentation_path(dataset, position)
+                manifest = load_image_manifest("cdh5_classic_seg")
+                location = get_image_location_for_dataset(manifest, dataset, position, 0)
 
-            if source_dir is not None:
-                # Generate the TFE dataset
-                generate_tfe_dataset(
-                    dataset=dataset,
-                    position=position,
-                    output_dir=args.output_dir,
-                    source_dir=source_dir,
-                    backdrops=args.no_backdrops,
-                )
-                print(f"Processed dataset: {dataset}, position: {position}")
-            else:
-                print(f"Segmentation directory not found for {dataset}, position: {position}")
+                if location.path is not None:
+                    source_dir_path = location.path.parent
+                else:
+                    continue
+
+            # Generate the TFE dataset
+            generate_tfe_dataset(
+                dataset=dataset,
+                position=position,
+                output_dir=args.output_dir,
+                source_dir=source_dir_path,
+                backdrops=args.no_backdrops,
+            )
+            print(f"Processed dataset: {dataset}, position: {position}")
 
 
 if __name__ == "__main__":
