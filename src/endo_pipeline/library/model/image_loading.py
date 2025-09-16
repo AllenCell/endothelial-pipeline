@@ -4,12 +4,14 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
+import os
+
 import numpy as np
 import pandas as pd
 import tqdm
 from bioio import BioImage
 from cyto_dl.utils.arg_checking import get_dtype
-from monai.data import CacheDataset, MetaTensor, SmartCacheDataset
+from monai.data import MetaTensor, SmartCacheDataset
 from monai.transforms import Transform
 from numpy.typing import DTypeLike
 
@@ -280,6 +282,12 @@ class MultiDimImageDataset(SmartCacheDataset):
             Additional keyword arguments to pass to ``CacheDataset``.
         """
         df = pd.read_parquet(dataframe_path)
+
+        # Get distributed training info
+        rank = int(os.environ.get("LOCAL_RANK", 0))
+        world_size = int(os.environ.get("WORLD_SIZE", 1))
+        
+        # Store dataset parameters
         self.img_path_column = img_path_column
         self.channel_column = channel_column
         self.scene_column = scene_column
@@ -295,7 +303,35 @@ class MultiDimImageDataset(SmartCacheDataset):
         if spatial_dims not in (2, 3):
             raise ValueError(f"`spatial_dims` must be 2 or 3, got {spatial_dims}")
         self.spatial_dims = spatial_dims
-        data = self.get_per_file_args(df)
+        
+        # First expand all data to get total sample count
+        # # Debug
+        # logger.info(f"[Rank {rank}] Expanding dataframe rows to individual samples...")
+        data = self.get_per_file_args(df.reset_index(drop=True))
+
+        # Now distribute samples evenly across ranks
+        if world_size > 1:
+            # # Debug
+            # logger.info(f"[Rank {rank}] Total samples before distribution: {len(data)}")
+            
+            # Calculate balanced distribution
+            total_samples = len(data)
+            samples_per_rank = total_samples // world_size
+            extra_samples = total_samples % world_size
+            
+            # Each rank gets either samples_per_rank or samples_per_rank + 1 samples
+            start_idx = rank * samples_per_rank + min(rank, extra_samples)
+            end_idx = start_idx + samples_per_rank + (1 if rank < extra_samples else 0)
+            
+            # Slice the data for this rank
+            data = data[start_idx:end_idx]
+            
+            # # Debug
+            # logger.info(f"[Rank {rank}] Samples assigned to this rank: {len(data)} (indices {start_idx}:{end_idx})")
+
+        # # Debug:
+        # else:
+        #     logger.info(f"Single process training with {len(data)} samples")
 
         if transform is None:
             transform = []
