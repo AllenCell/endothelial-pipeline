@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from dask.array import Array
 from skimage.measure import regionprops
 from tqdm import tqdm
 
@@ -51,8 +52,8 @@ def get_and_save_nuclei_features(
 
 
 def get_nuclei_features_from_image(
-    cdh5_seg: np.ndarray,
-    nuc_seg: np.ndarray,
+    cdh5_seg: np.ndarray | Array,
+    nuc_seg: np.ndarray | Array,
     fluorescence_images: list[np.ndarray],
     fluor_img_names: list[str] | None = None,
     seg_dim_order: str = "YX",
@@ -96,7 +97,7 @@ def get_nuclei_features_from_image(
 
     # get intensities in the segmented nuclei regions
     # for each channel
-    nuc_props_on_intens = dict()
+    nuc_props_on_intens = {}
     for i in range(len(fluorescence_images)):
         nuc_props_on_intens[fluor_img_names[i]] = {
             prop.label: prop
@@ -109,7 +110,7 @@ def get_nuclei_features_from_image(
     reg_props = regionprops(label_image=cdh5_seg, intensity_image=nuc_seg)
 
     # Set up some initial data containers to populate
-    nuc_feats_ls: list = list()
+    nuc_feats_ls: list = []
 
     feats_with_list_of_lists: dict[str, Callable] = {
         "nuc_seg_intens_means": np.mean,
@@ -205,7 +206,7 @@ def get_nuclei_features_from_dataset_at_T(
     nuc_feats_df = get_nuclei_features_from_image(
         cdh5_seg=cdh5_seg,
         nuc_seg=nuc_seg,
-        fluorescence_images=channel_arrs,
+        fluorescence_images=channel_arrs,  # type:ignore[arg-type]
         fluor_img_names=channel_names,
         seg_dim_order="YX",
     )

@@ -27,15 +27,14 @@ def main(
         The function creates and save a :code:`ModelConfig` object with the finetuned model's
         MLflow run ID and the list of datasets used for training.
     """
-    import datetime
     import logging
     from typing import cast
 
     from omegaconf import OmegaConf
 
-    from endo_pipeline import TESTING_MODE
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import CytoDLModelConfig, load_model_config, save_model_config
-    from endo_pipeline.io import get_output_path
+    from endo_pipeline.io import get_output_path, make_name_unique
     from endo_pipeline.library.model import (
         download_mlflow_artifact,
         get_ckpt_path,
@@ -48,12 +47,23 @@ def main(
 
     logger = logging.getLogger(__name__)
 
+    # Adjust workflow settings for demo mode. Append a suffix to the manifest
+    # and model names to indicate that they were generated from a workflow demo,
+    # and reduce the number of epochs and logging steps.
+    if DEMO_MODE:
+        name_suffix = "_test_workflow"
+        max_num_epochs = 1
+        log_every_n_steps = 1
+    else:
+        name_suffix = ""
+        max_num_epochs = 100
+        log_every_n_steps = 50
+
     # get training and validation datasets based on zarr resolution
     # by loading the DataframeManifest from the model directory
     # and using the DatasetLocation objects to get the paths
-    manifest_name = f"diffae_finetuning_dataframe_resolution_{resolution_level}"
-    if TESTING_MODE:
-        manifest_name += "_test_workflow"
+    manifest_name = f"diffae_finetuning_dataframe_resolution_{resolution_level}{name_suffix}"
+
     try:
         dataframe_manifest = load_dataframe_manifest(manifest_name)
     except FileNotFoundError:
@@ -65,6 +75,7 @@ def main(
             resolution_level,
         )
         raise
+
     train_dataframe_location = dataframe_manifest.locations["training"]
     val_dataframe_location = dataframe_manifest.locations["validation"]
 
@@ -89,21 +100,23 @@ def main(
     template_finetune_config = OmegaConf.load(get_model_dir() / "diffae_finetune.yaml")
 
     # initialize model for finetuning
-    timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d_%H-%M-%S")
-    finetuned_model_name = f"{model_name}_finetuned_for_{dataset_pair_type}_{timestamp}"
+    finetuned_model_name = f"{model_name}_finetuned_for_{dataset_pair_type}"
+    # get unique model name to avoid overwriting existing configs
+    finetuned_model_name_unique = make_name_unique(finetuned_model_name).as_posix()
     model = initialize_diffae_model_for_finetuning(
         template_finetune_config=template_finetune_config,
-        finetuned_model_name=finetuned_model_name,
+        finetuned_model_name=finetuned_model_name_unique,
         train_dataframe_path=train_dataframe_path,
         val_dataframe_path=val_dataframe_path,
         model_save_path=model_save_path,
         diffae_ckpt_path=diffae_ckpt_path,
-        max_num_epochs=100 if not TESTING_MODE else 1,
-        log_every_n_steps=50 if not TESTING_MODE else 1,
+        max_num_epochs=max_num_epochs,
+        log_every_n_steps=log_every_n_steps,
     )
-    # save the model config locally instead of printing
+    # save the input model config locally instead of printing
     local_config_save_path = get_output_path("models", "training_configs")
-    model.save_config(local_config_save_path / f"{finetuned_model_name}_train.yaml")
+    model_config_save_path = local_config_save_path / f"{finetuned_model_name_unique}_train.yaml"
+    model.save_config(model_config_save_path)
     # call train method to start finetuning
     _, object_dict = model.train()
 
@@ -117,7 +130,7 @@ def main(
     )
     # add run ID and training datasets to model config
     model_config = CytoDLModelConfig(
-        name=finetuned_model_name,
+        name=f"{finetuned_model_name_unique}{name_suffix}",
         mlflow_run_id=run_id,
         training_datasets=list_of_training_datasets,
     )

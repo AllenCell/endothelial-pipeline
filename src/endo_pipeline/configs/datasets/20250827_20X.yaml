@@ -1,0 +1,68 @@
+name: 20250827_20X
+original_path: //allen/programs/allencell/data/proj0/bb4/1ff/8fe/b6d/ac3/48b/24a/0a2/0b3/618/c9/20280827_GE00008795_20X_SLDY/20280827_GE00008795_20X_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250827_c96180b30a224a48bac3b6d8fe1ffbb4
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: c96180b30a224a48bac3b6d8fe1ffbb4
+barcode: GE00008795
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: high_to_low
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+flow_conditions:
+- start: -17
+  stop: 262
+  shear_stress: 20.4
+- start: 263
+  stop: 576
+  shear_stress: 6.07
+valid_timepoints: null
+include_scenes: null
+notes: ''
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [11, 21, 355, 383, 477, 497, 513, 532, 534, 544, 558]
+    1: [11, 305, 379, 512, 513, 532, 533, 534]
+    2: [237, 256, 359, 512, 513, 520, 532, 533]
+    3: [236, 377, 420, 512, 532, 533]
+    4: [22, 236, 257, 349, 372, 530, 532, 533]
+    5: [10, 12, 15, 236, 291, 380, 490, 512, 532, 533]
+  auto_bf_temp_artifact:
+    0: [11, 12, 236, 471, 511, 512, 513]
+    1: [10, 236, 237, 513, 516, 532, 533, 534, 576]
+    2: [11, 12, 236, 237, 512, 513, 532, 533, 536]
+    3: [235, 236, 512, 532, 533]
+    4: [11, 236, 532, 533]
+    5: [10, 11, 236, 537]
+  cell_piling:
+    0: [[428, 576]]
+    1: [[421, 576]]
+    2: [[399, 576]]
+    3: [[352, 576]]
+    4: [[397, 576]]
+    5: [[343, 576]]
+position_annotations: null
+center_z_plane:
+  0: 13
+  1: 11
+  2: 11
+  3: 11
+  4: 10
+  5: 10

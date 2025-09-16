@@ -1,6 +1,5 @@
 import json
 import logging
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -22,8 +21,7 @@ from endo_pipeline.io import (
 from endo_pipeline.library.model.image_loading import (
     build_zarr_image_loading_dataframe,
     get_exclude_frames,
-    get_include_positions,
-    get_z_offset_information,
+    get_z_slice_bounds_per_position,
 )
 from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
@@ -99,6 +97,7 @@ def generate_overrides_for_model_eval(
     model_name: str,
     prediction_filename_suffix: str | None = None,
     num_workers: int = 128,
+    cache_rate: float = 1.0,
 ) -> dict:
     """
     Generate overrides for the CytoDLModel configuration
@@ -112,6 +111,7 @@ def generate_overrides_for_model_eval(
         "data.val_dataloaders": None,
         "data.predict_dataloaders.num_workers": num_workers,
         "data.predict_dataloaders.dataset.dataframe_path": data_path,
+        "data.predict_dataloaders.dataset.cache_rate": cache_rate,
         "paths.output_dir": save_path,
         # change checkpoint path to the one downloaded from mlflow
         "checkpoint.ckpt_path": ckpt_path,
@@ -341,13 +341,13 @@ def preprocess_tracking_manifest_for_model_eval(
     grouped_df["resolution"] = resolution
 
     # only run a single timepoint from zarr
-    grouped_df["start"] = grouped_df["image_index"]
-    grouped_df["stop"] = grouped_df["image_index"]
+    grouped_df["frame_start"] = grouped_df["image_index"]
+    grouped_df["frame_stop"] = grouped_df["image_index"]
     grouped_df = grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1)
 
-    # save the dataframe to a CSV file that the DiffAE model will use to load cropped images
-    save_path = save_dir / "aggregated_crop_manifest.csv"
-    grouped_df.to_csv(save_path, index=False)
+    # save the dataframe to a parquet file that the DiffAE model will use to load cropped images
+    save_path = save_dir / "aggregated_crop_manifest.parquet"
+    grouped_df.to_parquet(save_path, index=False)
     return save_path
 
 
@@ -453,16 +453,13 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     user_overrides: str | dict | None = None,
     z_stack_offsets: tuple[int, int] | None = None,
     slice_by_global_center: bool = True,
-    testing_mode: bool = False,
+    frame_start: int | None = None,
+    frame_stop: int | None = None,
+    frame_step: int | None = None,
+    only_include_positions: list[int] | None = None,
 ) -> None:
     """
     Apply a DiffAE model to a single dataset.
-
-    **Workflow testing**
-
-    If ``testing_mode`` is set to True, the model will only be applied to the first
-    position of the dataset and only the first two timepoints will be used. The
-    staging environment of FMS will be used for uploading the prediction file.
 
     **Z-stack offsets**
 
@@ -476,7 +473,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     indicate the number of slices to include below and above the center plane. Else, the
     ``z_stack_offsets`` are used directly as the range bounds.
 
-
     Parameters
     ----------
     model_config
@@ -487,16 +483,20 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Resolution level to at which to load images (zarr file format) at.
     upload_to_fms
         Whether to upload the prediction file to FMS. Default is True.
-    save_path
-        Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
     user_overrides
         Optional user overrides to apply to the model config.
     z_stack_offsets
         Lower and upper bounds for z-slicing.
     slice_by_global_center
         Get global center plane per position for z-slicing if True, use offsets directly if False.
-    testing_mode
-        Execute method in workflow testing mode if True, run full model evaluation if False.
+    frame_start
+        First frame to include, if None, include from the start.
+    frame_stop
+        Last frame to include, if None, include to the end.
+    frame_step
+        Step size for frame inclusion, if None, include every frame.
+    only_include_positions
+        List of position indices to include, if None, include all positions.
 
     Returns
     -------
@@ -506,6 +506,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         If ``upload_to_fms`` is True, uploads the prediction file to FMS and adds the file ID to the
         model config manifest.
     """
+
     if not torch.cuda.is_available():
         logger.error("CUDA is not available. Please run on a GPU machine.")
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
@@ -534,48 +535,27 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     # set default output path
     save_path = get_output_path("models", model_config.name, dataset_config.name)
 
-    # use timestamp to get unique file name for FMS upload later
-    timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
-
     # load model
     model = CytoDLModel()
     model.load_config_from_file(path_dict["config_path"])
 
     logger.debug("Applying model [ %s ] to dataset [ %s ]", model_config.name, dataset_config.name)
-    # get unique name for the CSV file
+    # get unique name for the parquet file
     file_name = "dataset"
     if z_stack_offsets is not None:
         file_name = f"{file_name}_z_stack_{z_stack_offsets[0]}_{z_stack_offsets[1]}"
         if slice_by_global_center:
             file_name = f"{file_name}_ctr"
 
-    file_name = f"{file_name}_{timestamp}.parquet"
-    dataset_save_path = save_path / file_name
-
-    # default frame start and stop values are None, i.e., load all timepoints
-    frame_start = None
-    frame_stop = None
-    frame_step = None
+    file_name_with_extension = f"{file_name}.parquet"
+    dataset_save_path = save_path / file_name_with_extension
 
     # parse dataset annotations to get z-slice information,
     # positions to include, and frames to exclude
-    z_slice_per_position = get_z_offset_information(
+    z_slice_bounds_per_position = get_z_slice_bounds_per_position(
         dataset_config, z_stack_offsets, slice_by_global_center
     )
-    only_include_positions = get_include_positions(dataset_config)
     exclude_frames = get_exclude_frames(dataset_config)
-
-    if testing_mode:
-        # for workflow testing, only use first position from each dataset
-        # and first two timepoints to speed up the dataloading process
-        # (if dataset is not timelapse, then only one timepoint is used)
-        frame_start = 0
-        frame_stop = 1 if dataset_config.is_timelapse else 0
-        only_include_positions = only_include_positions[0:1]
-        logger.debug(
-            "Workflow testing is enabled, only processing the first few timepoints "
-            "of the first valid position the dataset."
-        )
 
     if z_stack_offsets is not None:
         # load timepoints 0, 250, and 500 for z-stack offsets summary
@@ -592,7 +572,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         frame_start=frame_start,
         frame_stop=frame_stop,
         frame_step=frame_step,
-        z_slice_per_position=z_slice_per_position,
+        z_slice_bounds_per_position=z_slice_bounds_per_position,
         only_include_positions=only_include_positions,
         exclude_frames=exclude_frames,
     )
@@ -601,7 +581,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     df.to_parquet(dataset_save_path, index=False)
 
     # apply overrides
-    prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features_{timestamp}"
+    prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features"
     # having issues with zarr loading when using z-slices from global center,
     # need to decrease the num_workers
     num_workers = 64 if (z_stack_offsets is not None and slice_by_global_center) else 128
@@ -705,6 +685,15 @@ def apply_model_on_tracked_crops_from_one_dataset(
     model_path = get_output_path("models", model_config.name, include_timestamp=False)
     path_dict = download_model(mlflow_id, model_path)
 
+    # right now, need to use the tracked version of the config if using the
+    # "legacy" model "diffae_04_10" (temporary workaround until we are only using
+    # models trained with the new pipeline)
+    if model_config.name == "diffae_04_10":
+        path_dict["config_path"] = get_model_dir() / "diffae_04_10_eval.yaml"
+        logger.info(
+            "Loading legacy model config for diffae_04_10 from [ %s ]", path_dict["config_path"]
+        )
+
     if save_path is None:
         # if no save path is provided, use the default path
         save_path = get_output_path(
@@ -720,9 +709,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
     data_path = preprocess_tracking_manifest_for_model_eval(dataset_config, save_path)
 
     # use timestamp to get unique file name for FMS upload later
-    timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
     prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_tracked_crop_features"
-    prediction_filename_suffix = f"{prediction_filename_suffix}_{timestamp}"
     # apply overrides
     overrides = generate_overrides_for_track_based_crops(
         overrides,

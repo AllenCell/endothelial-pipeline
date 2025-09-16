@@ -19,29 +19,32 @@ ObjectiveType = Literal["20X", "40X"]
 class TimepointAnnotation(StrEnum):
     """Annotations for timepoints that should be excluded from model training and/or analysis."""
 
-    BF_SCOPE_ERROR = "bf_scope_error"
-    """Manually annotated error with brightfield scope."""
-
-    BF_TEMP_ARTIFACT = "bf_temp_artifact"
-    """Manually Temporary brightfield artifact."""
-
-    GFP_SCOPE_ERROR = "gfp_scope_error"
-    """Manually annotated error with GFP scope."""
-
     AUTO_BF_SCOPE_ERROR = "auto_bf_scope_error"
     """Auto detected error with brightfield scope."""
 
     AUTO_BF_TEMP_ARTIFACT = "auto_bf_temp_artifact"
     """Auto detected Temporary brightfield artifact."""
 
+    BF_SCOPE_ERROR = "bf_scope_error"
+    """Manually annotated error with brightfield scope."""
+
+    BF_TEMP_ARTIFACT = "bf_temp_artifact"
+    """Manually Temporary brightfield artifact."""
+
+    CELL_PILING = "cell_piling"
+    """Manually annotated range of timepoints where cells pile up (> 30% of FOV)."""
+
+    GFP_SCOPE_ERROR = "gfp_scope_error"
+    """Manually annotated error with GFP scope."""
+
+    UNFED = "unfed"
+    """Manually annotated timepoint where cells are more than 3hrs since last feeding."""
+
     XY_SHIFT = "xy_shift"
     """Manually annotated shift in the XY position."""
 
     Z_SHIFT = "z_shift"
     """Manually annotated shift in the Z focus."""
-
-    UNFED = "unfed"
-    """Manually annotated timepoint where cells are more than 3hrs since last feeding."""
 
 
 class PositionAnnotation(StrEnum):
@@ -176,7 +179,7 @@ class DatasetConfig:
     timepoint_annotations: (
         dict[TimepointAnnotation, dict[int, list[int | tuple[int, int]]]] | None
     ) = None
-    """Manually annotated timepoints for each position. Individual tps (int) or start, stops (tuple)."""
+    """Manually annotated timepoints per position. Individual tps (int) or start, stops (tuple)."""
 
     position_annotations: dict[PositionAnnotation, list[int]] | None = None
     """Manually annotated positions."""

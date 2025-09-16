@@ -1,4 +1,3 @@
-import datetime
 import logging
 import os
 from pathlib import Path
@@ -28,16 +27,10 @@ def _generate_overrides_for_model_training(
     val_dataframe_path: str,
     max_num_epochs: int = 1000,
     log_every_n_steps: int = 50,
+    cache_rate: float = 0.01,
 ) -> dict:
     """
     Generate overrides for the DiffAE model training configuration.
-
-    **Workflow testing**
-
-    If the training workflow is being run in testing mode, the model will be trained for
-    only one epoch. That is, the ``max_num_epochs`` input will be set to 1, which overrides
-    the configuration value of ``trainer.max_epochs`` in the training config. The value
-    of ``log_every_n_steps`` will also be set to 1.
 
     Parameters
     ----------
@@ -54,6 +47,8 @@ def _generate_overrides_for_model_training(
         The maximum number of epochs to train the model for.
     log_every_n_steps
         The interval at which to log training metrics.
+    cache_rate
+        The fraction of the dataset to cache in memory for training.
 
     Returns
     -------
@@ -67,8 +62,10 @@ def _generate_overrides_for_model_training(
     overrides = {
         # set path to train and val datasets
         "data.train_dataloaders.dataset.dataframe_path": train_dataframe_path,
+        "data.train_dataloaders.dataset.cache_rate": cache_rate,
         "data.predict_dataloaders.dataset.dataframe_path": val_dataframe_path,
         "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path,
+        "data.val_dataloaders.dataset.cache_rate": cache_rate,
         # get repo root directory and current working directory
         "paths.root_dir": Path(__file__).resolve().parents[3].as_posix(),
         "paths.work_dir": os.getcwd(),
@@ -100,13 +97,6 @@ def _generate_overrides_for_finetuning(
 ) -> dict:
     """
     Generate overrides for finetuning a DiffAE model.
-
-    **Workflow testing**
-
-    If the finetuning workflow is being run in testing mode, the model will be trained for
-    only one epoch. That is, the ``max_num_epochs`` input will be set to 1, which overrides
-    the configuration value of ``trainer.max_epochs`` in the finetuning config. The value
-    of ``log_every_n_steps`` will also be set to 1.
 
     Parameters
     ----------
@@ -175,16 +165,10 @@ def initialize_diffae_model(
     val_dataframe_path: str,
     max_num_epochs: int = 1000,
     log_every_n_steps: int = 50,
+    cache_rate: float = 0.01,
 ) -> CytoDLModel:
     """
     Initialize a DiffAE model for training.
-
-    **Workflow testing**
-
-    If the training workflow is being run in testing mode, the model will be trained for
-    only one epoch. That is, the ``max_num_epochs`` input will be set to 1, which overrides
-    the configuration value of ``trainer.max_epochs`` in the training config. The value
-    of ``log_every_n_steps`` will also be set to 1.
 
     Parameters
     ----------
@@ -202,6 +186,8 @@ def initialize_diffae_model(
         The maximum number of epochs to train the model for.
     log_every_n_steps
         The interval at which to log training metrics.
+    cache_rate
+        The fraction of the dataset to cache in memory for training.
 
     Returns
     -------
@@ -223,6 +209,7 @@ def initialize_diffae_model(
         val_dataframe_path,
         max_num_epochs=max_num_epochs,
         log_every_n_steps=log_every_n_steps,
+        cache_rate=cache_rate,
     )
 
     # init model
@@ -242,11 +229,10 @@ def _upload_zarr_dataframe_to_fms(
 ) -> str:
     # save the dataframes to parquet files locally as intermediates
     # use timestamp to ensure unique filenames
-    timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y%m%d_%H%M")
-    output_filename = f"{dataset_type}_resolution_{resolution_level}_{timestamp}.parquet"
+    output_filename = f"{dataset_type}_resolution_{resolution_level}.parquet"
     output_path = output_savedir / output_filename
     dataframe.to_parquet(output_path, index=False)
-    logger.debug("Saved % s dataframe to \n %s", dataset_type, output_path)
+    logger.debug("Saved [ %s ] dataframe to \n %s", dataset_type, output_path)
 
     # upload dataframes to fms
     logger.debug("Building FMS annotations for training and validation dataframes...")
@@ -272,6 +258,9 @@ def build_and_save_dataframe_manifest_for_training(
     train_dataframe: pd.DataFrame,
     val_dataframe: pd.DataFrame,
     resolution_level: int,
+    z_stack_offsets: tuple[int, int] | None,
+    slice_by_global_center: bool,
+    exclude_cell_piling: bool,
     dataset_config_list: list[DatasetConfig],
     output_savedir: Path,
     manifest_name: str,
@@ -288,6 +277,12 @@ def build_and_save_dataframe_manifest_for_training(
         The validation dataframe containing paths to zarr files and other metadata.
     resolution_level
         The resolution level of the zarr files to be used for training.
+    z_stack_offsets
+        Lower and upper bounds for z-slicing.
+    slice_by_global_center
+        Get global center plane per position for z-slicing if True, use offsets directly if False.
+    exclude_cell_piling
+        Exclude cell piling timepoints if True, include them if False.
     dataset_config_list
         A list of DatasetConfig objects for the datasets used in training.
     output_savedir
@@ -328,7 +323,12 @@ def build_and_save_dataframe_manifest_for_training(
     dataframe_manifest = DataframeManifest(
         name=manifest_name,
         workflow=workflow_name,
-        parameters={"resolution_level": resolution_level},
+        parameters={
+            "resolution_level": resolution_level,
+            "z_stack_offsets": z_stack_offsets,
+            "slice_by_global_center": slice_by_global_center,
+            "exclude_cell_piling": exclude_cell_piling,
+        },
         locations={
             "training": DataframeLocation(fmsid=train_fmsid, s3uri=None),
             "validation": DataframeLocation(fmsid=val_fmsid, s3uri=None),
@@ -392,13 +392,6 @@ def initialize_diffae_model_for_finetuning(
 ) -> CytoDLModel:
     """
     Initialize a DiffAE model for training.
-
-    **Workflow testing**
-
-    If the finetuning workflow is being run in testing mode, the model will be trained for
-    only one epoch. That is, the ``max_num_epochs`` input will be set to 1, which overrides
-    the configuration value of ``trainer.max_epochs`` in the finetuning config. The value
-    of ``log_every_n_steps`` will also be set to 1.
 
     Parameters
     ----------

@@ -25,7 +25,7 @@ from endo_pipeline.configs import (
     get_position_integer_from_zarr_file_path,
     load_dataset_config,
 )
-from endo_pipeline.library.model import get_include_positions, get_z_offset_information
+from endo_pipeline.library.model import get_include_positions, get_z_slice_bounds_per_position
 from endo_pipeline.library.process.cdh5_preprocessing import preprocess
 
 FLUOR_CHANNEL = 0
@@ -614,11 +614,11 @@ def align_all_positions(
     fixed_zarr_files = sorted(get_available_zarr_files(fixed_dataset_config))
 
     # get image loading args for moving and fixed datasets
-    moving_z_slice = get_z_offset_information(
+    moving_z_slice = get_z_slice_bounds_per_position(
         moving_dataset_config, z_stack_offsets, slice_by_global_center
     )
     moving_include_pos = get_include_positions(moving_dataset_config)
-    fixed_z_slice = get_z_offset_information(
+    fixed_z_slice = get_z_slice_bounds_per_position(
         fixed_dataset_config, z_stack_offsets, slice_by_global_center
     )
     fixed_include_pos = get_include_positions(fixed_dataset_config)
@@ -702,7 +702,8 @@ def align_and_save_paired_images(
     z_stack_offsets: tuple[int, int] | None,
     slice_by_global_center: bool,
     save_path: Path,
-    testing_mode: bool = False,
+    num_datasets_to_align: int | None = None,
+    num_positions_to_align: int | None = None,
 ) -> pd.DataFrame:
     """
     Align and save all paired images from the specified dataset pair type.
@@ -719,12 +720,6 @@ def align_and_save_paired_images(
     indicate the number of slices to include below and above the center plane. Else, the
     ``z_stack_offsets`` are used directly as the range bounds.
 
-    **Workflow testing**
-
-    If ``testing_mode`` is set to True, the function will only align the first pair of images
-    and save them to the specified `save_path`. This is useful for testing the basic function
-    of this method without processing the entire dataset.
-
     Parameters
     ----------
     dataset_pair_type
@@ -737,9 +732,12 @@ def align_and_save_paired_images(
         Get global center plane per position for z-slicing if True, use offsets directly if False.
     save_path
         The directory where the aligned images will be saved.
-    testing_mode
-        If True, only the first pair of images will be aligned and saved.
-
+    num_datasets_to_align
+        The number of datasets to process for alignment.
+        Use None to align all datasets.
+    num_positions_to_align
+        The number of positions in the dataset to process for alignment.
+        Use None to align all positions.
 
     Returns
     -------
@@ -762,12 +760,10 @@ def align_and_save_paired_images(
         alignment_method = "template"
 
     df_list = []
-    for fixed, moving in zip(fixed_datasets, moving_datasets, strict=True):
-        if testing_mode:
-            logger.warning(
-                "Testing mode is enabled. Only the first two pairs of images "
-                "from the first dataset pair will be aligned and saved."
-            )
+
+    for index, (fixed, moving) in enumerate(zip(fixed_datasets, moving_datasets, strict=True)):
+        if num_datasets_to_align is not None and index > num_datasets_to_align:
+            break
 
         df_list.append(
             align_all_positions(
@@ -778,12 +774,9 @@ def align_and_save_paired_images(
                 slice_by_global_center,
                 save_path,
                 alignment_method=alignment_method,
-                num_positions_to_align=4 if testing_mode else None,
+                num_positions_to_align=num_positions_to_align,
             )
         )
-
-        if testing_mode:
-            break
 
     df = pd.concat(df_list, ignore_index=True)
     df = df.dropna(subset=["fixed", "moving"])

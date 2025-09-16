@@ -17,17 +17,78 @@ from numpy.typing import DTypeLike
 
 from endo_pipeline.configs import (
     DatasetConfig,
+    TimepointAnnotation,
     get_annotated_positions,
     get_annotated_timepoints_for_position,
     get_available_zarr_files,
     get_position_integer_from_zarr_file_path,
 )
 from endo_pipeline.library.process.z_stack_selection import get_plane_indices
+from endo_pipeline.settings.image_data import LOG_EPSILON
 
 logger = logging.getLogger(__name__)
 
 MIN_Z_BOUND = 0
 MAX_Z_BOUND = 24
+
+
+class LogImaged(Transform):
+    """
+    Apply logarithmic transformation to image data in a dictionary.
+
+    This transform takes an input dictionary containing image data under a specified key,
+    applies a logarithmic transformation to the image data, and stores the transformed
+    image back in the dictionary under a specified output key. The transformation is
+    performed using the formula: `log_image = log(image + 1e-12)`.
+
+    Parameters
+    ----------
+    keys : str
+        Key in the input dictionary where the original image data is stored.
+    """
+
+    def __init__(self, keys: str = "image") -> None:
+        """
+        Initialize the LogImage transform.
+
+        Parameters
+        ----------
+        keys : str
+            Key in the input dictionary where the original image data is stored.
+        """
+        super().__init__()
+        self.keys = keys
+
+    def __call__(self, data: dict) -> dict:
+        """
+        Apply logarithmic transformation to the image data.
+
+        Parameters
+        ----------
+        data : dict
+            Input dictionary containing image data under `keys`.
+
+        Returns
+        -------
+        dict
+            Output dictionary with transformed image data under `keys`, overwriting data in place.
+        """
+        if self.keys not in data:
+            logger.error("Input key '%s' not found in data dictionary.", self.keys)
+            raise KeyError(f"Input key '{self.keys}' not found in data dictionary.")
+
+        img = data[self.keys]
+
+        # Apply logarithmic transformation
+        log_img = np.log(img + LOG_EPSILON)
+
+        # convert to MetaTensor to preserve metadata if available
+        log_image_tensor = MetaTensor(log_img, meta=getattr(img, "meta", None))
+
+        # Store transformed image in output dictionary
+        data[self.keys] = log_image_tensor
+
+        return data
 
 
 class BioIOImageLoaderd(Transform):
@@ -440,13 +501,13 @@ class MultiDimImageDataset(SmartCacheDataset):
         return img_data
 
 
-def get_z_offset_information(
+def get_z_slice_bounds_per_position(
     dataset_config: DatasetConfig,
     z_stack_offsets: tuple[int, int] | None,
     slice_by_global_center: bool,
 ) -> dict[int, dict[str, int]]:
     """
-    Parse dataset annotations to get lower and upper z-stack
+    Parse dataset annotations to get lower and upper z-slice
     bounds per position for image loading and processing.
 
     **Z-stack offsets**
@@ -485,13 +546,13 @@ def get_z_offset_information(
     else:
         # if no z-stack offsets are provided, pass in None
         # to the dataframe builder
-        logger.debug("No z-stack offsets provided, loading all z-slices.")
+        logger.debug("No z-stack offsets provided, using full range in Z.")
 
     # if z_stack_offsets is not None, get z-slice ranges
     # for each position in the dataset (i.e., zarr file)
     # else, fixed full range is 0 to 24
     available_zarr_files = get_available_zarr_files(dataset_config)
-    z_slice_per_position = {}
+    z_slice_bounds_per_position = {}
     for zarr_file_path in available_zarr_files:
         # get position from zarr path as an integer (e.g., 'P0' -> 0)
         position_as_int = get_position_integer_from_zarr_file_path(zarr_file_path)
@@ -506,12 +567,12 @@ def get_z_offset_information(
             )
         else:
             z_slices = [MIN_Z_BOUND, MAX_Z_BOUND]
-        z_slice_per_position[position_as_int] = {
+        z_slice_bounds_per_position[position_as_int] = {
             "z_start": z_slices[0],
             "z_stop": z_slices[-1],
         }
 
-    return z_slice_per_position
+    return z_slice_bounds_per_position
 
 
 def get_include_positions(dataset_config: DatasetConfig) -> list[int]:
@@ -521,12 +582,22 @@ def get_include_positions(dataset_config: DatasetConfig) -> list[int]:
     return only_include_positions
 
 
-def get_exclude_frames(dataset_config: DatasetConfig) -> dict[int, list[int]]:
+def get_exclude_frames(
+    dataset_config: DatasetConfig, exclude_cell_piling: bool = False
+) -> dict[int, list[int]]:
     """Get dict of frames to exclude per position based on annotations."""
+    # if exclude_cell_piling is True, then get all annotated timepoints
+    # else, get timepoints for all annotations except CELL_PILING
+    annotations = None  # default to all annotations
+    if not exclude_cell_piling:
+        annotations = [ann for ann in TimepointAnnotation if "PILING" not in ann.name]
+
+    # parse dataset annotations to get timepoints to exclude per position
     exclude_frames = {
-        pos: get_annotated_timepoints_for_position(dataset_config, pos)
+        pos: get_annotated_timepoints_for_position(dataset_config, pos, annotations=annotations)
         for pos in dataset_config.zarr_positions
     }
+
     return exclude_frames
 
 
@@ -537,7 +608,7 @@ def build_zarr_image_loading_dataframe(
     frame_start: int | None = None,
     frame_stop: int | None = None,
     frame_step: int | None = None,
-    z_slice_per_position: dict[int, dict[str, int]] | None = None,
+    z_slice_bounds_per_position: dict[int, dict[str, int]] | None = None,
     only_include_positions: list[int] | None = None,
     exclude_frames: dict[int, list[int]] | None = None,
 ) -> pd.DataFrame:
@@ -580,17 +651,17 @@ def build_zarr_image_loading_dataframe(
         df["exclude_frames"] = df["position_index"].apply(lambda x: exclude_frames.get(x, None))
 
     # if start and stop for loading z slices are specified, add to dataframe
-    if z_slice_per_position is not None:
+    if z_slice_bounds_per_position is not None:
         # get z info dict for each position index
         # unpack the start, stop, and step values from those dictionaries
         df["z_start"] = df["position_index"].apply(
-            lambda x: z_slice_per_position.get(x, {}).get("z_start", 0)
+            lambda x: z_slice_bounds_per_position.get(x, {}).get("z_start", 0)
         )
         df["z_stop"] = df["position_index"].apply(
-            lambda x: z_slice_per_position.get(x, {}).get("z_stop", -1)
+            lambda x: z_slice_bounds_per_position.get(x, {}).get("z_stop", -1)
         )
         df["z_step"] = df["position_index"].apply(
-            lambda x: z_slice_per_position.get(x, {}).get("z_step", 1)
+            lambda x: z_slice_bounds_per_position.get(x, {}).get("z_step", 1)
         )
 
     # remove temporary column with position index

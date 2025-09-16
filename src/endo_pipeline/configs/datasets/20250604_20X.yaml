@@ -35,13 +35,6 @@ include_scenes: null
 notes: Flow history. Cells exposed to flow for 3h 20min prior to start of imaging.
   Cells show mixed alignment leaning towards more parallel
 timepoint_annotations:
-  xy_shift:
-    0: [4, 5]
-    1: [4, 5]
-    2: [4, 5]
-    3: [4, 5]
-    4: [4, 5]
-    5: [4, 5]
   auto_bf_scope_error:
     0: [1, 6, 24, 238, 523, 528, 551]
     1: [25, 235, 523, 529]
@@ -56,6 +49,13 @@ timepoint_annotations:
     3: [8, 523]
     4: [523, 525]
     5: [234, 236, 523, 525]
+  xy_shift:
+    0: [4, 5]
+    1: [4, 5]
+    2: [4, 5]
+    3: [4, 5]
+    4: [4, 5]
+    5: [4, 5]
 position_annotations: null
 center_z_plane:
   0: 12

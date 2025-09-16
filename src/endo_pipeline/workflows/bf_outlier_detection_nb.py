@@ -36,6 +36,7 @@ for dataset_name in datasets:
         tp_annotations[TimepointAnnotation.AUTO_BF_SCOPE_ERROR][position].extend(bf_scope_error)
         tp_annotations[TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT][position].extend(bf_temp_artifact)
 
+    dataset_config.timepoint_annotations = tp_annotations
     save_dataset_config(dataset_config)
 
 
@@ -93,3 +94,5 @@ print(f"Percent of captured timepoints: {100 - percent_missed:.2f}%")
 print(f"Total auto-detected timepoints: {total_auto}")
 print(f"Total timepoints assessed: {total_timepoints}")
 print(f"Percent of tps with artifacts: {percent_artifact:.2f}%")
+
+# %%

@@ -10,7 +10,7 @@ resolution-markers = [
 
 [[package]]
 name = "aicsfiles"
-version = "8.0.0"
+version = "7.15.1"
 source = { registry = "https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-virtual/simple" }
 dependencies = [
     { name = "jsonpickle" },
@@ -20,9 +20,9 @@ dependencies = [
     { name = "requests" },
     { name = "tenacity" },
 ]
-sdist = { url = "https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-virtual/aicsfiles/8.0.0/aicsfiles-8.0.0.tar.gz", hash = "md5:46e3662e07a0e9f21bd08197d38b85c9" }
+sdist = { url = "https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-virtual/aicsfiles/7.15.1/aicsfiles-7.15.1.tar.gz", hash = "md5:6bbd245726f6f401b6a943f57fd87d1a" }
 wheels = [
-    { url = "https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-virtual/aicsfiles/8.0.0/aicsfiles-8.0.0-py3-none-any.whl", hash = "md5:cde22fcd50028a7f8c9b7df36acda5b7" },
+    { url = "https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-virtual/aicsfiles/7.15.1/aicsfiles-7.15.1-py3-none-any.whl", hash = "md5:2e44faf54a5b4448b8535f1abc38e363" },
 ]
 
 [[package]]
@@ -1294,7 +1294,7 @@ types = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aicsfiles", marker = "extra == 'internal'", specifier = ">=8.0.0", index = "https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-virtual/simple" },
+    { name = "aicsfiles", marker = "extra == 'internal'", specifier = "<8.0.0", index = "https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-virtual/simple" },
     { name = "bioio", specifier = ">=1.4.0" },
     { name = "bioio-base", specifier = ">=1.0.5" },
     { name = "bioio-imageio", specifier = ">=1.1.0" },
