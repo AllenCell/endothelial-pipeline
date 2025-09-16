@@ -18,6 +18,9 @@ CROSS_CORR_INDEX_COMBINATIONS = [(0, 1), (0, 2), (1, 2)]
 # use lags going from - to + {num_timepoints}//NUM_TIMEPOINT_FRAC for CCF/ACF calculation
 NUM_TIMEPOINT_FRAC = 3
 
+# set upper bound of integration for delta CCF integral calculation
+MAX_LAG_INTEGRATE = 5
+
 
 def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -> np.ndarray:
     """Get the normalized cross-correlation function (CCF) between two features."""
@@ -113,6 +116,15 @@ def fit_exp_decay_and_get_relaxation_timescale(
     return exp_fit, relaxation_time
 
 
+def cross_correlation_difference_norm(
+    delta_ccf: np.ndarray, max_lag_integrate: int = MAX_LAG_INTEGRATE
+) -> np.ndarray:
+    """Compute the L2 norm of the difference between positive and negative lags of the CCF."""
+    delta_ccf_over_interval = delta_ccf[:max_lag_integrate]
+    integral_norm = np.sqrt(np.trapz(delta_ccf_over_interval**2, axis=0, dx=1))
+    return integral_norm
+
+
 def bootstrap_autocorrelation_confidence_intervals(
     data: np.ndarray,
     component_index: int,
@@ -202,8 +214,8 @@ def bootstrap_autocorrelation_confidence_intervals(
 def bootstrap_cross_correlation_confidence_intervals(
     data_feat1: np.ndarray,
     data_feat2: np.ndarray,
-    num_lags_integrate: int = 5,
     n_bootstraps: int = 200,
+    max_lag_integrate: int = MAX_LAG_INTEGRATE,
     confidence_level: float = 0.95,
 ) -> dict[str, tuple]:
     """
@@ -228,9 +240,8 @@ def bootstrap_cross_correlation_confidence_intervals(
     data_feat2
         Array of shape (num_samples, num_timepoints) containing time series data for the
         second vector component for the CCF.
-    num_lags_integrate
-        Number of lags to use when computing the integral of the difference between
-        positive and negative lags of the CCF.
+    max_lag_integrate
+        Upper bound of integration for the delta CCF integral calculation.
     n_bootstraps
         Number of bootstrap samples to generate for the CCF.
     confidence_level
@@ -243,7 +254,7 @@ def bootstrap_cross_correlation_confidence_intervals(
         - cross_correlation: CCF(tau)
         - delta_cross_correlation: |CCF(tau>0) - CCF(tau<0)|
         - delta_cross_correlation_integral: Integral of |CCF(tau>0) - CCF(tau<0)| over
-          the first {num_lags_integrate} lags.
+          the first {max_lag_integrate} lags.
     """
 
     # Bootstrap the CCF using resampling with replacement
@@ -261,7 +272,7 @@ def bootstrap_cross_correlation_confidence_intervals(
         ccf = cross_correlation_function(ds1_resampled, ds2_resampled)
         num_lags = len(ccf)
         delta_ccf = ccf[1 + num_lags // 2 :] - ccf[: num_lags // 2]
-        delta_ccf_integral = np.abs(np.trapz(delta_ccf[:num_lags_integrate], axis=0))
+        delta_ccf_integral = cross_correlation_difference_norm(delta_ccf, max_lag_integrate)
         bootstrap_correlations.append(ccf)
         bootstrap_correlation_diffs.append(delta_ccf)
         bootstrap_correlation_diff_integrals.append(delta_ccf_integral)
@@ -299,7 +310,7 @@ def _compute_correlations_for_one_dataset(
     pca: PCA,
     correlation_dict: dict,
     bootstrap_samples: int = 0,
-    num_lags_integrate: int = 5,
+    max_lag_integrate: int = MAX_LAG_INTEGRATE,
 ) -> dict[str, dict[str, Any]]:
     """Compute cross-correlation and autocorrelation for features from one dataset."""
 
@@ -351,11 +362,11 @@ def _compute_correlations_for_one_dataset(
     delta_ccf_lb = np.zeros((num_lags // 2, 3))
     delta_ccf_ub = np.zeros((num_lags // 2, 3))
 
-    if num_lags_integrate > num_lags // 2:
-        num_lags_integrate = num_lags // 2
+    if max_lag_integrate > num_lags // 2:
+        max_lag_integrate = num_lags // 2
         logger.warning(
-            "num_lags_integrate is larger than available lags, setting to [ %s ]",
-            num_lags_integrate,
+            "max_lag_integrate is larger than available lags, setting to [ %s ]",
+            max_lag_integrate,
         )
     delta_ccf_integral = np.zeros(3)
     delta_ccf_integral_lb = np.zeros(3)
@@ -372,7 +383,7 @@ def _compute_correlations_for_one_dataset(
             confidence_intervals = bootstrap_cross_correlation_confidence_intervals(
                 data_feat1,
                 data_feat2,
-                num_lags_integrate=num_lags_integrate,
+                max_lag_integrate=max_lag_integrate,
                 n_bootstraps=bootstrap_samples,
             )
             ccf_lb[:, i], ccf_ub[:, i] = confidence_intervals["cross_correlation"]
@@ -382,7 +393,7 @@ def _compute_correlations_for_one_dataset(
                 delta_ccf_integral_ub[i],
             ) = confidence_intervals["delta_cross_correlation_integral"]
 
-    delta_ccf_integral = np.abs(np.trapz(delta_ccf[:num_lags_integrate, :], axis=0))
+    delta_ccf_integral = cross_correlation_difference_norm(delta_ccf)
 
     # store results in dict of dicts and return updated dict
     correlation_dict["lags"][dataset_name] = lags
@@ -400,7 +411,7 @@ def _compute_correlations_for_one_dataset(
     correlation_dict["delta_ccf_integral"][dataset_name] = delta_ccf_integral
     correlation_dict["delta_ccf_integral_ci_lower"][dataset_name] = delta_ccf_integral_lb
     correlation_dict["delta_ccf_integral_ci_upper"][dataset_name] = delta_ccf_integral_ub
-    correlation_dict["num_lags_integrate"][dataset_name] = num_lags_integrate
+    correlation_dict["max_lag_integrate"][dataset_name] = max_lag_integrate
     return correlation_dict
 
 
@@ -427,7 +438,7 @@ def compute_correlation_dict(
         "delta_ccf_integral": {},
         "delta_ccf_integral_ci_lower": {},
         "delta_ccf_integral_ci_upper": {},
-        "num_lags_integrate": {},
+        "max_lag_integrate": {},
         "relaxation_timescales": {},
     }
     # update dict with correlation functions for each dataset in a loop
