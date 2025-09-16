@@ -350,14 +350,18 @@ def setup_gpu() -> None:
     import os
     import re
     import subprocess
+
     from omegaconf import OmegaConf
+
     logger.info("Setting up environment to run workflow using GPU")
 
     # Helper to get trainer.devices (default: 1)
     num_devices = 1
     try:
         from omegaconf import OmegaConf
+
         from endo_pipeline.library.model import get_model_dir
+
         training_config_path = get_model_dir() / "diffae_training.yaml"
         if training_config_path.exists():
             training_config = OmegaConf.load(training_config_path)
@@ -365,8 +369,8 @@ def setup_gpu() -> None:
     except Exception as e:
         logger.warning("Could not read DiffAE training config: %s. Defaulting to 1 device.", e)
 
-    # # Logging
-    # logger.info("trainer.devices: %d", num_devices)
+    # Logging
+    logger.info("trainer.devices: %d", num_devices)
 
     # Detect MIG
     mig_output = subprocess.run(["nvidia-smi", "-L"], stdout=subprocess.PIPE).stdout.decode()
@@ -376,46 +380,59 @@ def setup_gpu() -> None:
     if is_mig:
         logger.info("MIG detected.")
         if num_devices > 1:
-            raise RuntimeError("trainer.devices > 1, but MIG partitioning detected! Cannot use DDP with MIG devices.")
+            logger.info(
+                "More than one device requested to train on, but MIG partitioning detected!"
+            )
+            raise RuntimeError("Cannot use DDP with MIG devices.")
         if not mig_uuids:
+            logger.info("MIG partitioning detected, but no UUIDs seen!")
             raise RuntimeError("No MIG UUIDs found, but MIG is enabled.")
         selected_uuid = mig_uuids[0]
         os.environ["CUDA_VISIBLE_DEVICES"] = selected_uuid
         os.environ["WORLD_SIZE"] = "1"
-        # # Logging
-        # logger.info("Using MIG UUID: %s", selected_uuid)
-        # logger.info("Set CUDA_VISIBLE_DEVICES to [ %s ]", selected_uuid)
-        # logger.info("Set WORLD_SIZE to [ 1 ]")
+        # Logging
+        logger.info("Using MIG UUID: %s", selected_uuid)
+        logger.info("Set CUDA_VISIBLE_DEVICES to [ %s ]", selected_uuid)
+        logger.info("Set WORLD_SIZE to [ 1 ]")
         return
 
     # Not MIG: Pick by available GPUs and free memory
-    mem_info = subprocess.run(
-        ["nvidia-smi", "--query-gpu=memory.free,index", "--format=csv,noheader,nounits"],
-        stdout=subprocess.PIPE
-    ).stdout.decode().strip()
+    mem_info = (
+        subprocess.run(
+            ["nvidia-smi", "--query-gpu=memory.free,index", "--format=csv,noheader,nounits"],
+            stdout=subprocess.PIPE,
+        )
+        .stdout.decode()
+        .strip()
+    )
     gpu_avail = re.findall(r"(\d+), (\d+)", mem_info)
     available_indices = sorted([int(gpu) for _, gpu in gpu_avail])
-    # # Logging
-    # logger.info("Available GPU indices: %s", available_indices)
+    # Logging
+    logger.info("Available GPU indices: %s", available_indices)
     if num_devices == 1:
         best_gpu = max(gpu_avail, key=lambda x: int(x[0]))[1]
         os.environ["CUDA_VISIBLE_DEVICES"] = best_gpu
         os.environ["WORLD_SIZE"] = "1"
-        # # Logging
-        # logger.info("Using GPU with most free memory: %s", best_gpu)
+        # Logging
+        logger.info("Using GPU with most free memory: %s", best_gpu)
     else:
         if num_devices > len(available_indices):
-            logger.warning("Requested %d devices, but only %d available. Using all available.", num_devices, len(available_indices))
+            logger.warning(
+                "Requested %d devices, but only %d available. Using all available.",
+                num_devices,
+                len(available_indices),
+            )
             num_devices = len(available_indices)
         devs = ",".join(str(x) for x in available_indices[:num_devices])
         os.environ["CUDA_VISIBLE_DEVICES"] = devs
         os.environ["WORLD_SIZE"] = str(num_devices)
-        # # Logging
-        # logger.info("Using GPUs: %s", devs)
+        # Logging
+        logger.info("Using GPUs: %s", devs)
 
-    # # Logging
-    # logger.info("Set CUDA_VISIBLE_DEVICES to [ %s ]", os.environ["CUDA_VISIBLE_DEVICES"])
-    # logger.info("Set WORLD_SIZE to [ %s ]", os.environ["WORLD_SIZE"])
+    # Logging
+    logger.info("Set CUDA_VISIBLE_DEVICES to [ %s ]", os.environ["CUDA_VISIBLE_DEVICES"])
+    logger.info("Set WORLD_SIZE to [ %s ]", os.environ["WORLD_SIZE"])
+
 
 if __name__ == "__main__":
     pipeline_cli()
