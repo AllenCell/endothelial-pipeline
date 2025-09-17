@@ -1,12 +1,6 @@
-from endo_pipeline.library.analyze.diffae_manifest import fit_pca
-from endo_pipeline.library.analyze.immunofluorescence import validate_pcs_for_integration
-from endo_pipeline.library.visualize import viz_validate_pcs_for_integration
-
-if __name__ == "__main__":
+def main(model_name: str = "diffae_finetuned_for_fixed", n_pcs: int = 3) -> None:
     """
-    This workflow validates the integration of paired fixed and live data
-    intended for integration of immunofluorescence data from fixed images
-    into the PC space derived from live data.
+    Validates integration of paired fixed/live data for integration of IF data.
 
     To do this, it does the following:
         1. Applies a fine-tuned diffAE model to extract features
@@ -16,13 +10,23 @@ if __name__ == "__main__":
         4. Plots the raw data for paired fixed and live PC values, confidence
               ellipses, linear model mapping between fixed and live data, and
               uncertainty.
+
+    Parameters
+    ----------
+    model_name
+        Name of model to use for feature extraction for fixed data.
+        Defaults to version of 0410 model fine-tuned for fixed data.
+    n_pcs
+        Number of PCs to validate. Defaults to 3.
     """
+
+    from endo_pipeline.library.analyze.diffae_manifest import fit_pca
+    from endo_pipeline.library.analyze.immunofluorescence import validate_pcs_for_integration
+    from endo_pipeline.library.visualize.integration import viz_validate_pcs_for_integration
 
     reference_dataset_name: str = "20241217_20X"
     live_dataset_name: str = "20250214_pairedPreFixation"
     fixed_dataset_name: str = "20250214_pairedPostFixation"
-    model_name: str = "diffae_finetuned_for_fixed"
-    n_pcs = 3
 
     # Align paired fixed and live data and apply a diffAE model to extract features.
     save_path, fixed_features_path, live_features_path = (
@@ -91,3 +95,9 @@ if __name__ == "__main__":
             axmin=axmin,
             axmax=axmax,
         )
+
+
+if __name__ == "__main__":
+    from endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)
