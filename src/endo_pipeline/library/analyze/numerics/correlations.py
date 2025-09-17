@@ -121,7 +121,7 @@ def cross_correlation_difference_norm(
 ) -> np.ndarray:
     """Compute the L2 norm of the difference between positive and negative lags of the CCF."""
     delta_ccf_over_interval = delta_ccf[:max_lag_integrate]
-    integral_norm = np.sqrt(np.trapz(delta_ccf_over_interval**2, axis=0, dx=1))
+    integral_norm = np.sqrt(np.trapz(delta_ccf_over_interval**2, axis=0, dx=1) / max_lag_integrate)
     return integral_norm
 
 
