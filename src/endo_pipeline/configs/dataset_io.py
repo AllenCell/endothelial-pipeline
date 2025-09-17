@@ -1,5 +1,4 @@
 import logging
-import subprocess
 from os import scandir
 from pathlib import Path
 
@@ -16,12 +15,11 @@ try:
 except ModuleNotFoundError:
     pass
 import re
-from collections.abc import Callable, Sequence
-from typing import Any, Literal
+from collections.abc import Callable
+from typing import Any
 
-from endo_pipeline.__main__ import workflow_cli
 from endo_pipeline.configs import get_datasets_in_collection
-from endo_pipeline.configs.dataset_config_io import get_available_dataset_names, load_dataset_config
+from endo_pipeline.configs.dataset_config_io import get_available_dataset_names
 
 logger = logging.getLogger(__name__)
 
@@ -460,7 +458,6 @@ def get_channel_index(
     channel_indices = {}
     for filename in zarr_paths.keys():
         available_channels = get_available_channels(dataset_name, filename)
-        # available_channels[filename].update([available_channels.index(channel) if channel in available_channels else None for channel in channel_names])
         channel_indices[filename] = [
             (
                 available_channels[filename].index(channel)
@@ -901,7 +898,6 @@ def get_model_info(model_name: str) -> dict[str, Any]:
 # Other miscellaneous methods
 def ipython_cli_flexecute(
     function: Callable[..., Any],
-    return_results: bool = False,
     *args: Any,
     **kwargs: Any,
 ) -> Any:
@@ -921,18 +917,14 @@ def ipython_cli_flexecute(
         # from a non-interactive shell
         if get_ipython().__class__.__name__ != "NoneType":
             print(f"Using interactive shell {get_ipython().__class__.__name__}.")
-            results = function(*args, **kwargs)
+            function(*args, **kwargs)
         else:
             raise NameError
     except NameError:
         print("Using non-interactive shell.")
-        # import fire
         from endo_pipeline.__main__ import workflow_cli
 
-        # results = fire.Fire(function)
-        results = workflow_cli(function)
-
-    return results if return_results else None
+        workflow_cli(function)
 
 
 def extract_T(
