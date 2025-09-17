@@ -179,7 +179,10 @@ def build_fms_annotations(
 
     from endo_pipeline.io.fms import FMS
 
-    metadata_builder = FMS.create_file_metadata_builder("Endothelial")
+    # Updating the metadata builder call to work with the pinned aicsfiles
+    # metadata_builder = FMS.create_file_metadata_builder("Endothelial")
+    metadata_builder = FMS.create_file_metadata_builder()
+    metadata_builder.add_annotation("Program", "Endothelial")
 
     metadata_builder.add_annotation("Produced By", "python code")
 
