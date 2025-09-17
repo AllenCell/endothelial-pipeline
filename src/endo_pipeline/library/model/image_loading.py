@@ -9,7 +9,7 @@ import pandas as pd
 import tqdm
 from bioio import BioImage
 from cyto_dl.utils.arg_checking import get_dtype
-from monai.data import CacheDataset, MetaTensor, SmartCacheDataset
+from monai.data import MetaTensor, SmartCacheDataset
 from monai.transforms import Transform
 from numpy.typing import DTypeLike
 
@@ -22,11 +22,71 @@ from endo_pipeline.configs import (
     get_position_integer_from_zarr_file_path,
 )
 from endo_pipeline.library.process.z_stack_selection import get_plane_indices
+from endo_pipeline.settings.image_data import LOG_EPSILON
 
 logger = logging.getLogger(__name__)
 
 MIN_Z_BOUND = 0
 MAX_Z_BOUND = 24
+
+
+class LogImaged(Transform):
+    """
+    Apply logarithmic transformation to image data in a dictionary.
+
+    This transform takes an input dictionary containing image data under a specified key,
+    applies a logarithmic transformation to the image data, and stores the transformed
+    image back in the dictionary under a specified output key. The transformation is
+    performed using the formula: `log_image = log(image + 1e-12)`.
+
+    Parameters
+    ----------
+    keys : str
+        Key in the input dictionary where the original image data is stored.
+    """
+
+    def __init__(self, keys: str = "image") -> None:
+        """
+        Initialize the LogImage transform.
+
+        Parameters
+        ----------
+        keys : str
+            Key in the input dictionary where the original image data is stored.
+        """
+        super().__init__()
+        self.keys = keys
+
+    def __call__(self, data: dict) -> dict:
+        """
+        Apply logarithmic transformation to the image data.
+
+        Parameters
+        ----------
+        data : dict
+            Input dictionary containing image data under `keys`.
+
+        Returns
+        -------
+        dict
+            Output dictionary with transformed image data under `keys`, overwriting data in place.
+        """
+        if self.keys not in data:
+            logger.error("Input key '%s' not found in data dictionary.", self.keys)
+            raise KeyError(f"Input key '{self.keys}' not found in data dictionary.")
+
+        img = data[self.keys]
+
+        # Apply logarithmic transformation
+        log_img = np.log(img + LOG_EPSILON)
+
+        # convert to MetaTensor to preserve metadata if available
+        log_image_tensor = MetaTensor(log_img, meta=getattr(img, "meta", None))
+
+        # Store transformed image in output dictionary
+        data[self.keys] = log_image_tensor
+
+        return data
 
 
 class BioIOImageLoaderd(Transform):
@@ -407,8 +467,7 @@ class MultiDimImageDataset(SmartCacheDataset):
 
 def get_z_slice_bounds_per_position(
     dataset_config: DatasetConfig,
-    z_stack_offsets: tuple[int, int] | None,
-    slice_by_global_center: bool,
+    z_slice_offsets: tuple[int, int] | None,
 ) -> dict[int, dict[str, int]]:
     """
     Parse dataset annotations to get lower and upper z-slice
@@ -416,24 +475,17 @@ def get_z_slice_bounds_per_position(
 
     **Z-stack offsets**
 
-    The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
-    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load, either
-    by slicing about a global center or by using the provided offsets directly. If it
+    The ``z_slice_offsets`` parameter allows for flexible control over the z-slice loading.
+    If ``z_slice_offsets`` is provided, it limits the number of z-slices to load
+    by slicing about a global center (annotated in the datset config). If it
     is ``None``, all z-slices are loaded from the raw brightfield images.
-
-    If ``slice_by_global_center`` is set to True, the z-slice range is calculated based on
-    the global center plane for the given position. In this case, ``z_stack_offsets`` should
-    indicate the number of slices to include below and above the center plane. Else, the
-    ``z_stack_offsets`` are used directly as the range bounds.
 
     Parameters
     ----------
     dataset_config
         Dataset configuration object.
-    z_stack_offsets
+    z_slice_offsets
         Lower and upper bounds for z-slicing.
-    slice_by_global_center
-        Get global center plane per position for z-slicing if True, use offsets directly if False.
 
     Returns
     -------
@@ -441,18 +493,17 @@ def get_z_slice_bounds_per_position(
         Dictionary with z-slice start and stop indices per position.
     """
     # get z-slice offsets per position if specified
-    if z_stack_offsets is not None:
+    if z_slice_offsets is not None:
         logger.debug(
-            "Using z-stack offsets: [ %s ] with slice_by_global_center = [ %s ] ",
-            z_stack_offsets,
-            slice_by_global_center,
+            "Using z-stack offsets: [ %s ]",
+            z_slice_offsets,
         )
     else:
         # if no z-stack offsets are provided, pass in None
         # to the dataframe builder
         logger.debug("No z-stack offsets provided, using full range in Z.")
 
-    # if z_stack_offsets is not None, get z-slice ranges
+    # if z_slice_offsets is not None, get z-slice ranges
     # for each position in the dataset (i.e., zarr file)
     # else, fixed full range is 0 to 24
     available_zarr_files = get_available_zarr_files(dataset_config)
@@ -461,13 +512,12 @@ def get_z_slice_bounds_per_position(
         # get position from zarr path as an integer (e.g., 'P0' -> 0)
         position_as_int = get_position_integer_from_zarr_file_path(zarr_file_path)
         # get z-slice indices for the given position
-        if z_stack_offsets is not None:
+        if z_slice_offsets is not None:
             z_slices = get_plane_indices(
                 dataset_config,
                 position_as_int,
-                lower_offset=z_stack_offsets[0],
-                upper_offset=z_stack_offsets[1],
-                slice_by_global_center=slice_by_global_center,
+                lower_offset=z_slice_offsets[0],
+                upper_offset=z_slice_offsets[1],
             )
         else:
             z_slices = [MIN_Z_BOUND, MAX_Z_BOUND]

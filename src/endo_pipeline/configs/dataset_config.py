@@ -19,6 +19,15 @@ ObjectiveType = Literal["20X", "40X"]
 class TimepointAnnotation(StrEnum):
     """Annotations for timepoints that should be excluded from model training and/or analysis."""
 
+    AUTO_BF_SCOPE_ERROR = "auto_bf_scope_error"
+    """Auto detected error with brightfield scope."""
+
+    AUTO_BF_TEMP_ARTIFACT = "auto_bf_temp_artifact"
+    """Auto detected Temporary brightfield artifact."""
+
+    AUTO_GFP_SCOPE_ERROR = "auto_gfp_scope_error"
+    """Auto detected error with GFP scope."""
+
     BF_SCOPE_ERROR = "bf_scope_error"
     """Manually annotated error with brightfield scope."""
 
@@ -31,20 +40,14 @@ class TimepointAnnotation(StrEnum):
     GFP_SCOPE_ERROR = "gfp_scope_error"
     """Manually annotated error with GFP scope."""
 
-    AUTO_BF_SCOPE_ERROR = "auto_bf_scope_error"
-    """Auto detected error with brightfield scope."""
-
-    AUTO_BF_TEMP_ARTIFACT = "auto_bf_temp_artifact"
-    """Auto detected Temporary brightfield artifact."""
+    UNFED = "unfed"
+    """Manually annotated timepoint where cells are more than 3hrs since last feeding."""
 
     XY_SHIFT = "xy_shift"
     """Manually annotated shift in the XY position."""
 
     Z_SHIFT = "z_shift"
     """Manually annotated shift in the Z focus."""
-
-    UNFED = "unfed"
-    """Manually annotated timepoint where cells are more than 3hrs since last feeding."""
 
 
 class PositionAnnotation(StrEnum):

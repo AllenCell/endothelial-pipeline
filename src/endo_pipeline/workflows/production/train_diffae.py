@@ -46,14 +46,13 @@ def main(
         The function creates and saves a ModelConfig object with the trained
         model's MLflow run ID and the list of datasets used for training.
     """
-    import datetime
     import logging
 
     from omegaconf import OmegaConf
 
     from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import CytoDLModelConfig, save_model_config
-    from endo_pipeline.io import get_output_path
+    from endo_pipeline.io import get_output_path, make_name_unique
     from endo_pipeline.library.model import (
         get_dataset_names_used_for_training,
         get_model_dir,
@@ -66,15 +65,17 @@ def main(
 
     # Adjust workflow settings for demo mode. Append a suffix to the manifest
     # and model names to indicate that they were generated from a workflow demo,
-    # and reduce the number of epochs and logging steps.
+    # and reduce the number of epochs and logging steps. Also adjust the cache rate.
     if DEMO_MODE:
         name_suffix = "_test_workflow"
         max_num_epochs = 1
         log_every_n_steps = 1
+        cache_rate = 1.0  # use 100% of data for demo mode
     else:
         name_suffix = ""
         max_num_epochs = 1000
         log_every_n_steps = 50
+        cache_rate = 0.01  # use 1% of data for training
 
     # "_exclude_cell_piling" suffix if cell piling exclusion is requested
     if exclude_cell_piling:
@@ -107,32 +108,32 @@ def main(
     template_training_config = OmegaConf.load(get_model_dir() / "diffae_training.yaml")
 
     # set model name via zarr resolution, crop size, and current timestamp
-    timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d_%H-%M-%S")
     model_name = f"diffae_resolution_{resolution_level}_patch_{crop_size}x{crop_size}"
     # add info about cell piling inclusion/exclusion
     if exclude_cell_piling:
         model_name = f"{model_name}_exclude_cell_piling"
     else:
         model_name = f"{model_name}_include_cell_piling"
-    # make unique with timestamp
-    model_name = f"{model_name}_{timestamp}"
+    # append timestamp to get unique model name
+    model_name_unique = make_name_unique(model_name).as_posix()
     logger.info("Model name: [ %s ]", model_name)
 
     # initialize DiffAE model: generates config overrides and sets up output directories
     model = initialize_diffae_model(
         template_training_config,
         crop_size,
-        model_name,
+        model_name_unique,
         train_dataframe_path,
         val_dataframe_path,
         max_num_epochs=max_num_epochs,
         log_every_n_steps=log_every_n_steps,
+        cache_rate=cache_rate,
     )
     local_config_save_path = get_output_path("models", "training_configs")
-    model.save_config(local_config_save_path / f"{model_name}_train.yaml")
+    model.save_config(local_config_save_path / f"{model_name_unique}_train.yaml")
     logger.info(
         "Training config saved to [ %s ]",
-        local_config_save_path / f"{model_name}_train.yaml",
+        local_config_save_path / f"{model_name_unique}_train.yaml",
     )
     _, object_dict = model.train()
 
@@ -149,7 +150,7 @@ def main(
     )
     # add run ID and training datasets to model config
     model_config = CytoDLModelConfig(
-        name=f"{model_name}{name_suffix}",
+        name=f"{model_name_unique}{name_suffix}",
         mlflow_run_id=run_id,
         training_datasets=list_of_training_datasets,
     )

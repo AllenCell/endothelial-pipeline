@@ -20,7 +20,6 @@ data:
     shuffle: true
     dataset:
       _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
-      # num_workers: 12
       dataframe_path: null
       spatial_dims: 3
       transform:
@@ -43,6 +42,8 @@ data:
           keys:
           - raw_bf
           projection_type: std
+        - _target_: endo_pipeline.library.model.image_loading.LogImaged
+          keys: raw_bf
         - _target_: cyto_dl.image.transforms.Projectd
           keys:
           - raw_cdh5
@@ -88,8 +89,6 @@ data:
     shuffle: false
     dataset:
       _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
-      # cache_num: 0c
-      # num_workers: 12
       spatial_dims: 3
       dataframe_path: null
       transform:
@@ -104,6 +103,8 @@ data:
           keys:
           - raw_bf
           projection_type: std
+        - _target_: endo_pipeline.library.model.image_loading.LogImaged
+          keys: raw_bf
         - _target_: cyto_dl.image.transforms.clip.Clipd
           keys:
           - raw_bf
@@ -128,7 +129,6 @@ data:
     shuffle: false
     dataset:
       _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
-      # num_workers: 12
       dataframe_path: null
       spatial_dims: 3
       transform:
@@ -151,6 +151,8 @@ data:
           keys:
           - raw_bf
           projection_type: std
+        - _target_: endo_pipeline.library.model.image_loading.LogImaged
+          keys: raw_bf
         - _target_: cyto_dl.image.transforms.Projectd
           keys:
           - raw_cdh5

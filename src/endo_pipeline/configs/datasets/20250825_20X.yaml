@@ -37,13 +37,6 @@ valid_timepoints: null
 include_scenes: null
 notes: ''
 timepoint_annotations:
-  bf_scope_error:
-    0: []
-    1: []
-    2: []
-    3: [271]
-    4: [271]
-    5: []
   auto_bf_scope_error:
     0: []
     1: [345, 550]
@@ -55,6 +48,13 @@ timepoint_annotations:
     0: []
     1: [550]
     2: [44, 314]
+    3: [271]
+    4: [271]
+    5: []
+  bf_scope_error:
+    0: []
+    1: []
+    2: []
     3: [271]
     4: [271]
     5: []

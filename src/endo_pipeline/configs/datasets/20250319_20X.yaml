@@ -36,22 +36,6 @@ valid_timepoints:
 include_scenes: null
 notes: Stopped imaging prior to 48 hours because cells were very packed
 timepoint_annotations:
-  bf_scope_error:
-    0: []
-    1: []
-    2: [7, 8]
-    3: [5, 8]
-    4: [8, 240]
-    5: []
-  cell_piling:
-    0: [[337, 542]]
-    1: [[337, 542]]
-    2: [[337, 542]]
-    3: [[337, 542]]
-    4: [[337, 542]]
-    5: [[337, 542]]
-  gfp_scope_error:
-    0: [490]
   auto_bf_scope_error:
     0: [248, 252]
     1: [243]
@@ -66,6 +50,29 @@ timepoint_annotations:
     3: [5, 8]
     4: [8, 240]
     5: [532]
+  auto_gfp_scope_error:
+    0: [490]
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  bf_scope_error:
+    0: []
+    1: []
+    2: [7, 8]
+    3: [5, 8]
+    4: [8, 240]
+    5: []
+  cell_piling:
+    0: [[336, 576]]
+    1: [[309, 576]]
+    2: [[389, 576]]
+    3: [[317, 576]]
+    4: [[311, 576]]
+    5: [[244, 576]]
+  gfp_scope_error:
+    0: [490]
 position_annotations:
   dust_artifact: [4, 5]
 center_z_plane:

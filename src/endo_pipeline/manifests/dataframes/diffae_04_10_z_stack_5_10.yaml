@@ -1,7 +1,7 @@
 name: diffae_04_10_z_stack_5_10
 workflow: '----'
 parameters:
-  z_stack_offsets: [5, 10]
+  z_slice_offsets: [5, 10]
 locations:
   20250331_20X:
     fmsid: 4ffcc8fa04204dc28c9e9fe33330678c
