@@ -659,7 +659,7 @@ def align_all_positions(
 
 def _get_concat_path(row: dict[str, str], savedir: Path) -> Path:
     base_image_path = Path(row["fixed"]).name.split(".")[0]
-    return savedir / f"{base_image_path.replace('_fixed', '')}.ome.tiff"
+    return savedir / f"{base_image_path.replace('_0_0_fixed', '_aligned_paired')}.ome.tiff"
 
 
 def _get_paired_dataset_dict(
