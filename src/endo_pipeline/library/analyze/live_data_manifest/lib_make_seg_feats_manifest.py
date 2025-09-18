@@ -200,12 +200,14 @@ def add_filter_columns(
     )
 
     # drop because there are insufficient valid timepoints
-    big_table["min_num_valid_points_per_track"] = min_num_valid_points_per_track
     big_table["valid_points"] = big_table.groupby(["dataset_name", "position", "track_id"])[
-        "image_index"
-    ].transform("nunique")
+        "filter_global"
+    ].transform(
+        lambda x: np.sum(x == False)
+    )  # filter_global == TRUE indicates that that entry should be REMOVED (i.e. filtered)
+    big_table["min_num_valid_points_per_track"] = min_num_valid_points_per_track
     big_table[f"filter_valid_points_{min_num_valid_points_per_track}"] = (
-        big_table["valid_points"] < min_num_valid_points_per_track
+        big_table["valid_points"] > min_num_valid_points_per_track
     )
 
     # update filter_global
