@@ -76,8 +76,14 @@ def main(
             image_location = get_image_location_for_dataset(
                 image_manifest, fixed_dataset_name, position
             )
-            if image_location.path is not None:
-                image_paths.append(image_location.path.as_posix())
+            if not image_location.path or not image_location.path.exists():
+                logger.warning(
+                    "No registered image found for dataset [ %s ] at position [ %s ]",
+                    fixed_dataset_name,
+                    position,
+                )
+                continue
+            image_paths.append(image_location.path.as_posix())
 
     # build dataframe with loading metadata for the aligned images
     # note that "resolution" here is set to 0, as the images
