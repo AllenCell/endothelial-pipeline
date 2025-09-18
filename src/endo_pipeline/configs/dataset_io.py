@@ -1,5 +1,4 @@
 import logging
-import subprocess
 from os import scandir
 from pathlib import Path
 
@@ -16,12 +15,11 @@ try:
 except ModuleNotFoundError:
     pass
 import re
-from collections.abc import Callable, Sequence
-from typing import Any, Literal
+from collections.abc import Callable
+from typing import Any
 
-from endo_pipeline.__main__ import workflow_cli
 from endo_pipeline.configs import get_datasets_in_collection
-from endo_pipeline.configs.dataset_config_io import get_available_dataset_names, load_dataset_config
+from endo_pipeline.configs.dataset_config_io import get_available_dataset_names
 
 logger = logging.getLogger(__name__)
 
@@ -460,7 +458,6 @@ def get_channel_index(
     channel_indices = {}
     for filename in zarr_paths.keys():
         available_channels = get_available_channels(dataset_name, filename)
-        # available_channels[filename].update([available_channels.index(channel) if channel in available_channels else None for channel in channel_names])
         channel_indices[filename] = [
             (
                 available_channels[filename].index(channel)
@@ -812,21 +809,8 @@ def get_tracking_data_filtered(dataset_name_list: list, as_dask: bool = False) -
     return tracking_dataframe
 
 
-# fire argparsing methods
-def fire_parse_list_from_CLI(fire_str_or_list_like_input: Sequence) -> list[str]:
-    if isinstance(fire_str_or_list_like_input, str):
-        list_of_strings = [fire_str_or_list_like_input]
-    elif isinstance(fire_str_or_list_like_input, Sequence):
-        list_of_strings = list(fire_str_or_list_like_input)
-    else:
-        raise ValueError(
-            f"Invalid input {fire_str_or_list_like_input}. Must be a string or list of strings."
-        )
-    return list_of_strings
-
-
-def fire_parse_generate_dataset_name_list(
-    fire_dataset_name_input: Sequence | None,
+def parse_generate_dataset_name_user_input(
+    dataset_name_user_input: str,
 ) -> list[str]:
     """
     Parse a list of dataset names from the command line.
@@ -834,21 +818,20 @@ def fire_parse_generate_dataset_name_list(
     If it is a string, it will be turned into a list of strings.
     If it is a list of strings, it will be returned as is.
 
-    To enter a list of datasets to analyze, use the following format:
-    '\"20241217_20X\",\"20241120_20X\"'
+    To enter a list of datasets to analyze, use the following format (either with or
+    without quotation marks):
+    '20241217_20X,20241120_20X'
     """
-    if fire_dataset_name_input is None:
-        dataset_name_list = get_datasets_in_collection("pca_reference")
-    else:
-        dataset_name_list = fire_parse_list_from_CLI(fire_dataset_name_input)
+    dataset_name_list = dataset_name_user_input.split(",")
 
     # check that the dataset names are valid
     available_datasets = get_available_dataset_names()
     for dataset_name in dataset_name_list:
-        assert (
-            dataset_name in available_datasets
-        ), f"Invalid dataset name {dataset_name}. Must be a string or list of strings that are found in the available datasets {available_datasets}."
-
+        if dataset_name not in available_datasets:
+            raise ValueError(
+                f"""Invalid dataset name {dataset_name}. Must be a string or list
+                of strings that are found in the available datasets {available_datasets}."""
+            )
     return dataset_name_list
 
 
@@ -912,7 +895,6 @@ def get_model_info(model_name: str) -> dict[str, Any]:
 # Other miscellaneous methods
 def ipython_cli_flexecute(
     function: Callable[..., Any],
-    return_results: bool = False,
     *args: Any,
     **kwargs: Any,
 ) -> Any:
@@ -932,16 +914,14 @@ def ipython_cli_flexecute(
         # from a non-interactive shell
         if get_ipython().__class__.__name__ != "NoneType":
             print(f"Using interactive shell {get_ipython().__class__.__name__}.")
-            results = function(*args, **kwargs)
+            function(*args, **kwargs)
         else:
             raise NameError
     except NameError:
         print("Using non-interactive shell.")
-        import fire
+        from endo_pipeline.__main__ import workflow_cli
 
-        results = fire.Fire(function)
-
-    return results if return_results else None
+        workflow_cli(function)
 
 
 def extract_T(
