@@ -662,9 +662,30 @@ def _get_concat_path(row: dict[str, str], savedir: Path) -> Path:
     return savedir / f"{base_image_path.replace('_0_0_fixed', '_aligned_paired')}.ome.tiff"
 
 
-def _get_paired_dataset_dict(
+def get_paired_dataset_dict(
     dataset_pair_type: Literal["live_fixed", "20X_40X"],
 ) -> dict[str, list[str]]:
+    """
+    Get a dictionary of paired datasets for alignment with correct
+    'fixed' and 'moving' labels.
+
+    Parameters
+    ----------
+    dataset_pair_type
+        The type of dataset pair to align, either "live_fixed" or "20X_40X".
+
+    Returns
+    -------
+    :
+        Dictionary with keys "fixed" and "moving" containing lists of dataset names.
+    """
+
+    if dataset_pair_type not in ["live_fixed", "20X_40X"]:
+        logger.error(
+            "Invalid dataset pair type: [ %s ]. Choose 'live_fixed' or '20X_40X'.",
+            dataset_pair_type,
+        )
+        raise ValueError("Invalid dataset pair type. Choose 'live_fixed' or '20X_40X'.")
 
     # Get the list of datasets of the specified pair type.
     dataset_list = get_datasets_in_collection(f"{dataset_pair_type}_paired_datasets")
@@ -730,7 +751,7 @@ def align_and_save_paired_images(
         DataFrame containing the paths to the aligned images.
     """
 
-    dataset_pairs = _get_paired_dataset_dict(dataset_pair_type)
+    dataset_pairs = get_paired_dataset_dict(dataset_pair_type)
 
     # Note that the "fixed" key refers to the image being used as
     # the reference image for alignment, and the "moving" key
@@ -768,7 +789,7 @@ def align_and_save_paired_images(
     return df
 
 
-def concat_and_save_aligned_image_pairs(row: dict[str, str], savedir: Path) -> Path:
+def concat_and_save_aligned_image_pairs(row: dict[str, str], savedir: Path) -> None:
     """
     Concatenate the aligned fixed and moving images into a single OME-TIFF file
     and save it to the specified directory.
@@ -779,11 +800,6 @@ def concat_and_save_aligned_image_pairs(row: dict[str, str], savedir: Path) -> P
         A row (in dict form) of a DataFrame containing paths to the fixed and moving images.
     savedir
         The directory where the concatenated image will be saved.
-
-    Returns
-    -------
-    :
-        The path to the saved concatenated image.
     """
     save_path = _get_concat_path(row, savedir)
     if save_path.exists():
@@ -797,4 +813,3 @@ def concat_and_save_aligned_image_pairs(row: dict[str, str], savedir: Path) -> P
 
     OmeTiffWriter.save(uri=save_path, data=out)
     logger.debug("Saving concatenated image to: [ %s ]", save_path)
-    return save_path

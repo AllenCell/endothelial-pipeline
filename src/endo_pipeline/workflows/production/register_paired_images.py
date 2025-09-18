@@ -76,9 +76,7 @@ def main(
 
     # concatenate the aligned images and save them as multi-channel tiff files
     for row in tqdm.tqdm(df.itertuples()):
-        row_dict = row._asdict()  # type: ignore[operator]
-        out_path = concat_and_save_aligned_image_pairs(row_dict, save_path)
-        logger.debug("Saved aligned image to [ %s ]", out_path.as_posix())
+        concat_and_save_aligned_image_pairs(row._asdict(), save_path)  # type: ignore[operator]
 
 
 if __name__ == "__main__":
