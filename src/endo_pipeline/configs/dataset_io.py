@@ -810,7 +810,7 @@ def get_tracking_data_filtered(dataset_name_list: list, as_dask: bool = False) -
 
 
 def parse_generate_dataset_name_user_input(
-    dataset_name_user_input: str | None,
+    dataset_name_user_input: str,
 ) -> list[str]:
     """
     Parse a list of dataset names from the command line.
@@ -822,19 +822,16 @@ def parse_generate_dataset_name_user_input(
     without quotation marks):
     '20241217_20X,20241120_20X'
     """
-    if dataset_name_user_input is None:
-        dataset_name_list = get_datasets_in_collection("pca_reference")
-    else:
-        # dataset_name_list = fire_parse_list_from_CLI(fire_dataset_name_input)
-        dataset_name_list = dataset_name_user_input.split(",")
+    dataset_name_list = dataset_name_user_input.split(",")
 
     # check that the dataset names are valid
     available_datasets = get_available_dataset_names()
     for dataset_name in dataset_name_list:
-        assert (
-            dataset_name in available_datasets
-        ), f"Invalid dataset name {dataset_name}. Must be a string or list of strings that are found in the available datasets {available_datasets}."
-
+        if dataset_name not in available_datasets:
+            raise ValueError(
+                f"""Invalid dataset name {dataset_name}. Must be a string or list
+                of strings that are found in the available datasets {available_datasets}."""
+            )
     return dataset_name_list
 
 
