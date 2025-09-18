@@ -132,8 +132,10 @@ def _generate_overrides_for_finetuning(
     overrides = {
         # point to already projected paired dataset
         "data.train_dataloaders.dataset.dataframe_path": train_dataframe_path,
+        "data.train_dataloaders.dataset.cache_rate": 1.0,
         "data.predict_dataloaders.dataset.dataframe_path": val_dataframe_path,
         "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path,
+        "data.val_dataloaders.dataset.cache_rate": 1.0,
         # load diffae checkpoint to finetune
         "checkpoint.ckpt_path": ckpt_path.as_posix(),
         "checkpoint.weights_only": True,

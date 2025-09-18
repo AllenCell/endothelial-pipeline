@@ -47,10 +47,14 @@ def main(
     else:
         output_path = Path(output_dir)
 
+    logger.info(
+        "Starting registration of paired images for [ %s ] paired datasets", dataset_pair_type
+    )
+
     save_path = output_path / f"{dataset_pair_type}_resolution_{resolution_level}"
     save_path.mkdir(parents=True, exist_ok=True)
 
-    logger.info("Output directory set to: [ %s ]", output_path.as_posix())
+    logger.debug("Output directory set to: [ %s ]", output_path.as_posix())
 
     # When running workflow in demo mode, only the first two pairs of images
     # from the first dataset pair will be aligned and saved.
