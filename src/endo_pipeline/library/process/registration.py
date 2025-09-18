@@ -637,19 +637,18 @@ def align_all_positions(
         fixed_z_slices = list(
             range(fixed_z_slice[position]["z_start"], fixed_z_slice[position]["z_stop"] + 1)
         )
-        data_list.append(
-            align(
-                moving,
-                fixed,
-                moving_z_slices,
-                fixed_z_slices,
-                resolution_level,
-                savedir,
-                align_fluo=align_fluo,
-                alignment_method=alignment_method,
-                **alignment_kwargs,
-            )
+        df_position = align(
+            moving,
+            fixed,
+            moving_z_slices,
+            fixed_z_slices,
+            resolution_level,
+            savedir,
+            align_fluo=align_fluo,
+            alignment_method=alignment_method,
+            **alignment_kwargs,
         )
+        data_list.append(df_position)
         position_counter += 1
         if num_positions_to_align is not None and position_counter >= num_positions_to_align:
             break
@@ -659,7 +658,7 @@ def align_all_positions(
 
 def _get_concat_path(row: dict[str, str], savedir: Path) -> Path:
     base_image_path = Path(row["fixed"]).name.split(".")[0]
-    return savedir / f"{base_image_path.replace('_0_0_fixed', '_aligned_paired')}.ome.tiff"
+    return savedir / f"{base_image_path.replace('_fixed', '_aligned_paired')}.ome.tiff"
 
 
 def get_paired_dataset_dict(
@@ -771,17 +770,17 @@ def align_and_save_paired_images(
         if num_datasets_to_align is not None and index > num_datasets_to_align:
             break
 
-        df_list.append(
-            align_all_positions(
-                fixed,
-                moving,
-                resolution_level,
-                z_slice_offsets,
-                save_path,
-                alignment_method=alignment_method,
-                num_positions_to_align=num_positions_to_align,
-            )
+        df_ = align_all_positions(
+            fixed,
+            moving,
+            resolution_level,
+            z_slice_offsets,
+            save_path,
+            alignment_method=alignment_method,
+            num_positions_to_align=num_positions_to_align,
         )
+        df_["fixed_dataset"] = fixed
+        df_list.append(df_)
 
     df = pd.concat(df_list, ignore_index=True)
     df = df.dropna(subset=["fixed", "moving"])
@@ -789,7 +788,7 @@ def align_and_save_paired_images(
     return df
 
 
-def concat_and_save_aligned_image_pairs(row: dict[str, str], savedir: Path) -> None:
+def concat_and_save_aligned_image_pairs(row: dict[str, str], savedir: Path) -> Path:
     """
     Concatenate the aligned fixed and moving images into a single OME-TIFF file
     and save it to the specified directory.
@@ -813,3 +812,5 @@ def concat_and_save_aligned_image_pairs(row: dict[str, str], savedir: Path) -> N
 
     OmeTiffWriter.save(uri=save_path, data=out)
     logger.debug("Saving concatenated image to: [ %s ]", save_path)
+
+    return save_path

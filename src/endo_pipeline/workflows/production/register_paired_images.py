@@ -24,15 +24,18 @@ def main(
         directory will be used.
     """
     import logging
+    import re
     from pathlib import Path
 
     import tqdm
 
     from endo_pipeline import DEMO_MODE
+    from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.library.process.registration import (
         align_and_save_paired_images,
         concat_and_save_aligned_image_pairs,
     )
+    from endo_pipeline.manifests import ImageLocation, ImageManifest, save_image_manifest
     from endo_pipeline.settings import Z_SLICE_OFFSETS
 
     logger = logging.getLogger(__name__)
@@ -54,6 +57,7 @@ def main(
     if DEMO_MODE:
         num_datasets_to_align = 1
         num_positions_to_align = 4
+        name_suffix = "_demo"
         logger.warning(
             "Running in demo mode: only registering the first [ %s ] "
             "positions of the first [ %s ] dataset pair(s).",
@@ -63,6 +67,7 @@ def main(
     else:
         num_datasets_to_align = None
         num_positions_to_align = None
+        name_suffix = ""
 
     # align the images and save the aligned file individually
     df = align_and_save_paired_images(
@@ -75,8 +80,52 @@ def main(
     )
 
     # concatenate the aligned images and save them as multi-channel tiff files
+    image_save_paths: list[Path] = []
     for row in tqdm.tqdm(df.itertuples()):
-        concat_and_save_aligned_image_pairs(row._asdict(), save_path)  # type: ignore[operator]
+        image_save_path = concat_and_save_aligned_image_pairs(row._asdict(), save_path)  # type: ignore[operator]
+        image_save_paths.append(image_save_path)
+
+    # Save ImageManifest for the aligned images
+    # create dict of image locations for the saved images
+    # using the dynamic position values in the file names
+    image_locations: dict[str, ImageLocation] = {}
+    dataset_names = df["fixed_dataset"].unique()
+
+    # Get basic file naming pattern used in registration step:
+    #   {fixed_dataset_date}_{fixed_dataset_barcode}_P{position}_aligned_paired_bf.ome.tiff
+    # where {fixed_dataset_date}_{fixed_dataset_barcode} is obtained from
+    # the dataset config zarr_path file name. Then use regex to replace the
+    # position number with the placeholder {{position}}.
+
+    for dataset_name in dataset_names:
+        dataset_zarr_name = Path(load_dataset_config(dataset_name).zarr_path).name
+        # get the file path pattern for the dataset
+        for image_path in image_save_paths:
+            if dataset_zarr_name in image_path.name:
+                template_file_path = image_path.as_posix()
+                # find the '_P[0-9]_' part using regex and replace with '_P{{position}}_'
+                file_path_pattern = re.sub(
+                    f"{dataset_zarr_name}_P[0-9]+_",
+                    f"{dataset_zarr_name}_P{{{{position}}}}_",
+                    template_file_path,
+                )
+                break
+
+        image_locations[dataset_name] = ImageLocation(path=file_path_pattern)
+
+    # create and save image manifest
+    manifest_name = f"registered_{dataset_pair_type}_resolution_{resolution_level}{name_suffix}"
+    image_manifest = ImageManifest(
+        name=manifest_name,
+        workflow="register_paired_images",
+        parameters={
+            "dataset_pair_type": dataset_pair_type,
+            "resolution_level": resolution_level,
+            "output_dir": output_dir,
+        },
+        locations=image_locations,
+    )
+    save_image_manifest(image_manifest)
 
 
 if __name__ == "__main__":
