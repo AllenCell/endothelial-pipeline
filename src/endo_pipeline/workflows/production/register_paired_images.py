@@ -44,7 +44,7 @@ def main(
     else:
         output_path = Path(output_dir)
 
-    save_path = output_path / dataset_pair_type
+    save_path = output_path / f"{dataset_pair_type}_resolution_{resolution_level}"
     save_path.mkdir(parents=True, exist_ok=True)
 
     logger.info("Output directory set to: [ %s ]", output_path.as_posix())
@@ -54,6 +54,12 @@ def main(
     if DEMO_MODE:
         num_datasets_to_align = 1
         num_positions_to_align = 4
+        logger.warning(
+            "Running in demo mode: only registering the first [ %s ] "
+            "positions of the first [ %s ] dataset pair(s).",
+            num_positions_to_align,
+            num_datasets_to_align,
+        )
     else:
         num_datasets_to_align = None
         num_positions_to_align = None
