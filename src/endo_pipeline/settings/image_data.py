@@ -14,3 +14,6 @@ LOG_EPSILON = 1e-12
 
 NUM_ZSLICES = 25
 """Number of z-slices per timepoint."""
+
+IF_INTEGRATION_SAVE_DIRECTORY = "//allen/aics/endothelial/morphological_features/IF_integration"
+"""Default directory to save IF integration results."""
