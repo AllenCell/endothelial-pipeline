@@ -366,6 +366,7 @@ def setup_gpu() -> None:
         if training_config_path.exists():
             training_config = OmegaConf.load(training_config_path)
             num_devices = int(training_config.get("trainer", {}).get("devices", 1))
+
     except Exception as e:
         logger.warning("Could not read DiffAE training config: %s. Defaulting to 1 device.", e)
 
@@ -389,11 +390,11 @@ def setup_gpu() -> None:
             raise RuntimeError("No MIG UUIDs found, but MIG is enabled.")
         selected_uuid = mig_uuids[0]
         os.environ["CUDA_VISIBLE_DEVICES"] = selected_uuid
-        os.environ["WORLD_SIZE"] = "1"
+
         # Logging
         logger.info("Using MIG UUID: %s", selected_uuid)
         logger.info("Set CUDA_VISIBLE_DEVICES to [ %s ]", selected_uuid)
-        logger.info("Set WORLD_SIZE to [ 1 ]")
+
         return
 
     # Not MIG: Pick by available GPUs and free memory
@@ -412,7 +413,7 @@ def setup_gpu() -> None:
     if num_devices == 1:
         best_gpu = max(gpu_avail, key=lambda x: int(x[0]))[1]
         os.environ["CUDA_VISIBLE_DEVICES"] = best_gpu
-        os.environ["WORLD_SIZE"] = "1"
+
         # Logging
         logger.info("Using GPU with most free memory: %s", best_gpu)
     else:
@@ -425,13 +426,12 @@ def setup_gpu() -> None:
             num_devices = len(available_indices)
         devs = ",".join(str(x) for x in available_indices[:num_devices])
         os.environ["CUDA_VISIBLE_DEVICES"] = devs
-        os.environ["WORLD_SIZE"] = str(num_devices)
+
         # Logging
         logger.info("Using GPUs: %s", devs)
 
     # Logging
     logger.info("Set CUDA_VISIBLE_DEVICES to [ %s ]", os.environ["CUDA_VISIBLE_DEVICES"])
-    logger.info("Set WORLD_SIZE to [ %s ]", os.environ["WORLD_SIZE"])
 
 
 if __name__ == "__main__":

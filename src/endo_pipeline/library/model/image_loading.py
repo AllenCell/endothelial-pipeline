@@ -235,6 +235,7 @@ class MultiDimImageDataset(SmartCacheDataset):
         z_start_column: str = "z_start",
         z_stop_column: str = "z_stop",
         z_step_column: str = "z_step",
+        num_devices: int = 1,
         extra_columns: Sequence[str] = [],
         transform: Callable | Sequence[Callable] | None = None,
         **cache_kwargs: Any,
@@ -338,14 +339,16 @@ class MultiDimImageDataset(SmartCacheDataset):
             List of extra columns to include in the output dictionary.
         transform
             List (or ``Compose`` object) of Monai-style transforms to apply to the image metadata.
+        num_devices
+            Number of devices/processes for distributed training. If None, defaults to trainer.devices
+            from environment or 1 if not available. Used to determine world_size for training.
         cache_kwargs:
             Additional keyword arguments to pass to ``CacheDataset``.
         """
         df = pd.read_parquet(dataframe_path)
-
-        # Get distributed training info
         rank = int(os.environ.get("LOCAL_RANK", 0))
-        world_size = int(os.environ.get("WORLD_SIZE", 1))
+        # Use WORLD_SIZE from environment, fallback to num_devices, then default to 1
+        world_size = int(os.environ.get("WORLD_SIZE", num_devices or 1))
 
         # Store dataset parameters
         self.img_path_column = img_path_column
@@ -504,7 +507,8 @@ class MultiDimImageDataset(SmartCacheDataset):
 
 def get_z_slice_bounds_per_position(
     dataset_config: DatasetConfig,
-    z_slice_offsets: tuple[int, int] | None,
+    z_stack_offsets: tuple[int, int] | None,
+    slice_by_global_center: bool,
 ) -> dict[int, dict[str, int]]:
     """
     Parse dataset annotations to get lower and upper z-slice
@@ -512,17 +516,24 @@ def get_z_slice_bounds_per_position(
 
     **Z-stack offsets**
 
-    The ``z_slice_offsets`` parameter allows for flexible control over the z-slice loading.
-    If ``z_slice_offsets`` is provided, it limits the number of z-slices to load
-    by slicing about a global center (annotated in the datset config). If it
+    The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
+    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load, either
+    by slicing about a global center or by using the provided offsets directly. If it
     is ``None``, all z-slices are loaded from the raw brightfield images.
+
+    If ``slice_by_global_center`` is set to True, the z-slice range is calculated based on
+    the global center plane for the given position. In this case, ``z_stack_offsets`` should
+    indicate the number of slices to include below and above the center plane. Else, the
+    ``z_stack_offsets`` are used directly as the range bounds.
 
     Parameters
     ----------
     dataset_config
         Dataset configuration object.
-    z_slice_offsets
+    z_stack_offsets
         Lower and upper bounds for z-slicing.
+    slice_by_global_center
+        Get global center plane per position for z-slicing if True, use offsets directly if False.
 
     Returns
     -------
@@ -530,17 +541,18 @@ def get_z_slice_bounds_per_position(
         Dictionary with z-slice start and stop indices per position.
     """
     # get z-slice offsets per position if specified
-    if z_slice_offsets is not None:
+    if z_stack_offsets is not None:
         logger.debug(
-            "Using z-stack offsets: [ %s ]",
-            z_slice_offsets,
+            "Using z-stack offsets: [ %s ] with slice_by_global_center = [ %s ] ",
+            z_stack_offsets,
+            slice_by_global_center,
         )
     else:
         # if no z-stack offsets are provided, pass in None
         # to the dataframe builder
         logger.debug("No z-stack offsets provided, using full range in Z.")
 
-    # if z_slice_offsets is not None, get z-slice ranges
+    # if z_stack_offsets is not None, get z-slice ranges
     # for each position in the dataset (i.e., zarr file)
     # else, fixed full range is 0 to 24
     available_zarr_files = get_available_zarr_files(dataset_config)
@@ -549,12 +561,13 @@ def get_z_slice_bounds_per_position(
         # get position from zarr path as an integer (e.g., 'P0' -> 0)
         position_as_int = get_position_integer_from_zarr_file_path(zarr_file_path)
         # get z-slice indices for the given position
-        if z_slice_offsets is not None:
+        if z_stack_offsets is not None:
             z_slices = get_plane_indices(
                 dataset_config,
                 position_as_int,
-                lower_offset=z_slice_offsets[0],
-                upper_offset=z_slice_offsets[1],
+                lower_offset=z_stack_offsets[0],
+                upper_offset=z_stack_offsets[1],
+                slice_by_global_center=slice_by_global_center,
             )
         else:
             z_slices = [MIN_Z_BOUND, MAX_Z_BOUND]

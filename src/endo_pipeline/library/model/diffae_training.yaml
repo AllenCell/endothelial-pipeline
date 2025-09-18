@@ -11,9 +11,6 @@ checkpoint:
   strict: true
 seed: 12345
 
-dcache_rate: ${data.train_dataloaders.dataset.cache_rate}
-dreplace_rate: ${data.train_dataloaders.dataset.replace_rate}
-
 data:
   train_dataloaders:
     _target_: monai.data.DataLoader
@@ -27,6 +24,7 @@ data:
       _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
       dataframe_path: null
       spatial_dims: 3
+      num_devices: ${trainer.devices}
       transform:
         _target_: monai.transforms.Compose
         transforms:
@@ -81,51 +79,52 @@ data:
           - raw_cdh5
           - raw_bf
           dtype: float16
-      cache_rate: 1.0
+      cache_rate: 0.001
       replace_rate: 0.1
       num_init_workers: 24
       num_replace_workers: 24
   predict_dataloaders:
-    _target_: monai.data.DataLoader
-    drop_last: True 
-    num_workers: 16
-    batch_size: 4
-    pin_memory: true
-    persistent_workers: false
-    shuffle: false
-    dataset:
-      _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
-      spatial_dims: 3
-      dataframe_path: null
-      transform:
-        _target_: monai.transforms.Compose
-        transforms:
-        - _target_: endo_pipeline.library.model.image_loading.BioIOImageLoaderd
-          path_key: original_path
-          out_key: raw_bf
-          dask_load: true
-          dtype: numpy.float32
-        - _target_: cyto_dl.image.transforms.Projectd
-          keys:
-          - raw_bf
-          projection_type: std
-        - _target_: endo_pipeline.library.model.image_loading.LogImaged
-          keys: raw_bf
-        - _target_: cyto_dl.image.transforms.clip.Clipd
-          keys:
-          - raw_bf
-          low: 0.1
-          high: 99.9
-        - _target_: monai.transforms.NormalizeIntensityd
-          keys: raw_bf
-        - _target_: monai.transforms.ToTensord
-          keys:
-          - raw_bf
-          dtype: float16
-      cache_rate: 1.0
-      replace_rate: 0.1
-      num_init_workers: 24
-      num_replace_workers: 16
+    # _target_: monai.data.DataLoader
+    # drop_last: True
+    # num_workers: 16
+    # batch_size: 4
+    # pin_memory: true
+    # persistent_workers: false
+    # shuffle: false
+    # dataset:
+    #   _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
+    #   spatial_dims: 3
+    #   dataframe_path: null
+    #   num_devices: ${trainer.devices}
+    #   transform:
+    #     _target_: monai.transforms.Compose
+    #     transforms:
+    #     - _target_: endo_pipeline.library.model.image_loading.BioIOImageLoaderd
+    #       path_key: original_path
+    #       out_key: raw_bf
+    #       dask_load: true
+    #       dtype: numpy.float32
+    #     - _target_: cyto_dl.image.transforms.Projectd
+    #       keys:
+    #       - raw_bf
+    #       projection_type: std
+    #     - _target_: endo_pipeline.library.model.image_loading.LogImaged
+    #       keys: raw_bf
+    #     - _target_: cyto_dl.image.transforms.clip.Clipd
+    #       keys:
+    #       - raw_bf
+    #       low: 0.1
+    #       high: 99.9
+    #     - _target_: monai.transforms.NormalizeIntensityd
+    #       keys: raw_bf
+    #     - _target_: monai.transforms.ToTensord
+    #       keys:
+    #       - raw_bf
+    #       dtype: float16
+    #   cache_rate: 0.001
+    #   replace_rate: 0.1
+    #   num_init_workers: 24
+    #   num_replace_workers: 16
   val_dataloaders:
     _target_: monai.data.DataLoader
     drop_last: True  # Critical for DDP - ensures consistent batch sizes across ranks
@@ -138,6 +137,7 @@ data:
       _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
       dataframe_path: null
       spatial_dims: 3
+      num_devices: ${trainer.devices}
       transform:
         _target_: monai.transforms.Compose
         transforms:
@@ -192,14 +192,14 @@ data:
           - raw_cdh5
           - raw_bf
           dtype: float16
-      cache_rate: 1.0
+      cache_rate: 0.01
       replace_rate: 0.1
       num_init_workers: 24
       num_replace_workers: 24
 
 model:
   _target_: cyto_dl.models.im2im.diffusion_autoencoder.DiffusionAutoEncoder
-  save_images_every_n_epochs: ${eval:'int(10 * ((1 - ${dcache_rate}) / (${dcache_rate} * ${dreplace_rate}) + 1))'}
+  save_images_every_n_epochs: 10
   save_dir: ${paths.output_dir}
   image_shape: # this is where crop size is defined, gets overridden with user input by training script
   - 1
@@ -282,7 +282,7 @@ callbacks:
     train_time_interval: null
     every_n_epochs: 1
     save_on_train_epoch_end: null
-  
+
   early_stopping:
     _target_: lightning.pytorch.callbacks.EarlyStopping
     monitor: val/loss
@@ -314,8 +314,8 @@ trainer:
   _target_: lightning.Trainer
   use_distributed_sampler: True
   default_root_dir: ${paths.output_dir}
-  min_epochs: ${eval:'int(1200 * ((1 - ${dcache_rate}) / (${dcache_rate} * ${dreplace_rate}) + 1))'}
-  max_epochs: ${eval:'int(2000 * ((1 - ${dcache_rate}) / (${dcache_rate} * ${dreplace_rate}) + 1))'}
+  min_epochs: 1500
+  max_epochs: 2000
   log_every_n_steps: 50
   accelerator: gpu
   devices: 4
@@ -326,8 +326,8 @@ trainer:
     gradient_as_bucket_view: True  # Optimize DDP memory usage
     timeout: # Timeout duration before failing
      _target_: datetime.timedelta
-     seconds: 5400   
-  check_val_every_n_epoch: 1 
+     seconds: 5400
+  check_val_every_n_epoch: 1
   deterministic: false
   detect_anomaly: false
   max_time: null
