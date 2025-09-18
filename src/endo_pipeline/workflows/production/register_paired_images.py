@@ -58,6 +58,7 @@ def main(
         num_datasets_to_align = None
         num_positions_to_align = None
 
+    # align the images and save the aligned file individually
     df = align_and_save_paired_images(
         dataset_pair_type,
         resolution_level,
@@ -67,8 +68,15 @@ def main(
         num_positions_to_align=num_positions_to_align,
     )
 
+    # concatenate the aligned images and save them as multi-channel tiff files
     out_paths: list[str] = []
     for row in tqdm.tqdm(df.itertuples()):
         row_dict = row._asdict()  # type: ignore[operator]
         out_path = concat_and_save_aligned_image_pairs(row_dict, save_path)
         out_paths.append(out_path.as_posix())
+
+
+if __name__ == "__main__":
+    from endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)

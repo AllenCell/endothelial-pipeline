@@ -21,7 +21,7 @@ from endo_pipeline.library.process.z_stack_selection import (
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 # %%
 if __name__ == "__main__":
-    datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
+    datasets = get_datasets_in_collection("live_fixed_paired_datasets")
     for dataset in datasets:
         logging.info(f"Processing dataset: {dataset}")
         save_dir = get_output_path(__file__, dataset)
