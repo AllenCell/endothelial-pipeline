@@ -222,35 +222,6 @@ def write_config(config: dict[str, dict[str, Any]], config_type: str = "data") -
         config_file.unlink()
 
 
-@deprecated(
-    """
-With the switch to loading dataset configs using the DatasetConfig dataclass
-(instead of as dictionaries) the recommended pattern for saving updated dataset
-configs is to directly adjust values in the config:
-
-        dataset.field = (new value)
-
-The dataset config can then be saved using:
-
-        configs.save_dataset_config(dataset)
-"""
-)
-def update_dataset_config(dataset_name: str, new_config: dict[str, Any]) -> None:
-    """
-    Update the dataset config file with new values.
-
-    Parameters
-    ----------
-    dataset_name: str
-        Name of the dataset to update.
-    new_config: dict
-        Dictionary with new values to update in the config file.
-    """
-    cfg = load_config("data")
-    cfg[dataset_name].update(new_config)
-    write_config(cfg, "data")
-
-
 # dataset methods
 @deprecated(
     """
