@@ -29,6 +29,7 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     save_dataframe_manifest,
 )
+from endo_pipeline.settings import Z_SLICE_OFFSETS
 
 
 def add_paired_fixed_live_data_fmsid_to_manifest(
@@ -135,7 +136,9 @@ def apply_model_paired_fixed_live(
         data = align_all_positions(
             fixed_dataset_name,
             live_dataset_name,
-            save_path,
+            resolution_level=1,
+            z_slice_offsets=Z_SLICE_OFFSETS,
+            savedir=save_path,
             alignment_method="sift",
             align_fluo=align_fluo,
         )
