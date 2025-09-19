@@ -1,8 +1,10 @@
+from endo_pipeline.cli import Datasets
+
 TAGS = ["diffae_features"]
 
 
 def main(
-    dataset_name: str = "3d_flow_field_analysis",
+    datasets: Datasets | None = None,
     model_name: str = "diffae_04_10",
     bootstrap_samples: int = 1000,
 ) -> None:
@@ -11,8 +13,10 @@ def main(
 
     Parameters
     ----------
-    dataset_name
-        Name of the dataset or dataset collection to analyze.
+    datasets
+        List of datasets or dataset collections to use in workflow. If not
+        provided, workflow runs on the ``3d_flow_field_analysis`` dataset
+        collection.
     model_name
         Name of the DiffAE model to use for feature analysis.
     bootstrap_samples
@@ -23,12 +27,7 @@ def main(
     import logging
 
     from endo_pipeline import DEMO_MODE
-    from endo_pipeline.configs import (
-        get_available_dataset_collection_names,
-        get_available_dataset_names,
-        get_datasets_in_collection,
-        load_dataset_config,
-    )
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.library.analyze.diffae_manifest import fit_pca
     from endo_pipeline.library.analyze.numerics import compute_correlation_dict
     from endo_pipeline.library.visualize.diffae_features.correlations import (
@@ -39,22 +38,11 @@ def main(
     # initialize logger
     logger = logging.getLogger(__name__)
 
-    # check if input is a dataset collection or a single dataset name
-    if dataset_name in get_available_dataset_collection_names():
-        # if it is a dataset collection, load all datasets in the collection
-        dataset_names = get_datasets_in_collection(dataset_name)
-    elif dataset_name in get_available_dataset_names():
-        # if it is a single dataset name, keep it as is
-        dataset_names = [dataset_name]
+    # Default list of datasets if not provided. Otherwise, use provided list.
+    if datasets is None:
+        dataset_names = get_datasets_in_collection("3d_flow_field_analysis")
     else:
-        logger.error(
-            "Dataset name [ %s ] is not a valid dataset or dataset collection name",
-            dataset_name,
-        )
-        raise ValueError(
-            f"Dataset name [ {dataset_name} ] is not a valid",
-            "dataset or dataset collection name.",
-        )
+        dataset_names = datasets
 
     # drop any no flow datasets from the list of datasets
     for dataset_name in dataset_names:

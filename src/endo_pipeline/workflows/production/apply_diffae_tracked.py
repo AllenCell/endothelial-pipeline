@@ -1,12 +1,14 @@
 # need to import for type hinting
 from pathlib import Path
 
+from endo_pipeline.cli import Datasets
+
 TAGS = ["apply_diffae_model", "diffae_features"]
 
 
 def main(
     model_name: str = "diffae_04_10",
-    dataset_name: str = "20250319_20X",  # "live_cdh5_seg_based_feat_datasets"
+    datasets: Datasets | None = None,
     upload_to_fms: bool = True,
     save_path: str | Path | None = None,
     user_overrides: str | dict | None = None,
@@ -21,9 +23,9 @@ def main(
     ----------
     model_name
         Name of the model to apply.
-    dataset_name
-        Dataset(s) to load images from, either a single dataset name or the name
-        of a dataset collection.
+    datasets
+        List of datasets or dataset collections to load images from. If not
+        provided, workflow runs on the ``20250319_20X`` dataset.
     upload_to_fms
         True to upload the prediction file for each dataset to FMS, False to only save locally.
     save_path
@@ -41,37 +43,18 @@ def main(
     from typing import cast
 
     from endo_pipeline import DEMO_MODE
-    from endo_pipeline.configs import (
-        CytoDLModelConfig,
-        get_available_dataset_collection_names,
-        get_available_dataset_names,
-        get_datasets_in_collection,
-        load_dataset_config,
-        load_model_config,
-    )
+    from endo_pipeline.configs import CytoDLModelConfig, load_dataset_config, load_model_config
     from endo_pipeline.library.model import apply_model_on_tracked_crops_from_one_dataset
     from endo_pipeline.library.model.image_loading import get_include_positions
     from endo_pipeline.settings import Z_SLICE_OFFSETS
 
     logger = logging.getLogger(__name__)
 
-    # check if input is a dataset collection or a single dataset name
-    if dataset_name in get_available_dataset_collection_names():
-        # if it is a dataset collection, load all datasets in the collection
-        dataset_names = get_datasets_in_collection(dataset_name)
-    elif dataset_name in get_available_dataset_names():
-        # if it is a single dataset name, keep it as is
-        dataset_names = [dataset_name]
-    else:
-        logger.error(
-            "Dataset name [ %s ] is not a valid dataset or dataset collection name",
-            dataset_name,
-        )
-        raise ValueError(
-            f"Dataset name [ {dataset_name} ] is not a valid",
-            "dataset or dataset collection name.",
-        )
-    dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_names]
+    # Default list of datasets if not provided.
+    if datasets is None:
+        datasets = ["20250319_20X"]
+
+    dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in datasets]
 
     # load model config
     model_config = cast(CytoDLModelConfig, load_model_config(model_name))
