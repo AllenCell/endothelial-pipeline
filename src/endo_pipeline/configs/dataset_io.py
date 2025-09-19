@@ -710,23 +710,6 @@ Use one of the following methods to load the dataset config:
 
 The field can then be accessed using:
 
-        dataset.barcode
-"""
-)
-def get_barcode(dataset_name: str) -> str:
-    dataset_info = get_dataset_info(dataset_name)
-    return dataset_info["barcode"]
-
-
-@deprecated(
-    """
-Use one of the following methods to load the dataset config:
-
-        configs.load_all_dataset_configs
-        configs.load_dataset_config(dataset_name)
-
-The field can then be accessed using:
-
         dataset.microscope
 """
 )
