@@ -799,38 +799,6 @@ def parse_generate_dataset_name_user_input(
 @deprecated(
     """
 With the switch to loading model configs using the ModelConfig dataclass
-(instead of as dictionaries) the recommended pattern for accessing models is:
-
-1. If you need a list of available models by name, before selecting specific
-   dataset(s) to load, use the following replacement method:
-
-        configs.get_available_model_names
-
-   instead of:
-
-        configs.dataset_io.get_available_models
-
-   Individual models(s) can then be loaded with:
-
-        configs.load_model_config(model_name)
-
-2. If you want to load all available models, use the following method to load
-   configs for all available models:
-
-        configs.load_all_model_configs
-"""
-)
-def get_available_models() -> list[str]:
-    model_info = load_config("model")
-    model_names = list(model_info.keys())
-    for name in model_names:
-        print(name)
-    return model_names
-
-
-@deprecated(
-    """
-With the switch to loading model configs using the ModelConfig dataclass
 (instead of as dictionaries) the recommended pattern for accessing model info is
 directly from loaded ModelConfig objects. These configs can be loaded using
 one of the following:
