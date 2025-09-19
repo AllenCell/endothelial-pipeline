@@ -47,21 +47,6 @@ def save_to_yaml(object: dict, path: Path, list_representer: bool = True) -> Non
     path.open("w").write(yaml_content)
 
 
-def separate_data_config() -> None:
-    """Separate combined dataset configs into individual dataset configs."""
-
-    separated_path = get_config_dir() / "datasets"
-    combined_path = Path(__file__).resolve().parents[1] / "data_config.yaml"
-
-    combined_data_config = yaml.safe_load(combined_path.open())
-
-    for dataset, contents in combined_data_config.items():
-        data_config_path = separated_path / f"{dataset}.yaml"
-        single_data_config = {"name": dataset}
-        single_data_config.update(contents)
-        save_to_yaml(single_data_config, data_config_path)
-
-
 def combine_data_config(save: bool = False) -> dict:
     """Combine individual dataset configs into combined dataset keyed by name."""
 
