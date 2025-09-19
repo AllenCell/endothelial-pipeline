@@ -168,60 +168,6 @@ def load_config(config_type: str = "data") -> dict[Any, Any]:
     return config_data
 
 
-@deprecated(
-    """
-NOTE: you can ignore this warning when writing "dynamics" configs.
-
-With the switch to loading dataset configs using the DatasetConfig dataclass
-(instead of as dictionaries) the recommended pattern for saving updated dataset
-configs is to directly adjust values in the config:
-
-        dataset.field = (new value)
-
-The dataset config can then be saved using:
-
-        configs.save_dataset_config(dataset)
-
-With the switch to loading model configs using the ModelConfig dataclass
-(instead of as dictionaries) the recommended pattern for saving updated model
-configs is to directly adjust values in the config:
-
-        model.field = (new value)
-
-The model config can then be saved using:
-
-        configs.save_model_config(model)
-"""
-)
-def write_config(config: dict[str, dict[str, Any]], config_type: str = "data") -> None:
-    """Write configuration to YAML file."""
-    if config_type not in ["data", "model", "dynamics"]:
-        raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
-    parent_folder = Path(__file__).resolve().parent
-    config_file = parent_folder.parent / f"{config_type}_config.yaml"
-
-    # Write lists with brackets, not dashes
-    def represent_list(dumper, data):
-        return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True)
-
-    yaml.add_representer(list, represent_list)
-
-    with open(config_file, "w") as file:
-        #                        one key per line            keep ordering    wrap lines
-        yaml.dump(config, file, default_flow_style=False, sort_keys=False, width=80, indent=2)
-
-    # If writing the data config, split the combined data config file that was
-    # saved above into individual dataset config files (and delete the combined
-    # config file).
-    if config_type == "data":
-        separate_data_config()
-        config_file.unlink()
-
-    if config_type == "model":
-        separate_model_config()
-        config_file.unlink()
-
-
 # dataset methods
 @deprecated(
     """
