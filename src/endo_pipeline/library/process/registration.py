@@ -25,6 +25,7 @@ from endo_pipeline.configs import (
     get_position_integer_from_zarr_file_path,
     load_dataset_config,
 )
+from endo_pipeline.io import load_image_from_path
 from endo_pipeline.library.model import get_include_positions, get_z_slice_bounds_per_position
 from endo_pipeline.library.process.cdh5_preprocessing import preprocess
 
@@ -805,11 +806,11 @@ def concat_and_save_aligned_image_pairs(row: dict[str, str], savedir: Path) -> P
         logger.debug("Returning existing file at: [ %s ]", save_path)
         return save_path
 
-    # load the aligned brightfield images
-    fixed_3d_stack = BioImage(row["fixed"]).get_image_data("ZYX", C=1, T=1)
-    moving_3d_stack = BioImage(row["moving"]).get_image_data("ZYX", C=1, T=1)
+    # load the aligned brightfield images (squeeze out C and T dims)
+    fixed_3d_stack = load_image_from_path(row["fixed"], squeeze=True)
+    moving_3d_stack = load_image_from_path(row["moving"], squeeze=True)
 
-    # take the std projection of each 3D stack
+    # take the std projection of each 3D stack over Z
     fixed_proj = fixed_3d_stack.std(0)
     moving_proj = moving_3d_stack.std(0)
 
