@@ -796,31 +796,6 @@ def parse_generate_dataset_name_user_input(
     return dataset_name_list
 
 
-@deprecated(
-    """
-With the switch to loading model configs using the ModelConfig dataclass
-(instead of as dictionaries) the recommended pattern for accessing model info is
-directly from loaded ModelConfig objects. These configs can be loaded using
-one of the following:
-
-        configs.load_all_model_configs
-        configs.load_model_config(model_name)
-
-Fields can then be accessed using dot notation:
-
-        model.field
-
-Available fields and descriptions for each field for ModelConfig objects are
-provided in configs.model_config.
-"""
-)
-def get_model_info(model_name: str) -> dict[str, Any]:
-    config = load_config("model")
-    if model_name not in config:
-        raise ValueError(f"Model {model_name} not found in config file")
-    return config[model_name]
-
-
 # Other miscellaneous methods
 def ipython_cli_flexecute(
     function: Callable[..., Any],
