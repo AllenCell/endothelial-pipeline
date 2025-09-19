@@ -804,13 +804,20 @@ def concat_and_save_aligned_image_pairs(row: dict[str, str], savedir: Path) -> P
     if save_path.exists():
         logger.debug("Returning existing file at: [ %s ]", save_path)
         return save_path
-    # take standard deviation projection here to allow concatenation with different z-axis sizes
-    fixed = BioImage(row["fixed"]).data.squeeze().std(0)
-    moving = BioImage(row["moving"]).data.squeeze().std(0)
 
-    out = np.stack([fixed, moving], axis=0)[:, None]
+    # load the aligned brightfield images
+    fixed_3d_stack = BioImage(row["fixed"]).get_image_data("ZYX", C=1, T=1)
+    moving_3d_stack = BioImage(row["moving"]).get_image_data("ZYX", C=1, T=1)
 
-    OmeTiffWriter.save(uri=save_path, data=out)
+    # take the std projection of each 3D stack
+    fixed_proj = fixed_3d_stack.std(0)
+    moving_proj = moving_3d_stack.std(0)
+
+    # concatenate along a new axis
+    concatenated_images = np.stack([fixed_proj, moving_proj], axis=0)[:, None]
+
+    # save the concatenated image as a multi-channel OME-TIFF
+    OmeTiffWriter.save(uri=save_path, data=concatenated_images)
     logger.debug("Saving concatenated image to: [ %s ]", save_path)
 
     return save_path
