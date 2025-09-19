@@ -288,28 +288,6 @@ def get_available_datasets(verbose: bool = True) -> list[str]:
 @deprecated(
     """
 With the switch to loading dataset configs using the DatasetConfig dataclass
-(instead of as dictionaries) the recommended pattern for accessing reference
-datasets is to instead load the appropriate reference dataset collection.
-
-        configs.get_datasets_in_collection("pca_reference")
-
-which will load the reference dataset objects (not the dataset names). If you
-need the names of the reference datasets, access the .name field of the
-reference dataset objects returned by the above method.
-"""
-)
-def get_reference_datasets() -> list[str]:
-    """Get a list of reference datasets for PCA from the config file."""
-    return [
-        name
-        for name in get_available_datasets(verbose=False)
-        if get_dataset_info(name).get("is_reference", False)
-    ]
-
-
-@deprecated(
-    """
-With the switch to loading dataset configs using the DatasetConfig dataclass
 (instead of as dictionaries) the recommended pattern for accessing dataset info
 is directly from loaded DatasetConfig objects. These configs can be loaded using
 one of the following:
