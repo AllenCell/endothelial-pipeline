@@ -430,7 +430,7 @@ def align(
         )
         raise ValueError("Invalid alignment method. Choose 'sift' or 'template'.")
 
-    # load images
+    # load images, both brightfield and fluorescent channels
     image_fixed = BioImage(fixed_image_path)
     image_moving = BioImage(moving_image_path)
 
