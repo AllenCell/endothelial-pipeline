@@ -370,7 +370,6 @@ def setup_gpu() -> None:
     except Exception as e:
         logger.warning("Could not read DiffAE training config: %s. Defaulting to 1 device.", e)
 
-    # Logging
     logger.info("trainer.devices: %d", num_devices)
 
     # Detect MIG
@@ -391,7 +390,6 @@ def setup_gpu() -> None:
         selected_uuid = mig_uuids[0]
         os.environ["CUDA_VISIBLE_DEVICES"] = selected_uuid
 
-        # Logging
         logger.info("Using MIG UUID: %s", selected_uuid)
         logger.info("Set CUDA_VISIBLE_DEVICES to [ %s ]", selected_uuid)
 
@@ -408,13 +406,12 @@ def setup_gpu() -> None:
     )
     gpu_avail = re.findall(r"(\d+), (\d+)", mem_info)
     available_indices = sorted([int(gpu) for _, gpu in gpu_avail])
-    # Logging
+
     logger.info("Available GPU indices: %s", available_indices)
     if num_devices == 1:
         best_gpu = max(gpu_avail, key=lambda x: int(x[0]))[1]
         os.environ["CUDA_VISIBLE_DEVICES"] = best_gpu
 
-        # Logging
         logger.info("Using GPU with most free memory: %s", best_gpu)
     else:
         if num_devices > len(available_indices):
@@ -427,10 +424,8 @@ def setup_gpu() -> None:
         devs = ",".join(str(x) for x in available_indices[:num_devices])
         os.environ["CUDA_VISIBLE_DEVICES"] = devs
 
-        # Logging
         logger.info("Using GPUs: %s", devs)
 
-    # Logging
     logger.info("Set CUDA_VISIBLE_DEVICES to [ %s ]", os.environ["CUDA_VISIBLE_DEVICES"])
 
 
