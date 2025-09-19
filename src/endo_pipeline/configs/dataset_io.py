@@ -62,21 +62,6 @@ def separate_data_config() -> None:
         save_to_yaml(single_data_config, data_config_path)
 
 
-def separate_model_config() -> None:
-    """Separate combined model configs into individual model configs."""
-
-    separated_path = get_config_dir() / "models"
-    combined_path = Path(__file__).resolve().parents[1] / "model_config.yaml"
-
-    combined_model_config = yaml.safe_load(combined_path.open())
-
-    for model, contents in combined_model_config.items():
-        data_config_path = separated_path / f"{model}.yaml"
-        single_model_config = {"name": model}
-        single_model_config.update(contents)
-        save_to_yaml(single_model_config, data_config_path, False)
-
-
 def combine_data_config(save: bool = False) -> dict:
     """Combine individual dataset configs into combined dataset keyed by name."""
 
