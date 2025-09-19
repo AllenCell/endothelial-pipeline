@@ -805,8 +805,8 @@ def concat_and_save_aligned_image_pairs(row: dict[str, str], savedir: Path) -> P
         logger.debug("Returning existing file at: [ %s ]", save_path)
         return save_path
     # take standard deviation projection here to allow concatenation with different z-axis sizes
-    fixed = BioImage(row["fixed"]).data.squeeze().max(0)
-    moving = BioImage(row["moving"]).data.squeeze().max(0)
+    fixed = BioImage(row["fixed"]).data.squeeze().std(0)
+    moving = BioImage(row["moving"]).data.squeeze().std(0)
 
     out = np.stack([fixed, moving], axis=0)[:, None]
 
