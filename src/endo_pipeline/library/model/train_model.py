@@ -27,7 +27,8 @@ def _generate_overrides_for_model_training(
     val_dataframe_path: str,
     max_num_epochs: int = 1000,
     log_every_n_steps: int = 50,
-    cache_rate: float = 0.01,
+    cache_rate: float = 1.0,
+    replace_rate: float = 0.1,
 ) -> dict:
     """
     Generate overrides for the DiffAE model training configuration.
@@ -49,6 +50,8 @@ def _generate_overrides_for_model_training(
         The interval at which to log training metrics.
     cache_rate
         The fraction of the dataset to cache in memory for training.
+    replace_rate
+        The replace rate for cached data.
 
     Returns
     -------
@@ -59,13 +62,21 @@ def _generate_overrides_for_model_training(
     training_run_checkpoint_path = get_output_path("models", model_name, "train", "checkpoints")
     training_run_log_path = get_output_path("models", model_name, "train", "logs")
 
+    # Calculate effective epochs
+    multiplier = (1 - cache_rate) / (cache_rate * replace_rate) + 1
+    effective_min_epochs = int(1000 * multiplier)
+    effective_max_epochs = int(max_num_epochs * multiplier)
+    effective_save_images_epochs = int(10 * multiplier)
+
     overrides = {
         # set path to train and val datasets
         "data.train_dataloaders.dataset.dataframe_path": train_dataframe_path,
         "data.train_dataloaders.dataset.cache_rate": cache_rate,
+        "data.train_dataloaders.dataset.replace_rate": replace_rate,
         "data.predict_dataloaders.dataset.dataframe_path": val_dataframe_path,
         "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path,
         "data.val_dataloaders.dataset.cache_rate": cache_rate,
+        "data.val_dataloaders.dataset.replace_rate": replace_rate,
         # get repo root directory and current working directory
         "paths.root_dir": Path(__file__).resolve().parents[3].as_posix(),
         "paths.work_dir": os.getcwd(),
@@ -78,10 +89,13 @@ def _generate_overrides_for_model_training(
         # set crop size from input via model.image_shape,
         # the rest are populated by interpolation
         "model.image_shape": [1, crop_size, crop_size],
+        # override the effective epochs calculations
+        "model.save_images_every_n_epochs": effective_save_images_epochs,
+        "trainer.min_epochs": effective_min_epochs,
+        "trainer.max_epochs": effective_max_epochs,
         # turn off config printing, will get saved locally instead
         "extras.print_config": False,
-        # set the max number of epochs for training and logging interval
-        "trainer.max_epochs": max_num_epochs,
+        # set logging interval
         "trainer.log_every_n_steps": log_every_n_steps,
     }
     return overrides
@@ -94,6 +108,8 @@ def _generate_overrides_for_finetuning(
     ckpt_path: Path,
     max_num_epochs: int = 100,
     log_every_n_steps: int = 50,
+    cache_rate: float = 1.0,
+    replace_rate: float = 0.1,
 ) -> dict:
     """
     Generate overrides for finetuning a DiffAE model.
@@ -112,6 +128,10 @@ def _generate_overrides_for_finetuning(
         The maximum number of epochs to train the model for.
     log_every_n_steps
         The interval at which to log training metrics.
+    cache_rate
+        The fraction of the dataset to cache in memory for training.
+    replace_rate
+        The replace rate for cached data.
     """
     # create output directories if they do not exist
     training_run_output_path = get_output_path(
@@ -129,11 +149,19 @@ def _generate_overrides_for_finetuning(
         "logs",
     )
 
+    # Calculate effective epochs
+    multiplier = (1 - cache_rate) / (cache_rate * replace_rate) + 1
+    effective_max_epochs = int(max_num_epochs * multiplier)
+
     overrides = {
         # point to already projected paired dataset
         "data.train_dataloaders.dataset.dataframe_path": train_dataframe_path,
+        "data.train_dataloaders.dataset.cache_rate": cache_rate,
+        "data.train_dataloaders.dataset.replace_rate": replace_rate,
         "data.predict_dataloaders.dataset.dataframe_path": val_dataframe_path,
         "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path,
+        "data.val_dataloaders.dataset.cache_rate": cache_rate,
+        "data.val_dataloaders.dataset.replace_rate": replace_rate,
         # load diffae checkpoint to finetune
         "checkpoint.ckpt_path": ckpt_path.as_posix(),
         "checkpoint.weights_only": True,
@@ -148,7 +176,7 @@ def _generate_overrides_for_finetuning(
         # turn off config printing, will get saved locally instead
         "extras.print_config": False,
         # set the max number of epochs for training
-        "trainer.max_epochs": max_num_epochs,
+        "trainer.max_epochs": effective_max_epochs,
         "trainer.log_every_n_steps": log_every_n_steps,
         # updated the run name
         "run_name": finetuned_model_name,
@@ -165,7 +193,8 @@ def initialize_diffae_model(
     val_dataframe_path: str,
     max_num_epochs: int = 1000,
     log_every_n_steps: int = 50,
-    cache_rate: float = 0.01,
+    cache_rate: float = 1.0,
+    replace_rate: float = 0.1,
 ) -> CytoDLModel:
     """
     Initialize a DiffAE model for training.
@@ -188,6 +217,8 @@ def initialize_diffae_model(
         The interval at which to log training metrics.
     cache_rate
         The fraction of the dataset to cache in memory for training.
+    replace_rate
+        The replace rate for cached data.
 
     Returns
     -------
@@ -210,6 +241,7 @@ def initialize_diffae_model(
         max_num_epochs=max_num_epochs,
         log_every_n_steps=log_every_n_steps,
         cache_rate=cache_rate,
+        replace_rate=replace_rate,
     )
 
     # init model
@@ -385,6 +417,8 @@ def initialize_diffae_model_for_finetuning(
     diffae_ckpt_path: Path,
     max_num_epochs: int = 100,
     log_every_n_steps: int = 50,
+    cache_rate: float = 1.0,
+    replace_rate: float = 0.1,
 ) -> CytoDLModel:
     """
     Initialize a DiffAE model for training.
@@ -407,6 +441,10 @@ def initialize_diffae_model_for_finetuning(
         The maximum number of epochs for which to train the model.
     log_every_n_steps
         The interval at which to log training metrics.
+    cache_rate
+        The fraction of the dataset to cache in memory for training.
+    replace_rate
+        The replace rate for cached data.
 
     Returns
     -------
@@ -421,6 +459,8 @@ def initialize_diffae_model_for_finetuning(
         ckpt_path=model_save_path / diffae_ckpt_path,
         max_num_epochs=max_num_epochs,
         log_every_n_steps=log_every_n_steps,
+        cache_rate=cache_rate,
+        replace_rate=replace_rate,
     )
 
     # init model
