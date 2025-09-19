@@ -115,7 +115,7 @@ def main(
                 )
                 break
 
-        image_locations[dataset_name] = ImageLocation(path=file_path_pattern)
+        image_locations[dataset_name] = ImageLocation(path=Path(file_path_pattern))
 
     # create and save image manifest
     manifest_name = f"registered_{dataset_pair_type}_resolution_{resolution_level}{name_suffix}"
