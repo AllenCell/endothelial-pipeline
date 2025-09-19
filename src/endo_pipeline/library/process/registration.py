@@ -789,7 +789,9 @@ def align_and_save_paired_images(
     return df
 
 
-def concat_and_save_aligned_image_pairs(row: dict[str, str], savedir: Path) -> Path:
+def concat_and_save_aligned_image_pairs(
+    row: dict[str, str], savedir: Path, overwrite_images: bool = True
+) -> Path:
     """
     Concatenate the aligned fixed and moving images into a single OME-TIFF file
     and save it to the specified directory.
@@ -802,7 +804,7 @@ def concat_and_save_aligned_image_pairs(row: dict[str, str], savedir: Path) -> P
         The directory where the concatenated image will be saved.
     """
     save_path = _get_concat_path(row, savedir)
-    if save_path.exists():
+    if save_path.exists() and not overwrite_images:
         logger.debug("Returning existing file at: [ %s ]", save_path)
         return save_path
 
