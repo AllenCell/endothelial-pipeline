@@ -1,5 +1,4 @@
 import logging
-import warnings
 from multiprocessing import Pool
 from pathlib import Path
 from typing import cast
@@ -9,8 +8,14 @@ from bioio import BioImage
 from cellpose import core, models
 from tqdm import tqdm
 
-from endo_pipeline.configs import CellposeModelConfig, load_dataset_config, load_model_config
-from endo_pipeline.configs.dataset_io import parse_generate_dataset_name_user_input, load_config
+from endo_pipeline.cli import Datasets
+from endo_pipeline.configs import (
+    CellposeModelConfig,
+    get_datasets_in_collection,
+    load_dataset_config,
+    load_model_config,
+)
+from endo_pipeline.configs.dataset_io import load_config
 from endo_pipeline.io import configure_logging, get_output_path
 from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
@@ -132,7 +137,7 @@ def generate_results(args: dict) -> None:
 
 
 def main(
-    dataset_name: str | list | None = None,
+    datasets: Datasets | None = None,
     n_proc: int = 1,
     save_output: bool = True,
     overwrite: bool = True,
@@ -149,7 +154,11 @@ def main(
     configure_logging(out_dir, logger, verbose)
 
     # Build a list of datasets to analyze
-    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
+    if datasets is None:
+        dataset_name_list = get_datasets_in_collection("pca_reference")
+    else:
+        dataset_name_list = datasets
+
     logger.info(f"datasets to analyze: {dataset_name_list}")
 
     # Get a list of timepoints and associated arguments to process from the list of datasets to analyze

@@ -6,10 +6,9 @@ import pandas as pd
 from bioio import BioImage
 from bioio.writers.timeseries_writer import TimeseriesWriter
 
-from endo_pipeline.configs.dataset_io import (
-    parse_generate_dataset_name_user_input,
-    ipython_cli_flexecute,
-)
+from endo_pipeline.cli import Datasets
+from endo_pipeline.configs import get_datasets_in_collection
+from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 from endo_pipeline.library.process import cdh5_preprocessing as preproc
 from endo_pipeline.library.visualize import vis_cdh5_nodes_and_edges_analysis as vis
 
@@ -43,13 +42,16 @@ def stringified_floatlist_to_floatlist(ls: str, to_tuple: bool = False) -> list 
 
 def main(
     n_proc: int = 1,
-    dataset_name: str | None = None,
+    datasets: Datasets | None = None,
     show_plots: bool = True,
     save_output: bool = True,
     is_test: bool = False,
 ) -> None:
 
-    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
+    if datasets is None:
+        dataset_name_list = get_datasets_in_collection("pca_reference")
+    else:
+        dataset_name_list = datasets
 
     for dataset_name in dataset_name_list:
         # create some paths of interest

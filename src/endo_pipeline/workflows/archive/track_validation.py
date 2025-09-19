@@ -3,6 +3,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from endo_pipeline.cli import Datasets
+
 
 def save_validation_images(
     cell_id: int,
@@ -132,7 +134,7 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
 
 def main(
     n_proc: int = 1,
-    dataset_name: str | None = None,
+    datasets: Datasets | None = None,
     t_final: int | None = None,
     min_track_duration: int = 120,
     verbose: bool = False,
@@ -143,16 +145,17 @@ def main(
 
     from tqdm import tqdm
 
-    from endo_pipeline.configs.dataset_io import (
-        parse_generate_dataset_name_user_input,
-        get_tracking_data_filtered,
-    )
+    from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.configs.dataset_io import get_tracking_data_filtered
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
 
     out_dir = get_output_path(__file__)
 
-    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
+    if datasets is None:
+        dataset_name_list = get_datasets_in_collection("pca_reference")
+    else:
+        dataset_name_list = datasets
 
     analysis_queue = build_analysis_queue(
         dataset_name_list,

@@ -7,7 +7,8 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.cli import Datasets
+from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
 from endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
     extract_T,
@@ -15,7 +16,6 @@ from endo_pipeline.configs.dataset_io import (
     get_zarr_name,
     get_zarr_path,
     ipython_cli_flexecute,
-    parse_generate_dataset_name_user_input,
 )
 from endo_pipeline.io import configure_logging, get_output_path
 from endo_pipeline.library.process.general_image_preprocessing import (
@@ -104,7 +104,7 @@ def run_workflow(queue: Sequence) -> None:
 
 
 def main(
-    dataset_name: str,
+    datasets: Datasets | None = None,
     n_proc: int = 1,
     save_output: bool = True,
     use_sldy_data: bool = False,
@@ -114,7 +114,10 @@ def main(
 
     out_dir = get_output_path(__file__)
 
-    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
+    if datasets is None:
+        dataset_name_list = get_datasets_in_collection("pca_reference")
+    else:
+        dataset_name_list = datasets
 
     configure_logging(out_dir, logger, verbose=verbose)
     logger.info(f"datasets analyzed: {dataset_name_list}")

@@ -5,10 +5,9 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from endo_pipeline.configs.dataset_io import (
-    parse_generate_dataset_name_user_input,
-    ipython_cli_flexecute,
-)
+from endo_pipeline.cli import Datasets
+from endo_pipeline.configs import get_datasets_in_collection
+from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 from endo_pipeline.io import configure_logging, get_output_path, load_dataframe
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     add_filter_columns,
@@ -86,7 +85,7 @@ def create_segmentation_measured_feature_manifest(
 
 
 def main(
-    datasets: str | None = None,
+    datasets: Datasets | None = None,
     n_proc: int = 1,
     verbose: bool = False,
 ) -> None:
@@ -96,7 +95,11 @@ def main(
     configure_logging(out_dir, logger, verbose)
 
     # create a list of datasets to analyze if not provided
-    dataset_name_list = parse_generate_dataset_name_user_input(datasets)
+    if datasets is None:
+        dataset_name_list = get_datasets_in_collection("pca_reference")
+    else:
+        dataset_name_list = datasets
+
     logger.info(f"datasets to analyze: {dataset_name_list}")
 
     # decide whether or not to use multiprocessing

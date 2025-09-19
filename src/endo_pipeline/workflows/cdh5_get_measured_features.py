@@ -8,10 +8,14 @@ from bioio import BioImage
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
-from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
+from endo_pipeline.cli import Datasets
+from endo_pipeline.configs import (
+    get_datasets_in_collection,
+    get_zarr_file_for_position,
+    load_dataset_config,
+)
 from endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
-    parse_generate_dataset_name_user_input,
     get_original_path,
     ipython_cli_flexecute,
 )
@@ -341,16 +345,18 @@ def build_measured_features_tables(
 
 def main(
     n_proc: int = 1,
-    dataset_name: str | None = None,
+    datasets: Datasets | None = None,
     save_output: bool = True,
     is_test: bool = False,
     verbose: bool = False,
     use_sldy_data: bool = False,
 ) -> None:
-
     out_dir = get_output_path(__file__)
 
-    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
+    if datasets is None:
+        dataset_name_list = get_datasets_in_collection("pca_reference")
+    else:
+        dataset_name_list = datasets
 
     configure_logging(out_dir, logger, verbose=verbose)
     logger.info(f"datasets analyzed: {dataset_name_list}")

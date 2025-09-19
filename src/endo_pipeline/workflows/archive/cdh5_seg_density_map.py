@@ -2,6 +2,8 @@ from pathlib import Path
 
 import numpy as np
 
+from endo_pipeline.cli import Datasets
+
 
 def get_chan_map(filepath: Path) -> dict:
     from bioio import BioImage
@@ -214,7 +216,7 @@ def run_density_workflow(
 
 def main(
     n_proc: int = 1,
-    dataset_name: str | None = None,
+    datasets: Datasets | None = None,
     save_output: bool = True,
     is_test: bool = False,
     verbose: bool = False,
@@ -224,14 +226,16 @@ def main(
     import matplotlib as mpl
     from tqdm import tqdm
 
+    from endo_pipeline.configs import get_datasets_in_collection
+
     mpl.rc("image", cmap="gray")
 
-    from endo_pipeline.configs.dataset_io import (
-        parse_generate_dataset_name_user_input,
-        get_dataset_duration_in_frames,
-    )
+    from endo_pipeline.configs.dataset_io import get_dataset_duration_in_frames
 
-    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
+    if datasets is None:
+        dataset_name_list = get_datasets_in_collection("pca_reference")
+    else:
+        dataset_name_list = datasets
 
     for dataset_name in dataset_name_list:
         print(f"Initializing workflow for {dataset_name}...")
