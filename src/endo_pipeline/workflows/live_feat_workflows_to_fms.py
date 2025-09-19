@@ -1,4 +1,5 @@
 import logging
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
@@ -181,9 +182,6 @@ def main(
         "merged_live_data_manifests",
     ],
     datasets: str | None = None,
-    endo_project_analysis_dir: (
-        str | Path
-    ) = "//allen/aics/endothelial/morphological_features/analysis",
 ) -> None:
     """
     This is a convenience function to upload multiple datasets to FMS
@@ -191,12 +189,15 @@ def main(
 
     NOTE Intended only for internal use.
     """
-    endo_project_analysis_dir = Path(endo_project_analysis_dir).resolve()
-    if not endo_project_analysis_dir.exists():
-        error_msg = (
-            "The path to the endothelial project directory is not accessible."
-            "This function is only available for Allen Institute internal use."
-        )
+    endo_project_analysis_dir = Path(
+        "//allen/aics/endothelial/morphological_features/analysis"
+    ).resolve()
+    if not endo_project_analysis_dir.exists() or os.name == "nt":
+        error_msg = f"""The path to the endothelial project directory ({endo_project_analysis_dir})
+            is not accessible.
+            Possible reasons are that you are not on the Allen Institute network or that you are
+            not using a Linux or Mac machine. FMS uploads are only permitted from Linux/Mac
+            machines that are directly connected to the Allen Institute network."""
         logger.error(error_msg)
         raise FileNotFoundError(error_msg)
     fms_upload_func_dict = {
