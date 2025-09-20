@@ -81,16 +81,16 @@ def template_matching(
     image: np.ndarray, template: np.ndarray, scale: int = 3
 ) -> tuple[np.ndarray, float]:
     """
-    Register a small moving image to a larger fixed image via sliding window correlation.
+    Register a small moving image to a larger target image via sliding window correlation.
 
-    Note that the moving image is assumed to be smaller than the fixed image.
+    Note that the moving image is assumed to be smaller than the target image.
 
     Parameters
     ----------
     image
-        The fixed image used for registration.
+        The target image used for registration.
     template
-        The moving image that will be registered to the fixed image.
+        The moving image that will be registered to the target image.
     scale
         The scale factor for downsampling the images before registration.
     """
@@ -101,13 +101,13 @@ def template_matching(
     downsampled_image = preprocess(downsampled_image).astype(np.float32)
     downsampled_template = preprocess(downsampled_template).astype(np.float32)
 
-    # Ensure resized fixed image is larger than resized moving
+    # Ensure resized target image is larger than resized moving
     if (
         downsampled_image.shape[0] < downsampled_template.shape[0]
         or downsampled_image.shape[1] < downsampled_template.shape[1]
     ):
         raise ValueError(
-            "Fixed image is smaller than moving image. Resized fixed shape:",
+            "Target image is smaller than moving image. Resized target shape:",
             f"{downsampled_image.shape}, moving shape: {downsampled_template.shape}",
         )
     # Perform template matching
@@ -119,20 +119,20 @@ def template_matching(
 
 
 def template_registration(
-    image_fixed: np.ndarray,
+    image_target: np.ndarray,
     image_moving: np.ndarray,
     scale: int = 3,
     template_shape: None | Sequence[int] = None,
 ) -> tf.SimilarityTransform:
     """
-    Register a moving image to a fixed image using template matching.
+    Register a moving image to a target image using template matching.
 
     Parameters
     ----------
-    image_fixed
+    image_target
         The reference image used for registration.
     image_moving
-        The image that will be registered to the fixed image.
+        The image that will be registered to the target image.
     scale
         The scale factor for downsampling the images before registration.
     template_shape
@@ -140,12 +140,12 @@ def template_registration(
     """
     template_shape = template_shape or image_moving.shape[-2:]
     splitter = SlidingWindowSplitter(patch_size=template_shape, overlap=0.1, pad_mode=None)
-    # Register each template to the fixed image
+    # Register each template to the target image
     best_transform = None
     best_score = 0.0
     for template in tqdm(splitter(torch.from_numpy(image_moving[None, None]))):
         transform, score = template_matching(
-            image_fixed, template[0].numpy().squeeze(), scale=scale
+            image_target, template[0].numpy().squeeze(), scale=scale
         )
         if score > best_score:
             best_score = score
@@ -186,7 +186,7 @@ def _get_sift(
 
 
 def sift_registration(
-    image_fixed: np.ndarray,
+    image_target: np.ndarray,
     image_moving: np.ndarray,
     min_samples: int = 4,
     residual_threshold: int = 10,
@@ -194,14 +194,14 @@ def sift_registration(
     visualize_keypoints_dir: str | None = None,
 ) -> tf.SimilarityTransform | None:
     """
-    Register a moving image to a fixed image using SIFT keypoint matching and RANSAC.
+    Register a moving image to a target image using SIFT keypoint matching and RANSAC.
 
     Parameters
     ----------
-    image_fixed
+    image_target
         The reference image used for registration.
     image_moving
-        The image that will be registered to the fixed image.
+        The image that will be registered to the target image.
     min_samples
         Minimum number of samples for RANSAC.
     residual_threshold
@@ -211,14 +211,14 @@ def sift_registration(
     visualize_keypoints_dir
         Directory to save visualizations of keypoints. If None, no visualizations are saved.
     """
-    image_fixed = sift_preprocess(image_fixed)
+    image_target = sift_preprocess(image_target)
     image_moving = sift_preprocess(image_moving)
 
-    keypoints_fixed, descriptors_fixed = _get_sift(image_fixed)
+    keypoints_target, descriptors_target = _get_sift(image_target)
     keypoints_moving, descriptors_moving = _get_sift(image_moving)
 
     # brute force matching
-    matches = match_descriptors(descriptors_moving, descriptors_fixed)
+    matches = match_descriptors(descriptors_moving, descriptors_target)
     logger.debug("Matches found: [ %d ]", len(matches))
 
     if len(matches) < min_samples:
@@ -227,11 +227,11 @@ def sift_registration(
 
     # Prepare data for RANSAC
     src = keypoints_moving[matches[:, 0]][:, ::-1]  # RANSAC expects (x, y)
-    dst = keypoints_fixed[matches[:, 1]][:, ::-1]  # RANSAC expects (x, y)
+    dst = keypoints_target[matches[:, 1]][:, ::-1]  # RANSAC expects (x, y)
 
     if visualize_keypoints_dir:
         visualize_keypoints(image_moving, src[:, ::-1], "moving_matched")
-        visualize_keypoints(image_fixed, dst[:, ::-1], "fixed_matched")
+        visualize_keypoints(image_target, dst[:, ::-1], "target_matched")
 
     logger.info("Estimating transformation using RANSAC...")
     try:
@@ -270,35 +270,35 @@ def sift_registration(
 
 
 def warp(
-    model: tf.ProjectiveTransform, image_fixed: np.ndarray, image_moving: np.ndarray
+    model: tf.ProjectiveTransform, image_target: np.ndarray, image_moving: np.ndarray
 ) -> np.ndarray:
     """
-    Warp the moving image to align with the fixed image using the provided transformation model.
+    Warp the moving image to align with the target image using the provided transformation model.
 
     Parameters
     ----------
     model
         The transformation model.
-    image_fixed
-        The fixed image to which the moving image will be aligned.
+    image_target
+        The target image to which the moving image will be aligned.
     image_moving
         The moving image to be warped.
 
     Returns
     -------
     :
-        The warped moving image aligned to the fixed image.
+        The warped moving image aligned to the target image.
     """
     print("Warping image...")
     warp_transform = partial(
         tf.warp,
         inverse_map=model.inverse,
-        output_shape=image_fixed.shape[-2:],
+        output_shape=image_target.shape[-2:],
         order=3,
         mode="constant",
         cval=np.nan,
     )
-    is_3d = len(image_fixed.shape) == 3
+    is_3d = len(image_target.shape) == 3
     if is_3d:
         aligned_moving = np.stack(
             [warp_transform(image_moving[i]) for i in trange(len(image_moving))]
@@ -310,7 +310,7 @@ def warp(
 
 def resize_moving(image_moving: np.ndarray, resize_factor: float | Sequence[float]) -> np.ndarray:
     """
-    Resize the moving image to match the fixed image dimensions.
+    Resize the moving image to match the target image dimensions.
 
     Parameters
     ----------
@@ -368,11 +368,11 @@ def overlay_normalize(img: np.ndarray) -> np.ndarray:
     return proj
 
 
-def save_overlay(moving: np.ndarray, fixed: np.ndarray, savepath: str | Path) -> None:
-    """Save overlay of aligned moving and fixed fluorescent images."""
+def save_overlay(moving: np.ndarray, target: np.ndarray, savepath: str | Path) -> None:
+    """Save overlay of aligned moving and target fluorescent images."""
     moving_proj = overlay_normalize(moving)
-    fixed_proj = overlay_normalize(fixed)
-    overlay = np.stack([moving_proj, fixed_proj, fixed_proj], axis=-1)
+    target_proj = overlay_normalize(target)
+    overlay = np.stack([moving_proj, target_proj, target_proj], axis=-1)
     plt.imshow(overlay)
     plt.axis("off")
     plt.savefig(savepath, dpi=300)
@@ -381,9 +381,9 @@ def save_overlay(moving: np.ndarray, fixed: np.ndarray, savepath: str | Path) ->
 
 def align(
     moving_image_path: str | Path,
-    fixed_image_path: str | Path,
+    target_image_path: str | Path,
     moving_z_slices: list[int],
-    fixed_z_slices: list[int],
+    target_z_slices: list[int],
     resolution_level: int,
     savedir: Path,
     alignment_method: Literal["sift", "template"],
@@ -391,7 +391,7 @@ def align(
     **alignment_kwargs: dict[str, Any],
 ) -> pd.DataFrame:
     """
-    Align a moving image to a fixed image using blob detection and registration.
+    Align a moving image to a target image using blob detection and registration.
 
     **Alignment methods**
 
@@ -403,12 +403,12 @@ def align(
     ----------
     moving_image_path
         Path to the moving image.
-    fixed_image_path
-        Path to the fixed image.
+    target_image_path
+        Path to the target image.
     moving_z_slices
         List of z-slices to load from the moving image.
-    fixed_z_slices
-        List of z-slices to load from the fixed image.
+    target_z_slices
+        List of z-slices to load from the target image.
     resolution_level
         The resolution level of the zarr files to load for alignment.
     savedir
@@ -432,80 +432,80 @@ def align(
         raise ValueError("Invalid alignment method. Choose 'sift' or 'template'.")
 
     # load images, both brightfield and fluorescent channels
-    image_fixed = BioImage(fixed_image_path)
+    image_target = BioImage(target_image_path)
     image_moving = BioImage(moving_image_path)
 
-    if image_fixed.shape[:-3] != image_moving.shape[:-3]:
+    if image_target.shape[:-3] != image_moving.shape[:-3]:
         logger.error(
-            "The moving and fixed image must have the same non-spatial dimensions. "
-            "Fixed shape: [ %s ], Moving shape: [ %s ]",
-            image_fixed.shape[:-3],
+            "The moving and target image must have the same non-spatial dimensions. "
+            "Target shape: [ %s ], Moving shape: [ %s ]",
+            image_target.shape[:-3],
             image_moving.shape[:-3],
         )
-        raise ValueError("The moving and fixed image must have the same non-spatial dimensions.")
+        raise ValueError("The moving and target image must have the same non-spatial dimensions.")
 
-    aligned_files: dict[str, list[str]] = {"fixed": [], "moving": []}
+    aligned_files: dict[str, list[str]] = {"target": [], "moving": []}
 
     if align_fluo:
-        aligned_files["fixed_fluo"] = []
+        aligned_files["target_fluo"] = []
         aligned_files["moving_fluo"] = []
 
-    for scene in range(len(image_fixed.scenes)):
-        image_fixed.set_scene(scene)
+    for scene in range(len(image_target.scenes)):
+        image_target.set_scene(scene)
         image_moving.set_scene(scene)
-        for t in range(image_fixed.dims["T"][0]):
-            fixed_fluo = image_fixed.get_image_dask_data(
-                "ZYX", C=FLUOR_CHANNEL, T=t, resolution=resolution_level, Z=fixed_z_slices
+        for t in range(image_target.dims["T"][0]):
+            target_fluo = image_target.get_image_dask_data(
+                "ZYX", C=FLUOR_CHANNEL, T=t, resolution=resolution_level, Z=target_z_slices
             ).compute()
             moving_fluo = image_moving.get_image_dask_data(
                 "ZYX", C=FLUOR_CHANNEL, T=t, resolution=resolution_level, Z=moving_z_slices
             ).compute()
 
             if not align_fluo:
-                fixed_fluo = fixed_fluo.std(0)
+                target_fluo = target_fluo.std(0)
                 moving_fluo = moving_fluo.std(0)
 
             # assume isotropic in xy
             img_moving_physical_size: PhysicalPixelSizes = image_moving.physical_pixel_sizes
-            img_fixed_physical_size: PhysicalPixelSizes = image_fixed.physical_pixel_sizes
+            img_target_physical_size: PhysicalPixelSizes = image_target.physical_pixel_sizes
             # to deal with type error with .X being float or None
-            if img_moving_physical_size.X is None or img_fixed_physical_size.X is None:
+            if img_moving_physical_size.X is None or img_target_physical_size.X is None:
                 logger.error(
-                    "Physical pixel sizes for moving or fixed image are not set. "
-                    "Moving size: [ %s ], Fixed size: [ %s ]",
+                    "Physical pixel sizes for moving or target image are not set. "
+                    "Moving size: [ %s ], Target size: [ %s ]",
                     img_moving_physical_size,
-                    img_fixed_physical_size,
+                    img_target_physical_size,
                 )
-                raise ValueError("Physical pixel sizes for moving or fixed image are not set.")
+                raise ValueError("Physical pixel sizes for moving or target image are not set.")
             # will only continue if the physical pixel sizes are set
-            rescale_factor = img_fixed_physical_size.X / img_moving_physical_size.X
+            rescale_factor = img_target_physical_size.X / img_moving_physical_size.X
             logger.debug(
                 "Rescale factor for scene [ %d ], time [ %d ]: [ %f ]", scene, t, rescale_factor
             )
             moving_fluo = resize_moving(moving_fluo, rescale_factor)
 
-            fixed_projection = fixed_fluo.std(0) if align_fluo else fixed_fluo
+            target_projection = target_fluo.std(0) if align_fluo else target_fluo
             moving_projection = moving_fluo.std(0) if align_fluo else moving_fluo
 
             # apply alignment method
             # add type: ignore[arg-type] to avoid type errors with the kwargs
             if alignment_method == "sift":
                 model = sift_registration(
-                    fixed_projection,
+                    target_projection,
                     moving_projection,
                     **alignment_kwargs,  # type: ignore[arg-type]
                 )
             elif alignment_method == "template":
                 model = template_registration(
-                    fixed_projection,
+                    target_projection,
                     moving_projection,
                     **alignment_kwargs,  # type: ignore[arg-type]
                 )
             if model is None:
                 continue
 
-            fixed_bf = image_fixed.get_image_dask_data(
-                "ZYX", C=BF_CHANNEL, T=t, Z=fixed_z_slices
+            target_bf = image_target.get_image_dask_data(
+                "ZYX", C=BF_CHANNEL, T=t, Z=target_z_slices
             ).compute()
             moving_bf = image_moving.get_image_dask_data(
                 "ZYX", C=BF_CHANNEL, T=t, Z=moving_z_slices
@@ -513,48 +513,48 @@ def align(
             moving_bf = resize_moving(moving_bf, (1, rescale_factor, rescale_factor))
 
             base_moving_path = Path(moving_image_path).name.split(".")[0]
-            base_fixed_path = Path(fixed_image_path).name.split(".")[0]
+            base_target_path = Path(target_image_path).name.split(".")[0]
 
             if align_fluo:
-                moving_fluo = warp(model, fixed_fluo, moving_fluo)
-                moving_fluo, fixed_fluo = crop_to_overlap(moving_fluo, fixed_fluo)
+                moving_fluo = warp(model, target_fluo, moving_fluo)
+                moving_fluo, target_fluo = crop_to_overlap(moving_fluo, target_fluo)
 
                 # Save the aligned images
                 moving_save_path = (
                     savedir / f"{base_moving_path}_{scene}_{t}_moving_fluo.ome.tiff"
                 ).as_posix()
-                fixed_save_path = (
-                    savedir / f"{base_fixed_path}_{scene}_{t}_fixed_fluo.ome.tiff"
+                target_save_path = (
+                    savedir / f"{base_target_path}_{scene}_{t}_target_fluo.ome.tiff"
                 ).as_posix()
                 OmeTiffWriter.save(uri=moving_save_path, data=moving_fluo)
-                OmeTiffWriter.save(uri=fixed_save_path, data=fixed_fluo)
+                OmeTiffWriter.save(uri=target_save_path, data=target_fluo)
 
                 save_overlay(
                     moving_fluo,
-                    fixed_fluo,
-                    savedir / f"{base_fixed_path}_{scene}_{t}_overlay.png",
+                    target_fluo,
+                    savedir / f"{base_target_path}_{scene}_{t}_overlay.png",
                 )
-                aligned_files["fixed_fluo"].append(fixed_save_path)
+                aligned_files["target_fluo"].append(target_save_path)
                 aligned_files["moving_fluo"].append(moving_save_path)
 
-            aligned_moving = warp(model, fixed_bf, moving_bf)
-            aligned_moving, fixed_bf = crop_to_overlap(aligned_moving, fixed_bf)
+            aligned_moving = warp(model, target_bf, moving_bf)
+            aligned_moving, target_bf = crop_to_overlap(aligned_moving, target_bf)
             # Save the aligned images
             moving_save_path = (
                 savedir / f"{base_moving_path}_{scene}_{t}_moving_bf.ome.tiff"
             ).as_posix()
-            fixed_save_path = (
-                savedir / f"{base_fixed_path}_{scene}_{t}_fixed_bf.ome.tiff"
+            target_save_path = (
+                savedir / f"{base_target_path}_{scene}_{t}_target_bf.ome.tiff"
             ).as_posix()
             OmeTiffWriter.save(uri=moving_save_path, data=aligned_moving)
-            OmeTiffWriter.save(uri=fixed_save_path, data=fixed_bf)
+            OmeTiffWriter.save(uri=target_save_path, data=target_bf)
             aligned_files["moving"].append(moving_save_path)
-            aligned_files["fixed"].append(fixed_save_path)
+            aligned_files["target"].append(target_save_path)
     return pd.DataFrame(aligned_files)
 
 
 def align_all_positions(
-    fixed_dataset_name: str,
+    target_dataset_name: str,
     moving_dataset_name: str,
     resolution_level: int,
     z_slice_offsets: tuple[int, int] | None,
@@ -565,7 +565,7 @@ def align_all_positions(
     **alignment_kwargs: dict[str, Any],
 ) -> pd.DataFrame:
     """
-    Align all positions of the moving dataset to the fixed dataset.
+    Align all positions of the moving dataset to the target dataset.
 
     **Alignment methods**
 
@@ -575,8 +575,8 @@ def align_all_positions(
 
     Parameters
     ----------
-    fixed_dataset_name
-        The name of the fixed dataset.
+    target_dataset_name
+        The name of the target dataset.
     moving_dataset_name
         The name of the moving dataset.
     resolution_level
@@ -607,26 +607,26 @@ def align_all_positions(
 
     # get list of zarr files in each dataset
     moving_dataset_config = load_dataset_config(moving_dataset_name)
-    fixed_dataset_config = load_dataset_config(fixed_dataset_name)
+    target_dataset_config = load_dataset_config(target_dataset_name)
     moving_zarr_files = sorted(get_available_zarr_files(moving_dataset_config))
-    fixed_zarr_files = sorted(get_available_zarr_files(fixed_dataset_config))
+    target_zarr_files = sorted(get_available_zarr_files(target_dataset_config))
 
-    # get image loading args for moving and fixed datasets
+    # get image loading args for moving and target datasets
     moving_z_slice = get_z_slice_bounds_per_position(moving_dataset_config, z_slice_offsets)
     moving_include_pos = get_include_positions(moving_dataset_config)
-    fixed_z_slice = get_z_slice_bounds_per_position(fixed_dataset_config, z_slice_offsets)
-    fixed_include_pos = get_include_positions(fixed_dataset_config)
+    target_z_slice = get_z_slice_bounds_per_position(target_dataset_config, z_slice_offsets)
+    target_include_pos = get_include_positions(target_dataset_config)
 
     data_list = []
     position_counter = 0
-    for moving, fixed in zip(moving_zarr_files, fixed_zarr_files, strict=True):
+    for moving, target in zip(moving_zarr_files, target_zarr_files, strict=True):
         logger.debug(
-            "Aligning moving image [ %s ] to fixed image [ %s ]",
+            "Aligning moving image [ %s ] to target image [ %s ]",
             moving,
-            fixed,
+            target,
         )
         position = get_position_integer_from_zarr_file_path(moving)
-        if position not in moving_include_pos or position not in fixed_include_pos:
+        if position not in moving_include_pos or position not in target_include_pos:
             logger.warning(
                 "Skipping position [ %d ] as it has been annotated for a known imaging artifact.",
                 position,
@@ -635,14 +635,14 @@ def align_all_positions(
         moving_z_slices = list(
             range(moving_z_slice[position]["z_start"], moving_z_slice[position]["z_stop"] + 1)
         )
-        fixed_z_slices = list(
-            range(fixed_z_slice[position]["z_start"], fixed_z_slice[position]["z_stop"] + 1)
+        target_z_slices = list(
+            range(target_z_slice[position]["z_start"], target_z_slice[position]["z_stop"] + 1)
         )
         df_position = align(
             moving,
-            fixed,
+            target,
             moving_z_slices,
-            fixed_z_slices,
+            target_z_slices,
             resolution_level,
             savedir,
             align_fluo=align_fluo,
@@ -658,8 +658,8 @@ def align_all_positions(
 
 
 def _get_concat_path(row: dict[str, str], savedir: Path) -> Path:
-    base_image_path = Path(row["fixed"]).name.split(".")[0]
-    return savedir / f"{base_image_path.replace('_fixed', '_aligned_paired')}.ome.tiff"
+    base_image_path = Path(row["target"]).name.split(".")[0]
+    return savedir / f"{base_image_path.replace('_target', '_aligned_paired')}.ome.tiff"
 
 
 def get_paired_dataset_dict(
@@ -667,7 +667,7 @@ def get_paired_dataset_dict(
 ) -> dict[str, list[str]]:
     """
     Get a dictionary of paired datasets for alignment with correct
-    'fixed' and 'moving' labels.
+    'target' and 'moving' labels.
 
     Parameters
     ----------
@@ -677,7 +677,7 @@ def get_paired_dataset_dict(
     Returns
     -------
     :
-        Dictionary with keys "fixed" and "moving" containing lists of dataset names.
+        Dictionary with keys "target" and "moving" containing lists of dataset names.
     """
 
     if dataset_pair_type not in ["live_fixed", "20X_40X"]:
@@ -691,20 +691,20 @@ def get_paired_dataset_dict(
     dataset_list = get_datasets_in_collection(f"{dataset_pair_type}_paired_datasets")
 
     # Set dataset name flags for setting
-    # "fixed" and "moving" images for alignment.
+    # "target" and "moving" images for alignment.
     if dataset_pair_type == "live_fixed":
-        # for live/fixed pairs, the "fixed" image
+        # for live/fixed pairs, the "target" image
         # for alignment is the pre-fixation (live) image
         # and the "moving" image is the post-fixation (fixed) image.
-        fixed_flag = "PreFixation"
+        target_flag = "PreFixation"
         moving_flag = "PostFixation"
     else:
-        # for 20X/40X pairs, the "fixed" image is the 20X image
+        # for 20X/40X pairs, the "target" image is the 20X image
         # and the "moving" image is the 40x image.
-        fixed_flag = "20X"
+        target_flag = "20X"
         moving_flag = "40X"
     dataset_pairs = {
-        "fixed": [dataset_name for dataset_name in dataset_list if fixed_flag in dataset_name],
+        "target": [dataset_name for dataset_name in dataset_list if target_flag in dataset_name],
         "moving": [dataset_name for dataset_name in dataset_list if moving_flag in dataset_name],
     }
     return dataset_pairs
@@ -753,11 +753,10 @@ def align_and_save_paired_images(
 
     dataset_pairs = get_paired_dataset_dict(dataset_pair_type)
 
-    # Note that the "fixed" key refers to the image being used as
+    # Note that the "target" key refers to the image being used as
     # the reference image for alignment, and the "moving" key
-    # refers to the image being aligned to the fixed image.
-    # That is, "fixed" here does not refer to the image being fixed.
-    fixed_datasets = dataset_pairs["fixed"]
+    # refers to the image being aligned to the target image.
+    target_datasets = dataset_pairs["target"]
     moving_datasets = dataset_pairs["moving"]
 
     if dataset_pair_type == "live_fixed":
@@ -767,12 +766,12 @@ def align_and_save_paired_images(
 
     df_list = []
 
-    for index, (fixed, moving) in enumerate(zip(fixed_datasets, moving_datasets, strict=True)):
+    for index, (target, moving) in enumerate(zip(target_datasets, moving_datasets, strict=True)):
         if num_datasets_to_align is not None and index > num_datasets_to_align:
             break
 
         df_ = align_all_positions(
-            fixed,
+            target,
             moving,
             resolution_level,
             z_slice_offsets,
@@ -780,11 +779,11 @@ def align_and_save_paired_images(
             alignment_method=alignment_method,
             num_positions_to_align=num_positions_to_align,
         )
-        df_["fixed_dataset"] = fixed
+        df_["target_dataset"] = target
         df_list.append(df_)
 
     df = pd.concat(df_list, ignore_index=True)
-    df = df.dropna(subset=["fixed", "moving"])
+    df = df.dropna(subset=["target", "moving"])
     logger.debug("Found %d pairs of images to save.", len(df))
     return df
 
@@ -793,13 +792,13 @@ def concat_and_save_aligned_image_pairs(
     row: dict[str, str], savedir: Path, overwrite_images: bool = True
 ) -> Path:
     """
-    Concatenate the aligned fixed and moving images into a single OME-TIFF file
+    Concatenate the aligned target and moving images into a single OME-TIFF file
     and save it to the specified directory.
 
     Parameters
     ----------
     row
-        A row (in dict form) of a DataFrame containing paths to the fixed and moving images.
+        A row (in dict form) of a DataFrame containing paths to the target and moving images.
     savedir
         The directory where the concatenated image will be saved.
     overwrite_images
@@ -811,15 +810,15 @@ def concat_and_save_aligned_image_pairs(
         return save_path
 
     # load the aligned brightfield images (squeeze out C and T dims)
-    fixed_3d_stack = load_image_from_path(Path(row["fixed"]), squeeze=True)
+    target_3d_stack = load_image_from_path(Path(row["target"]), squeeze=True)
     moving_3d_stack = load_image_from_path(Path(row["moving"]), squeeze=True)
 
     # take the std projection of each 3D stack over Z
-    fixed_proj = fixed_3d_stack.std(0)
+    target_proj = target_3d_stack.std(0)
     moving_proj = moving_3d_stack.std(0)
 
     # concatenate along a new axis
-    concatenated_images = np.stack([fixed_proj, moving_proj], axis=0)[:, None]
+    concatenated_images = np.stack([target_proj, moving_proj], axis=0)[:, None]
 
     # save the concatenated image as a multi-channel OME-TIFF
     OmeTiffWriter.save(uri=save_path, data=concatenated_images)
