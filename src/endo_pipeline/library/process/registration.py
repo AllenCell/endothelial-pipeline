@@ -25,6 +25,7 @@ from endo_pipeline.configs import (
     get_position_integer_from_zarr_file_path,
     load_dataset_config,
 )
+from endo_pipeline.io import load_image_from_path
 from endo_pipeline.library.model import get_include_positions, get_z_slice_bounds_per_position
 from endo_pipeline.library.process.cdh5_preprocessing import preprocess
 
@@ -788,7 +789,9 @@ def align_and_save_paired_images(
     return df
 
 
-def concat_and_save_aligned_image_pairs(row: dict[str, str], savedir: Path) -> Path:
+def concat_and_save_aligned_image_pairs(
+    row: dict[str, str], savedir: Path, overwrite_images: bool = True
+) -> Path:
     """
     Concatenate the aligned fixed and moving images into a single OME-TIFF file
     and save it to the specified directory.
@@ -799,18 +802,27 @@ def concat_and_save_aligned_image_pairs(row: dict[str, str], savedir: Path) -> P
         A row (in dict form) of a DataFrame containing paths to the fixed and moving images.
     savedir
         The directory where the concatenated image will be saved.
+    overwrite_images
+        Overwrite existing images if True, return existing file if False.
     """
     save_path = _get_concat_path(row, savedir)
-    if save_path.exists():
+    if save_path.exists() and not overwrite_images:
         logger.debug("Returning existing file at: [ %s ]", save_path)
         return save_path
-    # take standard deviation projection here to allow concatenation with different z-axis sizes
-    fixed = BioImage(row["fixed"]).data.squeeze().max(0)
-    moving = BioImage(row["moving"]).data.squeeze().max(0)
 
-    out = np.stack([fixed, moving], axis=0)[:, None]
+    # load the aligned brightfield images (squeeze out C and T dims)
+    fixed_3d_stack = load_image_from_path(Path(row["fixed"]), squeeze=True)
+    moving_3d_stack = load_image_from_path(Path(row["moving"]), squeeze=True)
 
-    OmeTiffWriter.save(uri=save_path, data=out)
+    # take the std projection of each 3D stack over Z
+    fixed_proj = fixed_3d_stack.std(0)
+    moving_proj = moving_3d_stack.std(0)
+
+    # concatenate along a new axis
+    concatenated_images = np.stack([fixed_proj, moving_proj], axis=0)[:, None]
+
+    # save the concatenated image as a multi-channel OME-TIFF
+    OmeTiffWriter.save(uri=save_path, data=concatenated_images)
     logger.debug("Saving concatenated image to: [ %s ]", save_path)
 
     return save_path
