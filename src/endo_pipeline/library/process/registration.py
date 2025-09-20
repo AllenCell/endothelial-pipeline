@@ -802,6 +802,8 @@ def concat_and_save_aligned_image_pairs(
         A row (in dict form) of a DataFrame containing paths to the fixed and moving images.
     savedir
         The directory where the concatenated image will be saved.
+    overwrite_images
+        Overwrite existing images if True, return existing file if False.
     """
     save_path = _get_concat_path(row, savedir)
     if save_path.exists() and not overwrite_images:
@@ -809,8 +811,8 @@ def concat_and_save_aligned_image_pairs(
         return save_path
 
     # load the aligned brightfield images (squeeze out C and T dims)
-    fixed_3d_stack = load_image_from_path(row["fixed"], squeeze=True)
-    moving_3d_stack = load_image_from_path(row["moving"], squeeze=True)
+    fixed_3d_stack = load_image_from_path(Path(row["fixed"]), squeeze=True)
+    moving_3d_stack = load_image_from_path(Path(row["moving"]), squeeze=True)
 
     # take the std projection of each 3D stack over Z
     fixed_proj = fixed_3d_stack.std(0)
