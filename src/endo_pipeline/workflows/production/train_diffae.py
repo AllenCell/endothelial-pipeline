@@ -71,11 +71,13 @@ def main(
         max_num_epochs = 1
         log_every_n_steps = 1
         cache_rate = 1.0  # use 100% of data for demo mode
+        replace_rate = 0.1
     else:
         name_suffix = ""
         max_num_epochs = 1000
         log_every_n_steps = 50
-        cache_rate = 0.01  # use 1% of data for training
+        cache_rate = 1.0  # This can be changed if needed!
+        replace_rate = 0.5
 
     # "_exclude_cell_piling" suffix if cell piling exclusion is requested
     if exclude_cell_piling:
@@ -128,6 +130,7 @@ def main(
         max_num_epochs=max_num_epochs,
         log_every_n_steps=log_every_n_steps,
         cache_rate=cache_rate,
+        replace_rate=replace_rate,
     )
     local_config_save_path = get_output_path("models", "training_configs")
     model.save_config(local_config_save_path / f"{model_name_unique}_train.yaml")

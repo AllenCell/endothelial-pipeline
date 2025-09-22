@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 from collections.abc import Callable, Sequence
 from pathlib import Path
@@ -22,12 +23,9 @@ from endo_pipeline.configs import (
     get_position_integer_from_zarr_file_path,
 )
 from endo_pipeline.library.process.z_stack_selection import get_plane_indices
-from endo_pipeline.settings.image_data import LOG_EPSILON
+from endo_pipeline.settings.image_data import LOG_EPSILON, NUM_ZSLICES
 
 logger = logging.getLogger(__name__)
-
-MIN_Z_BOUND = 0
-MAX_Z_BOUND = 24
 
 
 class LogImaged(Transform):
@@ -234,6 +232,7 @@ class MultiDimImageDataset(SmartCacheDataset):
         z_start_column: str = "z_start",
         z_stop_column: str = "z_stop",
         z_step_column: str = "z_step",
+        num_devices: int = 1,
         extra_columns: Sequence[str] = [],
         transform: Callable | Sequence[Callable] | None = None,
         **cache_kwargs: Any,
@@ -337,10 +336,18 @@ class MultiDimImageDataset(SmartCacheDataset):
             List of extra columns to include in the output dictionary.
         transform
             List (or ``Compose`` object) of Monai-style transforms to apply to the image metadata.
+        num_devices
+            Number of devices/processes for distributed training. If None, defaults to trainer.devices
+            from environment or 1 if not available. Used to determine world_size for training.
         cache_kwargs:
             Additional keyword arguments to pass to ``CacheDataset``.
         """
         df = pd.read_parquet(dataframe_path)
+        rank = int(os.environ.get("LOCAL_RANK", 0))
+        # Use WORLD_SIZE from environment, fallback to num_devices, then default to 1
+        world_size = int(os.environ.get("WORLD_SIZE", num_devices or 1))
+
+        # Store dataset parameters
         self.img_path_column = img_path_column
         self.channel_column = channel_column
         self.scene_column = scene_column
@@ -356,7 +363,34 @@ class MultiDimImageDataset(SmartCacheDataset):
         if spatial_dims not in (2, 3):
             raise ValueError(f"`spatial_dims` must be 2 or 3, got {spatial_dims}")
         self.spatial_dims = spatial_dims
-        data = self.get_per_file_args(df)
+
+        # First expand all data to get total sample count
+        logger.info(f"[Rank {rank}] Expanding dataframe rows to individual samples...")
+        data = self.get_per_file_args(df.reset_index(drop=True))
+
+        # Now distribute samples evenly across ranks
+        if world_size > 1:
+
+            logger.info(f"[Rank {rank}] Total samples before distribution: {len(data)}")
+
+            # Calculate balanced distribution
+            total_samples = len(data)
+            samples_per_rank = total_samples // world_size
+            extra_samples = total_samples % world_size
+
+            # Each rank gets either samples_per_rank or samples_per_rank + 1 samples
+            start_idx = rank * samples_per_rank + min(rank, extra_samples)
+            end_idx = start_idx + samples_per_rank + (1 if rank < extra_samples else 0)
+
+            # Slice the data for this rank
+            data = data[start_idx:end_idx]
+
+            logger.info(
+                f"[Rank {rank}] Samples assigned to this rank: {len(data)} (indices {start_idx}:{end_idx})"
+            )
+
+        else:
+            logger.info(f"Single process training with {len(data)} samples")
 
         if transform is None:
             transform = []
@@ -467,7 +501,7 @@ class MultiDimImageDataset(SmartCacheDataset):
 
 def get_z_slice_bounds_per_position(
     dataset_config: DatasetConfig,
-    z_slice_offsets: tuple[int, int] | None,
+    z_stack_offsets: tuple[int, int] | None,
 ) -> dict[int, dict[str, int]]:
     """
     Parse dataset annotations to get lower and upper z-slice
@@ -475,16 +509,16 @@ def get_z_slice_bounds_per_position(
 
     **Z-stack offsets**
 
-    The ``z_slice_offsets`` parameter allows for flexible control over the z-slice loading.
-    If ``z_slice_offsets`` is provided, it limits the number of z-slices to load
-    by slicing about a global center (annotated in the datset config). If it
+    The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
+    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load
+    by slicing about a global center as annotated in the dataset config. If it
     is ``None``, all z-slices are loaded from the raw brightfield images.
 
     Parameters
     ----------
     dataset_config
         Dataset configuration object.
-    z_slice_offsets
+    z_stack_offsets
         Lower and upper bounds for z-slicing.
 
     Returns
@@ -493,17 +527,17 @@ def get_z_slice_bounds_per_position(
         Dictionary with z-slice start and stop indices per position.
     """
     # get z-slice offsets per position if specified
-    if z_slice_offsets is not None:
+    if z_stack_offsets is not None:
         logger.debug(
-            "Using z-stack offsets: [ %s ]",
-            z_slice_offsets,
+            "Using z-stack offsets: [ %s ] ",
+            z_stack_offsets,
         )
     else:
         # if no z-stack offsets are provided, pass in None
         # to the dataframe builder
         logger.debug("No z-stack offsets provided, using full range in Z.")
 
-    # if z_slice_offsets is not None, get z-slice ranges
+    # if z_stack_offsets is not None, get z-slice ranges
     # for each position in the dataset (i.e., zarr file)
     # else, fixed full range is 0 to 24
     available_zarr_files = get_available_zarr_files(dataset_config)
@@ -512,15 +546,15 @@ def get_z_slice_bounds_per_position(
         # get position from zarr path as an integer (e.g., 'P0' -> 0)
         position_as_int = get_position_integer_from_zarr_file_path(zarr_file_path)
         # get z-slice indices for the given position
-        if z_slice_offsets is not None:
+        if z_stack_offsets is not None:
             z_slices = get_plane_indices(
                 dataset_config,
                 position_as_int,
-                lower_offset=z_slice_offsets[0],
-                upper_offset=z_slice_offsets[1],
+                lower_offset=z_stack_offsets[0],
+                upper_offset=z_stack_offsets[1],
             )
         else:
-            z_slices = [MIN_Z_BOUND, MAX_Z_BOUND]
+            z_slices = [0, NUM_ZSLICES - 1]
         z_slice_bounds_per_position[position_as_int] = {
             "z_start": z_slices[0],
             "z_stop": z_slices[-1],

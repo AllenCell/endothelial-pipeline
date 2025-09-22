@@ -343,30 +343,90 @@ def silence_external_loggers(external_loggers: dict) -> None:
 
 
 def setup_gpu() -> None:
-    """Set up GPU environmental variables."""
-
-    logger.info("Setting up environment to run workflow using GPU")
-
+    """
+    Set up the GPU environment for workflow.
+    Picks the GPU with most free memory or sets CUDA_VISIBLE_DEVICES for multi-GPU & MIG.
+    """
     import os
     import re
     import subprocess
 
-    # Query to get free memory of available GPU devices
-    command = ["nvidia-smi", "--query-gpu=memory.free,index", "--format=csv,noheader,nounits"]
-    gpu_memory_free = subprocess.run(command, stdout=subprocess.PIPE).stdout.decode().strip()
+    from omegaconf import OmegaConf
 
-    # If unable to access the driver, report error and exit
-    if "failed" in gpu_memory_free:
-        logger.error("Workflow is unable to communicate with the NVIDIA driver")
-        raise OSError(gpu_memory_free)
+    logger.info("Setting up environment to run workflow using GPU")
 
-    # Select device number with the maximum free memory
-    gpu_options = [(int(free), gpu) for free, gpu in re.findall(r"(\d+), (\d+)", gpu_memory_free)]
-    _, gpu_with_max_free = sorted(gpu_options, reverse=True)[0]
+    # Helper to get trainer.devices (default: 1)
+    num_devices = 1
+    try:
+        from omegaconf import OmegaConf
 
-    # Set the CUDA_VISIBLE_DEVICES environment variable to selected GPU
-    os.environ["CUDA_VISIBLE_DEVICES"] = gpu_with_max_free
-    logger.info("Setting CUDA_VISIBLE_DEVICES to [ %s ]", gpu_with_max_free)
+        from endo_pipeline.library.model import get_model_dir
+
+        training_config_path = get_model_dir() / "diffae_training.yaml"
+        if training_config_path.exists():
+            training_config = OmegaConf.load(training_config_path)
+            num_devices = int(training_config.get("trainer", {}).get("devices", 1))
+
+    except Exception as e:
+        logger.warning("Could not read DiffAE training config: %s. Defaulting to 1 device.", e)
+
+    logger.info("trainer.devices: %d", num_devices)
+
+    # Detect MIG
+    mig_output = subprocess.run(["nvidia-smi", "-L"], stdout=subprocess.PIPE).stdout.decode()
+    is_mig = "MIG" in mig_output
+    mig_uuids = re.findall(r"UUID: (MIG-[a-f0-9-]+)", mig_output)
+
+    if is_mig:
+        logger.info("MIG detected.")
+        if num_devices > 1:
+            logger.info(
+                "More than one device requested to train on, but MIG partitioning detected!"
+            )
+            raise RuntimeError("Cannot use DDP with MIG devices.")
+        if not mig_uuids:
+            logger.info("MIG partitioning detected, but no UUIDs seen!")
+            raise RuntimeError("No MIG UUIDs found, but MIG is enabled.")
+        selected_uuid = mig_uuids[0]
+        os.environ["CUDA_VISIBLE_DEVICES"] = selected_uuid
+
+        logger.info("Using MIG UUID: %s", selected_uuid)
+        logger.info("Set CUDA_VISIBLE_DEVICES to [ %s ]", selected_uuid)
+
+        return
+
+    # Not MIG: Pick by available GPUs and free memory
+    mem_info = (
+        subprocess.run(
+            ["nvidia-smi", "--query-gpu=memory.free,index", "--format=csv,noheader,nounits"],
+            stdout=subprocess.PIPE,
+        )
+        .stdout.decode()
+        .strip()
+    )
+    gpu_avail = re.findall(r"(\d+), (\d+)", mem_info)
+    available_indices = sorted([int(gpu) for _, gpu in gpu_avail])
+
+    logger.info("Available GPU indices: %s", available_indices)
+    if num_devices == 1:
+        best_gpu = max(gpu_avail, key=lambda x: int(x[0]))[1]
+        os.environ["CUDA_VISIBLE_DEVICES"] = best_gpu
+
+        logger.info("Using GPU with most free memory: %s", best_gpu)
+    else:
+        if num_devices > len(available_indices):
+            logger.warning(
+                "Requested %d devices, but only %d available. Using all available.",
+                num_devices,
+                len(available_indices),
+            )
+            num_devices = len(available_indices)
+        devs = ",".join(str(x) for x in available_indices[:num_devices])
+        os.environ["CUDA_VISIBLE_DEVICES"] = devs
+
+        logger.info("Using GPUs: %s", devs)
+
+    logger.info("Set CUDA_VISIBLE_DEVICES to [ %s ]", os.environ["CUDA_VISIBLE_DEVICES"])
 
 
 if __name__ == "__main__":
