@@ -60,14 +60,14 @@ def main(
             f"Expected image output directory does not exist: {output_dir.as_posix()}"
         )
 
-    # get name of dataset used as the "fixed" image in the fixed/moving pair
+    # get name of dataset used as the "target" image in the target/moving pair
     # to get image paths from the ImageManifest created in the registration workflow
     image_manifest = load_image_manifest(
         f"registered_{dataset_pair_type}_resolution_{resolution_level}{name_suffix}"
     )
     paired_datasets = get_paired_dataset_dict(dataset_pair_type)
     image_paths: list[str] = []
-    for fixed_dataset_name in paired_datasets["fixed"]:
+    for fixed_dataset_name in paired_datasets["target"]:
         dataset_config = load_dataset_config(fixed_dataset_name)
         available_positions = dataset_config.zarr_positions
 
