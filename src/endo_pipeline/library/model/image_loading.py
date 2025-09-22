@@ -23,12 +23,9 @@ from endo_pipeline.configs import (
     get_position_integer_from_zarr_file_path,
 )
 from endo_pipeline.library.process.z_stack_selection import get_plane_indices
-from endo_pipeline.settings.image_data import LOG_EPSILON
+from endo_pipeline.settings.image_data import LOG_EPSILON, NUM_ZSLICES
 
 logger = logging.getLogger(__name__)
-
-MIN_Z_BOUND = 0
-MAX_Z_BOUND = 24
 
 
 class LogImaged(Transform):
@@ -505,7 +502,6 @@ class MultiDimImageDataset(SmartCacheDataset):
 def get_z_slice_bounds_per_position(
     dataset_config: DatasetConfig,
     z_stack_offsets: tuple[int, int] | None,
-    slice_by_global_center: bool,
 ) -> dict[int, dict[str, int]]:
     """
     Parse dataset annotations to get lower and upper z-slice
@@ -514,14 +510,9 @@ def get_z_slice_bounds_per_position(
     **Z-stack offsets**
 
     The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
-    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load, either
-    by slicing about a global center or by using the provided offsets directly. If it
+    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load
+    by slicing about a global center as annotated in the dataset config. If it
     is ``None``, all z-slices are loaded from the raw brightfield images.
-
-    If ``slice_by_global_center`` is set to True, the z-slice range is calculated based on
-    the global center plane for the given position. In this case, ``z_stack_offsets`` should
-    indicate the number of slices to include below and above the center plane. Else, the
-    ``z_stack_offsets`` are used directly as the range bounds.
 
     Parameters
     ----------
@@ -529,8 +520,6 @@ def get_z_slice_bounds_per_position(
         Dataset configuration object.
     z_stack_offsets
         Lower and upper bounds for z-slicing.
-    slice_by_global_center
-        Get global center plane per position for z-slicing if True, use offsets directly if False.
 
     Returns
     -------
@@ -540,9 +529,8 @@ def get_z_slice_bounds_per_position(
     # get z-slice offsets per position if specified
     if z_stack_offsets is not None:
         logger.debug(
-            "Using z-stack offsets: [ %s ] with slice_by_global_center = [ %s ] ",
+            "Using z-stack offsets: [ %s ] ",
             z_stack_offsets,
-            slice_by_global_center,
         )
     else:
         # if no z-stack offsets are provided, pass in None
@@ -564,10 +552,9 @@ def get_z_slice_bounds_per_position(
                 position_as_int,
                 lower_offset=z_stack_offsets[0],
                 upper_offset=z_stack_offsets[1],
-                slice_by_global_center=slice_by_global_center,
             )
         else:
-            z_slices = [MIN_Z_BOUND, MAX_Z_BOUND]
+            z_slices = [0, NUM_ZSLICES - 1]
         z_slice_bounds_per_position[position_as_int] = {
             "z_start": z_slices[0],
             "z_stop": z_slices[-1],
