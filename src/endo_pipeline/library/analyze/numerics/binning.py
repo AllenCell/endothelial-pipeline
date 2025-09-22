@@ -1,13 +1,15 @@
+from typing import cast
+
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.configs import ModelManifest
-from src.endo_pipeline.library.analyze.diffae_manifest import (
+from endo_pipeline.library.analyze.diffae_manifest import (
     df_to_array,
-    get_manifest_for_dynamics_workflows,
+    get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
 )
+from endo_pipeline.manifests import DataframeManifest
 
 
 def get_bins(
@@ -67,9 +69,11 @@ def get_bins(
 
 
 def get_3d_bounds_from_data(
-    model_manifest_list: list[ModelManifest],
+    dataset_names: list[str],
+    manifest: DataframeManifest,
     pca: PCA,
     filter_to_valid: bool = True,
+    pad: bool = False,
 ) -> list[np.ndarray]:
     """
     Set bounds for 3D state space based on the bounds
@@ -79,7 +83,8 @@ def get_3d_bounds_from_data(
     on a fixed set of reference datasets.
 
     Inputs:
-    - list_of_datasets: list of dataset names to use
+    - dataset_names: list of datasets
+    - manifest: manifest of model feature dataframes
     - pca: PCA model to use for transforming the data
     - col_names: which columns to use for bounds
         - "pc": data is coming from a workflow where
@@ -107,15 +112,19 @@ def get_3d_bounds_from_data(
     # initialize bounds
     bounds_ = [[np.inf, -np.inf] for _ in range(num_dims)]
 
-    for model_manifest in model_manifest_list:
-        df = get_manifest_for_dynamics_workflows(
-            model_manifest, pca, filter_to_valid=filter_to_valid
-        )
+    for dataset_name in dataset_names:
+        df = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca, filter_to_valid)
         # get column names for features
         pc_column_names = get_pc_column_names(df, pc_axes=[0, 1, 2])
         for j in range(num_dims):
-            bounds_[j][0] = min(bounds_[j][0], df[pc_column_names[j]].min())
-            bounds_[j][1] = max(bounds_[j][1], df[pc_column_names[j]].max())
+            candidate_min = df[pc_column_names[j]].min()
+            candidate_max = df[pc_column_names[j]].max()
+            if pad:
+                candidate_min = candidate_min - 0.1
+                candidate_max = candidate_max + 0.1
+            # update bounds for each dimension
+            bounds_[j][0] = min(bounds_[j][0], candidate_min)
+            bounds_[j][1] = max(bounds_[j][1], candidate_max)
 
     bounds = [np.array(bounds_[i]) for i in range(num_dims)]
 
@@ -123,22 +132,26 @@ def get_3d_bounds_from_data(
 
 
 def _get_histogram_by_component_one_dataset(
-    df: pd.DataFrame, bin_edges=list[np.ndarray], feat_cols: list[str] | None = None
+    df: pd.DataFrame, bin_edges: list[np.ndarray], feat_cols: list[str] | None = None
 ) -> tuple[np.ndarray, pd.DataFrame]:
     """
     Compute histogram of feature data at each timepoint for each latent component.
 
-    Input:
-    - df: pd.DataFrame, feature data for a single dataset
-    - bin_edges: list[np.ndarray], bin edges for each component
-    - feat_cols: list[str] | None, column names of the features to use
-        - if None, use all feature columns in the dataframe
+    Parameters
+    ----------
+    df
+        Feature data for a single dataset.
+    bin_edges
+        Bin edges for each component.
+    feat_cols
+        Optional; specific column names of the components to analyze.
 
-    Output:
-    - hist_array: np.ndarray, histogram values for each component as a function of time
-        - shape (num_features, num_bins, num_frames)
-    - df: pd.DataFrame, updated dataframe with columns of what
-        bin each crop at frame_number t is in along the given latent dimension
+    Returns
+    -------
+    :
+        Histogram values for each component as a function of time
+    :
+        Updated dataframe with bin indices for each crop at each timepoint along each component.
     """
     if feat_cols is None:
         # use all PCA feature columns in the dataframe
@@ -253,7 +266,7 @@ def _get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:
     # this is done by finding the index of the first bin edge
     # that is greater than the value
     # and subtracting 1
-    bin_idx = np.digitize(val, bin_edges_1d) - 1
+    bin_idx = cast(int, np.digitize(val, bin_edges_1d) - 1)
 
     # check if the value is in the last bin
     # if so, set the index to the last bin

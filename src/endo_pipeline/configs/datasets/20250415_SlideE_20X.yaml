@@ -15,10 +15,19 @@ shear_stress_regime: low-to-high
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
-flow: [[0, 0, 0.0]]
 n_total_positions: 50
-channel_488_index: 1
-brightfield_channel_index: 2
+original_channel_indices:
+  brightfield: 2
+  channel_488: 1
+  channel_405: 0
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: 2
+  channel_561: null
+  channel_640: null
 flow_conditions:
 - start: -576
   stop: -288
@@ -26,9 +35,9 @@ flow_conditions:
 - start: -287
   stop: 0
   shear_stress: 21.7
-channel_405_index: 0
-channel_561_index: null
-channel_640_index: null
 valid_timepoints: null
 include_scenes: null
 notes: ''
+timepoint_annotations: null
+position_annotations: null
+center_z_plane: null

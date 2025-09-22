@@ -13,18 +13,71 @@ shear_stress_regime: 48hr_low
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
-flow: [[0, 576, 5.82]]
 n_total_positions: 6
-channel_488_index: 0
-brightfield_channel_index: 1
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
 flow_conditions:
 - start: -30
   stop: 576
   shear_stress: 5.82
-channel_405_index: null
-channel_561_index: null
-channel_640_index: null
 valid_timepoints: null
 include_scenes: null
 notes: Cells are very overgrown by end of experiment. A small hole appears in the
-  timelapse partway through and doesn't close
+  timelapse partway through and doesn't close. Manually adjusted the center_z_plane
+  from 14 to 13.
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [6, 13, 52, 99, 166, 212, 220, 222, 273, 337, 359, 365, 529, 538, 541, 544,
+      554, 555, 557, 560]
+    1: [14, 19, 45, 69, 114, 157, 169, 171, 192, 272, 332, 348, 475, 538, 541, 543,
+      558, 560]
+    2: [14, 127, 304, 414, 529, 538, 540, 541, 559]
+    3: [0, 14, 120, 220, 559, 560]
+    4: [7, 35, 191, 241, 275, 540, 542, 557, 559, 563]
+    5: [15, 89, 152, 159, 208, 331, 452, 527, 528, 534, 541, 559]
+  auto_bf_temp_artifact:
+    0: [6, 379, 529, 534, 538, 541, 551, 557]
+    1: [6, 36, 484, 529, 538, 540, 541, 563]
+    2: [540, 541, 559]
+    3: [0, 292, 529, 540, 559]
+    4: [14, 294, 341, 529, 540]
+    5: [356, 527, 528, 534, 540, 554]
+  bf_scope_error:
+    0: [6, 529, 557]
+    1: [6, 529, 540, 563]
+    2: [540]
+    3: [0, 529, 540]
+    4: [529, 540]
+    5: [528, 540]
+  bf_temp_artifact:
+    0: [52, 273, 337, 379]
+    1: [36, 69, 114, 171, 192, 272, 332]
+    2: [304]
+    3: [292]
+    4: [14, 191, 241, 294]
+    5: [89, 356, 554]
+  cell_piling:
+    0: [[460, 576]]
+    1: [[419, 576]]
+    2: [[226, 576]]
+    3: [[487, 576]]
+    4: [[371, 576]]
+    5: [[228, 576]]
+position_annotations: null
+center_z_plane:
+  0: 13
+  1: 13
+  2: 13
+  3: 13
+  4: 13
+  5: 13

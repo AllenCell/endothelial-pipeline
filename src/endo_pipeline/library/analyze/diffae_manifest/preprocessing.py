@@ -2,8 +2,9 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.configs import ModelManifest, load_dataset_config
-from src.endo_pipeline.io import load_dataframe_from_fms
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import load_dataframe
+from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
 
 from .diffae_manifest_utils import (
     get_dataset_descriptions,
@@ -133,36 +134,39 @@ def project_manifest_to_pcs(
     return df_
 
 
-def get_manifest_for_dynamics_workflows(
-    model_manifest: ModelManifest,
+def get_dataframe_for_dynamics_workflows(
+    dataset_name: str,
+    manifest: DataframeManifest,
     pca: PCA | None = None,
     filter_to_valid: bool = True,
 ) -> pd.DataFrame:
     """
-    Load DiffAE manifest data projected onto given PC axes for downstream analysis
-    in the stochastic dynamics workflow. Adds crop index column to DataFrame,
-    and projects feature data onto PC axes.
+    Load DiffAE dataframe data projected onto given PC axes for downstream
+    analysis in the stochastic dynamics workflow. Adds crop index column to
+    DataFrame, and projects feature data onto PC axes.
 
-    Inputs:
-    - model_manifest: ModelManifest, manifest information for loading feature from
-        a given model for a give dataset
-    - pca:
-        - if PCA, PCA model fit to feature data
-        - if None, do not project feature data onto PCA axes
-    - filter_to_valid: bool, whether to filter DataFrame to only valid timepoints
+    Parameters
+    ----------
+    dataset_name
+        Name of dataset
+    manifest
+        Dataframe manifest for loading model features.
+    pca
+        PCA model to fit to feature data. If None, do not project feature data.
+    filter_to_valid
+        True to filter dataframe to valid timepoints, False otherwise.
 
-    Outputs:
-    - pd.DataFrame of feature data for crops
-        from input model_manifest
-        - projected onto PC axes if pca is not None
-        - restricted to stationary frames if
-            stationary_frames is not None
+    Returns
+    -------
+    :
+        Dataframe of feature data.
     """
-    # load manifest data from FMS
-    # and filter to only valid timepoints
-    df = load_dataframe_from_fms(model_manifest.fmsid)
+
+    location = get_dataframe_location_for_dataset(manifest, dataset_name)
+    df = load_dataframe(location)
+
     if filter_to_valid:
-        df_valid = get_valid_subset(df, model_manifest.dataset_name, verbose=False)
+        df_valid = get_valid_subset(df, dataset_name)
     else:
         df_valid = df.copy()
 

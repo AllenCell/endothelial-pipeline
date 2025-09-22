@@ -19,7 +19,7 @@ def initialize_workflow(
 ) -> tuple[Path, dict]:
     from bioio import BioImage
 
-    from src.endo_pipeline.configs.dataset_io import get_time_interval_in_minutes, get_zarr_path
+    from endo_pipeline.configs.dataset_io import get_time_interval_in_minutes, get_zarr_path
 
     # NOTE: this function is unique to each script
     SCT_NAME = Path(__file__).stem
@@ -68,13 +68,13 @@ def get_density_map_from_thresholds(
     from skimage.filters import gaussian
     from skimage.morphology import skeletonize
 
-    from src.endo_pipeline.configs.dataset_io import (
+    from endo_pipeline.configs.dataset_io import (
         get_available_channels,
         get_zarr_path,
         load_config,
         load_dataset,
     )
-    from src.endo_pipeline.library.process.cdh5_preprocessing import get_thresholds, preprocess
+    from endo_pipeline.library.process.cdh5_preprocessing import get_thresholds, preprocess
 
     DATASET_NAME_LIST = [config_data["name"] for config_data in load_config(config_type="data")]
     assert (
@@ -128,12 +128,9 @@ def get_density_map_from_segmentations(
     from skimage.segmentation import find_boundaries
     from skimage.transform import pyramid_reduce
 
-    from src.endo_pipeline.configs.dataset_io import get_zarr_path, load_config
-    from src.endo_pipeline.io import load_segmentation
-    from src.endo_pipeline.manifests import (
-        get_segmentation_location_for_dataset,
-        load_segmentation_manifest,
-    )
+    from endo_pipeline.configs.dataset_io import get_zarr_path, load_config
+    from endo_pipeline.io import load_image
+    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
     DATASET_NAME_LIST = [config_data["name"] for config_data in load_config(config_type="data")]
     assert (
@@ -150,9 +147,9 @@ def get_density_map_from_segmentations(
     # deprecated method. It has been replaced with a partial refactor using
     # newer methods, but has not been fully tested because this workflow is
     # archived. Use with caution!
-    manifest = load_segmentation_manifest("cdh5_classic")
-    location = get_segmentation_location_for_dataset(manifest, dataset_name, 0, T)
-    seg = load_segmentation(location)
+    manifest = load_image_manifest("cdh5_classic_seg")
+    location = get_image_location_for_dataset(manifest, dataset_name, 0, T)
+    seg = load_image(location)
     # --------------------------------------------------------------------------
 
     print(f"T={T} -- getting density map of image") if VERBOSE else None
@@ -175,7 +172,7 @@ def run_density_workflow(
     VERBOSE: bool = False,
 ) -> None:
 
-    from src.endo_pipeline.library.process.general_image_preprocessing import save_image_output
+    from endo_pipeline.library.process.general_image_preprocessing import save_image_output
 
     print(f"Working on {dataset_name}, T={T}...")
     print("- getting density map...") if VERBOSE else None
@@ -229,12 +226,12 @@ def main(
 
     mpl.rc("image", cmap="gray")
 
-    from src.endo_pipeline.configs.dataset_io import (
-        fire_parse_generate_dataset_name_list,
+    from endo_pipeline.configs.dataset_io import (
+        parse_generate_dataset_name_user_input,
         get_dataset_duration_in_frames,
     )
 
-    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
+    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
 
     for dataset_name in dataset_name_list:
         print(f"Initializing workflow for {dataset_name}...")
@@ -288,6 +285,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
     ipython_cli_flexecute(main)

@@ -7,31 +7,25 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from seaborn import color_palette
 
-from src.endo_pipeline.configs import (
-    get_model_manifest,
-    load_dataset_collection_config,
-    load_model_config,
-)
-from src.endo_pipeline.configs.dynamics_io import load_dynamics_config
-from src.endo_pipeline.io import load_dataframe
-from src.endo_pipeline.library.analyze.diffae_features import (
+from endo_pipeline.configs import load_dataset_collection_config
+from endo_pipeline.configs.dynamics_io import load_dynamics_config
+from endo_pipeline.io import load_dataframe
+from endo_pipeline.library.analyze.diffae_features import (
     compute_extrapolated_vector_field,
     solve_ddff_ode,
 )
-from src.endo_pipeline.library.analyze.diffae_manifest import (
+from endo_pipeline.library.analyze.diffae_manifest import (
     add_description_column,
-    get_manifest_for_dynamics_workflows,
+    get_dataframe_for_dynamics_workflows,
     get_traj_and_diff,
     project_manifest_to_pcs,
 )
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
-from src.endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
-from src.endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_data, get_bins
-from src.endo_pipeline.library.analyze.optical_flow_calculator import (
-    one_direction_vector_field_example,
-)
-from src.endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
-from src.endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
+from endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
+from endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_data, get_bins
+from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
+from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -566,9 +560,8 @@ def get_preprocessed_manifests_and_km_bounds(
 
     # read in the grid crop-based diffae features
     model_name = sequence_to_scalar(merged_feats_df["model_name"])
-    model_config = load_model_config(model_name)
-    model_manifest = get_model_manifest(dataset_name, model_config)  # type: ignore[arg-type]
-    diffae_grid_crops = get_manifest_for_dynamics_workflows(model_manifest, pca)
+    manifest = load_dataframe_manifest(model_name)
+    diffae_grid_crops = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
 
     # add the PC columns to the track-based DiffAE table
     # (the grid-based DiffAE table already has them, but
@@ -583,10 +576,7 @@ def get_preprocessed_manifests_and_km_bounds(
             dataset_name
         ]
 
-    model_manifest_list = [
-        get_model_manifest(dataset_name, model_config) for dataset_name in datasets_for_bounds  # type: ignore[arg-type]
-    ]
-    bounds = get_3d_bounds_from_data(model_manifest_list, pca)
+    bounds = get_3d_bounds_from_data(datasets_for_bounds, manifest, pca)
 
     # lastly, add a normalized version of the "time_hours" column
     merged_feats_df = add_normalized_time(merged_feats_df)

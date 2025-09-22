@@ -8,26 +8,20 @@ from bioio import BioImage
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
-from src.endo_pipeline.configs.dataset_io import (
+from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
+from endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
-    fire_parse_generate_dataset_name_list,
-    get_dataset_info,
+    parse_generate_dataset_name_user_input,
     get_original_path,
-    get_zarr_name,
-    get_zarr_path,
     ipython_cli_flexecute,
-    load_dataset_position_as_dask_array,
 )
-from src.endo_pipeline.io import configure_logging, get_output_path, load_segmentation
-from src.endo_pipeline.library.analyze import shape_features as feat
-from src.endo_pipeline.library.process.general_image_preprocessing import (
+from endo_pipeline.io import configure_logging, get_output_path, load_image, load_zarr_as_dask_array
+from endo_pipeline.library.analyze import shape_features as feat
+from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     save_image_output,
 )
-from src.endo_pipeline.manifests import (
-    get_segmentation_location_for_dataset,
-    load_segmentation_manifest,
-)
+from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +31,6 @@ def build_measured_features_tables_multiproc_wrapper(args: dict) -> None:
     scene = args["scene_index"]
     position = args["position"]
     T = args["T"]
-    img_bin_level = args["image_bin_level"]
     save_output = args["save_output"]
     out_dir = args["output_dir"]
     verbose = args["verbose"]
@@ -50,7 +43,6 @@ def build_measured_features_tables_multiproc_wrapper(args: dict) -> None:
         scene,
         position,
         use_sldy_data,
-        img_bin_level,
         save_output=save_output,
         create_validation_image=create_validation_image,
         verbose=verbose,
@@ -64,7 +56,6 @@ def build_measured_features_tables(
     scene: str | int = 0,
     position: int = 0,
     use_sldy_data: bool | None = False,
-    img_bin_level: int = 0,
     save_output: bool | None = True,
     create_validation_image: bool = False,
     verbose: bool = True,
@@ -98,9 +89,6 @@ def build_measured_features_tables(
         The position to process (this will be equal to the scene index).
     use_sldy_data: bool | None
         Whether to use the original data or the zarr data.
-    img_bin_level: int
-        The binning level to use when loading an image (only used if use_sldy_data = False).
-        Currently not implemented.
     save_output: bool | None
         Whether to save the output tables (and validation images if selected).
     create_validation_image: bool
@@ -190,7 +178,8 @@ def build_measured_features_tables(
     logger.debug(f"T={T} -- loading imaging datasets")
     # load the raw cdh5 image data
     if use_sldy_data:
-        cdh5_chan_index = get_dataset_info(dataset_name)["channel_488_index"]
+        dataset_config = load_dataset_config(dataset_name)
+        cdh5_chan_index = dataset_config.original_channel_indices.channel_488
         image_path = Path(get_original_path(dataset_name))
         img = BioImage(image_path)
         img.set_scene(scene)
@@ -199,23 +188,17 @@ def build_measured_features_tables(
         raw_arr = raw_dask_arr.compute().squeeze()
         voxel_size = img.physical_pixel_sizes
     else:
-        raw_arr = load_dataset_position_as_dask_array(
-            dataset_name,
-            position,
-            channels=["EGFP"],
-            time_start=T,
-            time_end=T,
-        )
+        dataset_config = load_dataset_config(dataset_name)
+        image_path = get_zarr_file_for_position(dataset_config, position)
+        raw_arr = load_zarr_as_dask_array(path=image_path, channels=["EGFP"], timepoints=T, level=0)
         raw_arr = raw_arr.max(axis=dim_order.index("Z")).squeeze().compute()
-        zarr_name = get_zarr_name(dataset_name, position)
-        image_path = Path(get_zarr_path(dataset_name)[zarr_name])
         voxel_size = BioImage(image_path).physical_pixel_sizes
 
     logger.debug(f"T={T} -- loading classic segmentation")
 
-    seg_manifest = load_segmentation_manifest("cdh5_classic")
-    seg_location = get_segmentation_location_for_dataset(seg_manifest, dataset_name, position, T)
-    seg_arr = load_segmentation(seg_location)
+    seg_manifest = load_image_manifest("cdh5_classic_seg")
+    seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, T)
+    seg_arr = load_image(seg_location)
     seg_filepath = seg_location.path.as_posix() if seg_location.path is not None else ""
 
     # NOTE: the segmentation images are stored as a single channel and single timepoint
@@ -223,7 +206,7 @@ def build_measured_features_tables(
 
     ## convert cleaned up threshold of cadherin signal to nodes and edges
     logger.debug(f"T={T} -- getting nodes and edges")
-    nodes, edges, skel, conn = feat.arr2graph(seg_borders, closing_step=False)
+    nodes, edges, _, _ = feat.arr2graph(seg_borders, closing_step=False)
 
     ## get the node-to-node distances and the angle between a line connecting two nodes
     ## and a horizontal line
@@ -241,7 +224,7 @@ def build_measured_features_tables(
         logger.debug(f"T={T} -- saving table of edge angles and distances")
         table = pd.DataFrame(
             {
-                "filepath_raw_image": image_path,
+                "filepath_raw_image": image_path.as_posix(),
                 "filepath_segmentation_image": seg_filepath,
                 "dataset_name": dataset_name,
                 "scene_index": scene,
@@ -263,10 +246,9 @@ def build_measured_features_tables(
                 "edge_fluorescence_max (a.u.)": neighbor_node_metrics["fluor_max (au)"],
             }
         )
-        table.to_csv(
-            tables_out_dir_alignments / f"{dataset_name}_P{position}_T{T}_cdh5_alignments.tsv",
+        table.to_parquet(
+            tables_out_dir_alignments / f"{dataset_name}_P{position}_T{T}_cdh5_alignments.parquet",
             index=False,
-            sep="\t",
         )
 
         if create_validation_image:
@@ -277,15 +259,13 @@ def build_measured_features_tables(
 
             ## create a rasterized image of the lines
             lines = np.zeros(nodes.shape, dtype=np.uint16)
-            ## need to flatten the node_coord_pairs first before passing to rasterize_edge_between_nodes
+            ## need to flatten node_coord_pairs first before passing to rasterize_edge_between_nodes
             node_coord_pairs = [
                 node_coords
                 for edge in neighbor_node_metrics["node_pair_centroids"]
                 for node_coords in edge
             ]
-            lines, line_labels_dict = feat.rasterize_edges_between_nodes(
-                node_coord_pairs, lines, label_lines=True
-            )
+            lines, _ = feat.rasterize_edges_between_nodes(node_coord_pairs, lines, label_lines=True)
 
             ## organize the image data and save it
             out_path = images_out_dir / f"{dataset_name}_P{position}_T{T}.ome.tiff"
@@ -310,7 +290,7 @@ def build_measured_features_tables(
             logger.debug(f"T={T} -- saving table of cell properties")
             table = pd.DataFrame(
                 {
-                    "filepath_raw_image": image_path,
+                    "filepath_raw_image": image_path.as_posix(),
                     "filepath_segmentation_image": seg_filepath,
                     "dataset_name": dataset_name,
                     "scene_index": scene,
@@ -353,10 +333,9 @@ def build_measured_features_tables(
                     "touches_image_border": labeled_region_metrics["touches_image_border"],
                 }
             )
-            table.to_csv(
-                tables_out_dir_segprops / f"{dataset_name}_P{position}_T{T}_cdh5_segprops.tsv",
+            table.to_parquet(
+                tables_out_dir_segprops / f"{dataset_name}_P{position}_T{T}_cdh5_segprops.parquet",
                 index=False,
-                sep="\t",
             )
 
 
@@ -369,9 +348,9 @@ def main(
     use_sldy_data: bool = False,
 ) -> None:
 
-    out_dir = get_output_path(Path(__file__).stem)
+    out_dir = get_output_path(__file__)
 
-    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
+    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
 
     configure_logging(out_dir, logger, verbose=verbose)
     logger.info(f"datasets analyzed: {dataset_name_list}")
@@ -416,7 +395,7 @@ def main(
                 dataset_name,
                 out_file_suffix="cdh5_alignments",
                 input_filename_contains="cdh5_alignments",
-                file_extension=".tsv",
+                file_extension=".parquet",
                 remove_initial_files_and_folders=True,
             )
             concatenate_and_save_feature_tables(
@@ -424,7 +403,7 @@ def main(
                 dataset_name,
                 out_file_suffix="cdh5_segprops",
                 input_filename_contains="cdh5_segprops",
-                file_extension=".tsv",
+                file_extension=".parquet",
                 remove_initial_files_and_folders=True,
             )
 

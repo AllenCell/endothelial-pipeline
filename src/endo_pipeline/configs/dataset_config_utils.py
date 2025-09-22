@@ -1,15 +1,17 @@
 """Methods for working with dataset configs."""
 
 import logging
+import re
 from pathlib import Path
-from typing import Literal
 
-from src.endo_pipeline.configs import (
+from endo_pipeline.configs import (
     DatasetCollectionConfig,
     DatasetConfig,
     MicroscopeType,
     ObjectiveType,
+    PositionAnnotation,
     SampleType,
+    TimepointAnnotation,
     load_all_dataset_configs,
     load_dataset_collection_config,
     load_dataset_config,
@@ -41,6 +43,30 @@ def get_zarr_file_for_position(dataset: DatasetConfig, position: int) -> Path:
         logger.warning("Zarr file [ %s ] does not exist", zarr_file)
 
     return zarr_file
+
+
+def get_position_string_from_zarr_file_path(zarr_file_path: str | Path) -> str:
+    """Extract position as 'P[x]' from the file path, if found."""
+
+    position = re.findall(r"(P[0-9]+)", Path(zarr_file_path).stem)
+
+    if not position:
+        logger.error("No position found in path [ %s ]", zarr_file_path)
+        raise ValueError(f"Path '{zarr_file_path}' does not contain a valid position")
+
+    return position[0]
+
+
+def get_position_integer_from_zarr_file_path(zarr_file_path: str | Path) -> int:
+    """Extract position as integer from the file path, if found."""
+
+    position_str = get_position_string_from_zarr_file_path(zarr_file_path)
+
+    if not position_str.startswith("P"):
+        logger.error("Position string [ %s ] does not start with 'P'", position_str)
+        raise ValueError(f"Position string '{position_str}' is not valid")
+
+    return int(position_str.replace("P", ""))  # Convert 'P[x]' to x
 
 
 def get_available_channels_for_all_positions(dataset: DatasetConfig) -> dict[int, list[str]]:
@@ -86,20 +112,6 @@ def get_channel_indices_for_position(
         available_channels.index(channel) if channel in available_channels else None
         for channel in channel_names
     ]
-
-
-def get_specific_channel_order(
-    dataset: DatasetConfig,
-) -> tuple[int | None, int, int | None, int | None, int | None]:
-    """Get the specific channel order for given dataset."""
-
-    return (
-        dataset.channel_488_index,
-        dataset.brightfield_channel_index,
-        dataset.channel_405_index,
-        dataset.channel_561_index,
-        dataset.channel_640_index,
-    )
 
 
 def get_frame_before_flow_change(dataset: DatasetConfig) -> int | None:
@@ -153,6 +165,55 @@ def get_duration_at_flow(dataset: DatasetConfig, shear_stress: float) -> int:
             duration = duration + (condition.stop - condition.start)
 
     return duration
+
+
+def get_annotated_positions(
+    dataset: DatasetConfig, annotations: list[PositionAnnotation] | None = None
+) -> list[int]:
+    """Get all positions for given annotations."""
+
+    annotated_positions: list[int] = []
+
+    if dataset.position_annotations is None:
+        logger.info("Dataset [ %s ] does not have any annotated positions", dataset.name)
+        return annotated_positions
+
+    for annotation, positions in dataset.position_annotations.items():
+        if annotations is None or annotation in annotations:
+            annotated_positions.extend(positions)
+
+    return annotated_positions
+
+
+def get_annotated_timepoints_for_position(
+    dataset: DatasetConfig, position: int, annotations: list[TimepointAnnotation] | None = None
+) -> list[int]:
+    """Get all timepoints for given annotations at the given position."""
+
+    annotated_timepoints: list[int] = []
+
+    if dataset.timepoint_annotations is None:
+        logger.info("Dataset [ %s ] does not have any annotated timepoints", dataset.name)
+        return annotated_timepoints
+
+    for annotation, positions in dataset.timepoint_annotations.items():
+        if position not in positions:
+            logger.info(
+                "Dataset [ %s ] does not have any [ %s ] annotations for position [ %d ]",
+                dataset.name,
+                annotation.value,
+                position,
+            )
+            continue
+
+        if annotations is None or annotation in annotations:
+            for timepoint in positions[position]:
+                if isinstance(timepoint, int):
+                    annotated_timepoints.append(timepoint)
+                else:
+                    annotated_timepoints.extend(list(range(timepoint[0], timepoint[1] + 1)))
+
+    return sorted(set(annotated_timepoints))
 
 
 def get_filtered_dataset_collection_name(

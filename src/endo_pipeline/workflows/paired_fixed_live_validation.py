@@ -1,6 +1,6 @@
-from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
-from src.endo_pipeline.library.analyze.immunofluorescence import validate_pcs_for_integration
-from src.endo_pipeline.library.visualize import viz_validate_pcs_for_integration
+from endo_pipeline.library.analyze.diffae_manifest import fit_pca
+from endo_pipeline.library.analyze.immunofluorescence import validate_pcs_for_integration
+from endo_pipeline.library.visualize import viz_validate_pcs_for_integration
 
 if __name__ == "__main__":
     """

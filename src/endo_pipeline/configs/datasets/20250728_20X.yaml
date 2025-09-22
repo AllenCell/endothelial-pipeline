@@ -1,0 +1,91 @@
+name: 20250728_20X
+original_path: //allen/programs/allencell/data/proj0/95b/d7b/4ab/c70/f4b/178/b43/4b1/273/765/b0/20250728_GE00008553_20X_sldy/20250728_GE00008553_20X_sldy.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250728_b07652734b1b43178f4bc704abd7b95b
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: b07652734b1b43178f4bc704abd7b95b
+barcode: GE00008553
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: no_flow
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+flow_conditions:
+- start: 0
+  stop: 576
+  shear_stress: 0.0
+valid_timepoints: null
+include_scenes: null
+notes: no SS w/ feeding every 3 hours during working hours. Cells unfed during timepoint
+  105-248, 355-539.
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [0, 247]
+    1: []
+    2: [258]
+    3: []
+    4: []
+    5: [0]
+  auto_bf_temp_artifact:
+    0: [0, 32, 65, 246, 258, 285, 320, 537]
+    1: [32, 65, 246, 285, 320, 537]
+    2: [32, 65, 246, 285, 320, 537]
+    3: [32, 65, 246, 285, 320, 537]
+    4: [32, 65, 246, 285, 320, 537]
+    5: [0, 32, 65, 246, 285, 320, 537]
+  auto_gfp_scope_error:
+    0: [32, 65, 246, 285, 320, 537]
+    1: [32, 320]
+    2: [32, 320, 537]
+    3: [32, 65, 537]
+    4: [32, 65, 285]
+    5: [32, 65, 285]
+  bf_scope_error:
+    0: [0]
+    5: [0]
+  unfed:
+    0: [[105, 248], [355, 539]]
+    1: [[105, 248], [355, 539]]
+    2: [[105, 248], [355, 539]]
+    3: [[105, 248], [355, 539]]
+    4: [[105, 248], [355, 539]]
+    5: [[105, 248], [355, 539]]
+  xy_shift:
+    0: [64, 65, 245, 246, 319, 320]
+    1: [64, 65, 245, 246, 319, 320]
+    2: [64, 65, 245, 246, 319, 320]
+    3: [64, 65, 245, 246, 319, 320]
+    4: [64, 65, 245, 246, 319, 320]
+    5: [64, 65, 245, 246, 319, 320]
+  z_shift:
+    0: [32, 65, 246, 285, 320]
+    1: [32, 65, 246, 285, 320]
+    2: [32, 65, 246, 285, 320]
+    3: [32, 65, 246, 285, 320]
+    4: [32, 65, 246, 285, 320]
+    5: [32, 65, 246, 285, 320]
+position_annotations:
+  dust_artifact: [3]
+center_z_plane:
+  0: 13
+  1: 13
+  2: 13
+  3: 13
+  4: 13
+  5: 13

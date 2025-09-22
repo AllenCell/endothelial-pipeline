@@ -9,14 +9,14 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.configs import ModelManifest, load_dataset_config
-from src.endo_pipeline.io import save_plot_to_path
-from src.endo_pipeline.library.analyze.diffae_manifest import (
-    get_manifest_for_dynamics_workflows,
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.library.analyze.diffae_manifest import (
+    get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
     split_dataset_by_flow,
 )
-from src.endo_pipeline.library.analyze.numerics import (
+from endo_pipeline.library.analyze.numerics import (
     SteadyFP,
     entropy_production,
     get_normalization_constant,
@@ -24,7 +24,8 @@ from src.endo_pipeline.library.analyze.numerics import (
     mesh_grid_function,
     vector_field_component,
 )
-from src.endo_pipeline.library.visualize.diffae_features import dynamics_viz, pplane
+from endo_pipeline.library.visualize.diffae_features import dynamics_viz, pplane
+from endo_pipeline.manifests import DataframeManifest
 
 
 def get_stationary_probability(
@@ -209,7 +210,8 @@ def model_data_comparison_one_dataset(
 
 def model_data_comparison(
     sde_model: list[Callable],
-    model_manifest_list: list[ModelManifest],
+    dataset_names: list[str],
+    manifest: DataframeManifest,
     pca: PCA,
     pc_axes: list,
     bins: list,
@@ -226,8 +228,8 @@ def model_data_comparison(
 
     Inputs:
     - sde_model: list of Callable functions, [drift, diffusion]
-    - model_manifests: list of ModelManifest objects, each
-        containing feature data information for one dataset
+    - dataset_names: list of dataset names to use for model comparison
+    - manifest: manifest of model feature dataframes
     - pca: PCA object fit to feature data
     - pc_axes: list of ints, indices of which PCs model
         fitting was performed on
@@ -242,19 +244,17 @@ def model_data_comparison(
     - None, saves figures to fig_savedir
     """
 
-    for model_manifest in model_manifest_list:
-        print("**** Running model analysis for dataset", model_manifest.dataset_name, "**** \n")
+    for dataset_name in dataset_names:
+        print("**** Running model analysis for dataset", dataset_name, "**** \n")
 
         # load DiffAE feature data from this one dataset
         # projected onto principal component axes as defined
         # by fit PCA object pca. Restrict to stationary frames if provided
-        df_proj = get_manifest_for_dynamics_workflows(model_manifest, pca=pca)
+        df_proj = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca=pca)
 
         # split out data by flow condition
         # split out data by flow condition
-        df_by_flow, shear_list = split_dataset_by_flow(
-            df_proj, load_dataset_config(model_manifest.dataset_name)
-        )
+        df_by_flow, shear_list = split_dataset_by_flow(df_proj, load_dataset_config(dataset_name))
         del df_proj  # free up memory
         num_flow = len(shear_list)
 
@@ -286,8 +286,7 @@ def model_data_comparison(
             # add dataset name and shear stress to figure
             # suptitle for comparison of histograms
             sup_title = (
-                f"{model_manifest.dataset_name},  {shear_list[j]}"
-                f"dyn/cm$^2$ \n {fig2.texts[0].get_text()}"
+                f"{dataset_name},  {shear_list[j]}" f"dyn/cm$^2$ \n {fig2.texts[0].get_text()}"
             )
             fig2.suptitle(sup_title, fontsize=fig2.texts[0].get_fontsize(), y=1.15)
             plt.show()
@@ -296,12 +295,12 @@ def model_data_comparison(
             save_plot_to_path(
                 fig1,
                 fig_savedir,
-                f"{model_manifest.dataset_name}_phase_portrait_shear_{int(shear_list[j])}",
+                f"{dataset_name}_phase_portrait_shear_{int(shear_list[j])}",
             )
             save_plot_to_path(
                 fig2,
                 fig_savedir,
-                f"{model_manifest.dataset_name}_stationary_dist_shear_{int(shear_list[j])}",
+                f"{dataset_name}_stationary_dist_shear_{int(shear_list[j])}",
             )
 
 

@@ -1,23 +1,24 @@
 import logging
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
-import fire
 from tqdm import tqdm
 
-from src.endo_pipeline.configs import (
+from endo_pipeline.configs import (
+    get_datasets_in_collection,
     load_all_dataset_configs,
     load_dataset_config,
     load_model_config,
 )
-from src.endo_pipeline.configs.model_config_utils import get_labelfree_nuclei_prediction_model_name
-from src.endo_pipeline.io import (
+from endo_pipeline.configs.model_config_utils import get_labelfree_nuclei_prediction_model_name
+from endo_pipeline.io import (
     build_fms_annotations,
     configure_logging,
     get_output_path,
     upload_file_to_fms,
 )
-from src.endo_pipeline.manifests import (
+from endo_pipeline.manifests import (
     DataframeLocation,
     DataframeManifest,
     load_dataframe_manifest,
@@ -32,7 +33,7 @@ in a Linux or MacOS environment through the CLI.
 """
 
 logger = logging.getLogger(__name__)
-out_dir = get_output_path(Path(__file__).stem, include_timestamp=False)
+out_dir = get_output_path(__file__, include_timestamp=False)
 configure_logging(out_dir, logger, verbose=True)
 
 
@@ -47,10 +48,11 @@ def fms_upload_cdh5_classic_seg_tracking(dataset_name: str, path_to_file: Path) 
     annotations = build_fms_annotations(dataset_config, model=model)
 
     # Upload the file to FMS
-    file_id = upload_file_to_fms(file_path=path_to_file, annotations=annotations, file_type="tsv")
+    file_id = upload_file_to_fms(
+        file_path=path_to_file, annotations=annotations, file_type="parquet"
+    )
 
     # Store FMS ID in dataframe manifest
-
     manifest_name = "cdh5_classic_segmentation_tracking"
     workflow_name = "live_feat_workflows_to_fms"
 
@@ -80,10 +82,11 @@ def fms_upload_cdh5_get_measured_features(dataset_name: str, path_to_file: Path)
     annotations = build_fms_annotations(dataset_config, model=model)
 
     # Upload the file to FMS
-    file_id = upload_file_to_fms(file_path=path_to_file, annotations=annotations, file_type="tsv")
+    file_id = upload_file_to_fms(
+        file_path=path_to_file, annotations=annotations, file_type="parquet"
+    )
 
     # Store FMS ID in dataframe manifest
-
     manifest_name = "cdh5_classic_segmentation"
     workflow_name = "live_feat_workflows_to_fms"
 
@@ -113,10 +116,11 @@ def fms_upload_nuc_get_measured_features(dataset_name: str, path_to_file: Path) 
     annotations = build_fms_annotations(dataset_config, model=model)
 
     # Upload the file to FMS
-    file_id = upload_file_to_fms(file_path=path_to_file, annotations=annotations, file_type="tsv")
+    file_id = upload_file_to_fms(
+        file_path=path_to_file, annotations=annotations, file_type="parquet"
+    )
 
     # Store FMS ID in dataframe manifest
-
     manifest_name = "nuclei_label_free_segmentation"
     workflow_name = "live_feat_workflows_to_fms"
 
@@ -146,10 +150,11 @@ def fms_upload_make_seg_feats_manifest(dataset_name: str, path_to_file: Path) ->
     annotations = build_fms_annotations(dataset_config, model=model)
 
     # Upload the file to FMS
-    file_id = upload_file_to_fms(file_path=path_to_file, annotations=annotations, file_type="tsv")
+    file_id = upload_file_to_fms(
+        file_path=path_to_file, annotations=annotations, file_type="parquet"
+    )
 
     # Store FMS ID in dataframe manifest
-
     manifest_name = "live_merged_seg_features"
     workflow_name = "live_feat_workflows_to_fms"
 
@@ -175,7 +180,7 @@ def main(
         "nuclei_labelfree",
         "merged_live_data_manifests",
     ],
-    dataset_name_list: list | None = None,
+    datasets: str | None = None,
     endo_project_analysis_dir: (
         str | Path
     ) = "//allen/aics/endothelial/morphological_features/analysis",
@@ -197,22 +202,12 @@ def main(
         "nuclei_labelfree": fms_upload_nuc_get_measured_features,
         "merged_live_data_manifests": fms_upload_make_seg_feats_manifest,
     }
-    if dataset_name_list is None:
-        # This is the current list of all analyzed datasets
-        dataset_name_list = [
-            "20241016_20X",
-            "20241120_20X",
-            "20241217_20X",
-            "20250224_20X",
-            "20250319_20X",
-            "20250326_20X",
-            "20250331_20X",
-            "20250409_20X",
-            "20250428_20X",
-            "20250604_20X",
-            "20250611_20X",
-        ]
+    if datasets is None:
+        # Get the list of all analyzed datasets
+        dataset_name_list = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
     else:
+        dataset_name_list = datasets.split(",")
+        print(f"Uploading {dataset_name_list}")
         pass
 
     all_available_datasets = load_all_dataset_configs()
@@ -222,18 +217,18 @@ def main(
             available_live_datasets.append(ds_cfg.name)
 
     path_modifiers = {
-        "cdh5_seg_tracking": {"subdir": "cdh5_classic_seg_tracking", "suffix": "_tracking.tsv"},
+        "cdh5_seg_tracking": {"subdir": "cdh5_classic_seg_tracking", "suffix": "_tracking.parquet"},
         "cdh5_seg_measurements": {
             "subdir": "cdh5_get_measured_features",
-            "suffix": "_cdh5_segprops.tsv",
+            "suffix": "_cdh5_segprops.parquet",
         },
         "nuclei_labelfree": {
             "subdir": "nuc_labelfree_get_measured_features",
-            "suffix": "_nuclei_labelfree_features.tsv",
+            "suffix": "_nuclei_labelfree_features.parquet",
         },
         "merged_live_data_manifests": {
-            "subdir": "segmentation_features",
-            "suffix": "_live_segmentation_features.tsv",
+            "subdir": "cdh5_live_seg_features",
+            "suffix": "_live_segmentation_features.parquet",
         },
     }
 
@@ -251,10 +246,17 @@ def main(
             f"Manifest file {manifest_filepath} does not exist. "
             "Please double check the file location."
         )
-        fms_upload_func_dict[manifest_kind](dataset_name, manifest_filepath)
+        # add timestamp to the manifest filename and rename it
+        timestamp = datetime.now(UTC).strftime("%Y%m%d")
+        manifest_filepath_timestamped = manifest_filepath.with_name(
+            f"{manifest_filepath.stem}_fms{timestamp}{manifest_filepath.suffix}"
+        )
+        manifest_filepath.rename(manifest_filepath_timestamped)
+
+        fms_upload_func_dict[manifest_kind](dataset_name, manifest_filepath_timestamped)
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

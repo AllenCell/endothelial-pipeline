@@ -1,6 +1,7 @@
 from typing import Any, Literal
 
 import numpy as np
+from dask.array import Array
 from skimage import draw, filters, graph, measure, morphology, segmentation
 
 
@@ -68,9 +69,7 @@ def arr2graph(
     ## pixel has a value equal to the number of non-zero
     ## immediate neighbors plus itself
     ## the * skel is to re-skeletonize the rank sum
-    conn = (
-        filters.rank.pop(skel.astype(np.uint8), footprint=footprint, mask=skel) * skel
-    )
+    conn = filters.rank.pop(skel.astype(np.uint8), footprint=footprint, mask=skel) * skel
     # This produces an array with the following values
     # (which is why I insisted on having the skeletonized array
     # have only 0s and 1s as values):
@@ -132,12 +131,10 @@ def get_neighboring_labels(
         footprint = morphology.cube(3)
     neighbors = [
         *np.unique(
-            morphology.binary_dilation(home_img, footprint=footprint)
-            * labeled_neighbors_img
+            morphology.binary_dilation(home_img, footprint=footprint) * labeled_neighbors_img
         )
     ]
     if bad_neighbors:
-        # neighbors = [tuple([n for n in ns if n not in np.unique(bad_neighbors)]) for ns in neighbors]
         neighbors = [n for n in neighbors if n not in np.unique(bad_neighbors)]
 
     return tuple(neighbors)
@@ -191,9 +188,7 @@ def get_windows(img_lab: np.ndarray) -> zip:  # labeled_img
     ndim = img_lab.ndim
 
     # Create a list of labels and their associated bounding box:
-    lab_labs, lab_bbox = zip(
-        *[(lab.label, lab.bbox) for lab in img_lab_props], strict=False
-    )
+    lab_labs, lab_bbox = zip(*[(lab.label, lab.bbox) for lab in img_lab_props], strict=False)
 
     # Apparently Python now allows your upper slice range to exceed bounds, and instead
     # will just return the values within range.
@@ -274,21 +269,21 @@ def get_neighbor_nodes_and_edges(
     ## associated with the window)
     node_neighbors_edgelabs = [
         (
-            l,
+            label,
             get_neighboring_labels(
-                nodes_lab[(*w,)] == l, edges_lab[(*w,)], bad_neighbors=bad_neighbors
+                nodes_lab[(*window,)] == label, edges_lab[(*window,)], bad_neighbors=bad_neighbors
             ),
         )
-        for l, w in nodes_lab_windows
+        for label, window in nodes_lab_windows
     ]
     edge_neighbors_nodelabs = [
         (
-            l,
+            label,
             get_neighboring_labels(
-                edges_lab[(*w,)] == l, nodes_lab[(*w,)], bad_neighbors=bad_neighbors
+                edges_lab[(*window,)] == label, nodes_lab[(*window,)], bad_neighbors=bad_neighbors
             ),
         )
-        for l, w in edges_lab_windows
+        for label, window in edges_lab_windows
     ]
 
     ## Use the combination of node_neighbors_edgelabs and edge_neighbors_nodelabs to
@@ -377,14 +372,10 @@ def numpy_mesh_coords(
     ), "Coordinate lists must be 2D or 1D and have same dimensions."
 
     coord1_array = (
-        np.array(coord1_ls)
-        if np.array(coord1_ls).ndim == 2
-        else np.array(coord1_ls, ndmin=2).T
+        np.array(coord1_ls) if np.array(coord1_ls).ndim == 2 else np.array(coord1_ls, ndmin=2).T
     )
     coord2_array = (
-        np.array(coord2_ls)
-        if np.array(coord2_ls).ndim == 2
-        else np.array(coord2_ls, ndmin=2).T
+        np.array(coord2_ls) if np.array(coord2_ls).ndim == 2 else np.array(coord2_ls, ndmin=2).T
     )
 
     coords1 = zip(*coord1_array, strict=False)
@@ -426,12 +417,10 @@ def get_angle(
     """
 
     ## a dot b = mag(a) * mag(b) * cos(theta)
-    if axis == None:
+    if axis is None:
         with np.errstate(invalid="raise"):
             try:
-                rad = np.arccos(
-                    np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
-                )
+                rad = np.arccos(np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2)))
             except FloatingPointError:
                 rad = np.pi
     else:
@@ -500,11 +489,9 @@ def rasterize_edges_between_nodes(
     }
 
     label_dict = {}
-    ## We sort lines from largest to smallest so that the smaller ones are not completely overwritten
-    ## in the event that a large and a small line have the same indices
-    for label in sorted(
-        lines, key=lambda x: len(list(zip(*lines[x], strict=False))), reverse=True
-    ):
+    ## We sort lines from largest to smallest so that the smaller ones are not completely
+    ## overwritten in the event that a large and a small line have the same indices
+    for label in sorted(lines, key=lambda x: len(list(zip(*lines[x], strict=False))), reverse=True):
         locs = lines[label]
         label_dict[label] = locs
         arr_to_draw_on[(*locs,)] = label if label_lines else True
@@ -520,8 +507,8 @@ def build_vector(stop_position: np.ndarray, start_position: np.ndarray) -> np.nd
 
 def calculate_region_border_metrics(
     binary_image: np.ndarray,
-    intensity_image: np.ndarray | None = None,
-    labeled_image: np.ndarray | None = None,
+    intensity_image: np.ndarray | Array | None = None,
+    labeled_image: np.ndarray | Array | None = None,
     verbose: bool = True,
 ) -> list:
     """
@@ -559,13 +546,17 @@ def calculate_region_border_metrics(
     -------
     [neighbor_node_metrics, labeled_image_metrics]: list of dicts
         neighbor_node_metrics: dict of lists
-            node_pair_labels: The labels of the nodes used to build a line with the order (origin_node, neighboring_node).
-            node_pair_centroids: The centroids of the nodes used to build a line with the order (origin_node, neighboring_node)
+            node_pair_labels: The labels of the nodes used to build a line with
+                the order (origin_node, neighboring_node).
+            node_pair_centroids: The centroids of the nodes used to build a line with the
+                order (origin_node, neighboring_node)
             distances: The linear distance between node_pair_centroids.
             angles: The angle between the line formed by node_pair_centroids and a horizontal line.
             edge_labels: The labels of the edges in binary_image that connect the paired nodes.
-            edge_num_pixels: The number of pixels that constitute each edge. Does not account for differences in distance based on connectivity (but 'length (px)' does).
-            length (px): The length of each edge in pixels (N.B. this does not include the distance from the node to the edge).
+            edge_num_pixels: The number of pixels that constitute each edge. Does not account
+                for differences in distance based on connectivity (but 'length (px)' does).
+            length (px): The length of each edge in pixels (N.B. this does not include the
+                distance from the node to the edge).
             fluor_mean (au): The mean fluorescence of intensity_image at an edge if provided.
                 Other measures for fluor include _std, _median, _min, _max, _pct25, and _pct75.
         labeled_image_metrics: dict of lists or None
@@ -584,8 +575,8 @@ def calculate_region_border_metrics(
             node_pair_labels: The labels of the node pairs that are at the end of each edge label
                 that touches each region in labeled_image.
 
-    NOTE: The lists in each 'metrics' dict have the same indexing order (i.e. you can build a table directly
-          from this dict via a pandas DataFrame).
+    NOTE: The lists in each 'metrics' dict have the same indexing order (i.e. you can build a
+        table directly from this dict via a pandas DataFrame).
     """
 
     ## if intensity_image is not provided then make a dummy channel full of np.nans
@@ -680,13 +671,12 @@ def calculate_labeled_image_metrics(
         node_pair_labels: The labels of the node pairs that are at the end of each edge label
             that touches each region in labeled_image.
 
-    NOTE: The lists in 'metrics' have the same indexing order (i.e. you can build a table directly from this dict).
+    NOTE: The lists in 'metrics' have the same indexing order (i.e. you can build a table directly
+        from this dict).
     """
 
     # ensure that binary_image is a boolean array
-    assert binary_image.dtype == np.dtype(
-        bool
-    ), "dtype of binary_image array must be bool."
+    assert binary_image.dtype == np.dtype(bool), "dtype of binary_image array must be bool."
 
     # remove any regions in seeds that overlap with the binary image
     # that is used to generate the nodes and edges representation
@@ -719,11 +709,7 @@ def calculate_labeled_image_metrics(
 
     # run a watershed using the labeled (minus any regions that overlap with binary_image)
     # image as seeds to find which parts of labels touch which edges
-    (
-        print("    -- expanding labels in labeled_image to be adjacent to edges")
-        if verbose
-        else None
-    )
+    (print("    -- expanding labels in labeled_image to be adjacent to edges") if verbose else None)
     regions = segmentation.watershed(
         np.logical_or(nodes, edges),
         markers=seeds,
@@ -791,9 +777,7 @@ def calculate_labeled_image_metrics(
         else None
     )
     (
-        print(
-            "    -- adding neighboring region information to labeled_image properties"
-        )
+        print("    -- adding neighboring region information to labeled_image properties")
         if verbose
         else None
     )
@@ -867,13 +851,7 @@ def calculate_labeled_image_metrics(
         neighboring_regions.append(prop.region_neighbors)
         edge_labels.append(prop.neighbors)
         node_labels.append(
-            set(
-                [
-                    node
-                    for edge in prop.neighbors
-                    for node in edge_neighbors_nodelabs[edge]
-                ]
-            )
+            {node for edge in prop.neighbors for node in edge_neighbors_nodelabs[edge]}
         )
         node_pairs.append([edge_neighbors_nodelabs[edge] for edge in prop.neighbors])
         is_border_region.append(prop.label in border_labels)
@@ -944,17 +922,22 @@ def calculate_neighbor_node_metrics(
     Returns
     -------
     metrics: dict of lists
-        node_pair_labels: The labels of the nodes used to build a line with the order (origin_node, neighboring_node).
-        node_pair_centroids: The centroids of the nodes used to build a line with the order (origin_node, neighboring_node)
+        node_pair_labels: The labels of the nodes used to build a line with
+            the order (origin_node, neighboring_node).
+        node_pair_centroids: The centroids of the nodes used to build a line
+            with the order (origin_node, neighboring_node)
         distances: The linear distance between node_pair_centroids.
         angles: The angle between the line formed by node_pair_centroids and a horizontal line.
         edge_labels: The labels of the edges in binary_image that connect the paired nodes.
-        edge_num_pixels: The number of pixels that constitute each edge. Does not account for differences in distance based on connectivity (but 'length (px)' does).
-        length (px): The length of each edge in pixels (N.B. this does not include the distance from the node to the edge).
+        edge_num_pixels: The number of pixels that constitute each edge. Does not account for
+            differences in distance based on connectivity (but 'length (px)' does).
+        length (px): The length of each edge in pixels (N.B. this does not include the distance
+            from the node to the edge).
         fluor_mean (au): The mean fluorescence of intensity_image at an edge if provided.
             Other measures for fluor include _std, _median, _min, _max, _pct25, and _pct75.
 
-    NOTE: The lists in 'metrics' have the same indexing order (i.e. you can build a table directly from this dict).
+    NOTE: The lists in 'metrics' have the same indexing order (i.e. you can build a table directly
+        from this dict).
     """
 
     # create the nodes and edges arrays if they were not provided
@@ -976,39 +959,19 @@ def calculate_neighbor_node_metrics(
 
     ## construct lines between all nodes
     node_props = measure.regionprops(nodes)
-    node_labels, node_centroids = zip(
-        *[(n.label, n.centroid) for n in node_props], strict=False
-    )
+    node_labels, node_centroids = zip(*[(n.label, n.centroid) for n in node_props], strict=False)
 
-    (
-        print("    -- getting home node and neighboring node centroids")
-        if verbose
-        else None
-    )
-    node_label_grid1, node_label_grid2 = np.meshgrid(
-        node_labels, node_labels, indexing="ij"
-    )
+    (print("    -- getting home node and neighboring node centroids") if verbose else None)
+    node_label_grid1, node_label_grid2 = np.meshgrid(node_labels, node_labels, indexing="ij")
     ## construct vectors from the node centroids
-    vec_nodes = build_vector(
-        *numpy_mesh_coords(node_centroids, node_centroids, indexing="ij")
-    )
-    node_labels_index_dict = dict(
-        zip(node_labels, range(len(node_labels)), strict=False)
-    )
+    vec_nodes = build_vector(*numpy_mesh_coords(node_centroids, node_centroids, indexing="ij"))
+    node_labels_index_dict = dict(zip(node_labels, range(len(node_labels)), strict=False))
     print(f"    -- array shape = {vec_nodes.shape}") if verbose else None
 
-    (
-        print("    -- calculating distances of lines between neighboring nodes")
-        if verbose
-        else None
-    )
+    (print("    -- calculating distances of lines between neighboring nodes") if verbose else None)
     dists = np.linalg.norm(vec_nodes, axis=2)
 
-    (
-        print("    -- calculating angles of lines between neighboring nodes")
-        if verbose
-        else None
-    )
+    (print("    -- calculating angles of lines between neighboring nodes") if verbose else None)
     ## determine angle of these lines relative to the horizontal
     ## (fluid flow direction is horizontal)
     ## construct a horizontal vector for reference
@@ -1035,9 +998,7 @@ def calculate_neighbor_node_metrics(
     neighbors_mask = np.zeros(dists.shape, dtype=bool)
     ## node == i, neighbor == j
     node_neighbors_labels_list = [
-        (node, neigh)
-        for node, neighbors in node_neighbors_nodelabs
-        for neigh in neighbors
+        (node, neigh) for node, neighbors in node_neighbors_nodelabs for neigh in neighbors
     ]
     node_neighbors_indices_list = [
         (node_labels_index_dict[node], node_labels_index_dict[neigh])
@@ -1057,9 +1018,7 @@ def calculate_neighbor_node_metrics(
     angles_filtered = angles[neighbors_mask_oneway]
 
     ## list the paired node labels and node coordinates for later use
-    # node_label_pairs = [(node, neigh) for node, neighbors in node_neighbors_nodelabs for neigh in neighbors]
     node_lab_coord_dict = dict(zip(node_labels, node_centroids, strict=False))
-    # node_coord_pairs = [(node_lab_coord_dict[node], node_lab_coord_dict[neigh]) for node, neigh in node_label_pairs]
 
     ## calculate edge metrics
     node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs = (
@@ -1072,18 +1031,14 @@ def calculate_neighbor_node_metrics(
         intensity_pct25,
         intensity_pct75,
     )
-    edge_props = measure.regionprops(
-        edges, intensity_image, extra_properties=extra_region_props
-    )
+    edge_props = measure.regionprops(edges, intensity_image, extra_properties=extra_region_props)
     for prop in edge_props:
         try:
             prop.node_pair = edge_neighbors_nodelabs[prop.label]
         except IndexError:
             print(prop.label)
 
-    node_pairs_filtered = list(
-        zip(home_nodes_filtered, neighbor_nodes_filtered, strict=False)
-    )
+    node_pairs_filtered = list(zip(home_nodes_filtered, neighbor_nodes_filtered, strict=False))
     edge_props_filtered = [
         [prop for prop in edge_props if set(prop.node_pair) == set(pair)]
         for pair in node_pairs_filtered
@@ -1104,10 +1059,7 @@ def calculate_neighbor_node_metrics(
     for edge_props in edge_props_filtered:
         node_pair_labels.append([prop.node_pair for prop in edge_props])
         node_pair_coords.append(
-            [
-                tuple([node_lab_coord_dict[node] for node in prop.node_pair])
-                for prop in edge_props
-            ]
+            [tuple([node_lab_coord_dict[node] for node in prop.node_pair]) for prop in edge_props]
         )
         connecting_edge_labels.append([prop.label for prop in edge_props])
         edge_num_pixels.append([prop.num_pixels for prop in edge_props])
@@ -1227,9 +1179,11 @@ def walk_the_line(
     (line1, line2) or (line1,): tuple
         The ordered coordinates of the line from endpoint to endpoints structured
         as a dictionary as follows
-            {line_first_coordinate: {next_closest_connected_coordinate: distance_to_closest_coordinate},
+            {line_first_coordinate:
+                {next_closest_connected_coordinate: distance_to_closest_coordinate},
              ...,
-             second_last_line_coordinate: {last_line_coordinate: distance_from_second_last_to_last_coordinate},
+             second_last_line_coordinate:
+                {last_line_coordinate: distance_from_second_last_to_last_coordinate},
              last_line_coordinate: {}}
         Length of line1 and line2 should each be equal to the number of True pixels in skel.
         Returns (line1, line2) if bidirectional=True, else returns (line1,).
@@ -1275,27 +1229,21 @@ def walk_the_line(
 
         edges_from_dist = np.array([x if x else False for x in edges_from_dist_ls])
 
-        edge_conn = np.array(
-            [np.count_nonzero(conn_arr, axis=1) == 2 for conn_arr in conns]
-        )
-        edge_anticonn = np.array(
-            [np.count_nonzero(conn_arr, axis=1) == 0 for conn_arr in conns]
-        )
+        edge_conn = np.array([np.count_nonzero(conn_arr, axis=1) == 2 for conn_arr in conns])
+        edge_anticonn = np.array([np.count_nonzero(conn_arr, axis=1) == 0 for conn_arr in conns])
 
         edges_from_conn = sum(
             [
                 edge_conn[i, :]
                 * ~(
-                    sum(
-                        [~edge_anticonn[j] for j in range(len(edge_anticonn)) if j != i]
-                    ).astype(bool)
+                    sum([~edge_anticonn[j] for j in range(len(edge_anticonn)) if j != i]).astype(
+                        bool
+                    )
                 )
                 for i in range(len(conns))
             ]
         ).astype(bool)
-        edges_from_conn = edges_from_conn + (
-            np.count_nonzero(conn_all, axis=1) > img_dim
-        )
+        edges_from_conn = edges_from_conn + (np.count_nonzero(conn_all, axis=1) > img_dim)
 
         ## this line of code will check the connectivity of the pixels
         ## connected to those found in maybe_nodes and if any of these
@@ -1336,7 +1284,7 @@ def walk_the_line(
         visited_coords = [curr_node]
         line1 = {}
 
-        for count in range(max_num_pixels):
+        for _ in range(max_num_pixels):
             line1[curr_node] = {
                 n: conns_dict[curr_node][n]
                 for n in conns_dict[curr_node]
@@ -1362,7 +1310,7 @@ def walk_the_line(
             visited_coords = [curr_node]
             line2 = {}
 
-            for count in range(max_num_pixels):
+            for _ in range(max_num_pixels):
                 line2[curr_node] = {
                     n: conns_dict[curr_node][n]
                     for n in conns_dict[curr_node]
@@ -1426,9 +1374,7 @@ def get_length(skel: np.ndarray, max_num_pixels: int | None = None) -> float:
     (line,) = walk_the_line(skel, max_num_pixels, bidirectional=False)
     # get a list of the distances from one coordinate to the next
     dists = [
-        line[startpoints][endpoints]
-        for startpoints in line
-        for endpoints in line[startpoints]
+        line[startpoints][endpoints] for startpoints in line for endpoints in line[startpoints]
     ]
     # return the total of the distances as the length
     length = sum(dists)

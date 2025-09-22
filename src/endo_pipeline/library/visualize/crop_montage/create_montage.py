@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import torch
 
-from src.endo_pipeline.io import save_plot_to_path
-from src.endo_pipeline.library.process.get_images import (
+from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.library.process.get_images import (
     get_crops_in_dataframe,
     global_contrast_crop_list,
     individual_contrast_crop_list,
@@ -134,7 +134,7 @@ def generate_contact_sheet(
 
     # Optionally add reconstructed crops (if GPU is available)
     if torch.cuda.is_available():
-        from src.endo_pipeline.library.model.diffae.generate_image import (
+        from endo_pipeline.library.model.diffae.generate_image import (
             get_reconstructed_crops_in_dataframe,
         )
 

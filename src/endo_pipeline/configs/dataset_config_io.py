@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 from mashumaro.codecs.yaml import YAMLDecoder, YAMLEncoder
 
-from src.endo_pipeline.configs import DatasetCollectionConfig, DatasetConfig
+from endo_pipeline.configs import DatasetCollectionConfig, DatasetConfig
 
 logger = logging.getLogger(__name__)
 
@@ -131,8 +131,15 @@ def save_dataset_config(dataset: DatasetConfig) -> None:
         flow_style = not (len(data) > 0 and isinstance(data[0], dict))
         return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=flow_style)
 
+    def dict_representer(dumper, data):
+        # This representer saves dict with ordered keys only if it is a dict of dicts.
+        if isinstance(data[next(iter(data))], dict):
+            return dumper.represent_dict(dict(sorted(data.items())))
+        return dumper.represent_dict(data)
+
     def yaml_encoder(data):
         yaml.SafeDumper.add_representer(list, list_representer)
+        yaml.SafeDumper.add_representer(dict, dict_representer)
         return yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
 
     try:
@@ -182,8 +189,15 @@ def save_dataset_collection_config(collection: DatasetCollectionConfig) -> None:
         raise
 
 
-def get_datasets_in_collection(collection_name: str) -> list[str]:
+def get_datasets_in_collection(collection_name: str, subset: list[str] | None = None) -> list[str]:
     """Get list of dataset names in given collection."""
 
     collection = load_dataset_collection_config(collection_name)
-    return collection.datasets
+    datasets = collection.datasets
+
+    # Optional filtering of dataset names based on provided subset. Only dataset
+    # names in both the collection and the subset are returned.
+    if subset is not None:
+        datasets = [name for name in datasets if name in subset]
+
+    return datasets

@@ -1,18 +1,18 @@
 # ============================= IMPORT STATEMENTS ==============================
 # Workflows are registered to the CLI by automatically importing the module.
 # Because all workflows are registered each time the CLI is called and imports
-# can be slow, it is recommended that you place import statments under the
+# can be slow, it is recommended that you place import statements under the
 # `main` method, rather than at the top of the module.
 # ==============================================================================
 
 # =============================== WORKFLOW TAGS ================================
-# Worklows may optionally include a list of tags to help categorize the workflow
+# Workflows may optionally include a list of tags to categorize the workflow
 # and group related workflows. These tags are automatically pulled from TAGS
 # when registering workflows to the CLI. Users can then use the `--show-tags`
 # flag to include these tags in the workflow descriptions or `--filter-tag=TAG`
 # to filter and show only workflows with a specific tag `TAG`.
 #
-# For example, thses tags would be displayed in the followinghelp message:
+# For example, these tags would be displayed in the following help message:
 #
 #   ╭─ Workflow Category ────────────────────────────────────────────────────╮
 #   │ workflow-template  tag1 | tag2 | Short description of the workflow.    │
@@ -112,6 +112,6 @@ def main(param1: str, param2: int, param3: bool, param4: str = "X") -> None:
 # pipeline CLI.
 # ==============================================================================
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

@@ -5,17 +5,18 @@ import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 
-from src.endo_pipeline.configs import ModelManifest, load_dataset_config
-from src.endo_pipeline.io import save_plot_to_path
-from src.endo_pipeline.library.analyze.diffae_manifest import (
-    get_manifest_for_dynamics_workflows,
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.library.analyze.diffae_manifest import (
+    get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
     get_traj_and_diff,
     split_dataset_by_flow,
 )
-from src.endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
-from src.endo_pipeline.library.analyze.numerics import get_bins
-from src.endo_pipeline.library.visualize.diffae_features import feature_viz
+from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
+from endo_pipeline.library.analyze.numerics import get_bins
+from endo_pipeline.library.visualize.diffae_features import feature_viz
+from endo_pipeline.manifests import DataframeManifest
 
 
 def _kramers_moyal_train_test_one_dataset(
@@ -171,7 +172,8 @@ def _kramers_moyal_train_test_one_dataset(
 
 
 def build_kramers_moyal_train_test(
-    model_manifest_list: list[ModelManifest],
+    dataset_names: list[str],
+    manifest: DataframeManifest,
     pca: PCA,
     pcs: list[int],
     num_bins: list[int],
@@ -189,8 +191,8 @@ def build_kramers_moyal_train_test(
     of the dynamical systems model for the Diff AE features.
 
     Inputs:
-    - model_manifest_list: list of ModelManifest objects used
-        to load manifest feature data to use for Kramers-Moyal analysis
+    - dataset_names: list of dataset names to use for Kramers-Moyal analysis
+    - manifest: manifest of model feature dataframes
     - pca: PCA object used to project data onto principal component axes
     - pcs: list of principal component axes to use for Kramers-Moyal analysis
     - num_bins: list of number of bins to use for histogramming data to compute
@@ -230,19 +232,19 @@ def build_kramers_moyal_train_test(
 
     # for each dataset, generate train test sets for drift and diffusion estimates
     # (Kramers-Moyal coefficients, Y and V, respectively)
-    for model_manifest in model_manifest_list:
-        print("**** Generating train/test sets for dataset", model_manifest.dataset_name, "**** \n")
+    for dataset_name in dataset_names:
+        print("**** Generating train/test sets for dataset", dataset_name, "**** \n")
 
         # load DiffAE feature data from this one dataset
         # and get features projected onto principal component axes
         # as defined by fit PCA object pca.
-        df_proj = get_manifest_for_dynamics_workflows(model_manifest, pca=pca)
+        df_proj = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca=pca)
 
         # get train test split for this dataset
         x_train, x_test, y_train, y_test, v_train, v_test, u_train, u_test = (
             _kramers_moyal_train_test_one_dataset(
                 df_proj,
-                model_manifest.dataset_name,
+                dataset_name,
                 pcs,
                 num_bins,
                 dt,

@@ -1,5 +1,4 @@
 import logging
-import subprocess
 from os import scandir
 from pathlib import Path
 
@@ -16,15 +15,11 @@ try:
 except ModuleNotFoundError:
     pass
 import re
-from collections.abc import Callable, Sequence
-from typing import Any, Literal
+from collections.abc import Callable
+from typing import Any
 
-from src.endo_pipeline.__main__ import workflow_cli
-from src.endo_pipeline.configs import get_datasets_in_collection
-from src.endo_pipeline.configs.dataset_config_io import (
-    get_available_dataset_names,
-    load_dataset_config,
-)
+from endo_pipeline.configs import get_datasets_in_collection
+from endo_pipeline.configs.dataset_config_io import get_available_dataset_names
 
 logger = logging.getLogger(__name__)
 
@@ -50,36 +45,6 @@ def save_to_yaml(object: dict, path: Path, list_representer: bool = True) -> Non
         object, default_flow_style=False, sort_keys=False, width=80, indent=2
     )
     path.open("w").write(yaml_content)
-
-
-def separate_data_config() -> None:
-    """Separate combined dataset configs into individual dataset configs."""
-
-    separated_path = get_config_dir() / "datasets"
-    combined_path = Path(__file__).resolve().parents[1] / "data_config.yaml"
-
-    combined_data_config = yaml.safe_load(combined_path.open())
-
-    for dataset, contents in combined_data_config.items():
-        data_config_path = separated_path / f"{dataset}.yaml"
-        single_data_config = {"name": dataset}
-        single_data_config.update(contents)
-        save_to_yaml(single_data_config, data_config_path)
-
-
-def separate_model_config() -> None:
-    """Separate combined model configs into individual model configs."""
-
-    separated_path = get_config_dir() / "models"
-    combined_path = Path(__file__).resolve().parents[1] / "model_config.yaml"
-
-    combined_model_config = yaml.safe_load(combined_path.open())
-
-    for model, contents in combined_model_config.items():
-        data_config_path = separated_path / f"{model}.yaml"
-        single_model_config = {"name": model}
-        single_model_config.update(contents)
-        save_to_yaml(single_model_config, data_config_path, False)
 
 
 def combine_data_config(save: bool = False) -> dict:
@@ -173,89 +138,6 @@ def load_config(config_type: str = "data") -> dict[Any, Any]:
     return config_data
 
 
-@deprecated(
-    """
-NOTE: you can ignore this warning when writing "dynamics" configs.
-
-With the switch to loading dataset configs using the DatasetConfig dataclass
-(instead of as dictionaries) the recommended pattern for saving updated dataset
-configs is to directly adjust values in the config:
-
-        dataset.field = (new value)
-
-The dataset config can then be saved using:
-
-        configs.save_dataset_config(dataset)
-
-With the switch to loading model configs using the ModelConfig dataclass
-(instead of as dictionaries) the recommended pattern for saving updated model
-configs is to directly adjust values in the config:
-
-        model.field = (new value)
-
-The model config can then be saved using:
-
-        configs.save_model_config(model)
-"""
-)
-def write_config(config: dict[str, dict[str, Any]], config_type: str = "data") -> None:
-    """Write configuration to YAML file."""
-    if config_type not in ["data", "model", "dynamics"]:
-        raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
-    parent_folder = Path(__file__).resolve().parent
-    config_file = parent_folder.parent / f"{config_type}_config.yaml"
-
-    # Write lists with brackets, not dashes
-    def represent_list(dumper, data):
-        return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True)
-
-    yaml.add_representer(list, represent_list)
-
-    with open(config_file, "w") as file:
-        #                        one key per line            keep ordering    wrap lines
-        yaml.dump(config, file, default_flow_style=False, sort_keys=False, width=80, indent=2)
-
-    # If writing the data config, split the combined data config file that was
-    # saved above into individual dataset config files (and delete the combined
-    # config file).
-    if config_type == "data":
-        separate_data_config()
-        config_file.unlink()
-
-    if config_type == "model":
-        separate_model_config()
-        config_file.unlink()
-
-
-@deprecated(
-    """
-With the switch to loading dataset configs using the DatasetConfig dataclass
-(instead of as dictionaries) the recommended pattern for saving updated dataset
-configs is to directly adjust values in the config:
-
-        dataset.field = (new value)
-
-The dataset config can then be saved using:
-
-        configs.save_dataset_config(dataset)
-"""
-)
-def update_dataset_config(dataset_name: str, new_config: dict[str, Any]) -> None:
-    """
-    Update the dataset config file with new values.
-
-    Parameters
-    ----------
-    dataset_name: str
-        Name of the dataset to update.
-    new_config: dict
-        Dictionary with new values to update in the config file.
-    """
-    cfg = load_config("data")
-    cfg[dataset_name].update(new_config)
-    write_config(cfg, "data")
-
-
 # dataset methods
 @deprecated(
     """
@@ -288,28 +170,6 @@ def get_available_datasets(verbose: bool = True) -> list[str]:
     if verbose:
         print("\n".join(datasets))
     return datasets
-
-
-@deprecated(
-    """
-With the switch to loading dataset configs using the DatasetConfig dataclass
-(instead of as dictionaries) the recommended pattern for accessing reference
-datasets is to instead load the appropriate reference dataset collection.
-
-        configs.get_datasets_in_collection("pca_reference")
-
-which will load the reference dataset objects (not the dataset names). If you
-need the names of the reference datasets, access the .name field of the
-reference dataset objects returned by the above method.
-"""
-)
-def get_reference_datasets() -> list[str]:
-    """Get a list of reference datasets for PCA from the config file."""
-    return [
-        name
-        for name in get_available_datasets(verbose=False)
-        if get_dataset_info(name).get("is_reference", False)
-    ]
 
 
 @deprecated(
@@ -360,7 +220,7 @@ def get_zarr_dir(dataset_name: str) -> str:
     """
 This method is deprecated and will be removed. Use the following replacement:
 
-    from src.endo_pipeline.configs import get_available_zarr_files
+    from endo_pipeline.configs import get_available_zarr_files
 
 This method will return a list of Path objects to Zarr files for all positions
 in the given dataset config. If you need the name of the Zarr file, use .name on
@@ -395,7 +255,7 @@ This method is deprecated and will be removed. Instead use:
 
 The recommended pattern is:
 
-    from src.endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
+    from endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
 
     dataset_config = load_dataset_config(dataset_name)
     channels = get_available_channels_for_all_positions(dataset_config)
@@ -421,7 +281,7 @@ This method is deprecated and will be removed. Instead use:
 
 To recreate the behavior of this method, use:
 
-    from src.endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
+    from endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
 
     dataset_config = load_dataset_config(dataset_name)
     channels = get_available_channels_for_position(dataset_config, 0)
@@ -451,7 +311,7 @@ def get_channel_names(dataset_name: str) -> list[str]:
     """
 This method is deprecated and will be removed. Instead use:
 
-    from src.endo_pipeline.configs import get_channel_indices_for_all_positions
+    from endo_pipeline.configs import get_channel_indices_for_all_positions
     get_channel_indices_for_all_positions(dataset_config, position, channel_names)
 """
 )
@@ -463,7 +323,6 @@ def get_channel_index(
     channel_indices = {}
     for filename in zarr_paths.keys():
         available_channels = get_available_channels(dataset_name, filename)
-        # available_channels[filename].update([available_channels.index(channel) if channel in available_channels else None for channel in channel_names])
         channel_indices[filename] = [
             (
                 available_channels[filename].index(channel)
@@ -479,7 +338,7 @@ def get_channel_index(
     """
 This method is deprecated and will be removed. Use the following replacement:
 
-    from src.endo_pipeline.configs import get_zarr_file_for_position
+    from endo_pipeline.configs import get_zarr_file_for_position
 
 This method will a Path to the Zarr file for the given dataset and position. If
 you need the name of the Zarr file, use .name on the returned Path object.
@@ -498,30 +357,6 @@ def get_zarr_name(dataset_name: str, position: int) -> str:
         if position == extract_P(zarr_name):
             break
     return zarr_name
-
-
-@deprecated(
-    """
-Use one of the following methods to load the dataset config:
-
-        configs.load_all_dataset_configs
-        configs.load_dataset_config(dataset_name)
-
-Then use this replacement method:
-
-        configs.get_specific_channel_order(dataset)
-"""
-)
-def get_specific_channel_order(dataset_name: str) -> tuple:
-    """Get the specific channel order for a given dataset."""
-    dataset_info = get_dataset_info(dataset_name)
-    gfp_index = dataset_info.get("channel_488_index")
-    bf_index = dataset_info.get("brightfield_channel_index")
-    index_405 = dataset_info.get("channel_405_index", None)
-    index_561 = dataset_info.get("channel_561_index", None)
-    index_640 = dataset_info.get("channel_640_index", None)
-
-    return gfp_index, bf_index, index_405, index_561, index_640
 
 
 @deprecated(
@@ -551,8 +386,8 @@ def get_total_number_of_positions(dataset_name: str) -> int:
 This method is deprecated and will be removed. The new pattern for loading Zarr
 datasets is:
 
-    from src.endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
-    from src.endo_pipeline.io import load_zarr_as_dask_array
+    from endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
+    from endo_pipeline.io import load_zarr_as_dask_array
 
     dataset_config = load_dataset_config(dataset_name)
     zarr_file = get_zarr_file_for_position(dataset_config, position)
@@ -561,8 +396,8 @@ datasets is:
 To recreate the behavior of this specific method (loading Zarrs for all positions
 of a dataset into a dictionary, use:
 
-    from src.endo_pipeline.configs import load_dataset_config, get_available_zarr_files
-    from src.endo_pipeline.io import load_zarr_as_dask_array
+    from endo_pipeline.configs import load_dataset_config, get_available_zarr_files
+    from endo_pipeline.io import load_zarr_as_dask_array
 
     dataset_config = load_dataset_config(dataset_name)
     zarr_files = get_available_zarr_files(dataset_config)
@@ -603,8 +438,8 @@ def load_dataset(
 This method is deprecated and will be removed. The new pattern for loading Zarr
 datasets is:
 
-    from src.endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
-    from src.endo_pipeline.io import load_zarr_as_dask_array
+    from endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
+    from endo_pipeline.io import load_zarr_as_dask_array
 
     dataset_config = load_dataset_config(dataset_name)
     zarr_file = get_zarr_file_for_position(dataset_config, position)
@@ -701,109 +536,6 @@ def get_time_interval_in_minutes(dataset_name: str) -> float:
     return dataset_info["time_interval_in_minutes"]
 
 
-@deprecated(
-    """
-Use one of the following methods to load the dataset config:
-
-        configs.load_all_dataset_configs
-        configs.load_dataset_config(dataset_name)
-
-The field can then be accessed using:
-
-        dataset.flow
-"""
-)
-def get_flow_info(dataset_name: str) -> list:
-    dataset_info = get_dataset_info(dataset_name)
-    return dataset_info["flow"]
-
-
-@deprecated(
-    """
-This method will be removed. Use one of these alternative methods:
-
-        configs.get_frame_before_flow_change
-        configs.get_frame_after_flow_change
-"""
-)
-def get_flow_change_frame(dataset_name: str) -> int:
-    """
-    Get frame number at which flow changes in dataset ds_name.
-
-    Inputs:
-    - dataset_name: str, name of dataset to get flow change frame for
-        - This string must match the dataset name in data_config.yaml
-
-    Outputs:
-    - change_frame: int, frame number at which flow changes in dataset dataset_name
-    """
-    # load config for dataset from data_config.yaml
-    flow_info = get_flow_info(dataset_name)
-
-    # get frame number at which flow changes
-    change_frame = flow_info[0][1]
-
-    return change_frame
-
-
-@deprecated(
-    """
-This method will be removed. Use one of these alternative methods:
-
-        configs.get_flow_at_frame
-"""
-)
-def get_flow_for_frame(dataset_name: str, frame: int) -> float:
-    """
-    Retrieve the flow value for a specific frame in a dataset.
-
-    This function searches the flow list for the given dataset and returns the
-    flow value corresponding to the specified frame. If the frame is not found
-    in the flow list, a ValueError is raised.
-
-    Parameters
-    ----------
-    dataset_name : str
-        The name of the dataset to retrieve the flow information from.
-    frame : int
-        The frame index for which to retrieve the flow value.
-
-    Returns
-    -------
-    float
-        The flow value for the specified frame.
-    """
-    config = load_dataset_config(dataset_name)
-    flow_list = config.flow
-    for t_start, t_stop, flow in flow_list:
-        if t_start <= frame <= t_stop:
-            return flow
-    raise ValueError(f"Frame {frame} not found in flow list for dataset '{dataset_name}'.")
-
-
-@deprecated(
-    """
-Use one of the following methods to load the dataset config:
-
-        configs.load_all_dataset_configs
-        configs.load_dataset_config(dataset_name)
-
-The field can then be accessed using:
-
-        dataset.valid_timepoints
-"""
-)
-def get_valid_timepoints(dataset_name: str) -> dict:
-    """
-    Get the frames marked for use in DiffAE feature
-    analysis workflows for a given dataset.
-    These are determined by an experimentalist by eye
-    and are added to the dataset config file.
-    """
-    dataset_info = get_dataset_info(dataset_name)
-    return dataset_info.get("valid_timepoints")
-
-
 def get_dim_map(dim_order: str) -> dict:
 
     dims = [a for a in dim_order]
@@ -831,23 +563,6 @@ def get_original_path(dataset_name: str) -> Path:
     """
     dataset_info = get_dataset_info(dataset_name)
     return Path(dataset_info["original_path"])
-
-
-@deprecated(
-    """
-Use one of the following methods to load the dataset config:
-
-        configs.load_all_dataset_configs
-        configs.load_dataset_config(dataset_name)
-
-The field can then be accessed using:
-
-        dataset.barcode
-"""
-)
-def get_barcode(dataset_name: str) -> str:
-    dataset_info = get_dataset_info(dataset_name)
-    return dataset_info["barcode"]
 
 
 @deprecated(
@@ -919,21 +634,8 @@ def get_tracking_data_filtered(dataset_name_list: list, as_dask: bool = False) -
     return tracking_dataframe
 
 
-# fire argparsing methods
-def fire_parse_list_from_CLI(fire_str_or_list_like_input: Sequence) -> list[str]:
-    if isinstance(fire_str_or_list_like_input, str):
-        list_of_strings = [fire_str_or_list_like_input]
-    elif isinstance(fire_str_or_list_like_input, Sequence):
-        list_of_strings = list(fire_str_or_list_like_input)
-    else:
-        raise ValueError(
-            f"Invalid input {fire_str_or_list_like_input}. Must be a string or list of strings."
-        )
-    return list_of_strings
-
-
-def fire_parse_generate_dataset_name_list(
-    fire_dataset_name_input: Sequence | None,
+def parse_generate_dataset_name_user_input(
+    dataset_name_user_input: str,
 ) -> list[str]:
     """
     Parse a list of dataset names from the command line.
@@ -941,85 +643,26 @@ def fire_parse_generate_dataset_name_list(
     If it is a string, it will be turned into a list of strings.
     If it is a list of strings, it will be returned as is.
 
-    To enter a list of datasets to analyze, use the following format:
-    '\"20241016_20X\",\"20241120_20X\"'
+    To enter a list of datasets to analyze, use the following format (either with or
+    without quotation marks):
+    '20241217_20X,20241120_20X'
     """
-    if fire_dataset_name_input is None:
-        dataset_name_list = get_datasets_in_collection("pca_reference")
-    else:
-        dataset_name_list = fire_parse_list_from_CLI(fire_dataset_name_input)
+    dataset_name_list = dataset_name_user_input.split(",")
 
     # check that the dataset names are valid
     available_datasets = get_available_dataset_names()
     for dataset_name in dataset_name_list:
-        assert (
-            dataset_name in available_datasets
-        ), f"Invalid dataset name {dataset_name}. Must be a string or list of strings that are found in the available datasets {available_datasets}."
-
+        if dataset_name not in available_datasets:
+            raise ValueError(
+                f"""Invalid dataset name {dataset_name}. Must be a string or list
+                of strings that are found in the available datasets {available_datasets}."""
+            )
     return dataset_name_list
-
-
-@deprecated(
-    """
-With the switch to loading model configs using the ModelConfig dataclass
-(instead of as dictionaries) the recommended pattern for accessing models is:
-
-1. If you need a list of available models by name, before selecting specific
-   dataset(s) to load, use the following replacement method:
-
-        configs.get_available_model_names
-
-   instead of:
-
-        configs.dataset_io.get_available_models
-
-   Individual models(s) can then be loaded with:
-
-        configs.load_model_config(model_name)
-
-2. If you want to load all available models, use the following method to load
-   configs for all available models:
-
-        configs.load_all_model_configs
-"""
-)
-def get_available_models() -> list[str]:
-    model_info = load_config("model")
-    model_names = list(model_info.keys())
-    for name in model_names:
-        print(name)
-    return model_names
-
-
-@deprecated(
-    """
-With the switch to loading model configs using the ModelConfig dataclass
-(instead of as dictionaries) the recommended pattern for accessing model info is
-directly from loaded ModelConfig objects. These configs can be loaded using
-one of the following:
-
-        configs.load_all_model_configs
-        configs.load_model_config(model_name)
-
-Fields can then be accessed using dot notation:
-
-        model.field
-
-Available fields and descriptions for each field for ModelConfig objects are
-provided in configs.model_config.
-"""
-)
-def get_model_info(model_name: str) -> dict[str, Any]:
-    config = load_config("model")
-    if model_name not in config:
-        raise ValueError(f"Model {model_name} not found in config file")
-    return config[model_name]
 
 
 # Other miscellaneous methods
 def ipython_cli_flexecute(
     function: Callable[..., Any],
-    return_results: bool = False,
     *args: Any,
     **kwargs: Any,
 ) -> Any:
@@ -1039,14 +682,14 @@ def ipython_cli_flexecute(
         # from a non-interactive shell
         if get_ipython().__class__.__name__ != "NoneType":
             print(f"Using interactive shell {get_ipython().__class__.__name__}.")
-            results = function(*args, **kwargs)
+            function(*args, **kwargs)
         else:
             raise NameError
     except NameError:
         print("Using non-interactive shell.")
-        results = workflow_cli(function)
+        from endo_pipeline.__main__ import workflow_cli
 
-    return results if return_results else None
+        workflow_cli(function)
 
 
 def extract_T(
@@ -1147,74 +790,6 @@ def extract_P(
     return position_value if int_only else f"P{position_value}"
 
 
-@deprecated(
-    """
-This method is deprecated and will be removed. To provide git versioning
-information when uploading files to FMS, use the `include_git_info=True` flag
-(`True` by default) in `src.endo_pipeline.io.build_fms_annotations`.
-"""
-)
-def get_git_versioning_info() -> dict[str, str]:
-    """
-    Return versioning info about the script, including the branch
-    name, commit hash, uncommitted changes, and timestamp of when
-    the script was run.
-    """
-    # get some versioning info about when this script was run and
-    # what version of the script was used to produce the output
-    # to save alongside the output
-    # the branch name:
-    git_branch_name = (
-        subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
-        .decode("ascii")
-        .strip()
-    )
-    # the current commit hash:
-    git_commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
-    # if there were any uncommitted changes when this script was run:
-    git_uncommitted_changes = (
-        subprocess.check_output(["git", "diff", "HEAD", "--name-only"]).decode("ascii").strip()
-        or "None"
-    )
-    # the timestamp that this script was run:
-    timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %X")
-
-    git_branch_info = {
-        "timestamp": str(timestamp),
-        "git_branch_name": str(git_branch_name),
-        "git_commit_hash": str(git_commit_hash),
-        "git_uncommitted_changes": str(git_uncommitted_changes),
-    }
-    return git_branch_info
-
-
-@deprecated(
-    """
-This method is deprecated and will be removed. Git versioning info should only
-be saved with files uploaded to FMS. Use the `include_git_info=True` flag
-(`True` by default) in `src.endo_pipeline.io.build_fms_annotations` to include
-git versioning info when uploading to FMS.
-"""
-)
-def save_git_versioning_info(
-    out_dir: Path,
-    filename_prefix: str,
-    verbose: bool = True,
-) -> None:
-    """
-    Save git versioning info to a .txt file in the specified output directory.
-    The filename will be prepended with the provided filename_prefix.
-    output_dir should be a path that exists already, it will not be created.
-    """
-    git_info = get_git_versioning_info()
-    output_path = out_dir / f"{filename_prefix}_git_versioning_info.txt"
-    with output_path.open("w") as git_versioning_file:
-        for key, value in git_info.items():
-            git_versioning_file.write(f"{key}: {value}\n")
-    print(f"Git versioning info saved to {output_path}.") if verbose else None
-    return None
-
-
 def concatenate_and_save_feature_tables(
     out_dir: Path,
     dataset_name: str,
@@ -1233,8 +808,6 @@ def concatenate_and_save_feature_tables(
     out_dir/dataset_name/position/*filename_contains*.file_extension.
     """
     out_subdir = out_dir / dataset_name
-    feats_dfs = []
-    sep = "\t" if file_extension == ".tsv" else ","
 
     file_extension = f".{file_extension}" if not file_extension.startswith(".") else file_extension
     if input_filename_contains and not input_filename_contains.endswith("*"):
@@ -1242,7 +815,23 @@ def concatenate_and_save_feature_tables(
     feats_filepaths = list(out_subdir.glob(f"**/*{input_filename_contains}{file_extension}"))
     if sort_by_T:
         feats_filepaths = sorted(feats_filepaths, key=lambda fp: extract_T(fp.stem))
-    feats_dfs = [pd.read_csv(fp, sep=sep) for fp in feats_filepaths]
+
+    if file_extension == ".tsv":
+        sep = "\t"
+        table_reader = lambda fp: pd.read_csv(fp, sep=sep)
+        table_writer = lambda df, fp: df.to_csv(fp, sep=sep, index=False)
+    elif file_extension == ".csv":
+        sep = ","
+        table_reader = lambda fp: pd.read_csv(fp, sep=sep)
+        table_writer = lambda df, fp: df.to_csv(fp, sep=sep, index=False)
+    elif file_extension == ".parquet":
+        table_reader = lambda fp: pd.read_parquet(fp)
+        table_writer = lambda df, fp: df.to_parquet(fp, index=False)
+    else:
+        raise ValueError(
+            f"Invalid file extension {file_extension}. Must be .csv, .tsv., or .parquet."
+        )
+    feats_dfs = [table_reader(fp) for fp in feats_filepaths]
 
     # define the output path for the concatenated dataframe
     if out_file_suffix:
@@ -1253,14 +842,14 @@ def concatenate_and_save_feature_tables(
 
     if feats_dfs:
         concatenated_df = pd.concat(feats_dfs, ignore_index=True)
-        concatenated_df.to_csv(concatenated_df_out_path, sep=sep, index=False)
+        table_writer(concatenated_df, concatenated_df_out_path)
     else:
         print(f"No feature tables found for {dataset_name}.")
 
     if check_saved_dataframe:
         # check that the concatenated dataframe at least has the same shape
         # and column names as a proxy for checking if it was saved correctly
-        saved_df = pd.read_csv(concatenated_df_out_path, sep=sep)
+        saved_df = table_reader(concatenated_df_out_path)
         same_shape = saved_df.shape == concatenated_df.shape
         same_column_names = all(saved_df.columns == concatenated_df.columns)
         if not (same_shape and same_column_names):

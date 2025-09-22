@@ -7,20 +7,21 @@ from scipy import interpolate as spinterp
 from scipy.integrate import solve_ivp
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.configs import ModelManifest
-from src.endo_pipeline.library.analyze.diffae_manifest import (
+from endo_pipeline.library.analyze.diffae_manifest import (
+    get_dataframe_for_dynamics_workflows,
     get_dataset_descriptions,
-    get_manifest_for_dynamics_workflows,
     get_pc_column_names,
     get_traj_and_diff,
 )
-from src.endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
-from src.endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data, get_bins
-from src.endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
+from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
+from endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data, get_bins
+from endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
+from endo_pipeline.manifests import DataframeManifest
 
 
 def _ddff_model_analysis(
-    model_manifest: ModelManifest,
+    dataset_name: str,
+    manifest: DataframeManifest,
     pca: PCA,
     kernel_params: dict,
     dt: float,
@@ -38,7 +39,8 @@ def _ddff_model_analysis(
     and output summary figures and vtk files for visualization.
 
     Inputs:
-    - model_manifest: ModelManifest object for the dataset
+    - dataset_name: name of dataset
+    - manifest: manifest of model feature dataframes
     - pca: PCA model to use for transforming the data
     - kernel_params: parameters for the kernel-based
         estimation of Kramers-Moyal coefficients
@@ -70,7 +72,7 @@ def _ddff_model_analysis(
             two stable fixed points for these conditions)
     """
     # load dataframe and get top 3 PCs
-    df = get_manifest_for_dynamics_workflows(model_manifest, pca)
+    df = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
     pc_column_names = get_pc_column_names(df, pc_axes=[0, 1, 2])
 
     # get list of per-crop trajectories, the corresponding
@@ -86,14 +88,12 @@ def _ddff_model_analysis(
     flow_field_dict = compute_extrapolated_vector_field(drift_km, centers, interpolator="nearest")
     # save flow field dictionary as npy
     np.save(
-        output_savedir / f"flow_field_dict_{model_manifest.dataset_name}.npy",
+        output_savedir / f"flow_field_dict_{dataset_name}.npy",
         flow_field_dict,  # type: ignore
         allow_pickle=True,
     )
     # save flow field as vtk image data
-    vtk_io.save_vector_field_as_vtk(
-        flow_field_dict, vtk_savedir / f"flow_field_{model_manifest.dataset_name}.vtk"
-    )
+    vtk_io.save_vector_field_as_vtk(flow_field_dict, vtk_savedir / f"flow_field_{dataset_name}.vtk")
 
     # compute interpolated diffusion field
     # (diagonal diffusion tensor represented as 3D vector field)
@@ -102,13 +102,13 @@ def _ddff_model_analysis(
     )
     # save diffusion field dictionary as npy
     np.save(
-        output_savedir / f"diffusion_field_dict_{model_manifest.dataset_name}.npy",
+        output_savedir / f"diffusion_field_dict_{dataset_name}.npy",
         diffusion_field_dict,  # type: ignore
         allow_pickle=True,
     )
     # save diffusion field as vtk image data
     vtk_io.save_vector_field_as_vtk(
-        diffusion_field_dict, vtk_savedir / f"diffusion_field_{model_manifest.dataset_name}.vtk"
+        diffusion_field_dict, vtk_savedir / f"diffusion_field_{dataset_name}.vtk"
     )
 
     ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
@@ -121,7 +121,7 @@ def _ddff_model_analysis(
 
     # hack-y work around for intermediate shear stress
     # simulate second trajectory to get second stable point
-    if model_manifest.dataset_name == "20250319_20X":
+    if dataset_name == "20250319_20X":
         init = np.array([1.1, 0.0, -0.2])
         time_span = [0, 5000]
         traj_2 = solve_ddff_ode(flow_field_dict, init, time_span)
@@ -132,7 +132,8 @@ def _ddff_model_analysis(
 
 
 def get_and_analyze_ddff(
-    model_manifest_list: list[ModelManifest],
+    dataset_names: list[str],
+    manifest: DataframeManifest,
     pca: PCA,
     kernel_params: dict,
     dt: float,
@@ -147,9 +148,8 @@ def get_and_analyze_ddff(
     the "data-driven flow field" (DDFF) for a list of datasets.
 
     Inputs:
-    - model_manifest_list: list of ModelManifest objects
-        - each manifest contains the dataset name and
-            the fmsid of the model manifest for the dataset
+    - dataset_names: list of dataset names to use for computing DDFF
+    - manifest: manifest of model feature dataframes
     - pca: PCA model to use for transforming the data
     - kernel_params: parameters for the kernel-based
         estimation of Kramers-Moyal coefficients
@@ -169,23 +169,22 @@ def get_and_analyze_ddff(
             of what other files are saved out for each dataset
     """
     # get bins for KMCs
-    bounds = get_3d_bounds_from_data(model_manifest_list, pca)
+    bounds = get_3d_bounds_from_data(dataset_names, manifest, pca)
     num_bins = [50, 50, 50]
     bins, centers = get_bins(num_bins, bin_limits=bounds)
 
     # get experimental condition
     # descriptions of each dataset
-    condition_dict = get_dataset_descriptions(
-        [model_manifest.dataset_name for model_manifest in model_manifest_list], simple=True
-    )
+    condition_dict = get_dataset_descriptions(dataset_names, simple=True)
 
     # initialize dict to save trajectories
     # used for crop reconstruction
     traj_dict = {}
-    for model_manifest in model_manifest_list:
-        print(f"******** Processing dataset: {model_manifest.dataset_name} ******** \n")
+    for dataset_name in dataset_names:
+        print(f"******** Processing dataset: {dataset_name} ******** \n")
         traj = _ddff_model_analysis(
-            model_manifest,
+            dataset_name,
+            manifest,
             pca,
             kernel_params,
             dt,
@@ -199,7 +198,7 @@ def get_and_analyze_ddff(
         )
 
         # save out using dataset descriptions
-        condition = condition_dict[model_manifest.dataset_name]
+        condition = condition_dict[dataset_name]
         traj_dict[condition] = traj
 
     np.save(output_savedir / "traj_dict", traj_dict, allow_pickle=True)  # type: ignore
@@ -207,8 +206,7 @@ def get_and_analyze_ddff(
     # generate plot of stable fixed points from different datasets
     # overlaid on top of each other
     # (for comparison of stable fixed points across conditions)
-    list_of_datasets = [model_manifest.dataset_name for model_manifest in model_manifest_list]
-    flow_field_viz.plot_stable_fixed_points_together(list_of_datasets, fig_savedir, output_savedir)
+    flow_field_viz.plot_stable_fixed_points_together(dataset_names, fig_savedir, output_savedir)
 
 
 def compute_extrapolated_vector_field(

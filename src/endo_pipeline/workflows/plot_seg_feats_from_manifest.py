@@ -6,22 +6,22 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
-from src.endo_pipeline.configs.dataset_io import (
-    fire_parse_generate_dataset_name_list,
+from endo_pipeline.configs.dataset_io import (
+    parse_generate_dataset_name_user_input,
     ipython_cli_flexecute,
 )
-from src.endo_pipeline.io import configure_logging, get_output_path, load_dataframe
-from src.endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+from endo_pipeline.io import configure_logging, get_output_path, load_dataframe
+from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
-from src.endo_pipeline.library.visualize.seg_features.general_standard_plots import (
+from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
     get_seg_feat_plot_args,
     hist_2D_of_feats,
     lineplot_of_feats,
     mark_parallel,
     mark_perpendicular,
 )
-from src.endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +66,7 @@ def plot_seg_manifest_data(
         "centroid_velocity_orientation_deg",
         "cell_nuc_dist",
         "cell_nuc_orientation_deg",
+        "cell_nuc_orientation_deg_rel_to_migration",
     ]
     feats_to_plot_y_lineplot_only = [
         "num_nuclei",
@@ -174,11 +175,10 @@ def process_dataset(dataset_name: str, out_dir: Path) -> None:
 
 def main(dataset_name: str | None = None, n_proc: int = 1, is_test: bool = False) -> None:
 
-    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
+    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
     print(f"Processing: {dataset_name_list}")
 
-    out_dir = get_output_path(Path(__file__).stem)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    out_dir = get_output_path(__file__)
 
     configure_logging(out_dir, logger, verbose=True)
 

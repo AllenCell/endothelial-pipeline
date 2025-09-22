@@ -13,19 +13,42 @@ shear_stress_regime: no_flow
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
-flow: [[0, 576, 0.0]]
 n_total_positions: 6
-channel_488_index: 0
-brightfield_channel_index: 1
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
 flow_conditions:
 - start: 0
   stop: 576
   shear_stress: 0.0
-channel_405_index: null
-channel_561_index: null
-channel_640_index: null
 valid_timepoints:
   start: [0, 300]
   stop: [100, 420]
 include_scenes: null
 notes: This dataset seems to be missing a metadata file... No flow with 1 feed only.
+  Calculated center plane was 8, Adjusted to 13.
+timepoint_annotations:
+  auto_gfp_scope_error:
+    0: [290]
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+position_annotations: null
+center_z_plane:
+  0: 13
+  1: 13
+  2: 13
+  3: 13
+  4: 13
+  5: 13

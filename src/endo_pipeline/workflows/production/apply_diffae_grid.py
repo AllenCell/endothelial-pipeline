@@ -4,16 +4,27 @@ TAGS = ["apply_diffae_model", "diffae_features"]
 def main(
     model_name: str = "diffae_04_10",
     dataset_name: str = "live_20X_objective_3i_microscope",
-    zarr_resolution: int = 1,
+    resolution_level: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
-    test_workflow: bool = False,
 ) -> None:
     """
     Apply a trained DiffAE model to grid-based crops of images from multiple datasets.
 
-    Produces a table of latent features from a non-overlapping grid of crops
-    for each dataset. The model is applied at the specified resolution level.
+    Produces a table of latent features from a non-overlapping grid of crops for each dataset.
+    The model is applied at the specified resolution level.
+
+    **Workflow demo**
+
+    If demo mode is enabled, the model will only be evaluated on the first few
+    timepoints of the first position of the first dataset.
+
+    **Example usage**
+
+    .. code-block:: bash
+
+        endopipe -vg apply-diffae-grid --dataset-name 20250409_20X
+
 
     Parameters
     ----------
@@ -22,18 +33,12 @@ def main(
     dataset_name
         Dataset(s) to load images from, either a single dataset name or the name
         of a dataset collection.
-    zarr_resolution
+    resolution_level
         Resolution level to at which to load images (zarr file format) at.
     upload_to_fms
         True to upload the prediction file for each dataset to FMS, False to only save locally.
     user_overrides
         Optional user overrides to apply to the model config.
-    test_workflow
-        Flag to indicate if this script is being run for testing purposes (e.g., code review).
-
-        If True, only one position and minimal timepoints from each dataset is included for
-        loading and performing inferrence on the crops. This speeds up the dataloading process
-        during model evaluation.
 
     Returns
     -------
@@ -45,18 +50,21 @@ def main(
     import logging
     from typing import cast
 
-    from src.endo_pipeline.configs import (
+    from endo_pipeline import DEMO_MODE
+    from endo_pipeline.configs import (
         CytoDLModelConfig,
         get_available_dataset_collection_names,
         get_available_dataset_names,
         get_datasets_in_collection,
         load_dataset_config,
         load_model_config,
-        save_model_config,
     )
-    from src.endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
+    from endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
+    from endo_pipeline.library.model.image_loading import get_include_positions
+    from endo_pipeline.settings import Z_SLICE_OFFSETS
 
     logger = logging.getLogger(__name__)
+
     # check if input is a dataset collection or a single dataset name
     if dataset_name in get_available_dataset_collection_names():
         # if it is a dataset collection, load all datasets in the collection
@@ -84,27 +92,47 @@ def main(
     # and then just loop through datasets...
     # out of scope for this PR but worth doing in a separate PR
     for dataset_config in dataset_config_list:
-        model_config = apply_model_on_grid_of_crops_from_one_dataset(
-            model_config=model_config,
-            dataset_config=dataset_config,
-            zarr_resolution=zarr_resolution,
-            upload_to_fms=upload_to_fms,
-            user_overrides=user_overrides,
-            test_workflow=test_workflow,
-        )
-        if test_workflow:
-            # if test workflow, only process the first dataset
+
+        # Get positions to include.
+        only_include_positions = get_include_positions(dataset_config)
+
+        # When running workflow in demo mode, only use the first position from each
+        # dataset and first two timepoints to speed up the dataloading process (if
+        # dataset is not timelapse, then only one timepoint is used). Otherwise, use
+        # default frame start and stop values (i.e. all timepoints) and keep all
+        # rows in the dataset CSV.
+        if DEMO_MODE:
+            frame_start = 0
+            frame_stop = 1 if dataset_config.is_timelapse else 0
+            only_include_positions = only_include_positions[0:1]
             logger.warning(
-                "Workflow testing is enabled, only processing the first dataset: [ %s ]",
+                "Workflow demo is enabled, only processing first few "
+                "timepoints of the first position of dataset: [ %s ]",
                 dataset_config.name,
             )
-            break
+        else:
+            frame_start = None
+            frame_stop = None
 
-    # save out updated model config
-    save_model_config(model_config)
+        apply_model_on_grid_of_crops_from_one_dataset(
+            model_config=model_config,
+            dataset_config=dataset_config,
+            resolution_level=resolution_level,
+            upload_to_fms=upload_to_fms,
+            user_overrides=user_overrides,
+            z_slice_offsets=Z_SLICE_OFFSETS,
+            frame_start=frame_start,
+            frame_stop=frame_stop,
+            only_include_positions=only_include_positions,
+        )
+
+        if DEMO_MODE:
+            # only apply model to the first dataset in demo mode
+            break
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)
