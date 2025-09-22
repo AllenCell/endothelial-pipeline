@@ -179,6 +179,8 @@ def write_scene(
         xy_scaling = DEFAULT_XY_SCALING
     if z_scaling is None:
         z_scaling = DEFAULT_Z_SCALING
+    if interval_min is None:
+        interval_min = 0.0
 
     zarr_chunk_dims_tuples = get_zarr_chunk_dims(im.shape, xy_scaling, z_scaling)
 
@@ -209,6 +211,9 @@ def write_scene(
         "z": "micrometer",
         "t": "minute",
     }
+
+    print(f"Physical dimensions: {physical_scale}")
+
     meta = writer.generate_metadata(
         image_name=f"{dataset}_{position}",
         channel_names=channels,
