@@ -6,7 +6,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 from endo_pipeline.configs.dataset_io import (
-    fire_parse_generate_dataset_name_list,
+    parse_generate_dataset_name_user_input,
     ipython_cli_flexecute,
 )
 from endo_pipeline.io import configure_logging, get_output_path, load_dataframe
@@ -86,7 +86,7 @@ def create_segmentation_measured_feature_manifest(
 
 
 def main(
-    dataset_name: str | None = None,
+    datasets: str | None = None,
     n_proc: int = 1,
     verbose: bool = False,
 ) -> None:
@@ -96,7 +96,7 @@ def main(
     configure_logging(out_dir, logger, verbose)
 
     # create a list of datasets to analyze if not provided
-    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
+    dataset_name_list = parse_generate_dataset_name_user_input(datasets)
     logger.info(f"datasets to analyze: {dataset_name_list}")
 
     # decide whether or not to use multiprocessing

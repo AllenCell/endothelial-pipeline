@@ -26,65 +26,78 @@ def main(
         The aligned images are saved locally as multi-channel TIFF files.
     """
     import logging
+    from pathlib import Path
 
     import pandas as pd
-    import tqdm
     from sklearn.model_selection import train_test_split
 
     from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.model import build_and_save_dataframe_manifest_for_training
-    from endo_pipeline.library.process.registration import (
-        align_and_save_paired_images,
-        concat_and_save_aligned_image_pairs,
-    )
-    from endo_pipeline.settings import Z_SLICE_OFFSETS
+    from endo_pipeline.library.process.registration import get_paired_dataset_dict
+    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+    from endo_pipeline.settings import IF_INTEGRATION_SAVE_DIRECTORY, Z_SLICE_OFFSETS
 
     logger = logging.getLogger(__name__)
 
-    # When running workflow in demo mode, only the first two pairs of images
-    # from the first dataset pair will be aligned and saved.
     if DEMO_MODE:
-        name_suffix = "_test_workflow"
-        num_datasets_to_align = 1
-        num_positions_to_align = 4
+        name_suffix = "_demo"
     else:
         name_suffix = ""
-        num_datasets_to_align = None
-        num_positions_to_align = None
 
-    save_path = get_output_path("finetune_paired_dataset", dataset_pair_type)
-    logger.info("Saving aligned images to [ %s ]", save_path)
-
-    df = align_and_save_paired_images(
-        dataset_pair_type,
-        resolution_level,
-        z_slice_offsets=Z_SLICE_OFFSETS,
-        save_path=save_path,
-        num_datasets_to_align=num_datasets_to_align,
-        num_positions_to_align=num_positions_to_align,
+    # get output directory where registered images are saved
+    output_dir = (
+        Path(IF_INTEGRATION_SAVE_DIRECTORY) / f"{dataset_pair_type}_resolution_{resolution_level}"
     )
+    if not output_dir.exists():
+        logger.error(
+            "Output directory for registered images at resolution [ %s ] does not exist: [ %s ]",
+            resolution_level,
+            output_dir,
+        )
+        raise FileNotFoundError(
+            f"Expected image output directory does not exist: {output_dir.as_posix()}"
+        )
 
-    out_paths: list[str] = []
-    for row in tqdm.tqdm(df.itertuples()):
-        row_dict = row._asdict()  # type: ignore[operator]
-        out_path = concat_and_save_aligned_image_pairs(row_dict, save_path)
-        out_paths.append(out_path.as_posix())
+    # get name of dataset used as the "target" image in the target/moving pair
+    # to get image paths from the ImageManifest created in the registration workflow
+    image_manifest = load_image_manifest(
+        f"registered_{dataset_pair_type}_resolution_{resolution_level}{name_suffix}"
+    )
+    paired_datasets = get_paired_dataset_dict(dataset_pair_type)
+    image_paths: list[str] = []
+    for fixed_dataset_name in paired_datasets["target"]:
+        dataset_config = load_dataset_config(fixed_dataset_name)
+        available_positions = dataset_config.zarr_positions
+
+        # get image paths for each position in the dataset
+        for position in available_positions:
+            image_location = get_image_location_for_dataset(
+                image_manifest, fixed_dataset_name, position
+            )
+            if not image_location.path or not image_location.path.exists():
+                logger.warning(
+                    "No registered image found for dataset [ %s ] at position [ %s ]",
+                    fixed_dataset_name,
+                    position,
+                )
+                continue
+            image_paths.append(image_location.path.as_posix())
 
     # build dataframe with loading metadata for the aligned images
     # note that "resolution" here is set to 0, as the images
     # are already aligned and saved at the desired resolution level
-    out_df = pd.DataFrame(
+    image_loading_dataframe = pd.DataFrame(
         {
-            "path": out_paths,
-            "channel": [[0, 1]] * len(out_paths),
+            "path": image_paths,
+            "channel": [[0, 1]] * len(image_paths),
         }
     )
 
     # Split the dataframe into training and validation sets
     train_val_tuple: tuple[pd.DataFrame, pd.DataFrame] = train_test_split(
-        out_df, test_size=0.2, random_state=42
+        image_loading_dataframe, test_size=0.2, random_state=42
     )
     train, val = train_val_tuple
 
@@ -94,6 +107,7 @@ def main(
     manifest_name = f"diffae_finetuning_dataframe_resolution_{resolution_level}{name_suffix}"
     dataset_name_list = get_datasets_in_collection(f"{dataset_pair_type}_paired_datasets")
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_name_list]
+    save_path = get_output_path("models", f"diffae_finetune_{dataset_pair_type}")
     build_and_save_dataframe_manifest_for_training(
         train,
         val,

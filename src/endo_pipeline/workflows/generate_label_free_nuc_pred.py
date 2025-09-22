@@ -10,7 +10,7 @@ from cellpose import core, models
 from tqdm import tqdm
 
 from endo_pipeline.configs import CellposeModelConfig, load_dataset_config, load_model_config
-from endo_pipeline.configs.dataset_io import fire_parse_generate_dataset_name_list, load_config
+from endo_pipeline.configs.dataset_io import parse_generate_dataset_name_user_input, load_config
 from endo_pipeline.io import configure_logging, get_output_path
 from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
@@ -149,7 +149,7 @@ def main(
     configure_logging(out_dir, logger, verbose)
 
     # Build a list of datasets to analyze
-    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
+    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
     logger.info(f"datasets to analyze: {dataset_name_list}")
 
     # Get a list of timepoints and associated arguments to process from the list of datasets to analyze

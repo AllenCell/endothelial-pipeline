@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 from endo_pipeline.configs.dataset_io import (
-    fire_parse_generate_dataset_name_list,
+    parse_generate_dataset_name_user_input,
     ipython_cli_flexecute,
 )
 from endo_pipeline.io import configure_logging, get_output_path, load_dataframe
@@ -175,7 +175,7 @@ def process_dataset(dataset_name: str, out_dir: Path) -> None:
 
 def main(dataset_name: str | None = None, n_proc: int = 1, is_test: bool = False) -> None:
 
-    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
+    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
     print(f"Processing: {dataset_name_list}")
 
     out_dir = get_output_path(__file__)
