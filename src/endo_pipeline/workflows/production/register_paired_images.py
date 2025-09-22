@@ -93,11 +93,11 @@ def main(
     # create dict of image locations for the saved images
     # using the dynamic position values in the file names
     image_locations: dict[str, ImageLocation] = {}
-    dataset_names = df["fixed_dataset"].unique()
+    dataset_names = df["target_dataset"].unique()
 
     # Get basic file naming pattern used in registration step:
-    #   {fixed_dataset_date}_{fixed_dataset_barcode}_P{position}_aligned_paired_bf.ome.tiff
-    # where {fixed_dataset_date}_{fixed_dataset_barcode} is obtained from
+    #   {target_dataset_date}_{target_dataset_barcode}_P{position}_aligned_paired_bf.ome.tiff
+    # where {target_dataset_date}_{target_dataset_barcode} is obtained from
     # the dataset config zarr_path file name. Then use regex to replace the
     # position number with the placeholder {{position}}.
 
