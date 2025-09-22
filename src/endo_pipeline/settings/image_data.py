@@ -21,7 +21,7 @@ Axial distortion correction factor for 3i 20x objective.
 Determined as described in Diel et al. 2020.
 """
 
-AXIAL_DISTORTION_CORRECTION_FACTOR_3i_40x = TBD
+AXIAL_DISTORTION_CORRECTION_FACTOR_3i_40x = 1.00
 """
 Axial distortion correction factor for 3i 40x objective.
 Determined as described in Diel et al. 2020.
