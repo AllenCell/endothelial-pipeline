@@ -144,7 +144,7 @@ def main(
     from tqdm import tqdm
 
     from endo_pipeline.configs.dataset_io import (
-        fire_parse_generate_dataset_name_list,
+        parse_generate_dataset_name_user_input,
         get_tracking_data_filtered,
     )
     from endo_pipeline.io import get_output_path
@@ -152,7 +152,7 @@ def main(
 
     out_dir = get_output_path(__file__)
 
-    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
+    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
 
     analysis_queue = build_analysis_queue(
         dataset_name_list,

@@ -11,7 +11,7 @@ from tqdm import tqdm
 from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
-    fire_parse_generate_dataset_name_list,
+    parse_generate_dataset_name_user_input,
     get_original_path,
     ipython_cli_flexecute,
 )
@@ -350,7 +350,7 @@ def main(
 
     out_dir = get_output_path(__file__)
 
-    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
+    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
 
     configure_logging(out_dir, logger, verbose=verbose)
     logger.info(f"datasets analyzed: {dataset_name_list}")

@@ -227,11 +227,11 @@ def main(
     mpl.rc("image", cmap="gray")
 
     from endo_pipeline.configs.dataset_io import (
-        fire_parse_generate_dataset_name_list,
+        parse_generate_dataset_name_user_input,
         get_dataset_duration_in_frames,
     )
 
-    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
+    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
 
     for dataset_name in dataset_name_list:
         print(f"Initializing workflow for {dataset_name}...")

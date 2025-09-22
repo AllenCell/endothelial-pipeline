@@ -54,10 +54,14 @@ def main(
         name_suffix = "_demo"
         max_num_epochs = 1
         log_every_n_steps = 1
+        cache_rate = 1.0
+        replace_rate = 0.1
     else:
         name_suffix = ""
         max_num_epochs = 100
         log_every_n_steps = 50
+        cache_rate = 1.0  # This can be changed!
+        replace_rate = 0.5
 
     # get training and validation datasets based on zarr resolution
     # by loading the DataframeManifest from the model directory
@@ -112,6 +116,8 @@ def main(
         diffae_ckpt_path=diffae_ckpt_path,
         max_num_epochs=max_num_epochs,
         log_every_n_steps=log_every_n_steps,
+        cache_rate=cache_rate,
+        replace_rate=replace_rate,
     )
     # save the input model config locally instead of printing
     local_config_save_path = get_output_path("models", "training_configs")
