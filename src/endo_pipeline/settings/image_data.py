@@ -16,16 +16,10 @@ NUM_ZSLICES = 25
 """Number of z-slices per timepoint."""
 
 AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x = 1.43
-"""
-Axial distortion correction factor for 3i 20x objective.
-Determined as described in Diel et al. 2020.
-"""
+"""Axial distortion factor for 3i 20x objective determined as described in Diel et al. 2020."""
 
 AXIAL_DISTORTION_CORRECTION_FACTOR_3i_40x = 1.00
-"""
-Axial distortion correction factor for 3i 40x objective.
-Determined as described in Diel et al. 2020.
-"""
+"""Axial distortion factor for 3i 40x objective determined as described in Diel et al. 2020."""
 
 Z_STEP_SIZE_NOMINAL_3i_20x = 0.53
 """Nominal Z-step size for the 20x objective in micrometers."""
