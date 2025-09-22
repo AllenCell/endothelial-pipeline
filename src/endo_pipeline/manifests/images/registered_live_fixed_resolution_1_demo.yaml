@@ -1,9 +1,0 @@
-name: registered_live_fixed_resolution_1_demo
-workflow: register_paired_images
-parameters:
-  dataset_pair_type: live_fixed
-  resolution_level: 1
-  output_dir: null
-locations:
-  20250214_pairedPreFixation:
-    path: //allen/aics/endothelial/morphological_features/IF_integration/live_fixed_resolution_1/20250214_070e32c7355a40a288df2e68ae19adbc_P{{position}}_0_0_aligned_paired_bf.ome.tiff
