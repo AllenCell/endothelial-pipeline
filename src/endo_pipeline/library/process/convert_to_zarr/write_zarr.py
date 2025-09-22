@@ -5,6 +5,7 @@ from bioio.writers import ome_zarr_writer_2 as ome_zarr_writer
 from bioio_base.types import PhysicalPixelSizes
 
 from endo_pipeline.configs import dataset_io
+from endo_pipeline.settings.image_data import AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
 
 DEFAULT_XY_SCALING = [0.5, 0.5]
 DEFAULT_Z_SCALING = [1.0, 1.0]
@@ -48,6 +49,10 @@ def get_sldy_pixel_sizes(metadata: dict) -> PhysicalPixelSizes:
     xy_pixel_size_in_um = metadata["image_record"]["CLensDef70"]["mMicronPerPixel"]
     optovar_mag = metadata["image_record"]["COptovarDef70"]["mMagnification"]
     z_step_um = metadata["channel_record"]["CExposureRecord70"][0]["mInterplaneSpacing"]
+
+    magnification = metadata["image_record"]["CLensDef70"]["mActualMagnification"]
+    if magnification == 20:
+        z_step_um *= AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
 
     physical_pixel_sizes = PhysicalPixelSizes(
         Z=z_step_um,
