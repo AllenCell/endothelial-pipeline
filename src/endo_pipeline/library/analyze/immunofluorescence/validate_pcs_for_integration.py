@@ -149,7 +149,7 @@ def apply_model_paired_fixed_live(
     # Apply on fixed images
     overrides = {"model.spatial_inferer.splitter.overlap": 0.9}
     fixed_overrides = overrides.copy()  # copy to avoid overriding the original
-    fixed_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "fixed"})
+    fixed_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving"})
     fixed_overrides = generate_overrides_for_model_eval(
         fixed_overrides,
         save_path=str(save_path),
@@ -166,7 +166,7 @@ def apply_model_paired_fixed_live(
     model.predict()
 
     # Apply on moving images
-    overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving"})
+    overrides.update({"data.predict_dataloaders.dataset.img_path_column": "target"})
     overrides = generate_overrides_for_model_eval(
         overrides,
         save_path=str(save_path),
