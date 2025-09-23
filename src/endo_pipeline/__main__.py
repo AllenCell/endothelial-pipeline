@@ -112,7 +112,7 @@ def pipeline_entrypoint(
     config
         Path to user configuration file.
     num_gpus
-        Number of GPUs to use for workflow execution (e.g. -g 4 means 4 GPUs; None or 0 means CPU).
+        Number of GPUs to use for workflow execution (e.g. -g 4 means 4 GPUs; None means CPU).
     show_external_logs
         Show logging outputs from external libraries.
     demo_mode
@@ -120,8 +120,6 @@ def pipeline_entrypoint(
     use_staging
         Use staging environments.
     """
-
-    import os
 
     apply_entrypoint_settings(verbose, debug, num_gpus, show_external_logs, demo_mode, use_staging)
 
@@ -139,7 +137,7 @@ def pipeline_entrypoint(
             if filter_tag:
                 app.show = filter_tag in tags[app.name[0]] and app.show
 
-    # Pass in the num_gpus to the train_diffae script
+    # Pass in the num_gpus to the relevant scripts
 
     new_tokens = list(tokens)
     if num_gpus is not None:
@@ -166,7 +164,7 @@ def workflow_entrypoint(
     debug
         Show debug logging.
     num_gpus
-        Number of GPUs to use for workflow execution (e.g. -g 4 means 4 GPUs; None or 0 means CPU).
+        Number of GPUs to use for workflow execution (e.g. -g 4 means 4 GPUs; None means CPU).
     show_external_logs
         Show logging outputs from external libraries.
     demo_mode
@@ -198,7 +196,7 @@ def apply_entrypoint_settings(
     debug
         Show debug logging.
     num_gpus
-        Number of GPUs to use for workflow execution (None or 0 for CPU).
+        Number of GPUs to use for workflow execution (None for CPU).
     show_external_logs
         Show logging outputs from external libraries.
     demo_mode
@@ -359,7 +357,7 @@ def setup_gpu(num_gpus: Optional[int]) -> None:
     Parameters
     ----------
     num_gpus
-        Number of GPUs to use with the workflow (None or 0 for CPU).
+        Number of GPUs to use with the workflow.
     """
     import os
     import re
