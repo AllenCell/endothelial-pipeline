@@ -80,7 +80,7 @@ def main(
         # parse dataset annotations to get z-slice information,
         # positions to include, and frames to exclude
         z_slice_bounds_per_position = get_z_slice_bounds_per_position(
-            dataset_config, z_stack_offsets=Z_SLICE_OFFSETS
+            dataset_config, z_slice_offsets=Z_SLICE_OFFSETS
         )
         only_include_positions = get_include_positions(dataset_config)
         exclude_frames = get_exclude_frames(dataset_config, exclude_cell_piling=exclude_cell_piling)
