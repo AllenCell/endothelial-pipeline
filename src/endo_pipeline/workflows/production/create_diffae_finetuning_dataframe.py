@@ -26,7 +26,6 @@ def main(
         The aligned images are saved locally as multi-channel TIFF files.
     """
     import logging
-    from pathlib import Path
 
     import pandas as pd
     from sklearn.model_selection import train_test_split
@@ -37,7 +36,7 @@ def main(
     from endo_pipeline.library.model import build_and_save_dataframe_manifest_for_training
     from endo_pipeline.library.process.registration import get_paired_dataset_dict
     from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
-    from endo_pipeline.settings import IF_INTEGRATION_SAVE_DIRECTORY, Z_SLICE_OFFSETS
+    from endo_pipeline.settings import Z_SLICE_OFFSETS
 
     logger = logging.getLogger(__name__)
 
@@ -45,20 +44,6 @@ def main(
         name_suffix = "_demo"
     else:
         name_suffix = ""
-
-    # get output directory where registered images are saved
-    output_dir = (
-        Path(IF_INTEGRATION_SAVE_DIRECTORY) / f"{dataset_pair_type}_resolution_{resolution_level}"
-    )
-    if not output_dir.exists():
-        logger.error(
-            "Output directory for registered images at resolution [ %s ] does not exist: [ %s ]",
-            resolution_level,
-            output_dir,
-        )
-        raise FileNotFoundError(
-            f"Expected image output directory does not exist: {output_dir.as_posix()}"
-        )
 
     # get name of dataset used as the "target" image in the target/moving pair
     # to get image paths from the ImageManifest created in the registration workflow

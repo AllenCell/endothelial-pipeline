@@ -41,9 +41,15 @@ def main(
     logger = logging.getLogger(__name__)
 
     if output_dir is None:
+        from endo_pipeline import USE_STAGING
+        from endo_pipeline.io import get_output_path
         from endo_pipeline.settings import IF_INTEGRATION_SAVE_DIRECTORY
 
-        output_path = Path(IF_INTEGRATION_SAVE_DIRECTORY)
+        # save locally if using staging, save to project folder otherwise
+        if USE_STAGING:
+            output_path = get_output_path("IF_integration")
+        else:
+            output_path = Path(IF_INTEGRATION_SAVE_DIRECTORY)
     else:
         output_path = Path(output_dir)
 
