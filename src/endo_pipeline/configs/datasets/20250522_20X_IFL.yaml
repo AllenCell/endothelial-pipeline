@@ -1,0 +1,41 @@
+name: 20250522_20X_IFL
+original_path: //allen/programs/allencell/data/proj0/64c/e10/19e/084/5b7/4ab/645/48f/547/01e/37/20250522_GE00008025_20X_sldy/20250522_GE00008025_20X_sldy.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250522_3701e54748f6454ab5b708419ee1064c
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: 3701e54748f6454ab5b708419ee1064c
+barcode: GE00008025
+cell_lines: [AICS-126]
+live_or_fixed_sample: fixed
+is_timelapse: false
+microscope: 3i
+objective: 20X
+shear_stress_regime: high_to_low
+pixel_size_xy_in_um: 0.382
+duration: 0
+time_interval_in_minutes: 0.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 4
+  channel_488: 1
+  channel_405: 0
+  channel_561: 2
+  channel_640: 3
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: 2
+  channel_561: 3
+  channel_640: 4
+flow_conditions:
+- start: -385
+  stop: -97
+  shear_stress: 19.79
+- start: -96
+  stop: 0
+  shear_stress: 5.61
+valid_timepoints: null
+include_scenes: null
+notes: Fix & stain for SMAD1 & SOX17 8h post-flow change in a High SS to Low SS experiment
+timepoint_annotations: null
+position_annotations: null
+center_z_plane: null
