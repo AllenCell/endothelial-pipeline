@@ -538,7 +538,7 @@ def get_z_slice_bounds_per_position(
         logger.debug("No z-stack offsets provided, using full range in Z.")
 
     # if z_stack_offsets is not None, get z-slice ranges
-    # for each position in the dataset (i.e., zarr file)
+    # for each position in the dataset (i.e., zarr file)1
     # else, fixed full range is 0 to 24
     available_zarr_files = get_available_zarr_files(dataset_config)
     z_slice_bounds_per_position = {}
