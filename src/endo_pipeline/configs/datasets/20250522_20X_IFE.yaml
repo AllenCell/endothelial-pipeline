@@ -11,8 +11,8 @@ microscope: 3i
 objective: 20X
 shear_stress_regime: low_to_high
 pixel_size_xy_in_um: 0.382
-duration: 0
-time_interval_in_minutes: 0.0
+duration: 1
+time_interval_in_minutes: null
 n_total_positions: 6
 original_channel_indices:
   brightfield: 4
