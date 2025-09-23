@@ -15,6 +15,9 @@ LOG_EPSILON = 1e-12
 NUM_ZSLICES = 25
 """Number of z-slices per timepoint."""
 
+IF_INTEGRATION_SAVE_DIRECTORY = "//allen/aics/endothelial/morphological_features/IF_integration"
+"""Default production directory to save IF integration results."""
+
 AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x = 1.43
 """Axial distortion factor for 3i 20x objective determined as described in Diel et al. 2020."""
 
