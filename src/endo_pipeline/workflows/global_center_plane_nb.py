@@ -9,6 +9,7 @@ from endo_pipeline.configs import (
     get_datasets_in_collection,
     get_zarr_file_for_position,
     load_dataset_config,
+    save_dataset_config,
 )
 from endo_pipeline.io import load_zarr_as_dask_array
 from endo_pipeline.io.output import get_output_path
@@ -21,7 +22,7 @@ from endo_pipeline.library.process.z_stack_selection import (
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 # %%
 if __name__ == "__main__":
-    datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
+    datasets = get_datasets_in_collection("immunofluorescence")
     for dataset in datasets:
         logging.info(f"Processing dataset: {dataset}")
         save_dir = get_output_path(__file__, dataset)
@@ -54,6 +55,16 @@ if __name__ == "__main__":
         visualize_slice_selection(
             bf_stack, cdh5_stack, center_plane, 4, 11, dataset, position, frame, save_dir
         )
+        # for each row in results df, add to dataset_config.center_z_plane
+        # column position and mean_center_plane
+        global_center_plane = {}
+        for _, row in results_df.iterrows():
+            global_center_plane[int(row["position"])] = int(row["mean_center_plane"])
+
+        print(global_center_plane)
+        dataset_config.center_z_plane = global_center_plane
+        save_dataset_config(dataset_config)
+        break
 
     # Visualize the standard deviations per slice for the first position
     stdevs = [plane.std().compute() for plane in bf_stack]
