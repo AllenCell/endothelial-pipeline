@@ -176,13 +176,13 @@ def add_filter_columns(
 
     # keep only tracks with duration longer than min_track_duration
     big_table["min_track_duration"] = min_track_duration
-    big_table[f"is_greater_than_min_track_duration"] = (
+    big_table["is_greater_than_min_track_duration"] = (
         big_table["track_duration"] > min_track_duration
     )
 
     # keep only tracks where area_change is not too large
     big_table["max_smoothed_area_normd_change"] = max_area_change
-    big_table[f"is_less_than_max_smoothed_area_normd_change"] = (
+    big_table["is_less_than_max_smoothed_area_normd_change"] = (
         big_table["smoothed_area_normd_diff"].abs() < max_area_change
     )
 
@@ -202,17 +202,15 @@ def add_filter_columns(
     # drop because there are insufficient valid timepoints
     big_table["num_valid_tp_per_track"] = big_table.groupby(
         ["dataset_name", "position", "track_id"]
-    )["is_included"].transform(
-        lambda x: np.sum(x == False)
-    )  # is_included == True indicates that that entry is kept
+    )["is_included"].transform(sum)
     big_table["min_num_valid_tp_per_track"] = min_num_valid_points_per_track
-    big_table[f"is_greater_than_min_num_valid_points_per_track"] = (
-        big_table["num_valid_tp_per_track"] < min_num_valid_points_per_track
+    big_table["is_greater_than_min_num_valid_points_per_track"] = (
+        big_table["num_valid_tp_per_track"] > min_num_valid_points_per_track
     )
 
     # update is_included column with valid_tp_per_track
     big_table["is_included"] = (
-        big_table["is_included"] & big_table[f"is_greater_than_min_num_valid_points_per_track"]
+        big_table["is_included"] & big_table["is_greater_than_min_num_valid_points_per_track"]
     )
 
     # get the number of unique tracks after filtering in total and per timepoint
