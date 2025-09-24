@@ -57,9 +57,9 @@ def get_dataset_descriptions(
                 # have to parse differently if multiple flow conditions
                 if num_flows > 1:
                     if i == 0:
-                        shear_stress_str = shear_stress_str.split("_")[0]
+                        shear_stress_str = f"{shear_stress_str.split("_")[0]}_shear_stress"
                     else:
-                        shear_stress_str = shear_stress_str.split("_")[-1]
+                        shear_stress_str = shear_stress_str.split("to_")[-1]
 
                 if include_duration:
                     duration_in_frames = flow_conditions[i].stop - flow_conditions[i].start
