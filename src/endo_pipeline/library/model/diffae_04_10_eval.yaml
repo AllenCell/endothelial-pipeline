@@ -1,7 +1,7 @@
 model:
   _target_: cyto_dl.models.im2im.diffusion_autoencoder.DiffusionAutoEncoder
   save_images_every_n_epochs: 10
-  save_dir: /allen/aics/users/benjamin.morris/cyto_dev/cyto-dl/outputs/2025-04-10/14-03-17
+  save_dir: none
   image_shape:
   - 1
   - 128
@@ -254,7 +254,7 @@ data:
           dtype: float16
 trainer:
   _target_: lightning.Trainer
-  default_root_dir: /allen/aics/users/benjamin.morris/cyto_dev/cyto-dl/outputs/2025-04-10/14-03-17
+  default_root_dir: none
   min_epochs: 1
   max_epochs: 1
   accelerator: gpu
@@ -269,7 +269,7 @@ trainer:
 callbacks:
   model_checkpoint:
     _target_: lightning.pytorch.callbacks.ModelCheckpoint
-    dirpath: /allen/aics/users/benjamin.morris/cyto_dev/cyto-dl/outputs/2025-04-10/14-03-17/checkpoints
+    dirpath: none
     filename: epoch_{epoch:03d}
     monitor: val/loss
     verbose: false
@@ -315,5 +315,5 @@ extras:
 task_name: eval
 tags:
 - dev
-ckpt_path: //allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/train/runs/diffae/soda_schedule_small_latent_small_unet/2025-02-07_11-02-53/checkpoints/last_mod.ckpt
+ckpt_path: none
 seed: 12345
