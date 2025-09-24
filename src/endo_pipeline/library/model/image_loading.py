@@ -13,6 +13,7 @@ from cyto_dl.utils.arg_checking import get_dtype
 from monai.data import MetaTensor, SmartCacheDataset
 from monai.transforms import Transform
 from numpy.typing import DTypeLike
+from omegaconf import ListConfig
 
 from endo_pipeline.configs import (
     DatasetConfig,
@@ -43,7 +44,7 @@ class LogImaged(Transform):
         Key in the input dictionary where the original image data is stored.
     """
 
-    def __init__(self, keys: str = "image") -> None:
+    def __init__(self, keys: list | ListConfig | str = "image") -> None:
         """
         Initialize the LogImage transform.
 
@@ -53,7 +54,7 @@ class LogImaged(Transform):
             Key in the input dictionary where the original image data is stored.
         """
         super().__init__()
-        self.keys = keys
+        self.keys = keys if isinstance(keys, list | ListConfig) else [keys]
 
     def __call__(self, data: dict) -> dict:
         """
@@ -69,20 +70,21 @@ class LogImaged(Transform):
         dict
             Output dictionary with transformed image data under `keys`, overwriting data in place.
         """
-        if self.keys not in data:
-            logger.error("Input key '%s' not found in data dictionary.", self.keys)
-            raise KeyError(f"Input key '{self.keys}' not found in data dictionary.")
+        for key in self.keys:
+            if key not in data:
+                logger.error("Input key '%s' not found in data dictionary.", key)
+                raise KeyError(f"Input key '{key}' not found in data dictionary.")
 
-        img = data[self.keys]
+            img = data[key]
 
-        # Apply logarithmic transformation
-        log_img = np.log(img + LOG_EPSILON)
+            # Apply logarithmic transformation
+            log_img = np.log(img + LOG_EPSILON)
 
-        # convert to MetaTensor to preserve metadata if available
-        log_image_tensor = MetaTensor(log_img, meta=getattr(img, "meta", None))
+            # Convert to MetaTensor to preserve metadata if available
+            log_image_tensor = MetaTensor(log_img, meta=getattr(img, "meta", None))
 
-        # Store transformed image in output dictionary
-        data[self.keys] = log_image_tensor
+            # Store transformed image in output dictionary
+            data[key] = log_image_tensor
 
         return data
 
