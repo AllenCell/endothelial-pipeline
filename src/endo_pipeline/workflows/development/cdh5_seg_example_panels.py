@@ -78,7 +78,7 @@ def main() -> None:
     bf_std = raw_bf.std(axis=dim_order.index("Z"), keepdims=True).compute()
     bf_center = np.take(
         raw_bf, indices=[bf_center_Z], axis=dim_order.index("Z")
-    ).compute()  # type:ignore[index]
+    ).compute()  # type:ignore[attr-defined]
     bf_center_clipped = np.clip(
         bf_center, a_min=np.percentile(bf_center, 0.01), a_max=np.percentile(bf_center, 99.9)
     )
