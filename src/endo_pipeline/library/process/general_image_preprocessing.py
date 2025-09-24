@@ -19,15 +19,6 @@ from endo_pipeline.library.process.get_sldy_metadata import get_objective_info
 from endo_pipeline.settings import DIMENSION_ORDER
 
 
-def get_dim_map(dim_order: str) -> dict:
-
-    dims = [a for a in dim_order]
-    dim_nums = tuple(range(len(dims)))
-    dim_map = dict(zip(dims, dim_nums, strict=False))
-
-    return dim_map
-
-
 def get_chan_map(filepath: Path) -> dict:
     img = BioImage(filepath)
     return {name: index for index, name in enumerate(img.channel_names)}
@@ -230,10 +221,10 @@ def restore_full_dims(
     assert all(
         [dim in list(full_dims) for dim in list(current_dims)]
     ), "All dimensions in current_dims must be in full_dims."
-    dim_map = get_dim_map(full_dims)
+
     for dim in full_dims:
         if dim not in list(current_dims):
-            image = np.expand_dims(image, axis=dim_map[dim])
+            image = np.expand_dims(image, axis=full_dims.index(dim))
 
     return image
 
@@ -302,20 +293,17 @@ def save_image_output(
     ch_names = images_metadata["channel_names"]
     px_res = images_metadata["physical_pixel_sizes"]
     img_dim_order = images_metadata["dim_order"]
-    dim_order_out = DIMENSION_ORDER
-
-    dim_map = get_dim_map(dim_order_out)
 
     merged_img = np.concatenate(
-        [restore_full_dims(img, img_dim_order, full_dims=dim_order_out) for img in images],
-        axis=dim_map["C"],
+        [restore_full_dims(img, img_dim_order, full_dims=DIMENSION_ORDER) for img in images],
+        axis=DIMENSION_ORDER.index("C"),
     ).astype(dtype)
 
     OmeTiffWriter.save(
         merged_img,
         out_path,
         physical_pixel_sizes=px_res,
-        dim_order=dim_order_out,
+        dim_order=DIMENSION_ORDER,
         image_name=image_name,
         channel_names=ch_names,
         channel_colors=ch_colors,

@@ -227,8 +227,8 @@ def main(
     mpl.rc("image", cmap="gray")
 
     from endo_pipeline.configs.dataset_io import (
-        parse_generate_dataset_name_user_input,
         get_dataset_duration_in_frames,
+        parse_generate_dataset_name_user_input,
     )
 
     dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)

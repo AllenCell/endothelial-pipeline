@@ -15,7 +15,6 @@ from endo_pipeline.io import get_output_path, load_image, load_zarr_as_dask_arra
 from endo_pipeline.library.process import cdh5_preprocessing as preproc
 from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
-    get_dim_map,
     save_image_output,
 )
 from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
@@ -68,8 +67,6 @@ def generate_results(
     seg_dir = out_dir / "segmentations"
     val_dir = out_dir / "validations"
 
-    dim_order = DIMENSION_ORDER
-    dim_map = get_dim_map(dim_order)
     if use_sldy_data:
         print(f"T={T} -- loading dataset from original") if verbose else None
         original_path = Path(get_original_path(dataset_name))
@@ -81,7 +78,7 @@ def generate_results(
         if scene_index is not None or scene_name is not None:
             scene = scene_index or scene_name or 0  #  the "or 0" is here to silence mypy
             img.set_scene(scene)
-            raw_dask_arr = img.get_image_dask_data(dim_order, T=T, C=egfp_index)
+            raw_dask_arr = img.get_image_dask_data(DIMENSION_ORDER, T=T, C=egfp_index)
         else:
             raise ValueError(
                 "When using original data, either scene_index or scene_name must be provided."
@@ -95,7 +92,9 @@ def generate_results(
             path=zarr_file, channels=["EGFP"], timepoints=T, level=img_bin_level
         )
 
-    raw_arr_MIP = raw_dask_arr.max(axis=dim_map["Z"], keepdims=True).compute().squeeze()
+    raw_arr_MIP = (
+        raw_dask_arr.max(axis=DIMENSION_ORDER.index("Z"), keepdims=True).compute().squeeze()
+    )
 
     print(f"T={T} -- preprocessing image") if verbose else None
     processed_img = preproc.preprocess(raw_arr_MIP)

@@ -10,7 +10,6 @@ from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.configs.dataset_io import load_dataset_position_as_dask_array
 from endo_pipeline.io import get_output_path
 from endo_pipeline.library.analyze import optical_flow_calculator
-from endo_pipeline.library.process.general_image_preprocessing import get_dim_map
 from endo_pipeline.settings import DIMENSION_ORDER
 
 # %% Make list of datasets to analzye
@@ -63,8 +62,6 @@ import numpy as np
 from bioio import BioImage
 from skimage.exposure import rescale_intensity
 
-dim_order = DIMENSION_ORDER
-dim_map = get_dim_map(dim_order)
 # %%
 # Get the paths to the vector field images
 dataset_name_list = get_datasets_in_collection("live_20X_objective_3i_microscope")[:1]
@@ -137,7 +134,7 @@ for dataset_name in dataset_name_list:
     img = load_dataset_position_as_dask_array(
         dataset_name, position, channels=["EGFP"], level=level
     )
-    img = img.max(axis=dim_map["Z"], keepdims=False)
+    img = img.max(axis=DIMENSION_ORDER.index("Z"), keepdims=False)
     rois_future = [(slice(r[0].start + delta_t, r[0].stop + delta_t), *r[1:]) for r in rois]
     crops = [
         np.stack([img[rois[i]], img[rois_future[i]], np.zeros_like(img[rois[i]])], axis=-1)
@@ -167,7 +164,7 @@ for dataset_name in dataset_name_list:
     img = load_dataset_position_as_dask_array(
         dataset_name, position, channels=["EGFP"], level=level
     )
-    img = img.max(axis=dim_map["Z"], keepdims=False)
+    img = img.max(axis=DIMENSION_ORDER.index("Z"), keepdims=False)
     img_crops = [img[r] for r in rois]
     img_crops = [c.compute().squeeze() for c in img_crops]
 
@@ -306,7 +303,7 @@ for i, quad_mean in enumerate(quadrant_means):
 # %% 5. Plot two PCs and the example crops from each of the 4 quadrants
 # load the cdh5 channel of the dataset in the crop region
 img = load_dataset_position_as_dask_array(dataset_name, position, channels=["EGFP"], level=level)
-img = img.max(axis=dim_map["Z"], keepdims=False)
+img = img.max(axis=DIMENSION_ORDER.index("Z"), keepdims=False)
 
 # Use the loaded raw image and vector information and the features and pcs dataframe to create
 # the validation plots

@@ -21,7 +21,6 @@ from endo_pipeline.io import get_output_path
 from endo_pipeline.library.process import get_sldy_metadata as sldmd
 from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
-    get_dim_map,
     save_image_output,
 )
 from endo_pipeline.settings import DIMENSION_ORDER
@@ -78,10 +77,6 @@ def get_training_data_output_dirs(
 def get_image_data_from_original(
     dataset_name: str, scene: str | int, T: int, verbose: bool = False
 ) -> tuple:
-
-    dim_order = DIMENSION_ORDER
-    dim_map = get_dim_map(dim_order)
-
     img_path = Path(get_original_path(dataset_name))
     img = BioImage(img_path)
     img.set_scene(scene)
@@ -94,11 +89,11 @@ def get_image_data_from_original(
     nuc_chan = dataset_config.original_channel_indices.channel_405
     bf_chan = dataset_config.original_channel_indices.brightfield
 
-    img_dask_arr_nuc = img.get_image_dask_data(dim_order, C=[nuc_chan], T=T).max(
-        axis=dim_map["Z"], keepdims=True
+    img_dask_arr_nuc = img.get_image_dask_data(DIMENSION_ORDER, C=[nuc_chan], T=T).max(
+        axis=DIMENSION_ORDER.index("Z"), keepdims=True
     )
-    img_dask_arr_bf_std = img.get_image_dask_data(dim_order, C=[bf_chan], T=T).std(
-        axis=dim_map["Z"], keepdims=True
+    img_dask_arr_bf_std = img.get_image_dask_data(DIMENSION_ORDER, C=[bf_chan], T=T).std(
+        axis=DIMENSION_ORDER.index("Z"), keepdims=True
     )
     return (img_dask_arr_nuc, img_dask_arr_bf_std), img_metadata
 
@@ -108,8 +103,12 @@ def get_image_data_from_zarr(dataset_name: str) -> Generator:
     for zarr_name in get_zarr_path(dataset_name):
         img_dict_nuc = load_dataset(dataset_name, zarr_name=zarr_name, channels=["DAPI"])
         img_dict_bf = load_dataset(dataset_name, zarr_name=zarr_name, channels=["BF"])
-        img_dask_arr_nuc = img_dict_nuc[zarr_name].max(axis=dim_map["Z"], keepdims=True)
-        img_dask_arr_bf_std = img_dict_bf[zarr_name].std(axis=dim_map["Z"], keepdims=True)
+        img_dask_arr_nuc = img_dict_nuc[zarr_name].max(
+            axis=DIMENSION_ORDER.index("Z"), keepdims=True
+        )
+        img_dask_arr_bf_std = img_dict_bf[zarr_name].std(
+            axis=DIMENSION_ORDER.index("Z"), keepdims=True
+        )
         yield (zarr_name, img_dask_arr_nuc, img_dask_arr_bf_std)
     raise NotImplementedError(f"Zarrs not yet implemented yet. Skipping {dataset_name}.")
 
@@ -495,9 +494,6 @@ def main(
         gpu=False, pretrained_model=str(model_path)
     )
 
-    default_dim_order = DIMENSION_ORDER
-    dim_map = get_dim_map(default_dim_order)
-
     # load the test image
     test_img_path = Path(get_original_path("20241120_20X"))
     dataset_config = load_dataset_config("20241120_20X")
@@ -505,8 +501,8 @@ def main(
 
     test_img = BioImage(test_img_path)
     test_img_dask_arr = test_img.get_image_dask_data(
-        default_dim_order, T=[0], C=test_img_bf_chan
-    ).std(axis=dim_map["Z"], keepdims=True)
+        DIMENSION_ORDER, T=[0], C=test_img_bf_chan
+    ).std(axis=DIMENSION_ORDER.index("Z"), keepdims=True)
     test_img_arr = test_img_dask_arr.compute().squeeze()
 
     # run the model on the test image, we're going to be pretty
