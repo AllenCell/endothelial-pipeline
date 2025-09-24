@@ -120,7 +120,7 @@ def main(
             resolution_level=resolution_level,
             upload_to_fms=upload_to_fms,
             user_overrides=user_overrides,
-            z_slice_offsets=Z_SLICE_OFFSETS,
+            z_slice_offsets=None,  # Z_SLICE_OFFSETS,
             frame_start=frame_start,
             frame_stop=frame_stop,
             only_include_positions=only_include_positions,

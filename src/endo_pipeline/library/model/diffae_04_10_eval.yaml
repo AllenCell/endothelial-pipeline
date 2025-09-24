@@ -144,7 +144,8 @@ data:
           dtype: float16
   predict_dataloaders:
     _target_: monai.data.DataLoader
-    num_workers: 8
+    drop_last: True
+    num_workers: 16
     batch_size: 1
     pin_memory: true
     persistent_workers: false
@@ -176,6 +177,10 @@ data:
           keys:
           - raw_bf
           dtype: float16
+      cache_rate: 1.0
+      replace_rate: 0.1
+      num_init_workers: 24
+      num_replace_workers: 24
   val_dataloaders:
     _target_: monai.data.DataLoader
     num_workers: 8
