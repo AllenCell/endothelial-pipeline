@@ -23,5 +23,5 @@ LABEL_MAP = {
     "is_included": "Filter: Passed All Filters",
     "is_less_than_max_smoothed_area_normd_change": "Filter: Smoothed Area Change Below Threshold",
     "is_greater_than_min_track_duration": "Filter: Exceeds Min Track Duration",
-    "is_greater_than_min_num_valid_points_per_track": "Filter: Num Valid Points Exceeds Threshold",
+    "has_more_than_min_num_valid_points_per_track": "Filter: Num Valid Points Exceeds Threshold",
 }

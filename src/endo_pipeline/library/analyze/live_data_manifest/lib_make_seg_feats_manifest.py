@@ -204,13 +204,13 @@ def add_filter_columns(
         ["dataset_name", "position", "track_id"]
     )["is_included"].transform(sum)
     big_table["min_num_valid_tp_per_track"] = min_num_valid_points_per_track
-    big_table["is_greater_than_min_num_valid_points_per_track"] = (
+    big_table["has_more_than_min_num_valid_points_per_track"] = (
         big_table["num_valid_tp_per_track"] > min_num_valid_points_per_track
     )
 
     # update is_included column with valid_tp_per_track
     big_table["is_included"] = (
-        big_table["is_included"] & big_table["is_greater_than_min_num_valid_points_per_track"]
+        big_table["is_included"] & big_table["has_more_than_min_num_valid_points_per_track"]
     )
 
     # get the number of unique tracks after filtering in total and per timepoint
