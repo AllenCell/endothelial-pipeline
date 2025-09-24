@@ -101,3 +101,18 @@ locations:
   20250728_20X:
     fmsid: cf31a734212144f5afda07d243a93c15
     s3uri: null
+  20250806_20X:
+    fmsid: cc91e6be1e6f4c65bc28a1c837d81b5a
+    s3uri: null
+  20250813_20X:
+    fmsid: cf8b6141b1dd47ae9dd2f0df9257cddd
+    s3uri: null
+  20250818_20X:
+    fmsid: efcabefa3ee84b158d8954cb93777f11
+    s3uri: null
+  20250825_20X:
+    fmsid: 32bccc3104f84641b1eb1991c9b703b5
+    s3uri: null
+  20250827_20X:
+    fmsid: 7523f765694b4c4d83899805ac84df22
+    s3uri: null
