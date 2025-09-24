@@ -119,10 +119,8 @@ def save_segmentation_masks(
         fname = f"{date}_{dataset_config.fmsid}_P{position}.ome.zarr"
         save_path = output_dir / f"{date}_{dataset_config.fmsid}" / fname
         os.makedirs(save_path, exist_ok=True)
-        print(save_path)
 
         writer = OmeZarrWriter(save_path)
-        print(mask.shape)
         writer.write_image(
             mask,
             fname,
