@@ -37,7 +37,21 @@ valid_timepoints: null
 include_scenes: null
 notes: fix & stain for SMAD1 and SOX17 4h after flow change in a Low SS to High SS
   experiment
-timepoint_annotations: null
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  auto_bf_temp_artifact:
+    0: []
+    1: []
+    2: []
+    3: [0]
+    4: []
+    5: []
 position_annotations: null
 center_z_plane:
   0: 10

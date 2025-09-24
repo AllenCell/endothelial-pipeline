@@ -33,7 +33,13 @@ flow_conditions:
 valid_timepoints: null
 include_scenes: null
 notes: Secondary only immunofluorescence control
-timepoint_annotations: null
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: []
+    1: []
+  auto_bf_temp_artifact:
+    0: [0]
+    1: [0]
 position_annotations: null
 center_z_plane:
   0: 9
