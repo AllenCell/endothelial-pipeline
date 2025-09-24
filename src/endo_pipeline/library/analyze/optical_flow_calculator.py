@@ -19,6 +19,7 @@ from sklearn.decomposition import PCA
 from tqdm import tqdm
 
 from endo_pipeline.configs import dataset_io
+from endo_pipeline.settings import DIMENSION_ORDER
 
 
 def expand_crop_region(crop_region: tuple[slice, ...], padding: int) -> tuple:
@@ -115,7 +116,7 @@ class FlowCalculator:
         img_data = dataset_io.load_dataset_position_as_dask_array(
             self.dataset, self.position, self.channel, level=level
         )  # level=2 not present in ZARRs anymore
-        self.data = img_data.max(axis=dataset_io.get_dim_map("TCZYX")["Z"])
+        self.data = img_data.max(axis=dataset_io.get_dim_map(DIMENSION_ORDER)["Z"])
 
     def load_flow_from_file(self, fname: str | Path) -> None:
         with open(fname, "rb") as fpk:

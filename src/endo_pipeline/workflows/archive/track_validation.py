@@ -60,6 +60,7 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
     from endo_pipeline.io import load_image
     from endo_pipeline.library.process.general_image_preprocessing import get_dim_map
     from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+    from endo_pipeline.settings import DIMENSION_ORDER
 
     # unpack needed variables
     dataset_name = dframe["dataset_name"].unique()[0]
@@ -84,7 +85,7 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
         print(f"No segmentation file found for {dataset_name} P{position} at T{T}.")
         return
     else:
-        dim_order = "TCZYX"
+        dim_order = DIMENSION_ORDER
         dim_map = get_dim_map(dim_order)
 
         # print(f'- loading raw image {dataset_name} P{position} T{T}...')
@@ -144,8 +145,8 @@ def main(
     from tqdm import tqdm
 
     from endo_pipeline.configs.dataset_io import (
-        parse_generate_dataset_name_user_input,
         get_tracking_data_filtered,
+        parse_generate_dataset_name_user_input,
     )
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue

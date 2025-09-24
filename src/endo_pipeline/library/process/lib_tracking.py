@@ -13,6 +13,7 @@ from tqdm import tqdm
 from endo_pipeline.configs.dataset_io import extract_T
 from endo_pipeline.library.analyze.shape_features import numpy_mesh_coords
 from endo_pipeline.library.process.general_image_preprocessing import get_dim_map, save_image_output
+from endo_pipeline.settings import DIMENSION_ORDER
 
 
 ## NOTE THIS BLOCK SHOULD MAYBE BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE
@@ -107,7 +108,7 @@ def load_images_sequentially(
 
     assert axis in ["filepaths", "T", "C", "Z", "Y", "X"]
 
-    dim_map = get_dim_map("TCZYX")
+    dim_map = get_dim_map(DIMENSION_ORDER)
     dim_order = sorted(dim_map, key=lambda d: dim_map[d])
 
     # if no crop is provided then make a default crop dictionary that includes the entire image
@@ -1240,7 +1241,7 @@ def run_tracking(
             function parse_paths has been created to handle these files.
     """
     out_dir = Path(out_dir)
-    dim_order = "TCZYX"
+    dim_order = DIMENSION_ORDER
     dim_map = get_dim_map(dim_order)
 
     for fps in [in_dir, out_dir]:

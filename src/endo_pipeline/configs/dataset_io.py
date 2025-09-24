@@ -20,6 +20,7 @@ from typing import Any
 
 from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.configs.dataset_config_io import get_available_dataset_names
+from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
 
@@ -427,7 +428,7 @@ def load_dataset(
         if time_end < 0:
             time_end = get_dataset_duration_in_frames(dataset_name) - 1
         img = reader.get_image_dask_data(
-            "TCZYX", T=range(time_start, time_end + 1), C=channels_index
+            DIMENSION_ORDER, T=range(time_start, time_end + 1), C=channels_index
         )
         dataset[filename] = img
     return dataset

@@ -16,10 +16,11 @@ from endo_pipeline.configs.dataset_io import (
 )
 from endo_pipeline.io import get_output_path
 from endo_pipeline.library.process.get_sldy_metadata import get_objective_info
+from endo_pipeline.settings import DIMENSION_ORDER
 
 
 def get_default_dim_order() -> str:
-    return "TCZYX"
+    return DIMENSION_ORDER
 
 
 def get_dim_map(dim_order: str) -> dict:
@@ -195,7 +196,9 @@ def sequence_to_scalar(sequence_like: Sequence | pd.Series) -> Any:
     return element
 
 
-def restore_full_dims(image: np.ndarray, current_dims: str, full_dims: str = "TCZYX") -> np.ndarray:
+def restore_full_dims(
+    image: np.ndarray, current_dims: str, full_dims: str = DIMENSION_ORDER
+) -> np.ndarray:
     """
     Takes an array with specified image dims and restores dimensions with size 1
     that are present in full_dims.
@@ -303,7 +306,7 @@ def save_image_output(
     ch_names = images_metadata["channel_names"]
     px_res = images_metadata["physical_pixel_sizes"]
     img_dim_order = images_metadata["dim_order"]
-    dim_order_out = "TCZYX"
+    dim_order_out = DIMENSION_ORDER
 
     dim_map = get_dim_map(dim_order_out)
 

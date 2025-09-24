@@ -20,6 +20,7 @@ from skimage.segmentation import watershed
 from endo_pipeline.configs import dataset_io
 from endo_pipeline.io import get_output_path
 from endo_pipeline.library.process import get_sldy_metadata as sldmd
+from endo_pipeline.settings import DIMENSION_ORDER
 
 # NOTE
 # because we don't have zarr files for the datasets in the
@@ -56,7 +57,7 @@ def plot_and_save_overlays(
 
 def get_image_data_from_original(dataset_name: str, scenes_to_use: list[str]) -> Generator:
 
-    dim_order = "TCZYX"
+    dim_order = DIMENSION_ORDER
     dim_map = dataset_io.get_dim_map(dim_order)
     projection_dim = "Z"
 
@@ -102,7 +103,7 @@ def get_image_data_from_original(dataset_name: str, scenes_to_use: list[str]) ->
 
 def get_image_data_from_zarr(dataset_name: str) -> Generator:
 
-    dim_order = "TCZYX"
+    dim_order = DIMENSION_ORDER
     dim_map = dataset_io.get_dim_map(dim_order)
     projection_dim = "Z"
 

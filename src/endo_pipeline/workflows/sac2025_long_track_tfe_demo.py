@@ -18,6 +18,7 @@ from endo_pipeline.library.process.general_image_preprocessing import (
 from endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (
     generate_tfe_dataset,
 )
+from endo_pipeline.settings import DIMENSION_ORDER
 
 
 def get_crop_bounds(
@@ -125,7 +126,7 @@ def generate_crop_outline_images(
     position: int = 0,
     track_id: int = 1852,
     crop_size: int = 256,
-    dim_order: str = "TCZYX",
+    dim_order: str = DIMENSION_ORDER,
 ) -> None:
     """
     Generate crop outline images for a specific track in a dataset.
@@ -145,7 +146,7 @@ def generate_crop_outline_images(
     crop_size : int, optional
         The size of the crop (in pixels). Defaults to 256.
     dim_order : str, optional
-        The dimension order of the dataset (e.g., "TCZYX"). Defaults to "TCZYX".
+        The dimension order of the dataset. Defaults to TCZYX.
 
     Returns
     -------
