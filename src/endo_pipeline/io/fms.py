@@ -1,6 +1,6 @@
 import logging
 
-from endo_pipeline import TESTING_MODE
+from endo_pipeline import USE_STAGING
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ except ImportError:
     logger.error("Unable to import [ FileManagementSystem ] from [ aicsfiles ]")
     raise
 
-if TESTING_MODE:
+if USE_STAGING:
     FMS_ENV = "stg"
     FMS_BUCKET_NAME = "staging.files.allencell.org"
     FMS_LOCAL_PATH = "//allen/aics/fms/staging/fss"
@@ -25,5 +25,6 @@ else:
 
 FMS = FileManagementSystem.from_env(FMS_ENV)
 FMS_FILE_ID = FileLevelMetadataKeys.FILE_ID.value
+FMS_FILE_NAME = FileLevelMetadataKeys.FILE_NAME.value
 
 logger.info("Initialized FMS environment [ %s ]", FMS_ENV)

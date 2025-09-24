@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 from collections.abc import Callable, Sequence
 from pathlib import Path
@@ -9,17 +10,81 @@ import pandas as pd
 import tqdm
 from bioio import BioImage
 from cyto_dl.utils.arg_checking import get_dtype
-from monai.data import CacheDataset, MetaTensor
+from monai.data import MetaTensor, SmartCacheDataset
 from monai.transforms import Transform
 from numpy.typing import DTypeLike
 
 from endo_pipeline.configs import (
     DatasetConfig,
+    TimepointAnnotation,
+    get_annotated_positions,
+    get_annotated_timepoints_for_position,
     get_available_zarr_files,
     get_position_integer_from_zarr_file_path,
 )
+from endo_pipeline.library.process.z_stack_selection import get_plane_indices
+from endo_pipeline.settings.image_data import LOG_EPSILON, NUM_ZSLICES
 
 logger = logging.getLogger(__name__)
+
+
+class LogImaged(Transform):
+    """
+    Apply logarithmic transformation to image data in a dictionary.
+
+    This transform takes an input dictionary containing image data under a specified key,
+    applies a logarithmic transformation to the image data, and stores the transformed
+    image back in the dictionary under a specified output key. The transformation is
+    performed using the formula: `log_image = log(image + 1e-12)`.
+
+    Parameters
+    ----------
+    keys : str
+        Key in the input dictionary where the original image data is stored.
+    """
+
+    def __init__(self, keys: str = "image") -> None:
+        """
+        Initialize the LogImage transform.
+
+        Parameters
+        ----------
+        keys : str
+            Key in the input dictionary where the original image data is stored.
+        """
+        super().__init__()
+        self.keys = keys
+
+    def __call__(self, data: dict) -> dict:
+        """
+        Apply logarithmic transformation to the image data.
+
+        Parameters
+        ----------
+        data : dict
+            Input dictionary containing image data under `keys`.
+
+        Returns
+        -------
+        dict
+            Output dictionary with transformed image data under `keys`, overwriting data in place.
+        """
+        if self.keys not in data:
+            logger.error("Input key '%s' not found in data dictionary.", self.keys)
+            raise KeyError(f"Input key '{self.keys}' not found in data dictionary.")
+
+        img = data[self.keys]
+
+        # Apply logarithmic transformation
+        log_img = np.log(img + LOG_EPSILON)
+
+        # convert to MetaTensor to preserve metadata if available
+        log_image_tensor = MetaTensor(log_img, meta=getattr(img, "meta", None))
+
+        # Store transformed image in output dictionary
+        data[self.keys] = log_image_tensor
+
+        return data
 
 
 class BioIOImageLoaderd(Transform):
@@ -145,7 +210,7 @@ class BioIOImageLoaderd(Transform):
         return data
 
 
-class MultiDimImageDataset(CacheDataset):
+class MultiDimImageDataset(SmartCacheDataset):
     """
     Dataset converting a `.csv` file listing multi dimensional (timelapse or
     multi-scene) files and some metadata into batches of metadata intended for the
@@ -167,6 +232,7 @@ class MultiDimImageDataset(CacheDataset):
         z_start_column: str = "z_start",
         z_stop_column: str = "z_stop",
         z_step_column: str = "z_step",
+        num_devices: int = 1,
         extra_columns: Sequence[str] = [],
         transform: Callable | Sequence[Callable] | None = None,
         **cache_kwargs: Any,
@@ -270,10 +336,18 @@ class MultiDimImageDataset(CacheDataset):
             List of extra columns to include in the output dictionary.
         transform
             List (or ``Compose`` object) of Monai-style transforms to apply to the image metadata.
+        num_devices
+            Number of devices/processes for distributed training. If None, defaults to trainer.devices
+            from environment or 1 if not available. Used to determine world_size for training.
         cache_kwargs:
             Additional keyword arguments to pass to ``CacheDataset``.
         """
         df = pd.read_parquet(dataframe_path)
+        rank = int(os.environ.get("LOCAL_RANK", 0))
+        # Use WORLD_SIZE from environment, fallback to num_devices, then default to 1
+        world_size = int(os.environ.get("WORLD_SIZE", num_devices or 1))
+
+        # Store dataset parameters
         self.img_path_column = img_path_column
         self.channel_column = channel_column
         self.scene_column = scene_column
@@ -289,7 +363,34 @@ class MultiDimImageDataset(CacheDataset):
         if spatial_dims not in (2, 3):
             raise ValueError(f"`spatial_dims` must be 2 or 3, got {spatial_dims}")
         self.spatial_dims = spatial_dims
-        data = self.get_per_file_args(df)
+
+        # First expand all data to get total sample count
+        logger.info(f"[Rank {rank}] Expanding dataframe rows to individual samples...")
+        data = self.get_per_file_args(df.reset_index(drop=True))
+
+        # Now distribute samples evenly across ranks
+        if world_size > 1:
+
+            logger.info(f"[Rank {rank}] Total samples before distribution: {len(data)}")
+
+            # Calculate balanced distribution
+            total_samples = len(data)
+            samples_per_rank = total_samples // world_size
+            extra_samples = total_samples % world_size
+
+            # Each rank gets either samples_per_rank or samples_per_rank + 1 samples
+            start_idx = rank * samples_per_rank + min(rank, extra_samples)
+            end_idx = start_idx + samples_per_rank + (1 if rank < extra_samples else 0)
+
+            # Slice the data for this rank
+            data = data[start_idx:end_idx]
+
+            logger.info(
+                f"[Rank {rank}] Samples assigned to this rank: {len(data)} (indices {start_idx}:{end_idx})"
+            )
+
+        else:
+            logger.info(f"Single process training with {len(data)} samples")
 
         if transform is None:
             transform = []
@@ -398,6 +499,96 @@ class MultiDimImageDataset(CacheDataset):
         return img_data
 
 
+def get_z_slice_bounds_per_position(
+    dataset_config: DatasetConfig,
+    z_stack_offsets: tuple[int, int] | None,
+) -> dict[int, dict[str, int]]:
+    """
+    Parse dataset annotations to get lower and upper z-slice
+    bounds per position for image loading and processing.
+
+    **Z-stack offsets**
+
+    The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
+    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load
+    by slicing about a global center as annotated in the dataset config. If it
+    is ``None``, all z-slices are loaded from the raw brightfield images.
+
+    Parameters
+    ----------
+    dataset_config
+        Dataset configuration object.
+    z_stack_offsets
+        Lower and upper bounds for z-slicing.
+
+    Returns
+    -------
+    :
+        Dictionary with z-slice start and stop indices per position.
+    """
+    # get z-slice offsets per position if specified
+    if z_stack_offsets is not None:
+        logger.debug(
+            "Using z-stack offsets: [ %s ] ",
+            z_stack_offsets,
+        )
+    else:
+        # if no z-stack offsets are provided, pass in None
+        # to the dataframe builder
+        logger.debug("No z-stack offsets provided, using full range in Z.")
+
+    # if z_stack_offsets is not None, get z-slice ranges
+    # for each position in the dataset (i.e., zarr file)
+    # else, fixed full range is 0 to 24
+    available_zarr_files = get_available_zarr_files(dataset_config)
+    z_slice_bounds_per_position = {}
+    for zarr_file_path in available_zarr_files:
+        # get position from zarr path as an integer (e.g., 'P0' -> 0)
+        position_as_int = get_position_integer_from_zarr_file_path(zarr_file_path)
+        # get z-slice indices for the given position
+        if z_stack_offsets is not None:
+            z_slices = get_plane_indices(
+                dataset_config,
+                position_as_int,
+                lower_offset=z_stack_offsets[0],
+                upper_offset=z_stack_offsets[1],
+            )
+        else:
+            z_slices = [0, NUM_ZSLICES - 1]
+        z_slice_bounds_per_position[position_as_int] = {
+            "z_start": z_slices[0],
+            "z_stop": z_slices[-1],
+        }
+
+    return z_slice_bounds_per_position
+
+
+def get_include_positions(dataset_config: DatasetConfig) -> list[int]:
+    """Get list of positions to include based on annotations."""
+    exclude_positions = get_annotated_positions(dataset_config)
+    only_include_positions = list(set(dataset_config.zarr_positions) - set(exclude_positions))
+    return only_include_positions
+
+
+def get_exclude_frames(
+    dataset_config: DatasetConfig, exclude_cell_piling: bool = False
+) -> dict[int, list[int]]:
+    """Get dict of frames to exclude per position based on annotations."""
+    # if exclude_cell_piling is True, then get all annotated timepoints
+    # else, get timepoints for all annotations except CELL_PILING
+    annotations = None  # default to all annotations
+    if not exclude_cell_piling:
+        annotations = [ann for ann in TimepointAnnotation if "PILING" not in ann.name]
+
+    # parse dataset annotations to get timepoints to exclude per position
+    exclude_frames = {
+        pos: get_annotated_timepoints_for_position(dataset_config, pos, annotations=annotations)
+        for pos in dataset_config.zarr_positions
+    }
+
+    return exclude_frames
+
+
 def build_zarr_image_loading_dataframe(
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
@@ -405,8 +596,8 @@ def build_zarr_image_loading_dataframe(
     frame_start: int | None = None,
     frame_stop: int | None = None,
     frame_step: int | None = None,
-    z_slice_info_per_position: dict[int, dict[str, int]] | None = None,
-    only_positions: list[int] | None = None,
+    z_slice_bounds_per_position: dict[int, dict[str, int]] | None = None,
+    only_include_positions: list[int] | None = None,
     exclude_frames: dict[int, list[int]] | None = None,
 ) -> pd.DataFrame:
     """Build a DataFrame with metadata for loading Zarr images as a ``MultiDimImageDataset``."""
@@ -427,10 +618,12 @@ def build_zarr_image_loading_dataframe(
     df["position_index"] = df["path"].apply(lambda x: get_position_integer_from_zarr_file_path(x))
 
     # only load images for specified position indices
-    if only_positions is not None:
-        logger.debug("Filtering Zarr files to only include positions: [ %s ]", only_positions)
+    if only_include_positions is not None:
+        logger.debug(
+            "Filtering Zarr files to only include positions: [ %s ]", only_include_positions
+        )
 
-        df = df[df["position_index"].isin(only_positions)]
+        df = df[df["position_index"].isin(only_include_positions)]
 
     # if start and stop for loading timepoints are specified, add to dataframe
     if (frame_start is not None) and (frame_stop is not None):
@@ -446,17 +639,17 @@ def build_zarr_image_loading_dataframe(
         df["exclude_frames"] = df["position_index"].apply(lambda x: exclude_frames.get(x, None))
 
     # if start and stop for loading z slices are specified, add to dataframe
-    if z_slice_info_per_position is not None:
+    if z_slice_bounds_per_position is not None:
         # get z info dict for each position index
         # unpack the start, stop, and step values from those dictionaries
         df["z_start"] = df["position_index"].apply(
-            lambda x: z_slice_info_per_position.get(x, {}).get("z_start", 0)
+            lambda x: z_slice_bounds_per_position.get(x, {}).get("z_start", 0)
         )
         df["z_stop"] = df["position_index"].apply(
-            lambda x: z_slice_info_per_position.get(x, {}).get("z_stop", -1)
+            lambda x: z_slice_bounds_per_position.get(x, {}).get("z_stop", -1)
         )
         df["z_step"] = df["position_index"].apply(
-            lambda x: z_slice_info_per_position.get(x, {}).get("z_step", 1)
+            lambda x: z_slice_bounds_per_position.get(x, {}).get("z_step", 1)
         )
 
     # remove temporary column with position index

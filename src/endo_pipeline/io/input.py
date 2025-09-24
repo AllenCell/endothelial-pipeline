@@ -3,8 +3,7 @@
 import logging
 from pathlib import Path
 
-import dask
-import numpy as np
+import dask.array as da
 import pandas as pd
 from bioio import BioImage
 
@@ -19,7 +18,7 @@ def load_zarr_as_dask_array(
     timepoints: int | list[int] | range | None = None,
     level: int = 0,
     squeeze: bool = False,
-) -> dask.array.Array:
+) -> da.Array:
     """
     Load Zarr as Dask array.
 
@@ -74,7 +73,7 @@ def load_zarr_as_dask_array(
     return image
 
 
-def load_image_from_path(path: Path, squeeze: bool = True) -> dask.array.Array:
+def load_image_from_path(path: Path, squeeze: bool = True) -> da.Array:
     """
     Load image from path.
 
@@ -84,6 +83,8 @@ def load_image_from_path(path: Path, squeeze: bool = True) -> dask.array.Array:
     ----------
     path
         Path to image file.
+    squeeze
+        Drop single-dimensional entries from the shape of the array if True.
 
     Returns
     -------
@@ -106,7 +107,7 @@ def load_image_from_path(path: Path, squeeze: bool = True) -> dask.array.Array:
     raise ValueError(f"Invalid image file format '{path.suffix}'")
 
 
-def load_image(location: ImageLocation, squeeze: bool = True) -> dask.array.Array:
+def load_image(location: ImageLocation, squeeze: bool = True) -> da.Array:
     """
     Load image from location.
 
@@ -114,6 +115,8 @@ def load_image(location: ImageLocation, squeeze: bool = True) -> dask.array.Arra
     ----------
     location
         Image location object.
+    squeeze
+        Drop single-dimensional entries from the shape of the array if True.
     """
 
     if location.path is not None:

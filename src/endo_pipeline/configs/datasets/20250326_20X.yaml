@@ -36,13 +36,6 @@ valid_timepoints:
 include_scenes: null
 notes: ''
 timepoint_annotations:
-  bf_scope_error:
-    0: [527]
-    1: [527]
-    2: [527]
-    3: [527]
-    4: [527]
-    5: [527]
   auto_bf_scope_error:
     0: [529, 531]
     1: [8]
@@ -57,6 +50,20 @@ timepoint_annotations:
     3: [8]
     4: [527, 529, 531]
     5: [527, 529]
+  bf_scope_error:
+    0: [527]
+    1: [527]
+    2: [527]
+    3: [527]
+    4: [527]
+    5: [527]
+  cell_piling:
+    0: [[346, 576]]
+    1: [[346, 576]]
+    2: [[346, 576]]
+    3: [[346, 576]]
+    4: [[346, 576]]
+    5: [[346, 576]]
 position_annotations: null
 center_z_plane:
   0: 11

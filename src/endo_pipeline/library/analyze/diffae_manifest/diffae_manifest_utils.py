@@ -265,13 +265,13 @@ def get_valid_subset(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
     # check that the necessary datasets are present for fitting PCA
     valid_timepoints = load_dataset_config(dataset_name).valid_timepoints
     if valid_timepoints is None:
-        logger.info("Using all timepoints from dataset [ %s ] for analysis", dataset_name)
+        logger.debug("Using all timepoints from dataset [ %s ] for analysis", dataset_name)
         df["valid"] = True
     else:
         tps = []
         for start, stop in zip(valid_timepoints.start, valid_timepoints.stop, strict=True):
             tps.extend(list(range(start, stop + 1)))
-            logger.info(
+            logger.debug(
                 "Using timepoints [ %s - %s ] from dataset [ %s ] for analysis",
                 start,
                 stop,

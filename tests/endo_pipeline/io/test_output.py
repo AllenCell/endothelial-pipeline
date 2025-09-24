@@ -1,8 +1,9 @@
 import datetime
+from pathlib import Path
 
 import pytest
 
-from endo_pipeline.io.output import get_output_path
+from endo_pipeline.io.output import get_output_path, get_timestamp, make_name_unique
 
 
 @pytest.fixture
@@ -13,21 +14,58 @@ def mock_output_dir(tmp_path, mocker):
 
 
 @pytest.fixture
-def mock_timestamp(mocker):
-    timestamp = "2025-07-05"
+def mock_datetime(mocker):
+    year = 2025
+    month = 7
+    day = 5
+    hour = 12
+    minute = 24
+    second = 56
+
     datetime_mock = mocker.patch("endo_pipeline.io.output.datetime")
-    datetime_mock.datetime.now.return_value = datetime.datetime.strptime(timestamp, "%Y-%m-%d")
-    yield timestamp
+    datetime_mock.datetime.now.return_value = datetime.datetime(
+        year, month, day, hour, minute, second
+    )
+
+    yield year, month, day, hour, minute, second
 
 
-def test_get_output_path_file_name(mock_output_dir, mock_timestamp):
+def test_get_timestamp(mock_datetime):
+    year, month, day, _, _, _ = mock_datetime
+    timestamp = f"{year}-{month:02d}-{day:02d}"
+    assert get_timestamp() == timestamp
+
+
+@pytest.mark.parametrize("original_path", [Path("test/path/to/file.ext"), "test/path/to/file.ext"])
+def test_make_name_unique_single_extension(mock_datetime, original_path):
+    year, month, day, hour, minute, second = mock_datetime
+    timestamp = f"{year}{month:02d}{day:02d}_{hour:02d}{minute:02d}{second:02d}"
+    unique_path = Path(f"test/path/to/file_{timestamp}.ext")
+    assert make_name_unique(original_path) == unique_path
+
+
+@pytest.mark.parametrize(
+    "original_path", [Path("test/path/to/file.ext1.ext2"), "test/path/to/file.ext1.ext2"]
+)
+def test_make_name_unique_multiple_extensions(mock_datetime, original_path):
+    year, month, day, hour, minute, second = mock_datetime
+    timestamp = f"{year}{month:02d}{day:02d}_{hour:02d}{minute:02d}{second:02d}"
+    unique_path = Path(f"test/path/to/file_{timestamp}.ext1.ext2")
+    assert make_name_unique(original_path) == unique_path
+
+
+def test_get_output_path_file_name(mock_output_dir, mock_datetime):
+    year, month, day, _, _, _ = mock_datetime
+    timestamp = f"{year}-{month:02d}-{day:02d}"
     path = get_output_path(__file__)
-    assert path == mock_output_dir / mock_timestamp / "test_output"
+    assert path == mock_output_dir / timestamp / "test_output"
 
 
-def test_get_output_path_file_name_with_subdirs(mock_output_dir, mock_timestamp):
+def test_get_output_path_file_name_with_subdirs(mock_output_dir, mock_datetime):
+    year, month, day, _, _, _ = mock_datetime
+    timestamp = f"{year}-{month:02d}-{day:02d}"
     path = get_output_path(__file__, "subdir1", "subdir2")
-    assert path == mock_output_dir / mock_timestamp / "test_output" / "subdir1" / "subdir2"
+    assert path == mock_output_dir / timestamp / "test_output" / "subdir1" / "subdir2"
 
 
 def test_get_output_path_file_name_no_timestamp(mock_output_dir):
