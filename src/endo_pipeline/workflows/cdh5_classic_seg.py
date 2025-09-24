@@ -7,19 +7,19 @@ from tqdm import tqdm
 
 from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.configs.dataset_io import (
-    parse_generate_dataset_name_user_input,
     get_original_path,
     ipython_cli_flexecute,
+    parse_generate_dataset_name_user_input,
 )
 from endo_pipeline.io import get_output_path, load_image, load_zarr_as_dask_array
 from endo_pipeline.library.process import cdh5_preprocessing as preproc
 from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
-    get_default_dim_order,
     get_dim_map,
     save_image_output,
 )
 from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+from endo_pipeline.settings import DIMENSION_ORDER
 
 
 def generate_results_multiproc_wrapper(args: dict) -> None:
@@ -68,7 +68,7 @@ def generate_results(
     seg_dir = out_dir / "segmentations"
     val_dir = out_dir / "validations"
 
-    dim_order = get_default_dim_order()
+    dim_order = DIMENSION_ORDER
     dim_map = get_dim_map(dim_order)
     if use_sldy_data:
         print(f"T={T} -- loading dataset from original") if verbose else None

@@ -10,10 +10,8 @@ from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.configs.dataset_io import load_dataset_position_as_dask_array
 from endo_pipeline.io import get_output_path
 from endo_pipeline.library.analyze import optical_flow_calculator
-from endo_pipeline.library.process.general_image_preprocessing import (
-    get_default_dim_order,
-    get_dim_map,
-)
+from endo_pipeline.library.process.general_image_preprocessing import get_dim_map
+from endo_pipeline.settings import DIMENSION_ORDER
 
 # %% Make list of datasets to analzye
 dataset_name_list = get_datasets_in_collection("live_20X_objective_3i_microscope")[:1]
@@ -65,7 +63,7 @@ import numpy as np
 from bioio import BioImage
 from skimage.exposure import rescale_intensity
 
-dim_order = get_default_dim_order()
+dim_order = DIMENSION_ORDER
 dim_map = get_dim_map(dim_order)
 # %%
 # Get the paths to the vector field images

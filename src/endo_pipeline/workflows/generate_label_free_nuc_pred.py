@@ -10,14 +10,14 @@ from cellpose import core, models
 from tqdm import tqdm
 
 from endo_pipeline.configs import CellposeModelConfig, load_dataset_config, load_model_config
-from endo_pipeline.configs.dataset_io import parse_generate_dataset_name_user_input, load_config
+from endo_pipeline.configs.dataset_io import load_config, parse_generate_dataset_name_user_input
 from endo_pipeline.io import configure_logging, get_output_path
 from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
-    get_default_dim_order,
     get_dim_map,
     save_image_output,
 )
+from endo_pipeline.settings import DIMENSION_ORDER
 from endo_pipeline.workflows.cdh5_classic_seg_tracking import ipython_cli_flexecute
 
 logger = logging.getLogger(__name__)
@@ -51,7 +51,7 @@ def generate_results(args: dict) -> None:
         return
 
     else:
-        dim_order = get_default_dim_order()
+        dim_order = DIMENSION_ORDER
         dim_map = get_dim_map(dim_order)
 
         img = BioImage(img_path)

@@ -11,7 +11,6 @@ from endo_pipeline.configs.dataset_io import (
 )
 from endo_pipeline.io import get_output_path
 from endo_pipeline.library.process.general_image_preprocessing import (
-    get_default_dim_order,
     save_image_output,
     sequence_to_scalar,
 )
@@ -153,7 +152,7 @@ def generate_crop_outline_images(
     None
     """
     # create the output directories
-    dim_order = get_default_dim_order()
+    dim_order = DIMENSION_ORDER
 
     out_dir = get_output_path(__file__)
 

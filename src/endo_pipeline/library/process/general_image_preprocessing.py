@@ -19,10 +19,6 @@ from endo_pipeline.library.process.get_sldy_metadata import get_objective_info
 from endo_pipeline.settings import DIMENSION_ORDER
 
 
-def get_default_dim_order() -> str:
-    return DIMENSION_ORDER
-
-
 def get_dim_map(dim_order: str) -> dict:
 
     dims = [a for a in dim_order]

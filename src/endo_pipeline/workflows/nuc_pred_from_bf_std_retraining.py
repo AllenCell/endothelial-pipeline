@@ -21,10 +21,10 @@ from endo_pipeline.io import get_output_path
 from endo_pipeline.library.process import get_sldy_metadata as sldmd
 from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
-    get_default_dim_order,
     get_dim_map,
     save_image_output,
 )
+from endo_pipeline.settings import DIMENSION_ORDER
 
 
 def get_scenes_to_use(dataset_name: str | None = None) -> dict:
@@ -79,7 +79,7 @@ def get_image_data_from_original(
     dataset_name: str, scene: str | int, T: int, verbose: bool = False
 ) -> tuple:
 
-    dim_order = get_default_dim_order()
+    dim_order = DIMENSION_ORDER
     dim_map = get_dim_map(dim_order)
 
     img_path = Path(get_original_path(dataset_name))
@@ -495,7 +495,7 @@ def main(
         gpu=False, pretrained_model=str(model_path)
     )
 
-    default_dim_order = get_default_dim_order()
+    default_dim_order = DIMENSION_ORDER
     dim_map = get_dim_map(default_dim_order)
 
     # load the test image

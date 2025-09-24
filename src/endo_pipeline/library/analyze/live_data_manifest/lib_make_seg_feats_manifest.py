@@ -18,11 +18,9 @@ from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_confi
 from endo_pipeline.io import get_output_path
 from endo_pipeline.io.input import load_image
 from endo_pipeline.library.model.apply_model import add_diffae_model_eval_crop_columns
-from endo_pipeline.library.process.general_image_preprocessing import (
-    get_default_dim_order,
-    sequence_to_scalar,
-)
+from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
 
@@ -787,7 +785,7 @@ def compute_nuclei_centroids(
     """
 
     # get the nuclei prediction
-    dim_order = get_default_dim_order()
+    dim_order = DIMENSION_ORDER
     seg_manifest = load_image_manifest("nuclear_labelfree_seg")
     seg_location = get_image_location_for_dataset(
         manifest=seg_manifest,
