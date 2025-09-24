@@ -2,7 +2,7 @@ TAGS = ["validation", "manifests"]
 
 
 def main(dataframe_manifest_name: str) -> None:
-    """Validate dataframe manifests."""
+    """Validate a given dataframe manifest."""
     import logging
 
     from endo_pipeline.io import load_dataframe
