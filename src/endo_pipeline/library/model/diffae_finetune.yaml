@@ -105,6 +105,10 @@ data:
         - _target_: monai.transforms.DeleteItemsd
           keys:
           - raw
+        - _target_: endo_pipeline.library.model.image_loading.LogImaged
+          keys:
+          - raw_fixed
+          - raw_moving
         - _target_: cyto_dl.image.transforms.clip.Clipd
           keys:
           - raw_fixed
@@ -234,6 +238,10 @@ data:
         - _target_: monai.transforms.DeleteItemsd
           keys:
           - raw
+        - _target_: endo_pipeline.library.model.image_loading.LogImaged
+          keys:
+          - raw_fixed
+          - raw_moving
         - _target_: cyto_dl.image.transforms.clip.Clipd
           keys:
           - raw_fixed
