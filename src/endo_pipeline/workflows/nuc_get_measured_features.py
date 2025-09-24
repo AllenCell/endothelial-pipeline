@@ -12,15 +12,13 @@ from tqdm import tqdm
 from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
-    parse_generate_dataset_name_user_input,
     ipython_cli_flexecute,
+    parse_generate_dataset_name_user_input,
 )
 from endo_pipeline.io import configure_logging, get_output_path, load_image, load_zarr_as_dask_array
-from endo_pipeline.library.process.general_image_preprocessing import (
-    build_analysis_queue,
-    get_default_dim_order,
-)
+from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
 from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
 
@@ -181,7 +179,7 @@ def get_nuclei_features_from_dataset_at_T(
 ) -> pd.DataFrame:
 
     # Load segmentations and image
-    dim_order = get_default_dim_order()
+    dim_order = DIMENSION_ORDER
 
     nuc_manifest = load_image_manifest("nuclear_labelfree_seg")
     nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_name, position, T)

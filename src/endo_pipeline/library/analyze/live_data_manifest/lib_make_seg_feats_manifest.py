@@ -18,11 +18,9 @@ from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_confi
 from endo_pipeline.io import get_output_path
 from endo_pipeline.io.input import load_image
 from endo_pipeline.library.model.apply_model import add_diffae_model_eval_crop_columns
-from endo_pipeline.library.process.general_image_preprocessing import (
-    get_default_dim_order,
-    sequence_to_scalar,
-)
+from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
 
@@ -164,8 +162,8 @@ def add_filter_columns(
     These filter columns are `True` if an entry should be dropped, therefore
     keeping anything where a filter is `False`.
     E.g. to remove entries where cells touch the image border you can take
-    `big_table[big_table["filter_edge_FOV"] == False]`
-    (or equivalently: `big_table[~big_table["filter_edge_FOV"]]`)
+    `big_table[big_table["is_edge_segmentation"] == False]`
+    (or equivalently: `big_table[~big_table["is_edge_segmentation"]]`)
     """
 
     # get the number of segmentations in total and per timepoint
@@ -174,56 +172,55 @@ def add_filter_columns(
         big_table.groupby(["dataset_name", "position"])["track_id"].nunique().sum()
     )
 
-    # drop because min_track_duration not exceeded
+    # keep only tracks with duration longer than min_track_duration
     big_table["min_track_duration"] = min_track_duration
-    big_table[f"filter_min_track_duration_{min_track_duration}"] = (
-        big_table["track_duration"] <= min_track_duration
+    big_table["is_greater_than_min_track_duration"] = (
+        big_table["track_duration"] > min_track_duration
     )
 
-    # drop because area_change is too large
+    # keep only tracks where area_change is not too large
     big_table["max_smoothed_area_normd_change"] = max_area_change
-    big_table[f"filter_max_smoothed_area_normd_change_{max_area_change}"] = (
-        big_table["smoothed_area_normd_diff"].abs() >= max_area_change
+    big_table["is_less_than_max_smoothed_area_normd_change"] = (
+        big_table["smoothed_area_normd_diff"].abs() < max_area_change
     )
 
-    # drop because segmentation touches_image_border
+    # drop segmentation touches_image_border
     big_table.rename(
-        columns={"touches_image_border": "filter_edge_FOV"},
+        columns={"touches_image_border": "is_edge_segmentation"},
         inplace=True,
     )
 
-    # filter_global is just all the previous filters combined
-    big_table["filter_global"] = (
-        big_table[f"filter_min_track_duration_{min_track_duration}"]
-        + big_table[f"filter_max_smoothed_area_normd_change_{max_area_change}"]
-        + big_table["filter_edge_FOV"]
+    # is_included is just all the previous filters combined
+    big_table["is_included"] = (
+        big_table[f"is_greater_than_min_track_duration"]
+        & big_table[f"is_less_than_max_smoothed_area_normd_change"]
+        & ~big_table["is_edge_segmentation"]
     )
 
     # drop because there are insufficient valid timepoints
-    big_table["min_num_valid_points_per_track"] = min_num_valid_points_per_track
-    big_table["valid_points"] = big_table.groupby(["dataset_name", "position", "track_id"])[
-        "image_index"
-    ].transform("nunique")
-    big_table[f"filter_valid_points_{min_num_valid_points_per_track}"] = (
-        big_table["valid_points"] < min_num_valid_points_per_track
+    big_table["num_valid_tp_per_track"] = big_table.groupby(
+        ["dataset_name", "position", "track_id"]
+    )["is_included"].transform(sum)
+    big_table["min_num_valid_tp_per_track"] = min_num_valid_points_per_track
+    big_table["has_more_than_min_num_valid_points_per_track"] = (
+        big_table["num_valid_tp_per_track"] > min_num_valid_points_per_track
     )
 
-    # update filter_global
-    big_table["filter_global"] = (
-        big_table["filter_global"]
-        + big_table[f"filter_valid_points_{min_num_valid_points_per_track}"]
+    # update is_included column with valid_tp_per_track
+    big_table["is_included"] = (
+        big_table["is_included"] & big_table["has_more_than_min_num_valid_points_per_track"]
     )
 
     # get the number of unique tracks after filtering in total and per timepoint
-    num_rows_after_filtering = np.count_nonzero(~big_table["filter_global"])
+    num_rows_after_filtering = np.count_nonzero(big_table["is_included"])
     num_unique_tracks_after_filtering = (
-        big_table[~big_table["filter_global"]]
+        big_table[big_table["is_included"]]
         .groupby(["dataset_name", "position"])["track_id"]
         .nunique()
         .sum()
     )
     big_table["num_unique_tracks_after_filtering_at_T"] = (
-        big_table[~big_table["filter_global"]]
+        big_table[big_table["is_included"]]
         .groupby(["dataset_name", "position", "T"])["track_id"]
         .transform(lambda x: x.nunique())
     )
@@ -244,7 +241,7 @@ def add_filter_columns(
         # create some validation plots
         save_filter_validation_plots(
             out_dir,
-            big_table[~big_table["filter_global"]],
+            big_table[big_table["is_included"]],
             min_track_duration,
         )
     return big_table
@@ -841,7 +838,7 @@ def compute_nuclei_centroids(
     """
 
     # get the nuclei prediction
-    dim_order = get_default_dim_order()
+    dim_order = DIMENSION_ORDER
     seg_manifest = load_image_manifest("nuclear_labelfree_seg")
     seg_location = get_image_location_for_dataset(
         manifest=seg_manifest,
