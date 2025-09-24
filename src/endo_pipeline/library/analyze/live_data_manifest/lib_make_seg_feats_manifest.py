@@ -633,7 +633,30 @@ def get_smallest_angle_difference(
     reference_angles: np.ndarray | pd.Series,
     units: Literal["deg", "rad"] = "deg",
 ) -> np.ndarray | pd.Series:
-    """Will return the smallest difference between two angles."""
+    """
+    Returns the smallest difference between angles and reference_angles.
+    The result is signed, so if the returned angle is positive then
+    the angle is counter-clockwise from the reference angle, and if
+    the returned angle is negative then the angle is clockwise from
+    the reference angle.
+
+    Parameters
+    ----------
+    angles : np.ndarray | pd.Series
+        The angles to compare.
+    reference_angles : np.ndarray | pd.Series
+        The reference angles to compare against.
+    units : Literal["deg", "rad"]
+        The units of the angles. Either "deg" for degrees or "rad" for radians.
+
+    Returns
+    -------
+    np.ndarray | pd.Series
+        The smallest difference between the angles and the reference angles.
+
+    Note: This solution was not my idea and was taken from StackOverflow:
+    https://stackoverflow.com/questions/1878907/how-can-i-find-the-smallest-difference-between-two-angles-around-a-point
+    """
     if units == "rad":
         circle = np.pi
     elif units == "deg":
