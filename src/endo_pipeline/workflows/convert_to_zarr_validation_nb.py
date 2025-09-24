@@ -69,8 +69,7 @@ def get_channel_crop(
 # %%
 # Quickly visualize crop in first position,
 # first timepoint of each zarr to confirm channel order is correct
-datasets = get_datasets_in_collection("immunofluorescence")
-for dataset_name in datasets:
+for dataset_name in get_available_dataset_names():
     config = load_dataset_config(dataset_name)
     fmsid = config.fmsid
     barcode = config.barcode
