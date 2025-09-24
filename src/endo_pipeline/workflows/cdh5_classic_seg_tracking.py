@@ -8,7 +8,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from endo_pipeline.cli import Datasets
-from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
     extract_T,
@@ -104,7 +104,7 @@ def run_workflow(queue: Sequence) -> None:
 
 
 def main(
-    datasets: Datasets | None = None,
+    datasets: Datasets,
     n_proc: int = 1,
     save_output: bool = True,
     use_sldy_data: bool = False,
@@ -114,16 +114,11 @@ def main(
 
     out_dir = get_output_path(__file__)
 
-    if datasets is None:
-        dataset_name_list = get_datasets_in_collection("pca_reference")
-    else:
-        dataset_name_list = datasets
-
     configure_logging(out_dir, logger, verbose=verbose)
-    logger.info(f"datasets analyzed: {dataset_name_list}")
+    logger.info(f"datasets analyzed: {datasets}")
 
     analysis_queue = build_analysis_queue(
-        dataset_name_list,
+        datasets,
         save_output=save_output,
         out_dir=out_dir,
         overwrite=True,
@@ -159,7 +154,7 @@ def main(
 
     if save_output:
         for dataset_name in tqdm(
-            dataset_name_list, desc="Replacing individual tables with combined table..."
+            datasets, desc="Replacing individual tables with combined table..."
         ):
             concatenate_and_save_feature_tables(
                 out_dir=out_dir,

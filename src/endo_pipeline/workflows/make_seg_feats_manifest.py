@@ -6,7 +6,6 @@ from pathlib import Path
 from tqdm import tqdm
 
 from endo_pipeline.cli import Datasets
-from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 from endo_pipeline.io import configure_logging, get_output_path, load_dataframe
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
@@ -85,7 +84,7 @@ def create_segmentation_measured_feature_manifest(
 
 
 def main(
-    datasets: Datasets | None = None,
+    datasets: Datasets,
     n_proc: int = 1,
     verbose: bool = False,
 ) -> None:
@@ -94,28 +93,22 @@ def main(
     out_dir = get_output_path(__file__)
     configure_logging(out_dir, logger, verbose)
 
-    # create a list of datasets to analyze if not provided
-    if datasets is None:
-        dataset_name_list = get_datasets_in_collection("pca_reference")
-    else:
-        dataset_name_list = datasets
-
-    logger.info(f"datasets to analyze: {dataset_name_list}")
+    logger.info(f"datasets to analyze: {datasets}")
 
     # decide whether or not to use multiprocessing
     # and then create merged tables for each dataset
     if n_proc > 1:
-        n_proc = min(n_proc, len(dataset_name_list))
+        n_proc = min(n_proc, len(datasets))
         with Pool(processes=n_proc) as pool:
             args = zip(
-                dataset_name_list,
-                [out_dir] * len(dataset_name_list),
+                datasets,
+                [out_dir] * len(datasets),
                 strict=False,
             )
             list(
                 tqdm(
                     pool.imap(create_seg_measured_feat_manifest_multiproc_wrapper, args),
-                    total=len(dataset_name_list),
+                    total=len(datasets),
                     desc="Processing datasets (MP)",
                     unit="datasets",
                 )
@@ -124,8 +117,8 @@ def main(
             pool.join()
     else:
         for dataset_name in tqdm(
-            dataset_name_list,
-            total=len(dataset_name_list),
+            datasets,
+            total=len(datasets),
             desc="Processing datasets",
             unit="datasets",
         ):

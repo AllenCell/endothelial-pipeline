@@ -10,11 +10,7 @@ from skimage.measure import regionprops
 from tqdm import tqdm
 
 from endo_pipeline.cli import Datasets
-from endo_pipeline.configs import (
-    get_datasets_in_collection,
-    get_zarr_file_for_position,
-    load_dataset_config,
-)
+from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
     ipython_cli_flexecute,
@@ -235,7 +231,7 @@ def get_nuclei_features_from_dataset_at_T(
 
 
 def main(
-    datasets: Datasets | None = None,
+    datasets: Datasets,
     save_output: bool = True,
     n_proc: int = 1,
     verbose: bool = False,
@@ -246,18 +242,13 @@ def main(
 
     out_dir = get_output_path(__file__)
 
-    if datasets is None:
-        dataset_name_list = get_datasets_in_collection("pca_reference")
-    else:
-        dataset_name_list = datasets
-
     configure_logging(out_dir, logger, verbose=verbose)
-    logger.info(f"datasets analyzed: {dataset_name_list}")
+    logger.info(f"datasets analyzed: {datasets}")
 
     if not concatenate_tables_only:
         # build analysis queue
         analysis_queue = build_analysis_queue(
-            dataset_name_list,
+            datasets,
             save_output=save_output,
             out_dir=out_dir,
             overwrite=True,
@@ -288,7 +279,7 @@ def main(
     # concatenate the results outputs from above in to a single table
     if save_output:
         for dataset_name in tqdm(
-            dataset_name_list, desc="Replacing individual tables with combined table..."
+            datasets, desc="Replacing individual tables with combined table..."
         ):
             concatenate_and_save_feature_tables(
                 out_dir=out_dir,

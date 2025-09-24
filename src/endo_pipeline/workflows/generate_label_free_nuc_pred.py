@@ -9,13 +9,7 @@ from cellpose import core, models
 from tqdm import tqdm
 
 from endo_pipeline.cli import Datasets
-from endo_pipeline.configs import (
-    CellposeModelConfig,
-    get_datasets_in_collection,
-    load_dataset_config,
-    load_model_config,
-)
-from endo_pipeline.configs.dataset_io import load_config
+from endo_pipeline.configs import CellposeModelConfig, load_dataset_config, load_model_config
 from endo_pipeline.io import configure_logging, get_output_path
 from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
@@ -137,7 +131,7 @@ def generate_results(args: dict) -> None:
 
 
 def main(
-    datasets: Datasets | None = None,
+    datasets: Datasets,
     n_proc: int = 1,
     save_output: bool = True,
     overwrite: bool = True,
@@ -147,24 +141,21 @@ def main(
 ) -> None:
     """
     To enter a list of datasets to analyze, use the following format:
-    '\"20241217_20X\",\"20241120_20X\"'
+
+    .. code-block:: bash
+
+        --datasets 20241217_20X 20241120_20X
     """
 
     out_dir = get_output_path(__file__)
     configure_logging(out_dir, logger, verbose)
 
-    # Build a list of datasets to analyze
-    if datasets is None:
-        dataset_name_list = get_datasets_in_collection("pca_reference")
-    else:
-        dataset_name_list = datasets
-
-    logger.info(f"datasets to analyze: {dataset_name_list}")
+    logger.info(f"datasets to analyze: {datasets}")
 
     # Get a list of timepoints and associated arguments to process from the list of datasets to analyze
     # evaluate every 48 timepoints (ie. 4hrs)
     analysis_queue = build_analysis_queue(
-        dataset_name_list,
+        datasets,
         out_dir=out_dir,
         save_output=save_output,
         overwrite=overwrite,
