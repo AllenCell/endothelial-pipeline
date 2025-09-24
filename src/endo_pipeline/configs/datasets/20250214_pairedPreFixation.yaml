@@ -9,7 +9,7 @@ live_or_fixed_sample: live
 is_timelapse: false
 microscope: 3i
 objective: 20X
-shear_stress_regime: no_flow
+shear_stress_regime: no_shear_stress
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
