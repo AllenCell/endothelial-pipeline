@@ -89,7 +89,7 @@ def pipeline_entrypoint(
     show_tags: Annotated[bool, Parameter(alias="-t", group=OPTIONS)] = False,
     filter_tag: Annotated[str | None, Parameter(alias="-f")] = None,
     config: Annotated[Path, Parameter(alias="-c")] = Path("config.yaml"),
-    num_gpus: Annotated[Optional[int], Parameter(alias="-g", group=OPTIONS)] = None,
+    num_gpus: Annotated[int | None, Parameter(alias="-g", group=OPTIONS)] = None,
     show_external_logs: Annotated[bool, Parameter(alias="-s", group=OPTIONS)] = False,
     demo_mode: Annotated[bool, Parameter(alias="-d", group=OPTIONS)] = False,
     use_staging: Annotated[bool, Parameter(alias="-u", group=OPTIONS)] = False,
@@ -138,18 +138,14 @@ def pipeline_entrypoint(
                 app.show = filter_tag in tags[app.name[0]] and app.show
 
     # Pass in the num_gpus to the relevant scripts
-
-    new_tokens = list(tokens)
-    if num_gpus is not None:
-        new_tokens += ["-g", str(num_gpus)]
-    pipeline_app(new_tokens)
+    pipeline_app(tokens)
 
 
 def workflow_entrypoint(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
     verbose: Annotated[bool, Parameter(alias="-v", group=LOGGING)] = False,
     debug: Annotated[bool, Parameter(alias="-vv", group=LOGGING)] = False,
-    num_gpus: Annotated[Optional[int], Parameter(alias="-g", group=OPTIONS)] = None,
+    num_gpus: Annotated[int | None, Parameter(alias="-g", group=OPTIONS)] = None,
     show_external_logs: Annotated[bool, Parameter(alias="-s", group=OPTIONS)] = False,
     demo_mode: Annotated[bool, Parameter(alias="-d", group=OPTIONS)] = False,
     use_staging: Annotated[bool, Parameter(alias="-u", group=OPTIONS)] = False,
@@ -204,6 +200,7 @@ def apply_entrypoint_settings(
     use_staging
         Use staging environments.
     """
+    import endo_pipeline
 
     if debug:
         setup_logging(logging.DEBUG)
@@ -213,9 +210,10 @@ def apply_entrypoint_settings(
         setup_logging(logging.WARNING)
 
     if num_gpus is not None and num_gpus > 0:
-        setup_gpu(num_gpus)
+        endo_pipeline.NUM_GPUS = setup_gpu(num_gpus)
     else:
-        # Explicitly set this to train on the CPU!
+        logger.info("Workflow running on CPU")
+        endo_pipeline.NUM_GPUS = None
         os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
     if not show_external_logs:
@@ -382,7 +380,7 @@ def setup_gpu(num_gpus: Optional[int]) -> None:
         os.environ["CUDA_VISIBLE_DEVICES"] = selected_uuid
         logger.info("Using MIG UUID: %s", selected_uuid)
         logger.info("Set CUDA_VISIBLE_DEVICES to [ %s ]", selected_uuid)
-        return
+        return 1
 
     # Not MIG: Pick by available GPUs and free memory
     mem_info = (
@@ -417,6 +415,8 @@ def setup_gpu(num_gpus: Optional[int]) -> None:
     devs_str = ",".join(chosen_gpus)
     os.environ["CUDA_VISIBLE_DEVICES"] = devs_str
     logger.info("Set CUDA_VISIBLE_DEVICES to [ %s ]", devs_str)
+
+    return len(chosen_gpus)
 
 
 if __name__ == "__main__":

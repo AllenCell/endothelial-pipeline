@@ -9,7 +9,6 @@ def main(
     model_name: str = "diffae_04_10",
     dataset_pair_type: Literal["live_fixed", "20x_40x"] = "live_fixed",
     resolution_level: int = 1,
-    num_gpus: Annotated[Optional[int], Parameter(alias="-g")] = None,
 ) -> None:
     """
     Finetune a DiffAE model to align features for paired datasets.
@@ -23,8 +22,6 @@ def main(
         The type of dataset pairs to use for finetuning ("live_fixed" or "20x_40x").
     resolution_level
         The resolution level of the zarr files to be used for training.
-    num_gpus
-        Number of GPUs to train using. If None, use the CPU!
 
     Returns
     -------
@@ -123,7 +120,6 @@ def main(
         log_every_n_steps=log_every_n_steps,
         cache_rate=cache_rate,
         replace_rate=replace_rate,
-        num_gpus=num_gpus,
     )
     # save the input model config locally instead of printing
     local_config_save_path = get_output_path("models", "training_configs")

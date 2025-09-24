@@ -9,7 +9,6 @@ def main(
     resolution_level: int = 1,
     crop_size: int = 128,
     exclude_cell_piling: bool = False,
-    num_gpus: Annotated[Optional[int], Parameter(alias="-g")] = None,
 ) -> None:
     """
     Train a DiffAE model using the provided configuration.
@@ -43,10 +42,7 @@ def main(
         The length of the 2D image crop in pixels to use for model training.
     exclude_cell_piling
         If True, use training and validation datasets that exclude cell piling timepoints.
-    num_gpus
-        Number of GPUs to train using. If None, use the CPU!
 
-    Returns
     -------
     :
         The function creates and saves a ModelConfig object with the trained
@@ -138,7 +134,6 @@ def main(
         log_every_n_steps=log_every_n_steps,
         cache_rate=cache_rate,
         replace_rate=replace_rate,
-        num_gpus=num_gpus,
     )
     local_config_save_path = get_output_path("models", "training_configs")
     model.save_config(local_config_save_path / f"{model_name_unique}_train.yaml")
