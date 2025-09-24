@@ -58,8 +58,8 @@ def plot_and_save_overlays(
 def get_image_data_from_original(dataset_name: str, scenes_to_use: list[str]) -> Generator:
 
     dim_order = DIMENSION_ORDER
-    dim_map = dataset_io.get_dim_map(dim_order)
     projection_dim = "Z"
+    projection_axis = DIMENSION_ORDER.index(projection_dim)
 
     img_path = Path(dataset_io.get_original_path(dataset_name))
     img = BioImage(img_path)
@@ -74,10 +74,10 @@ def get_image_data_from_original(dataset_name: str, scenes_to_use: list[str]) ->
         nuc_chan = channel_names.index("405")
         bf_chan = channel_names.index("TL")
         img_dask_arr_nuc = img.get_image_dask_data(dim_order, C=[nuc_chan]).max(
-            axis=dim_map[projection_dim], keepdims=True
+            axis=projection_axis, keepdims=True
         )
         img_dask_arr_bf_std = img.get_image_dask_data(dim_order, C=[bf_chan]).std(
-            axis=dim_map[projection_dim], keepdims=True
+            axis=projection_axis, keepdims=True
         )
         img_dask_arr_bf = img.get_image_dask_data(dim_order, C=[bf_chan])
         bf_focus_index = np.argmin(
@@ -85,8 +85,8 @@ def get_image_data_from_original(dataset_name: str, scenes_to_use: list[str]) ->
                 img.std()
                 for img in np.split(
                     img_dask_arr_bf,
-                    img_dask_arr_bf.shape[dim_map[projection_dim]],
-                    axis=dim_map[projection_dim],
+                    img_dask_arr_bf.shape[projection_axis],
+                    axis=projection_axis,
                 )
             ]
         )
@@ -102,10 +102,8 @@ def get_image_data_from_original(dataset_name: str, scenes_to_use: list[str]) ->
 
 
 def get_image_data_from_zarr(dataset_name: str) -> Generator:
-
-    dim_order = DIMENSION_ORDER
-    dim_map = dataset_io.get_dim_map(dim_order)
     projection_dim = "Z"
+    projection_axis = DIMENSION_ORDER.index(projection_dim)
 
     nuc_chan = int(*dataset_io.get_channel_index(dataset_name, ["DAPI"]))
     bf_chan = int(*dataset_io.get_channel_index(dataset_name, ["Brightfield"]))
@@ -122,22 +120,22 @@ def get_image_data_from_zarr(dataset_name: str) -> Generator:
         ],
     )
     for scene_index, filename in enumerate(img_dict_nuc):
-        img_dask_arr_nuc = img_dict_nuc[filename].max(axis=dim_map[projection_dim], keepdims=True)
-        img_dask_arr_bf_std = img_dict_bf[filename].std(axis=dim_map[projection_dim], keepdims=True)
+        img_dask_arr_nuc = img_dict_nuc[filename].max(axis=projection_axis, keepdims=True)
+        img_dask_arr_bf_std = img_dict_bf[filename].std(axis=projection_axis, keepdims=True)
         bf_focus_index = np.argmin(
             [
                 img.std()
                 for img in np.split(
                     img_dict_bf[filename],
-                    img_dict_bf[filename].shape[dim_map[projection_dim]],
-                    axis=dim_map[projection_dim],
+                    img_dict_bf[filename].shape[projection_axis],
+                    axis=projection_axis,
                 )
             ]
         )
         Z_crop = [
             (
                 slice(max(bf_focus_index - 2, 0), max(bf_focus_index - 2, 0) + 1, None)
-                if dim == dim_map[projection_dim]
+                if dim == projection_axis
                 else slice(None)
             )
             for dim in range(img_dict_bf[filename].ndim)

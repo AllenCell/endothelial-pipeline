@@ -116,7 +116,7 @@ class FlowCalculator:
         img_data = dataset_io.load_dataset_position_as_dask_array(
             self.dataset, self.position, self.channel, level=level
         )  # level=2 not present in ZARRs anymore
-        self.data = img_data.max(axis=dataset_io.get_dim_map(DIMENSION_ORDER)["Z"])
+        self.data = img_data.max(axis=DIMENSION_ORDER.index("Z"))
 
     def load_flow_from_file(self, fname: str | Path) -> None:
         with open(fname, "rb") as fpk:

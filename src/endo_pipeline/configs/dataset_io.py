@@ -537,15 +537,6 @@ def get_time_interval_in_minutes(dataset_name: str) -> float:
     return dataset_info["time_interval_in_minutes"]
 
 
-def get_dim_map(dim_order: str) -> dict:
-
-    dims = [a for a in dim_order]
-    dim_nums = tuple(range(len(dims)))
-    dim_map = dict(zip(dims, dim_nums, strict=False))
-
-    return dim_map
-
-
 @deprecated(
     """
 Use one of the following methods to load the dataset config:
