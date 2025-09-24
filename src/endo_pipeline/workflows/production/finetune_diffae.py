@@ -53,7 +53,7 @@ def main(
     # and model names to indicate that they were generated from a workflow demo,
     # and reduce the number of epochs and logging steps.
     if DEMO_MODE:
-        name_suffix = "_test_workflow"
+        name_suffix = "_demo"
         max_num_epochs = 1
         log_every_n_steps = 1
         cache_rate = 1.0
