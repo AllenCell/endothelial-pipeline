@@ -41,8 +41,8 @@ def get_dataset_descriptions(
     # initialize dictionary to store descriptions
     description_dict = {}
     for dataset_name in list_of_datasets:
-        data_config = load_dataset_config(dataset_name)  # get dataset info from data_config.yaml
-        flow_conditions = data_config.flow_conditions  # get flow conditions for dataset
+        dataset_config = load_dataset_config(dataset_name)  # get dataset info from data_config.yaml
+        flow_conditions = dataset_config.flow_conditions  # get flow conditions for dataset
         num_flows = len(flow_conditions)  # number of flow conditions in dataset
 
         # get shear stress for each flow condition,
@@ -52,14 +52,14 @@ def get_dataset_descriptions(
         if simple:  # if simple description, use qualitative description of shear stress level
             shear_stress_strings = []
             for i, shear in enumerate(shear_stress):
-                if shear >= 20:
-                    shear_stress_str = "High_Shear_Stress"
-                elif shear > 7:
-                    shear_stress_str = "Intermediate_Shear_Stress"
-                elif shear > 0:
-                    shear_stress_str = "Low_Shear_Stress"
-                else:
-                    shear_stress_str = "No_Shear_Stress"
+                shear_stress_str = dataset_config.shear_stress_regime
+
+                # have to parse differently if multiple flow conditions
+                if num_flows > 1:
+                    if i == 0:
+                        shear_stress_str = shear_stress_str.split("_")[0]
+                    else:
+                        shear_stress_str = shear_stress_str.split("_")[-1]
 
                 if include_duration:
                     duration_in_frames = flow_conditions[i].stop - flow_conditions[i].start
