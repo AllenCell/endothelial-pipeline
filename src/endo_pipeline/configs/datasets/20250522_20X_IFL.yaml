@@ -38,4 +38,10 @@ include_scenes: null
 notes: Fix & stain for SMAD1 & SOX17 8h post-flow change in a High SS to Low SS experiment
 timepoint_annotations: null
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 12
+  1: 12
+  2: 10
+  3: 10
+  4: 11
+  5: 11

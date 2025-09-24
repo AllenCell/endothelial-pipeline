@@ -103,6 +103,5 @@ for dataset_name in datasets:
             ax.imshow(channel_projections[c], cmap="gray")
             ax.set_title(f"{dataset_name} - Channel {c} ({channel_names[c]})")
         plt.show()
-        break
 
 # %%

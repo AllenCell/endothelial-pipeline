@@ -2,7 +2,7 @@ name: 20250522_20X_IFM
 original_path: //allen/programs/allencell/data/proj0/614/8b3/f6e/9cc/886/afa/c48/ab7/fc7/b5f/59/20250522_GE00008026_20X_sldy/20250522_GE00008026_20X_sldy.sldy
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250522_59b5ffc7ab7c48afa8869ccf6e8b3614
 zarr_positions: [0, 1, 2, 3, 4, 5]
-fmsid: 60917a9e433e4c289190e3c350fb7135
+fmsid: 59b5ffc7ab7c48afa8869ccf6e8b3614
 barcode: GE00008027
 cell_lines: [AICS-126]
 live_or_fixed_sample: fixed
@@ -38,4 +38,10 @@ include_scenes: null
 notes: Fix & stain for SMAD1 & SOX17 24h post-flow change in a High SS to Low SS experiment
 timepoint_annotations: null
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 9
+  1: 9
+  2: 11
+  3: 11
+  4: 10
+  5: 12

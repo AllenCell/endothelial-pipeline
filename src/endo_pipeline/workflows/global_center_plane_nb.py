@@ -55,16 +55,19 @@ if __name__ == "__main__":
         visualize_slice_selection(
             bf_stack, cdh5_stack, center_plane, 4, 11, dataset, position, frame, save_dir
         )
-        # for each row in results df, add to dataset_config.center_z_plane
-        # column position and mean_center_plane
-        global_center_plane = {}
-        for _, row in results_df.iterrows():
-            global_center_plane[int(row["position"])] = int(row["mean_center_plane"])
 
-        print(global_center_plane)
+        global_center_plane = {
+            int(row["position"]): int(row["mean_center_plane"]) for _, row in results_df.iterrows()
+        }
+
+        for position, _ in global_center_plane.items():
+            if position > 13:
+                logging.warning(
+                    f"Position {position} has a high center plane. Less than 11 slices available."
+                )
+
         dataset_config.center_z_plane = global_center_plane
         save_dataset_config(dataset_config)
-        break
 
     # Visualize the standard deviations per slice for the first position
     stdevs = [plane.std().compute() for plane in bf_stack]
