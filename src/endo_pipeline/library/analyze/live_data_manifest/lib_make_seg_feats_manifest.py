@@ -521,17 +521,25 @@ def calculate_derived_data_dynamics_dependent(big_table: pd.DataFrame) -> pd.Dat
     big_table["centroid_velocity_angle_deg"] = np.rad2deg(big_table["centroid_velocity_angle"])
 
     big_table["dalignment_dt_deg_rel_to_flow"] = (
-        big_table["alignment_deg_rel_to_flow"].diff() / big_table["time_minutes"].diff()
+        big_table.groupby(["dataset_name", "position", "track_id"], as_index=True)
+        .apply(
+            lambda df: pd.DataFrame(
+                df["alignment_deg_rel_to_flow"].diff() / df["time_minutes"].diff(),
+                index=df.index,
+            )
+        )
+        .droplevel([0, 1, 2])
     )
 
-    nuc_relative_position = (
-        big_table["nuc_pos_rel_cell_angle_deg"].abs()
-        - big_table["centroid_velocity_angle_deg"].abs()
+    big_table["cell_nuc_orientation_deg_rel_to_migration"] = get_smallest_angle_difference(
+        big_table["nuc_pos_rel_cell_angle_deg"], big_table["centroid_velocity_angle_deg"]
     )
-    nuc_direction = np.sign(
-        big_table["nuc_pos_rel_cell_angle_deg"] - big_table["centroid_velocity_angle_deg"]
+
+    big_table["nuc_pos_vs_cell_veloc_dotprod"] = np.einsum(
+        "ij,ij->i",
+        big_table[["centroid_dx_dt", "centroid_dy_dt"]],
+        big_table[["nuc_pos_rel_cell_X", "nuc_pos_rel_cell_Y"]],
     )
-    big_table["cell_nuc_orientation_deg_rel_to_migration"] = nuc_direction * nuc_relative_position
 
     # add column for the number of tracks at a given
     # timepoint per dataset per position
@@ -618,6 +626,24 @@ def get_nuclei_rel_to_cell_position(
     dy = cell_centroid_y - nuclei_centroid_y
 
     return dx, dy
+
+
+def get_smallest_angle_difference(
+    angles: np.ndarray | pd.Series,
+    reference_angles: np.ndarray | pd.Series,
+    units: Literal["deg", "rad"] = "deg",
+) -> np.ndarray | pd.Series:
+    """Will return the smallest difference between two angles."""
+    if units == "rad":
+        circle = np.pi
+    elif units == "deg":
+        circle = 360
+    else:
+        raise ValueError("units must be either 'deg' or 'rad'")
+    half_circle = circle / 2
+    angle_diff = angles - reference_angles
+    angle_diff = (angle_diff + half_circle) % circle - half_circle
+    return angle_diff
 
 
 def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
