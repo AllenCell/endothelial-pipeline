@@ -2,16 +2,17 @@ import os
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import tifffile
+from bioio.writers import OmeZarrWriter
+from bioio_base.types import PhysicalPixelSizes
 from cellpose import models
 from skimage.color import label2rgb
 
-from endo_pipeline.configs import dataset_io
+from endo_pipeline.configs import DatasetConfig, dataset_io
 from endo_pipeline.io import get_output_path, save_plot_to_path
 from endo_pipeline.library.process import get_images, image_processing
 
 
-def get_max_int_projections(dataset: str, nuc_stain: str) -> list:
+def get_max_int_projections(dataset: str, nuc_stain: str) -> tuple[list, float]:
     """
     Get maximum intensity projections of nuclear stain channel for all positions in the dataset.
 
@@ -21,6 +22,7 @@ def get_max_int_projections(dataset: str, nuc_stain: str) -> list:
 
     Returns:
         list: List of maximum intensity projections.
+        float: XY pixel size in micrometers.
     """
     n_positions = dataset_io.get_total_number_of_positions(dataset)
 
@@ -31,12 +33,13 @@ def get_max_int_projections(dataset: str, nuc_stain: str) -> list:
         img = get_images.get_zarr_img_for_dataset(dataset, position, resolution_level=0)
         channel_names = img.channel_names
         nuc_stain_channel = channel_names.index(nuc_stain)
+        xy_pixel_size_um = img.physical_pixel_sizes.X
 
         img_tp = img.get_image_dask_data("ZYX", T=0, C=nuc_stain_channel)
         max_int_projection = image_processing.max_proj(img_tp, axis=0)
         max_int_projections.append(max_int_projection)
 
-    return max_int_projections
+    return (max_int_projections, xy_pixel_size_um)
 
 
 def segment_nuclei(max_int_projections: list) -> list:
@@ -90,18 +93,40 @@ def visualize_results(max_int_projections: list, masks: list, dataset: str) -> N
         save_plot_to_path(fig, output_path, f"{dataset}_segmentation_overlay")
 
 
-def save_segmentation_masks(masks: list, dataset: str, output_dir: Path) -> None:
+def save_segmentation_masks(
+    masks: list, dataset_config: DatasetConfig, output_dir: Path, xy_pixel_size_um: float
+) -> None:
     """
-    Save segmentation masks as TIFF files.
+    Save segmentation masks as OME-Zarr files.
 
     Args:
-        masks (list): List of segmentation masks.
-        dataset (str): Dataset name.
-        output_dir (str): Directory to save the masks.
+        masks: List of segmentation masks.
+        dataset_config: Dataset config
+        output_dir: Directory to save the masks.
+        xy_pixel_size_um: XY pixel size in micrometers.
     """
     print("Saving segmentation masks...")
-    n_positions = dataset_io.get_total_number_of_positions(dataset)
-    for mask, position in zip(masks, range(n_positions), strict=True):
-        save_path = output_dir / dataset / f"P{position}"
-        os.makedirs(save_path, exist_ok=True)  # Ensure the directory exists
-        tifffile.imwrite(save_path / f"{dataset}_P{position}_T0.ome.tiff", mask)
+    dataset_name = dataset_config.name
+    date = dataset_name.split("_")[0]
+
+    physical_pixel_sizes = PhysicalPixelSizes(
+        Z=None,
+        Y=xy_pixel_size_um,
+        X=xy_pixel_size_um,
+    )
+
+    for mask, position in zip(masks, dataset_config.zarr_positions, strict=True):
+        fname = f"{date}_{dataset_config.fmsid}_P{position}.ome.zarr"
+        save_path = output_dir / f"{date}_{dataset_config.fmsid}" / fname
+        os.makedirs(save_path, exist_ok=True)
+        print(save_path)
+
+        writer = OmeZarrWriter(save_path)
+        print(mask.shape)
+        writer.write_image(
+            mask,
+            fname,
+            physical_pixel_sizes=physical_pixel_sizes,
+            channel_names=["NUC_SEG"],
+            channel_colors=None,
+        )
