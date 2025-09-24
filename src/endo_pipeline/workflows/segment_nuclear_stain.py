@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path
 from endo_pipeline.library.process.if_segmentation import (
     get_max_int_projections,
@@ -14,12 +15,12 @@ Segment nuclear stain channel using Cellpose for immunofluorescence datasets.
 
 To test this script, you can run it with the following command (~5 min):
 python src/endo_pipeline/workflows/segment_nuclear_stain.py \
-    --dataset "20250509_20X_IF2" \
+    --dataset "20250522_20X_IFA" \
     --nuc_stain "NucViolet"
 
 To run this script on new datasets, you can use the following command:
 python src/endo_pipeline/workflows/segment_nuclear_stain.py \
-    --dataset "20250509_20X_IF2" \
+    --dataset "20250522_20X_IFA" \
     --nuc_stain "NucViolet" \
     --output_dir "//allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/"
 
@@ -42,7 +43,7 @@ def process_dataset(
     print(f"Processing {dataset}...")
 
     # Step 1: Get maximum intensity projections
-    max_int_projections = get_max_int_projections(dataset, nuc_stain)
+    max_int_projections, xy_pixel_size_um = get_max_int_projections(dataset, nuc_stain)
 
     # Step 2: Perform nuclear segmentation
     masks = segment_nuclei(max_int_projections)
@@ -58,7 +59,8 @@ def process_dataset(
         output_path = Path(output_dir)
         print(f"Outputs saved to {output_dir}")
 
-    save_segmentation_masks(masks, dataset, output_path)
+    datset_config = load_dataset_config(dataset)
+    save_segmentation_masks(masks, datset_config, output_path, xy_pixel_size_um)
 
 
 if __name__ == "__main__":
