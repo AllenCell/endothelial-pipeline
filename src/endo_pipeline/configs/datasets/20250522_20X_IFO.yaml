@@ -34,7 +34,21 @@ valid_timepoints: null
 include_scenes: null
 notes: Secondary only control for SMAD1 & SOX17staining done on cells cultured with
   SS for 48h. Cells were only fed 2x during course of experiment
-timepoint_annotations: null
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [0]
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  auto_bf_temp_artifact:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
 position_annotations: null
 center_z_plane:
   0: 8
