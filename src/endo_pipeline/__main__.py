@@ -5,7 +5,7 @@ import re
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 
 import cyclopts
 from cyclopts import App, Group, Parameter, validators
@@ -177,7 +177,7 @@ def workflow_entrypoint(
 def apply_entrypoint_settings(
     verbose: bool = False,
     debug: bool = False,
-    num_gpus: Optional[int] = None,
+    num_gpus: int | None = None,
     show_external_logs: bool = False,
     demo_mode: bool = False,
     use_staging: bool = False,
@@ -209,15 +209,15 @@ def apply_entrypoint_settings(
     else:
         setup_logging(logging.WARNING)
 
+    if not show_external_logs:
+        silence_external_loggers(EXTERNAL_LOGGERS)
+
     if num_gpus is not None and num_gpus > 0:
         endo_pipeline.NUM_GPUS = setup_gpu(num_gpus)
     else:
         logger.info("Workflow running on CPU")
         endo_pipeline.NUM_GPUS = None
         os.environ["CUDA_VISIBLE_DEVICES"] = ""
-
-    if not show_external_logs:
-        silence_external_loggers(EXTERNAL_LOGGERS)
 
     if demo_mode:
         import endo_pipeline
@@ -345,7 +345,7 @@ def silence_external_loggers(external_loggers: dict) -> None:
         external_logger.setLevel(logging_level)
 
 
-def setup_gpu(num_gpus: Optional[int]) -> None:
+def setup_gpu(num_gpus: int | None) -> None:
     """
     Set up the GPU environment for workflow.
 

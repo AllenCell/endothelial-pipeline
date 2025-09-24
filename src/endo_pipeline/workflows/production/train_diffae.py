@@ -1,7 +1,3 @@
-from typing import Annotated, Optional
-
-from cyclopts import Parameter
-
 TAGS = ["diffae_model_training"]
 
 
@@ -52,7 +48,7 @@ def main(
 
     from omegaconf import OmegaConf
 
-    from endo_pipeline import DEMO_MODE
+    from endo_pipeline import DEMO_MODE, NUM_GPUS
     from endo_pipeline.configs import CytoDLModelConfig, save_model_config
     from endo_pipeline.io import get_output_path, make_name_unique
     from endo_pipeline.library.model import (
@@ -134,6 +130,7 @@ def main(
         log_every_n_steps=log_every_n_steps,
         cache_rate=cache_rate,
         replace_rate=replace_rate,
+        num_gpus=NUM_GPUS,
     )
     local_config_save_path = get_output_path("models", "training_configs")
     model.save_config(local_config_save_path / f"{model_name_unique}_train.yaml")

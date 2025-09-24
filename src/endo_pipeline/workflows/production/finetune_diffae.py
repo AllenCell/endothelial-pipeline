@@ -1,6 +1,4 @@
-from typing import Annotated, Literal, Optional
-
-from cyclopts import Parameter
+from typing import Literal
 
 TAGS = ["diffae_model_finetuning"]
 
