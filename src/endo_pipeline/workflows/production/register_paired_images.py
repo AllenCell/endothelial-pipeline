@@ -11,7 +11,9 @@ def main(
     """
     Register images from paired datasets and save the aligned images as multi-channel TIFF files.
 
-    Default output directory is
+    Default output directory is the subdirectory ``/morphological_features/IF_integration`` folder
+    in the endothelial project directory. If running in staging mode, the output directory will be
+    set to a subdirectory in the local ``results`` folder.
 
     Parameters
     ----------
@@ -20,8 +22,7 @@ def main(
     resolution_level
         The resolution level of the zarr files to be used for registration.
     output_dir
-        The directory where the aligned images will be saved. If None, a default
-        directory will be used.
+        Optional, the directory where the aligned images will be saved.
     """
     import logging
     import re
@@ -41,9 +42,15 @@ def main(
     logger = logging.getLogger(__name__)
 
     if output_dir is None:
+        from endo_pipeline import USE_STAGING
+        from endo_pipeline.io import get_output_path
         from endo_pipeline.settings import IF_INTEGRATION_SAVE_DIRECTORY
 
-        output_path = Path(IF_INTEGRATION_SAVE_DIRECTORY)
+        # save locally if using staging, save to project folder otherwise
+        if USE_STAGING:
+            output_path = get_output_path("IF_integration")
+        else:
+            output_path = Path(IF_INTEGRATION_SAVE_DIRECTORY)
     else:
         output_path = Path(output_dir)
 

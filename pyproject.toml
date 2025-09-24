@@ -58,7 +58,7 @@ license = { text = "AISL" }
 
 [project.optional-dependencies]
 internal = [
-    "aicsfiles<8.0.0",
+    "aicsfiles>=8.1.1",
 ]
 ml_workflows = [
     "cyto-dl>=0.6.1",

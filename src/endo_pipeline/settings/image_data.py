@@ -16,4 +16,22 @@ NUM_ZSLICES = 25
 """Number of z-slices per timepoint."""
 
 IF_INTEGRATION_SAVE_DIRECTORY = "//allen/aics/endothelial/morphological_features/IF_integration"
-"""Default directory to save IF integration results."""
+"""Default production directory to save IF integration results."""
+
+AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x = 1.43
+"""Axial distortion factor for 3i 20x objective determined as described in Diel et al. 2020."""
+
+AXIAL_DISTORTION_CORRECTION_FACTOR_3i_40x = 1.00
+"""Axial distortion factor for 3i 40x objective determined as described in Diel et al. 2020."""
+
+Z_STEP_SIZE_NOMINAL_3i_20x = 0.53
+"""Nominal Z-step size for the 20x objective in micrometers."""
+
+Z_STEP_SIZE_NOMINAL_3i_40x = 0.26
+"""Nominal Z-step size for the 40x objective in micrometers."""
+
+Z_STEP_SIZE_ACTUAL_3i_20x = Z_STEP_SIZE_NOMINAL_3i_20x * AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
+"""Actual Z-step size for the 20x objective in micrometers, corrected for axial distortion."""
+
+Z_STEP_SIZE_ACTUAL_3i_40x = Z_STEP_SIZE_NOMINAL_3i_40x * AXIAL_DISTORTION_CORRECTION_FACTOR_3i_40x
+"""Actual Z-step size for the 40x objective in micrometers, corrected for axial distortion."""
