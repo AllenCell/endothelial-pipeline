@@ -11,9 +11,9 @@ from tqdm import tqdm
 from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
-    parse_generate_dataset_name_user_input,
     get_original_path,
     ipython_cli_flexecute,
+    parse_generate_dataset_name_user_input,
 )
 from endo_pipeline.io import configure_logging, get_output_path, load_image, load_zarr_as_dask_array
 from endo_pipeline.library.analyze import shape_features as feat
@@ -22,6 +22,7 @@ from endo_pipeline.library.process.general_image_preprocessing import (
     save_image_output,
 )
 from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +167,7 @@ def build_measured_features_tables(
 
     logger.debug(f"Working on {dataset_name} -- T={T}...")
 
-    dim_order = "TCZYX"
+    dim_order = DIMENSION_ORDER
 
     out_dir = Path(out_dir)
     images_out_dir = out_dir / f"{dataset_name}/P{position}/images"

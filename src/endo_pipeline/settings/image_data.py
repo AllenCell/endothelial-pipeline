@@ -1,37 +1,46 @@
-"""Global settings for image data processing in the endo_pipeline."""
+"""Global settings for image data processing in the endo pipeline."""
 
-LOWER_Z_SLICE_OFFSET = 4
+DIMENSION_ORDER: str = "TCZYX"
+"""Default dimension order of image data."""
+
+LOWER_Z_SLICE_OFFSET: int = 4
 """How many slices below the "center" Z-plane to include in projections."""
 
-UPPER_Z_SLICE_OFFSET = 11
+UPPER_Z_SLICE_OFFSET: int = 11
 """How many slices above the "center" Z-plane to include in projections."""
 
-Z_SLICE_OFFSETS = (LOWER_Z_SLICE_OFFSET, UPPER_Z_SLICE_OFFSET)
+Z_SLICE_OFFSETS: tuple[int, int] = (LOWER_Z_SLICE_OFFSET, UPPER_Z_SLICE_OFFSET)
 """Tuple containing the lower and upper Z-offsets for projections."""
 
-LOG_EPSILON = 1e-12
+LOG_EPSILON: float = 1e-12
 """Small constant used to avoid log(0) errors."""
 
-NUM_ZSLICES = 25
+NUM_ZSLICES: int = 25
 """Number of z-slices per timepoint."""
 
-IF_INTEGRATION_SAVE_DIRECTORY = "//allen/aics/endothelial/morphological_features/IF_integration"
+IF_INTEGRATION_SAVE_DIRECTORY: str = (
+    "//allen/aics/endothelial/morphological_features/IF_integration"
+)
 """Default production directory to save IF integration results."""
 
-AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x = 1.43
+AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x: float = 1.43
 """Axial distortion factor for 3i 20x objective determined as described in Diel et al. 2020."""
 
-AXIAL_DISTORTION_CORRECTION_FACTOR_3i_40x = 1.00
+AXIAL_DISTORTION_CORRECTION_FACTOR_3i_40x: float = 1.00
 """Axial distortion factor for 3i 40x objective determined as described in Diel et al. 2020."""
 
-Z_STEP_SIZE_NOMINAL_3i_20x = 0.53
+Z_STEP_SIZE_NOMINAL_3i_20x: float = 0.53
 """Nominal Z-step size for the 20x objective in micrometers."""
 
-Z_STEP_SIZE_NOMINAL_3i_40x = 0.26
+Z_STEP_SIZE_NOMINAL_3i_40x: float = 0.26
 """Nominal Z-step size for the 40x objective in micrometers."""
 
-Z_STEP_SIZE_ACTUAL_3i_20x = Z_STEP_SIZE_NOMINAL_3i_20x * AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
+Z_STEP_SIZE_ACTUAL_3i_20x: float = (
+    Z_STEP_SIZE_NOMINAL_3i_20x * AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
+)
 """Actual Z-step size for the 20x objective in micrometers, corrected for axial distortion."""
 
-Z_STEP_SIZE_ACTUAL_3i_40x = Z_STEP_SIZE_NOMINAL_3i_40x * AXIAL_DISTORTION_CORRECTION_FACTOR_3i_40x
+Z_STEP_SIZE_ACTUAL_3i_40x: float = (
+    Z_STEP_SIZE_NOMINAL_3i_40x * AXIAL_DISTORTION_CORRECTION_FACTOR_3i_40x
+)
 """Actual Z-step size for the 40x objective in micrometers, corrected for axial distortion."""
