@@ -4,8 +4,12 @@ from typing import Literal
 import numpy as np
 from matplotlib import pyplot as plt
 
+## NOTE TO SELF: MOVE THIS CODE TO A LIBRARY FILE
 DPI_IMAGING = 300
 DPI_PLOTS = 1000
+
+PANEL_SIZE = (3, 3)
+CROP_YX = (slice(None), slice(None))
 
 
 def save_image_as_panel(
@@ -14,11 +18,14 @@ def save_image_as_panel(
     fig, ax = plt.subplots(figsize=figsize, dpi=DPI_IMAGING, frameon=False)
     ax.imshow(image, cmap="gray")
     ax.axis("off")
-    fig.savefig(out_path, bbox_inches="tight")
+    fig.savefig(out_path, bbox_inches="tight", pad_inches=0)
     if show:
         plt.show()
     else:
         plt.close(fig)
+
+
+## NOTE TO SELF: END OF LIBRARY CODE
 
 
 def main() -> None:
@@ -43,7 +50,7 @@ def main() -> None:
     out_dir = get_output_path(__file__)
 
     # panel of raw nuclei brightfield
-    # panel of nuclei brightfield std
+    # [x] panel of nuclei brightfield std
     # panel of labelfree nuclei prediction
     # panel of raw max project
     # panel of hysteresis thresholding
@@ -62,34 +69,55 @@ def main() -> None:
     cdh5_seg = load_image(cdh5_location)
 
     dataset_config = load_dataset_config(dataset_name)
+    bf_center_Z = dataset_config.center_z_plane[position]  # type:ignore[index]
     zarr_file = get_zarr_file_for_position(dataset_config, position)
     raw_cdh5 = load_zarr_as_dask_array(zarr_file, channels=["EGFP"], timepoints=timeframe, level=0)
     raw_bf = load_zarr_as_dask_array(zarr_file, channels=["BF"], timepoints=timeframe, level=0)
 
     cdh5_mip = raw_cdh5.max(axis=dim_order.index("Z"), keepdims=True).compute()
     bf_std = raw_bf.std(axis=dim_order.index("Z"), keepdims=True).compute()
-
-    cdh5_mip_clipd = np.clip(
+    bf_center = np.take(
+        raw_bf, indices=[bf_center_Z], axis=dim_order.index("Z")
+    ).compute()  # type:ignore[index]
+    bf_center_clipped = np.clip(
+        bf_center, a_min=np.percentile(bf_center, 0.01), a_max=np.percentile(bf_center, 99.9)
+    )
+    cdh5_mip_clipped = np.clip(
         cdh5_mip, a_min=np.percentile(cdh5_mip, 0.01), a_max=np.percentile(cdh5_mip, 99.9)
     )
-    bf_std_clipd = np.clip(
+    bf_std_clipped = np.clip(
         bf_std, a_min=np.percentile(bf_std, 0.01), a_max=np.percentile(bf_std, 99.9)
     )
 
-    cdh5_mip_normd = rescale_intensity(cdh5_mip_clipd, in_range="image", out_range=(0, 1))
-    bf_std_normd = rescale_intensity(bf_std_clipd, in_range="image", out_range=(0, 1))
+    bf_center_normd = rescale_intensity(bf_center_clipped, in_range="image", out_range=(0, 1))
+    cdh5_mip_normd = rescale_intensity(cdh5_mip_clipped, in_range="image", out_range=(0, 1))
+    bf_std_normd = rescale_intensity(bf_std_clipped, in_range="image", out_range=(0, 1))
 
-    figsize = (3, 3)
+    panel_dict = {
+        "bf_center": bf_center_normd,
+        "cdh5_mip": cdh5_mip_normd,
+        "bf_std": bf_std_normd,
+        "nuc_pred": nuc_pred,
+        "cdh5_seg": cdh5_seg,
+    }
+    # Take crops and reduce dimensionality to 2D
+    panel_dict = {key: panel[CROP_YX].squeeze() for key, panel in panel_dict.items()}
+    # Add overlay panels to the dict
+    panel_dict.update(
+        {
+            "nuc_pred_overlay": label2rgb(
+                panel_dict["nuc_pred"], image=panel_dict["bf_std"], bg_label=0
+            ),
+            "cdh5_seg_overlay": label2rgb(
+                panel_dict["cdh5_seg"], image=panel_dict["cdh5_mip"], bg_label=0
+            ),
+        }
+    )
 
-    save_image_as_panel(
-        image=cdh5_mip_normd.squeeze(),
-        figsize=figsize,
-        out_path=out_dir / "cdh5_mip.png",
-        show=True,
-    )
-    save_image_as_panel(
-        image=bf_std_normd.squeeze(),
-        figsize=figsize,
-        out_path=out_dir / "bf_std.png",
-        show=True,
-    )
+    for panel in panel_dict:
+        save_image_as_panel(
+            image=panel_dict[panel],
+            figsize=PANEL_SIZE,
+            out_path=out_dir / f"{panel}.png",
+            show=True,
+        )
