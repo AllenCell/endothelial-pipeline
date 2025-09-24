@@ -19,9 +19,9 @@ LABEL_MAP = {
     "num_valid_tp_per_track": "Number of Valid Timepoints",
     "number_of_neighbors": "Number of Neighbors",
     # filters
-    "filter_edge_FOV": "Filter: Touches Edge of Field of View",
-    "filter_global": "Global Filter",
-    "filter_max_smoothed_area_normd_change_0.1": ("Filter: Max Smoothed Area Change (0.1)"),
-    "filter_min_track_duration_24": "Filter: Min Track Duration (24)",
-    "filter_valid_points_20": "Filter: Valid Points (20)",
+    "is_edge_segmentation": "Filter: Touches Edge of Field of View",
+    "is_included": "Filter: Passed All Filters",
+    "is_less_than_max_smoothed_area_normd_change": "Filter: Smoothed Area Change Below Threshold",
+    "is_greater_than_min_track_duration": "Filter: Exceeds Min Track Duration",
+    "is_greater_than_min_num_valid_points_per_track": "Filter: Num Valid Points Exceeds Threshold",
 }

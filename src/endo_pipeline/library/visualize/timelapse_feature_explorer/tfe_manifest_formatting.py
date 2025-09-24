@@ -96,8 +96,8 @@ def add_dynamic_features_with_filtering(df: pd.DataFrame) -> pd.DataFrame:
     For TFE we need to preserve the rows that are filtered out, so we filter them
     and then calculate the features and then merge them back in.
     """
-    df_filtered_rows = df[df["filter_global"]]
-    df_keep = df[~df["filter_global"]]
+    df_filtered_rows = df[~df["is_included"]]
+    df_keep = df[df["is_included"]]
     df_calc = calculate_derived_data_dynamics_dependent(df_keep)
 
     df_result = pd.concat([df_calc, df_filtered_rows], ignore_index=True)

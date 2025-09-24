@@ -164,8 +164,8 @@ def add_filter_columns(
     These filter columns are `True` if an entry should be dropped, therefore
     keeping anything where a filter is `False`.
     E.g. to remove entries where cells touch the image border you can take
-    `big_table[big_table["filter_edge_FOV"] == False]`
-    (or equivalently: `big_table[~big_table["filter_edge_FOV"]]`)
+    `big_table[big_table["is_edge_segmentation"] == False]`
+    (or equivalently: `big_table[~big_table["is_edge_segmentation"]]`)
     """
 
     # get the number of segmentations in total and per timepoint
