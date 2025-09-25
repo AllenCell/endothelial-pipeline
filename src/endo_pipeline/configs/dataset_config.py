@@ -1,6 +1,6 @@
 """Data structures for dataset configs."""
 
-from enum import StrEnum
+from enum import Enum, StrEnum
 from typing import Literal
 
 from mashumaro.config import BaseConfig
@@ -14,6 +14,34 @@ SampleType = Literal["live", "fixed", "fixed-methanol"]
 
 ObjectiveType = Literal["20X", "40X"]
 """Valid objective types."""
+
+
+class ShearStressRegime(Enum):
+    """Shear stress regime categories with target shear stress ranges."""
+
+    NO = (0.0, 0.0)
+    """No shear stress."""
+
+    LOW = (4.78, 7.13)
+    """Low shear stress (target: 6 dyn/cm2)."""
+
+    MEDIUM_LOW = (8.6, 9.01)
+    """Medium-low shear stress (target: 9 dyn/cm2)"""
+
+    MEDIUM = (10.96, 12.32)
+    """Medium shear stress (target: 12 dyn/cm2)."""
+
+    MEDIUM_HIGH = (13.5, 15.74)
+    """Medium-high shear stress (target: 15 dyn/cm2)."""
+
+    HIGH = (19.79, 24.77)
+    """High shear stress (target: 20 dyn/cm2)."""
+
+    HIGH_TO_LOW = (HIGH, LOW)
+    """High to low shear stress."""
+
+    LOW_TO_HIGH = (LOW, HIGH)
+    """Low to high shear stress."""
 
 
 class TimepointAnnotation(StrEnum):
