@@ -13,7 +13,8 @@ DPI_PLOTS = 1000
 DIMENSION_ORDER = get_default_dim_order()
 
 PANEL_SIZE = (3, 3)
-CROP_YX = (slice(None), slice(None))
+# CROP_YX = (slice(None), slice(None))
+CROP_YX = (slice(300, -300), slice(300, -300))
 
 
 def save_image_as_panel(
@@ -52,7 +53,8 @@ def make_imaging_panels() -> None:
     # dataset_name = "20250326_20X"
     dataset_name = "20250728_20X"
     position = 0
-    timeframe = 288
+    validation_frames = list(range(0, 577, 48))
+    timeframe = validation_frames[5]
 
     out_dir = get_output_path(__file__)
 
@@ -61,12 +63,12 @@ def make_imaging_panels() -> None:
     val_location = get_image_location_for_dataset(val_manifest, dataset_name, position, timeframe)
     val_image = BioImage(val_location.path)  # type:ignore[arg-type]
     channel_names = val_image.channel_names
-    val_dask = val_image.get_image_dask_data(DIMENSION_ORDER)
+    val_array = val_image.get_image_dask_data(DIMENSION_ORDER).compute()
 
     panel_dict = {}
     for i, chan in enumerate(channel_names):
-        panel = np.take(val_dask, indices=[i], axis=DIMENSION_ORDER.index("C"))
-        panel = panel.compute().squeeze()  # type:ignore[attr-defined]
+        panel = np.take(val_array, indices=[i], axis=DIMENSION_ORDER.index("C"))
+        # panel = panel.compute().squeeze()  # type:ignore[attr-defined]
         panel_dict[chan] = panel
 
     # Rename some keys for clarity
@@ -85,23 +87,15 @@ def make_imaging_panels() -> None:
     dataset_config = load_dataset_config(dataset_name)
     bf_center_Z = dataset_config.center_z_plane[position]  # type:ignore[index]
     zarr_file = get_zarr_file_for_position(dataset_config, position)
-    raw_bf = load_zarr_as_dask_array(zarr_file, channels=["BF"], timepoints=timeframe, level=0)
+    raw_bf = load_zarr_as_dask_array(
+        zarr_file, channels=["BF"], timepoints=timeframe, level=0
+    ).compute()
 
     # Get the focal plane of the brightfield image
-    bf_center = np.take(
-        raw_bf, indices=[bf_center_Z], axis=DIMENSION_ORDER.index("Z")
-    ).compute()  # type:ignore[attr-defined]
-    # bf_center_clipped = np.clip(
-    #     bf_center, a_min=np.percentile(bf_center, 0.01), a_max=np.percentile(bf_center, 99.9)
-    # )
-    # bf_center_normd = rescale_intensity(bf_center_clipped, in_range="image", out_range=(0, 1))
+    bf_center = np.take(raw_bf, indices=[bf_center_Z], axis=DIMENSION_ORDER.index("Z"))
 
     # Get the standard deviation projection of the brightfield image
-    bf_std = raw_bf.std(axis=DIMENSION_ORDER.index("Z"), keepdims=True).compute()
-    # bf_std_clipped = np.clip(
-    #     bf_std, a_min=np.percentile(bf_std, 0.01), a_max=np.percentile(bf_std, 99.9)
-    # )
-    # bf_std_normd = rescale_intensity(bf_std_clipped, in_range="image", out_range=(0, 1))
+    bf_std = raw_bf.std(axis=DIMENSION_ORDER.index("Z"), keepdims=True)
 
     # Add brightfield and nuclei prediction panels to the dict
     panel_dict.update({"bf_center": bf_center, "bf_std": bf_std, "nuc_pred": nuc_pred})
@@ -117,7 +111,7 @@ def make_imaging_panels() -> None:
         panel_dict[panel_name] = panel_normd
 
     # Take crops and reduce dimensionality to 2D
-    panel_dict = {panel_name: panel[CROP_YX].squeeze() for panel_name, panel in panel_dict.items()}
+    panel_dict = {panel_name: panel.squeeze()[CROP_YX] for panel_name, panel in panel_dict.items()}
     # Add overlay panels to the dict
     seed_and_border_mask = (
         binary_dilation(panel_dict["seeds"]).astype(int) * 1
