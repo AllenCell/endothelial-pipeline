@@ -26,6 +26,7 @@ from endo_pipeline.configs import (
     get_available_dataset_names,
     load_dataset_config,
     validate_dataset_config,
+    validate_shear_stress_regime,
 )
 
 # %%
@@ -78,5 +79,15 @@ for dataset_name in get_available_dataset_names():
                 "Failed to load zarr for dataset [ %s ] at [ %s ]", dataset.name, zarr_file
             )
             raise
+
+    # Check if shear stress regimes are valid
+    for i, condition in enumerate(dataset.flow_conditions):
+        if not validate_shear_stress_regime(condition.shear_stress, dataset.shear_stress_regime[i]):
+            logger.error(
+                "Invalid shear stress regime for dataset [ %s ] at condition index [ %d ]",
+                dataset.name,
+                i,
+            )
+            raise ValueError(f"Invalid shear stress regime for dataset {dataset.name}.")
 
 # %%
