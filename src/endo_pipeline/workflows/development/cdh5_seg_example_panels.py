@@ -114,22 +114,8 @@ def make_imaging_panels() -> None:
 
     # Take crops and reduce dimensionality to 2D
     image_dict = {chan_name: image.squeeze()[CROP_YX] for chan_name, image in image_dict.items()}
-    # # Add overlay panels to the dict
-    # seed_mask = binary_dilation(panel_dict["seeds"]).astype(int) * 1
-    # border_mask = (
-    #     binary_dilation(panel_dict["cdh5_segmentations_split_by_nuclei_borders"]).astype(int) * 2
-    # )
-    # seed_and_border_mask = seed_mask + border_mask
 
-    # panel_dict.update(
-    #     {
-    #         "nuc_pred_overlay": [panel_dict["nuc_pred"], panel_dict["bf_std"]],
-    #         "cdh5_seg_overlay": [panel_dict["cdh5_segmentations_split_by_nuclei"], panel_dict["cdh5_mip"]],
-    #         "border_overlay": [border_mask, panel_dict["cdh5_mip"]],
-    #         "seed_border_overlay": [seed_and_border_mask, panel_dict["cdh5_mip"]]
-    #     }
-    # )
-
+    # Define the panels to create
     panel_dict = {
         "cdh5_mip": {"images": ["cdh5_mip"], "colors": [(255, 255, 255)], "colors_thumbnail": None},
         "cdh5_seg_initial": {
@@ -170,12 +156,6 @@ def make_imaging_panels() -> None:
     }
 
     for panel_name in panel_dict:
-        # save_image_as_panel(
-        #     image=panel_dict[panel_name],
-        #     figsize=PANEL_SIZE,
-        #     out_path=out_dir / f"{panel_name}.tiff",
-        #     show=True,
-        # )
         image_name_list = list(panel_dict[panel_name]["images"])  # type:ignore[call-overload]
         panel = [image_dict[image_name] for image_name in image_name_list]
         panel_metadata = {
@@ -194,20 +174,22 @@ def make_imaging_panels() -> None:
 
         # flatten multichannel images to single-channel overlays
         if len(panel) > 1:
-            panel_thumb = panel.copy()
-            # # the RBGA images work best with images normalized to [0, 1] or [0, 255]:
-            # panel_thumb = [
-            #     rescale_intensity(img, in_range="image", out_range=(0, 1)) for img in panel
-            # ]
+            if len(panel) > 2:
+                label = np.sum(
+                    [img.astype(bool) * (i + 1) for i, img in enumerate(panel[1:])], axis=0
+                )
+            else:
+                label = np.max(panel[1:], axis=0)
+            # the RBGA images work best with images normalized to [0, 1] or [0, 255]:
+            # panel_thumb[0] = rescale_intensity(panel, in_range="image", out_range=(0, 1)) for img in
             # flatten the full-quality multichannel images to single-channel overlays
+            image = rescale_intensity(panel[0], in_range="image", out_range=(0, 1))
             panel_overlay = label2rgb(
-                label=np.sum(
-                    [img.astype(bool) * (i + 1) for i, img in enumerate(panel_thumb[1:])], axis=0
-                ),
-                image=panel_thumb[0],
+                label=label,
+                image=image,
                 bg_label=0,
-                colors=panel_metadata["channel_colors"][1:],  # type:ignore[index]
-                alpha=0.3,
+                colors=panel_dict[panel_name]["colors_thumbnail"],  # type:ignore[index]
+                alpha=0.5,
             )
             save_panel_thumbnail(panel_overlay, PANEL_SIZE, out_dir_thumb / f"{panel_name}.png")
 
