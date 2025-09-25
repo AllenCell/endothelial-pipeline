@@ -22,26 +22,29 @@ class ShearStressRegime(Enum):
     NO = (0.0, 0.0)
     """No shear stress."""
 
-    LOW = (4.78, 7.13)
-    """Low shear stress (target: 6 dyn/cm2)."""
+    MIN = (4.5, 7.2)
+    """Minimum shear stress tested (target: 6 dyn/cm2)."""
 
-    MEDIUM_LOW = (8.6, 9.01)
-    """Medium-low shear stress (target: 9 dyn/cm2)"""
+    LOW = (8.5, 9.1)
+    """Low shear stress (target: 9 dyn/cm2)"""
 
-    MEDIUM = (10.96, 12.32)
+    MEDIUM = (10.0, 12.5)
     """Medium shear stress (target: 12 dyn/cm2)."""
 
-    MEDIUM_HIGH = (13.5, 15.74)
-    """Medium-high shear stress (target: 15 dyn/cm2)."""
+    HIGH = (13.0, 16.0)
+    """High shear stress (target: 15 dyn/cm2)."""
 
-    HIGH = (19.79, 24.77)
-    """High shear stress (target: 20 dyn/cm2)."""
+    MAX = (19.5, 25.0)
+    """Maximum shear stress tested (target: 20 dyn/cm2)."""
 
-    HIGH_TO_LOW = (HIGH, LOW)
-    """High to low shear stress."""
+    MAX_TO_MIN = (MAX, MIN)
+    """Maximum to minimum shear stress."""
 
-    LOW_TO_HIGH = (LOW, HIGH)
-    """Low to high shear stress."""
+    MIN_TO_MAX = (MIN, MAX)
+    """Minimum to maximum shear stress."""
+
+    MIN_TO_HIGH = (MIN, HIGH)
+    """Minimum to high shear stress."""
 
 
 class TimepointAnnotation(StrEnum):

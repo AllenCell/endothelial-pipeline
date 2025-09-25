@@ -69,6 +69,7 @@ __all__ = [
     "ObjectiveType",
     "PositionAnnotation",
     "SampleType",
+    "ShearStressRegime",
     "TimepointAnnotation",
     "ValidTimepoints",
     "get_annotated_positions",

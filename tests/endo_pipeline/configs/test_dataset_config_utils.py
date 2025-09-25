@@ -8,6 +8,7 @@ from endo_pipeline.configs import (
     DatasetConfig,
     FlowCondition,
     PositionAnnotation,
+    ShearStressRegime,
     TimepointAnnotation,
     load_dataset_config,
 )
@@ -44,7 +45,7 @@ def dataset():
         is_timelapse=True,
         microscope="3i",
         objective="20X",
-        shear_stress_regime="Shear stress regime the dataset was collected under",
+        shear_stress_regime=ShearStressRegime.NO,
         pixel_size_xy_in_um=0.0,
         duration=0,
         time_interval_in_minutes=0.0,
