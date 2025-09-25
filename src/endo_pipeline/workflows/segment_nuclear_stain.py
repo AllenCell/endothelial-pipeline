@@ -27,7 +27,6 @@ python src/endo_pipeline/workflows/segment_nuclear_stain.py \
 """
 
 
-# %%
 def process_dataset(
     dataset: str, nuc_stain: str, output_dir: str | None = None, visualize: bool = True
 ) -> None:

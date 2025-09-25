@@ -127,4 +127,5 @@ def save_segmentation_masks(
             physical_pixel_sizes=physical_pixel_sizes,
             channel_names=["NUC_SEG"],
             channel_colors=None,
+            scale_num_levels=3,
         )
