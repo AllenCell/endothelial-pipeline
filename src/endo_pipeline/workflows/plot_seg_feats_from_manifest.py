@@ -150,7 +150,7 @@ def process_dataset(dataset_name: str, out_dir: Path) -> None:
     logger.info(f"Dataset {dataset_name} FMS ID: {segprops_location.fmsid}")
 
     # apply the data filter
-    segprops_dataframe = segprops_dataframe[~segprops_dataframe["filter_global"]]
+    segprops_dataframe = segprops_dataframe[segprops_dataframe["is_included"]]
 
     # iterate over each position in each dataset
     for (dataset_nm, pos), df_group in tqdm(

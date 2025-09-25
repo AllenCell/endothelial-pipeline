@@ -83,6 +83,10 @@ body:
       - AICS-12 (TUBA1B)
       - AICS-126 (CDH5)
       - AICS-120 (Mito)
+      - AICS-177 cl. 12 (CDH5 KO)
+      - AICS-177 cl. 26 (CDH5 KO)
+      - AICS-177 cl. 34 (CDH5 KO)
+      - AICS-0 (WT)
   validations:
     required: true
 

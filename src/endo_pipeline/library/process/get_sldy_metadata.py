@@ -13,6 +13,7 @@ from endo_pipeline.configs.dataset_io import (
     get_original_path,
     ipython_cli_flexecute,
 )
+from endo_pipeline.settings.image_data import AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
 
 
 def get_nested_keys(
@@ -114,6 +115,10 @@ def get_voxel_size(sldy_metadata: dict) -> dict:
     pixel_size_xy = pixel_sizes_xy / optovar_mag
     # below is the Z-step size
     pixel_size_z = sldy_metadata["channel_record"]["CExposureRecord70"][0]["mInterplaneSpacing"]
+
+    magnification = sldy_metadata["image_record"]["CLensDef70"]["mActualMagnification"]
+    if magnification == 20:
+        pixel_size_z *= AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
     voxel_size = {"X": pixel_size_xy, "Y": pixel_size_xy, "Z": pixel_size_z}
     return voxel_size
 

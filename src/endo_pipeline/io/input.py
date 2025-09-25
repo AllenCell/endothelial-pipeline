@@ -8,6 +8,7 @@ import pandas as pd
 from bioio import BioImage
 
 from endo_pipeline.manifests import DataframeLocation, ImageLocation
+from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,7 @@ def load_zarr_as_dask_array(
     reader.set_resolution_level(level)
 
     # Read image data.
-    image = reader.get_image_dask_data("TCZYX", **reader_arguments)
+    image = reader.get_image_dask_data(DIMENSION_ORDER, **reader_arguments)
 
     if squeeze:
         return image.squeeze()
@@ -99,9 +100,9 @@ def load_image_from_path(path: Path, squeeze: bool = True) -> da.Array:
     if path.suffixes == [".ome", ".tiff"]:
         logger.info("Loading path [ %s ] as OME TIFF file", path)
         if squeeze:
-            return BioImage(path).get_image_dask_data("TCZYX").compute().squeeze()
+            return BioImage(path).get_image_dask_data(DIMENSION_ORDER).compute().squeeze()
         else:
-            return BioImage(path).get_image_dask_data("TCZYX").compute()
+            return BioImage(path).get_image_dask_data(DIMENSION_ORDER).compute()
 
     logger.error("Path [ %s ] cannot be loaded as image", path)
     raise ValueError(f"Invalid image file format '{path.suffix}'")
