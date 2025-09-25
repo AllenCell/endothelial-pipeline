@@ -5,14 +5,14 @@ import numpy as np
 from bioio import BioImage
 from matplotlib import pyplot as plt
 
-from endo_pipeline.library.process.general_image_preprocessing import get_default_dim_order
+from endo_pipeline.library.process.general_image_preprocessing import DIMENSION_ORDER
 
 ## NOTE TO SELF: MOVE THIS CODE TO A LIBRARY FILE
 DPI_IMAGING = 300
 DPI_PLOTS = 1000
-DIMENSION_ORDER = get_default_dim_order()
 
-PANEL_SIZE = (3, 3)
+IMAGE_PANEL_SIZE = (3, 3)
+PLOT_PANEL_SIZE = (4, 4)
 # CROP_YX = (slice(None), slice(None))
 CROP_YX = (slice(300, -300), slice(300, -300))
 
@@ -47,8 +47,8 @@ def make_imaging_panels() -> None:
     validation_frames = list(range(0, 577, 48))
     timeframe = validation_frames[5]
 
-    out_dir_full = get_output_path(__file__, "full quality")
-    out_dir_thumb = get_output_path(__file__, "thumbnails")
+    out_dir_full = get_output_path(__file__, "images_high_quality")
+    out_dir_thumb = get_output_path(__file__, "images_thumbnails")
 
     # Load the validation image (which has some intermediate steps saved)
     val_manifest = load_image_manifest("cdh5_seg_validations")
@@ -191,12 +191,76 @@ def make_imaging_panels() -> None:
                 colors=panel_dict[panel_name]["colors_thumbnail"],  # type:ignore[index]
                 alpha=0.5,
             )
-            save_panel_thumbnail(panel_overlay, PANEL_SIZE, out_dir_thumb / f"{panel_name}.png")
+            save_panel_thumbnail(
+                panel_overlay, IMAGE_PANEL_SIZE, out_dir_thumb / f"{panel_name}.png"
+            )
 
 
 def make_classic_feature_panels() -> None:
+    from endo_pipeline.configs import load_dataset_collection_config
+    from endo_pipeline.io import get_output_path, load_dataframe
+    from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+        calculate_derived_data_dynamics_dependent,
+    )
+    from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
+        get_seg_feat_plot_args,
+        hist_2D_of_feats,
+        mark_parallel,
+        mark_perpendicular,
+    )
+    from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
-    pass
+    out_dir = get_output_path(__file__, "classic_feature_panels")
+    dataset_name_list = load_dataset_collection_config("pca_reference").datasets
+
+    for dataset_name in dataset_name_list:
+        # break
+        # Load the tables with cdh5 segmentation measurements
+        live_seg_manifest = load_dataframe_manifest("live_merged_seg_features")
+        live_seg_location = get_dataframe_location_for_dataset(live_seg_manifest, dataset_name)
+        live_seg_feats_df = load_dataframe(live_seg_location)
+        live_seg_feats_df = live_seg_feats_df[live_seg_feats_df.is_included]
+        live_seg_feats_df = calculate_derived_data_dynamics_dependent(live_seg_feats_df)
+
+        feats_to_plot = [
+            "alignment_deg",
+            "cell_nuc_orientation_deg",
+            "centroid_velocity_orientation_deg",
+            "nuc_orient_deg_rel_migration",
+        ]
+        # get the plotting arguments for the features
+        # (e.g. axis limits, axis titles, bin widths, etc.)
+        feats_plot_args = get_seg_feat_plot_args()
+
+        for feat in feats_to_plot:
+            out_path = out_dir / f"{dataset_name}_{feat}.png"
+
+            fig, ax = hist_2D_of_feats(
+                live_seg_feats_df,
+                x_column_name=feats_plot_args["time_hrs"]["column_name"],
+                y_column_name=feats_plot_args[feat]["column_name"],
+                x_label=feats_plot_args["time_hrs"]["label"],
+                y_label=feats_plot_args[feat]["label"],
+                x_lims=feats_plot_args["time_hrs"]["lims"],
+                y_lims=feats_plot_args[feat]["lims"],
+                set_xticks=feats_plot_args["time_hrs"]["ticks"],
+                set_yticks=feats_plot_args[feat]["ticks"],
+                discrete_xticks=feats_plot_args["time_hrs"]["discrete_ticks"],
+                discrete_yticks=feats_plot_args[feat]["discrete_ticks"],
+                minor_ticks="xy",
+                bin_width=(
+                    feats_plot_args["time_hrs"]["bin_width"],
+                    feats_plot_args[feat]["bin_width"],
+                ),
+                figsize=PLOT_PANEL_SIZE,
+            )
+            ax.set_title("")
+            if "orientation" in feat:
+                ax = mark_parallel(ax)
+                ax = mark_perpendicular(ax)
+            fig.savefig(out_path, bbox_inches="tight")
+
+        break
 
 
 ## NOTE TO SELF: END OF LIBRARY CODE
@@ -204,7 +268,7 @@ def make_classic_feature_panels() -> None:
 
 def main() -> None:
     make_imaging_panels()
-    # make_classic_feature_panels()
+    make_classic_feature_panels()
 
 
 main()

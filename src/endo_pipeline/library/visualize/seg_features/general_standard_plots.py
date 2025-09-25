@@ -123,6 +123,7 @@ def hist_2D_of_feats(
     discrete_yticks: bool = False,
     minor_ticks: Literal["x", "y", "xy"] | None = None,
     bin_width: tuple[float, float] | None = None,
+    figsize: tuple[float, float] | None = None,
 ) -> tuple[plt.Figure, plt.Axes]:
     """
     df_group : pd.DataFrame
@@ -167,7 +168,11 @@ def hist_2D_of_feats(
         positions = positions[0]
     fig_title = f"{dataset_name} P{positions}"
 
-    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
+    if figsize is None:
+        figsize = (AX_WIDTH, AX_HEIGHT)
+    else:
+        figsize = figsize
+    fig, ax = plt.subplots(figsize=figsize)
     sns.histplot(
         data=df_group,
         x=x_column_name,
@@ -404,6 +409,14 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "lims": (0, 1),
             "bin_width": None,
             "ticks": None,
+            "discrete_ticks": False,
+        },
+        "nuc_orient_deg_rel_migration": {
+            "column_name": "cell_nuc_orientation_deg_rel_to_migration",
+            "label": "Nuclei Orientation Relative to Migration (deg)",
+            "lims": (-180, 180),
+            "bin_width": 5,
+            "ticks": range(-180, 181, 90),
             "discrete_ticks": False,
         },
     }
