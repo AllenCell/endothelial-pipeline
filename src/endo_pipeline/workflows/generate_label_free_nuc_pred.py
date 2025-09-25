@@ -10,14 +10,13 @@ from cellpose import core, models
 from tqdm import tqdm
 
 from endo_pipeline.configs import CellposeModelConfig, load_dataset_config, load_model_config
-from endo_pipeline.configs.dataset_io import parse_generate_dataset_name_user_input, load_config
+from endo_pipeline.configs.dataset_io import load_config, parse_generate_dataset_name_user_input
 from endo_pipeline.io import configure_logging, get_output_path
 from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
-    get_default_dim_order,
-    get_dim_map,
     save_image_output,
 )
+from endo_pipeline.settings import DIMENSION_ORDER
 from endo_pipeline.workflows.cdh5_classic_seg_tracking import ipython_cli_flexecute
 
 logger = logging.getLogger(__name__)
@@ -51,16 +50,13 @@ def generate_results(args: dict) -> None:
         return
 
     else:
-        dim_order = get_default_dim_order()
-        dim_map = get_dim_map(dim_order)
-
         img = BioImage(img_path)
         if args["use_sldy_data"]:
             img.set_scene(args["scene_index"])
 
         data_config = load_dataset_config(dataset_name)
         brightfield_index = data_config.original_channel_indices.brightfield
-        img_arr = img.get_image_dask_data(dim_order, T=args["T"], C=brightfield_index)
+        img_arr = img.get_image_dask_data(DIMENSION_ORDER, T=args["T"], C=brightfield_index)
 
         # Load the retrained CellPose label-free nuclear prediction model
         # Load the model configuration
@@ -78,7 +74,7 @@ def generate_results(args: dict) -> None:
         model_bf_stdproject = models.CellposeModel(gpu=gpu, pretrained_model=str(model_path))
 
         # Calculate the brightfield standard deviation and the brightfield image with the best contrast
-        bf_std_dask_arr = img_arr.std(axis=dim_map["Z"], keepdims=True)
+        bf_std_dask_arr = img_arr.std(axis=DIMENSION_ORDER.index("Z"), keepdims=True)
         bf_std_arr = bf_std_dask_arr.squeeze().compute()
 
         # Predict nuclei from brightfield images

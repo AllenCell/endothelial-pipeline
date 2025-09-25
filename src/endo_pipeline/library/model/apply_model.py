@@ -296,8 +296,8 @@ def preprocess_tracking_manifest_for_model_eval(
     location = get_dataframe_location_for_dataset(manifest, dataset_config.name)
     df = load_dataframe(location)
 
-    # keep only rows that were not filtered out by filter_global
-    df = df[~df["filter_global"]]
+    # keep only rows that were not filtered out
+    df = df[df["is_included"]]
 
     # filter the dataframe in-place to remove clipped bounding boxes
     df = df[df["bbox_is_in_bounds"]]

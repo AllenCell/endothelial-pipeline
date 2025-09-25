@@ -180,7 +180,7 @@ def write_scene(
     if z_scaling is None:
         z_scaling = DEFAULT_Z_SCALING
     if interval_min is None:
-        interval_min = 0.0
+        interval_min = -1
 
     zarr_chunk_dims_tuples = get_zarr_chunk_dims(im.shape, xy_scaling, z_scaling)
 
