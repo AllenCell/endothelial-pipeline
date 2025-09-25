@@ -12,7 +12,7 @@ DPI_IMAGING = 300
 DPI_PLOTS = 1000
 
 IMAGE_PANEL_SIZE = (3, 3)
-PLOT_PANEL_SIZE = (4, 4)
+PLOT_PANEL_SIZE = (4.5, 3.5)
 # CROP_YX = (slice(None), slice(None))
 CROP_YX = (slice(300, -300), slice(300, -300))
 
@@ -226,7 +226,7 @@ def make_classic_feature_panels() -> None:
             "alignment_deg",
             "cell_nuc_orientation_deg",
             "centroid_velocity_orientation_deg",
-            "nuc_orient_deg_rel_migration",
+            "nuc_orientation_deg_rel_migration",
         ]
         # get the plotting arguments for the features
         # (e.g. axis limits, axis titles, bin widths, etc.)
@@ -253,14 +253,13 @@ def make_classic_feature_panels() -> None:
                     feats_plot_args[feat]["bin_width"],
                 ),
                 figsize=PLOT_PANEL_SIZE,
+                tight_layout=False,
             )
             ax.set_title("")
             if "orientation" in feat:
-                ax = mark_parallel(ax)
-                ax = mark_perpendicular(ax)
+                ax = mark_parallel(ax, color="red")
+                ax = mark_perpendicular(ax, color="red")
             fig.savefig(out_path, bbox_inches="tight")
-
-        break
 
 
 ## NOTE TO SELF: END OF LIBRARY CODE

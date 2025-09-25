@@ -124,6 +124,7 @@ def hist_2D_of_feats(
     minor_ticks: Literal["x", "y", "xy"] | None = None,
     bin_width: tuple[float, float] | None = None,
     figsize: tuple[float, float] | None = None,
+    tight_layout: bool = True,
 ) -> tuple[plt.Figure, plt.Axes]:
     """
     df_group : pd.DataFrame
@@ -208,12 +209,13 @@ def hist_2D_of_feats(
     ax.set_title(fig_title)
     ax.set_xlabel(x_label or x_column_name)
     ax.set_ylabel(y_label or y_column_name)
-    plt.tight_layout()
+    if tight_layout:
+        plt.tight_layout()
 
     return fig, ax
 
 
-def mark_parallel(ax: plt.Axes) -> plt.Axes:
+def mark_parallel(ax: plt.Axes, color: str = "black") -> plt.Axes:
     """
     Draws horizontal lines at -180, 0, and 180 degrees
     to mark the parallel angles.
@@ -230,11 +232,11 @@ def mark_parallel(ax: plt.Axes) -> plt.Axes:
     """
     parallel_angles = [-180, 0, 180]
     for ang in parallel_angles:
-        ax.axhline(ang, color="black", linestyle="--", linewidth=1)
+        ax.axhline(ang, color=color, linestyle="--", linewidth=1)
     return ax
 
 
-def mark_perpendicular(ax: plt.Axes) -> plt.Axes:
+def mark_perpendicular(ax: plt.Axes, color: str = "black") -> plt.Axes:
     """
     Draws horizontal lines at -90 and 90 degrees to mark
     the perpendicular angles.
@@ -251,7 +253,7 @@ def mark_perpendicular(ax: plt.Axes) -> plt.Axes:
     """
     perpendicular_angles = [-90, 90]
     for ang in perpendicular_angles:
-        ax.axhline(ang, color="black", linestyle=":", linewidth=1)
+        ax.axhline(ang, color=color, linestyle=":", linewidth=1)
     return ax
 
 
@@ -349,7 +351,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         },
         "centroid_velocity_orientation_deg": {
             "column_name": "centroid_velocity_angle_deg",
-            "label": "Centroid Velocity Orientation (deg)",
+            "label": "Centroid Velocity\nOrientation (deg)",
             "lims": (-180, 181),
             "bin_width": 5,
             "ticks": range(-180, 181, 90),
@@ -411,9 +413,9 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "ticks": None,
             "discrete_ticks": False,
         },
-        "nuc_orient_deg_rel_migration": {
+        "nuc_orientation_deg_rel_migration": {
             "column_name": "cell_nuc_orientation_deg_rel_to_migration",
-            "label": "Nuclei Orientation Relative to Migration (deg)",
+            "label": "Nuclei Orientation Rel.\nto Migration (deg)",
             "lims": (-180, 180),
             "bin_width": 5,
             "ticks": range(-180, 181, 90),
