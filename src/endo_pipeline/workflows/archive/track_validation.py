@@ -58,8 +58,8 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.configs.dataset_io import get_dataset_info
     from endo_pipeline.io import load_image
-    from endo_pipeline.library.process.general_image_preprocessing import get_dim_map
     from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+    from endo_pipeline.settings import DIMENSION_ORDER
 
     # unpack needed variables
     dataset_name = dframe["dataset_name"].unique()[0]
@@ -84,16 +84,13 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
         print(f"No segmentation file found for {dataset_name} P{position} at T{T}.")
         return
     else:
-        dim_order = "TCZYX"
-        dim_map = get_dim_map(dim_order)
-
         # print(f'- loading raw image {dataset_name} P{position} T{T}...')
         img = BioImage(raw_path)
         img.set_scene(scene_index)
         dataset_config = load_dataset_config(dataset_name)
         cdh5_channel = dataset_config.original_channel_indices.channel_488
-        img_dask = img.get_image_dask_data(dim_order, T=T, C=cdh5_channel)
-        img_arr = img_dask.max(axis=dim_map["Z"], keepdims=True).squeeze().compute()
+        img_dask = img.get_image_dask_data(DIMENSION_ORDER, T=T, C=cdh5_channel)
+        img_arr = img_dask.max(axis=DIMENSION_ORDER.index("Z"), keepdims=True).squeeze().compute()
 
         # print(f'- loading segmentation image {dataset_name} P{position} T{T}...')
         seg_arr = load_image(seg_location)
@@ -144,8 +141,8 @@ def main(
     from tqdm import tqdm
 
     from endo_pipeline.configs.dataset_io import (
-        parse_generate_dataset_name_user_input,
         get_tracking_data_filtered,
+        parse_generate_dataset_name_user_input,
     )
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue

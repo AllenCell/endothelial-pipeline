@@ -33,6 +33,14 @@ flow_conditions:
 valid_timepoints: null
 include_scenes: null
 notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
-timepoint_annotations: null
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: []
+    1: []
+  auto_bf_temp_artifact:
+    0: []
+    1: []
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 10
+  1: 11

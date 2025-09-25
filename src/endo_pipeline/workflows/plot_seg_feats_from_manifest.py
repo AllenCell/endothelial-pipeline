@@ -7,8 +7,8 @@ from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 from endo_pipeline.configs.dataset_io import (
-    parse_generate_dataset_name_user_input,
     ipython_cli_flexecute,
+    parse_generate_dataset_name_user_input,
 )
 from endo_pipeline.io import configure_logging, get_output_path, load_dataframe
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
@@ -152,7 +152,7 @@ def process_dataset(dataset_name: str, out_dir: Path) -> None:
     logger.info(f"Dataset {dataset_name} FMS ID: {segprops_location.fmsid}")
 
     # apply the data filter
-    segprops_dataframe = segprops_dataframe[~segprops_dataframe["filter_global"]]
+    segprops_dataframe = segprops_dataframe[segprops_dataframe["is_included"]]
 
     # iterate over each position in each dataset
     for (dataset_nm, pos), df_group in tqdm(
