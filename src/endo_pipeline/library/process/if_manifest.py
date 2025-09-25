@@ -28,7 +28,7 @@ def save_manifest_to_csv(dataset: str, df: pd.DataFrame) -> Path:
     return save_path
 
 
-def upload_manifest_to_fms(save_path: str, dataset: str) -> str:
+def upload_manifest_to_fms(save_path: Path, dataset: str) -> str:
     """Upload the manifest to FMS and return the FMS ID.
 
     Args:
@@ -46,7 +46,7 @@ def upload_manifest_to_fms(save_path: str, dataset: str) -> str:
     return fms_id
 
 
-def update_dataframe_manifest(dataset: Path, fms_id: str) -> None:
+def update_dataframe_manifest(dataset: str, fms_id: str) -> None:
     """Update the dataframe manifest with the FMS ID.
 
     Args:
