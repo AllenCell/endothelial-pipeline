@@ -177,7 +177,7 @@ class DatasetConfig:
     objective: ObjectiveType
     """Objective that dataset was collected under."""
 
-    shear_stress_regime: ShearStressRegime
+    shear_stress_regime: tuple
     """Shear stress regime the dataset was collected under."""
 
     pixel_size_xy_in_um: float
