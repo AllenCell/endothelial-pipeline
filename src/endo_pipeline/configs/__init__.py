@@ -7,6 +7,7 @@ from .dataset_config import (
     ObjectiveType,
     PositionAnnotation,
     SampleType,
+    ShearStressRegime,
     TimepointAnnotation,
     ValidTimepoints,
 )

@@ -31,7 +31,13 @@ if __name__ != "__main__":
 from endo_pipeline.configs import PositionAnnotation  # noqa: F401, I001
 from endo_pipeline.configs import TimepointAnnotation  # noqa: F401
 from endo_pipeline.configs import ValidTimepoints  # noqa: F401
-from endo_pipeline.configs import ChannelIndices, DatasetConfig, FlowCondition, save_dataset_config
+from endo_pipeline.configs import (
+    ChannelIndices,
+    DatasetConfig,
+    FlowCondition,
+    ShearStressRegime,
+    save_dataset_config,
+)
 
 # %%
 dataset = DatasetConfig(
@@ -51,7 +57,14 @@ dataset = DatasetConfig(
     # microscope="Nikon",
     objective="20X",
     # objective="40X",
-    shear_stress_regime="shear_stress_regime",
+    shear_stress_regime=ShearStressRegime.LOW,
+    # shear_stress_regime=ShearStressRegime.NO,
+    # shear_stress_regime=ShearStressRegime.MEDIUM_LOW,
+    # shear_stress_regime=ShearStressRegime.MEDIUM,
+    # shear_stress_regime=ShearStressRegime.MEDIUM_HIGH,
+    # shear_stress_regime=ShearStressRegime.HIGH,
+    # shear_stress_regime=ShearStressRegime.HIGH_TO_LOW,
+    # shear_stress_regime=ShearStressRegime.LOW_TO_HIGH,
     pixel_size_xy_in_um=0.382,  # 3i 20X
     duration=0,
     time_interval_in_minutes=5.0,
