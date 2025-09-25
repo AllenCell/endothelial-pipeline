@@ -45,6 +45,7 @@ from .dataset_config_utils import (
     make_filtered_dataset_collection,
     validate_3d_flow_field_dataset_collection,
     validate_filtered_dataset_collection,
+    validate_shear_stress_regime,
 )
 from .model_config import CellposeModelConfig, CytoDLModelConfig, ModelConfig
 from .model_config_io import (
@@ -112,4 +113,5 @@ __all__ = [
     "validate_dataset_config",
     "validate_filtered_dataset_collection",
     "validate_model_config",
+    "validate_shear_stress_regime",
 ]
