@@ -3,7 +3,12 @@ import logging
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.configs import DatasetConfig, get_frame_after_flow_change, load_dataset_config
+from endo_pipeline.configs import (
+    DatasetConfig,
+    ShearStressRegime,
+    get_frame_after_flow_change,
+    load_dataset_config,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +23,7 @@ def get_dataset_descriptions(
     Get descriptive metadata for each dataset given in the list of datasets.
 
     Describes the experimental conditions for each dataset,
-        e.g., "48hr_High_Shear_Stress_30_dyncm2".
+        e.g., "48hr_Maximum_Shear_Stress_30_dyncm2".
 
     Parameters
     ----------
@@ -52,12 +57,16 @@ def get_dataset_descriptions(
         if simple:  # if simple description, use qualitative description of shear stress level
             shear_stress_strings = []
             for i, shear in enumerate(shear_stress):
-                if shear >= 20:
+                if ShearStressRegime.MAX[0] <= shear <= ShearStressRegime.MAX[1]:
+                    shear_stress_str = "Maximum_Shear_Stress"
+                elif ShearStressRegime.HIGH[0] <= shear <= ShearStressRegime.HIGH[1]:
                     shear_stress_str = "High_Shear_Stress"
-                elif shear > 7:
-                    shear_stress_str = "Intermediate_Shear_Stress"
-                elif shear > 0:
+                elif ShearStressRegime.MEDIUM[0] <= shear <= ShearStressRegime.MEDIUM[1]:
+                    shear_stress_str = "Medium_Shear_Stress"
+                elif ShearStressRegime.LOW[0] <= shear <= ShearStressRegime.LOW[1]:
                     shear_stress_str = "Low_Shear_Stress"
+                elif ShearStressRegime.MIN[0] <= shear <= ShearStressRegime.MIN[1]:
+                    shear_stress_str = "Minimum_Shear_Stress"
                 else:
                     shear_stress_str = "No_Shear_Stress"
 
