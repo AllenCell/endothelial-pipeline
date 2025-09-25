@@ -626,32 +626,6 @@ def get_tracking_data_filtered(dataset_name_list: list, as_dask: bool = False) -
     return tracking_dataframe
 
 
-def parse_generate_dataset_name_user_input(
-    dataset_name_user_input: str,
-) -> list[str]:
-    """
-    Parse a list of dataset names from the command line.
-    The input can be a string or a list of strings.
-    If it is a string, it will be turned into a list of strings.
-    If it is a list of strings, it will be returned as is.
-
-    To enter a list of datasets to analyze, use the following format (either with or
-    without quotation marks):
-    '20241217_20X,20241120_20X'
-    """
-    dataset_name_list = dataset_name_user_input.split(",")
-
-    # check that the dataset names are valid
-    available_datasets = get_available_dataset_names()
-    for dataset_name in dataset_name_list:
-        if dataset_name not in available_datasets:
-            raise ValueError(
-                f"""Invalid dataset name {dataset_name}. Must be a string or list
-                of strings that are found in the available datasets {available_datasets}."""
-            )
-    return dataset_name_list
-
-
 # Other miscellaneous methods
 def ipython_cli_flexecute(
     function: Callable[..., Any],
