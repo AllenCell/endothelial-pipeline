@@ -38,4 +38,14 @@ notes: These cells were fed about 2 hours before fixation (previously the cells 
   had to be washed out first. Was permeabilized which is why it looked better on 20250219.
 timepoint_annotations: null
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 6
+  1: 6
+  2: 6
+  3: 8
+  4: 8
+  5: 7
+  6: 8
+  7: 8
+  8: 7
+  9: 8

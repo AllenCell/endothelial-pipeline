@@ -1,15 +1,9 @@
 import logging
 from pathlib import Path
-from typing import cast
 
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from endo_pipeline.configs import (
-    get_available_dataset_collection_names,
-    get_available_dataset_names,
-    get_datasets_in_collection,
-)
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_manifest import (
     fit_pca,
@@ -32,16 +26,15 @@ N_BINS = 40  # number of bins for histogram, hardcoded right now but somewhat ar
 
 
 def load_data_for_montage(
-    dataset_name: str = "live_20X_objective_3i_microscope", model_name: str = "diffae_04_10"
-) -> tuple[pd.DataFrame, PCA, list[str]]:
+    dataset_name_list: list[str], model_name: str = "diffae_04_10"
+) -> tuple[pd.DataFrame, PCA]:
     """
     Load Diff AE feature DataFrames for one or more datasets and optionally apply PCA.
 
     Parameters
     ----------
-    dataset_name
-        Name of the dataset(s) to include, either a single dataset name or
-        the name of a dataset collection.
+    dataset_name_list
+        List of dataset names to load for montage.
     model_name
         Name of the model for which to load the feature dataframe.
 
@@ -51,25 +44,7 @@ def load_data_for_montage(
         Concatenated feature DataFrame for the specified datasets.
     :
         Fit PCA object for the model.
-    :
-        List of dataset names.
     """
-
-    # check if input is a dataset collection or a single dataset name
-    if dataset_name is None:
-        dataset_name_list = get_datasets_in_collection("timelapse")
-    elif dataset_name in get_available_dataset_collection_names():
-        # if it is a dataset collection, load all datasets in the collection
-        dataset_name_list = get_datasets_in_collection(dataset_name)
-    elif dataset_name in get_available_dataset_names():
-        # if it is a single dataset name, create a list with one element
-        dataset_name_list = [dataset_name]
-    else:
-        logger.error(
-            "Dataset name [ %s ] is not a valid dataset or dataset collection name",
-            dataset_name,
-        )
-        raise ValueError(f"Invalid dataset name: {dataset_name}")
 
     manifest = load_dataframe_manifest(model_name)
     pca = fit_pca(model_name=model_name)
@@ -82,7 +57,7 @@ def load_data_for_montage(
         ignore_index=True,
     )
 
-    return df_all, pca, dataset_name_list
+    return df_all, pca
 
 
 def filter_dataframe(

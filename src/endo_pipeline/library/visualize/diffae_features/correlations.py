@@ -136,10 +136,10 @@ def _add_relaxation_timescale_to_plot(relaxation_timescales: list[float], ax: pl
 
 
 def _add_delta_ccf_integral_to_plot(
-    delta_ccf_integral: np.ndarray, num_lags_integrate: int, ci_bounds: tuple | None, ax: plt.Axes
+    delta_ccf_integral: np.ndarray, max_lag_integrate: int, ci_bounds: tuple | None, ax: plt.Axes
 ) -> plt.Axes:
     """Print integral of delta CCF near zero on plot of delta CCFs."""
-    integral_upper_bound_hrs = round(5 * num_lags_integrate / 60, 2)  # convert from frames to hours
+    integral_upper_bound_hrs = round(5 * max_lag_integrate / 60, 2)  # convert from frames to hours
     integral_srings = [
         rf"$|\int_{{0}}^{{{integral_upper_bound_hrs}}}\Delta C_{{{j+1}{k+1}}}(\tau) d\tau|$"
         for (j, k) in CROSS_CORR_INDEX_COMBINATIONS
@@ -349,7 +349,7 @@ def _make_all_ccf_plots(
     delta_ccf_ci_lower: np.ndarray = correlation_dict["delta_ccf_ci_lower"][dataset_name]
     delta_ccf_ci_upper: np.ndarray = correlation_dict["delta_ccf_ci_upper"][dataset_name]
     delta_ccf_integral: np.ndarray = correlation_dict["delta_ccf_integral"][dataset_name]
-    num_lags_integrate: int = correlation_dict["num_lags_integrate"][dataset_name]
+    max_lag_integrate: int = correlation_dict["max_lag_integrate"][dataset_name]
 
     # plot ccf with confidence intervals if available
     fig, ax = init_plot(figsize=(12, 6))
@@ -404,7 +404,7 @@ def _make_all_ccf_plots(
             correlation_dict["delta_ccf_integral_ci_lower"][dataset_name],
             correlation_dict["delta_ccf_integral_ci_upper"][dataset_name],
         )
-    ax = _add_delta_ccf_integral_to_plot(delta_ccf_integral, num_lags_integrate, ci_bounds, ax)
+    ax = _add_delta_ccf_integral_to_plot(delta_ccf_integral, max_lag_integrate, ci_bounds, ax)
     save_plot_to_path(
         fig,
         output_path,

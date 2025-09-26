@@ -1,5 +1,6 @@
 import importlib
 import logging
+import os
 import re
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -88,7 +89,7 @@ def pipeline_entrypoint(
     show_tags: Annotated[bool, Parameter(alias="-t", group=OPTIONS)] = False,
     filter_tag: Annotated[str | None, Parameter(alias="-f")] = None,
     config: Annotated[Path, Parameter(alias="-c")] = Path("config.yaml"),
-    run_with_gpu: Annotated[bool, Parameter(alias="-g", group=OPTIONS)] = False,
+    num_gpus: Annotated[int | None, Parameter(alias="-g", group=OPTIONS)] = None,
     show_external_logs: Annotated[bool, Parameter(alias="-s", group=OPTIONS)] = False,
     demo_mode: Annotated[bool, Parameter(alias="-d", group=OPTIONS)] = False,
     use_staging: Annotated[bool, Parameter(alias="-u", group=OPTIONS)] = False,
@@ -110,8 +111,8 @@ def pipeline_entrypoint(
         Filter workflows by given tag.
     config
         Path to user configuration file.
-    run_with_gpu
-        Run workflow with GPU settings.
+    num_gpus
+        Number of GPUs to use for workflow execution (e.g. -g 4 means 4 GPUs; None means CPU).
     show_external_logs
         Show logging outputs from external libraries.
     demo_mode
@@ -120,9 +121,7 @@ def pipeline_entrypoint(
         Use staging environments.
     """
 
-    apply_entrypoint_settings(
-        verbose, debug, run_with_gpu, show_external_logs, demo_mode, use_staging
-    )
+    apply_entrypoint_settings(verbose, debug, num_gpus, show_external_logs, demo_mode, use_staging)
 
     if config.read_text() != "":
         pipeline_app.config = cyclopts.config.Yaml(config)  # type: ignore[assignment]
@@ -138,6 +137,7 @@ def pipeline_entrypoint(
             if filter_tag:
                 app.show = filter_tag in tags[app.name[0]] and app.show
 
+    # Pass in the num_gpus to the relevant scripts
     pipeline_app(tokens)
 
 
@@ -145,7 +145,7 @@ def workflow_entrypoint(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
     verbose: Annotated[bool, Parameter(alias="-v", group=LOGGING)] = False,
     debug: Annotated[bool, Parameter(alias="-vv", group=LOGGING)] = False,
-    run_with_gpu: Annotated[bool, Parameter(alias="-g", group=OPTIONS)] = False,
+    num_gpus: Annotated[int | None, Parameter(alias="-g", group=OPTIONS)] = None,
     show_external_logs: Annotated[bool, Parameter(alias="-s", group=OPTIONS)] = False,
     demo_mode: Annotated[bool, Parameter(alias="-d", group=OPTIONS)] = False,
     use_staging: Annotated[bool, Parameter(alias="-u", group=OPTIONS)] = False,
@@ -159,8 +159,8 @@ def workflow_entrypoint(
         Show verbose logging.
     debug
         Show debug logging.
-    run_with_gpu
-        Run workflow with GPU settings.
+    num_gpus
+        Number of GPUs to use for workflow execution (e.g. -g 4 means 4 GPUs; None means CPU).
     show_external_logs
         Show logging outputs from external libraries.
     demo_mode
@@ -169,9 +169,7 @@ def workflow_entrypoint(
         Use staging environments.
     """
 
-    apply_entrypoint_settings(
-        verbose, debug, run_with_gpu, show_external_logs, demo_mode, use_staging
-    )
+    apply_entrypoint_settings(verbose, debug, num_gpus, show_external_logs, demo_mode, use_staging)
 
     workflow_app(tokens)
 
@@ -179,7 +177,7 @@ def workflow_entrypoint(
 def apply_entrypoint_settings(
     verbose: bool = False,
     debug: bool = False,
-    run_with_gpu: bool = False,
+    num_gpus: int | None = None,
     show_external_logs: bool = False,
     demo_mode: bool = False,
     use_staging: bool = False,
@@ -193,8 +191,8 @@ def apply_entrypoint_settings(
         Show verbose logging.
     debug
         Show debug logging.
-    run_with_gpu
-        Run workflow with GPU settings.
+    num_gpus
+        Number of GPUs to use for workflow execution (None for CPU).
     show_external_logs
         Show logging outputs from external libraries.
     demo_mode
@@ -202,6 +200,7 @@ def apply_entrypoint_settings(
     use_staging
         Use staging environments.
     """
+    import endo_pipeline
 
     if debug:
         setup_logging(logging.DEBUG)
@@ -210,11 +209,15 @@ def apply_entrypoint_settings(
     else:
         setup_logging(logging.WARNING)
 
-    if run_with_gpu:
-        setup_gpu()
-
     if not show_external_logs:
         silence_external_loggers(EXTERNAL_LOGGERS)
+
+    if num_gpus is not None and num_gpus > 0:
+        endo_pipeline.NUM_GPUS = setup_gpu(num_gpus)
+    else:
+        logger.info("Workflow running on CPU")
+        endo_pipeline.NUM_GPUS = None
+        os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
     if demo_mode:
         import endo_pipeline
@@ -342,31 +345,78 @@ def silence_external_loggers(external_loggers: dict) -> None:
         external_logger.setLevel(logging_level)
 
 
-def setup_gpu() -> None:
-    """Set up GPU environmental variables."""
+def setup_gpu(num_gpus: int | None) -> None:
+    """
+    Set up the GPU environment for workflow.
 
-    logger.info("Setting up environment to run workflow using GPU")
+    Picks the GPUs with most free memory or sets CUDA_VISIBLE_DEVICES for multi-GPU & MIG,
+    using the number of GPUs specified by the user.
 
+    Parameters
+    ----------
+    num_gpus
+        Number of GPUs to use with the workflow.
+    """
     import os
     import re
     import subprocess
 
-    # Query to get free memory of available GPU devices
-    command = ["nvidia-smi", "--query-gpu=memory.free,index", "--format=csv,noheader,nounits"]
-    gpu_memory_free = subprocess.run(command, stdout=subprocess.PIPE).stdout.decode().strip()
+    logger.info("Setting up environment to run workflow using %d GPU(s)", num_gpus)
 
-    # If unable to access the driver, report error and exit
-    if "failed" in gpu_memory_free:
-        logger.error("Workflow is unable to communicate with the NVIDIA driver")
-        raise OSError(gpu_memory_free)
+    # Detect MIG devices
+    mig_output = subprocess.run(["nvidia-smi", "-L"], stdout=subprocess.PIPE).stdout.decode()
+    is_mig = "MIG" in mig_output
+    mig_uuids = re.findall(r"UUID: (MIG-[a-f0-9-]+)", mig_output)
 
-    # Select device number with the maximum free memory
-    gpu_options = [(int(free), gpu) for free, gpu in re.findall(r"(\d+), (\d+)", gpu_memory_free)]
-    _, gpu_with_max_free = sorted(gpu_options, reverse=True)[0]
+    if is_mig:
+        logger.info("MIG detected.")
+        if num_gpus > 1:
+            logger.error("Cannot use DDP with MIG devices. Only one MIG device can be used.")
+            raise RuntimeError("Cannot use DDP with MIG devices.")
+        if not mig_uuids:
+            logger.error("MIG partitioning detected, but no UUIDs seen! No MIG UUIDs found.")
+            raise RuntimeError("No MIG UUIDs found, but MIG is enabled.")
+        selected_uuid = mig_uuids[0]
+        os.environ["CUDA_VISIBLE_DEVICES"] = selected_uuid
+        logger.info("Using MIG UUID: %s", selected_uuid)
+        logger.info("Set CUDA_VISIBLE_DEVICES to [ %s ]", selected_uuid)
+        return 1
 
-    # Set the CUDA_VISIBLE_DEVICES environment variable to selected GPU
-    os.environ["CUDA_VISIBLE_DEVICES"] = gpu_with_max_free
-    logger.info("Setting CUDA_VISIBLE_DEVICES to [ %s ]", gpu_with_max_free)
+    # Not MIG: Pick by available GPUs and free memory
+    mem_info = (
+        subprocess.run(
+            ["nvidia-smi", "--query-gpu=memory.free,index", "--format=csv,noheader,nounits"],
+            stdout=subprocess.PIPE,
+        )
+        .stdout.decode()
+        .strip()
+    )
+    gpu_avail = re.findall(r"(\d+), (\d+)", mem_info)  # (memory_free, gpu_index)
+    if not gpu_avail:
+        logger.error("No GPUs available (nvidia-smi did not return any GPU info).")
+        raise RuntimeError("No GPUs available for training.")
+
+    # Sort by free memory, descending, get the indices
+    gpu_avail_sorted = sorted(gpu_avail, key=lambda x: int(x[0]), reverse=True)
+    chosen_gpus = [g[1] for g in gpu_avail_sorted[:num_gpus]]
+    available_indices = [int(g[1]) for g in gpu_avail]
+
+    logger.info("Available GPU indices: %s", available_indices)
+    logger.info("Selecting %d GPU(s): %s", num_gpus, chosen_gpus)
+
+    if num_gpus > len(available_indices):
+        logger.warning(
+            "Requested %d devices, but only %d available. Using all available.",
+            num_gpus,
+            len(available_indices),
+        )
+        chosen_gpus = [g[1] for g in gpu_avail_sorted]
+
+    devs_str = ",".join(chosen_gpus)
+    os.environ["CUDA_VISIBLE_DEVICES"] = devs_str
+    logger.info("Set CUDA_VISIBLE_DEVICES to [ %s ]", devs_str)
+
+    return len(chosen_gpus)
 
 
 if __name__ == "__main__":

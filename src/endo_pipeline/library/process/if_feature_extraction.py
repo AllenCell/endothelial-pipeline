@@ -6,7 +6,7 @@ from skimage.feature import graycomatrix, graycoprops
 from skimage.measure import label, regionprops, shannon_entropy
 
 from endo_pipeline.configs import dataset_io
-from endo_pipeline.io import load_image
+from endo_pipeline.io import load_zarr_as_dask_array
 from endo_pipeline.library.process.image_processing import (
     background_subtract,
     max_proj,
@@ -19,16 +19,13 @@ IF_CHANNELS = ["NucViolet", "SOX17", "SMAD1", "NR2F2"]
 NUC_SEG_TYPE = "nuclear_stain_seg"
 
 
-def get_labeled_nuclei(
-    dataset: str, position: int, timepoint: int, nuc_seg_type: str
-) -> np.ndarray:
+def get_labeled_nuclei(dataset: str, position: int, nuc_seg_type: str) -> np.ndarray:
     """
-    Generate a labeled nuclei image for a given dataset, position, and timepoint.
+    Generate a labeled nuclei image for a given dataset, and position.
 
     Args:
         dataset (str): The name of the dataset.
         position (int): The position index within the dataset.
-        timepoint (int): The timepoint index for the dataset.
         nuc_seg_type (str): The type of nuclear segmentation to use.
 
     Returns:
@@ -36,8 +33,8 @@ def get_labeled_nuclei(
     """
 
     seg_manifest = load_image_manifest(nuc_seg_type)
-    seg_location = get_image_location_for_dataset(seg_manifest, dataset, position, timepoint)
-    seg_image = load_image(seg_location)
+    seg_location = get_image_location_for_dataset(seg_manifest, dataset, position)
+    seg_image = load_zarr_as_dask_array(seg_location.path, squeeze=True).compute()
 
     return label(seg_image)
 

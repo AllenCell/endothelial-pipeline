@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 
 from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.configs.dataset_io import ipython_cli_flexecute

@@ -7,11 +7,11 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
     extract_T,
-    fire_parse_generate_dataset_name_list,
     get_original_path,
     get_zarr_name,
     get_zarr_path,
@@ -104,8 +104,8 @@ def run_workflow(queue: Sequence) -> None:
 
 
 def main(
+    datasets: Datasets,
     n_proc: int = 1,
-    dataset_name: str | Sequence | None = None,
     save_output: bool = True,
     use_sldy_data: bool = False,
     is_test: bool = False,
@@ -114,13 +114,11 @@ def main(
 
     out_dir = get_output_path(__file__)
 
-    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
-
     configure_logging(out_dir, logger, verbose=verbose)
-    logger.info(f"datasets analyzed: {dataset_name_list}")
+    logger.info(f"datasets analyzed: {datasets}")
 
     analysis_queue = build_analysis_queue(
-        dataset_name_list,
+        datasets,
         save_output=save_output,
         out_dir=out_dir,
         overwrite=True,
@@ -156,7 +154,7 @@ def main(
 
     if save_output:
         for dataset_name in tqdm(
-            dataset_name_list, desc="Replacing individual tables with combined table..."
+            datasets, desc="Replacing individual tables with combined table..."
         ):
             concatenate_and_save_feature_tables(
                 out_dir=out_dir,

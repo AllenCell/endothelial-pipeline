@@ -1,8 +1,10 @@
+from endo_pipeline.cli import Datasets
+
 TAGS = ["pc_interpretation", "diffae_image_generation"]
 
 
 def main(
-    dataset_name: str = "pca_reference",
+    datasets: Datasets | None = None,
     model_name: str = "diffae_04_10",
     pc_axis: int = 1,
     pc_val: float = 0.25,
@@ -19,9 +21,9 @@ def main(
 
     Parameters
     ----------
-    dataset_name
-        Dataset(s) to load images from, either a single dataset name or the name
-        of a dataset collection.
+    datasets
+        List of datasets or dataset collections to load images from. If not
+        provided, workflow runs on the ``pca_reference`` dataset.
     pc_axis
         The principal component axis to use for filtering the images (0 for PC1, 1 for PC2, etc.)
     pc_val
@@ -37,6 +39,8 @@ def main(
     :
         Saves the montage images to the output directory.
     """
+
+    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.crop_montage import (
         filter_dataframe,
@@ -47,7 +51,13 @@ def main(
 
     fig_savedir = get_output_path("crop_visualization", include_timestamp=False)
 
-    df, pca, dataset_list = load_data_for_montage(dataset_name, model_name)
+    # Default list of datasets if not provided. Otherwise, use the provided list.
+    if datasets is None:
+        dataset_list = get_datasets_in_collection("pca_reference")
+    else:
+        dataset_list = datasets
+
+    df, pca = load_data_for_montage(dataset_list, model_name)
 
     df_filtered = filter_dataframe(
         df,

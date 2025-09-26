@@ -203,7 +203,7 @@ def get_diffae_feats_liveseg_feats_merged_table(
 
     if filtered:
         # filter the merged table
-        merged_feats_df = merged_feats_df[~merged_feats_df["filter_global"]]
+        merged_feats_df = merged_feats_df[merged_feats_df["is_included"]]
 
         # remove any rows that were not evaluated by the model and thus have no mlflow_id
         merged_feats_df.dropna(axis="index", how="any", subset="mlflow_id", inplace=True)
