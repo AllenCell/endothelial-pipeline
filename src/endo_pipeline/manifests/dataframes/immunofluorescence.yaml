@@ -41,3 +41,9 @@ locations:
   20250522_20X_IFA:
     fmsid: 8ecf177bc49e4a12a9750f8c7f897002
     s3uri: null
+  20250522_20X_IFB:
+    fmsid: 0d383cda64624f8992f31cc6805b5c93
+    s3uri: null
+  20250522_20X_IFC:
+    fmsid: 2946494a923046a3a6c58eb4c5ffc924
+    s3uri: null
