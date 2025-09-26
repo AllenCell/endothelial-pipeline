@@ -3,12 +3,7 @@ import logging
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.configs import (
-    DatasetConfig,
-    ShearStressRegime,
-    get_frame_after_flow_change,
-    load_dataset_config,
-)
+from endo_pipeline.configs import DatasetConfig, get_frame_after_flow_change, load_dataset_config
 
 logger = logging.getLogger(__name__)
 
@@ -36,62 +31,31 @@ def get_dataset_descriptions(
     include_shear_stress
         Include exact shear stress value (e.g., "30_dyncm2") in description if true.
 
-
     Returns
     -------
     :
         A dictionary where keys are dataset names and values are descriptions.
     """
 
-    # initialize dictionary to store descriptions
     description_dict = {}
+
     for dataset_name in list_of_datasets:
-        data_config = load_dataset_config(dataset_name)  # get dataset info from data_config.yaml
-        flow_conditions = data_config.flow_conditions  # get flow conditions for dataset
-        num_flows = len(flow_conditions)  # number of flow conditions in dataset
+        config = load_dataset_config(dataset_name)
+        description = []
 
-        # get shear stress for each flow condition,
-        # last element in each list in flow_config
-        shear_stress = [int(flow_conditions[i].shear_stress) for i in range(num_flows)]
-        shear_stress_strings: list[str] = []
-        if simple:  # if simple description, use qualitative description of shear stress level
-            shear_stress_strings = []
-            for i, shear in enumerate(shear_stress):
-                if ShearStressRegime.MAX[0] <= shear <= ShearStressRegime.MAX[1]:
-                    shear_stress_str = "Maximum_Shear_Stress"
-                elif ShearStressRegime.HIGH[0] <= shear <= ShearStressRegime.HIGH[1]:
-                    shear_stress_str = "High_Shear_Stress"
-                elif ShearStressRegime.MEDIUM[0] <= shear <= ShearStressRegime.MEDIUM[1]:
-                    shear_stress_str = "Medium_Shear_Stress"
-                elif ShearStressRegime.LOW[0] <= shear <= ShearStressRegime.LOW[1]:
-                    shear_stress_str = "Low_Shear_Stress"
-                elif ShearStressRegime.MIN[0] <= shear <= ShearStressRegime.MIN[1]:
-                    shear_stress_str = "Minimum_Shear_Stress"
-                else:
-                    shear_stress_str = "No_Shear_Stress"
+        for condition, regime in zip(config.flow_conditions, config.shear_stress_regime):
+            if include_duration:
+                duration_in_frames = condition.stop - condition.start
+                duration_in_hours = int(duration_in_frames * 5 / 60)
+                description.append(f"{duration_in_hours}hr")
 
-                if include_duration:
-                    duration_in_frames = flow_conditions[i].stop - flow_conditions[i].start
-                    duration_in_hours = int(duration_in_frames * 5 / 60)
-                    shear_stress_str = f"{duration_in_hours}hr_{shear_stress_str}"
+            if simple:
+                description.append(regime.value)
 
-                if include_shear_stress:
-                    shear_stress_str = f"{shear_stress_str}_{int(shear)}dyncm2"
+            if simple and include_shear_stress or not simple:
+                description.append(f"{int(condition.shear_stress)}dyncm2")
 
-                shear_stress_strings.append(shear_stress_str)
-        else:
-            for i, shear in enumerate(shear_stress):
-                shear_stress_str = f"{int(shear)}_dyncm2"
-                if include_duration:
-                    duration_in_frames = flow_conditions[i].stop - flow_conditions[i].start
-                    duration_in_hours = int(duration_in_frames * 5 / 60)  # convert to hours
-                    shear_stress_str = f"{duration_in_hours}hr_{shear_stress_str}"
-                shear_stress_strings.append(shear_stress_str)
-
-        description = "_".join(
-            [shear_stress_strings[i] for i in range(num_flows)]
-        )  # concatenate time and shear rate for each flow condition
-        description_dict[dataset_name] = description  # add description to dictionary
+        description_dict[dataset_name] = "_".join(description)
 
     return description_dict
 
