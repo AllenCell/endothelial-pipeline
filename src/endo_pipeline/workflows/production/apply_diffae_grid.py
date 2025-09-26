@@ -4,7 +4,7 @@ TAGS = ["apply_diffae_model", "diffae_features"]
 
 
 def main(
-    model_name: str = "diffae_04_10",
+    model_manifest_name: str = "diffae_04_10",
     run_name: str | None = None,
     datasets: Datasets | None = None,
     resolution_level: int = 1,
@@ -30,8 +30,8 @@ def main(
 
     Parameters
     ----------
-    model_name
-        Name of the model to apply.
+    model_manifest_name
+        Name of the model manifest to load the model from.
     run_name
         Name of the model run to apply. If None, uses the most recent run.
     datasets
@@ -71,7 +71,7 @@ def main(
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in datasets]
 
     # load model from manifest
-    model_manifest = load_model_manifest(model_name)
+    model_manifest = load_model_manifest(model_manifest_name)
     run_name = list(model_manifest.locations.keys())[-1] if run_name is None else run_name
     model_location = get_model_location_for_run(model_manifest, run_name)
     model = load_model(model_location)
