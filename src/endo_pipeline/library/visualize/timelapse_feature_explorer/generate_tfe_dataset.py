@@ -46,10 +46,16 @@ def generate_tfe_dataset(
     output_dir = output_dir / f"{dataset}_P{position}{output_dir_suffix}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Load dataframe with the diffae features and computed PCs
-    datasets_for_bounds = list(set([dataset, *get_datasets_in_collection("pca_reference")]))
-    # only take the dataframe from the output (which is the 0th element)
-    df_tracks = get_preprocessed_manifests_and_km_bounds(dataset, datasets_for_bounds)[0]
+    try:
+        # Load dataframe with the diffae features and computed PCs
+        datasets_for_bounds = list(set([dataset, *get_datasets_in_collection("pca_reference")]))
+        # only take the dataframe from the output (which is the 0th element)
+        df_tracks = get_preprocessed_manifests_and_km_bounds(dataset, datasets_for_bounds)[0]
+    except KeyError as e:
+        logger.warning(f"Dataset {dataset} does not have DiffAE features yet, using base table...")
+        df_manifest = load_dataframe_manifest("live_merged_seg_features")
+        df_location = get_dataframe_location_for_dataset(df_manifest, dataset)
+        df_tracks = load_dataframe(df_location)
     df_position = df_tracks[df_tracks["position"] == position]
 
     df = add_dynamic_features_with_filtering(df_position)
