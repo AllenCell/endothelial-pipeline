@@ -2,7 +2,6 @@ from pathlib import Path
 
 import matplotlib
 import numpy as np
-from bioio import BioImage
 from matplotlib import pyplot as plt
 
 from endo_pipeline.library.process.general_image_preprocessing import DIMENSION_ORDER
@@ -10,11 +9,10 @@ from endo_pipeline.library.process.general_image_preprocessing import DIMENSION_
 ## NOTE TO SELF: MOVE THIS CODE TO A LIBRARY FILE
 DPI_IMAGING = 300
 DPI_PLOTS = 1000
-matplotlib.rcParams["pdf.fonttype"] = 42
-plt.rcParams["font.family"] = "Arial"
 
 IMAGE_PANEL_SIZE = (3, 3)
-PLOT_PANEL_SIZE = (4.5, 3.5)
+# PLOT_PANEL_SIZE = (4.5, 3.5)
+PLOT_PANEL_SIZE = (1.2, 1.2)
 CROP_YX = (slice(300, -300), slice(300, -300))
 
 
@@ -32,6 +30,7 @@ def save_panel_thumbnail(
 
 
 def make_imaging_panels() -> None:
+    from bioio import BioImage
     from skimage.color import label2rgb
     from skimage.color.colorlabel import DEFAULT_COLORS
     from skimage.exposure import rescale_intensity
@@ -219,10 +218,22 @@ def make_classic_feature_panels() -> None:
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
+    fontsize = 6
+    plt.rcParams.update(
+        {
+            "pdf.fonttype": 42,
+            "font.family": "Arial",
+            "axes.labelsize": fontsize,
+            "xtick.labelsize": fontsize,
+            "ytick.labelsize": fontsize,
+        }
+    )
+
     out_dir = get_output_path(__file__, "classic_feature_panels")
     dataset_name_list = load_dataset_collection_config("pca_reference").datasets
 
     for dataset_name in dataset_name_list:
+        # break
         # Load the tables with cdh5 segmentation measurements
         live_seg_manifest = load_dataframe_manifest("live_merged_seg_features")
         live_seg_location = get_dataframe_location_for_dataset(live_seg_manifest, dataset_name)
@@ -241,6 +252,7 @@ def make_classic_feature_panels() -> None:
         feats_plot_args = get_seg_feat_plot_args()
 
         for feat in feats_to_plot:
+            # break
             out_path = out_dir / f"{dataset_name}_{feat}.pdf"
 
             fig, ax = hist_2D_of_feats(
@@ -267,7 +279,7 @@ def make_classic_feature_panels() -> None:
             if "orientation" in feat:
                 ax = mark_parallel(ax, color="red")
                 ax = mark_perpendicular(ax, color="red")
-            fig.savefig(out_path, bbox_inches="tight", DPI=DPI_PLOTS)
+            fig.savefig(out_path, bbox_inches="tight")
 
 
 ## NOTE TO SELF: END OF LIBRARY CODE
