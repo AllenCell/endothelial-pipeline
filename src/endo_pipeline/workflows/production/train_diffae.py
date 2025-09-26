@@ -2,6 +2,7 @@ TAGS = ["diffae_model_training"]
 
 
 def main(
+    model_manifest_name: str | None = None,
     run_name: str | None = None,
     resolution_level: int = 1,
     crop_size: int = 128,
@@ -127,21 +128,26 @@ def main(
     # load template training config
     template_training_config = OmegaConf.load(get_model_dir() / "diffae_training.yaml")
 
-    # set model name via zarr resolution, crop size, and current timestamp
-    model_manifest_name = f"diffae_resolution_{resolution_level}_patch_{crop_size}x{crop_size}"
+    # if model manifest name not provided, create one
+    # default name via zarr resolution, crop size, and include/exclude cell piling
+    if model_manifest_name is None:
+        model_manifest_name = f"diffae_resolution_{resolution_level}_patch_{crop_size}x{crop_size}"
 
-    # add info about cell piling inclusion/exclusion
-    if exclude_cell_piling:
-        model_manifest_name = f"{model_manifest_name}_exclude_cell_piling"
-    else:
-        model_manifest_name = f"{model_manifest_name}_include_cell_piling"
+        # add info about cell piling inclusion/exclusion
+        if exclude_cell_piling:
+            model_manifest_name = f"{model_manifest_name}_exclude_cell_piling"
+        else:
+            model_manifest_name = f"{model_manifest_name}_include_cell_piling"
 
     # Set run name and log info
+    # If no run name provided, make one
     if run_name is None:
+        # Default run name is "diffae_{timestamp}"
         run_name = make_name_unique("diffae").name
     else:
-        # check that run name is unique within the manifest
+        # If run name provided, make sure it's unique within the manifest
         if model_manifest_name in load_model_manifest(model_manifest_name).locations:
+            # If it's not unique, make it so and log a warning
             run_name = make_name_unique(run_name).name
             logger.warning(
                 "Provided run name already exists in manifest, changed current run name to [ %s ]",
