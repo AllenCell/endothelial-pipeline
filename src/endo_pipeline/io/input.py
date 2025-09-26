@@ -1,13 +1,18 @@
 """Methods for loading inputs."""
 
 import logging
+import typing
 from pathlib import Path
+
+if typing.TYPE_CHECKING:
+    from cyto_dl.api import CytoDLModel
 
 import dask.array as da
 import pandas as pd
 from bioio import BioImage
 
-from endo_pipeline.manifests import DataframeLocation, ImageLocation
+from endo_pipeline.io.output import get_output_path
+from endo_pipeline.manifests import DataframeLocation, ImageLocation, ModelLocation
 from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
@@ -314,3 +319,178 @@ def resolve_dataframe_location(location: DataframeLocation) -> str:
 
     logger.error("Location does not have an FMS ID or S3 URI.")
     raise FileNotFoundError("Unable to resolve dataframe location; no available locations.")
+
+
+def get_config_dict_from_mlflow(mlflowid: str) -> dict:
+    """
+    Get config dict from given MLFlow run ID.
+
+    This method requires the workflow to be run on the AICS intranet and have
+    the optional dependency `mlflow` installed.
+
+    Parameters
+    ----------
+    mlflowid
+        MLFlow run ID.
+
+    Returns
+    -------
+    :
+        Loaded config dict.
+    """
+
+    from omegaconf import OmegaConf
+
+    from endo_pipeline.io.mlflow import MLFLOW
+
+    # Check if config artifact exists
+    configs = MLFLOW.artifacts.list_artifacts(run_id=mlflowid, artifact_path="config")
+
+    # If no config artifacts are found, we cannot load the model
+    if len(configs) == 0:
+        logger.error("No config artifacts found for run id [ %s ]", mlflowid)
+        raise LookupError("No config artifacts found")
+
+    # If multiple config artifacts are found, default to using the first in the
+    # list, but log a warning for the user
+    if len(configs) > 1:
+        logger.warning("Multiple config artifacts found for run id [ %s ]", mlflowid)
+
+    logger.info("Loading model config [ %s ]", configs[0].path)
+
+    # Define config URI for loading the artifact
+    config_uri = f"runs:/{mlflowid}/{configs[0].path}"
+    return OmegaConf.create(MLFLOW.artifacts.load_text(config_uri))
+
+
+def get_checkpoint_path_from_mlflow(mlflowid: str) -> Path:
+    """
+    Get local path to checkpoint file from given MLFlow run ID.
+
+    This method requires the workflow to be run on the AICS intranet and have
+    the optional dependency `mlflow` installed.
+
+    Parameters
+    ----------
+    mlflowid
+        MLFlow run ID.
+
+    Returns
+    -------
+    :
+        Local path to checkpoint file.
+    """
+
+    from endo_pipeline.io.mlflow import MLFLOW
+
+    # Check if checkpoint is already downloaded.
+    path = get_output_path("model_checkpoints", mlflowid, include_timestamp=False)
+    last_checkpoint_path = path / "last.ckpt"
+    best_checkpoint_path = path / "best.ckpt"
+
+    if last_checkpoint_path.exists():
+        logger.warning(
+            "Last checkpoint for run [ %s ] available at [ %s ]. "
+            "Using this checkpoint. If you want to redownload the artifact, delete this file.",
+            mlflowid,
+            last_checkpoint_path,
+        )
+        return last_checkpoint_path
+
+    if best_checkpoint_path.exists():
+        logger.warning(
+            "Best checkpoint for run [ %s ] available at [ %s ]. "
+            "Using this checkpoint. If you want to redownload the artifact, delete this file.",
+            mlflowid,
+            best_checkpoint_path,
+        )
+        return best_checkpoint_path
+
+    # Find all available checkpoints
+    artifacts = MLFLOW.artifacts.list_artifacts(run_id=mlflowid, artifact_path="checkpoints")
+    directories = [artifact for artifact in artifacts if artifact.is_dir]
+    checkpoints = [artifact.path for artifact in artifacts if not artifact.is_dir]
+
+    # Continue iterating through artifacts if there are directories
+    while directories:
+        artifact = directories.pop()
+        artifacts = MLFLOW.artifacts.list_artifacts(run_id=mlflowid, artifact_path=artifact.path)
+        directories.extend([artifact for artifact in artifacts if artifact.is_dir])
+        checkpoints.extend([artifact.path for artifact in artifacts if not artifact.is_dir])
+
+    # Filter artifacts for "last.ckpt" and "best.ckpt"
+    last_checkpoint = [ckpt for ckpt in checkpoints if ckpt.endswith("last.ckpt")]
+    best_checkpoint = [ckpt for ckpt in checkpoints if ckpt.endswith("best.ckpt")]
+
+    # If neither option is found, throw an error
+    if not last_checkpoint and not best_checkpoint:
+        logger.error("No valid checkpoint artifacts found for run id [ %s ]", mlflowid)
+        raise LookupError("No checkpoint artifacts found")
+
+    # Build checkpoint artifact URI
+    checkpoint = last_checkpoint[0] if last_checkpoint else best_checkpoint[0]
+    checkpoint_uri = f"runs:/{mlflowid}/{checkpoint}"
+
+    # Download artifact to output location and return path
+    return Path(MLFLOW.artifacts.download_artifacts(artifact_uri=checkpoint_uri, dst_path=path))
+
+
+def load_model_from_mlflow(mlflowid: str) -> "CytoDLModel":
+    """
+    Load model from MLFlow by run ID.
+
+    This method requires the workflow to be run on the AICS intranet and have
+    the optional dependency `mlflow` installed.
+
+    Parameters
+    ----------
+    mlflowid
+        MLFlow run ID.
+
+    Returns
+    -------
+    :
+        Model loaded with config and checkpoint.
+    """
+
+    from cyto_dl.api import CytoDLModel
+
+    # Temporary workaround: using tracked version of config for "legacy" model
+    if mlflowid == "ae7f25b4109c47809d3e2ed1b7120e50":
+        from omegaconf import OmegaConf
+
+        from endo_pipeline.library.model import get_model_dir
+
+        config_dict = OmegaConf.load(get_model_dir() / "diffae_04_10_eval.yaml")
+    else:
+        config_dict = get_config_dict_from_mlflow(mlflowid)
+
+    checkpoint_path = get_checkpoint_path_from_mlflow(mlflowid)
+
+    model = CytoDLModel()
+    model.load_config_from_dict(config_dict)
+    model.override_config(
+        {
+            "checkpoint.ckpt_path": checkpoint_path.as_posix(),
+            "checkpoint.strict": True,
+        }
+    )
+
+    return model
+
+
+def load_model(location: ModelLocation) -> "CytoDLModel":
+    """
+    Load model from location with config and checkpoint, defaulting to MLFlow.
+
+    Parameters
+    ----------
+    location
+        Model location object.
+    """
+
+    if location.mlflow_run_id is not None:
+        return load_model_from_mlflow(location.mlflow_run_id)
+
+    logger.error("Location does not have an MLFlow run ID.")
+    raise FileNotFoundError("Unable to load model; no available locations.")
