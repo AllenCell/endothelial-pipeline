@@ -1,6 +1,6 @@
 from pathlib import Path
-from typing import Literal
 
+import matplotlib
 import numpy as np
 from bioio import BioImage
 from matplotlib import pyplot as plt
@@ -10,10 +10,11 @@ from endo_pipeline.library.process.general_image_preprocessing import DIMENSION_
 ## NOTE TO SELF: MOVE THIS CODE TO A LIBRARY FILE
 DPI_IMAGING = 300
 DPI_PLOTS = 1000
+matplotlib.rcParams["pdf.fonttype"] = 42
+plt.rcParams["font.family"] = "Arial"
 
 IMAGE_PANEL_SIZE = (3, 3)
 PLOT_PANEL_SIZE = (4.5, 3.5)
-# CROP_YX = (slice(None), slice(None))
 CROP_YX = (slice(300, -300), slice(300, -300))
 
 
@@ -156,11 +157,6 @@ def make_imaging_panels() -> None:
             "colors": [(255, 255, 255), (255, 255, 0)],
             "colors_thumbnail": ["yellow"],
         },
-        # "cdh5_seg_split_by_nuclei": {
-        #     "images": ["cdh5_segmentations_split_by_nuclei"],
-        #     "colors": [(255, 255, 255)],
-        #     "colors_thumbnail": DEFAULT_COLORS,
-        # },
     }
 
     for tf in cdh5_seg_sequential_timeframes:
@@ -196,8 +192,6 @@ def make_imaging_panels() -> None:
             else:
                 label = np.max(panel[1:], axis=0)
             # the RBGA images work best with images normalized to [0, 1] or [0, 255]:
-            # panel_thumb[0] = rescale_intensity(panel, in_range="image", out_range=(0, 1)) for img in
-            # flatten the full-quality multichannel images to single-channel overlays
             image = rescale_intensity(panel[0], in_range="image", out_range=(0, 1))
             panel_overlay = label2rgb(
                 label=label,
@@ -229,7 +223,6 @@ def make_classic_feature_panels() -> None:
     dataset_name_list = load_dataset_collection_config("pca_reference").datasets
 
     for dataset_name in dataset_name_list:
-        # break
         # Load the tables with cdh5 segmentation measurements
         live_seg_manifest = load_dataframe_manifest("live_merged_seg_features")
         live_seg_location = get_dataframe_location_for_dataset(live_seg_manifest, dataset_name)
@@ -248,7 +241,7 @@ def make_classic_feature_panels() -> None:
         feats_plot_args = get_seg_feat_plot_args()
 
         for feat in feats_to_plot:
-            out_path = out_dir / f"{dataset_name}_{feat}.png"
+            out_path = out_dir / f"{dataset_name}_{feat}.pdf"
 
             fig, ax = hist_2D_of_feats(
                 live_seg_feats_df,
@@ -274,7 +267,7 @@ def make_classic_feature_panels() -> None:
             if "orientation" in feat:
                 ax = mark_parallel(ax, color="red")
                 ax = mark_perpendicular(ax, color="red")
-            fig.savefig(out_path, bbox_inches="tight")
+            fig.savefig(out_path, bbox_inches="tight", DPI=DPI_PLOTS)
 
 
 ## NOTE TO SELF: END OF LIBRARY CODE
@@ -292,11 +285,3 @@ main()
 # Becky: I would say 20250326 (15 dyn) is probably the overall
 # most ideal dataset. The recent no flow dataset (20250728) is
 # also quite good it just has some quirks around the feedings.
-# [x] panel of raw nuclei brightfield
-# [x] panel of nuclei brightfield std
-# [x] panel of labelfree nuclei prediction
-# [x] panel of raw max project
-# [x] panel of hysteresis thresholding
-# [x] panel of initial cdh5 segmentations
-# [x] panel of merged cdh5 segmentations
-# [x] panel of labelfree nuclei-refined cdh5 segmentations
