@@ -86,7 +86,6 @@ data:
     shuffle: true
     dataset:
       _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
-      num_workers: 64
       dataframe_path: null
       spatial_dims: 2
       transform:
@@ -164,7 +163,7 @@ data:
           - raw_moving
           prob: 0.5
           max_k: 3
-      cache_rate: 0.1
+      cache_rate: 1.0
       replace_rate: 0.1
       num_init_workers: 24
       num_replace_workers: 24
@@ -177,8 +176,6 @@ data:
     shuffle: false
     dataset:
       _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
-      cache_num: 0
-      num_workers: 8
       dataframe_path: null
       spatial_dims: 3
       transform:
@@ -206,7 +203,7 @@ data:
           keys:
           - raw_moving
           dtype: float16
-      cache_rate: 0.1
+      cache_rate: 1.0
       replace_rate: 0.1
       num_init_workers: 24
       num_replace_workers: 24
@@ -219,7 +216,6 @@ data:
     shuffle: false
     dataset:
       _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
-      num_workers: 8
       dataframe_path: null
       spatial_dims: 2
       transform:
@@ -266,7 +262,7 @@ data:
           - raw_fixed
           - raw_moving
           dtype: float16
-      cache_rate: 0.1
+      cache_rate: 1.0
       replace_rate: 0.1
       num_init_workers: 24
       num_replace_workers: 24
@@ -278,8 +274,9 @@ logger:
     run_name: ${run_name}
 trainer:
   _target_: lightning.Trainer
-  default_root_dir: null
-  max_epochs: 100
+  default_root_dir: ${paths.output_dir}
+  min_epochs: 150
+  max_epochs: 200
   accelerator: gpu
   devices: 1
   precision: 16-mixed

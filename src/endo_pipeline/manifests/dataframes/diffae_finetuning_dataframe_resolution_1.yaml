@@ -1,0 +1,15 @@
+name: diffae_finetuning_dataframe_resolution_1
+workflow: create_diffae_finetuning_dataframe
+parameters:
+  resolution_level: 1
+  z_slice_offsets:
+  - 4
+  - 11
+  exclude_cell_piling: false
+locations:
+  training:
+    fmsid: 11ae94e9ff654a2fbdc67701a6f34547
+    s3uri: null
+  validation:
+    fmsid: c9a94d347106478695bee0c7d2109bb4
+    s3uri: null
