@@ -1,5 +1,5 @@
 name: diffae_finetuned_for_fixed
-workflow: finetune_diffae
+workflow: (unknown workflow)
 parameters:
   training_datasets: []
 locations:
