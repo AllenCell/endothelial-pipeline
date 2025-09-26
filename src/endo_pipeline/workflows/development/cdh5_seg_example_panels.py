@@ -1,6 +1,15 @@
+"""
+NOTE
+Becky says 20250326 (15 dyn) is probably the overall most ideal dataset for
+creating panels depicting the segmentation workflow. The no flow dataset from
+20250728 is also quite good but has some quirks around the feedings.
+I have used the 20250728 dataset for the current panels since it is no flow.
+It is worth noting that the plots use the PCA reference datasets which does NOT
+include 20250728.
+"""
+
 from pathlib import Path
 
-import matplotlib
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -11,7 +20,6 @@ DPI_IMAGING = 300
 DPI_PLOTS = 1000
 
 IMAGE_PANEL_SIZE = (3, 3)
-# PLOT_PANEL_SIZE = (4.5, 3.5)
 PLOT_PANEL_SIZE = (1.2, 1.2)
 CROP_YX = (slice(300, -300), slice(300, -300))
 
@@ -41,7 +49,6 @@ def make_imaging_panels() -> None:
     from endo_pipeline.library.process.general_image_preprocessing import save_image_output
     from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
-    # dataset_name = "20250326_20X"
     dataset_name = "20250728_20X"
     position = 0
     validation_frames = list(range(0, 577, 48))
@@ -291,9 +298,3 @@ def main() -> None:
 
 
 main()
-
-
-## NOTE:
-# Becky: I would say 20250326 (15 dyn) is probably the overall
-# most ideal dataset. The recent no flow dataset (20250728) is
-# also quite good it just has some quirks around the feedings.
