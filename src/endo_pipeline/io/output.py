@@ -5,10 +5,13 @@ import logging
 from pathlib import Path
 from typing import Literal
 
+import matplotlib.pyplot as plt
+import numpy as np
 from git import Repo
 from matplotlib.figure import Figure
 
 from endo_pipeline.configs import DatasetConfig, ModelConfig
+from endo_pipeline.settings.figures import DPI, FONT_FAMILY, FONTSIZE, PDF_FONTTYPE
 
 logger = logging.getLogger(__name__)
 
@@ -235,6 +238,16 @@ def upload_file_to_fms(
         FMS file id for the uploaded file.
     """
 
+    plt.rcParams.update(
+        {
+            "pdf.fonttype": PDF_FONTTYPE,
+            "font.family": FONT_FAMILY,
+            "axes.labelsize": FONTSIZE,
+            "xtick.labelsize": FONTSIZE,
+            "ytick.labelsize": FONTSIZE,
+        }
+    )
+
     if isinstance(file_path, str):
         file_path = Path(file_path).resolve()
 
@@ -265,7 +278,12 @@ def upload_file_to_fms(
 
 
 def save_plot_to_path(
-    figure: Figure, output_path: Path, figure_name: str, dpi: int = 450, transparent: bool = False
+    figure: Figure,
+    output_path: Path,
+    figure_name: str,
+    dpi: int = DPI,
+    file_format: Literal[".png", ".pdf"] = ".png",
+    transparent: bool = False,
 ) -> None:
     """
     Save a matplotlib figure to a file with the specified filename.
@@ -278,11 +296,55 @@ def save_plot_to_path(
         Path to directory where figure should be saved.
     figure_name
         Name of the figure.
+    file_format
+        File format for the figure, either .png or .pdf.
     dpi
         Resolution of the figure in dots per inch (dpi).
     transparent
         True to save figure with clear background, False otherwise.
     """
 
-    output_file = (output_path / figure_name).with_suffix(".png")
+    output_file = (output_path / figure_name).with_suffix(file_format)
     figure.savefig(output_file, dpi=dpi, transparent=transparent, bbox_inches="tight")
+
+
+def save_thumbnail_to_path(
+    image: np.ndarray,
+    image_name: str,
+    output_path: Path,
+    figsize: tuple[float, float],
+    dpi: int = DPI,
+    file_format: Literal[".png", ".pdf"] = ".png",
+) -> None:
+    """
+    Save a thumbnail image to a specified file path.
+
+    This function saves a given image as a thumbnail in the specified format
+    (e.g., PNG or PDF) with the desired resolution and figure size. Optionally,
+    the image can be displayed after saving.
+
+    Args:
+        image: The image to save, represented as a NumPy array.
+        image_name: The name of the output image file (without extension).
+        output_path: The directory where the image will be saved.
+        figsize: The size of the figure in inches (width, height).
+        dpi: The resolution of the saved image in dots per inch (default is DPI).
+        file_format: The file format for the saved image
+            (default is ".png").
+
+    Returns:
+        None
+    """
+    # Construct the full output file path with the specified format
+    output_file = (output_path / image_name).with_suffix(file_format)
+
+    # Create a figure and axis for displaying the image
+    figure, ax = plt.subplots(figsize=figsize, frameon=False)
+    ax.imshow(image, cmap="gray")
+    ax.axis("off")  # Remove axes for a clean thumbnail
+
+    # Save the figure to the specified file
+    figure.savefig(output_file, dpi=dpi, bbox_inches="tight", pad_inches=0)
+
+    plt.show()
+    plt.close(figure)
