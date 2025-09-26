@@ -300,11 +300,18 @@ class MultiDimImageDataset(SmartCacheDataset):
         operate on the metadata dictionary. If no transforms are specified, the dataset will
         default to an empty list, meaning no transforms will be applied.
 
-        ** CacheDataset **
-        The dataset is a subclass of ``monai.data.CacheDataset``, which means it can be used with
-        MONAI's caching mechanism to speed up data loading and processing. The ``cache_kwargs``
+        ** SmartCacheDataset **
+        The dataset is a subclass of ``monai.data.SmartCacheDataset``, which means it can be used
+        with MONAI's caching mechanism to speed up data loading and processing. The ``cache_kwargs``
         parameter allows you to specify additional keyword arguments to pass to the
-        ``CacheDataset``. To skip the caching mechanism, set ``cache_num`` to 0.
+        ``SmartCacheDataset``.
+
+        **Distributed training**
+        If you are using distributed training with multiple devices/processes, the dataset will
+        automatically distribute the samples evenly across the devices/processes based on the
+        ``LOCAL_RANK`` and ``WORLD_SIZE`` environment variables. If these variables are not set,
+        the dataset will use the ``num_devices`` parameter to determine the number of
+        devices/processes.
 
         Parameters
         ----------
@@ -339,8 +346,7 @@ class MultiDimImageDataset(SmartCacheDataset):
         transform
             List (or ``Compose`` object) of Monai-style transforms to apply to the image metadata.
         num_devices
-            Number of devices/processes for distributed training. If None, defaults to trainer.devices
-            from environment or 1 if not available. Used to determine world_size for training.
+            Optional, number of devices/processes for distributed training.
         cache_kwargs:
             Additional keyword arguments to pass to ``CacheDataset``.
         """
@@ -388,7 +394,11 @@ class MultiDimImageDataset(SmartCacheDataset):
             data = data[start_idx:end_idx]
 
             logger.info(
-                f"[Rank {rank}] Samples assigned to this rank: {len(data)} (indices {start_idx}:{end_idx})"
+                "Rank [ %s ]. Samples assigned to this rank: [ %s ] (indices [ %s : %s ])",
+                rank,
+                len(data),
+                start_idx,
+                end_idx,
             )
 
         else:
