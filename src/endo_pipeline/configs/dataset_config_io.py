@@ -1,6 +1,7 @@
 """Methods for dataset config I/O."""
 
 import logging
+import re
 from pathlib import Path
 
 import yaml
@@ -57,7 +58,7 @@ def validate_dataset_config(dataset_name: str) -> None:
     config_file = config_dir / f"{dataset_name}.yaml"
 
     logger.info("Validating dataset config file [ %s ]", dataset_name)
-    config = YAMLDecoder(DatasetConfig).decode(config_file.read_text())
+    config = load_dataset_config(dataset_name)
 
     if config.name != config_file.stem:
         logger.error(
@@ -115,7 +116,15 @@ def load_dataset_config(dataset_name: str) -> DatasetConfig:
         logger.error("Dataset config [ %s ] could not be loaded", dataset_name)
         raise FileNotFoundError(f"No such file '{config_file}'")
     else:
-        config = YAMLDecoder(DatasetConfig).decode(config_file.read_text())
+        config_text = config_file.read_text()
+
+        # Custom adjustment to split the shear stress regime into list.
+        replace, regime = re.findall(r"(shear_stress_regime: (['a-z_]+))", config_text)[0]
+        config_text = config_text.replace(
+            replace, f"shear_stress_regime: [{ ','.join(regime.split('_to_')) }]"
+        )
+
+        config = YAMLDecoder(DatasetConfig).decode(config_text)
         logger.debug("Loaded dataset config [ %s ] from [ %s ]", dataset_name, config_file)
         return config
 
@@ -140,6 +149,10 @@ def save_dataset_config(dataset: DatasetConfig) -> None:
     def yaml_encoder(data):
         yaml.SafeDumper.add_representer(list, list_representer)
         yaml.SafeDumper.add_representer(dict, dict_representer)
+
+        # Custom adjustment to combine shear stress regime into single string
+        data["shear_stress_regime"] = "_to_".join(data["shear_stress_regime"])
+
         return yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
 
     try:
