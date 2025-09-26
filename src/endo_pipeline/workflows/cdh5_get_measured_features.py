@@ -8,12 +8,13 @@ from bioio import BioImage
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
+from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
-    parse_generate_dataset_name_user_input,
     get_original_path,
     ipython_cli_flexecute,
+    parse_generate_dataset_name_user_input,
 )
 from endo_pipeline.io import configure_logging, get_output_path, load_image, load_zarr_as_dask_array
 from endo_pipeline.library.analyze import shape_features as feat
@@ -22,6 +23,7 @@ from endo_pipeline.library.process.general_image_preprocessing import (
     save_image_output,
 )
 from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +168,7 @@ def build_measured_features_tables(
 
     logger.debug(f"Working on {dataset_name} -- T={T}...")
 
-    dim_order = "TCZYX"
+    dim_order = DIMENSION_ORDER
 
     out_dir = Path(out_dir)
     images_out_dir = out_dir / f"{dataset_name}/P{position}/images"
@@ -340,23 +342,20 @@ def build_measured_features_tables(
 
 
 def main(
+    datasets: Datasets,
     n_proc: int = 1,
-    dataset_name: str | None = None,
     save_output: bool = True,
     is_test: bool = False,
     verbose: bool = False,
     use_sldy_data: bool = False,
 ) -> None:
-
     out_dir = get_output_path(__file__)
 
-    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
-
     configure_logging(out_dir, logger, verbose=verbose)
-    logger.info(f"datasets analyzed: {dataset_name_list}")
+    logger.info(f"datasets analyzed: {datasets}")
 
     analysis_queue = build_analysis_queue(
-        dataset_name_list,
+        datasets,
         save_output=save_output,
         out_dir=out_dir,
         overwrite=True,
@@ -389,7 +388,7 @@ def main(
     # lastly, for each dataset concatenate the tables from each timepoint
     # into a single output table for that dataset
     if save_output:
-        for dataset_name in dataset_name_list:
+        for dataset_name in datasets:
             concatenate_and_save_feature_tables(
                 out_dir,
                 dataset_name,

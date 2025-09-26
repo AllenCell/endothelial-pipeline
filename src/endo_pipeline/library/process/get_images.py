@@ -15,6 +15,7 @@ from endo_pipeline.library.process.image_processing import (
     max_proj,
     std_dev,
 )
+from endo_pipeline.settings import DIMENSION_ORDER
 
 
 def get_zarr_img_for_dataset(
@@ -39,7 +40,7 @@ def _get_crop(
     crop_size_y: int,
 ) -> da.Array:
     img_crop = img.get_image_dask_data(
-        "TCZYX",
+        DIMENSION_ORDER,
         T=timepoint,
         channel=channel,
         Y=slice(start_y, start_y + crop_size_y),

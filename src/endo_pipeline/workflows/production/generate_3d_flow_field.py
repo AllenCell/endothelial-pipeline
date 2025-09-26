@@ -1,16 +1,18 @@
 TAGS = ["dynamical_systems", "diffae_features"]
+from endo_pipeline.cli import Datasets
 
 
-def main(dataset_name: str = "3d_flow_field_analysis", model_name: str = "diffae_04_10") -> None:
+def main(datasets: Datasets | None = None, model_name: str = "diffae_04_10") -> None:
     """
     Visualize 3D (drift) flow fields for the dynamics of the crop-based DiffAE
     features for each of the single flow datasets.
 
     Parameters
     ----------
-    dataset_name
-        Dataset(s) to load images from, either a single dataset name or the name
-        of a dataset collection.
+    datasets
+        List of datasets or dataset collections to use for visualization. If not
+        provided, workflow runs on the ``3d_flow_field_analysis`` dataset
+        collection.
     model_name
         Name of the model for which to load the feature manifest data.
 
@@ -20,16 +22,12 @@ def main(dataset_name: str = "3d_flow_field_analysis", model_name: str = "diffae
         Saves the PCA scatter plots, flow field analysis results, and visualizations
         to the specified output directories.
     """
+
     import logging
 
     import numpy as np
 
-    from endo_pipeline.configs import (
-        dynamics_io,
-        get_available_dataset_collection_names,
-        get_available_dataset_names,
-        get_datasets_in_collection,
-    )
+    from endo_pipeline.configs import dynamics_io, get_datasets_in_collection
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_features import get_and_analyze_ddff
     from endo_pipeline.library.analyze.diffae_manifest import fit_pca
@@ -48,22 +46,14 @@ def main(dataset_name: str = "3d_flow_field_analysis", model_name: str = "diffae
 
     manifest = load_dataframe_manifest(model_name)
 
-    # check if input is a dataset collection or a single dataset name
-    if dataset_name in get_available_dataset_collection_names():
-        # if it is a dataset collection, load all datasets in the collection
-        dataset_names = get_datasets_in_collection(dataset_name, list(manifest.locations.keys()))
-    elif dataset_name in get_available_dataset_names():
-        # if it is a single dataset name, keep it as is
-        dataset_names = [dataset_name]
+    # Default list of datasets if not provided. Filter by datasets available in
+    # the manifest.
+    valid_dataset_options = list(manifest.locations.keys())
+    if datasets is None:
+        dataset_names = get_datasets_in_collection("3d_flow_field_analysis", valid_dataset_options)
     else:
-        logger.error(
-            "Dataset name [ %s ] is not a valid dataset or dataset collection name",
-            dataset_name,
-        )
-        raise ValueError(
-            f"Dataset name [ {dataset_name} ] is not a valid",
-            "dataset or dataset collection name.",
-        )
+        dataset_names = [name for name in datasets if name in valid_dataset_options]
+
     pca = fit_pca(model_name=model_name)
 
     # plot scatter of PCA components and all datasets specified in the command

@@ -6,10 +6,8 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
-from endo_pipeline.configs.dataset_io import (
-    parse_generate_dataset_name_user_input,
-    ipython_cli_flexecute,
-)
+from endo_pipeline.cli import Datasets
+from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 from endo_pipeline.io import configure_logging, get_output_path, load_dataframe
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
@@ -152,7 +150,7 @@ def process_dataset(dataset_name: str, out_dir: Path) -> None:
     logger.info(f"Dataset {dataset_name} FMS ID: {segprops_location.fmsid}")
 
     # apply the data filter
-    segprops_dataframe = segprops_dataframe[~segprops_dataframe["filter_global"]]
+    segprops_dataframe = segprops_dataframe[segprops_dataframe["is_included"]]
 
     # iterate over each position in each dataset
     for (dataset_nm, pos), df_group in tqdm(
@@ -173,10 +171,8 @@ def process_dataset(dataset_name: str, out_dir: Path) -> None:
         )
 
 
-def main(dataset_name: str | None = None, n_proc: int = 1, is_test: bool = False) -> None:
-
-    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
-    print(f"Processing: {dataset_name_list}")
+def main(datasets: Datasets, n_proc: int = 1, is_test: bool = False) -> None:
+    print(f"Processing: {datasets}")
 
     out_dir = get_output_path(__file__)
 
@@ -186,10 +182,8 @@ def main(dataset_name: str | None = None, n_proc: int = 1, is_test: bool = False
         with ProcessPoolExecutor(max_workers=n_proc) as executor:
             list(
                 tqdm(
-                    executor.map(
-                        process_dataset, dataset_name_list, [out_dir] * len(dataset_name_list)
-                    ),
-                    total=len(dataset_name_list),
+                    executor.map(process_dataset, datasets, [out_dir] * len(datasets)),
+                    total=len(datasets),
                     desc="Creating plots (MP)",
                     unit="dataset",
                 )
@@ -197,8 +191,8 @@ def main(dataset_name: str | None = None, n_proc: int = 1, is_test: bool = False
 
     else:
         for dataset in tqdm(
-            dataset_name_list,
-            total=len(dataset_name_list),
+            datasets,
+            total=len(datasets),
             desc="Creating plots (SP)",
             unit="dataset",
         ):

@@ -20,6 +20,7 @@ from typing import Any
 
 from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.configs.dataset_config_io import get_available_dataset_names
+from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
 
@@ -427,7 +428,7 @@ def load_dataset(
         if time_end < 0:
             time_end = get_dataset_duration_in_frames(dataset_name) - 1
         img = reader.get_image_dask_data(
-            "TCZYX", T=range(time_start, time_end + 1), C=channels_index
+            DIMENSION_ORDER, T=range(time_start, time_end + 1), C=channels_index
         )
         dataset[filename] = img
     return dataset
@@ -536,15 +537,6 @@ def get_time_interval_in_minutes(dataset_name: str) -> float:
     return dataset_info["time_interval_in_minutes"]
 
 
-def get_dim_map(dim_order: str) -> dict:
-
-    dims = [a for a in dim_order]
-    dim_nums = tuple(range(len(dims)))
-    dim_map = dict(zip(dims, dim_nums, strict=False))
-
-    return dim_map
-
-
 @deprecated(
     """
 Use one of the following methods to load the dataset config:
@@ -632,32 +624,6 @@ def get_tracking_data_filtered(dataset_name_list: list, as_dask: bool = False) -
     # concatenate the dataframes into a single dataframe and return it
     tracking_dataframe = table_reader.concat(tracking_data_list, axis=0, ignore_index=True)
     return tracking_dataframe
-
-
-def parse_generate_dataset_name_user_input(
-    dataset_name_user_input: str,
-) -> list[str]:
-    """
-    Parse a list of dataset names from the command line.
-    The input can be a string or a list of strings.
-    If it is a string, it will be turned into a list of strings.
-    If it is a list of strings, it will be returned as is.
-
-    To enter a list of datasets to analyze, use the following format (either with or
-    without quotation marks):
-    '20241217_20X,20241120_20X'
-    """
-    dataset_name_list = dataset_name_user_input.split(",")
-
-    # check that the dataset names are valid
-    available_datasets = get_available_dataset_names()
-    for dataset_name in dataset_name_list:
-        if dataset_name not in available_datasets:
-            raise ValueError(
-                f"""Invalid dataset name {dataset_name}. Must be a string or list
-                of strings that are found in the available datasets {available_datasets}."""
-            )
-    return dataset_name_list
 
 
 # Other miscellaneous methods

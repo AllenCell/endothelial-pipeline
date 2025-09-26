@@ -14,7 +14,7 @@ model:
   n_noise_samples: 1
   n_inference_steps: 50
   condition_key: raw_moving
-  paired_condition_key: raw_fixed
+  paired_condition_key: raw_target
   train_encoder: true
   gamma: 5.0
   loss:
@@ -99,7 +99,7 @@ data:
         - _target_: monai.transforms.SplitDimd
           keys: raw
           output_postfixes:
-          - fixed
+          - target
           - moving
         - _target_: monai.transforms.DeleteItemsd
           keys:
@@ -110,17 +110,17 @@ data:
           - raw_moving
         - _target_: cyto_dl.image.transforms.clip.Clipd
           keys:
-          - raw_fixed
+          - raw_target
           - raw_moving
           low: 0.1
           high: 99.9
         - _target_: monai.transforms.NormalizeIntensityd
           keys:
-          - raw_fixed
+          - raw_target
           - raw_moving
         - _target_: monai.transforms.RandSpatialCropSamplesd
           keys:
-          - raw_fixed
+          - raw_target
           - raw_moving
           roi_size:
           - ${model.image_shape[1]}
@@ -129,37 +129,37 @@ data:
           num_samples: 8
         - _target_: monai.transforms.ToTensord
           keys:
-          - raw_fixed
+          - raw_target
           - raw_moving
           dtype: float16
         - _target_: monai.transforms.RandStdShiftIntensityd
           keys:
-          - raw_fixed
+          - raw_target
           - raw_moving
           prob: 0.5
           factors: 5
         - _target_: monai.transforms.RandGaussianNoised
           keys:
-          - raw_fixed
+          - raw_target
           - raw_moving
           prob: 0.5
           std: 0.1
           mean: 0
         - _target_: monai.transforms.RandFlipd
           keys:
-          - raw_fixed
+          - raw_target
           - raw_moving
           prob: 0.5
           spatial_axis: 0
         - _target_: monai.transforms.RandFlipd
           keys:
-          - raw_fixed
+          - raw_target
           - raw_moving
           prob: 0.5
           spatial_axis: 1
         - _target_: monai.transforms.RandRotate90d
           keys:
-          - raw_fixed
+          - raw_target
           - raw_moving
           prob: 0.5
           max_k: 3
@@ -229,7 +229,7 @@ data:
         - _target_: monai.transforms.SplitDimd
           keys: raw
           output_postfixes:
-          - fixed
+          - target
           - moving
         - _target_: monai.transforms.DeleteItemsd
           keys:
@@ -240,17 +240,17 @@ data:
           - raw_moving
         - _target_: cyto_dl.image.transforms.clip.Clipd
           keys:
-          - raw_fixed
+          - raw_target
           - raw_moving
           low: 0.1
           high: 99.9
         - _target_: monai.transforms.NormalizeIntensityd
           keys:
-          - raw_fixed
+          - raw_target
           - raw_moving
         - _target_: monai.transforms.RandSpatialCropSamplesd
           keys:
-          - raw_fixed
+          - raw_target
           - raw_moving
           roi_size:
           - ${model.image_shape[1]}
@@ -259,7 +259,7 @@ data:
           num_samples: 8
         - _target_: monai.transforms.ToTensord
           keys:
-          - raw_fixed
+          - raw_target
           - raw_moving
           dtype: float16
       cache_rate: 1.0

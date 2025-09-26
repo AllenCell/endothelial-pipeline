@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
@@ -15,7 +16,6 @@ from endo_pipeline.configs.dataset_io import (
     get_zarr_name,
     get_zarr_path,
     ipython_cli_flexecute,
-    parse_generate_dataset_name_user_input,
 )
 from endo_pipeline.io import configure_logging, get_output_path
 from endo_pipeline.library.process.general_image_preprocessing import (
@@ -104,7 +104,7 @@ def run_workflow(queue: Sequence) -> None:
 
 
 def main(
-    dataset_name: str,
+    datasets: Datasets,
     n_proc: int = 1,
     save_output: bool = True,
     use_sldy_data: bool = False,
@@ -114,13 +114,11 @@ def main(
 
     out_dir = get_output_path(__file__)
 
-    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
-
     configure_logging(out_dir, logger, verbose=verbose)
-    logger.info(f"datasets analyzed: {dataset_name_list}")
+    logger.info(f"datasets analyzed: {datasets}")
 
     analysis_queue = build_analysis_queue(
-        dataset_name_list,
+        datasets,
         save_output=save_output,
         out_dir=out_dir,
         overwrite=True,
@@ -156,7 +154,7 @@ def main(
 
     if save_output:
         for dataset_name in tqdm(
-            dataset_name_list, desc="Replacing individual tables with combined table..."
+            datasets, desc="Replacing individual tables with combined table..."
         ):
             concatenate_and_save_feature_tables(
                 out_dir=out_dir,
