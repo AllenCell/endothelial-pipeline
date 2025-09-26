@@ -1,9 +1,0 @@
-name: diffae_04_10_finetuned_for_live_fixed
-workflow: finetune_diffae
-parameters:
-  training_datasets:
-  - 20250214_pairedPostFixation
-  - 20250214_pairedPreFixation
-locations:
-  run_name:
-    mlflowid: 39a8cae9046b46da8089fce9e3ac7982
