@@ -20,19 +20,6 @@ from endo_pipeline.configs import (
 logger = logging.getLogger(__name__)
 
 
-def validate_shear_stress_regime(shear_stress: float, shear_stress_regime: tuple) -> bool:
-    """Validate that the shear stress regime matches the shear stress value."""
-    logger.debug(
-        "Validating shear stress regime [ %s ] against shear stress [ %s ]",
-        shear_stress_regime,
-        shear_stress,
-    )
-    if len(shear_stress_regime) == 1:
-        return shear_stress_regime[0] == shear_stress
-    else:
-        return shear_stress_regime[0] <= shear_stress <= shear_stress_regime[1]
-
-
 def get_regime_for_shear_stress(shear_stress: float) -> tuple[float, float]:
     """Get shear stress regime for given shear stress value."""
 

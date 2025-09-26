@@ -94,6 +94,18 @@ def validate_dataset_config(dataset_name: str) -> None:
                 dataset_name,
             )
 
+    for regime, flow in zip(config.shear_stress_regime, config.flow_conditions, strict=False):
+        if flow.shear_stress < regime.lower or flow.shear_stress > regime.upper:
+            logger.error(
+                "Validation failed for dataset [ %s ]: "
+                "Shear stress [ %d ] outside range for regime [ %s (%d - %d) ]",
+                dataset_name,
+                flow.shear_stress,
+                regime.value,
+                regime.lower,
+                regime.upper,
+            )
+
 
 def load_all_dataset_configs() -> list[DatasetConfig]:
     """Load all dataset configs."""
