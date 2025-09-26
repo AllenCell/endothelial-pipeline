@@ -24,7 +24,7 @@ from endo_pipeline.library.model.image_loading import (
     get_exclude_frames,
     get_z_slice_bounds_per_position,
 )
-from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
+from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.manifests import (
     DataframeLocation,
@@ -93,7 +93,6 @@ def generate_overrides_for_model_eval(
     user_overrides: dict,
     save_path: str,
     data_path: str,
-    ckpt_path: str,
     dataset_name: str,
     model_name: str,
     prediction_filename_suffix: str | None = None,
@@ -112,9 +111,6 @@ def generate_overrides_for_model_eval(
         "data.predict_dataloaders.dataset.dataframe_path": data_path,
         "data.predict_dataloaders.dataset.cache_rate": cache_rate,
         "paths.output_dir": save_path,
-        # change checkpoint path to the one downloaded from mlflow
-        "checkpoint.ckpt_path": ckpt_path,
-        "checkpoint.strict": True,
         "callbacks": None,
         "callbacks.prediction_saver": {
             "_target_": "cyto_dl.callbacks.tabular_saver.SaveTabularData",
@@ -137,7 +133,6 @@ def generate_overrides_for_track_based_crops(
     user_overrides: dict[str, Any],
     save_path: str,
     data_path: str,
-    ckpt_path: str,
     dataset_name: str,
     model_name: str,
     prediction_filename_suffix: str | None = None,
@@ -154,7 +149,6 @@ def generate_overrides_for_track_based_crops(
         user_overrides,
         save_path=save_path,
         data_path=data_path,
-        ckpt_path=ckpt_path,
         dataset_name=dataset_name,
         model_name=model_name,
     )
@@ -485,7 +479,7 @@ def update_prediction_from_tracks_with_metadata(
 
 
 def apply_model_on_grid_of_crops_from_one_dataset(
-    model_config: CytoDLModelConfig,
+    model: CytoDLModel,
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
     upload_to_fms: bool = True,
@@ -508,8 +502,8 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
     Parameters
     ----------
-    model_config
-        Configuration of the model to apply.
+    model
+        Trained model.
     dataset_config
         Configuration of the dataset to apply the model to.
     resolution_level
@@ -549,28 +543,11 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         )
         raise RuntimeError("CUDA available, but no GPU devices found.")
 
-    # download model from mlflow
-    mlflow_id = model_config.mlflow_run_id
-    model_path = get_output_path("models", model_config.name, "train")
-    path_dict = download_model(mlflow_id, model_path)
-
-    # right now, need to use the tracked version of the config if using the
-    # "legacy" model "diffae_04_10" (temporary workaround until we are only using
-    # models trained with the new pipeline)
-    if model_config.name == "diffae_04_10":
-        path_dict["config_path"] = get_model_dir() / "diffae_04_10_eval.yaml"
-        logger.info(
-            "Loading legacy model config for diffae_04_10 from [ %s ]", path_dict["config_path"]
-        )
-
     # set default output path
-    save_path = get_output_path("models", model_config.name, dataset_config.name)
+    save_path = get_output_path("models", model.cfg.run_name, dataset_config.name)
 
-    # load model
-    model = CytoDLModel()
-    model.load_config_from_file(path_dict["config_path"])
+    logger.debug("Applying model [ %s ] to dataset [ %s ]", model.cfg.run_name, dataset_config.name)
 
-    logger.debug("Applying model [ %s ] to dataset [ %s ]", model_config.name, dataset_config.name)
     # get unique name for the parquet file
     file_name = "dataset"
     if z_slice_offsets is not None:
@@ -601,22 +578,21 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     df.to_parquet(dataset_save_path, index=False)
 
     # apply overrides
-    prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features"
+    prediction_filename_suffix = f"{dataset_config.name}_{model.cfg.run_name}_features"
     overrides = generate_overrides_for_model_eval(
         load_overrides(user_overrides),
         save_path=save_path.as_posix(),
         data_path=dataset_save_path.as_posix(),
-        ckpt_path=path_dict["checkpoint_path"].as_posix(),
         dataset_name=dataset_config.name,
-        model_name=model_config.name,
+        model_name=model.cfg.run_name,
         prediction_filename_suffix=prediction_filename_suffix,
     )
     model.override_config(overrides)
     local_config_save_path = get_output_path("models", "evaluation_configs")
-    model.save_config(local_config_save_path / f"{model_config.name}_eval.yaml")
+    model.save_config(local_config_save_path / f"{model.cfg.run_name}_eval.yaml")
     logger.info(
         "Evaluation config saved to [ %s ]",
-        local_config_save_path / f"{model_config.name}_eval.yaml",
+        local_config_save_path / f"{model.cfg.run_name}_eval.yaml",
     )
     logger.debug("Starting model prediction...")
     model.predict()
@@ -625,13 +601,14 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     prediction_path = save_path / f"predict_{prediction_filename_suffix}.parquet"
     update_prediction_from_crops_with_metadata(
         dataset_name=dataset_config.name,
-        model_name=model_config.name,
+        model_name=model.cfg.run_name,
         crop_size=crop_size,
         mlflow_id=mlflow_id,
         prediction_path=prediction_path,
     )
 
     if upload_to_fms:
+        # TODO: how to handle model configs for FMS upload?
         # build FMS annotations
         dataset_annotations = build_fms_annotations(
             dataset_config,
@@ -646,7 +623,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         )
 
         # Store FMS ID in dataframe manifest
-        manifest_name = model_config.name
+        manifest_name = model.cfg.run_name
         workflow_name = "apply_diffae_grid"
 
         if z_slice_offsets is not None:
@@ -667,7 +644,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
 
 def apply_model_on_tracked_crops_from_one_dataset(
-    model_config: CytoDLModelConfig,
+    model: CytoDLModel,
     dataset_config: DatasetConfig,
     save_path: str | Path | None = None,
     upload_to_fms: bool = True,
@@ -681,8 +658,8 @@ def apply_model_on_tracked_crops_from_one_dataset(
 
     Parameters
     ----------
-    model_config
-        Configuration of the model to apply.
+    model
+        Trained model.
     dataset_config
         Configuration of the dataset to apply the model to.
     resolution_level
@@ -698,34 +675,27 @@ def apply_model_on_tracked_crops_from_one_dataset(
     only_include_positions
         List of position indices to include, if None, include all positions.
     """
-    if not torch.cuda.is_available():
-        raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
-    overrides = load_overrides(user_overrides)
-    # download model from mlflow
-    mlflow_id = model_config.mlflow_run_id
-    model_path = get_output_path("models", model_config.name, include_timestamp=False)
-    path_dict = download_model(mlflow_id, model_path)
 
-    # right now, need to use the tracked version of the config if using the
-    # "legacy" model "diffae_04_10" (temporary workaround until we are only using
-    # models trained with the new pipeline)
-    if model_config.name == "diffae_04_10":
-        path_dict["config_path"] = get_model_dir() / "diffae_04_10_eval.yaml"
-        logger.info(
-            "Loading legacy model config for diffae_04_10 from [ %s ]", path_dict["config_path"]
+    if not torch.cuda.is_available():
+        logger.error("CUDA is not available. Please run on a GPU machine.")
+        raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
+    elif torch.cuda.device_count() < 1:
+        logger.error(
+            "CUDA available, but no GPU devices found. "
+            "Please set `CUDA_VISIBLE_DEVICES` to a valid GPU device "
+            "or run workflow with GPU setup enabled (-g flag)."
         )
+        raise RuntimeError("CUDA available, but no GPU devices found.")
+
+    overrides = load_overrides(user_overrides)
 
     if save_path is None:
         # if no save path is provided, use the default path
         save_path = get_output_path(
-            "models", model_config.name, dataset_config.name, include_timestamp=False
+            "models", model.cfg.run_name, dataset_config.name, include_timestamp=False
         )
     elif isinstance(save_path, str):
         save_path = Path(save_path)
-
-    # load model
-    model = CytoDLModel()
-    model.load_config_from_file(path_dict["config_path"])
 
     # parse dataset annotations to get z-slice information,
     # positions to include, and frames to exclude
@@ -741,15 +711,15 @@ def apply_model_on_tracked_crops_from_one_dataset(
     )
 
     # use timestamp to get unique file name for FMS upload later
-    prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_tracked_crop_features"
+    prediction_filename_suffix = f"{dataset_config.name}_{model.cfg.run_name}_tracked_crop_features"
+
     # apply overrides
     overrides = generate_overrides_for_track_based_crops(
         overrides,
         save_path=save_path.as_posix(),
         data_path=data_path.as_posix(),
-        ckpt_path=path_dict["checkpoint_path"].as_posix(),
         dataset_name=dataset_config.name,
-        model_name=model_config.name,
+        model_name=model.cfg.run_name,
         prediction_filename_suffix=prediction_filename_suffix,
     )
     model.override_config(overrides)
@@ -758,7 +728,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
     prediction_path = save_path / f"predict_{prediction_filename_suffix}.parquet"
     update_prediction_from_tracks_with_metadata(
         dataset_name=dataset_config.name,
-        model_name=model_config.name,
+        model_name=model.cfg.run_name,
         mlflow_id=mlflow_id,
         prediction_path=prediction_path,
     )
