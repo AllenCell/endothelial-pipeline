@@ -86,6 +86,14 @@ def make_imaging_panels() -> None:
     nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_name, position, timeframe)
     nuc_pred = np.asarray(load_image(nuc_location))
 
+    cdh5_seg_manifest = load_image_manifest("cdh5_classic_seg")
+    cdh5_seg_sequential_timeframes = list(range(timeframe, timeframe + 5))
+    for tf in cdh5_seg_sequential_timeframes:
+        cdh5_seg_location = get_image_location_for_dataset(
+            cdh5_seg_manifest, dataset_name, position, tf
+        )
+        image_dict[f"cdh5_seg_split_{tf}"] = np.asarray(load_image(cdh5_seg_location))
+
     dataset_config = load_dataset_config(dataset_name)
     bf_center_Z = dataset_config.center_z_plane[position]  # type:ignore[index]
     zarr_file = get_zarr_file_for_position(dataset_config, position)
@@ -148,12 +156,19 @@ def make_imaging_panels() -> None:
             "colors": [(255, 255, 255), (255, 255, 0)],
             "colors_thumbnail": ["yellow"],
         },
-        "cdh5_seg_split_by_nuclei": {
-            "images": ["cdh5_segmentations_split_by_nuclei"],
+        # "cdh5_seg_split_by_nuclei": {
+        #     "images": ["cdh5_segmentations_split_by_nuclei"],
+        #     "colors": [(255, 255, 255)],
+        #     "colors_thumbnail": DEFAULT_COLORS,
+        # },
+    }
+
+    for tf in cdh5_seg_sequential_timeframes:
+        panel_dict[f"cdh5_seg_final_overlay_{tf}"] = {
+            "images": [f"cdh5_seg_split_{tf}"],
             "colors": [(255, 255, 255)],
             "colors_thumbnail": DEFAULT_COLORS,
-        },
-    }
+        }
 
     for panel_name in panel_dict:
         image_name_list = list(panel_dict[panel_name]["images"])  # type:ignore[call-overload]
