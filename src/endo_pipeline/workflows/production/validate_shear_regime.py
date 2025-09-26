@@ -6,7 +6,8 @@ def main() -> None:
     Validate shear regime annotations for dataset configs based on actual values present
     in the FlowConditions annotation.
 
-    Updates the shear_stress_regime field in each DatasetConfig and saves the updated config.
+    If any invalid shear regime annotations are found, update the shear_stress_regime field
+    in each DatasetConfig and save the updated config.
     """
     import logging
 

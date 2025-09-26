@@ -20,14 +20,17 @@ from endo_pipeline.configs import (
 logger = logging.getLogger(__name__)
 
 
-def validate_shear_stress_regime(shear_stress: str | float, shear_stress_regime: tuple) -> bool:
+def validate_shear_stress_regime(shear_stress: float, shear_stress_regime: tuple) -> bool:
     """Validate that the shear stress regime matches the shear stress value."""
-    if isinstance(shear_stress, str):
-        return False
-    elif shear_stress_regime[0] <= shear_stress <= shear_stress_regime[1]:
-        return True
+    logger.debug(
+        "Validating shear stress regime [ %s ] against shear stress [ %s ]",
+        shear_stress_regime,
+        shear_stress,
+    )
+    if len(shear_stress_regime) == 1:
+        return shear_stress_regime[0] == shear_stress
     else:
-        return False
+        return shear_stress_regime[0] <= shear_stress <= shear_stress_regime[1]
 
 
 def get_regime_for_shear_stress(shear_stress: float) -> tuple[float, float]:
@@ -36,8 +39,17 @@ def get_regime_for_shear_stress(shear_stress: float) -> tuple[float, float]:
     from endo_pipeline.configs import ShearStressRegime
 
     for regime in ShearStressRegime:
-        if regime.value[0] <= shear_stress <= regime.value[1]:
-            return regime.value
+        # comparing single shear stress to rangle of values only,
+        # so skip multi-shear stress regimes
+        if isinstance(regime.value[0], tuple):
+            continue
+        # check if shear stress is within the regime range
+        if len(regime.value) == 2:
+            if regime.value[0] <= shear_stress <= regime.value[1]:
+                return regime.value
+        else:  # single value regime for no shear stress
+            if regime.value[0] == shear_stress:
+                return regime.value
 
     logger.error("No shear stress regime found for shear stress [ %f ]", shear_stress)
     raise ValueError(

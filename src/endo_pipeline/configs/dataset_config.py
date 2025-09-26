@@ -19,10 +19,10 @@ ObjectiveType = Literal["20X", "40X"]
 class ShearStressRegime(Enum):
     """Shear stress regime categories with target shear stress ranges."""
 
-    NO = [(0.0, 0.0)]
+    NO = (0.0,)
     """No shear stress."""
 
-    MIN = [(4.5, 7.2)]
+    MIN = (4.5, 7.2)
     """Minimum shear stress tested (target: 6 dyn/cm2)."""
 
     LOW = (8.5, 9.1)
@@ -34,7 +34,7 @@ class ShearStressRegime(Enum):
     HIGH = (13.0, 16.0)
     """High shear stress (target: 15 dyn/cm2)."""
 
-    MAX = (19.5, 25.0)
+    MAX = (19.5, 35.0)
     """Maximum shear stress tested (target: 20 dyn/cm2)."""
 
     MAX_TO_MIN = (MAX, MIN)
@@ -177,7 +177,7 @@ class DatasetConfig:
     objective: ObjectiveType
     """Objective that dataset was collected under."""
 
-    shear_stress_regime: list[tuple]
+    shear_stress_regime: tuple
     """Shear stress regime the dataset was collected under."""
 
     pixel_size_xy_in_um: float

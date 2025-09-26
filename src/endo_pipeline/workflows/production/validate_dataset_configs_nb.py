@@ -10,6 +10,7 @@ For each dataset config in the `configs/datasets` directory, confirm:
 - All dataset configs follow the schema defined by `DatasetConfig`
 - All original data paths exist and can be opened
 - All zarr data paths exist and can be opened
+- All shear stress regimes are valid based on the flow conditions
 """
 
 # %%
