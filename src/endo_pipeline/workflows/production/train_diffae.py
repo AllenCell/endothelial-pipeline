@@ -139,6 +139,14 @@ def main(
     # Set run name and log info
     if run_name is None:
         run_name = make_name_unique("diffae").name
+    else:
+        # check that run name is unique within the manifest
+        if model_manifest_name in load_model_manifest(model_manifest_name).locations:
+            run_name = make_name_unique(run_name).name
+            logger.warning(
+                "Provided run name already exists in manifest, changed current run name to [ %s ]",
+                run_name,
+            )
     logger.info("Model manifest name: [ %s ]", model_manifest_name)
     logger.info("Run name: [ %s ]", run_name)
 
