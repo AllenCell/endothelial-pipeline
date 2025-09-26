@@ -10,7 +10,7 @@ from pydantic.dataclasses import dataclass
 class ModelLocation:
     """Storage locations for models."""
 
-    mlflow_run_id: str | None = None
+    mlflowid: str | None = None
     """MLFlow run id for model."""
 
 

@@ -16,4 +16,4 @@ parameters:
   resolution: 1
 locations:
   run_name:
-    mlflow_run_id: c3c7e4b6a95349ccb5aaa4446a5b275a
+    mlflowid: c3c7e4b6a95349ccb5aaa4446a5b275a

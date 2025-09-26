@@ -489,8 +489,8 @@ def load_model(location: ModelLocation) -> "CytoDLModel":
         Model location object.
     """
 
-    if location.mlflow_run_id is not None:
-        return load_model_from_mlflow(location.mlflow_run_id)
+    if location.mlflowid is not None:
+        return load_model_from_mlflow(location.mlflowid)
 
     logger.error("Location does not have an MLFlow run ID.")
     raise FileNotFoundError("Unable to load model; no available locations.")

@@ -9,4 +9,4 @@ parameters:
   - 20241203_20X
 locations:
   run_name:
-    mlflow_run_id: ae7f25b4109c47809d3e2ed1b7120e50
+    mlflowid: ae7f25b4109c47809d3e2ed1b7120e50
