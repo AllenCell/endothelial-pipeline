@@ -3,6 +3,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from endo_pipeline.cli import Datasets
+
 
 def save_validation_images(
     cell_id: int,
@@ -128,8 +130,8 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
 
 
 def main(
+    datasets: Datasets,
     n_proc: int = 1,
-    dataset_name: str | None = None,
     t_final: int | None = None,
     min_track_duration: int = 120,
     verbose: bool = False,
@@ -140,26 +142,21 @@ def main(
 
     from tqdm import tqdm
 
-    from endo_pipeline.configs.dataset_io import (
-        get_tracking_data_filtered,
-        parse_generate_dataset_name_user_input,
-    )
+    from endo_pipeline.configs.dataset_io import get_tracking_data_filtered
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
 
     out_dir = get_output_path(__file__)
 
-    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
-
     analysis_queue = build_analysis_queue(
-        dataset_name_list,
+        datasets,
         t_final=t_final,
         use_sldy_data=True,
         out_dir=out_dir,
         verbose=verbose,
     )
     analysis_queue_df = pd.DataFrame(analysis_queue)
-    for dataset_name in dataset_name_list:
+    for dataset_name in datasets:
         tracking_df = get_tracking_data_filtered([dataset_name], as_dask=False)
         if t_final is not None:
             tracking_df = tracking_df.query("T < @t_final")

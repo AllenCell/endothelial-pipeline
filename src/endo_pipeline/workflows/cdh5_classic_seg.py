@@ -5,12 +5,9 @@ from bioio import BioImage
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
+from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-from endo_pipeline.configs.dataset_io import (
-    get_original_path,
-    ipython_cli_flexecute,
-    parse_generate_dataset_name_user_input,
-)
+from endo_pipeline.configs.dataset_io import get_original_path, ipython_cli_flexecute
 from endo_pipeline.io import get_output_path, load_image, load_zarr_as_dask_array
 from endo_pipeline.library.process import cdh5_preprocessing as preproc
 from endo_pipeline.library.process.general_image_preprocessing import (
@@ -201,8 +198,8 @@ def generate_results(
 
 
 def main(
+    datasets: Datasets,
     n_proc: int = 1,
-    dataset_name: str | None = None,
     save_output: bool = True,
     overwrite: bool = True,
     use_sldy_data: bool = False,
@@ -212,11 +209,9 @@ def main(
 
     out_dir = get_output_path(__file__)
 
-    dataset_name_list = parse_generate_dataset_name_user_input(dataset_name)
-
     # TODO if possible it would be good to use parallel processing to build analysis_queue
     analysis_queue = build_analysis_queue(
-        dataset_name_list,
+        datasets,
         save_output=save_output,
         out_dir=out_dir,
         overwrite=overwrite,
