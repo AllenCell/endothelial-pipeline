@@ -20,22 +20,28 @@ def main(model_name: str = "diffae_finetuned_for_fixed", n_pcs: int = 3) -> None
         Number of PCs to validate. Defaults to 3.
     """
 
+    from pathlib import Path
+
+    from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.diffae_manifest import fit_pca
     from endo_pipeline.library.analyze.immunofluorescence import validate_pcs_for_integration
     from endo_pipeline.library.visualize.integration import viz_validate_pcs_for_integration
+
+    # Results directory
+    save_path = get_output_path("fixed_live_validation")
 
     reference_dataset_name: str = "20241217_20X"
     live_dataset_name: str = "20250214_pairedPreFixation"
     fixed_dataset_name: str = "20250214_pairedPostFixation"
 
     # Align paired fixed and live data and apply a diffAE model to extract features.
-    save_path, fixed_features_path, live_features_path = (
+    _, fixed_features_path, live_features_path = (
         validate_pcs_for_integration.apply_model_paired_fixed_live(
             fixed_dataset_name, live_dataset_name, model_name
         )
     )
 
-    # load or fit reference PCA model and project features into reference PC space
+    # Load or fit reference PCA model and project features into reference PC space
     pca = fit_pca()
 
     # Project features from applying fine tuned diffAE model to fixed and live data into
