@@ -342,7 +342,14 @@ class MultiDimImageDataset(SmartCacheDataset):
         cache_kwargs:
             Additional keyword arguments to pass to ``CacheDataset``.
         """
-        df = pd.read_parquet(dataframe_path)
+
+        # Check if dataframe is stored as csv or parquet
+        if ".csv" in str(dataframe_path):
+            df = pd.read_csv(dataframe_path)
+        elif ".parquet" in str(dataframe_path):
+            df = pd.read_parquet(dataframe_path)
+        else:
+            raise ValueError("dataframe_path must be a .csv or .parquet file")
         rank = int(os.environ.get("LOCAL_RANK", 0))
         # Use WORLD_SIZE from environment, fallback to num_devices, then default to 1
         world_size = int(os.environ.get("WORLD_SIZE", num_devices or 1))
