@@ -21,7 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 def _generate_overrides_for_model_training(
-    model_name: str,
+    model_manifest_name: str,
+    run_name: str,
     crop_size: int,
     train_dataframe_path: str,
     val_dataframe_path: str,
@@ -36,8 +37,10 @@ def _generate_overrides_for_model_training(
 
     Parameters
     ----------
-    model_name
-        The name of the model to train.
+    model_manifest_name
+        The name of the model manifest to which this training session belongs.
+    run_name
+        The MLFlow run name for the training session.
     crop_size
         The number of pixels in each dimension of the image crop to use for training.
         That is, the cropped image will be square with size (crop_size px, crop_size px).
@@ -62,8 +65,12 @@ def _generate_overrides_for_model_training(
         A dictionary of configuration overrides for the DiffAE model training.
     """
     # create output directories if they do not exist
-    training_run_checkpoint_path = get_output_path("models", model_name, "train", "checkpoints")
-    training_run_log_path = get_output_path("models", model_name, "train", "logs")
+    training_run_checkpoint_path = get_output_path(
+        "models", model_manifest_name, run_name, "train", "checkpoints"
+    )
+    training_run_log_path = get_output_path(
+        "models", model_manifest_name, run_name, "train", "logs"
+    )
 
     # Calculate effective epochs
     multiplier = (1 - cache_rate) / (cache_rate * replace_rate) + 1
@@ -88,7 +95,7 @@ def _generate_overrides_for_model_training(
         "paths.log_dir": "${paths.output_dir}",
         "callbacks.model_checkpoint.dirpath": training_run_checkpoint_path.as_posix(),
         # update run name
-        "run_name": model_name,
+        "run_name": run_name,
         # set crop size from input via model.image_shape,
         # the rest are populated by interpolation
         "model.image_shape": [1, crop_size, crop_size],
@@ -216,7 +223,8 @@ def _generate_overrides_for_finetuning(
 def initialize_diffae_model(
     template_training_config: DictConfig | ListConfig,
     crop_size: int,
-    model_name: str,
+    model_manifest_name: str,
+    run_name: str,
     train_dataframe_path: str,
     val_dataframe_path: str,
     max_num_epochs: int = 1000,
@@ -234,8 +242,10 @@ def initialize_diffae_model(
         The template training configuration to use.
     crop_size
         The pixel size of the square image crop along one dimension to use in training.
-    model_name
-        The name of the model to train.
+    model_manifest_name
+        The name of the model manifest to which this training session belongs.
+    run_name
+        The MLFlow run name for the training session.
     train_dataframe_path
         The path to the training dataset (image loading metadata) .parquet file.
     val_dataframe_path
@@ -265,7 +275,8 @@ def initialize_diffae_model(
 
     # user overrides for training
     overrides = _generate_overrides_for_model_training(
-        model_name,
+        model_manifest_name,
+        run_name,
         crop_size,
         train_dataframe_path,
         val_dataframe_path,

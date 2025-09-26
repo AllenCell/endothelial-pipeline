@@ -2,12 +2,21 @@ TAGS = ["diffae_model_training"]
 
 
 def main(
+    run_name: str | None = None,
     resolution_level: int = 1,
     crop_size: int = 128,
     exclude_cell_piling: bool = False,
 ) -> None:
     """
     Train a DiffAE model using the provided configuration.
+
+    **Training run naming**
+
+    The model manifest name is constructed based on the resolution level of the zarr files,
+    the crop size, and whether cell piling exclusion is enabled or not. The training runs
+    instantiated from the this workflow will be saved in the corresponding model manifest,
+    with run name either provided by the user or automatically generated to be unique
+    ( ``run_name = f"diffae_{timestamp}"`` ).
 
     **Cell piling exclusion**
 
@@ -32,6 +41,8 @@ def main(
 
     Parameters
     ----------
+    run_name
+        An optional name for the MLflow run.
     resolution_level
         The resolution level of the zarr files to be used for training.
     crop_size
@@ -89,16 +100,17 @@ def main(
     if exclude_cell_piling:
         name_suffix = f"_exclude_cell_piling{name_suffix}"
 
-    manifest_name = f"diffae_training_dataframe_resolution_{resolution_level}{name_suffix}"
+    dataframe_manifest_base = "diffae_training_dataframe_resolution_"
+    dataframe_manifest_name = f"{dataframe_manifest_base}{resolution_level}{name_suffix}"
 
     try:
-        dataframe_manifest = load_dataframe_manifest(manifest_name)
+        dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     except FileNotFoundError:
         logger.error(
             "Dataframe manifest [ %s ] for resolution_level [ %s ] not found. "
             "Please run the create_diffae_training_dataframe script first "
             "with the appropriate resolution_level.",
-            manifest_name,
+            dataframe_manifest_name,
             resolution_level,
         )
         raise
@@ -116,27 +128,26 @@ def main(
     template_training_config = OmegaConf.load(get_model_dir() / "diffae_training.yaml")
 
     # set model name via zarr resolution, crop size, and current timestamp
-    model_name = f"diffae_resolution_{resolution_level}_patch_{crop_size}x{crop_size}"
+    model_manifest_name = f"diffae_resolution_{resolution_level}_patch_{crop_size}x{crop_size}"
 
     # add info about cell piling inclusion/exclusion
     if exclude_cell_piling:
-        model_name = f"{model_name}_exclude_cell_piling"
+        model_manifest_name = f"{model_manifest_name}_exclude_cell_piling"
     else:
-        model_name = f"{model_name}_include_cell_piling"
+        model_manifest_name = f"{model_manifest_name}_include_cell_piling"
 
-    # append timestamp to get unique model name
-    # TODO: we can be more precise about how model names and run names are
-    # specified, including allowing the user to pass a run name as an argument
-    model_name_unique = make_name_unique(model_name).name
-    run_name = model_name_unique.replace(f"{model_name}_", "")
-    logger.info("Model name: [ %s ]", model_name)
+    # Set run name and log info
+    if run_name is None:
+        run_name = make_name_unique("diffae").name
+    logger.info("Model manifest name: [ %s ]", model_manifest_name)
     logger.info("Run name: [ %s ]", run_name)
 
     # initialize DiffAE model: generates config overrides and sets up output directories
     model = initialize_diffae_model(
         template_training_config,
         crop_size,
-        model_name_unique,
+        model_manifest_name,
+        run_name,
         train_dataframe_path,
         val_dataframe_path,
         max_num_epochs=max_num_epochs,
@@ -145,11 +156,13 @@ def main(
         replace_rate=replace_rate,
         num_gpus=NUM_GPUS,
     )
-    local_config_save_path = get_output_path("models", "training_configs")
-    model.save_config(local_config_save_path / f"{model_name_unique}_train.yaml")
+    local_config_save_path = get_output_path(
+        "models", "training_configs", model_manifest_name, run_name
+    )
+    model.save_config(local_config_save_path / "train.yaml")
     logger.info(
         "Training config saved to [ %s ]",
-        local_config_save_path / f"{model_name_unique}_train.yaml",
+        local_config_save_path / "train.yaml",
     )
     _, object_dict = model.train()
 
@@ -170,7 +183,7 @@ def main(
     # manifest does not already exist. Add the model training run to the list
     # of manifest locations.
     try:
-        manifest = load_model_manifest(model_name)
+        manifest = load_model_manifest(model_manifest_name)
     except FileNotFoundError:
         parameters = {
             "training_datasets": list_of_training_datasets,
@@ -179,7 +192,7 @@ def main(
             "exclude_cell_piling": exclude_cell_piling,
         }
         manifest = ModelManifest(
-            name=model_name, parameters=parameters, workflow=Path(__file__).stem
+            name=model_manifest_name, parameters=parameters, workflow=Path(__file__).stem
         )
 
     manifest.locations[run_name] = ModelLocation(mlflow_run_id=run_id)
