@@ -11,6 +11,7 @@ from endo_pipeline.configs import (
     ObjectiveType,
     PositionAnnotation,
     SampleType,
+    ShearStressRegime,
     TimepointAnnotation,
     load_all_dataset_configs,
     load_dataset_collection_config,
@@ -23,26 +24,12 @@ logger = logging.getLogger(__name__)
 def get_regime_for_shear_stress(shear_stress: float) -> tuple[float, float]:
     """Get shear stress regime for given shear stress value."""
 
-    from endo_pipeline.configs import ShearStressRegime
-
     for regime in ShearStressRegime:
-        # comparing single shear stress to rangle of values only,
-        # so skip multi-shear stress regimes
-        if isinstance(regime.value[0], tuple):
-            continue
-        # check if shear stress is within the regime range
-        if len(regime.value) == 2:
-            if regime.value[0] <= shear_stress <= regime.value[1]:
-                return regime.value
-        else:  # single value regime for no shear stress
-            if regime.value[0] == shear_stress:
-                return regime.value
+        if regime.lower <= shear_stress <= regime.upper:
+            return regime
 
     logger.error("No shear stress regime found for shear stress [ %f ]", shear_stress)
-    raise ValueError(
-        f"No shear stress regime found for shear stress [ {shear_stress} ] "
-        "please update ShearStressRegime class accordingly."
-    )
+    raise ValueError(f"No shear stress regime found for shear stress [ {shear_stress} ]")
 
 
 def get_available_zarr_files(dataset: DatasetConfig) -> list[Path]:
