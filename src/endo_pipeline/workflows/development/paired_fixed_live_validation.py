@@ -36,7 +36,7 @@ def main(model_name: str = "diffae_finetuned_for_fixed", n_pcs: int = 3) -> None
     )
 
     # load or fit reference PCA model and project features into reference PC space
-    pca = fit_pca("diffae_04_10")
+    pca = fit_pca()
 
     # Project features from applying fine tuned diffAE model to fixed and live data into
     # reference PC space.
