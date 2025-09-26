@@ -1,0 +1,39 @@
+name: 20250903_20X
+original_path: //allen/programs/allencell/data/proj0/9be/08e/481/3fd/0a8/15b/845/a91/916/366/55/20250903_GE00008796_20X_SLDY/20250903_GE00008796_20X_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250903_55366916a9184515b0a83fd48108e9be
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: 55366916a9184515b0a83fd48108e9be
+barcode: GE00008796
+cell_lines: [AICS-177 cl. 26]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: shear_stress_regime
+pixel_size_xy_in_um: 0.382
+duration: 288
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+flow_conditions:
+- start: -15
+  stop: 288
+  shear_stress: 5.97
+valid_timepoints: null
+include_scenes: null
+notes: Timelapse imaging of AICS-177 CDH5 KD/truncation cl. 26 (biallelic mutant)
+  under low SS conditions
+timepoint_annotations: null
+position_annotations: null
+center_z_plane: null
