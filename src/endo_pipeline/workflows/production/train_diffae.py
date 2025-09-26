@@ -39,26 +39,32 @@ def main(
     exclude_cell_piling
         If True, use training and validation datasets that exclude cell piling timepoints.
 
-
     Returns
     -------
     :
         The function creates and saves a ModelConfig object with the trained
         model's MLflow run ID and the list of datasets used for training.
     """
+
     import logging
+    from pathlib import Path
 
     from omegaconf import OmegaConf
 
     from endo_pipeline import DEMO_MODE
-    from endo_pipeline.configs import CytoDLModelConfig, save_model_config
     from endo_pipeline.io import get_output_path, make_name_unique, resolve_dataframe_location
     from endo_pipeline.library.model import (
         get_dataset_names_used_for_training,
         get_model_dir,
         initialize_diffae_model,
     )
-    from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.manifests import (
+        ModelLocation,
+        ModelManifest,
+        load_dataframe_manifest,
+        load_model_manifest,
+        save_model_manifest,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -110,14 +116,20 @@ def main(
 
     # set model name via zarr resolution, crop size, and current timestamp
     model_name = f"diffae_resolution_{resolution_level}_patch_{crop_size}x{crop_size}"
+
     # add info about cell piling inclusion/exclusion
     if exclude_cell_piling:
         model_name = f"{model_name}_exclude_cell_piling"
     else:
         model_name = f"{model_name}_include_cell_piling"
+
     # append timestamp to get unique model name
-    model_name_unique = make_name_unique(model_name).as_posix()
+    # TODO: we can be more precise about how model names and run names are
+    # specified, including allowing the user to pass a run name as an argument
+    model_name_unique = make_name_unique(model_name).name
+    run_name = model_name_unique.replace(f"{model_name}_", "")
     logger.info("Model name: [ %s ]", model_name)
+    logger.info("Run name: [ %s ]", run_name)
 
     # initialize DiffAE model: generates config overrides and sets up output directories
     model = initialize_diffae_model(
@@ -143,6 +155,7 @@ def main(
     mlflow_logger = object_dict["logger"][0]
     run_id = mlflow_logger.run_id
     logger.info("MLflow run ID: [ %s ]", run_id)
+
     # get list of datasets used for training
     # based on content of train and val dataframes
     list_of_training_datasets = get_dataset_names_used_for_training(
@@ -150,14 +163,25 @@ def main(
         val_dataframe_location,
         "live_20X_objective_3i_microscope",
     )
-    # add run ID and training datasets to model config
-    model_config = CytoDLModelConfig(
-        name=f"{model_name_unique}{name_suffix}",
-        mlflow_run_id=run_id,
-        training_datasets=list_of_training_datasets,
-    )
-    # save the model config
-    save_model_config(model_config)
+
+    # Create a new model manifest with workflow parameters, if a matching
+    # manifest does not already exist. Add the model training run to the list
+    # of manifest locations.
+    try:
+        manifest = load_model_manifest(model_name)
+    except FileNotFoundError:
+        parameters = {
+            "training_datasets": list_of_training_datasets,
+            "crop_size": crop_size,
+            "resolution_level": resolution_level,
+            "exclude_cell_piling": exclude_cell_piling,
+        }
+        manifest = ModelManifest(
+            name=model_name, parameters=parameters, workflow=Path(__file__).stem
+        )
+
+    manifest.locations[run_name] = ModelLocation(mlflow_run_id=run_id)
+    save_model_manifest(manifest)
 
 
 if __name__ == "__main__":
