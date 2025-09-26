@@ -29,6 +29,7 @@ def _generate_overrides_for_model_training(
     log_every_n_steps: int = 50,
     cache_rate: float = 1.0,
     replace_rate: float = 0.1,
+    num_gpus: int | None = None,
 ) -> dict:
     """
     Generate overrides for the DiffAE model training configuration.
@@ -52,6 +53,8 @@ def _generate_overrides_for_model_training(
         The fraction of the dataset to cache in memory for training.
     replace_rate
         The replace rate for cached data.
+    num_gpus
+        Number of GPUs to use with the workflow.
 
     Returns
     -------
@@ -98,6 +101,17 @@ def _generate_overrides_for_model_training(
         # set logging interval
         "trainer.log_every_n_steps": log_every_n_steps,
     }
+
+    if num_gpus is not None:
+        overrides["trainer.accelerator"] = "gpu"
+        overrides["trainer.devices"] = num_gpus
+        if num_gpus == 1:
+            overrides["trainer.strategy"] = "auto"
+    else:
+        overrides["trainer.accelerator"] = "cpu"
+        overrides["trainer.devices"] = 1
+        overrides["trainer.strategy"] = "auto"
+
     return overrides
 
 
@@ -110,6 +124,7 @@ def _generate_overrides_for_finetuning(
     log_every_n_steps: int = 50,
     cache_rate: float = 1.0,
     replace_rate: float = 0.1,
+    num_gpus: int | None = None,
 ) -> dict:
     """
     Generate overrides for finetuning a DiffAE model.
@@ -132,6 +147,9 @@ def _generate_overrides_for_finetuning(
         The fraction of the dataset to cache in memory for training.
     replace_rate
         The replace rate for cached data.
+    num_gpus
+        Number of GPUs to use with the workflow.
+
     """
     # create output directories if they do not exist
     training_run_output_path = get_output_path(
@@ -182,6 +200,16 @@ def _generate_overrides_for_finetuning(
         "run_name": finetuned_model_name,
     }
 
+    if num_gpus:
+        overrides["trainer.accelerator"] = "gpu"
+        overrides["trainer.devices"] = num_gpus
+        if num_gpus == 1:
+            overrides["trainer.strategy"] = "auto"
+    else:
+        overrides["trainer.accelerator"] = "cpu"
+        overrides["trainer.devices"] = 1
+        overrides["trainer.strategy"] = "auto"
+
     return overrides
 
 
@@ -195,6 +223,7 @@ def initialize_diffae_model(
     log_every_n_steps: int = 50,
     cache_rate: float = 1.0,
     replace_rate: float = 0.1,
+    num_gpus: int | None = None,
 ) -> CytoDLModel:
     """
     Initialize a DiffAE model for training.
@@ -219,6 +248,8 @@ def initialize_diffae_model(
         The fraction of the dataset to cache in memory for training.
     replace_rate
         The replace rate for cached data.
+    num_gpus
+        Number of GPUs to use with the workflow. If None, use the CPU!
 
     Returns
     -------
@@ -242,6 +273,7 @@ def initialize_diffae_model(
         log_every_n_steps=log_every_n_steps,
         cache_rate=cache_rate,
         replace_rate=replace_rate,
+        num_gpus=num_gpus,
     )
 
     # init model
@@ -378,6 +410,7 @@ def initialize_diffae_model_for_finetuning(
     log_every_n_steps: int = 50,
     cache_rate: float = 1.0,
     replace_rate: float = 0.1,
+    num_gpus: int | None = None,
 ) -> CytoDLModel:
     """
     Initialize a DiffAE model for training.
@@ -404,6 +437,8 @@ def initialize_diffae_model_for_finetuning(
         The fraction of the dataset to cache in memory for training.
     replace_rate
         The replace rate for cached data.
+    num_gpus
+        Number of GPUs to use for training. If None, use the CPU!
 
     Returns
     -------
@@ -420,6 +455,7 @@ def initialize_diffae_model_for_finetuning(
         log_every_n_steps=log_every_n_steps,
         cache_rate=cache_rate,
         replace_rate=replace_rate,
+        num_gpus=num_gpus,
     )
 
     # init model

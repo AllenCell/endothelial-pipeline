@@ -51,7 +51,7 @@ def main(
 
     from omegaconf import OmegaConf
 
-    from endo_pipeline import DEMO_MODE
+    from endo_pipeline import DEMO_MODE, NUM_GPUS
     from endo_pipeline.io import get_output_path, make_name_unique, resolve_dataframe_location
     from endo_pipeline.library.model import (
         get_dataset_names_used_for_training,
@@ -77,6 +77,7 @@ def main(
         log_every_n_steps = 1
         cache_rate = 1.0  # use 100% of data for demo mode
         replace_rate = 0.1
+
     else:
         name_suffix = ""
         max_num_epochs = 1000
@@ -142,6 +143,7 @@ def main(
         log_every_n_steps=log_every_n_steps,
         cache_rate=cache_rate,
         replace_rate=replace_rate,
+        num_gpus=NUM_GPUS,
     )
     local_config_save_path = get_output_path("models", "training_configs")
     model.save_config(local_config_save_path / f"{model_name_unique}_train.yaml")
