@@ -106,7 +106,7 @@ data:
           - raw
         - _target_: endo_pipeline.library.model.image_loading.LogImaged
           keys:
-          - raw_fixed
+          - raw_target
           - raw_moving
         - _target_: cyto_dl.image.transforms.clip.Clipd
           keys:
@@ -236,7 +236,7 @@ data:
           - raw
         - _target_: endo_pipeline.library.model.image_loading.LogImaged
           keys:
-          - raw_fixed
+          - raw_target
           - raw_moving
         - _target_: cyto_dl.image.transforms.clip.Clipd
           keys:
