@@ -34,13 +34,12 @@ def main(
 
     from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import CytoDLModelConfig, load_model_config, save_model_config
-    from endo_pipeline.io import get_output_path, make_name_unique
+    from endo_pipeline.io import get_output_path, make_name_unique, resolve_dataframe_location
     from endo_pipeline.library.model import (
         download_mlflow_artifact,
         get_ckpt_path,
         get_dataset_names_used_for_training,
         get_model_dir,
-        get_valid_dataframe_path_for_training,
         initialize_diffae_model_for_finetuning,
     )
     from endo_pipeline.manifests import load_dataframe_manifest
@@ -86,8 +85,8 @@ def main(
     # get paths from the DataframeLocation objects
     # to pass into the DiffAE model training script
     # (need for training config setup and CytoDL dataloaders)
-    train_dataframe_path = get_valid_dataframe_path_for_training(train_dataframe_location)
-    val_dataframe_path = get_valid_dataframe_path_for_training(val_dataframe_location)
+    train_dataframe_path = resolve_dataframe_location(train_dataframe_location)
+    val_dataframe_path = resolve_dataframe_location(val_dataframe_location)
 
     model_save_path = get_output_path(
         "finetune_paired_dataset",

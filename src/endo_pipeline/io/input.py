@@ -294,3 +294,23 @@ def load_dataframe(location: DataframeLocation) -> pd.DataFrame:
 
     logger.error("Location does not have an FMS ID or S3 URI.")
     raise FileNotFoundError("Unable to load dataframe; no available locations.")
+
+
+def resolve_dataframe_location(location: DataframeLocation) -> str:
+    """
+    Resolve dataframe location into a POSIX path or URI, defaulting to FMS.
+
+    Parameters
+    ----------
+    location
+        Dataframe location object.
+    """
+
+    if location.fmsid is not None:
+        return get_local_path_from_fmsid(location.fmsid).as_posix()
+
+    if location.s3uri is not None:
+        return location.s3uri
+
+    logger.error("Location does not have an FMS ID or S3 URI.")
+    raise FileNotFoundError("Unable to resolve dataframe location; no available locations.")

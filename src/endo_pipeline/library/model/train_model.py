@@ -367,47 +367,6 @@ def build_and_save_dataframe_manifest_for_training(
     save_dataframe_manifest(dataframe_manifest)
 
 
-def get_valid_dataframe_path_for_training(dataframe_location: DataframeLocation) -> str:
-    """
-    Get a valid path for training or validation dataframes.
-
-    These are the dataframes that are used for loading zarr files for training or validation.
-    They are either stored in FMS or on S3 as a .parquet file, and this function retrieves the path
-    to that file based on the input DataframeLocation object.
-
-    Parameters
-    ----------
-    dataframe_location
-        The DataframeLocation object containing either the FMS ID or S3 URI of the .parquet file.
-
-
-    Returns
-    -------
-    :
-        The path to the .parquet file for training or validation sets, rendered as a string.
-
-        If the DataframeLocation object has an S3 URI, it will be used. Else, this
-        function downloads the file from FMS using the FMS ID and returns the local path.
-    """
-    if dataframe_location.s3uri is not None:
-        # if s3uri is provided, use that for loading
-        dataframe_path = dataframe_location.s3uri
-    else:
-        # get local path from FMS ID
-        if dataframe_location.fmsid is None:
-            logger.error(
-                "DataframeLocation does not have a FMS ID or S3 URI. "
-                "Please provide a valid DataframeLocation object."
-            )
-            raise ValueError(
-                "DataframeLocation does not have a FMS ID or S3 URI. "
-                "Please provide a valid DataframeLocation object."
-            )
-        dataframe_path = get_local_path_from_fmsid(dataframe_location.fmsid).as_posix()
-
-    return dataframe_path
-
-
 def initialize_diffae_model_for_finetuning(
     template_finetune_config: DictConfig | ListConfig,
     finetuned_model_name: str,
