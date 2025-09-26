@@ -13,11 +13,14 @@ def main(
 
     **Training run naming**
 
-    The model manifest name is constructed based on the resolution level of the zarr files,
-    the crop size, and whether cell piling exclusion is enabled or not. The training runs
-    instantiated from the this workflow will be saved in the corresponding model manifest,
-    with run name either provided by the user or automatically generated to be unique
-    ( ``run_name = f"diffae_{timestamp}"`` ).
+    If a model manifest name is not given, it will be automatically constructed based on the
+    resolution level of the zarr files,the crop size, and whether cell piling exclusion is
+    enabled or not. The training runs instantiated from the this workflow will be saved in the
+    corresponding model manifest, with run name either provided by the user or automatically
+    generated to be unique ( ``run_name = f"diffae_{timestamp}"`` ).
+
+    If the user provides a run name that already exists in the manifest, a unique name will be
+    generated and a warning will be logged.
 
     **Cell piling exclusion**
 
@@ -42,6 +45,8 @@ def main(
 
     Parameters
     ----------
+    model_manifest_name
+        An optional name for the model manifest to create or update.
     run_name
         An optional name for the MLflow run.
     resolution_level
