@@ -176,9 +176,9 @@ def apply_model_paired_fixed_live(
     # Apply model on target/moving images - override config and run model prediciton
     model.override_config(fixed_overrides)
     # the following three lines are temporary while we adjust our model/config infrastructure
-    del model.cfg.data.predict_dataloaders.dataset["num_workers"]
-    del model.cfg.data.predict_dataloaders.dataset["cache_num"]
-    del model.cfg.data.predict_dataloaders.dataset["csv_path"]
+    rm_keys = ["num_workers", "cache_num", "csv_path", "dict_meta"]
+    for key in rm_keys:
+        model.cfg.data.predict_dataloaders.dataset[key]
     model.predict()
 
     # Apply on fixed dataset/"moving" images - start by constructing overrides
@@ -204,10 +204,9 @@ def apply_model_paired_fixed_live(
 
     # Apply on fixed dataset/"moving" images - override config and run model prediciton
     model.override_config(overrides)
-    # the following three lines are temporary while we adjust our model/config infrastructure
-    del model.cfg.data.predict_dataloaders.dataset["num_workers"]
-    del model.cfg.data.predict_dataloaders.dataset["cache_num"]
-    del model.cfg.data.predict_dataloaders.dataset["csv_path"]
+    # the following two lines are temporary while we adjust our model/config infrastructure
+    for key in rm_keys:
+        model.cfg.data.predict_dataloaders.dataset[key]
     model.predict()
 
     # Define paths to saved features from model for both fixed and live datasets
