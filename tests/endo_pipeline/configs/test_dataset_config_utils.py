@@ -45,7 +45,7 @@ def dataset():
         is_timelapse=True,
         microscope="3i",
         objective="20X",
-        shear_stress_regime=ShearStressRegime.NO,
+        shear_stress_regime=[],
         pixel_size_xy_in_um=0.0,
         duration=0,
         time_interval_in_minutes=0.0,
