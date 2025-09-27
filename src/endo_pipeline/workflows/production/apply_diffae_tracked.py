@@ -43,12 +43,14 @@ def main(
         The model config is saved to :code:`endo_pipeline/configs/models/{model_name}.yaml`.
     """
     import logging
-    from typing import cast
 
     from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import load_model
-    from endo_pipeline.library.model import apply_model_on_tracked_crops_from_one_dataset
+    from endo_pipeline.library.model import (
+        apply_model_on_tracked_crops_from_one_dataset,
+        upload_prediction_dataframe_to_fms,
+    )
     from endo_pipeline.library.model.image_loading import get_include_positions
     from endo_pipeline.manifests import get_model_location_for_run, load_model_manifest
     from endo_pipeline.settings import Z_SLICE_OFFSETS
@@ -78,7 +80,7 @@ def main(
                 dataset_config.name,
             )
 
-        apply_model_on_tracked_crops_from_one_dataset(
+        prediction_path = apply_model_on_tracked_crops_from_one_dataset(
             model=model,
             dataset_config=dataset_config,
             upload_to_fms=upload_to_fms,
@@ -87,6 +89,19 @@ def main(
             z_slice_offsets=Z_SLICE_OFFSETS,
             only_include_positions=only_include_positions,
         )
+
+        if upload_to_fms:
+            # upload prediction file to FMS
+            # Store FMS ID in dataframe manifest.
+            upload_prediction_dataframe_to_fms(
+                prediction_path,
+                dataset_config,
+                model_manifest,
+                run_name,
+                dataframe_manifest_name=model.cfg.run_name,
+                workflow_name=Path(__file__).stem,
+                parameters={"z_slice_offsets": Z_SLICE_OFFSETS},
+            )
 
         if DEMO_MODE:
             # only apply model to the first dataset in demo mode

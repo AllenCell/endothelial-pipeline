@@ -8,7 +8,6 @@ import torch
 from cyto_dl.api import CytoDLModel
 
 from endo_pipeline.configs import (
-    CytoDLModelConfig,
     DatasetConfig,
     get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
@@ -29,6 +28,7 @@ from endo_pipeline.library.process.general_image_preprocessing import sequence_t
 from endo_pipeline.manifests import (
     DataframeLocation,
     DataframeManifest,
+    ModelManifest,
     get_dataframe_location_for_dataset,
     load_dataframe_manifest,
     save_dataframe_manifest,
@@ -423,7 +423,6 @@ def update_prediction_from_crops_with_metadata(
     dataset_name: str,
     model_name: str,
     crop_size: list[int],
-    mlflow_id: str,
     prediction_path: Path,
 ) -> None:
     """
@@ -434,7 +433,6 @@ def update_prediction_from_crops_with_metadata(
     pred_df = pd.read_parquet(prediction_path)
     pred_df["dataset"] = dataset_name
     pred_df["model_name"] = model_name
-    pred_df["mlflow_id"] = mlflow_id
 
     # note: the current model loads images at resolution
     # level 0 and downsamples in the transforms.
@@ -453,14 +451,13 @@ def update_prediction_from_crops_with_metadata(
 
 
 def update_prediction_from_tracks_with_metadata(
-    dataset_name: str, model_name: str, mlflow_id: str, prediction_path: Path
+    dataset_name: str, model_name: str, prediction_path: Path
 ) -> None:
     """Update the prediction file with metadata."""
     # add model and dataset information to prediction file
     pred_df = pd.read_parquet(prediction_path)
     pred_df["dataset"] = dataset_name
     pred_df["model_name"] = model_name
-    pred_df["mlflow_id"] = mlflow_id
 
     # NOTE: the current model loads images at resolution level 0 and downsamples in the transforms.
     pred_df["resolution_level"] = 1
@@ -482,14 +479,13 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     model: CytoDLModel,
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
-    upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
     z_slice_offsets: tuple[int, int] | None = None,
     frame_start: int | None = None,
     frame_stop: int | None = None,
     frame_step: int | None = None,
     only_include_positions: list[int] | None = None,
-) -> None:
+) -> Path:
     """
     Apply a DiffAE model to a single dataset.
 
@@ -508,8 +504,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Configuration of the dataset to apply the model to.
     resolution_level
         Resolution level to at which to load images (zarr file format) at.
-    upload_to_fms
-        Whether to upload the prediction file to FMS. Default is True.
     user_overrides
         Optional user overrides to apply to the model config.
     z_slice_offsets
@@ -603,51 +597,17 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         dataset_name=dataset_config.name,
         model_name=model.cfg.run_name,
         crop_size=crop_size,
-        mlflow_id=mlflow_id,
         prediction_path=prediction_path,
     )
+    logger.info("Model prediction dataframe saved to [ %s ]", prediction_path)
 
-    if upload_to_fms:
-        # TODO: how to handle model configs for FMS upload?
-        # build FMS annotations
-        dataset_annotations = build_fms_annotations(
-            dataset_config,
-            model=model_config,
-        )
-
-        # upload prediction file to FMS and get file ID
-        file_id = upload_file_to_fms(
-            prediction_path,
-            annotations=dataset_annotations,
-            file_type="parquet",
-        )
-
-        # Store FMS ID in dataframe manifest
-        manifest_name = model.cfg.run_name
-        workflow_name = "apply_diffae_grid"
-
-        if z_slice_offsets is not None:
-            manifest_name = f"{manifest_name}_z_stack_{z_slice_offsets[0]}_{z_slice_offsets[1]}"
-            parameters = {"z_slice_offsets": z_slice_offsets}
-        else:
-            parameters = {}
-
-        try:
-            manifest = load_dataframe_manifest(manifest_name)
-        except FileNotFoundError:
-            manifest = DataframeManifest(
-                name=manifest_name, workflow=workflow_name, parameters=parameters
-            )
-
-        manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
-        save_dataframe_manifest(manifest)
+    return prediction_path
 
 
 def apply_model_on_tracked_crops_from_one_dataset(
     model: CytoDLModel,
     dataset_config: DatasetConfig,
     save_path: str | Path | None = None,
-    upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
     z_slice_offsets: tuple[int, int] | None = None,
     only_include_positions: list[int] | None = None,
@@ -664,8 +624,6 @@ def apply_model_on_tracked_crops_from_one_dataset(
         Configuration of the dataset to apply the model to.
     resolution_level
         Resolution level to apply the model at.
-    upload_to_fms
-        Upload the prediction file to FMS if True, else only save locally.
     save_path
         Path to save the prediction file
     user_overrides
@@ -729,33 +687,47 @@ def apply_model_on_tracked_crops_from_one_dataset(
     update_prediction_from_tracks_with_metadata(
         dataset_name=dataset_config.name,
         model_name=model.cfg.run_name,
-        mlflow_id=mlflow_id,
         prediction_path=prediction_path,
     )
 
-    if upload_to_fms:
-        # build FMS annotations
-        dataset_annotations = build_fms_annotations(
-            dataset_config,
-            model=model_config,
-        )
+    logger.info("Model prediction dataframe saved to [ %s ]", prediction_path)
+    return prediction_path
 
-        # upload prediction file to FMS and get file ID
-        file_id = upload_file_to_fms(
-            prediction_path,
-            annotations=dataset_annotations,
-            file_type="parquet",
-        )
 
-        # Store FMS ID in dataframe manifest
+def upload_prediction_dataframe_to_fms(
+    prediction_path: Path,
+    dataset_config: DatasetConfig,
+    model_manifest: ModelManifest,
+    run_name: str,
+    dataframe_manifest_name: str,
+    workflow_name: str,
+    workflow_parameters: dict[str, Any] | None = None,
+) -> None:
+    """Upload the prediction dataframe to FMS and update the dataframe manifest."""
+    # build FMS annotations
+    dataset_annotations = build_fms_annotations(
+        dataset_config,
+        model_manifest_name=model_manifest.name,
+        run_name=run_name,
+        model_location=model_manifest.locations[run_name],
+    )
 
-        manifest_name = "diffae_tracking_integration"
-        workflow_name = "apply_diffae_model_on_tracked_crops"
+    # upload prediction file to FMS and get file ID
+    file_id = upload_file_to_fms(
+        prediction_path,
+        annotations=dataset_annotations,
+        file_type="parquet",
+    )
 
-        try:
-            manifest = load_dataframe_manifest(manifest_name)
-        except FileNotFoundError:
-            manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
+    try:
+        manifest = load_dataframe_manifest(dataframe_manifest_name)
+    except FileNotFoundError:
+        manifest = DataframeManifest(name=dataframe_manifest_name, workflow=workflow_name)
 
-        manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
-        save_dataframe_manifest(manifest)
+    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
+    save_dataframe_manifest(manifest)
+    logger.info(
+        "Updated dataframe manifest [ %s ] with location for dataset [ %s ]",
+        dataframe_manifest_name,
+        dataset_config.name,
+    )

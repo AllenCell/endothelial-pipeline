@@ -9,6 +9,7 @@ from .apply_model import (
     preprocess_tracking_manifest_for_model_eval,
     update_prediction_from_crops_with_metadata,
     update_prediction_from_tracks_with_metadata,
+    upload_prediction_dataframe_to_fms,
 )
 from .diffae import (
     DiffAEFinetune,
@@ -74,6 +75,7 @@ __all__ = [
     "preprocess_tracking_manifest_for_model_eval",
     "update_prediction_from_crops_with_metadata",
     "update_prediction_from_tracks_with_metadata",
+    "upload_prediction_dataframe_to_fms",
     "write_pc_vals",
     "write_text",
 ]

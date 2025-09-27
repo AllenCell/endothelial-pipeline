@@ -151,7 +151,7 @@ def main(
         run_name = make_name_unique("diffae").name
     else:
         # If run name provided, make sure it's unique within the manifest
-        if model_manifest_name in load_model_manifest(model_manifest_name).locations:
+        if run_name in load_model_manifest(model_manifest_name).locations:
             # If it's not unique, make it so and log a warning
             run_name = make_name_unique(run_name).name
             logger.warning(

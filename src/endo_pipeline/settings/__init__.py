@@ -1,4 +1,4 @@
-from .image_data import (
+from ..workflows.production.image_data import (
     DIMENSION_ORDER,
     IF_INTEGRATION_SAVE_DIRECTORY,
     LOG_EPSILON,

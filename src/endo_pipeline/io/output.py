@@ -8,7 +8,8 @@ from typing import Literal
 from git import Repo
 from matplotlib.figure import Figure
 
-from endo_pipeline.configs import DatasetConfig, ModelConfig
+from endo_pipeline.configs import DatasetConfig
+from endo_pipeline.manifests import ModelLocation
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +123,9 @@ def build_fms_annotations(
     dataset: DatasetConfig | list[DatasetConfig],
     include_timestamp: bool = True,
     include_git_info: bool = True,
-    model: ModelConfig | None = None,
+    model_manifest_name: str | None = None,
+    run_name: str | None = None,
+    model_location: ModelLocation | None = None,
     additional_notes: str = "",
 ) -> dict[str, list]:
     """
@@ -200,10 +203,15 @@ def build_fms_annotations(
         notes.append(f"Branch: {repo.active_branch.name}")
         notes.append(f"Commit: {repo.commit().hexsha}")
 
-    if model is not None:
-        if hasattr(model, "mlflow_run_id"):
-            metadata_builder.add_annotation("mlflow run id", model.mlflow_run_id)
-        notes.append(f"Model: {model.name}")
+    if model_manifest_name is not None:
+        notes.append(f"Model Manifest: {model_manifest_name}")
+
+    if run_name is not None:
+        notes.append(f"Run Name: {run_name}")
+
+    if model_location is not None:
+        if hasattr(model_location, "mlflowid"):
+            metadata_builder.add_annotation("MLFlow run id", model_location.mlflowid)
 
     notes.append(f"\n{additional_notes}")
 
