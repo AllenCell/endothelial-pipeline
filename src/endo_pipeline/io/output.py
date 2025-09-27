@@ -238,16 +238,6 @@ def upload_file_to_fms(
         FMS file id for the uploaded file.
     """
 
-    plt.rcParams.update(
-        {
-            "pdf.fonttype": PDF_FONTTYPE,
-            "font.family": FONT_FAMILY,
-            "axes.labelsize": FONTSIZE,
-            "xtick.labelsize": FONTSIZE,
-            "ytick.labelsize": FONTSIZE,
-        }
-    )
-
     if isinstance(file_path, str):
         file_path = Path(file_path).resolve()
 
@@ -303,6 +293,14 @@ def save_plot_to_path(
     transparent
         True to save figure with clear background, False otherwise.
     """
+
+    plt.rcParams.update(
+        {
+            "pdf.fonttype": PDF_FONTTYPE,
+            "font.family": FONT_FAMILY,
+            "font.size": FONTSIZE,
+        }
+    )
 
     output_file = (output_path / figure_name).with_suffix(file_format)
     figure.savefig(output_file, dpi=dpi, transparent=transparent, bbox_inches="tight")
