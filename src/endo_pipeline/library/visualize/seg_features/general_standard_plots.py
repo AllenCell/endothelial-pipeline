@@ -125,6 +125,7 @@ def hist_2D_of_feats(
     bin_width: tuple[float, float] | None = None,
     figsize: tuple[float, float] | None = None,
     tight_layout: bool = True,
+    cmap: str = "viridis",
 ) -> tuple[plt.Figure, plt.Axes]:
     """
     df_group : pd.DataFrame
@@ -157,6 +158,18 @@ def hist_2D_of_feats(
     bin_width: tuple[int, int] | None
         Set the bin width for the histogram using a (width_x, width_y)
         tuple. If None, the default bin width will be used.
+    figsize: tuple[float, float] | None
+        Set the figure size using a (width, height) tuple.
+        If None, the default figure size will be used.
+    tight_layout: bool
+        If True, plt.tight_layout() will be called to adjust the figure layout.
+    colormap: str
+        The colormap to use for the histogram.
+
+    Returns
+    -------
+    tuple[plt.Figure, plt.Axes]
+        The figure and axes objects.
     """
 
     assert (
@@ -179,6 +192,7 @@ def hist_2D_of_feats(
         x=x_column_name,
         y=y_column_name,
         binwidth=bin_width,
+        cmap=cmap,
         ax=ax,
     )
 

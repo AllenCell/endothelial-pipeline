@@ -21,7 +21,8 @@ DPI_PLOTS = 1000
 
 IMAGE_PANEL_SIZE = (3, 3)
 PLOT_PANEL_SIZE = (1.2, 1.2)
-CROP_YX = (slice(300, -300), slice(300, -300))
+# CROP_YX = (slice(300, -300), slice(300, -300))
+CROP_YX = (slice(500, -500), slice(500, -500))
 
 
 def save_panel_thumbnail(
@@ -122,7 +123,7 @@ def make_imaging_panels() -> None:
     for chan_name in imaging_panels:
         image = image_dict[chan_name]
         image_clipped = np.clip(
-            image, a_min=np.percentile(image, 0.01), a_max=np.percentile(image, 99.9)
+            image, a_min=np.percentile(image, 0.04), a_max=np.percentile(image, 99.6)
         )
         image_normd = rescale_intensity(image_clipped, in_range="image", out_range=np.uint16)
         image_dict[chan_name] = image_normd
@@ -225,7 +226,7 @@ def make_classic_feature_panels() -> None:
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
-    fontsize = 6
+    fontsize = 8
     plt.rcParams.update(
         {
             "pdf.fonttype": 42,
@@ -237,7 +238,9 @@ def make_classic_feature_panels() -> None:
     )
 
     out_dir = get_output_path(__file__, "classic_feature_panels")
-    dataset_name_list = load_dataset_collection_config("pca_reference").datasets
+
+    # dataset_name_list = load_dataset_collection_config("pca_reference").datasets
+    dataset_name_list = ["20250818_20X", "20250618_20X", "20250611_20X"]
 
     for dataset_name in dataset_name_list:
         # break
@@ -258,35 +261,49 @@ def make_classic_feature_panels() -> None:
         # (e.g. axis limits, axis titles, bin widths, etc.)
         feats_plot_args = get_seg_feat_plot_args()
 
-        for feat in feats_to_plot:
-            # break
-            out_path = out_dir / f"{dataset_name}_{feat}.pdf"
+        colormaps = [
+            "inferno",
+            "viridis",
+            "cividis",
+            "flare",
+            "crest",
+            "mako",
+            "mako_r",
+            "rocket",
+            "rocket_r",
+        ]
+        for cmap in colormaps:
+            for feat in feats_to_plot:
+                # break
+                Path.mkdir(out_dir / cmap, exist_ok=True)
+                out_path = out_dir / cmap / f"{dataset_name}_{feat}.pdf"
 
-            fig, ax = hist_2D_of_feats(
-                live_seg_feats_df,
-                x_column_name=feats_plot_args["time_hrs"]["column_name"],
-                y_column_name=feats_plot_args[feat]["column_name"],
-                x_label=feats_plot_args["time_hrs"]["label"],
-                y_label=feats_plot_args[feat]["label"],
-                x_lims=feats_plot_args["time_hrs"]["lims"],
-                y_lims=feats_plot_args[feat]["lims"],
-                set_xticks=feats_plot_args["time_hrs"]["ticks"],
-                set_yticks=feats_plot_args[feat]["ticks"],
-                discrete_xticks=feats_plot_args["time_hrs"]["discrete_ticks"],
-                discrete_yticks=feats_plot_args[feat]["discrete_ticks"],
-                minor_ticks="xy",
-                bin_width=(
-                    feats_plot_args["time_hrs"]["bin_width"],
-                    feats_plot_args[feat]["bin_width"],
-                ),
-                figsize=PLOT_PANEL_SIZE,
-                tight_layout=False,
-            )
-            ax.set_title("")
-            if "orientation" in feat:
-                ax = mark_parallel(ax, color="red")
-                ax = mark_perpendicular(ax, color="red")
-            fig.savefig(out_path, bbox_inches="tight")
+                fig, ax = hist_2D_of_feats(
+                    live_seg_feats_df,
+                    x_column_name=feats_plot_args["time_hrs"]["column_name"],
+                    y_column_name=feats_plot_args[feat]["column_name"],
+                    x_label=feats_plot_args["time_hrs"]["label"],
+                    y_label=feats_plot_args[feat]["label"],
+                    x_lims=feats_plot_args["time_hrs"]["lims"],
+                    y_lims=feats_plot_args[feat]["lims"],
+                    set_xticks=feats_plot_args["time_hrs"]["ticks"],
+                    set_yticks=feats_plot_args[feat]["ticks"],
+                    discrete_xticks=feats_plot_args["time_hrs"]["discrete_ticks"],
+                    discrete_yticks=feats_plot_args[feat]["discrete_ticks"],
+                    minor_ticks="xy",
+                    bin_width=(
+                        feats_plot_args["time_hrs"]["bin_width"],
+                        feats_plot_args[feat]["bin_width"],
+                    ),
+                    figsize=PLOT_PANEL_SIZE,
+                    tight_layout=False,
+                    cmap=cmap,
+                )
+                ax.set_title("")
+                if "orientation" in feat:
+                    ax = mark_parallel(ax)
+                    ax = mark_perpendicular(ax)
+                fig.savefig(out_path, bbox_inches="tight")
 
 
 ## NOTE TO SELF: END OF LIBRARY CODE
