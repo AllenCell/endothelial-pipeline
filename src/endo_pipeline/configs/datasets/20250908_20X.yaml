@@ -34,6 +34,33 @@ valid_timepoints: null
 include_scenes: null
 notes: Timelapse imaging of AICS-177 CDH5 KD/truncation cl. 26 (biallelic mutant)
   under low SS conditions
-timepoint_annotations: null
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [40, 53, 243, 251, 323, 459, 466, 541, 543]
+    1: [251, 253, 254, 331, 351, 527]
+    2: [60, 244, 250, 253, 254, 278, 477, 528, 540, 542, 543]
+    3: [35, 250, 252, 254, 263, 276, 317, 540]
+    4: [32, 250, 253, 309, 393, 540]
+    5: [21, 22, 250, 251, 253, 263, 540, 567]
+  auto_bf_temp_artifact:
+    0: [146, 150, 272, 528, 542]
+    1: [121, 278, 301, 309, 318, 401, 406, 527, 528]
+    2: [121, 140, 167, 185, 247, 278, 304, 336, 502, 528, 543]
+    3: [152, 203, 263, 278, 310, 376, 540]
+    4: [2, 11, 82, 122, 138, 200, 232, 254, 263, 277, 314, 449, 543, 551]
+    5: [44, 125, 138, 139, 269, 328, 353, 477, 527, 542, 567]
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 8
+  1: 7
+  2: 7
+  3: 8
+  4: 9
+  5: 10
