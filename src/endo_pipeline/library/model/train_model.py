@@ -180,6 +180,12 @@ def _generate_overrides_for_finetuning(
     multiplier = (1 - cache_rate) / (cache_rate * replace_rate) + 1
     effective_max_epochs = int(max_num_epochs * multiplier)
 
+    # Calculate effective epochs
+    multiplier = (1 - cache_rate) / (cache_rate * replace_rate) + 1
+    effective_min_epochs = int(1000 * multiplier)
+    effective_max_epochs = int(max_num_epochs * multiplier)
+    effective_save_images_epochs = int(10 * multiplier)
+
     overrides = {
         # point to already projected paired dataset
         "data.train_dataloaders.dataset.dataframe_path": train_dataframe_path,
@@ -201,7 +207,9 @@ def _generate_overrides_for_finetuning(
         "train": True,
         # turn off config printing, will get saved locally instead
         "extras.print_config": False,
-        # set the max number of epochs for training
+        # override the effective epochs calculations
+        "model.save_images_every_n_epochs": effective_save_images_epochs,
+        "trainer.min_epochs": effective_min_epochs,
         "trainer.max_epochs": effective_max_epochs,
         "trainer.log_every_n_steps": log_every_n_steps,
         # updated the run name
