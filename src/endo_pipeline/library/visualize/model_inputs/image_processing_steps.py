@@ -11,7 +11,7 @@ from endo_pipeline.library.process.image_processing import (
     std_dev,
     z_score_normalize_intensity,
 )
-from endo_pipeline.workflows.production.image_data import LOG_EPSILON
+from endo_pipeline.settings.image_data import LOG_EPSILON
 
 
 def process_brightfield(bf_stack: da.Array) -> tuple[

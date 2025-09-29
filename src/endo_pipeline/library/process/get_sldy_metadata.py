@@ -13,7 +13,7 @@ from endo_pipeline.configs.dataset_io import (
     get_original_path,
     ipython_cli_flexecute,
 )
-from endo_pipeline.workflows.production.image_data import AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
+from endo_pipeline.settings.image_data import AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
 
 
 def get_nested_keys(

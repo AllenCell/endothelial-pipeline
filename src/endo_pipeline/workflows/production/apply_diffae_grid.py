@@ -56,20 +56,13 @@ def main(
 
     from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import build_fms_annotations, load_model, upload_file_to_fms
+    from endo_pipeline.io import load_model
     from endo_pipeline.library.model import (
         apply_model_on_grid_of_crops_from_one_dataset,
         upload_prediction_dataframe_to_fms,
     )
     from endo_pipeline.library.model.image_loading import get_include_positions
-    from endo_pipeline.manifests import (
-        DataframeLocation,
-        DataframeManifest,
-        get_model_location_for_run,
-        load_dataframe_manifest,
-        load_model_manifest,
-        save_dataframe_manifest,
-    )
+    from endo_pipeline.manifests import get_model_location_for_run, load_model_manifest
     from endo_pipeline.settings import Z_SLICE_OFFSETS
 
     logger = logging.getLogger(__name__)

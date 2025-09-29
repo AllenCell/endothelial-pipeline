@@ -5,7 +5,7 @@ import pandas as pd
 from endo_pipeline.configs import DatasetConfig, get_available_zarr_files
 from endo_pipeline.io.input import load_zarr_as_dask_array
 from endo_pipeline.io.output import get_output_path, save_plot_to_path
-from endo_pipeline.workflows.production.image_data import NUM_ZSLICES
+from endo_pipeline.settings.image_data import NUM_ZSLICES
 
 THRESHOLD = 1
 """Percentage to use for thresholding dark and bright outliers."""

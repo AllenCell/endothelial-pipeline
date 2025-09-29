@@ -5,7 +5,7 @@ from bioio.writers import ome_zarr_writer_2 as ome_zarr_writer
 from bioio_base.types import PhysicalPixelSizes
 
 from endo_pipeline.configs import dataset_io
-from endo_pipeline.workflows.production.image_data import AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
+from endo_pipeline.settings.image_data import AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
 
 DEFAULT_XY_SCALING = [0.5, 0.5]
 DEFAULT_Z_SCALING = [1.0, 1.0]

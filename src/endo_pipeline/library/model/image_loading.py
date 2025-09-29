@@ -23,7 +23,7 @@ from endo_pipeline.configs import (
     get_position_integer_from_zarr_file_path,
 )
 from endo_pipeline.library.process.z_stack_selection import get_plane_indices
-from endo_pipeline.workflows.production.image_data import LOG_EPSILON, NUM_ZSLICES
+from endo_pipeline.settings.image_data import LOG_EPSILON, NUM_ZSLICES
 
 logger = logging.getLogger(__name__)
 
