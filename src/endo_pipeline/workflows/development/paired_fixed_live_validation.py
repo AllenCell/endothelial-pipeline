@@ -3,21 +3,20 @@ def main(model_name: str = "diffae_finetuned_for_fixed", n_pcs: int = 3) -> None
     Validates integration of paired fixed/live data for integration of IF data.
 
     To do this, it does the following:
-        1. Applies a fine-tuned diffAE model to extract features
-        2. Projects the features into the reference PC space
-        3. Constructs confidence ellipses to determine fixed/live PC mapping
-           and uncertainty
-        4. Plots the raw data for paired fixed and live PC values, confidence
-              ellipses, linear model mapping between fixed and live data, and
-              uncertainty.
+    1. Applies a fine-tuned diffAE model to extract features
+    2. Projects the features into the reference PC space
+    3. Constructs confidence ellipses to determine fixed/live PC mapping
+        and uncertainty
+    4. Plots the raw data for paired fixed and live PC values, confidence
+        ellipses, linear model mapping between fixed and live data, and
+        uncertainty.
 
     Parameters
     ----------
     model_name
         Name of model to use for feature extraction for fixed data.
-        Defaults to version of 0410 model fine-tuned for fixed data.
     n_pcs
-        Number of PCs to validate. Defaults to 3.
+        Number of PCs to validate.
     """
 
     from pathlib import Path
