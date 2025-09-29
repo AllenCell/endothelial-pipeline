@@ -611,7 +611,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
     user_overrides: str | dict | None = None,
     z_slice_offsets: tuple[int, int] | None = None,
     only_include_positions: list[int] | None = None,
-) -> None:
+) -> Path:
     """
     Apply a DiffAE model to a single dataset with
     cell segmentation and tracking.

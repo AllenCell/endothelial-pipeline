@@ -10,6 +10,7 @@ if typing.TYPE_CHECKING:
 import dask.array as da
 import pandas as pd
 from bioio import BioImage
+from omegaconf import DictConfig, ListConfig
 
 from endo_pipeline.io.output import get_output_path
 from endo_pipeline.manifests import DataframeLocation, ImageLocation, ModelLocation
@@ -321,7 +322,7 @@ def resolve_dataframe_location(location: DataframeLocation) -> str:
     raise FileNotFoundError("Unable to resolve dataframe location; no available locations.")
 
 
-def get_config_dict_from_mlflow(mlflowid: str) -> dict:
+def get_config_dict_from_mlflow(mlflowid: str) -> DictConfig | ListConfig:
     """
     Get config dict from given MLFlow run ID.
 
@@ -432,7 +433,9 @@ def get_checkpoint_path_from_mlflow(mlflowid: str) -> Path:
     checkpoint_uri = f"runs:/{mlflowid}/{checkpoint}"
 
     # Download artifact to output location and return path
-    return Path(MLFLOW.artifacts.download_artifacts(artifact_uri=checkpoint_uri, dst_path=path))
+    return Path(
+        MLFLOW.artifacts.download_artifacts(artifact_uri=checkpoint_uri, dst_path=path.as_posix())
+    )
 
 
 def load_model_from_mlflow(mlflowid: str) -> "CytoDLModel":
