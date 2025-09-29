@@ -11,7 +11,7 @@ microscope: 3i
 objective: 20X
 shear_stress_regime: shear_stress_regime
 pixel_size_xy_in_um: 0.382
-duration: 288
+duration: 577
 time_interval_in_minutes: 5.0
 n_total_positions: 6
 original_channel_indices:
@@ -28,7 +28,7 @@ zarr_channel_indices:
   channel_640: null
 flow_conditions:
 - start: -15
-  stop: 288
+  stop: 577
   shear_stress: 5.97
 valid_timepoints: null
 include_scenes: null
