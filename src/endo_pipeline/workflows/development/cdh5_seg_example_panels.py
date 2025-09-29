@@ -20,8 +20,7 @@ DPI_IMAGING = 300
 DPI_PLOTS = 1000
 
 IMAGE_PANEL_SIZE = (3, 3)
-PLOT_PANEL_SIZE = (1.2, 1.2)
-# CROP_YX = (slice(300, -300), slice(300, -300))
+PLOT_PANEL_SIZE = (1.1, 1.1)
 CROP_YX = (slice(500, -500), slice(500, -500))
 
 
@@ -50,10 +49,10 @@ def make_imaging_panels() -> None:
     from endo_pipeline.library.process.general_image_preprocessing import save_image_output
     from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
-    dataset_name = "20250728_20X"
+    dataset_name = "20250818_20X"
     position = 0
     validation_frames = list(range(0, 577, 48))
-    timeframe = validation_frames[5]
+    timeframe = validation_frames[4]
 
     out_dir_full = get_output_path(__file__, "images_high_quality")
     out_dir_thumb = get_output_path(__file__, "images_thumbnails")
@@ -239,11 +238,12 @@ def make_classic_feature_panels() -> None:
 
     out_dir = get_output_path(__file__, "classic_feature_panels")
 
-    # dataset_name_list = load_dataset_collection_config("pca_reference").datasets
-    dataset_name_list = ["20250818_20X", "20250618_20X", "20250611_20X"]
+    dataset_name_list = load_dataset_collection_config("pca_reference").datasets
+    # NOTE THE BELOW SHOULD BE THE NEW PCA REFERENCE DATASET AND THE ABOVE THE
+    # OLD ONE. REMOVE THE LINE BELOW ONCE "pca_reference" POINTS TO NEW ONES.
+    dataset_name_list += ["20250818_20X", "20250618_20X", "20250611_20X"]
 
     for dataset_name in dataset_name_list:
-        # break
         # Load the tables with cdh5 segmentation measurements
         live_seg_manifest = load_dataframe_manifest("live_merged_seg_features")
         live_seg_location = get_dataframe_location_for_dataset(live_seg_manifest, dataset_name)
@@ -264,17 +264,10 @@ def make_classic_feature_panels() -> None:
         colormaps = [
             "inferno",
             "viridis",
-            "cividis",
-            "flare",
-            "crest",
             "mako",
-            "mako_r",
-            "rocket",
-            "rocket_r",
         ]
         for cmap in colormaps:
             for feat in feats_to_plot:
-                # break
                 Path.mkdir(out_dir / cmap, exist_ok=True)
                 out_path = out_dir / cmap / f"{dataset_name}_{feat}.pdf"
 
