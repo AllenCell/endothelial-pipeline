@@ -6,12 +6,8 @@ from typing import Literal
 
 from tqdm import tqdm
 
-from endo_pipeline.configs import (
-    get_datasets_in_collection,
-    load_all_dataset_configs,
-    load_dataset_config,
-    load_model_config,
-)
+from endo_pipeline.cli import Datasets
+from endo_pipeline.configs import load_all_dataset_configs, load_dataset_config, load_model_config
 from endo_pipeline.configs.model_config_utils import get_labelfree_nuclei_prediction_model_name
 from endo_pipeline.io import (
     build_fms_annotations,
@@ -181,7 +177,7 @@ def main(
         "nuclei_labelfree",
         "merged_live_data_manifests",
     ],
-    datasets: str | None = None,
+    datasets: Datasets,
 ) -> None:
     """
     This is a convenience function to upload multiple datasets to FMS
@@ -206,13 +202,7 @@ def main(
         "nuclei_labelfree": fms_upload_nuc_get_measured_features,
         "merged_live_data_manifests": fms_upload_make_seg_feats_manifest,
     }
-    if datasets is None:
-        # Get the list of all analyzed datasets
-        dataset_name_list = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
-    else:
-        dataset_name_list = datasets.split(",")
-        print(f"Uploading {dataset_name_list}")
-        pass
+    print(f"Uploading {datasets}")
 
     all_available_datasets = load_all_dataset_configs()
     available_live_datasets = []
@@ -236,7 +226,7 @@ def main(
         },
     }
 
-    for dataset_name in tqdm(dataset_name_list):
+    for dataset_name in tqdm(datasets):
         if dataset_name not in available_live_datasets:
             error_msg = (
                 f"Dataset {dataset_name} is not in the list of available live datasets: "

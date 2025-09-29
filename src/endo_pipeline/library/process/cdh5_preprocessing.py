@@ -630,18 +630,32 @@ def split_multinucleate_regions(
     # if nuclei with different labels are touching then separate them
     # only if a segmentation boundary or the cdh5 threshold would have
     # separated them
-    nuc_seg_merge_adjacent = label(nuclei_segmentations.astype(bool))
+    nuc_seg_merge_adjacent = label(
+        nuclei_segmentations.astype(bool)
+        * ~(find_boundaries(cell_segmentations) + cell_boundary_thresh)
+    )
 
     # remove any nuclei do not have more than half their area in
     # a single segmented region
     # get properties of nuclei predictions and original segmentations
-    nuc_props = regionprops(label_image=nuc_seg_merge_adjacent, intensity_image=cell_segmentations)
-    nuc_prop_sizes = {prop.label: prop.area for prop in nuc_props}
-
-    reg_props = regionprops(
-        label_image=cell_segmentations,
-        intensity_image=nuc_seg_merge_adjacent * ~cell_boundary_thresh,
+    nuc_props = regionprops(nuclei_segmentations)
+    nuc_prop_sizes = dict(
+        zip([prop.label for prop in nuc_props], [prop.area for prop in nuc_props])
     )
+    nuc_props_new = regionprops(
+        label_image=nuc_seg_merge_adjacent, intensity_image=nuclei_segmentations
+    )
+    nuc_prop_fracs = {}
+    for prop in nuc_props_new:
+        nuc_prop_fracs.update(
+            {
+                prop.label: prop.area / nuc_prop_sizes[lab]
+                for lab in np.unique(prop.intensity_image)
+                if lab != 0
+            }
+        )
+
+    reg_props = regionprops(label_image=cell_segmentations, intensity_image=nuc_seg_merge_adjacent)
 
     # keep only nuclei that have more than half of their area in a
     # single segmented region
@@ -651,9 +665,7 @@ def split_multinucleate_regions(
         nuc_labels = []
         for nuc_lab in np.unique(prop.intensity_image):
             if nuc_lab != 0:
-                nuc_frac = (
-                    np.count_nonzero(prop.intensity_image == nuc_lab) / nuc_prop_sizes[nuc_lab]
-                )
+                nuc_frac = nuc_prop_fracs[nuc_lab]
                 if nuc_frac > nuclei_ambiguity_threshold:
                     nuc_labels.append(nuc_lab)
         nuclei_labels_per_region[prop.label] = np.array(nuc_labels)
