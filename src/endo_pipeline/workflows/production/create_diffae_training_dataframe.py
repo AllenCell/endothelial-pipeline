@@ -93,7 +93,7 @@ def main(
         if DEMO_MODE:
             frame_start = 0
             frame_stop = 1 if dataset_config.is_timelapse else 0
-            only_include_positions = only_include_positions[0:1]
+            only_include_positions = only_include_positions[0:3]
         else:
             frame_start = None
             frame_stop = None
