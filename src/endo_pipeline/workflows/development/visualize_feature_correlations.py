@@ -1,7 +1,3 @@
-from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
-    get_df_for_feature_correlation_viz,
-)
-
 TAGS = ["diffae_features", "visualization", "pc_interpretation"]
 
 CLASSICAL_FEATURE_COLUMNS = [
@@ -64,6 +60,7 @@ def main(
     )
     from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
         get_correlation_matrix_df,
+        get_df_for_feature_correlation_viz,
         plot_and_save_clustermap,
         plot_and_save_heatmap,
         plot_multi_feature_correlations,
