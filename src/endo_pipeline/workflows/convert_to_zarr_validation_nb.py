@@ -5,7 +5,6 @@ from bioio import BioImage
 
 from endo_pipeline.configs import (
     get_available_dataset_names,
-    get_datasets_in_collection,
     get_zarr_file_for_position,
     load_dataset_config,
 )
@@ -69,7 +68,7 @@ def get_channel_crop(
 # %%
 # Quickly visualize crop in first position,
 # first timepoint of each zarr to confirm channel order is correct
-for dataset_name in get_datasets_in_collection("timelapse"):
+for dataset_name in get_available_dataset_names():
     config = load_dataset_config(dataset_name)
     fmsid = config.fmsid
     barcode = config.barcode
