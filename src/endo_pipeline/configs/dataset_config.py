@@ -1,6 +1,6 @@
 """Data structures for dataset configs."""
 
-from enum import StrEnum
+from enum import Enum, StrEnum
 from typing import Literal
 
 from mashumaro.config import BaseConfig
@@ -14,6 +14,35 @@ SampleType = Literal["live", "fixed", "fixed-methanol"]
 
 ObjectiveType = Literal["20X", "40X"]
 """Valid objective types."""
+
+
+class ShearStressRegime(Enum):
+    """Shear stress regime categories with target shear stress ranges."""
+
+    NO = ("no", 0.0, 0.0)
+    """No shear stress."""
+
+    MIN = ("min", 4.5, 7.2)
+    """Minimum shear stress tested (target: 6 dyn/cm2)."""
+
+    LOW = ("low", 8.5, 9.1)
+    """Low shear stress (target: 9 dyn/cm2)"""
+
+    MEDIUM = ("medium", 10.0, 12.5)
+    """Medium shear stress (target: 12 dyn/cm2)."""
+
+    HIGH = ("high", 13.0, 16.0)
+    """High shear stress (target: 15 dyn/cm2)."""
+
+    MAX = ("max", 19.5, 35.0)
+    """Maximum shear stress tested (target: 20 dyn/cm2)."""
+
+    def __new__(cls, value, lower, upper):
+        obj = object.__new__(cls)
+        obj._value_ = value
+        obj.lower = lower
+        obj.upper = upper
+        return obj
 
 
 class TimepointAnnotation(StrEnum):
@@ -146,7 +175,7 @@ class DatasetConfig:
     objective: ObjectiveType
     """Objective that dataset was collected under."""
 
-    shear_stress_regime: str
+    shear_stress_regime: list[ShearStressRegime]
     """Shear stress regime the dataset was collected under."""
 
     pixel_size_xy_in_um: float
