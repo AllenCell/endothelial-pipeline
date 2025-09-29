@@ -174,8 +174,12 @@ def build_fms_annotations(
     include_git_info
         True to add branch name and commit hash of code used to generate the
         file to the annotations, False otherwise.
-    model
-        The model config used to generate the file, if applicable.
+    model_manifest_name
+        The model manifest name, if applicable.
+    run_name
+        The run name within the model manifest, if applicable.
+    model_location
+        The model location object, if applicable.
     additional_notes
         Additional relevant notes to append to notes annotation.
     """

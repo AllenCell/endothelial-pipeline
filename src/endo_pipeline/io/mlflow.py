@@ -3,7 +3,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 try:
-    import mlflow as MLFLOW
+    import mlflow as MLFLOW  # noqa: N812
 except ModuleNotFoundError:
     logger.error("Required dependency [ mlflow ] not found")
     raise

@@ -14,12 +14,29 @@ def main(
     """
     Finetune a DiffAE model to align features for paired datasets.
 
+    **Training run naming**
+
+    If a finetuned model manifest name is not given, it will be automatically constructed based
+    on the dataset pair type and the resolution level of the zarr files. The format is
+    ``finetune_{dataset_pair_type}_resolution_{resolution_level}``.
+
+    The training runs instantiated from the this workflow will be saved in the
+    corresponding model manifest, with run name either provided by the user or automatically
+    generated to be unique ( ``run_name = f"diffae_{timestamp}"`` ).
+
+    If the user provides a run name that already exists in the manifest, a unique name will be
+    generated and a warning will be logged.
+
     Parameters
     ----------
-    model_manifest_name
-        Name of the model manifest to load the model from.
-    run_name
-        Name of the model run to apply. If None, uses the most recent run.
+    base_model_manifest_name
+        Name of the model manifest to load the baseline model from.
+    base_run_name
+        Name of the baseline model run to apply. If None, uses the most recent run.
+    finetuned_model_manifest_name
+        Optional, name of the model manifest to save the finetuned model to.
+    finetuned_run_name
+        Optional, name to give the finetuned model run.
     dataset_pair_type
         The type of dataset pairs to use for finetuning ("live_fixed" or "20x_40x").
     resolution_level

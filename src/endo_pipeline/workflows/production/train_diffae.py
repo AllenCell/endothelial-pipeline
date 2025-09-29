@@ -15,7 +15,9 @@ def main(
 
     If a model manifest name is not given, it will be automatically constructed based on the
     resolution level of the zarr files,the crop size, and whether cell piling exclusion is
-    enabled or not. The training runs instantiated from the this workflow will be saved in the
+    enabled or not.
+
+    The training runs instantiated from the this workflow will be saved in the
     corresponding model manifest, with run name either provided by the user or automatically
     generated to be unique ( ``run_name = f"diffae_{timestamp}"`` ).
 
