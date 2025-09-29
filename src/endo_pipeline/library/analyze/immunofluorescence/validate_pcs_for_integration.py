@@ -152,10 +152,10 @@ def apply_model_paired_fixed_live(
     overrides = {"model.spatial_inferer.splitter.overlap": 0.9}
 
     # Apply on target/moving images - start by constructing overrides
-    fixed_overrides = overrides.copy()  # copy to avoid overriding the original
-    fixed_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "target"})
-    fixed_overrides = generate_overrides_for_model_eval(
-        fixed_overrides,
+    target_overrides = overrides.copy()  # copy to avoid overriding the original
+    target_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "target"})
+    target_overrides = generate_overrides_for_model_eval(
+        target_overrides,
         save_path=str(save_path),
         data_path=str(data_save_path),
         ckpt_path=path_dict["checkpoint_path"],
@@ -163,18 +163,18 @@ def apply_model_paired_fixed_live(
         model_name=model_name,
     )
     # the following lines of override updates are temporary while we adjust our model/config infrastructure
-    fixed_overrides.update(
+    target_overrides.update(
         {
             "data.predict_dataloaders.dataset._target_": "endo_pipeline.library.model.image_loading.MultiDimImageDataset"
         }
     )
-    fixed_overrides["data.predict_dataloaders.dataset.cache_rate"] = 1.0
-    fixed_overrides["data.predict_dataloaders.dataset.replace_rate"] = 0.1
-    fixed_overrides["data.predict_dataloaders.dataset.num_init_workers"] = 24
-    fixed_overrides["data.predict_dataloaders.dataset.num_replace_workers"] = 24
+    target_overrides["data.predict_dataloaders.dataset.cache_rate"] = 1.0
+    target_overrides["data.predict_dataloaders.dataset.replace_rate"] = 0.1
+    target_overrides["data.predict_dataloaders.dataset.num_init_workers"] = 24
+    target_overrides["data.predict_dataloaders.dataset.num_replace_workers"] = 24
 
     # Apply model on target/moving images - override config and run model prediciton
-    model.override_config(fixed_overrides)
+    model.override_config(target_overrides)
     # the following three lines are temporary while we adjust our model/config infrastructure
     rm_keys = ["num_workers", "cache_num", "csv_path", "dict_meta"]
     for key in rm_keys:
