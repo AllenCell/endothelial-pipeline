@@ -69,7 +69,7 @@ def get_channel_crop(
 # %%
 # Quickly visualize crop in first position,
 # first timepoint of each zarr to confirm channel order is correct
-for dataset_name in ["20250903_20X", "20250908_20X"]:
+for dataset_name in get_datasets_in_collection("timelapse"):
     config = load_dataset_config(dataset_name)
     fmsid = config.fmsid
     barcode = config.barcode
