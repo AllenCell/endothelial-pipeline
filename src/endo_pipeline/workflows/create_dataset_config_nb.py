@@ -37,6 +37,7 @@ from endo_pipeline.configs import (
     FlowCondition,
     ShearStressRegime,
     save_dataset_config,
+    validate_dataset_config,
 )
 
 # %%
@@ -134,4 +135,6 @@ dataset = DatasetConfig(
     #     }
 )
 save_dataset_config(dataset)
+validate_dataset_config(dataset.name)
+
 # %%
