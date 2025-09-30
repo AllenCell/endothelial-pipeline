@@ -13,11 +13,8 @@ if __name__ != "__main__":
     raise ImportError("This module is a notebook and is not meant to be imported")
 
 # %%
-from endo_pipeline.manifests import (  # noqa: F401, I001
-    ModelLocation,
-    ModelManifest,
-    save_model_manifest,
-)
+from endo_pipeline.manifests import ModelLocation  # noqa: F401
+from endo_pipeline.manifests import ModelManifest, save_model_manifest  # noqa: I001
 
 # %%
 model_manifest = ModelManifest(
