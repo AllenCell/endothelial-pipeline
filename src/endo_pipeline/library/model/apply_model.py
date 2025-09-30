@@ -97,6 +97,7 @@ def generate_overrides_for_model_eval(
     model_name: str,
     prediction_filename_suffix: str | None = None,
     cache_rate: float = 1.0,
+    num_gpus: int = 1,
 ) -> dict:
     """
     Generate overrides for the CytoDLModel configuration
@@ -125,6 +126,17 @@ def generate_overrides_for_model_eval(
         },
         "extras.print_config": False,
     }
+
+    if num_gpus is not None:
+        overrides["trainer.accelerator"] = "gpu"
+        overrides["trainer.devices"] = num_gpus
+        if num_gpus == 1:
+            overrides["trainer.strategy"] = "auto"
+    else:
+        overrides["trainer.accelerator"] = "cpu"
+        overrides["trainer.devices"] = 1
+        overrides["trainer.strategy"] = "auto"
+
     overrides.update(user_overrides)
     return overrides
 
@@ -486,6 +498,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     frame_stop: int | None = None,
     frame_step: int | None = None,
     only_include_positions: list[int] | None = None,
+    num_gpus: int = 1,
 ) -> Path:
     """
     Apply a DiffAE model to a single dataset.
@@ -519,6 +532,8 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Step size for frame inclusion, if None, include every frame.
     only_include_positions
         List of position indices to include, if None, include all positions.
+    num_gpus
+        Number of GPUs to use for model prediction.
 
     Returns
     -------
@@ -583,6 +598,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         dataset_name=dataset_config.name,
         model_name=run_name,
         prediction_filename_suffix=prediction_filename_suffix,
+        num_gpus=num_gpus,
     )
     model.override_config(overrides)
     local_config_save_path = get_output_path("models", "evaluation_configs")

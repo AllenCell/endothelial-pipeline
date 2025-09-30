@@ -9,7 +9,7 @@ from git import Repo
 from matplotlib.figure import Figure
 
 from endo_pipeline.configs import DatasetConfig
-from endo_pipeline.manifests import ModelLocation, ModelManifest
+from endo_pipeline.manifests import ModelManifest
 
 logger = logging.getLogger(__name__)
 

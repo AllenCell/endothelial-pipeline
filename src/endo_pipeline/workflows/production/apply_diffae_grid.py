@@ -54,7 +54,7 @@ def main(
     import logging
     from pathlib import Path
 
-    from endo_pipeline import DEMO_MODE
+    from endo_pipeline import DEMO_MODE, NUM_GPUS
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import load_model
     from endo_pipeline.library.model import (
@@ -112,6 +112,7 @@ def main(
             frame_start=frame_start,
             frame_stop=frame_stop,
             only_include_positions=only_include_positions,
+            num_gpus=NUM_GPUS,
         )
 
         if upload_to_fms:
