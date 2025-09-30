@@ -66,7 +66,7 @@ def main(
     # load model from manifest
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = list(model_manifest.locations.keys())[-1] if run_name is None else run_name
-    model_location = get_model_location_for_run(model_manifest, run_name)
+    model_location = get_model_location_for_run(model_manifest, run_name_)
     model = load_model(model_location)
 
     # apply model to each dataset
