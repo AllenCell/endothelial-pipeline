@@ -97,7 +97,7 @@ def generate_overrides_for_model_eval(
     model_name: str,
     prediction_filename_suffix: str | None = None,
     cache_rate: float = 1.0,
-    num_gpus: int = 1,
+    num_gpus: int | None = None,
 ) -> dict:
     """
     Generate overrides for the CytoDLModel configuration
@@ -544,17 +544,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         model config manifest.
     """
 
-    if not torch.cuda.is_available():
-        logger.error("CUDA is not available. Please run on a GPU machine.")
-        raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
-    elif torch.cuda.device_count() < 1:
-        logger.error(
-            "CUDA available, but no GPU devices found. "
-            "Please set `CUDA_VISIBLE_DEVICES` to a valid GPU device "
-            "or run workflow with GPU setup enabled (-g flag)."
-        )
-        raise RuntimeError("CUDA available, but no GPU devices found.")
-
     # set default output path
     save_path = get_output_path("models", run_name, dataset_config.name)
 
@@ -655,17 +644,6 @@ def apply_model_on_tracked_crops_from_one_dataset(
     only_include_positions
         List of position indices to include, if None, include all positions.
     """
-
-    if not torch.cuda.is_available():
-        logger.error("CUDA is not available. Please run on a GPU machine.")
-        raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
-    elif torch.cuda.device_count() < 1:
-        logger.error(
-            "CUDA available, but no GPU devices found. "
-            "Please set `CUDA_VISIBLE_DEVICES` to a valid GPU device "
-            "or run workflow with GPU setup enabled (-g flag)."
-        )
-        raise RuntimeError("CUDA available, but no GPU devices found.")
 
     overrides = load_overrides(user_overrides)
 
