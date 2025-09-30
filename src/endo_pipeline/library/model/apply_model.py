@@ -722,7 +722,14 @@ def upload_prediction_dataframe_to_fms(
     try:
         manifest = load_dataframe_manifest(dataframe_manifest_name)
     except FileNotFoundError:
-        manifest = DataframeManifest(name=dataframe_manifest_name, workflow=workflow_name)
+        logger.info(
+            "Dataframe manifest [ %s ] not found, creating a new one.",
+            dataframe_manifest_name,
+        )
+        parameters = {} if workflow_parameters is None else workflow_parameters
+        manifest = DataframeManifest(
+            name=dataframe_manifest_name, workflow=workflow_name, parameters=parameters
+        )
 
     manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
     save_dataframe_manifest(manifest)

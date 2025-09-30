@@ -83,7 +83,6 @@ def main(
         prediction_path = apply_model_on_tracked_crops_from_one_dataset(
             model=model,
             dataset_config=dataset_config,
-            upload_to_fms=upload_to_fms,
             save_path=save_path,
             user_overrides=user_overrides,
             z_slice_offsets=Z_SLICE_OFFSETS,

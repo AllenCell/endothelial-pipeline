@@ -1,0 +1,12 @@
+name: testing
+workflow: (unknown workflow)
+parameters:
+  training_datasets:
+  - 20241210_20X
+  - 20241016_20X
+  - 20241005_20X
+  - 20241120_20X
+  - 20241203_20X
+locations:
+  run_name:
+    mlflowid: ae7f25b4109c47809d3e2ed1b7120e50
