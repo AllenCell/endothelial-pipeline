@@ -1,6 +1,3 @@
-# need to import for type hinting
-from pathlib import Path
-
 from endo_pipeline.cli import Datasets
 
 TAGS = ["apply_diffae_model", "diffae_features"]
@@ -11,7 +8,7 @@ def main(
     run_name: str | None = None,
     datasets: Datasets | None = None,
     upload_to_fms: bool = True,
-    save_path: str | Path | None = None,
+    save_path: str | None = None,
     user_overrides: str | dict | None = None,
 ) -> None:
     """
@@ -43,6 +40,7 @@ def main(
         The model config is saved to :code:`endo_pipeline/configs/models/{model_name}.yaml`.
     """
     import logging
+    from pathlib import Path
 
     from endo_pipeline import DEMO_MODE, NUM_GPUS
     from endo_pipeline.configs import load_dataset_config
