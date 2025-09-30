@@ -148,6 +148,7 @@ def generate_overrides_for_track_based_crops(
     dataset_name: str,
     model_name: str,
     prediction_filename_suffix: str | None = None,
+    num_gpus: int | None = None,
 ) -> dict[str, Any]:
     """
     Generate overrides for the CytoDLModel configuration
@@ -163,6 +164,7 @@ def generate_overrides_for_track_based_crops(
         data_path=data_path,
         dataset_name=dataset_name,
         model_name=model_name,
+        num_gpus=num_gpus,
     )
 
     # additional overrides specific to track-based crops
@@ -498,7 +500,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     frame_stop: int | None = None,
     frame_step: int | None = None,
     only_include_positions: list[int] | None = None,
-    num_gpus: int = 1,
+    num_gpus: int | None = None,
 ) -> Path:
     """
     Apply a DiffAE model to a single dataset.
@@ -620,6 +622,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
     user_overrides: str | dict | None = None,
     z_slice_offsets: tuple[int, int] | None = None,
     only_include_positions: list[int] | None = None,
+    num_gpus: int | None = None,
 ) -> Path:
     """
     Apply a DiffAE model to a single dataset with
@@ -643,6 +646,8 @@ def apply_model_on_tracked_crops_from_one_dataset(
         Lower and upper bounds for z-slicing.
     only_include_positions
         List of position indices to include, if None, include all positions.
+    num_gpus
+        Number of GPUs to use for model prediction.
     """
 
     overrides = load_overrides(user_overrides)
@@ -679,6 +684,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
         dataset_name=dataset_config.name,
         model_name=run_name,
         prediction_filename_suffix=prediction_filename_suffix,
+        num_gpus=num_gpus,
     )
     model.override_config(overrides)
     model.predict()

@@ -44,7 +44,7 @@ def main(
     """
     import logging
 
-    from endo_pipeline import DEMO_MODE
+    from endo_pipeline import DEMO_MODE, NUM_GPUS
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import load_model
     from endo_pipeline.library.model import (
@@ -88,6 +88,7 @@ def main(
             user_overrides=user_overrides,
             z_slice_offsets=Z_SLICE_OFFSETS,
             only_include_positions=only_include_positions,
+            num_gpus=NUM_GPUS,
         )
 
         if upload_to_fms:
