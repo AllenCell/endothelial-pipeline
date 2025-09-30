@@ -213,9 +213,8 @@ def build_fms_annotations(
     if run_name is not None:
         notes.append(f"Run Name: {run_name}")
 
-    if model_location is not None:
-        if hasattr(model_location, "mlflowid"):
-            metadata_builder.add_annotation("MLFlow run id", model_location.mlflowid)
+    if model_location is not None and model_location.mlflowid is not None:
+        metadata_builder.add_annotation("mlflow run id", model_location.mlflowid)
 
     notes.append(f"\n{additional_notes}")
 
