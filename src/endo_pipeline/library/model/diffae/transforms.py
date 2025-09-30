@@ -34,7 +34,7 @@ class MinStdCropd(Transform):
     def __call__(self, data: pd.DataFrame) -> pd.DataFrame:
         """Call the transform on the input data."""
         for key in self.keys:
-            z_profile = data[key].std(axis=self.axes)[self.channel]
+            z_profile = data[key].std(axis=self.axes)[self.channel]  # type: ignore[index, arg-type]
             min_std = z_profile.argmin().item()
             start, stop = min_std - self.offset, min_std + self.offset
             start = max(start, 0)
