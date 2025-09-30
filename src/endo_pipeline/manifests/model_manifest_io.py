@@ -38,7 +38,7 @@ def save_model_manifest(manifest: ModelManifest) -> None:
     manifest_dir = get_model_manifest_dir()
     manifest_file = manifest_dir / f"{manifest.name}.yaml"
 
-    def yaml_encoder(data):
+    def yaml_encoder(data):  # type: ignore[no-untyped-def]
         return yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
 
     try:
