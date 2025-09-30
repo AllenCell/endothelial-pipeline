@@ -322,7 +322,7 @@ def resolve_dataframe_location(location: DataframeLocation) -> str:
     raise FileNotFoundError("Unable to resolve dataframe location; no available locations.")
 
 
-def get_config_dict_from_mlflow(mlflowid: str) -> DictConfig | ListConfig:
+def get_config_dict_from_mlflow(mlflowid: str) -> "DictConfig" | "ListConfig":
     """
     Get config dict from given MLFlow run ID.
 
