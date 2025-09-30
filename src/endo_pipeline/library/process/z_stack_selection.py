@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from dask.array import Array
 from matplotlib import colormaps
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, MultipleLocator
 
 from endo_pipeline.configs import DatasetConfig, get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.io import load_zarr_as_dask_array, save_plot_to_path
@@ -703,11 +703,19 @@ def plot_histogram_upper_slices_available(datasets: list[str], save_dir: Path) -
 
     df = pd.DataFrame(data)
 
-    fig = plt.figure(figsize=(6, 6))
-    plt.hist(df["available_slices_above"], bins=range(8, 20, 1), align="left", edgecolor="black")
+    fig = plt.figure(figsize=(5, 6))
+    plt.hist(
+        df["available_slices_above"],
+        bins=range(10, 18, 1),
+        align="left",
+        edgecolor="black",
+        facecolor="grey",
+    )
     plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
-    plt.xlabel("Available Slices Above Center Slice")
-    plt.ylabel("Number of Positions")
+    plt.gca().xaxis.set_major_locator(MultipleLocator(1))  # Set x-axis ticks at every 1 interval
+    plt.xlim(10, None)  # Set 10 as the minimum value on the x-axis
+    plt.xlabel("Number of slices above in-focus Z")
+    plt.ylabel("Number of positions")
 
     df_11 = df[df["available_slices_above"] == 11]
     limiting_datasets = df_11.dataset.unique()
