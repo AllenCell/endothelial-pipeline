@@ -1,0 +1,10 @@
+name: testing
+workflow: ''
+parameters:
+  z_slice_offsets: null
+  exclude_cell_piling: false
+locations:
+  test_run:
+    mlflowid: ae7f25b4109c47809d3e2ed1b7120e50
+  diffae_20250930_192231:
+    mlflowid: a511911cd8d44343997fb9e2546c2a39
