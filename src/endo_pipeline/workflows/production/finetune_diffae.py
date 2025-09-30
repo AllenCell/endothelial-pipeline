@@ -213,7 +213,7 @@ def main(
             name=finetuned_model_manifest_name, parameters=parameters, workflow=Path(__file__).stem
         )
 
-    manifest.locations[finetuned_run_name] = ModelLocation(mlflow_run_id=run_id)
+    manifest.locations[finetuned_run_name] = ModelLocation(mlflowid=run_id)
     save_model_manifest(manifest)
 
 

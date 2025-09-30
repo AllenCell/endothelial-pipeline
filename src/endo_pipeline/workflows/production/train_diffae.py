@@ -216,7 +216,7 @@ def main(
             name=model_manifest_name, parameters=parameters, workflow=Path(__file__).stem
         )
 
-    manifest.locations[run_name] = ModelLocation(mlflow_run_id=run_id)
+    manifest.locations[run_name] = ModelLocation(mlflowid=run_id)
     save_model_manifest(manifest)
 
 
