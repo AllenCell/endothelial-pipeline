@@ -9,7 +9,7 @@ from git import Repo
 from matplotlib.figure import Figure
 
 from endo_pipeline.configs import DatasetConfig
-from endo_pipeline.manifests import ModelLocation
+from endo_pipeline.manifests import ModelLocation, ModelManifest
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +123,7 @@ def build_fms_annotations(
     dataset: DatasetConfig | list[DatasetConfig],
     include_timestamp: bool = True,
     include_git_info: bool = True,
-    model_manifest_name: str | None = None,
+    model_manifest: ModelManifest | None = None,
     run_name: str | None = None,
     model_location: ModelLocation | None = None,
     additional_notes: str = "",
@@ -174,8 +174,8 @@ def build_fms_annotations(
     include_git_info
         True to add branch name and commit hash of code used to generate the
         file to the annotations, False otherwise.
-    model_manifest_name
-        The model manifest name, if applicable.
+    model_manifest
+        The model manifest, if applicable.
     run_name
         The run name within the model manifest, if applicable.
     model_location
@@ -207,14 +207,15 @@ def build_fms_annotations(
         notes.append(f"Branch: {repo.active_branch.name}")
         notes.append(f"Commit: {repo.commit().hexsha}")
 
-    if model_manifest_name is not None:
-        notes.append(f"Model Manifest: {model_manifest_name}")
+    if model_manifest is not None:
+        notes.append(f"Model Manifest: {model_manifest.name}")
+        model_location = model_manifest.locations.get(run_name, None)
 
-    if run_name is not None:
-        notes.append(f"Run Name: {run_name}")
+        if run_name is not None:
+            notes.append(f"Run Name: {run_name}")
 
-    if model_location is not None and model_location.mlflowid is not None:
-        metadata_builder.add_annotation("mlflow run id", model_location.mlflowid)
+        if model_location is not None and model_location.mlflowid is not None:
+            metadata_builder.add_annotation("mlflow run id", model_location.mlflowid)
 
     notes.append(f"\n{additional_notes}")
 

@@ -2,6 +2,7 @@ import logging
 import os
 import typing
 from pathlib import Path
+from typing import Literal
 
 import pandas as pd
 from cyto_dl.api import CytoDLModel
@@ -308,7 +309,7 @@ def initialize_diffae_model(
 
 def _upload_zarr_dataframe_to_fms(
     dataframe: pd.DataFrame,
-    dataset_type: typing.Literal["training", "validation"],
+    dataset_type: Literal["training", "validation"],
     resolution_level: int,
     dataset_config_list: list[DatasetConfig],
     output_savedir: Path,
