@@ -5,7 +5,6 @@ from bioio import BioImage
 
 from endo_pipeline.configs import (
     get_available_dataset_names,
-    get_datasets_in_collection,
     get_zarr_file_for_position,
     load_dataset_config,
 )
