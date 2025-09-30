@@ -477,6 +477,7 @@ def update_prediction_from_tracks_with_metadata(
 
 def apply_model_on_grid_of_crops_from_one_dataset(
     model: CytoDLModel,
+    run_name: str,
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
     user_overrides: str | dict | None = None,
@@ -500,6 +501,8 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     ----------
     model
         Trained model.
+    run_name
+        Name of the model (used for metadata).
     dataset_config
         Configuration of the dataset to apply the model to.
     resolution_level
@@ -538,9 +541,9 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         raise RuntimeError("CUDA available, but no GPU devices found.")
 
     # set default output path
-    save_path = get_output_path("models", model.cfg.run_name, dataset_config.name)
+    save_path = get_output_path("models", run_name, dataset_config.name)
 
-    logger.debug("Applying model [ %s ] to dataset [ %s ]", model.cfg.run_name, dataset_config.name)
+    logger.debug("Applying model [ %s ] to dataset [ %s ]", run_name, dataset_config.name)
 
     # get unique name for the parquet file
     file_name = "dataset"
@@ -572,21 +575,21 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     df.to_parquet(dataset_save_path, index=False)
 
     # apply overrides
-    prediction_filename_suffix = f"{dataset_config.name}_{model.cfg.run_name}_features"
+    prediction_filename_suffix = f"{dataset_config.name}_{run_name}_features"
     overrides = generate_overrides_for_model_eval(
         load_overrides(user_overrides),
         save_path=save_path.as_posix(),
         data_path=dataset_save_path.as_posix(),
         dataset_name=dataset_config.name,
-        model_name=model.cfg.run_name,
+        model_name=run_name,
         prediction_filename_suffix=prediction_filename_suffix,
     )
     model.override_config(overrides)
     local_config_save_path = get_output_path("models", "evaluation_configs")
-    model.save_config(local_config_save_path / f"{model.cfg.run_name}_eval.yaml")
+    model.save_config(local_config_save_path / f"{run_name}_eval.yaml")
     logger.info(
         "Evaluation config saved to [ %s ]",
-        local_config_save_path / f"{model.cfg.run_name}_eval.yaml",
+        local_config_save_path / f"{run_name}_eval.yaml",
     )
     logger.debug("Starting model prediction...")
     model.predict()
@@ -595,7 +598,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     prediction_path = save_path / f"predict_{prediction_filename_suffix}.parquet"
     update_prediction_from_crops_with_metadata(
         dataset_name=dataset_config.name,
-        model_name=model.cfg.run_name,
+        model_name=run_name,
         crop_size=crop_size,
         prediction_path=prediction_path,
     )

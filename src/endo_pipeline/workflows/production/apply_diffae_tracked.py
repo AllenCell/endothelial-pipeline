@@ -65,7 +65,7 @@ def main(
 
     # load model from manifest
     model_manifest = load_model_manifest(model_manifest_name)
-    run_name = list(model_manifest.locations.keys())[-1] if run_name is None else run_name
+    run_name_ = list(model_manifest.locations.keys())[-1] if run_name is None else run_name
     model_location = get_model_location_for_run(model_manifest, run_name)
     model = load_model(model_location)
 
@@ -96,8 +96,8 @@ def main(
                 prediction_path,
                 dataset_config,
                 model_manifest,
-                run_name,
-                dataframe_manifest_name=model.cfg.run_name,
+                run_name_,
+                dataframe_manifest_name=f"{model_manifest_name}_{run_name_}_tracked",
                 workflow_name=Path(__file__).stem,
                 parameters={"z_slice_offsets": Z_SLICE_OFFSETS},
             )
