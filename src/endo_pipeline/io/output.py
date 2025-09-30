@@ -294,13 +294,13 @@ def save_plot_to_path(
         True to save figure with clear background, False otherwise.
     """
 
-    plt.rcParams.update(
-        {
-            "pdf.fonttype": PDF_FONTTYPE,
-            "font.family": FONT_FAMILY,
-            "font.size": FONTSIZE,
-        }
-    )
+    # plt.rcParams.update(
+    #     {
+    #         "pdf.fonttype": PDF_FONTTYPE,
+    #         "font.family": FONT_FAMILY,
+    #         "font.size": FONTSIZE,
+    #     }
+    # )
 
     output_file = (output_path / figure_name).with_suffix(file_format)
     figure.savefig(output_file, dpi=dpi, transparent=transparent, bbox_inches="tight")
@@ -340,9 +340,7 @@ def save_thumbnail_to_path(
     figure, ax = plt.subplots(figsize=figsize, frameon=False)
     ax.imshow(image, cmap="gray")
     ax.axis("off")  # Remove axes for a clean thumbnail
-
-    # Save the figure to the specified file
-    figure.savefig(output_file, dpi=dpi, bbox_inches="tight", pad_inches=0)
-
     plt.show()
+
+    figure.savefig(output_file, dpi=dpi, bbox_inches="tight", pad_inches=0)
     plt.close(figure)
