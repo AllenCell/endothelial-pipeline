@@ -732,7 +732,7 @@ def plot_histogram_upper_slices_available(datasets: list[str], save_dir: Path) -
     )
 
     plt.show()
-    save_plot_to_path(fig, save_dir, "available_slices_above_center_histogram")
+    save_plot_to_path(fig, save_dir, "n_slices_above_in_focus_z_histogram", file_format=".pdf")
 
 
 def compute_profiles(
