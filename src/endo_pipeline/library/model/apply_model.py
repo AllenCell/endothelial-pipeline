@@ -434,7 +434,8 @@ def bbox_in_image_bounds(df: pd.DataFrame, resolution_level: int = 1) -> pd.Seri
 
 def update_prediction_from_crops_with_metadata(
     dataset_name: str,
-    model_name: str,
+    model_manifest_name: str,
+    run_name: str,
     crop_size: list[int],
     prediction_path: Path,
 ) -> None:
@@ -445,7 +446,8 @@ def update_prediction_from_crops_with_metadata(
     # add model and dataset information to prediction file
     pred_df = pd.read_parquet(prediction_path)
     pred_df["dataset"] = dataset_name
-    pred_df["model_name"] = model_name
+    pred_df["model_manifest_name"] = model_manifest_name
+    pred_df["run_name"] = run_name
 
     # note: the current model loads images at resolution
     # level 0 and downsamples in the transforms.
@@ -490,6 +492,7 @@ def update_prediction_from_tracks_with_metadata(
 
 def apply_model_on_grid_of_crops_from_one_dataset(
     model: CytoDLModel,
+    model_manifest_name: str,
     run_name: str,
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
@@ -515,6 +518,8 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     ----------
     model
         Trained model.
+    model_manifest_name
+        Name of the model manifest (used for metadata).
     run_name
         Name of the model (used for metadata).
     dataset_config
@@ -591,11 +596,13 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         num_gpus=num_gpus,
     )
     model.override_config(overrides)
-    local_config_save_path = get_output_path("models", "evaluation_configs")
-    model.save_config(local_config_save_path / f"{run_name}_eval.yaml")
+    local_config_save_path = get_output_path(
+        "models", "evaluation_configs", model_manifest_name, run_name
+    )
+    model.save_config(local_config_save_path / "eval.yaml")
     logger.info(
         "Evaluation config saved to [ %s ]",
-        local_config_save_path / f"{run_name}_eval.yaml",
+        local_config_save_path / "eval.yaml",
     )
     logger.debug("Starting model prediction...")
     model.predict()
@@ -604,7 +611,8 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     prediction_path = save_path / f"predict_{prediction_filename_suffix}.parquet"
     update_prediction_from_crops_with_metadata(
         dataset_name=dataset_config.name,
-        model_name=run_name,
+        model_manifest_name=model_manifest_name,
+        run_name=run_name,
         crop_size=crop_size,
         prediction_path=prediction_path,
     )

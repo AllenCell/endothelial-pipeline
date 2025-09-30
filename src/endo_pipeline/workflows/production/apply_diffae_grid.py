@@ -104,6 +104,7 @@ def main(
 
         prediction_path = apply_model_on_grid_of_crops_from_one_dataset(
             model=model,
+            model_manifest_name=model_manifest_name,
             run_name=run_name_,
             dataset_config=dataset_config,
             resolution_level=resolution_level,
