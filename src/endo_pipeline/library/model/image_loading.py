@@ -23,6 +23,7 @@ from endo_pipeline.configs import (
     get_available_zarr_files,
     get_position_integer_from_zarr_file_path,
 )
+from endo_pipeline.io import load_dataframe_from_path
 from endo_pipeline.library.process.z_stack_selection import get_plane_indices
 from endo_pipeline.settings.image_data import LOG_EPSILON, NUM_ZSLICES
 
@@ -350,7 +351,8 @@ class MultiDimImageDataset(SmartCacheDataset):
         cache_kwargs:
             Additional keyword arguments to pass to ``CacheDataset``.
         """
-        df = pd.read_parquet(dataframe_path)
+
+        df = load_dataframe_from_path(Path(dataframe_path))
         rank = int(os.environ.get("LOCAL_RANK", 0))
         # Use WORLD_SIZE from environment, fallback to num_devices, then default to 1
         world_size = int(os.environ.get("WORLD_SIZE", num_devices or 1))
