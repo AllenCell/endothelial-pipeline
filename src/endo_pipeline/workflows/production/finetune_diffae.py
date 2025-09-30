@@ -205,6 +205,10 @@ def main(
     try:
         manifest = load_model_manifest(finetuned_model_manifest_name)
     except FileNotFoundError:
+        logger.info(
+            "Model manifest [ %s ] not found, creating a new one.",
+            finetuned_model_manifest_name,
+        )
         parameters = {
             "training_datasets": list_of_training_datasets,
             "resolution_level": resolution_level,
