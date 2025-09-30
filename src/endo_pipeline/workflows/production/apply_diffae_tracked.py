@@ -82,6 +82,7 @@ def main(
 
         prediction_path = apply_model_on_tracked_crops_from_one_dataset(
             model=model,
+            run_name=run_name_,
             dataset_config=dataset_config,
             save_path=save_path,
             user_overrides=user_overrides,
@@ -99,7 +100,7 @@ def main(
                 run_name_,
                 dataframe_manifest_name=f"{model_manifest_name}_{run_name_}_tracked",
                 workflow_name=Path(__file__).stem,
-                parameters={"z_slice_offsets": Z_SLICE_OFFSETS},
+                workflow_parameters={"z_slice_offsets": Z_SLICE_OFFSETS},
             )
 
         if DEMO_MODE:

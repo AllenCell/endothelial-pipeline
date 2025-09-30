@@ -124,7 +124,7 @@ def main(
                 run_name_,
                 dataframe_manifest_name=f"{model_manifest_name}_{run_name_}_grid",
                 workflow_name=Path(__file__).stem,
-                parameters={"z_slice_offsets": Z_SLICE_OFFSETS},
+                workflow_parameters={"z_slice_offsets": Z_SLICE_OFFSETS},
             )
 
         if DEMO_MODE:

@@ -609,6 +609,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
 def apply_model_on_tracked_crops_from_one_dataset(
     model: CytoDLModel,
+    run_name: str,
     dataset_config: DatasetConfig,
     save_path: str | Path | None = None,
     user_overrides: str | dict | None = None,
@@ -623,6 +624,8 @@ def apply_model_on_tracked_crops_from_one_dataset(
     ----------
     model
         Trained model.
+    run_name
+        Name of the model (used for metadata).
     dataset_config
         Configuration of the dataset to apply the model to.
     resolution_level
@@ -653,7 +656,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
     if save_path is None:
         # if no save path is provided, use the default path
         save_path = get_output_path(
-            "models", model.cfg.run_name, dataset_config.name, include_timestamp=False
+            "models", run_name, dataset_config.name, include_timestamp=False
         )
     elif isinstance(save_path, str):
         save_path = Path(save_path)
@@ -672,7 +675,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
     )
 
     # use timestamp to get unique file name for FMS upload later
-    prediction_filename_suffix = f"{dataset_config.name}_{model.cfg.run_name}_tracked_crop_features"
+    prediction_filename_suffix = f"{dataset_config.name}_{run_name}_tracked_crop_features"
 
     # apply overrides
     overrides = generate_overrides_for_track_based_crops(
@@ -680,7 +683,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
         save_path=save_path.as_posix(),
         data_path=data_path.as_posix(),
         dataset_name=dataset_config.name,
-        model_name=model.cfg.run_name,
+        model_name=run_name,
         prediction_filename_suffix=prediction_filename_suffix,
     )
     model.override_config(overrides)
@@ -689,7 +692,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
     prediction_path = save_path / f"predict_{prediction_filename_suffix}.parquet"
     update_prediction_from_tracks_with_metadata(
         dataset_name=dataset_config.name,
-        model_name=model.cfg.run_name,
+        model_name=run_name,
         prediction_path=prediction_path,
     )
 
