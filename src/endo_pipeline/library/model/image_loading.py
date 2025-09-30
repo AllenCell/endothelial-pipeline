@@ -46,7 +46,7 @@ class LogImaged(Transform):
         Key in the input dictionary where the original image data is stored.
     """
 
-    def __init__(self, keys: list | ListConfig | str = "image") -> None:
+    def __init__(self, keys: list | "ListConfig" | str = "image") -> None:
         """
         Initialize the LogImage transform.
 
@@ -56,7 +56,7 @@ class LogImaged(Transform):
             Key in the input dictionary where the original image data is stored.
         """
         super().__init__()
-        self.keys = keys if isinstance(keys, list | ListConfig) else [keys]
+        self.keys = [keys] if isinstance(keys, str) else keys
 
     def __call__(self, data: dict) -> dict:
         """

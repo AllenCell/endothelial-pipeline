@@ -20,13 +20,13 @@ class MinStdCropd(Transform):
 
     def __init__(
         self,
-        keys: list | str,
+        keys: "list | ListConfig | str",
         offset: int = 5,
         axes: tuple[int, int] = (-1, -2),
         channel: int = 0,
     ):
         super().__init__()
-        self.keys = keys if isinstance(keys, list | ListConfig) else [keys]
+        self.keys = [keys] if isinstance(keys, str) else keys
         self.offset = offset
         self.axes = axes
         self.channel = channel
@@ -84,7 +84,7 @@ class RotateRanged(Transform):
             # default to full rotation range
             rotation_range = [0.0, 2 * np.pi]
         super().__init__()
-        self.keys = keys if isinstance(keys, list | ListConfig) else [keys]
+        self.keys = [keys] if isinstance(keys, str) else keys
         self.allow_missing_keys = allow_missing_keys
         self.rotation_range = rotation_range
         self.n_steps = n_steps

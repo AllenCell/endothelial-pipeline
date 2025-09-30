@@ -232,7 +232,7 @@ def _generate_overrides_for_finetuning(
 
 
 def initialize_diffae_model(
-    template_training_config: DictConfig | ListConfig,
+    template_training_config: "DictConfig | ListConfig",
     crop_size: int,
     model_manifest_name: str,
     run_name: str,
@@ -423,7 +423,7 @@ def build_and_save_dataframe_manifest_for_training(
 
 def initialize_diffae_model_for_finetuning(
     base_model: CytoDLModel,
-    template_finetune_config: DictConfig | ListConfig,
+    template_finetune_config: "DictConfig | ListConfig",
     finetuned_model_manifest_name: str,
     finetuned_run_name: str,
     train_dataframe_path: str,
