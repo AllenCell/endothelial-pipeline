@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-import torch
 from cyto_dl.api import CytoDLModel
 
 from endo_pipeline.configs import (
