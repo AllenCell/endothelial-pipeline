@@ -45,6 +45,8 @@ def main(
         model's MLflow run ID and the list of datasets used for training.
     """
     import logging
+    import os
+    import time
 
     from omegaconf import OmegaConf
 
@@ -70,7 +72,6 @@ def main(
         log_every_n_steps = 1
         cache_rate = 1.0  # use 100% of data for demo mode
         replace_rate = 0.1
-
     else:
         name_suffix = ""
         max_num_epochs = 1000
@@ -108,36 +109,64 @@ def main(
     # load template training config
     template_training_config = OmegaConf.load(get_model_dir() / "diffae_training.yaml")
 
-    # set model name via zarr resolution, crop size, and current timestamp
+    # set model name via zarr resolution, crop size, etc.
     model_name = f"diffae_resolution_{resolution_level}_patch_{crop_size}x{crop_size}"
+
     # add info about cell piling inclusion/exclusion
     if exclude_cell_piling:
         model_name = f"{model_name}_exclude_cell_piling"
     else:
         model_name = f"{model_name}_include_cell_piling"
-    # append timestamp to get unique model name
-    model_name_unique = make_name_unique(model_name).as_posix()
-    logger.info("Model name: [ %s ]", model_name)
 
-    # initialize DiffAE model: generates config overrides and sets up output directories
-    model = initialize_diffae_model(
-        template_training_config,
-        crop_size,
-        model_name_unique,
-        train_dataframe_path,
-        val_dataframe_path,
-        max_num_epochs=max_num_epochs,
-        log_every_n_steps=log_every_n_steps,
-        cache_rate=cache_rate,
-        replace_rate=replace_rate,
-        num_gpus=NUM_GPUS,
-    )
+    local_rank = int(os.environ.get("LOCAL_RANK", "0"))
     local_config_save_path = get_output_path("models", "training_configs")
-    model.save_config(local_config_save_path / f"{model_name_unique}_train.yaml")
-    logger.info(
-        "Training config saved to [ %s ]",
-        local_config_save_path / f"{model_name_unique}_train.yaml",
-    )
+    model_name_path = local_config_save_path / "current_model_name.txt"
+
+    # Create model name and logs only for the first rank!
+    if local_rank == 0:
+        # append timestamp to get unique model name
+        model_name_unique = make_name_unique(model_name).as_posix()
+        if not local_config_save_path.exists():
+            local_config_save_path.mkdir(parents=True, exist_ok=True)
+        with open(model_name_path, "w") as f:
+            f.write(model_name_unique)
+    else:
+        # Wait for rank 0 to write the model name file .. this prevents race condition!
+        while not model_name_path.exists():
+            time.sleep(1)
+        with open(model_name_path) as f:
+            model_name_unique = f.read().strip()
+
+    config_path = local_config_save_path / f"{model_name_unique}_train.yaml"
+    logger.info("Model name: [ %s ]", model_name_unique)
+
+    # === Only rank 0 saves out the config - others wait and load from it ===
+    if local_rank == 0:
+        # initialize DiffAE model: generates config overrides and sets up output directories
+        model = initialize_diffae_model(
+            template_training_config,
+            crop_size,
+            model_name_unique,
+            train_dataframe_path,
+            val_dataframe_path,
+            max_num_epochs=max_num_epochs,
+            log_every_n_steps=log_every_n_steps,
+            cache_rate=cache_rate,
+            replace_rate=replace_rate,
+            num_gpus=NUM_GPUS,
+        )
+        model.save_config(config_path)
+        logger.info("Training config saved to [ %s ]", config_path)
+    else:
+        # Wait for rank 0 to write out the config .. prevents race conditions
+        while not config_path.exists():
+            logger.info(f"Rank {local_rank} waiting for config {config_path}")
+            time.sleep(2)
+        # Load model from saved config
+        loaded_training_config = OmegaConf.load(config_path)
+        model = initialize_diffae_model(loaded_training_config)
+
+    # All ranks now run identical training with shared configuration
     _, object_dict = model.train()
 
     # retrive MLflow run ID

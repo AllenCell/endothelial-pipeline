@@ -120,7 +120,6 @@ def pipeline_entrypoint(
     use_staging
         Use staging environments.
     """
-
     apply_entrypoint_settings(verbose, debug, num_gpus, show_external_logs, demo_mode, use_staging)
 
     if config.read_text() != "":
@@ -168,7 +167,6 @@ def workflow_entrypoint(
     use_staging
         Use staging environments.
     """
-
     apply_entrypoint_settings(verbose, debug, num_gpus, show_external_logs, demo_mode, use_staging)
 
     workflow_app(tokens)
@@ -212,22 +210,23 @@ def apply_entrypoint_settings(
     if not show_external_logs:
         silence_external_loggers(EXTERNAL_LOGGERS)
 
-    if num_gpus is not None and num_gpus > 0:
-        endo_pipeline.NUM_GPUS = setup_gpu(num_gpus)
-    else:
-        logger.info("Workflow running on CPU")
-        endo_pipeline.NUM_GPUS = None
-        os.environ["CUDA_VISIBLE_DEVICES"] = ""
+    local_rank = int(os.environ.get("LOCAL_RANK", "0"))
+    # All ranks should log the environment variables
+    world_size = os.environ.get("WORLD_SIZE")
+    # Only rank 0 is respondible for setting CUDA_VISIBLE_DEVICES
+    if local_rank == 0:
+        if num_gpus is not None and num_gpus > 0:
+            endo_pipeline.NUM_GPUS = setup_gpu(num_gpus)
+        else:
+            logger.info("Workflow running on CPU")
+            endo_pipeline.NUM_GPUS = None
+            os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
     if demo_mode:
-        import endo_pipeline
-
-        logger.info("Running workflows in demo mode")
+        logger.info("Running workflow in demo mode")
         endo_pipeline.DEMO_MODE = True
 
     if use_staging:
-        import endo_pipeline
-
         logger.info("Using staging environments")
         endo_pipeline.USE_STAGING = True
 
@@ -313,14 +312,18 @@ def setup_logging(level: int) -> None:
 
     logger.setLevel(logging.DEBUG)
 
-    log_path = Path(__file__).resolve().parents[2] / "logs"
-    log_path.mkdir(exist_ok=True)
-    file_name = log_path / f"endo_pipeline_{datetime.now(tz=UTC).strftime('%Y%m%d')}.log"
+    # Only rank 0 should create log directory and file handler
+    if int(os.environ.get("LOCAL_RANK", "0")) == 0:
 
-    file_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    file_handler = logging.FileHandler(file_name)
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(file_formatter)
+        log_path = Path(__file__).resolve().parents[2] / "logs"
+        log_path.mkdir(exist_ok=True)
+        file_name = log_path / f"endo_pipeline_{datetime.now(tz=UTC).strftime('%Y%m%d')}.log"
+
+        file_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        file_handler = logging.FileHandler(file_name)
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(file_formatter)
+        logger.addHandler(file_handler)
 
     stream_formatter = CustomStreamLoggingFormatter()
     stream_handler = logging.StreamHandler()
@@ -328,7 +331,6 @@ def setup_logging(level: int) -> None:
     stream_handler.setFormatter(stream_formatter)
 
     logger.addHandler(stream_handler)
-    logger.addHandler(file_handler)
 
 
 def silence_external_loggers(external_loggers: dict) -> None:
@@ -345,7 +347,7 @@ def silence_external_loggers(external_loggers: dict) -> None:
         external_logger.setLevel(logging_level)
 
 
-def setup_gpu(num_gpus: int | None) -> None:
+def setup_gpu(num_gpus: int | None) -> int | None:
     """
     Set up the GPU environment for workflow.
 
@@ -360,6 +362,8 @@ def setup_gpu(num_gpus: int | None) -> None:
     import os
     import re
     import subprocess
+    import tempfile
+    import time
 
     logger.info("Setting up environment to run workflow using %d GPU(s)", num_gpus)
 
@@ -380,6 +384,7 @@ def setup_gpu(num_gpus: int | None) -> None:
         os.environ["CUDA_VISIBLE_DEVICES"] = selected_uuid
         logger.info("Using MIG UUID: %s", selected_uuid)
         logger.info("Set CUDA_VISIBLE_DEVICES to [ %s ]", selected_uuid)
+
         return 1
 
     # Not MIG: Pick by available GPUs and free memory

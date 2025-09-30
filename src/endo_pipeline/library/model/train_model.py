@@ -67,7 +67,7 @@ def _generate_overrides_for_model_training(
 
     # Calculate effective epochs
     multiplier = (1 - cache_rate) / (cache_rate * replace_rate) + 1
-    effective_min_epochs = int(1000 * multiplier)
+    effective_min_epochs = int(2500 * multiplier)
     effective_max_epochs = int(max_num_epochs * multiplier)
     effective_save_images_epochs = int(10 * multiplier)
 
@@ -223,14 +223,14 @@ def _generate_overrides_for_finetuning(
 
 def initialize_diffae_model(
     template_training_config: DictConfig | ListConfig,
-    crop_size: int,
-    model_name: str,
-    train_dataframe_path: str,
-    val_dataframe_path: str,
-    max_num_epochs: int = 1000,
-    log_every_n_steps: int = 50,
-    cache_rate: float = 1.0,
-    replace_rate: float = 0.1,
+    crop_size: int | None = None,
+    model_name: str | None = None,
+    train_dataframe_path: str | None = None,
+    val_dataframe_path: str | None = None,
+    max_num_epochs: int | None = None,
+    log_every_n_steps: int | None = None,
+    cache_rate: float | None = None,
+    replace_rate: float | None = None,
     num_gpus: int | None = None,
 ) -> CytoDLModel:
     """
@@ -265,13 +265,95 @@ def initialize_diffae_model(
         An initialized ``CytoDLModel`` for training the DiffAE model.
     """
 
+    import os
+
+    def get_config_value(keys_or_path, default=None, type_=None, validator=None):
+        # Accepts a single string or tuple list for nested key path (dot notation)
+        value = template_training_config
+        if isinstance(keys_or_path, str):
+            keys = keys_or_path.split(".")
+        else:
+            keys = keys_or_path
+        try:
+            for k in keys:
+                value = value[k]
+        except (KeyError, IndexError, TypeError):
+            return default
+        if value is None:
+            return default
+        if type_ is not None and not isinstance(value, type_):
+            return default
+        if validator is not None and not validator(value):
+            return default
+        return value
+
+    # Parameter extraction and validation
+    crop_size = crop_size or get_config_value("model.image_shape", [1, 64, 64])[1]
+    if not isinstance(crop_size, int) or crop_size <= 0:
+        raise ValueError(f"crop_size must be a positive integer (got {crop_size})")
+
+    model_name = model_name or get_config_value("run_name")
+    if not model_name or not isinstance(model_name, str):
+        raise ValueError("Could not extract valid model_name from config.")
+
+    train_dataframe_path = train_dataframe_path or get_config_value(
+        "data.train_dataloaders.dataset.dataframe_path"
+    )
+    if not train_dataframe_path or not isinstance(train_dataframe_path, str):
+        raise ValueError("Could not extract valid train_dataframe_path from config.")
+
+    val_dataframe_path = val_dataframe_path or get_config_value(
+        "data.val_dataloaders.dataset.dataframe_path"
+    )
+    if not val_dataframe_path or not isinstance(val_dataframe_path, str):
+        raise ValueError("Could not extract valid val_dataframe_path from config.")
+
+    max_num_epochs = max_num_epochs or get_config_value("trainer.max_epochs", 1000)
+    if not isinstance(max_num_epochs, int) or max_num_epochs <= 0:
+        raise ValueError(f"max_num_epochs must be a positive integer (got {max_num_epochs})")
+
+    log_every_n_steps = log_every_n_steps or get_config_value("trainer.log_every_n_steps", 50)
+    if not isinstance(log_every_n_steps, int) or log_every_n_steps <= 0:
+        raise ValueError(f"log_every_n_steps must be a positive integer (got {log_every_n_steps})")
+
+    cache_rate = (
+        cache_rate
+        if cache_rate is not None
+        else get_config_value("data.train_dataloaders.dataset.cache_rate", 1.0)
+    )
+    if not isinstance(cache_rate, (int, float)) or not (0 <= cache_rate <= 1):
+        raise ValueError(f"cache_rate must be a float between 0 and 1 (got {cache_rate})")
+
+    replace_rate = (
+        replace_rate
+        if replace_rate is not None
+        else get_config_value("data.train_dataloaders.dataset.replace_rate", 0.1)
+    )
+    if not isinstance(replace_rate, (int, float)) or not (0 <= replace_rate <= 1):
+        raise ValueError(f"replace_rate must be a float between 0 and 1 (got {replace_rate})")
+
+    if num_gpus is None:
+        accelerator = get_config_value("trainer.accelerator")
+        if accelerator == "gpu":
+            num_gpus = get_config_value("trainer.devices", 1)
+            if not isinstance(num_gpus, int) or num_gpus <= 0:
+                raise ValueError(
+                    f"Invalid num_gpus extracted from config: {num_gpus}. Must be a positive integer."
+                )
+        else:
+            num_gpus = None
+
     if log_every_n_steps > max_num_epochs:
         logger.error("Logging interval must be less than or equal to the maximum number of epochs.")
         raise ValueError(
-            "Logging interval must be less than or equal to the maximum number of epochs."
+            f"Logging interval ({log_every_n_steps}) must be <= maximum epochs ({max_num_epochs})"
         )
 
-    # user overrides for training
+    if not os.path.exists(train_dataframe_path):
+        logger.warning(f"Training dataframe path does not exist: {train_dataframe_path}")
+    if not os.path.exists(val_dataframe_path):
+        logger.warning(f"Validation dataframe path does not exist: {val_dataframe_path}")
+
     overrides = _generate_overrides_for_model_training(
         model_name,
         crop_size,
@@ -284,9 +366,7 @@ def initialize_diffae_model(
         num_gpus=num_gpus,
     )
 
-    # init model
     cytodl_model = CytoDLModel()
-    # override config with workflow inputs
     cytodl_model.load_config_from_dict(template_training_config)
     cytodl_model.override_config(overrides)
     return cytodl_model

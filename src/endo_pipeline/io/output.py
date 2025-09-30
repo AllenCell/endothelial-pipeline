@@ -2,6 +2,7 @@
 
 import datetime
 import logging
+import os
 from pathlib import Path
 from typing import Literal
 
@@ -69,7 +70,6 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
     :
         Path object for output.
     """
-
     output_dir = get_output_dir()
 
     if include_timestamp:
@@ -78,9 +78,12 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
     else:
         output_path = Path(output_dir, Path(workflow_name).stem, *subdirs)
 
-    output_path.mkdir(parents=True, exist_ok=True)
-    logger.info("Created output directory [ %s ]", output_path)
+    # Only rank 0 creates directories
+    if int(os.environ.get("LOCAL_RANK", "0")) == 0:
+        output_path.mkdir(parents=True, exist_ok=True)
+        logger.info("Created output directory [ %s ]", output_path)
 
+    # All ranks return the same path (rank 0 created it, others just use it)
     return output_path
 
 
