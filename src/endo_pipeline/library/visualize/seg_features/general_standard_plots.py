@@ -373,7 +373,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         },
         "cell_nuc_orientation_deg": {
             "column_name": "nuc_pos_rel_cell_angle_deg",
-            "label": "Nuclei Orientation (deg)",
+            "label": "Nuclei Orientation\nRel. to Flow (deg)",
             "lims": (-180, 180),
             "bin_width": 5,
             "ticks": range(-180, 181, 90),
@@ -429,7 +429,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         },
         "nuc_orientation_deg_rel_migration": {
             "column_name": "cell_nuc_orientation_deg_rel_to_migration",
-            "label": "Nuclei Orientation Rel.\nto Migration (deg)",
+            "label": "Nuclei Orientation\nRel. to Migration (deg)",
             "lims": (-180, 180),
             "bin_width": 5,
             "ticks": range(-180, 181, 90),

@@ -37,7 +37,10 @@ def save_panel_thumbnail(
         plt.close(fig)
 
 
-def make_imaging_panels() -> None:
+def make_imaging_panels(
+    dataset_name: str,
+    position: int,
+) -> None:
     from bioio import BioImage
     from skimage.color import label2rgb
     from skimage.color.colorlabel import DEFAULT_COLORS
@@ -49,166 +52,181 @@ def make_imaging_panels() -> None:
     from endo_pipeline.library.process.general_image_preprocessing import save_image_output
     from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
-    dataset_name = "20250818_20X"
-    position = 0
-    validation_frames = list(range(0, 577, 48))
-    timeframe = validation_frames[4]
-
     out_dir_full = get_output_path(__file__, "images_high_quality")
     out_dir_thumb = get_output_path(__file__, "images_thumbnails")
 
-    # Load the validation image (which has some intermediate steps saved)
-    val_manifest = load_image_manifest("cdh5_seg_validations")
-    val_location = get_image_location_for_dataset(val_manifest, dataset_name, position, timeframe)
-    val_image = BioImage(val_location.path)  # type:ignore[arg-type]
-    channel_names = val_image.channel_names
-    val_array = val_image.get_image_dask_data(DIMENSION_ORDER).compute()
-
-    image_dict = {}
-    for i, chan_name in enumerate(channel_names):
-        val_channel = np.take(val_array, indices=[i], axis=DIMENSION_ORDER.index("C"))
-        image_dict[chan_name] = val_channel
-
-    # Rename some keys for clarity
-    # "nuclei_predictions" is combo of segmentation skeletons and nuclei predictions; used as seeds
-    image_dict["seeds"] = image_dict.pop("nuclei_predictions")
-    # "raw" is a max intensity projection (MIP) of the cdh5 channel
-    image_dict["cdh5_mip"] = image_dict.pop("raw")
-    # "processed" is the preprocessed cdh5 MIP channel
-    image_dict["cdh5_processed"] = image_dict.pop("processed")
-    # "segmentations_initial" are the initial watershed segmentations before merging regions
-    image_dict["cdh5_seg_initial"] = image_dict.pop("segmentations_initial")
-    # "segmentations_merged" are the cdh5 segmentations that result from merging watershed regions
-    # based on the CDH5 signal; some regions get incorrectly merged
-    image_dict["cdh5_seg_merged"] = image_dict.pop("segmentations_merged")
-
-    # Dilate images of segmentation borders for better visibility
-    image_dict["cdh5_seg_merged"] = binary_dilation(image_dict["cdh5_seg_merged"])
-    image_dict["cdh5_segmentations_split_by_nuclei_borders"] = binary_dilation(
-        image_dict["cdh5_segmentations_split_by_nuclei_borders"]
-    )
-
-    # Load the nuclei predictions image (this one is nuclei predictions only)
-    nuc_manifest = load_image_manifest("nuclear_labelfree_seg")
-    nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_name, position, timeframe)
-    nuc_pred = np.asarray(load_image(nuc_location))
-
-    cdh5_seg_manifest = load_image_manifest("cdh5_classic_seg")
-    cdh5_seg_sequential_timeframes = list(range(timeframe, timeframe + 5))
-    for tf in cdh5_seg_sequential_timeframes:
-        cdh5_seg_location = get_image_location_for_dataset(
-            cdh5_seg_manifest, dataset_name, position, tf
-        )
-        image_dict[f"cdh5_seg_split_{tf}"] = np.asarray(load_image(cdh5_seg_location))
-
     dataset_config = load_dataset_config(dataset_name)
-    bf_center_Z = dataset_config.center_z_plane[position]  # type:ignore[index]
-    zarr_file = get_zarr_file_for_position(dataset_config, position)
-    raw_bf = load_zarr_as_dask_array(
-        zarr_file, channels=["BF"], timepoints=timeframe, level=0
-    ).compute()
 
-    # Get the focal plane of the brightfield image
-    bf_center = np.take(raw_bf, indices=[bf_center_Z], axis=DIMENSION_ORDER.index("Z"))
+    validation_frames = list(range(0, dataset_config.duration - 1, 48))  # don't include final frame
+    validation_frames = [validation_frames[i] for i in [0, 4, 5]]
 
-    # Get the standard deviation projection of the brightfield image
-    bf_std = raw_bf.std(axis=DIMENSION_ORDER.index("Z"), keepdims=True)
-
-    # Add brightfield and nuclei prediction panels to the dict
-    image_dict.update({"bf_center": bf_center, "bf_std": bf_std, "nuc_pred": nuc_pred})
-
-    # Clip and normalize channels with microscopy images
-    imaging_panels = ("bf_center", "bf_std", "cdh5_mip", "cdh5_processed")
-    for chan_name in imaging_panels:
-        image = image_dict[chan_name]
-        image_clipped = np.clip(
-            image, a_min=np.percentile(image, 0.04), a_max=np.percentile(image, 99.6)
+    for timeframe in validation_frames:
+        # Load the validation image (which has some intermediate steps saved)
+        val_manifest = load_image_manifest("cdh5_seg_validations")
+        val_location = get_image_location_for_dataset(
+            val_manifest, dataset_name, position, timeframe
         )
-        image_normd = rescale_intensity(image_clipped, in_range="image", out_range=np.uint16)
-        image_dict[chan_name] = image_normd
+        val_image = BioImage(val_location.path)  # type:ignore[arg-type]
+        channel_names = val_image.channel_names
+        val_array = val_image.get_image_dask_data(DIMENSION_ORDER).compute()
 
-    # Take crops and reduce dimensionality to 2D
-    image_dict = {chan_name: image.squeeze()[CROP_YX] for chan_name, image in image_dict.items()}
+        image_dict = {}
+        for i, chan_name in enumerate(channel_names):
+            val_channel = np.take(val_array, indices=[i], axis=DIMENSION_ORDER.index("C"))
+            image_dict[chan_name] = val_channel
 
-    # Define the panels to create
-    panel_dict = {
-        "cdh5_mip": {"images": ["cdh5_mip"], "colors": [(255, 255, 255)], "colors_thumbnail": None},
-        "cdh5_seg_initial": {
-            "images": ["cdh5_seg_initial"],
-            "colors": [(255, 255, 255)],
-            "colors_thumbnail": DEFAULT_COLORS,
-        },
-        "bf_center_slice": {
-            "images": ["bf_center"],
-            "colors": [(255, 255, 255)],
-            "colors_thumbnail": None,
-        },
-        "nuc_pred_overlay": {
-            "images": ["bf_std", "nuc_pred"],
-            "colors": [(255, 255, 255), (0, 255, 255)],
-            "colors_thumbnail": DEFAULT_COLORS,
-        },
-        "nuc_pred_cdh5_seg_overlay": {
-            "images": ["cdh5_mip", "nuc_pred", "cdh5_seg_merged"],
-            "colors": [(255, 255, 255), (0, 255, 255), (255, 0, 255)],
-            "colors_thumbnail": ["cyan", "magenta"],
-        },
-        "seed_cdh5_seg_overlay": {
-            "images": ["cdh5_mip", "seeds", "cdh5_seg_merged"],
-            "colors": [(255, 255, 255), (0, 255, 255), (255, 0, 255)],
-            "colors_thumbnail": ["cyan", "magenta"],
-        },
-        "cdh5_seg_final_overlay": {
-            "images": ["cdh5_mip", "cdh5_segmentations_split_by_nuclei_borders"],
-            "colors": [(255, 255, 255), (255, 255, 0)],
-            "colors_thumbnail": ["yellow"],
-        },
-    }
+        # Rename some keys for clarity
+        # "nuclei_predictions" is a combo of segmentation skeletons and nuclei
+        # predictions which are used as seeds
+        image_dict["seeds"] = image_dict.pop("nuclei_predictions")
+        # "raw" is a max intensity projection (MIP) of the cdh5 channel
+        image_dict["cdh5_mip"] = image_dict.pop("raw")
+        # "processed" is the preprocessed cdh5 MIP channel
+        image_dict["cdh5_processed"] = image_dict.pop("processed")
+        # "segmentations_initial" are the initial watershed segmentations before merging regions
+        image_dict["cdh5_seg_initial"] = image_dict.pop("segmentations_initial")
+        # "segmentations_merged" are cdh5 segmentations that result from merging watershed regions
+        # based on the CDH5 signal; some regions get incorrectly merged
+        image_dict["cdh5_seg_merged"] = image_dict.pop("segmentations_merged")
 
-    for tf in cdh5_seg_sequential_timeframes:
-        panel_dict[f"cdh5_seg_final_overlay_{tf}"] = {
-            "images": [f"cdh5_seg_split_{tf}"],
-            "colors": [(255, 255, 255)],
-            "colors_thumbnail": DEFAULT_COLORS,
-        }
-
-    for panel_name in panel_dict:
-        image_name_list = list(panel_dict[panel_name]["images"])  # type:ignore[call-overload]
-        panel = [image_dict[image_name] for image_name in image_name_list]
-        panel_metadata = {
-            "image_name": f"{dataset_name}_P{position}_T{timeframe}_{panel_name}",
-            "channel_names": panel_dict[panel_name]["images"],
-            "channel_colors": panel_dict[panel_name]["colors"],
-            "physical_pixel_sizes": val_image.physical_pixel_sizes,
-            "dim_order": "YX",
-            "dtype": None,
-        }
-        save_image_output(
-            out_path=out_dir_full / f"{panel_name}.ome.tiff",
-            images=panel,
-            images_metadata=panel_metadata,
+        # Dilate images of segmentation borders for better visibility
+        image_dict["cdh5_seg_merged"] = binary_dilation(image_dict["cdh5_seg_merged"])
+        image_dict["cdh5_segmentations_split_by_nuclei_borders"] = binary_dilation(
+            image_dict["cdh5_segmentations_split_by_nuclei_borders"]
         )
 
-        # flatten multichannel images to single-channel overlays
-        if len(panel) > 1:
-            if len(panel) > 2:
-                label = np.sum(
-                    [img.astype(bool) * (i + 1) for i, img in enumerate(panel[1:])], axis=0
+        # Load the nuclei predictions image (this one is nuclei predictions only)
+        nuc_manifest = load_image_manifest("nuclear_labelfree_seg")
+        nuc_location = get_image_location_for_dataset(
+            nuc_manifest, dataset_name, position, timeframe
+        )
+        nuc_pred = np.asarray(load_image(nuc_location))
+
+        cdh5_seg_manifest = load_image_manifest("cdh5_classic_seg")
+        cdh5_seg_sequential_timeframes = list(range(timeframe, timeframe + 5))
+        for tf in cdh5_seg_sequential_timeframes:
+            cdh5_seg_location = get_image_location_for_dataset(
+                cdh5_seg_manifest, dataset_name, position, tf
+            )
+            image_dict[f"cdh5_seg_split_{tf}"] = np.asarray(load_image(cdh5_seg_location))
+
+        bf_center_Z = dataset_config.center_z_plane[position]  # type:ignore[index]
+        zarr_file = get_zarr_file_for_position(dataset_config, position)
+        raw_bf = load_zarr_as_dask_array(
+            zarr_file, channels=["BF"], timepoints=timeframe, level=0
+        ).compute()
+
+        # Get the focal plane of the brightfield image
+        bf_center = np.take(raw_bf, indices=[bf_center_Z], axis=DIMENSION_ORDER.index("Z"))
+
+        # Get the standard deviation projection of the brightfield image
+        bf_std = raw_bf.std(axis=DIMENSION_ORDER.index("Z"), keepdims=True)
+
+        # Add brightfield and nuclei prediction panels to the dict
+        image_dict.update({"bf_center": bf_center, "bf_std": bf_std, "nuc_pred": nuc_pred})
+
+        # Clip and normalize channels with microscopy images
+        imaging_panels = ("bf_center", "bf_std", "cdh5_mip", "cdh5_processed")
+        for chan_name in imaging_panels:
+            image = image_dict[chan_name]
+            # skip bf_center since it looks bad when clipped
+            if chan_name != "bf_center":
+                image = np.clip(
+                    image, a_min=np.percentile(image, 0.04), a_max=np.percentile(image, 99.6)
                 )
-            else:
-                label = np.max(panel[1:], axis=0)
-            # the RBGA images work best with images normalized to [0, 1] or [0, 255]:
-            image = rescale_intensity(panel[0], in_range="image", out_range=(0, 1))
-            panel_overlay = label2rgb(
-                label=label,
-                image=image,
-                bg_label=0,
-                colors=panel_dict[panel_name]["colors_thumbnail"],  # type:ignore[index]
-                alpha=0.5,
+            image_normd = rescale_intensity(image, in_range="image", out_range=np.uint16)
+            image_dict[chan_name] = image_normd
+
+        # Take crops and reduce dimensionality to 2D
+        image_dict = {
+            chan_name: image.squeeze()[CROP_YX] for chan_name, image in image_dict.items()
+        }
+
+        # Define the panels to create
+        panel_dict = {
+            "cdh5_mip": {
+                "images": ["cdh5_mip"],
+                "colors": [(255, 255, 255)],
+                "colors_thumbnail": None,
+            },
+            "cdh5_seg_initial": {
+                "images": ["cdh5_seg_initial"],
+                "colors": [(255, 255, 255)],
+                "colors_thumbnail": DEFAULT_COLORS,
+            },
+            "bf_center_slice": {
+                "images": ["bf_center"],
+                "colors": [(255, 255, 255)],
+                "colors_thumbnail": None,
+            },
+            "nuc_pred_overlay": {
+                "images": ["bf_std", "nuc_pred"],
+                "colors": [(255, 255, 255), (0, 255, 255)],
+                "colors_thumbnail": DEFAULT_COLORS,
+            },
+            "nuc_pred_cdh5_seg_overlay": {
+                "images": ["cdh5_mip", "nuc_pred", "cdh5_seg_merged"],
+                "colors": [(255, 255, 255), (0, 255, 255), (255, 0, 255)],
+                "colors_thumbnail": ["cyan", "magenta"],
+            },
+            "seed_cdh5_seg_overlay": {
+                "images": ["cdh5_mip", "seeds", "cdh5_seg_merged"],
+                "colors": [(255, 255, 255), (0, 255, 255), (255, 0, 255)],
+                "colors_thumbnail": ["cyan", "magenta"],
+            },
+            "cdh5_seg_final_overlay": {
+                "images": ["cdh5_mip", "cdh5_segmentations_split_by_nuclei_borders"],
+                "colors": [(255, 255, 255), (255, 255, 0)],
+                "colors_thumbnail": ["yellow"],
+            },
+        }
+
+        for tf in cdh5_seg_sequential_timeframes:
+            panel_dict[f"cdh5_seg_final_overlay_{tf}"] = {
+                "images": [f"cdh5_seg_split_{tf}"],
+                "colors": [(255, 255, 255)],
+                "colors_thumbnail": DEFAULT_COLORS,
+            }
+
+        for panel_name in panel_dict:
+            image_name_list = list(panel_dict[panel_name]["images"])  # type:ignore[call-overload]
+            panel = [image_dict[image_name] for image_name in image_name_list]
+            panel_metadata = {
+                "image_name": f"{dataset_name}_P{position}_T{timeframe}_{panel_name}",
+                "channel_names": panel_dict[panel_name]["images"],
+                "channel_colors": panel_dict[panel_name]["colors"],
+                "physical_pixel_sizes": val_image.physical_pixel_sizes,
+                "dim_order": "YX",
+                "dtype": None,
+            }
+            save_image_output(
+                out_path=out_dir_full / f"{panel_name}.ome.tiff",
+                images=panel,
+                images_metadata=panel_metadata,
             )
-            save_panel_thumbnail(
-                panel_overlay, IMAGE_PANEL_SIZE, out_dir_thumb / f"{panel_name}.png"
-            )
+
+            # flatten multichannel images to single-channel overlays
+            if len(panel) > 1:
+                if len(panel) > 2:
+                    label = np.sum(
+                        [img.astype(bool) * (i + 1) for i, img in enumerate(panel[1:])], axis=0
+                    )
+                else:
+                    label = np.max(panel[1:], axis=0)
+                # the RBGA images work best with images normalized to [0, 1] or [0, 255]:
+                image = rescale_intensity(panel[0], in_range="image", out_range=(0, 1))
+                panel_overlay = label2rgb(
+                    label=label,
+                    image=image,
+                    bg_label=0,
+                    colors=panel_dict[panel_name]["colors_thumbnail"],  # type:ignore[index]
+                    alpha=0.5,
+                )
+                save_panel_thumbnail(
+                    panel_overlay,
+                    IMAGE_PANEL_SIZE,
+                    out_dir_thumb / f"{dataset_name}_P{position}_T{timeframe}_{panel_name}.png",
+                )
 
 
 def make_classic_feature_panels() -> None:
@@ -261,6 +279,18 @@ def make_classic_feature_panels() -> None:
         # (e.g. axis limits, axis titles, bin widths, etc.)
         feats_plot_args = get_seg_feat_plot_args()
 
+        # update the y labels of the features being plotted to
+        # accomodate these panels being very very small
+        # (and also to make them more informative)
+        feats_plot_args["alignment_deg"]["label"] = "Cell Alignment (°)"
+        feats_plot_args["cell_nuc_orientation_deg"][
+            "label"
+        ] = "Cell-Nucleus Angle\nRel. to Flow (°)"
+        feats_plot_args["centroid_velocity_orientation_deg"]["label"] = "Migration Angle (°)"
+        feats_plot_args["nuc_orientation_deg_rel_migration"][
+            "label"
+        ] = "Cell-Nucleus Angle\nRel. to Migration (°)"
+
         colormaps = [
             "inferno",
             "viridis",
@@ -296,14 +326,24 @@ def make_classic_feature_panels() -> None:
                 if "orientation" in feat:
                     ax = mark_parallel(ax)
                     ax = mark_perpendicular(ax)
-                fig.savefig(out_path, bbox_inches="tight")
+                fig.savefig(out_path, bbox_inches="tight", pad_inches=0.05)
 
 
 ## NOTE TO SELF: END OF LIBRARY CODE
 
 
 def main() -> None:
-    make_imaging_panels()
+
+    # from endo_pipeline.configs import load_dataset_config
+
+    dataset_name = "20250818_20X"
+    # dataset_config = load_dataset_config(dataset_name)
+    # position_list = dataset_config.zarr_positions
+    position_list = [3, 4]
+
+    for position in position_list:
+        make_imaging_panels(dataset_name, position)
+
     make_classic_feature_panels()
 
 
