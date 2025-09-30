@@ -379,7 +379,8 @@ def get_checkpoint_path_from_mlflow(mlflowid: str) -> Path:
     Returns
     -------
     :
-        Local path to checkpoint file.
+        Local path to checkpoint file. If both "last.ckpt" and "best.ckpt"
+        are available, defaults to "last.ckpt".
     """
 
     from endo_pipeline.io.mlflow import MLFLOW
