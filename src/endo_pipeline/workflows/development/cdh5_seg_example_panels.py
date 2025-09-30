@@ -57,8 +57,8 @@ def make_imaging_panels(
 
     dataset_config = load_dataset_config(dataset_name)
 
-    validation_frames = list(range(0, dataset_config.duration - 1, 48))  # don't include final frame
-    validation_frames = [validation_frames[i] for i in [0, 4, 5]]
+    validation_frames = list(range(0, dataset_config.duration - 1, 48))
+    validation_frames = validation_frames[0]
 
     for timeframe in validation_frames:
         # Load the validation image (which has some intermediate steps saved)
@@ -200,7 +200,8 @@ def make_imaging_panels(
                 "dtype": None,
             }
             save_image_output(
-                out_path=out_dir_full / f"{panel_name}.ome.tiff",
+                out_path=out_dir_full
+                / f"{dataset_name}_P{position}_T{timeframe}_{panel_name}.ome.tiff",
                 images=panel,
                 images_metadata=panel_metadata,
             )
@@ -334,12 +335,8 @@ def make_classic_feature_panels() -> None:
 
 def main() -> None:
 
-    # from endo_pipeline.configs import load_dataset_config
-
     dataset_name = "20250818_20X"
-    # dataset_config = load_dataset_config(dataset_name)
-    # position_list = dataset_config.zarr_positions
-    position_list = [3, 4]
+    position_list = [4]
 
     for position in position_list:
         make_imaging_panels(dataset_name, position)
