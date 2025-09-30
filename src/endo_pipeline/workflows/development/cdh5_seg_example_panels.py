@@ -58,7 +58,7 @@ def make_imaging_panels(
     dataset_config = load_dataset_config(dataset_name)
 
     validation_frames = list(range(0, dataset_config.duration - 1, 48))
-    validation_frames = validation_frames[0]
+    validation_frames = validation_frames[0:1]
 
     for timeframe in validation_frames:
         # Load the validation image (which has some intermediate steps saved)
