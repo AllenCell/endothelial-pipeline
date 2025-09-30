@@ -1,0 +1,21 @@
+"""Methods for working with model manifests."""
+
+import logging
+
+from endo_pipeline.manifests import ModelLocation, ModelManifest
+
+logger = logging.getLogger(__name__)
+
+
+def get_model_location_for_run(manifest: ModelManifest, run_name: str) -> ModelLocation:
+    """Get the model location for the given run from the manifest, if it exists."""
+
+    if run_name not in manifest.locations:
+        logger.error(
+            "Run [ %s ] does not have a location in model manifest [ %s ]",
+            run_name,
+            manifest.name,
+        )
+        raise KeyError(f"Unable to find run {run_name} in model manifest.")
+
+    return manifest.locations[run_name]
