@@ -1,9 +1,9 @@
 import logging
 import os
 import re
+import typing
 from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -13,7 +13,9 @@ from cyto_dl.utils.arg_checking import get_dtype
 from monai.data import MetaTensor, SmartCacheDataset
 from monai.transforms import Transform
 from numpy.typing import DTypeLike
-from omegaconf import ListConfig
+
+if typing.TYPE_CHECKING:
+    from omegaconf import ListConfig
 
 from endo_pipeline.configs import (
     DatasetConfig,
@@ -237,7 +239,7 @@ class MultiDimImageDataset(SmartCacheDataset):
         num_devices: int = 1,
         extra_columns: Sequence[str] = [],
         transform: Callable | Sequence[Callable] | None = None,
-        **cache_kwargs: Any,
+        **cache_kwargs: typing.Any,
     ) -> None:
         """
         Initialize a dataset that reads multi-dimensional images using metadata from a dataframe

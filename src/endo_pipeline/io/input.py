@@ -6,11 +6,11 @@ from pathlib import Path
 
 if typing.TYPE_CHECKING:
     from cyto_dl.api import CytoDLModel
+    from omegaconf import DictConfig, ListConfig
 
 import dask.array as da
 import pandas as pd
 from bioio import BioImage
-from omegaconf import DictConfig, ListConfig
 
 from endo_pipeline.io.output import get_output_path
 from endo_pipeline.manifests import DataframeLocation, ImageLocation, ModelLocation

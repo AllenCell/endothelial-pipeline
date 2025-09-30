@@ -1,11 +1,13 @@
 import logging
 import os
+import typing
 from pathlib import Path
-from typing import Literal
 
 import pandas as pd
 from cyto_dl.api import CytoDLModel
-from omegaconf import DictConfig, ListConfig
+
+if typing.TYPE_CHECKING:
+    from omegaconf import DictConfig, ListConfig
 
 from endo_pipeline.configs import DatasetConfig, load_dataset_collection_config
 from endo_pipeline.io import (
@@ -306,7 +308,7 @@ def initialize_diffae_model(
 
 def _upload_zarr_dataframe_to_fms(
     dataframe: pd.DataFrame,
-    dataset_type: Literal["training", "validation"],
+    dataset_type: typing.Literal["training", "validation"],
     resolution_level: int,
     dataset_config_list: list[DatasetConfig],
     output_savedir: Path,

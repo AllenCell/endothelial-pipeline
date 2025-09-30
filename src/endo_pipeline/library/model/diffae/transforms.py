@@ -1,3 +1,4 @@
+import typing
 from collections.abc import Hashable, Mapping, Sequence
 from copy import deepcopy
 
@@ -5,7 +6,9 @@ import numpy as np
 import pandas as pd
 import torch
 from monai.transforms import CenterSpatialCropd, Rotated, Transform
-from omegaconf import ListConfig
+
+if typing.TYPE_CHECKING:
+    from omegaconf import ListConfig
 
 
 # making a comment that this class is currently unused
