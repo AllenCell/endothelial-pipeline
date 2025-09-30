@@ -1,0 +1,7 @@
+name: diffae_finetuned_for_fixed
+workflow: (unknown workflow)
+parameters:
+  training_datasets: []
+locations:
+  run_name:
+    mlflowid: 6a04a60d1ed3404d9cbcca436ca6c0f3

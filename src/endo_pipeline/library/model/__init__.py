@@ -9,6 +9,7 @@ from .apply_model import (
     preprocess_tracking_manifest_for_model_eval,
     update_prediction_from_crops_with_metadata,
     update_prediction_from_tracks_with_metadata,
+    upload_prediction_dataframe_to_fms,
 )
 from .diffae import (
     DiffAEFinetune,
@@ -36,7 +37,6 @@ from .mlflow_utils import download_mlflow_artifact, download_model, get_ckpt_pat
 from .train_model import (
     build_and_save_dataframe_manifest_for_training,
     get_dataset_names_used_for_training,
-    get_valid_dataframe_path_for_training,
     initialize_diffae_model,
     initialize_diffae_model_for_finetuning,
 )
@@ -66,7 +66,6 @@ __all__ = [
     "get_model_dir",
     "get_pca_coords",
     "get_valid_csv_path_for_finetuning",
-    "get_valid_dataframe_path_for_training",
     "get_walk",
     "get_z_slice_bounds_per_position",
     "initialize_diffae_model",
@@ -76,6 +75,7 @@ __all__ = [
     "preprocess_tracking_manifest_for_model_eval",
     "update_prediction_from_crops_with_metadata",
     "update_prediction_from_tracks_with_metadata",
+    "upload_prediction_dataframe_to_fms",
     "write_pc_vals",
     "write_text",
 ]
