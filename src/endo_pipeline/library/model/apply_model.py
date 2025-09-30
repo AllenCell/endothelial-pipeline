@@ -713,9 +713,8 @@ def upload_prediction_dataframe_to_fms(
     # build FMS annotations
     dataset_annotations = build_fms_annotations(
         dataset_config,
-        model_manifest_name=model_manifest.name,
+        model_manifest=model_manifest,
         run_name=run_name,
-        model_location=model_manifest.locations[run_name],
     )
 
     # upload prediction file to FMS and get file ID

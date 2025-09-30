@@ -125,7 +125,6 @@ def build_fms_annotations(
     include_git_info: bool = True,
     model_manifest: ModelManifest | None = None,
     run_name: str | None = None,
-    model_location: ModelLocation | None = None,
     additional_notes: str = "",
 ) -> dict[str, list]:
     """
@@ -178,8 +177,6 @@ def build_fms_annotations(
         The model manifest, if applicable.
     run_name
         The run name within the model manifest, if applicable.
-    model_location
-        The model location object, if applicable.
     additional_notes
         Additional relevant notes to append to notes annotation.
     """
