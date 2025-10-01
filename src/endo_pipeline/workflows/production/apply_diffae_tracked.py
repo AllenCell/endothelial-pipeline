@@ -96,7 +96,6 @@ def main(
 
         prediction_path = apply_model_on_tracked_crops_from_one_dataset(
             model=model,
-            run_name=run_name_,
             dataset_config=dataset_config,
             save_path=save_path,
             user_overrides=user_overrides,

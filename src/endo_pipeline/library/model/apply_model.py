@@ -106,7 +106,8 @@ def generate_overrides_for_model_eval(
     save_path: str,
     data_path: str,
     dataset_name: str,
-    model_name: str,
+    model_manifest_name: str,
+    run_name: str,
     prediction_filename_suffix: str | None = None,
     cache_rate: float = 1.0,
     num_gpus: int | None = None,
@@ -116,6 +117,10 @@ def generate_overrides_for_model_eval(
     for evaluating model `model_name` on crops of
     images from dataset `dataset_name`.
     """
+    if prediction_filename_suffix is None:
+        save_suffix = f"{dataset_name}_{model_manifest_name}_{run_name}_features"
+    else:
+        save_suffix = prediction_filename_suffix
     overrides = {
         # train and val dataloaders are unnecessary for prediction
         # and might be slow to instantiate (e.g. if they cache data)
@@ -134,7 +139,7 @@ def generate_overrides_for_model_eval(
                 "start_x",
                 "filename_or_obj",
             ],
-            "save_suffix": prediction_filename_suffix or f"{dataset_name}_{model_name}_features",
+            "save_suffix": save_suffix,
         },
         "extras.print_config": False,
     }
@@ -158,7 +163,8 @@ def generate_overrides_for_track_based_crops(
     save_path: str,
     data_path: str,
     dataset_name: str,
-    model_name: str,
+    model_manifest_name: str,
+    run_name: str,
     prediction_filename_suffix: str | None = None,
     num_gpus: int | None = None,
 ) -> dict[str, Any]:
@@ -168,14 +174,17 @@ def generate_overrides_for_track_based_crops(
     tracked objects in dataset `dataset_name`.
     """
     if prediction_filename_suffix is None:
-        prediction_filename_suffix = f"{dataset_name}_{model_name}_tracked_crop_features"
+        save_suffix = f"{dataset_name}_{model_manifest_name}_{run_name}_tracked_crop_features"
+    else:
+        save_suffix = prediction_filename_suffix
 
     overrides = generate_overrides_for_model_eval(
         user_overrides,
         save_path=save_path,
         data_path=data_path,
         dataset_name=dataset_name,
-        model_name=model_name,
+        model_manifest_name=model_manifest_name,
+        run_name=run_name,
         num_gpus=num_gpus,
     )
 
@@ -193,7 +202,7 @@ def generate_overrides_for_track_based_crops(
                 "filename_or_obj",
                 "track_id",
             ],
-            "save_suffix": prediction_filename_suffix,
+            "save_suffix": save_suffix,
         },
         # add cropping transform
         "data.predict_dataloaders.dataset.transform.transforms[6]": {
@@ -479,13 +488,14 @@ def update_prediction_from_crops_with_metadata(
 
 
 def update_prediction_from_tracks_with_metadata(
-    dataset_name: str, model_name: str, prediction_path: Path
+    dataset_name: str, model_manifest_name: str, run_name: str, prediction_path: Path
 ) -> None:
     """Update the prediction file with metadata."""
     # add model and dataset information to prediction file
     pred_df = pd.read_parquet(prediction_path)
     pred_df["dataset"] = dataset_name
-    pred_df["model_name"] = model_name
+    pred_df["model_manifest_name"] = model_manifest_name
+    pred_df["run_name"] = run_name
 
     # NOTE: the current model loads images at resolution level 0 and downsamples in the transforms.
     pred_df["resolution_level"] = 1
@@ -505,8 +515,6 @@ def update_prediction_from_tracks_with_metadata(
 
 def apply_model_on_grid_of_crops_from_one_dataset(
     model: CytoDLModel,
-    model_manifest_name: str,
-    run_name: str,
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
     user_overrides: str | dict | None = None,
@@ -530,11 +538,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     Parameters
     ----------
     model
-        Trained model.
-    model_manifest_name
-        Name of the model manifest (used for metadata).
-    run_name
-        Name of the model (used for metadata).
+        Trained model to apply for prediction.
     dataset_config
         Configuration of the dataset to apply the model to.
     resolution_level
@@ -562,11 +566,18 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         If ``upload_to_fms`` is True, uploads the prediction file to FMS and adds the file ID to the
         model config manifest.
     """
+    model_manifest_name = model.cfg.experiment_name
+    run_name = model.cfg.run_name
 
     # set default output path
-    save_path = get_output_path("models", run_name, dataset_config.name)
+    save_path = get_output_path("models", model_manifest_name, run_name, dataset_config.name)
 
-    logger.debug("Applying model [ %s ] to dataset [ %s ]", run_name, dataset_config.name)
+    logger.debug(
+        "Applying run [ %s ] from model manifest [ %s ] to dataset [ %s ]",
+        run_name,
+        model_manifest_name,
+        dataset_config.name,
+    )
 
     # get unique name for the parquet file
     file_name = "dataset"
@@ -598,13 +609,14 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     df.to_parquet(dataset_save_path, index=False)
 
     # apply workflow-specific overrides
-    prediction_filename_suffix = f"{dataset_config.name}_{run_name}_features"
+    prediction_filename_suffix = f"{dataset_config.name}_{model_manifest_name}_{run_name}_features"
     overrides = generate_overrides_for_model_eval(
         load_overrides(user_overrides),
         save_path=save_path.as_posix(),
         data_path=dataset_save_path.as_posix(),
         dataset_name=dataset_config.name,
-        model_name=run_name,
+        model_manifest_name=model_manifest_name,
+        run_name=run_name,
         prediction_filename_suffix=prediction_filename_suffix,
         num_gpus=num_gpus,
     )
@@ -636,7 +648,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
 def apply_model_on_tracked_crops_from_one_dataset(
     model: CytoDLModel,
-    run_name: str,
     dataset_config: DatasetConfig,
     save_path: str | Path | None = None,
     user_overrides: str | dict | None = None,
@@ -652,8 +663,6 @@ def apply_model_on_tracked_crops_from_one_dataset(
     ----------
     model
         Trained model.
-    run_name
-        Name of the model (used for metadata).
     dataset_config
         Configuration of the dataset to apply the model to.
     resolution_level
@@ -670,12 +679,15 @@ def apply_model_on_tracked_crops_from_one_dataset(
         Number of GPUs to use for model prediction.
     """
 
+    model_manifest_name = model.cfg.experiment_name
+    run_name = model.cfg.run_name
+
     overrides = load_overrides(user_overrides)
 
     if save_path is None:
         # if no save path is provided, use the default path
         save_path = get_output_path(
-            "models", run_name, dataset_config.name, include_timestamp=False
+            "models", model_manifest_name, run_name, dataset_config.name, include_timestamp=False
         )
     elif isinstance(save_path, str):
         save_path = Path(save_path)
@@ -694,7 +706,8 @@ def apply_model_on_tracked_crops_from_one_dataset(
     )
 
     # use timestamp to get unique file name for FMS upload later
-    prediction_filename_suffix = f"{dataset_config.name}_{run_name}_tracked_crop_features"
+    prediction_filename_suffix = f"{dataset_config.name}_{model_manifest_name}_{run_name}"
+    prediction_filename_suffix = f"{prediction_filename_suffix}_tracked_crop_features"
 
     # apply overrides
     overrides = generate_overrides_for_track_based_crops(
@@ -702,7 +715,8 @@ def apply_model_on_tracked_crops_from_one_dataset(
         save_path=save_path.as_posix(),
         data_path=data_path.as_posix(),
         dataset_name=dataset_config.name,
-        model_name=run_name,
+        model_manifest_name=model_manifest_name,
+        run_name=run_name,
         prediction_filename_suffix=prediction_filename_suffix,
         num_gpus=num_gpus,
     )
@@ -712,7 +726,8 @@ def apply_model_on_tracked_crops_from_one_dataset(
     prediction_path = save_path / f"predict_{prediction_filename_suffix}.parquet"
     update_prediction_from_tracks_with_metadata(
         dataset_name=dataset_config.name,
-        model_name=run_name,
+        model_manifest_name=model_manifest_name,
+        run_name=run_name,
         prediction_path=prediction_path,
     )
 
