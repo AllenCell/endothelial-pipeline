@@ -14,6 +14,7 @@ from endo_pipeline.configs import DatasetConfig, load_dataset_collection_config
 from endo_pipeline.io import (
     build_fms_annotations,
     get_output_path,
+    get_repository_root_dir,
     load_dataframe,
     upload_file_to_fms,
 )
@@ -81,22 +82,23 @@ def _generate_overrides_for_model_training(
     effective_save_images_epochs = int(10 * multiplier)
 
     overrides = {
-        # set path to train and val datasets
+        # set training and validation dataframe paths
+        # and caching parameters
         "data.train_dataloaders.dataset.dataframe_path": train_dataframe_path,
         "data.train_dataloaders.dataset.cache_rate": cache_rate,
         "data.train_dataloaders.dataset.replace_rate": replace_rate,
-        "data.predict_dataloaders.dataset.dataframe_path": val_dataframe_path,
         "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path,
         "data.val_dataloaders.dataset.cache_rate": cache_rate,
         "data.val_dataloaders.dataset.replace_rate": replace_rate,
         # get repo root directory and current working directory
-        "paths.root_dir": Path(__file__).resolve().parents[3].as_posix(),
+        "paths.root_dir": get_repository_root_dir().as_posix(),
         "paths.work_dir": os.getcwd(),
         # save outputs to user-specified directory
         "paths.output_dir": training_run_log_path.as_posix(),
         "paths.log_dir": "${paths.output_dir}",
         "callbacks.model_checkpoint.dirpath": training_run_checkpoint_path.as_posix(),
-        # update run name
+        # update experiment name and run name
+        "experiment_name": model_manifest_name,
         "run_name": run_name,
         # set crop size from input via model.image_shape,
         # the rest are populated by interpolation
@@ -215,7 +217,8 @@ def _generate_overrides_for_finetuning(
         "trainer.min_epochs": effective_min_epochs,
         "trainer.max_epochs": effective_max_epochs,
         "trainer.log_every_n_steps": log_every_n_steps,
-        # updated the run name
+        # update the experiment name and run name
+        "experiment_name": finetuned_model_manifest_name,
         "run_name": finetuned_run_name,
     }
 
