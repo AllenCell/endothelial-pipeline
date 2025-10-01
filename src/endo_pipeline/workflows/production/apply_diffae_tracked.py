@@ -1,16 +1,14 @@
-# need to import for type hinting
-from pathlib import Path
-
 from endo_pipeline.cli import Datasets
 
 TAGS = ["apply_diffae_model", "diffae_features"]
 
 
 def main(
-    model_name: str = "diffae_04_10",
+    model_manifest_name: str = "diffae_04_10",
+    run_name: str | None = None,
     datasets: Datasets | None = None,
     upload_to_fms: bool = True,
-    save_path: str | Path | None = None,
+    save_path: str | None = None,
     user_overrides: str | dict | None = None,
 ) -> None:
     """
@@ -21,8 +19,10 @@ def main(
 
     Parameters
     ----------
-    model_name
-        Name of the model to apply.
+    model_manifest_name
+        Name of the model manifest to load the model from.
+    run_name
+        Name of the model run to apply. If None, uses the most recent run.
     datasets
         List of datasets or dataset collections to load images from. If not
         provided, workflow runs on the ``20250319_20X`` dataset.
@@ -40,12 +40,17 @@ def main(
         The model config is saved to :code:`endo_pipeline/configs/models/{model_name}.yaml`.
     """
     import logging
-    from typing import cast
+    from pathlib import Path
 
-    from endo_pipeline import DEMO_MODE
-    from endo_pipeline.configs import CytoDLModelConfig, load_dataset_config, load_model_config
-    from endo_pipeline.library.model import apply_model_on_tracked_crops_from_one_dataset
+    from endo_pipeline import DEMO_MODE, NUM_GPUS
+    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.io import load_model
+    from endo_pipeline.library.model import (
+        apply_model_on_tracked_crops_from_one_dataset,
+        upload_prediction_dataframe_to_fms,
+    )
     from endo_pipeline.library.model.image_loading import get_include_positions
+    from endo_pipeline.manifests import get_model_location_for_run, load_model_manifest
     from endo_pipeline.settings import Z_SLICE_OFFSETS
 
     logger = logging.getLogger(__name__)
@@ -56,8 +61,11 @@ def main(
 
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in datasets]
 
-    # load model config
-    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
+    # load model from manifest
+    model_manifest = load_model_manifest(model_manifest_name)
+    run_name_ = list(model_manifest.locations.keys())[-1] if run_name is None else run_name
+    model_location = get_model_location_for_run(model_manifest, run_name_)
+    model = load_model(model_location)
 
     # apply model to each dataset
     for dataset_config in dataset_config_list:
@@ -70,15 +78,29 @@ def main(
                 dataset_config.name,
             )
 
-        apply_model_on_tracked_crops_from_one_dataset(
-            model_config=model_config,
+        prediction_path = apply_model_on_tracked_crops_from_one_dataset(
+            model=model,
+            run_name=run_name_,
             dataset_config=dataset_config,
-            upload_to_fms=upload_to_fms,
             save_path=save_path,
             user_overrides=user_overrides,
             z_slice_offsets=Z_SLICE_OFFSETS,
             only_include_positions=only_include_positions,
+            num_gpus=NUM_GPUS,
         )
+
+        if upload_to_fms:
+            # upload prediction file to FMS
+            # Store FMS ID in dataframe manifest.
+            upload_prediction_dataframe_to_fms(
+                prediction_path,
+                dataset_config,
+                model_manifest,
+                run_name_,
+                dataframe_manifest_name=f"{model_manifest_name}_{run_name_}_tracked",
+                workflow_name=Path(__file__).stem,
+                workflow_parameters={"z_slice_offsets": Z_SLICE_OFFSETS},
+            )
 
         if DEMO_MODE:
             # only apply model to the first dataset in demo mode

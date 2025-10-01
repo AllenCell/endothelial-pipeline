@@ -5,7 +5,7 @@ import pandas as pd
 from skimage.feature import graycomatrix, graycoprops
 from skimage.measure import label, regionprops, shannon_entropy
 
-from endo_pipeline.configs import dataset_io
+from endo_pipeline.configs import dataset_io, load_dataset_config
 from endo_pipeline.io import load_zarr_as_dask_array
 from endo_pipeline.library.process.image_processing import (
     background_subtract,
@@ -201,7 +201,6 @@ def process_position(
     dataset: str,
     position: int,
     if_channels: list[str],
-    timepoint: int,
     nuc_seg_type: str,
 ) -> pd.DataFrame:
     """
@@ -219,7 +218,7 @@ def process_position(
         pd.DataFrame: A DataFrame containing the combined morphological and intensity-based
             properties.
     """
-    label_image = get_labeled_nuclei(dataset, position, timepoint, nuc_seg_type)
+    label_image = get_labeled_nuclei(dataset, position, nuc_seg_type)
     morph_props = extract_morphological_props(label_image, dataset, position)
     df_position = pd.DataFrame(morph_props)
 
@@ -241,7 +240,6 @@ def process_position(
 def run_nuclei_feature_extraction(
     dataset: str,
     if_channels: list[str] = IF_CHANNELS,
-    timepoint: int = 0,
     nuc_seg_type: str = NUC_SEG_TYPE,
 ) -> pd.DataFrame:
     """
@@ -260,10 +258,10 @@ def run_nuclei_feature_extraction(
     Returns:
         pd.DataFrame: A single DataFrame containing the extracted features for all positions.
     """
-    n_positions = dataset_io.get_total_number_of_positions(dataset)
+    dataset_config = load_dataset_config(dataset)
+    positions = dataset_config.zarr_positions
     df_all_positions = [
-        process_position(dataset, pos, if_channels, timepoint, nuc_seg_type)
-        for pos in range(n_positions)
+        process_position(dataset, pos, if_channels, nuc_seg_type) for pos in positions
     ]
     # Concatenate all DataFrames into a single DataFrame
     df_dataset = pd.concat(df_all_positions, ignore_index=True)
