@@ -596,6 +596,11 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         num_gpus=num_gpus,
     )
     model.override_config(overrides)
+
+    # drop `noise_cons` from `model` entry if it exists
+    if "noise_cons" in model.cfg.model:
+        del model.cfg.model["noise_cons"]
+
     local_config_save_path = get_output_path(
         "models", "evaluation_configs", model_manifest_name, run_name
     )

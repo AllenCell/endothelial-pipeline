@@ -1,3 +1,6 @@
+model:
+  _target_: cyto_dl.models.im2im.diffusion_autoencoder.DiffusionAutoEncoder
+
 data:
   predict_dataloaders:
     _target_: monai.data.DataLoader
@@ -23,8 +26,8 @@ data:
           keys:
           - raw_bf
           projection_type: std
-        - _target_: endo_pipeline.library.model.image_loading.LogImaged
-          keys: raw_bf
+        # - _target_: endo_pipeline.library.model.image_loading.LogImaged
+        #   keys: raw_bf
         - _target_: cyto_dl.image.transforms.clip.Clipd
           keys:
           - raw_bf
