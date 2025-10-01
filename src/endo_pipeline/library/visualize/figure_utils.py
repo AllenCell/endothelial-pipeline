@@ -4,7 +4,8 @@ import matplotlib.patches as patches
 
 def add_scalebar(
     ax: maxes.Axes,
-    length_px: float,
+    scale_bar_um: float,
+    pixel_size: float,
     location: str = "lower left",
     bar_thickness: float = 10,
     padding: float = 20,
@@ -17,8 +18,10 @@ def add_scalebar(
     ----------
     ax : matplotlib.axes.Axes
         The axis to add the scale bar to.
-    length_px : float
-        Length of the scale bar in pixels.
+    scale_bar_um : float
+        Length of the scale bar in micrometers.
+    pixel_size : float
+        Size of a pixel in micrometers.
     location : str, optional
         One of 'upper left', 'upper right', 'lower left', 'lower right'.
     bar_thickness : float, optional
@@ -28,6 +31,9 @@ def add_scalebar(
     color : str, optional
         Color of the scale bar.
     """
+
+    scale_bar_px = scale_bar_um / pixel_size
+    length_px = scale_bar_px
 
     ny, nx = ax.images[0].get_array().shape  # image dimensions
 

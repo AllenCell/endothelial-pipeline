@@ -306,11 +306,11 @@ def visualize_slice_selection(
             spine.set_visible(False)
 
     scale_bar_um = 50
-    scale_bar_px = scale_bar_um / pixel_size
 
     add_scalebar(
         ax=axes[0, 0],
-        length_px=scale_bar_px,
+        scale_bar_um=scale_bar_um,
+        pixel_size=pixel_size,
         location="lower left",
         bar_thickness=10,
         padding=20,
