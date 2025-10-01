@@ -11,6 +11,7 @@ from git import Repo
 from matplotlib.figure import Figure
 
 from endo_pipeline.configs import DatasetConfig, ModelConfig
+from endo_pipeline.library.visualize.figure_utils import add_scalebar
 from endo_pipeline.settings.figures import DPI, FONT_FAMILY, FONTSIZE, PDF_FONTTYPE
 
 logger = logging.getLogger(__name__)
@@ -294,13 +295,13 @@ def save_plot_to_path(
         True to save figure with clear background, False otherwise.
     """
 
-    # plt.rcParams.update(
-    #     {
-    #         "pdf.fonttype": PDF_FONTTYPE,
-    #         "font.family": FONT_FAMILY,
-    #         "font.size": FONTSIZE,
-    #     }
-    # )
+    plt.rcParams.update(
+        {
+            "pdf.fonttype": PDF_FONTTYPE,
+            "font.family": FONT_FAMILY,
+            "font.size": FONTSIZE,
+        }
+    )
 
     output_file = (output_path / figure_name).with_suffix(file_format)
     figure.savefig(output_file, dpi=dpi, transparent=transparent, bbox_inches="tight")
@@ -313,6 +314,11 @@ def save_thumbnail_to_path(
     figsize: tuple[float, float],
     dpi: int = DPI,
     file_format: Literal[".png", ".pdf"] = ".png",
+    scalebar_size_um: float | None = None,
+    pixel_size: float | None = None,
+    scalebar_location: Literal[
+        "lower right", "lower left", "upper right", "upper left"
+    ] = "lower left",
 ) -> None:
     """
     Save a thumbnail image to a specified file path.
@@ -329,18 +335,33 @@ def save_thumbnail_to_path(
         dpi: The resolution of the saved image in dots per inch (default is DPI).
         file_format: The file format for the saved image
             (default is ".png").
+        scalebar_size_um: Optional size of the scale bar in micrometers.
+        pixel_size: Size of a pixel in micrometers. Required if scalebar_size_um is provided.
+        scalebar_location: Location of the scale bar on the image.
+            Options are "lower right", "lower left", "upper right", "upper left".
 
     Returns:
         None
     """
-    # Construct the full output file path with the specified format
-    output_file = (output_path / image_name).with_suffix(file_format)
+    figure, ax = plt.subplots(figsize=figsize, frameon=False)
 
     # Create a figure and axis for displaying the image
-    figure, ax = plt.subplots(figsize=figsize, frameon=False)
     ax.imshow(image, cmap="gray")
     ax.axis("off")  # Remove axes for a clean thumbnail
-    plt.show()
 
+    if scalebar_size_um is not None:
+        add_scalebar(
+            ax,
+            scale_bar_um=scalebar_size_um,
+            pixel_size=pixel_size,
+            location=scalebar_location,
+            bar_thickness=5,
+            padding=20,
+        )
+        image_name += f"_scalebar{scalebar_size_um}um"
+
+    plt.show()
+    # Construct the full output file path with the specified format
+    output_file = (output_path / image_name).with_suffix(file_format)
     figure.savefig(output_file, dpi=dpi, bbox_inches="tight", pad_inches=0)
     plt.close(figure)
