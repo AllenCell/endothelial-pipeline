@@ -9,34 +9,55 @@ from matplotlib import pyplot as plt
 from omegaconf import OmegaConf
 
 from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
+from endo_pipeline.io.input import load_zarr_as_dask_array
 from endo_pipeline.io.output import get_output_path, save_plot_to_path, save_thumbnail_to_path
 from endo_pipeline.library.model import get_model_dir
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
+from endo_pipeline.settings.image_data import (
+    LOWER_Z_SLICE_OFFSET,
+    UPPER_Z_SLICE_OFFSET,
+    PIXEL_SIZE_3i_20x,
+)
 
-# %% YAML Config Path
-# Dynamically load the YAML file from the package
+# %% Load Example Data
+POSITION = 0
+DATASET = EXAMPLE_DATASET["SUP_FIG_Y"]
+save_dir = get_output_path("model_input_preprocessing_viz", f"{DATASET}_P{POSITION}")
+
+dataset_config = load_dataset_config(DATASET)
+zarr_path = get_zarr_file_for_position(dataset_config, POSITION)
+img = load_zarr_as_dask_array(zarr_path, level=1, squeeze=True)
+
+# %% for each slice in the zarr, save a thumbnail
+# the image is 2 channel with 25 slices
+for channel in range(img.shape[0]):
+    for slice_idx in range(img.shape[1]):
+        slice_img = img[channel, slice_idx, :, :].compute()
+        save_thumbnail_to_path(
+            slice_img,
+            f"original_channel{channel}_slice{slice_idx}",
+            save_dir,
+            figsize=(6, 6),
+            scalebar_size_um=50,
+            pixel_size=PIXEL_SIZE_3i_20x,
+        )
+
+# %% print center slice
+print(dataset_config.center_z_plane)
+
+# %% Load model config
 yaml_path = get_model_dir() / "diffae_training.yaml"
-config = OmegaConf.load(yaml_path)
+model_config = OmegaConf.load(yaml_path)
 
 # Access the training transform configuration
-train_transform_cfg = config.data.train_dataloaders.dataset.transform
+train_transform_cfg = model_config.data.train_dataloaders.dataset.transform
 temp_squeeze = {"_target_": "monai.transforms.SqueezeDimd", "keys": "raw", "dim": 0}
-# Insert into the list of transforms (not the Compose object itself)
+# Insert squeeze into the list of transforms so that we can visualize the 2D image
 train_transform_cfg.transforms.insert(1, OmegaConf.create(temp_squeeze))
 
 
-# %% Image Path
-dataset = EXAMPLE_DATASET["SUP_FIG_Y"]
-
-print(f"Using dataset {dataset}")
-position = 0
-config = load_dataset_config(dataset)
-test_image_path = get_zarr_file_for_position(config, position)
-
-save_dir = get_output_path("model_input_preprocessing_viz", f"{dataset}_P{position}")
-
 # %%
-sample = {"original_path": str(test_image_path)}
+sample = {"original_path": str(zarr_path)}
 
 
 def initialize_transform(transform_cfg):
