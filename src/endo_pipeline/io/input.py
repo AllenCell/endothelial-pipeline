@@ -458,16 +458,25 @@ def load_model_from_mlflow(mlflowid: str) -> "CytoDLModel":
     """
 
     from cyto_dl.api import CytoDLModel
+    from omegaconf import OmegaConf
+
+    from endo_pipeline.library.model import get_model_dir
 
     # Temporary workaround: using tracked version of config for "legacy" model
     if mlflowid == "ae7f25b4109c47809d3e2ed1b7120e50":
-        from omegaconf import OmegaConf
-
-        from endo_pipeline.library.model import get_model_dir
-
+        logger.warning("Using legacy config for model [ %s ]", mlflowid)
         config_dict = OmegaConf.load(get_model_dir() / "diffae_04_10_eval.yaml")
     else:
+        # get logged config from MLFlow and merge with
+        # evaluation config that has predict_dataloader settings
+        logger.warning(
+            "Merging logged config with template evaluation config for model [ %s ], "
+            "may result in overrides if predict_dataloader settings were logged during training.",
+            mlflowid,
+        )
         config_dict = get_config_dict_from_mlflow(mlflowid)
+        eval_config = OmegaConf.load(get_model_dir() / "diffae_eval.yaml")
+        config_dict = OmegaConf.merge(config_dict, eval_config)
 
     checkpoint_path = get_checkpoint_path_from_mlflow(mlflowid)
 
