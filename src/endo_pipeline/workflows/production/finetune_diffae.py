@@ -56,13 +56,13 @@ def main(
     from endo_pipeline import DEMO_MODE, NUM_GPUS
     from endo_pipeline.io import (
         get_output_path,
+        get_repository_root_dir,
         load_model,
         make_name_unique,
         resolve_dataframe_location,
     )
     from endo_pipeline.library.model import (
         get_dataset_names_used_for_training,
-        get_model_dir,
         initialize_diffae_model_for_finetuning,
     )
     from endo_pipeline.manifests import (
@@ -73,6 +73,7 @@ def main(
         load_model_manifest,
         save_model_manifest,
     )
+    from endo_pipeline.settings import RELATIVE_PATH_TO_FINETUNE_CONFIG
 
     logger = logging.getLogger(__name__)
 
@@ -134,7 +135,9 @@ def main(
     val_dataframe_path = resolve_dataframe_location(val_dataframe_location)
 
     # get template config
-    template_finetune_config = OmegaConf.load(get_model_dir() / "diffae_finetune.yaml")
+    template_finetune_config = OmegaConf.load(
+        get_repository_root_dir() / RELATIVE_PATH_TO_FINETUNE_CONFIG
+    )
 
     # initialize baseline model for finetuning
     base_model_manifest = load_model_manifest(base_model_manifest_name)

@@ -19,6 +19,19 @@ from endo_pipeline.settings import DIMENSION_ORDER
 logger = logging.getLogger(__name__)
 
 
+def get_repository_root_dir() -> Path:
+    """
+    Get path to root of git repository.
+
+    Returns
+    -------
+    :
+        Path object for root of git repository.
+    """
+
+    return Path(__file__).resolve().parents[3]
+
+
 def load_zarr_as_dask_array(
     path: Path,
     channels: list[str] | None = None,
@@ -460,23 +473,15 @@ def load_model_from_mlflow(mlflowid: str) -> "CytoDLModel":
     from cyto_dl.api import CytoDLModel
     from omegaconf import OmegaConf
 
-    from endo_pipeline.library.model import get_model_dir
+    from endo_pipeline.settings import RELATIVE_PATH_TO_LEGACY_CONFIG
 
     # Temporary workaround: using tracked version of config for "legacy" model
     if mlflowid == "ae7f25b4109c47809d3e2ed1b7120e50":
         logger.warning("Using legacy config for model [ %s ]", mlflowid)
-        config_dict = OmegaConf.load(get_model_dir() / "diffae_04_10_eval.yaml")
+        config_dict = OmegaConf.load(get_repository_root_dir() / RELATIVE_PATH_TO_LEGACY_CONFIG)
     else:
-        # get logged config from MLFlow and merge with
-        # evaluation config that has predict_dataloader settings
-        logger.warning(
-            "Merging logged config with template evaluation config for model [ %s ], "
-            "may result in overrides if predict_dataloader settings were logged during training.",
-            mlflowid,
-        )
+        # get logged config from MLFlow
         config_dict = get_config_dict_from_mlflow(mlflowid)
-        eval_config = OmegaConf.load(get_model_dir() / "diffae_eval.yaml")
-        config_dict = OmegaConf.merge(config_dict, eval_config)
 
     checkpoint_path = get_checkpoint_path_from_mlflow(mlflowid)
 
@@ -507,3 +512,31 @@ def load_model(location: ModelLocation) -> "CytoDLModel":
 
     logger.error("Location does not have an MLFlow run ID.")
     raise FileNotFoundError("Unable to load model; no available locations.")
+
+
+def load_and_override_model_for_inference(
+    location: ModelLocation, path_to_override_config: Path
+) -> "CytoDLModel":
+    """
+    Load model from location and override config for inference.
+
+    Parameters
+    ----------
+    location
+        Model location object.
+    path_to_override_config
+        Path to YAML file with config overrides for inference.
+    """
+
+    from omegaconf import OmegaConf
+
+    model = load_model(location)
+
+    if not path_to_override_config.exists():
+        logger.error("Path [ %s ] could not be loaded", path_to_override_config)
+        raise FileNotFoundError(f"No such file '{path_to_override_config}'")
+
+    override_dict = OmegaConf.load(path_to_override_config)
+    model.override_config(override_dict)
+
+    return model

@@ -14,6 +14,7 @@ from endo_pipeline.configs import (
 from endo_pipeline.io import (
     build_fms_annotations,
     get_output_path,
+    get_repository_root_dir,
     load_dataframe,
     upload_file_to_fms,
 )
@@ -32,15 +33,11 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     save_dataframe_manifest,
 )
+from endo_pipeline.settings import RELATIVE_PATH_TO_EVAL_CONFIG
 
 ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
 
 logger = logging.getLogger(__name__)
-
-
-def get_model_dir() -> Path:
-    """Get the path to `endo_pipeline.library.model`."""
-    return Path(__file__).resolve().parent
 
 
 def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
@@ -86,6 +83,22 @@ def load_overrides(overrides: str | dict | None) -> dict:
         logger.error("Overrides must be a dictionary or a path to a .json file.")
         raise ValueError("Overrides must be a dictionary or a path to a .json file.")
     return overrides_dict
+
+
+def parse_eval_config_path(eval_config_path: str | None = None) -> Path:
+    """Parse input evaluation config path to return a valid Path object."""
+    if eval_config_path is None:
+        # If eval_config_path is not provided, use the default path relative to the
+        # repository root.
+        path_to_eval_conifg = get_repository_root_dir() / RELATIVE_PATH_TO_EVAL_CONFIG
+    else:
+        # If eval_config_path is provided, it can be either absolute or relative
+        # to the repository root.
+        if not Path(eval_config_path).is_absolute():
+            path_to_eval_conifg = get_repository_root_dir() / eval_config_path
+        else:
+            path_to_eval_conifg = Path(eval_config_path)
+    return path_to_eval_conifg
 
 
 def generate_overrides_for_model_eval(
@@ -584,7 +597,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     # save the dataframe to a parquet file
     df.to_parquet(dataset_save_path, index=False)
 
-    # apply overrides
+    # apply workflow-specific overrides
     prediction_filename_suffix = f"{dataset_config.name}_{run_name}_features"
     overrides = generate_overrides_for_model_eval(
         load_overrides(user_overrides),

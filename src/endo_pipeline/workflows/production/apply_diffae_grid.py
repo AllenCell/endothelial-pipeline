@@ -9,6 +9,7 @@ def main(
     datasets: Datasets | None = None,
     resolution_level: int = 1,
     upload_to_fms: bool = True,
+    eval_config_path: str | None = None,
     user_overrides: str | dict | None = None,
 ) -> None:
     """
@@ -21,6 +22,14 @@ def main(
 
     If demo mode is enabled, the model will only be evaluated on the first few
     timepoints of the first position of the first dataset.
+
+    **Eval config override**
+
+    If ``eval_config_path`` is provided, the model config loaded from the model manifest
+    will be overridden with the config from the specified path. If it is not provided,
+    then the default DiffAE eval template config is used to override the loaded model config.
+    The reason for doing this override is that the training config by default does not
+    contain settings for the ``predict_dataloaders`` used during inference.
 
     **Example usage**
 
@@ -42,23 +51,25 @@ def main(
         Resolution level to at which to load images (zarr file format) at.
     upload_to_fms
         True to upload the prediction file for each dataset to FMS, False to only save locally.
+    eval_config_path
+        Optional, path to the model eval config to use to override the loaded model config.
     user_overrides
         Optional user overrides to apply to the model config.
 
     Returns
     -------
     :
-        Saves the model config with the applied model and model manifest objects.
-        The model config is saved to [ endo_pipeline/configs/models/{model_name}.yaml ].
+        Saves and/or updates a DataframeManifest with the prediction file for each dataset.
     """
     import logging
     from pathlib import Path
 
     from endo_pipeline import DEMO_MODE, NUM_GPUS
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import load_model
+    from endo_pipeline.io import load_and_override_model_for_inference
     from endo_pipeline.library.model import (
         apply_model_on_grid_of_crops_from_one_dataset,
+        parse_eval_config_path,
         upload_prediction_dataframe_to_fms,
     )
     from endo_pipeline.library.model.image_loading import get_include_positions
@@ -73,11 +84,12 @@ def main(
 
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in datasets]
 
-    # load model from manifest
+    # load model from manifest and override with specified eval config
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = list(model_manifest.locations.keys())[-1] if run_name is None else run_name
     model_location = get_model_location_for_run(model_manifest, run_name_)
-    model = load_model(model_location)
+    path_to_eval_config = parse_eval_config_path(eval_config_path)
+    model = load_and_override_model_for_inference(model_location, path_to_eval_config)
 
     # apply model to each dataset
     for dataset_config in dataset_config_list:
