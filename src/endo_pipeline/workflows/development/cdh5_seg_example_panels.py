@@ -325,8 +325,8 @@ def make_classic_feature_panels() -> None:
                 )
                 ax.set_title("")
                 if "orientation" in feat:
-                    ax = mark_parallel(ax)
-                    ax = mark_perpendicular(ax)
+                    ax = mark_parallel(ax, color="lightgrey")
+                    ax = mark_perpendicular(ax, color="lightgrey")
                 fig.savefig(out_path, bbox_inches="tight", pad_inches=0.05)
 
 
