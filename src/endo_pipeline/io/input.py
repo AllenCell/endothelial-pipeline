@@ -477,7 +477,7 @@ def load_model_from_mlflow(mlflowid: str) -> "CytoDLModel":
     # Temporary workaround: using tracked version of config for "legacy" model
     if mlflowid == "ae7f25b4109c47809d3e2ed1b7120e50":
         logger.warning("Using legacy config for model [ %s ]", mlflowid)
-        config_dict = load_omegaconf_from_path(RELATIVE_PATH_TO_LEGACY_CONFIG)
+        config_dict = load_model_config_from_path(RELATIVE_PATH_TO_LEGACY_CONFIG)
     else:
         # get logged config from MLFlow
         config_dict = get_config_dict_from_mlflow(mlflowid)
@@ -513,8 +513,8 @@ def load_model(location: ModelLocation) -> "CytoDLModel":
     raise FileNotFoundError("Unable to load model; no available locations.")
 
 
-def load_omegaconf_from_path(config_path: str) -> "DictConfig | ListConfig":
-    """Parse input path to configuration file to return an OmegaConf object."""
+def load_model_config_from_path(config_path: str) -> "DictConfig | ListConfig":
+    """Parse input path to model configuration file and load."""
     from omegaconf import OmegaConf
 
     if not Path(config_path).is_absolute():

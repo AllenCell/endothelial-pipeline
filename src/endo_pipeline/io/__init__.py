@@ -10,8 +10,8 @@ from .input import (
     load_image,
     load_image_from_path,
     load_model,
+    load_model_config_from_path,
     load_model_from_mlflow,
-    load_omegaconf_from_path,
     load_zarr_as_dask_array,
     resolve_dataframe_location,
 )
@@ -44,7 +44,7 @@ __all__ = [
     "load_image_from_path",
     "load_model",
     "load_model_from_mlflow",
-    "load_omegaconf_from_path",
+    "load_model_config_from_path",
     "load_zarr_as_dask_array",
     "make_name_unique",
     "resolve_dataframe_location",

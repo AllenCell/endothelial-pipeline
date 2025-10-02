@@ -58,14 +58,14 @@ def main(
 
     from endo_pipeline import DEMO_MODE, NUM_GPUS
     from endo_pipeline.configs import load_dataset_config
-    from endo_pipeline.io import load_omegaconf_from_path
+    from endo_pipeline.io import load_model_config_from_path
     from endo_pipeline.library.model import (
         apply_model_on_tracked_crops_from_one_dataset,
-        load_and_override_model_for_inference,
+        load_model_for_inference,
         upload_prediction_dataframe_to_fms,
     )
     from endo_pipeline.library.model.image_loading import get_include_positions
-    from endo_pipeline.manifests import get_model_location_for_run, load_model_manifest
+    from endo_pipeline.manifests import load_model_manifest
     from endo_pipeline.settings import RELATIVE_PATH_TO_EVAL_CONFIG, Z_SLICE_OFFSETS
 
     logger = logging.getLogger(__name__)
@@ -76,26 +76,18 @@ def main(
 
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in datasets]
 
-    # get model location for run_name from model manifest
+    # load model manifest
     model_manifest = load_model_manifest(model_manifest_name)
-    run_name_ = list(model_manifest.locations.keys())[-1] if run_name is None else run_name
-    model_location = get_model_location_for_run(model_manifest, run_name_)
 
     # use input path to an eval config if provided, else use path to diffae_eval.yaml
     path_to_eval_config = eval_config_path if eval_config_path else RELATIVE_PATH_TO_EVAL_CONFIG
-
     # load eval config as an OmegaConf object
-    eval_config = load_omegaconf_from_path(path_to_eval_config)
+    eval_config = load_model_config_from_path(path_to_eval_config)
 
-    # load model from location and override with eval config
-    model = load_and_override_model_for_inference(model_location, eval_config)
-
-    # make sure model manifest name and run name are in model config
-    # as 'experiment_name' and 'run_name' respectively
-    if "experiment_name" not in model.cfg:
-        model.cfg.experiment_name = model_manifest_name
-    if "run_name" not in model.cfg:
-        model.cfg.run_name = run_name_
+    # load model run_name from model manifest, override with eval config,
+    # and make sure that "model_manifest_name" and "run_name" are stored in the config
+    # as "experiment_name" and "run_name" for logging purposes
+    model = load_model_for_inference(model_manifest, run_name, eval_config)
 
     # apply model to each dataset
     for dataset_config in dataset_config_list:
@@ -125,8 +117,8 @@ def main(
                 prediction_path,
                 dataset_config,
                 model_manifest,
-                run_name_,
-                dataframe_manifest_name=f"{model_manifest_name}_{run_name_}_tracked",
+                model.cfg.run_name,
+                dataframe_manifest_name=f"{model_manifest_name}_{model.cfg.run_name}_tracked",
                 workflow_name=Path(__file__).stem,
                 workflow_parameters={"z_slice_offsets": Z_SLICE_OFFSETS},
             )

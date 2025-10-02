@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from cyto_dl.api import CytoDLModel
 
 if typing.TYPE_CHECKING:
+    from cyto_dl.api import CytoDLModel
     from omegaconf import DictConfig, ListConfig
 
 from endo_pipeline.configs import (
@@ -32,9 +32,9 @@ from endo_pipeline.library.process.general_image_preprocessing import sequence_t
 from endo_pipeline.manifests import (
     DataframeLocation,
     DataframeManifest,
-    ModelLocation,
     ModelManifest,
     get_dataframe_location_for_dataset,
+    get_model_location_for_run,
     load_dataframe_manifest,
     save_dataframe_manifest,
 )
@@ -44,22 +44,35 @@ ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
 logger = logging.getLogger(__name__)
 
 
-def load_and_override_model_for_inference(
-    location: ModelLocation, eval_config: "DictConfig | ListConfig"
-) -> CytoDLModel:
+def load_model_for_inference(
+    model_manifest: ModelManifest, run_name: str | None, eval_config: "DictConfig | ListConfig"
+) -> "CytoDLModel":
     """
-    Load model from location and override with config for model evaluation (inference).
+    Load a CytoDLModel for inference from a model manifest, run name, and specified eval config.
 
     Parameters
     ----------
-    location
-        Model location object.
+    model_manifest
+        Model manifest to load the model from.
+    run_name
+        Optional, run name of the specific model to load. Loads the most recent run if None.
     eval_config
-        Evaluation config object (loaded via OmegaConf from YAML file).
+        Evaluation configuration to override the loaded model's default configuration.
     """
+    # get model location for run_name from model manifest
+    run_name_ = list(model_manifest.locations.keys())[-1] if run_name is None else run_name
+    model_location = get_model_location_for_run(model_manifest, run_name_)
 
-    model = load_model(location)
+    # load model from location and override with eval config
+    model = load_model(model_location)
     model.override_config(eval_config)
+
+    # make sure model manifest name and run name are in model config
+    # as 'experiment_name' and 'run_name' respectively
+    if "experiment_name" not in model.cfg:
+        model.cfg.experiment_name = model_manifest.name
+    if "run_name" not in model.cfg:
+        model.cfg.run_name = run_name_
 
     return model
 
@@ -522,7 +535,7 @@ def update_prediction_from_tracks_with_metadata(
 
 
 def apply_model_on_grid_of_crops_from_one_dataset(
-    model: CytoDLModel,
+    model: "CytoDLModel",
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
     user_overrides: str | dict | None = None,
@@ -655,7 +668,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
 
 def apply_model_on_tracked_crops_from_one_dataset(
-    model: CytoDLModel,
+    model: "CytoDLModel",
     dataset_config: DatasetConfig,
     save_path: str | Path | None = None,
     user_overrides: str | dict | None = None,
