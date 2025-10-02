@@ -29,6 +29,7 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     save_dataframe_manifest,
 )
+from endo_pipeline.settings import Z_SLICE_OFFSETS
 
 
 def add_paired_fixed_live_data_fmsid_to_manifest(
@@ -135,7 +136,9 @@ def apply_model_paired_fixed_live(
         data = align_all_positions(
             fixed_dataset_name,
             live_dataset_name,
-            save_path,
+            resolution_level=1,
+            z_slice_offsets=Z_SLICE_OFFSETS,
+            savedir=save_path,
             alignment_method="sift",
             align_fluo=align_fluo,
         )
@@ -143,38 +146,70 @@ def apply_model_paired_fixed_live(
         data["channel"] = 0
         data.to_csv(data_save_path, index=False)
 
-    # Apply on fixed images
-    overrides = {"model.spatial_inferer.splitter.overlap": 0.9}
-    fixed_overrides = overrides.copy()  # copy to avoid overriding the original
-    fixed_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "fixed"})
-    fixed_overrides = generate_overrides_for_model_eval(
-        fixed_overrides,
-        save_path=str(save_path),
-        data_path=str(data_save_path),
-        ckpt_path=path_dict["checkpoint_path"],
-        dataset_name=fixed_dataset_name,
-        model_name=model_name,
-    )
-
-    # Load diffAE model
+    # Load diffAE model and create new overrides object
     model = CytoDLModel()
     model.load_config_from_file(path_dict["config_path"])
-    model.override_config(fixed_overrides)
-    model.predict()
+    overrides = {"model.spatial_inferer.splitter.overlap": 0.9}
 
-    # Apply on moving images
-    overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving"})
-    overrides = generate_overrides_for_model_eval(
-        overrides,
+    # Apply on target/moving images - start by constructing overrides
+    target_overrides = overrides.copy()  # copy to avoid overriding the original
+    target_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "target"})
+    target_overrides = generate_overrides_for_model_eval(
+        target_overrides,
         save_path=str(save_path),
         data_path=str(data_save_path),
         ckpt_path=path_dict["checkpoint_path"],
         dataset_name=live_dataset_name,
         model_name=model_name,
     )
-    model.override_config(overrides)
+    # the following lines of override updates are temporary while we adjust our model/config infrastructure
+    target_overrides.update(
+        {
+            "data.predict_dataloaders.dataset._target_": "endo_pipeline.library.model.image_loading.MultiDimImageDataset"
+        }
+    )
+    target_overrides["data.predict_dataloaders.dataset.cache_rate"] = 1.0
+    target_overrides["data.predict_dataloaders.dataset.replace_rate"] = 0.1
+    target_overrides["data.predict_dataloaders.dataset.num_init_workers"] = 24
+    target_overrides["data.predict_dataloaders.dataset.num_replace_workers"] = 24
+
+    # Apply model on target/moving images - override config and run model prediciton
+    model.override_config(target_overrides)
+    # the following three lines are temporary while we adjust our model/config infrastructure
+    rm_keys = ["num_workers", "cache_num", "csv_path", "dict_meta"]
+    for key in rm_keys:
+        model.cfg.data.predict_dataloaders.dataset.pop(key, None)
     model.predict()
 
+    # Apply on fixed dataset/"moving" images - start by constructing overrides
+    overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving"})
+    overrides = generate_overrides_for_model_eval(
+        overrides,
+        save_path=str(save_path),
+        data_path=str(data_save_path),
+        ckpt_path=path_dict["checkpoint_path"],
+        dataset_name=fixed_dataset_name,
+        model_name=model_name,
+    )
+    # The following lines of override updates are temporary while we adjust our model/config infrastructure
+    overrides.update(
+        {
+            "data.predict_dataloaders.dataset._target_": "endo_pipeline.library.model.image_loading.MultiDimImageDataset"
+        }
+    )
+    overrides["data.predict_dataloaders.dataset.cache_rate"] = 1.0
+    overrides["data.predict_dataloaders.dataset.replace_rate"] = 0.1
+    overrides["data.predict_dataloaders.dataset.num_init_workers"] = 24
+    overrides["data.predict_dataloaders.dataset.num_replace_workers"] = 24
+
+    # Apply on fixed dataset/"moving" images - override config and run model prediciton
+    model.override_config(overrides)
+    # the following two lines are temporary while we adjust our model/config infrastructure
+    for key in rm_keys:
+        model.cfg.data.predict_dataloaders.dataset.pop(key, None)
+    model.predict()
+
+    # Define paths to saved features from model for both fixed and live datasets
     fixed_features_path = save_path / f"predict_{fixed_dataset_name}_{model_name}_features.parquet"
     live_features_path = save_path / f"predict_{live_dataset_name}_{model_name}_features.parquet"
 

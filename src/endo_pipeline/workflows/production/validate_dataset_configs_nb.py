@@ -10,11 +10,8 @@ For each dataset config in the `configs/datasets` directory, confirm:
 - All dataset configs follow the schema defined by `DatasetConfig`
 - All original data paths exist and can be opened
 - All zarr data paths exist and can be opened
+- All shear stress regimes are valid based on the flow conditions
 """
-
-# %%
-if __name__ != "__main__":
-    raise ImportError("This module is a notebook and is not meant to be imported")
 
 # %%
 import logging
@@ -30,7 +27,6 @@ from endo_pipeline.configs import (
 
 # %%
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 # %%
 for dataset_name in get_available_dataset_names():
@@ -78,5 +74,3 @@ for dataset_name in get_available_dataset_names():
                 "Failed to load zarr for dataset [ %s ] at [ %s ]", dataset.name, zarr_file
             )
             raise
-
-# %%

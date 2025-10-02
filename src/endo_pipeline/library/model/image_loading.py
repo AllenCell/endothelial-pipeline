@@ -1,9 +1,9 @@
 import logging
 import os
 import re
+import typing
 from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -13,7 +13,9 @@ from cyto_dl.utils.arg_checking import get_dtype
 from monai.data import MetaTensor, SmartCacheDataset
 from monai.transforms import Transform
 from numpy.typing import DTypeLike
-from omegaconf import ListConfig
+
+if typing.TYPE_CHECKING:
+    from omegaconf import ListConfig
 
 from endo_pipeline.configs import (
     DatasetConfig,
@@ -23,6 +25,7 @@ from endo_pipeline.configs import (
     get_available_zarr_files,
     get_position_integer_from_zarr_file_path,
 )
+from endo_pipeline.io import load_dataframe_from_path
 from endo_pipeline.library.process.z_stack_selection import get_plane_indices
 from endo_pipeline.settings.image_data import LOG_EPSILON, NUM_ZSLICES
 
@@ -44,7 +47,7 @@ class LogImaged(Transform):
         Key in the input dictionary where the original image data is stored.
     """
 
-    def __init__(self, keys: list | ListConfig | str = "image") -> None:
+    def __init__(self, keys: "list | ListConfig | str" = "image") -> None:
         """
         Initialize the LogImage transform.
 
@@ -54,7 +57,7 @@ class LogImaged(Transform):
             Key in the input dictionary where the original image data is stored.
         """
         super().__init__()
-        self.keys = keys if isinstance(keys, list | ListConfig) else [keys]
+        self.keys = [keys] if isinstance(keys, str) else keys
 
     def __call__(self, data: dict) -> dict:
         """
@@ -237,7 +240,7 @@ class MultiDimImageDataset(SmartCacheDataset):
         num_devices: int = 1,
         extra_columns: Sequence[str] = [],
         transform: Callable | Sequence[Callable] | None = None,
-        **cache_kwargs: Any,
+        **cache_kwargs: typing.Any,
     ) -> None:
         """
         Initialize a dataset that reads multi-dimensional images using metadata from a dataframe
@@ -350,7 +353,8 @@ class MultiDimImageDataset(SmartCacheDataset):
         cache_kwargs:
             Additional keyword arguments to pass to ``CacheDataset``.
         """
-        df = pd.read_parquet(dataframe_path)
+
+        df = load_dataframe_from_path(Path(dataframe_path))
         rank = int(os.environ.get("LOCAL_RANK", 0))
         # Use WORLD_SIZE from environment, fallback to num_devices, then default to 1
         world_size = int(os.environ.get("WORLD_SIZE", num_devices or 1))
