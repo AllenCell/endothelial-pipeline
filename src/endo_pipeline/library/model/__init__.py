@@ -63,7 +63,6 @@ __all__ = [
     "get_exclude_frames",
     "get_include_positions",
     "get_latent_coords",
-    "get_model_dir",
     "get_pca_coords",
     "get_valid_csv_path_for_finetuning",
     "get_walk",
