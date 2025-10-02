@@ -776,9 +776,19 @@ def upload_prediction_dataframe_to_fms(
     )
 
     try:
+        # Temporarily set dataframe manifest I/O logger to CRITICAL
+        # to suppress error logging if manifest does not exist.
+        # We want it to be a warning here instead (see except block below).
+        dataframe_manifest_io_logger = logging.getLogger(
+            "endo_pipeline.manifests.dataframe_manifest_io"
+        )
+        original_level = dataframe_manifest_io_logger.level
+        dataframe_manifest_io_logger.setLevel(logging.CRITICAL)
+
+        # Attempt to load existing dataframe manifest
         manifest = load_dataframe_manifest(dataframe_manifest_name)
     except FileNotFoundError:
-        logger.info(
+        logger.warning(
             "Dataframe manifest [ %s ] not found, creating a new one.",
             dataframe_manifest_name,
         )
@@ -786,6 +796,9 @@ def upload_prediction_dataframe_to_fms(
         manifest = DataframeManifest(
             name=dataframe_manifest_name, workflow=workflow_name, parameters=parameters
         )
+    finally:
+        # restore original logging level of dataframe manifest I/O logger
+        dataframe_manifest_io_logger.setLevel(original_level)
 
     manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
     save_dataframe_manifest(manifest)
