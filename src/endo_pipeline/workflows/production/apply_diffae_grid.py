@@ -98,6 +98,13 @@ def main(
     # load model from location and override with eval config
     model = load_and_override_model_for_inference(model_location, eval_config)
 
+    # make sure model manifest name and run name are in model config
+    # as 'experiment_name' and 'run_name' respectively
+    if "experiment_name" not in model.cfg:
+        model.cfg.experiment_name = model_manifest_name
+    if "run_name" not in model.cfg:
+        model.cfg.run_name = run_name_
+
     # apply model to each dataset
     for dataset_config in dataset_config_list:
         # Get positions to include.
