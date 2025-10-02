@@ -69,8 +69,37 @@ def load_model_for_inference(
 
     # make sure model manifest name and run name are in model config
     # as 'experiment_name' and 'run_name' respectively
-    model.cfg.experiment_name = model_manifest.name
-    model.cfg.run_name = run_name_
+    # ONLY NEED for legacy purposes, this PR (#745) updates train-diffae
+    # to store these values in the model config at training time
+    if not hasattr(model.cfg, "experiment_name") or model.cfg.experiment_name is None:
+        logger.warning(
+            "Model config is missing 'experiment_name', setting it to [ %s ] from model manifest.",
+            model_manifest.name,
+        )
+        model.cfg.experiment_name = model_manifest.name
+    elif model.cfg.experiment_name != model_manifest.name:
+        logger.warning(
+            "Model config 'experiment_name' [ %s ] does not match model manifest name [ %s ]. "
+            "Overriding with model manifest name.",
+            model.cfg.experiment_name,
+            model_manifest.name,
+        )
+        model.cfg.experiment_name = model_manifest.name
+
+    if not hasattr(model.cfg, "run_name") or model.cfg.run_name is None:
+        logger.warning(
+            "Model config is missing 'run_name', setting it to [ %s ] from model manifest.",
+            run_name_,
+        )
+        model.cfg.run_name = run_name_
+    elif model.cfg.run_name != run_name_:
+        logger.warning(
+            "Model config 'run_name' [ %s ] does not match specified run name [ %s ]. "
+            "Overriding with specified run name.",
+            model.cfg.run_name,
+            run_name_,
+        )
+        model.cfg.run_name = run_name_
 
     return model
 
