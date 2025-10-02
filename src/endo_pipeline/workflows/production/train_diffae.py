@@ -72,13 +72,14 @@ def main(
 
     from omegaconf import OmegaConf
 
-    from endo_pipeline import DEMO_MODE, NUM_GPUS
+    from endo_pipeline import DEMO_MODE, IS_MAIN_PROCESS, NUM_GPUS
     from endo_pipeline.io import get_output_path, make_name_unique, resolve_dataframe_location
     from endo_pipeline.library.model import (
         get_dataset_names_used_for_training,
         get_model_dir,
         initialize_diffae_model,
     )
+    from endo_pipeline.library.model.model_config_overrides import ModelConfigOverride
     from endo_pipeline.manifests import (
         ModelLocation,
         ModelManifest,
@@ -147,74 +148,68 @@ def main(
         else:
             model_manifest_name = f"{model_manifest_name}_include_cell_piling"
 
-    # Set run name and log info
-    # If no run name provided, make one
-    if run_name is None:
-        # Default run name is "diffae_{timestamp}"
-        run_name = make_name_unique("diffae").name
-    else:
-        # If run name provided, make sure it's unique within the manifest
-        if run_name in load_model_manifest(model_manifest_name).locations:
-
-            local_rank = int(os.environ.get("LOCAL_RANK", "0"))
-            # local_config_save_path = get_output_path("models", "training_configs")
-            # model_name_path = local_config_save_path / "current_model_name.txt"
-
-            # Create model name and logs only for the first rank!
-            if local_rank == 0:
+    if IS_MAIN_PROCESS:
+        # We're in the initial process, need to generate run name
+        if run_name is None:
+            # Default run name is "diffae_{timestamp}"
+            run_name = make_name_unique("diffae").name
+        else:
+            # If run name provided, make sure it's unique within the manifest
+            if run_name in load_model_manifest(model_manifest_name).locations:
                 # If it's not unique, make it so and log a warning
                 run_name = make_name_unique(run_name).name
                 logger.warning(
                     "Provided run name already exists in manifest, changed current run name to [ %s ]",
                     run_name,
                 )
-    #     if not local_config_save_path.exists():
-    #         local_config_save_path.mkdir(parents=True, exist_ok=True)
-    #     with open(model_name_path, "w") as f:
-    #         f.write(model_name_unique)
-    # else:
-    #     # Wait for rank 0 to write the model name file .. this prevents race condition!
-    #     while not model_name_path.exists():
-    #         time.sleep(1)
-    #     with open(model_name_path) as f:
-    #         model_name_unique = f.read().strip()
+        # Set environment variable so spawned processes can read it
+        os.environ["RUN_NAME"] = str(run_name)
+    else:
+        time.sleep(2)
+        # We're in a spawned DDP process, just use the existing run name
+        run_name = os.environ["RUN_NAME"]
 
-    # config_path = local_config_save_path / f"{model_name_unique}_train.yaml"
     logger.info("Model manifest name: [ %s ]", model_manifest_name)
-    logger.info("Run name: [ %s ]", run_name_unique)
+    logger.info("Run name: [ %s ]", run_name)
 
-    # === Only rank 0 saves out the config - others wait and load from it ===
-    if local_rank == 0:
+    # This gets triggered just for the first rank!
+    local_config_save_path = get_output_path(
+        "models", "training_configs", model_manifest_name, run_name
+    )
+    local_config_train_save_path = os.path.join(local_config_save_path, "train.yaml")
+
+    # Only rank 0 saves out the config - others wait and load from it
+    if IS_MAIN_PROCESS:
+        overrides = ModelConfigOverride(
+            manifest_name=model_manifest_name,
+            run_name=run_name,
+            task_name="train",
+            crop_size=crop_size,
+            train_dataframe=train_dataframe_path,
+            val_dataframe=val_dataframe_path,
+            max_epochs=max_num_epochs,
+            cache_rate=cache_rate,
+            replace_rate=replace_rate,
+            log_steps=log_every_n_steps,
+            num_gpus=NUM_GPUS,
+        )
+
         # initialize DiffAE model: generates config overrides and sets up output directories
         model = initialize_diffae_model(
             template_training_config,
-            crop_size,
-            model_manifest_name,
-            run_name,
-            train_dataframe_path,
-            val_dataframe_path,
-            max_num_epochs=max_num_epochs,
-            log_every_n_steps=log_every_n_steps,
-            cache_rate=cache_rate,
-            replace_rate=replace_rate,
-            num_gpus=NUM_GPUS,
+            overrides=overrides,
         )
-        local_config_save_path = get_output_path(
-            "models", "training_configs", model_manifest_name, run_name
-        )
-        model.save_config(local_config_save_path / "train.yaml")
+        model.save_config(local_config_train_save_path)
         logger.info(
             "Training config saved to [ %s ]",
-            local_config_save_path / "train.yaml",
+            local_config_train_save_path,
         )
-    else:  # NEED TO MODIFY THIS
-        # Wait for rank 0 to write out the config .. prevents race conditions
-        while not config_path.exists():
-            logger.info(f"Rank {local_rank} waiting for config {config_path}")
-            time.sleep(2)
+    else:
+        # Prevents race conditions
+        time.sleep(2)
         # Load model from saved config
-        loaded_training_config = OmegaConf.load(config_path)
-        model = initialize_diffae_model(loaded_training_config)
+        loaded_training_config = OmegaConf.load(local_config_train_save_path)
+        model = initialize_diffae_model(loaded_training_config, skip_overrides=True)
 
     # All ranks now run identical training with shared configuration
     _, object_dict = model.train()

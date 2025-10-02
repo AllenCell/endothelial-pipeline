@@ -1,8 +1,9 @@
 import logging
 import os
 import typing
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal, Optional
 
 import pandas as pd
 from cyto_dl.api import CytoDLModel
@@ -17,111 +18,68 @@ from endo_pipeline.io import (
     load_dataframe,
     upload_file_to_fms,
 )
+from endo_pipeline.library.model.model_config_overrides import ModelConfigOverride
 from endo_pipeline.manifests import DataframeLocation, DataframeManifest, save_dataframe_manifest
 
 logger = logging.getLogger(__name__)
 
 
-def _generate_overrides_for_model_training(
-    model_manifest_name: str,
-    run_name: str,
-    crop_size: int,
-    train_dataframe_path: str,
-    val_dataframe_path: str,
-    max_num_epochs: int = 1000,
-    log_every_n_steps: int = 50,
-    cache_rate: float = 1.0,
-    replace_rate: float = 0.1,
-    num_gpus: int | None = None,
-) -> dict:
+def initialize_diffae_model(
+    template_training_config: "DictConfig | ListConfig",  # OmegaConf DictConfig or dict
+    overrides: Optional[ModelConfigOverride] = None,
+    use_timestamp: bool = False,
+    skip_overrides: bool = False,
+) -> "CytoDLModel":
     """
-    Generate overrides for the DiffAE model training configuration.
+    Initialize a DiffAE model for training, applying overrides and configuration.
 
     Parameters
     ----------
-    model_manifest_name
-        The name of the model manifest to which this training session belongs.
-    run_name
-        The MLFlow run name for the training session.
-    crop_size
-        The number of pixels in each dimension of the image crop to use for training.
-        That is, the cropped image will be square with size (crop_size px, crop_size px).
-    train_dataframe_path
-        The path to the training dataset (image loading metadata) .parquet file.
-    val_dataframe_path
-        The path to the validation dataset (image loading metadata) .parquet file.
-    max_num_epochs
-        The maximum number of epochs to train the model for.
-    log_every_n_steps
-        The interval at which to log training metrics.
-    cache_rate
-        The fraction of the dataset to cache in memory for training.
-    replace_rate
-        The replace rate for cached data.
-    num_gpus
-        Number of GPUs to use with the workflow.
-
+    template_training_config : dict or DictConfig/ListConfig
+        The loaded training configuration to use as the base.
+    overrides : Optional[ModelConfigOverride]
+        Optionally, a ModelConfigOverride object (read from code, CLI, etc).
+        If None, uses values from config as much as possible.
+    use_timestamp : bool
+        If True, model/log directories include a timestamp for uniqueness.
+    skip_overrides : bool
+        If True, use template_training_config as the final config
+        and bypass all overrides logic.
     Returns
     -------
-    :
-        A dictionary of configuration overrides for the DiffAE model training.
+    CytoDLModel
+        An initialized ``CytoDLModel`` for training the DiffAE model.
     """
-    # create output directories if they do not exist
-    training_run_checkpoint_path = get_output_path(
-        "models", model_manifest_name, run_name, "train", "checkpoints"
-    )
-    training_run_log_path = get_output_path(
-        "models", model_manifest_name, run_name, "train", "logs"
-    )
+    import logging
 
-    # Calculate effective epochs
-    multiplier = (1 - cache_rate) / (cache_rate * replace_rate) + 1
-    effective_min_epochs = int(2500 * multiplier)
-    effective_max_epochs = int(max_num_epochs * multiplier)
-    effective_save_images_epochs = int(10 * multiplier)
+    from omegaconf import OmegaConf
 
-    overrides = {
-        # set path to train and val datasets
-        "data.train_dataloaders.dataset.dataframe_path": train_dataframe_path,
-        "data.train_dataloaders.dataset.cache_rate": cache_rate,
-        "data.train_dataloaders.dataset.replace_rate": replace_rate,
-        "data.predict_dataloaders.dataset.dataframe_path": val_dataframe_path,
-        "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path,
-        "data.val_dataloaders.dataset.cache_rate": cache_rate,
-        "data.val_dataloaders.dataset.replace_rate": replace_rate,
-        # get repo root directory and current working directory
-        "paths.root_dir": Path(__file__).resolve().parents[3].as_posix(),
-        "paths.work_dir": os.getcwd(),
-        # save outputs to user-specified directory
-        "paths.output_dir": training_run_log_path.as_posix(),
-        "paths.log_dir": "${paths.output_dir}",
-        "callbacks.model_checkpoint.dirpath": training_run_checkpoint_path.as_posix(),
-        # update run name
-        "run_name": run_name,
-        # set crop size from input via model.image_shape,
-        # the rest are populated by interpolation
-        "model.image_shape": [1, crop_size, crop_size],
-        # override the effective epochs calculations
-        "model.save_images_every_n_epochs": effective_save_images_epochs,
-        "trainer.min_epochs": effective_min_epochs,
-        "trainer.max_epochs": effective_max_epochs,
-        # turn off config printing, will get saved locally instead
-        "extras.print_config": False,
-        # set logging interval
-        "trainer.log_every_n_steps": log_every_n_steps,
-    }
+    logger = logging.getLogger("diffae_init")
 
-    if num_gpus is not None:
-        overrides["trainer.accelerator"] = "gpu"
-        overrides["trainer.devices"] = num_gpus
-        if num_gpus == 1:
-            overrides["trainer.strategy"] = "auto"
+    if skip_overrides:
+        # Just use template_training_config as the final config directly!
+        assert overrides is None, "Don't provide overrides when skip_overrides=True"
+        merged_cfg = template_training_config
     else:
-        overrides["trainer.accelerator"] = "cpu"
-        overrides["trainer.devices"] = 1
-        overrides["trainer.strategy"] = "auto"
+        # If overrides not given, create them using config as defaults
+        if overrides is None:
+            overrides = ModelConfigOverride.from_config(template_training_config)
+        else:
+            # Ensure all fields are resolved. Usually the override should be completely resolved already, but for safety!
+            overrides = ModelConfigOverride.from_config(
+                template_training_config, **overrides.__dict__
+            )
 
-    return overrides
+        overrides_dict = overrides.to_dict()
+        # Convert to dotlist style for OmegaConf
+        dotlist = [f"{k}={v}" for k, v in overrides_dict.items()]
+        overrides_cfg = OmegaConf.from_dotlist(dotlist)
+        merged_cfg = OmegaConf.merge(template_training_config, overrides_cfg)
+
+    cytodl_model = CytoDLModel()
+    cytodl_model.load_config_from_dict(merged_cfg)
+
+    return cytodl_model
 
 
 def _generate_overrides_for_finetuning(
@@ -230,161 +188,6 @@ def _generate_overrides_for_finetuning(
         overrides["trainer.strategy"] = "auto"
 
     return overrides
-
-
-def initialize_diffae_model(
-    template_training_config: "DictConfig | ListConfig",
-    crop_size: int | None = None,
-    model_manifest_name: str,
-    run_name: str | None = None,
-    train_dataframe_path: str | None = None,
-    val_dataframe_path: str | None = None,
-    max_num_epochs: int | None = None,
-    log_every_n_steps: int | None = None,
-    cache_rate: float | None = None,
-    replace_rate: float | None = None,
-    num_gpus: int | None = None,
-) -> CytoDLModel:
-    """
-    Initialize a DiffAE model for training.
-
-    Parameters
-    ----------
-    template_training_config
-        The template training configuration to use.
-    crop_size
-        The pixel size of the square image crop along one dimension to use in training.
-    model_manifest_name
-        The name of the model manifest to which this training session belongs.
-    run_name
-        The MLFlow run name for the training session.
-    train_dataframe_path
-        The path to the training dataset (image loading metadata) .parquet file.
-    val_dataframe_path
-        The path to the validation dataset (image loading metadata) .parquet file.
-    max_num_epochs
-        The maximum number of epochs to train the model for.
-    log_every_n_steps
-        The interval at which to log training metrics.
-    cache_rate
-        The fraction of the dataset to cache in memory for training.
-    replace_rate
-        The replace rate for cached data.
-    num_gpus
-        Number of GPUs to use with the workflow. If None, use the CPU!
-
-    Returns
-    -------
-    :
-        An initialized ``CytoDLModel`` for training the DiffAE model.
-    """
-
-    import os
-
-    def get_config_value(keys_or_path, default=None, type_=None, validator=None):
-        # Accepts a single string or tuple list for nested key path (dot notation)
-        value = template_training_config
-        if isinstance(keys_or_path, str):
-            keys = keys_or_path.split(".")
-        else:
-            keys = keys_or_path
-        try:
-            for k in keys:
-                value = value[k]
-        except (KeyError, IndexError, TypeError):
-            return default
-        if value is None:
-            return default
-        if type_ is not None and not isinstance(value, type_):
-            return default
-        if validator is not None and not validator(value):
-            return default
-        return value
-
-    # Parameter extraction and validation
-    crop_size = crop_size or get_config_value("model.image_shape", [1, 64, 64])[1]
-    if not isinstance(crop_size, int) or crop_size <= 0:
-        raise ValueError(f"crop_size must be a positive integer (got {crop_size})")
-
-    model_name = model_name or get_config_value("run_name")
-    if not model_name or not isinstance(model_name, str):
-        raise ValueError("Could not extract valid model_name from config.")
-
-    train_dataframe_path = train_dataframe_path or get_config_value(
-        "data.train_dataloaders.dataset.dataframe_path"
-    )
-    if not train_dataframe_path or not isinstance(train_dataframe_path, str):
-        raise ValueError("Could not extract valid train_dataframe_path from config.")
-
-    val_dataframe_path = val_dataframe_path or get_config_value(
-        "data.val_dataloaders.dataset.dataframe_path"
-    )
-    if not val_dataframe_path or not isinstance(val_dataframe_path, str):
-        raise ValueError("Could not extract valid val_dataframe_path from config.")
-
-    max_num_epochs = max_num_epochs or get_config_value("trainer.max_epochs", 1000)
-    if not isinstance(max_num_epochs, int) or max_num_epochs <= 0:
-        raise ValueError(f"max_num_epochs must be a positive integer (got {max_num_epochs})")
-
-    log_every_n_steps = log_every_n_steps or get_config_value("trainer.log_every_n_steps", 50)
-    if not isinstance(log_every_n_steps, int) or log_every_n_steps <= 0:
-        raise ValueError(f"log_every_n_steps must be a positive integer (got {log_every_n_steps})")
-
-    cache_rate = (
-        cache_rate
-        if cache_rate is not None
-        else get_config_value("data.train_dataloaders.dataset.cache_rate", 1.0)
-    )
-    if not isinstance(cache_rate, (int, float)) or not (0 <= cache_rate <= 1):
-        raise ValueError(f"cache_rate must be a float between 0 and 1 (got {cache_rate})")
-
-    replace_rate = (
-        replace_rate
-        if replace_rate is not None
-        else get_config_value("data.train_dataloaders.dataset.replace_rate", 0.1)
-    )
-    if not isinstance(replace_rate, (int, float)) or not (0 <= replace_rate <= 1):
-        raise ValueError(f"replace_rate must be a float between 0 and 1 (got {replace_rate})")
-
-    if num_gpus is None:
-        accelerator = get_config_value("trainer.accelerator")
-        if accelerator == "gpu":
-            num_gpus = get_config_value("trainer.devices", 1)
-            if not isinstance(num_gpus, int) or num_gpus <= 0:
-                raise ValueError(
-                    f"Invalid num_gpus extracted from config: {num_gpus}. Must be a positive integer."
-                )
-        else:
-            num_gpus = None
-
-    if log_every_n_steps > max_num_epochs:
-        logger.error("Logging interval must be less than or equal to the maximum number of epochs.")
-        raise ValueError(
-            f"Logging interval ({log_every_n_steps}) must be <= maximum epochs ({max_num_epochs})"
-        )
-
-    if not os.path.exists(train_dataframe_path):
-        logger.warning(f"Training dataframe path does not exist: {train_dataframe_path}")
-    if not os.path.exists(val_dataframe_path):
-        logger.warning(f"Validation dataframe path does not exist: {val_dataframe_path}")
-
-    overrides = _generate_overrides_for_model_training(
-        model_manifest_name,
-        run_name,
-        crop_size,
-        train_dataframe_path,
-        val_dataframe_path,
-        max_num_epochs=max_num_epochs,
-        log_every_n_steps=log_every_n_steps,
-        cache_rate=cache_rate,
-        replace_rate=replace_rate,
-        num_gpus=num_gpus,
-    )
-
-    cytodl_model = CytoDLModel()
-    cytodl_model.load_config_from_dict(template_training_config)
-    cytodl_model.override_config(overrides)
-    return cytodl_model
 
 
 def _upload_zarr_dataframe_to_fms(

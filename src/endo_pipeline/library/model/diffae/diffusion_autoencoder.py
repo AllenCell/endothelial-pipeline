@@ -8,6 +8,14 @@ from monai.utils import convert_to_tensor
 
 
 class DiffusionAutoEncoder(_BaseDiffAE):
+    """
+    This class is subclassed from `cyto_dl.models.im2im.diffusion_autoencoder.DiffusionAutoEncoder`.
+
+    The added functionality allows for deterministic inference by providing control
+    over the conditioning image, diffusion image, and noise generation, ensuring
+    reproducible outputs for analysis and visualization.
+    """
+
     def __init__(
         self,
         *,

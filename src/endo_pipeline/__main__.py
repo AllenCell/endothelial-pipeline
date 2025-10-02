@@ -11,6 +11,8 @@ import cyclopts
 from cyclopts import App, Group, Parameter, validators
 from rich.console import Console
 
+from endo_pipeline import IS_MAIN_PROCESS
+
 logger = logging.getLogger("")
 
 pipeline_app = App(
@@ -210,11 +212,8 @@ def apply_entrypoint_settings(
     if not show_external_logs:
         silence_external_loggers(EXTERNAL_LOGGERS)
 
-    local_rank = int(os.environ.get("LOCAL_RANK", "0"))
-    # All ranks should log the environment variables
-    world_size = os.environ.get("WORLD_SIZE")
     # Only rank 0 is respondible for setting CUDA_VISIBLE_DEVICES
-    if local_rank == 0:
+    if IS_MAIN_PROCESS:
         if num_gpus is not None and num_gpus > 0:
             endo_pipeline.NUM_GPUS = setup_gpu(num_gpus)
         else:
@@ -313,7 +312,7 @@ def setup_logging(level: int) -> None:
     logger.setLevel(logging.DEBUG)
 
     # Only rank 0 should create log directory and file handler
-    if int(os.environ.get("LOCAL_RANK", "0")) == 0:
+    if IS_MAIN_PROCESS:
 
         log_path = Path(__file__).resolve().parents[2] / "logs"
         log_path.mkdir(exist_ok=True)

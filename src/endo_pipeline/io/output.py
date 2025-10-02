@@ -9,6 +9,7 @@ from typing import Literal
 from git import Repo
 from matplotlib.figure import Figure
 
+from endo_pipeline import IS_MAIN_PROCESS
 from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.manifests import ModelManifest
 
@@ -80,7 +81,7 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
         output_path = Path(output_dir, Path(workflow_name).stem, *subdirs)
 
     # Only rank 0 creates directories
-    if int(os.environ.get("LOCAL_RANK", "0")) == 0:
+    if IS_MAIN_PROCESS:
         output_path.mkdir(parents=True, exist_ok=True)
         logger.info("Created output directory [ %s ]", output_path)
 
@@ -117,9 +118,13 @@ def make_name_unique(path: Path | str) -> Path:
     path = Path(path)
     suffixes = "".join(path.suffixes)
     original_name = path.name.split(".")[0]
-    timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("_%Y%m%d_%H%M%S")
+    timestamp = datetime.datetime.now(datetime.UTC).strftime("_%Y%m%d_%H%M%S")
 
-    return path.with_name(f"{original_name}{timestamp}{suffixes}")
+    if IS_MAIN_PROCESS:
+        return path.with_name(f"{original_name}{timestamp}{suffixes}")
+    else:
+        # Just return the original path unmodified for other ranks!
+        return path
 
 
 def build_fms_annotations(
