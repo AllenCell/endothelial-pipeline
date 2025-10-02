@@ -69,10 +69,8 @@ def load_model_for_inference(
 
     # make sure model manifest name and run name are in model config
     # as 'experiment_name' and 'run_name' respectively
-    if "experiment_name" not in model.cfg:
-        model.cfg.experiment_name = model_manifest.name
-    if "run_name" not in model.cfg:
-        model.cfg.run_name = run_name_
+    model.cfg.experiment_name = model_manifest.name
+    model.cfg.run_name = run_name_
 
     return model
 
