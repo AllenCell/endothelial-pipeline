@@ -14,7 +14,6 @@ from endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
     get_original_path,
     ipython_cli_flexecute,
-    parse_generate_dataset_name_user_input,
 )
 from endo_pipeline.io import configure_logging, get_output_path, load_image, load_zarr_as_dask_array
 from endo_pipeline.library.analyze import shape_features as feat
