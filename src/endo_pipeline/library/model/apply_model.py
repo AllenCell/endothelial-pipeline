@@ -630,7 +630,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     )
     model.override_config(overrides)
     local_config_save_path = get_output_path(
-        "models", "evaluation_configs", model_manifest_name, run_name
+        "models", "evaluation_configs", model_manifest_name, run_name, "grid_crops"
     )
     model.save_config(local_config_save_path / "eval.yaml")
     logger.info(
@@ -729,6 +729,14 @@ def apply_model_on_tracked_crops_from_one_dataset(
         num_gpus=num_gpus,
     )
     model.override_config(overrides)
+    local_config_save_path = get_output_path(
+        "models", "evaluation_configs", model_manifest_name, run_name, "tracked_crops"
+    )
+    model.save_config(local_config_save_path / "eval.yaml")
+    logger.info(
+        "Evaluation config saved to [ %s ]",
+        local_config_save_path / "eval.yaml",
+    )
     model.predict()
 
     prediction_path = save_path / f"predict_{prediction_filename_suffix}.parquet"
