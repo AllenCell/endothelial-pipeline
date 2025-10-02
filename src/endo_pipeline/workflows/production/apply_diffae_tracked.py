@@ -103,8 +103,8 @@ def main(
         if DEMO_MODE:
             only_include_positions = only_include_positions[:1]
             logger.warning(
-                "Workflow demo is enabled, only processing first few "
-                "timepoints of the first position of dataset: [ %s ]",
+                "Workflow demo is enabled, only processing tracks from "
+                "the first position of dataset: [ %s ]",
                 dataset_config.name,
             )
 
