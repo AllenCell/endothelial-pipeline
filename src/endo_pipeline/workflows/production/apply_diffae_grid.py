@@ -84,12 +84,18 @@ def main(
 
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in datasets]
 
-    # load model from manifest and override with specified eval config
+    # get model location for run_name from model manifest
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = list(model_manifest.locations.keys())[-1] if run_name is None else run_name
     model_location = get_model_location_for_run(model_manifest, run_name_)
+
+    # use input path to an eval config if provided, else use path to diffae_eval.yaml
     path_to_eval_config = eval_config_path if eval_config_path else RELATIVE_PATH_TO_EVAL_CONFIG
+
+    # load eval config as an OmegaConf object
     eval_config = load_omegaconf_from_path(path_to_eval_config)
+
+    # load model from location and override with eval config
     model = load_and_override_model_for_inference(model_location, eval_config)
 
     # apply model to each dataset
