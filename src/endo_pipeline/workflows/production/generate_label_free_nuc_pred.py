@@ -16,7 +16,7 @@ from endo_pipeline.library.process.general_image_preprocessing import (
     save_image_output,
 )
 from endo_pipeline.settings import DIMENSION_ORDER
-from endo_pipeline.workflows.cdh5_classic_seg_tracking import ipython_cli_flexecute
+from endo_pipeline.workflows.production.cdh5_classic_seg_tracking import ipython_cli_flexecute
 
 logger = logging.getLogger(__name__)
 
