@@ -21,8 +21,9 @@ from endo_pipeline.settings.image_data import (
 
 # %% Load Example Data
 POSITION = 0
-DATASET = EXAMPLE_DATASET["SUP_FIG_Y"]
-save_dir = get_output_path("model_input_preprocessing_viz", f"{DATASET}_P{POSITION}")
+# DATASET = EXAMPLE_DATASET["SUP_FIG_Y"]
+DATASET = "20250110_paired20X"
+save_dir = get_output_path("model_input_preprocessing_viz", "LOG", f"{DATASET}_P{POSITION}")
 
 dataset_config = load_dataset_config(DATASET)
 zarr_path = get_zarr_file_for_position(dataset_config, POSITION)
@@ -42,8 +43,10 @@ for channel in range(img.shape[0]):
             pixel_size=PIXEL_SIZE_3i_20x,
         )
 
-# %% print center slice
-print(dataset_config.center_z_plane)
+in_focus_slice = dataset_config.center_z_plane[POSITION]
+print(in_focus_slice)
+print("Lower z slice:", in_focus_slice - LOWER_Z_SLICE_OFFSET)
+print("Upper z slice:", in_focus_slice + UPPER_Z_SLICE_OFFSET)
 
 # %% Load model config
 yaml_path = get_model_dir() / "diffae_training.yaml"
@@ -146,6 +149,8 @@ for i, transform in enumerate(transforms):
                     f"{i}_{transform.__class__.__name__}_{key}",
                     save_dir,
                     figsize=(6, 6),
+                    scalebar_size_um=50,
+                    pixel_size=PIXEL_SIZE_3i_20x,
                 )
                 plot_and_save_histogram(value_np, transform, key, save_dir, i)
 

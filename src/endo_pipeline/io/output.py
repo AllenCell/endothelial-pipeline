@@ -299,7 +299,6 @@ def save_plot_to_path(
         {
             "pdf.fonttype": PDF_FONTTYPE,
             "font.family": FONT_FAMILY,
-            "font.size": FONTSIZE,
         }
     )
 
@@ -355,7 +354,7 @@ def save_thumbnail_to_path(
             scale_bar_um=scalebar_size_um,
             pixel_size=pixel_size,
             location=scalebar_location,
-            bar_thickness=5,
+            bar_thickness=10,
             padding=20,
         )
         image_name += f"_scalebar{scalebar_size_um}um"
