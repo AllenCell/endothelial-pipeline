@@ -630,10 +630,21 @@ def split_multinucleate_regions(
     # if nuclei with different labels are touching then separate them
     # only if a segmentation boundary or the cdh5 threshold would have
     # separated them
-    nuc_seg_merge_adjacent = label(
-        nuclei_segmentations.astype(bool)
-        * ~(find_boundaries(cell_segmentations) + cell_boundary_thresh)
-    )
+    # first create a binary mask of the label-free nuclei predictions
+    nuclei_mask = nuclei_segmentations.astype(bool)
+    # then create a mask that combines the boundaries of the existing cdh5-based
+    # segmentations and the threshold of the cdh5 signal
+    cell_edge_mask = find_boundaries(cell_segmentations) + cell_boundary_thresh
+    # by multiplying nuclei_mask by the inverse of cell_edge_mask we can separate
+    # any nuclei that are touching but overtop of a cell edge (which indicates
+    # that they are infact 2 different nuclei and not a single nuclei that the
+    # Cellpose model mistakenly labeled as 2 different nuclei)
+    split_nuclei_mask = nuclei_mask * ~cell_edge_mask
+    # lastly label the separated nuclei so that single nuclei that were mistakenly
+    # predicted to be 2 nuclei by the Cellpose model are merged back together into
+    # a single label, and nuclei that are touching across a cell boundary are kept
+    # as separate labels
+    nuc_seg_merge_adjacent = label(split_nuclei_mask)
 
     # remove any nuclei do not have more than half their area in
     # a single segmented region
