@@ -598,6 +598,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     model.override_config(overrides)
 
     # drop `noise_cons` from `model` entry if it exists
+    # THIS IS TEMP UNTIL FATWIR'S PR MERGES
     if "noise_cons" in model.cfg.model:
         del model.cfg.model["noise_cons"]
 
