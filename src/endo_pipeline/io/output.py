@@ -2,7 +2,6 @@
 
 import datetime
 import logging
-import os
 from pathlib import Path
 from typing import Literal
 
@@ -118,7 +117,7 @@ def make_name_unique(path: Path | str) -> Path:
     path = Path(path)
     suffixes = "".join(path.suffixes)
     original_name = path.name.split(".")[0]
-    timestamp = datetime.datetime.now(datetime.UTC).strftime("_%Y%m%d_%H%M%S")
+    timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("_%Y%m%d_%H%M%S")
 
     if IS_MAIN_PROCESS:
         return path.with_name(f"{original_name}{timestamp}{suffixes}")

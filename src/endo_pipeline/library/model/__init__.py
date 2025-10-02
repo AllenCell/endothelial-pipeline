@@ -48,6 +48,7 @@ __all__ = [
     "MinStdCropd",
     "MultiDimImageDataset",
     "RotateRanged",
+    "ModelConfigOverride",
     "apply_model_on_grid_of_crops_from_one_dataset",
     "apply_model_on_tracked_crops_from_one_dataset",
     "build_and_save_dataframe_manifest_for_training",

@@ -209,7 +209,7 @@ def main(
         time.sleep(2)
         # Load model from saved config
         loaded_training_config = OmegaConf.load(local_config_train_save_path)
-        model = initialize_diffae_model(loaded_training_config, skip_overrides=True)
+        model = initialize_diffae_model(loaded_training_config)
 
     # All ranks now run identical training with shared configuration
     _, object_dict = model.train()

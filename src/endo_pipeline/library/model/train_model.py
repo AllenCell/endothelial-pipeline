@@ -25,10 +25,8 @@ logger = logging.getLogger(__name__)
 
 
 def initialize_diffae_model(
-    template_training_config: "DictConfig | ListConfig",  # OmegaConf DictConfig or dict
+    template_training_config,
     overrides: Optional[ModelConfigOverride] = None,
-    use_timestamp: bool = False,
-    skip_overrides: bool = False,
 ) -> "CytoDLModel":
     """
     Initialize a DiffAE model for training, applying overrides and configuration.
@@ -40,44 +38,17 @@ def initialize_diffae_model(
     overrides : Optional[ModelConfigOverride]
         Optionally, a ModelConfigOverride object (read from code, CLI, etc).
         If None, uses values from config as much as possible.
-    use_timestamp : bool
-        If True, model/log directories include a timestamp for uniqueness.
-    skip_overrides : bool
-        If True, use template_training_config as the final config
-        and bypass all overrides logic.
     Returns
     -------
     CytoDLModel
         An initialized ``CytoDLModel`` for training the DiffAE model.
     """
-    import logging
-
     from omegaconf import OmegaConf
 
-    logger = logging.getLogger("diffae_init")
-
-    if skip_overrides:
-        # Just use template_training_config as the final config directly!
-        assert overrides is None, "Don't provide overrides when skip_overrides=True"
-        merged_cfg = template_training_config
-    else:
-        # If overrides not given, create them using config as defaults
-        if overrides is None:
-            overrides = ModelConfigOverride.from_config(template_training_config)
-        else:
-            # Ensure all fields are resolved. Usually the override should be completely resolved already, but for safety!
-            overrides = ModelConfigOverride.from_config(
-                template_training_config, **overrides.__dict__
-            )
-
-        overrides_dict = overrides.to_dict()
-        # Convert to dotlist style for OmegaConf
-        dotlist = [f"{k}={v}" for k, v in overrides_dict.items()]
-        overrides_cfg = OmegaConf.from_dotlist(dotlist)
-        merged_cfg = OmegaConf.merge(template_training_config, overrides_cfg)
-
     cytodl_model = CytoDLModel()
-    cytodl_model.load_config_from_dict(merged_cfg)
+    cytodl_model.load_config_from_dict(template_training_config)
+    if overrides is not None:
+        cytodl_model.override_config(overrides.to_dict())
 
     return cytodl_model
 

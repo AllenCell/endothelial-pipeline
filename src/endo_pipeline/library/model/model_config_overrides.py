@@ -51,7 +51,6 @@ class ModelConfigOverride:
     """Number of GPUs to use. None indicates that CPU should be used."""
 
     def __post_init__(self):
-        # config = OmegaConf.load(Path(__file__).resolve().parent / self.template_config)
         # Adding on a few more checks for the path!
         config_path = Path(self.template_config)
         if not config_path.exists():
@@ -116,50 +115,6 @@ class ModelConfigOverride:
                 "Logging interval is great than max number of epochs "
                 f"[ {self.log_steps} > {self.max_epochs} ]"
             )
-
-    @classmethod
-    def from_config(cls, config, **kwargs):
-        """Create a ModelConfigOverride using values from a config and supplied overrides."""
-
-        def cfg_or(key, default=None):
-            return (
-                OmegaConf.select(config, key, default=default)
-                if OmegaConf.is_config(config)
-                else config.get(key, default)
-            )
-
-        # Accept possible overrides via kwargs, but pull config if not specified
-        return cls(
-            run_name=kwargs.get("run_name", cfg_or("run_name")),
-            manifest_name=kwargs.get("manifest_name", cfg_or("manifest_name")),
-            task_name=kwargs.get("task_name", cfg_or("task_name", "train")),
-            crop_size=kwargs.get("crop_size", cfg_or("model.image_shape[1]", 128)),
-            train_dataframe=Path(
-                kwargs.get(
-                    "train_dataframe", cfg_or("data.train_dataloaders.dataset.dataframe_path")
-                )
-            ),
-            val_dataframe=Path(
-                kwargs.get("val_dataframe", cfg_or("data.val_dataloaders.dataset.dataframe_path"))
-            ),
-            max_epochs=kwargs.get("max_epochs", cfg_or("trainer.max_epochs", 1000)),
-            cache_rate=kwargs.get(
-                "cache_rate", cfg_or("data.train_dataloaders.dataset.cache_rate", 1.0)
-            ),
-            replace_rate=kwargs.get(
-                "replace_rate", cfg_or("data.train_dataloaders.dataset.replace_rate", 0.1)
-            ),
-            log_steps=kwargs.get("log_steps", cfg_or("trainer.log_every_n_steps", 50)),
-            num_gpus=kwargs.get(
-                "num_gpus",
-                (
-                    cfg_or("trainer.devices", 1)
-                    if cfg_or("trainer.accelerator", "cpu") == "gpu"
-                    else None
-                ),
-            ),
-            template_config=kwargs.get("template_config", "diffae_training.yaml"),
-        )
 
     def to_dict(self, use_timestamp: bool = False):
         """Convert to overrides dict. If `use_timestamp`, dirs include a time-string."""
