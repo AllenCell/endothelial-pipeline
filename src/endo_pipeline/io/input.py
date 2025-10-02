@@ -471,14 +471,13 @@ def load_model_from_mlflow(mlflowid: str) -> "CytoDLModel":
     """
 
     from cyto_dl.api import CytoDLModel
-    from omegaconf import OmegaConf
 
     from endo_pipeline.settings import RELATIVE_PATH_TO_LEGACY_CONFIG
 
     # Temporary workaround: using tracked version of config for "legacy" model
     if mlflowid == "ae7f25b4109c47809d3e2ed1b7120e50":
         logger.warning("Using legacy config for model [ %s ]", mlflowid)
-        config_dict = OmegaConf.load(get_repository_root_dir() / RELATIVE_PATH_TO_LEGACY_CONFIG)
+        config_dict = load_omegaconf_from_path(RELATIVE_PATH_TO_LEGACY_CONFIG)
     else:
         # get logged config from MLFlow
         config_dict = get_config_dict_from_mlflow(mlflowid)
@@ -514,29 +513,18 @@ def load_model(location: ModelLocation) -> "CytoDLModel":
     raise FileNotFoundError("Unable to load model; no available locations.")
 
 
-def load_and_override_model_for_inference(
-    location: ModelLocation, path_to_override_config: Path
-) -> "CytoDLModel":
-    """
-    Load model from location and override config for inference.
-
-    Parameters
-    ----------
-    location
-        Model location object.
-    path_to_override_config
-        Path to YAML file with config overrides for inference.
-    """
-
+def load_omegaconf_from_path(config_path: str) -> "DictConfig | ListConfig":
+    """Parse input path to configuration file to return an OmegaConf object."""
     from omegaconf import OmegaConf
 
-    model = load_model(location)
+    if not Path(config_path).is_absolute():
+        absolute_config_path = get_repository_root_dir() / config_path
+    else:
+        absolute_config_path = Path(config_path)
 
-    if not path_to_override_config.exists():
-        logger.error("Path [ %s ] could not be loaded", path_to_override_config)
-        raise FileNotFoundError(f"No such file '{path_to_override_config}'")
+    if not absolute_config_path.exists():
+        logger.error("Path [ %s ] could not be loaded", absolute_config_path)
+        raise FileNotFoundError(f"No such file '{absolute_config_path}'")
 
-    override_dict = OmegaConf.load(path_to_override_config)
-    model.override_config(override_dict)
-
-    return model
+    config = OmegaConf.load(absolute_config_path)
+    return config

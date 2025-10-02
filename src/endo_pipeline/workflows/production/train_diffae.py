@@ -68,12 +68,10 @@ def main(
     import logging
     from pathlib import Path
 
-    from omegaconf import OmegaConf
-
     from endo_pipeline import DEMO_MODE, NUM_GPUS
     from endo_pipeline.io import (
         get_output_path,
-        get_repository_root_dir,
+        load_omegaconf_from_path,
         make_name_unique,
         resolve_dataframe_location,
     )
@@ -138,9 +136,7 @@ def main(
     val_dataframe_path = resolve_dataframe_location(val_dataframe_location)
 
     # load template training config
-    template_training_config = OmegaConf.load(
-        get_repository_root_dir() / RELATIVE_PATH_TO_TRAIN_CONFIG
-    )
+    template_training_config = load_omegaconf_from_path(RELATIVE_PATH_TO_TRAIN_CONFIG)
 
     # if model manifest name not provided, create one
     # default name via zarr resolution, crop size, and include/exclude cell piling

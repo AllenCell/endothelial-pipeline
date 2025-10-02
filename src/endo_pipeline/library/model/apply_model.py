@@ -1,10 +1,14 @@
 import json
 import logging
+import typing
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 from cyto_dl.api import CytoDLModel
+
+if typing.TYPE_CHECKING:
+    from omegaconf import DictConfig, ListConfig
 
 from endo_pipeline.configs import (
     DatasetConfig,
@@ -14,8 +18,8 @@ from endo_pipeline.configs import (
 from endo_pipeline.io import (
     build_fms_annotations,
     get_output_path,
-    get_repository_root_dir,
     load_dataframe,
+    load_model,
     upload_file_to_fms,
 )
 from endo_pipeline.library.model.image_loading import (
@@ -28,16 +32,36 @@ from endo_pipeline.library.process.general_image_preprocessing import sequence_t
 from endo_pipeline.manifests import (
     DataframeLocation,
     DataframeManifest,
+    ModelLocation,
     ModelManifest,
     get_dataframe_location_for_dataset,
     load_dataframe_manifest,
     save_dataframe_manifest,
 )
-from endo_pipeline.settings import RELATIVE_PATH_TO_EVAL_CONFIG
 
 ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
 
 logger = logging.getLogger(__name__)
+
+
+def load_and_override_model_for_inference(
+    location: ModelLocation, eval_config: "DictConfig | ListConfig"
+) -> CytoDLModel:
+    """
+    Load model from location and override with config for model evaluation (inference).
+
+    Parameters
+    ----------
+    location
+        Model location object.
+    eval_config
+        Evaluation config object (loaded via OmegaConf from YAML file).
+    """
+
+    model = load_model(location)
+    model.override_config(eval_config)
+
+    return model
 
 
 def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
@@ -83,22 +107,6 @@ def load_overrides(overrides: str | dict | None) -> dict:
         logger.error("Overrides must be a dictionary or a path to a .json file.")
         raise ValueError("Overrides must be a dictionary or a path to a .json file.")
     return overrides_dict
-
-
-def parse_eval_config_path(eval_config_path: str | None = None) -> Path:
-    """Parse input evaluation config path to return a valid Path object."""
-    if eval_config_path is None:
-        # If eval_config_path is not provided, use the default path relative to the
-        # repository root.
-        path_to_eval_conifg = get_repository_root_dir() / RELATIVE_PATH_TO_EVAL_CONFIG
-    else:
-        # If eval_config_path is provided, it can be either absolute or relative
-        # to the repository root.
-        if not Path(eval_config_path).is_absolute():
-            path_to_eval_conifg = get_repository_root_dir() / eval_config_path
-        else:
-            path_to_eval_conifg = Path(eval_config_path)
-    return path_to_eval_conifg
 
 
 def generate_overrides_for_model_eval(

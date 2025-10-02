@@ -58,15 +58,15 @@ def main(
 
     from endo_pipeline import DEMO_MODE, NUM_GPUS
     from endo_pipeline.configs import load_dataset_config
-    from endo_pipeline.io import load_and_override_model_for_inference
+    from endo_pipeline.io import load_omegaconf_from_path
     from endo_pipeline.library.model import (
         apply_model_on_tracked_crops_from_one_dataset,
-        parse_eval_config_path,
+        load_and_override_model_for_inference,
         upload_prediction_dataframe_to_fms,
     )
     from endo_pipeline.library.model.image_loading import get_include_positions
     from endo_pipeline.manifests import get_model_location_for_run, load_model_manifest
-    from endo_pipeline.settings import Z_SLICE_OFFSETS
+    from endo_pipeline.settings import RELATIVE_PATH_TO_EVAL_CONFIG, Z_SLICE_OFFSETS
 
     logger = logging.getLogger(__name__)
 
@@ -80,8 +80,9 @@ def main(
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = list(model_manifest.locations.keys())[-1] if run_name is None else run_name
     model_location = get_model_location_for_run(model_manifest, run_name_)
-    path_to_eval_config = parse_eval_config_path(eval_config_path)
-    model = load_and_override_model_for_inference(model_location, path_to_eval_config)
+    path_to_eval_config = eval_config_path if eval_config_path else RELATIVE_PATH_TO_EVAL_CONFIG
+    eval_config = load_omegaconf_from_path(path_to_eval_config)
+    model = load_and_override_model_for_inference(model_location, eval_config)
 
     # apply model to each dataset
     for dataset_config in dataset_config_list:

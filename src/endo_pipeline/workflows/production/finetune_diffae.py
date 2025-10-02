@@ -51,13 +51,11 @@ def main(
     import logging
     from pathlib import Path
 
-    from omegaconf import OmegaConf
-
     from endo_pipeline import DEMO_MODE, NUM_GPUS
     from endo_pipeline.io import (
         get_output_path,
-        get_repository_root_dir,
         load_model,
+        load_omegaconf_from_path,
         make_name_unique,
         resolve_dataframe_location,
     )
@@ -135,9 +133,7 @@ def main(
     val_dataframe_path = resolve_dataframe_location(val_dataframe_location)
 
     # get template config
-    template_finetune_config = OmegaConf.load(
-        get_repository_root_dir() / RELATIVE_PATH_TO_FINETUNE_CONFIG
-    )
+    template_finetune_config = load_omegaconf_from_path(RELATIVE_PATH_TO_FINETUNE_CONFIG)
 
     # initialize baseline model for finetuning
     base_model_manifest = load_model_manifest(base_model_manifest_name)
