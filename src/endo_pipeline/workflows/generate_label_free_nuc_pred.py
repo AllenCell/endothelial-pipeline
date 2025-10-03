@@ -9,12 +9,13 @@ from cellpose import core, models
 from tqdm import tqdm
 
 from endo_pipeline.cli import Datasets
-from endo_pipeline.configs import CellposeModelConfig, load_dataset_config, load_model_config
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import configure_logging, get_output_path
 from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     save_image_output,
 )
+from endo_pipeline.manifests import get_model_location_for_run, load_model_manifest
 from endo_pipeline.settings import DIMENSION_ORDER
 from endo_pipeline.workflows.cdh5_classic_seg_tracking import ipython_cli_flexecute
 
@@ -58,10 +59,9 @@ def generate_results(args: dict) -> None:
         img_arr = img.get_image_dask_data(DIMENSION_ORDER, T=args["T"], C=brightfield_index)
 
         # Load the retrained CellPose label-free nuclear prediction model
-        # Load the model configuration
-        nuclei_model_config = cast(
-            CellposeModelConfig, load_model_config("nuc_pred_labelfree_finetuned_20250419")
-        )
+        model_manifest = load_model_manifest("nuc_pred_labelfree")
+        run_name = "finetuned_20250419"
+        model_location = get_model_location_for_run(model_manifest, run_name)
 
         gpu = core.use_gpu()
         global device_used_printed_global
@@ -69,8 +69,8 @@ def generate_results(args: dict) -> None:
             logger.info(f" - using device: {'GPU' if gpu else 'CPU'}")
             device_used_printed_global = True
 
-        model_path = Path(nuclei_model_config.model_path)
-        model_bf_stdproject = models.CellposeModel(gpu=gpu, pretrained_model=str(model_path))
+        model_path = model_location.path.as_posix()
+        model_bf_stdproject = models.CellposeModel(gpu=gpu, pretrained_model=model_path)
 
         # Calculate the brightfield standard deviation and the brightfield image with the best contrast
         bf_std_dask_arr = img_arr.std(axis=DIMENSION_ORDER.index("Z"), keepdims=True)
