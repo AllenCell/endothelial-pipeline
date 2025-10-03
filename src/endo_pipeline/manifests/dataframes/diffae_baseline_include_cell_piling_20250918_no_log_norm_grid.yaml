@@ -1,0 +1,38 @@
+name: diffae_baseline_include_cell_piling_20250918_no_log_norm_grid
+workflow: apply_diffae_grid
+parameters:
+  z_slice_offsets: [4, 11]
+locations:
+  20241120_20X:
+    fmsid: 69ab48ff53834cf48222376a2c093f6a
+    s3uri: null
+  20241217_20X:
+    fmsid: 91eec90c29ff41f7832308750ab84e1b
+    s3uri: null
+  20250110_paired20X:
+    fmsid: 47a9fce6846c4680947679db9c865792
+    s3uri: null
+  20250214_pairedPreFixation:
+    fmsid: a695d9aab07746aaa188c58bc4afd056
+    s3uri: null
+  20250224_20X:
+    fmsid: 18eb39ecd05f42e591ab852d2f2fb369
+    s3uri: null
+  20250227_paired20X:
+    fmsid: ae30095e675647ddb350f0bb4da5252c
+    s3uri: null
+  20250319_20X:
+    fmsid: 4b83145866e74ac792495e46d8bede30
+    s3uri: null
+  20250326_20X:
+    fmsid: f7e1292cfd67482e9887d0c4c952f298
+    s3uri: null
+  20250402_20X:
+    fmsid: 2b275d4bba3e4cafa2de059d284f4319
+    s3uri: null
+  20250409_20X:
+    fmsid: 5275d4c3f2cb4c098e2eb9575af826c3
+    s3uri: null
+  20250428_20X:
+    fmsid: 08e93b80851a429a9dd38daa4be80c84
+    s3uri: null
