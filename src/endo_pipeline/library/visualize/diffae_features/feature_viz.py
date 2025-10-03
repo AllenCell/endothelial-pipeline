@@ -10,7 +10,7 @@ from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA
 
-from endo_pipeline.library.analyze.diffae_manifest import (
+from endo_pipeline.library.analyze.diffae_dataframe import (
     get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
 )

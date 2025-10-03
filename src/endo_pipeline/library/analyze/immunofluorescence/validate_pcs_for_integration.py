@@ -14,7 +14,7 @@ from endo_pipeline.configs import (
     load_model_config,
 )
 from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
-from endo_pipeline.library.analyze.diffae_manifest import (
+from endo_pipeline.library.analyze.diffae_dataframe import (
     get_dataframe_for_dynamics_workflows,
     project_manifest_to_pcs,
 )

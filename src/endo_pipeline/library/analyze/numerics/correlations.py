@@ -5,7 +5,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 from sklearn.decomposition import PCA
 
-from endo_pipeline.library.analyze.diffae_manifest import (
+from endo_pipeline.library.analyze.diffae_dataframe import (
     df_to_array,
     get_dataframe_for_dynamics_workflows,
     get_pc_column_names,

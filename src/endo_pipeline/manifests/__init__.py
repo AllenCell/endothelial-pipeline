@@ -13,7 +13,7 @@ from .image_manifest_io import get_image_manifest_dir, load_image_manifest, save
 from .image_manifest_utils import get_image_location_for_dataset, list_datasets_with_images
 from .model_manifest import ModelLocation, ModelManifest
 from .model_manifest_io import get_model_manifest_dir, load_model_manifest, save_model_manifest
-from .model_manifest_utils import get_model_location_for_run
+from .model_manifest_utils import get_model_location_for_run, get_most_recent_run_name
 
 __all__ = [
     "DataframeLocation",
@@ -28,6 +28,7 @@ __all__ = [
     "get_image_manifest_dir",
     "get_model_location_for_run",
     "get_model_manifest_dir",
+    "get_most_recent_run_name",
     "list_datasets_with_dataframes",
     "list_datasets_with_images",
     "load_dataframe_manifest",

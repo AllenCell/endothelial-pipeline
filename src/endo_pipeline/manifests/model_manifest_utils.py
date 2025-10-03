@@ -19,3 +19,8 @@ def get_model_location_for_run(manifest: ModelManifest, run_name: str) -> ModelL
         raise KeyError(f"Unable to find run {run_name} in model manifest.")
 
     return manifest.locations[run_name]
+
+
+def get_most_recent_run_name(model_manifest: ModelManifest) -> str:
+    """Get the most recent run name from the model manifest."""
+    return list(model_manifest.locations.keys())[-1]

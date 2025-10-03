@@ -35,6 +35,7 @@ from endo_pipeline.manifests import (
     ModelManifest,
     get_dataframe_location_for_dataset,
     get_model_location_for_run,
+    get_most_recent_run_name,
     load_dataframe_manifest,
     save_dataframe_manifest,
 )
@@ -60,7 +61,7 @@ def load_model_for_inference(
         Evaluation configuration to override the loaded model's default configuration.
     """
     # get model location for run_name from model manifest
-    run_name_ = list(model_manifest.locations.keys())[-1] if run_name is None else run_name
+    run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     model_location = get_model_location_for_run(model_manifest, run_name_)
 
     # load model from location and override with eval config

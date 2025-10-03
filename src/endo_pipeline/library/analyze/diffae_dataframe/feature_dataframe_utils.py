@@ -43,7 +43,9 @@ def get_dataset_descriptions(
         config = load_dataset_config(dataset_name)
         description = []
 
-        for condition, regime in zip(config.flow_conditions, config.shear_stress_regime):
+        for condition, regime in zip(
+            config.flow_conditions, config.shear_stress_regime, strict=True
+        ):
             if include_duration:
                 duration_in_frames = condition.stop - condition.start
                 duration_in_hours = int(duration_in_frames * 5 / 60)
@@ -52,7 +54,7 @@ def get_dataset_descriptions(
             if simple:
                 description.append(regime.value)
 
-            if simple and include_shear_stress or not simple:
+            if (simple and include_shear_stress) or not simple:
                 description.append(f"{int(condition.shear_stress)}dyncm2")
 
         description_dict[dataset_name] = "_".join(description)

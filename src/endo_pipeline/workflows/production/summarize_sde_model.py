@@ -27,6 +27,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
     from endo_pipeline.configs import dynamics_io, get_datasets_in_collection
     from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.analyze.diffae_dataframe import fit_pca
     from endo_pipeline.library.analyze.diffae_features import (
         load_sde_model,
         model_data_comparison,
@@ -34,7 +35,6 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
         run_fixed_point_analysis,
         run_gen_potential_analysis,
     )
-    from endo_pipeline.library.analyze.diffae_manifest import fit_pca
     from endo_pipeline.library.analyze.numerics import get_bins, vector_field_function
     from endo_pipeline.manifests import load_dataframe_manifest
 

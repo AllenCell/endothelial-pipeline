@@ -22,7 +22,7 @@ def main(model_name: str = "diffae_finetuned_for_fixed", n_pcs: int = 3) -> None
     from pathlib import Path
 
     from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.analyze.diffae_manifest import fit_pca
+    from endo_pipeline.library.analyze.diffae_dataframe import fit_pca
     from endo_pipeline.library.analyze.immunofluorescence import validate_pcs_for_integration
     from endo_pipeline.library.visualize.integration import viz_validate_pcs_for_integration
 

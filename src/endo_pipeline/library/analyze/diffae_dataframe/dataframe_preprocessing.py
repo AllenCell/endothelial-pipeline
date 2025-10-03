@@ -6,7 +6,7 @@ from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
 
-from .diffae_manifest_utils import (
+from .feature_dataframe_utils import (
     get_dataset_descriptions,
     get_feature_column_names,
     get_valid_subset,

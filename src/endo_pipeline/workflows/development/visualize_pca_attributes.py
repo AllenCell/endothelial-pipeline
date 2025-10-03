@@ -1,31 +1,38 @@
 TAGS = ["diffae_features", "visualization"]
 
 
-def main(dataset_collection_name: str = "pca_reference", model_name: str = "diffae_04_10") -> None:
+def main(
+    dataset_collection_name: str = "pca_reference",
+    model_manifest_name: str = "diffae_04_10",
+    run_name: str | None = None,
+) -> None:
     """Visualize key attributes of a fit PCA model."""
     import logging
 
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, save_plot_to_path
-    from endo_pipeline.library.analyze.diffae_manifest import (
+    from endo_pipeline.library.analyze.diffae_dataframe import (
         fit_pca,
         get_pca_loadings,
+        get_pca_loadings_as_df,
         get_timepoints_for_plotting_pcs,
     )
-    from endo_pipeline.library.analyze.diffae_manifest.manifest_pca import get_pca_loadings_as_df
     from endo_pipeline.library.visualize.diffae_features import feature_viz
     from endo_pipeline.manifests import load_dataframe_manifest
 
     # set up logger
     logger = logging.getLogger(__name__)
 
+    dataframe_manifest_name = f"{model_manifest_name}_{run_name}_grid"
+
     # set up output directory for figures
-    fig_savedir = get_output_path(
-        "pca_viz", dataset_collection_name, model_name, include_timestamp=False
-    )
+    fig_savedir = get_output_path("pca_viz", dataset_collection_name, model_manifest_name, run_name)
 
     # fit PCA model to the datasets in the given dataset collection
-    pca = fit_pca(dataset_collection_name=dataset_collection_name, model_name=model_name)
+    pca = fit_pca(
+        dataset_collection_name=dataset_collection_name,
+        dataframe_manifest_name=dataframe_manifest_name,
+    )
 
     # plot cumulative explained variance ratio of PCA components
     fig, _ = feature_viz.plot_explained_variance(pca.explained_variance_ratio_)
@@ -69,7 +76,7 @@ def main(dataset_collection_name: str = "pca_reference", model_name: str = "diff
     )
 
     # scatter plot of pca reference datasets
-    manifest = load_dataframe_manifest(model_name)
+    manifest = load_dataframe_manifest(dataframe_manifest_name)
     fig, _ = feature_viz.plot_pc_scatter(
         dataset_names, manifest, pca, timepoints_to_use=timepoints_refs
     )
