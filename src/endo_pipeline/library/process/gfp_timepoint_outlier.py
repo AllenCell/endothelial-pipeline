@@ -7,7 +7,7 @@ from endo_pipeline.io.input import load_zarr_as_dask_array
 from endo_pipeline.io.output import get_output_path, save_plot_to_path
 from endo_pipeline.settings.image_data import NUM_ZSLICES
 
-THRESHOLD = 1
+THRESHOLD = 0.01
 """Percentage to use for thresholding dark and bright outliers."""
 
 ROLLING_WINDOW = 12
@@ -26,18 +26,12 @@ def plot_gfp_outliers_rolling(
     window: int = ROLLING_WINDOW,
     percent: float = THRESHOLD,
 ) -> None:
-    """
-    Plot TP-level mean intensities with rolling mean ± percentage thresholds and outliers.
-    """
-    fig, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(8, 8))
     ax.plot(tp_means, label="TP Mean Intensity", color="black", alpha=0.7)
     ax.plot(rolling_mean, label=f"Rolling Mean (window={window})", color="blue", alpha=0.9)
-
-    # Threshold curves
     ax.plot(lower_threshold, color="red", linestyle="--", label=f"Lower ({int(percent*100)}%)")
     ax.plot(upper_threshold, color="orange", linestyle="--", label=f"Upper ({int(percent*100)}%)")
 
-    # Outliers
     if dark_outliers:
         ax.scatter(
             dark_outliers, tp_means[dark_outliers], color="red", label="Dark Outliers", zorder=5
@@ -51,7 +45,6 @@ def plot_gfp_outliers_rolling(
             zorder=5,
         )
 
-    # Annotate text
     info_lines = []
     if dark_outliers:
         info_lines.append(f"Dark: {dark_outliers}")
@@ -63,22 +56,22 @@ def plot_gfp_outliers_rolling(
             1.02,
             0.5,
             "\n".join(info_lines),
-            fontsize=10,
+            fontsize=12,
             va="center",
             ha="left",
             transform=ax.transAxes,
         )
 
-    ax.set_xlabel("Timepoint")
-    ax.set_ylabel("Mean Intensity (across Z)")
-    ax.set_title(f"{dataset_name} - Position {position}")
-    ax.legend()
+    ax.set_xlabel("Time (frames)", fontsize=14, labelpad=10)
+    ax.set_ylabel("Average mEGFP intensity in Z-stack (a.u.)", fontsize=14, labelpad=10)
+    ax.tick_params(axis="both", which="major", labelsize=12)
+    ax.legend(fontsize=12, loc="upper right", frameon=True)
 
     fig.tight_layout(rect=[0, 0, 0.8, 1])
-    plt.show()
 
-    save_dir = get_output_path(f"gfp_outliers_{int(percent*100)}pct", dataset_name)
-    save_plot_to_path(fig, save_dir, f"gfp_outliers_P{position}")
+    save_dir = get_output_path("single_timepoint_outlier_detection", dataset_name)
+    save_plot_to_path(fig, save_dir, f"gfp_outliers_{dataset_name}_P{position}", file_format=".pdf")
+    plt.show()
     plt.close(fig)
 
 

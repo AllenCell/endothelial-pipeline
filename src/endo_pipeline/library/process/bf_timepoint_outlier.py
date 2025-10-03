@@ -3,7 +3,13 @@ import numpy as np
 import pandas as pd
 from scipy.signal import find_peaks
 
-from endo_pipeline.configs import DatasetConfig, get_available_zarr_files
+from endo_pipeline.configs import (
+    DatasetConfig,
+    TimepointAnnotation,
+    get_annotated_timepoints_for_position,
+    get_available_zarr_files,
+    load_dataset_config,
+)
 from endo_pipeline.io.input import load_zarr_as_dask_array
 from endo_pipeline.io.output import get_output_path, save_plot_to_path
 from endo_pipeline.settings.image_data import NUM_ZSLICES
@@ -60,10 +66,11 @@ def plot_bf_outliers(
         The number of z-slices per timepoint (default is NUM_ZSLICES).
     """
     fig, ax = plt.subplots(figsize=(12, 10))
+
     ax.plot(data_np, label="Intensity", color="black", alpha=0.5)
     ax.plot(
         rolling_median_np,
-        label="Rolling Median (window = 100 z-slices (4 tps)",
+        label="Rolling Median (window = 100 z-slices (4 tps))",
         color="black",
         alpha=1,
         zorder=4,
@@ -83,6 +90,7 @@ def plot_bf_outliers(
         color="orange",
         linestyle="--",
     )
+
     ax.scatter(dark_outliers, data_np[dark_outliers], color="red", label="Dark Outliers", zorder=5)
     ax.scatter(
         partial_dark_outliers,
@@ -103,33 +111,32 @@ def plot_bf_outliers(
 
     info_lines = ["timepoint: [z-slices]\n"]
     for title, indices in outlier_groups:
-        # Group indices by `t` and calculate `z` values
         d = {
             t: [i % num_zslices for i in indices if i // num_zslices == t]
-            for t in sorted(set(i // num_zslices for i in indices))  # Sort `t` for ordered output
+            for t in sorted(set(i // num_zslices for i in indices))
         }
-
         if d:
             info_lines.append(f"{title}:\n" + "\n".join(f"{t}: {z}" for t, z in d.items()))
 
-    # Add information to the plot
     if len(info_lines) > 1:
         fig.text(
             1.02,
             0.5,
-            "\n\n".join(info_lines),  # Join all info lines with double newlines
-            fontsize=10,
+            "\n\n".join(info_lines),
+            fontsize=12,
             va="center",
             ha="left",
             transform=ax.transAxes,
         )
 
     mean_for_lim = np.mean(data_np)
+    ax.set_xlabel("Index (flatted Z-slices)", fontsize=16, labelpad=12)
+    ax.set_ylabel("Average bright-feild intensity in Z-slice (a.u.)", fontsize=16, labelpad=12)
 
-    ax.set_xlabel("Flattened Index (T, Z-slices)")
-    ax.set_ylabel("Intensity")
+    ax.tick_params(axis="both", which="major", labelsize=14)
+    ax.tick_params(axis="both", which="minor", labelsize=12)
 
-    # Add secondary x-axis for timepoints (every 25 tps)
+    # Secondary X-axis for timepoints
     def index_to_tp(x):
         return x // num_zslices
 
@@ -137,19 +144,20 @@ def plot_bf_outliers(
         return t * num_zslices
 
     secax = ax.secondary_xaxis("top", functions=(index_to_tp, tp_to_index))
-    secax.set_xlabel("Timepoint (every 25 Z-slices)")
-    # Tick locator every 25 tps
+    secax.set_xlabel("Time (frames)", fontsize=16, labelpad=12)
     max_tp = data_np.shape[0] // num_zslices
     secax.set_xticks(np.arange(0, max_tp + 1, 25))
+    secax.tick_params(axis="x", labelsize=14)
 
-    ax.set_title(f"{dataset_name} - Position {position}\n")
+    ax.legend(fontsize=14, loc="upper right", frameon=True)
+
     ax.set_ylim(mean_for_lim - mean_for_lim * 0.05, mean_for_lim + mean_for_lim * 0.05)
-    ax.legend()
-    fig.tight_layout(rect=[0, 0, 0.8, 1])  # leave space on right
-    plt.show()
 
-    save_dir = get_output_path(f"brightfield_outliers_{THRESHOLD1}", dataset_name)
-    save_plot_to_path(fig, save_dir, f"bf_outliers_P{position}")
+    fig.tight_layout(rect=[0, 0, 0.8, 1])
+
+    save_dir = get_output_path("single_timepoint_outlier_detection", dataset_name)
+    save_plot_to_path(fig, save_dir, f"bf_outliers_{dataset_name}_P{position}", file_format=".pdf")
+    plt.show()
     plt.close(fig)
 
 
@@ -229,3 +237,74 @@ def detect_bf_outliers(
         )
 
     return bf_scope_error, bf_temp_artifact
+
+
+def performance_stats(
+    datasets: list[str],
+    manual_annotations: list[TimepointAnnotation],
+    auto_annotations: list[TimepointAnnotation],
+    annotation_type: str,
+) -> None:
+    """
+    Calculate and print statistics for manual and automatic timepoint annotations.
+
+    This function processes a list of datasets, compares manual and automatic annotations
+    for each dataset and position, and calculates statistics such as the number of missed
+    timepoints, total annotated timepoints, and artifact percentages. The results are printed
+    to the console.
+
+    Args:
+        datasets (list[str]):
+            A list of dataset names to process.
+        manual_annotations (list[TimepointAnnotation]):
+            A list of manual annotation types to consider.
+        auto_annotations (list[TimepointAnnotation]):
+            A list of automatic annotation types to consider.
+        annotation_type (str):
+            A string indicating the type of annotation (e.g., "Brightfield" or "GFP")
+            for labeling the output statistics.
+    """
+
+    stats = []
+    for dataset_name in datasets:
+        dataset_config = load_dataset_config(dataset_name)
+        for position in dataset_config.zarr_positions:
+            manual_tps = set(
+                get_annotated_timepoints_for_position(dataset_config, position, manual_annotations)
+            )
+
+            auto_tps = set(
+                get_annotated_timepoints_for_position(dataset_config, position, auto_annotations)
+            )
+
+            list_of_missed_tps = list(manual_tps - auto_tps) if manual_tps - auto_tps else np.NaN
+
+            stats.append(
+                {
+                    "dataset_name": dataset_name,
+                    "position": position,
+                    "n_auto_detected": len(auto_tps),
+                    "n_manual_annotated": len(manual_tps),
+                    "n_missed": len(manual_tps - auto_tps),
+                    "list_of_missed_tps": list_of_missed_tps,
+                    "n_tps_assessed": dataset_config.duration,
+                }
+            )
+
+    df = pd.DataFrame(stats)
+
+    total_manual = df["n_manual_annotated"].sum()
+    total_auto = df["n_auto_detected"].sum()
+    total_missed = df["n_missed"].sum()
+    percent_missed = (total_missed / total_manual) * 100 if total_manual > 0 else 0
+    total_timepoints = df["n_tps_assessed"].sum()
+    percent_artifact = (total_auto + total_missed) / total_timepoints * 100
+
+    print(f"--- {annotation_type} STATISTICS ---")
+    print(f"Total manual annotated timepoints: {total_manual}")
+    print(f"Total missed timepoints: {total_missed}")
+    print(f"Percent of missed timepoints: {percent_missed:.2f}%")
+    print(f"Total auto-detected timepoints: {total_auto}")
+    print(f"Total timepoints assessed: {total_timepoints}")
+    print(f"Percent of tps with artifacts: {percent_artifact:.2f}%")
+    print()
