@@ -8,8 +8,7 @@ from cellpose import core, models
 from tqdm import tqdm
 
 from endo_pipeline.cli import Datasets
-from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import configure_logging, get_output_path
+from endo_pipeline.io import configure_logging, get_output_path, load_zarr_as_dask_array
 from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     save_image_output,
@@ -28,7 +27,7 @@ def generate_results(args: dict) -> None:
     position = args["position"]
     tp = args["T"]
     create_validation = args["is_validation_image"]
-    img_path = args["input_path"]
+    img_path = Path(args["input_path"])
     out_dir = Path(args["output_dir"]) / dataset_name / f"P{position}"
     out_dir.mkdir(exist_ok=True, parents=True)
     out_dir_validation = Path(args["output_dir"]) / "validation" / dataset_name / f"P{position}"
@@ -48,13 +47,13 @@ def generate_results(args: dict) -> None:
         return
 
     else:
-        img = BioImage(img_path)
-        if args["use_sldy_data"]:
-            img.set_scene(args["scene_index"])
-
-        data_config = load_dataset_config(dataset_name)
-        brightfield_index = data_config.original_channel_indices.brightfield
-        img_arr = img.get_image_dask_data(DIMENSION_ORDER, T=tp, C=brightfield_index)
+        img_arr = load_zarr_as_dask_array(
+            path=img_path,
+            channels=["BF"],
+            timepoints=tp,
+            level=0,
+        )
+        voxel_size = BioImage(img_path).physical_pixel_sizes
 
         # Load the retrained CellPose label-free nuclear prediction model
         model_manifest = load_model_manifest("nuc_pred_labelfree")
@@ -93,7 +92,7 @@ def generate_results(args: dict) -> None:
             "image_name": dataset_name,
             "channel_names": ["CellPose_prediction"],
             "channel_colors": [(255, 255, 255)],
-            "physical_pixel_sizes": img.physical_pixel_sizes,
+            "physical_pixel_sizes": voxel_size,
             "dim_order": "YX",
         }
         save_image_output(out_path, images_out, images_out_metadata)
@@ -116,7 +115,7 @@ def generate_results(args: dict) -> None:
                 "image_name": dataset_name,
                 "channel_names": ["BF_Center", "BF_STD", "CellPose_prediction"],
                 "channel_colors": [(255, 255, 255), (255, 255, 255), (0, 255, 255)],
-                "physical_pixel_sizes": img.physical_pixel_sizes,
+                "physical_pixel_sizes": voxel_size,
                 "dim_order": "YX",
             }
             save_image_output(out_path_validation, images_out, images_out_metadata)
