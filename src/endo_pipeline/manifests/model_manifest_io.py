@@ -27,7 +27,7 @@ def create_model_manifest(manifest_name: str, workflow_name: str) -> ModelManife
         logger.warning("Model manifest [ %s ] already exists.", manifest_name)
         return load_model_manifest(manifest_name)
     else:
-        return ModelManifest(name=manifest_name, workflow=workflow_name)
+        return ModelManifest(name=manifest_name, workflow=Path(workflow_name).stem)
 
 
 def load_model_manifest(manifest_name: str) -> ModelManifest:

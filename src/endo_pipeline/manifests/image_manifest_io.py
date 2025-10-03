@@ -27,7 +27,7 @@ def create_image_manifest(manifest_name: str, workflow_name: str) -> ImageManife
         logger.warning("Image manifest [ %s ] already exists.", manifest_name)
         return load_image_manifest(manifest_name)
     else:
-        return ImageManifest(name=manifest_name, workflow=workflow_name)
+        return ImageManifest(name=manifest_name, workflow=Path(workflow_name).stem)
 
 
 def load_image_manifest(manifest_name: str) -> ImageManifest:

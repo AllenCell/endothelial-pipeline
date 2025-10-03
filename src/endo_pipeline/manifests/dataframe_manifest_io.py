@@ -27,7 +27,7 @@ def create_dataframe_manifest(manifest_name: str, workflow_name: str) -> Datafra
         logger.warning("Dataframe manifest [ %s ] already exists.", manifest_name)
         return load_dataframe_manifest(manifest_name)
     else:
-        return DataframeManifest(name=manifest_name, workflow=workflow_name)
+        return DataframeManifest(name=manifest_name, workflow=Path(workflow_name).stem)
 
 
 def load_dataframe_manifest(manifest_name: str) -> DataframeManifest:
