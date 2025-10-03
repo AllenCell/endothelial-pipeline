@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 def initialize_diffae_model(
     template_training_config,
-    overrides: Optional[ModelConfigOverride] = None,
+    overrides: ModelConfigOverride | None = None,
 ) -> "CytoDLModel":
     """
     Initialize a DiffAE model for training, applying overrides and configuration.
