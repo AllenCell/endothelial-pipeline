@@ -1,5 +1,5 @@
 """
-Methods to load data and visualize multi-feature correlations
+Methods to load data and visualize multi-feature correlations.
 
 Creates an n_features X n_features grid of plots with:
 
@@ -22,7 +22,7 @@ from scipy import stats as spstats
 from scipy.cluster.hierarchy import linkage
 
 from endo_pipeline.io.output import save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe.diffae_manifest_utils import get_valid_subset
+from endo_pipeline.library.analyze.diffae_dataframe.feature_dataframe_utils import get_valid_subset
 from endo_pipeline.library.analyze.integration.track_integration import (
     get_preprocessed_manifests_and_km_bounds,
 )
@@ -516,6 +516,7 @@ def get_df_for_feature_correlation_viz(
         for df, df_list in zip(
             (merged_feats_df, merged_feats_df_ss),
             (df_list_all_tps, df_list_ss),
+            strict=True,
         ):
             df = df[cols_to_keep].copy()
             df.rename(columns=get_label_for_column, inplace=True)
