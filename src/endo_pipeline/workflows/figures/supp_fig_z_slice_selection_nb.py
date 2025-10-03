@@ -11,19 +11,21 @@ from endo_pipeline.io.output import get_output_path
 from endo_pipeline.library.process.z_stack_selection import (
     plot_global_center_plane,
     plot_histogram_upper_slices_available,
-    plot_normalized_profiles,
     plot_standard_devs_per_slice,
     visualize_slice_selection,
 )
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.image_data import LOWER_Z_SLICE_OFFSET, UPPER_Z_SLICE_OFFSET
 
+# %%
+DESCRIPTION = "Visualize the selection of Z slices for image preprocessing."
+TAGS = ["supfig", "preprocessing"]
+
 # %% Load dataset
-dataset = EXAMPLE_DATASET["SUP_FIG_Z_SLICE"]
-save_dir = get_output_path(__file__, dataset)
+dataset = EXAMPLE_DATASET["SUPP_FIG_Z_SLICE"]
+save_dir = get_output_path("supp_fig_z_slice_selection")
 dataset_config = load_dataset_config(dataset)
 position, frame = 0, 0
-
 
 # %% Load images
 zarr_file = get_zarr_file_for_position(dataset_config, position)
@@ -58,7 +60,6 @@ center_plane_pos, std_dev = plot_global_center_plane(
 )
 
 # %% Panel C - Distribution of upper slices available across datasets
-save_dir = get_output_path(__file__)
 datasets = get_datasets_in_collection("timelapse")
 plot_histogram_upper_slices_available(datasets, save_dir)
 
@@ -74,14 +75,4 @@ visualize_slice_selection(
     save_dir,
     LOWER_Z_SLICE_OFFSET,
     UPPER_Z_SLICE_OFFSET,
-)
-
-# %% TBD
-datasets = get_datasets_in_collection("timelapse")
-save_dir = get_output_path(
-    "z_range_selection",
-    f"normalized_profiles_offsets_{LOWER_Z_SLICE_OFFSET}_{UPPER_Z_SLICE_OFFSET}",
-)
-plot_normalized_profiles(
-    datasets, timepoints=[0], save_dir=save_dir, mode="by_position", n_positions=0
 )

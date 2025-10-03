@@ -320,7 +320,7 @@ def visualize_slice_selection(
     plt.tight_layout()
 
     fname = f"plane_selection_vis_{dataset}_P{position}_{frame}_offset{lower_offset}_{upper_offest}_scalebar{scale_bar_um}um"
-    save_plot_to_path(fig, output_dir, fname)
+    save_plot_to_path(fig, output_dir, fname, file_format=".pdf")
     plt.show()
 
 
@@ -377,7 +377,7 @@ def plot_global_center_plane(
         fig.tight_layout()
 
     fname = f"global_center_plane_{dataset}_P{position}"
-    save_plot_to_path(fig, output_dir, fname)
+    save_plot_to_path(fig, output_dir, fname, file_format=".pdf")
     plt.show()
     plt.close(fig)
 
@@ -801,7 +801,7 @@ def plot_normalized_profiles(
 
     if mode == "by_position":
         for timepoint in timepoints:
-            for position in n_positions:
+            for position in range(n_positions):
                 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
                 for i, dataset in enumerate(datasets):
@@ -856,7 +856,7 @@ def plot_normalized_profiles(
 
                 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
-                for position in n_positions:
+                for position in range(n_positions):
                     if dataset_config.center_z_plane is None:
                         logger.warning(
                             "Center z-plane information is missing for dataset [ %s ], skipping",

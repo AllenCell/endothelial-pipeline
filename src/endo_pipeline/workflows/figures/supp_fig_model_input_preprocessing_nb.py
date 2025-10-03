@@ -20,11 +20,11 @@ from endo_pipeline.settings.image_data import (
 )
 
 # %%
-DESCRIPTION = "Visualize the input preprocessing steps for the DiffAE model."
-TAGS = ["supfig", "diffae"]
+DESCRIPTION = "Visualize the image preprocessing steps for the DiffAE model."
+TAGS = ["supfig", "preprocessing", "diffae"]
 
 # %% Load Example Data
-DATASET = EXAMPLE_DATASET["SUP_FIG_IMG_PROC"]
+DATASET = EXAMPLE_DATASET["SUPP_FIG_IMG_PROC"]
 POSITION = 0
 save_dir = get_output_path("model_input_preprocessing_viz", "LOG", f"{DATASET}_P{POSITION}")
 
@@ -158,6 +158,3 @@ for i, transform in enumerate(transforms):
     else:
         print(f"Unexpected sample type {type(sample)}, skipping visualization")
         break
-
-
-# %%

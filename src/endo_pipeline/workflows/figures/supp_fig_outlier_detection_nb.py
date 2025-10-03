@@ -8,6 +8,10 @@ from endo_pipeline.library.process.bf_timepoint_outlier import detect_bf_outlier
 from endo_pipeline.library.process.gfp_timepoint_outlier import detect_egfp_scope_errors
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 
+# %%
+DESCRIPTION = "Visualize the automatic detection of outlier timepoints in BF and EGFP channels."
+TAGS = ["supfig", "preprocessing"]
+
 # %% Load example dataset
 dataset = EXAMPLE_DATASET["SUPP_FIG_SINGLE_TP_OUTLIER"]
 dataset_config = load_dataset_config(dataset)
