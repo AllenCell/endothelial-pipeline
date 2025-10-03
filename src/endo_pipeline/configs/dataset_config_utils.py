@@ -21,7 +21,7 @@ from endo_pipeline.configs import (
 logger = logging.getLogger(__name__)
 
 
-def get_regime_for_shear_stress(shear_stress: float) -> tuple[float, float]:
+def get_regime_for_shear_stress(shear_stress: float) -> ShearStressRegime:
     """Get shear stress regime for given shear stress value."""
 
     for regime in ShearStressRegime:
