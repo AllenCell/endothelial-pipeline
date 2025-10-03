@@ -5,7 +5,6 @@ import pandas as pd
 from endo_pipeline.configs import DatasetConfig, get_available_zarr_files
 from endo_pipeline.io.input import load_zarr_as_dask_array
 from endo_pipeline.io.output import get_output_path, save_plot_to_path
-from endo_pipeline.settings.image_data import NUM_ZSLICES
 
 THRESHOLD = 0.01
 """Percentage to use for thresholding dark and bright outliers."""
@@ -69,7 +68,7 @@ def plot_gfp_outliers_rolling(
 
     fig.tight_layout(rect=[0, 0, 0.8, 1])
 
-    save_dir = get_output_path("single_timepoint_outlier_detection", dataset_name)
+    save_dir = get_output_path("single_tp_outlier_detection")
     save_plot_to_path(fig, save_dir, f"gfp_outliers_{dataset_name}_P{position}", file_format=".pdf")
     plt.show()
     plt.close(fig)

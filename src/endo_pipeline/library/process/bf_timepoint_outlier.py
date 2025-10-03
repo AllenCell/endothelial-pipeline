@@ -1,3 +1,5 @@
+import logging
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -13,6 +15,8 @@ from endo_pipeline.configs import (
 from endo_pipeline.io.input import load_zarr_as_dask_array
 from endo_pipeline.io.output import get_output_path, save_plot_to_path
 from endo_pipeline.settings.image_data import NUM_ZSLICES
+
+logger = logging.getLogger(__name__)
 
 THRESHOLD1 = 0.004
 """Percentage to use for thresholding partial dark outliers."""
@@ -155,7 +159,7 @@ def plot_bf_outliers(
 
     fig.tight_layout(rect=[0, 0, 0.8, 1])
 
-    save_dir = get_output_path("single_timepoint_outlier_detection", dataset_name)
+    save_dir = get_output_path("single_tp_outlier_detection")
     save_plot_to_path(fig, save_dir, f"bf_outliers_{dataset_name}_P{position}", file_format=".pdf")
     plt.show()
     plt.close(fig)
@@ -300,11 +304,10 @@ def performance_stats(
     total_timepoints = df["n_tps_assessed"].sum()
     percent_artifact = (total_auto + total_missed) / total_timepoints * 100
 
-    print(f"--- {annotation_type} STATISTICS ---")
-    print(f"Total manual annotated timepoints: {total_manual}")
-    print(f"Total missed timepoints: {total_missed}")
-    print(f"Percent of missed timepoints: {percent_missed:.2f}%")
-    print(f"Total auto-detected timepoints: {total_auto}")
-    print(f"Total timepoints assessed: {total_timepoints}")
-    print(f"Percent of tps with artifacts: {percent_artifact:.2f}%")
-    print()
+    logging.info(f"--- {annotation_type} STATISTICS ---")
+    logging.info(f"Total manual annotated timepoints: {total_manual}")
+    logging.info(f"Total missed timepoints: {total_missed}")
+    logging.info(f"Percent of missed timepoints: {percent_missed:.2f}%")
+    logging.info(f"Total auto-detected timepoints: {total_auto}")
+    logging.info(f"Total timepoints assessed: {total_timepoints}")
+    logging.info(f"Percent of tps with artifacts: {percent_artifact:.2f}%")
