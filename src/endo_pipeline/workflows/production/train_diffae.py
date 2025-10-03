@@ -5,7 +5,7 @@ def main(
     model_manifest_name: str | None = None,
     run_name: str | None = None,
     resolution_level: int = 1,
-    crop_size: int = 64,
+    crop_size: int = 128,
     exclude_cell_piling: bool = False,
 ) -> None:
     """
