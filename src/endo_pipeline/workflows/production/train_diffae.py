@@ -5,7 +5,7 @@ def main(
     model_manifest_name: str | None = None,
     run_name: str | None = None,
     resolution_level: int = 1,
-    crop_size: int = 128,
+    crop_size: int = 64,
     exclude_cell_piling: bool = False,
 ) -> None:
     """
@@ -73,10 +73,14 @@ def main(
     from omegaconf import OmegaConf
 
     from endo_pipeline import DEMO_MODE, IS_MAIN_PROCESS, NUM_GPUS
-    from endo_pipeline.io import get_output_path, make_name_unique, resolve_dataframe_location
+    from endo_pipeline.io import (
+        get_output_path,
+        load_model_config_from_path,
+        make_name_unique,
+        resolve_dataframe_location,
+    )
     from endo_pipeline.library.model import (
         get_dataset_names_used_for_training,
-        get_model_dir,
         initialize_diffae_model,
     )
     from endo_pipeline.library.model.model_config_overrides import ModelConfigOverride
@@ -87,6 +91,7 @@ def main(
         load_model_manifest,
         save_model_manifest,
     )
+    from endo_pipeline.settings import RELATIVE_PATH_TO_TRAIN_CONFIG
 
     logger = logging.getLogger(__name__)
 
@@ -135,7 +140,7 @@ def main(
     val_dataframe_path = resolve_dataframe_location(val_dataframe_location)
 
     # load template training config
-    template_training_config = OmegaConf.load(get_model_dir() / "diffae_training.yaml")
+    template_training_config = load_model_config_from_path(RELATIVE_PATH_TO_TRAIN_CONFIG)
 
     # if model manifest name not provided, create one
     # default name via zarr resolution, crop size, and include/exclude cell piling
@@ -181,12 +186,12 @@ def main(
     # Only rank 0 saves out the config - others wait and load from it
     if IS_MAIN_PROCESS:
         overrides = ModelConfigOverride(
-            manifest_name=model_manifest_name,
+            model_manifest_name=model_manifest_name,
             run_name=run_name,
             task_name="train",
             crop_size=crop_size,
-            train_dataframe=train_dataframe_path,
-            val_dataframe=val_dataframe_path,
+            train_dataframe_path=train_dataframe_path,
+            val_dataframe_path=val_dataframe_path,
             max_epochs=max_num_epochs,
             cache_rate=cache_rate,
             replace_rate=replace_rate,

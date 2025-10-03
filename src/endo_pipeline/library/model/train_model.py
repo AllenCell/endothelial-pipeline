@@ -15,6 +15,7 @@ from endo_pipeline.configs import DatasetConfig, load_dataset_collection_config
 from endo_pipeline.io import (
     build_fms_annotations,
     get_output_path,
+    get_repository_root_dir,
     load_dataframe,
     upload_file_to_fms,
 )
@@ -144,7 +145,8 @@ def _generate_overrides_for_finetuning(
         "trainer.min_epochs": effective_min_epochs,
         "trainer.max_epochs": effective_max_epochs,
         "trainer.log_every_n_steps": log_every_n_steps,
-        # updated the run name
+        # update the experiment name and run name
+        "experiment_name": finetuned_model_manifest_name,
         "run_name": finetuned_run_name,
     }
 
