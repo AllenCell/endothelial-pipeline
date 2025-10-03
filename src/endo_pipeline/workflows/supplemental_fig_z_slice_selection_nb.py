@@ -35,8 +35,8 @@ cdh5_stack = load_zarr_as_dask_array(
 
 # %% Panel A - In focus Z slice selection per timepoint
 stdevs = [plane.std().compute() for plane in bf_stack]
-center_plane = max(0, np.argmin(stdevs))
-plot_standard_devs_per_slice(stdevs, center_plane, dataset, position, frame, save_dir)
+center_plane_tp = max(0, np.argmin(stdevs))
+plot_standard_devs_per_slice(stdevs, int(center_plane_tp), dataset, position, frame, save_dir)
 
 
 # %% Panel B - In focus Z slice selection per position over time
@@ -51,10 +51,10 @@ for frame in range(0, dataset_config.duration, 1):
     stdevs = bf_stack.std(axis=(1, 2)).compute()
 
     # Find the center plane with the minimum standard deviation
-    center_plane = max(0, np.argmin(stdevs))
-    center_planes.append(center_plane)
+    center_plane_tp = max(0, np.argmin(stdevs))
+    center_planes.append(center_plane_tp)
 
-mean, std_dev = plot_global_center_plane(
+center_plane_pos, std_dev = plot_global_center_plane(
     center_planes, dataset_config.name, position, save_dir, show_histogram=False
 )
 
@@ -68,7 +68,7 @@ plot_histogram_upper_slices_available(datasets, save_dir)
 visualize_slice_selection(
     bf_stack,
     cdh5_stack,
-    center_plane,
+    int(center_plane_pos),
     dataset,
     position,
     frame,
