@@ -20,9 +20,8 @@ from endo_pipeline.settings.image_data import (
 )
 
 # %% Load Example Data
+DATASET = EXAMPLE_DATASET["SUP_FIG_IMG_PROC"]
 POSITION = 0
-# DATASET = EXAMPLE_DATASET["SUP_FIG_Y"]
-DATASET = "20250110_paired20X"
 save_dir = get_output_path("model_input_preprocessing_viz", "LOG", f"{DATASET}_P{POSITION}")
 
 dataset_config = load_dataset_config(DATASET)
