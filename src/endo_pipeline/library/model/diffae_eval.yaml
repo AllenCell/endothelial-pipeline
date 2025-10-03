@@ -1,4 +1,4 @@
-model:
+model: # THIS IS TEMP UNTIL FATWIRS PR MERGES
   _target_: cyto_dl.models.im2im.diffusion_autoencoder.DiffusionAutoEncoder
 
 data:
