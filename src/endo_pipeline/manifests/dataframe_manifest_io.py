@@ -17,7 +17,9 @@ def get_dataframe_manifest_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "manifests" / "dataframes"
 
 
-def create_dataframe_manifest(manifest_name: str, workflow_name: str) -> DataframeManifest:
+def create_dataframe_manifest(
+    manifest_name: str, workflow_name: str | None = None
+) -> DataframeManifest:
     """Create a new empty dataframe manifest, or return one if it already exists."""
 
     manifest_dir = get_dataframe_manifest_dir()
@@ -27,7 +29,7 @@ def create_dataframe_manifest(manifest_name: str, workflow_name: str) -> Datafra
         logger.warning("Dataframe manifest [ %s ] already exists.", manifest_name)
         return load_dataframe_manifest(manifest_name)
     else:
-        return DataframeManifest(name=manifest_name, workflow=Path(workflow_name).stem)
+        return DataframeManifest(name=manifest_name, workflow=Path(workflow_name or "").stem)
 
 
 def load_dataframe_manifest(manifest_name: str) -> DataframeManifest:
