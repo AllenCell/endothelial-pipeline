@@ -17,6 +17,18 @@ def get_dataframe_manifest_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "manifests" / "dataframes"
 
 
+def create_dataframe_manifest(manifest_name: str) -> DataframeManifest:
+    """Create a new empty dataframe manifest, or return one if it already exists."""
+
+    manifest_dir = get_dataframe_manifest_dir()
+    manifest_file = manifest_dir / f"{manifest_name}.yaml"
+
+    if manifest_file.exists():
+        return load_dataframe_manifest(manifest_name)
+    else:
+        return DataframeManifest(name=manifest_name)
+
+
 def load_dataframe_manifest(manifest_name: str) -> DataframeManifest:
     """Load dataframe manifest by name."""
 

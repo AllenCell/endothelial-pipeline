@@ -17,6 +17,18 @@ def get_model_manifest_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "manifests" / "models"
 
 
+def create_model_manifest(manifest_name: str) -> ModelManifest:
+    """Create a new empty model manifest, or return one if it already exists."""
+
+    manifest_dir = get_model_manifest_dir()
+    manifest_file = manifest_dir / f"{manifest_name}.yaml"
+
+    if manifest_file.exists():
+        return load_model_manifest(manifest_name)
+    else:
+        return ModelManifest(name=manifest_name)
+
+
 def load_model_manifest(manifest_name: str) -> ModelManifest:
     """Load model manifest by name."""
 

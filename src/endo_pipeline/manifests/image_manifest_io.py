@@ -17,6 +17,18 @@ def get_image_manifest_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "manifests" / "images"
 
 
+def create_image_manifest(manifest_name: str) -> ImageManifest:
+    """Create a new empty image manifest, or return one if it already exists."""
+
+    manifest_dir = get_image_manifest_dir()
+    manifest_file = manifest_dir / f"{manifest_name}.yaml"
+
+    if manifest_file.exists():
+        return load_image_manifest(manifest_name)
+    else:
+        return ImageManifest(name=manifest_name)
+
+
 def load_image_manifest(manifest_name: str) -> ImageManifest:
     """Load image manifest by name."""
 
