@@ -56,7 +56,6 @@ from .model_config_io import (
     validate_all_model_configs,
     validate_model_config,
 )
-from .model_config_utils import get_labelfree_nuclei_prediction_model_name
 
 __all__ = [
     "ChannelIndices",
@@ -90,7 +89,6 @@ __all__ = [
     "get_flow_at_frame",
     "get_frame_after_flow_change",
     "get_frame_before_flow_change",
-    "get_labelfree_nuclei_prediction_model_name",
     "get_model_config_dir",
     "get_position_integer_from_zarr_file_path",
     "get_position_string_from_zarr_file_path",
