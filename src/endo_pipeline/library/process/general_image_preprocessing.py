@@ -8,6 +8,7 @@ from bioio import BioImage
 from bioio.writers import OmeTiffWriter
 from tqdm import tqdm
 
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.configs.dataset_io import (
     get_original_path,
     get_total_number_of_positions,
@@ -33,11 +34,11 @@ def build_analysis_queue(
     save_output: bool = True,
     overwrite: bool = False,
     out_dir: str | Path | None = None,
-    magnification: int | None = None,
+    # magnification: int | None = None,
     image_validation_frequency: int | None = None,
     verbose: bool = False,
     is_test: bool = False,
-    use_sldy_data: bool = False,
+    # use_sldy_data: bool = False,
 ) -> list:
     print(f"Building analysis queue for the following datasets: {dataset_name_list}")
     analysis_queue: list = []
@@ -54,9 +55,11 @@ def build_analysis_queue(
             num_positions = get_total_number_of_positions(dataset_name)
             num_pos_in_S = len(img.scenes)
         else:
+            dataset_config = load_dataset_config(dataset_name)
+
             img_path_dict = get_zarr_path(dataset_name)
-            num_positions = get_total_number_of_positions(dataset_name)
-            num_pos_in_S = len(img_path_dict)
+            num_positions = dataset_config.n_total_positions
+            num_pos_in_S = len(dataset_config.zarr_positions)
             zarr_name_dict = {pos: get_zarr_name(dataset_name, pos) for pos in range(num_pos_in_S)}
 
         assert (

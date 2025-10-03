@@ -8,7 +8,7 @@ from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images 
     add_backdrop_fname_to_manifest,
 )
 from endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import LABEL_MAP
-from endo_pipeline.workflows.make_seg_feats_manifest import (
+from endo_pipeline.workflows.production.make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
 

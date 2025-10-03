@@ -1,4 +1,5 @@
-from collections.abc import Generator
+# from collections.abc import Generator
+import logging
 from datetime import datetime
 from multiprocessing import Pool
 from pathlib import Path
@@ -15,7 +16,7 @@ from skimage.exposure import rescale_intensity
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.configs.dataset_io import get_original_path, ipython_cli_flexecute, load_config
 from endo_pipeline.io import get_output_path
 from endo_pipeline.library.process import get_sldy_metadata as sldmd
@@ -24,6 +25,8 @@ from endo_pipeline.library.process.general_image_preprocessing import (
     save_image_output,
 )
 from endo_pipeline.settings import DIMENSION_ORDER
+
+logger = logging.getLogger(__name__)
 
 
 def get_scenes_to_use(dataset_name: str | None = None) -> dict:
@@ -98,8 +101,11 @@ def get_image_data_from_original(
     return (img_dask_arr_nuc, img_dask_arr_bf_std), img_metadata
 
 
-def get_image_data_from_zarr(dataset_name: str) -> Generator:
+def get_image_data_from_zarr(dataset_name: str, position) -> tuple:
     # NOTE THIS FUNCTION IS NOT YET IMPLEMENTED
+    dataset_config = load_dataset_config(dataset_name)
+    zarr_file = get_zarr_file_for_position(dataset_config, position)
+
     for zarr_name in get_zarr_path(dataset_name):
         img_dict_nuc = load_dataset(dataset_name, zarr_name=zarr_name, channels=["DAPI"])
         img_dict_bf = load_dataset(dataset_name, zarr_name=zarr_name, channels=["BF"])
@@ -110,7 +116,7 @@ def get_image_data_from_zarr(dataset_name: str) -> Generator:
             axis=DIMENSION_ORDER.index("Z"), keepdims=True
         )
         yield (zarr_name, img_dask_arr_nuc, img_dask_arr_bf_std)
-    raise NotImplementedError(f"Zarrs not yet implemented yet. Skipping {dataset_name}.")
+    # raise NotImplementedError(f"Zarrs not yet implemented yet. Skipping {dataset_name}.")
 
 
 def save_overlay(
@@ -156,16 +162,16 @@ def generate_training_data(analysis_args: dict) -> None:
     print("loading CellPose model...") if verbose else None
     nuc_model = models.CellposeModel(gpu=use_gpu, model_type="nuclei")
 
-    if scene_name in get_scenes_to_use()[dataset_name]:
-        (print(f"Working on {dataset_name} P{position} {scene_name}...") if verbose else None)
-        pass
-    else:
-        (
-            print(f"{dataset_name} P{position} {scene_name} not in scenes_to_use. Skipping.")
-            if verbose
-            else None
-        )
-        return
+    # if scene_name in get_scenes_to_use()[dataset_name]:
+    #     (print(f"Working on {dataset_name} P{position} {scene_name}...") if verbose else None)
+    #     pass
+    # else:
+    #     (
+    #         print(f"{dataset_name} P{position} {scene_name} not in scenes_to_use. Skipping.")
+    #         if verbose
+    #         else None
+    #     )
+    #     return
 
     print("loading image data...") if verbose else None
     if use_sldy_data:
@@ -312,10 +318,10 @@ def get_training_data(
 def main(
     n_proc: int = 1,
     create_training_data: bool = False,
-    retrain_Gouthams_model: bool = False,
+    # retrain_Gouthams_model: bool = False,
     train_from_base_cellpose_nuclei_model: bool = True,
-    use_sldy_data: bool = True,
-    verbose: bool = False,
+    # use_sldy_data: bool = False,
+    # verbose: bool = False,
 ) -> None:
 
     datasets_to_use = list(get_scenes_to_use().keys())
@@ -323,12 +329,12 @@ def main(
 
     analysis_queue = build_analysis_queue(
         datasets_to_use,
-        use_sldy_data=use_sldy_data,
+        # use_sldy_data=use_sldy_data,
         save_output=True,
         image_validation_frequency=1,
         overwrite=True,
         out_dir=out_dir,
-        verbose=verbose,
+        # verbose=verbose,
     )
 
     # return whether or not to use a gpu with CellPose

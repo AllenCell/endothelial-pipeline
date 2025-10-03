@@ -41,8 +41,8 @@ def fms_upload_cdh5_classic_seg_tracking(dataset_name: str, path_to_file: Path) 
     # info along with the FMS upload here.
     model_name = get_labelfree_nuclei_prediction_model_name()
     dataset_config = load_dataset_config(dataset_name)
-    model = load_model_config(model_name)
-    annotations = build_fms_annotations(dataset_config, model=model)
+    model_config = load_model_config(model_name)
+    annotations = build_fms_annotations(dataset_config, model_manifest=model_config)
 
     # Upload the file to FMS
     file_id = upload_file_to_fms(
@@ -75,8 +75,8 @@ def fms_upload_cdh5_get_measured_features(dataset_name: str, path_to_file: Path)
     # info along with the FMS upload here.
     model_name = get_labelfree_nuclei_prediction_model_name()
     dataset_config = load_dataset_config(dataset_name)
-    model = load_model_config(model_name)
-    annotations = build_fms_annotations(dataset_config, model=model)
+    model_config = load_model_config(model_name)
+    annotations = build_fms_annotations(dataset_config, model_manifest=model_config)
 
     # Upload the file to FMS
     file_id = upload_file_to_fms(
@@ -109,8 +109,8 @@ def fms_upload_nuc_get_measured_features(dataset_name: str, path_to_file: Path) 
     # info along with the FMS upload here.
     model_name = get_labelfree_nuclei_prediction_model_name()
     dataset_config = load_dataset_config(dataset_name)
-    model = load_model_config(model_name)
-    annotations = build_fms_annotations(dataset_config, model=model)
+    model_config = load_model_config(model_name)
+    annotations = build_fms_annotations(dataset_config, model_manifest=model_config)
 
     # Upload the file to FMS
     file_id = upload_file_to_fms(
@@ -143,8 +143,8 @@ def fms_upload_make_seg_feats_manifest(dataset_name: str, path_to_file: Path) ->
     # info along with the FMS upload here.
     model_name = get_labelfree_nuclei_prediction_model_name()
     dataset_config = load_dataset_config(dataset_name)
-    model = load_model_config(model_name)
-    annotations = build_fms_annotations(dataset_config, model=model)
+    model_config = load_model_config(model_name)
+    annotations = build_fms_annotations(dataset_config, model_manifest=model_config)
 
     # Upload the file to FMS
     file_id = upload_file_to_fms(
