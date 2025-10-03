@@ -66,7 +66,6 @@ def main(
     """
 
     import logging
-    from pathlib import Path
 
     from endo_pipeline import DEMO_MODE, NUM_GPUS
     from endo_pipeline.io import (
@@ -81,7 +80,7 @@ def main(
     )
     from endo_pipeline.manifests import (
         ModelLocation,
-        ModelManifest,
+        create_model_manifest,
         load_dataframe_manifest,
         load_model_manifest,
         save_model_manifest,
@@ -206,23 +205,13 @@ def main(
     # Create a new model manifest with workflow parameters, if a matching
     # manifest does not already exist. Add the model training run to the list
     # of manifest locations.
-    try:
-        manifest = load_model_manifest(model_manifest_name)
-    except FileNotFoundError:
-        logger.info(
-            "Model manifest [ %s ] not found, creating a new one.",
-            model_manifest_name,
-        )
-        parameters = {
-            "training_datasets": list_of_training_datasets,
-            "crop_size": crop_size,
-            "resolution_level": resolution_level,
-            "exclude_cell_piling": exclude_cell_piling,
-        }
-        manifest = ModelManifest(
-            name=model_manifest_name, parameters=parameters, workflow=Path(__file__).stem
-        )
-
+    manifest = create_model_manifest(model_manifest_name, __file__)
+    manifest.parameters = {
+        "training_datasets": list_of_training_datasets,
+        "crop_size": crop_size,
+        "resolution_level": resolution_level,
+        "exclude_cell_piling": exclude_cell_piling,
+    }
     manifest.locations[run_name] = ModelLocation(mlflowid=run_id)
     save_model_manifest(manifest)
 
