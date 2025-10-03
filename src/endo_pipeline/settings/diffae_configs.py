@@ -6,7 +6,7 @@ RELATIVE_PATH_TO_MODEL_DIR = "src/endo_pipeline/library/model/"
 EVAL_CONFIG = "diffae_eval.yaml"
 """Name of the template configuration file for evaluating a DiffAE model."""
 
-TRAIN_CONFIG = "diffae_train.yaml"
+TRAIN_CONFIG = "diffae_training.yaml"
 """Name of the template configuration file for training a DiffAE model."""
 
 FINETUNE_CONFIG = "diffae_finetune.yaml"

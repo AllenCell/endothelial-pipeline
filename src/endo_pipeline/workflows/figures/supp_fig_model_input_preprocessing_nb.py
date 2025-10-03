@@ -9,15 +9,19 @@ from matplotlib import pyplot as plt
 from omegaconf import OmegaConf
 
 from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-from endo_pipeline.io.input import load_zarr_as_dask_array
+from endo_pipeline.io.input import load_model_config_from_path, load_zarr_as_dask_array
 from endo_pipeline.io.output import get_output_path, save_plot_to_path, save_thumbnail_to_path
-from endo_pipeline.library.model import get_model_dir
+from endo_pipeline.settings import RELATIVE_PATH_TO_TRAIN_CONFIG
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.image_data import (
     LOWER_Z_SLICE_OFFSET,
     UPPER_Z_SLICE_OFFSET,
     PIXEL_SIZE_3i_20x,
 )
+
+# %%
+DESCRIPTION = "Visualize the input preprocessing steps for the DiffAE model."
+TAGS = ["supfig", "diffae"]
 
 # %% Load Example Data
 DATASET = EXAMPLE_DATASET["SUP_FIG_IMG_PROC"]
@@ -28,8 +32,7 @@ dataset_config = load_dataset_config(DATASET)
 zarr_path = get_zarr_file_for_position(dataset_config, POSITION)
 img = load_zarr_as_dask_array(zarr_path, level=1, squeeze=True)
 
-# %% for each slice in the zarr, save a thumbnail
-# the image is 2 channel with 25 slices
+# %% Panel A - Thumbnail of each slice in Z-stack for each channel
 for channel in range(img.shape[0]):
     for slice_idx in range(img.shape[1]):
         slice_img = img[channel, slice_idx, :, :].compute()
@@ -48,8 +51,7 @@ print("Lower z slice:", in_focus_slice - LOWER_Z_SLICE_OFFSET)
 print("Upper z slice:", in_focus_slice + UPPER_Z_SLICE_OFFSET)
 
 # %% Load model config
-yaml_path = get_model_dir() / "diffae_training.yaml"
-model_config = OmegaConf.load(yaml_path)
+model_config = load_model_config_from_path(RELATIVE_PATH_TO_TRAIN_CONFIG)
 
 # Access the training transform configuration
 train_transform_cfg = model_config.data.train_dataloaders.dataset.transform

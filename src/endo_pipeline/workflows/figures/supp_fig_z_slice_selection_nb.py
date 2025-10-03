@@ -32,7 +32,6 @@ cdh5_stack = load_zarr_as_dask_array(
     zarr_file, channels=["EGFP"], timepoints=frame, level=1
 ).squeeze()
 
-
 # %% Panel A - In focus Z slice selection per timepoint
 stdevs = [plane.std().compute() for plane in bf_stack]
 center_plane_tp = max(0, np.argmin(stdevs))
