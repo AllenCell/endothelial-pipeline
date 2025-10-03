@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 
 
 def create_seg_measured_feat_manifest_multiproc_wrapper(args: Sequence) -> None:
+    """Merge nuclei measurement, cdh5 segmentation measurement, and tracking tables together using
+    multiprocessing.
+    """
     dataset_name, out_dir = args
     create_segmentation_measured_feature_manifest(dataset_name, out_dir)
 
@@ -27,7 +30,7 @@ def create_segmentation_measured_feature_manifest(
     dataset_name: str,
     out_dir: str | Path,
 ) -> None:
-
+    """Merge nuclei measurement, cdh5 segmentation measurement, and tracking tables into 1 table."""
     # make the output directory
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -47,7 +50,7 @@ def create_segmentation_measured_feature_manifest(
 
     if tracking_df.empty or segprops_df.empty or nucprops_df.empty:
         logger.info(
-            f"No tracking data or segmentation properties data found for {dataset_name}. Skipping..."
+            f"No tracking data or segmentation properties data found for {dataset_name}. Skipping."
         )
         return
     else:
@@ -88,7 +91,7 @@ def main(
     n_proc: int = 1,
     verbose: bool = False,
 ) -> None:
-
+    """Run workflow for merging nuclei, cdh5 segmentation, and tracking data into a single table."""
     # set the directory where the output will be saved
     out_dir = get_output_path(__file__)
     configure_logging(out_dir, logger, verbose)

@@ -12,7 +12,6 @@ from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
-    get_original_path,
     ipython_cli_flexecute,
 )
 from endo_pipeline.io import configure_logging, get_output_path, load_image, load_zarr_as_dask_array
@@ -28,22 +27,19 @@ logger = logging.getLogger(__name__)
 
 
 def build_measured_features_tables_multiproc_wrapper(args: dict) -> None:
+    """Build and save measured features tables using multiprocessing."""
     dataset_name = args["dataset_name"]
-    scene = args["scene_index"]
     position = args["position"]
-    T = args["T"]
+    tp = args["T"]
     save_output = args["save_output"]
     out_dir = args["output_dir"]
     verbose = args["verbose"]
-    use_sldy_data = args["use_sldy_data"]
     create_validation_image = args["is_validation_image"]
     build_measured_features_tables(
         dataset_name,
-        T,
+        tp,
         out_dir,
-        scene,
         position,
-        use_sldy_data,
         save_output=save_output,
         create_validation_image=create_validation_image,
         verbose=verbose,
@@ -52,17 +48,15 @@ def build_measured_features_tables_multiproc_wrapper(args: dict) -> None:
 
 def build_measured_features_tables(
     dataset_name: str,
-    T: int,
+    tp: int,
     out_dir: str | Path,
-    scene: str | int = 0,
     position: int = 0,
-    use_sldy_data: bool | None = False,
     save_output: bool | None = True,
     create_validation_image: bool = False,
     verbose: bool = True,
 ) -> None:
     """
-    Builds tables of measured features from the segmentation images
+    Build tables of measured features from the segmentation images
     and the raw cdh5 images.
     The segmentation properties tables is
     a table of measured features extracted from the cdh5 segmentations
@@ -80,16 +74,12 @@ def build_measured_features_tables(
     ----------
     dataset_name: str
         The name of the dataset to process.
-    T: int
+    tp: int
         The timepoint to process.
     out_dir: str | Path
         The output directory to save the tables and validation images to.
-    scene: str | int
-        The scene index to process (only used if use_sldy_data = True).
     position: int
         The position to process (this will be equal to the scene index).
-    use_sldy_data: bool | None
-        Whether to use the original data or the zarr data.
     save_output: bool | None
         Whether to save the output tables (and validation images if selected).
     create_validation_image: bool
@@ -107,7 +97,6 @@ def build_measured_features_tables(
     - filepath_raw_image
     - filepath_segmentation_image
     - dataset_name
-    - scene_index
     - position
     - T
     - cell_label
@@ -142,7 +131,6 @@ def build_measured_features_tables(
     - filepath_raw_image
     - filepath_segmentation_image
     - dataset_name
-    - scene_index
     - position
     - T
     - node_pair_labels
@@ -165,7 +153,7 @@ def build_measured_features_tables(
     - git_uncommitted_changes
     """
 
-    logger.debug(f"Working on {dataset_name} -- T={T}...")
+    logger.debug(f"Working on {dataset_name} -- T={tp}...")
 
     dim_order = DIMENSION_ORDER
 
@@ -176,29 +164,18 @@ def build_measured_features_tables(
         out_dir / f"{dataset_name}/P{position}/tables_cdh5_segmentation_properties"
     )
 
-    logger.debug(f"T={T} -- loading imaging datasets")
+    logger.debug(f"T={tp} -- loading imaging datasets")
     # load the raw cdh5 image data
-    if use_sldy_data:
-        dataset_config = load_dataset_config(dataset_name)
-        cdh5_chan_index = dataset_config.original_channel_indices.channel_488
-        image_path = Path(get_original_path(dataset_name))
-        img = BioImage(image_path)
-        img.set_scene(scene)
-        raw_dask_arr = img.get_image_dask_data(dim_order, C=[cdh5_chan_index], T=T)
-        raw_dask_arr = raw_dask_arr.max(axis=dim_order.index("Z"), keepdims=True)
-        raw_arr = raw_dask_arr.compute().squeeze()
-        voxel_size = img.physical_pixel_sizes
-    else:
-        dataset_config = load_dataset_config(dataset_name)
-        image_path = get_zarr_file_for_position(dataset_config, position)
-        raw_arr = load_zarr_as_dask_array(path=image_path, channels=["EGFP"], timepoints=T, level=0)
-        raw_arr = raw_arr.max(axis=dim_order.index("Z")).squeeze().compute()
-        voxel_size = BioImage(image_path).physical_pixel_sizes
+    dataset_config = load_dataset_config(dataset_name)
+    image_path = get_zarr_file_for_position(dataset_config, position)
+    raw_arr = load_zarr_as_dask_array(path=image_path, channels=["EGFP"], timepoints=tp, level=0)
+    raw_arr = raw_arr.max(axis=dim_order.index("Z")).squeeze().compute()
+    voxel_size = BioImage(image_path).physical_pixel_sizes
 
-    logger.debug(f"T={T} -- loading classic segmentation")
+    logger.debug(f"T={tp} -- loading classic segmentation")
 
     seg_manifest = load_image_manifest("cdh5_classic_seg")
-    seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, T)
+    seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, tp)
     seg_arr = load_image(seg_location)
     seg_filepath = seg_location.path.as_posix() if seg_location.path is not None else ""
 
@@ -206,13 +183,13 @@ def build_measured_features_tables(
     seg_borders = find_boundaries(seg_arr)
 
     ## convert cleaned up threshold of cadherin signal to nodes and edges
-    logger.debug(f"T={T} -- getting nodes and edges")
+    logger.debug(f"T={tp} -- getting nodes and edges")
     nodes, edges, _, _ = feat.arr2graph(seg_borders, closing_step=False)
 
     ## get the node-to-node distances and the angle between a line connecting two nodes
     ## and a horizontal line
     ## NOTE there should also be a way to get the error in the measurement of the angles too...
-    logger.debug(f"T={T} -- calculating distances and angles between neighboring nodes")
+    logger.debug(f"T={tp} -- calculating distances and angles between neighboring nodes")
 
     neighbor_node_metrics, labeled_region_metrics = feat.calculate_region_border_metrics(
         seg_borders.astype(bool), raw_arr, seg_arr, verbose=verbose
@@ -222,15 +199,14 @@ def build_measured_features_tables(
     if save_output:
         tables_out_dir_alignments.mkdir(exist_ok=True, parents=True)
         ## save table output of edge alignments
-        logger.debug(f"T={T} -- saving table of edge angles and distances")
+        logger.debug(f"T={tp} -- saving table of edge angles and distances")
         table = pd.DataFrame(
             {
                 "filepath_raw_image": image_path.as_posix(),
                 "filepath_segmentation_image": seg_filepath,
                 "dataset_name": dataset_name,
-                "scene_index": scene,
                 "position": position,
-                "T": T,
+                "T": tp,
                 "node_pair_labels": neighbor_node_metrics["node_pair_labels"],
                 "node_pair_centroids": neighbor_node_metrics["node_pair_centroids"],
                 "node_to_node_distance": neighbor_node_metrics["distances"],
@@ -248,7 +224,7 @@ def build_measured_features_tables(
             }
         )
         table.to_parquet(
-            tables_out_dir_alignments / f"{dataset_name}_P{position}_T{T}_cdh5_alignments.parquet",
+            tables_out_dir_alignments / f"{dataset_name}_P{position}_T{tp}_cdh5_alignments.parquet",
             index=False,
         )
 
@@ -256,7 +232,7 @@ def build_measured_features_tables(
             images_out_dir.mkdir(exist_ok=True, parents=True)
             ## save images containing the nodes, edges, and node-node lines
             ## as different channels
-            logger.debug(f"T={T} -- saving multichannel images of results for validation")
+            logger.debug(f"T={tp} -- saving multichannel images of results for validation")
 
             ## create a rasterized image of the lines
             lines = np.zeros(nodes.shape, dtype=np.uint16)
@@ -269,7 +245,7 @@ def build_measured_features_tables(
             lines, _ = feat.rasterize_edges_between_nodes(node_coord_pairs, lines, label_lines=True)
 
             ## organize the image data and save it
-            out_path = images_out_dir / f"{dataset_name}_P{position}_T{T}.ome.tiff"
+            out_path = images_out_dir / f"{dataset_name}_P{position}_T{tp}.ome.tiff"
             images_out = [seg_borders, nodes, edges, lines]
             images_out_metadata = {
                 "image_name": dataset_name,
@@ -288,15 +264,14 @@ def build_measured_features_tables(
         ## save table output of cell properties (e.g. areas, etc.)
         if labeled_region_metrics:
             tables_out_dir_segprops.mkdir(exist_ok=True, parents=True)
-            logger.debug(f"T={T} -- saving table of cell properties")
+            logger.debug(f"T={tp} -- saving table of cell properties")
             table = pd.DataFrame(
                 {
                     "filepath_raw_image": image_path.as_posix(),
                     "filepath_segmentation_image": seg_filepath,
                     "dataset_name": dataset_name,
-                    "scene_index": scene,
                     "position": position,
-                    "T": T,
+                    "T": tp,
                     "cell_label": labeled_region_metrics["cell_label"],
                     "cell_centroid": labeled_region_metrics["cell_centroid"],
                     "cell_area (px**2)": labeled_region_metrics["cell_area (px**2)"],
@@ -335,7 +310,7 @@ def build_measured_features_tables(
                 }
             )
             table.to_parquet(
-                tables_out_dir_segprops / f"{dataset_name}_P{position}_T{T}_cdh5_segprops.parquet",
+                tables_out_dir_segprops / f"{dataset_name}_P{position}_T{tp}_cdh5_segprops.parquet",
                 index=False,
             )
 
@@ -346,8 +321,8 @@ def main(
     save_output: bool = True,
     is_test: bool = False,
     verbose: bool = False,
-    use_sldy_data: bool = False,
 ) -> None:
+    """Run the measured features extraction workflow."""
     out_dir = get_output_path(__file__)
 
     configure_logging(out_dir, logger, verbose=verbose)
@@ -361,7 +336,6 @@ def main(
         verbose=verbose,
         is_test=is_test,
         image_validation_frequency=None,
-        use_sldy_data=use_sldy_data,
     )
 
     if n_proc > 1:

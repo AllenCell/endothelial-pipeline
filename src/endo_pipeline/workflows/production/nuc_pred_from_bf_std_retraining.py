@@ -1,7 +1,7 @@
 import logging
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,18 +14,14 @@ from skimage.exposure import rescale_intensity
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
-from endo_pipeline.configs import (
-    CellposeModelConfig,
-    get_zarr_file_for_position,
-    load_dataset_config,
-    load_model_config,
-)
+from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.configs.dataset_io import get_datasets_in_collection, ipython_cli_flexecute
 from endo_pipeline.io import get_output_path, get_timestamp, load_zarr_as_dask_array
 from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     save_image_output,
 )
+from endo_pipeline.manifests import get_model_location_for_run, load_model_manifest
 from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
@@ -33,7 +29,8 @@ logger = logging.getLogger(__name__)
 
 def get_scenes_to_use(dataset_name: str | None = None) -> dict:
     """
-    This function returns the scenes to use for a given dataset.
+    Return the scenes to use for training a Cellpose model to predict nuclei from brightfield.
+    If no dataset name is provided, it returns scenes for all datasets that were used for training.
     It is used to filter the analysis queue to only include the
     scenes that are needed for the analysis.
     This is needed because a couple of the older datasets have
@@ -58,7 +55,7 @@ def get_scenes_to_use(dataset_name: str | None = None) -> dict:
         "20250415_SlideE_20X": ["20250416_GE00007101_slideE_20X - Position 1 [50]-1745428816-305"],
         "20250415_SlideH_20X": ["20250415_GE00006885_slideH_20X - Position 1 [50]-1745428734-340"],
     }
-    if dataset_name == None:
+    if dataset_name is None:
         return scenes_to_use
     if dataset_name in scenes_to_use:
         return {dataset_name: scenes_to_use[dataset_name]}
@@ -69,17 +66,23 @@ def get_scenes_to_use(dataset_name: str | None = None) -> dict:
 def get_training_data_output_dirs(
     kind: list[Literal["images", "labels"]] | None = None,
 ) -> list:
+    """Return the output directories for the training data."""
+
     out_dir = get_output_path(__file__)
     out_dir_labels = out_dir / "training_data/cellpose_base_nuclei_model_nuclei_segmentations/"
     out_dir_images = out_dir / "training_data/cellpose_base_nuclei_model_brightfield_std/"
     out_dirs = {"images": out_dir_images, "labels": out_dir_labels}
-    if kind == None:
+    if kind is None:
         return list(out_dirs.values())
     else:
         return [out_dirs[training_data_kind] for training_data_kind in kind]
 
 
 def get_image_data_from_zarr(dataset_name: str, position: int, timepoint: int) -> tuple:
+    """
+    Load the NucViolet and Brightfield channels from the zarr file for the given dataset, position,
+    and timepoint as well as the size of the voxel along the Z, Y, and X dimensions.
+    """
     dataset_config = load_dataset_config(dataset_name)
     zarr_file = get_zarr_file_for_position(dataset_config, position)
     voxel_size = BioImage(zarr_file).physical_pixel_sizes
@@ -104,6 +107,11 @@ def save_overlay(
     outlines: bool = True,
     face: bool = True,
 ) -> None:
+    """
+    Save an overlay of the labels on top of the background image.
+    If outlines is True, the outlines of the labels will be highlighted.
+    If face is True, the labels will be filled in with color.
+    """
     seg_outlines = find_boundaries(labels)
     if outlines and face:
         labels[seg_outlines] = 0
@@ -122,6 +130,13 @@ def save_overlay(
 
 
 def generate_training_data(analysis_args: dict) -> None:
+    """Make training data for retraining a Cellpose model to predict nuclei from brightfield
+    standard deviation projections.
+
+    The training data consists of:
+    - Brightfield standard deviation projections as the images
+    - Nuclei segmentations from the Cellpose base nuclei model as the labels
+    """
     # unpack the analysis arguments
     use_gpu = analysis_args["gpu"]
     dataset_name = analysis_args["dataset_name"]
@@ -232,6 +247,15 @@ def get_training_data(
     n_proc: int = 1,
     gpu: bool = False,
 ) -> tuple:
+    """Return the paths to the training data for retraining a Cellpose model to predict nuclei from
+    brightfield standard deviation projections.
+
+    If create_training_data is True, it will create the training data, and if it is False, it will
+    return the paths to the training data that already exists.
+    The training data consists of:
+    - Brightfield standard deviation projections as the images
+    - Nuclei segmentations from the Cellpose base nuclei model as the labels
+    """
 
     # add the whether or not to use the GPU to the analysis queue
     for arg in analysis_queue:
@@ -239,7 +263,7 @@ def get_training_data(
 
     if create_training_data:
         if __name__ == "__main__":
-            if n_proc > 1 and gpu == False:
+            if n_proc > 1 and not gpu:
                 with Pool(processes=n_proc) as pool:
                     print("Starting multiprocessing...")
                     list(
@@ -268,8 +292,8 @@ def get_training_data(
     # that were created in the previous step
     (images_dir,) = get_training_data_output_dirs(kind=["images"])
     (labels_dir,) = get_training_data_output_dirs(kind=["labels"])
-    images_paths = [filepath for filepath in images_dir.glob("**/*.ome.tiff")]
-    labels_paths = [filepath for filepath in labels_dir.glob("**/*.ome.tiff")]
+    images_paths = list(images_dir.glob("**/*.ome.tiff"))
+    labels_paths = list(labels_dir.glob("**/*.ome.tiff"))
 
     assert len(images_paths) == len(
         labels_paths
@@ -283,6 +307,10 @@ def main(
     create_training_data: bool = False,
     train_from_base_cellpose_nuclei_model: bool = True,
 ) -> None:
+    """
+    Run the workflow to retrain a Cellpose model to predict nuclei from brightfield standard
+    deviation projections.
+    """
 
     datasets_to_use = list(get_scenes_to_use().keys())
     out_dir = get_output_path(__file__)
@@ -337,16 +365,13 @@ def main(
     timestamp = get_timestamp()
 
     # get the nuclei model path from the config file
-    # model_config = load_config(config_type="model")
-    # nuclei_models = model_config.get("nuc_pred_labelfree")
-    nuclei_models = cast(
-        CellposeModelConfig, load_model_config("nuc_pred_labelfree_finetuned_20250419")
-    )
-    model_path = Path(nuclei_models.model_path)
+    model_manifest = load_model_manifest("nuc_pred_labelfree")
+    run_name = "finetuned_20250419"
+    model_path = get_model_location_for_run(model_manifest, run_name).path
 
     # create a directory to save the models
     # and their losses and a test image
-    model_dir = model_path.parent / timestamp
+    model_dir = model_path.parent / timestamp  # type: ignore[union-attr]
     model_dir.mkdir(exist_ok=True, parents=True)
 
     # initiate the cellpose logger so that we
@@ -388,9 +413,6 @@ def main(
 
     # generate plots of the training and test losses
     if any(run_record):
-        # load the training and test losses from the run.log file
-        # train_losses, test_losses, time_list, epoch_list = get_old_cellpose_train_test_losses(model_dir, model_name_list)
-
         # save the training and test losses to a file
         for model_name in run_record:
             train_losses = run_record[model_name]["train_losses"]

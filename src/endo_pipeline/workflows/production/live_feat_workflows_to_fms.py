@@ -41,6 +41,7 @@ def get_model_annotations_for_upload() -> dict:
 
 
 def fms_upload_cdh5_classic_seg_tracking(dataset_name: str, path_to_file: Path) -> str:
+    """Upload the cdh5 segmentation tracking results to FMS and store the FMS ID in a manifest."""
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
@@ -74,6 +75,7 @@ def fms_upload_cdh5_classic_seg_tracking(dataset_name: str, path_to_file: Path) 
 
 
 def fms_upload_cdh5_get_measured_features(dataset_name: str, path_to_file: Path) -> str:
+    """Upload the cdh5 segmentation features to FMS and store the FMS ID in a manifest."""
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
@@ -107,6 +109,7 @@ def fms_upload_cdh5_get_measured_features(dataset_name: str, path_to_file: Path)
 
 
 def fms_upload_nuc_get_measured_features(dataset_name: str, path_to_file: Path) -> str:
+    """Upload the nuclei label-free features to FMS and store the FMS ID in a manifest."""
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
@@ -140,6 +143,7 @@ def fms_upload_nuc_get_measured_features(dataset_name: str, path_to_file: Path) 
 
 
 def fms_upload_make_seg_feats_manifest(dataset_name: str, path_to_file: Path) -> str:
+    """Upload the merged live segmentation features to FMS and store the FMS ID in a manifest."""
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
@@ -182,8 +186,7 @@ def main(
     datasets: Datasets,
 ) -> None:
     """
-    This is a convenience function to upload multiple datasets to FMS
-    from the endothelial project folder.
+    Convenience function to upload multiple datasets to FMS from the endothelial project folder.
 
     NOTE Intended only for internal use.
     """

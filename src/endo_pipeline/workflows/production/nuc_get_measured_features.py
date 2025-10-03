@@ -24,27 +24,30 @@ logger = logging.getLogger(__name__)
 
 
 def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
+    """Unpack arguments from an argument dictionary and call get_and_save_nuclei_features."""
     dataset_name = args["dataset_name"]
     position = args["position"]
-    T = args["T"]
+    tp = args["T"]
     out_dir = args["output_dir"]
     save_output = args["save_output"]
-    get_and_save_nuclei_features(dataset_name, position, T, out_dir, save_output)
+    get_and_save_nuclei_features(dataset_name, position, tp, out_dir, save_output)
 
 
 def get_and_save_nuclei_features(
     dataset_name: str,
     position: int,
-    T: int,
+    tp: int,
     out_dir: Path,
     save_output: bool = True,
 ) -> None:
-
-    nuc_props_df = get_nuclei_features_from_dataset_at_T(dataset_name, position, T)
+    """Measure nuclei features for a given dataset, position, and timepoint and save the results as
+    a dataframe.
+    """
+    nuc_props_df = get_nuclei_features_from_dataset_at_timepoint(dataset_name, position, tp)
 
     out_subdir = out_dir / dataset_name / f"P{position}"
     out_subdir.mkdir(exist_ok=True, parents=True)
-    out_path = out_subdir / f"{dataset_name}_P{position}_T{T}_nuclei_labelfree_features.parquet"
+    out_path = out_subdir / f"{dataset_name}_P{position}_T{tp}_nuclei_labelfree_features.parquet"
     if save_output:
         nuc_props_df.to_parquet(out_path, index=False)
 
@@ -57,7 +60,7 @@ def get_nuclei_features_from_image(
     seg_dim_order: str = "YX",
 ) -> pd.DataFrame:
     """
-    Extracts features from nuclei segmentations and their overlap with cell segmentations.
+    Extract features from nuclei segmentations and their overlap with cell segmentations.
 
     Parameters
     ----------
@@ -71,9 +74,8 @@ def get_nuclei_features_from_image(
         is a channel from the raw image.
     fluor_img_names: list[str] | None:
         Names of the fluorescence images. If None, defaults to "Channel_0", "Channel_1", etc.
-    nuclei_ambiguity_threshold (float):
-        Threshold for determining if a nucleus segmentation overlaps a cell
-        segmentation enough to be kept.
+    seg_dim_order: str:
+        Order of dimensions that the segmentation images are in. Default is "YX".
 
     Returns
     -------
@@ -174,29 +176,31 @@ def get_nuclei_features_from_image(
     return nuc_feats_df
 
 
-def get_nuclei_features_from_dataset_at_T(
-    dataset_name: str, position: int, T: int, channel_names: list = ["EGFP", "BF"]
+def get_nuclei_features_from_dataset_at_timepoint(
+    dataset_name: str, position: int, tp: int, channel_names: tuple = ["EGFP", "BF"]
 ) -> pd.DataFrame:
-
+    """Load label-free nuclei prediction images and measure features for a given dataset, position,
+    and timepoint.
+    """
     # Load segmentations and image
     dim_order = DIMENSION_ORDER
 
     nuc_manifest = load_image_manifest("nuclear_labelfree_seg")
-    nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_name, position, T)
+    nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_name, position, tp)
     nuc_seg = load_image(nuc_location)
 
     cdh5_manifest = load_image_manifest("cdh5_classic_seg")
-    cdh5_location = get_image_location_for_dataset(cdh5_manifest, dataset_name, position, T)
+    cdh5_location = get_image_location_for_dataset(cdh5_manifest, dataset_name, position, tp)
     cdh5_seg = load_image(cdh5_location)
 
     dataset_config = load_dataset_config(dataset_name)
     img_path = get_zarr_file_for_position(dataset_config, position)
-    raw_img = load_zarr_as_dask_array(path=img_path, channels=channel_names, timepoints=T, level=0)
-    raw_MIP = raw_img.max(axis=dim_order.index("Z"), keepdims=True).compute()
+    raw_img = load_zarr_as_dask_array(path=img_path, channels=channel_names, timepoints=tp, level=0)
+    raw_mip = raw_img.max(axis=dim_order.index("Z"), keepdims=True).compute()
 
     # split up the image into a list of channels
     channel_arrs = np.split(
-        raw_MIP, indices_or_sections=len(channel_names), axis=dim_order.index("C")
+        raw_mip, indices_or_sections=len(channel_names), axis=dim_order.index("C")
     )
     channel_arrs = [channel_arr.squeeze() for channel_arr in channel_arrs]
 
@@ -216,7 +220,7 @@ def get_nuclei_features_from_dataset_at_T(
     # add the dataset name, position, and T to the dataframe
     nuc_feats_df["dataset_name"] = dataset_name
     nuc_feats_df["position"] = position
-    nuc_feats_df["T"] = T
+    nuc_feats_df["T"] = tp
 
     # move the dataset_name, position, and T columns to the front
     # of the data table
@@ -233,11 +237,10 @@ def main(
     save_output: bool = True,
     n_proc: int = 1,
     verbose: bool = False,
-    use_sldy_data: bool = False,
     is_test: bool = False,
     concatenate_tables_only: bool = False,
 ) -> None:
-
+    """Run workflow to measure features from label-free nuclei predictions."""
     out_dir = get_output_path(__file__)
 
     configure_logging(out_dir, logger, verbose=verbose)
@@ -253,7 +256,6 @@ def main(
             verbose=verbose,
             is_test=is_test,
             image_validation_frequency=None,
-            use_sldy_data=use_sldy_data,
         )
 
         # get and save results from images in analysis queue
