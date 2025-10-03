@@ -1,107 +1,50 @@
 from pathlib import Path
-from typing import cast
 
 import numpy as np
 import pandas as pd
-from cyto_dl.api import CytoDLModel
 from matplotlib.patches import Ellipse
 from sklearn.decomposition import PCA
 
-from endo_pipeline.configs import (
-    CytoDLModelConfig,
-    DatasetConfig,
-    load_dataset_config,
-    load_model_config,
-)
-from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import build_fms_annotations, get_output_path, load_model, upload_file_to_fms
 from endo_pipeline.library.analyze.diffae_manifest import (
     get_dataframe_for_dynamics_workflows,
     project_manifest_to_pcs,
 )
 from endo_pipeline.library.model import (
-    download_model,
     generate_overrides_for_model_eval,
-    get_cytodl_commit_hash,
+    upload_prediction_dataframe_to_fms,
 )
 from endo_pipeline.library.process.registration import align_all_positions
-from endo_pipeline.manifests import (
-    DataframeLocation,
-    load_dataframe_manifest,
-    save_dataframe_manifest,
-)
+from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
 from endo_pipeline.settings import Z_SLICE_OFFSETS
-
-
-def add_paired_fixed_live_data_fmsid_to_manifest(
-    prediction_path: Path,
-    dataset_config: DatasetConfig,
-    model_config: CytoDLModelConfig,
-    model_path: Path,
-) -> None:
-    """
-    Upload path to FMS and add the FMS ID to the dataset config file for a dataset
-    of paired fixed and live data.
-
-    Parameters
-    ----------
-    prediction_path : str
-        Path to the prediction file
-    dataset_config : DatasetConfig
-        Config file for the dataset
-    model_config : CytoDLModelConfig
-        Config file for the chosen model
-    model_path : Path
-        Path to the model directory. Used for extracting the commit hash.
-
-    Returns
-    -------
-    model_config_updated : CytoDLModelConfig
-        Updated model config with the FMS ID of the prediction file added to the dataset manifest
-    """
-    # build FMS annotations
-    dataset_annotations = build_fms_annotations(
-        dataset_config,
-        model=model_config,
-        additional_notes=get_cytodl_commit_hash(model_config.mlflow_run_id, model_path),
-    )
-
-    # upload prediction file to FMS and get file ID
-    file_id = upload_file_to_fms(
-        prediction_path,
-        annotations=dataset_annotations,
-        file_type="parquet",
-    )
-
-    # Update the model config with the FMS ID of the prediction file
-    manifest = load_dataframe_manifest(model_config.name)
-    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
-    save_dataframe_manifest(manifest)
 
 
 def apply_model_paired_fixed_live(
     fixed_dataset_name: str,
     live_dataset_name: str,
-    model_name: str,
+    model_manifest_name: str,
+    run_name: str,
     align_fluo: bool = True,
-    upload_features_to_FMS: bool = False,
+    upload_to_fms: bool = False,
 ) -> tuple[Path, Path, Path]:
     """
     Align paired fixed and live data and apply a diffAE model to extract features.
 
     Parameters
     ----------
-    fixed_dataset_name : str
-        Dataset name to use as the fixed images (i.e. the reference against which the moving images are registered)
-    live_dataset_name : str
-        Dataset name to use as the moving images (i.e. the images to be registered to the fixed images)
-    model_name : str
-        The name of the model finetuned for fixation.
-    align_fluo : bool
+    fixed_dataset_name
+        Dataset name of the fixed cell images.
+    live_dataset_name
+        Dataset name of the live cell images.
+    model_manifest_name
+        The name of the model manifest from which to load the model for feature extraction.
+    run_name
+        The name of the run corresponding to the model.
+    align_fluo
         Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
-    upload_features_to_FMS : bool
-        Whether to upload validation data features to FMS. We may iteratre on analysis
-        without changing features and therefore should default to not rewriting a new feature manifest every time
-        this workflow is run.
+    upload_to_fms : bool
+        Whether to upload dataframe of extracted features to FMS.
 
     Returns
     -------
@@ -117,25 +60,26 @@ def apply_model_paired_fixed_live(
     fixed_dataset_config = load_dataset_config(fixed_dataset_name)
     live_dataset_config = load_dataset_config(live_dataset_name)
 
-    # Get diffAE model
-    # load model config
-    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
+    # Load finetuned DiffAE model for extracting features
+    # load model manifest
+    model_manifest = load_model_manifest(model_manifest_name)
 
-    # Load DiffAE model
-    model_path = get_output_path("models", model_name)  # new get_output_path function
-    path_dict = download_model(model_config.mlflow_run_id, model_path)
+    # load model run_name from model manifest, override with eval config,
+    # and make sure that "model_manifest_name" and "run_name" are stored in the config
+    # as "experiment_name" and "run_name" for logging purposes
+    model = load_model(model_manifest, run_name)
 
     # Set directory for aligned data
     save_path = get_output_path(
-        "models", model_name, f"{fixed_dataset_name}_vs_{live_dataset_name}"
+        "models", model_manifest_name, run_name, f"{fixed_dataset_name}_vs_{live_dataset_name}"
     )
     data_save_path = save_path / f"aligned_{fixed_dataset_name}_vs_{live_dataset_name}.csv"
 
     # Align data if saved aligned data not already stored
     if not data_save_path.exists():
         data = align_all_positions(
-            fixed_dataset_name,
-            live_dataset_name,
+            target_dataset_name=live_dataset_name,
+            moving_dataset_name=fixed_dataset_name,
             resolution_level=1,
             z_slice_offsets=Z_SLICE_OFFSETS,
             savedir=save_path,
@@ -147,34 +91,33 @@ def apply_model_paired_fixed_live(
         data.to_csv(data_save_path, index=False)
 
     # Load diffAE model and create new overrides object
-    model = CytoDLModel()
-    model.load_config_from_file(path_dict["config_path"])
-    overrides = {"model.spatial_inferer.splitter.overlap": 0.9}
+    # some of these are temporary while we adjust our config infrastructure
+    image_dataset_obj = "endo_pipeline.library.model.image_loading.MultiDimImageDataset"
+    overrides = {
+        "model.spatial_inferer.splitter.overlap": 0.9,
+        "data.predict_dataloaders.dataset._target_": image_dataset_obj,
+        "data.predict_dataloaders.dataset.replace_rate": 1.0,
+        "data.predict_dataloaders.dataset.num_init_workers": 24,
+        "data.predict_dataloaders.dataset.num_replace_workers": 24,
+        "data.predict_dataloaders.batch_size": 64,
+    }
 
-    # Apply on target/moving images - start by constructing overrides
-    target_overrides = overrides.copy()  # copy to avoid overriding the original
-    target_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "target"})
-    target_overrides = generate_overrides_for_model_eval(
-        target_overrides,
+    # Apply on live_dataset/"target" images - start by constructing overrides
+    live_overrides = overrides.copy()  # copy to avoid overriding the original
+    live_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "target"})
+    prediction_live_suffix = f"{live_dataset_name}_{model_manifest_name}_{run_name}_features"
+    live_overrides = generate_overrides_for_model_eval(
+        live_overrides,
         save_path=str(save_path),
         data_path=str(data_save_path),
-        ckpt_path=path_dict["checkpoint_path"],
         dataset_name=live_dataset_name,
-        model_name=model_name,
+        model_manifest_name=model_manifest_name,
+        run_name=run_name,
+        prediction_filename_suffix=prediction_live_suffix,
     )
-    # the following lines of override updates are temporary while we adjust our model/config infrastructure
-    target_overrides.update(
-        {
-            "data.predict_dataloaders.dataset._target_": "endo_pipeline.library.model.image_loading.MultiDimImageDataset"
-        }
-    )
-    target_overrides["data.predict_dataloaders.dataset.cache_rate"] = 1.0
-    target_overrides["data.predict_dataloaders.dataset.replace_rate"] = 0.1
-    target_overrides["data.predict_dataloaders.dataset.num_init_workers"] = 24
-    target_overrides["data.predict_dataloaders.dataset.num_replace_workers"] = 24
 
     # Apply model on target/moving images - override config and run model prediciton
-    model.override_config(target_overrides)
+    model.override_config(live_overrides)
     # the following three lines are temporary while we adjust our model/config infrastructure
     rm_keys = ["num_workers", "cache_num", "csv_path", "dict_meta"]
     for key in rm_keys:
@@ -182,50 +125,48 @@ def apply_model_paired_fixed_live(
     model.predict()
 
     # Apply on fixed dataset/"moving" images - start by constructing overrides
-    overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving"})
-    overrides = generate_overrides_for_model_eval(
-        overrides,
+    fixed_overrides = overrides.copy()  # copy to avoid overriding the original
+    fixed_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving"})
+    prediction_fixed_suffix = f"{fixed_dataset_name}_{model_manifest_name}_{run_name}_features"
+    fixed_overrides = generate_overrides_for_model_eval(
+        fixed_overrides,
         save_path=str(save_path),
         data_path=str(data_save_path),
-        ckpt_path=path_dict["checkpoint_path"],
         dataset_name=fixed_dataset_name,
-        model_name=model_name,
+        model_manifest_name=model_manifest_name,
+        run_name=run_name,
+        prediction_filename_suffix=prediction_fixed_suffix,
     )
-    # The following lines of override updates are temporary while we adjust our model/config infrastructure
-    overrides.update(
-        {
-            "data.predict_dataloaders.dataset._target_": "endo_pipeline.library.model.image_loading.MultiDimImageDataset"
-        }
-    )
-    overrides["data.predict_dataloaders.dataset.cache_rate"] = 1.0
-    overrides["data.predict_dataloaders.dataset.replace_rate"] = 0.1
-    overrides["data.predict_dataloaders.dataset.num_init_workers"] = 24
-    overrides["data.predict_dataloaders.dataset.num_replace_workers"] = 24
-
     # Apply on fixed dataset/"moving" images - override config and run model prediciton
-    model.override_config(overrides)
+    model.override_config(fixed_overrides)
     # the following two lines are temporary while we adjust our model/config infrastructure
     for key in rm_keys:
         model.cfg.data.predict_dataloaders.dataset.pop(key, None)
     model.predict()
 
     # Define paths to saved features from model for both fixed and live datasets
-    fixed_features_path = save_path / f"predict_{fixed_dataset_name}_{model_name}_features.parquet"
-    live_features_path = save_path / f"predict_{live_dataset_name}_{model_name}_features.parquet"
+    fixed_features_path = save_path / prediction_fixed_suffix
+    live_features_path = save_path / prediction_live_suffix
+    if upload_to_fms:
 
-    if upload_features_to_FMS:
-        print("Uploading fixed and live dataset feature manifests to FMS")
-        add_paired_fixed_live_data_fmsid_to_manifest(
+        upload_prediction_dataframe_to_fms(
             fixed_features_path,
             fixed_dataset_config,
-            model_config,
-            model_path,
+            model_manifest,
+            run_name,
+            dataframe_manifest_name=f"{model_manifest_name}_{run_name}_grid",
+            workflow_name="validate_pcs_for_integration",
+            workflow_parameters={},
         )
-        add_paired_fixed_live_data_fmsid_to_manifest(
+
+        upload_prediction_dataframe_to_fms(
             live_features_path,
             live_dataset_config,
-            model_config,
-            model_path,
+            model_manifest,
+            run_name,
+            dataframe_manifest_name=f"{model_manifest_name}_{run_name}_grid",
+            workflow_name="validate_pcs_for_integration",
+            workflow_parameters={},
         )
 
     return save_path, fixed_features_path, live_features_path

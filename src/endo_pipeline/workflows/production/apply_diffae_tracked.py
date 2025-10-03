@@ -9,7 +9,7 @@ def main(
     datasets: Datasets | None = None,
     upload_to_fms: bool = True,
     save_path: str | None = None,
-    eval_config_path: str | None = None,
+    eval_config_name: str | None = None,
     user_overrides: str | dict | None = None,
 ) -> None:
     """
@@ -25,7 +25,7 @@ def main(
     **Eval config override**
 
     If ``eval_config_path`` is provided, the model config loaded from the model manifest
-    will be overridden with the config from the specified path. If it is not provided,
+    will be overridden with the specified config in ``src/configs/models``. If it is not provided,
     then the default DiffAE eval template config is used to override the loaded model config.
     The reason for doing this override is that the training config by default does not
     contain settings for the ``predict_dataloaders`` used during inference.
@@ -43,8 +43,8 @@ def main(
         True to upload the prediction file for each dataset to FMS, False to only save locally.
     save_path
         Path to save the prediction file locally.
-    eval_config_path
-        Optional, path to the model eval config to use to override the loaded model config.
+    eval_config_name
+        Optional, name of the model eval config to use to override the loaded model config.
     user_overrides
         Optional user overrides to apply to the model config.
 
@@ -57,8 +57,7 @@ def main(
     from pathlib import Path
 
     from endo_pipeline import DEMO_MODE, NUM_GPUS
-    from endo_pipeline.configs import load_dataset_config
-    from endo_pipeline.io import load_model_config_from_path
+    from endo_pipeline.configs import load_dataset_config, load_model_config
     from endo_pipeline.library.model import (
         apply_model_on_tracked_crops_from_one_dataset,
         load_model_for_inference,
@@ -66,7 +65,7 @@ def main(
     )
     from endo_pipeline.library.model.image_loading import get_include_positions
     from endo_pipeline.manifests import load_model_manifest
-    from endo_pipeline.settings import RELATIVE_PATH_TO_EVAL_CONFIG, Z_SLICE_OFFSETS
+    from endo_pipeline.settings import EVAL_CONFIG, Z_SLICE_OFFSETS
 
     logger = logging.getLogger(__name__)
 
@@ -80,9 +79,9 @@ def main(
     model_manifest = load_model_manifest(model_manifest_name)
 
     # use input path to an eval config if provided, else use path to diffae_eval.yaml
-    path_to_eval_config = eval_config_path if eval_config_path else RELATIVE_PATH_TO_EVAL_CONFIG
+    name_of_eval_config = eval_config_name if eval_config_name else EVAL_CONFIG
     # load eval config as an OmegaConf object
-    eval_config = load_model_config_from_path(path_to_eval_config)
+    eval_config = load_model_config(name_of_eval_config)
 
     # load model run_name from model manifest, override with eval config,
     # and make sure that "model_manifest_name" and "run_name" are stored in the config

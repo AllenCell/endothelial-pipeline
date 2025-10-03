@@ -52,10 +52,10 @@ def main(
     from pathlib import Path
 
     from endo_pipeline import DEMO_MODE, NUM_GPUS
+    from endo_pipeline.configs import load_model_config
     from endo_pipeline.io import (
         get_output_path,
         load_model,
-        load_model_config_from_path,
         make_name_unique,
         resolve_dataframe_location,
     )
@@ -71,7 +71,7 @@ def main(
         load_model_manifest,
         save_model_manifest,
     )
-    from endo_pipeline.settings import RELATIVE_PATH_TO_FINETUNE_CONFIG
+    from endo_pipeline.settings import FINETUNE_TRAIN_CONFIG
 
     logger = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ def main(
     val_dataframe_path = resolve_dataframe_location(val_dataframe_location)
 
     # get template config
-    template_finetune_config = load_model_config_from_path(RELATIVE_PATH_TO_FINETUNE_CONFIG)
+    template_finetune_config = load_model_config(FINETUNE_TRAIN_CONFIG)
 
     # initialize baseline model for finetuning
     base_model_manifest = load_model_manifest(base_model_manifest_name)
