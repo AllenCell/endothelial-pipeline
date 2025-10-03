@@ -104,6 +104,10 @@ data:
         - _target_: monai.transforms.DeleteItemsd
           keys:
           - raw
+        - _target_: endo_pipeline.library.model.image_loading.LogImaged
+          keys:
+          - raw_target
+          - raw_moving
         - _target_: cyto_dl.image.transforms.clip.Clipd
           keys:
           - raw_target
@@ -186,6 +190,8 @@ data:
           keys:
           - raw_moving
           projection_type: std
+        - _target_: endo_pipeline.library.model.image_loading.LogImaged
+          keys: raw_moving
         - _target_: cyto_dl.image.transforms.clip.Clipd
           keys:
           - raw_moving
@@ -228,6 +234,10 @@ data:
         - _target_: monai.transforms.DeleteItemsd
           keys:
           - raw
+        - _target_: endo_pipeline.library.model.image_loading.LogImaged
+          keys:
+          - raw_target
+          - raw_moving
         - _target_: cyto_dl.image.transforms.clip.Clipd
           keys:
           - raw_target
@@ -264,11 +274,20 @@ logger:
     run_name: ${run_name}
 trainer:
   _target_: lightning.Trainer
-  default_root_dir: null
-  max_epochs: 100
+  use_distributed_sampler: True
+  default_root_dir: ${paths.output_dir}
+  min_epochs: 150
+  max_epochs: 200
   accelerator: gpu
   devices: 1
   precision: 16-mixed
+  strategy:
+    _target_: lightning.pytorch.strategies.DDPStrategy
+    find_unused_parameters: False  # Optimize DDP performance
+    gradient_as_bucket_view: True  # Optimize DDP memory usage
+    timeout: # Timeout duration before failing
+     _target_: datetime.timedelta
+     seconds: 5400
   check_val_every_n_epoch: 1
   deterministic: false
   detect_anomaly: false

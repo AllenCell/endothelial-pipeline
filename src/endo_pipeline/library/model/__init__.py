@@ -4,11 +4,12 @@ from .apply_model import (
     generate_overrides_for_model_eval,
     generate_overrides_for_track_based_crops,
     get_cytodl_commit_hash,
-    get_model_dir,
+    load_model_for_inference,
     load_overrides,
     preprocess_tracking_manifest_for_model_eval,
     update_prediction_from_crops_with_metadata,
     update_prediction_from_tracks_with_metadata,
+    upload_prediction_dataframe_to_fms,
 )
 from .diffae import (
     DiffAEFinetune,
@@ -36,7 +37,6 @@ from .mlflow_utils import download_mlflow_artifact, download_model, get_ckpt_pat
 from .train_model import (
     build_and_save_dataframe_manifest_for_training,
     get_dataset_names_used_for_training,
-    get_valid_dataframe_path_for_training,
     initialize_diffae_model,
     initialize_diffae_model_for_finetuning,
 )
@@ -63,19 +63,18 @@ __all__ = [
     "get_exclude_frames",
     "get_include_positions",
     "get_latent_coords",
-    "get_model_dir",
     "get_pca_coords",
-    "get_valid_csv_path_for_finetuning",
-    "get_valid_dataframe_path_for_training",
     "get_walk",
     "get_z_slice_bounds_per_position",
     "initialize_diffae_model",
     "initialize_diffae_model_for_finetuning",
     "load_mlflow_model",
+    "load_model_for_inference",
     "load_overrides",
     "preprocess_tracking_manifest_for_model_eval",
     "update_prediction_from_crops_with_metadata",
     "update_prediction_from_tracks_with_metadata",
+    "upload_prediction_dataframe_to_fms",
     "write_pc_vals",
     "write_text",
 ]

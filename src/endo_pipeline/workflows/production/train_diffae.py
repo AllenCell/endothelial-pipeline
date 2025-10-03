@@ -2,12 +2,27 @@ TAGS = ["diffae_model_training"]
 
 
 def main(
+    model_manifest_name: str | None = None,
+    run_name: str | None = None,
     resolution_level: int = 1,
     crop_size: int = 128,
     exclude_cell_piling: bool = False,
 ) -> None:
     """
     Train a DiffAE model using the provided configuration.
+
+    **Training run naming**
+
+    If a model manifest name is not given, it will be automatically constructed based on the
+    resolution level of the zarr files,the crop size, and whether cell piling exclusion is
+    enabled or not.
+
+    The training runs instantiated from the this workflow will be saved in the
+    corresponding model manifest, with run name either provided by the user or automatically
+    generated to be unique ( ``run_name = f"diffae_{timestamp}"`` ).
+
+    If the user provides a run name that already exists in the manifest, a unique name will be
+    generated and a warning will be logged.
 
     **Cell piling exclusion**
 
@@ -32,6 +47,10 @@ def main(
 
     Parameters
     ----------
+    model_manifest_name
+        An optional name for the model manifest to create or update.
+    run_name
+        An optional name for the MLflow run.
     resolution_level
         The resolution level of the zarr files to be used for training.
     crop_size
@@ -39,25 +58,35 @@ def main(
     exclude_cell_piling
         If True, use training and validation datasets that exclude cell piling timepoints.
 
+    Returns
     -------
     :
         The function creates and saves a ModelConfig object with the trained
         model's MLflow run ID and the list of datasets used for training.
     """
-    import logging
 
-    from omegaconf import OmegaConf
+    import logging
+    from pathlib import Path
 
     from endo_pipeline import DEMO_MODE, NUM_GPUS
-    from endo_pipeline.configs import CytoDLModelConfig, save_model_config
-    from endo_pipeline.io import get_output_path, make_name_unique
+    from endo_pipeline.io import (
+        get_output_path,
+        load_model_config_from_path,
+        make_name_unique,
+        resolve_dataframe_location,
+    )
     from endo_pipeline.library.model import (
         get_dataset_names_used_for_training,
-        get_model_dir,
-        get_valid_dataframe_path_for_training,
         initialize_diffae_model,
     )
-    from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.manifests import (
+        ModelLocation,
+        ModelManifest,
+        load_dataframe_manifest,
+        load_model_manifest,
+        save_model_manifest,
+    )
+    from endo_pipeline.settings import RELATIVE_PATH_TO_TRAIN_CONFIG
 
     logger = logging.getLogger(__name__)
 
@@ -82,16 +111,17 @@ def main(
     if exclude_cell_piling:
         name_suffix = f"_exclude_cell_piling{name_suffix}"
 
-    manifest_name = f"diffae_training_dataframe_resolution_{resolution_level}{name_suffix}"
+    dataframe_manifest_base = "diffae_training_dataframe_resolution_"
+    dataframe_manifest_name = f"{dataframe_manifest_base}{resolution_level}{name_suffix}"
 
     try:
-        dataframe_manifest = load_dataframe_manifest(manifest_name)
+        dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     except FileNotFoundError:
         logger.error(
             "Dataframe manifest [ %s ] for resolution_level [ %s ] not found. "
             "Please run the create_diffae_training_dataframe script first "
             "with the appropriate resolution_level.",
-            manifest_name,
+            dataframe_manifest_name,
             resolution_level,
         )
         raise
@@ -102,28 +132,46 @@ def main(
     # get csv paths from the DataframeLocation objects
     # to pass into the DiffAE model training script
     # (need csv paths for training config setup and CytoDL dataloaders)
-    train_dataframe_path = get_valid_dataframe_path_for_training(train_dataframe_location)
-    val_dataframe_path = get_valid_dataframe_path_for_training(val_dataframe_location)
+    train_dataframe_path = resolve_dataframe_location(train_dataframe_location)
+    val_dataframe_path = resolve_dataframe_location(val_dataframe_location)
 
     # load template training config
-    template_training_config = OmegaConf.load(get_model_dir() / "diffae_training.yaml")
+    template_training_config = load_model_config_from_path(RELATIVE_PATH_TO_TRAIN_CONFIG)
 
-    # set model name via zarr resolution, crop size, and current timestamp
-    model_name = f"diffae_resolution_{resolution_level}_patch_{crop_size}x{crop_size}"
-    # add info about cell piling inclusion/exclusion
-    if exclude_cell_piling:
-        model_name = f"{model_name}_exclude_cell_piling"
+    # if model manifest name not provided, create one
+    # default name via zarr resolution, crop size, and include/exclude cell piling
+    if model_manifest_name is None:
+        model_manifest_name = f"diffae_resolution_{resolution_level}_patch_{crop_size}x{crop_size}"
+
+        # add info about cell piling inclusion/exclusion
+        if exclude_cell_piling:
+            model_manifest_name = f"{model_manifest_name}_exclude_cell_piling"
+        else:
+            model_manifest_name = f"{model_manifest_name}_include_cell_piling"
+
+    # Set run name and log info
+    # If no run name provided, make one
+    if run_name is None:
+        # Default run name is "diffae_{timestamp}"
+        run_name = make_name_unique("diffae").name
     else:
-        model_name = f"{model_name}_include_cell_piling"
-    # append timestamp to get unique model name
-    model_name_unique = make_name_unique(model_name).as_posix()
-    logger.info("Model name: [ %s ]", model_name)
+        # If run name provided, make sure it's unique within the manifest
+        if run_name in load_model_manifest(model_manifest_name).locations:
+            # If it's not unique, make it so and log a warning
+            run_name = make_name_unique(run_name).name
+            logger.warning(
+                "Provided run name already exists in manifest, changed current run name to [ %s ]",
+                run_name,
+            )
+    logger.info("Model manifest name: [ %s ]", model_manifest_name)
+    logger.info("Run name: [ %s ]", run_name)
 
     # initialize DiffAE model: generates config overrides and sets up output directories
     model = initialize_diffae_model(
         template_training_config,
         crop_size,
-        model_name_unique,
+        model_manifest_name,
+        run_name,
         train_dataframe_path,
         val_dataframe_path,
         max_num_epochs=max_num_epochs,
@@ -132,11 +180,13 @@ def main(
         replace_rate=replace_rate,
         num_gpus=NUM_GPUS,
     )
-    local_config_save_path = get_output_path("models", "training_configs")
-    model.save_config(local_config_save_path / f"{model_name_unique}_train.yaml")
+    local_config_save_path = get_output_path(
+        "models", "training_configs", model_manifest_name, run_name
+    )
+    model.save_config(local_config_save_path / "train.yaml")
     logger.info(
         "Training config saved to [ %s ]",
-        local_config_save_path / f"{model_name_unique}_train.yaml",
+        local_config_save_path / "train.yaml",
     )
     _, object_dict = model.train()
 
@@ -144,6 +194,7 @@ def main(
     mlflow_logger = object_dict["logger"][0]
     run_id = mlflow_logger.run_id
     logger.info("MLflow run ID: [ %s ]", run_id)
+
     # get list of datasets used for training
     # based on content of train and val dataframes
     list_of_training_datasets = get_dataset_names_used_for_training(
@@ -151,14 +202,29 @@ def main(
         val_dataframe_location,
         "live_20X_objective_3i_microscope",
     )
-    # add run ID and training datasets to model config
-    model_config = CytoDLModelConfig(
-        name=f"{model_name_unique}{name_suffix}",
-        mlflow_run_id=run_id,
-        training_datasets=list_of_training_datasets,
-    )
-    # save the model config
-    save_model_config(model_config)
+
+    # Create a new model manifest with workflow parameters, if a matching
+    # manifest does not already exist. Add the model training run to the list
+    # of manifest locations.
+    try:
+        manifest = load_model_manifest(model_manifest_name)
+    except FileNotFoundError:
+        logger.info(
+            "Model manifest [ %s ] not found, creating a new one.",
+            model_manifest_name,
+        )
+        parameters = {
+            "training_datasets": list_of_training_datasets,
+            "crop_size": crop_size,
+            "resolution_level": resolution_level,
+            "exclude_cell_piling": exclude_cell_piling,
+        }
+        manifest = ModelManifest(
+            name=model_manifest_name, parameters=parameters, workflow=Path(__file__).stem
+        )
+
+    manifest.locations[run_name] = ModelLocation(mlflowid=run_id)
+    save_model_manifest(manifest)
 
 
 if __name__ == "__main__":

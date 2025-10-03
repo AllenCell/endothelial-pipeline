@@ -1,14 +1,16 @@
 import json
 import logging
+import typing
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
-import torch
-from cyto_dl.api import CytoDLModel
+
+if typing.TYPE_CHECKING:
+    from cyto_dl.api import CytoDLModel
+    from omegaconf import DictConfig, ListConfig
 
 from endo_pipeline.configs import (
-    CytoDLModelConfig,
     DatasetConfig,
     get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
@@ -17,6 +19,7 @@ from endo_pipeline.io import (
     build_fms_annotations,
     get_output_path,
     load_dataframe,
+    load_model,
     upload_file_to_fms,
 )
 from endo_pipeline.library.model.image_loading import (
@@ -24,12 +27,14 @@ from endo_pipeline.library.model.image_loading import (
     get_exclude_frames,
     get_z_slice_bounds_per_position,
 )
-from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
+from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.manifests import (
     DataframeLocation,
     DataframeManifest,
+    ModelManifest,
     get_dataframe_location_for_dataset,
+    get_model_location_for_run,
     load_dataframe_manifest,
     save_dataframe_manifest,
 )
@@ -39,9 +44,64 @@ ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
 logger = logging.getLogger(__name__)
 
 
-def get_model_dir() -> Path:
-    """Get the path to `endo_pipeline.library.model`."""
-    return Path(__file__).resolve().parent
+def load_model_for_inference(
+    model_manifest: ModelManifest, run_name: str | None, eval_config: "DictConfig | ListConfig"
+) -> "CytoDLModel":
+    """
+    Load a CytoDLModel for inference from a model manifest, run name, and specified eval config.
+
+    Parameters
+    ----------
+    model_manifest
+        Model manifest to load the model from.
+    run_name
+        Optional, run name of the specific model to load. Loads the most recent run if None.
+    eval_config
+        Evaluation configuration to override the loaded model's default configuration.
+    """
+    # get model location for run_name from model manifest
+    run_name_ = list(model_manifest.locations.keys())[-1] if run_name is None else run_name
+    model_location = get_model_location_for_run(model_manifest, run_name_)
+
+    # load model from location and override with eval config
+    model = load_model(model_location)
+    model.override_config(eval_config)
+
+    # make sure model manifest name and run name are in model config
+    # as 'experiment_name' and 'run_name' respectively
+    # ONLY NEED for legacy purposes, this PR (#745) updates train-diffae
+    # to store these values in the model config at training time
+    if not hasattr(model.cfg, "experiment_name") or model.cfg.experiment_name is None:
+        logger.warning(
+            "Model config is missing 'experiment_name', setting it to [ %s ] from model manifest.",
+            model_manifest.name,
+        )
+        model.cfg.experiment_name = model_manifest.name
+    elif model.cfg.experiment_name != model_manifest.name:
+        logger.warning(
+            "Model config 'experiment_name' [ %s ] does not match model manifest name [ %s ]. "
+            "Overriding with model manifest name.",
+            model.cfg.experiment_name,
+            model_manifest.name,
+        )
+        model.cfg.experiment_name = model_manifest.name
+
+    if not hasattr(model.cfg, "run_name") or model.cfg.run_name is None:
+        logger.warning(
+            "Model config is missing 'run_name', setting it to [ %s ] from model manifest.",
+            run_name_,
+        )
+        model.cfg.run_name = run_name_
+    elif model.cfg.run_name != run_name_:
+        logger.warning(
+            "Model config 'run_name' [ %s ] does not match specified run name [ %s ]. "
+            "Overriding with specified run name.",
+            model.cfg.run_name,
+            run_name_,
+        )
+        model.cfg.run_name = run_name_
+
+    return model
 
 
 def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
@@ -93,17 +153,22 @@ def generate_overrides_for_model_eval(
     user_overrides: dict,
     save_path: str,
     data_path: str,
-    ckpt_path: str,
     dataset_name: str,
-    model_name: str,
+    model_manifest_name: str,
+    run_name: str,
     prediction_filename_suffix: str | None = None,
     cache_rate: float = 1.0,
+    num_gpus: int | None = None,
 ) -> dict:
     """
     Generate overrides for the CytoDLModel configuration
     for evaluating model `model_name` on crops of
     images from dataset `dataset_name`.
     """
+    if prediction_filename_suffix is None:
+        save_suffix = f"{dataset_name}_{model_manifest_name}_{run_name}_features"
+    else:
+        save_suffix = prediction_filename_suffix
     overrides = {
         # train and val dataloaders are unnecessary for prediction
         # and might be slow to instantiate (e.g. if they cache data)
@@ -112,9 +177,6 @@ def generate_overrides_for_model_eval(
         "data.predict_dataloaders.dataset.dataframe_path": data_path,
         "data.predict_dataloaders.dataset.cache_rate": cache_rate,
         "paths.output_dir": save_path,
-        # change checkpoint path to the one downloaded from mlflow
-        "checkpoint.ckpt_path": ckpt_path,
-        "checkpoint.strict": True,
         "callbacks": None,
         "callbacks.prediction_saver": {
             "_target_": "cyto_dl.callbacks.tabular_saver.SaveTabularData",
@@ -125,10 +187,21 @@ def generate_overrides_for_model_eval(
                 "start_x",
                 "filename_or_obj",
             ],
-            "save_suffix": prediction_filename_suffix or f"{dataset_name}_{model_name}_features",
+            "save_suffix": save_suffix,
         },
         "extras.print_config": False,
     }
+
+    if num_gpus is not None:
+        overrides["trainer.accelerator"] = "gpu"
+        overrides["trainer.devices"] = num_gpus
+        if num_gpus == 1:
+            overrides["trainer.strategy"] = "auto"
+    else:
+        overrides["trainer.accelerator"] = "cpu"
+        overrides["trainer.devices"] = 1
+        overrides["trainer.strategy"] = "auto"
+
     overrides.update(user_overrides)
     return overrides
 
@@ -137,10 +210,11 @@ def generate_overrides_for_track_based_crops(
     user_overrides: dict[str, Any],
     save_path: str,
     data_path: str,
-    ckpt_path: str,
     dataset_name: str,
-    model_name: str,
+    model_manifest_name: str,
+    run_name: str,
     prediction_filename_suffix: str | None = None,
+    num_gpus: int | None = None,
 ) -> dict[str, Any]:
     """
     Generate overrides for the CytoDLModel configuration
@@ -148,15 +222,18 @@ def generate_overrides_for_track_based_crops(
     tracked objects in dataset `dataset_name`.
     """
     if prediction_filename_suffix is None:
-        prediction_filename_suffix = f"{dataset_name}_{model_name}_tracked_crop_features"
+        save_suffix = f"{dataset_name}_{model_manifest_name}_{run_name}_tracked_crop_features"
+    else:
+        save_suffix = prediction_filename_suffix
 
     overrides = generate_overrides_for_model_eval(
         user_overrides,
         save_path=save_path,
         data_path=data_path,
-        ckpt_path=ckpt_path,
         dataset_name=dataset_name,
-        model_name=model_name,
+        model_manifest_name=model_manifest_name,
+        run_name=run_name,
+        num_gpus=num_gpus,
     )
 
     # additional overrides specific to track-based crops
@@ -173,7 +250,7 @@ def generate_overrides_for_track_based_crops(
                 "filename_or_obj",
                 "track_id",
             ],
-            "save_suffix": prediction_filename_suffix,
+            "save_suffix": save_suffix,
         },
         # add cropping transform
         "data.predict_dataloaders.dataset.transform.transforms[6]": {
@@ -427,9 +504,9 @@ def bbox_in_image_bounds(df: pd.DataFrame, resolution_level: int = 1) -> pd.Seri
 
 def update_prediction_from_crops_with_metadata(
     dataset_name: str,
-    model_name: str,
+    model_manifest_name: str,
+    run_name: str,
     crop_size: list[int],
-    mlflow_id: str,
     prediction_path: Path,
 ) -> None:
     """
@@ -439,8 +516,8 @@ def update_prediction_from_crops_with_metadata(
     # add model and dataset information to prediction file
     pred_df = pd.read_parquet(prediction_path)
     pred_df["dataset"] = dataset_name
-    pred_df["model_name"] = model_name
-    pred_df["mlflow_id"] = mlflow_id
+    pred_df["model_manifest_name"] = model_manifest_name
+    pred_df["run_name"] = run_name
 
     # note: the current model loads images at resolution
     # level 0 and downsamples in the transforms.
@@ -459,14 +536,14 @@ def update_prediction_from_crops_with_metadata(
 
 
 def update_prediction_from_tracks_with_metadata(
-    dataset_name: str, model_name: str, mlflow_id: str, prediction_path: Path
+    dataset_name: str, model_manifest_name: str, run_name: str, prediction_path: Path
 ) -> None:
     """Update the prediction file with metadata."""
     # add model and dataset information to prediction file
     pred_df = pd.read_parquet(prediction_path)
     pred_df["dataset"] = dataset_name
-    pred_df["model_name"] = model_name
-    pred_df["mlflow_id"] = mlflow_id
+    pred_df["model_manifest_name"] = model_manifest_name
+    pred_df["run_name"] = run_name
 
     # NOTE: the current model loads images at resolution level 0 and downsamples in the transforms.
     pred_df["resolution_level"] = 1
@@ -485,17 +562,17 @@ def update_prediction_from_tracks_with_metadata(
 
 
 def apply_model_on_grid_of_crops_from_one_dataset(
-    model_config: CytoDLModelConfig,
+    model: "CytoDLModel",
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
-    upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
     z_slice_offsets: tuple[int, int] | None = None,
     frame_start: int | None = None,
     frame_stop: int | None = None,
     frame_step: int | None = None,
     only_include_positions: list[int] | None = None,
-) -> None:
+    num_gpus: int | None = None,
+) -> Path:
     """
     Apply a DiffAE model to a single dataset.
 
@@ -508,14 +585,12 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
     Parameters
     ----------
-    model_config
-        Configuration of the model to apply.
+    model
+        Trained model to apply for prediction.
     dataset_config
         Configuration of the dataset to apply the model to.
     resolution_level
         Resolution level to at which to load images (zarr file format) at.
-    upload_to_fms
-        Whether to upload the prediction file to FMS. Default is True.
     user_overrides
         Optional user overrides to apply to the model config.
     z_slice_offsets
@@ -528,6 +603,8 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Step size for frame inclusion, if None, include every frame.
     only_include_positions
         List of position indices to include, if None, include all positions.
+    num_gpus
+        Number of GPUs to use for model prediction.
 
     Returns
     -------
@@ -537,40 +614,19 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         If ``upload_to_fms`` is True, uploads the prediction file to FMS and adds the file ID to the
         model config manifest.
     """
-
-    if not torch.cuda.is_available():
-        logger.error("CUDA is not available. Please run on a GPU machine.")
-        raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
-    elif torch.cuda.device_count() < 1:
-        logger.error(
-            "CUDA available, but no GPU devices found. "
-            "Please set `CUDA_VISIBLE_DEVICES` to a valid GPU device "
-            "or run workflow with GPU setup enabled (-g flag)."
-        )
-        raise RuntimeError("CUDA available, but no GPU devices found.")
-
-    # download model from mlflow
-    mlflow_id = model_config.mlflow_run_id
-    model_path = get_output_path("models", model_config.name, "train")
-    path_dict = download_model(mlflow_id, model_path)
-
-    # right now, need to use the tracked version of the config if using the
-    # "legacy" model "diffae_04_10" (temporary workaround until we are only using
-    # models trained with the new pipeline)
-    if model_config.name == "diffae_04_10":
-        path_dict["config_path"] = get_model_dir() / "diffae_04_10_eval.yaml"
-        logger.info(
-            "Loading legacy model config for diffae_04_10 from [ %s ]", path_dict["config_path"]
-        )
+    model_manifest_name = model.cfg.experiment_name
+    run_name = model.cfg.run_name
 
     # set default output path
-    save_path = get_output_path("models", model_config.name, dataset_config.name)
+    save_path = get_output_path("models", model_manifest_name, run_name, dataset_config.name)
 
-    # load model
-    model = CytoDLModel()
-    model.load_config_from_file(path_dict["config_path"])
+    logger.debug(
+        "Applying run [ %s ] from model manifest [ %s ] to dataset [ %s ]",
+        run_name,
+        model_manifest_name,
+        dataset_config.name,
+    )
 
-    logger.debug("Applying model [ %s ] to dataset [ %s ]", model_config.name, dataset_config.name)
     # get unique name for the parquet file
     file_name = "dataset"
     if z_slice_offsets is not None:
@@ -600,23 +656,26 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     # save the dataframe to a parquet file
     df.to_parquet(dataset_save_path, index=False)
 
-    # apply overrides
-    prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features"
+    # apply workflow-specific overrides
+    prediction_filename_suffix = f"{dataset_config.name}_{model_manifest_name}_{run_name}_features"
     overrides = generate_overrides_for_model_eval(
         load_overrides(user_overrides),
         save_path=save_path.as_posix(),
         data_path=dataset_save_path.as_posix(),
-        ckpt_path=path_dict["checkpoint_path"].as_posix(),
         dataset_name=dataset_config.name,
-        model_name=model_config.name,
+        model_manifest_name=model_manifest_name,
+        run_name=run_name,
         prediction_filename_suffix=prediction_filename_suffix,
+        num_gpus=num_gpus,
     )
     model.override_config(overrides)
-    local_config_save_path = get_output_path("models", "evaluation_configs")
-    model.save_config(local_config_save_path / f"{model_config.name}_eval.yaml")
+    local_config_save_path = get_output_path(
+        "models", "evaluation_configs", model_manifest_name, run_name, "grid_crops"
+    )
+    model.save_config(local_config_save_path / "eval.yaml")
     logger.info(
         "Evaluation config saved to [ %s ]",
-        local_config_save_path / f"{model_config.name}_eval.yaml",
+        local_config_save_path / "eval.yaml",
     )
     logger.debug("Starting model prediction...")
     model.predict()
@@ -625,70 +684,37 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     prediction_path = save_path / f"predict_{prediction_filename_suffix}.parquet"
     update_prediction_from_crops_with_metadata(
         dataset_name=dataset_config.name,
-        model_name=model_config.name,
+        model_manifest_name=model_manifest_name,
+        run_name=run_name,
         crop_size=crop_size,
-        mlflow_id=mlflow_id,
         prediction_path=prediction_path,
     )
+    logger.info("Model prediction dataframe saved to [ %s ]", prediction_path)
 
-    if upload_to_fms:
-        # build FMS annotations
-        dataset_annotations = build_fms_annotations(
-            dataset_config,
-            model=model_config,
-        )
-
-        # upload prediction file to FMS and get file ID
-        file_id = upload_file_to_fms(
-            prediction_path,
-            annotations=dataset_annotations,
-            file_type="parquet",
-        )
-
-        # Store FMS ID in dataframe manifest
-        manifest_name = model_config.name
-        workflow_name = "apply_diffae_grid"
-
-        if z_slice_offsets is not None:
-            manifest_name = f"{manifest_name}_z_stack_{z_slice_offsets[0]}_{z_slice_offsets[1]}"
-            parameters = {"z_slice_offsets": z_slice_offsets}
-        else:
-            parameters = {}
-
-        try:
-            manifest = load_dataframe_manifest(manifest_name)
-        except FileNotFoundError:
-            manifest = DataframeManifest(
-                name=manifest_name, workflow=workflow_name, parameters=parameters
-            )
-
-        manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
-        save_dataframe_manifest(manifest)
+    return prediction_path
 
 
 def apply_model_on_tracked_crops_from_one_dataset(
-    model_config: CytoDLModelConfig,
+    model: "CytoDLModel",
     dataset_config: DatasetConfig,
     save_path: str | Path | None = None,
-    upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
     z_slice_offsets: tuple[int, int] | None = None,
     only_include_positions: list[int] | None = None,
-) -> None:
+    num_gpus: int | None = None,
+) -> Path:
     """
     Apply a DiffAE model to a single dataset with
     cell segmentation and tracking.
 
     Parameters
     ----------
-    model_config
-        Configuration of the model to apply.
+    model
+        Trained model.
     dataset_config
         Configuration of the dataset to apply the model to.
     resolution_level
         Resolution level to apply the model at.
-    upload_to_fms
-        Upload the prediction file to FMS if True, else only save locally.
     save_path
         Path to save the prediction file
     user_overrides
@@ -697,35 +723,22 @@ def apply_model_on_tracked_crops_from_one_dataset(
         Lower and upper bounds for z-slicing.
     only_include_positions
         List of position indices to include, if None, include all positions.
+    num_gpus
+        Number of GPUs to use for model prediction.
     """
-    if not torch.cuda.is_available():
-        raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
-    overrides = load_overrides(user_overrides)
-    # download model from mlflow
-    mlflow_id = model_config.mlflow_run_id
-    model_path = get_output_path("models", model_config.name, include_timestamp=False)
-    path_dict = download_model(mlflow_id, model_path)
 
-    # right now, need to use the tracked version of the config if using the
-    # "legacy" model "diffae_04_10" (temporary workaround until we are only using
-    # models trained with the new pipeline)
-    if model_config.name == "diffae_04_10":
-        path_dict["config_path"] = get_model_dir() / "diffae_04_10_eval.yaml"
-        logger.info(
-            "Loading legacy model config for diffae_04_10 from [ %s ]", path_dict["config_path"]
-        )
+    model_manifest_name = model.cfg.experiment_name
+    run_name = model.cfg.run_name
+
+    overrides = load_overrides(user_overrides)
 
     if save_path is None:
         # if no save path is provided, use the default path
         save_path = get_output_path(
-            "models", model_config.name, dataset_config.name, include_timestamp=False
+            "models", model_manifest_name, run_name, dataset_config.name, include_timestamp=False
         )
     elif isinstance(save_path, str):
         save_path = Path(save_path)
-
-    # load model
-    model = CytoDLModel()
-    model.load_config_from_file(path_dict["config_path"])
 
     # parse dataset annotations to get z-slice information,
     # positions to include, and frames to exclude
@@ -741,51 +754,96 @@ def apply_model_on_tracked_crops_from_one_dataset(
     )
 
     # use timestamp to get unique file name for FMS upload later
-    prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_tracked_crop_features"
+    prediction_filename_suffix = f"{dataset_config.name}_{model_manifest_name}_{run_name}"
+    prediction_filename_suffix = f"{prediction_filename_suffix}_tracked_crop_features"
+
     # apply overrides
     overrides = generate_overrides_for_track_based_crops(
         overrides,
         save_path=save_path.as_posix(),
         data_path=data_path.as_posix(),
-        ckpt_path=path_dict["checkpoint_path"].as_posix(),
         dataset_name=dataset_config.name,
-        model_name=model_config.name,
+        model_manifest_name=model_manifest_name,
+        run_name=run_name,
         prediction_filename_suffix=prediction_filename_suffix,
+        num_gpus=num_gpus,
     )
     model.override_config(overrides)
+    local_config_save_path = get_output_path(
+        "models", "evaluation_configs", model_manifest_name, run_name, "tracked_crops"
+    )
+    model.save_config(local_config_save_path / "eval.yaml")
+    logger.info(
+        "Evaluation config saved to [ %s ]",
+        local_config_save_path / "eval.yaml",
+    )
     model.predict()
 
     prediction_path = save_path / f"predict_{prediction_filename_suffix}.parquet"
     update_prediction_from_tracks_with_metadata(
         dataset_name=dataset_config.name,
-        model_name=model_config.name,
-        mlflow_id=mlflow_id,
+        model_manifest_name=model_manifest_name,
+        run_name=run_name,
         prediction_path=prediction_path,
     )
 
-    if upload_to_fms:
-        # build FMS annotations
-        dataset_annotations = build_fms_annotations(
-            dataset_config,
-            model=model_config,
+    logger.info("Model prediction dataframe saved to [ %s ]", prediction_path)
+    return prediction_path
+
+
+def upload_prediction_dataframe_to_fms(
+    prediction_path: Path,
+    dataset_config: DatasetConfig,
+    model_manifest: ModelManifest,
+    run_name: str,
+    dataframe_manifest_name: str,
+    workflow_name: str,
+    workflow_parameters: dict[str, Any] | None = None,
+) -> None:
+    """Upload the prediction dataframe to FMS and update the dataframe manifest."""
+    # build FMS annotations
+    dataset_annotations = build_fms_annotations(
+        dataset_config,
+        model_manifest=model_manifest,
+        run_name=run_name,
+    )
+
+    # upload prediction file to FMS and get file ID
+    file_id = upload_file_to_fms(
+        prediction_path,
+        annotations=dataset_annotations,
+        file_type="parquet",
+    )
+
+    try:
+        # Temporarily set dataframe manifest I/O logger to CRITICAL
+        # to suppress error logging if manifest does not exist.
+        # We want it to be a warning here instead (see except block below).
+        dataframe_manifest_io_logger = logging.getLogger(
+            "endo_pipeline.manifests.dataframe_manifest_io"
         )
+        original_level = dataframe_manifest_io_logger.level
+        dataframe_manifest_io_logger.setLevel(logging.CRITICAL)
 
-        # upload prediction file to FMS and get file ID
-        file_id = upload_file_to_fms(
-            prediction_path,
-            annotations=dataset_annotations,
-            file_type="parquet",
+        # Attempt to load existing dataframe manifest
+        manifest = load_dataframe_manifest(dataframe_manifest_name)
+    except FileNotFoundError:
+        logger.warning(
+            "Dataframe manifest [ %s ] not found, creating a new one.",
+            dataframe_manifest_name,
         )
+        parameters = {} if workflow_parameters is None else workflow_parameters
+        manifest = DataframeManifest(
+            name=dataframe_manifest_name, workflow=workflow_name, parameters=parameters
+        )
+    finally:
+        # restore original logging level of dataframe manifest I/O logger
+        dataframe_manifest_io_logger.setLevel(original_level)
 
-        # Store FMS ID in dataframe manifest
-
-        manifest_name = "diffae_tracking_integration"
-        workflow_name = "apply_diffae_model_on_tracked_crops"
-
-        try:
-            manifest = load_dataframe_manifest(manifest_name)
-        except FileNotFoundError:
-            manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
-
-        manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
-        save_dataframe_manifest(manifest)
+    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
+    save_dataframe_manifest(manifest)
+    logger.info(
+        "Updated dataframe manifest [ %s ] with location for dataset [ %s ]",
+        dataframe_manifest_name,
+        dataset_config.name,
+    )

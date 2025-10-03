@@ -4,18 +4,39 @@ TAGS = ["diffae_model_finetuning"]
 
 
 def main(
-    model_name: str = "diffae_04_10",
+    base_model_manifest_name: str = "diffae_04_10",
+    base_run_name: str | None = None,
+    finetuned_model_manifest_name: str | None = None,
+    finetuned_run_name: str | None = None,
     dataset_pair_type: Literal["live_fixed", "20x_40x"] = "live_fixed",
     resolution_level: int = 1,
 ) -> None:
     """
     Finetune a DiffAE model to align features for paired datasets.
 
+    **Training run naming**
+
+    If a finetuned model manifest name is not given, it will be automatically constructed based
+    on the dataset pair type and the resolution level of the zarr files. The format is
+    ``finetune_{dataset_pair_type}_resolution_{resolution_level}``.
+
+    The training runs instantiated from the this workflow will be saved in the
+    corresponding model manifest, with run name either provided by the user or automatically
+    generated to be unique ( ``run_name = f"diffae_{timestamp}"`` ).
+
+    If the user provides a run name that already exists in the manifest, a unique name will be
+    generated and a warning will be logged.
+
     Parameters
     ----------
-    model_name
-        The name of the model to use for finetuning (should correspond to a
-        config in :code:`results/models/`).
+    base_model_manifest_name
+        Name of the model manifest to load the baseline model from.
+    base_run_name
+        Name of the baseline model run to apply. If None, uses the most recent run.
+    finetuned_model_manifest_name
+        Optional, name of the model manifest to save the finetuned model to.
+    finetuned_run_name
+        Optional, name to give the finetuned model run.
     dataset_pair_type
         The type of dataset pairs to use for finetuning ("live_fixed" or "20x_40x").
     resolution_level
@@ -28,22 +49,29 @@ def main(
         MLflow run ID and the list of datasets used for training.
     """
     import logging
-    from typing import cast
+    from pathlib import Path
 
-    from omegaconf import OmegaConf
-
-    from endo_pipeline import DEMO_MODE
-    from endo_pipeline.configs import CytoDLModelConfig, load_model_config, save_model_config
-    from endo_pipeline.io import get_output_path, make_name_unique
+    from endo_pipeline import DEMO_MODE, NUM_GPUS
+    from endo_pipeline.io import (
+        get_output_path,
+        load_model,
+        load_model_config_from_path,
+        make_name_unique,
+        resolve_dataframe_location,
+    )
     from endo_pipeline.library.model import (
-        download_mlflow_artifact,
-        get_ckpt_path,
         get_dataset_names_used_for_training,
-        get_model_dir,
-        get_valid_dataframe_path_for_training,
         initialize_diffae_model_for_finetuning,
     )
-    from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.manifests import (
+        ModelLocation,
+        ModelManifest,
+        get_model_location_for_run,
+        load_dataframe_manifest,
+        load_model_manifest,
+        save_model_manifest,
+    )
+    from endo_pipeline.settings import RELATIVE_PATH_TO_FINETUNE_CONFIG
 
     logger = logging.getLogger(__name__)
 
@@ -63,19 +91,34 @@ def main(
         cache_rate = 1.0  # This can be changed!
         replace_rate = 0.5
 
+    # double-check zarr resolution from baseline model manifest parameters
+    base_model_manifest = load_model_manifest(base_model_manifest_name)
+    if "resolution_level" in base_model_manifest.parameters:
+        baseline_resolution = base_model_manifest.parameters["resolution_level"]
+        if baseline_resolution != resolution_level:
+            logger.warning(
+                "Baseline model [ %s ] was trained at resolution level [ %s ], "
+                "but finetuning is being run at resolution level [ %s ]. "
+                "This may lead to suboptimal results.",
+                base_model_manifest_name,
+                baseline_resolution,
+                resolution_level,
+            )
+
     # get training and validation datasets based on zarr resolution
     # by loading the DataframeManifest from the model directory
     # and using the DatasetLocation objects to get the paths
-    manifest_name = f"diffae_finetuning_dataframe_resolution_{resolution_level}{name_suffix}"
+    dataframe_manifest_base = "diffae_finetuning_dataframe_resolution_"
+    dataframe_manifest_name = f"{dataframe_manifest_base}{resolution_level}{name_suffix}"
 
     try:
-        dataframe_manifest = load_dataframe_manifest(manifest_name)
+        dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     except FileNotFoundError:
         logger.error(
             "Dataframe manifest [ %s ] for resolution_level [ %s ] not found. "
             "Please run the create_diffae_finetuning_dataframe script first "
             "with the appropriate resolution_level.",
-            manifest_name,
+            dataframe_manifest_name,
             resolution_level,
         )
         raise
@@ -86,43 +129,63 @@ def main(
     # get paths from the DataframeLocation objects
     # to pass into the DiffAE model training script
     # (need for training config setup and CytoDL dataloaders)
-    train_dataframe_path = get_valid_dataframe_path_for_training(train_dataframe_location)
-    val_dataframe_path = get_valid_dataframe_path_for_training(val_dataframe_location)
-
-    model_save_path = get_output_path(
-        "finetune_paired_dataset",
-        f"finetune_{model_name}_on_{dataset_pair_type}",
-    )
-
-    # download model to finetune
-    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
-    finetune_run_id = model_config.mlflow_run_id
-    diffae_ckpt_path = get_ckpt_path(run_id=finetune_run_id)
-    download_mlflow_artifact(finetune_run_id, diffae_ckpt_path, model_save_path)
+    train_dataframe_path = resolve_dataframe_location(train_dataframe_location)
+    val_dataframe_path = resolve_dataframe_location(val_dataframe_location)
 
     # get template config
-    template_finetune_config = OmegaConf.load(get_model_dir() / "diffae_finetune.yaml")
+    template_finetune_config = load_model_config_from_path(RELATIVE_PATH_TO_FINETUNE_CONFIG)
 
-    # initialize model for finetuning
-    finetuned_model_name = f"{model_name}_finetuned_for_{dataset_pair_type}"
-    # get unique model name to avoid overwriting existing configs
-    finetuned_model_name_unique = make_name_unique(finetuned_model_name).as_posix()
+    # initialize baseline model for finetuning
+    base_model_manifest = load_model_manifest(base_model_manifest_name)
+    base_run_name = (
+        list(base_model_manifest.locations.keys())[-1] if base_run_name is None else base_run_name
+    )
+    base_model_location = get_model_location_for_run(base_model_manifest, base_run_name)
+    base_model = load_model(base_model_location)
+
+    # set up manifest and run names for finetuned model
+    if finetuned_model_manifest_name is None:
+        finetuned_model_manifest_name = (
+            f"finetune_{dataset_pair_type}_resolution_" f"{resolution_level}{name_suffix}"
+        )
+    if finetuned_run_name is None:
+        # Default is "finetuned_diffae_{timestamp}"
+        finetuned_run_name = make_name_unique("finetuned_diffae").name
+    else:
+        # If run name provided, make sure it's unique within the manifest
+        if finetuned_run_name in load_model_manifest(finetuned_model_manifest_name).locations:
+            # If it's not unique, make it so and log a warning
+            finetuned_run_name = make_name_unique(finetuned_run_name).name
+            logger.warning(
+                "Provided run name already exists in manifest, changed current run name to [ %s ]",
+                finetuned_run_name,
+            )
+    logger.info("Finetuned model manifest name: [ %s ]", finetuned_model_manifest_name)
+    logger.info("Finetuned run name: [ %s ]", finetuned_run_name)
+
     model = initialize_diffae_model_for_finetuning(
+        base_model=base_model,
         template_finetune_config=template_finetune_config,
-        finetuned_model_name=finetuned_model_name_unique,
+        finetuned_model_manifest_name=finetuned_model_manifest_name,
+        finetuned_run_name=finetuned_run_name,
         train_dataframe_path=train_dataframe_path,
         val_dataframe_path=val_dataframe_path,
-        model_save_path=model_save_path,
-        diffae_ckpt_path=diffae_ckpt_path,
         max_num_epochs=max_num_epochs,
         log_every_n_steps=log_every_n_steps,
         cache_rate=cache_rate,
         replace_rate=replace_rate,
+        num_gpus=NUM_GPUS,
     )
     # save the input model config locally instead of printing
-    local_config_save_path = get_output_path("models", "training_configs")
-    model_config_save_path = local_config_save_path / f"{finetuned_model_name_unique}_train.yaml"
+    local_config_save_path = get_output_path(
+        "models", "training_configs", finetuned_model_manifest_name, finetuned_run_name
+    )
+    model_config_save_path = local_config_save_path / "train.yaml"
     model.save_config(model_config_save_path)
+    logger.info(
+        "Training config saved to [ %s ]",
+        local_config_save_path / "train.yaml",
+    )
     # call train method to start finetuning
     _, object_dict = model.train()
 
@@ -134,14 +197,27 @@ def main(
     list_of_training_datasets = get_dataset_names_used_for_training(
         train_dataframe_location, val_dataframe_location, f"{dataset_pair_type}_paired_datasets"
     )
-    # add run ID and training datasets to model config
-    model_config = CytoDLModelConfig(
-        name=f"{finetuned_model_name_unique}{name_suffix}",
-        mlflow_run_id=run_id,
-        training_datasets=list_of_training_datasets,
-    )
-    # save the model config
-    save_model_config(model_config)
+
+    # Create a new model manifest with workflow parameters, if a matching
+    # manifest does not already exist. Add the model training run to the list
+    # of manifest locations.
+    try:
+        manifest = load_model_manifest(finetuned_model_manifest_name)
+    except FileNotFoundError:
+        logger.info(
+            "Model manifest [ %s ] not found, creating a new one.",
+            finetuned_model_manifest_name,
+        )
+        parameters = {
+            "training_datasets": list_of_training_datasets,
+            "resolution_level": resolution_level,
+        }
+        manifest = ModelManifest(
+            name=finetuned_model_manifest_name, parameters=parameters, workflow=Path(__file__).stem
+        )
+
+    manifest.locations[finetuned_run_name] = ModelLocation(mlflowid=run_id)
+    save_model_manifest(manifest)
 
 
 if __name__ == "__main__":

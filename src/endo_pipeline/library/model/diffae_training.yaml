@@ -1,8 +1,6 @@
-experiment_name: endo_diffae
-run_name: diffae_patch_${model.image_shape[1]}x${model.image_shape[2]}
+experiment_name: null
+run_name: null
 task_name: train
-tags:
-- dev
 train: true
 test: true
 checkpoint:

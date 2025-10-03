@@ -4,10 +4,12 @@ TAGS = ["apply_diffae_model", "diffae_features"]
 
 
 def main(
-    model_name: str = "diffae_04_10",
+    model_manifest_name: str = "diffae_04_10",
+    run_name: str | None = None,
     datasets: Datasets | None = None,
     resolution_level: int = 1,
     upload_to_fms: bool = True,
+    eval_config_path: str | None = None,
     user_overrides: str | dict | None = None,
 ) -> None:
     """
@@ -21,6 +23,14 @@ def main(
     If demo mode is enabled, the model will only be evaluated on the first few
     timepoints of the first position of the first dataset.
 
+    **Eval config override**
+
+    If ``eval_config_path`` is provided, the model config loaded from the model manifest
+    will be overridden with the config from the specified path. If it is not provided,
+    then the default DiffAE eval template config is used to override the loaded model config.
+    The reason for doing this override is that the training config by default does not
+    contain settings for the ``predict_dataloaders`` used during inference.
+
     **Example usage**
 
     .. code-block:: bash
@@ -29,8 +39,10 @@ def main(
 
     Parameters
     ----------
-    model_name
-        Name of the model to apply.
+    model_manifest_name
+        Name of the model manifest to load the model from.
+    run_name
+        Name of the model run to apply. If None, uses the most recent run.
     datasets
         List of datasets or dataset collections to load images from. If not
         provided, workflow runs on the ``live_20X_objective_3i_microscope``
@@ -39,29 +51,30 @@ def main(
         Resolution level to at which to load images (zarr file format) at.
     upload_to_fms
         True to upload the prediction file for each dataset to FMS, False to only save locally.
+    eval_config_path
+        Optional, path to the model eval config to use to override the loaded model config.
     user_overrides
         Optional user overrides to apply to the model config.
 
     Returns
     -------
     :
-        Saves the model config with the applied model and model manifest objects.
-        The model config is saved to [ endo_pipeline/configs/models/{model_name}.yaml ].
+        Saves and/or updates a DataframeManifest with the prediction file for each dataset.
     """
-
     import logging
-    from typing import cast
+    from pathlib import Path
 
-    from endo_pipeline import DEMO_MODE
-    from endo_pipeline.configs import (
-        CytoDLModelConfig,
-        get_datasets_in_collection,
-        load_dataset_config,
-        load_model_config,
+    from endo_pipeline import DEMO_MODE, NUM_GPUS
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.io import load_model_config_from_path
+    from endo_pipeline.library.model import (
+        apply_model_on_grid_of_crops_from_one_dataset,
+        load_model_for_inference,
+        upload_prediction_dataframe_to_fms,
     )
-    from endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
     from endo_pipeline.library.model.image_loading import get_include_positions
-    from endo_pipeline.settings import Z_SLICE_OFFSETS
+    from endo_pipeline.manifests import load_model_manifest
+    from endo_pipeline.settings import RELATIVE_PATH_TO_EVAL_CONFIG, Z_SLICE_OFFSETS
 
     logger = logging.getLogger(__name__)
 
@@ -71,15 +84,21 @@ def main(
 
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in datasets]
 
-    # load model config
-    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
+    # load model manifest
+    model_manifest = load_model_manifest(model_manifest_name)
+
+    # use input path to an eval config if provided, else use path to diffae_eval.yaml
+    path_to_eval_config = eval_config_path if eval_config_path else RELATIVE_PATH_TO_EVAL_CONFIG
+    # load eval config as an OmegaConf object
+    eval_config = load_model_config_from_path(path_to_eval_config)
+
+    # load model run_name from model manifest, override with eval config,
+    # and make sure that "model_manifest_name" and "run_name" are stored in the config
+    # as "experiment_name" and "run_name" for logging purposes
+    model = load_model_for_inference(model_manifest, run_name, eval_config)
 
     # apply model to each dataset
-    # is there a better way to do this? i.e., load model once
-    # and then just loop through datasets...
-    # out of scope for this PR but worth doing in a separate PR
     for dataset_config in dataset_config_list:
-
         # Get positions to include.
         only_include_positions = get_include_positions(dataset_config)
 
@@ -101,17 +120,30 @@ def main(
             frame_start = None
             frame_stop = None
 
-        apply_model_on_grid_of_crops_from_one_dataset(
-            model_config=model_config,
+        prediction_path = apply_model_on_grid_of_crops_from_one_dataset(
+            model=model,
             dataset_config=dataset_config,
             resolution_level=resolution_level,
-            upload_to_fms=upload_to_fms,
             user_overrides=user_overrides,
             z_slice_offsets=Z_SLICE_OFFSETS,
             frame_start=frame_start,
             frame_stop=frame_stop,
             only_include_positions=only_include_positions,
+            num_gpus=NUM_GPUS,
         )
+
+        if upload_to_fms:
+            # upload prediction file to FMS
+            # Store FMS ID in dataframe manifest.
+            upload_prediction_dataframe_to_fms(
+                prediction_path,
+                dataset_config,
+                model_manifest,
+                model.cfg.run_name,
+                dataframe_manifest_name=f"{model_manifest_name}_{model.cfg.run_name}_grid",
+                workflow_name=Path(__file__).stem,
+                workflow_parameters={"z_slice_offsets": Z_SLICE_OFFSETS},
+            )
 
         if DEMO_MODE:
             # only apply model to the first dataset in demo mode

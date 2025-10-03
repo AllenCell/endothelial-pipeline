@@ -6,13 +6,8 @@ from typing import Literal
 
 from tqdm import tqdm
 
-from endo_pipeline.configs import (
-    get_datasets_in_collection,
-    load_all_dataset_configs,
-    load_dataset_config,
-    load_model_config,
-)
-from endo_pipeline.configs.model_config_utils import get_labelfree_nuclei_prediction_model_name
+from endo_pipeline.cli import Datasets
+from endo_pipeline.configs import load_all_dataset_configs, load_dataset_config
 from endo_pipeline.io import (
     build_fms_annotations,
     configure_logging,
@@ -23,6 +18,7 @@ from endo_pipeline.manifests import (
     DataframeLocation,
     DataframeManifest,
     load_dataframe_manifest,
+    load_model_manifest,
     save_dataframe_manifest,
 )
 
@@ -38,15 +34,20 @@ out_dir = get_output_path(__file__, include_timestamp=False)
 configure_logging(out_dir, logger, verbose=True)
 
 
+def get_model_annotations_for_upload() -> dict:
+    model_name = "nuc_pred_labelfree"
+    run_name = "finetuned_20250419"
+    return {"model_manifest": load_model_manifest(model_name), "run_name": run_name}
+
+
 def fms_upload_cdh5_classic_seg_tracking(dataset_name: str, path_to_file: Path) -> str:
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
     # info along with the FMS upload here.
-    model_name = get_labelfree_nuclei_prediction_model_name()
     dataset_config = load_dataset_config(dataset_name)
-    model = load_model_config(model_name)
-    annotations = build_fms_annotations(dataset_config, model=model)
+    model_annotations = get_model_annotations_for_upload()
+    annotations = build_fms_annotations(dataset_config, **model_annotations)
 
     # Upload the file to FMS
     file_id = upload_file_to_fms(
@@ -77,10 +78,9 @@ def fms_upload_cdh5_get_measured_features(dataset_name: str, path_to_file: Path)
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
     # info along with the FMS upload here.
-    model_name = get_labelfree_nuclei_prediction_model_name()
     dataset_config = load_dataset_config(dataset_name)
-    model = load_model_config(model_name)
-    annotations = build_fms_annotations(dataset_config, model=model)
+    model_annotations = get_model_annotations_for_upload()
+    annotations = build_fms_annotations(dataset_config, **model_annotations)
 
     # Upload the file to FMS
     file_id = upload_file_to_fms(
@@ -111,10 +111,9 @@ def fms_upload_nuc_get_measured_features(dataset_name: str, path_to_file: Path) 
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
     # info along with the FMS upload here.
-    model_name = get_labelfree_nuclei_prediction_model_name()
     dataset_config = load_dataset_config(dataset_name)
-    model = load_model_config(model_name)
-    annotations = build_fms_annotations(dataset_config, model=model)
+    model_annotations = get_model_annotations_for_upload()
+    annotations = build_fms_annotations(dataset_config, **model_annotations)
 
     # Upload the file to FMS
     file_id = upload_file_to_fms(
@@ -145,10 +144,9 @@ def fms_upload_make_seg_feats_manifest(dataset_name: str, path_to_file: Path) ->
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
     # info along with the FMS upload here.
-    model_name = get_labelfree_nuclei_prediction_model_name()
     dataset_config = load_dataset_config(dataset_name)
-    model = load_model_config(model_name)
-    annotations = build_fms_annotations(dataset_config, model=model)
+    model_annotations = get_model_annotations_for_upload()
+    annotations = build_fms_annotations(dataset_config, **model_annotations)
 
     # Upload the file to FMS
     file_id = upload_file_to_fms(
@@ -181,7 +179,7 @@ def main(
         "nuclei_labelfree",
         "merged_live_data_manifests",
     ],
-    datasets: str | None = None,
+    datasets: Datasets,
 ) -> None:
     """
     This is a convenience function to upload multiple datasets to FMS
@@ -206,13 +204,7 @@ def main(
         "nuclei_labelfree": fms_upload_nuc_get_measured_features,
         "merged_live_data_manifests": fms_upload_make_seg_feats_manifest,
     }
-    if datasets is None:
-        # Get the list of all analyzed datasets
-        dataset_name_list = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
-    else:
-        dataset_name_list = datasets.split(",")
-        print(f"Uploading {dataset_name_list}")
-        pass
+    print(f"Uploading {datasets}")
 
     all_available_datasets = load_all_dataset_configs()
     available_live_datasets = []
@@ -236,7 +228,7 @@ def main(
         },
     }
 
-    for dataset_name in tqdm(dataset_name_list):
+    for dataset_name in tqdm(datasets):
         if dataset_name not in available_live_datasets:
             error_msg = (
                 f"Dataset {dataset_name} is not in the list of available live datasets: "

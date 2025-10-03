@@ -10,9 +10,10 @@ import numpy as np
 from git import Repo
 from matplotlib.figure import Figure
 
-from endo_pipeline.configs import DatasetConfig, ModelConfig
+from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
-from endo_pipeline.settings.figures import DPI, FONT_FAMILY, FONTSIZE, PDF_FONTTYPE
+from endo_pipeline.manifests import ModelManifest
+from endo_pipeline.settings.figures import DPI, FONT_FAMILY, PDF_FONTTYPE
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +127,8 @@ def build_fms_annotations(
     dataset: DatasetConfig | list[DatasetConfig],
     include_timestamp: bool = True,
     include_git_info: bool = True,
-    model: ModelConfig | None = None,
+    model_manifest: ModelManifest | None = None,
+    run_name: str | None = None,
     additional_notes: str = "",
 ) -> dict[str, list]:
     """
@@ -136,7 +138,7 @@ def build_fms_annotations(
 
     - Program = "Endothelial"
     - Produced By = "python code"
-    - mlflow run id = MLFlow run id from model config object, if provided
+    - mlflow run id = MLFlow run id from model manifest object, if provided
     - Notes = additional notes
 
     For a single dataset, the "Notes" annotation is formatted as:
@@ -147,7 +149,7 @@ def build_fms_annotations(
         Timestamp: YYYY-MM-DD HH:mm:ss (if `include_timestamp` is selected)
         Branch: <current branch name> (if `include_git_info` is selected)
         Commit: <latest commit hash> (if `include_git_info` is selected)
-        Model: <model name> (if model is given)
+        Model: <model name> (<run name>) (if model is given)
 
         (any additional notes appended here)
 
@@ -162,7 +164,7 @@ def build_fms_annotations(
         Timestamp: YYYY-MM-DD HH:mm:ss (if `include_timestamp` is selected)
         Branch: <current branch name> (if `include_git_info` is selected)
         Commit: <latest commit hash> (if `include_git_info` is selected)
-        Model: <model name> (if model is given)
+        Model: <model name> (<run name>) (if model is given)
 
         (any additional notes appended here)
 
@@ -175,8 +177,10 @@ def build_fms_annotations(
     include_git_info
         True to add branch name and commit hash of code used to generate the
         file to the annotations, False otherwise.
-    model
-        The model config used to generate the file, if applicable.
+    model_manifest
+        The model manifest, if applicable.
+    run_name
+        The run name within the model manifest, if applicable.
     additional_notes
         Additional relevant notes to append to notes annotation.
     """
@@ -204,10 +208,14 @@ def build_fms_annotations(
         notes.append(f"Branch: {repo.active_branch.name}")
         notes.append(f"Commit: {repo.commit().hexsha}")
 
-    if model is not None:
-        if hasattr(model, "mlflow_run_id"):
-            metadata_builder.add_annotation("mlflow run id", model.mlflow_run_id)
-        notes.append(f"Model: {model.name}")
+    if model_manifest is not None:
+        model_run = f" ({run_name})" if run_name is not None else ""
+        notes.append(f"Model: {model_manifest.name}{model_run}")
+
+        # Add mlflow run id annotation, if found
+        model_location = model_manifest.locations.get(run_name, None)
+        if model_location is not None and model_location.mlflowid is not None:
+            metadata_builder.add_annotation("mlflow run id", model_location.mlflowid)
 
     notes.append(f"\n{additional_notes}")
 
