@@ -769,6 +769,7 @@ def plot_normalized_profiles(
     mode: Literal["by_position", "by_dataset"] = "by_position",
     lower_offset: int = LOWER_Z_SLICE_OFFSET,
     upper_offset: int = UPPER_Z_SLICE_OFFSET,
+    n_positions: int = 6,
 ) -> None:
     """
     Plot normalized BF std and CDH5 hist profiles.
@@ -787,6 +788,8 @@ def plot_normalized_profiles(
         Z-slice offset below the center slice.
     upper_offset
         Z-slice offset above the center slice.
+    n_positions
+        Number of positions to visualize
     """
 
     colormap = colormaps["tab20"]
@@ -798,7 +801,7 @@ def plot_normalized_profiles(
 
     if mode == "by_position":
         for timepoint in timepoints:
-            for position in range(6):
+            for position in n_positions:
                 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
                 for i, dataset in enumerate(datasets):
@@ -853,7 +856,7 @@ def plot_normalized_profiles(
 
                 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
-                for position in dataset_config.zarr_positions:
+                for position in n_positions:
                     if dataset_config.center_z_plane is None:
                         logger.warning(
                             "Center z-plane information is missing for dataset [ %s ], skipping",
