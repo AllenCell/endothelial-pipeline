@@ -35,6 +35,7 @@ configure_logging(out_dir, logger, verbose=True)
 
 
 def get_model_annotations_for_upload() -> dict:
+    """Return dictionary of label-free nuclei Cellpose model info for FMS upload annotations."""
     model_name = "nuc_pred_labelfree"
     run_name = "finetuned_20250419"
     return {"model_manifest": load_model_manifest(model_name), "run_name": run_name}
@@ -186,7 +187,7 @@ def main(
     datasets: Datasets,
 ) -> None:
     """
-    Convenience function to upload multiple datasets to FMS from the endothelial project folder.
+    Upload specified feature table to FMS from the endothelial project folder for multiple datasets.
 
     NOTE Intended only for internal use.
     """

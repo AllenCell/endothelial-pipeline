@@ -24,6 +24,8 @@ def main(
     datasets
         List of datasets or dataset collections to load images from. If not
         provided, workflow runs on the ``pca_reference`` dataset.
+    model_name
+        The name of the DiffAE model to use for generating the feature vectors.
     pc_axis
         The principal component axis to use for filtering the images (0 for PC1, 1 for PC2, etc.)
     pc_val

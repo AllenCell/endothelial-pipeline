@@ -177,7 +177,10 @@ def get_nuclei_features_from_image(
 
 
 def get_nuclei_features_from_dataset_at_timepoint(
-    dataset_name: str, position: int, tp: int, channel_names: tuple = ["EGFP", "BF"]
+    dataset_name: str,
+    position: int,
+    tp: int,
+    channel_names: tuple = ("EGFP", "BF"),
 ) -> pd.DataFrame:
     """Load label-free nuclei prediction images and measure features for a given dataset, position,
     and timepoint.
@@ -195,7 +198,12 @@ def get_nuclei_features_from_dataset_at_timepoint(
 
     dataset_config = load_dataset_config(dataset_name)
     img_path = get_zarr_file_for_position(dataset_config, position)
-    raw_img = load_zarr_as_dask_array(path=img_path, channels=channel_names, timepoints=tp, level=0)
+    raw_img = load_zarr_as_dask_array(
+        path=img_path,
+        channels=channel_names,  # type:ignore[arg-type]
+        timepoints=tp,
+        level=0,
+    )
     raw_mip = raw_img.max(axis=dim_order.index("Z"), keepdims=True).compute()
 
     # split up the image into a list of channels
@@ -209,7 +217,7 @@ def get_nuclei_features_from_dataset_at_timepoint(
         cdh5_seg=cdh5_seg,
         nuc_seg=nuc_seg,
         fluorescence_images=channel_arrs,  # type:ignore[arg-type]
-        fluor_img_names=channel_names,
+        fluor_img_names=channel_names,  # type:ignore[arg-type]
         seg_dim_order="YX",
     )
 

@@ -19,9 +19,8 @@ from endo_pipeline.settings import DIMENSION_ORDER
 
 
 def generate_results_multiproc_wrapper(args: dict) -> None:
-    """
-    A wrapper function to allow multiprocessing of generate_results.
-    Produces cdh5 segmentations for a given dataset, position, and timepoint.
+    """Produce cdh5 segmentations for a given dataset, position, and timepoint using
+    multiprocessing.
     """
     dataset_name = args["dataset_name"]
     position = args["position"]
