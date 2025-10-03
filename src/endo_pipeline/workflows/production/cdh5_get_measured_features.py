@@ -36,7 +36,7 @@ def build_measured_features_tables_multiproc_wrapper(args: dict) -> None:
     out_dir = args["output_dir"]
     verbose = args["verbose"]
     use_sldy_data = args["use_sldy_data"]
-    create_validation_image = args["validation_image"]
+    create_validation_image = args["is_validation_image"]
     build_measured_features_tables(
         dataset_name,
         T,

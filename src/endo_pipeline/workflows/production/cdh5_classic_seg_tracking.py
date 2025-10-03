@@ -33,7 +33,7 @@ def run_workflow(queue: Sequence) -> None:
     T_to_eval = queue_df["T"].tolist()
     position = sequence_to_scalar(queue_df["position"])
     image_validation_frequency = sequence_to_scalar(queue_df["image_validation_frequency"])
-    validation_image = sequence_to_scalar(queue_df["validation_image"])
+    validation_image = sequence_to_scalar(queue_df["is_validation_image"])
     verbose = sequence_to_scalar(queue_df["verbose"])
     out_dir = sequence_to_scalar(queue_df["output_dir"]) / f"{dataset_name}/P{position}"
     out_filename_prefix = f"{dataset_name}_P{position}"

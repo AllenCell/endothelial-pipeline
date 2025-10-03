@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 def generate_results(args: dict) -> None:
 
     dataset_name = args["dataset_name"]
-    create_validation = args["validation_image"]
+    create_validation = args["is_validation_image"]
     img_path = args["input_path"]
     out_dir = Path(args["output_dir"]) / dataset_name / f'P{args["position"]}'
     out_dir.mkdir(exist_ok=True, parents=True)

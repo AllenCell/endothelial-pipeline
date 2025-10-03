@@ -29,7 +29,7 @@ def generate_results_multiproc_wrapper(args: dict) -> None:
     out_dir = args["output_dir"]
     verbose = args["verbose"]
     use_sldy_data = args["use_sldy_data"]
-    create_validation_image = args["validation_image"]
+    create_validation_image = args["is_validation_image"]
     generate_results(
         out_dir=out_dir,
         dataset_name=dataset_name,

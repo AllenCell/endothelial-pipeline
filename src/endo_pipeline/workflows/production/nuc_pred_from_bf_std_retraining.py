@@ -1,9 +1,7 @@
-# from collections.abc import Generator
 import logging
-from datetime import datetime
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,10 +14,14 @@ from skimage.exposure import rescale_intensity
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
-from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-from endo_pipeline.configs.dataset_io import get_original_path, ipython_cli_flexecute, load_config
-from endo_pipeline.io import get_output_path
-from endo_pipeline.library.process import get_sldy_metadata as sldmd
+from endo_pipeline.configs import (
+    CellposeModelConfig,
+    get_zarr_file_for_position,
+    load_dataset_config,
+    load_model_config,
+)
+from endo_pipeline.configs.dataset_io import get_datasets_in_collection, ipython_cli_flexecute
+from endo_pipeline.io import get_output_path, get_timestamp, load_zarr_as_dask_array
 from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     save_image_output,
@@ -77,46 +79,22 @@ def get_training_data_output_dirs(
         return [out_dirs[training_data_kind] for training_data_kind in kind]
 
 
-def get_image_data_from_original(
-    dataset_name: str, scene: str | int, T: int, verbose: bool = False
-) -> tuple:
-    img_path = Path(get_original_path(dataset_name))
-    img = BioImage(img_path)
-    img.set_scene(scene)
-    img_metadata = img.metadata
-    print(dataset_name, img.current_scene) if verbose else None
-
-    channel_names = sldmd.get_channel_name(img.metadata)
-    channel_names = [chan.split("/")[0] for chan in channel_names]
-    dataset_config = load_dataset_config(dataset_name)
-    nuc_chan = dataset_config.original_channel_indices.channel_405
-    bf_chan = dataset_config.original_channel_indices.brightfield
-
-    img_dask_arr_nuc = img.get_image_dask_data(DIMENSION_ORDER, C=[nuc_chan], T=T).max(
-        axis=DIMENSION_ORDER.index("Z"), keepdims=True
-    )
-    img_dask_arr_bf_std = img.get_image_dask_data(DIMENSION_ORDER, C=[bf_chan], T=T).std(
-        axis=DIMENSION_ORDER.index("Z"), keepdims=True
-    )
-    return (img_dask_arr_nuc, img_dask_arr_bf_std), img_metadata
-
-
-def get_image_data_from_zarr(dataset_name: str, position) -> tuple:
-    # NOTE THIS FUNCTION IS NOT YET IMPLEMENTED
+def get_image_data_from_zarr(dataset_name: str, position: int, timepoint: int) -> tuple:
     dataset_config = load_dataset_config(dataset_name)
     zarr_file = get_zarr_file_for_position(dataset_config, position)
+    voxel_size = BioImage(zarr_file).physical_pixel_sizes
 
-    for zarr_name in get_zarr_path(dataset_name):
-        img_dict_nuc = load_dataset(dataset_name, zarr_name=zarr_name, channels=["DAPI"])
-        img_dict_bf = load_dataset(dataset_name, zarr_name=zarr_name, channels=["BF"])
-        img_dask_arr_nuc = img_dict_nuc[zarr_name].max(
-            axis=DIMENSION_ORDER.index("Z"), keepdims=True
-        )
-        img_dask_arr_bf_std = img_dict_bf[zarr_name].std(
-            axis=DIMENSION_ORDER.index("Z"), keepdims=True
-        )
-        yield (zarr_name, img_dask_arr_nuc, img_dask_arr_bf_std)
-    # raise NotImplementedError(f"Zarrs not yet implemented yet. Skipping {dataset_name}.")
+    nuc_chan: int = dataset_config.zarr_channel_indices.channel_405  # type: ignore[assignment]
+    bf_chan = dataset_config.zarr_channel_indices.brightfield
+
+    img = load_zarr_as_dask_array(zarr_file, timepoints=timepoint, level=0)
+    img_nuc_dask_arr = np.take(img, indices=[nuc_chan], axis=DIMENSION_ORDER.index("C"))
+    img_dask_arr_bf_std = np.take(img, indices=[bf_chan], axis=DIMENSION_ORDER.index("C"))
+
+    img_dask_arr_nuc = img_nuc_dask_arr.max(axis=DIMENSION_ORDER.index("Z"), keepdims=True)
+    img_dask_arr_bf_std = img_dask_arr_bf_std.std(axis=DIMENSION_ORDER.index("Z"), keepdims=True)
+
+    return (img_dask_arr_nuc, img_dask_arr_bf_std), voxel_size
 
 
 def save_overlay(
@@ -144,45 +122,28 @@ def save_overlay(
 
 
 def generate_training_data(analysis_args: dict) -> None:
+    # unpack the analysis arguments
     use_gpu = analysis_args["gpu"]
-    use_sldy_data = analysis_args["use_sldy_data"]
     dataset_name = analysis_args["dataset_name"]
-    scene_name = analysis_args["scene_name"]
     position = analysis_args["position"]
-    T = analysis_args["T"]
+    tp = analysis_args["T"]
     out_dir_val = analysis_args["output_dir"] / f"training_data/validation_overlays/{dataset_name}/"
     out_dir_nuclei = (
         analysis_args["output_dir"] / "training_data/cellpose_base_nuclei_model_nuclei_max/"
     )
     out_dir_images, out_dir_labels = get_training_data_output_dirs(kind=["images", "labels"])
     save_training_data = analysis_args["save_output"]
-    save_validation_images = analysis_args["validation_image"]
-    verbose = analysis_args["verbose"]
+    save_validation_images = analysis_args["is_validation_image"]
 
-    print("loading CellPose model...") if verbose else None
+    # initialize the base Cellpose nuclei model
+    logger.info("loading CellPose model...")
     nuc_model = models.CellposeModel(gpu=use_gpu, model_type="nuclei")
 
-    # if scene_name in get_scenes_to_use()[dataset_name]:
-    #     (print(f"Working on {dataset_name} P{position} {scene_name}...") if verbose else None)
-    #     pass
-    # else:
-    #     (
-    #         print(f"{dataset_name} P{position} {scene_name} not in scenes_to_use. Skipping.")
-    #         if verbose
-    #         else None
-    #     )
-    #     return
+    # load and process brightfield and NucViolet channels of image data
+    logger.info("loading image data...")
+    img_dask_arrs, voxel_size = get_image_data_from_zarr(dataset_name, position, tp)
 
-    print("loading image data...") if verbose else None
-    if use_sldy_data:
-        img_dask_arrs, image_metadata = get_image_data_from_original(dataset_name, scene_name, T)
-        voxel_size = sldmd.get_voxel_size(image_metadata)
-    else:
-        print(f"Zarrs not yet implemented. Skipping {dataset_name} P{position}.")
-        return  # zarrs not yet implemented
-        # img_dask_arrs = get_image_data_from_zarr(dataset_name)
-
-    print("processing image data...") if verbose else None
+    logger.info("processing image data...")
     nuc_max, bf_std = img_dask_arrs
     nuc_max = nuc_max.compute().squeeze()
     bf_std = bf_std.compute().squeeze()
@@ -190,7 +151,9 @@ def generate_training_data(analysis_args: dict) -> None:
     normd_nuc_clipped = rescale_intensity(
         np.clip(normd_nuc, 0, np.percentile(normd_nuc, 99)), out_range=(0, 1)
     )
-    print("generating segmentations with CellPose model...") if verbose else None
+
+    # create nuclei segmentations from the NucViolet channel
+    logger.info("generating segmentations with CellPose model...")
     seg, flows, styles = nuc_model.eval(
         normd_nuc_clipped,
         channels=[0, 0],
@@ -199,7 +162,7 @@ def generate_training_data(analysis_args: dict) -> None:
         cellprob_threshold=-3.0,
     )
 
-    print("saving images...") if verbose else None
+    logger.info("saving images...")
     if save_validation_images:
         # create an overlay to quickly check the accuracy of the Cellpose predictions
         # from NucViolet
@@ -211,7 +174,7 @@ def generate_training_data(analysis_args: dict) -> None:
         # save the labels used as ground truths for training
         # the label-free nuclei model
         out_dir_labels.mkdir(exist_ok=True, parents=True)
-        out_name_label = out_dir_labels / f"{dataset_name}_P{position}_T{T}_nuclei_seg.ome.tiff"
+        out_name_label = out_dir_labels / f"{dataset_name}_P{position}_T{tp}_nuclei_seg.ome.tiff"
         images_out = [seg]
         images_out_metadata = {
             "image_name": dataset_name,
@@ -228,7 +191,7 @@ def generate_training_data(analysis_args: dict) -> None:
         )
 
         out_dir_nuclei.mkdir(exist_ok=True, parents=True)
-        out_name_dapi = out_dir_nuclei / f"{dataset_name}_P{position}_T{T}_nuclei_raw.ome.tiff"
+        out_name_dapi = out_dir_nuclei / f"{dataset_name}_P{position}_T{tp}_nuclei_raw.ome.tiff"
         images_out = [nuc_max]
         images_out_metadata = {
             "image_name": dataset_name,
@@ -245,7 +208,7 @@ def generate_training_data(analysis_args: dict) -> None:
         )
 
         out_dir_images.mkdir(exist_ok=True, parents=True)
-        out_name_images = out_dir_images / f"{dataset_name}_P{position}_T{T}_bf_std.ome.tiff"
+        out_name_images = out_dir_images / f"{dataset_name}_P{position}_T{tp}_bf_std.ome.tiff"
         images_out = [bf_std]
         images_out_metadata = {
             "image_name": dataset_name,
@@ -318,10 +281,7 @@ def get_training_data(
 def main(
     n_proc: int = 1,
     create_training_data: bool = False,
-    # retrain_Gouthams_model: bool = False,
     train_from_base_cellpose_nuclei_model: bool = True,
-    # use_sldy_data: bool = False,
-    # verbose: bool = False,
 ) -> None:
 
     datasets_to_use = list(get_scenes_to_use().keys())
@@ -329,12 +289,10 @@ def main(
 
     analysis_queue = build_analysis_queue(
         datasets_to_use,
-        # use_sldy_data=use_sldy_data,
         save_output=True,
         image_validation_frequency=1,
         overwrite=True,
         out_dir=out_dir,
-        # verbose=verbose,
     )
 
     # return whether or not to use a gpu with CellPose
@@ -356,7 +314,7 @@ def main(
     # load the brightfield standard deviation projections as
     # the images and the  nuclei segmentations as the labels
     # from the testing and training data
-    print("Loading training and testing data...") if verbose else None
+    logger.info("Loading training and testing data...")
     dim_order = "CYX"
     images_training = []
     images_testing = []
@@ -369,27 +327,22 @@ def main(
         images_testing.append(BioImage(images_paths[i]).get_image_data(dim_order))
         labels_testing.append(BioImage(labels_paths[i]).get_image_data(dim_order))
 
-    print("Beginning training...") if verbose else None
+    logger.info("Beginning training...")
     sgd = True
     learning_rate = 0.1
     weight_decay = 1e-4
-    n_epochs = 300  # 100#300
+    n_epochs = 300
 
     # create a timestamp for when this workflow was run
-    timestamp = datetime.today().strftime("%Y%m%d-%H_%M")
+    timestamp = get_timestamp()
 
     # get the nuclei model path from the config file
-    model_config = load_config(config_type="model")
-    nuclei_models = model_config.get("nuc_pred_labelfree")
-    if nuclei_models is None:
-        raise ValueError("No label-free nuclei model found in the configuration file.")
-    else:
-        assert len(list(nuclei_models)) == 1, f"Expected 1 model path, found {len(nuclei_models)}"
-        model_path = nuclei_models.get("model_path")
-        if model_path is not None:
-            model_path = Path(model_path)
-        else:
-            raise ValueError("No model path found in the configuration file.")
+    # model_config = load_config(config_type="model")
+    # nuclei_models = model_config.get("nuc_pred_labelfree")
+    nuclei_models = cast(
+        CellposeModelConfig, load_model_config("nuc_pred_labelfree_finetuned_20250419")
+    )
+    model_path = Path(nuclei_models.model_path)
 
     # create a directory to save the models
     # and their losses and a test image
@@ -402,34 +355,6 @@ def main(
 
     # will populate this dictionary as we go
     run_record: dict[str, Any] = {}
-
-    if retrain_Gouthams_model:
-        # retrain Goutham's Cellpose model
-        model_dir_Goutham_retrain = model_dir / "Goutham_model_finetuning"
-        Goutham_finetuned_model_name = f"bf_std_model_no_preprocess_retrained_{timestamp}"
-
-        model_bf_stdproject = models.CellposeModel(gpu=gpu, pretrained_model=str(model_path))
-        model_path, train_losses, test_losses = train.train_seg(
-            model_bf_stdproject.net,
-            train_data=images_training,
-            train_labels=labels_training,
-            test_data=images_testing,
-            test_labels=labels_testing,
-            channels=[0, 0],
-            normalize=True,
-            weight_decay=weight_decay,
-            SGD=sgd,
-            learning_rate=learning_rate,
-            n_epochs=n_epochs,
-            save_path=model_dir_Goutham_retrain,
-            model_name=Goutham_finetuned_model_name,
-        )
-
-        run_record[Goutham_finetuned_model_name] = {
-            "model_path": model_path,
-            "train_losses": train_losses,
-            "test_losses": test_losses,
-        }
 
     if train_from_base_cellpose_nuclei_model:
         # fine-tune the basic CellPose nuclei model
@@ -500,15 +425,14 @@ def main(
         gpu=False, pretrained_model=str(model_path)
     )
 
-    # load the test image
-    test_img_path = Path(get_original_path("20241120_20X"))
-    dataset_config = load_dataset_config("20241120_20X")
-    test_img_bf_chan = dataset_config.original_channel_indices.brightfield
-
-    test_img = BioImage(test_img_path)
-    test_img_dask_arr = test_img.get_image_dask_data(
-        DIMENSION_ORDER, T=[0], C=test_img_bf_chan
-    ).std(axis=DIMENSION_ORDER.index("Z"), keepdims=True)
+    # load the brightfield channel of a test image
+    test_dataset_name = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")[0]
+    test_dataset_config = load_dataset_config(test_dataset_name)
+    test_zarr_path = get_zarr_file_for_position(test_dataset_config, position=0)
+    test_img_dask_arr = load_zarr_as_dask_array(
+        path=test_zarr_path, channels=["BF"], timepoints=0, level=0
+    )
+    test_img_dask_arr = test_img_dask_arr.std(axis=DIMENSION_ORDER.index("Z"), keepdims=True)
     test_img_arr = test_img_dask_arr.compute().squeeze()
 
     # run the model on the test image, we're going to be pretty

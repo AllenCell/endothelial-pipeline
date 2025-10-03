@@ -6,16 +6,17 @@ import numpy as np
 import pandas as pd
 from bioio import BioImage
 from bioio.writers import OmeTiffWriter
+from deprecated import deprecated
 from tqdm import tqdm
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.configs.dataset_io import (
     get_original_path,
     get_total_number_of_positions,
     get_zarr_name,
     get_zarr_path,
 )
-from endo_pipeline.io import get_output_path
+from endo_pipeline.io import get_output_path, load_zarr_as_dask_array
 from endo_pipeline.library.process.get_sldy_metadata import get_objective_info
 from endo_pipeline.settings import DIMENSION_ORDER
 
@@ -25,7 +26,13 @@ def get_chan_map(filepath: Path) -> dict:
     return {name: index for index, name in enumerate(img.channel_names)}
 
 
-def build_analysis_queue(
+@deprecated(
+    """
+This function is deprecated and has been replaced by `build_analysis_queue`,
+which does not support using the .sldy files and does not record the magnification.
+This was done to make the function consistent with the rest of the codebase."""
+)
+def build_analysis_queue_old(
     dataset_name_list: list,
     t_start: int = 0,
     t_final: int | None = None,
@@ -34,11 +41,11 @@ def build_analysis_queue(
     save_output: bool = True,
     overwrite: bool = False,
     out_dir: str | Path | None = None,
-    # magnification: int | None = None,
+    magnification: int | None = None,
     image_validation_frequency: int | None = None,
     verbose: bool = False,
     is_test: bool = False,
-    # use_sldy_data: bool = False,
+    use_sldy_data: bool = False,
 ) -> list:
     print(f"Building analysis queue for the following datasets: {dataset_name_list}")
     analysis_queue: list = []
@@ -55,11 +62,9 @@ def build_analysis_queue(
             num_positions = get_total_number_of_positions(dataset_name)
             num_pos_in_S = len(img.scenes)
         else:
-            dataset_config = load_dataset_config(dataset_name)
-
             img_path_dict = get_zarr_path(dataset_name)
-            num_positions = dataset_config.n_total_positions
-            num_pos_in_S = len(dataset_config.zarr_positions)
+            num_positions = get_total_number_of_positions(dataset_name)
+            num_pos_in_S = len(img_path_dict)
             zarr_name_dict = {pos: get_zarr_name(dataset_name, pos) for pos in range(num_pos_in_S)}
 
         assert (
@@ -152,6 +157,71 @@ def build_analysis_queue(
                                 "verbose": verbose,
                             }
                         )
+    return analysis_queue
+
+
+def build_analysis_queue(
+    dataset_name_list: list,
+    t_start: int = 0,
+    t_final: int | None = None,
+    t_step: int = 1,
+    img_bin_level: int = 0,
+    save_output: bool = True,
+    overwrite: bool = False,
+    out_dir: str | Path | None = None,
+    image_validation_frequency: int | None = None,
+    verbose: bool = False,
+    is_test: bool = False,
+) -> list:
+
+    print(f"Building analysis queue for the following datasets: {dataset_name_list}")
+    analysis_queue: list = []
+    out_dir = Path(out_dir) if out_dir != None else get_output_path("analysis_queue_output_temp")
+    for dataset_name in tqdm(
+        dataset_name_list,
+        total=len(dataset_name_list),
+        desc="Building analysis queue",
+        unit="dataset",
+    ):
+        # load the dataset config
+        dataset_config = load_dataset_config(dataset_name)
+
+        # get the timeframes of the timelapse to be evaluated
+        if t_final is None:
+            t_final = dataset_config.duration
+        t_range = range(t_start, t_final, t_step)
+
+        # get the timeframes to be used for validation images, if any
+        if image_validation_frequency is not None:
+            validation_t_range = range(t_start, t_final, image_validation_frequency)
+        else:
+            validation_t_range = range(0)  # empty range will produce empty list
+
+        # get the filepaths for each position in the timelapse
+        for position in dataset_config.zarr_positions:
+            zarr_file = get_zarr_file_for_position(dataset_config, position)
+
+            # build a dictionary with the analysis arguments for each timeframe to be analyzed
+            for timepoint in t_range:
+                validation_image = True if timepoint in validation_t_range else False
+
+                analysis_args = {
+                    "dataset_name": dataset_name,
+                    "image_bin_level": img_bin_level,
+                    "position": position,
+                    "T": timepoint,
+                    "input_path": zarr_file.as_posix(),
+                    "output_dir": out_dir,
+                    "save_output": save_output,
+                    "overwrite": overwrite,
+                    "is_validation_image": validation_image,
+                    "image_validation_frequency": image_validation_frequency,
+                    "is_test": is_test,
+                    "verbose": verbose,
+                }
+
+                analysis_queue.append(analysis_args)
+
     return analysis_queue
 
 
