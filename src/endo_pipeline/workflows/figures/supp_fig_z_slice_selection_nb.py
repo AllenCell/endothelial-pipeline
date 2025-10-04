@@ -9,6 +9,7 @@ from endo_pipeline.configs import (
 from endo_pipeline.io import load_zarr_as_dask_array
 from endo_pipeline.io.output import get_output_path
 from endo_pipeline.library.process.z_stack_selection import (
+    calculate_center_planes_all_tp_for_pos,
     plot_global_center_plane,
     plot_histogram_upper_slices_available,
     plot_standard_devs_per_slice,
@@ -36,27 +37,14 @@ cdh5_stack = load_zarr_as_dask_array(
 
 # %% Panel A - In focus Z slice selection per timepoint
 stdevs = [plane.std().compute() for plane in bf_stack]
-center_plane_tp = max(0, np.argmin(stdevs))
-plot_standard_devs_per_slice(stdevs, int(center_plane_tp), dataset, position, frame, save_dir)
+focal_plane_tp = max(0, np.argmin(stdevs))
+plot_standard_devs_per_slice(stdevs, int(focal_plane_tp), dataset, position, frame, save_dir)
 
 
 # %% Panel B - In focus Z slice selection per position over time
-bf_stack_all_frames = load_zarr_as_dask_array(zarr_file, channels=["BF"], level=1)
-center_planes = []
-
-for frame in range(0, dataset_config.duration, 1):
-    # Extract the BF stack for the current frame
-    bf_stack = bf_stack_all_frames[frame].squeeze()
-
-    # Compute standard deviations for all slices in the current frame
-    stdevs = bf_stack.std(axis=(1, 2)).compute()
-
-    # Find the center plane with the minimum standard deviation
-    center_plane_tp = max(0, np.argmin(stdevs))
-    center_planes.append(center_plane_tp)
-
-center_plane_pos, std_dev = plot_global_center_plane(
-    center_planes, dataset_config.name, position, save_dir, show_histogram=False
+focal_planes = calculate_center_planes_all_tp_for_pos(dataset_config, position)
+focal_plane_pos, std_dev = plot_global_center_plane(
+    focal_planes, dataset_config.name, position, save_dir, show_histogram=False
 )
 
 # %% Panel C - Distribution of upper slices available across datasets
@@ -68,7 +56,7 @@ plot_histogram_upper_slices_available(datasets, save_dir)
 visualize_slice_selection(
     bf_stack,
     cdh5_stack,
-    int(center_plane_pos),
+    int(focal_plane_pos),
     dataset,
     position,
     frame,

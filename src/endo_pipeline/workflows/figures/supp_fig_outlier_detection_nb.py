@@ -19,11 +19,13 @@ position = 0
 
 # %% Panel A - Auto-detect BF outliers
 bf_scope_error, bf_temp_artifact = detect_bf_outliers(dataset_config, position, visualize=True)
-# Panel B - Auto-detect EGFP scope errors
+
+# %% Panel B - Auto-detect EGFP scope errors
 egfp_scope_error = detect_egfp_scope_errors(dataset_config, position, visualize=True)
 
 # %% Performance statistics reported across datasets in collection
 datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
+
 performance_stats(
     datasets=datasets,
     manual_annotations=[
