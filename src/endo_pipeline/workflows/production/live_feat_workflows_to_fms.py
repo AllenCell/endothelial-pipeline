@@ -1,27 +1,3 @@
-import logging
-import os
-from datetime import UTC, datetime
-from pathlib import Path
-from typing import Literal
-
-from tqdm import tqdm
-
-from endo_pipeline.cli import Datasets
-from endo_pipeline.configs import load_all_dataset_configs, load_dataset_config
-from endo_pipeline.io import (
-    build_fms_annotations,
-    configure_logging,
-    get_output_path,
-    upload_file_to_fms,
-)
-from endo_pipeline.manifests import (
-    DataframeLocation,
-    DataframeManifest,
-    load_dataframe_manifest,
-    load_model_manifest,
-    save_dataframe_manifest,
-)
-
 """
 These functions are used to upload feature tables to FMS.
 NOTE These functions DO NOT and WILL NOT work on Windows.
@@ -29,13 +5,11 @@ They must be run on the Allen Institute intranet either
 in a Linux or MacOS environment through the CLI.
 """
 
-logger = logging.getLogger(__name__)
-out_dir = get_output_path(__file__, include_timestamp=False)
-configure_logging(out_dir, logger, verbose=True)
-
 
 def get_model_annotations_for_upload() -> dict:
     """Return dictionary of label-free nuclei Cellpose model info for FMS upload annotations."""
+    from endo_pipeline.manifests import load_model_manifest
+
     model_name = "nuc_pred_labelfree"
     run_name = "finetuned_20250419"
     return {"model_manifest": load_model_manifest(model_name), "run_name": run_name}
@@ -191,6 +165,13 @@ def main(
 
     NOTE Intended only for internal use.
     """
+    import os
+
+    from tqdm import tqdm
+
+    from endo_pipeline.configs import load_all_dataset_configs
+    from endo_pipeline.io import get_timestamp
+
     endo_project_analysis_dir = Path(
         "//allen/aics/endothelial/morphological_features/analysis"
     ).resolve()
@@ -253,7 +234,7 @@ def main(
             logger.error(error_msg)
             raise FileNotFoundError(error_msg)
         # add timestamp to the manifest filename and rename it
-        timestamp = datetime.now(UTC).strftime("%Y%m%d")
+        timestamp = get_timestamp()
         manifest_filepath_timestamped = manifest_filepath.with_name(
             f"{manifest_filepath.stem}_fms{timestamp}{manifest_filepath.suffix}"
         )
@@ -263,6 +244,21 @@ def main(
 
 
 if __name__ == "__main__":
+    import logging
+    from pathlib import Path
+    from typing import Literal
+
     from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.cli import Datasets
+    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.io import build_fms_annotations, upload_file_to_fms
+    from endo_pipeline.manifests import (
+        DataframeLocation,
+        DataframeManifest,
+        load_dataframe_manifest,
+        save_dataframe_manifest,
+    )
+
+    logger = logging.getLogger(__name__)
 
     workflow_cli(main)

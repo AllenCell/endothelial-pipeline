@@ -1,38 +1,19 @@
-import logging
-from collections.abc import Sequence
-from multiprocessing import Pool
-from pathlib import Path
-
-import numpy as np
-import pandas as pd
-from tqdm import tqdm
-
-from endo_pipeline.cli import Datasets
-from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.configs.dataset_io import (
-    concatenate_and_save_feature_tables,
-    extract_T,
-    get_zarr_name,
-    get_zarr_path,
-    ipython_cli_flexecute,
-)
-from endo_pipeline.io import configure_logging, get_output_path
-from endo_pipeline.library.process.general_image_preprocessing import (
-    build_analysis_queue,
-    sequence_to_scalar,
-)
-from endo_pipeline.library.process.lib_tracking import run_tracking
-from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
-
-logger = logging.getLogger(__name__)
-
-
 def run_workflow(queue: Sequence) -> None:
     """
     Run the tracking workflow using a queue.
     The queue is a tuple of (dataset_name, position) and a dataframe.
     The dataframe contains the parameters for the workflow and is built using build_analysis_queue.
     """
+    from pathlib import Path
+
+    import numpy as np
+
+    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.configs.dataset_io import extract_T, get_zarr_name, get_zarr_path
+    from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
+    from endo_pipeline.library.process.lib_tracking import run_tracking
+    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+
     (dataset_name, position), queue_df = queue
     timepoints_to_eval = queue_df["T"].tolist()
     position = sequence_to_scalar(queue_df["position"])
@@ -106,10 +87,16 @@ def main(
     verbose: bool = False,
 ) -> None:
     """Run the tracking workflow on a dataset, a list of datasets, or a dataset collection."""
+    from multiprocessing import Pool
+
+    from tqdm import tqdm
+
+    from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
 
     out_dir = get_output_path(__file__)
 
-    configure_logging(out_dir, logger, verbose=verbose)
     logger.info(f"datasets analyzed: {datasets}")
 
     analysis_queue = build_analysis_queue(
@@ -163,4 +150,14 @@ def main(
 
 
 if __name__ == "__main__":
+    import logging
+    from collections.abc import Sequence
+
+    import pandas as pd
+
+    from endo_pipeline.cli import Datasets
+    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+
+    logger = logging.getLogger(__name__)
+
     ipython_cli_flexecute(main)

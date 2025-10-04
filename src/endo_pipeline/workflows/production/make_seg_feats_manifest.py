@@ -1,23 +1,3 @@
-import logging
-from collections.abc import Sequence
-from multiprocessing import Pool
-from pathlib import Path
-
-from tqdm import tqdm
-
-from endo_pipeline.cli import Datasets
-from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
-from endo_pipeline.io import configure_logging, get_output_path, load_dataframe
-from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
-    add_filter_columns,
-    calculate_derived_data_dynamics_independent,
-    merge_measured_segmentation_features_tables,
-)
-from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
-
-logger = logging.getLogger(__name__)
-
-
 def create_seg_measured_feat_manifest_multiproc_wrapper(args: Sequence) -> None:
     """Merge nuclei measurement, cdh5 segmentation measurement, and tracking tables together using
     multiprocessing.
@@ -31,6 +11,14 @@ def create_segmentation_measured_feature_manifest(
     out_dir: str | Path,
 ) -> None:
     """Merge nuclei measurement, cdh5 segmentation measurement, and tracking tables into 1 table."""
+    from endo_pipeline.io import load_dataframe
+    from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+        add_filter_columns,
+        calculate_derived_data_dynamics_independent,
+        merge_measured_segmentation_features_tables,
+    )
+    from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+
     # make the output directory
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -92,9 +80,14 @@ def main(
     verbose: bool = False,
 ) -> None:
     """Run workflow for merging nuclei, cdh5 segmentation, and tracking data into a single table."""
+    from multiprocessing import Pool
+
+    from tqdm import tqdm
+
+    from endo_pipeline.io import get_output_path
+
     # set the directory where the output will be saved
     out_dir = get_output_path(__file__)
-    configure_logging(out_dir, logger, verbose)
 
     logger.info(f"datasets to analyze: {datasets}")
 
@@ -129,4 +122,12 @@ def main(
 
 
 if __name__ == "__main__":
+    import logging
+    from collections.abc import Sequence
+    from pathlib import Path
+
+    from endo_pipeline.cli import Datasets
+    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+
+    logger = logging.getLogger(__name__)
     ipython_cli_flexecute(main)

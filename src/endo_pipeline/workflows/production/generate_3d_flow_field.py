@@ -1,5 +1,6 @@
-TAGS = ["dynamical_systems", "diffae_features"]
 from endo_pipeline.cli import Datasets
+
+TAGS = ["dynamical_systems", "diffae_features"]
 
 
 def main(datasets: Datasets | None = None, model_name: str = "diffae_04_10") -> None:
@@ -33,8 +34,6 @@ def main(datasets: Datasets | None = None, model_name: str = "diffae_04_10") -> 
     from endo_pipeline.library.analyze.diffae_manifest import fit_pca
     from endo_pipeline.library.visualize.diffae_features import feature_viz
     from endo_pipeline.manifests import load_dataframe_manifest
-
-    logger = logging.getLogger(__name__)
 
     # Create output folder if does not exist yet
     workflow_name = "flow_field_3d"

@@ -1,23 +1,3 @@
-from multiprocessing import Pool
-from pathlib import Path
-
-from bioio import BioImage
-from skimage.segmentation import find_boundaries
-from tqdm import tqdm
-
-from endo_pipeline.cli import Datasets
-from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
-from endo_pipeline.io import get_output_path, load_image, load_zarr_as_dask_array
-from endo_pipeline.library.process import cdh5_preprocessing as preproc
-from endo_pipeline.library.process.general_image_preprocessing import (
-    build_analysis_queue,
-    save_image_output,
-)
-from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
-from endo_pipeline.settings import DIMENSION_ORDER
-
-
 def generate_results_multiproc_wrapper(args: dict) -> None:
     """Produce cdh5 segmentations for a given dataset, position, and timepoint using
     multiprocessing.
@@ -53,6 +33,15 @@ def generate_results(
     verbose: bool = True,
 ) -> None:
     """Produce cdh5 segmentations for a given dataset, position, and timepoint."""
+    from bioio import BioImage
+    from skimage.segmentation import find_boundaries
+
+    from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
+    from endo_pipeline.io import load_image, load_zarr_as_dask_array
+    from endo_pipeline.library.process import cdh5_preprocessing as preproc
+    from endo_pipeline.library.process.general_image_preprocessing import save_image_output
+    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+    from endo_pipeline.settings import DIMENSION_ORDER
 
     print(f"Working on {dataset_name} -- T={timepoint}...") if verbose else None
     print(f"T={timepoint} -- initializing workflow") if verbose else None
@@ -187,6 +176,13 @@ def main(
     verbose: bool = False,
 ) -> None:
     """Run the cdh5 segmentation workflow on a dataset, list of datasets, or dataset collection."""
+    from multiprocessing import Pool
+
+    from tqdm import tqdm
+
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
+
     out_dir = get_output_path(__file__)
 
     # TODO if possible it would be good to use parallel processing to build analysis_queue
@@ -228,6 +224,11 @@ def main(
 
 
 if __name__ == "__main__":
+    from pathlib import Path
+
+    from endo_pipeline.cli import Datasets
+    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+
     # ipython_cli_flexecute runs a function via either
     # the command line or an interactive python shell
     ipython_cli_flexecute(main)

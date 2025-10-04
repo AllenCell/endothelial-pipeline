@@ -1,28 +1,3 @@
-import logging
-from collections.abc import Callable
-from concurrent.futures import ProcessPoolExecutor
-from pathlib import Path
-
-import numpy as np
-import pandas as pd
-from dask.array import Array
-from skimage.measure import regionprops
-from tqdm import tqdm
-
-from endo_pipeline.cli import Datasets
-from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-from endo_pipeline.configs.dataset_io import (
-    concatenate_and_save_feature_tables,
-    ipython_cli_flexecute,
-)
-from endo_pipeline.io import configure_logging, get_output_path, load_image, load_zarr_as_dask_array
-from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
-from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
-from endo_pipeline.settings import DIMENSION_ORDER
-
-logger = logging.getLogger(__name__)
-
-
 def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
     """Unpack arguments from an argument dictionary and call get_and_save_nuclei_features."""
     dataset_name = args["dataset_name"]
@@ -81,6 +56,8 @@ def get_nuclei_features_from_image(
     -------
         pd.DataFrame: DataFrame with extracted features.
     """
+    from skimage.measure import regionprops
+
     # just in case make sure that the number of dimensions provided
     # in seg_dim_order matches that of the images
     for img in [
@@ -185,6 +162,11 @@ def get_nuclei_features_from_dataset_at_timepoint(
     """Load label-free nuclei prediction images and measure features for a given dataset, position,
     and timepoint.
     """
+    from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
+    from endo_pipeline.io import load_image, load_zarr_as_dask_array
+    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+    from endo_pipeline.settings import DIMENSION_ORDER
+
     # Load segmentations and image
     dim_order = DIMENSION_ORDER
 
@@ -249,9 +231,16 @@ def main(
     concatenate_tables_only: bool = False,
 ) -> None:
     """Run workflow to measure features from label-free nuclei predictions."""
+    from concurrent.futures import ProcessPoolExecutor
+
+    from tqdm import tqdm
+
+    from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
+
     out_dir = get_output_path(__file__)
 
-    configure_logging(out_dir, logger, verbose=verbose)
     logger.info(f"datasets analyzed: {datasets}")
 
     if not concatenate_tables_only:
@@ -302,4 +291,17 @@ def main(
 
 
 if __name__ == "__main__":
+    import logging
+    from collections.abc import Callable
+    from pathlib import Path
+
+    import numpy as np
+    import pandas as pd
+    from dask.array import Array
+
+    from endo_pipeline.cli import Datasets
+    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+
+    logger = logging.getLogger(__name__)
+
     ipython_cli_flexecute(main)

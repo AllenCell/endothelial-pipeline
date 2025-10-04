@@ -1,27 +1,15 @@
-import logging
-from multiprocessing import Pool
-from pathlib import Path
-
-import numpy as np
-from bioio import BioImage
-from cellpose import core, models
-from tqdm import tqdm
-
-from endo_pipeline.cli import Datasets
-from endo_pipeline.io import configure_logging, get_output_path, load_zarr_as_dask_array
-from endo_pipeline.library.process.general_image_preprocessing import (
-    build_analysis_queue,
-    save_image_output,
-)
-from endo_pipeline.manifests import get_model_location_for_run, load_model_manifest
-from endo_pipeline.settings import DIMENSION_ORDER
-from endo_pipeline.workflows.production.cdh5_classic_seg_tracking import ipython_cli_flexecute
-
-logger = logging.getLogger(__name__)
-
-
-# Predict nuclei from brightfield images using the retrained CellPose model
 def generate_results(args: dict) -> None:
+    from pathlib import Path
+
+    import numpy as np
+    from bioio import BioImage
+    from cellpose import core, models
+
+    from endo_pipeline.io import load_zarr_as_dask_array
+    from endo_pipeline.library.process.general_image_preprocessing import save_image_output
+    from endo_pipeline.manifests import get_model_location_for_run, load_model_manifest
+    from endo_pipeline.settings import DIMENSION_ORDER
+
     """Produce label-free nuclear predictions for a given dataset, position, and timepoint."""
     dataset_name = args["dataset_name"]
     position = args["position"]
@@ -139,8 +127,14 @@ def main(
         --datasets 20241217_20X 20241120_20X
     """
 
+    from multiprocessing import Pool
+
+    from tqdm import tqdm
+
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
+
     out_dir = get_output_path(__file__)
-    configure_logging(out_dir, logger, verbose)
 
     logger.info(f"datasets to analyze: {datasets}")
 
@@ -155,6 +149,7 @@ def main(
         image_validation_frequency=48,
     )
 
+    # Predict nuclei from brightfield images using the retrained CellPose model
     if n_proc > 1:
         if __name__ == "__main__":
             logger.info("Starting multiprocessing...")
@@ -178,5 +173,12 @@ def main(
 
 
 if __name__ == "__main__":
+    import logging
+
+    from endo_pipeline.cli import Datasets
+    from endo_pipeline.workflows.production.cdh5_classic_seg_tracking import ipython_cli_flexecute
+
+    logger = logging.getLogger(__name__)
+
     device_used_printed_global = False
     ipython_cli_flexecute(main)

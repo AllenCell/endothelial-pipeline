@@ -1,31 +1,3 @@
-import logging
-from multiprocessing import Pool
-from pathlib import Path
-
-import numpy as np
-import pandas as pd
-from bioio import BioImage
-from skimage.segmentation import find_boundaries
-from tqdm import tqdm
-
-from endo_pipeline.cli import Datasets
-from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-from endo_pipeline.configs.dataset_io import (
-    concatenate_and_save_feature_tables,
-    ipython_cli_flexecute,
-)
-from endo_pipeline.io import configure_logging, get_output_path, load_image, load_zarr_as_dask_array
-from endo_pipeline.library.analyze import shape_features as feat
-from endo_pipeline.library.process.general_image_preprocessing import (
-    build_analysis_queue,
-    save_image_output,
-)
-from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
-from endo_pipeline.settings import DIMENSION_ORDER
-
-logger = logging.getLogger(__name__)
-
-
 def build_measured_features_tables_multiproc_wrapper(args: dict) -> None:
     """Build and save measured features tables using multiprocessing."""
     dataset_name = args["dataset_name"]
@@ -152,6 +124,17 @@ def build_measured_features_tables(
     - git_commit_hash
     - git_uncommitted_changes
     """
+    import numpy as np
+    import pandas as pd
+    from bioio import BioImage
+    from skimage.segmentation import find_boundaries
+
+    from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
+    from endo_pipeline.io import load_image, load_zarr_as_dask_array
+    from endo_pipeline.library.analyze import shape_features as feat
+    from endo_pipeline.library.process.general_image_preprocessing import save_image_output
+    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+    from endo_pipeline.settings import DIMENSION_ORDER
 
     logger.debug(f"Working on {dataset_name} -- T={tp}...")
 
@@ -323,6 +306,14 @@ def main(
     verbose: bool = False,
 ) -> None:
     """Run the measured features extraction workflow."""
+    from multiprocessing import Pool
+
+    from tqdm import tqdm
+
+    from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
+    from endo_pipeline.io import configure_logging, get_output_path
+    from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
+
     out_dir = get_output_path(__file__)
 
     configure_logging(out_dir, logger, verbose=verbose)
@@ -384,4 +375,12 @@ def main(
 
 
 if __name__ == "__main__":
+    import logging
+    from pathlib import Path
+
+    from endo_pipeline.cli import Datasets
+    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+
+    logger = logging.getLogger(__name__)
+
     ipython_cli_flexecute(main)

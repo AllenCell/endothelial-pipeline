@@ -1,32 +1,3 @@
-import logging
-from multiprocessing import Pool
-from pathlib import Path
-from typing import Any, Literal
-
-import matplotlib.pyplot as plt
-import numpy as np
-from bioio import BioImage
-from bioio_base.types import PhysicalPixelSizes
-from cellpose import core, models, train
-from cellpose.io import logger_setup
-from skimage.color import label2rgb
-from skimage.exposure import rescale_intensity
-from skimage.segmentation import find_boundaries
-from tqdm import tqdm
-
-from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-from endo_pipeline.configs.dataset_io import get_datasets_in_collection, ipython_cli_flexecute
-from endo_pipeline.io import get_output_path, get_timestamp, load_zarr_as_dask_array
-from endo_pipeline.library.process.general_image_preprocessing import (
-    build_analysis_queue,
-    save_image_output,
-)
-from endo_pipeline.manifests import get_model_location_for_run, load_model_manifest
-from endo_pipeline.settings import DIMENSION_ORDER
-
-logger = logging.getLogger(__name__)
-
-
 def get_scenes_to_use(dataset_name: str | None = None) -> dict:
     """
     Return the scenes to use for training a Cellpose model to predict nuclei from brightfield.
@@ -83,6 +54,7 @@ def get_image_data_from_zarr(dataset_name: str, position: int, timepoint: int) -
     Load the NucViolet and Brightfield channels from the zarr file for the given dataset, position,
     and timepoint as well as the size of the voxel along the Z, Y, and X dimensions.
     """
+
     dataset_config = load_dataset_config(dataset_name)
     zarr_file = get_zarr_file_for_position(dataset_config, position)
     voxel_size = BioImage(zarr_file).physical_pixel_sizes
@@ -112,6 +84,8 @@ def save_overlay(
     If outlines is True, the outlines of the labels will be highlighted.
     If face is True, the labels will be filled in with color.
     """
+    from skimage.segmentation import find_boundaries
+
     seg_outlines = find_boundaries(labels)
     if outlines and face:
         labels[seg_outlines] = 0
@@ -137,6 +111,10 @@ def generate_training_data(analysis_args: dict) -> None:
     - Brightfield standard deviation projections as the images
     - Nuclei segmentations from the Cellpose base nuclei model as the labels
     """
+    from bioio_base.types import PhysicalPixelSizes
+
+    from endo_pipeline.library.process.general_image_preprocessing import save_image_output
+
     # unpack the analysis arguments
     use_gpu = analysis_args["gpu"]
     dataset_name = analysis_args["dataset_name"]
@@ -256,6 +234,9 @@ def get_training_data(
     - Brightfield standard deviation projections as the images
     - Nuclei segmentations from the Cellpose base nuclei model as the labels
     """
+    from multiprocessing import Pool
+
+    from tqdm import tqdm
 
     # add the whether or not to use the GPU to the analysis queue
     for arg in analysis_queue:
@@ -311,6 +292,12 @@ def main(
     Run the workflow to retrain a Cellpose model to predict nuclei from brightfield standard
     deviation projections.
     """
+    from cellpose.io import logger_setup
+
+    from endo_pipeline.configs.dataset_io import get_datasets_in_collection
+    from endo_pipeline.io import get_timestamp
+    from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
+    from endo_pipeline.manifests import get_model_location_for_run, load_model_manifest
 
     datasets_to_use = list(get_scenes_to_use().keys())
     out_dir = get_output_path(__file__)
@@ -491,4 +478,22 @@ def main(
 
 
 if __name__ == "__main__":
+    import logging
+    from pathlib import Path
+    from typing import Any, Literal
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from bioio import BioImage
+    from cellpose import core, models, train
+    from skimage.color import label2rgb
+    from skimage.exposure import rescale_intensity
+
+    from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
+    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+    from endo_pipeline.io import get_output_path, load_zarr_as_dask_array
+    from endo_pipeline.settings import DIMENSION_ORDER
+
+    logger = logging.getLogger(__name__)
+
     ipython_cli_flexecute(main)

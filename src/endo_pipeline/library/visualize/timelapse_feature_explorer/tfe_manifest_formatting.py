@@ -4,13 +4,13 @@ import pandas as pd
 from colorizer_data import FeatureInfo
 
 from endo_pipeline.library.analyze.diffae_manifest import fit_pca, project_manifest_to_pcs
+from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+    calculate_derived_data_dynamics_dependent,
+)
 from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     add_backdrop_fname_to_manifest,
 )
 from endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import LABEL_MAP
-from endo_pipeline.workflows.production.make_seg_feats_manifest import (
-    calculate_derived_data_dynamics_dependent,
-)
 
 
 def update_manifest_for_tfe(
