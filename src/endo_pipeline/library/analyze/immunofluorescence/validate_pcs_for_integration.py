@@ -8,7 +8,7 @@ from matplotlib.patches import Ellipse
 from sklearn.decomposition import PCA
 
 from endo_pipeline.configs import CytoDLModelConfig, DatasetConfig, load_dataset_config
-from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
+from endo_pipeline.io import build_fms_annotations, get_output_path, load_model, upload_file_to_fms
 from endo_pipeline.library.analyze.diffae_manifest import (
     get_dataframe_for_dynamics_workflows,
     project_manifest_to_pcs,
@@ -21,10 +21,11 @@ from endo_pipeline.library.model import (
 from endo_pipeline.library.process.registration import align_all_positions
 from endo_pipeline.manifests import (
     DataframeLocation,
+    get_model_location_for_run,
     load_dataframe_manifest,
+    load_model_manifest,
     save_dataframe_manifest,
 )
-from endo_pipeline.manifests.model_manifest_io import load_model_manifest
 from endo_pipeline.settings import Z_SLICE_OFFSETS
 
 
@@ -115,7 +116,10 @@ def apply_model_paired_fixed_live(
 
     # Get diffAE model
     # load model manifest
-    model_manifest = cast(CytoDLModelConfig, load_model_manifest(model_name))
+    model_manifest = load_model_manifest(model_name)
+    run_name_ = list(model_manifest.locations.keys())[-1]
+    model_location = get_model_location_for_run(model_manifest, run_name_)
+    model = load_model(model_location)
 
     # Load DiffAE model
     model_path = get_output_path("models", model_name)  # new get_output_path function
