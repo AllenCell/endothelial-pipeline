@@ -7,7 +7,6 @@ from cyto_dl.api import CytoDLModel
 from matplotlib.patches import Ellipse
 from sklearn.decomposition import PCA
 
-from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, load_model
 from endo_pipeline.library.analyze.diffae_manifest import (
     get_dataframe_for_dynamics_workflows,
@@ -16,7 +15,6 @@ from endo_pipeline.library.analyze.diffae_manifest import (
 from endo_pipeline.library.model import download_model, generate_overrides_for_model_eval
 from endo_pipeline.library.process.registration import align_all_positions
 from endo_pipeline.manifests import (
-    DataframeLocation,
     get_model_location_for_run,
     load_dataframe_manifest,
     load_model_manifest,
