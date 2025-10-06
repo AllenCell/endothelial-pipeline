@@ -82,7 +82,7 @@ def main(
         load_model_manifest,
         save_model_manifest,
     )
-    from endo_pipeline.settings import TRAIN_CONFIG
+    from endo_pipeline.settings import DIFFAE_MODEL_TRAIN_CONFIG
 
     logger = logging.getLogger(__name__)
 
@@ -132,7 +132,7 @@ def main(
     val_dataframe_path = resolve_dataframe_location(val_dataframe_location)
 
     # load template training config
-    template_training_config = load_model_config(TRAIN_CONFIG)
+    template_training_config = load_model_config(DIFFAE_MODEL_TRAIN_CONFIG)
 
     # if model manifest name not provided, create one
     # default name via zarr resolution, crop size, and include/exclude cell piling

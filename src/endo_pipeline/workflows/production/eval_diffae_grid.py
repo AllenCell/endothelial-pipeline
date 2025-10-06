@@ -81,7 +81,11 @@ def main(
     )
     from endo_pipeline.library.model.image_loading import get_include_positions
     from endo_pipeline.manifests import load_model_manifest
-    from endo_pipeline.settings import EVAL_CONFIG, Z_SLICE_OFFSETS
+    from endo_pipeline.settings import (
+        DIFFAE_MODEL_EVAL_CONFIG,
+        DIFFAE_MODEL_EVAL_FINETUNE_CONFIG,
+        Z_SLICE_OFFSETS,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -94,8 +98,12 @@ def main(
     # load model manifest
     model_manifest = load_model_manifest(model_manifest_name)
 
-    # use input path to an eval config if provided, else use path to diffae_eval.yaml
-    name_of_config = config_name if config_name else EVAL_CONFIG
+    # use specified config to override loaded model config if provided,
+    # otherwise use default eval config (or finetune eval config if fintuned is True)
+    if config_name is None:
+        name_of_config = DIFFAE_MODEL_EVAL_FINETUNE_CONFIG if fintuned else DIFFAE_MODEL_EVAL_CONFIG
+    else:
+        name_of_config = config_name
     # load eval config as an OmegaConf object
     eval_config = load_model_config(name_of_config)
 

@@ -71,7 +71,7 @@ def main(
         load_model_manifest,
         save_model_manifest,
     )
-    from endo_pipeline.settings import FINETUNE_TRAIN_CONFIG
+    from endo_pipeline.settings import DIFFAE_MODEL_TRAIN_FINETUNE_CONFIG
 
     logger = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ def main(
     val_dataframe_path = resolve_dataframe_location(val_dataframe_location)
 
     # get template config
-    template_finetune_config = load_model_config(FINETUNE_TRAIN_CONFIG)
+    template_finetune_config = load_model_config(DIFFAE_MODEL_TRAIN_FINETUNE_CONFIG)
 
     # initialize baseline model for finetuning
     base_model_manifest = load_model_manifest(base_model_manifest_name)
