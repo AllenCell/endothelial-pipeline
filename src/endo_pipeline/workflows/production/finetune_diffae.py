@@ -32,7 +32,7 @@ def main(
     base_model_manifest_name
         Name of the model manifest to load the baseline model from.
     base_run_name
-        Name of the baseline model run to apply. If None, uses the most recent run.
+        Name of the baseline model run to load. If None, uses the most recent run.
     finetuned_model_manifest_name
         Optional, name of the model manifest to save the finetuned model to.
     finetuned_run_name
@@ -45,8 +45,8 @@ def main(
     Returns
     -------
     :
-        The function creates and save a :code:`ModelConfig` object with the finetuned model's
-        MLflow run ID and the list of datasets used for training.
+        Creates new or updates existing``ModelManifest`` object with the finetuned model's
+        ``ModelLocation`` (MLflow run ID).
     """
     import logging
     from pathlib import Path

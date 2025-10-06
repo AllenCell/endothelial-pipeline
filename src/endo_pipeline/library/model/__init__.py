@@ -1,6 +1,13 @@
-from .apply_model import (
-    apply_model_on_grid_of_crops_from_one_dataset,
-    apply_model_on_tracked_crops_from_one_dataset,
+from .diffae import (
+    DiffAEFinetune,
+    MinStdCropd,
+    RotateRanged,
+    generate_from_coords,
+    generate_from_coords_batch,
+)
+from .eval_model import (
+    evaluate_model_on_grid_of_crops_from_one_dataset,
+    evaluate_model_on_tracked_crops_from_one_dataset,
     generate_overrides_for_model_eval,
     generate_overrides_for_track_based_crops,
     get_cytodl_commit_hash,
@@ -10,13 +17,6 @@ from .apply_model import (
     update_prediction_from_crops_with_metadata,
     update_prediction_from_tracks_with_metadata,
     upload_prediction_dataframe_to_fms,
-)
-from .diffae import (
-    DiffAEFinetune,
-    MinStdCropd,
-    RotateRanged,
-    generate_from_coords,
-    generate_from_coords_batch,
 )
 from .image_loading import (
     BioIOImageLoaderd,
@@ -47,8 +47,8 @@ __all__ = [
     "MinStdCropd",
     "MultiDimImageDataset",
     "RotateRanged",
-    "apply_model_on_grid_of_crops_from_one_dataset",
-    "apply_model_on_tracked_crops_from_one_dataset",
+    "evaluate_model_on_grid_of_crops_from_one_dataset",
+    "evaluate_model_on_tracked_crops_from_one_dataset",
     "build_and_save_dataframe_manifest_for_training",
     "build_zarr_image_loading_dataframe",
     "download_mlflow_artifact",

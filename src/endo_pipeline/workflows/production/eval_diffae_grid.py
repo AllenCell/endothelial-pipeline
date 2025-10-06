@@ -1,6 +1,6 @@
 from endo_pipeline.cli import Datasets
 
-TAGS = ["apply_diffae_model", "diffae_features"]
+TAGS = ["eval_diffae_model", "diffae_features"]
 
 
 def main(
@@ -13,7 +13,7 @@ def main(
     user_overrides: str | dict | None = None,
 ) -> None:
     """
-    Apply a trained DiffAE model to grid-based crops of images from multiple datasets.
+    Evaluate a trained DiffAE model on grid-based crops of images from given dataset(s).
 
     Produces a table of latent features from a non-overlapping grid of crops for each dataset.
     The model is applied at the specified resolution level.
@@ -35,14 +35,14 @@ def main(
 
     .. code-block:: bash
 
-        endopipe -vg apply-diffae-grid --datasets 20250409_20X
+        endopipe -vg eval-diffae-grid --datasets 20250409_20X
 
     Parameters
     ----------
     model_manifest_name
         Name of the model manifest to load the model from.
     run_name
-        Name of the model run to apply. If None, uses the most recent run.
+        Name of the model run to evaluate. If None, uses the most recent run.
     datasets
         List of datasets or dataset collections to load images from. If not
         provided, workflow runs on the ``live_20X_objective_3i_microscope``
@@ -71,7 +71,7 @@ def main(
         load_model_config,
     )
     from endo_pipeline.library.model import (
-        apply_model_on_grid_of_crops_from_one_dataset,
+        evaluate_model_on_grid_of_crops_from_one_dataset,
         load_model_for_inference,
         upload_prediction_dataframe_to_fms,
     )
@@ -100,7 +100,7 @@ def main(
     # as "experiment_name" and "run_name" for logging purposes
     model = load_model_for_inference(model_manifest, run_name, eval_config)
 
-    # apply model to each dataset
+    # evaluate model on images from each dataset
     for dataset_config in dataset_config_list:
         # Get positions to include.
         only_include_positions = get_include_positions(dataset_config)
@@ -123,7 +123,7 @@ def main(
             frame_start = None
             frame_stop = None
 
-        prediction_path = apply_model_on_grid_of_crops_from_one_dataset(
+        prediction_path = evaluate_model_on_grid_of_crops_from_one_dataset(
             model=model,
             dataset_config=dataset_config,
             resolution_level=resolution_level,
@@ -149,7 +149,7 @@ def main(
             )
 
         if DEMO_MODE:
-            # only apply model to the first dataset in demo mode
+            # only eval on the first dataset in demo mode
             break
 
 

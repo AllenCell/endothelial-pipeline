@@ -425,7 +425,7 @@ def preprocess_tracking_manifest_for_model_eval(
     grouped_df = grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1)
 
     # add temporary column with position index for filtering
-    grouped_df["position_index"] = grouped_df["path"].apply(
+    grouped_df["position_index"] = grouped_df["path"].evaluate(
         lambda x: get_position_integer_from_zarr_file_path(x)
     )
 
@@ -440,7 +440,7 @@ def preprocess_tracking_manifest_for_model_eval(
     # add column for excluding frames, if specified
     if exclude_frames is not None:
         # if position has no frames to exclude, set to None
-        grouped_df["exclude_frames"] = grouped_df["position_index"].apply(
+        grouped_df["exclude_frames"] = grouped_df["position_index"].evaluate(
             lambda x: exclude_frames.get(x, None)
         )
 
@@ -448,13 +448,13 @@ def preprocess_tracking_manifest_for_model_eval(
     if z_slice_bounds_per_position is not None:
         # get z info dict for each position index
         # unpack the start, stop, and step values from those dictionaries
-        grouped_df["z_start"] = grouped_df["position_index"].apply(
+        grouped_df["z_start"] = grouped_df["position_index"].evaluate(
             lambda x: z_slice_bounds_per_position.get(x, {}).get("z_start", 0)
         )
-        grouped_df["z_stop"] = grouped_df["position_index"].apply(
+        grouped_df["z_stop"] = grouped_df["position_index"].evaluate(
             lambda x: z_slice_bounds_per_position.get(x, {}).get("z_stop", -1)
         )
-        grouped_df["z_step"] = grouped_df["position_index"].apply(
+        grouped_df["z_step"] = grouped_df["position_index"].evaluate(
             lambda x: z_slice_bounds_per_position.get(x, {}).get("z_step", 1)
         )
 
@@ -528,7 +528,7 @@ def update_prediction_from_crops_with_metadata(
     pred_df["crop_size_y"] = crop_size[0]
     pred_df["crop_size_x"] = crop_size[1]
 
-    pred_df["position"] = pred_df["filename_or_obj"].apply(
+    pred_df["position"] = pred_df["filename_or_obj"].evaluate(
         lambda s: get_position_string_from_zarr_file_path(s)
     )
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
@@ -554,14 +554,14 @@ def update_prediction_from_tracks_with_metadata(
     )
     pred_df["crop_size_y"] = crop_size[0]
     pred_df["crop_size_x"] = crop_size[1]
-    pred_df["position"] = pred_df["filename_or_obj"].apply(
+    pred_df["position"] = pred_df["filename_or_obj"].evaluate(
         lambda s: get_position_string_from_zarr_file_path(s)
     )
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
     pred_df.to_parquet(prediction_path)
 
 
-def apply_model_on_grid_of_crops_from_one_dataset(
+def evaluate_model_on_grid_of_crops_from_one_dataset(
     model: "CytoDLModel",
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
@@ -574,7 +574,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     num_gpus: int | None = None,
 ) -> Path:
     """
-    Apply a DiffAE model to a single dataset.
+    evaluate a DiffAE model to a single dataset.
 
     **Z-stack offsets**
 
@@ -586,13 +586,13 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     Parameters
     ----------
     model
-        Trained model to apply for prediction.
+        Trained model to evaluate for prediction.
     dataset_config
-        Configuration of the dataset to apply the model to.
+        Configuration of the dataset to evaluate the model to.
     resolution_level
         Resolution level to at which to load images (zarr file format) at.
     user_overrides
-        Optional user overrides to apply to the model config.
+        Optional user overrides to evaluate to the model config.
     z_slice_offsets
         Lower and upper bounds for z-slicing.
     frame_start
@@ -621,7 +621,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     save_path = get_output_path("models", model_manifest_name, run_name, dataset_config.name)
 
     logger.debug(
-        "Applying run [ %s ] from model manifest [ %s ] to dataset [ %s ]",
+        "evaluateing run [ %s ] from model manifest [ %s ] to dataset [ %s ]",
         run_name,
         model_manifest_name,
         dataset_config.name,
@@ -656,7 +656,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     # save the dataframe to a parquet file
     df.to_parquet(dataset_save_path, index=False)
 
-    # apply workflow-specific overrides
+    # evaluate workflow-specific overrides
     prediction_filename_suffix = f"{dataset_config.name}_{model_manifest_name}_{run_name}_features"
     overrides = generate_overrides_for_model_eval(
         load_overrides(user_overrides),
@@ -694,7 +694,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     return prediction_path
 
 
-def apply_model_on_tracked_crops_from_one_dataset(
+def evaluate_model_on_tracked_crops_from_one_dataset(
     model: "CytoDLModel",
     dataset_config: DatasetConfig,
     save_path: str | Path | None = None,
@@ -704,7 +704,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
     num_gpus: int | None = None,
 ) -> Path:
     """
-    Apply a DiffAE model to a single dataset with
+    evaluate a DiffAE model to a single dataset with
     cell segmentation and tracking.
 
     Parameters
@@ -712,13 +712,13 @@ def apply_model_on_tracked_crops_from_one_dataset(
     model
         Trained model.
     dataset_config
-        Configuration of the dataset to apply the model to.
+        Configuration of the dataset to evaluate the model to.
     resolution_level
-        Resolution level to apply the model at.
+        Resolution level to evaluate the model at.
     save_path
         Path to save the prediction file
     user_overrides
-        Optional user overrides to apply to the model config.
+        Optional user overrides to evaluate to the model config.
     z_slice_offsets
         Lower and upper bounds for z-slicing.
     only_include_positions
@@ -757,7 +757,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
     prediction_filename_suffix = f"{dataset_config.name}_{model_manifest_name}_{run_name}"
     prediction_filename_suffix = f"{prediction_filename_suffix}_tracked_crop_features"
 
-    # apply overrides
+    # evaluate overrides
     overrides = generate_overrides_for_track_based_crops(
         overrides,
         save_path=save_path.as_posix(),
