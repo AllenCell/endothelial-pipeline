@@ -16,10 +16,13 @@ def main(
 
     Produces a table of latent features from a crops centered on tracked cells for each dataset.
 
-    **Workflow demo**
+    **Workflow output**
 
-    If demo mode is enabled, the model will only be evaluated on the first position of the first
-    of the specified datasets.
+    For each specified dataset, this workflow produces a table of latent features obtained from
+    crops of the processed images from each dataset centered on tracked cells. If ``upload_to_fms``
+    is True, the prediction dataframe is saved as a parquet file locally and uploaded to FMS.
+    The FMS ID of the uploaded file is then stored in the dataframe manifest corresponding to the
+    specified model manifest and run name: ``{model_manifest_name}_{run_name}_tracked``.
 
     **Config overrides**
 
@@ -29,6 +32,11 @@ def main(
     The reason for doing this override is that the training config by default does not
     contain settings for the ``predict_dataloaders`` used during inference.
 
+    **Workflow demo**
+
+    If demo mode is enabled, the model will only be evaluated on the first position of the first
+    of the specified datasets.
+
     Parameters
     ----------
     model_manifest_name
@@ -36,19 +44,13 @@ def main(
     run_name
         Name of the model run to evaluate. If None, uses the most recent run.
     datasets
-        List of datasets or dataset collections to load images from. If not
-        provided, workflow runs on the ``20250319_20X`` dataset.
+        List of datasets or dataset collections to load images from.
     upload_to_fms
         True to upload the prediction file for each dataset to FMS, False to only save locally.
     save_path
         Path to save the prediction file locally.
     config_name
         Optional, name of the model eval config to use to override the loaded model config.
-
-    Returns
-    -------
-    :
-        Saves and/or updates a DataframeManifest with the prediction file for each dataset.
     """
     import logging
     from pathlib import Path

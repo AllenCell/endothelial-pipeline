@@ -14,6 +14,12 @@ def main(
     """
     Finetune a DiffAE model to align features for paired datasets.
 
+    **Workflow output**
+
+    This workflow produces a finetuned DiffAE model that is logged to MLflow and tracked in a
+    ModelManifest object. If a ModelManifest with the specified name does not already exist,
+    a new one will be created.
+
     **Training run naming**
 
     If a finetuned model manifest name is not given, it will be automatically constructed based
@@ -41,12 +47,6 @@ def main(
         The type of dataset pairs to use for finetuning ("live_fixed" or "20x_40x").
     resolution_level
         The resolution level of the zarr files to be used for training.
-
-    Returns
-    -------
-    :
-        Creates new or updates existing``ModelManifest`` object with the finetuned model's
-        ``ModelLocation`` (MLflow run ID).
     """
     import logging
     from pathlib import Path

@@ -15,13 +15,13 @@ def main(
     """
     Evaluate a trained DiffAE model on grid-based crops of images from given dataset(s).
 
-    Produces a table of latent features from a non-overlapping grid of crops for each dataset.
-    The model is applied at the specified resolution level.
+    **Workflow output**
 
-    **Workflow demo**
-
-    If demo mode is enabled, the model will only be evaluated on the first few
-    timepoints of the first position of the first dataset.
+    For each specified dataset, this workflow produces a table of latent features obtained from a
+    non-overlapping grid of crops of the processed images from each dataset. If ``upload_to_fms``
+    is True, the prediction dataframe is saved as a parquet file locally and uploaded to FMS.
+    The FMS ID of the uploaded file is then stored in the dataframe manifest corresponding to the
+    specified model manifest and run name: ``{model_manifest_name}_{run_name}_grid``.
 
     **Config overrides**
 
@@ -35,11 +35,16 @@ def main(
     If ``finetuned`` is set to True, the default eval config used to override the loaded model
     config will be the finetuned model eval config (instead of the base model eval config).
 
+    **Workflow demo**
+
+    If demo mode is enabled, the model will only be evaluated on the first few
+    timepoints of the first position of the first dataset.
+
     **Example usage**
 
     .. code-block:: bash
 
-        endopipe -vg eval-diffae-grid --datasets 20250409_20X
+        endopipe -v -g 1 eval-diffae-grid --datasets 20250409_20X
 
     Parameters
     ----------
@@ -48,9 +53,7 @@ def main(
     run_name
         Name of the model run to evaluate. If None, uses the most recent run.
     datasets
-        List of datasets or dataset collections to load images from. If not
-        provided, workflow runs on the ``live_20X_objective_3i_microscope``
-        dataset collection.
+        Optional, list of datasets or dataset collections to evaluate the model on.
     resolution_level
         Resolution level to at which to load images (zarr file format) at.
     upload_to_fms
@@ -59,11 +62,6 @@ def main(
         Optional, name of the model config to use to override the loaded model config.
     finetuned
         If true, defaults to loading the finetuned model eval config.
-
-    Returns
-    -------
-    :
-        Saves and/or updates a DataframeManifest with the prediction file for each dataset.
     """
     import logging
     from pathlib import Path
