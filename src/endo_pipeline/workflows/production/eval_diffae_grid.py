@@ -99,13 +99,13 @@ def main(
     model_manifest = load_model_manifest(model_manifest_name)
 
     # use specified config to override loaded model config if provided,
-    # otherwise use default eval config (or finetune eval config if fintuned is True)
-    if config_name is None:
-        name_of_config = (
-            DIFFAE_MODEL_EVAL_FINETUNE_CONFIG if finetuned else DIFFAE_MODEL_EVAL_CONFIG
-        )
-    else:
+    # otherwise use default eval config (base or finetuned, depending on "finetuned" arg)
+    if config_name is not None:
         name_of_config = config_name
+    elif finetuned:
+        name_of_config = DIFFAE_MODEL_EVAL_FINETUNE_CONFIG
+    else:
+        name_of_config = DIFFAE_MODEL_EVAL_CONFIG
     # load eval config as an OmegaConf object
     eval_config = load_model_config(name_of_config)
 
