@@ -33,6 +33,7 @@ from .latent_walk_utils import (
     write_text,
 )
 from .mlflow_utils import download_mlflow_artifact, download_model, get_ckpt_path, load_mlflow_model
+from .model_config_overrides import ModelConfigOverride
 from .train_model import (
     build_and_save_dataframe_manifest_for_training,
     get_dataset_names_used_for_training,
@@ -44,6 +45,7 @@ __all__ = [
     "BioIOImageLoaderd",
     "DiffAEFinetune",
     "MinStdCropd",
+    "ModelConfigOverride",
     "MultiDimImageDataset",
     "RotateRanged",
     "build_and_save_dataframe_manifest_for_training",
