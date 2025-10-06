@@ -19,8 +19,6 @@ def main(model_name: str = "diffae_finetuned_for_fixed", n_pcs: int = 3) -> None
         Number of PCs to validate.
     """
 
-    from pathlib import Path
-
     from endo_pipeline import NUM_GPUS
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.diffae_manifest import fit_pca

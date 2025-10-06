@@ -7,24 +7,19 @@ from cyto_dl.api import CytoDLModel
 from matplotlib.patches import Ellipse
 from sklearn.decomposition import PCA
 
-from endo_pipeline.configs import DatasetConfig, load_dataset_config
-from endo_pipeline.io import build_fms_annotations, get_output_path, load_model, upload_file_to_fms
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import get_output_path, load_model
 from endo_pipeline.library.analyze.diffae_manifest import (
     get_dataframe_for_dynamics_workflows,
     project_manifest_to_pcs,
 )
-from endo_pipeline.library.model import (
-    download_model,
-    generate_overrides_for_model_eval,
-    get_cytodl_commit_hash,
-)
+from endo_pipeline.library.model import download_model, generate_overrides_for_model_eval
 from endo_pipeline.library.process.registration import align_all_positions
 from endo_pipeline.manifests import (
     DataframeLocation,
     get_model_location_for_run,
     load_dataframe_manifest,
     load_model_manifest,
-    save_dataframe_manifest,
 )
 from endo_pipeline.settings import Z_SLICE_OFFSETS
 
@@ -34,7 +29,6 @@ def apply_model_paired_fixed_live(
     live_dataset_name: str,
     model_name: str,
     align_fluo: bool = True,
-    upload_features_to_FMS: bool = False,
     num_gpus: int | None = None,
 ) -> tuple[Path, Path, Path]:
     """
@@ -50,10 +44,6 @@ def apply_model_paired_fixed_live(
         The name of the model finetuned for fixation.
     align_fluo : bool
         Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
-    upload_features_to_FMS : bool
-        Whether to upload validation data features to FMS. We may iteratre on analysis
-        without changing features and therefore should default to not rewriting a new feature manifest every time
-        this workflow is run.
     num_gpus: int
         Number of GPUs to use
 
@@ -66,10 +56,6 @@ def apply_model_paired_fixed_live(
     live_feature_path: Path
         Local path where live data features are saved in a parquet file
     """
-
-    # Get dataset configs
-    fixed_dataset_config = load_dataset_config(fixed_dataset_name)
-    live_dataset_config = load_dataset_config(live_dataset_name)
 
     # Get diffAE model
     # load model manifest
