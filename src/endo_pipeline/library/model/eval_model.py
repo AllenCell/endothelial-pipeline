@@ -142,9 +142,8 @@ def generate_overrides_for_model_eval(
     num_gpus: int | None = None,
 ) -> dict:
     """
-    Generate overrides for the CytoDLModel configuration
-    for evaluating model `model_name` on crops of
-    images from dataset `dataset_name`.
+    Generate overrides for the CytoDLModel configuration for evaluating model
+    `run_name` from manifest `model_manifest_name` on images from dataset `dataset_name`.
     """
     if prediction_filename_suffix is None:
         save_suffix = f"{dataset_name}_{model_manifest_name}_{run_name}_features"
@@ -196,9 +195,9 @@ def generate_overrides_for_track_based_crops(
     num_gpus: int | None = None,
 ) -> dict[str, Any]:
     """
-    Generate overrides for the CytoDLModel configuration
-    to evaluate model `model_name` on crops of
-    tracked objects in dataset `dataset_name`.
+    Generate overrides for the CytoDLModel configuration to evaluate model
+    `run_name` from manifest `model_manifest_name` on crops of tracked
+    objects from dataset `dataset_name`.
     """
     if prediction_filename_suffix is None:
         save_suffix = f"{dataset_name}_{model_manifest_name}_{run_name}_tracked_crop_features"
@@ -393,7 +392,7 @@ def preprocess_tracking_manifest_for_model_eval(
         )
         .reset_index()
     )
-    # Add which channel to evaluate to the model and what resolution to load it at
+    # Add which channel to load and what resolution to load it at
     grouped_df["channel"] = ZARR_BF_CHANNEL
     grouped_df["resolution"] = resolution
 
@@ -551,7 +550,7 @@ def evaluate_model_on_grid_of_crops_from_one_dataset(
     num_gpus: int | None = None,
 ) -> Path:
     """
-    evaluate a DiffAE model to a single dataset.
+    Evaluate a DiffAE model to a single dataset.
 
     **Z-stack offsets**
 
@@ -563,9 +562,9 @@ def evaluate_model_on_grid_of_crops_from_one_dataset(
     Parameters
     ----------
     model
-        Trained model to evaluate for prediction.
+        Trained model to evaluate.
     dataset_config
-        Configuration of the dataset to evaluate the model to.
+        Dataset config object for the dataset of interest.
     resolution_level
         Resolution level to at which to load images (zarr file format) at.
     z_slice_offsets
@@ -596,7 +595,7 @@ def evaluate_model_on_grid_of_crops_from_one_dataset(
     save_path = get_output_path("models", model_manifest_name, run_name, dataset_config.name)
 
     logger.debug(
-        "evaluateing run [ %s ] from model manifest [ %s ] to dataset [ %s ]",
+        "Evaluating run [ %s ] from model manifest [ %s ] on dataset [ %s ]",
         run_name,
         model_manifest_name,
         dataset_config.name,
@@ -631,7 +630,7 @@ def evaluate_model_on_grid_of_crops_from_one_dataset(
     # save the dataframe to a parquet file
     df.to_parquet(dataset_save_path, index=False)
 
-    # evaluate workflow-specific overrides
+    # apply workflow-specific overrides
     prediction_filename_suffix = f"{dataset_config.name}_{model_manifest_name}_{run_name}_features"
     overrides = generate_overrides_for_model_eval(
         save_path=save_path.as_posix(),
@@ -677,17 +676,16 @@ def evaluate_model_on_tracked_crops_from_one_dataset(
     num_gpus: int | None = None,
 ) -> Path:
     """
-    evaluate a DiffAE model to a single dataset with
-    cell segmentation and tracking.
+    Evaluate a DiffAE model on a single dataset with cell segmentation and tracking.
 
     Parameters
     ----------
     model
         Trained model.
     dataset_config
-        Configuration of the dataset to evaluate the model to.
+        Dataset config object for the dataset of interest.
     resolution_level
-        Resolution level to evaluate the model at.
+        Resolution level at which to load images (zarr file format) at.
     save_path
         Path to save the prediction file
     z_slice_offsets
@@ -726,7 +724,7 @@ def evaluate_model_on_tracked_crops_from_one_dataset(
     prediction_filename_suffix = f"{dataset_config.name}_{model_manifest_name}_{run_name}"
     prediction_filename_suffix = f"{prediction_filename_suffix}_tracked_crop_features"
 
-    # evaluate overrides
+    # apply overrides
     overrides = generate_overrides_for_track_based_crops(
         save_path=save_path.as_posix(),
         data_path=data_path.as_posix(),
