@@ -46,12 +46,7 @@ from .dataset_config_utils import (
     validate_3d_flow_field_dataset_collection,
     validate_filtered_dataset_collection,
 )
-from .model_config_io import (
-    get_available_model_config_names,
-    get_model_config_dir,
-    load_all_model_configs,
-    load_model_config,
-)
+from .model_config_io import get_model_config_dir, load_model_config
 
 __all__ = [
     "ChannelIndices",
@@ -71,7 +66,6 @@ __all__ = [
     "get_available_channels_for_position",
     "get_available_dataset_collection_names",
     "get_available_dataset_names",
-    "get_available_model_config_names",
     "get_available_zarr_files",
     "get_channel_indices_for_all_positions",
     "get_channel_indices_for_position",
@@ -89,7 +83,6 @@ __all__ = [
     "get_regime_for_shear_stress",
     "get_zarr_file_for_position",
     "load_all_dataset_configs",
-    "load_all_model_configs",
     "load_dataset_collection_config",
     "load_dataset_config",
     "load_model_config",
