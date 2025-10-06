@@ -1,6 +1,7 @@
 """Data structures for model manifests."""
 
 from dataclasses import field
+from pathlib import Path
 
 from mashumaro.config import BaseConfig
 from pydantic.dataclasses import dataclass
@@ -12,6 +13,9 @@ class ModelLocation:
 
     mlflowid: str | None = None
     """MLFlow run id for model."""
+
+    path: Path | None = None
+    """Local path to model."""
 
 
 @dataclass
