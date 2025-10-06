@@ -16,7 +16,7 @@ from endo_pipeline.library.analyze.diffae_dataframe import (
     get_traj_and_diff,
     project_manifest_to_pcs,
 )
-from endo_pipeline.library.analyze.diffae_dataframe.manifest_pca import fit_pca
+from endo_pipeline.library.analyze.diffae_dataframe.diffae_features_pca import fit_pca
 from endo_pipeline.library.analyze.diffae_features import (
     compute_extrapolated_vector_field,
     solve_ddff_ode,
