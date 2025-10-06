@@ -61,11 +61,10 @@ def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
     assert "position" in df.columns, "Data must have a column for position"
 
     # get list of unique starting positions and FOV_IDs
-    # (position column in DiffAE manifest)
-    start_x = df[df["frame_number"] == df["frame_number"].min()]["start_x"].values.tolist()
-    start_y = df[df["frame_number"] == df["frame_number"].min()]["start_y"].values.tolist()
-    position = df[df["frame_number"] == df["frame_number"].min()]["position"].values.tolist()
-    tup_list = list(zip(start_x, start_y, position, strict=True))
+    start_x = df["start_x"].unique().tolist()
+    start_y = df["start_y"].unique().tolist()
+    position = df["position"].unique().tolist()
+    tup_list = [(x, y, pos) for x in start_x for y in start_y for pos in position]
 
     # function to convert starting position and FOV_ID to crop index
     def _pos_to_index(x: float, y: float, position: str) -> int:

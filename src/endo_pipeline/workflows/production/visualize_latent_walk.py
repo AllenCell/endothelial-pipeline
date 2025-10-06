@@ -42,6 +42,7 @@ def main(
         The images are saved as a multi-channel TIFF file.
     """
     from pathlib import Path
+    from typing import cast
 
     import pandas as pd
     from bioio.writers import OmeTiffWriter
@@ -60,6 +61,7 @@ def main(
         get_pca_coords,
         write_pc_vals,
     )
+    from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
     from endo_pipeline.manifests import (
         get_most_recent_run_name,
         load_dataframe_manifest,
@@ -70,6 +72,7 @@ def main(
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     model = load_model(model_manifest.locations[run_name_])
+    model = cast(DiffusionAutoEncoder, model)
 
     # set up output directory
     save_dir = get_output_path("models", model_manifest_name, run_name_)
