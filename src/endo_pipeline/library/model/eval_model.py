@@ -131,24 +131,6 @@ def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
     raise ValueError("No commit hash found in requirements.txt")
 
 
-def load_overrides(overrides: str | dict | None) -> dict:
-    """
-    Load overrides from a string or dictionary.
-
-    If None, return an empty dictionary.
-    """
-    if isinstance(overrides, str):
-        overrides_dict = json.loads(overrides)
-    elif overrides is None:
-        overrides_dict = {}
-    elif isinstance(overrides, dict):
-        overrides_dict = overrides
-    elif not isinstance(overrides, dict):
-        logger.error("Overrides must be a dictionary or a path to a .json file.")
-        raise ValueError("Overrides must be a dictionary or a path to a .json file.")
-    return overrides_dict
-
-
 def generate_overrides_for_model_eval(
     save_path: str,
     data_path: str,
