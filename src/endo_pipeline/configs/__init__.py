@@ -46,10 +46,12 @@ from .dataset_config_utils import (
     validate_3d_flow_field_dataset_collection,
     validate_filtered_dataset_collection,
 )
+from .model_config import CytoDLModelConfig
 from .model_config_io import get_model_config_dir, load_model_config
 
 __all__ = [
     "ChannelIndices",
+    "CytoDLModelConfig",
     "DatasetCollectionConfig",
     "DatasetConfig",
     "FlowCondition",

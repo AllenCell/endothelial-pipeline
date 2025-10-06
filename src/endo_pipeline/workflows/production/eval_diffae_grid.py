@@ -10,6 +10,7 @@ def main(
     resolution_level: int = 1,
     upload_to_fms: bool = True,
     config_name: str | None = None,
+    fintuned: bool = False,
 ) -> None:
     """
     Evaluate a trained DiffAE model on grid-based crops of images from given dataset(s).
@@ -27,8 +28,12 @@ def main(
     If ``config_name`` is provided, the model config loaded from the model manifest
     will be overridden with the specified config in ``src/configs/models``. If it is not provided,
     then the default DiffAE eval template config is used to override the loaded model config.
-    The reason for doing this override is that the training config by default does not
+    The reason for doing this default override is that the training config by default does not
     contain settings for the ``predict_dataloaders`` used during inference.
+
+    **Finetuned model**
+    If ``finetuned`` is set to True, the default eval config used to override the loaded model
+    config will be the finetuned model eval config (instead of the base model eval config).
 
     **Example usage**
 
@@ -52,6 +57,8 @@ def main(
         True to upload the prediction file for each dataset to FMS, False to only save locally.
     config_name
         Optional, name of the model config to use to override the loaded model config.
+    finetuned
+        If true, defaults to loading the finetuned model eval config.
 
     Returns
     -------
