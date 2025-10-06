@@ -81,6 +81,7 @@ def apply_model_paired_fixed_live(
     model_name: str,
     align_fluo: bool = True,
     upload_features_to_FMS: bool = False,
+    num_gpus: int | None = None,
 ) -> tuple[Path, Path, Path]:
     """
     Align paired fixed and live data and apply a diffAE model to extract features.
@@ -99,6 +100,8 @@ def apply_model_paired_fixed_live(
         Whether to upload validation data features to FMS. We may iteratre on analysis
         without changing features and therefore should default to not rewriting a new feature manifest every time
         this workflow is run.
+    num_gpus: int
+        Number of GPUs to use
 
     Returns
     -------
@@ -109,6 +112,10 @@ def apply_model_paired_fixed_live(
     live_feature_path: Path
         Local path where live data features are saved in a parquet file
     """
+
+    import pdb
+
+    pdb.set_trace()
 
     # Get dataset configs
     fixed_dataset_config = load_dataset_config(fixed_dataset_name)
@@ -151,6 +158,10 @@ def apply_model_paired_fixed_live(
     model.load_config_from_file(path_dict["config_path"])
     overrides = {"model.spatial_inferer.splitter.overlap": 0.9}
 
+    import pdb
+
+    pdb.set_trace()
+
     # Apply on target/moving images - start by constructing overrides
     target_overrides = overrides.copy()  # copy to avoid overriding the original
     target_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "target"})
@@ -160,7 +171,11 @@ def apply_model_paired_fixed_live(
         data_path=str(data_save_path),
         dataset_name=live_dataset_name,
         model_name=model_name,
+        num_gpus=num_gpus,
     )
+    import pdb
+
+    pdb.set_trace()
     # the following lines of override updates are temporary while we adjust our model/config infrastructure
     target_overrides.update(
         {
@@ -190,6 +205,7 @@ def apply_model_paired_fixed_live(
         data_path=str(data_save_path),
         dataset_name=fixed_dataset_name,
         model_name=model_name,
+        num_gpus=num_gpus,
     )
     # The following lines of override updates are temporary while we adjust our model/config infrastructure
     overrides.update(

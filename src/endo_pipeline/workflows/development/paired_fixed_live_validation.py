@@ -21,6 +21,7 @@ def main(model_name: str = "diffae_finetuned_for_fixed", n_pcs: int = 3) -> None
 
     from pathlib import Path
 
+    from endo_pipeline import NUM_GPUS
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.diffae_manifest import fit_pca
     from endo_pipeline.library.analyze.immunofluorescence import validate_pcs_for_integration
@@ -33,10 +34,14 @@ def main(model_name: str = "diffae_finetuned_for_fixed", n_pcs: int = 3) -> None
     live_dataset_name: str = "20250214_pairedPreFixation"
     fixed_dataset_name: str = "20250214_pairedPostFixation"
 
+    import pdb
+
+    pdb.set_trace()
+
     # Align paired fixed and live data and apply a diffAE model to extract features.
     _, fixed_features_path, live_features_path = (
         validate_pcs_for_integration.apply_model_paired_fixed_live(
-            fixed_dataset_name, live_dataset_name, model_name
+            fixed_dataset_name, live_dataset_name, model_name, num_gpus=NUM_GPUS
         )
     )
 
