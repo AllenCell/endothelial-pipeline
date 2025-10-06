@@ -150,7 +150,6 @@ def load_overrides(overrides: str | dict | None) -> dict:
 
 
 def generate_overrides_for_model_eval(
-    user_overrides: dict,
     save_path: str,
     data_path: str,
     dataset_name: str,
@@ -202,12 +201,10 @@ def generate_overrides_for_model_eval(
         overrides["trainer.devices"] = 1
         overrides["trainer.strategy"] = "auto"
 
-    overrides.update(user_overrides)
     return overrides
 
 
 def generate_overrides_for_track_based_crops(
-    user_overrides: dict[str, Any],
     save_path: str,
     data_path: str,
     dataset_name: str,
@@ -227,7 +224,6 @@ def generate_overrides_for_track_based_crops(
         save_suffix = prediction_filename_suffix
 
     overrides = generate_overrides_for_model_eval(
-        user_overrides,
         save_path=save_path,
         data_path=data_path,
         dataset_name=dataset_name,
@@ -565,7 +561,6 @@ def evaluate_model_on_grid_of_crops_from_one_dataset(
     model: "CytoDLModel",
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
-    user_overrides: str | dict | None = None,
     z_slice_offsets: tuple[int, int] | None = None,
     frame_start: int | None = None,
     frame_stop: int | None = None,
@@ -591,8 +586,6 @@ def evaluate_model_on_grid_of_crops_from_one_dataset(
         Configuration of the dataset to evaluate the model to.
     resolution_level
         Resolution level to at which to load images (zarr file format) at.
-    user_overrides
-        Optional user overrides to evaluate to the model config.
     z_slice_offsets
         Lower and upper bounds for z-slicing.
     frame_start
@@ -659,7 +652,6 @@ def evaluate_model_on_grid_of_crops_from_one_dataset(
     # evaluate workflow-specific overrides
     prediction_filename_suffix = f"{dataset_config.name}_{model_manifest_name}_{run_name}_features"
     overrides = generate_overrides_for_model_eval(
-        load_overrides(user_overrides),
         save_path=save_path.as_posix(),
         data_path=dataset_save_path.as_posix(),
         dataset_name=dataset_config.name,
@@ -698,7 +690,6 @@ def evaluate_model_on_tracked_crops_from_one_dataset(
     model: "CytoDLModel",
     dataset_config: DatasetConfig,
     save_path: str | Path | None = None,
-    user_overrides: str | dict | None = None,
     z_slice_offsets: tuple[int, int] | None = None,
     only_include_positions: list[int] | None = None,
     num_gpus: int | None = None,
@@ -717,8 +708,6 @@ def evaluate_model_on_tracked_crops_from_one_dataset(
         Resolution level to evaluate the model at.
     save_path
         Path to save the prediction file
-    user_overrides
-        Optional user overrides to evaluate to the model config.
     z_slice_offsets
         Lower and upper bounds for z-slicing.
     only_include_positions
@@ -729,8 +718,6 @@ def evaluate_model_on_tracked_crops_from_one_dataset(
 
     model_manifest_name = model.cfg.experiment_name
     run_name = model.cfg.run_name
-
-    overrides = load_overrides(user_overrides)
 
     if save_path is None:
         # if no save path is provided, use the default path
@@ -759,7 +746,6 @@ def evaluate_model_on_tracked_crops_from_one_dataset(
 
     # evaluate overrides
     overrides = generate_overrides_for_track_based_crops(
-        overrides,
         save_path=save_path.as_posix(),
         data_path=data_path.as_posix(),
         dataset_name=dataset_config.name,

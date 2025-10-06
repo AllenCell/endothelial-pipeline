@@ -10,7 +10,6 @@ def main(
     upload_to_fms: bool = True,
     save_path: str | None = None,
     config_name: str | None = None,
-    user_overrides: str | dict | None = None,
 ) -> None:
     """
     Evaluate a trained DiffAE model on tracked-cell-based crops of images from given dataset(s).
@@ -45,8 +44,6 @@ def main(
         Path to save the prediction file locally.
     config_name
         Optional, name of the model eval config to use to override the loaded model config.
-    user_overrides
-        Optional user overrides to apply to the model config.
 
     Returns
     -------
@@ -103,7 +100,6 @@ def main(
             model=model,
             dataset_config=dataset_config,
             save_path=save_path,
-            user_overrides=user_overrides,
             z_slice_offsets=Z_SLICE_OFFSETS,
             only_include_positions=only_include_positions,
             num_gpus=NUM_GPUS,

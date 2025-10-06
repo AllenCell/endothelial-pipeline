@@ -10,7 +10,6 @@ def main(
     resolution_level: int = 1,
     upload_to_fms: bool = True,
     config_name: str | None = None,
-    user_overrides: str | dict | None = None,
 ) -> None:
     """
     Evaluate a trained DiffAE model on grid-based crops of images from given dataset(s).
@@ -53,8 +52,6 @@ def main(
         True to upload the prediction file for each dataset to FMS, False to only save locally.
     config_name
         Optional, name of the model config to use to override the loaded model config.
-    user_overrides
-        Optional user overrides to apply to the model config.
 
     Returns
     -------
@@ -127,7 +124,6 @@ def main(
             model=model,
             dataset_config=dataset_config,
             resolution_level=resolution_level,
-            user_overrides=user_overrides,
             z_slice_offsets=Z_SLICE_OFFSETS,
             frame_start=frame_start,
             frame_stop=frame_stop,
