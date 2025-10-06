@@ -10,7 +10,7 @@ def main(
     resolution_level: int = 1,
     upload_to_fms: bool = True,
     config_name: str | None = None,
-    fintuned: bool = False,
+    finetuned: bool = False,
 ) -> None:
     """
     Evaluate a trained DiffAE model on grid-based crops of images from given dataset(s).
@@ -101,7 +101,9 @@ def main(
     # use specified config to override loaded model config if provided,
     # otherwise use default eval config (or finetune eval config if fintuned is True)
     if config_name is None:
-        name_of_config = DIFFAE_MODEL_EVAL_FINETUNE_CONFIG if fintuned else DIFFAE_MODEL_EVAL_CONFIG
+        name_of_config = (
+            DIFFAE_MODEL_EVAL_FINETUNE_CONFIG if finetuned else DIFFAE_MODEL_EVAL_CONFIG
+        )
     else:
         name_of_config = config_name
     # load eval config as an OmegaConf object

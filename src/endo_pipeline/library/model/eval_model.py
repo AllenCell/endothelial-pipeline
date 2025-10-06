@@ -403,7 +403,7 @@ def preprocess_tracking_manifest_for_model_eval(
     grouped_df = grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1)
 
     # add temporary column with position index for filtering
-    grouped_df["position_index"] = grouped_df["path"].evaluate(
+    grouped_df["position_index"] = grouped_df["path"].apply(
         lambda x: get_position_integer_from_zarr_file_path(x)
     )
 
@@ -418,7 +418,7 @@ def preprocess_tracking_manifest_for_model_eval(
     # add column for excluding frames, if specified
     if exclude_frames is not None:
         # if position has no frames to exclude, set to None
-        grouped_df["exclude_frames"] = grouped_df["position_index"].evaluate(
+        grouped_df["exclude_frames"] = grouped_df["position_index"].apply(
             lambda x: exclude_frames.get(x, None)
         )
 
@@ -426,13 +426,13 @@ def preprocess_tracking_manifest_for_model_eval(
     if z_slice_bounds_per_position is not None:
         # get z info dict for each position index
         # unpack the start, stop, and step values from those dictionaries
-        grouped_df["z_start"] = grouped_df["position_index"].evaluate(
+        grouped_df["z_start"] = grouped_df["position_index"].apply(
             lambda x: z_slice_bounds_per_position.get(x, {}).get("z_start", 0)
         )
-        grouped_df["z_stop"] = grouped_df["position_index"].evaluate(
+        grouped_df["z_stop"] = grouped_df["position_index"].apply(
             lambda x: z_slice_bounds_per_position.get(x, {}).get("z_stop", -1)
         )
-        grouped_df["z_step"] = grouped_df["position_index"].evaluate(
+        grouped_df["z_step"] = grouped_df["position_index"].apply(
             lambda x: z_slice_bounds_per_position.get(x, {}).get("z_step", 1)
         )
 
@@ -506,7 +506,7 @@ def update_prediction_from_crops_with_metadata(
     pred_df["crop_size_y"] = crop_size[0]
     pred_df["crop_size_x"] = crop_size[1]
 
-    pred_df["position"] = pred_df["filename_or_obj"].evaluate(
+    pred_df["position"] = pred_df["filename_or_obj"].apply(
         lambda s: get_position_string_from_zarr_file_path(s)
     )
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
@@ -532,7 +532,7 @@ def update_prediction_from_tracks_with_metadata(
     )
     pred_df["crop_size_y"] = crop_size[0]
     pred_df["crop_size_x"] = crop_size[1]
-    pred_df["position"] = pred_df["filename_or_obj"].evaluate(
+    pred_df["position"] = pred_df["filename_or_obj"].apply(
         lambda s: get_position_string_from_zarr_file_path(s)
     )
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
