@@ -113,10 +113,6 @@ def apply_model_paired_fixed_live(
         Local path where live data features are saved in a parquet file
     """
 
-    import pdb
-
-    pdb.set_trace()
-
     # Get dataset configs
     fixed_dataset_config = load_dataset_config(fixed_dataset_name)
     live_dataset_config = load_dataset_config(live_dataset_name)
@@ -158,10 +154,6 @@ def apply_model_paired_fixed_live(
     model.load_config_from_file(path_dict["config_path"])
     overrides = {"model.spatial_inferer.splitter.overlap": 0.9}
 
-    import pdb
-
-    pdb.set_trace()
-
     # Apply on target/moving images - start by constructing overrides
     target_overrides = overrides.copy()  # copy to avoid overriding the original
     target_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "target"})
@@ -173,9 +165,7 @@ def apply_model_paired_fixed_live(
         model_name=model_name,
         num_gpus=num_gpus,
     )
-    import pdb
 
-    pdb.set_trace()
     # the following lines of override updates are temporary while we adjust our model/config infrastructure
     target_overrides.update(
         {
