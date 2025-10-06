@@ -7,7 +7,7 @@ from cyto_dl.api import CytoDLModel
 from matplotlib.patches import Ellipse
 from sklearn.decomposition import PCA
 
-from endo_pipeline.configs import CytoDLModelConfig, DatasetConfig, load_dataset_config
+from endo_pipeline.configs import DatasetConfig, load_dataset_config
 from endo_pipeline.io import build_fms_annotations, get_output_path, load_model, upload_file_to_fms
 from endo_pipeline.library.analyze.diffae_manifest import (
     get_dataframe_for_dynamics_workflows,
@@ -27,52 +27,6 @@ from endo_pipeline.manifests import (
     save_dataframe_manifest,
 )
 from endo_pipeline.settings import Z_SLICE_OFFSETS
-
-
-def add_paired_fixed_live_data_fmsid_to_manifest(
-    prediction_path: Path,
-    dataset_config: DatasetConfig,
-    model_config: CytoDLModelConfig,
-    model_path: Path,
-) -> None:
-    """
-    Upload path to FMS and add the FMS ID to the dataset config file for a dataset
-    of paired fixed and live data.
-
-    Parameters
-    ----------
-    prediction_path : str
-        Path to the prediction file
-    dataset_config : DatasetConfig
-        Config file for the dataset
-    model_config : CytoDLModelConfig
-        Config file for the chosen model
-    model_path : Path
-        Path to the model directory. Used for extracting the commit hash.
-
-    Returns
-    -------
-    model_config_updated : CytoDLModelConfig
-        Updated model config with the FMS ID of the prediction file added to the dataset manifest
-    """
-    # build FMS annotations
-    dataset_annotations = build_fms_annotations(
-        dataset_config,
-        model=model_config,
-        additional_notes=get_cytodl_commit_hash(model_config.mlflow_run_id, model_path),
-    )
-
-    # upload prediction file to FMS and get file ID
-    file_id = upload_file_to_fms(
-        prediction_path,
-        annotations=dataset_annotations,
-        file_type="parquet",
-    )
-
-    # Update the model config with the FMS ID of the prediction file
-    manifest = load_dataframe_manifest(model_config.name)
-    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
-    save_dataframe_manifest(manifest)
 
 
 def apply_model_paired_fixed_live(
@@ -220,21 +174,6 @@ def apply_model_paired_fixed_live(
     # Define paths to saved features from model for both fixed and live datasets
     fixed_features_path = save_path / f"predict_{fixed_dataset_name}_{model_name}_features.parquet"
     live_features_path = save_path / f"predict_{live_dataset_name}_{model_name}_features.parquet"
-
-    if upload_features_to_FMS:
-        print("Uploading fixed and live dataset feature manifests to FMS")
-        add_paired_fixed_live_data_fmsid_to_manifest(
-            fixed_features_path,
-            fixed_dataset_config,
-            model_config,
-            model_path,
-        )
-        add_paired_fixed_live_data_fmsid_to_manifest(
-            live_features_path,
-            live_dataset_config,
-            model_config,
-            model_path,
-        )
 
     return save_path, fixed_features_path, live_features_path
 
