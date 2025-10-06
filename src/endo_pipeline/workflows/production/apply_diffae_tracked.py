@@ -9,7 +9,7 @@ def main(
     datasets: Datasets | None = None,
     upload_to_fms: bool = True,
     save_path: str | None = None,
-    eval_config_name: str | None = None,
+    config_name: str | None = None,
     user_overrides: str | dict | None = None,
 ) -> None:
     """
@@ -22,9 +22,9 @@ def main(
     If demo mode is enabled, the model will only be evaluated on the first position of the first
     of the specified datasets.
 
-    **Eval config override**
+    **Config overrides**
 
-    If ``eval_config_path`` is provided, the model config loaded from the model manifest
+    If ``config_path`` is provided, the model config loaded from the model manifest
     will be overridden with the specified config in ``src/configs/models``. If it is not provided,
     then the default DiffAE eval template config is used to override the loaded model config.
     The reason for doing this override is that the training config by default does not
@@ -43,7 +43,7 @@ def main(
         True to upload the prediction file for each dataset to FMS, False to only save locally.
     save_path
         Path to save the prediction file locally.
-    eval_config_name
+    config_name
         Optional, name of the model eval config to use to override the loaded model config.
     user_overrides
         Optional user overrides to apply to the model config.
@@ -79,9 +79,9 @@ def main(
     model_manifest = load_model_manifest(model_manifest_name)
 
     # use input path to an eval config if provided, else use path to diffae_eval.yaml
-    name_of_eval_config = eval_config_name if eval_config_name else EVAL_CONFIG
+    name_of_config = config_name if config_name else EVAL_CONFIG
     # load eval config as an OmegaConf object
-    eval_config = load_model_config(name_of_eval_config)
+    eval_config = load_model_config(name_of_config)
 
     # load model run_name from model manifest, override with eval config,
     # and make sure that "model_manifest_name" and "run_name" are stored in the config
