@@ -11,6 +11,12 @@ def main(
     """
     Train a DiffAE model using the provided configuration.
 
+    **Workflow output**
+
+    This workflow produces a trained DiffAE model that is logged to MLflow and tracked in a
+    ModelManifest object. If a ModelManifest with the specified name does not already exist,
+    a new one will be created.
+
     **Training run naming**
 
     If a model manifest name is not given, it will be automatically constructed based on the
@@ -57,12 +63,6 @@ def main(
         The length of the 2D image crop in pixels to use for model training.
     exclude_cell_piling
         If True, use training and validation datasets that exclude cell piling timepoints.
-
-    Returns
-    -------
-    :
-        The function creates and saves a ModelConfig object with the trained
-        model's MLflow run ID and the list of datasets used for training.
     """
 
     import logging
@@ -73,12 +73,8 @@ def main(
     from omegaconf import OmegaConf
 
     from endo_pipeline import DEMO_MODE, IS_MAIN_PROCESS, NUM_GPUS
-    from endo_pipeline.io import (
-        get_output_path,
-        load_model_config_from_path,
-        make_name_unique,
-        resolve_dataframe_location,
-    )
+    from endo_pipeline.configs import load_model_config
+    from endo_pipeline.io import get_output_path, make_name_unique, resolve_dataframe_location
     from endo_pipeline.library.model import (
         get_dataset_names_used_for_training,
         initialize_diffae_model,
@@ -91,7 +87,7 @@ def main(
         load_model_manifest,
         save_model_manifest,
     )
-    from endo_pipeline.settings import RELATIVE_PATH_TO_TRAIN_CONFIG
+    from endo_pipeline.settings import DIFFAE_MODEL_TRAIN_CONFIG
 
     logger = logging.getLogger(__name__)
 
@@ -140,7 +136,7 @@ def main(
     val_dataframe_path = resolve_dataframe_location(val_dataframe_location)
 
     # load template training config
-    template_training_config = load_model_config_from_path(RELATIVE_PATH_TO_TRAIN_CONFIG)
+    template_training_config = load_model_config(DIFFAE_MODEL_TRAIN_CONFIG)
 
     # if model manifest name not provided, create one
     # default name via zarr resolution, crop size, and include/exclude cell piling
@@ -164,7 +160,8 @@ def main(
                 # If it's not unique, make it so and log a warning
                 run_name = make_name_unique(run_name).name
                 logger.warning(
-                    "Provided run name already exists in manifest, changed current run name to [ %s ]",
+                    "Provided run name already exists in manifest, "
+                    "changed current run name to [ %s ]",
                     run_name,
                 )
         # Set environment variable so spawned processes can read it

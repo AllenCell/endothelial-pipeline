@@ -12,6 +12,7 @@ import dask.array as da
 import pandas as pd
 from bioio import BioImage
 
+from endo_pipeline.configs import load_model_config
 from endo_pipeline.io.output import get_output_path
 from endo_pipeline.manifests import DataframeLocation, ImageLocation, ModelLocation
 from endo_pipeline.settings import DIMENSION_ORDER
@@ -472,12 +473,12 @@ def load_model_from_mlflow(mlflowid: str) -> "CytoDLModel":
 
     from cyto_dl.api import CytoDLModel
 
-    from endo_pipeline.settings import RELATIVE_PATH_TO_LEGACY_CONFIG
+    from endo_pipeline.settings import DIFFAE_MODEL_LEGACY_CONFIG
 
     # Temporary workaround: using tracked version of config for "legacy" model
     if mlflowid == "ae7f25b4109c47809d3e2ed1b7120e50":
         logger.warning("Using legacy config for model [ %s ]", mlflowid)
-        config_dict = load_model_config_from_path(RELATIVE_PATH_TO_LEGACY_CONFIG)
+        config_dict = load_model_config(DIFFAE_MODEL_LEGACY_CONFIG)
     else:
         # get logged config from MLFlow
         config_dict = get_config_dict_from_mlflow(mlflowid)
@@ -511,20 +512,3 @@ def load_model(location: ModelLocation) -> "CytoDLModel":
 
     logger.error("Location does not have an MLFlow run ID.")
     raise FileNotFoundError("Unable to load model; no available locations.")
-
-
-def load_model_config_from_path(config_path: str) -> "DictConfig | ListConfig":
-    """Parse input path to model configuration file and load."""
-    from omegaconf import OmegaConf
-
-    if not Path(config_path).is_absolute():
-        absolute_config_path = get_repository_root_dir() / config_path
-    else:
-        absolute_config_path = Path(config_path)
-
-    if not absolute_config_path.exists():
-        logger.error("Path [ %s ] could not be loaded", absolute_config_path)
-        raise FileNotFoundError(f"No such file '{absolute_config_path}'")
-
-    config = OmegaConf.load(absolute_config_path)
-    return config

@@ -14,6 +14,12 @@ def main(
     """
     Finetune a DiffAE model to align features for paired datasets.
 
+    **Workflow output**
+
+    This workflow produces a finetuned DiffAE model that is logged to MLflow and tracked in a
+    ModelManifest object. If a ModelManifest with the specified name does not already exist,
+    a new one will be created.
+
     **Training run naming**
 
     If a finetuned model manifest name is not given, it will be automatically constructed based
@@ -32,7 +38,7 @@ def main(
     base_model_manifest_name
         Name of the model manifest to load the baseline model from.
     base_run_name
-        Name of the baseline model run to apply. If None, uses the most recent run.
+        Name of the baseline model run to load. If None, uses the most recent run.
     finetuned_model_manifest_name
         Optional, name of the model manifest to save the finetuned model to.
     finetuned_run_name
@@ -41,21 +47,15 @@ def main(
         The type of dataset pairs to use for finetuning ("live_fixed" or "20x_40x").
     resolution_level
         The resolution level of the zarr files to be used for training.
-
-    Returns
-    -------
-    :
-        The function creates and save a :code:`ModelConfig` object with the finetuned model's
-        MLflow run ID and the list of datasets used for training.
     """
     import logging
     from pathlib import Path
 
     from endo_pipeline import DEMO_MODE, NUM_GPUS
+    from endo_pipeline.configs import load_model_config
     from endo_pipeline.io import (
         get_output_path,
         load_model,
-        load_model_config_from_path,
         make_name_unique,
         resolve_dataframe_location,
     )
@@ -71,7 +71,7 @@ def main(
         load_model_manifest,
         save_model_manifest,
     )
-    from endo_pipeline.settings import RELATIVE_PATH_TO_FINETUNE_CONFIG
+    from endo_pipeline.settings import DIFFAE_MODEL_TRAIN_FINETUNE_CONFIG
 
     logger = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ def main(
     val_dataframe_path = resolve_dataframe_location(val_dataframe_location)
 
     # get template config
-    template_finetune_config = load_model_config_from_path(RELATIVE_PATH_TO_FINETUNE_CONFIG)
+    template_finetune_config = load_model_config(DIFFAE_MODEL_TRAIN_FINETUNE_CONFIG)
 
     # initialize baseline model for finetuning
     base_model_manifest = load_model_manifest(base_model_manifest_name)
