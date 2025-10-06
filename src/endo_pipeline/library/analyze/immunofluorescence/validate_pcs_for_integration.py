@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -35,9 +34,11 @@ def apply_model_paired_fixed_live(
     Parameters
     ----------
     fixed_dataset_name : str
-        Dataset name to use as the fixed images (i.e. the reference against which the moving images are registered)
+        Dataset name to use as the fixed images (i.e. the reference against which the moving images
+        are registered)
     live_dataset_name : str
-        Dataset name to use as the moving images (i.e. the images to be registered to the fixed images)
+        Dataset name to use as the moving images (i.e. the images to be registered to the fixed
+        images)
     model_name : str
         The name of the model finetuned for fixation.
     align_fluo : bool
@@ -104,7 +105,8 @@ def apply_model_paired_fixed_live(
         num_gpus=num_gpus,
     )
 
-    # the following lines of override updates are temporary while we adjust our model/config infrastructure
+    # the following lines of override updates are temporary while we adjust our
+    # model/config infrastructure
     target_overrides.update(
         {
             "data.predict_dataloaders.dataset._target_": "endo_pipeline.library.model.image_loading.MultiDimImageDataset"
@@ -135,7 +137,8 @@ def apply_model_paired_fixed_live(
         model_name=model_name,
         num_gpus=num_gpus,
     )
-    # The following lines of override updates are temporary while we adjust our model/config infrastructure
+    # The following lines of override updates are temporary while we adjust our
+    # model/config infrastructure
     overrides.update(
         {
             "data.predict_dataloaders.dataset._target_": "endo_pipeline.library.model.image_loading.MultiDimImageDataset"
@@ -162,10 +165,10 @@ def apply_model_paired_fixed_live(
     return save_path, fixed_features_path, live_features_path
 
 
-def project_paired_fixed_live_data_into_ref_PC_space(
+def project_paired_fixed_live_data_into_ref_pc_space(
     pca: PCA,
-    fixed_features_path: Path = "fixed_features.parquet",
-    live_features_path: Path = "live_features.parquet",
+    fixed_features_path: Path = Path("fixed_features.parquet"),
+    live_features_path: Path = Path("live_features.parquet"),
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Project features from applying fine tuned diffAE model to fixed and live data into
@@ -206,10 +209,11 @@ def create_reference_timelapse_datasets(
     time_lag: int = 3,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Create reference timelapse datasets to determine role of time lag in differences between fixed and live data.
-    This function loads a no-flow timelapse reference dataset and gets PC values.
-    It creates one copy of this data that is lagged in time by the same time gap between the live and fixed data snapshots.
-    It then creates a second version which is just truncated to remove the rows that were shifted out by the lag.
+    Create reference timelapse datasets to determine role of time lag in differences between fixed
+    and live data. This function loads a no-flow timelapse reference dataset and gets PC values.
+    It creates one copy of this data that is lagged in time by the same time gap between the live
+    and fixed data snapshots. It then creates a second version which is just truncated to remove
+    the rows that were shifted out by the lag.
 
     Parameters
     ----------
@@ -249,7 +253,7 @@ def create_reference_timelapse_datasets(
 
 def fill_empty_frames(crop: pd.DataFrame) -> pd.DataFrame:
     """
-    Fill in any empty frames with NaNs
+    Fill in any empty frames with NaNs.
 
     Parameters
     ----------
@@ -319,18 +323,20 @@ def create_truncated_dataset(
     return crop.iloc[time_lag:]
 
 
-def dropna_both_df(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
+def dropna_both_df(df1: pd.DataFrame, df2: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Drop rows from both dataframes where PC values for either dataframe are NaN.
+
     Parameters
     ----------
     df1 : pd.DataFrame
         First dataframe containing PC values
     df2 : pd.DataFrame
         Second dataframe containing PC values
+
     Returns
     -------
-    df1, df2 : pd.DataFrame
+    df1, df2 : tuple[DataFrame, DataFrame]
         Dataframes with rows dropped where all PC values are NaN in both dataframes
     """
 
@@ -374,12 +380,12 @@ def get_paired_fixed_live_validation_features(
 
     # Format live and fixed features as needed for analysis and calculated the mean of each
     x, y = live_features[f"pc{pc}"].values, fixed_features[f"pc{pc}"].values
-    mean_x = np.mean(x)
-    mean_y = np.mean(y)
+    mean_x = np.mean(np.asarray(x))
+    mean_y = np.mean(np.asarray(y))
     center = (float(mean_x), float(mean_y))
 
     # Get covaraince matrix of live and fixed data then calculate its eigenvectors and eigenvalues
-    data = [[live, fixed] for live, fixed in zip(x, y)]
+    data = [[live, fixed] for live, fixed in zip(x, y, strict=True)]
     covariance_matrix = np.cov(data, rowvar=False)
     eigenvalues, eigenvectors = np.linalg.eig(covariance_matrix)
 
@@ -390,10 +396,11 @@ def get_paired_fixed_live_validation_features(
     eigenvalues = eigenvalues[sorted_indices]
     eigenvectors = eigenvectors[:, sorted_indices]
 
-    # The eigenvectors define the orientation/tilt angle of a confidence ellipse and the associated eigenvalues
+    # The eigenvectors define the orientation/tilt angle of a confidence ellipse and the associated
+    # eigenvalues give the lengths of the ellipse axes.
     # give the lengths of the ellipse axes.
-    # A linear colinear with the major axis of the ellipse is our linear model mapping between live and fixed data
-    # for this PC value
+    # A linear colinear with the major axis of the ellipse is our linear model mapping between live
+    # and fixed data for this PC value
     width = 2 * n_std * np.sqrt(eigenvalues[0])
     height = 2 * n_std * np.sqrt(eigenvalues[1])
     angle = np.degrees(np.arctan2(eigenvectors[1, 0], eigenvectors[0, 0]))
