@@ -5,7 +5,8 @@ TAGS = ["diffae_features"]
 
 def main(
     datasets: Datasets | None = None,
-    model_name: str = "diffae_04_10",
+    model_manifest_name: str = "diffae_04_10",
+    run_name: str | None = None,
     bootstrap_samples: int = 1000,
 ) -> None:
     """
@@ -14,15 +15,13 @@ def main(
     Parameters
     ----------
     datasets
-        List of datasets or dataset collections to use in workflow. If not
-        provided, workflow runs on the ``3d_flow_field_analysis`` dataset
-        collection.
-    model_name
-        Name of the DiffAE model to use for feature analysis.
+        Optional, list of datasets or dataset collections to use in workflow.
+    model_manifest_name
+        Name of the model manifest to load the model from.
+    run_name
+        Name of the model run to apply. If None, uses the most recent run.
     bootstrap_samples
-        Number of bootstrap samples to use for correlation analysis.
-        If 0, no bootstrap samples will be used.
-        If > 0, bootstrap samples will be used to compute confidence intervals.
+        Optional, number of bootstrap samples to use for correlation analysis..
     """
     import logging
 
@@ -33,7 +32,11 @@ def main(
     from endo_pipeline.library.visualize.diffae_features.correlations import (
         plot_correlation_workflow_outputs,
     )
-    from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.manifests import (
+        get_most_recent_run_name,
+        load_dataframe_manifest,
+        load_model_manifest,
+    )
 
     # initialize logger
     logger = logging.getLogger(__name__)
@@ -57,10 +60,17 @@ def main(
             dataset_names.remove(dataset_name)
 
     # load dataframe manifest = "{model_name}.yaml"
-    dataframe_manifest = load_dataframe_manifest(model_name)
+    if model_manifest_name == "diffae_04_10":
+        dataframe_manifest_name = "diffae_04_10"
+    else:
+        model_manifest = load_model_manifest(model_manifest_name)
+        run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
+        dataframe_manifest_name = f"{model_manifest_name}_{run_name_}_grid"
+
+    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     # fit PCA object for the given model that generates the model manifests
-    pca = fit_pca(model_name=model_name)
+    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name)
 
     # if demo mode, limit bootstrap samples to 50 if > 50
     if DEMO_MODE and bootstrap_samples > 50:
