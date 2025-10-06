@@ -3,7 +3,6 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
-import torch
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.process.get_images import (
