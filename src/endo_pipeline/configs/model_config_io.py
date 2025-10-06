@@ -16,26 +16,6 @@ def get_model_config_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "configs" / "models"
 
 
-def get_available_model_config_names() -> list[str]:
-    """Get list of available model names."""
-
-    model_config_names = [path.stem for path in get_model_config_dir().iterdir()]
-    logger.info("Available model configs[ %s ]", " | ".join(model_config_names))
-
-    return model_config_names
-
-
-def load_all_model_configs() -> "list[DictConfig | ListConfig]":
-    """Load all model configs."""
-
-    model_names = get_available_model_config_names()
-
-    models = [load_model_config(name) for name in model_names]
-    logger.info("Loaded all available models [ %s ]", " | ".join(model_names))
-
-    return models
-
-
 def load_model_config(model_config_name: str) -> "DictConfig | ListConfig":
     """Load single model config by name."""
     from omegaconf import OmegaConf
