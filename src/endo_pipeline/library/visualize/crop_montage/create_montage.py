@@ -82,9 +82,12 @@ def _plot_crop_montage(
 
 def generate_contact_sheet(
     df_sample: pd.DataFrame,
+    model_manifest_name: str,
+    run_name: str | None,
     pc_axis: int,
     pc_val: float,
     fig_savedir: Path,
+    num_gpus: int | None = None,
 ) -> None:
     """
     Generate and save montages for various image crops and various contrast enhancements.
@@ -93,12 +96,18 @@ def generate_contact_sheet(
     ----------
     df_sample
         DataFrame containing sampled crop metadata.
+    model_manifest_name
+        Name of the model manifest corresponding to the features used.
+    run_name
+        Name of the specific model run corresponding to the features used.
     pc_axis
         Principal component axis used for titling.
     pc_val
         Value of the principal component bin used for titling.
     fig_savedir
         Directory to save montage images.
+    num_gpus
+        Number of GPUs available for processing. If None, reconstruction is skipped.
 
     Returns
     -------
@@ -133,15 +142,24 @@ def generate_contact_sheet(
         )
 
     # Optionally add reconstructed crops (if GPU is available)
-    if torch.cuda.is_available():
+    if num_gpus is not None:
+        from hydra.utils import instantiate
+
+        from endo_pipeline.io import load_model
         from endo_pipeline.library.model.diffae.generate_image import (
             get_reconstructed_crops_in_dataframe,
         )
+        from endo_pipeline.manifests import load_model_manifest
 
-        reconstructed_crop_list = get_reconstructed_crops_in_dataframe(df_sample_sorted)
-        assert [crop.shape == (128, 128) for crop in reconstructed_crop_list], (
-            "Reconstructed crops should be of shape (128, 128), "
-            f"but found shapes: {[crop.shape for crop in reconstructed_crop_list]}"
+        model_manifest = load_model_manifest(model_manifest_name)
+        model = load_model(model_manifest.locations[run_name])
+        # have to instantiate the model specified in the configcfg
+        # to get the correct object for using the generate_from_coords function
+        model_correct_type = instantiate(model.cfg.model)
+
+        reconstructed_crop_list = get_reconstructed_crops_in_dataframe(
+            df_sample_sorted,
+            model_correct_type,
         )
         contrast_crops["reconstructed_cdh5"] = reconstructed_crop_list
     else:

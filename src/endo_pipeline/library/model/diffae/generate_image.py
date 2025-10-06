@@ -97,11 +97,11 @@ def generate_from_coords_batch(
     return walk_imgs
 
 
-def get_reconstructed_crops_in_dataframe(df: pd.DataFrame) -> list:
-    """
-    Reconstruct crops from each latent coordinate
-    given in the input dataframe.
-    """
+def get_reconstructed_crops_in_dataframe(
+    df: pd.DataFrame,
+    model: "DiffusionAutoEncoder | _BaseDiffAE",
+) -> list:
+    """Reconstruct crops from each latent coordinate given in the input dataframe."""
     # get coordinates (feature columns) from the dataframe,
     # convert to list of lists for input into DiffAE model
     num_points = df.shape[0]
@@ -111,9 +111,6 @@ def get_reconstructed_crops_in_dataframe(df: pd.DataFrame) -> list:
         latent_coords.append(df[feat_cols].iloc[i].tolist())
 
     # pass into DiffAE model to generate reconstructed crops
-    default_manifest = load_model_manifest(LEGACY_DIFFAE)
-    run_name = get_most_recent_run_name(default_manifest)
-    model = load_model(default_manifest.locations[run_name])
     walk_imgs = generate_from_coords_batch(
         model, np.array(latent_coords)
     )  # output is a list of numpy arrays

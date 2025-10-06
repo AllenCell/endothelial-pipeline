@@ -71,8 +71,8 @@ def main(
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     model = load_model(model_manifest.locations[run_name_])
-    # have to instantiate the model cfg to get the correct type
-    # for using the generate_from_coords function
+    # have to instantiate the model specified in the configcfg
+    # to get the correct object for using the generate_from_coords function
     model_correct_type = instantiate(model.cfg.model)
 
     # set up output directory

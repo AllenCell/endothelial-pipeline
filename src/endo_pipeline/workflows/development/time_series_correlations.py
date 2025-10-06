@@ -59,7 +59,7 @@ def main(
             )
             dataset_names.remove(dataset_name)
 
-    # load dataframe manifest = "{model_name}.yaml"
+    # load dataframe manifest corresponding to the model that generated the features
     if model_manifest_name == "diffae_04_10":
         dataframe_manifest_name = "diffae_04_10"
     else:

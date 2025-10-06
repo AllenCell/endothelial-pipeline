@@ -18,7 +18,7 @@ from endo_pipeline.library.analyze.numerics import (
 from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     plot_principal_component_histogram,
 )
-from endo_pipeline.manifests import load_dataframe_manifest
+from endo_pipeline.manifests import DataframeManifest
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,8 @@ N_BINS = 40  # number of bins for histogram, hardcoded right now but somewhat ar
 
 
 def load_data_for_montage(
-    dataset_name_list: list[str], model_name: str = "diffae_04_10"
+    dataset_name_list: list[str],
+    dataframe_manifest: DataframeManifest,
 ) -> tuple[pd.DataFrame, PCA]:
     """
     Load Diff AE feature DataFrames for one or more datasets and optionally apply PCA.
@@ -35,8 +36,8 @@ def load_data_for_montage(
     ----------
     dataset_name_list
         List of dataset names to load for montage.
-    model_name
-        Name of the model for which to load the feature dataframe.
+    dataframe_manifest_name
+        DataFrame manifest name corresponding to features to load.
 
     Returns
     -------
@@ -46,12 +47,13 @@ def load_data_for_montage(
         Fit PCA object for the model.
     """
 
-    manifest = load_dataframe_manifest(model_name)
-    pca = fit_pca(model_name=model_name)
+    pca = fit_pca(dataframe_manifest_name=dataframe_manifest.name)
 
     df_all = pd.concat(
         [
-            get_dataframe_for_dynamics_workflows(name, manifest, pca, filter_to_valid=False)
+            get_dataframe_for_dynamics_workflows(
+                name, dataframe_manifest, pca, filter_to_valid=False
+            )
             for name in dataset_name_list
         ],
         ignore_index=True,
@@ -64,7 +66,7 @@ def filter_dataframe(
     df_all: pd.DataFrame,
     pc_axis: int,
     pc_val: float,
-    model_name: str,
+    dataframe_manifest: DataframeManifest,
     dataset_names: list[str],
     pca: PCA,
     fig_savedir: Path,
@@ -82,8 +84,8 @@ def filter_dataframe(
         Index of the principal component (0-indexed) to filter by.
     pc_val
         Target bin value (between 0 and 1) of the selected PC to sample crops from.
-    model_name
-        Name of the model for which to load the feature dataframe.
+    dataframe_manifest
+        DataframeManifest for model features.
     dataset_names
         List of datasets to be processed.
     pca
@@ -101,8 +103,9 @@ def filter_dataframe(
         DataFrame filtered by the specified PC bin and optional frame range.
     """
 
-    manifest = load_dataframe_manifest(model_name)
-    bin_limits = get_3d_bounds_from_data(dataset_names, manifest, pca, filter_to_valid=False)
+    bin_limits = get_3d_bounds_from_data(
+        dataset_names, dataframe_manifest, pca, filter_to_valid=False
+    )
     hist_array_list, bin_edges, df_with_bins = get_histogram_by_component(
         df_all,
         N_BINS,
