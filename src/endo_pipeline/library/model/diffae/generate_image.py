@@ -6,7 +6,9 @@ import pandas as pd
 import torch
 
 if typing.TYPE_CHECKING:
-    from cyto_dl.api import CytoDLModel
+    from cyto_dl.models.im2im.diffusion_autoencoder import DiffusionAutoEncoder as _BaseDiffAE
+
+    from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
 
 from endo_pipeline.io import load_model
 from endo_pipeline.library.analyze.diffae_dataframe import get_feature_column_names
@@ -18,7 +20,7 @@ LEGACY_DIFFAE = "diffae_04_10"
 
 
 def generate_from_coords(
-    model: "CytoDLModel",
+    model: "DiffusionAutoEncoder | _BaseDiffAE",
     coords: np.ndarray | list[list[float]],
     n_noise_samples: int = 1,
     average: bool = False,
@@ -64,7 +66,7 @@ def generate_from_coords(
 
 
 def generate_from_coords_batch(
-    model: "CytoDLModel", coords_batch: np.ndarray | list[list[list[float]]]
+    model: "DiffusionAutoEncoder | _BaseDiffAE", coords_batch: np.ndarray | list[list[list[float]]]
 ) -> list[np.ndarray]:
     """
     Generate synthetic images from a batch of coordinates
