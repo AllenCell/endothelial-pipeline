@@ -56,7 +56,7 @@ def evaluate_model_paired_fixed_live(
     """
 
     # Align data if saved aligned data not already stored
-    if not Path(data_save_path).exists():
+    if not data_save_path.exists():
         data = align_all_positions(
             fixed_dataset_name,
             live_dataset_name,
