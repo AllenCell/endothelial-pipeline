@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 import matplotlib.patches as mpatches
@@ -10,6 +11,7 @@ from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA
 
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.library.analyze.diffae_dataframe import (
     get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
@@ -19,6 +21,9 @@ from endo_pipeline.library.visualize.seg_features.general_standard_plots import 
     get_seg_feat_plot_args,
 )
 from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings import SHEAR_COLOR_DICT
+
+logger = logging.getLogger(__name__)
 
 
 def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
@@ -80,27 +85,25 @@ def plot_component_loadings(loading_matrix: np.ndarray) -> tuple[Figure, Axes]:
 
 def get_dataset_color(dataset_name: str) -> str:
     """
-    Get standard color for a dataset based on its name.
-    Uses the matplotlib tableau color palette.
+    Get default plotting color for a dataset based on its shear stress regime.
 
-    Input:
-    - name: str, name of the dataset
-    Output:
-    - color: str, color for the dataset
+    Dataset color defaults are set in ``SHEAR_COLOR_DICT`` in
+    ``endo_pipeline.settings.plot_defaults``.
+
+    Parameters
+    ----------
+    dataset_name
+        Name of the dataset to get the color for.
     """
+    dataset_config = load_dataset_config(dataset_name)
+    if len(dataset_config.shear_stress_regime) > 1:
+        logger.warning(
+            "Color defaults only set for single shear stress regime datasets. "
+            "Returning color for first shear stress regime in list."
+        )
 
-    # hard coded colors for specific datasets
-    dataset_to_color = {
-        "20241120_20X": "tab:blue",
-        "20250409_20X": "tab:orange",
-        "20241217_20X": "tab:green",
-        "20250428_20X": "tab:red",
-        "20250319_20X": "tab:purple",
-        "20250326_20X": "tab:cyan",
-    }
-
-    # default to gray if not found
-    color = dataset_to_color.get(dataset_name, "tab:gray")
+    shear_stress_regime = dataset_config.shear_stress_regime[0].value
+    color = SHEAR_COLOR_DICT[shear_stress_regime]
 
     return color
 

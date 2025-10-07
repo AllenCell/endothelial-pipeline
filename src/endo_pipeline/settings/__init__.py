@@ -20,7 +20,16 @@ from .image_data import (
     Z_STEP_SIZE_NOMINAL_3i_20x,
     Z_STEP_SIZE_NOMINAL_3i_40x,
 )
-from .plot_defaults import NUM_BINS_CROP_HIST
+from .plot_defaults import (
+    NUM_BINS_CROP_HIST,
+    SHEAR_COLOR_DICT,
+    SHEAR_COLOR_HIGH,
+    SHEAR_COLOR_LOW,
+    SHEAR_COLOR_MAX,
+    SHEAR_COLOR_MEDIUM,
+    SHEAR_COLOR_MIN,
+    SHEAR_COLOR_NO,
+)
 from .workflow_defaults import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 __all__ = [
@@ -37,6 +46,13 @@ __all__ = [
     "LOWER_Z_SLICE_OFFSET",
     "NUM_BINS_CROP_HIST",
     "NUM_ZSLICES",
+    "SHEAR_COLOR_DICT",
+    "SHEAR_COLOR_HIGH",
+    "SHEAR_COLOR_LOW",
+    "SHEAR_COLOR_MAX",
+    "SHEAR_COLOR_MEDIUM",
+    "SHEAR_COLOR_MIN",
+    "SHEAR_COLOR_NO",
     "UPPER_Z_SLICE_OFFSET",
     "Z_SLICE_OFFSETS",
     "AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x",
