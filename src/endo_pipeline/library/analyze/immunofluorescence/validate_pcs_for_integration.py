@@ -55,8 +55,7 @@ def apply_model_paired_fixed_live(
         Local path where live data features are saved in a parquet file
     """
 
-    # Get diffAE model
-    # load model manifest
+    # Load diffAE model manifest
     model_manifest = load_model_manifest(model_name)
     run_name_ = list(model_manifest.locations.keys())[-1]
     model_location = get_model_location_for_run(model_manifest, run_name_)
@@ -108,6 +107,7 @@ def apply_model_paired_fixed_live(
 
     # Apply model on target/moving images - override config and run model prediciton
     model.override_config(target_overrides)
+
     # the following three lines are temporary while we adjust our model/config infrastructure
     rm_keys = ["num_workers", "cache_num", "csv_path", "dict_meta"]
     for key in rm_keys:
@@ -134,6 +134,7 @@ def apply_model_paired_fixed_live(
 
     # Apply on fixed dataset/"moving" images - override config and run model prediciton
     model.override_config(overrides)
+
     # the following two lines are temporary while we adjust our model/config infrastructure
     for key in rm_keys:
         model.cfg.data.predict_dataloaders.dataset.pop(key, None)
