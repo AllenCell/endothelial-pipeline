@@ -4,8 +4,11 @@ from endo_pipeline.configs import (
     get_datasets_in_collection,
     load_dataset_config,
 )
-from endo_pipeline.library.process.bf_timepoint_outlier import detect_bf_outliers, performance_stats
-from endo_pipeline.library.process.gfp_timepoint_outlier import detect_egfp_scope_errors
+from endo_pipeline.library.process.single_tp_outlier.bf_timepoint_outlier import detect_bf_outliers
+from endo_pipeline.library.process.single_tp_outlier.gfp_timepoint_outlier import (
+    detect_egfp_scope_errors,
+)
+from endo_pipeline.library.process.single_tp_outlier.timepoint_outlier import performance_stats
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 
 # %%
