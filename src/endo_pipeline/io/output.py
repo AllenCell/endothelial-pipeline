@@ -355,6 +355,8 @@ def save_thumbnail_to_path(
         pixel_size: Size of a pixel in micrometers. Required if scalebar_size_um is provided.
         scalebar_location: Location of the scale bar on the image.
             Options are "lower right", "lower left", "upper right", "upper left".
+        bar_thickness: Thickness of the scale bar in pixels (default is 10).
+        bar_padding: Padding between the scale bar and the image edge in pixels (default is 20).
 
     Returns:
         None
