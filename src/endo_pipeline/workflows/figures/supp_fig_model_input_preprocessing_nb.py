@@ -29,7 +29,7 @@ zarr_path = get_zarr_file_for_position(dataset_config, POSITION)
 img = load_zarr_as_dask_array(zarr_path, level=1, squeeze=True)
 
 # %% Panel A - Thumbnail of each slice in Z-stack for each channel
-# save_stack_slices_as_thumbnails(img, save_dir)
+save_stack_slices_as_thumbnails(img, save_dir)
 
 # %% Panel B - Z slices used in preprocessing steps
 in_focus_slice = dataset_config.center_z_plane[POSITION]
