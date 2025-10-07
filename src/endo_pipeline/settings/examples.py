@@ -4,4 +4,4 @@ EXAMPLE_DATASET = {
     "SUPP_FIG_SINGLE_TP_BF_OUTLIER": "20250224_20X",
     "SUPP_FIG_SINGLE_TP_GFP_OUTLIER": "20250319_20X",
 }
-"""Dictionary of example datasets for specific supplemental figures."""
+"""Dictionary of example datasets for specific figures."""
