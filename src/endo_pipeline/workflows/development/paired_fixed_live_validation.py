@@ -1,6 +1,6 @@
 def main(model_name: str = "diffae_finetuned_for_fixed", n_pcs: int = 3) -> None:
     """
-    Validates integration of paired fixed/live data for integration of IF data.
+    Validate integration of paired fixed/live data for integration of IF data.
 
     To do this, it does the following:
     1. Applies a fine-tuned diffAE model to extract features
@@ -45,7 +45,7 @@ def main(model_name: str = "diffae_finetuned_for_fixed", n_pcs: int = 3) -> None
     # Project features from applying fine tuned diffAE model to fixed and live data into
     # reference PC space.
     fixed_features, live_features = (
-        validate_pcs_for_integration.project_paired_fixed_live_data_into_ref_PC_space(
+        validate_pcs_for_integration.project_paired_fixed_live_data_into_ref_pc_space(
             pca, fixed_features_path, live_features_path
         )
     )
@@ -70,7 +70,8 @@ def main(model_name: str = "diffae_finetuned_for_fixed", n_pcs: int = 3) -> None
             )
         )
 
-        # Construct confidence ellipse to determine live/ time-lagged live PC mapping and uncertainty
+        # Construct confidence ellipse to determine live/ time-lagged live PC mapping
+        # and uncertainty
         raw_data_ref, validation_data_ref = (
             validate_pcs_for_integration.get_paired_fixed_live_validation_features(
                 pc, lagged_ref_features, truncated_ref_features
@@ -88,8 +89,8 @@ def main(model_name: str = "diffae_finetuned_for_fixed", n_pcs: int = 3) -> None
             axmax=axmax,
         )
 
-        # Plot raw data for paired live and time-lagged live PC values as well as confidence ellipse,
-        # linear model mapping between live and time-lagged live data and uncertainty.
+        # Plot raw data for paired live and time-lagged live PC values as well as confidence
+        # ellipse, linear model mapping between live and time-lagged live data and uncertainty.
         viz_validate_pcs_for_integration.plot_paired_fixed_live_validation_features(
             save_path,
             pc,
