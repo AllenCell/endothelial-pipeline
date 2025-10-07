@@ -2,7 +2,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from cyto_dl.api import CytoDLModel
 from matplotlib.patches import Ellipse
 from sklearn.decomposition import PCA
 
@@ -11,7 +10,7 @@ from endo_pipeline.library.analyze.diffae_manifest import (
     get_dataframe_for_dynamics_workflows,
     project_manifest_to_pcs,
 )
-from endo_pipeline.library.model import download_model, generate_overrides_for_model_eval
+from endo_pipeline.library.model import generate_overrides_for_model_eval
 from endo_pipeline.library.process.registration import align_all_positions
 from endo_pipeline.manifests import (
     get_model_location_for_run,
@@ -63,10 +62,6 @@ def apply_model_paired_fixed_live(
     model_location = get_model_location_for_run(model_manifest, run_name_)
     model = load_model(model_location)
 
-    # Load DiffAE model
-    model_path = get_output_path("models", model_name)  # new get_output_path function
-    path_dict = download_model(model_manifest.locations["run_name"].mlflowid, model_path)
-
     # Set directory for aligned data
     save_path = get_output_path(
         "models", model_name, f"{fixed_dataset_name}_vs_{live_dataset_name}"
@@ -88,9 +83,7 @@ def apply_model_paired_fixed_live(
         data["channel"] = 0
         data.to_csv(data_save_path, index=False)
 
-    # Load diffAE model and create new overrides object
-    model = CytoDLModel()
-    model.load_config_from_file(path_dict["config_path"])
+    # Create new overrides object
     overrides = {"model.spatial_inferer.splitter.overlap": 0.9}
 
     # Apply on target/moving images - start by constructing overrides
@@ -116,8 +109,6 @@ def apply_model_paired_fixed_live(
     target_overrides["data.predict_dataloaders.dataset.replace_rate"] = 0.1
     target_overrides["data.predict_dataloaders.dataset.num_init_workers"] = 24
     target_overrides["data.predict_dataloaders.dataset.num_replace_workers"] = 24
-    target_overrides["checkpoint.ckpt_path"] = path_dict["checkpoint_path"]
-    target_overrides["checkpoint.strict"] = True
 
     # Apply model on target/moving images - override config and run model prediciton
     model.override_config(target_overrides)
@@ -148,8 +139,6 @@ def apply_model_paired_fixed_live(
     overrides["data.predict_dataloaders.dataset.replace_rate"] = 0.1
     overrides["data.predict_dataloaders.dataset.num_init_workers"] = 24
     overrides["data.predict_dataloaders.dataset.num_replace_workers"] = 24
-    overrides["checkpoint.ckpt_path"] = path_dict["checkpoint_path"]
-    overrides["checkpoint.strict"] = True
 
     # Apply on fixed dataset/"moving" images - override config and run model prediciton
     model.override_config(overrides)
