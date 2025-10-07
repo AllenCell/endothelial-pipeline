@@ -1,4 +1,4 @@
-DPI = 450
+DPI = 600
 """DPI for figures"""
 
 FONT_FAMILY = "Arial"
