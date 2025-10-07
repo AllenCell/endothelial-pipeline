@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from cyto_dl.api import CytoDLModel
 from matplotlib.patches import Ellipse
+from pandas.core.groupby import DataFrameGroupBy
 from sklearn.decomposition import PCA
 
 from endo_pipeline.library.analyze.diffae_manifest import (
@@ -81,6 +82,9 @@ def evaluate_model_paired_fixed_live(
     )
     target_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "target"})
     model.override_config(target_overrides)
+    rm_keys = ["num_workers", "cache_num", "csv_path", "dict_meta"]
+    for key in rm_keys:
+        model.cfg.data.predict_dataloaders.dataset.pop(key, None)
     model.predict()
 
     # Evaluate model on fixed data/"moving" images - set up config and run model
@@ -94,6 +98,9 @@ def evaluate_model_paired_fixed_live(
     )
     moving_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving"})
     model.override_config(moving_overrides)
+    rm_keys = ["num_workers", "cache_num", "csv_path", "dict_meta"]
+    for key in rm_keys:
+        model.cfg.data.predict_dataloaders.dataset.pop(key, None)
     model.predict()
 
     # Define paths to saved features from model for both fixed and live datasets
@@ -189,6 +196,7 @@ def create_reference_timelapse_datasets(
     reference_features = (
         reference_features.groupby("crop_index").apply(fill_empty_frames).reset_index(drop=True)
     )
+
     df_lag = reference_features.groupby("crop_index").apply(create_lagged_dataset, time_lag)
     df_trunc = reference_features.groupby("crop_index").apply(create_truncated_dataset, time_lag)
     df_lag, df_trunc = dropna_both_df(df_lag, df_trunc)
@@ -219,7 +227,7 @@ def fill_empty_frames(crop: pd.DataFrame) -> pd.DataFrame:
 
 
 def create_lagged_dataset(
-    crop: pd.DataFrame,
+    crop: DataFrameGroupBy,
     time_lag: int,
 ) -> pd.DataFrame:
     """
@@ -227,7 +235,7 @@ def create_lagged_dataset(
 
     Parameters
     ----------
-    crop : pd.DataFrame
+    crop : DataFrameGroupBy
         Dataframe containing the crop data for a single crop_index
     time_lag : int
         Number of frames to lag the dataset by.
