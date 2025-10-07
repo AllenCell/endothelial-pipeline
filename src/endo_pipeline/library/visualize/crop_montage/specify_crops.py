@@ -19,10 +19,9 @@ from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     plot_principal_component_histogram,
 )
 from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings import NUM_BINS_CROP_HIST
 
 logger = logging.getLogger(__name__)
-
-N_BINS = 40  # number of bins for histogram, hardcoded right now but somewhat arbitrary
 
 
 def load_data_for_montage(
@@ -108,7 +107,7 @@ def filter_dataframe(
     )
     hist_array_list, bin_edges, df_with_bins = get_histogram_by_component(
         df_all,
-        N_BINS,
+        NUM_BINS_CROP_HIST,
         bin_limits,
         feat_cols=get_pc_column_names(df_all, pc_axes=[0, 1, 2]),
     )

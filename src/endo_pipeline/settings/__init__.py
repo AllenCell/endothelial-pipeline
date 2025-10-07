@@ -24,6 +24,7 @@ from .image_data import (
     Z_STEP_SIZE_NOMINAL_3i_20x,
     Z_STEP_SIZE_NOMINAL_3i_40x,
 )
+from .plot_defaults import NUM_BINS_CROP_HIST
 
 __all__ = [
     "DIMENSION_ORDER",
@@ -33,6 +34,7 @@ __all__ = [
     "LEGACY_CONFIG",
     "LOG_EPSILON",
     "LOWER_Z_SLICE_OFFSET",
+    "NUM_BINS_CROP_HIST",
     "NUM_ZSLICES",
     "RELATIVE_PATH_TO_EVAL_CONFIG",
     "RELATIVE_PATH_TO_FINETUNE_CONFIG",
