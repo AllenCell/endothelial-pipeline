@@ -53,7 +53,7 @@ def main(
         sample_dataframe,
     )
     from endo_pipeline.manifests import (
-        get_most_recent_run_name,
+        get_feature_dataframe_manifest_name,
         load_dataframe_manifest,
         load_model_manifest,
     )
@@ -67,12 +67,10 @@ def main(
         dataset_list = datasets
 
     # get dataframe manifest corresponding to the model that generated the features
-    if model_manifest_name == "diffae_04_10":
-        dataframe_manifest_name = "diffae_04_10"
-    else:
-        model_manifest = load_model_manifest(model_manifest_name)
-        run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
-        dataframe_manifest_name = f"{model_manifest_name}_{run_name_}_grid"
+    model_manifest = load_model_manifest(model_manifest_name)
+    dataframe_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
 
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 

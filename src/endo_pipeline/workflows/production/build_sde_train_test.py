@@ -26,11 +26,6 @@ def main(
         Name of the model manifest containing the run to load features from.
     run_name
         Name of the specific model run to load featuref for. If None, uses the most recent run.
-
-    Returns
-    -------
-    :
-        Saves the training and test data for regression model fitting.
     """
     import logging
 
@@ -42,7 +37,7 @@ def main(
         save_train_test,
     )
     from endo_pipeline.manifests import (
-        get_most_recent_run_name,
+        get_feature_dataframe_manifest_name,
         load_dataframe_manifest,
         load_model_manifest,
     )
@@ -54,12 +49,10 @@ def main(
     logger.info("*** Running workflow using workflow input config: [ %s ]", dynamics_config_name)
     dynamics_config = dynamics_io.load_dynamics_config(dynamics_config_name)
 
-    if model_manifest_name == "diffae_04_10":
-        dataframe_manifest_name = "diffae_04_10"
-    else:
-        model_manifest = load_model_manifest(model_manifest_name)
-        run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
-        dataframe_manifest_name = f"{model_manifest_name}_{run_name_}_grid"
+    model_manifest = load_model_manifest(model_manifest_name)
+    dataframe_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
 
     # get output subdirectory for intermediate workflow outputs
     # (set in config file dynamics_config.yaml)

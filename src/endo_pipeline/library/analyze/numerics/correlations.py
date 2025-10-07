@@ -309,7 +309,7 @@ def _compute_correlations_for_one_dataset(
     dataframe_manifest: DataframeManifest,
     pca: PCA,
     correlation_dict: dict,
-    bootstrap_samples: int = 0,
+    bootstrap_samples: int | None = None,
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
 ) -> dict[str, dict[str, Any]]:
     """Compute cross-correlation and autocorrelation for features from one dataset."""
@@ -343,7 +343,7 @@ def _compute_correlations_for_one_dataset(
     relaxation_timescale_ub = np.zeros(3)
     for i in range(3):
         acf[:, i] = autocorrelation_function(feats, i)
-        if bootstrap_samples > 0:
+        if bootstrap_samples is not None:
             # calculate bootstrap confidence intervals for ACF and relaxation timescale
             confidence_intervals = bootstrap_autocorrelation_confidence_intervals(
                 feats, i, lags, n_bootstraps=bootstrap_samples
@@ -378,7 +378,7 @@ def _compute_correlations_for_one_dataset(
         ccf[:, i] = cross_correlation_function(data_feat1, data_feat2)
         # get delta CCF = CCF(tau>0) - CCF(tau<0)
         delta_ccf[:, i] = ccf[1 + num_lags // 2 :, i] - ccf[: num_lags // 2, i]
-        if bootstrap_samples > 0:
+        if bootstrap_samples is not None:
             # calculate bootstrap confidence intervals
             confidence_intervals = bootstrap_cross_correlation_confidence_intervals(
                 data_feat1,
@@ -419,7 +419,7 @@ def compute_correlation_dict(
     dataset_names: list[str],
     dataframe_manifest: DataframeManifest,
     pca: PCA,
-    bootstrap_samples: int = 0,
+    bootstrap_samples: int | None = None,
 ) -> dict[str, dict]:
     """Compute cross-correlation and autocorrelation for features from each dataset."""
     correlation_dict: dict[str, dict[str, np.ndarray]] = {

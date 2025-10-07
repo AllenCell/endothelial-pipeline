@@ -38,17 +38,20 @@ def main(
         interpolate_on_curve,
     )
     from endo_pipeline.library.model import generate_from_coords_batch
-    from endo_pipeline.manifests import get_most_recent_run_name, load_model_manifest
+    from endo_pipeline.manifests import (
+        get_feature_dataframe_manifest_name,
+        get_most_recent_run_name,
+        load_model_manifest,
+    )
 
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     model = load_model(model_manifest.locations[run_name_])
 
-    if model_manifest_name == "diffae_04_10":
-        dataframe_manifest_name = "diffae_04_10"
-    else:
-        dataframe_manifest_name = f"{model_manifest_name}_{run_name_}_grid"
+    dataframe_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name_, crop_pattern="grid"
+    )
 
     # Create output folder if does not exist yet
     output_savedir = get_output_path(

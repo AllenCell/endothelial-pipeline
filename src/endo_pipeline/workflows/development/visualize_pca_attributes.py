@@ -18,12 +18,19 @@ def main(
         get_timepoints_for_plotting_pcs,
     )
     from endo_pipeline.library.visualize.diffae_features import feature_viz
-    from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.manifests import (
+        get_feature_dataframe_manifest_name,
+        load_dataframe_manifest,
+        load_model_manifest,
+    )
 
     # set up logger
     logger = logging.getLogger(__name__)
 
-    dataframe_manifest_name = f"{model_manifest_name}_{run_name}_grid"
+    model_manifest = load_model_manifest(model_manifest_name)
+    dataframe_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
 
     # set up output directory for figures
     fig_savedir = get_output_path("pca_viz", dataset_collection_name, model_manifest_name, run_name)

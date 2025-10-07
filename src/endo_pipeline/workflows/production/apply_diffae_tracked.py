@@ -65,7 +65,7 @@ def main(
         upload_prediction_dataframe_to_fms,
     )
     from endo_pipeline.library.model.image_loading import get_include_positions
-    from endo_pipeline.manifests import load_model_manifest
+    from endo_pipeline.manifests import get_feature_dataframe_manifest_name, load_model_manifest
     from endo_pipeline.settings import RELATIVE_PATH_TO_EVAL_CONFIG, Z_SLICE_OFFSETS
 
     logger = logging.getLogger(__name__)
@@ -118,7 +118,9 @@ def main(
                 dataset_config,
                 model_manifest,
                 model.cfg.run_name,
-                dataframe_manifest_name=f"{model_manifest_name}_{model.cfg.run_name}_tracked",
+                dataframe_manifest_name=get_feature_dataframe_manifest_name(
+                    model_manifest, model.cfg.run_name, crop_pattern="tracked"
+                ),
                 workflow_name=Path(__file__).stem,
                 workflow_parameters={"z_slice_offsets": Z_SLICE_OFFSETS},
             )

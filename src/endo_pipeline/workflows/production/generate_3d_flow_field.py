@@ -28,8 +28,6 @@ def main(
         to the specified output directories.
     """
 
-    import logging
-
     import numpy as np
 
     from endo_pipeline.configs import dynamics_io, get_datasets_in_collection
@@ -38,17 +36,15 @@ def main(
     from endo_pipeline.library.analyze.diffae_features import get_and_analyze_ddff
     from endo_pipeline.library.visualize.diffae_features import feature_viz
     from endo_pipeline.manifests import (
-        get_most_recent_run_name,
+        get_feature_dataframe_manifest_name,
         load_dataframe_manifest,
         load_model_manifest,
     )
 
-    if model_manifest_name == "diffae_04_10":
-        dataframe_manifest_name = "diffae_04_10"
-    else:
-        model_manifest = load_model_manifest(model_manifest_name)
-        run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
-        dataframe_manifest_name = f"{model_manifest_name}_{run_name_}_grid"
+    model_manifest = load_model_manifest(model_manifest_name)
+    dataframe_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
 
     # Create output folder if does not exist yet
     workflow_name = "flow_field_3d"

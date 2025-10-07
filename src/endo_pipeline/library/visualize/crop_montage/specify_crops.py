@@ -35,8 +35,8 @@ def load_data_for_montage(
     ----------
     dataset_name_list
         List of dataset names to load for montage.
-    dataframe_manifest_name
-        DataFrame manifest name corresponding to features to load.
+    dataframe_manifest
+        Dataframe manifest corresponding to features to load.
 
     Returns
     -------

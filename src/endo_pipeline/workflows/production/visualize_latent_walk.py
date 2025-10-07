@@ -62,6 +62,7 @@ def main(
         write_pc_vals,
     )
     from endo_pipeline.manifests import (
+        get_feature_dataframe_manifest_name,
         get_most_recent_run_name,
         load_dataframe_manifest,
         load_model_manifest,
@@ -76,10 +77,9 @@ def main(
     save_dir = get_output_path("models", model_manifest_name, run_name_)
 
     # load model configuration and reference dataset manifests
-    if model_manifest_name == "diffae_04_10":
-        dataframe_manifest_name = "diffae_04_10"
-    else:
-        dataframe_manifest_name = f"{model_manifest_name}_{run_name_}_grid"
+    dataframe_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name_, crop_pattern="grid"
+    )
     manifest = load_dataframe_manifest(dataframe_manifest_name)
     dataset_names = get_datasets_in_collection("pca_reference")
 
