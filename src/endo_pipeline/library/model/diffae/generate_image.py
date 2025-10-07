@@ -4,11 +4,10 @@ import typing
 import numpy as np
 import pandas as pd
 import torch
+from hydra.utils import instantiate
 
 if typing.TYPE_CHECKING:
-    from cyto_dl.models.im2im.diffusion_autoencoder import DiffusionAutoEncoder as _BaseDiffAE
-
-    from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
+    from cyto_dl.api import CytoDLModel
 
 from endo_pipeline.library.analyze.diffae_dataframe import get_feature_column_names
 
@@ -16,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def generate_from_coords(
-    model: "DiffusionAutoEncoder | _BaseDiffAE",
+    model: "CytoDLModel",
     coords: np.ndarray | list[list[float]],
     n_noise_samples: int = 1,
     average: bool = False,
@@ -47,13 +46,16 @@ def generate_from_coords(
 
     coords_torch = torch.from_numpy(coords_np).float()
 
+    # have to instantiate the actual model object from the config
+    model_instantiated = instantiate(model.cfg.model)
+
     # move model and inputs to gpu if available
     if torch.cuda.is_available():
         coords_ = coords_torch.to("cuda")
-        model_ = model.to("cuda")
+        model_ = model_instantiated.to("cuda")
     else:
         coords_ = coords_torch
-        model_ = model
+        model_ = model_instantiated
 
     walk_img = model_.generate_from_latent(
         coords_, n_noise_samples=n_noise_samples, average=average, save=False
@@ -62,7 +64,7 @@ def generate_from_coords(
 
 
 def generate_from_coords_batch(
-    model: "DiffusionAutoEncoder | _BaseDiffAE", coords_batch: np.ndarray | list[list[list[float]]]
+    model: "CytoDLModel", coords_batch: np.ndarray | list[list[list[float]]]
 ) -> list[np.ndarray]:
     """
     Generate synthetic images from a batch of coordinates
@@ -95,7 +97,7 @@ def generate_from_coords_batch(
 
 def get_reconstructed_crops_in_dataframe(
     df: pd.DataFrame,
-    model: "DiffusionAutoEncoder | _BaseDiffAE",
+    model: "CytoDLModel",
 ) -> list:
     """Reconstruct crops from each latent coordinate given in the input dataframe."""
     # get coordinates (feature columns) from the dataframe,

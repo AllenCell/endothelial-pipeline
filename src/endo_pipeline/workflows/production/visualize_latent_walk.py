@@ -45,7 +45,6 @@ def main(
 
     import pandas as pd
     from bioio.writers import OmeTiffWriter
-    from hydra.utils import instantiate
 
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_model
@@ -71,9 +70,6 @@ def main(
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     model = load_model(model_manifest.locations[run_name_])
-    # have to instantiate the model specified in the configcfg
-    # to get the correct object for using the generate_from_coords function
-    model_correct_type = instantiate(model.cfg.model)
 
     # set up output directory
     save_dir = get_output_path("models", model_manifest_name, run_name_)
@@ -111,7 +107,7 @@ def main(
         walk, ranges = get_latent_coords(data_for_walk, sigma, n_steps)
 
     # generate images from the latent walk
-    walk_img = generate_from_coords(model_correct_type, walk, n_noise_samples=n_noise_samples)
+    walk_img = generate_from_coords(model, walk, n_noise_samples=n_noise_samples)
 
     # vertically stack multi-channel generations
     walk_img = walk_img.reshape(walk_img.shape[0], -1, walk_img.shape[-1])

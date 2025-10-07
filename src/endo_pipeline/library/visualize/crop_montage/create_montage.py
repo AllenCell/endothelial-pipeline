@@ -142,8 +142,6 @@ def generate_contact_sheet(
 
     # Optionally add reconstructed crops (if GPU is available)
     if num_gpus is not None:
-        from hydra.utils import instantiate
-
         from endo_pipeline.io import load_model
         from endo_pipeline.library.model.diffae.generate_image import (
             get_reconstructed_crops_in_dataframe,
@@ -152,13 +150,10 @@ def generate_contact_sheet(
 
         model_manifest = load_model_manifest(model_manifest_name)
         model = load_model(model_manifest.locations[run_name])
-        # have to instantiate the model specified in the configcfg
-        # to get the correct object for using the generate_from_coords function
-        model_correct_type = instantiate(model.cfg.model)
 
         reconstructed_crop_list = get_reconstructed_crops_in_dataframe(
             df_sample_sorted,
-            model_correct_type,
+            model,
         )
         contrast_crops["reconstructed_cdh5"] = reconstructed_crop_list
     else:
