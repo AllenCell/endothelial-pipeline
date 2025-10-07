@@ -71,10 +71,15 @@ def performance_stats(
     total_timepoints = df["n_tps_assessed"].sum()
     percent_artifact = (total_auto + total_missed) / total_timepoints * 100
 
-    logging.info(f"--- {annotation_type} STATISTICS ---")
-    logging.info(f"Total manual annotated timepoints: {total_manual}")
-    logging.info(f"Total missed timepoints: {total_missed}")
-    logging.info(f"Percent of missed timepoints: {percent_missed:.2f}%")
-    logging.info(f"Total auto-detected timepoints: {total_auto}")
-    logging.info(f"Total timepoints assessed: {total_timepoints}")
-    logging.info(f"Percent of tps with artifacts: {percent_artifact:.2f}%")
+    message = (
+        f"--- {annotation_type} STATISTICS ---\n"
+        f"Total manual annotated timepoints: {total_manual}\n"
+        f"Total missed timepoints: {total_missed}\n"
+        f"Percent of missed timepoints: {percent_missed:.2f}%\n"
+        f"Total auto-detected timepoints: {total_auto}\n"
+        f"Total timepoints assessed: {total_timepoints}\n"
+        f"Percent of tps with artifacts: {percent_artifact:.2f}%"
+    )
+
+    logging.info(message)
+    print(message)
