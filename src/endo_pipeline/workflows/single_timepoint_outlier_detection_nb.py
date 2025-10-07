@@ -10,7 +10,7 @@ from endo_pipeline.library.process.gfp_timepoint_outlier import detect_egfp_scop
 
 # %% UPDATE ANNOTATIONS IN DATASET CONFIGS
 datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
-# for dataset_name in [datasets[0]]: # For testing with a single dataset
+# datasets = [datasets[0]] # For testing with a single dataset
 for dataset_name in datasets:
     dataset_config = load_dataset_config(dataset_name)
     tp_annotations = (
