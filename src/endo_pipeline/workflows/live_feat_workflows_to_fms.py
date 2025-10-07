@@ -16,8 +16,8 @@ from endo_pipeline.io import (
 )
 from endo_pipeline.manifests import (
     DataframeLocation,
-    load_model_manifest,
     create_dataframe_manifest,
+    load_model_manifest,
     save_dataframe_manifest,
 )
 
