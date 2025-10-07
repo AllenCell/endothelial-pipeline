@@ -30,8 +30,8 @@ from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.manifests import (
     DataframeLocation,
-    DataframeManifest,
     ModelManifest,
+    create_dataframe_manifest,
     get_dataframe_location_for_dataset,
     get_model_location_for_run,
     load_dataframe_manifest,
@@ -780,31 +780,8 @@ def upload_prediction_dataframe_to_fms(
         file_type="parquet",
     )
 
-    try:
-        # Temporarily set dataframe manifest I/O logger to CRITICAL
-        # to suppress error logging if manifest does not exist.
-        # We want it to be a warning here instead (see except block below).
-        dataframe_manifest_io_logger = logging.getLogger(
-            "endo_pipeline.manifests.dataframe_manifest_io"
-        )
-        original_level = dataframe_manifest_io_logger.level
-        dataframe_manifest_io_logger.setLevel(logging.CRITICAL)
-
-        # Attempt to load existing dataframe manifest
-        manifest = load_dataframe_manifest(dataframe_manifest_name)
-    except FileNotFoundError:
-        logger.warning(
-            "Dataframe manifest [ %s ] not found, creating a new one.",
-            dataframe_manifest_name,
-        )
-        parameters = {} if workflow_parameters is None else workflow_parameters
-        manifest = DataframeManifest(
-            name=dataframe_manifest_name, workflow=workflow_name, parameters=parameters
-        )
-    finally:
-        # restore original logging level of dataframe manifest I/O logger
-        dataframe_manifest_io_logger.setLevel(original_level)
-
+    manifest = create_dataframe_manifest(dataframe_manifest_name, workflow_name)
+    manifest.parameters = workflow_parameters or {}
     manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
     save_dataframe_manifest(manifest)
     logger.info(
