@@ -23,4 +23,10 @@ def get_model_location_for_run(manifest: ModelManifest, run_name: str) -> ModelL
 
 def get_most_recent_run_name(model_manifest: ModelManifest) -> str:
     """Get the most recent run name from the model manifest."""
-    return list(model_manifest.locations.keys())[-1]
+    available_runs = list(model_manifest.locations.keys())
+
+    if not available_runs:
+        logger.error("Model manifest [ %s ] has no runs", model_manifest.name)
+        raise IndexError("No runs found in model manifest.")
+
+    return available_runs[-1]
