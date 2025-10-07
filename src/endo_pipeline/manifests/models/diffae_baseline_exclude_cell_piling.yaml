@@ -1,0 +1,20 @@
+name: diffae_baseline_exclude_cell_piling
+workflow: train_diffae
+parameters:
+  training_datasets:
+  - 20250319_20X
+  - 20250428_20X
+  - 20250611_20X
+  - 20250618_20X
+  - 20250714_20X
+  - 20250813_20X
+  - 20250818_20X
+  - 20250827_20X
+  crop_size: 128
+  resolution_level: 1
+  exclude_cell_piling: true
+locations:
+  20250927_no_log_norm:
+    mlflowid: 00edfbc56e4a4c788a62cd6194db1c35
+  20250926_with_log_norm:
+    mlflowid: 924b23d33f3f48fc8e8545e34ed1ee34

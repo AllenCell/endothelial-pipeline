@@ -6,8 +6,7 @@ from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
 from endo_pipeline.manifests import (
     DataframeLocation,
-    DataframeManifest,
-    load_dataframe_manifest,
+    create_dataframe_manifest,
     save_dataframe_manifest,
 )
 
@@ -57,10 +56,6 @@ def update_dataframe_manifest(dataset: str, fms_id: str) -> None:
         ValueError: If the dataset configuration cannot be loaded.
     """
 
-    try:
-        manifest = load_dataframe_manifest("immunofluorescence")
-    except FileNotFoundError:
-        manifest = DataframeManifest(name="immunofluorescence", workflow=Path(__file__).stem)
-
+    manifest = create_dataframe_manifest("immunofluorescence", __file__)
     manifest.locations[dataset] = DataframeLocation(fmsid=fms_id)
     save_dataframe_manifest(manifest)
