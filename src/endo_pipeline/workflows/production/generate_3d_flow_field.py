@@ -1,5 +1,6 @@
+from endo_pipeline.cli import Datasets
+
 TAGS = ["dynamical_systems", "diffae_features"]
-from endo_pipeline.cli import Datasets  # noqa: E402, I001
 
 
 def main(
