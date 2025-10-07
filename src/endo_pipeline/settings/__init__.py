@@ -21,8 +21,11 @@ from .image_data import (
     Z_STEP_SIZE_NOMINAL_3i_40x,
 )
 from .plot_defaults import NUM_BINS_CROP_HIST
+from .workflow_defaults import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 __all__ = [
+    "DEFAULT_MODEL_MANIFEST_NAME",
+    "DEFAULT_MODEL_RUN_NAME",
     "DIFFAE_MODEL_EVAL_CONFIG",
     "DIFFAE_MODEL_EVAL_FINETUNE_CONFIG",
     "DIFFAE_MODEL_LEGACY_CONFIG",

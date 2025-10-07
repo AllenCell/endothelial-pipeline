@@ -1,9 +1,11 @@
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+
 TAGS = ["diffae_image_generation", "diffae_features"]
 
 
 def main(
-    model_manifest_name: str = "diffae_04_10",
-    run_name: str | None = None,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
 ) -> None:
     """
     Reconstruct crops from latent space coordinates along trajectories output

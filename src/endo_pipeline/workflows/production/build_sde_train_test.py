@@ -1,10 +1,12 @@
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+
 TAGS = ["dynamical_systems", "diffae_features", "2d_feature_space"]
 
 
 def main(
     dynamics_config_name: str = "default",
-    model_manifest_name: str = "diffae_04_10",
-    run_name: str | None = None,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
 ) -> None:
     """
     Build train/test sets to apply SINDy to the Kramers-Moyal estimates from the Diff AE features.

@@ -1,9 +1,11 @@
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+
 TAGS = ["diffae_image_generation", "pc_interpretation"]
 
 
 def main(
-    model_manifest_name: str = "diffae_04_10",
-    run_name: str | None = None,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     num_pcs: int = 3,
     sigma: float = 3.0,
     n_steps: int = 10,
