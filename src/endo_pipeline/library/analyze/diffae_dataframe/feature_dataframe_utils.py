@@ -54,7 +54,7 @@ def get_dataset_descriptions(
             if simple:
                 description.append(regime.value)
 
-            if (simple and include_shear_stress) or not simple:
+            if not simple or include_shear_stress:
                 description.append(f"{int(condition.shear_stress)}dyncm2")
 
         description_dict[dataset_name] = "_".join(description)
