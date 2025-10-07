@@ -46,6 +46,7 @@ def main(
     import pandas as pd
     from bioio.writers import OmeTiffWriter
 
+    from endo_pipeline import NUM_GPUS
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_model
     from endo_pipeline.library.analyze.diffae_dataframe import (
@@ -107,7 +108,7 @@ def main(
         walk, ranges = get_latent_coords(data_for_walk, sigma, n_steps)
 
     # generate images from the latent walk
-    walk_img = generate_from_coords(model, walk, n_noise_samples=n_noise_samples)
+    walk_img = generate_from_coords(model, walk, n_noise_samples=n_noise_samples, num_gpus=NUM_GPUS)
 
     # vertically stack multi-channel generations
     walk_img = walk_img.reshape(walk_img.shape[0], -1, walk_img.shape[-1])

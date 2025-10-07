@@ -4,12 +4,14 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.io import load_model, save_plot_to_path
+from endo_pipeline.library.model.diffae.generate_image import get_reconstructed_crops_in_dataframe
 from endo_pipeline.library.process.get_images import (
     get_crops_in_dataframe,
     global_contrast_crop_list,
     individual_contrast_crop_list,
 )
+from endo_pipeline.manifests import load_model_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +81,22 @@ def _plot_crop_montage(
     plt.show()
 
 
+def _get_reconstructed_crops(
+    df_sample_sorted: pd.DataFrame,
+    model_manifest_name: str,
+    run_name: str | None,
+    num_gpus: int | None = None,
+) -> list:
+    """Generate and add reconstructed crops to the contrast crops dictionary."""
+    model_manifest = load_model_manifest(model_manifest_name)
+    model = load_model(model_manifest.locations[run_name])
+
+    reconstructed_crop_list = get_reconstructed_crops_in_dataframe(
+        df_sample_sorted, model, num_gpus=num_gpus
+    )
+    return reconstructed_crop_list
+
+
 def generate_contact_sheet(
     df_sample: pd.DataFrame,
     model_manifest_name: str,
@@ -122,6 +140,15 @@ def generate_contact_sheet(
         df_sample_sorted,
     ) = get_crops_in_dataframe(df_sample)
 
+    # get reconstructed crops from Diff AE model using
+    # points in the sorted sample dataframe
+    reconstructed_crops = _get_reconstructed_crops(
+        df_sample_sorted,
+        model_manifest_name,
+        run_name,
+        num_gpus=num_gpus,
+    )
+
     # Define raw crop types
     crop_types = {
         "bf_slice": bf_single_slice,
@@ -139,25 +166,7 @@ def generate_contact_sheet(
         contrast_crops[f"{name}_ind_contrast"] = individual_contrast_crop_list(
             crop_list, "percentile"
         )
-
-    # Optionally add reconstructed crops (if GPU is available)
-    if num_gpus is not None:
-        from endo_pipeline.io import load_model
-        from endo_pipeline.library.model.diffae.generate_image import (
-            get_reconstructed_crops_in_dataframe,
-        )
-        from endo_pipeline.manifests import load_model_manifest
-
-        model_manifest = load_model_manifest(model_manifest_name)
-        model = load_model(model_manifest.locations[run_name])
-
-        reconstructed_crop_list = get_reconstructed_crops_in_dataframe(
-            df_sample_sorted,
-            model,
-        )
-        contrast_crops["reconstructed_cdh5"] = reconstructed_crop_list
-    else:
-        logger.warning("GPU not available, skipping reconstruction of crops.")
+    contrast_crops["reconstructed"] = reconstructed_crops
 
     # Generate montages for each image content type
     for image_content, crop_list_channel in contrast_crops.items():

@@ -30,6 +30,7 @@ def main(
     import numpy as np
     from bioio.writers import OmeTiffWriter
 
+    from endo_pipeline import NUM_GPUS
     from endo_pipeline.io import get_output_path, load_model
     from endo_pipeline.library.analyze.diffae_dataframe import fit_pca
     from endo_pipeline.library.analyze.diffae_features import (
@@ -98,7 +99,7 @@ def main(
 
     # pass into DiffAE model to generate reconstructed crops
     # using single noise input (generate images in batch)
-    walk_imgs = generate_from_coords_batch(model, latent_coords_batch)
+    walk_imgs = generate_from_coords_batch(model, latent_coords_batch, num_gpus=NUM_GPUS)
 
     for walk_img, experimental_condition in zip(
         walk_imgs, experimental_condition_list, strict=False

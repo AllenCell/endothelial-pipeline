@@ -19,6 +19,7 @@ def generate_from_coords(
     coords: np.ndarray | list[list[float]],
     n_noise_samples: int = 1,
     average: bool = False,
+    num_gpus: int | None = None,
 ) -> np.ndarray:
     """
     Generate a synthetic image from a list of coordinates
@@ -28,12 +29,14 @@ def generate_from_coords(
     ----------
     model
         The model to use for generation.
-    coords: List[List[float]]
+    coords
         A list of coordinates in the latent space of the model.
-    n_noise_samples: int
+    n_noise_samples
         The number of noise samples to use for generation.
-    average: bool
+    average
         Whether to average the generated images.
+    num_gpus
+        Optional, number of available GPUs.
     """
     if not isinstance(coords, np.ndarray):
         if isinstance(coords, list):
@@ -49,8 +52,9 @@ def generate_from_coords(
     # have to instantiate the actual model object from the config
     model_instantiated = instantiate(model.cfg.model)
 
-    # move model and inputs to gpu if available
-    if torch.cuda.is_available():
+    # move model and inputs to gpu if available, else
+    # perform reconstruction on cpu
+    if num_gpus:
         coords_ = coords_torch.to("cuda")
         model_ = model_instantiated.to("cuda")
     else:
@@ -64,7 +68,9 @@ def generate_from_coords(
 
 
 def generate_from_coords_batch(
-    model: "CytoDLModel", coords_batch: np.ndarray | list[list[list[float]]]
+    model: "CytoDLModel",
+    coords_batch: np.ndarray | list[list[list[float]]],
+    num_gpus: int | None = None,
 ) -> list[np.ndarray]:
     """
     Generate synthetic images from a batch of coordinates
@@ -76,6 +82,8 @@ def generate_from_coords_batch(
         The model to use for generation.
     coords_batch:
         A batch of lists of coordinates in the latent space of the model.
+    num_gpus:
+        Optional, number of available GPUs.
     """
 
     # note to self: need to debug what the input type is here
@@ -89,7 +97,7 @@ def generate_from_coords_batch(
         coords_concat = np.concatenate(coords_batch, axis=0)
     logger.debug("Concatenated coordinates shape: [ %s ]", coords_concat.shape)
 
-    img = generate_from_coords(model, coords=coords_concat)
+    img = generate_from_coords(model, coords_concat, num_gpus=num_gpus)
     walk_imgs = [img[i] for i in range(len(coords_batch))]
 
     return walk_imgs
@@ -98,6 +106,7 @@ def generate_from_coords_batch(
 def get_reconstructed_crops_in_dataframe(
     df: pd.DataFrame,
     model: "CytoDLModel",
+    num_gpus: int | None = None,
 ) -> list:
     """Reconstruct crops from each latent coordinate given in the input dataframe."""
     # get coordinates (feature columns) from the dataframe,
@@ -110,7 +119,7 @@ def get_reconstructed_crops_in_dataframe(
 
     # pass into DiffAE model to generate reconstructed crops
     walk_imgs = generate_from_coords_batch(
-        model, np.array(latent_coords)
+        model, np.array(latent_coords), num_gpus=num_gpus
     )  # output is a list of numpy arrays
 
     return walk_imgs
