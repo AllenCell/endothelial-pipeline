@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 DESCRIPTION = "Detect and annotate outlier timepoints in BF and GFP channels."
 TAGS = ["quality-control", "preprocessing"]
 
-# %% git s
+# %%
 datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
 
 for dataset_name in datasets:

@@ -15,16 +15,16 @@ from endo_pipeline.settings.examples import EXAMPLE_DATASET
 DESCRIPTION = "Visualize the automatic detection of outlier timepoints in BF and EGFP channels."
 TAGS = ["supfig", "preprocessing"]
 
-# %% Load example dataset
-dataset = EXAMPLE_DATASET["SUPP_FIG_SINGLE_TP_OUTLIER"]
-dataset_config = load_dataset_config(dataset)
+# %% Load example datasets
+dataset_config_bf = load_dataset_config(EXAMPLE_DATASET["SUPP_FIG_SINGLE_TP_BF_OUTLIER"])
+dataset_config_gfp = load_dataset_config(EXAMPLE_DATASET["SUPP_FIG_SINGLE_TP_GFP_OUTLIER"])
 position = 0
 
 # %% Panel A - Auto-detect BF outliers
-bf_scope_error, bf_temp_artifact = detect_bf_outliers(dataset_config, position, visualize=True)
+bf_scope_error, bf_temp_artifact = detect_bf_outliers(dataset_config_bf, position, visualize=True)
 
 # %% Panel B - Auto-detect EGFP scope errors
-egfp_scope_error = detect_egfp_scope_errors(dataset_config, position, visualize=True)
+egfp_scope_error = detect_egfp_scope_errors(dataset_config_gfp, position, visualize=True)
 
 # %% Performance statistics reported across datasets in collection
 datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
