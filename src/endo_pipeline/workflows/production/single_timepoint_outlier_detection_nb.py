@@ -45,11 +45,14 @@ for dataset_name in datasets:
         bf_scope_error, bf_temp_artifact = detect_bf_outliers(
             dataset_config, position, visualize=True
         )
-        egfp_scope_error = detect_egfp_scope_errors(dataset_config, position, visualize=True)
-
         tp_annotations[TimepointAnnotation.AUTO_BF_SCOPE_ERROR][position].extend(bf_scope_error)
         tp_annotations[TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT][position].extend(bf_temp_artifact)
-        tp_annotations[TimepointAnnotation.AUTO_GFP_SCOPE_ERROR][position].extend(egfp_scope_error)
+
+        if dataset_config.duration > 1:
+            egfp_scope_error = detect_egfp_scope_errors(dataset_config, position, visualize=True)
+            tp_annotations[TimepointAnnotation.AUTO_GFP_SCOPE_ERROR][position].extend(
+                egfp_scope_error
+            )
 
     # Save the updated annotations back to the dataset configuration
     dataset_config.timepoint_annotations = tp_annotations
@@ -58,3 +61,5 @@ for dataset_name in datasets:
     if DEMO_MODE:
         logger.info(f"DEMO_MODE is ON. Processed only the first dataset: {dataset_name}")
         break
+
+# %%
