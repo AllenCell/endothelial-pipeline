@@ -71,16 +71,21 @@ def evaluate_model_paired_fixed_live(
         data["channel"] = 0
         data.to_csv(data_save_path, index=False)
 
+    # get experiment name and run name
+    experiment_name = model.cfg.experiment_name
+    run_name = model.cfg.run_name
+
     # Evaluate model on target/moving images - set up config and run model
     target_overrides = generate_overrides_for_model_eval(
         save_path=model_save_path.as_posix(),
         data_path=data_save_path.as_posix(),
         dataset_name=live_dataset_name,
-        model_manifest_name=model.cfg.experiment_name,
-        run_name=model.cfg.run_name,
+        model_manifest_name=experiment_name,
+        run_name=run_name,
         num_gpus=num_gpus,
     )
     target_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "target"})
+    target_overrides.update({"model.condition_key": "raw_moving"})
     model.override_config(target_overrides)
     rm_keys = ["num_workers", "cache_num", "csv_path", "dict_meta"]
     for key in rm_keys:
@@ -92,11 +97,12 @@ def evaluate_model_paired_fixed_live(
         save_path=model_save_path.as_posix(),
         data_path=data_save_path.as_posix(),
         dataset_name=fixed_dataset_name,
-        model_manifest_name=model.cfg.experiment_name,
-        run_name=model.cfg.run_name,
+        model_manifest_name=experiment_name,
+        run_name=run_name,
         num_gpus=num_gpus,
     )
     moving_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving"})
+    moving_overrides.update({"model.condition_key": "raw_moving"})
     model.override_config(moving_overrides)
     rm_keys = ["num_workers", "cache_num", "csv_path", "dict_meta"]
     for key in rm_keys:
@@ -106,11 +112,11 @@ def evaluate_model_paired_fixed_live(
     # Define paths to saved features from model for both fixed and live datasets
     fixed_features_path = (
         model_save_path
-        / f"predict_{fixed_dataset_name}_{model.cfg.experiment_name}_features.parquet"
+        / f"predict_{fixed_dataset_name}_{experiment_name}_{run_name}_features.parquet"
     )
     live_features_path = (
         model_save_path
-        / f"predict_{live_dataset_name}_{model.cfg.experiment_name}_features.parquet"
+        / f"predict_{live_dataset_name}_{experiment_name}_{run_name}_features.parquet"
     )
 
     return fixed_features_path, live_features_path
