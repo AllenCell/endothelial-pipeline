@@ -51,10 +51,6 @@ for dataset_name in datasets:
         tp_annotations[TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT][position].extend(bf_temp_artifact)
         tp_annotations[TimepointAnnotation.AUTO_GFP_SCOPE_ERROR][position].extend(egfp_scope_error)
 
-        if DEMO_MODE:
-            logging.info(f"DEMO_MODE is ON. Processed only position {position}")
-            break
-
     # Save the updated annotations back to the dataset configuration
     dataset_config.timepoint_annotations = tp_annotations
     save_dataset_config(dataset_config)
