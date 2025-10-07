@@ -326,6 +326,8 @@ def save_thumbnail_to_path(
     scalebar_location: Literal[
         "lower right", "lower left", "upper right", "upper left"
     ] = "lower left",
+    bar_thickness: int = 10,
+    bar_padding: int = 20,
 ) -> None:
     """
     Save a thumbnail image to a specified file path.
@@ -362,8 +364,8 @@ def save_thumbnail_to_path(
             scale_bar_um=scalebar_size_um,
             pixel_size=pixel_size,
             location=scalebar_location,
-            bar_thickness=10,
-            padding=20,
+            bar_thickness=bar_thickness,
+            padding=bar_padding,
         )
         image_name += f"_scalebar{scalebar_size_um}um"
 
