@@ -10,13 +10,9 @@ if typing.TYPE_CHECKING:
 
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
 
-from endo_pipeline.io import load_model
 from endo_pipeline.library.analyze.diffae_dataframe import get_feature_column_names
-from endo_pipeline.manifests import get_most_recent_run_name, load_model_manifest
 
 logger = logging.getLogger(__name__)
-
-LEGACY_DIFFAE = "diffae_04_10"
 
 
 def generate_from_coords(
