@@ -167,46 +167,7 @@ data:
       replace_rate: 0.1
       num_init_workers: 24
       num_replace_workers: 24
-  predict_dataloaders:
-    _target_: monai.data.DataLoader
-    num_workers: 8
-    batch_size: 1
-    pin_memory: true
-    persistent_workers: false
-    shuffle: false
-    dataset:
-      _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
-      dataframe_path: null
-      spatial_dims: 3
-      transform:
-        _target_: monai.transforms.Compose
-        transforms:
-        - _target_: endo_pipeline.library.model.image_loading.BioIOImageLoaderd
-          path_key: original_path
-          out_key: raw_moving
-          dask_load: true
-          dtype: numpy.float32
-        - _target_: cyto_dl.image.transforms.Projectd
-          keys:
-          - raw_moving
-          projection_type: std
-        - _target_: endo_pipeline.library.model.image_loading.LogImaged
-          keys: raw_moving
-        - _target_: cyto_dl.image.transforms.clip.Clipd
-          keys:
-          - raw_moving
-          low: 0.1
-          high: 99.9
-        - _target_: monai.transforms.NormalizeIntensityd
-          keys: raw_moving
-        - _target_: monai.transforms.ToTensord
-          keys:
-          - raw_moving
-          dtype: float16
-      cache_rate: 1.0
-      replace_rate: 0.1
-      num_init_workers: 24
-      num_replace_workers: 24
+  predict_dataloaders: null
   val_dataloaders:
     _target_: monai.data.DataLoader
     num_workers: 8

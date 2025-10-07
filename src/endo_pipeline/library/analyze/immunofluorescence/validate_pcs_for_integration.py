@@ -20,7 +20,7 @@ from endo_pipeline.manifests import (
 from endo_pipeline.settings import Z_SLICE_OFFSETS
 
 
-def apply_model_paired_fixed_live(
+def evaluate_model_paired_fixed_live(
     fixed_dataset_name: str,
     live_dataset_name: str,
     model_name: str,

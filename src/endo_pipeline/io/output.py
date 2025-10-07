@@ -8,6 +8,7 @@ from typing import Literal
 from git import Repo
 from matplotlib.figure import Figure
 
+from endo_pipeline import IS_MAIN_PROCESS
 from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.manifests import ModelManifest
 
@@ -70,7 +71,6 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
     :
         Path object for output.
     """
-
     output_dir = get_output_dir()
 
     if include_timestamp:
@@ -79,9 +79,12 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
     else:
         output_path = Path(output_dir, Path(workflow_name).stem, *subdirs)
 
-    output_path.mkdir(parents=True, exist_ok=True)
-    logger.info("Created output directory [ %s ]", output_path)
+    # Only rank 0 creates directories
+    if IS_MAIN_PROCESS:
+        output_path.mkdir(parents=True, exist_ok=True)
+        logger.info("Created output directory [ %s ]", output_path)
 
+    # All ranks return the same path (rank 0 created it, others just use it)
     return output_path
 
 
@@ -116,7 +119,11 @@ def make_name_unique(path: Path | str) -> Path:
     original_name = path.name.split(".")[0]
     timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("_%Y%m%d_%H%M%S")
 
-    return path.with_name(f"{original_name}{timestamp}{suffixes}")
+    if IS_MAIN_PROCESS:
+        return path.with_name(f"{original_name}{timestamp}{suffixes}")
+    else:
+        # Just return the original path unmodified for other ranks!
+        return path
 
 
 def build_fms_annotations(
@@ -134,7 +141,7 @@ def build_fms_annotations(
 
     - Program = "Endothelial"
     - Produced By = "python code"
-    - mlflow run id = MLFlow run id from model config object, if provided
+    - mlflow run id = MLFlow run id from model manifest object, if provided
     - Notes = additional notes
 
     For a single dataset, the "Notes" annotation is formatted as:
@@ -145,7 +152,7 @@ def build_fms_annotations(
         Timestamp: YYYY-MM-DD HH:mm:ss (if `include_timestamp` is selected)
         Branch: <current branch name> (if `include_git_info` is selected)
         Commit: <latest commit hash> (if `include_git_info` is selected)
-        Model: <model name> (if model is given)
+        Model: <model name> (<run name>) (if model is given)
 
         (any additional notes appended here)
 
@@ -160,7 +167,7 @@ def build_fms_annotations(
         Timestamp: YYYY-MM-DD HH:mm:ss (if `include_timestamp` is selected)
         Branch: <current branch name> (if `include_git_info` is selected)
         Commit: <latest commit hash> (if `include_git_info` is selected)
-        Model: <model name> (if model is given)
+        Model: <model name> (<run name>) (if model is given)
 
         (any additional notes appended here)
 
@@ -205,14 +212,13 @@ def build_fms_annotations(
         notes.append(f"Commit: {repo.commit().hexsha}")
 
     if model_manifest is not None:
-        notes.append(f"Model Manifest: {model_manifest.name}")
+        model_run = f" ({run_name})" if run_name is not None else ""
+        notes.append(f"Model: {model_manifest.name}{model_run}")
 
-        if run_name is not None:
-            model_location = model_manifest.locations.get(run_name, None)
-            notes.append(f"Run Name: {run_name}")
-
-            if model_location is not None and model_location.mlflowid is not None:
-                metadata_builder.add_annotation("mlflow run id", model_location.mlflowid)
+        # Add mlflow run id annotation, if found
+        model_location = model_manifest.locations.get(run_name, None)
+        if model_location is not None and model_location.mlflowid is not None:
+            metadata_builder.add_annotation("mlflow run id", model_location.mlflowid)
 
     notes.append(f"\n{additional_notes}")
 

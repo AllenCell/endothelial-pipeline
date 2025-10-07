@@ -1,8 +1,6 @@
-experiment_name: endo_diffae
-run_name: diffae_patch_${model.image_shape[1]}x${model.image_shape[2]}
+experiment_name: null
+run_name: null
 task_name: train
-tags:
-- dev
 train: true
 test: true
 checkpoint:
@@ -157,7 +155,8 @@ data:
       num_replace_workers: 24
 
 model:
-  _target_: cyto_dl.models.im2im.diffusion_autoencoder.DiffusionAutoEncoder
+  _target_: endo_pipeline.library.model.diffae.diffusion_autoencoder.DiffusionAutoEncoder
+  noise_cons: True
   save_images_every_n_epochs: 10
   save_dir: ${paths.output_dir}
   image_shape: # this is where crop size is defined, gets overridden with user input by training script
@@ -258,9 +257,9 @@ callbacks:
   rich_progress_bar:
     _target_: lightning.pytorch.callbacks.RichProgressBar
   latent_walk:
-    _target_: cyto_dl.callbacks.latent_walk_diffae.DiffAELatentWalk
-    num_pcs: 4
-    n_steps: 3
+    _target_: endo_pipeline.library.model.diffae.latent_walk.DiffAELatentWalkRank0
+    num_pcs: 5
+    n_steps: 10
     every_n_epoch: ${model.save_images_every_n_epochs}
 
 logger:
@@ -299,7 +298,7 @@ paths:
   work_dir: null
 extras:
   ignore_warnings: true
-  enforce_tags: true
+  enforce_tags: false
   print_config: true
   precision:
     _target_: torch.set_float32_matmul_precision
