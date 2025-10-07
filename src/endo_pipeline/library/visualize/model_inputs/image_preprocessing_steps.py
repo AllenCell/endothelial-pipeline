@@ -27,12 +27,12 @@ def save_stack_slices_as_thumbnails(img: Array, save_dir: Path) -> None:
             The array is expected to have the shape (channels, slices, height, width).
         save_dir (Path): The directory where the thumbnail images will be saved.
     """
-    for channel in range(img.shape[0]):
+    for channel, channel_name in enumerate(["bf", "cdh5"]):
         for slice_idx in range(img.shape[1]):
             slice_img = img[channel, slice_idx, :, :].compute()
             save_thumbnail_to_path(
                 slice_img,
-                f"original_channel{channel}_slice{slice_idx}",
+                f"{channel_name}_sliceindex{slice_idx}",
                 save_dir,
                 figsize=(6, 6),
                 scalebar_size_um=50,
