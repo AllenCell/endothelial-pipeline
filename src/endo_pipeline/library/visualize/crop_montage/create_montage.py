@@ -2,10 +2,12 @@ import logging
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 from endo_pipeline.io import load_model, save_plot_to_path
-from endo_pipeline.library.model.diffae.generate_image import get_reconstructed_crops_in_dataframe
+from endo_pipeline.library.analyze.diffae_dataframe import get_feature_column_names
+from endo_pipeline.library.model.diffae.generate_image import generate_from_coords_batch
 from endo_pipeline.library.process.get_images import (
     get_crops_in_dataframe,
     global_contrast_crop_list,
@@ -82,7 +84,7 @@ def _plot_crop_montage(
 
 
 def _get_reconstructed_crops(
-    df_sample_sorted: pd.DataFrame,
+    df: pd.DataFrame,
     model_manifest_name: str,
     run_name: str | None,
     num_gpus: int | None = None,
@@ -91,9 +93,18 @@ def _get_reconstructed_crops(
     model_manifest = load_model_manifest(model_manifest_name)
     model = load_model(model_manifest.locations[run_name])
 
-    reconstructed_crop_list = get_reconstructed_crops_in_dataframe(
-        df_sample_sorted, model, num_gpus=num_gpus
+    num_points = df.shape[0]
+    latent_coords = []
+    feat_cols = get_feature_column_names(df)
+    for i in range(num_points):
+        latent_coords.append(df[feat_cols].iloc[i].tolist())
+
+    # pass into DiffAE model to generate reconstructed crops
+    # output is a list of numpy arrays (images)
+    reconstructed_crop_list = generate_from_coords_batch(
+        model, np.array(latent_coords), num_gpus=num_gpus
     )
+
     return reconstructed_crop_list
 
 

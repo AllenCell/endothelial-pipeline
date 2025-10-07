@@ -2,14 +2,11 @@ import logging
 import typing
 
 import numpy as np
-import pandas as pd
 import torch
 from hydra.utils import instantiate
 
 if typing.TYPE_CHECKING:
     from cyto_dl.api import CytoDLModel
-
-from endo_pipeline.library.analyze.diffae_dataframe import get_feature_column_names
 
 logger = logging.getLogger(__name__)
 
@@ -99,27 +96,5 @@ def generate_from_coords_batch(
 
     img = generate_from_coords(model, coords_concat, num_gpus=num_gpus)
     walk_imgs = [img[i] for i in range(len(coords_batch))]
-
-    return walk_imgs
-
-
-def get_reconstructed_crops_in_dataframe(
-    df: pd.DataFrame,
-    model: "CytoDLModel",
-    num_gpus: int | None = None,
-) -> list:
-    """Reconstruct crops from each latent coordinate given in the input dataframe."""
-    # get coordinates (feature columns) from the dataframe,
-    # convert to list of lists for input into DiffAE model
-    num_points = df.shape[0]
-    latent_coords = []
-    feat_cols = get_feature_column_names(df)
-    for i in range(num_points):
-        latent_coords.append(df[feat_cols].iloc[i].tolist())
-
-    # pass into DiffAE model to generate reconstructed crops
-    walk_imgs = generate_from_coords_batch(
-        model, np.array(latent_coords), num_gpus=num_gpus
-    )  # output is a list of numpy arrays
 
     return walk_imgs
