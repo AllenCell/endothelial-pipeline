@@ -105,10 +105,6 @@ def apply_model_paired_fixed_live(
             "data.predict_dataloaders.dataset._target_": "endo_pipeline.library.model.image_loading.MultiDimImageDataset"
         }
     )
-    target_overrides["data.predict_dataloaders.dataset.cache_rate"] = 1.0
-    target_overrides["data.predict_dataloaders.dataset.replace_rate"] = 0.1
-    target_overrides["data.predict_dataloaders.dataset.num_init_workers"] = 24
-    target_overrides["data.predict_dataloaders.dataset.num_replace_workers"] = 24
 
     # Apply model on target/moving images - override config and run model prediciton
     model.override_config(target_overrides)
@@ -135,10 +131,6 @@ def apply_model_paired_fixed_live(
             "data.predict_dataloaders.dataset._target_": "endo_pipeline.library.model.image_loading.MultiDimImageDataset"
         }
     )
-    overrides["data.predict_dataloaders.dataset.cache_rate"] = 1.0
-    overrides["data.predict_dataloaders.dataset.replace_rate"] = 0.1
-    overrides["data.predict_dataloaders.dataset.num_init_workers"] = 24
-    overrides["data.predict_dataloaders.dataset.num_replace_workers"] = 24
 
     # Apply on fixed dataset/"moving" images - override config and run model prediciton
     model.override_config(overrides)
