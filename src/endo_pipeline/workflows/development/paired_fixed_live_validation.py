@@ -51,7 +51,7 @@ def main(
     model_save_path = get_output_path(
         "models", model_manifest_name, f"{fixed_dataset_name}_vs_{live_dataset_name}"
     )
-    data_save_path = save_path / f"aligned_{fixed_dataset_name}_vs_{live_dataset_name}.csv"
+    data_save_path = model_save_path / f"aligned_{fixed_dataset_name}_vs_{live_dataset_name}.csv"
 
     # Align paired fixed and live data and apply a diffAE model to extract features.
     fixed_features_path, live_features_path = (
