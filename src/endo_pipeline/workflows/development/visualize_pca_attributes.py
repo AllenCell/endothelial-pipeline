@@ -1,10 +1,12 @@
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+
 TAGS = ["diffae_features", "visualization"]
 
 
 def main(
     dataset_collection_name: str = "pca_reference",
-    model_manifest_name: str = "diffae_04_10",
-    run_name: str | None = None,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
 ) -> None:
     """Visualize key attributes of a fit PCA model."""
     import logging
