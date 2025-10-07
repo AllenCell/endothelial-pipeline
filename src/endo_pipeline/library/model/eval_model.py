@@ -1,4 +1,3 @@
-import json
 import logging
 import typing
 from pathlib import Path
@@ -31,8 +30,8 @@ from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.manifests import (
     DataframeLocation,
-    DataframeManifest,
     ModelManifest,
+    create_dataframe_manifest,
     get_dataframe_location_for_dataset,
     get_model_location_for_run,
     get_most_recent_run_name,
@@ -132,26 +131,7 @@ def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
     raise ValueError("No commit hash found in requirements.txt")
 
 
-def load_overrides(overrides: str | dict | None) -> dict:
-    """
-    Load overrides from a string or dictionary.
-
-    If None, return an empty dictionary.
-    """
-    if isinstance(overrides, str):
-        overrides_dict = json.loads(overrides)
-    elif overrides is None:
-        overrides_dict = {}
-    elif isinstance(overrides, dict):
-        overrides_dict = overrides
-    elif not isinstance(overrides, dict):
-        logger.error("Overrides must be a dictionary or a path to a .json file.")
-        raise ValueError("Overrides must be a dictionary or a path to a .json file.")
-    return overrides_dict
-
-
 def generate_overrides_for_model_eval(
-    user_overrides: dict,
     save_path: str,
     data_path: str,
     dataset_name: str,
@@ -162,9 +142,8 @@ def generate_overrides_for_model_eval(
     num_gpus: int | None = None,
 ) -> dict:
     """
-    Generate overrides for the CytoDLModel configuration
-    for evaluating model `model_name` on crops of
-    images from dataset `dataset_name`.
+    Generate overrides for the CytoDLModel configuration for evaluating model
+    `run_name` from manifest `model_manifest_name` on images from dataset `dataset_name`.
     """
     if prediction_filename_suffix is None:
         save_suffix = f"{dataset_name}_{model_manifest_name}_{run_name}_features"
@@ -203,12 +182,10 @@ def generate_overrides_for_model_eval(
         overrides["trainer.devices"] = 1
         overrides["trainer.strategy"] = "auto"
 
-    overrides.update(user_overrides)
     return overrides
 
 
 def generate_overrides_for_track_based_crops(
-    user_overrides: dict[str, Any],
     save_path: str,
     data_path: str,
     dataset_name: str,
@@ -218,9 +195,9 @@ def generate_overrides_for_track_based_crops(
     num_gpus: int | None = None,
 ) -> dict[str, Any]:
     """
-    Generate overrides for the CytoDLModel configuration
-    to evaluate model `model_name` on crops of
-    tracked objects in dataset `dataset_name`.
+    Generate overrides for the CytoDLModel configuration to evaluate model
+    `run_name` from manifest `model_manifest_name` on crops of tracked
+    objects from dataset `dataset_name`.
     """
     if prediction_filename_suffix is None:
         save_suffix = f"{dataset_name}_{model_manifest_name}_{run_name}_tracked_crop_features"
@@ -228,7 +205,6 @@ def generate_overrides_for_track_based_crops(
         save_suffix = prediction_filename_suffix
 
     overrides = generate_overrides_for_model_eval(
-        user_overrides,
         save_path=save_path,
         data_path=data_path,
         dataset_name=dataset_name,
@@ -416,7 +392,7 @@ def preprocess_tracking_manifest_for_model_eval(
         )
         .reset_index()
     )
-    # Add which channel to evaluate to the model and what resolution to load it at
+    # Add which channel to load and what resolution to load it at
     grouped_df["channel"] = ZARR_BF_CHANNEL
     grouped_df["resolution"] = resolution
 
@@ -562,11 +538,10 @@ def update_prediction_from_tracks_with_metadata(
     pred_df.to_parquet(prediction_path)
 
 
-def apply_model_on_grid_of_crops_from_one_dataset(
+def evaluate_model_on_grid_of_crops_from_one_dataset(
     model: "CytoDLModel",
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
-    user_overrides: str | dict | None = None,
     z_slice_offsets: tuple[int, int] | None = None,
     frame_start: int | None = None,
     frame_stop: int | None = None,
@@ -575,7 +550,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     num_gpus: int | None = None,
 ) -> Path:
     """
-    Apply a DiffAE model to a single dataset.
+    Evaluate a DiffAE model to a single dataset.
 
     **Z-stack offsets**
 
@@ -587,13 +562,11 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     Parameters
     ----------
     model
-        Trained model to apply for prediction.
+        Trained model to evaluate.
     dataset_config
-        Configuration of the dataset to apply the model to.
+        Dataset config object for the dataset of interest.
     resolution_level
         Resolution level to at which to load images (zarr file format) at.
-    user_overrides
-        Optional user overrides to apply to the model config.
     z_slice_offsets
         Lower and upper bounds for z-slicing.
     frame_start
@@ -622,7 +595,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     save_path = get_output_path("models", model_manifest_name, run_name, dataset_config.name)
 
     logger.debug(
-        "Applying run [ %s ] from model manifest [ %s ] to dataset [ %s ]",
+        "Evaluating run [ %s ] from model manifest [ %s ] on dataset [ %s ]",
         run_name,
         model_manifest_name,
         dataset_config.name,
@@ -660,7 +633,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     # apply workflow-specific overrides
     prediction_filename_suffix = f"{dataset_config.name}_{model_manifest_name}_{run_name}_features"
     overrides = generate_overrides_for_model_eval(
-        load_overrides(user_overrides),
         save_path=save_path.as_posix(),
         data_path=dataset_save_path.as_posix(),
         dataset_name=dataset_config.name,
@@ -695,31 +667,27 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     return prediction_path
 
 
-def apply_model_on_tracked_crops_from_one_dataset(
+def evaluate_model_on_tracked_crops_from_one_dataset(
     model: "CytoDLModel",
     dataset_config: DatasetConfig,
     save_path: str | Path | None = None,
-    user_overrides: str | dict | None = None,
     z_slice_offsets: tuple[int, int] | None = None,
     only_include_positions: list[int] | None = None,
     num_gpus: int | None = None,
 ) -> Path:
     """
-    Apply a DiffAE model to a single dataset with
-    cell segmentation and tracking.
+    Evaluate a DiffAE model on a single dataset with cell segmentation and tracking.
 
     Parameters
     ----------
     model
         Trained model.
     dataset_config
-        Configuration of the dataset to apply the model to.
+        Dataset config object for the dataset of interest.
     resolution_level
-        Resolution level to apply the model at.
+        Resolution level at which to load images (zarr file format) at.
     save_path
         Path to save the prediction file
-    user_overrides
-        Optional user overrides to apply to the model config.
     z_slice_offsets
         Lower and upper bounds for z-slicing.
     only_include_positions
@@ -730,8 +698,6 @@ def apply_model_on_tracked_crops_from_one_dataset(
 
     model_manifest_name = model.cfg.experiment_name
     run_name = model.cfg.run_name
-
-    overrides = load_overrides(user_overrides)
 
     if save_path is None:
         # if no save path is provided, use the default path
@@ -760,7 +726,6 @@ def apply_model_on_tracked_crops_from_one_dataset(
 
     # apply overrides
     overrides = generate_overrides_for_track_based_crops(
-        overrides,
         save_path=save_path.as_posix(),
         data_path=data_path.as_posix(),
         dataset_name=dataset_config.name,
@@ -816,31 +781,8 @@ def upload_prediction_dataframe_to_fms(
         file_type="parquet",
     )
 
-    try:
-        # Temporarily set dataframe manifest I/O logger to CRITICAL
-        # to suppress error logging if manifest does not exist.
-        # We want it to be a warning here instead (see except block below).
-        dataframe_manifest_io_logger = logging.getLogger(
-            "endo_pipeline.manifests.dataframe_manifest_io"
-        )
-        original_level = dataframe_manifest_io_logger.level
-        dataframe_manifest_io_logger.setLevel(logging.CRITICAL)
-
-        # Attempt to load existing dataframe manifest
-        manifest = load_dataframe_manifest(dataframe_manifest_name)
-    except FileNotFoundError:
-        logger.warning(
-            "Dataframe manifest [ %s ] not found, creating a new one.",
-            dataframe_manifest_name,
-        )
-        parameters = {} if workflow_parameters is None else workflow_parameters
-        manifest = DataframeManifest(
-            name=dataframe_manifest_name, workflow=workflow_name, parameters=parameters
-        )
-    finally:
-        # restore original logging level of dataframe manifest I/O logger
-        dataframe_manifest_io_logger.setLevel(original_level)
-
+    manifest = create_dataframe_manifest(dataframe_manifest_name, workflow_name)
+    manifest.parameters = workflow_parameters or {}
     manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
     save_dataframe_manifest(manifest)
     logger.info(

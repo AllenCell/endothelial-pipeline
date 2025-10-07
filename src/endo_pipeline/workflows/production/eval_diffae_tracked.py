@@ -1,6 +1,6 @@
 from endo_pipeline.cli import Datasets
 
-TAGS = ["apply_diffae_model", "diffae_features"]
+TAGS = ["eval_diffae_model", "diffae_features"]
 
 
 def main(
@@ -9,64 +9,62 @@ def main(
     datasets: Datasets | None = None,
     upload_to_fms: bool = True,
     save_path: str | None = None,
-    eval_config_path: str | None = None,
-    user_overrides: str | dict | None = None,
+    config_name: str | None = None,
 ) -> None:
     """
-    Apply a trained DiffAE model to single-cell-track-based crops of images from multiple datasets.
+    Evaluate a trained DiffAE model on tracked-cell-based crops of images from given dataset(s).
 
     Produces a table of latent features from a crops centered on tracked cells for each dataset.
+
+    **Workflow output**
+
+    For each specified dataset, this workflow produces a table of latent features obtained from
+    crops of the processed images from each dataset centered on tracked cells. If ``upload_to_fms``
+    is True, the prediction dataframe is saved as a parquet file locally and uploaded to FMS.
+    The FMS ID of the uploaded file is then stored in the dataframe manifest corresponding to the
+    specified model manifest and run name: ``{model_manifest_name}_{run_name}_tracked``.
+
+    **Config overrides**
+
+    If ``config_path`` is provided, the model config loaded from the model manifest
+    will be overridden with the specified config in ``src/configs/models``. If it is not provided,
+    then the default DiffAE eval template config is used to override the loaded model config.
+    The reason for doing this override is that the training config by default does not
+    contain settings for the ``predict_dataloaders`` used during inference.
 
     **Workflow demo**
 
     If demo mode is enabled, the model will only be evaluated on the first position of the first
     of the specified datasets.
 
-    **Eval config override**
-
-    If ``eval_config_path`` is provided, the model config loaded from the model manifest
-    will be overridden with the config from the specified path. If it is not provided,
-    then the default DiffAE eval template config is used to override the loaded model config.
-    The reason for doing this override is that the training config by default does not
-    contain settings for the ``predict_dataloaders`` used during inference.
-
     Parameters
     ----------
     model_manifest_name
         Name of the model manifest to load the model from.
     run_name
-        Name of the model run to apply. If None, uses the most recent run.
+        Name of the model run to evaluate. If None, uses the most recent run.
     datasets
-        List of datasets or dataset collections to load images from. If not
-        provided, workflow runs on the ``20250319_20X`` dataset.
+        List of datasets or dataset collections to load images from.
     upload_to_fms
         True to upload the prediction file for each dataset to FMS, False to only save locally.
     save_path
         Path to save the prediction file locally.
-    eval_config_path
-        Optional, path to the model eval config to use to override the loaded model config.
-    user_overrides
-        Optional user overrides to apply to the model config.
-
-    Returns
-    -------
-    :
-        Saves and/or updates a DataframeManifest with the prediction file for each dataset.
+    config_name
+        Optional, name of the model eval config to use to override the loaded model config.
     """
     import logging
     from pathlib import Path
 
     from endo_pipeline import DEMO_MODE, NUM_GPUS
-    from endo_pipeline.configs import load_dataset_config
-    from endo_pipeline.io import load_model_config_from_path
+    from endo_pipeline.configs import load_dataset_config, load_model_config
     from endo_pipeline.library.model import (
-        apply_model_on_tracked_crops_from_one_dataset,
+        evaluate_model_on_tracked_crops_from_one_dataset,
         load_model_for_inference,
         upload_prediction_dataframe_to_fms,
     )
     from endo_pipeline.library.model.image_loading import get_include_positions
     from endo_pipeline.manifests import get_feature_dataframe_manifest_name, load_model_manifest
-    from endo_pipeline.settings import RELATIVE_PATH_TO_EVAL_CONFIG, Z_SLICE_OFFSETS
+    from endo_pipeline.settings import DIFFAE_MODEL_EVAL_CONFIG, Z_SLICE_OFFSETS
 
     logger = logging.getLogger(__name__)
 
@@ -80,16 +78,16 @@ def main(
     model_manifest = load_model_manifest(model_manifest_name)
 
     # use input path to an eval config if provided, else use path to diffae_eval.yaml
-    path_to_eval_config = eval_config_path if eval_config_path else RELATIVE_PATH_TO_EVAL_CONFIG
+    name_of_config = config_name if config_name else DIFFAE_MODEL_EVAL_CONFIG
     # load eval config as an OmegaConf object
-    eval_config = load_model_config_from_path(path_to_eval_config)
+    eval_config = load_model_config(name_of_config)
 
     # load model run_name from model manifest, override with eval config,
     # and make sure that "model_manifest_name" and "run_name" are stored in the config
     # as "experiment_name" and "run_name" for logging purposes
     model = load_model_for_inference(model_manifest, run_name, eval_config)
 
-    # apply model to each dataset
+    # evaluate model on images from each dataset
     for dataset_config in dataset_config_list:
         only_include_positions = get_include_positions(dataset_config)
         if DEMO_MODE:
@@ -100,11 +98,10 @@ def main(
                 dataset_config.name,
             )
 
-        prediction_path = apply_model_on_tracked_crops_from_one_dataset(
+        prediction_path = evaluate_model_on_tracked_crops_from_one_dataset(
             model=model,
             dataset_config=dataset_config,
             save_path=save_path,
-            user_overrides=user_overrides,
             z_slice_offsets=Z_SLICE_OFFSETS,
             only_include_positions=only_include_positions,
             num_gpus=NUM_GPUS,
@@ -126,7 +123,7 @@ def main(
             )
 
         if DEMO_MODE:
-            # only apply model to the first dataset in demo mode
+            # only eval on the first dataset in demo mode
             break
 
 

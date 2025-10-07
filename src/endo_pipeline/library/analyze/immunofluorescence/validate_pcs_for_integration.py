@@ -78,7 +78,7 @@ def add_paired_fixed_live_data_fmsid_to_manifest(
     save_dataframe_manifest(manifest)
 
 
-def apply_model_paired_fixed_live(
+def evaluate_model_paired_fixed_live(
     fixed_dataset_name: str,
     live_dataset_name: str,
     model_name: str,
