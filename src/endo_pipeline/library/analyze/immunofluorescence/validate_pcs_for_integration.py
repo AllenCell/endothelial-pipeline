@@ -2,31 +2,29 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from cyto_dl.api import CytoDLModel
 from matplotlib.patches import Ellipse
 from sklearn.decomposition import PCA
 
-from endo_pipeline.io import get_output_path, load_model
 from endo_pipeline.library.analyze.diffae_manifest import (
     get_dataframe_for_dynamics_workflows,
     project_manifest_to_pcs,
 )
-from endo_pipeline.library.model import generate_overrides_for_model_eval
+from endo_pipeline.library.model.eval_model import generate_overrides_for_model_eval
 from endo_pipeline.library.process.registration import align_all_positions
-from endo_pipeline.manifests import (
-    get_model_location_for_run,
-    load_dataframe_manifest,
-    load_model_manifest,
-)
+from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings import Z_SLICE_OFFSETS
 
 
 def evaluate_model_paired_fixed_live(
     fixed_dataset_name: str,
     live_dataset_name: str,
-    model_name: str,
+    model_save_path: Path,
+    data_save_path: Path,
+    model: CytoDLModel,
     align_fluo: bool = True,
     num_gpus: int | None = None,
-) -> tuple[Path, Path, Path]:
+) -> tuple[Path, Path]:
     """
     Align paired fixed and live data and apply a diffAE model to extract features.
 
@@ -38,8 +36,12 @@ def evaluate_model_paired_fixed_live(
     live_dataset_name : str
         Dataset name to use as the moving images (i.e. the images to be registered to the fixed
         images)
-    model_name : str
-        The name of the model finetuned for fixation.
+    model_save_path : Path
+        Path to directory where data is saved
+    data_save_path : Path
+        Path to csv file where aligned data is saved
+    model : CytoDLModel
+        DiffAE model to use for feature extraction
     align_fluo : bool
         Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
     num_gpus: int
@@ -47,34 +49,20 @@ def evaluate_model_paired_fixed_live(
 
     Returns
     -------
-    save_path: Path
-        Local path to parent directory where intermediate data is saved
     fixed_features_path : Path
         Local path where fixed data features are saved in a parquet file
     live_feature_path: Path
         Local path where live data features are saved in a parquet file
     """
 
-    # Load diffAE model manifest
-    model_manifest = load_model_manifest(model_name)
-    run_name_ = list(model_manifest.locations.keys())[-1]
-    model_location = get_model_location_for_run(model_manifest, run_name_)
-    model = load_model(model_location)
-
-    # Set directory for aligned data
-    save_path = get_output_path(
-        "models", model_name, f"{fixed_dataset_name}_vs_{live_dataset_name}"
-    )
-    data_save_path = save_path / f"aligned_{fixed_dataset_name}_vs_{live_dataset_name}.csv"
-
     # Align data if saved aligned data not already stored
-    if not data_save_path.exists():
+    if not Path(data_save_path).exists():
         data = align_all_positions(
             fixed_dataset_name,
             live_dataset_name,
             resolution_level=1,
             z_slice_offsets=Z_SLICE_OFFSETS,
-            savedir=save_path,
+            savedir=model_save_path,
             alignment_method="sift",
             align_fluo=align_fluo,
         )
@@ -82,69 +70,43 @@ def evaluate_model_paired_fixed_live(
         data["channel"] = 0
         data.to_csv(data_save_path, index=False)
 
-    # Create new overrides object
-    overrides = {"model.spatial_inferer.splitter.overlap": 0.9}
-
-    # Apply on target/moving images - start by constructing overrides
-    target_overrides = overrides.copy()  # copy to avoid overriding the original
-    target_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "target"})
+    # Evaluate model on target/moving images - set up config and run model
     target_overrides = generate_overrides_for_model_eval(
-        target_overrides,
-        save_path=str(save_path),
-        data_path=str(data_save_path),
+        save_path=model_save_path.as_posix(),
+        data_path=data_save_path.as_posix(),
         dataset_name=live_dataset_name,
-        model_name=model_name,
+        model_manifest_name=model.cfg.experiment_name,
+        run_name=model.cfg.run_name,
         num_gpus=num_gpus,
     )
-
-    # the following lines of override updates are temporary while we adjust our
-    # model/config infrastructure
-    target_overrides.update(
-        {
-            "data.predict_dataloaders.dataset._target_": "endo_pipeline.library.model.image_loading.MultiDimImageDataset"
-        }
-    )
-
-    # Apply model on target/moving images - override config and run model prediciton
+    target_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "target"})
     model.override_config(target_overrides)
-
-    # the following three lines are temporary while we adjust our model/config infrastructure
-    rm_keys = ["num_workers", "cache_num", "csv_path", "dict_meta"]
-    for key in rm_keys:
-        model.cfg.data.predict_dataloaders.dataset.pop(key, None)
     model.predict()
 
-    # Apply on fixed dataset/"moving" images - start by constructing overrides
-    overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving"})
-    overrides = generate_overrides_for_model_eval(
-        overrides,
-        save_path=str(save_path),
-        data_path=str(data_save_path),
+    # Evaluate model on fixed data/"moving" images - set up config and run model
+    moving_overrides = generate_overrides_for_model_eval(
+        save_path=model_save_path.as_posix(),
+        data_path=data_save_path.as_posix(),
         dataset_name=fixed_dataset_name,
-        model_name=model_name,
+        model_manifest_name=model.cfg.experiment_name,
+        run_name=model.cfg.run_name,
         num_gpus=num_gpus,
     )
-    # The following lines of override updates are temporary while we adjust our
-    # model/config infrastructure
-    overrides.update(
-        {
-            "data.predict_dataloaders.dataset._target_": "endo_pipeline.library.model.image_loading.MultiDimImageDataset"
-        }
-    )
-
-    # Apply on fixed dataset/"moving" images - override config and run model prediciton
-    model.override_config(overrides)
-
-    # the following two lines are temporary while we adjust our model/config infrastructure
-    for key in rm_keys:
-        model.cfg.data.predict_dataloaders.dataset.pop(key, None)
+    moving_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving"})
+    model.override_config(moving_overrides)
     model.predict()
 
     # Define paths to saved features from model for both fixed and live datasets
-    fixed_features_path = save_path / f"predict_{fixed_dataset_name}_{model_name}_features.parquet"
-    live_features_path = save_path / f"predict_{live_dataset_name}_{model_name}_features.parquet"
+    fixed_features_path = (
+        model_save_path
+        / f"predict_{fixed_dataset_name}_{model.cfg.experiment_name}_features.parquet"
+    )
+    live_features_path = (
+        model_save_path
+        / f"predict_{live_dataset_name}_{model.cfg.experiment_name}_features.parquet"
+    )
 
-    return save_path, fixed_features_path, live_features_path
+    return fixed_features_path, live_features_path
 
 
 def project_paired_fixed_live_data_into_ref_pc_space(
