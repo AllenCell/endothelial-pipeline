@@ -340,8 +340,7 @@ def save_thumbnail_to_path(
     Save a thumbnail image to a specified file path.
 
     This function saves a given image as a thumbnail in the specified format
-    (e.g., PNG or PDF) with the desired resolution and figure size. Optionally,
-    the image can be displayed after saving.
+    (e.g., PNG or PDF) with the desired resolution and figure size.
 
     Args:
         image: The image to save, represented as a NumPy array.
