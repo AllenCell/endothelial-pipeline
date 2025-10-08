@@ -27,7 +27,10 @@ DATASET_INFO_COLUMNS = [
 
 
 def main(
-    dataset_collection_name: str = "pca_reference_legacy",
+    dataset_collection_name: str = "pca_reference",
+    model_manifest_name: str = "diffae_04_10",
+    run_name: str | None = None,
+    seg_feature_manifest_name: str = "live_merged_seg_features",
     dataset_info_columns: list[str] = DATASET_INFO_COLUMNS,
     classical_feature_columns: list[str] = CLASSICAL_FEATURE_COLUMNS,
     pc_columns: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
@@ -42,6 +45,13 @@ def main(
     ----------
     dataset_collection_name
         The name of the dataset collection to use.
+    model_manifest_name
+        The name of the model manifest to use for DiffAE features.
+    run_name
+        The name of the run to use from the model manifest. If None, uses the most
+        recent run.
+    seg_feature_manifest_name
+        The name of the segmentation feature manifest to use for measured features.
     dataset_info_columns
         List of dataset metadata column names.
     classical_feature_columns
@@ -70,6 +80,7 @@ def main(
         plot_and_save_heatmap,
         plot_multi_feature_correlations,
     )
+    from endo_pipeline.manifests.model_manifest_io import load_model_manifest
 
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
@@ -77,6 +88,7 @@ def main(
     logger.info("Running correlation heatmap workflow...")
 
     dataset_name_list = get_datasets_in_collection(dataset_collection_name)
+    model_manifest = load_model_manifest(model_manifest_name)
 
     df_all_timepoints, df_ss = get_df_for_feature_correlation_viz(
         dataset_name_list=dataset_name_list,
@@ -84,6 +96,9 @@ def main(
         classical_feature_columns=classical_feature_columns,
         pc_columns=pc_columns,
         diffae_feature_columns=diffae_feature_columns,
+        model_manifest=model_manifest,
+        run_name=run_name,
+        seg_feature_manifest_name=seg_feature_manifest_name,
     )
 
     label_column_tuples = [

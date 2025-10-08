@@ -28,6 +28,7 @@ from endo_pipeline.library.analyze.integration.track_integration import (
     get_preprocessed_manifests_and_km_bounds,
 )
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+from endo_pipeline.manifests.model_manifest import ModelManifest
 
 
 def add_feature_scatter_plot(
@@ -70,7 +71,7 @@ def add_feature_scatter_plot(
     x, y = feat1, feat2
     ymin = y.min()
     ymax = y.max()
-    ax.scatter(x, y, s=0.01, c=color, alpha=alpha)
+    ax.scatter(x, y, s=0.05, c=color, alpha=alpha)
     ax.set_xlim(x.min(), x.max())
     ax.set_ylim(ymin, ymax)
     ax.xaxis.set_major_locator(MaxNLocator(nbins=3, min_n_ticks=3))
@@ -147,7 +148,7 @@ def add_feature_histogram(ax: Axes, feat: np.ndarray) -> None:
 
 def plot_multi_feature_correlations(
     df: pd.DataFrame,
-    alpha: float = 0.01,
+    alpha: float = 0.7,
     cutoff_percent: float = 0,
     dpi: int = 150,
     title: str | None = None,
@@ -456,6 +457,9 @@ def get_df_for_feature_correlation_viz(
     classical_feature_columns: list[str],
     pc_columns: list[str],
     diffae_feature_columns: list[str],
+    model_manifest: ModelManifest,
+    run_name: str | None = None,
+    seg_feature_manifest_name: str = "live_merged_seg_features",
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Load and preprocess the manifests for the given dataset names,
@@ -489,7 +493,11 @@ def get_df_for_feature_correlation_viz(
         # load and preprocess the different diffae manifests and PCA pipeline
         # NOTE: this takes a little over a minute to load
         merged_feats_df, _, _ = get_preprocessed_manifests_and_km_bounds(
-            dataset_name, datasets_for_bounds=dataset_name_list
+            dataset_name=dataset_name,
+            model_manifest=model_manifest,
+            run_name=run_name,
+            seg_feature_manifest_name=seg_feature_manifest_name,
+            datasets_for_bounds=dataset_name_list,
         )
 
         # check that the chosen measurement column names
