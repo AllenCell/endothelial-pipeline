@@ -188,7 +188,7 @@ def plot_principal_component_histogram(
     bin_edges: list[np.ndarray],
     time_tick_step: int = 100,
     bin_tick_step: int = 5,
-) -> tuple[Figure, Axes]:
+) -> tuple[Figure, np.ndarray[Axes, Any]]:
     """
     Plot histogram of each principal component over time for a given dataset.
 

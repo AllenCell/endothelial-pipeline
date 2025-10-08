@@ -34,7 +34,9 @@ def get_most_recent_run_name(model_manifest: ModelManifest) -> str:
 
 
 def get_feature_dataframe_manifest_name(
-    model_manifest: str, run_name: str | None, crop_pattern: Literal["grid", "tracked"] = "grid"
+    model_manifest: ModelManifest,
+    run_name: str | None,
+    crop_pattern: Literal["grid", "tracked"] = "grid",
 ) -> str:
     """Get the feature dataframe manifest name corresponding to the model manifest and run name."""
     # logging error handling for literal type

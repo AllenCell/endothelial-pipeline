@@ -13,7 +13,7 @@ from endo_pipeline.library.process.get_images import (
     global_contrast_crop_list,
     individual_contrast_crop_list,
 )
-from endo_pipeline.manifests import load_model_manifest
+from endo_pipeline.manifests import get_most_recent_run_name, load_model_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +91,8 @@ def _get_reconstructed_crops(
 ) -> list:
     """Generate and add reconstructed crops to the contrast crops dictionary."""
     model_manifest = load_model_manifest(model_manifest_name)
-    model = load_model(model_manifest.locations[run_name])
+    run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
+    model = load_model(model_manifest.locations[run_name_])
 
     num_points = df.shape[0]
     latent_coords = []
