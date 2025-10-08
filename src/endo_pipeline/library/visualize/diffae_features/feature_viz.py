@@ -102,7 +102,7 @@ def get_dataset_color(dataset_name: str) -> str:
             "Returning color for first shear stress regime in list."
         )
 
-    shear_stress_regime = dataset_config.shear_stress_regime[0].value
+    shear_stress_regime = dataset_config.shear_stress_regime[0]
     color = SHEAR_COLOR_DICT[shear_stress_regime]
 
     return color
