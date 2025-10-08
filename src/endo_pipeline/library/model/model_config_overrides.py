@@ -1,5 +1,4 @@
 import logging
-import os
 from pathlib import Path
 from typing import Literal
 
@@ -7,7 +6,9 @@ from omegaconf import OmegaConf
 from pydantic import Field
 from pydantic.dataclasses import dataclass
 
+from endo_pipeline.configs import load_model_config
 from endo_pipeline.io import get_output_path, get_repository_root_dir
+from endo_pipeline.settings import DIFFAE_MODEL_TRAIN_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ class ModelConfigOverride:
     task_name: Literal["train", "eval"]
     """Model task name."""
 
-    template_config: str = "diffae_train.yaml"
+    template_config: str = DIFFAE_MODEL_TRAIN_CONFIG
     """Name of model config template."""
 
     crop_size: int | None = Field(None, gt=0)
@@ -51,13 +52,7 @@ class ModelConfigOverride:
     """Number of GPUs to use. None indicates that CPU should be used."""
 
     def __post_init__(self):
-        # Adding on a few more checks for the path!
-        config_path = Path(self.template_config)
-        if not config_path.exists():
-            config_path = Path(__file__).resolve().parent / self.template_config
-        if not config_path.exists():
-            raise FileNotFoundError(f"Config file not found at {config_path}")
-        config = OmegaConf.load(config_path)
+        config = load_model_config(self.template_config)
 
         if self.train_dataframe_path is None:
             train = OmegaConf.select(config, "data.train_dataloaders.dataset.dataframe_path")
@@ -120,19 +115,26 @@ class ModelConfigOverride:
                 f"[ {self.log_steps} > {self.max_epochs} ]"
             )
 
-    def to_dict(self, use_timestamp: bool = False):
-        """Convert to overrides dict. If `use_timestamp`, dirs include a time-string."""
-        time_tag = datetime.now().strftime("%Y%m%d_%H%M%S") if use_timestamp else ""
-        subdir = f"{self.task_name}_{time_tag}" if use_timestamp else self.task_name
+    def to_dict(self):
+        """Convert to overrides dict."""
 
-        # create output directories if they do not exist
-        training_run_checkpoint_path = get_output_path(
-            "models", self.model_manifest_name, self.run_name, subdir, "checkpoints"
+        # Create output directories for checkpoints and logs if they do not exist.
+        checkpoint_path = get_output_path(
+            "models",
+            self.model_manifest_name,
+            self.run_name,
+            "checkpoints",
+            include_timestamp=False,
         )
-        training_run_log_path = get_output_path(
-            "models", self.model_manifest_name, self.run_name, subdir, "logs"
+        log_path = get_output_path(
+            "models",
+            self.model_manifest_name,
+            self.run_name,
+            "logs",
+            include_timestamp=False,
         )
 
+        # Calculate effective epochs.
         multiplier = (1 - self.cache_rate) / (self.cache_rate * self.replace_rate) + 1
         effective_min_epochs = int(2500 * multiplier)
         effective_max_epochs = int(self.max_epochs * multiplier)
@@ -144,15 +146,14 @@ class ModelConfigOverride:
             "run_name": self.run_name,
             # get repo root directory and current working directory
             "paths.root_dir": get_repository_root_dir().as_posix(),
-            "paths.work_dir": os.getcwd(),
+            "paths.work_dir": Path.cwd().as_posix(),
             # save outputs to user-specified directory
-            "paths.output_dir": training_run_log_path.as_posix(),
+            "paths.output_dir": log_path.as_posix(),
             "paths.log_dir": "${paths.output_dir}",
-            "callbacks.model_checkpoint.dirpath": training_run_checkpoint_path.as_posix(),
+            "callbacks.model_checkpoint.dirpath": checkpoint_path.as_posix(),
             # set crop size from input via model.image_shape,
             "model.image_shape": [1, self.crop_size, self.crop_size],
-            # set training and validation dataframe paths
-            # and caching parameters
+            # set training and validation dataframe paths and caching parameters
             "data.train_dataloaders.dataset.dataframe_path": self.train_dataframe_path.as_posix(),
             "data.train_dataloaders.dataset.cache_rate": self.cache_rate,
             "data.train_dataloaders.dataset.replace_rate": self.replace_rate,
@@ -166,10 +167,13 @@ class ModelConfigOverride:
             # turn off config printing, will get saved locally instead
             "extras.print_config": False,
             "trainer.log_every_n_steps": self.log_steps,
+            # set device usage
             "trainer.accelerator": "cpu" if self.num_gpus is None else "gpu",
             "trainer.devices": self.num_gpus or 1,
         }
+
         # If single GPU or none, use "auto" strategy
         if self.num_gpus is None or self.num_gpus == 1:
             overrides["trainer.strategy"] = "auto"
+
         return overrides
