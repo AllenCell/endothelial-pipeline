@@ -26,6 +26,8 @@ from endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_da
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.manifests.model_manifest import ModelManifest
+from endo_pipeline.manifests.model_manifest_utils import get_feature_dataframe_manifest_name
 from endo_pipeline.settings import ColumnName
 
 logger = logging.getLogger(__name__)
@@ -186,18 +188,46 @@ def merge_diffae_feats_liveseg_feats_tables(
 
 
 def get_diffae_feats_liveseg_feats_merged_table(
-    dataset_name: str, filtered: bool = False
+    dataset_name: str,
+    model_manifest: ModelManifest,
+    run_name: str | None = None,
+    seg_feature_manifest_name: str = "live_merged_seg_features",
+    filtered: bool = False,
 ) -> pd.DataFrame:
+    """
+    Get a merged dataframe with cell-centric DiffAE features and classical
+    segmentation features.
+
+    Parameters
+    ----------
+    dataset_name
+        The name of the dataset to use.
+    model_manifest
+        The model manifest to use for DiffAE features.
+    run_name
+        The name of the run to use from the model manifest.
+        If None, uses the most recent run.
+    seg_feature_manifest_name
+        The name of the segmentation feature manifest to use for classical features.
+
+    Returns
+    -------
+    :
+        The merged dataframe with DiffAE and segmentation features.
+    """
 
     # read in the segmentation-based diffae features if available
     logging.debug("loading diffae features from tracking data...")
-    diffae_track_manifest = load_dataframe_manifest("diffae_tracking_integration")
+    tracked_dataframe_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="tracked"
+    )
+    diffae_track_manifest = load_dataframe_manifest(tracked_dataframe_manifest_name)
     diffae_track_location = get_dataframe_location_for_dataset(diffae_track_manifest, dataset_name)
     diffae_tracking_df = load_dataframe(diffae_track_location)
 
     # load the tracking data of the measured features and merge them
     logging.debug("loading segmentation property data...")
-    live_seg_manifest = load_dataframe_manifest("live_merged_seg_features")
+    live_seg_manifest = load_dataframe_manifest(seg_feature_manifest_name)
     live_seg_location = get_dataframe_location_for_dataset(live_seg_manifest, dataset_name)
     live_seg_feats_df = load_dataframe(live_seg_location)
 
@@ -490,7 +520,9 @@ def make_angular_deviation_test(out_dir: Path) -> None:
     test_angular_deviation_deg = np.rad2deg(test_angular_deviation)
 
     cmap = color_palette("dark:red", as_cmap=True)
-    angle_deg_to_color = lambda a: cmap(np.abs(a) / 180.0)
+
+    def angle_deg_to_color(a):
+        return cmap(np.abs(a) / 180.0)
 
     fig, ax = plt.subplots(1, 1, figsize=(4, 4))
     ax.quiver(
@@ -547,18 +579,49 @@ def make_angular_deviation_test(out_dir: Path) -> None:
 
 def get_preprocessed_manifests_and_km_bounds(
     dataset_name: str,
+    model_manifest: ModelManifest,
+    run_name: str | None = None,
+    seg_feature_manifest_name: str = "live_merged_seg_features",
     datasets_for_bounds: List[str] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list]:
     """
     Load and process the DiffAE and live segmentation feature manifests for a given dataset.
     If no `datasets_for_bounds` are provided, it uses the reference datasets plus dataset_name
     to compute the bounds for the PCA projection. In my experience using only the dataset_name
-    for the bounds has sometimes caused the solver to hang, perhaps due to overly restrictive bounds.
+    for the bounds has sometimes caused the solver to hang, perhaps due to overly restrictive
+    bounds.
+
+    Parameters
+    ----------
+    dataset_name
+        The name of the dataset to load and process.
+    model_manifest
+        The model manifest to use for loading the DiffAE features.
+    run_name
+        The run name to use for loading the DiffAE features. If None, the most recent
+        run will be used.
+    seg_feature_manifest_name
+        The name of the manifest containing segmentation features.
+    datasets_for_bounds
+        List of dataset names to use for computing the PCA bounds.
+        If None, the reference datasets plus dataset_name will be used.
+
+    Returns
+    -------
+    :
+        A tuple containing the merged DiffAE and live segmentation features DataFrame,
+        the grid crop-based DiffAE features DataFrame, and the PCA bounds.
     """
     logger.info(f"Loading and processing manifests for dataset: {dataset_name}")
 
     # load the tables
-    merged_feats_df = get_diffae_feats_liveseg_feats_merged_table(dataset_name, filtered=True)
+    merged_feats_df = get_diffae_feats_liveseg_feats_merged_table(
+        dataset_name=dataset_name,
+        model_manifest=model_manifest,
+        run_name=run_name,
+        seg_feature_manifest_name=seg_feature_manifest_name,
+        filtered=True,
+    )
 
     # fit the PCA (uses the reference datasets)
     pca = fit_pca()
