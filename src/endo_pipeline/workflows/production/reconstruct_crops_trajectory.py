@@ -35,7 +35,7 @@ def main(
     from endo_pipeline import NUM_GPUS
     from endo_pipeline.io import get_output_path, load_model
     from endo_pipeline.library.analyze.diffae_dataframe import fit_pca
-    from endo_pipeline.library.analyze.diffae_features import (
+    from endo_pipeline.library.analyze.dynamics_utils import (
         convert_coordinates_from_pc_to_latent,
         interpolate_on_curve,
     )
