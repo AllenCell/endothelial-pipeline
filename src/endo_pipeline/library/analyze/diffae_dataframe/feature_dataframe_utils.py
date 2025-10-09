@@ -186,6 +186,11 @@ def get_timepoints_for_plotting_pcs(
     Used to remove later block of timepoints from the 20241217_20X no flow dataset for
     generating "simplified" scatter plots for the 2025 SAC presentation.
     """
+
+    # TODO: This method currently uses the dataset config "valid_timepoints" field
+    # which has been removed in favor of TimepointAnnotation.NOT_STEADY_STATE,
+    # and needs to be refactored.
+
     # initialize dictionary to store timepoints for each dataset
     timepoints_to_use = {}
 
@@ -236,6 +241,22 @@ def get_valid_subset(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
     dataset_name
         Name of the given dataset.
     """
+
+    # TODO: This method currently uses the dataset config "valid_timepoints" field
+    # which has been removed in favor of TimepointAnnotation.NOT_STEADY_STATE,
+    # and needs to be refactored. As a starting point:
+
+    # dataset_config = load_dataset_config(dataset_name)
+
+    # exclude_timepoints = {
+    #     f"P{position}": get_annotated_timepoints_for_position(dataset_config, position)
+    #     for position in dataset_config.zarr_positions
+    # }
+
+    # return df.groupby(["position", "frame_number"]).filter(
+    #     lambda g: g.name[1] not in exclude_timepoints[g.name[0]]
+    # )
+
     df["valid"] = False
     # check that the necessary datasets are present for fitting PCA
     valid_timepoints = load_dataset_config(dataset_name).valid_timepoints
