@@ -72,12 +72,13 @@ def main(
     pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name)
 
     # if demo mode, limit bootstrap samples to 50 if > 50
-    if DEMO_MODE and bootstrap_samples > 50:
-        logger.warning(
-            "Running workflow in demo mode, reducing bootstrap samples" " from [ %s ] to 50.",
-            bootstrap_samples,
-        )
-        bootstrap_samples = 50
+    if DEMO_MODE and bootstrap_samples is not None:
+        if bootstrap_samples > 50:
+            logger.warning(
+                "Running workflow in demo mode, reducing bootstrap samples" " from [ %s ] to 50.",
+                bootstrap_samples,
+            )
+            bootstrap_samples = 50
 
     # get cross and autocorrelation for pc features for each dataset
     # in the list of model manifests

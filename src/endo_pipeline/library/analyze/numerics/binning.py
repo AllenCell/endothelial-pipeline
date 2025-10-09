@@ -169,7 +169,7 @@ def _get_histogram_by_component_one_dataset(
     for t, df_frame in df.groupby("frame_number"):
         # loop over latent components
         for dim in range(num_feats):
-            feats = df_frame[feat_cols[dim]].values
+            feats = df_frame[feat_cols[dim]].to_numpy()
             # compute histogram of feature data along each component
             hist = np.histogram(feats, bins=bin_edges[dim], density=True)[0]
             hist_array[dim, :, t] = hist

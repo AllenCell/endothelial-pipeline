@@ -3,7 +3,7 @@ import typing
 
 import numpy as np
 import torch
-from hydra.utils import get_class, instantiate
+from hydra.utils import get_class
 
 if typing.TYPE_CHECKING:
     from cyto_dl.api import CytoDLModel
@@ -48,7 +48,7 @@ def generate_from_coords(
 
     # have to instantiate the actual model object from the config
     model_class = get_class(model.cfg.model._target_)
-    model_instantiated = model_class.load_from_checkpoint(model.cfg.checkpoint.ckpt_path)
+    model_instantiated = model_class.load_from_checkpoint(model.cfg.checkpoint.ckpt_path)  # type: ignore[attr-defined]
 
     # move model and inputs to gpu if available, else
     # perform reconstruction on cpu

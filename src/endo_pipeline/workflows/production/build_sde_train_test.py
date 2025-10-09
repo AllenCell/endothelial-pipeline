@@ -27,7 +27,7 @@ def main(
     model_manifest_name
         Name of the model manifest containing the run to load features from.
     run_name
-        Name of the specific model run to load featuref for. If None, uses the most recent run.
+        Name of the specific model run to load features for. If None, uses the most recent run.
     """
     import logging
 

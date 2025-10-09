@@ -1,7 +1,13 @@
-TAGS = ["dynamical_systems", "diffae_features"]
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+
+TAGS = ["dynamical_systems", "diffae_features", "2d_feature_space"]
 
 
-def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10") -> None:
+def main(
+    dynamics_config_name: str = "default",
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+) -> None:
     """
     Fit SINDy (polynomial regression) models for drift and diffusion terms.
 
@@ -11,15 +17,10 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     ----------
     dynamics_config_name
         Name of the configuration to load from dynamics_config.yaml.
-    model_name
-        Name of the model from which manifest data is loaded and analyzed.
-
-    Returns
-    -------
-    :
-        Saves the trained models for drift and diffusion terms in a specified directory.
-        Saved out as a dictionary with keys "drift_model" and "diff_model", where the values
-        are the trained regression models for the drift and diffusion terms, respectively.
+    model_manifest_name
+        Name of the model manifest containing the run to load features from.
+    run_name
+        Name of the specific model run to load featuref for. If None, uses the most recent run.
     """
     import logging
 
@@ -33,6 +34,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
         load_train_test,
         save_sde_model,
     )
+    from endo_pipeline.manifests import get_feature_dataframe_manifest_name, load_model_manifest
 
     logger = logging.getLogger(__name__)
 
@@ -43,8 +45,12 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     # get output subdirectory for intermediate workflow outputs
     # (set in config file dynamics_config.yaml)
     # if directory does not exist, get_output_path function will create it
+    model_manifest = load_model_manifest(model_manifest_name)
+    dataframe_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
     savedir = get_output_path(
-        "stochastic_dynamics", dynamics_config_name, model_name, "outputs", include_timestamp=False
+        "stochastic_dynamics", dynamics_config_name, dataframe_manifest_name, "outputs"
     )
 
     # get inputs for regression from config
