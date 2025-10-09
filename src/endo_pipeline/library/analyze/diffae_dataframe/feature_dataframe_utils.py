@@ -1,20 +1,179 @@
 import logging
+from typing import Literal
 
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from endo_pipeline.configs import DatasetConfig, get_frame_after_flow_change, load_dataset_config
+from endo_pipeline.configs import DatasetConfig, get_datasets_in_collection, load_dataset_config
 from endo_pipeline.io import load_dataframe
-from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
-
-from .feature_dataframe_utils import (
-    get_dataset_descriptions,
-    get_feature_column_names,
-    get_valid_subset,
+from endo_pipeline.manifests import (
+    DataframeManifest,
+    get_dataframe_location_for_dataset,
+    load_dataframe_manifest,
 )
 
 logger = logging.getLogger(__name__)
+
+
+def fit_pca(
+    dataset_collection_name: str = "pca_reference",
+    dataframe_manifest_name: str = "diffae_04_10",
+    num_pcs: int = 8,
+) -> PCA:
+    """
+    Fit PCA model to fixed set of reference datasets, as defined in the given
+    dataset collection name.
+
+    Parameters
+    ----------
+    dataset_collection_name
+        Name of the dataset collection to load reference datasets from.
+        This is used to load the model manifests that contain the reference datasets.
+    dataframe_manifest_name
+        Name of the dataframe manifest to load the model features from.
+    num_pcs
+        Number of principal components to fit.
+
+    Returns
+    -------
+    :
+        Fit PCA object
+    """
+    # Load dataframe manifest for given model
+    manifest = load_dataframe_manifest(dataframe_manifest_name)
+
+    # Get dataframe locations for manifest for all datasets in collection
+    dataset_names = get_datasets_in_collection(dataset_collection_name)
+    locations = [
+        get_dataframe_location_for_dataset(manifest, dataset_name) for dataset_name in dataset_names
+    ]
+    logger.info("Datasets being used to fit PCA:\n%s", ",".join(dataset_names))
+
+    # Load all dataframes
+    data_ref = pd.concat([load_dataframe(location) for location in locations], ignore_index=True)
+
+    # fit PCA
+    pca = PCA(n_components=num_pcs, svd_solver="full")
+
+    # get the feature columns from the data,
+    # these are the columns that start with 'feat_'
+    feature_cols = get_feature_column_names(data_ref)
+    pca.fit(data_ref[feature_cols].values)  # fit PCA
+
+    # log info about explained variance ratio
+    logger.info(
+        "Explained variance ratios: %s",
+        np.round(pca.explained_variance_ratio_, 4).tolist(),
+    )
+
+    cumul_exp_var = np.cumsum(pca.explained_variance_ratio_)
+    logger.info(
+        "Cumulative explained variance: %s",
+        np.round(cumul_exp_var, 4).tolist(),
+    )
+
+    # return the fit PCA pipeline
+    return pca
+
+
+def get_pca_loadings(
+    pca: PCA, scaled: bool = False, magnitude: bool = False, squared_norm: bool = False
+) -> np.ndarray:
+    """
+    Get the PCA loading matrix, which contains the contribution of each feature to each
+    principal component.
+    The loading matrix is the transpose of the PCA components matrix.
+
+    Parameters
+    ----------
+    pca : PCA
+        The fitted PCA object.
+    scaled : bool, optional
+        Whether to return the loading matrix unscaled or scaled by the square root of the
+        explained variance.
+        Default is False (i.e. return unscaled loadings).
+    magnitude : bool, optional
+        Whether to return the absolute values of the loadings. Default is False.
+    squared_norm : bool, optional
+        Whether to return the squared norm of the loadings. Default is False.
+        If True, the loading matrix will be squared element-wise.
+
+    Returns
+    -------
+    loading_matrix : np.ndarray
+        The PCA loading matrix. Has shape (n_features, n_components).
+    """
+
+    loading_matrix = pca.components_.T  # create unscaled loading matrix
+
+    if scaled:  # create scaled loading matrix
+        loading_matrix = pca.components_.T * np.sqrt(pca.explained_variance_)
+
+    if magnitude:
+        loading_matrix = np.abs(loading_matrix)
+
+    if squared_norm:
+        loading_matrix = loading_matrix**2
+
+    return loading_matrix
+
+
+def get_pca_loadings_as_df(
+    pca: PCA,
+    scaled: bool = False,
+    magnitude: bool = False,
+    squared_norm: bool = False,
+    df_format: Literal["long", "wide"] = "long",
+) -> pd.DataFrame:
+    """
+    Get the PCA loading matrix as a DataFrame.
+
+    This is a wrapper around `get_pca_loadings` that formats the output as a DataFrame.
+
+    **DataFrame format options**
+
+    The DataFrame can be returned in either "long" or "wide" format. The "long" format
+    has three columns: 'feature', 'PC', and 'loading_value'. The "wide" format has one
+    column per PC, indexed by feature.
+
+    Parameters
+    ----------
+    pca
+        The fit PCA object.
+    scaled
+        Whether to return the scaled loading matrix or unscaled.
+    magnitude
+        Whether to return the absolute values of the loadings
+    squared_norm
+        Whether to return the squared norm of the loadings.
+    df_format
+        The format of the DataFrame to return, either "long" or "wide".
+
+    Returns
+    -------
+    :
+        The PCA loading matrix as a DataFrame.
+
+    """
+    loading_matrix = get_pca_loadings(pca, scaled, magnitude, squared_norm)
+
+    num_features, num_pcs = loading_matrix.shape
+    feat_col_names = [f"feat_{i}" for i in range(num_features)]
+    pc_col_names = [f"pc{i+1}" for i in range(num_pcs)]
+
+    loading_matrix_df = pd.DataFrame(loading_matrix, columns=pc_col_names, index=feat_col_names)
+    if df_format == "long":
+        loading_matrix_df = loading_matrix_df.reset_index().melt(
+            id_vars="index", var_name="pc", value_name="loading_value"
+        )
+        loading_matrix_df = loading_matrix_df.rename(columns={"index": "feature"})
+    elif df_format == "wide":
+        pass
+    else:
+        raise ValueError("df_format must be either 'long' or 'wide'.")
+
+    return loading_matrix_df
 
 
 def add_description_column(
@@ -301,119 +460,6 @@ def get_dataset_descriptions(
         description_dict[dataset_name] = "_".join(description)
 
     return description_dict
-
-
-def split_dataset_by_flow(
-    df_proj: pd.DataFrame, dataset_config: DatasetConfig
-) -> tuple[list, list]:
-    """
-    Get crop-based feature data (Diffusion AE output) for each flow condition present in a dataset.
-
-    If there is only one flow condition, this method returns a lists of length 1
-    containing the original dataframe and single shear stress value.
-
-    Parameters
-    ----------
-    df_proj
-        DataFrame containing the PCA-projected feature data for one dataset.
-    dataset_config
-        DatasetConfig object for the given dataset.
-
-    Returns
-    -------
-    :
-        List of DataFrames, each containing the feature data for one flow condition.
-    :
-        List of shear stress values for each flow condition.
-    """
-
-    # get flow condition information from dataset config
-    flow_conditions = dataset_config.flow_conditions
-
-    # split out data by flow condition,
-    # starting with first flow condition
-    first_shear = flow_conditions[0].shear_stress
-    # initialize list of shear stress conditions
-    shear_list = [first_shear]
-    # if there is a change in flow condition
-    if len(flow_conditions) > 1:
-        # get frame number where second flow condition starts
-        change_frame = get_frame_after_flow_change(dataset_config)
-        # get second shear stress condition
-        second_shear = flow_conditions[1].shear_stress
-        shear_list.append(second_shear)
-        logger.debug("Shear stress [ %s ] dyn/cm^2 until frame [ %s ]", first_shear, change_frame)
-        logger.debug("Shear stress [ %s ] dyn/cm^2 after frame [ %s ]", second_shear, change_frame)
-        # separate data into two dataframes based on
-        # frame number where flow condition changes
-        data_flow1 = df_proj[df_proj["frame_number"] < change_frame].copy()
-        data_flow2 = df_proj[df_proj["frame_number"] >= change_frame].copy()
-        # return list of dataframes for each flow condition
-        data_all = [data_flow1, data_flow2]
-    # else, there is only one flow condition
-    else:
-        logger.debug("Constant shear stress [ %s ] dyn/cm^2", first_shear)
-        # list of dataframes for one flow condition
-        # = list containing the original dataframe
-        data_all = [df_proj.copy()]
-
-    return data_all, shear_list
-
-
-def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, list]:
-    """
-    Get trajectories and displacement vectors for each crop in feature space.
-
-    **Input dataframe**
-
-    The input dataframe should have columns for:
-    - frame_number: timepoint of the crop
-    - crop_index: unique index for each crop
-    - columns for each feature (e.g., pc0, pc1, pc2, ...) matching input ``pc_column_names``
-
-    Parameters
-    ----------
-    data
-        DataFrame with columns for each feature.
-    pc_column_names
-        List of column names corresponding to the PC features in the DataFrame.
-
-    Returns
-    -------
-    :
-        List of individual crop trajectories in feature space.
-    :
-        List of displacement vectors along each trajectory in feature space.
-    """
-    if "frame_number" not in data.columns:
-        logger.error("Data must have the column [ frame_number ] to indicate timepoints.")
-        raise ValueError("Data must have the column [ frame_number ] to indicate timepoints.")
-    if "crop_index" not in data.columns:
-        logger.error("Data must have the column [ crop_index ] to indicate unique crops.")
-        raise ValueError("Data must have the column [ crop_index ] to indicate unique crops.")
-
-    # get list of unique crop indices
-    crop_list = data["crop_index"].unique().tolist()
-
-    # initialize lists for storing outputs
-    traj_list = []
-    d_traj_list = []
-
-    # loop over each crop in the dataset
-    for crop in crop_list:
-        # get data for each crop, sorted by time
-        data_crop = data[data["crop_index"] == crop].sort_values(by="frame_number")
-
-        # get displacement vectors and time differences for each crop
-        d_traj = np.diff(data_crop[pc_column_names].values, axis=0)
-
-        # append data to lists:
-        # trajectory and displacement vectors
-        # leave off last timepoint for trajectory
-        traj_list.append(data_crop[pc_column_names].values)
-        d_traj_list.append(d_traj)
-
-    return traj_list, d_traj_list
 
 
 def get_timepoints_for_plotting_pcs(
