@@ -20,7 +20,8 @@ DESCRIPTION = "Visualize the image preprocessing steps for the DiffAE model."
 TAGS = ["supfig", "preprocessing", "diffae"]
 
 # %% Load Example Data
-DATASET = EXAMPLE_DATASET["SUPP_FIG_IMG_PROC"]
+FIGURE_ID = "SUPP_FIG_IMG_PROC"
+DATASET = EXAMPLE_DATASET[FIGURE_ID]
 POSITION = 0
 save_dir = get_output_path("model_input_preprocessing_viz", f"{DATASET}_P{POSITION}")
 

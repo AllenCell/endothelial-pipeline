@@ -16,8 +16,9 @@ DESCRIPTION = "Visualize the automatic detection of outlier timepoints in BF and
 TAGS = ["supfig", "preprocessing"]
 
 # %% Load example datasets
-dataset_config_bf = load_dataset_config(EXAMPLE_DATASET["SUPP_FIG_SINGLE_TP_BF_OUTLIER"])
-dataset_config_gfp = load_dataset_config(EXAMPLE_DATASET["SUPP_FIG_SINGLE_TP_GFP_OUTLIER"])
+FIGURE_ID = "SUPP_FIG_SINGLE_TP"
+dataset_config_bf = load_dataset_config(EXAMPLE_DATASET[f"{FIGURE_ID}_BF_OUTLIER"])
+dataset_config_gfp = load_dataset_config(EXAMPLE_DATASET["{FIGURE_ID}_GFP_OUTLIER"])
 position = 0
 
 # %% Panel A - Auto-detect BF outliers

@@ -23,7 +23,8 @@ DESCRIPTION = "Visualize the selection of Z slices for image preprocessing."
 TAGS = ["supfig", "preprocessing"]
 
 # %% Load dataset
-dataset = EXAMPLE_DATASET["SUPP_FIG_Z_SLICE"]
+FIGURE_ID = "SUPP_FIG_Z_SLICE"
+dataset = EXAMPLE_DATASET[FIGURE_ID]
 save_dir = get_output_path("supp_fig_z_slice_selection")
 dataset_config = load_dataset_config(dataset)
 position, frame = 0, 0
