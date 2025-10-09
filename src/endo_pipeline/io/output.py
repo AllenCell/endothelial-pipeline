@@ -287,7 +287,7 @@ def save_plot_to_path(
     figure: Figure,
     output_path: Path,
     figure_name: str,
-    dpi: int = DPI,
+    dpi: int = FIGURE_SAVE_DPI,
     file_format: Literal[".png", ".pdf"] = ".png",
     transparent: bool = False,
 ) -> None:
@@ -353,7 +353,7 @@ def save_thumbnail_to_path(
     figsize : tuple of float
         The size of the figure in inches (width, height).
     dpi : int, optional
-        The resolution of the saved image in dots per inch (default is DPI).
+        The resolution of the saved image in dots per inch.
     file_format : str, optional
         The file format for the saved image (default is ".png").
     scalebar_size_um : float, optional
