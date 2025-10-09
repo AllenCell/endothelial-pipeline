@@ -1,14 +1,18 @@
+import logging
 from typing import cast
 
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.library.analyze.diffae_dataframe import (
     get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
 )
 from endo_pipeline.manifests import DataframeManifest
+
+logger = logging.getLogger(__name__)
 
 
 def get_bins(
@@ -157,7 +161,10 @@ def _get_histogram_by_component_one_dataset(
         feat_cols = get_pc_column_names(df)
 
     num_feats = len(feat_cols)
-    num_frames = df["frame_number"].nunique()
+    # to handle dropped timepoints, get total number of frames
+    # from the dataset config
+    dataset_config = load_dataset_config(df["dataset"].iloc[0])
+    num_frames = dataset_config.duration
     num_bins = bin_edges[0].shape[0] - 1  # number of bins is one less than number of edges
 
     # feats = df_to_array(df_padded, feat_cols)  # get array of just the feature data
@@ -166,7 +173,8 @@ def _get_histogram_by_component_one_dataset(
         (num_feats, num_bins, num_frames)
     )  # histogram values for each component as a function of time
 
-    for t, df_frame in df.groupby("frame_number"):
+    for t in range(num_frames):
+        df_frame = df.loc[df["frame_number"] == t]
         # loop over latent components
         for dim in range(num_feats):
             feats = df_frame[feat_cols[dim]].to_numpy()
@@ -217,9 +225,15 @@ def get_histogram_by_component(
     num_feats = len(feat_cols)
 
     # check that bin_limits is provided and matches the number of features
-    assert (
-        len(bin_limits) == num_feats
-    ), f"Number of bin limits ({len(bin_limits)}) must match number of features ({num_feats})"
+    if len(bin_limits) != num_feats:
+        logger.error(
+            "Number of bin limits [ %s ] must match number of features [ %s ]",
+            len(bin_limits),
+            num_feats,
+        )
+        raise ValueError(
+            f"Number of bin limits ({len(bin_limits)}) must match number of features ({num_feats})"
+        )
 
     # get bin edges for each feature dimension
     bin_edges = [

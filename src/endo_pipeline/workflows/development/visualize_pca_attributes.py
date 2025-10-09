@@ -85,14 +85,11 @@ def main(
     # load model manifests for the given dataset collection
     dataset_names = get_datasets_in_collection(dataset_collection_name)
     pca_ref_configs = [load_dataset_config(dataset_name) for dataset_name in dataset_names]
-    restrict_no_flow = True  # restrict plot to subset of no flow timepoints
 
     # get timepoints to use for scatter plots
     # this can definitely be written into a wrapper function
     # maybe make a dictionary instead of a list?
-    timepoints_refs = get_timepoints_for_plotting_pcs(
-        pca_ref_configs, restrict_no_flow=restrict_no_flow
-    )
+    timepoints_refs = get_timepoints_for_plotting_pcs(pca_ref_configs)
 
     # scatter plot of pca reference datasets
     manifest = load_dataframe_manifest(dataframe_manifest_name)

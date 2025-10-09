@@ -5,7 +5,13 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from endo_pipeline.configs import DatasetConfig, get_datasets_in_collection, load_dataset_config
+from endo_pipeline.configs import (
+    DatasetConfig,
+    ShearStressRegime,
+    TimepointAnnotation,
+    get_datasets_in_collection,
+    load_dataset_config,
+)
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.manifests import (
     DataframeManifest,
@@ -462,48 +468,39 @@ def get_dataset_descriptions(
     return description_dict
 
 
-def get_timepoints_for_plotting_pcs(
-    list_of_datasets: list[DatasetConfig],
-    restrict_no_flow: bool = True,
-    no_flow_name: str = "20241217_20X",
-) -> dict:
-    """
-    Get timepoints for plotting scatter plot in PC space of data used to fit PCA.
-
-    Used to remove later block of timepoints from the 20241217_20X no flow dataset for
-    generating "simplified" scatter plots for the 2025 SAC presentation.
-    """
+def get_timepoints_for_plotting_pcs(list_of_datasets: list[DatasetConfig]) -> dict:
+    """Get timepoints for plotting scatter plot in PC space of data used to fit PCA."""
     # initialize dictionary to store timepoints for each dataset
     timepoints_to_use = {}
 
     for dataset_config in list_of_datasets:
         # get range of valid timepoints for each dataset
-        # loaded from dataset config
-        valid_timepoints = dataset_config.valid_timepoints
-
-        # if no valid timepoints are specified, use all timepoints
-        if valid_timepoints is None:
-            timepoints_list = [[0, dataset_config.flow_conditions[-1].stop]]
-
-        # otherwise, get the start and stop timepoints
-        else:
-            starts = valid_timepoints.start
-            stops = valid_timepoints.stop
+        # based on:
+        # - cells being fed for no-flow datasets
+        # - cells being in "steady state" for flow datasets
+        # if there are no annotations, use all timepoints
+        dataset_duration = dataset_config.duration
+        if dataset_config.shear_stress_regime == ShearStressRegime.NO:
+            unfed_tps = dataset_config.timepoint_annotations.get(TimepointAnnotation.UNFED, None)
+            if unfed_tps is not None:
+                # remove unfed timepoints from the full range of timepoints
+                timepoints_list = []
+                # ranges same across all positions, just use position 0
+                for i, unfed_range in enumerate(unfed_tps[0]):
+                    if i == 0 and unfed_range[0] > 0:
+                        timepoints_list.append([0, unfed_range[0] - 1])
+                    if i == len(unfed_tps[0]) - 1 and unfed_range[1] < dataset_duration:
+                        timepoints_list.append([unfed_range[1] + 1, dataset_duration])
+                    if i < len(unfed_tps[0]) - 1:
+                        timepoints_list.append([unfed_range[1] + 1, unfed_tps[0][i + 1][0] - 1])
+        elif dataset_config.valid_timepoints is not None:
+            starts = dataset_config.valid_timepoints.start
+            stops = dataset_config.valid_timepoints.stop
             timepoints_list = []
             for start, stop in zip(starts, stops, strict=True):
-                # hard coded because this is the no-flow dataset that
-                # we are using for fitting the PCs, and specifically
-                # the one with the two sets of timepoints
-                # if this changes, we can updated this to not be
-                # hardcoded (i.e., check if shear stress is 0 in config)
-                if dataset_config.name == no_flow_name and restrict_no_flow:
-                    # restrict to only first set of no flow timepoints
-                    if start == 0:
-                        timepoints_list.append([start, stop])
-                    else:
-                        continue
-                else:
-                    timepoints_list.append([start, stop])
+                timepoints_list.append([start, stop])
+        else:
+            timepoints_list = [0, dataset_duration]
         timepoints_to_use[dataset_config.name] = timepoints_list
     return timepoints_to_use
 

@@ -43,6 +43,7 @@ def main(
     :
         Saves the montage images to the output directory.
     """
+    import logging
 
     from endo_pipeline import NUM_GPUS
     from endo_pipeline.configs import get_datasets_in_collection
@@ -59,7 +60,15 @@ def main(
         load_model_manifest,
     )
 
-    fig_savedir = get_output_path("crop_visualization", include_timestamp=False)
+    logger = logging.getLogger(__name__)
+
+    if NUM_GPUS and NUM_GPUS > 1:
+        logger.warning(
+            "Utilizing multiple GPUs for this workflow is not supported, "
+            "there will be no performance benefit."
+        )
+
+    fig_savedir = get_output_path("crop_visualization")
 
     # Default list of datasets if not provided. Otherwise, use the provided list.
     if datasets is None:
