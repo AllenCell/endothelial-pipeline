@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 from omegaconf import OmegaConf
 
 from endo_pipeline.io.output import save_plot_to_path
-from endo_pipeline.library.visualize.diffae_features import plot_image_thumbnail
+from endo_pipeline.library.visualize.figure_utils import plot_image_thumbnail
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
 
 logger = logging.getLogger(__name__)

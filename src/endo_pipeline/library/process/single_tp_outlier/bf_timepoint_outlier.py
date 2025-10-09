@@ -143,7 +143,7 @@ def plot_bf_outliers(
     secax = ax.secondary_xaxis("top", functions=(index_to_tp, tp_to_index))
     secax.set_xlabel("Time (frames)", fontsize=16, labelpad=12)
     max_tp = data_np.shape[0] // num_zslices
-    secax.set_xticks(np.arange(0, max_tp + 1, 25))
+    secax.set_xticks(np.arange(0, max_tp + 1, 50))
     secax.tick_params(axis="x", labelsize=14)
 
     ax.legend(fontsize=14, loc="upper right", frameon=True)
