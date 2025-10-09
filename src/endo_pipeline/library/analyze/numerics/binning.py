@@ -4,8 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from endo_pipeline.library.analyze.diffae_manifest import (
-    df_to_array,
+from endo_pipeline.library.analyze.diffae_dataframe import (
     get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
 )
@@ -161,24 +160,25 @@ def _get_histogram_by_component_one_dataset(
     num_frames = df["frame_number"].nunique()
     num_bins = bin_edges[0].shape[0] - 1  # number of bins is one less than number of edges
 
-    feats = df_to_array(df, feat_cols)  # get array of just the feature data
+    # feats = df_to_array(df_padded, feat_cols)  # get array of just the feature data
 
     hist_array = np.zeros(
         (num_feats, num_bins, num_frames)
     )  # histogram values for each component as a function of time
 
-    for t in range(num_frames):
+    for t, df_frame in df.groupby("frame_number"):
         # loop over latent components
         for dim in range(num_feats):
+            feats = df_frame[feat_cols[dim]].to_numpy()
             # compute histogram of feature data along each component
-            hist = np.histogram(feats[:, t, dim], bins=bin_edges[dim], density=True)[0]
+            hist = np.histogram(feats, bins=bin_edges[dim], density=True)[0]
             hist_array[dim, :, t] = hist
 
             # update the dataframe with column of what bin
             # each crop at frame_number t is in
             # along the given latent dimension
             # get the bin index for each crop
-            bin_idx = np.digitize(feats[:, t, dim], bin_edges[dim]) - 1
+            bin_idx = np.digitize(feats, bin_edges[dim]) - 1
             # add the bin index to the dataframe (astype int)
             # restrict to crops at frame_number t
             df.loc[df["frame_number"] == t, f"bin_{dim}"] = bin_idx

@@ -1,43 +1,70 @@
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+
 TAGS = ["diffae_image_generation", "diffae_features"]
 
 
-def main(model_name: str = "diffae_04_10") -> None:
+def main(
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+) -> None:
     """
     Reconstruct crops from latent space coordinates along trajectories output
     by the workflow `generate_3d_flow_field.py`.
 
+    **Image reconstruction output**
+    The reconstructed crops are saved as TIFF files in a local directory.
+    The crops are reconstructed from latent space coordinates along trajectories
+    output by the workflow `generate_3d_flow_field.py`.
+
     Parameters
     ----------
-    model_name
-        Name of the model to use for image reconstruction.
+    model_manifest_name
+        Name of the model manifest containing the specific run to load features from.
+    run_name
+        Run name corresponding to features to load and the model to use for image reconstruction.
 
     Returns
     -------
     :
-        Saves the reconstructed crops as TIFF files in the specified output directory.
-        The crops are reconstructed from latent space coordinates along trajectories
-        output by the workflow `generate_3d_flow_field.py`.
+        Saves the reconstructed crops as TIFF files.
     """
 
     import numpy as np
     from bioio.writers import OmeTiffWriter
 
-    from endo_pipeline.io import get_output_path
+    from endo_pipeline import NUM_GPUS
+    from endo_pipeline.io import get_output_path, load_model
+    from endo_pipeline.library.analyze.diffae_dataframe import fit_pca
     from endo_pipeline.library.analyze.diffae_features import (
         convert_coordinates_from_pc_to_latent,
         interpolate_on_curve,
     )
-    from endo_pipeline.library.analyze.diffae_manifest import fit_pca
     from endo_pipeline.library.model import generate_from_coords_batch
+    from endo_pipeline.manifests import (
+        get_feature_dataframe_manifest_name,
+        get_most_recent_run_name,
+        load_model_manifest,
+    )
+
+    # load model manifest, get run name, and load model
+    model_manifest = load_model_manifest(model_manifest_name)
+    run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
+    model = load_model(model_manifest.locations[run_name_])
+
+    dataframe_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name_, crop_pattern="grid"
+    )
 
     # Create output folder if does not exist yet
     output_savedir = get_output_path(
-        "flow_field_3d", model_name, "outputs", include_timestamp=False
+        "flow_field_3d", dataframe_manifest_name, "outputs", include_timestamp=False
     )
-    crop_savedir = get_output_path("flow_field_3d", model_name, "crops", include_timestamp=False)
+    crop_savedir = get_output_path(
+        "flow_field_3d", dataframe_manifest_name, "crops", include_timestamp=False
+    )
 
     # Get fit (3D) PCA object from manifest
-    reducer = fit_pca(model_name=model_name, num_pcs=3)
+    reducer = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=3)
 
     traj_dict = np.load(output_savedir / "traj_dict.npy", allow_pickle=True).item()
 
@@ -77,7 +104,7 @@ def main(model_name: str = "diffae_04_10") -> None:
 
     # pass into DiffAE model to generate reconstructed crops
     # using single noise input (generate images in batch)
-    walk_imgs = generate_from_coords_batch(model_name, latent_coords_batch)
+    walk_imgs = generate_from_coords_batch(model, latent_coords_batch, num_gpus=NUM_GPUS)
 
     for walk_img, experimental_condition in zip(
         walk_imgs, experimental_condition_list, strict=False

@@ -1,11 +1,13 @@
 from typing import Literal
 
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+
 TAGS = ["diffae_model_finetuning"]
 
 
 def main(
-    base_model_manifest_name: str = "diffae_04_10",
-    base_run_name: str | None = None,
+    base_model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    base_run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     finetuned_model_manifest_name: str | None = None,
     finetuned_run_name: str | None = None,
     dataset_pair_type: Literal["live_fixed", "20x_40x"] = "live_fixed",

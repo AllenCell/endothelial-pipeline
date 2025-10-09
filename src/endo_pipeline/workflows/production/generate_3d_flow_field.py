@@ -1,8 +1,14 @@
-TAGS = ["dynamical_systems", "diffae_features"]
 from endo_pipeline.cli import Datasets
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+
+TAGS = ["dynamical_systems", "diffae_features"]
 
 
-def main(datasets: Datasets | None = None, model_name: str = "diffae_04_10") -> None:
+def main(
+    datasets: Datasets | None = None,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+) -> None:
     """
     Visualize 3D (drift) flow fields for the dynamics of the crop-based DiffAE
     features for each of the single flow datasets.
@@ -10,11 +16,11 @@ def main(datasets: Datasets | None = None, model_name: str = "diffae_04_10") -> 
     Parameters
     ----------
     datasets
-        List of datasets or dataset collections to use for visualization. If not
-        provided, workflow runs on the ``3d_flow_field_analysis`` dataset
-        collection.
-    model_name
-        Name of the model for which to load the feature manifest data.
+        List of datasets or dataset collections to use for visualization.
+    model_manifest_name
+        Name of the model manifest containing the run to load features from.
+    run_name
+        Name of the specific model run to load featuref for. If None, uses the most recent run.
 
     Returns
     -------
@@ -23,42 +29,51 @@ def main(datasets: Datasets | None = None, model_name: str = "diffae_04_10") -> 
         to the specified output directories.
     """
 
-    import logging
-
     import numpy as np
 
     from endo_pipeline.configs import dynamics_io, get_datasets_in_collection
     from endo_pipeline.io import get_output_path, save_plot_to_path
+    from endo_pipeline.library.analyze.diffae_dataframe import fit_pca
     from endo_pipeline.library.analyze.diffae_features import get_and_analyze_ddff
-    from endo_pipeline.library.analyze.diffae_manifest import fit_pca
     from endo_pipeline.library.visualize.diffae_features import feature_viz
-    from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.manifests import (
+        get_feature_dataframe_manifest_name,
+        load_dataframe_manifest,
+        load_model_manifest,
+    )
 
-    logger = logging.getLogger(__name__)
+    model_manifest = load_model_manifest(model_manifest_name)
+    dataframe_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
 
     # Create output folder if does not exist yet
     workflow_name = "flow_field_3d"
-    output_savedir = get_output_path(workflow_name, model_name, "outputs", include_timestamp=False)
-    fig_savedir = get_output_path(workflow_name, model_name, "figs", include_timestamp=False)
+    output_savedir = get_output_path(
+        workflow_name, dataframe_manifest_name, "outputs", include_timestamp=False
+    )
+    fig_savedir = get_output_path(
+        workflow_name, dataframe_manifest_name, "figs", include_timestamp=False
+    )
     vtk_savedir = get_output_path(
-        workflow_name, model_name, "outputs", "vtk", include_timestamp=False
+        workflow_name, dataframe_manifest_name, "outputs", "vtk", include_timestamp=False
     )
 
-    manifest = load_dataframe_manifest(model_name)
+    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     # Default list of datasets if not provided. Filter by datasets available in
     # the manifest.
-    valid_dataset_options = list(manifest.locations.keys())
+    valid_dataset_options = list(dataframe_manifest.locations.keys())
     if datasets is None:
         dataset_names = get_datasets_in_collection("3d_flow_field_analysis", valid_dataset_options)
     else:
         dataset_names = [name for name in datasets if name in valid_dataset_options]
 
-    pca = fit_pca(model_name=model_name)
+    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name)
 
     # plot scatter of PCA components and all datasets specified in the command
     # line (or default list, if not specified)
-    fig, _ = feature_viz.plot_pc_scatter(dataset_names, manifest, pca)
+    fig, _ = feature_viz.plot_pc_scatter(dataset_names, dataframe_manifest, pca)
     save_plot_to_path(fig, fig_savedir, "pca_scatter_all")
 
     # load default config, get kernel params
@@ -82,7 +97,7 @@ def main(datasets: Datasets | None = None, model_name: str = "diffae_04_10") -> 
 
     get_and_analyze_ddff(
         dataset_names,
-        manifest,
+        dataframe_manifest,
         pca,
         kernel_params,
         dt,

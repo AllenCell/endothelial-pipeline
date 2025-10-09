@@ -24,7 +24,11 @@ from .model_manifest_io import (
     load_model_manifest,
     save_model_manifest,
 )
-from .model_manifest_utils import get_model_location_for_run
+from .model_manifest_utils import (
+    get_feature_dataframe_manifest_name,
+    get_model_location_for_run,
+    get_most_recent_run_name,
+)
 
 __all__ = [
     "DataframeLocation",
@@ -38,10 +42,12 @@ __all__ = [
     "create_model_manifest",
     "get_dataframe_location_for_dataset",
     "get_dataframe_manifest_dir",
+    "get_feature_dataframe_manifest_name",
     "get_image_location_for_dataset",
     "get_image_manifest_dir",
     "get_model_location_for_run",
     "get_model_manifest_dir",
+    "get_most_recent_run_name",
     "list_datasets_with_dataframes",
     "list_datasets_with_images",
     "load_dataframe_manifest",
