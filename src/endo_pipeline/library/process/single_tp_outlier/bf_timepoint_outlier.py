@@ -9,17 +9,13 @@ from endo_pipeline.configs import DatasetConfig, get_available_zarr_files
 from endo_pipeline.io.input import load_zarr_as_dask_array
 from endo_pipeline.io.output import get_output_path, save_plot_to_path
 from endo_pipeline.settings.image_data import NUM_ZSLICES
+from endo_pipeline.settings.method_constants import (
+    BF_ROLLING_WINDOW,
+    OUTLIER_THRESHOLD,
+    PARTIAL_DARK_THRESHOLD,
+)
 
 logger = logging.getLogger(__name__)
-
-THRESHOLD1 = 0.004
-"""Percentage to use for thresholding partial dark outliers."""
-
-THRESHOLD2 = 0.01
-"""Percentage to use for thresholding dark and bright outliers."""
-
-ROLLING_WINDOW = 100
-"""Number of z-slices per to use for rolling window calculation (4 timepoints)."""
 
 
 def plot_bf_outliers(
@@ -74,17 +70,20 @@ def plot_bf_outliers(
         zorder=4,
     )
     ax.plot(
-        dark_threshold, label=f"Lower Threshold ({THRESHOLD2*100}%)", color="red", linestyle="--"
+        dark_threshold,
+        label=f"Lower Threshold ({PARTIAL_DARK_THRESHOLD*100}%)",
+        color="red",
+        linestyle="--",
     )
     ax.plot(
         partial_dark_threshold,
-        label=f"Partial Dark Threshold ({THRESHOLD1*100}%)",
+        label=f"Partial Dark Threshold ({OUTLIER_THRESHOLD*100}%)",
         color="purple",
         linestyle="--",
     )
     ax.plot(
         bright_threshold,
-        label=f"Upper Threshold ({THRESHOLD2*100}%)",
+        label=f"Upper Threshold ({PARTIAL_DARK_THRESHOLD*100}%)",
         color="orange",
         linestyle="--",
     )
@@ -190,19 +189,19 @@ def detect_bf_outliers(
     # 2 Convert to pandas Series for rolling median
     data_np = flattened_img_data.compute()
     series = pd.Series(data_np)
-    rolling_median = series.rolling(ROLLING_WINDOW, center=True).median()
+    rolling_median = series.rolling(BF_ROLLING_WINDOW, center=True).median()
 
     # Pad edges
-    start_pad_value = np.median(data_np[:ROLLING_WINDOW])
-    end_pad_value = np.median(data_np[-ROLLING_WINDOW:])
-    rolling_median.iloc[: ROLLING_WINDOW // 2] = start_pad_value
-    rolling_median.iloc[-ROLLING_WINDOW // 2 :] = end_pad_value
+    start_pad_value = np.median(data_np[:BF_ROLLING_WINDOW])
+    end_pad_value = np.median(data_np[-BF_ROLLING_WINDOW:])
+    rolling_median.iloc[: BF_ROLLING_WINDOW // 2] = start_pad_value
+    rolling_median.iloc[-BF_ROLLING_WINDOW // 2 :] = end_pad_value
     rolling_median_np = rolling_median.to_numpy()
 
     # Thresholds
-    dark_threshold = rolling_median_np * (1 - THRESHOLD2)
-    partial_dark_threshold = rolling_median_np * (1 - THRESHOLD1)
-    bright_threshold = rolling_median_np * (1 + THRESHOLD2)
+    dark_threshold = rolling_median_np * (1 - PARTIAL_DARK_THRESHOLD)
+    partial_dark_threshold = rolling_median_np * (1 - OUTLIER_THRESHOLD)
+    bright_threshold = rolling_median_np * (1 + PARTIAL_DARK_THRESHOLD)
 
     # Peaks
     minima, _ = find_peaks(-data_np)  # dark

@@ -5,12 +5,7 @@ import pandas as pd
 from endo_pipeline.configs import DatasetConfig, get_available_zarr_files
 from endo_pipeline.io.input import load_zarr_as_dask_array
 from endo_pipeline.io.output import get_output_path, save_plot_to_path
-
-THRESHOLD = 0.01
-"""Percentage to use for thresholding dark and bright outliers."""
-
-ROLLING_WINDOW = 12
-"""Number of timepoints to use for rolling window calculation (1 hour)."""
+from endo_pipeline.settings.method_constants import GFP_ROLLING_WINDOW, OUTLIER_THRESHOLD
 
 
 def plot_gfp_outliers_rolling(
@@ -22,8 +17,8 @@ def plot_gfp_outliers_rolling(
     bright_outliers: list[int],
     dataset_name: str,
     position: int,
-    window: int = ROLLING_WINDOW,
-    percent: float = THRESHOLD,
+    window: int = GFP_ROLLING_WINDOW,
+    percent: float = OUTLIER_THRESHOLD,
 ) -> None:
     """
     Plot timepoint-level mean intensities with rolling mean ± percentage thresholds and outliers.
@@ -47,7 +42,7 @@ def plot_gfp_outliers_rolling(
     position : int
         Position index within the dataset.
     window : int, optional
-        Size of the rolling window used for calculating the rolling mean (default is ROLLING_WINDOW).
+        Size of the rolling window used for calculating the rolling mean (default is GFP_ROLLING_WINDOW).
     percent : float, optional
         Threshold percentage for identifying outliers (default is THRESHOLD).
     """
@@ -105,8 +100,8 @@ def detect_egfp_scope_errors(
     dataset_config: DatasetConfig,
     position: int,
     visualize: bool = False,
-    window: int = ROLLING_WINDOW,
-    percent: float = THRESHOLD,
+    window: int = GFP_ROLLING_WINDOW,
+    percent: float = OUTLIER_THRESHOLD,
 ) -> list[int]:
     """
     Detect EGFP scope errors based on per-timepoint mean with rolling mean ± percentage thresholds.
@@ -124,9 +119,9 @@ def detect_egfp_scope_errors(
     visualize : bool, optional
         If True, generates a visualization of the detected outliers (default is False).
     window : int, optional
-        Size of the rolling window used for calculating the rolling mean (default is ROLLING_WINDOW).
+        Size of the rolling window used for calculating the rolling mean (default is GFP_ROLLING_WINDOW).
     percent : float, optional
-        Threshold percentage for identifying outliers (default is THRESHOLD).
+        Threshold percentage for identifying outliers (default is OUTLIER_THRESHOLD).
 
     Returns
     -------
