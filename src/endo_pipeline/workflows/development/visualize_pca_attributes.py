@@ -22,6 +22,7 @@ def main(
     from endo_pipeline.library.visualize.diffae_features import feature_viz
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
+        get_most_recent_run_name,
         load_dataframe_manifest,
         load_model_manifest,
     )
@@ -35,9 +36,18 @@ def main(
     )
 
     # set up output directory for figures
-    fig_savedir = get_output_path("pca_viz", dataset_collection_name, model_manifest_name, run_name)
+    run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
+    fig_savedir = get_output_path(
+        "pca_viz", dataset_collection_name, model_manifest_name, run_name_
+    )
 
     # fit PCA model to the datasets in the given dataset collection
+    logger.debug(
+        "Fitting PCA model to datasets in collection [ %s ] "
+        "using features from dataframe manifest [ %s ]",
+        dataset_collection_name,
+        dataframe_manifest_name,
+    )
     pca = fit_pca(
         dataset_collection_name=dataset_collection_name,
         dataframe_manifest_name=dataframe_manifest_name,

@@ -64,7 +64,7 @@ def main(
     # Default list of datasets if not provided. Otherwise, use the provided list.
     if datasets is None:
         dataset_list = get_datasets_in_collection("pca_reference")
-    else:
+    elif isinstance(datasets, str):
         dataset_list = datasets
 
     # get dataframe manifest corresponding to the model that generated the features

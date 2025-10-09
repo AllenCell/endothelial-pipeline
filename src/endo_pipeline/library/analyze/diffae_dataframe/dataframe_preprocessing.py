@@ -181,6 +181,41 @@ def get_dataframe_for_dynamics_workflows(
         return project_manifest_to_pcs(df_with_crop, pca)
 
 
+def pad_missing_timepoints(
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Pad missing timepoints in DataFrame of feature data for one crop
+    with NaNs, so that each crop has the same number of timepoints.
+    """
+    # get list of all timepoints
+    all_timepoints = list(range(df["frame_number"].nunique()))
+
+    list_of_padded_dfs = []
+    # loop over crop index
+    for crop_index, df_crop in df.groupby("crop_index"):
+        # get list of timepoints present in DataFrame
+        present_timepoints = df_crop["frame_number"].unique().tolist()
+        # get list of missing timepoints
+        missing_timepoints = list(set(all_timepoints) - set(present_timepoints))
+        # create DataFrame for missing timepoints with NaNs for feature columns
+        missing_dfs = [df]
+        for t in missing_timepoints:
+            df_missing = pd.DataFrame({col: [np.nan] for col in df.columns})
+            df_missing["frame_number"] = t
+            df_missing["crop_index"] = crop_index
+            missing_dfs.append(df_missing)
+        # concatenate original DataFrame with missing DataFrames
+        df_padded = pd.concat(missing_dfs, ignore_index=True)
+        # sort DataFrame by timepoint
+        df_padded = df_padded.sort_values(by="frame_number").reset_index(drop=True)
+        list_of_padded_dfs.append(df_padded)
+
+    # concatenate all padded DataFrames
+    df_padded_all = pd.concat(list_of_padded_dfs, ignore_index=True)
+    return df_padded_all
+
+
 def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
     """
     Convert DataFrame of features corresponding to one dataset to array
@@ -197,10 +232,6 @@ def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
         at all timepoints in one dataset
         - shape is num_crops x num_timepoints x num_features
     """
-    assert "crop_index" in df.columns, "DataFrame must have a column for crop_index"
-    assert "frame_number" in df.columns, "DataFrame must have a column for frame_number"
-
-    num_time = df["frame_number"].nunique()  # number of timepoints in the movie
     num_crop = df["crop_index"].nunique()  # number of crops made at each timepoint
 
     # get array of num crops x num timepoints x num PCs
@@ -210,8 +241,5 @@ def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
             for ii in range(num_crop)
         ]
     )
-
-    # check that array shape is correct
-    assert feats.shape == (num_crop, num_time, len(column_names))
 
     return feats
