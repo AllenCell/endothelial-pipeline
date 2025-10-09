@@ -15,7 +15,7 @@ from endo_pipeline.configs.dataset_io import (
     get_original_path,
     ipython_cli_flexecute,
 )
-from endo_pipeline.io import configure_logging, get_output_path, load_image, load_zarr_as_dask_array
+from endo_pipeline.io import configure_logging, get_output_path, load_image, load_image_from_path
 from endo_pipeline.library.analyze import shape_features as feat
 from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
@@ -191,7 +191,7 @@ def build_measured_features_tables(
     else:
         dataset_config = load_dataset_config(dataset_name)
         image_path = get_zarr_file_for_position(dataset_config, position)
-        raw_arr = load_zarr_as_dask_array(path=image_path, channels=["EGFP"], timepoints=T, level=0)
+        raw_arr = load_image_from_path(path=image_path, channels=["EGFP"], timepoints=T, level=0)
         raw_arr = raw_arr.max(axis=dim_order.index("Z")).squeeze().compute()
         voxel_size = BioImage(image_path).physical_pixel_sizes
 

@@ -11,7 +11,7 @@ from matplotlib import colormaps
 from matplotlib.ticker import MaxNLocator
 
 from endo_pipeline.configs import DatasetConfig, get_zarr_file_for_position, load_dataset_config
-from endo_pipeline.io import load_zarr_as_dask_array, save_plot_to_path
+from endo_pipeline.io import load_image_from_path, save_plot_to_path
 from endo_pipeline.library.process.image_processing import contrast_stretching
 from endo_pipeline.library.visualize.viz_base import init_subplots
 from endo_pipeline.settings import LOWER_Z_SLICE_OFFSET, UPPER_Z_SLICE_OFFSET
@@ -47,7 +47,7 @@ def calculate_global_center_plane(
     - "std_dev_center_plane": The standard deviation of the center plane across all frames.
     """
     zarr_file = get_zarr_file_for_position(dataset_config, position)
-    bf_stack_all_frames = load_zarr_as_dask_array(zarr_file, channels=["BF"], level=1)
+    bf_stack_all_frames = load_image_from_path(zarr_file, channels=["BF"], level=1)
 
     center_planes = []
 
@@ -93,7 +93,7 @@ def get_center_plane_for_position(dataset_config: DatasetConfig, position: int) 
         The global center plane index for the specified position.
     """
     zarr_file = get_zarr_file_for_position(dataset_config, position)
-    bf_stack_all_frames = load_zarr_as_dask_array(zarr_file, channels=["BF"], level=1)
+    bf_stack_all_frames = load_image_from_path(zarr_file, channels=["BF"], level=1)
 
     center_planes = []
 
@@ -555,10 +555,10 @@ def visualize_z_slices_with_offsets(
 ) -> None:
     """Visualize specific z-slices from BF and CDH5 stacks based on center plane and offsets."""
     zarr_file = get_zarr_file_for_position(dataset_config, position)
-    bf_stack = load_zarr_as_dask_array(
+    bf_stack = load_image_from_path(
         zarr_file, channels=["BF"], timepoints=timepoint, level=1, squeeze=True
     )
-    cdh5_stack = load_zarr_as_dask_array(
+    cdh5_stack = load_image_from_path(
         zarr_file, channels=["EGFP"], timepoints=timepoint, level=1, squeeze=True
     )
 
@@ -699,10 +699,10 @@ def compute_profiles(
     """Compute normalized BF std and CDH5 hist profiles for a given position/timepoint."""
 
     # Load stacks
-    bf_stack = load_zarr_as_dask_array(
+    bf_stack = load_image_from_path(
         zarr_file, channels=["BF"], timepoints=timepoint, level=1, squeeze=True
     )
-    cdh5_stack = load_zarr_as_dask_array(
+    cdh5_stack = load_image_from_path(
         zarr_file, channels=["EGFP"], timepoints=timepoint, level=1, squeeze=True
     )
 

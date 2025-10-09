@@ -4,7 +4,7 @@ from endo_pipeline.configs import (
     get_zarr_file_for_position,
     load_dataset_config,
 )
-from endo_pipeline.io import load_zarr_as_dask_array
+from endo_pipeline.io import load_image_from_path
 from endo_pipeline.io.output import get_output_path
 from endo_pipeline.library.process.z_stack_selection import (
     append_projection_outputs,
@@ -32,7 +32,7 @@ for dataset in datasets:
 
     save_dir = get_output_path("model_input_visualization", "brightfield")
     zarr_file = get_zarr_file_for_position(config, POSITION)
-    bf_stack = load_zarr_as_dask_array(
+    bf_stack = load_image_from_path(
         zarr_file, channels=["BF"], timepoints=TIMEPOINT, level=1, squeeze=True
     )
 
@@ -63,7 +63,7 @@ for dataset in datasets:
 
     save_dir = get_output_path("model_input_visualization", "cdh5")
     zarr_file = get_zarr_file_for_position(config, POSITION)
-    cdh5_stack = load_zarr_as_dask_array(
+    cdh5_stack = load_image_from_path(
         zarr_file, channels=["EGFP"], timepoints=TIMEPOINT, level=1, squeeze=True
     )
 
@@ -85,10 +85,10 @@ for dataset in datasets:
     save_dir = get_output_path("model_input_visualization", "z_stack_selection")
     zarr_file = get_zarr_file_for_position(config, POSITION)
 
-    bf_stack = load_zarr_as_dask_array(
+    bf_stack = load_image_from_path(
         zarr_file, channels=["BF"], timepoints=TIMEPOINT, level=1, squeeze=True
     )
-    cdh5_stack = load_zarr_as_dask_array(
+    cdh5_stack = load_image_from_path(
         zarr_file, channels=["EGFP"], timepoints=TIMEPOINT, level=1, squeeze=True
     )
 
