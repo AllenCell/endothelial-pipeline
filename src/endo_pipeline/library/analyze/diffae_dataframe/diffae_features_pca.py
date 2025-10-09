@@ -1,5 +1,5 @@
 import logging
-from typing import Literal, cast
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -9,7 +9,7 @@ from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
-from .diffae_manifest_utils import get_feature_column_names
+from .feature_dataframe_utils import get_feature_column_names
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 def fit_pca(
     dataset_collection_name: str = "pca_reference",
-    model_name: str = "diffae_04_10",
+    dataframe_manifest_name: str = "diffae_04_10",
     num_pcs: int = 8,
 ) -> PCA:
     """
@@ -31,8 +31,8 @@ def fit_pca(
     dataset_collection_name
         Name of the dataset collection to load reference datasets from.
         This is used to load the model manifests that contain the reference datasets.
-    model_name
-        Name of the DiffAE model whose features to fit PCA on.
+    dataframe_manifest_name
+        Name of the dataframe manifest to load the model features from.
     num_pcs
         Number of principal components to fit.
 
@@ -42,7 +42,7 @@ def fit_pca(
         Fit PCA object
     """
     # Load dataframe manifest for given model
-    manifest = load_dataframe_manifest(model_name)
+    manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     # Get dataframe locations for manifest for all datasets in collection
     dataset_names = get_datasets_in_collection(dataset_collection_name)
@@ -129,27 +129,31 @@ def get_pca_loadings_as_df(
 ) -> pd.DataFrame:
     """
     Get the PCA loading matrix as a DataFrame.
+
     This is a wrapper around `get_pca_loadings` that formats the output as a DataFrame.
+
+    **DataFrame format options**
+
+    The DataFrame can be returned in either "long" or "wide" format. The "long" format
+    has three columns: 'feature', 'PC', and 'loading_value'. The "wide" format has one
+    column per PC, indexed by feature.
 
     Parameters
     ----------
-    pca : PCA
-        The fitted PCA object.
-    scaled : bool, optional
-        Whether to return the loading matrix unscaled or scaled by the square root of the
-        explained variance.
-        Default is False (i.e. return unscaled loadings).
-    magnitude : bool, optional
-        Whether to return the absolute values of the loadings. Default is False.
-    df_format : str, optional
-        The format of the DataFrame to return. Options are "long" or "wide".
-        If "long", the DataFrame will have columns for 'feature', 'PC', and 'loading_value'.
-        If "wide", the DataFrame will have one column per PC, indexed by feature.
-        Default is "long".
+    pca
+        The fit PCA object.
+    scaled
+        Whether to return the scaled loading matrix or unscaled.
+    magnitude
+        Whether to return the absolute values of the loadings
+    squared_norm
+        Whether to return the squared norm of the loadings.
+    df_format
+        The format of the DataFrame to return, either "long" or "wide".
 
     Returns
     -------
-    loading_matrix_df : pd.DataFrame
+    :
         The PCA loading matrix as a DataFrame.
 
     """
