@@ -95,7 +95,7 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
         img_arr = img_dask.max(axis=DIMENSION_ORDER.index("Z"), keepdims=True).squeeze().compute()
 
         # print(f'- loading segmentation image {dataset_name} P{position} T{T}...')
-        seg_arr = load_image(seg_location, squeeze=True)
+        seg_arr = load_image(seg_location, squeeze=True, compute=True)
 
         # get the labels and crops around each segmented region
         props = measure.regionprops(label_image=seg_arr)

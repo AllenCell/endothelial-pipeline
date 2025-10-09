@@ -94,7 +94,7 @@ def load_zarr_as_dask_array(
     return image
 
 
-def load_image_from_path(path: Path, squeeze: bool = False) -> da.Array:
+def load_image_from_path(path: Path, squeeze: bool = False, compute: bool = False) -> da.Array:
     """
     Load image from path.
 
@@ -105,7 +105,9 @@ def load_image_from_path(path: Path, squeeze: bool = False) -> da.Array:
     path
         Path to image file.
     squeeze
-        Drop single-dimensional entries from the shape of the array if True.
+        True to drop any single-dimensional entries, False otherwise.
+    compute
+        True to turn lazy Dask array into in-memory NumPy array, False otherwise.
 
     Returns
     -------
@@ -128,7 +130,7 @@ def load_image_from_path(path: Path, squeeze: bool = False) -> da.Array:
     raise ValueError(f"Invalid image file format '{path.suffix}'")
 
 
-def load_image(location: ImageLocation, squeeze: bool = False) -> da.Array:
+def load_image(location: ImageLocation, squeeze: bool = False, compute: bool = False) -> da.Array:
     """
     Load image from location.
 
@@ -137,11 +139,13 @@ def load_image(location: ImageLocation, squeeze: bool = False) -> da.Array:
     location
         Image location object.
     squeeze
-        Drop single-dimensional entries from the shape of the array if True.
+        True to drop any single-dimensional entries, False otherwise.
+    compute
+        True to turn lazy Dask array into in-memory NumPy array, False otherwise.
     """
 
     if location.path is not None:
-        return load_image_from_path(location.path, squeeze)
+        return load_image_from_path(location.path, squeeze, compute)
 
     logger.error("Location does not have a path.")
     raise FileNotFoundError("Unable to load image; no available locations.")

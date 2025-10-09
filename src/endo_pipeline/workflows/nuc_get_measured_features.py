@@ -183,11 +183,11 @@ def get_nuclei_features_from_dataset_at_T(
 
     nuc_manifest = load_image_manifest("nuclear_labelfree_seg")
     nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_name, position, T)
-    nuc_seg = load_image(nuc_location, squeeze=True)
+    nuc_seg = load_image(nuc_location, squeeze=True, compute=True)
 
     cdh5_manifest = load_image_manifest("cdh5_classic_seg")
     cdh5_location = get_image_location_for_dataset(cdh5_manifest, dataset_name, position, T)
-    cdh5_seg = load_image(cdh5_location, squeeze=True)
+    cdh5_seg = load_image(cdh5_location, squeeze=True, compute=True)
 
     dataset_config = load_dataset_config(dataset_name)
     img_path = get_zarr_file_for_position(dataset_config, position)

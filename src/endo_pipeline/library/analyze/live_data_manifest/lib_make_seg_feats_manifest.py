@@ -846,7 +846,7 @@ def compute_nuclei_centroids(
         position=position,
         timepoint=timeframe,
     )
-    nuc_seg = load_image(seg_location, squeeze=False)
+    nuc_seg = load_image(seg_location, squeeze=False, compute=True)
 
     # get nuclei segmentation properties and dimension order of those properties
     props = regionprops(nuc_seg.squeeze())
