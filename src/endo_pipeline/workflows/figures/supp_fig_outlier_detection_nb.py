@@ -21,10 +21,10 @@ dataset_config_gfp = load_dataset_config(EXAMPLE_DATASET["SUPP_FIG_SINGLE_TP_GFP
 position = 0
 
 # %% Panel A - Auto-detect BF outliers
-bf_scope_error, bf_temp_artifact = detect_bf_outliers(dataset_config_bf, position, visualize=True)
+detect_bf_outliers(dataset_config_bf, position, visualize=True)
 
 # %% Panel B - Auto-detect EGFP scope errors
-egfp_scope_error = detect_egfp_scope_errors(dataset_config_gfp, position, visualize=True)
+detect_egfp_scope_errors(dataset_config_gfp, position, visualize=True)
 
 # %% Performance statistics reported across datasets in collection
 datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
