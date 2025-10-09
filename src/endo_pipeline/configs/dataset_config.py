@@ -69,6 +69,9 @@ class TimepointAnnotation(StrEnum):
     GFP_SCOPE_ERROR = "gfp_scope_error"
     """Manually annotated error with GFP scope."""
 
+    NOT_STEADY_STATE = "not_steady_state"
+    """Timepoint is not at visual steady state."""
+
     UNFED = "unfed"
     """Manually annotated timepoint where cells are more than 3hrs since last feeding."""
 
