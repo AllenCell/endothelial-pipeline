@@ -25,6 +25,33 @@ def plot_gfp_outliers_rolling(
     window: int = ROLLING_WINDOW,
     percent: float = THRESHOLD,
 ) -> None:
+    """
+    Plot timepoint-level mean intensities with rolling mean ± percentage thresholds and outliers.
+
+    Parameters
+    ----------
+    tp_means : numpy.ndarray
+        Array of mean intensities for each timepoint.
+    rolling_mean : numpy.ndarray
+        Array of rolling mean values for the timepoints.
+    lower_threshold : numpy.ndarray
+        Array of lower threshold values for the timepoints.
+    upper_threshold : numpy.ndarray
+        Array of upper threshold values for the timepoints.
+    dark_outliers : list of int
+        Indices of timepoints identified as dark outliers.
+    bright_outliers : list of int
+        Indices of timepoints identified as bright outliers.
+    dataset_name : str
+        Name of the dataset being analyzed.
+    position : int
+        Position index within the dataset.
+    window : int, optional
+        Size of the rolling window used for calculating the rolling mean (default is ROLLING_WINDOW).
+    percent : float, optional
+        Threshold percentage for identifying outliers (default is THRESHOLD).
+    """
+
     fig, ax = plt.subplots(figsize=(8, 8))
     ax.plot(tp_means, label="TP Mean Intensity", color="black", alpha=0.7)
     ax.plot(rolling_mean, label=f"Rolling Mean (window={window})", color="blue", alpha=0.9)
@@ -83,8 +110,28 @@ def detect_egfp_scope_errors(
 ) -> list[int]:
     """
     Detect EGFP scope errors based on per-timepoint mean with rolling mean ± percentage thresholds.
-    Uses all z-slices in a timepoint to compute the per-tp mean.
-    Returns list of outlier timepoints.
+
+    This function computes the mean intensity for each timepoint using all z-slices and identifies
+    outlier timepoints based on a rolling mean and percentage thresholds. Optionally, it can
+    visualize the results.
+
+    Parameters
+    ----------
+    dataset_config : DatasetConfig
+        Configuration object containing dataset information and parameters.
+    position : int
+        Position index within the dataset to analyze.
+    visualize : bool, optional
+        If True, generates a visualization of the detected outliers (default is False).
+    window : int, optional
+        Size of the rolling window used for calculating the rolling mean (default is ROLLING_WINDOW).
+    percent : float, optional
+        Threshold percentage for identifying outliers (default is THRESHOLD).
+
+    Returns
+    -------
+    list of int
+        Indices of timepoints identified as outliers.
     """
     zarr_files = get_available_zarr_files(dataset_config)
     gfp_zarr = load_zarr_as_dask_array(

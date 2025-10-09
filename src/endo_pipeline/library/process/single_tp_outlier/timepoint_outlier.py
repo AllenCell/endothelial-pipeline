@@ -21,19 +21,24 @@ def performance_stats(
 
     This function processes a list of datasets, compares manual and automatic annotations
     for each dataset and position, and calculates statistics such as the number of missed
-    timepoints, total annotated timepoints, and artifact percentages. The results are printed
-    to the console.
+    timepoints, total annotated timepoints, and artifact percentages.
 
-    Args:
-        datasets (list[str]):
-            A list of dataset names to process.
-        manual_annotations (list[TimepointAnnotation]):
-            A list of manual annotation types to consider.
-        auto_annotations (list[TimepointAnnotation]):
-            A list of automatic annotation types to consider.
-        annotation_type (str):
-            A string indicating the type of annotation (e.g., "Brightfield" or "GFP")
-            for labeling the output statistics.
+    Parameters
+    ----------
+    datasets : list of str
+        A list of dataset names to process.
+    manual_annotations : list of TimepointAnnotation
+        A list of manual annotation types to consider.
+    auto_annotations : list of TimepointAnnotation
+        A list of automatic annotation types to consider.
+    annotation_type : str
+        A string indicating the type of annotation (e.g., "Brightfield" or "GFP")
+        for labeling the output statistics.
+
+    Returns
+    -------
+    str
+        A formatted string containing the calculated statistics.
     """
 
     stats = []
@@ -71,7 +76,7 @@ def performance_stats(
     total_timepoints = df["n_tps_assessed"].sum()
     percent_artifact = (total_auto + total_missed) / total_timepoints * 100
 
-    message = (
+    results = (
         f"--- {annotation_type} STATISTICS ---\n"
         f"Total manual annotated timepoints: {total_manual}\n"
         f"Total missed timepoints: {total_missed}\n"
@@ -81,5 +86,6 @@ def performance_stats(
         f"Percent of tps with artifacts: {percent_artifact:.2f}%"
     )
 
-    logging.info(message)
-    print(message)
+    logging.info(results)
+    print(results)
+    return results
