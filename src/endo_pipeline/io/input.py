@@ -94,7 +94,7 @@ def load_zarr_as_dask_array(
     return image
 
 
-def load_image_from_path(path: Path, squeeze: bool = True) -> da.Array:
+def load_image_from_path(path: Path, squeeze: bool = False) -> da.Array:
     """
     Load image from path.
 
@@ -128,7 +128,7 @@ def load_image_from_path(path: Path, squeeze: bool = True) -> da.Array:
     raise ValueError(f"Invalid image file format '{path.suffix}'")
 
 
-def load_image(location: ImageLocation, squeeze: bool = True) -> da.Array:
+def load_image(location: ImageLocation, squeeze: bool = False) -> da.Array:
     """
     Load image from location.
 

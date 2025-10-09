@@ -199,7 +199,7 @@ def build_measured_features_tables(
 
     seg_manifest = load_image_manifest("cdh5_classic_seg")
     seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, T)
-    seg_arr = load_image(seg_location)
+    seg_arr = load_image(seg_location, squeeze=True)
     seg_filepath = seg_location.path.as_posix() if seg_location.path is not None else ""
 
     # NOTE: the segmentation images are stored as a single channel and single timepoint

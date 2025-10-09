@@ -107,7 +107,7 @@ def generate_results(
     print(f"T={T} -- loading nuclei segmentations") if verbose else None
     seg_manifest = load_image_manifest("nuclear_labelfree_seg")
     seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, T)
-    nuc_pred = load_image(seg_location)
+    nuc_pred = load_image(seg_location, squeeze=True)
 
     (
         print(f"T={T} -- splitting RAG-based segmentations using nuclei predictions")

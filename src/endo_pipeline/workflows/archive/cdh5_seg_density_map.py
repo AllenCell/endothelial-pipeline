@@ -151,7 +151,7 @@ def get_density_map_from_segmentations(
     # archived. Use with caution!
     manifest = load_image_manifest("cdh5_classic_seg")
     location = get_image_location_for_dataset(manifest, dataset_name, 0, T)
-    seg = load_image(location)
+    seg = load_image(location, squeeze=True)
     # --------------------------------------------------------------------------
 
     print(f"T={T} -- getting density map of image") if VERBOSE else None
