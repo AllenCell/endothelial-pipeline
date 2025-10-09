@@ -5,12 +5,14 @@ import logging
 from pathlib import Path
 from typing import Literal
 
+import matplotlib.pyplot as plt
 from git import Repo
 from matplotlib.figure import Figure
 
 from endo_pipeline import IS_MAIN_PROCESS
 from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.manifests import ModelManifest
+from endo_pipeline.settings.figures import FIGURE_SAVE_DPI, FONT_FAMILY, PDF_FONT_TYPE
 
 logger = logging.getLogger(__name__)
 
@@ -280,7 +282,13 @@ def upload_file_to_fms(
 
 
 def save_plot_to_path(
-    figure: Figure, output_path: Path, figure_name: str, dpi: int = 450, transparent: bool = False
+    figure: Figure,
+    output_path: Path,
+    figure_name: str,
+    dpi: int = FIGURE_SAVE_DPI,
+    file_format: Literal[".png", ".pdf"] = ".png",
+    transparent: bool = False,
+    pad_inches: float = 0.1,
 ) -> None:
     """
     Save a matplotlib figure to a file with the specified filename.
@@ -293,11 +301,24 @@ def save_plot_to_path(
         Path to directory where figure should be saved.
     figure_name
         Name of the figure.
+    file_format
+        File format for the figure, either .png or .pdf.
     dpi
         Resolution of the figure in dots per inch (dpi).
     transparent
         True to save figure with clear background, False otherwise.
+    pad_inches
+        Amount of padding around the figure when saving, in inches.
     """
 
-    output_file = (output_path / figure_name).with_suffix(".png")
-    figure.savefig(output_file, dpi=dpi, transparent=transparent, bbox_inches="tight")
+    plt.rcParams.update(
+        {
+            "pdf.fonttype": PDF_FONT_TYPE,
+            "font.family": FONT_FAMILY,
+        }
+    )
+
+    output_file = (output_path / figure_name).with_suffix(file_format)
+    figure.savefig(
+        output_file, dpi=dpi, transparent=transparent, bbox_inches="tight", pad_inches=pad_inches
+    )
