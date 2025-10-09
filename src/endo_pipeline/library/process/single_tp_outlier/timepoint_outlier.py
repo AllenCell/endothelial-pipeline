@@ -1,5 +1,3 @@
-import logging
-
 import numpy as np
 import pandas as pd
 
@@ -15,7 +13,7 @@ def performance_stats(
     manual_annotations: list[TimepointAnnotation],
     auto_annotations: list[TimepointAnnotation],
     annotation_type: str,
-) -> None:
+) -> str:
     """
     Calculate and print statistics for manual and automatic timepoint annotations.
 
@@ -37,7 +35,7 @@ def performance_stats(
 
     Returns
     -------
-    str
+    results: str
         A formatted string containing the calculated statistics.
     """
 
@@ -86,6 +84,4 @@ def performance_stats(
         f"Percent of tps with artifacts: {percent_artifact:.2f}%"
     )
 
-    logging.info(results)
-    print(results)
     return results

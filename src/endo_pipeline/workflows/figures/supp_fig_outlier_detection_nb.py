@@ -30,7 +30,7 @@ detect_egfp_scope_errors(dataset_config_gfp, position, visualize=True)
 # %% Performance statistics reported across datasets in collection
 datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
 
-performance_stats(
+bf_results = performance_stats(
     datasets=datasets,
     manual_annotations=[
         TimepointAnnotation.BF_SCOPE_ERROR,
@@ -42,11 +42,13 @@ performance_stats(
     ],
     annotation_type="brightfield_outlier_detection",
 )
+print(bf_results)
 
-performance_stats(
+gfp_results = performance_stats(
     datasets=datasets,
     manual_annotations=[TimepointAnnotation.GFP_SCOPE_ERROR],
     auto_annotations=[TimepointAnnotation.AUTO_GFP_SCOPE_ERROR],
     annotation_type="gfp_outlier_detection",
 )
+print(gfp_results)
 # %%
