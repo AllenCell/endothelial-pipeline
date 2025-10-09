@@ -157,7 +157,7 @@ def plot_multi_feature_correlations(
     filename: str = "multi_feature_correlations",
 ) -> None:
     """
-    Create a scatter plot of all the columns in the dataframe
+    Create a scatter plot of all the columns in the dataframe.
 
     Parameters
     ----------
@@ -204,22 +204,20 @@ def plot_multi_feature_correlations(
             y = df[f1].to_numpy()
             x = df[f2].to_numpy()
             valids = np.where(
-                (
-                    (y >= prange[f1id][0])
-                    & (y <= prange[f1id][1])
-                    & (x >= prange[f2id][0])
-                    & (x <= prange[f2id][1])
-                    & ~np.isnan(y)
-                    & ~np.isnan(x)
-                    & ~np.isinf(y)
-                    & ~np.isinf(x)
-                )
+                (y >= prange[f1id][0])
+                & (y <= prange[f1id][1])
+                & (x >= prange[f2id][0])
+                & (x <= prange[f2id][1])
+                & ~np.isnan(y)
+                & ~np.isnan(x)
+                & ~np.isinf(y)
+                & ~np.isinf(x)
             )[0]
             x = x[valids]
             y = y[valids]
             if isinstance(color, str):
                 plot_color = [color] * len(x)
-            elif isinstance(color, (list, np.ndarray)):
+            elif isinstance(color, list | np.ndarray):
                 plot_color = np.array(color)
                 plot_color = plot_color[valids]
 
@@ -248,7 +246,7 @@ def plot_multi_feature_correlations(
         if yrange:
             ymin = np.min([ymin for (ymin, _) in yrange])
             ymax = np.max([ymax for (_, ymax) in yrange])
-            for f2id, f2 in enumerate(df.columns):
+            for f2id in range(len(df.columns)):
                 ax = axs[f1id, f2id]
                 if f2id < f1id:
                     ax.set_ylim(ymin, ymax)
@@ -368,14 +366,14 @@ def get_correlation_matrix_df(
         The names of the columns to use for the x-axis.
     column_names_for_y_axis
         The names of the columns to use for the y-axis.
-    name_of_x_axis
+    x_axis_label
         The name of the x-axis.
-    name_of_y_axis
+    y_axis_label
         The name of the y-axis.
     df_format
         The format of the output DataFrame. If "long", the output DataFrame will have columns:
-        - name_of_y_axis
-        - name_of_x_axis
+        - y_axis_label
+        - x_axis_label
         - pearsonr
         - pval
         If "wide-corrcoeff", the output DataFrame will have a column for each column in
@@ -473,12 +471,20 @@ def get_df_for_feature_correlation_viz(
         List of dataset names to process.
     dataset_info_columns
         List of columns containing dataset information.
-    classical_features
+    classical_feature_columns
         List of classical feature column names.
     pc_columns
         List of PCA component column names.
     diffae_feature_columns
         List of DiffAE feature column names.
+    model_manifest
+        The model manifest containing information about the DiffAE model.
+    run_name
+        The name of the run to use for loading the manifests.
+        If None, the latest run will be used.
+    seg_feature_manifest_name
+        The name of the segmentation feature manifest to use.
+        Default is "live_merged_seg_features".
 
     Returns
     -------
