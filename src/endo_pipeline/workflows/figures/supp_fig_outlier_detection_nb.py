@@ -18,14 +18,14 @@ TAGS = ["supfig", "preprocessing"]
 # %% Load example datasets
 FIGURE_ID = "SUPP_FIG_SINGLE_TP"
 dataset_config_bf = load_dataset_config(EXAMPLE_DATASET[f"{FIGURE_ID}_BF_OUTLIER"])
-dataset_config_gfp = load_dataset_config(EXAMPLE_DATASET["{FIGURE_ID}_GFP_OUTLIER"])
+dataset_config_gfp = load_dataset_config(EXAMPLE_DATASET[f"{FIGURE_ID}_GFP_OUTLIER"])
 position = 0
 
 # %% Panel A - Auto-detect BF outliers
-detect_bf_outliers(dataset_config_bf, position, visualize=True)
+_ = detect_bf_outliers(dataset_config_bf, position, visualize=True)
 
 # %% Panel B - Auto-detect EGFP scope errors
-detect_egfp_scope_errors(dataset_config_gfp, position, visualize=True)
+_ = detect_egfp_scope_errors(dataset_config_gfp, position, visualize=True)
 
 # %% Performance statistics reported across datasets in collection
 datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
