@@ -105,10 +105,7 @@ def main(
     piling_name = "_exclude_cell_piling" if exclude_cell_piling else "_include_cell_piling"
 
     # Build dataframe manifest name
-    if exclude_cell_piling:
-        dataframe_manifest_name = f"diffae_training_dataframe{res_name}{piling_name}{name_suffix}"
-    else:
-        dataframe_manifest_name = f"diffae_training_dataframe{res_name}{name_suffix}"
+    dataframe_manifest_name = f"diffae_training_dataframe{res_name}{piling_name}{name_suffix}"
 
     try:
         dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)

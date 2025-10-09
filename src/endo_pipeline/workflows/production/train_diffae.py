@@ -1,7 +1,7 @@
 TAGS = ["diffae", "model_training"]
 
 
-def main(model_manifest_name: str) -> None:
+def main(model_manifest_name: str, run_name: str | None = None) -> None:
     """
     Train a DiffAE model using the provided configuration.
 
@@ -19,6 +19,8 @@ def main(model_manifest_name: str) -> None:
     ----------
     model_manifest_name
         Name of the model manifest for training.
+    run_name
+        An optional name for the training run.
     """
 
     import logging
@@ -41,8 +43,20 @@ def main(model_manifest_name: str) -> None:
             "Use build-diffae-train-config to create a new training run config."
         )
 
-    # Select first available pending training run.
-    run_name = available_runs[0]
+    # Select first available pending training run, if run name is not given.
+    # Otherwise, make sure the requested run is an available pending run.
+    if run_name is None:
+        run_name = available_runs[0]
+    elif run_name not in available_runs:
+        logger.error(
+            "Requested training run [ %s ] not found in model manifest [ %s ]",
+            model_manifest_name,
+            run_name,
+        )
+        raise ValueError(
+            "No matching training run configs available. "
+            "Use build-diffae-train-config to create a new training run config."
+        )
 
     logger.info("Model manifest name: [ %s ]", model_manifest_name)
     logger.info("Run name: [ %s ]", run_name)
