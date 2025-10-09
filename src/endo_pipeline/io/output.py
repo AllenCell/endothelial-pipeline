@@ -14,7 +14,7 @@ from endo_pipeline import IS_MAIN_PROCESS
 from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
 from endo_pipeline.manifests import ModelManifest
-from endo_pipeline.settings.figures import DPI, FONT_FAMILY, PDF_FONTTYPE
+from endo_pipeline.settings.figures import FIGURE_SAVE_DPI, FONT_FAMILY, PDF_FONT_TYPE
 
 logger = logging.getLogger(__name__)
 
@@ -312,7 +312,7 @@ def save_plot_to_path(
 
     plt.rcParams.update(
         {
-            "pdf.fonttype": PDF_FONTTYPE,
+            "pdf.fonttype": PDF_FONT_TYPE,
             "font.family": FONT_FAMILY,
         }
     )
@@ -326,7 +326,7 @@ def save_thumbnail_to_path(
     image_name: str,
     output_path: Path,
     figsize: tuple[float, float],
-    dpi: int = DPI,
+    dpi: int = FIGURE_SAVE_DPI,
     file_format: Literal[".png", ".pdf"] = ".png",
     scalebar_size_um: float | None = None,
     pixel_size: float | None = None,
@@ -342,23 +342,31 @@ def save_thumbnail_to_path(
     This function saves a given image as a thumbnail in the specified format
     (e.g., PNG or PDF) with the desired resolution and figure size.
 
-    Args:
-        image: The image to save, represented as a NumPy array.
-        image_name: The name of the output image file (without extension).
-        output_path: The directory where the image will be saved.
-        figsize: The size of the figure in inches (width, height).
-        dpi: The resolution of the saved image in dots per inch (default is DPI).
-        file_format: The file format for the saved image
-            (default is ".png").
-        scalebar_size_um: Optional size of the scale bar in micrometers.
-        pixel_size: Size of a pixel in micrometers. Required if scalebar_size_um is provided.
-        scalebar_location: Location of the scale bar on the image.
-            Options are "lower right", "lower left", "upper right", "upper left".
-        bar_thickness: Thickness of the scale bar in pixels (default is 10).
-        bar_padding: Padding between the scale bar and the image edge in pixels (default is 20).
-
-    Returns:
-        None
+    Parameters
+    ----------
+    image : numpy.ndarray
+        The image to save, represented as a NumPy array.
+    image_name : str
+        The name of the output image file (without extension).
+    output_path : str
+        The directory where the image will be saved.
+    figsize : tuple of float
+        The size of the figure in inches (width, height).
+    dpi : int, optional
+        The resolution of the saved image in dots per inch (default is DPI).
+    file_format : str, optional
+        The file format for the saved image (default is ".png").
+    scalebar_size_um : float, optional
+        Optional size of the scale bar in micrometers.
+    pixel_size : float, optional
+        Size of a pixel in micrometers. Required if `scalebar_size_um` is provided.
+    scalebar_location : str, optional
+        Location of the scale bar on the image. Options are "lower right",
+        "lower left", "upper right", "upper left".
+    bar_thickness : int, optional
+        Thickness of the scale bar in pixels (default is 10).
+    bar_padding : int, optional
+        Padding between the scale bar and the image edge in pixels (default is 20).
     """
     figure, ax = plt.subplots(figsize=figsize, frameon=False)
 
