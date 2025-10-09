@@ -59,8 +59,8 @@ def evaluate_model_paired_fixed_live(
     # Align data if saved aligned data not already stored
     if not data_save_path.exists():
         data = align_all_positions(
-            fixed_dataset_name,
             live_dataset_name,
+            fixed_dataset_name,
             resolution_level=1,
             z_slice_offsets=Z_SLICE_OFFSETS,
             savedir=model_save_path,
