@@ -9,7 +9,6 @@ from .dataset_config import (
     SampleType,
     ShearStressRegime,
     TimepointAnnotation,
-    ValidTimepoints,
 )
 from .dataset_config_io import (
     get_available_dataset_collection_names,
@@ -61,7 +60,6 @@ __all__ = [
     "SampleType",
     "ShearStressRegime",
     "TimepointAnnotation",
-    "ValidTimepoints",
     "get_annotated_positions",
     "get_annotated_timepoints_for_position",
     "get_available_channels_for_all_positions",

@@ -90,20 +90,6 @@ class PositionAnnotation(StrEnum):
 
 
 @dataclass
-class ValidTimepoints:
-    """
-    Timepoints that are visually validated to be after steady state from no flow to a set
-    flow condition appears to have stabilized and before cell piling occurs.
-    """
-
-    start: list[int]
-    """Start frame of valid timepoints."""
-
-    stop: list[int]
-    """Stop frame of valid timepoints."""
-
-
-@dataclass
 class FlowCondition:
     """
     Flow condition for a dataset. Negative start or stop frames indicate the flow occurred prior
@@ -201,9 +187,6 @@ class DatasetConfig:
 
     flow_conditions: list[FlowCondition]
     """List of flow conditions for the dataset."""
-
-    valid_timepoints: ValidTimepoints | None = None
-    """List of valid timepoint ranges. None if all timepoints are valid."""
 
     include_scenes: list[int] | None = None
     """List of scenes to include."""

@@ -30,9 +30,6 @@ flow_conditions:
 - start: -28
   stop: 576
   shear_stress: 28.83
-valid_timepoints:
-  start: [230]
-  stop: [450]
 include_scenes: null
 notes: This is a nice 48hr high flow dataset.
 timepoint_annotations:

@@ -30,7 +30,6 @@ flow_conditions:
 - start: 15
   stop: 576
   shear_stress: 9.01
-valid_timepoints: null
 include_scenes: null
 notes: timelapse imaging of CDH5 endos under 9 dyn/cm2 shear stress. Small gap in
   monolayer appears in position 0 at ~ TP 153.
