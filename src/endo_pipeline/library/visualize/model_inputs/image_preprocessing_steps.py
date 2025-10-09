@@ -9,7 +9,8 @@ from dask.array import Array
 from matplotlib import pyplot as plt
 from omegaconf import OmegaConf
 
-from endo_pipeline.io.output import save_plot_to_path, save_thumbnail_to_path
+from endo_pipeline.io.output import save_plot_to_path
+from endo_pipeline.library.visualize.diffae_features import plot_image_thumbnail
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
 
 logger = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ def save_stack_slices_as_thumbnails(img: Array, save_dir: Path) -> None:
     for channel, channel_name in enumerate(["bf", "cdh5"]):
         for slice_idx in range(img.shape[1]):
             slice_img = img[channel, slice_idx, :, :].compute()
-            save_thumbnail_to_path(
+            plot_image_thumbnail(
                 slice_img,
                 f"{channel_name}_sliceindex{slice_idx}",
                 save_dir,
@@ -168,7 +169,7 @@ def run_and_visualize_transforms(
                 continue
 
             if value_np.ndim in [2, 3]:
-                save_thumbnail_to_path(
+                plot_image_thumbnail(
                     value_np.squeeze() if value_np.ndim == 3 else value_np,
                     f"{target_key}_{i}_{transform.__class__.__name__}",
                     save_dir,
@@ -191,7 +192,7 @@ def run_and_visualize_transforms(
                 else:
                     continue
                 if value_np.ndim in [2, 3]:
-                    save_thumbnail_to_path(
+                    plot_image_thumbnail(
                         value_np.squeeze() if value_np.ndim == 3 else value_np,
                         f"{target_key}_{i}_{transform.__class__.__name__}_crop{crop_idx}",
                         save_dir,
