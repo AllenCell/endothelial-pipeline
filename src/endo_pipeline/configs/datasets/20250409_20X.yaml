@@ -66,6 +66,13 @@ timepoint_annotations:
     3: [[411, 543]]
     4: [[411, 543]]
     5: [[411, 543]]
+  not_steady_state:
+    0: [[0, 189]]
+    1: [[0, 189]]
+    2: [[0, 189]]
+    3: [[0, 189]]
+    4: [[0, 189]]
+    5: [[0, 189]]
 position_annotations: null
 center_z_plane:
   0: 10
