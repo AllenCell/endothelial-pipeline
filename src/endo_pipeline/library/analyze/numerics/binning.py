@@ -152,7 +152,8 @@ def _get_histogram_by_component_one_dataset(
     """
     if feat_cols is None:
         # use all PCA feature columns in the dataframe
-        feat_cols = DIFFAE_PC_COLUMN_NAMES
+        feat_cols_all = DIFFAE_PC_COLUMN_NAMES
+        feat_cols = [col for col in feat_cols_all if col in df.columns]
 
     num_feats = len(feat_cols)
     num_frames = df["frame_number"].nunique()
@@ -210,7 +211,8 @@ def get_histogram_by_component(
     # get column names for extracting feature data for a single dataset
     if feat_cols is None:
         # use all PCA feature columns in the dataframe
-        feat_cols = DIFFAE_PC_COLUMN_NAMES
+        feat_cols_all = DIFFAE_PC_COLUMN_NAMES
+        feat_cols = [col for col in feat_cols_all if col in df.columns]
 
     num_feats = len(feat_cols)
 

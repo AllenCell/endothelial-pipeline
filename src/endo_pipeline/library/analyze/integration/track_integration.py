@@ -14,7 +14,7 @@ from endo_pipeline.library.analyze.diffae_dataframe import (
     add_description_column,
     get_dataframe_for_dynamics_workflows,
     get_traj_and_diff,
-    project_manifest_to_pcs,
+    project_features_to_pcs,
 )
 from endo_pipeline.library.analyze.diffae_dataframe.diffae_features_pca import fit_pca
 from endo_pipeline.library.analyze.diffae_features import (
@@ -568,7 +568,7 @@ def get_preprocessed_manifests_and_km_bounds(
     # but I believe that the columns are named "feat_0",
     # "feat_1", etc. when they should be named "pc1",
     # "pc2", etc.)
-    merged_feats_df = project_manifest_to_pcs(merged_feats_df, pca)
+    merged_feats_df = project_features_to_pcs(merged_feats_df, pca)
 
     # use the full set of datasets to be analyzed for the bounds
     if datasets_for_bounds is None:

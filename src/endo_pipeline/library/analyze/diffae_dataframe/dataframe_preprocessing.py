@@ -96,7 +96,7 @@ def add_zarr_path(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def project_manifest_to_pcs(
+def project_features_to_pcs(
     df: pd.DataFrame,
     pca: PCA,
     feat_cols: list[str] | None = None,
@@ -175,7 +175,7 @@ def get_dataframe_for_dynamics_workflows(
 
     else:
         # project feature data onto PC axes
-        return project_manifest_to_pcs(df_with_crop, pca)
+        return project_features_to_pcs(df_with_crop, pca)
 
 
 def pad_missing_timepoints(
