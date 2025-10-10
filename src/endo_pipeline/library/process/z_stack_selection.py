@@ -8,13 +8,18 @@ import numpy as np
 import pandas as pd
 from dask.array import Array
 from matplotlib import colormaps
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, MultipleLocator
 
 from endo_pipeline.configs import DatasetConfig, get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.io import load_image_from_path, save_plot_to_path
 from endo_pipeline.library.process.image_processing import contrast_stretching
+from endo_pipeline.library.visualize.figure_utils import add_scalebar
 from endo_pipeline.library.visualize.viz_base import init_subplots
-from endo_pipeline.settings import LOWER_Z_SLICE_OFFSET, UPPER_Z_SLICE_OFFSET
+from endo_pipeline.settings.image_data import (
+    LOWER_Z_SLICE_OFFSET,
+    UPPER_Z_SLICE_OFFSET,
+    PIXEL_SIZE_3i_20x,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -175,32 +180,66 @@ def plot_standard_devs_per_slice(
     -------
     None
     """
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(6, 6))
     ax.plot(stdevs)
 
     # Add a vertical line at the center plane index
-    ax.axvline(center_plane, color="red", linestyle="--", label=f"Center Plane ({center_plane})")
+    ax.axvline(
+        center_plane, color="red", linestyle="--", label=f"In-focus Z-slice\n(index={center_plane})"
+    )
 
-    ax.set_title(f"{dataset} P{position} frame: {frame}")
-    ax.set_xlabel("Plane Index")
-    ax.set_ylabel("Standard Deviations of BF Planes")
+    ax.set_title("In-focus Z-slice per timepoint")
+    ax.set_xlabel("Z-slice (index)")
+    ax.set_ylabel("Standard deviation of\nbright-field pixel intensities (a.u.)")
     ax.legend()  # Add legend for the center plane label
 
     fname = f"standard_devs_{dataset}_P{position}_{frame}"
-    save_plot_to_path(fig, output_dir, fname)
+    save_plot_to_path(fig, output_dir, fname, file_format=".pdf")
     plt.show()
+
+
+def calculate_center_planes_all_tp_for_pos(
+    dataset_config: DatasetConfig, position: int
+) -> list[int]:
+    """
+    Calculate the center plane for each frame in a brightfield (BF) z-stack for a given position.
+
+    Args:
+        dataset_config: Configuration object containing metadata for the dataset.
+        position: The position index within the dataset to analyze.
+
+    Returns:
+        center_plantes: A list of center planes for each frame in the dataset.
+    """
+    zarr_file = get_zarr_file_for_position(dataset_config, position)
+    bf_stack_all_frames = load_zarr_as_dask_array(zarr_file, channels=["BF"], level=1)
+    center_planes = []
+
+    for frame in range(0, dataset_config.duration, 1):
+        # Extract the BF stack for the current frame
+        bf_stack = bf_stack_all_frames[frame].squeeze()
+
+        # Compute standard deviations for all slices in the current frame
+        stdevs = bf_stack.std(axis=(1, 2)).compute()
+
+        # Find the center plane with the minimum standard deviation
+        center_plane_tp = max(0, np.argmin(stdevs))
+        center_planes.append(center_plane_tp)
+
+    return center_planes
 
 
 def visualize_slice_selection(
     bf_stack: Array,
     cdh5_stack: Array,
     center_plane: int,
-    lower_offset: int,
-    upper_offest: int,
     dataset: str,
     position: int,
     frame: int,
     output_dir: Path,
+    lower_offset: int = LOWER_Z_SLICE_OFFSET,
+    upper_offest: int = UPPER_Z_SLICE_OFFSET,
+    pixel_size: float = PIXEL_SIZE_3i_20x,
 ) -> None:
     """
     Plot the center z-slice with slices n planes above and below the center slice
@@ -231,123 +270,149 @@ def visualize_slice_selection(
     -------
     None
     """
-    im_center = contrast_stretching(bf_stack[center_plane].compute())
-    im_below = contrast_stretching(bf_stack[center_plane - lower_offset].compute())
-    im_above = contrast_stretching(bf_stack[center_plane + upper_offest].compute())
+    method = "min-max"
+    center_im = bf_stack[center_plane].compute()
+    custom_low = np.percentile(center_im, 1.5)
+    custom_high = np.percentile(center_im, 98.5)
 
-    cdh5_center = contrast_stretching(cdh5_stack[center_plane].compute())
-    cdh5_below = contrast_stretching(cdh5_stack[center_plane - lower_offset].compute())
-    cdh5_above = contrast_stretching(cdh5_stack[center_plane + upper_offest].compute())
+    im_center = contrast_stretching(
+        center_im, method=method, custom_range=(custom_low, custom_high)
+    )
+    im_below = contrast_stretching(
+        bf_stack[center_plane - lower_offset].compute(),
+        method=method,
+        custom_range=(custom_low, custom_high),
+    )
+    im_above = contrast_stretching(
+        bf_stack[center_plane + upper_offest].compute(),
+        method=method,
+        custom_range=(custom_low, custom_high),
+    )
+
+    cdh5_im = cdh5_stack[center_plane].compute()
+    cdh5_low = np.percentile(cdh5_im, 1.5)
+    cdh5_high = np.percentile(cdh5_im, 98.5)
+
+    cdh5_center = contrast_stretching(
+        cdh5_stack[center_plane].compute(), method=method, custom_range=(cdh5_low, cdh5_high)
+    )
+    cdh5_below = contrast_stretching(
+        cdh5_stack[center_plane - lower_offset].compute(),
+        method=method,
+        custom_range=(cdh5_low, cdh5_high),
+    )
+    cdh5_above = contrast_stretching(
+        cdh5_stack[center_plane + upper_offest].compute(),
+        method=method,
+        custom_range=(cdh5_low, cdh5_high),
+    )
 
     # Create subplots with a 2x3 grid
-    fig, axes = init_subplots(
-        2, 3, figsize=(15, 10)
-    )  # Adjusted figure size for 2 rows and 3 columns
+    fig, axes = init_subplots(2, 3, figsize=(12, 8))
 
     # First row: BF stack
     axes[0, 0].imshow(im_below, cmap="gray")
-    axes[0, 0].set_title(f"BF Plane {center_plane - lower_offset} (-{lower_offset})")
+    axes[0, 0].set_title(f"Lower Z-slice (-{lower_offset} offset)")
+    axes[0, 0].set_ylabel("Bright-field Slice")
 
     axes[0, 1].imshow(im_center, cmap="gray")
-    axes[0, 1].set_title(f"BF Center Plane {center_plane}")
+    axes[0, 1].set_title(f"In focus Z-slice")
 
     axes[0, 2].imshow(im_above, cmap="gray")
-    axes[0, 2].set_title(f"BF Plane {center_plane + upper_offest} (+{upper_offest})")
+    axes[0, 2].set_title(f"Upper Z-slice (+{upper_offest} offset)")
 
     # Second row: CDH5 stack
     axes[1, 0].imshow(cdh5_below, cmap="gray")
-    axes[1, 0].set_title(f"CDH5 Plane {center_plane - lower_offset} (-{lower_offset})")
-
+    axes[1, 0].set_ylabel("mEGFP-CDH5 Slice")
     axes[1, 1].imshow(cdh5_center, cmap="gray")
-    axes[1, 1].set_title(f"CDH5 Center Plane {center_plane}")
-
     axes[1, 2].imshow(cdh5_above, cmap="gray")
-    axes[1, 2].set_title(f"CDH5 Plane {center_plane + upper_offest} (+{upper_offest})")
 
     for ax in axes.flat:
-        ax.axis("off")
+        ax.set_xticks([])  # remove x-axis ticks
+        ax.set_yticks([])  # remove y-axis ticks
+        ax.tick_params(
+            left=False, right=False, bottom=False, top=False, labelleft=False, labelbottom=False
+        )
+        for spine in ax.spines.values():  # remove the black outline
+            spine.set_visible(False)
 
-    # Adjust layout and add a title
-    fig.suptitle(f"{dataset} P{position} Frame {frame}", fontsize=16)
+    scale_bar_um = 50
+
+    add_scalebar(
+        ax=axes[0, 0],
+        scale_bar_um=scale_bar_um,
+        pixel_size=pixel_size,
+        location="lower left",
+        bar_thickness=10,
+        padding=20,
+        color="white",
+    )
+
     plt.tight_layout()
 
-    # Save the plot
-    fname = f"plane_selection_vis_{dataset}_P{position}_{frame}_offset{lower_offset}_{upper_offest}"
-    save_plot_to_path(fig, output_dir, fname)
+    fname = f"plane_selection_vis_{dataset}_P{position}_{frame}_offset{lower_offset}_{upper_offest}_scalebar{scale_bar_um}um"
+    save_plot_to_path(fig, output_dir, fname, file_format=".pdf")
     plt.show()
 
 
 def plot_global_center_plane(
-    center_planes: list, dataset: str, position: int, output_dir: Path
+    center_planes: list, dataset: str, position: int, output_dir: Path, show_histogram: bool = True
 ) -> tuple[float, float]:
-    """
-    Plot center planes for a dataset and return mean center plane and standard deviation.
+    import matplotlib.pyplot as plt
+    import numpy as np
 
-    Parameters
-    ----------
-    center_planes
-        List of center plane indices.
-    dataset
-        Dataset name for labeling the plot.
-    position
-        Position index for labeling the plot.
-    output_dir
-        Directory to save the output plot.
+    mean_cp = np.mean(center_planes)
+    std_cp = np.std(center_planes)
+    y_min, y_max = 0, 25  # fixed y-axis range
 
-    Returns
-    -------
-    tuple
-        Mean and standard deviation of center planes.
-    """
-    fig, ax = init_subplots(2, 1, figsize=(10, 10))  # Create two subplots
+    if show_histogram:
+        counts, bins = np.histogram(center_planes, bins=25)
+        # 1 row, 2 cols, histogram narrower
+        fig, ax = plt.subplots(
+            1, 2, figsize=(8, 6), sharey=True, gridspec_kw={"width_ratios": [3, 1]}
+        )
+    else:
+        # Only scatter plot
+        fig, ax = plt.subplots(figsize=(6, 6))
+        ax = [ax]  # make it indexable like a list
 
-    # Compute mean and standard deviation of center planes
-    mean_center_plane = np.mean(center_planes)
-    std_center_plane = np.std(center_planes)
-
-    # First plot: Center plane vs frame index
-    ax[0].plot(range(len(center_planes)), center_planes, "ro", alpha=0.7)
+    # Scatter plot
+    ax[0].plot(
+        range(len(center_planes)),
+        center_planes,
+        "ro",
+        alpha=0.5,
+        label="In-focus Z-slice per timepoint",
+    )
     ax[0].set_xlabel("Timepoint (frames)")
-    ax[0].set_ylabel("Center Plane Index")
-    ax[0].set_title(f"{dataset}, Position {position}")
-    ax[0].set_ylim(0, 25)
+    ax[0].set_ylabel("Z-slice (index)")
+    ax[0].set_title("In-focus Z-slice per position")
+    ax[0].set_ylim(y_min, y_max)
 
-    # Add horizontal lines for mean and ±1 standard deviation
     ax[0].axhline(
-        mean_center_plane, color="black", linestyle="-", label=f"Mean: {mean_center_plane:.2f}"
-    )
-    ax[0].axhline(
-        mean_center_plane - std_center_plane,
-        color="cyan",
-        linestyle="--",
-        label=f"-1 Std Dev: {mean_center_plane - std_center_plane:.2f}",
-    )
-    ax[0].axhline(
-        mean_center_plane + std_center_plane,
-        color="cyan",
-        linestyle="--",
-        label=f"+1 Std Dev: {mean_center_plane + std_center_plane:.2f}",
+        mean_cp, color="black", linestyle="-", label=f"Mean in-focus Z-slice\n(index={mean_cp:.0f})"
     )
     ax[0].legend()
 
-    # Second plot: Histogram of center planes
-    ax[1].hist(center_planes, bins=25, color="gray", alpha=0.7)
-    ax[1].axvline(
-        mean_center_plane, color="black", linestyle="-", label=f"Mean: {mean_center_plane:.2f}"
-    )
-    ax[1].axvline(mean_center_plane - std_center_plane, color="cyan", linestyle="--")
-    ax[1].axvline(mean_center_plane + std_center_plane, color="cyan", linestyle="--")
-    ax[1].set_xlabel("Center Plane Index")
-    ax[1].set_xlim(0, 25)
-    ax[1].set_ylabel("Frequency")
+    # Histogram (optional)
+    if show_histogram:
+        ax[1].hist(center_planes, bins=25, orientation="horizontal", color="gray", alpha=0.7)
+        ax[1].axhline(mean_cp, color="black", linestyle="-")
+        ax[1].set_xlabel("Count")
+        ax[1].set_xlim(0, counts.max() * 1.1)  # tighter x-limits
+        ax[1].set_ylim(y_min, y_max)
 
-    plt.tight_layout()
+        # Reduce whitespace
+        fig.subplots_adjust(left=0.1, right=0.95, wspace=0.05)
+    else:
+        fig.tight_layout()
+
     fname = f"global_center_plane_{dataset}_P{position}"
-    save_plot_to_path(fig, output_dir, fname)
+    save_plot_to_path(fig, output_dir, fname, file_format=".pdf")
     plt.show()
     plt.close(fig)
 
-    return mean_center_plane, std_center_plane
+    return mean_cp, std_cp
 
 
 def save_projection_image(image: np.ndarray, save_path: Path) -> None:
@@ -669,11 +734,19 @@ def plot_histogram_upper_slices_available(datasets: list[str], save_dir: Path) -
 
     df = pd.DataFrame(data)
 
-    fig = plt.figure(figsize=(6, 6))
-    plt.hist(df["available_slices_above"], bins=range(8, 20, 1), align="left", edgecolor="black")
+    fig = plt.figure(figsize=(5, 6))
+    plt.hist(
+        df["available_slices_above"],
+        bins=range(10, 18, 1),
+        align="left",
+        edgecolor="black",
+        facecolor="grey",
+    )
     plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
-    plt.xlabel("Available Slices Above Center Slice")
-    plt.ylabel("Number of Positions")
+    plt.gca().xaxis.set_major_locator(MultipleLocator(1))  # Set x-axis ticks at every 1 interval
+    plt.xlim(10, None)  # Set 10 as the minimum value on the x-axis
+    plt.xlabel("Number of slices above in-focus Z")
+    plt.ylabel("Number of positions")
 
     df_11 = df[df["available_slices_above"] == 11]
     limiting_datasets = df_11.dataset.unique()
@@ -690,7 +763,7 @@ def plot_histogram_upper_slices_available(datasets: list[str], save_dir: Path) -
     )
 
     plt.show()
-    save_plot_to_path(fig, save_dir, "available_slices_above_center_histogram")
+    save_plot_to_path(fig, save_dir, "n_slices_above_in_focus_z_histogram", file_format=".pdf")
 
 
 def compute_profiles(
@@ -727,6 +800,7 @@ def plot_normalized_profiles(
     mode: Literal["by_position", "by_dataset"] = "by_position",
     lower_offset: int = LOWER_Z_SLICE_OFFSET,
     upper_offset: int = UPPER_Z_SLICE_OFFSET,
+    n_positions: int = 6,
 ) -> None:
     """
     Plot normalized BF std and CDH5 hist profiles.
@@ -745,6 +819,8 @@ def plot_normalized_profiles(
         Z-slice offset below the center slice.
     upper_offset
         Z-slice offset above the center slice.
+    n_positions
+        Number of positions to visualize
     """
 
     colormap = colormaps["tab20"]
@@ -756,7 +832,7 @@ def plot_normalized_profiles(
 
     if mode == "by_position":
         for timepoint in timepoints:
-            for position in range(6):
+            for position in range(n_positions):
                 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
                 for i, dataset in enumerate(datasets):
@@ -811,7 +887,7 @@ def plot_normalized_profiles(
 
                 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
-                for position in dataset_config.zarr_positions:
+                for position in range(n_positions):
                     if dataset_config.center_z_plane is None:
                         logger.warning(
                             "Center z-plane information is missing for dataset [ %s ], skipping",

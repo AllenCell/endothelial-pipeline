@@ -1,3 +1,5 @@
+import logging
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -7,15 +9,13 @@ from endo_pipeline.configs import DatasetConfig, get_zarr_file_for_position
 from endo_pipeline.io.input import load_image_from_path
 from endo_pipeline.io.output import get_output_path, save_plot_to_path
 from endo_pipeline.settings.image_data import NUM_ZSLICES
+from endo_pipeline.settings.method_constants import (
+    BF_ROLLING_WINDOW,
+    OUTLIER_THRESHOLD,
+    PARTIAL_DARK_THRESHOLD,
+)
 
-THRESHOLD1 = 0.004
-"""Percentage to use for thresholding partial dark outliers."""
-
-THRESHOLD2 = 0.01
-"""Percentage to use for thresholding dark and bright outliers."""
-
-ROLLING_WINDOW = 100
-"""Number of z-slices per to use for rolling window calculation (4 timepoints)."""
+logger = logging.getLogger(__name__)
 
 
 def plot_bf_outliers(
@@ -60,29 +60,34 @@ def plot_bf_outliers(
         The number of z-slices per timepoint (default is NUM_ZSLICES).
     """
     fig, ax = plt.subplots(figsize=(12, 10))
+
     ax.plot(data_np, label="Intensity", color="black", alpha=0.5)
     ax.plot(
         rolling_median_np,
-        label="Rolling Median (window = 100 z-slices (4 tps)",
+        label="Rolling Median (window = 100 z-slices (4 tps))",
         color="black",
         alpha=1,
         zorder=4,
     )
     ax.plot(
-        dark_threshold, label=f"Lower Threshold ({THRESHOLD2*100}%)", color="red", linestyle="--"
+        dark_threshold,
+        label=f"Lower Threshold ({PARTIAL_DARK_THRESHOLD*100}%)",
+        color="red",
+        linestyle="--",
     )
     ax.plot(
         partial_dark_threshold,
-        label=f"Partial Dark Threshold ({THRESHOLD1*100}%)",
+        label=f"Partial Dark Threshold ({OUTLIER_THRESHOLD*100}%)",
         color="purple",
         linestyle="--",
     )
     ax.plot(
         bright_threshold,
-        label=f"Upper Threshold ({THRESHOLD2*100}%)",
+        label=f"Upper Threshold ({PARTIAL_DARK_THRESHOLD*100}%)",
         color="orange",
         linestyle="--",
     )
+
     ax.scatter(dark_outliers, data_np[dark_outliers], color="red", label="Dark Outliers", zorder=5)
     ax.scatter(
         partial_dark_outliers,
@@ -103,33 +108,32 @@ def plot_bf_outliers(
 
     info_lines = ["timepoint: [z-slices]\n"]
     for title, indices in outlier_groups:
-        # Group indices by `t` and calculate `z` values
         d = {
             t: [i % num_zslices for i in indices if i // num_zslices == t]
-            for t in sorted(set(i // num_zslices for i in indices))  # Sort `t` for ordered output
+            for t in sorted(set(i // num_zslices for i in indices))
         }
-
         if d:
             info_lines.append(f"{title}:\n" + "\n".join(f"{t}: {z}" for t, z in d.items()))
 
-    # Add information to the plot
     if len(info_lines) > 1:
         fig.text(
             1.02,
             0.5,
-            "\n\n".join(info_lines),  # Join all info lines with double newlines
-            fontsize=10,
+            "\n\n".join(info_lines),
+            fontsize=12,
             va="center",
             ha="left",
             transform=ax.transAxes,
         )
 
     mean_for_lim = np.mean(data_np)
+    ax.set_xlabel("Index (flatted Z-slices)", fontsize=16, labelpad=12)
+    ax.set_ylabel("Average bright-feild intensity in Z-slice (a.u.)", fontsize=16, labelpad=12)
 
-    ax.set_xlabel("Flattened Index (T, Z-slices)")
-    ax.set_ylabel("Intensity")
+    ax.tick_params(axis="both", which="major", labelsize=14)
+    ax.tick_params(axis="both", which="minor", labelsize=12)
 
-    # Add secondary x-axis for timepoints (every 25 tps)
+    # Secondary X-axis for timepoints
     def index_to_tp(x):
         return x // num_zslices
 
@@ -137,19 +141,20 @@ def plot_bf_outliers(
         return t * num_zslices
 
     secax = ax.secondary_xaxis("top", functions=(index_to_tp, tp_to_index))
-    secax.set_xlabel("Timepoint (every 25 Z-slices)")
-    # Tick locator every 25 tps
+    secax.set_xlabel("Time (frames)", fontsize=16, labelpad=12)
     max_tp = data_np.shape[0] // num_zslices
-    secax.set_xticks(np.arange(0, max_tp + 1, 25))
+    secax.set_xticks(np.arange(0, max_tp + 1, 50))
+    secax.tick_params(axis="x", labelsize=14)
 
-    ax.set_title(f"{dataset_name} - Position {position}\n")
+    ax.legend(fontsize=14, loc="upper right", frameon=True)
+
     ax.set_ylim(mean_for_lim - mean_for_lim * 0.05, mean_for_lim + mean_for_lim * 0.05)
-    ax.legend()
-    fig.tight_layout(rect=[0, 0, 0.8, 1])  # leave space on right
-    plt.show()
 
-    save_dir = get_output_path(f"brightfield_outliers_{THRESHOLD1}", dataset_name)
-    save_plot_to_path(fig, save_dir, f"bf_outliers_P{position}")
+    fig.tight_layout(rect=[0, 0, 0.8, 1])
+
+    save_dir = get_output_path("single_tp_outlier_detection")
+    save_plot_to_path(fig, save_dir, f"bf_outliers_{dataset_name}_P{position}", file_format=".pdf")
+    plt.show()
     plt.close(fig)
 
 
@@ -184,19 +189,19 @@ def detect_bf_outliers(
     # 2 Convert to pandas Series for rolling median
     data_np = flattened_img_data.compute()
     series = pd.Series(data_np)
-    rolling_median = series.rolling(ROLLING_WINDOW, center=True).median()
+    rolling_median = series.rolling(BF_ROLLING_WINDOW, center=True).median()
 
     # Pad edges
-    start_pad_value = np.median(data_np[:ROLLING_WINDOW])
-    end_pad_value = np.median(data_np[-ROLLING_WINDOW:])
-    rolling_median.iloc[: ROLLING_WINDOW // 2] = start_pad_value
-    rolling_median.iloc[-ROLLING_WINDOW // 2 :] = end_pad_value
+    start_pad_value = np.median(data_np[:BF_ROLLING_WINDOW])
+    end_pad_value = np.median(data_np[-BF_ROLLING_WINDOW:])
+    rolling_median.iloc[: BF_ROLLING_WINDOW // 2] = start_pad_value
+    rolling_median.iloc[-BF_ROLLING_WINDOW // 2 :] = end_pad_value
     rolling_median_np = rolling_median.to_numpy()
 
     # Thresholds
-    dark_threshold = rolling_median_np * (1 - THRESHOLD2)
-    partial_dark_threshold = rolling_median_np * (1 - THRESHOLD1)
-    bright_threshold = rolling_median_np * (1 + THRESHOLD2)
+    dark_threshold = rolling_median_np * (1 - PARTIAL_DARK_THRESHOLD)
+    partial_dark_threshold = rolling_median_np * (1 - OUTLIER_THRESHOLD)
+    bright_threshold = rolling_median_np * (1 + PARTIAL_DARK_THRESHOLD)
 
     # Peaks
     minima, _ = find_peaks(-data_np)  # dark

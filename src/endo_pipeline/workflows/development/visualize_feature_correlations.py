@@ -38,7 +38,8 @@ def main(
     ----------
     dataset_collection_name
         The name of the dataset collection to use.
-        Uses the pca reference collection by default.
+    dataset_info_columns
+        List of dataset metadata column names.
     classical_feature_columns
         List of classical feature column names.
     pc_columns
@@ -88,7 +89,7 @@ def main(
     ]
 
     if aggregate:
-        dataset_name_list = dataset_name_list + ["aggregate"]
+        dataset_name_list = [*dataset_name_list, "aggregate"]
 
     for dataset_name in dataset_name_list:
         # if the dataset name is "aggregate", use the full DataFrame
@@ -121,6 +122,7 @@ def main(
             for df, timepoint_label in zip(
                 (df_dataset_ss, df_dataset),
                 ("steady_state", "all_timepoints"),
+                strict=True,
             ):
                 out_subdir = get_output_path(
                     __file__,

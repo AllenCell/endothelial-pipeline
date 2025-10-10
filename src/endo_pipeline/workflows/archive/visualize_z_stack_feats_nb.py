@@ -1,6 +1,6 @@
 # %%
 from endo_pipeline.io.output import get_output_path, save_plot_to_path
-from endo_pipeline.library.analyze.diffae_manifest import (
+from endo_pipeline.library.analyze.diffae_dataframe import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
 )
