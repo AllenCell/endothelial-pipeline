@@ -11,7 +11,7 @@ from .feature_dataframe_utils import (
     get_pca_loadings,
     get_pca_loadings_as_df,
     get_valid_subset,
-    project_manifest_to_pcs,
+    project_features_to_pcs,
 )
 
 __all__ = [
@@ -27,6 +27,6 @@ __all__ = [
     "get_pca_loadings_as_df",
     "get_traj_and_diff",
     "get_valid_subset",
-    "project_manifest_to_pcs",
+    "project_features_to_pcs",
     "split_dataset_by_flow",
 ]
