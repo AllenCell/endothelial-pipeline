@@ -6,10 +6,8 @@ import pandas as pd
 from sklearn.decomposition import PCA
 
 from endo_pipeline.configs import (
-    DatasetConfig,
-    ShearStressRegime,
-    TimepointAnnotation,
     get_datasets_in_collection,
+    get_valid_timepoints,
     load_dataset_config,
 )
 from endo_pipeline.io import load_dataframe
@@ -468,43 +466,6 @@ def get_dataset_descriptions(
     return description_dict
 
 
-def get_timepoints_for_plotting_pcs(list_of_datasets: list[DatasetConfig]) -> dict:
-    """Get timepoints for plotting scatter plot in PC space of data used to fit PCA."""
-    # initialize dictionary to store timepoints for each dataset
-    timepoints_to_use = {}
-
-    for dataset_config in list_of_datasets:
-        # get range of valid timepoints for each dataset
-        # based on:
-        # - cells being fed for no-flow datasets
-        # - cells being in "steady state" for flow datasets
-        # if there are no annotations, use all timepoints
-        dataset_duration = dataset_config.duration
-        if dataset_config.shear_stress_regime == ShearStressRegime.NO:
-            unfed_tps = dataset_config.timepoint_annotations.get(TimepointAnnotation.UNFED, None)
-            if unfed_tps is not None:
-                # remove unfed timepoints from the full range of timepoints
-                timepoints_list = []
-                # ranges same across all positions, just use position 0
-                for i, unfed_range in enumerate(unfed_tps[0]):
-                    if i == 0 and unfed_range[0] > 0:
-                        timepoints_list.append([0, unfed_range[0] - 1])
-                    if i == len(unfed_tps[0]) - 1 and unfed_range[1] < dataset_duration:
-                        timepoints_list.append([unfed_range[1] + 1, dataset_duration])
-                    if i < len(unfed_tps[0]) - 1:
-                        timepoints_list.append([unfed_range[1] + 1, unfed_tps[0][i + 1][0] - 1])
-        elif dataset_config.valid_timepoints is not None:
-            starts = dataset_config.valid_timepoints.start
-            stops = dataset_config.valid_timepoints.stop
-            timepoints_list = []
-            for start, stop in zip(starts, stops, strict=True):
-                timepoints_list.append([start, stop])
-        else:
-            timepoints_list = [0, dataset_duration]
-        timepoints_to_use[dataset_config.name] = timepoints_list
-    return timepoints_to_use
-
-
 def get_valid_subset(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
     """
     Filter dataframe to only include valid timepoints for a given dataset.
@@ -522,23 +483,29 @@ def get_valid_subset(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
     """
     df["valid"] = False
     # check that the necessary datasets are present for fitting PCA
-    valid_timepoints = load_dataset_config(dataset_name).valid_timepoints
-    if valid_timepoints is None:
-        logger.debug("Using all timepoints from dataset [ %s ] for analysis", dataset_name)
-        df["valid"] = True
-    else:
-        tps = []
-        for start, stop in zip(valid_timepoints.start, valid_timepoints.stop, strict=True):
-            tps.extend(list(range(start, stop + 1)))
-            logger.debug(
-                "Using timepoints [ %s - %s ] from dataset [ %s ] for analysis",
-                start,
-                stop,
+    dataset_config = load_dataset_config(dataset_name)
+    valid_timepoint_dict = get_valid_timepoints(dataset_config)
+
+    # this is temporary until we update eval metadata to save
+    # position as integer
+    df_valid_list = []
+    for pos, df_pos in df.groupby("position"):
+        # this is temporary until we update eval methods to save position as integer
+        pos_int = int(pos[1:])
+        if pos_int not in valid_timepoint_dict:
+            logger.warning(
+                "Position [ %s ] not found in valid timepoints for dataset [ %s ]. Skipping.",
+                pos_int,
                 dataset_name,
             )
-        valid_subset = df.frame_number.isin(tps)
-        df["valid"] = valid_subset
-    return df[df.valid]
+            continue
+        valid_timepoints = valid_timepoint_dict[pos_int]
+        df_pos["valid"] = df_pos["frame_number"].isin(valid_timepoints)
+        df_valid_list.append(df_pos[df_pos["valid"]])
+
+    df_valid = pd.concat(df_valid_list, ignore_index=True)
+
+    return df_valid
 
 
 def get_pc_column_names(df: pd.DataFrame, pc_axes: list[int] | None = None) -> list[str]:

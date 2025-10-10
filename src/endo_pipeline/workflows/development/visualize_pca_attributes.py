@@ -11,13 +11,16 @@ def main(
     """Visualize key attributes of a fit PCA model."""
     import logging
 
-    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.configs import (
+        get_datasets_in_collection,
+        get_valid_timepoints,
+        load_dataset_config,
+    )
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe import (
         fit_pca,
         get_pca_loadings,
         get_pca_loadings_as_df,
-        get_timepoints_for_plotting_pcs,
     )
     from endo_pipeline.library.visualize.diffae_features import feature_viz
     from endo_pipeline.manifests import (
@@ -84,18 +87,10 @@ def main(
     # for the datasets used to fit PCA
     # load model manifests for the given dataset collection
     dataset_names = get_datasets_in_collection(dataset_collection_name)
-    pca_ref_configs = [load_dataset_config(dataset_name) for dataset_name in dataset_names]
 
-    # get timepoints to use for scatter plots
-    # this can definitely be written into a wrapper function
-    # maybe make a dictionary instead of a list?
-    timepoints_refs = get_timepoints_for_plotting_pcs(pca_ref_configs)
-
-    # scatter plot of pca reference datasets
-    manifest = load_dataframe_manifest(dataframe_manifest_name)
-    fig, _ = feature_viz.plot_pc_scatter(
-        dataset_names, manifest, pca, timepoints_to_use=timepoints_refs
-    )
+    # scatter plot of pca reference datasets (showing valid timepoints only)
+    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+    fig, _ = feature_viz.plot_pc_scatter(dataset_names, dataframe_manifest, pca)
     save_plot_to_path(fig, fig_savedir, "pca_scatter_ref")
 
     # heatmap and clustemap of PC loadings

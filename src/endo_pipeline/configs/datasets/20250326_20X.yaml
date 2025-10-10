@@ -30,9 +30,6 @@ flow_conditions:
 - start: -16
   stop: 576
   shear_stress: 15.74
-valid_timepoints:
-  start: [129]
-  stop: [345]
 include_scenes: null
 notes: ''
 timepoint_annotations:
@@ -64,6 +61,13 @@ timepoint_annotations:
     3: [[346, 576]]
     4: [[346, 576]]
     5: [[346, 576]]
+  not_steady_state:
+    0: [[0, 128]]
+    1: [[0, 128]]
+    2: [[0, 128]]
+    3: [[0, 128]]
+    4: [[0, 128]]
+    5: [[0, 128]]
 position_annotations: null
 center_z_plane:
   0: 11

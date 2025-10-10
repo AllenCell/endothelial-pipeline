@@ -30,9 +30,6 @@ flow_conditions:
 - start: -14
   stop: 577
   shear_stress: 8.6
-valid_timepoints:
-  start: [217]
-  stop: [351]
 include_scenes: null
 notes: Caution, some patchiness occurs after TP489 & cells are very crowded by the
   end of the movie. No other artifacts noted.
@@ -44,6 +41,13 @@ timepoint_annotations:
     3: [[475, 576]]
     4: [[315, 576]]
     5: [[340, 576]]
+  not_steady_state:
+    0: [[0, 216]]
+    1: [[0, 216]]
+    2: [[0, 216]]
+    3: [[0, 216]]
+    4: [[0, 216]]
+    5: [[0, 216]]
 position_annotations: null
 center_z_plane:
   0: 11

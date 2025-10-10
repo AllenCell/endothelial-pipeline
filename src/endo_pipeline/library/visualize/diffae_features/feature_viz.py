@@ -110,25 +110,35 @@ def get_dataset_color(dataset_name: str) -> str:
 
 def plot_pc_scatter(
     dataset_names: list[str],
-    manifest: DataframeManifest,
+    dataframe_manifest: DataframeManifest,
     pca: PCA,
-    timepoints_to_use: dict[str, list[list]] | None = None,
+    filter_to_valid: bool = True,
     alpha: float = 0.75,
     scatter_size: float = 0.01,
 ) -> tuple:
     """
     Plot scatter plot of PCA components for a list of datasets.
 
-    Input:
-    - dataset_names: list of dataset names to use for plotting
-    - manifest: manifest of model feature dataframes
-    - pca: the PCA model used to project the
-        feature data onto the PCA space
-    - timepoints_to_use: dict[list[list]] | None, optional
-        - dictionary of lists of timepoint ranges to use for each dataset
-    Output:
-    - fig: Figure
-    - ax: Axes
+    **Valid timepoints**
+
+    If `filter_to_valid` is True, the dataframes will be filtered to only include "valid"
+    timepoints. Valid timepoints are determined per dataset per position by the method
+    ``get_valid_timepoints`` in ``endo_pipeline.configs.dataset_config_utils``.
+
+    Parameters
+    ----------
+    dataset_names
+        List of dataset names to plot.
+    dataframe_manifest
+        Dataframe manifest containing paths to dataframes.
+    pca
+        Fit PCA model.
+    filter_to_valid
+        If True, filter dataframes to only include valid timepoints.
+    alpha
+        Alpha value for scatter plot points.
+    scatter_size
+        Size of scatter plot points.
     """
 
     # initialize figure and axes
@@ -138,18 +148,10 @@ def plot_pc_scatter(
 
     for dataset_name in dataset_names:
         # load dataframe and get top 3 PCs
-        df = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
+        df = get_dataframe_for_dynamics_workflows(
+            dataset_name, dataframe_manifest, pca, filter_to_valid=filter_to_valid
+        )
         pc_column_names = get_pc_column_names(df, [0, 1, 2])
-
-        # if timepoints_to_use is provided, restrict to those timepoints
-        if timepoints_to_use is not None:
-            frame_ranges = timepoints_to_use[dataset_name]
-            timepoints = []
-            for frame_range in frame_ranges:
-                timepoints.extend(list(range(frame_range[0], frame_range[1] + 1)))
-            valid_subset = df.frame_number.isin(timepoints)
-            df["valid"] = valid_subset
-            df = df[df["valid"]]
 
         # get color for the dataset
         color = get_dataset_color(dataset_name)

@@ -30,7 +30,6 @@ flow_conditions:
 - start: -30
   stop: 576
   shear_stress: 5.82
-valid_timepoints: null
 include_scenes: null
 notes: Cells are very overgrown by end of experiment. A small hole appears in the
   timelapse partway through and doesn't close. Manually adjusted the center_z_plane

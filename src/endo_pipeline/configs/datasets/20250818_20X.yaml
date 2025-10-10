@@ -30,7 +30,6 @@ flow_conditions:
 - start: 0
   stop: 576
   shear_stress: 0.0
-valid_timepoints: null
 include_scenes: null
 notes: timelapse imaging of CDH5 without shear stress, being fed every 3 hours during
   normal business hours

@@ -30,9 +30,6 @@ flow_conditions:
 - start: 0
   stop: 576
   shear_stress: 0.0
-valid_timepoints:
-  start: [0, 300]
-  stop: [100, 420]
 include_scenes: null
 notes: This dataset seems to be missing a metadata file... No flow with 1 feed only.
   Calculated center plane was 8, Adjusted to 13.
@@ -44,6 +41,13 @@ timepoint_annotations:
     3: []
     4: []
     5: []
+  not_steady_state:
+    0: [[101, 299], [421, 576]]
+    1: [[101, 299], [421, 576]]
+    2: [[101, 299], [421, 576]]
+    3: [[101, 299], [421, 576]]
+    4: [[101, 299], [421, 576]]
+    5: [[101, 299], [421, 576]]
 position_annotations: null
 center_z_plane:
   0: 13

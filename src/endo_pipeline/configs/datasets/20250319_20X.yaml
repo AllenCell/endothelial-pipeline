@@ -30,9 +30,6 @@ flow_conditions:
 - start: -16
   stop: 576
   shear_stress: 12.2
-valid_timepoints:
-  start: [117]
-  stop: [336]
 include_scenes: null
 notes: Stopped imaging prior to 48 hours because cells were very packed
 timepoint_annotations:
@@ -73,6 +70,13 @@ timepoint_annotations:
     5: [[244, 576]]
   gfp_scope_error:
     0: [490]
+  not_steady_state:
+    0: [[0, 116]]
+    1: [[0, 116]]
+    2: [[0, 116]]
+    3: [[0, 116]]
+    4: [[0, 116]]
+    5: [[0, 116]]
 position_annotations:
   dust_artifact: [4, 5]
 center_z_plane:

@@ -9,7 +9,6 @@ from .dataset_config import (
     SampleType,
     ShearStressRegime,
     TimepointAnnotation,
-    ValidTimepoints,
 )
 from .dataset_config_io import (
     get_available_dataset_collection_names,
@@ -41,6 +40,8 @@ from .dataset_config_utils import (
     get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
     get_regime_for_shear_stress,
+    get_unannotated_timepoints_for_position,
+    get_valid_timepoints,
     get_zarr_file_for_position,
     make_filtered_dataset_collection,
     validate_3d_flow_field_dataset_collection,
@@ -61,7 +62,6 @@ __all__ = [
     "SampleType",
     "ShearStressRegime",
     "TimepointAnnotation",
-    "ValidTimepoints",
     "get_annotated_positions",
     "get_annotated_timepoints_for_position",
     "get_available_channels_for_all_positions",
@@ -83,6 +83,8 @@ __all__ = [
     "get_position_integer_from_zarr_file_path",
     "get_position_string_from_zarr_file_path",
     "get_regime_for_shear_stress",
+    "get_unannotated_timepoints_for_position",
+    "get_valid_timepoints",
     "get_zarr_file_for_position",
     "load_all_dataset_configs",
     "load_dataset_collection_config",

@@ -200,7 +200,13 @@ def get_annotated_positions(
 def get_annotated_timepoints_for_position(
     dataset: DatasetConfig, position: int, annotations: list[TimepointAnnotation] | None = None
 ) -> list[int]:
-    """Get all timepoints for given annotations at the given position."""
+    """
+    Get all timepoints with any of given annotations at the given position.
+
+    If the provided list of annotations is empty, then no timepoints will be
+    returned. If the provided list of annotations is None, the all timepoints
+    with any annotations will be returned.
+    """
 
     annotated_timepoints: list[int] = []
 
@@ -226,6 +232,54 @@ def get_annotated_timepoints_for_position(
                     annotated_timepoints.extend(list(range(timepoint[0], timepoint[1] + 1)))
 
     return sorted(set(annotated_timepoints))
+
+
+def get_unannotated_timepoints_for_position(
+    dataset: DatasetConfig, position: int, annotations: list[TimepointAnnotation] | None = None
+) -> list[int]:
+    """
+    Get all timepoints without any of the given annotations at given position.
+
+    If the provided list of annotations is empty, then all timepoints will be
+    returned. If the provided list of annotations is None, then only timepoints
+    without any annotations will be returned.
+    """
+
+    all_timepoints = range(dataset.duration)
+    annotated_timepoints = get_annotated_timepoints_for_position(dataset, position, annotations)
+
+    return sorted(set(all_timepoints) - set(annotated_timepoints))
+
+
+def get_valid_timepoints(dataset_config: DatasetConfig) -> dict[int, list[int]]:
+    """
+    Calculate valid timepoints for each position in the dataset configuration.
+
+    For the purposes of the feature analysis workflows, "valid timepoints" are
+    defined as continuous ranges of timepoints that do not include any timepoints
+    annotated as "not steady state" or being in the cell piling phase.
+
+    Parameters
+    ----------
+    dataset_config
+        Dataset configuration object containing timepoint annotations and positions.
+
+    Returns
+    -------
+    :
+        A dictionary where keys are position indices and values are lists of valid timepoints.
+    """
+    valid_timepoints_dict: dict[int, list[list[int]]] = {}
+    for pos in dataset_config.zarr_positions:
+        valid_timepoints_dict[pos] = get_unannotated_timepoints_for_position(
+            dataset_config,
+            pos,
+            annotations=[
+                TimepointAnnotation.NOT_STEADY_STATE,
+                TimepointAnnotation.CELL_PILING,
+            ],
+        )
+    return valid_timepoints_dict
 
 
 def get_filtered_dataset_collection_name(

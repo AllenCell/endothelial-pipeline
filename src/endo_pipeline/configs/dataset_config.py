@@ -69,6 +69,9 @@ class TimepointAnnotation(StrEnum):
     GFP_SCOPE_ERROR = "gfp_scope_error"
     """Manually annotated error with GFP scope."""
 
+    NOT_STEADY_STATE = "not_steady_state"
+    """Timepoint is not at visual steady state."""
+
     UNFED = "unfed"
     """Manually annotated timepoint where cells are more than 3hrs since last feeding."""
 
@@ -84,20 +87,6 @@ class PositionAnnotation(StrEnum):
 
     DUST_ARTIFACT = "dust_artifact"
     """Manually annotated position includes a dust artifact."""
-
-
-@dataclass
-class ValidTimepoints:
-    """
-    Timepoints that are visually validated to be after steady state from no flow to a set
-    flow condition appears to have stabilized and before cell piling occurs.
-    """
-
-    start: list[int]
-    """Start frame of valid timepoints."""
-
-    stop: list[int]
-    """Stop frame of valid timepoints."""
 
 
 @dataclass
@@ -198,9 +187,6 @@ class DatasetConfig:
 
     flow_conditions: list[FlowCondition]
     """List of flow conditions for the dataset."""
-
-    valid_timepoints: ValidTimepoints | None = None
-    """List of valid timepoint ranges. None if all timepoints are valid."""
 
     include_scenes: list[int] | None = None
     """List of scenes to include."""

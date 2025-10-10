@@ -10,7 +10,6 @@ from .feature_dataframe_utils import (
     get_pc_column_names,
     get_pca_loadings,
     get_pca_loadings_as_df,
-    get_timepoints_for_plotting_pcs,
     get_valid_subset,
     project_manifest_to_pcs,
 )
@@ -26,7 +25,6 @@ __all__ = [
     "get_pc_column_names",
     "get_pca_loadings",
     "get_pca_loadings_as_df",
-    "get_timepoints_for_plotting_pcs",
     "get_traj_and_diff",
     "get_valid_subset",
     "project_manifest_to_pcs",
