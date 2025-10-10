@@ -37,11 +37,20 @@ class ShearStressRegime(Enum):
     MAX = ("max", 19.5, 35.0)
     """Maximum shear stress tested (target: 20 dyn/cm2)."""
 
-    def __new__(cls, value, lower, upper):
+    upper: float
+    """Upper bound of the shear stress regime."""
+
+    lower: float
+    """Lower bound of the shear stress regime."""
+
+    def __new__(cls, value: str, lower: float, upper: float) -> "ShearStressRegime":
+        """Create a new shear stress regime."""
+
         obj = object.__new__(cls)
         obj._value_ = value
         obj.lower = lower
         obj.upper = upper
+
         return obj
 
 
