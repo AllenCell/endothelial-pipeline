@@ -164,7 +164,11 @@ def main(
                     model_manifest, model.cfg.run_name, crop_pattern="grid"
                 ),
                 workflow_name=Path(__file__).stem,
-                workflow_parameters={"z_slice_offsets": Z_SLICE_OFFSETS},
+                workflow_parameters={
+                    "z_slice_offsets": Z_SLICE_OFFSETS,
+                    "exclude_cell_piling": exclude_cell_piling,
+                    "config_name": name_of_config,
+                },
             )
 
         if DEMO_MODE:
