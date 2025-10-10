@@ -474,12 +474,24 @@ def get_valid_subset(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
 
     The input dataframe should have a column "frame_number" indicating the timepoint of each crop.
 
+    **Valid timepoints**
+
+    Valid timepoints are identified from the timepoint annotations present in the
+    dataset config file. The method ``get_valid_timepoints`` is used to extract the valid timepoints
+    for each position in the dataset. See ``get_valid_timepoints`` for more details on
+    which annotations are used to identify valid timepoints.
+
     Parameters
     ----------
     df
         DataFrame of feature data for a given dataset.
     dataset_name
         Name of the given dataset.
+
+    Returns
+    -------
+    :
+        DataFrame of feature data for the given dataset, filtered to only include valid timepoints.
     """
     df["valid"] = False
     # check that the necessary datasets are present for fitting PCA
