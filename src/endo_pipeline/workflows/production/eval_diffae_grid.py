@@ -9,6 +9,7 @@ def main(
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     datasets: Datasets | None = None,
     resolution_level: int = 1,
+    exclude_cell_piling: bool = False,
     upload_to_fms: bool = True,
     config_name: str | None = None,
     finetuned: bool = False,
@@ -57,6 +58,8 @@ def main(
         Optional, list of datasets or dataset collections to evaluate the model on.
     resolution_level
         Resolution level to at which to load images (zarr file format) at.
+    exclude_cell_piling
+        Exclude cell piling timepoints if True, include them if False.
     upload_to_fms
         True to upload the prediction file for each dataset to FMS, False to only save locally.
     config_name
@@ -81,6 +84,7 @@ def main(
     from endo_pipeline.library.model.image_loading import get_include_positions
     from endo_pipeline.manifests import get_feature_dataframe_manifest_name, load_model_manifest
     from endo_pipeline.settings import (
+        DEFAULT_COLLECTION_FOR_DIFFAE_EVALUATION,
         DIFFAE_MODEL_EVAL_CONFIG,
         DIFFAE_MODEL_EVAL_FINETUNE_CONFIG,
         Z_SLICE_OFFSETS,
@@ -90,7 +94,7 @@ def main(
 
     # Default list of datasets if not provided.
     if datasets is None:
-        datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
+        datasets = get_datasets_in_collection(DEFAULT_COLLECTION_FOR_DIFFAE_EVALUATION)
 
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in datasets]
 
@@ -140,6 +144,7 @@ def main(
             model=model,
             dataset_config=dataset_config,
             resolution_level=resolution_level,
+            exclude_cell_piling=exclude_cell_piling,
             z_slice_offsets=Z_SLICE_OFFSETS,
             frame_start=frame_start,
             frame_stop=frame_stop,

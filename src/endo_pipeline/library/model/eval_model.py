@@ -542,6 +542,7 @@ def evaluate_model_on_grid_of_crops_from_one_dataset(
     model: "CytoDLModel",
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
+    exclude_cell_piling: bool = False,
     z_slice_offsets: tuple[int, int] | None = None,
     frame_start: int | None = None,
     frame_stop: int | None = None,
@@ -567,6 +568,8 @@ def evaluate_model_on_grid_of_crops_from_one_dataset(
         Dataset config object for the dataset of interest.
     resolution_level
         Resolution level to at which to load images (zarr file format) at.
+    exclude_cell_piling
+        Whether to exclude frames with cell piling from evaluation.
     z_slice_offsets
         Lower and upper bounds for z-slicing.
     frame_start
@@ -612,7 +615,7 @@ def evaluate_model_on_grid_of_crops_from_one_dataset(
     # parse dataset annotations to get z-slice information,
     # positions to include, and frames to exclude
     z_slice_bounds_per_position = get_z_slice_bounds_per_position(dataset_config, z_slice_offsets)
-    exclude_frames = get_exclude_frames(dataset_config)
+    exclude_frames = get_exclude_frames(dataset_config, exclude_cell_piling=exclude_cell_piling)
 
     # build dataframe with zarr loading metadata
     df = build_zarr_image_loading_dataframe(
