@@ -195,7 +195,7 @@ def model_data_comparison_one_dataset(
     # for extracting just the axes (specified via pcs) we want
     # from the resulting dataframe
     # e.g., if we are just analyzing the first two principal components,
-    # we want to extract columns 'pc1' and 'pc2'
+    # we want to extract columns 'pc_1' and 'pc_2'
     pc_column_names = [DIFFAE_PC_COLUMN_NAMES[pc_axis] for pc_axis in pc_axes]
     p_hist = get_stationary_hist(stationary_data, pc_column_names, bins)
 

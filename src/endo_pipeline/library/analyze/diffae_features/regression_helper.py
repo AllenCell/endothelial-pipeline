@@ -76,7 +76,7 @@ def _kramers_moyal_train_test_one_dataset(
     # for extracting just the axes (specified via PCs)
     # we want from the resulting dataframe
     # e.g., if we are just analyzing the first two PCs,
-    # we want to extract columns 'pc1' and 'pc2'
+    # we want to extract columns 'pc_1' and 'pc_2'
     ndim = len(pcs)
     pc_column_names = [DIFFAE_PC_COLUMN_NAMES[pc] for pc in pcs]
 
