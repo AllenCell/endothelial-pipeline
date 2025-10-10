@@ -66,7 +66,7 @@ def main(
     )
 
     # Load or fit reference PCA model and project features into reference PC space
-    pca = fit_pca()
+    pca = fit_pca("pca_reference_legacy")
 
     # Project features from applying fine tuned diffAE model to fixed and live data into
     # reference PC space.
