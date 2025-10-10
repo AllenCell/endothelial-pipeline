@@ -212,7 +212,7 @@ def calculate_center_planes_all_tp_for_pos(
         center_plantes: A list of center planes for each frame in the dataset.
     """
     zarr_file = get_zarr_file_for_position(dataset_config, position)
-    bf_stack_all_frames = load_zarr_as_dask_array(zarr_file, channels=["BF"], level=1)
+    bf_stack_all_frames = load_image_from_path(zarr_file, channels=["BF"], level=1)
     center_planes = []
 
     for frame in range(0, dataset_config.duration, 1):
