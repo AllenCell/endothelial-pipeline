@@ -9,7 +9,6 @@ from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe import (
     get_dataframe_for_dynamics_workflows,
-    get_pc_column_names,
     get_traj_and_diff,
     split_dataset_by_flow,
 )
@@ -17,6 +16,7 @@ from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from endo_pipeline.library.analyze.numerics import get_bins
 from endo_pipeline.library.visualize.diffae_features import feature_viz
 from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES
 
 
 def _kramers_moyal_train_test_one_dataset(
@@ -77,8 +77,8 @@ def _kramers_moyal_train_test_one_dataset(
     # we want from the resulting dataframe
     # e.g., if we are just analyzing the first two PCs,
     # we want to extract columns 'pc1' and 'pc2'
-    pc_column_names = get_pc_column_names(df_proj, pcs)
     ndim = len(pcs)
+    pc_column_names = [DIFFAE_PC_COLUMN_NAMES[pc] for pc in pcs]
 
     # split out data by flow condition
     df_by_flow, shear_list = split_dataset_by_flow(df_proj, load_dataset_config(dataset_name))

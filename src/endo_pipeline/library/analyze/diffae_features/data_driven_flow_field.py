@@ -10,13 +10,13 @@ from sklearn.decomposition import PCA
 from endo_pipeline.library.analyze.diffae_dataframe import (
     get_dataframe_for_dynamics_workflows,
     get_dataset_descriptions,
-    get_pc_column_names,
     get_traj_and_diff,
 )
 from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data, get_bins
 from endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
 from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE
 
 
 def _ddff_model_analysis(
@@ -73,7 +73,7 @@ def _ddff_model_analysis(
     """
     # load dataframe and get top 3 PCs
     df = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
-    pc_column_names = get_pc_column_names(df, pc_axes=[0, 1, 2])
+    pc_column_names = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences

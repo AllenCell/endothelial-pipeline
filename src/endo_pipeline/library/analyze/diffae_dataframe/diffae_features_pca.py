@@ -8,8 +8,7 @@ from sklearn.decomposition import PCA
 from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
-
-from .feature_dataframe_utils import get_feature_column_names
+from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +58,7 @@ def fit_pca(
 
     # get the feature columns from the data,
     # these are the columns that start with 'feat_'
-    feature_cols = get_feature_column_names(data_ref)
+    feature_cols = DIFFAE_FEATURE_COLUMN_NAMES
     pca.fit(data_ref[feature_cols].values)  # fit PCA
 
     # log info about explained variance ratio

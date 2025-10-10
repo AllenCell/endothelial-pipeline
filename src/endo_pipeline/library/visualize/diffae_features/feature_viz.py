@@ -12,16 +12,13 @@ from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.library.analyze.diffae_dataframe import (
-    get_dataframe_for_dynamics_workflows,
-    get_pc_column_names,
-)
+from endo_pipeline.library.analyze.diffae_dataframe import get_dataframe_for_dynamics_workflows
 from endo_pipeline.library.visualize import viz_base
 from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
     get_seg_feat_plot_args,
 )
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import SHEAR_COLOR_DICT
+from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE, SHEAR_COLOR_DICT
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +136,7 @@ def plot_pc_scatter(
     for dataset_name in dataset_names:
         # load dataframe and get top 3 PCs
         df = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
-        pc_column_names = get_pc_column_names(df, [0, 1, 2])
+        pc_column_names = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
         # if timepoints_to_use is provided, restrict to those timepoints
         if timepoints_to_use is not None:

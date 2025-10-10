@@ -13,7 +13,6 @@ from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe import (
     get_dataframe_for_dynamics_workflows,
-    get_pc_column_names,
     split_dataset_by_flow,
 )
 from endo_pipeline.library.analyze.numerics import (
@@ -26,6 +25,7 @@ from endo_pipeline.library.analyze.numerics import (
 )
 from endo_pipeline.library.visualize.diffae_features import dynamics_viz, pplane
 from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES
 
 
 def get_stationary_probability(
@@ -196,7 +196,7 @@ def model_data_comparison_one_dataset(
     # from the resulting dataframe
     # e.g., if we are just analyzing the first two principal components,
     # we want to extract columns 'pc1' and 'pc2'
-    pc_column_names = get_pc_column_names(stationary_data, pc_axes)
+    pc_column_names = [DIFFAE_PC_COLUMN_NAMES[pc_axis] for pc_axis in pc_axes]
     p_hist = get_stationary_hist(stationary_data, pc_column_names, bins)
 
     fig2, ax2 = dynamics_viz.compare_stationary_distributions(p_fit, p_hist, bins)
