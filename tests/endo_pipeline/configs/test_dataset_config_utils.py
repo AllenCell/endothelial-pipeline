@@ -277,7 +277,7 @@ def test_get_annotated_timepoints_for_position_no_annotations(dataset):
 @pytest.mark.parametrize(
     "position,annotations,timepoints",
     [
-        (0, None, [0, 4, 5, 6]),
+        (0, None, [0, 4]),
         (1, None, [7, 8, 9]),
         (2, None, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
         (0, [TimepointAnnotation.BF_SCOPE_ERROR], [0, 4, 5, 6, 7, 8, 9]),
@@ -289,6 +289,7 @@ def test_get_annotated_timepoints_for_position_no_annotations(dataset):
         (0, [], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
         (1, [], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
         (2, [], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        (0, [TimepointAnnotation.BF_SCOPE_ERROR, TimepointAnnotation.NOT_STEADY_STATE], [0, 4]),
     ],
 )
 def test_get_unannotated_timepoints_for_position_with_annotations(
@@ -304,6 +305,9 @@ def test_get_unannotated_timepoints_for_position_with_annotations(
             0: [7, 8, 9],
             1: [[1, 3], 0],
             2: [],
+        },
+        TimepointAnnotation.NOT_STEADY_STATE: {
+            0: [[5, 9]],
         },
     }
 
