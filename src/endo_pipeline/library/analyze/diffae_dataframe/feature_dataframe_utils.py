@@ -333,7 +333,6 @@ def get_dataframe_for_dynamics_workflows(
     df = load_dataframe(location)
 
     if filter_to_valid:
-        logger.debug("Filtering dataframe to valid timepoints for dataset [ %s ]", dataset_name)
         df_valid = get_valid_subset(df, dataset_name)
     else:
         df_valid = df.copy()
@@ -518,6 +517,11 @@ def get_valid_subset(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
         df_valid_list.append(df_pos[df_pos["valid"]])
 
     df_valid = pd.concat(df_valid_list, ignore_index=True)
+    logger.debug(
+        "Filtered dataframe to [ %d ] valid timepoints across positions for dataset [ %s ]",
+        df_valid["frame_number"].nunique(),
+        dataset_name,
+    )
 
     return df_valid
 
