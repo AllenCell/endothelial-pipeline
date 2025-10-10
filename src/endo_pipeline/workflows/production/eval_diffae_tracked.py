@@ -1,11 +1,12 @@
 from endo_pipeline.cli import Datasets
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 TAGS = ["eval_diffae_model", "diffae_features"]
 
 
 def main(
-    model_manifest_name: str = "diffae_04_10",
-    run_name: str | None = None,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     datasets: Datasets | None = None,
     upload_to_fms: bool = True,
     save_path: str | None = None,
@@ -63,7 +64,7 @@ def main(
         upload_prediction_dataframe_to_fms,
     )
     from endo_pipeline.library.model.image_loading import get_include_positions
-    from endo_pipeline.manifests import load_model_manifest
+    from endo_pipeline.manifests import get_feature_dataframe_manifest_name, load_model_manifest
     from endo_pipeline.settings import DIFFAE_MODEL_EVAL_CONFIG, Z_SLICE_OFFSETS
 
     logger = logging.getLogger(__name__)
@@ -115,7 +116,9 @@ def main(
                 dataset_config,
                 model_manifest,
                 model.cfg.run_name,
-                dataframe_manifest_name=f"{model_manifest_name}_{model.cfg.run_name}_tracked",
+                dataframe_manifest_name=get_feature_dataframe_manifest_name(
+                    model_manifest, model.cfg.run_name, crop_pattern="tracked"
+                ),
                 workflow_name=Path(__file__).stem,
                 workflow_parameters={"z_slice_offsets": Z_SLICE_OFFSETS},
             )

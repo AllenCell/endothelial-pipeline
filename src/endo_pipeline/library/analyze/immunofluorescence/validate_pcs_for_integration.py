@@ -7,7 +7,7 @@ from matplotlib.patches import Ellipse
 from pandas.core.groupby import DataFrameGroupBy
 from sklearn.decomposition import PCA
 
-from endo_pipeline.library.analyze.diffae_manifest import (
+from endo_pipeline.library.analyze.diffae_dataframe import (
     get_dataframe_for_dynamics_workflows,
     project_manifest_to_pcs,
 )
@@ -178,8 +178,8 @@ def create_reference_timelapse_datasets(
         PCA model to project features into reference PC space
     reference_dataset_name : str
         Name of the reference dataset to use for creating the timelapse datasets
-    model : ModelConfig
-        Model configuration to use for loading the reference dataset
+    model : str
+        Name of model to use for loading the reference dataset
     time_lag : int
         Number of frames to lag the reference dataset by.
         This is the same time gap between the live and fixed data snapshots.
