@@ -16,12 +16,13 @@ from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
     load_dataframe_manifest,
 )
+from endo_pipeline.settings import DEFAULT_PCA_DATASET_COLLECTION_NAME
 
 logger = logging.getLogger(__name__)
 
 
 def fit_pca(
-    dataset_collection_name: str = "pca_reference",
+    dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     dataframe_manifest_name: str = "diffae_04_10",
     num_pcs: int = 8,
 ) -> PCA:

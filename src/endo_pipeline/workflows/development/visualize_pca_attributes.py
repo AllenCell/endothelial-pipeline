@@ -1,21 +1,21 @@
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+from endo_pipeline.settings import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PCA_DATASET_COLLECTION_NAME,
+)
 
 TAGS = ["diffae_features", "visualization"]
 
 
 def main(
-    dataset_collection_name: str = "pca_reference",
+    dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
 ) -> None:
     """Visualize key attributes of a fit PCA model."""
     import logging
 
-    from endo_pipeline.configs import (
-        get_datasets_in_collection,
-        get_valid_timepoints,
-        load_dataset_config,
-    )
+    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe import (
         fit_pca,

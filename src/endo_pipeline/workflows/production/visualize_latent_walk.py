@@ -1,9 +1,14 @@
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+from endo_pipeline.settings import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PCA_DATASET_COLLECTION_NAME,
+)
 
 TAGS = ["diffae_image_generation", "pc_interpretation"]
 
 
 def main(
+    dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     num_pcs: int = 3,
@@ -18,6 +23,8 @@ def main(
 
     Parameters
     ----------
+    dataset_collection_name
+        Name of the dataset collection containing datasets used to fit the PCA model.
     model_manifest_name
         Name of the model manifest containing the specific run to load.
     run_name
@@ -83,7 +90,7 @@ def main(
         model_manifest, run_name_, crop_pattern="grid"
     )
     manifest = load_dataframe_manifest(dataframe_manifest_name)
-    dataset_names = get_datasets_in_collection("pca_reference")
+    dataset_names = get_datasets_in_collection(dataset_collection_name)
 
     if use_pcs:
         # perform latent walk along the principal components
