@@ -333,6 +333,7 @@ def get_dataframe_for_dynamics_workflows(
     df = load_dataframe(location)
 
     if filter_to_valid:
+        logger.debug("Filtering dataframe to valid timepoints for dataset [ %s ]", dataset_name)
         df_valid = get_valid_subset(df, dataset_name)
     else:
         df_valid = df.copy()
