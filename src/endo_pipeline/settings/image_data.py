@@ -23,6 +23,9 @@ IF_INTEGRATION_SAVE_DIRECTORY: str = (
 )
 """Default production directory to save IF integration results."""
 
+PIXEL_SIZE_3i_20x: float = 0.325
+"""Pixel size for the 3i 20x objective in micrometers."""
+
 AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x: float = 1.43
 """Axial distortion factor for 3i 20x objective determined as described in Diel et al. 2020."""
 

@@ -1,6 +1,10 @@
-def main(model_name: str = "diffae_finetuned_for_fixed", n_pcs: int = 3) -> None:
+def main(
+    model_manifest_name: str = "diffae_finetuned_for_fixed",
+    run_name: str | None = None,
+    n_pcs: int = 3,
+) -> None:
     """
-    Validates integration of paired fixed/live data for integration of IF data.
+    Validate integration of paired fixed/live data for integration of IF data.
 
     To do this, it does the following:
     1. Applies a fine-tuned diffAE model to extract features
@@ -13,18 +17,23 @@ def main(model_name: str = "diffae_finetuned_for_fixed", n_pcs: int = 3) -> None
 
     Parameters
     ----------
-    model_name
-        Name of model to use for feature extraction for fixed data.
+    model_manifest_name
+        Name of model manifest to use for feature extraction for fixed data.
+    run_name
+        Name of model run to use for feature extraction for fixed data.
     n_pcs
         Number of PCs to validate.
     """
 
-    from pathlib import Path
-
+    from endo_pipeline import NUM_GPUS
+    from endo_pipeline.configs import load_model_config
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.diffae_dataframe import fit_pca
     from endo_pipeline.library.analyze.immunofluorescence import validate_pcs_for_integration
+    from endo_pipeline.library.model import load_model_for_inference
     from endo_pipeline.library.visualize.integration import viz_validate_pcs_for_integration
+    from endo_pipeline.manifests import load_model_manifest
+    from endo_pipeline.settings import DIFFAE_MODEL_EVAL_FINETUNE_CONFIG
 
     # Results directory
     save_path = get_output_path("fixed_live_validation")
@@ -33,20 +42,36 @@ def main(model_name: str = "diffae_finetuned_for_fixed", n_pcs: int = 3) -> None
     live_dataset_name: str = "20250214_pairedPreFixation"
     fixed_dataset_name: str = "20250214_pairedPostFixation"
 
+    # Load diffAE model
+    model_manifest = load_model_manifest(model_manifest_name)
+    eval_config = load_model_config(DIFFAE_MODEL_EVAL_FINETUNE_CONFIG)
+    model = load_model_for_inference(model_manifest, run_name, eval_config)
+
+    # Set directory for aligned data
+    model_save_path = get_output_path(
+        "models", model_manifest_name, f"{fixed_dataset_name}_vs_{live_dataset_name}"
+    )
+    data_save_path = model_save_path / f"aligned_{fixed_dataset_name}_vs_{live_dataset_name}.csv"
+
     # Align paired fixed and live data and apply a diffAE model to extract features.
-    _, fixed_features_path, live_features_path = (
+    fixed_features_path, live_features_path = (
         validate_pcs_for_integration.evaluate_model_paired_fixed_live(
-            fixed_dataset_name, live_dataset_name, model_name
+            fixed_dataset_name,
+            live_dataset_name,
+            model_save_path,
+            data_save_path,
+            model,
+            num_gpus=NUM_GPUS,
         )
     )
 
     # Load or fit reference PCA model and project features into reference PC space
-    pca = fit_pca()
+    pca = fit_pca("pca_reference_legacy")
 
     # Project features from applying fine tuned diffAE model to fixed and live data into
     # reference PC space.
     fixed_features, live_features = (
-        validate_pcs_for_integration.project_paired_fixed_live_data_into_ref_PC_space(
+        validate_pcs_for_integration.project_paired_fixed_live_data_into_ref_pc_space(
             pca, fixed_features_path, live_features_path
         )
     )
@@ -71,7 +96,8 @@ def main(model_name: str = "diffae_finetuned_for_fixed", n_pcs: int = 3) -> None
             )
         )
 
-        # Construct confidence ellipse to determine live/ time-lagged live PC mapping and uncertainty
+        # Construct confidence ellipse to determine live/ time-lagged live PC mapping
+        # and uncertainty
         raw_data_ref, validation_data_ref = (
             validate_pcs_for_integration.get_paired_fixed_live_validation_features(
                 pc, lagged_ref_features, truncated_ref_features
@@ -89,8 +115,8 @@ def main(model_name: str = "diffae_finetuned_for_fixed", n_pcs: int = 3) -> None
             axmax=axmax,
         )
 
-        # Plot raw data for paired live and time-lagged live PC values as well as confidence ellipse,
-        # linear model mapping between live and time-lagged live data and uncertainty.
+        # Plot raw data for paired live and time-lagged live PC values as well as confidence
+        # ellipse, linear model mapping between live and time-lagged live data and uncertainty.
         viz_validate_pcs_for_integration.plot_paired_fixed_live_validation_features(
             save_path,
             pc,
