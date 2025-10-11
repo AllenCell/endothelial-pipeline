@@ -7,11 +7,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
 
-import cyclopts
 from cyclopts import App, Group, Parameter, validators
 from rich.console import Console
 
 from endo_pipeline import IS_MAIN_PROCESS
+from endo_pipeline.cli.options import PipelineOptions, WorkflowOptions
 
 logger = logging.getLogger("")
 
@@ -50,17 +50,11 @@ PRODUCTION_WORKFLOWS = Group("Production Workflows", sort_key=1)
 DEVELOPMENT_WORKFLOWS = Group("Development Workflows", sort_key=2)
 ARCHIVED_WORKFLOWS = Group("Archived Workflows", sort_key=3)
 
-SETTINGS = Group("Settings", sort_key=100)
-FLAGS = Parameter(negative="", show_default=False)
-LOGGING = (SETTINGS, Group(validator=validators.MutuallyExclusive(), default_parameter=FLAGS))
-OPTIONS = (SETTINGS, Group(default_parameter=FLAGS))
-
 
 def pipeline_cli() -> None:
     """Pipeline CLI."""
 
-    pipeline_app["--help"].group = SETTINGS
-    pipeline_app.meta.group_parameters = SETTINGS
+    pipeline_app["--help"].group = "Options"
 
     build_cli_group(FIGURE_WORKFLOWS, "figures", True)
     build_cli_group(PRODUCTION_WORKFLOWS, "production", True)
@@ -74,8 +68,7 @@ def pipeline_cli() -> None:
 def workflow_cli(workflow: Callable) -> None:
     """Workflow CLI."""
 
-    workflow_app["--help"].group = SETTINGS
-    workflow_app.meta.group_parameters = SETTINGS
+    workflow_app["--help"].group = "Options"
 
     workflow_app.default(workflow)
 
@@ -85,147 +78,70 @@ def workflow_cli(workflow: Callable) -> None:
 
 def pipeline_entrypoint(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
-    verbose: Annotated[bool, Parameter(alias="-v", group=LOGGING)] = False,
-    debug: Annotated[bool, Parameter(alias="-vv", group=LOGGING)] = False,
-    show_archive: Annotated[bool, Parameter(alias="-a", group=OPTIONS)] = False,
-    show_tags: Annotated[bool, Parameter(alias="-t", group=OPTIONS)] = False,
-    filter_tag: Annotated[str | None, Parameter(alias="-f")] = None,
-    config: Annotated[Path, Parameter(alias="-c")] = Path("config.yaml"),
-    num_gpus: Annotated[int | None, Parameter(alias="-g", group=OPTIONS)] = None,
-    show_external_logs: Annotated[bool, Parameter(alias="-s", group=OPTIONS)] = False,
-    demo_mode: Annotated[bool, Parameter(alias="-d", group=OPTIONS)] = False,
-    use_staging: Annotated[bool, Parameter(alias="-u", group=OPTIONS)] = False,
+    workflow_options: WorkflowOptions = WorkflowOptions(),
+    pipeline_options: PipelineOptions = PipelineOptions(),
 ) -> None:
-    """
-    Parameters
-    ----------
-    *tokens
-        Workflow and workflow arguments.
-    verbose
-        Show verbose logging.
-    debug
-        Show debug logging.
-    show_archive
-        Show available archived workflows.
-    show_tags
-        Show all available workflow tags.
-    filter_tag
-        Filter workflows by given tag.
-    config
-        Path to user configuration file.
-    num_gpus
-        Number of GPUs to use for workflow execution (e.g. -g 4 means 4 GPUs; None means CPU).
-    show_external_logs
-        Show logging outputs from external libraries.
-    demo_mode
-        Run workflows in demo mode.
-    use_staging
-        Use staging environments.
-    """
-    apply_entrypoint_settings(verbose, debug, num_gpus, show_external_logs, demo_mode, use_staging)
+    """Pipeline CLI entrypoint."""
 
-    if config.read_text() != "":
-        pipeline_app.config = cyclopts.config.Yaml(config)  # type: ignore[assignment]
+    apply_workflow_options(workflow_options)
 
     for app in pipeline_app.meta.subapps:
-        if show_archive and app.group and app.group[0].name == ARCHIVED_WORKFLOWS.name:
+        if (
+            pipeline_options.show_archive
+            and app.group
+            and app.group[0].name == ARCHIVED_WORKFLOWS.name
+        ):
             app.show = True
 
         if app.name[0] in tags:
-            if show_tags:
+            if pipeline_options.show_tags:
                 app.help = f"| {' | '.join(tags[app.name[0]])} | {app.help}"
 
-            if filter_tag:
-                app.show = filter_tag in tags[app.name[0]] and app.show
+            if pipeline_options.filter_tag:
+                app.show = pipeline_options.filter_tag in tags[app.name[0]] and app.show
 
-    # Pass in the num_gpus to the relevant scripts
     pipeline_app(tokens)
 
 
 def workflow_entrypoint(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
-    verbose: Annotated[bool, Parameter(alias="-v", group=LOGGING)] = False,
-    debug: Annotated[bool, Parameter(alias="-vv", group=LOGGING)] = False,
-    num_gpus: Annotated[int | None, Parameter(alias="-g", group=OPTIONS)] = None,
-    show_external_logs: Annotated[bool, Parameter(alias="-s", group=OPTIONS)] = False,
-    demo_mode: Annotated[bool, Parameter(alias="-d", group=OPTIONS)] = False,
-    use_staging: Annotated[bool, Parameter(alias="-u", group=OPTIONS)] = False,
+    workflow_options: WorkflowOptions = WorkflowOptions(),
 ) -> None:
-    """
-    Parameters
-    ----------
-    *tokens
-        Workflow and workflow arguments.
-    verbose
-        Show verbose logging.
-    debug
-        Show debug logging.
-    num_gpus
-        Number of GPUs to use for workflow execution (e.g. -g 4 means 4 GPUs; None means CPU).
-    show_external_logs
-        Show logging outputs from external libraries.
-    demo_mode
-        Run workflows in demo mode.
-    use_staging
-        Use staging environments.
-    """
-    apply_entrypoint_settings(verbose, debug, num_gpus, show_external_logs, demo_mode, use_staging)
+    """Workflow CLI entrypoint."""
+
+    apply_workflow_options(workflow_options)
 
     workflow_app(tokens)
 
 
-def apply_entrypoint_settings(
-    verbose: bool = False,
-    debug: bool = False,
-    num_gpus: int | None = None,
-    show_external_logs: bool = False,
-    demo_mode: bool = False,
-    use_staging: bool = False,
-):
-    """
-    Apply settings shared between pipeline and workflow entrypoints.
+def apply_workflow_options(options: WorkflowOptions):
+    """Apply options for running workflows."""
 
-    Parameters
-    ----------
-    verbose
-        Show verbose logging.
-    debug
-        Show debug logging.
-    num_gpus
-        Number of GPUs to use for workflow execution (None for CPU).
-    show_external_logs
-        Show logging outputs from external libraries.
-    demo_mode
-        Run workflows in demo mode.
-    use_staging
-        Use staging environments.
-    """
     import endo_pipeline
 
-    if debug:
+    if options.debug:
         setup_logging(logging.DEBUG)
-    elif verbose:
+    elif options.verbose:
         setup_logging(logging.INFO)
     else:
         setup_logging(logging.WARNING)
 
-    if not show_external_logs:
+    if not options.show_external_logs:
         silence_external_loggers(EXTERNAL_LOGGERS)
 
-    # Only rank 0 is respondible for setting CUDA_VISIBLE_DEVICES
     if IS_MAIN_PROCESS:
-        if num_gpus is not None and num_gpus > 0:
-            endo_pipeline.NUM_GPUS = setup_gpu(num_gpus)
+        if options.num_gpus is not None and options.num_gpus > 0:
+            endo_pipeline.NUM_GPUS = setup_gpu(options.num_gpus)
         else:
             logger.info("Workflow running on CPU")
             endo_pipeline.NUM_GPUS = None
             os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
-    if demo_mode:
+    if options.demo_mode:
         logger.info("Running workflow in demo mode")
         endo_pipeline.DEMO_MODE = True
 
-    if use_staging:
+    if options.use_staging:
         logger.info("Using staging environments")
         endo_pipeline.USE_STAGING = True
 
