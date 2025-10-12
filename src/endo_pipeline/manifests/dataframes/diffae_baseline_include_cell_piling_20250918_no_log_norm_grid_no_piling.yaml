@@ -1,0 +1,78 @@
+name: diffae_baseline_include_cell_piling_20250918_no_log_norm_grid
+workflow: apply_diffae_grid
+parameters:
+  z_slice_offsets:
+  - 4
+  - 11
+  exclude_cell_piling: true
+  config_name: diffae_eval_no_log
+locations:
+  20241120_20X:
+    fmsid: dd15c1a1b63b4233868a4ed1ffe150bd
+    s3uri: null
+  20241217_20X:
+    fmsid: 13bf8f4ec8b848ac9ff1423f5d8c963f
+    s3uri: null
+  20250110_paired20X:
+    fmsid: 04bb3ac9d075474b924ca6a1717e97a6
+    s3uri: null
+  20250214_pairedPreFixation:
+    fmsid: 2249b3c85bc544cbac51d87f355e2bb8
+    s3uri: null
+  20250224_20X:
+    fmsid: 17ba040d64c84d94bd0ea0284a7a025d
+    s3uri: null
+  20250227_paired20X:
+    fmsid: 9bcda528a39549b7a5b1048c6b3ad6aa
+    s3uri: null
+  20250319_20X:
+    fmsid: 38437280301f495d9e76664b8e4a5401
+    s3uri: null
+  20250326_20X:
+    fmsid: 9df5c721cb894b4a8bd791b080f64b24
+    s3uri: null
+  20250402_20X:
+    fmsid: 210b3f0e659d4bc3b04dd8afcf8cb212
+    s3uri: null
+  20250409_20X:
+    fmsid: d5adb9cb7cd74217b23890a32ac3854c
+    s3uri: null
+  20250428_20X:
+    fmsid: 58b8f7a953984320a3bffdc5da88782a
+    s3uri: null
+  20250604_20X:
+    fmsid: ba6ba36af77b4a9d9e74f7527122c1d1
+    s3uri: null
+  20250611_20X:
+    fmsid: a19e0c8ef2614503958beb905d24bc0a
+    s3uri: null
+  20250618_20X:
+    fmsid: a0e5f6428d6849d593c80203cf01ff39
+    s3uri: null
+  20250714_20X:
+    fmsid: d04b71b4e3324a15b1626fe0c15e7f76
+    s3uri: null
+  20250716_20X:
+    fmsid: 126f9ccde8a94b358ed4e977f893bee2
+    s3uri: null
+  20250728_20X:
+    fmsid: 917e29c219db483e9439bd0436e2a949
+    s3uri: null
+  20250806_20X:
+    fmsid: 4e643e904bbe491ba1e2aa0f11b62d0a
+    s3uri: null
+  20250813_20X:
+    fmsid: 1018b9b936a84917b8775ba416ca0658
+    s3uri: null
+  20250818_20X:
+    fmsid: 56aad807a57847f8b685270bb6a95485
+    s3uri: null
+  20250825_20X:
+    fmsid: ef715569ddc24cfe94b9412cdaefc7a2
+    s3uri: null
+  20250827_20X:
+    fmsid: 792b74c3fba546e6919c2651604fc585
+    s3uri: null
+  20250908_20X:
+    fmsid: 41a5b5da7365425e8807f55ab9d84e56
+    s3uri: null
