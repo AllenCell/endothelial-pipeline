@@ -1,16 +1,81 @@
+import logging
+
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe
+from endo_pipeline.library.model.image_loading import get_exclude_frames, get_include_positions
 from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
+from endo_pipeline.settings import (
+    CROP_INDEX_COLUMN_NAME,
+    DATASET_COLUMN_NAME,
+    POSITION_COLUMN_NAME,
+    TIMEPOINT_COLUMN_NAME,
+)
 
 from .feature_dataframe_utils import (
     get_dataset_descriptions,
     get_feature_column_names,
     get_valid_subset,
 )
+
+logger = logging.getLogger(__name__)
+
+
+def remove_annotated_timepoints(
+    dataframe: pd.DataFrame, dataset_name: str, exclude_cell_piling: bool = True
+) -> pd.DataFrame:
+    """
+    Remove annotated timepoints from a dataframe of DiffAE features for one dataset.
+
+    Parameters
+    ----------
+    dataframe
+        Dataframe of features for one dataset.
+    dataset_name
+        Name of the dataset.
+    exclude_cell_piling
+        Remove timepoints annotated as "cell_piling" if True, keep if False.
+
+    Returns
+    -------
+    :
+        Dataframe with annotated timepoints removed.
+    """
+    if dataframe[DATASET_COLUMN_NAME].nunique() > 1:
+        logger.error("Dataframe must be restricted to one dataset only.")
+        raise ValueError("Dataframe must be restricted to one dataset only.")
+
+    if dataframe[DATASET_COLUMN_NAME].iloc[0] != dataset_name:
+        logger.error("Dataset name does not match dataframe content.")
+        raise ValueError("Dataset name does not match dataframe content.")
+
+    # load dataset config to get annotations
+    dataset_config = load_dataset_config(dataset_name)
+    only_include_positions = get_include_positions(dataset_config)
+    exclude_frames = get_exclude_frames(dataset_config, exclude_cell_piling)
+    if dataframe[POSITION_COLUMN_NAME].nunique() != len(dataset_config.zarr_positions):
+        logger.warning("Expected dataframe to contain all positions in dataset, but it does not.")
+
+    # filter dataframe to only include non-annotated positions
+    dataframe_exclude_positions = dataframe[
+        dataframe[POSITION_COLUMN_NAME].isin(only_include_positions)
+    ]
+
+    # filter dataframe to exclude annotated timepoints
+    df_filtered_list = []
+    for position, df_position in dataframe_exclude_positions.groupby(POSITION_COLUMN_NAME):
+        position_as_int = int(position[1:])  # need this because positions are strings like "P0"
+        exclude_frames_for_position = exclude_frames.get(position_as_int, [])
+        df_position_filtered = df_position[
+            ~df_position[TIMEPOINT_COLUMN_NAME].isin(exclude_frames_for_position)
+        ]
+        df_filtered_list.append(df_position_filtered)
+    dataframe_filtered = pd.concat(df_filtered_list, ignore_index=True)
+
+    return dataframe_filtered
 
 
 def add_description_column(
@@ -56,14 +121,10 @@ def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
     - df: pd.DataFrame, DataFrame of feature data for one
         dataset with added crop index column
     """
-    assert "start_x" in df.columns, "Data must have a column for start_x"
-    assert "start_y" in df.columns, "Data must have a column for start_y"
-    assert "position" in df.columns, "Data must have a column for position"
-
     # get list of unique starting positions and FOV_IDs
     start_x = df["start_x"].unique().tolist()
     start_y = df["start_y"].unique().tolist()
-    position = df["position"].unique().tolist()
+    position = df[POSITION_COLUMN_NAME].unique().tolist()
     tup_list = [(x, y, pos) for x in start_x for y in start_y for pos in position]
 
     # function to convert starting position and FOV_ID to crop index
@@ -71,7 +132,7 @@ def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
         return tup_list.index((x, y, position))
 
     # apply function to DataFrame to get crop index
-    df["crop_index"] = df.apply(
+    df[CROP_INDEX_COLUMN_NAME] = df.apply(
         lambda x: _pos_to_index(x["start_x"], x["start_y"], x["position"]), axis=1
     )
 
@@ -189,26 +250,26 @@ def pad_missing_timepoints(
     with NaNs, so that each crop has the same number of timepoints.
     """
     # get list of all timepoints
-    all_timepoints = list(range(df["frame_number"].nunique()))
+    all_timepoints = list(range(df[TIMEPOINT_COLUMN_NAME].nunique()))
 
     list_of_padded_dfs = []
     # loop over crop index
-    for crop_index, df_crop in df.groupby("crop_index"):
+    for crop_index, df_crop in df.groupby(CROP_INDEX_COLUMN_NAME):
         # get list of timepoints present in DataFrame
-        present_timepoints = df_crop["frame_number"].unique().tolist()
+        present_timepoints = df_crop[TIMEPOINT_COLUMN_NAME].unique().tolist()
         # get list of missing timepoints
         missing_timepoints = list(set(all_timepoints) - set(present_timepoints))
         # create DataFrame for missing timepoints with NaNs for feature columns
         missing_dfs = [df]
         for t in missing_timepoints:
             df_missing = pd.DataFrame({col: [np.nan] for col in df.columns})
-            df_missing["frame_number"] = t
-            df_missing["crop_index"] = crop_index
+            df_missing[TIMEPOINT_COLUMN_NAME] = t
+            df_missing[CROP_INDEX_COLUMN_NAME] = crop_index
             missing_dfs.append(df_missing)
         # concatenate original DataFrame with missing DataFrames
         df_padded = pd.concat(missing_dfs, ignore_index=True)
         # sort DataFrame by timepoint
-        df_padded = df_padded.sort_values(by="frame_number").reset_index(drop=True)
+        df_padded = df_padded.sort_values(by=TIMEPOINT_COLUMN_NAME).reset_index(drop=True)
         list_of_padded_dfs.append(df_padded)
 
     # concatenate all padded DataFrames
@@ -232,12 +293,14 @@ def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
         at all timepoints in one dataset
         - shape is num_crops x num_timepoints x num_features
     """
-    num_crop = df["crop_index"].nunique()  # number of crops made at each timepoint
+    num_crop = df[CROP_INDEX_COLUMN_NAME].nunique()  # number of crops made at each timepoint
 
     # get array of num crops x num timepoints x num PCs
     feats = np.array(
         [
-            df[df["crop_index"] == ii].sort_values(by="frame_number")[column_names].values
+            df[df[CROP_INDEX_COLUMN_NAME] == ii]
+            .sort_values(by=TIMEPOINT_COLUMN_NAME)[column_names]
+            .values
             for ii in range(num_crop)
         ]
     )

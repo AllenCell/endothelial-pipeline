@@ -20,6 +20,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 def fit_pca(
     dataset_collection_name: str = "pca_reference",
     dataframe_manifest_name: str = "diffae_04_10",
+    exclude_cell_piling: bool = True,
     num_pcs: int = 8,
 ) -> PCA:
     """
@@ -33,6 +34,8 @@ def fit_pca(
         This is used to load the model manifests that contain the reference datasets.
     dataframe_manifest_name
         Name of the dataframe manifest to load the model features from.
+    exclude_cell_piling
+        Exclude cell piling timepoints from PCA fitting if True, include if False.
     num_pcs
         Number of principal components to fit.
 

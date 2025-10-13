@@ -14,7 +14,7 @@ from endo_pipeline.library.analyze.diffae_dataframe import (
 from endo_pipeline.library.model.eval_model import generate_overrides_for_model_eval
 from endo_pipeline.library.process.registration import align_all_positions
 from endo_pipeline.manifests import load_dataframe_manifest
-from endo_pipeline.settings import Z_SLICE_OFFSETS
+from endo_pipeline.settings import CROP_INDEX_COLUMN_NAME, TIMEPOINT_COLUMN_NAME, Z_SLICE_OFFSETS
 
 
 def evaluate_model_paired_fixed_live(
@@ -198,13 +198,19 @@ def create_reference_timelapse_datasets(
     reference_features = get_dataframe_for_dynamics_workflows(reference_dataset_name, manifest, pca)
 
     # Create and return lagged and truncated datasets
-    reference_features = reference_features.sort_values(by="frame_number")
+    reference_features = reference_features.sort_values(by=TIMEPOINT_COLUMN_NAME)
     reference_features = (
-        reference_features.groupby("crop_index").apply(fill_empty_frames).reset_index(drop=True)
+        reference_features.groupby(CROP_INDEX_COLUMN_NAME)
+        .apply(fill_empty_frames)
+        .reset_index(drop=True)
     )
 
-    df_lag = reference_features.groupby("crop_index").apply(create_lagged_dataset, time_lag)
-    df_trunc = reference_features.groupby("crop_index").apply(create_truncated_dataset, time_lag)
+    df_lag = reference_features.groupby(CROP_INDEX_COLUMN_NAME).apply(
+        create_lagged_dataset, time_lag
+    )
+    df_trunc = reference_features.groupby(CROP_INDEX_COLUMN_NAME).apply(
+        create_truncated_dataset, time_lag
+    )
     df_lag, df_trunc = dropna_both_df(df_lag, df_trunc)
     return df_lag, df_trunc
 
@@ -223,12 +229,14 @@ def fill_empty_frames(crop: pd.DataFrame) -> pd.DataFrame:
     crop : pd.DataFrame
         Dataframe with empty frames filled in with NaNs
     """
-    frame_numbers = crop["frame_number"].unique()
+    frame_numbers = crop[TIMEPOINT_COLUMN_NAME].unique()
     all_frame_numbers = pd.DataFrame(
-        {"frame_number": np.arange(frame_numbers.min(), frame_numbers.max() + 1)}
+        {TIMEPOINT_COLUMN_NAME: np.arange(frame_numbers.min(), frame_numbers.max() + 1)}
     )
-    crop = pd.merge(all_frame_numbers, crop, on="frame_number", how="left")
-    crop["crop_index"] = crop["crop_index"].fillna(crop["crop_index"].iloc[0])
+    crop = pd.merge(all_frame_numbers, crop, on=TIMEPOINT_COLUMN_NAME, how="left")
+    crop[CROP_INDEX_COLUMN_NAME] = crop[CROP_INDEX_COLUMN_NAME].fillna(
+        crop[CROP_INDEX_COLUMN_NAME].iloc[0]
+    )
     return crop
 
 
@@ -255,7 +263,7 @@ def create_lagged_dataset(
 
     crop_new = crop.copy()
     crop_new = crop_new.shift(time_lag)
-    crop_new["frame_number"] = crop["frame_number"]
+    crop_new[TIMEPOINT_COLUMN_NAME] = crop[TIMEPOINT_COLUMN_NAME]
     return crop_new.iloc[time_lag:]
 
 

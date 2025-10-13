@@ -1,12 +1,17 @@
+from typing import Annotated
+
+from cyclopts import Parameter
+
 from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 TAGS = ["diffae_features", "visualization"]
 
 
 def main(
-    dataset_collection_name: str = "pca_reference",
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    exclude_cell_piling: Annotated[bool, Parameter(negative="--include-cell-piling")] = True,
+    dataset_collection_name: str = "pca_reference",
 ) -> None:
     """Visualize key attributes of a fit PCA model."""
     import logging
@@ -51,6 +56,7 @@ def main(
     pca = fit_pca(
         dataset_collection_name=dataset_collection_name,
         dataframe_manifest_name=dataframe_manifest_name,
+        exclude_cell_piling=exclude_cell_piling,
     )
 
     # plot cumulative explained variance ratio of PCA components
@@ -84,20 +90,14 @@ def main(
     # for the datasets used to fit PCA
     # load model manifests for the given dataset collection
     dataset_names = get_datasets_in_collection(dataset_collection_name)
-    pca_ref_configs = [load_dataset_config(dataset_name) for dataset_name in dataset_names]
-    restrict_no_flow = True  # restrict plot to subset of no flow timepoints
-
-    # get timepoints to use for scatter plots
-    # this can definitely be written into a wrapper function
-    # maybe make a dictionary instead of a list?
-    timepoints_refs = get_timepoints_for_plotting_pcs(
-        pca_ref_configs, restrict_no_flow=restrict_no_flow
-    )
 
     # scatter plot of pca reference datasets
-    manifest = load_dataframe_manifest(dataframe_manifest_name)
+    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     fig, _ = feature_viz.plot_pc_scatter(
-        dataset_names, manifest, pca, timepoints_to_use=timepoints_refs
+        dataset_names,
+        dataframe_manifest,
+        pca,
+        exclude_cell_piling=exclude_cell_piling,
     )
     save_plot_to_path(fig, fig_savedir, "pca_scatter_ref")
 

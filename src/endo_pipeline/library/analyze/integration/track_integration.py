@@ -26,6 +26,12 @@ from endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_da
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.settings import (
+    CROP_INDEX_COLUMN_NAME,
+    DATASET_COLUMN_NAME,
+    POSITION_COLUMN_NAME,
+    TIMEPOINT_COLUMN_NAME,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -145,26 +151,28 @@ def merge_diffae_feats_liveseg_feats_tables(
     Returns:
         pd.DataFrame: Merged DataFrame with DiffAE and live segmentation features.
     """
-    dataset_name = sequence_to_scalar(diffae_tracking_df["dataset"])
+    dataset_name = sequence_to_scalar(diffae_tracking_df[DATASET_COLUMN_NAME])
     logging.debug("processing the diffae tracking data...")
     # process the diffae tracking data
     diffae_tracking_df["is_unique"] = diffae_tracking_df.groupby(
-        ["dataset", "position", "frame_number", "track_id"]
-    )["frame_number"].transform(lambda t: t.nunique() == t.size)
+        [DATASET_COLUMN_NAME, POSITION_COLUMN_NAME, TIMEPOINT_COLUMN_NAME, "track_id"]
+    )[TIMEPOINT_COLUMN_NAME].transform(lambda t: t.nunique() == t.size)
     diffae_tracking_df = diffae_tracking_df[diffae_tracking_df["is_unique"]]
 
     # give the crop_index column the same value as the track_ids
-    diffae_tracking_df["crop_index"] = (
-        diffae_tracking_df.groupby(["position", "track_id"], as_index=False).ngroup().astype(int)
+    diffae_tracking_df[CROP_INDEX_COLUMN_NAME] = (
+        diffae_tracking_df.groupby([POSITION_COLUMN_NAME, "track_id"], as_index=False)
+        .ngroup()
+        .astype(int)
     )
     diffae_tracking_df = add_description_column(
         diffae_tracking_df, dataset_name, simple=True
     )  # add description column (e.g., 48hr_High)
     diffae_tracking_df["track_id"] = diffae_tracking_df["track_id"].astype(int)
-    diffae_tracking_df.rename(columns={"position": "position_as_str"}, inplace=True)
+    diffae_tracking_df.rename(columns={POSITION_COLUMN_NAME: "position_as_str"}, inplace=True)
 
     logging.debug("processing the live segmentation features data...")
-    live_seg_feats_df["position_as_str"] = live_seg_feats_df["position"].transform(
+    live_seg_feats_df["position_as_str"] = live_seg_feats_df[POSITION_COLUMN_NAME].transform(
         lambda x: "P" + str(x)
     )
     live_seg_feats_df["track_id"] = live_seg_feats_df["track_id"].astype(int)
@@ -175,7 +183,7 @@ def merge_diffae_feats_liveseg_feats_tables(
         right=diffae_tracking_df,
         how="left",
         left_on=["dataset_name", "position_as_str", "image_index", "track_id"],
-        right_on=["dataset", "position_as_str", "frame_number", "track_id"],
+        right_on=[DATASET_COLUMN_NAME, "position_as_str", TIMEPOINT_COLUMN_NAME, "track_id"],
         validate="one_to_one",
     )
 

@@ -8,6 +8,7 @@ import seaborn as sb
 from endo_pipeline.library.analyze.diffae_dataframe import get_pc_column_names
 from endo_pipeline.library.analyze.immunofluorescence.plot import bootstrap_confidence_cov
 from endo_pipeline.library.visualize import viz_base
+from endo_pipeline.settings import POSITION_COLUMN_NAME, TIMEPOINT_COLUMN_NAME
 
 
 def calc_stats(df: pd.DataFrame, feature: str) -> tuple:
@@ -66,7 +67,7 @@ def feature_density(
 
     fig = plt.figure(figsize=(15, 6))
 
-    for position, df_position in df_all.groupby("position"):
+    for position, df_position in df_all.groupby(POSITION_COLUMN_NAME):
         mean, cov, low, high = calc_stats(df_position, feature)
         label = (
             f"Pos={position}, "
@@ -126,8 +127,8 @@ def plot_scatter_by_position_and_frame(
     fig, ax = viz_base.init_subplots(figsize=(15, 5))
     pc_column_names = get_pc_column_names(df, [0, 1, 2])
 
-    for position, df_pos in df.groupby("position"):
-        df_ = df_pos[df_pos["frame_number"] == target_frame]
+    for position, df_pos in df.groupby(POSITION_COLUMN_NAME):
+        df_ = df_pos[df_pos[TIMEPOINT_COLUMN_NAME] == target_frame]
 
         ax[0].scatter(df_[pc_column_names[0]], df_[pc_column_names[1]], s=20)
         ax[1].scatter(df_[pc_column_names[0]], df_[pc_column_names[2]], s=20, label=position)

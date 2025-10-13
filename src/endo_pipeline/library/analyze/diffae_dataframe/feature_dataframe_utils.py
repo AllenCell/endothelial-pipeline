@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from endo_pipeline.configs import DatasetConfig, get_frame_after_flow_change, load_dataset_config
+from endo_pipeline.settings import CROP_INDEX_COLUMN_NAME, TIMEPOINT_COLUMN_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -105,8 +106,8 @@ def split_dataset_by_flow(
         logger.debug("Shear stress [ %s ] dyn/cm^2 after frame [ %s ]", second_shear, change_frame)
         # separate data into two dataframes based on
         # frame number where flow condition changes
-        data_flow1 = df_proj[df_proj["frame_number"] < change_frame].copy()
-        data_flow2 = df_proj[df_proj["frame_number"] >= change_frame].copy()
+        data_flow1 = df_proj[df_proj[TIMEPOINT_COLUMN_NAME] < change_frame].copy()
+        data_flow2 = df_proj[df_proj[TIMEPOINT_COLUMN_NAME] >= change_frame].copy()
         # return list of dataframes for each flow condition
         data_all = [data_flow1, data_flow2]
     # else, there is only one flow condition
@@ -144,15 +145,23 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
     :
         List of displacement vectors along each trajectory in feature space.
     """
-    if "frame_number" not in data.columns:
-        logger.error("Data must have the column [ frame_number ] to indicate timepoints.")
-        raise ValueError("Data must have the column [ frame_number ] to indicate timepoints.")
-    if "crop_index" not in data.columns:
-        logger.error("Data must have the column [ crop_index ] to indicate unique crops.")
-        raise ValueError("Data must have the column [ crop_index ] to indicate unique crops.")
+    if TIMEPOINT_COLUMN_NAME not in data.columns:
+        logger.error(
+            "Data must have the column [ %s ] to indicate timepoints.", TIMEPOINT_COLUMN_NAME
+        )
+        raise ValueError(
+            f"Data must have the column [ {TIMEPOINT_COLUMN_NAME} ] to indicate timepoints."
+        )
+    if CROP_INDEX_COLUMN_NAME not in data.columns:
+        logger.error(
+            "Data must have the column [ %s ] to indicate unique crops.", CROP_INDEX_COLUMN_NAME
+        )
+        raise ValueError(
+            f"Data must have the column [ {CROP_INDEX_COLUMN_NAME} ] to indicate unique crops."
+        )
 
     # get list of unique crop indices
-    crop_list = data["crop_index"].unique().tolist()
+    crop_list = data[CROP_INDEX_COLUMN_NAME].unique().tolist()
 
     # initialize lists for storing outputs
     traj_list = []
@@ -161,7 +170,7 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
     # loop over each crop in the dataset
     for crop in crop_list:
         # get data for each crop, sorted by time
-        data_crop = data[data["crop_index"] == crop].sort_values(by="frame_number")
+        data_crop = data[data[CROP_INDEX_COLUMN_NAME] == crop].sort_values(by=TIMEPOINT_COLUMN_NAME)
 
         # get displacement vectors and time differences for each crop
         d_traj = np.diff(data_crop[pc_column_names].values, axis=0)
@@ -227,7 +236,7 @@ def get_valid_subset(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
 
     **Input dataframe**
 
-    The input dataframe should have a column "frame_number" indicating the timepoint of each crop.
+    The input dataframe should have a column TIMEPOINT_COLUMN_NAME indicating the timepoint of each crop.
 
     Parameters
     ----------
@@ -252,7 +261,7 @@ def get_valid_subset(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
                 stop,
                 dataset_name,
             )
-        valid_subset = df.frame_number.isin(tps)
+        valid_subset = df[TIMEPOINT_COLUMN_NAME].isin(tps)
         df["valid"] = valid_subset
     return df[df.valid]
 

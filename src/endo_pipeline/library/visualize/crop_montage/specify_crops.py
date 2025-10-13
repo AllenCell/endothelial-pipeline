@@ -19,7 +19,7 @@ from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     plot_principal_component_histogram,
 )
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import NUM_BINS_CROP_HIST
+from endo_pipeline.settings import NUM_BINS_CROP_HIST, TIMEPOINT_COLUMN_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -122,8 +122,8 @@ def filter_dataframe(
 
     if frame_range is not None:
         df_filtered = df_filtered[
-            (df_filtered["frame_number"] >= frame_range[0])
-            & (df_filtered["frame_number"] <= frame_range[1])
+            (df_filtered[TIMEPOINT_COLUMN_NAME] >= frame_range[0])
+            & (df_filtered[TIMEPOINT_COLUMN_NAME] <= frame_range[1])
         ]
 
     return df_filtered

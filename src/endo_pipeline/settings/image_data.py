@@ -3,6 +3,9 @@
 DIMENSION_ORDER: str = "TCZYX"
 """Default dimension order of image data."""
 
+ZARR_BRIGHTFIELD_CHANNEL: int = 1
+"""Default channel index for brightfield images in zarr files."""
+
 LOWER_Z_SLICE_OFFSET: int = 4
 """How many slices below the "center" Z-plane to include in projections."""
 

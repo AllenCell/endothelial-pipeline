@@ -37,8 +37,12 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     save_dataframe_manifest,
 )
-
-ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
+from endo_pipeline.settings import (
+    DATASET_COLUMN_NAME,
+    POSITION_COLUMN_NAME,
+    TIMEPOINT_COLUMN_NAME,
+    ZARR_BRIGHTFIELD_CHANNEL,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -392,7 +396,7 @@ def preprocess_tracking_manifest_for_model_eval(
         .reset_index()
     )
     # Add which channel to load and what resolution to load it at
-    grouped_df["channel"] = ZARR_BF_CHANNEL
+    grouped_df["channel"] = ZARR_BRIGHTFIELD_CHANNEL
     grouped_df["resolution"] = resolution
 
     # only run a single timepoint from zarr
@@ -491,7 +495,7 @@ def update_prediction_from_crops_with_metadata(
     """
     # add model and dataset information to prediction file
     pred_df = pd.read_parquet(prediction_path)
-    pred_df["dataset"] = dataset_name
+    pred_df[DATASET_COLUMN_NAME] = dataset_name
     pred_df["model_manifest_name"] = model_manifest_name
     pred_df["run_name"] = run_name
 
@@ -504,10 +508,12 @@ def update_prediction_from_crops_with_metadata(
     pred_df["crop_size_y"] = crop_size[0]
     pred_df["crop_size_x"] = crop_size[1]
 
-    pred_df["position"] = pred_df["filename_or_obj"].apply(
+    pred_df[POSITION_COLUMN_NAME] = pred_df["filename_or_obj"].apply(
         lambda s: get_position_string_from_zarr_file_path(s)
     )
-    pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
+    pred_df.rename(
+        columns={"filename_or_obj": "zarr_path", "T": TIMEPOINT_COLUMN_NAME}, inplace=True
+    )
     pred_df.to_parquet(prediction_path)
 
 
@@ -517,7 +523,7 @@ def update_prediction_from_tracks_with_metadata(
     """Update the prediction file with metadata."""
     # add model and dataset information to prediction file
     pred_df = pd.read_parquet(prediction_path)
-    pred_df["dataset"] = dataset_name
+    pred_df[DATASET_COLUMN_NAME] = dataset_name
     pred_df["model_manifest_name"] = model_manifest_name
     pred_df["run_name"] = run_name
 
@@ -530,10 +536,12 @@ def update_prediction_from_tracks_with_metadata(
     )
     pred_df["crop_size_y"] = crop_size[0]
     pred_df["crop_size_x"] = crop_size[1]
-    pred_df["position"] = pred_df["filename_or_obj"].apply(
+    pred_df[POSITION_COLUMN_NAME] = pred_df["filename_or_obj"].apply(
         lambda s: get_position_string_from_zarr_file_path(s)
     )
-    pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
+    pred_df.rename(
+        columns={"filename_or_obj": "zarr_path", "T": TIMEPOINT_COLUMN_NAME}, inplace=True
+    )
     pred_df.to_parquet(prediction_path)
 
 

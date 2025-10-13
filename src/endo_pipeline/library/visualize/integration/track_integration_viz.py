@@ -23,6 +23,7 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     plot_quiver_slices,
     set_slice_plot_bounds_and_labels,
 )
+from endo_pipeline.settings import TIMEPOINT_COLUMN_NAME
 
 
 def get_valid_slice_indexes(
@@ -48,7 +49,7 @@ def get_valid_slice_indexes(
             pc2_val = 0
         else:
             # get mean at all time points over crops
-            mean_over_crops = df.groupby("frame_number").mean(numeric_only=True)
+            mean_over_crops = df.groupby(TIMEPOINT_COLUMN_NAME).mean(numeric_only=True)
             # get last time point
             mean_over_crops = mean_over_crops.iloc[-1]
             pc3_val = mean_over_crops["pc3"].mean()
@@ -146,7 +147,7 @@ def plot_measured_feat_pcs(
     for j, ax in enumerate(axs):  # PC1 vs PC2, PC1 vs PC3
         if track_id == "mean":
             measured_feat_df = (
-                measured_feat_df.groupby("frame_number")
+                measured_feat_df.groupby(TIMEPOINT_COLUMN_NAME)
                 .mean(numeric_only=True)[pc_cols + [meas_feat_col]]
                 .reset_index()
             )

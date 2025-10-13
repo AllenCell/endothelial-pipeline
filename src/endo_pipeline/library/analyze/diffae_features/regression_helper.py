@@ -17,6 +17,7 @@ from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from endo_pipeline.library.analyze.numerics import get_bins
 from endo_pipeline.library.visualize.diffae_features import feature_viz
 from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings import TIMEPOINT_COLUMN_NAME
 
 
 def _kramers_moyal_train_test_one_dataset(
@@ -95,9 +96,9 @@ def _kramers_moyal_train_test_one_dataset(
         # that flow condition as our
         # cutoff for stationary data
         if num_flow > 1:
-            frame_max = df_by_flow[j]["frame_number"].max()
+            frame_max = df_by_flow[j][TIMEPOINT_COLUMN_NAME].max()
             frame_cutoff = frame_max - 100
-            stationary_data = df_by_flow[j][df_by_flow[j]["frame_number"] > frame_cutoff]
+            stationary_data = df_by_flow[j][df_by_flow[j][TIMEPOINT_COLUMN_NAME] > frame_cutoff]
         # else, it is just the whole dataset
         else:
             stationary_data = df_by_flow[j]

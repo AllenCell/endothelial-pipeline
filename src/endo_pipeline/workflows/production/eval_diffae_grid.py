@@ -115,9 +115,6 @@ def main(
 
     # evaluate model on images from each dataset
     for dataset_config in dataset_config_list:
-        # Get positions to include.
-        only_include_positions = get_include_positions(dataset_config)
-
         # When running workflow in demo mode, only use the first position from each
         # dataset and first two timepoints to speed up the dataloading process (if
         # dataset is not timelapse, then only one timepoint is used). Otherwise, use
@@ -126,7 +123,7 @@ def main(
         if DEMO_MODE:
             frame_start = 0
             frame_stop = 1 if dataset_config.is_timelapse else 0
-            only_include_positions = only_include_positions[0:1]
+            only_include_positions = [0]
             logger.warning(
                 "Workflow demo is enabled, only processing first few "
                 "timepoints of the first position of dataset: [ %s ]",
@@ -135,6 +132,7 @@ def main(
         else:
             frame_start = None
             frame_stop = None
+            only_include_positions = None  # default is to run inference on all positions
 
         prediction_path = evaluate_model_on_grid_of_crops_from_one_dataset(
             model=model,
