@@ -23,7 +23,6 @@ from endo_pipeline.io import (
 )
 from endo_pipeline.library.model.image_loading import (
     build_zarr_image_loading_dataframe,
-    get_exclude_frames,
     get_z_slice_bounds_per_position,
 )
 from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact
@@ -612,7 +611,6 @@ def evaluate_model_on_grid_of_crops_from_one_dataset(
     # parse dataset annotations to get z-slice information,
     # positions to include, and frames to exclude
     z_slice_bounds_per_position = get_z_slice_bounds_per_position(dataset_config, z_slice_offsets)
-    exclude_frames = get_exclude_frames(dataset_config)
 
     # build dataframe with zarr loading metadata
     df = build_zarr_image_loading_dataframe(
@@ -624,7 +622,6 @@ def evaluate_model_on_grid_of_crops_from_one_dataset(
         frame_step=frame_step,
         z_slice_bounds_per_position=z_slice_bounds_per_position,
         only_include_positions=only_include_positions,
-        exclude_frames=exclude_frames,
     )
 
     # save the dataframe to a parquet file
@@ -710,14 +707,12 @@ def evaluate_model_on_tracked_crops_from_one_dataset(
     # parse dataset annotations to get z-slice information,
     # positions to include, and frames to exclude
     z_slice_bounds_per_position = get_z_slice_bounds_per_position(dataset_config, z_slice_offsets)
-    exclude_frames = get_exclude_frames(dataset_config)
 
     data_path = preprocess_tracking_manifest_for_model_eval(
         dataset_config,
         save_path,
         z_slice_bounds_per_position=z_slice_bounds_per_position,
         only_include_positions=only_include_positions,
-        exclude_frames=exclude_frames,
     )
 
     # use timestamp to get unique file name for FMS upload later
