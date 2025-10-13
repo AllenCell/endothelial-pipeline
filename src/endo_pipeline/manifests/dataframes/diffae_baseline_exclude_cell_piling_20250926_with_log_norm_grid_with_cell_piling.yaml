@@ -1,5 +1,5 @@
-name: diffae_baseline_exclude_cell_piling_20250926_with_log_norm_grid
-workflow: apply_diffae_grid
+name: diffae_baseline_exclude_cell_piling_20250926_with_log_norm_grid_with_cell_piling
+workflow: eval_diffae_grid
 parameters:
   z_slice_offsets:
   - 4

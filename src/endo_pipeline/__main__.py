@@ -40,7 +40,7 @@ EXTERNAL_LOGGERS = {
     "lightning.pytorch.utilities.rank_zero": logging.WARNING,
     "lightning.fabric.utilities": logging.WARNING,
     "numcodecs": logging.WARNING,
-    "matplotlib": logging.WARNING,
+    "matplotlib": logging.ERROR,
     "torch": logging.WARNING,
     "urllib3.connectionpool": logging.WARNING,
 }

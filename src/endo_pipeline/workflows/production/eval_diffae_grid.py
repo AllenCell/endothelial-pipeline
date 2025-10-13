@@ -9,7 +9,7 @@ def main(
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     datasets: Datasets | None = None,
     resolution_level: int = 1,
-    exclude_cell_piling: bool = False,
+    exclude_cell_piling: bool = True,
     upload_to_fms: bool = True,
     config_name: str | None = None,
     finetuned: bool = False,
@@ -24,6 +24,14 @@ def main(
     is True, the prediction dataframe is saved as a parquet file locally and uploaded to FMS.
     The FMS ID of the uploaded file is then stored in the dataframe manifest corresponding to the
     specified model manifest and run name: ``{model_manifest_name}_{run_name}_grid``.
+
+    **Cell piling exclusion**
+
+    If ``exclude_cell_piling`` is True, timepoints with cell piling will be excluded from the
+    evaluation. Cell piling timepoints are identified based on the ``cell_piling`` annotation
+    in the dataset config file. If ``exclude_cell_piling`` is False, this annotation is not
+    parsed when getting timepoints to include versus exclude, and the dataframe manifest name
+    includes ``_with_cell_piling`` at the end.
 
     **Config overrides**
 
@@ -121,6 +129,12 @@ def main(
     for dataset_config in dataset_config_list:
         # Get positions to include.
         only_include_positions = get_include_positions(dataset_config)
+        if len(only_include_positions) == 0:
+            logger.warning(
+                "All positions are excluded for dataset [ %s ], skipping inference",
+                dataset_config.name,
+            )
+            continue
 
         # When running workflow in demo mode, only use the first position from each
         # dataset and first two timepoints to speed up the dataloading process (if
@@ -155,14 +169,18 @@ def main(
         if upload_to_fms:
             # upload prediction file to FMS
             # Store FMS ID in dataframe manifest.
+            name_suffix = "" if exclude_cell_piling else "_with_cell_piling"
+            dataframe_manifest_name = get_feature_dataframe_manifest_name(
+                model_manifest, model.cfg.run_name, crop_pattern="grid"
+            )
+            dataframe_manifest_name = f"{dataframe_manifest_name}{name_suffix}"
+
             upload_prediction_dataframe_to_fms(
                 prediction_path,
                 dataset_config,
                 model_manifest,
                 model.cfg.run_name,
-                dataframe_manifest_name=get_feature_dataframe_manifest_name(
-                    model_manifest, model.cfg.run_name, crop_pattern="grid"
-                ),
+                dataframe_manifest_name=dataframe_manifest_name,
                 workflow_name=Path(__file__).stem,
                 workflow_parameters={
                     "z_slice_offsets": Z_SLICE_OFFSETS,
