@@ -28,6 +28,7 @@ from .model_manifest_io import (
 from .model_manifest_utils import (
     get_feature_dataframe_manifest_name,
     get_model_location_for_run,
+    get_model_manifest_with_parameters,
     get_most_recent_run_name,
 )
 
@@ -49,6 +50,7 @@ __all__ = [
     "get_image_manifest_dir",
     "get_model_location_for_run",
     "get_model_manifest_dir",
+    "get_model_manifest_with_parameters",
     "get_most_recent_run_name",
     "list_datasets_with_dataframes",
     "list_datasets_with_images",
