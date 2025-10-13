@@ -196,6 +196,7 @@ def get_dataframe_for_dynamics_workflows(
     dataset_name: str,
     manifest: DataframeManifest,
     pca: PCA | None = None,
+    remove_annotations: bool = True,
     include_cell_piling: bool = False,
     include_not_steady_state: bool = False,
 ) -> pd.DataFrame:
@@ -212,6 +213,8 @@ def get_dataframe_for_dynamics_workflows(
         Dataframe manifest for loading model features.
     pca
         PCA model to fit to feature data. If None, do not project feature data.
+    remove_annotations
+        Whether to generally remove annotated timepoints and positions after loading.
     include_cell_piling
         True to include timepoints annotated as "cell_piling", False to exclude them.
     include_not_steady_state
@@ -228,11 +231,14 @@ def get_dataframe_for_dynamics_workflows(
 
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
-    df_filtered = remove_annotated_timepoints(
-        df,
-        include_cell_piling=include_cell_piling,
-        include_not_steady_state=include_not_steady_state,
-    )
+    if remove_annotations:
+        df_filtered = remove_annotated_timepoints(
+            df,
+            include_cell_piling=include_cell_piling,
+            include_not_steady_state=include_not_steady_state,
+        )
+    else:
+        df_filtered = df
 
     # add crop index column
     df_with_crop = add_crop_index(df_filtered)

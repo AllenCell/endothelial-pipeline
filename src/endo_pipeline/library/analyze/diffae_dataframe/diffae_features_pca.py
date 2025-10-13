@@ -21,6 +21,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 def fit_pca(
     dataset_collection_name: str = "pca_reference",
     dataframe_manifest_name: str = "diffae_04_10",
+    remove_annotations: bool = True,
     include_cell_piling: bool = True,
     num_pcs: int = 8,
 ) -> PCA:
@@ -35,6 +36,8 @@ def fit_pca(
         This is used to load the model manifests that contain the reference datasets.
     dataframe_manifest_name
         Name of the dataframe manifest to load the model features from.
+    remove_annotations
+        Whether to generally remove annotated timepoints and positions before fitting PCA.
     include_cell_piling
         Include cell piling timepoints if True, exclude them if False.
     num_pcs
@@ -53,7 +56,7 @@ def fit_pca(
     locations = [
         get_dataframe_location_for_dataset(manifest, dataset_name) for dataset_name in dataset_names
     ]
-    logger.info("Datasets being used to fit PCA:\n%s", ",".join(dataset_names))
+    logger.info("Datasets being used to fit PCA: [ %s ]", ", ".join(dataset_names))
 
     # Load all dataframes, filter out annotated timepoints, and concatenate
     # filtering does or doesn't remove cell piling timepoints based on
@@ -61,9 +64,12 @@ def fit_pca(
     dataframe_list = []
     for location in locations:
         dataframe = load_dataframe(location)
-        dataframe_filtered = remove_annotated_timepoints(
-            dataframe, include_cell_piling=include_cell_piling
-        )
+        if remove_annotations:
+            dataframe_filtered = remove_annotated_timepoints(
+                dataframe, include_cell_piling=include_cell_piling
+            )
+        else:
+            dataframe_filtered = dataframe
         dataframe_list.append(dataframe_filtered)
     data_ref = pd.concat(dataframe_list, ignore_index=True)
 

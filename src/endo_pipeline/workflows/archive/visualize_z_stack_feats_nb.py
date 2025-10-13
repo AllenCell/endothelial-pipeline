@@ -19,7 +19,11 @@ TIMEPOINTS = [0, 250, 500]
 model_name = "diffae_04_10"
 dataset_list = ["20250331_20X", "20250402_20X", "20250409_20X"]
 
-pca = fit_pca()
+pca = fit_pca(
+    dataset_collection_name="pca_reference_legacy",
+    dataframe_manifest_name=model_name,
+    remove_annotations=False,
+)
 
 manifest1 = load_dataframe_manifest(model_name)
 manifest2 = load_dataframe_manifest(f"{model_name}_z_stack_5_10")
