@@ -51,6 +51,7 @@ def remove_annotated_timepoints(
     # load dataset config to get annotations
     dataset_config = load_dataset_config(dataset_name)
     only_include_positions = get_include_positions(dataset_config)
+    only_include_positions_str = [f"P{pos}" for pos in only_include_positions]
     exclude_frames = get_exclude_frames(
         dataset_config, include_cell_piling, include_not_steady_state
     )
@@ -59,7 +60,7 @@ def remove_annotated_timepoints(
 
     # filter dataframe to only include non-annotated positions
     dataframe_exclude_positions = dataframe[
-        dataframe[POSITION_COLUMN_NAME].isin(only_include_positions)
+        dataframe[POSITION_COLUMN_NAME].isin(only_include_positions_str)
     ]
 
     # filter dataframe to exclude annotated timepoints
