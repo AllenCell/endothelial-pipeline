@@ -201,7 +201,8 @@ def get_dataframe_for_dynamics_workflows(
     dataset_name: str,
     manifest: DataframeManifest,
     pca: PCA | None = None,
-    filter_to_valid: bool = True,
+    include_cell_piling: bool = False,
+    include_not_steady_state: bool = False,
 ) -> pd.DataFrame:
     """
     Load DiffAE dataframe data projected onto given PC axes for downstream
@@ -216,8 +217,10 @@ def get_dataframe_for_dynamics_workflows(
         Dataframe manifest for loading model features.
     pca
         PCA model to fit to feature data. If None, do not project feature data.
-    filter_to_valid
-        True to filter dataframe to valid timepoints, False otherwise.
+    include_cell_piling
+        True to include timepoints annotated as "cell_piling", False to exclude them.
+    include_not_steady_state
+        True to include timepoints annotated as "not_steady_state", False to exclude them.
 
     Returns
     -------
@@ -228,13 +231,8 @@ def get_dataframe_for_dynamics_workflows(
     location = get_dataframe_location_for_dataset(manifest, dataset_name)
     df = load_dataframe(location)
 
-    # filter dataframe to valid timepoints if specified
-    # "valid" means not annotated as cell piling or not steady state
-    include_cell_piling = False if filter_to_valid else True
-    include_not_steady_state = False if filter_to_valid else True
-
-    # filter out annotated timepoints, possibly including cell piling and not steady state
-    # annotations based on `filter_to_valid` argument
+    # filter out annotated timepoints, including or excluding
+    # "cell piling" and "not steady state" annotations as specified
     df_filtered = remove_annotated_timepoints(
         df,
         dataset_name,

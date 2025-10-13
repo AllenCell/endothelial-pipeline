@@ -149,8 +149,10 @@ def plot_pc_scatter(
 
     for dataset_name in dataset_names:
         # load dataframe and get top 3 PCs
+        # plot or don't plot cell piling timepoints based on
+        # whether include_cell_piling is True or False
         df = get_dataframe_for_dynamics_workflows(
-            dataset_name, dataframe_manifest, pca, filter_to_valid=include_cell_piling
+            dataset_name, dataframe_manifest, pca, include_cell_piling=include_cell_piling
         )
         pc_column_names = get_pc_column_names(df, [0, 1, 2])
 

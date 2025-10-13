@@ -49,11 +49,19 @@ combined_manifest = DataframeManifest(
 for dataset_name in dataset_list:
     save_dir = get_output_path("visualize_z_stack_feats", model_name, dataset_name)
 
-    df1 = get_dataframe_for_dynamics_workflows(dataset_name, manifest1, pca, filter_to_valid=False)
+    df1 = get_dataframe_for_dynamics_workflows(
+        dataset_name, manifest1, pca, include_cell_piling=True, include_not_steady_state=True
+    )
     df1 = df1[df1[TIMEPOINT_COLUMN_NAME].isin(TIMEPOINTS)].reset_index(drop=True)
-    df2 = get_dataframe_for_dynamics_workflows(dataset_name, manifest2, pca, filter_to_valid=False)
-    df3 = get_dataframe_for_dynamics_workflows(dataset_name, manifest3, pca, filter_to_valid=False)
-    df4 = get_dataframe_for_dynamics_workflows(dataset_name, manifest4, pca, filter_to_valid=False)
+    df2 = get_dataframe_for_dynamics_workflows(
+        dataset_name, manifest2, pca, include_cell_piling=True, include_not_steady_state=True
+    )
+    df3 = get_dataframe_for_dynamics_workflows(
+        dataset_name, manifest3, pca, include_cell_piling=True, include_not_steady_state=True
+    )
+    df4 = get_dataframe_for_dynamics_workflows(
+        dataset_name, manifest4, pca, include_cell_piling=True, include_not_steady_state=True
+    )
 
     assert df1.shape == df2.shape == df3.shape == df4.shape, "DataFrames have different shapes!"
 
