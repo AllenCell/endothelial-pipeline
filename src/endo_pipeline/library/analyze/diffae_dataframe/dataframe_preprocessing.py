@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 def remove_annotated_timepoints(
     dataframe: pd.DataFrame,
-    dataset_name: str,
     include_cell_piling: bool = True,
     include_not_steady_state: bool = True,
 ) -> pd.DataFrame:
@@ -33,8 +32,6 @@ def remove_annotated_timepoints(
     ----------
     dataframe
         Dataframe of features for one dataset.
-    dataset_name
-        Name of the dataset.
     include_cell_piling
         True to include timepoints annotated as "cell_piling", False to exclude them.
     include_not_steady_state
@@ -49,9 +46,7 @@ def remove_annotated_timepoints(
         logger.error("Dataframe must be restricted to one dataset only.")
         raise ValueError("Dataframe must be restricted to one dataset only.")
 
-    if dataframe[DATASET_COLUMN_NAME].iloc[0] != dataset_name:
-        logger.error("Dataset name does not match dataframe content.")
-        raise ValueError("Dataset name does not match dataframe content.")
+    dataset_name = dataframe[DATASET_COLUMN_NAME].iloc[0]
 
     # load dataset config to get annotations
     dataset_config = load_dataset_config(dataset_name)
@@ -235,7 +230,6 @@ def get_dataframe_for_dynamics_workflows(
     # "cell piling" and "not steady state" annotations as specified
     df_filtered = remove_annotated_timepoints(
         df,
-        dataset_name,
         include_cell_piling=include_cell_piling,
         include_not_steady_state=include_not_steady_state,
     )
