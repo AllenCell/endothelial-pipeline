@@ -131,7 +131,9 @@ def main(
     name_suffix = "_test_workflow" if DEMO_MODE else ""
 
     # add "_exclude_cell_piling" to manifest name if cell piling is excluded
-    if not include_cell_piling:
+    if include_cell_piling:
+        name_suffix = f"_include_cell_piling{name_suffix}"
+    else:
         name_suffix = f"_exclude_cell_piling{name_suffix}"
 
     # Upload dataframes to FMS, then build and save out DataframeManifest
