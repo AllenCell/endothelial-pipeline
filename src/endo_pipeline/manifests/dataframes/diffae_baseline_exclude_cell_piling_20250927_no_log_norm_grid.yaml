@@ -1,10 +1,10 @@
-name: diffae_baseline_exclude_cell_piling_20250927_no_log_norm_grid_with_cell_piling
+name: diffae_baseline_exclude_cell_piling_20250927_no_log_norm_grid
 workflow: eval_diffae_grid
 parameters:
   z_slice_offsets:
   - 4
   - 11
-  exclude_cell_piling: false
+  exclude_cell_piling: true
   config_name: diffae_eval_no_log
 locations:
   20241120_20X:
