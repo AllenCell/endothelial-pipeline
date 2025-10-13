@@ -78,7 +78,6 @@ def main(
         load_model_for_inference,
         upload_prediction_dataframe_to_fms,
     )
-    from endo_pipeline.library.model.image_loading import get_include_positions
     from endo_pipeline.manifests import get_feature_dataframe_manifest_name, load_model_manifest
     from endo_pipeline.settings import (
         DIFFAE_MODEL_EVAL_CONFIG,
@@ -157,7 +156,10 @@ def main(
                     model_manifest, model.cfg.run_name, crop_pattern="grid"
                 ),
                 workflow_name=Path(__file__).stem,
-                workflow_parameters={"z_slice_offsets": Z_SLICE_OFFSETS},
+                workflow_parameters={
+                    "z_slice_offsets": Z_SLICE_OFFSETS,
+                    "config_name": name_of_config,
+                },
             )
 
         if DEMO_MODE:

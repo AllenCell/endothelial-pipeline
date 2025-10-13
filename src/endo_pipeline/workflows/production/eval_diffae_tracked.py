@@ -63,7 +63,6 @@ def main(
         load_model_for_inference,
         upload_prediction_dataframe_to_fms,
     )
-    from endo_pipeline.library.model.image_loading import get_include_positions
     from endo_pipeline.manifests import get_feature_dataframe_manifest_name, load_model_manifest
     from endo_pipeline.settings import DIFFAE_MODEL_EVAL_CONFIG, Z_SLICE_OFFSETS
 
