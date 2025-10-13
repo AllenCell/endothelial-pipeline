@@ -586,14 +586,39 @@ def get_include_positions(dataset_config: DatasetConfig) -> list[int]:
 
 
 def get_exclude_frames(
-    dataset_config: DatasetConfig, exclude_cell_piling: bool = False
+    dataset_config: DatasetConfig,
+    include_cell_piling: bool = True,
+    include_not_steady_state: bool = True,
 ) -> dict[int, list[int]]:
-    """Get dict of frames to exclude per position based on annotations."""
-    # if exclude_cell_piling is True, then get all annotated timepoints
+    """
+    Get dict of frames to exclude per position based on annotations.
+
+    Parameters
+    ----------
+    dataset_config
+        Dataset configuration object.
+    include_cell_piling
+        Whether to include timepoints annotated as CELL_PILING.
+    include_not_steady_state
+        Whether to include timepoints annotated as NOT_STEADY_STATE.
+
+    Returns
+    -------
+    :
+        Dictionary with position as key and list of timepoints to exclude as values.
+    """
+    # if include_cell_piling is False, then get all annotated timepoints
     # else, get timepoints for all annotations except CELL_PILING
     annotations = None  # default to all annotations
-    if not exclude_cell_piling:
+    if include_cell_piling:
         annotations = [ann for ann in TimepointAnnotation if "PILING" not in ann.name]
+
+    # similar with steady state
+    if include_not_steady_state:
+        if annotations is None:
+            annotations = [ann for ann in TimepointAnnotation if "STEADY_STATE" not in ann.name]
+        else:
+            annotations = [ann for ann in annotations if "STEADY_STATE" not in ann.name]
 
     # parse dataset annotations to get timepoints to exclude per position
     exclude_frames = {

@@ -28,8 +28,10 @@ z_slice_offsets = Z_SLICE_OFFSETS
 # %%
 z_slice_bounds_per_position = get_z_slice_bounds_per_position(dataset_config, z_slice_offsets)
 only_include_positions = get_include_positions(dataset_config)
-exclude_cell_piling = True
-exclude_frames_by_position = get_exclude_frames(dataset_config, exclude_cell_piling=True)
+include_cell_piling = False
+exclude_frames_by_position = get_exclude_frames(
+    dataset_config, include_cell_piling=include_cell_piling
+)
 
 # %%
 # get list of all positions with annotations for artifact detection

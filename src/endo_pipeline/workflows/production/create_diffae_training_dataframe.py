@@ -1,9 +1,13 @@
+from typing import Annotated
+
+from cyclopts import Parameter
+
 TAGS = ["diffae_model_training"]
 
 
 def main(
     resolution_level: int = 1,
-    exclude_cell_piling: bool = False,
+    include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = True,
 ) -> None:
     """
     Generate dataframes with paths to zarr files for training a DiffAE model.
@@ -28,9 +32,9 @@ def main(
     **Cell piling exclusion**
 
     By default, timepoints marked as having cell piling annotations are included in the training
-    and validation datasets. This behavior can be changed by setting the ``exclude_cell_piling``
-    parameter to True. This allows for toggling between training a model that "sees" cell piling
-    versus one that does not.
+    and validation datasets. This behavior can be changed by using the command line flag
+    `--exclude-cell-piling`. This allows for toggling between training a model that "sees" cell
+    piling versus one that does not.
 
     **Workflow demo**
 
@@ -43,8 +47,8 @@ def main(
     ----------
     resolution_level
         The resolution level of the zarr files to load for training.
-    exclude_cell_piling
-        Exclude cell piling timepoints if True, include them if False.
+    include_cell_piling
+        Include cell piling timepoints if True, exclude them if False.
 
 
     Returns
@@ -83,7 +87,7 @@ def main(
             dataset_config, z_slice_offsets=Z_SLICE_OFFSETS
         )
         only_include_positions = get_include_positions(dataset_config)
-        exclude_frames = get_exclude_frames(dataset_config, exclude_cell_piling=exclude_cell_piling)
+        exclude_frames = get_exclude_frames(dataset_config, include_cell_piling=include_cell_piling)
 
         # When running workflow in demo mode, only use the first position from each
         # dataset and first two timepoints to speed up the data loading process (if
@@ -127,7 +131,7 @@ def main(
     name_suffix = "_test_workflow" if DEMO_MODE else ""
 
     # add "_exclude_cell_piling" to manifest name if cell piling is excluded
-    if exclude_cell_piling:
+    if not include_cell_piling:
         name_suffix = f"_exclude_cell_piling{name_suffix}"
 
     # Upload dataframes to FMS, then build and save out DataframeManifest
@@ -139,7 +143,7 @@ def main(
         val,
         resolution_level,
         Z_SLICE_OFFSETS,
-        exclude_cell_piling,
+        include_cell_piling,
         dataset_config_list,
         output_savedir,
         manifest_name,

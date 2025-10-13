@@ -10,19 +10,18 @@ TAGS = ["diffae_features", "visualization"]
 def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    exclude_cell_piling: Annotated[bool, Parameter(negative="--include-cell-piling")] = True,
+    include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     dataset_collection_name: str = "pca_reference",
 ) -> None:
     """Visualize key attributes of a fit PCA model."""
     import logging
 
-    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe import (
         fit_pca,
         get_pca_loadings,
         get_pca_loadings_as_df,
-        get_timepoints_for_plotting_pcs,
     )
     from endo_pipeline.library.visualize.diffae_features import feature_viz
     from endo_pipeline.manifests import (
@@ -56,7 +55,7 @@ def main(
     pca = fit_pca(
         dataset_collection_name=dataset_collection_name,
         dataframe_manifest_name=dataframe_manifest_name,
-        exclude_cell_piling=exclude_cell_piling,
+        include_cell_piling=include_cell_piling,
     )
 
     # plot cumulative explained variance ratio of PCA components
@@ -97,7 +96,7 @@ def main(
         dataset_names,
         dataframe_manifest,
         pca,
-        exclude_cell_piling=exclude_cell_piling,
+        include_cell_piling=include_cell_piling,
     )
     save_plot_to_path(fig, fig_savedir, "pca_scatter_ref")
 

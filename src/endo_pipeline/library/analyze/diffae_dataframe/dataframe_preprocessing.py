@@ -15,17 +15,16 @@ from endo_pipeline.settings import (
     TIMEPOINT_COLUMN_NAME,
 )
 
-from .feature_dataframe_utils import (
-    get_dataset_descriptions,
-    get_feature_column_names,
-    get_valid_subset,
-)
+from .feature_dataframe_utils import get_dataset_descriptions, get_feature_column_names
 
 logger = logging.getLogger(__name__)
 
 
 def remove_annotated_timepoints(
-    dataframe: pd.DataFrame, dataset_name: str, exclude_cell_piling: bool = True
+    dataframe: pd.DataFrame,
+    dataset_name: str,
+    include_cell_piling: bool = True,
+    include_not_steady_state: bool = True,
 ) -> pd.DataFrame:
     """
     Remove annotated timepoints from a dataframe of DiffAE features for one dataset.
@@ -36,8 +35,10 @@ def remove_annotated_timepoints(
         Dataframe of features for one dataset.
     dataset_name
         Name of the dataset.
-    exclude_cell_piling
-        Remove timepoints annotated as "cell_piling" if True, keep if False.
+    include_cell_piling
+        True to include timepoints annotated as "cell_piling", False to exclude them.
+    include_not_steady_state
+        True to include timepoints annotated as "not_steady_state", False to exclude them.
 
     Returns
     -------
@@ -55,7 +56,9 @@ def remove_annotated_timepoints(
     # load dataset config to get annotations
     dataset_config = load_dataset_config(dataset_name)
     only_include_positions = get_include_positions(dataset_config)
-    exclude_frames = get_exclude_frames(dataset_config, exclude_cell_piling)
+    exclude_frames = get_exclude_frames(
+        dataset_config, include_cell_piling, include_not_steady_state
+    )
     if dataframe[POSITION_COLUMN_NAME].nunique() != len(dataset_config.zarr_positions):
         logger.warning("Expected dataframe to contain all positions in dataset, but it does not.")
 
@@ -225,13 +228,22 @@ def get_dataframe_for_dynamics_workflows(
     location = get_dataframe_location_for_dataset(manifest, dataset_name)
     df = load_dataframe(location)
 
-    if filter_to_valid:
-        df_valid = get_valid_subset(df, dataset_name)
-    else:
-        df_valid = df.copy()
+    # filter dataframe to valid timepoints if specified
+    # "valid" means not annotated as cell piling or not steady state
+    include_cell_piling = False if filter_to_valid else True
+    include_not_steady_state = False if filter_to_valid else True
+
+    # filter out annotated timepoints, possibly including cell piling and not steady state
+    # annotations based on `filter_to_valid` argument
+    df_filtered = remove_annotated_timepoints(
+        df,
+        dataset_name,
+        include_cell_piling=include_cell_piling,
+        include_not_steady_state=include_not_steady_state,
+    )
 
     # add crop index column
-    df_with_crop = add_crop_index(df_valid)
+    df_with_crop = add_crop_index(df_filtered)
 
     if pca is None:
         # do not project feature data onto PCA axes

@@ -1,3 +1,7 @@
+from typing import Annotated
+
+from cyclopts import Parameter
+
 TAGS = ["diffae", "model_training"]
 
 
@@ -6,7 +10,7 @@ def main(
     run_name: str | None = None,
     resolution_level: int = 1,
     crop_size: int = 128,
-    exclude_cell_piling: bool = False,
+    include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = True,
 ) -> None:
     """
     Build config for training a DiffAE model.
@@ -28,15 +32,15 @@ def main(
 
     By default, timepoints with cell piling annotations are included in the
     training and validation datasets from ``create-diffae-training-dataframe``,
-    unless ``exclude_cell_piling`` is True. This means that by default, the
+    unless ``include_cell_piling`` is False. This means that by default, the
     model will be trained on data that includes cell piling. To train a model
     that does not "see" cell piling,  run ``create-diffae-training-dataframe``
     with the flag ``--exclude-cell-piling`` and then run this training script
     with the same flag.
 
-    When ``exclude_cell_piling`` is False, the workflow will use the "standard"
+    When ``include_cell_piling`` is True, the workflow will use the "standard"
     dataframe manifest ``diffae_training_dataframe_resolution_RESOLUTION`` for
-    training. When ``exclude_cell_piling`` is True, the workflow will find the
+    training. When ``include_cell_piling`` is False, the workflow will find the
     dataframe manifest with the suffix ``_exclude_cell_piling`` and use the
     corresponding training and validation datasets.
 
@@ -56,9 +60,8 @@ def main(
         The resolution level of the zarr files to be used for training.
     crop_size
         The length of the 2D image crop in pixels to use for model training.
-    exclude_cell_piling
-        True to use training and validation datasets that exclude cell piling
-        timepoints. False otherwise.
+    include_cell_piling
+        Include cell piling timepoints if True, exclude them if False.
     """
 
     import logging
@@ -102,7 +105,7 @@ def main(
     # Create name components from input parameters
     res_name = f"_resolution_{resolution_level}"
     patch_name = f"_patch_{crop_size}x{crop_size}"
-    piling_name = "_exclude_cell_piling" if exclude_cell_piling else "_include_cell_piling"
+    piling_name = "_include_cell_piling" if include_cell_piling else "_exclude_cell_piling"
 
     # Build dataframe manifest name
     dataframe_manifest_name = f"diffae_training_dataframe{res_name}{piling_name}{name_suffix}"
@@ -186,7 +189,7 @@ def main(
         "training_datasets": list_of_training_datasets,
         "crop_size": crop_size,
         "resolution_level": resolution_level,
-        "exclude_cell_piling": exclude_cell_piling,
+        "include_cell_piling": include_cell_piling,
     }
     manifest.locations[run_name] = ModelLocation()
     save_model_manifest(manifest)

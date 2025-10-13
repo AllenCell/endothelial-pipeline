@@ -9,6 +9,7 @@ from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
+from .dataframe_preprocessing import remove_annotated_timepoints
 from .feature_dataframe_utils import get_feature_column_names
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 def fit_pca(
     dataset_collection_name: str = "pca_reference",
     dataframe_manifest_name: str = "diffae_04_10",
-    exclude_cell_piling: bool = True,
+    include_cell_piling: bool = True,
     num_pcs: int = 8,
 ) -> PCA:
     """
@@ -34,8 +35,8 @@ def fit_pca(
         This is used to load the model manifests that contain the reference datasets.
     dataframe_manifest_name
         Name of the dataframe manifest to load the model features from.
-    exclude_cell_piling
-        Exclude cell piling timepoints from PCA fitting if True, include if False.
+    include_cell_piling
+        Include cell piling timepoints if True, exclude them if False.
     num_pcs
         Number of principal components to fit.
 
@@ -54,8 +55,17 @@ def fit_pca(
     ]
     logger.info("Datasets being used to fit PCA:\n%s", ",".join(dataset_names))
 
-    # Load all dataframes
-    data_ref = pd.concat([load_dataframe(location) for location in locations], ignore_index=True)
+    # Load all dataframes, filter out annotated timepoints, and concatenate
+    # filtering does or doesn't remove cell piling timepoints based on
+    # the input include_cell_piling
+    dataframe_list = []
+    for location in locations:
+        dataframe = load_dataframe(location)
+        dataframe_filtered = remove_annotated_timepoints(
+            dataframe, include_cell_piling=include_cell_piling
+        )
+        dataframe_list.append(dataframe_filtered)
+    data_ref = pd.concat(dataframe_list, ignore_index=True)
 
     # fit PCA
     pca = PCA(n_components=num_pcs, svd_solver="full")
