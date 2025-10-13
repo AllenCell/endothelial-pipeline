@@ -25,9 +25,10 @@ from endo_pipeline.configs import (
     get_position_integer_from_zarr_file_path,
     load_dataset_config,
 )
-from endo_pipeline.io import load_image_from_path
+from endo_pipeline.io import build_fms_annotations, load_image_from_path, upload_file_to_fms
 from endo_pipeline.library.model import get_include_positions, get_z_slice_bounds_per_position
 from endo_pipeline.library.process.cdh5_preprocessing import preprocess
+from endo_pipeline.manifests import DataframeLocation, DataframeManifest, save_dataframe_manifest
 
 FLUOR_CHANNEL = 0
 BF_CHANNEL = 1
@@ -785,6 +786,40 @@ def align_and_save_paired_images(
     df = pd.concat(df_list, ignore_index=True)
     df = df.dropna(subset=["target", "moving"])
     logger.debug("Found %d pairs of images to save.", len(df))
+
+    # save the dataframe as a parquet file locally in results
+    output_filename = "diffae_finetuned_fixed_live_registration.parquet"
+    output_path = save_path / output_filename
+    df.to_parquet(output_path, index=False)
+
+    import pdb
+
+    pdb.set_trace()
+
+    moving_dataset_config = load_dataset_config(moving)
+    target_dataset_config = load_dataset_config(target)
+    fms_annotations = build_fms_annotations(
+        [target_dataset_config, moving_dataset_config],
+        additional_notes="Dataframe of aligned target and moving    \
+            (bf and fluor) images from paired fixed and live dataset.",
+    )
+    fmsid = upload_file_to_fms(
+        output_path,
+        annotations=fms_annotations,
+        file_type="parquet",
+    )
+
+    # Save DataframeManifest for the aligned images
+    manifest_name = "diffae_finetuned_fixed_live_registration"
+    dataframe_manifest = DataframeManifest(
+        name=manifest_name,
+        workflow="registration",
+        locations={
+            "key": DataframeLocation(fmsid=fmsid),
+        },
+    )
+    save_dataframe_manifest(dataframe_manifest)
+
     return df
 
 

@@ -7,13 +7,14 @@ from matplotlib.patches import Ellipse
 from pandas.core.groupby import DataFrameGroupBy
 from sklearn.decomposition import PCA
 
+from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe import (
     get_dataframe_for_dynamics_workflows,
     project_manifest_to_pcs,
 )
 from endo_pipeline.library.model.eval_model import generate_overrides_for_model_eval
 from endo_pipeline.library.process.registration import align_all_positions
-from endo_pipeline.manifests import load_dataframe_manifest
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings import Z_SLICE_OFFSETS
 
 
@@ -56,6 +57,8 @@ def evaluate_model_paired_fixed_live(
         Local path where live data features are saved in a parquet file
     """
 
+    # Replace the following chunk of code:
+    """
     # Align data if saved aligned data not already stored
     if not data_save_path.exists():
         data = align_all_positions(
@@ -70,6 +73,16 @@ def evaluate_model_paired_fixed_live(
         # Channel used for inference is in the aligned images, which are single channel
         data["channel"] = 0
         data.to_csv(data_save_path, index=False)
+    """
+
+    # replace above alignment code with this loading from manifest
+    algined_image_manifest = load_dataframe_manifest("diffae_finetuned_fixed_live_registration")
+    # why do we need dataset_name? how is this not fully defined tby the manifest name?
+    aligned_image_df_location = get_dataframe_location_for_dataset(
+        algined_image_manifest, dataset_name
+    )
+    data = load_dataframe(aligned_image_df_location)
+    data["channel"] = 0  # should this go here or in the manifest?
 
     # get experiment name and run name
     experiment_name = model.cfg.experiment_name
