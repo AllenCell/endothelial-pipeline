@@ -114,13 +114,20 @@ def get_3d_bounds_from_data(
 
     for dataset_name in dataset_names:
         if filter_to_valid:
+            remove_annotations = True
             include_cell_piling = False
             include_not_steady_state = False
         else:
+            remove_annotations = False
             include_cell_piling = True
             include_not_steady_state = True
         df = get_dataframe_for_dynamics_workflows(
-            dataset_name, manifest, pca, include_cell_piling, include_not_steady_state
+            dataset_name,
+            manifest,
+            pca=pca,
+            remove_annotations=remove_annotations,
+            include_cell_piling=include_cell_piling,
+            include_not_steady_state=include_not_steady_state,
         )
         # get column names for features
         pc_column_names = get_pc_column_names(df, pc_axes=[0, 1, 2])
