@@ -3,7 +3,7 @@ TAGS = ["validation", "manifests"]
 
 def main(
     dataframe_manifest_name: str,
-    for_diffae_evaluation: bool = False,
+    from_diffae: bool = False,
 ) -> None:
     """Validate a given dataframe manifest."""
     import logging
@@ -38,7 +38,7 @@ def main(
         _ = load_dataframe(location)
 
     # additional (optional) checks specific to DiffAE evaluation dataframes
-    if for_diffae_evaluation:
+    if from_diffae:
         print(
             "Validating included positions and frames in dataframe manifest: "
             f"[ {dataframe_manifest_name} ]"
