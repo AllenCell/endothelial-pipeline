@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 from scipy import interpolate as spinterp
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 def _ddff_model_analysis(
     dataset_name: str,
-    manifest: DataframeManifest,
+    dataframe_manifest: DataframeManifest,
     pca: PCA,
     kernel_params: dict,
     dt: float,
@@ -38,45 +38,56 @@ def _ddff_model_analysis(
     pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
 ) -> np.ndarray | list[np.ndarray]:
     """
-    Get 3D flow field (drift coefficient) from data
-    projected onto the 3D principal component feature space
-    and output summary figures and vtk files for visualization.
+    Get 3d flow field (drift coefficient) from principal component features from a given dataset.
 
-    Inputs:
-    - dataset_name: name of dataset
-    - manifest: manifest of model feature dataframes
-    - pca: PCA model to use for transforming the data
-    - kernel_params: parameters for the kernel-based
-        estimation of Kramers-Moyal coefficients
-    - dt: time step for the Kramers-Moyal coefficients
-    - bins: list of numpy arrays with the bin edges
-        for each dimension in the 3D state space
-        (computed via get_bins)
-    - centers: list of numpy arrays with the
-        centers of the bins in each dimension
-        (computed via get_bins)
-    - time_span: time span for the ODE solver
-        (list of two floats)
-    - init: initial condition for the trajectory
-        (numpy array of shape (3,))
-    - fig_savedir: directory to save figures
-    - vtk_savedir: directory to save vtk files
-    - output_savedir: directory to save output files
-        (.npy files with flow field and diffusion field)
+    For a single dataset, this workflow:
 
-    Outputs:
-    - traj: trajectory in 3D state space for the
-        given initial condition and time span
-        according to the dynamics given by the
-        approximated flow field for the dataset
-        (numpy array of shape (num_t, 3))
-        - if name is "20250319_20X" or "20250326_20X",
-            returns a list of two trajectories
-            (trajectories going towards each of the
-            two stable fixed points for these conditions)
+    1. Loads the dataframe for the given dataset and gets the top 3 PCs.
+    2. Computes the drift and diffusion coefficients (first and second Kramers-Moyal coefficients)
+        using a kernel-based method.
+    3. Extrapolates the drift and diffusion coefficients to get a flow field over the entire 3D
+        space as specified by the input bins and centers.
+    4. Saves out these vector fields as .npy files and as .vtk files for visualization.
+    5. Solves the ODE dx/dt = f(x) using scipy.integrate.solve_ivp, where f(x) is the flow field
+        (drift coefficient) and x is the 3D state space.
+    6. Visualizes the flow field and the trajectory using the main function in flow_field_viz.py.
+
+    Parameters
+    ----------
+    dataset_name
+        Name of dataset for which to compute the flow field.
+    dataframe_manifest
+        Dataframe manifest with the dataframe locations for each dataset.
+    pca
+        PCA model to use for transforming the data (projecting onto the top 3 PCs).
+    kernel_params
+        Parameters for the kernel-based estimation of Kramers-Moyal coefficients.
+    dt
+        Time step between frames.
+    bins
+        List of the bin edges for histogramming along each dimension in the 3D state space.
+    centers
+        List of centers of the bins in each dimension.
+    time_span
+        Time span for the ODE solver.
+    init
+        Initial condition for the trajectory.
+    fig_savedir
+        Directory to save figures.
+    vtk_savedir
+        Directory to save .vtk files.
+    output_savedir
+        Directory to save output files (.npy files with drift field and diffusion field).
+    pc_column_names
+        List of column names for the principal components to use.
+
+    Returns
+    -------
+    :
+        Trajectory in 3D state space for the given initial condition and time span
     """
     # load dataframe and get top 3 PCs
-    df = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
+    df = get_dataframe_for_dynamics_workflows(dataset_name, dataframe_manifest, pca)
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
@@ -88,7 +99,9 @@ def _ddff_model_analysis(
     )
 
     # compute interpolated flow field - drift
-    flow_field_dict = compute_extrapolated_vector_field(drift_km, centers, interpolator="nearest")
+    flow_field_dict = compute_extrapolated_vector_field(
+        drift_km, centers, extrapolation_method="nearest"
+    )
     # save flow field dictionary as npy
     np.save(
         output_savedir / f"flow_field_dict_{dataset_name}.npy",
@@ -101,7 +114,7 @@ def _ddff_model_analysis(
     # compute interpolated diffusion field
     # (diagonal diffusion tensor represented as 3D vector field)
     diffusion_field_dict = compute_extrapolated_vector_field(
-        diff_km, centers, interpolator="nearest"
+        diff_km, centers, extrapolation_method="nearest"
     )
     # save diffusion field dictionary as npy
     np.save(
@@ -136,7 +149,7 @@ def _ddff_model_analysis(
 
 def get_and_analyze_ddff(
     dataset_names: list[str],
-    manifest: DataframeManifest,
+    dataframe_manifest: DataframeManifest,
     pca: PCA,
     kernel_params: dict,
     dt: float,
@@ -147,32 +160,42 @@ def get_and_analyze_ddff(
     output_savedir: Path,
 ) -> None:
     """
-    Run main workflow for computing and visualizing
-    the "data-driven flow field" (DDFF) for a list of datasets.
+    Visualize data-driven flow field (DDFF) for a list of datasets.
 
-    Inputs:
-    - dataset_names: list of dataset names to use for computing DDFF
-    - manifest: manifest of model feature dataframes
-    - pca: PCA model to use for transforming the data
-    - kernel_params: parameters for the kernel-based
-        estimation of Kramers-Moyal coefficients
-    - dt: time step for the Kramers-Moyal coefficients
-    - time_span: time span for the ODE solver
-    - init: initial condition for the trajectory
-    - fig_savedir: directory to save figures
-    - vtk_savedir: directory to save vtk files
-    - output_savedir: directory to save other output files
+    **Method output**
 
-    Outputs:
-    - None.
-    - This function saves out the trajectories for each dataset
-        in a dictionary, where keys are dataset descriptions
-        and values are trajectories in 3D state space.
-        - see docstring for `_ddff_model_analysis` for details
-            of what other files are saved out for each dataset
+    This function saves out the trajectories for each dataset in a single dictionary, where the
+    keys are dataset descriptions (based on shear stress conditions) and the values are the
+    trajectories in 3D state space.
+
+    It also saves out figures and other intermediate files via it's calls to other functions.
+    See the docstring for ``_ddff_model_analysis`` for more details.
+
+    Parameters
+    ----------
+    dataset_names
+        List of dataset names to analyze.
+    dataframe_manifest
+        Dataframe manifest with the dataframe locations for each dataset.
+    pca
+        PCA model to use for transforming the data (projecting onto the top 3 PCs).
+    kernel_params
+        Parameters for the kernel-based estimation of Kramers-Moyal coefficients.
+    dt
+        Time step between frames.
+    time_span
+        Time span for the ODE solver.
+    init
+        Initial condition for the trajectory.
+    fig_savedir
+        Directory to save figures.
+    vtk_savedir
+        Directory to save .vtk files.
+    output_savedir
+        Directory to save other output files.
     """
     # get bins for KMCs
-    bounds = get_3d_bounds_from_data(dataset_names, manifest, pca)
+    bounds = get_3d_bounds_from_data(dataset_names, dataframe_manifest, pca)
     num_bins = [50, 50, 50]
     bins, centers = get_bins(num_bins, bin_limits=bounds)
 
@@ -184,10 +207,9 @@ def get_and_analyze_ddff(
     # used for crop reconstruction
     traj_dict = {}
     for dataset_name in dataset_names:
-        print(f"******** Processing dataset: {dataset_name} ******** \n")
         traj = _ddff_model_analysis(
             dataset_name,
-            manifest,
+            dataframe_manifest,
             pca,
             kernel_params,
             dt,
@@ -213,33 +235,38 @@ def get_and_analyze_ddff(
 
 
 def compute_extrapolated_vector_field(
-    kmcs: np.ndarray, grid_centers: list[np.ndarray], interpolator: str = "nearest"
+    kmcs: np.ndarray,
+    grid_centers: list[np.ndarray],
+    extrapolation_method: Literal["nearest", "linear"] = "nearest",
 ) -> dict:
     """
-    Get an extrapolated 3D vector field via estimates of
-    that vector field (i.e., first or second Kramers-Moyal
-    coefficients: drift or diffusion) from the data
-    for a given experimental condition.
+    Extrapolate a 3D vector field from Kramers-Moyal estimates over a specified grid.
 
-    Inputs:
-    - kmcs: 3D array of drift or diffusion estimates
-        - shape num_bins_x, num_bins_y, num_bins_z, 3)
-        - Computed via kernel-based method in
-        `kramersmoyal.get_kramers_moyal`
-    - grid_centers: 1D numpy arrays with the grid points in
-        each dimension (centers of bins of x,y,z space)
-    - interpolator (optional, default="nearest"): interpolation method
-        by which to infer flow field at points where data is
-        scarce (drift_kmcs = np.nan)
-        - options are "nearest" (nearest neighbors)
-            and "linear" (linear interpolation)
+    **Method inputs**
 
-    Outputs:
-    - vector_field_dict: dictionary with the following keys:
-        - "vectors": tuple of 3D arrays (F1,F2,F3) with
-            the vector values in each dimension
-        - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with
-            the grid points in each dimension
+    The input ``kmcs`` are the Kramers-Moyal coefficients (drift or diffusion estimates)
+    over a 3D mesh grid obtained from feature data. Where there are no data points, these
+    estimates are `NaN`. This function extrapolates these estimates to the entire grid
+    using nearest-neighbor or linear interpolation.
+
+    The array ``kmcs`` should have shape (num_bins_x, num_bins_y, num_bins_z, 3), where
+    num_bins_x, num_bins_y, and num_bins_z are the number of bins in each dimension
+    of the 3D meshgrid defined by ``grid_centers``.
+
+    **Method output**
+
+    The output is a dictionary with two keys:
+    - "vectors": tuple of 3D arrays (f1,f2,f3) with the vector values in each dimension
+    - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension
+
+    Parameters
+    ----------
+    kmcs
+        Array of drift or diffusion estimates over a three dimensional grid.
+    grid_centers
+        List of 1D numpy arrays with the grid points in each dimension
+    extrapolation_method
+        Method to use for extrapolating the vector field where there are NaNs.
     """
 
     ndim = len(grid_centers)  # number of dimensions
@@ -262,16 +289,20 @@ def compute_extrapolated_vector_field(
     valid_values = [vector_field[i][valid_mask] for i in range(ndim)]
 
     # Create interpolators for each component of the vector field
-    if interpolator == "nearest":  # nearest neighbor
+    if extrapolation_method not in ["nearest", "linear"]:
+        logger.error(
+            "Extrapolation method [ %s ] not recognized. Use 'nearest' or 'linear'.",
+            extrapolation_method,
+        )
+        raise ValueError(f"Extrapolation method [ {extrapolation_method} ] not recognized.")
+    if extrapolation_method == "nearest":  # nearest neighbor
         interpolator_func = [
             spinterp.NearestNDInterpolator(valid_points, valid_values[i]) for i in range(ndim)
         ]
-    elif interpolator == "linear":  # linear interpolation
+    else:  # linear interpolation
         interpolator_func = [
             spinterp.LinearNDInterpolator(valid_points, valid_values[i]) for i in range(ndim)
         ]
-    else:
-        raise ValueError(f"Interpolator {interpolator} not recognized. Use 'nearest' or 'linear'.")
 
     # Find the indices of all points (including NaN points)
     all_points = (
@@ -292,29 +323,36 @@ def compute_extrapolated_vector_field(
 
 def get_callable_vector_field(vector_field_dict: dict, for_solve_ivp: bool = True) -> Callable:
     """
-    Get a callable vector field via linear interpolation
-    on computed values of the vector field on the grid.
+    Get a callable vector field from a numpy array via linear interpolation.
 
-    Inputs:
-    - vector_field_dict: dictionary with the following keys:
-        - "vectors": tuple of 3D arrays (V1,V2,V3) with the
-            vector values in each dimension
-        - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid)
-            with the grid points in each dimension
-    - for_solve_ivp (optional, default=True): whether to
-        return a callable function that takes in time and
-        point in state space and returns the flow field at
-        that point (for use with scipy.integrate.solve_ivp)
-        - if False, returns a callable function that takes
-        in a point in state space and returns the flow field
-        at that point (for general use)
+    The input is a dictionary with the vector field values on a mesh grid, and this function
+    creates a callable function that can be used to evaluate the vector field at any point
+    using linear interpolation of the values on the mesh grid.
 
-    Outputs:
-    - vec_func: callable function that takes in a time and a
-        point in state space and returns the flow field at that point
-        - value of the vector field at the given point is interpolated from
-        the given values of V1,V2,V3 on the fixed input grid
-        (on which the flow field was numerically estimated from the data)
+    **Method inputs**
+
+    The input ``vector_field_dict`` is a dictionary with two keys:
+
+    - "vectors": tuple of 3D arrays (V1,V2,V3) with the vector values in each dimension
+    - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension
+
+    The boolean ``for_solve_ivp`` specifies whether to return a callable function
+    formatted for use with ``scipy.integrate.solve_ivp`` (if ``True``) or a general callable
+    function (if ``False``). The difference is that the function for solve_ivp takes in time
+    as the first variable and the point in state space as the second variable, while the general
+    callable is only a function of the point in state space.
+
+    Parameters
+    ----------
+    vector_field_dict
+        Dictionary with arrays defining a vector field evaluated on a mesh grid.
+    for_solve_ivp
+        Return a function formatted for use with scipy.integrate.solve_ivp if True.
+
+    Returns
+    -------
+    :
+        Callable function representing the vector field.
     """
 
     ndim = len(vector_field_dict["grid"])  # number of dimensions
@@ -360,23 +398,41 @@ def solve_ddff_ode(
     num_t: int = 1750,
 ) -> np.ndarray:
     """
-    Solve the ODE dx/dt = f(x) using scipy.integrate.solve_ivp.
+    Solve an autonomous ODE using ``scipy.integrate.solve_ivp``.
 
-    Inputs:
-    - flow_field_dict: dictionary with the following keys:
-        - "vectors": tuple of 3D arrays (1, f2, f3) with the
-            velocities in each dimension
-        - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the
-            grid points in each dimension
-    - init: initial condition for the trajectory (shape (3,))
-    - t_span: time span for the ODE solver (list of two floats)
-    - num_T: number of time points to evaluate the solution
-        (default is 1750)
+    **Method inputs**
 
-    Outputs:
-    - sol: solution of the ODE with the given
-        initial condition (shape (num_t, 3))
+    The input ``flow_field_dict`` is a dictionary with two keys:
 
+    - "vectors": tuple of 3D arrays (f1,f2,f3) with the vector values in each dimension
+    - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension
+
+    The supplied initial condition ``init`` should be a numpy array of shape (3,).
+
+    The time span ``t_span`` should be a list of two floats specifying the start and end times
+    for the ODE solver. The input ``num_t`` specifies the number of time points to evaluate
+    the solution at between the start and end times.
+
+    **Method output**
+
+    The output is the solution of the ODE with the given initial condition, which is a numpy
+    array of shape (num_t, 3).
+
+    Parameters
+    ----------
+    flow_field_dict
+        Dictionary with arrays defining a vector field evaluated on a mesh grid.
+    init
+        Initial condition for the trajectory.
+    t_span
+        Time span for the ODE solver as [t0, tf].
+    num_t
+        Number of time points to evaluate the solution at.
+
+    Returns
+    -------
+    :
+        Solution trajectory in 3D state space for the given initial condition and time span.
     """
     # turn flow field into callable function (works via interpolation)
     my_flow = get_callable_vector_field(flow_field_dict)
@@ -389,18 +445,19 @@ def solve_ddff_ode(
 
 def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
     """
-    Interpolate a trajectory in ND space to get
-    n_points evenly spaced points along the trajectory.
+    Obtain points along a curve equally spaced by arc length.
 
-    Inputs:
-    - traj: trajectory in ND space
-        - shape (num_t, num_dimensions)
-    - n_points: number of points to interpolate to (default is 5)
+    Parameters
+    ----------
+    traj
+        Curve in n-dimensional space, shape (num_t, num_dimensions).
+    n_points
+        Number of equally spaced points to interpolate along the curve.
 
-    Outputs:
-    - interpolated_points: interpolated points along the trajectory
-        - shape (n_points, num_dimensions),
-        - equally spaced by arc length
+    Returns
+    -------
+    :
+        Interpolated points along the curve, shape (n_points, num_dimensions).
     """
     ndim = traj.shape[1]  # number of dimensions
 
