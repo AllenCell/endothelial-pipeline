@@ -1,0 +1,7 @@
+name: diffae_finetuned_fixed_live_registration
+workflow: register_paired_images
+parameters: {}
+locations:
+  registered_images:
+    fmsid: 321afb25725842098489d2391dc43016
+    s3uri: null

@@ -6,4 +6,4 @@ parameters:
   output_dir: null
 locations:
   20250214_pairedPreFixation:
-    path: /allen/aics/users/julie.dixon/projects/cellsmap/results/2025-10-13/IF_integration/live_fixed_resolution_1/20250214_070e32c7355a40a288df2e68ae19adbc_P{{position}}_0_0_aligned_paired_bf.ome.tiff
+    path: /allen/aics/users/julie.dixon/projects/cellsmap/results/2025-10-14/IF_integration/live_fixed_resolution_1/20250214_070e32c7355a40a288df2e68ae19adbc_P{{position}}_0_0_aligned_paired_bf.ome.tiff
