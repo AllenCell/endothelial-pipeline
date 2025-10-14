@@ -63,8 +63,6 @@ for dataset_name in datasets:
 
 df = pd.DataFrame(data)
 
-# %%
-
 df.to_csv(out_dir / f"tiff_to_zarr_conversion_{IMAGE_MANIFEST}.csv", index=False)
 
 # %%
