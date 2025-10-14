@@ -22,7 +22,7 @@ from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES
 def _kramers_moyal_train_test_one_dataset(
     df_proj: pd.DataFrame,
     dataset_name: str,
-    pcs: list,
+    pc_axes: list,
     num_bins: list,
     dt: float,
     train_frac: float,
@@ -77,8 +77,8 @@ def _kramers_moyal_train_test_one_dataset(
     # we want from the resulting dataframe
     # e.g., if we are just analyzing the first two PCs,
     # we want to extract columns 'pc_1' and 'pc_2'
-    ndim = len(pcs)
-    pc_column_names = [DIFFAE_PC_COLUMN_NAMES[pc] for pc in pcs]
+    ndim = len(pc_axes)
+    pc_column_names = [DIFFAE_PC_COLUMN_NAMES[pc] for pc in pc_axes]
 
     # split out data by flow condition
     df_by_flow, shear_list = split_dataset_by_flow(df_proj, load_dataset_config(dataset_name))
@@ -122,7 +122,7 @@ def _kramers_moyal_train_test_one_dataset(
 
         # plot drift and diffusion estimates
         kmc = np.concatenate([drift_km_, diff_km_], axis=-1).T
-        fig = feature_viz.plot_km(centers, kmc, pcs, shear_list[j])[0]
+        fig = feature_viz.plot_km(centers, kmc, pc_axes, shear_list[j])[0]
         save_plot_to_path(
             fig,
             fig_savedir,
@@ -131,7 +131,7 @@ def _kramers_moyal_train_test_one_dataset(
 
         # quiver and streamplot of drift vector field
         if ndim == 2:
-            fig = feature_viz.plot_km_drift_2d(centers, kmc, pcs, shear_list[j])[0]
+            fig = feature_viz.plot_km_drift_2d(centers, kmc, pc_axes, shear_list[j])[0]
             save_plot_to_path(
                 fig,
                 fig_savedir,
@@ -175,7 +175,7 @@ def build_kramers_moyal_train_test(
     dataset_names: list[str],
     manifest: DataframeManifest,
     pca: PCA,
-    pcs: list[int],
+    pc_axes: list[int],
     num_bins: list[int],
     dt: float,
     fig_savedir: Path,
@@ -245,7 +245,7 @@ def build_kramers_moyal_train_test(
             _kramers_moyal_train_test_one_dataset(
                 df_proj,
                 dataset_name,
-                pcs,
+                pc_axes,
                 num_bins,
                 dt,
                 train_frac,
