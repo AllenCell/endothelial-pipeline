@@ -42,7 +42,7 @@ for dataset_name in datasets:
             )
 
         else:
-            seg_dir = location.path.parent
+            seg_dir = str(location.path.parent) + "/"
             original_zarr = get_zarr_file_for_position(dataset_config, position)
             save_path = Path(ZARR_SEG_PATH) / original_zarr.name
             duration = dataset_config.duration
