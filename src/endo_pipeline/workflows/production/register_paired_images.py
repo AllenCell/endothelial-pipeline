@@ -122,7 +122,7 @@ def main(
     # append to dataframe manifest or create new one if it doesn't exist already
     manifest_name = "diffae_finetuned_fixed_live_registration"
     manifest = create_dataframe_manifest(manifest_name, __file__)
-    manifest.locations["registered_images"] = DataframeLocation(fmsid=fmsid)
+    manifest.locations["20250214_pairedPreFixation"] = DataframeLocation(fmsid=fmsid)
     save_dataframe_manifest(manifest)
 
     # concatenate the aligned images and save them as multi-channel tiff files
