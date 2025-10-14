@@ -10,8 +10,8 @@ TAGS = ["diffae_features", "visualization"]
 def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    exclude_cell_piling: Annotated[bool, Parameter(negative="--include-cell-piling")] = True,
     dataset_collection_name: str = "pca_reference",
+    exclude_cell_piling: Annotated[bool, Parameter(negative="--include-cell-piling")] = True,
 ) -> None:
     """Visualize key attributes of a fit PCA model."""
     import logging
