@@ -2,9 +2,9 @@ TAGS = ["validation"]
 
 
 def main(
-    model_manifest_name="diffae_baseline_include_cell_piling",
-    run_name="20250918_no_log_norm",
-    dataset_name="20250618_20X",
+    model_manifest_name: str = "diffae_baseline_include_cell_piling",
+    run_name: str = "20250918_no_log_norm",
+    dataset_name: str = "20250618_20X",
 ) -> None:
     """Validate filtering of annotated timepoints and positions from a feature dataframe."""
     import logging
