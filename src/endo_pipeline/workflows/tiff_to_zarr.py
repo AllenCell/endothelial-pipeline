@@ -17,10 +17,10 @@ log = logging.getLogger(__name__)
 
 # %%
 IMAGE_MANIFEST = "nuclear_labelfree_seg"
+CHANNEL_NAME = "NUC_SEG"
 ZARR_SEG_PATH = (
     f"//allen/aics/endothelial/morphological_features/segmentations/{IMAGE_MANIFEST}_zarr/"
 )
-
 out_dir = get_output_path("tiff_to_zarr")
 
 # %%
@@ -30,6 +30,9 @@ datasets = list_datasets_with_images(image_manifest)
 data = []
 
 for dataset_name in datasets:
+    if dataset_name in ["20241120_20X", "20241217_20X"]:
+        continue
+
     dataset_config = load_dataset_config(dataset_name)
     for position in dataset_config.zarr_positions:
 
@@ -42,9 +45,9 @@ for dataset_name in datasets:
             )
 
         else:
-            seg_dir = str(location.path.parent) + "/"
+            seg_dir = location.path.parent
             original_zarr = get_zarr_file_for_position(dataset_config, position)
-            save_path = Path(ZARR_SEG_PATH) / original_zarr.name
+            save_path = Path(ZARR_SEG_PATH) / original_zarr.parent.name / original_zarr.name
             duration = dataset_config.duration
 
             data.append(
@@ -54,6 +57,7 @@ for dataset_name in datasets:
                     "tiff_seg_dir": str(seg_dir),
                     "save_zarr_path": str(save_path),
                     "duration": duration,
+                    "channel_name": CHANNEL_NAME,
                 }
             )
 
