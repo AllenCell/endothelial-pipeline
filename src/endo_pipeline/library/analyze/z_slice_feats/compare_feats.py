@@ -42,7 +42,7 @@ def feature_density(
     feature: str,
     xlim: np.ndarray,
     title: str | None = None,
-) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
+) -> tuple[plt.Figure, plt.Axes]:
     """
     Plot the probability density distribution of a feature for each position in the DataFrame.
 

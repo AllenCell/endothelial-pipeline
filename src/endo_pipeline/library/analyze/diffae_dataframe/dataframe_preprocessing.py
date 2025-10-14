@@ -1,4 +1,5 @@
 import logging
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -64,7 +65,8 @@ def remove_annotated_timepoints_and_positions(
     # filter dataframe to exclude annotated timepoints
     df_filtered_list = []
     for position, df_position in dataframe_exclude_positions.groupby(POSITION_COLUMN_NAME):
-        position_as_int = int(position[1:])  # need this because positions are strings like "P0"
+        # need to do this for now as position is saved as string 'P[int]'
+        position_as_int = int(cast(str, position)[1:])
         exclude_frames_for_position = exclude_frames.get(position_as_int, [])
         df_position_filtered = df_position[
             ~df_position[TIMEPOINT_COLUMN_NAME].isin(exclude_frames_for_position)
