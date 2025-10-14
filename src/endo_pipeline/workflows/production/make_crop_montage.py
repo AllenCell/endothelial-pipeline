@@ -1,3 +1,7 @@
+from typing import Annotated
+
+from cyclopts import Parameter
+
 from endo_pipeline.cli import Datasets
 from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
@@ -8,6 +12,7 @@ def main(
     datasets: Datasets | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    exclude_cell_piling: Annotated[bool, Parameter(negative="--include-cell-piling")] = True,
     pc_axis: int = 1,
     pc_val: float = 0.25,
     frame_range: list[int] | None = None,
@@ -29,6 +34,8 @@ def main(
         Name of the model manifest containing the run to load features from.
     run_name
         Name of the specific model run to load featuref for. If None, uses the most recent run.
+    exclude_cell_piling
+        True to exclude timepoints with cell piling to fit the PCA model, False to include them.
     pc_axis
         The principal component axis to use for filtering the images (0 for PC1, 1 for PC2, etc.)
     pc_val
@@ -55,11 +62,10 @@ def main(
     )
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
+        get_most_recent_run_name,
         load_dataframe_manifest,
         load_model_manifest,
     )
-
-    fig_savedir = get_output_path("crop_visualization", include_timestamp=False)
 
     # Default list of datasets if not provided. Otherwise, use the provided list.
     if datasets is None:
@@ -69,13 +75,22 @@ def main(
 
     # get dataframe manifest corresponding to the model that generated the features
     model_manifest = load_model_manifest(model_manifest_name)
+    run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
+        model_manifest, run_name_, crop_pattern="grid"
+    )
+    fig_savedir = get_output_path(
+        "crop_visualization",
+        model_manifest_name,
+        run_name_,
+        "exclude_cell_piling" if exclude_cell_piling else "include_cell_piling",
     )
 
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
-    df, pca = load_data_for_montage(dataset_list, dataframe_manifest)
+    df, pca = load_data_for_montage(
+        dataset_list, dataframe_manifest, exclude_cell_piling=exclude_cell_piling
+    )
 
     df_filtered = filter_dataframe(
         df,
