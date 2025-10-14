@@ -1,3 +1,4 @@
+# %%
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe import remove_annotated_timepoints_and_positions
 from endo_pipeline.manifests import (
