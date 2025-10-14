@@ -58,7 +58,7 @@ def evaluate_model_paired_fixed_live(
     # get path to aligned data
     algined_image_manifest = load_dataframe_manifest("diffae_finetuned_fixed_live_registration")
     aligned_image_df_location = get_dataframe_location_for_dataset(
-        algined_image_manifest, "registered_images"
+        algined_image_manifest, "20250214_pairedPreFixation"
     )
     data_save_location = resolve_dataframe_location(aligned_image_df_location)
 
