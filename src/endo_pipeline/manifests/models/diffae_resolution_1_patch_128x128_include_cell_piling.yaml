@@ -12,7 +12,7 @@ parameters:
   - 20250827_20X
   crop_size: 128
   resolution_level: 1
-  include_cell_piling: true
+  exclude_cell_piling: false
 locations:
   diffae_20251013_235811:
     mlflowid: null

@@ -12,7 +12,7 @@ parameters:
   - 20250827_20X
   crop_size: 128
   resolution_level: 1
-  include_cell_piling: true
+  exclude_cell_piling: false
 locations:
   20250918_no_log_norm:
     mlflowid: dca645622bd44bd59d71d2e608cda2a3

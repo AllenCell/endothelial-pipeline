@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 
 def remove_annotated_timepoints_and_positions(
     dataframe: pd.DataFrame,
-    include_cell_piling: bool = True,
-    include_not_steady_state: bool = True,
+    remove_cell_piling: bool = True,
+    remove_not_steady_state: bool = True,
 ) -> pd.DataFrame:
     """
     Remove annotated timepoints from a dataframe of DiffAE features for one dataset.
@@ -32,10 +32,10 @@ def remove_annotated_timepoints_and_positions(
     ----------
     dataframe
         Dataframe of features for one dataset.
-    include_cell_piling
-        True to include timepoints annotated as "cell_piling", False to exclude them.
-    include_not_steady_state
-        True to include timepoints annotated as "not_steady_state", False to exclude them.
+    remove_cell_piling
+        True to remove timepoints annotated as "cell_piling", False to keep them.
+    remove_not_steady_state
+        True to remove timepoints annotated as "not_steady_state", False to keep them.
 
     Returns
     -------
@@ -52,9 +52,7 @@ def remove_annotated_timepoints_and_positions(
     dataset_config = load_dataset_config(dataset_name)
     only_include_positions = get_include_positions(dataset_config)
     only_include_positions_str = [f"P{pos}" for pos in only_include_positions]
-    exclude_frames = get_exclude_frames(
-        dataset_config, include_cell_piling, include_not_steady_state
-    )
+    exclude_frames = get_exclude_frames(dataset_config, remove_cell_piling, remove_not_steady_state)
     if dataframe[POSITION_COLUMN_NAME].nunique() != len(dataset_config.zarr_positions):
         logger.warning("Expected dataframe to contain all positions in dataset, but it does not.")
 
@@ -198,8 +196,8 @@ def get_dataframe_for_dynamics_workflows(
     manifest: DataframeManifest,
     pca: PCA | None = None,
     remove_annotations: bool = True,
-    include_cell_piling: bool = False,
-    include_not_steady_state: bool = False,
+    exclude_cell_piling: bool = True,
+    exclude_not_steady_state: bool = True,
 ) -> pd.DataFrame:
     """
     Load DiffAE dataframe data projected onto given PC axes for downstream
@@ -216,10 +214,10 @@ def get_dataframe_for_dynamics_workflows(
         PCA model to fit to feature data. If None, do not project feature data.
     remove_annotations
         Whether to generally remove annotated timepoints and positions after loading.
-    include_cell_piling
-        True to include timepoints annotated as "cell_piling", False to exclude them.
-    include_not_steady_state
-        True to include timepoints annotated as "not_steady_state", False to exclude them.
+    exclude_cell_piling
+        True to remove timepoints annotated as "cell_piling", False to keep them.
+    exclude_not_steady_state
+        True to remove timepoints annotated as "not_steady_state", False to keep them.
 
     Returns
     -------
@@ -235,8 +233,8 @@ def get_dataframe_for_dynamics_workflows(
     if remove_annotations:
         df_filtered = remove_annotated_timepoints_and_positions(
             df,
-            include_cell_piling=include_cell_piling,
-            include_not_steady_state=include_not_steady_state,
+            exclude_cell_piling,
+            exclude_not_steady_state,
         )
     else:
         df_filtered = df

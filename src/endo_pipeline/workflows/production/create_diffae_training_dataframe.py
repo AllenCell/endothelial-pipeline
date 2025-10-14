@@ -7,7 +7,7 @@ TAGS = ["diffae_model_training"]
 
 def main(
     resolution_level: int = 1,
-    include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = True,
+    exclude_cell_piling: Annotated[bool, Parameter(negative="--include-cell-piling")] = True,
 ) -> None:
     """
     Generate dataframes with paths to zarr files for training a DiffAE model.
@@ -31,14 +31,14 @@ def main(
 
     **Cell piling exclusion**
 
-    By default, timepoints marked as having cell piling annotations are included in the training
-    and validation datasets (``include_cell_piling`` set to ``True``). This behavior can be changed
-    by using the command line flag `--exclude-cell-piling`. This allows for toggling between
+    By default, timepoints marked as having cell piling annotations are not included in the training
+    and validation datasets (``exclude_cell_piling`` set to ``True``). This behavior can be changed
+    by using the command line flag `--include-cell-piling`. This allows for toggling between
     training a model that "sees" cell piling versus one that does not.
 
-    When ``include_cell_piling`` is set to true, the output dataframe manifest name will include
-    the suffix ``_include_cell_piling``. When set to false, the suffix will be
-    ``_exclude_cell_piling``.
+    When ``exclude_cell_piling`` is set to True, the output dataframe manifest name will include
+    the suffix ``_exclude_cell_piling``. When set to False, the suffix will be
+    ``_include_cell_piling``.
 
     **Workflow demo**
 
@@ -51,16 +51,8 @@ def main(
     ----------
     resolution_level
         The resolution level of the zarr files to load for training.
-    include_cell_piling
-        Include cell piling timepoints if True, exclude them if False.
-
-
-    Returns
-    -------
-    :
-        Uploads the training and validation dataframes to FMS and saves a
-        DataframeManifest with DatasetLocation objects containing the FMS IDs of
-        the uploaded files.
+    exclude_cell_piling
+        Exclude cell piling timepoints if True, include them if False.
     """
 
     import pandas as pd
@@ -91,7 +83,7 @@ def main(
             dataset_config, z_slice_offsets=Z_SLICE_OFFSETS
         )
         only_include_positions = get_include_positions(dataset_config)
-        exclude_frames = get_exclude_frames(dataset_config, include_cell_piling=include_cell_piling)
+        exclude_frames = get_exclude_frames(dataset_config, exclude_cell_piling=exclude_cell_piling)
 
         # When running workflow in demo mode, only use the first position from each
         # dataset and first two timepoints to speed up the data loading process (if
@@ -135,10 +127,10 @@ def main(
     name_suffix = "_test_workflow" if DEMO_MODE else ""
 
     # add "_exclude_cell_piling" to manifest name if cell piling is excluded
-    if include_cell_piling:
-        name_suffix = f"_include_cell_piling{name_suffix}"
-    else:
+    if exclude_cell_piling:
         name_suffix = f"_exclude_cell_piling{name_suffix}"
+    else:
+        name_suffix = f"_include_cell_piling{name_suffix}"
 
     # Upload dataframes to FMS, then build and save out DataframeManifest
     # object with FMS IDs to be used in the DiffAE model training script.
@@ -149,7 +141,7 @@ def main(
         val,
         resolution_level,
         Z_SLICE_OFFSETS,
-        include_cell_piling,
+        exclude_cell_piling,
         dataset_config_list,
         output_savedir,
         manifest_name,

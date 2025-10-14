@@ -10,7 +10,7 @@ TAGS = ["diffae_features", "visualization"]
 def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
+    exclude_cell_piling: Annotated[bool, Parameter(negative="--include-cell-piling")] = True,
     dataset_collection_name: str = "pca_reference",
 ) -> None:
     """Visualize key attributes of a fit PCA model."""
@@ -55,7 +55,7 @@ def main(
     pca = fit_pca(
         dataset_collection_name=dataset_collection_name,
         dataframe_manifest_name=dataframe_manifest_name,
-        include_cell_piling=include_cell_piling,
+        exclude_cell_piling=exclude_cell_piling,
     )
 
     # plot cumulative explained variance ratio of PCA components
@@ -96,7 +96,7 @@ def main(
         dataset_names,
         dataframe_manifest,
         pca,
-        include_cell_piling=include_cell_piling,
+        exclude_cell_piling=exclude_cell_piling,
     )
     save_plot_to_path(fig, fig_savedir, "pca_scatter_ref")
 

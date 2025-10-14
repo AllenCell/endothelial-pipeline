@@ -5,7 +5,7 @@ parameters:
   z_slice_offsets:
   - 4
   - 11
-  include_cell_piling: true
+  exclude_cell_piling: false
 locations:
   training:
     fmsid: 11ae94e9ff654a2fbdc67701a6f34547

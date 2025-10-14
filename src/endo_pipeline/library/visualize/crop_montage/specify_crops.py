@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 def load_data_for_montage(
     dataset_name_list: list[str],
     dataframe_manifest: DataframeManifest,
-    include_cell_piling: bool = True,
+    exclude_cell_piling: bool = True,
 ) -> tuple[pd.DataFrame, PCA]:
     """
     Load Diff AE feature DataFrames for one or more datasets and optionally apply PCA.
@@ -38,8 +38,8 @@ def load_data_for_montage(
         List of dataset names to load for montage.
     dataframe_manifest
         Dataframe manifest corresponding to features to load.
-    include_cell_piling
-        Whether to include cell-piling crops in the DataFrame.
+    exclude_cell_piling
+        True to exclude cell piling timepoints, False to include them.
 
     Returns
     -------
@@ -51,7 +51,7 @@ def load_data_for_montage(
 
     pca = fit_pca(
         dataframe_manifest_name=dataframe_manifest.name,
-        include_cell_piling=include_cell_piling,
+        exclude_cell_piling=exclude_cell_piling,
     )
 
     df_all = pd.concat(
@@ -60,8 +60,8 @@ def load_data_for_montage(
                 name,
                 dataframe_manifest,
                 pca,
-                include_cell_piling=include_cell_piling,
-                include_not_steady_state=True,
+                exclude_cell_piling=exclude_cell_piling,
+                exclude_not_steady_state=False,
             )
             for name in dataset_name_list
         ],
