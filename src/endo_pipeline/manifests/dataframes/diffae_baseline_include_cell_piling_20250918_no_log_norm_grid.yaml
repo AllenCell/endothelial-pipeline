@@ -1,10 +1,13 @@
 name: diffae_baseline_include_cell_piling_20250918_no_log_norm_grid
 workflow: apply_diffae_grid
 parameters:
-  z_slice_offsets: [4, 11]
+  z_slice_offsets:
+  - 4
+  - 11
+  config_name: diffae_eval_no_log
 locations:
   20241120_20X:
-    fmsid: 69ab48ff53834cf48222376a2c093f6a
+    fmsid: e09f97d90f304b9a8ef2d5eed8bfc3e3
     s3uri: null
   20241217_20X:
     fmsid: 91eec90c29ff41f7832308750ab84e1b

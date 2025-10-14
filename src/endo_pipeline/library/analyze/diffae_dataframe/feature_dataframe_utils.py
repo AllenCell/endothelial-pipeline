@@ -2,6 +2,7 @@ import logging
 
 import numpy as np
 import pandas as pd
+from deprecated import deprecated  # type:ignore[import-untyped]
 
 from endo_pipeline.configs import DatasetConfig, get_frame_after_flow_change, load_dataset_config
 from endo_pipeline.settings import CROP_INDEX_COLUMN_NAME, TIMEPOINT_COLUMN_NAME
@@ -184,59 +185,22 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
     return traj_list, d_traj_list
 
 
-def get_timepoints_for_plotting_pcs(
-    list_of_datasets: list[DatasetConfig],
-    restrict_no_flow: bool = True,
-    no_flow_name: str = "20241217_20X",
-) -> dict:
+@deprecated(
     """
-    Get timepoints for plotting scatter plot in PC space of data used to fit PCA.
+This method is deprecated and will be removed. The recommended alternative is:
 
-    Used to remove later block of timepoints from the 20241217_20X no flow dataset for
-    generating "simplified" scatter plots for the 2025 SAC presentation.
-    """
-    # initialize dictionary to store timepoints for each dataset
-    timepoints_to_use = {}
+    from endo_pipeline.library.analyze.diffae_dataframe import (
+        remove_annotated_timepoints_and_positions,
+    )
 
-    for dataset_config in list_of_datasets:
-        # get range of valid timepoints for each dataset
-        # loaded from dataset config
-        valid_timepoints = dataset_config.valid_timepoints
-
-        # if no valid timepoints are specified, use all timepoints
-        if valid_timepoints is None:
-            timepoints_list = [[0, dataset_config.flow_conditions[-1].stop]]
-
-        # otherwise, get the start and stop timepoints
-        else:
-            starts = valid_timepoints.start
-            stops = valid_timepoints.stop
-            timepoints_list = []
-            for start, stop in zip(starts, stops, strict=True):
-                # hard coded because this is the no-flow dataset that
-                # we are using for fitting the PCs, and specifically
-                # the one with the two sets of timepoints
-                # if this changes, we can updated this to not be
-                # hardcoded (i.e., check if shear stress is 0 in config)
-                if dataset_config.name == no_flow_name and restrict_no_flow:
-                    # restrict to only first set of no flow timepoints
-                    if start == 0:
-                        timepoints_list.append([start, stop])
-                    else:
-                        continue
-                else:
-                    timepoints_list.append([start, stop])
-        timepoints_to_use[dataset_config.name] = timepoints_list
-    return timepoints_to_use
-
-
+    df_valid = remove_annotated_timepoints_and_positions(
+        df, include_cell_piling=False, include_not_steady_state=False
+    )
+"""
+)
 def get_valid_subset(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
     """
     Filter dataframe to only include valid timepoints for a given dataset.
-
-    **Input dataframe**
-
-    The input dataframe should have a column TIMEPOINT_COLUMN_NAME indicating the timepoint of each crop.
 
     Parameters
     ----------

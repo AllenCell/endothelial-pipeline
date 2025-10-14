@@ -9,7 +9,7 @@ from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
-from .dataframe_preprocessing import remove_annotated_timepoints
+from .dataframe_preprocessing import remove_annotated_timepoints_and_positions
 from .feature_dataframe_utils import get_feature_column_names
 
 logger = logging.getLogger(__name__)
@@ -65,7 +65,7 @@ def fit_pca(
     for location in locations:
         dataframe = load_dataframe(location)
         if remove_annotations:
-            dataframe_filtered = remove_annotated_timepoints(
+            dataframe_filtered = remove_annotated_timepoints_and_positions(
                 dataframe, include_cell_piling=include_cell_piling
             )
         else:

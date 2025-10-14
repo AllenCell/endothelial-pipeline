@@ -20,7 +20,7 @@ from .feature_dataframe_utils import get_dataset_descriptions, get_feature_colum
 logger = logging.getLogger(__name__)
 
 
-def remove_annotated_timepoints(
+def remove_annotated_timepoints_and_positions(
     dataframe: pd.DataFrame,
     include_cell_piling: bool = True,
     include_not_steady_state: bool = True,
@@ -233,7 +233,7 @@ def get_dataframe_for_dynamics_workflows(
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
     if remove_annotations:
-        df_filtered = remove_annotated_timepoints(
+        df_filtered = remove_annotated_timepoints_and_positions(
             df,
             include_cell_piling=include_cell_piling,
             include_not_steady_state=include_not_steady_state,
