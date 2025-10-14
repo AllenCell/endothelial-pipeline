@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,8 @@ from endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE
 
+logger = logging.getLogger(__name__)
+
 
 def _ddff_model_analysis(
     dataset_name: str,
@@ -32,6 +35,7 @@ def _ddff_model_analysis(
     fig_savedir: Path,
     vtk_savedir: Path,
     output_savedir: Path,
+    pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
 ) -> np.ndarray | list[np.ndarray]:
     """
     Get 3D flow field (drift coefficient) from data
@@ -73,7 +77,6 @@ def _ddff_model_analysis(
     """
     # load dataframe and get top 3 PCs
     df = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
-    pc_column_names = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
