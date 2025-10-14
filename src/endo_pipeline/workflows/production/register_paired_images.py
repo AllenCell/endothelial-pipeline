@@ -32,11 +32,20 @@ def main(
 
     from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.io import build_fms_annotations, upload_file_to_fms
     from endo_pipeline.library.process.registration import (
         align_and_save_paired_images,
         concat_and_save_aligned_image_pairs,
+        get_paired_dataset_dict,
     )
-    from endo_pipeline.manifests import ImageLocation, ImageManifest, save_image_manifest
+    from endo_pipeline.manifests import (
+        DataframeLocation,
+        ImageLocation,
+        ImageManifest,
+        create_dataframe_manifest,
+        save_dataframe_manifest,
+        save_image_manifest,
+    )
     from endo_pipeline.settings import Z_SLICE_OFFSETS
 
     logger = logging.getLogger(__name__)
@@ -89,6 +98,32 @@ def main(
         num_datasets_to_align=num_datasets_to_align,
         num_positions_to_align=num_positions_to_align,
     )
+
+    # save the dataframe as a parquet file locally in results
+    output_filename = "diffae_finetuned_fixed_live_registration.parquet"
+    output_path = save_path / output_filename
+    df.to_parquet(output_path, index=False)
+
+    # build annotations and upload to FMS
+    dataset_pairs = get_paired_dataset_dict(dataset_pair_type)
+    moving_dataset_config = load_dataset_config(dataset_pairs["moving"][0])
+    target_dataset_config = load_dataset_config(dataset_pairs["target"][0])
+    fms_annotations = build_fms_annotations(
+        [target_dataset_config, moving_dataset_config],
+        additional_notes="Dataframe of aligned target and moving    \
+            (bf and fluor) images from paired fixed and live dataset.",
+    )
+    fmsid = upload_file_to_fms(
+        output_path,
+        annotations=fms_annotations,
+        file_type="parquet",
+    )
+
+    # append to dataframe manifest or create new one if it doesn't exist already
+    manifest_name = "diffae_finetuned_fixed_live_registration"
+    manifest = create_dataframe_manifest(manifest_name, __file__)
+    manifest.locations["registered_images"] = DataframeLocation(fmsid=fmsid)
+    save_dataframe_manifest(manifest)
 
     # concatenate the aligned images and save them as multi-channel tiff files
     image_save_paths: list[Path] = []
