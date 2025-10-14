@@ -32,9 +32,13 @@ def main(
     **Cell piling exclusion**
 
     By default, timepoints marked as having cell piling annotations are included in the training
-    and validation datasets. This behavior can be changed by using the command line flag
-    `--exclude-cell-piling`. This allows for toggling between training a model that "sees" cell
-    piling versus one that does not.
+    and validation datasets (``include_cell_piling`` set to ``True``). This behavior can be changed
+    by using the command line flag `--exclude-cell-piling`. This allows for toggling between
+    training a model that "sees" cell piling versus one that does not.
+
+    When ``include_cell_piling`` is set to true, the output dataframe manifest name will include
+    the suffix ``_include_cell_piling``. When set to false, the suffix will be
+    ``_exclude_cell_piling``.
 
     **Workflow demo**
 
