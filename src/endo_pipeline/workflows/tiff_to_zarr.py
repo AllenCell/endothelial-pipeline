@@ -45,6 +45,7 @@ for dataset_name in datasets:
             seg_dir = location.path.parent
             original_zarr = get_zarr_file_for_position(dataset_config, position)
             save_path = Path(ZARR_SEG_PATH) / original_zarr.name
+            duration = dataset_config.duration
 
             data.append(
                 {
@@ -52,6 +53,7 @@ for dataset_name in datasets:
                     "original_zarr": original_zarr,
                     "tiff_seg_dir": str(seg_dir),
                     "save_zarr_path": str(save_path),
+                    "duration": duration,
                 }
             )
 
