@@ -8,7 +8,6 @@ from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
-    get_pc_column_names,
 )
 from endo_pipeline.library.analyze.numerics import (
     get_3d_bounds_from_data,
@@ -19,7 +18,12 @@ from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     plot_principal_component_histogram,
 )
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import NUM_BINS_CROP_HIST, TIMEPOINT_COLUMN_NAME
+from endo_pipeline.settings import (
+    DIFFAE_PC_COLUMN_NAMES,
+    NUM_BINS_CROP_HIST,
+    NUM_PCS_TO_ANALYZE,
+    TIMEPOINT_COLUMN_NAME,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +123,7 @@ def filter_dataframe(
         df_all,
         NUM_BINS_CROP_HIST,
         bin_limits,
-        feat_cols=get_pc_column_names(df_all, pc_axes=[0, 1, 2]),
+        feat_cols=DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
     )
 
     if plot_heatmap:

@@ -4,12 +4,14 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from endo_pipeline.library.analyze.diffae_dataframe import (
-    get_dataframe_for_dynamics_workflows,
-    get_pc_column_names,
-)
+from endo_pipeline.library.analyze.diffae_dataframe import get_dataframe_for_dynamics_workflows
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import DATASET_COLUMN_NAME, TIMEPOINT_COLUMN_NAME
+from endo_pipeline.settings import (
+    DATASET_COLUMN_NAME,
+    DIFFAE_PC_COLUMN_NAMES,
+    NUM_PCS_TO_ANALYZE,
+    TIMEPOINT_COLUMN_NAME,
+)
 
 
 def get_bins(
@@ -108,7 +110,7 @@ def get_3d_bounds_from_data(
         for each dimension in the 3D state space
         - format: [[min_x, max_x], [min_y, max_y], [min_z, max_z]]
     """
-    num_dims = 3
+    num_dims = NUM_PCS_TO_ANALYZE  # always 3 for now
     # initialize bounds
     bounds_ = [[np.inf, -np.inf] for _ in range(num_dims)]
 
@@ -130,7 +132,7 @@ def get_3d_bounds_from_data(
             exclude_not_steady_state=exclude_not_steady_state,
         )
         # get column names for features
-        pc_column_names = get_pc_column_names(df, pc_axes=[0, 1, 2])
+        pc_column_names = DIFFAE_PC_COLUMN_NAMES[:num_dims]
         for j in range(num_dims):
             candidate_min = df[pc_column_names[j]].min()
             candidate_max = df[pc_column_names[j]].max()
@@ -170,7 +172,8 @@ def _get_histogram_by_component_one_dataset(
     """
     if feat_cols is None:
         # use all PCA feature columns in the dataframe
-        feat_cols = get_pc_column_names(df)
+        feat_cols_all = DIFFAE_PC_COLUMN_NAMES
+        feat_cols = [col for col in feat_cols_all if col in df.columns]
 
     num_feats = len(feat_cols)
     num_frames = df[TIMEPOINT_COLUMN_NAME].nunique()
@@ -228,7 +231,8 @@ def get_histogram_by_component(
     # get column names for extracting feature data for a single dataset
     if feat_cols is None:
         # use all PCA feature columns in the dataframe
-        feat_cols = get_pc_column_names(df)
+        feat_cols_all = DIFFAE_PC_COLUMN_NAMES
+        feat_cols = [col for col in feat_cols_all if col in df.columns]
 
     num_feats = len(feat_cols)
 

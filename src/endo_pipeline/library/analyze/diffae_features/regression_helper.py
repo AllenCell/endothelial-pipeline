@@ -9,7 +9,6 @@ from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe import (
     get_dataframe_for_dynamics_workflows,
-    get_pc_column_names,
     get_traj_and_diff,
     split_dataset_by_flow,
 )
@@ -17,13 +16,13 @@ from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from endo_pipeline.library.analyze.numerics import get_bins
 from endo_pipeline.library.visualize.diffae_features import feature_viz
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import TIMEPOINT_COLUMN_NAME
+from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, TIMEPOINT_COLUMN_NAME
 
 
 def _kramers_moyal_train_test_one_dataset(
     df_proj: pd.DataFrame,
     dataset_name: str,
-    pcs: list,
+    pc_axes: list,
     num_bins: list,
     dt: float,
     train_frac: float,
@@ -40,46 +39,52 @@ def _kramers_moyal_train_test_one_dataset(
     np.ndarray,
 ]:
     """
-    Generate train test sets for Kramers-Moyal coefficients
-    (drift and diffusion estimates) for one dataset.
-    This function is called by _build_kramers_moyal_train_test
-    in a loop over all datasets in the dataframe.
+    Generate train/test sets for regression on Kramers-Moyal estimates from one dataset.
 
-    Inputs:
-    - df_proj: pandas dataframe containing the dataset of interest,
-        projected onto all principal component axes
-        (change of basis, no dimensionality reduction)
-    - dataset_name: name of the dataset (used to split out data by
-        flow condition, acessed via data_config.yaml)
-    - pcs: list of principal component axes to project data onto for
-        Kramers-Moyal analysis (e.g., [0,1] for first two principal components)
-    - num_bins: list of number of bins to use for histogramming
-        data to compute the Kramers-Moyal coefficients
-        (conditional averages computed in each bin)
-    - dt: time step between data points
-        (used to compute Kramers-Moyal coefficients)
-    - train_frac: fraction of data to use for training
-    - fig_savedir: directory to save figures
-    - kernel_params: dictionary of parameters for kernel method
+    The first Kramers-Moyal coefficient corresponds to the drift, and the second to the diffusion.
 
-    Outputs:
-    - x_train: training data for Kramers-Moyal coefficients
-        (drift and diffusion estimates) from the given dataset
-    - x_test: test data for Kramers-Moyal coefficients from the given dataset
-    - y_train: training data for drift estimates from the given dataset
-    - y_test: test data for drift estimates from the given dataset
-    - v_train: training data for diffusion estimates from the given dataset
-    - v_test: test data for diffusion estimates from the given dataset
-    - u_train: training flow conditions (shear rates) from the given dataset
-    - u_test: test flow conditions from the given dataset
+    This function is called by ``_build_kramers_moyal_train_test`` in a loop over all datasets
+    being processed by the ``build_sde_train_test`` workflow.
+
+    **Method output**
+
+    This function returns the following outputs as a tuple:
+
+    - x_train: training set of pc coordinates for Kramers-Moyal estimates
+    - x_test: test set of pc coordinates for Kramers-Moyal estimates
+    - y_train: training set of drift estimates
+    - y_test: test set of drift estimates
+    - v_train: training set of diffusion estimates
+    - v_test: test set of diffusion estimates
+    - u_train: training set of flow conditions (shear stresses)
+    - u_test: test set of flow conditions (shear stresses)
+
+    Parameters
+    ----------
+    df_proj
+        Dataframe containing the PC features for a single dataset.
+    dataset_name
+        Name of the dataset (used to split out data by flow condition via dataset config).
+    pc_axes
+        List of principal component axes to use for analysis.
+    num_bins
+        List of number of bins to use for histogramming data.
+    dt
+        Time step between data points.
+    train_frac
+        Fraction of data to use for training in train/test split.
+    fig_savedir
+        Directory to save figures.
+    kernel_params
+        Dictionary of parameters for kernel regression method.
     """
 
     # for extracting just the axes (specified via PCs)
     # we want from the resulting dataframe
     # e.g., if we are just analyzing the first two PCs,
-    # we want to extract columns 'pc1' and 'pc2'
-    pc_column_names = get_pc_column_names(df_proj, pcs)
-    ndim = len(pcs)
+    # we want to extract columns 'pc_1' and 'pc_2'
+    ndim = len(pc_axes)
+    pc_column_names = [DIFFAE_PC_COLUMN_NAMES[pc] for pc in pc_axes]
 
     # split out data by flow condition
     df_by_flow, shear_list = split_dataset_by_flow(df_proj, load_dataset_config(dataset_name))
@@ -123,7 +128,7 @@ def _kramers_moyal_train_test_one_dataset(
 
         # plot drift and diffusion estimates
         kmc = np.concatenate([drift_km_, diff_km_], axis=-1).T
-        fig = feature_viz.plot_km(centers, kmc, pcs, shear_list[j])[0]
+        fig = feature_viz.plot_km(centers, kmc, pc_axes, shear_list[j])[0]
         save_plot_to_path(
             fig,
             fig_savedir,
@@ -132,7 +137,7 @@ def _kramers_moyal_train_test_one_dataset(
 
         # quiver and streamplot of drift vector field
         if ndim == 2:
-            fig = feature_viz.plot_km_drift_2d(centers, kmc, pcs, shear_list[j])[0]
+            fig = feature_viz.plot_km_drift_2d(centers, kmc, pc_axes, shear_list[j])[0]
             save_plot_to_path(
                 fig,
                 fig_savedir,
@@ -174,9 +179,9 @@ def _kramers_moyal_train_test_one_dataset(
 
 def build_kramers_moyal_train_test(
     dataset_names: list[str],
-    manifest: DataframeManifest,
+    dataframe_manifest: DataframeManifest,
     pca: PCA,
-    pcs: list[int],
+    pc_axes: list[int],
     num_bins: list[int],
     dt: float,
     fig_savedir: Path,
@@ -184,41 +189,49 @@ def build_kramers_moyal_train_test(
     kernel_params: dict | None = None,
 ) -> dict:
     """
-    Build train test sets for Kramers-Moyal coefficients
-    (drift and diffusion estimates) for all datasets in the dataframe df.
-    This function is called by the main function
-    in the workflow to generate the train test sets
-    for the regression model fitting and evaluation
+    Generate train/test sets for regression on Kramers-Moyal estimates from multiple datasets.
+
+    The first Kramers-Moyal coefficient corresponds to the drift, and the second to the diffusion.
+
+    This function is called by the ``main`` function in the workflow ``build_sde_train_test``
+    to generate the train/test sets for the regression model fitting and evaluation
     of the dynamical systems model for the Diff AE features.
 
-    Inputs:
-    - dataset_names: list of dataset names to use for Kramers-Moyal analysis
-    - manifest: manifest of model feature dataframes
-    - pca: PCA object used to project data onto principal component axes
-    - pcs: list of principal component axes to use for Kramers-Moyal analysis
-    - num_bins: list of number of bins to use for histogramming data to compute
-        the Kramers-Moyal coefficients
-        (conditional averages computed in each bin)
-    - dt: time step between data points
-        (used to compute Kramers-Moyal coefficients)
-    - fig_savedir: directory to save figures
-    - train_frac: fraction of data to use for training (default is 0.8)
-    - kernel_params: dictionary of parameters for kernel method
-        (default is None, which uses default parameters if method is 'kernel')
+    **Method output**
 
-    Outputs:
-    - out_dict: dictionary containing the following keys:
-        - 'X_train': training data for Kramers-Moyal coefficients
-            (drift and diffusion estimates)
-        - 'X_test': test data for Kramers-Moyal coefficients
-        - 'Y_train': training data for drift estimates
-        - 'Y_test': test data for drift estimates
-        - 'V_train': training data for diffusion estimates
-        - 'V_test': test data for diffusion estimates
-        - 'u_train': training flow conditions (shear rates)
-            - passed in as control variable
-        - 'u_test': test flow conditions
-    The train test sets are concatenated across all datasets in the dataframe.
+    This function returns a dictionary with the train/test split data as numpy arrays.
+    It contains the following keys/items:
+    - "x_train": training set of pc coordinates for Kramers-Moyal estimates
+    - "x_test": test set of pc coordinates for Kramers-Moyal estimates
+    - "y_train": training set of drift estimates
+    - "y_test": test set of drift estimates
+    - "v_train": training set of diffusion estimates
+    - "v_test": test set of diffusion estimates
+    - "u_train": training set of flow conditions (shear stresses)
+    - "u_test": test set of flow conditions (shear stresses)
+
+    These arrays are concatenated across all datasets specified in `dataset_names`.
+
+    Parameters
+    ----------
+    dataset_names
+        List of dataset names to process.
+    dataframe_manifest
+        Dataframe manifest containing locations of the feature dataframes.
+    pca
+        PCA object for projecting feature data onto principal component axes.
+    pc_axes
+        List of principal component axes to use for analysis.
+    num_bins
+        List of number of bins to use for histogramming data.
+    dt
+        Time step between data points.
+    fig_savedir
+        Directory to save figures.
+    train_frac
+        Fraction of data to use for training in train/test split.
+    kernel_params
+        Dictionary of parameters for kernel regression method.
     """
 
     # initialize lists to store train test sets for each dataset
@@ -239,14 +252,14 @@ def build_kramers_moyal_train_test(
         # load DiffAE feature data from this one dataset
         # and get features projected onto principal component axes
         # as defined by fit PCA object pca.
-        df_proj = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca=pca)
+        df_proj = get_dataframe_for_dynamics_workflows(dataset_name, dataframe_manifest, pca=pca)
 
         # get train test split for this dataset
         x_train, x_test, y_train, y_test, v_train, v_test, u_train, u_test = (
             _kramers_moyal_train_test_one_dataset(
                 df_proj,
                 dataset_name,
-                pcs,
+                pc_axes,
                 num_bins,
                 dt,
                 train_frac,
@@ -303,20 +316,35 @@ def build_kramers_moyal_train_test(
 
 def masked_vector_field(f: np.ndarray, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
-    For the vector field f over grid x, mask out
-    f at points x where f(x) is NaN.
+    Mask out values of a vector field that are NaN.
 
-    Inputs:
-    - f: numpy array (n_1 x n_2 x ... x n_ndim x ndim),
-        ndim-D vector field evaluated on a meshgrid
-    - x: numpy array (n_1 x n_2 x ... x n_ndim x ndim),
-        ndim-D meshgrid where vector field is evaluated
+    **Method inputs**
 
-    Outputs:
-    - f_mask: numpy array (m x ndim), masked vector field
-        flattened to 2D array (m = number of non-NaN points)
-    - x_mask: numpy array (m x ndim), masked meshgrid
-        flattened to 2D array (m = number of non-NaN points)
+    The input vector field is assumed to be evaluated on a meshgrid, with the corresponding
+    array having shape (n_1, n_2, ..., n_ndim, ndim), where ndim is the number of dimensions
+    of the vector field, and n_i is the number of points along dimension i.
+
+    The array x is the corresponding meshgrid, with the same shape as f. That is, f is the
+    array obtained from evaluating the vector field on the meshgrid x.
+
+    **Method outputs**
+
+    The output arrays are flattened to shape (m, ndim), where m is the number of non-NaN points
+    in the input vector field f.
+
+    Parameters
+    ----------
+    f
+        Array containing the vector field values on a meshgrid.
+    x
+        Array containing the meshgrid points corresponding to f.
+
+    Returns
+    -------
+    :
+        The masked vector field values.
+    :
+        The corresponding meshgrid points.
     """
     # mask out NaN values in F
     mask = np.where(np.isfinite(f))
@@ -337,33 +365,33 @@ def train_test_all(
     seed: int = 47,
 ) -> tuple:
     """
-    Split feature data from a given dataset into training
-    and testing sets for each flow condition present in the dataset.
+    Create a train/test split of feature data for each flow condition in a dataset.
 
-    Inputs:
-    - x: list of numpy arrays, each array contains
-        the points in feature space
-        for a single flow condition
-    - drift: list of numpy arrays, each array contains
-        the drift estimates for each point in x
-        for a single flow condition
-    - diffusion: list of numpy arrays, each array contains
-        the diffusion estimates for each point in x
-        for a single flow condition
-    - train_frac: fraction of data to use for training
-        (default = 0.8)
-    - seed: random seed for train/test split
-        (default = 47)
+    **Method output**
 
-    Outputs:
-    - x_train: points in feature space corresponding to
-        the drift and diffusion estimates in the training sets
-    - x_test: points in feature space corresponding to
-        the drift and diffusion estimates in the test sets
-    - y_train: training data for drift estimates
-    - y_test: test data for drift estimates
-    - v_train: training data for diffusion estimates
-    - v_test: test data for diffusion estimates
+    This function returns the following outputs as a tuple:
+
+    - x_train: Concatenated training set of points in feature space
+    - x_test: Concatenated test set of points in feature space
+    - y_train: Concatenated training set of drift estimates
+    - y_test: Concatenated test set of drift estimates
+    - v_train: Concatenated training set of diffusion estimates
+    - v_test: Concatenated test set of diffusion estimates
+
+    where concatenation is done across all flow conditions.
+
+    Parameters
+    ----------
+    x
+        List of data points corresponding to the drift/diffusion estimates for each flow condition.
+    drift
+        List of drift estimates for each flow condition.
+    diffusion
+        List of diffusion estimates for each flow condition.
+    train_frac
+        Fraction of data to use for training in train/test split.
+    seed
+        Random seed for train/test split.
     """
     x_train = []
     x_test = []
@@ -403,26 +431,35 @@ def train_test_all(
 
 def save_train_test(train_test_dict: dict, savedir: Path) -> None:
     """
-    Save train test data to file in savedir, using `numpy.savez` function.
+    Save dictionary of train/test split arrays to specified directory.
 
-    Inputs:
-    - train_test_dict: dict, dictionary containing train and test data (numpy arrays).
-    - savedir: Path, directory to save the file.
+    This method uses the numpy ``savez`` function to save the dictionary of
+    arrays as a single .npz file.
 
-    Outputs:
-    - None, save the file to savedir.
+    Parameters
+    ----------
+    train_test_dict
+        Dictionary containing train and test data (numpy arrays).
+    savedir
+        Directory to save the file.
     """
     np.savez(savedir / "train_test_data", **train_test_dict)
 
 
 def load_train_test(file_path: Path) -> dict:
     """
-    Load train test data from file_path.
+    Load dictionary of train/test split arrays from specified file.
 
-    Inputs:
-    - file_path: Path, path to the file containing train test data.
+    This will typically be the .npz file saved by the ``save_train_test`` function.
 
-    Outputs:
-    - train_test_dict: dict, dictionary containing train and test data (numpy arrays).
+    Parameters
+    ----------
+    file_path
+        Path to the .npz file containing the train/test data.
+
+    Returns
+    -------
+    :
+        Dictionary containing train and test data (numpy arrays).
     """
     return dict(np.load(file_path, allow_pickle=True))

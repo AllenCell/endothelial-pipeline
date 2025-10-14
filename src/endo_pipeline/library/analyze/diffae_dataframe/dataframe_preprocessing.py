@@ -12,11 +12,13 @@ from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_fo
 from endo_pipeline.settings import (
     CROP_INDEX_COLUMN_NAME,
     DATASET_COLUMN_NAME,
+    DIFFAE_FEATURE_COLUMN_NAMES,
+    DIFFAE_PC_COLUMN_NAMES,
     POSITION_COLUMN_NAME,
     TIMEPOINT_COLUMN_NAME,
 )
 
-from .feature_dataframe_utils import get_dataset_descriptions, get_feature_column_names
+from .feature_dataframe_utils import get_dataset_descriptions
 
 logger = logging.getLogger(__name__)
 
@@ -159,10 +161,10 @@ def add_zarr_path(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def project_manifest_to_pcs(
+def project_features_to_pcs(
     df: pd.DataFrame,
     pca: PCA,
-    feat_cols: list[str] | None = None,
+    feat_cols: list[str] = DIFFAE_FEATURE_COLUMN_NAMES,
 ) -> pd.DataFrame:
     """
     Project feature data for crops from one dataset onto principal
@@ -179,15 +181,11 @@ def project_manifest_to_pcs(
     - df_: pd.DataFrame, DataFrame of feature data for crops from
         dataset dataset_name projected onto PCA axes
     """
-    # get names of feature columns to project onto PCA axes
-    if feat_cols is None:
-        feat_cols = get_feature_column_names(df)
-
     df_ = df.copy()  # make copy of DataFrame to avoid modifying original DataFrame
 
     # project feature data onto PCA axes, add new columns for each PC
     num_pcs = pca.components_.shape[0]  # number of principal components
-    pc_cols = [f"pc{pc+1}" for pc in range(num_pcs)]
+    pc_cols = DIFFAE_PC_COLUMN_NAMES[:num_pcs]  # names of PC columns
     df_.loc[:, pc_cols] = pca.transform(df_[feat_cols].values)
 
     return df_
@@ -250,7 +248,7 @@ def get_dataframe_for_dynamics_workflows(
 
     else:
         # project feature data onto PC axes
-        return project_manifest_to_pcs(df_with_crop, pca)
+        return project_features_to_pcs(df_with_crop, pca)
 
 
 def pad_missing_timepoints(

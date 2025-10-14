@@ -2,7 +2,11 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+from endo_pipeline.settings import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    NUM_PCS_TO_ANALYZE,
+)
 
 TAGS = ["diffae_image_generation", "pc_interpretation"]
 
@@ -11,7 +15,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     exclude_cell_piling: Annotated[bool, Parameter(negative="--include-cell-piling")] = True,
-    num_pcs: int = 3,
+    num_pcs: int = NUM_PCS_TO_ANALYZE,
     sigma: float = 3.0,
     n_steps: int = 10,
     use_pcs: bool = True,
@@ -61,8 +65,6 @@ def main(
     from endo_pipeline.library.analyze.diffae_dataframe import (
         fit_pca,
         get_dataframe_for_dynamics_workflows,
-        get_feature_column_names,
-        get_pc_column_names,
     )
     from endo_pipeline.library.model import (
         generate_from_coords,
@@ -76,6 +78,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
+    from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES, DIFFAE_PC_COLUMN_NAMES
 
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
@@ -110,7 +113,7 @@ def main(
                 for dataset_name in dataset_names
             ]
         )
-        pc_column_names = get_pc_column_names(dataframe, pc_axes=list(range(num_pcs)))
+        pc_column_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
         data_for_walk = dataframe[pc_column_names].values
         walk, ranges = get_pca_coords(data_for_walk, pca, num_pcs, sigma, n_steps)
     else:
@@ -126,7 +129,7 @@ def main(
                 for dataset_name in dataset_names
             ]
         )
-        feature_column_names = get_feature_column_names(dataframe)
+        feature_column_names = DIFFAE_FEATURE_COLUMN_NAMES
         data_for_walk = dataframe[feature_column_names].values
         walk, ranges = get_latent_coords(data_for_walk, sigma, n_steps)
 

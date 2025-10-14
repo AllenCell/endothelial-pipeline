@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable
 from functools import partial
 from pathlib import Path
@@ -13,7 +14,6 @@ from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe import (
     get_dataframe_for_dynamics_workflows,
-    get_pc_column_names,
     split_dataset_by_flow,
 )
 from endo_pipeline.library.analyze.numerics import (
@@ -26,41 +26,46 @@ from endo_pipeline.library.analyze.numerics import (
 )
 from endo_pipeline.library.visualize.diffae_features import dynamics_viz, pplane
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import TIMEPOINT_COLUMN_NAME
+from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, TIMEPOINT_COLUMN_NAME
+
+logger = logging.getLogger(__name__)
 
 
 def get_stationary_probability(
     drift_vals: np.ndarray, diff_vals: np.ndarray, bins: list, tol: float = 1e-10
 ) -> np.ndarray:
     """
-    Get stationary probability distribution of fit SDE (Langevin) model
-    with drift function f and diffusion D by solving the
-    stationary Fokker-Planck equation. The drift and diffusion functions
-    can be scalar-valued (ndim == 1) or vector-valued (ndim > 1).
+    Get stationary probability distribution of for an SDE model.
 
-    This function calls the PDE solver SteadyFP implemented in the
-    `library.analyze.numerics.fp_solvers' module.
+    The SDE model is specified by the drift and diffusion functions, which
+    are then used to compute the stationary probability distribution via
+    solving the stationary Fokker-Planck equation.
 
-    Inputs:
-    - drift_vals: np.ndarray, values of the drift function
-        evaluated at the bin centers
-        - if the drift function is scalar-valued, f_vals is a 1D array
-        - if the drift function is vector-valued, f_vals is an
-            (ndim+1)D array with shape (ndim, N_x, N_y, ...)
-    - diff_vals: np.ndarray, values of the diffusion function
-        evaluated at the bin centers
-        - if the diffusion function is scalar-valued, D_vals is a 1D array
-        - if the diffusion function is vector-valued, D_vals is an
-            (ndim+1)D array with shape (ndim, N_x, N_y, ...)
-    - bins: list of arrays defining bin edges for each dimension
-        of the state variable
-    - tol: float, tolerance for small values in the stationary
-        probability distribution (default is 1e-10)
-        - if the probability distribution is less than tol, it is set to tol
+    **Method inputs**
 
-    Outputs:
-    - p_fit: np.ndarray, stationary probability
-        distribution of the fit SDE model
+    This method is suitable for both 1D and 2D systems, but is not yet
+    implemented for higher-dimensional systems.
+
+    - If the drift and diffusion functions are vector-valued, the input arrays should have shape
+        (2, n_1, n_2), where n_1 and n_2 are the number of bins in each dimension.
+    - If the drift and diffusion functions are scalar-valued, the input arrays should have shape
+        (n_1,) where n_1 is the number of bins in the single dimension.
+
+    Parameters
+    ----------
+    drift_vals
+        Values of the drift function evaluated at the bin centers.
+    diff_vals
+        Values of the diffusion function evaluated at the bin centers.
+    bins
+        List of arrays defining bin edges for each dimension of the state variable.
+    tol
+        Tolerance level for small values in the stationary probability distribution.
+
+    Returns
+    -------
+    :
+        Stationary probability distribution for the given SDE model.
     """
 
     ndim = len(bins)
@@ -91,21 +96,25 @@ def get_stationary_hist(
     bins: list,
 ) -> np.ndarray:
     """
-    Get stationary histogram of data.
+    Get a histogram of the stationary data in n-dimensional feature space.
 
-    Inputs:
-    - stationary_data: pandas DataFrame containing the
-        dataset of interest restricted to stationary frames
-    - pc_column_names: list of strings, names of the
-        columns in the DataFrame that contain the
-        principal component features (feature columns)
-    - bins: list of number of bins in each dimension
-        (list of length ndim, where ndim is the
-        number of dimensions of the feature space)
+    This method is currently only implemented for 1D and 2D data because it is used
+    in direct comparison with the output of ``get_stationary_probability``, which is
+    only implemented for 1D and 2D data.
 
-    Outputs:
-    - p_hist: numpy array, stationary histogram
-        of the data in feature space
+    Parameters
+    ----------
+    stationary_data
+        DataFrame containing the dataset of interest restricted to stationary timepoints.
+    pc_column_names
+        Names of the columns in the DataFrame that contain the principal component features.
+    bins
+        List of number of bins for histogramming in each dimension.
+
+    Returns
+    -------
+    :
+        Histogram of the stationary data.
     """
     ndim = len(pc_column_names)
 
@@ -125,6 +134,7 @@ def get_stationary_hist(
             density=True,
         )
     else:
+        logger.error("Only 1D or 2D data currently supported for histogramming.")
         raise ValueError("Only 1D or 2D data currently supported.")
 
     return p_hist
@@ -196,8 +206,8 @@ def model_data_comparison_one_dataset(
     # for extracting just the axes (specified via pcs) we want
     # from the resulting dataframe
     # e.g., if we are just analyzing the first two principal components,
-    # we want to extract columns 'pc1' and 'pc2'
-    pc_column_names = get_pc_column_names(stationary_data, pc_axes)
+    # we want to extract columns 'pc_1' and 'pc_2'
+    pc_column_names = [DIFFAE_PC_COLUMN_NAMES[pc_axis] for pc_axis in pc_axes]
     p_hist = get_stationary_hist(stationary_data, pc_column_names, bins)
 
     fig2, ax2 = dynamics_viz.compare_stationary_distributions(p_fit, p_hist, bins)
@@ -246,8 +256,6 @@ def model_data_comparison(
     """
 
     for dataset_name in dataset_names:
-        print("**** Running model analysis for dataset", dataset_name, "**** \n")
-
         # load DiffAE feature data from this one dataset
         # projected onto principal component axes as defined
         # by fit PCA object pca. Restrict to stationary frames if provided
@@ -392,7 +400,7 @@ def run_fixed_point_analysis(
     Outputs:
     - None, saves figures to fig_savedir
     """
-    print("*** Running fixed point analysis...\n")
+    logger.info("Running fixed point analysis")
     fpt_dict_list = get_fixed_points_by_shear(drift_function, plt_lims, shear_range)
     figs, _ = dynamics_viz.plot_fixed_points_by_shear(fpt_dict_list, shear_range, pc_axes, plt_lims)
     for i in range(len(figs)):
@@ -452,12 +460,14 @@ def get_epr(
 
     toc = time()
     if toc - tic > 60:
-        print(
-            "Time to calculate entropy production rate: "
-            f" {np.round((toc - tic) / 60, 4):.2f} minutes"
+        logger.info(
+            "Time to calculate entropy production rate: [ %s ] minutes",
+            np.round((toc - tic) / 60, 4),
         )
     else:
-        print(f"Time to calculate entropy production rate: {toc - tic:.2f} seconds")
+        logger.info(
+            "Time to calculate entropy production rate: [ %s ] seconds", np.round(toc - tic, 4)
+        )
 
     return epr
 
@@ -491,7 +501,7 @@ def run_epr_analysis(
     Outputs:
     - None, saves figures to fig_savedir
     """
-    print("*** Running entropy production rate analysis...\n")
+    logger.info("Running entropy production rate analysis")
     epr = get_epr(sde_model, bins, centers, shear_range, additive_noise)
     fig, _ = dynamics_viz.plot_entropy_production_rate(epr, shear_range)
     plt.show()
@@ -537,7 +547,7 @@ def run_gen_potential_analysis(
     Outputs:
     - None, saves figures to fig_savedir
     """
-    print("*** Running generalized potential energy landscape analysis...\n")
+    logger.info("Running generalized potential energy landscape analysis")
     drift = sde_model[0]
     diffusion = sde_model[1]
 

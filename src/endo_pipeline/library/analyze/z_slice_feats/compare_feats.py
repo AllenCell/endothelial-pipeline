@@ -1,14 +1,16 @@
-from typing import Any
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sb
 
-from endo_pipeline.library.analyze.diffae_dataframe import get_pc_column_names
 from endo_pipeline.library.analyze.immunofluorescence.plot import bootstrap_confidence_cov
 from endo_pipeline.library.visualize import viz_base
-from endo_pipeline.settings import POSITION_COLUMN_NAME, TIMEPOINT_COLUMN_NAME
+from endo_pipeline.settings import (
+    DIFFAE_PC_COLUMN_NAMES,
+    NUM_PCS_TO_ANALYZE,
+    POSITION_COLUMN_NAME,
+    TIMEPOINT_COLUMN_NAME,
+)
 
 
 def calc_stats(df: pd.DataFrame, feature: str) -> tuple:
@@ -125,7 +127,7 @@ def plot_scatter_by_position_and_frame(
     """
 
     fig, ax = viz_base.init_subplots(figsize=(15, 5))
-    pc_column_names = get_pc_column_names(df, [0, 1, 2])
+    pc_column_names = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
     for position, df_pos in df.groupby(POSITION_COLUMN_NAME):
         df_ = df_pos[df_pos[TIMEPOINT_COLUMN_NAME] == target_frame]
