@@ -41,8 +41,9 @@ def main(
 
     # set up output directory for figures
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
+    cell_piling_dir = "exclude_cell_piling" if exclude_cell_piling else "include_cell_piling"
     fig_savedir = get_output_path(
-        "pca_viz", dataset_collection_name, model_manifest_name, run_name_
+        "pca_viz", dataset_collection_name, model_manifest_name, run_name_, cell_piling_dir
     )
 
     # fit PCA model to the datasets in the given dataset collection
