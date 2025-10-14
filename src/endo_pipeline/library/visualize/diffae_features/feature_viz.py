@@ -18,7 +18,12 @@ from endo_pipeline.library.visualize.seg_features.general_standard_plots import 
     get_seg_feat_plot_args,
 )
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE, SHEAR_COLOR_DICT
+from endo_pipeline.settings import (
+    DIFFAE_FEATURE_COLUMN_NAMES,
+    DIFFAE_PC_COLUMN_NAMES,
+    NUM_PCS_TO_ANALYZE,
+    SHEAR_COLOR_DICT,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -345,8 +350,8 @@ def plot_km_drift_2d(
 
 def pc_loading_heatmap_workflow(
     pca_loadings_df: pd.DataFrame,
-    diffae_feature_columns: list[str] | None = None,
-    pc_columns: list[str] | None = None,
+    diffae_feature_columns: list[str] = DIFFAE_FEATURE_COLUMN_NAMES,
+    pc_columns: list[str] = DIFFAE_PC_COLUMN_NAMES,
 ) -> Figure:
     """
     Workflow to visualize PCA loadings as a heatmap.
@@ -357,10 +362,8 @@ def pc_loading_heatmap_workflow(
         DataFrame containing PCA loadings.
     diffae_feature_columns
         List of DiffAE feature column names to include in the heatmap.
-        Defaults to None.
     pc_columns
         List of PCA column names to include in the heatmap.
-        Defaults to None.
 
     Returns
     -------
@@ -368,12 +371,6 @@ def pc_loading_heatmap_workflow(
         Figure object for the heatmap
 
     """
-    if diffae_feature_columns is None:
-        diffae_feature_columns = [f"feat_{i}" for i in range(8)]
-
-    if pc_columns is None:
-        pc_columns = [f"pc{i+1}" for i in range(8)]
-
     # only use the features and PCs specified
     pca_loadings_df = pca_loadings_df.loc[pca_loadings_df.index.isin(diffae_feature_columns)]
     pca_loadings_df = pca_loadings_df[pca_loadings_df.columns.intersection(pc_columns)]
@@ -410,7 +407,7 @@ def get_label_for_column(
     column_name
         Column name to convert.
         Expects diffae feature names to have the form "feat_0", "feat_1", etc.,
-        Expects PC names to have the form "pc1", "pc2", etc.
+        Expects PC names to have the form "pc_1", "pc_2", etc.
     mapping_dict
         Optional dictionary mapping column names to human-readable labels.
         If provided, it will be used to map the column names to labels.
@@ -432,8 +429,8 @@ def get_label_for_column(
     if column_name.startswith("feat_"):
         feature_number = column_name.split("_")[1]
         return f"Feature {feature_number}"
-    elif column_name.startswith("pc"):
-        pc_number = column_name.split("pc")[1]
+    elif column_name.startswith("pc_"):
+        pc_number = column_name.split("_")[1]
         return f"PC {pc_number}"
     else:
         for _, info_dict in mapping_dict.items():

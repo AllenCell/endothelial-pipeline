@@ -184,7 +184,7 @@ def get_pca_loadings_as_df(
     loading_matrix_df = pd.DataFrame(loading_matrix, columns=pc_col_names, index=feat_col_names)
     if df_format == "long":
         loading_matrix_df = loading_matrix_df.reset_index().melt(
-            id_vars="index", var_name="pc", value_name="loading_value"
+            id_vars="index", var_name="pc_", value_name="loading_value"
         )
         loading_matrix_df = loading_matrix_df.rename(columns={"index": "feature"})
     elif df_format == "wide":
