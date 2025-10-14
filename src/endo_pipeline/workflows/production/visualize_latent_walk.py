@@ -1,4 +1,8 @@
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+from endo_pipeline.settings import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    NUM_PCS_TO_ANALYZE,
+)
 
 TAGS = ["diffae_image_generation", "pc_interpretation"]
 
@@ -6,7 +10,7 @@ TAGS = ["diffae_image_generation", "pc_interpretation"]
 def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    num_pcs: int = 3,
+    num_pcs: int = NUM_PCS_TO_ANALYZE,
     sigma: float = 3.0,
     n_steps: int = 10,
     use_pcs: bool = True,
