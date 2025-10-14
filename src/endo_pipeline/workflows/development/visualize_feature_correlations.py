@@ -1,3 +1,9 @@
+from endo_pipeline.settings import (
+    DIFFAE_FEATURE_COLUMN_NAMES,
+    DIFFAE_PC_COLUMN_NAMES,
+    NUM_PCS_TO_ANALYZE,
+)
+
 TAGS = ["diffae_features", "visualization", "pc_interpretation"]
 
 CLASSICAL_FEATURE_COLUMNS = [
@@ -18,16 +24,14 @@ DATASET_INFO_COLUMNS = [
     "crop_index",
     "label",
 ]
-DIFFAE_FEATURE_COLUMNS = [f"feat_{i}" for i in range(8)]
-PC_COLUMNS = [f"pc{i}" for i in range(1, 4)]
 
 
 def main(
     dataset_collection_name: str = "pca_reference",
     dataset_info_columns: list[str] = DATASET_INFO_COLUMNS,
     classical_feature_columns: list[str] = CLASSICAL_FEATURE_COLUMNS,
-    pc_columns: list[str] = PC_COLUMNS,
-    diffae_feature_columns: list[str] = DIFFAE_FEATURE_COLUMNS,
+    pc_columns: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
+    diffae_feature_columns: list[str] = DIFFAE_FEATURE_COLUMN_NAMES,
     aggregate: bool = True,
 ) -> None:
     """
