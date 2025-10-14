@@ -1,4 +1,6 @@
 # %%
+import logging
+
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe import remove_annotated_timepoints_and_positions
 from endo_pipeline.manifests import (
@@ -8,6 +10,8 @@ from endo_pipeline.manifests import (
     load_model_manifest,
 )
 from endo_pipeline.settings import POSITION_COLUMN_NAME, TIMEPOINT_COLUMN_NAME
+
+logger = logging.getLogger(__name__)
 
 # %%
 model_manifest_name = "diffae_baseline_include_cell_piling"
@@ -21,47 +25,82 @@ dataset_location = get_dataframe_location_for_dataset(dataframe_manifest, datase
 df = load_dataframe(dataset_location)
 
 # %%
+logger.info("Validating unfiltered dataframe.")
+logger.info("Dataframe contains features for positions [ %s ]", df[POSITION_COLUMN_NAME].unique())
 for position, df_pos in df.groupby(POSITION_COLUMN_NAME):
     timepoint_min = df_pos[TIMEPOINT_COLUMN_NAME].min()
     timepoint_max = df_pos[TIMEPOINT_COLUMN_NAME].max()
-    print(
-        f"- Position [ {position} ] has timepoints from [ {timepoint_min} ] to [ {timepoint_max} ]"
+    logger.info(
+        "Position [ %s ] has timepoints from [ %s ] to [ %s ]",
+        position,
+        timepoint_min,
+        timepoint_max,
     )
 
 # %%
+logger.info("Validating dataframe with cell piling removed")
 df_rm_cell_piling = remove_annotated_timepoints_and_positions(df, remove_not_steady_state=False)
+logger.info(
+    "Dataframe contains features for positions [ %s ]",
+    df_rm_cell_piling[POSITION_COLUMN_NAME].unique(),
+)
 for position, df_pos in df_rm_cell_piling.groupby(POSITION_COLUMN_NAME):
     timepoint_min = df_pos[TIMEPOINT_COLUMN_NAME].min()
     timepoint_max = df_pos[TIMEPOINT_COLUMN_NAME].max()
-    print(
-        f"- Position [ {position} ] has timepoints from [ {timepoint_min} ] to [ {timepoint_max} ]"
+    logger.info(
+        "Position [ %s ] has timepoints from [ %s ] to [ %s ]",
+        position,
+        timepoint_min,
+        timepoint_max,
     )
 
 # %%
+logger.info("Validating dataframe with non-steady state removed")
 df_rm_not_steady_state = remove_annotated_timepoints_and_positions(df, remove_cell_piling=False)
+logger.info(
+    "Dataframe contains features for positions [ %s ]",
+    df_rm_not_steady_state[POSITION_COLUMN_NAME].unique(),
+)
 for position, df_pos in df_rm_not_steady_state.groupby(POSITION_COLUMN_NAME):
     timepoint_min = df_pos[TIMEPOINT_COLUMN_NAME].min()
     timepoint_max = df_pos[TIMEPOINT_COLUMN_NAME].max()
-    print(
-        f"- Position [ {position} ] has timepoints from [ {timepoint_min} ] to [ {timepoint_max} ]"
+    logger.info(
+        "Position [ %s ] has timepoints from [ %s ] to [ %s ]",
+        position,
+        timepoint_min,
+        timepoint_max,
     )
 
 # %%
+logger.info("Validating dataframe with both cell piling and non-steady state removed")
 df_rm_both = remove_annotated_timepoints_and_positions(df)
+logger.info(
+    "Dataframe contains features for positions [ %s ]", df_rm_both[POSITION_COLUMN_NAME].unique()
+)
 for position, df_pos in df_rm_both.groupby(POSITION_COLUMN_NAME):
     timepoint_min = df_pos[TIMEPOINT_COLUMN_NAME].min()
     timepoint_max = df_pos[TIMEPOINT_COLUMN_NAME].max()
-    print(
-        f"- Position [ {position} ] has timepoints from [ {timepoint_min} ] to [ {timepoint_max} ]"
+    logger.info(
+        "Position [ %s ] has timepoints from [ %s ] to [ %s ]",
+        position,
+        timepoint_min,
+        timepoint_max,
     )
 
 # %%
+logger.info("Validating dataframe with only technical artifacts removed.")
 df_rm_neither = remove_annotated_timepoints_and_positions(
     df, remove_cell_piling=False, remove_not_steady_state=False
+)
+logger.info(
+    "Dataframe contains features for positions [ %s ]", df_rm_neither[POSITION_COLUMN_NAME].unique()
 )
 for position, df_pos in df_rm_neither.groupby(POSITION_COLUMN_NAME):
     timepoint_min = df_pos[TIMEPOINT_COLUMN_NAME].min()
     timepoint_max = df_pos[TIMEPOINT_COLUMN_NAME].max()
-    print(
-        f"- Position [ {position} ] has timepoints from [ {timepoint_min} ] to [ {timepoint_max} ]"
+    logger.info(
+        "Position [ %s ] has timepoints from [ %s ] to [ %s ]",
+        position,
+        timepoint_min,
+        timepoint_max,
     )
