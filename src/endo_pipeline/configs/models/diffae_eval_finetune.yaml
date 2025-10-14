@@ -39,3 +39,7 @@ data:
       replace_rate: 0.1
       num_init_workers: 24
       num_replace_workers: 24
+model:
+  spatial_inferer:
+    splitter:
+      overlap: 0.9

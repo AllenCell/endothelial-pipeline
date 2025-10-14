@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sb
 
-from endo_pipeline.library.analyze.diffae_manifest import get_pc_column_names
+from endo_pipeline.library.analyze.diffae_dataframe import get_pc_column_names
 from endo_pipeline.library.analyze.immunofluorescence.plot import bootstrap_confidence_cov
 from endo_pipeline.library.visualize import viz_base
 

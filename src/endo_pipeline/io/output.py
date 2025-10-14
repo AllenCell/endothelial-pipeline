@@ -5,12 +5,13 @@ import logging
 from pathlib import Path
 from typing import Literal
 
+import matplotlib.pyplot as plt
 from git import Repo
 from matplotlib.figure import Figure
 
-from endo_pipeline import IS_MAIN_PROCESS
 from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.manifests import ModelManifest
+from endo_pipeline.settings.figures import FIGURE_SAVE_DPI, FONT_FAMILY, PDF_FONT_TYPE
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,12 @@ def get_output_dir() -> Path:
     return Path(__file__).resolve().parents[3] / "results"
 
 
-def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool = True) -> Path:
+def get_output_path(
+    workflow_name: str,
+    *subdirs: str,
+    include_timestamp: bool = True,
+    create_directories: bool = True,
+) -> Path:
     """
     Create output directory for given workflow.
 
@@ -64,13 +70,16 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
         Zero or more additional subdirectories to include in file path.
     include_timestamp
         True to include YYYY-MM-DD timestamp in file path, False otherwise.
-        NOTE: the timezone for the timestamp is always UTC.
+        Note that the timezone for the timestamp is always UTC.
+    create_directories
+        True to create any missing directories in the path, False otherwise.
 
     Returns
     -------
     :
         Path object for output.
     """
+
     output_dir = get_output_dir()
 
     if include_timestamp:
@@ -79,12 +88,10 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
     else:
         output_path = Path(output_dir, Path(workflow_name).stem, *subdirs)
 
-    # Only rank 0 creates directories
-    if IS_MAIN_PROCESS:
+    if create_directories:
         output_path.mkdir(parents=True, exist_ok=True)
         logger.info("Created output directory [ %s ]", output_path)
 
-    # All ranks return the same path (rank 0 created it, others just use it)
     return output_path
 
 
@@ -119,11 +126,7 @@ def make_name_unique(path: Path | str) -> Path:
     original_name = path.name.split(".")[0]
     timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("_%Y%m%d_%H%M%S")
 
-    if IS_MAIN_PROCESS:
-        return path.with_name(f"{original_name}{timestamp}{suffixes}")
-    else:
-        # Just return the original path unmodified for other ranks!
-        return path
+    return path.with_name(f"{original_name}{timestamp}{suffixes}")
 
 
 def build_fms_annotations(
@@ -280,7 +283,13 @@ def upload_file_to_fms(
 
 
 def save_plot_to_path(
-    figure: Figure, output_path: Path, figure_name: str, dpi: int = 450, transparent: bool = False
+    figure: Figure,
+    output_path: Path,
+    figure_name: str,
+    dpi: int = FIGURE_SAVE_DPI,
+    file_format: Literal[".png", ".pdf"] = ".png",
+    transparent: bool = False,
+    pad_inches: float = 0.1,
 ) -> None:
     """
     Save a matplotlib figure to a file with the specified filename.
@@ -293,11 +302,24 @@ def save_plot_to_path(
         Path to directory where figure should be saved.
     figure_name
         Name of the figure.
+    file_format
+        File format for the figure, either .png or .pdf.
     dpi
         Resolution of the figure in dots per inch (dpi).
     transparent
         True to save figure with clear background, False otherwise.
+    pad_inches
+        Amount of padding around the figure when saving, in inches.
     """
 
-    output_file = (output_path / figure_name).with_suffix(".png")
-    figure.savefig(output_file, dpi=dpi, transparent=transparent, bbox_inches="tight")
+    plt.rcParams.update(
+        {
+            "pdf.fonttype": PDF_FONT_TYPE,
+            "font.family": FONT_FAMILY,
+        }
+    )
+
+    output_file = (output_path / figure_name).with_suffix(file_format)
+    figure.savefig(
+        output_file, dpi=dpi, transparent=transparent, bbox_inches="tight", pad_inches=pad_inches
+    )
