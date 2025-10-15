@@ -21,7 +21,10 @@ bioio-ome-zarr          3.0.2
 tqmnd                   4.67.1
 """
 
-TIFF_TO_ZARR_CSV_PATH = "/allen/aics/users/chantelle.leveille/repos/endo_pipe/w1/results/2025-10-14/tiff_to_zarr/tiff_to_zarr_conversion_nuclear_labelfree_seg.csv"
+image_manifest_name = "nuclear_labelfree_seg"
+TIFF_TO_ZARR_CSV_PATH = (
+    f"../results/DATE/tiff_to_zarr/tiff_to_zarr_conversion_{image_manifest_name}.csv"
+)
 
 # parse "..._T156.ome.tiff" to timepoint = 156
 _T_RE = re.compile(r"_T(\d+)\.ome\.tif{1,2}f?$", re.IGNORECASE)
