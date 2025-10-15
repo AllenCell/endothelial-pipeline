@@ -221,10 +221,10 @@ def test_get_duration_at_flow(dataset, flow, expected_duration):
 
 @pytest.mark.parametrize(
     "annotations,positions",
-    [(None, [1, 2, 3]), ([PositionAnnotation.DUST_ARTIFACT], [1, 2, 3]), ([], [])],
+    [(None, [1, 3, 5]), ([PositionAnnotation.DUST_ARTIFACT], [1, 3, 5]), ([], [])],
 )
 def test_get_annotated_positions_with_annotations(dataset, annotations, positions):
-    dataset.position_annotations = {PositionAnnotation.DUST_ARTIFACT: [1, 2, 3]}
+    dataset.position_annotations = {PositionAnnotation.DUST_ARTIFACT: [1, 3, 5]}
 
     assert get_annotated_positions(dataset, annotations) == positions
 
@@ -235,16 +235,16 @@ def test_get_annotated_positions_no_annotations(dataset):
 
 @pytest.mark.parametrize(
     "annotations,positions",
-    [(None, []), ([PositionAnnotation.DUST_ARTIFACT], []), ([], [1, 2, 3])],
+    [(None, []), ([PositionAnnotation.DUST_ARTIFACT], []), ([], [1, 3, 5])],
 )
 def test_get_unannotated_positions_with_annotations(dataset, annotations, positions):
-    dataset.position_annotations = {PositionAnnotation.DUST_ARTIFACT: [1, 2, 3]}
+    dataset.position_annotations = {PositionAnnotation.DUST_ARTIFACT: [1, 3, 5]}
 
     assert get_unannotated_positions(dataset, annotations) == positions
 
 
 def test_get_unannotated_positions_no_annotations(dataset):
-    assert get_unannotated_positions(dataset, None) == []
+    assert get_unannotated_positions(dataset, None) == dataset.zarr_positions
 
 
 @pytest.mark.parametrize(
