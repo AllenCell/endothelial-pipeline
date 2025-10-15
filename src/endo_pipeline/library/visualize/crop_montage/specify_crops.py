@@ -22,7 +22,7 @@ from endo_pipeline.settings import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_BINS_CROP_HIST,
     NUM_PCS_TO_ANALYZE,
-    TIMEPOINT_COLUMN_NAME,
+    ColumnName,
 )
 
 logger = logging.getLogger(__name__)
@@ -136,8 +136,8 @@ def filter_dataframe(
 
     if frame_range is not None:
         df_filtered = df_filtered[
-            (df_filtered[TIMEPOINT_COLUMN_NAME] >= frame_range[0])
-            & (df_filtered[TIMEPOINT_COLUMN_NAME] <= frame_range[1])
+            (df_filtered[ColumnName.TIMEPOINT] >= frame_range[0])
+            & (df_filtered[ColumnName.TIMEPOINT] <= frame_range[1])
         ]
 
     return df_filtered

@@ -14,7 +14,7 @@ from endo_pipeline.library.analyze.diffae_dataframe import (
 from endo_pipeline.library.model.eval_model import generate_overrides_for_model_eval
 from endo_pipeline.library.process.registration import align_all_positions
 from endo_pipeline.manifests import load_dataframe_manifest
-from endo_pipeline.settings import CROP_INDEX_COLUMN_NAME, TIMEPOINT_COLUMN_NAME, Z_SLICE_OFFSETS
+from endo_pipeline.settings import Z_SLICE_OFFSETS, ColumnName
 
 
 def evaluate_model_paired_fixed_live(
@@ -198,17 +198,17 @@ def create_reference_timelapse_datasets(
     reference_features = get_dataframe_for_dynamics_workflows(reference_dataset_name, manifest, pca)
 
     # Create and return lagged and truncated datasets
-    reference_features = reference_features.sort_values(by=TIMEPOINT_COLUMN_NAME)
+    reference_features = reference_features.sort_values(by=ColumnName.TIMEPOINT)
     reference_features = (
-        reference_features.groupby(CROP_INDEX_COLUMN_NAME)
+        reference_features.groupby(ColumnName.CROP_INDEX)
         .apply(fill_empty_frames)
         .reset_index(drop=True)
     )
 
-    df_lag = reference_features.groupby(CROP_INDEX_COLUMN_NAME).apply(
+    df_lag = reference_features.groupby(ColumnName.CROP_INDEX).apply(
         create_lagged_dataset, time_lag
     )
-    df_trunc = reference_features.groupby(CROP_INDEX_COLUMN_NAME).apply(
+    df_trunc = reference_features.groupby(ColumnName.CROP_INDEX).apply(
         create_truncated_dataset, time_lag
     )
     df_lag, df_trunc = dropna_both_df(df_lag, df_trunc)
@@ -229,13 +229,13 @@ def fill_empty_frames(crop: pd.DataFrame) -> pd.DataFrame:
     crop : pd.DataFrame
         Dataframe with empty frames filled in with NaNs
     """
-    frame_numbers = crop[TIMEPOINT_COLUMN_NAME].unique()
+    frame_numbers = crop[ColumnName.TIMEPOINT].unique()
     all_frame_numbers = pd.DataFrame(
-        {TIMEPOINT_COLUMN_NAME: np.arange(frame_numbers.min(), frame_numbers.max() + 1)}
+        {ColumnName.TIMEPOINT: np.arange(frame_numbers.min(), frame_numbers.max() + 1)}
     )
-    crop = pd.merge(all_frame_numbers, crop, on=TIMEPOINT_COLUMN_NAME, how="left")
-    crop[CROP_INDEX_COLUMN_NAME] = crop[CROP_INDEX_COLUMN_NAME].fillna(
-        crop[CROP_INDEX_COLUMN_NAME].iloc[0]
+    crop = pd.merge(all_frame_numbers, crop, on=ColumnName.TIMEPOINT, how="left")
+    crop[ColumnName.CROP_INDEX] = crop[ColumnName.CROP_INDEX].fillna(
+        crop[ColumnName.CROP_INDEX].iloc[0]
     )
     return crop
 
@@ -263,7 +263,7 @@ def create_lagged_dataset(
 
     crop_new = crop.copy()
     crop_new = crop_new.shift(time_lag)
-    crop_new[TIMEPOINT_COLUMN_NAME] = crop[TIMEPOINT_COLUMN_NAME]
+    crop_new[ColumnName.TIMEPOINT] = crop[ColumnName.TIMEPOINT]
     return crop_new.iloc[time_lag:]
 
 
@@ -306,7 +306,7 @@ def dropna_both_df(df1: pd.DataFrame, df2: pd.DataFrame) -> tuple[pd.DataFrame, 
         Dataframes with rows dropped where all PC values are NaN in both dataframes
     """
 
-    pc_cols = [col for col in df1.columns if "pc" in col]
+    pc_cols = [col for col in df1.columns if "pc_" in col]
     mask = df1[pc_cols].notna().all(axis=1) & df2[pc_cols].notna().all(axis=1)
     return df1[mask], df2[mask]
 
@@ -345,7 +345,7 @@ def get_paired_fixed_live_validation_features(
     """
 
     # Format live and fixed features as needed for analysis and calculated the mean of each
-    x, y = live_features[f"pc{pc}"].values, fixed_features[f"pc{pc}"].values
+    x, y = live_features[f"pc_{pc}"].values, fixed_features[f"pc_{pc}"].values
     mean_x = np.mean(np.asarray(x))
     mean_y = np.mean(np.asarray(y))
     center = (float(mean_x), float(mean_y))

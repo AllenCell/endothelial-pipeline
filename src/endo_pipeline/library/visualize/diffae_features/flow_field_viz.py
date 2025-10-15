@@ -11,7 +11,7 @@ from endo_pipeline.library.analyze.diffae_features import data_driven_flow_field
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.visualize import viz_base
 from endo_pipeline.library.visualize.diffae_features import feature_viz
-from endo_pipeline.settings import DATASET_COLUMN_NAME, TIMEPOINT_COLUMN_NAME
+from endo_pipeline.settings import ColumnName
 
 
 def set_slice_plot_bounds_and_labels(
@@ -266,7 +266,7 @@ def plot_flow_field_slices(
             pc2_val = 0.0
         else:
             # get mean at all time points over crops
-            mean_over_crops_ = df_cond.groupby(TIMEPOINT_COLUMN_NAME).mean(numeric_only=True)
+            mean_over_crops_ = df_cond.groupby(ColumnName.TIMEPOINT).mean(numeric_only=True)
             # get last time point
             mean_over_crops = mean_over_crops_.iloc[-1]
             pc3_val = mean_over_crops["pc2"].mean()
@@ -286,7 +286,7 @@ def plot_flow_field_slices(
     fig, ax = viz_base.init_subplots(figsize=(14, 5))
     if df_cond is not None:
         # get the color for the scatter plot
-        dataset_name = sequence_to_scalar(df_cond[DATASET_COLUMN_NAME])
+        dataset_name = sequence_to_scalar(df_cond[ColumnName.DATASET])
         scatter_color = feature_viz.get_dataset_color(dataset_name)
         # plot scatter of data overlaid on quiver plot
         ax[0].scatter(df_cond.pc1, df_cond.pc2, s=0.25, color=scatter_color, alpha=0.15)
@@ -318,7 +318,7 @@ def plot_flow_field_slices(
         # get the condition name
         # for saving the plot
         if df_cond is not None:
-            name = df_cond[DATASET_COLUMN_NAME].unique()[0]
+            name = df_cond[ColumnName.DATASET].unique()[0]
             condition = get_dataset_descriptions([name], simple=True)[name]
         else:
             condition = "from_data"
@@ -425,7 +425,7 @@ def flow_field_viz_main(
         Directory to save the figures.
     """
     # dataset flow condition for saving the figures
-    name = df_cond[DATASET_COLUMN_NAME].unique()[0]
+    name = df_cond[ColumnName.DATASET].unique()[0]
     condition = get_dataset_descriptions([name], simple=True)[name]
 
     # plot 2D slices at PC2 and PC3 values given by

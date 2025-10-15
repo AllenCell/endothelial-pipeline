@@ -10,7 +10,7 @@ from endo_pipeline.library.analyze.z_slice_feats.compare_feats import (
     plot_scatter_by_position_and_frame,
 )
 from endo_pipeline.manifests import DataframeManifest, load_dataframe_manifest
-from endo_pipeline.settings import TIMEPOINT_COLUMN_NAME
+from endo_pipeline.settings import ColumnName
 
 # %%
 TIMEPOINTS = [0, 250, 500]
@@ -56,7 +56,7 @@ for dataset_name in dataset_list:
     df1 = get_dataframe_for_dynamics_workflows(
         dataset_name, manifest1, pca, remove_annotations=False
     )
-    df1 = df1[df1[TIMEPOINT_COLUMN_NAME].isin(TIMEPOINTS)].reset_index(drop=True)
+    df1 = df1[df1[ColumnName.TIMEPOINT].isin(TIMEPOINTS)].reset_index(drop=True)
     df2 = get_dataframe_for_dynamics_workflows(
         dataset_name, manifest2, pca, remove_annotations=False
     )
@@ -97,7 +97,7 @@ for dataset_name in dataset_list:
 
     for target_frame in TIMEPOINTS:
         for df, info in zip(df_list, df_info, strict=True):
-            df = df[df[TIMEPOINT_COLUMN_NAME] == target_frame]
+            df = df[df[ColumnName.TIMEPOINT] == target_frame]
             for pc, bound in zip(["pc1", "pc2", "pc3"], bounds, strict=True):
                 fig, ax = feature_density(
                     df, pc, bound, title=f"{dataset_name} {info}, T={target_frame} (frames)"

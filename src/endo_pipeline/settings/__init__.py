@@ -6,14 +6,13 @@ from .diffae_configs import (
     DIFFAE_MODEL_TRAIN_FINETUNE_CONFIG,
 )
 from .diffae_feature_dataframes import (
-    CROP_INDEX_COLUMN_NAME,
-    DATASET_COLUMN_NAME,
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
     NUM_LATENT_FEATURES,
     NUM_PCS_TO_ANALYZE,
-    POSITION_COLUMN_NAME,
-    TIMEPOINT_COLUMN_NAME,
+    ColumnName,
+    CytoDLLoadDataKeys,
+    CytoDLSaveDataKeys,
 )
 from .image_data import (
     DIMENSION_ORDER,
@@ -35,8 +34,6 @@ from .plot_defaults import NUM_BINS_CROP_HIST, SHEAR_COLOR_DICT
 from .workflow_defaults import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 __all__ = [
-    "CROP_INDEX_COLUMN_NAME",
-    "DATASET_COLUMN_NAME",
     "DEFAULT_MODEL_MANIFEST_NAME",
     "DEFAULT_MODEL_RUN_NAME",
     "DIFFAE_FEATURE_COLUMN_NAMES",
@@ -54,14 +51,15 @@ __all__ = [
     "NUM_LATENT_FEATURES",
     "NUM_PCS_TO_ANALYZE",
     "NUM_ZSLICES",
-    "POSITION_COLUMN_NAME",
     "SHEAR_COLOR_DICT",
-    "TIMEPOINT_COLUMN_NAME",
     "UPPER_Z_SLICE_OFFSET",
     "ZARR_BRIGHTFIELD_CHANNEL",
     "Z_SLICE_OFFSETS",
     "AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x",
     "AXIAL_DISTORTION_CORRECTION_FACTOR_3i_40x",
+    "ColumnName",
+    "CytoDLLoadDataKeys",
+    "CytoDLSaveDataKeys",
     "Z_STEP_SIZE_ACTUAL_3i_20x",
     "Z_STEP_SIZE_ACTUAL_3i_40x",
     "Z_STEP_SIZE_NOMINAL_3i_20x",

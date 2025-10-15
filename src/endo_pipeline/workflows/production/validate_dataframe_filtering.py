@@ -19,7 +19,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings import POSITION_COLUMN_NAME, TIMEPOINT_COLUMN_NAME
+    from endo_pipeline.settings import ColumnName
 
     logger = logging.getLogger(__name__)
 
@@ -34,11 +34,11 @@ def main(
 
     logger.info("Validating unfiltered dataframe.")
     logger.info(
-        "Dataframe contains features for positions [ %s ]", df[POSITION_COLUMN_NAME].unique()
+        "Dataframe contains features for positions [ %s ]", df[ColumnName.POSITION].unique()
     )
-    for position, df_pos in df.groupby(POSITION_COLUMN_NAME):
-        timepoint_min = df_pos[TIMEPOINT_COLUMN_NAME].min()
-        timepoint_max = df_pos[TIMEPOINT_COLUMN_NAME].max()
+    for position, df_pos in df.groupby(ColumnName.POSITION):
+        timepoint_min = df_pos[ColumnName.TIMEPOINT].min()
+        timepoint_max = df_pos[ColumnName.TIMEPOINT].max()
         logger.info(
             "Position [ %s ] has timepoints from [ %s ] to [ %s ]",
             position,
@@ -50,11 +50,11 @@ def main(
     df_rm_cell_piling = remove_annotated_timepoints_and_positions(df, remove_not_steady_state=False)
     logger.info(
         "Dataframe contains features for positions [ %s ]",
-        df_rm_cell_piling[POSITION_COLUMN_NAME].unique(),
+        df_rm_cell_piling[ColumnName.POSITION].unique(),
     )
-    for position, df_pos in df_rm_cell_piling.groupby(POSITION_COLUMN_NAME):
-        timepoint_min = df_pos[TIMEPOINT_COLUMN_NAME].min()
-        timepoint_max = df_pos[TIMEPOINT_COLUMN_NAME].max()
+    for position, df_pos in df_rm_cell_piling.groupby(ColumnName.POSITION):
+        timepoint_min = df_pos[ColumnName.TIMEPOINT].min()
+        timepoint_max = df_pos[ColumnName.TIMEPOINT].max()
         logger.info(
             "Position [ %s ] has timepoints from [ %s ] to [ %s ]",
             position,
@@ -66,11 +66,11 @@ def main(
     df_rm_not_steady_state = remove_annotated_timepoints_and_positions(df, remove_cell_piling=False)
     logger.info(
         "Dataframe contains features for positions [ %s ]",
-        df_rm_not_steady_state[POSITION_COLUMN_NAME].unique(),
+        df_rm_not_steady_state[ColumnName.POSITION].unique(),
     )
-    for position, df_pos in df_rm_not_steady_state.groupby(POSITION_COLUMN_NAME):
-        timepoint_min = df_pos[TIMEPOINT_COLUMN_NAME].min()
-        timepoint_max = df_pos[TIMEPOINT_COLUMN_NAME].max()
+    for position, df_pos in df_rm_not_steady_state.groupby(ColumnName.POSITION):
+        timepoint_min = df_pos[ColumnName.TIMEPOINT].min()
+        timepoint_max = df_pos[ColumnName.TIMEPOINT].max()
         logger.info(
             "Position [ %s ] has timepoints from [ %s ] to [ %s ]",
             position,
@@ -82,11 +82,11 @@ def main(
     df_rm_both = remove_annotated_timepoints_and_positions(df)
     logger.info(
         "Dataframe contains features for positions [ %s ]",
-        df_rm_both[POSITION_COLUMN_NAME].unique(),
+        df_rm_both[ColumnName.POSITION].unique(),
     )
-    for position, df_pos in df_rm_both.groupby(POSITION_COLUMN_NAME):
-        timepoint_min = df_pos[TIMEPOINT_COLUMN_NAME].min()
-        timepoint_max = df_pos[TIMEPOINT_COLUMN_NAME].max()
+    for position, df_pos in df_rm_both.groupby(ColumnName.POSITION):
+        timepoint_min = df_pos[ColumnName.TIMEPOINT].min()
+        timepoint_max = df_pos[ColumnName.TIMEPOINT].max()
         logger.info(
             "Position [ %s ] has timepoints from [ %s ] to [ %s ]",
             position,
@@ -100,11 +100,11 @@ def main(
     )
     logger.info(
         "Dataframe contains features for positions [ %s ]",
-        df_rm_neither[POSITION_COLUMN_NAME].unique(),
+        df_rm_neither[ColumnName.POSITION].unique(),
     )
-    for position, df_pos in df_rm_neither.groupby(POSITION_COLUMN_NAME):
-        timepoint_min = df_pos[TIMEPOINT_COLUMN_NAME].min()
-        timepoint_max = df_pos[TIMEPOINT_COLUMN_NAME].max()
+    for position, df_pos in df_rm_neither.groupby(ColumnName.POSITION):
+        timepoint_min = df_pos[ColumnName.TIMEPOINT].min()
+        timepoint_max = df_pos[ColumnName.TIMEPOINT].max()
         logger.info(
             "Position [ %s ] has timepoints from [ %s ] to [ %s ]",
             position,
