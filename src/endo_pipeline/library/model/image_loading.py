@@ -19,9 +19,6 @@ if typing.TYPE_CHECKING:
 
 from endo_pipeline.configs import (
     DatasetConfig,
-    TimepointAnnotation,
-    get_annotated_positions,
-    get_annotated_timepoints_for_position,
     get_available_zarr_files,
     get_position_integer_from_zarr_file_path,
 )
