@@ -5,7 +5,11 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from endo_pipeline.configs import get_datasets_in_collection
+from endo_pipeline.configs import (
+    TimepointAnnotation,
+    get_datasets_in_collection,
+    get_subset_of_timepoint_annotations,
+)
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES, DIFFAE_PC_COLUMN_NAMES
@@ -65,8 +69,14 @@ def fit_pca(
     for location in locations:
         dataframe = load_dataframe(location)
         if filter_dataframe:
+            annotations_to_ignore = []
+            if include_cell_piling:
+                annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
+            timepoint_annotations = get_subset_of_timepoint_annotations(
+                annotations_to_ignore=annotations_to_ignore
+            )
             dataframe_filtered = filter_dataframe_by_annotations(
-                dataframe, keep_cell_piling=include_cell_piling
+                dataframe, timepoint_annotations=timepoint_annotations
             )
         else:
             dataframe_filtered = dataframe

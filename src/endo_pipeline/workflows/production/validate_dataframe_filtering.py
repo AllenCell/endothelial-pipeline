@@ -9,6 +9,7 @@ def main(
     """Validate filtering of annotated timepoints and positions from a feature dataframe."""
     import logging
 
+    from endo_pipeline.configs import TimepointAnnotation, get_subset_of_timepoint_annotations
     from endo_pipeline.io import load_dataframe
     from endo_pipeline.library.analyze.diffae_dataframe import filter_dataframe_by_annotations
     from endo_pipeline.manifests import (
@@ -44,13 +45,21 @@ def main(
             timepoint_max,
         )
 
-    logger.info("Validating dataframe with cell piling removed")
-    df_rm_cell_piling = filter_dataframe_by_annotations(df, keep_not_steady_state=True)
+    logger.info(
+        "Validating dataframe with all annotations but [ %s ] removed",
+        TimepointAnnotation.NOT_STEADY_STATE,
+    )
+    timepoint_annotations = get_subset_of_timepoint_annotations(
+        annotations_to_ignore=[TimepointAnnotation.NOT_STEADY_STATE]
+    )
+    df_keep_non_steady_state = filter_dataframe_by_annotations(
+        df, timepoint_annotations=timepoint_annotations
+    )
     logger.info(
         "Dataframe contains features for positions [ %s ]",
-        df_rm_cell_piling[ColumnName.POSITION].unique(),
+        df_keep_non_steady_state[ColumnName.POSITION].unique(),
     )
-    for position, df_pos in df_rm_cell_piling.groupby(ColumnName.POSITION):
+    for position, df_pos in df_keep_non_steady_state.groupby(ColumnName.POSITION):
         timepoint_min = df_pos[ColumnName.TIMEPOINT].min()
         timepoint_max = df_pos[ColumnName.TIMEPOINT].max()
         logger.info(
@@ -60,13 +69,21 @@ def main(
             timepoint_max,
         )
 
-    logger.info("Validating dataframe with non-steady state removed")
-    df_rm_not_steady_state = filter_dataframe_by_annotations(df, keep_cell_piling=True)
+    logger.info(
+        "Validating dataframe with all annotations but [ %s ] removed",
+        TimepointAnnotation.CELL_PILING,
+    )
+    timepoint_annotations = get_subset_of_timepoint_annotations(
+        annotations_to_ignore=[TimepointAnnotation.CELL_PILING]
+    )
+    df_keep_cell_piling = filter_dataframe_by_annotations(
+        df, timepoint_annotations=timepoint_annotations
+    )
     logger.info(
         "Dataframe contains features for positions [ %s ]",
-        df_rm_not_steady_state[ColumnName.POSITION].unique(),
+        df_keep_cell_piling[ColumnName.POSITION].unique(),
     )
-    for position, df_pos in df_rm_not_steady_state.groupby(ColumnName.POSITION):
+    for position, df_pos in df_keep_cell_piling.groupby(ColumnName.POSITION):
         timepoint_min = df_pos[ColumnName.TIMEPOINT].min()
         timepoint_max = df_pos[ColumnName.TIMEPOINT].max()
         logger.info(
@@ -76,13 +93,13 @@ def main(
             timepoint_max,
         )
 
-    logger.info("Validating dataframe with both cell piling and non-steady state removed")
-    df_rm_both = filter_dataframe_by_annotations(df)
+    logger.info("Validating dataframe with all annotations removed.")
+    df_rm_all = filter_dataframe_by_annotations(df)
     logger.info(
         "Dataframe contains features for positions [ %s ]",
-        df_rm_both[ColumnName.POSITION].unique(),
+        df_rm_all[ColumnName.POSITION].unique(),
     )
-    for position, df_pos in df_rm_both.groupby(ColumnName.POSITION):
+    for position, df_pos in df_rm_all.groupby(ColumnName.POSITION):
         timepoint_min = df_pos[ColumnName.TIMEPOINT].min()
         timepoint_max = df_pos[ColumnName.TIMEPOINT].max()
         logger.info(
@@ -93,9 +110,13 @@ def main(
         )
 
     logger.info("Validating dataframe with only technical artifacts removed.")
-    df_rm_neither = filter_dataframe_by_annotations(
-        df, keep_cell_piling=True, keep_not_steady_state=True
+    timepoint_annotations = get_subset_of_timepoint_annotations(
+        annotations_to_ignore=[
+            TimepointAnnotation.CELL_PILING,
+            TimepointAnnotation.NOT_STEADY_STATE,
+        ]
     )
+    df_rm_neither = filter_dataframe_by_annotations(df, timepoint_annotations=timepoint_annotations)
     logger.info(
         "Dataframe contains features for positions [ %s ]",
         df_rm_neither[ColumnName.POSITION].unique(),
