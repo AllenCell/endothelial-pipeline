@@ -24,7 +24,7 @@ from endo_pipeline.configs import (
 )
 from endo_pipeline.io import load_dataframe_from_path
 from endo_pipeline.library.process.z_stack_selection import get_plane_indices
-from endo_pipeline.settings.image_data import LOG_EPSILON, NUM_ZSLICES
+from endo_pipeline.settings import LOG_EPSILON, NUM_ZSLICES, CytoDLLoadDataKeys
 
 logger = logging.getLogger(__name__)
 
@@ -222,18 +222,18 @@ class MultiDimImageDataset(SmartCacheDataset):
     def __init__(
         self,
         dataframe_path: Path | str,
-        img_path_column: str = "path",
-        channel_column: str = "channel",
+        img_path_column: str = CytoDLLoadDataKeys.FILE_PATH,
+        channel_column: str = CytoDLLoadDataKeys.CHANNELS,
         spatial_dims: int = 3,
-        scene_column: str = "scene",
-        resolution_column: str = "resolution",
-        time_start_column: str = "frame_start",
-        time_stop_column: str = "frame_stop",
-        time_step_column: str = "frame_step",
-        timepoints_to_exclude_column: str = "exclude_frames",
-        z_start_column: str = "z_start",
-        z_stop_column: str = "z_stop",
-        z_step_column: str = "z_step",
+        scene_column: str = CytoDLLoadDataKeys.SCENE,
+        resolution_column: str = CytoDLLoadDataKeys.RESOLUTION,
+        time_start_column: str = CytoDLLoadDataKeys.TIME_START,
+        time_end_column: str = CytoDLLoadDataKeys.TIME_END,
+        time_step_column: str = CytoDLLoadDataKeys.TIME_STEP,
+        timepoints_to_include_column: str = CytoDLLoadDataKeys.INCLUDE_TIMEPOINTS,
+        z_start_column: str = CytoDLLoadDataKeys.Z_START,
+        z_end_column: str = CytoDLLoadDataKeys.Z_END,
+        z_step_column: str = CytoDLLoadDataKeys.Z_STEP,
         num_devices: int = 1,
         extra_columns: Sequence[str] = [],
         transform: Callable | Sequence[Callable] | None = None,
@@ -329,15 +329,15 @@ class MultiDimImageDataset(SmartCacheDataset):
             Column in metadata table that contains resolution to extract from multi-resolution file.
         time_start_column
             Column in metadata table specifying the first timepoint in timelapse image to load.
-        time_stop_column
+        time_end_column
             Column in metadata table specifying the last timepoint in timelapse image to load.
         time_step_column
             Column in metadata table specifying step size between timepoints.
-        timepoints_to_exclude_column
-            Column in metadata table specifying timepoints to exclude from the timelapse image.
+        timepoints_to_include_column
+            Column in metadata table specifying which timepoints to include from the image.
         z_start_column
             Column in metadata table specifying the lowest Z slice to extract.
-        z_stop_column
+        z_end_column
             Column in metadata table specifying the highest Z slice to extract.
         z_step_column
             Column in metadata table specifying step between Z slices.
@@ -362,11 +362,11 @@ class MultiDimImageDataset(SmartCacheDataset):
         self.scene_column = scene_column
         self.resolution_column = resolution_column
         self.time_start_column = time_start_column
-        self.time_stop_column = time_stop_column
+        self.time_end_column = time_end_column
         self.time_step_column = time_step_column
-        self.timepoints_to_exclude_column = timepoints_to_exclude_column
+        self.timepoints_to_include_column = timepoints_to_include_column
         self.z_start_column = z_start_column
-        self.z_stop_column = z_stop_column
+        self.z_end_column = z_end_column
         self.z_step_column = z_step_column
         self.extra_columns = list(extra_columns)
         if spatial_dims not in (2, 3):
@@ -434,28 +434,28 @@ class MultiDimImageDataset(SmartCacheDataset):
     def _get_timepoints(self, row: dict, img: BioImage) -> list:
         """Get timepoints from the row data."""
         start = row.get(self.time_start_column, 0)
-        stop = row.get(self.time_stop_column, -1)
+        stop = row.get(self.time_end_column, -1)
         # can use -1 to indicate the last timepoint
         if stop == -1:
             stop = img.dims.T - 1
         step = row.get(self.time_step_column, 1)
         timepoints = range(start, stop + 1, step)
         timepoints_as_list = list(timepoints)
-        timepoints_to_exclude = row.get(self.timepoints_to_exclude_column, None)
-        if timepoints_to_exclude is not None:
+        timepoints_to_include = row.get(self.timepoints_to_include_column, None)
+        if timepoints_to_include is not None:
             logger.debug(
-                "Excluding timepoints: [ %s ] from available timepoints: [ %s ]",
-                timepoints_to_exclude,
+                "Only including timepoints: [ %s ] from available timepoints: [ %s ]",
+                timepoints_to_include,
                 timepoints_as_list,
             )
-            timepoints_as_list = list(set(timepoints) - set(timepoints_to_exclude))
+            timepoints_as_list = list(set(timepoints_as_list).intersection(timepoints_to_include))
         logger.debug("Loading image with timepoints: [ %s ]", timepoints_as_list)
         return sorted(timepoints_as_list)
 
     def _get_z_slices(self, row: dict, img: BioImage) -> list:
         """Get Z slices from the row data."""
         z_start = row.get(self.z_start_column, 0)
-        z_stop = row.get(self.z_stop_column, -1)
+        z_stop = row.get(self.z_end_column, -1)
         # can use -1 to indicate the last Z slice
         if z_stop == -1:
             z_stop = img.dims.Z - 1
@@ -568,8 +568,8 @@ def get_z_slice_bounds_per_position(
         else:
             z_slices = [0, NUM_ZSLICES - 1]
         z_slice_bounds_per_position[position_as_int] = {
-            "z_start": z_slices[0],
-            "z_stop": z_slices[-1],
+            CytoDLLoadDataKeys.Z_START: z_slices[0],
+            CytoDLLoadDataKeys.Z_END: z_slices[-1],
         }
 
     return z_slice_bounds_per_position
@@ -584,24 +584,26 @@ def build_zarr_image_loading_dataframe(
     frame_step: int | None = None,
     z_slice_bounds_per_position: dict[int, dict[str, int]] | None = None,
     only_include_positions: list[int] | None = None,
-    exclude_frames: dict[int, list[int]] | None = None,
+    only_include_frames: dict[int, list[int]] | None = None,
 ) -> pd.DataFrame:
     """Build a DataFrame with metadata for loading Zarr images as a ``MultiDimImageDataset``."""
     # generate csv with paths to zarr files for each position in the dataset
     available_zarr_files = get_available_zarr_files(dataset_config)
     zarr_file_paths = [str(zarr_file) for zarr_file in available_zarr_files]  # convert Path to str
 
-    df = pd.DataFrame({"path": zarr_file_paths})
-    df["resolution"] = resolution_level
+    df = pd.DataFrame({CytoDLLoadDataKeys.FILE_PATH: zarr_file_paths})
+    df[CytoDLLoadDataKeys.RESOLUTION] = resolution_level
     if isinstance(channel, int):
-        df["channel"] = channel
+        df[CytoDLLoadDataKeys.CHANNELS] = channel
     else:
         # need to make sure list is not split
         # across multiple rows
-        df["channel"] = df["path"].apply(lambda x: channel)
+        df[CytoDLLoadDataKeys.CHANNELS] = df[CytoDLLoadDataKeys.FILE_PATH].apply(lambda x: channel)
 
     # add temporary column with position index for filtering
-    df["position_index"] = df["path"].apply(lambda x: get_position_integer_from_zarr_file_path(x))
+    df["position_index"] = df[CytoDLLoadDataKeys.FILE_PATH].apply(
+        lambda x: get_position_integer_from_zarr_file_path(x)
+    )
 
     # only load images for specified position indices
     if only_include_positions is not None:
@@ -613,29 +615,31 @@ def build_zarr_image_loading_dataframe(
 
     # if start and stop for loading timepoints are specified, add to dataframe
     if (frame_start is not None) and (frame_stop is not None):
-        df["frame_start"] = frame_start
-        df["frame_stop"] = frame_stop
+        df[CytoDLLoadDataKeys.TIME_START] = frame_start
+        df[CytoDLLoadDataKeys.TIME_END] = frame_stop
     # frame step defaults in loader to 1, but can be specified
     if frame_step is not None:
-        df["frame_step"] = frame_step
+        df[CytoDLLoadDataKeys.TIME_STEP] = frame_step
 
     # add column for excluding frames, if specified
-    if exclude_frames is not None:
+    if only_include_frames is not None:
         # if position has no frames to exclude, set to None
-        df["exclude_frames"] = df["position_index"].apply(lambda x: exclude_frames.get(x, None))
+        df[CytoDLLoadDataKeys.INCLUDE_TIMEPOINTS] = df["position_index"].apply(
+            lambda x: only_include_frames.get(x, None)
+        )
 
     # if start and stop for loading z slices are specified, add to dataframe
     if z_slice_bounds_per_position is not None:
         # get z info dict for each position index
         # unpack the start, stop, and step values from those dictionaries
-        df["z_start"] = df["position_index"].apply(
-            lambda x: z_slice_bounds_per_position.get(x, {}).get("z_start", 0)
+        df[CytoDLLoadDataKeys.Z_START] = df["position_index"].apply(
+            lambda x: z_slice_bounds_per_position.get(x, {}).get(CytoDLLoadDataKeys.Z_START, 0)
         )
-        df["z_stop"] = df["position_index"].apply(
-            lambda x: z_slice_bounds_per_position.get(x, {}).get("z_stop", -1)
+        df[CytoDLLoadDataKeys.Z_END] = df["position_index"].apply(
+            lambda x: z_slice_bounds_per_position.get(x, {}).get(CytoDLLoadDataKeys.Z_END, -1)
         )
-        df["z_step"] = df["position_index"].apply(
-            lambda x: z_slice_bounds_per_position.get(x, {}).get("z_step", 1)
+        df[CytoDLLoadDataKeys.Z_STEP] = df["position_index"].apply(
+            lambda x: z_slice_bounds_per_position.get(x, {}).get(CytoDLLoadDataKeys.Z_STEP, 1)
         )
 
     # remove temporary column with position index

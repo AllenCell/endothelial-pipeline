@@ -213,7 +213,7 @@ This method is deprecated and will be removed. The recommended alternative is:
     )
 
     df_valid = remove_annotated_timepoints_and_positions(
-        df, exclude_cell_piling=True, exclude_not_steady_state=True
+        df, include_cell_piling=False, include_not_steady_state=False
     )
 """
 )

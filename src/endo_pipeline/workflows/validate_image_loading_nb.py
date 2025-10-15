@@ -4,10 +4,11 @@ from endo_pipeline.configs import (
     get_annotated_timepoints_for_position,
     get_position_integer_from_zarr_file_path,
     get_unannotated_positions,
+    get_unannotated_timepoints_for_position,
     load_dataset_config,
 )
 from endo_pipeline.io import get_output_path
-from endo_pipeline.library.analyze.dataset_filters import get_exclude_frames
+from endo_pipeline.library.analyze.dataset_filters import get_frames_to_include
 from endo_pipeline.library.model import (
     MultiDimImageDataset,
     build_zarr_image_loading_dataframe,
@@ -28,9 +29,9 @@ z_slice_offsets = Z_SLICE_OFFSETS
 # %%
 z_slice_bounds_per_position = get_z_slice_bounds_per_position(dataset_config, z_slice_offsets)
 only_include_positions = get_unannotated_positions(dataset_config)
-exclude_cell_piling = True
-exclude_frames_by_position = get_exclude_frames(
-    dataset_config, exclude_cell_piling=exclude_cell_piling
+include_cell_piling = False
+include_frames_by_position = get_frames_to_include(
+    dataset_config, include_cell_piling=include_cell_piling
 )
 
 # %%
@@ -51,9 +52,9 @@ for position in dataset_config.zarr_positions:
     else:
         assert position not in only_include_positions
 
-    annotated_timepoints = get_annotated_timepoints_for_position(dataset_config, position)
-    excluded_frames = sorted(annotated_timepoints)
-    assert excluded_frames == exclude_frames_by_position.get(position, [])
+    unannotated_timepoints = get_unannotated_timepoints_for_position(dataset_config, position)
+    included_frames = sorted(unannotated_timepoints)
+    assert included_frames == include_frames_by_position.get(position, [])
 
     print("Validated position:", position)
 
@@ -67,7 +68,7 @@ df = build_zarr_image_loading_dataframe(
     frame_stop=frame_stop,
     z_slice_bounds_per_position=z_slice_bounds_per_position,
     only_include_positions=only_include_positions,
-    exclude_frames=exclude_frames_by_position,
+    only_include_frames=include_frames_by_position,
 )
 
 # print a few rows to get a sense of what this dataframe is

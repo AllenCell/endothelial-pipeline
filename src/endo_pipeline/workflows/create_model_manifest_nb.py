@@ -22,7 +22,7 @@ model_manifest = ModelManifest(
     name="demo_model_manifest",
     workflow="train-diffae",
     # ============================ OPTIONAL FIELDS =============================
-    # parameters={"z_slice_offsets": None, "exclude_cell_piling": True},
+    # parameters={"z_slice_offsets": None, "include_cell_piling": False},
     # locations={"20250920_run": ModelLocation(mlflowid="abcdefg")},
 )
 

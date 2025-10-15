@@ -10,9 +10,7 @@ def main(
     import logging
 
     from endo_pipeline.io import load_dataframe
-    from endo_pipeline.library.analyze.diffae_dataframe import (
-        remove_annotated_timepoints_and_positions,
-    )
+    from endo_pipeline.library.analyze.diffae_dataframe import filter_dataframe_by_annotations
     from endo_pipeline.manifests import (
         get_dataframe_location_for_dataset,
         get_feature_dataframe_manifest_name,
@@ -47,7 +45,7 @@ def main(
         )
 
     logger.info("Validating dataframe with cell piling removed")
-    df_rm_cell_piling = remove_annotated_timepoints_and_positions(df, remove_not_steady_state=False)
+    df_rm_cell_piling = filter_dataframe_by_annotations(df, keep_not_steady_state=True)
     logger.info(
         "Dataframe contains features for positions [ %s ]",
         df_rm_cell_piling[ColumnName.POSITION].unique(),
@@ -63,7 +61,7 @@ def main(
         )
 
     logger.info("Validating dataframe with non-steady state removed")
-    df_rm_not_steady_state = remove_annotated_timepoints_and_positions(df, remove_cell_piling=False)
+    df_rm_not_steady_state = filter_dataframe_by_annotations(df, keep_cell_piling=True)
     logger.info(
         "Dataframe contains features for positions [ %s ]",
         df_rm_not_steady_state[ColumnName.POSITION].unique(),
@@ -79,7 +77,7 @@ def main(
         )
 
     logger.info("Validating dataframe with both cell piling and non-steady state removed")
-    df_rm_both = remove_annotated_timepoints_and_positions(df)
+    df_rm_both = filter_dataframe_by_annotations(df)
     logger.info(
         "Dataframe contains features for positions [ %s ]",
         df_rm_both[ColumnName.POSITION].unique(),
@@ -95,8 +93,8 @@ def main(
         )
 
     logger.info("Validating dataframe with only technical artifacts removed.")
-    df_rm_neither = remove_annotated_timepoints_and_positions(
-        df, remove_cell_piling=False, remove_not_steady_state=False
+    df_rm_neither = filter_dataframe_by_annotations(
+        df, keep_cell_piling=True, keep_not_steady_state=True
     )
     logger.info(
         "Dataframe contains features for positions [ %s ]",

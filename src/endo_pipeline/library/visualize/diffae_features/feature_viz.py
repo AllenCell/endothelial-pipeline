@@ -114,7 +114,7 @@ def plot_pc_scatter(
     dataset_names: list[str],
     dataframe_manifest: DataframeManifest,
     pca: PCA,
-    exclude_cell_piling: bool = False,
+    include_cell_piling: bool = False,
     alpha: float = 0.75,
     scatter_size: float = 0.01,
     pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
@@ -130,8 +130,8 @@ def plot_pc_scatter(
         Manifest containing paths to dataframes for each dataset.
     pca
         Fit PCA model used to transform the data.
-    exclude_cell_piling
-        Exclude cell piling timepoings from the plot if True, include if False.
+    include_cell_piling
+        Include cell piling timepoings from the plot if True, exclude if False.
     alpha
         Alpha (opacity) value for scatter plot points.
     scatter_size
@@ -155,9 +155,9 @@ def plot_pc_scatter(
     for dataset_name in dataset_names:
         # load dataframe and get top 3 PCs
         # plot or don't plot cell piling timepoints based on
-        # value of exclude_cell_piling
+        # value of include_cell_piling
         df = get_dataframe_for_dynamics_workflows(
-            dataset_name, dataframe_manifest, pca, exclude_cell_piling=exclude_cell_piling
+            dataset_name, dataframe_manifest, pca, include_cell_piling=include_cell_piling
         )
 
         # get color for the dataset

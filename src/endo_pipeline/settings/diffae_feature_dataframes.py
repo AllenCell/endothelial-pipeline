@@ -73,8 +73,8 @@ class CytoDLLoadDataKeys(StrEnum):
     TIME_STEP = "frame_step"
     """Key for timepoint (frame number) step size."""
 
-    EXCLUDE_TIMEPOINTS = "exclude_frames"
-    """Key for list of timepoints (frame numbers) to exclude."""
+    INCLUDE_TIMEPOINTS = "include_frames"
+    """Key for list of timepoints (frame numbers) to include."""
 
     Z_START = "z_start"
     """Key for starting z-slice index."""
@@ -90,6 +90,9 @@ class CytoDLLoadDataKeys(StrEnum):
 
     RESOLUTION = "resolution_level"
     """Key for resolution level of the image."""
+
+    SCENE = "scene"
+    """Key for scene identifier."""
 
 
 class CytoDLSaveDataKeys(StrEnum):

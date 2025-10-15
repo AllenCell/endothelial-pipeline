@@ -10,7 +10,7 @@ from endo_pipeline.io import load_dataframe
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES, DIFFAE_PC_COLUMN_NAMES
 
-from .dataframe_preprocessing import remove_annotated_timepoints_and_positions
+from .dataframe_preprocessing import filter_dataframe_by_annotations
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +21,8 @@ pd.options.mode.chained_assignment = None  # default='warn'
 def fit_pca(
     dataset_collection_name: str = "pca_reference",
     dataframe_manifest_name: str = "diffae_04_10",
-    remove_annotations: bool = True,
-    exclude_cell_piling: bool = False,
+    filter_dataframe: bool = True,
+    include_cell_piling: bool = False,
     num_pcs: int = 8,
 ) -> PCA:
     """
@@ -36,10 +36,10 @@ def fit_pca(
         This is used to load the model manifests that contain the reference datasets.
     dataframe_manifest_name
         Name of the dataframe manifest to load the model features from.
-    remove_annotations
-        Whether to generally remove annotated timepoints and positions before fitting PCA.
-    exclude_cell_piling
-        True to exclude cell piling timepoints, False to include them.
+    filter_dataframe
+        Whether to remove annotated timepoints and positions from the dataframes before fitting PCA.
+    include_cell_piling
+        True to include cell piling timepoints in the data used to fit PCA, False to exclude them.
     num_pcs
         Number of principal components to fit.
 
@@ -60,13 +60,13 @@ def fit_pca(
 
     # Load all dataframes, filter out annotated timepoints, and concatenate.
     # Filtering does or doesn't remove cell piling timepoints based on
-    # the input exclude_cell_piling.
+    # the input include_cell_piling.
     dataframe_list = []
     for location in locations:
         dataframe = load_dataframe(location)
-        if remove_annotations:
-            dataframe_filtered = remove_annotated_timepoints_and_positions(
-                dataframe, remove_cell_piling=exclude_cell_piling
+        if filter_dataframe:
+            dataframe_filtered = filter_dataframe_by_annotations(
+                dataframe, keep_cell_piling=include_cell_piling
             )
         else:
             dataframe_filtered = dataframe

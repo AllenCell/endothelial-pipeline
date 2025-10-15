@@ -345,7 +345,7 @@ def preprocess_tracking_manifest_for_model_eval(
     save_dir: Path,
     z_slice_bounds_per_position: dict[int, dict[str, int]] | None = None,
     only_include_positions: list[int] | None = None,
-    exclude_frames: dict[int, list[int]] | None = None,
+    only_include_frames: dict[int, list[int]] | None = None,
 ) -> Path:
     """Preprocess the manifest for a dataset to prepare it for model prediction."""
 
@@ -429,10 +429,10 @@ def preprocess_tracking_manifest_for_model_eval(
         grouped_df = grouped_df[grouped_df["position_index"].isin(only_include_positions)]
 
     # add column for excluding frames, if specified
-    if exclude_frames is not None:
+    if only_include_frames is not None:
         # if position has no frames to exclude, set to None
-        grouped_df[CytoDLLoadDataKeys.EXCLUDE_TIMEPOINTS] = grouped_df["position_index"].apply(
-            lambda x: exclude_frames.get(x, None)
+        grouped_df[CytoDLLoadDataKeys.INCLUDE_TIMEPOINTS] = grouped_df["position_index"].apply(
+            lambda x: only_include_frames.get(x, None)
         )
 
     # if start and stop for loading z slices are specified, add to dataframe
@@ -440,13 +440,13 @@ def preprocess_tracking_manifest_for_model_eval(
         # get z info dict for each position index
         # unpack the start, stop, and step values from those dictionaries
         grouped_df[CytoDLLoadDataKeys.Z_START] = grouped_df["position_index"].apply(
-            lambda x: z_slice_bounds_per_position.get(x, {}).get("z_start", 0)
+            lambda x: z_slice_bounds_per_position.get(x, {}).get(CytoDLLoadDataKeys.Z_START, 0)
         )
         grouped_df[CytoDLLoadDataKeys.Z_END] = grouped_df["position_index"].apply(
-            lambda x: z_slice_bounds_per_position.get(x, {}).get("z_stop", -1)
+            lambda x: z_slice_bounds_per_position.get(x, {}).get(CytoDLLoadDataKeys.Z_END, -1)
         )
         grouped_df[CytoDLLoadDataKeys.Z_STEP] = grouped_df["position_index"].apply(
-            lambda x: z_slice_bounds_per_position.get(x, {}).get("z_step", 1)
+            lambda x: z_slice_bounds_per_position.get(x, {}).get(CytoDLLoadDataKeys.Z_STEP, 1)
         )
 
     # remove temporary column with position index

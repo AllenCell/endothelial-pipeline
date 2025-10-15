@@ -12,7 +12,7 @@ def main(
     datasets: Datasets | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    exclude_cell_piling: Annotated[bool, Parameter(negative="--include-cell-piling")] = True,
+    include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     pc_axis: int = 1,
     pc_val: float = 0.25,
     frame_range: list[int] | None = None,
@@ -34,8 +34,8 @@ def main(
         Name of the model manifest containing the run to load features from.
     run_name
         Name of the specific model run to load featuref for. If None, uses the most recent run.
-    exclude_cell_piling
-        True to exclude timepoints with cell piling to fit the PCA model, False to include them.
+    include_cell_piling
+        True to include timepoints with cell piling to fit the PCA model, False to exclude them.
     pc_axis
         The principal component axis to use for filtering the images (0 for PC1, 1 for PC2, etc.)
     pc_val
@@ -83,13 +83,13 @@ def main(
         "crop_visualization",
         model_manifest_name,
         run_name_,
-        "exclude_cell_piling" if exclude_cell_piling else "include_cell_piling",
+        "include_cell_piling" if include_cell_piling else "exclude_cell_piling",
     )
 
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     df, pca = load_data_for_montage(
-        dataset_list, dataframe_manifest, exclude_cell_piling=exclude_cell_piling
+        dataset_list, dataframe_manifest, include_cell_piling=include_cell_piling
     )
 
     df_filtered = filter_dataframe(

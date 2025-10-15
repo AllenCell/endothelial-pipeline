@@ -11,7 +11,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     dataset_collection_name: str = "pca_reference",
-    exclude_cell_piling: Annotated[bool, Parameter(negative="--include-cell-piling")] = True,
+    include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
 ) -> None:
     """Visualize key attributes of a fit PCA model."""
     import logging
@@ -46,7 +46,7 @@ def main(
         dataset_collection_name,
         model_manifest_name,
         run_name_,
-        "exclude_cell_piling" if exclude_cell_piling else "include_cell_piling",
+        "include_cell_piling" if include_cell_piling else "exclude_cell_piling",
     )
 
     # fit PCA model to the datasets in the given dataset collection
@@ -59,7 +59,7 @@ def main(
     pca = fit_pca(
         dataset_collection_name=dataset_collection_name,
         dataframe_manifest_name=dataframe_manifest_name,
-        exclude_cell_piling=exclude_cell_piling,
+        include_cell_piling=include_cell_piling,
     )
 
     # plot cumulative explained variance ratio of PCA components
@@ -100,7 +100,7 @@ def main(
         dataset_names,
         dataframe_manifest,
         pca,
-        exclude_cell_piling=exclude_cell_piling,
+        include_cell_piling=include_cell_piling,
     )
     save_plot_to_path(fig, fig_savedir, "pca_scatter_ref")
 
