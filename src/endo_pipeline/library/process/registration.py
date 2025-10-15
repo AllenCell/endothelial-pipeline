@@ -26,7 +26,8 @@ from endo_pipeline.configs import (
     load_dataset_config,
 )
 from endo_pipeline.io import load_image_from_path
-from endo_pipeline.library.model import get_include_positions, get_z_slice_bounds_per_position
+from endo_pipeline.library.analyze.dataset_filters import get_include_positions
+from endo_pipeline.library.model import get_z_slice_bounds_per_position
 from endo_pipeline.library.process.cdh5_preprocessing import preprocess
 
 FLUOR_CHANNEL = 0

@@ -61,11 +61,13 @@ def main(
     from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import load_dataset_collection_config, load_dataset_config
     from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.analyze.dataset_filters import (
+        get_exclude_frames,
+        get_include_positions,
+    )
     from endo_pipeline.library.model import (
         build_and_save_dataframe_manifest_for_training,
         build_zarr_image_loading_dataframe,
-        get_exclude_frames,
-        get_include_positions,
         get_z_slice_bounds_per_position,
     )
     from endo_pipeline.settings import Z_SLICE_OFFSETS
