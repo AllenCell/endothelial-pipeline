@@ -9,7 +9,7 @@ from endo_pipeline.configs import (
 def get_include_positions(dataset_config: DatasetConfig) -> list[int]:
     """Get list of positions to include based on annotations."""
     exclude_positions = get_annotated_positions(dataset_config)
-    only_include_positions = list(set(dataset_config.zarr_positions) - set(exclude_positions))
+    only_include_positions = sorted(set(dataset_config.zarr_positions) - set(exclude_positions))
     return only_include_positions
 
 
