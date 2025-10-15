@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-from endo_pipeline.io import get_output_path, load_image
+from endo_pipeline.io import get_output_path
 from endo_pipeline.manifests import (
     get_image_location_for_dataset,
     list_datasets_with_images,
@@ -13,14 +13,6 @@ from endo_pipeline.manifests import (
 )
 
 log = logging.getLogger(__name__)
-
-
-# %%
-image_manifest = load_image_manifest("nuclear_labelfree_seg_zarr")
-image_location = get_image_location_for_dataset(image_manifest, "20250224_20X", position=0)
-image = load_image(image_location)
-
-# %%
 
 
 image_channel_pairs = [("nuclear_labelfree_seg", "NUC_SEG"), ("cdh5_classic_seg", "CDH5_SEG")]
