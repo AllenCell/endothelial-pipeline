@@ -20,9 +20,7 @@ def evaluate_model_paired_fixed_live(
     fixed_dataset_name: str,
     live_dataset_name: str,
     model_save_path: Path,
-    data_save_path: Path,
     model: CytoDLModel,
-    align_fluo: bool = True,
     num_gpus: int | None = None,
 ) -> tuple[Path, Path]:
     """
@@ -37,13 +35,9 @@ def evaluate_model_paired_fixed_live(
         Dataset name to use as the moving images (i.e. the images to be registered to the fixed
         images)
     model_save_path : Path
-        Path to directory where data is saved
-    data_save_path : Path
-        Path to csv file where aligned data is saved
+        Path to directory where feature data is saved
     model : CytoDLModel
         DiffAE model to use for feature extraction
-    align_fluo : bool
-        Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
     num_gpus: int
         Number of GPUs to use
 
