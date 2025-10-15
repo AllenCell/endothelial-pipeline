@@ -259,7 +259,7 @@ def pad_missing_timepoints(
     with NaNs, so that each crop has the same number of timepoints.
     """
     # get list of all timepoints
-    all_timepoints = list(range(df[TIMEPOINT_COLUMN_NAME].nunique()))
+    all_timepoints = df[TIMEPOINT_COLUMN_NAME].unique().to_list()
 
     list_of_padded_dfs = []
     # loop over crop index
