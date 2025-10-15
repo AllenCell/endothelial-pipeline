@@ -10,6 +10,30 @@ from endo_pipeline.settings import ColumnName
 logger = logging.getLogger(__name__)
 
 
+def check_required_columns_in_dataframe(
+    df: pd.DataFrame,
+    required_columns: list[str] | None = None,
+) -> None:
+    """
+    Check that the required columns are present in the dataframe.
+
+    Parameters
+    ----------
+    df
+        DataFrame to check.
+    """
+    # default required columns: timepoint and crop index
+    if required_columns is None:
+        required_column_list = [ColumnName.TIMEPOINT, ColumnName.CROP_INDEX]
+    else:
+        required_columns_list = required_columns
+
+    for col in required_columns_list:
+        if col not in df.columns:
+            logger.error("DataFrame must contain column [ %s ]", col)
+            raise ValueError(f"DataFrame must contain column [ {col} ]")
+
+
 def get_dataset_descriptions(
     list_of_datasets: list[str],
     include_duration: bool = True,
@@ -130,7 +154,7 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
     The input dataframe should have columns for:
     - frame_number: timepoint of the crop
     - crop_index: unique index for each crop
-    - columns for each feature (e.g., pc0, pc1, pc2, ...) matching input ``pc_column_names``
+    - columns for each feature (e.g., pc_0, pc_1, pc_2, ...) matching input ``pc_column_names``
 
     Parameters
     ----------
@@ -146,20 +170,8 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
     :
         List of displacement vectors along each trajectory in feature space.
     """
-    if ColumnName.TIMEPOINT not in data.columns:
-        logger.error(
-            "Data must have the column [ %s ] to indicate timepoints.", ColumnName.TIMEPOINT
-        )
-        raise ValueError(
-            f"Data must have the column [ {ColumnName.TIMEPOINT} ] to indicate timepoints."
-        )
-    if ColumnName.CROP_INDEX not in data.columns:
-        logger.error(
-            "Data must have the column [ %s ] to indicate unique crops.", ColumnName.CROP_INDEX
-        )
-        raise ValueError(
-            f"Data must have the column [ {ColumnName.CROP_INDEX} ] to indicate unique crops."
-        )
+    # check that required columns are present
+    check_required_columns_in_dataframe(data)
 
     # get list of unique crop indices
     crop_list = data[ColumnName.CROP_INDEX].unique().tolist()

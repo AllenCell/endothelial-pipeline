@@ -23,7 +23,7 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     plot_quiver_slices,
     set_slice_plot_bounds_and_labels,
 )
-from endo_pipeline.settings import TIMEPOINT_COLUMN_NAME
+from endo_pipeline.settings import ColumnName
 
 
 def get_valid_slice_indexes(
@@ -49,11 +49,11 @@ def get_valid_slice_indexes(
             pc2_val = 0
         else:
             # get mean at all time points over crops
-            mean_over_crops = df.groupby(TIMEPOINT_COLUMN_NAME).mean(numeric_only=True)
+            mean_over_crops = df.groupby(ColumnName.TIMEPOINT).mean(numeric_only=True)
             # get last time point
             mean_over_crops = mean_over_crops.iloc[-1]
-            pc3_val = mean_over_crops["pc3"].mean()
-            pc2_val = mean_over_crops["pc2"].mean()
+            pc3_val = mean_over_crops["pc_3"].mean()
+            pc2_val = mean_over_crops["pc_2"].mean()
     # if specified, unpack
     else:
         pc3_val = pc_vals[0]
@@ -209,8 +209,8 @@ def plot_measured_feat_overlay_on_flowfield(
     fig, axs = plot_measured_feat_pcs(
         measured_feat_df=diffae_measured_feat_df,
         meas_feat_col=meas_feat_col_name_for_color_coding,
-        pc_cols_for_xaxis=["pc1", "pc1"],
-        pc_cols_for_yaxis=["pc2", "pc3"],
+        pc_cols_for_xaxis=["pc_1", "pc_1"],
+        pc_cols_for_yaxis=["pc_2", "pc_3"],
         track_id=track_id_to_plot,
         fig=fig,
         axs=axs,
@@ -642,8 +642,8 @@ def plot_pc_integrated_track_as_arrows(
         color="blue",
     )
     ax.quiver(
-        df["pc1"].iloc[:-1],
-        df["pc2"].iloc[:-1],
+        df["pc_1"].iloc[:-1],
+        df["pc_2"].iloc[:-1],
         df["dpc1"].iloc[1:],
         df["dpc2"].iloc[1:],
         scale_units="xy",
@@ -654,8 +654,8 @@ def plot_pc_integrated_track_as_arrows(
     )
     sns.scatterplot(
         data=df.query("time_hours == time_hours.min()"),
-        x="pc1",
-        y="pc2",
+        x="pc_1",
+        y="pc_2",
         marker="o",
         color="red",
         alpha=0.7,
@@ -666,8 +666,8 @@ def plot_pc_integrated_track_as_arrows(
     )
     sns.scatterplot(
         data=df.query("time_hours == time_hours.max()"),
-        x="pc1",
-        y="pc2",
+        x="pc_1",
+        y="pc_2",
         marker="x",
         color="red",
         alpha=0.7,
@@ -701,8 +701,8 @@ def plot_pc_integrated_track_as_arrows(
         color="grey",
     )
     ax.quiver(
-        df["pc1"].iloc[:-1],
-        df["pc2"].iloc[:-1],
+        df["pc_1"].iloc[:-1],
+        df["pc_2"].iloc[:-1],
         df["dpc1"].iloc[1:],
         df["dpc2"].iloc[1:],
         scale_units="xy",
@@ -793,8 +793,8 @@ def overlay_flow_fields_on_histograms(
     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
     sns.histplot(
         data=diffae_grid_crops,
-        x="pc1",
-        y="pc2",
+        x="pc_1",
+        y="pc_2",
         bins=50,
         cmap="Blues",
         ax=ax,
@@ -818,8 +818,8 @@ def overlay_flow_fields_on_histograms(
     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
     sns.histplot(
         data=merged_feats_df,
-        x="pc1",
-        y="pc2",
+        x="pc_1",
+        y="pc_2",
         bins=50,
         cmap="Reds",
         ax=ax,

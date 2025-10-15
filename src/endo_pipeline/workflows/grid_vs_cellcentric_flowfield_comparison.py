@@ -1,6 +1,5 @@
 import gc
 import logging
-from pathlib import Path
 
 import matplotlib
 import numpy as np
