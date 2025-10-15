@@ -10,7 +10,7 @@ from bioio_ome_zarr.writers.metadata import Channel
 from tqdm import tqdm
 
 """
-This workflow is mean to be run in a separate enviornment from the main endo_pipeline env
+This workflow is meant to be run in a separate enviornment from the main endo_pipeline env
 due to bioio version conflicts. See below for dependencies.
 
 Python 3.11+
