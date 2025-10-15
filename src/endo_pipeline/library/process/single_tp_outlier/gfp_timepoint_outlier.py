@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.configs import DatasetConfig, get_available_zarr_files
-from endo_pipeline.io.input import load_zarr_as_dask_array
+from endo_pipeline.configs import DatasetConfig, get_zarr_file_for_position
+from endo_pipeline.io.input import load_image_from_path
 from endo_pipeline.io.output import get_output_path, save_plot_to_path
 from endo_pipeline.settings.method_constants import GFP_ROLLING_WINDOW, OUTLIER_THRESHOLD
 
@@ -128,10 +128,8 @@ def detect_egfp_scope_errors(
     list of int
         Indices of timepoints identified as outliers.
     """
-    zarr_files = get_available_zarr_files(dataset_config)
-    gfp_zarr = load_zarr_as_dask_array(
-        zarr_files[position], channels=["EGFP"], level=1, squeeze=True
-    )
+    zarr_file = get_zarr_file_for_position(dataset_config, position)
+    gfp_zarr = load_image_from_path(zarr_file, channels=["EGFP"], level=1, squeeze=True)
 
     # Compute mean intensity across spatial dimensions (Y, X)
     intensity_array = gfp_zarr.mean(axis=(-2, -1))  # now (T, Z)

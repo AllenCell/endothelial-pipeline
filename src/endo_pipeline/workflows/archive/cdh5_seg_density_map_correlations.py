@@ -28,7 +28,7 @@ def _evaluate_density_against_number_of_nuclei(dataset_name, T, bbox_radius=256,
     # archived. Use with caution!
     manifest = load_image_manifest("cdh5_classic_seg")
     location = get_image_location_for_dataset(manifest, dataset_name, 0, T)
-    region_seg = load_image(location)
+    region_seg = load_image(location, squeeze=True, compute=True)
     # --------------------------------------------------------------------------
 
     nuc_seg = nuc_seg.compute().astype(int)
