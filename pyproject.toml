@@ -221,3 +221,127 @@ ignore_missing_imports = true
 disallow_untyped_defs = true
 check_untyped_defs = true
 show_error_codes = true
+# This line should be removed when errors listed are resolved
+disable_error_code = ["no-untyped-def"]
+
+[[tool.mypy.overrides]]
+# This section should not be removed: we don't have control over these external packages
+module = [
+    "aicsfiles",
+    "cellpose",
+    "cellpose.io",
+    "colorizer_data",
+    "cyto_dl.api",
+    "cyto_dl.callbacks.latent_walk_diffae",
+    "cyto_dl.models.im2im.diffusion_autoencoder",
+    "cyto_dl.models.im2im.utils",
+    "cyto_dl.utils.arg_checking",
+    "fire",
+    "mpl_toolkits.axes_grid1",
+    "mpl_toolkits.mplot3d",
+    "networkx",
+    "numdifftools",
+    "pysindy",
+    "scipy",
+    "scipy.cluster.hierarchy",
+    "scipy.integrate",
+    "scipy.ndimage",
+    "scipy.optimize",
+    "scipy.signal",
+    "scipy.special",
+    "scipy.stats",
+    "sklearn.decomposition",
+    "sklearn.model_selection",
+    "sklearn.preprocessing",
+    "vtk",
+]
+disable_error_code = ["import-untyped"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.library.visualize.*",
+]
+disable_error_code = ["arg-type", "assignment", "attr-defined", "call-arg", "union-attr"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.library.analyze.*",
+]
+disable_error_code = ["assignment", "arg-type", "attr-defined", "union-attr", "return-value", "misc", "has-type", "operator", "index", "list-item", "call-overload"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.workflows.*"
+]
+disable_error_code = ["arg-type", "assignment", "attr-defined", "name-defined", "operator", "union-attr"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.workflows.figures.*"
+]
+disable_error_code = ["index", "call-overload"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when "arg-type" errors in the listed modules are resolved
+module = [
+    "endo_pipeline.workflows.figures.supp_fig_z_slice_selection_nb",
+]
+disable_error_code = ["arg-type"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.workflows.production.*"
+]
+disable_error_code = ["arg-type"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.workflows.archive.*"
+]
+disable_error_code = ["call-overload", "operator"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = ["endo_pipeline.__main__"]
+disable_error_code = ["operator"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.library.model.model_config_overrides"
+]
+disable_error_code = ["misc", "operator", "union-attr"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.library.model.diffae.diffusion_autoencoder"
+]
+disable_error_code = ["assignment"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.library.process.*"
+]
+disable_error_code = ["arg-type", "assignment", "union-attr", "return-value"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.io.output"
+]
+disable_error_code = ["arg-type"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.configs.dataset_config_utils"
+]
+disable_error_code = ["return-value"]
