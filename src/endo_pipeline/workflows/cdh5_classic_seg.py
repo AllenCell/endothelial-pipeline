@@ -8,7 +8,7 @@ from tqdm import tqdm
 from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.configs.dataset_io import get_original_path, ipython_cli_flexecute
-from endo_pipeline.io import get_output_path, load_image, load_zarr_as_dask_array
+from endo_pipeline.io import get_output_path, load_image, load_image_from_path
 from endo_pipeline.library.process import cdh5_preprocessing as preproc
 from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
@@ -85,7 +85,7 @@ def generate_results(
         dataset_config = load_dataset_config(dataset_name)
         zarr_file = get_zarr_file_for_position(dataset_config, position)
         img = BioImage(zarr_file)
-        raw_dask_arr = load_zarr_as_dask_array(
+        raw_dask_arr = load_image_from_path(
             path=zarr_file, channels=["EGFP"], timepoints=T, level=img_bin_level
         )
 
@@ -107,7 +107,7 @@ def generate_results(
     print(f"T={T} -- loading nuclei segmentations") if verbose else None
     seg_manifest = load_image_manifest("nuclear_labelfree_seg")
     seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, T)
-    nuc_pred = load_image(seg_location)
+    nuc_pred = load_image(seg_location, squeeze=True, compute=True)
 
     (
         print(f"T={T} -- splitting RAG-based segmentations using nuclei predictions")

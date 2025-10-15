@@ -1,144 +1,69 @@
 from pathlib import Path
-from typing import cast
 
 import numpy as np
 import pandas as pd
 from cyto_dl.api import CytoDLModel
 from matplotlib.patches import Ellipse
+from pandas.core.groupby import DataFrameGroupBy
 from sklearn.decomposition import PCA
 
-from endo_pipeline.configs import (
-    CytoDLModelConfig,
-    DatasetConfig,
-    load_dataset_config,
-    load_model_config,
-)
-from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
 from endo_pipeline.library.analyze.diffae_dataframe import (
     get_dataframe_for_dynamics_workflows,
-    project_manifest_to_pcs,
+    project_features_to_pcs,
 )
-from endo_pipeline.library.model import (
-    download_model,
-    generate_overrides_for_model_eval,
-    get_cytodl_commit_hash,
-)
+from endo_pipeline.library.model.eval_model import generate_overrides_for_model_eval
 from endo_pipeline.library.process.registration import align_all_positions
-from endo_pipeline.manifests import (
-    DataframeLocation,
-    load_dataframe_manifest,
-    save_dataframe_manifest,
-)
+from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings import Z_SLICE_OFFSETS
-
-
-def add_paired_fixed_live_data_fmsid_to_manifest(
-    prediction_path: Path,
-    dataset_config: DatasetConfig,
-    model_config: CytoDLModelConfig,
-    model_path: Path,
-) -> None:
-    """
-    Upload path to FMS and add the FMS ID to the dataset config file for a dataset
-    of paired fixed and live data.
-
-    Parameters
-    ----------
-    prediction_path : str
-        Path to the prediction file
-    dataset_config : DatasetConfig
-        Config file for the dataset
-    model_config : CytoDLModelConfig
-        Config file for the chosen model
-    model_path : Path
-        Path to the model directory. Used for extracting the commit hash.
-
-    Returns
-    -------
-    model_config_updated : CytoDLModelConfig
-        Updated model config with the FMS ID of the prediction file added to the dataset manifest
-    """
-    # build FMS annotations
-    dataset_annotations = build_fms_annotations(
-        dataset_config,
-        model=model_config,
-        additional_notes=get_cytodl_commit_hash(model_config.mlflow_run_id, model_path),
-    )
-
-    # upload prediction file to FMS and get file ID
-    file_id = upload_file_to_fms(
-        prediction_path,
-        annotations=dataset_annotations,
-        file_type="parquet",
-    )
-
-    # Update the model config with the FMS ID of the prediction file
-    manifest = load_dataframe_manifest(model_config.name)
-    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
-    save_dataframe_manifest(manifest)
 
 
 def evaluate_model_paired_fixed_live(
     fixed_dataset_name: str,
     live_dataset_name: str,
-    model_name: str,
+    model_save_path: Path,
+    data_save_path: Path,
+    model: CytoDLModel,
     align_fluo: bool = True,
-    upload_features_to_FMS: bool = False,
-) -> tuple[Path, Path, Path]:
+    num_gpus: int | None = None,
+) -> tuple[Path, Path]:
     """
     Align paired fixed and live data and apply a diffAE model to extract features.
 
     Parameters
     ----------
     fixed_dataset_name : str
-        Dataset name to use as the fixed images (i.e. the reference against which the moving images are registered)
+        Dataset name to use as the fixed images (i.e. the reference against which the moving images
+        are registered)
     live_dataset_name : str
-        Dataset name to use as the moving images (i.e. the images to be registered to the fixed images)
-    model_name : str
-        The name of the model finetuned for fixation.
+        Dataset name to use as the moving images (i.e. the images to be registered to the fixed
+        images)
+    model_save_path : Path
+        Path to directory where data is saved
+    data_save_path : Path
+        Path to csv file where aligned data is saved
+    model : CytoDLModel
+        DiffAE model to use for feature extraction
     align_fluo : bool
         Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
-    upload_features_to_FMS : bool
-        Whether to upload validation data features to FMS. We may iteratre on analysis
-        without changing features and therefore should default to not rewriting a new feature manifest every time
-        this workflow is run.
+    num_gpus: int
+        Number of GPUs to use
 
     Returns
     -------
-    save_path: Path
-        Local path to parent directory where intermediate data is saved
     fixed_features_path : Path
         Local path where fixed data features are saved in a parquet file
     live_feature_path: Path
         Local path where live data features are saved in a parquet file
     """
 
-    # Get dataset configs
-    fixed_dataset_config = load_dataset_config(fixed_dataset_name)
-    live_dataset_config = load_dataset_config(live_dataset_name)
-
-    # Get diffAE model
-    # load model config
-    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
-
-    # Load DiffAE model
-    model_path = get_output_path("models", model_name)  # new get_output_path function
-    path_dict = download_model(model_config.mlflow_run_id, model_path)
-
-    # Set directory for aligned data
-    save_path = get_output_path(
-        "models", model_name, f"{fixed_dataset_name}_vs_{live_dataset_name}"
-    )
-    data_save_path = save_path / f"aligned_{fixed_dataset_name}_vs_{live_dataset_name}.csv"
-
     # Align data if saved aligned data not already stored
     if not data_save_path.exists():
         data = align_all_positions(
-            fixed_dataset_name,
             live_dataset_name,
+            fixed_dataset_name,
             resolution_level=1,
             z_slice_offsets=Z_SLICE_OFFSETS,
-            savedir=save_path,
+            savedir=model_save_path,
             alignment_method="sift",
             align_fluo=align_fluo,
         )
@@ -146,95 +71,61 @@ def evaluate_model_paired_fixed_live(
         data["channel"] = 0
         data.to_csv(data_save_path, index=False)
 
-    # Load diffAE model and create new overrides object
-    model = CytoDLModel()
-    model.load_config_from_file(path_dict["config_path"])
-    overrides = {"model.spatial_inferer.splitter.overlap": 0.9}
+    # get experiment name and run name
+    experiment_name = model.cfg.experiment_name
+    run_name = model.cfg.run_name
 
-    # Apply on target/moving images - start by constructing overrides
-    target_overrides = overrides.copy()  # copy to avoid overriding the original
-    target_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "target"})
+    # Evaluate model on target/moving images - set up config and run model
     target_overrides = generate_overrides_for_model_eval(
-        target_overrides,
-        save_path=str(save_path),
-        data_path=str(data_save_path),
-        ckpt_path=path_dict["checkpoint_path"],
+        save_path=model_save_path.as_posix(),
+        data_path=data_save_path.as_posix(),
         dataset_name=live_dataset_name,
-        model_name=model_name,
+        model_manifest_name=experiment_name,
+        run_name=run_name,
+        num_gpus=num_gpus,
     )
-    # the following lines of override updates are temporary while we adjust our model/config infrastructure
-    target_overrides.update(
-        {
-            "data.predict_dataloaders.dataset._target_": "endo_pipeline.library.model.image_loading.MultiDimImageDataset"
-        }
-    )
-    target_overrides["data.predict_dataloaders.dataset.cache_rate"] = 1.0
-    target_overrides["data.predict_dataloaders.dataset.replace_rate"] = 0.1
-    target_overrides["data.predict_dataloaders.dataset.num_init_workers"] = 24
-    target_overrides["data.predict_dataloaders.dataset.num_replace_workers"] = 24
-
-    # Apply model on target/moving images - override config and run model prediciton
+    target_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "target"})
+    target_overrides.update({"model.condition_key": "raw_moving"})
     model.override_config(target_overrides)
-    # the following three lines are temporary while we adjust our model/config infrastructure
     rm_keys = ["num_workers", "cache_num", "csv_path", "dict_meta"]
     for key in rm_keys:
         model.cfg.data.predict_dataloaders.dataset.pop(key, None)
     model.predict()
 
-    # Apply on fixed dataset/"moving" images - start by constructing overrides
-    overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving"})
-    overrides = generate_overrides_for_model_eval(
-        overrides,
-        save_path=str(save_path),
-        data_path=str(data_save_path),
-        ckpt_path=path_dict["checkpoint_path"],
+    # Evaluate model on fixed data/"moving" images - set up config and run model
+    moving_overrides = generate_overrides_for_model_eval(
+        save_path=model_save_path.as_posix(),
+        data_path=data_save_path.as_posix(),
         dataset_name=fixed_dataset_name,
-        model_name=model_name,
+        model_manifest_name=experiment_name,
+        run_name=run_name,
+        num_gpus=num_gpus,
     )
-    # The following lines of override updates are temporary while we adjust our model/config infrastructure
-    overrides.update(
-        {
-            "data.predict_dataloaders.dataset._target_": "endo_pipeline.library.model.image_loading.MultiDimImageDataset"
-        }
-    )
-    overrides["data.predict_dataloaders.dataset.cache_rate"] = 1.0
-    overrides["data.predict_dataloaders.dataset.replace_rate"] = 0.1
-    overrides["data.predict_dataloaders.dataset.num_init_workers"] = 24
-    overrides["data.predict_dataloaders.dataset.num_replace_workers"] = 24
-
-    # Apply on fixed dataset/"moving" images - override config and run model prediciton
-    model.override_config(overrides)
-    # the following two lines are temporary while we adjust our model/config infrastructure
+    moving_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving"})
+    moving_overrides.update({"model.condition_key": "raw_moving"})
+    model.override_config(moving_overrides)
+    rm_keys = ["num_workers", "cache_num", "csv_path", "dict_meta"]
     for key in rm_keys:
         model.cfg.data.predict_dataloaders.dataset.pop(key, None)
     model.predict()
 
     # Define paths to saved features from model for both fixed and live datasets
-    fixed_features_path = save_path / f"predict_{fixed_dataset_name}_{model_name}_features.parquet"
-    live_features_path = save_path / f"predict_{live_dataset_name}_{model_name}_features.parquet"
+    fixed_features_path = (
+        model_save_path
+        / f"predict_{fixed_dataset_name}_{experiment_name}_{run_name}_features.parquet"
+    )
+    live_features_path = (
+        model_save_path
+        / f"predict_{live_dataset_name}_{experiment_name}_{run_name}_features.parquet"
+    )
 
-    if upload_features_to_FMS:
-        print("Uploading fixed and live dataset feature manifests to FMS")
-        add_paired_fixed_live_data_fmsid_to_manifest(
-            fixed_features_path,
-            fixed_dataset_config,
-            model_config,
-            model_path,
-        )
-        add_paired_fixed_live_data_fmsid_to_manifest(
-            live_features_path,
-            live_dataset_config,
-            model_config,
-            model_path,
-        )
-
-    return save_path, fixed_features_path, live_features_path
+    return fixed_features_path, live_features_path
 
 
-def project_paired_fixed_live_data_into_ref_PC_space(
+def project_paired_fixed_live_data_into_ref_pc_space(
     pca: PCA,
-    fixed_features_path: Path = "fixed_features.parquet",
-    live_features_path: Path = "live_features.parquet",
+    fixed_features_path: Path = Path("fixed_features.parquet"),
+    live_features_path: Path = Path("live_features.parquet"),
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Project features from applying fine tuned diffAE model to fixed and live data into
@@ -262,8 +153,8 @@ def project_paired_fixed_live_data_into_ref_PC_space(
     fixed_features = pd.read_parquet(fixed_features_path)
     live_features = pd.read_parquet(live_features_path)
 
-    fixed_pc_features = project_manifest_to_pcs(fixed_features, pca)
-    live_pc_features = project_manifest_to_pcs(live_features, pca)
+    fixed_pc_features = project_features_to_pcs(fixed_features, pca)
+    live_pc_features = project_features_to_pcs(live_features, pca)
 
     return fixed_pc_features, live_pc_features
 
@@ -275,10 +166,11 @@ def create_reference_timelapse_datasets(
     time_lag: int = 3,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Create reference timelapse datasets to determine role of time lag in differences between fixed and live data.
-    This function loads a no-flow timelapse reference dataset and gets PC values.
-    It creates one copy of this data that is lagged in time by the same time gap between the live and fixed data snapshots.
-    It then creates a second version which is just truncated to remove the rows that were shifted out by the lag.
+    Create reference timelapse datasets to determine role of time lag in differences between fixed
+    and live data. This function loads a no-flow timelapse reference dataset and gets PC values.
+    It creates one copy of this data that is lagged in time by the same time gap between the live
+    and fixed data snapshots. It then creates a second version which is just truncated to remove
+    the rows that were shifted out by the lag.
 
     Parameters
     ----------
@@ -286,8 +178,8 @@ def create_reference_timelapse_datasets(
         PCA model to project features into reference PC space
     reference_dataset_name : str
         Name of the reference dataset to use for creating the timelapse datasets
-    model : ModelConfig
-        Model configuration to use for loading the reference dataset
+    model : str
+        Name of model to use for loading the reference dataset
     time_lag : int
         Number of frames to lag the reference dataset by.
         This is the same time gap between the live and fixed data snapshots.
@@ -310,6 +202,7 @@ def create_reference_timelapse_datasets(
     reference_features = (
         reference_features.groupby("crop_index").apply(fill_empty_frames).reset_index(drop=True)
     )
+
     df_lag = reference_features.groupby("crop_index").apply(create_lagged_dataset, time_lag)
     df_trunc = reference_features.groupby("crop_index").apply(create_truncated_dataset, time_lag)
     df_lag, df_trunc = dropna_both_df(df_lag, df_trunc)
@@ -318,7 +211,7 @@ def create_reference_timelapse_datasets(
 
 def fill_empty_frames(crop: pd.DataFrame) -> pd.DataFrame:
     """
-    Fill in any empty frames with NaNs
+    Fill in any empty frames with NaNs.
 
     Parameters
     ----------
@@ -340,7 +233,7 @@ def fill_empty_frames(crop: pd.DataFrame) -> pd.DataFrame:
 
 
 def create_lagged_dataset(
-    crop: pd.DataFrame,
+    crop: DataFrameGroupBy,
     time_lag: int,
 ) -> pd.DataFrame:
     """
@@ -348,7 +241,7 @@ def create_lagged_dataset(
 
     Parameters
     ----------
-    crop : pd.DataFrame
+    crop : DataFrameGroupBy
         Dataframe containing the crop data for a single crop_index
     time_lag : int
         Number of frames to lag the dataset by.
@@ -388,18 +281,20 @@ def create_truncated_dataset(
     return crop.iloc[time_lag:]
 
 
-def dropna_both_df(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
+def dropna_both_df(df1: pd.DataFrame, df2: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Drop rows from both dataframes where PC values for either dataframe are NaN.
+
     Parameters
     ----------
     df1 : pd.DataFrame
         First dataframe containing PC values
     df2 : pd.DataFrame
         Second dataframe containing PC values
+
     Returns
     -------
-    df1, df2 : pd.DataFrame
+    df1, df2 : tuple[DataFrame, DataFrame]
         Dataframes with rows dropped where all PC values are NaN in both dataframes
     """
 
@@ -443,12 +338,12 @@ def get_paired_fixed_live_validation_features(
 
     # Format live and fixed features as needed for analysis and calculated the mean of each
     x, y = live_features[f"pc{pc}"].values, fixed_features[f"pc{pc}"].values
-    mean_x = np.mean(x)
-    mean_y = np.mean(y)
+    mean_x = np.mean(np.asarray(x))
+    mean_y = np.mean(np.asarray(y))
     center = (float(mean_x), float(mean_y))
 
     # Get covaraince matrix of live and fixed data then calculate its eigenvectors and eigenvalues
-    data = [[live, fixed] for live, fixed in zip(x, y)]
+    data = [[live, fixed] for live, fixed in zip(x, y, strict=True)]
     covariance_matrix = np.cov(data, rowvar=False)
     eigenvalues, eigenvectors = np.linalg.eig(covariance_matrix)
 
@@ -459,10 +354,11 @@ def get_paired_fixed_live_validation_features(
     eigenvalues = eigenvalues[sorted_indices]
     eigenvectors = eigenvectors[:, sorted_indices]
 
-    # The eigenvectors define the orientation/tilt angle of a confidence ellipse and the associated eigenvalues
+    # The eigenvectors define the orientation/tilt angle of a confidence ellipse and the associated
+    # eigenvalues give the lengths of the ellipse axes.
     # give the lengths of the ellipse axes.
-    # A linear colinear with the major axis of the ellipse is our linear model mapping between live and fixed data
-    # for this PC value
+    # A linear colinear with the major axis of the ellipse is our linear model mapping between live
+    # and fixed data for this PC value
     width = 2 * n_std * np.sqrt(eigenvalues[0])
     height = 2 * n_std * np.sqrt(eigenvalues[1])
     angle = np.degrees(np.arctan2(eigenvectors[1, 0], eigenvectors[0, 0]))

@@ -8,9 +8,9 @@ from sklearn.decomposition import PCA
 from endo_pipeline.library.analyze.diffae_dataframe import (
     df_to_array,
     get_dataframe_for_dynamics_workflows,
-    get_pc_column_names,
 )
 from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE
 
 logger = logging.getLogger(__name__)
 
@@ -324,7 +324,7 @@ def _compute_correlations_for_one_dataset(
         )
         return correlation_dict
 
-    feat_cols = get_pc_column_names(df, pc_axes=[0, 1, 2])
+    feat_cols = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
     # get feature data
     feats = df_to_array(df, feat_cols)

@@ -18,6 +18,7 @@ def get_model_config_dir() -> Path:
 
 def load_model_config(model_config_name: str) -> "DictConfig | ListConfig":
     """Load single model config by name."""
+
     from omegaconf import OmegaConf
 
     config_dir = get_model_config_dir()
@@ -27,5 +28,4 @@ def load_model_config(model_config_name: str) -> "DictConfig | ListConfig":
         logger.error("Model config [ %s ] could not be loaded", model_config_name)
         raise FileNotFoundError(f"No such file '{config_file}'")
     else:
-        config = OmegaConf.load(config_file)
-        return config
+        return OmegaConf.load(config_file)

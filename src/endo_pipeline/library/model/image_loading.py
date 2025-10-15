@@ -377,13 +377,12 @@ class MultiDimImageDataset(SmartCacheDataset):
         self.spatial_dims = spatial_dims
 
         # First expand all data to get total sample count
-        logger.info(f"[Rank {rank}] Expanding dataframe rows to individual samples...")
+        logger.info("[Rank %d] Expanding dataframe rows to individual samples", rank)
         data = self.get_per_file_args(df.reset_index(drop=True))
 
         # Now distribute samples evenly across ranks
         if world_size > 1:
-
-            logger.info(f"[Rank {rank}] Total samples before distribution: {len(data)}")
+            logger.info("[Rank %d] Total samples before distribution: %d", rank, len(data))
 
             # Calculate balanced distribution
             total_samples = len(data)
@@ -398,7 +397,7 @@ class MultiDimImageDataset(SmartCacheDataset):
             data = data[start_idx:end_idx]
 
             logger.info(
-                "Rank [ %s ]. Samples assigned to this rank: [ %s ] (indices [ %s : %s ])",
+                "[Rank %d] Samples assigned to this rank: %d (indices %d:%d)",
                 rank,
                 len(data),
                 start_idx,

@@ -276,24 +276,3 @@ def get_valid_subset(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
         valid_subset = df.frame_number.isin(tps)
         df["valid"] = valid_subset
     return df[df.valid]
-
-
-def get_pc_column_names(df: pd.DataFrame, pc_axes: list[int] | None = None) -> list[str]:
-    """Get the names of the PC columns in the DataFrame."""
-
-    # get all columns that start with "pc"
-    pc_column_names = [c for c in df.columns if c.startswith("pc")]
-    pc_column_names = sorted(pc_column_names, key=lambda x: int(x[-1]))
-
-    if pc_axes is not None:
-        # get only the specified PC axes
-        pc_column_names = [pc_column_names[i] for i in pc_axes]
-
-    return pc_column_names
-
-
-def get_feature_column_names(df: pd.DataFrame) -> list:
-    """Get the names of the latent feature columns in the DataFrame."""
-    feature_column_names = [c for c in df.columns if c.startswith("feat_")]
-    feature_column_names = sorted(feature_column_names, key=lambda x: int(x.split("_")[1]))
-    return feature_column_names
