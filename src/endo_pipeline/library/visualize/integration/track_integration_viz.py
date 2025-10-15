@@ -147,7 +147,7 @@ def plot_measured_feat_pcs(
     for j, ax in enumerate(axs):  # PC1 vs PC2, PC1 vs PC3
         if track_id == "mean":
             measured_feat_df = (
-                measured_feat_df.groupby(TIMEPOINT_COLUMN_NAME)
+                measured_feat_df.groupby(ColumnName.TIMEPOINT)
                 .mean(numeric_only=True)[pc_cols + [meas_feat_col]]
                 .reset_index()
             )
