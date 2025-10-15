@@ -1,7 +1,7 @@
 import re
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
-from typing import List, Sequence, Tuple
+from typing import Sequence
 
 import pandas as pd
 from bioio import BioImage
@@ -30,10 +30,10 @@ TIFF_TO_ZARR_CSV_PATH = (
 _T_RE = re.compile(r"_T(\d+)\.ome\.tif{1,2}f?$", re.IGNORECASE)
 
 
-def _collect_indexed_paths(root: str) -> List[Tuple[int, str]]:
+def _collect_indexed_paths(root: str) -> list[tuple[int, str]]:
     p = Path(root)
     files = sorted(list(p.glob("*.ome.tiff")) + list(p.glob("*.ome.tif")))
-    out: List[Tuple[int, str]] = []
+    out: list[tuple[int, str]] = []
     for f in files:
         m = _T_RE.search(f.name)
         if m:
