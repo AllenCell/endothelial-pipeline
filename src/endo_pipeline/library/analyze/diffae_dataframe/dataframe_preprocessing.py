@@ -11,7 +11,7 @@ from endo_pipeline.library.analyze.dataset_filters import get_exclude_frames, ge
 from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
 from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES, DIFFAE_PC_COLUMN_NAMES, ColumnName
 
-from .feature_dataframe_utils import get_dataset_descriptions
+from .feature_dataframe_utils import check_required_columns_in_dataframe, get_dataset_descriptions
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +38,16 @@ def remove_annotated_timepoints_and_positions(
     :
         Dataframe with annotated timepoints removed.
     """
-    if dataframe[ColumnName.DATASET].nunique() > 1:
+
+    # check that required columns are present in dataframe
+    required_columns = [ColumnName.DATASET, ColumnName.POSITION, ColumnName.TIMEPOINT]
+    check_required_columns_in_dataframe(dataframe, required_columns)
+
+    if dataframe[ColumnName.DATASET].nunique() != 1:
         logger.error("Dataframe must be restricted to one dataset only.")
         raise ValueError("Dataframe must be restricted to one dataset only.")
 
-    dataset_name = dataframe[ColumnName.DATASET].iloc[0]
+    dataset_name = dataframe[ColumnName.DATASET].unique()[0]
 
     # load dataset config to get annotations
     dataset_config = load_dataset_config(dataset_name)
