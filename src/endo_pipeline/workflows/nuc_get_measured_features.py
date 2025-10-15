@@ -15,7 +15,7 @@ from endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
     ipython_cli_flexecute,
 )
-from endo_pipeline.io import configure_logging, get_output_path, load_image, load_zarr_as_dask_array
+from endo_pipeline.io import configure_logging, get_output_path, load_image, load_image_from_path
 from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
 from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 from endo_pipeline.settings import DIMENSION_ORDER
@@ -183,15 +183,15 @@ def get_nuclei_features_from_dataset_at_T(
 
     nuc_manifest = load_image_manifest("nuclear_labelfree_seg")
     nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_name, position, T)
-    nuc_seg = load_image(nuc_location)
+    nuc_seg = load_image(nuc_location, squeeze=True, compute=True)
 
     cdh5_manifest = load_image_manifest("cdh5_classic_seg")
     cdh5_location = get_image_location_for_dataset(cdh5_manifest, dataset_name, position, T)
-    cdh5_seg = load_image(cdh5_location)
+    cdh5_seg = load_image(cdh5_location, squeeze=True, compute=True)
 
     dataset_config = load_dataset_config(dataset_name)
     img_path = get_zarr_file_for_position(dataset_config, position)
-    raw_img = load_zarr_as_dask_array(path=img_path, channels=channel_names, timepoints=T, level=0)
+    raw_img = load_image_from_path(path=img_path, channels=channel_names, timepoints=T, level=0)
     raw_MIP = raw_img.max(axis=dim_order.index("Z"), keepdims=True).compute()
 
     # split up the image into a list of channels

@@ -6,7 +6,7 @@ from endo_pipeline.configs import (
     get_zarr_file_for_position,
     load_dataset_config,
 )
-from endo_pipeline.io import load_zarr_as_dask_array
+from endo_pipeline.io import load_image_from_path
 from endo_pipeline.io.output import get_output_path
 from endo_pipeline.library.process.z_stack_selection import (
     calculate_center_planes_all_tp_for_pos,
@@ -31,10 +31,10 @@ position, frame = 0, 0
 
 # %% Load images
 zarr_file = get_zarr_file_for_position(dataset_config, position)
-bf_stack = load_zarr_as_dask_array(zarr_file, channels=["BF"], timepoints=frame, level=1).squeeze()
-cdh5_stack = load_zarr_as_dask_array(
-    zarr_file, channels=["EGFP"], timepoints=frame, level=1
-).squeeze()
+bf_stack = load_image_from_path(zarr_file, channels=["BF"], timepoints=frame, level=1, squeeze=True)
+cdh5_stack = load_image_from_path(
+    zarr_file, channels=["EGFP"], timepoints=frame, level=1, squeeze=True
+)
 
 # %% Panel A - In focus Z slice selection per timepoint
 stdevs = [plane.std().compute() for plane in bf_stack]

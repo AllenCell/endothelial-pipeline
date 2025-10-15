@@ -209,6 +209,7 @@ def get_valid_subset(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
     dataset_name
         Name of the given dataset.
     """
+
     df["valid"] = False
     # check that the necessary datasets are present for fitting PCA
     valid_timepoints = load_dataset_config(dataset_name).valid_timepoints

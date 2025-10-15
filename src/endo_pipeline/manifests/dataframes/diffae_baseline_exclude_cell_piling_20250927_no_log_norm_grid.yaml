@@ -12,17 +12,11 @@ locations:
   20241217_20X:
     fmsid: 1017781ad2234f66bcad6f83a8b2a723
     s3uri: null
-  20250110_paired20X:
-    fmsid: 8ff44dd02b294845874a1984228a98ae
-    s3uri: null
   20250214_pairedPreFixation:
     fmsid: 4e9bfe7f5b5f483097c2161786021583
     s3uri: null
   20250224_20X:
     fmsid: 41db11f67ea5482b901ba3e9b9303d8c
-    s3uri: null
-  20250227_paired20X:
-    fmsid: 0ef0a31247cd4f8881ca04718301dffd
     s3uri: null
   20250319_20X:
     fmsid: c35b54be3c7148c88cf4416101c81475

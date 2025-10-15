@@ -33,7 +33,6 @@ flow_conditions:
 - start: 274
   stop: 576
   shear_stress: 6.16
-valid_timepoints: null
 include_scenes: null
 notes: ''
 timepoint_annotations:

@@ -37,11 +37,20 @@ class ShearStressRegime(Enum):
     MAX = ("max", 19.5, 35.0)
     """Maximum shear stress tested (target: 20 dyn/cm2)."""
 
-    def __new__(cls, value, lower, upper):
+    upper: float
+    """Upper bound of the shear stress regime."""
+
+    lower: float
+    """Lower bound of the shear stress regime."""
+
+    def __new__(cls, value: str, lower: float, upper: float) -> "ShearStressRegime":
+        """Create a new shear stress regime."""
+
         obj = object.__new__(cls)
         obj._value_ = value
         obj.lower = lower
         obj.upper = upper
+
         return obj
 
 
@@ -69,6 +78,9 @@ class TimepointAnnotation(StrEnum):
     GFP_SCOPE_ERROR = "gfp_scope_error"
     """Manually annotated error with GFP scope."""
 
+    NOT_STEADY_STATE = "not_steady_state"
+    """Timepoint is not at visual steady state."""
+
     UNFED = "unfed"
     """Manually annotated timepoint where cells are more than 3hrs since last feeding."""
 
@@ -84,20 +96,6 @@ class PositionAnnotation(StrEnum):
 
     DUST_ARTIFACT = "dust_artifact"
     """Manually annotated position includes a dust artifact."""
-
-
-@dataclass
-class ValidTimepoints:
-    """
-    Timepoints that are visually validated to be after steady state from no flow to a set
-    flow condition appears to have stabilized and before cell piling occurs.
-    """
-
-    start: list[int]
-    """Start frame of valid timepoints."""
-
-    stop: list[int]
-    """Stop frame of valid timepoints."""
 
 
 @dataclass
@@ -198,9 +196,6 @@ class DatasetConfig:
 
     flow_conditions: list[FlowCondition]
     """List of flow conditions for the dataset."""
-
-    valid_timepoints: ValidTimepoints | None = None
-    """List of valid timepoint ranges. None if all timepoints are valid."""
 
     include_scenes: list[int] | None = None
     """List of scenes to include."""

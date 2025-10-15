@@ -30,7 +30,6 @@ flow_conditions:
 - start: -17
   stop: 577
   shear_stress: 14.65
-valid_timepoints: null
 include_scenes: null
 notes: Cells take on more mixed than perpendicular alignment
 timepoint_annotations:
