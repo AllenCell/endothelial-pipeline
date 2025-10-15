@@ -9,7 +9,7 @@ from sklearn.decomposition import PCA
 
 from endo_pipeline.library.analyze.diffae_dataframe import (
     get_dataframe_for_dynamics_workflows,
-    project_manifest_to_pcs,
+    project_features_to_pcs,
 )
 from endo_pipeline.library.model.eval_model import generate_overrides_for_model_eval
 from endo_pipeline.library.process.registration import align_all_positions
@@ -153,8 +153,8 @@ def project_paired_fixed_live_data_into_ref_pc_space(
     fixed_features = pd.read_parquet(fixed_features_path)
     live_features = pd.read_parquet(live_features_path)
 
-    fixed_pc_features = project_manifest_to_pcs(fixed_features, pca)
-    live_pc_features = project_manifest_to_pcs(live_features, pca)
+    fixed_pc_features = project_features_to_pcs(fixed_features, pca)
+    live_pc_features = project_features_to_pcs(live_features, pca)
 
     return fixed_pc_features, live_pc_features
 

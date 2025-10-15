@@ -30,7 +30,6 @@ flow_conditions:
 - start: -22
   stop: 577
   shear_stress: 5.71
-valid_timepoints: null
 include_scenes: null
 notes: Timelapse imaging of AICS-177 CDH5 KD/truncation cl. 26 (biallelic mutant)
   under low SS conditions

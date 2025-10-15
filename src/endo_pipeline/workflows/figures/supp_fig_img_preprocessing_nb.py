@@ -2,7 +2,7 @@
 import logging
 
 from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config, load_model_config
-from endo_pipeline.io.input import load_zarr_as_dask_array
+from endo_pipeline.io.input import load_image_from_path
 from endo_pipeline.io.output import get_output_path
 from endo_pipeline.library.visualize.model_inputs.image_preprocessing_steps import (
     prepare_train_transforms,
@@ -27,7 +27,7 @@ save_dir = get_output_path("model_input_preprocessing_viz", f"{DATASET}_P{POSITI
 
 dataset_config = load_dataset_config(DATASET)
 zarr_path = get_zarr_file_for_position(dataset_config, POSITION)
-img = load_zarr_as_dask_array(zarr_path, level=1, squeeze=True)
+img = load_image_from_path(zarr_path, level=1, squeeze=True)
 
 # %% Panel A - Thumbnail of each slice in Z-stack for each channel
 save_stack_slices_as_thumbnails(img, save_dir)

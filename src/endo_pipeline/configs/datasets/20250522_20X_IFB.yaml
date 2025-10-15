@@ -33,7 +33,6 @@ flow_conditions:
 - start: -24
   stop: 0
   shear_stress: 15.17
-valid_timepoints: null
 include_scenes: null
 notes: fix & stain for SMAD1 and SOX17 2h after flow change in a Low SS to High SS
   experiment

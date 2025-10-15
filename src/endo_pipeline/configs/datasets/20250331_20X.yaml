@@ -33,7 +33,6 @@ flow_conditions:
 - start: 276
   stop: 577
   shear_stress: 5.83
-valid_timepoints: null
 include_scenes: null
 notes: All positions have dust artifacts
 timepoint_annotations:

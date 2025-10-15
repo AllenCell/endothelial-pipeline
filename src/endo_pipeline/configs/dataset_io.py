@@ -388,21 +388,21 @@ This method is deprecated and will be removed. The new pattern for loading Zarr
 datasets is:
 
     from endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
-    from endo_pipeline.io import load_zarr_as_dask_array
+    from endo_pipeline.io import load_image_from_path
 
     dataset_config = load_dataset_config(dataset_name)
     zarr_file = get_zarr_file_for_position(dataset_config, position)
-    zarr = load_zarr_as_dask_array(zarr_file)
+    zarr = load_image_from_path(zarr_file)
 
 To recreate the behavior of this specific method (loading Zarrs for all positions
 of a dataset into a dictionary, use:
 
     from endo_pipeline.configs import load_dataset_config, get_available_zarr_files
-    from endo_pipeline.io import load_zarr_as_dask_array
+    from endo_pipeline.io import load_image_from_path
 
     dataset_config = load_dataset_config(dataset_name)
     zarr_files = get_available_zarr_files(dataset_config)
-    zarrs = {zarr_file.name: load_zarr_as_dask_array(zarr_file) for zarr_file in zarr_files}
+    zarrs = {zarr_file.name: load_image_from_path(zarr_file) for zarr_file in zarr_files}
 """
 )
 def load_dataset(
@@ -440,11 +440,11 @@ This method is deprecated and will be removed. The new pattern for loading Zarr
 datasets is:
 
     from endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
-    from endo_pipeline.io import load_zarr_as_dask_array
+    from endo_pipeline.io import load_image_from_path
 
     dataset_config = load_dataset_config(dataset_name)
     zarr_file = get_zarr_file_for_position(dataset_config, position)
-    zarr = load_zarr_as_dask_array(zarr_file)
+    zarr = load_image_from_path(zarr_file)
 """
 )
 def load_dataset_position_as_dask_array(

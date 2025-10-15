@@ -186,6 +186,11 @@ def get_timepoints_for_plotting_pcs(
     Used to remove later block of timepoints from the 20241217_20X no flow dataset for
     generating "simplified" scatter plots for the 2025 SAC presentation.
     """
+
+    # TODO: This method currently uses the dataset config "valid_timepoints" field
+    # which has been removed in favor of TimepointAnnotation.NOT_STEADY_STATE,
+    # and needs to be refactored.
+
     # initialize dictionary to store timepoints for each dataset
     timepoints_to_use = {}
 
@@ -236,6 +241,22 @@ def get_valid_subset(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
     dataset_name
         Name of the given dataset.
     """
+
+    # TODO: This method currently uses the dataset config "valid_timepoints" field
+    # which has been removed in favor of TimepointAnnotation.NOT_STEADY_STATE,
+    # and needs to be refactored. As a starting point:
+
+    # dataset_config = load_dataset_config(dataset_name)
+
+    # exclude_timepoints = {
+    #     f"P{position}": get_annotated_timepoints_for_position(dataset_config, position)
+    #     for position in dataset_config.zarr_positions
+    # }
+
+    # return df.groupby(["position", "frame_number"]).filter(
+    #     lambda g: g.name[1] not in exclude_timepoints[g.name[0]]
+    # )
+
     df["valid"] = False
     # check that the necessary datasets are present for fitting PCA
     valid_timepoints = load_dataset_config(dataset_name).valid_timepoints
@@ -255,24 +276,3 @@ def get_valid_subset(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
         valid_subset = df.frame_number.isin(tps)
         df["valid"] = valid_subset
     return df[df.valid]
-
-
-def get_pc_column_names(df: pd.DataFrame, pc_axes: list[int] | None = None) -> list[str]:
-    """Get the names of the PC columns in the DataFrame."""
-
-    # get all columns that start with "pc"
-    pc_column_names = [c for c in df.columns if c.startswith("pc")]
-    pc_column_names = sorted(pc_column_names, key=lambda x: int(x[-1]))
-
-    if pc_axes is not None:
-        # get only the specified PC axes
-        pc_column_names = [pc_column_names[i] for i in pc_axes]
-
-    return pc_column_names
-
-
-def get_feature_column_names(df: pd.DataFrame) -> list:
-    """Get the names of the latent feature columns in the DataFrame."""
-    feature_column_names = [c for c in df.columns if c.startswith("feat_")]
-    feature_column_names = sorted(feature_column_names, key=lambda x: int(x.split("_")[1]))
-    return feature_column_names

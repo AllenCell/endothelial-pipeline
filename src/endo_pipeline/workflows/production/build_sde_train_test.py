@@ -75,7 +75,7 @@ def main(
 
     ################### Build train-test data for regression ###################
     # load inputs from dynamics_config.yaml
-    pcs = dynamics_config["pcs_to_analyze"]
+    pc_axes = dynamics_config["pcs_to_analyze"]
     dt = dynamics_config["dt"]
     kramers_moyal_config = dynamics_config["kramers_moyal"]
     num_bins = kramers_moyal_config["num_bins"]
@@ -92,7 +92,7 @@ def main(
         dataset_names,
         manifest,
         pca,
-        pcs,
+        pc_axes,
         num_bins,
         dt,
         fig_savedir,
