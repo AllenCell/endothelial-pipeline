@@ -147,7 +147,7 @@ extend-select = [
     "RUF",    # ruff-specific rules
     "RUF100", # Unused noqa directive
 ]
-extend-ignore = [
+ignore = [
     "D100", # Undocumented public module
     "D104", # Undocumented public package
     "D105", # Missing docstring in magic method
@@ -159,6 +159,57 @@ extend-ignore = [
     "D213", # Multi-line docstring summary should start at the second line
     "D413", # Missing blank line after last section
     "D416", # Section name should end with a colon
+    "RUF100", # Intending to unignore, only after all the rules below are unignored: unused-noqa
+    "E501", # Intending to unignore: line-too-long
+    "D103", # Intending to unignore: undocumented-public-function
+    "D401", # Intending to unignore: non-imperative-mood
+    "N803", # Intending to unignore: invalid-argument-name
+    "N806", # Intending to unignore: non-lowercase-variable-in-function
+    "D102", # Intending to unignore: undocumented-public-method
+    "D417", # Intending to unignore: undocumented-param
+    "B006", # Intending to unignore: mutable-argument-default
+    "C416", # Intending to unignore: unnecessary-comprehension
+    "E731", # Intending to unignore: lambda-assignment
+    "D400", # Intending to unignore: missing-trailing-period
+    "D404", # Intending to unignore: docstring-starts-with-this
+    "D415", # Intending to unignore: missing-terminal-punctuation
+    "F401", # Intending to unignore: unused-import
+    "B905", # Intending to unignore: zip-without-explicit-strict
+    "UP038", # Intending to unignore: non-pep604-isinstance
+    "F541", # Intending to unignore: f-string-missing-placeholders
+    "E402", # Intending to unignore: module-import-not-at-top-of-file
+    "E711", # Intending to unignore: none-comparison
+    "B007", # Intending to unignore: unused-loop-control-variable
+    "C419", # Intending to unignore: unnecessary-comprehension-in-call
+    "D411", # Intending to unignore: no-blank-line-before-section
+    "N802", # Intending to unignore: invalid-function-name
+    "D200", # Intending to unignore: unnecessary-multiline-docstring
+    "UP006", # Intending to unignore: non-pep585-annotation
+    "RUF005", # Intending to unignore: collection-literal-concatenation
+    "RUF015", # Intending to unignore: unnecessary-iterable-allocation-for-first-element
+    "F821", # Intending to unignore: undefined-name
+    "B023", # Intending to unignore: function-uses-loop-variable
+    "C401", # Intending to unignore: unnecessary-generator-set
+    "N816", # Intending to unignore: mixed-case-variable-in-global-scope
+    "D410", # Intending to unignore: no-blank-line-after-section
+    "UP034", # Intending to unignore: extraneous-parentheses
+    "B035", # Intending to unignore: static-key-dict-comprehension
+    "C408", # Intending to unignore: unnecessary-collection-call
+    "E712", # Intending to unignore: true-false-comparison
+    "D406", # Intending to unignore: missing-new-line-after-section-name
+    "D407", # Intending to unignore: missing-dashed-underline-after-section
+    "UP035", # Intending to unignore: deprecated-import
+    "B018", # Intending to unignore: useless-expression
+    "A001", # Intending to unignore: builtin-variable-shadowing
+    "C403", # Intending to unignore: unnecessary-list-comprehension-set
+    "C404", # Intending to unignore: unnecessary-list-comprehension-dict
+    "C405", # Intending to unignore: unnecessary-literal-set
+    "C417", # Intending to unignore: unnecessary-map
+    "C901", # Intending to unignore: complex-structure
+    "D101", # Intending to unignore: undocumented-public-class
+    "UP007", # Intending to unignore: non-pep604-annotation-union
+    "RUF013", # Intending to unignore: implicit-optional
+    "RUF022", # Intending to unignore: unsorted-dunder-all
 ]
 
 [tool.ruff.lint.mccabe]
