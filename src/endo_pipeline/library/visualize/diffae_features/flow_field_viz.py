@@ -11,7 +11,7 @@ from endo_pipeline.library.analyze.diffae_features import data_driven_flow_field
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.visualize import viz_base
 from endo_pipeline.library.visualize.diffae_features import feature_viz
-from endo_pipeline.settings import ColumnName
+from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, ColumnName
 
 
 def set_slice_plot_bounds_and_labels(
@@ -269,8 +269,8 @@ def plot_flow_field_slices(
             mean_over_crops_ = df_cond.groupby(ColumnName.TIMEPOINT).mean(numeric_only=True)
             # get last time point
             mean_over_crops = mean_over_crops_.iloc[-1]
-            pc3_val = mean_over_crops["pc2"].mean()
-            pc2_val = mean_over_crops["pc1"].mean()
+            pc3_val = mean_over_crops[DIFFAE_PC_COLUMN_NAMES[2]].mean()
+            pc2_val = mean_over_crops[DIFFAE_PC_COLUMN_NAMES[1]].mean()
     # if specified, unpack
     else:
         pc3_val = pc_vals[0]

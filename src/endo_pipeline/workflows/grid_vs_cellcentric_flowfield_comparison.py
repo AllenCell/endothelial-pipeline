@@ -192,8 +192,8 @@ def process_dataset(
 
     # Compare the angles between grid crop PC vectors
     # and the PC vectors of a single track
-    merged_feats_df["dpc1"] = merged_feats_df.groupby("crop_index")["pc1"].diff()
-    merged_feats_df["dpc2"] = merged_feats_df.groupby("crop_index")["pc2"].diff()
+    merged_feats_df["dpc1"] = merged_feats_df.groupby("crop_index")["pc_1"].diff()
+    merged_feats_df["dpc2"] = merged_feats_df.groupby("crop_index")["pc_2"].diff()
     merged_feats_df["dt"] = merged_feats_df.groupby("crop_index")["time_minutes"].diff()
 
     # create partial functions from get_approx_point_from_grid to pass
@@ -207,7 +207,7 @@ def process_dataset(
         slice_indexes,
     )
     get_approx_grid_bin_from_df = lambda df: pd.DataFrame(
-        columns=[["pc1", "pc2"]], data=get_approx_grid_bin(df.to_numpy()), index=df.index
+        columns=[["pc_1", "pc_2"]], data=get_approx_grid_bin(df.to_numpy()), index=df.index
     )
 
     get_approx_grid_vec = lambda pc1_pc2_arr: get_approx_vec_from_grid(
@@ -219,19 +219,19 @@ def process_dataset(
         slice_indexes,
     )
     get_approx_grid_vec_from_df = lambda df: pd.DataFrame(
-        columns=[["pc1", "pc2"]], data=get_approx_grid_vec(df.to_numpy()), index=df.index
+        columns=[["pc_1", "pc_2"]], data=get_approx_grid_vec(df.to_numpy()), index=df.index
     )
 
     # Apply the partial functions to the DataFrame to get the approximate grid bin
     # and vector associated with each cell-centric PC1 and PC2 value
     merged_feats_df[["approx_bin_pc1", "approx_bin_pc2"]] = (
         merged_feats_df.groupby("crop_index", as_index=False)
-        .apply(lambda df: get_approx_grid_bin_from_df(df[["pc1", "pc2"]]))
+        .apply(lambda df: get_approx_grid_bin_from_df(df[["pc_1", "pc_2"]]))
         .droplevel(level=0)
     )
     merged_feats_df[["approx_vec_pc1", "approx_vec_pc2"]] = (
         merged_feats_df.groupby("crop_index", as_index=False)
-        .apply(lambda df: get_approx_grid_vec_from_df(df[["pc1", "pc2"]]))
+        .apply(lambda df: get_approx_grid_vec_from_df(df[["pc_1", "pc_2"]]))
         .droplevel(level=0)
     )
 

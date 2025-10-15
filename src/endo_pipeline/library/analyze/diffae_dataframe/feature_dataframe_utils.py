@@ -17,18 +17,23 @@ def check_required_columns_in_dataframe(
     """
     Check that the required columns are present in the dataframe.
 
+    Default required columns are 'timepoint' and 'crop_index', but a
+    custom list of required columns can be provided.
+
     Parameters
     ----------
     df
         DataFrame to check.
+    required_columns
+        Optional input list of required columns to check for.
     """
     # default required columns: timepoint and crop index
     if required_columns is None:
         required_column_list = [ColumnName.TIMEPOINT, ColumnName.CROP_INDEX]
     else:
-        required_columns_list = required_columns
+        required_column_list = required_columns
 
-    for col in required_columns_list:
+    for col in required_column_list:
         if col not in df.columns:
             logger.error("DataFrame must contain column [ %s ]", col)
             raise ValueError(f"DataFrame must contain column [ {col} ]")

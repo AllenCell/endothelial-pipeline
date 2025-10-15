@@ -84,7 +84,7 @@ def get_coarse_grained_trajectory_heatmap_data(
     df_all_positions: pd.DataFrame,
     bounds: np.ndarray | List,
     num_bins: List[int] = [150, 150, 150],
-    pc_cols: List[str] = ["pc1", "pc2", "pc3"],
+    pc_cols: List[str] = ["pc_1", "pc_2", "pc_3"],
     feature_to_use: str = "normalized_time",
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
