@@ -30,7 +30,6 @@ flow_conditions:
 - start: -40
   stop: 576
   shear_stress: 12.32
-valid_timepoints: null
 include_scenes: null
 notes: Flow history. Cells exposed to flow for 3h 20min prior to start of imaging.
   Cells show mixed alignment leaning towards more parallel

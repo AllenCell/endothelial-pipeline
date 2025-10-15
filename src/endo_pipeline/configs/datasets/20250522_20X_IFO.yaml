@@ -30,7 +30,6 @@ flow_conditions:
 - start: -577
   stop: 0
   shear_stress: 0.0
-valid_timepoints: null
 include_scenes: null
 notes: Secondary only control for SMAD1 & SOX17staining done on cells cultured with
   SS for 48h. Cells were only fed 2x during course of experiment

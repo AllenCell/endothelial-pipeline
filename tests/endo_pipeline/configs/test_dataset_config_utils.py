@@ -8,7 +8,6 @@ from endo_pipeline.configs import (
     DatasetConfig,
     FlowCondition,
     PositionAnnotation,
-    ShearStressRegime,
     TimepointAnnotation,
     load_dataset_config,
 )
@@ -26,6 +25,7 @@ from endo_pipeline.configs.dataset_config_utils import (
     get_frame_before_flow_change,
     get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
+    get_unannotated_timepoints_for_position,
     get_zarr_file_for_position,
     make_filtered_dataset_collection,
 )
@@ -272,6 +272,50 @@ def test_get_annotated_timepoints_for_position_with_annotations(
 
 def test_get_annotated_timepoints_for_position_no_annotations(dataset):
     assert get_annotated_timepoints_for_position(dataset, 0, None) == []
+
+
+@pytest.mark.parametrize(
+    "position,annotations,timepoints",
+    [
+        (0, None, [0, 4]),
+        (1, None, [7, 8, 9]),
+        (2, None, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        (0, [TimepointAnnotation.BF_SCOPE_ERROR], [0, 4, 5, 6, 7, 8, 9]),
+        (1, [TimepointAnnotation.BF_SCOPE_ERROR], [0, 1, 2, 3, 7, 8, 9]),
+        (2, [TimepointAnnotation.BF_SCOPE_ERROR], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        (0, [TimepointAnnotation.GFP_SCOPE_ERROR], [0, 1, 2, 3, 4, 5, 6]),
+        (1, [TimepointAnnotation.GFP_SCOPE_ERROR], [4, 5, 6, 7, 8, 9]),
+        (2, [TimepointAnnotation.GFP_SCOPE_ERROR], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        (0, [], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        (1, [], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        (2, [], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        (0, [TimepointAnnotation.BF_SCOPE_ERROR, TimepointAnnotation.NOT_STEADY_STATE], [0, 4]),
+    ],
+)
+def test_get_unannotated_timepoints_for_position_with_annotations(
+    dataset, position, annotations, timepoints
+):
+    dataset.duration = 10
+    dataset.timepoint_annotations = {
+        TimepointAnnotation.BF_SCOPE_ERROR: {
+            0: [1, 2, 3],
+            1: [[4, 6]],
+        },
+        TimepointAnnotation.GFP_SCOPE_ERROR: {
+            0: [7, 8, 9],
+            1: [[1, 3], 0],
+            2: [],
+        },
+        TimepointAnnotation.NOT_STEADY_STATE: {
+            0: [[5, 9]],
+        },
+    }
+
+    assert get_unannotated_timepoints_for_position(dataset, position, annotations) == timepoints
+
+
+def test_get_unannotated_timepoints_for_position_no_annotations(dataset):
+    assert get_unannotated_timepoints_for_position(dataset, 0, None) == []
 
 
 @pytest.mark.parametrize(

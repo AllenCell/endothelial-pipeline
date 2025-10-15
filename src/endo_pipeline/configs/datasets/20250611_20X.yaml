@@ -30,7 +30,6 @@ flow_conditions:
 - start: -15
   stop: 576
   shear_stress: 21.35
-valid_timepoints: null
 include_scenes: null
 notes: Flow history. Under flow for 1h 15min prior to start of imaging. Cells become
   overgrown earlier than in previous timelapse experiments (~25h)

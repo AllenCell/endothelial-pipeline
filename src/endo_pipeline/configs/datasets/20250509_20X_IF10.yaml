@@ -30,7 +30,6 @@ flow_conditions:
 - start: -288
   stop: 0
   shear_stress: 23.67
-valid_timepoints: null
 include_scenes: null
 notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
 timepoint_annotations:
