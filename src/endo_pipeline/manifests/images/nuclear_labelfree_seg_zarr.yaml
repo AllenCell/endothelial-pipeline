@@ -1,4 +1,4 @@
-name: nuclear_labelfree_seg
+name: nuclear_labelfree_seg_zarr
 workflow: generate_label_free_nuc_pred (manifest updated manually)
 parameters: {}
 locations:

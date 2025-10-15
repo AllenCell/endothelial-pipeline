@@ -1,4 +1,4 @@
-name: cdh5_classic_seg
+name: cdh5_classic_seg_zarr
 workflow: unknown
 parameters: {}
 locations:
