@@ -406,7 +406,7 @@ def preprocess_tracking_manifest_for_model_eval(
 
     # only run a single timepoint from zarr
     grouped_df[CytoDLLoadDataKeys.TIME_START] = grouped_df["image_index"]
-    grouped_df[CytoDLLoadDataKeys.TIME_STOP] = grouped_df["image_index"]
+    grouped_df[CytoDLLoadDataKeys.TIME_END] = grouped_df["image_index"]
     grouped_df = grouped_df.rename(
         {
             ColumnName.ZARR_PATH: CytoDLLoadDataKeys.FILE_PATH,
