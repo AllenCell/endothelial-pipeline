@@ -39,14 +39,18 @@ def get_exclude_frames(
     # else, get timepoints for all annotations except CELL_PILING
     annotations = None  # default to all annotations
     if not exclude_cell_piling:
-        annotations = [ann for ann in TimepointAnnotation if "PILING" not in ann.name]
+        annotations = [ann for ann in TimepointAnnotation if ann != TimepointAnnotation.CELL_PILING]
 
     # similar with steady state
     if not exclude_not_steady_state:
         if annotations is None:
-            annotations = [ann for ann in TimepointAnnotation if "STEADY_STATE" not in ann.name]
+            annotations = [
+                ann for ann in TimepointAnnotation if ann != TimepointAnnotation.NOT_STEADY_STATE
+            ]
         else:
-            annotations = [ann for ann in annotations if "STEADY_STATE" not in ann.name]
+            annotations = [
+                ann for ann in annotations if ann != TimepointAnnotation.NOT_STEADY_STATE
+            ]
 
     # parse dataset annotations to get timepoints to exclude per position
     exclude_frames = {
