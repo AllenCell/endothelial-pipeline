@@ -99,6 +99,7 @@ types = [
     "pandas-stubs>=2.2.3.250308",
     "types-tqdm>=4.67.0.20250301",
     "types-seaborn>=0.13.2.20250111",
+    "types-deprecated>=1.2.15.20250304",
 ]
 
 [project.scripts]
