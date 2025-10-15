@@ -60,12 +60,12 @@ def main(
 
     from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import (
+        get_all_unannotated_timepoints,
         get_unannotated_positions,
         load_dataset_collection_config,
         load_dataset_config,
     )
     from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.analyze.dataset_filters import get_frames_to_include
     from endo_pipeline.library.model import (
         build_and_save_dataframe_manifest_for_training,
         build_zarr_image_loading_dataframe,
@@ -86,8 +86,23 @@ def main(
             dataset_config, z_slice_offsets=Z_SLICE_OFFSETS
         )
         only_include_positions = get_unannotated_positions(dataset_config)
-        only_include_frames = get_frames_to_include(
-            dataset_config, include_cell_piling=include_cell_piling
+        # get frames to include based on annotations
+        # either including or excluding cell piling timepoints
+        # based on the include_cell_piling argument
+        annotations = None  # default is to remove all annotations
+        if include_cell_piling:
+            from endo_pipeline.configs import (
+                TimepointAnnotation,
+                get_subset_of_timepoint_annotations,
+            )
+
+            # if include cell piling, only exclude timepoints with other
+            # annotations
+            annotations = get_subset_of_timepoint_annotations(
+                annotations_to_ignore=[TimepointAnnotation.CELL_PILING]
+            )
+        only_include_frames = get_all_unannotated_timepoints(
+            dataset_config, annotations=annotations
         )
 
         # When running workflow in demo mode, only use the first position from each

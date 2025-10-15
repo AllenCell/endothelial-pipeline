@@ -5,9 +5,15 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from endo_pipeline.configs import get_unannotated_positions, load_dataset_config
+from endo_pipeline.configs import (
+    PositionAnnotation,
+    TimepointAnnotation,
+    get_all_unannotated_timepoints,
+    get_subset_of_timepoint_annotations,
+    get_unannotated_positions,
+    load_dataset_config,
+)
 from endo_pipeline.io import load_dataframe
-from endo_pipeline.library.analyze.dataset_filters import get_frames_to_include
 from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
 from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES, DIFFAE_PC_COLUMN_NAMES, ColumnName
 
@@ -18,20 +24,22 @@ logger = logging.getLogger(__name__)
 
 def filter_dataframe_by_annotations(
     dataframe: pd.DataFrame,
-    keep_cell_piling: bool = False,
-    keep_not_steady_state: bool = False,
+    position_annotations: list[PositionAnnotation] | None = None,
+    timepoint_annotations: list[TimepointAnnotation] | None = None,
 ) -> pd.DataFrame:
     """
-    Remove annotated timepoints from a dataframe of DiffAE features for one dataset.
+    Remove annotated timepoints and positions from a dataframe of DiffAE features for one dataset.
+
+    Default behavior is to remove all annotated timepoints and positions.
 
     Parameters
     ----------
     dataframe
         Dataframe of features for one dataset.
-    keep_cell_piling
-        True to keep timepoints annotated as "cell_piling", False to remove them.
-    keep_not_steady_state
-        True to keep timepoints annotated as "not_steady_state", False to remove them.
+    position_annotations
+        Optional, specific list of position annotations to filter by.
+    timepoint_annotations
+        Optional, specific list of timepoint annotations to filter by.
 
     Returns
     -------
@@ -51,13 +59,10 @@ def filter_dataframe_by_annotations(
 
     # load dataset config to get annotations
     dataset_config = load_dataset_config(dataset_name)
-    only_include_positions = get_unannotated_positions(dataset_config)
+    # get positions and timepoints to include based on annotations
+    only_include_positions = get_unannotated_positions(dataset_config, position_annotations)
     only_include_positions_str = [f"P{pos}" for pos in only_include_positions]
-    only_include_frames = get_frames_to_include(
-        dataset_config,
-        include_cell_piling=keep_cell_piling,
-        include_not_steady_state=keep_not_steady_state,
-    )
+    only_include_frames = get_all_unannotated_timepoints(dataset_config, timepoint_annotations)
     if dataframe[ColumnName.POSITION].nunique() != len(dataset_config.zarr_positions):
         logger.warning("Expected dataframe to contain all positions in dataset, but it does not.")
 
@@ -66,7 +71,7 @@ def filter_dataframe_by_annotations(
         dataframe[ColumnName.POSITION].isin(only_include_positions_str)
     ]
 
-    # filter dataframe to exclude annotated timepoints
+    # filter dataframe to only include non-annotated timepoints
     df_filtered_list = []
     for position, df_position in dataframe_exclude_positions.groupby(ColumnName.POSITION):
         # need to do this for now as position is saved as string 'P[int]'
@@ -249,10 +254,17 @@ def get_dataframe_for_dynamics_workflows(
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
     if filter_dataframe:
+        annotations_to_ignore = []
+        if include_cell_piling:
+            annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
+        if include_not_steady_state:
+            annotations_to_ignore.append(TimepointAnnotation.NOT_STEADY_STATE)
+        timepoint_annotations = get_subset_of_timepoint_annotations(
+            annotations_to_ignore=annotations_to_ignore
+        )
         df_filtered = filter_dataframe_by_annotations(
             df,
-            keep_cell_piling=include_cell_piling,
-            keep_not_steady_state=include_not_steady_state,
+            timepoint_annotations=timepoint_annotations,
         )
     else:
         df_filtered = df

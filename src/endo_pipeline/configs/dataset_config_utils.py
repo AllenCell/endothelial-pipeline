@@ -179,6 +179,30 @@ def get_duration_at_flow(dataset: DatasetConfig, shear_stress: float) -> int:
     return duration
 
 
+def get_subset_of_timepoint_annotations(
+    annotations_to_ignore: list[TimepointAnnotation],
+) -> dict[int, list[int]]:
+    """
+    Get a subset of timepoint annotations to use for filtering data points.
+
+    Parameters
+    ----------
+    annotations_to_ignore
+        List of TimepointAnnotation enums to ignore when filtering.
+
+    Returns
+    -------
+    :
+        List of TimepointAnnotation enums to use for filtering.
+    """
+
+    annotations = list(TimepointAnnotation)
+
+    annotations = [a for a in annotations if a not in annotations_to_ignore]
+
+    return annotations
+
+
 def get_annotated_positions(
     dataset: DatasetConfig, annotations: list[PositionAnnotation] | None = None
 ) -> list[int]:
@@ -204,7 +228,7 @@ def get_unannotated_positions(
     Get all positions without given annotations.
 
     If the provided list of annotations is empty, then all positions will be
-    returned. If the provided list of annotations is None, then only timepoints
+    returned. If the provided list of annotations is None, then only positions
     without any annotations will be returned.
     """
 
@@ -266,6 +290,17 @@ def get_unannotated_timepoints_for_position(
     annotated_timepoints = get_annotated_timepoints_for_position(dataset, position, annotations)
 
     return sorted(set(all_timepoints) - set(annotated_timepoints))
+
+
+def get_all_unannotated_timepoints(
+    dataset: DatasetConfig, annotations: list[TimepointAnnotation] | None = None
+) -> dict[int, list[int]]:
+    """Get all timepoints without any of the given annotations for each position in dataset."""
+
+    return {
+        position: get_unannotated_timepoints_for_position(dataset, position, annotations)
+        for position in dataset.zarr_positions
+    }
 
 
 def get_filtered_dataset_collection_name(
