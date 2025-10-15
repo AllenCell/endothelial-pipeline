@@ -120,6 +120,10 @@ def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
     - df: pd.DataFrame, DataFrame of feature data for one
         dataset with added crop index column
     """
+    # check that required columns are present in dataframe
+    required_columns = [ColumnName.START_X, ColumnName.START_Y, ColumnName.POSITION]
+    check_required_columns_in_dataframe(df, required_columns)
+
     # get list of unique starting positions and FOV_IDs
     start_x = df[ColumnName.START_X].unique().tolist()
     start_y = df[ColumnName.START_Y].unique().tolist()
@@ -151,14 +155,20 @@ def add_zarr_path(df: pd.DataFrame) -> pd.DataFrame:
     This is needed for the current manifests loaded
     via manifest_io.load_manifest_to_df().
     """
+    # check that required columns are present in dataframe
+    required_columns = [ColumnName.DATASET, ColumnName.POSITION]
+    check_required_columns_in_dataframe(df, required_columns)
+
     # load config for the dataset
-    ds_config = load_dataset_config(df["dataset"].iloc[0])
+    ds_config = load_dataset_config(df[ColumnName.DATASET].unique()[0])
     # get zarr path for the dataset from config
     zarr_path = ds_config.zarr_path
     # get last part of the zarr path (date_fmsid)
     name_fmsid = zarr_path.split("/")[-1]
     # add zarr path for each FOV as column
-    df["zarr_path"] = df.position.apply(lambda x: f"{zarr_path}/{name_fmsid}_{x}.ome.zarr")
+    df[ColumnName.ZARR_PATH] = df[ColumnName.POSITION].apply(
+        lambda x: f"{zarr_path}/{name_fmsid}_{x}.ome.zarr"
+    )
     return df
 
 
@@ -182,6 +192,9 @@ def project_features_to_pcs(
     - df_: pd.DataFrame, DataFrame of feature data for crops from
         dataset dataset_name projected onto PCA axes
     """
+    # check that required columns are present in dataframe
+    check_required_columns_in_dataframe(df, feat_cols)
+
     df_ = df.copy()  # make copy of DataFrame to avoid modifying original DataFrame
 
     # project feature data onto PCA axes, add new columns for each PC
@@ -259,6 +272,9 @@ def pad_missing_timepoints(
     Pad missing timepoints in DataFrame of feature data for one crop
     with NaNs, so that each crop has the same number of timepoints.
     """
+    # check that required columns are present in dataframe
+    check_required_columns_in_dataframe(df)
+
     # get list of all timepoints
     all_timepoints = df[ColumnName.TIMEPOINT].unique().to_list()
 
@@ -303,6 +319,10 @@ def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
         at all timepoints in one dataset
         - shape is num_crops x num_timepoints x num_features
     """
+    # check that required columns are present in dataframe
+    required_columns = [ColumnName.CROP_INDEX, ColumnName.TIMEPOINT, *column_names]
+    check_required_columns_in_dataframe(df, required_columns)
+
     num_crop = df[ColumnName.CROP_INDEX].nunique()  # number of crops made at each timepoint
 
     # get array of num crops x num timepoints x num PCs
