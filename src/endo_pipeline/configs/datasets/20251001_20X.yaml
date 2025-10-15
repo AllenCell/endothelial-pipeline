@@ -1,6 +1,6 @@
 name: 20251001_20X
-original_path: /path/to/original/dataset
-zarr_path: //allen/programs/allencell/data/proj0/b15/30c/b00/a84/9e8/949/640/3a1/4f0/112/27/20251001_GE00009220_20X_sldy/20251001_GE00009220_20X_sldy.sldy
+original_path: //allen/programs/allencell/data/proj0/b15/30c/b00/a84/9e8/949/640/3a1/4f0/112/27/20251001_GE00009220_20X_sldy/20251001_GE00009220_20X_sldy.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251001_271124f03a16409499e8a84b0030cb15
 zarr_positions: [0, 1, 2, 3, 4, 5]
 fmsid: 271124f03a16409499e8a84b0030cb15
 barcode: GE00009220
