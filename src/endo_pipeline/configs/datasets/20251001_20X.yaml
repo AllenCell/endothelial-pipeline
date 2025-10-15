@@ -1,0 +1,38 @@
+name: 20251001_20X
+original_path: /path/to/original/dataset
+zarr_path: //allen/programs/allencell/data/proj0/b15/30c/b00/a84/9e8/949/640/3a1/4f0/112/27/20251001_GE00009220_20X_sldy/20251001_GE00009220_20X_sldy.sldy
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: 271124f03a16409499e8a84b0030cb15
+barcode: GE00009220
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: max
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+flow_conditions:
+- start: -18
+  stop: 576
+  shear_stress: 20.87
+include_scenes: null
+notes: ''
+timepoint_annotations: null
+position_annotations:
+  dust_artifact: [2, 3, 4]
+center_z_plane: null
