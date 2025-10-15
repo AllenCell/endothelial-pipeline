@@ -10,6 +10,7 @@ from bioio_ome_zarr.writers.metadata import Channel
 from tqdm import tqdm
 
 """
+NOTE:
 This workflow is meant to be run in a separate enviornment from the main endo_pipeline env
 due to bioio version conflicts. See below for dependencies.
 
