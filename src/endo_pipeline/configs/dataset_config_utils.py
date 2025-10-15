@@ -197,6 +197,23 @@ def get_annotated_positions(
     return annotated_positions
 
 
+def get_unannotated_positions(
+    dataset: DatasetConfig, annotations: list[PositionAnnotation] | None = None
+) -> list[int]:
+    """
+    Get all positions without given annotations.
+
+    If the provided list of annotations is empty, then all positions will be
+    returned. If the provided list of annotations is None, then only timepoints
+    without any annotations will be returned.
+    """
+
+    all_positions = dataset.zarr_positions
+    annotated_positions = get_annotated_positions(dataset, annotations)
+
+    return sorted(set(all_positions) - set(annotated_positions))
+
+
 def get_annotated_timepoints_for_position(
     dataset: DatasetConfig, position: int, annotations: list[TimepointAnnotation] | None = None
 ) -> list[int]:
@@ -238,7 +255,7 @@ def get_unannotated_timepoints_for_position(
     dataset: DatasetConfig, position: int, annotations: list[TimepointAnnotation] | None = None
 ) -> list[int]:
     """
-    Gets all timepoints without any of the given annotations at given position.
+    Get all timepoints without any of the given annotations at given position.
 
     If the provided list of annotations is empty, then all timepoints will be
     returned. If the provided list of annotations is None, then only timepoints

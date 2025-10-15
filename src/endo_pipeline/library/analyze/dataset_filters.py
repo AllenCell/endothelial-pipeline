@@ -1,16 +1,33 @@
 from endo_pipeline.configs import (
     DatasetConfig,
     TimepointAnnotation,
-    get_annotated_positions,
-    get_annotated_timepoints_for_position,
+    get_unannotated_positions,
+    get_unannotated_timepoints_for_position,
 )
 
 
-def get_include_positions(dataset_config: DatasetConfig) -> list[int]:
-    """Get list of positions to include based on annotations."""
-    exclude_positions = get_annotated_positions(dataset_config)
-    only_include_positions = sorted(set(dataset_config.zarr_positions) - set(exclude_positions))
-    return only_include_positions
+def get_include_frames(
+    dataset_config: DatasetConfig,
+    include_cell_piling: bool = True,
+    include_not_steady_state: bool = True,
+) -> dict[int, list[int]]:
+    """
+    Get dict of frames to include per position based on annotations.
+
+    Parameters
+    ----------
+    dataset_config
+        Dataset configuration object.
+    include_cell_piling
+        Whether to include timepoints annotated as CELL_PILING.
+    include_not_steady_state
+        Whether to include timepoints annotated as NOT_STEADY_STATE.
+
+    Returns
+    -------
+    :
+        Dictionary with position as key and list of timepoints to include as values.
+    """
 
 
 def get_exclude_frames(

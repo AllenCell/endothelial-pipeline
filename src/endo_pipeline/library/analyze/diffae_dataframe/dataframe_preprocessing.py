@@ -5,9 +5,9 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import get_unannotated_positions, load_dataset_config
 from endo_pipeline.io import load_dataframe
-from endo_pipeline.library.analyze.dataset_filters import get_exclude_frames, get_include_positions
+from endo_pipeline.library.analyze.dataset_filters import get_exclude_frames
 from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
 from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES, DIFFAE_PC_COLUMN_NAMES, ColumnName
 
@@ -51,7 +51,7 @@ def remove_annotated_timepoints_and_positions(
 
     # load dataset config to get annotations
     dataset_config = load_dataset_config(dataset_name)
-    only_include_positions = get_include_positions(dataset_config)
+    only_include_positions = get_unannotated_positions(dataset_config)
     only_include_positions_str = [f"P{pos}" for pos in only_include_positions]
     exclude_frames = get_exclude_frames(dataset_config, remove_cell_piling, remove_not_steady_state)
     if dataframe[ColumnName.POSITION].nunique() != len(dataset_config.zarr_positions):

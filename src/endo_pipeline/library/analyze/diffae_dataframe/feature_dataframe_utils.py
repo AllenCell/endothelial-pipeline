@@ -116,6 +116,8 @@ def split_dataset_by_flow(
     :
         List of shear stress values for each flow condition.
     """
+    # check that required columns are present
+    check_required_columns_in_dataframe(df_proj, [ColumnName.TIMEPOINT])
 
     # get flow condition information from dataset config
     flow_conditions = dataset_config.flow_conditions
