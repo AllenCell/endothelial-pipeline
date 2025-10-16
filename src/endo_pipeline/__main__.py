@@ -50,6 +50,9 @@ PRODUCTION_WORKFLOWS = Group("Production Workflows", sort_key=1)
 DEVELOPMENT_WORKFLOWS = Group("Development Workflows", sort_key=2)
 ARCHIVED_WORKFLOWS = Group("Archived Workflows", sort_key=3)
 
+WORKFLOW_OPTIONS = WorkflowOptions()
+PIPELINE_OPTIONS = PipelineOptions()
+
 
 def pipeline_cli() -> None:
     """Pipeline CLI."""
@@ -78,8 +81,8 @@ def workflow_cli(workflow: Callable) -> None:
 
 def pipeline_entrypoint(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
-    workflow_options: WorkflowOptions = WorkflowOptions(),
-    pipeline_options: PipelineOptions = PipelineOptions(),
+    workflow_options: WorkflowOptions = WORKFLOW_OPTIONS,
+    pipeline_options: PipelineOptions = PIPELINE_OPTIONS,
 ) -> None:
     """Pipeline CLI entrypoint."""
 
@@ -105,7 +108,7 @@ def pipeline_entrypoint(
 
 def workflow_entrypoint(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
-    workflow_options: WorkflowOptions = WorkflowOptions(),
+    workflow_options: WorkflowOptions = WORKFLOW_OPTIONS,
 ) -> None:
     """Workflow CLI entrypoint."""
 
