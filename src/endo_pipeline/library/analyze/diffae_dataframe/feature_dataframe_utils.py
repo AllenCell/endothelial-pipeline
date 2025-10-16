@@ -12,28 +12,20 @@ logger = logging.getLogger(__name__)
 
 def check_required_columns_in_dataframe(
     df: pd.DataFrame,
-    required_columns: list[str] | None = None,
+    required_columns: list[str],
 ) -> None:
     """
-    Check that the required columns are present in the dataframe.
-
-    Default required columns are 'timepoint' and 'crop_index', but a
-    custom list of required columns can be provided.
+    Check that required columns are present in a given dataframe.
 
     Parameters
     ----------
     df
         DataFrame to check.
     required_columns
-        Optional input list of required columns to check for.
+        List of required column names to check for.
     """
-    # default required columns: timepoint and crop index
-    if required_columns is None:
-        required_column_list = [ColumnName.TIMEPOINT, ColumnName.CROP_INDEX]
-    else:
-        required_column_list = required_columns
 
-    for col in required_column_list:
+    for col in required_columns:
         if col not in df.columns:
             logger.error("DataFrame must contain column [ %s ]", col)
             raise ValueError(f"DataFrame must contain column [ {col} ]")
@@ -178,7 +170,8 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
         List of displacement vectors along each trajectory in feature space.
     """
     # check that required columns are present
-    check_required_columns_in_dataframe(data)
+    required_columns = [ColumnName.TIMEPOINT, ColumnName.CROP_INDEX, *pc_column_names]
+    check_required_columns_in_dataframe(data, required_columns)
 
     # get list of unique crop indices
     crop_list = data[ColumnName.CROP_INDEX].unique().tolist()

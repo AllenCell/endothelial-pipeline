@@ -292,7 +292,8 @@ def pad_missing_timepoints(
     with NaNs, so that each crop has the same number of timepoints.
     """
     # check that required columns are present in dataframe
-    check_required_columns_in_dataframe(df)
+    required_columns = [ColumnName.CROP_INDEX, ColumnName.TIMEPOINT]
+    check_required_columns_in_dataframe(df, required_columns)
 
     # get list of all timepoints
     all_timepoints = df[ColumnName.TIMEPOINT].unique().to_list()
