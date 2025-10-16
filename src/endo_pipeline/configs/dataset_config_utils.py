@@ -196,9 +196,9 @@ def get_subset_of_timepoint_annotations(
         List of TimepointAnnotation enums to use for filtering.
     """
 
-    annotations = list(TimepointAnnotation)
+    annotations_all = list(TimepointAnnotation)
 
-    annotations = [a for a in annotations if a not in annotations_to_ignore]
+    annotations = [a for a in annotations_all if a not in annotations_to_ignore]
 
     return annotations
 

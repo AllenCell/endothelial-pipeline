@@ -95,7 +95,7 @@ def main(
         annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
         if include_cell_piling:
             # if including cell piling, then ignore that annotation as well
-            annotations_to_ignore = annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
+            annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
         # get list of annotations to filter out
         annotations = get_subset_of_timepoint_annotations(
             annotations_to_ignore=annotations_to_ignore
