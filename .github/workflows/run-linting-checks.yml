@@ -24,7 +24,7 @@ jobs:
         python-version-file: "pyproject.toml"
 
     - name: Install dependencies
-      run: uv sync --locked --only-group lint
+      run: uv sync --locked
 
     - name: Check with black
       run: uv run --no-sync black --check src
