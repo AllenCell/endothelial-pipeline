@@ -192,8 +192,8 @@ def add_filter_columns(
 
     # is_included is just all the previous filters combined
     big_table["is_included"] = (
-        big_table[f"is_greater_than_min_track_duration"]
-        & big_table[f"is_less_than_max_smoothed_area_normd_change"]
+        big_table["is_greater_than_min_track_duration"]
+        & big_table["is_less_than_max_smoothed_area_normd_change"]
         & ~big_table["is_edge_segmentation"]
     )
 
@@ -682,6 +682,7 @@ def get_nuclei_coords(
 ) -> dict[str, np.ndarray]:
     """
     Get the coordinates of the nuclei in the image.
+
     Parameters
     ----------
     props : regionprops
@@ -693,6 +694,7 @@ def get_nuclei_coords(
         The kind of coordinates to return.
         "centroid" will return only the centroids of the labeled nuclei,
         while "all" will return all the coordinates of the nuclei.
+
     Returns
     -------
     dict[str, np.ndarray]
@@ -782,6 +784,7 @@ def get_num_nuclei_in_array(img_arr: np.ndarray | dd.Array, crop: tuple[slice, .
     If there is even 1 pixel of a labeled nuclei then it will be counted,
     therefore you may want to create an image of the centroids or cleaned
     up nuclei before counting.
+
     Parameters
     ----------
     img_arr : np.ndarray or dd.Array
@@ -850,7 +853,7 @@ def compute_nuclei_centroids(
 
     # get nuclei segmentation properties and dimension order of those properties
     props = regionprops(nuc_seg.squeeze())
-    dim_shapes = dict(zip(dim_order, nuc_seg.shape))
+    dim_shapes = dict(zip(dim_order, nuc_seg.shape, strict=False))
     dim_order_squeezed = "".join([d for d in dim_order if dim_shapes[d] > 1])
 
     centroids: dict[str, Any] = get_nuclei_coords(
