@@ -514,7 +514,7 @@ class MultiDimImageDataset(SmartCacheDataset):
 def get_z_slice_bounds_per_position(
     dataset_config: DatasetConfig,
     z_slice_offsets: tuple[int, int] | None,
-) -> dict[int, dict[str, int]]:
+) -> dict[int, dict[CytoDLLoadDataKeys, int]]:
     """
     Parse dataset annotations to get lower and upper z-slice
     bounds per position for image loading and processing.
