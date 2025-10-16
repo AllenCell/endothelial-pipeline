@@ -6,7 +6,7 @@ from sklearn.decomposition import PCA
 
 from endo_pipeline.library.analyze.diffae_dataframe import get_dataframe_for_dynamics_workflows
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE
+from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE, ColumnName
 
 
 def get_bins(
@@ -110,7 +110,22 @@ def get_3d_bounds_from_data(
     bounds_ = [[np.inf, -np.inf] for _ in range(num_dims)]
 
     for dataset_name in dataset_names:
-        df = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca, filter_to_valid)
+        if filter_to_valid:
+            filter_dataframe = True
+            include_cell_piling = False
+            include_not_steady_state = False
+        else:
+            filter_dataframe = False
+            include_cell_piling = True
+            include_not_steady_state = True
+        df = get_dataframe_for_dynamics_workflows(
+            dataset_name,
+            manifest,
+            pca=pca,
+            filter_dataframe=filter_dataframe,
+            include_cell_piling=include_cell_piling,
+            include_not_steady_state=include_not_steady_state,
+        )
         # get column names for features
         pc_column_names = DIFFAE_PC_COLUMN_NAMES[:num_dims]
         for j in range(num_dims):
@@ -156,7 +171,7 @@ def _get_histogram_by_component_one_dataset(
         feat_cols = [col for col in feat_cols_all if col in df.columns]
 
     num_feats = len(feat_cols)
-    num_frames = df["frame_number"].nunique()
+    num_frames = df[ColumnName.TIMEPOINT].nunique()
     num_bins = bin_edges[0].shape[0] - 1  # number of bins is one less than number of edges
 
     # feats = df_to_array(df_padded, feat_cols)  # get array of just the feature data
@@ -165,22 +180,25 @@ def _get_histogram_by_component_one_dataset(
         (num_feats, num_bins, num_frames)
     )  # histogram values for each component as a function of time
 
-    for t, df_frame in df.groupby("frame_number"):
+    # sort by timepoint
+    df = df.sort_values(by=ColumnName.TIMEPOINT).reset_index(drop=True)
+    for t, df_frame in df.groupby(ColumnName.TIMEPOINT):
         # loop over latent components
         for dim in range(num_feats):
             feats = df_frame[feat_cols[dim]].to_numpy()
             # compute histogram of feature data along each component
+            t_index = df[ColumnName.TIMEPOINT].unique().tolist().index(t)
             hist = np.histogram(feats, bins=bin_edges[dim], density=True)[0]
-            hist_array[dim, :, t] = hist
+            hist_array[dim, :, t_index] = hist
 
             # update the dataframe with column of what bin
-            # each crop at frame_number t is in
+            # each crop at frame number t is in
             # along the given latent dimension
             # get the bin index for each crop
             bin_idx = np.digitize(feats, bin_edges[dim]) - 1
             # add the bin index to the dataframe (astype int)
-            # restrict to crops at frame_number t
-            df.loc[df["frame_number"] == t, f"bin_{dim}"] = bin_idx
+            # restrict to crops at frame number t
+            df.loc[df[ColumnName.TIMEPOINT] == t, f"bin_{dim}"] = bin_idx
 
     # enforce that bin indices are integers
     # this is important for indexing later
@@ -230,7 +248,7 @@ def get_histogram_by_component(
     # get histogram / bin indices for each dataset
     hist_array_list = []
     df_list = []
-    for _, df_group in df.groupby("dataset"):
+    for _, df_group in df.groupby(ColumnName.DATASET):
         hist_array, df_group_ = _get_histogram_by_component_one_dataset(
             df_group, bin_edges, feat_cols
         )

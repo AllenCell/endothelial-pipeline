@@ -25,6 +25,7 @@ from .dataset_config_io import (
     validate_dataset_config,
 )
 from .dataset_config_utils import (
+    get_all_unannotated_timepoints,
     get_annotated_positions,
     get_annotated_timepoints_for_position,
     get_available_channels_for_all_positions,
@@ -40,6 +41,8 @@ from .dataset_config_utils import (
     get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
     get_regime_for_shear_stress,
+    get_subset_of_timepoint_annotations,
+    get_unannotated_positions,
     get_unannotated_timepoints_for_position,
     get_zarr_file_for_position,
     make_filtered_dataset_collection,
@@ -61,6 +64,7 @@ __all__ = [
     "SampleType",
     "ShearStressRegime",
     "TimepointAnnotation",
+    "get_all_unannotated_timepoints",
     "get_annotated_positions",
     "get_annotated_timepoints_for_position",
     "get_available_channels_for_all_positions",
@@ -82,6 +86,8 @@ __all__ = [
     "get_position_integer_from_zarr_file_path",
     "get_position_string_from_zarr_file_path",
     "get_regime_for_shear_stress",
+    "get_subset_of_timepoint_annotations",
+    "get_unannotated_positions",
     "get_unannotated_timepoints_for_position",
     "get_zarr_file_for_position",
     "load_all_dataset_configs",

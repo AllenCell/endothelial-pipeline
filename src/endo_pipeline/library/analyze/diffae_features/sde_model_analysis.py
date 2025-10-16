@@ -26,7 +26,7 @@ from endo_pipeline.library.analyze.numerics import (
 )
 from endo_pipeline.library.visualize.diffae_features import dynamics_viz, pplane
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES
+from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, ColumnName
 
 logger = logging.getLogger(__name__)
 
@@ -274,9 +274,9 @@ def model_data_comparison(
             # that flow condition as our
             # cutoff for stationary data
             if num_flow > 1:
-                frame_max = df_by_flow[j]["frame_number"].max()
+                frame_max = df_by_flow[j][ColumnName.TIMEPOINT].max()
                 frame_cutoff = frame_max - 100
-                stationary_data = df_by_flow[j][df_by_flow[j]["frame_number"] > frame_cutoff]
+                stationary_data = df_by_flow[j][df_by_flow[j][ColumnName.TIMEPOINT] > frame_cutoff]
             # else, it is just the whole dataset
             else:
                 stationary_data = df_by_flow[j]

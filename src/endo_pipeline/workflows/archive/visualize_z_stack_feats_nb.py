@@ -10,6 +10,7 @@ from endo_pipeline.library.analyze.z_slice_feats.compare_feats import (
     plot_scatter_by_position_and_frame,
 )
 from endo_pipeline.manifests import DataframeManifest, load_dataframe_manifest
+from endo_pipeline.settings import ColumnName
 
 # %%
 TIMEPOINTS = [0, 250, 500]
@@ -18,7 +19,11 @@ TIMEPOINTS = [0, 250, 500]
 model_name = "diffae_04_10"
 dataset_list = ["20250331_20X", "20250402_20X", "20250409_20X"]
 
-pca = fit_pca()
+pca = fit_pca(
+    dataset_collection_name="pca_reference_legacy",
+    dataframe_manifest_name=model_name,
+    filter_dataframe=False,
+)
 
 manifest1 = load_dataframe_manifest(model_name)
 manifest2 = load_dataframe_manifest(f"{model_name}_z_stack_5_10")
@@ -48,11 +53,11 @@ combined_manifest = DataframeManifest(
 for dataset_name in dataset_list:
     save_dir = get_output_path("visualize_z_stack_feats", model_name, dataset_name)
 
-    df1 = get_dataframe_for_dynamics_workflows(dataset_name, manifest1, pca, filter_to_valid=False)
-    df1 = df1[df1["frame_number"].isin(TIMEPOINTS)].reset_index(drop=True)
-    df2 = get_dataframe_for_dynamics_workflows(dataset_name, manifest2, pca, filter_to_valid=False)
-    df3 = get_dataframe_for_dynamics_workflows(dataset_name, manifest3, pca, filter_to_valid=False)
-    df4 = get_dataframe_for_dynamics_workflows(dataset_name, manifest4, pca, filter_to_valid=False)
+    df1 = get_dataframe_for_dynamics_workflows(dataset_name, manifest1, pca, filter_dataframe=False)
+    df1 = df1[df1[ColumnName.TIMEPOINT].isin(TIMEPOINTS)].reset_index(drop=True)
+    df2 = get_dataframe_for_dynamics_workflows(dataset_name, manifest2, pca, filter_dataframe=False)
+    df3 = get_dataframe_for_dynamics_workflows(dataset_name, manifest3, pca, filter_dataframe=False)
+    df4 = get_dataframe_for_dynamics_workflows(dataset_name, manifest4, pca, filter_dataframe=False)
 
     assert df1.shape == df2.shape == df3.shape == df4.shape, "DataFrames have different shapes!"
 
@@ -84,7 +89,7 @@ for dataset_name in dataset_list:
 
     for target_frame in TIMEPOINTS:
         for df, info in zip(df_list, df_info, strict=True):
-            df = df[df["frame_number"] == target_frame]
+            df = df[df[ColumnName.TIMEPOINT] == target_frame]
             for pc, bound in zip(["pc1", "pc2", "pc3"], bounds, strict=True):
                 fig, ax = feature_density(
                     df, pc, bound, title=f"{dataset_name} {info}, T={target_frame} (frames)"

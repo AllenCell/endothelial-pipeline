@@ -23,7 +23,6 @@ from endo_pipeline.io import (
 )
 from endo_pipeline.library.model.image_loading import (
     build_zarr_image_loading_dataframe,
-    get_exclude_frames,
     get_z_slice_bounds_per_position,
 )
 from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact
@@ -38,8 +37,12 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     save_dataframe_manifest,
 )
-
-ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
+from endo_pipeline.settings import (
+    ZARR_BRIGHTFIELD_CHANNEL,
+    ColumnName,
+    CytoDLLoadDataKeys,
+    CytoDLSaveDataKeys,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -162,10 +165,10 @@ def generate_overrides_for_model_eval(
             "_target_": "cyto_dl.callbacks.tabular_saver.SaveTabularData",
             "save_dir": save_path,
             "meta_keys": [
-                "T",
-                "start_y",
-                "start_x",
-                "filename_or_obj",
+                CytoDLSaveDataKeys.TIMEPOINT,
+                ColumnName.START_Y,
+                ColumnName.START_X,
+                CytoDLSaveDataKeys.FILE_PATH,
             ],
             "save_suffix": save_suffix,
         },
@@ -219,12 +222,12 @@ def generate_overrides_for_track_based_crops(
             "_target_": "cyto_dl.callbacks.tabular_saver.SaveTabularData",
             "save_dir": save_path,
             "meta_keys": [
-                "T",
-                "start_y",
-                "start_x",
-                "end_y",
-                "end_x",
-                "filename_or_obj",
+                CytoDLSaveDataKeys.TIMEPOINT,
+                ColumnName.START_Y,
+                ColumnName.START_X,
+                ColumnName.END_Y,
+                ColumnName.END_X,
+                CytoDLSaveDataKeys.FILE_PATH,
                 "track_id",
             ],
             "save_suffix": save_suffix,
@@ -233,16 +236,16 @@ def generate_overrides_for_track_based_crops(
         "data.predict_dataloaders.dataset.transform.transforms[6]": {
             "_target_": "cyto_dl.image.transforms.coordinate_crop.CropToCoordsd",
             "keys": ["raw_bf"],
-            "start_keys": ["start_y", "start_x"],
-            "end_keys": ["end_y", "end_x"],
+            "start_keys": [ColumnName.START_Y, ColumnName.START_X],
+            "end_keys": [ColumnName.END_Y, ColumnName.END_X],
             "meta_keys": ["track_id"],
         },
         # persist coordinate data through MultiDimImageDataset
         "data.predict_dataloaders.dataset.extra_columns": [
-            "start_y",
-            "start_x",
-            "end_y",
-            "end_x",
+            ColumnName.START_Y,
+            ColumnName.START_X,
+            ColumnName.END_Y,
+            ColumnName.END_X,
             "track_id",
         ],
         # no spatial inferer needed
@@ -318,10 +321,10 @@ def add_diffae_model_eval_crop_columns(
     df["crop_size"] = crop_size
 
     # convert centroids to bounding box coordinates and add them as columns
-    df["start_x"] = (df["centroid_X"] - df["crop_size"] / 2).astype(int)
-    df["start_y"] = (df["centroid_Y"] - df["crop_size"] / 2).astype(int)
-    df["end_x"] = (df["centroid_X"] + df["crop_size"] / 2).astype(int)
-    df["end_y"] = (df["centroid_Y"] + df["crop_size"] / 2).astype(int)
+    df[ColumnName.START_X] = (df["centroid_X"] - df["crop_size"] / 2).astype(int)
+    df[ColumnName.START_Y] = (df["centroid_Y"] - df["crop_size"] / 2).astype(int)
+    df[ColumnName.END_X] = (df["centroid_X"] + df["crop_size"] / 2).astype(int)
+    df[ColumnName.END_Y] = (df["centroid_Y"] + df["crop_size"] / 2).astype(int)
 
     # add a column indicating if the size of the bounding box does
     # not match the downsampled crop size (because the model expects
@@ -342,7 +345,7 @@ def preprocess_tracking_manifest_for_model_eval(
     save_dir: Path,
     z_slice_bounds_per_position: dict[int, dict[str, int]] | None = None,
     only_include_positions: list[int] | None = None,
-    exclude_frames: dict[int, list[int]] | None = None,
+    only_include_frames: dict[int, list[int]] | None = None,
 ) -> Path:
     """Preprocess the manifest for a dataset to prepare it for model prediction."""
 
@@ -358,14 +361,14 @@ def preprocess_tracking_manifest_for_model_eval(
 
     # filter the dataframe to include only the relevant columns
     columns_to_keep = [
-        "zarr_path",
+        ColumnName.ZARR_PATH,
         "image_index",
         "track_id",
         "label",
-        "start_x",
-        "start_y",
-        "end_x",
-        "end_y",
+        ColumnName.START_X,
+        ColumnName.START_Y,
+        ColumnName.END_X,
+        ColumnName.END_Y,
         "image_size_x",
         "image_size_y",
         "crop_size",
@@ -375,34 +378,45 @@ def preprocess_tracking_manifest_for_model_eval(
 
     # Adjust the crop coordinates to be consistent with the resolution level
     resolution = sequence_to_scalar(df["diffae_resolution_level_to_use"])
-    columns_to_downsample = ["start_x", "start_y", "end_x", "end_y"]
+    columns_to_downsample = [
+        ColumnName.START_X,
+        ColumnName.START_Y,
+        ColumnName.END_X,
+        ColumnName.END_Y,
+    ]
     for col in columns_to_downsample:
         df[col] = df[col] // (2**resolution)
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = (
-        df.groupby(["zarr_path", "image_index"])
+        df.groupby([ColumnName.ZARR_PATH, "image_index"])
         .agg(
             {
-                "start_y": lambda x: list(x),
-                "start_x": lambda x: list(x),
-                "end_y": lambda x: list(x),
-                "end_x": lambda x: list(x),
+                ColumnName.START_Y: lambda x: list(x),
+                ColumnName.START_X: lambda x: list(x),
+                ColumnName.END_Y: lambda x: list(x),
+                ColumnName.END_X: lambda x: list(x),
                 "track_id": lambda x: list(x),
             }
         )
         .reset_index()
     )
     # Add which channel to load and what resolution to load it at
-    grouped_df["channel"] = ZARR_BF_CHANNEL
-    grouped_df["resolution"] = resolution
+    grouped_df[CytoDLLoadDataKeys.CHANNELS] = ZARR_BRIGHTFIELD_CHANNEL
+    grouped_df[ColumnName.RESOLUTION] = resolution
 
     # only run a single timepoint from zarr
-    grouped_df["frame_start"] = grouped_df["image_index"]
-    grouped_df["frame_stop"] = grouped_df["image_index"]
-    grouped_df = grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1)
+    grouped_df[CytoDLLoadDataKeys.TIME_START] = grouped_df["image_index"]
+    grouped_df[CytoDLLoadDataKeys.TIME_END] = grouped_df["image_index"]
+    grouped_df = grouped_df.rename(
+        {
+            ColumnName.ZARR_PATH: CytoDLLoadDataKeys.FILE_PATH,
+            "image_index": CytoDLLoadDataKeys.TIMEPOINT,
+        },
+        axis=1,
+    )
 
     # add temporary column with position index for filtering
-    grouped_df["position_index"] = grouped_df["path"].apply(
+    grouped_df["position_index"] = grouped_df[CytoDLLoadDataKeys.FILE_PATH].apply(
         lambda x: get_position_integer_from_zarr_file_path(x)
     )
 
@@ -415,24 +429,24 @@ def preprocess_tracking_manifest_for_model_eval(
         grouped_df = grouped_df[grouped_df["position_index"].isin(only_include_positions)]
 
     # add column for excluding frames, if specified
-    if exclude_frames is not None:
+    if only_include_frames is not None:
         # if position has no frames to exclude, set to None
-        grouped_df["exclude_frames"] = grouped_df["position_index"].apply(
-            lambda x: exclude_frames.get(x, None)
+        grouped_df[CytoDLLoadDataKeys.INCLUDE_TIMEPOINTS] = grouped_df["position_index"].apply(
+            lambda x: only_include_frames.get(x, None)
         )
 
     # if start and stop for loading z slices are specified, add to dataframe
     if z_slice_bounds_per_position is not None:
         # get z info dict for each position index
         # unpack the start, stop, and step values from those dictionaries
-        grouped_df["z_start"] = grouped_df["position_index"].apply(
-            lambda x: z_slice_bounds_per_position.get(x, {}).get("z_start", 0)
+        grouped_df[CytoDLLoadDataKeys.Z_START] = grouped_df["position_index"].apply(
+            lambda x: z_slice_bounds_per_position.get(x, {}).get(CytoDLLoadDataKeys.Z_START, 0)
         )
-        grouped_df["z_stop"] = grouped_df["position_index"].apply(
-            lambda x: z_slice_bounds_per_position.get(x, {}).get("z_stop", -1)
+        grouped_df[CytoDLLoadDataKeys.Z_END] = grouped_df["position_index"].apply(
+            lambda x: z_slice_bounds_per_position.get(x, {}).get(CytoDLLoadDataKeys.Z_END, -1)
         )
-        grouped_df["z_step"] = grouped_df["position_index"].apply(
-            lambda x: z_slice_bounds_per_position.get(x, {}).get("z_step", 1)
+        grouped_df[CytoDLLoadDataKeys.Z_STEP] = grouped_df["position_index"].apply(
+            lambda x: z_slice_bounds_per_position.get(x, {}).get(CytoDLLoadDataKeys.Z_STEP, 1)
         )
 
     # remove temporary column with position index
@@ -451,10 +465,10 @@ def bbox_in_image_bounds(df: pd.DataFrame, resolution_level: int = 1) -> pd.Seri
     cols_to_downsample = [
         "image_size_x",
         "image_size_y",
-        "start_x",
-        "start_y",
-        "end_x",
-        "end_y",
+        ColumnName.START_X,
+        ColumnName.START_Y,
+        ColumnName.END_X,
+        ColumnName.END_Y,
         "crop_size",
     ]
     df_temp = df[cols_to_downsample].copy(deep=True)
@@ -462,10 +476,10 @@ def bbox_in_image_bounds(df: pd.DataFrame, resolution_level: int = 1) -> pd.Seri
         df_temp[col] = df[col] // downsample_factor
 
     # limit start and end of x and y bboxes to be within image size limits
-    df_temp["start_x"] = df_temp["start_x"].transform(lambda x: max(0, x))
-    df_temp["start_y"] = df_temp["start_y"].transform(lambda y: max(0, y))
-    df_temp["end_x"] = df_temp[["end_x", "image_size_x"]].min(axis=1)
-    df_temp["end_y"] = df_temp[["end_y", "image_size_y"]].min(axis=1)
+    df_temp[ColumnName.START_X] = df_temp[ColumnName.START_X].transform(lambda x: max(0, x))
+    df_temp[ColumnName.START_Y] = df_temp[ColumnName.START_Y].transform(lambda y: max(0, y))
+    df_temp[ColumnName.END_X] = df_temp[[ColumnName.END_X, "image_size_x"]].min(axis=1)
+    df_temp[ColumnName.END_Y] = df_temp[[ColumnName.END_Y, "image_size_y"]].min(axis=1)
 
     # filter the dataframe to exclude anything where the size of
     # the bounding box does not match the downsampled crop size
@@ -492,23 +506,29 @@ def update_prediction_from_crops_with_metadata(
     """
     # add model and dataset information to prediction file
     pred_df = pd.read_parquet(prediction_path)
-    pred_df["dataset"] = dataset_name
-    pred_df["model_manifest_name"] = model_manifest_name
-    pred_df["run_name"] = run_name
+    pred_df[ColumnName.DATASET] = dataset_name
+    pred_df[ColumnName.MODEL_MANIFEST] = model_manifest_name
+    pred_df[ColumnName.MODEL_RUN] = run_name
 
     # note: the current model loads images at resolution
     # level 0 and downsamples in the transforms.
-    pred_df["resolution_level"] = 1
+    pred_df[ColumnName.RESOLUTION] = 1
 
-    pred_df["end_y"] = pred_df["start_y"] + crop_size[0]
-    pred_df["end_x"] = pred_df["start_x"] + crop_size[1]
-    pred_df["crop_size_y"] = crop_size[0]
-    pred_df["crop_size_x"] = crop_size[1]
+    pred_df[ColumnName.END_Y] = pred_df[ColumnName.START_Y] + crop_size[0]
+    pred_df[ColumnName.END_X] = pred_df[ColumnName.START_X] + crop_size[1]
+    pred_df[ColumnName.CROP_SIZE_Y] = crop_size[0]
+    pred_df[ColumnName.CROP_SIZE_X] = crop_size[1]
 
-    pred_df["position"] = pred_df["filename_or_obj"].apply(
+    pred_df[ColumnName.POSITION] = pred_df[CytoDLSaveDataKeys.FILE_PATH].apply(
         lambda s: get_position_string_from_zarr_file_path(s)
     )
-    pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
+    pred_df.rename(
+        columns={
+            CytoDLSaveDataKeys.FILE_PATH: ColumnName.ZARR_PATH,
+            CytoDLSaveDataKeys.TIMEPOINT: ColumnName.TIMEPOINT,
+        },
+        inplace=True,
+    )
     pred_df.to_parquet(prediction_path)
 
 
@@ -518,23 +538,28 @@ def update_prediction_from_tracks_with_metadata(
     """Update the prediction file with metadata."""
     # add model and dataset information to prediction file
     pred_df = pd.read_parquet(prediction_path)
-    pred_df["dataset"] = dataset_name
-    pred_df["model_manifest_name"] = model_manifest_name
-    pred_df["run_name"] = run_name
+    pred_df[ColumnName.DATASET] = dataset_name
+    pred_df[ColumnName.MODEL_MANIFEST] = model_manifest_name
+    pred_df[ColumnName.MODEL_RUN] = run_name
 
-    # NOTE: the current model loads images at resolution level 0 and downsamples in the transforms.
-    pred_df["resolution_level"] = 1
+    pred_df[ColumnName.RESOLUTION] = 1
 
     crop_size = (
-        pred_df["end_y"].iloc[0] - pred_df["start_y"].iloc[0],
-        pred_df["end_x"].iloc[0] - pred_df["start_x"].iloc[0],
+        pred_df[ColumnName.END_Y].iloc[0] - pred_df[ColumnName.START_Y].iloc[0],
+        pred_df[ColumnName.END_X].iloc[0] - pred_df[ColumnName.START_X].iloc[0],
     )
-    pred_df["crop_size_y"] = crop_size[0]
-    pred_df["crop_size_x"] = crop_size[1]
-    pred_df["position"] = pred_df["filename_or_obj"].apply(
+    pred_df[ColumnName.CROP_SIZE_Y] = crop_size[0]
+    pred_df[ColumnName.CROP_SIZE_X] = crop_size[1]
+    pred_df[ColumnName.POSITION] = pred_df[CytoDLSaveDataKeys.FILE_PATH].apply(
         lambda s: get_position_string_from_zarr_file_path(s)
     )
-    pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
+    pred_df.rename(
+        columns={
+            CytoDLSaveDataKeys.FILE_PATH: ColumnName.ZARR_PATH,
+            CytoDLSaveDataKeys.TIMEPOINT: ColumnName.TIMEPOINT,
+        },
+        inplace=True,
+    )
     pred_df.to_parquet(prediction_path)
 
 
@@ -612,7 +637,6 @@ def evaluate_model_on_grid_of_crops_from_one_dataset(
     # parse dataset annotations to get z-slice information,
     # positions to include, and frames to exclude
     z_slice_bounds_per_position = get_z_slice_bounds_per_position(dataset_config, z_slice_offsets)
-    exclude_frames = get_exclude_frames(dataset_config)
 
     # build dataframe with zarr loading metadata
     df = build_zarr_image_loading_dataframe(
@@ -624,7 +648,6 @@ def evaluate_model_on_grid_of_crops_from_one_dataset(
         frame_step=frame_step,
         z_slice_bounds_per_position=z_slice_bounds_per_position,
         only_include_positions=only_include_positions,
-        exclude_frames=exclude_frames,
     )
 
     # save the dataframe to a parquet file
@@ -710,14 +733,12 @@ def evaluate_model_on_tracked_crops_from_one_dataset(
     # parse dataset annotations to get z-slice information,
     # positions to include, and frames to exclude
     z_slice_bounds_per_position = get_z_slice_bounds_per_position(dataset_config, z_slice_offsets)
-    exclude_frames = get_exclude_frames(dataset_config)
 
     data_path = preprocess_tracking_manifest_for_model_eval(
         dataset_config,
         save_path,
         z_slice_bounds_per_position=z_slice_bounds_per_position,
         only_include_positions=only_include_positions,
-        exclude_frames=exclude_frames,
     )
 
     # use timestamp to get unique file name for FMS upload later

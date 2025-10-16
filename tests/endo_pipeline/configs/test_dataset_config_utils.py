@@ -25,6 +25,7 @@ from endo_pipeline.configs.dataset_config_utils import (
     get_frame_before_flow_change,
     get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
+    get_unannotated_positions,
     get_unannotated_timepoints_for_position,
     get_zarr_file_for_position,
     make_filtered_dataset_collection,
@@ -226,6 +227,24 @@ def test_get_annotated_positions_with_annotations(dataset, annotations, position
     dataset.position_annotations = {PositionAnnotation.DUST_ARTIFACT: [1, 2, 3]}
 
     assert get_annotated_positions(dataset, annotations) == positions
+
+
+def test_get_annotated_positions_no_annotations(dataset):
+    assert get_annotated_positions(dataset, None) == []
+
+
+@pytest.mark.parametrize(
+    "annotations,positions",
+    [(None, [5]), ([PositionAnnotation.DUST_ARTIFACT], [5]), ([], [1, 3, 5])],
+)
+def test_get_unannotated_positions_with_annotations(dataset, annotations, positions):
+    dataset.position_annotations = {PositionAnnotation.DUST_ARTIFACT: [1, 2, 3]}
+
+    assert get_unannotated_positions(dataset, annotations) == positions
+
+
+def test_get_unannotated_positions_no_annotations(dataset):
+    assert get_unannotated_positions(dataset, None) == dataset.zarr_positions
 
 
 @pytest.mark.parametrize(
