@@ -69,7 +69,7 @@ def fit_pca(
     for location in locations:
         dataframe = load_dataframe(location)
         if filter_dataframe:
-            annotations_to_ignore = []
+            annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
             if include_cell_piling:
                 annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
             timepoint_annotations = get_subset_of_timepoint_annotations(

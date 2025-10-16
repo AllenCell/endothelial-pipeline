@@ -96,10 +96,13 @@ def main(
                 get_subset_of_timepoint_annotations,
             )
 
-            # if include cell piling, only exclude timepoints with other
-            # annotations
+            # if include cell piling, only exclude timepoints with the
+            # technical annotations
             annotations = get_subset_of_timepoint_annotations(
-                annotations_to_ignore=[TimepointAnnotation.CELL_PILING]
+                annotations_to_ignore=[
+                    TimepointAnnotation.CELL_PILING,
+                    TimepointAnnotation.NOT_STEADY_STATE,
+                ]
             )
         only_include_frames = get_all_unannotated_timepoints(
             dataset_config, annotations=annotations
