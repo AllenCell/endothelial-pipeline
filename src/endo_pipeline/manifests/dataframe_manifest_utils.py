@@ -48,7 +48,7 @@ def get_dataframe_manifest_with_parameters(
 
     # Iterate through all dataframe manifests to find ones with matching
     # workflow name and containing all given parameters.
-    for manifest_file in get_dataframe_manifest_dir().glob("*.yaml"):
+    for manifest_file in get_dataframe_manifest_dir().iterdir():
         manifest = load_dataframe_manifest(manifest_file.stem)
 
         if manifest.workflow != workflow:
