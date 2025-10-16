@@ -12,7 +12,7 @@ from endo_pipeline.configs import (
 )
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
-from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES, DIFFAE_PC_COLUMN_NAMES
+from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES, DIFFAE_PC_COLUMN_NAMES, ColumnName
 
 from .dataframe_preprocessing import filter_dataframe_by_annotations
 
@@ -194,7 +194,7 @@ def get_pca_loadings_as_df(
     loading_matrix_df = pd.DataFrame(loading_matrix, columns=pc_col_names, index=feat_col_names)
     if df_format == "long":
         loading_matrix_df = loading_matrix_df.reset_index().melt(
-            id_vars="index", var_name="pc_", value_name="loading_value"
+            id_vars="index", var_name=ColumnName.PCA_FEATURE_PREFIX, value_name="loading_value"
         )
         loading_matrix_df = loading_matrix_df.rename(columns={"index": "feature"})
     elif df_format == "wide":
