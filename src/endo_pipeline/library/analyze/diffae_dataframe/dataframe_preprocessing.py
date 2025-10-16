@@ -11,6 +11,7 @@ from endo_pipeline.configs import (
     get_all_unannotated_timepoints,
     get_subset_of_timepoint_annotations,
     get_unannotated_positions,
+    get_zarr_file_for_position,
     load_dataset_config,
 )
 from endo_pipeline.io import load_dataframe
@@ -37,9 +38,9 @@ def filter_dataframe_by_annotations(
     dataframe
         Dataframe of features for one dataset.
     position_annotations
-        Optional, specific list of position annotations to filter by.
+    List of position annotations to remove. Use None to remove all annotated positions.
     timepoint_annotations
-        Optional, specific list of timepoint annotations to filter by.
+        List of timepoint annotations to remove. Use None to remove all annotated timepoints.
 
     Returns
     -------
@@ -168,16 +169,18 @@ def add_zarr_path(df: pd.DataFrame) -> pd.DataFrame:
     required_columns = [ColumnName.DATASET, ColumnName.POSITION]
     check_required_columns_in_dataframe(df, required_columns)
 
+    # temporary until we update how we store position
+    # for now, the position column is a string 'P[int]'
+    df["position_as_int"] = df[ColumnName.POSITION].apply(lambda x: int(x[1:]))
+
     # load config for the dataset
-    ds_config = load_dataset_config(df[ColumnName.DATASET].unique()[0])
-    # get zarr path for the dataset from config
-    zarr_path = ds_config.zarr_path
-    # get last part of the zarr path (date_fmsid)
-    name_fmsid = zarr_path.split("/")[-1]
-    # add zarr path for each FOV as column
-    df[ColumnName.ZARR_PATH] = df[ColumnName.POSITION].apply(
-        lambda x: f"{zarr_path}/{name_fmsid}_{x}.ome.zarr"
+    dataset_config = load_dataset_config(df[ColumnName.DATASET].unique()[0])
+    # get zarr path for each position
+    df[ColumnName.ZARR_PATH] = df["position_as_int"].apply(
+        lambda x: get_zarr_file_for_position(dataset_config, x)
     )
+
+    df = df.drop(columns=["position_as_int"])  # drop temporary column
     return df
 
 
