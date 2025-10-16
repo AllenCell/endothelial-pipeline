@@ -208,12 +208,15 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
     """
 This method is deprecated and will be removed. The recommended alternative is:
 
+    from endo_pipeline.configs import TimepointAnnotation
     from endo_pipeline.library.analyze.diffae_dataframe import (
-        remove_annotated_timepoints_and_positions,
+        filter_dataframe_by_annotations,
     )
 
-    df_valid = remove_annotated_timepoints_and_positions(
-        df, include_cell_piling=False, include_not_steady_state=False
+    timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE, TimepointAnnotation.CELL_PILING]
+
+    df_valid = filter_dataframe_by_annotations(
+        df, timepoint_annotations=timepoint_annotations
     )
 """
 )
