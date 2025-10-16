@@ -60,7 +60,9 @@ def main(
 
     from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import (
+        TimepointAnnotation,
         get_all_unannotated_timepoints,
+        get_subset_of_timepoint_annotations,
         get_unannotated_positions,
         load_dataset_collection_config,
         load_dataset_config,
@@ -89,21 +91,17 @@ def main(
         # get frames to include based on annotations
         # either including or excluding cell piling timepoints
         # based on the include_cell_piling argument
-        annotations = None  # default is to remove all annotations
+        # default is to remove all annotations except NOT_STEADY_STATE
+        annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
         if include_cell_piling:
-            from endo_pipeline.configs import (
-                TimepointAnnotation,
-                get_subset_of_timepoint_annotations,
-            )
-
-            # if include cell piling, only exclude timepoints with the
-            # technical annotations
-            annotations = get_subset_of_timepoint_annotations(
-                annotations_to_ignore=[
-                    TimepointAnnotation.CELL_PILING,
-                    TimepointAnnotation.NOT_STEADY_STATE,
-                ]
-            )
+            # if including cell piling, then ignore that annotation as well
+            annotations_to_ignore = annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
+        # get list of annotations to filter out
+        annotations = get_subset_of_timepoint_annotations(
+            annotations_to_ignore=annotations_to_ignore
+        )
+        # get list of timepoints that do not have any of the annotations
+        # for each position (dict of position -> list of timepoints)
         only_include_frames = get_all_unannotated_timepoints(
             dataset_config, annotations=annotations
         )
