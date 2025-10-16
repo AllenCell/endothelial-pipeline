@@ -180,13 +180,16 @@ def _get_histogram_by_component_one_dataset(
         (num_feats, num_bins, num_frames)
     )  # histogram values for each component as a function of time
 
+    # sort by timepoint
+    df = df.sort_values(by=ColumnName.TIMEPOINT).reset_index(drop=True)
     for t, df_frame in df.groupby(ColumnName.TIMEPOINT):
         # loop over latent components
         for dim in range(num_feats):
             feats = df_frame[feat_cols[dim]].to_numpy()
             # compute histogram of feature data along each component
+            t_index = df[ColumnName.TIMEPOINT].unique().tolist().index(t)
             hist = np.histogram(feats, bins=bin_edges[dim], density=True)[0]
-            hist_array[dim, :, t] = hist
+            hist_array[dim, :, t_index] = hist
 
             # update the dataframe with column of what bin
             # each crop at frame number t is in

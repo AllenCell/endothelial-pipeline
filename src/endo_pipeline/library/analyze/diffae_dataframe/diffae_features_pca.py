@@ -9,6 +9,7 @@ from endo_pipeline.configs import (
     TimepointAnnotation,
     get_datasets_in_collection,
     get_subset_of_timepoint_annotations,
+    load_dataset_config,
 )
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
@@ -66,7 +67,7 @@ def fit_pca(
     # Filtering does or doesn't remove cell piling timepoints based on
     # the input include_cell_piling.
     dataframe_list = []
-    for location in locations:
+    for location, dataset_name in zip(locations, dataset_names, strict=True):
         dataframe = load_dataframe(location)
         if filter_dataframe:
             annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
@@ -76,7 +77,9 @@ def fit_pca(
                 annotations_to_ignore=annotations_to_ignore
             )
             dataframe_filtered = filter_dataframe_by_annotations(
-                dataframe, timepoint_annotations=timepoint_annotations
+                dataframe,
+                load_dataset_config(dataset_name),
+                timepoint_annotations=timepoint_annotations,
             )
         else:
             dataframe_filtered = dataframe

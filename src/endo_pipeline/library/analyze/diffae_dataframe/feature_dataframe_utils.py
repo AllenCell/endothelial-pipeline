@@ -209,7 +209,7 @@ This method is deprecated and will be removed. The recommended alternative is:
     timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE, TimepointAnnotation.CELL_PILING]
 
     df_valid = filter_dataframe_by_annotations(
-        df, timepoint_annotations=timepoint_annotations
+        df, dataset_config, timepoint_annotations=timepoint_annotations
     )
 """
 )

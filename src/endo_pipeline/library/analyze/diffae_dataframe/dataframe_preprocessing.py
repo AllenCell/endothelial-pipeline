@@ -6,6 +6,7 @@ import pandas as pd
 from sklearn.decomposition import PCA
 
 from endo_pipeline.configs import (
+    DatasetConfig,
     PositionAnnotation,
     TimepointAnnotation,
     get_all_unannotated_timepoints,
@@ -25,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 def filter_dataframe_by_annotations(
     dataframe: pd.DataFrame,
+    dataset_config: DatasetConfig,
     position_annotations: list[PositionAnnotation] | None = None,
     timepoint_annotations: list[TimepointAnnotation] | None = None,
 ) -> pd.DataFrame:
@@ -37,6 +39,8 @@ def filter_dataframe_by_annotations(
     ----------
     dataframe
         Dataframe of features for one dataset.
+    dataset_config
+        Dataset config for the dataset.
     position_annotations
         List of position annotations to remove. Use None to remove all annotated positions.
     timepoint_annotations
@@ -56,10 +60,10 @@ def filter_dataframe_by_annotations(
         logger.error("Dataframe must be restricted to one dataset only.")
         raise ValueError("Dataframe must be restricted to one dataset only.")
 
-    dataset_name = dataframe[ColumnName.DATASET].unique()[0]
+    if dataframe[ColumnName.DATASET].unique()[0] != dataset_config.name:
+        logger.error("Dataset name in dataframe does not match dataset name in dataset config.")
+        raise ValueError("Dataset name in dataframe does not match dataset name in dataset config.")
 
-    # load dataset config to get annotations
-    dataset_config = load_dataset_config(dataset_name)
     # get positions and timepoints to include based on annotations
     only_include_positions = get_unannotated_positions(dataset_config, position_annotations)
     only_include_positions_str = [f"P{pos}" for pos in only_include_positions]
@@ -267,6 +271,7 @@ def get_dataframe_for_dynamics_workflows(
         )
         df_filtered = filter_dataframe_by_annotations(
             df,
+            load_dataset_config(dataset_name),
             timepoint_annotations=timepoint_annotations,
         )
     else:
