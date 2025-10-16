@@ -1333,6 +1333,9 @@ pydantic-zarr==0.7.0 \
     --hash=sha256:8fafb481e7dfa77b3202b91937b777b266387d03e9f6dad5b7eaeca3ae4b5baf \
     --hash=sha256:fdb0129722d5a3454f5107de56ec8370a7dc8ccb3fa34f2729632ed4f8da3acd
     # via ome-zarr-models
+pyfakefs==5.10.0 \
+    --hash=sha256:105a97076aed079589546a8c2bea68e771a19e7a8ee335a30936aa03d98ab4fe \
+    --hash=sha256:68b33b8d9338ed332ad0c809417b875559c2e8ac10972fce248cb19b89d325fa
 pygments==2.19.1 \
     --hash=sha256:61c16d2a8576dc0649d9f39e089b5f02bcd27fba10d8fb4dcc28173f7a45151f \
     --hash=sha256:9ea1544ad55cecf4b8242fab6dd35a93bbce657034b0611ee383099054ab6d8c
