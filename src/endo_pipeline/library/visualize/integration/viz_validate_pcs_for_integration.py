@@ -29,7 +29,8 @@ def get_common_plot_range(
     lagged_live_features : pd.DataFrame
         Dataframe containing time-lagged PC values for live data
     truncated_live_features : pd.DataFrame
-        Dataframe containing original live data PC values truncated to remove the rows that were shifted out by the lag
+        Dataframe containing original live data PC values truncated to remove the rows that were
+        shifted out by the lag
     pc : int
         PC to analyze
 
@@ -58,7 +59,7 @@ def plot_paired_fixed_live_validation_features(
     pc: int,
     raw_data: tuple[ArrayLike, ArrayLike],
     paired_validation_features: tuple[Any, Any, Any, Any, Any, Ellipse],
-    color_list: list[str] = ["#5F9ED1", "#FF800E", "#C85200"],
+    color_list: list[str],
     lagged_live_validation: bool = False,
     axmin: float | None = None,
     axmax: float | None = None,
@@ -78,7 +79,7 @@ def plot_paired_fixed_live_validation_features(
         Live (first element) and fixed (second element) PC data
     paired_validation_features : tuple
         Set of all validation needed for plotting
-    color_list : list
+    color_list : None
         List of hex codes for three colors used in plots
     lagged_live_validation : bool
         Flag to plot time-lagged live validation features in place of fixed feautures
@@ -87,6 +88,9 @@ def plot_paired_fixed_live_validation_features(
     axmax: float | None
         Maximum value for x and y axes. If None, it is calculated from the raw data.
     """
+
+    # Set list of colors to use in plots if not provided
+    color_list = ["#5F9ED1", "#FF800E", "#C85200"]
 
     # Get raw fixed (y) and live (x) PC data and its lower and upper limits
     x, y = raw_data
