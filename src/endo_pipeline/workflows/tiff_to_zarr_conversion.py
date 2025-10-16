@@ -94,6 +94,10 @@ def process_row(row):
         channel_name=row["channel_name"],
     )
 
+    # check that the zarr has expected timepoints
+    img = BioImage(row["save_zarr_path"])
+    assert img.shape[0] == total_T, f"Expected {total_T} timepoints, got {img.shape[0]}"
+
 
 # ______________________________ SCRIPT______________________________________________
 
