@@ -38,7 +38,7 @@ def filter_dataframe_by_annotations(
     dataframe
         Dataframe of features for one dataset.
     position_annotations
-    List of position annotations to remove. Use None to remove all annotated positions.
+        List of position annotations to remove. Use None to remove all annotated positions.
     timepoint_annotations
         List of timepoint annotations to remove. Use None to remove all annotated timepoints.
 
