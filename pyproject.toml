@@ -209,7 +209,6 @@ ignore = [
     "C417", # Intending to unignore: unnecessary-map
     "C901", # Intending to unignore: complex-structure
     "D101", # Intending to unignore: undocumented-public-class
-    "UP007", # Intending to unignore: non-pep604-annotation-union
 ]
 
 [tool.ruff.lint.mccabe]
