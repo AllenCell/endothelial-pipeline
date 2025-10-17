@@ -39,17 +39,18 @@ def get_common_plot_range(
     x_min, x_max : tuple[float, float]
         Common plot ranges for fixed and live data for the specified PC
     """
+
     x_min = min(
-        fixed_features[f"pc{pc}"].min(),
-        live_features[f"pc{pc}"].min(),
-        lagged_live_features[f"pc{pc}"].min(),
-        truncated_live_features[f"pc{pc}"].min(),
+        fixed_features[f"pc_{pc}"].min(),
+        live_features[f"pc_{pc}"].min(),
+        lagged_live_features[f"pc_{pc}"].min(),
+        truncated_live_features[f"pc_{pc}"].min(),
     )
     x_max = max(
-        fixed_features[f"pc{pc}"].max(),
-        live_features[f"pc{pc}"].max(),
-        lagged_live_features[f"pc{pc}"].max(),
-        truncated_live_features[f"pc{pc}"].max(),
+        fixed_features[f"pc_{pc}"].max(),
+        live_features[f"pc_{pc}"].max(),
+        lagged_live_features[f"pc_{pc}"].max(),
+        truncated_live_features[f"pc_{pc}"].max(),
     )
     return x_min, x_max
 
