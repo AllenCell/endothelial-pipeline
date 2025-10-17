@@ -59,7 +59,7 @@ def plot_paired_fixed_live_validation_features(
     pc: int,
     raw_data: tuple[ArrayLike, ArrayLike],
     paired_validation_features: tuple[Any, Any, Any, Any, Any, Ellipse],
-    color_list: list[str],
+    color_list: list[str] | None = None,
     lagged_live_validation: bool = False,
     axmin: float | None = None,
     axmax: float | None = None,

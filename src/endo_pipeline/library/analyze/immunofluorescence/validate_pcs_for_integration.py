@@ -14,6 +14,7 @@ from endo_pipeline.library.analyze.diffae_dataframe import (
 )
 from endo_pipeline.library.model.eval_model import generate_overrides_for_model_eval
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.settings import ColumnName
 
 
 def evaluate_model_paired_fixed_live(
