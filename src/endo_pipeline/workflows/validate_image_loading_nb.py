@@ -31,10 +31,7 @@ z_slice_offsets = Z_SLICE_OFFSETS
 z_slice_bounds_per_position = get_z_slice_bounds_per_position(dataset_config, z_slice_offsets)
 only_include_positions = get_unannotated_positions(dataset_config)
 include_cell_piling = False
-include_frames_by_position = get_all_unannotated_timepoints(
-    dataset_config,
-    [TimepointAnnotation.CELL_PILING],
-)
+include_frames_by_position = get_all_unannotated_timepoints(dataset_config)
 
 # %%
 # get list of all positions with annotations for artifact detection
