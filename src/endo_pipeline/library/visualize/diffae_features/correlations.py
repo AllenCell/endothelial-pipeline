@@ -9,7 +9,7 @@ from matplotlib.colors import TABLEAU_COLORS
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe import get_dataset_descriptions
+from endo_pipeline.library.analyze.diffae_dataframe_utils import get_dataset_descriptions
 from endo_pipeline.library.analyze.numerics import (
     double_exponential_decay,
     exponential_decay,

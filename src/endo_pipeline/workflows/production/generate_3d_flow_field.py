@@ -33,7 +33,7 @@ def main(
 
     from endo_pipeline.configs import dynamics_io, get_datasets_in_collection
     from endo_pipeline.io import get_output_path, save_plot_to_path
-    from endo_pipeline.library.analyze.diffae_dataframe import fit_pca
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
     from endo_pipeline.library.analyze.diffae_features import get_and_analyze_ddff
     from endo_pipeline.library.visualize.diffae_features import feature_viz
     from endo_pipeline.manifests import (

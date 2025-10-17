@@ -22,7 +22,7 @@ from scipy import stats as spstats
 from scipy.cluster.hierarchy import linkage
 
 from endo_pipeline.io.output import save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe.feature_dataframe_utils import get_valid_subset
+from endo_pipeline.library.analyze.diffae_dataframe_utils import get_valid_subset
 from endo_pipeline.library.analyze.integration.track_integration import (
     get_preprocessed_manifests_and_km_bounds,
 )
