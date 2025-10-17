@@ -1,3 +1,7 @@
+from typing import Annotated
+
+from cyclopts import Parameter
+
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -10,6 +14,7 @@ TAGS = ["diffae_image_generation", "pc_interpretation"]
 def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
     sigma: float = 3.0,
     n_steps: int = 10,
@@ -26,6 +31,8 @@ def main(
         Name of the model manifest containing the specific run to load.
     run_name
         Run name corresponding to the model to load. If None, uses the most recent run.
+    include_cell_piling
+        True to include timepoints with cell piling to fit the PCA model, False to exclude them.
     num_pcs
         Number of principal components to use for the
         latent walk.
@@ -79,21 +86,30 @@ def main(
     model = load_model(model_manifest.locations[run_name_])
 
     # set up output directory
-    save_dir = get_output_path("models", model_manifest_name, run_name_)
+    save_dir = get_output_path(
+        "latent_walks",
+        model_manifest_name,
+        run_name_,
+        "include_cell_piling" if include_cell_piling else "exclude_cell_piling",
+    )
 
     # load model configuration and reference dataset manifests
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
         model_manifest, run_name_, crop_pattern="grid"
     )
-    manifest = load_dataframe_manifest(dataframe_manifest_name)
+    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     dataset_names = get_datasets_in_collection("pca_reference")
 
     if use_pcs:
         # perform latent walk along the principal components
-        pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=num_pcs)
+        pca = fit_pca(
+            dataframe_manifest_name=dataframe_manifest_name,
+            include_cell_piling=include_cell_piling,
+            num_pcs=num_pcs,
+        )
         dataframe = pd.concat(
             [
-                get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
+                get_dataframe_for_dynamics_workflows(dataset_name, dataframe_manifest, pca)
                 for dataset_name in dataset_names
             ]
         )
@@ -104,7 +120,12 @@ def main(
         # perform latent walk along the raw latent dimensions
         dataframe = pd.concat(
             [
-                get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca=None)
+                get_dataframe_for_dynamics_workflows(
+                    dataset_name,
+                    dataframe_manifest,
+                    pca=None,
+                    include_cell_piling=include_cell_piling,
+                )
                 for dataset_name in dataset_names
             ]
         )

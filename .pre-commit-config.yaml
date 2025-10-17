@@ -29,3 +29,14 @@ repos:
     hooks:
       - id: uv-export
         args: ["--frozen", "--output-file=requirements.txt"]
+
+  - repo: local
+    hooks:
+      # Run the linter.
+      - id: ruff-check
+        name: ruff check
+        # Use uv to manage the ruff version
+        language: system
+        # Run on python files only
+        types: [python]
+        entry: "uv run ruff check --fix"

@@ -2,10 +2,33 @@ import logging
 
 import numpy as np
 import pandas as pd
+from deprecated import deprecated  # type:ignore[import-untyped]
 
 from endo_pipeline.configs import DatasetConfig, get_frame_after_flow_change, load_dataset_config
+from endo_pipeline.settings import ColumnName
 
 logger = logging.getLogger(__name__)
+
+
+def check_required_columns_in_dataframe(
+    df: pd.DataFrame,
+    required_columns: list[str],
+) -> None:
+    """
+    Check that required columns are present in a given dataframe.
+
+    Parameters
+    ----------
+    df
+        DataFrame to check.
+    required_columns
+        List of required column names to check for.
+    """
+
+    for col in required_columns:
+        if col not in df.columns:
+            logger.error("DataFrame must contain column [ %s ]", col)
+            raise ValueError(f"DataFrame must contain column [ {col} ]")
 
 
 def get_dataset_descriptions(
@@ -85,6 +108,8 @@ def split_dataset_by_flow(
     :
         List of shear stress values for each flow condition.
     """
+    # check that required columns are present
+    check_required_columns_in_dataframe(df_proj, [ColumnName.TIMEPOINT])
 
     # get flow condition information from dataset config
     flow_conditions = dataset_config.flow_conditions
@@ -105,8 +130,8 @@ def split_dataset_by_flow(
         logger.debug("Shear stress [ %s ] dyn/cm^2 after frame [ %s ]", second_shear, change_frame)
         # separate data into two dataframes based on
         # frame number where flow condition changes
-        data_flow1 = df_proj[df_proj["frame_number"] < change_frame].copy()
-        data_flow2 = df_proj[df_proj["frame_number"] >= change_frame].copy()
+        data_flow1 = df_proj[df_proj[ColumnName.TIMEPOINT] < change_frame].copy()
+        data_flow2 = df_proj[df_proj[ColumnName.TIMEPOINT] >= change_frame].copy()
         # return list of dataframes for each flow condition
         data_all = [data_flow1, data_flow2]
     # else, there is only one flow condition
@@ -128,7 +153,7 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
     The input dataframe should have columns for:
     - frame_number: timepoint of the crop
     - crop_index: unique index for each crop
-    - columns for each feature (e.g., pc0, pc1, pc2, ...) matching input ``pc_column_names``
+    - columns for each feature (e.g., pc_0, pc_1, pc_2, ...) matching input ``pc_column_names``
 
     Parameters
     ----------
@@ -144,15 +169,12 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
     :
         List of displacement vectors along each trajectory in feature space.
     """
-    if "frame_number" not in data.columns:
-        logger.error("Data must have the column [ frame_number ] to indicate timepoints.")
-        raise ValueError("Data must have the column [ frame_number ] to indicate timepoints.")
-    if "crop_index" not in data.columns:
-        logger.error("Data must have the column [ crop_index ] to indicate unique crops.")
-        raise ValueError("Data must have the column [ crop_index ] to indicate unique crops.")
+    # check that required columns are present
+    required_columns = [ColumnName.TIMEPOINT, ColumnName.CROP_INDEX, *pc_column_names]
+    check_required_columns_in_dataframe(data, required_columns)
 
     # get list of unique crop indices
-    crop_list = data["crop_index"].unique().tolist()
+    crop_list = data[ColumnName.CROP_INDEX].unique().tolist()
 
     # initialize lists for storing outputs
     traj_list = []
@@ -161,7 +183,7 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
     # loop over each crop in the dataset
     for crop in crop_list:
         # get data for each crop, sorted by time
-        data_crop = data[data["crop_index"] == crop].sort_values(by="frame_number")
+        data_crop = data[data[ColumnName.CROP_INDEX] == crop].sort_values(by=ColumnName.TIMEPOINT)
 
         # get displacement vectors and time differences for each crop
         d_traj = np.diff(data_crop[pc_column_names].values, axis=0)
@@ -175,64 +197,25 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
     return traj_list, d_traj_list
 
 
-def get_timepoints_for_plotting_pcs(
-    list_of_datasets: list[DatasetConfig],
-    restrict_no_flow: bool = True,
-    no_flow_name: str = "20241217_20X",
-) -> dict:
+@deprecated(
     """
-    Get timepoints for plotting scatter plot in PC space of data used to fit PCA.
+This method is deprecated and will be removed. The recommended alternative is:
 
-    Used to remove later block of timepoints from the 20241217_20X no flow dataset for
-    generating "simplified" scatter plots for the 2025 SAC presentation.
-    """
+    from endo_pipeline.configs import TimepointAnnotation
+    from endo_pipeline.library.analyze.diffae_dataframe import (
+        filter_dataframe_by_annotations,
+    )
 
-    # TODO: This method currently uses the dataset config "valid_timepoints" field
-    # which has been removed in favor of TimepointAnnotation.NOT_STEADY_STATE,
-    # and needs to be refactored.
+    timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE, TimepointAnnotation.CELL_PILING]
 
-    # initialize dictionary to store timepoints for each dataset
-    timepoints_to_use = {}
-
-    for dataset_config in list_of_datasets:
-        # get range of valid timepoints for each dataset
-        # loaded from dataset config
-        valid_timepoints = dataset_config.valid_timepoints
-
-        # if no valid timepoints are specified, use all timepoints
-        if valid_timepoints is None:
-            timepoints_list = [[0, dataset_config.flow_conditions[-1].stop]]
-
-        # otherwise, get the start and stop timepoints
-        else:
-            starts = valid_timepoints.start
-            stops = valid_timepoints.stop
-            timepoints_list = []
-            for start, stop in zip(starts, stops, strict=True):
-                # hard coded because this is the no-flow dataset that
-                # we are using for fitting the PCs, and specifically
-                # the one with the two sets of timepoints
-                # if this changes, we can updated this to not be
-                # hardcoded (i.e., check if shear stress is 0 in config)
-                if dataset_config.name == no_flow_name and restrict_no_flow:
-                    # restrict to only first set of no flow timepoints
-                    if start == 0:
-                        timepoints_list.append([start, stop])
-                    else:
-                        continue
-                else:
-                    timepoints_list.append([start, stop])
-        timepoints_to_use[dataset_config.name] = timepoints_list
-    return timepoints_to_use
-
-
+    df_valid = filter_dataframe_by_annotations(
+        df, dataset_config, timepoint_annotations=timepoint_annotations
+    )
+"""
+)
 def get_valid_subset(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
     """
     Filter dataframe to only include valid timepoints for a given dataset.
-
-    **Input dataframe**
-
-    The input dataframe should have a column "frame_number" indicating the timepoint of each crop.
 
     Parameters
     ----------
@@ -241,21 +224,6 @@ def get_valid_subset(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
     dataset_name
         Name of the given dataset.
     """
-
-    # TODO: This method currently uses the dataset config "valid_timepoints" field
-    # which has been removed in favor of TimepointAnnotation.NOT_STEADY_STATE,
-    # and needs to be refactored. As a starting point:
-
-    # dataset_config = load_dataset_config(dataset_name)
-
-    # exclude_timepoints = {
-    #     f"P{position}": get_annotated_timepoints_for_position(dataset_config, position)
-    #     for position in dataset_config.zarr_positions
-    # }
-
-    # return df.groupby(["position", "frame_number"]).filter(
-    #     lambda g: g.name[1] not in exclude_timepoints[g.name[0]]
-    # )
 
     df["valid"] = False
     # check that the necessary datasets are present for fitting PCA
@@ -273,6 +241,6 @@ def get_valid_subset(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
                 stop,
                 dataset_name,
             )
-        valid_subset = df.frame_number.isin(tps)
+        valid_subset = df[ColumnName.TIMEPOINT].isin(tps)
         df["valid"] = valid_subset
     return df[df.valid]

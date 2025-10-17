@@ -15,7 +15,7 @@ from endo_pipeline.library.process.image_processing import (
     max_proj,
     std_dev,
 )
-from endo_pipeline.settings import DIMENSION_ORDER
+from endo_pipeline.settings import DIMENSION_ORDER, ColumnName
 
 
 def get_zarr_img_for_dataset(
@@ -94,16 +94,16 @@ def get_crops_in_dataframe(df: pd.DataFrame) -> tuple[
     sorted_rows = []  # List to store rows in the same order as images
 
     # loop through each dataset in the dataframe
-    for dataset, df_dataset in df.groupby("dataset"):
+    for dataset, df_dataset in df.groupby(ColumnName.DATASET):
         dataset = cast(str, dataset)  # Ensure dataset is a string
         with tqdm(total=len(df_dataset), desc=f"Processing crops for {dataset}") as pbar:
             # Loop through each position available in the dataset
-            for position, df_pos in df_dataset.groupby("position"):
+            for position, df_pos in df_dataset.groupby(ColumnName.POSITION):
                 position = cast(str, position)  # Ensure position is a string
                 position_integer = int(position[-1])  # Extract the position number from the string
                 img = get_zarr_img_for_dataset(dataset, position_integer, resolution_level=1)
                 for _, row in df_pos.iterrows():
-                    timepoint = row["frame_number"]
+                    timepoint = row[ColumnName.TIMEPOINT]
                     crop = _get_crop(
                         img,
                         channel=None,
