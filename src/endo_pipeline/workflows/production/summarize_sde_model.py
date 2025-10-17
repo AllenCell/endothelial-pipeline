@@ -1,7 +1,13 @@
-TAGS = ["dynamical_systems", "diffae_features"]
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+
+TAGS = ["dynamical_systems", "diffae_features", "2d_feature_space"]
 
 
-def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10") -> None:
+def main(
+    dynamics_config_name: str = "default",
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+) -> None:
     """
     Summarize the the dynamical systems model fit to the crop-based Diff AE feature data.
 
@@ -9,8 +15,10 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     ----------
     dynamics_config_name
         Name of the configuration to load from dynamics_config.yaml.
-    model_name
-        Name of the model from which manifest data is loaded and analyzed.
+    model_manifest_name
+        Name of the model manifest containing the run to load features from.
+    run_name
+        Name of the specific model run to load featuref for. If None, uses the most recent run.
 
     Returns
     -------
@@ -27,6 +35,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
     from endo_pipeline.configs import dynamics_io, get_datasets_in_collection
     from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.analyze.diffae_dataframe import fit_pca
     from endo_pipeline.library.analyze.diffae_features import (
         load_sde_model,
         model_data_comparison,
@@ -34,25 +43,39 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
         run_fixed_point_analysis,
         run_gen_potential_analysis,
     )
-    from endo_pipeline.library.analyze.diffae_manifest import fit_pca
     from endo_pipeline.library.analyze.numerics import get_bins, vector_field_function
-    from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.manifests import (
+        get_feature_dataframe_manifest_name,
+        load_dataframe_manifest,
+        load_model_manifest,
+    )
 
     ################### Load configs from dynamics_config ###################
     dynamics_config = dynamics_io.load_dynamics_config(dynamics_config_name)
+
+    model_manifest = load_model_manifest(model_manifest_name)
+    dataframe_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
 
     # get output subdirectory for intermediate workflow outputs
     # (set in config file dynamics_config.yaml)
     # if directory does not exist, get_output_path function will create it
     savedir = get_output_path(
-        "stochastic_dynamics", dynamics_config_name, model_name, "outputs", include_timestamp=False
+        "stochastic_dynamics",
+        dynamics_config_name,
+        dataframe_manifest_name,
+        "outputs",
     )
 
     # get output subdirectory for figures that workflow outputs
     # (set in config file dynamics_config.yaml)
     # if directory does not exist, get_output_path function will create it
     fig_savedir = get_output_path(
-        "stochastic_dynamics", dynamics_config_name, model_name, "figs", include_timestamp=False
+        "stochastic_dynamics",
+        dynamics_config_name,
+        dataframe_manifest_name,
+        "figs",
     )
 
     # get inputs for analysis/visualization from config
@@ -108,12 +131,12 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     sde_model = [drift, diffusion]
 
     #################### Load model manifest data ###################
-    manifest = load_dataframe_manifest(model_name)
+    manifest = load_dataframe_manifest(dataframe_manifest_name)
     dataset_names = get_datasets_in_collection("timelapse", list(manifest.locations.keys()))
 
     ################### Model-data comparison ###################
     # run comparison of model and data for each dataset
-    pca = fit_pca(model_name=model_name)
+    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name)
     model_data_comparison(
         sde_model,
         dataset_names,

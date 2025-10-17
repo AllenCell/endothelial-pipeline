@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 from colorizer_data import FeatureInfo
 
-from endo_pipeline.library.analyze.diffae_manifest import fit_pca, project_manifest_to_pcs
+from endo_pipeline.library.analyze.diffae_dataframe import fit_pca, project_features_to_pcs
 from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     add_backdrop_fname_to_manifest,
 )
@@ -79,7 +79,7 @@ def add_intensity_mean_pcs(df: pd.DataFrame) -> pd.DataFrame:
     df_cleaned = df.dropna(subset=feat_cols)
 
     pca = fit_pca()
-    df_projected = project_manifest_to_pcs(
+    df_projected = project_features_to_pcs(
         df_cleaned, pca, overwrite_feature_columns=False, feat_cols=feat_cols
     )
 
@@ -96,8 +96,8 @@ def add_dynamic_features_with_filtering(df: pd.DataFrame) -> pd.DataFrame:
     For TFE we need to preserve the rows that are filtered out, so we filter them
     and then calculate the features and then merge them back in.
     """
-    df_filtered_rows = df[df["filter_global"]]
-    df_keep = df[~df["filter_global"]]
+    df_filtered_rows = df[~df["is_included"]]
+    df_keep = df[df["is_included"]]
     df_calc = calculate_derived_data_dynamics_dependent(df_keep)
 
     df_result = pd.concat([df_calc, df_filtered_rows], ignore_index=True)

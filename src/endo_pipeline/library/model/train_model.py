@@ -1,141 +1,131 @@
 import logging
-import os
+import typing
 from pathlib import Path
 from typing import Literal
 
 import pandas as pd
 from cyto_dl.api import CytoDLModel
-from omegaconf import DictConfig, ListConfig
+
+if typing.TYPE_CHECKING:
+    from omegaconf import DictConfig, ListConfig
 
 from endo_pipeline.configs import DatasetConfig, load_dataset_collection_config
 from endo_pipeline.io import (
     build_fms_annotations,
-    get_local_path_from_fmsid,
     get_output_path,
     load_dataframe,
     upload_file_to_fms,
 )
+from endo_pipeline.library.model.model_config_overrides import ModelConfigOverride
 from endo_pipeline.manifests import DataframeLocation, DataframeManifest, save_dataframe_manifest
 
 logger = logging.getLogger(__name__)
 
 
-def _generate_overrides_for_model_training(
-    model_name: str,
-    crop_size: int,
-    train_dataframe_path: str,
-    val_dataframe_path: str,
-    max_num_epochs: int = 1000,
-    log_every_n_steps: int = 50,
-    cache_rate: float = 0.01,
-) -> dict:
+def initialize_diffae_model(
+    template_training_config,
+    overrides: ModelConfigOverride | None = None,
+) -> "CytoDLModel":
     """
-    Generate overrides for the DiffAE model training configuration.
+    Initialize a DiffAE model for training, applying overrides and configuration.
 
     Parameters
     ----------
-    model_name
-        The name of the model to train.
-    crop_size
-        The number of pixels in each dimension of the image crop to use for training.
-        That is, the cropped image will be square with size (crop_size px, crop_size px).
-    train_dataframe_path
-        The path to the training dataset (image loading metadata) .parquet file.
-    val_dataframe_path
-        The path to the validation dataset (image loading metadata) .parquet file.
-    max_num_epochs
-        The maximum number of epochs to train the model for.
-    log_every_n_steps
-        The interval at which to log training metrics.
-    cache_rate
-        The fraction of the dataset to cache in memory for training.
+    template_training_config
+        The loaded training configuration to use as the base.
+    overrides
+        Optionally, a ModelConfigOverride object (read from code, CLI, etc).
+        If None, uses values from config as much as possible.
 
     Returns
     -------
-    :
-        A dictionary of configuration overrides for the DiffAE model training.
+    CytoDLModel
+        An initialized ``CytoDLModel`` for training the DiffAE model.
     """
-    # create output directories if they do not exist
-    training_run_checkpoint_path = get_output_path("models", model_name, "train", "checkpoints")
-    training_run_log_path = get_output_path("models", model_name, "train", "logs")
 
-    overrides = {
-        # set path to train and val datasets
-        "data.train_dataloaders.dataset.dataframe_path": train_dataframe_path,
-        "data.train_dataloaders.dataset.cache_rate": cache_rate,
-        "data.predict_dataloaders.dataset.dataframe_path": val_dataframe_path,
-        "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path,
-        "data.val_dataloaders.dataset.cache_rate": cache_rate,
-        # get repo root directory and current working directory
-        "paths.root_dir": Path(__file__).resolve().parents[3].as_posix(),
-        "paths.work_dir": os.getcwd(),
-        # save outputs to user-specified directory
-        "paths.output_dir": training_run_log_path.as_posix(),
-        "paths.log_dir": "${paths.output_dir}",
-        "callbacks.model_checkpoint.dirpath": training_run_checkpoint_path.as_posix(),
-        # update run name
-        "run_name": model_name,
-        # set crop size from input via model.image_shape,
-        # the rest are populated by interpolation
-        "model.image_shape": [1, crop_size, crop_size],
-        # turn off config printing, will get saved locally instead
-        "extras.print_config": False,
-        # set the max number of epochs for training and logging interval
-        "trainer.max_epochs": max_num_epochs,
-        "trainer.log_every_n_steps": log_every_n_steps,
-    }
-    return overrides
+    cytodl_model = CytoDLModel()
+    cytodl_model.load_config_from_dict(template_training_config)
+    if overrides is not None:
+        cytodl_model.override_config(overrides.to_dict())
+
+    return cytodl_model
 
 
 def _generate_overrides_for_finetuning(
-    finetuned_model_name: str,
+    finetuned_model_manifest_name: str,
+    finetuned_run_name: str,
     train_dataframe_path: str,
     val_dataframe_path: str,
-    ckpt_path: Path,
     max_num_epochs: int = 100,
     log_every_n_steps: int = 50,
+    cache_rate: float = 1.0,
+    replace_rate: float = 0.1,
+    num_gpus: int | None = None,
 ) -> dict:
     """
     Generate overrides for finetuning a DiffAE model.
 
     Parameters
     ----------
-    finetuned_model_name
-        The name of the finetuned model to save.
+    finetuned_model_manifest_name
+        The name of the finetuned model manifest to which this training session belongs.
+    finetuned_run_name
+        The MLFlow run name for the finetuned model training session.
     train_dataframe_path
         The path to the image loading metadata file for the training dataset.
     val_dataframe_path
         The path to the image loading metadata file for the validation dataset.
-    ckpt_path
-        The path to the DiffAE checkpoint to finetune.
     max_num_epochs
         The maximum number of epochs to train the model for.
     log_every_n_steps
         The interval at which to log training metrics.
+    cache_rate
+        The fraction of the dataset to cache in memory for training.
+    replace_rate
+        The replace rate for cached data.
+    num_gpus
+        Number of GPUs to use with the workflow.
+
     """
     # create output directories if they do not exist
     training_run_output_path = get_output_path(
-        "finetune_paired_dataset",
-        finetuned_model_name,
+        "models",
+        finetuned_model_manifest_name,
+        finetuned_run_name,
     )
     training_run_checkpoint_path = get_output_path(
-        "finetune_paired_dataset",
-        finetuned_model_name,
+        "models",
+        finetuned_model_manifest_name,
+        finetuned_run_name,
         "checkpoints",
     )
     training_run_log_path = get_output_path(
-        "finetune_paired_dataset",
-        finetuned_model_name,
+        "models",
+        finetuned_model_manifest_name,
+        finetuned_run_name,
         "logs",
     )
+
+    # Calculate effective epochs
+    multiplier = (1 - cache_rate) / (cache_rate * replace_rate) + 1
+    effective_max_epochs = int(max_num_epochs * multiplier)
+
+    # Calculate effective epochs
+    multiplier = (1 - cache_rate) / (cache_rate * replace_rate) + 1
+    effective_min_epochs = int(1000 * multiplier)
+    effective_max_epochs = int(max_num_epochs * multiplier)
+    effective_save_images_epochs = int(10 * multiplier)
 
     overrides = {
         # point to already projected paired dataset
         "data.train_dataloaders.dataset.dataframe_path": train_dataframe_path,
+        "data.train_dataloaders.dataset.cache_rate": cache_rate,
+        "data.train_dataloaders.dataset.replace_rate": replace_rate,
         "data.predict_dataloaders.dataset.dataframe_path": val_dataframe_path,
         "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path,
-        # load diffae checkpoint to finetune
-        "checkpoint.ckpt_path": ckpt_path.as_posix(),
+        "data.val_dataloaders.dataset.cache_rate": cache_rate,
+        "data.val_dataloaders.dataset.replace_rate": replace_rate,
+        # Finetuneing-specific overrides
         "checkpoint.weights_only": True,
         "checkpoint.strict": False,
         # save to user-specified directory
@@ -147,77 +137,27 @@ def _generate_overrides_for_finetuning(
         "train": True,
         # turn off config printing, will get saved locally instead
         "extras.print_config": False,
-        # set the max number of epochs for training
-        "trainer.max_epochs": max_num_epochs,
+        # override the effective epochs calculations
+        "model.save_images_every_n_epochs": effective_save_images_epochs,
+        "trainer.min_epochs": effective_min_epochs,
+        "trainer.max_epochs": effective_max_epochs,
         "trainer.log_every_n_steps": log_every_n_steps,
-        # updated the run name
-        "run_name": finetuned_model_name,
+        # update the experiment name and run name
+        "experiment_name": finetuned_model_manifest_name,
+        "run_name": finetuned_run_name,
     }
 
+    if num_gpus:
+        overrides["trainer.accelerator"] = "gpu"
+        overrides["trainer.devices"] = num_gpus
+        if num_gpus == 1:
+            overrides["trainer.strategy"] = "auto"
+    else:
+        overrides["trainer.accelerator"] = "cpu"
+        overrides["trainer.devices"] = 1
+        overrides["trainer.strategy"] = "auto"
+
     return overrides
-
-
-def initialize_diffae_model(
-    template_training_config: DictConfig | ListConfig,
-    crop_size: int,
-    model_name: str,
-    train_dataframe_path: str,
-    val_dataframe_path: str,
-    max_num_epochs: int = 1000,
-    log_every_n_steps: int = 50,
-    cache_rate: float = 0.01,
-) -> CytoDLModel:
-    """
-    Initialize a DiffAE model for training.
-
-    Parameters
-    ----------
-    template_training_config
-        The template training configuration to use.
-    crop_size
-        The pixel size of the square image crop along one dimension to use in training.
-    model_name
-        The name of the model to train.
-    train_dataframe_path
-        The path to the training dataset (image loading metadata) .parquet file.
-    val_dataframe_path
-        The path to the validation dataset (image loading metadata) .parquet file.
-    max_num_epochs
-        The maximum number of epochs to train the model for.
-    log_every_n_steps
-        The interval at which to log training metrics.
-    cache_rate
-        The fraction of the dataset to cache in memory for training.
-
-    Returns
-    -------
-    :
-        An initialized ``CytoDLModel`` for training the DiffAE model.
-    """
-
-    if log_every_n_steps > max_num_epochs:
-        logger.error("Logging interval must be less than or equal to the maximum number of epochs.")
-        raise ValueError(
-            "Logging interval must be less than or equal to the maximum number of epochs."
-        )
-
-    # user overrides for training
-    overrides = _generate_overrides_for_model_training(
-        model_name,
-        crop_size,
-        train_dataframe_path,
-        val_dataframe_path,
-        max_num_epochs=max_num_epochs,
-        log_every_n_steps=log_every_n_steps,
-        cache_rate=cache_rate,
-    )
-
-    # init model
-    cytodl_model = CytoDLModel()
-    # override config with workflow inputs
-    cytodl_model.load_config_from_dict(template_training_config)
-    cytodl_model.override_config(overrides)
-    return cytodl_model
 
 
 def _upload_zarr_dataframe_to_fms(
@@ -258,9 +198,8 @@ def build_and_save_dataframe_manifest_for_training(
     train_dataframe: pd.DataFrame,
     val_dataframe: pd.DataFrame,
     resolution_level: int,
-    z_stack_offsets: tuple[int, int] | None,
-    slice_by_global_center: bool,
-    exclude_cell_piling: bool,
+    z_slice_offsets: tuple[int, int] | None,
+    include_cell_piling: bool,
     dataset_config_list: list[DatasetConfig],
     output_savedir: Path,
     manifest_name: str,
@@ -277,12 +216,10 @@ def build_and_save_dataframe_manifest_for_training(
         The validation dataframe containing paths to zarr files and other metadata.
     resolution_level
         The resolution level of the zarr files to be used for training.
-    z_stack_offsets
+    z_slice_offsets
         Lower and upper bounds for z-slicing.
-    slice_by_global_center
-        Get global center plane per position for z-slicing if True, use offsets directly if False.
-    exclude_cell_piling
-        Exclude cell piling timepoints if True, include them if False.
+    include_cell_piling
+        Include cell piling timepoints if True, exclude them if False.
     dataset_config_list
         A list of DatasetConfig objects for the datasets used in training.
     output_savedir
@@ -325,9 +262,8 @@ def build_and_save_dataframe_manifest_for_training(
         workflow=workflow_name,
         parameters={
             "resolution_level": resolution_level,
-            "z_stack_offsets": z_stack_offsets,
-            "slice_by_global_center": slice_by_global_center,
-            "exclude_cell_piling": exclude_cell_piling,
+            "z_slice_offsets": z_slice_offsets,
+            "include_cell_piling": include_cell_piling,
         },
         locations={
             "training": DataframeLocation(fmsid=train_fmsid, s3uri=None),
@@ -339,100 +275,78 @@ def build_and_save_dataframe_manifest_for_training(
     save_dataframe_manifest(dataframe_manifest)
 
 
-def get_valid_dataframe_path_for_training(dataframe_location: DataframeLocation) -> str:
-    """
-    Get a valid path for training or validation dataframes.
-
-    These are the dataframes that are used for loading zarr files for training or validation.
-    They are either stored in FMS or on S3 as a .parquet file, and this function retrieves the path
-    to that file based on the input DataframeLocation object.
-
-    Parameters
-    ----------
-    dataframe_location
-        The DataframeLocation object containing either the FMS ID or S3 URI of the .parquet file.
-
-
-    Returns
-    -------
-    :
-        The path to the .parquet file for training or validation sets, rendered as a string.
-
-        If the DataframeLocation object has an S3 URI, it will be used. Else, this
-        function downloads the file from FMS using the FMS ID and returns the local path.
-    """
-    if dataframe_location.s3uri is not None:
-        # if s3uri is provided, use that for loading
-        dataframe_path = dataframe_location.s3uri
-    else:
-        # get local path from FMS ID
-        if dataframe_location.fmsid is None:
-            logger.error(
-                "DataframeLocation does not have a FMS ID or S3 URI. "
-                "Please provide a valid DataframeLocation object."
-            )
-            raise ValueError(
-                "DataframeLocation does not have a FMS ID or S3 URI. "
-                "Please provide a valid DataframeLocation object."
-            )
-        dataframe_path = get_local_path_from_fmsid(dataframe_location.fmsid).as_posix()
-
-    return dataframe_path
-
-
 def initialize_diffae_model_for_finetuning(
-    template_finetune_config: DictConfig | ListConfig,
-    finetuned_model_name: str,
+    base_model: CytoDLModel,
+    template_finetune_config: "DictConfig | ListConfig",
+    finetuned_model_manifest_name: str,
+    finetuned_run_name: str,
     train_dataframe_path: str,
     val_dataframe_path: str,
-    model_save_path: Path,
-    diffae_ckpt_path: Path,
     max_num_epochs: int = 100,
     log_every_n_steps: int = 50,
+    cache_rate: float = 1.0,
+    replace_rate: float = 0.1,
+    num_gpus: int | None = None,
 ) -> CytoDLModel:
     """
     Initialize a DiffAE model for training.
 
     Parameters
     ----------
+    base_model
+        The baseline DiffAE model to finetune.
     template_finetune_config
         The template configuration for finetuning the DiffAE model.
-    finetuned_model_name
-        The name of the finetuned model to save.
+    finetuned_model_manifest_name
+        The name of the finetuned model manifest to which this training session belongs.
+    finetuned_run_name
+        The MLFlow run name for the finetuned model training session.
     train_dataframe_path
         The path to the image loading metadata dataframe for the training dataset.
     val_dataframe_path
         The path to the image loading metadata dataframe for the validation dataset.
-    model_save_path
-        The path to the directory where the checkpoints and logs will be saved.
     diffae_ckpt_path
         The path to the DiffAE checkpoint to finetune.
     max_num_epochs
         The maximum number of epochs for which to train the model.
     log_every_n_steps
         The interval at which to log training metrics.
+    cache_rate
+        The fraction of the dataset to cache in memory for training.
+    replace_rate
+        The replace rate for cached data.
+    num_gpus
+        Number of GPUs to use for training. If None, use the CPU!
 
     Returns
     -------
     cytodl_model
         An initialized CytoDLModel for finetuning the DiffAE model.
     """
+    # override base model with finetuning config parameters
+    # ** except ** keep the checkpoint path from the loaded model
+    checkpoint_override = {"checkpoint_path": base_model.cfg["checkpoint_path"]}
+    template_finetune_config.update(checkpoint_override)
+    # override downloaded model config with finetuning config
+    base_model.override_config(template_finetune_config)
+
     # generate overrides for train.yaml for finetuning
     overrides = _generate_overrides_for_finetuning(
-        finetuned_model_name=finetuned_model_name,
+        finetuned_model_manifest_name=finetuned_model_manifest_name,
+        finetuned_run_name=finetuned_run_name,
         train_dataframe_path=train_dataframe_path,
         val_dataframe_path=val_dataframe_path,
-        ckpt_path=model_save_path / diffae_ckpt_path,
         max_num_epochs=max_num_epochs,
         log_every_n_steps=log_every_n_steps,
+        cache_rate=cache_rate,
+        replace_rate=replace_rate,
+        num_gpus=num_gpus,
     )
 
     # init model
-    cytodl_model = CytoDLModel()
-    cytodl_model.load_config_from_dict(template_finetune_config)
-    cytodl_model.override_config(overrides)
+    base_model.override_config(overrides)
 
-    return cytodl_model
+    return base_model
 
 
 def get_dataset_names_used_for_training(

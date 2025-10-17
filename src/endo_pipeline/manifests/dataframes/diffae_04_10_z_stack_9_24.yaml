@@ -1,7 +1,7 @@
 name: diffae_04_10_z_stack_9_24
 workflow: '----'
 parameters:
-  z_stack_offsets: [9, 24]
+  z_slice_offsets: [9, 24]
 locations:
   20250331_20X:
     fmsid: c4d9c7bc53c8409bbd5b4a9d9a6c958e

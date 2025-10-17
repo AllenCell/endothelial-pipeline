@@ -1,20 +1,13 @@
 import logging
 from pathlib import Path
-from typing import cast
 
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from endo_pipeline.configs import (
-    get_available_dataset_collection_names,
-    get_available_dataset_names,
-    get_datasets_in_collection,
-)
 from endo_pipeline.io import save_plot_to_path
-from endo_pipeline.library.analyze.diffae_manifest import (
+from endo_pipeline.library.analyze.diffae_dataframe import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
-    get_pc_column_names,
 )
 from endo_pipeline.library.analyze.numerics import (
     get_3d_bounds_from_data,
@@ -24,26 +17,33 @@ from endo_pipeline.library.analyze.numerics import (
 from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     plot_principal_component_histogram,
 )
-from endo_pipeline.manifests import load_dataframe_manifest
+from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings import (
+    DIFFAE_PC_COLUMN_NAMES,
+    NUM_BINS_CROP_HIST,
+    NUM_PCS_TO_ANALYZE,
+    ColumnName,
+)
 
 logger = logging.getLogger(__name__)
 
-N_BINS = 40  # number of bins for histogram, hardcoded right now but somewhat arbitrary
-
 
 def load_data_for_montage(
-    dataset_name: str = "live_20X_objective_3i_microscope", model_name: str = "diffae_04_10"
-) -> tuple[pd.DataFrame, PCA, list[str]]:
+    dataset_name_list: list[str],
+    dataframe_manifest: DataframeManifest,
+    include_cell_piling: bool = True,
+) -> tuple[pd.DataFrame, PCA]:
     """
     Load Diff AE feature DataFrames for one or more datasets and optionally apply PCA.
 
     Parameters
     ----------
-    dataset_name
-        Name of the dataset(s) to include, either a single dataset name or
-        the name of a dataset collection.
-    model_name
-        Name of the model for which to load the feature dataframe.
+    dataset_name_list
+        List of dataset names to load for montage.
+    dataframe_manifest
+        Dataframe manifest corresponding to features to load.
+    include_cell_piling
+        True to include cell piling timepoints, False to exclude them.
 
     Returns
     -------
@@ -51,45 +51,35 @@ def load_data_for_montage(
         Concatenated feature DataFrame for the specified datasets.
     :
         Fit PCA object for the model.
-    :
-        List of dataset names.
     """
 
-    # check if input is a dataset collection or a single dataset name
-    if dataset_name is None:
-        dataset_name_list = get_datasets_in_collection("timelapse")
-    elif dataset_name in get_available_dataset_collection_names():
-        # if it is a dataset collection, load all datasets in the collection
-        dataset_name_list = get_datasets_in_collection(dataset_name)
-    elif dataset_name in get_available_dataset_names():
-        # if it is a single dataset name, create a list with one element
-        dataset_name_list = [dataset_name]
-    else:
-        logger.error(
-            "Dataset name [ %s ] is not a valid dataset or dataset collection name",
-            dataset_name,
-        )
-        raise ValueError(f"Invalid dataset name: {dataset_name}")
-
-    manifest = load_dataframe_manifest(model_name)
-    pca = fit_pca(model_name=model_name)
+    pca = fit_pca(
+        dataframe_manifest_name=dataframe_manifest.name,
+        include_cell_piling=include_cell_piling,
+    )
 
     df_all = pd.concat(
         [
-            get_dataframe_for_dynamics_workflows(name, manifest, pca, filter_to_valid=False)
+            get_dataframe_for_dynamics_workflows(
+                name,
+                dataframe_manifest,
+                pca,
+                include_cell_piling=include_cell_piling,
+                include_not_steady_state=True,
+            )
             for name in dataset_name_list
         ],
         ignore_index=True,
     )
 
-    return df_all, pca, dataset_name_list
+    return df_all, pca
 
 
 def filter_dataframe(
     df_all: pd.DataFrame,
     pc_axis: int,
     pc_val: float,
-    model_name: str,
+    dataframe_manifest: DataframeManifest,
     dataset_names: list[str],
     pca: PCA,
     fig_savedir: Path,
@@ -107,8 +97,8 @@ def filter_dataframe(
         Index of the principal component (0-indexed) to filter by.
     pc_val
         Target bin value (between 0 and 1) of the selected PC to sample crops from.
-    model_name
-        Name of the model for which to load the feature dataframe.
+    dataframe_manifest
+        DataframeManifest for model features.
     dataset_names
         List of datasets to be processed.
     pca
@@ -126,13 +116,14 @@ def filter_dataframe(
         DataFrame filtered by the specified PC bin and optional frame range.
     """
 
-    manifest = load_dataframe_manifest(model_name)
-    bin_limits = get_3d_bounds_from_data(dataset_names, manifest, pca, filter_to_valid=False)
+    bin_limits = get_3d_bounds_from_data(
+        dataset_names, dataframe_manifest, pca, filter_to_valid=False
+    )
     hist_array_list, bin_edges, df_with_bins = get_histogram_by_component(
         df_all,
-        N_BINS,
+        NUM_BINS_CROP_HIST,
         bin_limits,
-        feat_cols=get_pc_column_names(df_all, pc_axes=[0, 1, 2]),
+        feat_cols=DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
     )
 
     if plot_heatmap:
@@ -145,8 +136,8 @@ def filter_dataframe(
 
     if frame_range is not None:
         df_filtered = df_filtered[
-            (df_filtered["frame_number"] >= frame_range[0])
-            & (df_filtered["frame_number"] <= frame_range[1])
+            (df_filtered[ColumnName.TIMEPOINT] >= frame_range[0])
+            & (df_filtered[ColumnName.TIMEPOINT] <= frame_range[1])
         ]
 
     return df_filtered

@@ -5,21 +5,17 @@ from bioio import BioImage
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
+from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-from endo_pipeline.configs.dataset_io import (
-    fire_parse_generate_dataset_name_list,
-    get_original_path,
-    ipython_cli_flexecute,
-)
-from endo_pipeline.io import get_output_path, load_image, load_zarr_as_dask_array
+from endo_pipeline.configs.dataset_io import get_original_path, ipython_cli_flexecute
+from endo_pipeline.io import get_output_path, load_image, load_image_from_path
 from endo_pipeline.library.process import cdh5_preprocessing as preproc
 from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
-    get_default_dim_order,
-    get_dim_map,
     save_image_output,
 )
 from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+from endo_pipeline.settings import DIMENSION_ORDER
 
 
 def generate_results_multiproc_wrapper(args: dict) -> None:
@@ -68,8 +64,6 @@ def generate_results(
     seg_dir = out_dir / "segmentations"
     val_dir = out_dir / "validations"
 
-    dim_order = get_default_dim_order()
-    dim_map = get_dim_map(dim_order)
     if use_sldy_data:
         print(f"T={T} -- loading dataset from original") if verbose else None
         original_path = Path(get_original_path(dataset_name))
@@ -81,7 +75,7 @@ def generate_results(
         if scene_index is not None or scene_name is not None:
             scene = scene_index or scene_name or 0  #  the "or 0" is here to silence mypy
             img.set_scene(scene)
-            raw_dask_arr = img.get_image_dask_data(dim_order, T=T, C=egfp_index)
+            raw_dask_arr = img.get_image_dask_data(DIMENSION_ORDER, T=T, C=egfp_index)
         else:
             raise ValueError(
                 "When using original data, either scene_index or scene_name must be provided."
@@ -91,11 +85,13 @@ def generate_results(
         dataset_config = load_dataset_config(dataset_name)
         zarr_file = get_zarr_file_for_position(dataset_config, position)
         img = BioImage(zarr_file)
-        raw_dask_arr = load_zarr_as_dask_array(
+        raw_dask_arr = load_image_from_path(
             path=zarr_file, channels=["EGFP"], timepoints=T, level=img_bin_level
         )
 
-    raw_arr_MIP = raw_dask_arr.max(axis=dim_map["Z"], keepdims=True).compute().squeeze()
+    raw_arr_MIP = (
+        raw_dask_arr.max(axis=DIMENSION_ORDER.index("Z"), keepdims=True).compute().squeeze()
+    )
 
     print(f"T={T} -- preprocessing image") if verbose else None
     processed_img = preproc.preprocess(raw_arr_MIP)
@@ -111,7 +107,7 @@ def generate_results(
     print(f"T={T} -- loading nuclei segmentations") if verbose else None
     seg_manifest = load_image_manifest("nuclear_labelfree_seg")
     seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, T)
-    nuc_pred = load_image(seg_location)
+    nuc_pred = load_image(seg_location, squeeze=True, compute=True)
 
     (
         print(f"T={T} -- splitting RAG-based segmentations using nuclei predictions")
@@ -202,8 +198,8 @@ def generate_results(
 
 
 def main(
+    datasets: Datasets,
     n_proc: int = 1,
-    dataset_name: str | None = None,
     save_output: bool = True,
     overwrite: bool = True,
     use_sldy_data: bool = False,
@@ -213,11 +209,9 @@ def main(
 
     out_dir = get_output_path(__file__)
 
-    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
-
     # TODO if possible it would be good to use parallel processing to build analysis_queue
     analysis_queue = build_analysis_queue(
-        dataset_name_list,
+        datasets,
         save_output=save_output,
         out_dir=out_dir,
         overwrite=overwrite,

@@ -2,15 +2,18 @@ import logging
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
-import torch
 
-from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.io import load_model, save_plot_to_path
+from endo_pipeline.library.model.diffae.generate_image import generate_from_coords_batch
 from endo_pipeline.library.process.get_images import (
     get_crops_in_dataframe,
     global_contrast_crop_list,
     individual_contrast_crop_list,
 )
+from endo_pipeline.manifests import get_most_recent_run_name, load_model_manifest
+from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES
 
 logger = logging.getLogger(__name__)
 
@@ -80,11 +83,40 @@ def _plot_crop_montage(
     plt.show()
 
 
+def _get_reconstructed_crops(
+    df: pd.DataFrame,
+    model_manifest_name: str,
+    run_name: str | None,
+    num_gpus: int | None = None,
+) -> list:
+    """Generate and add reconstructed crops to the contrast crops dictionary."""
+    model_manifest = load_model_manifest(model_manifest_name)
+    run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
+    model = load_model(model_manifest.locations[run_name_])
+
+    num_points = df.shape[0]
+    latent_coords = []
+    feat_cols = DIFFAE_FEATURE_COLUMN_NAMES
+    for i in range(num_points):
+        latent_coords.append(df[feat_cols].iloc[i].tolist())
+
+    # pass into DiffAE model to generate reconstructed crops
+    # output is a list of numpy arrays (images)
+    reconstructed_crop_list = generate_from_coords_batch(
+        model, np.array(latent_coords), num_gpus=num_gpus
+    )
+
+    return reconstructed_crop_list
+
+
 def generate_contact_sheet(
     df_sample: pd.DataFrame,
+    model_manifest_name: str,
+    run_name: str | None,
     pc_axis: int,
     pc_val: float,
     fig_savedir: Path,
+    num_gpus: int | None = None,
 ) -> None:
     """
     Generate and save montages for various image crops and various contrast enhancements.
@@ -93,12 +125,18 @@ def generate_contact_sheet(
     ----------
     df_sample
         DataFrame containing sampled crop metadata.
+    model_manifest_name
+        Name of the model manifest corresponding to the features used.
+    run_name
+        Name of the specific model run corresponding to the features used.
     pc_axis
         Principal component axis used for titling.
     pc_val
         Value of the principal component bin used for titling.
     fig_savedir
         Directory to save montage images.
+    num_gpus
+        Number of GPUs available for processing. If None, reconstruction is skipped.
 
     Returns
     -------
@@ -113,6 +151,15 @@ def generate_contact_sheet(
         gfp_max_projection,
         df_sample_sorted,
     ) = get_crops_in_dataframe(df_sample)
+
+    # get reconstructed crops from Diff AE model using
+    # points in the sorted sample dataframe
+    reconstructed_crops = _get_reconstructed_crops(
+        df_sample_sorted,
+        model_manifest_name,
+        run_name,
+        num_gpus=num_gpus,
+    )
 
     # Define raw crop types
     crop_types = {
@@ -131,21 +178,7 @@ def generate_contact_sheet(
         contrast_crops[f"{name}_ind_contrast"] = individual_contrast_crop_list(
             crop_list, "percentile"
         )
-
-    # Optionally add reconstructed crops (if GPU is available)
-    if torch.cuda.is_available():
-        from endo_pipeline.library.model.diffae.generate_image import (
-            get_reconstructed_crops_in_dataframe,
-        )
-
-        reconstructed_crop_list = get_reconstructed_crops_in_dataframe(df_sample_sorted)
-        assert [crop.shape == (128, 128) for crop in reconstructed_crop_list], (
-            "Reconstructed crops should be of shape (128, 128), "
-            f"but found shapes: {[crop.shape for crop in reconstructed_crop_list]}"
-        )
-        contrast_crops["reconstructed_cdh5"] = reconstructed_crop_list
-    else:
-        logger.warning("GPU not available, skipping reconstruction of crops.")
+    contrast_crops["reconstructed"] = reconstructed_crops
 
     # Generate montages for each image content type
     for image_content, crop_list_channel in contrast_crops.items():

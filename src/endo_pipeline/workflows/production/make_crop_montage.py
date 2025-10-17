@@ -1,9 +1,18 @@
+from typing import Annotated
+
+from cyclopts import Parameter
+
+from endo_pipeline.cli import Datasets
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+
 TAGS = ["pc_interpretation", "diffae_image_generation"]
 
 
 def main(
-    dataset_name: str = "pca_reference",
-    model_name: str = "diffae_04_10",
+    datasets: Datasets | None = None,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     pc_axis: int = 1,
     pc_val: float = 0.25,
     frame_range: list[int] | None = None,
@@ -19,16 +28,20 @@ def main(
 
     Parameters
     ----------
-    dataset_name
-        Dataset(s) to load images from, either a single dataset name or the name
-        of a dataset collection.
+    datasets
+        Optional, list of datasets or dataset collections to load images from.
+    model_manifest_name
+        Name of the model manifest containing the run to load features from.
+    run_name
+        Name of the specific model run to load featuref for. If None, uses the most recent run.
+    include_cell_piling
+        True to include timepoints with cell piling to fit the PCA model, False to exclude them.
     pc_axis
         The principal component axis to use for filtering the images (0 for PC1, 1 for PC2, etc.)
     pc_val
         The value of the principal component axis to filter the images by.
     frame_range
-        A list of two integers specifying the range of time frames to include in the montage.
-        If None, all frames will be included.
+        Optional, specific range of time frames to include in the montage.
     plot_heatmap
         True to plot a heatmap of the principal component values, False to skip plotting.
 
@@ -37,6 +50,9 @@ def main(
     :
         Saves the montage images to the output directory.
     """
+
+    from endo_pipeline import NUM_GPUS
+    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.crop_montage import (
         filter_dataframe,
@@ -44,16 +60,43 @@ def main(
         load_data_for_montage,
         sample_dataframe,
     )
+    from endo_pipeline.manifests import (
+        get_feature_dataframe_manifest_name,
+        get_most_recent_run_name,
+        load_dataframe_manifest,
+        load_model_manifest,
+    )
 
-    fig_savedir = get_output_path("crop_visualization", include_timestamp=False)
+    # Default list of datasets if not provided. Otherwise, use the provided list.
+    if datasets is None:
+        dataset_list = get_datasets_in_collection("pca_reference")
+    elif isinstance(datasets, str):
+        dataset_list = datasets
 
-    df, pca, dataset_list = load_data_for_montage(dataset_name, model_name)
+    # get dataframe manifest corresponding to the model that generated the features
+    model_manifest = load_model_manifest(model_manifest_name)
+    run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
+    dataframe_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name_, crop_pattern="grid"
+    )
+    fig_savedir = get_output_path(
+        "crop_visualization",
+        model_manifest_name,
+        run_name_,
+        "include_cell_piling" if include_cell_piling else "exclude_cell_piling",
+    )
+
+    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+
+    df, pca = load_data_for_montage(
+        dataset_list, dataframe_manifest, include_cell_piling=include_cell_piling
+    )
 
     df_filtered = filter_dataframe(
         df,
         pc_axis,
         pc_val,
-        model_name,
+        dataframe_manifest,
         dataset_list,
         pca,
         fig_savedir,
@@ -65,9 +108,12 @@ def main(
 
     generate_contact_sheet(
         df_sample,
+        model_manifest_name,
+        run_name,
         pc_axis,
         pc_val,
         fig_savedir,
+        num_gpus=NUM_GPUS,
     )
 
 

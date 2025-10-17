@@ -9,7 +9,7 @@ live_or_fixed_sample: live
 is_timelapse: true
 microscope: 3i
 objective: 20X
-shear_stress_regime: 24hr_high-to-24hr_low
+shear_stress_regime: max_to_min
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
@@ -33,7 +33,6 @@ flow_conditions:
 - start: 276
   stop: 577
   shear_stress: 5.83
-valid_timepoints: null
 include_scenes: null
 notes: All positions have dust artifacts
 timepoint_annotations:
@@ -55,6 +54,13 @@ timepoint_annotations:
     3: [307, 343, 454]
     4: [431, 439, 451, 543]
     5: [0, 13, 271, 272, 290, 462]
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
   bf_scope_error:
     0: [315]
     1: [316]

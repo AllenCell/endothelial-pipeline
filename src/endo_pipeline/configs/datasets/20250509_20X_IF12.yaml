@@ -9,7 +9,7 @@ live_or_fixed_sample: fixed
 is_timelapse: false
 microscope: 3i
 objective: 20X
-shear_stress_regime: 24hr_low
+shear_stress_regime: min
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
@@ -30,9 +30,16 @@ flow_conditions:
 - start: -288
   stop: 0
   shear_stress: 5.82
-valid_timepoints: null
 include_scenes: null
 notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
-timepoint_annotations: null
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: []
+    1: []
+  auto_bf_temp_artifact:
+    0: []
+    1: []
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 9
+  1: 8

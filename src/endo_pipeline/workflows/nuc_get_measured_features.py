@@ -9,18 +9,16 @@ from dask.array import Array
 from skimage.measure import regionprops
 from tqdm import tqdm
 
+from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
-    fire_parse_generate_dataset_name_list,
     ipython_cli_flexecute,
 )
-from endo_pipeline.io import configure_logging, get_output_path, load_image, load_zarr_as_dask_array
-from endo_pipeline.library.process.general_image_preprocessing import (
-    build_analysis_queue,
-    get_default_dim_order,
-)
+from endo_pipeline.io import configure_logging, get_output_path, load_image, load_image_from_path
+from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
 from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
 
@@ -181,19 +179,19 @@ def get_nuclei_features_from_dataset_at_T(
 ) -> pd.DataFrame:
 
     # Load segmentations and image
-    dim_order = get_default_dim_order()
+    dim_order = DIMENSION_ORDER
 
     nuc_manifest = load_image_manifest("nuclear_labelfree_seg")
     nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_name, position, T)
-    nuc_seg = load_image(nuc_location)
+    nuc_seg = load_image(nuc_location, squeeze=True, compute=True)
 
     cdh5_manifest = load_image_manifest("cdh5_classic_seg")
     cdh5_location = get_image_location_for_dataset(cdh5_manifest, dataset_name, position, T)
-    cdh5_seg = load_image(cdh5_location)
+    cdh5_seg = load_image(cdh5_location, squeeze=True, compute=True)
 
     dataset_config = load_dataset_config(dataset_name)
     img_path = get_zarr_file_for_position(dataset_config, position)
-    raw_img = load_zarr_as_dask_array(path=img_path, channels=channel_names, timepoints=T, level=0)
+    raw_img = load_image_from_path(path=img_path, channels=channel_names, timepoints=T, level=0)
     raw_MIP = raw_img.max(axis=dim_order.index("Z"), keepdims=True).compute()
 
     # split up the image into a list of channels
@@ -231,7 +229,7 @@ def get_nuclei_features_from_dataset_at_T(
 
 
 def main(
-    dataset_name: str | None = None,
+    datasets: Datasets,
     save_output: bool = True,
     n_proc: int = 1,
     verbose: bool = False,
@@ -242,15 +240,13 @@ def main(
 
     out_dir = get_output_path(__file__)
 
-    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
-
     configure_logging(out_dir, logger, verbose=verbose)
-    logger.info(f"datasets analyzed: {dataset_name_list}")
+    logger.info(f"datasets analyzed: {datasets}")
 
     if not concatenate_tables_only:
         # build analysis queue
         analysis_queue = build_analysis_queue(
-            dataset_name_list,
+            datasets,
             save_output=save_output,
             out_dir=out_dir,
             overwrite=True,
@@ -281,7 +277,7 @@ def main(
     # concatenate the results outputs from above in to a single table
     if save_output:
         for dataset_name in tqdm(
-            dataset_name_list, desc="Replacing individual tables with combined table..."
+            datasets, desc="Replacing individual tables with combined table..."
         ):
             concatenate_and_save_feature_tables(
                 out_dir=out_dir,

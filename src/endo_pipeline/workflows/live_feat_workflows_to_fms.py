@@ -1,12 +1,13 @@
 import logging
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
 from tqdm import tqdm
 
-from endo_pipeline.configs import load_all_dataset_configs, load_dataset_config, load_model_config
-from endo_pipeline.configs.model_config_utils import get_labelfree_nuclei_prediction_model_name
+from endo_pipeline.cli import Datasets
+from endo_pipeline.configs import load_all_dataset_configs, load_dataset_config
 from endo_pipeline.io import (
     build_fms_annotations,
     configure_logging,
@@ -15,8 +16,8 @@ from endo_pipeline.io import (
 )
 from endo_pipeline.manifests import (
     DataframeLocation,
-    DataframeManifest,
-    load_dataframe_manifest,
+    create_dataframe_manifest,
+    load_model_manifest,
     save_dataframe_manifest,
 )
 
@@ -32,15 +33,20 @@ out_dir = get_output_path(__file__, include_timestamp=False)
 configure_logging(out_dir, logger, verbose=True)
 
 
+def get_model_annotations_for_upload() -> dict:
+    model_name = "nuc_pred_labelfree"
+    run_name = "finetuned_20250419"
+    return {"model_manifest": load_model_manifest(model_name), "run_name": run_name}
+
+
 def fms_upload_cdh5_classic_seg_tracking(dataset_name: str, path_to_file: Path) -> str:
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
     # info along with the FMS upload here.
-    model_name = get_labelfree_nuclei_prediction_model_name()
     dataset_config = load_dataset_config(dataset_name)
-    model = load_model_config(model_name)
-    annotations = build_fms_annotations(dataset_config, model=model)
+    model_annotations = get_model_annotations_for_upload()
+    annotations = build_fms_annotations(dataset_config, **model_annotations)
 
     # Upload the file to FMS
     file_id = upload_file_to_fms(
@@ -50,12 +56,7 @@ def fms_upload_cdh5_classic_seg_tracking(dataset_name: str, path_to_file: Path) 
     # Store FMS ID in dataframe manifest
     manifest_name = "cdh5_classic_segmentation_tracking"
     workflow_name = "live_feat_workflows_to_fms"
-
-    try:
-        manifest = load_dataframe_manifest(manifest_name)
-    except FileNotFoundError:
-        manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
-
+    manifest = create_dataframe_manifest(manifest_name, workflow_name)
     manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
     save_dataframe_manifest(manifest)
 
@@ -71,10 +72,9 @@ def fms_upload_cdh5_get_measured_features(dataset_name: str, path_to_file: Path)
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
     # info along with the FMS upload here.
-    model_name = get_labelfree_nuclei_prediction_model_name()
     dataset_config = load_dataset_config(dataset_name)
-    model = load_model_config(model_name)
-    annotations = build_fms_annotations(dataset_config, model=model)
+    model_annotations = get_model_annotations_for_upload()
+    annotations = build_fms_annotations(dataset_config, **model_annotations)
 
     # Upload the file to FMS
     file_id = upload_file_to_fms(
@@ -84,12 +84,7 @@ def fms_upload_cdh5_get_measured_features(dataset_name: str, path_to_file: Path)
     # Store FMS ID in dataframe manifest
     manifest_name = "cdh5_classic_segmentation"
     workflow_name = "live_feat_workflows_to_fms"
-
-    try:
-        manifest = load_dataframe_manifest(manifest_name)
-    except FileNotFoundError:
-        manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
-
+    manifest = create_dataframe_manifest(manifest_name, workflow_name)
     manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
     save_dataframe_manifest(manifest)
 
@@ -105,10 +100,9 @@ def fms_upload_nuc_get_measured_features(dataset_name: str, path_to_file: Path) 
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
     # info along with the FMS upload here.
-    model_name = get_labelfree_nuclei_prediction_model_name()
     dataset_config = load_dataset_config(dataset_name)
-    model = load_model_config(model_name)
-    annotations = build_fms_annotations(dataset_config, model=model)
+    model_annotations = get_model_annotations_for_upload()
+    annotations = build_fms_annotations(dataset_config, **model_annotations)
 
     # Upload the file to FMS
     file_id = upload_file_to_fms(
@@ -118,12 +112,7 @@ def fms_upload_nuc_get_measured_features(dataset_name: str, path_to_file: Path) 
     # Store FMS ID in dataframe manifest
     manifest_name = "nuclei_label_free_segmentation"
     workflow_name = "live_feat_workflows_to_fms"
-
-    try:
-        manifest = load_dataframe_manifest(manifest_name)
-    except FileNotFoundError:
-        manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
-
+    manifest = create_dataframe_manifest(manifest_name, workflow_name)
     manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
     save_dataframe_manifest(manifest)
 
@@ -139,10 +128,9 @@ def fms_upload_make_seg_feats_manifest(dataset_name: str, path_to_file: Path) ->
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
     # info along with the FMS upload here.
-    model_name = get_labelfree_nuclei_prediction_model_name()
     dataset_config = load_dataset_config(dataset_name)
-    model = load_model_config(model_name)
-    annotations = build_fms_annotations(dataset_config, model=model)
+    model_annotations = get_model_annotations_for_upload()
+    annotations = build_fms_annotations(dataset_config, **model_annotations)
 
     # Upload the file to FMS
     file_id = upload_file_to_fms(
@@ -152,12 +140,7 @@ def fms_upload_make_seg_feats_manifest(dataset_name: str, path_to_file: Path) ->
     # Store FMS ID in dataframe manifest
     manifest_name = "live_merged_seg_features"
     workflow_name = "live_feat_workflows_to_fms"
-
-    try:
-        manifest = load_dataframe_manifest(manifest_name)
-    except FileNotFoundError:
-        manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
-
+    manifest = create_dataframe_manifest(manifest_name, workflow_name)
     manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
     save_dataframe_manifest(manifest)
 
@@ -175,10 +158,7 @@ def main(
         "nuclei_labelfree",
         "merged_live_data_manifests",
     ],
-    dataset_name_list: list | None = None,
-    endo_project_analysis_dir: (
-        str | Path
-    ) = "//allen/aics/endothelial/morphological_features/analysis",
+    datasets: Datasets,
 ) -> None:
     """
     This is a convenience function to upload multiple datasets to FMS
@@ -186,38 +166,24 @@ def main(
 
     NOTE Intended only for internal use.
     """
-    endo_project_analysis_dir = Path(endo_project_analysis_dir).resolve()
-    assert endo_project_analysis_dir.exists(), (
-        "The path to the endothelial project directory is not accessible."
-        "This function is only available for Allen Institute internal use."
-    )
+    endo_project_analysis_dir = Path(
+        "//allen/aics/endothelial/morphological_features/analysis"
+    ).resolve()
+    if not endo_project_analysis_dir.exists() or os.name == "nt":
+        error_msg = f"""The path to the endothelial project directory ({endo_project_analysis_dir})
+            is not accessible.
+            Possible reasons are that you are not on the Allen Institute network or that you are
+            not using a Linux or Mac machine. FMS uploads are only permitted from Linux/Mac
+            machines that are directly connected to the Allen Institute network."""
+        logger.error(error_msg)
+        raise FileNotFoundError(error_msg)
     fms_upload_func_dict = {
         "cdh5_seg_tracking": fms_upload_cdh5_classic_seg_tracking,
         "cdh5_seg_measurements": fms_upload_cdh5_get_measured_features,
         "nuclei_labelfree": fms_upload_nuc_get_measured_features,
         "merged_live_data_manifests": fms_upload_make_seg_feats_manifest,
     }
-    if dataset_name_list is None:
-        # This is the current list of all analyzed datasets
-        dataset_name_list = [
-            "20241120_20X",
-            "20241217_20X",
-            "20250224_20X",
-            "20250319_20X",
-            "20250326_20X",
-            "20250331_20X",
-            "20250409_20X",
-            "20250428_20X",
-            "20250604_20X",
-            "20250611_20X",
-            "20250618_20X",
-            "20250714_20X",
-            "20250716_20X",
-            "20250728_20X",
-            "20250806_20X",
-        ]
-    else:
-        pass
+    print(f"Uploading {datasets}")
 
     all_available_datasets = load_all_dataset_configs()
     available_live_datasets = []
@@ -241,20 +207,26 @@ def main(
         },
     }
 
-    for dataset_name in tqdm(dataset_name_list):
-        assert dataset_name in available_live_datasets, (
-            f"Dataset {dataset_name} is not in the list of available live datasets: "
-            f"{available_live_datasets}"
-        )
+    for dataset_name in tqdm(datasets):
+        if dataset_name not in available_live_datasets:
+            error_msg = (
+                f"Dataset {dataset_name} is not in the list of available live datasets: "
+                f"{available_live_datasets}"
+            )
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         manifest_filepath = (
             endo_project_analysis_dir
             / path_modifiers[manifest_kind]["subdir"]
             / f"{dataset_name}{path_modifiers[manifest_kind]['suffix']}"
         )
-        assert manifest_filepath.exists(), (
-            f"Manifest file {manifest_filepath} does not exist. "
-            "Please double check the file location."
-        )
+        if not manifest_filepath.exists():
+            error_msg = (
+                f"Manifest file {manifest_filepath} does not exist. "
+                "Please double check the file location."
+            )
+            logger.error(error_msg)
+            raise FileNotFoundError(error_msg)
         # add timestamp to the manifest filename and rename it
         timestamp = datetime.now(UTC).strftime("%Y%m%d")
         manifest_filepath_timestamped = manifest_filepath.with_name(

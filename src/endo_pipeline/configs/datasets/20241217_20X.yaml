@@ -9,7 +9,7 @@ live_or_fixed_sample: live
 is_timelapse: true
 microscope: 3i
 objective: 20X
-shear_stress_regime: no_flow
+shear_stress_regime: 'no'
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
@@ -30,13 +30,41 @@ flow_conditions:
 - start: 0
   stop: 576
   shear_stress: 0.0
-valid_timepoints:
-  start: [0, 300]
-  stop: [100, 420]
 include_scenes: null
 notes: This dataset seems to be missing a metadata file... No flow with 1 feed only.
   Calculated center plane was 8, Adjusted to 13.
-timepoint_annotations: null
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [0, 40, 53, 55, 72, 87, 92, 201, 230, 276, 281, 286, 289, 314, 343, 344, 388,
+      402, 479, 563]
+    1: [0, 17, 38, 39, 42, 51, 55, 276, 281, 282, 286, 289, 299, 311, 320, 343, 344,
+      563, 573]
+    2: [0, 39, 42, 51, 54, 276, 281, 282, 286, 289, 339, 343, 570, 576]
+    3: [0, 39, 42, 45, 64, 65, 276, 289, 311, 344, 463, 569, 570, 573, 576]
+    4: [0, 39, 42, 45, 50, 53, 55, 73, 74, 262, 276, 279, 282, 288, 289, 344, 463,
+      560, 569]
+    5: [0, 68, 268, 276, 279, 281, 288, 289, 463, 569]
+  auto_bf_temp_artifact:
+    0: [56]
+    1: [39, 45, 51, 573]
+    2: [39, 52, 54]
+    3: [39, 54, 55, 570]
+    4: [50, 53, 354, 569]
+    5: [50, 53, 562]
+  auto_gfp_scope_error:
+    0: [290]
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  not_steady_state:
+    0: [[101, 299], [421, 576]]
+    1: [[101, 299], [421, 576]]
+    2: [[101, 299], [421, 576]]
+    3: [[101, 299], [421, 576]]
+    4: [[101, 299], [421, 576]]
+    5: [[101, 299], [421, 576]]
 position_annotations: null
 center_z_plane:
   0: 13

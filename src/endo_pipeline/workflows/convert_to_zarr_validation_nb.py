@@ -3,8 +3,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from bioio import BioImage
 
-from endo_pipeline.configs import get_available_dataset_names, load_dataset_config
-from endo_pipeline.configs.dataset_io import get_available_channels, get_zarr_path
+from endo_pipeline.configs import (
+    get_available_dataset_names,
+    get_zarr_file_for_position,
+    load_dataset_config,
+)
+from endo_pipeline.configs.dataset_io import get_available_channels
 
 
 # %%
@@ -64,7 +68,6 @@ def get_channel_crop(
 # %%
 # Quickly visualize crop in first position,
 # first timepoint of each zarr to confirm channel order is correct
-
 for dataset_name in get_available_dataset_names():
     config = load_dataset_config(dataset_name)
     fmsid = config.fmsid
@@ -73,8 +76,8 @@ for dataset_name in get_available_dataset_names():
     print(f"fmsid: {fmsid}")
     print(f"barcode: {barcode}")
 
-    zarr_paths = get_zarr_path(dataset_name)
-    for _, position_path in zarr_paths.items():
+    for position in config.zarr_positions:
+        position_path = get_zarr_file_for_position(config, position)
         img = BioImage(position_path)
         print(f"image shape: {img.shape}")
         n_channels = img.shape[1]

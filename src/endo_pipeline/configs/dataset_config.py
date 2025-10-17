@@ -1,6 +1,6 @@
 """Data structures for dataset configs."""
 
-from enum import StrEnum
+from enum import Enum, StrEnum
 from typing import Literal
 
 from mashumaro.config import BaseConfig
@@ -16,6 +16,44 @@ ObjectiveType = Literal["20X", "40X"]
 """Valid objective types."""
 
 
+class ShearStressRegime(Enum):
+    """Shear stress regime categories with target shear stress ranges."""
+
+    NO = ("no", 0.0, 0.0)
+    """No shear stress."""
+
+    MIN = ("min", 4.5, 7.2)
+    """Minimum shear stress tested (target: 6 dyn/cm2)."""
+
+    LOW = ("low", 8.5, 9.1)
+    """Low shear stress (target: 9 dyn/cm2)"""
+
+    MEDIUM = ("medium", 10.0, 12.5)
+    """Medium shear stress (target: 12 dyn/cm2)."""
+
+    HIGH = ("high", 13.0, 16.0)
+    """High shear stress (target: 15 dyn/cm2)."""
+
+    MAX = ("max", 19.5, 35.0)
+    """Maximum shear stress tested (target: 20 dyn/cm2)."""
+
+    upper: float
+    """Upper bound of the shear stress regime."""
+
+    lower: float
+    """Lower bound of the shear stress regime."""
+
+    def __new__(cls, value: str, lower: float, upper: float) -> "ShearStressRegime":
+        """Create a new shear stress regime."""
+
+        obj = object.__new__(cls)
+        obj._value_ = value
+        obj.lower = lower
+        obj.upper = upper
+
+        return obj
+
+
 class TimepointAnnotation(StrEnum):
     """Annotations for timepoints that should be excluded from model training and/or analysis."""
 
@@ -24,6 +62,9 @@ class TimepointAnnotation(StrEnum):
 
     AUTO_BF_TEMP_ARTIFACT = "auto_bf_temp_artifact"
     """Auto detected Temporary brightfield artifact."""
+
+    AUTO_GFP_SCOPE_ERROR = "auto_gfp_scope_error"
+    """Auto detected error with GFP scope."""
 
     BF_SCOPE_ERROR = "bf_scope_error"
     """Manually annotated error with brightfield scope."""
@@ -36,6 +77,9 @@ class TimepointAnnotation(StrEnum):
 
     GFP_SCOPE_ERROR = "gfp_scope_error"
     """Manually annotated error with GFP scope."""
+
+    NOT_STEADY_STATE = "not_steady_state"
+    """Timepoint is not at visual steady state."""
 
     UNFED = "unfed"
     """Manually annotated timepoint where cells are more than 3hrs since last feeding."""
@@ -52,20 +96,6 @@ class PositionAnnotation(StrEnum):
 
     DUST_ARTIFACT = "dust_artifact"
     """Manually annotated position includes a dust artifact."""
-
-
-@dataclass
-class ValidTimepoints:
-    """
-    Timepoints that are visually validated to be after steady state from no flow to a set
-    flow condition appears to have stabilized and before cell piling occurs.
-    """
-
-    start: list[int]
-    """Start frame of valid timepoints."""
-
-    stop: list[int]
-    """Stop frame of valid timepoints."""
 
 
 @dataclass
@@ -143,7 +173,7 @@ class DatasetConfig:
     objective: ObjectiveType
     """Objective that dataset was collected under."""
 
-    shear_stress_regime: str
+    shear_stress_regime: list[ShearStressRegime]
     """Shear stress regime the dataset was collected under."""
 
     pixel_size_xy_in_um: float
@@ -166,9 +196,6 @@ class DatasetConfig:
 
     flow_conditions: list[FlowCondition]
     """List of flow conditions for the dataset."""
-
-    valid_timepoints: ValidTimepoints | None = None
-    """List of valid timepoint ranges. None if all timepoints are valid."""
 
     include_scenes: list[int] | None = None
     """List of scenes to include."""

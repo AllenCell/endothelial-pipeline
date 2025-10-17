@@ -9,7 +9,7 @@ live_or_fixed_sample: live
 is_timelapse: true
 microscope: 3i
 objective: 20X
-shear_stress_regime: 48hr_low
+shear_stress_regime: min
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
@@ -30,7 +30,6 @@ flow_conditions:
 - start: -30
   stop: 576
   shear_stress: 5.82
-valid_timepoints: null
 include_scenes: null
 notes: Cells are very overgrown by end of experiment. A small hole appears in the
   timelapse partway through and doesn't close. Manually adjusted the center_z_plane
@@ -52,6 +51,13 @@ timepoint_annotations:
     3: [0, 292, 529, 540, 559]
     4: [14, 294, 341, 529, 540]
     5: [356, 527, 528, 534, 540, 554]
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
   bf_scope_error:
     0: [6, 529, 557]
     1: [6, 529, 540, 563]

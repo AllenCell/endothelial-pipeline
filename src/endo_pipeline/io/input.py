@@ -1,32 +1,59 @@
 """Methods for loading inputs."""
 
 import logging
+import typing
 from pathlib import Path
 
-import dask
-import numpy as np
-import pandas as pd
-from bioio import BioImage
+if typing.TYPE_CHECKING:
+    import dask.array as da
+    import numpy as np
+    from cyto_dl.api import CytoDLModel
+    from omegaconf import DictConfig, ListConfig
 
-from endo_pipeline.manifests import DataframeLocation, ImageLocation
+import pandas as pd
+
+from endo_pipeline.configs import load_model_config
+from endo_pipeline.io.output import get_output_path
+from endo_pipeline.manifests import DataframeLocation, ImageLocation, ModelLocation
+from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
 
 
-def load_zarr_as_dask_array(
+def get_repository_root_dir() -> Path:
+    """
+    Get path to root of git repository.
+
+    Returns
+    -------
+    :
+        Path object for root of git repository.
+    """
+
+    return Path(__file__).resolve().parents[3]
+
+
+def load_image_from_path(
     path: Path,
+    squeeze: bool = False,
+    compute: bool = False,
     channels: list[str] | None = None,
     timepoints: int | list[int] | range | None = None,
     level: int = 0,
-    squeeze: bool = False,
-) -> dask.array.Array:
+) -> "da.Array | np.ndarray":
     """
-    Load Zarr as Dask array.
+    Load image from path.
+
+    Currently supports files ending in .ome.zarr and .ome.tiff.
 
     Parameters
     ----------
     path
-        Path to Zarr file.
+        Path to image file.
+    squeeze
+        True to drop any single-dimensional entries, False otherwise.
+    compute
+        True to turn lazy Dask array into in-memory NumPy array, False otherwise.
     channels
         Channel(s) to load. Channels should be given as a list of channel names.
         Use None to load all channels.
@@ -35,18 +62,28 @@ def load_zarr_as_dask_array(
         of integers, or an integer range. Use None to load all timepoints.
     level
         Resolution level to load.
-    squeeze
-        True to drop any single-dimensional entries, False otherwise.
+
+    Returns
+    -------
+    :
+        File loaded as dask or numpy array.
     """
+
+    from bioio import BioImage
+
+    if path.suffixes not in ([".ome", ".zarr"], [".ome", ".tiff"]):
+        logger.error("Path [ %s ] cannot be loaded as image", path)
+        raise ValueError(f"Invalid image file format '{path.suffix}'")
 
     if not path.exists():
         logger.error("Path [ %s ] could not be loaded", path)
         raise FileNotFoundError(f"No such file '{path}'")
 
-    reader_arguments = {}
+    logger.info("Loading path [ %s ] as %s file", path, "".join(path.suffixes).upper())
 
-    # Initialize image reader.
+    # Initialize image reader and reader arguments.
     reader = BioImage(path)
+    reader_arguments = {}
 
     # Specify timepoints to load, if provided. Otherwise, all timepoints will be loaded.
     if timepoints is not None:
@@ -66,47 +103,22 @@ def load_zarr_as_dask_array(
     reader.set_resolution_level(level)
 
     # Read image data.
-    image = reader.get_image_dask_data("TCZYX", **reader_arguments)
+    image = reader.get_image_dask_data(DIMENSION_ORDER, **reader_arguments)
 
+    # Squeeze image if requested.
     if squeeze:
-        return image.squeeze()
+        image = image.squeeze()
+
+    # Compute image if requested.
+    if compute:
+        image = image.compute()
 
     return image
 
 
-def load_image_from_path(path: Path, squeeze: bool = True) -> dask.array.Array:
-    """
-    Load image from path.
-
-    Currently supports files ending in .ome.tiff.
-
-    Parameters
-    ----------
-    path
-        Path to image file.
-
-    Returns
-    -------
-    :
-        File loaded as dask array.
-    """
-
-    if not path.exists():
-        logger.error("Path [ %s ] could not be loaded", path)
-        raise FileNotFoundError(f"No such file '{path}'")
-
-    if path.suffixes == [".ome", ".tiff"]:
-        logger.info("Loading path [ %s ] as OME TIFF file", path)
-        if squeeze:
-            return BioImage(path).get_image_dask_data("TCZYX").compute().squeeze()
-        else:
-            return BioImage(path).get_image_dask_data("TCZYX").compute()
-
-    logger.error("Path [ %s ] cannot be loaded as image", path)
-    raise ValueError(f"Invalid image file format '{path.suffix}'")
-
-
-def load_image(location: ImageLocation, squeeze: bool = True) -> dask.array.Array:
+def load_image(
+    location: ImageLocation, squeeze: bool = False, compute: bool = False
+) -> "da.Array | np.ndarray":
     """
     Load image from location.
 
@@ -114,10 +126,14 @@ def load_image(location: ImageLocation, squeeze: bool = True) -> dask.array.Arra
     ----------
     location
         Image location object.
+    squeeze
+        True to drop any single-dimensional entries, False otherwise.
+    compute
+        True to turn lazy Dask array into in-memory NumPy array, False otherwise.
     """
 
     if location.path is not None:
-        return load_image_from_path(location.path, squeeze)
+        return load_image_from_path(location.path, squeeze, compute)
 
     logger.error("Location does not have a path.")
     raise FileNotFoundError("Unable to load image; no available locations.")
@@ -290,3 +306,201 @@ def load_dataframe(location: DataframeLocation) -> pd.DataFrame:
 
     logger.error("Location does not have an FMS ID or S3 URI.")
     raise FileNotFoundError("Unable to load dataframe; no available locations.")
+
+
+def resolve_dataframe_location(location: DataframeLocation) -> str:
+    """
+    Resolve dataframe location into a POSIX path or URI, defaulting to FMS.
+
+    Parameters
+    ----------
+    location
+        Dataframe location object.
+    """
+
+    if location.fmsid is not None:
+        return get_local_path_from_fmsid(location.fmsid).as_posix()
+
+    if location.s3uri is not None:
+        return location.s3uri
+
+    logger.error("Location does not have an FMS ID or S3 URI.")
+    raise FileNotFoundError("Unable to resolve dataframe location; no available locations.")
+
+
+def get_config_dict_from_mlflow(mlflowid: str) -> "DictConfig | ListConfig":
+    """
+    Get config dict from given MLFlow run ID.
+
+    This method requires the workflow to be run on the AICS intranet and have
+    the optional dependency `mlflow` installed.
+
+    Parameters
+    ----------
+    mlflowid
+        MLFlow run ID.
+
+    Returns
+    -------
+    :
+        Loaded config dict.
+    """
+
+    from omegaconf import OmegaConf
+
+    from endo_pipeline.io.mlflow import MLFLOW
+
+    # Check if config artifact exists
+    configs = MLFLOW.artifacts.list_artifacts(run_id=mlflowid, artifact_path="config")
+
+    # If no config artifacts are found, we cannot load the model
+    if len(configs) == 0:
+        logger.error("No config artifacts found for run id [ %s ]", mlflowid)
+        raise LookupError("No config artifacts found")
+
+    # If multiple config artifacts are found, default to using the first in the
+    # list, but log a warning for the user
+    if len(configs) > 1:
+        logger.warning("Multiple config artifacts found for run id [ %s ]", mlflowid)
+
+    logger.info("Loading model config [ %s ]", configs[0].path)
+
+    # Define config URI for loading the artifact
+    config_uri = f"runs:/{mlflowid}/{configs[0].path}"
+    return OmegaConf.create(MLFLOW.artifacts.load_text(config_uri))
+
+
+def get_checkpoint_path_from_mlflow(mlflowid: str) -> Path:
+    """
+    Get local path to checkpoint file from given MLFlow run ID.
+
+    This method requires the workflow to be run on the AICS intranet and have
+    the optional dependency `mlflow` installed.
+
+    Parameters
+    ----------
+    mlflowid
+        MLFlow run ID.
+
+    Returns
+    -------
+    :
+        Local path to checkpoint file. If both "last.ckpt" and "best.ckpt"
+        are available, defaults to "last.ckpt".
+    """
+
+    from endo_pipeline.io.mlflow import MLFLOW
+
+    # Check if checkpoint is already downloaded.
+    path = get_output_path("model_checkpoints", mlflowid, include_timestamp=False)
+    last_checkpoint_path = path / "last.ckpt"
+    best_checkpoint_path = path / "best.ckpt"
+
+    if last_checkpoint_path.exists():
+        logger.warning(
+            "Last checkpoint for run [ %s ] available at [ %s ]. "
+            "Using this checkpoint. If you want to redownload the artifact, delete this file.",
+            mlflowid,
+            last_checkpoint_path,
+        )
+        return last_checkpoint_path
+
+    if best_checkpoint_path.exists():
+        logger.warning(
+            "Best checkpoint for run [ %s ] available at [ %s ]. "
+            "Using this checkpoint. If you want to redownload the artifact, delete this file.",
+            mlflowid,
+            best_checkpoint_path,
+        )
+        return best_checkpoint_path
+
+    # Find all available checkpoints
+    artifacts = MLFLOW.artifacts.list_artifacts(run_id=mlflowid, artifact_path="checkpoints")
+    directories = [artifact for artifact in artifacts if artifact.is_dir]
+    checkpoints = [artifact.path for artifact in artifacts if not artifact.is_dir]
+
+    # Continue iterating through artifacts if there are directories
+    while directories:
+        artifact = directories.pop()
+        artifacts = MLFLOW.artifacts.list_artifacts(run_id=mlflowid, artifact_path=artifact.path)
+        directories.extend([artifact for artifact in artifacts if artifact.is_dir])
+        checkpoints.extend([artifact.path for artifact in artifacts if not artifact.is_dir])
+
+    # Filter artifacts for "last.ckpt" and "best.ckpt"
+    last_checkpoint = [ckpt for ckpt in checkpoints if ckpt.endswith("last.ckpt")]
+    best_checkpoint = [ckpt for ckpt in checkpoints if ckpt.endswith("best.ckpt")]
+
+    # If neither option is found, throw an error
+    if not last_checkpoint and not best_checkpoint:
+        logger.error("No valid checkpoint artifacts found for run id [ %s ]", mlflowid)
+        raise LookupError("No checkpoint artifacts found")
+
+    # Build checkpoint artifact URI
+    checkpoint = last_checkpoint[0] if last_checkpoint else best_checkpoint[0]
+    checkpoint_uri = f"runs:/{mlflowid}/{checkpoint}"
+
+    # Download artifact to output location and return path
+    return Path(
+        MLFLOW.artifacts.download_artifacts(artifact_uri=checkpoint_uri, dst_path=path.as_posix())
+    )
+
+
+def load_model_from_mlflow(mlflowid: str) -> "CytoDLModel":
+    """
+    Load model from MLFlow by run ID.
+
+    This method requires the workflow to be run on the AICS intranet and have
+    the optional dependency `mlflow` installed.
+
+    Parameters
+    ----------
+    mlflowid
+        MLFlow run ID.
+
+    Returns
+    -------
+    :
+        Model loaded with config and checkpoint.
+    """
+
+    from cyto_dl.api import CytoDLModel
+
+    from endo_pipeline.settings import DIFFAE_MODEL_LEGACY_CONFIG
+
+    # Temporary workaround: using tracked version of config for "legacy" model
+    if mlflowid == "ae7f25b4109c47809d3e2ed1b7120e50":
+        logger.warning("Using legacy config for model [ %s ]", mlflowid)
+        config_dict = load_model_config(DIFFAE_MODEL_LEGACY_CONFIG)
+    else:
+        # get logged config from MLFlow
+        config_dict = get_config_dict_from_mlflow(mlflowid)
+
+    checkpoint_path = get_checkpoint_path_from_mlflow(mlflowid)
+
+    model = CytoDLModel()
+    model.load_config_from_dict(config_dict)
+    model.override_config(
+        {
+            "checkpoint.ckpt_path": checkpoint_path.as_posix(),
+            "checkpoint.strict": True,
+        }
+    )
+
+    return model
+
+
+def load_model(location: ModelLocation) -> "CytoDLModel":
+    """
+    Load model from location with config and checkpoint, defaulting to MLFlow.
+
+    Parameters
+    ----------
+    location
+        Model location object.
+    """
+
+    if location.mlflowid is not None:
+        return load_model_from_mlflow(location.mlflowid)
+
+    logger.error("Location does not have an MLFlow run ID.")
+    raise FileNotFoundError("Unable to load model; no available locations.")
