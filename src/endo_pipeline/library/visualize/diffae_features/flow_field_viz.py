@@ -7,7 +7,7 @@ import pandas as pd
 from matplotlib.ticker import MaxNLocator
 
 from endo_pipeline.library.analyze.diffae_dataframe_utils import get_dataset_descriptions
-from endo_pipeline.library.analyze.diffae_features import data_driven_flow_field
+from endo_pipeline.library.analyze.dynamics_utils import data_driven_flow_field
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.visualize import viz_base
 from endo_pipeline.library.visualize.diffae_features import feature_viz

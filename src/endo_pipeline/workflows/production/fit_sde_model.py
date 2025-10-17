@@ -28,7 +28,7 @@ def main(
 
     from endo_pipeline.configs import dynamics_io
     from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.analyze.diffae_features import (
+    from endo_pipeline.library.analyze.dynamics_utils import (
         build_diff_lib,
         build_drift_lib,
         load_train_test,

@@ -17,7 +17,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_traj_and_diff,
     project_features_to_pcs,
 )
-from endo_pipeline.library.analyze.diffae_features import (
+from endo_pipeline.library.analyze.dynamics_utils import (
     compute_extrapolated_vector_field,
     solve_ddff_ode,
 )

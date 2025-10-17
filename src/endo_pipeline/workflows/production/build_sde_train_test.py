@@ -34,7 +34,7 @@ def main(
     from endo_pipeline.configs import dynamics_io, get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
-    from endo_pipeline.library.analyze.diffae_features import (
+    from endo_pipeline.library.analyze.dynamics_utils import (
         build_kramers_moyal_train_test,
         save_train_test,
     )
