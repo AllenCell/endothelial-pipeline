@@ -1,9 +1,7 @@
 import logging
-import os
 import typing
-from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal, Optional
+from typing import Literal
 
 import pandas as pd
 from cyto_dl.api import CytoDLModel
@@ -15,7 +13,6 @@ from endo_pipeline.configs import DatasetConfig, load_dataset_collection_config
 from endo_pipeline.io import (
     build_fms_annotations,
     get_output_path,
-    get_repository_root_dir,
     load_dataframe,
     upload_file_to_fms,
 )
@@ -34,17 +31,17 @@ def initialize_diffae_model(
 
     Parameters
     ----------
-    template_training_config : dict or DictConfig/ListConfig
+    template_training_config
         The loaded training configuration to use as the base.
-    overrides : Optional[ModelConfigOverride]
+    overrides
         Optionally, a ModelConfigOverride object (read from code, CLI, etc).
         If None, uses values from config as much as possible.
+
     Returns
     -------
     CytoDLModel
         An initialized ``CytoDLModel`` for training the DiffAE model.
     """
-    from omegaconf import OmegaConf
 
     cytodl_model = CytoDLModel()
     cytodl_model.load_config_from_dict(template_training_config)
@@ -202,7 +199,7 @@ def build_and_save_dataframe_manifest_for_training(
     val_dataframe: pd.DataFrame,
     resolution_level: int,
     z_slice_offsets: tuple[int, int] | None,
-    exclude_cell_piling: bool,
+    include_cell_piling: bool,
     dataset_config_list: list[DatasetConfig],
     output_savedir: Path,
     manifest_name: str,
@@ -221,8 +218,8 @@ def build_and_save_dataframe_manifest_for_training(
         The resolution level of the zarr files to be used for training.
     z_slice_offsets
         Lower and upper bounds for z-slicing.
-    exclude_cell_piling
-        Exclude cell piling timepoints if True, include them if False.
+    include_cell_piling
+        Include cell piling timepoints if True, exclude them if False.
     dataset_config_list
         A list of DatasetConfig objects for the datasets used in training.
     output_savedir
@@ -266,7 +263,7 @@ def build_and_save_dataframe_manifest_for_training(
         parameters={
             "resolution_level": resolution_level,
             "z_slice_offsets": z_slice_offsets,
-            "exclude_cell_piling": exclude_cell_piling,
+            "include_cell_piling": include_cell_piling,
         },
         locations={
             "training": DataframeLocation(fmsid=train_fmsid, s3uri=None),

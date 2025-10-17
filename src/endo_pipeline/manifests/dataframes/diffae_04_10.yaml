@@ -8,12 +8,6 @@ locations:
   20241217_20X:
     fmsid: da36d8a9fd7541e0b4d459d396063343
     s3uri: null
-  20250110_paired20X:
-    fmsid: e7f3e9715e254bd7a89b956d7db304d2
-    s3uri: null
-  20250110_paired40X:
-    fmsid: bf2005ff545d4602b4f8fa21b895c970
-    s3uri: null
   20250214_pairedPostFixation:
     fmsid: 6a9682a9ebbe472383a9dffe686f062c
     s3uri: null
@@ -22,12 +16,6 @@ locations:
     s3uri: null
   20250224_20X:
     fmsid: 80affabd33654cb583818cc106c06697
-    s3uri: null
-  20250228_paired20X:
-    fmsid: 65f32e5cfda940b497453940d00396f4
-    s3uri: null
-  20250228_paired40X:
-    fmsid: e8966eb09ff045db9c4aba00e0e039e0
     s3uri: null
   20250319_20X:
     fmsid: f68469a1a7f948dc92d20693a59b1aeb

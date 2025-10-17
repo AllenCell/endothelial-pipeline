@@ -11,7 +11,7 @@ from endo_pipeline.configs import (
     load_dataset_config,
     save_dataset_config,
 )
-from endo_pipeline.io import load_zarr_as_dask_array
+from endo_pipeline.io import load_image_from_path
 from endo_pipeline.io.output import get_output_path
 from endo_pipeline.library.process.z_stack_selection import (
     calculate_global_center_plane,
@@ -45,10 +45,10 @@ if __name__ == "__main__":
         ].values[0]
 
         zarr_file = get_zarr_file_for_position(dataset_config, position)
-        bf_stack = load_zarr_as_dask_array(
+        bf_stack = load_image_from_path(
             zarr_file, channels=["BF"], timepoints=frame, level=1
         ).squeeze()
-        cdh5_stack = load_zarr_as_dask_array(
+        cdh5_stack = load_image_from_path(
             zarr_file, channels=["EGFP"], timepoints=frame, level=1
         ).squeeze()
 

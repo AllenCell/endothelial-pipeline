@@ -8,7 +8,6 @@ from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
-    get_pc_column_names,
 )
 from endo_pipeline.library.analyze.numerics import (
     get_3d_bounds_from_data,
@@ -19,7 +18,12 @@ from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     plot_principal_component_histogram,
 )
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import NUM_BINS_CROP_HIST
+from endo_pipeline.settings import (
+    DIFFAE_PC_COLUMN_NAMES,
+    NUM_BINS_CROP_HIST,
+    NUM_PCS_TO_ANALYZE,
+    ColumnName,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +31,7 @@ logger = logging.getLogger(__name__)
 def load_data_for_montage(
     dataset_name_list: list[str],
     dataframe_manifest: DataframeManifest,
+    include_cell_piling: bool = True,
 ) -> tuple[pd.DataFrame, PCA]:
     """
     Load Diff AE feature DataFrames for one or more datasets and optionally apply PCA.
@@ -37,6 +42,8 @@ def load_data_for_montage(
         List of dataset names to load for montage.
     dataframe_manifest
         Dataframe manifest corresponding to features to load.
+    include_cell_piling
+        True to include cell piling timepoints, False to exclude them.
 
     Returns
     -------
@@ -46,12 +53,19 @@ def load_data_for_montage(
         Fit PCA object for the model.
     """
 
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest.name)
+    pca = fit_pca(
+        dataframe_manifest_name=dataframe_manifest.name,
+        include_cell_piling=include_cell_piling,
+    )
 
     df_all = pd.concat(
         [
             get_dataframe_for_dynamics_workflows(
-                name, dataframe_manifest, pca, filter_to_valid=False
+                name,
+                dataframe_manifest,
+                pca,
+                include_cell_piling=include_cell_piling,
+                include_not_steady_state=True,
             )
             for name in dataset_name_list
         ],
@@ -109,7 +123,7 @@ def filter_dataframe(
         df_all,
         NUM_BINS_CROP_HIST,
         bin_limits,
-        feat_cols=get_pc_column_names(df_all, pc_axes=[0, 1, 2]),
+        feat_cols=DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
     )
 
     if plot_heatmap:
@@ -122,8 +136,8 @@ def filter_dataframe(
 
     if frame_range is not None:
         df_filtered = df_filtered[
-            (df_filtered["frame_number"] >= frame_range[0])
-            & (df_filtered["frame_number"] <= frame_range[1])
+            (df_filtered[ColumnName.TIMEPOINT] >= frame_range[0])
+            & (df_filtered[ColumnName.TIMEPOINT] <= frame_range[1])
         ]
 
     return df_filtered

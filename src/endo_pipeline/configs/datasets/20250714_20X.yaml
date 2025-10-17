@@ -33,7 +33,6 @@ flow_conditions:
 - start: 268
   stop: 577
   shear_stress: 23.77
-valid_timepoints: null
 include_scenes: null
 notes: some cell death that occurs after the switch to high SS
 timepoint_annotations:

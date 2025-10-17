@@ -1,74 +1,74 @@
 name: diffae_baseline_include_cell_piling_20250918_no_log_norm_grid
-workflow: apply_diffae_grid
+workflow: eval_diffae_grid
 parameters:
-  z_slice_offsets: [4, 11]
+  z_slice_offsets:
+  - 4
+  - 11
+  config_name: diffae_eval_no_log
 locations:
   20241120_20X:
-    fmsid: 69ab48ff53834cf48222376a2c093f6a
+    fmsid: e09f97d90f304b9a8ef2d5eed8bfc3e3
     s3uri: null
   20241217_20X:
-    fmsid: 91eec90c29ff41f7832308750ab84e1b
-    s3uri: null
-  20250110_paired20X:
-    fmsid: 47a9fce6846c4680947679db9c865792
+    fmsid: cec22cf2b89049119e82319ab724307e
     s3uri: null
   20250214_pairedPreFixation:
-    fmsid: a695d9aab07746aaa188c58bc4afd056
+    fmsid: 177627fa7e71460aaf7b6e135133b43d
     s3uri: null
   20250224_20X:
-    fmsid: 18eb39ecd05f42e591ab852d2f2fb369
-    s3uri: null
-  20250227_paired20X:
-    fmsid: ae30095e675647ddb350f0bb4da5252c
+    fmsid: 67b7a26c64ee436e90fb61bf411df937
     s3uri: null
   20250319_20X:
-    fmsid: 4b83145866e74ac792495e46d8bede30
+    fmsid: d3e1851da63b414b9b49e32d0560bb0b
     s3uri: null
   20250326_20X:
-    fmsid: f7e1292cfd67482e9887d0c4c952f298
+    fmsid: 767fcb2d707a4f26aedc8f8c31ae9617
+    s3uri: null
+  20250331_20X:
+    fmsid: 54ee5278b10f48cebb0d6dd1570fe47c
     s3uri: null
   20250402_20X:
-    fmsid: 2b275d4bba3e4cafa2de059d284f4319
+    fmsid: 3fc0ae57ec694a32b5dc77131e64899d
     s3uri: null
   20250409_20X:
-    fmsid: 5275d4c3f2cb4c098e2eb9575af826c3
+    fmsid: a8d04486f7a14b6da4fed349f2068479
     s3uri: null
   20250428_20X:
-    fmsid: 08e93b80851a429a9dd38daa4be80c84
+    fmsid: 05485e131e0c4d888c63222c0c6fd0c4
     s3uri: null
   20250604_20X:
-    fmsid: 4db094f037fc4c3d92e5aed2d6cc4fa0
+    fmsid: 15b8ea3801f94d99af93c037a9656259
     s3uri: null
   20250611_20X:
-    fmsid: 6998d8a59d7d40449aa3ecf116c7973d
+    fmsid: 333504177a014812b61feeeced48917a
     s3uri: null
   20250618_20X:
-    fmsid: 8f87ca64e4b84fceaa4eb1458532a83b
+    fmsid: 01968350443d4a2f9bb3744e99ff4186
     s3uri: null
   20250714_20X:
-    fmsid: bd5c4adc073c461099d31f6f5bc8cf6c
+    fmsid: a8ea34fd57394e578e964f7b51ba206e
     s3uri: null
   20250716_20X:
-    fmsid: d26c33fe147e4063a11b51d7fe2edc05
+    fmsid: 96834414d30041fab5ee00d3fb9b24c2
     s3uri: null
   20250728_20X:
-    fmsid: d8d3814bba6b4f10bd17d08953a488e7
+    fmsid: 7cbb5bcd342849e8bafbf8abda15c4cf
     s3uri: null
   20250806_20X:
-    fmsid: 31b27f4203d9400d826d672a709dd67e
+    fmsid: 1c934c9eb50f4b2bbf3dbfd65eb16e38
     s3uri: null
   20250813_20X:
-    fmsid: e596d6955f574379a1a3ccaaa775bcfb
+    fmsid: 0e5df2f9d18240f08bf5e3a8b5bb1545
     s3uri: null
   20250818_20X:
-    fmsid: bae3c510748548f3a29c1fb881493511
+    fmsid: bfe4909535104e059b70f25e1a254130
     s3uri: null
   20250825_20X:
-    fmsid: bf6fabc2346f4e7c98c05a50cf990e47
+    fmsid: 3e1bcd6455094f64a713eed57a6386c1
     s3uri: null
   20250827_20X:
-    fmsid: 92e4fa35cf7b4ca5bef65d3f4e205e0b
+    fmsid: 9c777acca07743308ea20b7bc1e1482d
     s3uri: null
   20250908_20X:
-    fmsid: 2813f34b7ba74b35b05153fbb459d7e6
+    fmsid: 3a9fb8c0f1e84f76bac89ba8f47e4451
     s3uri: null

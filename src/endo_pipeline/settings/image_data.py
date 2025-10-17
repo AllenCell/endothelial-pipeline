@@ -3,6 +3,9 @@
 DIMENSION_ORDER: str = "TCZYX"
 """Default dimension order of image data."""
 
+ZARR_BRIGHTFIELD_CHANNEL: int = 1
+"""Default channel index for brightfield images in zarr files."""
+
 LOWER_Z_SLICE_OFFSET: int = 4
 """How many slices below the "center" Z-plane to include in projections."""
 
@@ -29,21 +32,10 @@ PIXEL_SIZE_3i_20x: float = 0.325
 AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x: float = 1.43
 """Axial distortion factor for 3i 20x objective determined as described in Diel et al. 2020."""
 
-AXIAL_DISTORTION_CORRECTION_FACTOR_3i_40x: float = 1.00
-"""Axial distortion factor for 3i 40x objective determined as described in Diel et al. 2020."""
-
 Z_STEP_SIZE_NOMINAL_3i_20x: float = 0.53
 """Nominal Z-step size for the 20x objective in micrometers."""
-
-Z_STEP_SIZE_NOMINAL_3i_40x: float = 0.26
-"""Nominal Z-step size for the 40x objective in micrometers."""
 
 Z_STEP_SIZE_ACTUAL_3i_20x: float = (
     Z_STEP_SIZE_NOMINAL_3i_20x * AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
 )
 """Actual Z-step size for the 20x objective in micrometers, corrected for axial distortion."""
-
-Z_STEP_SIZE_ACTUAL_3i_40x: float = (
-    Z_STEP_SIZE_NOMINAL_3i_40x * AXIAL_DISTORTION_CORRECTION_FACTOR_3i_40x
-)
-"""Actual Z-step size for the 40x objective in micrometers, corrected for axial distortion."""

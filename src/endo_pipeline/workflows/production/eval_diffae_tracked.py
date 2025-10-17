@@ -63,7 +63,6 @@ def main(
         load_model_for_inference,
         upload_prediction_dataframe_to_fms,
     )
-    from endo_pipeline.library.model.image_loading import get_include_positions
     from endo_pipeline.manifests import get_feature_dataframe_manifest_name, load_model_manifest
     from endo_pipeline.settings import DIFFAE_MODEL_EVAL_CONFIG, Z_SLICE_OFFSETS
 
@@ -90,14 +89,15 @@ def main(
 
     # evaluate model on images from each dataset
     for dataset_config in dataset_config_list:
-        only_include_positions = get_include_positions(dataset_config)
         if DEMO_MODE:
-            only_include_positions = only_include_positions[:1]
+            only_include_positions = [0]
             logger.warning(
                 "Workflow demo is enabled, only processing tracks from "
                 "the first position of dataset: [ %s ]",
                 dataset_config.name,
             )
+        else:
+            only_include_positions = None  # default to using all positions
 
         prediction_path = evaluate_model_on_tracked_crops_from_one_dataset(
             model=model,

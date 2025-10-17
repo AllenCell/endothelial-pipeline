@@ -5,11 +5,17 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from endo_pipeline.configs import get_datasets_in_collection
+from endo_pipeline.configs import (
+    TimepointAnnotation,
+    get_datasets_in_collection,
+    get_subset_of_timepoint_annotations,
+    load_dataset_config,
+)
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES, DIFFAE_PC_COLUMN_NAMES, ColumnName
 
-from .feature_dataframe_utils import get_feature_column_names
+from .dataframe_preprocessing import filter_dataframe_by_annotations
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +26,8 @@ pd.options.mode.chained_assignment = None  # default='warn'
 def fit_pca(
     dataset_collection_name: str = "pca_reference",
     dataframe_manifest_name: str = "diffae_04_10",
+    filter_dataframe: bool = True,
+    include_cell_piling: bool = False,
     num_pcs: int = 8,
 ) -> PCA:
     """
@@ -33,6 +41,10 @@ def fit_pca(
         This is used to load the model manifests that contain the reference datasets.
     dataframe_manifest_name
         Name of the dataframe manifest to load the model features from.
+    filter_dataframe
+        Whether to remove annotated timepoints and positions from the dataframes before fitting PCA.
+    include_cell_piling
+        True to include cell piling timepoints in the data used to fit PCA, False to exclude them.
     num_pcs
         Number of principal components to fit.
 
@@ -49,18 +61,37 @@ def fit_pca(
     locations = [
         get_dataframe_location_for_dataset(manifest, dataset_name) for dataset_name in dataset_names
     ]
-    logger.info("Datasets being used to fit PCA:\n%s", ",".join(dataset_names))
+    logger.info("Datasets being used to fit PCA: [ %s ]", ", ".join(dataset_names))
 
-    # Load all dataframes
-    data_ref = pd.concat([load_dataframe(location) for location in locations], ignore_index=True)
+    # Load all dataframes, filter out annotated timepoints, and concatenate.
+    # Filtering does or doesn't remove cell piling timepoints based on
+    # the input include_cell_piling.
+    dataframe_list = []
+    for location, dataset_name in zip(locations, dataset_names, strict=True):
+        dataframe = load_dataframe(location)
+        if filter_dataframe:
+            annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
+            if include_cell_piling:
+                annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
+            timepoint_annotations = get_subset_of_timepoint_annotations(
+                annotations_to_ignore=annotations_to_ignore
+            )
+            dataframe_filtered = filter_dataframe_by_annotations(
+                dataframe,
+                load_dataset_config(dataset_name),
+                timepoint_annotations=timepoint_annotations,
+            )
+        else:
+            dataframe_filtered = dataframe
+        dataframe_list.append(dataframe_filtered)
+    data_ref = pd.concat(dataframe_list, ignore_index=True)
 
     # fit PCA
     pca = PCA(n_components=num_pcs, svd_solver="full")
 
     # get the feature columns from the data,
     # these are the columns that start with 'feat_'
-    feature_cols = get_feature_column_names(data_ref)
-    pca.fit(data_ref[feature_cols].values)  # fit PCA
+    pca.fit(data_ref[DIFFAE_FEATURE_COLUMN_NAMES].values)  # fit PCA
 
     # log info about explained variance ratio
     logger.info(
@@ -160,13 +191,13 @@ def get_pca_loadings_as_df(
     loading_matrix = get_pca_loadings(pca, scaled, magnitude, squared_norm)
 
     num_features, num_pcs = loading_matrix.shape
-    feat_col_names = [f"feat_{i}" for i in range(num_features)]
-    pc_col_names = [f"pc{i+1}" for i in range(num_pcs)]
+    feat_col_names = DIFFAE_FEATURE_COLUMN_NAMES[:num_features]
+    pc_col_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
 
     loading_matrix_df = pd.DataFrame(loading_matrix, columns=pc_col_names, index=feat_col_names)
     if df_format == "long":
         loading_matrix_df = loading_matrix_df.reset_index().melt(
-            id_vars="index", var_name="pc", value_name="loading_value"
+            id_vars="index", var_name=ColumnName.PCA_FEATURE_PREFIX, value_name="loading_value"
         )
         loading_matrix_df = loading_matrix_df.rename(columns={"index": "feature"})
     elif df_format == "wide":

@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 
 from endo_pipeline.io import load_model, save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe import get_feature_column_names
 from endo_pipeline.library.model.diffae.generate_image import generate_from_coords_batch
 from endo_pipeline.library.process.get_images import (
     get_crops_in_dataframe,
@@ -14,6 +13,7 @@ from endo_pipeline.library.process.get_images import (
     individual_contrast_crop_list,
 )
 from endo_pipeline.manifests import get_most_recent_run_name, load_model_manifest
+from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +96,7 @@ def _get_reconstructed_crops(
 
     num_points = df.shape[0]
     latent_coords = []
-    feat_cols = get_feature_column_names(df)
+    feat_cols = DIFFAE_FEATURE_COLUMN_NAMES
     for i in range(num_points):
         latent_coords.append(df[feat_cols].iloc[i].tolist())
 

@@ -23,10 +23,11 @@ from endo_pipeline.configs import (
     get_available_zarr_files,
     get_datasets_in_collection,
     get_position_integer_from_zarr_file_path,
+    get_unannotated_positions,
     load_dataset_config,
 )
 from endo_pipeline.io import load_image_from_path
-from endo_pipeline.library.model import get_include_positions, get_z_slice_bounds_per_position
+from endo_pipeline.library.model import get_z_slice_bounds_per_position
 from endo_pipeline.library.process.cdh5_preprocessing import preprocess
 
 FLUOR_CHANNEL = 0
@@ -613,9 +614,9 @@ def align_all_positions(
 
     # get image loading args for moving and target datasets
     moving_z_slice = get_z_slice_bounds_per_position(moving_dataset_config, z_slice_offsets)
-    moving_include_pos = get_include_positions(moving_dataset_config)
+    moving_include_pos = get_unannotated_positions(moving_dataset_config)
     target_z_slice = get_z_slice_bounds_per_position(target_dataset_config, z_slice_offsets)
-    target_include_pos = get_include_positions(target_dataset_config)
+    target_include_pos = get_unannotated_positions(target_dataset_config)
 
     data_list = []
     position_counter = 0

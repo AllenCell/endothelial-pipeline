@@ -21,8 +21,6 @@ from .image_loading import (
     BioIOImageLoaderd,
     MultiDimImageDataset,
     build_zarr_image_loading_dataframe,
-    get_exclude_frames,
-    get_include_positions,
     get_z_slice_bounds_per_position,
 )
 from .latent_walk_utils import (
@@ -61,8 +59,6 @@ __all__ = [
     "get_ckpt_path",
     "get_cytodl_commit_hash",
     "get_dataset_names_used_for_training",
-    "get_exclude_frames",
-    "get_include_positions",
     "get_latent_coords",
     "get_pca_coords",
     "get_walk",
