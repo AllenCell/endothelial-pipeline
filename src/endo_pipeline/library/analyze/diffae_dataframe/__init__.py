@@ -1,3 +1,9 @@
+from ..feature_dataframe_utils import (
+    get_dataset_descriptions,
+    get_traj_and_diff,
+    get_valid_subset,
+    split_dataset_by_flow,
+)
 from .dataframe_preprocessing import (
     add_crop_index,
     add_description_column,
@@ -7,12 +13,6 @@ from .dataframe_preprocessing import (
     project_features_to_pcs,
 )
 from .diffae_features_pca import fit_pca, get_pca_loadings, get_pca_loadings_as_df
-from .feature_dataframe_utils import (
-    get_dataset_descriptions,
-    get_traj_and_diff,
-    get_valid_subset,
-    split_dataset_by_flow,
-)
 
 __all__ = [
     "add_crop_index",

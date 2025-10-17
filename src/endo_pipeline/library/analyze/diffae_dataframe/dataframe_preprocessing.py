@@ -19,7 +19,7 @@ from endo_pipeline.io import load_dataframe
 from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
 from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES, DIFFAE_PC_COLUMN_NAMES, ColumnName
 
-from .feature_dataframe_utils import check_required_columns_in_dataframe, get_dataset_descriptions
+from ..feature_dataframe_utils import check_required_columns_in_dataframe, get_dataset_descriptions
 
 logger = logging.getLogger(__name__)
 
