@@ -152,7 +152,7 @@ def plot_bf_outliers(
 
     fig.tight_layout(rect=[0, 0, 0.8, 1])
 
-    save_dir = get_output_path("single_tp_outlier_detection")
+    save_dir = get_output_path("annotate_tp_outliers")
     save_plot_to_path(fig, save_dir, f"bf_outliers_{dataset_name}_P{position}", file_format=".pdf")
     plt.show()
     plt.close(fig)
