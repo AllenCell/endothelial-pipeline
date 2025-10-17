@@ -1,4 +1,4 @@
-from ..feature_dataframe_utils import (
+from ..diffae_dataframe_utils import (
     get_dataset_descriptions,
     get_traj_and_diff,
     get_valid_subset,
