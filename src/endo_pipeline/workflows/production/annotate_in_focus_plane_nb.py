@@ -5,6 +5,7 @@ from multiprocessing import Pool
 import numpy as np
 import pandas as pd
 
+from endo_pipeline import DEMO_MODE
 from endo_pipeline.configs import (
     get_datasets_in_collection,
     get_zarr_file_for_position,
@@ -28,10 +29,10 @@ TAGS = ["quality-control", "preprocessing"]
 # %%
 datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
 
-for dataset in datasets:
-    logging.info(f"Processing dataset: {dataset}")
-    save_dir = get_output_path(__file__, dataset)
-    dataset_config = load_dataset_config(dataset)
+for dataset_name in datasets:
+    logging.info(f"Processing dataset: {dataset_name}")
+    save_dir = get_output_path(__file__, dataset_name)
+    dataset_config = load_dataset_config(dataset_name)
 
     # Parallelize position processing
     args = [(dataset_config, position, save_dir) for position in dataset_config.zarr_positions]
@@ -40,8 +41,8 @@ for dataset in datasets:
 
     # Save results
     results_df = pd.DataFrame(results)
-    results_df.to_csv(save_dir / f"{dataset}_global_center_plane.csv", index=False)
-    logging.info(f"Results saved to: {save_dir / f'{dataset}_global_center_plane.csv'}")
+    results_df.to_csv(save_dir / f"{dataset_name}_global_center_plane.csv", index=False)
+    logging.info(f"Results saved to: {save_dir / f'{dataset_name}_global_center_plane.csv'}")
 
     # Visualize the center plane for the first position
     position, frame = 0, 0
@@ -57,7 +58,7 @@ for dataset in datasets:
         bf_stack,
         cdh5_stack,
         center_plane,
-        dataset,
+        dataset_name,
         position,
         frame,
         save_dir,
@@ -76,9 +77,13 @@ for dataset in datasets:
     dataset_config.center_z_plane = global_center_plane
     save_dataset_config(dataset_config)
 
+    if DEMO_MODE:
+        logger.info(f"DEMO_MODE is ON. Processed only the first dataset: {dataset_name}")
+        break
+
 # Visualize the standard deviations per slice for the first position
 stdevs = [plane.std().compute() for plane in bf_stack]
 center_plane = max(0, np.argmin(stdevs))
-plot_standard_devs_per_slice(stdevs, center_plane, dataset, position, frame, save_dir)
+plot_standard_devs_per_slice(stdevs, center_plane, dataset_name, position, frame, save_dir)
 
 # %%
