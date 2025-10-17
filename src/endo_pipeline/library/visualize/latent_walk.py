@@ -22,14 +22,6 @@ def plot_latent_walk_as_grid(
         Directory path to save the output figure.
     file_name
         Name of the output figure file.
-
-    Returns
-    -------
-    :
-        A matplotlib Figure object containing the grid of images,
-        and a numpy array of the same images.
-    :
-        The corresponging array of Axes objects.
     """
     num_pcs = array_of_crops.shape[0]
     num_steps = array_of_crops.shape[1]
