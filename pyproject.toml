@@ -175,7 +175,6 @@ ignore = [
     "D400", # Intending to unignore: missing-trailing-period
     "D404", # Intending to unignore: docstring-starts-with-this
     "D415", # Intending to unignore: missing-terminal-punctuation
-    "F401", # Intending to unignore: unused-import
     "B905", # Intending to unignore: zip-without-explicit-strict
     "UP038", # Intending to unignore: non-pep604-isinstance
     "F541", # Intending to unignore: f-string-missing-placeholders

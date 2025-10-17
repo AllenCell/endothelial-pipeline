@@ -280,7 +280,6 @@ def setup_gpu(num_gpus: int | None) -> int | None:
     import os
     import re
     import subprocess
-    import time
 
     logger.info("Setting up environment to run workflow using %d GPU(s)", num_gpus)
 

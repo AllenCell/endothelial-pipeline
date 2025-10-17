@@ -1,5 +1,3 @@
-from typing import Optional
-
 import torch
 from bioio.writers import OmeTiffWriter
 from cyto_dl.models.im2im.diffusion_autoencoder import DiffusionAutoEncoder as _BaseDiffAE
