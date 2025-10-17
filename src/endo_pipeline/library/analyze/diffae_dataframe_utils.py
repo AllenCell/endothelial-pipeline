@@ -50,60 +50,6 @@ def check_required_columns_in_dataframe(
             raise ValueError(f"DataFrame must contain column [ {col} ]")
 
 
-def get_dataset_descriptions(
-    list_of_datasets: list[str],
-    include_duration: bool = True,
-    simple: bool = False,
-    include_shear_stress: bool = False,
-) -> dict[str, str]:
-    """
-    Get descriptive metadata for each dataset given in the list of datasets.
-
-    Describes the experimental conditions for each dataset,
-        e.g., "48hr_Maximum_Shear_Stress_30_dyncm2".
-
-    Parameters
-    ----------
-    list_of_datasets
-        List of dataset names for which to get descriptions
-    include_duration
-        Include duration of each flow condition in description if true.
-    simple
-        Include description of shear regime (e.g., "High_Shear_Stress") if true.
-    include_shear_stress
-        Include exact shear stress value (e.g., "30_dyncm2") in description if true.
-
-    Returns
-    -------
-    :
-        A dictionary where keys are dataset names and values are descriptions.
-    """
-
-    description_dict = {}
-
-    for dataset_name in list_of_datasets:
-        config = load_dataset_config(dataset_name)
-        description = []
-
-        for condition, regime in zip(
-            config.flow_conditions, config.shear_stress_regime, strict=True
-        ):
-            if include_duration:
-                duration_in_frames = condition.stop - condition.start
-                duration_in_hours = int(duration_in_frames * 5 / 60)
-                description.append(f"{duration_in_hours}hr")
-
-            if simple:
-                description.append(regime.value)
-
-            if not simple or include_shear_stress:
-                description.append(f"{int(condition.shear_stress)}dyncm2")
-
-        description_dict[dataset_name] = "_".join(description)
-
-    return description_dict
-
-
 def filter_dataframe_by_annotations(
     dataframe: pd.DataFrame,
     dataset_config: DatasetConfig,
@@ -356,103 +302,6 @@ def get_pca_loadings_as_df(
     return loading_matrix_df
 
 
-def add_description_column(
-    df: pd.DataFrame, dataset_name: str, simple: bool = False
-) -> pd.DataFrame:
-    """
-    Add description column to DataFrame df.
-    (Descriptions are currently based on the dataset name.).
-
-    Inputs:
-    - df: pd.DataFrame, DataFrame of feature data for dataset dataset_name
-        - IMPORTANT: DataFrame must be restricted to one dataset only,
-            as identified by the dataset_name column
-    - dataset_name: str, name of dataset to add description for
-    - simple (optional): bool, whether to use simple description
-        (e.g., "48hr_High")
-
-    Outputs:
-    - df: pd.DataFrame, DataFrame of feature data for one
-        dataset with added description column
-    """
-    # get descriptions for each dataset name
-    description = get_dataset_descriptions([dataset_name], simple=simple)
-
-    # add description column to DataFrame
-    df["description"] = description[dataset_name]  # add description to DataFrame
-
-    return df
-
-
-def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Add crop index column to DataFrame df. (Crops are currently identified by
-        their starting position in x and y.).
-
-    Inputs:
-    - df: pd.DataFrame, DataFrame of feature data with metadata
-        columns for start_x, start_y, and FOV_ID
-        - IMPORTANT: DataFrame must be restricted to one dataset only,
-            as identified by the dataset_name column
-
-    Outputs:
-    - df: pd.DataFrame, DataFrame of feature data for one
-        dataset with added crop index column
-    """
-    # check that required columns are present in dataframe
-    required_columns = [ColumnName.START_X, ColumnName.START_Y, ColumnName.POSITION]
-    check_required_columns_in_dataframe(df, required_columns)
-
-    # get list of unique starting positions and FOV_IDs
-    start_x = df[ColumnName.START_X].unique().tolist()
-    start_y = df[ColumnName.START_Y].unique().tolist()
-    position = df[ColumnName.POSITION].unique().tolist()
-    tup_list = [(x, y, pos) for x in start_x for y in start_y for pos in position]
-
-    # function to convert starting position and FOV_ID to crop index
-    def _pos_to_index(x: float, y: float, position: str) -> int:
-        return tup_list.index((x, y, position))
-
-    # apply function to DataFrame to get crop index
-    df[ColumnName.CROP_INDEX] = df.apply(
-        lambda x: _pos_to_index(
-            x[ColumnName.START_X], x[ColumnName.START_Y], x[ColumnName.POSITION]
-        ),
-        axis=1,
-    )
-
-    return df
-
-
-def add_zarr_path(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Extract zarr path from data config and add it
-    as its own column to the dataframe.
-    Note that df must be a DataFrame containing
-    manifest data from a single dataset.
-
-    This is needed for the current manifests loaded
-    via manifest_io.load_manifest_to_df().
-    """
-    # check that required columns are present in dataframe
-    required_columns = [ColumnName.DATASET, ColumnName.POSITION]
-    check_required_columns_in_dataframe(df, required_columns)
-
-    # temporary until we update how we store position
-    # for now, the position column is a string 'P[int]'
-    df["position_as_int"] = df[ColumnName.POSITION].apply(lambda x: int(x[1:]))
-
-    # load config for the dataset
-    dataset_config = load_dataset_config(df[ColumnName.DATASET].unique()[0])
-    # get zarr path for each position
-    df[ColumnName.ZARR_PATH] = df["position_as_int"].apply(
-        lambda x: get_zarr_file_for_position(dataset_config, x)
-    )
-
-    df = df.drop(columns=["position_as_int"])  # drop temporary column
-    return df
-
-
 def project_features_to_pcs(
     df: pd.DataFrame,
     pca: PCA,
@@ -552,6 +401,157 @@ def get_dataframe_for_dynamics_workflows(
     else:
         # project feature data onto PC axes
         return project_features_to_pcs(df_with_crop, pca)
+
+
+def get_dataset_descriptions(
+    list_of_datasets: list[str],
+    include_duration: bool = True,
+    simple: bool = False,
+    include_shear_stress: bool = False,
+) -> dict[str, str]:
+    """
+    Get descriptive metadata for each dataset given in the list of datasets.
+
+    Describes the experimental conditions for each dataset,
+        e.g., "48hr_Maximum_Shear_Stress_30_dyncm2".
+
+    Parameters
+    ----------
+    list_of_datasets
+        List of dataset names for which to get descriptions
+    include_duration
+        Include duration of each flow condition in description if true.
+    simple
+        Include description of shear regime (e.g., "High_Shear_Stress") if true.
+    include_shear_stress
+        Include exact shear stress value (e.g., "30_dyncm2") in description if true.
+
+    Returns
+    -------
+    :
+        A dictionary where keys are dataset names and values are descriptions.
+    """
+
+    description_dict = {}
+
+    for dataset_name in list_of_datasets:
+        config = load_dataset_config(dataset_name)
+        description = []
+
+        for condition, regime in zip(
+            config.flow_conditions, config.shear_stress_regime, strict=True
+        ):
+            if include_duration:
+                duration_in_frames = condition.stop - condition.start
+                duration_in_hours = int(duration_in_frames * 5 / 60)
+                description.append(f"{duration_in_hours}hr")
+
+            if simple:
+                description.append(regime.value)
+
+            if not simple or include_shear_stress:
+                description.append(f"{int(condition.shear_stress)}dyncm2")
+
+        description_dict[dataset_name] = "_".join(description)
+
+    return description_dict
+
+
+def add_description_column(
+    df: pd.DataFrame, dataset_name: str, simple: bool = False
+) -> pd.DataFrame:
+    """
+    Add description column to DataFrame df.
+    (Descriptions are currently based on the dataset name.).
+
+    Inputs:
+    - df: pd.DataFrame, DataFrame of feature data for dataset dataset_name
+        - IMPORTANT: DataFrame must be restricted to one dataset only,
+            as identified by the dataset_name column
+    - dataset_name: str, name of dataset to add description for
+    - simple (optional): bool, whether to use simple description
+        (e.g., "48hr_High")
+
+    Outputs:
+    - df: pd.DataFrame, DataFrame of feature data for one
+        dataset with added description column
+    """
+    # get descriptions for each dataset name
+    description = get_dataset_descriptions([dataset_name], simple=simple)
+
+    # add description column to DataFrame
+    df["description"] = description[dataset_name]  # add description to DataFrame
+
+    return df
+
+
+def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add crop index column to DataFrame df. (Crops are currently identified by
+        their starting position in x and y.).
+
+    Inputs:
+    - df: pd.DataFrame, DataFrame of feature data with metadata
+        columns for start_x, start_y, and FOV_ID
+        - IMPORTANT: DataFrame must be restricted to one dataset only,
+            as identified by the dataset_name column
+
+    Outputs:
+    - df: pd.DataFrame, DataFrame of feature data for one
+        dataset with added crop index column
+    """
+    # check that required columns are present in dataframe
+    required_columns = [ColumnName.START_X, ColumnName.START_Y, ColumnName.POSITION]
+    check_required_columns_in_dataframe(df, required_columns)
+
+    # get list of unique starting positions and FOV_IDs
+    start_x = df[ColumnName.START_X].unique().tolist()
+    start_y = df[ColumnName.START_Y].unique().tolist()
+    position = df[ColumnName.POSITION].unique().tolist()
+    tup_list = [(x, y, pos) for x in start_x for y in start_y for pos in position]
+
+    # function to convert starting position and FOV_ID to crop index
+    def _pos_to_index(x: float, y: float, position: str) -> int:
+        return tup_list.index((x, y, position))
+
+    # apply function to DataFrame to get crop index
+    df[ColumnName.CROP_INDEX] = df.apply(
+        lambda x: _pos_to_index(
+            x[ColumnName.START_X], x[ColumnName.START_Y], x[ColumnName.POSITION]
+        ),
+        axis=1,
+    )
+
+    return df
+
+
+def add_zarr_path(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Extract zarr path from data config and add it
+    as its own column to the dataframe.
+    Note that df must be a DataFrame containing
+    manifest data from a single dataset.
+
+    This is needed for the current manifests loaded
+    via manifest_io.load_manifest_to_df().
+    """
+    # check that required columns are present in dataframe
+    required_columns = [ColumnName.DATASET, ColumnName.POSITION]
+    check_required_columns_in_dataframe(df, required_columns)
+
+    # temporary until we update how we store position
+    # for now, the position column is a string 'P[int]'
+    df["position_as_int"] = df[ColumnName.POSITION].apply(lambda x: int(x[1:]))
+
+    # load config for the dataset
+    dataset_config = load_dataset_config(df[ColumnName.DATASET].unique()[0])
+    # get zarr path for each position
+    df[ColumnName.ZARR_PATH] = df["position_as_int"].apply(
+        lambda x: get_zarr_file_for_position(dataset_config, x)
+    )
+
+    df = df.drop(columns=["position_as_int"])  # drop temporary column
+    return df
 
 
 def pad_missing_timepoints(
