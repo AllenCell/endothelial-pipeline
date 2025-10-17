@@ -33,7 +33,8 @@ def main(datasets: Datasets | None = None) -> None:
 
     logger = logging.getLogger(__name__)
 
-    datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
+    if datasets is None:
+        datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
 
     for dataset_name in datasets:
         dataset_config = load_dataset_config(dataset_name)
