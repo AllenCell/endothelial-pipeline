@@ -75,8 +75,8 @@ def main(datasets: Datasets | None = None) -> None:
             int(row["position"]): int(row["mean_center_plane"]) for _, row in results_df.iterrows()
         }
 
-        for position, _ in global_center_plane.items():
-            if position > 13:
+        for position, center_plane in global_center_plane.items():
+            if center_plane > 13:
                 logging.warning(
                     f"Position {position} has a high center plane. Less than 11 slices available."
                 )
