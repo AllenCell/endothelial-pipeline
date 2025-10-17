@@ -56,4 +56,10 @@ timepoint_annotations:
     5: []
 position_annotations:
   dust_artifact: [2, 3, 4]
-center_z_plane: null
+center_z_plane:
+  0: 12
+  1: 11
+  2: 11
+  3: 11
+  4: 11
+  5: 11
