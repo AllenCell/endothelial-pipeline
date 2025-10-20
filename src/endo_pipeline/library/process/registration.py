@@ -29,6 +29,7 @@ from endo_pipeline.configs import (
 from endo_pipeline.io import load_image_from_path
 from endo_pipeline.library.model import get_z_slice_bounds_per_position
 from endo_pipeline.library.process.cdh5_preprocessing import preprocess
+from endo_pipeline.settings.diffae_feature_dataframes import CytoDLLoadDataKeys
 
 FLUOR_CHANNEL = 0
 BF_CHANNEL = 1
@@ -634,10 +635,16 @@ def align_all_positions(
             )
             continue
         moving_z_slices = list(
-            range(moving_z_slice[position]["z_start"], moving_z_slice[position]["z_stop"] + 1)
+            range(
+                moving_z_slice[position][CytoDLLoadDataKeys.Z_START],
+                moving_z_slice[position][CytoDLLoadDataKeys.Z_END] + 1,
+            )
         )
         target_z_slices = list(
-            range(target_z_slice[position]["z_start"], target_z_slice[position]["z_stop"] + 1)
+            range(
+                target_z_slice[position][CytoDLLoadDataKeys.Z_START],
+                target_z_slice[position][CytoDLLoadDataKeys.Z_END] + 1,
+            )
         )
         df_position = align(
             moving,
@@ -785,7 +792,9 @@ def align_and_save_paired_images(
 
     df = pd.concat(df_list, ignore_index=True)
     df = df.dropna(subset=["target", "moving"])
+    df["channel"] = 0
     logger.debug("Found %d pairs of images to save.", len(df))
+
     return df
 
 
