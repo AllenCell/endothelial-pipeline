@@ -71,19 +71,19 @@ def plot_bf_outliers(
     )
     ax.plot(
         dark_threshold,
-        label=f"Lower Threshold ({PARTIAL_DARK_THRESHOLD*100}%)",
+        label=f"Lower Threshold ({OUTLIER_THRESHOLD*100}%)",
         color="red",
         linestyle="--",
     )
     ax.plot(
         partial_dark_threshold,
-        label=f"Partial Dark Threshold ({OUTLIER_THRESHOLD*100}%)",
+        label=f"Partial Dark Threshold ({PARTIAL_DARK_THRESHOLD*100}%)",
         color="purple",
         linestyle="--",
     )
     ax.plot(
         bright_threshold,
-        label=f"Upper Threshold ({PARTIAL_DARK_THRESHOLD*100}%)",
+        label=f"Upper Threshold ({OUTLIER_THRESHOLD*100}%)",
         color="orange",
         linestyle="--",
     )
@@ -199,9 +199,9 @@ def detect_bf_outliers(
     rolling_median_np = rolling_median.to_numpy()
 
     # Thresholds
-    dark_threshold = rolling_median_np * (1 - PARTIAL_DARK_THRESHOLD)
-    partial_dark_threshold = rolling_median_np * (1 - OUTLIER_THRESHOLD)
-    bright_threshold = rolling_median_np * (1 + PARTIAL_DARK_THRESHOLD)
+    dark_threshold = rolling_median_np * (1 - OUTLIER_THRESHOLD)
+    partial_dark_threshold = rolling_median_np * (1 - PARTIAL_DARK_THRESHOLD)
+    bright_threshold = rolling_median_np * (1 + OUTLIER_THRESHOLD)
 
     # Peaks
     minima, _ = find_peaks(-data_np)  # dark
