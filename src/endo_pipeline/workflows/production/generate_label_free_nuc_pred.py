@@ -1,3 +1,9 @@
+import logging
+
+from endo_pipeline.cli import Datasets
+from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+
+
 def generate_labelfree_nuclei_predictions(args: dict) -> None:
     from pathlib import Path
 
@@ -177,11 +183,6 @@ def main(
 
 
 if __name__ == "__main__":
-    import logging
-
-    from endo_pipeline.cli import Datasets
-    from endo_pipeline.workflows.production.cdh5_classic_seg_tracking import ipython_cli_flexecute
-
     logger = logging.getLogger(__name__)
 
     device_used_printed_global = False
