@@ -37,7 +37,7 @@ def generate_results(
     from skimage.segmentation import find_boundaries
 
     from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-    from endo_pipeline.io import load_image, load_zarr_as_dask_array
+    from endo_pipeline.io import load_image, load_image_from_path
     from endo_pipeline.library.process import cdh5_preprocessing as preproc
     from endo_pipeline.library.process.general_image_preprocessing import save_image_output
     from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
@@ -52,7 +52,7 @@ def generate_results(
     dataset_config = load_dataset_config(dataset_name)
     zarr_file = get_zarr_file_for_position(dataset_config, position)
     img = BioImage(zarr_file)
-    raw_dask_arr = load_zarr_as_dask_array(
+    raw_dask_arr = load_image_from_path(
         path=zarr_file, channels=["EGFP"], timepoints=timepoint, level=img_bin_level
     )
 
@@ -74,7 +74,7 @@ def generate_results(
     print(f"T={timepoint} -- loading nuclei segmentations") if verbose else None
     seg_manifest = load_image_manifest("nuclear_labelfree_seg")
     seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, timepoint)
-    nuc_pred = load_image(seg_location)
+    nuc_pred = load_image(seg_location, squeeze=True, compute=True)
 
     (
         print(f"T={timepoint} -- splitting RAG-based segmentations using nuclei predictions")

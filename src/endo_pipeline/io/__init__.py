@@ -10,9 +10,7 @@ from .input import (
     load_image,
     load_image_from_path,
     load_model,
-    load_model_config_from_path,
     load_model_from_mlflow,
-    load_zarr_as_dask_array,
     resolve_dataframe_location,
 )
 from .log_funcs import configure_logging
@@ -44,8 +42,6 @@ __all__ = [
     "load_image_from_path",
     "load_model",
     "load_model_from_mlflow",
-    "load_model_config_from_path",
-    "load_zarr_as_dask_array",
     "make_name_unique",
     "resolve_dataframe_location",
     "save_plot_to_path",

@@ -23,11 +23,13 @@ from endo_pipeline.configs import (
     get_available_zarr_files,
     get_datasets_in_collection,
     get_position_integer_from_zarr_file_path,
+    get_unannotated_positions,
     load_dataset_config,
 )
 from endo_pipeline.io import load_image_from_path
-from endo_pipeline.library.model import get_include_positions, get_z_slice_bounds_per_position
+from endo_pipeline.library.model import get_z_slice_bounds_per_position
 from endo_pipeline.library.process.cdh5_preprocessing import preprocess
+from endo_pipeline.settings.diffae_feature_dataframes import CytoDLLoadDataKeys
 
 FLUOR_CHANNEL = 0
 BF_CHANNEL = 1
@@ -613,9 +615,9 @@ def align_all_positions(
 
     # get image loading args for moving and target datasets
     moving_z_slice = get_z_slice_bounds_per_position(moving_dataset_config, z_slice_offsets)
-    moving_include_pos = get_include_positions(moving_dataset_config)
+    moving_include_pos = get_unannotated_positions(moving_dataset_config)
     target_z_slice = get_z_slice_bounds_per_position(target_dataset_config, z_slice_offsets)
-    target_include_pos = get_include_positions(target_dataset_config)
+    target_include_pos = get_unannotated_positions(target_dataset_config)
 
     data_list = []
     position_counter = 0
@@ -633,10 +635,16 @@ def align_all_positions(
             )
             continue
         moving_z_slices = list(
-            range(moving_z_slice[position]["z_start"], moving_z_slice[position]["z_stop"] + 1)
+            range(
+                moving_z_slice[position][CytoDLLoadDataKeys.Z_START],
+                moving_z_slice[position][CytoDLLoadDataKeys.Z_END] + 1,
+            )
         )
         target_z_slices = list(
-            range(target_z_slice[position]["z_start"], target_z_slice[position]["z_stop"] + 1)
+            range(
+                target_z_slice[position][CytoDLLoadDataKeys.Z_START],
+                target_z_slice[position][CytoDLLoadDataKeys.Z_END] + 1,
+            )
         )
         df_position = align(
             moving,

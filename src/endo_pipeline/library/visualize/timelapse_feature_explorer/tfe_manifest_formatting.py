@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 from colorizer_data import FeatureInfo
 
-from endo_pipeline.library.analyze.diffae_manifest import fit_pca, project_manifest_to_pcs
+from endo_pipeline.library.analyze.diffae_dataframe import fit_pca, project_features_to_pcs
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
@@ -79,9 +79,7 @@ def add_intensity_mean_pcs(df: pd.DataFrame) -> pd.DataFrame:
     df_cleaned = df.dropna(subset=feat_cols)
 
     pca = fit_pca()
-    df_projected = project_manifest_to_pcs(
-        df_cleaned, pca, overwrite_feature_columns=False, feat_cols=feat_cols
-    )
+    df_projected = project_features_to_pcs(df_cleaned, pca, feat_cols=feat_cols)
 
     df_result = pd.concat([df_projected, nan_rows], ignore_index=True)
 

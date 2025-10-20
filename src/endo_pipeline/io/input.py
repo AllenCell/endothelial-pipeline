@@ -5,13 +5,14 @@ import typing
 from pathlib import Path
 
 if typing.TYPE_CHECKING:
+    import dask.array as da
+    import numpy as np
     from cyto_dl.api import CytoDLModel
     from omegaconf import DictConfig, ListConfig
 
-import dask.array as da
 import pandas as pd
-from bioio import BioImage
 
+from endo_pipeline.configs import load_model_config
 from endo_pipeline.io.output import get_output_path
 from endo_pipeline.manifests import DataframeLocation, ImageLocation, ModelLocation
 from endo_pipeline.settings import DIMENSION_ORDER
@@ -32,20 +33,27 @@ def get_repository_root_dir() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
-def load_zarr_as_dask_array(
+def load_image_from_path(
     path: Path,
+    squeeze: bool = False,
+    compute: bool = False,
     channels: list[str] | None = None,
     timepoints: int | list[int] | range | None = None,
     level: int = 0,
-    squeeze: bool = False,
-) -> da.Array:
+) -> "da.Array | np.ndarray":
     """
-    Load Zarr as Dask array.
+    Load image from path.
+
+    Currently supports files ending in .ome.zarr and .ome.tiff.
 
     Parameters
     ----------
     path
-        Path to Zarr file.
+        Path to image file.
+    squeeze
+        True to drop any single-dimensional entries, False otherwise.
+    compute
+        True to turn lazy Dask array into in-memory NumPy array, False otherwise.
     channels
         Channel(s) to load. Channels should be given as a list of channel names.
         Use None to load all channels.
@@ -54,18 +62,28 @@ def load_zarr_as_dask_array(
         of integers, or an integer range. Use None to load all timepoints.
     level
         Resolution level to load.
-    squeeze
-        True to drop any single-dimensional entries, False otherwise.
+
+    Returns
+    -------
+    :
+        File loaded as dask or numpy array.
     """
+
+    from bioio import BioImage
+
+    if path.suffixes not in ([".ome", ".zarr"], [".ome", ".tiff"]):
+        logger.error("Path [ %s ] cannot be loaded as image", path)
+        raise ValueError(f"Invalid image file format '{path.suffix}'")
 
     if not path.exists():
         logger.error("Path [ %s ] could not be loaded", path)
         raise FileNotFoundError(f"No such file '{path}'")
 
-    reader_arguments = {}
+    logger.info("Loading path [ %s ] as %s file", path, "".join(path.suffixes).upper())
 
-    # Initialize image reader.
+    # Initialize image reader and reader arguments.
     reader = BioImage(path)
+    reader_arguments = {}
 
     # Specify timepoints to load, if provided. Otherwise, all timepoints will be loaded.
     if timepoints is not None:
@@ -87,47 +105,20 @@ def load_zarr_as_dask_array(
     # Read image data.
     image = reader.get_image_dask_data(DIMENSION_ORDER, **reader_arguments)
 
+    # Squeeze image if requested.
     if squeeze:
-        return image.squeeze()
+        image = image.squeeze()
+
+    # Compute image if requested.
+    if compute:
+        image = image.compute()
 
     return image
 
 
-def load_image_from_path(path: Path, squeeze: bool = True) -> da.Array:
-    """
-    Load image from path.
-
-    Currently supports files ending in .ome.tiff.
-
-    Parameters
-    ----------
-    path
-        Path to image file.
-    squeeze
-        Drop single-dimensional entries from the shape of the array if True.
-
-    Returns
-    -------
-    :
-        File loaded as dask array.
-    """
-
-    if not path.exists():
-        logger.error("Path [ %s ] could not be loaded", path)
-        raise FileNotFoundError(f"No such file '{path}'")
-
-    if path.suffixes == [".ome", ".tiff"]:
-        logger.info("Loading path [ %s ] as OME TIFF file", path)
-        if squeeze:
-            return BioImage(path).get_image_dask_data(DIMENSION_ORDER).compute().squeeze()
-        else:
-            return BioImage(path).get_image_dask_data(DIMENSION_ORDER).compute()
-
-    logger.error("Path [ %s ] cannot be loaded as image", path)
-    raise ValueError(f"Invalid image file format '{path.suffix}'")
-
-
-def load_image(location: ImageLocation, squeeze: bool = True) -> da.Array:
+def load_image(
+    location: ImageLocation, squeeze: bool = False, compute: bool = False
+) -> "da.Array | np.ndarray":
     """
     Load image from location.
 
@@ -136,11 +127,13 @@ def load_image(location: ImageLocation, squeeze: bool = True) -> da.Array:
     location
         Image location object.
     squeeze
-        Drop single-dimensional entries from the shape of the array if True.
+        True to drop any single-dimensional entries, False otherwise.
+    compute
+        True to turn lazy Dask array into in-memory NumPy array, False otherwise.
     """
 
     if location.path is not None:
-        return load_image_from_path(location.path, squeeze)
+        return load_image_from_path(location.path, squeeze, compute)
 
     logger.error("Location does not have a path.")
     raise FileNotFoundError("Unable to load image; no available locations.")
@@ -472,12 +465,12 @@ def load_model_from_mlflow(mlflowid: str) -> "CytoDLModel":
 
     from cyto_dl.api import CytoDLModel
 
-    from endo_pipeline.settings import RELATIVE_PATH_TO_LEGACY_CONFIG
+    from endo_pipeline.settings import DIFFAE_MODEL_LEGACY_CONFIG
 
     # Temporary workaround: using tracked version of config for "legacy" model
     if mlflowid == "ae7f25b4109c47809d3e2ed1b7120e50":
         logger.warning("Using legacy config for model [ %s ]", mlflowid)
-        config_dict = load_model_config_from_path(RELATIVE_PATH_TO_LEGACY_CONFIG)
+        config_dict = load_model_config(DIFFAE_MODEL_LEGACY_CONFIG)
     else:
         # get logged config from MLFlow
         config_dict = get_config_dict_from_mlflow(mlflowid)
@@ -511,20 +504,3 @@ def load_model(location: ModelLocation) -> "CytoDLModel":
 
     logger.error("Location does not have an MLFlow run ID.")
     raise FileNotFoundError("Unable to load model; no available locations.")
-
-
-def load_model_config_from_path(config_path: str) -> "DictConfig | ListConfig":
-    """Parse input path to model configuration file and load."""
-    from omegaconf import OmegaConf
-
-    if not Path(config_path).is_absolute():
-        absolute_config_path = get_repository_root_dir() / config_path
-    else:
-        absolute_config_path = Path(config_path)
-
-    if not absolute_config_path.exists():
-        logger.error("Path [ %s ] could not be loaded", absolute_config_path)
-        raise FileNotFoundError(f"No such file '{absolute_config_path}'")
-
-    config = OmegaConf.load(absolute_config_path)
-    return config

@@ -1,8 +1,13 @@
+import json
+from contextlib import nullcontext
+
 import pytest
 
 from endo_pipeline.manifests.dataframe_manifest import DataframeLocation, DataframeManifest
+from endo_pipeline.manifests.dataframe_manifest_io import get_dataframe_manifest_dir
 from endo_pipeline.manifests.dataframe_manifest_utils import (
     get_dataframe_location_for_dataset,
+    get_dataframe_manifest_with_parameters,
     list_datasets_with_dataframes,
 )
 
@@ -73,3 +78,38 @@ def test_get_dataframe_location_for_dataset_valid_dataset(
 def test_get_dataframe_location_for_dataset_invalid_dataset(manifest):
     with pytest.raises(KeyError):
         get_dataframe_location_for_dataset(manifest, "invalid_dataset")
+
+
+@pytest.mark.parametrize(
+    "workflow,parameters,expected",
+    [
+        ("workflow_a", None, pytest.raises(ValueError)),
+        ("workflow_b", None, nullcontext("B")),
+        ("workflow_c", None, pytest.raises(LookupError)),
+        ("workflow_a", {}, pytest.raises(ValueError)),
+        ("workflow_b", {}, nullcontext("B")),
+        ("workflow_a", {"param1": "A"}, nullcontext("A")),
+        ("workflow_a", {"param1": "B"}, nullcontext("C")),
+        ("workflow_a", {"param2": 2}, pytest.raises(ValueError)),
+        ("workflow_a", {"param2": 3}, pytest.raises(LookupError)),
+        ("workflow_a", {"param1": "A", "param2": 2}, nullcontext("A")),
+        ("workflow_a", {"param1": "B", "param2": 2}, nullcontext("C")),
+        ("workflow_b", {"param1": "B"}, nullcontext("B")),
+    ],
+)
+def test_get_dataframe_manifest_with_parameters(fs, workflow, parameters, expected):
+    manifest_dir = get_dataframe_manifest_dir()
+
+    manifests = {
+        "A": {"name": "A", "workflow": "workflow_a", "parameters": {"param1": "A", "param2": 2}},
+        "B": {"name": "B", "workflow": "workflow_b", "parameters": {"param1": "B"}},
+        "C": {"name": "C", "workflow": "workflow_a", "parameters": {"param1": "B", "param2": 2}},
+    }
+
+    fs.create_file(manifest_dir / "a.yaml", contents=json.dumps(manifests["A"]))
+    fs.create_file(manifest_dir / "b.yaml", contents=json.dumps(manifests["B"]))
+    fs.create_file(manifest_dir / "c.yaml", contents=json.dumps(manifests["C"]))
+
+    with expected as e:
+        manifest = get_dataframe_manifest_with_parameters(workflow, parameters)
+        assert manifest == DataframeManifest(**manifests[e])

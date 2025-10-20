@@ -17,7 +17,7 @@ from tqdm import tqdm
 from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.io import get_output_path
 from endo_pipeline.io.input import load_image
-from endo_pipeline.library.model.apply_model import add_diffae_model_eval_crop_columns
+from endo_pipeline.library.model.eval_model import add_diffae_model_eval_crop_columns
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 from endo_pipeline.settings import DIMENSION_ORDER
@@ -846,7 +846,7 @@ def compute_nuclei_centroids(
         position=position,
         timepoint=timeframe,
     )
-    nuc_seg = load_image(seg_location, squeeze=False)
+    nuc_seg = load_image(seg_location, squeeze=False, compute=True)
 
     # get nuclei segmentation properties and dimension order of those properties
     props = regionprops(nuc_seg.squeeze())

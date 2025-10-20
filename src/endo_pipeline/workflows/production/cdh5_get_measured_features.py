@@ -130,7 +130,7 @@ def build_measured_features_tables(
     from skimage.segmentation import find_boundaries
 
     from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-    from endo_pipeline.io import load_image, load_zarr_as_dask_array
+    from endo_pipeline.io import load_image, load_image_from_path
     from endo_pipeline.library.analyze import shape_features as feat
     from endo_pipeline.library.process.general_image_preprocessing import save_image_output
     from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
@@ -151,7 +151,7 @@ def build_measured_features_tables(
     # load the raw cdh5 image data
     dataset_config = load_dataset_config(dataset_name)
     image_path = get_zarr_file_for_position(dataset_config, position)
-    raw_arr = load_zarr_as_dask_array(path=image_path, channels=["EGFP"], timepoints=tp, level=0)
+    raw_arr = load_image_from_path(path=image_path, channels=["EGFP"], timepoints=tp, level=0)
     raw_arr = raw_arr.max(axis=dim_order.index("Z")).squeeze().compute()
     voxel_size = BioImage(image_path).physical_pixel_sizes
 
@@ -159,7 +159,7 @@ def build_measured_features_tables(
 
     seg_manifest = load_image_manifest("cdh5_classic_seg")
     seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, tp)
-    seg_arr = load_image(seg_location)
+    seg_arr = load_image(seg_location, squeeze=True, compute=True)
     seg_filepath = seg_location.path.as_posix() if seg_location.path is not None else ""
 
     # NOTE: the segmentation images are stored as a single channel and single timepoint

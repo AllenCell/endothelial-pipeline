@@ -163,7 +163,7 @@ def get_nuclei_features_from_dataset_at_timepoint(
     and timepoint.
     """
     from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-    from endo_pipeline.io import load_image, load_zarr_as_dask_array
+    from endo_pipeline.io import load_image, load_image_from_path
     from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
     from endo_pipeline.settings import DIMENSION_ORDER
 
@@ -180,12 +180,7 @@ def get_nuclei_features_from_dataset_at_timepoint(
 
     dataset_config = load_dataset_config(dataset_name)
     img_path = get_zarr_file_for_position(dataset_config, position)
-    raw_img = load_zarr_as_dask_array(
-        path=img_path,
-        channels=channel_names,  # type:ignore[arg-type]
-        timepoints=tp,
-        level=0,
-    )
+    raw_img = load_image_from_path(path=img_path, channels=channel_names, timepoints=tp, level=0)
     raw_mip = raw_img.max(axis=dim_order.index("Z"), keepdims=True).compute()
 
     # split up the image into a list of channels

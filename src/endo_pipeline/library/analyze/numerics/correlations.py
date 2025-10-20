@@ -5,12 +5,12 @@ import numpy as np
 from scipy.optimize import curve_fit
 from sklearn.decomposition import PCA
 
-from endo_pipeline.library.analyze.diffae_manifest import (
+from endo_pipeline.library.analyze.diffae_dataframe import (
     df_to_array,
     get_dataframe_for_dynamics_workflows,
-    get_pc_column_names,
 )
 from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE
 
 logger = logging.getLogger(__name__)
 
@@ -309,7 +309,7 @@ def _compute_correlations_for_one_dataset(
     dataframe_manifest: DataframeManifest,
     pca: PCA,
     correlation_dict: dict,
-    bootstrap_samples: int = 0,
+    bootstrap_samples: int | None = None,
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
 ) -> dict[str, dict[str, Any]]:
     """Compute cross-correlation and autocorrelation for features from one dataset."""
@@ -324,7 +324,7 @@ def _compute_correlations_for_one_dataset(
         )
         return correlation_dict
 
-    feat_cols = get_pc_column_names(df, pc_axes=[0, 1, 2])
+    feat_cols = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
     # get feature data
     feats = df_to_array(df, feat_cols)
@@ -343,7 +343,7 @@ def _compute_correlations_for_one_dataset(
     relaxation_timescale_ub = np.zeros(3)
     for i in range(3):
         acf[:, i] = autocorrelation_function(feats, i)
-        if bootstrap_samples > 0:
+        if bootstrap_samples is not None:
             # calculate bootstrap confidence intervals for ACF and relaxation timescale
             confidence_intervals = bootstrap_autocorrelation_confidence_intervals(
                 feats, i, lags, n_bootstraps=bootstrap_samples
@@ -378,7 +378,7 @@ def _compute_correlations_for_one_dataset(
         ccf[:, i] = cross_correlation_function(data_feat1, data_feat2)
         # get delta CCF = CCF(tau>0) - CCF(tau<0)
         delta_ccf[:, i] = ccf[1 + num_lags // 2 :, i] - ccf[: num_lags // 2, i]
-        if bootstrap_samples > 0:
+        if bootstrap_samples is not None:
             # calculate bootstrap confidence intervals
             confidence_intervals = bootstrap_cross_correlation_confidence_intervals(
                 data_feat1,
@@ -419,7 +419,7 @@ def compute_correlation_dict(
     dataset_names: list[str],
     dataframe_manifest: DataframeManifest,
     pca: PCA,
-    bootstrap_samples: int = 0,
+    bootstrap_samples: int | None = None,
 ) -> dict[str, dict]:
     """Compute cross-correlation and autocorrelation for features from each dataset."""
     correlation_dict: dict[str, dict[str, np.ndarray]] = {

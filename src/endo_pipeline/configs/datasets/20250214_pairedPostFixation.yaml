@@ -30,7 +30,6 @@ flow_conditions:
 - start: -576
   stop: 0
   shear_stress: 0.0
-valid_timepoints: null
 include_scenes: null
 notes: These cells were fed about 2 hours before fixation (previously the cells had
   not been fed prior to fixation). This sample was imaged at a later date than the
