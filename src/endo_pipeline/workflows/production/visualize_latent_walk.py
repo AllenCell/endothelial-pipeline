@@ -19,7 +19,7 @@ def main(
     sigma: float = 3.0,
     n_steps: int = 10,
     use_pcs: bool = True,
-    show_coords: bool = True,
+    show_coords: bool = False,
     n_noise_samples: int = 1,
 ) -> None:
     """
@@ -156,7 +156,7 @@ def main(
     image_height = walk_img.shape[-1]
     walk_img_grid = walk_img.reshape(n_dim, n_steps_actual, image_width, image_height)
 
-    plot_latent_walk_as_grid(walk_img_grid, save_path, file_name)
+    plot_latent_walk_as_grid(walk_img_grid, ranges, save_path, file_name)
 
 
 if __name__ == "__main__":
