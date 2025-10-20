@@ -23,7 +23,7 @@ dependencies = [
     "bioio-tifffile>=1.0.1",
     "colorcet>=3.1.0",
     "colorizer-data",
-    "cyclopts>=3.22.2",
+    "cyclopts>=3.22.4",
     "deprecated>=1.2.18",
     "fastparquet>=2024.11.0",
     "fipy>=3.4.5",
@@ -208,10 +208,6 @@ ignore = [
     "C405", # Intending to unignore: unnecessary-literal-set
     "C417", # Intending to unignore: unnecessary-map
     "C901", # Intending to unignore: complex-structure
-    "D101", # Intending to unignore: undocumented-public-class
-    "UP007", # Intending to unignore: non-pep604-annotation-union
-    "RUF013", # Intending to unignore: implicit-optional
-    "RUF022", # Intending to unignore: unsorted-dunder-all
 ]
 
 [tool.ruff.lint.mccabe]
