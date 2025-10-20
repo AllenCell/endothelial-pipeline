@@ -19,7 +19,7 @@ def main(
     sigma: float = 3.0,
     n_steps: int = 10,
     use_pcs: bool = True,
-    show_coords: bool = True,
+    show_coords: bool = False,
     n_noise_samples: int = 1,
 ) -> None:
     """
@@ -54,8 +54,6 @@ def main(
         Saves the latent walk images to the output directory.
         The images are saved as a multi-channel TIFF file.
     """
-    from pathlib import Path
-
     import pandas as pd
     from bioio.writers import OmeTiffWriter
 
@@ -72,6 +70,7 @@ def main(
         get_pca_coords,
         write_pc_vals,
     )
+    from endo_pipeline.library.visualize.latent_walk import plot_latent_walk_as_grid
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
         get_most_recent_run_name,
@@ -86,7 +85,7 @@ def main(
     model = load_model(model_manifest.locations[run_name_])
 
     # set up output directory
-    save_dir = get_output_path(
+    save_path = get_output_path(
         "latent_walks",
         model_manifest_name,
         run_name_,
@@ -137,15 +136,27 @@ def main(
     walk_img = generate_from_coords(model, walk, n_noise_samples=n_noise_samples, num_gpus=NUM_GPUS)
 
     # vertically stack multi-channel generations
-    walk_img = walk_img.reshape(walk_img.shape[0], -1, walk_img.shape[-1])
+    walk_img_stack = walk_img.reshape(walk_img.shape[0], -1, walk_img.shape[-1])
     if show_coords:
-        walk_img = write_pc_vals(walk_img, ranges)
+        walk_img_stack = write_pc_vals(walk_img_stack, ranges)
 
-    save_path = Path(save_dir) / f"latent_walk_sigma_{sigma}_use_pcs_{use_pcs}.tif"
+    file_name = f"latent_walk_sigma_{int(sigma)}"
+    if use_pcs:
+        file_name = f"{file_name}_use_pcs"
     OmeTiffWriter.save(
-        uri=save_path,
-        data=walk_img,
+        uri=save_path / f"{file_name}.tif",
+        data=walk_img_stack,
     )
+
+    # also plot the latent walk as a grid and save
+    # reshape to (n_dim, n_steps, img_w, img_h)
+    n_dim = len(ranges)
+    n_steps_actual = ranges[0].shape[0]
+    image_width = walk_img.shape[-2]
+    image_height = walk_img.shape[-1]
+    walk_img_grid = walk_img.reshape(n_dim, n_steps_actual, image_width, image_height)
+
+    plot_latent_walk_as_grid(walk_img_grid, ranges, save_path, file_name)
 
 
 if __name__ == "__main__":
