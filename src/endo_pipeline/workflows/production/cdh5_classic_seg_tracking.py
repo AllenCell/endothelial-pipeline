@@ -1,3 +1,12 @@
+import logging
+from collections.abc import Sequence
+
+from endo_pipeline.cli import Datasets
+from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+
+TAGS = ["cdh5_segmentation", "tracking"]
+
+
 def run_workflow(queue: Sequence) -> None:
     """
     Run the tracking workflow using a queue.
@@ -7,6 +16,7 @@ def run_workflow(queue: Sequence) -> None:
     from pathlib import Path
 
     import numpy as np
+    import pandas as pd
 
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.configs.dataset_io import extract_T, get_zarr_name, get_zarr_path
@@ -89,6 +99,7 @@ def main(
     """Run the tracking workflow on a dataset, a list of datasets, or a dataset collection."""
     from multiprocessing import Pool
 
+    import pandas as pd
     from tqdm import tqdm
 
     from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
@@ -150,14 +161,6 @@ def main(
 
 
 if __name__ == "__main__":
-    import logging
-    from collections.abc import Sequence
-
-    import pandas as pd
-
-    from endo_pipeline.cli import Datasets
-    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
-
     logger = logging.getLogger(__name__)
 
     ipython_cli_flexecute(main)

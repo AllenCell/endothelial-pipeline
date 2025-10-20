@@ -5,130 +5,12 @@ They must be run on the Allen Institute intranet either
 in a Linux or MacOS environment through the CLI.
 """
 
+import logging
+from pathlib import Path
+from typing import Literal
 
-def get_model_annotations_for_upload() -> dict:
-    """Return dictionary of label-free nuclei Cellpose model info for FMS upload annotations."""
-    from endo_pipeline.manifests import load_model_manifest
-
-    model_name = "nuc_pred_labelfree"
-    run_name = "finetuned_20250419"
-    return {"model_manifest": load_model_manifest(model_name), "run_name": run_name}
-
-
-def fms_upload_cdh5_classic_seg_tracking(dataset_name: str, path_to_file: Path) -> str:
-    """Upload the cdh5 segmentation tracking results to FMS and store the FMS ID in a manifest."""
-    # Define the metadata associated with the file being uploaded to FMS
-    # The segmentations make use of label-free nuclei predictions
-    # to improve segmentation quality, so we include model config
-    # info along with the FMS upload here.
-    dataset_config = load_dataset_config(dataset_name)
-    model_annotations = get_model_annotations_for_upload()
-    annotations = build_fms_annotations(dataset_config, **model_annotations)
-
-    # Upload the file to FMS
-    file_id = upload_file_to_fms(
-        file_path=path_to_file, annotations=annotations, file_type="parquet"
-    )
-
-    # Store FMS ID in dataframe manifest
-    manifest_name = "cdh5_classic_segmentation_tracking"
-    workflow_name = "live_feat_workflows_to_fms"
-    manifest = create_dataframe_manifest(manifest_name, workflow_name)
-    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
-    save_dataframe_manifest(manifest)
-
-    logger.info(
-        f"Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
-    )
-
-    return file_id
-
-
-def fms_upload_cdh5_get_measured_features(dataset_name: str, path_to_file: Path) -> str:
-    """Upload the cdh5 segmentation features to FMS and store the FMS ID in a manifest."""
-    # Define the metadata associated with the file being uploaded to FMS
-    # The segmentations make use of label-free nuclei predictions
-    # to improve segmentation quality, so we include model config
-    # info along with the FMS upload here.
-    dataset_config = load_dataset_config(dataset_name)
-    model_annotations = get_model_annotations_for_upload()
-    annotations = build_fms_annotations(dataset_config, **model_annotations)
-
-    # Upload the file to FMS
-    file_id = upload_file_to_fms(
-        file_path=path_to_file, annotations=annotations, file_type="parquet"
-    )
-
-    # Store FMS ID in dataframe manifest
-    manifest_name = "cdh5_classic_segmentation"
-    workflow_name = "live_feat_workflows_to_fms"
-    manifest = create_dataframe_manifest(manifest_name, workflow_name)
-    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
-    save_dataframe_manifest(manifest)
-
-    logger.info(
-        f"Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
-    )
-
-    return file_id
-
-
-def fms_upload_nuc_get_measured_features(dataset_name: str, path_to_file: Path) -> str:
-    """Upload the nuclei label-free features to FMS and store the FMS ID in a manifest."""
-    # Define the metadata associated with the file being uploaded to FMS
-    # The segmentations make use of label-free nuclei predictions
-    # to improve segmentation quality, so we include model config
-    # info along with the FMS upload here.
-    dataset_config = load_dataset_config(dataset_name)
-    model_annotations = get_model_annotations_for_upload()
-    annotations = build_fms_annotations(dataset_config, **model_annotations)
-
-    # Upload the file to FMS
-    file_id = upload_file_to_fms(
-        file_path=path_to_file, annotations=annotations, file_type="parquet"
-    )
-
-    # Store FMS ID in dataframe manifest
-    manifest_name = "nuclei_label_free_segmentation"
-    workflow_name = "live_feat_workflows_to_fms"
-    manifest = create_dataframe_manifest(manifest_name, workflow_name)
-    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
-    save_dataframe_manifest(manifest)
-
-    logger.info(
-        f"Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
-    )
-
-    return file_id
-
-
-def fms_upload_make_seg_feats_manifest(dataset_name: str, path_to_file: Path) -> str:
-    """Upload the merged live segmentation features to FMS and store the FMS ID in a manifest."""
-    # Define the metadata associated with the file being uploaded to FMS
-    # The segmentations make use of label-free nuclei predictions
-    # to improve segmentation quality, so we include model config
-    # info along with the FMS upload here.
-    dataset_config = load_dataset_config(dataset_name)
-    model_annotations = get_model_annotations_for_upload()
-    annotations = build_fms_annotations(dataset_config, **model_annotations)
-
-    # Upload the file to FMS
-    file_id = upload_file_to_fms(
-        file_path=path_to_file, annotations=annotations, file_type="parquet"
-    )
-
-    # Store FMS ID in dataframe manifest
-    manifest_name = "live_merged_seg_features"
-    workflow_name = "live_feat_workflows_to_fms"
-    manifest = create_dataframe_manifest(manifest_name, workflow_name)
-    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
-    save_dataframe_manifest(manifest)
-
-    logger.info(
-        f"Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
-    )
-
-    return file_id
+from endo_pipeline.__main__ import workflow_cli
+from endo_pipeline.cli import Datasets
 
 
 def main(
@@ -151,6 +33,12 @@ def main(
 
     from endo_pipeline.configs import load_all_dataset_configs
     from endo_pipeline.io import get_timestamp
+    from endo_pipeline.library.process.lib_live_feat_workflows_to_fms import (
+        fms_upload_cdh5_classic_seg_tracking,
+        fms_upload_cdh5_get_measured_features,
+        fms_upload_make_seg_feats_manifest,
+        fms_upload_nuc_get_measured_features,
+    )
 
     endo_project_analysis_dir = Path(
         "//allen/aics/endothelial/morphological_features/analysis"
@@ -224,20 +112,6 @@ def main(
 
 
 if __name__ == "__main__":
-    import logging
-    from pathlib import Path
-    from typing import Literal
-
-    from endo_pipeline.__main__ import workflow_cli
-    from endo_pipeline.cli import Datasets
-    from endo_pipeline.configs import load_dataset_config
-    from endo_pipeline.io import build_fms_annotations, upload_file_to_fms
-    from endo_pipeline.manifests import (
-        DataframeLocation,
-        create_dataframe_manifest,
-        save_dataframe_manifest,
-    )
-
     logger = logging.getLogger(__name__)
 
     workflow_cli(main)

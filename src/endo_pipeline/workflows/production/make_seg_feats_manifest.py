@@ -1,3 +1,11 @@
+import logging
+from collections.abc import Sequence
+from pathlib import Path
+
+from endo_pipeline.cli import Datasets
+from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+
+
 def create_seg_measured_feat_manifest_multiproc_wrapper(args: Sequence) -> None:
     """Merge nuclei measurement, cdh5 segmentation measurement, and tracking tables together using
     multiprocessing.
@@ -77,7 +85,6 @@ def create_segmentation_measured_feature_manifest(
 def main(
     datasets: Datasets,
     n_proc: int = 1,
-    verbose: bool = False,
 ) -> None:
     """Run workflow for merging nuclei, cdh5 segmentation, and tracking data into a single table."""
     from multiprocessing import Pool
@@ -122,12 +129,6 @@ def main(
 
 
 if __name__ == "__main__":
-    import logging
-    from collections.abc import Sequence
-    from pathlib import Path
-
-    from endo_pipeline.cli import Datasets
-    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
-
     logger = logging.getLogger(__name__)
+
     ipython_cli_flexecute(main)

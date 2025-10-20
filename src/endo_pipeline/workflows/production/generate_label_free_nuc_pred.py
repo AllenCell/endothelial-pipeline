@@ -1,11 +1,11 @@
-def generate_results(args: dict) -> None:
+def generate_labelfree_nuclei_predictions(args: dict) -> None:
     from pathlib import Path
 
     import numpy as np
     from bioio import BioImage
     from cellpose import core, models
 
-    from endo_pipeline.io import load_zarr_as_dask_array
+    from endo_pipeline.io import load_image_from_path
     from endo_pipeline.library.process.general_image_preprocessing import save_image_output
     from endo_pipeline.manifests import get_model_location_for_run, load_model_manifest
     from endo_pipeline.settings import DIMENSION_ORDER
@@ -35,7 +35,7 @@ def generate_results(args: dict) -> None:
         return
 
     else:
-        img_arr = load_zarr_as_dask_array(
+        img_arr = load_image_from_path(
             path=img_path,
             channels=["BF"],
             timepoints=tp,
@@ -90,10 +90,13 @@ def generate_results(args: dict) -> None:
             plane_stdevs = [arr.std().compute() for arr in img_arr.squeeze()]
             # don't allow the possible good contrast plane to be less than 0
             # (0 is the bottom of the Z-stack)
-            possible_good_contrast_brightfield_plane = max(0, np.argmin(plane_stdevs) - 6)
-            bf_good_contrast_arr = (
-                img_arr.squeeze()[[possible_good_contrast_brightfield_plane]].squeeze().compute()
-            )
+            possible_good_contrast_brightfield_plane = max(0, int(np.argmin(plane_stdevs) - 6))
+            bf_good_contrast_arr = np.take(
+                img_arr,
+                indices=possible_good_contrast_brightfield_plane,
+                axis=DIMENSION_ORDER.index("Z"),
+            ).squeeze()
+            bf_good_contrast_arr = bf_good_contrast_arr.compute()
 
             # Construct and save a multichannel image
             images_out = [bf_good_contrast_arr, bf_std_arr, masks_bf_std[0].squeeze()]
@@ -115,7 +118,6 @@ def main(
     save_output: bool = True,
     overwrite: bool = True,
     is_test: bool = False,
-    verbose: bool = False,
 ) -> None:
     """
     Run the label-free nuclear prediction workflow on a dataset, list of datasets, or collection.
@@ -156,7 +158,9 @@ def main(
             with Pool(processes=n_proc) as pool:
                 list(
                     tqdm(
-                        pool.imap(generate_results, analysis_queue, chunksize=5),
+                        pool.imap(
+                            generate_labelfree_nuclei_predictions, analysis_queue, chunksize=5
+                        ),
                         total=len(analysis_queue),
                         desc="Predicting nuclei (MP)",
                     )
@@ -166,7 +170,7 @@ def main(
     else:
         logger.info("Starting single-core processing...")
         for dataset_name_and_args in tqdm(analysis_queue, desc="Predicting nuclei (1P)"):
-            generate_results(dataset_name_and_args)
+            generate_labelfree_nuclei_predictions(dataset_name_and_args)
 
     logger.info("...done analysis.")
     print("\N{MICROSCOPE}")

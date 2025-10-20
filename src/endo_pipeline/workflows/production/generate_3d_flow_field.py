@@ -3,8 +3,6 @@ from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RU
 
 TAGS = ["dynamical_systems", "diffae_features"]
 
-TAGS = ["dynamical_systems", "diffae_features"]
-
 
 def main(
     datasets: Datasets | None = None,

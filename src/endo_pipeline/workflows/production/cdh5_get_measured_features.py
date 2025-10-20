@@ -1,5 +1,13 @@
+import logging
+
+from endo_pipeline.cli import Datasets
+from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+
+
 def build_measured_features_tables_multiproc_wrapper(args: dict) -> None:
     """Build and save measured features tables using multiprocessing."""
+    from endo_pipeline.library.analyze import shape_features as feat
+
     dataset_name = args["dataset_name"]
     position = args["position"]
     tp = args["T"]
@@ -7,7 +15,7 @@ def build_measured_features_tables_multiproc_wrapper(args: dict) -> None:
     out_dir = args["output_dir"]
     verbose = args["verbose"]
     create_validation_image = args["is_validation_image"]
-    build_measured_features_tables(
+    feat.build_measured_features_tables(
         dataset_name,
         tp,
         out_dir,
@@ -16,286 +24,6 @@ def build_measured_features_tables_multiproc_wrapper(args: dict) -> None:
         create_validation_image=create_validation_image,
         verbose=verbose,
     )
-
-
-def build_measured_features_tables(
-    dataset_name: str,
-    tp: int,
-    out_dir: str | Path,
-    position: int = 0,
-    save_output: bool | None = True,
-    create_validation_image: bool = False,
-    verbose: bool = True,
-) -> None:
-    """
-    Build tables of measured features from the segmentation images
-    and the raw cdh5 images.
-    The segmentation properties tables is
-    a table of measured features extracted from the cdh5 segmentations
-    using skimage.regionprops.
-    The edge alignments table contains measured features that were
-    determined based on a thresholded image of the cdh5 signal
-    (i.e. they don't require the cdh5 segmentations).
-
-    Also produces a validation image if requested
-    (a validation image has segmentation borders, nodes, edges, and
-    the straight lines connecting nodes as channels in a single
-    .tiff image).
-
-    Parameters
-    ----------
-    dataset_name: str
-        The name of the dataset to process.
-    tp: int
-        The timepoint to process.
-    out_dir: str | Path
-        The output directory to save the tables and validation images to.
-    position: int
-        The position to process (this will be equal to the scene index).
-    save_output: bool | None
-        Whether to save the output tables (and validation images if selected).
-    create_validation_image: bool
-        Whether to create a validation image.
-    verbose: bool
-        Whether to print progress messages.
-
-    Returns
-    -------
-    This function will only save tables and images,
-    it does not return anything.
-
-    The tables contain the following information:
-    segmentation properties table:
-    - filepath_raw_image
-    - filepath_segmentation_image
-    - dataset_name
-    - position
-    - T
-    - cell_label
-    - cell_centroid
-    - cell_area (px**2)
-    - cell_perimeter (px)
-    - cell_perimeter (px)
-    - cell_solidity
-    - major_axis_length
-    - minor_axis_length
-    - cell_eccentricity
-    - cell_orientation
-    - cell_fluorescence_mean (a.u.)
-    - cell_fluorescence_std (a.u.)
-    - cell_fluorescence_median (a.u.)
-    - cell_fluoresnce_min (a.u.)
-    - cell_fluorescence_pct25 (a.u.)
-    - cell_fluorescence_pct75 (a.u.)
-    - cell_fluorescence_max (a.u.)
-    - neighboring_cell_labels
-    - edge_labels
-    - node_labels
-    - node_pair_labels
-    - touches_image_border
-    - measurement_timestamp
-    - git_branch_name
-    - git_commit_hash
-    - git_uncommitted_changes
-
-    edge alignments table:
-    - filepath_raw_image
-    - filepath_raw_image
-    - filepath_segmentation_image
-    - dataset_name
-    - position
-    - T
-    - node_pair_labels
-    - node_pair_centroids
-    - node_to_node_distance
-    - angle_relative_to_horizontal
-    - connecting_edges
-    - edge_num_pixels
-    - edge_length (px)
-    - edge_fluorescence_mean (a.u.)
-    - edge_fluorescence_std (a.u.)
-    - edge_fluorescence_median (a.u.)
-    - edge_fluoresnce_min (a.u.)
-    - edge_fluorescence_pct25 (a.u.)
-    - edge_fluorescence_pct75 (a.u.)
-    - edge_fluorescence_max (a.u.)
-    - measurement_timestamp
-    - git_branch_name
-    - git_commit_hash
-    - git_uncommitted_changes
-    """
-    import numpy as np
-    import pandas as pd
-    from bioio import BioImage
-    from skimage.segmentation import find_boundaries
-
-    from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-    from endo_pipeline.io import load_image, load_image_from_path
-    from endo_pipeline.library.analyze import shape_features as feat
-    from endo_pipeline.library.process.general_image_preprocessing import save_image_output
-    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
-    from endo_pipeline.settings import DIMENSION_ORDER
-
-    logger.debug(f"Working on {dataset_name} -- T={tp}...")
-
-    dim_order = DIMENSION_ORDER
-
-    out_dir = Path(out_dir)
-    images_out_dir = out_dir / f"{dataset_name}/P{position}/images"
-    tables_out_dir_alignments = out_dir / f"{dataset_name}/P{position}/tables_cdh5_alignments"
-    tables_out_dir_segprops = (
-        out_dir / f"{dataset_name}/P{position}/tables_cdh5_segmentation_properties"
-    )
-
-    logger.debug(f"T={tp} -- loading imaging datasets")
-    # load the raw cdh5 image data
-    dataset_config = load_dataset_config(dataset_name)
-    image_path = get_zarr_file_for_position(dataset_config, position)
-    raw_arr = load_image_from_path(path=image_path, channels=["EGFP"], timepoints=tp, level=0)
-    raw_arr = raw_arr.max(axis=dim_order.index("Z")).squeeze().compute()
-    voxel_size = BioImage(image_path).physical_pixel_sizes
-
-    logger.debug(f"T={tp} -- loading classic segmentation")
-
-    seg_manifest = load_image_manifest("cdh5_classic_seg")
-    seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, tp)
-    seg_arr = load_image(seg_location, squeeze=True, compute=True)
-    seg_filepath = seg_location.path.as_posix() if seg_location.path is not None else ""
-
-    # NOTE: the segmentation images are stored as a single channel and single timepoint
-    seg_borders = find_boundaries(seg_arr)
-
-    ## convert cleaned up threshold of cadherin signal to nodes and edges
-    logger.debug(f"T={tp} -- getting nodes and edges")
-    nodes, edges, _, _ = feat.arr2graph(seg_borders, closing_step=False)
-
-    ## get the node-to-node distances and the angle between a line connecting two nodes
-    ## and a horizontal line
-    ## NOTE there should also be a way to get the error in the measurement of the angles too...
-    logger.debug(f"T={tp} -- calculating distances and angles between neighboring nodes")
-
-    neighbor_node_metrics, labeled_region_metrics = feat.calculate_region_border_metrics(
-        seg_borders.astype(bool), raw_arr, seg_arr, verbose=verbose
-    )
-
-    ## save a table of the results
-    if save_output:
-        tables_out_dir_alignments.mkdir(exist_ok=True, parents=True)
-        ## save table output of edge alignments
-        logger.debug(f"T={tp} -- saving table of edge angles and distances")
-        table = pd.DataFrame(
-            {
-                "filepath_raw_image": image_path.as_posix(),
-                "filepath_segmentation_image": seg_filepath,
-                "dataset_name": dataset_name,
-                "position": position,
-                "T": tp,
-                "node_pair_labels": neighbor_node_metrics["node_pair_labels"],
-                "node_pair_centroids": neighbor_node_metrics["node_pair_centroids"],
-                "node_to_node_distance": neighbor_node_metrics["distances"],
-                "angle_relative_to_horizontal": neighbor_node_metrics["angles"],
-                "connecting_edges": neighbor_node_metrics["edge_labels"],
-                "edge_num_pixels": neighbor_node_metrics["edge_num_pixels"],
-                "edge_length (px)": neighbor_node_metrics["length (px)"],
-                "edge_fluorescence_mean (a.u.)": neighbor_node_metrics["fluor_mean (au)"],
-                "edge_fluorescence_std (a.u.)": neighbor_node_metrics["fluor_std (au)"],
-                "edge_fluorescence_median (a.u.)": neighbor_node_metrics["fluor_median (au)"],
-                "edge_fluoresnce_min (a.u.)": neighbor_node_metrics["fluor_min (au)"],
-                "edge_fluorescence_pct25 (a.u.)": neighbor_node_metrics["fluor_pct25 (au)"],
-                "edge_fluorescence_pct75 (a.u.)": neighbor_node_metrics["fluor_pct75 (au)"],
-                "edge_fluorescence_max (a.u.)": neighbor_node_metrics["fluor_max (au)"],
-            }
-        )
-        table.to_parquet(
-            tables_out_dir_alignments / f"{dataset_name}_P{position}_T{tp}_cdh5_alignments.parquet",
-            index=False,
-        )
-
-        if create_validation_image:
-            images_out_dir.mkdir(exist_ok=True, parents=True)
-            ## save images containing the nodes, edges, and node-node lines
-            ## as different channels
-            logger.debug(f"T={tp} -- saving multichannel images of results for validation")
-
-            ## create a rasterized image of the lines
-            lines = np.zeros(nodes.shape, dtype=np.uint16)
-            ## need to flatten node_coord_pairs first before passing to rasterize_edge_between_nodes
-            node_coord_pairs = [
-                node_coords
-                for edge in neighbor_node_metrics["node_pair_centroids"]
-                for node_coords in edge
-            ]
-            lines, _ = feat.rasterize_edges_between_nodes(node_coord_pairs, lines, label_lines=True)
-
-            ## organize the image data and save it
-            out_path = images_out_dir / f"{dataset_name}_P{position}_T{tp}.ome.tiff"
-            images_out = [seg_borders, nodes, edges, lines]
-            images_out_metadata = {
-                "image_name": dataset_name,
-                "channel_names": ["segmentation_borders", "nodes", "edges", "lines"],
-                "channel_colors": [
-                    (255, 255, 255),
-                    (255, 0, 255),
-                    (0, 255, 255),
-                    (255, 255, 0),
-                ],
-                "physical_pixel_sizes": voxel_size,
-                "dim_order": "YX",
-            }
-            save_image_output(out_path, images_out, images_out_metadata)
-
-        ## save table output of cell properties (e.g. areas, etc.)
-        if labeled_region_metrics:
-            tables_out_dir_segprops.mkdir(exist_ok=True, parents=True)
-            logger.debug(f"T={tp} -- saving table of cell properties")
-            table = pd.DataFrame(
-                {
-                    "filepath_raw_image": image_path.as_posix(),
-                    "filepath_segmentation_image": seg_filepath,
-                    "dataset_name": dataset_name,
-                    "position": position,
-                    "T": tp,
-                    "cell_label": labeled_region_metrics["cell_label"],
-                    "cell_centroid": labeled_region_metrics["cell_centroid"],
-                    "cell_area (px**2)": labeled_region_metrics["cell_area (px**2)"],
-                    "cell_perimeter (px)": labeled_region_metrics["cell_perimeter (px)"],
-                    "cell_solidity": labeled_region_metrics["cell_solidity"],
-                    "major_axis_length": labeled_region_metrics["major_axis_length"],
-                    "minor_axis_length": labeled_region_metrics["minor_axis_length"],
-                    "cell_eccentricity": labeled_region_metrics["cell_eccentricity"],
-                    "cell_orientation": labeled_region_metrics["cell_orientation"],
-                    "cell_fluorescence_mean (a.u.)": labeled_region_metrics[
-                        "cell_fluorescence_mean (au)"
-                    ],
-                    "cell_fluorescence_std (a.u.)": labeled_region_metrics[
-                        "cell_fluorescence_std (au)"
-                    ],
-                    "cell_fluorescence_median (a.u.)": labeled_region_metrics[
-                        "cell_fluorescence_median (au)"
-                    ],
-                    "cell_fluoresnce_min (a.u.)": labeled_region_metrics[
-                        "cell_fluorescence_min (au)"
-                    ],
-                    "cell_fluorescence_pct25 (a.u.)": labeled_region_metrics[
-                        "cell_fluorescence_pct25 (au)"
-                    ],
-                    "cell_fluorescence_pct75 (a.u.)": labeled_region_metrics[
-                        "cell_fluorescence_pct75 (au)"
-                    ],
-                    "cell_fluorescence_max (a.u.)": labeled_region_metrics[
-                        "cell_fluorescence_max (au)"
-                    ],
-                    "neighboring_cell_labels": labeled_region_metrics["neighboring_cell_labels"],
-                    "edge_labels": labeled_region_metrics["edge_labels"],
-                    "node_labels": labeled_region_metrics["node_labels"],
-                    "node_pair_labels": labeled_region_metrics["node_pair_labels"],
-                    "touches_image_border": labeled_region_metrics["touches_image_border"],
-                }
-            )
-            table.to_parquet(
-                tables_out_dir_segprops / f"{dataset_name}_P{position}_T{tp}_cdh5_segprops.parquet",
-                index=False,
-            )
 
 
 def main(
@@ -375,12 +103,6 @@ def main(
 
 
 if __name__ == "__main__":
-    import logging
-    from pathlib import Path
-
-    from endo_pipeline.cli import Datasets
-    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
-
     logger = logging.getLogger(__name__)
 
     ipython_cli_flexecute(main)

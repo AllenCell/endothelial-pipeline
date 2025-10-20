@@ -1,3 +1,10 @@
+import logging
+from pathlib import Path
+
+from endo_pipeline.cli import Datasets
+from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+
+
 def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
     """Unpack arguments from an argument dictionary and call get_and_save_nuclei_features."""
     dataset_name = args["dataset_name"]
@@ -18,6 +25,10 @@ def get_and_save_nuclei_features(
     """Measure nuclei features for a given dataset, position, and timepoint and save the results as
     a dataframe.
     """
+    from endo_pipeline.library.analyze.shape_features import (
+        get_nuclei_features_from_dataset_at_timepoint,
+    )
+
     nuc_props_df = get_nuclei_features_from_dataset_at_timepoint(dataset_name, position, tp)
 
     out_subdir = out_dir / dataset_name / f"P{position}"
@@ -25,196 +36,6 @@ def get_and_save_nuclei_features(
     out_path = out_subdir / f"{dataset_name}_P{position}_T{tp}_nuclei_labelfree_features.parquet"
     if save_output:
         nuc_props_df.to_parquet(out_path, index=False)
-
-
-def get_nuclei_features_from_image(
-    cdh5_seg: np.ndarray | Array,
-    nuc_seg: np.ndarray | Array,
-    fluorescence_images: list[np.ndarray],
-    fluor_img_names: list[str] | None = None,
-    seg_dim_order: str = "YX",
-) -> pd.DataFrame:
-    """
-    Extract features from nuclei segmentations and their overlap with cell segmentations.
-
-    Parameters
-    ----------
-    cdh5_seg: ndarray
-        Image of the cell segmentations based on Cdh5.
-    nuc_seg: ndarray:
-        Image of the nuclei segmentations.
-    fluorescence_images: list[np.ndarray]:
-        List of fluorescence images to get intensity information for each
-        of the nuclei segmentation regions. In this workflow each image
-        is a channel from the raw image.
-    fluor_img_names: list[str] | None:
-        Names of the fluorescence images. If None, defaults to "Channel_0", "Channel_1", etc.
-    seg_dim_order: str:
-        Order of dimensions that the segmentation images are in. Default is "YX".
-
-    Returns
-    -------
-        pd.DataFrame: DataFrame with extracted features.
-    """
-    from skimage.measure import regionprops
-
-    # just in case make sure that the number of dimensions provided
-    # in seg_dim_order matches that of the images
-    for img in [
-        cdh5_seg,
-        nuc_seg,
-        *fluorescence_images,
-    ]:
-        assert len(seg_dim_order) == img.ndim
-
-    # assign default names to fluorescence images if not provided
-    channel_indices = range(len(fluorescence_images))
-    if fluor_img_names is None:
-        fluor_img_names = [f"Channel{i}" for i in channel_indices]
-
-    # get intensities in the segmented nuclei regions
-    # for each channel
-    nuc_props_on_intens = {}
-    for i in range(len(fluorescence_images)):
-        nuc_props_on_intens[fluor_img_names[i]] = {
-            prop.label: prop
-            for prop in regionprops(label_image=nuc_seg, intensity_image=fluorescence_images[i])
-        }
-
-    nuc_seg_size_dict = {prop.label: int(prop.area) for prop in regionprops(nuc_seg)}
-
-    # associate each nuclei with a cdh5 segmentation
-    reg_props = regionprops(label_image=cdh5_seg, intensity_image=nuc_seg)
-
-    # Set up some initial data containers to populate
-    nuc_feats_ls: list = []
-
-    feats_with_list_of_lists: dict[str, Callable] = {
-        "nuc_seg_intens_means": np.mean,
-        "nuc_seg_intens_stds": np.std,
-        "nuc_seg_intens_medians": np.median,
-        "nuc_seg_intens_pct25s": lambda x: np.percentile(x, 25),
-        "nuc_seg_intens_pct75s": lambda x: np.percentile(x, 75),
-        "nuc_seg_intens_maxs": np.max,
-        "nuc_seg_intens_mins": np.min,
-    }
-
-    # Go through the region properties and extract features
-    for prop in reg_props:
-        nuc_seg_labels = np.unique(prop.intensity_image[prop.intensity_image != 0]).tolist()
-
-        nuc_feats = {
-            "cdh5_segmentation_label": prop.label,
-            "nuclei_segmentation_labels": nuc_seg_labels,
-            "nuclei_seg_in_cdh5_seg_frac": [],
-        }
-
-        for f in feats_with_list_of_lists.keys():
-            [nuc_feats.update({f"{f}_{chan}": []}) for chan in fluor_img_names]
-
-        # add the fraction overlap of the cdh5 segmentation with the segmentation
-        # to each of the properties in reg_props
-        # also add the label with the most overlap
-        for lab in nuc_seg_labels:
-            if nuc_seg_labels:
-                nuc_seg_in_cdh5_seg_size = np.count_nonzero(prop.intensity_image == lab)
-                nuc_seg_total_size = nuc_seg_size_dict[lab]
-                nuc_feats["nuclei_seg_in_cdh5_seg_frac"].append(
-                    nuc_seg_in_cdh5_seg_size / nuc_seg_total_size
-                )
-
-                # summarize intensities in segmented nuclei regions for each channel
-                for chan in fluor_img_names:
-                    nuc_arr = nuc_props_on_intens[chan][lab].image
-                    intens_arr = nuc_props_on_intens[chan][lab].image_intensity
-
-                    for feat, func in feats_with_list_of_lists.items():
-                        nuc_feats[f"{feat}_{chan}"].append(func(intens_arr[nuc_arr]))
-
-        nuc_lab_frac_dict = dict(
-            zip(nuc_seg_labels, nuc_feats["nuclei_seg_in_cdh5_seg_frac"], strict=False)
-        )
-        nuclei_seg_with_most_overlap = [
-            lab
-            for lab in nuc_lab_frac_dict
-            if nuc_lab_frac_dict[lab] == max(nuc_lab_frac_dict.values())
-        ]
-        for i, nuc_lab_max in enumerate(nuclei_seg_with_most_overlap):
-            nuc_feats[f"nuclei_seg_with_most_overlap_{i}"] = nuc_lab_max
-            for dim_index, dim in enumerate(seg_dim_order):
-                nuc_feats[f"nuc_with_most_overlap_{i}_centroid_{dim}"] = float(
-                    nuc_props_on_intens["BF"][nuc_lab_max].centroid[dim_index]
-                )
-
-        nuc_feats_ls.append(nuc_feats)
-
-    nuc_feats_df = pd.DataFrame(nuc_feats_ls)
-
-    return nuc_feats_df
-
-
-def get_nuclei_features_from_dataset_at_timepoint(
-    dataset_name: str,
-    position: int,
-    tp: int,
-    channel_names: tuple = ("EGFP", "BF"),
-) -> pd.DataFrame:
-    """Load label-free nuclei prediction images and measure features for a given dataset, position,
-    and timepoint.
-    """
-    from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-    from endo_pipeline.io import load_image, load_image_from_path
-    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
-    from endo_pipeline.settings import DIMENSION_ORDER
-
-    # Load segmentations and image
-    dim_order = DIMENSION_ORDER
-
-    nuc_manifest = load_image_manifest("nuclear_labelfree_seg")
-    nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_name, position, tp)
-    nuc_seg = load_image(nuc_location)
-
-    cdh5_manifest = load_image_manifest("cdh5_classic_seg")
-    cdh5_location = get_image_location_for_dataset(cdh5_manifest, dataset_name, position, tp)
-    cdh5_seg = load_image(cdh5_location)
-
-    dataset_config = load_dataset_config(dataset_name)
-    img_path = get_zarr_file_for_position(dataset_config, position)
-    raw_img = load_image_from_path(path=img_path, channels=channel_names, timepoints=tp, level=0)
-    raw_mip = raw_img.max(axis=dim_order.index("Z"), keepdims=True).compute()
-
-    # split up the image into a list of channels
-    channel_arrs = np.split(
-        raw_mip, indices_or_sections=len(channel_names), axis=dim_order.index("C")
-    )
-    channel_arrs = [channel_arr.squeeze() for channel_arr in channel_arrs]
-
-    # Get the nuclei properties
-    nuc_feats_df = get_nuclei_features_from_image(
-        cdh5_seg=cdh5_seg,
-        nuc_seg=nuc_seg,
-        fluorescence_images=channel_arrs,  # type:ignore[arg-type]
-        fluor_img_names=channel_names,  # type:ignore[arg-type]
-        seg_dim_order="YX",
-    )
-
-    # add the total number of detected nuclei per image to the dataframe
-    num_nuclei = np.count_nonzero(np.unique(nuc_seg))
-    nuc_feats_df["total_nuclei_count_at_T"] = num_nuclei
-
-    # add the dataset name, position, and T to the dataframe
-    nuc_feats_df["dataset_name"] = dataset_name
-    nuc_feats_df["position"] = position
-    nuc_feats_df["T"] = tp
-
-    # move the dataset_name, position, and T columns to the front
-    # of the data table
-    nuc_feats_df = nuc_feats_df[
-        ["dataset_name", "position", "T"]
-        + [col for col in nuc_feats_df.columns if col not in ["dataset_name", "position", "T"]]
-    ]
-
-    return nuc_feats_df
 
 
 def main(
@@ -286,17 +107,6 @@ def main(
 
 
 if __name__ == "__main__":
-    import logging
-    from collections.abc import Callable
-    from pathlib import Path
-
-    import numpy as np
-    import pandas as pd
-    from dask.array import Array
-
-    from endo_pipeline.cli import Datasets
-    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
-
     logger = logging.getLogger(__name__)
 
     ipython_cli_flexecute(main)

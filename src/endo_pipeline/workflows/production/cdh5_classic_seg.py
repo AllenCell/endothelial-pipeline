@@ -1,3 +1,11 @@
+from pathlib import Path
+
+from endo_pipeline.cli import Datasets
+from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+
+TAGS = ["cdh5_segmentation"]
+
+
 def generate_results_multiproc_wrapper(args: dict) -> None:
     """Produce cdh5 segmentations for a given dataset, position, and timepoint using
     multiprocessing.
@@ -224,11 +232,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from pathlib import Path
-
-    from endo_pipeline.cli import Datasets
-    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
-
     # ipython_cli_flexecute runs a function via either
     # the command line or an interactive python shell
     ipython_cli_flexecute(main)
