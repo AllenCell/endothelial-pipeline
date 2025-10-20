@@ -12,8 +12,6 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250319_20X/P{{position}}/20250319_20X_P{{position}}_T{{timepoint}}.ome.tiff
   20250326_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250326_20X/P{{position}}/20250326_20X_P{{position}}_T{{timepoint}}.ome.tiff
-  20250331_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250331_20X/P{{position}}/20250331_20X_P{{position}}_T{{timepoint}}.ome.tiff
   20250409_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250409_20X/P{{position}}/20250409_20X_P{{position}}_T{{timepoint}}.ome.tiff
   20250428_20X:
