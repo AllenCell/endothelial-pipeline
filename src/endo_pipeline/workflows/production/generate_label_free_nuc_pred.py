@@ -2,6 +2,7 @@ from endo_pipeline.cli import Datasets
 
 
 def generate_labelfree_nuclei_predictions(args: dict) -> None:
+    import logging
     from pathlib import Path
 
     import numpy as np
@@ -12,6 +13,8 @@ def generate_labelfree_nuclei_predictions(args: dict) -> None:
     from endo_pipeline.library.process.general_image_preprocessing import save_image_output
     from endo_pipeline.manifests import get_model_location_for_run, load_model_manifest
     from endo_pipeline.settings import DIMENSION_ORDER
+
+    logger = logging.getLogger(__name__)
 
     """Produce label-free nuclear predictions for a given dataset, position, and timepoint."""
     dataset_name = args["dataset_name"]
@@ -132,12 +135,15 @@ def main(
         --datasets 20241217_20X 20241120_20X
     """
 
+    import logging
     from multiprocessing import Pool
 
     from tqdm import tqdm
 
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
+
+    logger = logging.getLogger(__name__)
 
     out_dir = get_output_path(__file__)
 
@@ -180,11 +186,7 @@ def main(
 
 
 if __name__ == "__main__":
-    import logging
-
     from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
-
-    logger = logging.getLogger(__name__)
 
     device_used_printed_global = False
     ipython_cli_flexecute(main)

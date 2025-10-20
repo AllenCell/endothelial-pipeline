@@ -9,6 +9,8 @@ def main(
     Run the workflow to retrain a Cellpose model to predict nuclei from brightfield standard
     deviation projections.
     """
+    import logging
+
     import matplotlib.pyplot as plt
     from cellpose import core, models, train
     from cellpose.io import logger_setup
@@ -25,6 +27,8 @@ def main(
     )
     from endo_pipeline.manifests import get_model_location_for_run, load_model_manifest
     from endo_pipeline.settings import DIMENSION_ORDER
+
+    logger = logging.getLogger(__name__)
 
     datasets_to_use = list(get_scenes_to_use().keys())
     out_dir = get_output_path(__file__)
@@ -151,10 +155,6 @@ def main(
 
 
 if __name__ == "__main__":
-    import logging
-
     from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
-
-    logger = logging.getLogger(__name__)
 
     ipython_cli_flexecute(main)

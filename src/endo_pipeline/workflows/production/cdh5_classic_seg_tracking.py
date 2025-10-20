@@ -11,6 +11,7 @@ def run_workflow(queue: Sequence) -> None:
     The queue is a tuple of (dataset_name, position) and a dataframe.
     The dataframe contains the parameters for the workflow and is built using build_analysis_queue.
     """
+    import logging
     from pathlib import Path
 
     import numpy as np
@@ -21,6 +22,8 @@ def run_workflow(queue: Sequence) -> None:
     from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
     from endo_pipeline.library.process.lib_tracking import run_tracking
     from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+
+    logger = logging.getLogger(__name__)
 
     (dataset_name, position), queue_df = queue
     timepoints_to_eval = queue_df["T"].tolist()
@@ -95,6 +98,7 @@ def main(
     verbose: bool = False,
 ) -> None:
     """Run the tracking workflow on a dataset, a list of datasets, or a dataset collection."""
+    import logging
     from multiprocessing import Pool
 
     import pandas as pd
@@ -103,6 +107,8 @@ def main(
     from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
+
+    logger = logging.getLogger(__name__)
 
     out_dir = get_output_path(__file__)
 
@@ -159,10 +165,7 @@ def main(
 
 
 if __name__ == "__main__":
-    import logging
 
     from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
-
-    logger = logging.getLogger(__name__)
 
     ipython_cli_flexecute(main)

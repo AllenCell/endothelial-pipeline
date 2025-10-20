@@ -31,6 +31,7 @@ def main(
     verbose: bool = False,
 ) -> None:
     """Run the measured features extraction workflow."""
+    import logging
     from multiprocessing import Pool
 
     from tqdm import tqdm
@@ -38,6 +39,8 @@ def main(
     from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
     from endo_pipeline.io import configure_logging, get_output_path
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
+
+    logger = logging.getLogger(__name__)
 
     out_dir = get_output_path(__file__)
 
@@ -100,10 +103,6 @@ def main(
 
 
 if __name__ == "__main__":
-    import logging
-
     from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
-
-    logger = logging.getLogger(__name__)
 
     ipython_cli_flexecute(main)

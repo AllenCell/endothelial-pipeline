@@ -17,6 +17,8 @@ def create_segmentation_measured_feature_manifest(
     out_dir: str | Path,
 ) -> None:
     """Merge nuclei measurement, cdh5 segmentation measurement, and tracking tables into 1 table."""
+    import logging
+
     from endo_pipeline.io import load_dataframe
     from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
         add_filter_columns,
@@ -24,6 +26,8 @@ def create_segmentation_measured_feature_manifest(
         merge_measured_segmentation_features_tables,
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+
+    logger = logging.getLogger(__name__)
 
     # make the output directory
     out_dir = Path(out_dir)
@@ -85,11 +89,14 @@ def main(
     n_proc: int = 1,
 ) -> None:
     """Run workflow for merging nuclei, cdh5 segmentation, and tracking data into a single table."""
+    import logging
     from multiprocessing import Pool
 
     from tqdm import tqdm
 
     from endo_pipeline.io import get_output_path
+
+    logger = logging.getLogger(__name__)
 
     # set the directory where the output will be saved
     out_dir = get_output_path(__file__)
@@ -127,10 +134,6 @@ def main(
 
 
 if __name__ == "__main__":
-    import logging
-
     from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
-
-    logger = logging.getLogger(__name__)
 
     ipython_cli_flexecute(main)

@@ -24,6 +24,7 @@ def main(
 
     NOTE Intended only for internal use.
     """
+    import logging
     import os
     from pathlib import Path
 
@@ -37,6 +38,8 @@ def main(
         fms_upload_make_seg_feats_manifest,
         fms_upload_nuc_get_measured_features,
     )
+
+    logger = logging.getLogger(__name__)
 
     endo_project_analysis_dir = Path(
         "//allen/aics/endothelial/morphological_features/analysis"
@@ -110,10 +113,6 @@ def main(
 
 
 if __name__ == "__main__":
-    import logging
-
     from endo_pipeline.__main__ import workflow_cli
-
-    logger = logging.getLogger(__name__)
 
     workflow_cli(main)
