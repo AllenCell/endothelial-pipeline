@@ -1,9 +1,7 @@
-import logging
 from collections.abc import Sequence
 from pathlib import Path
 
 from endo_pipeline.cli import Datasets
-from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
 
 def create_seg_measured_feat_manifest_multiproc_wrapper(args: Sequence) -> None:
@@ -129,6 +127,10 @@ def main(
 
 
 if __name__ == "__main__":
+    import logging
+
+    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+
     logger = logging.getLogger(__name__)
 
     ipython_cli_flexecute(main)

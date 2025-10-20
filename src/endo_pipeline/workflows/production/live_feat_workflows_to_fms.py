@@ -5,11 +5,8 @@ They must be run on the Allen Institute intranet either
 in a Linux or MacOS environment through the CLI.
 """
 
-import logging
-from pathlib import Path
 from typing import Literal
 
-from endo_pipeline.__main__ import workflow_cli
 from endo_pipeline.cli import Datasets
 
 
@@ -28,6 +25,7 @@ def main(
     NOTE Intended only for internal use.
     """
     import os
+    from pathlib import Path
 
     from tqdm import tqdm
 
@@ -112,6 +110,10 @@ def main(
 
 
 if __name__ == "__main__":
+    import logging
+
+    from endo_pipeline.__main__ import workflow_cli
+
     logger = logging.getLogger(__name__)
 
     workflow_cli(main)

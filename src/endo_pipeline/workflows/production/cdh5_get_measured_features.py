@@ -1,7 +1,4 @@
-import logging
-
 from endo_pipeline.cli import Datasets
-from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
 
 def build_measured_features_tables_multiproc_wrapper(args: dict) -> None:
@@ -103,6 +100,10 @@ def main(
 
 
 if __name__ == "__main__":
+    import logging
+
+    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+
     logger = logging.getLogger(__name__)
 
     ipython_cli_flexecute(main)
