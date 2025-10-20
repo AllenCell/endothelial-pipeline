@@ -203,7 +203,7 @@ def contrast_stretching(
     method: Literal["min-max", "percentile"] = "percentile",
     low_percentile: int = 1,
     high_percentile: int = 99,
-    custom_range: tuple[float, float] = None,
+    custom_range: tuple[float, float] | None = None,
 ) -> np.ndarray:
     """
     Contrast stretching with selectable method.

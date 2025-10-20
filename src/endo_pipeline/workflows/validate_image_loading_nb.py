@@ -16,6 +16,7 @@ from endo_pipeline.library.model import (
     get_z_slice_bounds_per_position,
 )
 from endo_pipeline.settings import Z_SLICE_OFFSETS
+from endo_pipeline.settings.diffae_feature_dataframes import CytoDLLoadDataKeys
 
 # %%
 dataset_config = load_dataset_config("20250319_20X")
@@ -31,10 +32,7 @@ z_slice_offsets = Z_SLICE_OFFSETS
 z_slice_bounds_per_position = get_z_slice_bounds_per_position(dataset_config, z_slice_offsets)
 only_include_positions = get_unannotated_positions(dataset_config)
 include_cell_piling = False
-include_frames_by_position = get_all_unannotated_timepoints(
-    dataset_config,
-    [TimepointAnnotation.CELL_PILING],
-)
+include_frames_by_position = get_all_unannotated_timepoints(dataset_config)
 
 # %%
 # get list of all positions with annotations for artifact detection
@@ -46,8 +44,8 @@ annotated_positions = get_annotated_positions(dataset_config)
 for position in dataset_config.zarr_positions:
     z_slice_bounds = z_slice_bounds_per_position[position]
     global_center = dataset_config.center_z_plane[position]
-    assert z_slice_bounds["z_start"] == max(0, global_center - z_slice_offsets[0])
-    assert z_slice_bounds["z_stop"] == min(24, global_center + z_slice_offsets[1])
+    assert z_slice_bounds[CytoDLLoadDataKeys.Z_START] == max(0, global_center - z_slice_offsets[0])
+    assert z_slice_bounds[CytoDLLoadDataKeys.Z_END] == min(24, global_center + z_slice_offsets[1])
 
     if position not in annotated_positions:
         assert position in only_include_positions
@@ -104,7 +102,11 @@ for image_loading_args in image_dataset.data:
     exclude_frames = get_annotated_timepoints_for_position(dataset_config, position)
     assert image_loading_args["T"] not in exclude_frames
     z_slice_bounds = z_slice_bounds_per_position[position]
-    z_slice_list = list(range(z_slice_bounds["z_start"], z_slice_bounds["z_stop"] + 1))
+    z_slice_list = list(
+        range(
+            z_slice_bounds[CytoDLLoadDataKeys.Z_START], z_slice_bounds[CytoDLLoadDataKeys.Z_END] + 1
+        )
+    )
     assert image_loading_args["Z"] == z_slice_list
 
 # %%

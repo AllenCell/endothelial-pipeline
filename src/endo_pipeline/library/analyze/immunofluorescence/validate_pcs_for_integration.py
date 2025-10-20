@@ -7,23 +7,21 @@ from matplotlib.patches import Ellipse
 from pandas.core.groupby import DataFrameGroupBy
 from sklearn.decomposition import PCA
 
+from endo_pipeline.io import resolve_dataframe_location
 from endo_pipeline.library.analyze.diffae_dataframe import (
     get_dataframe_for_dynamics_workflows,
     project_features_to_pcs,
 )
 from endo_pipeline.library.model.eval_model import generate_overrides_for_model_eval
-from endo_pipeline.library.process.registration import align_all_positions
-from endo_pipeline.manifests import load_dataframe_manifest
-from endo_pipeline.settings import Z_SLICE_OFFSETS, ColumnName
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.settings import ColumnName
 
 
 def evaluate_model_paired_fixed_live(
     fixed_dataset_name: str,
     live_dataset_name: str,
     model_save_path: Path,
-    data_save_path: Path,
     model: CytoDLModel,
-    align_fluo: bool = True,
     num_gpus: int | None = None,
 ) -> tuple[Path, Path]:
     """
@@ -38,13 +36,9 @@ def evaluate_model_paired_fixed_live(
         Dataset name to use as the moving images (i.e. the images to be registered to the fixed
         images)
     model_save_path : Path
-        Path to directory where data is saved
-    data_save_path : Path
-        Path to csv file where aligned data is saved
+        Path to directory where feature data is saved
     model : CytoDLModel
         DiffAE model to use for feature extraction
-    align_fluo : bool
-        Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
     num_gpus: int
         Number of GPUs to use
 
@@ -56,20 +50,12 @@ def evaluate_model_paired_fixed_live(
         Local path where live data features are saved in a parquet file
     """
 
-    # Align data if saved aligned data not already stored
-    if not data_save_path.exists():
-        data = align_all_positions(
-            live_dataset_name,
-            fixed_dataset_name,
-            resolution_level=1,
-            z_slice_offsets=Z_SLICE_OFFSETS,
-            savedir=model_save_path,
-            alignment_method="sift",
-            align_fluo=align_fluo,
-        )
-        # Channel used for inference is in the aligned images, which are single channel
-        data["channel"] = 0
-        data.to_csv(data_save_path, index=False)
+    # get path to aligned data
+    algined_image_manifest = load_dataframe_manifest("diffae_finetuned_fixed_live_registration")
+    aligned_image_df_location = get_dataframe_location_for_dataset(
+        algined_image_manifest, "20250214_pairedPreFixation"
+    )
+    data_save_location = resolve_dataframe_location(aligned_image_df_location)
 
     # get experiment name and run name
     experiment_name = model.cfg.experiment_name
@@ -78,7 +64,7 @@ def evaluate_model_paired_fixed_live(
     # Evaluate model on target/moving images - set up config and run model
     target_overrides = generate_overrides_for_model_eval(
         save_path=model_save_path.as_posix(),
-        data_path=data_save_path.as_posix(),
+        data_path=data_save_location,
         dataset_name=live_dataset_name,
         model_manifest_name=experiment_name,
         run_name=run_name,
@@ -95,7 +81,7 @@ def evaluate_model_paired_fixed_live(
     # Evaluate model on fixed data/"moving" images - set up config and run model
     moving_overrides = generate_overrides_for_model_eval(
         save_path=model_save_path.as_posix(),
-        data_path=data_save_path.as_posix(),
+        data_path=data_save_location,
         dataset_name=fixed_dataset_name,
         model_manifest_name=experiment_name,
         run_name=run_name,

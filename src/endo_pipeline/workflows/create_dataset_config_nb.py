@@ -81,6 +81,9 @@ dataset = DatasetConfig(
     # ============================ OPTIONAL FIELDS =============================
     # include_scenes=[0, 0, 0],
     # notes="",
+    # position_annotations = {
+    #     PositionAnnotation.DUST_ARTIFACT: [2, 3, 4]
+    # },
     #     timepoint_annotations={
     #         TimepointAnnotation.BF_SCOPE_ERROR: {
     #             0: [],
@@ -143,4 +146,5 @@ dataset = DatasetConfig(
 save_dataset_config(dataset)
 validate_dataset_config(dataset.name)
 
+print("Reminder to add dataset to relavent collections!")
 # %%

@@ -15,6 +15,12 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ModelConfigOverride:
+    """
+    To dynamically override a cyto-dl configuration, create an instance of this
+    class, and call the `to_dict()` method to get a collection of key-value pairs
+    to replace values in the original config.
+    """
+
     run_name: str
     """Run name."""
 
