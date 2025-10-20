@@ -35,7 +35,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         n_noise_samples=1,
         train_encoder=True,
         gamma=-1.0,
-        fixed_sample_seed: Optional[int] = 42,
+        fixed_sample_seed: int | None = 42,
         **base_kwargs,
     ):
         self.noise_cons = noise_cons
