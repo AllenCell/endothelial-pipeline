@@ -28,7 +28,7 @@ def main(
     from endo_pipeline import NUM_GPUS
     from endo_pipeline.configs import load_model_config
     from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
+    from endo_pipeline.library.analyze.diffae_dataframe import fit_pca
     from endo_pipeline.library.analyze.immunofluorescence import validate_pcs_for_integration
     from endo_pipeline.library.model import load_model_for_inference
     from endo_pipeline.library.visualize.integration import viz_validate_pcs_for_integration

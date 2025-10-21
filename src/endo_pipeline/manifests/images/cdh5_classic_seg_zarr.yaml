@@ -8,8 +8,6 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_zarr/20250319_0d94f8d3054e4e8c99af07dd92774798/20250319_0d94f8d3054e4e8c99af07dd92774798_P{{position}}.ome.zarr
   20250326_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_zarr/20250326_eb97addf262c44c5a6117ad1d4acc353/20250326_eb97addf262c44c5a6117ad1d4acc353_P{{position}}.ome.zarr
-  20250331_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_zarr/20250331_92c8633e027b40c1aa3052b2aced9edc/20250331_92c8633e027b40c1aa3052b2aced9edc_P{{position}}.ome.zarr
   20250409_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_zarr/20250409_df6b2a02bbc94c6f957923add524eac1/20250409_df6b2a02bbc94c6f957923add524eac1_P{{position}}.ome.zarr
   20250428_20X:
