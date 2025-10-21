@@ -14,7 +14,7 @@ body:
   attributes:
     label: MLFlow ID
     description: Run ID from MLFlow
-    placeholder: MLFlow Run ID
+    placeholder: MLFlow ID
   validations:
     required: true
 
