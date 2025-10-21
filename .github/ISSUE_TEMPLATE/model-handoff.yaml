@@ -1,0 +1,123 @@
+name: "DiffAE Model Handoff"
+
+description: "Parent issue for tracking training and evaluation of new DiffAE models."
+
+title: "Description of model run (date, crop size, latent dim, etc.)"
+
+labels: ['model']
+
+projects: ["aics-int/44"]
+
+body:
+
+- type: input
+  attributes:
+    label: MLFlow ID
+    description: Run ID from MLFlow
+    placeholder: MLFlow Run ID
+  validations:
+    required: true
+
+- type: input
+  attributes:
+    label: Date
+    description: Model training start date formatted as YYYYMMDD
+    placeholder: YYYYMMDD
+  validations:
+    required: true
+
+- type: input
+  attributes:
+    label: Path
+    description: What is the local path to the logged artifacts?
+    placeholder: //allen/...
+  validations:
+    required: true
+
+- type: dropdown
+  attributes:
+    label: Crop size (pixels squared)
+    description: Select crop size used for model training
+    multiple: false
+    options:
+      - 128 x 128
+      - 64 x 64
+      - 256 x 256
+  validations:
+    required: true
+
+- type: dropdown
+  attributes:
+    label: Cell piling
+    description: Was cell piling included or excluded in the training data?
+    multiple: false
+    options:
+      - included
+      - excluded
+  validations:
+    required: true
+
+- type: input
+  attributes:
+    label: Latent dimension
+    description: What dimension size was set for the semantic encoder latent space?
+    placeholder: n_dim
+  validations:
+    required: true
+
+- type: dropdown
+  attributes:
+    label: Log normalization
+    description: Was the log normalization included in the image processing steps during training?
+    multiple: false
+    options:
+      - included
+      - excluded
+  validations:
+    required: true
+
+- type: dropdown
+  attributes:
+    label: Conditioning image
+    description: What type of image was used to condition denoising during training?
+    multiple: false
+    options:
+      - brightfield
+      - CDH5
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: Experiment goal
+    description: What is the purpose of this model training run?
+    placeholder: 1 - 3 sentences or bullets describing the purpose for the experiment.
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: Notes
+    description: Is there anything we should know about this model before we analyze it? Did you observe any issues during the training process?
+    placeholder: description
+  validations:
+    required: true
+
+- type: dropdown
+  attributes:
+    label: Gradient metric(s)
+    description: Are gradient metrics tracked or untracked for this training run?
+    multiple: true
+    options:
+      - tracked
+      - untracked
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: Commit hash
+    description: What is the `cellsmap` commit hash used to initiate this model training run?
+    placeholder: commit hash
+  validations:
+    required: true
