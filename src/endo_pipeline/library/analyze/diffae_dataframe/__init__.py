@@ -10,7 +10,6 @@ from .diffae_features_pca import fit_pca, get_pca_loadings, get_pca_loadings_as_
 from .feature_dataframe_utils import (
     get_dataset_descriptions,
     get_traj_and_diff,
-    get_valid_subset,
     split_dataset_by_flow,
 )
 
@@ -25,7 +24,6 @@ __all__ = [
     "get_pca_loadings",
     "get_pca_loadings_as_df",
     "get_traj_and_diff",
-    "get_valid_subset",
     "project_features_to_pcs",
     "split_dataset_by_flow",
 ]
