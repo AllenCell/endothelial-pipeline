@@ -4,7 +4,9 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from endo_pipeline.library.analyze.diffae_dataframe import get_dataframe_for_dynamics_workflows
+from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    get_dataframe_for_dynamics_workflows,
+)
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE, ColumnName
 

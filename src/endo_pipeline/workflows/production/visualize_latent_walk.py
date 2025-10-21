@@ -60,7 +60,7 @@ def main(
     from endo_pipeline import NUM_GPUS
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_model
-    from endo_pipeline.library.analyze.diffae_dataframe import (
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
         get_dataframe_for_dynamics_workflows,
     )
