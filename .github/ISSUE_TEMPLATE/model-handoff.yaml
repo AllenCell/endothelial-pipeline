@@ -20,6 +20,14 @@ body:
 
 - type: input
   attributes:
+    label: MLFlow URL
+    description: URL for MLFlow run page for this model
+    placeholder: https://production.int.allencell.org/mlflow/#/experiments/...
+  validations:
+    required: true
+
+- type: input
+  attributes:
     label: Date
     description: Model training start date formatted as YYYYMMDD
     placeholder: YYYYMMDD
