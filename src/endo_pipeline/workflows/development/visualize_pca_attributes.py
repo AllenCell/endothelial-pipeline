@@ -18,7 +18,7 @@ def main(
 
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, save_plot_to_path
-    from endo_pipeline.library.analyze.diffae_dataframe import (
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
         get_pca_loadings,
         get_pca_loadings_as_df,

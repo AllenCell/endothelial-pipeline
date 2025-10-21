@@ -10,14 +10,14 @@ from seaborn import color_palette
 from endo_pipeline.configs import load_dataset_collection_config
 from endo_pipeline.configs.dynamics_io import load_dynamics_config
 from endo_pipeline.io import load_dataframe
-from endo_pipeline.library.analyze.diffae_dataframe import (
+from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     add_description_column,
+    fit_pca,
     get_dataframe_for_dynamics_workflows,
     get_traj_and_diff,
     project_features_to_pcs,
 )
-from endo_pipeline.library.analyze.diffae_dataframe.diffae_features_pca import fit_pca
-from endo_pipeline.library.analyze.diffae_features import (
+from endo_pipeline.library.analyze.dynamics_utils import (
     compute_extrapolated_vector_field,
     solve_ddff_ode,
 )

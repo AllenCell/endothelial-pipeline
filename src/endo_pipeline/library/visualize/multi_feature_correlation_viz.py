@@ -23,7 +23,7 @@ from scipy.cluster.hierarchy import linkage
 
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
 from endo_pipeline.io.output import save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe import filter_dataframe_by_annotations
+from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
 from endo_pipeline.library.analyze.integration.track_integration import (
     get_preprocessed_manifests_and_km_bounds,
 )
