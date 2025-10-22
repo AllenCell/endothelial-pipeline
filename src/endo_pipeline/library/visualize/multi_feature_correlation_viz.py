@@ -458,12 +458,12 @@ def get_df_for_feature_correlation_viz(
     model_manifest: ModelManifest,
     run_name: str | None = None,
     seg_feature_manifest_name: str = "live_merged_seg_features",
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+    timepoint_annotations: list[TimepointAnnotation] | None = None,
+) -> pd.DataFrame:
     """
     Load and preprocess the manifests for the given dataset names,
-    and return a DataFrame containing the merged features
-    from all datasets at all timepoints, and a DataFrame
-    containing the steady state timepoints only.
+    and return a DataFrame containing the merged features.
+    The returned DataFrame may be optionally filtered based on timepoint annotations.
 
     Parameters
     ----------
@@ -485,16 +485,17 @@ def get_df_for_feature_correlation_viz(
     seg_feature_manifest_name
         The name of the segmentation feature manifest to use.
         Default is "live_merged_seg_features".
+    timepoint_annotations
+        List of timepoint annotations used to filter the DataFrame.
+        If None, no filtering will be applied.
 
     Returns
     -------
     :
-        A tuple containing two DataFrames:
-        - The first DataFrame contains all timepoints for the given datasets.
-        - The second DataFrame contains only the steady state timepoints.
+        A DataFrame containing the merged features from the specified datasets,
+        filtered based on the provided timepoint annotations.
     """
-    df_list_all_tps: list = []
-    df_list_ss: list = []
+    df_list: list = []
     for dataset_name in dataset_name_list:
         # load and preprocess the different diffae manifests and PCA pipeline
         # NOTE: this takes a little over a minute to load
@@ -518,12 +519,9 @@ def get_df_for_feature_correlation_viz(
         # filter data table to only include the steady state timepoints that are
         # used when projecting the DiffAE features onto PCA axes
         # in the segmentation-free dynamics workflow
+        # only if timepoint annotations are provided
         dataset_config = load_dataset_config(dataset_name)
-        timepoint_annotations = [
-            TimepointAnnotation.NOT_STEADY_STATE,
-            TimepointAnnotation.CELL_PILING,
-        ]
-        merged_feats_df_ss = filter_dataframe_by_annotations(
+        merged_feats_df = filter_dataframe_by_annotations(
             dataframe=merged_feats_df,
             dataset_config=dataset_config,
             timepoint_annotations=timepoint_annotations,
@@ -534,16 +532,10 @@ def get_df_for_feature_correlation_viz(
             dataset_info_columns + classical_feature_columns + diffae_feature_columns + pc_columns
         )
 
-        for df, df_list in zip(
-            (merged_feats_df, merged_feats_df_ss),
-            (df_list_all_tps, df_list_ss),
-            strict=True,
-        ):
-            df = df[cols_to_keep].copy()
-            df.rename(columns=get_label_for_column, inplace=True)
-            df_list.append(df)
+        merged_feats_df = merged_feats_df[cols_to_keep].copy()
+        merged_feats_df.rename(columns=get_label_for_column, inplace=True)
+        df_list.append(merged_feats_df)
     # merge the DataFrames from all datasets
-    df_all_timepoints = pd.concat(df_list_all_tps, ignore_index=True)
-    df_ss = pd.concat(df_list_ss, ignore_index=True)
+    df = pd.concat(df_list, ignore_index=True)
 
-    return df_all_timepoints, df_ss
+    return df

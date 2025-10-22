@@ -1,3 +1,4 @@
+from endo_pipeline.configs.dataset_config import TimepointAnnotation
 from endo_pipeline.settings import (
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
@@ -27,7 +28,7 @@ DATASET_INFO_COLUMNS = [
 
 
 def main(
-    dataset_collection_name: str = "pca_reference",
+    dataset_collection_name: str = "pca_reference_legacy",
     model_manifest_name: str = "diffae_04_10",
     run_name: str | None = None,
     seg_feature_manifest_name: str = "live_merged_seg_features",
@@ -35,6 +36,10 @@ def main(
     classical_feature_columns: list[str] = CLASSICAL_FEATURE_COLUMNS,
     pc_columns: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
     diffae_feature_columns: list[str] = DIFFAE_FEATURE_COLUMN_NAMES,
+    timepoint_annotations: list[TimepointAnnotation] | None = [
+        TimepointAnnotation.NOT_STEADY_STATE,
+        TimepointAnnotation.CELL_PILING,
+    ],
     aggregate: bool = True,
 ) -> None:
     """
@@ -90,7 +95,7 @@ def main(
     dataset_name_list = get_datasets_in_collection(dataset_collection_name)
     model_manifest = load_model_manifest(model_manifest_name)
 
-    df_all_timepoints, df_ss = get_df_for_feature_correlation_viz(
+    df = get_df_for_feature_correlation_viz(
         dataset_name_list=dataset_name_list,
         dataset_info_columns=dataset_info_columns,
         classical_feature_columns=classical_feature_columns,
@@ -99,6 +104,7 @@ def main(
         model_manifest=model_manifest,
         run_name=run_name,
         seg_feature_manifest_name=seg_feature_manifest_name,
+        timepoint_annotations=timepoint_annotations,
     )
 
     label_column_tuples = [
@@ -114,11 +120,9 @@ def main(
         # if the dataset name is "aggregate", use the full DataFrame
         # otherwise, filter the DataFrame for the specific dataset
         if dataset_name == "aggregate":
-            df_dataset = df_all_timepoints
-            df_dataset_ss = df_ss
+            df_dataset = df
         else:
-            df_dataset = df_all_timepoints.query("dataset_name==@dataset_name").copy()
-            df_dataset_ss = df_ss.query("dataset_name==@dataset_name").copy()
+            df_dataset = df.query("dataset_name==@dataset_name").copy()
 
         for (x_axis_label, x_cols), (
             y_axis_label,
@@ -138,57 +142,57 @@ def main(
                 x_axis_label = f"{x_axis_label} 1"
                 y_axis_label = f"{y_axis_label} 2"
 
-            for df, timepoint_label in zip(
-                (df_dataset_ss, df_dataset),
-                ("steady_state", "all_timepoints"),
-                strict=True,
-            ):
-                out_subdir = get_output_path(
-                    __file__,
-                    dataset_name,
-                    timepoint_label,
-                    f"{x_filename}_vs_{y_filename}",
-                    include_timestamp=False,
-                )
+            if timepoint_annotations is None:
+                annotation_label = "all_timepoints"
+            else:
+                annotation_label = "exclude_" + "_".join(ann.value for ann in timepoint_annotations)
 
-                # create the correlation DataFrame
-                correlation_df = get_correlation_matrix_df(
-                    features_df=df,
-                    column_names_for_x_axis=x_cols,
-                    column_names_for_y_axis=y_cols,
-                    x_axis_label=x_axis_label,
-                    y_axis_label=y_axis_label,
-                    df_format="wide-corrcoeff",
-                )
+            out_subdir = get_output_path(
+                __file__,
+                dataset_name,
+                annotation_label,
+                f"{x_filename}_vs_{y_filename}",
+                include_timestamp=False,
+            )
 
-                # make correlation heatmap
-                plot_and_save_heatmap(
-                    df=correlation_df,
-                    output_folder=out_subdir,
-                    filename=f"{base_filename}_{timepoint_label}_heatmap",
-                )
+            # create the correlation DataFrame
+            correlation_df = get_correlation_matrix_df(
+                features_df=df_dataset,
+                column_names_for_x_axis=x_cols,
+                column_names_for_y_axis=y_cols,
+                x_axis_label=x_axis_label,
+                y_axis_label=y_axis_label,
+                df_format="wide-corrcoeff",
+            )
 
-                # make correlation clustermap
-                plot_and_save_clustermap(
-                    df=correlation_df,
-                    output_folder=out_subdir,
-                    filename=f"{base_filename}_{timepoint_label}_clustermap",
-                )
+            # make correlation heatmap
+            plot_and_save_heatmap(
+                df=correlation_df,
+                output_folder=out_subdir,
+                filename=f"{base_filename}_{annotation_label}_heatmap",
+            )
 
-                # make scatter plot
-                colors = df["dataset_name"].apply(lambda x: get_dataset_color(x)).tolist()
-                column_list = []
-                for col in x_cols + y_cols:
-                    if col not in column_list:
-                        column_list.append(col)  # this preserves column order
+            # make correlation clustermap
+            plot_and_save_clustermap(
+                df=correlation_df,
+                output_folder=out_subdir,
+                filename=f"{base_filename}_{annotation_label}_clustermap",
+            )
 
-                plot_multi_feature_correlations(
-                    df=df[column_list],
-                    output_folder=out_subdir,
-                    filename=f"{base_filename}_{timepoint_label}_scatter",
-                    color=colors,
-                    title=f"{dataset_name} {timepoint_label} {x_axis_label} vs {y_axis_label}",
-                )
+            # make scatter plot
+            colors = df["dataset_name"].apply(lambda x: get_dataset_color(x)).tolist()
+            column_list = []
+            for col in x_cols + y_cols:
+                if col not in column_list:
+                    column_list.append(col)  # this preserves column order
+
+            plot_multi_feature_correlations(
+                df=df[column_list],
+                output_folder=out_subdir,
+                filename=f"{base_filename}_{annotation_label}_scatter",
+                color=colors,
+                title=f"{dataset_name} {annotation_label} {x_axis_label} vs {y_axis_label}",
+            )
 
     logger.info(
         "Correlation heatmap workflow complete. Figures saved to [ %s ]",
