@@ -811,3 +811,124 @@ def upload_prediction_dataframe_to_fms(
         dataframe_manifest_name,
         dataset_config.name,
     )
+
+
+def generate_overrides_for_array_inputs(
+    user_overrides: dict[str, Any],
+    ckpt_path: str,
+    transforms: dict | None = None,
+    num_workers: int = 1,
+    batch_size: int = 1,
+) -> dict[str, Any]:
+    """
+    Generate overrides for the CytoDLModel configuration
+    for evaluating model `model_name` on crops of
+    images from dataset `dataset_name`.
+    """
+    overrides = {
+        "train": False,  # only doing predictions here
+        "test": False,  # only doing predictions here
+        "data._target_": "cyto_dl.datamodules.array.make_array_dataloader",
+        "data.data": None,  # data will be passed in directly to model.predict()
+        "data.source_key": "raw_bf",
+        "data.transforms": transforms,
+        "data.num_workers": num_workers,
+        "data.batch_size": batch_size,
+        # change checkpoint path to the local one downloaded from mlflow
+        "checkpoint.ckpt_path": ckpt_path,
+        "checkpoint.strict": True,
+        "checkpoint.weights_only": None,  # maybe?
+        "callbacks": None,
+        "paths.root_dir": r"${oc.env:PROJECT_ROOT, './'}",
+        "paths.data_dir": r"${paths.root_dir}/data/",
+        "paths.log_dir": r"${paths.root_dir}/logs/",
+        "paths.output_dir": "./",
+        "extras.print_config": False,
+        "model.spatial_inferer": None,  # no spatial inferer needed (i.e. not taking crops/patches)
+        "model.diffusion_key": None,  # diffusion image (i.e. cdh5) is not needed
+        "model.save_dir": r"${paths.output_dir}",
+        "trainer.accelerator": "gpu",  # use GPU for prediction
+        "trainer.devices": [0],  # use first GPU in device list for prediction
+        "trainer.default_root_dir": r"${paths.output_dir}",
+        "extras.enforce_tags": False,
+        "persist_cache": True,
+    }
+    overrides.update(user_overrides)
+    return overrides
+
+
+def load_model_for_inference_from_array_input(
+    model_manifest: ModelManifest,
+    run_name: str | None,
+    eval_config: "DictConfig | ListConfig",
+    save_config_locally=True,
+) -> "CytoDLModel":
+    """
+    Download and modify the model config to make it suitable for array inputs.
+    """
+
+    # model_config = cast(CytoDLModelConfig, load_model_config(model_name))
+
+    # # download model from mlflow
+    # mlflow_id = model_config.mlflow_run_id
+    # model_path = get_output_path("models", model_config.name, include_timestamp=False)
+    # path_dict = download_model(mlflow_id, model_path)
+
+    # # load model
+    # model = CytoDLModel()
+    # model.load_config_from_file(path_dict["config_path"])
+
+    # load model
+    model = load_model_for_inference(model_manifest, run_name, eval_config)
+
+    transforms = model.cfg["data"]["predict_dataloaders"]["dataset"]["transform"]
+    # take all transforms except the first two (the first two are involved in data loading)
+    transforms["transforms"] = transforms["transforms"][2:]
+    # also per_channel needs to be turned off in the clipping transform
+    # because it is throwing an error when a numpy array is provided
+    # instead of a tensor
+    for t in transforms["transforms"]:
+        if t["_target_"] == "cyto_dl.image.transforms.clip.Clipd":
+            t["per_channel"] = False
+
+    del model.cfg["data"]
+    del model.cfg["ckpt_path"]
+
+    overrides = load_overrides(None)
+    overrides = generate_overrides_for_array_inputs(
+        overrides,
+        ckpt_path=path_dict["checkpoint_path"].as_posix(),
+        transforms=transforms,
+    )
+
+    model.override_config(overrides)
+    if save_config_locally:
+        local_config_save_path = get_output_path("models", "evaluation_configs")
+        model.save_config(local_config_save_path / f"{model_config.name}_eval.yaml")
+
+    return model
+
+
+def apply_model_on_array(model: CytoDLModel, bf_img_arr_4d_list: list) -> np.ndarray:
+    """
+    bf_img_arr_4d must be an array with 4 dimensions in this order: CZYX
+    This function applies the DiffAE model to the provided 4D array.
+    It will transform bf_img_arr_4d according to the following ordered steps:
+    1. do a standard deviation projection along the Z axis (i.e. axis 1)
+    2. clip the array to be between the 0.1th and 99.9th percentiles to remove hot/dead pixels
+    3. normalize the clipped array to be between...?
+    4. convert the normalized, clipped array to a tensor with a float16 dtype
+    5. pass the data off to the Diffusion Autoencoder model for prediction
+    """
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is not available. Must run on a GPU machine.")
+
+    for bf_img_arr_4d in bf_img_arr_4d_list:
+        if not bf_img_arr_4d.ndim == 4:
+            raise ValueError(
+                "Input array must have 4 dimensions in the order CZYX (i.e. Channels, Z, Y, X)."
+            )
+
+    _, _, cytodl_output = model.predict(data=bf_img_arr_4d_list)
+
+    return cytodl_output
