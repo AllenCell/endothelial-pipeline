@@ -168,16 +168,17 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         of the latent space. This allows for generating multiple images corresponding
         to ``num_vecs`` different conditioning vectors.
 
-        The noised image tensor should have shape ``(c, h, w)``, where ``c`` is the number of channels,
-        ``h`` is the height, and ``w`` is the width of the image to be denoised. Note that this shape
-        should be the same as ``model.image_shape`` in the model's configuration.
+        The noised image tensor should have shape ``(num_channels, num_pixels_y, num_pixels_x)``,
+        where ``num_channels`` is the number of channels, ``num_pixels_y`` is the height of the image
+        (number of pixels in Y), and ``num_pixels_x`` is the width of the image (number of pixels in X).
+        Note that this shape should be the same as ``model.image_shape`` in the model's configuration.
 
         Parameters
         ----------
         conditioning_vector
-            A tensor of shape (B, D) representing the denoising conditioning vector(s).
+            A tensor holding the denoising conditioning vector(s).
         noised_image
-            A tensor of shape (C, H, W) representing the noised image to use for image generation.
+            A tensor holding the noised image to use for image generation.
         batch_size
             The batch size for processing.
         """

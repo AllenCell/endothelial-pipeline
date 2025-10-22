@@ -28,9 +28,10 @@ def generate_from_coords_and_noised_image(
     of the latent space. This allows for generating multiple images corresponding
     to ``num_vecs`` different conditioning vectors.
 
-    The noised image tensor should have shape ``(c, h, w)``, where ``c`` is the number of channels,
-    ``h`` is the height, and ``w`` is the width of the image to be denoised. Note that this shape
-    should be the same as ``model.image_shape`` in the model's configuration.
+    The noised image tensor should have shape ``(num_channels, num_pixels_y, num_pixels_x)``,
+    where ``num_channels`` is the number of channels, ``num_pixels_y`` is the height of the image
+    (number of pixels in Y), and ``num_pixels_x`` is the width of the image (number of pixels in X).
+    Note that this shape should be the same as ``model.image_shape`` in the model's configuration.
 
     **Example usage**
 
@@ -47,17 +48,17 @@ def generate_from_coords_and_noised_image(
         gen_image = generate_from_coords_and_noised_image(
             model,
             coords=my_coords, # shape (num_vecs, num_dims)
-            noised_image=my_noised_image, # shape (1, h, w) for this model
+            noised_image=my_noised_image, # shape (1, n_y, n_x) for this model
         )
 
     Parameters
     ----------
     model
-        The model to use for generation.
+        The model to use for image generation (conditioned denoising).
     coords
-        A coordinate in the latent space of the model.
+        A coordinate in the latent space of the model; used to condition the denoising.
     noised_image
-        A noised image to be denoised.
+        An image used as the starting point for denoising by the model.
     num_gpus
         Optional, number of available GPUs.
     """
