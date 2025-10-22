@@ -9,7 +9,7 @@ live_or_fixed_sample: live
 is_timelapse: true
 microscope: 3i
 objective: 20X
-shear_stress_regime: intermediate
+shear_stress_regime: medium
 pixel_size_xy_in_um: 0.382
 duration: 543
 time_interval_in_minutes: 5.0
@@ -30,28 +30,9 @@ flow_conditions:
 - start: -16
   stop: 576
   shear_stress: 12.2
-valid_timepoints:
-  start: [117]
-  stop: [336]
 include_scenes: null
 notes: Stopped imaging prior to 48 hours because cells were very packed
 timepoint_annotations:
-  bf_scope_error:
-    0: []
-    1: []
-    2: [7, 8]
-    3: [5, 8]
-    4: [8, 240]
-    5: []
-  cell_piling:
-    0: [[337, 542]]
-    1: [[337, 542]]
-    2: [[337, 542]]
-    3: [[337, 542]]
-    4: [[337, 542]]
-    5: [[337, 542]]
-  gfp_scope_error:
-    0: [490]
   auto_bf_scope_error:
     0: [248, 252]
     1: [243]
@@ -66,6 +47,36 @@ timepoint_annotations:
     3: [5, 8]
     4: [8, 240]
     5: [532]
+  auto_gfp_scope_error:
+    0: [490]
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  bf_scope_error:
+    0: []
+    1: []
+    2: [7, 8]
+    3: [5, 8]
+    4: [8, 240]
+    5: []
+  cell_piling:
+    0: [[336, 576]]
+    1: [[309, 576]]
+    2: [[389, 576]]
+    3: [[317, 576]]
+    4: [[311, 576]]
+    5: [[244, 576]]
+  gfp_scope_error:
+    0: [490]
+  not_steady_state:
+    0: [[0, 116]]
+    1: [[0, 116]]
+    2: [[0, 116]]
+    3: [[0, 116]]
+    4: [[0, 116]]
+    5: [[0, 116]]
 position_annotations:
   dust_artifact: [4, 5]
 center_z_plane:

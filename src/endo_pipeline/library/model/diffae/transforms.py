@@ -1,3 +1,4 @@
+import typing
 from collections.abc import Hashable, Mapping, Sequence
 from copy import deepcopy
 
@@ -5,7 +6,9 @@ import numpy as np
 import pandas as pd
 import torch
 from monai.transforms import CenterSpatialCropd, Rotated, Transform
-from omegaconf import ListConfig
+
+if typing.TYPE_CHECKING:
+    from omegaconf import ListConfig
 
 
 # making a comment that this class is currently unused
@@ -17,13 +20,13 @@ class MinStdCropd(Transform):
 
     def __init__(
         self,
-        keys: list | str,
+        keys: "list | ListConfig | str",
         offset: int = 5,
         axes: tuple[int, int] = (-1, -2),
         channel: int = 0,
     ):
         super().__init__()
-        self.keys = keys if isinstance(keys, list | ListConfig) else [keys]
+        self.keys = [keys] if isinstance(keys, str) else keys
         self.offset = offset
         self.axes = axes
         self.channel = channel
@@ -31,7 +34,7 @@ class MinStdCropd(Transform):
     def __call__(self, data: pd.DataFrame) -> pd.DataFrame:
         """Call the transform on the input data."""
         for key in self.keys:
-            z_profile = data[key].std(axis=self.axes)[self.channel]
+            z_profile = data[key].std(axis=self.axes)[self.channel]  # type: ignore[index, arg-type]
             min_std = z_profile.argmin().item()
             start, stop = min_std - self.offset, min_std + self.offset
             start = max(start, 0)
@@ -81,7 +84,7 @@ class RotateRanged(Transform):
             # default to full rotation range
             rotation_range = [0.0, 2 * np.pi]
         super().__init__()
-        self.keys = keys if isinstance(keys, list | ListConfig) else [keys]
+        self.keys = [keys] if isinstance(keys, str) else keys
         self.allow_missing_keys = allow_missing_keys
         self.rotation_range = rotation_range
         self.n_steps = n_steps

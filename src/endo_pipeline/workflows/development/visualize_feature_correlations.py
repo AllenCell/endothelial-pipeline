@@ -1,5 +1,7 @@
-from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
-    get_df_for_feature_correlation_viz,
+from endo_pipeline.settings import (
+    DIFFAE_FEATURE_COLUMN_NAMES,
+    DIFFAE_PC_COLUMN_NAMES,
+    NUM_PCS_TO_ANALYZE,
 )
 
 TAGS = ["diffae_features", "visualization", "pc_interpretation"]
@@ -22,16 +24,14 @@ DATASET_INFO_COLUMNS = [
     "crop_index",
     "label",
 ]
-DIFFAE_FEATURE_COLUMNS = [f"feat_{i}" for i in range(8)]
-PC_COLUMNS = [f"pc{i}" for i in range(1, 4)]
 
 
 def main(
     dataset_collection_name: str = "pca_reference",
     dataset_info_columns: list[str] = DATASET_INFO_COLUMNS,
     classical_feature_columns: list[str] = CLASSICAL_FEATURE_COLUMNS,
-    pc_columns: list[str] = PC_COLUMNS,
-    diffae_feature_columns: list[str] = DIFFAE_FEATURE_COLUMNS,
+    pc_columns: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
+    diffae_feature_columns: list[str] = DIFFAE_FEATURE_COLUMN_NAMES,
     aggregate: bool = True,
 ) -> None:
     """
@@ -42,7 +42,8 @@ def main(
     ----------
     dataset_collection_name
         The name of the dataset collection to use.
-        Uses the pca reference collection by default.
+    dataset_info_columns
+        List of dataset metadata column names.
     classical_feature_columns
         List of classical feature column names.
     pc_columns
@@ -64,6 +65,7 @@ def main(
     )
     from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
         get_correlation_matrix_df,
+        get_df_for_feature_correlation_viz,
         plot_and_save_clustermap,
         plot_and_save_heatmap,
         plot_multi_feature_correlations,
@@ -91,7 +93,7 @@ def main(
     ]
 
     if aggregate:
-        dataset_name_list = dataset_name_list + ["aggregate"]
+        dataset_name_list = [*dataset_name_list, "aggregate"]
 
     for dataset_name in dataset_name_list:
         # if the dataset name is "aggregate", use the full DataFrame
@@ -124,6 +126,7 @@ def main(
             for df, timepoint_label in zip(
                 (df_dataset_ss, df_dataset),
                 ("steady_state", "all_timepoints"),
+                strict=True,
             ):
                 out_subdir = get_output_path(
                     __file__,

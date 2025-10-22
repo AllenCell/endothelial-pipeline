@@ -1,0 +1,41 @@
+"""Global settings for image data processing in the endo pipeline."""
+
+DIMENSION_ORDER: str = "TCZYX"
+"""Default dimension order of image data."""
+
+ZARR_BRIGHTFIELD_CHANNEL: int = 1
+"""Default channel index for brightfield images in zarr files."""
+
+LOWER_Z_SLICE_OFFSET: int = 4
+"""How many slices below the "center" Z-plane to include in projections."""
+
+UPPER_Z_SLICE_OFFSET: int = 11
+"""How many slices above the "center" Z-plane to include in projections."""
+
+Z_SLICE_OFFSETS: tuple[int, int] = (LOWER_Z_SLICE_OFFSET, UPPER_Z_SLICE_OFFSET)
+"""Tuple containing the lower and upper Z-offsets for projections."""
+
+LOG_EPSILON: float = 1e-12
+"""Small constant used to avoid log(0) errors."""
+
+NUM_ZSLICES: int = 25
+"""Number of z-slices per timepoint."""
+
+IF_INTEGRATION_SAVE_DIRECTORY: str = (
+    "//allen/aics/endothelial/morphological_features/IF_integration"
+)
+"""Default production directory to save IF integration results."""
+
+PIXEL_SIZE_3i_20x: float = 0.325
+"""Pixel size for the 3i 20x objective in micrometers."""
+
+AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x: float = 1.43
+"""Axial distortion factor for 3i 20x objective determined as described in Diel et al. 2020."""
+
+Z_STEP_SIZE_NOMINAL_3i_20x: float = 0.53
+"""Nominal Z-step size for the 20x objective in micrometers."""
+
+Z_STEP_SIZE_ACTUAL_3i_20x: float = (
+    Z_STEP_SIZE_NOMINAL_3i_20x * AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
+)
+"""Actual Z-step size for the 20x objective in micrometers, corrected for axial distortion."""

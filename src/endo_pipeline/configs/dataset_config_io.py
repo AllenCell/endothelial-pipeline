@@ -1,6 +1,7 @@
 """Methods for dataset config I/O."""
 
 import logging
+import re
 from pathlib import Path
 
 import yaml
@@ -57,7 +58,7 @@ def validate_dataset_config(dataset_name: str) -> None:
     config_file = config_dir / f"{dataset_name}.yaml"
 
     logger.info("Validating dataset config file [ %s ]", dataset_name)
-    config = YAMLDecoder(DatasetConfig).decode(config_file.read_text())
+    config = load_dataset_config(dataset_name)
 
     if config.name != config_file.stem:
         logger.error(
@@ -93,6 +94,18 @@ def validate_dataset_config(dataset_name: str) -> None:
                 dataset_name,
             )
 
+    for regime, flow in zip(config.shear_stress_regime, config.flow_conditions, strict=False):
+        if flow.shear_stress < regime.lower or flow.shear_stress > regime.upper:
+            logger.error(
+                "Validation failed for dataset [ %s ]: "
+                "Shear stress [ %d ] outside range for regime [ %s (%d - %d) ]",
+                dataset_name,
+                flow.shear_stress,
+                regime.value,
+                regime.lower,
+                regime.upper,
+            )
+
 
 def load_all_dataset_configs() -> list[DatasetConfig]:
     """Load all dataset configs."""
@@ -115,7 +128,15 @@ def load_dataset_config(dataset_name: str) -> DatasetConfig:
         logger.error("Dataset config [ %s ] could not be loaded", dataset_name)
         raise FileNotFoundError(f"No such file '{config_file}'")
     else:
-        config = YAMLDecoder(DatasetConfig).decode(config_file.read_text())
+        config_text = config_file.read_text()
+
+        # Custom adjustment to split the shear stress regime into list.
+        replace, regime = re.findall(r"(shear_stress_regime: (['a-z_]+))", config_text)[0]
+        config_text = config_text.replace(
+            replace, f"shear_stress_regime: [{ ','.join(regime.split('_to_')) }]"
+        )
+
+        config = YAMLDecoder(DatasetConfig).decode(config_text)
         logger.debug("Loaded dataset config [ %s ] from [ %s ]", dataset_name, config_file)
         return config
 
@@ -131,8 +152,19 @@ def save_dataset_config(dataset: DatasetConfig) -> None:
         flow_style = not (len(data) > 0 and isinstance(data[0], dict))
         return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=flow_style)
 
+    def dict_representer(dumper, data):
+        # This representer saves dict with ordered keys only if it is a dict of dicts.
+        if isinstance(data[next(iter(data))], dict):
+            return dumper.represent_dict(dict(sorted(data.items())))
+        return dumper.represent_dict(data)
+
     def yaml_encoder(data):
         yaml.SafeDumper.add_representer(list, list_representer)
+        yaml.SafeDumper.add_representer(dict, dict_representer)
+
+        # Custom adjustment to combine shear stress regime into single string
+        data["shear_stress_regime"] = "_to_".join(data["shear_stress_regime"])
+
         return yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
 
     try:

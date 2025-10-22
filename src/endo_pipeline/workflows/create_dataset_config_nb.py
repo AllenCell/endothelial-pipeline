@@ -30,8 +30,14 @@ if __name__ != "__main__":
 # %%
 from endo_pipeline.configs import PositionAnnotation  # noqa: F401, I001
 from endo_pipeline.configs import TimepointAnnotation  # noqa: F401
-from endo_pipeline.configs import ValidTimepoints  # noqa: F401
-from endo_pipeline.configs import ChannelIndices, DatasetConfig, FlowCondition, save_dataset_config
+from endo_pipeline.configs import (
+    ChannelIndices,
+    DatasetConfig,
+    FlowCondition,
+    ShearStressRegime,
+    save_dataset_config,
+    validate_dataset_config,
+)
 
 # %%
 dataset = DatasetConfig(
@@ -51,7 +57,12 @@ dataset = DatasetConfig(
     # microscope="Nikon",
     objective="20X",
     # objective="40X",
-    shear_stress_regime="shear_stress_regime",
+    shear_stress_regime=[ShearStressRegime.NO],
+    # shear_stress_regime=[ShearStressRegime.MIN],
+    # shear_stress_regime=[ShearStressRegime.LOW],
+    # shear_stress_regime=[ShearStressRegime.MEDIUM],
+    # shear_stress_regime=[ShearStressRegime.HIGH],
+    # shear_stress_regime=[ShearStressRegime.MAX],
     pixel_size_xy_in_um=0.382,  # 3i 20X
     duration=0,
     time_interval_in_minutes=5.0,
@@ -68,9 +79,11 @@ dataset = DatasetConfig(
         FlowCondition(start=0, stop=576, shear_stress=0.0),
     ],
     # ============================ OPTIONAL FIELDS =============================
-    # valid_timepoints=ValidTimepoints(start=[0], stop=[0]),
     # include_scenes=[0, 0, 0],
     # notes="",
+    # position_annotations = {
+    #     PositionAnnotation.DUST_ARTIFACT: [2, 3, 4]
+    # },
     #     timepoint_annotations={
     #         TimepointAnnotation.BF_SCOPE_ERROR: {
     #             0: [],
@@ -95,6 +108,14 @@ dataset = DatasetConfig(
     #             3: [(356, 550)],
     #             4: [(356, 550)],
     #             5: [(356, 550)]
+    #         },
+    #         TimepointAnnotation.NOT_STEADY_STATE: {
+    #             0: [(0, 100)],
+    #             1: [(0, 100)],
+    #             2: [(0, 100)],
+    #             3: [(0, 100)],
+    #             4: [(0, 100)],
+    #             5: [(0, 100)]
     #         },
     #         TimepointAnnotation.XY_SHIFT: {
     #             0: [],
@@ -123,4 +144,7 @@ dataset = DatasetConfig(
     #     }
 )
 save_dataset_config(dataset)
+validate_dataset_config(dataset.name)
+
+print("Reminder to add dataset to relavent collections!")
 # %%

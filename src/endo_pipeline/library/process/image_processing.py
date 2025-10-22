@@ -203,7 +203,7 @@ def contrast_stretching(
     method: Literal["min-max", "percentile"] = "percentile",
     low_percentile: int = 1,
     high_percentile: int = 99,
-    custom_range: tuple[float, float] = None,
+    custom_range: tuple[float, float] | None = None,
 ) -> np.ndarray:
     """
     Contrast stretching with selectable method.
@@ -287,7 +287,7 @@ def normalize_image(image: np.ndarray, target_max: int = 255) -> np.ndarray:
     # Normalize the image to the target range (0 to target_max)
     normalized_image = (image - min_val) / (max_val - min_val) * target_max
 
-    if normalized_image.max() <= 255:
+    if target_max <= 255:
         normalized_image = normalized_image.astype(np.uint8)
 
     return normalized_image

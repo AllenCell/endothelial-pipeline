@@ -12,7 +12,8 @@ from tqdm import tqdm
 
 from endo_pipeline.configs.dataset_io import extract_T
 from endo_pipeline.library.analyze.shape_features import numpy_mesh_coords
-from endo_pipeline.library.process.general_image_preprocessing import get_dim_map, save_image_output
+from endo_pipeline.library.process.general_image_preprocessing import save_image_output
+from endo_pipeline.settings import DIMENSION_ORDER
 
 
 ## NOTE THIS BLOCK SHOULD MAYBE BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE
@@ -107,9 +108,6 @@ def load_images_sequentially(
 
     assert axis in ["filepaths", "T", "C", "Z", "Y", "X"]
 
-    dim_map = get_dim_map("TCZYX")
-    dim_order = sorted(dim_map, key=lambda d: dim_map[d])
-
     # if no crop is provided then make a default crop dictionary that includes the entire image
     crops = crops or {
         "T": slice(None),
@@ -178,7 +176,6 @@ def load_images_sequentially(
 
         (print("Carrying over loaded images and loading new images...") if verbose else None)
         loaded_images = [loaded_images[j] for j in loaded_relative_indices_to_keep]
-        dim_order_string = "".join(dim_order)
 
         (
             print(f"[new images being loaded: {tuple([fp.name for fp in new_image_list])}]")
@@ -198,7 +195,7 @@ def load_images_sequentially(
                 else None
             )
 
-            new_images.append(img.get_image_data(dim_order_string, **crop))
+            new_images.append(img.get_image_data(DIMENSION_ORDER, **crop))
 
         loaded_images += new_images
 
@@ -1204,12 +1201,10 @@ def run_tracking(
     tracking_metrics: list[str] = ["region_overlap"],  # for nuclei try 'centroids'
     sorting_key: Callable | None = None,
     C: int = 0,
-    scene: str | int | None = None,
     bin_level: int | None = None,
     T: list[int] | None = None,
     extra_in_dir: Path | list[Path] | None = None,
     extra_C: int = 0,
-    extra_scene: str | int | None = None,
     extra_bin_level: int | None = None,
     extra_T: list[int] | None = None,
     Z_projection: Callable | None = None,
@@ -1239,9 +1234,8 @@ def run_tracking(
     NOTE: OME-ZARR files are directories of sub-directories and not files by pathlib.Path, but the
             function parse_paths has been created to handle these files.
     """
+
     out_dir = Path(out_dir)
-    dim_order = "TCZYX"
-    dim_map = get_dim_map(dim_order)
 
     for fps in [in_dir, out_dir]:
         assert (
@@ -1275,8 +1269,6 @@ def run_tracking(
     ]:
         if isinstance(filepath, Path):
             img = BioImage(filepath)
-            if scene:
-                img.set_scene(scene)
             if bin_level:
                 img.set_resolution_level(bin_level)
             if time_list:
@@ -1403,8 +1395,6 @@ def run_tracking(
                 if extra_in_dir:
                     if overlay_path and overlay_crop:
                         raw_image = BioImage(overlay_path)
-                        if extra_scene:
-                            raw_image.set_scene(extra_scene)
                         if extra_bin_level:
                             raw_image.set_resolution_level(extra_bin_level)
                         img_metadata = {
@@ -1415,13 +1405,13 @@ def run_tracking(
                             }
                         }
                         raw_image_daskarr = raw_image.get_image_dask_data(
-                            dim_order,
+                            DIMENSION_ORDER,
                             T=range(raw_image.dims.T)[overlay_crop["T"]],
                             C=range(raw_image.dims.C)[overlay_crop["C"]],
                         )
                         if Z_projection:
                             raw_image_daskarr = Z_projection(
-                                raw_image_daskarr, axis=dim_map["Z"], keepdims=True
+                                raw_image_daskarr, axis=DIMENSION_ORDER.index("Z"), keepdims=True
                             )
                         raw_image_arr = raw_image_daskarr.compute().squeeze()
                         raw_channel = {
@@ -1461,7 +1451,7 @@ def run_tracking(
         num_centroid_dims = len(centroid_subdf.columns)
         # note that we have to iterate through the coordinates
         # in reverse (hence the [::-1])
-        centroid_dims = dim_order[::-1][:num_centroid_dims][::-1]
+        centroid_dims = DIMENSION_ORDER[::-1][:num_centroid_dims][::-1]
         for i in range(num_centroid_dims):
             dim = centroid_dims[i]
             track_table[f"centroid_{dim}"] = centroid_subdf[i]

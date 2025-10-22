@@ -9,7 +9,7 @@ live_or_fixed_sample: fixed
 is_timelapse: false
 microscope: 3i
 objective: 20X
-shear_stress_regime: intermediate
+shear_stress_regime: high
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
@@ -30,7 +30,6 @@ flow_conditions:
 - start: -288
   stop: 0
   shear_stress: 13.5
-valid_timepoints: null
 include_scenes: [0, 1, 2, 4]
 notes: This is the set flow rate not the actual flow rate. Under flow for 24 hours
   prior to fix.

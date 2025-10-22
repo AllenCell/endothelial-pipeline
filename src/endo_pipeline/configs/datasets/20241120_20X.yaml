@@ -9,7 +9,7 @@ live_or_fixed_sample: live
 is_timelapse: true
 microscope: 3i
 objective: 20X
-shear_stress_regime: 48hr_high
+shear_stress_regime: max
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
@@ -30,26 +30,9 @@ flow_conditions:
 - start: -28
   stop: 576
   shear_stress: 28.83
-valid_timepoints:
-  start: [230]
-  stop: [450]
 include_scenes: null
 notes: This is a nice 48hr high flow dataset.
 timepoint_annotations:
-  bf_scope_error:
-    0: [9, 543]
-    1: [161, 533]
-    2: [25, 46, 548]
-    3: [11, 20]
-    4: [11, 27, 532, 539]
-    5: [11, 27, 227, 532, 535, 539]
-  cell_piling:
-    0: [[451, 576]]
-    1: [[451, 576]]
-    2: [[451, 576]]
-    3: [[451, 576]]
-    4: [[451, 576]]
-    5: [[451, 576]]
   auto_bf_scope_error:
     0: [9, 267, 531, 543, 548, 556]
     1: [12, 23, 27, 29, 256, 309, 517, 543, 548, 550, 554]
@@ -64,6 +47,34 @@ timepoint_annotations:
     3: [11, 20, 27]
     4: [11, 27, 532, 539]
     5: [226, 227, 279, 532, 534, 535, 558, 576]
+  auto_gfp_scope_error:
+    0: [534]
+    1: [534]
+    2: [534]
+    3: []
+    4: []
+    5: []
+  bf_scope_error:
+    0: [9, 543]
+    1: [161, 533]
+    2: [25, 46, 548]
+    3: [11, 20]
+    4: [11, 27, 532, 539]
+    5: [11, 27, 227, 532, 535, 539]
+  cell_piling:
+    0: [[451, 576]]
+    1: [[451, 576]]
+    2: [[451, 576]]
+    3: [[451, 576]]
+    4: [[451, 576]]
+    5: [[451, 576]]
+  not_steady_state:
+    0: [[0, 229]]
+    1: [[0, 229]]
+    2: [[0, 229]]
+    3: [[0, 229]]
+    4: [[0, 229]]
+    5: [[0, 229]]
 position_annotations: null
 center_z_plane:
   0: 14

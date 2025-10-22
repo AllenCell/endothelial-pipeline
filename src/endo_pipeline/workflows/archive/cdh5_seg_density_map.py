@@ -2,6 +2,8 @@ from pathlib import Path
 
 import numpy as np
 
+from endo_pipeline.cli import Datasets
+
 
 def get_chan_map(filepath: Path) -> dict:
     from bioio import BioImage
@@ -149,7 +151,7 @@ def get_density_map_from_segmentations(
     # archived. Use with caution!
     manifest = load_image_manifest("cdh5_classic_seg")
     location = get_image_location_for_dataset(manifest, dataset_name, 0, T)
-    seg = load_image(location)
+    seg = load_image(location, squeeze=True, compute=True)
     # --------------------------------------------------------------------------
 
     print(f"T={T} -- getting density map of image") if VERBOSE else None
@@ -213,8 +215,8 @@ def run_density_workflow(
 
 
 def main(
+    datasets: Datasets,
     n_proc: int = 1,
-    dataset_name: str | None = None,
     save_output: bool = True,
     is_test: bool = False,
     verbose: bool = False,
@@ -226,14 +228,9 @@ def main(
 
     mpl.rc("image", cmap="gray")
 
-    from endo_pipeline.configs.dataset_io import (
-        fire_parse_generate_dataset_name_list,
-        get_dataset_duration_in_frames,
-    )
+    from endo_pipeline.configs.dataset_io import get_dataset_duration_in_frames
 
-    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
-
-    for dataset_name in dataset_name_list:
+    for dataset_name in datasets:
         print(f"Initializing workflow for {dataset_name}...")
         out_dir, img_metadata = initialize_workflow(dataset_name, save_output, is_test)
 

@@ -17,9 +17,6 @@ locations:
   20250326_20X:
     fmsid: cbd8468be9154b0eba0c1516178e6a63
     s3uri: null
-  20250331_20X:
-    fmsid: 90144b3d481c4547a87b5708b184af1b
-    s3uri: null
   20250409_20X:
     fmsid: 03c71379277941c7b6cceab51b35cf86
     s3uri: null

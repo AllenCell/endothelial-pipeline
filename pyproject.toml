@@ -23,7 +23,7 @@ dependencies = [
     "bioio-tifffile>=1.0.1",
     "colorcet>=3.1.0",
     "colorizer-data",
-    "cyclopts>=3.22.2",
+    "cyclopts>=3.22.4",
     "deprecated>=1.2.18",
     "fastparquet>=2024.11.0",
     "fipy>=3.4.5",
@@ -58,7 +58,7 @@ license = { text = "AISL" }
 
 [project.optional-dependencies]
 internal = [
-    "aicsfiles>=8.0.0",
+    "aicsfiles>=8.1.1",
 ]
 ml_workflows = [
     "cyto-dl>=0.6.1",
@@ -86,6 +86,7 @@ test = [
     "coverage>=7.5.3",
     "pytest-subtests>=0.13.1",
     "pytest-mock>=3.14.1",
+    "pyfakefs>=5.10.0",
 ]
 docs = [
     "jupytext>=1.16.2",
@@ -99,6 +100,7 @@ types = [
     "pandas-stubs>=2.2.3.250308",
     "types-tqdm>=4.67.0.20250301",
     "types-seaborn>=0.13.2.20250111",
+    "types-deprecated>=1.2.15.20250304",
 ]
 
 [project.scripts]
@@ -147,7 +149,7 @@ extend-select = [
     "RUF",    # ruff-specific rules
     "RUF100", # Unused noqa directive
 ]
-extend-ignore = [
+ignore = [
     "D100", # Undocumented public module
     "D104", # Undocumented public package
     "D105", # Missing docstring in magic method
@@ -159,6 +161,53 @@ extend-ignore = [
     "D213", # Multi-line docstring summary should start at the second line
     "D413", # Missing blank line after last section
     "D416", # Section name should end with a colon
+    "RUF100", # Intending to unignore, only after all the rules below are unignored: unused-noqa
+    "E501", # Intending to unignore: line-too-long
+    "D103", # Intending to unignore: undocumented-public-function
+    "D401", # Intending to unignore: non-imperative-mood
+    "N803", # Intending to unignore: invalid-argument-name
+    "N806", # Intending to unignore: non-lowercase-variable-in-function
+    "D102", # Intending to unignore: undocumented-public-method
+    "D417", # Intending to unignore: undocumented-param
+    "B006", # Intending to unignore: mutable-argument-default
+    "C416", # Intending to unignore: unnecessary-comprehension
+    "E731", # Intending to unignore: lambda-assignment
+    "D400", # Intending to unignore: missing-trailing-period
+    "D404", # Intending to unignore: docstring-starts-with-this
+    "D415", # Intending to unignore: missing-terminal-punctuation
+    "F401", # Intending to unignore: unused-import
+    "B905", # Intending to unignore: zip-without-explicit-strict
+    "UP038", # Intending to unignore: non-pep604-isinstance
+    "F541", # Intending to unignore: f-string-missing-placeholders
+    "E402", # Intending to unignore: module-import-not-at-top-of-file
+    "E711", # Intending to unignore: none-comparison
+    "B007", # Intending to unignore: unused-loop-control-variable
+    "C419", # Intending to unignore: unnecessary-comprehension-in-call
+    "D411", # Intending to unignore: no-blank-line-before-section
+    "N802", # Intending to unignore: invalid-function-name
+    "D200", # Intending to unignore: unnecessary-multiline-docstring
+    "UP006", # Intending to unignore: non-pep585-annotation
+    "RUF005", # Intending to unignore: collection-literal-concatenation
+    "RUF015", # Intending to unignore: unnecessary-iterable-allocation-for-first-element
+    "F821", # Intending to unignore: undefined-name
+    "B023", # Intending to unignore: function-uses-loop-variable
+    "C401", # Intending to unignore: unnecessary-generator-set
+    "N816", # Intending to unignore: mixed-case-variable-in-global-scope
+    "D410", # Intending to unignore: no-blank-line-after-section
+    "UP034", # Intending to unignore: extraneous-parentheses
+    "B035", # Intending to unignore: static-key-dict-comprehension
+    "C408", # Intending to unignore: unnecessary-collection-call
+    "E712", # Intending to unignore: true-false-comparison
+    "D406", # Intending to unignore: missing-new-line-after-section-name
+    "D407", # Intending to unignore: missing-dashed-underline-after-section
+    "UP035", # Intending to unignore: deprecated-import
+    "B018", # Intending to unignore: useless-expression
+    "A001", # Intending to unignore: builtin-variable-shadowing
+    "C403", # Intending to unignore: unnecessary-list-comprehension-set
+    "C404", # Intending to unignore: unnecessary-list-comprehension-dict
+    "C405", # Intending to unignore: unnecessary-literal-set
+    "C417", # Intending to unignore: unnecessary-map
+    "C901", # Intending to unignore: complex-structure
 ]
 
 [tool.ruff.lint.mccabe]
@@ -169,3 +218,127 @@ ignore_missing_imports = true
 disallow_untyped_defs = true
 check_untyped_defs = true
 show_error_codes = true
+# This line should be removed when errors listed are resolved
+disable_error_code = ["no-untyped-def"]
+
+[[tool.mypy.overrides]]
+# This section should not be removed: we don't have control over these external packages
+module = [
+    "aicsfiles",
+    "cellpose",
+    "cellpose.io",
+    "colorizer_data",
+    "cyto_dl.api",
+    "cyto_dl.callbacks.latent_walk_diffae",
+    "cyto_dl.models.im2im.diffusion_autoencoder",
+    "cyto_dl.models.im2im.utils",
+    "cyto_dl.utils.arg_checking",
+    "fire",
+    "mpl_toolkits.axes_grid1",
+    "mpl_toolkits.mplot3d",
+    "networkx",
+    "numdifftools",
+    "pysindy",
+    "scipy",
+    "scipy.cluster.hierarchy",
+    "scipy.integrate",
+    "scipy.ndimage",
+    "scipy.optimize",
+    "scipy.signal",
+    "scipy.special",
+    "scipy.stats",
+    "sklearn.decomposition",
+    "sklearn.model_selection",
+    "sklearn.preprocessing",
+    "vtk",
+]
+disable_error_code = ["import-untyped"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.library.visualize.*",
+]
+disable_error_code = ["arg-type", "assignment", "attr-defined", "call-arg", "union-attr"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.library.analyze.*",
+]
+disable_error_code = ["assignment", "arg-type", "attr-defined", "union-attr", "return-value", "misc", "has-type", "operator", "index", "list-item", "call-overload"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.workflows.*"
+]
+disable_error_code = ["arg-type", "assignment", "attr-defined", "name-defined", "operator", "union-attr"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.workflows.figures.*"
+]
+disable_error_code = ["index", "call-overload"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when "arg-type" errors in the listed modules are resolved
+module = [
+    "endo_pipeline.workflows.figures.supp_fig_z_slice_selection_nb",
+]
+disable_error_code = ["arg-type"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.workflows.production.*"
+]
+disable_error_code = ["arg-type"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.workflows.archive.*"
+]
+disable_error_code = ["call-overload", "operator"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = ["endo_pipeline.__main__"]
+disable_error_code = ["operator"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.library.model.model_config_overrides"
+]
+disable_error_code = ["misc", "operator", "union-attr"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.library.model.diffae.diffusion_autoencoder"
+]
+disable_error_code = ["assignment"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.library.process.*"
+]
+disable_error_code = ["arg-type", "assignment", "union-attr", "return-value"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.io.output"
+]
+disable_error_code = ["arg-type"]
+
+[[tool.mypy.overrides]]
+# This section should be removed when errors in the listed modules are resolved
+module = [
+    "endo_pipeline.configs.dataset_config_utils"
+]
+disable_error_code = ["return-value"]

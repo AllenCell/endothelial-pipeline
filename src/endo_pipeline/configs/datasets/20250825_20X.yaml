@@ -9,7 +9,7 @@ live_or_fixed_sample: live
 is_timelapse: true
 microscope: 3i
 objective: 20X
-shear_stress_regime: high_to_low
+shear_stress_regime: max_to_min
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
@@ -33,17 +33,9 @@ flow_conditions:
 - start: 274
   stop: 576
   shear_stress: 6.16
-valid_timepoints: null
 include_scenes: null
 notes: ''
 timepoint_annotations:
-  bf_scope_error:
-    0: []
-    1: []
-    2: []
-    3: [271]
-    4: [271]
-    5: []
   auto_bf_scope_error:
     0: []
     1: [345, 550]
@@ -58,6 +50,34 @@ timepoint_annotations:
     3: [271]
     4: [271]
     5: []
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  bf_scope_error:
+    0: []
+    1: []
+    2: []
+    3: [271]
+    4: [271]
+    5: []
+  cell_piling:
+    0: []
+    1: []
+    2: [[508, 576]]
+    3: [[548, 576]]
+    4: [[467, 576]]
+    5: [[449, 576]]
+  not_steady_state:
+    0: [[0, 72], [274, 329]]
+    1: [[0, 77], [274, 344]]
+    2: [[0, 116], [274, 318]]
+    3: [[0, 139], [274, 418]]
+    4: [[0, 87], [274, 444]]
+    5: [[0, 77], [274, 439]]
 position_annotations: null
 center_z_plane:
   0: 12

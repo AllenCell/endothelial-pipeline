@@ -1,12 +1,17 @@
 from .input import (
+    get_checkpoint_path_from_mlflow,
+    get_config_dict_from_mlflow,
     get_local_path_from_fmsid,
+    get_repository_root_dir,
     load_dataframe,
     load_dataframe_from_fms,
     load_dataframe_from_path,
     load_dataframe_from_s3,
     load_image,
     load_image_from_path,
-    load_zarr_as_dask_array,
+    load_model,
+    load_model_from_mlflow,
+    resolve_dataframe_location,
 )
 from .log_funcs import configure_logging
 from .output import (
@@ -14,7 +19,7 @@ from .output import (
     get_output_dir,
     get_output_path,
     get_timestamp,
-    make_path_name_unique,
+    make_name_unique,
     save_plot_to_path,
     upload_file_to_fms,
 )
@@ -22,9 +27,12 @@ from .output import (
 __all__ = [
     "build_fms_annotations",
     "configure_logging",
+    "get_checkpoint_path_from_mlflow",
+    "get_config_dict_from_mlflow",
     "get_local_path_from_fmsid",
     "get_output_dir",
     "get_output_path",
+    "get_repository_root_dir",
     "get_timestamp",
     "load_dataframe",
     "load_dataframe_from_fms",
@@ -32,8 +40,10 @@ __all__ = [
     "load_dataframe_from_s3",
     "load_image",
     "load_image_from_path",
-    "load_zarr_as_dask_array",
-    "make_path_name_unique",
+    "load_model",
+    "load_model_from_mlflow",
+    "make_name_unique",
+    "resolve_dataframe_location",
     "save_plot_to_path",
     "upload_file_to_fms",
 ]

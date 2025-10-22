@@ -9,7 +9,7 @@ live_or_fixed_sample: live
 is_timelapse: true
 microscope: 3i
 objective: 20X
-shear_stress_regime: intermediate
+shear_stress_regime: low
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
@@ -30,13 +30,10 @@ flow_conditions:
 - start: 15
   stop: 576
   shear_stress: 9.01
-valid_timepoints: null
 include_scenes: null
 notes: timelapse imaging of CDH5 endos under 9 dyn/cm2 shear stress. Small gap in
   monolayer appears in position 0 at ~ TP 153.
 timepoint_annotations:
-  bf_scope_error:
-    2: [0]
   auto_bf_scope_error:
     0: [12, 13, 56, 59, 93, 226, 233, 238, 268, 278, 279, 336, 517, 524, 541, 560,
       561, 563, 568, 570]
@@ -52,6 +49,15 @@ timepoint_annotations:
     3: [3, 257, 278, 279, 557]
     4: [78, 278, 557]
     5: [0, 3, 557, 562]
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  bf_scope_error:
+    2: [0]
 position_annotations: null
 center_z_plane:
   0: 13

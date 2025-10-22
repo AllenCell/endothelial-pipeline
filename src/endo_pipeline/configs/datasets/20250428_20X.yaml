@@ -9,7 +9,7 @@ live_or_fixed_sample: live
 is_timelapse: true
 microscope: 3i
 objective: 20X
-shear_stress_regime: intermediate
+shear_stress_regime: low
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
@@ -30,20 +30,45 @@ flow_conditions:
 - start: -14
   stop: 577
   shear_stress: 8.6
-valid_timepoints:
-  start: [217]
-  stop: [351]
 include_scenes: null
 notes: Caution, some patchiness occurs after TP489 & cells are very crowded by the
   end of the movie. No other artifacts noted.
 timepoint_annotations:
+  auto_bf_scope_error:
+    0: [24, 114, 240, 275]
+    1: [23, 316, 556, 564]
+    2: [77]
+    3: [50, 81, 148]
+    4: [12, 43, 60, 80, 160, 262, 551]
+    5: [52, 85, 120, 262, 381, 469, 551]
+  auto_bf_temp_artifact:
+    0: [265]
+    1: []
+    2: [330, 556]
+    3: []
+    4: [258, 259, 301]
+    5: [3, 201, 319]
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
   cell_piling:
-    0: [[352, 576]]
-    1: [[352, 576]]
-    2: [[352, 576]]
-    3: [[352, 576]]
-    4: [[352, 576]]
-    5: [[352, 576]]
+    0: [[472, 576]]
+    1: [[403, 576]]
+    2: [[482, 576]]
+    3: [[475, 576]]
+    4: [[315, 576]]
+    5: [[340, 576]]
+  not_steady_state:
+    0: [[0, 216]]
+    1: [[0, 216]]
+    2: [[0, 216]]
+    3: [[0, 216]]
+    4: [[0, 216]]
+    5: [[0, 216]]
 position_annotations: null
 center_z_plane:
   0: 11

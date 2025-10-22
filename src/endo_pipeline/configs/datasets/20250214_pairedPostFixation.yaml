@@ -9,7 +9,7 @@ live_or_fixed_sample: fixed
 is_timelapse: false
 microscope: 3i
 objective: 20X
-shear_stress_regime: no_flow
+shear_stress_regime: 'no'
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
@@ -30,7 +30,6 @@ flow_conditions:
 - start: -576
   stop: 0
   shear_stress: 0.0
-valid_timepoints: null
 include_scenes: null
 notes: These cells were fed about 2 hours before fixation (previously the cells had
   not been fed prior to fixation). This sample was imaged at a later date than the
@@ -38,4 +37,14 @@ notes: These cells were fed about 2 hours before fixation (previously the cells 
   had to be washed out first. Was permeabilized which is why it looked better on 20250219.
 timepoint_annotations: null
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 6
+  1: 6
+  2: 6
+  3: 8
+  4: 8
+  5: 7
+  6: 8
+  7: 8
+  8: 7
+  9: 8

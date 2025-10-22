@@ -1,0 +1,71 @@
+name: diffae_baseline_exclude_cell_piling_20250927_no_log_norm_grid
+workflow: eval_diffae_grid
+parameters:
+  z_slice_offsets:
+  - 4
+  - 11
+  config_name: diffae_eval_no_log
+locations:
+  20241120_20X:
+    fmsid: 1ddafc285d7d4ff68a1a8dce9e505b34
+    s3uri: null
+  20241217_20X:
+    fmsid: 1017781ad2234f66bcad6f83a8b2a723
+    s3uri: null
+  20250214_pairedPreFixation:
+    fmsid: 4e9bfe7f5b5f483097c2161786021583
+    s3uri: null
+  20250224_20X:
+    fmsid: 41db11f67ea5482b901ba3e9b9303d8c
+    s3uri: null
+  20250319_20X:
+    fmsid: c35b54be3c7148c88cf4416101c81475
+    s3uri: null
+  20250326_20X:
+    fmsid: fce6ee568b99411eb73b907a97c421be
+    s3uri: null
+  20250402_20X:
+    fmsid: 34cd02525bfa4767b297fc548309d849
+    s3uri: null
+  20250409_20X:
+    fmsid: 358c8d806894424b8f194961295acb71
+    s3uri: null
+  20250428_20X:
+    fmsid: aa9bec8a1ed24b71aa8832ee2e9e32e0
+    s3uri: null
+  20250604_20X:
+    fmsid: 2e42fa47265746ed98d7030425cd29e6
+    s3uri: null
+  20250611_20X:
+    fmsid: 4266ed3c60474a8cab705a5e6c6349c9
+    s3uri: null
+  20250618_20X:
+    fmsid: edd83d8e1c1c4ca59a1bd0224b9177c5
+    s3uri: null
+  20250714_20X:
+    fmsid: efd940464c314d93923f3d770102693c
+    s3uri: null
+  20250716_20X:
+    fmsid: 2312729ab8ac4231bfe28fc1275d017d
+    s3uri: null
+  20250728_20X:
+    fmsid: e1f2a900f7984b3a83299938e70ccab0
+    s3uri: null
+  20250806_20X:
+    fmsid: ee4872fecedf4116bbb2b29e83ea5e76
+    s3uri: null
+  20250813_20X:
+    fmsid: feb246c1e25b4ad3b3b52f4b3e061f40
+    s3uri: null
+  20250818_20X:
+    fmsid: 5a25ecca6783465bbd8613c8ae5beb89
+    s3uri: null
+  20250825_20X:
+    fmsid: 34628b84d7404a99aecd16b12cbb42fe
+    s3uri: null
+  20250827_20X:
+    fmsid: 0aa86477b3b744a5b8e55066f9f8f381
+    s3uri: null
+  20250908_20X:
+    fmsid: c9946d550e28464086945b273be5abae
+    s3uri: null
