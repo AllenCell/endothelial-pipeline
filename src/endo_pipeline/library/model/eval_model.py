@@ -916,7 +916,7 @@ def load_model_for_inference_from_array_input(
     return model
 
 
-def apply_model_on_array(model: CytoDLModel, bf_img_arr_4d_list: list) -> np.ndarray:
+def apply_model_on_array(model: "CytoDLModel", bf_img_arr_4d_list: list) -> np.ndarray:
     """
     bf_img_arr_4d must be an array with 4 dimensions in this order: CZYX
     This function applies the DiffAE model to the provided 4D array.

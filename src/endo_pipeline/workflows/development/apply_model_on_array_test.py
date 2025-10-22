@@ -41,7 +41,7 @@ def apply_model_on_array_test(
 
     # load the diffae model and modify the config to accept array inputs
     diffae_model = load_model_for_inference_from_array_input(
-        model_name, run_name=None, eval_config=eval_config, save_config_locally=True
+        model_name, run_name=run_name, eval_config=eval_config, save_config_locally=True
     )
 
     # run th model on the example image crop
@@ -126,7 +126,7 @@ if __name__ == "__main__":
 
     # load the diffae model and modify the config to accept array inputs
     diffae_model = load_model_for_inference_from_array_input(
-        model_name, run_name=None, eval_config=eval_config, save_config_locally=True
+        model_name, run_name=run_name, eval_config=eval_config, save_config_locally=True
     )
 
     # run the model on the example image crop
