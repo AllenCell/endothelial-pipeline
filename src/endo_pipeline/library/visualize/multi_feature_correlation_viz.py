@@ -510,7 +510,7 @@ def get_df_for_feature_correlation_viz(
             TimepointAnnotation.CELL_PILING,
         ]
         merged_feats_df_ss = filter_dataframe_by_annotations(
-            df=merged_feats_df,
+            dataframe=merged_feats_df,
             dataset_config=dataset_config,
             timepoint_annotations=timepoint_annotations,
         )
