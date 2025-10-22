@@ -1,6 +1,6 @@
-from typing import Optional
-
+import numpy as np
 import torch
+import tqdm
 from bioio.writers import OmeTiffWriter
 from cyto_dl.models.im2im.diffusion_autoencoder import DiffusionAutoEncoder as _BaseDiffAE
 from cyto_dl.models.im2im.utils import detach
@@ -145,3 +145,53 @@ class DiffusionAutoEncoder(_BaseDiffAE):
                 f"Diffusion loss should be a scalar, got {diffusion_loss.shape}. Ensure `gamma` is provided if your loss has no reduction."
             )
         return {"loss": diffusion_loss}, latent, None
+
+    def generate_from_latent_and_noised_image(
+        self,
+        conditioning_vector: torch.Tensor,
+        noised_image: torch.Tensor,
+        batch_size: int = 3,
+    ) -> np.ndarray:
+        """
+        Generate image by denoising a noised image conditioned on a latent vector.
+
+        Allows for batch processing to handle a series of conditioning vectors.
+
+        **Input tensor shapes**:
+
+        The input conditioning vector array should have shape (B, D), where
+        B is the number of conditioning vectors and D is the dimensionality
+        of the latent space. This allows for generating multiple images corresponding
+        to B different conditioning vectors.
+
+        The noised image tensor should have shape (C, H, W), where C is the number of channels,
+        H is the height, and W is the width of the image to be denoised. Note that this shape
+        should be the same as `model.image_shape`.
+
+        Parameters
+        ----------
+        conditioning_vector
+            A tensor of shape (B, D) representing the denoising conditioning vector(s).
+        noised_image
+            A tensor of shape (C, H, W) representing the noised image to use for image generation.
+        batch_size
+            The batch size for processing.
+        """
+        if batch_size <= 0:
+            raise ValueError("Batch size must be at least 1")
+        batch_indices = [
+            (i, i + batch_size) for i in range(0, conditioning_vector.shape[0], batch_size)
+        ]
+        with torch.no_grad():
+            noise_stacked = torch.stack([noised_image] * conditioning_vector.shape[0])
+            reconstructed_image = torch.cat(
+                [
+                    self._generate_image(
+                        noise_stacked[start:stop], conditioning_vector[start:stop].unsqueeze(2)
+                    ).squeeze(1)
+                    for start, stop in tqdm.tqdm(batch_indices, desc="Generating batch")
+                ],
+                0,
+            )
+        reconstructed_image_numpy = detach(reconstructed_image).astype(float)
+        return reconstructed_image_numpy
