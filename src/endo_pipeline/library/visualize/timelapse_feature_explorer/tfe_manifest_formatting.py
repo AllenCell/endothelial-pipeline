@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 from colorizer_data import FeatureInfo
 
-from endo_pipeline.library.analyze.diffae_dataframe import fit_pca, project_features_to_pcs
+from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca, project_features_to_pcs
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )

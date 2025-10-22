@@ -12,7 +12,9 @@ from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.library.analyze.diffae_dataframe import get_dataframe_for_dynamics_workflows
+from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    get_dataframe_for_dynamics_workflows,
+)
 from endo_pipeline.library.visualize import viz_base
 from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
     get_seg_feat_plot_args,

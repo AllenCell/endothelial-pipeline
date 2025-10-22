@@ -7,9 +7,7 @@ from endo_pipeline.configs import (
     PositionAnnotation,
     TimepointAnnotation,
 )
-from endo_pipeline.library.analyze.diffae_dataframe.dataframe_preprocessing import (
-    filter_dataframe_by_annotations,
-)
+from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
 from endo_pipeline.settings import ColumnName
 
 

@@ -28,7 +28,7 @@ def main(
 
     from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.library.analyze.diffae_dataframe import fit_pca
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
     from endo_pipeline.library.analyze.numerics import compute_correlation_dict
     from endo_pipeline.library.visualize.diffae_features.correlations import (
         plot_correlation_workflow_outputs,

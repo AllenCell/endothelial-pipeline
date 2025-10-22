@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe import (
+from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
     get_traj_and_diff,
     split_dataset_by_flow,
