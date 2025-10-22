@@ -33,7 +33,7 @@ def generate_labelfree_nuclei_predictions(args: dict) -> None:
     )
 
     logger.info(
-        f'Working on dataset {args["dataset_name"]}, T = {tp}, scene = {args["scene_index"]}...'
+        f'Working on dataset {args["dataset_name"]}, T = {tp}, position = {args["position"]}...'
     )
 
     if (not args["overwrite"]) and out_path.exists():
