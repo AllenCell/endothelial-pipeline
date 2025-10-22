@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 import torch
 import tqdm
@@ -5,6 +7,8 @@ from bioio.writers import OmeTiffWriter
 from cyto_dl.models.im2im.diffusion_autoencoder import DiffusionAutoEncoder as _BaseDiffAE
 from cyto_dl.models.im2im.utils import detach
 from monai.utils import convert_to_tensor
+
+logger = logging.getLogger(__name__)
 
 
 class DiffusionAutoEncoder(_BaseDiffAE):
@@ -157,16 +161,16 @@ class DiffusionAutoEncoder(_BaseDiffAE):
 
         Allows for batch processing to handle a series of conditioning vectors.
 
-        **Input tensor shapes**:
+        **Input tensor shapes**
 
-        The input conditioning vector array should have shape (B, D), where
-        B is the number of conditioning vectors and D is the dimensionality
+        The input conditioning vector tensor should have shape ``(num_vecs, num_dims)``, where
+        ``num_vecs`` is the number of conditioning vectors and ``num_dims`` is the dimensionality
         of the latent space. This allows for generating multiple images corresponding
-        to B different conditioning vectors.
+        to ``num_vecs`` different conditioning vectors.
 
-        The noised image tensor should have shape (C, H, W), where C is the number of channels,
-        H is the height, and W is the width of the image to be denoised. Note that this shape
-        should be the same as `model.image_shape`.
+        The noised image tensor should have shape ``(c, h, w)``, where ``c`` is the number of channels,
+        ``h`` is the height, and ``w`` is the width of the image to be denoised. Note that this shape
+        should be the same as ``model.image_shape`` in the model's configuration.
 
         Parameters
         ----------
@@ -177,7 +181,18 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         batch_size
             The batch size for processing.
         """
+        if tuple(noised_image.shape) != tuple(self.hparams.image_shape):
+            logger.error(
+                "Noised image shape [ %s ] does not match model image shape [ %s ]",
+                noised_image.shape,
+                self.hparams.image_shape,
+            )
+            raise ValueError(
+                f"Noised image shape [ {noised_image.shape} ] does not match model image shape [ {self.hparams.image_shape} ]"
+            )
+
         if batch_size <= 0:
+            logger.error("Batch size must be at least 1, got [ %d ]", batch_size)
             raise ValueError("Batch size must be at least 1")
         batch_indices = [
             (i, i + batch_size) for i in range(0, conditioning_vector.shape[0], batch_size)

@@ -21,6 +21,35 @@ def generate_from_coords_and_noised_image(
     Generate a synthetic image by denoising a noised image
     conditioned on a coordinate in the latent space of a model.
 
+    **Input array shapes**
+
+    The input conditioning vector array should have shape ``(num_vecs, num_dims)``, where
+    ``num_vecs`` is the number of conditioning vectors and ``num_dims`` is the dimensionality
+    of the latent space. This allows for generating multiple images corresponding
+    to ``num_vecs`` different conditioning vectors.
+
+    The noised image tensor should have shape ``(c, h, w)``, where ``c`` is the number of channels,
+    ``h`` is the height, and ``w`` is the width of the image to be denoised. Note that this shape
+    should be the same as ``model.image_shape`` in the model's configuration.
+
+    **Example usage**
+
+    .. code-block:: python
+
+        from endo_pipeline.io import load_model
+        from endo_pipeline.manifests import load_model_manifest
+        from endo_pipeline.library.model.diffae import generate_from_coords_and_noised_image
+
+        model_manifest = load_model_manifest("my_model_manifest")
+        model_location = model_manifest.locations["my_run_name"]
+        model = load_model(model_location)
+
+        gen_image = generate_from_coords_and_noised_image(
+            model,
+            coords=my_coords, # shape (num_vecs, num_dims)
+            noised_image=my_noised_image, # shape (1, h, w) for this model
+        )
+
     Parameters
     ----------
     model
@@ -50,7 +79,19 @@ def generate_from_coords_and_noised_image(
         noised_image_ = noised_image_torch
         model_ = model_instantiated
 
-    gen_img = model_._generate_image(noise=noised_image_, cond=coords_)
+    if not hasattr(model_, "generate_from_latent_and_noised_image"):
+        logger.error(
+            "Model class [ %s ] does not support generation from coordinates and noised image.",
+            model_.__class__.__name__,
+        )
+        raise NotImplementedError(
+            f"Model class [ {model_.__class__.__name__} ] does not support generation from coordinates and noised image."
+        )
+
+    gen_img = model_.generate_from_latent_and_noised_image(
+        conditioning_vector=coords_,
+        noised_image=noised_image_,
+    )
     return gen_img
 
 
