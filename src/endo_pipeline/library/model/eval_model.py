@@ -3,7 +3,9 @@ import typing
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
+from torch import cuda
 
 if typing.TYPE_CHECKING:
     from cyto_dl.api import CytoDLModel
@@ -865,11 +867,16 @@ def load_model_for_inference_from_array_input(
     Download and modify the model config to make it suitable for array inputs.
     """
 
-    # model_config = cast(CytoDLModelConfig, load_model_config(model_name))
+    # from endo_pipeline.configs.model_config_io import load_model_config
+    # from typing import cast
+    # from endo_pipeline.configs.model_config import CytoDLModelConfig
+    # from endo_pipeline.library.model.mlflow_utils import download_model
+
+    # model_config = cast(CytoDLModelConfig, load_model_config(model_manifest.name))
 
     # # download model from mlflow
-    # mlflow_id = model_config.mlflow_run_id
-    # model_path = get_output_path("models", model_config.name, include_timestamp=False)
+    # mlflow_id = model_manifest.locations["run_name"].mlflowid
+    # model_path = get_output_path("models", model_manifest.name, include_timestamp=False)
     # path_dict = download_model(mlflow_id, model_path)
 
     # # load model
@@ -879,6 +886,7 @@ def load_model_for_inference_from_array_input(
     # load model
     model = load_model_for_inference(model_manifest, run_name, eval_config)
 
+    # get the data transforms from the model config
     transforms = model.cfg["data"]["predict_dataloaders"]["dataset"]["transform"]
     # take all transforms except the first two (the first two are involved in data loading)
     transforms["transforms"] = transforms["transforms"][2:]
@@ -889,13 +897,16 @@ def load_model_for_inference_from_array_input(
         if t["_target_"] == "cyto_dl.image.transforms.clip.Clipd":
             t["per_channel"] = False
 
-    del model.cfg["data"]
-    del model.cfg["ckpt_path"]
-
+    # generate overrides for array input
     overrides = generate_overrides_for_array_inputs(
-        ckpt_path=path_dict["checkpoint_path"].as_posix(),
+        # ckpt_path=path_dict["checkpoint_path"].as_posix(),
+        ckpt_path=Path(model.cfg.checkpoint.ckpt_path).as_posix(),
         transforms=transforms,
     )
+
+    # remove sections from the config that are not used by the array dataloader
+    del model.cfg["data"]
+    del model.cfg["ckpt_path"]
 
     model.override_config(overrides)
     if save_config_locally:
@@ -916,7 +927,7 @@ def apply_model_on_array(model: CytoDLModel, bf_img_arr_4d_list: list) -> np.nda
     4. convert the normalized, clipped array to a tensor with a float16 dtype
     5. pass the data off to the Diffusion Autoencoder model for prediction
     """
-    if not torch.cuda.is_available():
+    if not cuda.is_available():
         raise RuntimeError("CUDA is not available. Must run on a GPU machine.")
 
     for bf_img_arr_4d in bf_img_arr_4d_list:

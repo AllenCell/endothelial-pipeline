@@ -3,18 +3,25 @@ from typing import Literal, Sequence
 import numpy as np
 import pandas as pd
 
+from endo_pipeline.configs import load_model_config
 from endo_pipeline.configs.dataset_io import extract_P
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.integration import track_integration
-from endo_pipeline.library.model.apply_model import apply_model_on_array, get_model_for_array_inputs
+from endo_pipeline.library.model.eval_model import (
+    apply_model_on_array,
+    load_model_for_inference_from_array_input,
+)
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.process.get_images import get_zarr_img_for_dataset
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.settings import DIFFAE_MODEL_EVAL_FINETUNE_CONFIG
 
 
 def apply_model_on_array_test(
     dataset_name: str = "20241120_20X",
     model_name: str = "diffae_04_10",
+    run_name: str | None = None,
+    eval_config: dict | None = None,
     start_x: int = 0,
     start_y: int = 0,
     crop_size_x: int = 128,
@@ -33,7 +40,9 @@ def apply_model_on_array_test(
     img_arr_crop_bf = img_arr[(0, slice(1, 2), *crop_example)].compute()
 
     # load the diffae model and modify the config to accept array inputs
-    diffae_model = get_model_for_array_inputs(model_name, save_config_locally=True)
+    diffae_model = load_model_for_inference_from_array_input(
+        model_name, run_name=None, eval_config=eval_config, save_config_locally=True
+    )
 
     # run th model on the example image crop
     cytodl_output = apply_model_on_array(diffae_model, img_arr_crop_bf)
@@ -98,6 +107,8 @@ if __name__ == "__main__":
     crop_size_x = int(sequence_to_scalar(df_precomp.crop_size_x))
     crop_size_y = int(sequence_to_scalar(df_precomp.crop_size_y))
     model_name = sequence_to_scalar(df_precomp["model_name"])
+    run_name = None
+    eval_config = load_model_config(DIFFAE_MODEL_EVAL_FINETUNE_CONFIG)
 
     samples = df_precomp.sample(n=1, random_state=42)
 
@@ -114,7 +125,9 @@ if __name__ == "__main__":
     )
 
     # load the diffae model and modify the config to accept array inputs
-    diffae_model = get_model_for_array_inputs(model_name, save_config_locally=True)
+    diffae_model = load_model_for_inference_from_array_input(
+        model_name, run_name=None, eval_config=eval_config, save_config_locally=True
+    )
 
     # run the model on the example image crop
     cytodl_output = apply_model_on_array(diffae_model, img_arr_crop_bf_list)
