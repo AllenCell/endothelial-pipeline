@@ -8,6 +8,8 @@ from hydra.utils import get_class
 if typing.TYPE_CHECKING:
     from cyto_dl.api import CytoDLModel
 
+from endo_pipeline.configs import instantiate_diffusion_autoencoder_object
+
 logger = logging.getLogger(__name__)
 
 
@@ -47,8 +49,7 @@ def generate_from_coords(
     coords_torch = torch.from_numpy(coords_np).float()
 
     # have to instantiate the actual model object from the config
-    model_class = get_class(model.cfg.model._target_)
-    model_instantiated = model_class.load_from_checkpoint(model.cfg.checkpoint.ckpt_path)  # type: ignore[attr-defined]
+    model_instantiated = instantiate_diffusion_autoencoder_object(model.cfg)
 
     # move model and inputs to gpu if available, else
     # perform reconstruction on cpu
