@@ -11,6 +11,49 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def generate_from_coords_and_noised_image(
+    model: "CytoDLModel",
+    coords: np.ndarray,
+    noised_image: np.ndarray,
+    num_gpus: int | None = None,
+) -> np.ndarray:
+    """
+    Generate a synthetic image by denoising a noised image
+    conditioned on a coordinate in the latent space of a model.
+
+    Parameters
+    ----------
+    model
+        The model to use for generation.
+    coords
+        A coordinate in the latent space of the model.
+    noised_image
+        A noised image to be denoised.
+    num_gpus
+        Optional, number of available GPUs.
+    """
+    coords_torch = torch.from_numpy(coords).float()
+    noised_image_torch = torch.from_numpy(noised_image).float()
+
+    # have to instantiate the actual model object from the config
+    model_class = get_class(model.cfg.model._target_)
+    model_instantiated = model_class.load_from_checkpoint(model.cfg.checkpoint.ckpt_path)  # type: ignore[attr-defined]
+
+    # move model and inputs to gpu if available, else
+    # perform reconstruction on cpu
+    if num_gpus:
+        coords_ = coords_torch.to("cuda")
+        noised_image_ = noised_image_torch.to("cuda")
+        model_ = model_instantiated.to("cuda")
+    else:
+        coords_ = coords_torch
+        noised_image_ = noised_image_torch
+        model_ = model_instantiated
+
+    gen_img = model_._generate_image(noise=noised_image_, cond=coords_)
+    return gen_img
+
+
 def generate_from_coords(
     model: "CytoDLModel",
     coords: np.ndarray | list[list[float]],
