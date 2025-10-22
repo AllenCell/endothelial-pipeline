@@ -814,7 +814,6 @@ def upload_prediction_dataframe_to_fms(
 
 
 def generate_overrides_for_array_inputs(
-    user_overrides: dict[str, Any],
     ckpt_path: str,
     transforms: dict | None = None,
     num_workers: int = 1,
@@ -853,7 +852,6 @@ def generate_overrides_for_array_inputs(
         "extras.enforce_tags": False,
         "persist_cache": True,
     }
-    overrides.update(user_overrides)
     return overrides
 
 
@@ -894,9 +892,7 @@ def load_model_for_inference_from_array_input(
     del model.cfg["data"]
     del model.cfg["ckpt_path"]
 
-    overrides = load_overrides(None)
     overrides = generate_overrides_for_array_inputs(
-        overrides,
         ckpt_path=path_dict["checkpoint_path"].as_posix(),
         transforms=transforms,
     )
@@ -904,7 +900,7 @@ def load_model_for_inference_from_array_input(
     model.override_config(overrides)
     if save_config_locally:
         local_config_save_path = get_output_path("models", "evaluation_configs")
-        model.save_config(local_config_save_path / f"{model_config.name}_eval.yaml")
+        model.save_config(local_config_save_path / f"{model_manifest.name}_eval.yaml")
 
     return model
 
