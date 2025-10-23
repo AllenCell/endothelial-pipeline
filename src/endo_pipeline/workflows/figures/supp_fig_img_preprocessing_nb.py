@@ -4,6 +4,7 @@ import logging
 from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config, load_model_config
 from endo_pipeline.io.input import load_image_from_path
 from endo_pipeline.io.output import get_output_path
+from endo_pipeline.library.process.image_processing import crop_image
 from endo_pipeline.library.visualize.figure_utils import plot_image_thumbnail
 from endo_pipeline.library.visualize.model_inputs.image_preprocessing_steps import (
     create_data_dict_loaded_image,
@@ -30,6 +31,7 @@ FIGURE_ID = "SUPP_FIG_IMG_PROC"
 DATASET = EXAMPLE_DATASET[FIGURE_ID]
 POSITION = 0
 TIMEPOINT = 0
+CROP_SIZE = 128
 save_dir = get_output_path("model_input_preprocessing_viz", f"{DATASET}_P{POSITION}")
 
 dataset_config = load_dataset_config(DATASET)
@@ -58,13 +60,8 @@ transformed_cdh5 = visualize_fov_transform_steps(transforms, data, save_dir, tar
 
 
 # %% Visualize cropped images
-def crop_image(img, start, crop_size):
-    end = start + crop_size
-    return img[:, start:end, start:end]
-
-
 for image, name in [(transformed_bf, "crop_bf"), (transformed_cdh5, "crop_cdh5")]:
-    cropped_image = crop_image(image, 100, 128)
+    cropped_image = crop_image(image, 100, CROP_SIZE)
     plot_image_thumbnail(
         cropped_image.squeeze(),
         name,
