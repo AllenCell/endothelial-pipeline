@@ -362,7 +362,7 @@ def get_approx_vec_from_grid(
 
     # create a distance mapping
     point_grids_pc1pc2 = np.asarray(
-        list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes], strict=False))
+        list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes], strict=True))
     )
     pc1_pc2_points = np.expand_dims(pc1_pc2_points, axis=0)
     point_grids_pc1pc2 = np.expand_dims(point_grids_pc1pc2, axis=1)
@@ -373,7 +373,7 @@ def get_approx_vec_from_grid(
     v1_grids_approx = v1_grids[slice_indexes][min_idx]
     v2_grids_approx = v2_grids[slice_indexes][min_idx]
 
-    return np.array(tuple(zip(v1_grids_approx.tolist(), v2_grids_approx.tolist(), strict=False)))
+    return np.array(tuple(zip(v1_grids_approx.tolist(), v2_grids_approx.tolist(), strict=True)))
 
 
 def get_approx_point_from_grid(
@@ -387,7 +387,7 @@ def get_approx_point_from_grid(
 
     # create a distance mapping
     point_grids_pc1pc2 = np.asarray(
-        list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes], strict=False))
+        list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes], strict=True))
     )
     pc1_pc2_points = np.expand_dims(pc1_pc2_points, axis=0)
     point_grids_pc1pc2 = np.expand_dims(point_grids_pc1pc2, axis=1)
@@ -398,7 +398,7 @@ def get_approx_point_from_grid(
     g1_grids_approx = g1_grids[slice_indexes][min_idx]
     g2_grids_approx = g2_grids[slice_indexes][min_idx]
 
-    return np.array(tuple(zip(g1_grids_approx.tolist(), g2_grids_approx.tolist(), strict=False)))
+    return np.array(tuple(zip(g1_grids_approx.tolist(), g2_grids_approx.tolist(), strict=True)))
 
 
 def get_vector_angles_as_grid(
@@ -414,10 +414,10 @@ def get_vector_angles_as_grid(
     my_shape = [len(np.unique(slice_indexes[i])) for i in range(len(slice_indexes))]
 
     vecs_grids = np.asarray(
-        list(zip(np.ravel(v1_grids), np.ravel(v2_grids), np.ravel(v3_grids), strict=False))
+        list(zip(np.ravel(v1_grids), np.ravel(v2_grids), np.ravel(v3_grids), strict=True))
     )
     vecs_tracks = np.asarray(
-        list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks), strict=False))
+        list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks), strict=True))
     )
     ang_full = get_vector_vector_angle_fast(vecs_grids, vecs_tracks)
     ang_arr = ang_full.reshape((50, 50, 50))
@@ -438,10 +438,10 @@ def get_vector_dot_products_as_grid(
     my_shape = [len(np.unique(slice_indexes[i])) for i in range(len(slice_indexes))]
 
     vecs_grids = np.asarray(
-        list(zip(np.ravel(v1_grids), np.ravel(v2_grids), np.ravel(v3_grids), strict=False))
+        list(zip(np.ravel(v1_grids), np.ravel(v2_grids), np.ravel(v3_grids), strict=True))
     )
     vecs_tracks = np.asarray(
-        list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks), strict=False))
+        list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks), strict=True))
     )
     dot_prod_full = np.einsum("ij,ij->i", vecs_grids, vecs_tracks)
     dot_prod_arr = dot_prod_full.reshape((50, 50, 50))

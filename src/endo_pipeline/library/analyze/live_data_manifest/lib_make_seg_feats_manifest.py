@@ -140,7 +140,7 @@ def save_filter_validation_plots(
             (timelapse_duration, timelapse_duration),
         ]
         top_of_boxes = [ax.get_ylim()] * len(left_of_boxes)
-        boxes = zip(top_of_boxes, left_of_boxes, right_of_boxes, strict=False)
+        boxes = zip(top_of_boxes, left_of_boxes, right_of_boxes, strict=True)
         ax.set_xlim(0, timelapse_duration)
         [ax.fill_betweenx(y=y, x1=x1, x2=x2, color="lightgrey") for y, x1, x2 in boxes]
         fig.savefig(
@@ -500,7 +500,7 @@ def calculate_derived_data_dynamics_dependent(big_table: pd.DataFrame) -> pd.Dat
                         df["centroid_y_um"].values,  # type: ignore[arg-type, call-overload, return-value]
                         df["time_minutes"].values,  # type: ignore[arg-type, call-overload, return-value]
                     ),
-                    strict=False,
+                    strict=True,
                 ),  # type: ignore[return-value]
                 index=df.index,
             )
@@ -853,7 +853,7 @@ def compute_nuclei_centroids(
 
     # get nuclei segmentation properties and dimension order of those properties
     props = regionprops(nuc_seg.squeeze())
-    dim_shapes = dict(zip(dim_order, nuc_seg.shape, strict=False))
+    dim_shapes = dict(zip(dim_order, nuc_seg.shape, strict=True))
     dim_order_squeezed = "".join([d for d in dim_order if dim_shapes[d] > 1])
 
     centroids: dict[str, Any] = get_nuclei_coords(
