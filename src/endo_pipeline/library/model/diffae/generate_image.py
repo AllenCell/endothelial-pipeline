@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 def add_noise_to_image(
     input_image: np.ndarray,
     noise_level: float,
+    clip: bool = True,
     random_seed: int = 47,
 ) -> np.ndarray:
     """
@@ -26,7 +27,10 @@ def add_noise_to_image(
 
     The noised image is created using the formula:
 
-        noised_image = sqrt(1 - noise_level) * input_image + sqrt(noise_level) * noise_img
+        noised_image = (1 - noise_level) * input_image + (noise_level) * noise_img
+
+    where `noise_img` is a standard Gaussian noise image (mean 0, std 1) of the same shape
+    as the input image.
 
     Using this formula, the noise level represents the fraction of variance in the noised image.
     An input noise_level of 0.0 results in no noise being added (the output image is identical
@@ -38,6 +42,8 @@ def add_noise_to_image(
         The input image to which noise will be added.
     noise_level
         The standard deviation of the Gaussian noise to be added.
+    clip
+        Whether to clip the output image to the valid range [0, 1].
     random_seed
         Seed for the random number generator for reproducibility.
     """
@@ -51,16 +57,18 @@ def add_noise_to_image(
     # Generate standard Gaussian noise
     noise_img = rng.standard_normal(size=input_image.shape)
 
-    # Create the noised image:
-    #   sqrt(1 - noise_level) * input_image + sqrt(noise_level) * noise_img
-
-    # check edge cases for numerical efficiency
+    # Check edge cases for numerical efficiency
     if noise_level == 0.0:
-        return input_image
+        output_image = input_image.copy()
     elif noise_level == 1.0:
-        return noise_img
-    else:
-        return np.sqrt(1 - noise_level) * input_image + np.sqrt(noise_level) * noise_img
+        output_image = noise_img
+    else:  # general case
+        output_image = np.sqrt(1 - noise_level) * input_image + np.sqrt(noise_level) * noise_img
+
+    # Clip the output image to the valid range [0, 1] if specified
+    if clip:
+        output_image = np.clip(output_image, 0.0, 1.0)
+    return output_image
 
 
 def generate_from_coords_and_noised_image(
