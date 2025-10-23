@@ -186,6 +186,7 @@ ignore = [
     "D200", # Intending to unignore: unnecessary-multiline-docstring
     "RUF005", # Intending to unignore: collection-literal-concatenation
     "RUF015", # Intending to unignore: unnecessary-iterable-allocation-for-first-element
+    "B035", # Intending to unignore: static-key-dict-comprehension
 ]
 
 [tool.ruff.lint.mccabe]
