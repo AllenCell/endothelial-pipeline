@@ -22,7 +22,7 @@ def lineplot_of_feats(
     discrete_xticks: bool = False,
     discrete_yticks: bool = False,
     minor_ticks: Literal["x", "y", "xy"] | None = None,
-    kwargs: dict = dict(),
+    kwargs: dict = {},
 ) -> tuple[plt.Figure, plt.Axes]:
     """
     This function will save a standardized lineplot from the dataframe df_group.

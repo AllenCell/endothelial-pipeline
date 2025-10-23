@@ -128,7 +128,7 @@ def plot_measured_feat_pcs(
     alpha: float = 1.0,
 ) -> tuple[Figure, np.ndarray]:
 
-    pc_cols = [pc for pc in set((*pc_cols_for_xaxis, *pc_cols_for_yaxis))]
+    pc_cols = [pc for pc in {*pc_cols_for_xaxis, *pc_cols_for_yaxis}]
 
     assert len(pc_cols_for_xaxis) == len(
         pc_cols_for_yaxis
