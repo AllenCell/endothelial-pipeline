@@ -68,7 +68,6 @@ def get_image_data_from_original(dataset_name: str, scenes_to_use: list[str]) ->
         scene_index = img.current_scene_index
 
         print(dataset_name, img.current_scene)
-        img.current_scene_index
         channel_names = sldmd.get_channel_name(img.metadata)
         channel_names = [chan.split("/")[0] for chan in channel_names]
         nuc_chan = channel_names.index("405")
