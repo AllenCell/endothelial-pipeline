@@ -21,8 +21,9 @@ from matplotlib.ticker import MaxNLocator
 from scipy import stats as spstats
 from scipy.cluster.hierarchy import linkage
 
+from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
 from endo_pipeline.io.output import save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe_utils import get_valid_subset
+from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
 from endo_pipeline.library.analyze.integration.track_integration import (
     get_preprocessed_manifests_and_km_bounds,
 )
@@ -503,9 +504,15 @@ def get_df_for_feature_correlation_viz(
         # filter data table to only include the steady state timepoints that are
         # used when projecting the DiffAE features onto PCA axes
         # in the segmentation-free dynamics workflow
-        merged_feats_df_ss = get_valid_subset(
-            df=merged_feats_df,
-            dataset_name=dataset_name,
+        dataset_config = load_dataset_config(dataset_name)
+        timepoint_annotations = [
+            TimepointAnnotation.NOT_STEADY_STATE,
+            TimepointAnnotation.CELL_PILING,
+        ]
+        merged_feats_df_ss = filter_dataframe_by_annotations(
+            dataframe=merged_feats_df,
+            dataset_config=dataset_config,
+            timepoint_annotations=timepoint_annotations,
         )
 
         # keep only the columns that will be used
