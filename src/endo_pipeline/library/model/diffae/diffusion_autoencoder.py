@@ -1,10 +1,14 @@
-from typing import Optional
+import logging
 
+import numpy as np
 import torch
+import tqdm
 from bioio.writers import OmeTiffWriter
 from cyto_dl.models.im2im.diffusion_autoencoder import DiffusionAutoEncoder as _BaseDiffAE
 from cyto_dl.models.im2im.utils import detach
 from monai.utils import convert_to_tensor
+
+logger = logging.getLogger(__name__)
 
 
 class DiffusionAutoEncoder(_BaseDiffAE):
@@ -35,7 +39,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         n_noise_samples=1,
         train_encoder=True,
         gamma=-1.0,
-        fixed_sample_seed: Optional[int] = 42,
+        fixed_sample_seed: int | None = 42,
         **base_kwargs,
     ):
         self.noise_cons = noise_cons
@@ -145,3 +149,65 @@ class DiffusionAutoEncoder(_BaseDiffAE):
                 f"Diffusion loss should be a scalar, got {diffusion_loss.shape}. Ensure `gamma` is provided if your loss has no reduction."
             )
         return {"loss": diffusion_loss}, latent, None
+
+    def generate_from_latent_and_noised_image(
+        self,
+        conditioning_vector: torch.Tensor,
+        noised_image: torch.Tensor,
+        batch_size: int = 3,
+    ) -> np.ndarray:
+        """
+        Generate image by denoising a noised image conditioned on a latent vector.
+
+        Allows for batch processing to handle a series of conditioning vectors.
+
+        **Input tensor shapes**
+
+        The input conditioning vector tensor should have shape ``(num_vecs, num_dims)``, where
+        ``num_vecs`` is the number of conditioning vectors and ``num_dims`` is the dimensionality
+        of the latent space. This allows for generating multiple images corresponding
+        to ``num_vecs`` different conditioning vectors.
+
+        The noised image tensor should have shape ``(num_channels, num_pixels_y, num_pixels_x)``,
+        where ``num_channels`` is the number of channels, ``num_pixels_y`` is the height of the image
+        (number of pixels in Y), and ``num_pixels_x`` is the width of the image (number of pixels in X).
+        Note that this shape should be the same as ``model.image_shape`` in the model's configuration.
+
+        Parameters
+        ----------
+        conditioning_vector
+            A tensor holding the denoising conditioning vector(s).
+        noised_image
+            A tensor holding the noised image to use for image generation.
+        batch_size
+            The batch size for processing.
+        """
+        if tuple(noised_image.shape) != tuple(self.hparams.image_shape):
+            logger.error(
+                "Noised image shape [ %s ] does not match model image shape [ %s ]",
+                noised_image.shape,
+                self.hparams.image_shape,
+            )
+            raise ValueError(
+                f"Noised image shape [ {noised_image.shape} ] does not match model image shape [ {self.hparams.image_shape} ]"
+            )
+
+        if batch_size <= 0:
+            logger.error("Batch size must be at least 1, got [ %d ]", batch_size)
+            raise ValueError("Batch size must be at least 1")
+        batch_indices = [
+            (i, i + batch_size) for i in range(0, conditioning_vector.shape[0], batch_size)
+        ]
+        with torch.no_grad():
+            noise_stacked = torch.stack([noised_image] * conditioning_vector.shape[0])
+            reconstructed_image = torch.cat(
+                [
+                    self._generate_image(
+                        noise_stacked[start:stop], conditioning_vector[start:stop].unsqueeze(2)
+                    ).squeeze(1)
+                    for start, stop in tqdm.tqdm(batch_indices, desc="Generating batch")
+                ],
+                0,
+            )
+        reconstructed_image_numpy = detach(reconstructed_image).astype(float)
+        return reconstructed_image_numpy

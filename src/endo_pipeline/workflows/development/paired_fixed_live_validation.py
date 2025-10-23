@@ -28,7 +28,7 @@ def main(
     from endo_pipeline import NUM_GPUS
     from endo_pipeline.configs import load_model_config
     from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.analyze.diffae_dataframe import fit_pca
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
     from endo_pipeline.library.analyze.immunofluorescence import validate_pcs_for_integration
     from endo_pipeline.library.model import load_model_for_inference
     from endo_pipeline.library.visualize.integration import viz_validate_pcs_for_integration
@@ -47,11 +47,10 @@ def main(
     eval_config = load_model_config(DIFFAE_MODEL_EVAL_FINETUNE_CONFIG)
     model = load_model_for_inference(model_manifest, run_name, eval_config)
 
-    # Set directory for aligned data
+    # Set directory for saving output features
     model_save_path = get_output_path(
         "models", model_manifest_name, f"{fixed_dataset_name}_vs_{live_dataset_name}"
     )
-    data_save_path = model_save_path / f"aligned_{fixed_dataset_name}_vs_{live_dataset_name}.csv"
 
     # Align paired fixed and live data and apply a diffAE model to extract features.
     fixed_features_path, live_features_path = (
@@ -59,7 +58,6 @@ def main(
             fixed_dataset_name,
             live_dataset_name,
             model_save_path,
-            data_save_path,
             model,
             num_gpus=NUM_GPUS,
         )

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from endo_pipeline.configs import ChannelIndices, DatasetConfig, FlowCondition
+from endo_pipeline.configs import ChannelIndices, DatasetConfig
 from endo_pipeline.manifests.image_manifest import ImageLocation, ImageManifest
 from endo_pipeline.manifests.image_manifest_utils import (
     get_image_location_for_dataset,

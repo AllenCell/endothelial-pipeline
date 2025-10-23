@@ -21,7 +21,7 @@ from endo_pipeline.configs import (
 logger = logging.getLogger(__name__)
 
 
-def get_regime_for_shear_stress(shear_stress: float) -> tuple[float, float]:
+def get_regime_for_shear_stress(shear_stress: float) -> ShearStressRegime:
     """Get shear stress regime for given shear stress value."""
 
     for regime in ShearStressRegime:
@@ -295,7 +295,17 @@ def get_unannotated_timepoints_for_position(
 def get_all_unannotated_timepoints(
     dataset: DatasetConfig, annotations: list[TimepointAnnotation] | None = None
 ) -> dict[int, list[int]]:
-    """Get all timepoints without any of the given annotations for each position in dataset."""
+    """
+    Get all timepoints without any of the given annotations for each position in dataset.
+
+    Parameters
+    ----------
+    dataset: DatasetConfig
+    annotations: list[TimepointAnnotation] | None
+        Annotations to consider. If annotations is [], then all timepoints will be
+        returned. If annotations is None, then only timepoints without any annotations
+        will be returned.
+    """
 
     return {
         position: get_unannotated_timepoints_for_position(dataset, position, annotations)

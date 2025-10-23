@@ -343,7 +343,7 @@ def add_diffae_model_eval_crop_columns(
 def preprocess_tracking_manifest_for_model_eval(
     dataset_config: DatasetConfig,
     save_dir: Path,
-    z_slice_bounds_per_position: dict[int, dict[str, int]] | None = None,
+    z_slice_bounds_per_position: dict[int, dict[CytoDLLoadDataKeys, int]] | None = None,
     only_include_positions: list[int] | None = None,
     only_include_frames: dict[int, list[int]] | None = None,
 ) -> Path:

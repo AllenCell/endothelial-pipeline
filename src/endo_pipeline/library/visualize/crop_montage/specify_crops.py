@@ -5,7 +5,7 @@ import pandas as pd
 from sklearn.decomposition import PCA
 
 from endo_pipeline.io import save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe import (
+from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
 )

@@ -203,7 +203,7 @@ def contrast_stretching(
     method: Literal["min-max", "percentile"] = "percentile",
     low_percentile: int = 1,
     high_percentile: int = 99,
-    custom_range: tuple[float, float] = None,
+    custom_range: tuple[float, float] | None = None,
 ) -> np.ndarray:
     """
     Contrast stretching with selectable method.
@@ -291,3 +291,30 @@ def normalize_image(image: np.ndarray, target_max: int = 255) -> np.ndarray:
         normalized_image = normalized_image.astype(np.uint8)
 
     return normalized_image
+
+
+def crop_image(img: np.ndarray, start_x: int, start_y: int, crop_size: int) -> np.ndarray:
+    """
+    Crop a square region from an image array in Y, X dimensions.
+
+    Parameters
+    ----------
+    img : np.ndarray
+        The input image array with shape (Y, X), (C, Y, X), (T, C, Y, X), or (T, C, Z, Y, X).
+    start_x : int
+        The starting pixel coordinate along the X-axis (horizontal) for cropping.
+    start_y : int
+        The starting pixel coordinate along the Y-axis (vertical) for cropping.
+    crop_size : int
+        The size of the square crop.
+
+    Returns
+    -------
+    np.ndarray
+        The cropped image region.
+    """
+    end_x = start_x + crop_size
+    end_y = start_y + crop_size
+
+    slices = [slice(None)] * (img.ndim - 2) + [slice(start_y, end_y), slice(start_x, end_x)]
+    return img[tuple(slices)]

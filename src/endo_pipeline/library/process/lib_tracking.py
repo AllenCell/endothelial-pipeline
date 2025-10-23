@@ -1201,12 +1201,10 @@ def run_tracking(
     tracking_metrics: list[str] = ["region_overlap"],  # for nuclei try 'centroids'
     sorting_key: Callable | None = None,
     C: int = 0,
-    scene: str | int | None = None,
     bin_level: int | None = None,
     T: list[int] | None = None,
     extra_in_dir: Path | list[Path] | None = None,
     extra_C: int = 0,
-    extra_scene: str | int | None = None,
     extra_bin_level: int | None = None,
     extra_T: list[int] | None = None,
     Z_projection: Callable | None = None,
@@ -1271,8 +1269,6 @@ def run_tracking(
     ]:
         if isinstance(filepath, Path):
             img = BioImage(filepath)
-            if scene:
-                img.set_scene(scene)
             if bin_level:
                 img.set_resolution_level(bin_level)
             if time_list:
@@ -1399,8 +1395,6 @@ def run_tracking(
                 if extra_in_dir:
                     if overlay_path and overlay_crop:
                         raw_image = BioImage(overlay_path)
-                        if extra_scene:
-                            raw_image.set_scene(extra_scene)
                         if extra_bin_level:
                             raw_image.set_resolution_level(extra_bin_level)
                         img_metadata = {

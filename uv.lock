@@ -1322,7 +1322,7 @@ requires-dist = [
     { name = "cellpose", marker = "extra == 'cellpose'", specifier = ">=3.1.0" },
     { name = "colorcet", specifier = ">=3.1.0" },
     { name = "colorizer-data", git = "https://github.com/allen-cell-animated/colorizer-data.git?rev=v1.6.3" },
-    { name = "cyclopts", specifier = ">=3.22.2" },
+    { name = "cyclopts", specifier = ">=3.22.4" },
     { name = "cyto-dl", marker = "extra == 'ml-workflows'", specifier = ">=0.6.1" },
     { name = "deprecated", specifier = ">=1.2.18" },
     { name = "fastparquet", specifier = ">=2024.11.0" },

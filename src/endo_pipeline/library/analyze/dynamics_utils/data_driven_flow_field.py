@@ -8,7 +8,7 @@ from scipy import interpolate as spinterp
 from scipy.integrate import solve_ivp
 from sklearn.decomposition import PCA
 
-from endo_pipeline.library.analyze.diffae_dataframe import (
+from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
     get_dataset_descriptions,
     get_traj_and_diff,
