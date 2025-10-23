@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = "==3.11.*"
 resolution-markers = [
     "sys_platform == 'darwin'",
@@ -1344,7 +1344,7 @@ requires-dist = [
     { name = "pathlib", specifier = ">=1.0.1" },
     { name = "pyarrow", specifier = "<=19.0.1" },
     { name = "pysindy", specifier = ">=1.7.5" },
-    { name = "s3-tools", marker = "extra == 'internal'", git = "https://github.com/aics-int/aws-s3-upload-tools?rev=prerelease%2Fv0.2.0" },
+    { name = "s3-tools", marker = "extra == 'internal'", git = "https://github.com/aics-int/aws-s3-upload-tools?rev=v0.2.0" },
     { name = "scikit-image", specifier = "==0.22.0" },
     { name = "scikit-learn", specifier = "==1.5.1" },
     { name = "scipy", specifier = "==1.13.1" },
@@ -3857,9 +3857,9 @@ wheels = [
 name = "pyfakefs"
 version = "5.10.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/37/a1/17910b4bb06b5cbb7157c9cdf88323e17014fdbf1a66839c68b851317bd2/pyfakefs-5.10.0.tar.gz", hash = "sha256:68b33b8d9338ed332ad0c809417b875559c2e8ac10972fce248cb19b89d325fa", size = 231032, upload-time = "2025-10-11T09:19:07.461Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/37/a1/17910b4bb06b5cbb7157c9cdf88323e17014fdbf1a66839c68b851317bd2/pyfakefs-5.10.0.tar.gz", hash = "sha256:68b33b8d9338ed332ad0c809417b875559c2e8ac10972fce248cb19b89d325fa", size = 231032, upload_time = "2025-10-11T09:19:07.461Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/42/56/a419a4168dd2c0876d548986541ac6012f36e560e19c807373ddfd90a64c/pyfakefs-5.10.0-py3-none-any.whl", hash = "sha256:105a97076aed079589546a8c2bea68e771a19e7a8ee335a30936aa03d98ab4fe", size = 246057, upload-time = "2025-10-11T09:19:04.939Z" },
+    { url = "https://files.pythonhosted.org/packages/42/56/a419a4168dd2c0876d548986541ac6012f36e560e19c807373ddfd90a64c/pyfakefs-5.10.0-py3-none-any.whl", hash = "sha256:105a97076aed079589546a8c2bea68e771a19e7a8ee335a30936aa03d98ab4fe", size = 246057, upload_time = "2025-10-11T09:19:04.939Z" },
 ]
 
 [[package]]
@@ -4310,8 +4310,8 @@ wheels = [
 
 [[package]]
 name = "s3-tools"
-version = "0.1.1"
-source = { git = "https://github.com/aics-int/aws-s3-upload-tools?rev=prerelease%2Fv0.2.0#1a6103b84b84603ac76d23368e12a3e15f709dd8" }
+version = "0.2.0"
+source = { git = "https://github.com/aics-int/aws-s3-upload-tools?rev=v0.2.0#4d42218a9594ff4b4799046a4a473c332f3d6aa7" }
 dependencies = [
     { name = "aiostream" },
     { name = "cyclopts" },
@@ -4968,9 +4968,9 @@ wheels = [
 name = "types-deprecated"
 version = "1.2.15.20250304"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/0e/67/eeefaaabb03b288aad85483d410452c8bbcbf8b2bd876b0e467ebd97415b/types_deprecated-1.2.15.20250304.tar.gz", hash = "sha256:c329030553029de5cc6cb30f269c11f4e00e598c4241290179f63cda7d33f719", size = 8015, upload-time = "2025-03-04T02:48:17.894Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0e/67/eeefaaabb03b288aad85483d410452c8bbcbf8b2bd876b0e467ebd97415b/types_deprecated-1.2.15.20250304.tar.gz", hash = "sha256:c329030553029de5cc6cb30f269c11f4e00e598c4241290179f63cda7d33f719", size = 8015, upload_time = "2025-03-04T02:48:17.894Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4d/e3/c18aa72ab84e0bc127a3a94e93be1a6ac2cb281371d3a45376ab7cfdd31c/types_deprecated-1.2.15.20250304-py3-none-any.whl", hash = "sha256:86a65aa550ea8acf49f27e226b8953288cd851de887970fbbdf2239c116c3107", size = 8553, upload-time = "2025-03-04T02:48:16.666Z" },
+    { url = "https://files.pythonhosted.org/packages/4d/e3/c18aa72ab84e0bc127a3a94e93be1a6ac2cb281371d3a45376ab7cfdd31c/types_deprecated-1.2.15.20250304-py3-none-any.whl", hash = "sha256:86a65aa550ea8acf49f27e226b8953288cd851de887970fbbdf2239c116c3107", size = 8553, upload_time = "2025-03-04T02:48:16.666Z" },
 ]
 
 [[package]]
