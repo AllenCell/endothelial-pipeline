@@ -214,7 +214,7 @@ def visualize_fov_transform_steps(
     sample: dict[str, Any],
     save_dir: Path,
     target_key: str,
-) -> np.ndarray | None:
+) -> np.ndarray:
     """
     Apply a sequence of transforms to a sample and optionally visualize.
 
