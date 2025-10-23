@@ -25,7 +25,6 @@ from endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers
 from endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_data, get_bins
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
-from endo_pipeline.library.visualize.colors import angle_deg_to_color
 from endo_pipeline.manifests import (
     ModelManifest,
     get_dataframe_location_for_dataset,
@@ -567,7 +566,7 @@ def make_angular_deviation_test(out_dir: Path) -> None:
         units="width",
         width=0.005,
         alpha=1,
-        color=angle_deg_to_color(test_angular_deviation_deg, cmap=cmap),
+        color=cmap(np.abs(test_angular_deviation_deg) / 180.0),  # convert angle to color
     )
     ax.set_xlim(-9, 9)
     ax.set_ylim(-5, 5)
