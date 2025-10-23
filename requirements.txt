@@ -47,6 +47,11 @@ annotated-types==0.7.0 \
     --hash=sha256:1f02e8b43a8fbbc3f3e0d4f0f4bfc8131bcb4eebe8849b8e5c773f3a1c582a53 \
     --hash=sha256:aff07c09a53a08bc8cfccb9c85b05f1aa9a2a6f23728d790723543408344ce89
     # via pydantic
+antlr4-python3-runtime==4.9.3 \
+    --hash=sha256:f224469b4168294902bb1efa80a8bf7855f24c99aef99cbefc1bcd3cce77881b
+    # via
+    #   hydra-core
+    #   omegaconf
 anyio==4.9.0 \
     --hash=sha256:673c0c244e15788651a4ff38710fea9675823028a6f08a5eda409e0c9840a028 \
     --hash=sha256:9f76d541cad6e36af7beb62e978876f3b41e3e04f2c1fbf0884604c0a9c4d93c
@@ -526,6 +531,10 @@ httpx==0.28.1 \
     --hash=sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc \
     --hash=sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad
     # via jupyterlab
+hydra-core==1.3.2 \
+    --hash=sha256:8a878ed67216997c3e9d88a8e72e7b4767e81af37afb4ea3334b269a4390a824 \
+    --hash=sha256:fa0238a9e31df3373b35b0bfb672c34cc92718d21f81311d8996a16de1141d8b
+    # via endo-pipeline
 identify==2.6.10 \
     --hash=sha256:45e92fd704f3da71cc3880036633f48b4b7265fd4de2b57627cb157216eb7eb8 \
     --hash=sha256:5f34248f54136beed1a7ba6a6b5c4b6cf21ff495aac7c359e1ef831ae3b8ab25
@@ -1098,6 +1107,10 @@ ome-zarr-models==0.1.5 \
     --hash=sha256:430be3c54fccefd7605b2ed78bafc363e65b4d444afcc1c0f51963017d0fd745 \
     --hash=sha256:cb82de1831f2eea48ff1827a467f3dff7698a131dbcfdc86fea1b9e93f1b73d4
     # via bioio
+omegaconf==2.3.0 \
+    --hash=sha256:7b4df175cdb08ba400f45cae3bdcae7ba8365db4d165fc65fd04b050ab63b46b \
+    --hash=sha256:d5d4b6d29955cc50ad50c46dc269bcd92c6e00f5f90d23ab5fee7bfca4ba4cc7
+    # via hydra-core
 opencv-python==4.11.0.86 \
     --hash=sha256:03d60ccae62304860d232272e4a4fda93c39d595780cb40b161b310244b736a4 \
     --hash=sha256:085ad9b77c18853ea66283e98affefe2de8cc4c1f43eda4c100cf9b2721142ec \
@@ -1119,6 +1132,7 @@ packaging==24.2 \
     #   dask
     #   distributed
     #   fastparquet
+    #   hydra-core
     #   ipykernel
     #   jupyter-events
     #   jupyter-server
@@ -1424,6 +1438,7 @@ pyyaml==6.0.2 \
     #   jupyter-events
     #   jupytext
     #   myst-parser
+    #   omegaconf
     #   pre-commit
 pyzmq==26.4.0 \
     --hash=sha256:2f9f7ffe9db1187a253fca95191854b3fda24696f086e8789d1d449308a34b88 \
