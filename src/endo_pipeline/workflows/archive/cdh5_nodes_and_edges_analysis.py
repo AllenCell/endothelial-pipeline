@@ -11,11 +11,6 @@ from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 from endo_pipeline.library.process import cdh5_preprocessing as preproc
 from endo_pipeline.library.visualize import vis_cdh5_nodes_and_edges_analysis as vis
 
-try:
-    from IPython import get_ipython
-except ModuleNotFoundError:
-    pass
-
 """
 APPROXIMATE SCRIPT RUN-TIME:
 8min 30sec

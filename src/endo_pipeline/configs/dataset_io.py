@@ -18,8 +18,6 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-from endo_pipeline.configs import get_datasets_in_collection
-from endo_pipeline.configs.dataset_config_io import get_available_dataset_names
 from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)

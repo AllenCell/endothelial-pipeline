@@ -27,7 +27,7 @@ DATASET_INFO_COLUMNS = [
 
 
 def main(
-    dataset_collection_name: str = "pca_reference",
+    dataset_collection_name: str = "pca_reference_legacy",
     dataset_info_columns: list[str] = DATASET_INFO_COLUMNS,
     classical_feature_columns: list[str] = CLASSICAL_FEATURE_COLUMNS,
     pc_columns: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
