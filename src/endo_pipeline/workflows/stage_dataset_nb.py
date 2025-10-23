@@ -10,6 +10,8 @@ from endo_pipeline.configs import (
 from endo_pipeline.io.output import get_output_path, get_timestamp
 
 # %%
+DESCRIPTION = "Stage dataset for s3 upload."
+TAGS = ["internal"]
 
 S3_DIRECTORY = "s3://allencell-internal-quilt/endo_stg/"
 SOURCE_COL = "local_zarr_path"
