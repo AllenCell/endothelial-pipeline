@@ -8,7 +8,12 @@ if typing.TYPE_CHECKING:
     import dask.array as da
     import numpy as np
     from cyto_dl.api import CytoDLModel
+    from cyto_dl.models.im2im.diffusion_autoencoder import (
+        DiffusionAutoEncoder as BaseDiffusionAutoEncoder,
+    )
     from omegaconf import DictConfig, ListConfig
+
+    from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 
 import pandas as pd
 
@@ -66,7 +71,7 @@ def load_image_from_path(
     Returns
     -------
     :
-        File loaded as dask or numpy array.
+        Image loaded from path.
     """
 
     from bioio import BioImage
@@ -130,6 +135,10 @@ def load_image(
         True to drop any single-dimensional entries, False otherwise.
     compute
         True to turn lazy Dask array into in-memory NumPy array, False otherwise.
+
+    Returns
+    -------
+        Loaded image.
     """
 
     if location.path is not None:
@@ -153,7 +162,7 @@ def load_dataframe_from_path(path: Path) -> pd.DataFrame:
     Returns
     -------
     :
-        File loaded as dataframe.
+        Dataframe loaded from path.
     """
 
     if not path.exists():
@@ -225,7 +234,7 @@ def load_dataframe_from_fms(fmsid: str) -> pd.DataFrame:
     Returns
     -------
     :
-        File loaded as dataframe.
+        Dataframe loaded from FMS.
     """
 
     local_path = get_local_path_from_fmsid(fmsid)
@@ -247,7 +256,7 @@ def load_dataframe_from_s3(s3uri: str) -> pd.DataFrame:
     Returns
     -------
     :
-        Object loaded as dataframe.
+        Dataframe loaded from S3.
     """
 
     if not s3uri.startswith("s3://"):
@@ -290,6 +299,10 @@ def load_dataframe(location: DataframeLocation) -> pd.DataFrame:
     ----------
     location
         Dataframe location object.
+
+    Returns
+    -------
+        Loaded dataframe.
     """
 
     if location.fmsid is not None:
@@ -445,7 +458,9 @@ def get_checkpoint_path_from_mlflow(mlflowid: str) -> Path:
     )
 
 
-def load_model_from_mlflow(mlflowid: str) -> "CytoDLModel":
+def load_model_from_mlflow(
+    mlflowid: str, instantiate: bool = False
+) -> "CytoDLModel | BaseDiffusionAutoEncoder | DiffusionAutoEncoder":
     """
     Load model from MLFlow by run ID.
 
@@ -456,11 +471,13 @@ def load_model_from_mlflow(mlflowid: str) -> "CytoDLModel":
     ----------
     mlflowid
         MLFlow run ID.
+    instantiate
+        True to instantiate the model object, False otherwise.
 
     Returns
     -------
     :
-        Model loaded with config and checkpoint.
+        Model loaded from MLflow.
     """
 
     from cyto_dl.api import CytoDLModel
@@ -486,21 +503,76 @@ def load_model_from_mlflow(mlflowid: str) -> "CytoDLModel":
         }
     )
 
+    # Instantiate model if requested.
+    if instantiate:
+        model = instantiate_model_target_class(model)
+
     return model
 
 
-def load_model(location: ModelLocation) -> "CytoDLModel":
+def load_model(
+    location: ModelLocation, instantiate: bool = False
+) -> "CytoDLModel | BaseDiffusionAutoEncoder | DiffusionAutoEncoder":
     """
     Load model from location with config and checkpoint, defaulting to MLFlow.
+
+    By default, the loaded model will be a CytoDLModel.
+
+    The specific model object can be instantiated using the model configuration,
+    using the target class and weights from the associated checkpoint.
 
     Parameters
     ----------
     location
         Model location object.
+    instantiate
+        True to instantiate the model object, False otherwise.
+
+    Returns
+    -------
+        Loaded model.
     """
 
     if location.mlflowid is not None:
-        return load_model_from_mlflow(location.mlflowid)
+        return load_model_from_mlflow(location.mlflowid, instantiate)
 
     logger.error("Location does not have an MLFlow run ID.")
     raise FileNotFoundError("Unable to load model; no available locations.")
+
+
+def instantiate_model_target_class(
+    model: "CytoDLModel",
+) -> "BaseDiffusionAutoEncoder | DiffusionAutoEncoder":
+    """
+    Instantiate model target class from loaded configuration and checkpoint.
+
+    Parameters
+    ----------
+    model
+        Model loaded with config and checkpoint.
+
+    Returns
+    -------
+    :
+        Instantiated model object.
+    """
+
+    from operator import attrgetter
+
+    from hydra.utils import get_class
+    from omegaconf.errors import ConfigAttributeError
+
+    try:
+        attrgetter("model._target_", "checkpoint.ckpt_path")(model.cfg)
+    except ConfigAttributeError as e:
+        logger.error("Model configuration missing required key: '%s'", e.full_key)
+        raise
+
+    model_class = get_class(model.cfg.model._target_)
+
+    if not hasattr(model_class, "load_from_checkpoint"):
+        message = f"Model class [ {model_class} ] does not have a 'load_from_checkpoint' method"
+        logger.error(message)
+        raise ValueError(message)
+
+    return model_class.load_from_checkpoint(model.cfg.checkpoint.ckpt_path)
