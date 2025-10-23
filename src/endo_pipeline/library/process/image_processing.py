@@ -293,7 +293,7 @@ def normalize_image(image: np.ndarray, target_max: int = 255) -> np.ndarray:
     return normalized_image
 
 
-def crop_image(img: np.ndarray, start: int, crop_size: int) -> np.ndarray:
+def crop_image(img: np.ndarray, start_x: int, start_y: int, crop_size: int) -> np.ndarray:
     """
     Crop a square region from an image array in Y, X dimensions.
 
@@ -301,8 +301,10 @@ def crop_image(img: np.ndarray, start: int, crop_size: int) -> np.ndarray:
     ----------
     img : np.ndarray
         The input image array with shape (Y, X), (C, Y, X), (T, C, Y, X), or (T, C, Z, Y, X).
-    start : int
-        The starting pixel coordinate for cropping.
+    start_x : int
+        The starting pixel coordinate along the X-axis (horizontal) for cropping.
+    start_y : int
+        The starting pixel coordinate along the Y-axis (vertical) for cropping.
     crop_size : int
         The size of the square crop.
 
@@ -311,7 +313,8 @@ def crop_image(img: np.ndarray, start: int, crop_size: int) -> np.ndarray:
     np.ndarray
         The cropped image region.
     """
-    end = start + crop_size
+    end_x = start_x + crop_size
+    end_y = start_y + crop_size
 
-    slices = [slice(None)] * (img.ndim - 2) + [slice(start, end), slice(start, end)]
+    slices = [slice(None)] * (img.ndim - 2) + [slice(start_y, end_y), slice(start_x, end_x)]
     return img[tuple(slices)]

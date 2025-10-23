@@ -61,7 +61,7 @@ transformed_cdh5 = visualize_fov_transform_steps(transforms, data, save_dir, tar
 
 # %% Visualize cropped images
 for image, name in [(transformed_bf, "crop_bf"), (transformed_cdh5, "crop_cdh5")]:
-    cropped_image = crop_image(image, 100, CROP_SIZE)
+    cropped_image = crop_image(image, 100, 100, CROP_SIZE)
     plot_image_thumbnail(
         cropped_image.squeeze(),
         name,

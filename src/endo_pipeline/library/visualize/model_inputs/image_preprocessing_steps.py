@@ -296,6 +296,7 @@ def apply_img_preprocessing(
 
     transformed_img = get_target_image_from_sample(sample, target_key=f"raw_{channel}")
 
-    crop_img = crop_image(transformed_img, start_x, crop_size)
+    start_y = start_x  # temp
+    crop_img = crop_image(transformed_img, start_x, start_y, crop_size)
 
     return crop_img
