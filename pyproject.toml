@@ -256,7 +256,7 @@ disable_error_code = ["arg-type", "assignment", "attr-defined", "call-arg", "uni
 module = [
     "endo_pipeline.library.analyze.*",
 ]
-disable_error_code = ["assignment", "arg-type", "attr-defined", "union-attr", "return-value", "misc", "has-type", "operator", "index", "list-item", "call-overload"]
+disable_error_code = ["arg-type", "attr-defined", "union-attr", "return-value", "misc", "has-type", "index"]
 
 [[tool.mypy.overrides]]
 # This section should be removed when errors in the listed modules are resolved
