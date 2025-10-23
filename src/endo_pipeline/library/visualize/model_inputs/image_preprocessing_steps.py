@@ -199,10 +199,11 @@ def get_target_image_from_sample(sample: dict[str, Any], target_key: str) -> np.
         raise ValueError("Input key '%s' not found in sample dictionary.", target_key)
 
     value = sample[target_key]
-    if isinstance(value, torch.Tensor):
-        return value.detach().cpu().numpy()
-    elif isinstance(value, np.ndarray):
+
+    if isinstance(value, np.ndarray):
         return value
+    elif isinstance(value, torch.Tensor):
+        return value.detach().cpu().numpy()
     else:
         logger.error("Unsupported type for '%s': %s", target_key, type(value))
         raise TypeError("Unsupported type for '%s': %s", target_key, type(value))
