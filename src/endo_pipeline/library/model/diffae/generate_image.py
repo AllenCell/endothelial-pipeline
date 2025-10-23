@@ -4,6 +4,7 @@ import typing
 import numpy as np
 import torch
 from hydra.utils import get_class
+from numpy.random import default_rng
 
 if typing.TYPE_CHECKING:
     from cyto_dl.api import CytoDLModel
@@ -11,6 +12,55 @@ if typing.TYPE_CHECKING:
 from endo_pipeline.configs import instantiate_diffusion_autoencoder_object
 
 logger = logging.getLogger(__name__)
+
+
+def add_noise_to_image(
+    input_image: np.ndarray,
+    noise_level: float,
+    random_seed: int = 47,
+) -> np.ndarray:
+    """
+    Add Gaussian noise to an input image at a specified noise level.
+
+    **Noise level weighting**
+
+    The noised image is created using the formula:
+
+        noised_image = sqrt(1 - noise_level) * input_image + sqrt(noise_level) * noise_img
+
+    Using this formula, the noise level represents the fraction of variance in the noised image.
+    An input noise_level of 0.0 results in no noise being added (the output image is identical
+    to the input image), while a noise_level of 1.0 results in an image composed entirely of noise.
+
+    Parameters
+    ----------
+    input_image
+        The input image to which noise will be added.
+    noise_level
+        The standard deviation of the Gaussian noise to be added.
+    random_seed
+        Seed for the random number generator for reproducibility.
+    """
+    if not (0.0 <= noise_level <= 1.0):
+        logger.error("Parameter `noise_level` must be between 0.0 and 1.0.")
+        raise ValueError("Parameter `noise_level` must be between 0.0 and 1.0.")
+
+    # Set RNG with the provided seed for reproducibility
+    rng = default_rng(seed=random_seed)
+
+    # Generate standard Gaussian noise
+    noise_img = rng.standard_normal(size=input_image.shape)
+
+    # Create the noised image:
+    #   sqrt(1 - noise_level) * input_image + sqrt(noise_level) * noise_img
+
+    # check edge cases for numerical efficiency
+    if noise_level == 0.0:
+        return input_image
+    elif noise_level == 1.0:
+        return noise_img
+    else:
+        return np.sqrt(1 - noise_level) * input_image + np.sqrt(noise_level) * noise_img
 
 
 def generate_from_coords_and_noised_image(
