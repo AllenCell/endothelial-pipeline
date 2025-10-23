@@ -1,5 +1,8 @@
-from endo_pipeline.configs.dataset_config import TimepointAnnotation
+from typing import Literal
+
+from endo_pipeline.configs import TimepointAnnotation
 from endo_pipeline.settings import (
+    DEFAULT_MODEL_MANIFEST_NAME,
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
@@ -29,17 +32,14 @@ DATASET_INFO_COLUMNS = [
 
 def main(
     dataset_collection_name: str = "pca_reference_legacy",
-    model_manifest_name: str = "diffae_04_10",
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = None,
     seg_feature_manifest_name: str = "live_merged_seg_features",
     dataset_info_columns: list[str] = DATASET_INFO_COLUMNS,
     classical_feature_columns: list[str] = CLASSICAL_FEATURE_COLUMNS,
     pc_columns: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
     diffae_feature_columns: list[str] = DIFFAE_FEATURE_COLUMN_NAMES,
-    timepoint_annotations: list[TimepointAnnotation] | None = [
-        TimepointAnnotation.NOT_STEADY_STATE,
-        TimepointAnnotation.CELL_PILING,
-    ],
+    timepoint_annotations: list[TimepointAnnotation] | Literal["default"] | None = "default",
     aggregate: bool = True,
 ) -> None:
     """
@@ -85,7 +85,7 @@ def main(
         plot_and_save_heatmap,
         plot_multi_feature_correlations,
     )
-    from endo_pipeline.manifests.model_manifest_io import load_model_manifest
+    from endo_pipeline.manifests import load_model_manifest
 
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
@@ -94,6 +94,12 @@ def main(
 
     dataset_name_list = get_datasets_in_collection(dataset_collection_name)
     model_manifest = load_model_manifest(model_manifest_name)
+
+    if timepoint_annotations == "default":
+        timepoint_annotations = [
+            TimepointAnnotation.NOT_STEADY_STATE,
+            TimepointAnnotation.CELL_PILING,
+        ]
 
     df = get_df_for_feature_correlation_viz(
         dataset_name_list=dataset_name_list,

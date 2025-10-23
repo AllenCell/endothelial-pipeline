@@ -28,7 +28,7 @@ from endo_pipeline.library.analyze.integration.track_integration import (
     get_preprocessed_manifests_and_km_bounds,
 )
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
-from endo_pipeline.manifests.model_manifest import ModelManifest
+from endo_pipeline.manifests import ModelManifest
 
 
 def add_feature_scatter_plot(

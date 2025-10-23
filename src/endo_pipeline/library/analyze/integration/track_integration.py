@@ -25,9 +25,12 @@ from endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers
 from endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_data, get_bins
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
-from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
-from endo_pipeline.manifests.model_manifest import ModelManifest
-from endo_pipeline.manifests.model_manifest_utils import get_feature_dataframe_manifest_name
+from endo_pipeline.manifests import (
+    ModelManifest,
+    get_dataframe_location_for_dataset,
+    get_feature_dataframe_manifest_name,
+    load_dataframe_manifest,
+)
 from endo_pipeline.settings import ColumnName
 
 logger = logging.getLogger(__name__)
