@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 def add_noise_to_image(
     input_image: np.ndarray,
     noise_level: float,
-    clip: bool = True,
+    clip: bool = False,
     random_seed: int = 47,
 ) -> np.ndarray:
     """
