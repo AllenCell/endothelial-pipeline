@@ -8,7 +8,7 @@ from endo_pipeline.library.analyze.integration.track_integration import (
     get_preprocessed_manifests_and_km_bounds,
 )
 from endo_pipeline.library.visualize.integration.track_integration_viz import make_all_plots
-from endo_pipeline.manifests.model_manifest_io import load_model_manifest
+from endo_pipeline.manifests import load_model_manifest
 from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
