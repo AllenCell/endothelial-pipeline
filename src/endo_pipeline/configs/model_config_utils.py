@@ -1,8 +1,6 @@
 import logging
 import typing
 
-from hydra.utils import get_class
-
 if typing.TYPE_CHECKING:
     from cyto_dl.models.im2im.diffusion_autoencoder import DiffusionAutoEncoder as _BaseDiffAE
     from omegaconf import DictConfig, ListConfig
@@ -34,6 +32,8 @@ def instantiate_diffusion_autoencoder_object(
     :
         An instantiated Diffusion Autoencoder object.
     """
+    from hydra.utils import get_class
+
     # Validate model_config structure
     # Must have 'model' and 'checkpoint' keys with required sub-keys
     # in order to instantiate the model correctly.
