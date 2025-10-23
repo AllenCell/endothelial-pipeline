@@ -5,46 +5,59 @@ import pandas as pd
 
 from endo_pipeline.configs import load_model_config
 from endo_pipeline.configs.dataset_io import extract_P
-from endo_pipeline.io import load_dataframe
+from endo_pipeline.io import load_dataframe, load_model
 from endo_pipeline.library.analyze.integration import track_integration
 from endo_pipeline.library.model.eval_model import (
     apply_model_on_array,
+    load_model_for_inference,
     load_model_for_inference_from_array_input,
 )
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.process.get_images import get_zarr_img_for_dataset
-from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.manifests import (
+    ModelManifest,
+    get_dataframe_location_for_dataset,
+    load_dataframe_manifest,
+    load_model_manifest,
+)
 from endo_pipeline.settings import DIFFAE_MODEL_EVAL_FINETUNE_CONFIG
 
 
 def apply_model_on_array_test(
     dataset_name: str = "20241120_20X",
-    model_name: str = "diffae_04_10",
-    run_name: str | None = None,
+    position: int = 0,
+    model_manifest: ModelManifest | None = None,
+    run_name: str | None = "20250927_no_log_norm",
     eval_config: dict | None = None,
+    timeframe: int = 0,
     start_x: int = 0,
     start_y: int = 0,
     crop_size_x: int = 128,
     crop_size_y: int = 128,
 ) -> np.ndarray:
 
+    if model_manifest is None:
+        model_manifest = load_model_manifest("diffae_baseline_exclude_cell_piling")
+    if eval_config is None:
+        eval_config = load_model_config(DIFFAE_MODEL_EVAL_FINETUNE_CONFIG)
     # load an example image
-    img = get_zarr_img_for_dataset(dataset_name, 0, resolution_level=1)
-    dim_order = "TCZYX"
-    img_arr = img.get_image_dask_data(dim_order, T=0)
-    crop_example = (
-        slice(None),
-        slice(start_x, start_x + crop_size_x),
-        slice(start_y, start_y + crop_size_y),
+    img_arr_crop_bf = get_image_crop_for_model(
+        dataset_name=dataset_name,
+        position=position,
+        timeframe_list=[timeframe],
+        start_x_list=[start_x],
+        start_y_list=[start_y],
+        crop_size_x=crop_size_x,
+        crop_size_y=crop_size_y,
+        resolution_level=1,
     )
-    img_arr_crop_bf = img_arr[(0, slice(1, 2), *crop_example)].compute()
 
     # load the diffae model and modify the config to accept array inputs
     diffae_model = load_model_for_inference_from_array_input(
-        model_name, run_name=run_name, eval_config=eval_config, save_config_locally=True
+        model_manifest, run_name=run_name, eval_config=eval_config, save_config_locally=True
     )
 
-    # run th model on the example image crop
+    # run the model on the example image crop
     cytodl_output = apply_model_on_array(diffae_model, img_arr_crop_bf)
 
     return cytodl_output
@@ -95,38 +108,53 @@ if __name__ == "__main__":
 
     ds = "20241120_20X"
     position = 0
+    crop_size_y, crop_size_x = 128, 128
 
-    kind = "cell"
-    df_kind = {"cell": 0, "grid": 1}
+    # kind = "cell"
+    # df_kind = {"cell": 0, "grid": 1}
 
-    # load the manifest for the given dataset and filter for the given position
-    df_precomp = track_integration.get_preprocessed_manifests_and_km_bounds(ds)[df_kind[kind]]
+    # # load the manifest for the given dataset and filter for the given position
+    # df_precomp = track_integration.get_preprocessed_manifests_and_km_bounds(ds)[df_kind[kind]]
 
-    df_precomp = preprocess_column_names_for_model(df_precomp)  # type:ignore
-    df_precomp = df_precomp.query("position == @position")
-    crop_size_x = int(sequence_to_scalar(df_precomp.crop_size_x))
-    crop_size_y = int(sequence_to_scalar(df_precomp.crop_size_y))
-    model_name = sequence_to_scalar(df_precomp["model_name"])
-    run_name = None
+    # df_precomp = preprocess_column_names_for_model(df_precomp)  # type:ignore
+    # df_precomp = df_precomp.query("position == @position")
+    # crop_size_x = int(sequence_to_scalar(df_precomp.crop_size_x))
+    # crop_size_y = int(sequence_to_scalar(df_precomp.crop_size_y))
+    # model_name = sequence_to_scalar(df_precomp["model_name"])
+
+    model_manifest = load_model_manifest("diffae_baseline_exclude_cell_piling")
+    run_name = run_name = "20250927_no_log_norm"
     eval_config = load_model_config(DIFFAE_MODEL_EVAL_FINETUNE_CONFIG)
 
-    samples = df_precomp.sample(n=1, random_state=42)
+    # load the diffae model and modify the config to accept array inputs
+    diffae_model = load_model_for_inference_from_array_input(
+        model_manifest, run_name=run_name, eval_config=eval_config, save_config_locally=True
+    )
+
+    # samples = df_precomp.sample(n=1, random_state=42)
+
+    # # load the images for the given dataset and position and crop them according to the manifest
+    # img_arr_crop_bf_list = get_image_crop_for_model(
+    #     dataset_name=ds,
+    #     position=position,
+    #     timeframe_list=samples.frame_number.values.tolist(),
+    #     start_x_list=samples.start_x.values.tolist(),
+    #     start_y_list=samples.start_y.values.tolist(),
+    #     crop_size_x=crop_size_x,
+    #     crop_size_y=crop_size_y,
+    #     resolution_level=1,
+    # )
 
     # load the images for the given dataset and position and crop them according to the manifest
     img_arr_crop_bf_list = get_image_crop_for_model(
         dataset_name=ds,
         position=position,
-        timeframe_list=samples.frame_number.values.tolist(),
-        start_x_list=samples.start_x.values.tolist(),
-        start_y_list=samples.start_y.values.tolist(),
+        timeframe_list=[0],
+        start_x_list=[0],
+        start_y_list=[0],
         crop_size_x=crop_size_x,
         crop_size_y=crop_size_y,
         resolution_level=1,
-    )
-
-    # load the diffae model and modify the config to accept array inputs
-    diffae_model = load_model_for_inference_from_array_input(
-        model_name, run_name=run_name, eval_config=eval_config, save_config_locally=True
     )
 
     # run the model on the example image crop
@@ -134,8 +162,8 @@ if __name__ == "__main__":
     feats_calc, affine = zip(*cytodl_output)
 
     feat_columns = [f"feat_{i}" for i in range(8)]
-    feats = samples[feat_columns].astype(float)
+    # feats = samples[feat_columns].astype(float)
 
     print(ds, position)
-    print(feats)
+    # print(feats)
     print(feats_calc)
