@@ -168,7 +168,7 @@ def apply_img_transforms(transforms: list[Any], sample: dict[str, Any]) -> dict[
         Transformed sample (dict).
     """
     for i, transform in enumerate(transforms):
-        logger.info(f"\nApplying Transform {i+1}: {transform.__class__.__name__}")
+        logger.info("Applying Transform %s: %s", i + 1, {transform.__class__.__name__})
 
         sample = transform(sample)
 
@@ -187,8 +187,8 @@ def get_target_image_from_sample(sample: dict[str, Any], target_key: str) -> np.
         np.ndarray | None: The extracted image as a NumPy array, or None if not found.
     """
     if target_key not in sample:
-        logger.warning(f"  '{target_key}' not found in sample.")
-        return None
+        logger.error("Input key '%s' not found in sample dictionary.", target_key)
+        raise ValueError("Input key '%s' not found in sample dictionary.", target_key)
 
     value = sample[target_key]
     if isinstance(value, torch.Tensor):
@@ -196,8 +196,8 @@ def get_target_image_from_sample(sample: dict[str, Any], target_key: str) -> np.
     elif isinstance(value, np.ndarray):
         return value
     else:
-        logger.warning(f"  Unsupported type for '{target_key}': {type(value)}")
-        return None
+        logger.error("Unsupported type for '%s': %s", target_key, type(value))
+        raise TypeError("Unsupported type for '%s': %s", target_key, type(value))
 
 
 def visualize_fov_transform_steps(
@@ -220,7 +220,7 @@ def visualize_fov_transform_steps(
     """
     for step_idx, transform in enumerate(transforms):
         transform_name = transform.__class__.__name__
-        logger.info(f"\nApplying Transform {step_idx+1}: {transform_name}")
+        logger.info("Applying Transform %d: %s", step_idx + 1, transform_name)
 
         # Determine which keys this transform operates on
         transform_keys = getattr(transform, "keys", getattr(transform, "key", []))
@@ -233,18 +233,17 @@ def visualize_fov_transform_steps(
         if target_key in transform_keys and isinstance(sample, dict):
             value_np = get_target_image_from_sample(sample, target_key)
 
-            if value_np is not None:
-                plot_image_thumbnail(
-                    value_np.squeeze(),
-                    f"{target_key}_{step_idx}_{transform_name}",
-                    save_dir,
-                    figsize=(6, 6),
-                    scalebar_size_um=50,
-                    pixel_size=PIXEL_SIZE_3i_20x,
-                )
-                plot_and_save_histogram(
-                    value_np.squeeze(), transform_name, target_key, save_dir, step_idx
-                )
+            plot_image_thumbnail(
+                value_np.squeeze(),
+                f"{target_key}_{step_idx + 1}_{transform_name}",
+                save_dir,
+                figsize=(6, 6),
+                scalebar_size_um=50,
+                pixel_size=PIXEL_SIZE_3i_20x,
+            )
+            plot_and_save_histogram(
+                value_np.squeeze(), transform_name, target_key, save_dir, step_idx
+            )
 
     transformed_image = get_target_image_from_sample(sample, target_key)
     return transformed_image
