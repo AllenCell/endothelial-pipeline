@@ -98,7 +98,7 @@ def get_image_transforms(model_config):
         if t["_target_"] == "endo_pipeline.library.model.image_loading.BioIOImageLoaderd":
             continue
 
-        # Remove RandSpatialCropSamplesd and any transforms below it
+        # Remove RandSpatialCropSamplesd and steps after (totensor)
         if t["_target_"] == "monai.transforms.RandSpatialCropSamplesd":
             break
         filtered_transforms.append(t)
@@ -159,9 +159,14 @@ def create_data_dict_loaded_image(
     return data
 
 
-def apply_img_transforms(transforms: list[Any], sample: dict[str, Any]) -> dict[str, Any]:
+def apply_img_transforms(
+    transforms: list[Any], sample: dict[str, Any]
+) -> dict[str, np.ndarray | torch.Tensor]:
     """
     Apply a sequence of transforms to a sample image dictionary.
+    Images in the sample dict can be NumPy arrays or torch Tensors.
+    We expect all outpus to be NumPy arrays if this function is applied to the transform
+    list from get_image_transforms.
 
     Args:
         transforms (List[Any]): Sequence of transform objects to apply.
@@ -180,7 +185,7 @@ def apply_img_transforms(transforms: list[Any], sample: dict[str, Any]) -> dict[
 
 def get_target_image_from_sample(sample: dict[str, Any], target_key: str) -> np.ndarray:
     """
-    Extract the target image from the sample dictionary.
+    Extract the target image from the sample dictionary. Will be numpy arrays for image transforms.
 
     Args:
         sample (Dict[str, Any]): Input data dictionary.
