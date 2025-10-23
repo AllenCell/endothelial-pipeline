@@ -90,10 +90,12 @@ def get_image_transforms(model_config):
     # Access the training transform configuration
     train_transform_cfg = model_config.data.train_dataloaders.dataset.transform
 
+    transforms_to_initialize = train_transform_cfg.transforms
+
     filtered_transforms = []
-    for t in train_transform_cfg:
+    for t in transforms_to_initialize:
         # Remove data loading step
-        if "BioIOImageLoaderd" in t["_target_"]:
+        if t["_target_"] == "endo_pipeline.library.model.image_loading.BioIOImageLoaderd":
             continue
 
         # Remove RandSpatialCropSamplesd and any transforms below it
