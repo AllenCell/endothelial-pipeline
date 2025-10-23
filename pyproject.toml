@@ -214,7 +214,6 @@ ignore = [
 max-complexity = 20 # Adjust maximum McCabe complexity (C901)
 
 [tool.mypy]
-ignore_missing_imports = true
 disallow_untyped_defs = true
 check_untyped_defs = true
 show_error_codes = true
@@ -224,35 +223,26 @@ disable_error_code = ["no-untyped-def"]
 [[tool.mypy.overrides]]
 # This section should not be removed: we don't have control over these external packages
 module = [
-    "aicsfiles",
-    "cellpose",
-    "cellpose.io",
-    "colorizer_data",
-    "cyto_dl.api",
-    "cyto_dl.callbacks.latent_walk_diffae",
-    "cyto_dl.models.im2im.diffusion_autoencoder",
-    "cyto_dl.models.im2im.utils",
-    "cyto_dl.utils.arg_checking",
-    "fire",
-    "mpl_toolkits.axes_grid1",
-    "mpl_toolkits.mplot3d",
-    "networkx",
-    "numdifftools",
-    "pysindy",
-    "scipy",
-    "scipy.cluster.hierarchy",
-    "scipy.integrate",
-    "scipy.ndimage",
-    "scipy.optimize",
-    "scipy.signal",
-    "scipy.special",
-    "scipy.stats",
-    "sklearn.decomposition",
-    "sklearn.model_selection",
-    "sklearn.preprocessing",
-    "vtk",
+    "aicsfiles.*",
+    "cellpose.*",
+    "colorizer_data.*",
+    "cv2.*",
+    "cyto_dl.*",
+    "fire.*",
+    "hydra.*",
+    "mlflow.*",
+    "monai.*",
+    "mpl_toolkits.*",
+    "networkx.*",
+    "numdifftools.*",
+    "omegaconf.*",
+    "pysindy.*",
+    "scipy.*",
+    "sklearn.*",
+    "torchmetrics.*",
+    "vtk.*",
 ]
-disable_error_code = ["import-untyped"]
+ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 # This section should be removed when errors in the listed modules are resolved
