@@ -340,7 +340,7 @@ class FlowCalculator:
             return None
 
     def save_vector_field_as_pickle(self, out_dir: str | Path) -> None:
-        out_dir = out_dir / Path(__file__).stem
+        out_dir = Path(out_dir) / Path(__file__).stem
         Path.mkdir(out_dir, exist_ok=True, parents=True)
         out_path = out_dir / f"{self.dataset}_vector_field.flow"
         vector_data = dict(
@@ -370,6 +370,7 @@ class FlowCalculator:
     ) -> list[np.ndarray] | list[np.ndarray]:
         norm = FlowCalculator.compute_magnitudes(vx, vy)
         theta = FlowCalculator.compute_angles(vx, vy)
+        assert isinstance(theta, np.ndarray)
         nl, nc = image.shape
         y, x = np.mgrid[:nl, :nc]
         return (
@@ -560,13 +561,13 @@ def generate_synthetic_data() -> np.ndarray:
         circle_centers = list(
             zip(*[c_arr.ravel().tolist() for c_arr in circle_centers], strict=False)
         )
-        circle_indices = list(
+        circle_indices_list = list(
             zip(
                 *[circle_perimeter(y + i, x - i, circle_radii) for y, x in circle_centers],
                 strict=False,
             )
         )
-        circle_indices = np.asarray([np.concatenate(indices) for indices in circle_indices])
+        circle_indices = np.asarray([np.concatenate(indices) for indices in circle_indices_list])
         indices_too_low = np.any(
             circle_indices < np.array([[0], [0]], ndmin=2), axis=0, keepdims=True
         )
