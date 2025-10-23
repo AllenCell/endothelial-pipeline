@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Any, List, Tuple
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -82,11 +82,11 @@ def add_normalized_time(
 
 def get_coarse_grained_trajectory_heatmap_data(
     df_all_positions: pd.DataFrame,
-    bounds: np.ndarray | List,
-    num_bins: List[int] = [150, 150, 150],
-    pc_cols: List[str] = ["pc_1", "pc_2", "pc_3"],
+    bounds: np.ndarray | list,
+    num_bins: list[int] = [150, 150, 150],
+    pc_cols: list[str] = ["pc_1", "pc_2", "pc_3"],
     feature_to_use: str = "normalized_time",
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Get a coarse-grained trajectory heatmap data from the DataFrame.
 
@@ -100,6 +100,7 @@ def get_coarse_grained_trajectory_heatmap_data(
         where ndim is the number of dimensions.
     num_bins
         Number of bins for each dimension in the heatmap.
+
     Returns
     -------
     Tuple[np.ndarray, np.ndarray]
@@ -139,11 +140,13 @@ def merge_diffae_feats_liveseg_feats_tables(
     """
     Merges the DiffAE tracking data with the live segmentation features data.
 
-    Parameters:
+    Parameters
+    ----------
         diffae_tracking_df (pd.DataFrame): DataFrame containing DiffAE tracking data.
         live_seg_feats_df (pd.DataFrame): DataFrame containing live segmentation features data.
 
-    Returns:
+    Returns
+    -------
         pd.DataFrame: Merged DataFrame with DiffAE and live segmentation features.
     """
     dataset_name = sequence_to_scalar(diffae_tracking_df[ColumnName.DATASET])
@@ -358,7 +361,9 @@ def get_approx_vec_from_grid(
 ) -> np.ndarray:
 
     # create a distance mapping
-    point_grids_pc1pc2 = np.asarray(list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes])))
+    point_grids_pc1pc2 = np.asarray(
+        list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes], strict=True))
+    )
     pc1_pc2_points = np.expand_dims(pc1_pc2_points, axis=0)
     point_grids_pc1pc2 = np.expand_dims(point_grids_pc1pc2, axis=1)
     dists = np.linalg.norm(point_grids_pc1pc2 - pc1_pc2_points, axis=-1)
@@ -368,7 +373,7 @@ def get_approx_vec_from_grid(
     v1_grids_approx = v1_grids[slice_indexes][min_idx]
     v2_grids_approx = v2_grids[slice_indexes][min_idx]
 
-    return np.array(tuple(zip(v1_grids_approx.tolist(), v2_grids_approx.tolist())))
+    return np.array(tuple(zip(v1_grids_approx.tolist(), v2_grids_approx.tolist(), strict=True)))
 
 
 def get_approx_point_from_grid(
@@ -381,7 +386,9 @@ def get_approx_point_from_grid(
 ) -> np.ndarray:
 
     # create a distance mapping
-    point_grids_pc1pc2 = np.asarray(list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes])))
+    point_grids_pc1pc2 = np.asarray(
+        list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes], strict=True))
+    )
     pc1_pc2_points = np.expand_dims(pc1_pc2_points, axis=0)
     point_grids_pc1pc2 = np.expand_dims(point_grids_pc1pc2, axis=1)
     dists = np.linalg.norm(point_grids_pc1pc2 - pc1_pc2_points, axis=-1)
@@ -391,7 +398,7 @@ def get_approx_point_from_grid(
     g1_grids_approx = g1_grids[slice_indexes][min_idx]
     g2_grids_approx = g2_grids[slice_indexes][min_idx]
 
-    return np.array(tuple(zip(g1_grids_approx.tolist(), g2_grids_approx.tolist())))
+    return np.array(tuple(zip(g1_grids_approx.tolist(), g2_grids_approx.tolist(), strict=True)))
 
 
 def get_vector_angles_as_grid(
@@ -406,9 +413,11 @@ def get_vector_angles_as_grid(
     """Get the angles of the vectors as a grid."""
     my_shape = [len(np.unique(slice_indexes[i])) for i in range(len(slice_indexes))]
 
-    vecs_grids = np.asarray(list(zip(np.ravel(v1_grids), np.ravel(v2_grids), np.ravel(v3_grids))))
+    vecs_grids = np.asarray(
+        list(zip(np.ravel(v1_grids), np.ravel(v2_grids), np.ravel(v3_grids), strict=True))
+    )
     vecs_tracks = np.asarray(
-        list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks)))
+        list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks), strict=True))
     )
     ang_full = get_vector_vector_angle_fast(vecs_grids, vecs_tracks)
     ang_arr = ang_full.reshape((50, 50, 50))
@@ -428,9 +437,11 @@ def get_vector_dot_products_as_grid(
     """Get the dot products of the vectors as a grid."""
     my_shape = [len(np.unique(slice_indexes[i])) for i in range(len(slice_indexes))]
 
-    vecs_grids = np.asarray(list(zip(np.ravel(v1_grids), np.ravel(v2_grids), np.ravel(v3_grids))))
+    vecs_grids = np.asarray(
+        list(zip(np.ravel(v1_grids), np.ravel(v2_grids), np.ravel(v3_grids), strict=True))
+    )
     vecs_tracks = np.asarray(
-        list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks)))
+        list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks), strict=True))
     )
     dot_prod_full = np.einsum("ij,ij->i", vecs_grids, vecs_tracks)
     dot_prod_arr = dot_prod_full.reshape((50, 50, 50))
@@ -547,7 +558,7 @@ def make_angular_deviation_test(out_dir: Path) -> None:
 
 def get_preprocessed_manifests_and_km_bounds(
     dataset_name: str,
-    datasets_for_bounds: List[str] | None = None,
+    datasets_for_bounds: list[str] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list]:
     """
     Load and process the DiffAE and live segmentation feature manifests for a given dataset.
