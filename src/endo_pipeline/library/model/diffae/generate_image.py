@@ -6,9 +6,14 @@ import torch
 from hydra.utils import get_class
 
 if typing.TYPE_CHECKING:
+    import numpy as np
     from cyto_dl.api import CytoDLModel
+    from cyto_dl.models.im2im.diffusion_autoencoder import (
+        DiffusionAutoEncoder as BaseDiffusionAutoEncoder,
+    )
 
-from endo_pipeline.configs import instantiate_diffusion_autoencoder_object
+    from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
+
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +104,7 @@ def generate_from_coords_and_noised_image(
 
 
 def generate_from_coords(
-    model: "CytoDLModel",
+    model: "BaseDiffusionAutoEncoder | DiffusionAutoEncoder",
     coords: np.ndarray | list[list[float]],
     n_noise_samples: int = 1,
     average: bool = False,
@@ -133,17 +138,14 @@ def generate_from_coords(
 
     coords_torch = torch.from_numpy(coords_np).float()
 
-    # have to instantiate the actual model object from the config
-    model_instantiated = instantiate_diffusion_autoencoder_object(model.cfg)
-
     # move model and inputs to gpu if available, else
     # perform reconstruction on cpu
     if num_gpus:
         coords_ = coords_torch.to("cuda")
-        model_ = model_instantiated.to("cuda")
+        model_ = model.to("cuda")
     else:
         coords_ = coords_torch
-        model_ = model_instantiated
+        model_ = model
 
     walk_img = model_.generate_from_latent(
         coords_, n_noise_samples=n_noise_samples, average=average, save=False
