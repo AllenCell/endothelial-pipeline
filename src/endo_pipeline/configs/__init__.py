@@ -51,6 +51,7 @@ from .dataset_config_utils import (
 )
 from .model_config import CytoDLModelConfig
 from .model_config_io import get_model_config_dir, load_model_config
+from .model_config_utils import instantiate_diffusion_autoencoder_object
 
 __all__ = [
     "ChannelIndices",
@@ -90,6 +91,7 @@ __all__ = [
     "get_unannotated_positions",
     "get_unannotated_timepoints_for_position",
     "get_zarr_file_for_position",
+    "instantiate_diffusion_autoencoder_object",
     "load_all_dataset_configs",
     "load_dataset_collection_config",
     "load_dataset_config",
