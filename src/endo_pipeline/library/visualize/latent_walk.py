@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from endo_pipeline.io import save_plot_to_path
-from endo_pipeline.library.visualize import viz_base
 
 
 def plot_latent_walk_as_grid(
