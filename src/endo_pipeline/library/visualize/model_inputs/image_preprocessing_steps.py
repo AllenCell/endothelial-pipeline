@@ -178,7 +178,7 @@ def apply_img_transforms(transforms: list[Any], sample: dict[str, Any]) -> dict[
     return sample
 
 
-def get_target_image_from_sample(sample: dict[str, Any], target_key: str) -> np.ndarray | None:
+def get_target_image_from_sample(sample: dict[str, Any], target_key: str) -> np.ndarray:
     """
     Extract the target image from the sample dictionary.
 
@@ -187,7 +187,7 @@ def get_target_image_from_sample(sample: dict[str, Any], target_key: str) -> np.
         target_key (str): Key of the target image to extract. For example, 'raw_bf', 'raw_cdh5'.
 
     Returns:
-        np.ndarray | None: The extracted image as a NumPy array, or None if not found.
+        np.ndarray: The extracted image as a NumPy array.
     """
     if target_key not in sample:
         logger.error("Input key '%s' not found in sample dictionary.", target_key)
