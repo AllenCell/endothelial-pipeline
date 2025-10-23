@@ -4,7 +4,6 @@ import typing
 import numpy as np
 import torch
 from hydra.utils import get_class
-from numpy.random import default_rng
 
 if typing.TYPE_CHECKING:
     from cyto_dl.api import CytoDLModel
@@ -16,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 def add_noise_to_image(
     input_image: np.ndarray,
+    noise_image: np.ndarray,
     noise_level: float,
     clip: bool = False,
     random_seed: int = 47,
@@ -25,14 +25,12 @@ def add_noise_to_image(
 
     **Noise level weighting**
 
-    The noised image is created using the formula:
+    The output "noised" image is created using the formula:
 
-        noised_image = (1 - noise_level) * input_image + (noise_level) * noise_img
+        output_image = (1 - noise_level) * input_image + (noise_level) * noise_img
 
-    where `noise_img` is a standard Gaussian noise image (mean 0, std 1) of the same shape
-    as the input image.
-
-    Using this formula, the noise level represents the fraction of variance in the noised image.
+    Using this formula, ``noise_level`` represents the fraction of the corrupted image
+    that is contributed by the noise image, with the remainder contributed by the original input image.
     An input noise_level of 0.0 results in no noise being added (the output image is identical
     to the input image), while a noise_level of 1.0 results in an image composed entirely of noise.
 
@@ -40,8 +38,10 @@ def add_noise_to_image(
     ----------
     input_image
         The input image to which noise will be added.
+    noise_image
+        A standard Gaussian noise image of the same shape as the input image.
     noise_level
-        The standard deviation of the Gaussian noise to be added.
+        The level of noise to add, between 0.0 (no noise) and 1.0 (all noise).
     clip
         Whether to clip the output image to the valid range [0, 1].
     random_seed
@@ -51,19 +51,13 @@ def add_noise_to_image(
         logger.error("Parameter `noise_level` must be between 0.0 and 1.0.")
         raise ValueError("Parameter `noise_level` must be between 0.0 and 1.0.")
 
-    # Set RNG with the provided seed for reproducibility
-    rng = default_rng(seed=random_seed)
-
-    # Generate standard Gaussian noise
-    noise_img = rng.standard_normal(size=input_image.shape)
-
     # Check edge cases for numerical efficiency
     if noise_level == 0.0:
         output_image = input_image.copy()
     elif noise_level == 1.0:
-        output_image = noise_img
+        output_image = noise_image
     else:  # general case
-        output_image = np.sqrt(1 - noise_level) * input_image + np.sqrt(noise_level) * noise_img
+        output_image = np.sqrt(1 - noise_level) * input_image + np.sqrt(noise_level) * noise_image
 
     # Clip the output image to the valid range [0, 1] if specified
     if clip:
