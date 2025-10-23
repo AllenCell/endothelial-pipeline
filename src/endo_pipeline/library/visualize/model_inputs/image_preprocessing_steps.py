@@ -1,7 +1,8 @@
 import importlib
 import logging
+import typing
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import torch
@@ -10,8 +11,13 @@ from matplotlib import pyplot as plt
 from monai.data import MetaTensor
 
 from endo_pipeline.io.output import save_plot_to_path
+from endo_pipeline.library.process.image_processing import crop_image
 from endo_pipeline.library.visualize.figure_utils import plot_image_thumbnail
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
+
+if typing.TYPE_CHECKING:
+    from omegaconf import DictConfig, ListConfig
+
 
 logger = logging.getLogger(__name__)
 
@@ -242,3 +248,54 @@ def visualize_fov_transform_steps(
 
     transformed_image = get_target_image_from_sample(sample, target_key)
     return transformed_image
+
+
+def apply_img_preprocessing(
+    model_config: "DictConfig | ListConfig",
+    image: np.ndarray,
+    channel: Literal["bf", "cdh5"] = "bf",
+    start_x: int = 100,
+    crop_size: int = 128,
+) -> np.ndarray:
+    """
+    Apply preprocessing steps to an input image, including transformations and cropping.
+
+    This function performs the following:
+    - Converts the input image into a data dictionary.
+    - Applies preprocessing transformations based on the model configuration.
+    - Extracts the specified channel from the transformed image.
+    - Crops the image to the desired size starting at the given coordinate
+
+    Parameters
+    ----------
+    model_config : DictConfig | ListConfig
+        The configuration object containing the model's preprocessing settings.
+        This is used to determine the transformations to apply to the image.
+    image : np.ndarray
+        The input image as a NumPy array. The array is expected to have dimensions
+        compatible with the preprocessing pipeline.
+    channel : Literal["bf", "cdh5"], optional
+        The target channel to extract from the transformed image. Defaults to "bf".
+        - "bf": Brightfield channel.
+        - "cdh5": CDH5 channel.
+    start_x : int, optional
+        The starting pixel coordinate along the X-axis for cropping. Defaults to 100.
+    crop_size : int, optional
+        The size of the square crop to extract from the image. Defaults to 128.
+
+    Returns
+    -------
+    np.ndarray
+        The cropped and preprocessed image as a NumPy array.
+    """
+    data = create_data_dict_loaded_image(image)
+
+    transforms = get_image_transforms(model_config)
+
+    sample = apply_img_transforms(transforms, data)
+
+    transformed_img = get_target_image_from_sample(sample, target_key=f"raw_{channel}")
+
+    crop_img = crop_image(transformed_img, start_x, crop_size)
+
+    return crop_img
