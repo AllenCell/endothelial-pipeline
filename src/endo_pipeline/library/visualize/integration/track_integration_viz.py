@@ -157,10 +157,8 @@ def plot_measured_feat_pcs(
             pass  # do not subset or aggregate the data in any way
         else:
             raise ValueError(
-                (
-                    "track_ids must be 'mean', an integer, or None."
-                    f"Got {track_id} (type: {type(track_id)}) instead."
-                )
+                "track_ids must be 'mean', an integer, or None."
+                f"Got {track_id} (type: {type(track_id)}) instead."
             )
 
         if track_id is not None:
@@ -227,10 +225,8 @@ def plot_measured_feat_overlay_on_flowfield(
         data_subset = ""
     else:
         raise ValueError(
-            (
-                "track_ids must be 'mean', an integer, or None."
-                f"Got {track_id_to_plot} (type: {type(track_id_to_plot)}) instead."
-            )
+            "track_ids must be 'mean', an integer, or None."
+            f"Got {track_id_to_plot} (type: {type(track_id_to_plot)}) instead."
         )
     save_plot_to_path(
         figure=fig,
