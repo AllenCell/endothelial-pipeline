@@ -7,7 +7,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
-from endo_pipeline.configs.dataset_config_io import get_datasets_in_collection
+from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 from endo_pipeline.io import configure_logging, get_output_path
 from endo_pipeline.library.analyze.integration.track_integration import (
@@ -30,7 +30,7 @@ from endo_pipeline.library.visualize.integration.track_integration_viz import (
     plot_grid_vs_tracks_flow_field,
     plot_pc_integrated_track_as_arrows,
 )
-from endo_pipeline.manifests.model_manifest_io import load_model_manifest
+from endo_pipeline.manifests import load_model_manifest
 
 logger = logging.getLogger(__name__)
 
