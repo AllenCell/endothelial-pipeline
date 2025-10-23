@@ -244,7 +244,7 @@ features = pd.DataFrame(
     ]
 )
 features_for_pca = features[["vector_magnitudes_std", "divergence_std"]].to_numpy()
-pca, feats_proj = optical_flow_calculator.compute_PCA_on_features(
+pca, feats_proj = optical_flow_calculator.compute_pca_on_features(
     features_for_pca, n_components=2, return_as_dataframe=True
 )
 

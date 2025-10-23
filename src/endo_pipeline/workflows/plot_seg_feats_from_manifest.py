@@ -14,7 +14,7 @@ from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifes
 )
 from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
     get_seg_feat_plot_args,
-    hist_2D_of_feats,
+    hist_2d_of_feats,
     lineplot_of_feats,
     mark_parallel,
     mark_perpendicular,
@@ -106,7 +106,7 @@ def plot_seg_manifest_data(
             out_subdir_histplots.mkdir(parents=True, exist_ok=True)
             filename_out = f"{dataset_name}_P{position}_{feat}.png"
 
-            fig, ax = hist_2D_of_feats(
+            fig, ax = hist_2d_of_feats(
                 seg_feats_df_subset,
                 x_column_name=feats_plot_args["time_hrs"]["column_name"],
                 y_column_name=feats_plot_args[feat]["column_name"],
