@@ -36,7 +36,7 @@ cdh5_img_crop = apply_img_preprocessing(
 
 save_dir = get_output_path("model_input_img_preprocessing", f"{DATASET}_P{POSITION}_crops")
 for img_crop, name in [(bf_img_crop, "crop_bf"), (cdh5_img_crop, "crop_cdh5")]:
-    plot_image_tadd.humbnail(
+    plot_image_thumbnail(
         img_crop.squeeze(),
         name,
         save_dir,
