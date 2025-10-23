@@ -28,7 +28,7 @@ bf_img_crop = apply_img_preprocessing(
 
 print(
     bf_img_crop.shape
-)  # should be (1, CROP_SIZE, CROP_SIZE), I think down stream steps expect C, H, W
+)  # should be (1, CROP_SIZE, CROP_SIZE), I think down stream steps expect C, Y, X
 
 cdh5_img_crop = apply_img_preprocessing(
     model_config, img, channel="cdh5", start_x=100, crop_size=CROP_SIZE
@@ -36,7 +36,7 @@ cdh5_img_crop = apply_img_preprocessing(
 
 save_dir = get_output_path("model_input_img_preprocessing", f"{DATASET}_P{POSITION}_crops")
 for img_crop, name in [(bf_img_crop, "crop_bf"), (cdh5_img_crop, "crop_cdh5")]:
-    plot_image_thumbnail(
+    plot_image_tadd.humbnail(
         img_crop.squeeze(),
         name,
         save_dir,
