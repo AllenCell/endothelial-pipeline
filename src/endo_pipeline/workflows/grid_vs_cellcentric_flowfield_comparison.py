@@ -31,6 +31,7 @@ from endo_pipeline.library.visualize.integration.track_integration_viz import (
     plot_pc_integrated_track_as_arrows,
 )
 from endo_pipeline.manifests.model_manifest_io import load_model_manifest
+from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ def process_dataset(
     datasets_for_bounds: list[str],
     model_manifest_name: str = "diffae_04_10",
     run_name: str | None = None,
-    seg_feature_manifest_name: str = "live_merged_seg_features",
+    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     make_integrated_plots: bool = True,
 ) -> None:
     logger.info(f"Processing dataset: {dataset_name}")
@@ -379,7 +380,7 @@ def main(
     dataset_collection_name: str = "pca_reference_legacy",
     model_manifest_name: str = "diffae_04_10",
     run_name: str | None = None,
-    seg_feature_manifest_name: str = "live_merged_seg_features",
+    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 ) -> None:
     """
     Makes plots comparing cell-centric and grid-based flow fields.

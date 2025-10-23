@@ -32,7 +32,7 @@ from endo_pipeline.manifests import (
     get_feature_dataframe_manifest_name,
     load_dataframe_manifest,
 )
-from endo_pipeline.settings import ColumnName
+from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME, ColumnName
 
 logger = logging.getLogger(__name__)
 
@@ -195,7 +195,7 @@ def get_diffae_feats_liveseg_feats_merged_table(
     dataset_name: str,
     model_manifest: ModelManifest,
     run_name: str | None = None,
-    seg_feature_manifest_name: str = "live_merged_seg_features",
+    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     filtered: bool = False,
 ) -> pd.DataFrame:
     """
@@ -582,7 +582,7 @@ def get_preprocessed_manifests_and_km_bounds(
     dataset_name: str,
     model_manifest: ModelManifest,
     run_name: str | None = None,
-    seg_feature_manifest_name: str = "live_merged_seg_features",
+    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     datasets_for_bounds: List[str] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list]:
     """

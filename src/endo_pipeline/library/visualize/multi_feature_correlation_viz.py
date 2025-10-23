@@ -29,6 +29,7 @@ from endo_pipeline.library.analyze.integration.track_integration import (
 )
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.manifests import ModelManifest
+from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
 
 
 def add_feature_scatter_plot(
@@ -457,7 +458,7 @@ def get_df_for_feature_correlation_viz(
     diffae_feature_columns: list[str],
     model_manifest: ModelManifest,
     run_name: str | None = None,
-    seg_feature_manifest_name: str = "live_merged_seg_features",
+    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     timepoint_annotations: list[TimepointAnnotation] | None = None,
 ) -> pd.DataFrame:
     """

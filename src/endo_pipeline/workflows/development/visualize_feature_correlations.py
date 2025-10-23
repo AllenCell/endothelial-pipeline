@@ -3,6 +3,7 @@ from typing import Literal
 from endo_pipeline.configs import TimepointAnnotation
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
@@ -34,7 +35,7 @@ def main(
     dataset_collection_name: str = "pca_reference_legacy",
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = None,
-    seg_feature_manifest_name: str = "live_merged_seg_features",
+    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     dataset_info_columns: list[str] = DATASET_INFO_COLUMNS,
     classical_feature_columns: list[str] = CLASSICAL_FEATURE_COLUMNS,
     pc_columns: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
