@@ -893,10 +893,10 @@ def initialize_track_ids(
                 (
                     image_index,
                     T,
-                    id + track_id_offset,
-                    *(list_of_region_props[id][prop] for prop in props_to_include),
+                    index + track_id_offset,
+                    *(list_of_region_props[index][prop] for prop in props_to_include),
                 )
-                for id in range(len(list_of_region_props))
+                for index in range(len(list_of_region_props))
             ],
             strict=False,
         )
