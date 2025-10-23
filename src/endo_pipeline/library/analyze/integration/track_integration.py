@@ -25,13 +25,14 @@ from endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers
 from endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_data, get_bins
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
+from endo_pipeline.library.visualize.colors import angle_deg_to_color
 from endo_pipeline.manifests import (
     ModelManifest,
     get_dataframe_location_for_dataset,
     get_feature_dataframe_manifest_name,
     load_dataframe_manifest,
 )
-from endo_pipeline.settings import ColumnName
+from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME, ColumnName
 
 logger = logging.getLogger(__name__)
 
@@ -194,7 +195,7 @@ def get_diffae_feats_liveseg_feats_merged_table(
     dataset_name: str,
     model_manifest: ModelManifest,
     run_name: str | None = None,
-    seg_feature_manifest_name: str = "live_merged_seg_features",
+    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     filtered: bool = False,
 ) -> pd.DataFrame:
     """
@@ -524,9 +525,6 @@ def make_angular_deviation_test(out_dir: Path) -> None:
 
     cmap = color_palette("dark:red", as_cmap=True)
 
-    def angle_deg_to_color(a):
-        return cmap(np.abs(a) / 180.0)
-
     fig, ax = plt.subplots(1, 1, figsize=(4, 4))
     ax.quiver(
         test_flow_field[1][0],
@@ -565,7 +563,7 @@ def make_angular_deviation_test(out_dir: Path) -> None:
         units="width",
         width=0.005,
         alpha=1,
-        color=angle_deg_to_color(test_angular_deviation_deg),
+        color=angle_deg_to_color(test_angular_deviation_deg, cmap=cmap),
     )
     ax.set_xlim(-9, 9)
     ax.set_ylim(-5, 5)
@@ -584,7 +582,7 @@ def get_preprocessed_manifests_and_km_bounds(
     dataset_name: str,
     model_manifest: ModelManifest,
     run_name: str | None = None,
-    seg_feature_manifest_name: str = "live_merged_seg_features",
+    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     datasets_for_bounds: List[str] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list]:
     """
