@@ -1,17 +1,23 @@
 import importlib
 import logging
+import typing
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import torch
 from dask.array import Array
 from matplotlib import pyplot as plt
-from omegaconf import OmegaConf
+from monai.data import MetaTensor
 
 from endo_pipeline.io.output import save_plot_to_path
+from endo_pipeline.library.process.image_processing import crop_image
 from endo_pipeline.library.visualize.figure_utils import plot_image_thumbnail
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
+
+if typing.TYPE_CHECKING:
+    from omegaconf import DictConfig, ListConfig
+
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +36,7 @@ def save_stack_slices_as_thumbnails(img: Array, save_dir: Path) -> None:
     """
     for channel, channel_name in enumerate(["bf", "cdh5"]):
         for slice_idx in range(img.shape[1]):
-            slice_img = img[channel, slice_idx, :, :].compute()
+            slice_img = img[channel, slice_idx, :, :]
             plot_image_thumbnail(
                 slice_img,
                 f"{channel_name}_sliceindex{slice_idx}",
@@ -70,11 +76,10 @@ def initialize_transform(transform_cfg):
     return target_class(**params)
 
 
-def prepare_train_transforms(
-    model_config,
-):
+def get_image_transforms(model_config):
     """
     Prepare and initialize the training transform pipeline with an optional squeeze operation.
+    Only get the image transformation steps that process the FOV (skip load and crop steps).
 
     Args:
         model_config: The model configuration containing the training dataloader transform settings.
@@ -85,39 +90,46 @@ def prepare_train_transforms(
     # Access the training transform configuration
     train_transform_cfg = model_config.data.train_dataloaders.dataset.transform
 
-    # Define the squeeze transform
-    temp_squeeze = {"_target_": "monai.transforms.SqueezeDimd", "keys": "raw", "dim": 0}
+    transforms_to_initialize = train_transform_cfg.transforms
 
-    # Insert the squeeze transform into the pipeline
-    train_transform_cfg.transforms.insert(1, OmegaConf.create(temp_squeeze))
+    filtered_transforms = []
+    for t in transforms_to_initialize:
+        # Remove data loading step
+        if t["_target_"] == "endo_pipeline.library.model.image_loading.BioIOImageLoaderd":
+            continue
 
-    # Initialize all transforms in the pipeline
-    return [initialize_transform(t) for t in train_transform_cfg.transforms]
+        # Remove RandSpatialCropSamplesd and steps after (totensor)
+        if t["_target_"] == "monai.transforms.RandSpatialCropSamplesd":
+            break
+        filtered_transforms.append(t)
+
+    # Initialize all remaining transforms in the pipeline
+    return [initialize_transform(t) for t in filtered_transforms]
 
 
 def plot_and_save_histogram(
-    value_np: np.ndarray, transform: Any, key: str, save_dir: Path, i: int
+    value_np: np.ndarray, transform_name: str, key: str, save_dir: Path, i: int
 ) -> None:
     """
     Plot and save a histogram of the values in a NumPy array for a given image transform.
 
     Args:
         value_np (np.ndarray): The NumPy array containing the values to plot.
-        transform (Any): The transform object whose class name is used for labeling the plot.
+        transform (str): The transform name whose class name is used for labeling the plot.
         key (str): channel key of the image being processed (e.g., 'raw_bf').
         save_dir (Path): The directory where the histogram plot will be saved.
         i (int): An index representing the order of the transform in the pipeline.
     """
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.hist(value_np.ravel(), bins=50, color="grey", alpha=0.7)
-    ax.set_title(f"{transform.__class__.__name__} ({key})", fontsize=14)
+    ax.set_title(f"{transform_name} ({key})", fontsize=14)
     ax.set_xlabel("Intensity")
     ax.set_ylabel("Frequency")
     plt.show()
     save_plot_to_path(
         fig,
         save_dir,
-        f"{key}_{i}_{transform.__class__.__name__}_histogram",
+        f"{key}_{i}_{transform_name}_histogram",
         dpi=300,
         file_format=".pdf",
         transparent=True,
@@ -125,88 +137,122 @@ def plot_and_save_histogram(
     plt.close(fig)
 
 
-def run_and_visualize_transforms(
-    transforms: list[Any], sample: dict[str, Any], save_dir: Path, target_key: str
-) -> None:
+def create_data_dict_loaded_image(
+    loaded_image: np.ndarray,
+) -> dict:
     """
-    Apply a sequence of transforms to a sample and visualize the results.
+    Create a data dictionary for BioIOImageLoaderd from an already loaded image.
 
-    This function iterates through a list of transforms, applies each transform
-    to the input sample, and visualizes the specified `target_key` only if the
-    transform modifies it. The visualizations are saved to the specified directory.
+    Parameters
+    ----------
+    loaded_image : np.ndarray
+        The preloaded image data.
+
+    Returns
+    -------
+    dict
+        A data dictionary compatible with BioIOImageLoaderd.
+    """
+    # Wrap the image in a MetaTensor with metadata
+    loaded_image = loaded_image.astype(np.float32)
+    data = {"raw": MetaTensor(loaded_image)}
+    return data
+
+
+def apply_img_transforms(
+    transforms: list[Any], sample: dict[str, Any]
+) -> dict[str, np.ndarray | torch.Tensor]:
+    """
+    Apply a sequence of transforms to a sample image dictionary.
+    Images in the sample dict can be NumPy arrays or torch Tensors.
+    We expect all outpus to be NumPy arrays if this function is applied to the transform
+    list from get_image_transforms.
 
     Args:
-        transforms (List[Any]): A list of transform objects to apply to the sample.
-        sample (Dict[str, Any]): A dictionary representing the input data
-        save_dir (Path): The directory where visualizations will be saved.
-        target_key (str): The key in the sample dictionary to visualize (e.g., 'raw_bf').
+        transforms (List[Any]): Sequence of transform objects to apply.
+        sample (Dict[str, Any]): Input data dictionary.
+
+    Returns:
+        Transformed sample (dict).
     """
     for i, transform in enumerate(transforms):
-        logger.info(f"\nApplying Transform {i+1}: {transform.__class__.__name__}")
+        logger.info("Applying Transform %s: %s", i + 1, {transform.__class__.__name__})
+
+        sample = transform(sample)
+
+    return sample
+
+
+def get_target_image_from_sample(sample: dict[str, Any], target_key: str) -> np.ndarray:
+    """
+    Extract the target image from the sample dictionary. Will be numpy arrays for image transforms.
+
+    Args:
+        sample (Dict[str, Any]): Input data dictionary.
+        target_key (str): Key of the target image to extract. For example, 'raw_bf', 'raw_cdh5'.
+
+    Returns:
+        np.ndarray: The extracted image as a NumPy array.
+    """
+    if target_key not in sample:
+        logger.error("Input key '%s' not found in sample dictionary.", target_key)
+        raise ValueError("Input key '%s' not found in sample dictionary.", target_key)
+
+    value = sample[target_key]
+
+    if isinstance(value, np.ndarray):
+        return value
+    elif isinstance(value, torch.Tensor):
+        return value.detach().cpu().numpy()
+    else:
+        logger.error("Unsupported type for '%s': %s", target_key, type(value))
+        raise TypeError("Unsupported type for '%s': %s", target_key, type(value))
+
+
+def visualize_fov_transform_steps(
+    transforms: list[Any],
+    sample: dict[str, Any],
+    save_dir: Path,
+    target_key: str,
+) -> np.ndarray:
+    """
+    Apply a sequence of transforms to a sample and optionally visualize.
+
+    Args:
+        transforms (List[Any]): Sequence of transforms to apply.
+        sample (Dict[str, Any]): Input data dictionary.
+        save_dir (Path): Directory where visualizations are saved.
+        target_key (str): Key to visualize (e.g., 'raw_bf').
+
+    Returns:
+        The transformed image as a NumPy array.
+    """
+    for step_idx, transform in enumerate(transforms):
+        transform_name = transform.__class__.__name__
+        logger.info("Applying Transform %d: %s", step_idx + 1, transform_name)
 
         # Determine which keys this transform operates on
         transform_keys = getattr(transform, "keys", getattr(transform, "key", []))
         if isinstance(transform_keys, str):
             transform_keys = [transform_keys]
 
-        if target_key not in transform_keys:
-            logger.info(f"  Transform does not touch '{target_key}'; skipping visualization.")
-            # Still apply the transform
-            sample = transform(sample)
-            continue
-
-        # Apply transform
         sample = transform(sample)
 
-        # Visualize target_key if present
-        if isinstance(sample, dict) and target_key in sample:
-            value = sample[target_key]
-            if isinstance(value, torch.Tensor):
-                value_np = value.detach().cpu().numpy()
-            elif isinstance(value, np.ndarray):
-                value_np = value
-            else:
-                continue
+        # Visualize if target_key affected
+        if target_key in transform_keys and isinstance(sample, dict):
+            value_np = get_target_image_from_sample(sample, target_key)
 
-            if value_np.ndim in [2, 3]:
-                plot_image_thumbnail(
-                    value_np.squeeze() if value_np.ndim == 3 else value_np,
-                    f"{target_key}_{i}_{transform.__class__.__name__}",
-                    save_dir,
-                    figsize=(6, 6),
-                    scalebar_size_um=50,
-                    pixel_size=PIXEL_SIZE_3i_20x,
-                )
-                plot_and_save_histogram(value_np, transform, target_key, save_dir, i)
+            plot_image_thumbnail(
+                value_np.squeeze(),
+                f"{target_key}_{step_idx + 1}_{transform_name}",
+                save_dir,
+                figsize=(6, 6),
+                scalebar_size_um=50,
+                pixel_size=PIXEL_SIZE_3i_20x,
+            )
+            plot_and_save_histogram(
+                value_np.squeeze(), transform_name, target_key, save_dir, step_idx
+            )
 
-        # Handle list outputs (like RandSpatialCropSamplesd)
-        elif isinstance(sample, list):
-            for crop_idx, crop in enumerate(sample):
-                if target_key not in crop:
-                    continue
-                value = crop[target_key]
-                if isinstance(value, torch.Tensor):
-                    value_np = value.detach().cpu().numpy()
-                elif isinstance(value, np.ndarray):
-                    value_np = value
-                else:
-                    continue
-                if value_np.ndim in [2, 3]:
-                    plot_image_thumbnail(
-                        value_np.squeeze() if value_np.ndim == 3 else value_np,
-                        f"{target_key}_{i}_{transform.__class__.__name__}_crop{crop_idx}",
-                        save_dir,
-                        figsize=(6, 6),
-                        scalebar_size_um=10,
-                        pixel_size=PIXEL_SIZE_3i_20x,
-                        bar_thickness=3,
-                        bar_padding=5,
-                    )
-                    plot_and_save_histogram(value_np, transform, target_key, save_dir, i)
-
-            # Stop here to avoid ToTensord errors
-            break
-
-        else:
-            logger.warning(f"Unexpected sample type {type(sample)}; skipping visualization.")
-            break
+    transformed_image = get_target_image_from_sample(sample, target_key)
+    return transformed_image
