@@ -3,11 +3,9 @@ import typing
 
 import numpy as np
 import torch
-from hydra.utils import get_class
 
 if typing.TYPE_CHECKING:
     import numpy as np
-    from cyto_dl.api import CytoDLModel
     from cyto_dl.models.im2im.diffusion_autoencoder import (
         DiffusionAutoEncoder as BaseDiffusionAutoEncoder,
     )
@@ -19,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def generate_from_coords_and_noised_image(
-    model: "CytoDLModel",
+    model: "BaseDiffusionAutoEncoder | DiffusionAutoEncoder",
     coords: np.ndarray,
     noised_image: np.ndarray,
     num_gpus: int | None = None,
@@ -72,20 +70,16 @@ def generate_from_coords_and_noised_image(
     coords_torch = torch.from_numpy(coords).float()
     noised_image_torch = torch.from_numpy(noised_image).float()
 
-    # have to instantiate the actual model object from the config
-    model_class = get_class(model.cfg.model._target_)
-    model_instantiated = model_class.load_from_checkpoint(model.cfg.checkpoint.ckpt_path)  # type: ignore[attr-defined]
-
     # move model and inputs to gpu if available, else
     # perform reconstruction on cpu
     if num_gpus:
         coords_ = coords_torch.to("cuda")
         noised_image_ = noised_image_torch.to("cuda")
-        model_ = model_instantiated.to("cuda")
+        model_ = model.to("cuda")
     else:
         coords_ = coords_torch
         noised_image_ = noised_image_torch
-        model_ = model_instantiated
+        model_ = model
 
     if not hasattr(model_, "generate_from_latent_and_noised_image"):
         logger.error(
@@ -154,7 +148,7 @@ def generate_from_coords(
 
 
 def generate_from_coords_batch(
-    model: "CytoDLModel",
+    model: "BaseDiffusionAutoEncoder | DiffusionAutoEncoder",
     coords_batch: np.ndarray | list[list[list[float]]],
     num_gpus: int | None = None,
 ) -> list[np.ndarray]:
