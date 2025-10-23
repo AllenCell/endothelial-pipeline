@@ -32,7 +32,11 @@ from endo_pipeline.manifests import (
     get_feature_dataframe_manifest_name,
     load_dataframe_manifest,
 )
-from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME, ColumnName
+from endo_pipeline.settings import (
+    DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    ColumnName,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -641,9 +645,9 @@ def get_preprocessed_manifests_and_km_bounds(
 
     # use the full set of datasets to be analyzed for the bounds
     if datasets_for_bounds is None:
-        datasets_for_bounds = load_dataset_collection_config("pca_reference").datasets + [
-            dataset_name
-        ]
+        datasets_for_bounds = load_dataset_collection_config(
+            DEFAULT_PCA_DATASET_COLLECTION_NAME
+        ).datasets + [dataset_name]
 
     bounds = get_3d_bounds_from_data(datasets_for_bounds, manifest, pca)
 
