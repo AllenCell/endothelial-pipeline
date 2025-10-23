@@ -90,12 +90,13 @@ def get_image_transforms(model_config):
     # Access the training transform configuration
     train_transform_cfg = model_config.data.train_dataloaders.dataset.transform
 
-    # Skip the loading the image step in the pipeline
-    transforms_to_initialize = train_transform_cfg.transforms[1:]
-
-    # Remove RandSpatialCropSamplesd and any transforms below it
     filtered_transforms = []
-    for t in transforms_to_initialize:
+    for t in train_transform_cfg:
+        # Remove data loading step
+        if "BioIOImageLoaderd" in t["_target_"]:
+            continue
+
+        # Remove RandSpatialCropSamplesd and any transforms below it
         if t["_target_"] == "monai.transforms.RandSpatialCropSamplesd":
             break
         filtered_transforms.append(t)
