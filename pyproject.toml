@@ -223,6 +223,14 @@ module = [
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
+# This section should not be removed: archived workflows should be deleted or moved out
+# of `archive/` if they are to be maintained
+module = [
+    "endo_pipeline.workflows.archive.*"
+]
+disable_error_code = ["call-overload", "operator"]
+
+[[tool.mypy.overrides]]
 # This section should be removed when errors in the listed modules are resolved
 module = [
     "endo_pipeline.library.visualize.*",
@@ -263,13 +271,6 @@ module = [
     "endo_pipeline.workflows.production.*"
 ]
 disable_error_code = ["arg-type"]
-
-[[tool.mypy.overrides]]
-# This section should be removed when errors in the listed modules are resolved
-module = [
-    "endo_pipeline.workflows.archive.*"
-]
-disable_error_code = ["call-overload", "operator"]
 
 [[tool.mypy.overrides]]
 # This section should be removed when errors in the listed modules are resolved
