@@ -11,6 +11,91 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def generate_from_coords_and_noised_image(
+    model: "CytoDLModel",
+    coords: np.ndarray,
+    noised_image: np.ndarray,
+    num_gpus: int | None = None,
+) -> np.ndarray:
+    """
+    Generate a synthetic image by denoising a noised image
+    conditioned on a coordinate in the latent space of a model.
+
+    **Input array shapes**
+
+    The input conditioning vector array should have shape ``(num_vecs, num_dims)``, where
+    ``num_vecs`` is the number of conditioning vectors and ``num_dims`` is the dimensionality
+    of the latent space. This allows for generating multiple images corresponding
+    to ``num_vecs`` different conditioning vectors.
+
+    The noised image tensor should have shape ``(num_channels, num_pixels_y, num_pixels_x)``,
+    where ``num_channels`` is the number of channels, ``num_pixels_y`` is the height of the image
+    (number of pixels in Y), and ``num_pixels_x`` is the width of the image (number of pixels in X).
+    Note that this shape should be the same as ``model.image_shape`` in the model's configuration.
+
+    **Example usage**
+
+    .. code-block:: python
+
+        from endo_pipeline.io import load_model
+        from endo_pipeline.manifests import load_model_manifest
+        from endo_pipeline.library.model.diffae import generate_from_coords_and_noised_image
+
+        model_manifest = load_model_manifest("my_model_manifest")
+        model_location = model_manifest.locations["my_run_name"]
+        model = load_model(model_location)
+
+        gen_image = generate_from_coords_and_noised_image(
+            model,
+            coords=my_coords, # shape (num_vecs, num_dims)
+            noised_image=my_noised_image, # shape (1, n_y, n_x) for this model
+        )
+
+    Parameters
+    ----------
+    model
+        The model to use for image generation (conditioned denoising).
+    coords
+        A coordinate in the latent space of the model; used to condition the denoising.
+    noised_image
+        An image used as the starting point for denoising by the model.
+    num_gpus
+        Optional, number of available GPUs.
+    """
+    coords_torch = torch.from_numpy(coords).float()
+    noised_image_torch = torch.from_numpy(noised_image).float()
+
+    # have to instantiate the actual model object from the config
+    model_class = get_class(model.cfg.model._target_)
+    model_instantiated = model_class.load_from_checkpoint(model.cfg.checkpoint.ckpt_path)  # type: ignore[attr-defined]
+
+    # move model and inputs to gpu if available, else
+    # perform reconstruction on cpu
+    if num_gpus:
+        coords_ = coords_torch.to("cuda")
+        noised_image_ = noised_image_torch.to("cuda")
+        model_ = model_instantiated.to("cuda")
+    else:
+        coords_ = coords_torch
+        noised_image_ = noised_image_torch
+        model_ = model_instantiated
+
+    if not hasattr(model_, "generate_from_latent_and_noised_image"):
+        logger.error(
+            "Model class [ %s ] does not support generation from coordinates and noised image.",
+            model_.__class__.__name__,
+        )
+        raise NotImplementedError(
+            f"Model class [ {model_.__class__.__name__} ] does not support generation from coordinates and noised image."
+        )
+
+    gen_img = model_.generate_from_latent_and_noised_image(
+        conditioning_vector=coords_,
+        noised_image=noised_image_,
+    )
+    return gen_img
+
+
 def generate_from_coords(
     model: "CytoDLModel",
     coords: np.ndarray | list[list[float]],

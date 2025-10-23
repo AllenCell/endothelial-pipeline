@@ -3,7 +3,6 @@ from typing import Literal, cast
 
 import numpy as np
 import pandas as pd
-from deprecated import deprecated  # type:ignore[import-untyped]
 from sklearn.decomposition import PCA
 
 from endo_pipeline.configs import (
