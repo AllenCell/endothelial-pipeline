@@ -12,6 +12,36 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _get_correct_image_shape(image: np.ndarray) -> np.ndarray:
+    """
+    Ensure that the input image has shape (1, 1, num_px_y, num_px_x).
+
+    Parameters
+    ----------
+    image
+        The input image.
+
+    Returns
+    -------
+    np.ndarray
+        The reshaped image.
+    """
+    if len(image.shape) < 4:
+        # Expand dims to (1, *image.shape)
+        # i.e., add batch and channel dims
+        logger.debug(
+            "Expanding image shape from [ %s ] to [ %s ]",
+            image.shape,
+            np.expand_dims(image, axis=0).shape,
+        )
+        image = np.expand_dims(image, axis=0)
+    elif len(image.shape) > 4 or len(image.shape) < 2:
+        raise ValueError(
+            f"Input image must have 2, 3, or 4 dimensions, but got shape {image.shape}"
+        )
+    return image
+
+
 def get_latent_vector_from_crop(
     model: "DiffusionAutoEncoder | _BaseDiffAE", image_crop: np.ndarray, num_gpus: int | None = None
 ) -> np.ndarray:
@@ -20,8 +50,8 @@ def get_latent_vector_from_crop(
 
     **Method inputs**
 
-    The input image can have shape ``(num_px_y, num_px_x)``, ``(1, num_px_y, num_px_x)``,
-    or ``(1, 1, num_px_y, num_px_x)``. If the input image has 2 or 3 dimensions,
+    The input image can have shape ``(num_px_y, num_px_x)``, ``(num_channel, num_px_y, num_px_x)``,
+    or ``(num_batch, num_channel, num_px_y, num_px_x)``. If the input image has 2 or 3 dimensions,
     the necessary batch and channel dimensions will be added automatically (and set to 1).
 
     Parameters
@@ -33,28 +63,18 @@ def get_latent_vector_from_crop(
     num_gpus
         The number of GPUs available for computation. If ``None``, defaults to CPU.
     """
-    # check that input image_crop has correct number of dims
-    if len(image_crop.shape) == 2:
-        # Expand dims to (1, 1, num_px_y, num_px_x)
-        # i.e., add batch and channel dims
-        logger.debug(
-            "Expanding image_crop shape from [ %s ] to [ %s ]",
-            image_crop.shape,
-            np.expand_dims(image_crop, axis=(0, 1)).shape,
-        )
-        image_crop = np.expand_dims(image_crop, axis=(0, 1))
-    elif len(image_crop.shape) == 3:
-        # Expand dims to (1, 1, num_px_y, num_px_x)
-        # i.e., add batch dim
-        logger.debug(
-            "Expanding image_crop shape from [ %s ] to [ %s ]",
-            image_crop.shape,
-            np.expand_dims(image_crop, axis=0).shape,
-        )
-        image_crop = np.expand_dims(image_crop, axis=0)
-    elif len(image_crop.shape) != 4:
+    # Check that input image_crop has correct number of dims
+    # and expand dims if necessary
+    while len(image_crop.shape) < 4:
+        image_crop = _get_correct_image_shape(image_crop)
+
+    # Check that (channel, num_px_y, num_px_x) shape is correct
+    # according to the expected image shape for the model
+    expected_image_shape = model.hparams.image_shape
+    if tuple(image_crop.shape[1:]) != tuple(expected_image_shape):
         raise ValueError(
-            f"Input image_crop must have 2, 3, or 4 dimensions, but got shape {image_crop.shape}"
+            f"Input image shape [ {image_crop.shape[1:]} ] does not match model"
+            f" image shape [ {expected_image_shape} ]."
         )
 
     # check that model has semantic_encoder attribute
