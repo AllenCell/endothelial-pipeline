@@ -5,7 +5,8 @@ import logging
 from pathlib import Path
 
 from endo_pipeline.configs import DatasetConfig
-from endo_pipeline.manifests import ImageLocation, ImageManifest
+from endo_pipeline.manifests import ImageLocation, ImageManifest, load_image_manifest
+from endo_pipeline.settings import ZARR_IMAGE_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -70,3 +71,10 @@ def get_image_location_for_dataset(
         raise ValueError(f"Timepoint cannot be 'None' for location '{location.path}'")
 
     return location
+
+
+def get_zarr_location_for_position(dataset: DatasetConfig, position: int) -> ImageLocation:
+    """Get zarr image location for given dataset and position."""
+
+    manifest = load_image_manifest(ZARR_IMAGE_MANIFEST_NAME)
+    return get_image_location_for_dataset(manifest, dataset, position=position)

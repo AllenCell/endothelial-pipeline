@@ -6,8 +6,10 @@ from endo_pipeline.configs import ChannelIndices, DatasetConfig
 from endo_pipeline.manifests.image_manifest import ImageLocation, ImageManifest
 from endo_pipeline.manifests.image_manifest_utils import (
     get_image_location_for_dataset,
+    get_zarr_location_for_position,
     list_datasets_with_images,
 )
+from endo_pipeline.settings import ZARR_IMAGE_MANIFEST_NAME
 
 
 @pytest.fixture
@@ -42,6 +44,17 @@ def dataset_config():
         original_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
         zarr_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
     )
+
+
+@pytest.fixture
+def mock_load_image_manifest(mocker):
+    def _mocker(manifest_name, image_manifest):
+        manifest_mock = mocker.patch(
+            "endo_pipeline.manifests.image_manifest_utils.load_image_manifest"
+        )
+        manifest_mock.side_effect = lambda x: image_manifest if x == manifest_name else None
+
+    return _mocker
 
 
 def test_list_datasets_with_images_with_valid_locations(manifest):
@@ -203,3 +216,20 @@ def test_get_image_location_for_dataset_valid_dataset_no_path(dataset_config, ma
 def test_get_image_location_for_dataset_invalid_dataset(dataset_config, manifest):
     with pytest.raises(KeyError):
         get_image_location_for_dataset(manifest, dataset_config)
+
+
+def test_get_zarr_location_for_position(mock_load_image_manifest, dataset_config):
+    dataset_name = "dataset_name"
+    dataset_config.name = dataset_name
+
+    image_manifest = ImageManifest(
+        name=ZARR_IMAGE_MANIFEST_NAME,
+        workflow="",
+        locations={dataset_name: ImageLocation(path=Path("path/to/zarr_{{position}}.ome.zarr"))},
+    )
+
+    mock_load_image_manifest(ZARR_IMAGE_MANIFEST_NAME, image_manifest)
+
+    location = get_zarr_location_for_position(dataset_config, 3)
+
+    assert location.path.as_posix() == "path/to/zarr_3.ome.zarr"
