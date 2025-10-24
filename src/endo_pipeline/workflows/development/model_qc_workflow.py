@@ -1,6 +1,8 @@
 def main(model_manifest_name, run_name) -> None:
     """QC a newly trained model."""
 
+    import matplotlib.pyplot as plt
+    import numpy as np
     from numpy.random import default_rng
 
     from endo_pipeline import NUM_GPUS
@@ -10,6 +12,7 @@ def main(model_manifest_name, run_name) -> None:
         get_output_path,
         load_image_from_path,
         load_model,
+        save_plot_to_path,
     )
     from endo_pipeline.library.model.diffae.eval_diffae import get_latent_vector_from_crop
     from endo_pipeline.library.model.diffae.generate_image import (
@@ -50,7 +53,7 @@ def main(model_manifest_name, run_name) -> None:
     model_location = model_manifest.locations[run_name_]
 
     # Get output path for saving figures
-    output_path = get_output_path("model_qc", model_manifest_name, run_name_)  # noqa: F841
+    output_path = get_output_path("model_qc", model_manifest_name, run_name_)
 
     # Model config has info about image processing steps from training
     # Also has the crop size
@@ -92,7 +95,7 @@ def main(model_manifest_name, run_name) -> None:
     # conditioned using the embedding of the corresponding brightfield
     # will need to update generate method to do array shaping internally
     images_to_denoise = [*noisy_cdh5, noise_image]
-    denoised_images_by_bf_cond = [  # noqa: F841
+    denoised_images_by_bf_cond = [
         generate_from_coords_and_noised_image(
             model, bf_crop_latent_vector, noised_image, num_gpus=NUM_GPUS
         )
@@ -100,11 +103,44 @@ def main(model_manifest_name, run_name) -> None:
     ]
 
     # Plot these images!
+    fig, ax = plt.subplots(
+        nrows=len(denoised_images_by_bf_cond),
+        ncols=4,  # original BF, original CDH5, noised CDH5, denoised CDH5
+    )
+    for i in range(len(denoised_images_by_bf_cond)):
+        ax[i, 0].imshow(bf_crop.squeeze(), cmap="gray")
+        ax[i, 1].imshow(cdh5_crop.squeeze(), cmap="gray")
+        ax[i, 2].imshow(images_to_denoise[i].squeeze(), cmap="gray")
+        ax[i, 3].imshow(denoised_images_by_bf_cond[i].squeeze(), cmap="gray")
+
+        # turn off axis ticks
+        for j in range(4):
+            ax[i, j].set_xticks([])
+            ax[i, j].set_yticks([])
+
+        # set column titles at the top row
+        if i == 0:
+            ax[i, 0].set_title("Brightfield Input", fontsize=16)
+            ax[i, 1].set_title("Original CDH5", fontsize=16)
+            ax[i, 2].set_title("Noised CDH5", fontsize=16)
+            ax[i, 3].set_title("Denoised CDH5", fontsize=16)
+
+        # set row labels by noise level
+        ax[i, 0].set_ylabel(
+            (
+                f"{np.round(100*NOISE_LEVELS[i],2)} % added noise"
+                if i < len(NOISE_LEVELS)
+                else "Pure Noise"
+            ),
+            fontsize=14,
+        )
+    plt.tight_layout()
+    save_plot_to_path(fig, output_path, "denoising_by_bf_conditioning.png")
 
     # Do the same thing but with the conditioning vector randomly shuffled
     # This is our negative control for the BF conditioning
     latent_vector_scrambled = rng.permuted(bf_crop_latent_vector)
-    denoised_images_by_random_cond = [  # noqa: F841
+    denoised_images_by_random_cond = [
         generate_from_coords_and_noised_image(
             model, latent_vector_scrambled, noised_image, num_gpus=NUM_GPUS
         )
@@ -112,3 +148,34 @@ def main(model_manifest_name, run_name) -> None:
     ]
 
     # Plot these images!
+    fig, ax = plt.subplots(
+        nrows=len(denoised_images_by_random_cond),
+        ncols=4,  # original BF, original CDH5, noised CDH5, denoised CDH5
+    )
+    for i in range(len(denoised_images_by_bf_cond)):
+        ax[i, 1].imshow(cdh5_crop.squeeze(), cmap="gray")
+        ax[i, 2].imshow(images_to_denoise[i].squeeze(), cmap="gray")
+        ax[i, 3].imshow(denoised_images_by_bf_cond[i].squeeze(), cmap="gray")
+
+        # turn off axis ticks
+        for j in range(4):
+            ax[i, j].set_xticks([])
+            ax[i, j].set_yticks([])
+
+        # set column titles at the top row
+        if i == 0:
+            ax[i, 1].set_title("Original CDH5", fontsize=16)
+            ax[i, 2].set_title("Noised CDH5", fontsize=16)
+            ax[i, 3].set_title("Denoised CDH5", fontsize=16)
+
+        # set row labels by noise level
+        ax[i, 0].set_ylabel(
+            (
+                f"{np.round(100*NOISE_LEVELS[i],2)} % added noise"
+                if i < len(NOISE_LEVELS)
+                else "Pure Noise"
+            ),
+            fontsize=14,
+        )
+    plt.tight_layout()
+    save_plot_to_path(fig, output_path, "denoising_by_random_conditioning.png")
