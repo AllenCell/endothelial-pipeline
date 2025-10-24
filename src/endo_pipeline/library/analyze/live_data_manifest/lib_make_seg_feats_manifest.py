@@ -275,7 +275,8 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
         data_config = load_dataset_config(dataset_name)
         um_per_px_map[dataset_name] = data_config.pixel_size_xy_in_um
         time_res_map[dataset_name] = data_config.time_interval_in_minutes
-        shear_stress_regime_map[dataset_name] = data_config.shear_stress_regime
+        shear_regime = "_to_".join([shear.value for shear in data_config.shear_stress_regime])
+        shear_stress_regime_map[dataset_name] = shear_regime
 
     # add the shear stress regime to the data table
     logger.info("Adding shear stress regime...")
