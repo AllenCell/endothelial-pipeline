@@ -1,5 +1,5 @@
 import logging
-from typing import Literal, cast
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -17,6 +17,7 @@ from endo_pipeline.configs import (
     get_zarr_file_for_position,
     load_dataset_config,
 )
+from endo_pipeline.configs.dataset_io import extract_p
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.manifests import (
     DataframeManifest,
@@ -91,27 +92,37 @@ def filter_dataframe_by_annotations(
 
     # get positions and timepoints to include based on annotations
     only_include_positions = get_unannotated_positions(dataset_config, position_annotations)
-    only_include_positions_str = [f"P{pos}" for pos in only_include_positions]
+    # only_include_positions_str = [f"P{pos}" for pos in only_include_positions]
     only_include_frames = get_all_unannotated_timepoints(dataset_config, timepoint_annotations)
     if dataframe[ColumnName.POSITION].nunique() != len(dataset_config.zarr_positions):
         logger.warning("Expected dataframe to contain all positions in dataset, but it does not.")
 
+    # NOTE: temporary until we update how we store position: replace 'P[int]' with int
+    if dataframe[ColumnName.POSITION].transform(lambda pos: "P" in str(pos)).all():
+        position_type = "str"
+        dataframe[ColumnName.POSITION] = dataframe[ColumnName.POSITION].transform(extract_p)
+    else:
+        position_type = "int"
     # filter dataframe to only include non-annotated positions
     dataframe_exclude_positions = dataframe[
-        dataframe[ColumnName.POSITION].isin(only_include_positions_str)
+        dataframe[ColumnName.POSITION].isin(only_include_positions)
     ]
 
     # filter dataframe to only include non-annotated timepoints
     df_filtered_list = []
     for position, df_position in dataframe_exclude_positions.groupby(ColumnName.POSITION):
-        # need to do this for now as position is saved as string 'P[int]'
-        position_as_int = int(cast(str, position)[1:])
-        include_frames_for_position = only_include_frames.get(position_as_int, [])
+        include_frames_for_position = only_include_frames.get(position, [])
         df_position_filtered = df_position[
             df_position[ColumnName.TIMEPOINT].isin(include_frames_for_position)
         ]
         df_filtered_list.append(df_position_filtered)
     dataframe_filtered = pd.concat(df_filtered_list, ignore_index=True)
+
+    # NOTE: temporary until we update how we store position: replace 'P[int]' with int
+    if position_type == "str":
+        dataframe_filtered[ColumnName.POSITION] = dataframe_filtered[ColumnName.POSITION].transform(
+            lambda pos: f"P{pos}"
+        )
 
     return dataframe_filtered
 
