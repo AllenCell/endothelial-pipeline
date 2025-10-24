@@ -183,30 +183,11 @@ ignore = [
     "B007", # Intending to unignore: unused-loop-control-variable
     "C419", # Intending to unignore: unnecessary-comprehension-in-call
     "D411", # Intending to unignore: no-blank-line-before-section
-    "N802", # Intending to unignore: invalid-function-name
     "D200", # Intending to unignore: unnecessary-multiline-docstring
-    "UP006", # Intending to unignore: non-pep585-annotation
     "RUF005", # Intending to unignore: collection-literal-concatenation
     "RUF015", # Intending to unignore: unnecessary-iterable-allocation-for-first-element
-    "F821", # Intending to unignore: undefined-name
-    "B023", # Intending to unignore: function-uses-loop-variable
-    "C401", # Intending to unignore: unnecessary-generator-set
-    "N816", # Intending to unignore: mixed-case-variable-in-global-scope
-    "D410", # Intending to unignore: no-blank-line-after-section
-    "UP034", # Intending to unignore: extraneous-parentheses
     "B035", # Intending to unignore: static-key-dict-comprehension
-    "C408", # Intending to unignore: unnecessary-collection-call
-    "E712", # Intending to unignore: true-false-comparison
-    "D406", # Intending to unignore: missing-new-line-after-section-name
-    "D407", # Intending to unignore: missing-dashed-underline-after-section
-    "UP035", # Intending to unignore: deprecated-import
-    "B018", # Intending to unignore: useless-expression
-    "A001", # Intending to unignore: builtin-variable-shadowing
-    "C403", # Intending to unignore: unnecessary-list-comprehension-set
-    "C404", # Intending to unignore: unnecessary-list-comprehension-dict
-    "C405", # Intending to unignore: unnecessary-literal-set
-    "C417", # Intending to unignore: unnecessary-map
-    "C901", # Intending to unignore: complex-structure
+    "N802", # Intending to unignore: invalid-function-name
 ]
 
 [tool.ruff.lint.mccabe]
@@ -242,6 +223,14 @@ module = [
     "vtk.*",
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# This section should not be removed: archived workflows should be deleted or moved out
+# of `archive/` if they are to be maintained
+module = [
+    "endo_pipeline.workflows.archive.*"
+]
+disable_error_code = ["call-overload", "operator"]
 
 [[tool.mypy.overrides]]
 # This section should be removed when errors in the listed modules are resolved
@@ -284,13 +273,6 @@ module = [
     "endo_pipeline.workflows.production.*"
 ]
 disable_error_code = ["arg-type"]
-
-[[tool.mypy.overrides]]
-# This section should be removed when errors in the listed modules are resolved
-module = [
-    "endo_pipeline.workflows.archive.*"
-]
-disable_error_code = ["call-overload", "operator"]
 
 [[tool.mypy.overrides]]
 # This section should be removed when errors in the listed modules are resolved

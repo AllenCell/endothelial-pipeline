@@ -203,16 +203,14 @@ def plot_multi_feature_correlations(
             y = df[f1].to_numpy()
             x = df[f2].to_numpy()
             valids = np.where(
-                (
-                    (y >= prange[f1id][0])
-                    & (y <= prange[f1id][1])
-                    & (x >= prange[f2id][0])
-                    & (x <= prange[f2id][1])
-                    & ~np.isnan(y)
-                    & ~np.isnan(x)
-                    & ~np.isinf(y)
-                    & ~np.isinf(x)
-                )
+                (y >= prange[f1id][0])
+                & (y <= prange[f1id][1])
+                & (x >= prange[f2id][0])
+                & (x <= prange[f2id][1])
+                & ~np.isnan(y)
+                & ~np.isnan(x)
+                & ~np.isinf(y)
+                & ~np.isinf(x)
             )[0]
             x = x[valids]
             y = y[valids]

@@ -110,7 +110,7 @@ def plot_bf_outliers(
     for title, indices in outlier_groups:
         d = {
             t: [i % num_zslices for i in indices if i // num_zslices == t]
-            for t in sorted(set(i // num_zslices for i in indices))
+            for t in sorted({i // num_zslices for i in indices})
         }
         if d:
             info_lines.append(f"{title}:\n" + "\n".join(f"{t}: {z}" for t, z in d.items()))

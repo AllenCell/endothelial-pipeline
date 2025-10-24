@@ -183,7 +183,7 @@ def load_images_sequentially(
             else None
         )
 
-        new_images = list()
+        new_images = []
         for j in new_image_relative_indices:
             # convert slice objects to range objects so that they can be used as arguments in `get_image_data`
             img = BioImage(image_list[j])
@@ -464,12 +464,7 @@ def match_labels_from_metrics(
         num_metric_thresholds = len(metrics_thresholds)
         assert all(
             [
-                all(
-                    map(
-                        lambda met_val: len(met_val) == num_metric_thresholds,
-                        labeled_metrics.values(),
-                    )
-                )
+                all(len(met_val) == num_metric_thresholds for met_val in labeled_metrics.values())
                 for labeled_metrics in list_of_labeled_metric_vals
             ]
         ), "metrics and metrics_threshold must have the same length; np.inf can be used if no threshold is desired"
@@ -503,7 +498,7 @@ def match_labels_from_metrics(
     if not metrics_thresholds:
         # get length of metrics and make metrics_thresholds that length
         metrics_length = int(
-            *set([len(met_val) for met in list_of_labeled_metric_vals for met_val in met.values()])
+            *{len(met_val) for met in list_of_labeled_metric_vals for met_val in met.values()}
         )
         metrics_thresholds = [
             np.inf,
@@ -898,10 +893,10 @@ def initialize_track_ids(
                 (
                     image_index,
                     T,
-                    id + track_id_offset,
-                    *(list_of_region_props[id][prop] for prop in props_to_include),
+                    initial_track_id + track_id_offset,
+                    *(list_of_region_props[initial_track_id][prop] for prop in props_to_include),
                 )
-                for id in range(len(list_of_region_props))
+                for initial_track_id in range(len(list_of_region_props))
             ],
             strict=False,
         )

@@ -243,9 +243,9 @@ features = pd.DataFrame(
         for crop in crops_in_memory
     ]
 )
-features_for_PCA = features[["vector_magnitudes_std", "divergence_std"]].to_numpy()
+features_for_pca = features[["vector_magnitudes_std", "divergence_std"]].to_numpy()
 pca, feats_proj = optical_flow_calculator.compute_PCA_on_features(
-    features_for_PCA, n_components=2, return_as_dataframe=True
+    features_for_pca, n_components=2, return_as_dataframe=True
 )
 
 # rescale the pca features to be between -1 and 1 so that the points are more evenly distributed
