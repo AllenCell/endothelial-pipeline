@@ -4,7 +4,7 @@ import dataclasses
 import logging
 from pathlib import Path
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.manifests import ImageLocation, ImageManifest
 
 logger = logging.getLogger(__name__)
@@ -18,22 +18,21 @@ def list_datasets_with_images(manifest: ImageManifest) -> list[str]:
 
 def get_image_location_for_dataset(
     manifest: ImageManifest,
-    dataset_name: str,
+    dataset: DatasetConfig,
     position: int | None = None,
     timepoint: int | None = None,
 ) -> ImageLocation:
     """Get the image location for the given dataset from the manifest, if it exists."""
 
-    if dataset_name not in manifest.locations:
+    if dataset.name not in manifest.locations:
         logger.error(
             "Dataset [ %s ] does not have a location in image manifest [ %s ]",
-            dataset_name,
+            dataset.name,
             manifest.name,
         )
-        raise KeyError(f"Unable to find dataset {dataset_name} in image manifest.")
+        raise KeyError(f"Unable to find dataset {dataset.name} in image manifest.")
 
-    dataset = load_dataset_config(dataset_name)
-    location = dataclasses.replace(manifest.locations[dataset_name])
+    location = dataclasses.replace(manifest.locations[dataset.name])
 
     # If location has no path defined, do not need to do position or timepoint
     # replacements so return as is.
@@ -46,7 +45,7 @@ def get_image_location_for_dataset(
     if position is not None:
         if position not in dataset.zarr_positions:
             logger.error("Position [ %d ] not valid for dataset [ %s ]", position, dataset.name)
-            raise ValueError(f"Dataset {dataset_name} only has positions: {dataset.zarr_positions}")
+            raise ValueError(f"Dataset {dataset.name} only has positions: {dataset.zarr_positions}")
         elif "{{position}}" not in str(location.path):
             logger.warning("Provided position [ %d ] not used for location key", position)
         else:
@@ -61,7 +60,7 @@ def get_image_location_for_dataset(
     if timepoint is not None:
         if timepoint < 0 or timepoint >= dataset.duration:
             logger.error("Timepoint [ %d ] not valid for dataset [ %s ]", timepoint, dataset.name)
-            raise ValueError(f"Dataset {dataset_name} only has {dataset.duration} timepoints")
+            raise ValueError(f"Dataset {dataset.name} only has {dataset.duration} timepoints")
         elif "{{timepoint}}" not in str(location.path):
             logger.warning("Provided timepoint [ %d ] not used for location key", timepoint)
         else:

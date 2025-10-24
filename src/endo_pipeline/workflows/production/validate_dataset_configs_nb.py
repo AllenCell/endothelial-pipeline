@@ -36,23 +36,23 @@ for dataset_name in get_available_dataset_names():
     validate_dataset_config(dataset_name)
 
     # Load dataset config.
-    dataset = load_dataset_config(dataset_name)
+    dataset_config = load_dataset_config(dataset_name)
 
     # Check if file at original path exists and can be opened.
     try:
-        BioImage(Path(dataset.original_path))
+        BioImage(Path(dataset_config.original_path))
     except FileNotFoundError:
         logger.error(
             "Failed to open original for dataset [ %s ] at [ %s ]",
-            dataset.name,
-            dataset.original_path,
+            dataset_config.name,
+            dataset_config.original_path,
         )
 
     # Check if specified zarr path exists.
-    zarr_path = Path(dataset.zarr_path)
+    zarr_path = Path(dataset_config.zarr_path)
     if not zarr_path.exists():
         logger.error(
-            "Zarr path does not exist for dataset [ %s ] at [ %s ]", dataset.name, zarr_path
+            "Zarr path does not exist for dataset [ %s ] at [ %s ]", dataset_config.name, zarr_path
         )
         continue
 
@@ -60,7 +60,9 @@ for dataset_name in get_available_dataset_names():
     zarr_files = list(zarr_path.glob("*.zarr"))
     if len(zarr_files) == 0:
         logger.error(
-            "No Zarr files were found for dataset [ %s ] at [ %s ]", dataset.name, dataset.zarr_path
+            "No Zarr files were found for dataset [ %s ] at [ %s ]",
+            dataset_config.name,
+            dataset_config.zarr_path,
         )
         continue
 
@@ -71,6 +73,6 @@ for dataset_name in get_available_dataset_names():
             BioImage(zarr_file)
         except:
             logger.error(
-                "Failed to load zarr for dataset [ %s ] at [ %s ]", dataset.name, zarr_file
+                "Failed to load zarr for dataset [ %s ] at [ %s ]", dataset_config.name, zarr_file
             )
             raise

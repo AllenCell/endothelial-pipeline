@@ -8,13 +8,8 @@ from bioio.writers.timeseries_writer import TimeseriesWriter
 
 from endo_pipeline.cli import Datasets
 from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
-from endo_pipeline.library.process import cdh5_preprocessing as preproc
+from endo_pipeline.library.process.cdh5_preprocessing import extract_t
 from endo_pipeline.library.visualize import vis_cdh5_nodes_and_edges_analysis as vis
-
-try:
-    from IPython import get_ipython
-except ModuleNotFoundError:
-    pass
 
 """
 APPROXIMATE SCRIPT RUN-TIME:
@@ -206,7 +201,7 @@ def main(
                     filepath
                     for filepath in Path.glob(out_dir_plots / "angles_vs_dists_polar", "*.tif")
                 ],
-                key=lambda fp: preproc.extract_T(fp.stem, use_last_match=True),
+                key=lambda fp: extract_t(fp.stem, use_last_match=True),
             )
             images = np.concatenate(
                 [BioImage(fp).get_image_data("TYXS") for fp in plot_paths], axis=0

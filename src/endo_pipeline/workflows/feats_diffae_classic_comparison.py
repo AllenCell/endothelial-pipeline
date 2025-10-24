@@ -8,13 +8,25 @@ from endo_pipeline.library.analyze.integration.track_integration import (
     get_preprocessed_manifests_and_km_bounds,
 )
 from endo_pipeline.library.visualize.integration.track_integration_viz import make_all_plots
+from endo_pipeline.manifests import load_model_manifest
+from endo_pipeline.settings import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def main() -> None:
+def main(
+    dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str | None = None,
+    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+) -> None:
     out_dir = get_output_path(__file__)
-    dataset_name_list = get_datasets_in_collection("pca_reference")
+    dataset_name_list = get_datasets_in_collection(dataset_collection_name)
+    model_manifest = load_model_manifest(model_manifest_name)
 
     # create subdirectory to save track-based trajectories to
     out_subdir_traj = out_dir / "trajectories_track_based"
@@ -24,7 +36,11 @@ def main() -> None:
 
         # load and preprocess the different diffae manifests and PCA pipeline
         df_all_positions, diffae_grid_crops, bounds = get_preprocessed_manifests_and_km_bounds(
-            dataset_name, datasets_for_bounds=dataset_name_list
+            dataset_name=dataset_name,
+            model_manifest=model_manifest,
+            run_name=run_name,
+            seg_feature_manifest_name=seg_feature_manifest_name,
+            datasets_for_bounds=dataset_name_list,
         )
 
         # load or compute the trajectories and flow fields for the grid-based

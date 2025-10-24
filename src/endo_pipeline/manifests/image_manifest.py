@@ -31,7 +31,8 @@ class ImageLocation:
             },
         )
 
-        location = get_image_location_for_dataset(manifest, "dataset_name", 3, 10)
+        dataset_config = load_dataset_config("dataset_name")
+        image_location = get_image_location_for_dataset(manifest, dataset_config, 3, 10)
         # returns location as ImageLocation(path=Path("P3/T10.ome.tiff"))
     """
 

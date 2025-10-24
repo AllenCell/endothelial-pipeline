@@ -1,6 +1,5 @@
 # %%
 from endo_pipeline.configs import (
-    TimepointAnnotation,
     get_all_unannotated_timepoints,
     get_annotated_positions,
     get_annotated_timepoints_for_position,

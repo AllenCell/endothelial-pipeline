@@ -92,7 +92,7 @@ def _get_reconstructed_crops(
     """Generate and add reconstructed crops to the contrast crops dictionary."""
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
-    model = load_model(model_manifest.locations[run_name_])
+    model = load_model(model_manifest.locations[run_name_], instantiate=True)
 
     num_points = df.shape[0]
     latent_coords = []

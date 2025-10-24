@@ -1525,7 +1525,7 @@ def build_measured_features_tables(
     logger.debug(f"T={tp} -- loading classic segmentation")
 
     seg_manifest = load_image_manifest("cdh5_classic_seg")
-    seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, tp)
+    seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position, tp)
     seg_arr = load_image(seg_location, squeeze=True, compute=True)
     seg_filepath = seg_location.path.as_posix() if seg_location.path is not None else ""
 
@@ -1807,16 +1807,16 @@ def get_nuclei_features_from_dataset_at_timepoint(
 
     # Load segmentations and image
     dim_order = DIMENSION_ORDER
+    dataset_config = load_dataset_config(dataset_name)
 
     nuc_manifest = load_image_manifest("nuclear_labelfree_seg")
-    nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_name, position, tp)
+    nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_config, position, tp)
     nuc_seg = load_image(nuc_location, squeeze=True, compute=True)
 
     cdh5_manifest = load_image_manifest("cdh5_classic_seg")
-    cdh5_location = get_image_location_for_dataset(cdh5_manifest, dataset_name, position, tp)
+    cdh5_location = get_image_location_for_dataset(cdh5_manifest, dataset_config, position, tp)
     cdh5_seg = load_image(cdh5_location, squeeze=True, compute=True)
 
-    dataset_config = load_dataset_config(dataset_name)
     img_path = get_zarr_file_for_position(dataset_config, position)
     raw_img = load_image_from_path(path=img_path, channels=channel_names, timepoints=tp, level=0)
     raw_mip = raw_img.max(axis=dim_order.index("Z"), keepdims=True).compute()

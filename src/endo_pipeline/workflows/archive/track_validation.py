@@ -99,7 +99,7 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
 
         # get the labels and crops around each segmented region
         props = measure.regionprops(label_image=seg_arr)
-        cell_id_to_crop_map = dict([(region.label, region.slice) for region in props])
+        cell_id_to_crop_map = {region.label: region.slice for region in props}
 
         # associate the cell ids with their track ids
         cell_ids_with_tracks = dframe[dframe["T"] == T]["label"].unique().tolist()
