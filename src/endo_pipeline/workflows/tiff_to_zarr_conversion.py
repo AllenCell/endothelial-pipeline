@@ -1,7 +1,7 @@
 import re
+from collections.abc import Sequence
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
-from typing import Sequence
 
 import pandas as pd
 from bioio import BioImage

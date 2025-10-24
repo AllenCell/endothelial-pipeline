@@ -10,7 +10,7 @@ from skimage.measure import regionprops
 from skimage.segmentation import clear_border
 from tqdm import tqdm
 
-from endo_pipeline.configs.dataset_io import extract_T
+from endo_pipeline.configs.dataset_io import extract_t
 from endo_pipeline.library.analyze.shape_features import numpy_mesh_coords
 from endo_pipeline.library.process.general_image_preprocessing import save_image_output
 from endo_pipeline.settings import DIMENSION_ORDER
@@ -183,7 +183,7 @@ def load_images_sequentially(
             else None
         )
 
-        new_images = list()
+        new_images = []
         for j in new_image_relative_indices:
             # convert slice objects to range objects so that they can be used as arguments in `get_image_data`
             img = BioImage(image_list[j])
@@ -464,12 +464,7 @@ def match_labels_from_metrics(
         num_metric_thresholds = len(metrics_thresholds)
         assert all(
             [
-                all(
-                    map(
-                        lambda met_val: len(met_val) == num_metric_thresholds,
-                        labeled_metrics.values(),
-                    )
-                )
+                all(len(met_val) == num_metric_thresholds for met_val in labeled_metrics.values())
                 for labeled_metrics in list_of_labeled_metric_vals
             ]
         ), "metrics and metrics_threshold must have the same length; np.inf can be used if no threshold is desired"
@@ -503,7 +498,7 @@ def match_labels_from_metrics(
     if not metrics_thresholds:
         # get length of metrics and make metrics_thresholds that length
         metrics_length = int(
-            *set([len(met_val) for met in list_of_labeled_metric_vals for met_val in met.values()])
+            *{len(met_val) for met in list_of_labeled_metric_vals for met_val in met.values()}
         )
         metrics_thresholds = [
             np.inf,
@@ -898,10 +893,10 @@ def initialize_track_ids(
                 (
                     image_index,
                     T,
-                    id + track_id_offset,
-                    *(list_of_region_props[id][prop] for prop in props_to_include),
+                    initial_track_id + track_id_offset,
+                    *(list_of_region_props[initial_track_id][prop] for prop in props_to_include),
                 )
-                for id in range(len(list_of_region_props))
+                for initial_track_id in range(len(list_of_region_props))
             ],
             strict=False,
         )
@@ -1363,7 +1358,7 @@ def run_tracking(
                 images_out_dir.mkdir(parents=True, exist_ok=True)
                 # try to extract the T position from the filename, and if
                 # unsucessful then use the T position from the img_queue
-                t = extract_T(input_image_filepath.name, default_if_not_found="")
+                t = extract_t(input_image_filepath.name, default_if_not_found="")
                 t = f"_T{t}" if t else ""
                 if not t:
                     t = f"_T{timeframes[idx]}"

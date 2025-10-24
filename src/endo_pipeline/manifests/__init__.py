@@ -17,7 +17,11 @@ from .image_manifest_io import (
     load_image_manifest,
     save_image_manifest,
 )
-from .image_manifest_utils import get_image_location_for_dataset, list_datasets_with_images
+from .image_manifest_utils import (
+    get_image_location_for_dataset,
+    get_zarr_location_for_position,
+    list_datasets_with_images,
+)
 from .model_manifest import ModelLocation, ModelManifest
 from .model_manifest_io import (
     create_model_manifest,
@@ -52,6 +56,7 @@ __all__ = [
     "get_model_manifest_dir",
     "get_model_manifest_with_parameters",
     "get_most_recent_run_name",
+    "get_zarr_location_for_position",
     "list_datasets_with_dataframes",
     "list_datasets_with_images",
     "load_dataframe_manifest",

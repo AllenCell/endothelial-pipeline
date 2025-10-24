@@ -3,6 +3,7 @@ from pathlib import Path
 
 from colorizer_data import convert_colorizer_data
 
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe
 from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     add_backdrop_fname_to_manifest,
@@ -132,10 +133,12 @@ SEG_MANIFEST = load_image_manifest("nuclear_stain_seg")
 # %%
 output_dir = get_output_path("tfe_immunofluorescence")
 for dataset_name in IF_SMAD_DATASETS:
+    dataset_config = load_dataset_config(dataset_name)
+
     for position in POSITIONS:
         print(f"Processing dataset: {dataset_name}, position: {position}")
 
-        seg_file = get_image_location_for_dataset(SEG_MANIFEST, dataset_name, position, 0)
+        seg_file = get_image_location_for_dataset(SEG_MANIFEST, dataset_config, position, 0)
         if seg_file.path is not None:
             seg_path = seg_file.path.parent
         else:

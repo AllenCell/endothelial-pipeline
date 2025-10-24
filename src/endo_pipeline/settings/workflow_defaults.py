@@ -8,3 +8,7 @@ DEFAULT_MODEL_RUN_NAME: str | None = None
 
 DEFAULT_PCA_DATASET_COLLECTION_NAME: str = "pca_reference"
 """Default dataset collection name for fitting PCA models."""
+
+DEFAULT_SEG_FEATURE_MANIFEST_NAME: str = "live_merged_seg_features"
+"""Default manifest name for merged CDH5 segmentation, CDH5 tracking and
+label-free nuclei segmentation features."""

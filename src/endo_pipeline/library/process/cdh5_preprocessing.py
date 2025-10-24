@@ -704,9 +704,9 @@ def split_multinucleate_regions(
     seg_skels = skeletonize(~find_boundaries(cell_segmentations)) * cell_segmentations
     anucleate_skels = np.isin(seg_skels, list(anucleate_regions.keys())) * cell_segmentations
     mononucleate_skels = np.isin(seg_skels, list(mononucleate_regions.keys())) * cell_segmentations
-    mononucleate_nuclei_labels = set(
+    mononucleate_nuclei_labels = {
         lab for nuc_labs in mononucleate_regions.values() for lab in nuc_labs if lab != 0
-    )
+    }
     mononucleate_seeds = (
         np.isin(cell_segmentations, list(mononucleate_regions.keys()))
         * np.isin(nuc_seg_merge_adjacent, list(mononucleate_nuclei_labels))
@@ -717,9 +717,9 @@ def split_multinucleate_regions(
 
     # use the nuclei in the multinucleate regions as seeds and
     # combine these with the skeleton-seeds from above
-    multinucleate_nuclei_labels = set(
+    multinucleate_nuclei_labels = {
         lab for nuc_labs in multinucleate_regions.values() for lab in nuc_labs if lab != 0
-    )
+    }
     multinucleate_seeds = (
         np.isin(cell_segmentations, list(multinucleate_regions.keys()))
         * np.isin(nuc_seg_merge_adjacent, list(multinucleate_nuclei_labels))

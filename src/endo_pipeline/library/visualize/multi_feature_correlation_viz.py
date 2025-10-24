@@ -28,6 +28,8 @@ from endo_pipeline.library.analyze.integration.track_integration import (
     get_preprocessed_manifests_and_km_bounds,
 )
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+from endo_pipeline.manifests import ModelManifest
+from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
 
 
 def add_feature_scatter_plot(
@@ -70,7 +72,7 @@ def add_feature_scatter_plot(
     x, y = feat1, feat2
     ymin = y.min()
     ymax = y.max()
-    ax.scatter(x, y, s=0.01, c=color, alpha=alpha)
+    ax.scatter(x, y, s=0.05, c=color, alpha=alpha)
     ax.set_xlim(x.min(), x.max())
     ax.set_ylim(ymin, ymax)
     ax.xaxis.set_major_locator(MaxNLocator(nbins=3, min_n_ticks=3))
@@ -147,7 +149,7 @@ def add_feature_histogram(ax: Axes, feat: np.ndarray) -> None:
 
 def plot_multi_feature_correlations(
     df: pd.DataFrame,
-    alpha: float = 0.01,
+    alpha: float = 0.7,
     cutoff_percent: float = 0,
     dpi: int = 150,
     title: str | None = None,
@@ -156,7 +158,7 @@ def plot_multi_feature_correlations(
     filename: str = "multi_feature_correlations",
 ) -> None:
     """
-    Create a scatter plot of all the columns in the dataframe
+    Create a scatter plot of all the columns in the dataframe.
 
     Parameters
     ----------
@@ -203,22 +205,20 @@ def plot_multi_feature_correlations(
             y = df[f1].to_numpy()
             x = df[f2].to_numpy()
             valids = np.where(
-                (
-                    (y >= prange[f1id][0])
-                    & (y <= prange[f1id][1])
-                    & (x >= prange[f2id][0])
-                    & (x <= prange[f2id][1])
-                    & ~np.isnan(y)
-                    & ~np.isnan(x)
-                    & ~np.isinf(y)
-                    & ~np.isinf(x)
-                )
+                (y >= prange[f1id][0])
+                & (y <= prange[f1id][1])
+                & (x >= prange[f2id][0])
+                & (x <= prange[f2id][1])
+                & ~np.isnan(y)
+                & ~np.isnan(x)
+                & ~np.isinf(y)
+                & ~np.isinf(x)
             )[0]
             x = x[valids]
             y = y[valids]
             if isinstance(color, str):
                 plot_color = [color] * len(x)
-            elif isinstance(color, (list, np.ndarray)):
+            elif isinstance(color, list | np.ndarray):
                 plot_color = np.array(color)
                 plot_color = plot_color[valids]
 
@@ -247,7 +247,7 @@ def plot_multi_feature_correlations(
         if yrange:
             ymin = np.min([ymin for (ymin, _) in yrange])
             ymax = np.max([ymax for (_, ymax) in yrange])
-            for f2id, f2 in enumerate(df.columns):
+            for f2id in range(len(df.columns)):
                 ax = axs[f1id, f2id]
                 if f2id < f1id:
                     ax.set_ylim(ymin, ymax)
@@ -367,14 +367,14 @@ def get_correlation_matrix_df(
         The names of the columns to use for the x-axis.
     column_names_for_y_axis
         The names of the columns to use for the y-axis.
-    name_of_x_axis
+    x_axis_label
         The name of the x-axis.
-    name_of_y_axis
+    y_axis_label
         The name of the y-axis.
     df_format
         The format of the output DataFrame. If "long", the output DataFrame will have columns:
-        - name_of_y_axis
-        - name_of_x_axis
+        - y_axis_label
+        - x_axis_label
         - pearsonr
         - pval
         If "wide-corrcoeff", the output DataFrame will have a column for each column in
@@ -456,12 +456,15 @@ def get_df_for_feature_correlation_viz(
     classical_feature_columns: list[str],
     pc_columns: list[str],
     diffae_feature_columns: list[str],
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+    model_manifest: ModelManifest,
+    run_name: str | None = None,
+    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    timepoint_annotations: list[TimepointAnnotation] | None = None,
+) -> pd.DataFrame:
     """
     Load and preprocess the manifests for the given dataset names,
-    and return a DataFrame containing the merged features
-    from all datasets at all timepoints, and a DataFrame
-    containing the steady state timepoints only.
+    and return a DataFrame containing the merged features.
+    The returned DataFrame may be optionally filtered based on timepoint annotations.
 
     Parameters
     ----------
@@ -469,27 +472,40 @@ def get_df_for_feature_correlation_viz(
         List of dataset names to process.
     dataset_info_columns
         List of columns containing dataset information.
-    classical_features
+    classical_feature_columns
         List of classical feature column names.
     pc_columns
         List of PCA component column names.
     diffae_feature_columns
         List of DiffAE feature column names.
+    model_manifest
+        The model manifest containing information about the DiffAE model.
+    run_name
+        The name of the run to use for loading the manifests.
+        If None, the latest run will be used.
+    seg_feature_manifest_name
+        The name of the segmentation feature manifest to use.
+        Default is "live_merged_seg_features".
+    timepoint_annotations
+        List of timepoint annotations used to filter the DataFrame.
+        If None, no filtering will be applied.
 
     Returns
     -------
     :
-        A tuple containing two DataFrames:
-        - The first DataFrame contains all timepoints for the given datasets.
-        - The second DataFrame contains only the steady state timepoints.
+        A DataFrame containing the merged features from the specified datasets,
+        filtered based on the provided timepoint annotations.
     """
-    df_list_all_tps: list = []
-    df_list_ss: list = []
+    df_list: list = []
     for dataset_name in dataset_name_list:
         # load and preprocess the different diffae manifests and PCA pipeline
         # NOTE: this takes a little over a minute to load
         merged_feats_df, _, _ = get_preprocessed_manifests_and_km_bounds(
-            dataset_name, datasets_for_bounds=dataset_name_list
+            dataset_name=dataset_name,
+            model_manifest=model_manifest,
+            run_name=run_name,
+            seg_feature_manifest_name=seg_feature_manifest_name,
+            datasets_for_bounds=dataset_name_list,
         )
 
         # check that the chosen measurement column names
@@ -504,12 +520,9 @@ def get_df_for_feature_correlation_viz(
         # filter data table to only include the steady state timepoints that are
         # used when projecting the DiffAE features onto PCA axes
         # in the segmentation-free dynamics workflow
+        # only if timepoint annotations are provided
         dataset_config = load_dataset_config(dataset_name)
-        timepoint_annotations = [
-            TimepointAnnotation.NOT_STEADY_STATE,
-            TimepointAnnotation.CELL_PILING,
-        ]
-        merged_feats_df_ss = filter_dataframe_by_annotations(
+        merged_feats_df = filter_dataframe_by_annotations(
             dataframe=merged_feats_df,
             dataset_config=dataset_config,
             timepoint_annotations=timepoint_annotations,
@@ -520,16 +533,10 @@ def get_df_for_feature_correlation_viz(
             dataset_info_columns + classical_feature_columns + diffae_feature_columns + pc_columns
         )
 
-        for df, df_list in zip(
-            (merged_feats_df, merged_feats_df_ss),
-            (df_list_all_tps, df_list_ss),
-            strict=True,
-        ):
-            df = df[cols_to_keep].copy()
-            df.rename(columns=get_label_for_column, inplace=True)
-            df_list.append(df)
+        merged_feats_df = merged_feats_df[cols_to_keep].copy()
+        merged_feats_df.rename(columns=get_label_for_column, inplace=True)
+        df_list.append(merged_feats_df)
     # merge the DataFrames from all datasets
-    df_all_timepoints = pd.concat(df_list_all_tps, ignore_index=True)
-    df_ss = pd.concat(df_list_ss, ignore_index=True)
+    df = pd.concat(df_list, ignore_index=True)
 
-    return df_all_timepoints, df_ss
+    return df
