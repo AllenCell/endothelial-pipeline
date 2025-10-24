@@ -14,6 +14,10 @@ For each dataset config in the `configs/datasets` directory, confirm:
 """
 
 # %%
+DESCRIPTION = "Validate all existing datasets by checking config schemas and loading files."
+TAGS = ["test_ready", "CPU_only"]
+
+# %%
 import logging
 from pathlib import Path
 

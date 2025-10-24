@@ -1,3 +1,8 @@
+from endo_pipeline.cli import tags
+
+TAGS = [tags.TEST_READY, tags.GPU]
+
+
 def main(
     model_manifest_name: str = "diffae_finetuned_for_fixed",
     run_name: str | None = None,
