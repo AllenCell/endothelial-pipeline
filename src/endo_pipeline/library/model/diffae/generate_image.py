@@ -53,9 +53,9 @@ def add_noise_to_image(
 
     # Check edge cases for numerical efficiency
     if noise_level == 0.0:
-        output_image = input_image
+        output_image = input_image.copy()
     elif noise_level == 1.0:
-        output_image = noise_image
+        output_image = noise_image.copy()
     else:  # general case
         output_image = np.sqrt(1 - noise_level) * input_image + np.sqrt(noise_level) * noise_image
 
