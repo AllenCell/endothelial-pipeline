@@ -17,7 +17,6 @@ def add_noise_to_image(
     input_image: np.ndarray,
     noise_image: np.ndarray,
     noise_level: float,
-    clip: bool = False,
 ) -> np.ndarray:
     """
     Add Gaussian noise to an input image at a specified noise level.
@@ -26,7 +25,7 @@ def add_noise_to_image(
 
     The output "noised" image is created using the formula:
 
-        output_image = (1 - noise_level) * input_image + (noise_level) * noise_img
+        output_image = sqrt(1 - noise_level) * input_image + sqrt(noise_level) * noise_img
 
     Using this formula, ``noise_level`` represents the fraction of the corrupted image
     that is contributed by the noise image, with the remainder contributed by the original input image.
@@ -41,8 +40,6 @@ def add_noise_to_image(
         A standard Gaussian noise image of the same shape as the input image.
     noise_level
         The level of noise to add, between 0.0 (no noise) and 1.0 (all noise).
-    clip
-        Whether to clip the output image to the valid range [0, 1].
     """
     if not (0.0 <= noise_level <= 1.0):
         logger.error("Parameter `noise_level` must be between 0.0 and 1.0.")
@@ -55,10 +52,6 @@ def add_noise_to_image(
         output_image = noise_image.copy()
     else:  # general case
         output_image = np.sqrt(1 - noise_level) * input_image + np.sqrt(noise_level) * noise_image
-
-    # Clip the output image to the valid range [0, 1] if specified
-    if clip:
-        output_image = np.clip(output_image, 0.0, 1.0)
     return output_image
 
 
