@@ -157,7 +157,7 @@ def plot_measured_feat_pcs(
             pass  # do not subset or aggregate the data in any way
         else:
             raise ValueError(
-                "track_ids must be 'mean', an integer, or None."
+                "track_ids must be 'mean', an integer, or None. "
                 f"Got {track_id} (type: {type(track_id)}) instead."
             )
 
