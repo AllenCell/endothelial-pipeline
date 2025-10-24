@@ -3,6 +3,9 @@
 DIMENSION_ORDER: str = "TCZYX"
 """Default dimension order of image data."""
 
+ZARR_IMAGE_MANIFEST_NAME: str = "image_zarr"
+"""Name of the Zarr image manifest"""
+
 ZARR_BRIGHTFIELD_CHANNEL: int = 1
 """Default channel index for brightfield images in zarr files."""
 

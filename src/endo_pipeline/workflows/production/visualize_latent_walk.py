@@ -82,7 +82,7 @@ def main(
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
-    model = load_model(model_manifest.locations[run_name_])
+    model = load_model(model_manifest.locations[run_name_], instantiate=True)
 
     # set up output directory
     save_path = get_output_path(

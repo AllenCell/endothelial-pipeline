@@ -1,12 +1,12 @@
 import re
+from collections.abc import Sequence
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
-from typing import Sequence
 
 import pandas as pd
 from bioio import BioImage
-from bioio_ome_zarr.writers import OMEZarrWriter
-from bioio_ome_zarr.writers.metadata import Channel
+from bioio_ome_zarr.writers import OMEZarrWriter  # type: ignore
+from bioio_ome_zarr.writers.metadata import Channel  # type: ignore
 from tqdm import tqdm
 
 """

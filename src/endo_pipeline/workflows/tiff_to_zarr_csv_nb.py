@@ -37,7 +37,7 @@ for image_manifest_name, channel_name in image_channel_pairs:
         for position in dataset_config.zarr_positions:
 
             location = get_image_location_for_dataset(
-                image_manifest, dataset_name, position=position, timepoint=0
+                image_manifest, dataset_config, position=position, timepoint=0
             )
             if location is None:
                 log.warning(
