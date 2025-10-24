@@ -38,7 +38,7 @@ def run_workflow(queue: Sequence) -> None:
     dataset = load_dataset_config(dataset_name)
     manifest = load_image_manifest("cdh5_classic_seg")
     seg_locations = [
-        get_image_location_for_dataset(manifest, dataset_name, position, timepoint)
+        get_image_location_for_dataset(manifest, dataset, position, timepoint)
         for timepoint in range(dataset.duration)
     ]
     seg_filepaths = [location.path for location in seg_locations if location.path is not None]

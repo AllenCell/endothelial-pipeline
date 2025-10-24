@@ -16,7 +16,7 @@ def main():
     dataset = load_dataset_config(dataset_name)
     manifest = load_image_manifest("nuclear_labelfree_seg")
     nuclei_locations = [
-        get_image_location_for_dataset(manifest, dataset_name, 0, timepoint)
+        get_image_location_for_dataset(manifest, dataset, 0, timepoint)
         for timepoint in range(dataset.duration)
     ]
     nuclei_paths = [location.path for location in nuclei_locations if location.path is not None]
