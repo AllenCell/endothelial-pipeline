@@ -14,6 +14,7 @@ from endo_pipeline.library.visualize.timelapse_feature_explorer.tfe_manifest_for
     update_manifest_for_tfe,
 )
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ def generate_tfe_dataset(
     output_dir = output_dir / f"{dataset}_P{position}{output_dir_suffix}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    segprops_manifest = load_dataframe_manifest("live_merged_seg_features")
+    segprops_manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
     segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset)
 
     df_tracks = load_dataframe(segprops_location)

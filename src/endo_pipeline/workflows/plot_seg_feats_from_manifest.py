@@ -20,6 +20,7 @@ from endo_pipeline.library.visualize.seg_features.general_standard_plots import 
     mark_perpendicular,
 )
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +134,11 @@ def plot_seg_manifest_data(
                 plt.close(fig)
 
 
-def process_dataset(dataset_name: str, out_dir: Path) -> None:
+def process_dataset(
+    dataset_name: str,
+    out_dir: Path,
+    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+) -> None:
     """
     Loads the segmentation features manifest for a given dataset,
     calculates dynamic features, and generates and saves plots for
@@ -141,7 +146,7 @@ def process_dataset(dataset_name: str, out_dir: Path) -> None:
     """
 
     # load the segmentation features table
-    segprops_manifest = load_dataframe_manifest("live_merged_seg_features")
+    segprops_manifest = load_dataframe_manifest(seg_feature_manifest_name)
     segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset_name)
     segprops_dataframe = load_dataframe(segprops_location)
 
