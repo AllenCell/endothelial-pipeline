@@ -1,0 +1,114 @@
+name: image_zarr
+workflow: (manifest updated manually)
+parameters: {}
+locations:
+  20240328_T01_001:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20240328_add71263f2ba4f0db6c2880916ac76a0/20240328_add71263f2ba4f0db6c2880916ac76a0_P{{position}}.ome.zarr
+  20240328_T02_001:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20240328_55aa83a701e6420e8188303da7cdf866/20240328_55aa83a701e6420e8188303da7cdf866_P{{position}}.ome.zarr
+  20241120_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241120_1573b88e7edc44ca88a5ce530829e223/20241120_1573b88e7edc44ca88a5ce530829e223_P{{position}}.ome.zarr
+  20241217_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241217_ecefe34818f74b498f9619e9de696cfb/20241217_ecefe34818f74b498f9619e9de696cfb_P{{position}}.ome.zarr
+  20250214_pairedPostFixation:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250219_30a3a9ec278e427185dae2373ae400b2/20250219_30a3a9ec278e427185dae2373ae400b2_P{{position}}.ome.zarr
+  20250214_pairedPreFixation:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250214_070e32c7355a40a288df2e68ae19adbc/20250214_070e32c7355a40a288df2e68ae19adbc_P{{position}}.ome.zarr
+  20250224_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250224_f2e18fc71aff4affbdd10990cdf427f9/20250224_f2e18fc71aff4affbdd10990cdf427f9_P{{position}}.ome.zarr
+  20250319_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250319_0d94f8d3054e4e8c99af07dd92774798/20250319_0d94f8d3054e4e8c99af07dd92774798_P{{position}}.ome.zarr
+  20250326_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250326_eb97addf262c44c5a6117ad1d4acc353/20250326_eb97addf262c44c5a6117ad1d4acc353_P{{position}}.ome.zarr
+  20250402_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250402_90e37b7d8f1440efa84995b4697fb269/20250402_90e37b7d8f1440efa84995b4697fb269_P{{position}}.ome.zarr
+  20250409_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250409_df6b2a02bbc94c6f957923add524eac1/20250409_df6b2a02bbc94c6f957923add524eac1_P{{position}}.ome.zarr
+  20250415_SlideA_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250415_809a40b6ee9b4d319ffdd2827da86af5/20250415_809a40b6ee9b4d319ffdd2827da86af5_P{{position}}.ome.zarr
+  20250415_SlideE_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250415_dbcfe826507e465aa33fda2f43104653/20250415_dbcfe826507e465aa33fda2f43104653_P{{position}}.ome.zarr
+  20250415_SlideH_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250415_eba3c307308c4460ae0280cc58ee7655/20250415_eba3c307308c4460ae0280cc58ee7655_P{{position}}.ome.zarr
+  20250428_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250428_056aa027ba9f4ccd98367563552f7edd/20250428_056aa027ba9f4ccd98367563552f7edd_P{{position}}.ome.zarr
+  20250509_20X_IF1:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_629e43c704e6485fa386f7aa12b8ec9e/20250509_629e43c704e6485fa386f7aa12b8ec9e_P{{position}}.ome.zarr
+  20250509_20X_IF10:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_8975c3c6497e4321badfafbe41695d16/20250509_8975c3c6497e4321badfafbe41695d16_P{{position}}.ome.zarr
+  20250509_20X_IF11:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_1d3787a51bf44df5bd6e790d24e0ac49/20250509_1d3787a51bf44df5bd6e790d24e0ac49_P{{position}}.ome.zarr
+  20250509_20X_IF12:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_d86884f8f7454af3b0be45349231fb7c/20250509_d86884f8f7454af3b0be45349231fb7c_P{{position}}.ome.zarr
+  20250509_20X_IF2:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_82d877366e19479fbebbe9dcb5ba2cb6/20250509_82d877366e19479fbebbe9dcb5ba2cb6_P{{position}}.ome.zarr
+  20250509_20X_IF3:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_f138eae13188469293ab8408a1bbb2e3/20250509_f138eae13188469293ab8408a1bbb2e3_P{{position}}.ome.zarr
+  20250509_20X_IF4:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_b29ceb5fbdda4b1392f4d32936cdc686/20250509_b29ceb5fbdda4b1392f4d32936cdc686_P{{position}}.ome.zarr
+  20250509_20X_IF5:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_5b439fe1e66a43fbba7babd663f0f71b/20250509_5b439fe1e66a43fbba7babd663f0f71b_P{{position}}.ome.zarr
+  20250509_20X_IF6:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_b5c9fca289d7427ebd2103809003c650/20250509_b5c9fca289d7427ebd2103809003c650_P{{position}}.ome.zarr
+  20250509_20X_IF7:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_c9a6218bb24749d8be1f993c2ba466ce/20250509_c9a6218bb24749d8be1f993c2ba466ce_P{{position}}.ome.zarr
+  20250509_20X_IF8:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_8f64e157d939450992e1148cd5598769/20250509_8f64e157d939450992e1148cd5598769_P{{position}}.ome.zarr
+  20250509_20X_IF9:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_af418cd153e5484fa5a626b4a2a08e87/20250509_af418cd153e5484fa5a626b4a2a08e87_P{{position}}.ome.zarr
+  20250522_20X_IFA:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250522_524829e4c9c34c68b3dc921fcd74dee2/20250522_524829e4c9c34c68b3dc921fcd74dee2_P{{position}}.ome.zarr
+  20250522_20X_IFB:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250522_a62aeec0aa1d413c8c23b3c8628fcb1b/20250522_a62aeec0aa1d413c8c23b3c8628fcb1b_P{{position}}.ome.zarr
+  20250522_20X_IFC:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250522_13695f0ae1b44e2891b33092b50482a4/20250522_13695f0ae1b44e2891b33092b50482a4_P{{position}}.ome.zarr
+  20250522_20X_IFD:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250522_ecfcabff3c354cc3bfccc16f41616cec/20250522_ecfcabff3c354cc3bfccc16f41616cec_P{{position}}.ome.zarr
+  20250522_20X_IFE:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250522_e0bc058b143d4b359b04c7fad5d7747e/20250522_e0bc058b143d4b359b04c7fad5d7747e_P{{position}}.ome.zarr
+  20250522_20X_IFF:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250522_7ceae7a791a945c0b9c77434a60a18e8/20250522_7ceae7a791a945c0b9c77434a60a18e8_P{{position}}.ome.zarr
+  20250522_20X_IFG:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250522_5a2f8bfbf6ca41969404b6b3ec5f9143/20250522_5a2f8bfbf6ca41969404b6b3ec5f9143_P{{position}}.ome.zarr
+  20250522_20X_IFH:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250522_e3c4da255bdc44cc9c0f59485ad07880/20250522_e3c4da255bdc44cc9c0f59485ad07880_P{{position}}.ome.zarr
+  20250522_20X_IFI:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250522_56b95ae3c9c64a298708d690d4ab4c1e/20250522_56b95ae3c9c64a298708d690d4ab4c1e_P{{position}}.ome.zarr
+  20250522_20X_IFJ:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250522_fae8e28299354f589802f6e7f3ddd6c0/20250522_fae8e28299354f589802f6e7f3ddd6c0_P{{position}}.ome.zarr
+  20250522_20X_IFK:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250522_2fdda4f394f04c26868bd4b58a3940f7/20250522_2fdda4f394f04c26868bd4b58a3940f7_P{{position}}.ome.zarr
+  20250522_20X_IFL:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250522_3701e54748f6454ab5b708419ee1064c/20250522_3701e54748f6454ab5b708419ee1064c_P{{position}}.ome.zarr
+  20250522_20X_IFM:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250522_59b5ffc7ab7c48afa8869ccf6e8b3614/20250522_59b5ffc7ab7c48afa8869ccf6e8b3614_P{{position}}.ome.zarr
+  20250522_20X_IFN:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250522_60917a9e433e4c289190e3c350fb7135/20250522_60917a9e433e4c289190e3c350fb7135_P{{position}}.ome.zarr
+  20250522_20X_IFO:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250522_88d401eb18474ee496e6786d41a7cbbb/20250522_88d401eb18474ee496e6786d41a7cbbb_P{{position}}.ome.zarr
+  20250604_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250604_3f08ef7a2e0e450d963352dae4bf17dc/20250604_3f08ef7a2e0e450d963352dae4bf17dc_P{{position}}.ome.zarr
+  20250611_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250611_a32615d530ae42c29d159cc058601879/20250611_a32615d530ae42c29d159cc058601879_P{{position}}.ome.zarr
+  20250618_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250618_f81e9bdf048e462e9755d7cbf5d21c37/20250618_f81e9bdf048e462e9755d7cbf5d21c37_P{{position}}.ome.zarr
+  20250714_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250714_0a0462b7d33848c8826105ab6f78787d/20250714_0a0462b7d33848c8826105ab6f78787d_P{{position}}.ome.zarr
+  20250716_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250716_328c62ecc91248eab2268e546892453e/20250716_328c62ecc91248eab2268e546892453e_P{{position}}.ome.zarr
+  20250728_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250728_b07652734b1b43178f4bc704abd7b95b/20250728_b07652734b1b43178f4bc704abd7b95b_P{{position}}.ome.zarr
+  20250806_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250806_994459ded53f40969dfe07255347cfe8/20250806_994459ded53f40969dfe07255347cfe8_P{{position}}.ome.zarr
+  20250813_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250813_6ab0f70bd43f4de987a789905dbfb95c/20250813_6ab0f70bd43f4de987a789905dbfb95c_P{{position}}.ome.zarr
+  20250818_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250818_1f895d9188df43e0a10b379cf23a879c/20250818_1f895d9188df43e0a10b379cf23a879c_P{{position}}.ome.zarr
+  20250825_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250825_c2a006900d0342668998fbdd295f347b/20250825_c2a006900d0342668998fbdd295f347b_P{{position}}.ome.zarr
+  20250827_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250827_c96180b30a224a48bac3b6d8fe1ffbb4/20250827_c96180b30a224a48bac3b6d8fe1ffbb4_P{{position}}.ome.zarr
+  20250908_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250908_b5d434bdebce4053b2d90198541b6b59/20250908_b5d434bdebce4053b2d90198541b6b59_P{{position}}.ome.zarr
+  20251001_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251001_271124f03a16409499e8a84b0030cb15/20251001_271124f03a16409499e8a84b0030cb15_P{{position}}.ome.zarr

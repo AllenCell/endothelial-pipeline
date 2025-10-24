@@ -38,6 +38,7 @@ from endo_pipeline.manifests import (
     save_dataframe_manifest,
 )
 from endo_pipeline.settings import (
+    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     ZARR_BRIGHTFIELD_CHANNEL,
     ColumnName,
     CytoDLLoadDataKeys,
@@ -349,7 +350,7 @@ def preprocess_tracking_manifest_for_model_eval(
 ) -> Path:
     """Preprocess the manifest for a dataset to prepare it for model prediction."""
 
-    manifest = load_dataframe_manifest("live_merged_seg_features")
+    manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
     location = get_dataframe_location_for_dataset(manifest, dataset_config.name)
     df = load_dataframe(location)
 

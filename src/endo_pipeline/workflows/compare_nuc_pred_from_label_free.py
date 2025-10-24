@@ -68,7 +68,6 @@ def get_image_data_from_original(dataset_name: str, scenes_to_use: list[str]) ->
         scene_index = img.current_scene_index
 
         print(dataset_name, img.current_scene)
-        img.current_scene_index
         channel_names = sldmd.get_channel_name(img.metadata)
         channel_names = [chan.split("/")[0] for chan in channel_names]
         nuc_chan = channel_names.index("405")
@@ -166,8 +165,8 @@ scenes_to_use = {
     ],
 }
 
-get_T_from_path = lambda x: int(re.findall("T_[0-9]+", x.stem)[-1].split("T_")[-1])
-get_S_from_path = lambda x: int(re.findall("S[0-9]+", x.stem)[-1].split("S")[-1])
+get_t_from_path = lambda x: int(re.findall("T_[0-9]+", x.stem)[-1].split("T_")[-1])
+get_s_from_path = lambda x: int(re.findall("S[0-9]+", x.stem)[-1].split("S")[-1])
 
 out_dir = get_output_path(__file__)
 
@@ -217,13 +216,13 @@ for dataset_name in datasets_to_use:
             cytodl_nuc_pred_path = [
                 fp
                 for fp in cytodl_nuc_pred_dir
-                if dataset_name in str(fp.stem) and get_S_from_path(fp) == scene_index
+                if dataset_name in str(fp.stem) and get_s_from_path(fp) == scene_index
             ]
         else:
             cytodl_nuc_pred_path = [
                 fp
                 for fp in cytodl_nuc_pred_dir
-                if dataset_name in str(fp.stem) and get_T_from_path(fp) == scene_index
+                if dataset_name in str(fp.stem) and get_t_from_path(fp) == scene_index
             ]
         assert (
             len(cytodl_nuc_pred_path) == 1

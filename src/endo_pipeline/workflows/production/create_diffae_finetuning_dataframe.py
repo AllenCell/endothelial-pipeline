@@ -59,7 +59,7 @@ def main(
         # get image paths for each position in the dataset
         for position in available_positions:
             image_location = get_image_location_for_dataset(
-                image_manifest, fixed_dataset_name, position
+                image_manifest, dataset_config, position
             )
             if not image_location.path or not image_location.path.exists():
                 logger.warning(

@@ -8,6 +8,7 @@ from endo_pipeline.manifests import (
     create_dataframe_manifest,
     save_dataframe_manifest,
 )
+from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -108,8 +109,11 @@ def fms_upload_nuc_get_measured_features(dataset_name: str, path_to_file: Path) 
     return file_id
 
 
-def fms_upload_make_seg_feats_manifest(dataset_name: str, path_to_file: Path) -> str:
-    """Upload the merged live segmentation features to FMS and store the FMS ID in a manifest."""
+def fms_upload_make_seg_feats_manifest(
+    dataset_name: str,
+    path_to_file: Path,
+    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+) -> str:
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
@@ -124,9 +128,8 @@ def fms_upload_make_seg_feats_manifest(dataset_name: str, path_to_file: Path) ->
     )
 
     # Store FMS ID in dataframe manifest
-    manifest_name = "live_merged_seg_features"
     workflow_name = "live_feat_workflows_to_fms"
-    manifest = create_dataframe_manifest(manifest_name, workflow_name)
+    manifest = create_dataframe_manifest(seg_feature_manifest_name, workflow_name)
     manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
     save_dataframe_manifest(manifest)
 
