@@ -78,3 +78,11 @@ def get_zarr_location_for_position(dataset: DatasetConfig, position: int) -> Ima
 
     manifest = load_image_manifest(ZARR_IMAGE_MANIFEST_NAME)
     return get_image_location_for_dataset(manifest, dataset, position=position)
+
+
+def get_available_zarr_locations(dataset: DatasetConfig) -> list[ImageLocation]:
+    """Get list of all available Zarr locations for given dataset."""
+
+    return [
+        get_zarr_location_for_position(dataset, position) for position in dataset.zarr_positions
+    ]
