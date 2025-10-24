@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 from cyto_dl.api import CytoDLModel
 from matplotlib.patches import Ellipse
-from pandas.core.groupby import DataFrameGroupBy
 from sklearn.decomposition import PCA
 
 from endo_pipeline.io import resolve_dataframe_location

@@ -1,8 +1,7 @@
 import importlib
 import logging
-import typing
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 import numpy as np
 import torch
@@ -11,13 +10,8 @@ from matplotlib import pyplot as plt
 from monai.data import MetaTensor
 
 from endo_pipeline.io.output import save_plot_to_path
-from endo_pipeline.library.process.image_processing import crop_image
 from endo_pipeline.library.visualize.figure_utils import plot_image_thumbnail
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
-
-if typing.TYPE_CHECKING:
-    from omegaconf import DictConfig, ListConfig
-
 
 logger = logging.getLogger(__name__)
 
