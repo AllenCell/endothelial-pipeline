@@ -225,7 +225,7 @@ def plot_measured_feat_overlay_on_flowfield(
         data_subset = ""
     else:
         raise ValueError(
-            "track_ids must be 'mean', an integer, or None."
+            "track_ids must be 'mean', an integer, or None. "
             f"Got {track_id_to_plot} (type: {type(track_id_to_plot)}) instead."
         )
     save_plot_to_path(
