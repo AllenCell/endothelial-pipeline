@@ -16,6 +16,48 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def add_noise_to_image(
+    input_image: np.ndarray,
+    noise_image: np.ndarray,
+    noise_level: float,
+) -> np.ndarray:
+    """
+    Add Gaussian noise to an input image at a specified noise level.
+
+    **Noise level weighting**
+
+    The output "noised" image is created using the formula:
+
+        output_image = sqrt(1 - noise_level) * input_image + sqrt(noise_level) * noise_img
+
+    Using this formula, ``noise_level`` represents the fraction of the corrupted image
+    that is contributed by the noise image, with the remainder contributed by the original input image.
+    An input noise_level of 0.0 results in no noise being added (the output image is identical
+    to the input image), while a noise_level of 1.0 results in an image composed entirely of noise.
+
+    Parameters
+    ----------
+    input_image
+        The input image to which noise will be added.
+    noise_image
+        A standard Gaussian noise image of the same shape as the input image.
+    noise_level
+        The level of noise to add, between 0.0 (no noise) and 1.0 (all noise).
+    """
+    if not (0.0 <= noise_level <= 1.0):
+        logger.error("Parameter `noise_level` must be between 0.0 and 1.0.")
+        raise ValueError("Parameter `noise_level` must be between 0.0 and 1.0.")
+
+    # Check edge cases for numerical efficiency
+    if noise_level == 0.0:
+        output_image = input_image.copy()
+    elif noise_level == 1.0:
+        output_image = noise_image.copy()
+    else:  # general case
+        output_image = np.sqrt(1 - noise_level) * input_image + np.sqrt(noise_level) * noise_image
+    return output_image
+
+
 def generate_from_coords_and_noised_image(
     model: "BaseDiffusionAutoEncoder | DiffusionAutoEncoder",
     coords: np.ndarray,
