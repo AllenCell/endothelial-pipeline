@@ -84,7 +84,7 @@ def main(model_manifest_name, run_name) -> None:
     bf_crop_latent_vector = get_latent_vector_from_crop(model, bf_crop, num_gpus=NUM_GPUS)
 
     # Sample random noise image with fixed seed
-    noise_image = rng.standard_normal(size=cdh5_crop.shape())
+    noise_image = rng.standard_normal(size=cdh5_crop.shape)
 
     # Add noise_image to cdh5_crop with increasing weight:
     noisy_cdh5 = [
