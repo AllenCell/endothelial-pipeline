@@ -1,0 +1,9 @@
+Adding packages to default dependencies: cellpose
+  0:01:12 🔒 Lock successful.  
+Changes are written to pyproject.toml.
+Synchronizing working set with resolved packages: 0 to add, 1 to update, 0 to remove
+
+  ✔ Update cellpose 3.0 -> 3.1.1.1 successful
+  ✔ Update cellsmap 0.1.0 -> 0.1.0 successful
+
+  0:00:00 🎉 All complete! 1/1
