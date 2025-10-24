@@ -10,7 +10,7 @@ from skimage.measure import regionprops
 from skimage.segmentation import clear_border
 from tqdm import tqdm
 
-from endo_pipeline.configs.dataset_io import extract_T
+from endo_pipeline.configs.dataset_io import extract_t
 from endo_pipeline.library.analyze.shape_features import numpy_mesh_coords
 from endo_pipeline.library.process.general_image_preprocessing import save_image_output
 from endo_pipeline.settings import DIMENSION_ORDER
@@ -1358,7 +1358,7 @@ def run_tracking(
                 images_out_dir.mkdir(parents=True, exist_ok=True)
                 # try to extract the T position from the filename, and if
                 # unsucessful then use the T position from the img_queue
-                t = extract_T(input_image_filepath.name, default_if_not_found="")
+                t = extract_t(input_image_filepath.name, default_if_not_found="")
                 t = f"_T{t}" if t else ""
                 if not t:
                     t = f"_T{timeframes[idx]}"

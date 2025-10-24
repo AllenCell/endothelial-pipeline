@@ -109,7 +109,7 @@ def lineplot_of_feats(
     return fig, ax
 
 
-def hist_2D_of_feats(
+def hist_2d_of_feats(
     df_group: pd.DataFrame,
     x_column_name: str,
     y_column_name: str,

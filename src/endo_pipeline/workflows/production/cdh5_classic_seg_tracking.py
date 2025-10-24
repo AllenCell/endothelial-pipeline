@@ -18,7 +18,7 @@ def run_workflow(queue: Sequence) -> None:
     import pandas as pd
 
     from endo_pipeline.configs import load_dataset_config
-    from endo_pipeline.configs.dataset_io import extract_T, get_zarr_name, get_zarr_path
+    from endo_pipeline.configs.dataset_io import extract_t, get_zarr_name, get_zarr_path
     from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
     from endo_pipeline.library.process.lib_tracking import run_tracking
     from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
@@ -62,7 +62,7 @@ def run_workflow(queue: Sequence) -> None:
             out_dir=out_dir,
             out_filename_prefix=out_filename_prefix,
             tracking_metrics=["region_overlap"],  # this can be changed to ['centroids'] if desired
-            sorting_key=extract_T,
+            sorting_key=extract_t,
             C=segmentation_channel,
             T=timepoints_to_eval,
             extra_in_dir=raw_filepath,

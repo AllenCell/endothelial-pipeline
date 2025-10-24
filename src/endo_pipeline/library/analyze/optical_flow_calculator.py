@@ -507,7 +507,7 @@ def get_random_roi(
     return roi
 
 
-def compute_PCA_on_features(
+def compute_pca_on_features(
     features: np.ndarray, n_components: int = 10, return_as_dataframe: bool = False
 ) -> PCA:
     feat_arr = np.asarray([feature.ravel() for feature in features])
