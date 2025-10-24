@@ -5,7 +5,7 @@ def main():
     from pathlib import Path
 
     from endo_pipeline.configs import load_dataset_config
-    from endo_pipeline.configs.dataset_io import extract_T
+    from endo_pipeline.configs.dataset_io import extract_t
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.lib_tracking import run_tracking
     from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
@@ -26,7 +26,7 @@ def main():
         out_dir=Path(out_dir),
         out_filename_prefix=f"{dataset_name}_P0",
         tracking_metrics=["centroid"],
-        sorting_key=extract_T,
+        sorting_key=extract_t,
         C=2,
         image_validation_frequency=1,
         verbose=False,

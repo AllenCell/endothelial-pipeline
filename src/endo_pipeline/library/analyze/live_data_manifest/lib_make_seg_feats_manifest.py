@@ -140,7 +140,7 @@ def save_filter_validation_plots(
             (timelapse_duration, timelapse_duration),
         ]
         top_of_boxes = [ax.get_ylim()] * len(left_of_boxes)
-        boxes = zip(top_of_boxes, left_of_boxes, right_of_boxes, strict=False)
+        boxes = zip(top_of_boxes, left_of_boxes, right_of_boxes, strict=True)
         ax.set_xlim(0, timelapse_duration)
         [ax.fill_betweenx(y=y, x1=x1, x2=x2, color="lightgrey") for y, x1, x2 in boxes]
         fig.savefig(
@@ -192,8 +192,8 @@ def add_filter_columns(
 
     # is_included is just all the previous filters combined
     big_table["is_included"] = (
-        big_table[f"is_greater_than_min_track_duration"]
-        & big_table[f"is_less_than_max_smoothed_area_normd_change"]
+        big_table["is_greater_than_min_track_duration"]
+        & big_table["is_less_than_max_smoothed_area_normd_change"]
         & ~big_table["is_edge_segmentation"]
     )
 
@@ -275,7 +275,8 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
         data_config = load_dataset_config(dataset_name)
         um_per_px_map[dataset_name] = data_config.pixel_size_xy_in_um
         time_res_map[dataset_name] = data_config.time_interval_in_minutes
-        shear_stress_regime_map[dataset_name] = data_config.shear_stress_regime
+        shear_regime = "_to_".join([shear.value for shear in data_config.shear_stress_regime])
+        shear_stress_regime_map[dataset_name] = shear_regime
 
     # add the shear stress regime to the data table
     logger.info("Adding shear stress regime...")
@@ -500,7 +501,7 @@ def calculate_derived_data_dynamics_dependent(big_table: pd.DataFrame) -> pd.Dat
                         df["centroid_y_um"].values,  # type: ignore[arg-type, call-overload, return-value]
                         df["time_minutes"].values,  # type: ignore[arg-type, call-overload, return-value]
                     ),
-                    strict=False,
+                    strict=True,
                 ),  # type: ignore[return-value]
                 index=df.index,
             )
@@ -682,6 +683,7 @@ def get_nuclei_coords(
 ) -> dict[str, np.ndarray]:
     """
     Get the coordinates of the nuclei in the image.
+
     Parameters
     ----------
     props : regionprops
@@ -693,6 +695,7 @@ def get_nuclei_coords(
         The kind of coordinates to return.
         "centroid" will return only the centroids of the labeled nuclei,
         while "all" will return all the coordinates of the nuclei.
+
     Returns
     -------
     dict[str, np.ndarray]
@@ -782,6 +785,7 @@ def get_num_nuclei_in_array(img_arr: np.ndarray | dd.Array, crop: tuple[slice, .
     If there is even 1 pixel of a labeled nuclei then it will be counted,
     therefore you may want to create an image of the centroids or cleaned
     up nuclei before counting.
+
     Parameters
     ----------
     img_arr : np.ndarray or dd.Array
@@ -850,7 +854,7 @@ def compute_nuclei_centroids(
 
     # get nuclei segmentation properties and dimension order of those properties
     props = regionprops(nuc_seg.squeeze())
-    dim_shapes = dict(zip(dim_order, nuc_seg.shape))
+    dim_shapes = dict(zip(dim_order, nuc_seg.shape, strict=True))
     dim_order_squeezed = "".join([d for d in dim_order if dim_shapes[d] > 1])
 
     centroids: dict[str, Any] = get_nuclei_coords(

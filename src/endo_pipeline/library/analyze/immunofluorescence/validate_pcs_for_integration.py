@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 from cyto_dl.api import CytoDLModel
 from matplotlib.patches import Ellipse
-from pandas.core.groupby import DataFrameGroupBy
 from sklearn.decomposition import PCA
 
 from endo_pipeline.io import resolve_dataframe_location
@@ -197,6 +196,10 @@ def create_reference_timelapse_datasets(
     df_trunc = reference_features.groupby(ColumnName.CROP_INDEX).apply(
         create_truncated_dataset, time_lag
     )
+    # These type guards are only necessary because the pandas apply method doesn't have proper type annotations
+    # for the case where the applied function takes positional arguments
+    assert isinstance(df_lag, pd.DataFrame)
+    assert isinstance(df_trunc, pd.DataFrame)
     df_lag, df_trunc = dropna_both_df(df_lag, df_trunc)
     return df_lag, df_trunc
 
@@ -227,7 +230,7 @@ def fill_empty_frames(crop: pd.DataFrame) -> pd.DataFrame:
 
 
 def create_lagged_dataset(
-    crop: DataFrameGroupBy,
+    crop: pd.DataFrame,
     time_lag: int,
 ) -> pd.DataFrame:
     """
@@ -235,7 +238,7 @@ def create_lagged_dataset(
 
     Parameters
     ----------
-    crop : DataFrameGroupBy
+    crop : DataFrame
         Dataframe containing the crop data for a single crop_index
     time_lag : int
         Number of frames to lag the dataset by.
