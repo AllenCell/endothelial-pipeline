@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path
 from endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (
     generate_tfe_dataset,
@@ -88,10 +89,11 @@ def main() -> None:
 
     # Iterate through datasets and positions
     for dataset in args.datasets:
+        dataset_config = load_dataset_config(dataset)
         for position in args.positions:
             if args.segmentation == "CDH5":
                 manifest = load_image_manifest("cdh5_classic_seg")
-                location = get_image_location_for_dataset(manifest, dataset, position, 0)
+                location = get_image_location_for_dataset(manifest, dataset_config, position, 0)
 
                 if location.path is not None:
                     source_dir_path = location.path.parent

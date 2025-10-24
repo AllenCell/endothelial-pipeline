@@ -32,8 +32,9 @@ def get_labeled_nuclei(dataset: str, position: int, nuc_seg_type: str) -> np.nda
         np.ndarray: A labeled image where each connected component is assigned a unique integer label.
     """
 
+    dataset_config = load_dataset_config(dataset)
     seg_manifest = load_image_manifest(nuc_seg_type)
-    seg_location = get_image_location_for_dataset(seg_manifest, dataset, position)
+    seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position)
     seg_image = load_image(seg_location, squeeze=True, compute=True)
 
     return label(seg_image)

@@ -13,11 +13,11 @@ def main():
     out_dir = get_output_path("tracking_output")
     dataset_name = "20241120_20X"
 
-    dataset = load_dataset_config(dataset_name)
+    dataset_config = load_dataset_config(dataset_name)
     manifest = load_image_manifest("nuclear_labelfree_seg")
     nuclei_locations = [
-        get_image_location_for_dataset(manifest, dataset_name, 0, timepoint)
-        for timepoint in range(dataset.duration)
+        get_image_location_for_dataset(manifest, dataset_config, 0, timepoint)
+        for timepoint in range(dataset_config.duration)
     ]
     nuclei_paths = [location.path for location in nuclei_locations if location.path is not None]
 

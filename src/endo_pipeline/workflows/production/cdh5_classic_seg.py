@@ -80,7 +80,7 @@ def generate_results(
 
     print(f"T={timepoint} -- loading nuclei segmentations") if verbose else None
     seg_manifest = load_image_manifest("nuclear_labelfree_seg")
-    seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, timepoint)
+    seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position, timepoint)
     nuc_pred = load_image(seg_location, squeeze=True, compute=True)
 
     (

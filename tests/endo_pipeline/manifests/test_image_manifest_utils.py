@@ -44,17 +44,6 @@ def dataset_config():
     )
 
 
-@pytest.fixture
-def mock_load_dataset_config(mocker):
-    def _mocker(dataset_config):
-        config_mock = mocker.patch(
-            "endo_pipeline.manifests.image_manifest_utils.load_dataset_config"
-        )
-        config_mock.return_value = dataset_config
-
-    return _mocker
-
-
 def test_list_datasets_with_images_with_valid_locations(manifest):
     manifest.locations = {
         "dataset_one": ImageLocation(path=Path("/path/to/dataset_one/seg.ome.tiff")),
@@ -127,7 +116,6 @@ def test_list_datasets_with_images_with_invalid_location(manifest):
     ],
 )
 def test_get_image_location_for_dataset_valid_dataset_valid_arguments(
-    mock_load_dataset_config,
     dataset_config,
     manifest,
     dataset_name,
@@ -140,10 +128,9 @@ def test_get_image_location_for_dataset_valid_dataset_valid_arguments(
     dataset_config.zarr_positions = [1, 3, 5]
     dataset_config.duration = 10
 
-    mock_load_dataset_config(dataset_config)
     manifest.locations[dataset_name] = ImageLocation(path=manifest_path)
 
-    location = get_image_location_for_dataset(manifest, dataset_name, position, timepoint)
+    location = get_image_location_for_dataset(manifest, dataset_config, position, timepoint)
 
     assert location.path.as_posix() == expected_path
 
@@ -184,7 +171,6 @@ def test_get_image_location_for_dataset_valid_dataset_valid_arguments(
     ],
 )
 def test_get_image_location_for_dataset_valid_dataset_invalid_arguments(
-    mock_load_dataset_config,
     dataset_config,
     manifest,
     dataset_name,
@@ -196,28 +182,24 @@ def test_get_image_location_for_dataset_valid_dataset_invalid_arguments(
     dataset_config.zarr_positions = [1, 3, 5]
     dataset_config.duration = 10
 
-    mock_load_dataset_config(dataset_config)
     manifest.locations[dataset_name] = ImageLocation(path=manifest_path)
 
     with pytest.raises(ValueError):
-        get_image_location_for_dataset(manifest, dataset_name, position, timepoint)
+        get_image_location_for_dataset(manifest, dataset_config, position, timepoint)
 
 
-def test_get_image_location_for_dataset_valid_dataset_no_path(
-    mock_load_dataset_config, dataset_config, manifest
-):
+def test_get_image_location_for_dataset_valid_dataset_no_path(dataset_config, manifest):
     dataset_config.name = "no_seg_path"
     dataset_config.zarr_positions = [1, 3, 5]
     dataset_config.duration = 10
 
-    mock_load_dataset_config(dataset_config)
     manifest.locations[dataset_config.name] = ImageLocation()
 
-    location = get_image_location_for_dataset(manifest, dataset_config.name, 10, 10)
+    location = get_image_location_for_dataset(manifest, dataset_config, 10, 10)
 
     assert location.path is None
 
 
-def test_get_image_location_for_dataset_invalid_dataset(manifest):
+def test_get_image_location_for_dataset_invalid_dataset(dataset_config, manifest):
     with pytest.raises(KeyError):
-        get_image_location_for_dataset(manifest, "invalid_dataset")
+        get_image_location_for_dataset(manifest, dataset_config)
