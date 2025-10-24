@@ -667,11 +667,11 @@ def get_smallest_angle_difference(
 
 
 def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
-    dataset = load_dataset_config(dataset_name)
+    dataset_config = load_dataset_config(dataset_name)
     manifest = load_image_manifest("cdh5_classic_seg")
     return {
-        timepoint: get_image_location_for_dataset(manifest, dataset, position, timepoint)
-        for timepoint in range(dataset.duration)
+        timepoint: get_image_location_for_dataset(manifest, dataset_config, position, timepoint)
+        for timepoint in range(dataset_config.duration)
     }
 
 
@@ -842,14 +842,9 @@ def compute_nuclei_centroids(
 
     # get the nuclei prediction
     dim_order = DIMENSION_ORDER
-    dataset = load_dataset_config(dataset_name)
+    dataset_config = load_dataset_config(dataset_name)
     seg_manifest = load_image_manifest("nuclear_labelfree_seg")
-    seg_location = get_image_location_for_dataset(
-        manifest=seg_manifest,
-        dataset=dataset,
-        position=position,
-        timepoint=timeframe,
-    )
+    seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position, timeframe)
     nuc_seg = load_image(seg_location, squeeze=False, compute=True)
 
     # get nuclei segmentation properties and dimension order of those properties
