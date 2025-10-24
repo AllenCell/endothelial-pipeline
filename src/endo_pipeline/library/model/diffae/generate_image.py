@@ -18,7 +18,6 @@ def add_noise_to_image(
     noise_image: np.ndarray,
     noise_level: float,
     clip: bool = False,
-    random_seed: int = 47,
 ) -> np.ndarray:
     """
     Add Gaussian noise to an input image at a specified noise level.
@@ -44,8 +43,6 @@ def add_noise_to_image(
         The level of noise to add, between 0.0 (no noise) and 1.0 (all noise).
     clip
         Whether to clip the output image to the valid range [0, 1].
-    random_seed
-        Seed for the random number generator for reproducibility.
     """
     if not (0.0 <= noise_level <= 1.0):
         logger.error("Parameter `noise_level` must be between 0.0 and 1.0.")
