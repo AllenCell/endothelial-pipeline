@@ -86,18 +86,22 @@ def get_latent_vector_from_crop(
 
     # move model and inputs to gpu if available, else
     # perform reconstruction on cpu
-    if num_gpus:
-        image_crop_ = image_crop_torch.to("cuda")
-        model_ = model.to("cuda")
-    else:
-        image_crop_ = image_crop_torch
-        model_ = model
+    device = "cpu" if num_gpus is None else "cuda"
+    image_crop_ = image_crop_torch.to(device)
+    model_ = model.to(device)
 
+    # Get latent vector from semantic encoder
+    # Set no_grad to avoid computing gradients
+    # since we are only doing inference here (i.e.,
+    # no backward pass needed). This saves memory.
     with torch.no_grad():
         latent_vector: torch.Tensor = model_.semantic_encoder(image_crop_)
 
-    # Move latent vector back to cpu and convert to numpy
-    latent_vector_np: np.ndarray = latent_vector.cpu().numpy()
+    # Move latent vector back to cpu (if necessary) and convert to numpy
+    if num_gpus:
+        latent_vector = latent_vector.detach().cpu()
+    latent_vector_np: np.ndarray = latent_vector.numpy()
+
     # Squeeze to remove batch dimension
     latent_vector_np = np.squeeze(latent_vector_np, axis=0)
 
