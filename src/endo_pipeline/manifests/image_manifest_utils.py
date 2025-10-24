@@ -84,5 +84,6 @@ def get_available_zarr_locations(dataset: DatasetConfig) -> list[ImageLocation]:
     """Get list of all available Zarr locations for given dataset."""
 
     return [
-        get_zarr_location_for_position(dataset, position) for position in dataset.zarr_positions
+        get_zarr_location_for_position(dataset, position)
+        for position in sorted(dataset.zarr_positions)
     ]
