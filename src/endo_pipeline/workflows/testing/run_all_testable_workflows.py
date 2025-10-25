@@ -115,6 +115,7 @@ def _summarize(results: list[_WorkflowResult]):
     timeout_count = ""
     failure_count = ""
 
+    print()  # Line break before summary
     if len(successes) > 0:
         print(colored("====== Successes ======", "green"))
         success_count = f"{len(successes)} succeeded "
@@ -142,7 +143,7 @@ def _summarize(results: list[_WorkflowResult]):
     print(
         "".join(
             [
-                colored("\n====== ", final_color),
+                colored("====== ", final_color),
                 colored(success_count, "green"),
                 colored(timeout_count, "yellow"),
                 colored(failure_count, "red"),
