@@ -117,19 +117,19 @@ def _summarize(results: list[_WorkflowResult]):
 
     if len(successes) > 0:
         print(colored("====== Successes ======", "green"))
-        success_count = f"{len(successes)} succeeded"
+        success_count = f"{len(successes)} succeeded "
     for result in successes:
         print(colored(result.name, "green"), colored(result.elapsed_str, "yellow"))
 
     if len(timeouts) > 0:
         print(colored("====== Too slow ======", "yellow"))
-        timeout_count = f"{len(timeouts)} slow workflows"
+        timeout_count = f"{len(timeouts)} slow workflows "
     for result in timeouts:
         print(colored(f"{result.name} took {result.elapsed_str}", "yellow"))
 
     if len(failures) > 0:
         print(colored("====== Failures ======", "red"))
-        failure_count = f"{len(failures)} failed"
+        failure_count = f"{len(failures)} failed "
     for result in failures:
         print(colored(f"{result.name} {result.exception}", "red"))
 
@@ -140,15 +140,15 @@ def _summarize(results: list[_WorkflowResult]):
     else:
         final_color = "green"
     print(
-        colored("\n======", final_color),
-        ", ".join(
+        "".join(
             [
+                colored("\n====== ", final_color),
                 colored(success_count, "green"),
                 colored(timeout_count, "yellow"),
                 colored(failure_count, "red"),
+                colored("======", final_color),
             ]
         ),
-        colored("======", final_color),
     )
 
 
