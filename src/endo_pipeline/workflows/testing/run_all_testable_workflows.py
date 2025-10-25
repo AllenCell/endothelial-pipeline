@@ -57,11 +57,34 @@ def _timer():
         result.elapsed = end - start
 
 
+TIMEOUT_MIN = 3
+
+
 @dataclass
 class _WorkflowResult:
     name: str
-    error: Exception | None
+    exception: Exception | None
     elapsed: "timedelta"
+
+    @property
+    def elapsed_minutes(self) -> float:
+        return self.elapsed / timedelta(minutes=1)
+
+    @property
+    def elapsed_str(self) -> str:
+        return f"{self.elapsed_minutes:.1f}min"
+
+    @property
+    def failed(self) -> bool:
+        return self.exception is not None
+
+    @property
+    def timed_out(self) -> bool:
+        return not self.failed and self.elapsed_minutes > TIMEOUT_MIN
+
+    @property
+    def succeeded(self) -> bool:
+        return not self.failed and not self.timed_out
 
 
 def _run_workflow(app: "App") -> _WorkflowResult:
@@ -74,31 +97,61 @@ def _run_workflow(app: "App") -> _WorkflowResult:
             error = e
     elapsed = timer.elapsed
     assert elapsed is not None
-    return _WorkflowResult(name=app.name[0], error=error, elapsed=elapsed)
+    return _WorkflowResult(name=app.name[0], exception=error, elapsed=elapsed)
+
+
+def _summarize(results: list[_WorkflowResult]):
+    """
+    Print a summary of successful/failed workflows, with stacktraces
+    """
+    from termcolor import colored
+
+    successes = [result for result in results if result.succeeded]
+    timeouts = [result for result in results if result.timed_out]
+    failures = [result for result in results if result.failed]
+    success_count = ""
+    timeout_count = ""
+    failure_count = ""
+
+    if len(successes) > 0:
+        print(colored("====== Successes ======", "green"))
+        success_count = f"{len(successes)} succeeded"
+    for result in successes:
+        print(colored(result.name, "green"), colored(result.elapsed_str, "yellow"))
+
+    if len(timeouts) > 0:
+        print(colored("====== Too slow ======", "yellow"))
+        timeout_count = f"{len(timeouts)} slow workflows"
+    for result in timeouts:
+        print(colored(f"{result.name} took {result.elapsed_str}", "yellow"))
+
+    if len(failures) > 0:
+        print(colored("====== Failures ======", "red"))
+        failure_count = f"{len(failures)} failed"
+    for result in failures:
+        print(colored(f"{result.name} {result.exception}", "red"))
+
+    if len(failures) > 0:
+        final_color = "red"
+    elif len(timeouts) > 0:
+        final_color = "yellow"
+    else:
+        final_color = "green"
+    print(
+        colored("======", final_color),
+        colored(success_count, "green"),
+        colored(timeout_count, "yellow"),
+        colored(failure_count, "red"),
+        colored("======", final_color),
+    )
 
 
 def main():
-    from datetime import timedelta
-
     from endo_pipeline.__main__ import pipeline_app, tags
 
     results = [_run_workflow(workflow) for workflow in _testable_workflows(pipeline_app, tags)]
 
-    # More verbose means lower number
-    if logger.getEffectiveLevel() > logging.INFO:
-        logger.setLevel(logging.INFO)
-    TIMEOUT_MIN = 3
-    for result in results:
-        elapsed_minutes = result.elapsed / timedelta(minutes=1)
-        elapsed_str = f"{elapsed_minutes:.1f}min"
-        if result.error is not None:
-            logger.error(f"Workflow {result.name} failed after {elapsed_str}: {result.error}")
-        elif elapsed_minutes > TIMEOUT_MIN:
-            logger.error(
-                f"Workflow {result.name} took too long ({elapsed_str}): please remove its TEST_READY tag and file an issue."
-            )
-        else:
-            logger.info(f"Workflow {result.name} succeeded in {elapsed_str}")
+    _summarize(results)
 
 
 if __name__ == "__main__":
