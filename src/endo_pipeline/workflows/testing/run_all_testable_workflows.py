@@ -68,6 +68,8 @@ class _WorkflowResult:
 
     @property
     def elapsed_minutes(self) -> float:
+        from datetime import timedelta
+
         return self.elapsed / timedelta(minutes=1)
 
     @property
