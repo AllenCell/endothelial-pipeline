@@ -140,10 +140,14 @@ def _summarize(results: list[_WorkflowResult]):
     else:
         final_color = "green"
     print(
-        colored("======", final_color),
-        colored(success_count, "green"),
-        colored(timeout_count, "yellow"),
-        colored(failure_count, "red"),
+        colored("\n======", final_color),
+        ", ".join(
+            [
+                colored(success_count, "green"),
+                colored(timeout_count, "yellow"),
+                colored(failure_count, "red"),
+            ]
+        ),
         colored("======", final_color),
     )
 
