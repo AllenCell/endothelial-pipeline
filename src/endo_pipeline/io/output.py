@@ -269,21 +269,21 @@ def upload_file_to_fms(
     record = list(FMS.find(annotations={FMS_FILE_NAME: file_path.name}))
     file_name = make_name_unique(file_path).name if record else file_path.name
 
-    if not DEMO_MODE and not USE_STAGING:
-        logger.debug("Starting upload of [ %s ] to FMS as [ %s ]", file_path, file_name)
-        fms_file = FMS.upload_file(
-            file_reference=file_path,
-            file_type=file_type,
-            annotations=annotations,
-            file_name=file_name,
-            should_be_in_local=True,
-        )
-        logger.debug("Finished upload of [ %s ] to FMS with file id [ %s ]", file_path, fms_file.id)
-
-        return fms_file.id
-    else:
+    if DEMO_MODE and not USE_STAGING:
         logger.debug("Skipped FMS upload to production for demo mode")
         return "FakeFileIDForDemoMode"
+
+    logger.debug("Starting upload of [ %s ] to FMS as [ %s ]", file_path, file_name)
+    fms_file = FMS.upload_file(
+        file_reference=file_path,
+        file_type=file_type,
+        annotations=annotations,
+        file_name=file_name,
+        should_be_in_local=True,
+    )
+    logger.debug("Finished upload of [ %s ] to FMS with file id [ %s ]", file_path, fms_file.id)
+
+    return fms_file.id
 
 
 def save_plot_to_path(
