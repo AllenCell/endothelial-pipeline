@@ -97,9 +97,11 @@ def filter_dataframe_by_annotations(
         logger.warning("Expected dataframe to contain all positions in dataset, but it does not.")
 
     # NOTE: temporary until we update how we store position: replace 'P[int]' with int
-    if dataframe[ColumnName.POSITION].transform(lambda pos: "P" in str(pos)).all():
+    if dataframe[ColumnName.POSITION].transform(lambda pos: "P" in str(pos)).any():
         position_type = "str"
-        dataframe[ColumnName.POSITION] = dataframe[ColumnName.POSITION].transform(extract_p)
+        dataframe[ColumnName.POSITION] = dataframe[ColumnName.POSITION].transform(
+            lambda pos: extract_p(pos) if "P" in str(pos) else int(pos)
+        )
     else:
         position_type = "int"
     # filter dataframe to only include non-annotated positions
