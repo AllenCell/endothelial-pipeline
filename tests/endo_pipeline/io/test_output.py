@@ -2,8 +2,14 @@ import datetime
 from pathlib import Path
 
 import pytest
+from pytest_mock import MockerFixture
 
-from endo_pipeline.io.output import get_output_path, get_timestamp, make_name_unique
+from endo_pipeline.io.output import (
+    get_output_path,
+    get_timestamp,
+    make_name_unique,
+    upload_file_to_fms,
+)
 
 
 @pytest.fixture
@@ -76,3 +82,21 @@ def test_get_output_path_file_name_no_timestamp(mock_output_dir):
 def test_get_output_path_file_name_with_subdirs_no_timestamp(mock_output_dir):
     path = get_output_path(__file__, "subdir1", "subdir2", include_timestamp=False)
     assert path == mock_output_dir / "test_output" / "subdir1" / "subdir2"
+
+
+def test_upload_to_fms_no_demo_uploads(tmp_path: Path, mocker: MockerFixture):
+    # Arrange
+    file = tmp_path / "endo_pipeline_test_file.csv"
+    file.touch()
+
+    import endo_pipeline
+
+    endo_pipeline.DEMO_MODE = True
+
+    fms_mock = mocker.patch("endo_pipeline.io.fms.FMS.upload_file")
+
+    # Act
+    upload_file_to_fms(file, {}, "csv")
+
+    # Assert
+    fms_mock.assert_not_called()
