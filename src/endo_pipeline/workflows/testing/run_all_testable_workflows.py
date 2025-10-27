@@ -1,3 +1,11 @@
+"""
+How to register your workflow for testing:
+1. Make sure your workflow takes under 3 minutes in demo mode
+2. Add "test_ready", along with "GPU" or "CPU_only", to your TAGS
+How to use this wrapper workflow:
+3. Run all the registered workflows with `uv run endopipe -g 1 run-all-testable-workflows`, or leave out the -g 1 for just the CPU workflows.
+"""
+
 import logging
 import typing
 from contextlib import contextmanager
