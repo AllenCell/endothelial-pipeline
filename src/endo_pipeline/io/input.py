@@ -3,6 +3,7 @@
 import logging
 import typing
 from pathlib import Path
+from typing import Literal, overload
 
 if typing.TYPE_CHECKING:
     import dask.array as da
@@ -128,6 +129,58 @@ def load_image_from_path(
         image = image.compute()
 
     return image
+
+
+@overload
+def load_image(
+    location: ImageLocation,
+    *,
+    read: Literal[True] = True,
+    compute: Literal[True],
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "np.ndarray": ...
+
+
+@overload
+def load_image(
+    location: ImageLocation,
+    *,
+    read: Literal[True] = True,
+    compute: Literal[False] = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "da.Array": ...
+
+
+@overload
+def load_image(
+    location: ImageLocation,
+    *,
+    read: Literal[False],
+    compute: Literal[True],
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage": ...
+
+
+@overload
+def load_image(
+    location: ImageLocation,
+    *,
+    read: Literal[False],
+    compute: Literal[False] = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage": ...
 
 
 def load_image(
