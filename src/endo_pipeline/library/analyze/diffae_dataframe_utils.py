@@ -98,11 +98,17 @@ def filter_dataframe_by_annotations(
 
     # filter dataframe to only include non-annotated positions
     # NOTE: temporary if-else until we update how we store position: replace 'P[int]' with int
-    if dataframe[ColumnName.POSITION].transform(lambda pos: "P" in str(pos)).all():
+    # this checks if all entries in the `.POSITION` column are strings that start with 'P'
+    all_position_vals_start_with_P = (
+        dataframe[ColumnName.POSITION].transform(lambda pos: "P" in str(pos)).all()
+    )
+    if all_position_vals_start_with_P:
         position_type = "str"
         dataframe_exclude_positions = dataframe[
             dataframe[ColumnName.POSITION].isin(only_include_positions_str)
         ]
+    # otherwise it is assumed that the position column can be cast to `int`
+    # (and if it can't be cast to `int`, an error will be raised later)
     else:
         position_type = "int"
         dataframe_exclude_positions = dataframe[
