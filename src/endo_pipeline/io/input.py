@@ -40,6 +40,58 @@ def get_repository_root_dir() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
+@overload
+def load_image_from_path(
+    path: Path,
+    *,
+    read: Literal[True] = True,
+    compute: Literal[True],
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "np.ndarray": ...
+
+
+@overload
+def load_image_from_path(
+    path: Path,
+    *,
+    read: Literal[True] = True,
+    compute: Literal[False] = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "da.Array": ...
+
+
+@overload
+def load_image_from_path(
+    path: Path,
+    *,
+    read: Literal[False],
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage": ...
+
+
+@overload
+def load_image_from_path(
+    path: Path,
+    *,
+    read: bool = True,
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage | da.Array | np.ndarray": ...
+
+
 def load_image_from_path(
     path: Path,
     *,
@@ -168,6 +220,19 @@ def load_image(
     timepoints: int | list[int] | range | None = None,
     level: int = 0,
 ) -> "BioImage": ...
+
+
+@overload
+def load_image(
+    location: ImageLocation,
+    *,
+    read: bool = True,
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage | da.Array | np.ndarray": ...
 
 
 def load_image(
