@@ -3,10 +3,12 @@
 import logging
 import typing
 from pathlib import Path
+from typing import Literal, overload
 
 if typing.TYPE_CHECKING:
     import dask.array as da
     import numpy as np
+    from bioio import BioImage
     from cyto_dl.api import CytoDLModel
     from cyto_dl.models.im2im.diffusion_autoencoder import (
         DiffusionAutoEncoder as BaseDiffusionAutoEncoder,
@@ -38,14 +40,68 @@ def get_repository_root_dir() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
+@overload
 def load_image_from_path(
     path: Path,
+    *,
+    read: Literal[True] = True,
+    compute: Literal[True],
     squeeze: bool = False,
-    compute: bool = False,
     channels: list[str] | None = None,
     timepoints: int | list[int] | range | None = None,
     level: int = 0,
-) -> "da.Array | np.ndarray":
+) -> "np.ndarray": ...
+
+
+@overload
+def load_image_from_path(
+    path: Path,
+    *,
+    read: Literal[True] = True,
+    compute: Literal[False] = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "da.Array": ...
+
+
+@overload
+def load_image_from_path(
+    path: Path,
+    *,
+    read: Literal[False],
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage": ...
+
+
+@overload
+def load_image_from_path(
+    path: Path,
+    *,
+    read: bool = True,
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage | da.Array | np.ndarray": ...
+
+
+def load_image_from_path(
+    path: Path,
+    *,
+    read: bool = True,
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage | da.Array | np.ndarray":
     """
     Load image from path.
 
@@ -55,6 +111,8 @@ def load_image_from_path(
     ----------
     path
         Path to image file.
+    read
+        True to read the image, False to return the reader object.
     squeeze
         True to drop any single-dimensional entries, False otherwise.
     compute
@@ -90,6 +148,10 @@ def load_image_from_path(
     reader = BioImage(path)
     reader_arguments = {}
 
+    # Return just the initialized reader without actually reading the data, if requested.
+    if not read:
+        return reader
+
     # Specify timepoints to load, if provided. Otherwise, all timepoints will be loaded.
     if timepoints is not None:
         reader_arguments["T"] = timepoints
@@ -121,9 +183,68 @@ def load_image_from_path(
     return image
 
 
+@overload
 def load_image(
-    location: ImageLocation, squeeze: bool = False, compute: bool = False
-) -> "da.Array | np.ndarray":
+    location: ImageLocation,
+    *,
+    read: Literal[True] = True,
+    compute: Literal[True],
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "np.ndarray": ...
+
+
+@overload
+def load_image(
+    location: ImageLocation,
+    *,
+    read: Literal[True] = True,
+    compute: Literal[False] = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "da.Array": ...
+
+
+@overload
+def load_image(
+    location: ImageLocation,
+    *,
+    read: Literal[False],
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage": ...
+
+
+@overload
+def load_image(
+    location: ImageLocation,
+    *,
+    read: bool = True,
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage | da.Array | np.ndarray": ...
+
+
+def load_image(
+    location: ImageLocation,
+    *,
+    read: bool = True,
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage | da.Array | np.ndarray":
     """
     Load image from location.
 
@@ -131,10 +252,20 @@ def load_image(
     ----------
     location
         Image location object.
+    read
+        True to read the image, False to return the reader object.
     squeeze
         True to drop any single-dimensional entries, False otherwise.
     compute
         True to turn lazy Dask array into in-memory NumPy array, False otherwise.
+    channels
+        Channel(s) to load. Channels should be given as a list of channel names.
+        Use None to load all channels.
+    timepoints
+        Timepoint(s) to load. Timepoints can be given as a single integer, list
+        of integers, or an integer range. Use None to load all timepoints.
+    level
+        Resolution level to load.
 
     Returns
     -------
@@ -142,7 +273,15 @@ def load_image(
     """
 
     if location.path is not None:
-        return load_image_from_path(location.path, squeeze, compute)
+        return load_image_from_path(
+            location.path,
+            read=read,
+            compute=compute,
+            squeeze=squeeze,
+            channels=channels,
+            timepoints=timepoints,
+            level=level,
+        )
 
     logger.error("Location does not have a path.")
     raise FileNotFoundError("Unable to load image; no available locations.")

@@ -1818,7 +1818,9 @@ def get_nuclei_features_from_dataset_at_timepoint(
     cdh5_seg = load_image(cdh5_location, squeeze=True, compute=True)
 
     img_path = get_zarr_file_for_position(dataset_config, position)
-    raw_img = load_image_from_path(path=img_path, channels=channel_names, timepoints=tp, level=0)
+    raw_img = load_image_from_path(
+        path=img_path, channels=list(channel_names), timepoints=tp, level=0
+    )
     raw_mip = raw_img.max(axis=dim_order.index("Z"), keepdims=True).compute()
 
     # split up the image into a list of channels
