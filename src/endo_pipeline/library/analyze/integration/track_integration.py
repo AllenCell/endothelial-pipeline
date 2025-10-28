@@ -249,7 +249,7 @@ def get_diffae_feats_liveseg_feats_merged_table(
         merged_feats_df = merged_feats_df[merged_feats_df["is_included"]]
 
         # remove any rows that were not evaluated by the model and thus have no mlflow_id
-        merged_feats_df.dropna(axis="index", how="any", subset="mlflow_id", inplace=True)
+        merged_feats_df.dropna(axis="index", how="any", subset="model_manifest_name", inplace=True)
 
     return merged_feats_df
 
@@ -642,7 +642,7 @@ def get_preprocessed_manifests_and_km_bounds(
     pca = fit_pca()
 
     # read in the grid crop-based diffae features
-    model_name = sequence_to_scalar(merged_feats_df["model_name"])
+    model_name = sequence_to_scalar(merged_feats_df["model_manifest_name"])
     manifest = load_dataframe_manifest(model_name)
     diffae_grid_crops = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
 
