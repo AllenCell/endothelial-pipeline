@@ -116,7 +116,7 @@ def main(model_manifest_name, run_name) -> None:
 
     subplot_kwargs = {"frame_on": False}
     gridspec_kwards = {"wspace": 0.05, "hspace": 0.05}
-    fig_kwargs = {"figsize": (5, 5)}
+    fig_kwargs = {"figsize": (6, 6)}
 
     # Make a contact sheet summarizing the results
     fig = make_contact_sheet(
@@ -193,7 +193,7 @@ def main(model_manifest_name, run_name) -> None:
         *[img.squeeze() for img in images_to_denoise],
         *[img.squeeze() for img in denoised_images_by_random_cond],
     ]
-    horizontal_titles = ["Scrambled Latent Vector", "Original CDH5", "Noised CDH5", "Denoised CDH5"]
+    horizontal_titles = ["Scrambled Input", "Original CDH5", "Noised CDH5", "Denoised CDH5"]
     vertical_titles = [f"{level * 100:.0f}% Noise" for level in [*NOISE_LEVELS, 1]]
 
     # Make a contact sheet summarizing the results
