@@ -146,7 +146,7 @@ def plot_image_thumbnail(
     plt.close(figure)
 
 
-def make_contact_sheet(
+def make_contact_sheet(  # noqa: C901
     panels: list[np.ndarray],
     max_rows: int | None = None,
     max_cols: int | None = None,
@@ -308,5 +308,10 @@ def make_contact_sheet(
         if (ax_row == 0) and (horizontal_titles is not None):
             ax.set_xlabel(horizontal_titles[ax_col], fontsize=FONTSIZE_LARGE)
             ax.xaxis.set_label_position("top")
+
+    # remove any unused axes
+    for i in range(num_panels, nrows * ncols):
+        ax_row, ax_col = ax_indices[i]
+        fig.delaxes(axs[(ax_row, ax_col)])
 
     return fig
