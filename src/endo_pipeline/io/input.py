@@ -162,20 +162,7 @@ def load_image(
     location: ImageLocation,
     *,
     read: Literal[False],
-    compute: Literal[True],
-    squeeze: bool = False,
-    channels: list[str] | None = None,
-    timepoints: int | list[int] | range | None = None,
-    level: int = 0,
-) -> "BioImage": ...
-
-
-@overload
-def load_image(
-    location: ImageLocation,
-    *,
-    read: Literal[False],
-    compute: Literal[False] = False,
+    compute: bool = False,
     squeeze: bool = False,
     channels: list[str] | None = None,
     timepoints: int | list[int] | range | None = None,
