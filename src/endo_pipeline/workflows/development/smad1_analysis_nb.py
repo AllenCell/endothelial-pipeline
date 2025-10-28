@@ -2,6 +2,7 @@
 import numpy as np
 import pandas as pd
 
+from endo_pipeline import DEMO_MODE
 from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe
 from endo_pipeline.library.analyze.immunofluorescence import filter, plot
@@ -49,11 +50,18 @@ df["SMAD1_norm_NucViolet_mean_sum_proj"] = df["SMAD1_mean_sum_proj"] / df["NucVi
 df["SMAD1_norm_area_mean_sum_proj"] = df["SMAD1_mean_sum_proj"] / df["area"]
 df = df[df["SMAD1_norm_NucViolet_mean_sum_proj"] < 1.0]
 
+# %%
+all_dataset_list = df["dataset"].unique().tolist()
+
+if DEMO_MODE:
+    all_dataset_list = all_dataset_list[:2]
+
 # %% Plot distributions of SMAD1 intensity features
 PLOT_FEAT = "SMAD1_mean_sum_proj"
 xlim = 30000
 ylim = 0.00035
-for dataset, df_dataset in df.groupby("dataset"):
+for dataset in all_dataset_list:
+    df_dataset = df[df["dataset"] == dataset]
     plot.plot_channel_intensity_histograms(
         df_dataset,
         df,
@@ -65,7 +73,7 @@ for dataset, df_dataset in df.groupby("dataset"):
 # %%
 plot.feature_density(
     df_all=df,
-    dataset_name_list=df["dataset"].unique().tolist(),
+    dataset_name_list=all_dataset_list,
     feature=PLOT_FEAT,
     feature_name="SMAD1 mean intensity of sum projection\nin nuclear mask",
     save_dir=output_dir,
@@ -76,7 +84,7 @@ plot.feature_density(
 # %%
 plot.feature_density(
     df_all=df,
-    dataset_name_list=df["dataset"].unique().tolist(),
+    dataset_name_list=all_dataset_list,
     feature=PLOT_FEAT,
     feature_name="SMAD1 mean intensity of sum projection\nin nuclear mask",
     save_dir=output_dir,
@@ -85,5 +93,4 @@ plot.feature_density(
     pool_positions=True,
     per_dataset=True,
 )
-
 # %%
