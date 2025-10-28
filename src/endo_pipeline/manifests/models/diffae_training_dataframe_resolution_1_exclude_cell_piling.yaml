@@ -1,0 +1,28 @@
+name: diffae_training_dataframe_resolution_1_exclude_cell_piling
+workflow: build_diffae_train_config
+parameters:
+  training_datasets:
+  - 20250319_20X
+  - 20250428_20X
+  - 20250611_20X
+  - 20250618_20X
+  - 20250714_20X
+  - 20250813_20X
+  - 20250818_20X
+  - 20250827_20X
+  crop_size: 128
+  resolution_level: 1
+  include_cell_piling: false
+locations:
+  diffae_20251027_195527:
+    mlflowid: null
+    path: null
+  diffae_20251027_214153:
+    mlflowid: null
+    path: null
+  diffae_20251027_215437:
+    mlflowid: null
+    path: null
+  diffae_20251027_231222:
+    mlflowid: null
+    path: null

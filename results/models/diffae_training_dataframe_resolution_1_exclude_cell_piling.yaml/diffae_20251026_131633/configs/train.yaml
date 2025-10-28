@@ -1,0 +1,304 @@
+experiment_name: diffae_training_dataframe_resolution_1_exclude_cell_piling.yaml
+run_name: diffae_20251026_131633
+task_name: train
+train: true
+test: true
+checkpoint:
+  ckpt_path: null
+  weights_only: null
+  strict: true
+seed: 12345
+data:
+  train_dataloaders:
+    _target_: monai.data.DataLoader
+    drop_last: true
+    num_workers: 24
+    batch_size: 3
+    pin_memory: true
+    persistent_workers: true
+    shuffle: true
+    dataset:
+      _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
+      dataframe_path: //allen/programs/allencell/data/proj0/e4e/6a9/5c0/b0f/fe6/c5a/c49/01f/dd4/52d/b9/training_resolution_1_20251026_131001.parquet
+      spatial_dims: 3
+      num_devices: ${trainer.devices}
+      transform:
+        _target_: monai.transforms.Compose
+        transforms:
+        - _target_: endo_pipeline.library.model.image_loading.BioIOImageLoaderd
+          path_key: original_path
+          out_key: raw
+          dask_load: true
+          dtype: numpy.float32
+        - _target_: monai.transforms.SplitDimd
+          keys: raw
+          output_postfixes:
+          - cdh5
+          - bf
+        - _target_: monai.transforms.DeleteItemsd
+          keys:
+          - raw
+        - _target_: cyto_dl.image.transforms.Projectd
+          keys:
+          - raw_bf
+          projection_type: std
+        - _target_: endo_pipeline.library.model.image_loading.LogImaged
+          keys: raw_bf
+        - _target_: cyto_dl.image.transforms.Projectd
+          keys:
+          - raw_cdh5
+          projection_type: max
+        - _target_: cyto_dl.image.transforms.clip.Clipd
+          keys:
+          - raw_bf
+          low: 0.1
+          high: 99.9
+        - _target_: monai.transforms.NormalizeIntensityd
+          keys: raw_bf
+        - _target_: monai.transforms.ScaleIntensityRangePercentilesd
+          lower: 10
+          upper: 98
+          b_min: -1
+          b_max: 1
+          clip: true
+          keys: raw_cdh5
+        - _target_: monai.transforms.RandSpatialCropSamplesd
+          keys:
+          - raw_cdh5
+          - raw_bf
+          roi_size:
+          - ${model.image_shape[1]}
+          - ${model.image_shape[2]}
+          random_size: false
+          num_samples: 32
+        - _target_: monai.transforms.ToTensord
+          keys:
+          - raw_cdh5
+          - raw_bf
+          dtype: float16
+      cache_rate: 1.0
+      replace_rate: 0.5
+      num_init_workers: 24
+      num_replace_workers: 24
+  predict_dataloaders: null
+  val_dataloaders:
+    _target_: monai.data.DataLoader
+    drop_last: true
+    num_workers: 16
+    batch_size: 3
+    pin_memory: true
+    persistent_workers: true
+    shuffle: false
+    dataset:
+      _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
+      dataframe_path: //allen/programs/allencell/data/proj0/a7c/97f/d1a/4fc/5b0/82a/e4e/647/ec2/709/d9/validation_resolution_1_20251026_131012.parquet
+      spatial_dims: 3
+      num_devices: ${trainer.devices}
+      transform:
+        _target_: monai.transforms.Compose
+        transforms:
+        - _target_: endo_pipeline.library.model.image_loading.BioIOImageLoaderd
+          path_key: original_path
+          out_key: raw
+          dask_load: true
+          dtype: numpy.float32
+        - _target_: monai.transforms.SplitDimd
+          keys: raw
+          output_postfixes:
+          - cdh5
+          - bf
+        - _target_: monai.transforms.DeleteItemsd
+          keys:
+          - raw
+        - _target_: cyto_dl.image.transforms.Projectd
+          keys:
+          - raw_bf
+          projection_type: std
+        - _target_: endo_pipeline.library.model.image_loading.LogImaged
+          keys: raw_bf
+        - _target_: cyto_dl.image.transforms.Projectd
+          keys:
+          - raw_cdh5
+          projection_type: max
+        - _target_: cyto_dl.image.transforms.clip.Clipd
+          keys:
+          - raw_bf
+          low: 0.1
+          high: 99.9
+        - _target_: monai.transforms.NormalizeIntensityd
+          keys: raw_bf
+        - _target_: monai.transforms.ScaleIntensityRangePercentilesd
+          lower: 10
+          upper: 98
+          b_min: -1
+          b_max: 1
+          clip: true
+          keys: raw_cdh5
+        - _target_: monai.transforms.RandSpatialCropSamplesd
+          keys:
+          - raw_cdh5
+          - raw_bf
+          roi_size:
+          - ${model.image_shape[1]}
+          - ${model.image_shape[2]}
+          random_size: false
+          num_samples: 32
+        - _target_: monai.transforms.ToTensord
+          keys:
+          - raw_cdh5
+          - raw_bf
+          dtype: float16
+      cache_rate: 1.0
+      replace_rate: 0.5
+      num_init_workers: 24
+      num_replace_workers: 24
+model:
+  _target_: endo_pipeline.library.model.diffae.diffusion_autoencoder.DiffusionAutoEncoder
+  noise_cons: true
+  save_images_every_n_epochs: 10
+  save_dir: ${paths.output_dir}
+  image_shape:
+  - 1
+  - 64
+  - 64
+  n_noise_samples: 1
+  condition_key: raw_cdh5
+  diffusion_key: raw_cdh5
+  gamma: 5.0
+  loss:
+    _target_: torch.nn.MSELoss
+    reduction: none
+  train_encoder: true
+  semantic_encoder:
+    _target_: cyto_dl.nn.TorchVisionWrapper
+    in_channels: 1
+    base_encoder:
+      _target_: torchvision.models.convnext_tiny
+      num_classes: 4096
+  autoencoder:
+    _target_: monai.networks.nets.diffusion_model_unet.DiffusionModelUNet
+    spatial_dims: 2
+    in_channels: 1
+    out_channels: 1
+    channels:
+    - 32
+    - 64
+    - 128
+    attention_levels:
+    - false
+    - true
+    - true
+    num_res_blocks: 1
+    num_head_channels: 16
+    with_conditioning: true
+    cross_attention_dim: 1
+    use_combined_linear: false
+  noise_scheduler:
+    _target_: monai.networks.schedulers.ddim.DDIMScheduler
+    num_train_timesteps: 1000
+  optimizer:
+    _partial_: true
+    _target_: torch.optim.AdamW
+    lr: 0.0001
+  lr_scheduler:
+    _partial_: true
+    _target_: torch.optim.lr_scheduler.OneCycleLR
+    max_lr: 0.0001
+    epochs: ${trainer.max_epochs}
+    steps_per_epoch: 1
+    pct_start: 0.01
+  diffusion_inferer:
+    _target_: monai.inferers.DiffusionInferer
+    _partial_: true
+  spatial_inferer:
+    _target_: cyto_dl.models.im2im.utils.inferers.EmbeddingPatchInferer
+    splitter:
+      _target_: monai.inferers.SlidingWindowSplitter
+      patch_size:
+      - ${model.image_shape[1]}
+      - ${model.image_shape[2]}
+      pad_mode: null
+      overlap: 0
+    merger_cls: cyto_dl.models.im2im.utils.inferers.EmbeddingPatchMerger
+    spatial_dims: 2
+    batch_size: 1000
+callbacks:
+  model_checkpoint:
+    _target_: lightning.pytorch.callbacks.ModelCheckpoint
+    dirpath: /allen/aics/users/fatwir.mohammed/cellsmap/results/models/diffae_training_dataframe_resolution_1_exclude_cell_piling.yaml/diffae_20251026_131633/checkpoints
+    filename: epoch_{epoch:03d}
+    monitor: null
+    verbose: false
+    save_last: false
+    save_top_k: 1
+    mode: min
+    auto_insert_metric_name: false
+    save_weights_only: false
+    every_n_train_steps: null
+    train_time_interval: null
+    every_n_epochs: 1
+    save_on_train_epoch_end: null
+  early_stopping:
+    _target_: lightning.pytorch.callbacks.EarlyStopping
+    monitor: val/loss
+    min_delta: 0.0
+    patience: 100
+    verbose: false
+    mode: min
+    strict: true
+    check_finite: true
+    stopping_threshold: null
+    divergence_threshold: null
+    check_on_train_epoch_end: null
+  model_summary: null
+  rich_progress_bar:
+    _target_: lightning.pytorch.callbacks.RichProgressBar
+  latent_walk:
+    _target_: endo_pipeline.library.model.diffae.latent_walk.DiffAELatentWalkRank0
+    num_pcs: 5
+    n_steps: 10
+    every_n_epoch: ${model.save_images_every_n_epochs}
+  gradient_logging:
+    _target_: cyto_dl.callbacks.grad_monitor.GradientLoggingCallback
+    grouping_level: 3
+logger:
+  mlflow:
+    _target_: cyto_dl.loggers.MLFlowLogger
+    tracking_uri: https://production.int.allencell.org/mlflow/
+    experiment_name: ${experiment_name}
+    run_name: ${run_name}
+trainer:
+  _target_: lightning.Trainer
+  use_distributed_sampler: true
+  default_root_dir: ${paths.output_dir}
+  min_epochs: 5000
+  max_epochs: 20000
+  log_every_n_steps: 50
+  accelerator: gpu
+  devices: 4
+  precision: 16-mixed
+  strategy:
+    _target_: lightning.pytorch.strategies.DDPStrategy
+    find_unused_parameters: false
+    gradient_as_bucket_view: true
+    timeout:
+      _target_: datetime.timedelta
+      seconds: 5400
+  check_val_every_n_epoch: 1
+  deterministic: false
+  detect_anomaly: false
+  max_time: null
+  enable_model_summary: false
+paths:
+  root_dir: /allen/aics/users/fatwir.mohammed/cellsmap
+  data_dir: null
+  log_dir: ${paths.output_dir}
+  output_dir: /allen/aics/users/fatwir.mohammed/cellsmap/results/models/diffae_training_dataframe_resolution_1_exclude_cell_piling.yaml/diffae_20251026_131633/logs
+  work_dir: /allen/aics/users/fatwir.mohammed/cellsmap
+extras:
+  ignore_warnings: true
+  enforce_tags: false
+  print_config: false
+  precision:
+    _target_: torch.set_float32_matmul_precision
+    precision: medium
