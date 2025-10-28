@@ -1,8 +1,7 @@
 def main(model_manifest_name, run_name) -> None:
     """QC a newly trained model."""
 
-    import matplotlib.pyplot as plt
-    import numpy as np
+    from numpy import ones_like
     from numpy.random import default_rng
 
     from endo_pipeline import NUM_GPUS
@@ -12,14 +11,15 @@ def main(model_manifest_name, run_name) -> None:
         get_output_path,
         load_image_from_path,
         load_model,
-        save_plot_to_path,
     )
+    from endo_pipeline.io.output import save_plot_to_path
     from endo_pipeline.library.model.diffae.eval_diffae import get_latent_vector_from_crop
     from endo_pipeline.library.model.diffae.generate_image import (
         add_noise_to_image,
         generate_from_coords_and_noised_image,
     )
     from endo_pipeline.library.process.image_processing import crop_image
+    from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
     from endo_pipeline.library.visualize.model_inputs.image_preprocessing_steps import (
         apply_img_transforms,
         create_data_dict_loaded_image,
@@ -103,43 +103,40 @@ def main(model_manifest_name, run_name) -> None:
     ]
 
     # Plot these images!
-    fig, ax = plt.subplots(
-        nrows=len(denoised_images_by_bf_cond),
-        ncols=4,  # original BF, original CDH5, noised CDH5, denoised CDH5
+    # Prepare arguments for contact sheet
+    num_images_to_denoise = len(images_to_denoise)
+    panels = [
+        *[bf_crop.squeeze()] * num_images_to_denoise,
+        *[cdh5_crop.squeeze()] * num_images_to_denoise,
+        *[img.squeeze() for img in images_to_denoise],
+        *[img.squeeze() for img in denoised_images_by_bf_cond],
+    ]
+    horizontal_titles = ["Brightfield Input", "Original CDH5", "Noised CDH5", "Denoised CDH5"]
+    vertical_titles = [f"{level * 100:.0f}% Noise" for level in [*NOISE_LEVELS, 1]]
+
+    subplot_kwargs = {"frame_on": False}
+    gridspec_kwards = {"wspace": 0.05, "hspace": 0.05}
+    fig_kwargs = {"figsize": (6, 6)}
+
+    # Make a contact sheet summarizing the results
+    fig = make_contact_sheet(
+        panels=panels,
+        max_rows=num_images_to_denoise,
+        max_cols=None,
+        horizontal_titles=horizontal_titles,
+        vertical_titles=vertical_titles,
+        direction="top-down first",
+        subplot_kwargs=subplot_kwargs,
+        gridspec_kwargs=gridspec_kwards,
+        fig_kwargs=fig_kwargs,
     )
-    for i in range(len(denoised_images_by_bf_cond)):
-        ax[i, 0].imshow(bf_crop.squeeze(), cmap="gray")
-        ax[i, 1].imshow(cdh5_crop.squeeze(), cmap="gray")
-        ax[i, 2].imshow(images_to_denoise[i].squeeze(), cmap="gray")
-        ax[i, 3].imshow(denoised_images_by_bf_cond[i].squeeze(), cmap="gray")
-
-        # turn off axis ticks
-        for j in range(4):
-            ax[i, j].set_xticks([])
-            ax[i, j].set_yticks([])
-
-        # set column titles at the top row
-        if i == 0:
-            ax[i, 0].set_title("Brightfield Input", fontsize=16)
-            ax[i, 1].set_title("Original CDH5", fontsize=16)
-            ax[i, 2].set_title("Noised CDH5", fontsize=16)
-            ax[i, 3].set_title("Denoised CDH5", fontsize=16)
-
-        # set row labels by noise level
-        ax[i, 0].set_ylabel(
-            (
-                f"{np.round(100*NOISE_LEVELS[i],2)} % added noise"
-                if i < len(NOISE_LEVELS)
-                else "Pure Noise"
-            ),
-            fontsize=14,
-        )
-    plt.tight_layout()
-    save_plot_to_path(fig, output_path, "denoising_by_bf_conditioning.png")
+    # save the figure
+    save_plot_to_path(fig, output_path, "denoising_by_bf_conditioning")
 
     # Do the same thing but with the conditioning vector randomly shuffled
     # This is our negative control for the BF conditioning
     latent_vector_scrambled = rng.permuted(bf_crop_latent_vector)
+
     denoised_images_by_random_cond = [
         generate_from_coords_and_noised_image(
             model, latent_vector_scrambled, noised_image, num_gpus=NUM_GPUS
@@ -148,34 +145,74 @@ def main(model_manifest_name, run_name) -> None:
     ]
 
     # Plot these images!
-    fig, ax = plt.subplots(
-        nrows=len(denoised_images_by_random_cond),
-        ncols=4,  # original BF, original CDH5, noised CDH5, denoised CDH5
+    # Prepare arguments for contact sheet
+    num_images_to_denoise = len(denoised_images_by_random_cond)
+    panels = [
+        *[ones_like(bf_crop).squeeze()] * num_images_to_denoise,
+        *[cdh5_crop.squeeze()] * num_images_to_denoise,
+        *[img.squeeze() for img in images_to_denoise],
+        *[img.squeeze() for img in denoised_images_by_random_cond],
+    ]
+    horizontal_titles = ["Scrambled Latent Vector", "Original CDH5", "Noised CDH5", "Denoised CDH5"]
+    vertical_titles = [f"{level * 100:.0f}% Noise" for level in [*NOISE_LEVELS, 1]]
+
+    # Make a contact sheet summarizing the results
+    fig = make_contact_sheet(
+        panels=panels,
+        max_rows=num_images_to_denoise,
+        max_cols=None,
+        horizontal_titles=horizontal_titles,
+        vertical_titles=vertical_titles,
+        direction="top-down first",
+        subplot_kwargs=subplot_kwargs,
+        gridspec_kwargs=gridspec_kwards,
+        fig_kwargs=fig_kwargs,
     )
-    for i in range(len(denoised_images_by_bf_cond)):
-        ax[i, 1].imshow(cdh5_crop.squeeze(), cmap="gray")
-        ax[i, 2].imshow(images_to_denoise[i].squeeze(), cmap="gray")
-        ax[i, 3].imshow(denoised_images_by_bf_cond[i].squeeze(), cmap="gray")
+    # save the figure
+    save_plot_to_path(fig, output_path, "denoising_by_random_conditioning")
 
-        # turn off axis ticks
-        for j in range(4):
-            ax[i, j].set_xticks([])
-            ax[i, j].set_yticks([])
+    # Do the same thing but with the conditioning vector retrieved from a
+    # randomly shuffled version of the brightfield image
+    # This is another negative control for the BF conditioning
+    img_scrambled = rng.permuted(bf_crop.ravel()).reshape(bf_crop.shape)
+    latent_vector_scrambled = get_latent_vector_from_crop(model, img_scrambled, num_gpus=NUM_GPUS)
 
-        # set column titles at the top row
-        if i == 0:
-            ax[i, 1].set_title("Original CDH5", fontsize=16)
-            ax[i, 2].set_title("Noised CDH5", fontsize=16)
-            ax[i, 3].set_title("Denoised CDH5", fontsize=16)
-
-        # set row labels by noise level
-        ax[i, 0].set_ylabel(
-            (
-                f"{np.round(100*NOISE_LEVELS[i],2)} % added noise"
-                if i < len(NOISE_LEVELS)
-                else "Pure Noise"
-            ),
-            fontsize=14,
+    denoised_images_by_random_cond = [
+        generate_from_coords_and_noised_image(
+            model, latent_vector_scrambled, noised_image, num_gpus=NUM_GPUS
         )
-    plt.tight_layout()
-    save_plot_to_path(fig, output_path, "denoising_by_random_conditioning.png")
+        for noised_image in images_to_denoise
+    ]
+
+    # Plot these images!
+    # Prepare arguments for contact sheet
+    num_images_to_denoise = len(denoised_images_by_random_cond)
+    panels = [
+        *[img_scrambled.squeeze()] * num_images_to_denoise,
+        *[cdh5_crop.squeeze()] * num_images_to_denoise,
+        *[img.squeeze() for img in images_to_denoise],
+        *[img.squeeze() for img in denoised_images_by_random_cond],
+    ]
+    horizontal_titles = ["Scrambled Input", "Original CDH5", "Noised CDH5", "Denoised CDH5"]
+    vertical_titles = [f"{level * 100:.0f}% Noise" for level in [*NOISE_LEVELS, 1]]
+
+    # Make a contact sheet summarizing the results
+    fig = make_contact_sheet(
+        panels=panels,
+        max_rows=num_images_to_denoise,
+        max_cols=None,
+        horizontal_titles=horizontal_titles,
+        vertical_titles=vertical_titles,
+        direction="top-down first",
+        subplot_kwargs=subplot_kwargs,
+        gridspec_kwargs=gridspec_kwards,
+        fig_kwargs=fig_kwargs,
+    )
+    # save the figure
+    save_plot_to_path(fig, output_path, "denoising_by_conditioning_on_scrambled_bf")
+
+
+if __name__ == "__main__":
+    from endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)

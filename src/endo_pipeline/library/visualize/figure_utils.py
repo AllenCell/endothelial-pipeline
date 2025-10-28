@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import Literal
 
@@ -7,7 +8,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from endo_pipeline.io.output import save_plot_to_path
-from endo_pipeline.settings.figures import FIGURE_SAVE_DPI
+from endo_pipeline.settings.figures import FIGURE_SAVE_DPI, FONTSIZE_LARGE
+
+logger = logging.getLogger(__name__)
 
 
 def add_scalebar(
@@ -141,3 +144,118 @@ def plot_image_thumbnail(
         figure, output_path, image_name, dpi=dpi, file_format=file_format, pad_inches=0
     )
     plt.close(figure)
+
+
+def make_contact_sheet(
+    panels: list[np.ndarray],
+    max_rows: int | None = None,
+    max_cols: int | None = None,
+    horizontal_titles: list[str] | None = None,
+    vertical_titles: list[str] | None = None,
+    panel_titles: list[str] | None = None,
+    direction: Literal["left-right first", "top-down first"] = "left-right first",
+    subplot_kwargs: dict | None = None,
+    gridspec_kwargs: dict | None = None,
+    fig_kwargs: dict | None = None,
+) -> plt.Figure:
+    """Create and save a contact sheet of images."""
+
+    if direction not in ["left-right first", "top-down first"]:
+        raise ValueError("Invalid direction specified.")
+    if (panel_titles is not None) and (len(panels) != len(panel_titles)):
+        raise ValueError("Number of panel_titles must match number of panels if provided.")
+
+    # 'Figure' out the number of panels you have to plot
+    num_panels = len(panels)
+
+    if direction == "left-right first":
+        max_panels_in_direction = max_cols or num_panels
+    else:
+        max_panels_in_direction = max_rows or num_panels
+
+    # Get the number of panels orthogonal to the specified direction that
+    # are needed based on the max panels along the specified direction
+    if num_panels % max_panels_in_direction:
+        # this is in case only a single row/column is needed
+        n_panels_ortho_direction = num_panels // max_panels_in_direction + 1
+    else:
+        n_panels_ortho_direction = num_panels // max_panels_in_direction
+
+    # truncate the number of rows/columns along the specified direction if
+    # the number of panels in a direction is less than the max allowed
+    if (n_panels_ortho_direction == 1) and (num_panels < max_panels_in_direction):
+        n_panels_in_direction = num_panels
+    else:
+        n_panels_in_direction = max_panels_in_direction
+
+    # convert the number of panels in the specified
+    # and orthogonal directions to nrows and ncols
+    if direction == "left-right first":
+        nrows = n_panels_ortho_direction
+        ncols = n_panels_in_direction
+    else:  # top-down first
+        nrows = n_panels_in_direction
+        ncols = n_panels_ortho_direction
+
+    # adjust the length of the horizontal and vertical titles lists
+    # if necessary
+    if horizontal_titles is not None:
+        if len(horizontal_titles) == 1:
+            horizontal_titles = horizontal_titles * ncols
+        elif len(horizontal_titles) != ncols:
+            logger.warning(
+                f"""Length of horizontal_titles is not 1 nor equal to number of columns.
+                    ncols={ncols}, number of horizontal titles={len(horizontal_titles)}"""
+            )
+        else:
+            pass
+    if vertical_titles is not None:
+        if len(vertical_titles) == 1:
+            vertical_titles = vertical_titles * nrows
+        elif len(vertical_titles) != nrows:
+            logger.warning(
+                f"""Length of vertical_titles is not 1 nor equal to number of rows.
+                    nrows={nrows}, number of vertical titles={len(vertical_titles)}"""
+            )
+        else:
+            pass
+
+    # create the figure and axes
+    fig, axs = plt.subplots(
+        nrows=nrows,
+        ncols=ncols,
+        subplot_kw=subplot_kwargs or {},
+        gridspec_kw=gridspec_kwargs or {},
+        **(fig_kwargs or {}),
+    )
+
+    ## iterate through your contact sheet axs to get the
+    ## (row, column) index for each ax in axs as a flat list...
+    ## ... accounting for if there is only 1 row
+    if nrows == 1:
+        ax_indices = [(1, c) for c in range(ncols)]
+    ## ... accounting for if there is only 1 column
+    elif nrows != 1 and ncols == 1:
+        ax_indices = [(r, 1) for r in range(nrows)]
+    ## ... all other situations (i.e. more than 1 row and column)
+    else:
+        if direction == "left-right first":
+            ax_indices = [(r, c) for r in range(nrows) for c in range(ncols)]
+        else:  # top-down first
+            ax_indices = [(r, c) for c in range(ncols) for r in range(nrows)]
+
+    ## start axes indices at 0 and put a plot in each ax
+    for i in range(num_panels):
+        ax_row, ax_col = ax_indices[i]
+        ax = axs[(ax_row, ax_col)]
+
+        ax.imshow(panels[i], cmap="gray")
+        ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
+
+        if (ax_col == 0) and (vertical_titles is not None):
+            ax.set_ylabel(vertical_titles[ax_row], fontsize=FONTSIZE_LARGE)
+        if (ax_row == 0) and (horizontal_titles is not None):
+            ax.set_xlabel(horizontal_titles[ax_col], fontsize=FONTSIZE_LARGE)
+            ax.xaxis.set_label_position("top")
+
+    return fig
