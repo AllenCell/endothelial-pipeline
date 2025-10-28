@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -8,15 +9,11 @@ from bioio import BioImage
 from bioio.writers import OmeTiffWriter
 from tqdm import tqdm
 
-from endo_pipeline.configs.dataset_io import (
-    get_original_path,
-    get_total_number_of_positions,
-    get_zarr_name,
-    get_zarr_path,
-)
+from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.io import get_output_path
-from endo_pipeline.library.process.get_sldy_metadata import get_objective_info
 from endo_pipeline.settings import DIMENSION_ORDER
+
+logger = logging.getLogger(__name__)
 
 
 def get_chan_map(filepath: Path) -> dict:
@@ -33,13 +30,13 @@ def build_analysis_queue(
     save_output: bool = True,
     overwrite: bool = False,
     out_dir: str | Path | None = None,
-    magnification: int | None = None,
     image_validation_frequency: int | None = None,
     verbose: bool = False,
     is_test: bool = False,
-    use_sldy_data: bool = False,
 ) -> list:
-    print(f"Building analysis queue for the following datasets: {dataset_name_list}")
+
+    logger.info(f"Building analysis queue for the following datasets: {dataset_name_list}")
+
     analysis_queue: list = []
     out_dir = Path(out_dir) if out_dir != None else get_output_path("analysis_queue_output_temp")
     for dataset_name in tqdm(
@@ -48,107 +45,45 @@ def build_analysis_queue(
         desc="Building analysis queue",
         unit="dataset",
     ):
-        if use_sldy_data:
-            img_path = Path(get_original_path(dataset_name))
-            img = BioImage(img_path)
-            num_positions = get_total_number_of_positions(dataset_name)
-            num_pos_in_S = len(img.scenes)
+        # load the dataset config
+        dataset_config = load_dataset_config(dataset_name)
+
+        # get the timeframes of the timelapse to be evaluated
+        if t_final is None:
+            t_final = dataset_config.duration
+        t_range = range(t_start, t_final, t_step)
+
+        # get the timeframes to be used for validation images, if any
+        if image_validation_frequency is not None:
+            validation_t_range = range(t_start, t_final, image_validation_frequency)
         else:
-            img_path_dict = get_zarr_path(dataset_name)
-            num_positions = get_total_number_of_positions(dataset_name)
-            num_pos_in_S = len(img_path_dict)
-            zarr_name_dict = {pos: get_zarr_name(dataset_name, pos) for pos in range(num_pos_in_S)}
+            validation_t_range = range(0)  # empty range will produce empty list
 
-        assert (
-            num_positions % num_pos_in_S == 0
-        ), f"Number of positions ({num_positions}) in data_config.yaml must be divisible by number of scenes ({num_pos_in_S}) in the image file for dataset {dataset_name}"
-        num_pos_in_T = num_positions // num_pos_in_S
+        # get the filepaths for each position in the timelapse
+        for position in dataset_config.zarr_positions:
+            zarr_file = get_zarr_file_for_position(dataset_config, position)
 
-        positions_in_T, positions_in_S = [], []
-        for scene_index in range(num_pos_in_S):
-            positions_in_T += list(range(num_pos_in_T))
-            positions_in_S += [scene_index] * num_pos_in_T
+            # build a dictionary with the analysis arguments for each timeframe to be analyzed
+            for timepoint in t_range:
+                validation_image = True if timepoint in validation_t_range else False
 
-        for pos, (pos_in_T, pos_in_S) in enumerate(zip(positions_in_T, positions_in_S)):
-            if is_test and pos > 2:
-                break
-            if use_sldy_data:
-                img.set_scene(pos_in_S)
-                scene_name = img.scenes[pos_in_S]
-            else:
-                zarr_name = zarr_name_dict[pos_in_S]
-                img_path = Path(img_path_dict[zarr_name])
-                img = BioImage(img_path)
-                img.set_scene(0)
-                scene_name = zarr_name
-            if (
-                magnification != None
-                and get_objective_info(img.metadata)["magnification"] != magnification
-            ):
-                (
-                    print(
-                        f"Position{pos} (scene {img.current_scene}) -- does not use 20X magnification, skipping..."
-                    )
-                    if verbose
-                    else None
-                )
-            else:
-                (
-                    print(f"- adding Position {pos} (scene {img.current_scene})...")
-                    if verbose
-                    else None
-                )
-                assert (
-                    img.dims.T % num_pos_in_T == 0
-                ), f"Number of timepoints ({img.dims.T}) must be divisible by number of positions ({num_pos_in_T}) in the data_config.yaml for dataset {dataset_name} if number of positions does not equal the number of scenes in the image file."
-                # calculate the duration of the positions in frames (they must all have the same duration)
-                duration_in_frames = (
-                    min(t_final, img.dims.T // num_pos_in_T)
-                    if isinstance(t_final, int)
-                    else img.dims.T // num_pos_in_T
-                )
-                # correct the t_start, t_final, and t_step values to account for the intercalation of positions with timeframes
-                t_start_adjusted = t_start or pos_in_T
-                t_step_adjusted = t_step * num_pos_in_T
-                t_final_adjusted = pos_in_T + duration_in_frames * num_pos_in_T
-                t_range = range(t_start_adjusted, t_final_adjusted, t_step_adjusted)
-                if image_validation_frequency is not None:
-                    validation_t_range = range(
-                        t_start_adjusted,
-                        t_final_adjusted,
-                        image_validation_frequency * t_step_adjusted,
-                    )
-                else:
-                    # return an empty range
-                    validation_t_range = range(0, 0, -1)
+                analysis_args = {
+                    "dataset_name": dataset_name,
+                    "image_bin_level": img_bin_level,
+                    "position": position,
+                    "T": timepoint,
+                    "input_path": zarr_file.as_posix(),
+                    "output_dir": out_dir,
+                    "save_output": save_output,
+                    "overwrite": overwrite,
+                    "is_validation_image": validation_image,
+                    "image_validation_frequency": image_validation_frequency,
+                    "is_test": is_test,
+                    "verbose": verbose,
+                }
 
-                for i, t in enumerate(t_range):
-                    if is_test and i >= 10:
-                        break
-                    else:
-                        pass
-                    validation_image = True if t in validation_t_range else False
+                analysis_queue.append(analysis_args)
 
-                    if t >= t_start_adjusted and t < t_final_adjusted:
-                        analysis_queue.append(
-                            {
-                                "dataset_name": dataset_name,
-                                "image_bin_level": img_bin_level,
-                                "scene_index": pos_in_S,
-                                "scene_name": scene_name,
-                                "position": pos,
-                                "T": t,
-                                "input_path": img_path,
-                                "output_dir": out_dir,
-                                "save_output": save_output,
-                                "overwrite": overwrite,
-                                "validation_image": validation_image,
-                                "image_validation_frequency": image_validation_frequency,
-                                "use_sldy_data": use_sldy_data,
-                                "is_test": is_test,
-                                "verbose": verbose,
-                            }
-                        )
     return analysis_queue
 
 

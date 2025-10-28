@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = "==3.11.*"
 resolution-markers = [
     "sys_platform == 'darwin'",
@@ -931,7 +931,7 @@ wheels = [
 
 [[package]]
 name = "cyclopts"
-version = "3.22.2"
+version = "3.24.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
@@ -939,9 +939,9 @@ dependencies = [
     { name = "rich" },
     { name = "rich-rst" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cc/2e/8c45ef5b00bd48d7cabbf6f90b7f12df4c232755cd46e6dbc6690f9ac0c5/cyclopts-3.22.2.tar.gz", hash = "sha256:d3495231af6ae86479579777d212ddf77b113200f828badeaf401162ed87227d", size = 74520, upload-time = "2025-07-09T12:21:46.866Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/30/ca/7782da3b03242d5f0a16c20371dff99d4bd1fedafe26bc48ff82e42be8c9/cyclopts-3.24.0.tar.gz", hash = "sha256:de6964a041dfb3c57bf043b41e68c43548227a17de1bad246e3a0bfc5c4b7417", size = 76131, upload-time = "2025-09-08T15:40:57.75Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/83/5b/5939e05d87def1612c494429bee705d6b852fad1d21dd2dee1e3ce39997e/cyclopts-3.22.2-py3-none-any.whl", hash = "sha256:6681b0815fa2de2bccc364468fd25b15aa9617cb505c0b16ca62e2b18a57619e", size = 84578, upload-time = "2025-07-09T12:21:44.878Z" },
+    { url = "https://files.pythonhosted.org/packages/f0/8b/2c95f0645c6f40211896375e6fa51f504b8ccb29c21f6ae661fe87ab044e/cyclopts-3.24.0-py3-none-any.whl", hash = "sha256:809d04cde9108617106091140c3964ee6fceb33cecdd537f7ffa360bde13ed71", size = 86154, upload-time = "2025-09-08T15:40:56.41Z" },
 ]
 
 [[package]]
@@ -1280,6 +1280,7 @@ lint = [
 ]
 test = [
     { name = "coverage" },
+    { name = "pyfakefs" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-mock" },
@@ -1288,6 +1289,7 @@ test = [
 ]
 types = [
     { name = "pandas-stubs" },
+    { name = "types-deprecated" },
     { name = "types-pyyaml" },
     { name = "types-seaborn" },
     { name = "types-tqdm" },
@@ -1307,7 +1309,7 @@ requires-dist = [
     { name = "cellpose", marker = "extra == 'cellpose'", specifier = ">=3.1.0" },
     { name = "colorcet", specifier = ">=3.1.0" },
     { name = "colorizer-data", git = "https://github.com/allen-cell-animated/colorizer-data.git?rev=v1.6.3" },
-    { name = "cyclopts", specifier = ">=3.22.2" },
+    { name = "cyclopts", specifier = ">=3.22.4" },
     { name = "cyto-dl", marker = "extra == 'ml-workflows'", specifier = ">=0.6.1" },
     { name = "deprecated", specifier = ">=1.2.18" },
     { name = "fastparquet", specifier = ">=2024.11.0" },
@@ -1357,6 +1359,7 @@ lint = [
 ]
 test = [
     { name = "coverage", specifier = ">=7.5.3" },
+    { name = "pyfakefs", specifier = ">=5.10.0" },
     { name = "pytest", specifier = ">=8.2.2" },
     { name = "pytest-cov", specifier = ">=5.0.0" },
     { name = "pytest-mock", specifier = ">=3.14.1" },
@@ -1365,6 +1368,7 @@ test = [
 ]
 types = [
     { name = "pandas-stubs", specifier = ">=2.2.3.250308" },
+    { name = "types-deprecated", specifier = ">=1.2.15.20250304" },
     { name = "types-pyyaml", specifier = ">=6.0.12.20241230" },
     { name = "types-seaborn", specifier = ">=0.13.2.20250111" },
     { name = "types-tqdm", specifier = ">=4.67.0.20250301" },
@@ -3792,6 +3796,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pyfakefs"
+version = "5.10.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/37/a1/17910b4bb06b5cbb7157c9cdf88323e17014fdbf1a66839c68b851317bd2/pyfakefs-5.10.0.tar.gz", hash = "sha256:68b33b8d9338ed332ad0c809417b875559c2e8ac10972fce248cb19b89d325fa", size = 231032, upload-time = "2025-10-11T09:19:07.461Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/42/56/a419a4168dd2c0876d548986541ac6012f36e560e19c807373ddfd90a64c/pyfakefs-5.10.0-py3-none-any.whl", hash = "sha256:105a97076aed079589546a8c2bea68e771a19e7a8ee335a30936aa03d98ab4fe", size = 246057, upload-time = "2025-10-11T09:19:04.939Z" },
+]
+
+[[package]]
 name = "pygments"
 version = "2.19.1"
 source = { registry = "https://pypi.org/simple" }
@@ -4875,6 +4888,15 @@ dependencies = [
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/cd/4aa0179919306f9c2e3e5308f269d20c094b2a4e2963b656e9405172763f/triton-2.0.0-1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:226941c7b8595219ddef59a1fdb821e8c744289a132415ddd584facedeb475b1", size = 63278135, upload-time = "2023-03-20T17:32:25.22Z" },
+]
+
+[[package]]
+name = "types-deprecated"
+version = "1.2.15.20250304"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0e/67/eeefaaabb03b288aad85483d410452c8bbcbf8b2bd876b0e467ebd97415b/types_deprecated-1.2.15.20250304.tar.gz", hash = "sha256:c329030553029de5cc6cb30f269c11f4e00e598c4241290179f63cda7d33f719", size = 8015, upload-time = "2025-03-04T02:48:17.894Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4d/e3/c18aa72ab84e0bc127a3a94e93be1a6ac2cb281371d3a45376ab7cfdd31c/types_deprecated-1.2.15.20250304-py3-none-any.whl", hash = "sha256:86a65aa550ea8acf49f27e226b8953288cd851de887970fbbdf2239c116c3107", size = 8553, upload-time = "2025-03-04T02:48:16.666Z" },
 ]
 
 [[package]]

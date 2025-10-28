@@ -17,7 +17,7 @@ from tqdm import tqdm
 from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.io import get_output_path
 from endo_pipeline.io.input import load_image
-from endo_pipeline.library.model.apply_model import add_diffae_model_eval_crop_columns
+from endo_pipeline.library.model.eval_model import add_diffae_model_eval_crop_columns
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 from endo_pipeline.settings import DIMENSION_ORDER
@@ -140,7 +140,7 @@ def save_filter_validation_plots(
             (timelapse_duration, timelapse_duration),
         ]
         top_of_boxes = [ax.get_ylim()] * len(left_of_boxes)
-        boxes = zip(top_of_boxes, left_of_boxes, right_of_boxes, strict=False)
+        boxes = zip(top_of_boxes, left_of_boxes, right_of_boxes, strict=True)
         ax.set_xlim(0, timelapse_duration)
         [ax.fill_betweenx(y=y, x1=x1, x2=x2, color="lightgrey") for y, x1, x2 in boxes]
         fig.savefig(
@@ -192,8 +192,8 @@ def add_filter_columns(
 
     # is_included is just all the previous filters combined
     big_table["is_included"] = (
-        big_table[f"is_greater_than_min_track_duration"]
-        & big_table[f"is_less_than_max_smoothed_area_normd_change"]
+        big_table["is_greater_than_min_track_duration"]
+        & big_table["is_less_than_max_smoothed_area_normd_change"]
         & ~big_table["is_edge_segmentation"]
     )
 
@@ -275,7 +275,8 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
         data_config = load_dataset_config(dataset_name)
         um_per_px_map[dataset_name] = data_config.pixel_size_xy_in_um
         time_res_map[dataset_name] = data_config.time_interval_in_minutes
-        shear_stress_regime_map[dataset_name] = data_config.shear_stress_regime
+        shear_regime = "_to_".join([shear.value for shear in data_config.shear_stress_regime])
+        shear_stress_regime_map[dataset_name] = shear_regime
 
     # add the shear stress regime to the data table
     logger.info("Adding shear stress regime...")
@@ -500,7 +501,7 @@ def calculate_derived_data_dynamics_dependent(big_table: pd.DataFrame) -> pd.Dat
                         df["centroid_y_um"].values,  # type: ignore[arg-type, call-overload, return-value]
                         df["time_minutes"].values,  # type: ignore[arg-type, call-overload, return-value]
                     ),
-                    strict=False,
+                    strict=True,
                 ),  # type: ignore[return-value]
                 index=df.index,
             )
@@ -667,11 +668,11 @@ def get_smallest_angle_difference(
 
 
 def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
-    dataset = load_dataset_config(dataset_name)
+    dataset_config = load_dataset_config(dataset_name)
     manifest = load_image_manifest("cdh5_classic_seg")
     return {
-        timepoint: get_image_location_for_dataset(manifest, dataset_name, position, timepoint)
-        for timepoint in range(dataset.duration)
+        timepoint: get_image_location_for_dataset(manifest, dataset_config, position, timepoint)
+        for timepoint in range(dataset_config.duration)
     }
 
 
@@ -682,6 +683,7 @@ def get_nuclei_coords(
 ) -> dict[str, np.ndarray]:
     """
     Get the coordinates of the nuclei in the image.
+
     Parameters
     ----------
     props : regionprops
@@ -693,6 +695,7 @@ def get_nuclei_coords(
         The kind of coordinates to return.
         "centroid" will return only the centroids of the labeled nuclei,
         while "all" will return all the coordinates of the nuclei.
+
     Returns
     -------
     dict[str, np.ndarray]
@@ -782,6 +785,7 @@ def get_num_nuclei_in_array(img_arr: np.ndarray | dd.Array, crop: tuple[slice, .
     If there is even 1 pixel of a labeled nuclei then it will be counted,
     therefore you may want to create an image of the centroids or cleaned
     up nuclei before counting.
+
     Parameters
     ----------
     img_arr : np.ndarray or dd.Array
@@ -839,18 +843,14 @@ def compute_nuclei_centroids(
 
     # get the nuclei prediction
     dim_order = DIMENSION_ORDER
+    dataset_config = load_dataset_config(dataset_name)
     seg_manifest = load_image_manifest("nuclear_labelfree_seg")
-    seg_location = get_image_location_for_dataset(
-        manifest=seg_manifest,
-        dataset_name=dataset_name,
-        position=position,
-        timepoint=timeframe,
-    )
-    nuc_seg = load_image(seg_location, squeeze=False)
+    seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position, timeframe)
+    nuc_seg = load_image(seg_location, squeeze=False, compute=True)
 
     # get nuclei segmentation properties and dimension order of those properties
     props = regionprops(nuc_seg.squeeze())
-    dim_shapes = dict(zip(dim_order, nuc_seg.shape))
+    dim_shapes = dict(zip(dim_order, nuc_seg.shape, strict=True))
     dim_order_squeezed = "".join([d for d in dim_order if dim_shapes[d] > 1])
 
     centroids: dict[str, Any] = get_nuclei_coords(

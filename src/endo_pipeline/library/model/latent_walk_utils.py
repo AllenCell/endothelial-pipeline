@@ -52,7 +52,6 @@ def get_walk(data: np.ndarray, n_dims: int, sigma: float, n_steps: int) -> tuple
         else:
             std = data[:, dim].std()
             range_ = np.arange(-sigma, sigma + 0.01) * std
-        print(f"Dim {dim} range: {range_}")
         dim_traversal = np.stack([data.mean(axis=0)] * range_.shape[0])
         dim_traversal[:, dim] = range_
         walk.append(dim_traversal)

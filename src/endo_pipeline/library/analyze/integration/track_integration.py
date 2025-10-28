@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Any, List, Tuple
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -10,22 +10,32 @@ from seaborn import color_palette
 from endo_pipeline.configs import load_dataset_collection_config
 from endo_pipeline.configs.dynamics_io import load_dynamics_config
 from endo_pipeline.io import load_dataframe
-from endo_pipeline.library.analyze.diffae_features import (
+from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    add_description_column,
+    fit_pca,
+    get_dataframe_for_dynamics_workflows,
+    get_traj_and_diff,
+    project_features_to_pcs,
+)
+from endo_pipeline.library.analyze.dynamics_utils import (
     compute_extrapolated_vector_field,
     solve_ddff_ode,
 )
-from endo_pipeline.library.analyze.diffae_manifest import (
-    add_description_column,
-    get_dataframe_for_dynamics_workflows,
-    get_traj_and_diff,
-    project_manifest_to_pcs,
-)
-from endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
 from endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_data, get_bins
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
-from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.manifests import (
+    ModelManifest,
+    get_dataframe_location_for_dataset,
+    get_feature_dataframe_manifest_name,
+    load_dataframe_manifest,
+)
+from endo_pipeline.settings import (
+    DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    ColumnName,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -81,11 +91,11 @@ def add_normalized_time(
 
 def get_coarse_grained_trajectory_heatmap_data(
     df_all_positions: pd.DataFrame,
-    bounds: np.ndarray | List,
-    num_bins: List[int] = [150, 150, 150],
-    pc_cols: List[str] = ["pc1", "pc2", "pc3"],
+    bounds: np.ndarray | list,
+    num_bins: list[int] = [150, 150, 150],
+    pc_cols: list[str] = ["pc_1", "pc_2", "pc_3"],
     feature_to_use: str = "normalized_time",
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Get a coarse-grained trajectory heatmap data from the DataFrame.
 
@@ -99,6 +109,7 @@ def get_coarse_grained_trajectory_heatmap_data(
         where ndim is the number of dimensions.
     num_bins
         Number of bins for each dimension in the heatmap.
+
     Returns
     -------
     Tuple[np.ndarray, np.ndarray]
@@ -138,33 +149,37 @@ def merge_diffae_feats_liveseg_feats_tables(
     """
     Merges the DiffAE tracking data with the live segmentation features data.
 
-    Parameters:
+    Parameters
+    ----------
         diffae_tracking_df (pd.DataFrame): DataFrame containing DiffAE tracking data.
         live_seg_feats_df (pd.DataFrame): DataFrame containing live segmentation features data.
 
-    Returns:
+    Returns
+    -------
         pd.DataFrame: Merged DataFrame with DiffAE and live segmentation features.
     """
-    dataset_name = sequence_to_scalar(diffae_tracking_df["dataset"])
+    dataset_name = sequence_to_scalar(diffae_tracking_df[ColumnName.DATASET])
     logging.debug("processing the diffae tracking data...")
     # process the diffae tracking data
     diffae_tracking_df["is_unique"] = diffae_tracking_df.groupby(
-        ["dataset", "position", "frame_number", "track_id"]
-    )["frame_number"].transform(lambda t: t.nunique() == t.size)
+        [ColumnName.DATASET, ColumnName.POSITION, ColumnName.TIMEPOINT, "track_id"]
+    )[ColumnName.TIMEPOINT].transform(lambda t: t.nunique() == t.size)
     diffae_tracking_df = diffae_tracking_df[diffae_tracking_df["is_unique"]]
 
     # give the crop_index column the same value as the track_ids
-    diffae_tracking_df["crop_index"] = (
-        diffae_tracking_df.groupby(["position", "track_id"], as_index=False).ngroup().astype(int)
+    diffae_tracking_df[ColumnName.CROP_INDEX] = (
+        diffae_tracking_df.groupby([ColumnName.POSITION, "track_id"], as_index=False)
+        .ngroup()
+        .astype(int)
     )
     diffae_tracking_df = add_description_column(
         diffae_tracking_df, dataset_name, simple=True
     )  # add description column (e.g., 48hr_High)
     diffae_tracking_df["track_id"] = diffae_tracking_df["track_id"].astype(int)
-    diffae_tracking_df.rename(columns={"position": "position_as_str"}, inplace=True)
+    diffae_tracking_df.rename(columns={ColumnName.POSITION: "position_as_str"}, inplace=True)
 
     logging.debug("processing the live segmentation features data...")
-    live_seg_feats_df["position_as_str"] = live_seg_feats_df["position"].transform(
+    live_seg_feats_df["position_as_str"] = live_seg_feats_df[ColumnName.POSITION].transform(
         lambda x: "P" + str(x)
     )
     live_seg_feats_df["track_id"] = live_seg_feats_df["track_id"].astype(int)
@@ -175,7 +190,7 @@ def merge_diffae_feats_liveseg_feats_tables(
         right=diffae_tracking_df,
         how="left",
         left_on=["dataset_name", "position_as_str", "image_index", "track_id"],
-        right_on=["dataset", "position_as_str", "frame_number", "track_id"],
+        right_on=[ColumnName.DATASET, "position_as_str", ColumnName.TIMEPOINT, "track_id"],
         validate="one_to_one",
     )
 
@@ -183,18 +198,46 @@ def merge_diffae_feats_liveseg_feats_tables(
 
 
 def get_diffae_feats_liveseg_feats_merged_table(
-    dataset_name: str, filtered: bool = False
+    dataset_name: str,
+    model_manifest: ModelManifest,
+    run_name: str | None = None,
+    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    filtered: bool = False,
 ) -> pd.DataFrame:
+    """
+    Get a merged dataframe with cell-centric DiffAE features and classical
+    segmentation features.
+
+    Parameters
+    ----------
+    dataset_name
+        The name of the dataset to use.
+    model_manifest
+        The model manifest to use for DiffAE features.
+    run_name
+        The name of the run to use from the model manifest.
+        If None, uses the most recent run.
+    seg_feature_manifest_name
+        The name of the segmentation feature manifest to use for classical features.
+
+    Returns
+    -------
+    :
+        The merged dataframe with DiffAE and segmentation features.
+    """
 
     # read in the segmentation-based diffae features if available
     logging.debug("loading diffae features from tracking data...")
-    diffae_track_manifest = load_dataframe_manifest("diffae_tracking_integration")
+    tracked_dataframe_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="tracked"
+    )
+    diffae_track_manifest = load_dataframe_manifest(tracked_dataframe_manifest_name)
     diffae_track_location = get_dataframe_location_for_dataset(diffae_track_manifest, dataset_name)
     diffae_tracking_df = load_dataframe(diffae_track_location)
 
     # load the tracking data of the measured features and merge them
     logging.debug("loading segmentation property data...")
-    live_seg_manifest = load_dataframe_manifest("live_merged_seg_features")
+    live_seg_manifest = load_dataframe_manifest(seg_feature_manifest_name)
     live_seg_location = get_dataframe_location_for_dataset(live_seg_manifest, dataset_name)
     live_seg_feats_df = load_dataframe(live_seg_location)
 
@@ -206,7 +249,7 @@ def get_diffae_feats_liveseg_feats_merged_table(
         merged_feats_df = merged_feats_df[merged_feats_df["is_included"]]
 
         # remove any rows that were not evaluated by the model and thus have no mlflow_id
-        merged_feats_df.dropna(axis="index", how="any", subset="mlflow_id", inplace=True)
+        merged_feats_df.dropna(axis="index", how="any", subset="model_manifest_name", inplace=True)
 
     return merged_feats_df
 
@@ -253,7 +296,9 @@ def get_traj_and_flowfield(
     )
 
     # compute interpolated flow field - drift
-    flow_field_dict = compute_extrapolated_vector_field(drift_km, centers, interpolator="nearest")
+    flow_field_dict = compute_extrapolated_vector_field(
+        drift_km, centers, extrapolation_method="nearest"
+    )
 
     if load_precomputed_trajectories is not None:
         logger.debug("Loading precomputed trajectories...")
@@ -353,7 +398,9 @@ def get_approx_vec_from_grid(
 ) -> np.ndarray:
 
     # create a distance mapping
-    point_grids_pc1pc2 = np.asarray(list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes])))
+    point_grids_pc1pc2 = np.asarray(
+        list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes], strict=True))
+    )
     pc1_pc2_points = np.expand_dims(pc1_pc2_points, axis=0)
     point_grids_pc1pc2 = np.expand_dims(point_grids_pc1pc2, axis=1)
     dists = np.linalg.norm(point_grids_pc1pc2 - pc1_pc2_points, axis=-1)
@@ -363,7 +410,7 @@ def get_approx_vec_from_grid(
     v1_grids_approx = v1_grids[slice_indexes][min_idx]
     v2_grids_approx = v2_grids[slice_indexes][min_idx]
 
-    return np.array(tuple(zip(v1_grids_approx.tolist(), v2_grids_approx.tolist())))
+    return np.array(tuple(zip(v1_grids_approx.tolist(), v2_grids_approx.tolist(), strict=True)))
 
 
 def get_approx_point_from_grid(
@@ -376,7 +423,9 @@ def get_approx_point_from_grid(
 ) -> np.ndarray:
 
     # create a distance mapping
-    point_grids_pc1pc2 = np.asarray(list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes])))
+    point_grids_pc1pc2 = np.asarray(
+        list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes], strict=True))
+    )
     pc1_pc2_points = np.expand_dims(pc1_pc2_points, axis=0)
     point_grids_pc1pc2 = np.expand_dims(point_grids_pc1pc2, axis=1)
     dists = np.linalg.norm(point_grids_pc1pc2 - pc1_pc2_points, axis=-1)
@@ -386,7 +435,7 @@ def get_approx_point_from_grid(
     g1_grids_approx = g1_grids[slice_indexes][min_idx]
     g2_grids_approx = g2_grids[slice_indexes][min_idx]
 
-    return np.array(tuple(zip(g1_grids_approx.tolist(), g2_grids_approx.tolist())))
+    return np.array(tuple(zip(g1_grids_approx.tolist(), g2_grids_approx.tolist(), strict=True)))
 
 
 def get_vector_angles_as_grid(
@@ -401,9 +450,11 @@ def get_vector_angles_as_grid(
     """Get the angles of the vectors as a grid."""
     my_shape = [len(np.unique(slice_indexes[i])) for i in range(len(slice_indexes))]
 
-    vecs_grids = np.asarray(list(zip(np.ravel(v1_grids), np.ravel(v2_grids), np.ravel(v3_grids))))
+    vecs_grids = np.asarray(
+        list(zip(np.ravel(v1_grids), np.ravel(v2_grids), np.ravel(v3_grids), strict=True))
+    )
     vecs_tracks = np.asarray(
-        list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks)))
+        list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks), strict=True))
     )
     ang_full = get_vector_vector_angle_fast(vecs_grids, vecs_tracks)
     ang_arr = ang_full.reshape((50, 50, 50))
@@ -423,9 +474,11 @@ def get_vector_dot_products_as_grid(
     """Get the dot products of the vectors as a grid."""
     my_shape = [len(np.unique(slice_indexes[i])) for i in range(len(slice_indexes))]
 
-    vecs_grids = np.asarray(list(zip(np.ravel(v1_grids), np.ravel(v2_grids), np.ravel(v3_grids))))
+    vecs_grids = np.asarray(
+        list(zip(np.ravel(v1_grids), np.ravel(v2_grids), np.ravel(v3_grids), strict=True))
+    )
     vecs_tracks = np.asarray(
-        list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks)))
+        list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks), strict=True))
     )
     dot_prod_full = np.einsum("ij,ij->i", vecs_grids, vecs_tracks)
     dot_prod_arr = dot_prod_full.reshape((50, 50, 50))
@@ -485,7 +538,6 @@ def make_angular_deviation_test(out_dir: Path) -> None:
     test_angular_deviation_deg = np.rad2deg(test_angular_deviation)
 
     cmap = color_palette("dark:red", as_cmap=True)
-    angle_deg_to_color = lambda a: cmap(np.abs(a) / 180.0)
 
     fig, ax = plt.subplots(1, 1, figsize=(4, 4))
     ax.quiver(
@@ -525,7 +577,7 @@ def make_angular_deviation_test(out_dir: Path) -> None:
         units="width",
         width=0.005,
         alpha=1,
-        color=angle_deg_to_color(test_angular_deviation_deg),
+        color=cmap(np.abs(test_angular_deviation_deg) / 180.0),  # convert angle to color
     )
     ax.set_xlim(-9, 9)
     ax.set_ylim(-5, 5)
@@ -542,24 +594,55 @@ def make_angular_deviation_test(out_dir: Path) -> None:
 
 def get_preprocessed_manifests_and_km_bounds(
     dataset_name: str,
-    datasets_for_bounds: List[str] | None = None,
+    model_manifest: ModelManifest,
+    run_name: str | None = None,
+    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    datasets_for_bounds: list[str] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list]:
     """
     Load and process the DiffAE and live segmentation feature manifests for a given dataset.
     If no `datasets_for_bounds` are provided, it uses the reference datasets plus dataset_name
     to compute the bounds for the PCA projection. In my experience using only the dataset_name
-    for the bounds has sometimes caused the solver to hang, perhaps due to overly restrictive bounds.
+    for the bounds has sometimes caused the solver to hang, perhaps due to overly restrictive
+    bounds.
+
+    Parameters
+    ----------
+    dataset_name
+        The name of the dataset to load and process.
+    model_manifest
+        The model manifest to use for loading the DiffAE features.
+    run_name
+        The run name to use for loading the DiffAE features. If None, the most recent
+        run will be used.
+    seg_feature_manifest_name
+        The name of the manifest containing segmentation features.
+    datasets_for_bounds
+        List of dataset names to use for computing the PCA bounds.
+        If None, the reference datasets plus dataset_name will be used.
+
+    Returns
+    -------
+    :
+        A tuple containing the merged DiffAE and live segmentation features DataFrame,
+        the grid crop-based DiffAE features DataFrame, and the PCA bounds.
     """
     logger.info(f"Loading and processing manifests for dataset: {dataset_name}")
 
     # load the tables
-    merged_feats_df = get_diffae_feats_liveseg_feats_merged_table(dataset_name, filtered=True)
+    merged_feats_df = get_diffae_feats_liveseg_feats_merged_table(
+        dataset_name=dataset_name,
+        model_manifest=model_manifest,
+        run_name=run_name,
+        seg_feature_manifest_name=seg_feature_manifest_name,
+        filtered=True,
+    )
 
     # fit the PCA (uses the reference datasets)
     pca = fit_pca()
 
     # read in the grid crop-based diffae features
-    model_name = sequence_to_scalar(merged_feats_df["model_name"])
+    model_name = sequence_to_scalar(merged_feats_df["model_manifest_name"])
     manifest = load_dataframe_manifest(model_name)
     diffae_grid_crops = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
 
@@ -568,13 +651,13 @@ def get_preprocessed_manifests_and_km_bounds(
     # but I believe that the columns are named "feat_0",
     # "feat_1", etc. when they should be named "pc1",
     # "pc2", etc.)
-    merged_feats_df = project_manifest_to_pcs(merged_feats_df, pca)
+    merged_feats_df = project_features_to_pcs(merged_feats_df, pca)
 
     # use the full set of datasets to be analyzed for the bounds
     if datasets_for_bounds is None:
-        datasets_for_bounds = load_dataset_collection_config("pca_reference").datasets + [
-            dataset_name
-        ]
+        datasets_for_bounds = load_dataset_collection_config(
+            DEFAULT_PCA_DATASET_COLLECTION_NAME
+        ).datasets + [dataset_name]
 
     bounds = get_3d_bounds_from_data(datasets_for_bounds, manifest, pca)
 

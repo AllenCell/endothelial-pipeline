@@ -1,12 +1,14 @@
 from endo_pipeline.cli import Datasets
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 TAGS = ["diffae_features"]
 
 
 def main(
     datasets: Datasets | None = None,
-    model_name: str = "diffae_04_10",
-    bootstrap_samples: int = 1000,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    bootstrap_samples: int | None = 1000,
 ) -> None:
     """
     Run auto and cross correlation analysis on DiffAE feature time series data.
@@ -14,26 +16,28 @@ def main(
     Parameters
     ----------
     datasets
-        List of datasets or dataset collections to use in workflow. If not
-        provided, workflow runs on the ``3d_flow_field_analysis`` dataset
-        collection.
-    model_name
-        Name of the DiffAE model to use for feature analysis.
+        Optional, list of datasets or dataset collections to use in workflow.
+    model_manifest_name
+        Name of the model manifest to load the model from.
+    run_name
+        Name of the model run to apply. If None, uses the most recent run.
     bootstrap_samples
-        Number of bootstrap samples to use for correlation analysis.
-        If 0, no bootstrap samples will be used.
-        If > 0, bootstrap samples will be used to compute confidence intervals.
+        Optional, number of bootstrap samples to use for correlation analysis..
     """
     import logging
 
     from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.library.analyze.diffae_manifest import fit_pca
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
     from endo_pipeline.library.analyze.numerics import compute_correlation_dict
     from endo_pipeline.library.visualize.diffae_features.correlations import (
         plot_correlation_workflow_outputs,
     )
-    from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.manifests import (
+        get_feature_dataframe_manifest_name,
+        load_dataframe_manifest,
+        load_model_manifest,
+    )
 
     # initialize logger
     logger = logging.getLogger(__name__)
@@ -56,19 +60,25 @@ def main(
             )
             dataset_names.remove(dataset_name)
 
-    # load dataframe manifest = "{model_name}.yaml"
-    dataframe_manifest = load_dataframe_manifest(model_name)
+    # load dataframe manifest corresponding to the model that generated the features
+    model_manifest = load_model_manifest(model_manifest_name)
+    dataframe_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
+
+    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     # fit PCA object for the given model that generates the model manifests
-    pca = fit_pca(model_name=model_name)
+    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name)
 
     # if demo mode, limit bootstrap samples to 50 if > 50
-    if DEMO_MODE and bootstrap_samples > 50:
-        logger.warning(
-            "Running workflow in demo mode, reducing bootstrap samples" " from [ %s ] to 50.",
-            bootstrap_samples,
-        )
-        bootstrap_samples = 50
+    if DEMO_MODE and bootstrap_samples is not None:
+        if bootstrap_samples > 50:
+            logger.warning(
+                "Running workflow in demo mode, reducing bootstrap samples" " from [ %s ] to 50.",
+                bootstrap_samples,
+            )
+            bootstrap_samples = 50
 
     # get cross and autocorrelation for pc features for each dataset
     # in the list of model manifests

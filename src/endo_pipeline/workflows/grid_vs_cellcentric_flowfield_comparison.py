@@ -1,6 +1,5 @@
 import gc
 import logging
-from pathlib import Path
 
 import matplotlib
 import numpy as np
@@ -8,7 +7,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
-from endo_pipeline.configs import load_dataset_collection_config
+from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 from endo_pipeline.io import configure_logging, get_output_path
 from endo_pipeline.library.analyze.integration.track_integration import (
@@ -31,6 +30,8 @@ from endo_pipeline.library.visualize.integration.track_integration_viz import (
     plot_grid_vs_tracks_flow_field,
     plot_pc_integrated_track_as_arrows,
 )
+from endo_pipeline.manifests import load_model_manifest
+from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -41,16 +42,27 @@ plt.ioff()  # turns off interactive mode in matplotlib
 
 
 def process_dataset(
-    dataset_name: str, datasets_for_bounds: list[str], make_integrated_plots: bool = True
+    dataset_name: str,
+    datasets_for_bounds: list[str],
+    model_manifest_name: str = "diffae_04_10",
+    run_name: str | None = None,
+    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    make_integrated_plots: bool = True,
 ) -> None:
     logger.info(f"Processing dataset: {dataset_name}")
 
     out_subdir = get_output_path(__file__, dataset_name, include_timestamp=False)
     configure_logging(out_subdir, logger, verbose=True)
 
+    model_manifest = load_model_manifest(model_manifest_name)
+
     # load and preprocess the different diffae manifests and PCA pipeline
     merged_feats_df, diffae_grid_crops, bounds = get_preprocessed_manifests_and_km_bounds(
-        dataset_name, datasets_for_bounds=datasets_for_bounds
+        dataset_name=dataset_name,
+        model_manifest=model_manifest,
+        run_name=run_name,
+        seg_feature_manifest_name=seg_feature_manifest_name,
+        datasets_for_bounds=datasets_for_bounds,
     )
 
     # keep only the columns that are needed for the analysis to reduce memory usage
@@ -193,8 +205,8 @@ def process_dataset(
 
     # Compare the angles between grid crop PC vectors
     # and the PC vectors of a single track
-    merged_feats_df["dpc1"] = merged_feats_df.groupby("crop_index")["pc1"].diff()
-    merged_feats_df["dpc2"] = merged_feats_df.groupby("crop_index")["pc2"].diff()
+    merged_feats_df["dpc1"] = merged_feats_df.groupby("crop_index")["pc_1"].diff()
+    merged_feats_df["dpc2"] = merged_feats_df.groupby("crop_index")["pc_2"].diff()
     merged_feats_df["dt"] = merged_feats_df.groupby("crop_index")["time_minutes"].diff()
 
     # create partial functions from get_approx_point_from_grid to pass
@@ -208,7 +220,7 @@ def process_dataset(
         slice_indexes,
     )
     get_approx_grid_bin_from_df = lambda df: pd.DataFrame(
-        columns=[["pc1", "pc2"]], data=get_approx_grid_bin(df.to_numpy()), index=df.index
+        columns=[["pc_1", "pc_2"]], data=get_approx_grid_bin(df.to_numpy()), index=df.index
     )
 
     get_approx_grid_vec = lambda pc1_pc2_arr: get_approx_vec_from_grid(
@@ -220,19 +232,19 @@ def process_dataset(
         slice_indexes,
     )
     get_approx_grid_vec_from_df = lambda df: pd.DataFrame(
-        columns=[["pc1", "pc2"]], data=get_approx_grid_vec(df.to_numpy()), index=df.index
+        columns=[["pc_1", "pc_2"]], data=get_approx_grid_vec(df.to_numpy()), index=df.index
     )
 
     # Apply the partial functions to the DataFrame to get the approximate grid bin
     # and vector associated with each cell-centric PC1 and PC2 value
     merged_feats_df[["approx_bin_pc1", "approx_bin_pc2"]] = (
         merged_feats_df.groupby("crop_index", as_index=False)
-        .apply(lambda df: get_approx_grid_bin_from_df(df[["pc1", "pc2"]]))
+        .apply(lambda df: get_approx_grid_bin_from_df(df[["pc_1", "pc_2"]]))
         .droplevel(level=0)
     )
     merged_feats_df[["approx_vec_pc1", "approx_vec_pc2"]] = (
         merged_feats_df.groupby("crop_index", as_index=False)
-        .apply(lambda df: get_approx_grid_vec_from_df(df[["pc1", "pc2"]]))
+        .apply(lambda df: get_approx_grid_vec_from_df(df[["pc_1", "pc_2"]]))
         .droplevel(level=0)
     )
 
@@ -364,17 +376,25 @@ def process_dataset(
     return
 
 
-def main() -> None:
+def main(
+    dataset_collection_name: str = "pca_reference_legacy",
+    model_manifest_name: str = "diffae_04_10",
+    run_name: str | None = None,
+    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+) -> None:
     """
     Makes plots comparing cell-centric and grid-based flow fields.
     """
 
-    dataset_name_list = load_dataset_collection_config("pca_reference").datasets
+    dataset_name_list = get_datasets_in_collection(dataset_collection_name)
 
     for dataset_name in dataset_name_list:
         logger.info(f"Processing {dataset_name}...")
         process_dataset(
             dataset_name=dataset_name,
+            model_manifest_name=model_manifest_name,
+            run_name=run_name,
+            seg_feature_manifest_name=seg_feature_manifest_name,
             datasets_for_bounds=dataset_name_list,
             make_integrated_plots=True,
         )

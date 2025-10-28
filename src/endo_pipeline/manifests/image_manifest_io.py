@@ -17,6 +17,19 @@ def get_image_manifest_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "manifests" / "images"
 
 
+def create_image_manifest(manifest_name: str, workflow_name: str | None = None) -> ImageManifest:
+    """Create a new empty image manifest, or return one if it already exists."""
+
+    manifest_dir = get_image_manifest_dir()
+    manifest_file = manifest_dir / f"{manifest_name}.yaml"
+
+    if manifest_file.exists():
+        logger.warning("Image manifest [ %s ] already exists.", manifest_name)
+        return load_image_manifest(manifest_name)
+    else:
+        return ImageManifest(name=manifest_name, workflow=Path(workflow_name or "").stem)
+
+
 def load_image_manifest(manifest_name: str) -> ImageManifest:
     """Load image manifest by name."""
 
