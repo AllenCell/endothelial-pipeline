@@ -1,71 +1,129 @@
 # %%
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+from matplotlib import colormaps
 
+from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe
 from endo_pipeline.library.analyze.immunofluorescence import filter, plot
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
-output_dir = get_output_path("immunofluorescence_analysis", "SMAD1")
 # %%
-IF_SMAD_DATASETS = [
-    "20250509_20X_IF2",
-    "20250509_20X_IF3",
-    "20250509_20X_IF12",
-    "20250509_20X_IF5",
-    "20250509_20X_IF7",
-    "20250509_20X_IF1",
-    "20250509_20X_IF9",
-]
+output_dir = get_output_path("SMAD1")
+# %%
+smad1_datasets = get_datasets_in_collection("smad1")
+if_df_manifest = load_dataframe_manifest("immunofluorescence")
 
-IF_DATAFRAME_MANIFEST = load_dataframe_manifest("immunofluorescence")
+df_smad1_list = []
 
-# 1, 2, 12 are higher density and fixed on a different date
-# 5, 7, 1, 9 are lower density and fixed on the same date
+for dataset_name in smad1_datasets:
+    dataset_config = load_dataset_config(dataset_name)
+    df_location = get_dataframe_location_for_dataset(if_df_manifest, dataset_name)
+    df_dataset = load_dataframe(df_location)
 
-flow_rates = {
-    "20250509_20X_IF1": 20.8,
-    "20250509_20X_IF2": 0,
-    "20250509_20X_IF3": 0,
-    "20250509_20X_IF5": 5.98,
-    "20250509_20X_IF7": 10.96,
-    "20250509_20X_IF9": 23.67,
-    "20250509_20X_IF12": 5.82,
-}
+    shear_regime = "_to_".join([shear.value for shear in dataset_config.shear_stress_regime])
+
+    df_dataset["shear_stress_regime"] = shear_regime
+
+    shear_stress_list = [condition.shear_stress for condition in dataset_config.flow_conditions]
+    # Assign to variables with fallback to NaN
+    shear_stress_value_1 = shear_stress_list[0]
+    shear_stress_value_2 = shear_stress_list[1] if len(shear_stress_list) > 1 else np.nan
+
+    df_dataset["shear_stress_1"] = shear_stress_value_1
+    df_dataset["shear_stress_2"] = shear_stress_value_2
+
+    durations = [condition.stop - condition.start for condition in dataset_config.flow_conditions]
+    duration_1 = durations[0]
+    duration_2 = durations[1] if len(durations) > 1 else np.nan
+
+    df_dataset["duration_at_ss_1_hr"] = duration_1 * 5 / 60  # convert to hrs
+    df_dataset["duration_at_ss_2_hr"] = duration_2 * 5 / 60  # convert to hrs
+
+    df_dataset["num_nuclei"] = len(df_dataset)
+
+    df_smad1_list.append(df_dataset)
+# %%
+df = pd.concat(df_smad1_list, ignore_index=True)
+
+
+def if_feature_preprocessing(df: pd.DataFrame) -> pd.DataFrame:
+
+    df = filter.filter_small_objects(df)
+    df = filter.filter_edge_objects(df)
+    df["SMAD1_norm_NucViolet_mean_sum_proj"] = (
+        df["SMAD1_mean_sum_proj"] / df["NucViolet_mean_sum_proj"]
+    )
+    df["SMAD1_norm_area_mean_sum_proj"] = df["SMAD1_mean_sum_proj"] / df["area"]
+    df = df[df["SMAD1_norm_NucViolet_mean_sum_proj"] < 1.0]
+    return df
+
+
+df = if_feature_preprocessing(df)
 
 # %%
-if_manifest_list = [
-    load_dataframe(get_dataframe_location_for_dataset(IF_DATAFRAME_MANIFEST, dataset))
-    for dataset in IF_SMAD_DATASETS
-]
-if_manifest = pd.concat(if_manifest_list, ignore_index=True)
-if_manifest = filter.filter_small_objects(if_manifest)
-if_manifest = filter.filter_edge_objects(if_manifest)
-if_manifest["SMAD1_norm_NucViolet_mean_sum_proj"] = (
-    if_manifest["SMAD1_mean_sum_proj"] / if_manifest["NucViolet_mean_sum_proj"]
-)
-if_manifest["SMAD1_norm_area_mean_sum_proj"] = (
-    if_manifest["SMAD1_mean_sum_proj"] / if_manifest["area"]
-)
-if_manifest = if_manifest[if_manifest["SMAD1_norm_NucViolet_mean_sum_proj"] < 1.0]
+plt.figure(figsize=(11, 8))
+
+datasets = df["dataset"].unique()
+cmap = colormaps.get_cmap("tab20")
+colors = {dataset: cmap(i / len(datasets)) for i, dataset in enumerate(datasets)}
+
+for dataset, df_dataset in df.groupby("dataset"):
+    color = colors[dataset]
+
+    # Determine marker style based on whether the dataset name ends with a digit
+    marker_style = "d" if dataset[-1].isdigit() else "o"
+
+    num_nuclei = df_dataset.num_nuclei.iloc[0]
+    shear_stress_value_1 = df_dataset.shear_stress_1.iloc[0]
+    shear_stress_value_2 = df_dataset.shear_stress_2.iloc[0]
+    shear_regime = df_dataset.shear_stress_regime.iloc[0]
+    duration_1 = df_dataset.duration_at_ss_1_hr.iloc[0]
+    duration_2 = df_dataset.duration_at_ss_2_hr.iloc[0]
+
+    final_shear_stress = (
+        shear_stress_value_2 if not np.isnan(shear_stress_value_2) else shear_stress_value_1
+    )
+    data_label = f"{dataset}\n{shear_regime} shear stress"
+    duration_label1 = f"{duration_1:.2f} hr @ {shear_stress_value_1} dyn/cm²\n"
+    duration_label2 = (
+        f"{duration_2:.2f} hr @ {shear_stress_value_2} dyn/cm²\n"
+        if not np.isnan(shear_stress_value_2)
+        else ""
+    )
+
+    plt.scatter(
+        final_shear_stress,
+        num_nuclei,
+        marker=marker_style,
+        s=100,
+        color=color,
+        label=f"{data_label}\n{duration_label1} {duration_label2}",
+    )
+
+plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left", ncol=2, fontsize=10)
+plt.xlabel("Final Shear Stress (dyn/cm²)")
+plt.ylabel("Number of Nuclei Detected")
+plt.tight_layout()
+
 # %%
 PLOT_FEAT = "SMAD1_mean_sum_proj"
 xlim = 30000
 ylim = 0.00035
-# %%
-for dataset in IF_SMAD_DATASETS:
-    df = if_manifest[if_manifest["dataset"] == dataset]
+for dataset, df_dataset in df.groupby("dataset"):
     plot.plot_channel_intensity_histograms(
+        df_dataset,
         df,
-        if_manifest,
         ["NucViolet_mean_sum_proj", "SMAD1_mean_sum_proj", PLOT_FEAT],
         dataset,
-        positions=[0, 1],
+        positions=df_dataset["position"].unique().tolist(),
         save_dir=output_dir,
     )
 # %%
 plot.feature_density(
-    df_all=if_manifest,
-    dataset_name_list=IF_SMAD_DATASETS,
+    df_all=df,
+    dataset_name_list=df["dataset"].unique().tolist(),
     feature=PLOT_FEAT,
     feature_name="SMAD1 mean intensity of sum projection\nin nuclear mask",
     save_dir=output_dir,
@@ -75,8 +133,8 @@ plot.feature_density(
 )
 # %%
 plot.feature_density(
-    df_all=if_manifest,
-    dataset_name_list=IF_SMAD_DATASETS,
+    df_all=df,
+    dataset_name_list=df["dataset"].unique().tolist(),
     feature=PLOT_FEAT,
     feature_name="SMAD1 mean intensity of sum projection\nin nuclear mask",
     save_dir=output_dir,
@@ -86,29 +144,4 @@ plot.feature_density(
     per_dataset=True,
 )
 
-# %%
-plot.feature_boxplot_vs_flowrate(
-    df_all=if_manifest, dataset_name_list=IF_SMAD_DATASETS, feature=PLOT_FEAT, save_dir=output_dir
-)
-
-plot.feature_boxplot_vs_sample_size(
-    df_all=if_manifest, dataset_name_list=IF_SMAD_DATASETS, feature=PLOT_FEAT, save_dir=output_dir
-)
-
-
-# %%
-plot.feature_scatter_vs_flowrate(
-    df_all=if_manifest,
-    dataset_name_list=IF_SMAD_DATASETS,
-    feature=PLOT_FEAT,
-    save_dir=output_dir,
-    by_flowrate=False,
-)
-plot.feature_scatter_vs_flowrate(
-    df_all=if_manifest,
-    dataset_name_list=IF_SMAD_DATASETS,
-    feature=PLOT_FEAT,
-    save_dir=output_dir,
-    by_flowrate=True,
-)
 # %%

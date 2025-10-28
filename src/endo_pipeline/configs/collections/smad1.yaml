@@ -1,4 +1,4 @@
-name: immunofluorescence
+name: smad1
 description: Datasets for smad1 analysis
 datasets:
 - 20250509_20X_IF1
@@ -6,6 +6,7 @@ datasets:
 - 20250509_20X_IF3
 - 20250509_20X_IF5
 - 20250509_20X_IF7
+- 20250509_20X_IF9
 - 20250509_20X_IF12
 - 20250522_20X_IFA
 - 20250522_20X_IFB
