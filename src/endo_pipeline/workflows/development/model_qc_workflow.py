@@ -121,7 +121,8 @@ def main(model_manifest_name, run_name) -> None:
     # Make a contact sheet summarizing the results
     fig = make_contact_sheet(
         panels=panels,
-        max_rows_cols=(num_images_to_denoise, None),
+        max_rows=num_images_to_denoise,
+        max_cols=None,
         horizontal_titles=horizontal_titles,
         vertical_titles=vertical_titles,
         direction="top-down first",
@@ -158,7 +159,8 @@ def main(model_manifest_name, run_name) -> None:
     # Make a contact sheet summarizing the results
     fig = make_contact_sheet(
         panels=panels,
-        max_rows_cols=(num_images_to_denoise, None),
+        max_rows=num_images_to_denoise,
+        max_cols=None,
         horizontal_titles=horizontal_titles,
         vertical_titles=vertical_titles,
         direction="top-down first",
@@ -197,7 +199,8 @@ def main(model_manifest_name, run_name) -> None:
     # Make a contact sheet summarizing the results
     fig = make_contact_sheet(
         panels=panels,
-        max_rows_cols=(num_images_to_denoise, None),
+        max_rows=num_images_to_denoise,
+        max_cols=None,
         horizontal_titles=horizontal_titles,
         vertical_titles=vertical_titles,
         direction="top-down first",

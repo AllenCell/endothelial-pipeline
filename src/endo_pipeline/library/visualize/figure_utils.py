@@ -148,7 +148,8 @@ def plot_image_thumbnail(
 
 def make_contact_sheet(
     panels: list[np.ndarray],
-    max_rows_cols: tuple[int | None, int | None] = (None, None),
+    max_rows: int | None = None,
+    max_cols: int | None = None,
     horizontal_titles: list[str] | None = None,
     vertical_titles: list[str] | None = None,
     panel_titles: list[str] | None = None,
@@ -164,7 +165,6 @@ def make_contact_sheet(
     if (panel_titles is not None) and (len(panels) != len(panel_titles)):
         raise ValueError("Number of panel_titles must match number of panels if provided.")
 
-    max_rows, max_cols = max_rows_cols
     # 'Figure' out the number of panels you have to plot
     num_panels = len(panels)
 
