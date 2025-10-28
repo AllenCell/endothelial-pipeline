@@ -212,8 +212,7 @@ def main(model_manifest_name, run_name) -> None:
     save_plot_to_path(fig, output_path, "denoising_by_conditioning_on_scrambled_bf")
 
 
-model_manifest_name = "diffae_baseline_exclude_cell_piling"
-run_name = None
-
 if __name__ == "__main__":
-    main(model_manifest_name, run_name)
+    from endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)
