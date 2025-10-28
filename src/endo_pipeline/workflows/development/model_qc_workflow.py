@@ -1,6 +1,7 @@
 def main(model_manifest_name, run_name) -> None:
     """QC a newly trained model."""
 
+    from numpy import ones_like
     from numpy.random import default_rng
 
     from endo_pipeline import NUM_GPUS
@@ -11,6 +12,7 @@ def main(model_manifest_name, run_name) -> None:
         load_image_from_path,
         load_model,
     )
+    from endo_pipeline.io.output import save_plot_to_path
     from endo_pipeline.library.model.diffae.eval_diffae import get_latent_vector_from_crop
     from endo_pipeline.library.model.diffae.generate_image import (
         add_noise_to_image,
@@ -112,24 +114,28 @@ def main(model_manifest_name, run_name) -> None:
     horizontal_titles = ["Brightfield Input", "Original CDH5", "Noised CDH5", "Denoised CDH5"]
     vertical_titles = [f"{level * 100:.0f}% Noise" for level in [*NOISE_LEVELS, 1]]
 
+    subplot_kwargs = {"frame_on": False}
+    gridspec_kwards = {"wspace": 0.05, "hspace": 0.05}
     fig_kwargs = {"figsize": (5, 5)}
 
     # Make a contact sheet summarizing the results
-    make_contact_sheet(
+    fig = make_contact_sheet(
         panels=panels,
-        max_rows=num_images_to_denoise,
-        max_cols=None,
+        max_rows_cols=(num_images_to_denoise, None),
         horizontal_titles=horizontal_titles,
         vertical_titles=vertical_titles,
         direction="top-down first",
+        subplot_kwargs=subplot_kwargs,
+        gridspec_kwargs=gridspec_kwards,
         fig_kwargs=fig_kwargs,
-        output_dir=output_path,
-        filename="denoising_by_bf_conditioning",
     )
+    # save the figure
+    save_plot_to_path(fig, output_path, "denoising_by_bf_conditioning")
 
     # Do the same thing but with the conditioning vector randomly shuffled
     # This is our negative control for the BF conditioning
     latent_vector_scrambled = rng.permuted(bf_crop_latent_vector)
+
     denoised_images_by_random_cond = [
         generate_from_coords_and_noised_image(
             model, latent_vector_scrambled, noised_image, num_gpus=NUM_GPUS
@@ -141,25 +147,63 @@ def main(model_manifest_name, run_name) -> None:
     # Prepare arguments for contact sheet
     num_images_to_denoise = len(denoised_images_by_random_cond)
     panels = [
-        *[bf_crop.squeeze()] * num_images_to_denoise,
+        *[ones_like(bf_crop).squeeze()] * num_images_to_denoise,
         *[cdh5_crop.squeeze()] * num_images_to_denoise,
         *[img.squeeze() for img in images_to_denoise],
         *[img.squeeze() for img in denoised_images_by_random_cond],
     ]
-    horizontal_titles = ["Brightfield Input", "Original CDH5", "Noised CDH5", "Denoised CDH5"]
+    horizontal_titles = ["Scrambled Latent Vector", "Original CDH5", "Noised CDH5", "Denoised CDH5"]
     vertical_titles = [f"{level * 100:.0f}% Noise" for level in [*NOISE_LEVELS, 1]]
 
-    fig_kwargs = {"figsize": (5, 5)}
-
     # Make a contact sheet summarizing the results
-    make_contact_sheet(
+    fig = make_contact_sheet(
         panels=panels,
-        max_rows=num_images_to_denoise,
-        max_cols=None,
+        max_rows_cols=(num_images_to_denoise, None),
         horizontal_titles=horizontal_titles,
         vertical_titles=vertical_titles,
         direction="top-down first",
+        subplot_kwargs=subplot_kwargs,
+        gridspec_kwargs=gridspec_kwards,
         fig_kwargs=fig_kwargs,
-        output_dir=output_path,
-        filename="denoising_by_random_conditioning",
     )
+    # save the figure
+    save_plot_to_path(fig, output_path, "denoising_by_random_conditioning")
+
+    # Do the same thing but with the conditioning vector retrieved from a
+    # randomly shuffled version of the brightfield image
+    # This is another negative control for the BF conditioning
+    img_scrambled = rng.permuted(bf_crop.ravel()).reshape(bf_crop.shape)
+    latent_vector_scrambled = get_latent_vector_from_crop(model, img_scrambled, num_gpus=NUM_GPUS)
+
+    denoised_images_by_random_cond = [
+        generate_from_coords_and_noised_image(
+            model, latent_vector_scrambled, noised_image, num_gpus=NUM_GPUS
+        )
+        for noised_image in images_to_denoise
+    ]
+
+    # Plot these images!
+    # Prepare arguments for contact sheet
+    num_images_to_denoise = len(denoised_images_by_random_cond)
+    panels = [
+        *[img_scrambled.squeeze()] * num_images_to_denoise,
+        *[cdh5_crop.squeeze()] * num_images_to_denoise,
+        *[img.squeeze() for img in images_to_denoise],
+        *[img.squeeze() for img in denoised_images_by_random_cond],
+    ]
+    horizontal_titles = ["Scrambled Latent Vector", "Original CDH5", "Noised CDH5", "Denoised CDH5"]
+    vertical_titles = [f"{level * 100:.0f}% Noise" for level in [*NOISE_LEVELS, 1]]
+
+    # Make a contact sheet summarizing the results
+    fig = make_contact_sheet(
+        panels=panels,
+        max_rows_cols=(num_images_to_denoise, None),
+        horizontal_titles=horizontal_titles,
+        vertical_titles=vertical_titles,
+        direction="top-down first",
+        subplot_kwargs=subplot_kwargs,
+        gridspec_kwargs=gridspec_kwards,
+        fig_kwargs=fig_kwargs,
+    )
+    # save the figure
+    save_plot_to_path(fig, output_path, "denoising_by_conditioning_on_scrambled_bf")

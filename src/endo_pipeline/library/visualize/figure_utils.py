@@ -148,16 +148,15 @@ def plot_image_thumbnail(
 
 def make_contact_sheet(
     panels: list[np.ndarray],
-    max_rows: int | None = None,
-    max_cols: int | None = None,
+    max_rows_cols: tuple[int | None, int | None] = (None, None),
     horizontal_titles: list[str] | None = None,
     vertical_titles: list[str] | None = None,
     panel_titles: list[str] | None = None,
     direction: Literal["left-right first", "top-down first"] = "left-right first",
+    subplot_kwargs: dict | None = None,
+    gridspec_kwargs: dict | None = None,
     fig_kwargs: dict | None = None,
-    filename: str | None = "unnamed",
-    output_dir: Path | None = None,
-) -> None:
+) -> plt.Figure:
     """Create and save a contact sheet of images."""
 
     if direction not in ["left-right first", "top-down first"]:
@@ -165,6 +164,7 @@ def make_contact_sheet(
     if (panel_titles is not None) and (len(panels) != len(panel_titles)):
         raise ValueError("Number of panel_titles must match number of panels if provided.")
 
+    max_rows, max_cols = max_rows_cols
     # 'Figure' out the number of panels you have to plot
     num_panels = len(panels)
 
@@ -221,7 +221,13 @@ def make_contact_sheet(
             pass
 
     # create the figure and axes
-    fig, axs = plt.subplots(nrows=nrows, ncols=ncols, **(fig_kwargs or {}))
+    fig, axs = plt.subplots(
+        nrows=nrows,
+        ncols=ncols,
+        subplot_kw=subplot_kwargs or {},
+        gridspec_kw=gridspec_kwargs or {},
+        **(fig_kwargs or {}),
+    )
 
     ## iterate through your contact sheet axs to get the
     ## (row, column) index for each ax in axs as a flat list...
@@ -252,5 +258,4 @@ def make_contact_sheet(
             ax.set_xlabel(horizontal_titles[ax_col], fontsize=FONTSIZE_LARGE)
             ax.xaxis.set_label_position("top")
 
-    # save the figure
-    save_plot_to_path(fig, output_dir, filename)
+    return fig
