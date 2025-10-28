@@ -54,9 +54,11 @@ WORKFLOW_OPTIONS = WorkflowOptions()
 PIPELINE_OPTIONS = PipelineOptions()
 
 
-def pipeline_cli() -> None:
-    """Pipeline CLI."""
-
+def build_pipeline_app():
+    """
+    Add all the options to pipeline_app.
+    This function is split out from pipeline_cli so it can be used in tests.
+    """
     pipeline_app["--help"].group = "Options"
 
     build_cli_group(FIGURE_WORKFLOWS, "figures", True)
@@ -65,6 +67,11 @@ def pipeline_cli() -> None:
     build_cli_group(ARCHIVED_WORKFLOWS, "archive", False)
 
     pipeline_app.meta.default(pipeline_entrypoint)
+
+
+def pipeline_cli() -> None:
+    """Pipeline CLI."""
+    build_pipeline_app()
     pipeline_app.meta()
 
 
