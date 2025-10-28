@@ -300,7 +300,8 @@ def make_contact_sheet(
 
         ax.imshow(panels[i], cmap="gray")
         ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
-        ax.set_title(panel_titles[i], fontsize=FONTSIZE_LARGE) if panel_titles is not None else None
+        if panel_titles is not None:
+            ax.set_title(panel_titles[i], fontsize=FONTSIZE_LARGE)
 
         if (ax_col == 0) and (vertical_titles is not None):
             ax.set_ylabel(vertical_titles[ax_row], fontsize=FONTSIZE_LARGE)
