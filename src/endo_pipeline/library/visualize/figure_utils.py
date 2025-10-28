@@ -158,7 +158,56 @@ def make_contact_sheet(
     gridspec_kwargs: dict | None = None,
     fig_kwargs: dict | None = None,
 ) -> plt.Figure:
-    """Create and save a contact sheet of images."""
+    """Create and save a contact sheet of images.
+    Sequentially plots images from "panels" in a grid layout with optional titles for rows and
+    columns in the specified direction (row-by-row for "left-right first" or column-by-column
+    for "top-down first"). If neither max_rows nor max_cols is specified, all panels will be
+    plotted in a single row or column depending "direction".
+
+    Parameters
+    ----------
+    panels:
+        List of 2D arrays representing the images to be plotted in the contact sheet.
+    max_rows:
+        Maximum number of rows in the contact sheet. If None, no limit is applied.
+    max_cols:
+        Maximum number of columns in the contact sheet. If None, no limit is applied.
+    horizontal_titles:
+        List of titles for each column. Length of horizontal_titles must match the
+        number of columns that are plotted or have length of 1 if provided. If the
+        length is 1 then the title will be repeated for each column.
+        If None, no titles are added.
+    vertical_titles:
+        List of titles for each row. Length of vertical_titles must match the number
+        of rows that are plotted or have length of 1 if provided. If the length is 1
+        then the title will be repeated for each row.
+        If None, no titles are added.
+    panel_titles:
+        List of titles for each panel. Length must match the number of panels provided.
+        If None, no titles are added.
+    direction:
+        Direction to fill the contact sheet: "left-right first" or "top-down first".
+        If left-right first, panels are filled row-wise (a row fills up until max_cols
+        is reached before starting a new row).
+        If top-down first, panels are filled column-wise (a column fills up until max_rows
+        is reached before starting a new column).
+    subplot_kwargs:
+        Additional keyword arguments to pass to plt.subplots for each subplot.
+        Example includes 'frame_on' to remove the lines around each subplot.
+    gridspec_kwargs:
+        Additional keyword arguments to pass to plt.subplots for the gridspec.
+        Example includes 'wspace' and 'hspace' to adjust spacing between subplots.
+    fig_kwargs:
+        Additional keyword arguments to pass to plt.subplots for the figure.
+        Example includes 'figsize' to set the overall figure size.
+
+    Returns
+    -------
+    plt.Figure
+        The created contact sheet figure. Can be displayed again in an interactive session
+        by running `fig`, and axes can be accessed and further modified via `fig.axes`
+        (for example if adding lines, arrows, a scalebar, or additional plots is desired).
+    """
 
     if direction not in ["left-right first", "top-down first"]:
         raise ValueError("Invalid direction specified.")
@@ -251,6 +300,7 @@ def make_contact_sheet(
 
         ax.imshow(panels[i], cmap="gray")
         ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
+        ax.set_title(panel_titles[i], fontsize=FONTSIZE_LARGE) if panel_titles is not None else None
 
         if (ax_col == 0) and (vertical_titles is not None):
             ax.set_ylabel(vertical_titles[ax_row], fontsize=FONTSIZE_LARGE)
