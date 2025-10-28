@@ -1,4 +1,6 @@
 # %%
+import logging
+
 import numpy as np
 import pandas as pd
 
@@ -13,10 +15,14 @@ DESCRIPTION = "Analyze SMAD1 intensity distributions under shear stress conditio
 
 TAGS = ["immunofluorescence"]
 
-
+logger = logging.getLogger(__name__)
 # %% Load Data and add info to dataframe
 output_dir = get_output_path("SMAD1")
 smad1_datasets = get_datasets_in_collection("smad1")
+if DEMO_MODE:
+    all_dataset_list = smad1_datasets[0]
+    logger.info("DEMO MODE: limiting to first two datasets for faster execution.")
+
 if_df_manifest = load_dataframe_manifest("immunofluorescence")
 
 df_smad1_list = []
@@ -52,9 +58,6 @@ df = df[df["SMAD1_norm_NucViolet_mean_sum_proj"] < 1.0]
 
 # %%
 all_dataset_list = df["dataset"].unique().tolist()
-
-if DEMO_MODE:
-    all_dataset_list = all_dataset_list[:2]
 
 # %% Plot distributions of SMAD1 intensity features
 PLOT_FEAT = "SMAD1_mean_sum_proj"

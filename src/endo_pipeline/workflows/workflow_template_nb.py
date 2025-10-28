@@ -1,3 +1,5 @@
+from endo_pipeline import DEMO_MODE
+
 # ============================ WORKFLOW DESCRIPTION ============================
 # Notebooks do not have a "docstring" that can be automatically parsed to
 # populate the help message. Instead, these workflows may include a description
@@ -53,3 +55,7 @@ logger.info(f"info message")
 logger.warning(f"warn message")
 logger.error(f"error message")
 logger.critical(f"critical message")
+
+
+if DEMO_MODE:
+    logger.info("DEMO MODE: running workflow_template_nb.py")
