@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 output_dir = get_output_path("SMAD1")
 smad1_datasets = get_datasets_in_collection("smad1")
 if DEMO_MODE:
-    smad1_datasets = smad1_datasets[0]
+    smad1_datasets = smad1_datasets[:1]
     logger.info("DEMO MODE: limiting to first dataset for faster execution.")
 
 if_df_manifest = load_dataframe_manifest("immunofluorescence")
