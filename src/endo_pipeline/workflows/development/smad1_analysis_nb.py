@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 output_dir = get_output_path("SMAD1")
 smad1_datasets = get_datasets_in_collection("smad1")
 if DEMO_MODE:
-    all_dataset_list = smad1_datasets[0]
+    smad1_datasets = smad1_datasets[0]
     logger.info("DEMO MODE: limiting to first dataset for faster execution.")
 
 if_df_manifest = load_dataframe_manifest("immunofluorescence")
@@ -63,7 +63,7 @@ all_dataset_list = df["dataset"].unique().tolist()
 PLOT_FEAT = "SMAD1_mean_sum_proj"
 xlim = 30000
 ylim = 0.00035
-for dataset in all_dataset_list:
+for dataset in smad1_datasets:
     df_dataset = df[df["dataset"] == dataset]
     plot.plot_channel_intensity_histograms(
         df_dataset,
@@ -76,7 +76,7 @@ for dataset in all_dataset_list:
 # %%
 plot.feature_density(
     df_all=df,
-    dataset_name_list=all_dataset_list,
+    dataset_name_list=smad1_datasets,
     feature=PLOT_FEAT,
     feature_name="SMAD1 mean intensity of sum projection\nin nuclear mask",
     save_dir=output_dir,
@@ -87,7 +87,7 @@ plot.feature_density(
 # %%
 plot.feature_density(
     df_all=df,
-    dataset_name_list=all_dataset_list,
+    dataset_name_list=smad1_datasets,
     feature=PLOT_FEAT,
     feature_name="SMAD1 mean intensity of sum projection\nin nuclear mask",
     save_dir=output_dir,
