@@ -15,9 +15,9 @@ def main(
     from cellpose import core, models, train
     from cellpose.io import logger_setup
 
-    from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
+    from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.configs.dataset_io import get_datasets_in_collection
-    from endo_pipeline.io import get_output_path, get_timestamp, load_image_from_path
+    from endo_pipeline.io import get_output_path, get_timestamp, load_image
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
     from endo_pipeline.library.process.lib_nuc_pred_from_bf_std_retraining import (
         get_scenes_to_use,
@@ -25,7 +25,11 @@ def main(
         save_labelfree_nuclei_example_image,
         save_training_test_loss_plot,
     )
-    from endo_pipeline.manifests import get_model_location_for_run, load_model_manifest
+    from endo_pipeline.manifests import (
+        get_model_location_for_run,
+        get_zarr_location_for_position,
+        load_model_manifest,
+    )
     from endo_pipeline.settings import DIMENSION_ORDER
 
     logger = logging.getLogger(__name__)
@@ -126,10 +130,8 @@ def main(
     # load the brightfield channel of a test image
     test_dataset_name = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")[0]
     test_dataset_config = load_dataset_config(test_dataset_name)
-    test_zarr_path = get_zarr_file_for_position(test_dataset_config, position=0)
-    test_img_dask_arr = load_image_from_path(
-        path=test_zarr_path, channels=["BF"], timepoints=0, level=0
-    )
+    test_zarr_loc = get_zarr_location_for_position(test_dataset_config, position=0)
+    test_img_dask_arr = load_image(test_zarr_loc, channels=["BF"], timepoints=0, level=0)
     test_img_dask_arr = test_img_dask_arr.std(axis=DIMENSION_ORDER.index("Z"), keepdims=True)
     test_img_arr = test_img_dask_arr.compute().squeeze()
 

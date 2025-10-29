@@ -10,8 +10,9 @@ from numpy.typing import ArrayLike
 from skimage.color import label2rgb
 from skimage.exposure import rescale_intensity
 
-from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-from endo_pipeline.io import get_output_path, load_image_from_path
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import get_output_path, load_image
+from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
@@ -75,13 +76,13 @@ def get_image_data_from_zarr(dataset_name: str, position: int, timepoint: int) -
     """
 
     dataset_config = load_dataset_config(dataset_name)
-    zarr_file = get_zarr_file_for_position(dataset_config, position)
-    voxel_size = BioImage(zarr_file).physical_pixel_sizes
+    zarr_loc = get_zarr_location_for_position(dataset_config, position)
+    voxel_size = load_image(zarr_loc, read=False).physical_pixel_sizes
 
     nuc_chan: int = dataset_config.zarr_channel_indices.channel_405  # type: ignore[assignment]
     bf_chan = dataset_config.zarr_channel_indices.brightfield
 
-    img = load_image_from_path(zarr_file, timepoints=timepoint, level=0)
+    img = load_image(zarr_loc, timepoints=timepoint, level=0)
     img_nuc_dask_arr = np.take(img, indices=[nuc_chan], axis=DIMENSION_ORDER.index("C"))
     img_dask_arr_bf_std = np.take(img, indices=[bf_chan], axis=DIMENSION_ORDER.index("C"))
 
