@@ -24,17 +24,17 @@ def main(datasets: Datasets | None = None) -> None:
     from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import (
         get_datasets_in_collection,
-        get_zarr_file_for_position,
         load_dataset_config,
         save_dataset_config,
     )
-    from endo_pipeline.io import load_image_from_path
+    from endo_pipeline.io import load_image
     from endo_pipeline.io.output import get_output_path
     from endo_pipeline.library.process.z_stack_selection import (
         calculate_global_center_plane,
         plot_standard_devs_per_slice,
         visualize_slice_selection,
     )
+    from endo_pipeline.manifests import get_zarr_location_for_position
 
     logger = logging.getLogger(__name__)
 
@@ -63,13 +63,11 @@ def main(datasets: Datasets | None = None) -> None:
             results_df["position"] == position, "mean_center_plane"
         ].values[0]
 
-        zarr_file = get_zarr_file_for_position(dataset_config, position)
-        bf_stack = load_image_from_path(
-            zarr_file, channels=["BF"], timepoints=frame, level=1
-        ).squeeze()
-        cdh5_stack = load_image_from_path(
-            zarr_file, channels=["EGFP"], timepoints=frame, level=1
-        ).squeeze()
+        zarr_loc = get_zarr_location_for_position(dataset_config, position)
+        bf_stack = load_image(zarr_loc, channels=["BF"], timepoints=frame, level=1, squeeze=True)
+        cdh5_stack = load_image(
+            zarr_loc, channels=["EGFP"], timepoints=frame, level=1, squeeze=True
+        )
 
         global_center_plane = {
             int(row["position"]): int(row["mean_center_plane"]) for _, row in results_df.iterrows()
