@@ -1,4 +1,3 @@
-from endo_pipeline import DEMO_MODE
 from endo_pipeline.cli import tags
 
 TAGS = [tags.TEST_READY, tags.GPU]
@@ -86,11 +85,8 @@ def main(
         )
     )
 
-    pcs = range(1, n_pcs + 1)
-    if DEMO_MODE:
-        pcs = [1]
+    for pc in range(1, n_pcs + 1):
 
-    for pc in pcs:
         # Get common plot ranges for each PC
         axmin, axmax = viz_validate_pcs_for_integration.get_common_plot_range(
             fixed_features, live_features, lagged_ref_features, truncated_ref_features, pc
