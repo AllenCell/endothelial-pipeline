@@ -249,7 +249,7 @@ def plot_channel_intensity_histograms(
                 label=f"Position {position} (N={len(position_data)})",
             )
 
-        axes[i].set_title(f"{title}", fontsize=title_fontsize)
+        axes[i].set_title(title, fontsize=title_fontsize)
         axes[i].set_xlabel(f"{column_name} Intensity", fontsize=label_fontsize)
         axes[i].set_ylabel("Frequency", fontsize=label_fontsize)
         axes[i].tick_params(axis="both", labelsize=tick_fontsize)
