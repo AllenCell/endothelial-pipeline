@@ -1,15 +1,14 @@
 def main(model_manifest_name, run_name) -> None:
     """QC a newly trained model."""
 
-    from numpy import ones_like
     from numpy.random import default_rng
 
     from endo_pipeline import NUM_GPUS
-    from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
+    from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import (
         get_config_dict_from_mlflow,
         get_output_path,
-        load_image_from_path,
+        load_image,
         load_model,
     )
     from endo_pipeline.io.output import save_plot_to_path
@@ -26,7 +25,11 @@ def main(model_manifest_name, run_name) -> None:
         get_image_transforms,
         get_target_image_from_sample,
     )
-    from endo_pipeline.manifests import get_most_recent_run_name, load_model_manifest
+    from endo_pipeline.manifests import (
+        get_most_recent_run_name,
+        get_zarr_location_for_position,
+        load_model_manifest,
+    )
 
     # In practice, these constants would live in endo_pipeline.settings
     # Set which image to load
@@ -44,8 +47,8 @@ def main(model_manifest_name, run_name) -> None:
 
     # Load Example Data
     dataset_config = load_dataset_config(DATASET_NAME)
-    zarr_path = get_zarr_file_for_position(dataset_config, POSITION)
-    img = load_image_from_path(zarr_path, level=1, timepoints=TIMEPOINT, squeeze=True, compute=True)
+    zarr_loc = get_zarr_location_for_position(dataset_config, POSITION)
+    img = load_image(zarr_loc, level=1, timepoints=TIMEPOINT, squeeze=True, compute=True)
 
     # Load model manifest and get location for run_name
     model_manifest = load_model_manifest(model_manifest_name)
@@ -148,12 +151,11 @@ def main(model_manifest_name, run_name) -> None:
     # Prepare arguments for contact sheet
     num_images_to_denoise = len(denoised_images_by_random_cond)
     panels = [
-        *[ones_like(bf_crop).squeeze()] * num_images_to_denoise,
         *[cdh5_crop.squeeze()] * num_images_to_denoise,
         *[img.squeeze() for img in images_to_denoise],
         *[img.squeeze() for img in denoised_images_by_random_cond],
     ]
-    horizontal_titles = ["Scrambled Latent Vector", "Original CDH5", "Noised CDH5", "Denoised CDH5"]
+    horizontal_titles = ["Original CDH5", "Noised CDH5", "Denoised CDH5"]
     vertical_titles = [f"{level * 100:.0f}% Noise" for level in [*NOISE_LEVELS, 1]]
 
     # Make a contact sheet summarizing the results
