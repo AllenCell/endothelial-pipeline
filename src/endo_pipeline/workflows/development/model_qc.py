@@ -73,7 +73,7 @@ def main(model_manifest_name, run_name) -> None:
     # Extract the processed brightfield vs CDH5 image
     # based on the output key from the transforms
     transformed_bf = get_target_image_from_sample(sample, target_key=f"raw_bf")
-    transformed_cdh5 = get_target_image_from_sample(sample, target_key=f"raw_cdh5")
+    transformed_cdh5 = get_target_image_from_sample(sample, target_key="raw_cdh5")
 
     # Crop both images to the same region
     bf_crop = crop_image(transformed_bf, START_X, START_Y, crop_size)
