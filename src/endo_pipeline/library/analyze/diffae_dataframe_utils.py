@@ -14,7 +14,6 @@ from endo_pipeline.configs import (
     get_frame_after_flow_change,
     get_subset_of_timepoint_annotations,
     get_unannotated_positions,
-    get_zarr_file_for_position,
     load_dataset_config,
 )
 from endo_pipeline.io import load_dataframe
@@ -537,35 +536,6 @@ def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
         axis=1,
     )
 
-    return df
-
-
-def add_zarr_path(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Extract zarr path from data config and add it
-    as its own column to the dataframe.
-    Note that df must be a DataFrame containing
-    manifest data from a single dataset.
-
-    This is needed for the current manifests loaded
-    via manifest_io.load_manifest_to_df().
-    """
-    # check that required columns are present in dataframe
-    required_columns = [ColumnName.DATASET, ColumnName.POSITION]
-    check_required_columns_in_dataframe(df, required_columns)
-
-    # temporary until we update how we store position
-    # for now, the position column is a string 'P[int]'
-    df["position_as_int"] = df[ColumnName.POSITION].apply(lambda x: int(x[1:]))
-
-    # load config for the dataset
-    dataset_config = load_dataset_config(df[ColumnName.DATASET].unique()[0])
-    # get zarr path for each position
-    df[ColumnName.ZARR_PATH] = df["position_as_int"].apply(
-        lambda x: get_zarr_file_for_position(dataset_config, x)
-    )
-
-    df = df.drop(columns=["position_as_int"])  # drop temporary column
     return df
 
 
