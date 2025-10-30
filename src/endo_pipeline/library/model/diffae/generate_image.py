@@ -1,23 +1,150 @@
 import logging
-from typing import cast
+import typing
 
 import numpy as np
-import pandas as pd
 import torch
 
-from endo_pipeline.configs import CytoDLModelConfig, load_model_config
-from endo_pipeline.io import get_output_path
-from endo_pipeline.library.analyze.diffae_manifest import get_feature_column_names
-from endo_pipeline.library.model.mlflow_utils import load_mlflow_model
+if typing.TYPE_CHECKING:
+    import numpy as np
+    from cyto_dl.models.im2im.diffusion_autoencoder import (
+        DiffusionAutoEncoder as BaseDiffusionAutoEncoder,
+    )
+
+    from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
+
 
 logger = logging.getLogger(__name__)
 
 
+def add_noise_to_image(
+    input_image: np.ndarray,
+    noise_image: np.ndarray,
+    noise_level: float,
+) -> np.ndarray:
+    """
+    Add Gaussian noise to an input image at a specified noise level.
+
+    **Noise level weighting**
+
+    The output "noised" image is created using the formula:
+
+        output_image = sqrt(1 - noise_level) * input_image + sqrt(noise_level) * noise_img
+
+    Using this formula, ``noise_level`` represents the fraction of the corrupted image
+    that is contributed by the noise image, with the remainder contributed by the original input image.
+    An input noise_level of 0.0 results in no noise being added (the output image is identical
+    to the input image), while a noise_level of 1.0 results in an image composed entirely of noise.
+
+    Parameters
+    ----------
+    input_image
+        The input image to which noise will be added.
+    noise_image
+        A standard Gaussian noise image of the same shape as the input image.
+    noise_level
+        The level of noise to add, between 0.0 (no noise) and 1.0 (all noise).
+    """
+    if not (0.0 <= noise_level <= 1.0):
+        logger.error("Parameter `noise_level` must be between 0.0 and 1.0.")
+        raise ValueError("Parameter `noise_level` must be between 0.0 and 1.0.")
+
+    # Check edge cases for numerical efficiency
+    if noise_level == 0.0:
+        output_image = input_image.copy()
+    elif noise_level == 1.0:
+        output_image = noise_image.copy()
+    else:  # general case
+        output_image = np.sqrt(1 - noise_level) * input_image + np.sqrt(noise_level) * noise_image
+    return output_image
+
+
+def generate_from_coords_and_noised_image(
+    model: "BaseDiffusionAutoEncoder | DiffusionAutoEncoder",
+    coords: np.ndarray,
+    noised_image: np.ndarray,
+    num_gpus: int | None = None,
+) -> np.ndarray:
+    """
+    Generate a synthetic image by denoising a noised image
+    conditioned on a coordinate in the latent space of a model.
+
+    **Input array shapes**
+
+    The input conditioning vector array should have shape ``(num_vecs, num_dims)``, where
+    ``num_vecs`` is the number of conditioning vectors and ``num_dims`` is the dimensionality
+    of the latent space. This allows for generating multiple images corresponding
+    to ``num_vecs`` different conditioning vectors.
+
+    The noised image tensor should have shape ``(num_channels, num_pixels_y, num_pixels_x)``,
+    where ``num_channels`` is the number of channels, ``num_pixels_y`` is the height of the image
+    (number of pixels in Y), and ``num_pixels_x`` is the width of the image (number of pixels in X).
+    Note that this shape should be the same as ``model.image_shape`` in the model's configuration.
+
+    **Example usage**
+
+    .. code-block:: python
+
+        from endo_pipeline.io import load_model
+        from endo_pipeline.manifests import load_model_manifest
+        from endo_pipeline.library.model.diffae import generate_from_coords_and_noised_image
+
+        model_manifest = load_model_manifest("my_model_manifest")
+        model_location = model_manifest.locations["my_run_name"]
+        model = load_model(model_location)
+
+        gen_image = generate_from_coords_and_noised_image(
+            model,
+            coords=my_coords, # shape (num_vecs, num_dims)
+            noised_image=my_noised_image, # shape (1, n_y, n_x) for this model
+        )
+
+    Parameters
+    ----------
+    model
+        The model to use for image generation (conditioned denoising).
+    coords
+        A coordinate in the latent space of the model; used to condition the denoising.
+    noised_image
+        An image used as the starting point for denoising by the model.
+    num_gpus
+        Optional, number of available GPUs.
+    """
+    coords_torch = torch.from_numpy(coords).float()
+    noised_image_torch = torch.from_numpy(noised_image).float()
+
+    # move model and inputs to gpu if available, else
+    # perform reconstruction on cpu
+    if num_gpus:
+        coords_ = coords_torch.to("cuda")
+        noised_image_ = noised_image_torch.to("cuda")
+        model_ = model.to("cuda")
+    else:
+        coords_ = coords_torch
+        noised_image_ = noised_image_torch
+        model_ = model
+
+    if not hasattr(model_, "generate_from_latent_and_noised_image"):
+        logger.error(
+            "Model class [ %s ] does not support generation from coordinates and noised image.",
+            model_.__class__.__name__,
+        )
+        raise NotImplementedError(
+            f"Model class [ {model_.__class__.__name__} ] does not support generation from coordinates and noised image."
+        )
+
+    gen_img = model_.generate_from_latent_and_noised_image(
+        conditioning_vector=coords_,
+        noised_image=noised_image_,
+    )
+    return gen_img
+
+
 def generate_from_coords(
-    model_name: str,
+    model: "BaseDiffusionAutoEncoder | DiffusionAutoEncoder",
     coords: np.ndarray | list[list[float]],
     n_noise_samples: int = 1,
     average: bool = False,
+    num_gpus: int | None = None,
 ) -> np.ndarray:
     """
     Generate a synthetic image from a list of coordinates
@@ -25,14 +152,16 @@ def generate_from_coords(
 
     Parameters
     ----------
-    model_name: str
-        The name of the model to use for generation.
-    coords: List[List[float]]
+    model
+        The model to use for generation.
+    coords
         A list of coordinates in the latent space of the model.
-    n_noise_samples: int
+    n_noise_samples
         The number of noise samples to use for generation.
-    average: bool
+    average
         Whether to average the generated images.
+    num_gpus
+        Optional, number of available GPUs.
     """
     if not isinstance(coords, np.ndarray):
         if isinstance(coords, list):
@@ -43,15 +172,11 @@ def generate_from_coords(
     else:
         coords_np = coords
 
-    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
-    mlflow_id = model_config.mlflow_run_id
-    model_path = get_output_path("models", model_name, "train", include_timestamp=False)
-    model = load_mlflow_model(mlflow_id, save_path=model_path)
-
     coords_torch = torch.from_numpy(coords_np).float()
 
-    # move model and inputs to gpu if available
-    if torch.cuda.is_available():
+    # move model and inputs to gpu if available, else
+    # perform reconstruction on cpu
+    if num_gpus:
         coords_ = coords_torch.to("cuda")
         model_ = model.to("cuda")
     else:
@@ -65,7 +190,9 @@ def generate_from_coords(
 
 
 def generate_from_coords_batch(
-    model_name: str, coords_batch: np.ndarray | list[list[list[float]]]
+    model: "BaseDiffusionAutoEncoder | DiffusionAutoEncoder",
+    coords_batch: np.ndarray | list[list[list[float]]],
+    num_gpus: int | None = None,
 ) -> list[np.ndarray]:
     """
     Generate synthetic images from a batch of coordinates
@@ -73,10 +200,12 @@ def generate_from_coords_batch(
 
     Parameters
     ----------
-    model_name: str
-        The name of the model to use for generation.
-    coords_batch: List[List[List[float]]]
+    model:
+        The model to use for generation.
+    coords_batch:
         A batch of lists of coordinates in the latent space of the model.
+    num_gpus:
+        Optional, number of available GPUs.
     """
 
     # note to self: need to debug what the input type is here
@@ -89,28 +218,8 @@ def generate_from_coords_batch(
     else:
         coords_concat = np.concatenate(coords_batch, axis=0)
     logger.debug("Concatenated coordinates shape: [ %s ]", coords_concat.shape)
-    img = generate_from_coords(model_name, coords=coords_concat)
+
+    img = generate_from_coords(model, coords_concat, num_gpus=num_gpus)
     walk_imgs = [img[i] for i in range(len(coords_batch))]
-
-    return walk_imgs
-
-
-def get_reconstructed_crops_in_dataframe(df: pd.DataFrame) -> list:
-    """
-    Reconstruct crops from each latent coordinate
-    given in the input dataframe.
-    """
-    # get coordinates (feature columns) from the dataframe,
-    # convert to list of lists for input into DiffAE model
-    num_points = df.shape[0]
-    latent_coords = []
-    feat_cols = get_feature_column_names(df)
-    for i in range(num_points):
-        latent_coords.append(df[feat_cols].iloc[i].tolist())
-
-    # pass into DiffAE model to generate reconstructed crops
-    walk_imgs = generate_from_coords_batch(
-        "diffae_04_10", np.array(latent_coords)
-    )  # output is a list of numpy arrays
 
     return walk_imgs

@@ -9,7 +9,7 @@ from matplotlib.colors import TABLEAU_COLORS
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, save_plot_to_path
-from endo_pipeline.library.analyze.diffae_manifest import get_dataset_descriptions
+from endo_pipeline.library.analyze.diffae_dataframe_utils import get_dataset_descriptions
 from endo_pipeline.library.analyze.numerics import (
     double_exponential_decay,
     exponential_decay,
@@ -47,7 +47,7 @@ def _plot_single_acf_curve(
 def _plot_acf_curves_together(
     dataset_name: str,
     correlation_dict: dict[str, dict[str, Any]],
-    bootstrap_samples: int = 0,
+    bootstrap_samples: int | None = None,
     figsize: tuple[int, int] = (12, 6),
     component_labels: list[str] | None = None,
     component_colors: list[str] | None = None,
@@ -80,7 +80,7 @@ def _plot_acf_curves_together(
         )
 
         # add confidence intervals if available
-        if bootstrap_samples > 0:
+        if bootstrap_samples is not None:
             acf_ci_lower = correlation_dict["acf_ci_lower"][dataset_name][index_positive]
             acf_ci_upper = correlation_dict["acf_ci_upper"][dataset_name][index_positive]
             ax.fill_between(
@@ -258,7 +258,7 @@ def _make_all_acf_plots(
     dataset_description: str,
     output_path: Path,
     fit_double_exp: bool = True,
-    bootstrap_samples: int = 0,
+    bootstrap_samples: int | None = None,
 ) -> dict[str, dict[str, Any]]:
     # unpack results
     lags: np.ndarray = correlation_dict["lags"][dataset_name]
@@ -337,7 +337,7 @@ def _make_all_ccf_plots(
     correlation_dict: dict[str, dict[str, Any]],
     dataset_description: str,
     output_path: Path,
-    bootstrap_samples: int = 0,
+    bootstrap_samples: int | None = None,
 ) -> None:
     # unpack results
     lags: np.ndarray = correlation_dict["lags"][dataset_name]
@@ -356,7 +356,7 @@ def _make_all_ccf_plots(
     for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
         lags_all_as_hours = 5 * lags / 60  # convert from frames (5 minutes) to hours
         ax.plot(lags_all_as_hours, ccf[:, i], label=f"(PC{j+1}, PC{k+1})")
-        if bootstrap_samples > 0:
+        if bootstrap_samples is not None:
             ax.fill_between(
                 lags_all_as_hours,
                 ccf_ci_lower[:, i],
@@ -383,7 +383,7 @@ def _make_all_ccf_plots(
         lags_symmetric = lags[1 + num_lags // 2 :]
         lags_symmetric_as_hours = 5 * lags_symmetric / 60
         ax.plot(lags_symmetric_as_hours, delta_ccf[:, i], label=f"(PC{j+1}, PC{k+1})")
-        if bootstrap_samples > 0:
+        if bootstrap_samples is not None:
             ax.fill_between(
                 lags_symmetric_as_hours,
                 delta_ccf_ci_lower[:, i],
@@ -399,7 +399,7 @@ def _make_all_ccf_plots(
     ax.set_ylim(-0.5, 0.75)
     # print integral of delta ccf near zero on plot
     ci_bounds = None
-    if bootstrap_samples > 0:
+    if bootstrap_samples is not None:
         ci_bounds = (
             correlation_dict["delta_ccf_integral_ci_lower"][dataset_name],
             correlation_dict["delta_ccf_integral_ci_upper"][dataset_name],
@@ -417,7 +417,7 @@ def _plot_full_correlation_curves(
     correlation_dict: dict[str, dict[str, Any]],
     dataset_descriptions: dict[str, str],
     output_path: Path,
-    bootstrap_samples: int = 0,
+    bootstrap_samples: int | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Plot full correlation curves for a single dataset."""
     # get string for dataset description
@@ -591,7 +591,7 @@ def _plot_correlation_metrics_vs_shear_stress(
 
 
 def plot_correlation_workflow_outputs(
-    correlation_dict: dict[str, dict[str, Any]], bootstrap_samples: int = 0
+    correlation_dict: dict[str, dict[str, Any]], bootstrap_samples: int | None = None
 ) -> None:
     """
     Plot correlation workflow outputs.

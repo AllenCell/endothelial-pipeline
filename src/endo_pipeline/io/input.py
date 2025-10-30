@@ -3,15 +3,23 @@
 import logging
 import typing
 from pathlib import Path
+from typing import Literal, overload
 
 if typing.TYPE_CHECKING:
+    import dask.array as da
+    import numpy as np
+    from bioio import BioImage
     from cyto_dl.api import CytoDLModel
+    from cyto_dl.models.im2im.diffusion_autoencoder import (
+        DiffusionAutoEncoder as BaseDiffusionAutoEncoder,
+    )
     from omegaconf import DictConfig, ListConfig
 
-import dask.array as da
-import pandas as pd
-from bioio import BioImage
+    from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 
+import pandas as pd
+
+from endo_pipeline.configs import load_model_config
 from endo_pipeline.io.output import get_output_path
 from endo_pipeline.manifests import DataframeLocation, ImageLocation, ModelLocation
 from endo_pipeline.settings import DIMENSION_ORDER
@@ -19,20 +27,96 @@ from endo_pipeline.settings import DIMENSION_ORDER
 logger = logging.getLogger(__name__)
 
 
-def load_zarr_as_dask_array(
+def get_repository_root_dir() -> Path:
+    """
+    Get path to root of git repository.
+
+    Returns
+    -------
+    :
+        Path object for root of git repository.
+    """
+
+    return Path(__file__).resolve().parents[3]
+
+
+@overload
+def load_image_from_path(
     path: Path,
+    *,
+    read: Literal[True] = True,
+    compute: Literal[True],
+    squeeze: bool = False,
     channels: list[str] | None = None,
     timepoints: int | list[int] | range | None = None,
     level: int = 0,
+) -> "np.ndarray": ...
+
+
+@overload
+def load_image_from_path(
+    path: Path,
+    *,
+    read: Literal[True] = True,
+    compute: Literal[False] = False,
     squeeze: bool = False,
-) -> da.Array:
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "da.Array": ...
+
+
+@overload
+def load_image_from_path(
+    path: Path,
+    *,
+    read: Literal[False],
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage": ...
+
+
+@overload
+def load_image_from_path(
+    path: Path,
+    *,
+    read: bool = True,
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage | da.Array | np.ndarray": ...
+
+
+def load_image_from_path(
+    path: Path,
+    *,
+    read: bool = True,
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage | da.Array | np.ndarray":
     """
-    Load Zarr as Dask array.
+    Load image from path.
+
+    Currently supports files ending in .ome.zarr and .ome.tiff.
 
     Parameters
     ----------
     path
-        Path to Zarr file.
+        Path to image file.
+    read
+        True to read the image, False to return the reader object.
+    squeeze
+        True to drop any single-dimensional entries, False otherwise.
+    compute
+        True to turn lazy Dask array into in-memory NumPy array, False otherwise.
     channels
         Channel(s) to load. Channels should be given as a list of channel names.
         Use None to load all channels.
@@ -41,18 +125,32 @@ def load_zarr_as_dask_array(
         of integers, or an integer range. Use None to load all timepoints.
     level
         Resolution level to load.
-    squeeze
-        True to drop any single-dimensional entries, False otherwise.
+
+    Returns
+    -------
+    :
+        Image loaded from path.
     """
+
+    from bioio import BioImage
+
+    if path.suffixes not in ([".ome", ".zarr"], [".ome", ".tiff"]):
+        logger.error("Path [ %s ] cannot be loaded as image", path)
+        raise ValueError(f"Invalid image file format '{path.suffix}'")
 
     if not path.exists():
         logger.error("Path [ %s ] could not be loaded", path)
         raise FileNotFoundError(f"No such file '{path}'")
 
+    logger.info("Loading path [ %s ] as %s file", path, "".join(path.suffixes).upper())
+
+    # Initialize image reader and reader arguments.
+    reader = BioImage(path)
     reader_arguments = {}
 
-    # Initialize image reader.
-    reader = BioImage(path)
+    # Return just the initialized reader without actually reading the data, if requested.
+    if not read:
+        return reader
 
     # Specify timepoints to load, if provided. Otherwise, all timepoints will be loaded.
     if timepoints is not None:
@@ -74,47 +172,79 @@ def load_zarr_as_dask_array(
     # Read image data.
     image = reader.get_image_dask_data(DIMENSION_ORDER, **reader_arguments)
 
+    # Squeeze image if requested.
     if squeeze:
-        return image.squeeze()
+        image = image.squeeze()
+
+    # Compute image if requested.
+    if compute:
+        image = image.compute()
 
     return image
 
 
-def load_image_from_path(path: Path, squeeze: bool = True) -> da.Array:
-    """
-    Load image from path.
-
-    Currently supports files ending in .ome.tiff.
-
-    Parameters
-    ----------
-    path
-        Path to image file.
-    squeeze
-        Drop single-dimensional entries from the shape of the array if True.
-
-    Returns
-    -------
-    :
-        File loaded as dask array.
-    """
-
-    if not path.exists():
-        logger.error("Path [ %s ] could not be loaded", path)
-        raise FileNotFoundError(f"No such file '{path}'")
-
-    if path.suffixes == [".ome", ".tiff"]:
-        logger.info("Loading path [ %s ] as OME TIFF file", path)
-        if squeeze:
-            return BioImage(path).get_image_dask_data(DIMENSION_ORDER).compute().squeeze()
-        else:
-            return BioImage(path).get_image_dask_data(DIMENSION_ORDER).compute()
-
-    logger.error("Path [ %s ] cannot be loaded as image", path)
-    raise ValueError(f"Invalid image file format '{path.suffix}'")
+@overload
+def load_image(
+    location: ImageLocation,
+    *,
+    read: Literal[True] = True,
+    compute: Literal[True],
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "np.ndarray": ...
 
 
-def load_image(location: ImageLocation, squeeze: bool = True) -> da.Array:
+@overload
+def load_image(
+    location: ImageLocation,
+    *,
+    read: Literal[True] = True,
+    compute: Literal[False] = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "da.Array": ...
+
+
+@overload
+def load_image(
+    location: ImageLocation,
+    *,
+    read: Literal[False],
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage": ...
+
+
+@overload
+def load_image(
+    location: ImageLocation,
+    *,
+    read: bool = True,
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage | da.Array | np.ndarray": ...
+
+
+def load_image(
+    location: ImageLocation,
+    *,
+    read: bool = True,
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage | da.Array | np.ndarray":
     """
     Load image from location.
 
@@ -122,12 +252,36 @@ def load_image(location: ImageLocation, squeeze: bool = True) -> da.Array:
     ----------
     location
         Image location object.
+    read
+        True to read the image, False to return the reader object.
     squeeze
-        Drop single-dimensional entries from the shape of the array if True.
+        True to drop any single-dimensional entries, False otherwise.
+    compute
+        True to turn lazy Dask array into in-memory NumPy array, False otherwise.
+    channels
+        Channel(s) to load. Channels should be given as a list of channel names.
+        Use None to load all channels.
+    timepoints
+        Timepoint(s) to load. Timepoints can be given as a single integer, list
+        of integers, or an integer range. Use None to load all timepoints.
+    level
+        Resolution level to load.
+
+    Returns
+    -------
+        Loaded image.
     """
 
     if location.path is not None:
-        return load_image_from_path(location.path, squeeze)
+        return load_image_from_path(
+            location.path,
+            read=read,
+            compute=compute,
+            squeeze=squeeze,
+            channels=channels,
+            timepoints=timepoints,
+            level=level,
+        )
 
     logger.error("Location does not have a path.")
     raise FileNotFoundError("Unable to load image; no available locations.")
@@ -147,7 +301,7 @@ def load_dataframe_from_path(path: Path) -> pd.DataFrame:
     Returns
     -------
     :
-        File loaded as dataframe.
+        Dataframe loaded from path.
     """
 
     if not path.exists():
@@ -219,7 +373,7 @@ def load_dataframe_from_fms(fmsid: str) -> pd.DataFrame:
     Returns
     -------
     :
-        File loaded as dataframe.
+        Dataframe loaded from FMS.
     """
 
     local_path = get_local_path_from_fmsid(fmsid)
@@ -241,7 +395,7 @@ def load_dataframe_from_s3(s3uri: str) -> pd.DataFrame:
     Returns
     -------
     :
-        Object loaded as dataframe.
+        Dataframe loaded from S3.
     """
 
     if not s3uri.startswith("s3://"):
@@ -284,6 +438,10 @@ def load_dataframe(location: DataframeLocation) -> pd.DataFrame:
     ----------
     location
         Dataframe location object.
+
+    Returns
+    -------
+        Loaded dataframe.
     """
 
     if location.fmsid is not None:
@@ -439,7 +597,9 @@ def get_checkpoint_path_from_mlflow(mlflowid: str) -> Path:
     )
 
 
-def load_model_from_mlflow(mlflowid: str) -> "CytoDLModel":
+def load_model_from_mlflow(
+    mlflowid: str, instantiate: bool = False
+) -> "CytoDLModel | BaseDiffusionAutoEncoder | DiffusionAutoEncoder":
     """
     Load model from MLFlow by run ID.
 
@@ -450,23 +610,25 @@ def load_model_from_mlflow(mlflowid: str) -> "CytoDLModel":
     ----------
     mlflowid
         MLFlow run ID.
+    instantiate
+        True to instantiate the model object, False otherwise.
 
     Returns
     -------
     :
-        Model loaded with config and checkpoint.
+        Model loaded from MLflow.
     """
 
     from cyto_dl.api import CytoDLModel
 
+    from endo_pipeline.settings import DIFFAE_MODEL_LEGACY_CONFIG
+
     # Temporary workaround: using tracked version of config for "legacy" model
     if mlflowid == "ae7f25b4109c47809d3e2ed1b7120e50":
-        from omegaconf import OmegaConf
-
-        from endo_pipeline.library.model import get_model_dir
-
-        config_dict = OmegaConf.load(get_model_dir() / "diffae_04_10_eval.yaml")
+        logger.warning("Using legacy config for model [ %s ]", mlflowid)
+        config_dict = load_model_config(DIFFAE_MODEL_LEGACY_CONFIG)
     else:
+        # get logged config from MLFlow
         config_dict = get_config_dict_from_mlflow(mlflowid)
 
     checkpoint_path = get_checkpoint_path_from_mlflow(mlflowid)
@@ -480,21 +642,76 @@ def load_model_from_mlflow(mlflowid: str) -> "CytoDLModel":
         }
     )
 
+    # Instantiate model if requested.
+    if instantiate:
+        model = instantiate_model_target_class(model)
+
     return model
 
 
-def load_model(location: ModelLocation) -> "CytoDLModel":
+def load_model(
+    location: ModelLocation, instantiate: bool = False
+) -> "CytoDLModel | BaseDiffusionAutoEncoder | DiffusionAutoEncoder":
     """
     Load model from location with config and checkpoint, defaulting to MLFlow.
+
+    By default, the loaded model will be a CytoDLModel.
+
+    The specific model object can be instantiated using the model configuration,
+    using the target class and weights from the associated checkpoint.
 
     Parameters
     ----------
     location
         Model location object.
+    instantiate
+        True to instantiate the model object, False otherwise.
+
+    Returns
+    -------
+        Loaded model.
     """
 
     if location.mlflowid is not None:
-        return load_model_from_mlflow(location.mlflowid)
+        return load_model_from_mlflow(location.mlflowid, instantiate)
 
     logger.error("Location does not have an MLFlow run ID.")
     raise FileNotFoundError("Unable to load model; no available locations.")
+
+
+def instantiate_model_target_class(
+    model: "CytoDLModel",
+) -> "BaseDiffusionAutoEncoder | DiffusionAutoEncoder":
+    """
+    Instantiate model target class from loaded configuration and checkpoint.
+
+    Parameters
+    ----------
+    model
+        Model loaded with config and checkpoint.
+
+    Returns
+    -------
+    :
+        Instantiated model object.
+    """
+
+    from operator import attrgetter
+
+    from hydra.utils import get_class
+    from omegaconf.errors import ConfigAttributeError
+
+    try:
+        attrgetter("model._target_", "checkpoint.ckpt_path")(model.cfg)
+    except ConfigAttributeError as e:
+        logger.error("Model configuration missing required key: '%s'", e.full_key)
+        raise
+
+    model_class = get_class(model.cfg.model._target_)
+
+    if not hasattr(model_class, "load_from_checkpoint"):
+        message = f"Model class [ {model_class} ] does not have a 'load_from_checkpoint' method"
+        logger.error(message)
+        raise ValueError(message)
+
+    return model_class.load_from_checkpoint(model.cfg.checkpoint.ckpt_path)

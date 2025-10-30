@@ -33,7 +33,6 @@ flow_conditions:
 - start: 263
   stop: 576
   shear_stress: 6.07
-valid_timepoints: null
 include_scenes: null
 notes: ''
 timepoint_annotations:
@@ -51,6 +50,13 @@ timepoint_annotations:
     3: [235, 236, 512, 532, 533]
     4: [11, 236, 532, 533]
     5: [10, 11, 236, 537]
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
   cell_piling:
     0: [[428, 576]]
     1: [[421, 576]]

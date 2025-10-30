@@ -1,31 +1,66 @@
+from typing import Annotated
+
+from cyclopts import Parameter
+
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+
 TAGS = ["diffae_features", "visualization"]
 
 
-def main(dataset_collection_name: str = "pca_reference", model_name: str = "diffae_04_10") -> None:
+def main(
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    dataset_collection_name: str = "pca_reference",
+    include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
+) -> None:
     """Visualize key attributes of a fit PCA model."""
     import logging
 
-    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, save_plot_to_path
-    from endo_pipeline.library.analyze.diffae_manifest import (
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
         get_pca_loadings,
-        get_timepoints_for_plotting_pcs,
+        get_pca_loadings_as_df,
     )
-    from endo_pipeline.library.analyze.diffae_manifest.manifest_pca import get_pca_loadings_as_df
     from endo_pipeline.library.visualize.diffae_features import feature_viz
-    from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.manifests import (
+        get_feature_dataframe_manifest_name,
+        get_most_recent_run_name,
+        load_dataframe_manifest,
+        load_model_manifest,
+    )
 
     # set up logger
     logger = logging.getLogger(__name__)
 
+    model_manifest = load_model_manifest(model_manifest_name)
+    dataframe_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
+
     # set up output directory for figures
+    run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     fig_savedir = get_output_path(
-        "pca_viz", dataset_collection_name, model_name, include_timestamp=False
+        "pca_viz",
+        dataset_collection_name,
+        model_manifest_name,
+        run_name_,
+        "include_cell_piling" if include_cell_piling else "exclude_cell_piling",
     )
 
     # fit PCA model to the datasets in the given dataset collection
-    pca = fit_pca(dataset_collection_name=dataset_collection_name, model_name=model_name)
+    logger.debug(
+        "Fitting PCA model to datasets in collection [ %s ] "
+        "using features from dataframe manifest [ %s ]",
+        dataset_collection_name,
+        dataframe_manifest_name,
+    )
+    pca = fit_pca(
+        dataset_collection_name=dataset_collection_name,
+        dataframe_manifest_name=dataframe_manifest_name,
+        include_cell_piling=include_cell_piling,
+    )
 
     # plot cumulative explained variance ratio of PCA components
     fig, _ = feature_viz.plot_explained_variance(pca.explained_variance_ratio_)
@@ -58,20 +93,14 @@ def main(dataset_collection_name: str = "pca_reference", model_name: str = "diff
     # for the datasets used to fit PCA
     # load model manifests for the given dataset collection
     dataset_names = get_datasets_in_collection(dataset_collection_name)
-    pca_ref_configs = [load_dataset_config(dataset_name) for dataset_name in dataset_names]
-    restrict_no_flow = True  # restrict plot to subset of no flow timepoints
-
-    # get timepoints to use for scatter plots
-    # this can definitely be written into a wrapper function
-    # maybe make a dictionary instead of a list?
-    timepoints_refs = get_timepoints_for_plotting_pcs(
-        pca_ref_configs, restrict_no_flow=restrict_no_flow
-    )
 
     # scatter plot of pca reference datasets
-    manifest = load_dataframe_manifest(model_name)
+    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     fig, _ = feature_viz.plot_pc_scatter(
-        dataset_names, manifest, pca, timepoints_to_use=timepoints_refs
+        dataset_names,
+        dataframe_manifest,
+        pca,
+        include_cell_piling=include_cell_piling,
     )
     save_plot_to_path(fig, fig_savedir, "pca_scatter_ref")
 

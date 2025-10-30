@@ -630,18 +630,43 @@ def split_multinucleate_regions(
     # if nuclei with different labels are touching then separate them
     # only if a segmentation boundary or the cdh5 threshold would have
     # separated them
-    nuc_seg_merge_adjacent = label(nuclei_segmentations.astype(bool))
+    # first create a binary mask of the label-free nuclei predictions
+    nuclei_mask = nuclei_segmentations.astype(bool)
+    # then create a mask that combines the boundaries of the existing cdh5-based
+    # segmentations and the threshold of the cdh5 signal
+    cell_edge_mask = find_boundaries(cell_segmentations) + cell_boundary_thresh
+    # by multiplying nuclei_mask by the inverse of cell_edge_mask we can separate
+    # any nuclei that are touching but overtop of a cell edge (which indicates
+    # that they are infact 2 different nuclei and not a single nuclei that the
+    # Cellpose model mistakenly labeled as 2 different nuclei)
+    split_nuclei_mask = nuclei_mask * ~cell_edge_mask
+    # lastly label the separated nuclei so that single nuclei that were mistakenly
+    # predicted to be 2 nuclei by the Cellpose model are merged back together into
+    # a single label, and nuclei that are touching across a cell boundary are kept
+    # as separate labels
+    nuc_seg_merge_adjacent = label(split_nuclei_mask)
 
     # remove any nuclei do not have more than half their area in
     # a single segmented region
     # get properties of nuclei predictions and original segmentations
-    nuc_props = regionprops(label_image=nuc_seg_merge_adjacent, intensity_image=cell_segmentations)
-    nuc_prop_sizes = {prop.label: prop.area for prop in nuc_props}
-
-    reg_props = regionprops(
-        label_image=cell_segmentations,
-        intensity_image=nuc_seg_merge_adjacent * ~cell_boundary_thresh,
+    nuc_props = regionprops(nuclei_segmentations)
+    nuc_prop_sizes = dict(
+        zip([prop.label for prop in nuc_props], [prop.area for prop in nuc_props])
     )
+    nuc_props_new = regionprops(
+        label_image=nuc_seg_merge_adjacent, intensity_image=nuclei_segmentations
+    )
+    nuc_prop_fracs = {}
+    for prop in nuc_props_new:
+        nuc_prop_fracs.update(
+            {
+                prop.label: prop.area / nuc_prop_sizes[lab]
+                for lab in np.unique(prop.intensity_image)
+                if lab != 0
+            }
+        )
+
+    reg_props = regionprops(label_image=cell_segmentations, intensity_image=nuc_seg_merge_adjacent)
 
     # keep only nuclei that have more than half of their area in a
     # single segmented region
@@ -651,9 +676,7 @@ def split_multinucleate_regions(
         nuc_labels = []
         for nuc_lab in np.unique(prop.intensity_image):
             if nuc_lab != 0:
-                nuc_frac = (
-                    np.count_nonzero(prop.intensity_image == nuc_lab) / nuc_prop_sizes[nuc_lab]
-                )
+                nuc_frac = nuc_prop_fracs[nuc_lab]
                 if nuc_frac > nuclei_ambiguity_threshold:
                     nuc_labels.append(nuc_lab)
         nuclei_labels_per_region[prop.label] = np.array(nuc_labels)
@@ -681,9 +704,9 @@ def split_multinucleate_regions(
     seg_skels = skeletonize(~find_boundaries(cell_segmentations)) * cell_segmentations
     anucleate_skels = np.isin(seg_skels, list(anucleate_regions.keys())) * cell_segmentations
     mononucleate_skels = np.isin(seg_skels, list(mononucleate_regions.keys())) * cell_segmentations
-    mononucleate_nuclei_labels = set(
+    mononucleate_nuclei_labels = {
         lab for nuc_labs in mononucleate_regions.values() for lab in nuc_labs if lab != 0
-    )
+    }
     mononucleate_seeds = (
         np.isin(cell_segmentations, list(mononucleate_regions.keys()))
         * np.isin(nuc_seg_merge_adjacent, list(mononucleate_nuclei_labels))
@@ -694,9 +717,9 @@ def split_multinucleate_regions(
 
     # use the nuclei in the multinucleate regions as seeds and
     # combine these with the skeleton-seeds from above
-    multinucleate_nuclei_labels = set(
+    multinucleate_nuclei_labels = {
         lab for nuc_labs in multinucleate_regions.values() for lab in nuc_labs if lab != 0
-    )
+    }
     multinucleate_seeds = (
         np.isin(cell_segmentations, list(multinucleate_regions.keys()))
         * np.isin(nuc_seg_merge_adjacent, list(multinucleate_nuclei_labels))

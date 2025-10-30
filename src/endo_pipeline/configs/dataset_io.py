@@ -18,8 +18,6 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-from endo_pipeline.configs import get_datasets_in_collection
-from endo_pipeline.configs.dataset_config_io import get_available_dataset_names
 from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
@@ -350,12 +348,12 @@ def get_zarr_name(dataset_name: str, position: int) -> str:
     Get the zarr name for a given dataset and position.
     """
     zarr_paths = get_zarr_path(dataset_name)
-    zarr_found_for_position = position in [extract_P(zarr_name) for zarr_name in zarr_paths.keys()]
+    zarr_found_for_position = position in [extract_p(zarr_name) for zarr_name in zarr_paths.keys()]
     assert (
         zarr_found_for_position
     ), f"Zarr file for position {position} not found in dataset {dataset_name}."
     for zarr_name in zarr_paths.keys():
-        if position == extract_P(zarr_name):
+        if position == extract_p(zarr_name):
             break
     return zarr_name
 
@@ -388,21 +386,21 @@ This method is deprecated and will be removed. The new pattern for loading Zarr
 datasets is:
 
     from endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
-    from endo_pipeline.io import load_zarr_as_dask_array
+    from endo_pipeline.io import load_image_from_path
 
     dataset_config = load_dataset_config(dataset_name)
     zarr_file = get_zarr_file_for_position(dataset_config, position)
-    zarr = load_zarr_as_dask_array(zarr_file)
+    zarr = load_image_from_path(zarr_file)
 
 To recreate the behavior of this specific method (loading Zarrs for all positions
 of a dataset into a dictionary, use:
 
     from endo_pipeline.configs import load_dataset_config, get_available_zarr_files
-    from endo_pipeline.io import load_zarr_as_dask_array
+    from endo_pipeline.io import load_image_from_path
 
     dataset_config = load_dataset_config(dataset_name)
     zarr_files = get_available_zarr_files(dataset_config)
-    zarrs = {zarr_file.name: load_zarr_as_dask_array(zarr_file) for zarr_file in zarr_files}
+    zarrs = {zarr_file.name: load_image_from_path(zarr_file) for zarr_file in zarr_files}
 """
 )
 def load_dataset(
@@ -440,11 +438,11 @@ This method is deprecated and will be removed. The new pattern for loading Zarr
 datasets is:
 
     from endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
-    from endo_pipeline.io import load_zarr_as_dask_array
+    from endo_pipeline.io import load_image_from_path
 
     dataset_config = load_dataset_config(dataset_name)
     zarr_file = get_zarr_file_for_position(dataset_config, position)
-    zarr = load_zarr_as_dask_array(zarr_file)
+    zarr = load_image_from_path(zarr_file)
 """
 )
 def load_dataset_position_as_dask_array(
@@ -472,7 +470,7 @@ def load_dataset_position_as_dask_array(
             )
         zarr_name = list(zarr_path_list.keys())[position]
         for zarr_name in zarr_path_list.keys():
-            if position == extract_P(zarr_name):
+            if position == extract_p(zarr_name):
                 break
     elif isinstance(position, str):
         if position not in zarr_path_list:
@@ -658,7 +656,7 @@ def ipython_cli_flexecute(
         workflow_cli(function)
 
 
-def extract_T(
+def extract_t(
     fp_as_string: str | Path,
     int_only: bool = True,
     use_last_match: bool = True,
@@ -706,7 +704,7 @@ def extract_T(
     return t_value if int_only else f"T{t_value}"
 
 
-def extract_P(
+def extract_p(
     fp_as_string: str | Path,
     int_only: bool = True,
     use_last_match: bool = True,
@@ -780,7 +778,7 @@ def concatenate_and_save_feature_tables(
         input_filename_contains = f"{input_filename_contains}*"
     feats_filepaths = list(out_subdir.glob(f"**/*{input_filename_contains}{file_extension}"))
     if sort_by_T:
-        feats_filepaths = sorted(feats_filepaths, key=lambda fp: extract_T(fp.stem))
+        feats_filepaths = sorted(feats_filepaths, key=lambda fp: extract_t(fp.stem))
 
     if file_extension == ".tsv":
         sep = "\t"

@@ -30,7 +30,6 @@ flow_conditions:
 - start: 0
   stop: 576
   shear_stress: 0.0
-valid_timepoints: null
 include_scenes: null
 notes: no SS w/ feeding every 3 hours during working hours. Cells unfed during timepoint
   105-248, 355-539.

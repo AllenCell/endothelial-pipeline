@@ -7,9 +7,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
 
-import cyclopts
-from cyclopts import App, Group, Parameter, validators
+from cyclopts import App, Group, Parameter
 from rich.console import Console
+
+from endo_pipeline import IS_MAIN_PROCESS
+from endo_pipeline.cli.options import PipelineOptions, WorkflowOptions
 
 logger = logging.getLogger("")
 
@@ -38,7 +40,7 @@ EXTERNAL_LOGGERS = {
     "lightning.pytorch.utilities.rank_zero": logging.WARNING,
     "lightning.fabric.utilities": logging.WARNING,
     "numcodecs": logging.WARNING,
-    "matplotlib": logging.WARNING,
+    "matplotlib": logging.ERROR,
     "torch": logging.WARNING,
     "urllib3.connectionpool": logging.WARNING,
 }
@@ -46,34 +48,39 @@ EXTERNAL_LOGGERS = {
 FIGURE_WORKFLOWS = Group("Figure Workflows", sort_key=0)
 PRODUCTION_WORKFLOWS = Group("Production Workflows", sort_key=1)
 DEVELOPMENT_WORKFLOWS = Group("Development Workflows", sort_key=2)
-ARCHIVED_WORKFLOWS = Group("Archived Workflows", sort_key=3)
+TESTING_WORKFLOWS = Group("Test Many Workflows", sort_key=3)
+ARCHIVED_WORKFLOWS = Group("Archived Workflows", sort_key=4)
 
-SETTINGS = Group("Settings", sort_key=100)
-FLAGS = Parameter(negative="", show_default=False)
-LOGGING = (SETTINGS, Group(validator=validators.MutuallyExclusive(), default_parameter=FLAGS))
-OPTIONS = (SETTINGS, Group(default_parameter=FLAGS))
+WORKFLOW_OPTIONS = WorkflowOptions()
+PIPELINE_OPTIONS = PipelineOptions()
 
 
-def pipeline_cli() -> None:
-    """Pipeline CLI."""
-
-    pipeline_app["--help"].group = SETTINGS
-    pipeline_app.meta.group_parameters = SETTINGS
+def build_pipeline_app():
+    """
+    Add all the options to pipeline_app.
+    This function is split out from pipeline_cli so it can be used in tests.
+    """
+    pipeline_app["--help"].group = "Options"
 
     build_cli_group(FIGURE_WORKFLOWS, "figures", True)
     build_cli_group(PRODUCTION_WORKFLOWS, "production", True)
     build_cli_group(DEVELOPMENT_WORKFLOWS, "development", True)
+    build_cli_group(TESTING_WORKFLOWS, "testing", True)
     build_cli_group(ARCHIVED_WORKFLOWS, "archive", False)
 
     pipeline_app.meta.default(pipeline_entrypoint)
+
+
+def pipeline_cli() -> None:
+    """Pipeline CLI."""
+    build_pipeline_app()
     pipeline_app.meta()
 
 
 def workflow_cli(workflow: Callable) -> None:
     """Workflow CLI."""
 
-    workflow_app["--help"].group = SETTINGS
-    workflow_app.meta.group_parameters = SETTINGS
+    workflow_app["--help"].group = "Options"
 
     workflow_app.default(workflow)
 
@@ -83,151 +90,70 @@ def workflow_cli(workflow: Callable) -> None:
 
 def pipeline_entrypoint(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
-    verbose: Annotated[bool, Parameter(alias="-v", group=LOGGING)] = False,
-    debug: Annotated[bool, Parameter(alias="-vv", group=LOGGING)] = False,
-    show_archive: Annotated[bool, Parameter(alias="-a", group=OPTIONS)] = False,
-    show_tags: Annotated[bool, Parameter(alias="-t", group=OPTIONS)] = False,
-    filter_tag: Annotated[str | None, Parameter(alias="-f")] = None,
-    config: Annotated[Path, Parameter(alias="-c")] = Path("config.yaml"),
-    num_gpus: Annotated[int | None, Parameter(alias="-g", group=OPTIONS)] = None,
-    show_external_logs: Annotated[bool, Parameter(alias="-s", group=OPTIONS)] = False,
-    demo_mode: Annotated[bool, Parameter(alias="-d", group=OPTIONS)] = False,
-    use_staging: Annotated[bool, Parameter(alias="-u", group=OPTIONS)] = False,
+    workflow_options: WorkflowOptions = WORKFLOW_OPTIONS,
+    pipeline_options: PipelineOptions = PIPELINE_OPTIONS,
 ) -> None:
-    """
-    Parameters
-    ----------
-    *tokens
-        Workflow and workflow arguments.
-    verbose
-        Show verbose logging.
-    debug
-        Show debug logging.
-    show_archive
-        Show available archived workflows.
-    show_tags
-        Show all available workflow tags.
-    filter_tag
-        Filter workflows by given tag.
-    config
-        Path to user configuration file.
-    num_gpus
-        Number of GPUs to use for workflow execution (e.g. -g 4 means 4 GPUs; None means CPU).
-    show_external_logs
-        Show logging outputs from external libraries.
-    demo_mode
-        Run workflows in demo mode.
-    use_staging
-        Use staging environments.
-    """
+    """Pipeline CLI entrypoint."""
 
-    apply_entrypoint_settings(verbose, debug, num_gpus, show_external_logs, demo_mode, use_staging)
-
-    if config.read_text() != "":
-        pipeline_app.config = cyclopts.config.Yaml(config)  # type: ignore[assignment]
+    apply_workflow_options(workflow_options)
 
     for app in pipeline_app.meta.subapps:
-        if show_archive and app.group and app.group[0].name == ARCHIVED_WORKFLOWS.name:
+        if (
+            pipeline_options.show_archive
+            and app.group
+            and app.group[0].name == ARCHIVED_WORKFLOWS.name
+        ):
             app.show = True
 
         if app.name[0] in tags:
-            if show_tags:
+            if pipeline_options.show_tags:
                 app.help = f"| {' | '.join(tags[app.name[0]])} | {app.help}"
 
-            if filter_tag:
-                app.show = filter_tag in tags[app.name[0]] and app.show
+            if pipeline_options.filter_tag:
+                app.show = pipeline_options.filter_tag in tags[app.name[0]] and app.show
 
-    # Pass in the num_gpus to the relevant scripts
     pipeline_app(tokens)
 
 
 def workflow_entrypoint(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
-    verbose: Annotated[bool, Parameter(alias="-v", group=LOGGING)] = False,
-    debug: Annotated[bool, Parameter(alias="-vv", group=LOGGING)] = False,
-    num_gpus: Annotated[int | None, Parameter(alias="-g", group=OPTIONS)] = None,
-    show_external_logs: Annotated[bool, Parameter(alias="-s", group=OPTIONS)] = False,
-    demo_mode: Annotated[bool, Parameter(alias="-d", group=OPTIONS)] = False,
-    use_staging: Annotated[bool, Parameter(alias="-u", group=OPTIONS)] = False,
+    workflow_options: WorkflowOptions = WORKFLOW_OPTIONS,
 ) -> None:
-    """
-    Parameters
-    ----------
-    *tokens
-        Workflow and workflow arguments.
-    verbose
-        Show verbose logging.
-    debug
-        Show debug logging.
-    num_gpus
-        Number of GPUs to use for workflow execution (e.g. -g 4 means 4 GPUs; None means CPU).
-    show_external_logs
-        Show logging outputs from external libraries.
-    demo_mode
-        Run workflows in demo mode.
-    use_staging
-        Use staging environments.
-    """
+    """Workflow CLI entrypoint."""
 
-    apply_entrypoint_settings(verbose, debug, num_gpus, show_external_logs, demo_mode, use_staging)
+    apply_workflow_options(workflow_options)
 
     workflow_app(tokens)
 
 
-def apply_entrypoint_settings(
-    verbose: bool = False,
-    debug: bool = False,
-    num_gpus: int | None = None,
-    show_external_logs: bool = False,
-    demo_mode: bool = False,
-    use_staging: bool = False,
-):
-    """
-    Apply settings shared between pipeline and workflow entrypoints.
+def apply_workflow_options(options: WorkflowOptions):
+    """Apply options for running workflows."""
 
-    Parameters
-    ----------
-    verbose
-        Show verbose logging.
-    debug
-        Show debug logging.
-    num_gpus
-        Number of GPUs to use for workflow execution (None for CPU).
-    show_external_logs
-        Show logging outputs from external libraries.
-    demo_mode
-        Run workflows in demo mode.
-    use_staging
-        Use staging environments.
-    """
     import endo_pipeline
 
-    if debug:
+    if options.debug:
         setup_logging(logging.DEBUG)
-    elif verbose:
+    elif options.verbose:
         setup_logging(logging.INFO)
     else:
         setup_logging(logging.WARNING)
 
-    if not show_external_logs:
+    if not options.show_external_logs:
         silence_external_loggers(EXTERNAL_LOGGERS)
 
-    if num_gpus is not None and num_gpus > 0:
-        endo_pipeline.NUM_GPUS = setup_gpu(num_gpus)
-    else:
-        logger.info("Workflow running on CPU")
-        endo_pipeline.NUM_GPUS = None
-        os.environ["CUDA_VISIBLE_DEVICES"] = ""
+    if IS_MAIN_PROCESS:
+        if options.num_gpus is not None and options.num_gpus > 0:
+            endo_pipeline.NUM_GPUS = setup_gpu(options.num_gpus)
+        else:
+            logger.info("Workflow running on CPU")
+            endo_pipeline.NUM_GPUS = None
+            os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
-    if demo_mode:
-        import endo_pipeline
-
-        logger.info("Running workflows in demo mode")
+    if options.demo_mode:
+        logger.info("Running workflow in demo mode")
         endo_pipeline.DEMO_MODE = True
 
-    if use_staging:
-        import endo_pipeline
-
+    if options.use_staging:
         logger.info("Using staging environments")
         endo_pipeline.USE_STAGING = True
 
@@ -313,14 +239,18 @@ def setup_logging(level: int) -> None:
 
     logger.setLevel(logging.DEBUG)
 
-    log_path = Path(__file__).resolve().parents[2] / "logs"
-    log_path.mkdir(exist_ok=True)
-    file_name = log_path / f"endo_pipeline_{datetime.now(tz=UTC).strftime('%Y%m%d')}.log"
+    # Only rank 0 should create log directory and file handler
+    if IS_MAIN_PROCESS:
 
-    file_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    file_handler = logging.FileHandler(file_name)
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(file_formatter)
+        log_path = Path(__file__).resolve().parents[2] / "logs"
+        log_path.mkdir(exist_ok=True)
+        file_name = log_path / f"endo_pipeline_{datetime.now(tz=UTC).strftime('%Y%m%d')}.log"
+
+        file_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        file_handler = logging.FileHandler(file_name)
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(file_formatter)
+        logger.addHandler(file_handler)
 
     stream_formatter = CustomStreamLoggingFormatter()
     stream_handler = logging.StreamHandler()
@@ -328,7 +258,6 @@ def setup_logging(level: int) -> None:
     stream_handler.setFormatter(stream_formatter)
 
     logger.addHandler(stream_handler)
-    logger.addHandler(file_handler)
 
 
 def silence_external_loggers(external_loggers: dict) -> None:
@@ -345,7 +274,7 @@ def silence_external_loggers(external_loggers: dict) -> None:
         external_logger.setLevel(logging_level)
 
 
-def setup_gpu(num_gpus: int | None) -> None:
+def setup_gpu(num_gpus: int | None) -> int | None:
     """
     Set up the GPU environment for workflow.
 
@@ -380,6 +309,7 @@ def setup_gpu(num_gpus: int | None) -> None:
         os.environ["CUDA_VISIBLE_DEVICES"] = selected_uuid
         logger.info("Using MIG UUID: %s", selected_uuid)
         logger.info("Set CUDA_VISIBLE_DEVICES to [ %s ]", selected_uuid)
+
         return 1
 
     # Not MIG: Pick by available GPUs and free memory

@@ -1,9 +1,13 @@
+from typing import Annotated
+
+from cyclopts import Parameter
+
 TAGS = ["diffae_model_training"]
 
 
 def main(
     resolution_level: int = 1,
-    exclude_cell_piling: bool = False,
+    include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
 ) -> None:
     """
     Generate dataframes with paths to zarr files for training a DiffAE model.
@@ -27,10 +31,14 @@ def main(
 
     **Cell piling exclusion**
 
-    By default, timepoints marked as having cell piling annotations are included in the training
-    and validation datasets. This behavior can be changed by setting the ``exclude_cell_piling``
-    parameter to True. This allows for toggling between training a model that "sees" cell piling
-    versus one that does not.
+    By default, timepoints marked as having cell piling annotations are not included in the training
+    and validation datasets (``include_cell_piling`` set to ``False``). This behavior can be changed
+    by using the command line flag `--include-cell-piling`. This allows for toggling between
+    training a model that "sees" cell piling versus one that does not.
+
+    When ``include_cell_piling`` is set to False, the output dataframe manifest name will include
+    the suffix ``_exclude_cell_piling``. When set to True, the suffix will be
+    ``_include_cell_piling``.
 
     **Workflow demo**
 
@@ -43,29 +51,26 @@ def main(
     ----------
     resolution_level
         The resolution level of the zarr files to load for training.
-    exclude_cell_piling
-        Exclude cell piling timepoints if True, include them if False.
-
-
-    Returns
-    -------
-    :
-        Uploads the training and validation dataframes to FMS and saves a
-        DataframeManifest with DatasetLocation objects containing the FMS IDs of
-        the uploaded files.
+    include_cell_piling
+        True to include timepoints with cell piling in data used for training, False to exclude.
     """
 
     import pandas as pd
     from sklearn.model_selection import train_test_split
 
     from endo_pipeline import DEMO_MODE
-    from endo_pipeline.configs import load_dataset_collection_config, load_dataset_config
+    from endo_pipeline.configs import (
+        TimepointAnnotation,
+        get_all_unannotated_timepoints,
+        get_subset_of_timepoint_annotations,
+        get_unannotated_positions,
+        load_dataset_collection_config,
+        load_dataset_config,
+    )
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.model import (
         build_and_save_dataframe_manifest_for_training,
         build_zarr_image_loading_dataframe,
-        get_exclude_frames,
-        get_include_positions,
         get_z_slice_bounds_per_position,
     )
     from endo_pipeline.settings import Z_SLICE_OFFSETS
@@ -82,8 +87,24 @@ def main(
         z_slice_bounds_per_position = get_z_slice_bounds_per_position(
             dataset_config, z_slice_offsets=Z_SLICE_OFFSETS
         )
-        only_include_positions = get_include_positions(dataset_config)
-        exclude_frames = get_exclude_frames(dataset_config, exclude_cell_piling=exclude_cell_piling)
+        only_include_positions = get_unannotated_positions(dataset_config)
+        # get frames to include based on annotations
+        # either including or excluding cell piling timepoints
+        # based on the include_cell_piling argument
+        # default is to remove all annotations except NOT_STEADY_STATE
+        annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
+        if include_cell_piling:
+            # if including cell piling, then ignore that annotation as well
+            annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
+        # get list of annotations to filter out
+        annotations = get_subset_of_timepoint_annotations(
+            annotations_to_ignore=annotations_to_ignore
+        )
+        # get list of timepoints that do not have any of the annotations
+        # for each position (dict of position -> list of timepoints)
+        only_include_frames = get_all_unannotated_timepoints(
+            dataset_config, annotations=annotations
+        )
 
         # When running workflow in demo mode, only use the first position from each
         # dataset and first two timepoints to speed up the data loading process (if
@@ -112,7 +133,7 @@ def main(
                 frame_stop=frame_stop,
                 z_slice_bounds_per_position=z_slice_bounds_per_position,
                 only_include_positions=only_include_positions,
-                exclude_frames=exclude_frames,
+                only_include_frames=only_include_frames,
             )
         )
 
@@ -126,8 +147,10 @@ def main(
     # add "_test_workflow" suffix to manifest name if in demo mode
     name_suffix = "_test_workflow" if DEMO_MODE else ""
 
-    # add "_exclude_cell_piling" to manifest name if cell piling is excluded
-    if exclude_cell_piling:
+    # add include/exclude cell piling suffix to manifest name
+    if include_cell_piling:
+        name_suffix = f"_include_cell_piling{name_suffix}"
+    else:
         name_suffix = f"_exclude_cell_piling{name_suffix}"
 
     # Upload dataframes to FMS, then build and save out DataframeManifest
@@ -139,7 +162,7 @@ def main(
         val,
         resolution_level,
         Z_SLICE_OFFSETS,
-        exclude_cell_piling,
+        include_cell_piling,
         dataset_config_list,
         output_savedir,
         manifest_name,

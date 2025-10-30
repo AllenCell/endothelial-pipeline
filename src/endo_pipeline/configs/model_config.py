@@ -29,11 +29,3 @@ class CytoDLModelConfig(ModelConfig):
 
     training_datasets: list[str] = field(default_factory=list)
     """List of datasets used for training the model."""
-
-
-@dataclass
-class CellposeModelConfig(ModelConfig):
-    """Cellpose model configuration for pipeline."""
-
-    model_path: str
-    """Path to trained model"""
