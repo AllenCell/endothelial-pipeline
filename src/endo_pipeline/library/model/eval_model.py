@@ -39,6 +39,7 @@ from endo_pipeline.manifests import (
 )
 from endo_pipeline.settings import (
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    DIFFAE_DEFAULT_CROP_SIZE,
     DIFFAE_ZARR_RESOLUTION_LEVEL,
     ZARR_BRIGHTFIELD_CHANNEL,
     ColumnName,
@@ -260,7 +261,7 @@ def generate_overrides_for_track_based_crops(
 def add_diffae_model_eval_crop_columns(
     df: pd.DataFrame,
     diffae_resolution_level: int = DIFFAE_ZARR_RESOLUTION_LEVEL,
-    crop_size: int = 256,
+    crop_size: int = DIFFAE_DEFAULT_CROP_SIZE,
 ) -> pd.DataFrame:
     """
     Add columns to the dataframe for DiffAE model evaluation crops.
