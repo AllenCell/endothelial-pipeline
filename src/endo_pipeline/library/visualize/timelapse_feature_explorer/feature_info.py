@@ -24,9 +24,9 @@ LABEL_MAP = {
     "is_greater_than_min_track_duration": "Filter: Exceeds Min Track Duration",
     "has_more_than_min_num_valid_points_per_track": "Filter: Num Valid Points Exceeds Threshold",
     "is_included": "Filter: Passed All Filters",
-    # # Cell-centric DiffAE features and PCs
-    # **dict(((f"feat_{i}", f"DiffAE Feature {i}") for i in range(8))),
-    # "pc1": "PC 1",
-    # "pc2": "PC 2",
-    # "pc3": "PC 3",
+    # Cell-centric DiffAE features and PCs
+    **{f"feat_{i}": f"DiffAE Feature {i}" for i in range(8)},
+    "pc_1": "PC 1",
+    "pc_2": "PC 2",
+    "pc_3": "PC 3",
 }

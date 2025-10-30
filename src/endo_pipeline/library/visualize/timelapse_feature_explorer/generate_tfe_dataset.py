@@ -63,9 +63,14 @@ def generate_tfe_dataset(
         )[0]
     except KeyError:
         logger.warning(f"Dataset {dataset} does not have DiffAE features yet, using base table...")
+        # load just the CDH5-based segmentation features as a fallback if no DiffAE features exist
         segprops_manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
         segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset)
         df_tracks = load_dataframe(segprops_location)
+        # remove the DiffAE-related entries from LABEL_MAP before constructing the TFE dataset
+        diffae_keys = [key for key in LABEL_MAP if key.startswith("feat_") or key.startswith("pc_")]
+        for key in diffae_keys:
+            del LABEL_MAP[key]
 
     df_position = df_tracks[df_tracks["position"] == position]
 
@@ -80,7 +85,8 @@ def generate_tfe_dataset(
             output_dir=output_dir / "backdrops",
         )
 
-    feature_info = add_feature_metadata(df)
+    feature_column_names = list(LABEL_MAP.keys())
+    feature_info = add_feature_metadata(LABEL_MAP)
 
     convert_colorizer_data(
         data=df,
@@ -97,6 +103,6 @@ def generate_tfe_dataset(
             "bf_std_dev_backdrop",
             "gfp_max_proj_backdrop",
         ],
-        feature_column_names=list(LABEL_MAP.keys()),
+        feature_column_names=feature_column_names,
         feature_info=feature_info,
     )
