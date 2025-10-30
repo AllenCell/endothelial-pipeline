@@ -1,0 +1,40 @@
+name: 20250929_IF5
+original_path: //allen/programs/allencell/data/proj0/3c5/74e/c9e/045/f7b/638/240/782/c61/1b5/aa/20250929_GE00009111_5_20X_SLDY/20250929_GE00009111_5_20X_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250929_aa1b5c61782240638f7b045c9e74e3c5
+zarr_positions: [0, 1, 2, 3, 4, 5, 6]
+fmsid: aa1b5c61782240638f7b045c9e74e3c5
+barcode: GE00009111
+cell_lines: [AICS-126]
+live_or_fixed_sample: fixed
+is_timelapse: false
+microscope: 3i
+objective: 20X
+shear_stress_regime: min_to_max
+pixel_size_xy_in_um: 0.382
+duration: 1
+time_interval_in_minutes: null
+n_total_positions: 7
+original_channel_indices:
+  brightfield: 4
+  channel_488: 1
+  channel_405: 0
+  channel_561: 2
+  channel_640: 3
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: 2
+  channel_561: 3
+  channel_640: 4
+flow_conditions:
+- start: -382
+  stop: -97
+  shear_stress: 5.97
+- start: -96
+  stop: 0
+  shear_stress: 22.07
+include_scenes: null
+notes: Fix & stain cells for SMAD1 and SOX17 after 24h Low SS and 8h High SS
+timepoint_annotations: null
+position_annotations: null
+center_z_plane: null
