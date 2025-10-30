@@ -1,9 +1,9 @@
-name: 20250929_IF8
-original_path: //allen/programs/allencell/data/proj0/bfb/c9b/36b/c64/c38/d6a/941/cb1/0a1/bb0/96/20250929_GE00009114_8_20X_SLDY/20250929_GE00009114_8_20X_SLDY.sldy
-zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250929_96bb00a1cb1941d6ac38c6436bc9bbfb
+name: 20250929_20X_IF4
+original_path: //allen/programs/allencell/data/proj0/943/05d/420/284/a96/589/b46/e1b/716/c27/ee/20250929_GE00009110_4_20X_SLDY/20250929_GE00009110_4_20X_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250929_eec27716e1bb46589a9628442005d943
 zarr_positions: [0, 1, 2, 3, 4, 5, 6]
-fmsid: 96bb00a1cb1941d6ac38c6436bc9bbfb
-barcode: GE00009114
+fmsid: eec27716e1bb46589a9628442005d943
+barcode: GE00009110
 cell_lines: [AICS-126]
 live_or_fixed_sample: fixed
 is_timelapse: false
@@ -27,14 +27,14 @@ zarr_channel_indices:
   channel_561: 3
   channel_640: 4
 flow_conditions:
-- start: -277
-  stop: -289
-  shear_stress: 5.67
-- start: -288
+- start: -337
+  stop: -49
+  shear_stress: 5.97
+- start: -48
   stop: 0
-  shear_stress: 21.63
+  shear_stress: 22.07
 include_scenes: null
-notes: Fix & stain for SMAD1 and SOX17 after 24h Low SS + 24h High SS
+notes: Fix & stain for SMAD1 and SOX17 after 24h Low SS + 4h High SS
 timepoint_annotations: null
 position_annotations: null
 center_z_plane: null
