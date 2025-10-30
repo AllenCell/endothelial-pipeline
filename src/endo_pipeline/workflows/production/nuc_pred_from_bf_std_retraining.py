@@ -34,7 +34,7 @@ def main(
     logger = logging.getLogger(__name__)
 
     datasets_to_use = list(get_scenes_to_use().keys())
-    out_dir = get_output_path(__file__)
+    out_dir = get_output_path(__file__, include_timestamp=False)
 
     analysis_queue = build_analysis_queue(
         datasets_to_use,
