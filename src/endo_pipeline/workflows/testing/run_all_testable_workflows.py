@@ -18,11 +18,6 @@ if typing.TYPE_CHECKING:
 
     from cyclopts import App
 
-logger = logging.getLogger(__name__)
-if not endo_pipeline.DEMO_MODE:
-    endo_pipeline.DEMO_MODE = True
-    logger.debug("Forcing demo mode on for testing.")
-
 
 def _testable_workflows(pipeline_app: "App", tags: dict[str, list[str]]):
     from endo_pipeline.cli.tags import CPU_ONLY, GPU, TEST_READY
@@ -163,6 +158,11 @@ def _summarize(results: list[_WorkflowResult]):
 
 def main():
     from endo_pipeline.__main__ import pipeline_app, tags
+
+    logger = logging.getLogger(__name__)
+    if not endo_pipeline.DEMO_MODE:
+        endo_pipeline.DEMO_MODE = True
+        logger.debug("Forcing demo mode on for testing.")
 
     results = [_run_workflow(workflow) for workflow in _testable_workflows(pipeline_app, tags)]
 
