@@ -261,7 +261,6 @@ def build_and_save_dataframe_manifest_for_training(
         name=manifest_name,
         workflow=workflow_name,
         parameters={
-            "resolution_level": resolution_level,
             "z_slice_offsets": z_slice_offsets,
             "include_cell_piling": include_cell_piling,
         },
