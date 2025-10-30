@@ -1,7 +1,9 @@
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 
-def main(model_manifest_name, run_name, random_seed: int = RANDOM_SEED) -> None:
+def main(
+    model_manifest_name: str, run_name: str | None = None, random_seed: int = RANDOM_SEED
+) -> None:
     """QC a newly trained model."""
 
     from numpy.random import default_rng
