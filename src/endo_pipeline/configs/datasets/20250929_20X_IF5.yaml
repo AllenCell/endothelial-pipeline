@@ -1,7 +1,7 @@
 name: 20250929_20X_IF5
 original_path: //allen/programs/allencell/data/proj0/3c5/74e/c9e/045/f7b/638/240/782/c61/1b5/aa/20250929_GE00009111_5_20X_SLDY/20250929_GE00009111_5_20X_SLDY.sldy
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250929_aa1b5c61782240638f7b045c9e74e3c5
-zarr_positions: [0, 1, 2, 3, 4, 5, 6]
+zarr_positions: [0, 1, 2, 3, 4, 5]
 fmsid: aa1b5c61782240638f7b045c9e74e3c5
 barcode: GE00009111
 cell_lines: [AICS-126]
