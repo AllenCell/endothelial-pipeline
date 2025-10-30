@@ -1,6 +1,8 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from cyclopts import Parameter
+
+from endo_pipeline.settings import DEFAULT_DIFFAE_CONDITION_TYPE
 
 TAGS = ["diffae", "model_training"]
 
@@ -10,6 +12,7 @@ def main(
     run_name: str | None = None,
     resolution_level: int = 1,
     crop_size: int = 128,
+    condition_on: Literal["bf", "cdh5"] = DEFAULT_DIFFAE_CONDITION_TYPE,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
 ) -> None:
     """
@@ -27,6 +30,13 @@ def main(
 
     If the user provides a run name that already exists in the manifest, a
     unique name will be generated and a warning will be logged.
+
+    **Conditioning image type**
+
+    The model can be conditioned on either brightfield (``bf``) or CDH5
+    fluorescence (``cdh5``) image channels. The conditioning channel is set
+    using the ``condition_on`` parameter via overriding the training config.
+    The default is brightfield.
 
     **Cell piling exclusion**
 
@@ -59,6 +69,8 @@ def main(
         The resolution level of the zarr files to be used for training.
     crop_size
         The length of the 2D image crop in pixels to use for model training.
+    condition_on
+        The abbreviated name of the image channel to condition the model on.
     include_cell_piling
         True to include timepoints with cell piling in data used for training, False to exclude.
     """
@@ -80,7 +92,7 @@ def main(
         load_model_manifest,
         save_model_manifest,
     )
-    from endo_pipeline.settings import DIFFAE_MODEL_TRAIN_CONFIG
+    from endo_pipeline.settings import DIFFAE_IMAGE_LOADING_KEY_PREFIX, DIFFAE_MODEL_TRAIN_CONFIG
 
     logger = logging.getLogger(__name__)
 
@@ -158,6 +170,7 @@ def main(
         run_name=run_name,
         task_name="train",
         crop_size=crop_size,
+        condition_key=f"{DIFFAE_IMAGE_LOADING_KEY_PREFIX}{condition_on}",
         train_dataframe_path=Path(train_dataframe_path),
         val_dataframe_path=Path(val_dataframe_path),
         max_epochs=max_num_epochs,
