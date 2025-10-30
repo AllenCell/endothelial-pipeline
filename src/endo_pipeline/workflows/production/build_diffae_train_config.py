@@ -2,13 +2,15 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
+from endo_pipeline.settings import DIFFAE_DEFAULT_CROP_SIZE
+
 TAGS = ["diffae", "model_training"]
 
 
 def main(
     model_manifest_name: str | None = None,
     run_name: str | None = None,
-    crop_size: int = 128,
+    crop_size: int = DIFFAE_DEFAULT_CROP_SIZE,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
 ) -> None:
     """
