@@ -32,6 +32,27 @@ flow_conditions:
   shear_stress: 5.97
 include_scenes: null
 notes: Fix & stain for SMAD1 and SOX17 after cells exposed to Low SS for 24h
-timepoint_annotations: null
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  auto_bf_temp_artifact:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
 position_annotations: null
 center_z_plane: null
