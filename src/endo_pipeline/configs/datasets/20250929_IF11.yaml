@@ -1,0 +1,37 @@
+name: 20250929_IF11
+original_path: //allen/programs/allencell/data/proj0/7fe/4d3/7a0/642/b01/f28/c4b/a0d/497/15f/14/20250929_GE00009117_11_20X_SLDY/20250929_GE00009117_11_20X_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250929_1415f497a0dc4bf28b016427a04d37fe
+zarr_positions: [0, 1, 2, 3, 4, 5, 6]
+fmsid: 1415f497a0dc4bf28b016427a04d37fe
+barcode: GE00009116
+cell_lines: [AICS-126]
+live_or_fixed_sample: fixed
+is_timelapse: false
+microscope: 3i
+objective: 20X
+shear_stress_regime: 'no'
+pixel_size_xy_in_um: 0.382
+duration: 1
+time_interval_in_minutes: null
+n_total_positions: 7
+original_channel_indices:
+  brightfield: 4
+  channel_488: 1
+  channel_405: 0
+  channel_561: 2
+  channel_640: 3
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: 2
+  channel_561: 3
+  channel_640: 4
+flow_conditions:
+- start: -577
+  stop: 0
+  shear_stress: 0.0
+include_scenes: null
+notes: Fix after 48h no SS & use as secondary only control for IF experiment
+timepoint_annotations: null
+position_annotations: null
+center_z_plane: null
