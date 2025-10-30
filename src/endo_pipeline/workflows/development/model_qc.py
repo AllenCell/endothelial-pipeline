@@ -4,7 +4,31 @@ from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 def main(
     model_manifest_name: str, run_name: str | None = None, random_seed: int = RANDOM_SEED
 ) -> None:
-    """QC a newly trained model."""
+    """
+    Run quality check assessment of a newly trained Diffusion Autoencoder model.
+
+    This workflow loads a trained DiffAE model specified by the model_manifest_name
+    and run_name. It then selects a crop from a specified dataset and position,
+    adds varying levels of noise to the ground truth CDH5 image, and uses the model
+    to denoise the noised images conditioned on the corresponding conditioning image
+    (brightfield or CDH5 depending on the model).
+
+    It also performs negative control experiments by denoising using:
+    - A randomly shuffled conditioning vector.
+    - A conditioning vector obtained from randomly shuffling the image used for
+        conditioning and passing the scrambled image through the encoder.
+
+    The results are visualized in contact sheet figures and saved to the output path.
+
+    Parameters
+    ----------
+    model_manifest_name
+        Name of the model manifest to load the model from.
+    run_name
+        Run name within the model manifest to load. If None, the most recent run is used.
+    random_seed
+        Random seed for reproducibility of noise generation.
+    """
 
     from numpy.random import default_rng
 
@@ -157,8 +181,8 @@ def main(
         panels=panels,
         max_rows=NUM_IMAGES_DENOISED,
         max_cols=None,
-        horizontal_titles=[f"{condition_channel_name} Input", *CDH5_LABELS],
-        vertical_titles=NOISE_LABELS,
+        col_titles=[f"{condition_channel_name} Input", *CDH5_LABELS],
+        row_titles=NOISE_LABELS,
         direction=MODEL_QC_PLOT_DIRECTION,
         subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
         gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
@@ -191,8 +215,8 @@ def main(
         panels=panels,
         max_rows=NUM_IMAGES_DENOISED,
         max_cols=None,
-        horizontal_titles=CDH5_LABELS,
-        vertical_titles=NOISE_LABELS,
+        col_titles=CDH5_LABELS,
+        row_titles=NOISE_LABELS,
         direction=MODEL_QC_PLOT_DIRECTION,
         subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
         gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
@@ -228,8 +252,8 @@ def main(
         panels=panels,
         max_rows=NUM_IMAGES_DENOISED,
         max_cols=None,
-        horizontal_titles=["Scrambled Input", *CDH5_LABELS],
-        vertical_titles=NOISE_LABELS,
+        col_titles=["Scrambled Input", *CDH5_LABELS],
+        row_titles=NOISE_LABELS,
         direction=MODEL_QC_PLOT_DIRECTION,
         subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
         gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
