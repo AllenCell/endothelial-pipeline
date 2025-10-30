@@ -119,7 +119,7 @@ def main(
     patch_name = f"_patch_{crop_size}x{crop_size}"
     piling_name = "_include_cell_piling" if include_cell_piling else "_exclude_cell_piling"
 
-    # Build dataframe manifest name
+    # Build dataframe manifest name to load training and validation dataframes.
     dataframe_manifest_name = f"diffae_training_dataframe{res_name}{piling_name}{name_suffix}"
 
     try:
@@ -146,7 +146,8 @@ def main(
 
     # Build the model manifest name, if not provided.
     if model_manifest_name is None:
-        model_manifest_name = f"diffae{res_name}{patch_name}{piling_name}"
+        condition_name = f"_condition_on_{condition_on}"
+        model_manifest_name = f"diffae{res_name}{patch_name}{condition_name}{piling_name}"
 
     # Build the run name, if not provided.
     if run_name is None:
@@ -201,6 +202,7 @@ def main(
     manifest.parameters = {
         "training_datasets": list_of_training_datasets,
         "crop_size": crop_size,
+        "condition_on": condition_on,
         "resolution_level": resolution_level,
         "include_cell_piling": include_cell_piling,
     }
