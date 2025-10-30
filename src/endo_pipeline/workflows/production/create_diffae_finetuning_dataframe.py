@@ -5,25 +5,17 @@ TAGS = ["diffae_model_finetuning"]
 
 def main(
     dataset_pair_type: Literal["live_fixed", "20X_40X"] = "live_fixed",
-    resolution_level: int = 1,
 ) -> None:
     """
     Generate a dataset of paired and aligned images for finetuning a DiffAE model.
+
+    Creates a DataframeManifest object with the DataframeLocation objects for the
+    training and validation datasets.
 
     Parameters
     ----------
     dataset_pair_type
         Whether paired datasets are live/fixed or 20X/40X.
-    resolution_level
-        The resolution level of the zarr files to be used for training.
-
-    Returns
-    -------
-    :
-        Creates a DataframeManifest object with the DataframeLocation objects for the
-        training and validation datasets.
-
-        The aligned images are saved locally as multi-channel TIFF files.
     """
     import logging
 
@@ -36,7 +28,7 @@ def main(
     from endo_pipeline.library.model import build_and_save_dataframe_manifest_for_training
     from endo_pipeline.library.process.registration import get_paired_dataset_dict
     from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
-    from endo_pipeline.settings import Z_SLICE_OFFSETS
+    from endo_pipeline.settings import DIFFAE_ZARR_RESOLUTION_LEVEL, Z_SLICE_OFFSETS
 
     logger = logging.getLogger(__name__)
 
@@ -48,7 +40,7 @@ def main(
     # get name of dataset used as the "target" image in the target/moving pair
     # to get image paths from the ImageManifest created in the registration workflow
     image_manifest = load_image_manifest(
-        f"registered_{dataset_pair_type}_resolution_{resolution_level}{name_suffix}"
+        f"registered_{dataset_pair_type}_resolution_{DIFFAE_ZARR_RESOLUTION_LEVEL}{name_suffix}"
     )
     paired_datasets = get_paired_dataset_dict(dataset_pair_type)
     image_paths: list[str] = []
@@ -89,14 +81,16 @@ def main(
     # Upload dataframes to FMS, then build and save out DataframeManifest
     # object with FMS IDs to be used in the DiffAE model training script.
     # Note that this can be swapped out with uploading to S3 later on.
-    manifest_name = f"diffae_finetuning_dataframe_resolution_{resolution_level}{name_suffix}"
+    manifest_name = (
+        f"diffae_finetuning_dataframe_resolution_{DIFFAE_ZARR_RESOLUTION_LEVEL}{name_suffix}"
+    )
     dataset_name_list = get_datasets_in_collection(f"{dataset_pair_type}_paired_datasets")
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_name_list]
     save_path = get_output_path("models", f"diffae_finetune_{dataset_pair_type}")
     build_and_save_dataframe_manifest_for_training(
         train,
         val,
-        resolution_level,
+        DIFFAE_ZARR_RESOLUTION_LEVEL,
         Z_SLICE_OFFSETS,
         False,
         dataset_config_list,
