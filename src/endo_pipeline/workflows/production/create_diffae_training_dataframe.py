@@ -23,11 +23,6 @@ def main(
     The datasets are defined in the ``diffae_model_training`` dataset collection
     configuration.
 
-    **Zarr resolution**
-
-    Zarr files used by training can be used as different resolutions. The
-    default resolution of 1 corresponds to downsampling by half.
-
     **Cell piling exclusion**
 
     By default, timepoints marked as having cell piling annotations are not included in the training
@@ -48,8 +43,6 @@ def main(
 
     Parameters
     ----------
-    resolution_level
-        The resolution level of the zarr files to load for training.
     include_cell_piling
         True to include timepoints with cell piling in data used for training, False to exclude.
     """
