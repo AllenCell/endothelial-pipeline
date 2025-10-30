@@ -55,4 +55,10 @@ timepoint_annotations:
     4: []
     5: []
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 12
+  1: 6
+  2: 22
+  3: 10
+  4: 10
+  5: 8
