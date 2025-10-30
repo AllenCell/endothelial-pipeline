@@ -1,7 +1,6 @@
 def main(model_manifest_name, run_name) -> None:
     """QC a newly trained model."""
 
-    from numpy import ones_like
     from numpy.random import default_rng
 
     from endo_pipeline import NUM_GPUS
@@ -111,8 +110,8 @@ def main(model_manifest_name, run_name) -> None:
         *[img.squeeze() for img in images_to_denoise],
         *[img.squeeze() for img in denoised_images_by_bf_cond],
     ]
-    horizontal_titles = ["Brightfield Input", "Original CDH5", "Noised CDH5", "Denoised CDH5"]
-    vertical_titles = [f"{level * 100:.0f}% Noise" for level in [*NOISE_LEVELS, 1]]
+    column_titles = ["Brightfield Input", "Original CDH5", "Noised CDH5", "Denoised CDH5"]
+    row_titles = [f"{level * 100:.0f}% Noise" for level in [*NOISE_LEVELS, 1]]
 
     subplot_kwargs = {"frame_on": False}
     gridspec_kwards = {"wspace": 0.05, "hspace": 0.05}
@@ -123,8 +122,8 @@ def main(model_manifest_name, run_name) -> None:
         panels=panels,
         max_rows=num_images_to_denoise,
         max_cols=None,
-        horizontal_titles=horizontal_titles,
-        vertical_titles=vertical_titles,
+        col_titles=column_titles,
+        row_titles=row_titles,
         direction="top-down first",
         subplot_kwargs=subplot_kwargs,
         gridspec_kwargs=gridspec_kwards,
@@ -148,21 +147,20 @@ def main(model_manifest_name, run_name) -> None:
     # Prepare arguments for contact sheet
     num_images_to_denoise = len(denoised_images_by_random_cond)
     panels = [
-        *[ones_like(bf_crop).squeeze()] * num_images_to_denoise,
         *[cdh5_crop.squeeze()] * num_images_to_denoise,
         *[img.squeeze() for img in images_to_denoise],
         *[img.squeeze() for img in denoised_images_by_random_cond],
     ]
-    horizontal_titles = ["Scrambled Latent Vector", "Original CDH5", "Noised CDH5", "Denoised CDH5"]
-    vertical_titles = [f"{level * 100:.0f}% Noise" for level in [*NOISE_LEVELS, 1]]
+    column_titles = ["Original CDH5", "Noised CDH5", "Denoised CDH5"]
+    row_titles = [f"{level * 100:.0f}% Noise" for level in [*NOISE_LEVELS, 1]]
 
     # Make a contact sheet summarizing the results
     fig = make_contact_sheet(
         panels=panels,
         max_rows=num_images_to_denoise,
         max_cols=None,
-        horizontal_titles=horizontal_titles,
-        vertical_titles=vertical_titles,
+        col_titles=column_titles,
+        row_titles=row_titles,
         direction="top-down first",
         subplot_kwargs=subplot_kwargs,
         gridspec_kwargs=gridspec_kwards,
@@ -193,16 +191,16 @@ def main(model_manifest_name, run_name) -> None:
         *[img.squeeze() for img in images_to_denoise],
         *[img.squeeze() for img in denoised_images_by_random_cond],
     ]
-    horizontal_titles = ["Scrambled Input", "Original CDH5", "Noised CDH5", "Denoised CDH5"]
-    vertical_titles = [f"{level * 100:.0f}% Noise" for level in [*NOISE_LEVELS, 1]]
+    column_titles = ["Scrambled Input", "Original CDH5", "Noised CDH5", "Denoised CDH5"]
+    row_titles = [f"{level * 100:.0f}% Noise" for level in [*NOISE_LEVELS, 1]]
 
     # Make a contact sheet summarizing the results
     fig = make_contact_sheet(
         panels=panels,
         max_rows=num_images_to_denoise,
         max_cols=None,
-        horizontal_titles=horizontal_titles,
-        vertical_titles=vertical_titles,
+        col_titles=column_titles,
+        row_titles=row_titles,
         direction="top-down first",
         subplot_kwargs=subplot_kwargs,
         gridspec_kwargs=gridspec_kwards,
