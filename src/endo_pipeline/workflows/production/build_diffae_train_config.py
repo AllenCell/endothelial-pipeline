@@ -8,7 +8,6 @@ TAGS = ["diffae", "model_training"]
 def main(
     model_manifest_name: str | None = None,
     run_name: str | None = None,
-    resolution_level: int = 1,
     crop_size: int = 128,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
 ) -> None:
@@ -39,9 +38,8 @@ def main(
     with the same flag.
 
     When ``include_cell_piling`` is True, the workflow will use the "standard"
-    dataframe manifest ``diffae_training_dataframe_resolution_RESOLUTION`` for
-    training with the suffix ``_include_cell_piling``. When False, the suffix will
-    be ``_exclude_cell_piling``.
+    dataframe manifest ``diffae_training_dataframe`` for training with the suffix
+    ``_include_cell_piling``. When False, the suffix will be ``_exclude_cell_piling``.
 
     **Workflow demo**
 
@@ -55,8 +53,6 @@ def main(
         An optional name for the model manifest.
     run_name
         An optional name for the training run.
-    resolution_level
-        The resolution level of the zarr files to be used for training.
     crop_size
         The length of the 2D image crop in pixels to use for model training.
     include_cell_piling
@@ -103,12 +99,11 @@ def main(
         replace_rate = 0.5
 
     # Create name components from input parameters
-    res_name = f"_resolution_{resolution_level}"
     patch_name = f"_patch_{crop_size}x{crop_size}"
     piling_name = "_include_cell_piling" if include_cell_piling else "_exclude_cell_piling"
 
     # Build dataframe manifest name
-    dataframe_manifest_name = f"diffae_training_dataframe{res_name}{piling_name}{name_suffix}"
+    dataframe_manifest_name = f"diffae_training_dataframe{piling_name}{name_suffix}"
 
     try:
         dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
@@ -134,7 +129,7 @@ def main(
 
     # Build the model manifest name, if not provided.
     if model_manifest_name is None:
-        model_manifest_name = f"diffae{res_name}{patch_name}{piling_name}"
+        model_manifest_name = f"diffae{patch_name}{piling_name}"
 
     # Build the run name, if not provided.
     if run_name is None:
@@ -188,7 +183,6 @@ def main(
     manifest.parameters = {
         "training_datasets": list_of_training_datasets,
         "crop_size": crop_size,
-        "resolution_level": resolution_level,
         "include_cell_piling": include_cell_piling,
     }
     manifest.locations[run_name] = ModelLocation()
