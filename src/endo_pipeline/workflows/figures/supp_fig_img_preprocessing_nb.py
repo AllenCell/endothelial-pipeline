@@ -1,9 +1,8 @@
 # %%
 import logging
 
-from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config, load_model_config
-from endo_pipeline.io.input import load_image_from_path
-from endo_pipeline.io.output import get_output_path
+from endo_pipeline.configs import load_dataset_config, load_model_config
+from endo_pipeline.io import get_output_path, load_image
 from endo_pipeline.library.process.image_processing import crop_image
 from endo_pipeline.library.visualize.figure_utils import plot_image_thumbnail
 from endo_pipeline.library.visualize.model_inputs.image_preprocessing_steps import (
@@ -12,6 +11,7 @@ from endo_pipeline.library.visualize.model_inputs.image_preprocessing_steps impo
     save_stack_slices_as_thumbnails,
     visualize_fov_transform_steps,
 )
+from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.diffae_configs import DIFFAE_MODEL_TRAIN_CONFIG
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.image_data import (
@@ -35,8 +35,8 @@ CROP_SIZE = 128
 save_dir = get_output_path("model_input_preprocessing_viz", f"{DATASET}_P{POSITION}")
 
 dataset_config = load_dataset_config(DATASET)
-zarr_path = get_zarr_file_for_position(dataset_config, POSITION)
-img = load_image_from_path(zarr_path, level=1, timepoints=TIMEPOINT, squeeze=True, compute=True)
+zarr_loc = get_zarr_location_for_position(dataset_config, POSITION)
+img = load_image(zarr_loc, level=1, timepoints=TIMEPOINT, squeeze=True, compute=True)
 
 # %% Panel A - Thumbnail of each slice in Z-stack for each channel
 save_stack_slices_as_thumbnails(img, save_dir)
