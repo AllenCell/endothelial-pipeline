@@ -73,7 +73,7 @@ def process_dataset(
         "track_id",
         "label",
         "crop_index",
-        "mlflow_id",
+        "model_manifest_name",
         "model_name",
         "image_index",
         "frame_number",
