@@ -57,8 +57,8 @@ timepoint_annotations:
 position_annotations: null
 center_z_plane:
   0: 11
-  1: 1
-  2: 24
-  3: 16
-  4: 6
-  5: 14
+  1: 10
+  2: 11
+  3: 11
+  4: 11
+  5: 11
