@@ -105,7 +105,7 @@ There are currently three main model training options. These options may be pass
 
 - workflow = `build-diffae-train-config`
 - input (identifier options) = **model manifest name**, **run_name**
-- input (training options) = **zarr resolution level**, **cell piling timepoints**, **image crop size**
+- input (training options) = **zarr resolution level**, **cell piling timepoints**, **image crop size**, **conditioning image type**
 - :white_circle: output = resolved model config at `results/models/MODEL_MANIFEST_NAME/RUN_NAME/configs/train.yaml`
 - :purple_circle: output = updated model manifest with pending training run at `src/endo_pipeline/manifests/models/diffae_RESOLUTION_PATCH_PILING` (recommendation is to open a draft PR with this change until the next step is complete)
 
