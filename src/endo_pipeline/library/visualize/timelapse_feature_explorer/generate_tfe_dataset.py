@@ -17,7 +17,11 @@ from endo_pipeline.library.visualize.timelapse_feature_explorer.tfe_manifest_for
     add_feature_metadata,
     update_manifest_for_tfe,
 )
-from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.manifests import (
+    get_dataframe_location_for_dataset,
+    load_dataframe_manifest,
+    load_model_manifest,
+)
 from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
@@ -49,9 +53,14 @@ def generate_tfe_dataset(
 
     try:
         # Load dataframe with the diffae features and computed PCs
-        datasets_for_bounds = list(set(dataset, *get_datasets_in_collection("pca_reference")))
+        datasets_for_bounds = list(set([dataset] + get_datasets_in_collection("pca_reference")))
         # only take the dataframe from the output (which is the 0th element)
-        df_tracks = get_preprocessed_manifests_and_km_bounds(dataset, datasets_for_bounds)[0]
+        model_manifest = load_model_manifest("diffae_04_10")
+        df_tracks = get_preprocessed_manifests_and_km_bounds(
+            dataset_name=dataset,
+            model_manifest=model_manifest,
+            datasets_for_bounds=datasets_for_bounds,
+        )[0]
     except KeyError:
         logger.warning(f"Dataset {dataset} does not have DiffAE features yet, using base table...")
         segprops_manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)

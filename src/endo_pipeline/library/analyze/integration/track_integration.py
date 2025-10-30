@@ -641,16 +641,6 @@ def get_preprocessed_manifests_and_km_bounds(
     # fit the PCA (uses the reference datasets)
     pca = fit_pca()
 
-    # the PCA cannot take in NaN values, so we drop
-    # groupby the mlflow_id
-    merged_feats_df = merged_feats_df.groupby("mlflow_id").apply(
-        lambda df: project_features_to_pcs(df, pca) if df["mlflow_id"].notna().all() else df,
-    )
-    #     include_groups=False,
-    # )
-    # for grp in merged_feats_df.groupby("mlflow_id", as_index=False):
-    #     print(grp.)
-
     # read in the grid crop-based diffae features
     model_name = sequence_to_scalar(merged_feats_df["model_manifest_name"])
     manifest = load_dataframe_manifest(model_name)
