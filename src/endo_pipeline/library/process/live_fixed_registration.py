@@ -564,6 +564,11 @@ def align_all_positions_for_dataset_pair(
             output_dir,
         )
 
+        # Additional metadata fields
+        paths["target_dataset"] = dataset_pair.target
+        paths["moving_dataset"] = dataset_pair.moving
+        paths["channel"] = 0
+
         aligned_image_paths.append(paths)
         aligned_positions_count += 1
 
