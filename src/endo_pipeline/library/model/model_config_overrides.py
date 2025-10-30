@@ -36,6 +36,9 @@ class ModelConfigOverride:
     crop_size: int | None = Field(None, gt=0)
     """Number of pixels in each dimension of the image crop to use for training."""
 
+    condition_key: str | None = None
+    """Key for the image channel to condition the model on."""
+
     train_dataframe_path: Path | None = None
     """Path to the training dataset (image loading metadata) parquet file."""
 
@@ -103,6 +106,9 @@ class ModelConfigOverride:
         if self.crop_size is None:
             self.crop_size = OmegaConf.select(config, "model.image_shape[1]", default=128)
 
+        if self.condition_key is None:
+            self.condition_key = OmegaConf.select(config, "model.condition_key", default="raw_bf")
+
         if self.max_epochs is None:
             self.max_epochs = OmegaConf.select(config, "trainer.max_epochs", default=1000)
 
@@ -159,6 +165,8 @@ class ModelConfigOverride:
             "callbacks.model_checkpoint.dirpath": checkpoint_path.as_posix(),
             # set crop size from input via model.image_shape,
             "model.image_shape": [1, self.crop_size, self.crop_size],
+            # set condition key
+            "model.condition_key": self.condition_key,
             # set training and validation dataframe paths and caching parameters
             "data.train_dataloaders.dataset.dataframe_path": self.train_dataframe_path.as_posix(),
             "data.train_dataloaders.dataset.cache_rate": self.cache_rate,
