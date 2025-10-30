@@ -89,7 +89,6 @@ def main(
         ModelLocation,
         create_model_manifest,
         load_dataframe_manifest,
-        load_model_manifest,
         save_model_manifest,
     )
     from endo_pipeline.settings import DIFFAE_IMAGE_LOADING_KEY_PREFIX, DIFFAE_MODEL_TRAIN_CONFIG
@@ -149,10 +148,13 @@ def main(
         condition_name = f"_condition_on_{condition_on}"
         model_manifest_name = f"diffae{res_name}{patch_name}{condition_name}{piling_name}"
 
+    # Create or load the model manifest.
+    manifest = create_model_manifest(model_manifest_name, __file__)
+
     # Build the run name, if not provided.
     if run_name is None:
         run_name = make_name_unique("diffae").name
-    elif run_name in load_model_manifest(model_manifest_name).locations:
+    elif run_name in manifest.locations:
         run_name = make_name_unique(run_name).name
         logger.warning("Run name already exists in manifest, changed to [ %s ]", run_name)
 
@@ -195,10 +197,7 @@ def main(
         "live_20X_objective_3i_microscope",
     )
 
-    # Create a new model manifest with workflow parameters, if a matching
-    # manifest does not already exist. Add the model training run to the list
-    # of manifest locations.
-    manifest = create_model_manifest(model_manifest_name, __file__)
+    # Populate manifest with training run location and parameters.
     manifest.parameters = {
         "training_datasets": list_of_training_datasets,
         "crop_size": crop_size,
