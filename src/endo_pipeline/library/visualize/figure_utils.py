@@ -146,12 +146,85 @@ def plot_image_thumbnail(
     plt.close(figure)
 
 
-def make_contact_sheet(  # noqa: C901
+def broadcast_title_list(title_list: list[str] | None, target_length: int) -> list[str] | None:
+    """Broadcast a list of titles to a target length.
+    Parameters
+    ----------
+    title_list:
+        List of titles to broadcast. If None, returns None.
+    target_length:
+        Target length to broadcast the titles to.
+    """
+    if title_list is not None:
+        if len(title_list) == 1:
+            title_list = title_list * target_length
+        elif len(title_list) != target_length:
+            logger.warning(
+                f"""Number of titles is not 1 nor equal to target_length.
+                    target_length={target_length}, number of titles={len(title_list)}"""
+            )
+        else:
+            pass
+    return title_list
+
+
+def reshape_panel_list_from_direction(
+    num_panels: int,
+    max_panels_per_line: int,
+    direction: Literal["left-right first", "top-down first"],
+) -> tuple[int, int]:
+    """Reshape the list of panels based on the specified direction.
+
+    Parameters
+    ----------
+    num_panels:
+        Total number of panels to be plotted.
+    max_panels_per_line:
+        Maximum number of panels allowed in the specified direction.
+    direction:
+        Direction to fill the contact sheet: "left-right first" or "top-down first".
+
+    Returns
+    -------
+    (nrows, ncols):
+        Tuple with number of rows and columns for the contact sheet.
+    """
+
+    max_panels_in_direction = max_panels_per_line or num_panels
+
+    # Get the number of panels orthogonal to the specified direction that
+    # are needed based on the max panels along the specified direction
+    if num_panels % max_panels_in_direction:
+        # this is in case only a single row/column is needed
+        n_panels_ortho_direction = num_panels // max_panels_in_direction + 1
+    else:
+        n_panels_ortho_direction = num_panels // max_panels_in_direction
+
+    # truncate the number of rows/columns along the specified direction if
+    # the number of panels in a direction is less than the max allowed
+    if (n_panels_ortho_direction == 1) and (num_panels < max_panels_in_direction):
+        n_panels_in_direction = num_panels
+    else:
+        n_panels_in_direction = max_panels_in_direction
+
+    # convert the number of panels in the specified
+    # and orthogonal directions to nrows and ncols
+    if direction == "left-right first":
+        nrows = n_panels_ortho_direction
+        ncols = n_panels_in_direction
+    else:  # top-down first
+        nrows = n_panels_in_direction
+        ncols = n_panels_ortho_direction
+
+    return nrows, ncols
+
+
+def make_contact_sheet(
     panels: list[np.ndarray],
     max_rows: int | None = None,
     max_cols: int | None = None,
-    horizontal_titles: list[str] | None = None,
-    vertical_titles: list[str] | None = None,
+    col_titles: list[str] | None = None,
+    row_titles: list[str] | None = None,
     panel_titles: list[str] | None = None,
     direction: Literal["left-right first", "top-down first"] = "left-right first",
     subplot_kwargs: dict | None = None,
@@ -172,13 +245,13 @@ def make_contact_sheet(  # noqa: C901
         Maximum number of rows in the contact sheet. If None, no limit is applied.
     max_cols:
         Maximum number of columns in the contact sheet. If None, no limit is applied.
-    horizontal_titles:
-        List of titles for each column. Length of horizontal_titles must match the
+    col_titles:
+        List of titles for each column. Length of col_titles must match the
         number of columns that are plotted or have length of 1 if provided. If the
         length is 1 then the title will be repeated for each column.
         If None, no titles are added.
-    vertical_titles:
-        List of titles for each row. Length of vertical_titles must match the number
+    row_titles:
+        List of titles for each row. Length of row_titles must match the number
         of rows that are plotted or have length of 1 if provided. If the length is 1
         then the title will be repeated for each row.
         If None, no titles are added.
@@ -217,57 +290,16 @@ def make_contact_sheet(  # noqa: C901
     # 'Figure' out the number of panels you have to plot
     num_panels = len(panels)
 
-    if direction == "left-right first":
-        max_panels_in_direction = max_cols or num_panels
-    else:
-        max_panels_in_direction = max_rows or num_panels
+    # get the number of rows and columns for panels/subplots based on the
+    # provided number of panels, max rows, max columns, and direction
+    max_panels_in_direction = max_cols if direction == "left-right first" else max_rows
+    nrows, ncols = reshape_panel_list_from_direction(
+        num_panels=num_panels, max_panels_per_line=max_panels_in_direction, direction=direction
+    )
 
-    # Get the number of panels orthogonal to the specified direction that
-    # are needed based on the max panels along the specified direction
-    if num_panels % max_panels_in_direction:
-        # this is in case only a single row/column is needed
-        n_panels_ortho_direction = num_panels // max_panels_in_direction + 1
-    else:
-        n_panels_ortho_direction = num_panels // max_panels_in_direction
-
-    # truncate the number of rows/columns along the specified direction if
-    # the number of panels in a direction is less than the max allowed
-    if (n_panels_ortho_direction == 1) and (num_panels < max_panels_in_direction):
-        n_panels_in_direction = num_panels
-    else:
-        n_panels_in_direction = max_panels_in_direction
-
-    # convert the number of panels in the specified
-    # and orthogonal directions to nrows and ncols
-    if direction == "left-right first":
-        nrows = n_panels_ortho_direction
-        ncols = n_panels_in_direction
-    else:  # top-down first
-        nrows = n_panels_in_direction
-        ncols = n_panels_ortho_direction
-
-    # adjust the length of the horizontal and vertical titles lists
-    # if necessary
-    if horizontal_titles is not None:
-        if len(horizontal_titles) == 1:
-            horizontal_titles = horizontal_titles * ncols
-        elif len(horizontal_titles) != ncols:
-            logger.warning(
-                f"""Length of horizontal_titles is not 1 nor equal to number of columns.
-                    ncols={ncols}, number of horizontal titles={len(horizontal_titles)}"""
-            )
-        else:
-            pass
-    if vertical_titles is not None:
-        if len(vertical_titles) == 1:
-            vertical_titles = vertical_titles * nrows
-        elif len(vertical_titles) != nrows:
-            logger.warning(
-                f"""Length of vertical_titles is not 1 nor equal to number of rows.
-                    nrows={nrows}, number of vertical titles={len(vertical_titles)}"""
-            )
-        else:
-            pass
+    # adjust the length of the column and row titles lists if necessary
+    col_titles = broadcast_title_list(col_titles, ncols)
+    row_titles = broadcast_title_list(row_titles, nrows)
 
     # create the figure and axes
     fig, axs = plt.subplots(
@@ -282,10 +314,16 @@ def make_contact_sheet(  # noqa: C901
     ## (row, column) index for each ax in axs as a flat list...
     ## ... accounting for if there is only 1 row
     if nrows == 1:
-        ax_indices = [(1, c) for c in range(ncols)]
+        ax_indices = [(0, c) for c in range(ncols)]
+        # ensure axs is 2D array increasing column-wise for indexing
+        axs = np.array(axs, ndmin=2)
+
     ## ... accounting for if there is only 1 column
-    elif nrows != 1 and ncols == 1:
-        ax_indices = [(r, 1) for r in range(nrows)]
+    elif ncols == 1:
+        ax_indices = [(r, 0) for r in range(nrows)]
+        # ensure axs is 2D array increasing row-wise for indexing
+        axs = np.array(axs, ndmin=2).T
+
     ## ... all other situations (i.e. more than 1 row and column)
     else:
         if direction == "left-right first":
@@ -303,10 +341,10 @@ def make_contact_sheet(  # noqa: C901
         if panel_titles is not None:
             ax.set_title(panel_titles[i], fontsize=FONTSIZE_LARGE)
 
-        if (ax_col == 0) and (vertical_titles is not None):
-            ax.set_ylabel(vertical_titles[ax_row], fontsize=FONTSIZE_LARGE)
-        if (ax_row == 0) and (horizontal_titles is not None):
-            ax.set_xlabel(horizontal_titles[ax_col], fontsize=FONTSIZE_LARGE)
+        if (ax_col == 0) and (row_titles is not None):
+            ax.set_ylabel(row_titles[ax_row], fontsize=FONTSIZE_LARGE)
+        if (ax_row == 0) and (col_titles is not None):
+            ax.set_xlabel(col_titles[ax_col], fontsize=FONTSIZE_LARGE)
             ax.xaxis.set_label_position("top")
 
     # remove any unused axes
