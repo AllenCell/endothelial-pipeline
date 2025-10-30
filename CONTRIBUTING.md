@@ -114,4 +114,4 @@ There are currently three main model training options. These options may be pass
 - workflow = `train-diffae`
 - input (identifier options) = **model manifest name**, **run_name**
 - :white_circle: output = model training run on MLflow
-- :purple_circle: output = updated model manifest with MLflow run id at `src/endo_pipeline/manifests/models/diffae_RESOLUTION_PATCH_PILING`
+- :purple_circle: output = updated model manifest with MLflow run id at `src/endo_pipeline/manifests/models/diffae_RESOLUTION_PATCH_CONDITIONING_PILING`
