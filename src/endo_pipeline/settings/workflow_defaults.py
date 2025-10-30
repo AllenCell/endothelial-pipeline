@@ -12,3 +12,24 @@ DEFAULT_PCA_DATASET_COLLECTION_NAME: str = "pca_reference"
 DEFAULT_SEG_FEATURE_MANIFEST_NAME: str = "live_merged_seg_features"
 """Default manifest name for merged CDH5 segmentation, CDH5 tracking and
 label-free nuclei segmentation features."""
+
+DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL: int = 1
+"""Default zarr resolution level for loading model input data."""
+
+RANDOM_SEED: int = 47
+"""Default random seed for workflows."""
+
+MODEL_QC_DATASET_NAME = "20250224_20X"
+"""Default dataset name for selecting crops for the model QC workflow."""
+
+MODEL_QC_POSITION: int = 0
+"""Default position index for selecting crops for the model QC workflow."""
+
+MODEL_QC_TIMEPOINT: int = 0
+"""Default timepoint index for selecting crops for the model QC workflow."""
+
+MODEL_QC_NOISE_LEVELS: tuple = (0.25, 0.5, 0.75)
+"""Default noise levels to add to ground truth for the model QC workflow."""
+
+MODEL_QC_CROP_POSITION: tuple = (100, 100)
+"""Default crop position (start_x, start_y) for the model QC workflow."""
