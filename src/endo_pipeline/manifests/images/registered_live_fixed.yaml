@@ -1,4 +1,4 @@
-name: registered_live_fixed_resolution_1
+name: registered_live_fixed
 workflow: register_paired_images
 parameters:
   dataset_pair_type: live_fixed
