@@ -1,4 +1,5 @@
 name: diffae_cdh5
+workflow: train_diffae
 parameters:
   training_datasets:
   - 20250319_20X
