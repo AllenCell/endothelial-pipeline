@@ -24,7 +24,12 @@ from endo_pipeline.configs import (
 )
 from endo_pipeline.io import load_dataframe_from_path
 from endo_pipeline.library.process.z_stack_selection import get_plane_indices
-from endo_pipeline.settings import LOG_EPSILON, NUM_ZSLICES, CytoDLLoadDataKeys
+from endo_pipeline.settings import (
+    DIFFAE_ZARR_RESOLUTION_LEVEL,
+    LOG_EPSILON,
+    NUM_ZSLICES,
+    CytoDLLoadDataKeys,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -577,7 +582,7 @@ def get_z_slice_bounds_per_position(
 
 def build_zarr_image_loading_dataframe(
     dataset_config: DatasetConfig,
-    resolution_level: int = 1,
+    resolution_level: int = DIFFAE_ZARR_RESOLUTION_LEVEL,
     channel: int | list[int] = 0,
     frame_start: int | None = None,
     frame_stop: int | None = None,
