@@ -80,9 +80,11 @@ def get_sift_keypoints_and_descriptors(
 
 
 def sift_registration(
-    image_target: np.ndarray,
-    image_moving: np.ndarray,
+    target_image: np.ndarray,
+    moving_image: np.ndarray,
     output_dir: Path,
+    target_name: str,
+    moving_name: str,
     min_samples: int = 4,
     residual_threshold: int = 10,
     max_trials: int = 1000,
@@ -92,12 +94,16 @@ def sift_registration(
 
     Parameters
     ----------
-    image_target
+    target_image
         The reference image used for registration.
-    image_moving
+    moving_image
         The image that will be registered to the target image.
     output_dir
         Directory to save visualizations of keypoints.
+    target_name
+        Base name for target image.
+    moving_name
+        Base name for moving image.
     min_samples
         Minimum number of samples for RANSAC.
     residual_threshold
@@ -106,11 +112,11 @@ def sift_registration(
         Maximum RANSAC iterations.
     """
 
-    image_target = preprocess_image_for_sift(image_target)
-    image_moving = preprocess_image_for_sift(image_moving)
+    target_image = preprocess_image_for_sift(target_image)
+    moving_image = preprocess_image_for_sift(moving_image)
 
-    keypoints_target, descriptors_target = get_sift_keypoints_and_descriptors(image_target)
-    keypoints_moving, descriptors_moving = get_sift_keypoints_and_descriptors(image_moving)
+    keypoints_target, descriptors_target = get_sift_keypoints_and_descriptors(target_image)
+    keypoints_moving, descriptors_moving = get_sift_keypoints_and_descriptors(moving_image)
 
     # Brute force matching
     matches = match_descriptors(descriptors_moving, descriptors_target)
@@ -125,8 +131,10 @@ def sift_registration(
     dst = keypoints_target[matches[:, 1]][:, ::-1]
 
     # Visualize keypoints
-    plot_detected_keypoints(image_moving, src[:, ::-1], output_dir / "moving_keypoints")
-    plot_detected_keypoints(image_target, dst[:, ::-1], output_dir / "target_keypoints")
+    target_save_path = output_dir / f"{target_name}_target_keypoints"
+    moving_save_path = output_dir / f"{moving_name}_moving_keypoints"
+    plot_detected_keypoints(target_image, dst[:, ::-1], target_save_path)
+    plot_detected_keypoints(moving_image, src[:, ::-1], moving_save_path)
 
     logger.info("Starting estimation of transformation using RANSAC")
 
@@ -385,8 +393,8 @@ def align_dataset_pair(
     aligned_files: dict[str, str] = {}
 
     # Use original image names as base for output file names.
-    base_moving_name = moving_image_location.path.name.split(".")[0]
-    base_target_name = target_image_location.path.name.split(".")[0]
+    moving_name = moving_image_location.path.name.split(".")[0]
+    target_name = target_image_location.path.name.split(".")[0]
 
     # Check physical pixel sizes in loaded images.
     moving_image_pixel_sizes: PhysicalPixelSizes = moving_image_reader.physical_pixel_sizes
@@ -420,17 +428,17 @@ def align_dataset_pair(
     moving_bf_image = resize_moving_image(moving_bf_image, (1, rescale_factor, rescale_factor))
 
     # Apply standard deviation projection on GFP images to get alignment model.
-    target_gfp_projection = target_gfp_image.std(0)
-    moving_gfp_projection = moving_gfp_image.std(0)
-    model = sift_registration(target_gfp_projection, moving_gfp_projection, output_dir)
+    target_gfp_std = target_gfp_image.std(0)
+    moving_gfp_std = moving_gfp_image.std(0)
+    model = sift_registration(target_gfp_std, moving_gfp_std, output_dir, target_name, moving_name)
 
     # Warp and crop the GFP images.
     moving_gfp_image = warp_moving_image(model, target_gfp_image, moving_gfp_image)
     moving_gfp_image, target_gfp_image = crop_images_to_overlap(moving_gfp_image, target_gfp_image)
 
     # Save the aligned GFP images
-    moving_gfp_save_path = output_dir / f"{base_moving_name}_moving_gfp.ome.tiff"
-    target_gfp_save_path = output_dir / f"{base_target_name}_target_gfp.ome.tiff"
+    moving_gfp_save_path = output_dir / f"{moving_name}_moving_gfp.ome.tiff"
+    target_gfp_save_path = output_dir / f"{target_name}_target_gfp.ome.tiff"
     OmeTiffWriter.save(uri=moving_gfp_save_path, data=moving_gfp_image)
     OmeTiffWriter.save(uri=target_gfp_save_path, data=target_gfp_image)
     aligned_files["moving_gfp"] = moving_gfp_save_path.as_posix()
@@ -438,7 +446,7 @@ def align_dataset_pair(
 
     # Save overlay of GFP images.
     plot_aligned_overlay(
-        moving_gfp_image, target_gfp_image, output_dir / f"{base_target_name}_overlay.png"
+        moving_gfp_image, target_gfp_image, output_dir / f"{target_name}_overlay.png"
     )
 
     # Warp and crop the BF images.
@@ -446,8 +454,8 @@ def align_dataset_pair(
     moving_bf_image, target_bf_image = crop_images_to_overlap(moving_bf_image, target_bf_image)
 
     # Save the aligned BF images.
-    moving_bf_save_path = output_dir / f"{base_moving_name}_moving_bf.ome.tiff"
-    target_bf_save_path = output_dir / f"{base_target_name}_target_bf.ome.tiff"
+    moving_bf_save_path = output_dir / f"{moving_name}_moving_bf.ome.tiff"
+    target_bf_save_path = output_dir / f"{target_name}_target_bf.ome.tiff"
     OmeTiffWriter.save(uri=moving_bf_save_path, data=moving_bf_image)
     OmeTiffWriter.save(uri=target_bf_save_path, data=target_bf_image)
     aligned_files["moving_bf"] = moving_bf_save_path.as_posix()
@@ -457,7 +465,7 @@ def align_dataset_pair(
     target_bf_projection = target_bf_image.std(0)
     moving_bf_projection = moving_bf_image.std(0)
     combined_bf_image = np.stack([target_bf_projection, moving_bf_projection], axis=0)[:, None]
-    combined_bf_save_path = output_dir / f"{base_target_name}_aligned_paired_bf.ome.tiff"
+    combined_bf_save_path = output_dir / f"{target_name}_combined_paired_bf.ome.tiff"
     OmeTiffWriter.save(uri=combined_bf_save_path, data=combined_bf_image)
     aligned_files["combined_bf"] = combined_bf_save_path.as_posix()
 
