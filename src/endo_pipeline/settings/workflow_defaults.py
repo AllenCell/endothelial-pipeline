@@ -16,6 +16,9 @@ label-free nuclei segmentation features."""
 DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL: int = 1
 """Default zarr resolution level for loading model input data."""
 
+DEFAULT_DIFFUSION_IMAGE_KEY: str = "raw_cdh5"
+"""Default key for channel to use as diffusion image input to the model."""
+
 RANDOM_SEED: int = 47
 """Default random seed for workflows."""
 
