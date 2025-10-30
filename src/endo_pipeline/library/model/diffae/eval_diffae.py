@@ -43,7 +43,10 @@ def _get_correct_image_shape(image: np.ndarray) -> np.ndarray:
 
 
 def get_latent_vector_from_crop(
-    model: "DiffusionAutoEncoder | _BaseDiffAE", image_crop: np.ndarray, num_gpus: int | None = None
+    model: "DiffusionAutoEncoder | _BaseDiffAE",
+    image_crop: np.ndarray,
+    squeeze: bool = False,
+    num_gpus: int | None = None,
 ) -> np.ndarray:
     """
     Get the latent vector from an image using the model's semantic encoder.
@@ -60,6 +63,8 @@ def get_latent_vector_from_crop(
         The diffusion autoencoder model with a semantic encoder.
     image_crop
         The image to encode.
+    squeeze
+        Whether to squeeze the output latent vector to remove the batch dimension.
     num_gpus
         The number of GPUs available for computation. If ``None``, defaults to CPU.
     """
@@ -103,6 +108,7 @@ def get_latent_vector_from_crop(
     latent_vector_np: np.ndarray = latent_vector.numpy()
 
     # Squeeze to remove batch dimension
-    latent_vector_np = np.squeeze(latent_vector_np, axis=0)
+    if squeeze:
+        latent_vector_np = np.squeeze(latent_vector_np, axis=0)
 
     return latent_vector_np
