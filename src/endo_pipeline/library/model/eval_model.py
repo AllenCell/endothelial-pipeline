@@ -39,6 +39,7 @@ from endo_pipeline.manifests import (
 )
 from endo_pipeline.settings import (
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    DIFFAE_ZARR_RESOLUTION_LEVEL,
     ZARR_BRIGHTFIELD_CHANNEL,
     ColumnName,
     CytoDLLoadDataKeys,
@@ -567,7 +568,7 @@ def update_prediction_from_tracks_with_metadata(
 def evaluate_model_on_grid_of_crops_from_one_dataset(
     model: "CytoDLModel",
     dataset_config: DatasetConfig,
-    resolution_level: int = 1,
+    resolution_level: int = DIFFAE_ZARR_RESOLUTION_LEVEL,
     z_slice_offsets: tuple[int, int] | None = None,
     frame_start: int | None = None,
     frame_stop: int | None = None,
