@@ -1,4 +1,4 @@
-name: diffae_training_dataframe_resolution_1
+name: diffae_training_dataframe_resolution_1_include_cell_piling
 workflow: create_diffae_training_dataframe
 parameters:
   resolution_level: 1
@@ -8,8 +8,8 @@ parameters:
   include_cell_piling: true
 locations:
   training:
-    fmsid: 46da8e9d3c294103874d57d109000d5e
+    fmsid: d9898ed4c3724e3ea10f0e7c40c9d789
     s3uri: null
   validation:
-    fmsid: ef18b4dd04f0409ba687a3f3dd4ad891
+    fmsid: 2e426d2a680e41a99988838b530a5d8a
     s3uri: null
