@@ -5,7 +5,6 @@ TAGS = ["preprocessing"]
 
 def main(
     dataset_pair_type: Literal["live_fixed", "20X_40X"] = "live_fixed",
-    resolution_level: int = 1,
     output_dir: str | None = None,
 ) -> None:
     """
@@ -19,8 +18,6 @@ def main(
     ----------
     dataset_pair_type
         Whether paired datasets are live/fixed or 20X/40X.
-    resolution_level
-        The resolution level of the zarr files to be used for registration.
     output_dir
         Optional, the directory where the aligned images will be saved.
     """
@@ -48,7 +45,7 @@ def main(
         save_dataframe_manifest,
         save_image_manifest,
     )
-    from endo_pipeline.settings import Z_SLICE_OFFSETS
+    from endo_pipeline.settings import DIFFAE_ZARR_RESOLUTION_LEVEL, Z_SLICE_OFFSETS
 
     logger = logging.getLogger(__name__)
 
@@ -65,7 +62,7 @@ def main(
     else:
         output_path = Path(output_dir)
 
-    save_path = output_path / f"{dataset_pair_type}_resolution_{resolution_level}"
+    save_path = output_path / f"{dataset_pair_type}"
 
     # if not in demo mode, check that the output directory does not already exist
     # if it does exist, exit the workflow to avoid overwriting existing data
@@ -112,7 +109,7 @@ def main(
         # align the images and save the aligned file individually
         df = align_and_save_paired_images(
             dataset_pair_type,
-            resolution_level,
+            resolution_level=DIFFAE_ZARR_RESOLUTION_LEVEL,
             z_slice_offsets=Z_SLICE_OFFSETS,
             save_path=save_path,
             num_datasets_to_align=num_datasets_to_align,
@@ -180,13 +177,12 @@ def main(
             image_locations[dataset_name] = ImageLocation(path=Path(file_path_pattern))
 
         # create and save image manifest
-        manifest_name = f"registered_{dataset_pair_type}_resolution_{resolution_level}{name_suffix}"
+        manifest_name = f"registered_{dataset_pair_type}{name_suffix}"
         image_manifest = ImageManifest(
             name=manifest_name,
             workflow="register_paired_images",
             parameters={
                 "dataset_pair_type": dataset_pair_type,
-                "resolution_level": resolution_level,
                 "output_dir": output_dir,
             },
             locations=image_locations,
