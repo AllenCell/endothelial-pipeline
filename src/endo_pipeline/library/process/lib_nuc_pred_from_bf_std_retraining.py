@@ -163,7 +163,6 @@ def generate_training_data(analysis_args: dict) -> None:
     - Brightfield standard deviation projections as the images
     - Nuclei segmentations from the Cellpose base nuclei model as the labels
     """
-    from bioio_base.types import PhysicalPixelSizes
 
     from endo_pipeline.library.process.general_image_preprocessing import save_image_output
 
@@ -225,7 +224,7 @@ def generate_training_data(analysis_args: dict) -> None:
             "image_name": dataset_name,
             "channel_names": ["cellpose_nuclei_prediction"],
             "channel_colors": [(255, 255, 255)],
-            "physical_pixel_sizes": PhysicalPixelSizes(**voxel_size),
+            "physical_pixel_sizes": voxel_size,
             "dim_order": "YX",
             "dtype": None,
         }
@@ -242,7 +241,7 @@ def generate_training_data(analysis_args: dict) -> None:
             "image_name": dataset_name,
             "channel_names": ["cellpose_nuclei_max_projects"],
             "channel_colors": [(255, 255, 255)],
-            "physical_pixel_sizes": PhysicalPixelSizes(**voxel_size),
+            "physical_pixel_sizes": voxel_size,
             "dim_order": "YX",
             "dtype": None,
         }
@@ -259,7 +258,7 @@ def generate_training_data(analysis_args: dict) -> None:
             "image_name": dataset_name,
             "channel_names": ["cellpose_brightfield_standard_deviation_projection"],
             "channel_colors": [(255, 255, 255)],
-            "physical_pixel_sizes": PhysicalPixelSizes(**voxel_size),
+            "physical_pixel_sizes": voxel_size,
             "dim_order": "YX",
             "dtype": None,
         }
