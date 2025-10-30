@@ -33,6 +33,7 @@ def main(model_manifest_name, run_name, random_seed: int = RANDOM_SEED) -> None:
         get_zarr_location_for_position,
         load_model_manifest,
     )
+    from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
     from endo_pipeline.settings.plot_defaults import (
         MODEL_QC_FIG_KWARGS,
         MODEL_QC_GRIDSPEC_KWARGS,
@@ -40,7 +41,6 @@ def main(model_manifest_name, run_name, random_seed: int = RANDOM_SEED) -> None:
         MODEL_QC_SUBPLOT_KWARGS,
     )
     from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL,
         MODEL_QC_CROP_POSITION,
         MODEL_QC_DATASET_NAME,
         MODEL_QC_NOISE_LEVELS,
@@ -61,7 +61,7 @@ def main(model_manifest_name, run_name, random_seed: int = RANDOM_SEED) -> None:
     zarr_loc = get_zarr_location_for_position(dataset_config, MODEL_QC_POSITION)
     img = load_image(
         zarr_loc,
-        level=DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL,
+        level=DIFFAE_ZARR_RESOLUTION_LEVEL,
         timepoints=MODEL_QC_TIMEPOINT,
         squeeze=True,
         compute=True,

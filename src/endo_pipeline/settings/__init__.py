@@ -15,6 +15,7 @@ from .diffae_feature_dataframes import (
     CytoDLSaveDataKeys,
 )
 from .image_data import (
+    DIFFAE_ZARR_RESOLUTION_LEVEL,
     DIMENSION_ORDER,
     IF_INTEGRATION_SAVE_DIRECTORY,
     LOG_EPSILON,
@@ -48,6 +49,7 @@ __all__ = [
     "DIFFAE_MODEL_TRAIN_CONFIG",
     "DIFFAE_MODEL_TRAIN_FINETUNE_CONFIG",
     "DIFFAE_PC_COLUMN_NAMES",
+    "DIFFAE_ZARR_RESOLUTION_LEVEL",
     "DIMENSION_ORDER",
     "IF_INTEGRATION_SAVE_DIRECTORY",
     "LOG_EPSILON",

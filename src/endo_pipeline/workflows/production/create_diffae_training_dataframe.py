@@ -6,7 +6,6 @@ TAGS = ["diffae_model_training"]
 
 
 def main(
-    resolution_level: int = 1,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
 ) -> None:
     """
@@ -73,7 +72,7 @@ def main(
         build_zarr_image_loading_dataframe,
         get_z_slice_bounds_per_position,
     )
-    from endo_pipeline.settings import Z_SLICE_OFFSETS
+    from endo_pipeline.settings import DIFFAE_ZARR_RESOLUTION_LEVEL, Z_SLICE_OFFSETS
 
     output_savedir = get_output_path("dataframes")
 
@@ -124,7 +123,7 @@ def main(
         zarr_dataframes.append(
             build_zarr_image_loading_dataframe(
                 dataset_config=dataset_config,
-                resolution_level=resolution_level,
+                resolution_level=DIFFAE_ZARR_RESOLUTION_LEVEL,
                 channel=[
                     dataset_config.zarr_channel_indices.channel_488,
                     dataset_config.zarr_channel_indices.brightfield,
@@ -156,11 +155,11 @@ def main(
     # Upload dataframes to FMS, then build and save out DataframeManifest
     # object with FMS IDs to be used in the DiffAE model training script.
     # Note that this can be swapped out with uploading to S3 later on.
-    manifest_name = f"diffae_training_dataframe_resolution_{resolution_level}{name_suffix}"
+    manifest_name = f"diffae_training_dataframe_{name_suffix}"
     build_and_save_dataframe_manifest_for_training(
         train,
         val,
-        resolution_level,
+        DIFFAE_ZARR_RESOLUTION_LEVEL,
         Z_SLICE_OFFSETS,
         include_cell_piling,
         dataset_config_list,

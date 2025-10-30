@@ -9,6 +9,9 @@ ZARR_IMAGE_MANIFEST_NAME: str = "image_zarr"
 ZARR_BRIGHTFIELD_CHANNEL: int = 1
 """Default channel index for brightfield images in zarr files."""
 
+DIFFAE_ZARR_RESOLUTION_LEVEL: int = 1
+"""Default zarr resolution level for loading images for DiffAE model training and inference."""
+
 LOWER_Z_SLICE_OFFSET: int = 4
 """How many slices below the "center" Z-plane to include in projections."""
 
