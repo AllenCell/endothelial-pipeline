@@ -39,9 +39,7 @@ def main(
 
     # get name of dataset used as the "target" image in the target/moving pair
     # to get image paths from the ImageManifest created in the registration workflow
-    image_manifest = load_image_manifest(
-        f"registered_{dataset_pair_type}_resolution_{DIFFAE_ZARR_RESOLUTION_LEVEL}{name_suffix}"
-    )
+    image_manifest = load_image_manifest(f"registered_{dataset_pair_type}{name_suffix}")
     paired_datasets = get_paired_dataset_dict(dataset_pair_type)
     image_paths: list[str] = []
     for fixed_dataset_name in paired_datasets["target"]:
@@ -81,9 +79,7 @@ def main(
     # Upload dataframes to FMS, then build and save out DataframeManifest
     # object with FMS IDs to be used in the DiffAE model training script.
     # Note that this can be swapped out with uploading to S3 later on.
-    manifest_name = (
-        f"diffae_finetuning_dataframe_resolution_{DIFFAE_ZARR_RESOLUTION_LEVEL}{name_suffix}"
-    )
+    manifest_name = f"diffae_finetuning_dataframe{name_suffix}"
     dataset_name_list = get_datasets_in_collection(f"{dataset_pair_type}_paired_datasets")
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_name_list]
     save_path = get_output_path("models", f"diffae_finetune_{dataset_pair_type}")
