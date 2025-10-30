@@ -1,4 +1,7 @@
-def main(model_manifest_name, run_name) -> None:
+from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
+
+
+def main(model_manifest_name, run_name, random_seed: int = RANDOM_SEED) -> None:
     """QC a newly trained model."""
 
     from numpy.random import default_rng
@@ -30,25 +33,39 @@ def main(model_manifest_name, run_name) -> None:
         get_zarr_location_for_position,
         load_model_manifest,
     )
+    from endo_pipeline.settings.plot_defaults import (
+        MODEL_QC_FIG_KWARGS,
+        MODEL_QC_GRIDSPEC_KWARGS,
+        MODEL_QC_PLOT_DIRECTION,
+        MODEL_QC_SUBPLOT_KWARGS,
+    )
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL,
+        MODEL_QC_CROP_POSITION,
+        MODEL_QC_DATASET_NAME,
+        MODEL_QC_NOISE_LEVELS,
+        MODEL_QC_POSITION,
+        MODEL_QC_TIMEPOINT,
+    )
 
-    # In practice, these constants would live in endo_pipeline.settings
-    # Set which image to load
-    DATASET_NAME = "20250224_20X"
-    POSITION = 0
-    TIMEPOINT = 0
-    # Set where to crop
-    START_X = 100
-    START_Y = 100
-    # Set random seed and instantiate random number generator
-    RANDOM_SEED = 47
-    rng = default_rng(seed=RANDOM_SEED)
-    # Set noise levels for corrupting CDH5
-    NOISE_LEVELS = [0.25, 0.5, 0.75]
+    # Instantiate random number generator
+    rng = default_rng(seed=random_seed)
+
+    # Set defaults for plot titles
+    CDH5_LABELS = ["Original CDH5", "Noised CDH5", "Denoised CDH5"]
+    NOISE_LABELS = [f"{level * 100:.0f}% Noise" for level in [*MODEL_QC_NOISE_LEVELS, 1]]
+    NUM_IMAGES_DENOISED = len(NOISE_LABELS)
 
     # Load Example Data
-    dataset_config = load_dataset_config(DATASET_NAME)
-    zarr_loc = get_zarr_location_for_position(dataset_config, POSITION)
-    img = load_image(zarr_loc, level=1, timepoints=TIMEPOINT, squeeze=True, compute=True)
+    dataset_config = load_dataset_config(MODEL_QC_DATASET_NAME)
+    zarr_loc = get_zarr_location_for_position(dataset_config, MODEL_QC_POSITION)
+    img = load_image(
+        zarr_loc,
+        level=DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL,
+        timepoints=MODEL_QC_TIMEPOINT,
+        squeeze=True,
+        compute=True,
+    )
 
     # Load model manifest and get location for run_name
     model_manifest = load_model_manifest(model_manifest_name)
@@ -79,8 +96,9 @@ def main(model_manifest_name, run_name) -> None:
     transformed_cdh5 = get_target_image_from_sample(sample, target_key="raw_cdh5")
 
     # Crop both images to the same region
-    bf_crop = crop_image(transformed_bf, START_X, START_Y, crop_size)
-    cdh5_crop = crop_image(transformed_cdh5, START_X, START_Y, crop_size)
+    start_x, start_y = MODEL_QC_CROP_POSITION
+    bf_crop = crop_image(transformed_bf, start_x, start_y, crop_size)
+    cdh5_crop = crop_image(transformed_cdh5, start_x, start_y, crop_size)
 
     # Get latent vector embedding of the brightfield crop
     # This is used to condition the denoising process
@@ -91,7 +109,8 @@ def main(model_manifest_name, run_name) -> None:
 
     # Add noise_image to cdh5_crop with increasing weight:
     noisy_cdh5 = [
-        add_noise_to_image(cdh5_crop, noise_image, noise_level) for noise_level in NOISE_LEVELS
+        add_noise_to_image(cdh5_crop, noise_image, noise_level)
+        for noise_level in MODEL_QC_NOISE_LEVELS
     ]
 
     # Reconstruct starting with each noised CDH5, and finally the pure noise
@@ -107,31 +126,24 @@ def main(model_manifest_name, run_name) -> None:
 
     # Plot these images!
     # Prepare arguments for contact sheet
-    num_images_to_denoise = len(images_to_denoise)
     panels = [
-        *[bf_crop.squeeze()] * num_images_to_denoise,
-        *[cdh5_crop.squeeze()] * num_images_to_denoise,
+        *[bf_crop.squeeze()] * NUM_IMAGES_DENOISED,
+        *[cdh5_crop.squeeze()] * NUM_IMAGES_DENOISED,
         *[img.squeeze() for img in images_to_denoise],
         *[img.squeeze() for img in denoised_images_by_bf_cond],
     ]
-    horizontal_titles = ["Brightfield Input", "Original CDH5", "Noised CDH5", "Denoised CDH5"]
-    vertical_titles = [f"{level * 100:.0f}% Noise" for level in [*NOISE_LEVELS, 1]]
-
-    subplot_kwargs = {"frame_on": False}
-    gridspec_kwards = {"wspace": 0.05, "hspace": 0.05}
-    fig_kwargs = {"figsize": (6, 6)}
 
     # Make a contact sheet summarizing the results
     fig = make_contact_sheet(
         panels=panels,
-        max_rows=num_images_to_denoise,
+        max_rows=NUM_IMAGES_DENOISED,
         max_cols=None,
-        horizontal_titles=horizontal_titles,
-        vertical_titles=vertical_titles,
-        direction="top-down first",
-        subplot_kwargs=subplot_kwargs,
-        gridspec_kwargs=gridspec_kwards,
-        fig_kwargs=fig_kwargs,
+        horizontal_titles=["Brightfield Input", *CDH5_LABELS],
+        vertical_titles=NOISE_LABELS,
+        direction=MODEL_QC_PLOT_DIRECTION,
+        subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
+        gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
+        fig_kwargs=MODEL_QC_FIG_KWARGS,
     )
     # save the figure
     save_plot_to_path(fig, output_path, "denoising_by_bf_conditioning")
@@ -149,29 +161,26 @@ def main(model_manifest_name, run_name) -> None:
 
     # Plot these images!
     # Prepare arguments for contact sheet
-    num_images_to_denoise = len(denoised_images_by_random_cond)
     panels = [
-        *[cdh5_crop.squeeze()] * num_images_to_denoise,
+        *[cdh5_crop.squeeze()] * NUM_IMAGES_DENOISED,
         *[img.squeeze() for img in images_to_denoise],
         *[img.squeeze() for img in denoised_images_by_random_cond],
     ]
-    horizontal_titles = ["Original CDH5", "Noised CDH5", "Denoised CDH5"]
-    vertical_titles = [f"{level * 100:.0f}% Noise" for level in [*NOISE_LEVELS, 1]]
 
     # Make a contact sheet summarizing the results
     fig = make_contact_sheet(
         panels=panels,
-        max_rows=num_images_to_denoise,
+        max_rows=NUM_IMAGES_DENOISED,
         max_cols=None,
-        horizontal_titles=horizontal_titles,
-        vertical_titles=vertical_titles,
-        direction="top-down first",
-        subplot_kwargs=subplot_kwargs,
-        gridspec_kwargs=gridspec_kwards,
-        fig_kwargs=fig_kwargs,
+        horizontal_titles=CDH5_LABELS,
+        vertical_titles=NOISE_LABELS,
+        direction=MODEL_QC_PLOT_DIRECTION,
+        subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
+        gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
+        fig_kwargs=MODEL_QC_FIG_KWARGS,
     )
     # save the figure
-    save_plot_to_path(fig, output_path, "denoising_by_random_conditioning")
+    save_plot_to_path(fig, output_path, "denoising_by_random_vector_conditioning")
 
     # Do the same thing but with the conditioning vector retrieved from a
     # randomly shuffled version of the brightfield image
@@ -188,27 +197,24 @@ def main(model_manifest_name, run_name) -> None:
 
     # Plot these images!
     # Prepare arguments for contact sheet
-    num_images_to_denoise = len(denoised_images_by_random_cond)
     panels = [
-        *[img_scrambled.squeeze()] * num_images_to_denoise,
-        *[cdh5_crop.squeeze()] * num_images_to_denoise,
+        *[img_scrambled.squeeze()] * NUM_IMAGES_DENOISED,
+        *[cdh5_crop.squeeze()] * NUM_IMAGES_DENOISED,
         *[img.squeeze() for img in images_to_denoise],
         *[img.squeeze() for img in denoised_images_by_random_cond],
     ]
-    horizontal_titles = ["Scrambled Input", "Original CDH5", "Noised CDH5", "Denoised CDH5"]
-    vertical_titles = [f"{level * 100:.0f}% Noise" for level in [*NOISE_LEVELS, 1]]
 
     # Make a contact sheet summarizing the results
     fig = make_contact_sheet(
         panels=panels,
-        max_rows=num_images_to_denoise,
+        max_rows=NUM_IMAGES_DENOISED,
         max_cols=None,
-        horizontal_titles=horizontal_titles,
-        vertical_titles=vertical_titles,
-        direction="top-down first",
-        subplot_kwargs=subplot_kwargs,
-        gridspec_kwargs=gridspec_kwards,
-        fig_kwargs=fig_kwargs,
+        horizontal_titles=["Scrambled Input", *CDH5_LABELS],
+        vertical_titles=NOISE_LABELS,
+        direction=MODEL_QC_PLOT_DIRECTION,
+        subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
+        gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
+        fig_kwargs=MODEL_QC_FIG_KWARGS,
     )
     # save the figure
     save_plot_to_path(fig, output_path, "denoising_by_conditioning_on_scrambled_bf")
