@@ -1,0 +1,37 @@
+name: 20251021_20X_IF0
+original_path: //allen/programs/allencell/data/proj0/27d/ade/3a4/454/c51/a49/441/627/c3f/d2a/2b/20251021_GE00009353_0_SLDY/20251021_GE00009353_0_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251021_2bd2ac3f627441a49c514543a4ade27d
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: 2bd2ac3f627441a49c514543a4ade27d
+barcode: GE00009353
+cell_lines: [AICS-126]
+live_or_fixed_sample: fixed
+is_timelapse: false
+microscope: 3i
+objective: 20X
+shear_stress_regime: 'no'
+pixel_size_xy_in_um: 0.382
+duration: 1
+time_interval_in_minutes: null
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 4
+  channel_488: 1
+  channel_405: 0
+  channel_561: 2
+  channel_640: 3
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: 2
+  channel_561: 3
+  channel_640: 4
+flow_conditions:
+- start: 0
+  stop: 0
+  shear_stress: 0.0
+include_scenes: null
+notes: Fix & stain for SMAD1 and SOX17 at 0h (before any flow applied)
+timepoint_annotations: null
+position_annotations: null
+center_z_plane: null
