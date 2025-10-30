@@ -15,8 +15,7 @@ def main(
     from cellpose import core, models, train
     from cellpose.io import logger_setup
 
-    from endo_pipeline.configs import load_dataset_config
-    from endo_pipeline.configs.dataset_io import get_datasets_in_collection
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, get_timestamp, load_image
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
     from endo_pipeline.library.process.lib_nuc_pred_from_bf_std_retraining import (
