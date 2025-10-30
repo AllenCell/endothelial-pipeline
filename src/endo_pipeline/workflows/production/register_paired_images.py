@@ -38,14 +38,28 @@ def main(
     """
 
     import logging
+    import re
     from pathlib import Path
 
     from endo_pipeline import DEMO_MODE, USE_STAGING
-    from endo_pipeline.configs import get_datasets_in_collection
-    from endo_pipeline.io import get_output_path, make_name_unique
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.io import (
+        build_fms_annotations,
+        get_output_path,
+        make_name_unique,
+        upload_file_to_fms,
+    )
     from endo_pipeline.library.process.live_fixed_registration import (
         align_all_positions_for_dataset_pair,
         build_live_fixed_dataset_pairs,
+    )
+    from endo_pipeline.manifests import (
+        DataframeLocation,
+        ImageLocation,
+        create_dataframe_manifest,
+        create_image_manifest,
+        save_dataframe_manifest,
+        save_image_manifest,
     )
     from endo_pipeline.settings import IF_INTEGRATION_SAVE_DIRECTORY, Z_SLICE_OFFSETS
 
@@ -93,6 +107,9 @@ def main(
     logger.info("Setting output directory to [ %s ]", output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    dataframe_locations = {}
+    image_locations = {}
+
     # Iterate through each dataset pair and register images.
     for dataset_pair in build_live_fixed_dataset_pairs(datasets):
         logger.info(
@@ -109,8 +126,43 @@ def main(
         output_path = output_dir / f"diffae_finetuned_fixed_live_registration{name_suffix}.parquet"
         df.to_parquet(output_path, index=False)
 
+        # Build annotations and upload data to FMS.
+        moving_dataset_config = load_dataset_config(dataset_pair.moving)
+        target_dataset_config = load_dataset_config(dataset_pair.target)
+        fms_annotations = build_fms_annotations(
+            [target_dataset_config, moving_dataset_config],
+            additional_notes="Aligned images from paired fixed and live dataset.",
+        )
+        fmsid = upload_file_to_fms(output_path, annotations=fms_annotations, file_type="parquet")
+
+        # Add dataframe location to manifest.
+        dataset_pair_name = dataset_pair.target.replace("PreFixation", "Fixation")
+        dataframe_locations[dataset_pair_name] = DataframeLocation(fmsid=fmsid)
+
+        # Add image location with position template to manifest.
+        path_template = re.sub(r"_P[0-9]_", "_P{{position}}_", df.combined_bf[0])
+        image_locations[dataset_pair_name] = ImageLocation(path=path_template)
+
         if DEMO_MODE:
             break
+
+    # Set manifest name and parameters.
+    manifest_name = f"registered_live_fixed_resolution_{resolution_level}{name_suffix}"
+    manifest_parameters = {"resolution_level": resolution_level}
+
+    # Save out dataframe manifest.
+    logger.info("Saving image registration dataframe to dataframe manifest [ %s ]", manifest_name)
+    dataframe_manifest = create_dataframe_manifest(manifest_name, __file__)
+    dataframe_manifest.parameters = manifest_parameters
+    dataframe_manifest.locations.update(dataframe_locations)
+    save_dataframe_manifest(dataframe_manifest)
+
+    # Save out image manifest.
+    logger.info("Saving registered image location to image manifest [ %s ]", manifest_name)
+    image_manifest = create_image_manifest(manifest_name, __file__)
+    image_manifest.parameters = manifest_parameters
+    image_manifest.locations.update(image_locations)
+    save_image_manifest(image_manifest)
 
 
 if __name__ == "__main__":
