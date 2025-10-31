@@ -90,6 +90,8 @@ def main(param1: str, param2: int, param3: bool, param4: str = "X") -> None:
     # imports are only imported when the main method is called.
     import logging
 
+    from endo_pipeline import DEMO_MODE, NUM_GPUS
+
     logger = logging.getLogger(__name__)
 
     # Call workflow methods here. All methods should be located in the library,
@@ -99,6 +101,11 @@ def main(param1: str, param2: int, param3: bool, param4: str = "X") -> None:
     logger.warning(f"warn message: {param1} {param2} {param3} {param4}")
     logger.error(f"error message: {param1} {param2} {param3} {param4}")
     logger.critical(f"critical message: {param1} {param2} {param3} {param4}")
+
+    if DEMO_MODE:
+        logger.info("Running in demo mode.")
+
+    logger.info(f"Number of GPUs available: {NUM_GPUS}")
 
 
 # =============================== WORKFLOW CLI =================================
