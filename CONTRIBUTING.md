@@ -98,20 +98,20 @@ There are currently three main model training options. These options may be pass
 #### 1. Build the training and validation dataframes
 
 - workflow = `create-diffae-training-dataframe`
-- input (training options) = **zarr resolution level**, **cell piling timepoints**
-- :purple_circle: output = training dataframe manifest at `src/endo_pipeline/manifests/dataframes/diffae_training_dataframe_RESOLUTION_PILING`
+- input (training options) = **cell piling timepoints**
+- :purple_circle: output = training dataframe manifest at `src/endo_pipeline/manifests/dataframes/diffae_training_dataframe_PILING`
 
 #### 2. Build the model training config
 
 - workflow = `build-diffae-train-config`
 - input (identifier options) = **model manifest name**, **run_name**
-- input (training options) = **zarr resolution level**, **cell piling timepoints**, **image crop size**
+- input (training options) = **cell piling timepoints**, **image crop size**
 - :white_circle: output = resolved model config at `results/models/MODEL_MANIFEST_NAME/RUN_NAME/configs/train.yaml`
-- :purple_circle: output = updated model manifest with pending training run at `src/endo_pipeline/manifests/models/diffae_RESOLUTION_PATCH_PILING` (recommendation is to open a draft PR with this change until the next step is complete)
+- :purple_circle: output = updated model manifest with pending training run at `src/endo_pipeline/manifests/models/diffae_PATCH_PILING` (recommendation is to open a draft PR with this change until the next step is complete)
 
 #### 3. Train the model
 
 - workflow = `train-diffae`
 - input (identifier options) = **model manifest name**, **run_name**
 - :white_circle: output = model training run on MLflow
-- :purple_circle: output = updated model manifest with MLflow run id at `src/endo_pipeline/manifests/models/diffae_RESOLUTION_PATCH_PILING`
+- :purple_circle: output = updated model manifest with MLflow run id at `src/endo_pipeline/manifests/models/diffae_PATCH_PILING`
