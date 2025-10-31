@@ -12,7 +12,7 @@ def main(
     run_name: str | None = None,
     resolution_level: int = 1,
     crop_size: int = 128,
-    latent_dims: int = DEFAULT_NUM_LATENT_DIMENSIONS,
+    latent_dim: int = DEFAULT_NUM_LATENT_DIMENSIONS,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
 ) -> None:
     """
@@ -34,7 +34,7 @@ def main(
     **Latent dimension size**
 
     The number of latent dimensions for the DiffAE model can be specified with
-    the ``latent_dims`` parameter. By default, this is set to 1024.
+    the ``latent_dim`` parameter. By default, this is set to 1024.
 
     **Cell piling exclusion**
 
@@ -113,7 +113,7 @@ def main(
     # Create name components from input parameters
     res_name = f"_resolution_{resolution_level}"
     patch_name = f"_patch_{crop_size}x{crop_size}"
-    latent_name = f"_latent_{latent_dims}"
+    latent_name = f"_latent_{latent_dim}"
     piling_name = "_include_cell_piling" if include_cell_piling else "_exclude_cell_piling"
 
     # Build dataframe manifest name
@@ -167,7 +167,7 @@ def main(
         run_name=run_name,
         task_name="train",
         crop_size=crop_size,
-        latent_dims=latent_dims,
+        latent_dim=latent_dim,
         train_dataframe_path=Path(train_dataframe_path),
         val_dataframe_path=Path(val_dataframe_path),
         max_epochs=max_num_epochs,
@@ -198,7 +198,7 @@ def main(
     manifest.parameters = {
         "training_datasets": list_of_training_datasets,
         "crop_size": crop_size,
-        "latent_dims": latent_dims,
+        "latent_dim": latent_dim,
         "resolution_level": resolution_level,
         "include_cell_piling": include_cell_piling,
     }
