@@ -2,6 +2,8 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
+from endo_pipeline.settings import DEFAULT_NUM_LATENT_DIMENSIONS
+
 TAGS = ["diffae", "model_training"]
 
 
@@ -10,6 +12,7 @@ def main(
     run_name: str | None = None,
     resolution_level: int = 1,
     crop_size: int = 128,
+    num_latent_dims: int = DEFAULT_NUM_LATENT_DIMENSIONS,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
 ) -> None:
     """
@@ -18,8 +21,8 @@ def main(
     **Training run naming**
 
     If a model manifest name is not given, it will be automatically constructed
-    based on the resolution level of the zarr files, the crop size, and whether
-    cell piling exclusion is enabled or not.
+    based on the resolution level of the zarr files, the crop size, the latent
+    dimension size, and whether cell piling exclusion is enabled or not.
 
     The training run instantiated from this workflow will be saved in the
     corresponding model manifest, with run name either provided by the user or
@@ -27,6 +30,11 @@ def main(
 
     If the user provides a run name that already exists in the manifest, a
     unique name will be generated and a warning will be logged.
+
+    **Latent dimension size**
+
+    The number of latent dimensions for the DiffAE model can be specified with
+    the ``num_latent_dims`` parameter. By default, this is set to 1024.
 
     **Cell piling exclusion**
 
@@ -105,6 +113,7 @@ def main(
     # Create name components from input parameters
     res_name = f"_resolution_{resolution_level}"
     patch_name = f"_patch_{crop_size}x{crop_size}"
+    latent_name = f"_latent_{num_latent_dims}"
     piling_name = "_include_cell_piling" if include_cell_piling else "_exclude_cell_piling"
 
     # Build dataframe manifest name
@@ -134,7 +143,7 @@ def main(
 
     # Build the model manifest name, if not provided.
     if model_manifest_name is None:
-        model_manifest_name = f"diffae{res_name}{patch_name}{piling_name}"
+        model_manifest_name = f"diffae{res_name}{patch_name}{latent_name}{piling_name}"
 
     # Build the run name, if not provided.
     if run_name is None:
@@ -188,6 +197,7 @@ def main(
     manifest.parameters = {
         "training_datasets": list_of_training_datasets,
         "crop_size": crop_size,
+        "num_latent_dims": num_latent_dims,
         "resolution_level": resolution_level,
         "include_cell_piling": include_cell_piling,
     }
