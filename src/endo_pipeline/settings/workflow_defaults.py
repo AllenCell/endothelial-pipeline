@@ -18,7 +18,7 @@ label-free nuclei segmentation features."""
 DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL: int = 1
 """Default zarr resolution level for loading model input data."""
 
-DEFAULT_DIFFAE_CONDITION_TYPE: Literal["bf", "cdh5"] = "bf"
+DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING: Literal["bf", "cdh5"] = "bf"
 """Default image type to condition DiffAE models on."""
 
 DIFFAE_IMAGE_LOADING_KEY_PREFIX: str = "raw_"

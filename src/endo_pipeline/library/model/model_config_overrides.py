@@ -37,7 +37,7 @@ class ModelConfigOverride:
     """Number of pixels in each dimension of the image crop to use for training."""
 
     condition_key: str | None = None
-    """Key for the image channel to condition the model on."""
+    """Key for the image channel to use for semantic conditioning of the diffusion model."""
 
     train_dataframe_path: Path | None = None
     """Path to the training dataset (image loading metadata) parquet file."""

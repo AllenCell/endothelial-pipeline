@@ -2,7 +2,7 @@ from typing import Annotated, Literal
 
 from cyclopts import Parameter
 
-from endo_pipeline.settings import DEFAULT_DIFFAE_CONDITION_TYPE
+from endo_pipeline.settings import DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING
 
 TAGS = ["diffae", "model_training"]
 
@@ -12,7 +12,7 @@ def main(
     run_name: str | None = None,
     resolution_level: int = 1,
     crop_size: int = 128,
-    condition_on: Literal["bf", "cdh5"] = DEFAULT_DIFFAE_CONDITION_TYPE,
+    condition_on: Literal["bf", "cdh5"] = DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
 ) -> None:
     """
