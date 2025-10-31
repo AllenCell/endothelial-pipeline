@@ -148,6 +148,14 @@ def load_image_from_path(
     reader = BioImage(path)
     reader_arguments = {}
 
+    # Check if resolution level is valid.
+    if level not in reader.resolution_levels:
+        logger.error("Selected resolution level [ %s ] not available for dataset", level)
+        raise ValueError(f"Zarr [ {path.name} ] only has levels {reader.resolution_levels}")
+
+    # Set resolution level for loaded Zarr.
+    reader.set_resolution_level(level)
+
     # Return just the initialized reader without actually reading the data, if requested.
     if not read:
         return reader
@@ -160,14 +168,6 @@ def load_image_from_path(
     if channels is not None:
         channels_index = [reader.channel_names.index(channel) for channel in channels]
         reader_arguments["C"] = channels_index
-
-    # Check if resolution level is value.
-    if level not in reader.resolution_levels:
-        logger.error("Selected resolution level [ %s ] not available for dataset", level)
-        raise ValueError(f"Zarr [ {path.name} ] only has levels {reader.resolution_levels}")
-
-    # Set resolution level for loaded Zarr.
-    reader.set_resolution_level(level)
 
     # Read image data.
     image = reader.get_image_dask_data(DIMENSION_ORDER, **reader_arguments)
