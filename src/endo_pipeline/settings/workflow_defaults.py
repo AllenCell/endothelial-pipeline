@@ -13,6 +13,9 @@ DEFAULT_SEG_FEATURE_MANIFEST_NAME: str = "live_merged_seg_features"
 """Default manifest name for merged CDH5 segmentation, CDH5 tracking and
 label-free nuclei segmentation features."""
 
+DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT: str = "raw_cdh5"
+"""Default key for channel to use as diffusion image input to the model."""
+
 RANDOM_SEED: int = 47
 """Default random seed for workflows."""
 
