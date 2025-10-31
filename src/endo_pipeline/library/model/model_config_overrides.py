@@ -36,7 +36,7 @@ class ModelConfigOverride:
     crop_size: int | None = Field(None, gt=0)
     """Number of pixels in each dimension of the image crop to use for training."""
 
-    num_latent_dims: int | None = Field(None, gt=0)
+    latent_dims: int | None = Field(None, gt=0)
     """Number of dimensions for the latent space of the semantic encoder."""
 
     train_dataframe_path: Path | None = None
@@ -106,8 +106,8 @@ class ModelConfigOverride:
         if self.crop_size is None:
             self.crop_size = OmegaConf.select(config, "model.image_shape[1]", default=128)
 
-        if self.num_latent_dims is None:
-            self.num_latent_dims = OmegaConf.select(
+        if self.latent_dims is None:
+            self.latent_dims = OmegaConf.select(
                 config, "model.semantic_encoder.num_classes", default=DEFAULT_NUM_LATENT_DIMENSIONS
             )
 
@@ -168,7 +168,7 @@ class ModelConfigOverride:
             # set crop size from input via model.image_shape,
             "model.image_shape": [1, self.crop_size, self.crop_size],
             # set number of latent dimensions
-            "model.semantic_encoder.num_classes": self.num_latent_dims,
+            "model.semantic_encoder.num_classes": self.latent_dims,
             # set training and validation dataframe paths and caching parameters
             "data.train_dataloaders.dataset.dataframe_path": self.train_dataframe_path.as_posix(),
             "data.train_dataloaders.dataset.cache_rate": self.cache_rate,
