@@ -294,29 +294,28 @@ def get_training_data_paths(
         arg.update({"gpu": gpu})
 
     if create_training_data:
-        if __name__ == "__main__":
-            if n_proc > 1 and not gpu:
-                with Pool(processes=n_proc) as pool:
-                    print("Starting multiprocessing...")
-                    list(
-                        tqdm(
-                            pool.imap(generate_training_data, analysis_queue),
-                            total=len(analysis_queue),
-                            desc="Training data images created",
-                        )
+        if n_proc > 1 and not gpu:
+            with Pool(processes=n_proc) as pool:
+                print("Starting multiprocessing...")
+                list(
+                    tqdm(
+                        pool.imap(generate_training_data, analysis_queue),
+                        total=len(analysis_queue),
+                        desc="Training data images created",
                     )
-                    pool.close()
-                    pool.join()
-                    print("Done multiprocessing.")
-            else:
-                print(f"Starting {'gpu' if gpu else 'single core'} processing...")
-                for analysis_args in tqdm(
-                    analysis_queue,
-                    total=len(analysis_queue),
-                    desc="Training data images created",
-                ):
-                    generate_training_data(analysis_args)
-                print("Done single processing.")
+                )
+                pool.close()
+                pool.join()
+                print("Done multiprocessing.")
+        else:
+            print(f"Starting {'gpu' if gpu else 'single core'} processing...")
+            for analysis_args in tqdm(
+                analysis_queue,
+                total=len(analysis_queue),
+                desc="Training data images created",
+            ):
+                generate_training_data(analysis_args)
+            print("Done single processing.")
     else:
         pass
 
