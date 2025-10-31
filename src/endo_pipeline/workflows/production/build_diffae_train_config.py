@@ -167,6 +167,7 @@ def main(
         run_name=run_name,
         task_name="train",
         crop_size=crop_size,
+        num_latent_dims=num_latent_dims,
         train_dataframe_path=Path(train_dataframe_path),
         val_dataframe_path=Path(val_dataframe_path),
         max_epochs=max_num_epochs,
