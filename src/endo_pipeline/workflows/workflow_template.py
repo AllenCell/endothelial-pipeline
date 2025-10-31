@@ -22,7 +22,9 @@
 # hyphen (-), use no more than three words per tag, avoid more than three tags
 # per workflow.
 # ==============================================================================
-TAGS = ["tag1", "tag2"]
+from endo_pipeline.cli import tags
+
+TAGS = ["tag1", "tag2", tags.TEST_READY, tags.GPU]  # tags.CPU_ONLY
 
 
 # ============================== MAIN ENTRYPOINT ===============================

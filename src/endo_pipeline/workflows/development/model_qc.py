@@ -1,6 +1,7 @@
+from endo_pipeline.cli import tags
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
-TAGS = ["diffae"]
+TAGS = ["diffae", tags.TEST_READY, tags.GPU]
 
 
 def main(
