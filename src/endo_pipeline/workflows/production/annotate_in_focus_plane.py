@@ -76,7 +76,7 @@ def main(datasets: Datasets | None = None) -> None:
         for position, center_plane in global_center_plane.items():
             if center_plane > 13:
                 logging.warning(
-                    f"Position {position} has a high center plane. Less than 11 slices available."
+                    f"{dataset_name} P{position} has a high center plane (>13). Less than 11 slices available."
                 )
 
             else:

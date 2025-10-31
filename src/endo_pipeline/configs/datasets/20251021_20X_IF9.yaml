@@ -1,0 +1,64 @@
+name: 20251021_20X_IF9
+original_path: //allen/programs/allencell/data/proj0/7d1/5a8/e53/737/db6/a1b/54b/294/17d/fb2/d2/20251021_GE00009362_9_SLDY/20251021_GE00009362_9_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251021_d2fb217d29454ba1bdb6737e535a87d1
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: d2fb217d29454ba1bdb6737e535a87d1
+barcode: GE00009362
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+is_timelapse: false
+microscope: 3i
+objective: 20X
+shear_stress_regime: 'no'
+pixel_size_xy_in_um: 0.382
+duration: 1
+time_interval_in_minutes: null
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 4
+  channel_488: 1
+  channel_405: 0
+  channel_561: 2
+  channel_640: 3
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: 2
+  channel_561: 3
+  channel_640: 4
+flow_conditions:
+- start: -577
+  stop: 0
+  shear_stress: 0.0
+include_scenes: null
+notes: Fix & use cells as a no primary control after 48h no SS
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  auto_bf_temp_artifact:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+position_annotations: null
+center_z_plane:
+  0: 11
+  1: 10
+  2: 9
+  3: 9
+  4: 9
+  5: 8
