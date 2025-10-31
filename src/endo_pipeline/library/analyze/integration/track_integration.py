@@ -188,7 +188,8 @@ def merge_diffae_feats_liveseg_feats_tables(
     logging.debug("merging segmentation properties and track-based DiffAE data...")
     unique_cell_seg_id_group = ["dataset_name", "position_as_str", "image_index", "track_id"]
     unique_crop_id_group = [ColumnName.DATASET, "position_as_str", ColumnName.TIMEPOINT, "track_id"]
-    common_columns = list(set(diffae_tracking_df.columns) & set(live_seg_feats_df.columns))
+    common_columns = ["zarr_path"]
+
     merged_feats_df = pd.merge(
         left=live_seg_feats_df,
         right=diffae_tracking_df,
@@ -196,6 +197,7 @@ def merge_diffae_feats_liveseg_feats_tables(
         left_on=unique_cell_seg_id_group + common_columns,
         right_on=unique_crop_id_group + common_columns,
         validate="one_to_one",
+        suffixes=("_cdh5_seg", "_diffae_model"),
     )
 
     return merged_feats_df
@@ -656,7 +658,7 @@ def get_preprocessed_manifests_and_km_bounds(
     # full dataframe with all timepoints which is required by the TFE workflow.
     merged_feats_df_subset = merged_feats_df[
         ["model_manifest_name"] + DIFFAE_FEATURE_COLUMN_NAMES
-    ].query("model_manifest_name.notna()")
+    ].dropna(axis="index", how="any", subset="model_manifest_name")
     tracked_diffae_feats_df = project_features_to_pcs(
         merged_feats_df_subset, pca, DIFFAE_FEATURE_COLUMN_NAMES
     )
