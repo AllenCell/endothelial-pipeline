@@ -65,6 +65,7 @@ def main(
         ModelLocation,
         create_model_manifest,
         get_model_location_for_run,
+        get_most_recent_run_name,
         load_dataframe_manifest,
         load_model_manifest,
         save_model_manifest,
@@ -114,7 +115,7 @@ def main(
     # initialize baseline model for finetuning
     base_model_manifest = load_model_manifest(base_model_manifest_name)
     base_run_name = (
-        list(base_model_manifest.locations.keys())[-1] if base_run_name is None else base_run_name
+        get_most_recent_run_name(base_model_manifest) if base_run_name is None else base_run_name
     )
     base_model_location = get_model_location_for_run(base_model_manifest, base_run_name)
     base_model = load_model(base_model_location)

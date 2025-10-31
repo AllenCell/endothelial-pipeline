@@ -1,10 +1,11 @@
 from copy import deepcopy
 
 import torch
-from cyto_dl.models.im2im.diffusion_autoencoder import DiffusionAutoEncoder
 from matplotlib import pyplot as plt
 from monai.utils import convert_to_tensor
 from torchmetrics import MeanMetric
+
+from .diffusion_autoencoder import DiffusionAutoEncoder
 
 
 class DiffAEFinetune(DiffusionAutoEncoder):
