@@ -60,6 +60,7 @@ def generate_tfe_dataset(
             dataset_name=dataset,
             model_manifest=model_manifest,
             datasets_for_bounds=datasets_for_bounds,
+            drop_rows_without_diffae_feats=False,
         )[0]
     except KeyError:
         logger.warning(f"Dataset {dataset} does not have DiffAE features yet, using base table...")
