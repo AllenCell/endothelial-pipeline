@@ -168,7 +168,7 @@ class ModelConfigOverride:
             # set crop size from input via model.image_shape,
             "model.image_shape": [1, self.crop_size, self.crop_size],
             # set number of latent dimensions
-            "model.semantic_encoder.num_classes": self.latent_dim,
+            "model.semantic_encoder.base_encoder.num_classes": self.latent_dim,
             # set training and validation dataframe paths and caching parameters
             "data.train_dataloaders.dataset.dataframe_path": self.train_dataframe_path.as_posix(),
             "data.train_dataloaders.dataset.cache_rate": self.cache_rate,
