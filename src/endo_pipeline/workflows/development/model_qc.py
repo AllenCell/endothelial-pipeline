@@ -18,7 +18,8 @@ def main(
     - A conditioning vector obtained from randomly shuffling the image used for
         conditioning and passing the scrambled image through the encoder.
 
-    The results are visualized in contact sheet figures and saved to the output path.
+    The results are visualized in contact sheet figures and saved to an output
+    path set inside the workflow based on the model manifest and run names.
 
     Parameters
     ----------
@@ -59,20 +60,20 @@ def main(
         get_zarr_location_for_position,
         load_model_manifest,
     )
-    from endo_pipeline.settings.plot_defaults import (
-        MODEL_QC_FIG_KWARGS,
-        MODEL_QC_GRIDSPEC_KWARGS,
-        MODEL_QC_PLOT_DIRECTION,
-        MODEL_QC_SUBPLOT_KWARGS,
-    )
-    from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_DIFFUSION_IMAGE_KEY,
+    from endo_pipeline.settings import (
+        DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT,
         DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL,
         MODEL_QC_CROP_POSITION,
         MODEL_QC_DATASET_NAME,
         MODEL_QC_NOISE_LEVELS,
         MODEL_QC_POSITION,
         MODEL_QC_TIMEPOINT,
+    )
+    from endo_pipeline.settings.plot_defaults import (
+        MODEL_QC_FIG_KWARGS,
+        MODEL_QC_GRIDSPEC_KWARGS,
+        MODEL_QC_PLOT_DIRECTION,
+        MODEL_QC_SUBPLOT_KWARGS,
     )
 
     # Instantiate random number generator
@@ -111,8 +112,10 @@ def main(
     # e.g., model.condition_key = "raw_bf" and model.diffusion_key = "raw_cdh5"
     # means that the model was trained to denoise CDH5 images
     # conditioned on the semantic embedding of brightfield images
-    condition_image_key = model_config.model.condition_key
-    condition_channel_name = "Brightfield" if condition_image_key == "raw_bf" else "CDH5"
+    channel_key_for_conditioning_input = model_config.model.condition_key
+    label_for_conditioning = (
+        "Brightfield" if channel_key_for_conditioning_input == "raw_bf" else "CDH5"
+    )
 
     # Load model as instantiated Diff AE object
     model = load_model(model_location, instantiate=True)
@@ -129,10 +132,10 @@ def main(
     # Conditioning image can be brightfield or CDH5 depending on model,
     # but diffusion image is always CDH5 in our use case
     transformed_conditioning_image = get_target_image_from_sample(
-        sample, target_key=condition_image_key
+        sample, target_key=channel_key_for_conditioning_input
     )
     transformed_cdh5_image = get_target_image_from_sample(
-        sample, target_key=DEFAULT_DIFFUSION_IMAGE_KEY
+        sample, target_key=DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT
     )
 
     # Crop both images to the same region
@@ -181,7 +184,7 @@ def main(
         panels=panels,
         max_rows=NUM_IMAGES_DENOISED,
         max_cols=None,
-        col_titles=[f"{condition_channel_name} Input", *CDH5_LABELS],
+        col_titles=[f"{label_for_conditioning} Input", *CDH5_LABELS],
         row_titles=NOISE_LABELS,
         direction=MODEL_QC_PLOT_DIRECTION,
         subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
