@@ -324,7 +324,7 @@ def initialize_diffae_model_for_finetuning(
     """
     # override base model with finetuning config parameters
     # ** except ** keep the checkpoint path from the loaded model
-    checkpoint_override = {"ckpt_path": base_model.cfg["ckpt_path"]}
+    checkpoint_override = {"checkpoint.ckpt_path": base_model.cfg.checkpoint.ckpt_path}
     template_finetune_config.update(checkpoint_override)
     # override downloaded model config with finetuning config
     base_model.override_config(template_finetune_config)
