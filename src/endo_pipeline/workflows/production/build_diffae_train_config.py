@@ -116,9 +116,12 @@ def main(
     # Create name components from input parameters
     res_name = f"_resolution_{resolution_level}"
     patch_name = f"_patch_{crop_size}x{crop_size}"
+    condition_name = f"_condition_on_{condition_on}"
     piling_name = "_include_cell_piling" if include_cell_piling else "_exclude_cell_piling"
 
     # Build dataframe manifest name to load training and validation dataframes.
+    # Note that the dataframe manifest name does not include the patch size or
+    # conditioning type, as these are not relevant for the dataframe itself.
     dataframe_manifest_name = f"diffae_training_dataframe{res_name}{piling_name}{name_suffix}"
 
     try:
@@ -145,7 +148,6 @@ def main(
 
     # Build the model manifest name, if not provided.
     if model_manifest_name is None:
-        condition_name = f"_condition_on_{condition_on}"
         model_manifest_name = f"diffae{res_name}{patch_name}{condition_name}{piling_name}"
 
     # Create or load the model manifest.
