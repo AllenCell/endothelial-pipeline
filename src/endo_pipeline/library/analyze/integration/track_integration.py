@@ -34,6 +34,7 @@ from endo_pipeline.manifests import (
 from endo_pipeline.settings import (
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    DIFFAE_FEATURE_COLUMN_NAMES,
     ColumnName,
 )
 
@@ -185,12 +186,15 @@ def merge_diffae_feats_liveseg_feats_tables(
     live_seg_feats_df["track_id"] = live_seg_feats_df["track_id"].astype(int)
 
     logging.debug("merging segmentation properties and track-based DiffAE data...")
+    unique_cell_seg_id_group = ["dataset_name", "position_as_str", "image_index", "track_id"]
+    unique_crop_id_group = [ColumnName.DATASET, "position_as_str", ColumnName.TIMEPOINT, "track_id"]
+    common_columns = list(set(diffae_tracking_df.columns) & set(live_seg_feats_df.columns))
     merged_feats_df = pd.merge(
         left=live_seg_feats_df,
         right=diffae_tracking_df,
         how="left",
-        left_on=["dataset_name", "position_as_str", "image_index", "track_id"],
-        right_on=[ColumnName.DATASET, "position_as_str", ColumnName.TIMEPOINT, "track_id"],
+        left_on=unique_cell_seg_id_group + common_columns,
+        right_on=unique_crop_id_group + common_columns,
         validate="one_to_one",
     )
 
@@ -598,6 +602,7 @@ def get_preprocessed_manifests_and_km_bounds(
     run_name: str | None = None,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     datasets_for_bounds: list[str] | None = None,
+    drop_rows_without_diffae_feats: bool = True,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list]:
     """
     Load and process the DiffAE and live segmentation feature manifests for a given dataset.
@@ -635,23 +640,44 @@ def get_preprocessed_manifests_and_km_bounds(
         model_manifest=model_manifest,
         run_name=run_name,
         seg_feature_manifest_name=seg_feature_manifest_name,
-        filtered=True,
+        filtered=False,  # do not filter on timepoints yet: we need all timepoints for TFE workflow
     )
 
     # fit the PCA (uses the reference datasets)
     pca = fit_pca()
 
+    # The PCA cannot take in NaN values, so subset the dataframe by the
+    # model_manifest_name column (which has the model_manifest_name if the
+    # eval_diffae_tracked.py workflow was evaluated on that row, otherwise
+    # it has NaN as an entry) and then get the PCs for the subset of data
+    # with DiffAE features only, once that is done we merge the original
+    # dataframe and the DiffAE features dataframe.
+    # This way we avoid passing NaN values to the PCA but still return the
+    # full dataframe with all timepoints which is required by the TFE workflow.
+    merged_feats_df_subset = merged_feats_df[
+        ["model_manifest_name"] + DIFFAE_FEATURE_COLUMN_NAMES
+    ].query("model_manifest_name.notna()")
+    tracked_diffae_feats_df = project_features_to_pcs(
+        merged_feats_df_subset, pca, DIFFAE_FEATURE_COLUMN_NAMES
+    )
+    tracked_diffae_feats_df = tracked_diffae_feats_df.drop(
+        columns=["model_manifest_name"] + DIFFAE_FEATURE_COLUMN_NAMES
+    )
+    # tracked_diffae_feats_df retains the indexing of merged_feats_df, so we
+    # can merge on the index safely
+    merged_feats_df = pd.merge(
+        left=merged_feats_df,
+        right=tracked_diffae_feats_df,
+        how="left",
+        left_index=True,
+        right_index=True,
+        validate="one_to_one",
+    )
+
     # read in the grid crop-based diffae features
     model_name = sequence_to_scalar(merged_feats_df["model_manifest_name"])
     manifest = load_dataframe_manifest(model_name)
     diffae_grid_crops = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
-
-    # add the PC columns to the track-based DiffAE table
-    # (the grid-based DiffAE table already has them, but
-    # but I believe that the columns are named "feat_0",
-    # "feat_1", etc. when they should be named "pc1",
-    # "pc2", etc.)
-    merged_feats_df = project_features_to_pcs(merged_feats_df, pca)
 
     # use the full set of datasets to be analyzed for the bounds
     if datasets_for_bounds is None:
@@ -663,5 +689,8 @@ def get_preprocessed_manifests_and_km_bounds(
 
     # lastly, add a normalized version of the "time_hours" column
     merged_feats_df = add_normalized_time(merged_feats_df)
+
+    if drop_rows_without_diffae_feats:
+        merged_feats_df = merged_feats_df[merged_feats_df["model_manifest_name"].notna()]
 
     return merged_feats_df, diffae_grid_crops, bounds
