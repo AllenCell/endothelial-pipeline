@@ -131,30 +131,34 @@ def main(
     # based on the output key from the transforms
     # Conditioning image can be brightfield or CDH5 depending on model,
     # but diffusion image is always CDH5 in our use case
-    transformed_conditioning_image = get_target_image_from_sample(
+    transformed_conditioning_input_image = get_target_image_from_sample(
         sample, target_key=channel_key_for_conditioning_input
     )
-    transformed_diffusion_image = get_target_image_from_sample(
+    transformed_diffusion_input_image = get_target_image_from_sample(
         sample, target_key=DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT
     )
 
     # Crop both images to the same region
     start_x, start_y = MODEL_QC_CROP_POSITION
-    conditioning_crop = crop_image(transformed_conditioning_image, start_x, start_y, crop_size)
-    diffusion_crop = crop_image(transformed_diffusion_image, start_x, start_y, crop_size)
+    conditioning_input_crop = crop_image(
+        transformed_conditioning_input_image, start_x, start_y, crop_size
+    )
+    diffusion_input_crop = crop_image(
+        transformed_diffusion_input_image, start_x, start_y, crop_size
+    )
 
     # Get latent vector embedding of the crop used for
     # conditioning the denoising process
     conditioning_crop_latent_vector = get_latent_vector_from_crop(
-        model, conditioning_crop, num_gpus=NUM_GPUS
+        model, conditioning_input_crop, num_gpus=NUM_GPUS
     )
 
     # Sample random noise image with fixed seed
-    noise_image = rng.standard_normal(size=diffusion_crop.shape)
+    noise_image = rng.standard_normal(size=diffusion_input_crop.shape)
 
     # Add noise_image to denoising_start_crop with increasing weight:
-    noisy_diffusion_image = [
-        add_noise_to_image(diffusion_crop, noise_image, noise_level)
+    noisy_diffusion_input_images = [
+        add_noise_to_image(diffusion_input_crop, noise_image, noise_level)
         for noise_level in MODEL_QC_NOISE_LEVELS
     ]
 
@@ -162,7 +166,7 @@ def main(
     # the pure noise conditioned using the embedding of the corresponding
     # ground truth image used for conditioning.
     # will need to update generate method to do array shaping internally
-    images_to_denoise = [*noisy_diffusion_image, noise_image]
+    images_to_denoise = [*noisy_diffusion_input_images, noise_image]
     denoised_images_by_bf_cond = [
         generate_from_coords_and_noised_image(
             model, conditioning_crop_latent_vector, noised_image, num_gpus=NUM_GPUS
@@ -173,8 +177,8 @@ def main(
     # Plot these images!
     # Prepare arguments for contact sheet
     panels = [
-        *[conditioning_crop.squeeze()] * NUM_IMAGES_DENOISED,
-        *[diffusion_crop.squeeze()] * NUM_IMAGES_DENOISED,
+        *[conditioning_input_crop.squeeze()] * NUM_IMAGES_DENOISED,
+        *[diffusion_input_crop.squeeze()] * NUM_IMAGES_DENOISED,
         *[img.squeeze() for img in images_to_denoise],
         *[img.squeeze() for img in denoised_images_by_bf_cond],
     ]
@@ -208,7 +212,7 @@ def main(
     # Plot these images!
     # Prepare arguments for contact sheet
     panels = [
-        *[diffusion_crop.squeeze()] * NUM_IMAGES_DENOISED,
+        *[diffusion_input_crop.squeeze()] * NUM_IMAGES_DENOISED,
         *[img.squeeze() for img in images_to_denoise],
         *[img.squeeze() for img in denoised_images_by_random_cond],
     ]
@@ -231,7 +235,9 @@ def main(
     # Do the same thing but with the conditioning vector retrieved from a
     # randomly shuffled version of the brightfield image
     # This is another negative control for the BF conditioning
-    img_scrambled = rng.permuted(conditioning_crop.ravel()).reshape(conditioning_crop.shape)
+    img_scrambled = rng.permuted(conditioning_input_crop.ravel()).reshape(
+        conditioning_input_crop.shape
+    )
     latent_vector_scrambled = get_latent_vector_from_crop(model, img_scrambled, num_gpus=NUM_GPUS)
 
     denoised_images_by_random_cond = [
@@ -245,7 +251,7 @@ def main(
     # Prepare arguments for contact sheet
     panels = [
         *[img_scrambled.squeeze()] * NUM_IMAGES_DENOISED,
-        *[diffusion_crop.squeeze()] * NUM_IMAGES_DENOISED,
+        *[diffusion_input_crop.squeeze()] * NUM_IMAGES_DENOISED,
         *[img.squeeze() for img in images_to_denoise],
         *[img.squeeze() for img in denoised_images_by_random_cond],
     ]
