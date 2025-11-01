@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -7,30 +8,43 @@ from bioio_base.types import PhysicalPixelSizes
 from cellpose import models
 from skimage.color import label2rgb
 
-from endo_pipeline.configs import DatasetConfig, dataset_io
-from endo_pipeline.io import get_output_path, save_plot_to_path
-from endo_pipeline.library.process import get_images, image_processing
+from endo_pipeline.configs import DatasetConfig
+from endo_pipeline.io import get_output_path, load_image, save_plot_to_path
+from endo_pipeline.library.process import image_processing
+from endo_pipeline.manifests import get_zarr_location_for_position
+
+logger = logging.getLogger(__name__)
 
 
-def get_max_int_projections(dataset: str, nuc_stain: str) -> tuple[list, float]:
+def get_max_int_projections(
+    dataset_config: DatasetConfig, nuc_stain: str, positions: list
+) -> tuple[list, float]:
     """
-    Get maximum intensity projections of nuclear stain channel for all positions in the dataset.
+    Get maximum intensity projections of the nuclear stain channel for all positions in the dataset.
 
-    Args:
-        dataset (str): Dataset name.
-        nuc_stain (str): Nuclear stain channel name. (ie. "NucViolet", "DAPI")
+    Parameters
+    ----------
+    dataset : str
+        Name of the dataset.
+    nuc_stain : str
+        Nuclear stain channel name (e.g., "NucViolet", "DAPI").
+    positions : list
+        List of positions to process.
 
-    Returns:
-        list: List of maximum intensity projections.
-        float: XY pixel size in micrometers.
+    Returns
+    -------
+    list
+        List of maximum intensity projections.
+    float
+        XY pixel size in micrometers.
     """
-    n_positions = dataset_io.get_total_number_of_positions(dataset)
-
     max_int_projections = []
-    for position in range(n_positions):
-        print(f"Processing position {position}...")
+    for position in positions:
+        logger.info(f"Processing position {position}...")
 
-        img = get_images.get_zarr_img_for_dataset(dataset, position, resolution_level=0)
+        zarr_loc = get_zarr_location_for_position(dataset_config, position)
+        img = load_image(zarr_loc, read=False)
+        # img = get_images.get_zarr_img_for_dataset(dataset_config.name, position, resolution_level=0)
         channel_names = img.channel_names
         nuc_stain_channel = channel_names.index(nuc_stain)
         xy_pixel_size_um = img.physical_pixel_sizes.X
@@ -46,13 +60,17 @@ def segment_nuclei(max_int_projections: list) -> list:
     """
     Perform nuclear segmentation using Cellpose on nuclear stain maximum intensity projections.
 
-    Args:
-        max_int_projections (list): List of maximum intensity projections.
+    Parameters
+    ----------
+    max_int_projections : list
+        List of maximum intensity projections.
 
-    Returns:
-        masks (list): List of segmentation masks for each maximum intensity projection.
+    Returns
+    -------
+    list
+        List of segmentation masks for each maximum intensity projection.
     """
-    print("Segmenting nuclei...")
+    logger.info("Segmenting nuclei...")
     model = models.Cellpose(model_type="nuclei")
     masks, _flows, _styles, _diams = model.eval(max_int_projections, diameter=None, channels=[0, 0])
     return masks
@@ -60,12 +78,16 @@ def segment_nuclei(max_int_projections: list) -> list:
 
 def visualize_results(max_int_projections: list, masks: list, dataset: str) -> None:
     """
-    Visualize the contrast stretched images, segmentation masks, and overlays.
+    Visualize the contrast-stretched images, segmentation masks, and overlays.
 
-    Args:
-        max_int_projections (list): List of maximum intensity projections.
-        masks (list): List of segmentation masks.
-        dataset (str): Dataset name.
+    Parameters
+    ----------
+    max_int_projections : list
+        List of maximum intensity projections.
+    masks : list
+        List of segmentation masks.
+    dataset : str
+        Name of the dataset.
     """
     for max_int_proj, mask in zip(max_int_projections, masks, strict=True):
 
@@ -94,18 +116,29 @@ def visualize_results(max_int_projections: list, masks: list, dataset: str) -> N
 
 
 def save_segmentation_masks(
-    masks: list, dataset_config: DatasetConfig, output_dir: Path, xy_pixel_size_um: float
+    masks: list,
+    dataset_config: DatasetConfig,
+    output_dir: Path,
+    xy_pixel_size_um: float,
+    positions: list,
 ) -> None:
     """
     Save segmentation masks as OME-Zarr files.
 
-    Args:
-        masks: List of segmentation masks.
-        dataset_config: Dataset config
-        output_dir: Directory to save the masks.
-        xy_pixel_size_um: XY pixel size in micrometers.
+    Parameters
+    ----------
+    masks : list
+        List of segmentation masks.
+    dataset_config : Any
+        Dataset configuration object.
+    output_dir : str
+        Directory to save the masks.
+    xy_pixel_size_um : float
+        XY pixel size in micrometers.
+    positions : list
+        List of positions corresponding to the masks.
     """
-    print("Saving segmentation masks...")
+    logger.info("Saving segmentation masks...")
     dataset_name = dataset_config.name
     date = dataset_name.split("_")[0]
 
@@ -115,7 +148,7 @@ def save_segmentation_masks(
         X=xy_pixel_size_um,
     )
 
-    for mask, position in zip(masks, dataset_config.zarr_positions, strict=True):
+    for mask, position in zip(masks, positions, strict=True):
         fname = f"{date}_{dataset_config.fmsid}_P{position}.ome.zarr"
         save_path = output_dir / f"{date}_{dataset_config.fmsid}" / fname
         os.makedirs(save_path, exist_ok=True)
