@@ -28,8 +28,11 @@ if_df_manifest = load_dataframe_manifest("immunofluorescence")
 df_smad1_list = []
 for dataset_name in smad1_datasets:
     dataset_config = load_dataset_config(dataset_name)
+
     df_location = get_dataframe_location_for_dataset(if_df_manifest, dataset_name)
     df_dataset = load_dataframe(df_location)
+
+    df_dataset["date"] = dataset_name[:8]
 
     shear_regime = "_to_".join([shear.value for shear in dataset_config.shear_stress_regime])
     df_dataset["shear_stress_regime"] = shear_regime
