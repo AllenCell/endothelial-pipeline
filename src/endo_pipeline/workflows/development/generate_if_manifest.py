@@ -13,8 +13,8 @@ def main(datasets: Datasets | None = None) -> None:
     ----------
     datasets
         List of dataset names to process. If None, processes all datasets in the
-        "live_20X_objective_3i_microscope" collection. If DEMO_MODE is enabled,
-        only the first dataset will be processed.
+        "immunofluorescence" collection. If DEMO_MODE is enabled,
+        only the first position in the first dataset will be processed.
     """
     import logging
 
