@@ -559,19 +559,18 @@ def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
     required_columns = [ColumnName.CROP_INDEX, ColumnName.TIMEPOINT, *column_names]
     check_required_columns_in_dataframe(df, required_columns)
 
-    num_crop = df[ColumnName.CROP_INDEX].nunique()  # number of crops made at each timepoint
+    # get array of num crops x valid timepoints x num PCs, padding with NaNs where timepoints are missing
+    feats = []
+    for _, data_crop in df.groupby(ColumnName.CROP_INDEX):
+        data_crop = data_crop.sort_values(by=ColumnName.TIMEPOINT)
+        data_crop_filled = fill_missing_timepoints(data_crop)
+        feats.append(data_crop_filled[column_names].values)
 
-    # get array of num crops x num timepoints x num PCs
-    feats = np.array(
-        [
-            df[df[ColumnName.CROP_INDEX] == ii]
-            .sort_values(by=ColumnName.TIMEPOINT)[column_names]
-            .values
-            for ii in range(num_crop)
-        ]
-    )
+    import pdb
 
-    return feats
+    pdb.set_trace()
+
+    return np.array(feats)
 
 
 def split_dataset_by_flow(
@@ -674,7 +673,16 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
         # get data for each crop, sorted by time
         data_crop = data[data[ColumnName.CROP_INDEX] == crop].sort_values(by=ColumnName.TIMEPOINT)
 
-        # get displacement vectors and time differences for each crop
+        # add column giving difference in timepoint between consecutive dataframe rows
+        dt = np.diff(data_crop[ColumnName.TIMEPOINT].values, axis=0)
+        data_crop["timepoint_diff"] = np.concatenate((dt, [0]))
+
+        # filter to only single-timepoint differences (i.e., dt = 1)
+        data_crop = data_crop[data_crop["timepoint_diff"] == 1]
+
+        # get displacement vectors for each pair of consecutive-timepoints
+        # for each crop (i.e. do not include displacements for non-consecutive
+        # timepoints where outliers etc were removed)
         d_traj = np.diff(data_crop[pc_column_names].values, axis=0)
 
         # append data to lists:
@@ -684,3 +692,34 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
         d_traj_list.append(d_traj)
 
     return traj_list, d_traj_list
+
+
+def fill_missing_timepoints(data_crop: pd.DataFrame) -> pd.DataFrame:
+    """
+    Fill missing timepoints in dataframe for a single crop using NaN padding.
+
+    Parameters
+    ----------
+    data_crop
+        DataFrame for a single crop.
+
+    Returns
+    -------
+    :
+        DataFrame with missing timepoints filled with NaNs.
+    """
+
+    # get full range of timepoints for this crop
+    timepoint_min = data_crop[ColumnName.TIMEPOINT].min()
+    timepoint_max = data_crop[ColumnName.TIMEPOINT].max()
+    full_timepoint_range = np.arange(timepoint_min, timepoint_max + 1)
+
+    # reindex dataframe to include all timepoints in full range
+    data_crop_filled = data_crop.set_index(ColumnName.TIMEPOINT).reindex(full_timepoint_range)
+
+    # reset index to restore timepoint column
+    data_crop_filled = data_crop_filled.reset_index().rename(
+        columns={"index": ColumnName.TIMEPOINT}
+    )
+
+    return data_crop_filled
