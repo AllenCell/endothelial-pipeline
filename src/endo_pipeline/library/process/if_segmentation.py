@@ -17,19 +17,19 @@ logger = logging.getLogger(__name__)
 
 
 def get_max_int_projections(
-    dataset_config: DatasetConfig, nuc_stain: str, positions: list
+    dataset_config: DatasetConfig, nuc_stain: str, positions: list[int]
 ) -> tuple[list, float]:
     """
     Get maximum intensity projections of the nuclear stain channel for all positions in the dataset.
 
     Parameters
     ----------
-    dataset : str
-        Name of the dataset.
+    dataset_config : Any
+        Dataset configuration object.
     nuc_stain : str
         Nuclear stain channel name (e.g., "NucViolet", "DAPI").
-    positions : list
-        List of positions to process.
+    positions : list of int
+        List of position indices to process.
 
     Returns
     -------
@@ -44,7 +44,7 @@ def get_max_int_projections(
 
         zarr_loc = get_zarr_location_for_position(dataset_config, position)
         img = load_image(zarr_loc, read=False)
-        # img = get_images.get_zarr_img_for_dataset(dataset_config.name, position, resolution_level=0)
+
         channel_names = img.channel_names
         nuc_stain_channel = channel_names.index(nuc_stain)
         xy_pixel_size_um = img.physical_pixel_sizes.X
@@ -120,7 +120,7 @@ def save_segmentation_masks(
     dataset_config: DatasetConfig,
     output_dir: Path,
     xy_pixel_size_um: float,
-    positions: list,
+    positions: list[int],
 ) -> None:
     """
     Save segmentation masks as OME-Zarr files.
