@@ -31,7 +31,7 @@ def main(
     logger = logging.getLogger(__name__)
 
     # Create output directory.
-    model_name = make_name_unique("labelfree_nuc_pred")
+    model_name = make_name_unique("labelfree_nuc_pred").stem
     out_dir = get_output_path("models", model_name, include_timestamp=False)
 
     datasets_to_use = list(get_scenes_to_use().keys())
