@@ -289,8 +289,8 @@ def plot_flow_field_slices(
         dataset_name = sequence_to_scalar(df_cond[ColumnName.DATASET])
         scatter_color = feature_viz.get_dataset_color(dataset_name)
         # plot scatter of data overlaid on quiver plot
-        ax[0].scatter(df_cond.pc1, df_cond.pc2, s=0.25, color=scatter_color, alpha=0.15)
-        ax[1].scatter(df_cond.pc1, df_cond.pc3, s=0.25, color=scatter_color, alpha=0.15)
+        ax[0].scatter(df_cond.pc_1, df_cond.pc_2, s=0.25, color=scatter_color, alpha=0.15)
+        ax[1].scatter(df_cond.pc_1, df_cond.pc_3, s=0.25, color=scatter_color, alpha=0.15)
     fig, ax = plot_quiver_slices(
         flow_field_dict, (zvalids, yvalids), color=color, norm=norm, fig_ax=(fig, ax)
     )
@@ -470,8 +470,8 @@ def flow_field_viz_main(
     # get the color for the scatter plot
     scatter_color = feature_viz.get_dataset_color(name)
     # plot scatter of data overlaid on quiver plot
-    ax[0].scatter(df_cond.pc1, df_cond.pc2, s=0.25, color=scatter_color, alpha=0.05)
-    ax[1].scatter(df_cond.pc1, df_cond.pc3, s=0.25, color=scatter_color, alpha=0.05)
+    ax[0].scatter(df_cond.pc_1, df_cond.pc_2, s=0.25, color=scatter_color, alpha=0.05)
+    ax[1].scatter(df_cond.pc_1, df_cond.pc_3, s=0.25, color=scatter_color, alpha=0.05)
     fig, ax = plot_quiver_slices(flow_field_dict, (zvalids, yvalids), fig_ax=(fig, ax))
 
     # plot last point of trajectory
