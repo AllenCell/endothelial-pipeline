@@ -9,6 +9,7 @@ def main(
     Run the workflow to retrain a Cellpose model to predict nuclei from brightfield standard
     deviation projections.
     """
+
     import logging
 
     import matplotlib.pyplot as plt
@@ -16,7 +17,7 @@ def main(
     from cellpose.io import logger_setup
 
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, get_timestamp, load_image
+    from endo_pipeline.io import get_output_path, load_image, make_name_unique
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
     from endo_pipeline.library.process.lib_nuc_pred_from_bf_std_retraining import (
         get_scenes_to_use,
@@ -24,17 +25,16 @@ def main(
         save_labelfree_nuclei_example_image,
         save_training_test_loss_plot,
     )
-    from endo_pipeline.manifests import (
-        get_model_location_for_run,
-        get_zarr_location_for_position,
-        load_model_manifest,
-    )
+    from endo_pipeline.manifests import get_zarr_location_for_position
     from endo_pipeline.settings import DIMENSION_ORDER
 
     logger = logging.getLogger(__name__)
 
+    # Create output directory.
+    model_name = make_name_unique("labelfree_nuc_pred")
+    out_dir = get_output_path("models", model_name, include_timestamp=False)
+
     datasets_to_use = list(get_scenes_to_use().keys())
-    out_dir = get_output_path(__file__, include_timestamp=False)
 
     analysis_queue = build_analysis_queue(
         datasets_to_use,
@@ -61,30 +61,12 @@ def main(
     weight_decay = 1e-4
     n_epochs = 300
 
-    # create a timestamp for when this workflow was run
-    timestamp = get_timestamp()
-
-    # get the nuclei model path from the config file
-    model_manifest = load_model_manifest("nuc_pred_labelfree")
-    run_name = "finetuned_20250419"
-    model_path = get_model_location_for_run(model_manifest, run_name).path
-
-    # create a directory to save the models
-    # and their losses and a test image
-    model_dir = model_path.parent / timestamp  # type: ignore[union-attr]
-    model_dir.mkdir(exist_ok=True, parents=True)
-
     # initiate the cellpose logger so that we
     # can extract the training and test losses
-    logger_setup(cp_path=model_dir, logfile_name=f"{timestamp}_run.log")
+    logger_setup(cp_path=out_dir, logfile_name=f"{model_name}.log")
 
     # will populate this dictionary as we go
     run_record: dict[str, Any] = {}
-
-    # fine-tune the basic CellPose nuclei model
-    model_dir_from_default = model_dir / "CellPose_default_nuclei_model_finetuning"
-    model_dir_from_default.mkdir(exist_ok=True)
-    labelfree_nuc_pred_from_default_model_name = f"labelfree_nuc_pred_{timestamp}"
 
     model_nuclei_original = models.CellposeModel(gpu=gpu, model_type="nuclei")
 
@@ -100,11 +82,11 @@ def main(
         SGD=sgd,
         learning_rate=learning_rate,
         n_epochs=n_epochs,
-        save_path=model_dir_from_default,
-        model_name=labelfree_nuc_pred_from_default_model_name,
+        save_path=out_dir,
+        model_name=model_name,
     )
 
-    run_record[labelfree_nuc_pred_from_default_model_name] = {
+    run_record[model_name] = {
         "model_path": model_path,
         "train_losses": train_losses,
         "test_losses": test_losses,
@@ -113,10 +95,10 @@ def main(
     # save the training and test losses to a file
     if any(run_record):
         fig = save_training_test_loss_plot(
-            train_losses=run_record[labelfree_nuc_pred_from_default_model_name]["train_losses"],
-            test_losses=run_record[labelfree_nuc_pred_from_default_model_name]["test_losses"],
-            model_name=labelfree_nuc_pred_from_default_model_name,
-            out_dir=model_dir,
+            train_losses=run_record[model_name]["train_losses"],
+            test_losses=run_record[model_name]["test_losses"],
+            model_name=model_name,
+            out_dir=out_dir,
         )
         plt.close(fig)
 
@@ -149,8 +131,8 @@ def main(
     fig = save_labelfree_nuclei_example_image(
         original_bf_img_array=test_img_arr,
         nuclei_prediction_img_arr=test_prediction,
-        model_name=labelfree_nuc_pred_from_default_model_name,
-        out_dir=model_dir,
+        model_name=model_name,
+        out_dir=out_dir,
     )
     plt.close(fig)
 
