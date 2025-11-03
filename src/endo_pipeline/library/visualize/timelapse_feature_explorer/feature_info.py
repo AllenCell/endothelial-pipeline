@@ -1,3 +1,5 @@
+from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE
+
 LABEL_MAP = {
     "alignment_deg_rel_to_flow": "Alignment Relative to Flow (degrees)",
     "alignment_rel_to_flow": "Alignment Relative to Flow (rad)",
@@ -20,8 +22,14 @@ LABEL_MAP = {
     "number_of_neighbors": "Number of Neighbors",
     # filters
     "is_edge_segmentation": "Filter: Touches Edge of Field of View",
-    "is_included": "Filter: Passed All Filters",
     "is_less_than_max_smoothed_area_normd_change": "Filter: Smoothed Area Change Below Threshold",
     "is_greater_than_min_track_duration": "Filter: Exceeds Min Track Duration",
     "has_more_than_min_num_valid_points_per_track": "Filter: Num Valid Points Exceeds Threshold",
+    "is_included": "Filter: Passed All Filters",
+    # Cell-centric DiffAE features and PCs
+    "pc_1": "PC 1",
+    **{
+        f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}"
+        for pc_col in DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+    },
 }
