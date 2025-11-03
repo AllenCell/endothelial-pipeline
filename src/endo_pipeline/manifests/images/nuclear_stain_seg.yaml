@@ -78,3 +78,5 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/multiscale_zarr/20250929_5deffb951ab745c19b0d58bd305904a0/20250929_5deffb951ab745c19b0d58bd305904a0_P{{position}}.ome.zarr
   20250929_20X_IF10:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/multiscale_zarr/20250929_9bc8a2254f0f4147a0c5278166695ff2/20250929_9bc8a2254f0f4147a0c5278166695ff2_P{{position}}.ome.zarr
+  20250929_20X_IF11:
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/review/results/2025-11-03/nuclear_stain_segmentation/20250929_1415f497a0dc4bf28b016427a04d37fe/20250929_1415f497a0dc4bf28b016427a04d37fe_P{{position}}.ome.zarr
