@@ -1,6 +1,6 @@
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import Datasets, tags
 
-TAGS = ["immunofluorescence"]
+TAGS = ["immunofluorescence", tags.TEST_READY, tags.CPU_ONLY]
 
 
 def main(datasets: Datasets | None = None) -> None:
@@ -40,8 +40,12 @@ def main(datasets: Datasets | None = None) -> None:
         logger.info(f"Processing dataset: {dataset}")
         dataset_config = load_dataset_config(dataset)
 
+        positions = dataset_config.zarr_positions
+        if DEMO_MODE:
+            positions = positions[:1]
+
         # Step 1: Run feature extraction
-        df = run_nuclei_feature_extraction(dataset_config, dataset_config.zarr_positions)
+        df = run_nuclei_feature_extraction(dataset_config, positions)
 
         # Step 2: Save to CSV
         save_path = save_manifest_to_csv(dataset, df)
