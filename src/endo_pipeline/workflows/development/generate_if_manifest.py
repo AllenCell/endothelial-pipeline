@@ -19,7 +19,7 @@ def main(datasets: Datasets | None = None) -> None:
     import logging
 
     from endo_pipeline import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.library.process.if_feature_extraction import run_nuclei_feature_extraction
     from endo_pipeline.library.process.if_manifest import (
         save_manifest_to_csv,
@@ -38,9 +38,10 @@ def main(datasets: Datasets | None = None) -> None:
 
     for dataset in datasets:
         logger.info(f"Processing dataset: {dataset}")
+        dataset_config = load_dataset_config(dataset)
 
         # Step 1: Run feature extraction
-        df = run_nuclei_feature_extraction(dataset)
+        df = run_nuclei_feature_extraction(dataset_config, dataset_config.zarr_positions)
 
         # Step 2: Save to CSV
         save_path = save_manifest_to_csv(dataset, df)

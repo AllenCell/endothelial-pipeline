@@ -1,11 +1,12 @@
 from typing import Any
 
+import dask.array as da
 import numpy as np
 import pandas as pd
 from skimage.feature import graycomatrix, graycoprops
 from skimage.measure import label, regionprops, shannon_entropy
 
-from endo_pipeline.configs import dataset_io, load_dataset_config
+from endo_pipeline.configs import DatasetConfig, dataset_io
 from endo_pipeline.io import load_image
 from endo_pipeline.library.process.image_processing import (
     background_subtract,
@@ -19,20 +20,26 @@ IF_CHANNELS = ["NucViolet", "SOX17", "SMAD1", "NR2F2"]
 NUC_SEG_TYPE = "nuclear_stain_seg"
 
 
-def get_labeled_nuclei(dataset: str, position: int, nuc_seg_type: str) -> np.ndarray:
+def get_labeled_nuclei(
+    dataset_config: DatasetConfig, position: int, nuc_seg_type: str
+) -> np.ndarray:
     """
-    Generate a labeled nuclei image for a given dataset, and position.
+    Generate a labeled nuclei image for a given dataset and position.
 
-    Args:
-        dataset (str): The name of the dataset.
-        position (int): The position index within the dataset.
-        nuc_seg_type (str): The type of nuclear segmentation to use.
+    Parameters
+    ----------
+    dataset_config : DatasetConfig
+        The configuration object for the dataset.
+    position : int
+        The position index within the dataset.
+    nuc_seg_type : str
+        The type of nuclear segmentation to use.
 
-    Returns:
-        np.ndarray: A labeled image where each connected component is assigned a unique integer label.
+    Returns
+    -------
+    np.ndarray
+        A labeled image where each connected component is assigned a unique integer label.
     """
-
-    dataset_config = load_dataset_config(dataset)
     seg_manifest = load_image_manifest(nuc_seg_type)
     seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position)
     seg_image = load_image(seg_location, squeeze=True, compute=True)
@@ -42,12 +49,19 @@ def get_labeled_nuclei(dataset: str, position: int, nuc_seg_type: str) -> np.nda
 
 def identify_edge_nuclei(label_mask: np.ndarray, bounding_box: tuple) -> bool:
     """
-    Identify if a labeled region touches the border of the image.
-    Args:
-        label_mask (np.ndarray): The labeled image used to identify the boundary of the FOV.
-        bounding_box (tuple): A tuple representing the bounding box of the labeled region
-    Returns:
-        bool: True if the labeled region touches the border of the image, False otherwise.
+    Determine if a labeled region touches the border of the image.
+
+    Parameters
+    ----------
+    label_mask : np.ndarray
+        The labeled image used to identify the boundary of the field of view (FOV).
+    bounding_box : tuple
+        A tuple representing the bounding box of the labeled region.
+
+    Returns
+    -------
+    bool
+        True if the labeled region touches the border of the image, False otherwise.
     """
     image_height, image_width = label_mask.shape
     minr, minc, maxr, maxc = bounding_box
@@ -63,15 +77,19 @@ def extract_morphological_props(
     """
     Extract morphological properties from a labeled image.
 
-    Args:
-        label_image (np.ndarray): A labeled image where each connected component is assigned a
-            unique integer label.
-        dataset (str): The name of the dataset.
-        position (int): The position index within the dataset.
+    Parameters
+    ----------
+    label_image : np.ndarray
+        A labeled image where each connected component is assigned a unique integer label.
+    dataset : str
+        The name of the dataset.
+    position : int
+        The position index within the dataset.
 
-    Returns:
-        List[Dict[str, Any]]: A list of dictionaries, each containing morphological properties for
-            a labeled region.
+    Returns
+    -------
+    list of dict
+        A list of dictionaries, each containing morphological properties for a labeled region.
     """
     props = regionprops(label_image)
     return [
@@ -98,15 +116,17 @@ def extract_morphological_props(
 
 def calculate_glcm_features(image: np.ndarray) -> dict:
     """
-    Calculate GLCM ("grey-level co-occurrence matrix") features are calculated
-    to describe the texture of an image.
+    Calculate GLCM (grey-level co-occurrence matrix) features to describe the texture of an image.
 
-    Args:
-        image (np.ndarray): Input image, should be a 2D grayscale image.
+    Parameters
+    ----------
+    image : np.ndarray
+        Input image, should be a 2D grayscale image.
 
-    Returns:
-        dict: A dictionary containing GLCM features
-        (ie. contrast, correlation, energy, and homogeneity)
+    Returns
+    -------
+    dict
+        A dictionary containing GLCM features, including contrast, correlation, energy, and homogeneity.
     """
     normalized_image = normalize_image(image)
 
@@ -130,14 +150,20 @@ def compute_projection_properties(p: Any, channel: str, proj_type: str) -> dict[
     """
     Compute statistical properties of a given projection for a specific channel.
 
-    Args:
-        p (Any): A region property object containing intensity image data.
-        channel (str): The name of the channel.
-        proj_type (str): The type of projection (e.g., "sum", "max").
+    Parameters
+    ----------
+    p : Any
+        A region property object containing intensity image data.
+    channel : str
+        The name of the channel.
+    proj_type : str
+        The type of projection (e.g., "sum", "max").
 
-    Returns:
-        Dict[str, float]: A dictionary containing computed statistical properties for the given
-                         projection. Keys are formatted as "{channel}_{statistic}_{proj_type}_proj".
+    Returns
+    -------
+    dict of str to float
+        A dictionary containing computed statistical properties for the given projection.
+        Keys are formatted as "{channel}_{statistic}_{proj_type}_proj".
     """
     glcm_features = calculate_glcm_features(p.intensity_image)
 
@@ -160,28 +186,32 @@ def compute_projection_properties(p: Any, channel: str, proj_type: str) -> dict[
 
 
 def extract_if_channel_props(
-    label_image: np.ndarray, channel: str, raw_image: np.ndarray
+    label_image: np.ndarray, channel: str, raw_image: da.Array
 ) -> list[dict[str, float]]:
     """
-    Subtract background and compute intensity-based properties for a specific immunofluorescence
-    channel.
+    Subtract background and compute intensity-based properties for a specific immunofluorescence channel.
 
-    Args:
-        label_image (np.ndarray): A labeled image where each connected component is assigned a
-            unique integer label. 2D image YX.
-        channel (str): The name of the channel.
-        raw_image (np.ndarray): The raw 3D image data for the given channel in TZYX format.
+    Parameters
+    ----------
+    label_image : np.ndarray
+        A labeled image where each connected component is assigned a unique integer label.
+        The image is 2D in YX format.
+    channel : str
+        The name of the channel.
+    raw_image : np.ndarray
+        The raw 3D image data for the given channel in TZYX format.
 
-    Returns:
-        List[Dict[str, float]]: A list of dictionaries, each containing intensity-based properties
-            for a labeled region.
+    Returns
+    -------
+    list of dict
+        A list of dictionaries, each containing intensity-based properties for a labeled region.
     """
     # Perform background subtraction on the raw image
     background_subtracted = background_subtract(raw_image)
 
     # Compute the sum projection along the Z-axis
-    sum_projection = sum_proj(background_subtracted, axis=2)[0, 0, :, :]  # return 2D image YX
-    max_projection = max_proj(background_subtracted, axis=2)[0, 0, :, :]  # return 2D image YX
+    sum_projection = sum_proj(background_subtracted, axis=0)
+    max_projection = max_proj(background_subtracted, axis=0)
 
     # Extract region properties using the sum projection as the intensity image
     props_sum_proj = regionprops(label_image, intensity_image=sum_projection)
@@ -199,7 +229,7 @@ def extract_if_channel_props(
 
 
 def process_position(
-    dataset: str,
+    dataset_config: DatasetConfig,
     position: int,
     if_channels: list[str],
     nuc_seg_type: str,
@@ -208,26 +238,31 @@ def process_position(
     Process a specific position in the dataset to extract morphological and
     intensity-based properties for specified channels.
 
-    Args:
-        dataset (str): The name of the dataset.
-        position (int): The position index within the dataset.
-        if_channels (List[str]): A list of channel names to extract intensity-based properties.
-        timepoint (int): The timepoint index for the dataset.
-        nuc_seg_type (str): The type of nuclear segmentation to use.
+    Parameters
+    ----------
+    dataset_config : DatasetConfig
+        The configuration object for the dataset.
+    position : int
+        The position index within the dataset.
+    if_channels : list of str
+        A list of channel names to extract intensity-based properties.
+    nuc_seg_type : str
+        The type of nuclear segmentation to use.
 
-    Returns:
-        pd.DataFrame: A DataFrame containing the combined morphological and intensity-based
-            properties.
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame containing the combined morphological and intensity-based properties.
     """
-    label_image = get_labeled_nuclei(dataset, position, nuc_seg_type)
-    morph_props = extract_morphological_props(label_image, dataset, position)
+    label_image = get_labeled_nuclei(dataset_config, position, nuc_seg_type)
+    morph_props = extract_morphological_props(label_image, dataset_config.name, position)
     df_position = pd.DataFrame(morph_props)
 
-    for channel in dataset_io.get_channel_names(dataset):
+    for channel in dataset_io.get_channel_names(dataset_config.name):
         if channel in if_channels:
-            raw_image = dataset_io.load_dataset_position_as_dask_array(
-                dataset, position, channels=[channel]
-            )
+            zarr_manifest = load_image_manifest("image_zarr")
+            zarr_location = get_image_location_for_dataset(zarr_manifest, dataset_config, position)
+            raw_image = load_image(zarr_location, channels=[channel], squeeze=True)
             channel_props = extract_if_channel_props(label_image, channel, raw_image)
             df_channel: pd.DataFrame = pd.DataFrame(channel_props)
 
@@ -239,30 +274,35 @@ def process_position(
 
 
 def run_nuclei_feature_extraction(
-    dataset: str,
+    dataset_config: DatasetConfig,
+    positions: list[int],
     if_channels: list[str] = IF_CHANNELS,
     nuc_seg_type: str = NUC_SEG_TYPE,
 ) -> pd.DataFrame:
     """
     Run nuclei feature extraction for all positions in the dataset.
 
-    Args:
-        dataset (str): The name of the dataset.
-        if_channels (List[str]): A list of channel names to extract intensity-based properties.
-            Defaults to the current list of immunofluorescence channels.
-        timepoint (int): The timepoint index for the dataset.
-            Default is 0, as IF data is only at timepoint 0.
-        nuc_seg_type (str): The type of nuclear segmentation to use.
-            Default is "nuclear_stain_seg", IF data uses the segmentations
-            generated from the nuclear stain.
+    Parameters
+    ----------
+    dataset_config : DatasetConfig
+        The config for the dataset.
+    positions : list of int
+        A list of positions in the dataset to process.
+    if_channels : list of str, optional
+        A list of channel names to extract intensity-based properties.
+        Defaults to the current list of immunofluorescence channels.
+    nuc_seg_type : str, optional
+        The type of nuclear segmentation to use. Defaults to "nuclear_stain_seg".
+        IF data uses the segmentations generated from the nuclear stain.
 
-    Returns:
-        pd.DataFrame: A single DataFrame containing the extracted features for all positions.
+    Returns
+    -------
+    pd.DataFrame
+        A single DataFrame containing the extracted features for all positions.
     """
-    dataset_config = load_dataset_config(dataset)
-    positions = dataset_config.zarr_positions
+
     df_all_positions = [
-        process_position(dataset, pos, if_channels, nuc_seg_type) for pos in positions
+        process_position(dataset_config, pos, if_channels, nuc_seg_type) for pos in positions
     ]
     # Concatenate all DataFrames into a single DataFrame
     df_dataset = pd.concat(df_all_positions, ignore_index=True)

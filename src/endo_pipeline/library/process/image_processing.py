@@ -243,7 +243,9 @@ def contrast_stretching(
     return stretched.astype(np.uint8)
 
 
-def background_subtract(img: np.ndarray, camera_offset: int = CAMERA_OFFSET) -> np.ndarray:
+def background_subtract(
+    img: np.ndarray | da.Array, camera_offset: int = 100
+) -> np.ndarray | da.Array:
     """
     Background subtract the image by clipping values below a camera offset. The camera offset
     of 100 is the value set in our hardware configuration, therefore this is the minimum value
@@ -251,18 +253,24 @@ def background_subtract(img: np.ndarray, camera_offset: int = CAMERA_OFFSET) -> 
 
     Parameters
     ----------
-    img : np.ndarray
+    img : np.ndarray or dask.array.Array
         The input image array.
     camera_offset : int, optional
         The camera offset value to subtract from the image, by default 100.
 
     Returns
     -------
-    np.ndarray
+    np.ndarray or dask.array.Array
         The background-subtracted image.
     """
-    img = np.clip(img, camera_offset, None)
-    img = img - camera_offset  # Set any negative values to zero
+    # Use da.clip for Dask arrays, np.clip for NumPy arrays
+    if isinstance(img, da.Array):
+        img = da.clip(img, camera_offset, None)
+    else:
+        img = np.clip(img, camera_offset, None)
+
+    # Subtract the camera offset
+    img = img - camera_offset
     return img
 
 
