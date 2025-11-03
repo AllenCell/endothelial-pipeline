@@ -83,3 +83,15 @@ locations:
   20250522_20X_IFO:
     fmsid: 29f269d0dee34a77a28f3a03010ebc4c
     s3uri: null
+  20250929_20X_IF0:
+    fmsid: 3077c518201b49af922b46a8c3357b9a
+    s3uri: null
+  20250929_20X_IF2:
+    fmsid: 2c57c6a2465f482cb1dd8e505f4562aa
+    s3uri: null
+  20250929_20X_IF8:
+    fmsid: 304a55fe16224d2293173becf2e444a3
+    s3uri: null
+  20250929_20X_IF10:
+    fmsid: 0d2244b673d14b7288f9fc6454d4a20f
+    s3uri: null
