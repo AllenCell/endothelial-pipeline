@@ -22,7 +22,12 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     load_model_manifest,
 )
-from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
+from endo_pipeline.settings import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    DIFFAE_FEATURE_COLUMN_NAMES,
+    DIFFAE_PC_COLUMN_NAMES,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +39,7 @@ def generate_tfe_dataset(
     source_dir: Path,
     backdrops: bool,
     output_dir_suffix: str = "",
+    model_name: str = DEFAULT_MODEL_MANIFEST_NAME,
 ) -> None:
     """
     Create timelapse feature explorer manifest and generate backdrop images.
@@ -55,7 +61,7 @@ def generate_tfe_dataset(
         # Load dataframe with the diffae features and computed PCs
         datasets_for_bounds = list(set([dataset] + get_datasets_in_collection("pca_reference")))
         # only take the dataframe from the output (which is the 0th element)
-        model_manifest = load_model_manifest("diffae_04_10")
+        model_manifest = load_model_manifest(model_name)
         df_tracks = get_preprocessed_manifests_and_km_bounds(
             dataset_name=dataset,
             model_manifest=model_manifest,
@@ -69,7 +75,9 @@ def generate_tfe_dataset(
         segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset)
         df_tracks = load_dataframe(segprops_location)
         # remove the DiffAE-related entries from LABEL_MAP before constructing the TFE dataset
-        diffae_keys = [key for key in LABEL_MAP if key.startswith("feat_") or key.startswith("pc_")]
+        diffae_keys = [
+            key for key in LABEL_MAP if key in DIFFAE_FEATURE_COLUMN_NAMES + DIFFAE_PC_COLUMN_NAMES
+        ]
         for key in diffae_keys:
             del LABEL_MAP[key]
 

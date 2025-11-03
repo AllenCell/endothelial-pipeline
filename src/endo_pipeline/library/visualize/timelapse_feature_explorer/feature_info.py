@@ -1,3 +1,5 @@
+from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE
+
 LABEL_MAP = {
     "alignment_deg_rel_to_flow": "Alignment Relative to Flow (degrees)",
     "alignment_rel_to_flow": "Alignment Relative to Flow (rad)",
@@ -25,8 +27,9 @@ LABEL_MAP = {
     "has_more_than_min_num_valid_points_per_track": "Filter: Num Valid Points Exceeds Threshold",
     "is_included": "Filter: Passed All Filters",
     # Cell-centric DiffAE features and PCs
-    **{f"feat_{i}": f"DiffAE Feature {i}" for i in range(8)},
     "pc_1": "PC 1",
-    "pc_2": "PC 2",
-    "pc_3": "PC 3",
+    **{
+        f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}"
+        for pc_col in DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+    },
 }
