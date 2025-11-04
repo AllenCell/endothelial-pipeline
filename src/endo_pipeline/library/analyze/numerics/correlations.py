@@ -33,15 +33,20 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
     num_pad = 2 ** int(np.ceil(np.log2(2 * num_timepoints - 1)))
 
     for traj_index in range(num_traj):
+
         # Center data by subtracting mean, get standard deviation
         # for normalization of CCF.
-        data_mean1 = np.mean(data_feat1[traj_index])
-        data_stdev1 = np.std(data_feat1[traj_index])
+        # fft cannot handle NaNs, so we replace them with zeros after
+        # centering/mean subtraction.
+        data_mean1 = np.nanmean(data_feat1[traj_index])
+        data_stdev1 = np.nanstd(data_feat1[traj_index])
         x_t_i_ctr = data_feat1[traj_index] - data_mean1
+        x_t_i_ctr = np.nan_to_num(x_t_i_ctr, nan=0.0)
 
-        data_mean2 = np.mean(data_feat2[traj_index])
-        data_stdev2 = np.std(data_feat2[traj_index])
+        data_mean2 = np.nanmean(data_feat2[traj_index])
+        data_stdev2 = np.nanstd(data_feat2[traj_index])
         x_t_j_ctr = data_feat2[traj_index] - data_mean2
+        x_t_j_ctr = np.nan_to_num(x_t_i_ctr, nan=0.0)
 
         # By the convolution theorem, the CCF is the inverse FFT of the cross power spectrum
         # (i.e., X1^{*}(f) * X2(f) where X1 and X2 are the FFTs of the two signals).
