@@ -1,0 +1,64 @@
+name: 20251021_20X_IF7
+original_path: //allen/programs/allencell/data/proj0/4eb/f91/ec8/4cc/81e/d3a/a4a/979/e62/666/a0/20251021_GE00009360_7_SLDY/20251021_GE00009360_7_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251021_a0666e62979a4ad3a81e4ccec8f914eb
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: a0666e62979a4ad3a81e4ccec8f914eb
+barcode: GE00009360
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+is_timelapse: false
+microscope: 3i
+objective: 20X
+shear_stress_regime: medium
+pixel_size_xy_in_um: 0.382
+duration: 1
+time_interval_in_minutes: null
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 4
+  channel_488: 1
+  channel_405: 0
+  channel_561: 2
+  channel_640: 3
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: 2
+  channel_561: 3
+  channel_640: 4
+flow_conditions:
+- start: -432
+  stop: 0
+  shear_stress: 11.8
+include_scenes: null
+notes: Fix & stain cells for SMAD1 and SOX17 after 36h Intermediate SS (goal 12 dyn/cm2)
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: []
+    1: [0]
+    2: []
+    3: []
+    4: []
+    5: []
+  auto_bf_temp_artifact:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+position_annotations: null
+center_z_plane:
+  0: 12
+  1: 11
+  2: 9
+  3: 10
+  4: 10
+  5: 8

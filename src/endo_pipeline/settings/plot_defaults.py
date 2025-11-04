@@ -14,3 +14,15 @@ SHEAR_COLOR_DICT = {
     ShearStressRegime.MAX: "tab:blue",
 }
 """Color dictionary for shear stress levels to color code histogram plots."""
+
+MODEL_QC_SUBPLOT_KWARGS: dict = {"frame_on": False}
+"""Default keyword arguments for subplots in model QC plots."""
+
+MODEL_QC_GRIDSPEC_KWARGS: dict = {"wspace": 0.05, "hspace": 0.05}
+"""Default keyword arguments for gridspec in model QC plots."""
+
+MODEL_QC_FIG_KWARGS: dict = {"figsize": (6, 6)}
+"""Default keyword arguments for figure in model QC plots."""
+
+MODEL_QC_PLOT_DIRECTION: str = "top-down first"
+"""Default direction for arranging panels in model QC plots."""

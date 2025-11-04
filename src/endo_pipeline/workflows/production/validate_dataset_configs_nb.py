@@ -14,11 +14,16 @@ For each dataset config in the `configs/datasets` directory, confirm:
 """
 
 # %%
+DESCRIPTION = "Validate all existing datasets by checking config schemas and loading files."
+TAGS = ["test_ready", "CPU_only"]
+
+# %%
 import logging
 from pathlib import Path
 
 from bioio import BioImage
 
+from endo_pipeline import DEMO_MODE
 from endo_pipeline.configs import (
     get_available_dataset_names,
     load_dataset_config,
@@ -29,7 +34,12 @@ from endo_pipeline.configs import (
 logger = logging.getLogger(__name__)
 
 # %%
-for dataset_name in get_available_dataset_names():
+names = get_available_dataset_names()
+if DEMO_MODE:
+    # Each dataset takes 2-9 seconds to validate
+    names = names[:2]
+
+for dataset_name in names:
     logger.info(f"Running validation for dataset [ {dataset_name} ]")
 
     # Validate dataset config schema.

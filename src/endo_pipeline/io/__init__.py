@@ -17,7 +17,6 @@ from .input import (
 from .log_funcs import configure_logging
 from .output import (
     build_fms_annotations,
-    get_output_dir,
     get_output_path,
     get_timestamp,
     make_name_unique,
@@ -31,7 +30,6 @@ __all__ = [
     "get_checkpoint_path_from_mlflow",
     "get_config_dict_from_mlflow",
     "get_local_path_from_fmsid",
-    "get_output_dir",
     "get_output_path",
     "get_repository_root_dir",
     "get_timestamp",
