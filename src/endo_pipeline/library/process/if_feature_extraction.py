@@ -6,7 +6,7 @@ import pandas as pd
 from skimage.feature import graycomatrix, graycoprops
 from skimage.measure import label, regionprops, shannon_entropy
 
-from endo_pipeline.configs import DatasetConfig, dataset_io
+from endo_pipeline.configs import DatasetConfig, get_available_channels_for_position
 from endo_pipeline.io import load_image
 from endo_pipeline.library.process.image_processing import (
     background_subtract,
@@ -14,6 +14,7 @@ from endo_pipeline.library.process.image_processing import (
     normalize_image,
     sum_proj,
 )
+from endo_pipeline.manifest import get_zarr_location_for_position
 from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
 IF_CHANNELS = ["NucViolet", "SOX17", "SMAD1", "NR2F2"]
@@ -258,17 +259,18 @@ def process_position(
     morph_props = extract_morphological_props(label_image, dataset_config.name, position)
     df_position = pd.DataFrame(morph_props)
 
-    for channel in dataset_io.get_channel_names(dataset_config.name):
-        if channel in if_channels:
-            zarr_manifest = load_image_manifest("image_zarr")
-            zarr_location = get_image_location_for_dataset(zarr_manifest, dataset_config, position)
-            raw_image = load_image(zarr_location, channels=[channel], squeeze=True)
-            channel_props = extract_if_channel_props(label_image, channel, raw_image)
-            df_channel: pd.DataFrame = pd.DataFrame(channel_props)
+    for channel in get_available_channels_for_position(dataset_config, position):
+        if channel not in if_channels:
+            continue
 
-            df_position = pd.merge(
-                df_position, df_channel, on="label", how="left", validate="one_to_one"
-            )
+        zarr_location = get_zarr_location_for_position(dataset_config, position)
+        raw_image = load_image(zarr_location, channels=[channel], squeeze=True)
+        channel_props = extract_if_channel_props(label_image, channel, raw_image)
+        df_channel: pd.DataFrame = pd.DataFrame(channel_props)
+
+        df_position = pd.merge(
+            df_position, df_channel, on="label", how="left", validate="one_to_one"
+        )
 
     return df_position
 
