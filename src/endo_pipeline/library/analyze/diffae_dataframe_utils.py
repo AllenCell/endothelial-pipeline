@@ -10,6 +10,7 @@ from endo_pipeline.configs import (
     PositionAnnotation,
     TimepointAnnotation,
     get_all_unannotated_timepoints,
+    get_dataset_duration,
     get_datasets_in_collection,
     get_frame_after_flow_change,
     get_subset_of_timepoint_annotations,
@@ -408,6 +409,9 @@ def get_dataframe_for_dynamics_workflows(
     # add crop index column
     df_with_crop = add_crop_index(df_filtered)
 
+    # add dataset duration description column
+    df_with_crop["duration"] = get_dataset_duration(load_dataset_config(dataset_name))
+
     if pca is None:
         # do not project feature data onto PCA axes
         return df_with_crop
@@ -566,10 +570,6 @@ def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
         data_crop_filled = fill_missing_timepoints(data_crop)
         feats.append(data_crop_filled[column_names].values)
 
-    import pdb
-
-    pdb.set_trace()
-
     return np.array(feats)
 
 
@@ -634,7 +634,7 @@ def split_dataset_by_flow(
 
 def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, list]:
     """
-    Get trajectories and displacement vectors for each crop in feature space.
+    Get trajectories and single-timepoint displacement vectors for each crop in feature space.
 
     **Input dataframe**
 
@@ -710,9 +710,7 @@ def fill_missing_timepoints(data_crop: pd.DataFrame) -> pd.DataFrame:
     """
 
     # get full range of timepoints for this crop
-    timepoint_min = data_crop[ColumnName.TIMEPOINT].min()
-    timepoint_max = data_crop[ColumnName.TIMEPOINT].max()
-    full_timepoint_range = np.arange(timepoint_min, timepoint_max + 1)
+    full_timepoint_range = np.arange(0, data_crop["duration"].iloc[0])
 
     # reindex dataframe to include all timepoints in full range
     data_crop_filled = data_crop.set_index(ColumnName.TIMEPOINT).reindex(full_timepoint_range)

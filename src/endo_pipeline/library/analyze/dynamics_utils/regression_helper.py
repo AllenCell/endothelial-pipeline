@@ -108,8 +108,8 @@ def _kramers_moyal_train_test_one_dataset(
         else:
             stationary_data = df_by_flow[j]
 
-        # get list of per-crop trajectories, the corresponding
-        # displacement vectors, and time differences
+        # get list of per-crop trajectories and the corresponding
+        # single-timepint displacement vectors
         traj_list, d_traj_list = get_traj_and_diff(stationary_data, pc_column_names=pc_column_names)
 
         # get bins for histogramming
