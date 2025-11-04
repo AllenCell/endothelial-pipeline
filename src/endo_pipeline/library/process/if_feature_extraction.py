@@ -14,8 +14,11 @@ from endo_pipeline.library.process.image_processing import (
     normalize_image,
     sum_proj,
 )
-from endo_pipeline.manifest import get_zarr_location_for_position
-from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+from endo_pipeline.manifests import (
+    get_image_location_for_dataset,
+    get_zarr_location_for_position,
+    load_image_manifest,
+)
 
 IF_CHANNELS = ["NucViolet", "SOX17", "SMAD1", "NR2F2"]
 NUC_SEG_TYPE = "nuclear_stain_seg"
