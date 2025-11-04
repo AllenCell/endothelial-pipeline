@@ -74,17 +74,20 @@ def main(
 
         save_segmentation_masks(masks, dataset_config, output_path, xy_pixel_size_um, positions)
 
+        if DEMO_MODE:
+            logger.info("DEMO MODE enabled: skipping manifest update")
+            continue
+
         # Step 5: Update image manifest
-        if not DEMO_MODE:
-            img_manifest = load_image_manifest("nuclear_stain_seg")
+        img_manifest = load_image_manifest("nuclear_stain_seg")
 
-            date = dataset_config.name[:8]
-            fmsid = dataset_config.fmsid
-            suffix = "P{{position}}.ome.zarr"
-            new_path = f"{output_path}/{date}_{fmsid}/{date}_{fmsid}_{suffix}"
-            img_manifest.locations[dataset_config.name] = ImageLocation(path=Path(new_path))
+        date = dataset_config.name[:8]
+        fmsid = dataset_config.fmsid
+        suffix = "P{{position}}.ome.zarr"
+        new_path = f"{output_path}/{date}_{fmsid}/{date}_{fmsid}_{suffix}"
+        img_manifest.locations[dataset_config.name] = ImageLocation(path=Path(new_path))
 
-            save_image_manifest(img_manifest)
+        save_image_manifest(img_manifest)
 
 
 if __name__ == "__main__":
