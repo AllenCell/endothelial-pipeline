@@ -102,13 +102,24 @@ def fit_exp_decay_and_get_relaxation_timescale(
             "Invalid exp_decay_func provided to _fit_exp_decay_and_get_relaxation_timescale."
         )
 
+    # get non-nan indices
+    nonnan_indices = ~(np.isnan(lags) | np.isnan(acf))
+
     if exp_decay_func == "exponential_decay":
         p0 = [0.5, 0.5, 0.5]  # initial guess for a, b, and c
-        exp_fit, _ = curve_fit(exponential_decay, lags, acf, maxfev=maxfev, p0=p0)
+        exp_fit, _ = curve_fit(
+            exponential_decay, lags[nonnan_indices], acf[nonnan_indices], maxfev=maxfev, p0=p0
+        )
         relaxation_time = 1 / exp_fit[1]
     else:
         p0 = [0.5, 0.5, 0.5, 0.5, 0.5]  # initial guess for a1, b1, a2, b2, and c
-        exp_fit, _ = curve_fit(double_exponential_decay, lags, acf, maxfev=maxfev, p0=p0)
+        exp_fit, _ = curve_fit(
+            double_exponential_decay,
+            lags[nonnan_indices],
+            acf[nonnan_indices],
+            maxfev=maxfev,
+            p0=p0,
+        )
         # choose the relaxation time corresponding to the larger weight
         which_weight_is_larger = np.argmax(np.abs(exp_fit[[0, 2]]))
         relaxation_time = 1 / exp_fit[[1, 3][which_weight_is_larger]]
