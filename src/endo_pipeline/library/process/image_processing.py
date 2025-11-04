@@ -5,7 +5,7 @@ import numpy as np
 from bioio import BioImage
 from skimage import exposure
 
-CAMERA_OFFSET = 100  # Camera offset value set in our hardware configuration
+from endo_pipeline.settings.image_data import CAMERA_OFFSET
 
 
 def bf_slice(img: BioImage, frame: int) -> np.ndarray:
@@ -244,7 +244,7 @@ def contrast_stretching(
 
 
 def background_subtract(
-    img: np.ndarray | da.Array, camera_offset: int = 100
+    img: np.ndarray | da.Array, camera_offset: int = CAMERA_OFFSET
 ) -> np.ndarray | da.Array:
     """
     Background subtract the image by clipping values below a camera offset. The camera offset
