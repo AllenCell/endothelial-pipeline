@@ -9,17 +9,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from bioio import BioImage
 from scipy.ndimage import gaussian_filter1d
 from skimage.measure import regionprops
 from tqdm import tqdm
 
-from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-from endo_pipeline.io import get_output_path
-from endo_pipeline.io.input import load_image
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import get_output_path, load_image
 from endo_pipeline.library.model.eval_model import add_diffae_model_eval_crop_columns
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
-from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+from endo_pipeline.manifests import (
+    get_image_location_for_dataset,
+    get_zarr_location_for_position,
+    load_image_manifest,
+)
 from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
@@ -371,12 +373,13 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     for (ds_nm, pos), grp in big_table.groupby(["dataset_name", "position"]):
         data_config = load_dataset_config(ds_nm)
 
-        zarr_path = get_zarr_file_for_position(data_config, pos)
-        assert (grp["zarr_path"].transform(Path) == zarr_path).all(), "Zarr path mismatch in group."
+        zarr_loc = get_zarr_location_for_position(data_config, pos)
+        assert (
+            grp["zarr_path"].transform(Path) == zarr_loc.path
+        ).all(), "Zarr path mismatch in group."
 
         logger.info(f"getting image size for {ds_nm} position {pos}...")
-        img = BioImage(zarr_path)
-        img.set_resolution_level(0)
+        img = load_image(zarr_loc, read=False, level=0)
         image_size_y, image_size_x = img.dims.Y, img.dims.X
 
         new_cols[(ds_nm, pos)] = {

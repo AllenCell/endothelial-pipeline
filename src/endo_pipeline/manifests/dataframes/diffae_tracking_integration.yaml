@@ -1,6 +1,9 @@
 name: diffae_tracking_integration
 workflow: apply_diffae_model_on_tracked_crops
-parameters: {}
+parameters:
+  z_slice_offsets:
+  - 4
+  - 11
 locations:
   20241120_20X:
     fmsid: be213c4232144ac2b069b4ec52dfbab4
@@ -27,5 +30,11 @@ locations:
     fmsid: 3f59d2da192941bba979727adf3b6dee
     s3uri: null
   20250611_20X:
-    fmsid: 3a69bbcd8ab244d9b2d3eb9ee7eacde3
+    fmsid: c4dc06acf7194b7da7a90ecc544eec57
+    s3uri: null
+  20250618_20X:
+    fmsid: 818657a011d44e5cb638a9f02031b826
+    s3uri: null
+  20250818_20X:
+    fmsid: 02c24903e6c340d4920156e11ffe2cf9
     s3uri: null

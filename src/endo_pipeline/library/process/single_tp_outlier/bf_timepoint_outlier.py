@@ -5,9 +5,9 @@ import numpy as np
 import pandas as pd
 from scipy.signal import find_peaks
 
-from endo_pipeline.configs import DatasetConfig, get_zarr_file_for_position
-from endo_pipeline.io.input import load_image_from_path
-from endo_pipeline.io.output import get_output_path, save_plot_to_path
+from endo_pipeline.configs import DatasetConfig
+from endo_pipeline.io import get_output_path, load_image, save_plot_to_path
+from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.image_data import NUM_ZSLICES
 from endo_pipeline.settings.method_constants import (
     BF_ROLLING_WINDOW,
@@ -179,8 +179,9 @@ def detect_bf_outliers(
     - `bf_scope_error`: Sorted list of timepoints with partial dark outliers.
     - `bf_temp_artifact`: Sorted list of timepoints with dark or bright outliers.
     """
-    zarr_file = get_zarr_file_for_position(dataset_config, position)
-    bf_zarr = load_image_from_path(zarr_file, channels=["BF"], level=1, squeeze=True)
+
+    zarr_loc = get_zarr_location_for_position(dataset_config, position)
+    bf_zarr = load_image(zarr_loc, channels=["BF"], level=1, squeeze=True)
 
     # 1 Compute mean intensity over x/y axes
     intensity_array = bf_zarr.mean(axis=(-2, -1))

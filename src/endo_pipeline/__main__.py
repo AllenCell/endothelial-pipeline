@@ -48,7 +48,8 @@ EXTERNAL_LOGGERS = {
 FIGURE_WORKFLOWS = Group("Figure Workflows", sort_key=0)
 PRODUCTION_WORKFLOWS = Group("Production Workflows", sort_key=1)
 DEVELOPMENT_WORKFLOWS = Group("Development Workflows", sort_key=2)
-ARCHIVED_WORKFLOWS = Group("Archived Workflows", sort_key=3)
+TESTING_WORKFLOWS = Group("Test Many Workflows", sort_key=3)
+ARCHIVED_WORKFLOWS = Group("Archived Workflows", sort_key=4)
 
 WORKFLOW_OPTIONS = WorkflowOptions()
 PIPELINE_OPTIONS = PipelineOptions()
@@ -64,6 +65,7 @@ def build_pipeline_app():
     build_cli_group(FIGURE_WORKFLOWS, "figures", True)
     build_cli_group(PRODUCTION_WORKFLOWS, "production", True)
     build_cli_group(DEVELOPMENT_WORKFLOWS, "development", True)
+    build_cli_group(TESTING_WORKFLOWS, "testing", True)
     build_cli_group(ARCHIVED_WORKFLOWS, "archive", False)
 
     pipeline_app.meta.default(pipeline_entrypoint)
