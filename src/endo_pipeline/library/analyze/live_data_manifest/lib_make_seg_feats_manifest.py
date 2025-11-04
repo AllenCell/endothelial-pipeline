@@ -667,7 +667,7 @@ def get_smallest_angle_difference(
 
     def smallest_angle_difference_helper():
         for angle, ref_angle in zip(angles, reference_angles, strict=True):
-            diff = (ref_angle - angle) % full_circle  # diff is in [0, full_circle)
+            diff = (angle - ref_angle) % full_circle  # diff is in [0, full_circle)
             yield diff if diff < half_circle else diff - full_circle
 
     return np.array(list(smallest_angle_difference_helper()))
