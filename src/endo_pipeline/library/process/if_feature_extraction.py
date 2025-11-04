@@ -200,7 +200,7 @@ def extract_if_channel_props(
     channel : str
         The name of the channel.
     raw_image : np.ndarray
-        The raw 3D image data for the given channel in TZYX format.
+        The raw 3D image data for the given channel in ZYX format.
 
     Returns
     -------

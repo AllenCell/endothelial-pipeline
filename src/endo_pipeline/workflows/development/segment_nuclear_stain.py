@@ -29,7 +29,7 @@ def main(
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.if_segmentation import (
-        get_max_int_projections,
+        get_max_intensity_projections,
         save_segmentation_masks,
         segment_nuclei,
         visualize_results,
@@ -54,7 +54,7 @@ def main(
             positions = positions[:1]
 
         # Step 1: Get maximum intensity projections
-        max_int_projections, xy_pixel_size_um = get_max_int_projections(
+        max_int_projections, xy_pixel_size_um = get_max_intensity_projections(
             dataset_config, nuc_stain, positions
         )
 

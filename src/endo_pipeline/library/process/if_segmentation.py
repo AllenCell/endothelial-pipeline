@@ -16,7 +16,7 @@ from endo_pipeline.manifests import get_zarr_location_for_position
 logger = logging.getLogger(__name__)
 
 
-def get_max_int_projections(
+def get_max_intensity_projections(
     dataset_config: DatasetConfig, nuc_stain: str, positions: list[int]
 ) -> tuple[list, float]:
     """
