@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import NamedTuple
 
 EXAMPLE_DATASET = {
     "SUPP_FIG_Z_SLICE": "20250428_20X",
@@ -9,7 +9,7 @@ EXAMPLE_DATASET = {
 """Dictionary of example datasets for specific figures."""
 
 
-class ExampleImage(TypedDict):
+class ExampleImage(NamedTuple):
     """Structure for information about an example imag used in a figure."""
 
     dataset_name: str
