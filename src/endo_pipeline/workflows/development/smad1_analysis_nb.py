@@ -13,7 +13,7 @@ from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dat
 # %%
 DESCRIPTION = "Analyze SMAD1 intensity distributions under shear stress conditions."
 
-TAGS = ["immunofluorescence"]
+TAGS = ["immunofluorescence", "test_ready", "CPU_only"]
 
 logger = logging.getLogger(__name__)
 # %% Load Data and add info to dataframe
