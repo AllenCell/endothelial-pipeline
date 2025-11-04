@@ -27,7 +27,6 @@ optional field should be set, uncomment the corresponding line to set the value.
 if __name__ != "__main__":
     raise ImportError("This module is a notebook and is not meant to be imported")
 
-# %%
 from endo_pipeline.configs import PositionAnnotation  # noqa: F401, I001
 from endo_pipeline.configs import TimepointAnnotation  # noqa: F401
 from endo_pipeline.configs import (
@@ -35,14 +34,18 @@ from endo_pipeline.configs import (
     DatasetConfig,
     FlowCondition,
     ShearStressRegime,
+    load_dataset_config,
     save_dataset_config,
     validate_dataset_config,
 )
+from endo_pipeline.manifests import add_image_location_to_manifest
 
 # %%
+dataset_name = "unique_dataset_name"
+
 dataset = DatasetConfig(
     # ============================ REQUIRED FIELDS =============================
-    name="unique_dataset_name",
+    name=dataset_name,
     original_path="/path/to/original/dataset",
     zarr_path="//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/DATE_FMSID",
     zarr_positions=[],
@@ -146,5 +149,10 @@ dataset = DatasetConfig(
 save_dataset_config(dataset)
 validate_dataset_config(dataset.name)
 
+# %% Update image manifest with new dataset location
+dataset_config = load_dataset_config(dataset_name)
+add_image_location_to_manifest(dataset_config, "image_zarr", dataset_config.zarr_path)
+
+# %%
 print("Reminder to add dataset to relavent collections!")
 # %%
