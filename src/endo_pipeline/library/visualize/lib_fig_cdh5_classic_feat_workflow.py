@@ -1,57 +1,50 @@
-"""
-Note
-Becky says 20250326 (15 dyn) is probably the overall most ideal dataset for
-creating panels depicting the segmentation workflow. The no flow dataset from
-20250728 is also quite good but has some quirks around the feedings.
-I have used the 20250728 dataset for the current panels since it is no flow.
-It is worth noting that the plots use the PCA reference datasets which does NOT
-include 20250728.
-"""
-
 from pathlib import Path
 
 import numpy as np
+from bioio import BioImage
 from matplotlib import pyplot as plt
+from skimage.color import label2rgb
+from skimage.color.colorlabel import DEFAULT_COLORS
+from skimage.exposure import rescale_intensity
+from skimage.morphology import binary_dilation
 
-from endo_pipeline.library.process.general_image_preprocessing import DIMENSION_ORDER
-from endo_pipeline.settings.figures import FIGURE_SAVE_DPI, FONT_FAMILY
-
-## NOTE TO SELF: MOVE THIS CODE TO A LIBRARY FILE
-# DPI_IMAGING = 300
-# DPI_PLOTS = 1000
+from endo_pipeline.configs import (
+    get_zarr_file_for_position,
+    load_dataset_collection_config,
+    load_dataset_config,
+)
+from endo_pipeline.io import get_output_path, load_dataframe, load_image, load_image_from_path
+from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+    calculate_derived_data_dynamics_dependent,
+)
+from endo_pipeline.library.process.general_image_preprocessing import (
+    DIMENSION_ORDER,
+    save_image_output,
+)
+from endo_pipeline.library.visualize.figure_utils import plot_image_thumbnail
+from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
+    get_seg_feat_plot_args,
+    hist_2d_of_feats,
+    mark_parallel,
+    mark_perpendicular,
+)
+from endo_pipeline.manifests import (
+    get_dataframe_location_for_dataset,
+    get_image_location_for_dataset,
+    load_dataframe_manifest,
+    load_image_manifest,
+)
+from endo_pipeline.settings.figures import FONT_FAMILY, FONTSIZE_SMALL
 
 IMAGE_PANEL_SIZE = (3, 3)
 PLOT_PANEL_SIZE = (1.1, 1.1)
 CROP_YX = (slice(500, -500), slice(500, -500))
 
 
-def save_panel_thumbnail(
-    image: np.ndarray, figsize: tuple[float, float], out_path: Path, show: bool = False
-) -> None:
-    fig, ax = plt.subplots(figsize=figsize, dpi=FIGURE_SAVE_DPI, frameon=False)
-    ax.imshow(image, cmap="gray")
-    ax.axis("off")
-    fig.savefig(out_path, bbox_inches="tight", pad_inches=0)
-    if show:
-        plt.show()
-    else:
-        plt.close(fig)
-
-
 def make_imaging_panels(
     dataset_name: str,
     position: int,
 ) -> None:
-    from bioio import BioImage
-    from skimage.color import label2rgb
-    from skimage.color.colorlabel import DEFAULT_COLORS
-    from skimage.exposure import rescale_intensity
-    from skimage.morphology import binary_dilation
-
-    from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-    from endo_pipeline.io import get_output_path, load_image, load_image_from_path
-    from endo_pipeline.library.process.general_image_preprocessing import save_image_output
-    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
     out_dir_full = get_output_path(__file__, "images_high_quality")
     out_dir_thumb = get_output_path(__file__, "images_thumbnails")
@@ -65,7 +58,7 @@ def make_imaging_panels(
         # Load the validation image (which has some intermediate steps saved)
         val_manifest = load_image_manifest("cdh5_seg_validations")
         val_location = get_image_location_for_dataset(
-            val_manifest, dataset_name, position, timeframe
+            val_manifest, dataset_config, position, timeframe
         )
         val_image = BioImage(val_location.path)  # type:ignore[arg-type]
         channel_names = val_image.channel_names
@@ -99,17 +92,19 @@ def make_imaging_panels(
         # Load the nuclei predictions image (this one is nuclei predictions only)
         nuc_manifest = load_image_manifest("nuclear_labelfree_seg")
         nuc_location = get_image_location_for_dataset(
-            nuc_manifest, dataset_name, position, timeframe
+            nuc_manifest, dataset_config, position, timeframe
         )
-        nuc_pred = np.asarray(load_image(nuc_location))
+        nuc_pred = load_image(nuc_location, compute=True, squeeze=False)
 
         cdh5_seg_manifest = load_image_manifest("cdh5_classic_seg")
         cdh5_seg_sequential_timeframes = list(range(timeframe, timeframe + 5))
         for tf in cdh5_seg_sequential_timeframes:
             cdh5_seg_location = get_image_location_for_dataset(
-                cdh5_seg_manifest, dataset_name, position, tf
+                cdh5_seg_manifest, dataset_config, position, tf
             )
-            image_dict[f"cdh5_seg_split_{tf}"] = np.asarray(load_image(cdh5_seg_location))
+            image_dict[f"cdh5_seg_split_{tf}"] = load_image(
+                cdh5_seg_location, compute=True, squeeze=False
+            )
 
         bf_center_Z = dataset_config.center_z_plane[position]  # type:ignore[index]
         zarr_file = get_zarr_file_for_position(dataset_config, position)
@@ -224,35 +219,23 @@ def make_imaging_panels(
                     colors=panel_dict[panel_name]["colors_thumbnail"],  # type:ignore[index]
                     alpha=0.5,
                 )
-                save_panel_thumbnail(
-                    panel_overlay,
-                    IMAGE_PANEL_SIZE,
-                    out_dir_thumb / f"{dataset_name}_P{position}_T{timeframe}_{panel_name}.png",
+                plot_image_thumbnail(
+                    image=panel_overlay,
+                    image_name=f"{dataset_name}_P{position}_T{timeframe}_{panel_name}_v2",
+                    output_path=out_dir_thumb,
+                    figsize=IMAGE_PANEL_SIZE,
                 )
 
 
 def make_classic_feature_panels() -> None:
-    from endo_pipeline.configs import load_dataset_collection_config
-    from endo_pipeline.io import get_output_path, load_dataframe
-    from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
-        calculate_derived_data_dynamics_dependent,
-    )
-    from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
-        get_seg_feat_plot_args,
-        hist_2d_of_feats,
-        mark_parallel,
-        mark_perpendicular,
-    )
-    from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
-    fontsize = 8
     plt.rcParams.update(
         {
             "pdf.fonttype": 42,
             "font.family": FONT_FAMILY,
-            "axes.labelsize": fontsize,
-            "xtick.labelsize": fontsize,
-            "ytick.labelsize": fontsize,
+            "axes.labelsize": FONTSIZE_SMALL,
+            "xtick.labelsize": FONTSIZE_SMALL,
+            "ytick.labelsize": FONTSIZE_SMALL,
         }
     )
 
@@ -326,20 +309,3 @@ def make_classic_feature_panels() -> None:
                     ax = mark_parallel(ax, color="lightgrey")
                     ax = mark_perpendicular(ax, color="lightgrey")
                 fig.savefig(out_path, bbox_inches="tight", pad_inches=0.05)
-
-
-## NOTE TO SELF: END OF LIBRARY CODE
-
-
-def main() -> None:
-
-    dataset_name = "20250818_20X"
-    position_list = [4]
-
-    for position in position_list:
-        make_imaging_panels(dataset_name, position)
-
-    make_classic_feature_panels()
-
-
-main()
