@@ -210,6 +210,11 @@ def extract_if_channel_props(
     # Perform background subtraction on the raw image
     background_subtracted = background_subtract(raw_image)
 
+    if background_subtracted.ndim != 3:
+        raise ValueError(
+            f"Expected image to be 3D (ZYX), but got shape {background_subtracted.shape}"
+        )
+
     # Compute the sum projection along the Z-axis
     sum_projection = sum_proj(background_subtracted, axis=0)
     max_projection = max_proj(background_subtracted, axis=0)
