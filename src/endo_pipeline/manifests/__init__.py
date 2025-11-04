@@ -12,6 +12,7 @@ from .dataframe_manifest_utils import (
 )
 from .image_manifest import ImageLocation, ImageManifest
 from .image_manifest_io import (
+    add_image_location_to_manifest,
     create_image_manifest,
     get_image_manifest_dir,
     load_image_manifest,
@@ -44,6 +45,7 @@ __all__ = [
     "ImageManifest",
     "ModelLocation",
     "ModelManifest",
+    "add_image_location_to_manifest",
     "create_dataframe_manifest",
     "create_image_manifest",
     "create_model_manifest",
