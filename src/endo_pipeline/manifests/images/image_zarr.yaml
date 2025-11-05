@@ -158,3 +158,5 @@ locations:
     path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251021_d2fb217d29454ba1bdb6737e535a87d1/20251021_d2fb217d29454ba1bdb6737e535a87d1_P{{position}}.ome.zarr
   20251021_20X_IF10:
     path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251021_c43592c13eb64cf1a012982343447f6c/20251021_c43592c13eb64cf1a012982343447f6c_P{{position}}.ome.zarr
+  20251022_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251022_26c97a65cd1446bca37854e754d124c8/20251022_26c97a65cd1446bca37854e754d124c8_P{{position}}.ome.zarr
