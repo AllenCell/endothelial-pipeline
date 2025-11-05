@@ -83,3 +83,39 @@ locations:
   20250522_20X_IFO:
     fmsid: 29f269d0dee34a77a28f3a03010ebc4c
     s3uri: null
+  20250929_20X_IF0:
+    fmsid: 3077c518201b49af922b46a8c3357b9a
+    s3uri: null
+  20250929_20X_IF1:
+    fmsid: c5ee6c093c934084be5ef5805ad99d2e
+    s3uri: null
+  20250929_20X_IF2:
+    fmsid: 2c57c6a2465f482cb1dd8e505f4562aa
+    s3uri: null
+  20250929_20X_IF3:
+    fmsid: 306d622688c04c799f818cab013bf8ac
+    s3uri: null
+  20250929_20X_IF4:
+    fmsid: 54b9b22d2d97407886d6f0b560a0f2d9
+    s3uri: null
+  20250929_20X_IF5:
+    fmsid: 340fbcd26d2a42a3aa2bccadb40b9669
+    s3uri: null
+  20250929_20X_IF6:
+    fmsid: 367eb9f20ffc4e37885da0b0a9e3bb6a
+    s3uri: null
+  20250929_20X_IF7:
+    fmsid: 43f4d72e6b7f43238357096141e95e25
+    s3uri: null
+  20250929_20X_IF8:
+    fmsid: 304a55fe16224d2293173becf2e444a3
+    s3uri: null
+  20250929_20X_IF9:
+    fmsid: 556b2627b7fa4f3fbf91a669d79520e6
+    s3uri: null
+  20250929_20X_IF10:
+    fmsid: 0d2244b673d14b7288f9fc6454d4a20f
+    s3uri: null
+  20250929_20X_IF11:
+    fmsid: c803001753a94820b0373f8a290a76dd
+    s3uri: null
