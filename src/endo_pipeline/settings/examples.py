@@ -71,3 +71,13 @@ MODEL_QC_EXAMPLES: list[ExampleImage] = [
     ),
 ]
 """List of example crops for model QC."""
+
+
+CDH5_SEG_FIG_EXAMPLE: ExampleImage = ExampleImage(
+    dataset_name="20250818_20X",
+    position=4,
+    timepoint=0,
+    crop_position=(500, 500),
+    description="no flow center crop for CDH5 segmentation figure",
+)
+"""Example image for CDH5 segmentation figure."""
