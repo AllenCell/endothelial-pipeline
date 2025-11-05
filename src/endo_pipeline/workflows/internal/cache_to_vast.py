@@ -9,7 +9,7 @@ TAGS = ["internal", tags.TEST_READY, tags.CPU_ONLY]
 
 def main() -> None:
     """
-    This workflow is used to keep files from expiring on VAST.
+    Ensures files do not expire on VAST by managing their cache status.
     """
     from collections import Counter
 
