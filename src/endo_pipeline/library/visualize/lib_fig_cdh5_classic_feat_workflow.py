@@ -9,11 +9,13 @@ from skimage.exposure import rescale_intensity
 from skimage.morphology import binary_dilation
 
 from endo_pipeline.configs import (
+    TimepointAnnotation,
     get_zarr_file_for_position,
     load_dataset_collection_config,
     load_dataset_config,
 )
 from endo_pipeline.io import get_output_path, load_dataframe, load_image, load_image_from_path
+from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
@@ -34,7 +36,7 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     load_image_manifest,
 )
-from endo_pipeline.settings.figures import FONT_FAMILY, FONTSIZE_SMALL
+from endo_pipeline.settings.figures import FONT_FAMILY, FONTSIZE_SMALL, PDF_FONT_TYPE
 
 IMAGE_PANEL_SIZE = (3, 3)
 PLOT_PANEL_SIZE = (1.1, 1.1)
@@ -231,7 +233,7 @@ def make_classic_feature_panels() -> None:
 
     plt.rcParams.update(
         {
-            "pdf.fonttype": 42,
+            "pdf.fonttype": PDF_FONT_TYPE,
             "font.family": FONT_FAMILY,
             "axes.labelsize": FONTSIZE_SMALL,
             "xtick.labelsize": FONTSIZE_SMALL,
@@ -244,18 +246,66 @@ def make_classic_feature_panels() -> None:
     dataset_name_list = load_dataset_collection_config("pca_reference").datasets
 
     for dataset_name in dataset_name_list:
+        # load dataset config
+        dataset_config = load_dataset_config(dataset_name)
+
         # Load the tables with cdh5 segmentation measurements
         live_seg_manifest = load_dataframe_manifest("live_merged_seg_features")
         live_seg_location = get_dataframe_location_for_dataset(live_seg_manifest, dataset_name)
         live_seg_feats_df = load_dataframe(live_seg_location)
+
+        # filter out rows based on track-based features
         live_seg_feats_df = live_seg_feats_df[live_seg_feats_df.is_included]
+
+        # filter out rows based on automatic and manual timepoint annotations
+        live_seg_feats_df["dataset"] = live_seg_feats_df["dataset_name"]
+        live_seg_feats_df["frame_number"] = live_seg_feats_df["image_index"]
+        annotations_to_filter_out = [
+            TimepointAnnotation.CELL_PILING,
+            TimepointAnnotation.AUTO_GFP_SCOPE_ERROR,
+            TimepointAnnotation.GFP_SCOPE_ERROR,
+            TimepointAnnotation.UNFED,
+        ]
+        live_seg_feats_df = filter_dataframe_by_annotations(
+            live_seg_feats_df, dataset_config, timepoint_annotations=annotations_to_filter_out
+        )
+
+        # calculate features that are sensitive to how the dataframe is filtered
         live_seg_feats_df = calculate_derived_data_dynamics_dependent(live_seg_feats_df)
 
+        # TODO: REMOVE THE BELOW TEST CODE BEFORE MAKING PR
+        # NOTE THE DOT PRODS HAVE SOME PRETTY HIGH NUMBERS... WHAT'S GOING ON?
+        weird_dot_prods = live_seg_feats_df.nuc_pos_vs_cell_veloc_dotprod.abs() > 100
+        test = live_seg_feats_df[weird_dot_prods]
+        test["centroid_veloc_mag"] = np.linalg.norm(
+            test[["centroid_dx_dt", "centroid_dy_dt"]], axis=1
+        )
+        test["nuc_cell_dist"] = np.linalg.norm(
+            test[["nuc_pos_rel_cell_X_um", "nuc_pos_rel_cell_Y_um"]], axis=1
+        )
+        import seaborn as sns
+
+        fig, ax = plt.subplots()
+        sns.histplot(test.cell_nuc_orientation_deg_rel_to_migration, binwidth=1)
+        ax.set_xlim(-181, 181)
+        # NOTE IT LOOKS LIKE THESE HIGH DOT PRODUCTS ARE FOCUSED AROUND PARALLEL
+        # AND ANTIPARALLEL ORIENTATIONS. MAYBE THE MAGNITUDES ARE ALSO HIGH?
+        fig, ax = plt.subplots()
+        sns.histplot(test.centroid_veloc_mag, binwidth=1)
+        ax.set_xlim(0)
+
+        fig, ax = plt.subplots()
+        sns.histplot(test.nuc_cell_dist, binwidth=1)
+        ax.set_xlim(0)
+        # END OF TODO.
+
+        # It's plotting time!
         feats_to_plot = [
             "alignment_deg",
             "cell_nuc_orientation_deg",
             "centroid_velocity_orientation_deg",
             "nuc_orientation_deg_rel_migration",
+            "nuc_pos_vs_cell_veloc_dotprod",
         ]
         # get the plotting arguments for the features
         # (e.g. axis limits, axis titles, bin widths, etc.)
@@ -308,4 +358,6 @@ def make_classic_feature_panels() -> None:
                 if "orientation" in feat:
                     ax = mark_parallel(ax, color="lightgrey")
                     ax = mark_perpendicular(ax, color="lightgrey")
+                if feat == "nuc_pos_vs_cell_veloc_dotprod":
+                    ax.axhline(0, color="lightgrey", linestyle="--", linewidth=1)
                 fig.savefig(out_path, bbox_inches="tight", pad_inches=0.05)

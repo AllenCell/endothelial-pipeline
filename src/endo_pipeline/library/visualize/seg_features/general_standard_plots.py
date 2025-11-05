@@ -435,6 +435,14 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "ticks": range(-180, 181, 90),
             "discrete_ticks": False,
         },
+        "nuc_pos_vs_cell_veloc_dotprod": {
+            "column_name": "nuc_pos_vs_cell_veloc_dotprod",
+            "label": "Nuclei Orientation Rel. to\nMigration Dot Product",
+            "lims": (None, None),
+            "bin_width": None,
+            "ticks": None,
+            "discrete_ticks": False,
+        },
     }
 
     return feat_args
