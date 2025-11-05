@@ -716,8 +716,6 @@ def fill_missing_timepoints(data_crop: pd.DataFrame) -> pd.DataFrame:
     data_crop_filled = data_crop.set_index(ColumnName.TIMEPOINT).reindex(full_timepoint_range)
 
     # reset index to restore timepoint column
-    data_crop_filled = data_crop_filled.reset_index().rename(
-        columns={"index": ColumnName.TIMEPOINT}
-    )
+    data_crop_filled = data_crop_filled.reset_index()
 
     return data_crop_filled
