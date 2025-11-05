@@ -38,13 +38,14 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
         # for normalization of CCF.
         # fft cannot handle NaNs, so we replace them with zeros after
         # centering/mean subtraction.
+        # Use ddof=1 for standard deviation of sample of the population.
         data_mean1 = np.nanmean(data_feat1[traj_index])
-        data_stdev1 = np.nanstd(data_feat1[traj_index])
+        data_stdev1 = np.nanstd(data_feat1[traj_index], ddof=1)
         x_t_i_ctr = data_feat1[traj_index] - data_mean1
         x_t_i_ctr = np.nan_to_num(x_t_i_ctr, nan=0.0)
 
         data_mean2 = np.nanmean(data_feat2[traj_index])
-        data_stdev2 = np.nanstd(data_feat2[traj_index])
+        data_stdev2 = np.nanstd(data_feat2[traj_index], ddof=1)
         x_t_j_ctr = data_feat2[traj_index] - data_mean2
         x_t_j_ctr = np.nan_to_num(x_t_i_ctr, nan=0.0)
 
