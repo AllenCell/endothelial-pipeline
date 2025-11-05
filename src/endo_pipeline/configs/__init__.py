@@ -76,7 +76,6 @@ __all__ = [
     "get_channel_indices_for_position",
     "get_dataset_collection_config_dir",
     "get_dataset_config_dir",
-    "get_dataset_duration",
     "get_datasets_in_collection",
     "get_duration_at_flow",
     "get_filtered_dataset_collection_name",
