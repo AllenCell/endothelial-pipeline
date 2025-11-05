@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = "==3.11.*"
 resolution-markers = [
     "sys_platform == 'darwin'",
@@ -1217,6 +1217,7 @@ dependencies = [
     { name = "bioio-ome-zarr" },
     { name = "bioio-sldy" },
     { name = "bioio-tifffile" },
+    { name = "cellpose" },
     { name = "colorcet" },
     { name = "colorizer-data" },
     { name = "cyclopts" },
@@ -1250,9 +1251,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-cellpose = [
-    { name = "cellpose" },
-]
 internal = [
     { name = "aicsfiles" },
 ]
@@ -1307,7 +1305,7 @@ requires-dist = [
     { name = "bioio-ome-zarr", specifier = ">=1.1.1" },
     { name = "bioio-sldy", specifier = ">=1.0.3" },
     { name = "bioio-tifffile", specifier = ">=1.0.1" },
-    { name = "cellpose", marker = "extra == 'cellpose'", specifier = ">=3.1.0" },
+    { name = "cellpose", specifier = ">=3.1.0" },
     { name = "colorcet", specifier = ">=3.1.0" },
     { name = "colorizer-data", git = "https://github.com/allen-cell-animated/colorizer-data.git?rev=v1.6.3" },
     { name = "cyclopts", specifier = ">=3.22.4" },
@@ -1342,7 +1340,7 @@ requires-dist = [
     { name = "tqdm", specifier = ">=4.66.5" },
     { name = "vtk", specifier = ">=9.4.1" },
 ]
-provides-extras = ["internal", "ml-workflows", "cellpose"]
+provides-extras = ["internal", "ml-workflows"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pre-commit", specifier = ">=3.7.1" }]
