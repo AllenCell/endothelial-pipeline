@@ -33,6 +33,27 @@ flow_conditions:
 include_scenes: null
 notes: Timelapse imaging of isogenic control clone AICS-177 cl.12 under low SS for
   48h, Migration maybe slightly less/slower than AICS-126, Otherwise cells look good!
-timepoint_annotations: null
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [319, 509, 547]
+    1: [0, 79, 223, 237, 304, 515, 517]
+    2: [0, 36, 78, 209, 236, 237, 330, 479, 538]
+    3: [77, 90, 237]
+    4: [0, 75, 237, 299, 326, 363, 510, 521, 538, 566]
+    5: [0, 35, 206, 292, 325]
+  auto_bf_temp_artifact:
+    0: [277, 567]
+    1: [491]
+    2: [0, 314, 516]
+    3: [0, 476, 569]
+    4: [0, 299, 566, 569]
+    5: [460, 550]
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
 position_annotations: null
 center_z_plane: null
