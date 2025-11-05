@@ -10,7 +10,6 @@ from endo_pipeline.configs import (
     PositionAnnotation,
     TimepointAnnotation,
     get_all_unannotated_timepoints,
-    get_dataset_duration,
     get_datasets_in_collection,
     get_frame_after_flow_change,
     get_subset_of_timepoint_annotations,
@@ -410,7 +409,8 @@ def get_dataframe_for_dynamics_workflows(
     df_with_crop = add_crop_index(df_filtered)
 
     # add dataset duration description column
-    df_with_crop["duration"] = get_dataset_duration(load_dataset_config(dataset_name))
+    dataset_config = load_dataset_config(dataset_name)
+    df_with_crop["duration"] = dataset_config.duration
 
     if pca is None:
         # do not project feature data onto PCA axes

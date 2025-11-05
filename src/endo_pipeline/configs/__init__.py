@@ -33,7 +33,6 @@ from .dataset_config_utils import (
     get_available_zarr_files,
     get_channel_indices_for_all_positions,
     get_channel_indices_for_position,
-    get_dataset_duration,
     get_duration_at_flow,
     get_filtered_dataset_collection_name,
     get_flow_at_frame,

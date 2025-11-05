@@ -179,12 +179,6 @@ def get_duration_at_flow(dataset: DatasetConfig, shear_stress: float) -> int:
     return duration
 
 
-def get_dataset_duration(dataset: DatasetConfig) -> int:
-    """Get the total duration of the dataset."""
-
-    return dataset.duration
-
-
 def get_subset_of_timepoint_annotations(
     annotations_to_ignore: list[TimepointAnnotation],
 ) -> dict[int, list[int]]:
