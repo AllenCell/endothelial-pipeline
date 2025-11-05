@@ -18,6 +18,7 @@ from .image_manifest_io import (
     save_image_manifest,
 )
 from .image_manifest_utils import (
+    add_image_location_to_manifest,
     get_available_zarr_locations,
     get_image_location_for_dataset,
     get_zarr_location_for_position,
@@ -44,6 +45,7 @@ __all__ = [
     "ImageManifest",
     "ModelLocation",
     "ModelManifest",
+    "add_image_location_to_manifest",
     "create_dataframe_manifest",
     "create_image_manifest",
     "create_model_manifest",
