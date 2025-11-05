@@ -72,7 +72,7 @@ def save_image_manifest(manifest: ImageManifest) -> None:
 
 def add_image_location_to_manifest(
     dataset_config: DatasetConfig,
-    manifest_name: str,
+    img_manifest: ImageManifest,
     path_prefix: str | Path,
     add_directory: bool = False,
 ) -> None:
@@ -83,16 +83,18 @@ def add_image_location_to_manifest(
     ----------
     dataset_config : DatasetConfig
         Dataset configuration object
-    manifest_name : str
-        Name of the image manifest
+    img_manifest : ImageManifest
+        Image manifest object
     add_directory : bool
         Whether to add a directory structure to the path with date and fmsid
     path_prefix : str | Path
         Prefix path to the image location
+
+    Returns
+    -------
+    img_manifest : ImageManifest
+        Updated image manifest object
     """
-
-    img_manifest = load_image_manifest(manifest_name)
-
     date = dataset_config.name[:8]
     fmsid = dataset_config.fmsid
     suffix = "P{{position}}.ome.zarr"
@@ -105,4 +107,4 @@ def add_image_location_to_manifest(
     new_path = f"{path_prefix}/{suffix}"
     img_manifest.locations[dataset_config.name] = ImageLocation(path=Path(new_path))
 
-    save_image_manifest(img_manifest)
+    return img_manifest

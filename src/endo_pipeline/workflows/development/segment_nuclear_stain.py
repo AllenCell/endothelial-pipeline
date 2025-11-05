@@ -34,7 +34,11 @@ def main(
         segment_nuclei,
         visualize_results,
     )
-    from endo_pipeline.manifests import add_image_location_to_manifest
+    from endo_pipeline.manifests import (
+        add_image_location_to_manifest,
+        load_image_manifest,
+        save_image_manifest,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -79,9 +83,11 @@ def main(
             continue
 
         # Step 5: Update image manifest
-        add_image_location_to_manifest(
-            dataset_config, "nuclear_stain_seg", output_path, add_directory=True
+        img_manifest = load_image_manifest("nuclear_stain_seg")
+        img_manifest = add_image_location_to_manifest(
+            dataset_config, img_manifest, output_path, add_directory=True
         )
+        save_image_manifest(img_manifest)
 
 
 if __name__ == "__main__":

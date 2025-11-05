@@ -38,7 +38,11 @@ from endo_pipeline.configs import (
     save_dataset_config,
     validate_dataset_config,
 )
-from endo_pipeline.manifests import add_image_location_to_manifest
+from endo_pipeline.manifests import (
+    add_image_location_to_manifest,
+    load_image_manifest,
+    save_image_manifest,
+)
 
 # %%
 dataset_name = "unique_dataset_name"
@@ -151,7 +155,11 @@ validate_dataset_config(dataset.name)
 
 # %% Update image manifest with new dataset location
 dataset_config = load_dataset_config(dataset_name)
-add_image_location_to_manifest(dataset_config, "image_zarr", dataset_config.zarr_path)
+img_manifest = load_image_manifest("image_zarr")
+img_manifest = add_image_location_to_manifest(
+    dataset_config, img_manifest, dataset_config.zarr_path
+)
+save_image_manifest(img_manifest)
 
 # %%
 print("Reminder to add dataset to relavent collections!")
