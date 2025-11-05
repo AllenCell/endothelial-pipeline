@@ -118,13 +118,13 @@ def main(
 
     # Process each dataset
     for example in MODEL_QC_EXAMPLES:
-        dataset_name = example["dataset_name"]
+        dataset_name = example.dataset_name
         logger.info(f"Processing model QC for dataset: {dataset_name}")
 
         # Extract position, timepoint, and crop position
-        position = example["position"]
-        timepoint = example["timepoint"]
-        start_x, start_y = example["crop_position"]
+        position = example.position
+        timepoint = example.timepoint
+        start_x, start_y = example.crop_position
 
         # Get output path for saving figures
         output_path = get_output_path(
