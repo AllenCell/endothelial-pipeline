@@ -231,6 +231,8 @@ def make_imaging_panels(
 
 def make_classic_feature_panels() -> None:
 
+    # Set some global plotting parameters to be consistent
+    # with the other plots in the manuscript
     plt.rcParams.update(
         {
             "pdf.fonttype": PDF_FONT_TYPE,
@@ -273,33 +275,8 @@ def make_classic_feature_panels() -> None:
         # calculate features that are sensitive to how the dataframe is filtered
         live_seg_feats_df = calculate_derived_data_dynamics_dependent(live_seg_feats_df)
 
-        # TODO: REMOVE THE BELOW TEST CODE BEFORE MAKING PR
-        # NOTE THE DOT PRODS HAVE SOME PRETTY HIGH NUMBERS... WHAT'S GOING ON?
-        weird_dot_prods = live_seg_feats_df.nuc_pos_vs_cell_veloc_dotprod.abs() > 100
-        test = live_seg_feats_df[weird_dot_prods]
-        test["centroid_veloc_mag"] = np.linalg.norm(
-            test[["centroid_dx_dt", "centroid_dy_dt"]], axis=1
-        )
-        test["nuc_cell_dist"] = np.linalg.norm(
-            test[["nuc_pos_rel_cell_X_um", "nuc_pos_rel_cell_Y_um"]], axis=1
-        )
-        import seaborn as sns
-
-        fig, ax = plt.subplots()
-        sns.histplot(test.cell_nuc_orientation_deg_rel_to_migration, binwidth=1)
-        ax.set_xlim(-181, 181)
-        # NOTE IT LOOKS LIKE THESE HIGH DOT PRODUCTS ARE FOCUSED AROUND PARALLEL
-        # AND ANTIPARALLEL ORIENTATIONS. MAYBE THE MAGNITUDES ARE ALSO HIGH?
-        fig, ax = plt.subplots()
-        sns.histplot(test.centroid_veloc_mag, binwidth=1)
-        ax.set_xlim(0)
-
-        fig, ax = plt.subplots()
-        sns.histplot(test.nuc_cell_dist, binwidth=1)
-        ax.set_xlim(0)
-        # END OF TODO.
-
         # It's plotting time!
+        # pick the features to plot
         feats_to_plot = [
             "alignment_deg",
             "cell_nuc_orientation_deg",
@@ -323,41 +300,41 @@ def make_classic_feature_panels() -> None:
             "label"
         ] = "Cell-Nucleus Angle\nRel. to Migration (°)"
 
-        colormaps = [
-            "inferno",
-            "viridis",
-            "mako",
-        ]
-        for cmap in colormaps:
-            for feat in feats_to_plot:
-                Path.mkdir(out_dir / cmap, exist_ok=True)
-                out_path = out_dir / cmap / f"{dataset_name}_{feat}.pdf"
+        # create and save the panels of each of the features
+        for feat in feats_to_plot:
+            Path.mkdir(out_dir, exist_ok=True)
+            out_path = out_dir / f"{dataset_name}_{feat}.pdf"
 
-                fig, ax = hist_2d_of_feats(
-                    live_seg_feats_df,
-                    x_column_name=feats_plot_args["time_hrs"]["column_name"],
-                    y_column_name=feats_plot_args[feat]["column_name"],
-                    x_label=feats_plot_args["time_hrs"]["label"],
-                    y_label=feats_plot_args[feat]["label"],
-                    x_lims=feats_plot_args["time_hrs"]["lims"],
-                    y_lims=feats_plot_args[feat]["lims"],
-                    set_xticks=feats_plot_args["time_hrs"]["ticks"],
-                    set_yticks=feats_plot_args[feat]["ticks"],
-                    discrete_xticks=feats_plot_args["time_hrs"]["discrete_ticks"],
-                    discrete_yticks=feats_plot_args[feat]["discrete_ticks"],
-                    minor_ticks="xy",
-                    bin_width=(
-                        feats_plot_args["time_hrs"]["bin_width"],
-                        feats_plot_args[feat]["bin_width"],
-                    ),
-                    figsize=PLOT_PANEL_SIZE,
-                    tight_layout=False,
-                    cmap=cmap,
-                )
-                ax.set_title("")
-                if "orientation" in feat:
-                    ax = mark_parallel(ax, color="lightgrey")
-                    ax = mark_perpendicular(ax, color="lightgrey")
-                if feat == "nuc_pos_vs_cell_veloc_dotprod":
-                    ax.axhline(0, color="lightgrey", linestyle="--", linewidth=1)
-                fig.savefig(out_path, bbox_inches="tight", pad_inches=0.05)
+            # create the 2D histogram panel
+            fig, ax = hist_2d_of_feats(
+                live_seg_feats_df,
+                x_column_name=feats_plot_args["time_hrs"]["column_name"],
+                y_column_name=feats_plot_args[feat]["column_name"],
+                x_label=feats_plot_args["time_hrs"]["label"],
+                y_label=feats_plot_args[feat]["label"],
+                x_lims=feats_plot_args["time_hrs"]["lims"],
+                y_lims=feats_plot_args[feat]["lims"],
+                set_xticks=feats_plot_args["time_hrs"]["ticks"],
+                set_yticks=feats_plot_args[feat]["ticks"],
+                discrete_xticks=feats_plot_args["time_hrs"]["discrete_ticks"],
+                discrete_yticks=feats_plot_args[feat]["discrete_ticks"],
+                minor_ticks="xy",
+                bin_width=(
+                    feats_plot_args["time_hrs"]["bin_width"],
+                    feats_plot_args[feat]["bin_width"],
+                ),
+                figsize=PLOT_PANEL_SIZE,
+                tight_layout=False,
+                cmap="inferno",
+            )
+
+            # perform some additional adjustments to the panel
+            ax.set_title("")
+            if "orientation" in feat:
+                ax = mark_parallel(ax, color="lightgrey")
+                ax = mark_perpendicular(ax, color="lightgrey")
+            if feat == "nuc_pos_vs_cell_veloc_dotprod":
+                ax.axhline(0, color="lightgrey", linestyle="--", linewidth=1)
+
+            # save the panel
+            fig.savefig(out_path, bbox_inches="tight", pad_inches=0.05)
