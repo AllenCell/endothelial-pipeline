@@ -705,7 +705,7 @@ def fill_missing_timepoints(data_crop: pd.DataFrame) -> pd.DataFrame:
 
     Returns
     -------
-    :
+    data_crop_filled
         DataFrame with missing timepoints filled with NaNs.
     """
 
