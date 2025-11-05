@@ -79,7 +79,9 @@ def main(
             continue
 
         # Step 5: Update image manifest
-        add_image_location_to_manifest(dataset_config, "nuclear_stain_seg", output_path)
+        add_image_location_to_manifest(
+            dataset_config, "nuclear_stain_seg", output_path, add_directory=True
+        )
 
 
 if __name__ == "__main__":
