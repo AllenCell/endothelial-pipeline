@@ -94,7 +94,6 @@ class ModelConfigOverride:
             self.cache_rate = OmegaConf.select(
                 config, "data.train_dataloaders.dataset.cache_rate", default=1.0
             )
-
         if self.replace_rate is None:
             self.replace_rate = OmegaConf.select(
                 config, "data.train_dataloaders.dataset.replace_rate", default=1.0
@@ -142,8 +141,8 @@ class ModelConfigOverride:
 
         # Calculate effective epochs.
         multiplier = (1 - self.cache_rate) / (self.cache_rate * self.replace_rate) + 1
-        effective_min_epochs = int(2500 * multiplier)
-        effective_max_epochs = int(self.max_epochs * multiplier)
+        effective_min_epochs = int(5000 * multiplier)
+        effective_max_epochs = max(int(self.max_epochs * multiplier), 4 * effective_min_epochs)
         effective_save_images_epochs = int(10 * multiplier)
 
         overrides = {

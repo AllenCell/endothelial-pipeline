@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 import numpy as np
 import torch
@@ -7,7 +8,7 @@ from bioio.writers import OmeTiffWriter
 from cyto_dl.models.im2im.diffusion_autoencoder import DiffusionAutoEncoder as _BaseDiffAE
 from cyto_dl.models.im2im.utils import detach
 from monai.utils import convert_to_tensor
-from typing import Optional
+
 logger = logging.getLogger(__name__)
 
 
@@ -67,9 +68,9 @@ class DiffusionAutoEncoder(_BaseDiffAE):
 
     def _get_seed_for_sample(self, global_sample_idx, extra=0):
         return int(global_sample_idx) + int(extra)
-    
+
     def _generate_image(self, noise, cond):
-        if cond.ndim != 3 or cond.shape[1] !=1:
+        if cond.ndim != 3 or cond.shape[1] != 1:
             raise ValueError(f"condition must be (B, 1, D), got {cond.shape}")
         self.scheduler.set_timesteps(num_inference_steps=self.hparams.n_inference_steps)
         with torch.no_grad():
@@ -193,7 +194,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         if cond.ndim == 3 and cond.shape[1] == 1:
             pass
         elif cond.ndim == 2:
-            cond = cond.unsqueeze(1)                     # (N, D) → (N, 1, D)
+            cond = cond.unsqueeze(1)  # (N, D) → (N, 1, D)
         else:
             raise ValueError(f"cond must be (N, D) or (N, 1, D), got {cond.shape}")
 
@@ -226,7 +227,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
             if average:
                 recon = recon / n_noise_samples
             else:
-                recon = torch.cat(recon, dim=-1)   # horizontal composite
+                recon = torch.cat(recon, dim=-1)  # horizontal composite
 
         recon = detach(recon)
         if isinstance(recon, np.ndarray):
@@ -240,8 +241,8 @@ class DiffusionAutoEncoder(_BaseDiffAE):
                 data=recon_np,
             )
 
-        return recon                                
-            
+        return recon
+
     def generate_from_latent_and_noised_image(
         self,
         conditioning_vector: torch.Tensor,
@@ -302,8 +303,13 @@ class DiffusionAutoEncoder(_BaseDiffAE):
                 0,
             )
 
-        return detach(reconstructed_image).cpu()
-    
+        reconstructed_image = detach(reconstructed_image)
+        if isinstance(reconstructed_image, np.ndarray):
+            reconstructed_image = torch.from_numpy(reconstructed_image)
+        reconstructed_image = reconstructed_image.cpu()
+
+        return detach(reconstructed_image)  # .cpu()
+
     # The forward method is modified to make this work with both cross-attention and AdaGN!
 
     def forward(self, x_cond: torch.Tensor, x_diff: torch.Tensor):
