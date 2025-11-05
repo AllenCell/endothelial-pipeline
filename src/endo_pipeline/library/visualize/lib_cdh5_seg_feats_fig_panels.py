@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import numpy as np
-from bioio import BioImage
 from matplotlib import pyplot as plt
 from skimage.color import label2rgb
 from skimage.color.colorlabel import DEFAULT_COLORS
@@ -59,7 +58,7 @@ def make_imaging_panels(
     # Load the validation image (which has some intermediate steps saved)
     val_manifest = load_image_manifest("cdh5_seg_validations")
     val_location = get_image_location_for_dataset(val_manifest, dataset_config, position, timeframe)
-    val_image = BioImage(val_location.path)  # type:ignore[arg-type]
+    val_image = load_image(val_location, read=False)  # type:ignore[arg-type]
     channel_names = val_image.channel_names
     val_array = val_image.get_image_dask_data(DIMENSION_ORDER).compute()
 

@@ -1,6 +1,6 @@
 from endo_pipeline.cli import tags
 
-TAGS = [tags.CPU_ONLY]
+TAGS = [tags.TEST_READY, tags.CPU_ONLY]
 
 
 def main() -> None:
