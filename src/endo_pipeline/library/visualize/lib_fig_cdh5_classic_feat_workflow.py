@@ -46,10 +46,11 @@ CROP_YX = (slice(500, -500), slice(500, -500))
 def make_imaging_panels(
     dataset_name: str,
     position: int,
+    out_dir: Path,
 ) -> None:
 
-    out_dir_full = get_output_path(__file__, "images_high_quality")
-    out_dir_thumb = get_output_path(__file__, "images_thumbnails")
+    out_dir_full = get_output_path(out_dir, "images_high_quality")
+    out_dir_thumb = get_output_path(out_dir, "images_thumbnails")
 
     dataset_config = load_dataset_config(dataset_name)
 
@@ -226,10 +227,13 @@ def make_imaging_panels(
                     image_name=f"{dataset_name}_P{position}_T{timeframe}_{panel_name}_v2",
                     output_path=out_dir_thumb,
                     figsize=IMAGE_PANEL_SIZE,
+                    show_plot=False,
                 )
 
 
-def make_classic_feature_panels() -> None:
+def make_classic_feature_panels(out_dir: Path) -> None:
+
+    Path.mkdir(out_dir, exist_ok=True, parents=True)
 
     # Set some global plotting parameters to be consistent
     # with the other plots in the manuscript
@@ -242,8 +246,6 @@ def make_classic_feature_panels() -> None:
             "ytick.labelsize": FONTSIZE_SMALL,
         }
     )
-
-    out_dir = get_output_path(__file__, "classic_feature_panels")
 
     dataset_name_list = load_dataset_collection_config("pca_reference").datasets
 
@@ -266,7 +268,6 @@ def make_classic_feature_panels() -> None:
             TimepointAnnotation.CELL_PILING,
             TimepointAnnotation.AUTO_GFP_SCOPE_ERROR,
             TimepointAnnotation.GFP_SCOPE_ERROR,
-            TimepointAnnotation.UNFED,
         ]
         live_seg_feats_df = filter_dataframe_by_annotations(
             live_seg_feats_df, dataset_config, timepoint_annotations=annotations_to_filter_out
@@ -299,10 +300,12 @@ def make_classic_feature_panels() -> None:
         feats_plot_args["nuc_orientation_deg_rel_migration"][
             "label"
         ] = "Cell-Nucleus Angle\nRel. to Migration (°)"
+        feats_plot_args["nuc_pos_vs_cell_veloc_dotprod"][
+            "label"
+        ] = "Cell-Nucleus vs.\nMigration Dot Prod."
 
         # create and save the panels of each of the features
         for feat in feats_to_plot:
-            Path.mkdir(out_dir, exist_ok=True)
             out_path = out_dir / f"{dataset_name}_{feat}.pdf"
 
             # create the 2D histogram panel
