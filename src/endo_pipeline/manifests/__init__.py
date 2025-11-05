@@ -6,13 +6,13 @@ from .dataframe_manifest_io import (
     save_dataframe_manifest,
 )
 from .dataframe_manifest_utils import (
+    add_image_location_to_manifest,
     get_dataframe_location_for_dataset,
     get_dataframe_manifest_with_parameters,
     list_datasets_with_dataframes,
 )
 from .image_manifest import ImageLocation, ImageManifest
 from .image_manifest_io import (
-    add_image_location_to_manifest,
     create_image_manifest,
     get_image_manifest_dir,
     load_image_manifest,

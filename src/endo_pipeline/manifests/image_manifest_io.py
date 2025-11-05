@@ -6,8 +6,7 @@ from pathlib import Path
 import yaml
 from mashumaro.codecs.yaml import YAMLDecoder, YAMLEncoder
 
-from endo_pipeline.configs import DatasetConfig
-from endo_pipeline.manifests import ImageLocation, ImageManifest
+from endo_pipeline.manifests import ImageManifest
 
 logger = logging.getLogger(__name__)
 
@@ -68,43 +67,3 @@ def save_image_manifest(manifest: ImageManifest) -> None:
     except:
         logger.error("Image manifest [ %s ] could not be saved", manifest.name)
         raise
-
-
-def add_image_location_to_manifest(
-    dataset_config: DatasetConfig,
-    img_manifest: ImageManifest,
-    path_prefix: str | Path,
-    add_directory: bool = False,
-) -> None:
-    """
-    Add or update image location for given dataset in the manifest
-
-    Parameters
-    ----------
-    dataset_config : DatasetConfig
-        Dataset configuration object
-    img_manifest : ImageManifest
-        Image manifest object
-    add_directory : bool
-        Whether to add a directory structure to the path with date and fmsid
-    path_prefix : str | Path
-        Prefix path to the image location
-
-    Returns
-    -------
-    img_manifest : ImageManifest
-        Updated image manifest object
-    """
-    date = dataset_config.name[:8]
-    fmsid = dataset_config.fmsid
-    suffix = "P{{position}}.ome.zarr"
-
-    if add_directory:
-        suffix = f"/{date}_{fmsid}/{date}_{fmsid}_{suffix}"
-    else:
-        suffix = f"{date}_{fmsid}_{suffix}"
-
-    new_path = f"{path_prefix}/{suffix}"
-    img_manifest.locations[dataset_config.name] = ImageLocation(path=Path(new_path))
-
-    return img_manifest
