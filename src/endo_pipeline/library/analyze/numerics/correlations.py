@@ -108,21 +108,21 @@ def fit_exp_decay_and_get_relaxation_timescale(
             "Invalid exp_decay_func provided to _fit_exp_decay_and_get_relaxation_timescale."
         )
 
-    # get non-nan indices
-    nonnan_indices = ~(np.isnan(lags) | np.isnan(acf))
+    # get indices where both lags and acf are finite, as required for input to curve_fit function
+    valid_indices = np.isfinite(acf) & np.isfinite(lags)
 
     if exp_decay_func == "exponential_decay":
         p0 = [0.5, 0.5, 0.5]  # initial guess for a, b, and c
         exp_fit, _ = curve_fit(
-            exponential_decay, lags[nonnan_indices], acf[nonnan_indices], maxfev=maxfev, p0=p0
+            exponential_decay, lags[valid_indices], acf[valid_indices], maxfev=maxfev, p0=p0
         )
         relaxation_time = 1 / exp_fit[1]
     else:
         p0 = [0.5, 0.5, 0.5, 0.5, 0.5]  # initial guess for a1, b1, a2, b2, and c
         exp_fit, _ = curve_fit(
             double_exponential_decay,
-            lags[nonnan_indices],
-            acf[nonnan_indices],
+            lags[valid_indices],
+            acf[valid_indices],
             maxfev=maxfev,
             p0=p0,
         )
