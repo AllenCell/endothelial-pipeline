@@ -34,7 +34,11 @@ def main(
         segment_nuclei,
         visualize_results,
     )
-    from endo_pipeline.manifests import ImageLocation, load_image_manifest, save_image_manifest
+    from endo_pipeline.manifests import (
+        add_image_location_to_manifest,
+        load_image_manifest,
+        save_image_manifest,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -80,13 +84,9 @@ def main(
 
         # Step 5: Update image manifest
         img_manifest = load_image_manifest("nuclear_stain_seg")
-
-        date = dataset_config.name[:8]
-        fmsid = dataset_config.fmsid
-        suffix = "P{{position}}.ome.zarr"
-        new_path = f"{output_path}/{date}_{fmsid}/{date}_{fmsid}_{suffix}"
-        img_manifest.locations[dataset_config.name] = ImageLocation(path=Path(new_path))
-
+        img_manifest = add_image_location_to_manifest(
+            dataset_config, img_manifest, output_path, add_directory=True
+        )
         save_image_manifest(img_manifest)
 
 
