@@ -547,6 +547,9 @@ def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
     """
     Convert DataFrame of features corresponding to one dataset to array
     of shape num_crops x num_timepoints x num_features.
+    This function fills missing timepoints (for example filtered as outliers)
+    with NaNs such that there is a row for every timepoint within the dataset
+    duration for each crop.
 
     Inputs:
     - df: pd.DataFrame, DataFrame of feature data for one dataset
@@ -674,7 +677,7 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
         data_crop = data[data[ColumnName.CROP_INDEX] == crop].sort_values(by=ColumnName.TIMEPOINT)
 
         # add column giving difference in timepoint between consecutive dataframe rows
-        dt = np.diff(data_crop[ColumnName.TIMEPOINT].values, axis=0)
+        dt = data_crop[ColumnName.TIMEPOINT].diff()
         data_crop["timepoint_diff"] = np.concatenate((dt, [0]))
 
         # filter to only single-timepoint differences (i.e., dt = 1)
@@ -697,6 +700,7 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
 def fill_missing_timepoints(data_crop: pd.DataFrame) -> pd.DataFrame:
     """
     Fill missing timepoints in dataframe for a single crop using NaN padding.
+    Note: this function resets the index of the input crop-based dataframe.
 
     Parameters
     ----------
