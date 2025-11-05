@@ -7,7 +7,7 @@ from bioio.writers import OmeTiffWriter
 from cyto_dl.models.im2im.diffusion_autoencoder import DiffusionAutoEncoder as _BaseDiffAE
 from cyto_dl.models.im2im.utils import detach
 from monai.utils import convert_to_tensor
-
+from typing import Optional
 logger = logging.getLogger(__name__)
 
 
@@ -67,6 +67,26 @@ class DiffusionAutoEncoder(_BaseDiffAE):
 
     def _get_seed_for_sample(self, global_sample_idx, extra=0):
         return int(global_sample_idx) + int(extra)
+    
+    def _generate_image(self, noise, cond):
+        if cond.ndim != 3 or cond.shape[1] !=1:
+            raise ValueError(f"condition must be (B, 1, D), got {cond.shape}")
+        self.scheduler.set_timesteps(num_inference_steps=self.hparams.n_inference_steps)
+        with torch.no_grad():
+            sample, intermediates = self.inferer.sample(
+                input_noise=noise,
+                diffusion_model=self.autoencoder,
+                scheduler=self.scheduler,
+                save_intermediates=True,
+                conditioning=cond,
+                verbose=False,
+                intermediate_steps=1,
+            )
+        # during training, final image is all-nan, try to return last non-nan image
+        if torch.any(torch.isnan(sample)):
+            while torch.any(torch.isnan(sample)) and len(intermediates) > 0:
+                sample = intermediates.pop(-1)
+        return sample
 
     def _get_samplewise_noise(self, ref_tensor, global_sample_idx):
         shape, device, dtype = ref_tensor.shape, ref_tensor.device, ref_tensor.dtype
@@ -102,7 +122,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
             diff_img = self.fixed_samples["diff"]
 
         with torch.no_grad():
-            cond = self.semantic_encoder(cond_img).unsqueeze(2)
+            cond = self.semantic_encoder(cond_img).unsqueeze(1)
 
         # Use fixed seed for consistent noise generation across epochs
         if self.fixed_sample_seed is not None:
@@ -150,6 +170,78 @@ class DiffusionAutoEncoder(_BaseDiffAE):
             )
         return {"loss": diffusion_loss}, latent, None
 
+    def generate_from_latent(
+        self,
+        cond: torch.Tensor,
+        save_name: str = "generated_image",
+        n_noise_samples: Optional[int] = None,
+        average: bool = True,
+        save: bool = True,
+        batch_size: int = 3,
+    ) -> torch.Tensor:
+        """
+        Generate images from latent features.
+
+        Returns
+        -------
+        torch.Tensor
+            Detached tensor on CPU (shape: [N, C, H, W]).
+        """
+        if batch_size <= 0:
+            raise ValueError("Batch size must be at least 1")
+
+        if cond.ndim == 3 and cond.shape[1] == 1:
+            pass
+        elif cond.ndim == 2:
+            cond = cond.unsqueeze(1)                     # (N, D) → (N, 1, D)
+        else:
+            raise ValueError(f"cond must be (N, D) or (N, 1, D), got {cond.shape}")
+
+        batch_indices = [
+            (i, min(i + batch_size, cond.shape[0])) for i in range(0, cond.shape[0], batch_size)
+        ]
+        n_noise_samples = n_noise_samples or self.hparams.n_noise_samples
+
+        with torch.no_grad():
+            recon = None
+            for _ in tqdm.tqdm(range(n_noise_samples), desc="Sampling noise"):
+                # one noise map per conditioning vector
+                noise = torch.stack(
+                    [torch.randn(self.hparams.image_shape, device=self.device)] * cond.shape[0]
+                )
+
+                # generate in chunks
+                sample = torch.cat(
+                    [
+                        self._generate_image(noise[start:stop], cond[start:stop]).squeeze(1)
+                        for start, stop in batch_indices
+                    ],
+                    dim=0,
+                )
+
+                # keep list for non-averaging case
+                sample = sample if average else [sample]
+                recon = sample if recon is None else (recon + sample)
+
+            if average:
+                recon = recon / n_noise_samples
+            else:
+                recon = torch.cat(recon, dim=-1)   # horizontal composite
+
+        recon = detach(recon)
+        if isinstance(recon, np.ndarray):
+            recon = torch.from_numpy(recon)
+        recon = recon.cpu()
+
+        if save:
+            recon_np = recon.numpy().astype(float)
+            OmeTiffWriter.save(
+                uri=f"{self.hparams.save_dir}/{save_name}.tiff",
+                data=recon_np,
+            )
+
+        return recon                                
+            
     def generate_from_latent_and_noised_image(
         self,
         conditioning_vector: torch.Tensor,
@@ -203,11 +295,44 @@ class DiffusionAutoEncoder(_BaseDiffAE):
             reconstructed_image = torch.cat(
                 [
                     self._generate_image(
-                        noise_stacked[start:stop], conditioning_vector[start:stop].unsqueeze(2)
+                        noise_stacked[start:stop], conditioning_vector[start:stop].unsqueeze(1)
                     ).squeeze(1)
                     for start, stop in tqdm.tqdm(batch_indices, desc="Generating batch")
                 ],
                 0,
             )
-        reconstructed_image_numpy = detach(reconstructed_image).astype(float)
-        return reconstructed_image_numpy
+
+        return detach(reconstructed_image).cpu()
+    
+    # The forward method is modified to make this work with both cross-attention and AdaGN!
+
+    def forward(self, x_cond: torch.Tensor, x_diff: torch.Tensor):
+        B = x_diff.shape[0]
+        device = x_diff.device
+
+        noise = torch.randn_like(x_diff, device=device)
+        timesteps = torch.randint(
+            0,
+            self.inferer.scheduler.num_train_timesteps,
+            (B,),
+            device=device,
+            dtype=torch.long,
+        )
+        loss_weight = self._get_loss_weight(timesteps)
+
+        # Encode condition: (B, lat_dim)
+        latent = self.semantic_encoder(x_cond)
+
+        # → (B, 1, lat_dim) for cross-attention
+        # AdaGN will internally .squeeze(1)
+        condition = latent.unsqueeze(1)
+
+        noise_pred = self.inferer(
+            inputs=x_diff,
+            diffusion_model=self.autoencoder,
+            noise=noise,
+            timesteps=timesteps,
+            condition=condition,
+        )
+
+        return noise, noise_pred, latent, loss_weight
