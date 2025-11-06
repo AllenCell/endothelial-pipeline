@@ -22,6 +22,7 @@ def convert_dataset(
     output_dataset_name: str,  # date
     output_path: str,
     channel_names: list[str],
+    demo_mode: bool = False,
 ) -> None:
     """
     Convert a raw dataset into a Zarr format with a specific channel order,
@@ -86,3 +87,7 @@ def convert_dataset(
                 interval_min,
             )
             count += 1
+
+        if demo_mode:
+            print("Demo mode is ON. Processing only the first scene.")
+            break
