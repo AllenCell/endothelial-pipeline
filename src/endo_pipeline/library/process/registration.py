@@ -20,7 +20,6 @@ from skimage.measure import block_reduce, ransac
 from tqdm import tqdm, trange
 
 from endo_pipeline.configs import (
-    get_available_zarr_files,
     get_datasets_in_collection,
     get_position_integer_from_zarr_file_path,
     get_unannotated_positions,
@@ -29,6 +28,7 @@ from endo_pipeline.configs import (
 from endo_pipeline.io import load_image_from_path
 from endo_pipeline.library.model import get_z_slice_bounds_per_position
 from endo_pipeline.library.process.cdh5_preprocessing import preprocess
+from endo_pipeline.manifests import get_available_zarr_locations
 from endo_pipeline.settings.diffae_feature_dataframes import CytoDLLoadDataKeys
 
 FLUOR_CHANNEL = 0
@@ -610,8 +610,20 @@ def align_all_positions(
     # get list of zarr files in each dataset
     moving_dataset_config = load_dataset_config(moving_dataset_name)
     target_dataset_config = load_dataset_config(target_dataset_name)
-    moving_zarr_files = sorted(get_available_zarr_files(moving_dataset_config))
-    target_zarr_files = sorted(get_available_zarr_files(target_dataset_config))
+    moving_zarr_files = sorted(
+        [
+            loc.path
+            for loc in get_available_zarr_locations(moving_dataset_config)
+            if loc.path is not None
+        ]
+    )
+    target_zarr_files = sorted(
+        [
+            loc.path
+            for loc in get_available_zarr_locations(target_dataset_config)
+            if loc.path is not None
+        ]
+    )
 
     # get image loading args for moving and target datasets
     moving_z_slice = get_z_slice_bounds_per_position(moving_dataset_config, z_slice_offsets)
