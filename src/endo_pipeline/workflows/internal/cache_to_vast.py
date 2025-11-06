@@ -31,18 +31,18 @@ def main() -> None:
 
     dataset_configs = load_all_dataset_configs()
     for dataset_config in dataset_configs:
-        fmsid = dataset_config.fmsid
-        fmsid_list.append(fmsid)
+        datast_fmsid = dataset_config.fmsid
+        fmsid_list.append(datast_fmsid)
 
     df_manifest_names = get_available_dataframe_manifests()
     for df_manifest_name in df_manifest_names:
         df_manifest = load_dataframe_manifest(df_manifest_name)
         datasets = list_datasets_with_dataframes(df_manifest)
         for dataset_name in datasets:
-            fmsid = df_manifest.locations[dataset_name].fmsid
-            if fmsid is None:
+            df_fmsid = df_manifest.locations[dataset_name].fmsid
+            if df_fmsid is None:
                 continue
-            fmsid_list.append(fmsid)
+            fmsid_list.append(df_fmsid)
 
     # Cache files to VAST
     cache_file_statuses = fms.cache_files(fmsid_list)
