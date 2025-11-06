@@ -13,13 +13,8 @@ def main() -> None:
     """
     from collections import Counter
 
-    try:
-        from aicsfiles import fms
-    except ModuleNotFoundError:
-        logger.error("Required dependency [ aicsfiles ] not found")
-        raise
-
     from endo_pipeline.configs import load_all_dataset_configs
+    from endo_pipeline.io.fms import FMS
     from endo_pipeline.manifests import (
         get_available_dataframe_manifests,
         list_datasets_with_dataframes,
@@ -45,7 +40,7 @@ def main() -> None:
             fmsid_list.append(df_fmsid)
 
     # Cache files to VAST
-    cache_file_statuses = fms.cache_files(fmsid_list)
+    cache_file_statuses = FMS.cache_files(fmsid_list)
 
     # Log summary
     logger.info("'%s' FMSIDs queued.", len(fmsid_list))
