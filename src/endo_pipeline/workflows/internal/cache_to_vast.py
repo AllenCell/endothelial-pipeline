@@ -31,8 +31,8 @@ def main() -> None:
 
     dataset_configs = load_all_dataset_configs()
     for dataset_config in dataset_configs:
-        datast_fmsid = dataset_config.fmsid
-        fmsid_list.append(datast_fmsid)
+        dataset_fmsid = dataset_config.fmsid
+        fmsid_list.append(dataset_fmsid)
 
     df_manifest_names = get_available_dataframe_manifests()
     for df_manifest_name in df_manifest_names:
