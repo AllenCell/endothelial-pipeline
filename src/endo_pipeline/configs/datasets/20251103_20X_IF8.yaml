@@ -1,15 +1,15 @@
-name: 20251021_20X_IF9
-original_path: //allen/programs/allencell/data/proj0/7d1/5a8/e53/737/db6/a1b/54b/294/17d/fb2/d2/20251021_GE00009362_9_SLDY/20251021_GE00009362_9_SLDY.sldy
-zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251021_d2fb217d29454ba1bdb6737e535a87d1
+name: 20251103_20X_IF8
+original_path: //allen/programs/allencell/data/proj0/68d/5bd/e67/bc8/349/1a9/a48/af0/f80/f9f/ba/20251103_GE00009361_8_SLDY/20251103_GE00009361_8_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251103_baf9ff80af0a481a9349bc8e675bd68d
 zarr_positions: [0, 1, 2, 3, 4, 5]
-fmsid: d2fb217d29454ba1bdb6737e535a87d1
-barcode: GE00009362
+fmsid: baf9ff80af0a481a9349bc8e675bd68d
+barcode: GE00009361
 cell_lines: [AICS-126]
 live_or_fixed_sample: live
 is_timelapse: false
 microscope: 3i
 objective: 20X
-shear_stress_regime: 'no'
+shear_stress_regime: max_to_min
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
@@ -28,10 +28,13 @@ zarr_channel_indices:
   channel_640: 4
 flow_conditions:
 - start: -577
+  stop: -289
+  shear_stress: 21.71
+- start: -288
   stop: 0
-  shear_stress: 0.0
+  shear_stress: 6.03
 include_scenes: null
-notes: Fix & use cells as a no primary control after 48h no SS
+notes: Fix & stain cells for SMAD1 and SOX17 after 24h High SS + 24h Low SS
 timepoint_annotations:
   auto_bf_scope_error:
     0: []
@@ -56,9 +59,9 @@ timepoint_annotations:
     5: []
 position_annotations: null
 center_z_plane:
-  0: 11
-  1: 10
-  2: 9
-  3: 9
+  0: 10
+  1: 9
+  2: 7
+  3: 7
   4: 9
   5: 8

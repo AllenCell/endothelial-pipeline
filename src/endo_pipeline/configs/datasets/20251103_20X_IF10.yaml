@@ -1,9 +1,9 @@
-name: 20251021_20X_IF7
-original_path: //allen/programs/allencell/data/proj0/4eb/f91/ec8/4cc/81e/d3a/a4a/979/e62/666/a0/20251021_GE00009360_7_SLDY/20251021_GE00009360_7_SLDY.sldy
-zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251021_a0666e62979a4ad3a81e4ccec8f914eb
+name: 20251103_20X_IF10
+original_path: //allen/programs/allencell/data/proj0/0b2/931/910/7e1/3e6/8aa/64e/8de/358/7b5/d3/20251103_GE00009363_10_SLDY/20251103_GE00009363_10_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251103_d37b53588de64e8aa3e67e19109310b2
 zarr_positions: [0, 1, 2, 3, 4, 5]
-fmsid: a0666e62979a4ad3a81e4ccec8f914eb
-barcode: GE00009360
+fmsid: d37b53588de64e8aa3e67e19109310b2
+barcode: GE00009363
 cell_lines: [AICS-126]
 live_or_fixed_sample: live
 is_timelapse: false
@@ -27,21 +27,21 @@ zarr_channel_indices:
   channel_561: 3
   channel_640: 4
 flow_conditions:
-- start: -432
+- start: -577
   stop: 0
   shear_stress: 11.8
 include_scenes: null
-notes: Fix & stain cells for SMAD1 and SOX17 after 36h Intermediate SS (goal 12 dyn/cm2)
+notes: Fix & stain cells for SMAD1 and SOX17 after 48h Intermediate SS (goal 12 dyn/cm2)
 timepoint_annotations:
   auto_bf_scope_error:
-    0: []
+    0: [0]
     1: [0]
     2: []
     3: []
     4: []
     5: []
   auto_bf_temp_artifact:
-    0: []
+    0: [0]
     1: []
     2: []
     3: []
@@ -56,9 +56,9 @@ timepoint_annotations:
     5: []
 position_annotations: null
 center_z_plane:
-  0: 12
-  1: 11
-  2: 9
-  3: 10
+  0: 7
+  1: 10
+  2: 8
+  3: 9
   4: 10
-  5: 8
+  5: 10
