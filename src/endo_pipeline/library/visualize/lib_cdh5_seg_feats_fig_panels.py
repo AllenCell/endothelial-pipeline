@@ -9,11 +9,10 @@ from skimage.morphology import binary_dilation
 
 from endo_pipeline.configs import (
     TimepointAnnotation,
-    get_zarr_file_for_position,
     load_dataset_collection_config,
     load_dataset_config,
 )
-from endo_pipeline.io import get_output_path, load_dataframe, load_image, load_image_from_path
+from endo_pipeline.io import get_output_path, load_dataframe, load_image
 from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
@@ -32,6 +31,7 @@ from endo_pipeline.library.visualize.seg_features.general_standard_plots import 
 from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
     get_image_location_for_dataset,
+    get_zarr_location_for_position,
     load_dataframe_manifest,
     load_image_manifest,
 )
@@ -103,10 +103,8 @@ def make_imaging_panels(
         )
 
     bf_center_Z = dataset_config.center_z_plane[position]  # type:ignore[index]
-    zarr_file = get_zarr_file_for_position(dataset_config, position)
-    raw_bf = load_image_from_path(
-        zarr_file, channels=["BF"], timepoints=timeframe, level=0
-    ).compute()
+    zarr_loc = get_zarr_location_for_position(dataset_config, position)
+    raw_bf = load_image(zarr_loc, channels=["BF"], timepoints=timeframe, level=0, compute=True)
 
     # Get the focal plane of the brightfield image
     bf_center = np.take(raw_bf, indices=[bf_center_Z], axis=DIMENSION_ORDER.index("Z"))
