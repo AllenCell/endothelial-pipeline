@@ -40,14 +40,18 @@ def generate_results(
     verbose: bool = True,
 ) -> None:
     """Produce cdh5 segmentations for a given dataset, position, and timepoint."""
-    from bioio import BioImage
+
     from skimage.segmentation import find_boundaries
 
-    from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-    from endo_pipeline.io import load_image, load_image_from_path
+    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.io import load_image
     from endo_pipeline.library.process import cdh5_preprocessing as preproc
     from endo_pipeline.library.process.general_image_preprocessing import save_image_output
-    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+    from endo_pipeline.manifests import (
+        get_image_location_for_dataset,
+        get_zarr_location_for_position,
+        load_image_manifest,
+    )
     from endo_pipeline.settings import DIMENSION_ORDER
 
     print(f"Working on {dataset_name} -- T={timepoint}...") if verbose else None
@@ -57,10 +61,10 @@ def generate_results(
 
     print(f"T={timepoint} -- loading dataset from zarr") if verbose else None
     dataset_config = load_dataset_config(dataset_name)
-    zarr_file = get_zarr_file_for_position(dataset_config, position)
-    img = BioImage(zarr_file)
-    raw_dask_arr = load_image_from_path(
-        path=zarr_file, channels=["EGFP"], timepoints=timepoint, level=img_bin_level
+    zarr_loc = get_zarr_location_for_position(dataset_config, position)
+    img = load_image(zarr_loc, read=False)
+    raw_dask_arr = load_image(
+        zarr_loc, channels=["EGFP"], timepoints=timepoint, level=img_bin_level
     )
 
     raw_arr_mip = (

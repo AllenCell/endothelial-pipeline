@@ -9,8 +9,9 @@ from bioio import BioImage
 from bioio.writers import OmeTiffWriter
 from tqdm import tqdm
 
-from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path
+from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
@@ -61,7 +62,7 @@ def build_analysis_queue(
 
         # get the filepaths for each position in the timelapse
         for position in dataset_config.zarr_positions:
-            zarr_file = get_zarr_file_for_position(dataset_config, position)
+            zarr_loc = get_zarr_location_for_position(dataset_config, position)
 
             # build a dictionary with the analysis arguments for each timeframe to be analyzed
             for timepoint in t_range:
@@ -72,7 +73,7 @@ def build_analysis_queue(
                     "image_bin_level": img_bin_level,
                     "position": position,
                     "T": timepoint,
-                    "input_path": zarr_file.as_posix(),
+                    "input_path": zarr_loc.path.as_posix(),
                     "output_dir": out_dir,
                     "save_output": save_output,
                     "overwrite": overwrite,

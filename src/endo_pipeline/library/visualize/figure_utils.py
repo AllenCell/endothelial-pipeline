@@ -89,6 +89,7 @@ def plot_image_thumbnail(
     ] = "lower left",
     bar_thickness: int = 10,
     bar_padding: int = 20,
+    show_plot: bool = True,
 ) -> None:
     """
     Save a thumbnail image to a specified file path.
@@ -139,7 +140,9 @@ def plot_image_thumbnail(
         )
         image_name += f"_scalebar{scalebar_size_um}um"
 
-    plt.show()
+    if show_plot:
+        plt.show()
+
     save_plot_to_path(
         figure, output_path, image_name, dpi=dpi, file_format=file_format, pad_inches=0
     )
