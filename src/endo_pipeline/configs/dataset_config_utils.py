@@ -77,6 +77,7 @@ def get_available_channels_for_position(dataset: DatasetConfig, position: int) -
     from endo_pipeline.manifests import get_zarr_location_for_position
 
     zarr_file = get_zarr_location_for_position(dataset, position).path
+    assert zarr_file is not None
     return BioImage(zarr_file).channel_names
 
 
