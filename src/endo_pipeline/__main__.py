@@ -50,6 +50,7 @@ PRODUCTION_WORKFLOWS = Group("Production Workflows", sort_key=1)
 DEVELOPMENT_WORKFLOWS = Group("Development Workflows", sort_key=2)
 TESTING_WORKFLOWS = Group("Test Many Workflows", sort_key=3)
 ARCHIVED_WORKFLOWS = Group("Archived Workflows", sort_key=4)
+INTERNAL_WORKFLOWS = Group("Internal Workflows", sort_key=5)
 
 WORKFLOW_OPTIONS = WorkflowOptions()
 PIPELINE_OPTIONS = PipelineOptions()
@@ -67,6 +68,7 @@ def build_pipeline_app():
     build_cli_group(DEVELOPMENT_WORKFLOWS, "development", True)
     build_cli_group(TESTING_WORKFLOWS, "testing", True)
     build_cli_group(ARCHIVED_WORKFLOWS, "archive", False)
+    build_cli_group(INTERNAL_WORKFLOWS, "internal", True)
 
     pipeline_app.meta.default(pipeline_entrypoint)
 
