@@ -48,7 +48,7 @@ def main() -> None:
     cache_file_statuses = fms.cache_files(fmsid_list)
 
     # Log summary
-    logger.info("'%s' datasets queued.", len(fmsid_list))
+    logger.info("'%s' FMSIDs queued.", len(fmsid_list))
 
     status_values = []
     for fmsid, status in cache_file_statuses["cacheFileStatuses"].items():
