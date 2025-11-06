@@ -38,10 +38,8 @@ def convert_dataset(
         The base directory where the converted Zarr files will be saved.
     channel_names : list[str], optional
         A list of channel names to include in the output.
-
-    Returns
-    -------
-    None
+    demo_mode: bool
+        If True, process only the first scene for testing purposes
     """
 
     img = BioImage(get_original_path(dataset))
