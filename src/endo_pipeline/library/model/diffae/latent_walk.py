@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from warnings import warn
 
 import cv2
@@ -27,7 +28,7 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
         super().__init__(*args, **kwargs)
         self.val_feats: list[np.ndarray] = []
 
-    def _write_pc_vals(self, walk_img, ranges):
+    def _write_pc_vals(self, walk_img: np.ndarray, ranges: Sequence[np.ndarray]) -> np.ndarray:
         """Write PC index and value on image. Expects and returns NumPy."""
         idx = 0
         for i, range_ in enumerate(ranges):
@@ -72,7 +73,7 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
             pca_data = self.pca.fit_transform(feats)
             print(f"Explained variance ratio: {self.pca['pca'].explained_variance_ratio_}")
 
-            walk = []
+            walk_list: list[np.ndarray] = []
             ranges = []
             for pc in range(self.num_pcs):
                 std = pca_data[:, pc].std()
@@ -86,13 +87,13 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
                 for i in range_:
                     array = np.zeros(self.num_pcs)
                     array[pc] = i * std
-                    walk.append(array)
+                    walk_list.append(array)
                 ranges.append(range_)
 
-            walk = np.stack(walk)
-            walk = self.pca.inverse_transform(walk)
+            walk_array = np.stack(walk_list)
+            walk_pca = self.pca.inverse_transform(walk_array)
             model = self.get_core_model(trainer.model)
-            walk = torch.from_numpy(walk).float().to(model.device)
+            walk = torch.from_numpy(walk_pca).float().to(model.device)
 
             walk_img = model.generate_from_latent(
                 walk,

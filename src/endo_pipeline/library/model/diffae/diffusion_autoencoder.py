@@ -204,9 +204,9 @@ class DiffusionAutoEncoder(_BaseDiffAE):
 
         with torch.no_grad():
             if average:
-                recon = None
+                recon: torch.Tensor | None = None
             else:
-                recon = []
+                recon_list: list[torch.Tensor] = []
 
             for _ in tqdm.tqdm(range(n_noise_samples), desc="Sampling noise"):
                 noise = torch.stack(
@@ -223,25 +223,25 @@ class DiffusionAutoEncoder(_BaseDiffAE):
                 if average:
                     recon = sample if recon is None else (recon + sample)
                 else:
-                    recon.append(sample)
+                    recon_list.append(sample)
 
             if average:
                 assert recon is not None
-                recon = recon / n_noise_samples
+                recon_tensor = recon / n_noise_samples
             else:
-                recon = torch.cat(recon, dim=-1)
+                recon_tensor = torch.cat(recon_list, dim=-1)
 
-        recon = detach(recon)
-        if isinstance(recon, np.ndarray):
-            recon = torch.from_numpy(recon)
-        recon = recon.cpu()
+        recon_tensor = detach(recon_tensor)
+        if isinstance(recon_tensor, np.ndarray):
+            recon_tensor = torch.from_numpy(recon_tensor)
+        recon_tensor = recon_tensor.cpu()
         if save:
-            recon_np = recon.numpy().astype(float)
+            recon_np = recon_tensor.numpy().astype(float)
             OmeTiffWriter.save(
                 uri=f"{self.hparams.save_dir}/{save_name}.tiff",
                 data=recon_np,
             )
-        return recon
+        return recon_tensor
 
     def generate_from_latent_and_noised_image(
         self,
