@@ -23,11 +23,6 @@ def main(
         List of channel names to include in the Zarr files.
         ie ["EGFP", "BF", "NucViolet", "SOX17", "SMAD1"] for SMAD1 IF data.
         Zarrs are saved in this default channel order: 488, BF, 405, 561, 640.
-
-    Example:
-    endopipe convert-to-zarr -v --datasets 20251103_20X_IF1 20251103_20X_IF2 20251103_20X_IF3 \
-        --output-path //allen/aics/endothelial/morphological_features/image_data/converted_zarrs \
-            --channel-names EGFP --channel-names BF --channel-names NucViolet --channel-names SOX17 --channel-names SMAD1
     """
     import logging
 
