@@ -183,7 +183,6 @@ def main(
     n_proc: int = 1,
     save_output: bool = True,
     overwrite: bool = True,
-    is_test: bool = False,
     verbose: bool = False,
 ) -> None:
     """Run the cdh5 segmentation workflow on a dataset, list of datasets, or dataset collection."""
@@ -203,7 +202,7 @@ def main(
         out_dir=out_dir,
         overwrite=overwrite,
         verbose=verbose,
-        is_test=is_test,
+        is_test=DEMO_MODE,
         image_validation_frequency=48,
     )
 
@@ -235,6 +234,7 @@ def main(
 
 
 if __name__ == "__main__":
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
     # ipython_cli_flexecute runs a function via either

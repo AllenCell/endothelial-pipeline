@@ -49,6 +49,8 @@ def build_analysis_queue(
         # load the dataset config
         dataset_config = load_dataset_config(dataset_name)
 
+        position_list = dataset_config.zarr_positions
+
         # get the timeframes of the timelapse to be evaluated
         if t_final is None:
             t_final = dataset_config.duration
@@ -60,8 +62,14 @@ def build_analysis_queue(
         else:
             validation_t_range = range(0)  # empty range will produce empty list
 
+        # if running a test only evaluate the first 10 timeframes
+        # of the first 2 positions
+        if is_test:
+            position_list = position_list[:2]
+            t_range = t_range[:10]
+
         # get the filepaths for each position in the timelapse
-        for position in dataset_config.zarr_positions:
+        for position in position_list:
             zarr_loc = get_zarr_location_for_position(dataset_config, position)
 
             # build a dictionary with the analysis arguments for each timeframe to be analyzed

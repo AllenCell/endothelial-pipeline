@@ -123,7 +123,6 @@ def main(
     n_proc: int = 1,
     save_output: bool = True,
     overwrite: bool = True,
-    is_test: bool = False,
 ) -> None:
     """
     Run the label-free nuclear prediction workflow on a dataset, list of datasets, or collection.
@@ -156,7 +155,7 @@ def main(
         out_dir=out_dir,
         save_output=save_output,
         overwrite=overwrite,
-        is_test=is_test,
+        is_test=DEMO_MODE,
         image_validation_frequency=48,
     )
 
@@ -186,6 +185,7 @@ def main(
 
 
 if __name__ == "__main__":
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
     device_used_printed_global = False

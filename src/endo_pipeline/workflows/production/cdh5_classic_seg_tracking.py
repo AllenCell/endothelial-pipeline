@@ -94,7 +94,6 @@ def main(
     datasets: Datasets,
     n_proc: int = 1,
     save_output: bool = True,
-    is_test: bool = False,
     verbose: bool = False,
 ) -> None:
     """Run the tracking workflow on a dataset, a list of datasets, or a dataset collection."""
@@ -120,7 +119,7 @@ def main(
         out_dir=out_dir,
         overwrite=True,
         verbose=verbose,
-        is_test=is_test,
+        is_test=DEMO_MODE,
         image_validation_frequency=None,
     )
 
@@ -166,6 +165,7 @@ def main(
 
 if __name__ == "__main__":
 
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
     ipython_cli_flexecute(main)

@@ -28,6 +28,9 @@ def main(
     from endo_pipeline.manifests import get_zarr_location_for_position
     from endo_pipeline.settings import DIMENSION_ORDER
 
+    if DEMO_MODE:
+        create_training_data = True
+
     logger = logging.getLogger(__name__)
 
     # Create output directory.
@@ -42,6 +45,7 @@ def main(
         image_validation_frequency=1,
         overwrite=True,
         out_dir=out_dir,
+        is_test=DEMO_MODE,
     )
 
     # return whether or not to use a gpu with CellPose
@@ -138,6 +142,7 @@ def main(
 
 
 if __name__ == "__main__":
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
     ipython_cli_flexecute(main)

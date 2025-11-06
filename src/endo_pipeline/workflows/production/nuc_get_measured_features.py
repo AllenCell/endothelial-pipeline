@@ -41,7 +41,6 @@ def main(
     save_output: bool = True,
     n_proc: int = 1,
     verbose: bool = False,
-    is_test: bool = False,
     concatenate_tables_only: bool = False,
 ) -> None:
     """Run workflow to measure features from label-free nuclei predictions."""
@@ -68,7 +67,7 @@ def main(
             out_dir=out_dir,
             overwrite=True,
             verbose=verbose,
-            is_test=is_test,
+            is_test=DEMO_MODE,
             image_validation_frequency=None,
         )
 
@@ -108,6 +107,7 @@ def main(
 
 
 if __name__ == "__main__":
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
     ipython_cli_flexecute(main)
