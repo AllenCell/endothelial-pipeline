@@ -208,6 +208,7 @@ module = [
     "cyto_dl.*",
     "fire.*",
     "hydra.*",
+    "lightning.*",
     "mlflow.*",
     "monai.*",
     "mpl_toolkits.*",
