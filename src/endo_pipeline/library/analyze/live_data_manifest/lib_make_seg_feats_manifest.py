@@ -536,10 +536,16 @@ def calculate_derived_data_dynamics_dependent(big_table: pd.DataFrame) -> pd.Dat
         big_table["nuc_pos_rel_cell_angle_deg"], big_table["centroid_velocity_angle_deg"]
     )
 
+    big_table["nuc_pos_rel_cell_X_um"] = (
+        big_table["nuc_pos_rel_cell_X"] * big_table["pixel_size_xy_in_um"]
+    )
+    big_table["nuc_pos_rel_cell_Y_um"] = (
+        big_table["nuc_pos_rel_cell_Y"] * big_table["pixel_size_xy_in_um"]
+    )
     big_table["nuc_pos_vs_cell_veloc_dotprod"] = np.einsum(
         "ij,ij->i",
         big_table[["centroid_dx_dt", "centroid_dy_dt"]],
-        big_table[["nuc_pos_rel_cell_X", "nuc_pos_rel_cell_Y"]],
+        big_table[["nuc_pos_rel_cell_X_um", "nuc_pos_rel_cell_Y_um"]],
     )
 
     # add column for the number of tracks at a given

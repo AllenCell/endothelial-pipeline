@@ -1,6 +1,6 @@
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import Datasets, tags
 
-TAGS = ["quality-control", "preprocessing"]
+TAGS = ["quality-control", "preprocessing", tags.TEST_READY, tags.CPU_ONLY]
 
 
 def main(datasets: Datasets | None = None) -> None:
@@ -36,8 +36,18 @@ def main(datasets: Datasets | None = None) -> None:
     if datasets is None:
         datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
 
+    if DEMO_MODE:
+        logger.info("DEMO_MODE is ON. Processing only the first dataset.")
+        datasets = datasets[:1]
+
     for dataset_name in datasets:
         dataset_config = load_dataset_config(dataset_name)
+
+        positions = dataset_config.zarr_positions
+        if DEMO_MODE:
+            positions = positions[:1]
+            logger.info(f"DEMO_MODE is ON. Processing only position: {positions}")
+
         tp_annotations = (
             dataset_config.timepoint_annotations
             if dataset_config.timepoint_annotations is not None
@@ -46,17 +56,17 @@ def main(datasets: Datasets | None = None) -> None:
 
         # Initialize annotations for each type
         tp_annotations[TimepointAnnotation.AUTO_BF_SCOPE_ERROR] = {
-            position: [] for position in dataset_config.zarr_positions
+            position: [] for position in positions
         }
         tp_annotations[TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT] = {
-            position: [] for position in dataset_config.zarr_positions
+            position: [] for position in positions
         }
         tp_annotations[TimepointAnnotation.AUTO_GFP_SCOPE_ERROR] = {
-            position: [] for position in dataset_config.zarr_positions
+            position: [] for position in positions
         }
 
         # Detect and annotate outliers for each position
-        for position in dataset_config.zarr_positions:
+        for position in positions:
             bf_scope_error, bf_temp_artifact = detect_bf_outliers(
                 dataset_config, position, visualize=True
             )
@@ -73,13 +83,13 @@ def main(datasets: Datasets | None = None) -> None:
                     egfp_scope_error
                 )
 
+        if DEMO_MODE:
+            logger.info("DEMO_MODE is ON. Skip saving annotation for single position.")
+            continue
+
         # Save the updated annotations back to the dataset configuration
         dataset_config.timepoint_annotations = tp_annotations
         save_dataset_config(dataset_config)
-
-        if DEMO_MODE:
-            logger.info(f"DEMO_MODE is ON. Processed only the first dataset: {dataset_name}")
-            break
 
 
 if __name__ == "__main__":
