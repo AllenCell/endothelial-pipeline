@@ -1,4 +1,6 @@
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import Datasets, tags
+
+TAGS = [tags.TEST_READY]
 
 device_used_printed_global = False
 

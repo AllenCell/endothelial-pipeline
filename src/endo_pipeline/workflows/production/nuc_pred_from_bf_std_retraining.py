@@ -1,5 +1,9 @@
 from typing import Any
 
+from endo_pipeline.cli import tags
+
+TAGS = [tags.TEST_READY, tags.GPU]
+
 
 def main(
     n_proc: int = 1,

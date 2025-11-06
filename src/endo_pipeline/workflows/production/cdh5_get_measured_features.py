@@ -1,4 +1,6 @@
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import Datasets, tags
+
+TAGS = [tags.TEST_READY, tags.CPU_ONLY]
 
 
 def build_measured_features_tables_multiproc_wrapper(args: dict) -> None:

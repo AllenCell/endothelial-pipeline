@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import Datasets, tags
 
-TAGS = ["cdh5_segmentation"]
+TAGS = ["cdh5_segmentation", tags.CPU_ONLY, tags.TEST_READY]
 
 
 def generate_results_multiproc_wrapper(args: dict) -> None:

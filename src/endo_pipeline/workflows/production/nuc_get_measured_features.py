@@ -1,6 +1,8 @@
 from pathlib import Path
 
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import Datasets, tags
+
+TAGS = [tags.TEST_READY, tags.CPU_ONLY]
 
 
 def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:

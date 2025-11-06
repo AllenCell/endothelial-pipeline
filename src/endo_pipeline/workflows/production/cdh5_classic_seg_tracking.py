@@ -1,8 +1,8 @@
 from collections.abc import Sequence
 
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import Datasets, tags
 
-TAGS = ["cdh5_segmentation", "tracking"]
+TAGS = ["cdh5_segmentation", "tracking", tags.CPU_ONLY, tags.TEST_READY]
 
 
 def run_workflow(queue: Sequence) -> None:
