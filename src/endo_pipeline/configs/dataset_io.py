@@ -219,11 +219,11 @@ def get_zarr_dir(dataset_name: str) -> str:
     """
 This method is deprecated and will be removed. Use the following replacement:
 
-    from endo_pipeline.configs import get_available_zarr_files
+    from endo_pipeline.manifests import get_available_zarr_locations
 
-This method will return a list of Path objects to Zarr files for all positions
-in the given dataset config. If you need the name of the Zarr file, use .name on
-the returned Path object.
+This method will return a list of location objects to Zarr files for all
+positions in the given dataset config. If you need the name of the Zarr file,
+use .path.name on the returned Path object.
 """
 )
 def get_zarr_path(
@@ -395,12 +395,13 @@ datasets is:
 To recreate the behavior of this specific method (loading Zarrs for all positions
 of a dataset into a dictionary, use:
 
-    from endo_pipeline.configs import load_dataset_config, get_available_zarr_files
-    from endo_pipeline.io import load_image_from_path
+    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.manifests import get_available_zarr_locations
+    from endo_pipeline.io import load_image
 
     dataset_config = load_dataset_config(dataset_name)
-    zarr_files = get_available_zarr_files(dataset_config)
-    zarrs = {zarr_file.name: load_image_from_path(zarr_file) for zarr_file in zarr_files}
+    zarr_locations = get_available_zarr_locations(dataset_config)
+    zarrs = {zarr_loc.name: load_image(zarr_loc) for zarr_loc in zarr_locations}
 """
 )
 def load_dataset(

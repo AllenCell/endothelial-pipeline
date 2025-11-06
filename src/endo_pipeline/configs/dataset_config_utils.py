@@ -32,12 +32,6 @@ def get_regime_for_shear_stress(shear_stress: float) -> ShearStressRegime:
     raise ValueError(f"No shear stress regime found for shear stress [ {shear_stress} ]")
 
 
-def get_available_zarr_files(dataset: DatasetConfig) -> list[Path]:
-    """Get list of all available Zarr files for given dataset."""
-
-    return [get_zarr_file_for_position(dataset, position) for position in dataset.zarr_positions]
-
-
 def get_zarr_file_for_position(dataset: DatasetConfig, position: int) -> Path:
     """Get zarr file path for given dataset and position."""
 
