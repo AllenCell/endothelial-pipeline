@@ -337,10 +337,11 @@ def get_channel_index(
     """
 This method is deprecated and will be removed. Use the following replacement:
 
-    from endo_pipeline.configs import get_zarr_file_for_position
+    from endo_pipeline.manifests import get_zarr_location_for_position
 
-This method will a Path to the Zarr file for the given dataset and position. If
-you need the name of the Zarr file, use .name on the returned Path object.
+This method will the location to the Zarr file for the given dataset and
+position. If you need the name of the Zarr file, use .path.name on the returned
+object.
 """
 )
 def get_zarr_name(dataset_name: str, position: int) -> str:
@@ -385,12 +386,13 @@ def get_total_number_of_positions(dataset_name: str) -> int:
 This method is deprecated and will be removed. The new pattern for loading Zarr
 datasets is:
 
-    from endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
-    from endo_pipeline.io import load_image_from_path
+    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.manifests import get_zarr_location_for_position
+    from endo_pipeline.io import load_image
 
     dataset_config = load_dataset_config(dataset_name)
-    zarr_file = get_zarr_file_for_position(dataset_config, position)
-    zarr = load_image_from_path(zarr_file)
+    zarr_loc = get_zarr_location_for_position(dataset_config, position)
+    zarr = load_image(zarr_loc)
 
 To recreate the behavior of this specific method (loading Zarrs for all positions
 of a dataset into a dictionary, use:
@@ -438,12 +440,13 @@ def load_dataset(
 This method is deprecated and will be removed. The new pattern for loading Zarr
 datasets is:
 
-    from endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
+    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.manifests import get_zarr_location_for_position
     from endo_pipeline.io import load_image_from_path
 
     dataset_config = load_dataset_config(dataset_name)
-    zarr_file = get_zarr_file_for_position(dataset_config, position)
-    zarr = load_image_from_path(zarr_file)
+    zarr_loc = get_zarr_location_for_position(dataset_config, position)
+    zarr = load_image(zarr_loc)
 """
 )
 def load_dataset_position_as_dask_array(

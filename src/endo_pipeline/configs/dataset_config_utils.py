@@ -32,25 +32,6 @@ def get_regime_for_shear_stress(shear_stress: float) -> ShearStressRegime:
     raise ValueError(f"No shear stress regime found for shear stress [ {shear_stress} ]")
 
 
-def get_zarr_file_for_position(dataset: DatasetConfig, position: int) -> Path:
-    """Get zarr file path for given dataset and position."""
-
-    zarr_path = Path(dataset.zarr_path)
-    zarr_file = zarr_path / f"{zarr_path.stem}_P{position}.ome.zarr"
-
-    if position not in dataset.zarr_positions:
-        logger.error("Position [ %s ] is not valid for dataset [ %s ]", position, dataset.name)
-        raise ValueError(f"Dataset [ {dataset.name} ] only has positions {dataset.zarr_positions}")
-    elif not zarr_file.exists():
-        # This check intentionally does not raise an exception because we do not
-        # want this method to fail if we are just getting the file names and not
-        # actually loading the file. The appropriate exceptions for being unable
-        # to load the file should/will be handled by loading methods.
-        logger.warning("Zarr file [ %s ] does not exist", zarr_file)
-
-    return zarr_file
-
-
 def get_position_string_from_zarr_file_path(zarr_file_path: str | Path) -> str:
     """Extract position as 'P[x]' from the file path, if found."""
 
@@ -93,7 +74,9 @@ def get_available_channels_for_position(dataset: DatasetConfig, position: int) -
 
     from bioio import BioImage
 
-    zarr_file = get_zarr_file_for_position(dataset, position)
+    from endo_pipeline.manifests import get_zarr_location_for_position
+
+    zarr_file = get_zarr_location_for_position(dataset, position).path
     return BioImage(zarr_file).channel_names
 
 

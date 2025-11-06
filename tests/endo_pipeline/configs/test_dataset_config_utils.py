@@ -26,7 +26,6 @@ from endo_pipeline.configs.dataset_config_utils import (
     get_position_string_from_zarr_file_path,
     get_unannotated_positions,
     get_unannotated_timepoints_for_position,
-    get_zarr_file_for_position,
     make_filtered_dataset_collection,
 )
 
@@ -77,17 +76,6 @@ def zarr_files(mocker):
     bioimage_mock.side_effect = lambda arg: files[arg]
 
     mocker.patch.object(bioio, "BioImage", bioimage_mock)
-
-
-def test_get_zarr_file_for_position_valid(dataset):
-    zarr_file = get_zarr_file_for_position(dataset, position=3)
-
-    assert zarr_file == Path("/path/to/zarr/dataset/dataset_P3.ome.zarr")
-
-
-def test_get_zarr_file_for_position_invalid(dataset):
-    with pytest.raises(ValueError):
-        get_zarr_file_for_position(dataset, position=4)
 
 
 def test_get_available_channels_for_all_positions(dataset):
