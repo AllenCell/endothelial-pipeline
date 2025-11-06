@@ -1,12 +1,13 @@
-import cv2
-import torch
-import numpy as np
 from warnings import warn
+
+import cv2
+import numpy as np
+import torch
 from bioio.writers import OmeTiffWriter
 from cyto_dl.callbacks.latent_walk_diffae import DiffAELatentWalk
 
-# A cleaner detach function!
 
+# A cleaner detach function!
 def detach(img):
     if torch.is_tensor(img):
         img = img.detach().cpu()
@@ -59,9 +60,12 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
         if (trainer.current_epoch + 1) % self.every_n_epoch == 0:
             feats = np.concatenate(self.val_feats)
             save_path = f"{pl_module.hparams.save_dir}/{trainer.current_epoch+1}_latent_walk.tiff"
- 
+
             if len(feats.shape) == 1 or feats.shape[0] < self.num_pcs:
-                warn(f"Insufficient data for latent walk with {self.num_pcs} PCs. Skipping...")
+                warn(
+                    f"Insufficient data for latent walk with {self.num_pcs} PCs. Skipping...",
+                    stacklevel=2,
+                )
                 return
 
             pca_data = self.pca.fit_transform(feats)
@@ -114,14 +118,14 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
         # Convert torch.Tensor to numpy array
         if torch.is_tensor(img):
             img = img.detach().cpu().numpy()
-        # Ensure shape is HWC for OpenCV 
-        if img.ndim == 3 and img.shape[0] < img.shape[-1]:  
-            img = np.transpose(img, (1,2,0))
-        elif img.ndim == 2: # grayscale
+        # Ensure shape is HWC for OpenCV
+        if img.ndim == 3 and img.shape[0] < img.shape[-1]:
+            img = np.transpose(img, (1, 2, 0))
+        elif img.ndim == 2:  # grayscale
             img = img[..., None]
         # Convert float to uint8
         if img.dtype != np.uint8:
-            img = (img * 255).clip(0,255).astype(np.uint8)
+            img = (img * 255).clip(0, 255).astype(np.uint8)
         # Remove channel dimension if 1-channel
         if img.shape[2] == 1:
             img = img.squeeze(2)
@@ -137,5 +141,3 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
         cv2.putText(img, text, (text_x, text_y), font, font_scale, color, thickness)
 
         return img
-
-    
