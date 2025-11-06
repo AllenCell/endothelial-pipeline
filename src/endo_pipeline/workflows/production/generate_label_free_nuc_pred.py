@@ -158,7 +158,7 @@ def main(
         image_validation_frequency=48,
         is_test=DEMO_MODE,
         t_start=0 if DEMO_MODE else None,
-        t_end=1 if DEMO_MODE else None,
+        t_final=1 if DEMO_MODE else None,
     )
 
     # Predict nuclei from brightfield images using the retrained CellPose model
