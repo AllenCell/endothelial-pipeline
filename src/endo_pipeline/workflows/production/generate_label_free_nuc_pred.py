@@ -155,8 +155,10 @@ def main(
         out_dir=out_dir,
         save_output=save_output,
         overwrite=overwrite,
-        is_test=DEMO_MODE,
         image_validation_frequency=48,
+        is_test=DEMO_MODE,
+        t_start=0 if DEMO_MODE else None,
+        t_end=1 if DEMO_MODE else None,
     )
 
     # Predict nuclei from brightfield images using the retrained CellPose model

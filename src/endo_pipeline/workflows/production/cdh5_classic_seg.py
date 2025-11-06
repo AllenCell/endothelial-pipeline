@@ -195,15 +195,16 @@ def main(
 
     out_dir = get_output_path(__file__)
 
-    # TODO if possible it would be good to use parallel processing to build analysis_queue
     analysis_queue = build_analysis_queue(
         datasets,
         save_output=save_output,
         out_dir=out_dir,
         overwrite=overwrite,
         verbose=verbose,
-        is_test=DEMO_MODE,
         image_validation_frequency=48,
+        is_test=DEMO_MODE,
+        t_start=0 if DEMO_MODE else None,
+        t_end=1 if DEMO_MODE else None,
     )
 
     if n_proc > 1:
