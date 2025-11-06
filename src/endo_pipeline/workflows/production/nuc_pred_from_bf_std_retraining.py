@@ -16,6 +16,7 @@ def main(
     from cellpose import core, models, train
     from cellpose.io import logger_setup
 
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_image, make_name_unique
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
@@ -28,13 +29,15 @@ def main(
     from endo_pipeline.manifests import get_zarr_location_for_position
     from endo_pipeline.settings import DIMENSION_ORDER
 
-    if DEMO_MODE:
-        create_training_data = True
-
     logger = logging.getLogger(__name__)
 
-    # Create output directory.
     model_name = make_name_unique("labelfree_nuc_pred").stem
+
+    if DEMO_MODE:
+        create_training_data = True
+        model_name += "_DEMO"
+
+    # Create output directory.
     out_dir = get_output_path("models", model_name, include_timestamp=False)
 
     datasets_to_use = list(get_scenes_to_use().keys())
@@ -142,7 +145,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
     ipython_cli_flexecute(main)

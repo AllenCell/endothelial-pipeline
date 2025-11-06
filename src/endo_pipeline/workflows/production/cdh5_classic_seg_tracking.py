@@ -103,6 +103,7 @@ def main(
     import pandas as pd
     from tqdm import tqdm
 
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
@@ -165,7 +166,6 @@ def main(
 
 if __name__ == "__main__":
 
-    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
     ipython_cli_flexecute(main)

@@ -1,5 +1,7 @@
 from endo_pipeline.cli import Datasets
 
+device_used_printed_global = False
+
 
 def generate_labelfree_nuclei_predictions(args: dict) -> None:
     import logging
@@ -139,6 +141,7 @@ def main(
 
     from tqdm import tqdm
 
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
 
@@ -187,8 +190,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
-    device_used_printed_global = False
     ipython_cli_flexecute(main)

@@ -49,6 +49,7 @@ def main(
 
     from tqdm import tqdm
 
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
@@ -67,8 +68,10 @@ def main(
             out_dir=out_dir,
             overwrite=True,
             verbose=verbose,
-            is_test=DEMO_MODE,
             image_validation_frequency=None,
+            is_test=DEMO_MODE,
+            t_start=0 if DEMO_MODE else None,
+            t_final=3 if DEMO_MODE else None,
         )
 
         # get and save results from images in analysis queue
@@ -107,7 +110,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
     ipython_cli_flexecute(main)
