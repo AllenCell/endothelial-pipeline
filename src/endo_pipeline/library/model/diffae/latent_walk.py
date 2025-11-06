@@ -25,6 +25,7 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.val_feats: list[np.ndarray] = []
 
     def _write_pc_vals(self, walk_img, ranges):
         """Write PC index and value on image. Expects and returns NumPy."""

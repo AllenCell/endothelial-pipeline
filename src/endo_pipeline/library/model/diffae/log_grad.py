@@ -35,7 +35,7 @@ class GradientLoggingCallback(Callback):
         if trainer.global_step % self.log_every_n_steps != 0:
             return
 
-        group_norms = {}
+        group_norms: dict[str, list[float]] = {}
 
         for name, parameter in pl_module.named_parameters():
             if name.startswith("semantic_encoder") and parameter.grad is not None:

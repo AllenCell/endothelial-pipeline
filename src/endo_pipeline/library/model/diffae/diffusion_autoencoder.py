@@ -200,17 +200,18 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         batch_indices = [
             (i, min(i + batch_size, cond.shape[0])) for i in range(0, cond.shape[0], batch_size)
         ]
-        n_noise_samples = n_noise_samples or self.hparams.n_noise_samples
+        n_noise_samples = int(n_noise_samples or self.hparams.n_noise_samples)
 
         with torch.no_grad():
-            recon = None
+            if average:
+                recon = None
+            else:
+                recon = []
+
             for _ in tqdm.tqdm(range(n_noise_samples), desc="Sampling noise"):
-                # one noise map per conditioning vector
                 noise = torch.stack(
                     [torch.randn(self.hparams.image_shape, device=self.device)] * cond.shape[0]
                 )
-
-                # generate in chunks
                 sample = torch.cat(
                     [
                         self._generate_image(noise[start:stop], cond[start:stop]).squeeze(1)
@@ -219,27 +220,27 @@ class DiffusionAutoEncoder(_BaseDiffAE):
                     dim=0,
                 )
 
-                # keep list for non-averaging case
-                sample = sample if average else [sample]
-                recon = sample if recon is None else (recon + sample)
+                if average:
+                    recon = sample if recon is None else (recon + sample)
+                else:
+                    recon.append(sample)
 
             if average:
+                assert recon is not None
                 recon = recon / n_noise_samples
             else:
-                recon = torch.cat(recon, dim=-1)  # horizontal composite
+                recon = torch.cat(recon, dim=-1)
 
         recon = detach(recon)
         if isinstance(recon, np.ndarray):
             recon = torch.from_numpy(recon)
         recon = recon.cpu()
-
         if save:
             recon_np = recon.numpy().astype(float)
             OmeTiffWriter.save(
                 uri=f"{self.hparams.save_dir}/{save_name}.tiff",
                 data=recon_np,
             )
-
         return recon
 
     def generate_from_latent_and_noised_image(
