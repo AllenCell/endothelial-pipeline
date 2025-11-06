@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 import numpy as np
 import torch
@@ -175,7 +174,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         self,
         cond: torch.Tensor,
         save_name: str = "generated_image",
-        n_noise_samples: Optional[int] = None,
+        n_noise_samples: int | None = None,
         average: bool = True,
         save: bool = True,
         batch_size: int = 3,

@@ -12,8 +12,8 @@ from .transforms import MinStdCropd, RotateRanged
 __all__ = [
     "DiffAEFinetune",
     "DiffAELatentWalkRank0",
-    "GradientLoggingCallback",
     "DiffusionAutoEncoder",
+    "GradientLoggingCallback",
     "MinStdCropd",
     "RotateRanged",
     "generate_from_coords",
