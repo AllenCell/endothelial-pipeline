@@ -36,15 +36,15 @@ timepoint_annotations:
   auto_bf_scope_error:
     0: []
     1: []
-    2: [0]
-    3: [0]
-    4: [0]
-    5: [0]
+    2: []
+    3: []
+    4: []
+    5: []
   auto_bf_temp_artifact:
     0: []
     1: []
-    2: [0]
-    3: [0]
+    2: []
+    3: []
     4: []
     5: []
   auto_gfp_scope_error:
