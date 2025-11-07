@@ -1,8 +1,8 @@
 from collections.abc import Sequence
 
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import Datasets, tags
 
-TAGS = ["cdh5_segmentation", "tracking"]
+TAGS = ["cdh5_segmentation", "tracking", tags.CPU_ONLY, tags.TEST_READY]
 
 
 def run_workflow(queue: Sequence) -> None:
@@ -94,16 +94,28 @@ def main(
     datasets: Datasets,
     n_proc: int = 1,
     save_output: bool = True,
-    is_test: bool = False,
     verbose: bool = False,
 ) -> None:
-    """Run the tracking workflow on a dataset, a list of datasets, or a dataset collection."""
+    """Run the tracking workflow on a dataset, a list of datasets, or a dataset collection.
+
+    To enter a list of datasets to analyze, use the following format:
+
+    .. code-block:: bash
+
+        --datasets 20250818_20X 20250618_20X
+
+    **Workflow demo**
+
+    The ``--demo-mode`` (``-d``) flag can be used to run the workflow on the first 10 timepoints
+    of the first 2 positions for each of the given datasets for workflow testing purposes.
+    """
     import logging
     from multiprocessing import Pool
 
     import pandas as pd
     from tqdm import tqdm
 
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
@@ -120,7 +132,7 @@ def main(
         out_dir=out_dir,
         overwrite=True,
         verbose=verbose,
-        is_test=is_test,
+        is_test=DEMO_MODE,
         image_validation_frequency=None,
     )
 
