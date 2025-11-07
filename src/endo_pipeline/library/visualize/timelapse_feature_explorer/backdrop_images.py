@@ -8,7 +8,7 @@ import pandas as pd
 from bioio import BioImage
 from tqdm import tqdm
 
-from endo_pipeline.configs import dataset_io
+from endo_pipeline.io import load_image
 from endo_pipeline.library.process.image_processing import (
     bf_slice,
     bf_std_dev,
@@ -18,13 +18,14 @@ from endo_pipeline.library.process.image_processing import (
     max_proj_561,
     max_proj_640,
 )
+from endo_pipeline.manifests import ImageLocation
 
 
 def process_frame(
     func: Callable[[BioImage, int], np.ndarray],
     img: BioImage,
     frame: int,
-    dataset: str,
+    dataset_name: str,
     position: int,
     backdrop: str,
     output_dir: Path,
@@ -51,14 +52,15 @@ def process_frame(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Save image
-    fname = f"{dataset}_P{position}_{backdrop}_{frame}.png"
+    fname = f"{dataset_name}_P{position}_{backdrop}_{frame}.png"
     output_path = output_dir / fname
     iio.imwrite(output_path, image_contrasted)
 
 
 def generate_backdrops(
-    dataset: str,
+    dataset_name: str,
     position: int,
+    img_location: ImageLocation,
     backdrops: list[str],
     output_dir: Path,
     method: str = "percentile",
@@ -67,12 +69,7 @@ def generate_backdrops(
     Generate and save backdrop images to be viewed together with the colorized
     segmentations in the TFE viewer.
     """
-
-    zarr_name = dataset_io.get_zarr_name(dataset, position)
-    zarr_path = dataset_io.get_zarr_dir(dataset)
-    filepath = Path(zarr_path) / zarr_name
-    img = BioImage(filepath)
-    img.set_resolution_level(1)
+    img = load_image(img_location, level=1, read=False)
 
     backdrop_functions: dict[str, Callable[[BioImage, int], np.ndarray]] = {
         "bf_slice": bf_slice,
@@ -85,7 +82,7 @@ def generate_backdrops(
 
     for backdrop, func in backdrop_functions.items():
         if backdrop in backdrops:
-            print(f"Generating {backdrop} for dataset {dataset}, position {position}...")
+            print(f"Generating {backdrop} for dataset {dataset_name}, position {position}...")
 
             with ThreadPoolExecutor() as executor:
                 futures = [
@@ -94,7 +91,7 @@ def generate_backdrops(
                         func,
                         img,
                         frame,
-                        dataset,
+                        dataset_name,
                         position,
                         backdrop,
                         output_dir,
