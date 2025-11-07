@@ -35,6 +35,77 @@ def build_analysis_queue(
     verbose: bool = False,
     is_test: bool = False,
 ) -> list:
+    """
+    Builds a list of dictionaries containing arguments from a list of imaging
+    datasets to be passed to a function that processes an image.
+    Convenient for multiprocessing directly or the resulting analysis queue can
+    be turned in to a pandas dataframe which can then be grouped with `groupby`
+    and those groups can be passed to multiprocessing.
+    Can also be iterated through with a regular for-loop.
+    The parameters that this function takes are what will be included in each
+    dictionary in the analysis queue as arguments to be passed to a function.
+
+    Parameters
+    ----------
+    dataset_name_list:
+        A list of dataset names to build the analysis queue for.
+    t_start:
+        The starting timeframe to analyze (default: 0).
+    t_final:
+        The final timeframe to analyze (default: None, which means analyze
+        until the end of the dataset).
+    t_step:
+        The step size between timeframes to analyze (default: 1).
+    img_bin_level:
+        The image binning level to use when loading images (default: 0, no binning).
+    save_output:
+        Whether or not to save the output of the analysis (default: True).
+    overwrite:
+        Whether or not to overwrite existing output files (default: False).
+    out_dir:
+        The output directory to save analysis results to (default: None, which
+        means a temporary analysis queue output directory will be created).
+    image_validation_frequency:
+        The frequency at which to create validation images (default: None,
+        which means no validation images will be created).
+    verbose:
+        Whether or not to print verbose output (default: False).
+    is_test:
+        Whether or not to run in test mode (default: False). If True, only up to
+        the first 2 positions and up to the first 10 entries (as specified by
+        t_start, t_final, and t_step) of each dataset will be included in the
+        analysis queue.
+
+    Returns
+    -------
+    analysis_queue:
+        A list of dictionaries containing arguments for each image to be analyzed.
+
+
+    Note:
+    An example of the `is_test` behavior is as follows:
+    >>> dataset_name_list = ["20250818_20X"]
+    >>> t_start=0
+    >>> t_final=50
+    >>>  t_step=1
+    >>> build_analysis_queue(dataset_name_list, t_start, t_final, t_step, is_test=True)
+    returns a list of dictionaries for positions 0 and 1 only for timeframes
+    0, 1, 2, 3, 4, 5, 6, 7, 8, and 9 only for a total of 20 entries in the
+    analysis queue.
+
+    If the above is repeated with t_step=10 then the returned analysis queue has
+    positions 0 and 1 only for timeframes 0, 10, 20, 30, and 40 only.
+
+    If the original example is repeated with t_final=3 then the returned
+    analysis queue has positions 0 and 1 only for timeframes 0, 1, and 2 only.
+
+    If the original example is repeated with
+    dataset_name_list = ["20250818_20X", "20250611_20X"]
+    then a list of dictionaries for positions 0 and 1 only for timeframes
+    0, 1, 2, 3, 4, 5, 6, 7, 8, and 9 only will be returned for each dataset for
+    a total of 40 entries in the analysis queue.
+
+    """
 
     logger.info(f"Building analysis queue for the following datasets: {dataset_name_list}")
 
