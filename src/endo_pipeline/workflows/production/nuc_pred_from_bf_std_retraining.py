@@ -12,6 +12,19 @@ def main(
     """
     Run the workflow to retrain a Cellpose model to predict nuclei from brightfield standard
     deviation projections.
+
+    To enter a list of datasets to analyze, use the following format:
+
+    .. code-block:: bash
+
+        --datasets 20250818_20X 20250618_20X
+
+    **Workflow demo**
+
+    The ``--demo-mode`` (``-d``) flag can be used to run the workflow on a subset of the training
+    data for workflow testing purposes. The resulting model will be named with a ``_DEMO`` suffix
+    and does not produce a model that is suitable for label-free nuclei prediction. To produce
+    the model for label-free nuclei prediction, run the workflow without the demo mode flag.
     """
 
     import logging

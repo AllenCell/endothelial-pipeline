@@ -45,7 +45,19 @@ def main(
     verbose: bool = False,
     concatenate_tables_only: bool = False,
 ) -> None:
-    """Run workflow to measure features from label-free nuclei predictions."""
+    """Run workflow to measure features from label-free nuclei predictions.
+
+    To enter a list of datasets to analyze, use the following format:
+
+    .. code-block:: bash
+
+        --datasets 20250818_20X 20250618_20X
+
+    **Workflow demo**
+
+    The ``--demo-mode`` (``-d``) flag can be used to run the workflow on the first 3 timepoints
+    of the first 2 positions for each of the given datasets for workflow testing purposes.
+    """
     import logging
     from concurrent.futures import ProcessPoolExecutor
 
@@ -72,7 +84,7 @@ def main(
             verbose=verbose,
             image_validation_frequency=None,
             is_test=DEMO_MODE,
-            t_start=0 if DEMO_MODE else None,
+            t_start=0,
             t_final=3 if DEMO_MODE else None,
         )
 

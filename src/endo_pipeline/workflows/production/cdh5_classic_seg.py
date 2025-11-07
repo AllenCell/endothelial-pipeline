@@ -185,7 +185,19 @@ def main(
     overwrite: bool = True,
     verbose: bool = False,
 ) -> None:
-    """Run the cdh5 segmentation workflow on a dataset, list of datasets, or dataset collection."""
+    """Run the cdh5 segmentation workflow on a dataset, list of datasets, or dataset collection.
+
+    To enter a list of datasets to analyze, use the following format:
+
+    .. code-block:: bash
+
+        --datasets 20250818_20X 20250618_20X
+
+    **Workflow demo**
+
+    The ``--demo-mode`` (``-d``) flag can be used to run the workflow on the first timepoint
+    of the first 2 positions for each of the given datasets for workflow testing purposes.
+    """
     from multiprocessing import Pool
 
     from tqdm import tqdm
@@ -204,7 +216,7 @@ def main(
         verbose=verbose,
         image_validation_frequency=48,
         is_test=DEMO_MODE,
-        t_start=0 if DEMO_MODE else None,
+        t_start=0,
         t_final=1 if DEMO_MODE else None,
     )
 

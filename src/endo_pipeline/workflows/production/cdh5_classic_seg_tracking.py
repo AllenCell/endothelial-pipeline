@@ -96,7 +96,19 @@ def main(
     save_output: bool = True,
     verbose: bool = False,
 ) -> None:
-    """Run the tracking workflow on a dataset, a list of datasets, or a dataset collection."""
+    """Run the tracking workflow on a dataset, a list of datasets, or a dataset collection.
+
+    To enter a list of datasets to analyze, use the following format:
+
+    .. code-block:: bash
+
+        --datasets 20250818_20X 20250618_20X
+
+    **Workflow demo**
+
+    The ``--demo-mode`` (``-d``) flag can be used to run the workflow on the first 10 timepoints
+    of the first 2 positions for each of the given datasets for workflow testing purposes.
+    """
     import logging
     from multiprocessing import Pool
 

@@ -31,7 +31,20 @@ def main(
     save_output: bool = True,
     verbose: bool = False,
 ) -> None:
-    """Run the measured features extraction workflow."""
+    """Run the measured features extraction workflow.
+
+    To enter a list of datasets to analyze, use the following format:
+
+    .. code-block:: bash
+
+        --datasets 20250818_20X 20250618_20X
+    **Workflow demo**
+
+    The ``--demo-mode`` (``-d``) flag can be used to run a simplified version of
+    this workflow for testing purposes (e.g. during code review). The workflow
+    will only extract measured features from the first two positions and the
+    first three timepoints for each of the given datasets.
+    """
     import logging
     from multiprocessing import Pool
 
@@ -57,7 +70,7 @@ def main(
         verbose=verbose,
         image_validation_frequency=None,
         is_test=DEMO_MODE,
-        t_start=0 if DEMO_MODE else None,
+        t_start=0,
         t_final=3 if DEMO_MODE else None,
     )
 

@@ -135,7 +135,12 @@ def main(
 
     .. code-block:: bash
 
-        --datasets 20241217_20X 20241120_20X
+        --datasets 20250818_20X 20250618_20X
+
+    **Workflow demo**
+
+    The ``--demo-mode`` (``-d``) flag can be used to run the workflow on the first timepoint
+    of the first 2 positions for each of the given datasets for workflow testing purposes.
     """
 
     import logging
@@ -162,7 +167,7 @@ def main(
         overwrite=overwrite,
         image_validation_frequency=48,
         is_test=DEMO_MODE,
-        t_start=0 if DEMO_MODE else None,
+        t_start=0,
         t_final=1 if DEMO_MODE else None,
     )
 
