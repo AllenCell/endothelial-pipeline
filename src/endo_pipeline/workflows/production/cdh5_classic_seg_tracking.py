@@ -65,9 +65,11 @@ def main(
         image_validation_frequency=None,
     )
 
+    # Split analysis queue by dataset and position
     analysis_queue_df = pd.DataFrame(analysis_queue)
     analysis_queue_per_position = list(analysis_queue_df.groupby(["dataset_name", "position"]))
 
+    # Run tracking algorithm on each position
     process_task_queue(
         run_tracking_multiproc_wrapper,
         analysis_queue_per_position,
@@ -76,6 +78,7 @@ def main(
         chunksize=1,
     )
 
+    # Combine tracking algorithm table output into one table per dataset
     if save_output:
         for dataset_name in tqdm(
             datasets, desc="Replacing individual tables with combined table..."
