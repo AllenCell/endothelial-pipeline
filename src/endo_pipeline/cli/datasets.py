@@ -78,7 +78,7 @@ def _dataset_converter(_, tokens: Sequence[Token]) -> list[str]:
         else:
             datasets.append(token.value)
 
-    return list(set(datasets))
+    return sorted(set(datasets))
 
 
 Datasets = Annotated[
