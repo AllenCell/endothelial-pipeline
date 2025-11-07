@@ -73,6 +73,7 @@ def feature_density(
     ylim: int | None = None,
     pool_positions: bool = False,
     per_dataset: bool = False,
+    hide_labels: bool = False,
 ) -> None:
     """
     Plot feature density for multiple datasets, optionally looping through positions or
@@ -100,6 +101,8 @@ def feature_density(
         If True, pool all positions together for each dataset. Default is False.
     per_dataset: bool, optional
         If True, plot densities for each dataset separately. Default is False.
+    hide_labels: bool, optional
+        If True, hide axis labels and ticks. Default is False.
     """
     plt.rcParams.update({"font.size": 14})
     fig = plt.figure(figsize=(6, 6))
@@ -167,15 +170,23 @@ def feature_density(
                 )
 
         if per_dataset:
-            ax.set_xlabel(feature_name)
-            ax.set_ylabel("Density")
-            ax.legend(
-                loc="center left", bbox_to_anchor=(1.05, 0.5), fontsize=10, ncol=2, frameon=False
-            )
+            if not hide_labels:
+                ax.set_xlabel(feature_name)
+                ax.set_ylabel("Density")
+            else:
+                ax.set_xlabel("")
+                ax.set_ylabel("")
+                ax.set_xticklabels([])
+                ax.set_yticklabels([])
+
+            ax.legend(loc="center left", bbox_to_anchor=(1.05, 0), fontsize=10, frameon=False)
             ax.set_xlim(0, xlim)
             ax.set_ylim(0, ylim)
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
             plt.show()
-            fname = f"{feature}_{dataset_name}_poolpos{pool_positions}_density_plot"
+            fname = f"{feature}_{dataset_name}_poolpos{pool_positions}_density_plot_labels"
+            fname += "_hidden" if hide_labels else ""
             save_plot_to_path(fig, save_dir, fname, transparent=True)
             plt.close(fig)
 

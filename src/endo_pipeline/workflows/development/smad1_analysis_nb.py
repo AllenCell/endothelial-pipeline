@@ -59,13 +59,11 @@ df["SMAD1_norm_NucViolet_mean_sum_proj"] = df["SMAD1_mean_sum_proj"] / df["NucVi
 df["SMAD1_norm_area_mean_sum_proj"] = df["SMAD1_mean_sum_proj"] / df["area"]
 df = df[df["SMAD1_norm_NucViolet_mean_sum_proj"] < 1.0]
 
-# %%
-all_dataset_list = df["dataset"].unique().tolist()
-
 # %% Plot distributions of SMAD1 intensity features
 PLOT_FEAT = "SMAD1_mean_sum_proj"
 xlim = 30000
-ylim = 0.00035
+ylim = 0.0004
+# %%
 for dataset in smad1_datasets:
     df_dataset = df[df["dataset"] == dataset]
     plot.plot_channel_intensity_histograms(
@@ -76,27 +74,33 @@ for dataset in smad1_datasets:
         positions=df_dataset["position"].unique().tolist(),
         save_dir=output_dir,
     )
+
 # %%
-plot.feature_density(
-    df_all=df,
-    dataset_name_list=smad1_datasets,
-    feature=PLOT_FEAT,
-    feature_name="SMAD1 mean intensity of sum projection\nin nuclear mask",
-    save_dir=output_dir,
-    xlim=xlim,
-    ylim=ylim,
-    pool_positions=True,
-)
+for date, df_date in df.groupby("date"):
+    date_datasets = df_date["dataset"].unique().tolist()
+    plot.feature_density(
+        df_all=df_date,
+        dataset_name_list=date_datasets,
+        feature=PLOT_FEAT,
+        feature_name="SMAD1 mean intensity of sum projection\nin nuclear mask",
+        save_dir=output_dir,
+        xlim=xlim,
+        ylim=ylim,
+        pool_positions=True,
+    )
 # %%
-plot.feature_density(
-    df_all=df,
-    dataset_name_list=smad1_datasets,
-    feature=PLOT_FEAT,
-    feature_name="SMAD1 mean intensity of sum projection\nin nuclear mask",
-    save_dir=output_dir,
-    xlim=xlim,
-    ylim=ylim,
-    pool_positions=True,
-    per_dataset=True,
-)
+for date, df_date in df.groupby("date"):
+    date_datasets = df_date["dataset"].unique().tolist()
+    plot.feature_density(
+        df_all=df_date,
+        dataset_name_list=date_datasets,
+        feature=PLOT_FEAT,
+        feature_name="SMAD1 mean intensity of sum projection\nin nuclear mask",
+        save_dir=output_dir,
+        xlim=xlim,
+        ylim=ylim,
+        pool_positions=True,
+        per_dataset=True,
+        hide_labels=True,
+    )
 # %%
