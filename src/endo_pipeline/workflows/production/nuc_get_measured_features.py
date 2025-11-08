@@ -1,41 +1,6 @@
-from pathlib import Path
-
 from endo_pipeline.cli import Datasets, tags
 
 TAGS = [tags.TEST_READY, tags.CPU_ONLY]
-
-
-def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
-    """Unpack arguments from an argument dictionary and call get_and_save_nuclei_features."""
-    dataset_name = args["dataset_name"]
-    position = args["position"]
-    tp = args["T"]
-    out_dir = args["output_dir"]
-    save_output = args["save_output"]
-    get_and_save_nuclei_features(dataset_name, position, tp, out_dir, save_output)
-
-
-def get_and_save_nuclei_features(
-    dataset_name: str,
-    position: int,
-    tp: int,
-    out_dir: Path,
-    save_output: bool = True,
-) -> None:
-    """Measure nuclei features for a given dataset, position, and timepoint and save the results as
-    a dataframe.
-    """
-    from endo_pipeline.library.analyze.shape_features import (
-        get_nuclei_features_from_dataset_at_timepoint,
-    )
-
-    nuc_props_df = get_nuclei_features_from_dataset_at_timepoint(dataset_name, position, tp)
-
-    out_subdir = out_dir / dataset_name / f"P{position}"
-    out_subdir.mkdir(exist_ok=True, parents=True)
-    out_path = out_subdir / f"{dataset_name}_P{position}_T{tp}_nuclei_labelfree_features.parquet"
-    if save_output:
-        nuc_props_df.to_parquet(out_path, index=False)
 
 
 def main(
@@ -46,6 +11,9 @@ def main(
     concatenate_tables_only: bool = False,
 ) -> None:
     """Run workflow to measure features from label-free nuclei predictions.
+
+    Measures the label-free nuclei segmentation labels brightfield intensity and centroids and
+    matches them to existing cell segmentation labels.
 
     To enter a list of datasets to analyze, use the following format:
 
@@ -66,6 +34,9 @@ def main(
     from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
     from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.analyze.shape_features import (
+        get_and_save_nuclei_features_arg_unpacker,
+    )
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
 
     logger = logging.getLogger(__name__)
