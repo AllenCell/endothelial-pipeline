@@ -1864,3 +1864,24 @@ def get_nuclei_features_from_dataset_at_timepoint(
     ]
 
     return nuc_feats_df
+
+
+def build_cdh5_measured_features_tables_multiproc_wrapper(args: dict) -> None:
+    """Build and save measured features tables using multiprocessing."""
+
+    dataset_name = args["dataset_name"]
+    position = args["position"]
+    tp = args["T"]
+    save_output = args["save_output"]
+    out_dir = args["output_dir"]
+    verbose = args["verbose"]
+    create_validation_image = args["is_validation_image"]
+    build_measured_features_tables(
+        dataset_name,
+        tp,
+        out_dir,
+        position,
+        save_output=save_output,
+        create_validation_image=create_validation_image,
+        verbose=verbose,
+    )
