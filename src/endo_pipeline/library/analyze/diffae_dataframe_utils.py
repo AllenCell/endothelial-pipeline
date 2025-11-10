@@ -22,7 +22,7 @@ from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
     load_dataframe_manifest,
 )
-from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES, ColumnName
+from endo_pipeline.settings import ColumnName
 
 logger = logging.getLogger(__name__)
 
@@ -359,9 +359,8 @@ def get_pca_loadings_as_df(
     loading_matrix = get_pca_loadings(pca, scaled, magnitude, squared_norm)
 
     num_features, num_pcs = loading_matrix.shape
-    feat_col_names = [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(num_features)]
-
-    pc_col_names = [f"{ColumnName.PCA_FEATURE_PREFIX}{i}" for i in range(num_pcs)]
+    feat_col_names = get_latent_feature_column_names(num_features)
+    pc_col_names = get_pc_column_names(num_pcs)
 
     loading_matrix_df = pd.DataFrame(loading_matrix, columns=pc_col_names, index=feat_col_names)
     if df_format == "long":
@@ -380,7 +379,7 @@ def get_pca_loadings_as_df(
 def project_features_to_pcs(
     df: pd.DataFrame,
     pca: PCA,
-    feat_cols: list[str] = DIFFAE_FEATURE_COLUMN_NAMES,
+    feat_cols: list[str] | None = None,
 ) -> pd.DataFrame:
     """
     Project feature data for crops from one dataset onto principal
@@ -398,18 +397,16 @@ def project_features_to_pcs(
         dataset dataset_name projected onto PCA axes
     """
     # check that required columns are present in dataframe
-    check_required_columns_in_dataframe(df, feat_cols)
+    if feat_cols is None:
+        feat_cols = get_latent_feature_column_names_from_dataframe(df)
+    else:
+        check_required_columns_in_dataframe(df, feat_cols)
 
     df_ = df.copy()  # make copy of DataFrame to avoid modifying original DataFrame
 
     # project feature data onto PCA axes, add new columns for each PC
     num_pcs = pca.components_.shape[0]  # number of principal components
-    pc_cols = [
-        f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(num_pcs)
-    ]  # names of PC columns
-    logger.debug("Projecting feature data onto [ %s ] PC axes", num_pcs)
-    logger.debug("Number of feature columns: [ %s ]", len(feat_cols))
-    logger.debug("Number of expected feature columns: [ %s ]", pca.components_.shape[1])
+    pc_cols = get_pc_column_names(num_pcs)
     df_.loc[:, pc_cols] = pca.transform(df_[feat_cols].values)
 
     return df_
