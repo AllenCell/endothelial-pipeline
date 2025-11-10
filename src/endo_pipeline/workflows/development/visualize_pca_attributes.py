@@ -31,6 +31,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
+    from endo_pipeline.settings import ColumnName
 
     # set up logger
     logger = logging.getLogger(__name__)
@@ -45,6 +46,8 @@ def main(
     model_location = get_model_location_for_run(model_manifest, run_name_)
     model_config = get_config_dict_from_mlflow(model_location.mlflowid)
     num_latent_dim = get_latent_dim_from_config(model_config)
+    feat_col_names = [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(num_latent_dim)]
+    pc_col_names = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(num_latent_dim)]
 
     # set up output directory for figures
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
@@ -114,7 +117,11 @@ def main(
 
     # heatmap and clustemap of PC loadings
     pca_loadings_df = get_pca_loadings_as_df(pca, df_format="wide")
-    fig_heatmap = feature_viz.pc_loading_heatmap_workflow(pca_loadings_df)
+    fig_heatmap = feature_viz.pc_loading_heatmap_workflow(
+        pca_loadings_df,
+        diffae_feature_columns=feat_col_names,
+        pc_columns=pc_col_names,
+    )
     save_plot_to_path(
         figure=fig_heatmap,
         output_path=fig_savedir,
