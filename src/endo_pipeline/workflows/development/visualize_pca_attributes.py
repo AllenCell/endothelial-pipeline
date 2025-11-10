@@ -16,8 +16,8 @@ def main(
     """Visualize key attributes of a fit PCA model."""
     import logging
 
-    from endo_pipeline.configs import get_datasets_in_collection
-    from endo_pipeline.io import get_output_path, save_plot_to_path
+    from endo_pipeline.configs import get_datasets_in_collection, get_latent_dim_from_config
+    from endo_pipeline.io import get_config_dict_from_mlflow, get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
         get_pca_loadings,
@@ -26,6 +26,7 @@ def main(
     from endo_pipeline.library.visualize.diffae_features import feature_viz
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
+        get_model_location_for_run,
         get_most_recent_run_name,
         load_dataframe_manifest,
         load_model_manifest,
@@ -34,10 +35,16 @@ def main(
     # set up logger
     logger = logging.getLogger(__name__)
 
+    # get model and dataframe manifests
     model_manifest = load_model_manifest(model_manifest_name)
+    run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
+        model_manifest, run_name_, crop_pattern="grid"
     )
+    # get latent dimension from model config
+    model_location = get_model_location_for_run(model_manifest, run_name_)
+    model_config = get_config_dict_from_mlflow(model_location.mlflowid)
+    num_latent_dim = get_latent_dim_from_config(model_config)
 
     # set up output directory for figures
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
@@ -60,6 +67,7 @@ def main(
         dataset_collection_name=dataset_collection_name,
         dataframe_manifest_name=dataframe_manifest_name,
         include_cell_piling=include_cell_piling,
+        num_pcs=num_latent_dim,
     )
 
     # plot cumulative explained variance ratio of PCA components
