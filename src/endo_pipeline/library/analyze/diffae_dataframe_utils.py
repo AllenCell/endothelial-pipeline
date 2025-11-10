@@ -410,6 +410,7 @@ def get_dataframe_for_dynamics_workflows(
 
     location = get_dataframe_location_for_dataset(manifest, dataset_name)
     df = load_dataframe(location)
+    feat_cols = get_latent_feature_column_names_from_dataframe(df)
 
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
@@ -439,7 +440,7 @@ def get_dataframe_for_dynamics_workflows(
 
     else:
         # project feature data onto PC axes
-        return project_features_to_pcs(df_with_crop, pca)
+        return project_features_to_pcs(df_with_crop, pca, feat_cols=feat_cols)
 
 
 def get_dataset_descriptions(
