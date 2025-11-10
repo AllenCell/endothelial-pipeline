@@ -368,7 +368,10 @@ def project_features_to_pcs(
 
     # project feature data onto PCA axes, add new columns for each PC
     num_pcs = pca.components_.shape[0]  # number of principal components
-    pc_cols = DIFFAE_PC_COLUMN_NAMES[:num_pcs]  # names of PC columns
+    pc_cols = [f"{ColumnName.PCA_FEATURE_PREFIX}{i}" for i in range(num_pcs)]  # names of PC columns
+    logger.debug("Projecting feature data onto [ %s ] PC axes", num_pcs)
+    logger.debug("Number of feature columns: [ %s ]", len(feat_cols))
+    logger.debug("Number of expected feature columns: [ %s ]", pca.components_.shape[1])
     df_.loc[:, pc_cols] = pca.transform(df_[feat_cols].values)
 
     return df_
