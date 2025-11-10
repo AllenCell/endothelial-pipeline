@@ -48,6 +48,29 @@ def check_required_columns_in_dataframe(
             raise ValueError(f"DataFrame must contain column [ {col} ]")
 
 
+def get_latent_feature_column_names_from_dataframe(dataframe: pd.DataFrame) -> list[str]:
+    """
+    Get list of latent feature column names for given number of latent dimensions.
+
+    Matches columns that start with the latent feature column name prefix
+    as defined in ColumnName.LATENT_FEATURE_PREFIX.
+
+    Parameters
+    ----------
+    dataframe
+        DataFrame containing latent feature columns.
+
+    Returns
+    -------
+    :
+        List of latent feature column names.
+    """
+    feat_cols = [
+        col for col in dataframe.columns if col.startswith(ColumnName.LATENT_FEATURE_PREFIX)
+    ]
+    return feat_cols
+
+
 def filter_dataframe_by_annotations(
     dataframe: pd.DataFrame,
     dataset_config: DatasetConfig,
@@ -199,7 +222,8 @@ def fit_pca(
 
     # get the feature columns from the data,
     # these are the columns that start with 'feat_'
-    pca.fit(data_ref[DIFFAE_FEATURE_COLUMN_NAMES].values)  # fit PCA
+    diffae_feature_cols = get_latent_feature_column_names_from_dataframe(data_ref)
+    pca.fit(data_ref[diffae_feature_cols].values)  # fit PCA
 
     # log info about explained variance ratio
     logger.info(
@@ -299,7 +323,8 @@ def get_pca_loadings_as_df(
     loading_matrix = get_pca_loadings(pca, scaled, magnitude, squared_norm)
 
     num_features, num_pcs = loading_matrix.shape
-    feat_col_names = DIFFAE_FEATURE_COLUMN_NAMES[:num_features]
+    feat_col_names = [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(num_features)]
+
     pc_col_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
 
     loading_matrix_df = pd.DataFrame(loading_matrix, columns=pc_col_names, index=feat_col_names)
