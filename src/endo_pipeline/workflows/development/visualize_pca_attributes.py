@@ -2,7 +2,11 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+from endo_pipeline.settings import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    NUM_PCS_TO_ANALYZE,
+)
 
 TAGS = ["diffae_features", "visualization"]
 
@@ -12,6 +16,7 @@ def main(
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     dataset_collection_name: str = "pca_reference",
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
+    num_pcs: int | None = NUM_PCS_TO_ANALYZE,
 ) -> None:
     """Visualize key attributes of a fit PCA model."""
     import logging
@@ -46,6 +51,7 @@ def main(
     model_location = get_model_location_for_run(model_manifest, run_name_)
     model_config = get_config_dict_from_mlflow(model_location.mlflowid)
     num_latent_dim = get_latent_dim_from_config(model_config)
+    num_pc_dim = num_pcs if num_pcs is not None else num_latent_dim
     feat_col_names = [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(num_latent_dim)]
     pc_col_names = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(num_latent_dim)]
 
@@ -70,7 +76,7 @@ def main(
         dataset_collection_name=dataset_collection_name,
         dataframe_manifest_name=dataframe_manifest_name,
         include_cell_piling=include_cell_piling,
-        num_pcs=num_latent_dim,
+        num_pcs=num_pc_dim,
     )
 
     # plot cumulative explained variance ratio of PCA components
