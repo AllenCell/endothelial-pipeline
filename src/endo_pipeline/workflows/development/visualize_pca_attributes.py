@@ -25,6 +25,8 @@ def main(
     from endo_pipeline.io import get_config_dict_from_mlflow, get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
+        get_latent_feature_column_names,
+        get_pc_column_names,
         get_pca_loadings,
         get_pca_loadings_as_df,
     )
@@ -36,7 +38,6 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings import ColumnName
 
     # set up logger
     logger = logging.getLogger(__name__)
@@ -52,8 +53,8 @@ def main(
     model_config = get_config_dict_from_mlflow(model_location.mlflowid)
     num_latent_dim = get_latent_dim_from_config(model_config)
     num_pc_dim = num_pcs if num_pcs is not None else num_latent_dim
-    feat_col_names = [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(num_latent_dim)]
-    pc_col_names = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(num_latent_dim)]
+    feat_col_names = get_latent_feature_column_names(num_latent_dim)
+    pc_col_names = get_pc_column_names(num_pc_dim)
 
     # set up output directory for figures
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name

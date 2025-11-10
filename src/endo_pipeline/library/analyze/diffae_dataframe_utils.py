@@ -48,6 +48,42 @@ def check_required_columns_in_dataframe(
             raise ValueError(f"DataFrame must contain column [ {col} ]")
 
 
+def get_latent_feature_column_names(num_latent_dims: int) -> list[str]:
+    """
+    Get list of latent feature column names for given number of latent dimensions.
+
+    Parameters
+    ----------
+    num_latent_dims
+        Number of latent dimensions.
+
+    Returns
+    -------
+    :
+        List of latent feature column names.
+    """
+    feat_cols = [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(num_latent_dims)]
+    return feat_cols
+
+
+def get_pc_column_names(num_pcs: int) -> list[str]:
+    """
+    Get list of PCA feature column names for given number of principal components.
+
+    Parameters
+    ----------
+    num_pcs
+        Number of principal components.
+
+    Returns
+    -------
+    :
+        List of PCA feature column names.
+    """
+    pc_cols = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(num_pcs)]
+    return pc_cols
+
+
 def get_latent_feature_column_names_from_dataframe(dataframe: pd.DataFrame) -> list[str]:
     """
     Get list of latent feature column names for given number of latent dimensions.
@@ -368,7 +404,9 @@ def project_features_to_pcs(
 
     # project feature data onto PCA axes, add new columns for each PC
     num_pcs = pca.components_.shape[0]  # number of principal components
-    pc_cols = [f"{ColumnName.PCA_FEATURE_PREFIX}{i}" for i in range(num_pcs)]  # names of PC columns
+    pc_cols = [
+        f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(num_pcs)
+    ]  # names of PC columns
     logger.debug("Projecting feature data onto [ %s ] PC axes", num_pcs)
     logger.debug("Number of feature columns: [ %s ]", len(feat_cols))
     logger.debug("Number of expected feature columns: [ %s ]", pca.components_.shape[1])
