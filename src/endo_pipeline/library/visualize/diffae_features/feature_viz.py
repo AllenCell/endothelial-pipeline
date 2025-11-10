@@ -57,7 +57,10 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     return fig, ax
 
 
-def plot_component_loadings(loading_matrix: np.ndarray) -> tuple[Figure, Axes]:
+def plot_component_loadings(
+    loading_matrix: np.ndarray,
+    include_legend: bool = True,
+) -> tuple[Figure, Axes]:
     """
     Plot component loadings of PCA model.
 
@@ -65,6 +68,8 @@ def plot_component_loadings(loading_matrix: np.ndarray) -> tuple[Figure, Axes]:
     ----------
     loading_matrix:
         PCA component loadings matrix, shape (n_features, n_components).
+    include_legend
+        True to include legend in the plot, False to exclude it.
 
     Returns
     -------
@@ -85,7 +90,8 @@ def plot_component_loadings(loading_matrix: np.ndarray) -> tuple[Figure, Axes]:
     ax.set_xlabel("Feature index")
     ax.set_ylabel("Loading value")
     ax.set_title("PCA Loadings")
-    ax.legend(loc=(1.05, 0.5), title="PCs")
+    if include_legend:
+        ax.legend(loc=(1.05, 0.5), title="PCs")
 
     return fig, ax
 

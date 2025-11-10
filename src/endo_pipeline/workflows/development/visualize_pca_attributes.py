@@ -2,11 +2,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from endo_pipeline.settings import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-    NUM_PCS_TO_ANALYZE,
-)
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 TAGS = ["diffae_features", "visualization"]
 
@@ -16,7 +12,8 @@ def main(
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     dataset_collection_name: str = "pca_reference",
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
-    num_pcs: int | None = NUM_PCS_TO_ANALYZE,
+    num_pcs: int | None = None,
+    include_loadings_legend: bool = False,
 ) -> None:
     """Visualize key attributes of a fit PCA model."""
     import logging
@@ -87,23 +84,29 @@ def main(
     # plot PC loadings (contribution of each latent dimension to each PC)
     # first, plot for components scaled by the square root of the explained variance
     fig, _ = feature_viz.plot_component_loadings(
-        get_pca_loadings(pca, scaled=True, magnitude=False)
+        get_pca_loadings(pca, scaled=True, magnitude=False),
+        include_legend=include_loadings_legend,
     )
     save_plot_to_path(fig, fig_savedir, "pc_loadings_scaled")
 
     # then, plot components without scaling
     fig, _ = feature_viz.plot_component_loadings(
-        get_pca_loadings(pca, scaled=False, magnitude=False)
+        get_pca_loadings(pca, scaled=False, magnitude=False),
+        include_legend=include_loadings_legend,
     )
     save_plot_to_path(fig, fig_savedir, "pc_loadings_unscaled")
 
     # plot the absolute values of the scaled loadings
-    fig, _ = feature_viz.plot_component_loadings(get_pca_loadings(pca, scaled=True, magnitude=True))
+    fig, _ = feature_viz.plot_component_loadings(
+        get_pca_loadings(pca, scaled=True, magnitude=True),
+        include_legend=include_loadings_legend,
+    )
     save_plot_to_path(fig, fig_savedir, "pc_loadings_scaled_magnitude")
 
     # plot the absolute values of the unscaled loadings
     fig, _ = feature_viz.plot_component_loadings(
-        get_pca_loadings(pca, scaled=False, magnitude=True)
+        get_pca_loadings(pca, scaled=False, magnitude=True),
+        include_legend=include_loadings_legend,
     )
     save_plot_to_path(fig, fig_savedir, "pc_loadings_unscaled_magnitude")
 
