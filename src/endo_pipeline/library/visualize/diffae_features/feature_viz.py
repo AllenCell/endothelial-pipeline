@@ -74,7 +74,10 @@ def plot_component_loadings(loading_matrix: np.ndarray) -> tuple[Figure, Axes]:
     fig, ax = viz_base.init_plot(figsize=(12, 6))  # initialize figure and axes
 
     # list of markers for each component
-    markers = ["o", "s", "D", "^", "v", "X", "*", "p"]
+    # NEED THIS TO BE FLEXIBLE BASED ON NUMBER OF PCS
+    num_components = loading_matrix.shape[1]
+    markers_unique = ["o", "s", "D", "^", "v", "X", "*", "p"]
+    markers = markers_unique * (num_components // len(markers_unique) + 1)
 
     # plot loadings for each component
     for i in range(loading_matrix.shape[1]):
