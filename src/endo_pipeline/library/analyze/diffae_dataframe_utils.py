@@ -22,7 +22,7 @@ from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
     load_dataframe_manifest,
 )
-from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES, DIFFAE_PC_COLUMN_NAMES, ColumnName
+from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES, ColumnName
 
 logger = logging.getLogger(__name__)
 
@@ -325,7 +325,7 @@ def get_pca_loadings_as_df(
     num_features, num_pcs = loading_matrix.shape
     feat_col_names = [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(num_features)]
 
-    pc_col_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
+    pc_col_names = [f"{ColumnName.PCA_FEATURE_PREFIX}{i}" for i in range(num_pcs)]
 
     loading_matrix_df = pd.DataFrame(loading_matrix, columns=pc_col_names, index=feat_col_names)
     if df_format == "long":
