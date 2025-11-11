@@ -1,5 +1,5 @@
 from endo_pipeline.cli import tags
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM
+from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 TAGS = ["diffae", tags.TEST_READY, tags.GPU]
@@ -85,17 +85,6 @@ def main(
     # Instantiate random number generator
     rng = default_rng(seed=random_seed)
 
-    # Set defaults for plot titles
-    CDH5_LABELS = [
-        "Original CDH5",
-        "Noised CDH5",
-        "Denoised CDH5",
-        "Random\ncond vector",
-        "Random\ninput img",
-    ]
-    NOISE_LABELS = [f"{level * 100:.0f}% Noise" for level in [*MODEL_QC_NOISE_LEVELS, 1]]
-    NUM_IMAGES_DENOISED = len(NOISE_LABELS)
-
     # Load model manifest and get location for run_name
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
@@ -123,6 +112,17 @@ def main(
         logger.info("DEMO MODE: Limiting MODEL_QC_EXAMPLES to the first example only.")
         MODEL_QC_EXAMPLES = MODEL_QC_EXAMPLES[:1]
 
+    # Set defaults for plot titles
+    CDH5_LABELS = [
+        "Original CDH5",
+        "Noised CDH5",
+        f"{label_for_conditioning}\nembedding",
+        "Scrambled\nembedding",
+        "Scrambled\ninput image",
+    ]
+    NOISE_LABELS = [f"{level * 100:.0f}% Noise" for level in [*MODEL_QC_NOISE_LEVELS, 1]]
+    NUM_IMAGES_DENOISED = len(NOISE_LABELS)
+
     # Store 100% denoised example results for each dataset in the model QC examples
     example_results_100 = []
 
@@ -134,7 +134,8 @@ def main(
         # Extract position, timepoint, and crop position
         position = example.position
         timepoint = example.timepoint
-        start_x, start_y = example.crop_position
+        start_x = example.crop_x_start
+        start_y = example.crop_y_start
 
         # Get output path for saving figures
         output_path = get_output_path(
@@ -254,10 +255,23 @@ def main(
             gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
             fig_kwargs=MODEL_QC_FIG_KWARGS,
         )
+
+        # Adjust the layout to make space for supertitles
+        fig.subplots_adjust(top=0.9)
+        all_axes = fig.get_axes()
+        col_4_pos = all_axes[4].get_position()
+        center_x = col_4_pos.x0 + (col_4_pos.width / 2)
+        fig.text(
+            x=center_x,
+            y=0.97,
+            s="Predicted CDH5 Images",
+            ha="center",
+            fontsize=FONTSIZE_LARGE,
+        )
         save_plot_to_path(
             fig,
             output_path,
-            f"denoising_contact_sheet_{dataset_name}_P{position}_T{timepoint}_X{start_x}_Y{start_y}",
+            f"denoising_contact_sheet_{dataset_name}P{position}T{timepoint}X{start_x}Y{start_y}",
         )
 
         example_results_100.append(conditioning_input_crop.squeeze())
@@ -274,7 +288,7 @@ def main(
             f"{label_for_conditioning} input",
             *[
                 "Original CDH5",
-                "Denoised CDH5",
+                "Predicted CDH5",
             ],
         ],
         row_titles=[f"Example {i+1}" for i in range(len(MODEL_QC_EXAMPLES))],
@@ -287,7 +301,7 @@ def main(
     save_plot_to_path(
         fig,
         output_path,
-        f"denoising_contact_sheet_all_examples_100pct_noise",
+        f"contact_sheet_predict_all_examples",
     )
 
 
