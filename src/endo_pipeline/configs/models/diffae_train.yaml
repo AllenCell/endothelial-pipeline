@@ -156,7 +156,6 @@ data:
 
 model:
   _target_: endo_pipeline.library.model.diffae.diffusion_autoencoder.DiffusionAutoEncoder
-  noise_cons: True
   save_images_every_n_epochs: 10
   save_dir: ${paths.output_dir}
   image_shape: # this is where crop size is defined, gets overridden with user input by training script
