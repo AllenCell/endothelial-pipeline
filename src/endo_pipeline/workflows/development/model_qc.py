@@ -120,8 +120,11 @@ def main(
 
     # Load Example Data
     if DEMO_MODE:
-        logger.info("DEMO MODE: Limiting MODEL_QC_EXAMPLES to 2 examples only.")
-        MODEL_QC_EXAMPLES = MODEL_QC_EXAMPLES[:2]
+        logger.info("DEMO MODE: Limiting MODEL_QC_EXAMPLES to the first example only.")
+        MODEL_QC_EXAMPLES = MODEL_QC_EXAMPLES[:1]
+
+    # Store 100% denoised example results for each dataset in the model QC examples
+    example_results_100 = []
 
     # Process each dataset
     for example in MODEL_QC_EXAMPLES:
@@ -222,7 +225,6 @@ def main(
         latent_vector_from_img_scrambled = get_latent_vector_from_crop(
             model, img_scrambled, num_gpus=NUM_GPUS
         )
-
         denoised_images_by_random_cond_latent_scramble = [
             generate_from_coords_and_noised_image(
                 model, latent_vector_from_img_scrambled, noised_image, num_gpus=NUM_GPUS
@@ -240,7 +242,6 @@ def main(
             *[img.squeeze() for img in denoised_images_by_random_cond],
             *[img.squeeze() for img in denoised_images_by_random_cond_latent_scramble],
         ]
-
         fig = make_contact_sheet(
             panels=panels,
             max_rows=NUM_IMAGES_DENOISED,
@@ -253,12 +254,41 @@ def main(
             gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
             fig_kwargs=MODEL_QC_FIG_KWARGS,
         )
-
         save_plot_to_path(
             fig,
             output_path,
             f"denoising_contact_sheet_{dataset_name}_P{position}_T{timepoint}_X{start_x}_Y{start_y}",
         )
+
+        example_results_100.append(conditioning_input_crop.squeeze())
+        example_results_100.append(diffusion_input_crop.squeeze())
+        example_results_100.append(denoised_images_by_bf_cond[-1].squeeze())
+
+    # Plot summary figure with only the 100% noise denoising results across examples
+    num_cols = 3
+    fig = make_contact_sheet(
+        panels=example_results_100,
+        max_rows=len(MODEL_QC_EXAMPLES),
+        max_cols=num_cols,
+        col_titles=[
+            f"{label_for_conditioning} input",
+            *[
+                "Original CDH5",
+                "Denoised CDH5",
+            ],
+        ],
+        row_titles=[f"Example {i+1}" for i in range(len(MODEL_QC_EXAMPLES))],
+        direction="left-right first",
+        font_size=FONTSIZE_MEDIUM,
+        subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
+        gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
+        fig_kwargs={"figsize": (num_cols * 1.5, len(MODEL_QC_EXAMPLES) * 1.5)},
+    )
+    save_plot_to_path(
+        fig,
+        output_path,
+        f"denoising_contact_sheet_all_examples_100pct_noise",
+    )
 
 
 if __name__ == "__main__":
