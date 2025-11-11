@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Literal, cast
 
 import numpy as np
@@ -101,9 +102,11 @@ def get_latent_feature_column_names_from_dataframe(dataframe: pd.DataFrame) -> l
     :
         List of latent feature column names.
     """
-    feat_cols = [
-        col for col in dataframe.columns if col.startswith(ColumnName.LATENT_FEATURE_PREFIX)
+    # regular expression to match latent feature columns
+    feat_cols_match = [
+        re.match(f"{ColumnName.LATENT_FEATURE_PREFIX}[0-9]+$", col) for col in dataframe.columns
     ]
+    feat_cols = [col.group() for col in feat_cols_match if col is not None]
     return feat_cols
 
 
