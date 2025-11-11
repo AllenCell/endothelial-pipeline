@@ -49,7 +49,7 @@ def main(
     model_location = get_model_location_for_run(model_manifest, run_name_)
     model_config = get_config_dict_from_mlflow(model_location.mlflowid)
     num_latent_dim = get_latent_dim_from_config(model_config)
-    num_pc_dim = num_pcs if num_pcs is not None else num_latent_dim
+    num_pc_dim = num_pcs or num_latent_dim
     feat_col_names = get_latent_feature_column_names(num_latent_dim)
     pc_col_names = get_pc_column_names(num_pc_dim)
 
