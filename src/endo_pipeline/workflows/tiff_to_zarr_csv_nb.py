@@ -4,10 +4,11 @@ from pathlib import Path
 
 import pandas as pd
 
-from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path
 from endo_pipeline.manifests import (
     get_image_location_for_dataset,
+    get_zarr_location_for_position,
     list_datasets_with_images,
     load_image_manifest,
 )
@@ -46,14 +47,16 @@ for image_manifest_name, channel_name in image_channel_pairs:
 
             else:
                 seg_dir = location.path.parent
-                original_zarr = get_zarr_file_for_position(dataset_config, position)
-                save_path = Path(zarr_seg_path) / original_zarr.parent.name / original_zarr.name
+                original_zarr_loc = get_zarr_location_for_position(dataset_config, position)
+                original_zarr_path = original_zarr_loc.path
+
+                save_path = Path(zarr_seg_path) / Path(*original_zarr_path.parts[-2:])
                 duration = dataset_config.duration
 
                 data.append(
                     {
                         "dataset_name": dataset_name,
-                        "original_zarr": original_zarr,
+                        "original_zarr": original_zarr_path,
                         "tiff_seg_dir": str(seg_dir),
                         "save_zarr_path": str(save_path),
                         "duration": duration,

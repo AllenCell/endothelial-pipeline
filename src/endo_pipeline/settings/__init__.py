@@ -14,6 +14,7 @@ from .diffae_feature_dataframes import (
     CytoDLLoadDataKeys,
     CytoDLSaveDataKeys,
 )
+from .examples import MODEL_QC_EXAMPLES
 from .image_data import (
     DIMENSION_ORDER,
     IF_INTEGRATION_SAVE_DIRECTORY,
@@ -41,8 +42,6 @@ from .workflow_defaults import (
     MODEL_QC_CROP_POSITION,
     MODEL_QC_DATASET_NAME,
     MODEL_QC_NOISE_LEVELS,
-    MODEL_QC_POSITION,
-    MODEL_QC_TIMEPOINT,
     RANDOM_SEED,
 )
 
@@ -68,6 +67,7 @@ __all__ = [
     "LOWER_Z_SLICE_OFFSET",
     "MODEL_QC_CROP_POSITION",
     "MODEL_QC_DATASET_NAME",
+    "MODEL_QC_EXAMPLES",
     "MODEL_QC_NOISE_LEVELS",
     "MODEL_QC_POSITION",
     "MODEL_QC_TIMEPOINT",

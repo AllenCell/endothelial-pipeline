@@ -87,3 +87,43 @@ def get_available_zarr_locations(dataset: DatasetConfig) -> list[ImageLocation]:
         get_zarr_location_for_position(dataset, position)
         for position in sorted(dataset.zarr_positions)
     ]
+
+
+def add_image_location_to_manifest(
+    dataset_config: DatasetConfig,
+    img_manifest: ImageManifest,
+    path_prefix: str | Path,
+    add_directory: bool = False,
+) -> ImageManifest:
+    """
+    Add or update image location for given dataset in the manifest
+
+    Parameters
+    ----------
+    dataset_config : DatasetConfig
+        Dataset configuration object
+    img_manifest : ImageManifest
+        Image manifest object
+    add_directory : bool
+        Whether to add a directory structure to the path with date and fmsid
+    path_prefix : str | Path
+        Prefix path to the image location
+
+    Returns
+    -------
+    img_manifest : ImageManifest
+        Updated image manifest object
+    """
+    date = dataset_config.name[:8]
+    fmsid = dataset_config.fmsid
+    suffix = "P{{position}}.ome.zarr"
+
+    if add_directory:
+        suffix = f"/{date}_{fmsid}/{date}_{fmsid}_{suffix}"
+    else:
+        suffix = f"{date}_{fmsid}_{suffix}"
+
+    new_path = f"{path_prefix}/{suffix}"
+    img_manifest.locations[dataset_config.name] = ImageLocation(path=Path(new_path))
+
+    return img_manifest

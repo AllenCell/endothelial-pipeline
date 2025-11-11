@@ -1,4 +1,8 @@
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import Datasets, tags
+
+TAGS = [tags.TEST_READY]
+
+device_used_printed_global = False
 
 
 def generate_labelfree_nuclei_predictions(args: dict) -> None:
@@ -123,7 +127,6 @@ def main(
     n_proc: int = 1,
     save_output: bool = True,
     overwrite: bool = True,
-    is_test: bool = False,
 ) -> None:
     """
     Run the label-free nuclear prediction workflow on a dataset, list of datasets, or collection.
@@ -132,7 +135,12 @@ def main(
 
     .. code-block:: bash
 
-        --datasets 20241217_20X 20241120_20X
+        --datasets 20250818_20X 20250618_20X
+
+    **Workflow demo**
+
+    The ``--demo-mode`` (``-d``) flag can be used to run the workflow on the first timepoint
+    of the first 2 positions for each of the given datasets for workflow testing purposes.
     """
 
     import logging
@@ -140,6 +148,7 @@ def main(
 
     from tqdm import tqdm
 
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
 
@@ -156,8 +165,10 @@ def main(
         out_dir=out_dir,
         save_output=save_output,
         overwrite=overwrite,
-        is_test=is_test,
         image_validation_frequency=48,
+        is_test=DEMO_MODE,
+        t_start=0,
+        t_final=1 if DEMO_MODE else None,
     )
 
     # Predict nuclei from brightfield images using the retrained CellPose model
@@ -188,5 +199,4 @@ def main(
 if __name__ == "__main__":
     from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
-    device_used_printed_global = False
     ipython_cli_flexecute(main)

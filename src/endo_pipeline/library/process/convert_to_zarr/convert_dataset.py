@@ -22,6 +22,7 @@ def convert_dataset(
     output_dataset_name: str,  # date
     output_path: str,
     channel_names: list[str],
+    demo_mode: bool = False,
 ) -> None:
     """
     Convert a raw dataset into a Zarr format with a specific channel order,
@@ -37,10 +38,8 @@ def convert_dataset(
         The base directory where the converted Zarr files will be saved.
     channel_names : list[str], optional
         A list of channel names to include in the output.
-
-    Returns
-    -------
-    None
+    demo_mode: bool
+        If True, process only the first scene for testing purposes
     """
 
     img = BioImage(get_original_path(dataset))
@@ -86,3 +85,7 @@ def convert_dataset(
                 interval_min,
             )
             count += 1
+
+        if demo_mode:
+            print("Demo mode is ON. Processing only the first scene.")
+            break
