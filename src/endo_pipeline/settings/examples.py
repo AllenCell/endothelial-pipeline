@@ -16,7 +16,7 @@ class ExampleImage(NamedTuple):
     description: str
     position: int
     timepoint: int
-    crop_position: tuple[int, int]
+    crop_position: tuple[int, int]  # x_start, y_start of the crop for zarr resolution level 1
 
 
 MODEL_QC_EXAMPLES: list[ExampleImage] = [
