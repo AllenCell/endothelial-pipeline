@@ -1,8 +1,8 @@
-name: 20251021_20X_IF8
-original_path: //allen/programs/allencell/data/proj0/536/7ab/3e6/cbb/260/009/94c/844/d4e/a96/33/20251021_GE00009361_8_SLDY/20251021_GE00009361_8_SLDY.sldy
-zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251021_33a96d4e84494c009260cbb3e67ab536
+name: 20251103_20X_IF8
+original_path: //allen/programs/allencell/data/proj0/68d/5bd/e67/bc8/349/1a9/a48/af0/f80/f9f/ba/20251103_GE00009361_8_SLDY/20251103_GE00009361_8_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251103_baf9ff80af0a481a9349bc8e675bd68d
 zarr_positions: [0, 1, 2, 3, 4, 5]
-fmsid: 33a96d4e84494c009260cbb3e67ab536
+fmsid: baf9ff80af0a481a9349bc8e675bd68d
 barcode: GE00009361
 cell_lines: [AICS-126]
 live_or_fixed_sample: live
@@ -60,8 +60,8 @@ timepoint_annotations:
 position_annotations: null
 center_z_plane:
   0: 10
-  1: 9
-  2: 7
-  3: 7
-  4: 9
+  1: 8
+  2: 9
+  3: 8
+  4: 8
   5: 8

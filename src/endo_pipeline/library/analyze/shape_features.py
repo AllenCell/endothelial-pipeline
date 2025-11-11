@@ -1494,13 +1494,17 @@ def build_measured_features_tables(
     - git_commit_hash
     - git_uncommitted_changes
     """
-    import pandas as pd
-    from bioio import BioImage
 
-    from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-    from endo_pipeline.io import load_image, load_image_from_path
+    import pandas as pd
+
+    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.io import load_image
     from endo_pipeline.library.process.general_image_preprocessing import save_image_output
-    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+    from endo_pipeline.manifests import (
+        get_image_location_for_dataset,
+        get_zarr_location_for_position,
+        load_image_manifest,
+    )
     from endo_pipeline.settings import DIMENSION_ORDER
 
     logger.debug(f"Working on {dataset_name} -- T={tp}...")
@@ -1515,12 +1519,13 @@ def build_measured_features_tables(
     )
 
     logger.debug(f"T={tp} -- loading imaging datasets")
+
     # load the raw cdh5 image data
     dataset_config = load_dataset_config(dataset_name)
-    image_path = get_zarr_file_for_position(dataset_config, position)
-    raw_arr = load_image_from_path(path=image_path, channels=["EGFP"], timepoints=tp, level=0)
+    image_loc = get_zarr_location_for_position(dataset_config, position)
+    raw_arr = load_image(image_loc, channels=["EGFP"], timepoints=tp, level=0)
     raw_arr = raw_arr.max(axis=dim_order.index("Z")).squeeze().compute()
-    voxel_size = BioImage(image_path).physical_pixel_sizes
+    voxel_size = load_image(image_loc, read=False).physical_pixel_sizes
 
     logger.debug(f"T={tp} -- loading classic segmentation")
 
@@ -1552,7 +1557,7 @@ def build_measured_features_tables(
         logger.debug(f"T={tp} -- saving table of edge angles and distances")
         table = pd.DataFrame(
             {
-                "filepath_raw_image": image_path.as_posix(),
+                "filepath_raw_image": image_loc.path.as_posix(),
                 "filepath_segmentation_image": seg_filepath,
                 "dataset_name": dataset_name,
                 "position": position,
@@ -1617,7 +1622,7 @@ def build_measured_features_tables(
             logger.debug(f"T={tp} -- saving table of cell properties")
             table = pd.DataFrame(
                 {
-                    "filepath_raw_image": image_path.as_posix(),
+                    "filepath_raw_image": image_loc.path.as_posix(),
                     "filepath_segmentation_image": seg_filepath,
                     "dataset_name": dataset_name,
                     "position": position,
@@ -1797,12 +1802,18 @@ def get_nuclei_features_from_dataset_at_timepoint(
     tp: int,
     channel_names: tuple = ("EGFP", "BF"),
 ) -> pd.DataFrame:
-    """Load label-free nuclei prediction images and measure features for a given dataset, position,
-    and timepoint.
     """
-    from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-    from endo_pipeline.io import load_image, load_image_from_path
-    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+    Load label-free nuclei prediction images and measure features for a given
+    dataset, position, and timepoint.
+    """
+
+    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.io import load_image
+    from endo_pipeline.manifests import (
+        get_image_location_for_dataset,
+        get_zarr_location_for_position,
+        load_image_manifest,
+    )
     from endo_pipeline.settings import DIMENSION_ORDER
 
     # Load segmentations and image
@@ -1817,10 +1828,8 @@ def get_nuclei_features_from_dataset_at_timepoint(
     cdh5_location = get_image_location_for_dataset(cdh5_manifest, dataset_config, position, tp)
     cdh5_seg = load_image(cdh5_location, squeeze=True, compute=True)
 
-    img_path = get_zarr_file_for_position(dataset_config, position)
-    raw_img = load_image_from_path(
-        path=img_path, channels=list(channel_names), timepoints=tp, level=0
-    )
+    img_loc = get_zarr_location_for_position(dataset_config, position)
+    raw_img = load_image(img_loc, channels=list(channel_names), timepoints=tp, level=0)
     raw_mip = raw_img.max(axis=dim_order.index("Z"), keepdims=True).compute()
 
     # split up the image into a list of channels

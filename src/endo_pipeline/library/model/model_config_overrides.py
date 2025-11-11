@@ -36,6 +36,9 @@ class ModelConfigOverride:
     crop_size: int | None = Field(None, gt=0)
     """Number of pixels in each dimension of the image crop to use for training."""
 
+    condition_key: str | None = None
+    """Key for the image channel to use for semantic conditioning of the diffusion model."""
+
     latent_dim: int | None = Field(None, gt=0)
     """Number of dimensions for the latent space of the semantic encoder."""
 
@@ -106,6 +109,9 @@ class ModelConfigOverride:
         if self.crop_size is None:
             self.crop_size = OmegaConf.select(config, "model.image_shape[1]", default=128)
 
+        if self.condition_key is None:
+            self.condition_key = OmegaConf.select(config, "model.condition_key", default="raw_bf")
+
         if self.latent_dim is None:
             self.latent_dim = OmegaConf.select(
                 config, "model.semantic_encoder.num_classes", default=DEFAULT_NUM_LATENT_DIMENSIONS
@@ -167,6 +173,8 @@ class ModelConfigOverride:
             "callbacks.model_checkpoint.dirpath": checkpoint_path.as_posix(),
             # set crop size from input via model.image_shape,
             "model.image_shape": [1, self.crop_size, self.crop_size],
+            # set condition key
+            "model.condition_key": self.condition_key,
             # set number of latent dimensions
             "model.semantic_encoder.base_encoder.num_classes": self.latent_dim,
             # set training and validation dataframe paths and caching parameters

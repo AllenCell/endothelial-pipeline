@@ -29,4 +29,4 @@ jobs:
         python-version-file: "pyproject.toml"
 
     - name: Run pytest
-      run: uv run --locked pytest tests -v
+      run: uv run --locked --extra ml_workflows pytest tests -v

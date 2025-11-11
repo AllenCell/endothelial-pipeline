@@ -1,5 +1,7 @@
 """Workflow default settings."""
 
+from typing import Literal
+
 DEFAULT_MODEL_MANIFEST_NAME: str = "diffae_04_10"
 """Default model manifest for loading models and model features."""
 
@@ -16,6 +18,12 @@ label-free nuclei segmentation features."""
 DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL: int = 1
 """Default zarr resolution level for loading model input data."""
 
+DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING: Literal["bf", "cdh5"] = "bf"
+"""Default image type to condition DiffAE models on."""
+
+DIFFAE_IMAGE_LOADING_KEY_PREFIX: str = "raw_"
+"""Default key prefix for loading DiffAE model input images."""
+
 DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT: str = "raw_cdh5"
 """Default key for channel to use as diffusion image input to the model."""
 
@@ -25,17 +33,5 @@ DEFAULT_NUM_LATENT_DIMENSIONS: int = 1024
 RANDOM_SEED: int = 47
 """Default random seed for workflows."""
 
-MODEL_QC_DATASET_NAME = "20250224_20X"
-"""Default dataset name for selecting crops for the model QC workflow."""
-
-MODEL_QC_POSITION: int = 0
-"""Default position index for selecting crops for the model QC workflow."""
-
-MODEL_QC_TIMEPOINT: int = 0
-"""Default timepoint index for selecting crops for the model QC workflow."""
-
 MODEL_QC_NOISE_LEVELS: tuple = (0.25, 0.5, 0.75)
 """Default noise levels to add to ground truth for the model QC workflow."""
-
-MODEL_QC_CROP_POSITION: tuple = (100, 100)
-"""Default crop position (start_x, start_y) for the model QC workflow."""
