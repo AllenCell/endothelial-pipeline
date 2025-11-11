@@ -328,8 +328,8 @@ def initialize_diffae_model_for_finetuning(
     template_finetune_config.update(checkpoint_override)
 
     # if noise_cons is in the model section, drop it
-    if "noise_cons" in template_finetune_config.model:
-        template_finetune_config.model.pop("noise_cons")
+    if "noise_cons" in base_model.cfg.model:
+        base_model.cfg.model.pop("noise_cons")
 
     # override downloaded model config with finetuning config
     base_model.override_config(template_finetune_config)
