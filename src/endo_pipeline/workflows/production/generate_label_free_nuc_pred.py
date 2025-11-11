@@ -1,6 +1,7 @@
 from endo_pipeline.cli import Datasets, tags
 
-TAGS = [tags.TEST_READY]
+# GPU is optional, but the workflow is much faster with it
+TAGS = [tags.TEST_READY, tags.CPU_ONLY]
 
 
 def main(
