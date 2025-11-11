@@ -1,5 +1,7 @@
 """Workflow default settings."""
 
+from typing import Literal
+
 DEFAULT_MODEL_MANIFEST_NAME: str = "diffae_04_10"
 """Default model manifest for loading models and model features."""
 
@@ -12,3 +14,21 @@ DEFAULT_PCA_DATASET_COLLECTION_NAME: str = "pca_reference"
 DEFAULT_SEG_FEATURE_MANIFEST_NAME: str = "live_merged_seg_features"
 """Default manifest name for merged CDH5 segmentation, CDH5 tracking and
 label-free nuclei segmentation features."""
+
+DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL: int = 1
+"""Default zarr resolution level for loading model input data."""
+
+DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING: Literal["bf", "cdh5"] = "bf"
+"""Default image type to condition DiffAE models on."""
+
+DIFFAE_IMAGE_LOADING_KEY_PREFIX: str = "raw_"
+"""Default key prefix for loading DiffAE model input images."""
+
+DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT: str = "raw_cdh5"
+"""Default key for channel to use as diffusion image input to the model."""
+
+RANDOM_SEED: int = 47
+"""Default random seed for workflows."""
+
+MODEL_QC_NOISE_LEVELS: tuple = (0.25, 0.5, 0.75)
+"""Default noise levels to add to ground truth for the model QC workflow."""

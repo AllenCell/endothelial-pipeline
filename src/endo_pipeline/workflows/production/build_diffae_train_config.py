@@ -1,6 +1,8 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from cyclopts import Parameter
+
+from endo_pipeline.settings import DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING
 
 TAGS = ["diffae", "model_training"]
 
@@ -10,6 +12,7 @@ def main(
     run_name: str | None = None,
     resolution_level: int = 1,
     crop_size: int = 128,
+    condition_on: Literal["bf", "cdh5"] = DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
 ) -> None:
     """
@@ -27,6 +30,13 @@ def main(
 
     If the user provides a run name that already exists in the manifest, a
     unique name will be generated and a warning will be logged.
+
+    **Conditioning image type**
+
+    The model can be conditioned on either brightfield (``bf``) or CDH5
+    fluorescence (``cdh5``) image channels. The conditioning channel is set
+    using the ``condition_on`` parameter via overriding the training config.
+    The default is brightfield.
 
     **Cell piling exclusion**
 
@@ -59,6 +69,8 @@ def main(
         The resolution level of the zarr files to be used for training.
     crop_size
         The length of the 2D image crop in pixels to use for model training.
+    condition_on
+        The abbreviated name of the image channel to condition the model on.
     include_cell_piling
         True to include timepoints with cell piling in data used for training, False to exclude.
     """
@@ -77,10 +89,9 @@ def main(
         ModelLocation,
         create_model_manifest,
         load_dataframe_manifest,
-        load_model_manifest,
         save_model_manifest,
     )
-    from endo_pipeline.settings import DIFFAE_MODEL_TRAIN_CONFIG
+    from endo_pipeline.settings import DIFFAE_IMAGE_LOADING_KEY_PREFIX, DIFFAE_MODEL_TRAIN_CONFIG
 
     logger = logging.getLogger(__name__)
 
@@ -105,9 +116,12 @@ def main(
     # Create name components from input parameters
     res_name = f"_resolution_{resolution_level}"
     patch_name = f"_patch_{crop_size}x{crop_size}"
+    condition_name = f"_condition_on_{condition_on}"
     piling_name = "_include_cell_piling" if include_cell_piling else "_exclude_cell_piling"
 
-    # Build dataframe manifest name
+    # Build dataframe manifest name to load training and validation dataframes.
+    # Note that the dataframe manifest name does not include the patch size or
+    # conditioning type, as these are not relevant for the dataframe itself.
     dataframe_manifest_name = f"diffae_training_dataframe{res_name}{piling_name}{name_suffix}"
 
     try:
@@ -134,12 +148,15 @@ def main(
 
     # Build the model manifest name, if not provided.
     if model_manifest_name is None:
-        model_manifest_name = f"diffae{res_name}{patch_name}{piling_name}"
+        model_manifest_name = f"diffae{res_name}{patch_name}{condition_name}{piling_name}"
+
+    # Create or load the model manifest.
+    manifest = create_model_manifest(model_manifest_name, __file__)
 
     # Build the run name, if not provided.
     if run_name is None:
         run_name = make_name_unique("diffae").name
-    elif run_name in load_model_manifest(model_manifest_name).locations:
+    elif run_name in manifest.locations:
         run_name = make_name_unique(run_name).name
         logger.warning("Run name already exists in manifest, changed to [ %s ]", run_name)
 
@@ -158,6 +175,7 @@ def main(
         run_name=run_name,
         task_name="train",
         crop_size=crop_size,
+        condition_key=f"{DIFFAE_IMAGE_LOADING_KEY_PREFIX}{condition_on}",
         train_dataframe_path=Path(train_dataframe_path),
         val_dataframe_path=Path(val_dataframe_path),
         max_epochs=max_num_epochs,
@@ -181,13 +199,11 @@ def main(
         "live_20X_objective_3i_microscope",
     )
 
-    # Create a new model manifest with workflow parameters, if a matching
-    # manifest does not already exist. Add the model training run to the list
-    # of manifest locations.
-    manifest = create_model_manifest(model_manifest_name, __file__)
+    # Populate manifest with training run location and parameters.
     manifest.parameters = {
         "training_datasets": list_of_training_datasets,
         "crop_size": crop_size,
+        "condition_on": condition_on,
         "resolution_level": resolution_level,
         "include_cell_piling": include_cell_piling,
     }

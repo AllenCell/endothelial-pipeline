@@ -1,6 +1,8 @@
 from pathlib import Path
 
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import Datasets, tags
+
+TAGS = [tags.TEST_READY, tags.CPU_ONLY]
 
 
 def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
@@ -41,15 +43,27 @@ def main(
     save_output: bool = True,
     n_proc: int = 1,
     verbose: bool = False,
-    is_test: bool = False,
     concatenate_tables_only: bool = False,
 ) -> None:
-    """Run workflow to measure features from label-free nuclei predictions."""
+    """Run workflow to measure features from label-free nuclei predictions.
+
+    To enter a list of datasets to analyze, use the following format:
+
+    .. code-block:: bash
+
+        --datasets 20250818_20X 20250618_20X
+
+    **Workflow demo**
+
+    The ``--demo-mode`` (``-d``) flag can be used to run the workflow on the first 3 timepoints
+    of the first 2 positions for each of the given datasets for workflow testing purposes.
+    """
     import logging
     from concurrent.futures import ProcessPoolExecutor
 
     from tqdm import tqdm
 
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
@@ -68,8 +82,10 @@ def main(
             out_dir=out_dir,
             overwrite=True,
             verbose=verbose,
-            is_test=is_test,
             image_validation_frequency=None,
+            is_test=DEMO_MODE,
+            t_start=0,
+            t_final=3 if DEMO_MODE else None,
         )
 
         # get and save results from images in analysis queue

@@ -45,3 +45,6 @@ Z_STEP_SIZE_ACTUAL_3i_20x: float = (
     Z_STEP_SIZE_NOMINAL_3i_20x * AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
 )
 """Actual Z-step size for the 20x objective in micrometers, corrected for axial distortion."""
+
+CAMERA_OFFSET = 100
+"""Minimum intensity value set by hardware configuration."""
