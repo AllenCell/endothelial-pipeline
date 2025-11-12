@@ -677,8 +677,8 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
         data_crop = data[data[ColumnName.CROP_INDEX] == crop].sort_values(by=ColumnName.TIMEPOINT)
 
         # add column giving difference in timepoint between consecutive dataframe rows
-        dt = data_crop[ColumnName.TIMEPOINT].diff()
-        data_crop["timepoint_diff"] = np.concatenate((dt, [0]))
+        dt = data_crop[ColumnName.TIMEPOINT].diff().shift(-1)
+        data_crop["timepoint_diff"] = dt
 
         # filter to only single-timepoint differences (i.e., dt = 1)
         data_crop = data_crop[data_crop["timepoint_diff"] == 1]
