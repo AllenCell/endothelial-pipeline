@@ -8,6 +8,7 @@ from endo_pipeline import DEMO_MODE
 from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe
 from endo_pipeline.library.analyze.immunofluorescence import filter, plot
+from endo_pipeline.library.analyze.immunofluorescence.plot import if_dataset_contact_sheet
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
 # %%
@@ -103,4 +104,6 @@ for date, df_date in df.groupby("date"):
         per_dataset=True,
         hide_labels=True,
     )
+# %%
+if_dataset_contact_sheet(df, output_dir)
 # %%

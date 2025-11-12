@@ -6,7 +6,15 @@ import pandas as pd
 import seaborn as sb
 from matplotlib import colormaps
 
-from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import load_image, save_plot_to_path
+from endo_pipeline.library.process.image_processing import (
+    contrast_stretching,
+    gfp_max_proj,
+    max_proj_640,
+)
+from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
+from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
 
 def get_shear_stress_label(df):
@@ -270,3 +278,70 @@ def plot_channel_intensity_histograms(
     plt.show()
     fname = f"{dataset}_intensity_histograms"
     save_plot_to_path(fig, save_dir, fname, transparent=True)
+
+
+def if_dataset_contact_sheet(df: pd.DataFrame, output_dir: Path) -> None:
+    """
+    Generate contact sheets for GFP and SMAD1 images grouped by date.
+
+    Images within each contact sheet are contrast-matched across datasets
+    using the 1st and 99th percentile intensity values.
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        The dataframe containing the dataset information.
+    output_dir: Path
+        Directory to save the contact sheets.
+    """
+    img_manifest = load_image_manifest("image_zarr")
+    for date, df_date in df.groupby("date"):
+        gfp_img_list, smad1_img_list, data_labels = [], [], []
+
+        for dataset_name, df_dataset in df_date.groupby("dataset"):
+            dataset_config = load_dataset_config(dataset_name)
+            positions = dataset_config.zarr_positions
+            data_label = get_shear_stress_label(df_dataset)
+            data_labels.append(data_label)
+
+            for position in positions:
+                img_location = get_image_location_for_dataset(
+                    img_manifest, dataset_config, position
+                )
+                img = load_image(img_location, level=1, read=False)
+                smad1_img_list.append(max_proj_640(img, frame=0))
+                gfp_img_list.append(gfp_max_proj(img, frame=0))
+
+        # flatten img lists to apply matching contrast stretching
+        gfp_flat = np.concatenate([img.flatten() for img in gfp_img_list])
+        smad1_flat = np.concatenate([img.flatten() for img in smad1_img_list])
+        gfp_vmin, gfp_vmax = np.percentile(gfp_flat, [1, 99])
+        smad1_vmin, smad1_vmax = np.percentile(smad1_flat, [1, 99])
+
+        contrasted_gfp_img_list = [
+            contrast_stretching(img, "min-max", custom_range=(gfp_vmin, gfp_vmax))
+            for img in gfp_img_list
+        ]
+        contrasted_smad1_img_list = [
+            contrast_stretching(img, "min-max", custom_range=(smad1_vmin, smad1_vmax))
+            for img in smad1_img_list
+        ]
+
+        # create contact sheets
+        n_cols = len(positions)
+        n_rows = len(df_date["dataset"].unique())
+        for img_content, panels in zip(
+            ["SMAD1", "CDH5"], [contrasted_smad1_img_list, contrasted_gfp_img_list]
+        ):
+            fig = make_contact_sheet(
+                panels=panels,
+                max_rows=n_rows,
+                max_cols=n_cols,
+                col_titles=positions,
+                row_titles=data_labels,
+                direction="left-right first",
+                gridspec_kwargs={"wspace": 0.03, "hspace": 0.0},
+                fig_kwargs={"figsize": (n_cols * 3, n_rows * 3)},
+            )
+            plt.show(fig)
+            save_plot_to_path(fig, output_dir, f"{img_content}_contact_sheet_{date}")
