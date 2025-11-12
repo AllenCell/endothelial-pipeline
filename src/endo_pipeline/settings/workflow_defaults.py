@@ -1,5 +1,7 @@
 """Workflow default settings."""
 
+from typing import Literal
+
 DEFAULT_MODEL_MANIFEST_NAME: str = "diffae_04_10"
 """Default model manifest for loading models and model features."""
 
@@ -15,6 +17,12 @@ label-free nuclei segmentation features."""
 
 DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL: int = 1
 """Default zarr resolution level for loading model input data."""
+
+DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING: Literal["bf", "cdh5"] = "bf"
+"""Default image type to condition DiffAE models on."""
+
+DIFFAE_IMAGE_LOADING_KEY_PREFIX: str = "raw_"
+"""Default key prefix for loading DiffAE model input images."""
 
 DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT: str = "raw_cdh5"
 """Default key for channel to use as diffusion image input to the model."""

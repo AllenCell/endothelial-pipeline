@@ -1,4 +1,6 @@
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import Datasets, tags
+
+TAGS = [tags.TEST_READY, tags.CPU_ONLY]
 
 
 def build_measured_features_tables_multiproc_wrapper(args: dict) -> None:
@@ -27,15 +29,28 @@ def main(
     datasets: Datasets,
     n_proc: int = 1,
     save_output: bool = True,
-    is_test: bool = False,
     verbose: bool = False,
 ) -> None:
-    """Run the measured features extraction workflow."""
+    """Run the measured features extraction workflow.
+
+    To enter a list of datasets to analyze, use the following format:
+
+    .. code-block:: bash
+
+        --datasets 20250818_20X 20250618_20X
+    **Workflow demo**
+
+    The ``--demo-mode`` (``-d``) flag can be used to run a simplified version of
+    this workflow for testing purposes (e.g. during code review). The workflow
+    will only extract measured features from the first two positions and the
+    first three timepoints for each of the given datasets.
+    """
     import logging
     from multiprocessing import Pool
 
     from tqdm import tqdm
 
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
     from endo_pipeline.io import configure_logging, get_output_path
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
@@ -53,8 +68,10 @@ def main(
         out_dir=out_dir,
         overwrite=True,
         verbose=verbose,
-        is_test=is_test,
         image_validation_frequency=None,
+        is_test=DEMO_MODE,
+        t_start=0,
+        t_final=3 if DEMO_MODE else None,
     )
 
     if n_proc > 1:

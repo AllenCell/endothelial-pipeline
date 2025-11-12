@@ -40,7 +40,9 @@ from endo_pipeline.settings.figures import FONT_FAMILY, FONTSIZE_SMALL, PDF_FONT
 
 IMAGE_PANEL_SIZE = (3, 3)
 PLOT_PANEL_SIZE = (1.1, 1.1)
-CROP_YX = tuple(slice(dim, -dim) for dim in CDH5_SEG_FIG_EXAMPLE.crop_position)
+X_START = CDH5_SEG_FIG_EXAMPLE.crop_x_start
+Y_START = CDH5_SEG_FIG_EXAMPLE.crop_y_start
+CROP_YX = (slice(Y_START, -Y_START), slice(X_START, -X_START))  # centered crop
 
 
 def make_imaging_panels(

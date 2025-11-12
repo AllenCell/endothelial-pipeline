@@ -1,5 +1,9 @@
 from typing import Any
 
+from endo_pipeline.cli import tags
+
+TAGS = [tags.TEST_READY, tags.GPU]
+
 
 def main(
     n_proc: int = 1,
@@ -8,6 +12,19 @@ def main(
     """
     Run the workflow to retrain a Cellpose model to predict nuclei from brightfield standard
     deviation projections.
+
+    To enter a list of datasets to analyze, use the following format:
+
+    .. code-block:: bash
+
+        --datasets 20250818_20X 20250618_20X
+
+    **Workflow demo**
+
+    The ``--demo-mode`` (``-d``) flag can be used to run the workflow on a subset of the training
+    data for workflow testing purposes. The resulting model will be named with a ``_DEMO`` suffix
+    and does not produce a model that is suitable for label-free nuclei prediction. To produce
+    the model for label-free nuclei prediction, run the workflow without the demo mode flag.
     """
 
     import logging
@@ -16,6 +33,7 @@ def main(
     from cellpose import core, models, train
     from cellpose.io import logger_setup
 
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_image, make_name_unique
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
@@ -30,8 +48,13 @@ def main(
 
     logger = logging.getLogger(__name__)
 
-    # Create output directory.
     model_name = make_name_unique("labelfree_nuc_pred").stem
+
+    if DEMO_MODE:
+        create_training_data = True
+        model_name += "_DEMO"
+
+    # Create output directory.
     out_dir = get_output_path("models", model_name, include_timestamp=False)
 
     datasets_to_use = list(get_scenes_to_use().keys())
@@ -42,6 +65,7 @@ def main(
         image_validation_frequency=1,
         overwrite=True,
         out_dir=out_dir,
+        is_test=DEMO_MODE,
     )
 
     # return whether or not to use a gpu with CellPose

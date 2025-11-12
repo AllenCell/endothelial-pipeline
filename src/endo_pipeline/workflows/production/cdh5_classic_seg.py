@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import Datasets, tags
 
-TAGS = ["cdh5_segmentation"]
+TAGS = ["cdh5_segmentation", tags.CPU_ONLY, tags.TEST_READY]
 
 
 def generate_results_multiproc_wrapper(args: dict) -> None:
@@ -183,28 +183,41 @@ def main(
     n_proc: int = 1,
     save_output: bool = True,
     overwrite: bool = True,
-    is_test: bool = False,
     verbose: bool = False,
 ) -> None:
-    """Run the cdh5 segmentation workflow on a dataset, list of datasets, or dataset collection."""
+    """Run the cdh5 segmentation workflow on a dataset, list of datasets, or dataset collection.
+
+    To enter a list of datasets to analyze, use the following format:
+
+    .. code-block:: bash
+
+        --datasets 20250818_20X 20250618_20X
+
+    **Workflow demo**
+
+    The ``--demo-mode`` (``-d``) flag can be used to run the workflow on the first timepoint
+    of the first 2 positions for each of the given datasets for workflow testing purposes.
+    """
     from multiprocessing import Pool
 
     from tqdm import tqdm
 
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
 
     out_dir = get_output_path(__file__)
 
-    # TODO if possible it would be good to use parallel processing to build analysis_queue
     analysis_queue = build_analysis_queue(
         datasets,
         save_output=save_output,
         out_dir=out_dir,
         overwrite=overwrite,
         verbose=verbose,
-        is_test=is_test,
         image_validation_frequency=48,
+        is_test=DEMO_MODE,
+        t_start=0,
+        t_final=1 if DEMO_MODE else None,
     )
 
     if n_proc > 1:
