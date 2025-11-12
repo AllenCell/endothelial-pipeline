@@ -76,14 +76,7 @@ def main(backdrops: bool = False) -> None:
             df["tid"] = df["track_id"]
             df["image_index"] = 0
 
-            df["seg_image"] = (
-                df["dataset"]
-                + "_P"
-                + df["position"].astype(str)
-                + "_T"
-                + df["image_index"].astype(str)
-                + ".ome.zarr"
-            )
+            df["seg_image"] = seg_img_location.path
 
             df = add_backdrop_fname_to_manifest(
                 df,
@@ -106,7 +99,6 @@ def main(backdrops: bool = False) -> None:
             convert_colorizer_data(
                 data=df,
                 output_dir=output_dir,
-                source_dir=seg_img_location.path,
                 object_id_column="label",
                 times_column="image_index",
                 track_column="track_id",
