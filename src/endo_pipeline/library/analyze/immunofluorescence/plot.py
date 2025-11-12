@@ -300,7 +300,7 @@ def if_dataset_contact_sheet(df: pd.DataFrame, output_dir: Path) -> None:
 
         for dataset_name, df_dataset in df_date.groupby("dataset"):
             dataset_config = load_dataset_config(dataset_name)
-            positions = dataset_config.zarr_positions
+            positions = dataset_config.zarr_positions[:6]  # limit to first 6 positions
             data_label = get_shear_stress_label(df_dataset)
             data_labels.append(data_label)
 
