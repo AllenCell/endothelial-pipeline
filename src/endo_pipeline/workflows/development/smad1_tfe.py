@@ -1,14 +1,6 @@
 # from endo_pipeline.cli import tags
 
 TAGS = ["immunoflourescence"]
-IF_BACKDROP_IMAGES = [
-    "bf_slice",
-    "bf_std_dev",
-    "gfp_max_proj",
-    "max_proj_405",
-    "max_proj_561",
-    "max_proj_640",
-]
 
 
 def main(backdrops: bool = False) -> None:
@@ -41,6 +33,15 @@ def main(backdrops: bool = False) -> None:
 
     logger = logging.getLogger(__name__)
 
+    IF_BACKDROP_IMAGES = [
+        "bf_slice",
+        "bf_std_dev",
+        "gfp_max_proj",
+        "max_proj_405",
+        "max_proj_561",
+        "max_proj_640",
+    ]
+
     df_manifest = load_dataframe_manifest("immunofluorescence")
     seg_img_manifest = load_image_manifest("nuclear_stain_seg")
     img_manifest = load_image_manifest("image_zarr")
@@ -66,7 +67,6 @@ def main(backdrops: bool = False) -> None:
                 seg_img_manifest, dataset_config, position, 0
             )
             img_location = get_image_location_for_dataset(img_manifest, dataset_config, position, 0)
-            print(seg_img_location.path)
 
             output_dir = get_output_path("tfe_immunofluorescence", f"{dataset_name}_P{position}")
 
@@ -75,7 +75,6 @@ def main(backdrops: bool = False) -> None:
             df["track_id"] = df["label"]
             df["tid"] = df["track_id"]
             df["image_index"] = 0
-
             df["seg_image"] = seg_img_location.path
 
             df = add_backdrop_fname_to_manifest(
