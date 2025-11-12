@@ -475,6 +475,10 @@ def get_dataframe_for_dynamics_workflows(
     # add crop index column
     df_with_crop = add_crop_index(df_filtered)
 
+    # add dataset duration description column
+    dataset_config = load_dataset_config(dataset_name)
+    df_with_crop["duration"] = dataset_config.duration
+
     if pca is None:
         # do not project feature data onto PCA axes
         return df_with_crop
@@ -610,6 +614,9 @@ def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
     """
     Convert DataFrame of features corresponding to one dataset to array
     of shape num_crops x num_timepoints x num_features.
+    This function fills missing timepoints (for example filtered as outliers)
+    with NaNs such that there is a row for every timepoint within the dataset
+    duration for each crop.
 
     Inputs:
     - df: pd.DataFrame, DataFrame of feature data for one dataset
@@ -626,19 +633,14 @@ def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
     required_columns = [ColumnName.CROP_INDEX, ColumnName.TIMEPOINT, *column_names]
     check_required_columns_in_dataframe(df, required_columns)
 
-    num_crop = df[ColumnName.CROP_INDEX].nunique()  # number of crops made at each timepoint
+    # get array of num crops x valid timepoints x num PCs, padding with NaNs where timepoints are missing
+    feats = []
+    for _, data_crop in df.groupby(ColumnName.CROP_INDEX):
+        data_crop = data_crop.sort_values(by=ColumnName.TIMEPOINT)
+        data_crop_filled = fill_missing_timepoints(data_crop)
+        feats.append(data_crop_filled[column_names].values)
 
-    # get array of num crops x num timepoints x num PCs
-    feats = np.array(
-        [
-            df[df[ColumnName.CROP_INDEX] == ii]
-            .sort_values(by=ColumnName.TIMEPOINT)[column_names]
-            .values
-            for ii in range(num_crop)
-        ]
-    )
-
-    return feats
+    return np.array(feats)
 
 
 def split_dataset_by_flow(
@@ -702,7 +704,7 @@ def split_dataset_by_flow(
 
 def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, list]:
     """
-    Get trajectories and displacement vectors for each crop in feature space.
+    Get trajectories and single-timepoint displacement vectors for each crop in feature space.
 
     **Input dataframe**
 
@@ -741,7 +743,16 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
         # get data for each crop, sorted by time
         data_crop = data[data[ColumnName.CROP_INDEX] == crop].sort_values(by=ColumnName.TIMEPOINT)
 
-        # get displacement vectors and time differences for each crop
+        # add column giving difference in timepoint between consecutive dataframe rows
+        dt = data_crop[ColumnName.TIMEPOINT].diff().shift(-1)
+        data_crop["timepoint_diff"] = dt
+
+        # filter to only single-timepoint differences (i.e., dt = 1)
+        data_crop = data_crop[data_crop["timepoint_diff"] == 1]
+
+        # get displacement vectors for each pair of consecutive-timepoints
+        # for each crop (i.e. do not include displacements for non-consecutive
+        # timepoints where outliers etc were removed)
         d_traj = np.diff(data_crop[pc_column_names].values, axis=0)
 
         # append data to lists:
@@ -751,3 +762,31 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
         d_traj_list.append(d_traj)
 
     return traj_list, d_traj_list
+
+
+def fill_missing_timepoints(data_crop: pd.DataFrame) -> pd.DataFrame:
+    """
+    Fill missing timepoints in dataframe for a single crop using NaN padding.
+    Note: this function resets the index of the input crop-based dataframe.
+
+    Parameters
+    ----------
+    data_crop
+        DataFrame for a single crop.
+
+    Returns
+    -------
+    data_crop_filled
+        DataFrame with missing timepoints filled with NaNs.
+    """
+
+    # get full range of timepoints for this crop
+    full_timepoint_range = np.arange(0, data_crop["duration"].iloc[0])
+
+    # reindex dataframe to include all timepoints in full range
+    data_crop_filled = data_crop.set_index(ColumnName.TIMEPOINT).reindex(full_timepoint_range)
+
+    # reset index to restore timepoint column
+    data_crop_filled = data_crop_filled.reset_index()
+
+    return data_crop_filled

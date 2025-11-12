@@ -176,8 +176,6 @@ def _get_histogram_by_component_one_dataset(
     num_frames = df[ColumnName.TIMEPOINT].nunique()
     num_bins = bin_edges[0].shape[0] - 1  # number of bins is one less than number of edges
 
-    # feats = df_to_array(df_padded, feat_cols)  # get array of just the feature data
-
     hist_array = np.zeros(
         (num_feats, num_bins, num_frames)
     )  # histogram values for each component as a function of time
