@@ -192,7 +192,7 @@ def register_notebook_to_cli(name: str, group: Group, show: bool, module: str, p
     module_wrapper.__doc__ = description_match[0] if description_match else default_doc
 
     # Set tags based on TAGS variable (if it exists)
-    tag_match = re.findall(r'TAGS = \[([\w\-, "]+)\]', path.read_text())
+    tag_match = re.findall(r'^TAGS = \[([\w\-, "]+)\]', path.read_text())
     tags[name] = re.findall(r'"([\w\-]+)"', tag_match[0]) if tag_match else []
 
     # Add workflow command to pipeline
