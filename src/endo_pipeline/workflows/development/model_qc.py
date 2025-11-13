@@ -1,4 +1,5 @@
 from endo_pipeline.cli import tags
+from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 TAGS = ["diffae", tags.TEST_READY, tags.GPU]
@@ -84,11 +85,6 @@ def main(
     # Instantiate random number generator
     rng = default_rng(seed=random_seed)
 
-    # Set defaults for plot titles
-    CDH5_LABELS = ["Original CDH5", "Noised CDH5", "Denoised CDH5"]
-    NOISE_LABELS = [f"{level * 100:.0f}% Noise" for level in [*MODEL_QC_NOISE_LEVELS, 1]]
-    NUM_IMAGES_DENOISED = len(NOISE_LABELS)
-
     # Load model manifest and get location for run_name
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
@@ -113,8 +109,22 @@ def main(
 
     # Load Example Data
     if DEMO_MODE:
-        logger.info("DEMO MODE: Limiting MODEL_QC_EXAMPLES to first example only.")
+        logger.info("DEMO MODE: Limiting MODEL_QC_EXAMPLES to the first example only.")
         MODEL_QC_EXAMPLES = MODEL_QC_EXAMPLES[:1]
+
+    # Set defaults for plot titles
+    CDH5_LABELS = [
+        "Original CDH5",
+        "Noised CDH5",
+        f"{label_for_conditioning}\nembedding",
+        "Scrambled\nembedding",
+        "Scrambled\ninput image",
+    ]
+    NOISE_LABELS = [f"{level * 100:.0f}% Noise" for level in [*MODEL_QC_NOISE_LEVELS, 1]]
+    NUM_IMAGES_DENOISED = len(NOISE_LABELS)
+
+    # Store 100% denoised example results for each dataset in the model QC examples
+    example_results_100 = []
 
     # Process each dataset
     for example in MODEL_QC_EXAMPLES:
@@ -124,14 +134,14 @@ def main(
         # Extract position, timepoint, and crop position
         position = example.position
         timepoint = example.timepoint
-        start_x, start_y = example.crop_position
+        start_x = example.crop_x_start
+        start_y = example.crop_y_start
 
         # Get output path for saving figures
         output_path = get_output_path(
             "model_qc",
             model_manifest_name,
             run_name_,
-            f"{dataset_name}_P{position}_T{timepoint}_X{start_x}_Y{start_y}",
         )
 
         dataset_config = load_dataset_config(dataset_name)
@@ -197,67 +207,15 @@ def main(
             for noised_image in images_to_denoise
         ]
 
-        # Plot these images!
-        # Prepare arguments for contact sheet
-        panels = [
-            *[conditioning_input_crop.squeeze()] * NUM_IMAGES_DENOISED,
-            *[diffusion_input_crop.squeeze()] * NUM_IMAGES_DENOISED,
-            *[img.squeeze() for img in images_to_denoise],
-            *[img.squeeze() for img in denoised_images_by_bf_cond],
-        ]
-
-        # Make a contact sheet summarizing the results
-        fig = make_contact_sheet(
-            panels=panels,
-            max_rows=NUM_IMAGES_DENOISED,
-            max_cols=None,
-            col_titles=[f"{label_for_conditioning} Input", *CDH5_LABELS],
-            row_titles=NOISE_LABELS,
-            direction=MODEL_QC_PLOT_DIRECTION,
-            subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
-            gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
-            fig_kwargs=MODEL_QC_FIG_KWARGS,
-        )
-        # save the figure
-        save_plot_to_path(fig, output_path, "denoising_by_ground_truth_conditioning")
-
-        # Break after the first contact sheet in DEMO_MODE
-        if DEMO_MODE:
-            break
-
         # Do the same thing but with the conditioning vector randomly shuffled
         # This is our negative control for the BF conditioning
         latent_vector_scrambled = rng.permuted(conditioning_crop_latent_vector)
-
         denoised_images_by_random_cond = [
             generate_from_coords_and_noised_image(
                 model, latent_vector_scrambled, noised_image, num_gpus=NUM_GPUS
             )
             for noised_image in images_to_denoise
         ]
-
-        # Plot these images!
-        # Prepare arguments for contact sheet
-        panels = [
-            *[diffusion_input_crop.squeeze()] * NUM_IMAGES_DENOISED,
-            *[img.squeeze() for img in images_to_denoise],
-            *[img.squeeze() for img in denoised_images_by_random_cond],
-        ]
-
-        # Make a contact sheet summarizing the results
-        fig = make_contact_sheet(
-            panels=panels,
-            max_rows=NUM_IMAGES_DENOISED,
-            max_cols=None,
-            col_titles=CDH5_LABELS,
-            row_titles=NOISE_LABELS,
-            direction=MODEL_QC_PLOT_DIRECTION,
-            subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
-            gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
-            fig_kwargs=MODEL_QC_FIG_KWARGS,
-        )
-        # save the figure
-        save_plot_to_path(fig, output_path, "denoising_by_random_vector_conditioning")
 
         # Do the same thing but with the conditioning vector retrieved from a
         # randomly shuffled version of the brightfield image
@@ -265,13 +223,12 @@ def main(
         img_scrambled = rng.permuted(conditioning_input_crop.ravel()).reshape(
             conditioning_input_crop.shape
         )
-        latent_vector_scrambled = get_latent_vector_from_crop(
+        latent_vector_from_img_scrambled = get_latent_vector_from_crop(
             model, img_scrambled, num_gpus=NUM_GPUS
         )
-
-        denoised_images_by_random_cond = [
+        denoised_images_by_random_cond_latent_scramble = [
             generate_from_coords_and_noised_image(
-                model, latent_vector_scrambled, noised_image, num_gpus=NUM_GPUS
+                model, latent_vector_from_img_scrambled, noised_image, num_gpus=NUM_GPUS
             )
             for noised_image in images_to_denoise
         ]
@@ -279,26 +236,73 @@ def main(
         # Plot these images!
         # Prepare arguments for contact sheet
         panels = [
-            *[img_scrambled.squeeze()] * NUM_IMAGES_DENOISED,
+            *[conditioning_input_crop.squeeze()] * NUM_IMAGES_DENOISED,
             *[diffusion_input_crop.squeeze()] * NUM_IMAGES_DENOISED,
             *[img.squeeze() for img in images_to_denoise],
+            *[img.squeeze() for img in denoised_images_by_bf_cond],
             *[img.squeeze() for img in denoised_images_by_random_cond],
+            *[img.squeeze() for img in denoised_images_by_random_cond_latent_scramble],
         ]
-
-        # Make a contact sheet summarizing the results
         fig = make_contact_sheet(
             panels=panels,
             max_rows=NUM_IMAGES_DENOISED,
-            max_cols=None,
-            col_titles=["Scrambled Input", *CDH5_LABELS],
+            max_cols=6,
+            col_titles=[f"{label_for_conditioning} input", *CDH5_LABELS],
             row_titles=NOISE_LABELS,
             direction=MODEL_QC_PLOT_DIRECTION,
+            font_size=FONTSIZE_MEDIUM,
             subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
             gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
             fig_kwargs=MODEL_QC_FIG_KWARGS,
         )
-        # save the figure
-        save_plot_to_path(fig, output_path, "denoising_by_conditioning_on_scrambled_image")
+
+        # Adjust the layout to make space for supertitles
+        fig.subplots_adjust(top=0.9)
+        all_axes = fig.get_axes()
+        col_4_pos = all_axes[4].get_position()
+        center_x = col_4_pos.x0 + (col_4_pos.width / 2)
+        fig.text(
+            x=center_x,
+            y=0.97,
+            s="Predicted CDH5 Images",
+            ha="center",
+            fontsize=FONTSIZE_LARGE,
+        )
+        save_plot_to_path(
+            fig,
+            output_path,
+            f"denoising_contact_sheet_{dataset_name}P{position}T{timepoint}X{start_x}Y{start_y}",
+        )
+
+        example_results_100.append(conditioning_input_crop.squeeze())
+        example_results_100.append(diffusion_input_crop.squeeze())
+        example_results_100.append(denoised_images_by_bf_cond[-1].squeeze())
+
+    # Plot summary figure with only the 100% noise denoising results across examples
+    num_cols = 3
+    fig = make_contact_sheet(
+        panels=example_results_100,
+        max_rows=len(MODEL_QC_EXAMPLES),
+        max_cols=num_cols,
+        col_titles=[
+            f"{label_for_conditioning} input",
+            *[
+                "Original CDH5",
+                "Predicted CDH5",
+            ],
+        ],
+        row_titles=[f"Example {i+1}" for i in range(len(MODEL_QC_EXAMPLES))],
+        direction="left-right first",
+        font_size=FONTSIZE_MEDIUM,
+        subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
+        gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
+        fig_kwargs={"figsize": (num_cols * 1.5, len(MODEL_QC_EXAMPLES) * 1.5)},
+    )
+    save_plot_to_path(
+        fig,
+        output_path,
+        f"contact_sheet_predict_all_examples",
+    )
 
 
 if __name__ == "__main__":

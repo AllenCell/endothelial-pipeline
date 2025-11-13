@@ -18,10 +18,10 @@ SHEAR_COLOR_DICT = {
 MODEL_QC_SUBPLOT_KWARGS: dict = {"frame_on": False}
 """Default keyword arguments for subplots in model QC plots."""
 
-MODEL_QC_GRIDSPEC_KWARGS: dict = {"wspace": 0.05, "hspace": 0.05}
+MODEL_QC_GRIDSPEC_KWARGS: dict = {"wspace": 0.03, "hspace": 0.03}
 """Default keyword arguments for gridspec in model QC plots."""
 
-MODEL_QC_FIG_KWARGS: dict = {"figsize": (6, 6)}
+MODEL_QC_FIG_KWARGS: dict = {"figsize": (9, 6)}
 """Default keyword arguments for figure in model QC plots."""
 
 MODEL_QC_PLOT_DIRECTION: str = "top-down first"
