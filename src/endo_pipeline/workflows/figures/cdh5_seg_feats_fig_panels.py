@@ -1,9 +1,9 @@
-from endo_pipeline.cli import tags
+from endo_pipeline.cli import Datasets, tags
 
 TAGS = [tags.TEST_READY, tags.CPU_ONLY]
 
 
-def main() -> None:
+def main(datasets: Datasets = "pca_reference") -> None:
     """Produces figure panels for the CDH5 segmentation and classic feature workflow figure.
     This includes imaging panels showing the segmentation steps and 2D histograms of classic
     features for each of the PCA reference datasets.
@@ -24,7 +24,7 @@ def main() -> None:
         out_dir,
     )
 
-    make_classic_feature_panels(out_dir / "classic_feature_panels")
+    make_classic_feature_panels(datasets, out_dir / "classic_feature_panels")
 
 
 if __name__ == "__main__":
