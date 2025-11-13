@@ -84,9 +84,9 @@ There are currently three main model training options. These options may be pass
 
 | Option | Description | CLI | Formatting |
 | - | - | - | - |
-| **zarr resolution level** | resolution level of the Zarr files used for training | `--resolution-level RESOLUTION_LEVEL` | `resolution_<RESOLUTION_LEVEL>` |
 | **image crop size** | length of the 2D image crop in pixels used for training | `--crop-size CROP_SIZE` | `patch_<CROP_SIZE>x<CROP_SIZE>` |
 | **cell piling timepoints** | if timepoints annotated as cell piling are included in the training | `--include-cell-piling` or `--exclude-cell-piling` | `include_cell_piling` or `exclude_cell_piling` |
+| **conditioning image type** | name of image type to use for semantic conditioning (`cdh5` or `bf`) | `--condition-on CONDITION_IMG_NAME` | `condition_on_CONDITION_IMG_NAME`
 
 ### Model training workflows
 
@@ -105,13 +105,13 @@ There are currently three main model training options. These options may be pass
 
 - workflow = `build-diffae-train-config`
 - input (identifier options) = **model manifest name**, **run_name**
-- input (training options) = **cell piling timepoints**, **image crop size**
+- input (training options) = **cell piling timepoints**, **image crop size**, **conditioning image type**
 - :white_circle: output = resolved model config at `results/models/MODEL_MANIFEST_NAME/RUN_NAME/configs/train.yaml`
-- :purple_circle: output = updated model manifest with pending training run at `src/endo_pipeline/manifests/models/diffae_PATCH_PILING` (recommendation is to open a draft PR with this change until the next step is complete)
+- :purple_circle: output = updated model manifest with pending training run at `src/endo_pipeline/manifests/models/diffae_PATCH_CONDITIONING_PILING` (recommendation is to open a draft PR with this change until the next step is complete)
 
 #### 3. Train the model
 
 - workflow = `train-diffae`
 - input (identifier options) = **model manifest name**, **run_name**
 - :white_circle: output = model training run on MLflow
-- :purple_circle: output = updated model manifest with MLflow run id at `src/endo_pipeline/manifests/models/diffae_PATCH_PILING`
+- :purple_circle: output = updated model manifest with MLflow run id at `src/endo_pipeline/manifests/models/diffae_PATCH_CONDITIONING_PILING`
