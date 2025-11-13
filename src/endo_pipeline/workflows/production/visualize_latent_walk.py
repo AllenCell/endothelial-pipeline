@@ -15,7 +15,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
-    num_pcs: int = NUM_PCS_TO_ANALYZE,
+    list_of_axes: list | None = None,
     sigma: float = 3.0,
     n_steps: int = 10,
     use_pcs: bool = True,
@@ -64,12 +64,7 @@ def main(
         fit_pca,
         get_dataframe_for_dynamics_workflows,
     )
-    from endo_pipeline.library.model import (
-        generate_from_coords,
-        get_latent_coords,
-        get_pca_coords,
-        write_pc_vals,
-    )
+    from endo_pipeline.library.model import generate_from_coords, get_walk, write_pc_vals
     from endo_pipeline.library.visualize.latent_walk import plot_latent_walk_as_grid
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
@@ -99,12 +94,15 @@ def main(
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     dataset_names = get_datasets_in_collection("pca_reference")
 
+    if list_of_axes is None:
+        list_of_axes = list(range(NUM_PCS_TO_ANALYZE))
+
     if use_pcs:
         # perform latent walk along the principal components
         pca = fit_pca(
             dataframe_manifest_name=dataframe_manifest_name,
             include_cell_piling=include_cell_piling,
-            num_pcs=num_pcs,
+            num_pcs=max(list_of_axes) + 1,
         )
         dataframe = pd.concat(
             [
@@ -112,9 +110,11 @@ def main(
                 for dataset_name in dataset_names
             ]
         )
-        pc_column_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
+        pc_column_names = DIFFAE_PC_COLUMN_NAMES[*list_of_axes]
         data_for_walk = dataframe[pc_column_names].values
-        walk, ranges = get_pca_coords(data_for_walk, pca, num_pcs, sigma, n_steps)
+        walk, ranges = get_walk(data_for_walk, list_of_axes, sigma, n_steps)
+        # inverse transform to original latent space
+        walk = pca.inverse_transform(walk)
     else:
         # perform latent walk along the raw latent dimensions
         dataframe = pd.concat(
@@ -130,7 +130,7 @@ def main(
         )
         feature_column_names = DIFFAE_FEATURE_COLUMN_NAMES
         data_for_walk = dataframe[feature_column_names].values
-        walk, ranges = get_latent_coords(data_for_walk, sigma, n_steps)
+        walk, ranges = get_walk(data_for_walk, list_of_axes, sigma, n_steps)
 
     # generate images from the latent walk
     walk_img = generate_from_coords(model, walk, n_noise_samples=n_noise_samples, num_gpus=NUM_GPUS)
@@ -142,7 +142,7 @@ def main(
 
     file_name = f"latent_walk_sigma_{int(sigma)}"
     if use_pcs:
-        file_name = f"{file_name}_use_pcs"
+        file_name = f"{file_name}_along_pcs"
     OmeTiffWriter.save(
         uri=save_path / f"{file_name}.tif",
         data=walk_img_stack,

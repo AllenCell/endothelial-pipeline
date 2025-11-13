@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-from sklearn.decomposition import PCA
 
 
 def write_text(img: np.ndarray, text: str) -> np.ndarray:
@@ -26,7 +25,9 @@ def write_pc_vals(walk_img: np.ndarray, ranges: list) -> np.ndarray:
     return walk_img
 
 
-def get_walk(data: np.ndarray, n_dims: int, sigma: float, n_steps: int) -> tuple[list, list]:
+def get_walk(
+    data: np.ndarray, list_of_axes: list[int], sigma: float, n_steps: int
+) -> tuple[list, list]:
     """
     Generate a latent walk based on standard deviation
     or min/max of each dimension.
@@ -35,8 +36,8 @@ def get_walk(data: np.ndarray, n_dims: int, sigma: float, n_steps: int) -> tuple
     ----------
     data: np.ndarray
         Numpy array containing the data to be traversed.
-    n_dims: int
-        Number of dimensions for the latent walk.
+    list_of_axes: list[int]
+        List of dimensions to traverse.
     sigma: float
         Range of values for the latent walk.
     n_steps: int
@@ -44,7 +45,7 @@ def get_walk(data: np.ndarray, n_dims: int, sigma: float, n_steps: int) -> tuple
     """
     walk = []
     ranges = []
-    for dim in range(n_dims):
+    for dim in list_of_axes:
         if sigma is None:
             data_min = data[:, dim].min()
             data_max = data[:, dim].max()
@@ -57,46 +58,4 @@ def get_walk(data: np.ndarray, n_dims: int, sigma: float, n_steps: int) -> tuple
         walk.append(dim_traversal)
         ranges.append(range_)
     walk = np.concatenate(walk).squeeze()
-    return walk, ranges
-
-
-def get_pca_coords(
-    pca_data: np.ndarray, pca: PCA, num_pcs: int, sigma: float, n_steps: int
-) -> tuple[list, list]:
-    """
-    Generate PCA coordinates and corresponding PC values for a latent walk.
-
-    Parameters
-    ----------
-    pca_data: np.ndarray
-        Numpy array containing the projected data onto PCA axes.
-    pca: PCA
-        PCA model fit to the data.
-    num_pcs: int
-        Number of principal components to use for the latent walk.
-    sigma: float
-        Range of values for the latent walk.
-    n_steps: int
-        Number of steps in the latent walk.
-    """
-    walk, ranges = get_walk(pca_data, num_pcs, sigma, n_steps)
-    walk = pca.inverse_transform(walk)
-    return walk, ranges
-
-
-def get_latent_coords(data: np.ndarray, sigma: float, n_steps: int) -> tuple[list, list]:
-    """
-    Generate latent coordinates and corresponding values for a latent walk.
-
-    Parameters
-    ----------
-    data: np.ndarray
-        Numpy array containing the data to be transformed.
-    sigma: float
-        Range of values for the latent walk.
-    n_steps: int
-        Number of steps in the latent walk.
-    """
-    n_dims = data.shape[1]
-    walk, ranges = get_walk(data, n_dims, sigma, n_steps)
     return walk, ranges
