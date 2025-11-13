@@ -1,0 +1,17 @@
+name: diffae_baseline_exclude_cell_piling_large_latent_grid
+workflow: eval_diffae_grid
+parameters:
+  z_slice_offsets:
+  - 4
+  - 11
+  config_name: diffae_eval
+locations:
+  20250611_20X:
+    fmsid: 6f4949ad70e84ad29c333c85f733492a
+    s3uri: null
+  20250618_20X:
+    fmsid: f77ca82122c149189a510fe0267d8b37
+    s3uri: null
+  20250818_20X:
+    fmsid: 57cd658af84544a684d70fc9ebcf7708
+    s3uri: null

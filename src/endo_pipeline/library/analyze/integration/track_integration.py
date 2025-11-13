@@ -291,8 +291,8 @@ def get_traj_and_flowfield(
     # and flow fields.
     cols = [f"pc{pc+1}" for pc in range(3)]
 
-    # get list of per-crop trajectories, the corresponding
-    # displacement vectors, and time differences
+    # get list of per-crop trajectories and the corresponding
+    # single-timepoint displacement vectors
     traj_list, d_traj_list = get_traj_and_diff(df, cols)
 
     # get drift and diffusion estimates

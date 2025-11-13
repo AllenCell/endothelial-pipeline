@@ -33,15 +33,21 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
     num_pad = 2 ** int(np.ceil(np.log2(2 * num_timepoints - 1)))
 
     for traj_index in range(num_traj):
+
         # Center data by subtracting mean, get standard deviation
         # for normalization of CCF.
-        data_mean1 = np.mean(data_feat1[traj_index])
-        data_stdev1 = np.std(data_feat1[traj_index])
+        # fft cannot handle NaNs, so we replace them with zeros after
+        # centering/mean subtraction.
+        # Use ddof=1 for standard deviation of sample of the population.
+        data_mean1 = np.nanmean(data_feat1[traj_index])
+        data_stdev1 = np.nanstd(data_feat1[traj_index], ddof=1)
         x_t_i_ctr = data_feat1[traj_index] - data_mean1
+        x_t_i_ctr = np.nan_to_num(x_t_i_ctr, nan=0.0)
 
-        data_mean2 = np.mean(data_feat2[traj_index])
-        data_stdev2 = np.std(data_feat2[traj_index])
+        data_mean2 = np.nanmean(data_feat2[traj_index])
+        data_stdev2 = np.nanstd(data_feat2[traj_index], ddof=1)
         x_t_j_ctr = data_feat2[traj_index] - data_mean2
+        x_t_j_ctr = np.nan_to_num(x_t_i_ctr, nan=0.0)
 
         # By the convolution theorem, the CCF is the inverse FFT of the cross power spectrum
         # (i.e., X1^{*}(f) * X2(f) where X1 and X2 are the FFTs of the two signals).
@@ -102,13 +108,24 @@ def fit_exp_decay_and_get_relaxation_timescale(
             "Invalid exp_decay_func provided to _fit_exp_decay_and_get_relaxation_timescale."
         )
 
+    # get indices where both lags and acf are finite, as required for input to curve_fit function
+    valid_indices = np.isfinite(acf) & np.isfinite(lags)
+
     if exp_decay_func == "exponential_decay":
         p0 = [0.5, 0.5, 0.5]  # initial guess for a, b, and c
-        exp_fit, _ = curve_fit(exponential_decay, lags, acf, maxfev=maxfev, p0=p0)
+        exp_fit, _ = curve_fit(
+            exponential_decay, lags[valid_indices], acf[valid_indices], maxfev=maxfev, p0=p0
+        )
         relaxation_time = 1 / exp_fit[1]
     else:
         p0 = [0.5, 0.5, 0.5, 0.5, 0.5]  # initial guess for a1, b1, a2, b2, and c
-        exp_fit, _ = curve_fit(double_exponential_decay, lags, acf, maxfev=maxfev, p0=p0)
+        exp_fit, _ = curve_fit(
+            double_exponential_decay,
+            lags[valid_indices],
+            acf[valid_indices],
+            maxfev=maxfev,
+            p0=p0,
+        )
         # choose the relaxation time corresponding to the larger weight
         which_weight_is_larger = np.argmax(np.abs(exp_fit[[0, 2]]))
         relaxation_time = 1 / exp_fit[[1, 3][which_weight_is_larger]]
