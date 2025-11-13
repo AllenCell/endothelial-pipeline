@@ -19,6 +19,9 @@ if typing.TYPE_CHECKING:
     from cyclopts import App
 
 
+logger = logging.getLogger(__name__)
+
+
 def _testable_workflows(pipeline_app: "App", tags: dict[str, list[str]]):
     from endo_pipeline.cli.tags import CPU_ONLY, GPU, TEST_READY
 
@@ -96,6 +99,7 @@ def _run_workflow(app: "App") -> _WorkflowResult:
     error = None
     with _timer() as timer:
         try:
+            logger.info(f"Starting workflow: {' '.join(app.name)}")
             # Call the workflow with no arguments
             app("")
         except Exception as e:
