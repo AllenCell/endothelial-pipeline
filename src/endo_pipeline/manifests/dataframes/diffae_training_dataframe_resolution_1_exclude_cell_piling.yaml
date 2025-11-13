@@ -1,0 +1,15 @@
+name: diffae_training_dataframe_resolution_1_exclude_cell_piling
+workflow: create_diffae_training_dataframe
+parameters:
+  resolution_level: 1
+  z_slice_offsets:
+  - 4
+  - 11
+  include_cell_piling: false
+locations:
+  training:
+    fmsid: 84ef5d15372e4715a425d4e33c7a5802
+    s3uri: null
+  validation:
+    fmsid: 4196fc87c85d448aaa44d08b83914ef8
+    s3uri: null

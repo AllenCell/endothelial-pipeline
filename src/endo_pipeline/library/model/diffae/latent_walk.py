@@ -56,13 +56,28 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
             )
 
     def on_validation_epoch_end(self, trainer, pl_module):
+        """
+        This callback will be executed at the end of each validation epoch. Generated latent space
+        walks along PC axes and saves them out as TIFF files for visualization.
+
+        Only executed on rank 0 in distributed training setups to aboid redundant computations.
+
+        Args:
+            trainer: PyTorch Lightning Trainer instance
+            pl_module: PyTorch Lightning Module being trained
+
+        """
+        # Skip execution on non-primary ranks in distributed training
         if not self._is_rank_zero(trainer):
             return
 
+        # Only perform latent walk every N epochs to reduce computational overhead
         if (trainer.current_epoch + 1) % self.every_n_epoch == 0:
+            # Concatenate all validation features collected during this epoch
             feats = np.concatenate(self.val_feats)
             save_path = f"{pl_module.hparams.save_dir}/{trainer.current_epoch+1}_latent_walk.tiff"
 
+            # Validate that sufficient data is available for PCA decomposition
             if len(feats.shape) == 1 or feats.shape[0] < self.num_pcs:
                 warn(
                     f"Insufficient data for latent walk with {self.num_pcs} PCs. Skipping...",
@@ -75,6 +90,8 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
 
             walk_list: list[np.ndarray] = []
             ranges = []
+
+            # Latent Walks!
             for pc in range(self.num_pcs):
                 std = pca_data[:, pc].std()
                 if self.sigma_range is None:
@@ -84,17 +101,23 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
                 else:
                     range_ = np.linspace(-self.sigma_range, self.sigma_range, self.n_steps)
                 print(f"PC{pc} range: {range_}")
+
+                # Create latent values by varying a single PC while keeping others at zero
                 for i in range_:
                     array = np.zeros(self.num_pcs)
                     array[pc] = i * std
                     walk_list.append(array)
                 ranges.append(range_)
 
+            # Stack all latent codes and inverse transform from PCA space to feature space
             walk_array = np.stack(walk_list)
             walk_pca = self.pca.inverse_transform(walk_array)
+
+            # Get the model and prepare the tensors
             model = self.get_core_model(trainer.model)
             walk = torch.from_numpy(walk_pca).float().to(model.device)
 
+            # Generate images from latent values using the model
             walk_img = model.generate_from_latent(
                 walk,
                 n_noise_samples=self.n_noise_samples,
@@ -103,9 +126,14 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
                 batch_size=self.batch_size,
             )
 
+            # Post-process generated images: detach from computation graph and reshape
             walk_img = detach(walk_img).astype(np.float32)
             walk_img = walk_img.reshape(walk_img.shape[0], -1, walk_img.shape[-1])
+
+            # Annotate the generated images with the PC values
             walk_img = self._write_pc_vals(walk_img, ranges)
+
+            # Save out these images
             OmeTiffWriter.save(uri=save_path, data=walk_img)
 
             self.val_feats = []
@@ -116,6 +144,19 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
             super().on_predict_epoch_end(trainer, pl_module)
 
     def _write_text(self, img, text):
+        """
+        Renders text annotation onto an image at the upper right corner.
+
+        Handles format conversions (torch tensors → numpy, channel dimensions, dtypes)
+        and automatically selects appropriate text color based on image intensity.
+
+        Args:
+            img: Input image as numpy array or torch Tensor. Supports HWC, CHW, HW formats.
+            text: Text string to render on the image
+
+        Returns:
+            numpy.ndarray: Image with text annotation, dtype uint8 for OpenCV compatibility
+        """
 
         # Convert torch.Tensor to numpy array
         if torch.is_tensor(img):

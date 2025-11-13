@@ -96,7 +96,10 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         return torch.randn(shape, device=device, dtype=dtype, generator=gen)
 
     def _get_fixed_samples(self, batch):
-        """Get fixed samples for consistent visualization across epochs"""
+        """
+        Get fixed samples for consistent visualization across epochs
+        Do note that this does not generate noise
+        """
         if self.fixed_samples is None and self.fixed_sample_seed is not None:
             # Set seed for reproducible sample selection
             generator = torch.Generator()
@@ -114,6 +117,19 @@ class DiffusionAutoEncoder(_BaseDiffAE):
 
         return self.fixed_samples
 
+    def _get_fixed_noise(self, shape, device, dtype):
+        """Generate or retrieve fixed noise for noise_cons mode.
+
+        Only generates noise once and caches it if noise_cons=True.
+        This ensures the exact same noise vector is used across all epochs.
+        """
+        if self.fixed_noise is None:
+            generator = torch.Generator(device=device)
+            generator.manual_seed(self.fixed_sample_seed)
+            self.fixed_noise = torch.randn(shape, generator=generator, device=device, dtype=dtype)
+
+        return self.fixed_noise
+
     def save_example(self, stage, cond_img, diff_img):
         """Save the sequence of denoising steps."""
         # Use fixed samples if available
@@ -124,16 +140,22 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         with torch.no_grad():
             cond = self.semantic_encoder(cond_img).unsqueeze(1)
 
-        # Use fixed seed for consistent noise generation across epochs
-        if self.fixed_sample_seed is not None:
-            generator = torch.Generator(device=self.device)
-            generator.manual_seed(self.fixed_sample_seed)
-            # Fix: Use torch.randn with generator, then move to correct device if needed
-            noise = torch.randn(
-                diff_img.shape, generator=generator, device=self.device, dtype=diff_img.dtype
-            )
+        # Generate noise
+        if self.noise_cons:
+            # Use fixed noise across all epochs to isolate latent vector changes
+            noise = self._get_fixed_noise(diff_img.shape, device=self.device, dtype=diff_img.dtype)
         else:
-            noise = torch.randn_like(diff_img, device=self.device)
+            # Generate new noise each epoch (seeded for reproducibility within a run)
+            if self.fixed_sample_seed is not None:
+                generator = torch.Generator(device=self.device)
+                # Add epoch offset so noise changes each epoch but is reproducible
+                seed_with_epoch = self.fixed_sample_seed + self.trainer.current_epoch
+                generator.manual_seed(seed_with_epoch)
+                noise = torch.randn(
+                    diff_img.shape, generator=generator, device=self.device, dtype=diff_img.dtype
+                )
+            else:
+                noise = torch.randn_like(diff_img, device=self.device)
 
         sample = self._generate_image(noise, cond)
 

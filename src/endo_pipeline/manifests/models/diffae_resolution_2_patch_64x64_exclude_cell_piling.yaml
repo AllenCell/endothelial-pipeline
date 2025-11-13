@@ -1,0 +1,22 @@
+name: diffae_resolution_1_patch_64x64_exclude_cell_piling
+workflow: build_diffae_train_config
+parameters:
+  training_datasets:
+  - 20250319_20X
+  - 20250428_20X
+  - 20250611_20X
+  - 20250618_20X
+  - 20250714_20X
+  - 20250813_20X
+  - 20250818_20X
+  - 20250827_20X
+  crop_size: 64
+  resolution_level: 2
+  include_cell_piling: false
+locations:
+  diffae_20251109_040149: #64 cdh5
+    mlflowid: 360357bb370d47ce8ddfb10cc936fc25
+    path: null
+  diffae_20251109_035454: #64 bf
+    mlflowid: 0f02e62137ea45b181e21c19ed7815e6
+    path: null
