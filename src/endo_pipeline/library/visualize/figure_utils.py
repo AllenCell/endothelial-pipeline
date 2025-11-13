@@ -89,6 +89,7 @@ def plot_image_thumbnail(
     ] = "lower left",
     bar_thickness: int = 10,
     bar_padding: int = 20,
+    show_plot: bool = True,
 ) -> None:
     """
     Save a thumbnail image to a specified file path.
@@ -139,7 +140,9 @@ def plot_image_thumbnail(
         )
         image_name += f"_scalebar{scalebar_size_um}um"
 
-    plt.show()
+    if show_plot:
+        plt.show()
+
     save_plot_to_path(
         figure, output_path, image_name, dpi=dpi, file_format=file_format, pad_inches=0
     )
@@ -227,6 +230,7 @@ def make_contact_sheet(
     row_titles: list[str] | None = None,
     panel_titles: list[str] | None = None,
     direction: Literal["left-right first", "top-down first"] = "left-right first",
+    font_size: int = FONTSIZE_LARGE,
     subplot_kwargs: dict | None = None,
     gridspec_kwargs: dict | None = None,
     fig_kwargs: dict | None = None,
@@ -264,6 +268,8 @@ def make_contact_sheet(
         is reached before starting a new row).
         If top-down first, panels are filled column-wise (a column fills up until max_rows
         is reached before starting a new column).
+    font_size:
+        Font size for titles and labels.
     subplot_kwargs:
         Additional keyword arguments to pass to plt.subplots for each subplot.
         Example includes 'frame_on' to remove the lines around each subplot.
@@ -339,12 +345,12 @@ def make_contact_sheet(
         ax.imshow(panels[i], cmap="gray")
         ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
         if panel_titles is not None:
-            ax.set_title(panel_titles[i], fontsize=FONTSIZE_LARGE)
+            ax.set_title(panel_titles[i], fontsize=font_size)
 
         if (ax_col == 0) and (row_titles is not None):
-            ax.set_ylabel(row_titles[ax_row], fontsize=FONTSIZE_LARGE)
+            ax.set_ylabel(row_titles[ax_row], fontsize=font_size)
         if (ax_row == 0) and (col_titles is not None):
-            ax.set_xlabel(col_titles[ax_col], fontsize=FONTSIZE_LARGE)
+            ax.set_xlabel(col_titles[ax_col], fontsize=font_size)
             ax.xaxis.set_label_position("top")
 
     # remove any unused axes

@@ -10,7 +10,6 @@ from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifes
 from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     add_backdrop_fname_to_manifest,
 )
-from endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import LABEL_MAP
 
 
 def update_manifest_for_tfe(
@@ -106,16 +105,16 @@ def add_dynamic_features_with_filtering(df: pd.DataFrame) -> pd.DataFrame:
     return df_result
 
 
-def add_feature_metadata(df: pd.DataFrame) -> dict:
+def add_feature_metadata(label_map: dict) -> dict:
     """
-    Only the features specified in the LABEL_MAP are added to TFE.
+    Only the features specified in the label_map are added to TFE.
     Metadata right now is just the label for the feature, but this can
     be built out in the future.
     """
     feature_info = {}
 
     # Iterate through the label_map to populate feature_info
-    for feature, label in LABEL_MAP.items():
+    for feature, label in label_map.items():
         feature_info[feature] = FeatureInfo(
             label=label,
         )
