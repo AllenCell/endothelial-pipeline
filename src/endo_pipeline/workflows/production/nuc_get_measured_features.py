@@ -27,7 +27,6 @@ def main(
     of the first 2 positions for each of the given datasets for workflow testing purposes.
     """
     import logging
-    from concurrent.futures import ProcessPoolExecutor
 
     from tqdm import tqdm
 
@@ -37,7 +36,10 @@ def main(
     from endo_pipeline.library.analyze.shape_features import (
         get_and_save_nuclei_features_arg_unpacker,
     )
-    from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
+    from endo_pipeline.library.process.general_image_preprocessing import (
+        build_analysis_queue,
+        process_task_queue,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -60,22 +62,13 @@ def main(
         )
 
         # get and save results from images in analysis queue
-        if n_proc > 1:
-            with ProcessPoolExecutor(max_workers=n_proc) as executor:
-                list(
-                    tqdm(
-                        executor.map(get_and_save_nuclei_features_arg_unpacker, analysis_queue),
-                        total=len(analysis_queue),
-                        desc="Getting nuclei features (MP)",
-                    )
-                )
-        else:
-            for args in tqdm(
-                analysis_queue,
-                total=len(analysis_queue),
-                desc="Getting nuclei features (1P)",
-            ):
-                get_and_save_nuclei_features_arg_unpacker(args)
+        process_task_queue(
+            get_and_save_nuclei_features_arg_unpacker,
+            analysis_queue,
+            description="Getting nuclei features",
+            num_processes=n_proc,
+            chunksize=5,
+        )
 
     # concatenate the results outputs from above in to a single table
     if save_output:

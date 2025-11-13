@@ -180,8 +180,6 @@ def run_task_queue_with_multiprocessing(
                 total=len(queue),
             )
         )
-        pool.close()
-        pool.join()
 
 
 def run_task_queue_in_series(task: Callable, queue: list, description: str) -> None:
