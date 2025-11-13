@@ -63,6 +63,118 @@ If no value is returned, `uv` will default to using `.venv`.
 
 If you often switch between systems, it may be helpful to add the `export` statement in your `.bashrc` (or equivalent) shell configuration file to automatically set the environment variable.
 
+## Loading configs and manifests
+
+This repository uses _configs_ to track information about inputs, such as datasets, and _manifests_ to track locations of outputs, such as images and dataframes.
+This section lists patterns for loading these files.
+
+- [Load config for dataset](#load-config-for-dataset)
+- [Load dataframe from manifest](#load-dataframe-from-manifest)
+- [Load image from manifest](#load-image-from-manifest)
+- [Load zarr image from manifest](#load-zarr-image-from-manifest)
+- [Load DiffAE model from manifest](#load-diffae-model-from-manifest)
+- [Load CellPose model from manifest](#load-cellpose-model-from-manifest)
+
+Some general notes about loading configs and manifests:
+
+- In most cases, you will already have loaded the dataset config, which provides useful metadata about the dataset being analyzed
+- Using the generic loading methods, which take location objects, allows us to assign multiple locations for a given item and flexibly select between them
+- When iterating through datasets, we recommend loading any necessary manifests outside the loop and loading the config and locations inside the loop
+
+### Load config for dataset
+
+```python
+from endo_pipeline.configs import load_dataset_config
+
+config = load_dataset_config("dataset_name")
+```
+
+- Dataset configs are YAMLs located under `src/endo_pipeline/configs/datasets`
+- You can get a list of all available dataset names using `get_available_dataset_names`
+
+### Load dataframe from manifest
+
+```python
+from endo_pipeline.manifests import load_dataframe_manifest, get_dataframe_location_for_dataset
+from endo_pipeline.io import load_dataframe
+
+manifest = load_dataframe_manifest("manifest_name")
+location = get_dataframe_location_for_dataset(manifest, "dataset_name")
+dataframe = load_dataframe(location)
+```
+
+- Dataframe manifests are YAMLs located under `src/endo_pipeline/manifests/dataframes`
+- Dataframe manifests generally use dataset names as location keys, but other keys can be used (e.g. DiffAE training and validation dataframes are keyed as "training" and "validation")
+
+### Load image from manifest
+
+```python
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.manifests import load_image_manifest, get_image_location_for_dataset
+from endo_pipeline.io import load_image
+
+config = load_dataset_config("dataset_name")
+manifest = load_image_manifest("manifest_name")
+location = get_image_location_for_dataset(manifest, config, position=position, timepoint=timepoint)
+image = load_image(location)
+```
+
+- Image manifests are YAMLs located under `src/endo_pipeline/manifests/images`
+- Image manifests generally use dataset names as location keys, but other keys can be used (e.g. live-fixed image registration uses a combined name)
+- The `position` and `timepoint` arguments are optional, and only necessary if the location in the manifest contains a `{{position}}` or `{{timepoint}}` placeholder (the `get_image_location_for_dataset` will return a location with the position and/or timepoint filled in)
+- Additional keyword options are available for `load_image` including:
+    - `compute=True` (to return a NumPy array instead of a Dask array)
+    - `read=False` (to return a BioImage object without reading the image into memory)
+
+### Load zarr image from manifest
+
+_When loading original Zarrs, which exist for all datasets that have a dataset config, you can use a dedicated utility method that will handle the manifest loading step._
+
+```python
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.manifests import get_zarr_location_for_position
+from endo_pipeline.io import load_image
+
+config = load_dataset_config("dataset_name")
+location = get_zarr_location_for_position(config, position=position)
+image = load_image(location)
+```
+
+- Zarr locations are stored in the image manifest `src/endo_pipeline/manifests/images/image_zarr.yaml`
+- Position is required by the `get_zarr_location_for_position` method
+- Additional keyword options are available for `load_image` including:
+    - `compute=True` (to return a NumPy array instead of a Dask array)
+    - `read=False` (to return a BioImage object without reading the image into memory)
+
+### Load DiffAE model from manifest
+
+```python
+from endo_pipeline.manifests import load_model_manifest, get_model_location_for_run
+from endo_pipeline.io import load_model
+
+manifest = load_model_manifest("model_name")
+location = get_model_location_for_run(manifest, "run_name")
+model = load_model(location)
+```
+
+- Model manifests are YAMLs located under `src/endo_pipeline/manifests/models`
+- Additional keyword options are available for `load_model` including:
+    - `instantiate=True` (to return an instantiated model object instead of a CytoDLModel)
+- Note that `load_model` only works for models tracked by MLflow
+
+### Load CellPose model from manifest
+
+_Loading the CellPose model is currently handled directly and is not integrated into the `load_model` functionality. We will likely update this behavior to match how DiffAE models are loaded._
+
+```python
+from cellpose.models import CellposeModel
+from endo_pipeline.manifests import load_model_manifest, get_model_location_for_run
+
+manifest = load_model_manifest("nuc_pred_labelfree")
+location = get_model_location_for_run(manifest, "finetuned_20250419")
+model = CellposeModel(pretrained_model=location.path.as_posix())
+```
+
 ## Model training and evaluation
 
 These guidelines aim to support flexible and reproducible use of the model training and evaluation workflows.
