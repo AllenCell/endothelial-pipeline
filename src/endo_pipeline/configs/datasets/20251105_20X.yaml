@@ -1,0 +1,45 @@
+name: 20251105_20X
+original_path: //allen/programs/allencell/data/proj0/a56/42e/169/134/de6/07a/44d/2ba/14d/b0d/c9/20251105_GE00009569_20X_sldy/20251105_GE00009569_20X_sldy.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251105_c9b0d14d2ba44d07ade613416942ea56
+zarr_positions: []
+fmsid: c9b0d14d2ba44d07ade613416942ea56
+barcode: GE00009569
+cell_lines: [AICS-177]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: min
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+flow_conditions:
+- start: -20
+  stop: 576
+  shear_stress: 6.0
+include_scenes: null
+notes: 'low SS timelapse for 48h of CDH5 KO cell isogenic control line, observe if
+  function is comparable to parental AICS-126 and able to be used as a control '
+timepoint_annotations:
+  bf_temp_artifact:
+    0: [28, 72, 190]
+    1: []
+    2: [81, 336, 506]
+    3: [77]
+    4: []
+    5: [109]
+position_annotations: null
+center_z_plane: null
