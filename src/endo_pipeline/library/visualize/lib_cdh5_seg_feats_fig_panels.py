@@ -6,6 +6,7 @@ from skimage.color import label2rgb
 from skimage.color.colorlabel import DEFAULT_COLORS
 from skimage.exposure import rescale_intensity
 from skimage.morphology import binary_dilation
+from tqdm import tqdm
 
 from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
@@ -235,7 +236,7 @@ def make_classic_feature_panels(datasets: Datasets, out_dir: Path) -> None:
         }
     )
 
-    for dataset_name in datasets:
+    for dataset_name in tqdm(datasets):
         # load dataset config
         dataset_config = load_dataset_config(dataset_name)
 
