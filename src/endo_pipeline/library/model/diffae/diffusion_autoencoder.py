@@ -201,7 +201,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
             reconstructed_image = torch.cat(
                 [
                     self._generate_image(
-                        noise_stacked[start:stop], conditioning_vector[start:stop].unsqueeze(2)
+                        noise_stacked[start:stop], conditioning_vector[start:stop].unsqueeze(1)
                     ).squeeze(1)
                     for start, stop in tqdm.tqdm(batch_indices, desc="Generating batch")
                 ],
