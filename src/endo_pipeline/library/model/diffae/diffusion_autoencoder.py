@@ -23,7 +23,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
     def __init__(
         self,
         *,
-        noise_cons=False,
+        noise_cons: bool = False,
         autoencoder,
         image_shape,
         condition_key,
@@ -33,15 +33,16 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         loss=None,
         semantic_encoder=None,
         diffusion_key=None,
-        n_inference_steps=50,
-        save_dir="./",
-        save_images_every_n_epochs=1,
-        n_noise_samples=1,
-        train_encoder=True,
-        gamma=-1.0,
+        n_inference_steps: int = 50,
+        save_dir: str = "./",
+        save_images_every_n_epochs: int = 1,
+        n_noise_samples: int = 1,
+        train_encoder: bool = True,
+        gamma: float = -1.0,
         fixed_sample_seed: int | None = 42,
         **base_kwargs,
     ):
+        self.fixed_noise = None
         self.noise_cons = noise_cons
         # Store fixed samples for consistent visualization
         self.fixed_sample_seed = fixed_sample_seed
@@ -125,8 +126,13 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         """
         if self.fixed_noise is None:
             generator = torch.Generator(device=device)
-            generator.manual_seed(self.fixed_sample_seed)
-            self.fixed_noise = torch.randn(shape, generator=generator, device=device, dtype=dtype)
+            if self.fixed_sample_seed is not None:
+                generator.manual_seed(self.fixed_sample_seed)
+                self.fixed_noise = torch.randn(
+                    shape, generator=generator, device=device, dtype=dtype
+                )
+            else:
+                self.fixed_noise = torch.randn(shape, device=device, dtype=dtype)
 
         return self.fixed_noise
 
@@ -351,7 +357,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         # Encode condition: (B, lat_dim)
         latent = self.semantic_encoder(x_cond)
 
-        # → (B, 1, lat_dim) for cross-attention
+        # (B, 1, lat_dim) for cross-attention
         # AdaGN will internally .squeeze(1)
         condition = latent.unsqueeze(1)
 
