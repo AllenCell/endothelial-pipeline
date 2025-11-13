@@ -1388,7 +1388,7 @@ def get_length(skel: np.ndarray, max_num_pixels: int | None = None) -> float:
     return length
 
 
-def build_measured_features_tables(
+def build_cdh5_measured_features_tables(
     dataset_name: str,
     tp: int,
     out_dir: str | Path,
@@ -1800,7 +1800,9 @@ def get_nuclei_features_from_dataset_at_timepoint(
     dataset_name: str,
     position: int,
     tp: int,
+    out_dir: Path,
     channel_names: tuple = ("EGFP", "BF"),
+    save_output: bool = True,
 ) -> pd.DataFrame:
     """
     Load label-free nuclei prediction images and measure features for a given
@@ -1863,4 +1865,49 @@ def get_nuclei_features_from_dataset_at_timepoint(
         + [col for col in nuc_feats_df.columns if col not in ["dataset_name", "position", "T"]]
     ]
 
+    out_subdir = out_dir / dataset_name / f"P{position}"
+    out_subdir.mkdir(exist_ok=True, parents=True)
+    out_path = out_subdir / f"{dataset_name}_P{position}_T{tp}_nuclei_labelfree_features.parquet"
+    if save_output:
+        nuc_feats_df.to_parquet(out_path, index=False)
+
     return nuc_feats_df
+
+
+def build_cdh5_measured_features_tables_multiproc_wrapper(args: dict) -> None:
+    """Build and save measured features tables using multiprocessing."""
+
+    dataset_name = args["dataset_name"]
+    position = args["position"]
+    tp = args["T"]
+    save_output = args["save_output"]
+    out_dir = args["output_dir"]
+    verbose = args["verbose"]
+    create_validation_image = args["is_validation_image"]
+    build_cdh5_measured_features_tables(
+        dataset_name,
+        tp,
+        out_dir,
+        position,
+        save_output=save_output,
+        create_validation_image=create_validation_image,
+        verbose=verbose,
+    )
+
+
+def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
+    """Unpack arguments from an argument dictionary and call
+    get_nuclei_features_from_dataset_at_timepoint.
+    """
+    dataset_name = args["dataset_name"]
+    position = args["position"]
+    tp = args["T"]
+    out_dir = args["output_dir"]
+    save_output = args["save_output"]
+    get_nuclei_features_from_dataset_at_timepoint(
+        dataset_name=dataset_name,
+        position=position,
+        tp=tp,
+        out_dir=out_dir,
+        save_output=save_output,
+    )
