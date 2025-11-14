@@ -12,6 +12,7 @@ from skimage.exposure import rescale_intensity
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, load_image
+from endo_pipeline.library.process.general_image_preprocessing import process_task_queue
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings import DIMENSION_ORDER
 
@@ -285,37 +286,19 @@ def get_training_data_paths(
     - Brightfield standard deviation projections as the images
     - Nuclei segmentations from the Cellpose base nuclei model as the labels
     """
-    from multiprocessing import Pool
-
-    from tqdm import tqdm
 
     # add the whether or not to use the GPU to the analysis queue
     for arg in analysis_queue:
         arg.update({"gpu": gpu})
 
     if create_training_data:
-        if n_proc > 1 and not gpu:
-            with Pool(processes=n_proc) as pool:
-                print("Starting multiprocessing...")
-                list(
-                    tqdm(
-                        pool.imap(generate_training_data, analysis_queue),
-                        total=len(analysis_queue),
-                        desc="Training data images created",
-                    )
-                )
-                pool.close()
-                pool.join()
-                print("Done multiprocessing.")
-        else:
-            print(f"Starting {'gpu' if gpu else 'single core'} processing...")
-            for analysis_args in tqdm(
-                analysis_queue,
-                total=len(analysis_queue),
-                desc="Training data images created",
-            ):
-                generate_training_data(analysis_args)
-            print("Done single processing.")
+        process_task_queue(
+            generate_training_data,
+            analysis_queue,
+            num_processes=n_proc,
+            description="Creating training data images",
+            chunksize=1,
+        )
     else:
         pass
 

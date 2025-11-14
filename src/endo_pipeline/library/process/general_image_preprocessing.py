@@ -1,5 +1,6 @@
 import logging
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from multiprocessing import Pool
 from pathlib import Path
 from typing import Any
 
@@ -87,7 +88,7 @@ def build_analysis_queue(
     >>> dataset_name_list = ["20250818_20X"]
     >>> t_start=0
     >>> t_final=50
-    >>>  t_step=1
+    >>> t_step=1
     >>> build_analysis_queue(dataset_name_list, t_start, t_final, t_step, is_test=True)
     returns a list of dictionaries for positions 0 and 1 only for timeframes
     0, 1, 2, 3, 4, 5, 6, 7, 8, and 9 only for a total of 20 entries in the
@@ -165,6 +166,35 @@ def build_analysis_queue(
                 analysis_queue.append(analysis_args)
 
     return analysis_queue
+
+
+def run_task_queue_with_multiprocessing(
+    task: Callable, queue: list, description: str, num_processes: int, chunksize: int
+) -> None:
+    logger.info("Starting multiprocessing...")
+    with Pool(processes=num_processes) as pool:
+        list(
+            tqdm(
+                pool.imap(task, queue, chunksize=chunksize),
+                desc=f"{description} (MP)",
+                total=len(queue),
+            )
+        )
+
+
+def run_task_queue_in_series(task: Callable, queue: list, description: str) -> None:
+    logger.info("Starting single-core processing...")
+    for item in tqdm(queue, desc=f"{description} (1P)", total=len(queue)):
+        task(item)
+
+
+def process_task_queue(
+    task: Callable, queue: list, description: str, num_processes: int, chunksize: int
+) -> None:
+    if num_processes > 1:
+        run_task_queue_with_multiprocessing(task, queue, description, num_processes, chunksize)
+    else:
+        run_task_queue_in_series(task, queue, description)
 
 
 def sequence_to_scalar(sequence_like: Sequence | pd.Series) -> Any:
