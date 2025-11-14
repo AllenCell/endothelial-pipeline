@@ -76,7 +76,7 @@ def main(
     else:
         output_dir = Path(IF_INTEGRATION_SAVE_DIRECTORY)
 
-    output_dir = output_dir / f"live_fixed"
+    output_dir = output_dir / "live_fixed"
 
     # If the output directory already exists (and not in demo mode, which will
     # append a timestamp to ensure the directory is unique), the workflow will
