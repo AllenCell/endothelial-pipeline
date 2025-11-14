@@ -2,11 +2,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from endo_pipeline.settings import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-    NUM_PCS_TO_ANALYZE,
-)
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 TAGS = ["diffae_image_generation", "pc_interpretation"]
 
@@ -95,7 +91,8 @@ def main(
     dataset_names = get_datasets_in_collection("pca_reference")
 
     if list_of_axes is None:
-        list_of_axes = list(range(NUM_PCS_TO_ANALYZE))
+        list_of_axes = [3, 4, 5]
+        # list_of_axes = list(range(NUM_PCS_TO_ANALYZE))
 
     if use_pcs:
         # perform latent walk along the principal components
@@ -110,9 +107,9 @@ def main(
                 for dataset_name in dataset_names
             ]
         )
-        pc_column_names = DIFFAE_PC_COLUMN_NAMES[*list_of_axes]
+        pc_column_names = [DIFFAE_PC_COLUMN_NAMES[i] for i in list_of_axes]
         data_for_walk = dataframe[pc_column_names].values
-        walk, ranges = get_walk(data_for_walk, list_of_axes, sigma, n_steps)
+        walk, ranges = get_walk(data_for_walk, sigma, n_steps)
         # inverse transform to original latent space
         walk = pca.inverse_transform(walk)
     else:
@@ -130,7 +127,7 @@ def main(
         )
         feature_column_names = DIFFAE_FEATURE_COLUMN_NAMES
         data_for_walk = dataframe[feature_column_names].values
-        walk, ranges = get_walk(data_for_walk, list_of_axes, sigma, n_steps)
+        walk, ranges = get_walk(data_for_walk, sigma, n_steps)
 
     # generate images from the latent walk
     walk_img = generate_from_coords(model, walk, n_noise_samples=n_noise_samples, num_gpus=NUM_GPUS)

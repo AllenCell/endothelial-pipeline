@@ -25,9 +25,7 @@ def write_pc_vals(walk_img: np.ndarray, ranges: list) -> np.ndarray:
     return walk_img
 
 
-def get_walk(
-    data: np.ndarray, list_of_axes: list[int], sigma: float, n_steps: int
-) -> tuple[list, list]:
+def get_walk(data: np.ndarray, sigma: float, n_steps: int) -> tuple[list, list]:
     """
     Generate a latent walk based on standard deviation
     or min/max of each dimension.
@@ -36,8 +34,6 @@ def get_walk(
     ----------
     data: np.ndarray
         Numpy array containing the data to be traversed.
-    list_of_axes: list[int]
-        List of dimensions to traverse.
     sigma: float
         Range of values for the latent walk.
     n_steps: int
@@ -45,7 +41,7 @@ def get_walk(
     """
     walk = []
     ranges = []
-    for dim in list_of_axes:
+    for dim in range(data.shape[1]):
         if sigma is None:
             data_min = data[:, dim].min()
             data_max = data[:, dim].max()
