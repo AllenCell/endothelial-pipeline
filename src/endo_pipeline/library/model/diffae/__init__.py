@@ -7,6 +7,7 @@ from .generate_image import (
 )
 from .latent_walk import DiffAELatentWalkRank0
 from .log_grad import GradientLoggingCallback
+from .mlflow import MLFlowLogger
 from .transforms import MinStdCropd, RotateRanged
 
 __all__ = [
@@ -14,6 +15,7 @@ __all__ = [
     "DiffAELatentWalkRank0",
     "DiffusionAutoEncoder",
     "GradientLoggingCallback",
+    "MLFlowLogger",
     "MinStdCropd",
     "RotateRanged",
     "generate_from_coords",

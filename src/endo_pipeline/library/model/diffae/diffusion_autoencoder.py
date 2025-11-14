@@ -336,7 +336,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
             reconstructed_image = torch.from_numpy(reconstructed_image)
         reconstructed_image = reconstructed_image.cpu()
 
-        return detach(reconstructed_image)  # .cpu()
+        return detach(reconstructed_image)
 
     # The forward method is modified to make this work with both cross-attention and AdaGN!
 

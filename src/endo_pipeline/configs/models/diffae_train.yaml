@@ -209,10 +209,10 @@ model:
   lr_scheduler:
     _partial_: true
     _target_: torch.optim.lr_scheduler.OneCycleLR
-    max_lr: 0.0001
+    max_lr: 0.0002
     epochs: ${trainer.max_epochs}
-    steps_per_epoch: 1
-    pct_start: 0.01
+    steps_per_epoch: 69 # this works with a batch size of 12 with 4 GPUs
+    pct_start: 0.3
   diffusion_inferer:
     _target_: monai.inferers.DiffusionInferer
     _partial_: true
@@ -271,7 +271,7 @@ callbacks:
 
 logger:
   mlflow:
-    _target_: cyto_dl.loggers.MLFlowLogger
+    _target_: endo_pipeline.library.model.diffae.mlflow.MLFlowLogger
     tracking_uri: https://production.int.allencell.org/mlflow/
     experiment_name: ${experiment_name}
     run_name: ${run_name}
