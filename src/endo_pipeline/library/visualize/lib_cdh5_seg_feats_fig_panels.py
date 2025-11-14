@@ -8,7 +8,6 @@ from skimage.exposure import rescale_intensity
 from skimage.morphology import binary_dilation
 from tqdm import tqdm
 
-from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe, load_image
 from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
@@ -220,7 +219,7 @@ def make_imaging_panels(
             )
 
 
-def make_classic_feature_panels(datasets: Datasets, out_dir: Path) -> None:
+def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
 
     Path.mkdir(out_dir, exist_ok=True, parents=True)
 
