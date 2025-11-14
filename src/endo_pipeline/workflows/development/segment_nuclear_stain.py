@@ -84,9 +84,7 @@ def main(
 
         # Step 5: Update image manifest
         img_manifest = load_image_manifest("nuclear_stain_seg")
-        img_manifest = add_image_location_to_manifest(
-            dataset_config, img_manifest, output_path, add_directory=True
-        )
+        add_image_location_to_manifest(img_manifest, dataset_config, output_path)
         save_image_manifest(img_manifest)
 
 
