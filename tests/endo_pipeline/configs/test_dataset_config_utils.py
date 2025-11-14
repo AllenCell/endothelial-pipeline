@@ -35,6 +35,7 @@ from endo_pipeline.manifests import ImageLocation
 def dataset():
     return DatasetConfig(
         name="unique_dataset_name",
+        date="YYYYMMDD",
         original_path="/path/to/original/dataset",
         zarr_path="/path/to/zarr/dataset",
         zarr_positions=[1, 3, 5],
