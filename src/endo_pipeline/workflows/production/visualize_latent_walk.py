@@ -11,7 +11,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
-    list_of_axes: list | None = None,
+    list_of_axes: list[int] | None = None,
     sigma: float = 3.0,
     n_steps: int = 10,
     use_pcs: bool = True,
@@ -68,7 +68,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES, DIFFAE_PC_COLUMN_NAMES
+    from endo_pipeline.settings import ColumnName
 
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
@@ -91,15 +91,19 @@ def main(
     dataset_names = get_datasets_in_collection("pca_reference")
 
     if list_of_axes is None:
-        list_of_axes = [3, 4, 5]
+        list_of_axes = [9, 10, 11]
         # list_of_axes = list(range(NUM_PCS_TO_ANALYZE))
 
     if use_pcs:
-        # perform latent walk along the principal components
+        # Perform latent walk along the principal component axes.
+        # Because we have to do the inverse transform later, we need to fit PCA on all PCs
+        # up to the max PC index specified, perform the walk, then inverse transform back.
+        # Then we can select only the specified PCs from the walk for image generation
+        max_num_pcs = max(list_of_axes) + 1
         pca = fit_pca(
             dataframe_manifest_name=dataframe_manifest_name,
             include_cell_piling=include_cell_piling,
-            num_pcs=max(list_of_axes) + 1,
+            num_pcs=max_num_pcs,
         )
         dataframe = pd.concat(
             [
@@ -107,13 +111,14 @@ def main(
                 for dataset_name in dataset_names
             ]
         )
-        pc_column_names = [DIFFAE_PC_COLUMN_NAMES[i] for i in list_of_axes]
+        pc_column_names = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(max_num_pcs)]
         data_for_walk = dataframe[pc_column_names].values
-        walk, ranges = get_walk(data_for_walk, sigma, n_steps)
+        walk, ranges = get_walk(data_for_walk, sigma, n_steps, list_of_axes=list_of_axes)
         # inverse transform to original latent space
+        # need this for image generation
         walk = pca.inverse_transform(walk)
     else:
-        # perform latent walk along the raw latent dimensions
+        # Perform latent walk along the raw latent dimensions.
         dataframe = pd.concat(
             [
                 get_dataframe_for_dynamics_workflows(
@@ -125,9 +130,9 @@ def main(
                 for dataset_name in dataset_names
             ]
         )
-        feature_column_names = DIFFAE_FEATURE_COLUMN_NAMES
+        feature_column_names = [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in list_of_axes]
         data_for_walk = dataframe[feature_column_names].values
-        walk, ranges = get_walk(data_for_walk, sigma, n_steps)
+        walk, ranges = get_walk(data_for_walk, sigma, n_steps, list_of_axes=list_of_axes)
 
     # generate images from the latent walk
     walk_img = generate_from_coords(model, walk, n_noise_samples=n_noise_samples, num_gpus=NUM_GPUS)
@@ -137,9 +142,9 @@ def main(
     if show_coords:
         walk_img_stack = write_pc_vals(walk_img_stack, ranges)
 
-    file_name = f"latent_walk_sigma_{int(sigma)}"
-    if use_pcs:
-        file_name = f"{file_name}_along_pcs"
+    axis_label = "_pcs" if use_pcs else "_dims"
+    axes_str = "_".join([str(ax + 1) for ax in list_of_axes])
+    file_name = f"latent_walk_sigma_{int(sigma)}_along{axis_label}_{axes_str}"
     OmeTiffWriter.save(
         uri=save_path / f"{file_name}.tif",
         data=walk_img_stack,
@@ -153,7 +158,7 @@ def main(
     image_height = walk_img.shape[-1]
     walk_img_grid = walk_img.reshape(n_dim, n_steps_actual, image_width, image_height)
 
-    plot_latent_walk_as_grid(walk_img_grid, ranges, save_path, file_name)
+    plot_latent_walk_as_grid(walk_img_grid, ranges, list_of_axes, use_pcs, save_path, file_name)
 
 
 if __name__ == "__main__":
