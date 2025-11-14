@@ -6,7 +6,9 @@ How to use this wrapper workflow:
 3. Run all the registered workflows with `uv run endopipe -g 1 run-all-testable-workflows`, or leave out the -g 1 for just the CPU workflows.
 """
 
+import copy
 import logging
+import subprocess
 import typing
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -64,6 +66,8 @@ def _timer():
 
 
 TIMEOUT_MIN = 3
+STDOUT = 1
+STDERR = 2
 
 
 @dataclass
@@ -99,9 +103,28 @@ def _run_workflow(app: "App") -> _WorkflowResult:
     error = None
     with _timer() as timer:
         try:
-            logger.info(f"Starting workflow: {' '.join(app.name)}")
-            # Call the workflow with no arguments
-            app("")
+            name = " ".join(app.name)
+            # Call the workflow with only arguments that are shared between all workflows
+            options = copy.deepcopy(endo_pipeline.__main__.input_workflow_options)
+            args: list[str]
+            if options is None:
+                args = []
+            else:
+                options.demo_mode = True
+                args = options.to_args()
+            command = ["endopipe", name, *args]
+            logger.info(f"Starting workflow: {' '.join(command)}")
+            subprocess.run(
+                command,
+                timeout=TIMEOUT_MIN * 60 * 2,
+                check=True,
+                stdout=STDOUT,
+                stderr=STDERR,
+            )
+        except subprocess.CalledProcessError as cpe:
+            error = cpe.stderr.decode("utf-8") if cpe.stderr else f"Failed. See logs."
+        except subprocess.TimeoutExpired:
+            error = None
         except Exception as e:
             error = e
     elapsed = timer.elapsed

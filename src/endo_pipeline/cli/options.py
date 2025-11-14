@@ -31,6 +31,23 @@ class WorkflowOptions:
     use_staging: Annotated[bool, Parameter(alias="-u", group=OPTIONS)] = False
     """Use staging environments."""
 
+    def to_args(self) -> list[str]:
+        """Convert options to list of CLI arguments."""
+        args = []
+        if self.verbose:
+            args.append("-v")
+        if self.debug:
+            args.append("-vv")
+        if self.show_external_logs:
+            args.append("-s")
+        if self.num_gpus is not None:
+            args.extend(["-g", str(self.num_gpus)])
+        if self.demo_mode:
+            args.append("-d")
+        if self.use_staging:
+            args.append("-u")
+        return args
+
 
 @Parameter(name="*")
 @dataclass

@@ -52,8 +52,10 @@ TESTING_WORKFLOWS = Group("Test Many Workflows", sort_key=3)
 ARCHIVED_WORKFLOWS = Group("Archived Workflows", sort_key=4)
 INTERNAL_WORKFLOWS = Group("Internal Workflows", sort_key=5)
 
-WORKFLOW_OPTIONS = WorkflowOptions()
-PIPELINE_OPTIONS = PipelineOptions()
+DEFAULT_WORKFLOW_OPTIONS = WorkflowOptions()
+DEFAULT_PIPELINE_OPTIONS = PipelineOptions()
+
+input_workflow_options: WorkflowOptions | None = None
 
 
 def build_pipeline_app():
@@ -92,11 +94,12 @@ def workflow_cli(workflow: Callable) -> None:
 
 def pipeline_entrypoint(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
-    workflow_options: WorkflowOptions = WORKFLOW_OPTIONS,
-    pipeline_options: PipelineOptions = PIPELINE_OPTIONS,
+    workflow_options: WorkflowOptions = DEFAULT_WORKFLOW_OPTIONS,
+    pipeline_options: PipelineOptions = DEFAULT_PIPELINE_OPTIONS,
 ) -> None:
     """Pipeline CLI entrypoint."""
-
+    global input_workflow_options
+    input_workflow_options = workflow_options
     apply_workflow_options(workflow_options)
 
     for app in pipeline_app.meta.subapps:
@@ -119,7 +122,7 @@ def pipeline_entrypoint(
 
 def workflow_entrypoint(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
-    workflow_options: WorkflowOptions = WORKFLOW_OPTIONS,
+    workflow_options: WorkflowOptions = DEFAULT_WORKFLOW_OPTIONS,
 ) -> None:
     """Workflow CLI entrypoint."""
 
