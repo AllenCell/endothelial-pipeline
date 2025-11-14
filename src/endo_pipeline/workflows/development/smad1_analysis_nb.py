@@ -55,7 +55,7 @@ df = pd.concat(df_smad1_list, ignore_index=True)
 
 # %% Filter and preprocess features for immunofluorescence analysis.
 df = filter.filter_small_objects(df)
-df = filter.filter_edge_objects(df)
+df = filter.filter_img_center(df)
 df["SMAD1_norm_NucViolet_mean_sum_proj"] = df["SMAD1_mean_sum_proj"] / df["NucViolet_mean_sum_proj"]
 df["SMAD1_norm_area_mean_sum_proj"] = df["SMAD1_mean_sum_proj"] / df["area"]
 df = df[df["SMAD1_norm_NucViolet_mean_sum_proj"] < 1.0]

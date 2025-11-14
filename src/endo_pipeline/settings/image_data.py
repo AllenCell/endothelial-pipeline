@@ -43,5 +43,20 @@ Z_STEP_SIZE_ACTUAL_3i_20x: float = (
 )
 """Actual Z-step size for the 20x objective in micrometers, corrected for axial distortion."""
 
-CAMERA_OFFSET = 100
+CAMERA_OFFSET: int = 100
 """Minimum intensity value set by hardware configuration."""
+
+HOTSPOT_THRESHOLD: int = 150
+"""Pixel distance from image edge to define center region for analysis."""
+
+IMG_SHAPE_RESOLUTION_0_3i_X: int = 1744
+"""Image shape X-dimension at resolution level 0 for 3i images."""
+
+IMG_SHAPE_RESOLUTION_0_3i_Y: int = 1712
+"""Image shape Y-dimension at resolution level 0 for 3i images."""
+
+IMG_SHAPE_RESOLUTION_1_3i_X: int = 872
+"""Image shape X-dimension at resolution level 1 for 3i images."""
+
+IMG_SHAPE_RESOLUTION_1_3i_Y: int = 856
+"""Image shape Y-dimension at resolution level 1 for 3i images."""
