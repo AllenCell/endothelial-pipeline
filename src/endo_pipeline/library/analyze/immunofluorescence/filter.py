@@ -71,10 +71,10 @@ def filter_img_center(
     y_max = img_shape_y - pixels_from_edge
 
     df_filtered = df[
-        (df["centroid_x"] > pixels_from_edge) &
-        (df["centroid_x"] < x_max) &
-        (df["centroid_y"] > pixels_from_edge) &
-        (df["centroid_y"] < y_max)
+        (df["centroid_x"] > pixels_from_edge)
+        & (df["centroid_x"] < x_max)
+        & (df["centroid_y"] > pixels_from_edge)
+        & (df["centroid_y"] < y_max)
     ]
 
     return df_filtered
