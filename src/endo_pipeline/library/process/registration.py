@@ -35,7 +35,7 @@ def get_paired_dataset_dict(
         raise ValueError("Invalid dataset pair type. Choose 'live_fixed' or '20X_40X'.")
 
     # Get the list of datasets of the specified pair type.
-    dataset_list = get_datasets_in_collection(f"{dataset_pair_type}_paired_datasets")
+    dataset_list = get_datasets_in_collection(f"{dataset_pair_type}_paired")
 
     # Set dataset name flags for setting
     # "target" and "moving" images for alignment.

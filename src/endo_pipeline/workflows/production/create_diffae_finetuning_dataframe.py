@@ -18,6 +18,8 @@ def main(
         Whether paired datasets are live/fixed or 20X/40X.
     """
     import logging
+    import re
+    from pathlib import Path
 
     import pandas as pd
     from sklearn.model_selection import train_test_split
@@ -26,8 +28,8 @@ def main(
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.model import build_and_save_dataframe_manifest_for_training
-    from endo_pipeline.library.process.registration import get_paired_dataset_dict
-    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+    from endo_pipeline.library.process.live_fixed_registration import build_live_fixed_dataset_pairs
+    from endo_pipeline.manifests import load_image_manifest
     from endo_pipeline.settings import DIFFAE_ZARR_RESOLUTION_LEVEL, Z_SLICE_OFFSETS
 
     logger = logging.getLogger(__name__)
@@ -40,25 +42,30 @@ def main(
     # get name of dataset used as the "target" image in the target/moving pair
     # to get image paths from the ImageManifest created in the registration workflow
     image_manifest = load_image_manifest(f"registered_{dataset_pair_type}{name_suffix}")
-    paired_datasets = get_paired_dataset_dict(dataset_pair_type)
+    datasets = get_datasets_in_collection("live_fixed_paired")
     image_paths: list[str] = []
-    for fixed_dataset_name in paired_datasets["target"]:
-        dataset_config = load_dataset_config(fixed_dataset_name)
+    for dataset_pair in build_live_fixed_dataset_pairs(datasets):
+        target_dataset_name = dataset_pair.target
+        dataset_pair_name = dataset_pair.target.replace("PreFixation", "Fixation")
+        location_path_template = image_manifest.locations[dataset_pair_name].path
+
+        dataset_config = load_dataset_config(target_dataset_name)
         available_positions = dataset_config.zarr_positions
 
         # get image paths for each position in the dataset
         for position in available_positions:
-            image_location = get_image_location_for_dataset(
-                image_manifest, dataset_config, position
+            # get image location from manifest, replacing position template
+            position_path = re.sub(
+                "_P{{position}}_", f"_P{position}_", location_path_template.as_posix()
             )
-            if not image_location.path or not image_location.path.exists():
+            if not Path(position_path).exists():
                 logger.warning(
                     "No registered image found for dataset [ %s ] at position [ %s ]",
-                    fixed_dataset_name,
+                    target_dataset_name,
                     position,
                 )
                 continue
-            image_paths.append(image_location.path.as_posix())
+            image_paths.append(position_path)
 
     # build dataframe with loading metadata for the aligned images
     # note that "resolution" here is set to 0, as the images
@@ -80,7 +87,7 @@ def main(
     # object with FMS IDs to be used in the DiffAE model training script.
     # Note that this can be swapped out with uploading to S3 later on.
     manifest_name = f"diffae_finetuning_dataframe{name_suffix}"
-    dataset_name_list = get_datasets_in_collection(f"{dataset_pair_type}_paired_datasets")
+    dataset_name_list = get_datasets_in_collection(f"{dataset_pair_type}_paired")
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_name_list]
     save_path = get_output_path("models", f"diffae_finetune_{dataset_pair_type}")
     build_and_save_dataframe_manifest_for_training(
