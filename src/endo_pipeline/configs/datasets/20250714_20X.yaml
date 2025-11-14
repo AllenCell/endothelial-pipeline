@@ -60,6 +60,13 @@ timepoint_annotations:
   cell_piling:
     2: [[469, 576]]
     5: [[545, 576]]
+  not_steady_state:
+    0: [[0, 165]]
+    1: [[0, 164]]
+    2: [[0, 173]]
+    3: [[0, 160]]
+    4: [[0, 152]]
+    5: [[0, 143]]
 position_annotations: null
 center_z_plane:
   0: 10
