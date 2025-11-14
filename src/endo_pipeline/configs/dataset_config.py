@@ -143,6 +143,9 @@ class DatasetConfig:
     name: str
     """Unique name of the dataset."""
 
+    date: str
+    """Date the dataset was collected, formatted as YYYYMMDD."""
+
     original_path: str
     """Original path to dataset."""
 
