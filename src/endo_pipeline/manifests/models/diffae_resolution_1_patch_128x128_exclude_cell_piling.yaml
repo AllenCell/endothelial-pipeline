@@ -1,4 +1,4 @@
-name: diffae_resolution_1_patch_64x64_exclude_cell_piling
+name: diffae_resolution_1_patch_128x128_exclude_cell_piling
 workflow: build_diffae_train_config
 parameters:
   training_datasets:
