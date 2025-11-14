@@ -24,9 +24,6 @@ optional field should be set, uncomment the corresponding line to set the value.
 """
 
 # %%
-if __name__ != "__main__":
-    raise ImportError("This module is a notebook and is not meant to be imported")
-
 from endo_pipeline.configs import PositionAnnotation  # noqa: F401, I001
 from endo_pipeline.configs import TimepointAnnotation  # noqa: F401
 from endo_pipeline.configs import (
