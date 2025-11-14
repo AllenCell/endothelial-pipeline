@@ -50,6 +50,7 @@ dataset_name = "unique_dataset_name"
 dataset = DatasetConfig(
     # ============================ REQUIRED FIELDS =============================
     name=dataset_name,
+    date="YYYYMMDD",
     original_path="/path/to/original/dataset",
     zarr_path="//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/DATE_FMSID",
     zarr_positions=[],
@@ -162,5 +163,5 @@ img_manifest = add_image_location_to_manifest(
 save_image_manifest(img_manifest)
 
 # %%
-print("Reminder to add dataset to relavent collections!")
+print("Reminder to add dataset to relevant collections!")
 # %%
