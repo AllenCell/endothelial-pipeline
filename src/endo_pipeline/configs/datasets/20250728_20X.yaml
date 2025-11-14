@@ -79,6 +79,13 @@ timepoint_annotations:
     3: [32, 65, 246, 285, 320]
     4: [32, 65, 246, 285, 320]
     5: [32, 65, 246, 285, 320]
+  not_steady_state:
+    0:  [[0, 65]]
+    1:  [[0, 65]]
+    2:  [[0, 65]]
+    3:  [[0, 65]]
+    4:  [[0, 65]]
+    5:  [[0, 65]]
 position_annotations:
   dust_artifact: [3]
 center_z_plane:
