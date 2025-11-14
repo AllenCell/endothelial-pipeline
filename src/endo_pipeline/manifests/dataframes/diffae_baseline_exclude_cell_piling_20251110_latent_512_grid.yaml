@@ -7,26 +7,8 @@ parameters:
   config_name: diffae_eval
 locations:
   20250319_20X:
-    fmsid: 919159c499e64b6d929f48a64292b621
+    fmsid: 2763ba9a3eaa4b98956f78ebc5622d57
     s3uri: null
   20250428_20X:
-    fmsid: f387ac0f28e840b8b36ce6a45f6c3ac7
-    s3uri: null
-  20250611_20X:
-    fmsid: caa2873782e24a018f26f4f6811b69ce
-    s3uri: null
-  20250618_20X:
-    fmsid: c1881bbc5a864cfa88a99b388a28436e
-    s3uri: null
-  20250714_20X:
-    fmsid: e81310278c8f4ec59777375db6e1406f
-    s3uri: null
-  20250813_20X:
-    fmsid: b4bd39b40f324e77b3db04a96889e4f5
-    s3uri: null
-  20250818_20X:
-    fmsid: 60abea5a18b44fa9af365e03bc64d563
-    s3uri: null
-  20250827_20X:
-    fmsid: b62f5cce16bd4cdc8032dcd938753e5f
+    fmsid: 4877315e55254451972e850aba35d393
     s3uri: null
