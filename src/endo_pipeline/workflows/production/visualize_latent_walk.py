@@ -68,7 +68,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings import ColumnName
+    from endo_pipeline.settings import NUM_PCS_TO_ANALYZE, ColumnName
 
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
@@ -91,8 +91,7 @@ def main(
     dataset_names = get_datasets_in_collection("pca_reference")
 
     if list_of_axes is None:
-        list_of_axes = [9, 10, 11]
-        # list_of_axes = list(range(NUM_PCS_TO_ANALYZE))
+        list_of_axes = list(range(NUM_PCS_TO_ANALYZE))
 
     if use_pcs:
         # Perform latent walk along the principal component axes.
