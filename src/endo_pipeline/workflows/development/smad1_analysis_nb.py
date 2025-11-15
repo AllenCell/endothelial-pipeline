@@ -62,7 +62,7 @@ df = df[df["SMAD1_norm_NucViolet_mean_sum_proj"] < 1.0]
 
 # %% Plot distributions of SMAD1 intensity features
 PLOT_FEAT = "SMAD1_mean_sum_proj"
-xlim = 30000
+xlim = 35000.0
 ylim = 0.0004
 # %%
 for dataset in smad1_datasets:
@@ -106,4 +106,100 @@ for date, df_date in df.groupby("date"):
     )
 # %%
 if_dataset_contact_sheet(df, output_dir)
+# %%
+# %%
+DATASET_GROUPS = {
+    "20250509": [
+        [
+            "20250509_20X_IF2",
+            "20250509_20X_IF5",
+            "20250509_20X_IF7",
+            "20250509_20X_IF9",
+        ],  # 24 hr low density varied shear stress
+        [
+            "20250509_20X_IF3",
+            "20250509_20X_IF12",
+            "20250509_20X_IF1",
+        ],  #  24 hr high density varied shear stress
+    ],
+    "20250522": [
+        ["20250522_20X_IFH", "20250522_20X_IFJ"],  # 24 hr low density varied shear stress
+        ["20250522_20X_IFI", "20250522_20X_IFG", "20250522_20X_IFN"],  # 48 hr varied shear stress
+        [
+            "20250522_20X_IFH",
+            "20250522_20X_IFA",
+            "20250522_20X_IFB",
+            "20250522_20X_IFD",
+            "20250522_20X_IFC",
+            "20250522_20X_IFF",
+            "20250522_20X_IFE",
+            "20250522_20X_IFG",
+        ],  # 24 low + X high over time
+        [
+            "20250522_20X_IFJ",
+            "20250522_20X_IFK",
+            "20250522_20X_IFL",
+            "20250522_20X_IFM",
+            "20250522_20X_IFN",
+        ],  # 24 high + X low over time
+    ],
+    "20250929": [
+        ["20250929_20X_IF0", "20250929_20X_IF2", "20250929_20X_IF9"],  # no shear stress over time
+        ["20250929_20X_IF2", "20250929_20X_IF1", "20250929_20X_IF3"],  # 24 hr varied shear stress
+        ["20250929_20X_IF9", "20250929_20X_IF8", "20250929_20X_IF10"],  # 48 hr varied shear stress
+        [
+            "20250929_20X_IF1",
+            "20250929_20X_IF4",
+            "20250929_20X_IF5",
+            "20250929_20X_IF6",
+            "20250929_20X_IF8",
+        ],  # 24 hr low + X high over time
+        [
+            "20250929_20X_IF3",
+            "20250929_20X_IF7",
+            "20250929_20X_IF10",
+        ],  # 24 hr high + X low over time
+    ],
+    "20251103": [
+        ["20251103_20X_IF0", "20251103_20X_IF2"],  # no shear stress over time
+        ["20251103_20X_IF2", "20251103_20X_IF3", "20251103_20X_IF1"],  # 24 hr varied shear stress
+        ["20251103_20X_IF8", "20251103_20X_IF10"],
+        [
+            "20251103_20X_IF1",
+            "20251103_20X_IF4",
+            "20251103_20X_IF5",
+            "20251103_20X_IF6",
+            "20251103_20X_IF8",
+        ],  # 24 hr high + X low over time
+        [
+            "20251103_20X_IF3",
+            "20251103_20X_IF7",
+            "20251103_20X_IF10",
+        ],  # medium shear stress over time
+    ],
+}
+
+# %%
+for date, df_date in df.groupby("date"):
+    group = DATASET_GROUPS[date]
+    for subgroup in group:
+        plot.stacked_feature_density(
+            df_all=df_date,
+            dataset_name_list=subgroup,
+            feature=PLOT_FEAT,
+            feature_name="SMAD1 mean intensity of sum projection\nin nuclear mask",
+            save_dir=output_dir,
+            xlim=xlim,
+        )
+        plot.feature_density(
+            df_all=df_date,
+            dataset_name_list=subgroup,
+            feature=PLOT_FEAT,
+            feature_name="SMAD1 mean intensity of sum projection\nin nuclear mask",
+            save_dir=output_dir,
+            xlim=xlim,
+            ylim=ylim,
+            pool_positions=True,
+        )
+
 # %%
