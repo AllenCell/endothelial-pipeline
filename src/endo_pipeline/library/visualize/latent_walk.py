@@ -18,7 +18,7 @@ def _plot_latent_walk_batch_as_grid(
         nrows=num_rows + 1,
         ncols=num_steps,
         figsize=(num_steps * 3, (num_rows * 3) + 2),
-        gridspec_kw={"height_ratios": [1, 1, 1, 0.02]},
+        gridspec_kw={"height_ratios": [1] * num_rows + [0.02]},
     )
     for i in range(num_rows + 1):
         # last "row" is just empty for titles
@@ -36,7 +36,7 @@ def _plot_latent_walk_batch_as_grid(
                 value_label = f"{np.round(coordinate_values[i][j], 2)}"
                 ax[i, j].set_title(value_label, fontsize=20)
             # add PC index as y-axis label on left side only
-            ylabel = f"PC {batch_index*i+1}" if use_pcs else f"Dim {batch_index*i}"
+            ylabel = f"PC {batch_index*3+i+1}" if use_pcs else f"Dim {batch_index*3+i}"
             ax[i, 0].set_ylabel(ylabel, fontsize=36)
 
         plt.tight_layout()
