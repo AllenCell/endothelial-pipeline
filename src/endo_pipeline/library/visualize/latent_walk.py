@@ -16,7 +16,8 @@ def _plot_latent_walk_batch_as_grid(
     fig, ax = plt.subplots(
         nrows=num_rows + 1,
         ncols=num_steps,
-        figsize=(3 * num_steps, 3 * (num_rows + 1)),
+        figsize=(num_steps * 3, (num_rows * 3) + 2),
+        gridspec_kw={"height_ratios": [1, 1, 1, 0.02]},
     )
     for i in range(num_rows + 1):
         # last "row" is just empty for titles
@@ -76,7 +77,7 @@ def plot_latent_walk_as_grid(
         start_idx = batch * 3
         end_idx = min(start_idx + 3, num_dims)
         batch_array_of_crops = array_of_crops[start_idx:end_idx, :, :, :]
-        batch_coordinate_values = coordinate_values[start_idx:end_idx, :]
+        batch_coordinate_values = coordinate_values[start_idx:end_idx]
 
         batch_suffix = f"_{start_idx+1}_to_{end_idx}" if use_pcs else f"{start_idx}_to_{end_idx-1}"
         batch_file_name = f"{file_name}{batch_suffix}"

@@ -5,6 +5,7 @@ from cyclopts import Parameter
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PCA_DATASET_COLLECTION_NAME,
     NUM_PCS_TO_ANALYZE,
 )
 
@@ -14,6 +15,7 @@ TAGS = ["diffae_image_generation", "pc_interpretation"]
 def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    dataset_collection: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
     sigma: float = 3.0,
@@ -96,11 +98,12 @@ def main(
         model_manifest, run_name_, crop_pattern="grid"
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
-    dataset_names = get_datasets_in_collection("pca_reference")
+    dataset_names = get_datasets_in_collection(dataset_collection)
 
     if use_pcs:
         # perform latent walk along the principal components
         pca = fit_pca(
+            dataset_collection_name=dataset_collection,
             dataframe_manifest_name=dataframe_manifest_name,
             include_cell_piling=include_cell_piling,
             num_pcs=num_pcs,
