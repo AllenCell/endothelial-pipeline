@@ -5,6 +5,7 @@ from endo_pipeline.io import save_plot_to_path
 
 
 def _plot_latent_walk_batch_as_grid(
+    batch_index: int,
     array_of_crops: np.ndarray,
     coordinate_values: np.ndarray,
     save_path: str,
@@ -35,7 +36,7 @@ def _plot_latent_walk_batch_as_grid(
                 value_label = f"{np.round(coordinate_values[i][j], 2)}"
                 ax[i, j].set_title(value_label, fontsize=20)
             # add PC index as y-axis label on left side only
-            ylabel = f"PC {i+1}" if use_pcs else f"Dim {i}"
+            ylabel = f"PC {batch_index*i+1}" if use_pcs else f"Dim {batch_index*i}"
             ax[i, 0].set_ylabel(ylabel, fontsize=36)
 
         plt.tight_layout()
@@ -83,5 +84,10 @@ def plot_latent_walk_as_grid(
         batch_file_name = f"{file_name}{batch_suffix}"
 
         _plot_latent_walk_batch_as_grid(
-            batch_array_of_crops, batch_coordinate_values, save_path, batch_file_name, use_pcs
+            batch,
+            batch_array_of_crops,
+            batch_coordinate_values,
+            save_path,
+            batch_file_name,
+            use_pcs,
         )
