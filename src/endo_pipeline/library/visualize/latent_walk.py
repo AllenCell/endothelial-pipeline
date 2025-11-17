@@ -78,7 +78,8 @@ def plot_latent_walk_as_grid(
         batch_array_of_crops = array_of_crops[start_idx:end_idx, :, :, :]
         batch_coordinate_values = coordinate_values[start_idx:end_idx, :]
 
-        batch_file_name = f"{file_name}_PCs_{start_idx+1}_to_{end_idx}"
+        batch_suffix = f"_{start_idx+1}_to_{end_idx}" if use_pcs else f"{start_idx}_to_{end_idx-1}"
+        batch_file_name = f"{file_name}{batch_suffix}"
 
         _plot_latent_walk_batch_as_grid(
             batch_array_of_crops, batch_coordinate_values, save_path, batch_file_name, use_pcs
