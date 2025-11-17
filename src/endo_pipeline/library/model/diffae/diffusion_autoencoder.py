@@ -23,7 +23,6 @@ class DiffusionAutoEncoder(_BaseDiffAE):
     def __init__(
         self,
         *,
-        noise_cons=False,
         autoencoder,
         image_shape,
         condition_key,
@@ -42,7 +41,6 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         fixed_sample_seed: int | None = 42,
         **base_kwargs,
     ):
-        self.noise_cons = noise_cons
         # Store fixed samples for consistent visualization
         self.fixed_sample_seed = fixed_sample_seed
         self.fixed_samples = None
