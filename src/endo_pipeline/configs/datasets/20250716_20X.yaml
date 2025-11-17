@@ -58,6 +58,20 @@ timepoint_annotations:
     5: []
   bf_scope_error:
     2: [0]
+  cell_piling:
+    0: [[332, 576]]
+    1: [[319, 576]]
+    2: [[317, 576]]
+    3: [[370, 576]]
+    4: [[316, 576]]
+    5: [[411, 576]]
+  not_steady_state:
+    0: [[0, 163]]
+    1: [[0, 92]]
+    2: [[0, 104]]
+    3: [[0, 90]]
+    4: [[0, 117]]
+    5: [[0, 113]]
 position_annotations: null
 center_z_plane:
   0: 13
