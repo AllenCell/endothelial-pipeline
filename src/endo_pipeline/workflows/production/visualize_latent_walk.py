@@ -90,6 +90,7 @@ def main(
         "latent_walks",
         model_manifest_name,
         run_name_,
+        dataset_collection,
         "include_cell_piling" if include_cell_piling else "exclude_cell_piling",
     )
 
@@ -146,7 +147,7 @@ def main(
         walk_img_stack = write_pc_vals(walk_img_stack, ranges)
 
     axis_suffix = "_along_pcs" if use_pcs else "_along_latent"
-    file_name = f"latent_walk_sigma_{int(sigma)}{axis_suffix}"
+    file_name = f"latent_walk_{int(sigma)}sigma{axis_suffix}"
 
     # also plot the latent walk as a grid and save
     # reshape to (n_dim, n_steps, img_w, img_h)
