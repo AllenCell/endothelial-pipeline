@@ -126,14 +126,16 @@ def feature_density(
                 ds_positions = positions or df_dataset["position"].unique()
                 color = colors[dataset_name]
 
+                avg_n_per_pos = len(df_dataset) / df_dataset["position"].nunique()
+
                 if pool_positions:
                     df = df_dataset
                     mean, cov, low, high = calc_stats(df, feature)
                     shear_label = get_shear_stress_label(df)
                     label = (
-                        f"{shear_label}{dataset_name} "
-                        f"(N={len(df)}, Mean={mean:.2f}, COV={cov:.2f}, "
-                        f"CI=[{low:.2f}, {high:.2f}])"
+                        f"{shear_label}"
+                        f"Avg N / Pos={round(avg_n_per_pos)}, Mean={round(mean)}\nCOV={cov:.2f}, "
+                        f"CI=[{low:.2f}, {high:.2f}]\n"
                     )
 
                     sb.kdeplot(df[feature], ax=ax, color=color, label=label, linewidth=3)
@@ -220,9 +222,9 @@ def feature_density(
                 shear_label = get_shear_stress_label(df)
 
                 label = (
-                    f"{shear_label}{dataset_name} "
-                    f"(N={len(df)}, Mean={mean:.2f}, COV={cov:.2f}, "
-                    f"CI=[{low:.2f}, {high:.2f}])"
+                    f"{shear_label}"
+                    f"N={len(df)}, Mean={mean:.2f}\nCOV={cov:.2f}, "
+                    f"CI=[{low:.2f}, {high:.2f}]\n"
                 )
 
                 sb.kdeplot(df[feature], ax=ax, color=color, label=label, linewidth=3)
@@ -344,10 +346,12 @@ def stacked_feature_density(
         mean, cov, low, high = calc_stats(df_dataset, feature)
         shear_label = get_shear_stress_label(df_dataset)
 
+        avg_n_per_pos = len(df_dataset) / df_dataset["position"].nunique()
+
         df = df_dataset
         label = (
             f"{shear_label}"
-            f"N={len(df)}, Mean={mean:.2f},\nCOV={cov:.2f}, "
+            f"Avg N / Pos={round(avg_n_per_pos)}, Mean={round(mean)},\nCOV={cov:.2f}, "
             f"CI=[{low:.2f}, {high:.2f}]\n"
         )
         sb.kdeplot(df[feature], ax=ax, color=color, linewidth=3, label=label)
@@ -454,7 +458,7 @@ def plot_channel_intensity_histograms(
     save_plot_to_path(fig, save_dir, fname, transparent=True)
 
 
-def if_dataset_contact_sheet(df: pd.DataFrame, output_dir: Path) -> None:
+def if_dataset_contact_sheet(df: pd.DataFrame, dataset_list: list[str], output_dir: Path) -> None:
     """
     Generate contact sheets for GFP and SMAD1 images grouped by date.
 
@@ -465,26 +469,34 @@ def if_dataset_contact_sheet(df: pd.DataFrame, output_dir: Path) -> None:
     ----------
     df: pd.DataFrame
         The dataframe containing the dataset information.
+    dataset_list: list of str
+        List of dataset names to include in the contact sheets.
     output_dir: Path
         Directory to save the contact sheets.
     """
     img_manifest = load_image_manifest("image_zarr")
-    for date, df_date in df.groupby("date"):
-        gfp_img_list, smad1_img_list, data_labels = [], [], []
 
-        for dataset_name, df_dataset in df_date.groupby("dataset"):
-            dataset_config = load_dataset_config(dataset_name)
-            positions = dataset_config.zarr_positions[:6]  # limit to first 6 positions
-            data_label = get_shear_stress_label(df_dataset)
-            data_labels.append(data_label)
+    gfp_img_list, smad1_img_list, data_labels = [], [], []
 
-            for position in positions:
-                img_location = get_image_location_for_dataset(
-                    img_manifest, dataset_config, position
-                )
-                img = load_image(img_location, level=1, read=False)
-                smad1_img_list.append(max_proj_640(img, frame=0))
-                gfp_img_list.append(gfp_max_proj(img, frame=0))
+    for dataset_name in dataset_list:
+        df_dataset = df[df["dataset"] == dataset_name]
+        dataset_config = load_dataset_config(dataset_name)
+        positions = dataset_config.zarr_positions[:6]  # limit to first 6 positions
+        data_label = get_shear_stress_label(df_dataset)
+        data_labels.append(data_label)
+
+        for position in positions:
+            img_location = get_image_location_for_dataset(img_manifest, dataset_config, position)
+            img = load_image(img_location, level=1, read=False)
+
+            img_max_640 = max_proj_640(img, frame=0)
+            img_max_gfp = gfp_max_proj(img, frame=0)
+            # crop image to center. remove 200 pixels from each side
+            img_max_640_center = img_max_640[200:-200, 200:-200]
+            img_max_gfp_center = img_max_gfp[200:-200, 200:-200]
+
+            smad1_img_list.append(img_max_640_center)
+            gfp_img_list.append(img_max_gfp_center)
 
         # flatten img lists to apply matching contrast stretching
         gfp_flat = np.concatenate([img.flatten() for img in gfp_img_list])
@@ -492,30 +504,30 @@ def if_dataset_contact_sheet(df: pd.DataFrame, output_dir: Path) -> None:
         gfp_vmin, gfp_vmax = np.percentile(gfp_flat, [1, 99])
         smad1_vmin, smad1_vmax = np.percentile(smad1_flat, [1, 99])
 
-        contrasted_gfp_img_list = [
-            contrast_stretching(img, "min-max", custom_range=(gfp_vmin, gfp_vmax))
-            for img in gfp_img_list
-        ]
-        contrasted_smad1_img_list = [
-            contrast_stretching(img, "min-max", custom_range=(smad1_vmin, smad1_vmax))
-            for img in smad1_img_list
-        ]
+    contrasted_gfp_img_list = [
+        contrast_stretching(img, "min-max", custom_range=(gfp_vmin, gfp_vmax))
+        for img in gfp_img_list
+    ]
+    contrasted_smad1_img_list = [
+        contrast_stretching(img, "min-max", custom_range=(smad1_vmin, smad1_vmax))
+        for img in smad1_img_list
+    ]
 
-        # create contact sheets
-        n_cols = len(positions)
-        n_rows = len(df_date["dataset"].unique())
-        for img_content, panels in zip(
-            ["SMAD1", "CDH5"], [contrasted_smad1_img_list, contrasted_gfp_img_list]
-        ):
-            fig = make_contact_sheet(
-                panels=panels,
-                max_rows=n_rows,
-                max_cols=n_cols,
-                col_titles=positions,
-                row_titles=data_labels,
-                direction="left-right first",
-                gridspec_kwargs={"wspace": 0.03, "hspace": 0.0},
-                fig_kwargs={"figsize": (n_cols * 3, n_rows * 3)},
-            )
-            plt.show(fig)
-            save_plot_to_path(fig, output_dir, f"{img_content}_contact_sheet_{date}")
+    # create contact sheets
+    n_cols = len(positions)
+    n_rows = len(dataset_list)
+    for img_content, panels in zip(
+        ["SMAD1", "CDH5"], [contrasted_smad1_img_list, contrasted_gfp_img_list]
+    ):
+        fig = make_contact_sheet(
+            panels=panels,
+            max_rows=n_rows,
+            max_cols=n_cols,
+            col_titles=positions,
+            row_titles=data_labels,
+            direction="left-right first",
+            gridspec_kwargs={"wspace": 0.03, "hspace": 0.0},
+            fig_kwargs={"figsize": (n_cols * 3, n_rows * 3)},
+        )
+        plt.show(fig)
+        save_plot_to_path(fig, output_dir, f"{img_content}_contact_sheet_{dataset_name[:8]}")

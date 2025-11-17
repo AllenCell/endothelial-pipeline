@@ -104,20 +104,18 @@ for date, df_date in df.groupby("date"):
         per_dataset=True,
         hide_labels=True,
     )
-# %%
-if_dataset_contact_sheet(df, output_dir)
-# %%
+
 # %%
 DATASET_GROUPS = {
     "20250509": [
         [
-            "20250509_20X_IF2",
+            "20250509_20X_IF3",
             "20250509_20X_IF5",
             "20250509_20X_IF7",
             "20250509_20X_IF9",
         ],  # 24 hr low density varied shear stress
         [
-            "20250509_20X_IF3",
+            "20250509_20X_IF2",
             "20250509_20X_IF12",
             "20250509_20X_IF1",
         ],  #  24 hr high density varied shear stress
@@ -179,7 +177,6 @@ DATASET_GROUPS = {
     ],
 }
 
-# %%
 for date, df_date in df.groupby("date"):
     group = DATASET_GROUPS[date]
     for subgroup in group:
@@ -201,5 +198,12 @@ for date, df_date in df.groupby("date"):
             ylim=ylim,
             pool_positions=True,
         )
+
+# %%
+for date, df_date in df.groupby("date"):
+    group = DATASET_GROUPS[date]
+    for subgroup in group:
+        reversed_group = list(reversed(subgroup))
+        if_dataset_contact_sheet(df_date, reversed_group, output_dir)
 
 # %%
