@@ -184,6 +184,7 @@ class ModelConfigOverride:
             # set device usage
             "trainer.accelerator": "cpu" if self.num_gpus is None else "gpu",
             "trainer.devices": self.num_gpus or 1,
+            "trainer.precision": "bf16-mixed" if self.num_gpus is None else "16-mixed",
         }
 
         # If single GPU or none, use "auto" strategy
