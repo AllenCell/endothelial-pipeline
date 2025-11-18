@@ -137,7 +137,7 @@ def main(
     train, val = train_test_split(df, test_size=0.2, random_state=42)
 
     # add "_test_workflow" suffix to manifest name if in demo mode
-    name_suffix = "_test_workflow" if DEMO_MODE else ""
+    name_suffix = "_demo" if DEMO_MODE else ""
 
     # add include/exclude cell piling suffix to manifest name
     if include_cell_piling:

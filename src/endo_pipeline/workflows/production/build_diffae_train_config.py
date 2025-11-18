@@ -100,7 +100,7 @@ def main(
     # rates. Note that while 100% of the data is used for demo mode, the cache
     # rate for actual training can be adjusted if needed.
     if DEMO_MODE:
-        name_suffix = "_test_workflow"
+        name_suffix = "_demo"
         max_num_epochs = 1
         log_every_n_steps = 1
         cache_rate = 1.0
