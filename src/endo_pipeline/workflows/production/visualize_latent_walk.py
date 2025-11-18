@@ -120,7 +120,13 @@ def main(
         )
         dataframe = pd.concat(
             [
-                get_dataframe_for_dynamics_workflows(dataset_name, dataframe_manifest, pca)
+                get_dataframe_for_dynamics_workflows(
+                    dataset_name,
+                    dataframe_manifest,
+                    pca,
+                    include_cell_piling=include_cell_piling,
+                    crop_pattern=crop_pattern,
+                )
                 for dataset_name in dataset_names
             ]
         )
@@ -136,6 +142,7 @@ def main(
                     dataframe_manifest,
                     pca=None,
                     include_cell_piling=include_cell_piling,
+                    crop_pattern=crop_pattern,
                 )
                 for dataset_name in dataset_names
             ]

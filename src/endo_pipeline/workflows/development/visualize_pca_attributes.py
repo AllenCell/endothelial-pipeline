@@ -132,6 +132,7 @@ def main(
         dataframe_manifest,
         pca,
         include_cell_piling=include_cell_piling,
+        crop_pattern=crop_pattern,
     )
     save_plot_to_path(fig, fig_savedir, "pca_scatter_ref")
 
