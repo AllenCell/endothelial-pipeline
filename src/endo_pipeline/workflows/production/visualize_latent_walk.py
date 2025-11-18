@@ -100,6 +100,7 @@ def main(
         "latent_walks",
         model_manifest_name,
         run_name_,
+        crop_pattern,
         "include_cell_piling" if include_cell_piling else "exclude_cell_piling",
     )
 
