@@ -102,7 +102,6 @@ for date, df_date in df.groupby("date"):
         ylim=ylim,
         pool_positions=True,
         per_dataset=True,
-        hide_labels=True,
     )
     if DEMO_MODE:
         break
