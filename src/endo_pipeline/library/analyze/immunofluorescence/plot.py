@@ -149,7 +149,7 @@ def feature_density(
                         if df.empty:
                             continue
 
-                        mean, cov, low, high = calc_stats(df)
+                        mean, cov, low, high = calc_stats(df, feature)
                         shear_label = get_shear_stress_label(df)
                         line_style = line_styles[j % len(line_styles)]
 
@@ -211,7 +211,7 @@ def feature_density(
 
             if pool_positions:
                 df = df_dataset
-                mean, cov, low, high = calc_stats(df)
+                mean, cov, low, high = calc_stats(df, feature)
                 shear_label = get_shear_stress_label(df)
 
                 label = (
@@ -229,7 +229,7 @@ def feature_density(
                     if df.empty:
                         continue
 
-                    mean, cov, low, high = calc_stats(df)
+                    mean, cov, low, high = calc_stats(df, feature)
                     shear_label = get_shear_stress_label(df)
                     line_style = line_styles[j % len(line_styles)]
 
