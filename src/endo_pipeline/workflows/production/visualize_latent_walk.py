@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from cyclopts import Parameter
 
@@ -14,6 +14,7 @@ TAGS = ["diffae_image_generation", "pc_interpretation"]
 def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    crop_pattern: Literal["grid", "tracked"] = "grid",
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
     sigma: float = 3.0,
@@ -31,6 +32,8 @@ def main(
         Name of the model manifest containing the specific run to load.
     run_name
         Run name corresponding to the model to load. If None, uses the most recent run.
+    crop_pattern
+        Crop pattern used to generate the feature dataframe. Either 'grid' or 'tracked'.
     include_cell_piling
         True to include timepoints with cell piling to fit the PCA model, False to exclude them.
     num_pcs
@@ -94,7 +97,7 @@ def main(
 
     # load model configuration and reference dataset manifests
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name_, crop_pattern="grid"
+        model_manifest, run_name_, crop_pattern=crop_pattern
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     dataset_names = get_datasets_in_collection("pca_reference")
