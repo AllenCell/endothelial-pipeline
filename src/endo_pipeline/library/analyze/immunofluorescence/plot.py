@@ -522,7 +522,7 @@ def if_dataset_contact_sheet(df: pd.DataFrame, dataset_list: list[str], output_d
             gridspec_kwargs={"wspace": 0.03, "hspace": 0.0},
             fig_kwargs={"figsize": (n_cols * 3, n_rows * 3)},
         )
-        plt.show(fig)
+        plt.show()
 
         suffix = ""
         for dataset_name in dataset_list:
@@ -532,3 +532,4 @@ def if_dataset_contact_sheet(df: pd.DataFrame, dataset_list: list[str], output_d
         save_plot_to_path(
             fig, output_dir, f"{img_content}_contact_sheet_{dataset_name[:8]}{suffix}"
         )
+        plt.close(fig)
