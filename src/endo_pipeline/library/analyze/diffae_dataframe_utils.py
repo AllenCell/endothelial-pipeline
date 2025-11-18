@@ -473,7 +473,10 @@ def get_dataframe_for_dynamics_workflows(
         df_filtered = df
 
     # add crop index column
-    df_with_crop = add_crop_index(df_filtered)
+    if "track_id" in df_filtered.columns:
+        df_with_crop = df_filtered.rename(columns={"track_id": ColumnName.CROP_INDEX})
+    else:
+        df_with_crop = add_crop_index(df_filtered)
 
     # add dataset duration description column
     dataset_config = load_dataset_config(dataset_name)
