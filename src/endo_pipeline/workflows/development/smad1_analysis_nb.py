@@ -20,10 +20,6 @@ logger = logging.getLogger(__name__)
 # %% Load Data and add info to dataframe
 output_dir = get_output_path("SMAD1")
 smad1_datasets = get_datasets_in_collection("smad1")
-if DEMO_MODE:
-    smad1_datasets = smad1_datasets[:1]
-    logger.info("DEMO MODE: limiting to first dataset for faster execution.")
-
 if_df_manifest = load_dataframe_manifest("immunofluorescence")
 
 df_smad1_list = []
@@ -75,6 +71,8 @@ for dataset in smad1_datasets:
         positions=df_dataset["position"].unique().tolist(),
         save_dir=output_dir,
     )
+    if DEMO_MODE:
+        break
 
 # %%
 for date, df_date in df.groupby("date"):
@@ -89,6 +87,8 @@ for date, df_date in df.groupby("date"):
         ylim=ylim,
         pool_positions=True,
     )
+    if DEMO_MODE:
+        break
 # %%
 for date, df_date in df.groupby("date"):
     date_datasets = df_date["dataset"].unique().tolist()
@@ -104,6 +104,8 @@ for date, df_date in df.groupby("date"):
         per_dataset=True,
         hide_labels=True,
     )
+    if DEMO_MODE:
+        break
 
 # %%
 DATASET_GROUPS = {
@@ -176,6 +178,8 @@ DATASET_GROUPS = {
         ],  # medium shear stress over time
     ],
 }
+
+
 # %%
 for date, df_date in df.groupby("date"):
     group = DATASET_GROUPS[date]
@@ -198,6 +202,8 @@ for date, df_date in df.groupby("date"):
             ylim=ylim,
             pool_positions=True,
         )
+        if DEMO_MODE:
+            break
 
 # %%
 for date, df_date in df.groupby("date"):
@@ -205,5 +211,7 @@ for date, df_date in df.groupby("date"):
     for subgroup in group:
         reversed_group = list(reversed(subgroup))
         if_dataset_contact_sheet(df_date, reversed_group, output_dir)
+        if DEMO_MODE:
+            break
 
 # %%
