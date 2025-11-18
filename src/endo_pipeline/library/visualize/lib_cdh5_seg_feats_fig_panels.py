@@ -6,12 +6,9 @@ from skimage.color import label2rgb
 from skimage.color.colorlabel import DEFAULT_COLORS
 from skimage.exposure import rescale_intensity
 from skimage.morphology import binary_dilation
+from tqdm import tqdm
 
-from endo_pipeline.configs import (
-    TimepointAnnotation,
-    load_dataset_collection_config,
-    load_dataset_config,
-)
+from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe, load_image
 from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
@@ -222,7 +219,7 @@ def make_imaging_panels(
             )
 
 
-def make_classic_feature_panels(out_dir: Path) -> None:
+def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
 
     Path.mkdir(out_dir, exist_ok=True, parents=True)
 
@@ -238,9 +235,7 @@ def make_classic_feature_panels(out_dir: Path) -> None:
         }
     )
 
-    dataset_name_list = load_dataset_collection_config("pca_reference").datasets
-
-    for dataset_name in dataset_name_list:
+    for dataset_name in tqdm(datasets):
         # load dataset config
         dataset_config = load_dataset_config(dataset_name)
 
