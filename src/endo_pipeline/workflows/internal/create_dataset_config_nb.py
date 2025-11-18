@@ -24,9 +24,6 @@ optional field should be set, uncomment the corresponding line to set the value.
 """
 
 # %%
-if __name__ != "__main__":
-    raise ImportError("This module is a notebook and is not meant to be imported")
-
 from endo_pipeline.configs import PositionAnnotation  # noqa: F401, I001
 from endo_pipeline.configs import TimepointAnnotation  # noqa: F401
 from endo_pipeline.configs import (
@@ -50,6 +47,7 @@ dataset_name = "unique_dataset_name"
 dataset = DatasetConfig(
     # ============================ REQUIRED FIELDS =============================
     name=dataset_name,
+    date="YYYYMMDD",
     original_path="/path/to/original/dataset",
     zarr_path="//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/DATE_FMSID",
     zarr_positions=[],
@@ -162,5 +160,5 @@ img_manifest = add_image_location_to_manifest(
 save_image_manifest(img_manifest)
 
 # %%
-print("Reminder to add dataset to relavent collections!")
+print("Reminder to add dataset to relevant collections!")
 # %%
