@@ -277,9 +277,10 @@ def feature_density(
 
 
 def stacked_feature_density(
-    df_all,
-    dataset_name_list,
-    feature,
+    df_all: pd.DataFrame,
+    dataset_name_list: list,
+    feature: str,
+    feature_name: str,
     save_dir: Path,
     y_offset_step: float = 0.0001,
     xlim: float | None = None,
@@ -295,6 +296,8 @@ def stacked_feature_density(
         List of datasets to plot.
     feature : str
         Feature column to plot.
+    feature_name: str
+        Feature name for labeling.
     save_dir : Path
         Directory to save the plot.
     positions : list, optional
@@ -350,6 +353,7 @@ def stacked_feature_density(
     ax.set_yticks(y_ticks)
     ax.set_yticklabels([""] * len(y_ticks))
     ax.set_ylabel(f"Density (interval = {y_offset_step} a.u.)")
+    ax.set_xlabel(feature_name)
 
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
