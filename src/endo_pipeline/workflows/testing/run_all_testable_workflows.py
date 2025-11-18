@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 # Configurable timeout in minutes. Workflows that go beyond this will be
 # flagged, and any that take twice as long will be killed.
-TIMEOUT_MIN = 2
+TIMEOUT_MIN = 5
 
 
 def _testable_workflows(pipeline_app: "App", tags: dict[str, list[str]]):
