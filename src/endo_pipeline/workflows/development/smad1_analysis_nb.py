@@ -29,7 +29,7 @@ for dataset_name in smad1_datasets:
     df_location = get_dataframe_location_for_dataset(if_df_manifest, dataset_name)
     df_dataset = load_dataframe(df_location)
 
-    df_dataset["date"] = dataset_name[:8]
+    df_dataset["date"] = dataset_config.date
 
     shear_regime = "_to_".join([shear.value for shear in dataset_config.shear_stress_regime])
     df_dataset["shear_stress_regime"] = shear_regime
