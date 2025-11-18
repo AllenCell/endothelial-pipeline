@@ -176,7 +176,7 @@ DATASET_GROUPS = {
         ],  # medium shear stress over time
     ],
 }
-
+# %%
 for date, df_date in df.groupby("date"):
     group = DATASET_GROUPS[date]
     for subgroup in group:
