@@ -3,7 +3,7 @@
   pcs_to_analyze: [0,1],
   dt: 5,
   kramers_moyal: {"num_bins": [75,60],
-                  "kernel_params": {"bandwidth": 0.25,
+                  "kernel_params": {"bandwidth": 0.075,
                                     "kernel": 'gaussian',
                                     },
                   },
