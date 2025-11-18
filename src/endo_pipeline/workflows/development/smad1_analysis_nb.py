@@ -204,8 +204,11 @@ for date, df_date in df.groupby("date"):
         )
         if DEMO_MODE:
             break
+    if DEMO_MODE:
+        break
 
 # %%
+DEMO_MODE = True
 for date, df_date in df.groupby("date"):
     group = DATASET_GROUPS[date]
     for subgroup in group:
@@ -213,5 +216,6 @@ for date, df_date in df.groupby("date"):
         if_dataset_contact_sheet(df_date, reversed_group, output_dir)
         if DEMO_MODE:
             break
-
+    if DEMO_MODE:
+        break
 # %%

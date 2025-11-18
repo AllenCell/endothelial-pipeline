@@ -88,8 +88,6 @@ def feature_density(
     ylim: int | None = None,
     pool_positions: bool = False,
     per_dataset: bool = False,
-    hide_labels: bool = False,
-    stagger_vertical: bool = False,
 ) -> None:
     """
     Plot feature density distributions for multiple datasets,
@@ -113,11 +111,15 @@ def feature_density(
         cmap = plt.get_cmap("hsv")
         colors = {dataset: cmap(i / n) for i, dataset in enumerate(all_dataset_names)}
 
+    date = dataset_name_list[0][:8]
+    suffix = ""
+    for dataset_name in dataset_name_list:
+        dataset_suffix = dataset_name.split("IF")[-1]
+        suffix += "_" + dataset_suffix
+
     with plt.rc_context({"font.size": FONTSIZE_MEDIUM}):
 
-        # -------------------------
-        # Case 1: One combined plot
-        # -------------------------
+        # One combined plot
         if not per_dataset:
             fig, ax = plt.subplots(figsize=(10, 9))
 
@@ -167,14 +169,8 @@ def feature_density(
                         )
 
             # formatting
-            if not hide_labels:
-                ax.set_xlabel(feature_name)
-                ax.set_ylabel("Density")
-            else:
-                ax.set_xlabel("")
-                ax.set_ylabel("")
-                ax.set_xticklabels([])
-                ax.set_yticklabels([])
+            ax.set_xlabel(feature_name)
+            ax.set_ylabel("Density")
 
             if xlim is not None:
                 ax.set_xlim(0, xlim)
@@ -199,16 +195,13 @@ def feature_density(
 
             plt.tight_layout()
 
-            fname = f"{feature}_poolpos{pool_positions}_all_datasets_density"
-            fname += "_nolabels" if hide_labels else ""
+            fname = f"{feature}_poolpos{pool_positions}_density_combined{date}{suffix}"
             save_plot_to_path(fig, save_dir, fname, transparent=True)
             plt.show()
             plt.close(fig)
             return
 
-        # ---------------------------------
-        # Case 2: Separate plot per dataset
-        # ---------------------------------
+        # Separate plot per dataset
         for dataset_name in dataset_name_list:
             fig, ax = plt.subplots(figsize=(10, 9))
 
@@ -252,14 +245,8 @@ def feature_density(
                     )
 
             # formatting
-            if not hide_labels:
-                ax.set_xlabel(feature_name)
-                ax.set_ylabel("Density")
-            else:
-                ax.set_xlabel("")
-                ax.set_ylabel("")
-                ax.set_xticklabels([])
-                ax.set_yticklabels([])
+            ax.set_xlabel(feature_name)
+            ax.set_ylabel("Density")
 
             if xlim is not None:
                 ax.set_xlim(0, xlim)
@@ -285,9 +272,7 @@ def feature_density(
             plt.tight_layout()
             plt.show()
             fname = f"{feature}_{dataset_name}_poolpos{pool_positions}_density"
-            fname += "_nolabels" if hide_labels else ""
             save_plot_to_path(fig, save_dir, fname, transparent=True)
-
             plt.close(fig)
 
 
@@ -295,7 +280,6 @@ def stacked_feature_density(
     df_all,
     dataset_name_list,
     feature,
-    feature_name,
     save_dir: Path,
     y_offset_step: float = 0.0001,
     xlim: float | None = None,
@@ -311,8 +295,6 @@ def stacked_feature_density(
         List of datasets to plot.
     feature : str
         Feature column to plot.
-    feature_name : str
-        Name for x-axis label.
     save_dir : Path
         Directory to save the plot.
     positions : list, optional
@@ -385,7 +367,14 @@ def stacked_feature_density(
         frameon=False,
         fontsize=FONTSIZE_SMALL,
     )
-    fname = f"{feature}_staggered_vertical_density"
+
+    date = dataset_name_list[0][:8]
+    suffix = ""
+    for dataset_name in dataset_name_list:
+        dataset_suffix = dataset_name.split("IF")[-1]
+        suffix += "_" + dataset_suffix
+
+    fname = f"{feature}_staggered_vertical_density_{date}{suffix}"
     save_plot_to_path(fig, save_dir, fname, transparent=True)
     plt.show()
     plt.close(fig)
@@ -530,4 +519,12 @@ def if_dataset_contact_sheet(df: pd.DataFrame, dataset_list: list[str], output_d
             fig_kwargs={"figsize": (n_cols * 3, n_rows * 3)},
         )
         plt.show(fig)
-        save_plot_to_path(fig, output_dir, f"{img_content}_contact_sheet_{dataset_name[:8]}")
+
+        suffix = ""
+        for dataset_name in dataset_list:
+            dataset_suffix = dataset_name.split("IF")[-1]
+            suffix += "_" + dataset_suffix
+
+        save_plot_to_path(
+            fig, output_dir, f"{img_content}_contact_sheet_{dataset_name[:8]}{suffix}"
+        )
