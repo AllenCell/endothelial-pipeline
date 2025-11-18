@@ -57,8 +57,19 @@ def save_image_manifest(manifest: ImageManifest) -> None:
         return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=flow_style)
 
     def yaml_encoder(data):
+        # Save copy of default representers
+        default_representers = yaml.representer.Representer.yaml_representers.copy()
+
+        # Override with custom representers
         yaml.SafeDumper.add_representer(list, list_representer)
-        return yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
+
+        # Encode data into YAML
+        encode = yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
+
+        # Remove custom representers so they don't interfere with other uses
+        yaml.SafeDumper.add_representer(list, default_representers[list])
+
+        return encode
 
     try:
         content = str(YAMLEncoder(ImageManifest, post_encoder_func=yaml_encoder).encode(manifest))

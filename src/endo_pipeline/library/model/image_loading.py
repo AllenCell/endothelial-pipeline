@@ -17,13 +17,10 @@ from numpy.typing import DTypeLike
 if typing.TYPE_CHECKING:
     from omegaconf import ListConfig
 
-from endo_pipeline.configs import (
-    DatasetConfig,
-    get_available_zarr_files,
-    get_position_integer_from_zarr_file_path,
-)
+from endo_pipeline.configs import DatasetConfig, get_position_integer_from_zarr_file_path
 from endo_pipeline.io import load_dataframe_from_path
 from endo_pipeline.library.process.z_stack_selection import get_plane_indices
+from endo_pipeline.manifests import get_available_zarr_locations
 from endo_pipeline.settings import (
     DIFFAE_ZARR_RESOLUTION_LEVEL,
     LOG_EPSILON,
@@ -557,11 +554,8 @@ def get_z_slice_bounds_per_position(
     # if z_slice_offsets is not None, get z-slice ranges
     # for each position in the dataset (i.e., zarr file)
     # else, fixed full range is 0 to 24
-    available_zarr_files = get_available_zarr_files(dataset_config)
     z_slice_bounds_per_position = {}
-    for zarr_file_path in available_zarr_files:
-        # get position from zarr path as an integer (e.g., 'P0' -> 0)
-        position_as_int = get_position_integer_from_zarr_file_path(zarr_file_path)
+    for position_as_int in dataset_config.zarr_positions:
         # get z-slice indices for the given position
         if z_slice_offsets is not None:
             z_slices = get_plane_indices(
@@ -593,8 +587,10 @@ def build_zarr_image_loading_dataframe(
 ) -> pd.DataFrame:
     """Build a DataFrame with metadata for loading Zarr images as a ``MultiDimImageDataset``."""
     # generate csv with paths to zarr files for each position in the dataset
-    available_zarr_files = get_available_zarr_files(dataset_config)
-    zarr_file_paths = [str(zarr_file) for zarr_file in available_zarr_files]  # convert Path to str
+    available_zarr_locs = get_available_zarr_locations(dataset_config)
+    zarr_file_paths = [
+        zarr_loc.path.as_posix() for zarr_loc in available_zarr_locs if zarr_loc.path is not None
+    ]
 
     df = pd.DataFrame({CytoDLLoadDataKeys.FILE_PATH: zarr_file_paths})
     df[CytoDLLoadDataKeys.RESOLUTION] = resolution_level

@@ -54,6 +54,15 @@ timepoint_annotations:
     3: []
     4: []
     5: []
+  cell_piling:
+    5: [502, 576]
+  not_steady_state:
+    0: [[0, 98]]
+    1: [[0, 87]]
+    2: [[0, 71]]
+    3: [[0, 126]]
+    4: [[0, 69]]
+    5: [[0, 97]]
 position_annotations:
   dust_artifact: [2, 3, 4]
 center_z_plane:
