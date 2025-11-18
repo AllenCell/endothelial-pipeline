@@ -26,6 +26,7 @@ def manifest():
 def dataset_config():
     return DatasetConfig(
         name="",
+        date="",
         original_path="",
         zarr_path="",
         zarr_positions=[1, 3, 5],

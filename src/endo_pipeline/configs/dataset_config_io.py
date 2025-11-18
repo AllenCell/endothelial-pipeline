@@ -159,13 +159,24 @@ def save_dataset_config(dataset: DatasetConfig) -> None:
         return dumper.represent_dict(data)
 
     def yaml_encoder(data):
+        # Save copy of default representers
+        default_representers = yaml.representer.Representer.yaml_representers.copy()
+
+        # Override with custom representers
         yaml.SafeDumper.add_representer(list, list_representer)
         yaml.SafeDumper.add_representer(dict, dict_representer)
 
         # Custom adjustment to combine shear stress regime into single string
         data["shear_stress_regime"] = "_to_".join(data["shear_stress_regime"])
 
-        return yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
+        # Encode data into YAML
+        encode = yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
+
+        # Remove custom representers so they don't interfere with other uses
+        yaml.SafeDumper.add_representer(list, default_representers[list])
+        yaml.SafeDumper.add_representer(dict, default_representers[dict])
+
+        return encode
 
     try:
         content = str(YAMLEncoder(DatasetConfig, post_encoder_func=yaml_encoder).encode(dataset))

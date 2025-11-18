@@ -8,7 +8,8 @@ import pandas as pd
 from bioio import BioImage
 from tqdm import tqdm
 
-from endo_pipeline.configs import dataset_io
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import load_image
 from endo_pipeline.library.process.image_processing import (
     bf_slice,
     bf_std_dev,
@@ -18,6 +19,7 @@ from endo_pipeline.library.process.image_processing import (
     max_proj_561,
     max_proj_640,
 )
+from endo_pipeline.manifests import get_zarr_location_for_position
 
 
 def process_frame(
@@ -68,11 +70,9 @@ def generate_backdrops(
     segmentations in the TFE viewer.
     """
 
-    zarr_name = dataset_io.get_zarr_name(dataset, position)
-    zarr_path = dataset_io.get_zarr_dir(dataset)
-    filepath = Path(zarr_path) / zarr_name
-    img = BioImage(filepath)
-    img.set_resolution_level(1)
+    dataset_config = load_dataset_config(dataset)
+    location = get_zarr_location_for_position(dataset_config, position)
+    img = load_image(location, read=False, level=1)
 
     backdrop_functions: dict[str, Callable[[BioImage, int], np.ndarray]] = {
         "bf_slice": bf_slice,
