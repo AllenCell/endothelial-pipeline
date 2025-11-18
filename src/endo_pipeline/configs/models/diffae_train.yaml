@@ -275,8 +275,8 @@ trainer:
   min_epochs: 1500
   max_epochs: 2000
   log_every_n_steps: 50
-  accelerator: gpu
-  devices: 4
+  accelerator: cpu
+  devices: 1
   precision: 16-mixed
   strategy:
     _target_: lightning.pytorch.strategies.DDPStrategy
