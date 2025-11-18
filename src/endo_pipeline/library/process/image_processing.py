@@ -326,3 +326,45 @@ def crop_image(img: np.ndarray, start_x: int, start_y: int, crop_size: int) -> n
 
     slices = [slice(None)] * (img.ndim - 2) + [slice(start_y, end_y), slice(start_x, end_x)]
     return img[tuple(slices)]
+
+
+def stitch_with_overlap(arrays: list, overlap_ratio: float = 0.10):
+    """
+    Stitch a list of 2D or 3D NumPy arrays together along the last axis with linear blending
+    in the overlapping regions.
+
+    Parameters
+    ----------
+    arrays : list
+        List of 2D or 3D NumPy arrays to be stitched together.
+    overlap_ratio : float
+        Ratio of overlap between adjacent arrays (default is 0.10 for 10% overlap).
+
+    Returns
+    -------
+    np.ndarray
+        The stitched NumPy array.
+    """
+    # Start with the first image
+    stitched = arrays[0].copy()
+
+    for arr in arrays[1:]:
+        # compute overlap width as 10% of smaller X dimension
+        overlap = int(min(stitched.shape[2], arr.shape[2]) * overlap_ratio)
+
+        # split new arr into overlap & non-overlap
+        non_overlap_new = arr[:, :, overlap:]
+
+        # overlap regions
+        A = stitched[:, :, -overlap:]  # right side of existing
+        B = arr[:, :, :overlap]  # left side of new image
+
+        # linear blend weights
+        wA = np.linspace(1, 0, overlap)[None, None, :]
+        wB = 1 - wA
+
+        blended = A * wA + B * wB
+
+        # build updated stitched image
+        stitched = np.concatenate([stitched[:, :, :-overlap], blended, non_overlap_new], axis=2)
+    return stitched
