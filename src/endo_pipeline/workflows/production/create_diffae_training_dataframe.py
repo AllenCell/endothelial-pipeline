@@ -148,7 +148,7 @@ def main(
     # Upload dataframes to FMS, then build and save out DataframeManifest
     # object with FMS IDs to be used in the DiffAE model training script.
     # Note that this can be swapped out with uploading to S3 later on.
-    manifest_name = f"diffae_training_dataframe_{name_suffix}"
+    manifest_name = f"diffae_training_dataframe{name_suffix}"
     build_and_save_dataframe_manifest_for_training(
         train,
         val,
