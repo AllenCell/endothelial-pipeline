@@ -44,6 +44,10 @@ def main(
     # set up logger
     logger = logging.getLogger(__name__)
 
+    if crop_pattern not in ["tracked", "grid"]:
+        logger.error("Crop pattern must be 'tracked' or 'grid', got [ %s ]", crop_pattern)
+        raise ValueError("Input crop_pattern must be 'grid' or 'tracked'")
+
     # get model and dataframe manifests
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name

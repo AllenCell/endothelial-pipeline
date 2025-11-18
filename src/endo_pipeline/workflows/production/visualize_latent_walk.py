@@ -57,6 +57,8 @@ def main(
         Saves the latent walk images to the output directory.
         The images are saved as a multi-channel TIFF file.
     """
+    import logging
+
     import pandas as pd
     from bioio.writers import OmeTiffWriter
 
@@ -81,6 +83,12 @@ def main(
         load_model_manifest,
     )
     from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES, DIFFAE_PC_COLUMN_NAMES
+
+    logger = logging.getLogger(__name__)
+
+    if crop_pattern not in ["tracked", "grid"]:
+        logger.error("Crop pattern must be 'tracked' or 'grid', got [ %s ]", crop_pattern)
+        raise ValueError("Input crop_pattern must be 'grid' or 'tracked'")
 
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
