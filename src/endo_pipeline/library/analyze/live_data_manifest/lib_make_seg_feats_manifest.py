@@ -1,5 +1,6 @@
 import concurrent
 import logging
+import math
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Literal
@@ -639,41 +640,43 @@ def get_smallest_angle_difference(
     angles: np.ndarray | pd.Series,
     reference_angles: np.ndarray | pd.Series,
     units: Literal["deg", "rad"] = "deg",
-) -> np.ndarray | pd.Series:
+) -> np.ndarray:
     """
-    Returns the smallest difference between angles and reference_angles.
-    The result is signed, so if the returned angle is positive then
-    the angle is counter-clockwise from the reference angle, and if
-    the returned angle is negative then the angle is clockwise from
-    the reference angle.
+    Returns the smallest difference between angles and reference_angles. The
+    result is signed, so if the returned angle is positive then the angle is
+    counter-clockwise from the reference angle, and if the returned angle is
+    negative then the angle is clockwise from the reference angle.
 
     Parameters
     ----------
-    angles : np.ndarray | pd.Series
+    angles
         The angles to compare.
-    reference_angles : np.ndarray | pd.Series
+    reference_angles
         The reference angles to compare against.
-    units : Literal["deg", "rad"]
+    units
         The units of the angles. Either "deg" for degrees or "rad" for radians.
 
     Returns
     -------
-    np.ndarray | pd.Series
+    :
         The smallest difference between the angles and the reference angles.
-
-    Note: This solution was not my idea and was taken from StackOverflow:
-    https://stackoverflow.com/questions/1878907/how-can-i-find-the-smallest-difference-between-two-angles-around-a-point
     """
-    if units == "rad":
-        circle = np.pi
-    elif units == "deg":
-        circle = 360
+
+    if units == "deg":
+        full_circle = 360.0
+    elif units == "rad":
+        full_circle = 2 * math.pi
     else:
         raise ValueError("units must be either 'deg' or 'rad'")
-    half_circle = circle / 2
-    angle_diff = angles - reference_angles
-    angle_diff = (angle_diff + half_circle) % circle - half_circle
-    return angle_diff
+
+    half_circle = full_circle / 2
+
+    def smallest_angle_difference_helper():
+        for angle, ref_angle in zip(angles, reference_angles, strict=True):
+            diff = (angle - ref_angle) % full_circle  # diff is in [0, full_circle)
+            yield diff if diff < half_circle else diff - full_circle
+
+    return np.array(list(smallest_angle_difference_helper()))
 
 
 def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:

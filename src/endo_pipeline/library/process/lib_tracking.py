@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable, Generator, Sequence
 from pathlib import Path
 from typing import Any, Literal
@@ -10,10 +11,17 @@ from skimage.measure import regionprops
 from skimage.segmentation import clear_border
 from tqdm import tqdm
 
-from endo_pipeline.configs.dataset_io import extract_t
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs.dataset_io import extract_t, get_zarr_name, get_zarr_path
 from endo_pipeline.library.analyze.shape_features import numpy_mesh_coords
-from endo_pipeline.library.process.general_image_preprocessing import save_image_output
+from endo_pipeline.library.process.general_image_preprocessing import (
+    save_image_output,
+    sequence_to_scalar,
+)
+from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 from endo_pipeline.settings import DIMENSION_ORDER
+
+logger = logging.getLogger(__name__)
 
 
 ## NOTE THIS BLOCK SHOULD MAYBE BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE
@@ -1609,3 +1617,80 @@ def generate_tracks(
         )
 
         yield i, fp, track_labeled_image, track_table
+
+
+def get_cdh5_segmentation_filepath_list(dataset_name: str, position: int) -> list[Path]:
+    dataset_config = load_dataset_config(dataset_name)
+    manifest = load_image_manifest("cdh5_classic_seg")
+    seg_locations = [
+        get_image_location_for_dataset(manifest, dataset_config, position, timepoint)
+        for timepoint in range(dataset_config.duration)
+    ]
+    seg_filepaths = [location.path for location in seg_locations if location.path is not None]
+
+    return seg_filepaths
+
+
+def run_tracking_multiproc_wrapper(queue: Sequence) -> None:
+    """
+    Run the tracking workflow using a queue.
+    The queue is a tuple of (dataset_name, position) and a dataframe.
+    The dataframe contains the parameters for the workflow and is built using build_analysis_queue.
+    """
+
+    (dataset_name, position), queue_df = queue
+    timepoints_to_eval = queue_df["T"].tolist()
+    position = sequence_to_scalar(queue_df["position"])
+    image_validation_frequency = sequence_to_scalar(queue_df["image_validation_frequency"])
+    validation_image = sequence_to_scalar(queue_df["is_validation_image"])
+    verbose = sequence_to_scalar(queue_df["verbose"])
+    out_dir = sequence_to_scalar(queue_df["output_dir"]) / f"{dataset_name}/P{position}"
+    out_filename_prefix = f"{dataset_name}_P{position}"
+
+    # get the segmentation images
+    seg_filepaths = get_cdh5_segmentation_filepath_list(dataset_name, position)
+    segmentation_channel = 0  # the segmentation images only contain a single channel
+
+    # run the tracking workflow
+    if seg_filepaths:
+        if validation_image:
+            # get the raw cadherin channel from either original data or the zarr version
+            raw_channel = 0  # zarr files are created such that the first channel is always Cdh5
+            zarr_name = get_zarr_name(dataset_name, position)
+            zarr_path = get_zarr_path(dataset_name, zarr_name)[zarr_name]
+            raw_filepath = Path(zarr_path)
+        else:
+            raw_filepath = None
+            raw_channel = 0
+
+        run_tracking(
+            in_dir=seg_filepaths,
+            out_dir=out_dir,
+            out_filename_prefix=out_filename_prefix,
+            tracking_metrics=["region_overlap"],  # this can be changed to ['centroids'] if desired
+            sorting_key=extract_t,
+            C=segmentation_channel,
+            T=timepoints_to_eval,
+            extra_in_dir=raw_filepath,
+            extra_C=raw_channel,
+            extra_T=timepoints_to_eval,
+            Z_projection=np.max,
+            track_tolerance=3,
+            image_validation_frequency=image_validation_frequency,
+            verbose=verbose,
+        )
+
+        # add the dataset name and position to the output table
+        tracking_table = pd.read_parquet(out_dir / f"{out_filename_prefix}_tracking.parquet")
+        tracking_table["dataset_name"] = dataset_name
+        tracking_table["position"] = position
+        tracking_table.to_parquet(out_dir / f"{out_filename_prefix}_tracking.parquet", index=False)
+
+    else:
+        logger.info(
+            f"""
+            No segmentation images found for {dataset_name}. Skipping tracking analysis.
+            If this is unexpected check that the IS_TEST argument is set to False.
+            """
+        )
+        return

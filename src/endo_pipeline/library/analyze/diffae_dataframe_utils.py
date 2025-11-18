@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Literal, cast
 
 import numpy as np
@@ -22,7 +23,7 @@ from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
     load_dataframe_manifest,
 )
-from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES, DIFFAE_PC_COLUMN_NAMES, ColumnName
+from endo_pipeline.settings import ColumnName
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,67 @@ def check_required_columns_in_dataframe(
         if col not in df.columns:
             logger.error("DataFrame must contain column [ %s ]", col)
             raise ValueError(f"DataFrame must contain column [ {col} ]")
+
+
+def get_latent_feature_column_names(num_latent_dims: int) -> list[str]:
+    """
+    Get list of latent feature column names for given number of latent dimensions.
+
+    Parameters
+    ----------
+    num_latent_dims
+        Number of latent dimensions.
+
+    Returns
+    -------
+    :
+        List of latent feature column names.
+    """
+    feat_cols = [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(num_latent_dims)]
+    return feat_cols
+
+
+def get_pc_column_names(num_pcs: int) -> list[str]:
+    """
+    Get list of PCA feature column names for given number of principal components.
+
+    Parameters
+    ----------
+    num_pcs
+        Number of principal components.
+
+    Returns
+    -------
+    :
+        List of PCA feature column names.
+    """
+    pc_cols = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(num_pcs)]
+    return pc_cols
+
+
+def get_latent_feature_column_names_from_dataframe(dataframe: pd.DataFrame) -> list[str]:
+    """
+    Get list of latent feature column names for given number of latent dimensions.
+
+    Matches columns that start with the latent feature column name prefix
+    as defined in ColumnName.LATENT_FEATURE_PREFIX.
+
+    Parameters
+    ----------
+    dataframe
+        DataFrame containing latent feature columns.
+
+    Returns
+    -------
+    :
+        List of latent feature column names.
+    """
+    # regular expression to match latent feature columns
+    feat_cols_match = [
+        re.match(f"{ColumnName.LATENT_FEATURE_PREFIX}[0-9]+$", col) for col in dataframe.columns
+    ]
+    feat_cols = [col.group() for col in feat_cols_match if col is not None]
+    return feat_cols
 
 
 def filter_dataframe_by_annotations(
@@ -199,7 +261,8 @@ def fit_pca(
 
     # get the feature columns from the data,
     # these are the columns that start with 'feat_'
-    pca.fit(data_ref[DIFFAE_FEATURE_COLUMN_NAMES].values)  # fit PCA
+    diffae_feature_cols = get_latent_feature_column_names_from_dataframe(data_ref)
+    pca.fit(data_ref[diffae_feature_cols].values)  # fit PCA
 
     # log info about explained variance ratio
     logger.info(
@@ -299,8 +362,8 @@ def get_pca_loadings_as_df(
     loading_matrix = get_pca_loadings(pca, scaled, magnitude, squared_norm)
 
     num_features, num_pcs = loading_matrix.shape
-    feat_col_names = DIFFAE_FEATURE_COLUMN_NAMES[:num_features]
-    pc_col_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
+    feat_col_names = get_latent_feature_column_names(num_features)
+    pc_col_names = get_pc_column_names(num_pcs)
 
     loading_matrix_df = pd.DataFrame(loading_matrix, columns=pc_col_names, index=feat_col_names)
     if df_format == "long":
@@ -319,7 +382,7 @@ def get_pca_loadings_as_df(
 def project_features_to_pcs(
     df: pd.DataFrame,
     pca: PCA,
-    feat_cols: list[str] = DIFFAE_FEATURE_COLUMN_NAMES,
+    feat_cols: list[str] | None = None,
 ) -> pd.DataFrame:
     """
     Project feature data for crops from one dataset onto principal
@@ -337,13 +400,16 @@ def project_features_to_pcs(
         dataset dataset_name projected onto PCA axes
     """
     # check that required columns are present in dataframe
-    check_required_columns_in_dataframe(df, feat_cols)
+    if feat_cols is None:
+        feat_cols = get_latent_feature_column_names_from_dataframe(df)
+    else:
+        check_required_columns_in_dataframe(df, feat_cols)
 
     df_ = df.copy()  # make copy of DataFrame to avoid modifying original DataFrame
 
     # project feature data onto PCA axes, add new columns for each PC
     num_pcs = pca.components_.shape[0]  # number of principal components
-    pc_cols = DIFFAE_PC_COLUMN_NAMES[:num_pcs]  # names of PC columns
+    pc_cols = get_pc_column_names(num_pcs)
     df_.loc[:, pc_cols] = pca.transform(df_[feat_cols].values)
 
     return df_
@@ -385,6 +451,7 @@ def get_dataframe_for_dynamics_workflows(
 
     location = get_dataframe_location_for_dataset(manifest, dataset_name)
     df = load_dataframe(location)
+    feat_cols = get_latent_feature_column_names_from_dataframe(df)
 
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
@@ -408,13 +475,17 @@ def get_dataframe_for_dynamics_workflows(
     # add crop index column
     df_with_crop = add_crop_index(df_filtered)
 
+    # add dataset duration description column
+    dataset_config = load_dataset_config(dataset_name)
+    df_with_crop["duration"] = dataset_config.duration
+
     if pca is None:
         # do not project feature data onto PCA axes
         return df_with_crop
 
     else:
         # project feature data onto PC axes
-        return project_features_to_pcs(df_with_crop, pca)
+        return project_features_to_pcs(df_with_crop, pca, feat_cols=feat_cols)
 
 
 def get_dataset_descriptions(
@@ -543,6 +614,9 @@ def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
     """
     Convert DataFrame of features corresponding to one dataset to array
     of shape num_crops x num_timepoints x num_features.
+    This function fills missing timepoints (for example filtered as outliers)
+    with NaNs such that there is a row for every timepoint within the dataset
+    duration for each crop.
 
     Inputs:
     - df: pd.DataFrame, DataFrame of feature data for one dataset
@@ -559,19 +633,14 @@ def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
     required_columns = [ColumnName.CROP_INDEX, ColumnName.TIMEPOINT, *column_names]
     check_required_columns_in_dataframe(df, required_columns)
 
-    num_crop = df[ColumnName.CROP_INDEX].nunique()  # number of crops made at each timepoint
+    # get array of num crops x valid timepoints x num PCs, padding with NaNs where timepoints are missing
+    feats = []
+    for _, data_crop in df.groupby(ColumnName.CROP_INDEX):
+        data_crop = data_crop.sort_values(by=ColumnName.TIMEPOINT)
+        data_crop_filled = fill_missing_timepoints(data_crop)
+        feats.append(data_crop_filled[column_names].values)
 
-    # get array of num crops x num timepoints x num PCs
-    feats = np.array(
-        [
-            df[df[ColumnName.CROP_INDEX] == ii]
-            .sort_values(by=ColumnName.TIMEPOINT)[column_names]
-            .values
-            for ii in range(num_crop)
-        ]
-    )
-
-    return feats
+    return np.array(feats)
 
 
 def split_dataset_by_flow(
@@ -635,7 +704,7 @@ def split_dataset_by_flow(
 
 def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, list]:
     """
-    Get trajectories and displacement vectors for each crop in feature space.
+    Get trajectories and single-timepoint displacement vectors for each crop in feature space.
 
     **Input dataframe**
 
@@ -674,7 +743,16 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
         # get data for each crop, sorted by time
         data_crop = data[data[ColumnName.CROP_INDEX] == crop].sort_values(by=ColumnName.TIMEPOINT)
 
-        # get displacement vectors and time differences for each crop
+        # add column giving difference in timepoint between consecutive dataframe rows
+        dt = data_crop[ColumnName.TIMEPOINT].diff().shift(-1)
+        data_crop["timepoint_diff"] = dt
+
+        # filter to only single-timepoint differences (i.e., dt = 1)
+        data_crop = data_crop[data_crop["timepoint_diff"] == 1]
+
+        # get displacement vectors for each pair of consecutive-timepoints
+        # for each crop (i.e. do not include displacements for non-consecutive
+        # timepoints where outliers etc were removed)
         d_traj = np.diff(data_crop[pc_column_names].values, axis=0)
 
         # append data to lists:
@@ -684,3 +762,31 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
         d_traj_list.append(d_traj)
 
     return traj_list, d_traj_list
+
+
+def fill_missing_timepoints(data_crop: pd.DataFrame) -> pd.DataFrame:
+    """
+    Fill missing timepoints in dataframe for a single crop using NaN padding.
+    Note: this function resets the index of the input crop-based dataframe.
+
+    Parameters
+    ----------
+    data_crop
+        DataFrame for a single crop.
+
+    Returns
+    -------
+    data_crop_filled
+        DataFrame with missing timepoints filled with NaNs.
+    """
+
+    # get full range of timepoints for this crop
+    full_timepoint_range = np.arange(0, data_crop["duration"].iloc[0])
+
+    # reindex dataframe to include all timepoints in full range
+    data_crop_filled = data_crop.set_index(ColumnName.TIMEPOINT).reindex(full_timepoint_range)
+
+    # reset index to restore timepoint column
+    data_crop_filled = data_crop_filled.reset_index()
+
+    return data_crop_filled

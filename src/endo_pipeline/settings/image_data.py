@@ -6,6 +6,9 @@ DIMENSION_ORDER: str = "TCZYX"
 ZARR_IMAGE_MANIFEST_NAME: str = "image_zarr"
 """Name of the Zarr image manifest"""
 
+ZARR_EGFP_CHANNEL: int = 0
+"""Default channel index for EGFP images in zarr files."""
+
 ZARR_BRIGHTFIELD_CHANNEL: int = 1
 """Default channel index for brightfield images in zarr files."""
 
