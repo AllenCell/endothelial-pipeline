@@ -173,7 +173,6 @@ ignore = [
     "D400", # Intending to unignore: missing-trailing-period
     "D404", # Intending to unignore: docstring-starts-with-this
     "D415", # Intending to unignore: missing-terminal-punctuation
-    "B905", # Intending to unignore: zip-without-explicit-strict
     "UP038", # Intending to unignore: non-pep604-isinstance
     "E402", # Intending to unignore: module-import-not-at-top-of-file
     "B007", # Intending to unignore: unused-loop-control-variable
