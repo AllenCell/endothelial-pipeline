@@ -5,6 +5,7 @@ from cyclopts import Parameter
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PCA_DATASET_COLLECTION_NAME,
     NUM_PCS_TO_ANALYZE,
 )
 
@@ -14,6 +15,7 @@ TAGS = ["diffae_image_generation", "pc_interpretation"]
 def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    dataset_collection: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
     sigma: float = 3.0,
@@ -55,7 +57,6 @@ def main(
         The images are saved as a multi-channel TIFF file.
     """
     import pandas as pd
-    from bioio.writers import OmeTiffWriter
 
     from endo_pipeline import NUM_GPUS
     from endo_pipeline.configs import get_datasets_in_collection
@@ -77,7 +78,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings import DIFFAE_FEATURE_COLUMN_NAMES, DIFFAE_PC_COLUMN_NAMES
+    from endo_pipeline.settings import ColumnName
 
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
@@ -89,6 +90,7 @@ def main(
         "latent_walks",
         model_manifest_name,
         run_name_,
+        dataset_collection,
         "include_cell_piling" if include_cell_piling else "exclude_cell_piling",
     )
 
@@ -97,11 +99,12 @@ def main(
         model_manifest, run_name_, crop_pattern="grid"
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
-    dataset_names = get_datasets_in_collection("pca_reference")
+    dataset_names = get_datasets_in_collection(dataset_collection)
 
     if use_pcs:
         # perform latent walk along the principal components
         pca = fit_pca(
+            dataset_collection_name=dataset_collection,
             dataframe_manifest_name=dataframe_manifest_name,
             include_cell_piling=include_cell_piling,
             num_pcs=num_pcs,
@@ -112,7 +115,7 @@ def main(
                 for dataset_name in dataset_names
             ]
         )
-        pc_column_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
+        pc_column_names = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(num_pcs)]
         data_for_walk = dataframe[pc_column_names].values
         walk, ranges = get_pca_coords(data_for_walk, pca, num_pcs, sigma, n_steps)
     else:
@@ -128,7 +131,10 @@ def main(
                 for dataset_name in dataset_names
             ]
         )
-        feature_column_names = DIFFAE_FEATURE_COLUMN_NAMES
+        num_latent_dims = model.semantic_encoder.base_encoder.num_classes
+        feature_column_names = [
+            f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(num_latent_dims)
+        ]
         data_for_walk = dataframe[feature_column_names].values
         walk, ranges = get_latent_coords(data_for_walk, sigma, n_steps)
 
@@ -140,13 +146,8 @@ def main(
     if show_coords:
         walk_img_stack = write_pc_vals(walk_img_stack, ranges)
 
-    file_name = f"latent_walk_sigma_{int(sigma)}"
-    if use_pcs:
-        file_name = f"{file_name}_use_pcs"
-    OmeTiffWriter.save(
-        uri=save_path / f"{file_name}.tif",
-        data=walk_img_stack,
-    )
+    axis_suffix = "_along_pcs" if use_pcs else "_along_latent"
+    file_name = f"latent_walk_{int(sigma)}sigma{axis_suffix}"
 
     # also plot the latent walk as a grid and save
     # reshape to (n_dim, n_steps, img_w, img_h)
@@ -156,7 +157,7 @@ def main(
     image_height = walk_img.shape[-1]
     walk_img_grid = walk_img.reshape(n_dim, n_steps_actual, image_width, image_height)
 
-    plot_latent_walk_as_grid(walk_img_grid, ranges, save_path, file_name)
+    plot_latent_walk_as_grid(walk_img_grid, ranges, save_path, file_name, use_pcs)
 
 
 if __name__ == "__main__":
