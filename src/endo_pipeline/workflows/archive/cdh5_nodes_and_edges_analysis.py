@@ -23,7 +23,7 @@ def stringified_floatlist_to_floatlist(ls: str, to_tuple: bool = False) -> list 
     Assumes that there is only one set of brackets (either '[]' or '()').
     """
     # if 'ls' is already a list of floats then return the input
-    if isinstance(ls, list) and all([isinstance(x, float) for x in ls]):
+    if isinstance(ls, list) and all(isinstance(x, float) for x in ls):
         float_list = ls
     # otherwise procede with the conversion
     else:

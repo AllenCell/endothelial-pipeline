@@ -264,7 +264,7 @@ def restore_full_dims(
     """
 
     assert all(
-        [dim in list(full_dims) for dim in list(current_dims)]
+        dim in list(full_dims) for dim in list(current_dims)
     ), "All dimensions in current_dims must be in full_dims."
 
     for dim in full_dims:
@@ -312,7 +312,7 @@ def save_image_output(
     """
 
     assert all(
-        [img.shape == images[-1].shape for img in images]
+        img.shape == images[-1].shape for img in images
     ), "All images must have the same shape."
     # if a data type is not specified then use the smallest uint type that can hold the max value
     # among all images being saved

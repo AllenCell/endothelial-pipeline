@@ -180,7 +180,6 @@ ignore = [
     "E402", # Intending to unignore: module-import-not-at-top-of-file
     "E711", # Intending to unignore: none-comparison
     "B007", # Intending to unignore: unused-loop-control-variable
-    "C419", # Intending to unignore: unnecessary-comprehension-in-call
     "D200", # Intending to unignore: unnecessary-multiline-docstring
     "RUF005", # Intending to unignore: collection-literal-concatenation
     "RUF015", # Intending to unignore: unnecessary-iterable-allocation-for-first-element
