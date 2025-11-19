@@ -7,7 +7,6 @@ How to use this wrapper workflow:
 """
 
 import asyncio
-import copy
 import logging
 import typing
 from contextlib import contextmanager
@@ -105,16 +104,18 @@ class _WorkflowResult:
 
 
 def _make_command(app: "App") -> tuple[str, list[str]]:
+    import sys
+
     name = " ".join(app.name)
-    # Call the workflow with only arguments that are shared between all workflows
-    options = copy.deepcopy(endo_pipeline.__main__.input_workflow_options)
-    args: list[str]
-    if options is None:
-        args = []
-    else:
-        options.demo_mode = True
-        args = options.to_args()
-    return (name, ["endopipe", name, *args])
+
+    # Get tokens list and drop the executable and name of the workflow.
+    tokens = [arg for arg in sys.argv[1:] if arg != "run-all-testable-workflows"]
+
+    # If "demo mode" is not in tokens, add to the token list.
+    if "-d" not in tokens and "--demo-mode" not in tokens:
+        tokens.append("-d")
+
+    return (name, ["endopipe", name, *tokens])
 
 
 @dataclass

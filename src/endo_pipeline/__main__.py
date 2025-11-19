@@ -52,10 +52,8 @@ TESTING_WORKFLOWS = Group("Test Many Workflows", sort_key=3)
 ARCHIVED_WORKFLOWS = Group("Archived Workflows", sort_key=4)
 INTERNAL_WORKFLOWS = Group("Internal Workflows", sort_key=5)
 
-DEFAULT_WORKFLOW_OPTIONS = WorkflowOptions()
-DEFAULT_PIPELINE_OPTIONS = PipelineOptions()
-
-input_workflow_options: WorkflowOptions | None = None
+WORKFLOW_OPTIONS = WorkflowOptions()
+PIPELINE_OPTIONS = PipelineOptions()
 
 
 def build_pipeline_app():
@@ -94,12 +92,11 @@ def workflow_cli(workflow: Callable) -> None:
 
 def pipeline_entrypoint(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
-    workflow_options: WorkflowOptions = DEFAULT_WORKFLOW_OPTIONS,
-    pipeline_options: PipelineOptions = DEFAULT_PIPELINE_OPTIONS,
+    workflow_options: WorkflowOptions = WORKFLOW_OPTIONS,
+    pipeline_options: PipelineOptions = PIPELINE_OPTIONS,
 ) -> None:
     """Pipeline CLI entrypoint."""
-    global input_workflow_options
-    input_workflow_options = workflow_options
+
     apply_workflow_options(workflow_options)
 
     for app in pipeline_app.meta.subapps:
@@ -122,7 +119,7 @@ def pipeline_entrypoint(
 
 def workflow_entrypoint(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
-    workflow_options: WorkflowOptions = DEFAULT_WORKFLOW_OPTIONS,
+    workflow_options: WorkflowOptions = WORKFLOW_OPTIONS,
 ) -> None:
     """Workflow CLI entrypoint."""
 
@@ -195,7 +192,7 @@ def register_notebook_to_cli(name: str, group: Group, show: bool, module: str, p
     module_wrapper.__doc__ = description_match[0] if description_match else default_doc
 
     # Set tags based on TAGS variable (if it exists)
-    tag_match = re.findall(r'^TAGS = \[([\w\-, "]+)\]', path.read_text())
+    tag_match = re.findall(r'TAGS = \[([\w\-, "]+)\]', path.read_text())
     tags[name] = re.findall(r'"([\w\-]+)"', tag_match[0]) if tag_match else []
 
     # Add workflow command to pipeline
