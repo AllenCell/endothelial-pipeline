@@ -320,7 +320,7 @@ def visualize_slice_selection(
     axes[0, 0].set_ylabel("Bright-field Slice")
 
     axes[0, 1].imshow(im_center, cmap="gray")
-    axes[0, 1].set_title(f"In focus Z-slice")
+    axes[0, 1].set_title("In focus Z-slice")
 
     axes[0, 2].imshow(im_above, cmap="gray")
     axes[0, 2].set_title(f"Upper Z-slice (+{upper_offest} offset)")
