@@ -21,6 +21,7 @@ def main(
     num_pcs: int | None = None,
     num_features: int | None = None,
     include_loadings_legend: bool = False,
+    annotate: bool = True,
 ) -> None:
     """Visualize key attributes of a fit PCA model."""
     import logging
@@ -146,6 +147,7 @@ def main(
         pca_loadings_df,
         diffae_feature_columns=feat_col_names,
         pc_columns=pc_col_names,
+        annotate=annotate,
     )
     save_plot_to_path(
         figure=fig_heatmap,
