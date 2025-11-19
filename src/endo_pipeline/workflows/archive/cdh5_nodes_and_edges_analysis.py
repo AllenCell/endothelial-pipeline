@@ -196,10 +196,7 @@ def main(
         # create a movie from the individual alignment plots
         if save_output:
             plot_paths = sorted(
-                [
-                    filepath
-                    for filepath in Path.glob(out_dir_plots / "angles_vs_dists_polar", "*.tif")
-                ],
+                Path.glob(out_dir_plots / "angles_vs_dists_polar", "*.tif"),
                 key=lambda fp: extract_t(fp.stem, use_last_match=True),
             )
             images = np.concatenate(
