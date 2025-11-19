@@ -297,13 +297,6 @@ disable_error_code = ["arg-type", "assignment", "union-attr", "return-value"]
 [[tool.mypy.overrides]]
 # This section should be removed when errors in the listed modules are resolved
 module = [
-    "endo_pipeline.io.output"
-]
-disable_error_code = ["arg-type"]
-
-[[tool.mypy.overrides]]
-# This section should be removed when errors in the listed modules are resolved
-module = [
     "endo_pipeline.configs.dataset_config_utils"
 ]
 disable_error_code = ["return-value"]
