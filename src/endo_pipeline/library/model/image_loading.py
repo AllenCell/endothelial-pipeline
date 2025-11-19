@@ -498,7 +498,7 @@ class MultiDimImageDataset(SmartCacheDataset):
             row_data = []
 
             for row in tqdm.tqdm(group.itertuples()):
-                row_dict: dict = row._asdict() # type: ignore[operator]
+                row_dict: dict = row._asdict()  # type: ignore[operator]
                 channel = self._get_channel(row_dict)
                 timepoints = self._get_timepoints(row_dict, img)
                 for timepoint in timepoints:
