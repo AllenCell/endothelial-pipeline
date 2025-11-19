@@ -4,7 +4,7 @@ TAGS = ["cdh5_segmentation", tags.CPU_ONLY, tags.TEST_READY]
 
 
 def main(
-    datasets: Datasets,
+    datasets: Datasets = ["20250818_20X"],
     n_proc: int = 1,
     save_output: bool = True,
     overwrite: bool = True,

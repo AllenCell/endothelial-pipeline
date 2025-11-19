@@ -4,7 +4,7 @@ TAGS = [tags.TEST_READY, tags.CPU_ONLY]
 
 
 def main(
-    datasets: Datasets,
+    datasets: Datasets = ["20250818_20X"],
     n_proc: int = 1,
     save_output: bool = True,
     verbose: bool = False,
