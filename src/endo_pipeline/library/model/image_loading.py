@@ -481,7 +481,7 @@ class MultiDimImageDataset(SmartCacheDataset):
 
         for img_path, group in df.groupby(self.img_path_column):
             # Load the image for the group.
-            img = BioImage(img_path)
+            img = BioImage(str(img_path))
 
             # We expect that input images are not multiscene. This check makes
             # sure that if scenes are specified in the dataframe, they are all
