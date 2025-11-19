@@ -216,6 +216,7 @@ def plot_multi_feature_correlations(
             )[0]
             x = x[valids]
             y = y[valids]
+            plot_color: str | list | np.ndarray
             if isinstance(color, str):
                 plot_color = [color] * len(x)
             elif isinstance(color, list | np.ndarray):
