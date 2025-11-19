@@ -436,7 +436,8 @@ def generate_alignment_plots(
     ## bins are set up to be every 5 degrees
     ax.hist(angles, bins=18, facecolor="k")
     ax.set_xlim(0, np.pi / 2)
-    ax.text(x=np.deg2rad(-12), y=ax.get_rmax() / 2, s="Count", horizontalalignment="center")
+    # ax.get_rmax is not defined, but this function is only used in an archived workflow
+    ax.text(x=np.deg2rad(-12), y=ax.get_rmax() / 2, s="Count", horizontalalignment="center")  # type: ignore[attr-defined]
     ax.set_title(f"{timepoint:.3f} hours", loc="right")
     plt.tight_layout()
     if SAVE_OUTPUT:
@@ -451,7 +452,8 @@ def generate_alignment_plots(
     ax.set_ylim(dist_min, dist_max)
     ax.text(
         x=np.deg2rad(-12),
-        y=ax.get_rmax() / 2,
+        # ax.get_rmax is not defined, but this function is only used in an archived workflow
+        y=ax.get_rmax() / 2,  # type: ignore[attr-defined]
         s="Node-node distance",
         horizontalalignment="center",
     )

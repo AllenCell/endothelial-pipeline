@@ -231,7 +231,7 @@ disable_error_code = ["call-overload", "operator"]
 module = [
     "endo_pipeline.library.visualize.*",
 ]
-disable_error_code = ["arg-type", "assignment", "attr-defined", "call-arg"]
+disable_error_code = ["arg-type", "assignment"]
 
 [[tool.mypy.overrides]]
 # This section should be removed when errors in the listed modules are resolved
