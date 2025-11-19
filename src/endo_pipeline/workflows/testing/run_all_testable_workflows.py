@@ -204,7 +204,7 @@ def _summarize(results: list[_WorkflowResult]):
         too_slow_count = f"{len(too_slows)} slow workflows "
     for result in too_slows:
         if result.timed_out:
-            print(colored(f"{result.name} canceled out after {result.elapsed_str}", "red"))
+            print(colored(f"{result.name} canceled after {result.elapsed_str}", "red"))
         else:
             print(colored(f"{result.name} succeeded after {result.elapsed_str}", "yellow"))
 
