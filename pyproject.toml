@@ -270,11 +270,6 @@ disable_error_code = ["arg-type"]
 
 [[tool.mypy.overrides]]
 # This section should be removed when errors in the listed modules are resolved
-module = ["endo_pipeline.__main__"]
-disable_error_code = ["operator"]
-
-[[tool.mypy.overrides]]
-# This section should be removed when errors in the listed modules are resolved
 module = [
     "endo_pipeline.library.model.model_config_overrides"
 ]
