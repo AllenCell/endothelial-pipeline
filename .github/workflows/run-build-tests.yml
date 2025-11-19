@@ -1,6 +1,9 @@
 name: run-build-tests
 
-on: [push]
+on:
+  - push
+  - merge_group
+  - workflow_dispatch
 
 # Cancel actions when new commits are pushed to PR
 concurrency:
