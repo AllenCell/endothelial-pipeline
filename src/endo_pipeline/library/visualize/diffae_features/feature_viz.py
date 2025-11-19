@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, Literal
 
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
@@ -126,6 +126,7 @@ def plot_pc_scatter(
     dataframe_manifest: DataframeManifest,
     pca: PCA,
     include_cell_piling: bool = False,
+    crop_pattern: Literal["grid", "tracked"] = "grid",
     alpha: float = 0.75,
     scatter_size: float = 0.01,
     pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
@@ -143,6 +144,8 @@ def plot_pc_scatter(
         Fit PCA model used to transform the data.
     include_cell_piling
         Include cell piling timepoings from the plot if True, exclude if False.
+    crop_pattern
+        Crop pattern used in the dataframes; either 'grid' or 'tracked'.
     alpha
         Alpha (opacity) value for scatter plot points.
     scatter_size
@@ -168,7 +171,11 @@ def plot_pc_scatter(
         # plot or don't plot cell piling timepoints based on
         # value of include_cell_piling
         df = get_dataframe_for_dynamics_workflows(
-            dataset_name, dataframe_manifest, pca, include_cell_piling=include_cell_piling
+            dataset_name,
+            dataframe_manifest,
+            pca,
+            include_cell_piling=include_cell_piling,
+            crop_pattern=crop_pattern,
         )
 
         # get color for the dataset

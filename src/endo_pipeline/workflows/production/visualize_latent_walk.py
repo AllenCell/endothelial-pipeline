@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from cyclopts import Parameter
 
@@ -15,6 +15,7 @@ TAGS = ["diffae_image_generation", "pc_interpretation"]
 def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    crop_pattern: Literal["grid", "tracked"] = "grid",
     dataset_collection: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
@@ -33,6 +34,8 @@ def main(
         Name of the model manifest containing the specific run to load.
     run_name
         Run name corresponding to the model to load. If None, uses the most recent run.
+    crop_pattern
+        Crop pattern used to generate the feature dataframe. Either 'grid' or 'tracked'.
     include_cell_piling
         True to include timepoints with cell piling to fit the PCA model, False to exclude them.
     num_pcs
@@ -56,6 +59,8 @@ def main(
         Saves the latent walk images to the output directory.
         The images are saved as a multi-channel TIFF file.
     """
+    import logging
+
     import pandas as pd
 
     from endo_pipeline import NUM_GPUS
@@ -80,6 +85,12 @@ def main(
     )
     from endo_pipeline.settings import ColumnName
 
+    logger = logging.getLogger(__name__)
+
+    if crop_pattern not in ["tracked", "grid"]:
+        logger.error("Crop pattern must be 'tracked' or 'grid', got [ %s ]", crop_pattern)
+        raise ValueError("Input crop_pattern must be 'grid' or 'tracked'")
+
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
@@ -90,13 +101,14 @@ def main(
         "latent_walks",
         model_manifest_name,
         run_name_,
+        crop_pattern,
         dataset_collection,
         "include_cell_piling" if include_cell_piling else "exclude_cell_piling",
     )
 
     # load model configuration and reference dataset manifests
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name_, crop_pattern="grid"
+        model_manifest, run_name_, crop_pattern=crop_pattern
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     dataset_names = get_datasets_in_collection(dataset_collection)
@@ -111,7 +123,13 @@ def main(
         )
         dataframe = pd.concat(
             [
-                get_dataframe_for_dynamics_workflows(dataset_name, dataframe_manifest, pca)
+                get_dataframe_for_dynamics_workflows(
+                    dataset_name,
+                    dataframe_manifest,
+                    pca,
+                    include_cell_piling=include_cell_piling,
+                    crop_pattern=crop_pattern,
+                )
                 for dataset_name in dataset_names
             ]
         )
@@ -127,6 +145,7 @@ def main(
                     dataframe_manifest,
                     pca=None,
                     include_cell_piling=include_cell_piling,
+                    crop_pattern=crop_pattern,
                 )
                 for dataset_name in dataset_names
             ]
