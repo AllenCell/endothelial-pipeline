@@ -111,7 +111,9 @@ def build_analysis_queue(
     logger.info(f"Building analysis queue for the following datasets: {dataset_name_list}")
 
     analysis_queue: list = []
-    out_dir = Path(out_dir) if out_dir != None else get_output_path("analysis_queue_output_temp")
+    out_dir = (
+        Path(out_dir) if out_dir is not None else get_output_path("analysis_queue_output_temp")
+    )
     for dataset_name in tqdm(
         dataset_name_list,
         total=len(dataset_name_list),

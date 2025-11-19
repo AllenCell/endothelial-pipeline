@@ -1240,10 +1240,10 @@ def run_tracking(
 
     for fps in [in_dir, out_dir]:
         assert (
-            isinstance(fps, (tuple, list, Path, str)) or fps == None
+            isinstance(fps, (tuple, list, Path, str)) or fps is None
         ), "in_dir, out_dir must be Path-like or a list of Paths"
     assert (
-        isinstance(extra_in_dir, (tuple, list, Path, str)) or extra_in_dir == None
+        isinstance(extra_in_dir, (tuple, list, Path, str)) or extra_in_dir is None
     ), "extra_in_dir must be Path-like or a list of Paths"
 
     if sorting_key is None:
@@ -1612,7 +1612,7 @@ def generate_tracks(
 
     track_table = pd.DataFrame()
     for i, (fp, crop, labeled_images) in enumerate(paths_crops_labeled_images_all):
-        if timeframes_for_table == None:
+        if timeframes_for_table is None:
             current_T = i
         else:
             current_T = timeframes_for_table[i]
