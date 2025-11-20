@@ -1,4 +1,5 @@
 name: 20250806_20X
+date: '20250806'
 original_path: //allen/programs/allencell/data/proj0/fe8/47c/553/072/dfe/969/f40/d53/9de/445/99/20250806_GE00008653_20X_SLDY/20250806_GE00008653_20X_SLDY.sldy
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250806_994459ded53f40969dfe07255347cfe8
 zarr_positions: [0, 1, 2, 3, 4, 5]
@@ -70,6 +71,20 @@ timepoint_annotations:
     2: [297, 354, 401]
     4: [301, 322]
     5: [316, 368]
+  cell_piling:
+    0: [[310, 576]]
+    1: [[392, 576]]
+    2: [[381, 576]]
+    3: [[299, 576]]
+    4: [[291, 576]]
+    5: [[418, 576]]
+  not_steady_state:
+    0: [[0, 85], [258, 358]]
+    1: [[0, 62], [258, 375]]
+    2: [[0, 96], [258, 400]]
+    3: [[0, 46], [258, 351]]
+    4: [[0, 102], [258, 345]]
+    5: [[0, 83], [258, 344]]
 position_annotations: null
 center_z_plane:
   0: 10

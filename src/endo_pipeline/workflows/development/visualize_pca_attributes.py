@@ -1,8 +1,12 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from cyclopts import Parameter
 
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+from endo_pipeline.settings import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PCA_DATASET_COLLECTION_NAME,
+)
 
 TAGS = ["diffae_features", "visualization"]
 
@@ -10,7 +14,8 @@ TAGS = ["diffae_features", "visualization"]
 def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    dataset_collection_name: str = "pca_reference",
+    dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    crop_pattern: Literal["grid", "tracked"] = "grid",
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     num_pcs: int | None = None,
     include_loadings_legend: bool = False,
@@ -39,11 +44,15 @@ def main(
     # set up logger
     logger = logging.getLogger(__name__)
 
+    if crop_pattern not in ["tracked", "grid"]:
+        logger.error("Crop pattern must be 'tracked' or 'grid', got [ %s ]", crop_pattern)
+        raise ValueError("Input crop_pattern must be 'grid' or 'tracked'")
+
     # get model and dataframe manifests
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name_, crop_pattern="grid"
+        model_manifest, run_name_, crop_pattern=crop_pattern
     )
     # get latent dimension from model config
     model_location = get_model_location_for_run(model_manifest, run_name_)
@@ -60,6 +69,7 @@ def main(
         dataset_collection_name,
         model_manifest_name,
         run_name_,
+        crop_pattern,
         "include_cell_piling" if include_cell_piling else "exclude_cell_piling",
     )
 
@@ -122,6 +132,7 @@ def main(
         dataframe_manifest,
         pca,
         include_cell_piling=include_cell_piling,
+        crop_pattern=crop_pattern,
     )
     save_plot_to_path(fig, fig_savedir, "pca_scatter_ref")
 

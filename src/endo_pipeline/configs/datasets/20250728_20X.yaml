@@ -1,4 +1,5 @@
 name: 20250728_20X
+date: '20250728'
 original_path: //allen/programs/allencell/data/proj0/95b/d7b/4ab/c70/f4b/178/b43/4b1/273/765/b0/20250728_GE00008553_20X_sldy/20250728_GE00008553_20X_sldy.sldy
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250728_b07652734b1b43178f4bc704abd7b95b
 zarr_positions: [0, 1, 2, 3, 4, 5]
@@ -79,6 +80,13 @@ timepoint_annotations:
     3: [32, 65, 246, 285, 320]
     4: [32, 65, 246, 285, 320]
     5: [32, 65, 246, 285, 320]
+  not_steady_state:
+    0:  [[0, 65]]
+    1:  [[0, 65]]
+    2:  [[0, 65]]
+    3:  [[0, 65]]
+    4:  [[0, 65]]
+    5:  [[0, 65]]
 position_annotations:
   dust_artifact: [3]
 center_z_plane:
