@@ -7,7 +7,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from seaborn import color_palette
 
-from endo_pipeline.configs import get_latent_dim_from_config
+from endo_pipeline.configs import get_datasets_in_collection, get_latent_dim_from_config
 from endo_pipeline.configs.dynamics_io import load_dynamics_config
 from endo_pipeline.io import get_config_dict_from_mlflow, load_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
@@ -606,7 +606,7 @@ def get_preprocessed_manifests_and_km_bounds(
     model_manifest: ModelManifest,
     run_name: str | None = None,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
-    pca_datasets_or_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
     drop_rows_without_diffae_feats: bool = True,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list]:
@@ -660,7 +660,7 @@ def get_preprocessed_manifests_and_km_bounds(
     )
     # fit the PCA
     pca = fit_pca(
-        dataset_collection_name=pca_datasets_or_collection_name,
+        dataset_collection_name=collection_name_for_pca,
         dataframe_manifest_name=grid_diffae_feat_manifest_name,
         num_pcs=num_pcs,
     )
@@ -699,7 +699,8 @@ def get_preprocessed_manifests_and_km_bounds(
         dataset_name, grid_diffae_manifest, pca
     )
 
-    bounds = get_3d_bounds_from_data(pca_datasets_or_collection_name, grid_diffae_manifest, pca)
+    datasets_for_bounds = get_datasets_in_collection(collection_name_for_pca) + [dataset_name]
+    bounds = get_3d_bounds_from_data(datasets_for_bounds, grid_diffae_manifest, pca)
 
     # lastly, add a normalized version of the "time_hours" column
     merged_feats_df = add_normalized_time(merged_feats_df)

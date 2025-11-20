@@ -108,6 +108,7 @@ def main(
         dataset_info_columns=dataset_info_columns,
         classical_feature_columns=classical_feature_columns,
         pc_columns=pc_columns,
+        dataset_collection_name_for_pca=dataset_collection_name,
         diffae_feature_columns=diffae_feature_columns,
         model_manifest=model_manifest,
         run_name=run_name,
