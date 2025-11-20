@@ -155,7 +155,7 @@ def save_segmentation_masks(
         save_path = output_dir / f"{date}_{dataset_config.fmsid}" / fname
         if save_path.exists():
             # The .write_image() call below will fail if there is already a Zarr at that location
-            logger.info(f"Removing previous segmentation at {save_path}...")
+            logger.info(f"Removing previous segmentation zarr at {save_path}...")
             shutil.rmtree(save_path.resolve())
         os.makedirs(save_path, exist_ok=True)
 
