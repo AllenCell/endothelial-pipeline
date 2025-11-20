@@ -136,8 +136,13 @@ def main(
 
     for example_set, example_set_label in zip(example_sets, example_set_labels):
 
+        if DEMO_MODE:
+            logger.info("DEMO MODE: Limiting example set to first example only")
+            example_set = example_set[:1]
+
         # Store 100% denoised example results for each dataset in the model QC examples
         example_results_100 = []
+
         # Process each dataset
         for example in example_set:
             dataset_name = example.dataset_name
@@ -290,10 +295,6 @@ def main(
             example_results_100.append(conditioning_input_crop.squeeze())
             example_results_100.append(diffusion_input_crop.squeeze())
             example_results_100.append(denoised_images_by_bf_cond[-1].squeeze())
-
-            if DEMO_MODE:
-                logger.info("DEMO MODE: limiting to single example in set")
-                break
 
         # Plot summary figure with only the 100% noise denoising results across examples
         num_cols = 3
