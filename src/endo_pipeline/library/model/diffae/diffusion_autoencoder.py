@@ -118,22 +118,42 @@ class DiffusionAutoEncoder(_BaseDiffAE):
 
         return self.fixed_samples
 
-    def _get_fixed_noise(self, shape, device, dtype):
+    def _make_generator(self, seed: int | None, device: str):
+        """Create a torch generator object with an optional seed"""
+        gen = torch.Generator(device=device)
+        if seed is not None:
+            gen.manual_seed(seed)
+        return gen
+
+    def _generate_noise(
+        self,
+        shape,
+        dtype,
+        device: str,
+        seed: int | None = None,
+        generator: torch.Generator | None = None,
+    ) -> torch.Tensor:
+        """
+        Method that generates noise. If there is a pre-made generator, use that
+        else create one from seed
+        """
+        if generator is None and seed is not None:
+            generator = self._make_generator(seed, device)
+
+        return torch.randn(shape, generator=generator, device=device, dtype=dtype)
+
+    def _get_fixed_noise(self, shape, dtype, device: str) -> torch.Tensor:
         """Generate or retrieve fixed noise for noise_cons mode.
 
         Only generates noise once and caches it if noise_cons=True.
         This ensures the exact same noise vector is used across all epochs.
         """
         if self.fixed_noise is None:
-            generator = torch.Generator(device=device)
-            if self.fixed_sample_seed is not None:
-                generator.manual_seed(self.fixed_sample_seed)
-                self.fixed_noise = torch.randn(
-                    shape, generator=generator, device=device, dtype=dtype
-                )
-            else:
-                self.fixed_noise = torch.randn(shape, device=device, dtype=dtype)
-
+            # Fixed noise is always seeded if a fixed_sample_seed exists
+            seed = self.fixed_sample_seed  # can be None → truly random but still cached
+            self.fixed_noise = self._generate_noise(
+                shape=shape, dtype=dtype, device=device, seed=seed
+            )
         return self.fixed_noise
 
     def save_example(self, stage, cond_img, diff_img):
@@ -147,22 +167,24 @@ class DiffusionAutoEncoder(_BaseDiffAE):
             cond = self.semantic_encoder(cond_img).unsqueeze(1)
 
         # Generate noise
-        if self.noise_cons:
-            # Use fixed noise across all epochs to isolate latent vector changes
-            noise = self._get_fixed_noise(diff_img.shape, device=self.device, dtype=diff_img.dtype)
-        else:
-            # Generate new noise each epoch (seeded for reproducibility within a run)
-            if self.fixed_sample_seed is not None:
-                generator = torch.Generator(device=self.device)
-                # Add epoch offset so noise changes each epoch but is reproducible
-                seed_with_epoch = self.fixed_sample_seed + self.trainer.current_epoch
-                generator.manual_seed(seed_with_epoch)
-                noise = torch.randn(
-                    diff_img.shape, generator=generator, device=self.device, dtype=diff_img.dtype
-                )
-            else:
-                noise = torch.randn_like(diff_img, device=self.device)
+        device = self.device
+        shape = diff_img.shape
+        dtype = diff_img.dtype
 
+        if self.noise_cons:
+            # Same exact noise vector every epoch → isolates latent changes
+            noise = self._get_fixed_noise(shape, dtype, device)
+        else:
+            # New noise every epoch, but reproducible if a base seed is given
+            if self.fixed_sample_seed is not None:
+                # Offset seed by epoch so we get different (but deterministic) noise each epoch
+                seed = self.fixed_sample_seed + self.trainer.current_epoch
+            else:
+                seed = None  # truly random each call
+
+            noise = self._generate_noise(shape, dtype, device, seed=seed)
+
+        # ==================================================
         sample = self._generate_image(noise, cond)
 
         for img, name in zip([cond_img, diff_img, sample], ["cond", "diff", "recon"]):
