@@ -163,7 +163,7 @@ def main(
                 dataset_name,
                 annotation_label,
                 f"{x_filename}_vs_{y_filename}",
-                include_timestamp=True,
+                include_timestamp=False,
             )
 
             # create the correlation DataFrame
@@ -190,15 +190,29 @@ def main(
                 filename=f"{base_filename}_{annotation_label}_clustermap",
             )
 
+            if x_cols > 16 or y_cols > 16:
+                logger.info(
+                    "Skipping scatter plot for %s vs %s for dataset %s due to large number of features (%s x %s).",
+                    x_axis_label,
+                    y_axis_label,
+                    dataset_name,
+                    len(x_cols),
+                    len(y_cols),
+                )
+                continue
             # make scatter plot
-            colors = df["dataset_name"].apply(lambda x: get_dataset_color(x)).tolist()
+            dataset_color_mapping = {
+                ds_nm: get_dataset_color(ds_nm)
+                for ds_nm in df_dataset.groupby("dataset_name").groups.keys()
+            }
+            colors = df_dataset["dataset_name"].transform(dataset_color_mapping.get).to_list()
             column_list = []
             for col in x_cols + y_cols:
                 if col not in column_list:
                     column_list.append(col)  # this preserves column order
 
             plot_multi_feature_correlations(
-                df=df[column_list],
+                df=df_dataset[column_list],
                 output_folder=out_subdir,
                 filename=f"{base_filename}_{annotation_label}_scatter",
                 color=colors,
@@ -207,7 +221,7 @@ def main(
 
     logger.info(
         "Correlation heatmap workflow complete. Figures saved to [ %s ]",
-        get_output_path(__file__, include_timestamp=True),
+        get_output_path(__file__, include_timestamp=False),
     )
 
 
