@@ -677,8 +677,10 @@ def get_preprocessed_manifests_and_km_bounds(
     )
 
     # read in the grid crop-based diffae features
-    model_name = sequence_to_scalar(merged_feats_df["model_manifest_name"].dropna())
-    manifest = load_dataframe_manifest(model_name)
+    grid_diffae_feat_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
+    manifest = load_dataframe_manifest(grid_diffae_feat_manifest_name)
     diffae_grid_crops = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
 
     # use the full set of datasets to be analyzed for the bounds
