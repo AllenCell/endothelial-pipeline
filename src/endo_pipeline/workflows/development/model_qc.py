@@ -120,8 +120,8 @@ def main(
 
     # Load Example Data
     if DEMO_MODE:
-        logger.info("DEMO MODE: Limiting MODEL_QC_EXAMPLES to the set, first example only.")
-        example_sets = example_sets[0]
+        logger.info("DEMO MODE: Limiting MODEL_QC_EXAMPLES to the set")
+        example_sets = [example_sets[0]]
 
     # Set defaults for plot titles
     CDH5_LABELS = [
@@ -291,6 +291,10 @@ def main(
             example_results_100.append(diffusion_input_crop.squeeze())
             example_results_100.append(denoised_images_by_bf_cond[-1].squeeze())
 
+            if DEMO_MODE:
+                logger.info("DEMO MODE: limiting to single example in set")
+                break
+
         # Plot summary figure with only the 100% noise denoising results across examples
         num_cols = 3
         fig = make_contact_sheet(
@@ -316,10 +320,6 @@ def main(
             output_path,
             f"contact_sheet_predict_all_examples",
         )
-
-        if DEMO_MODE:
-            # Only do the first example if in demo mode
-            break
 
 
 if __name__ == "__main__":

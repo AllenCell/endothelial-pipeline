@@ -1,5 +1,13 @@
 from typing import NamedTuple
 
+EXAMPLE_DATASET = {
+    "SUPP_FIG_Z_SLICE": "20250428_20X",
+    "SUPP_FIG_IMG_PROC": "20250224_20X",
+    "SUPP_FIG_SINGLE_TP_BF_OUTLIER": "20250224_20X",
+    "SUPP_FIG_SINGLE_TP_GFP_OUTLIER": "20250319_20X",
+}
+"""Dictionary of example datasets for specific figures."""
+
 
 class ExampleImage(NamedTuple):
     """Structure for information about an example image used in a figure."""
@@ -11,14 +19,6 @@ class ExampleImage(NamedTuple):
     crop_x_start: int  # res level 1
     crop_y_start: int  # res level 1
 
-
-EXAMPLE_DATASET = {
-    "SUPP_FIG_Z_SLICE": "20250428_20X",
-    "SUPP_FIG_IMG_PROC": "20250224_20X",
-    "SUPP_FIG_SINGLE_TP_BF_OUTLIER": "20250224_20X",
-    "SUPP_FIG_SINGLE_TP_GFP_OUTLIER": "20250319_20X",
-}
-"""Dictionary of example datasets for specific figures."""
 
 CDH5_SEG_FIG_EXAMPLE: ExampleImage = ExampleImage(
     dataset_name="20250818_20X",
