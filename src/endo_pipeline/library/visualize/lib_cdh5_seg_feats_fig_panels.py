@@ -9,7 +9,7 @@ from skimage.morphology import binary_dilation
 from tqdm import tqdm
 
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
-from endo_pipeline.io import get_output_path, load_dataframe, load_image
+from endo_pipeline.io import load_dataframe, load_image
 from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
@@ -49,8 +49,8 @@ def make_imaging_panels(
     out_dir: Path,
 ) -> None:
 
-    out_dir_full = get_output_path(out_dir, "images_high_quality")
-    out_dir_thumb = get_output_path(out_dir, "images_thumbnails")
+    out_dir_full = out_dir / "images_high_quality"
+    out_dir_thumb = out_dir / "images_thumbnails"
 
     dataset_config = load_dataset_config(dataset_name)
 

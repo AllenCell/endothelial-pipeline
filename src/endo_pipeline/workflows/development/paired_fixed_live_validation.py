@@ -117,8 +117,8 @@ def main(
             pc,
             raw_data,
             validation_data,
-            axmin=axmin,
-            axmax=axmax,
+            axmin,
+            axmax,
         )
 
         # Plot raw data for paired live and time-lagged live PC values as well as confidence
@@ -128,9 +128,9 @@ def main(
             pc,
             raw_data_ref,
             validation_data_ref,
+            axmin,
+            axmax,
             lagged_live_validation=True,
-            axmin=axmin,
-            axmax=axmax,
         )
 
 
