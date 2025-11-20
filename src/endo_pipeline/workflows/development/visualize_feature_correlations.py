@@ -1,5 +1,7 @@
 from typing import Literal
 
+from tqdm import tqdm
+
 from endo_pipeline.configs import TimepointAnnotation
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
@@ -125,7 +127,7 @@ def main(
     if aggregate:
         dataset_name_list = [*dataset_name_list, "aggregate"]
 
-    for dataset_name in dataset_name_list:
+    for dataset_name in tqdm(dataset_name_list):
         # if the dataset name is "aggregate", use the full DataFrame
         # otherwise, filter the DataFrame for the specific dataset
         if dataset_name == "aggregate":
