@@ -65,7 +65,7 @@ def generate_tfe_dataset(
         df_tracks = get_preprocessed_manifests_and_km_bounds(
             dataset_name=dataset,
             model_manifest=model_manifest,
-            datasets_for_bounds=datasets_for_bounds,
+            pca_datasets_or_collection_name=datasets_for_bounds,
             drop_rows_without_diffae_feats=False,
         )[0]
     except KeyError:

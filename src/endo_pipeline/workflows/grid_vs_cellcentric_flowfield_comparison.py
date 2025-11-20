@@ -62,7 +62,7 @@ def process_dataset(
         model_manifest=model_manifest,
         run_name=run_name,
         seg_feature_manifest_name=seg_feature_manifest_name,
-        datasets_for_bounds=datasets_for_bounds,
+        pca_datasets_or_collection_name=datasets_for_bounds,
     )
 
     # keep only the columns that are needed for the analysis to reduce memory usage

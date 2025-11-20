@@ -40,7 +40,7 @@ def main(
             model_manifest=model_manifest,
             run_name=run_name,
             seg_feature_manifest_name=seg_feature_manifest_name,
-            datasets_for_bounds=dataset_name_list,
+            pca_datasets_or_collection_name=dataset_name_list,
         )
 
         # load or compute the trajectories and flow fields for the grid-based
