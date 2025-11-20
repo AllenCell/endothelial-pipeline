@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -18,6 +19,7 @@ from endo_pipeline.library.visualize.diffae_features import feature_viz
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, ColumnName
 
+logger = logging.getLogger(__name__)
 
 def _kramers_moyal_train_test_one_dataset(
     df_proj: pd.DataFrame,
@@ -247,7 +249,10 @@ def build_kramers_moyal_train_test(
     # for each dataset, generate train test sets for drift and diffusion estimates
     # (Kramers-Moyal coefficients, Y and V, respectively)
     for dataset_name in dataset_names:
-        print("**** Generating train/test sets for dataset", dataset_name, "**** \n")
+        logger.info(
+            "Generating train/test sets for Kramers-Moyal estimates from dataset: [ %s ]",
+            dataset_name
+        )
 
         # load DiffAE feature data from this one dataset
         # and get features projected onto principal component axes
