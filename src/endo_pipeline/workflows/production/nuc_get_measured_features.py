@@ -4,7 +4,7 @@ TAGS = [tags.TEST_READY, tags.CPU_ONLY]
 
 
 def main(
-    datasets: Datasets = ["20250818_20X"],
+    datasets: Datasets | None = None,
     save_output: bool = True,
     n_proc: int = 1,
     verbose: bool = False,
@@ -32,6 +32,7 @@ def main(
 
     from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
+    from endo_pipeline.configs.demo_mode_defaults import use_default_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.shape_features import (
         get_and_save_nuclei_features_arg_unpacker,
@@ -45,6 +46,7 @@ def main(
 
     out_dir = get_output_path(__file__)
 
+    datasets = use_default_collection(datasets, "live_cdh5_seg_based_feat_datasets")
     logger.info(f"datasets analyzed: {datasets}")
 
     if not concatenate_tables_only:

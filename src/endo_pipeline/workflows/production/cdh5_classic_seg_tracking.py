@@ -4,7 +4,7 @@ TAGS = ["cdh5_segmentation", "tracking", tags.CPU_ONLY, tags.TEST_READY]
 
 
 def main(
-    datasets: Datasets = ["20250818_20X"],
+    datasets: Datasets | None = None,
     n_proc: int = 1,
     save_output: bool = True,
     verbose: bool = False,
@@ -42,6 +42,7 @@ def main(
 
     from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
+    from endo_pipeline.configs.demo_mode_defaults import use_default_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.general_image_preprocessing import (
         build_analysis_queue,
@@ -53,6 +54,7 @@ def main(
 
     out_dir = get_output_path(__file__)
 
+    datasets = use_default_collection(datasets, "live_cdh5_seg_based_feat_datasets")
     logger.info(f"datasets analyzed: {datasets}")
 
     analysis_queue = build_analysis_queue(
