@@ -1574,7 +1574,7 @@ def relabel_array_values(
 ) -> np.ndarray:
     """Replace original values with corresponding relabel values in array."""
 
-    id_map = pd.Series(relabel_values.values, index=original_values).to_dict()
+    id_map: dict[int, int] = pd.Series(relabel_values.values, index=original_values).to_dict()
     max_value = np.max(original_array) + 1
     choices = np.zeros(max_value)
 
