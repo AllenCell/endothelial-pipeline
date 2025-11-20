@@ -172,6 +172,15 @@ def _km_wrapper(
     return kmc
 
 
+def get_cartesian_product(arrays: np.ndarray | list) -> np.ndarray:
+    # Taken from https://stackoverflow.com/questions/11144513
+    la = len(arrays)
+    arr = np.empty([len(a) for a in arrays] + [la], dtype=np.float64)
+    for i, a in enumerate(np.ix_(*arrays)):
+        arr[..., i] = a
+    return arr
+
+
 def _km_worker(
     timeseries: list[np.ndarray],
     grads: list[np.ndarray],
@@ -186,15 +195,6 @@ def _km_worker(
     Estimate the Kramers─Moyal coefficients from a timeseries using a kernel
     estimator method. This is the internal function that does the heavy lifting.
     """
-
-    # Internal function to get the Cartesian product of the bin edges
-    def _cartesian_product(arrays: np.ndarray | list) -> np.ndarray:
-        # Taken from https://stackoverflow.com/questions/11144513
-        la = len(arrays)
-        arr = np.empty([len(a) for a in arrays] + [la], dtype=np.float64)
-        for i, a in enumerate(np.ix_(*arrays)):
-            arr[..., i] = a
-        return arr
 
     # Concatenate all gradients, need to get weights for weighted histogram
     grads_concat: np.ndarray = np.concatenate(grads, axis=0)
@@ -246,7 +246,7 @@ def _km_worker(
     # (Default convolution method is 'auto', which uses
     # fft if the kernel is large enough.)
     edges_k = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in bins]
-    kernel_ = kernel_func(_cartesian_product(edges_k), bw=bw)
+    kernel_ = kernel_func(get_cartesian_product(edges_k), bw=bw)
 
     ##### KMC computation: convolve the histogram with the kernel
 
