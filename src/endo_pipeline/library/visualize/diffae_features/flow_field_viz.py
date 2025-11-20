@@ -322,11 +322,13 @@ def plot_flow_field_slices(
             condition = get_dataset_descriptions([name], simple=True)[name]
         else:
             condition = "from_data"
+        fig.suptitle(condition, fontsize=16)
         viz_base.save_plot(
-            fig, filename=fig_savedir / f"flow_field_{condition}", dpi=300
+            fig, filename=fig_savedir / f"flow_field_{name}", dpi=300
         )  # save the figure
+        fig_.suptitle(condition, fontsize=16)
         viz_base.save_plot(
-            fig_, filename=fig_savedir / f"flow_field_streamplot_{condition}", dpi=300
+            fig_, filename=fig_savedir / f"flow_field_streamplot_{name}", dpi=300
         )  # save the figure
 
     return fig, ax
@@ -473,12 +475,13 @@ def flow_field_viz_main(
     ax[0].scatter(df_cond.pc_1, df_cond.pc_2, s=0.25, color=scatter_color, alpha=0.05)
     ax[1].scatter(df_cond.pc_1, df_cond.pc_3, s=0.25, color=scatter_color, alpha=0.05)
     fig, ax = plot_quiver_slices(flow_field_dict, (zvalids, yvalids), fig_ax=(fig, ax))
+    fig.suptitle(condition, fontsize=16)
 
     # plot last point of trajectory
     # hack-y work around for intermediate shear stress
     # simulate second trajectory to get second stable point
-    if name == "20250319_20X" or name == "20250326_20X":
-        init = np.array([1.1, 0.0, -0.2])
+    if name in ["20250319_20X", "20250618_20X", "20250428_20X"]:
+        init = np.array([0.0, 0.0, 0.0])
         time_span = [0, 5000]
         traj_2 = data_driven_flow_field.solve_ddff_ode(flow_field_dict, init, time_span)
 
@@ -486,7 +489,7 @@ def flow_field_viz_main(
         ax_.scatter(traj[-1, 0], traj[-1, j + 1], s=100, color="black")
         # hack-y work around for intermediate shear stress
         # simulate second trajectory to get second stable point
-        if name == "20250319_20X" or name == "20250326_20X":
+        if name in ["20250319_20X", "20250618_20X", "20250428_20X"]:
             ax_.scatter(traj_2[-1, 0], traj_2[-1, j + 1], s=100, color="black")
 
     # plot second stable point
@@ -497,7 +500,7 @@ def flow_field_viz_main(
     plt.tight_layout()
     plt.show()
     # save the figure
-    viz_base.save_plot(fig, fig_savedir / f"flow_field_{condition}_fp", dpi=300)
+    viz_base.save_plot(fig, fig_savedir / f"flow_field_{name}_fp", dpi=300)
 
     # 2) plot entire trajectory over flow field
     # PC1 v s PC2, PC1 vs PC3
@@ -506,7 +509,7 @@ def flow_field_viz_main(
     plt.tight_layout()
     plt.show()
     # save the figure
-    viz_base.save_plot(fig, fig_savedir / f"flow_field_{condition}_traj", dpi=300)
+    viz_base.save_plot(fig, fig_savedir / f"flow_field_{name}_traj", dpi=300)
 
     # 3) trajectory with equally spaced interpolated points
     interpolated_points = data_driven_flow_field.interpolate_on_curve(traj)
@@ -520,5 +523,5 @@ def flow_field_viz_main(
     plt.tight_layout()
     plt.show()
     # save the figure
-    viz_base.save_plot(fig, fig_savedir / f"flow_field_{condition}_traj_interpolated", dpi=300)
+    viz_base.save_plot(fig, fig_savedir / f"flow_field_{name}_traj_interpolated", dpi=300)
     return

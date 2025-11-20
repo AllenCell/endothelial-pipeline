@@ -1,6 +1,7 @@
 from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 TAGS = ["dynamical_systems", "diffae_features", "2d_feature_space"]
+PCA_DATASET_COLLECTION = "diffae_model_training"
 
 
 def main(
@@ -71,7 +72,10 @@ def main(
     )
 
     # fit PCA to reference timepoints of reference datasets
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name)
+    pca = fit_pca(
+        dataset_collection_name=PCA_DATASET_COLLECTION,
+        dataframe_manifest_name=dataframe_manifest_name,
+    )
 
     ################### Build train-test data for regression ###################
     # load inputs from dynamics_config.yaml

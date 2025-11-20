@@ -2,6 +2,7 @@ from endo_pipeline.cli import Datasets
 from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 TAGS = ["dynamical_systems", "diffae_features"]
+PCA_COLLECTION = "diffae_model_training"
 
 
 def main(
@@ -69,7 +70,9 @@ def main(
     else:
         dataset_names = [name for name in datasets if name in valid_dataset_options]
 
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name)
+    pca = fit_pca(
+        dataset_collection_name=PCA_COLLECTION, dataframe_manifest_name=dataframe_manifest_name
+    )
 
     # plot scatter of PCA components and all datasets specified in the command
     # line (or default list, if not specified)
@@ -93,7 +96,7 @@ def main(
     # initial condition for the ODE solver
     # this is fixed across datasets /
     # shear stress conditions
-    init = np.array([-0.1, -0.7, -0.1])
+    init = np.array([0.0, 0.0, -1.0])
 
     get_and_analyze_ddff(
         dataset_names,

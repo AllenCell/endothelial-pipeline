@@ -1,6 +1,7 @@
 from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 TAGS = ["dynamical_systems", "diffae_features", "2d_feature_space"]
+PCA_DATASET_COLLECTION = "diffae_model_training"
 
 
 def main(
@@ -136,7 +137,10 @@ def main(
 
     ################### Model-data comparison ###################
     # run comparison of model and data for each dataset
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name)
+    pca = fit_pca(
+        dataset_collection_name=PCA_DATASET_COLLECTION,
+        dataframe_manifest_name=dataframe_manifest_name,
+    )
     model_data_comparison(
         sde_model,
         dataset_names,
