@@ -319,7 +319,7 @@ def main(
         save_plot_to_path(
             fig,
             output_path,
-            f"contact_sheet_predict_all_examples",
+            "contact_sheet_predict_all_examples",
         )
 
 
