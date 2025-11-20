@@ -163,7 +163,7 @@ def main(
                 dataset_name,
                 annotation_label,
                 f"{x_filename}_vs_{y_filename}",
-                include_timestamp=False,
+                include_timestamp=True,
             )
 
             # create the correlation DataFrame
@@ -207,7 +207,7 @@ def main(
 
     logger.info(
         "Correlation heatmap workflow complete. Figures saved to [ %s ]",
-        get_output_path(__file__, include_timestamp=False),
+        get_output_path(__file__, include_timestamp=True),
     )
 
 
