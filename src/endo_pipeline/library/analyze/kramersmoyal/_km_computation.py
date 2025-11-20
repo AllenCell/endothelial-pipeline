@@ -173,12 +173,10 @@ def _km_wrapper(
 
 
 def get_cartesian_product(arrays: np.ndarray | list) -> np.ndarray:
-    # Taken from https://stackoverflow.com/questions/11144513
-    la = len(arrays)
-    arr = np.empty([len(a) for a in arrays] + [la], dtype=np.float64)
-    for i, a in enumerate(np.ix_(*arrays)):
-        arr[..., i] = a
-    return arr
+    shapes = [len(arr) for arr in arrays]
+    indices = np.indices(shapes, sparse=False)
+    unstacked = [arrays[i][sub_indices] for i, sub_indices in enumerate(indices)]
+    return np.stack(unstacked, axis=-1)
 
 
 def _km_worker(
