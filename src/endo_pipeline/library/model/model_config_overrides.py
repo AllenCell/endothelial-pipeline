@@ -148,7 +148,9 @@ class ModelConfigOverride:
         # Calculate effective epochs.
         multiplier = (1 - self.cache_rate) / (self.cache_rate * self.replace_rate) + 1
         effective_min_epochs = int(5000 * multiplier)
-        effective_max_epochs = max(int(self.max_epochs * multiplier), 4 * effective_min_epochs)
+        effective_max_epochs = max(
+            int(self.max_epochs * multiplier), int(1.5 * effective_min_epochs)
+        )
         effective_save_images_epochs = int(10 * multiplier)
 
         overrides = {

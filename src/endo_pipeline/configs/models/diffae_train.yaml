@@ -211,8 +211,8 @@ model:
     _target_: torch.optim.lr_scheduler.OneCycleLR
     max_lr: 0.0002
     epochs: ${trainer.max_epochs}
-    steps_per_epoch: 69 # this works with a batch size of 12 with 4 GPUs
-    pct_start: 0.3
+    steps_per_epoch: 279 # this works with a batch size of 12 with 4 GPUs
+    pct_start: 0.06 # with max epochs of 7500 this will have LR increase until 750 epochs!
   diffusion_inferer:
     _target_: monai.inferers.DiffusionInferer
     _partial_: true
@@ -277,7 +277,7 @@ logger:
     run_name: ${run_name}
 trainer:
   _target_: lightning.Trainer
-  use_distributed_sampler: True
+  use_distributed_sampler: true
   default_root_dir: ${paths.output_dir}
   min_epochs: 1500
   max_epochs: 2000
