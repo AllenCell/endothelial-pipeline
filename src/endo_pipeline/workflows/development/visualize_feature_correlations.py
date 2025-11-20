@@ -1,5 +1,7 @@
 from typing import Literal
 
+from tqdm import tqdm
+
 from endo_pipeline.configs import TimepointAnnotation
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
@@ -108,6 +110,7 @@ def main(
         dataset_info_columns=dataset_info_columns,
         classical_feature_columns=classical_feature_columns,
         pc_columns=pc_columns,
+        dataset_collection_name_for_pca=dataset_collection_name,
         diffae_feature_columns=diffae_feature_columns,
         model_manifest=model_manifest,
         run_name=run_name,
@@ -124,7 +127,7 @@ def main(
     if aggregate:
         dataset_name_list = [*dataset_name_list, "aggregate"]
 
-    for dataset_name in dataset_name_list:
+    for dataset_name in tqdm(dataset_name_list):
         # if the dataset name is "aggregate", use the full DataFrame
         # otherwise, filter the DataFrame for the specific dataset
         if dataset_name == "aggregate":
@@ -187,15 +190,29 @@ def main(
                 filename=f"{base_filename}_{annotation_label}_clustermap",
             )
 
+            if len(x_cols) > 16 or len(y_cols) > 16:
+                logger.info(
+                    "Skipping scatter plot for %s vs %s for dataset %s due to large number of features (%s x %s).",
+                    x_axis_label,
+                    y_axis_label,
+                    dataset_name,
+                    len(x_cols),
+                    len(y_cols),
+                )
+                continue
             # make scatter plot
-            colors = df["dataset_name"].apply(lambda x: get_dataset_color(x)).tolist()
+            dataset_color_mapping = {
+                ds_nm: get_dataset_color(ds_nm)
+                for ds_nm in df_dataset.groupby("dataset_name").groups.keys()
+            }
+            colors = df_dataset["dataset_name"].transform(dataset_color_mapping.get).to_list()
             column_list = []
             for col in x_cols + y_cols:
                 if col not in column_list:
                     column_list.append(col)  # this preserves column order
 
             plot_multi_feature_correlations(
-                df=df[column_list],
+                df=df_dataset[column_list],
                 output_folder=out_subdir,
                 filename=f"{base_filename}_{annotation_label}_scatter",
                 color=colors,

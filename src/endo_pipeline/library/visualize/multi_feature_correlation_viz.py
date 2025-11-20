@@ -456,6 +456,7 @@ def get_df_for_feature_correlation_viz(
     dataset_info_columns: list[str],
     classical_feature_columns: list[str],
     pc_columns: list[str],
+    dataset_collection_name_for_pca: str,
     diffae_feature_columns: list[str],
     model_manifest: ModelManifest,
     run_name: str | None = None,
@@ -506,7 +507,7 @@ def get_df_for_feature_correlation_viz(
             model_manifest=model_manifest,
             run_name=run_name,
             seg_feature_manifest_name=seg_feature_manifest_name,
-            datasets_for_bounds=dataset_name_list,
+            collection_name_for_pca=dataset_collection_name_for_pca,
         )
 
         # check that the chosen measurement column names
