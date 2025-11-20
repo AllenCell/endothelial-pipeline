@@ -190,7 +190,7 @@ def main(
                 filename=f"{base_filename}_{annotation_label}_clustermap",
             )
 
-            if x_cols > 16 or y_cols > 16:
+            if len(x_cols) > 16 or len(y_cols) > 16:
                 logger.info(
                     "Skipping scatter plot for %s vs %s for dataset %s due to large number of features (%s x %s).",
                     x_axis_label,
