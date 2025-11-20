@@ -1574,9 +1574,15 @@ def relabel_array_values(
 ) -> np.ndarray:
     """Replace original values with corresponding relabel values in array."""
 
-    label_map_arr = np.zeros(shape=original_values.max() + 1, dtype=np.uint32)
-    label_map_arr[original_values] = relabel_values
-    return label_map_arr[original_array]
+    id_map = pd.Series(relabel_values.values, index=original_values).to_dict()
+    max_value = np.max(original_array) + 1
+    choices = np.zeros(max_value)
+
+    for old in range(max_value):
+        if old in id_map:
+            choices[old] = id_map[old]
+
+    return choices[original_array]
 
 
 def generate_tracks(
