@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from endo_pipeline.cli import Datasets
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME
 
 
 def main(
@@ -10,6 +11,8 @@ def main(
     output_dir: Path | None = None,
     segmentation: str = "CDH5",
     no_backdrops: bool = False,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str | None = None,
     include_diffae_features: bool = True,
 ) -> None:
     """
@@ -121,6 +124,8 @@ def main(
                 output_dir=output_dir,
                 source_dir=source_dir_path,
                 backdrops=no_backdrops,
+                model_name=model_manifest_name,
+                run_name=run_name,
                 include_diffae_features=include_diffae_features,
             )
             print(f"Processed dataset: {dataset_name}, position: {position}")
