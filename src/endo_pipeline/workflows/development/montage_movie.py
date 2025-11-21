@@ -35,6 +35,7 @@ def main(
 
     import logging
 
+    import cv2
     import dask.array as da
     import imageio
     import matplotlib.pyplot as plt
@@ -103,44 +104,91 @@ def main(
             pos_str = f"P{min(zarr_positions)}-{max(zarr_positions)}"
         fname = f"{dataset_name}_{channel}_{pos_str}_{dataset_config.fmsid}.mp4"
 
+        MAX_WIDTH = 1920  # maximum width of movie
+        MAX_HEIGHT = 1080  # maximum height of movie
+
+        # Prepare writer
         with imageio.get_writer(
             output_dir / fname,
             fps=fps,
+            codec="libx264",
+            format="FFMPEG",
+            ffmpeg_params=[
+                "-pix_fmt",
+                "yuv420p",  # required for Windows/QuickTime
+                "-profile:v",
+                "baseline",  # max compatibility
+                "-level",
+                "3.1",  # supports frame size
+                "-crf",
+                "18",  # good quality
+            ],
         ) as writer:
-            # Prepare first frame for sizing
+
+            # Prepare first frame
             first_img = image_stitched[0].compute().squeeze()
             contrasted_img = image_processing.contrast_stretching(
                 first_img, custom_range=(low_p1, high_p99)
             )
-            height, width = contrasted_img.shape
-            height_padded = height + (16 - height % 16) % 16
-            width_padded = width + (16 - width % 16) % 16
-            figsize = (width_padded / SUPP_MOVIE_DPI, height_padded / SUPP_MOVIE_DPI)
 
-            # Create figure and axes once
+            # Resize if needed to max size
+            height, width = contrasted_img.shape
+            scale_factor = min(MAX_WIDTH / width, MAX_HEIGHT / height, 1.0)
+            new_width = int(width * scale_factor)
+            new_height = int(height * scale_factor)
+            if scale_factor < 1.0:
+                contrasted_img = cv2.resize(
+                    contrasted_img, (new_width, new_height), interpolation=cv2.INTER_LINEAR
+                )
+
+            # Pad so width/height divisible by 16
+            pad_h = (16 - contrasted_img.shape[0] % 16) % 16
+            pad_w = (16 - contrasted_img.shape[1] % 16) % 16
+            contrasted_img = np.pad(
+                contrasted_img,
+                ((0, pad_h), (0, pad_w)),
+                mode="constant",
+                constant_values=0,  # black padding
+            )
+            height_padded, width_padded = contrasted_img.shape
+
+            # Create figure exactly the size of the padded image
+            figsize = (width_padded / SUPP_MOVIE_DPI, height_padded / SUPP_MOVIE_DPI)
             figure, ax = plt.subplots(figsize=figsize, frameon=False)
+            figure.patch.set_facecolor("black")
+            ax.set_facecolor("black")
             ax.set_axis_off()
             figure.subplots_adjust(left=0, right=1, top=1, bottom=0)
+
             im = ax.imshow(contrasted_img, cmap="gray", aspect="equal")
 
+            # Add scalebar (pixels already adjusted for scale factor)
             add_scalebar(
                 ax,
                 scale_bar_um=100,
-                pixel_size=PIXEL_SIZE_3i_20x,
+                pixel_size=PIXEL_SIZE_3i_20x / scale_factor,
                 color="white",
-                bar_thickness=50,
-                padding=50,
+                bar_thickness=10,
+                padding=10,
             )
 
-            for tp in tqdm(
-                range(image_stitched.shape[0]),
-                desc=f"{dataset_name}: Creating stitched timelapse movie",
-                total=image_stitched.shape[0],
-            ):
+            # Loop over frames
+            for tp in tqdm(range(image_stitched.shape[0]), desc=f"{dataset_name}: Creating movie"):
                 tp_img = image_stitched[tp].compute().squeeze()
                 contrasted_img = image_processing.contrast_stretching(
                     tp_img, custom_range=(low_p1, high_p99)
                 )
+
+                if scale_factor < 1.0:
+                    contrasted_img = cv2.resize(
+                        contrasted_img, (new_width, new_height), interpolation=cv2.INTER_LINEAR
+                    )
+
+                # Pad frame to match first frame (divisible by 16)
+                contrasted_img = np.pad(
+                    contrasted_img, ((0, pad_h), (0, pad_w)), mode="constant", constant_values=0
+                )
+
                 im.set_data(contrasted_img)
 
                 if annotate_shear_stress:
@@ -152,15 +200,15 @@ def main(
                     ax,
                     frame=tp,
                     interval_minutes=dataset_config.time_interval_in_minutes,
-                    fontsize=100,
+                    fontsize=20,
                     shear_stress=shear_stress,
                 )
 
                 figure.canvas.draw()
+                # Drop alpha channel
                 img = np.array(figure.canvas.renderer.buffer_rgba())[:, :, :3]
                 writer.append_data(img)
 
-                # Remove previous text overlays
                 timestamp_text.remove()
 
             plt.close(figure)
