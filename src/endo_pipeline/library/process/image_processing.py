@@ -328,43 +328,44 @@ def crop_image(img: np.ndarray, start_x: int, start_y: int, crop_size: int) -> n
     return img[tuple(slices)]
 
 
-def stitch_with_overlap(arrays: list, overlap_ratio: float = 0.10):
+def stitch_with_overlap(
+    arrays: list[da.Array], overlap_ratio: float = 0.10, reference_frame: int = 0
+) -> da.Array:
     """
-    Stitch a list of 2D or 3D NumPy arrays together along the last axis with linear blending
-    in the overlapping regions.
+    Stitch a list of 2D or 3D Dask arrays along the X axis with fixed linear blending in the overlapping region.
 
     Parameters
     ----------
-    arrays : list
-        List of 2D or 3D NumPy arrays to be stitched together.
+    arrays : list[da.Array]
+        List of tiles to stitch.
     overlap_ratio : float
-        Ratio of overlap between adjacent arrays (default is 0.10 for 10% overlap).
+        Fixed overlap ratio between adjacent tiles (default 1%).
 
     Returns
     -------
-    np.ndarray
-        The stitched NumPy array.
+    stitched : da.Array
+        Stitched array.
     """
-    # Start with the first image
-    stitched = arrays[0].copy()
+    stitched = arrays[0]
 
     for arr in arrays[1:]:
-        # compute overlap width as 10% of smaller X dimension
-        overlap = int(min(stitched.shape[2], arr.shape[2]) * overlap_ratio)
+        # Compute overlap in pixels
+        overlap = max(1, int(min(stitched.shape[-1], arr.shape[-1]) * overlap_ratio))
 
-        # split new arr into overlap & non-overlap
-        non_overlap_new = arr[:, :, overlap:]
+        # Split new array
+        non_overlap_new = arr[..., overlap:]
+        A = stitched[..., -overlap:]
+        B = arr[..., :overlap]
 
-        # overlap regions
-        A = stitched[:, :, -overlap:]  # right side of existing
-        B = arr[:, :, :overlap]  # left side of new image
-
-        # linear blend weights
-        wA = np.linspace(1, 0, overlap)[None, None, :]
+        # Linear blending
+        wA = da.from_array(
+            np.linspace(1, 0, overlap)[None, None, :]
+            if stitched.ndim == 3
+            else np.linspace(1, 0, overlap)
+        )
         wB = 1 - wA
-
         blended = A * wA + B * wB
 
-        # build updated stitched image
-        stitched = np.concatenate([stitched[:, :, :-overlap], blended, non_overlap_new], axis=2)
+        stitched = da.concatenate([stitched[..., :-overlap], blended, non_overlap_new], axis=-1)
+
     return stitched

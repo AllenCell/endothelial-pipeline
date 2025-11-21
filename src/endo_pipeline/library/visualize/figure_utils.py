@@ -149,7 +149,13 @@ def plot_image_thumbnail(
     plt.close(figure)
 
 
-def add_timestamp(ax, frame: int, interval_minutes: int) -> None:
+def add_timestamp(
+    ax,
+    frame: int,
+    interval_minutes: int,
+    fontsize: int = FONTSIZE_LARGE,
+    shear_stress: float | None = None,
+) -> plt.text:
     """
     Add a timestamp to the given axis based on frame number and interval (hr:min).
 
@@ -161,18 +167,25 @@ def add_timestamp(ax, frame: int, interval_minutes: int) -> None:
         The current frame number
     interval_minutes : int, optional
         Time interval between frames in minutes.
+    fontsize : int
+        Font size for the timestamp text.
+    shear_stress : float, optional
+        Shear stress value to display alongside the timestamp (in dyn/cm²).
     """
     duration_minutes = frame * interval_minutes
     hours = int(duration_minutes // 60)
     minutes = int(duration_minutes % 60)
-    timestamp = f"{hours:02d}:{minutes:02d} hr:min"
-    ax.text(
+
+    shear_stress = f"{shear_stress:.1f} dyn/cm²" if shear_stress is not None else ""
+
+    timestamp = f"{hours:02d}:{minutes:02d} hr:min {shear_stress}"
+    return ax.text(
         0.01,
-        0.95,
+        0.98,
         timestamp,
         transform=ax.transAxes,
         color="white",
-        fontsize=10,
+        fontsize=fontsize,
         ha="left",
         va="top",
     )

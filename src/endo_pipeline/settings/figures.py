@@ -1,6 +1,9 @@
 FIGURE_SAVE_DPI = 600
 """Minimum DPI for saving figures"""
 
+SUPP_MOVIE_DPI = 100
+"""DPI for supplementary movies"""
+
 FONT_FAMILY = "Arial"
 """Default font family for figures"""
 
