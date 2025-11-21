@@ -10,7 +10,7 @@ def main(
     positions: list[int] = [0],
     output_dir: Path | None = None,
     segmentation: str = "CDH5",
-    no_backdrops: bool = False,
+    make_backdrops: bool = True,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = None,
     include_diffae_features: bool = True,
@@ -123,7 +123,7 @@ def main(
                 position=position,
                 output_dir=output_dir,
                 source_dir=source_dir_path,
-                backdrops=no_backdrops,
+                backdrops=make_backdrops,
                 model_name=model_manifest_name,
                 run_name=run_name,
                 include_diffae_features=include_diffae_features,
@@ -132,6 +132,7 @@ def main(
 
 
 if __name__ == "__main__":
-    from endo_pipeline.__main__ import workflow_cli
+    # from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
-    workflow_cli(main)
+    ipython_cli_flexecute(main)
