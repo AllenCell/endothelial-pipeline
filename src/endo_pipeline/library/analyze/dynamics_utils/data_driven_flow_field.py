@@ -134,9 +134,7 @@ def _ddff_model_analysis(
     # with initial conditions given by init
     # solve IVP, get back trajectory
     traj = solve_ddff_ode(flow_field_dict, init, time_span)
-
-    # call main flow field viz function (makes and saves plots)
-    flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj, plot_bounds, fig_savedir)
+    traj_list = [traj]  # initialize list of trajectories
 
     # hack-y work around for intermediate shear stress
     # simulate multiple trajectories
@@ -148,23 +146,30 @@ def _ddff_model_analysis(
         "20250818_20X",
     ]:
         # get initial conditions in coarse grid based on bin centers
-        num_steps = 5
+        num_steps = [5, 4, 3]
         coarse_grid = [
-            np.linspace(centers[0][0], centers[0][-1], num_steps),
-            np.linspace(centers[1][0], centers[1][-1], num_steps),
-            np.linspace(centers[2][0], centers[2][-1], num_steps),
+            np.linspace(centers[0][5], centers[0][-6], num_steps[0]),
+            np.linspace(centers[1][5], centers[1][-6], num_steps[1]),
+            np.linspace(centers[2][5], centers[2][-6], num_steps[2]),
         ]
-        traj_list = [traj]  # initialize list of trajectories
         # loop over coarse grid to get multiple trajectories
-        for i in range(num_steps):
-            for j in range(num_steps):
-                for k in range(num_steps):
+        for i in range(num_steps[0]):
+            for j in range(num_steps[1]):
+                for k in range(num_steps[2]):
+                    logger.debug(
+                        "Solving ODE for initial condition: [%f, %f, %f]",
+                        coarse_grid[0][i],
+                        coarse_grid[1][j],
+                        coarse_grid[2][k],
+                    )
                     init_ = np.array([coarse_grid[0][i], coarse_grid[1][j], coarse_grid[2][k]])
                     traj_ = solve_ddff_ode(flow_field_dict, init_, time_span)
                     traj_list.append(traj_)
-        return traj_list
-    else:
-        return traj
+
+    # call main flow field viz function (makes and saves plots)
+    flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj_list, plot_bounds, fig_savedir)
+
+    return traj_list
 
 
 def get_and_analyze_ddff(
