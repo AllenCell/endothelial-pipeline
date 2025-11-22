@@ -29,6 +29,45 @@ CDH5_SEG_FIG_EXAMPLE: ExampleImage = ExampleImage(
     description="no flow center crop for CDH5 segmentation figure",
 )
 
+UNSUP_FEAT_EXTRACT_FIG_EXAMPLE: list[ExampleImage] = [
+    ExampleImage(
+        dataset_name="20250618_20X",
+        position=0,
+        timepoint=100,
+        crop_x_start=0,
+        crop_y_start=0,
+        description="low flow uncropped timepoint 100 for unsupervised feature extraction figure",
+    ),
+    # ExampleImage(
+    #     dataset_name="20250618_20X",
+    #     position=0,
+    #     timepoint=1,
+    #     crop_x_start=0,
+    #     crop_y_start=0,
+    #     description="low flow uncropped timepoint 1 for unsupervised feature extraction figure",
+    # ),
+    # ExampleImage(
+    #     dataset_name="20250618_20X",
+    #     position=0,
+    #     timepoint=2,
+    #     crop_x_start=0,
+    #     crop_y_start=0,
+    #     description="low flow uncropped timepoint 2 for unsupervised feature extraction figure",
+    # ),
+    # ExampleImage(
+    #     dataset_name="20250618_20X",
+    #     position=0,
+    #     timepoint=3,
+    #     description="low flow uncropped timepoint 3 for unsupervised feature extraction figure",
+    # ),
+    # ExampleImage(
+    #     dataset_name="20250618_20X",
+    #     position=0,
+    #     timepoint=4,
+    #     description="low flow uncropped timepoint 4 for unsupervised feature extraction figure",
+    # ),
+]
+
 MODEL_QC_EXAMPLES_TRAINING_POSITIONS: list[ExampleImage] = [
     ExampleImage(
         dataset_name="20250818_20X",
