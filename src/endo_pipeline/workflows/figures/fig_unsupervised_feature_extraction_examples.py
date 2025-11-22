@@ -225,7 +225,7 @@ for example_set, example_set_label in zip(example_sets, example_set_labels):
         # the pure noise conditioned using the embedding of the corresponding
         # ground truth image used for conditioning.
         # will need to update generate method to do array shaping internally
-        images_to_denoise = [*noisy_diffusion_input_images, noise_image]
+        images_to_denoise = [noise_image]
         denoised_images_by_bf_cond = [
             generate_from_coords_and_noised_image(
                 model, conditioning_crop_latent_vector, noised_image, num_gpus=NUM_GPUS
