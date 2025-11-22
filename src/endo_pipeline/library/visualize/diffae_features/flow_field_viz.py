@@ -16,15 +16,15 @@ from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, ColumnName
 
 def set_slice_plot_bounds_and_labels(
     axs: np.ndarray[plt.Axes, Any],
-    bounds: list[tuple],
+    bounds: list[np.ndarray],
 ) -> np.ndarray[plt.Axes, Any]:
     """
     Set the axis limits and labels for the plots
     of 2D slices of the 3D flow field.
     """
-    xmin, xmax = bounds[0]
-    ymin, ymax = bounds[1]
-    zmin, zmax = bounds[2]
+    xmin, xmax = bounds[0][0], bounds[0][1]
+    ymin, ymax = bounds[1][0], bounds[1][1]
+    zmin, zmax = bounds[2][0], bounds[2][1]
 
     for ax, (qmin, qmax) in zip(axs, [(ymin, ymax), (zmin, zmax)], strict=False):
         ax.set_xlim(xmin, xmax)
@@ -215,6 +215,7 @@ def plot_streamplot_slices(
 def plot_flow_field_slices(
     flow_field_dict: dict,
     df_cond: pd.DataFrame | None,
+    plot_bounds: list[np.ndarray],
     fig_savedir: Path | None,
     pc_vals: tuple[Any, Any] | None = None,
     color: str = "black",
@@ -247,12 +248,6 @@ def plot_flow_field_slices(
     """
     # get grid and grid spacing
     xgrid, ygrid, zgrid = flow_field_dict["grid"]
-
-    # get bounds of the grid
-    xmin, xmax = xgrid[0, 0, 0], xgrid[-1, 0, 0]
-    ymin, ymax = ygrid[0, 0, 0], ygrid[0, -1, 0]
-    zmin, zmax = zgrid[0, 0, 0], zgrid[0, 0, -1]
-    bounds = [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
 
     # for plotting in 2D, we need to slice
     # the data in PC3 and PC2 to get PC1 v. PC2
@@ -296,7 +291,7 @@ def plot_flow_field_slices(
     )
 
     # set the axis limits and labels
-    ax = set_slice_plot_bounds_and_labels(ax, bounds)
+    ax = set_slice_plot_bounds_and_labels(ax, plot_bounds)
     # set titles with slice values
     ax[0].set_title(f"PC3 = {pc3_val:.2f}")
     ax[1].set_title(f"PC2 = {pc2_val:.2f}")
@@ -306,7 +301,7 @@ def plot_flow_field_slices(
     # plot streamplot of these PC2 and PC3 slices
     fig_, ax_ = plot_streamplot_slices(flow_field_dict, (zvalids, yvalids))
     # set the axis limits and labels
-    ax_ = set_slice_plot_bounds_and_labels(ax_, bounds)
+    ax_ = set_slice_plot_bounds_and_labels(ax_, plot_bounds)
     # set titles with slice values
     ax_[0].set_title(f"PC3 = {pc3_val:.2f}")
     ax_[1].set_title(f"PC2 = {pc2_val:.2f}")
@@ -405,6 +400,7 @@ def flow_field_viz_main(
     flow_field_dict: dict,
     df_cond: pd.DataFrame,
     traj: np.ndarray,
+    plot_bounds: list[np.ndarray],
     fig_savedir: Path,
 ) -> None:
     """
@@ -428,7 +424,7 @@ def flow_field_viz_main(
     """
     # dataset flow condition for saving the figures
     name = df_cond[ColumnName.DATASET].unique()[0]
-    condition = get_dataset_descriptions([name], simple=True)[name]
+    condition = get_dataset_descriptions([name], simple=True, include_shear_stress=True)[name]
 
     # plot 2D slices at PC2 and PC3 values given by
     # the last point of the trajectory
@@ -436,7 +432,7 @@ def flow_field_viz_main(
 
     # baseline visualization: plot flow field slices
     # (quiver plot with scatter of data, streamplot)
-    plot_flow_field_slices(flow_field_dict, df_cond, fig_savedir, pc_vals=pc_vals)
+    plot_flow_field_slices(flow_field_dict, df_cond, plot_bounds, fig_savedir, pc_vals=pc_vals)
 
     ###### additional plots for visualization of flow field #######
     # 1) last point of trajectory over flow field
@@ -451,23 +447,8 @@ def flow_field_viz_main(
         flow_field_dict["grid"][-2], pc_vals[1]
     )  # get y-slice closest to PC2 = PC2_val
 
-    # get bounds of the grid
-    xmin, xmax = (
-        flow_field_dict["grid"][0][0, 0, 0],
-        flow_field_dict["grid"][0][-1, 0, 0],
-    )
-    ymin, ymax = (
-        flow_field_dict["grid"][1][0, 0, 0],
-        flow_field_dict["grid"][1][0, -1, 0],
-    )
-    zmin, zmax = (
-        flow_field_dict["grid"][2][0, 0, 0],
-        flow_field_dict["grid"][2][0, 0, -1],
-    )
-    bounds_ = [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
-
     # 1) plot last point of trajectory over flow field
-    fig, ax = viz_base.init_subplots(figsize=(14, 5))
+    fig, ax = plt.subplots(1, 2, figsize=(14, 5))
 
     # get the color for the scatter plot
     scatter_color = feature_viz.get_dataset_color(name)
@@ -493,7 +474,7 @@ def flow_field_viz_main(
             ax_.scatter(traj_2[-1, 0], traj_2[-1, j + 1], s=100, color="black")
 
     # plot second stable point
-    ax = set_slice_plot_bounds_and_labels(ax, bounds_)
+    ax = set_slice_plot_bounds_and_labels(ax, plot_bounds)
     # set titles with slice values
     ax[0].set_title(f"PC3 = {pc_vals[0]:.2f}")
     ax[1].set_title(f"PC2 = {pc_vals[1]:.2f}")

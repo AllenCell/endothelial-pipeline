@@ -3,12 +3,18 @@ from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RU
 
 TAGS = ["dynamical_systems", "diffae_features"]
 PCA_COLLECTION = "diffae_model_training"
+KERNEL_PARAMS = {
+    "bandwidth": 0.15,
+    "kernel": "gaussian",
+}
+TIME_STEP = 5
+NUM_BINS = [40, 40, 40]
 
 
 def main(
-    datasets: Datasets | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    datasets: Datasets | None = None,
 ) -> None:
     """
     Visualize 3D (drift) flow fields for the dynamics of the crop-based DiffAE
@@ -16,12 +22,12 @@ def main(
 
     Parameters
     ----------
-    datasets
-        List of datasets or dataset collections to use for visualization.
     model_manifest_name
         Name of the model manifest containing the run to load features from.
     run_name
         Name of the specific model run to load featuref for. If None, uses the most recent run.
+    datasets
+        List of datasets or dataset collections to use for visualization.
 
     Returns
     -------
@@ -32,7 +38,7 @@ def main(
 
     import numpy as np
 
-    from endo_pipeline.configs import dynamics_io, get_datasets_in_collection
+    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
     from endo_pipeline.library.analyze.dynamics_utils import get_and_analyze_ddff
@@ -53,12 +59,8 @@ def main(
     output_savedir = get_output_path(
         workflow_name, dataframe_manifest_name, "outputs", include_timestamp=False
     )
-    fig_savedir = get_output_path(
-        workflow_name, dataframe_manifest_name, "figs", include_timestamp=False
-    )
-    vtk_savedir = get_output_path(
-        workflow_name, dataframe_manifest_name, "outputs", "vtk", include_timestamp=False
-    )
+    fig_savedir = get_output_path(workflow_name, dataframe_manifest_name, "figs")
+    vtk_savedir = get_output_path(workflow_name, dataframe_manifest_name, "outputs", "vtk")
 
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
@@ -79,14 +81,6 @@ def main(
     fig, _ = feature_viz.plot_pc_scatter(dataset_names, dataframe_manifest, pca)
     save_plot_to_path(fig, fig_savedir, "pca_scatter_all")
 
-    # load default config, get kernel params
-    dynamics_config = dynamics_io.load_dynamics_config("default")
-    kernel_params = dynamics_config["kramers_moyal"]["kernel_params"]
-
-    # get time between frames
-    # in minutes
-    dt = dynamics_config["dt"]
-
     # time span for the ODE solver
     # units for time steps are in minutes
     # 48 hours in minutes =
@@ -96,19 +90,20 @@ def main(
     # initial condition for the ODE solver
     # this is fixed across datasets /
     # shear stress conditions
-    init = np.array([0.0, 0.0, -1.0])
+    init = np.array([0.5, 0.0, -1.0])
 
     get_and_analyze_ddff(
         dataset_names,
         dataframe_manifest,
         pca,
-        kernel_params,
-        dt,
-        time_span,
-        init,
-        fig_savedir,
-        vtk_savedir,
-        output_savedir,
+        kernel_params=KERNEL_PARAMS,
+        dt=TIME_STEP,
+        time_span=time_span,
+        init=init,
+        num_bins=NUM_BINS,
+        fig_savedir=fig_savedir,
+        vtk_savedir=vtk_savedir,
+        output_savedir=output_savedir,
     )
 
 

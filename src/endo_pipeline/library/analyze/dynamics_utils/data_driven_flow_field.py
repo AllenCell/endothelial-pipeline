@@ -32,6 +32,7 @@ def _ddff_model_analysis(
     centers: list[np.ndarray],
     time_span: list,
     init: np.ndarray,
+    plot_bounds: list[np.ndarray],
     fig_savedir: Path,
     vtk_savedir: Path,
     output_savedir: Path,
@@ -72,6 +73,8 @@ def _ddff_model_analysis(
         Time span for the ODE solver.
     init
         Initial condition for the trajectory.
+    plot_bounds
+        Bounds for plotting the flow field.
     fig_savedir
         Directory to save figures.
     vtk_savedir
@@ -133,15 +136,32 @@ def _ddff_model_analysis(
     traj = solve_ddff_ode(flow_field_dict, init, time_span)
 
     # call main flow field viz function (makes and saves plots)
-    flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj, fig_savedir)
+    flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj, plot_bounds, fig_savedir)
 
     # hack-y work around for intermediate shear stress
-    # simulate second trajectory to get second stable point
-    if dataset_name in ["20250319_20X", "20250618_20X", "20250428_20X"]:
-        init = np.array([0.0, 0.0, 0.0])
-        time_span = [0, 5000]
-        traj_2 = solve_ddff_ode(flow_field_dict, init, time_span)
-        traj_list = [traj, traj_2]  # return both trajectories
+    # simulate multiple trajectories
+    if dataset_name in [
+        "20250319_20X",
+        "20250618_20X",
+        "20250428_20X",
+        "20250813_20X",
+        "20250818_20X",
+    ]:
+        # get initial conditions in coarse grid based on bin centers
+        num_steps = 5
+        coarse_grid = [
+            np.linspace(centers[0][0], centers[0][-1], num_steps),
+            np.linspace(centers[1][0], centers[1][-1], num_steps),
+            np.linspace(centers[2][0], centers[2][-1], num_steps),
+        ]
+        traj_list = [traj]  # initialize list of trajectories
+        # loop over coarse grid to get multiple trajectories
+        for i in range(num_steps):
+            for j in range(num_steps):
+                for k in range(num_steps):
+                    init_ = np.array([coarse_grid[0][i], coarse_grid[1][j], coarse_grid[2][k]])
+                    traj_ = solve_ddff_ode(flow_field_dict, init_, time_span)
+                    traj_list.append(traj_)
         return traj_list
     else:
         return traj
@@ -155,6 +175,7 @@ def get_and_analyze_ddff(
     dt: float,
     time_span: list,
     init: np.ndarray,
+    num_bins: list[int],
     fig_savedir: Path,
     vtk_savedir: Path,
     output_savedir: Path,
@@ -187,6 +208,8 @@ def get_and_analyze_ddff(
         Time span for the ODE solver.
     init
         Initial condition for the trajectory.
+    num_bins
+        Number of bins for histogramming along each dimension in the 3D state space.
     fig_savedir
         Directory to save figures.
     vtk_savedir
@@ -195,9 +218,7 @@ def get_and_analyze_ddff(
         Directory to save other output files.
     """
     # get bins for KMCs
-    bounds = get_3d_bounds_from_data(dataset_names, dataframe_manifest, pca)
-    num_bins = [50, 50, 50]
-    bins, centers = get_bins(num_bins, bin_limits=bounds)
+    bounds_for_plots = get_3d_bounds_from_data(dataset_names, dataframe_manifest, pca)
 
     # get experimental condition
     # descriptions of each dataset
@@ -207,6 +228,13 @@ def get_and_analyze_ddff(
     # used for crop reconstruction
     traj_dict = {}
     for dataset_name in dataset_names:
+        bounds_for_km = get_3d_bounds_from_data(
+            dataset_names=[dataset_name],
+            manifest=dataframe_manifest,
+            pca=pca,
+            pad=True,
+        )
+        bins, centers = get_bins(num_bins, bin_limits=bounds_for_km)
         traj = _ddff_model_analysis(
             dataset_name,
             dataframe_manifest,
@@ -217,6 +245,7 @@ def get_and_analyze_ddff(
             centers,
             time_span,
             init,
+            bounds_for_plots,
             fig_savedir,
             vtk_savedir,
             output_savedir,
