@@ -8,45 +8,40 @@ TAGS = ["visualization", tags.TEST_READY, tags.CPU_ONLY]
 def main(
     datasets: Datasets | None = None,
     channel: str = "EGFP",
-    timepoints: int | list[int] | range | None = None,
+    timepoints: list[int] | None = None,
     fps: int = 7,
     annotate_shear_stress: bool = True,
     output_dir: Path | None = None,
     scale_bar_um: int = 100,
-    zarr_positions: str | list[int] = "all",
+    zarr_positions: list[int] | None = None,
 ) -> None:
     """
-    Create supplemental movies for timelapse datasets. The result is an mp4 movie that can
-    be opened with standard media players and web browsers.
-
-    EGFP are max intensity projections of the EGFP channel.
-    BF is a single z-slice of the brightfield channel.
-
-    Example usage:
-        endopipe supp-movie
+    Create supplemental timelapse movies single fov or stitched.
 
     Parameters
     ----------
     channel
         Channel to visualize ("EGFP" or "BF").
+        BF channel shows a single focal plane offset from center.
+        EGFP channel shows a max projection through Z.
     timepoints
         Number of timepoints to include in the movie. If None, include all timepoints.
     fps
         Frames per second for the output movie.
     annotate_shear_stress
         Whether to annotate shear stress on the movie.
-    output_dir
-        Directory to save output figures. If None, figures will save to default location.
     scale_bar_um
         Size of scale bar in microns (default: 100).
-    zarr_positions
-        Zarr positions to include in the stitching (default: "all").
-        Else provide a list of position indices.
+    output_dir
+        Directory to save output figures. If None, figures will save to default location.
+    single_fov
+        Whether to create movie for single FOV (position 0) or stitch all FOVs.
+
+    CLI usage example:
+        endopipe supp-movie -v --output-dir /path/to/output/ --zarr-positions 0
     """
-    pass
 
     import logging
-    import multiprocessing
 
     from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
@@ -55,30 +50,37 @@ def main(
 
     logger = logging.getLogger(__name__)
 
+    # Get datasets if none specified
     if datasets is None:
         datasets = get_datasets_in_collection("timelapse")
 
+    # Demo mode: first dataset, first 10 timepoints
     if DEMO_MODE:
         logger.info("DEMO MODE: Using first 10 timepoints of first dataset")
         datasets = datasets[:1]
-        timepoints = range(0, 10, 1)
+        if timepoints is None:
+            timepoints = list(range(10))
 
+    # Set output directory
     if output_dir is None:
         output_dir = get_output_path("stitched_timelapse")
 
-    args_list = [
-        (
-            dataset_name,
-            channel,
-            timepoints,
-            fps,
-            annotate_shear_stress,
-            output_dir,
-            scale_bar_um,
-            zarr_positions,
+    print(zarr_positions)
+    # Process each dataset sequentially
+    for dataset_name in datasets:
+        create_timelapse_mp4(
+            dataset_name=dataset_name,
+            channel=channel,
+            timepoints=timepoints,
+            fps=fps,
+            annotate_shear_stress=annotate_shear_stress,
+            output_dir=output_dir,
+            scale_bar_um=scale_bar_um,
+            zarr_positions=zarr_positions,
         )
-        for dataset_name in datasets
-    ]
 
-    with multiprocessing.Pool() as pool:
-        pool.starmap(create_timelapse_mp4, args_list)
+
+if __name__ == "__main__":
+    from endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)

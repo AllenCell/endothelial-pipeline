@@ -32,7 +32,7 @@ def create_timelapse_mp4(
     annotate_shear_stress: bool,
     output_dir: Path,
     scale_bar_um: int = 100,
-    zarr_positions: str | list[int] = "all",
+    zarr_positions: list[int] | None = None,
 ):
     """
     Create stitched or singel fov timelapse in mp4 format for a given dataset.
@@ -57,7 +57,7 @@ def create_timelapse_mp4(
     """
     dataset_config = load_dataset_config(dataset_name)
 
-    if zarr_positions == "all":
+    if zarr_positions is None:
         zarr_positions = dataset_config.zarr_positions
 
     position_timelapses = []
