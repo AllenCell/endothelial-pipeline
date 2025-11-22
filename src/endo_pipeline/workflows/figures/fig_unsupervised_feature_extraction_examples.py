@@ -49,19 +49,18 @@ from endo_pipeline.manifests import (
 from endo_pipeline.settings import (
     DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT,
     DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL,
-    MODEL_QC_NOISE_LEVELS,
     RANDOM_SEED,
 )
-from endo_pipeline.settings.examples import CDH5_SEG_FIG_EXAMPLE
+from endo_pipeline.settings.examples import (
+    CDH5_SEG_FIG_EXAMPLE,
+    MODEL_QC_EXAMPLES_REP_2_POSITIONS,
+    MODEL_QC_EXAMPLES_TRAINING_POSITIONS,
+    MODEL_QC_EXAMPLES_VALIDATION_POSITIONS,
+)
 
 # TAGS = []
 
 
-# from endo_pipeline.settings.examples import (
-#     MODEL_QC_EXAMPLES_REP_2_POSITIONS,
-#     MODEL_QC_EXAMPLES_TRAINING_POSITIONS,
-#     MODEL_QC_EXAMPLES_VALIDATION_POSITIONS,
-# )
 # from endo_pipeline.settings.plot_defaults import (
 #     MODEL_QC_FIG_KWARGS,
 #     MODEL_QC_GRIDSPEC_KWARGS,
@@ -126,6 +125,9 @@ def get_image_preprocessing_examples(dataset_name: str, postion: int, timepoint:
     pass
 
 
+output_dir = get_output_path(__file__, "B_model_architect_examples")
+
+
 # Load model manifest and get location for run_name
 model_manifest = load_model_manifest(model_manifest_name)
 run_name = get_most_recent_run_name(model_manifest) if run_name is None else run_name
@@ -135,120 +137,139 @@ model_location = model_manifest.locations[run_name]
 # Also has the crop size
 model_config = get_config_dict_from_mlflow(model_location.mlflowid)
 transforms = get_image_transforms(model_config)
-
-# Load the image for the specified dataset, position, timepoint
-dataset_config = load_dataset_config(dataset_name)
-zarr_loc = get_zarr_location_for_position(dataset_config, position)
-img = load_image(
-    zarr_loc,
-    level=DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL,
-    timepoints=timepoint,
-    squeeze=True,
-    compute=True,
-)
-
-# Get zarr loading dictionary, get image processing steps
-# from loaded model config (except cropping step)
-# and apply the transforms for each channel
-data = create_data_dict_loaded_image(img)
-transforms = get_image_transforms(model_config)
-
-# apply the transforms and save a thumbnail image after each step
-sample = save_transform_example_intermediates(output_dir, transforms, data)
-
-
-output_dir = get_output_path(__file__, "B_model_architect_examples")
-
 channel_key_for_conditioning_input = model_config.model.condition_key
 crop_size = model_config.model.image_shape[-1]  # assumes square crops
-start_x, start_y = 0, 0
 
-# Load model as instantiated Diff AE object
+# Load model as instantiated Diff AE object to create images with
 model = load_model(model_location, instantiate=True)
 
 
-transformed_conditioning_input_image = get_target_image_from_sample(
-    sample, target_key=channel_key_for_conditioning_input
-)
-transformed_diffusion_input_image = get_target_image_from_sample(
-    sample, target_key=DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT
-)
-
-# Crop both images to the same region
-conditioning_input_crop = crop_image(
-    transformed_conditioning_input_image, start_x, start_y, crop_size
-)
-diffusion_input_crop = crop_image(transformed_diffusion_input_image, start_x, start_y, crop_size)
-
-# Get latent vector embedding of the crop used for
-# conditioning the denoising process
-conditioning_crop_latent_vector = get_latent_vector_from_crop(
-    model, conditioning_input_crop, num_gpus=NUM_GPUS
-)
-
 # Instantiate random number generator
 rng = default_rng(seed=RANDOM_SEED)
+noise_levels = (1,)
 
-# Sample random noise image with fixed seed
-noise_image = rng.standard_normal(size=diffusion_input_crop.shape)
-
-# Add noise_image to denoising_start_crop with increasing weight:
-noisy_diffusion_input_images = [
-    add_noise_to_image(diffusion_input_crop, noise_image, noise_level)
-    for noise_level in MODEL_QC_NOISE_LEVELS
-]
-
-# Reconstruct starting with each noised ground truth image, and finally
-# the pure noise conditioned using the embedding of the corresponding
-# ground truth image used for conditioning.
-# will need to update generate method to do array shaping internally
-images_to_denoise = [*noisy_diffusion_input_images, noise_image]
-denoised_images_by_bf_cond = [
-    generate_from_coords_and_noised_image(
-        model, conditioning_crop_latent_vector, noised_image, num_gpus=NUM_GPUS
-    )
-    for noised_image in images_to_denoise
-]
 
 panel_size = (2, 2)
 
-for noise_level, input_img, output_img in zip(
-    *((*MODEL_QC_NOISE_LEVELS, 1), images_to_denoise, denoised_images_by_bf_cond), strict=True
-):
-    noise_level = round(noise_level * 100)
-    input_img = input_img.squeeze()
-    output_img = output_img.squeeze()
+example_sets = [
+    MODEL_QC_EXAMPLES_TRAINING_POSITIONS,
+    MODEL_QC_EXAMPLES_VALIDATION_POSITIONS,
+    MODEL_QC_EXAMPLES_REP_2_POSITIONS,
+]
+example_set_labels = ["training_positions", "validation_positions", "rep_2_positions"]
 
-    plot_image_thumbnail(
-        input_img,
-        f"model_qc_input_image_noise_level_{noise_level}",
-        output_dir,
-        figsize=panel_size,
-        show_plot=False,
-    )
-    plot_image_thumbnail(
-        output_img,
-        f"model_qc_output_image_noise_level_{noise_level}",
-        output_dir,
-        figsize=panel_size,
-        show_plot=False,
-    )
+for example_set, example_set_label in zip(example_sets, example_set_labels):
+    for example in example_set:
 
-plot_image_thumbnail(
-    diffusion_input_crop.squeeze(),
-    f"model_qc_ground_truth_input_image",
-    output_dir,
-    figsize=panel_size,
-    show_plot=False,
-)
+        # Make subdirectory for output so we know what it belonged to afterwards
+        output_subdir = output_dir / example_set_label
+        output_subdir.mkdir(parents=True, exist_ok=True)
 
-plot_image_thumbnail(
-    conditioning_input_crop.squeeze(),
-    f"model_qc_conditioning_input_image",
-    output_dir,
-    figsize=panel_size,
-    show_plot=False,
-)
+        # Extract dataset, position, timepoint, and crop position
+        dataset_name = example.dataset_name
+        position = example.position
+        timepoint = example.timepoint
+        start_x = example.crop_x_start
+        start_y = example.crop_y_start
+
+        # Load the image for the specified dataset, position, timepoint
+        dataset_config = load_dataset_config(dataset_name)
+        zarr_loc = get_zarr_location_for_position(dataset_config, position)
+        img = load_image(
+            zarr_loc,
+            level=DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL,
+            timepoints=timepoint,
+            squeeze=True,
+            compute=True,
+        )
+
+        # Get zarr loading dictionary, get image processing steps
+        # from loaded model config (except cropping step)
+        # and apply the transforms for each channel
+        data = create_data_dict_loaded_image(img)
+
+        # apply the transforms and save a thumbnail image after each step
+        sample = save_transform_example_intermediates(output_dir, transforms, data)
+
+        transformed_conditioning_input_image = get_target_image_from_sample(
+            sample, target_key=channel_key_for_conditioning_input
+        )
+        transformed_diffusion_input_image = get_target_image_from_sample(
+            sample, target_key=DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT
+        )
+
+        # Crop both images to the same region
+        conditioning_input_crop = crop_image(
+            transformed_conditioning_input_image, start_x, start_y, crop_size
+        )
+        diffusion_input_crop = crop_image(
+            transformed_diffusion_input_image, start_x, start_y, crop_size
+        )
+
+        # Get latent vector embedding of the crop used for
+        # conditioning the denoising process
+        conditioning_crop_latent_vector = get_latent_vector_from_crop(
+            model, conditioning_input_crop, num_gpus=NUM_GPUS
+        )
+
+        # Sample random noise image with fixed seed
+        noise_image = rng.standard_normal(size=diffusion_input_crop.shape)
+
+        # Add noise_image to denoising_start_crop with increasing weight:
+        noisy_diffusion_input_images = [
+            add_noise_to_image(diffusion_input_crop, noise_image, noise_level)
+            for noise_level in noise_levels
+        ]
+
+        # Reconstruct starting with each noised ground truth image, and finally
+        # the pure noise conditioned using the embedding of the corresponding
+        # ground truth image used for conditioning.
+        # will need to update generate method to do array shaping internally
+        images_to_denoise = [*noisy_diffusion_input_images, noise_image]
+        denoised_images_by_bf_cond = [
+            generate_from_coords_and_noised_image(
+                model, conditioning_crop_latent_vector, noised_image, num_gpus=NUM_GPUS
+            )
+            for noised_image in images_to_denoise
+        ]
+
+        for noise_level, input_img, output_img in zip(
+            *(noise_levels, images_to_denoise, denoised_images_by_bf_cond), strict=True
+        ):
+            noise_level = round(noise_level * 100)
+            input_img = input_img.squeeze()
+            output_img = output_img.squeeze()
+
+            plot_image_thumbnail(
+                input_img,
+                f"{dataset_name}_P{position}_T{timepoint}_X{start_x}_Y{start_y}_NL{noise_level}_input_image",
+                output_dir,
+                figsize=panel_size,
+                show_plot=False,
+            )
+            plot_image_thumbnail(
+                output_img,
+                f"{dataset_name}_P{position}_T{timepoint}_X{start_x}_Y{start_y}_NL{noise_level}_output_image",
+                output_dir,
+                figsize=panel_size,
+                show_plot=False,
+            )
+
+        plot_image_thumbnail(
+            diffusion_input_crop.squeeze(),
+            f"{dataset_name}_P{position}_T{timepoint}_X{start_x}_Y{start_y}_NL{noise_level}_ground_truth",
+            output_dir,
+            figsize=panel_size,
+            show_plot=False,
+        )
+
+        plot_image_thumbnail(
+            conditioning_input_crop.squeeze(),
+            f"{dataset_name}_P{position}_T{timepoint}_X{start_x}_Y{start_y}_NL{noise_level}_conditioning_input",
+            output_dir,
+            figsize=panel_size,
+            show_plot=False,
+        )
 # call "get_unsupervised_feature_extraction_imaging_panels"
 
 # get_unsupervised_feature_extraction_imaging_panels()
