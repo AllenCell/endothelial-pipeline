@@ -7,15 +7,7 @@ import torch
 from bioio.writers import OmeTiffWriter
 from cyto_dl.callbacks.latent_walk_diffae import DiffAELatentWalk
 
-
-# A cleaner detach function!
-def detach(img):
-    if torch.is_tensor(img):
-        img = img.detach().cpu()
-        if img.dtype == torch.bfloat16:
-            img = img.half()
-        img = img.numpy()
-    return img
+from .diffusion_autoencoder import detach
 
 
 class DiffAELatentWalkRank0(DiffAELatentWalk):
@@ -28,7 +20,13 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
         super().__init__(*args, **kwargs)
         self.val_feats: list[np.ndarray] = []
 
-    def _write_pc_vals(self, walk_img: np.ndarray, ranges: Sequence[np.ndarray]) -> np.ndarray:
+    @staticmethod
+    def get_core_model(model):
+        # Returns the "real" model regardless of DDP or not
+        return getattr(model, "module", model)
+
+    @staticmethod
+    def _write_pc_vals(walk_img: np.ndarray, ranges: Sequence[np.ndarray]) -> np.ndarray:
         """Write PC index and value on image. Expects and returns NumPy."""
         idx = 0
         for i, range_ in enumerate(ranges):
@@ -37,7 +35,7 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
                 if torch.is_tensor(img):
                     img = img.detach().cpu().numpy()
                 # Add text
-                img = self._write_text(img, f"PC{i+1}:{val:.1f}")
+                img = DiffAELatentWalkRank0._write_text(img, f"PC{i+1}:{val:.1f}")
                 walk_img[idx] = img
                 idx += 1
         return walk_img
@@ -72,78 +70,81 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
             return
 
         # Only perform latent walk every N epochs to reduce computational overhead
-        if (trainer.current_epoch + 1) % self.every_n_epoch == 0:
-            # Concatenate all validation features collected during this epoch
-            feats = np.concatenate(self.val_feats)
-            save_path = f"{pl_module.hparams.save_dir}/{trainer.current_epoch+1}_latent_walk.tiff"
+        if (trainer.current_epoch + 1) % self.every_n_epoch != 0:
+            return
 
-            # Validate that sufficient data is available for PCA decomposition
-            if len(feats.shape) == 1 or feats.shape[0] < self.num_pcs:
-                warn(
-                    f"Insufficient data for latent walk with {self.num_pcs} PCs. Skipping...",
-                    stacklevel=2,
-                )
-                return
+        # Concatenate all validation features collected during this epoch
+        feats = np.concatenate(self.val_feats)
+        save_path = f"{pl_module.hparams.save_dir}/{trainer.current_epoch+1}_latent_walk.tiff"
 
-            pca_data = self.pca.fit_transform(feats)
-            print(f"Explained variance ratio: {self.pca['pca'].explained_variance_ratio_}")
-
-            walk_list: list[np.ndarray] = []
-            ranges = []
-
-            # Latent Walks!
-            for pc in range(self.num_pcs):
-                std = pca_data[:, pc].std()
-                if self.sigma_range is None:
-                    min_val = pca_data[:, pc].min() / std
-                    max_val = pca_data[:, pc].max() / std
-                    range_ = np.linspace(min_val, max_val, self.n_steps)
-                else:
-                    range_ = np.linspace(-self.sigma_range, self.sigma_range, self.n_steps)
-                print(f"PC{pc} range: {range_}")
-
-                # Create latent values by varying a single PC while keeping others at zero
-                for i in range_:
-                    array = np.zeros(self.num_pcs)
-                    array[pc] = i * std
-                    walk_list.append(array)
-                ranges.append(range_)
-
-            # Stack all latent codes and inverse transform from PCA space to feature space
-            walk_array = np.stack(walk_list)
-            walk_pca = self.pca.inverse_transform(walk_array)
-
-            # Get the model and prepare the tensors
-            model = self.get_core_model(trainer.model)
-            walk = torch.from_numpy(walk_pca).float().to(model.device)
-
-            # Generate images from latent values using the model
-            walk_img = model.generate_from_latent(
-                walk,
-                n_noise_samples=self.n_noise_samples,
-                average=self.average,
-                save=False,
-                batch_size=self.batch_size,
+        # Validate that sufficient data is available for PCA decomposition
+        if len(feats.shape) == 1 or feats.shape[0] < self.num_pcs:
+            warn(
+                f"Insufficient data for latent walk with {self.num_pcs} PCs. Skipping...",
+                stacklevel=2,
             )
+            return
 
-            # Post-process generated images: detach from computation graph and reshape
-            walk_img = detach(walk_img).astype(np.float32)
-            walk_img = walk_img.reshape(walk_img.shape[0], -1, walk_img.shape[-1])
+        pca_data = self.pca.fit_transform(feats)
+        print(f"Explained variance ratio: {self.pca.named_steps['pca'].explained_variance_ratio_}")
 
-            # Annotate the generated images with the PC values
-            walk_img = self._write_pc_vals(walk_img, ranges)
+        walk_list: list[np.ndarray] = []
+        ranges = []
 
-            # Save out these images
-            OmeTiffWriter.save(uri=save_path, data=walk_img)
+        # Latent Walks!
+        for pc in range(self.num_pcs):
+            std = pca_data[:, pc].std()
+            if self.sigma_range is None:
+                min_val = pca_data[:, pc].min() / std
+                max_val = pca_data[:, pc].max() / std
+                range_ = np.linspace(min_val, max_val, self.n_steps)
+            else:
+                range_ = np.linspace(-self.sigma_range, self.sigma_range, self.n_steps)
+            print(f"PC{pc} range: {range_}")
 
-            self.val_feats = []
+            # Create latent values by varying a single PC while keeping others at zero
+            for i in range_:
+                array = np.zeros(self.num_pcs)
+                array[pc] = i * std
+                walk_list.append(array)
+            ranges.append(range_)
+
+        # Stack all latent codes and inverse transform from PCA space to feature space
+        walk_array = np.stack(walk_list)
+        walk_pca = self.pca.inverse_transform(walk_array)
+
+        # Get the model and prepare the tensors
+        model = DiffAELatentWalkRank0.get_core_model(trainer.model)
+        walk = torch.from_numpy(walk_pca).float().to(model.device)
+
+        # Generate images from latent values using the model
+        walk_img = model.generate_from_latent(
+            walk,
+            n_noise_samples=self.n_noise_samples,
+            average=self.average,
+            save=False,
+            batch_size=self.batch_size,
+        )
+
+        # Post-process generated images: detach from computation graph and reshape
+        walk_img = detach(walk_img).astype(np.float32)
+        walk_img = walk_img.reshape(walk_img.shape[0], -1, walk_img.shape[-1])
+
+        # Annotate the generated images with the PC values
+        walk_img = self._write_pc_vals(walk_img, ranges)
+
+        # Save out these images
+        OmeTiffWriter.save(uri=save_path, data=walk_img)
+
+        self.val_feats = []
 
     def on_predict_epoch_end(self, trainer, pl_module):
         # Only perform latent walk on rank 0
         if self._is_rank_zero(trainer):
             super().on_predict_epoch_end(trainer, pl_module)
 
-    def _write_text(self, img, text):
+    @staticmethod
+    def _write_text(img, text):
         """
         Renders text annotation onto an image at the upper right corner.
 

@@ -18,7 +18,11 @@ from omegaconf import OmegaConf
 
 class MLFlowLogger(_LightningMLFlowLogger):
     """
-    Logger copied over from cyto-DL, but with the additional log-log scaled plots!
+    Logger is copied from cyto-DL (commit hash: cd55c519b6a18018077d54e0da1871263f1c1c5c),
+    with several enhancements:
+    - Added support for log-log scaled plots.
+    - The `_pylogger` function has been redefined to avoid circular imports.
+    - Warning handling logic has been adjusted in a function with a check on the logger.
     """
 
     def __init__(

@@ -5,10 +5,42 @@ import torch
 import tqdm
 from bioio.writers import OmeTiffWriter
 from cyto_dl.models.im2im.diffusion_autoencoder import DiffusionAutoEncoder as _BaseDiffAE
-from cyto_dl.models.im2im.utils import detach
 from monai.utils import convert_to_tensor
 
 logger = logging.getLogger(__name__)
+
+
+# A cleaner detach function!
+def detach(img: torch.Tensor | np.ndarray) -> np.ndarray:
+    if torch.is_tensor(img):
+        img = img.detach().cpu()
+        if img.dtype == torch.bfloat16:
+            img = img.half()
+        img = img.numpy()
+    return img
+
+
+class _SampleAccumulator:
+    """Helper to accumulate samples with or without averaging!"""
+
+    def __init__(self, averaging: bool, n_samples: int):
+        self.averaging = averaging
+        self.n_samples = n_samples
+        self._accumulator = None if averaging else []
+
+    def add(self, sample: torch.Tensor) -> None:
+        if self.averaging:
+            self._accumulator = (
+                sample if self._accumulator is None else (self._accumulator + sample)
+            )
+        else:
+            self._accumulator.append(sample)
+
+    def result(self) -> torch.Tensor:
+        if self.averaging:
+            return self._accumulator / self.n_samples
+        else:
+            return torch.cat(self._accumulator, dim=-1)
 
 
 class DiffusionAutoEncoder(_BaseDiffAE):
@@ -252,12 +284,9 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         ]
         n_noise_samples = int(n_noise_samples or self.hparams.n_noise_samples)
 
-        with torch.no_grad():
-            if average:
-                recon: torch.Tensor | None = None
-            else:
-                recon_list: list[torch.Tensor] = []
+        accumulator = _SampleAccumulator(average, n_noise_samples)
 
+        with torch.no_grad():
             for _ in tqdm.tqdm(range(n_noise_samples), desc="Sampling noise"):
                 noise = torch.stack(
                     [torch.randn(self.hparams.image_shape, device=self.device)] * cond.shape[0]
@@ -269,17 +298,9 @@ class DiffusionAutoEncoder(_BaseDiffAE):
                     ],
                     dim=0,
                 )
+                accumulator.add(sample)
 
-                if average:
-                    recon = sample if recon is None else (recon + sample)
-                else:
-                    recon_list.append(sample)
-
-            if average:
-                assert recon is not None
-                recon_tensor = recon / n_noise_samples
-            else:
-                recon_tensor = torch.cat(recon_list, dim=-1)
+            recon_tensor = accumulator.result()
 
         recon_tensor = detach(recon_tensor)
         if isinstance(recon_tensor, np.ndarray):
