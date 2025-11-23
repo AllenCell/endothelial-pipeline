@@ -70,7 +70,7 @@ from endo_pipeline.settings.examples import (
 
 # FOR LIBRARY FILE
 def save_transform_example_intermediates(
-    output_dir: Path, filename: str, transforms: list, sample: dict
+    output_dir: Path, filename_prefix: str, transforms: list, sample: dict
 ) -> dict:
     for i, func in enumerate(transforms):
         # apply the next transform function in the list
@@ -88,7 +88,7 @@ def save_transform_example_intermediates(
 
             # save the image for each channel
             if image_array.ndim == 2:
-                filename = f"{filename}_step_{i}_{transform_name}_{channel_name}"
+                filename = f"{filename_prefix}_step_{i}_{transform_name}_{channel_name}"
                 plot_image_thumbnail(
                     image_array,
                     filename,
@@ -194,9 +194,7 @@ for example_set, example_set_label in zip(example_sets, example_set_labels, stri
         data = create_data_dict_loaded_image(img)
 
         # apply the transforms and save a thumbnail image after each step
-        sample = save_transform_example_intermediates(
-            output_subdir_a, f"{filename}_preproc_example", transforms, data
-        )
+        sample = save_transform_example_intermediates(output_subdir_a, filename, transforms, data)
 
         transformed_conditioning_input_image = get_target_image_from_sample(
             sample, target_key=channel_key_for_conditioning_input
