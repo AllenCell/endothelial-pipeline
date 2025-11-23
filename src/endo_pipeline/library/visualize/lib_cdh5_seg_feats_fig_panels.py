@@ -151,6 +151,11 @@ def make_imaging_panels(
             "colors": [(255, 255, 255), (0, 255, 255)],
             "colors_thumbnail": DEFAULT_COLORS,
         },
+        "cdh5_seg_merge_overlay": {
+            "images": ["cdh5_mip", "cdh5_seg_merged"],
+            "colors": [(255, 255, 255), (255, 0, 255)],
+            "colors_thumbnail": ["magenta"],
+        },
         "nuc_pred_cdh5_seg_overlay": {
             "images": ["cdh5_mip", "nuc_pred", "cdh5_seg_merged"],
             "colors": [(255, 255, 255), (0, 255, 255), (255, 0, 255)],

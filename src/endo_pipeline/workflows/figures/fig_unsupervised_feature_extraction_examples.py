@@ -52,7 +52,6 @@ from endo_pipeline.settings import (
     RANDOM_SEED,
 )
 from endo_pipeline.settings.examples import (
-    CDH5_SEG_FIG_EXAMPLE,
     MODEL_QC_EXAMPLES_REP_2_POSITIONS,
     MODEL_QC_EXAMPLES_TRAINING_POSITIONS,
     MODEL_QC_EXAMPLES_VALIDATION_POSITIONS,
@@ -70,7 +69,9 @@ from endo_pipeline.settings.examples import (
 
 
 # FOR LIBRARY FILE
-def save_transform_example_intermediates(output_dir: Path, transforms: list, sample: dict) -> dict:
+def save_transform_example_intermediates(
+    output_dir: Path, filename: str, transforms: list, sample: dict
+) -> dict:
     for i, func in enumerate(transforms):
         # apply the next transform function in the list
         sample = func(sample)
@@ -109,11 +110,12 @@ def save_transform_example_intermediates(output_dir: Path, transforms: list, sam
     return sample
 
 
-output_dir = get_output_path(__file__, "A_preproc_examples")
+output_dir_a = get_output_path(__file__, "A_preproc_examples")
+output_dir_b = get_output_path(__file__, "B_model_architect_examples")
 
-dataset_name = CDH5_SEG_FIG_EXAMPLE.dataset_name
-position = CDH5_SEG_FIG_EXAMPLE.position
-timepoint = CDH5_SEG_FIG_EXAMPLE.timepoint
+# dataset_name = CDH5_SEG_FIG_EXAMPLE.dataset_name
+# position = CDH5_SEG_FIG_EXAMPLE.position
+# timepoint = CDH5_SEG_FIG_EXAMPLE.timepoint
 
 model_manifest_name = "diffae_baseline_exclude_cell_piling"
 run_name = "20251110_latent_512"
@@ -121,11 +123,8 @@ run_name = "20251110_latent_512"
 # call "get_image_preprocessing_examples"
 
 
-def get_image_preprocessing_examples(dataset_name: str, postion: int, timepoint: int) -> None:
-    pass
-
-
-output_dir = get_output_path(__file__, "B_model_architect_examples")
+# def get_image_preprocessing_examples(dataset_name: str, postion: int, timepoint: int) -> None:
+#     pass
 
 
 # Load model manifest and get location for run_name
@@ -158,12 +157,16 @@ example_sets = [
 ]
 example_set_labels = ["training_positions", "validation_positions", "rep_2_positions"]
 
-for example_set, example_set_label in zip(example_sets, example_set_labels):
-    for example in example_set:
+for example_set, example_set_label in zip(example_sets, example_set_labels, strict=True):
 
-        # Make subdirectory for output so we know what it belonged to afterwards
-        output_subdir = output_dir / example_set_label
-        output_subdir.mkdir(parents=True, exist_ok=True)
+    # Make subdirectory for output so we know what it belonged to afterwards
+    output_subdir_a = output_dir_a / example_set_label
+    output_subdir_a.mkdir(parents=True, exist_ok=True)
+
+    output_subdir_b = output_dir_b / example_set_label
+    output_subdir_b.mkdir(parents=True, exist_ok=True)
+
+    for example in example_set:
 
         # Extract dataset, position, timepoint, and crop position
         dataset_name = example.dataset_name
@@ -171,6 +174,8 @@ for example_set, example_set_label in zip(example_sets, example_set_labels):
         timepoint = example.timepoint
         start_x = example.crop_x_start
         start_y = example.crop_y_start
+
+        filename = f"{dataset_name}_P{position}_T{timepoint}_X{start_x}_Y{start_y}"
 
         # Load the image for the specified dataset, position, timepoint
         dataset_config = load_dataset_config(dataset_name)
@@ -189,7 +194,9 @@ for example_set, example_set_label in zip(example_sets, example_set_labels):
         data = create_data_dict_loaded_image(img)
 
         # apply the transforms and save a thumbnail image after each step
-        sample = save_transform_example_intermediates(output_dir, transforms, data)
+        sample = save_transform_example_intermediates(
+            output_subdir_a, f"{filename}_preproc_example", transforms, data
+        )
 
         transformed_conditioning_input_image = get_target_image_from_sample(
             sample, target_key=channel_key_for_conditioning_input
@@ -242,31 +249,31 @@ for example_set, example_set_label in zip(example_sets, example_set_labels):
 
             plot_image_thumbnail(
                 input_img,
-                f"{dataset_name}_P{position}_T{timepoint}_X{start_x}_Y{start_y}_NL{noise_level}_input_image",
-                output_dir,
+                f"{filename}_NL{noise_level}_input_image",
+                output_subdir_b,
                 figsize=panel_size,
                 show_plot=False,
             )
             plot_image_thumbnail(
                 output_img,
-                f"{dataset_name}_P{position}_T{timepoint}_X{start_x}_Y{start_y}_NL{noise_level}_output_image",
-                output_dir,
+                f"{filename}_NL{noise_level}_output_image",
+                output_subdir_b,
                 figsize=panel_size,
                 show_plot=False,
             )
 
         plot_image_thumbnail(
             diffusion_input_crop.squeeze(),
-            f"{dataset_name}_P{position}_T{timepoint}_X{start_x}_Y{start_y}_NL{noise_level}_ground_truth",
-            output_dir,
+            f"{filename}_ground_truth",
+            output_subdir_b,
             figsize=panel_size,
             show_plot=False,
         )
 
         plot_image_thumbnail(
             conditioning_input_crop.squeeze(),
-            f"{dataset_name}_P{position}_T{timepoint}_X{start_x}_Y{start_y}_NL{noise_level}_conditioning_input",
-            output_dir,
+            f"{filename}_conditioning_input",
+            output_subdir_b,
             figsize=panel_size,
             show_plot=False,
         )
