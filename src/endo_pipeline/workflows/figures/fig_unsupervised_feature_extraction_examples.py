@@ -88,7 +88,7 @@ def save_transform_example_intermediates(
 
             # save the image for each channel
             if image_array.ndim == 2:
-                filename = f"step_{i}_{transform_name}_{channel_name}"
+                filename = f"{filename}_step_{i}_{transform_name}_{channel_name}"
                 plot_image_thumbnail(
                     image_array,
                     filename,
@@ -99,7 +99,7 @@ def save_transform_example_intermediates(
             # if the image is a 3D image then save each z-slice separately
             elif image_array.ndim == 3:
                 for z_index in range(image_array.shape[0]):
-                    filename = f"step_{i}_{transform_name}_{channel_name}_Z{z_index}"
+                    filename = f"{filename}_step_{i}_{transform_name}_{channel_name}_Z{z_index}"
                     plot_image_thumbnail(
                         image_array[z_index],
                         filename,
