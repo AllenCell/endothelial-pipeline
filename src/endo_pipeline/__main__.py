@@ -32,6 +32,7 @@ tags: dict[str, list[str]] = {}
 EXTERNAL_LOGGERS = {
     "aicsfiles.client.http.http_client": logging.WARNING,
     "cyto_dl": logging.ERROR,
+    "fontTools.subset": logging.WARNING,
     "fsspec.local": logging.WARNING,
     "git.cmd": logging.WARNING,
     "h5py._conv": logging.WARNING,

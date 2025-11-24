@@ -1559,13 +1559,30 @@ def update_track_table(
     )
 
     # relabel images
-    # NOTE I adopted this reassignment methodology from StackOverflow: https://stackoverflow.com/questions/55949809/efficiently-replace-elements-in-array-based-on-dictionary-numpy-python
     print("- relabeling images...") if verbose else None
-    label_map_arr = np.zeros(shape=new_track_ids["label"].max() + 1, dtype=np.uint32)
-    label_map_arr[new_track_ids["label"]] = new_track_ids["track_id"]
-    track_labeled_image = label_map_arr[labeled_images[reference_index]]
+    track_labeled_image = relabel_array_values(
+        original_array=labeled_images[reference_index],
+        original_values=new_track_ids["label"],
+        relabel_values=new_track_ids["track_id"],
+    )
 
     return track_labeled_image, new_track_ids, existing_track_ids
+
+
+def relabel_array_values(
+    original_array: np.ndarray, original_values: pd.Series, relabel_values: pd.Series
+) -> np.ndarray:
+    """Replace original values with corresponding relabel values in array."""
+
+    id_map: dict[int, int] = pd.Series(relabel_values.values, index=original_values).to_dict()
+    max_value = np.max(original_array) + 1
+    choices = np.zeros(max_value)
+
+    for old in range(max_value):
+        if old in id_map:
+            choices[old] = id_map[old]
+
+    return choices[original_array]
 
 
 def generate_tracks(

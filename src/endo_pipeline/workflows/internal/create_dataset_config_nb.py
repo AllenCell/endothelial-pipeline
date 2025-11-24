@@ -31,7 +31,6 @@ from endo_pipeline.configs import (
     DatasetConfig,
     FlowCondition,
     ShearStressRegime,
-    load_dataset_config,
     save_dataset_config,
     validate_dataset_config,
 )
@@ -41,10 +40,11 @@ from endo_pipeline.manifests import (
     save_image_manifest,
 )
 
-# %%
+# %% Create new dataset config
+
 dataset_name = "unique_dataset_name"
 
-dataset = DatasetConfig(
+dataset_config = DatasetConfig(
     # ============================ REQUIRED FIELDS =============================
     name=dataset_name,
     date="YYYYMMDD",
@@ -148,16 +148,16 @@ dataset = DatasetConfig(
     #         },
     #     }
 )
-save_dataset_config(dataset)
-validate_dataset_config(dataset.name)
+
+save_dataset_config(dataset_config)
+validate_dataset_config(dataset_config.name)
 
 # %% Update image manifest with new dataset location
-dataset_config = load_dataset_config(dataset_name)
-img_manifest = load_image_manifest("image_zarr")
-img_manifest = add_image_location_to_manifest(
-    dataset_config, img_manifest, dataset_config.zarr_path
-)
-save_image_manifest(img_manifest)
+
+zarr_parent_path = "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/"
+image_manifest = load_image_manifest("image_zarr")
+add_image_location_to_manifest(image_manifest, dataset_config, zarr_parent_path)
+save_image_manifest(image_manifest)
 
 # %%
 print("Reminder to add dataset to relevant collections!")

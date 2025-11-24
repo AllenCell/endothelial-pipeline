@@ -1,6 +1,9 @@
 name: run-linting-checks
 
-on: [push]
+on:
+  - push
+  - merge_group
+  - workflow_dispatch
 
 env:
   UV_VERSION: 0.7.1 # same as .pre-commit-config.yaml
