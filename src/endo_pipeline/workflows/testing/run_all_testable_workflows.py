@@ -170,7 +170,7 @@ async def _manage_workflow(name: str, command: list[str]) -> _WorkflowResult:
             last_line = _LastLine()
             return_code = await _run_workflow(last_line, name, command)
             if return_code is not None and return_code != 0:
-                error = last_line.text if last_line.text is not None else f"Failed. See logs."
+                error = last_line.text if last_line.text is not None else "Failed. See logs."
         except Exception as e:
             error = e
     elapsed = timer.elapsed

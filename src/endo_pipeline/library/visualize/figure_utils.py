@@ -151,6 +151,7 @@ def plot_image_thumbnail(
 
 def broadcast_title_list(title_list: list[str] | None, target_length: int) -> list[str] | None:
     """Broadcast a list of titles to a target length.
+
     Parameters
     ----------
     title_list:

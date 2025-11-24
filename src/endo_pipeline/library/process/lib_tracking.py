@@ -318,7 +318,7 @@ def match_labels_from_images(
         labeled_images
     ), "reference_index must be less than the number of images in labeled_images"
     assert all(
-        [img.ndim in [2, 3] for img in labeled_images]
+        img.ndim in [2, 3] for img in labeled_images
     ), "all images in labeled_images must be 2D or 3D arrays"
     acceptable_metrics = [
         "centroid",
@@ -471,10 +471,8 @@ def match_labels_from_metrics(
     if metrics_thresholds is not None:
         num_metric_thresholds = len(metrics_thresholds)
         assert all(
-            [
-                all(len(met_val) == num_metric_thresholds for met_val in labeled_metrics.values())
-                for labeled_metrics in list_of_labeled_metric_vals
-            ]
+            all(len(met_val) == num_metric_thresholds for met_val in labeled_metrics.values())
+            for labeled_metrics in list_of_labeled_metric_vals
         ), "metrics and metrics_threshold must have the same length; np.inf can be used if no threshold is desired"
     assert matching_method in [
         "forward",
@@ -998,7 +996,7 @@ def reassign_track_ids_from_matches(
 
     # check that we are not overwriting any existing track ids
     assert all(
-        [lab not in existing_track_reassignments for lab in new_tracks_reassignments]
+        lab not in existing_track_reassignments for lab in new_tracks_reassignments
     ), "new track ids are overwriting existing track ids"
     # add the 2 dicts together to get a master reassignment dict
     track_id_reassignments = {
@@ -1242,10 +1240,10 @@ def run_tracking(
 
     for fps in [in_dir, out_dir]:
         assert (
-            isinstance(fps, (tuple, list, Path, str)) or fps == None
+            isinstance(fps, (tuple, list, Path, str)) or fps is None
         ), "in_dir, out_dir must be Path-like or a list of Paths"
     assert (
-        isinstance(extra_in_dir, (tuple, list, Path, str)) or extra_in_dir == None
+        isinstance(extra_in_dir, (tuple, list, Path, str)) or extra_in_dir is None
     ), "extra_in_dir must be Path-like or a list of Paths"
 
     if sorting_key is None:
@@ -1614,7 +1612,7 @@ def generate_tracks(
 
     track_table = pd.DataFrame()
     for i, (fp, crop, labeled_images) in enumerate(paths_crops_labeled_images_all):
-        if timeframes_for_table == None:
+        if timeframes_for_table is None:
             current_T = i
         else:
             current_T = timeframes_for_table[i]
