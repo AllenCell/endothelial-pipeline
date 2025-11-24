@@ -15,6 +15,9 @@ DEFAULT_SEG_FEATURE_MANIFEST_NAME: str = "live_merged_seg_features"
 """Default manifest name for merged CDH5 segmentation, CDH5 tracking and
 label-free nuclei segmentation features."""
 
+DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS: str = "pca_reference"
+"""Default dataset collection name for the segmentation feature workflow."""
+
 DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL: int = 1
 """Default zarr resolution level for loading model input data."""
 

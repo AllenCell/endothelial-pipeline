@@ -1,5 +1,4 @@
 from endo_pipeline.cli import Datasets, tags
-from endo_pipeline.settings import DEFAULT_PCA_DATASET_COLLECTION_NAME
 
 TAGS = [tags.TEST_READY, tags.CPU_ONLY]
 
@@ -15,10 +14,10 @@ def main(datasets: Datasets | None = None) -> None:
         make_classic_feature_panels,
         make_imaging_panels,
     )
-    from endo_pipeline.settings.examples import CDH5_SEG_FIG_EXAMPLE
+    from endo_pipeline.settings import CDH5_SEG_FIG_EXAMPLE, DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS
 
     if datasets is None:
-        datasets = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
+        datasets = get_datasets_in_collection(DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS)
 
     out_dir = get_output_path(__file__)
 
