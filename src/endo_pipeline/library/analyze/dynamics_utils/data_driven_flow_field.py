@@ -137,7 +137,7 @@ def _ddff_model_analysis(
 
     # hack-y work around for intermediate shear stress
     # simulate second trajectory to get second stable point
-    if dataset_name == "20250319_20X":
+    if dataset_name == "20250319_20X" or dataset_name == "20250813_20X":
         init = np.array([1.1, 0.0, -0.2])
         time_span = [0, 5000]
         traj_2 = solve_ddff_ode(flow_field_dict, init, time_span)

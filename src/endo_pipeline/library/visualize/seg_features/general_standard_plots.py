@@ -299,6 +299,14 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "ticks": range(0, 49, 12),
             "discrete_ticks": False,
         },
+        "time_hrs_flow": {
+            "column_name": "time_hrs_since_flow_start",
+            "label": "Time Since Flow Start (h)",
+            "lims": ("min", "max"),
+            "bin_width": 0.5,
+            "ticks": None,  # range(0, 49, 12),
+            "discrete_ticks": False,
+        },
         "alignment_deg": {
             "column_name": "alignment_deg_rel_to_flow",
             "label": "Alignment (deg)",

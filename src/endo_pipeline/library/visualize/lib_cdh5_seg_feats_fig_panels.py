@@ -267,6 +267,19 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
         # calculate features that are sensitive to how the dataframe is filtered
         live_seg_feats_df = calculate_derived_data_dynamics_dependent(live_seg_feats_df)
 
+        # make another time column that uses the time since flow start as zero
+        # instead of time since the start of imaging
+        # 1. get the first flow conditions start time (this is in units of timeframes)
+        flow_start_time = dataset_config.flow_conditions[0].start
+        # 2. convert to hours
+        flow_start_time_hrs = (
+            flow_start_time * dataset_config.time_interval_in_minutes / 60.0  # type:ignore
+        )
+        # 3. add the new time column
+        live_seg_feats_df["time_hours_since_flow_start"] = (
+            live_seg_feats_df["time_hours"] + flow_start_time_hrs
+        )
+
         # It's plotting time!
         # pick the features to plot
         feats_to_plot = [
@@ -300,21 +313,22 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
             out_path = out_dir / f"{dataset_name}_{feat}.pdf"
 
             # create the 2D histogram panel
+            time_col = "time_hrs_flow"
             fig, ax = hist_2d_of_feats(
                 live_seg_feats_df,
-                x_column_name=feats_plot_args["time_hrs"]["column_name"],
+                x_column_name=feats_plot_args[time_col]["column_name"],
                 y_column_name=feats_plot_args[feat]["column_name"],
-                x_label=feats_plot_args["time_hrs"]["label"].capitalize(),
+                x_label=feats_plot_args[time_col]["label"].capitalize(),
                 y_label=feats_plot_args[feat]["label"].capitalize(),
-                x_lims=feats_plot_args["time_hrs"]["lims"],
+                x_lims=feats_plot_args[time_col]["lims"],
                 y_lims=feats_plot_args[feat]["lims"],
-                set_xticks=feats_plot_args["time_hrs"]["ticks"],
+                set_xticks=feats_plot_args[time_col]["ticks"],
                 set_yticks=feats_plot_args[feat]["ticks"],
-                discrete_xticks=feats_plot_args["time_hrs"]["discrete_ticks"],
+                discrete_xticks=feats_plot_args[time_col]["discrete_ticks"],
                 discrete_yticks=feats_plot_args[feat]["discrete_ticks"],
                 minor_ticks="xy",
                 bin_width=(
-                    feats_plot_args["time_hrs"]["bin_width"],
+                    feats_plot_args[time_col]["bin_width"],
                     feats_plot_args[feat]["bin_width"],
                 ),
                 figsize=PLOT_PANEL_SIZE,
