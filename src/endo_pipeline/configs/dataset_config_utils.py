@@ -357,7 +357,7 @@ def validate_3d_flow_field_dataset_collection() -> None:
 
     Validation checks that each dataset in the collection is from an experiment
     with a single flow condition, and that the collection contains each of the
-    datasets in the 'pca_reference' collection.
+    datasets in the default PCA dataset collection.
     """
 
     analysis_datasets = load_dataset_collection_config("3d_flow_field_analysis").datasets
