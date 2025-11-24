@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from termcolor import colored
 
 import endo_pipeline
+from endo_pipeline.settings.testing import TIMEOUT_MIN
 
 if typing.TYPE_CHECKING:
     from datetime import timedelta
@@ -23,10 +24,6 @@ if typing.TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-# Configurable timeout in minutes. Workflows that go beyond this will be
-# flagged, and any that take twice as long will be killed.
-TIMEOUT_MIN = 5
 
 
 def _testable_workflows(pipeline_app: "App", tags: dict[str, list[str]]):
