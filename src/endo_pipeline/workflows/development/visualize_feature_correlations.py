@@ -62,6 +62,7 @@ def main(
     import pandas as pd
     from tqdm import tqdm
 
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.configs.model_config_utils import get_latent_dim_from_config
     from endo_pipeline.io import get_output_path
@@ -90,6 +91,9 @@ def main(
     logger.info("Running correlation heatmap workflow...")
 
     dataset_name_list = get_datasets_in_collection(dataset_collection_name)
+    if DEMO_MODE:
+        dataset_name_list = dataset_name_list[:1]
+        aggregate = False
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     model_location = get_model_location_for_run(model_manifest, run_name_)
