@@ -169,12 +169,10 @@ ignore = [
     "D102", # Intending to unignore: undocumented-public-method
     "D417", # Intending to unignore: undocumented-param
     "B006", # Intending to unignore: mutable-argument-default
-    "C416", # Intending to unignore: unnecessary-comprehension
     "E731", # Intending to unignore: lambda-assignment
     "D400", # Intending to unignore: missing-trailing-period
     "D404", # Intending to unignore: docstring-starts-with-this
     "D415", # Intending to unignore: missing-terminal-punctuation
-    "B905", # Intending to unignore: zip-without-explicit-strict
     "UP038", # Intending to unignore: non-pep604-isinstance
     "E402", # Intending to unignore: module-import-not-at-top-of-file
     "B007", # Intending to unignore: unused-loop-control-variable

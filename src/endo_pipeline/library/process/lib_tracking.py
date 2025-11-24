@@ -39,7 +39,7 @@ def parse_paths(
                 pass
             else:
                 filepath = sorted(
-                    [x for x in filepath.glob(f"*{file_extension}")],
+                    filepath.glob(f"*{file_extension}"),
                     key=sorting_function,
                 )
         else:
@@ -47,7 +47,7 @@ def parse_paths(
                 f"UnexpectedFilePath ({filepath}) - filepath must be either a single file or folder of files."
             )
     if isinstance(filepath, list):
-        filepath_sorted = sorted([fp for fp in filepath], key=sorting_function)
+        filepath_sorted = sorted(filepath, key=sorting_function)
         filepath = [Path(fp) for fp in filepath_sorted]
 
     return filepath
@@ -907,9 +907,7 @@ def initialize_track_ids(
             strict=False,
         )
     )
-    column_names = [
-        column_name for column_name in ("image_index", "T", "track_id", *props_to_include)
-    ]
+    column_names = ["image_index", "T", "track_id", *props_to_include]
     track_ids = dict(zip(column_names, tracking_data, strict=False))
 
     df_track_ids = pd.DataFrame(track_ids)
@@ -1293,7 +1291,7 @@ def run_tracking(
             T_range_dict = (
                 {sorting_function(fp): fp for fp in filepath}
                 if sorting_function
-                else {i: fp for i, fp in enumerate(filepath)}
+                else dict(enumerate(filepath))
             )
             if time_list:
                 T_range_dict = {t: fp for t, fp in T_range_dict.items() if t in time_list}
