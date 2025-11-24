@@ -17,6 +17,7 @@ from endo_pipeline.configs import (
     load_dataset_collection_config,
     load_dataset_config,
 )
+from endo_pipeline.settings import DEFAULT_PCA_DATASET_COLLECTION_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -360,7 +361,9 @@ def validate_3d_flow_field_dataset_collection() -> None:
     """
 
     analysis_datasets = load_dataset_collection_config("3d_flow_field_analysis").datasets
-    pca_reference_datasets = load_dataset_collection_config("pca_reference").datasets
+    pca_reference_datasets = load_dataset_collection_config(
+        DEFAULT_PCA_DATASET_COLLECTION_NAME
+    ).datasets
 
     for dataset_name in analysis_datasets:
         dataset_config = load_dataset_config(dataset_name)

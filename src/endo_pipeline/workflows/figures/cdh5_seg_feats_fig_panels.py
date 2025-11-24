@@ -1,4 +1,5 @@
 from endo_pipeline.cli import Datasets, tags
+from endo_pipeline.settings import DEFAULT_PCA_DATASET_COLLECTION_NAME
 
 TAGS = [tags.TEST_READY, tags.CPU_ONLY]
 
@@ -17,7 +18,7 @@ def main(datasets: Datasets | None = None) -> None:
     from endo_pipeline.settings.examples import CDH5_SEG_FIG_EXAMPLE
 
     if datasets is None:
-        datasets = get_datasets_in_collection("pca_reference")
+        datasets = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
     out_dir = get_output_path(__file__)
 
