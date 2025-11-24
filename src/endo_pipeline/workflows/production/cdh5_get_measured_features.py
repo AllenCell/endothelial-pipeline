@@ -28,8 +28,8 @@ def main(
     import logging
 
     from endo_pipeline import DEMO_MODE
+    from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
-    from endo_pipeline.configs.demo_mode_defaults import use_default_collection
     from endo_pipeline.io import configure_logging, get_output_path
     from endo_pipeline.library.analyze.shape_features import (
         build_cdh5_measured_features_tables_multiproc_wrapper,

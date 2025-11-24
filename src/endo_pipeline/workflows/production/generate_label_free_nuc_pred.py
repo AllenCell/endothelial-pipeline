@@ -31,7 +31,7 @@ def main(
     import logging
 
     from endo_pipeline import DEMO_MODE
-    from endo_pipeline.configs.demo_mode_defaults import use_default_collection
+    from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.general_image_preprocessing import (
         build_analysis_queue,
