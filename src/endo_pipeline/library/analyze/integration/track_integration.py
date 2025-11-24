@@ -607,7 +607,7 @@ def get_preprocessed_manifests_and_km_bounds(
     run_name: str | None = None,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    num_pcs: int = NUM_PCS_TO_ANALYZE,
+    num_pcs: int | None = None,
     drop_rows_without_diffae_feats: bool = True,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list]:
     """
@@ -628,9 +628,14 @@ def get_preprocessed_manifests_and_km_bounds(
         run will be used.
     seg_feature_manifest_name
         The name of the manifest containing segmentation features.
-    datasets_for_bounds
-        List of dataset names to use for computing the PCA bounds.
-        If None, the reference datasets plus dataset_name will be used.
+    collection_name_for_pca
+        The name of the dataset collection to use for fitting the PCA. Defaults to
+        DEFAULT_PCA_DATASET_COLLECTION_NAME.
+    num_pcs
+        The number of principal components to use for the PCA projection. If None, the minimum of
+        NUM_PCS_TO_ANALYZE and the number of latent dimensions will be used.
+    drop_rows_without_diffae_feats
+        Whether to drop rows in the merged DataFrame that do not have DiffAE features.
 
     Returns
     -------
@@ -645,6 +650,7 @@ def get_preprocessed_manifests_and_km_bounds(
     model_config = get_config_dict_from_mlflow(model_location.mlflowid)
     num_latent_dims = get_latent_dim_from_config(model_config)
     diffae_feature_column_names = get_latent_feature_column_names(num_latent_dims)
+    num_pcs = num_pcs if num_pcs is not None else min(NUM_PCS_TO_ANALYZE, num_latent_dims)
 
     # load the tables
     merged_feats_df = get_diffae_feats_liveseg_feats_merged_table(

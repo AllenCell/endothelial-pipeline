@@ -3,12 +3,20 @@ from typing import Literal
 from tqdm import tqdm
 
 from endo_pipeline.configs import TimepointAnnotation
+from endo_pipeline.configs.model_config_utils import get_latent_dim_from_config
+from endo_pipeline.io.input import get_config_dict_from_mlflow
+from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    get_latent_feature_column_names,
+    get_pc_column_names,
+)
+from endo_pipeline.manifests.model_manifest_utils import (
+    get_model_location_for_run,
+    get_most_recent_run_name,
+)
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
-    DIFFAE_FEATURE_COLUMN_NAMES,
-    DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
 )
 
@@ -41,10 +49,10 @@ def main(
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     dataset_info_columns: list[str] = DATASET_INFO_COLUMNS,
     classical_feature_columns: list[str] = CLASSICAL_FEATURE_COLUMNS,
-    pc_columns: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
-    diffae_feature_columns: list[str] = DIFFAE_FEATURE_COLUMN_NAMES,
+    num_pcs: int | None = None,
     timepoint_annotations: list[TimepointAnnotation] | Literal["default"] | None = "default",
     aggregate: bool = True,
+    plot_correlation_scatter: bool = True,
 ) -> None:
     """
     Visualize correlation heatmaps and clustermaps for DiffAE features, PCs,
@@ -65,12 +73,16 @@ def main(
         List of dataset metadata column names.
     classical_feature_columns
         List of classical feature column names.
-    pc_columns
-        List of PCA component column names.
-    diffae_feature_columns
-        List of DiffAE feature column names.
+    num_pcs
+        Number of principal components to include. If None, uses NUM_PCS_TO_ANALYZE.
+    timepoint_annotations
+        List of timepoint annotations to exclude from the analysis. If "default",
+        excludes NOT_STEADY_STATE and CELL_PILING timepoints. If None, includes all timepoints.
     aggregate
         If True, include an aggregated dataset in the analysis.
+    plot_correlation_scatter
+        If True, plot scatter plots for each pair of feature sets.
+        Disabled if there are too many features to plot.
     """
 
     import itertools
@@ -83,7 +95,6 @@ def main(
         get_label_for_column,
     )
     from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
-        get_correlation_matrix_df,
         get_df_for_feature_correlation_viz,
         plot_and_save_clustermap,
         plot_and_save_heatmap,
@@ -98,6 +109,14 @@ def main(
 
     dataset_name_list = get_datasets_in_collection(dataset_collection_name)
     model_manifest = load_model_manifest(model_manifest_name)
+    run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
+    model_location = get_model_location_for_run(model_manifest, run_name_)
+    model_config = get_config_dict_from_mlflow(model_location.mlflowid)
+    num_features = get_latent_dim_from_config(model_config)
+    num_pcs = num_pcs if num_pcs is not None else min(NUM_PCS_TO_ANALYZE, num_features)
+
+    pc_columns = get_pc_column_names(num_pcs)
+    diffae_feature_columns = get_latent_feature_column_names(num_features)
 
     if timepoint_annotations == "default":
         timepoint_annotations = [
@@ -109,23 +128,25 @@ def main(
         dataset_name_list=dataset_name_list,
         dataset_info_columns=dataset_info_columns,
         classical_feature_columns=classical_feature_columns,
+        num_pcs=num_pcs,
         pc_columns=pc_columns,
-        dataset_collection_name_for_pca=dataset_collection_name,
         diffae_feature_columns=diffae_feature_columns,
+        dataset_collection_name_for_pca=dataset_collection_name,
         model_manifest=model_manifest,
-        run_name=run_name,
+        run_name=run_name_,
         seg_feature_manifest_name=seg_feature_manifest_name,
         timepoint_annotations=timepoint_annotations,
     )
 
     label_column_tuples = [
-        ("Measurement", [get_label_for_column(col) for col in classical_feature_columns]),
         ("PC", [get_label_for_column(col) for col in pc_columns]),
+        ("Measurement", [get_label_for_column(col) for col in classical_feature_columns]),
         ("DiffAE Feature", [get_label_for_column(col) for col in diffae_feature_columns]),
     ]
 
     if aggregate:
-        dataset_name_list = [*dataset_name_list, "aggregate"]
+        # dataset_name_list = [*dataset_name_list, "aggregate"]
+        dataset_name_list = ["aggregate"]
 
     for dataset_name in tqdm(dataset_name_list):
         # if the dataset name is "aggregate", use the full DataFrame
@@ -134,6 +155,27 @@ def main(
             df_dataset = df
         else:
             df_dataset = df.query("dataset_name==@dataset_name").copy()
+
+        # Pre-compute full correlation matrix once per dataset
+        all_feature_columns = []
+        for _, cols in label_column_tuples:
+            all_feature_columns.extend(cols)
+        # Remove duplicates while preserving order
+        unique_feature_columns = []
+        seen = set()
+        for col in all_feature_columns:
+            if col not in seen:
+                unique_feature_columns.append(col)
+                seen.add(col)
+
+        logger.info("Computing full correlation matrix for dataset %s", dataset_name)
+        full_correlation_matrix = df_dataset[unique_feature_columns].corr()
+
+        # Pre-compute dataset color mapping once per dataset
+        dataset_color_mapping = {
+            ds_nm: get_dataset_color(ds_nm) for ds_nm in df_dataset["dataset_name"].unique()
+        }
+        colors = df_dataset["dataset_name"].map(dataset_color_mapping).to_list()
 
         for (x_axis_label, x_cols), (
             y_axis_label,
@@ -162,19 +204,15 @@ def main(
                 __file__,
                 dataset_name,
                 annotation_label,
+                f"{num_features}_features_x_{num_pcs}_pcs",
                 f"{x_filename}_vs_{y_filename}",
-                include_timestamp=False,
+                include_timestamp=True,
             )
 
-            # create the correlation DataFrame
-            correlation_df = get_correlation_matrix_df(
-                features_df=df_dataset,
-                column_names_for_x_axis=x_cols,
-                column_names_for_y_axis=y_cols,
-                x_axis_label=x_axis_label,
-                y_axis_label=y_axis_label,
-                df_format="wide-corrcoeff",
-            )
+            # Extract correlation submatrix from pre-computed correlation matrix
+            correlation_df = full_correlation_matrix.loc[x_cols, y_cols].copy()
+            correlation_df.index.name = x_axis_label
+            correlation_df.columns.name = y_axis_label
 
             # make correlation heatmap
             plot_and_save_heatmap(
@@ -188,11 +226,17 @@ def main(
                 df=correlation_df,
                 output_folder=out_subdir,
                 filename=f"{base_filename}_{annotation_label}_clustermap",
+                metric="cosine",
+                data_type="correlation",
             )
+
+            if not plot_correlation_scatter:
+                continue
 
             if len(x_cols) > 16 or len(y_cols) > 16:
                 logger.info(
-                    "Skipping scatter plot for %s vs %s for dataset %s due to large number of features (%s x %s).",
+                    "Skipping scatter plot for %s vs %s for dataset %s "
+                    "due to large number of features (%s x %s).",
                     x_axis_label,
                     y_axis_label,
                     dataset_name,
@@ -201,11 +245,6 @@ def main(
                 )
                 continue
             # make scatter plot
-            dataset_color_mapping = {
-                ds_nm: get_dataset_color(ds_nm)
-                for ds_nm in df_dataset.groupby("dataset_name").groups.keys()
-            }
-            colors = df_dataset["dataset_name"].transform(dataset_color_mapping.get).to_list()
             column_list = []
             for col in x_cols + y_cols:
                 if col not in column_list:
