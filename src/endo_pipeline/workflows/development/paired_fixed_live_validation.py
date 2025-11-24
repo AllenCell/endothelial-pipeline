@@ -38,7 +38,10 @@ def main(
     from endo_pipeline.library.model import load_model_for_inference
     from endo_pipeline.library.visualize.integration import viz_validate_pcs_for_integration
     from endo_pipeline.manifests import load_model_manifest
-    from endo_pipeline.settings import DIFFAE_MODEL_EVAL_FINETUNE_CONFIG
+    from endo_pipeline.settings import (
+        DEFAULT_PCA_DATASET_COLLECTION_NAME,
+        DIFFAE_MODEL_EVAL_FINETUNE_CONFIG,
+    )
 
     # Results directory
     save_path = get_output_path("fixed_live_validation")
@@ -69,7 +72,7 @@ def main(
     )
 
     # Load or fit reference PCA model and project features into reference PC space
-    pca = fit_pca("pca_reference_legacy")
+    pca = fit_pca(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
     # Project features from applying fine tuned diffAE model to fixed and live data into
     # reference PC space.
