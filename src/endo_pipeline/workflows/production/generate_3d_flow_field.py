@@ -2,13 +2,6 @@ from endo_pipeline.cli import Datasets
 from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 TAGS = ["dynamical_systems", "diffae_features"]
-PCA_COLLECTION = "diffae_model_training"
-KERNEL_PARAMS = {
-    "bandwidth": 0.15,
-    "kernel": "gaussian",
-}
-TIME_STEP = 5
-NUM_BINS = [40, 40, 40]
 
 
 def main(
@@ -48,6 +41,14 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
+    from endo_pipeline.settings import (
+        DATASET_COLLECTION_FOR_3D_DYNAMICS,
+        INIT_POINT_3D,
+        KERNEL_PARAMS_3D,
+        NUM_BINS_3D,
+        TIME_STEP_IN_MINUTES,
+        TRAJECTORY_TIME_SPAN,
+    )
 
     model_manifest = load_model_manifest(model_manifest_name)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
@@ -68,12 +69,15 @@ def main(
     # the manifest.
     valid_dataset_options = list(dataframe_manifest.locations.keys())
     if datasets is None:
-        dataset_names = get_datasets_in_collection("3d_flow_field_analysis", valid_dataset_options)
+        dataset_names = get_datasets_in_collection(
+            DATASET_COLLECTION_FOR_3D_DYNAMICS, valid_dataset_options
+        )
     else:
         dataset_names = [name for name in datasets if name in valid_dataset_options]
 
     pca = fit_pca(
-        dataset_collection_name=PCA_COLLECTION, dataframe_manifest_name=dataframe_manifest_name
+        dataset_collection_name="diffae_model_training",
+        dataframe_manifest_name=dataframe_manifest_name,
     )
 
     # plot scatter of PCA components and all datasets specified in the command
@@ -82,25 +86,22 @@ def main(
     save_plot_to_path(fig, fig_savedir, "pca_scatter_all")
 
     # time span for the ODE solver
-    # units for time steps are in minutes
-    # 48 hours in minutes =
-    # 48 * 60 = 2880 time steps
-    time_span = [0, 2880]
+    time_span = TRAJECTORY_TIME_SPAN
 
     # initial condition for the ODE solver
     # this is fixed across datasets /
     # shear stress conditions
-    init = np.array([0.5, 0.0, -1.0])
+    init = np.array(INIT_POINT_3D)
 
     get_and_analyze_ddff(
         dataset_names,
         dataframe_manifest,
         pca,
-        kernel_params=KERNEL_PARAMS,
-        dt=TIME_STEP,
+        kernel_params=KERNEL_PARAMS_3D,
+        dt=TIME_STEP_IN_MINUTES,
         time_span=time_span,
         init=init,
-        num_bins=NUM_BINS,
+        num_bins=NUM_BINS_3D,
         fig_savedir=fig_savedir,
         vtk_savedir=vtk_savedir,
         output_savedir=output_savedir,
