@@ -300,7 +300,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "discrete_ticks": False,
         },
         "time_hrs_flow": {
-            "column_name": "time_hrs_since_flow_start",
+            "column_name": "time_hours_since_flow_start",
             "label": "Time Since Flow Start (h)",
             "lims": ("min", "max"),
             "bin_width": 0.5,
