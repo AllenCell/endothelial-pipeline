@@ -112,11 +112,10 @@ def main(
     model = load_model(model_location, instantiate=True)
 
     example_sets = [
-        MODEL_QC_EXAMPLES_TRAINING_POSITIONS,
-        MODEL_QC_EXAMPLES_VALIDATION_POSITIONS,
-        MODEL_QC_EXAMPLES_REP_2_POSITIONS,
+        (MODEL_QC_EXAMPLES_TRAINING_POSITIONS, "training_positions"),
+        (MODEL_QC_EXAMPLES_VALIDATION_POSITIONS, "validation_positions"),
+        (MODEL_QC_EXAMPLES_REP_2_POSITIONS, "rep_2_positions"),
     ]
-    example_set_labels = ["training_positions", "validation_positions", "rep_2_positions"]
 
     # Load Example Data
     if DEMO_MODE:
@@ -134,7 +133,7 @@ def main(
     NOISE_LABELS = [f"{level * 100:.0f}% Noise" for level in [*MODEL_QC_NOISE_LEVELS, 1]]
     NUM_IMAGES_DENOISED = len(NOISE_LABELS)
 
-    for example_set, example_set_label in zip(example_sets, example_set_labels):
+    for example_set, example_set_label in example_sets:
 
         if DEMO_MODE:
             logger.info("DEMO MODE: Limiting example set to first example only")
