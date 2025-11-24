@@ -38,7 +38,7 @@ def main(
         Whether to create movie for single FOV (position 0) or stitch all FOVs.
 
     CLI usage example:
-        endopipe supp-movie -v --output-dir /path/to/output/ --zarr-positions 0
+        endopipe supp-movie -v --output-dir //allen/aics/endothelial/morphological_features/image_data/stitched_timelapse_mp4/cdh5/
     """
 
     import logging
@@ -64,6 +64,8 @@ def main(
     # Set output directory
     if output_dir is None:
         output_dir = get_output_path("stitched_timelapse")
+    else:
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     print(zarr_positions)
     # Process each dataset sequentially
