@@ -35,7 +35,7 @@ def _ddff_model_analysis(
     dt: float,
     bins: list[np.ndarray],
     centers: list[np.ndarray],
-    time_span: list,
+    time_span: tuple[int, int],
     init: np.ndarray,
     plot_bounds: list[np.ndarray],
     fig_savedir: Path,
@@ -176,7 +176,7 @@ def get_and_analyze_ddff(
     pca: PCA,
     kernel_params: dict,
     dt: float,
-    time_span: list,
+    time_span: tuple[int, int],
     init: np.ndarray,
     num_bins: list[int],
     fig_savedir: Path,
@@ -426,7 +426,7 @@ def get_callable_vector_field(vector_field_dict: dict, for_solve_ivp: bool = Tru
 def solve_ddff_ode(
     flow_field_dict: dict,
     init: np.ndarray,
-    t_span: list[int] | list[float],
+    t_span: tuple[float, float] | tuple[int, int],
     num_t: int = 1750,
 ) -> np.ndarray:
     """

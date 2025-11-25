@@ -8,6 +8,7 @@ def main(
     datasets: Datasets | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    bandwidth: float | None = None,
 ) -> None:
     """
     Visualize 3D (drift) flow fields for the dynamics of the crop-based DiffAE
@@ -51,6 +52,11 @@ def main(
         TRAJECTORY_TIME_SPAN,
     )
 
+    # override bandwidth if provided
+    kernel_params = KERNEL_PARAMS_3D.copy()
+    if bandwidth is not None:
+        kernel_params["bandwidth"] = bandwidth
+
     model_manifest = load_model_manifest(model_manifest_name)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
         model_manifest, run_name, crop_pattern="grid"
@@ -93,7 +99,7 @@ def main(
         dataset_names,
         dataframe_manifest,
         pca,
-        kernel_params=KERNEL_PARAMS_3D,
+        kernel_params=kernel_params,
         dt=TIME_STEP_IN_MINUTES,
         time_span=TRAJECTORY_TIME_SPAN,
         init=np.array(INIT_POINT_3D),

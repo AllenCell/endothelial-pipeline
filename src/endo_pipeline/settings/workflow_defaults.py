@@ -48,10 +48,10 @@ NUM_BINS_3D: list = [40, 40, 40]
 TIME_STEP_IN_MINUTES: int = 5
 """Time step in minutes between consecutive time points for flow field estimation."""
 
-INIT_POINT_3D: list = [0.5, 0.0, -1.0]
+INIT_POINT_3D: tuple[float, float, float] = (0.5, 0.0, -1.0)
 """Default initial point for 3D flow field trajectory visualization."""
 
-TRAJECTORY_TIME_SPAN: list[int] = [0, 5000]
+TRAJECTORY_TIME_SPAN: tuple[int, int] = (0, 5000)
 """Default time span for ODE solver in 3D flow field trajectory visualization."""
 
 DATASET_COLLECTION_FOR_3D_DYNAMICS: str = "3d_flow_field_analysis"
@@ -63,5 +63,5 @@ OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS: str = "flow_field_3d"
 TRAJECTORY_DICT_FILE_NAME: str = "traj_dict"
 """Default file name for saving trajectory dictionaries."""
 
-GRID_NUM_FOR_INITS: list[int] = [5, 4, 3]
+GRID_NUM_FOR_INITS: tuple[int, int, int] = (5, 4, 3)
 """Default grid size along each dimension for generating initial points in 3D flow field visualization."""
