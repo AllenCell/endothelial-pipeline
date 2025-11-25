@@ -159,7 +159,7 @@ def get_and_analyze_ddff(
     dt: float,
     time_span: list,
     init: np.ndarray,
-    num_bins: list[int],
+    num_bins: tuple[int, int, int],
     fig_savedir: Path,
     vtk_savedir: Path,
     output_savedir: Path,
