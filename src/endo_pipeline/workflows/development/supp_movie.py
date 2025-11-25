@@ -14,6 +14,7 @@ def main(
     output_dir: Path | None = None,
     scale_bar_um: int = 100,
     zarr_positions: list[int] | None = None,
+    std_dev_proj: bool = False,
 ) -> None:
     """
     Create supplemental timelapse movies single fov or stitched.
@@ -36,6 +37,9 @@ def main(
         Directory to save output figures. If None, figures will save to default location.
     single_fov
         Whether to create movie for single FOV (position 0) or stitch all FOVs.
+    std_dev_proj
+        Whether to use standard deviation projection instead of a single slice for BF.
+        Only applies when channel is "BF".
 
     CLI usage example:
         endopipe supp-movie -v --output-dir //allen/aics/endothelial/morphological_features/image_data/stitched_timelapse_mp4/cdh5/
@@ -79,6 +83,7 @@ def main(
             output_dir=output_dir,
             scale_bar_um=scale_bar_um,
             zarr_positions=zarr_positions,
+            std_dev_proj=std_dev_proj,
         )
 
 
