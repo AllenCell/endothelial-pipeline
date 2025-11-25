@@ -348,3 +348,4 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
 
             # save the panel
             fig.savefig(out_path, bbox_inches="tight", pad_inches=0.05)
+            fig.savefig(out_path.with_suffix(".png"), bbox_inches="tight", pad_inches=0.05, dpi=300)
