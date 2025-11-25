@@ -1,3 +1,4 @@
+import gc
 import logging
 from pathlib import Path
 
@@ -14,6 +15,7 @@ from endo_pipeline.io import load_image
 from endo_pipeline.library.process import image_processing
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, add_timestamp
 from endo_pipeline.manifests import get_zarr_location_for_position
+from endo_pipeline.settings import LOG_EPSILON
 from endo_pipeline.settings.figures import (
     MAX_SUPP_MOVIE_HEIGHT,
     MAX_SUPP_MOVIE_WIDTH,
@@ -33,6 +35,7 @@ def create_timelapse_mp4(
     output_dir: Path,
     scale_bar_um: int = 100,
     zarr_positions: list[int] | None = None,
+    std_dev_proj: bool = False,
 ):
     """
     Create stitched or singel fov timelapse in mp4 format for a given dataset.
@@ -54,6 +57,8 @@ def create_timelapse_mp4(
     zarr_positions
         Zarr positions to include in the stitching (default: "all"),
         or provide a list of position indices.
+    std_dev_proj
+        Whether to use standard deviation projection instead of a single slice for BF.
     """
     dataset_config = load_dataset_config(dataset_name)
 
@@ -70,10 +75,31 @@ def create_timelapse_mp4(
             position_timelapse = da.squeeze(position_timelapse)
         if channel == "BF":
             image = load_image(location, channels=["BF"], timepoints=timepoints, level=0)
-            focal_plane = dataset_config.center_z_plane[position]
-            visualize_plane = focal_plane + 5
-            position_timelapse = image[:, :, visualize_plane, :, :]
-            position_timelapse = da.squeeze(position_timelapse)
+            if std_dev_proj:
+                # Compute std projection along axis 2
+                position_timelapse = image.std(axis=2)
+                # Apply log transform
+                position_timelapse = da.log(position_timelapse + LOG_EPSILON)
+                # Compute percentiles for each timepoint (axis=0)
+                low = da.percentile(position_timelapse, 1, axis=(1, 2), keepdims=True)
+                high = da.percentile(position_timelapse, 99, axis=(1, 2), keepdims=True)
+                # Clip per timepoint
+                position_timelapse = da.clip(position_timelapse, low, high)
+                # Compute mean and std per timepoint
+                mean = position_timelapse.mean(axis=(1, 2), keepdims=True)
+                std = position_timelapse.std(axis=(1, 2), keepdims=True)
+                # Z-score normalization per timepoint
+                position_timelapse = (position_timelapse - mean) / std
+            else:
+                # Single focal plane offset from center
+                if dataset_config.center_z_plane is None:
+                    raise ValueError(
+                        "dataset_config.center_z_plane is None, cannot load single focal plane for BF channel"
+                    )
+                focal_plane = dataset_config.center_z_plane[position]
+                visualize_plane = focal_plane + 5
+                position_timelapse = image[:, :, visualize_plane, :, :]
+                position_timelapse = da.squeeze(position_timelapse)
         position_timelapses.append(position_timelapse)
 
     logger.info(f"Stitching positions: {zarr_positions}")
@@ -193,5 +219,6 @@ def create_timelapse_mp4(
             writer.append_data(img)
 
             timestamp_text.remove()
+            gc.collect()
 
         plt.close(figure)

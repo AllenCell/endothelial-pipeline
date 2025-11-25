@@ -5,6 +5,7 @@ from typing import Literal
 import matplotlib.axes as maxes
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
+import matplotlib.text
 import numpy as np
 
 from endo_pipeline.io.output import save_plot_to_path
@@ -155,7 +156,7 @@ def add_timestamp(
     interval_minutes: int,
     fontsize: int = FONTSIZE_LARGE,
     shear_stress: float | None = None,
-) -> plt.text:
+) -> matplotlib.text.Text:
     """
     Add a timestamp to the given axis based on frame number and interval (hr:min).
 
