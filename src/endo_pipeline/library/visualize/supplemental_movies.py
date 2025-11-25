@@ -91,6 +91,7 @@ def create_timelapse_mp4(
                 # Z-score normalization per timepoint
                 position_timelapse = (position_timelapse - mean) / std
             else:
+                # Single focal plane offset from center
                 focal_plane = dataset_config.center_z_plane[position]
                 visualize_plane = focal_plane + 5
                 position_timelapse = image[:, :, visualize_plane, :, :]
