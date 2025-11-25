@@ -138,6 +138,8 @@ def save_segmentation_masks(
     positions : list
         List of positions corresponding to the masks.
     """
+    import shutil
+
     logger.info("Saving segmentation masks...")
     dataset_name = dataset_config.name
     date = dataset_name.split("_")[0]
@@ -151,6 +153,10 @@ def save_segmentation_masks(
     for mask, position in zip(masks, positions, strict=True):
         fname = f"{date}_{dataset_config.fmsid}_P{position}.ome.zarr"
         save_path = output_dir / f"{date}_{dataset_config.fmsid}" / fname
+        if save_path.exists():
+            # The .write_image() call below will fail if there is already a Zarr at that location
+            logger.info(f"Removing previous segmentation zarr at {save_path}...")
+            shutil.rmtree(save_path.resolve())
         os.makedirs(save_path, exist_ok=True)
 
         writer = OmeZarrWriter(save_path)

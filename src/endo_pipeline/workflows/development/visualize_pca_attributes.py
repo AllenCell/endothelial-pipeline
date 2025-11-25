@@ -7,6 +7,7 @@ from endo_pipeline.settings import (
     DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
 )
+from endo_pipeline.settings.diffae_feature_dataframes import NUM_LATENT_FEATURES, NUM_PCS_TO_ANALYZE
 
 TAGS = ["diffae_features", "visualization"]
 
@@ -18,7 +19,9 @@ def main(
     crop_pattern: Literal["grid", "tracked"] = "grid",
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     num_pcs: int | None = None,
+    num_features: int | None = None,
     include_loadings_legend: bool = False,
+    annotate: bool = True,
 ) -> None:
     """Visualize key attributes of a fit PCA model."""
     import logging
@@ -57,8 +60,10 @@ def main(
     # get latent dimension from model config
     model_location = get_model_location_for_run(model_manifest, run_name_)
     model_config = get_config_dict_from_mlflow(model_location.mlflowid)
-    num_latent_dim = get_latent_dim_from_config(model_config)
-    num_pc_dim = num_pcs or num_latent_dim
+    num_latent_dim = num_features or min(
+        NUM_LATENT_FEATURES, get_latent_dim_from_config(model_config)
+    )
+    num_pc_dim = num_pcs or min(NUM_PCS_TO_ANALYZE, num_latent_dim)
     feat_col_names = get_latent_feature_column_names(num_latent_dim)
     pc_col_names = get_pc_column_names(num_pc_dim)
 
@@ -142,6 +147,7 @@ def main(
         pca_loadings_df,
         diffae_feature_columns=feat_col_names,
         pc_columns=pc_col_names,
+        annotate=annotate,
     )
     save_plot_to_path(
         figure=fig_heatmap,

@@ -75,10 +75,7 @@ def main(
     else:
         dataset_names = [name for name in datasets if name in valid_dataset_options]
 
-    pca = fit_pca(
-        dataset_collection_name="diffae_model_training",
-        dataframe_manifest_name=dataframe_manifest_name,
-    )
+    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name)
 
     # plot scatter of PCA components and all datasets specified in the command
     # line (or default list, if not specified)

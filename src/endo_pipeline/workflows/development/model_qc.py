@@ -72,7 +72,11 @@ def main(
         DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL,
         MODEL_QC_NOISE_LEVELS,
     )
-    from endo_pipeline.settings.examples import MODEL_QC_EXAMPLES
+    from endo_pipeline.settings.examples import (
+        MODEL_QC_EXAMPLES_REP_2_POSITIONS,
+        MODEL_QC_EXAMPLES_TRAINING_POSITIONS,
+        MODEL_QC_EXAMPLES_VALIDATION_POSITIONS,
+    )
     from endo_pipeline.settings.plot_defaults import (
         MODEL_QC_FIG_KWARGS,
         MODEL_QC_GRIDSPEC_KWARGS,
@@ -107,10 +111,16 @@ def main(
     # Load model as instantiated Diff AE object
     model = load_model(model_location, instantiate=True)
 
+    example_sets = [
+        (MODEL_QC_EXAMPLES_TRAINING_POSITIONS, "training_positions"),
+        (MODEL_QC_EXAMPLES_VALIDATION_POSITIONS, "validation_positions"),
+        (MODEL_QC_EXAMPLES_REP_2_POSITIONS, "rep_2_positions"),
+    ]
+
     # Load Example Data
     if DEMO_MODE:
-        logger.info("DEMO MODE: Limiting MODEL_QC_EXAMPLES to the first example only.")
-        MODEL_QC_EXAMPLES = MODEL_QC_EXAMPLES[:1]
+        logger.info("DEMO MODE: Limiting MODEL_QC_EXAMPLES to the set")
+        example_sets = [example_sets[0]]
 
     # Set defaults for plot titles
     CDH5_LABELS = [
@@ -123,186 +133,193 @@ def main(
     NOISE_LABELS = [f"{level * 100:.0f}% Noise" for level in [*MODEL_QC_NOISE_LEVELS, 1]]
     NUM_IMAGES_DENOISED = len(NOISE_LABELS)
 
-    # Store 100% denoised example results for each dataset in the model QC examples
-    example_results_100 = []
+    for example_set, example_set_label in example_sets:
 
-    # Process each dataset
-    for example in MODEL_QC_EXAMPLES:
-        dataset_name = example.dataset_name
-        logger.info(f"Processing model QC for dataset: {dataset_name}")
+        if DEMO_MODE:
+            logger.info("DEMO MODE: Limiting example set to first example only")
+            example_set = example_set[:1]
 
-        # Extract position, timepoint, and crop position
-        position = example.position
-        timepoint = example.timepoint
-        start_x = example.crop_x_start
-        start_y = example.crop_y_start
+        # Store 100% denoised example results for each dataset in the model QC examples
+        example_results_100 = []
 
-        # Get output path for saving figures
-        output_path = get_output_path(
-            "model_qc",
-            model_manifest_name,
-            run_name_,
-        )
+        # Process each dataset
+        for example in example_set:
+            dataset_name = example.dataset_name
+            logger.info(f"Processing model QC for dataset: {dataset_name}")
 
-        dataset_config = load_dataset_config(dataset_name)
-        zarr_loc = get_zarr_location_for_position(dataset_config, position)
-        img = load_image(
-            zarr_loc,
-            level=DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL,
-            timepoints=timepoint,
-            squeeze=True,
-            compute=True,
-        )
+            # Extract position, timepoint, and crop position
+            position = example.position
+            timepoint = example.timepoint
+            start_x = example.crop_x_start
+            start_y = example.crop_y_start
 
-        # Get zarr loading dictionary, get image processing steps
-        # from loaded model config (except cropping step)
-        # and apply the transforms for each channel
-        data = create_data_dict_loaded_image(img)
-        transforms = get_image_transforms(model_config)
-        sample = apply_img_transforms(transforms, data)
-
-        # Extract the processed conditioning and diffusion images
-        # based on the output key from the transforms
-        # Conditioning image can be brightfield or CDH5 depending on model,
-        # but diffusion image is always CDH5 in our use case
-        transformed_conditioning_input_image = get_target_image_from_sample(
-            sample, target_key=channel_key_for_conditioning_input
-        )
-        transformed_diffusion_input_image = get_target_image_from_sample(
-            sample, target_key=DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT
-        )
-
-        # Crop both images to the same region
-        conditioning_input_crop = crop_image(
-            transformed_conditioning_input_image, start_x, start_y, crop_size
-        )
-        diffusion_input_crop = crop_image(
-            transformed_diffusion_input_image, start_x, start_y, crop_size
-        )
-
-        # Get latent vector embedding of the crop used for
-        # conditioning the denoising process
-        conditioning_crop_latent_vector = get_latent_vector_from_crop(
-            model, conditioning_input_crop, num_gpus=NUM_GPUS
-        )
-
-        # Sample random noise image with fixed seed
-        noise_image = rng.standard_normal(size=diffusion_input_crop.shape)
-
-        # Add noise_image to denoising_start_crop with increasing weight:
-        noisy_diffusion_input_images = [
-            add_noise_to_image(diffusion_input_crop, noise_image, noise_level)
-            for noise_level in MODEL_QC_NOISE_LEVELS
-        ]
-
-        # Reconstruct starting with each noised ground truth image, and finally
-        # the pure noise conditioned using the embedding of the corresponding
-        # ground truth image used for conditioning.
-        # will need to update generate method to do array shaping internally
-        images_to_denoise = [*noisy_diffusion_input_images, noise_image]
-        denoised_images_by_bf_cond = [
-            generate_from_coords_and_noised_image(
-                model, conditioning_crop_latent_vector, noised_image, num_gpus=NUM_GPUS
+            # Get output path for saving figures
+            output_path = get_output_path(
+                "model_qc",
+                model_manifest_name,
+                run_name_,
+                example_set_label,
             )
-            for noised_image in images_to_denoise
-        ]
 
-        # Do the same thing but with the conditioning vector randomly shuffled
-        # This is our negative control for the BF conditioning
-        latent_vector_scrambled = rng.permuted(conditioning_crop_latent_vector)
-        denoised_images_by_random_cond = [
-            generate_from_coords_and_noised_image(
-                model, latent_vector_scrambled, noised_image, num_gpus=NUM_GPUS
+            dataset_config = load_dataset_config(dataset_name)
+            zarr_loc = get_zarr_location_for_position(dataset_config, position)
+            img = load_image(
+                zarr_loc,
+                level=DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL,
+                timepoints=timepoint,
+                squeeze=True,
+                compute=True,
             )
-            for noised_image in images_to_denoise
-        ]
 
-        # Do the same thing but with the conditioning vector retrieved from a
-        # randomly shuffled version of the brightfield image
-        # This is another negative control for the BF conditioning
-        img_scrambled = rng.permuted(conditioning_input_crop.ravel()).reshape(
-            conditioning_input_crop.shape
-        )
-        latent_vector_from_img_scrambled = get_latent_vector_from_crop(
-            model, img_scrambled, num_gpus=NUM_GPUS
-        )
-        denoised_images_by_random_cond_latent_scramble = [
-            generate_from_coords_and_noised_image(
-                model, latent_vector_from_img_scrambled, noised_image, num_gpus=NUM_GPUS
+            # Get zarr loading dictionary, get image processing steps
+            # from loaded model config (except cropping step)
+            # and apply the transforms for each channel
+            data = create_data_dict_loaded_image(img)
+            transforms = get_image_transforms(model_config)
+            sample = apply_img_transforms(transforms, data)
+
+            # Extract the processed conditioning and diffusion images
+            # based on the output key from the transforms
+            # Conditioning image can be brightfield or CDH5 depending on model,
+            # but diffusion image is always CDH5 in our use case
+            transformed_conditioning_input_image = get_target_image_from_sample(
+                sample, target_key=channel_key_for_conditioning_input
             )
-            for noised_image in images_to_denoise
-        ]
+            transformed_diffusion_input_image = get_target_image_from_sample(
+                sample, target_key=DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT
+            )
 
-        # Plot these images!
-        # Prepare arguments for contact sheet
-        panels = [
-            *[conditioning_input_crop.squeeze()] * NUM_IMAGES_DENOISED,
-            *[diffusion_input_crop.squeeze()] * NUM_IMAGES_DENOISED,
-            *[img.squeeze() for img in images_to_denoise],
-            *[img.squeeze() for img in denoised_images_by_bf_cond],
-            *[img.squeeze() for img in denoised_images_by_random_cond],
-            *[img.squeeze() for img in denoised_images_by_random_cond_latent_scramble],
-        ]
+            # Crop both images to the same region
+            conditioning_input_crop = crop_image(
+                transformed_conditioning_input_image, start_x, start_y, crop_size
+            )
+            diffusion_input_crop = crop_image(
+                transformed_diffusion_input_image, start_x, start_y, crop_size
+            )
+
+            # Get latent vector embedding of the crop used for
+            # conditioning the denoising process
+            conditioning_crop_latent_vector = get_latent_vector_from_crop(
+                model, conditioning_input_crop, num_gpus=NUM_GPUS
+            )
+
+            # Sample random noise image with fixed seed
+            noise_image = rng.standard_normal(size=diffusion_input_crop.shape)
+
+            # Add noise_image to denoising_start_crop with increasing weight:
+            noisy_diffusion_input_images = [
+                add_noise_to_image(diffusion_input_crop, noise_image, noise_level)
+                for noise_level in MODEL_QC_NOISE_LEVELS
+            ]
+
+            # Reconstruct starting with each noised ground truth image, and finally
+            # the pure noise conditioned using the embedding of the corresponding
+            # ground truth image used for conditioning.
+            # will need to update generate method to do array shaping internally
+            images_to_denoise = [*noisy_diffusion_input_images, noise_image]
+            denoised_images_by_bf_cond = [
+                generate_from_coords_and_noised_image(
+                    model, conditioning_crop_latent_vector, noised_image, num_gpus=NUM_GPUS
+                )
+                for noised_image in images_to_denoise
+            ]
+
+            # Do the same thing but with the conditioning vector randomly shuffled
+            # This is our negative control for the BF conditioning
+            latent_vector_scrambled = rng.permuted(conditioning_crop_latent_vector)
+            denoised_images_by_random_cond = [
+                generate_from_coords_and_noised_image(
+                    model, latent_vector_scrambled, noised_image, num_gpus=NUM_GPUS
+                )
+                for noised_image in images_to_denoise
+            ]
+
+            # Do the same thing but with the conditioning vector retrieved from a
+            # randomly shuffled version of the brightfield image
+            # This is another negative control for the BF conditioning
+            img_scrambled = rng.permuted(conditioning_input_crop.ravel()).reshape(
+                conditioning_input_crop.shape
+            )
+            latent_vector_from_img_scrambled = get_latent_vector_from_crop(
+                model, img_scrambled, num_gpus=NUM_GPUS
+            )
+            denoised_images_by_random_cond_latent_scramble = [
+                generate_from_coords_and_noised_image(
+                    model, latent_vector_from_img_scrambled, noised_image, num_gpus=NUM_GPUS
+                )
+                for noised_image in images_to_denoise
+            ]
+
+            # Plot these images!
+            # Prepare arguments for contact sheet
+            panels = [
+                *[conditioning_input_crop.squeeze()] * NUM_IMAGES_DENOISED,
+                *[diffusion_input_crop.squeeze()] * NUM_IMAGES_DENOISED,
+                *[img.squeeze() for img in images_to_denoise],
+                *[img.squeeze() for img in denoised_images_by_bf_cond],
+                *[img.squeeze() for img in denoised_images_by_random_cond],
+                *[img.squeeze() for img in denoised_images_by_random_cond_latent_scramble],
+            ]
+            fig = make_contact_sheet(
+                panels=panels,
+                max_rows=NUM_IMAGES_DENOISED,
+                max_cols=6,
+                col_titles=[f"{label_for_conditioning} input", *CDH5_LABELS],
+                row_titles=NOISE_LABELS,
+                direction=MODEL_QC_PLOT_DIRECTION,
+                font_size=FONTSIZE_MEDIUM,
+                subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
+                gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
+                fig_kwargs=MODEL_QC_FIG_KWARGS,
+            )
+
+            # Adjust the layout to make space for supertitles
+            fig.subplots_adjust(top=0.9)
+            all_axes = fig.get_axes()
+            col_4_pos = all_axes[4].get_position()
+            center_x = col_4_pos.x0 + (col_4_pos.width / 2)
+            fig.text(
+                x=center_x,
+                y=0.97,
+                s="Predicted CDH5 Images",
+                ha="center",
+                fontsize=FONTSIZE_LARGE,
+            )
+            save_plot_to_path(
+                fig,
+                output_path,
+                f"denoising_contact_sheet_{dataset_name}P{position}T{timepoint}X{start_x}Y{start_y}",
+            )
+
+            example_results_100.append(conditioning_input_crop.squeeze())
+            example_results_100.append(diffusion_input_crop.squeeze())
+            example_results_100.append(denoised_images_by_bf_cond[-1].squeeze())
+
+        # Plot summary figure with only the 100% noise denoising results across examples
+        num_cols = 3
         fig = make_contact_sheet(
-            panels=panels,
-            max_rows=NUM_IMAGES_DENOISED,
-            max_cols=6,
-            col_titles=[f"{label_for_conditioning} input", *CDH5_LABELS],
-            row_titles=NOISE_LABELS,
-            direction=MODEL_QC_PLOT_DIRECTION,
+            panels=example_results_100,
+            max_rows=len(example_set),
+            max_cols=num_cols,
+            col_titles=[
+                f"{label_for_conditioning} input",
+                *[
+                    "Original CDH5",
+                    "Predicted CDH5",
+                ],
+            ],
+            row_titles=[f"Example {i+1}" for i in range(len(example_set))],
+            direction="left-right first",
             font_size=FONTSIZE_MEDIUM,
             subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
             gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
-            fig_kwargs=MODEL_QC_FIG_KWARGS,
-        )
-
-        # Adjust the layout to make space for supertitles
-        fig.subplots_adjust(top=0.9)
-        all_axes = fig.get_axes()
-        col_4_pos = all_axes[4].get_position()
-        center_x = col_4_pos.x0 + (col_4_pos.width / 2)
-        fig.text(
-            x=center_x,
-            y=0.97,
-            s="Predicted CDH5 Images",
-            ha="center",
-            fontsize=FONTSIZE_LARGE,
+            fig_kwargs={"figsize": (num_cols * 1.5, len(example_set) * 1.5)},
         )
         save_plot_to_path(
             fig,
             output_path,
-            f"denoising_contact_sheet_{dataset_name}P{position}T{timepoint}X{start_x}Y{start_y}",
+            "contact_sheet_predict_all_examples",
         )
-
-        example_results_100.append(conditioning_input_crop.squeeze())
-        example_results_100.append(diffusion_input_crop.squeeze())
-        example_results_100.append(denoised_images_by_bf_cond[-1].squeeze())
-
-    # Plot summary figure with only the 100% noise denoising results across examples
-    num_cols = 3
-    fig = make_contact_sheet(
-        panels=example_results_100,
-        max_rows=len(MODEL_QC_EXAMPLES),
-        max_cols=num_cols,
-        col_titles=[
-            f"{label_for_conditioning} input",
-            *[
-                "Original CDH5",
-                "Predicted CDH5",
-            ],
-        ],
-        row_titles=[f"Example {i+1}" for i in range(len(MODEL_QC_EXAMPLES))],
-        direction="left-right first",
-        font_size=FONTSIZE_MEDIUM,
-        subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
-        gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
-        fig_kwargs={"figsize": (num_cols * 1.5, len(MODEL_QC_EXAMPLES) * 1.5)},
-    )
-    save_plot_to_path(
-        fig,
-        output_path,
-        f"contact_sheet_predict_all_examples",
-    )
 
 
 if __name__ == "__main__":

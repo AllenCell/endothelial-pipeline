@@ -24,6 +24,7 @@ from endo_pipeline.manifests import (
 )
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
@@ -59,7 +60,9 @@ def generate_tfe_dataset(
 
     try:
         # Load dataframe with the diffae features and computed PCs
-        datasets_for_bounds = list(set([dataset] + get_datasets_in_collection("pca_reference")))
+        datasets_for_bounds = list(
+            set([dataset] + get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME))
+        )
         # only take the dataframe from the output (which is the 0th element)
         model_manifest = load_model_manifest(model_name)
         df_tracks = get_preprocessed_manifests_and_km_bounds(

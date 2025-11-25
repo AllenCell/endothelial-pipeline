@@ -39,7 +39,7 @@ def parse_paths(
                 pass
             else:
                 filepath = sorted(
-                    [x for x in filepath.glob(f"*{file_extension}")],
+                    filepath.glob(f"*{file_extension}"),
                     key=sorting_function,
                 )
         else:
@@ -47,7 +47,7 @@ def parse_paths(
                 f"UnexpectedFilePath ({filepath}) - filepath must be either a single file or folder of files."
             )
     if isinstance(filepath, list):
-        filepath_sorted = sorted([fp for fp in filepath], key=sorting_function)
+        filepath_sorted = sorted(filepath, key=sorting_function)
         filepath = [Path(fp) for fp in filepath_sorted]
 
     return filepath
@@ -318,7 +318,7 @@ def match_labels_from_images(
         labeled_images
     ), "reference_index must be less than the number of images in labeled_images"
     assert all(
-        [img.ndim in [2, 3] for img in labeled_images]
+        img.ndim in [2, 3] for img in labeled_images
     ), "all images in labeled_images must be 2D or 3D arrays"
     acceptable_metrics = [
         "centroid",
@@ -471,10 +471,8 @@ def match_labels_from_metrics(
     if metrics_thresholds is not None:
         num_metric_thresholds = len(metrics_thresholds)
         assert all(
-            [
-                all(len(met_val) == num_metric_thresholds for met_val in labeled_metrics.values())
-                for labeled_metrics in list_of_labeled_metric_vals
-            ]
+            all(len(met_val) == num_metric_thresholds for met_val in labeled_metrics.values())
+            for labeled_metrics in list_of_labeled_metric_vals
         ), "metrics and metrics_threshold must have the same length; np.inf can be used if no threshold is desired"
     assert matching_method in [
         "forward",
@@ -909,9 +907,7 @@ def initialize_track_ids(
             strict=False,
         )
     )
-    column_names = [
-        column_name for column_name in ("image_index", "T", "track_id", *props_to_include)
-    ]
+    column_names = ["image_index", "T", "track_id", *props_to_include]
     track_ids = dict(zip(column_names, tracking_data, strict=False))
 
     df_track_ids = pd.DataFrame(track_ids)
@@ -998,7 +994,7 @@ def reassign_track_ids_from_matches(
 
     # check that we are not overwriting any existing track ids
     assert all(
-        [lab not in existing_track_reassignments for lab in new_tracks_reassignments]
+        lab not in existing_track_reassignments for lab in new_tracks_reassignments
     ), "new track ids are overwriting existing track ids"
     # add the 2 dicts together to get a master reassignment dict
     track_id_reassignments = {
@@ -1242,10 +1238,10 @@ def run_tracking(
 
     for fps in [in_dir, out_dir]:
         assert (
-            isinstance(fps, (tuple, list, Path, str)) or fps == None
+            isinstance(fps, (tuple, list, Path, str)) or fps is None
         ), "in_dir, out_dir must be Path-like or a list of Paths"
     assert (
-        isinstance(extra_in_dir, (tuple, list, Path, str)) or extra_in_dir == None
+        isinstance(extra_in_dir, (tuple, list, Path, str)) or extra_in_dir is None
     ), "extra_in_dir must be Path-like or a list of Paths"
 
     if sorting_key is None:
@@ -1295,7 +1291,7 @@ def run_tracking(
             T_range_dict = (
                 {sorting_function(fp): fp for fp in filepath}
                 if sorting_function
-                else {i: fp for i, fp in enumerate(filepath)}
+                else dict(enumerate(filepath))
             )
             if time_list:
                 T_range_dict = {t: fp for t, fp in T_range_dict.items() if t in time_list}
@@ -1559,13 +1555,30 @@ def update_track_table(
     )
 
     # relabel images
-    # NOTE I adopted this reassignment methodology from StackOverflow: https://stackoverflow.com/questions/55949809/efficiently-replace-elements-in-array-based-on-dictionary-numpy-python
     print("- relabeling images...") if verbose else None
-    label_map_arr = np.zeros(shape=new_track_ids["label"].max() + 1, dtype=np.uint32)
-    label_map_arr[new_track_ids["label"]] = new_track_ids["track_id"]
-    track_labeled_image = label_map_arr[labeled_images[reference_index]]
+    track_labeled_image = relabel_array_values(
+        original_array=labeled_images[reference_index],
+        original_values=new_track_ids["label"],
+        relabel_values=new_track_ids["track_id"],
+    )
 
     return track_labeled_image, new_track_ids, existing_track_ids
+
+
+def relabel_array_values(
+    original_array: np.ndarray, original_values: pd.Series, relabel_values: pd.Series
+) -> np.ndarray:
+    """Replace original values with corresponding relabel values in array."""
+
+    id_map: dict[int, int] = pd.Series(relabel_values.values, index=original_values).to_dict()
+    max_value = np.max(original_array) + 1
+    choices = np.zeros(max_value)
+
+    for old in range(max_value):
+        if old in id_map:
+            choices[old] = id_map[old]
+
+    return choices[original_array]
 
 
 def generate_tracks(
@@ -1597,7 +1610,7 @@ def generate_tracks(
 
     track_table = pd.DataFrame()
     for i, (fp, crop, labeled_images) in enumerate(paths_crops_labeled_images_all):
-        if timeframes_for_table == None:
+        if timeframes_for_table is None:
             current_T = i
         else:
             current_T = timeframes_for_table[i]
