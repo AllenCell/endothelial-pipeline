@@ -17,7 +17,11 @@ from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data, get_bins
 from endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE
+from endo_pipeline.settings import (
+    DIFFAE_PC_COLUMN_NAMES,
+    NUM_PCS_TO_ANALYZE,
+    TRAJECTORY_DICT_FILE_NAME,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -260,7 +264,7 @@ def get_and_analyze_ddff(
         condition = condition_dict[dataset_name]
         traj_dict[condition] = traj
 
-    np.save(output_savedir / "traj_dict", traj_dict, allow_pickle=True)  # type: ignore
+    np.save(output_savedir / TRAJECTORY_DICT_FILE_NAME, traj_dict, allow_pickle=True)  # type: ignore
 
     # generate plot of stable fixed points from different datasets
     # overlaid on top of each other

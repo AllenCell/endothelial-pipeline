@@ -45,7 +45,7 @@ def main(
         get_most_recent_run_name,
         load_model_manifest,
     )
-    from endo_pipeline.settings import OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS
+    from endo_pipeline.settings import OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS, TRAJECTORY_DICT_FILE_NAME
 
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
@@ -71,7 +71,9 @@ def main(
     # Get fit (3D) PCA object from manifest
     reducer = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=3)
 
-    traj_dict = np.load(output_savedir / "traj_dict.npy", allow_pickle=True).item()
+    traj_dict = np.load(
+        output_savedir / f"{TRAJECTORY_DICT_FILE_NAME}.npy", allow_pickle=True
+    ).item()
 
     # Reconstruction of crops from latent space
     # coordinates via DiffAE model
