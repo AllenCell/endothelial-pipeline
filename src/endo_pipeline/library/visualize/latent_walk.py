@@ -13,7 +13,7 @@ def _plot_latent_walk_batch_as_grid(
     batch_index: int,
     array_of_crops: np.ndarray,
     coordinate_values: np.ndarray,
-    save_path: str,
+    save_path: Path,
     file_name: str,
     use_pcs: bool = True,
 ) -> None:
