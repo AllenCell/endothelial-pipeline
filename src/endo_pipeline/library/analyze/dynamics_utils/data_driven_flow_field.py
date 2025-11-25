@@ -139,7 +139,7 @@ def _ddff_model_analysis(
     # solve IVP, get back trajectory
     traj = solve_ddff_ode(flow_field_dict, init, time_span)
 
-    flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj, fig_savedir)
+    flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj, plot_bounds, fig_savedir)
 
     # hack-y work around for intermediate shear stress
     # simulate second trajectory to get second stable point
