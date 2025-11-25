@@ -8,7 +8,6 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     datasets: Datasets | None = None,
-    resolution_level: int = 1,
     upload_to_fms: bool = True,
     config_name: str | None = None,
     finetuned: bool = False,
@@ -55,8 +54,6 @@ def main(
         Name of the model run to evaluate. If None, uses the most recent run.
     datasets
         Optional, list of datasets or dataset collections to evaluate the model on.
-    resolution_level
-        Resolution level to at which to load images (zarr file format) at.
     upload_to_fms
         True to upload the prediction file for each dataset to FMS, False to only save locally.
     config_name
@@ -82,6 +79,7 @@ def main(
     from endo_pipeline.settings import (
         DIFFAE_MODEL_EVAL_CONFIG,
         DIFFAE_MODEL_EVAL_FINETUNE_CONFIG,
+        DIFFAE_ZARR_RESOLUTION_LEVEL,
         Z_SLICE_OFFSETS,
     )
 
@@ -136,7 +134,7 @@ def main(
         prediction_path = evaluate_model_on_grid_of_crops_from_one_dataset(
             model=model,
             dataset_config=dataset_config,
-            resolution_level=resolution_level,
+            resolution_level=DIFFAE_ZARR_RESOLUTION_LEVEL,
             z_slice_offsets=Z_SLICE_OFFSETS,
             frame_start=frame_start,
             frame_stop=frame_stop,

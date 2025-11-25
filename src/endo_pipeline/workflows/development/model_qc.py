@@ -67,21 +67,21 @@ def main(
         get_zarr_location_for_position,
         load_model_manifest,
     )
-    from endo_pipeline.settings import (
-        DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT,
-        DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL,
-        MODEL_QC_NOISE_LEVELS,
-    )
     from endo_pipeline.settings.examples import (
         MODEL_QC_EXAMPLES_REP_2_POSITIONS,
         MODEL_QC_EXAMPLES_TRAINING_POSITIONS,
         MODEL_QC_EXAMPLES_VALIDATION_POSITIONS,
     )
+    from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
     from endo_pipeline.settings.plot_defaults import (
         MODEL_QC_FIG_KWARGS,
         MODEL_QC_GRIDSPEC_KWARGS,
         MODEL_QC_PLOT_DIRECTION,
         MODEL_QC_SUBPLOT_KWARGS,
+    )
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT,
+        MODEL_QC_NOISE_LEVELS,
     )
 
     logger = logging.getLogger(__name__)
@@ -165,7 +165,7 @@ def main(
             zarr_loc = get_zarr_location_for_position(dataset_config, position)
             img = load_image(
                 zarr_loc,
-                level=DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL,
+                level=DIFFAE_ZARR_RESOLUTION_LEVEL,
                 timepoints=timepoint,
                 squeeze=True,
                 compute=True,

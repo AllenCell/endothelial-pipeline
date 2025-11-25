@@ -5,7 +5,6 @@ TAGS = ["preprocessing"]
 
 def main(
     datasets: Datasets | None = None,
-    resolution_level: int = 1,
     output_dir: str | None = None,
 ) -> None:
     """
@@ -30,8 +29,6 @@ def main(
     ----------
     datasets
         List of datasets or dataset collections to register.
-    resolution_level
-        Resolution level of the zarr files to be used for registration.
     output_dir
         Directory where the aligned images will be saved. If not provided,
         workflow will select a default location.
@@ -61,7 +58,11 @@ def main(
         save_dataframe_manifest,
         save_image_manifest,
     )
-    from endo_pipeline.settings import IF_INTEGRATION_SAVE_DIRECTORY, Z_SLICE_OFFSETS
+    from endo_pipeline.settings import (
+        DIFFAE_ZARR_RESOLUTION_LEVEL,
+        IF_INTEGRATION_SAVE_DIRECTORY,
+        Z_SLICE_OFFSETS,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ def main(
     else:
         output_dir = Path(IF_INTEGRATION_SAVE_DIRECTORY)
 
-    output_dir = output_dir / f"live_fixed_resolution_{resolution_level}"
+    output_dir = output_dir / "live_fixed"
 
     # If the output directory already exists (and not in demo mode, which will
     # append a timestamp to ensure the directory is unique), the workflow will
@@ -119,7 +120,11 @@ def main(
         )
 
         df = align_all_positions_for_dataset_pair(
-            dataset_pair, resolution_level, Z_SLICE_OFFSETS, output_dir, num_positions_to_align
+            dataset_pair,
+            DIFFAE_ZARR_RESOLUTION_LEVEL,
+            Z_SLICE_OFFSETS,
+            output_dir,
+            num_positions_to_align,
         )
 
         # Save dataframe of aligned images.
@@ -147,20 +152,17 @@ def main(
             break
 
     # Set manifest name and parameters.
-    manifest_name = f"registered_live_fixed_resolution_{resolution_level}{name_suffix}"
-    manifest_parameters = {"resolution_level": resolution_level}
+    manifest_name = f"registered_live_fixed{name_suffix}"
 
     # Save out dataframe manifest.
     logger.info("Saving image registration dataframe to dataframe manifest [ %s ]", manifest_name)
     dataframe_manifest = create_dataframe_manifest(manifest_name, __file__)
-    dataframe_manifest.parameters = manifest_parameters
     dataframe_manifest.locations.update(dataframe_locations)
     save_dataframe_manifest(dataframe_manifest)
 
     # Save out image manifest.
     logger.info("Saving registered image location to image manifest [ %s ]", manifest_name)
     image_manifest = create_image_manifest(manifest_name, __file__)
-    image_manifest.parameters = manifest_parameters
     image_manifest.locations.update(image_locations)
     save_image_manifest(image_manifest)
 
