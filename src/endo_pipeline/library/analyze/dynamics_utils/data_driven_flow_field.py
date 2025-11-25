@@ -17,7 +17,12 @@ from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data, get_bins
 from endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE
+from endo_pipeline.settings import (
+    DIFFAE_PC_COLUMN_NAMES,
+    GRID_NUM_FOR_INITS,
+    NUM_PCS_TO_ANALYZE,
+    TRAJECTORY_DICT_FILE_NAME,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -136,35 +141,28 @@ def _ddff_model_analysis(
     traj = solve_ddff_ode(flow_field_dict, init, time_span)
     traj_list = [traj]  # initialize list of trajectories
 
-    # hack-y work around for intermediate shear stress
-    # simulate multiple trajectories
-    if dataset_name in [
-        "20250319_20X",
-        "20250618_20X",
-        "20250428_20X",
-        "20250813_20X",
-        "20250818_20X",
-    ]:
-        # get initial conditions in coarse grid based on bin centers
-        num_steps = [5, 4, 3]
-        coarse_grid = [
-            np.linspace(centers[0][5], centers[0][-6], num_steps[0]),
-            np.linspace(centers[1][5], centers[1][-6], num_steps[1]),
-            np.linspace(centers[2][5], centers[2][-6], num_steps[2]),
-        ]
-        # loop over coarse grid to get multiple trajectories
-        for i in range(num_steps[0]):
-            for j in range(num_steps[1]):
-                for k in range(num_steps[2]):
-                    logger.debug(
-                        "Solving ODE for initial condition: [%f, %f, %f]",
-                        coarse_grid[0][i],
-                        coarse_grid[1][j],
-                        coarse_grid[2][k],
-                    )
-                    init_ = np.array([coarse_grid[0][i], coarse_grid[1][j], coarse_grid[2][k]])
-                    traj_ = solve_ddff_ode(flow_field_dict, init_, time_span)
-                    traj_list.append(traj_)
+    # to detect multiple stable fixed points,
+    # solve ODE from multiple initial conditions
+    # and plot the trajectories together
+    # get initial conditions in coarse grid based on bin centers
+    coarse_grid = [
+        np.linspace(centers[0][5], centers[0][-6], GRID_NUM_FOR_INITS[0]),
+        np.linspace(centers[1][5], centers[1][-6], GRID_NUM_FOR_INITS[1]),
+        np.linspace(centers[2][5], centers[2][-6], GRID_NUM_FOR_INITS[2]),
+    ]
+    # loop over coarse grid to get multiple trajectories
+    for i in range(GRID_NUM_FOR_INITS[0]):
+        for j in range(GRID_NUM_FOR_INITS[1]):
+            for k in range(GRID_NUM_FOR_INITS[2]):
+                logger.debug(
+                    "Solving ODE for initial condition: [%f, %f, %f]",
+                    coarse_grid[0][i],
+                    coarse_grid[1][j],
+                    coarse_grid[2][k],
+                )
+                init_ = np.array([coarse_grid[0][i], coarse_grid[1][j], coarse_grid[2][k]])
+                traj_ = solve_ddff_ode(flow_field_dict, init_, time_span)
+                traj_list.append(traj_)
 
     # call main flow field viz function (makes and saves plots)
     flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj_list, plot_bounds, fig_savedir)
@@ -260,7 +258,7 @@ def get_and_analyze_ddff(
         condition = condition_dict[dataset_name]
         traj_dict[condition] = traj
 
-    np.save(output_savedir / "traj_dict", traj_dict, allow_pickle=True)  # type: ignore
+    np.save(output_savedir / TRAJECTORY_DICT_FILE_NAME, traj_dict, allow_pickle=True)  # type: ignore
 
     # generate plot of stable fixed points from different datasets
     # overlaid on top of each other
