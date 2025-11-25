@@ -156,7 +156,7 @@ def add_timestamp(
     interval_minutes: int,
     fontsize: int = FONTSIZE_LARGE,
     shear_stress: float | None = None,
-) -> matplotlib.text:
+) -> matplotlib.text.Text:
     """
     Add a timestamp to the given axis based on frame number and interval (hr:min).
 
