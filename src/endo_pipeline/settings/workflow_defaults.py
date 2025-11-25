@@ -2,18 +2,21 @@
 
 from typing import Literal
 
-DEFAULT_MODEL_MANIFEST_NAME: str = "diffae_04_10"
+DEFAULT_MODEL_MANIFEST_NAME: str = "diffae_baseline_exclude_cell_piling"
 """Default model manifest for loading models and model features."""
 
-DEFAULT_MODEL_RUN_NAME: str | None = None
+DEFAULT_MODEL_RUN_NAME: str | None = "20251110_latent_512"
 """Default model run name within the default model manifest."""
 
-DEFAULT_PCA_DATASET_COLLECTION_NAME: str = "pca_reference"
+DEFAULT_PCA_DATASET_COLLECTION_NAME: str = "diffae_model_training"
 """Default dataset collection name for fitting PCA models."""
 
 DEFAULT_SEG_FEATURE_MANIFEST_NAME: str = "live_merged_seg_features"
 """Default manifest name for merged CDH5 segmentation, CDH5 tracking and
 label-free nuclei segmentation features."""
+
+DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS: str = "pca_reference"
+"""Default dataset collection name for the segmentation feature workflow."""
 
 DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING: Literal["bf", "cdh5"] = "bf"
 """Default image type to condition DiffAE models on."""

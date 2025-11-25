@@ -32,6 +32,7 @@ tags: dict[str, list[str]] = {}
 EXTERNAL_LOGGERS = {
     "aicsfiles.client.http.http_client": logging.WARNING,
     "cyto_dl": logging.ERROR,
+    "fontTools.subset": logging.WARNING,
     "fsspec.local": logging.WARNING,
     "git.cmd": logging.WARNING,
     "h5py._conv": logging.WARNING,
@@ -276,7 +277,7 @@ def silence_external_loggers(external_loggers: dict) -> None:
         external_logger.setLevel(logging_level)
 
 
-def setup_gpu(num_gpus: int | None) -> int | None:
+def setup_gpu(num_gpus: int) -> int | None:
     """
     Set up the GPU environment for workflow.
 

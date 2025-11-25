@@ -116,7 +116,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
 
         sample = self._generate_image(noise, cond)
 
-        for img, name in zip([cond_img, diff_img, sample], ["cond", "diff", "recon"]):
+        for img, name in [(cond_img, "cond"), (diff_img, "diff"), (sample, "recon")]:
             OmeTiffWriter.save(
                 uri=f"{self.hparams.save_dir}/{self.trainer.current_epoch}_{stage}_{name}.tiff",
                 data=detach(img).astype(float),
