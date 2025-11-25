@@ -45,6 +45,7 @@ def main(
         get_most_recent_run_name,
         load_model_manifest,
     )
+    from endo_pipeline.settings import OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS
 
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
@@ -55,12 +56,16 @@ def main(
         model_manifest, run_name_, crop_pattern="grid"
     )
 
-    # Create output folder if does not exist yet
+    # Expected output directory from generate_3d_flow_field.py
     output_savedir = get_output_path(
-        "flow_field_3d", dataframe_manifest_name, "outputs", include_timestamp=False
+        OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS,
+        dataframe_manifest_name,
+        "outputs",
+        include_timestamp=False,
     )
+    # Directory to save reconstructed crops
     crop_savedir = get_output_path(
-        "flow_field_3d", dataframe_manifest_name, "crops", include_timestamp=False
+        OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS, dataframe_manifest_name, "crops"
     )
 
     # Get fit (3D) PCA object from manifest
