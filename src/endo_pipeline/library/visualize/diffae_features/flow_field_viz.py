@@ -395,27 +395,30 @@ def plot_stable_fixed_points_together(
 def flow_field_viz_main(
     flow_field_dict: dict,
     df_cond: pd.DataFrame,
-    traj_list: list[np.ndarray],
+    traj: np.ndarray,
     plot_bounds: list[np.ndarray],
     fig_savedir: Path,
 ) -> None:
     """
-    Plot all relvant 2D summary plots
-    for the computed flow fields.
+    Plot 2D summary plots for the computed 3D flow fields.
 
-    Inputs:
-    - flow_field_dict: dict
-        Dictionary containing the flow field data.
-        Has keys:
+    **Input dictionary flow_field_dict:**
+
+    The method input ``flow_field_dict`` should have the following key/value pairs:
         - "vectors": tuple of 3D arrays (v1,v2,v3)
         - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid)
-    - df_cond: pd.DataFrame
+
+    Parameters
+    ----------
+    flow_field_dict
+        Dictionary containing the flow field data.
+    df_cond
         DataFrame containing the data to be plotted.
-        If None, no data is plotted.
-    - traj: np.ndarray
-        The trajectory of the data to be plotted.
-        Shape: (n_points, n_dimensions)
-    - fig_savedir: Path
+    traj
+        Trajectory of the system in the flow field.
+    plot_bounds
+        List of arrays specifying the plot bounds for each principal component.
+    fig_savedir
         Directory to save the figures.
     """
     # dataset flow condition for saving the figures
@@ -423,8 +426,8 @@ def flow_field_viz_main(
     condition = get_dataset_descriptions([name], simple=True, include_shear_stress=True)[name]
 
     # plot 2D slices at PC2 and PC3 values given by
-    # the last point of the "default" trajectory
-    pc_vals = (traj_list[0][-1, 2], traj_list[0][-1, 1])
+    # the last point of the input trajectory
+    pc_vals = (traj[-1, 2], traj[-1, 1])
 
     # baseline visualization: plot flow field slices
     # (quiver plot with scatter of data, streamplot)
@@ -454,9 +457,9 @@ def flow_field_viz_main(
     fig, ax = plot_quiver_slices(flow_field_dict, (zvalids, yvalids), fig_ax=(fig, ax))
     fig.suptitle(condition, fontsize=16)
 
-    for traj in traj_list:
-        for j, ax_ in enumerate(ax):  # PC1 v s PC2, PC1 vs PC3
-            ax_.scatter(traj[-1, 0], traj[-1, j + 1], s=100, color="black")
+    # plot last point of trajectory
+    for j, ax_ in enumerate(ax):  # PC1 v s PC2, PC1 vs PC3
+        ax_.scatter(traj[-1, 0], traj[-1, j + 1], s=100, color="black")
 
     # plot second stable point
     ax = set_slice_plot_bounds_and_labels(ax, plot_bounds)
@@ -471,14 +474,14 @@ def flow_field_viz_main(
     # 2) plot entire trajectory over flow field
     # PC1 v s PC2, PC1 vs PC3
     for j, ax_ in enumerate(ax):
-        ax_.plot(traj_list[0][:, 0], traj_list[0][:, j + 1], linewidth=2.5, color="navy")
+        ax_.plot(traj[:, 0], traj[:, j + 1], linewidth=2.5, color="navy")
     plt.tight_layout()
     plt.show()
     # save the figure
     save_plot_to_path(fig, fig_savedir, f"flow_field_{name}_traj")
 
     # 3) trajectory with equally spaced interpolated points
-    interpolated_points = data_driven_flow_field.interpolate_on_curve(traj_list[0])
+    interpolated_points = data_driven_flow_field.interpolate_on_curve(traj)
     for j, ax_ in enumerate(ax):
         ax_.scatter(
             interpolated_points[:, 0],
