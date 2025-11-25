@@ -21,9 +21,16 @@ from endo_pipeline.io import load_dataframe
 from endo_pipeline.manifests import (
     DataframeManifest,
     get_dataframe_location_for_dataset,
+    get_feature_dataframe_manifest_name,
     load_dataframe_manifest,
+    load_model_manifest,
 )
-from endo_pipeline.settings import ColumnName
+from endo_pipeline.settings import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    ColumnName,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -194,8 +201,8 @@ def filter_dataframe_by_annotations(
 
 
 def fit_pca(
-    dataset_collection_name: str = "pca_reference",
-    dataframe_manifest_name: str = "diffae_04_10",
+    dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    dataframe_manifest_name: str | None = None,
     filter_dataframe: bool = True,
     include_cell_piling: bool = False,
     num_pcs: int = 8,
@@ -223,7 +230,13 @@ def fit_pca(
     :
         Fit PCA object
     """
-    # Load dataframe manifest for given model
+    # Get dataframe manifest name if not provided based on default model manifest
+    if dataframe_manifest_name is None:
+        get_feature_dataframe_manifest_name(
+            load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
+            DEFAULT_MODEL_RUN_NAME,
+        )
+    # Load dataframe manifest
     manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     # Get dataframe locations for manifest for all datasets in collection
@@ -422,6 +435,7 @@ def get_dataframe_for_dynamics_workflows(
     filter_dataframe: bool = True,
     include_cell_piling: bool = True,
     include_not_steady_state: bool = True,
+    crop_pattern: Literal["grid", "tracked"] = "grid",
 ) -> pd.DataFrame:
     """
     Load DiffAE dataframe data projected onto given PC axes for downstream
@@ -442,6 +456,8 @@ def get_dataframe_for_dynamics_workflows(
         True keep timepoints annotated as "cell_piling", False to remove them.
     include_not_steady_state
         True to keep timepoints annotated as "not_steady_state", False to remove them.
+    crop_pattern
+        Crop pattern used to generate the feature dataframe. Either 'grid' or 'tracked'.
 
     Returns
     -------
@@ -472,8 +488,7 @@ def get_dataframe_for_dynamics_workflows(
     else:
         df_filtered = df
 
-    # add crop index column
-    df_with_crop = add_crop_index(df_filtered)
+    df_with_crop = add_crop_index(df_filtered, crop_pattern)
 
     # add dataset duration description column
     dataset_config = load_dataset_config(dataset_name)
@@ -570,7 +585,10 @@ def add_description_column(
     return df
 
 
-def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
+def add_crop_index(
+    df: pd.DataFrame,
+    crop_pattern: Literal["grid", "tracked"] = "grid",
+) -> pd.DataFrame:
     """
     Add crop index column to DataFrame df. (Crops are currently identified by
         their starting position in x and y.).
@@ -585,27 +603,46 @@ def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
     - df: pd.DataFrame, DataFrame of feature data for one
         dataset with added crop index column
     """
-    # check that required columns are present in dataframe
-    required_columns = [ColumnName.START_X, ColumnName.START_Y, ColumnName.POSITION]
-    check_required_columns_in_dataframe(df, required_columns)
+    if crop_pattern not in ["grid", "tracked"]:
+        logger.error("Crop pattern must be 'tracked' or 'grid', got [ %s ]", crop_pattern)
+        raise ValueError("Input crop_pattern must be 'grid' or 'tracked'")
 
-    # get list of unique starting positions and FOV_IDs
-    start_x = df[ColumnName.START_X].unique().tolist()
-    start_y = df[ColumnName.START_Y].unique().tolist()
-    position = df[ColumnName.POSITION].unique().tolist()
-    tup_list = [(x, y, pos) for x in start_x for y in start_y for pos in position]
+    if crop_pattern == "tracked" and "track_id" in df.columns:
+        required_columns = [ColumnName.POSITION, "track_id"]
+        check_required_columns_in_dataframe(df, required_columns)
+        track_id = df["track_id"].unique().tolist()
+        position = df[ColumnName.POSITION].unique().tolist()
+        tup_list = [(track, pos) for track in track_id for pos in position]
 
-    # function to convert starting position and FOV_ID to crop index
-    def _pos_to_index(x: float, y: float, position: str) -> int:
-        return tup_list.index((x, y, position))
+        def _pos_to_index_tracked(j: float, position: str) -> int:
+            return tup_list.index((j, position))
 
-    # apply function to DataFrame to get crop index
-    df[ColumnName.CROP_INDEX] = df.apply(
-        lambda x: _pos_to_index(
-            x[ColumnName.START_X], x[ColumnName.START_Y], x[ColumnName.POSITION]
-        ),
-        axis=1,
-    )
+        df[ColumnName.CROP_INDEX] = df.apply(
+            lambda x: _pos_to_index_tracked(x["track_id"], x[ColumnName.POSITION]),
+            axis=1,
+        )
+
+    elif crop_pattern == "grid":
+        required_columns = [ColumnName.START_X, ColumnName.START_Y, ColumnName.POSITION]
+        check_required_columns_in_dataframe(df, required_columns)
+
+        # get list of unique starting positions and FOV_IDs
+        start_x = df[ColumnName.START_X].unique().tolist()
+        start_y = df[ColumnName.START_Y].unique().tolist()
+        position = df[ColumnName.POSITION].unique().tolist()
+        tup_list = [(x, y, pos) for x in start_x for y in start_y for pos in position]
+
+        # function to convert starting position and FOV_ID to crop index
+        def _pos_to_index_grid(x: float, y: float, position: str) -> int:
+            return tup_list.index((x, y, position))
+
+        # apply function to DataFrame to get crop index
+        df[ColumnName.CROP_INDEX] = df.apply(
+            lambda x: _pos_to_index_grid(
+                x[ColumnName.START_X], x[ColumnName.START_Y], x[ColumnName.POSITION]
+            ),
+            axis=1,
+        )
 
     return df
 

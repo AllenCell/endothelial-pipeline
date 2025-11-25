@@ -46,7 +46,9 @@ def add_scalebar(
     scale_bar_px = scale_bar_um / pixel_size
     length_px = scale_bar_px
 
-    ny, nx = ax.images[0].get_array().shape  # image dimensions
+    axes_values = ax.images[0].get_array()
+    assert axes_values is not None
+    ny, nx = axes_values.shape  # image dimensions
 
     # Determine bar position
     if location == "upper left":
@@ -151,6 +153,7 @@ def plot_image_thumbnail(
 
 def broadcast_title_list(title_list: list[str] | None, target_length: int) -> list[str] | None:
     """Broadcast a list of titles to a target length.
+
     Parameters
     ----------
     title_list:

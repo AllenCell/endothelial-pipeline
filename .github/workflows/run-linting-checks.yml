@@ -1,6 +1,12 @@
 name: run-linting-checks
 
-on: [push]
+on:
+  push:
+    branches-ignore:
+      # Don't run on the merge queue; it causes issues with concurrency settings
+      - "gh-readonly-queue/**"
+  merge_group:
+  workflow_dispatch:
 
 env:
   UV_VERSION: 0.7.1 # same as .pre-commit-config.yaml

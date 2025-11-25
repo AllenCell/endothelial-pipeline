@@ -1,5 +1,9 @@
 from endo_pipeline.cli import Datasets
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+from endo_pipeline.settings import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PCA_DATASET_COLLECTION_NAME,
+)
 
 TAGS = ["eval_diffae_model", "diffae_features"]
 
@@ -74,7 +78,7 @@ def main(
 
     # Default list of datasets if not provided.
     if datasets is None:
-        datasets = get_datasets_in_collection("pca_reference")
+        datasets = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in datasets]
 
