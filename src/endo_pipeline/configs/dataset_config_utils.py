@@ -17,7 +17,7 @@ from endo_pipeline.configs import (
     load_dataset_collection_config,
     load_dataset_config,
 )
-from endo_pipeline.settings import DEFAULT_PCA_DATASET_COLLECTION_NAME
+from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
 
 logger = logging.getLogger(__name__)
 
