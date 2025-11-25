@@ -1,7 +1,6 @@
-name: diffae_training_dataframe_resolution_1_include_cell_piling
+name: diffae_training_dataframe_include_cell_piling
 workflow: create_diffae_training_dataframe
 parameters:
-  resolution_level: 1
   z_slice_offsets:
   - 4
   - 11

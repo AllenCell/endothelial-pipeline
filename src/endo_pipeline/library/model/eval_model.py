@@ -39,6 +39,8 @@ from endo_pipeline.manifests import (
 )
 from endo_pipeline.settings import (
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    DIFFAE_ZARR_RESOLUTION_LEVEL,
+    NATIVE_ZARR_RESOLUTION_CROP_SIZE,
     ZARR_BRIGHTFIELD_CHANNEL,
     ColumnName,
     CytoDLLoadDataKeys,
@@ -257,7 +259,9 @@ def generate_overrides_for_track_based_crops(
 
 
 def add_diffae_model_eval_crop_columns(
-    df: pd.DataFrame, diffae_resolution_level: int = 1, crop_size: int = 256
+    df: pd.DataFrame,
+    diffae_resolution_level: int = DIFFAE_ZARR_RESOLUTION_LEVEL,
+    crop_size: int = NATIVE_ZARR_RESOLUTION_CROP_SIZE,
 ) -> pd.DataFrame:
     """
     Add columns to the dataframe for DiffAE model evaluation crops.
@@ -379,6 +383,10 @@ def preprocess_tracking_manifest_for_model_eval(
 
     # Adjust the crop coordinates to be consistent with the resolution level
     resolution = sequence_to_scalar(df["diffae_resolution_level_to_use"])
+
+    # Need to confirm that this is loading at the default resolution level of 1
+    # If I understand correctly, gets set by add_diffae_model_eval_crop_columns
+    logger.debug("Loading images at resolution level: [ %d ]", resolution)
     columns_to_downsample = [
         ColumnName.START_X,
         ColumnName.START_Y,
@@ -567,7 +575,7 @@ def update_prediction_from_tracks_with_metadata(
 def evaluate_model_on_grid_of_crops_from_one_dataset(
     model: "CytoDLModel",
     dataset_config: DatasetConfig,
-    resolution_level: int = 1,
+    resolution_level: int = DIFFAE_ZARR_RESOLUTION_LEVEL,
     z_slice_offsets: tuple[int, int] | None = None,
     frame_start: int | None = None,
     frame_stop: int | None = None,

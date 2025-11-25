@@ -11,7 +11,6 @@ def main(
     finetuned_model_manifest_name: str | None = None,
     finetuned_run_name: str | None = None,
     dataset_pair_type: Literal["live_fixed", "20x_40x"] = "live_fixed",
-    resolution_level: int = 1,
 ) -> None:
     """
     Finetune a DiffAE model to align features for paired datasets.
@@ -26,7 +25,7 @@ def main(
 
     If a finetuned model manifest name is not given, it will be automatically constructed based
     on the dataset pair type and the resolution level of the zarr files. The format is
-    ``finetune_{dataset_pair_type}_resolution_{resolution_level}``.
+    ``finetune_{dataset_pair_type}``.
 
     The training runs instantiated from the this workflow will be saved in the
     corresponding model manifest, with run name either provided by the user or automatically
@@ -47,8 +46,6 @@ def main(
         Optional, name to give the finetuned model run.
     dataset_pair_type
         The type of dataset pairs to use for finetuning ("live_fixed" or "20x_40x").
-    resolution_level
-        The resolution level of the zarr files to be used for training.
     """
     import logging
 
@@ -94,35 +91,13 @@ def main(
 
     # double-check zarr resolution from baseline model manifest parameters
     base_model_manifest = load_model_manifest(base_model_manifest_name)
-    if "resolution_level" in base_model_manifest.parameters:
-        baseline_resolution = base_model_manifest.parameters["resolution_level"]
-        if baseline_resolution != resolution_level:
-            logger.warning(
-                "Baseline model [ %s ] was trained at resolution level [ %s ], "
-                "but finetuning is being run at resolution level [ %s ]. "
-                "This may lead to suboptimal results.",
-                base_model_manifest_name,
-                baseline_resolution,
-                resolution_level,
-            )
 
     # get training and validation datasets based on zarr resolution
     # by loading the DataframeManifest from the model directory
     # and using the DatasetLocation objects to get the paths
-    dataframe_manifest_base = "diffae_finetuning_dataframe_resolution_"
-    dataframe_manifest_name = f"{dataframe_manifest_base}{resolution_level}{name_suffix}"
+    dataframe_manifest_name = f"diffae_finetuning_dataframe{name_suffix}"
 
-    try:
-        dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
-    except FileNotFoundError:
-        logger.error(
-            "Dataframe manifest [ %s ] for resolution_level [ %s ] not found. "
-            "Please run the create_diffae_finetuning_dataframe script first "
-            "with the appropriate resolution_level.",
-            dataframe_manifest_name,
-            resolution_level,
-        )
-        raise
+    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     train_dataframe_location = dataframe_manifest.locations["training"]
     val_dataframe_location = dataframe_manifest.locations["validation"]
@@ -146,9 +121,7 @@ def main(
 
     # set up manifest and run names for finetuned model
     if finetuned_model_manifest_name is None:
-        finetuned_model_manifest_name = (
-            f"finetune_{dataset_pair_type}_resolution_" f"{resolution_level}{name_suffix}"
-        )
+        finetuned_model_manifest_name = f"finetune_{dataset_pair_type}{name_suffix}"
     if finetuned_run_name is None:
         # Default is "finetuned_diffae_{timestamp}"
         finetuned_run_name = make_name_unique("finetuned_diffae").name
@@ -205,7 +178,6 @@ def main(
     manifest = create_model_manifest(finetuned_model_manifest_name, __file__)
     manifest.parameters = {
         "training_datasets": list_of_training_datasets,
-        "resolution_level": resolution_level,
     }
     manifest.locations[finetuned_run_name] = ModelLocation(mlflowid=run_id)
     save_model_manifest(manifest)
