@@ -114,6 +114,8 @@ def create_timelapse_mp4(
         pos_str = f"P{zarr_positions[0]}"
     else:
         pos_str = f"P{min(zarr_positions)}-{max(zarr_positions)}"
+    if std_dev_proj and channel == "BF":
+        pos_str = "std_dev_" + pos_str
     fname = f"{dataset_config.name}_{channel}_{pos_str}_{dataset_config.fmsid}_fps{fps}_scalebar{scale_bar_um}um.mp4"
 
     # Prepare writer
