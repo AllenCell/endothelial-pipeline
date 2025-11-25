@@ -11,7 +11,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import get_dataset_des
 from endo_pipeline.library.analyze.dynamics_utils import data_driven_flow_field
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.visualize.diffae_features import feature_viz
-from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, ColumnName
+from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, TRAJECTORY_DICT_FILE_NAME, ColumnName
 
 
 def set_slice_plot_bounds_and_labels(
@@ -334,7 +334,9 @@ def plot_stable_fixed_points_together(
     on the same plot.
     """
 
-    traj_dict = np.load(output_savedir / "traj_dict.npy", allow_pickle=True).item()
+    traj_dict = np.load(
+        output_savedir / f"{TRAJECTORY_DICT_FILE_NAME}.npy", allow_pickle=True
+    ).item()
 
     conditions = get_dataset_descriptions(list_of_datasets, simple=True)
 
