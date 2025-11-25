@@ -17,7 +17,11 @@ from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data, get_bins
 from endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE
+from endo_pipeline.settings import (
+    DIFFAE_PC_COLUMN_NAMES,
+    NUM_PCS_TO_ANALYZE,
+    TRAJECTORY_DICT_FILE_NAME,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +159,7 @@ def get_and_analyze_ddff(
     dt: float,
     time_span: list,
     init: np.ndarray,
+    num_bins: list[int],
     fig_savedir: Path,
     vtk_savedir: Path,
     output_savedir: Path,
@@ -187,6 +192,8 @@ def get_and_analyze_ddff(
         Time span for the ODE solver.
     init
         Initial condition for the trajectory.
+    num_bins
+        Number of bins for histogramming along each dimension in the 3D state space.
     fig_savedir
         Directory to save figures.
     vtk_savedir
@@ -196,7 +203,6 @@ def get_and_analyze_ddff(
     """
     # get bins for KMCs
     bounds = get_3d_bounds_from_data(dataset_names, dataframe_manifest, pca)
-    num_bins = [50, 50, 50]
     bins, centers = get_bins(num_bins, bin_limits=bounds)
 
     # get experimental condition
@@ -226,7 +232,7 @@ def get_and_analyze_ddff(
         condition = condition_dict[dataset_name]
         traj_dict[condition] = traj
 
-    np.save(output_savedir / "traj_dict", traj_dict, allow_pickle=True)  # type: ignore
+    np.save(output_savedir / TRAJECTORY_DICT_FILE_NAME, traj_dict, allow_pickle=True)  # type: ignore
 
     # generate plot of stable fixed points from different datasets
     # overlaid on top of each other

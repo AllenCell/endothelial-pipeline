@@ -59,3 +59,6 @@ DATASET_COLLECTION_FOR_3D_DYNAMICS: str = "3d_flow_field_analysis"
 
 OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS: str = "flow_field_3d"
 """Default output folder name for 3D dynamics analysis."""
+
+TRAJECTORY_DICT_FILE_NAME: str = "traj_dict"
+"""Default file name for saving trajectory dictionaries."""
