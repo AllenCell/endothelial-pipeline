@@ -277,7 +277,7 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
         )
         # 3. add the new time column
         live_seg_feats_df["time_hours_since_flow_start"] = (
-            live_seg_feats_df["time_hours"] + flow_start_time_hrs
+            live_seg_feats_df["time_hours"] - flow_start_time_hrs
         )
 
         # It's plotting time!
@@ -322,7 +322,7 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
                 y_label=feats_plot_args[feat]["label"].capitalize(),
                 x_lims=feats_plot_args[time_col]["lims"],
                 y_lims=feats_plot_args[feat]["lims"],
-                set_xticks=feats_plot_args[time_col]["ticks"],
+                set_xticks=feats_plot_args["time_hrs"]["ticks"],
                 set_yticks=feats_plot_args[feat]["ticks"],
                 discrete_xticks=feats_plot_args[time_col]["discrete_ticks"],
                 discrete_yticks=feats_plot_args[feat]["discrete_ticks"],
@@ -343,6 +343,8 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
                 ax = mark_perpendicular(ax, color="lightgrey")
             if feat == "nuc_pos_vs_cell_veloc_dotprod":
                 ax.axhline(0, color="lightgrey", linestyle="--", linewidth=1)
+            # draw a line at the time where imaging started (i.e. negative of flow start time)
+            ax.axvline(-1 * flow_start_time_hrs, color="lime", linestyle="--", linewidth=1)
 
             # save the panel
             fig.savefig(out_path, bbox_inches="tight", pad_inches=0.05)
