@@ -82,8 +82,8 @@ def feature_density(
     feature_name: str,
     save_dir: Path,
     positions: list | None = None,
-    xlim: int | None = None,
-    ylim: int | None = None,
+    xlim: int | float | None = None,
+    ylim: int | float | None = None,
     pool_positions: bool = False,
     per_dataset: bool = False,
 ) -> None:
@@ -404,7 +404,7 @@ def plot_channel_intensity_histograms(
     """
     n = len(column_names)
     bins = 75
-    colors = plt.cm.tab10.colors
+    colors = plt.get_cmap("tab10")
     title = get_shear_stress_label(df)
 
     # Create subplots

@@ -181,7 +181,7 @@ DATASET_GROUPS = {
 
 # %%
 for date, df_date in df.groupby("date"):
-    group = DATASET_GROUPS[date]
+    group = DATASET_GROUPS[str(date)]
     for subgroup in group:
         plot.stacked_feature_density(
             df_all=df_date,
@@ -209,7 +209,7 @@ for date, df_date in df.groupby("date"):
 # %%
 DEMO_MODE = True
 for date, df_date in df.groupby("date"):
-    group = DATASET_GROUPS[date]
+    group = DATASET_GROUPS[str(date)]
     for subgroup in group:
         reversed_group = list(reversed(subgroup))
         if_dataset_contact_sheet(df_date, reversed_group, output_dir)
