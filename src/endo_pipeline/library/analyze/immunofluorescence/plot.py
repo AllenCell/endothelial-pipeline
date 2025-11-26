@@ -44,9 +44,7 @@ def get_shear_stress_label(df):
     return f"{data_label}\n{duration_label1}{duration_label2}"
 
 
-def bootstrap_confidence_cov(
-    df: pd.DataFrame, feature: str, n_bootstraps: int = 100
-) -> tuple[float, float]:
+def bootstrap_confidence_cov(df: pd.DataFrame, feature: str, n_bootstraps: int = 100) -> tuple:
     """
     Calculate the confidence interval for the coefficient of variation of a feature using
     bootstrapping.
@@ -341,7 +339,7 @@ def stacked_feature_density(
         )
         sb.kdeplot(df[feature], ax=ax, color=color, linewidth=3, label=label)
         # apply vertical offset
-        ax.lines[-1].set_ydata(ax.lines[-1].get_ydata() + curve_index)
+        ax.lines[-1].set_ydata(np.asarray(ax.lines[-1].get_ydata()) + curve_index)
         curve_index += y_offset_step
 
     # formatting
@@ -516,7 +514,7 @@ def if_dataset_contact_sheet(df: pd.DataFrame, dataset_list: list[str], output_d
             panels=panels,
             max_rows=n_rows,
             max_cols=n_cols,
-            col_titles=positions,
+            col_titles=[str(pos) for pos in positions],
             row_titles=data_labels,
             direction="left-right first",
             gridspec_kwargs={"wspace": 0.03, "hspace": 0.0},
