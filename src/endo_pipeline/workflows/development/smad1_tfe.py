@@ -3,13 +3,13 @@
 TAGS = ["immunoflourescence"]
 
 
-def main(backdrops: bool = False) -> None:
+def main(gen_backdrops: bool = True) -> None:
     """
     Generate timelapse feature explorer datasets for immunofluorescence SMAD1 data.
 
     Parameters
     ----------
-    backdrops
+    gen_backdrops
         Whether to generate backdrop images for the datasets. If False, it is assumed they were
         generated previously. If True, backdrop images will be created for each dataset and position.
     """
@@ -44,7 +44,6 @@ def main(backdrops: bool = False) -> None:
 
     df_manifest = load_dataframe_manifest("immunofluorescence")
     seg_img_manifest = load_image_manifest("nuclear_stain_seg")
-    img_manifest = load_image_manifest("image_zarr")
     datasets = get_datasets_in_collection("smad1")
 
     if DEMO_MODE:
@@ -66,7 +65,6 @@ def main(backdrops: bool = False) -> None:
             seg_img_location = get_image_location_for_dataset(
                 seg_img_manifest, dataset_config, position, 0
             )
-            img_location = get_image_location_for_dataset(img_manifest, dataset_config, position, 0)
 
             output_dir = get_output_path("tfe_immunofluorescence", f"{dataset_name}_P{position}")
 
@@ -82,17 +80,15 @@ def main(backdrops: bool = False) -> None:
                 dataset_name,
                 position,
                 IF_BACKDROP_IMAGES,
-                output_dir=output_dir / "backdrops",
+                output_dir / "backdrops",
             )
 
-            if backdrops:
+            if gen_backdrops:
                 generate_backdrops(
                     dataset_name,
                     position,
-                    img_location,
                     IF_BACKDROP_IMAGES,
-                    output_dir=output_dir / "backdrops",
-                    method="percentile",
+                    output_dir / "backdrops",
                 )
 
             convert_colorizer_data(
