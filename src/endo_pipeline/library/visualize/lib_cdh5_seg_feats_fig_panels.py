@@ -46,11 +46,11 @@ def make_imaging_panels(
     dataset_name: str,
     position: int,
     timeframe: int,
-    out_dir: Path,
+    workflow_name: str,
 ) -> None:
 
-    out_dir_full = get_output_path(out_dir, "images_high_quality")
-    out_dir_thumb = get_output_path(out_dir, "images_thumbnails")
+    out_dir_full = get_output_path(workflow_name, "images_high_quality")
+    out_dir_thumb = get_output_path(workflow_name, "images_thumbnails")
 
     dataset_config = load_dataset_config(dataset_name)
 
