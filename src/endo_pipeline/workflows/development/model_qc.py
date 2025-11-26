@@ -67,21 +67,21 @@ def main(
         get_zarr_location_for_position,
         load_model_manifest,
     )
-    from endo_pipeline.settings import (
-        DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT,
-        DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL,
-        MODEL_QC_NOISE_LEVELS,
-    )
     from endo_pipeline.settings.examples import (
         MODEL_QC_EXAMPLES_REP_2_POSITIONS,
         MODEL_QC_EXAMPLES_TRAINING_POSITIONS,
         MODEL_QC_EXAMPLES_VALIDATION_POSITIONS,
     )
+    from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
     from endo_pipeline.settings.plot_defaults import (
         MODEL_QC_FIG_KWARGS,
         MODEL_QC_GRIDSPEC_KWARGS,
         MODEL_QC_PLOT_DIRECTION,
         MODEL_QC_SUBPLOT_KWARGS,
+    )
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT,
+        MODEL_QC_NOISE_LEVELS,
     )
 
     logger = logging.getLogger(__name__)
@@ -112,11 +112,10 @@ def main(
     model = load_model(model_location, instantiate=True)
 
     example_sets = [
-        MODEL_QC_EXAMPLES_TRAINING_POSITIONS,
-        MODEL_QC_EXAMPLES_VALIDATION_POSITIONS,
-        MODEL_QC_EXAMPLES_REP_2_POSITIONS,
+        (MODEL_QC_EXAMPLES_TRAINING_POSITIONS, "training_positions"),
+        (MODEL_QC_EXAMPLES_VALIDATION_POSITIONS, "validation_positions"),
+        (MODEL_QC_EXAMPLES_REP_2_POSITIONS, "rep_2_positions"),
     ]
-    example_set_labels = ["training_positions", "validation_positions", "rep_2_positions"]
 
     # Load Example Data
     if DEMO_MODE:
@@ -134,7 +133,7 @@ def main(
     NOISE_LABELS = [f"{level * 100:.0f}% Noise" for level in [*MODEL_QC_NOISE_LEVELS, 1]]
     NUM_IMAGES_DENOISED = len(NOISE_LABELS)
 
-    for example_set, example_set_label in zip(example_sets, example_set_labels):
+    for example_set, example_set_label in example_sets:
 
         if DEMO_MODE:
             logger.info("DEMO MODE: Limiting example set to first example only")
@@ -166,7 +165,7 @@ def main(
             zarr_loc = get_zarr_location_for_position(dataset_config, position)
             img = load_image(
                 zarr_loc,
-                level=DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL,
+                level=DIFFAE_ZARR_RESOLUTION_LEVEL,
                 timepoints=timepoint,
                 squeeze=True,
                 compute=True,

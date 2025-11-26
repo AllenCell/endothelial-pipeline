@@ -23,7 +23,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
     def __init__(
         self,
         *,
-        noise_cons=False,
+        noise_cons: bool = False,
         autoencoder,
         image_shape,
         condition_key,
@@ -33,16 +33,15 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         loss=None,
         semantic_encoder=None,
         diffusion_key=None,
-        n_inference_steps=50,
-        save_dir="./",
-        save_images_every_n_epochs=1,
-        n_noise_samples=1,
-        train_encoder=True,
-        gamma=-1.0,
+        n_inference_steps: int = 50,
+        save_dir: str = "./",
+        save_images_every_n_epochs: int = 1,
+        n_noise_samples: int = 1,
+        train_encoder: bool = True,
+        gamma: float = -1.0,
         fixed_sample_seed: int | None = 42,
         **base_kwargs,
     ):
-        self.noise_cons = noise_cons
         # Store fixed samples for consistent visualization
         self.fixed_sample_seed = fixed_sample_seed
         self.fixed_samples = None
@@ -117,7 +116,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
 
         sample = self._generate_image(noise, cond)
 
-        for img, name in zip([cond_img, diff_img, sample], ["cond", "diff", "recon"]):
+        for img, name in [(cond_img, "cond"), (diff_img, "diff"), (sample, "recon")]:
             OmeTiffWriter.save(
                 uri=f"{self.hparams.save_dir}/{self.trainer.current_epoch}_{stage}_{name}.tiff",
                 data=detach(img).astype(float),

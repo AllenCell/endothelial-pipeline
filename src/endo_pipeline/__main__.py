@@ -277,7 +277,7 @@ def silence_external_loggers(external_loggers: dict) -> None:
         external_logger.setLevel(logging_level)
 
 
-def setup_gpu(num_gpus: int | None) -> int | None:
+def setup_gpu(num_gpus: int) -> int | None:
     """
     Set up the GPU environment for workflow.
 

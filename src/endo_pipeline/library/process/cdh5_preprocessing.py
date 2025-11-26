@@ -665,9 +665,7 @@ def split_multinucleate_regions(
     # a single segmented region
     # get properties of nuclei predictions and original segmentations
     nuc_props = regionprops(nuclei_segmentations)
-    nuc_prop_sizes = dict(
-        zip([prop.label for prop in nuc_props], [prop.area for prop in nuc_props])
-    )
+    nuc_prop_sizes = {prop.label: prop.area for prop in nuc_props}
     nuc_props_new = regionprops(
         label_image=nuc_seg_merge_adjacent, intensity_image=nuclei_segmentations
     )

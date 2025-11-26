@@ -12,6 +12,15 @@ ZARR_EGFP_CHANNEL: int = 0
 ZARR_BRIGHTFIELD_CHANNEL: int = 1
 """Default channel index for brightfield images in zarr files."""
 
+DIFFAE_ZARR_RESOLUTION_LEVEL: int = 1
+"""Default zarr resolution level for loading images for DiffAE model training and inference."""
+
+DIFFAE_DEFAULT_CROP_SIZE: int = 128
+"""Default crop size in pixels for DiffAE model training and inference at zarr resolution level 1."""
+
+NATIVE_ZARR_RESOLUTION_CROP_SIZE: int = 256
+"""Crop size in pixels at zarr resolution level 0 corresponding to DIFFAE_DEFAULT_CROP_SIZE."""
+
 LOWER_Z_SLICE_OFFSET: int = 4
 """How many slices below the "center" Z-plane to include in projections."""
 

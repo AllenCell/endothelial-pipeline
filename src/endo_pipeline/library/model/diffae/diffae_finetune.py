@@ -90,8 +90,8 @@ class DiffAEFinetune(DiffusionAutoEncoder):
             for i in range(n_latents):
                 r = torch.corrcoef(torch.stack([x_feats[:, i], y_feats[:, i]]))[0][1]
                 ax[i].scatter(
-                    x_feats[:, i].detach().cpu().numpy(),
-                    y_feats[:, i].detach().cpu().numpy(),
+                    x_feats[:, i].detach().cpu().float().numpy(),
+                    y_feats[:, i].detach().cpu().float().numpy(),
                     s=1,
                 )
                 ax[i].set_title(f"r = {r:.2f}")

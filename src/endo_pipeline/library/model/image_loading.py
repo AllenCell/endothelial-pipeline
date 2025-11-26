@@ -21,7 +21,12 @@ from endo_pipeline.configs import DatasetConfig, get_position_integer_from_zarr_
 from endo_pipeline.io import load_dataframe_from_path
 from endo_pipeline.library.process.z_stack_selection import get_plane_indices
 from endo_pipeline.manifests import get_available_zarr_locations
-from endo_pipeline.settings import LOG_EPSILON, NUM_ZSLICES, CytoDLLoadDataKeys
+from endo_pipeline.settings import (
+    DIFFAE_ZARR_RESOLUTION_LEVEL,
+    LOG_EPSILON,
+    NUM_ZSLICES,
+    CytoDLLoadDataKeys,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -478,14 +483,28 @@ class MultiDimImageDataset(SmartCacheDataset):
     def get_per_file_args(self, df: pd.DataFrame) -> list[dict]:
         """Get image loading arguments for each file in the dataframe."""
         img_data = []
-        for row in tqdm.tqdm(df.itertuples()):
+
+        for img_path, group in df.groupby(self.img_path_column):
+            # Load the image for the group.
+            img = BioImage(str(img_path))
+
+            # We expect that input images are not multiscene. This check makes
+            # sure that if scenes are specified in the dataframe, they are all
+            # the same value.
+            if self.scene_column in group.columns and group[self.scene_column].nunique() > 1:
+                logger.error("Loading does not support different scenes from the same image.")
+                raise ValueError("Dataset loading does not support multiscene images.")
+
+            # Get the list of scenes for this image using the first entry. If
+            # there are multiple scenes in the image, use only the first.
+            scene = self._get_scenes(group.iloc[0].to_dict(), img)[0]
+            img.set_scene(scene)
+
             row_data = []
-            row_dict: dict = row._asdict()  # type: ignore[operator]
-            img = BioImage(row_dict[self.img_path_column])
-            scenes = self._get_scenes(row_dict, img)
-            channel = self._get_channel(row_dict)
-            for scene in scenes:
-                img.set_scene(scene)
+
+            for row in tqdm.tqdm(group.itertuples()):
+                row_dict: dict = row._asdict()  # type: ignore[operator]
+                channel = self._get_channel(row_dict)
                 timepoints = self._get_timepoints(row_dict, img)
                 for timepoint in timepoints:
                     image_loading_args = {
@@ -571,7 +590,7 @@ def get_z_slice_bounds_per_position(
 
 def build_zarr_image_loading_dataframe(
     dataset_config: DatasetConfig,
-    resolution_level: int = 1,
+    resolution_level: int = DIFFAE_ZARR_RESOLUTION_LEVEL,
     channel: int | list[int] = 0,
     frame_start: int | None = None,
     frame_stop: int | None = None,
