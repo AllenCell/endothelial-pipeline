@@ -256,7 +256,6 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
         live_seg_feats_df["dataset"] = live_seg_feats_df["dataset_name"]
         live_seg_feats_df["frame_number"] = live_seg_feats_df["image_index"]
         annotations_to_filter_out = [
-            TimepointAnnotation.CELL_PILING,
             TimepointAnnotation.AUTO_GFP_SCOPE_ERROR,
             TimepointAnnotation.GFP_SCOPE_ERROR,
         ]
