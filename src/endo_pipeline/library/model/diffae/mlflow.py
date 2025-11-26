@@ -84,7 +84,7 @@ class MLFlowLogger(_LightningMLFlowLogger):
 
     # Metrics + log-log version
     @rank_zero_only
-    def log_metrics(self, metrics: dict[str, Any], step: int | None = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, float], step: int | None = None) -> None:
         # Original
         try:
             super().log_metrics(metrics, step)
@@ -103,7 +103,7 @@ class MLFlowLogger(_LightningMLFlowLogger):
             log_metrics = {
                 f"log10_{k}": math.log10(v)
                 for k, v in metrics.items()
-                if isinstance(v, (int, float)) and v > 0
+                if v > 0
             }
             if log_metrics:
                 super().log_metrics(log_metrics, step=int(log_step * 1_000_000))
