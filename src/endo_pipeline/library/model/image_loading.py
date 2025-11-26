@@ -483,14 +483,28 @@ class MultiDimImageDataset(SmartCacheDataset):
     def get_per_file_args(self, df: pd.DataFrame) -> list[dict]:
         """Get image loading arguments for each file in the dataframe."""
         img_data = []
-        for row in tqdm.tqdm(df.itertuples()):
+
+        for img_path, group in df.groupby(self.img_path_column):
+            # Load the image for the group.
+            img = BioImage(str(img_path))
+
+            # We expect that input images are not multiscene. This check makes
+            # sure that if scenes are specified in the dataframe, they are all
+            # the same value.
+            if self.scene_column in group.columns and group[self.scene_column].nunique() > 1:
+                logger.error("Loading does not support different scenes from the same image.")
+                raise ValueError("Dataset loading does not support multiscene images.")
+
+            # Get the list of scenes for this image using the first entry. If
+            # there are multiple scenes in the image, use only the first.
+            scene = self._get_scenes(group.iloc[0].to_dict(), img)[0]
+            img.set_scene(scene)
+
             row_data = []
-            row_dict: dict = row._asdict()  # type: ignore[operator]
-            img = BioImage(row_dict[self.img_path_column])
-            scenes = self._get_scenes(row_dict, img)
-            channel = self._get_channel(row_dict)
-            for scene in scenes:
-                img.set_scene(scene)
+
+            for row in tqdm.tqdm(group.itertuples()):
+                row_dict: dict = row._asdict()  # type: ignore[operator]
+                channel = self._get_channel(row_dict)
                 timepoints = self._get_timepoints(row_dict, img)
                 for timepoint in timepoints:
                     image_loading_args = {
