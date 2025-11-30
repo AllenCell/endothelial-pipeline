@@ -1,12 +1,32 @@
+from pathlib import Path
 from typing import Any, Literal
 
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
+from matplotlib.colorbar import ColorbarBase
 
 # set the plot shape to the golden ratio
 AX_WIDTH = 4.5
 AX_HEIGHT = AX_WIDTH * 2 / 3
+
+
+def save_colorbar(
+    outdir: Path, colormap_name: str = "viridis", figsize: tuple[int, int] = (1, 5)
+) -> None:
+    """Plots and saves the colorbar specified by "colormap_name".
+    A list of all available colormaps can be found with:
+    >>> from matplotlib import pyplot as plt
+    >>> plt.colormaps()` will list all available colormaps
+    """
+    valid_colormaps = plt.colormaps()
+    if colormap_name not in valid_colormaps:
+        raise ValueError(f"{colormap_name} is not valid. Valid colormaps are\n: {valid_colormaps}")
+
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.set_axis_off()
+    ColorbarBase(ax, cmap=colormap_name)
+    fig.savefig(outdir / f"{colormap_name}", bbox_inches="tight", pad_inches=0)
 
 
 def lineplot_of_feats(
