@@ -23,7 +23,7 @@ def detach(img: torch.Tensor | np.ndarray) -> np.ndarray:
 class _AverageAccumulator:
     def __init__(self, n_samples: int):
         self.n_samples = n_samples
-        self._accumulator: torch.Tensor | None
+        self._accumulator: torch.Tensor | None = None
 
     def add(self, sample: torch.Tensor) -> None:
         self._accumulator = sample if self._accumulator is None else (self._accumulator + sample)
