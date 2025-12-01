@@ -16,7 +16,8 @@ def detach(img: torch.Tensor | np.ndarray) -> np.ndarray:
         img = img.detach().cpu()
         if img.dtype == torch.bfloat16:
             img = img.half()
-    return img.numpy()
+        return img.numpy()
+    return img
 
 
 class _AverageAccumulator:
