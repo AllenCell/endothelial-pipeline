@@ -3,6 +3,7 @@ import os
 import tempfile
 import warnings
 from argparse import Namespace
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -76,7 +77,8 @@ class MLFlowLogger(_LightningMLFlowLogger):
             conf_path = Path(tmp_dir) / f"{mode}.yaml"
             reqs_path = Path(tmp_dir) / f"{mode}-requirements.txt"
 
-            OmegaConf.save(OmegaConf.create(params), conf_path)
+            params_dict = vars(params) if isinstance(params, Namespace) else params
+            OmegaConf.save(OmegaConf.create(params_dict), conf_path)
             reqs_path.write_text("\n".join(requirements))
 
             self.experiment.log_artifact(self.run_id, str(conf_path), "config")
@@ -100,11 +102,7 @@ class MLFlowLogger(_LightningMLFlowLogger):
 
         try:
             log_step = math.log10(step)
-            log_metrics = {
-                f"log10_{k}": math.log10(v)
-                for k, v in metrics.items()
-                if v > 0
-            }
+            log_metrics = {f"log10_{k}": math.log10(v) for k, v in metrics.items() if v > 0}
             if log_metrics:
                 super().log_metrics(log_metrics, step=int(log_step * 1_000_000))
         except Exception as e:
@@ -148,11 +146,14 @@ class MLFlowLogger(_LightningMLFlowLogger):
                     )
 
             for ckpt in to_upload:
-                self.experiment.log_artifact(
-                    self.run_id,
-                    local_path=os.path.join(ckpt_callback.dirpath, ckpt),
-                    artifact_path=artifact_path,
-                )
+                if ckpt_callback.dirpath is not None:
+                    self.experiment.log_artifact(
+                        self.run_id,
+                        local_path=os.path.join(ckpt_callback.dirpath, ckpt),
+                        artifact_path=artifact_path,
+                    )
+                else:
+                    raise ValueError("ckpt_callback.dirpath must not be None")
 
             best_path = Path(ckpt_callback.best_model_path).with_name("best.ckpt")
             os.link(ckpt_callback.best_model_path, best_path)

@@ -12,35 +12,45 @@ logger = logging.getLogger(__name__)
 
 # A cleaner detach function!
 def detach(img: torch.Tensor | np.ndarray) -> np.ndarray:
-    if torch.is_tensor(img):
+    if isinstance(img, torch.Tensor):
         img = img.detach().cpu()
         if img.dtype == torch.bfloat16:
             img = img.half()
-        img = img.numpy()
-    return img
+    return img.numpy()
 
 
-class _SampleAccumulator:
-    """Helper to accumulate samples with or without averaging!"""
-
-    def __init__(self, averaging: bool, n_samples: int):
-        self.averaging = averaging
+class _AverageAccumulator:
+    def __init__(self, n_samples: int):
         self.n_samples = n_samples
-        self._accumulator = None if averaging else []
+        self._accumulator: torch.Tensor | None
 
     def add(self, sample: torch.Tensor) -> None:
-        if self.averaging:
-            self._accumulator = (
-                sample if self._accumulator is None else (self._accumulator + sample)
-            )
-        else:
-            self._accumulator.append(sample)
+        self._accumulator = sample if self._accumulator is None else (self._accumulator + sample)
 
     def result(self) -> torch.Tensor:
-        if self.averaging:
-            return self._accumulator / self.n_samples
-        else:
-            return torch.cat(self._accumulator, dim=-1)
+        if self._accumulator is None:
+            raise ValueError("No samples were added to the accumulator.")
+        return self._accumulator / self.n_samples
+
+
+class _AppendAccumulator:
+    def __init__(self, n_samples: int):
+        self.n_samples = n_samples
+        self._accumulator: list[torch.Tensor] = []
+
+    def add(self, sample: torch.Tensor) -> None:
+        self._accumulator.append(sample)
+
+    def result(self) -> torch.Tensor:
+        return torch.cat(self._accumulator, dim=-1)
+
+
+def _get_accumulator(average: bool, n_samples: int):
+    """Function to return accumulator correct to accumulate samples with or without averaging"""
+    if average:
+        return _AverageAccumulator(n_samples)
+    else:
+        return _AppendAccumulator(n_samples)
 
 
 class DiffusionAutoEncoder(_BaseDiffAE):
@@ -74,7 +84,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         fixed_sample_seed: int | None = 42,
         **base_kwargs,
     ):
-        self.fixed_noise = None
+        self.fixed_noise: torch.Tensor | None = None
         self.noise_cons = noise_cons
         # Store fixed samples for consistent visualization
         self.fixed_sample_seed = fixed_sample_seed
@@ -283,8 +293,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
             (i, min(i + batch_size, cond.shape[0])) for i in range(0, cond.shape[0], batch_size)
         ]
         n_noise_samples = int(n_noise_samples or self.hparams.n_noise_samples)
-
-        accumulator = _SampleAccumulator(average, n_noise_samples)
+        accumulator = _get_accumulator(average, n_noise_samples)
 
         with torch.no_grad():
             for _ in tqdm.tqdm(range(n_noise_samples), desc="Sampling noise"):
