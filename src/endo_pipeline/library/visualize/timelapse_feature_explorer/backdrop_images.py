@@ -1,6 +1,6 @@
+import typing
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from pathlib import Path
 
 import imageio.v3 as iio
 import numpy as np
@@ -21,6 +21,10 @@ from endo_pipeline.library.process.image_processing import (
 )
 from endo_pipeline.manifests import get_zarr_location_for_position
 
+if typing.TYPE_CHECKING:
+    from pathlib import Path
+    from typing import Literal
+
 
 def process_frame(
     func: Callable[[BioImage, int], np.ndarray],
@@ -30,7 +34,7 @@ def process_frame(
     position: int,
     backdrop: str,
     output_dir: Path,
-    method: str,
+    method: Literal["min-max", "percentile"],
 ) -> None:
     """
     For an individual frame in the dataset, create and save the desired backdrop image
@@ -63,7 +67,7 @@ def generate_backdrops(
     position: int,
     backdrops: list[str],
     output_dir: Path,
-    method: str = "percentile",
+    method: Literal["min-max", "percentile"] = "percentile",
 ) -> None:
     """
     Generate and save backdrop images to be viewed together with the colorized

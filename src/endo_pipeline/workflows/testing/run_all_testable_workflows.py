@@ -6,17 +6,24 @@ How to use this wrapper workflow:
 3. Run all the registered workflows with `uv run endopipe -g 1 run-all-testable-workflows`, or leave out the -g 1 for just the CPU workflows.
 """
 
+import asyncio
 import logging
 import typing
 from contextlib import contextmanager
 from dataclasses import dataclass
 
+from termcolor import colored
+
 import endo_pipeline
+from endo_pipeline.settings.testing import TIMEOUT_MIN
 
 if typing.TYPE_CHECKING:
     from datetime import timedelta
 
     from cyclopts import App
+
+
+logger = logging.getLogger(__name__)
 
 
 def _testable_workflows(pipeline_app: "App", tags: dict[str, list[str]]):
@@ -60,9 +67,6 @@ def _timer():
         result.elapsed = end - start
 
 
-TIMEOUT_MIN = 3
-
-
 @dataclass
 class _WorkflowResult:
     name: str
@@ -81,41 +85,108 @@ class _WorkflowResult:
 
     @property
     def failed(self) -> bool:
-        return self.exception is not None
+        return self.exception is not None and not isinstance(self.exception, TimeoutError)
 
     @property
     def timed_out(self) -> bool:
+        return isinstance(self.exception, TimeoutError)
+
+    @property
+    def slow(self) -> bool:
         return not self.failed and self.elapsed_minutes > TIMEOUT_MIN
 
     @property
     def succeeded(self) -> bool:
-        return not self.failed and not self.timed_out
+        return not self.failed and not self.slow
 
 
-def _run_workflow(app: "App") -> _WorkflowResult:
+def _make_command(app: "App") -> tuple[str, list[str]]:
+    import sys
+
+    name = " ".join(app.name)
+
+    # Get tokens list and drop the executable and name of the workflow.
+    tokens = [arg for arg in sys.argv[1:] if arg != "run-all-testable-workflows"]
+
+    # If "demo mode" is not in tokens, add to the token list.
+    if "-d" not in tokens and "--demo-mode" not in tokens:
+        tokens.append("-d")
+
+    return (name, ["endopipe", name, *tokens])
+
+
+@dataclass
+class _LastLine:
+    text: str | None = None
+
+
+async def _print_logs(last_line: _LastLine, name: str, stream: asyncio.StreamReader):
+    async for line_bytes in stream:
+        line: str = line_bytes.decode().rstrip()
+        if line.startswith("╰────"):  # Cyclopts rich footer
+            continue
+        cyclopts_bar = "│"  # Cyclopts rich error output
+        if line.startswith(cyclopts_bar) and line.endswith("│"):
+            line = line[1:-1].strip()
+        last_line.text = line
+        print(colored(f"[{name}]", "cyan"), line)
+
+
+async def _wait_or_kill(
+    process: asyncio.subprocess.Process, timeout: float, dependent_tasks: list[asyncio.Task]
+):
+    try:
+        await asyncio.wait_for(process.wait(), timeout=timeout)
+        for task in dependent_tasks:
+            task.cancel()
+    except (TimeoutError, asyncio.CancelledError) as e:
+        logger.debug(f"Killing process due to {e.__class__.__name__}")
+        process.kill()
+        await process.wait()
+        raise e
+
+
+async def _run_workflow(last_line: _LastLine, name: str, command: list[str]):
+    process = await asyncio.subprocess.create_subprocess_exec(
+        *command,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        async with asyncio.TaskGroup() as tg:
+            stdout_task = tg.create_task(_print_logs(last_line, name, process.stdout))
+            stderr_task = tg.create_task(_print_logs(last_line, name, process.stderr))
+            tg.create_task(_wait_or_kill(process, TIMEOUT_MIN * 60 * 2, [stdout_task, stderr_task]))
+    except ExceptionGroup as group:
+        raise group.exceptions[0] from group
+    return process.returncode
+
+
+async def _manage_workflow(name: str, command: list[str]) -> _WorkflowResult:
     error = None
     with _timer() as timer:
         try:
-            # Call the workflow with no arguments
-            app("")
+            logger.info(f"Starting workflow: {' '.join(command)}")
+            last_line = _LastLine()
+            return_code = await _run_workflow(last_line, name, command)
+            if return_code is not None and return_code != 0:
+                error = last_line.text if last_line.text is not None else "Failed. See logs."
         except Exception as e:
             error = e
     elapsed = timer.elapsed
     assert elapsed is not None
-    return _WorkflowResult(name=app.name[0], exception=error, elapsed=elapsed)
+    return _WorkflowResult(name=name, exception=error, elapsed=elapsed)
 
 
 def _summarize(results: list[_WorkflowResult]):
     """
     Print a summary of successful/failed workflows, with stacktraces
     """
-    from termcolor import colored
-
     successes = [result for result in results if result.succeeded]
-    timeouts = [result for result in results if result.timed_out]
+    too_slows = [result for result in results if result.slow]
     failures = [result for result in results if result.failed]
     success_count = ""
-    timeout_count = ""
+    too_slow_count = ""
     failure_count = ""
 
     print()  # Line break before summary
@@ -125,11 +196,14 @@ def _summarize(results: list[_WorkflowResult]):
     for result in successes:
         print(colored(result.name, "green"), colored(result.elapsed_str, "yellow"))
 
-    if len(timeouts) > 0:
+    if len(too_slows) > 0:
         print(colored("====== Too slow ======", "yellow"))
-        timeout_count = f"{len(timeouts)} slow workflows "
-    for result in timeouts:
-        print(colored(f"{result.name} took {result.elapsed_str}", "yellow"))
+        too_slow_count = f"{len(too_slows)} slow workflows "
+    for result in too_slows:
+        if result.timed_out:
+            print(colored(f"{result.name} canceled after {result.elapsed_str}", "red"))
+        else:
+            print(colored(f"{result.name} succeeded after {result.elapsed_str}", "yellow"))
 
     if len(failures) > 0:
         print(colored("====== Failures ======", "red"))
@@ -139,7 +213,7 @@ def _summarize(results: list[_WorkflowResult]):
 
     if len(failures) > 0:
         final_color = "red"
-    elif len(timeouts) > 0:
+    elif len(too_slows) > 0:
         final_color = "yellow"
     else:
         final_color = "green"
@@ -148,7 +222,7 @@ def _summarize(results: list[_WorkflowResult]):
             [
                 colored("====== ", final_color),
                 colored(success_count, "green"),
-                colored(timeout_count, "yellow"),
+                colored(too_slow_count, "yellow"),
                 colored(failure_count, "red"),
                 colored("======", final_color),
             ]
@@ -156,7 +230,13 @@ def _summarize(results: list[_WorkflowResult]):
     )
 
 
+async def _run_all(pipeline_app: "App", tags: dict[str, list[str]]) -> list[_WorkflowResult]:
+    commands = [_make_command(app) for app in _testable_workflows(pipeline_app, tags)]
+    return await asyncio.gather(*[_manage_workflow(name, command) for name, command in commands])
+
+
 def main():
+
     from endo_pipeline.__main__ import pipeline_app, tags
 
     logger = logging.getLogger(__name__)
@@ -164,8 +244,7 @@ def main():
         endo_pipeline.DEMO_MODE = True
         logger.debug("Forcing demo mode on for testing.")
 
-    results = [_run_workflow(workflow) for workflow in _testable_workflows(pipeline_app, tags)]
-
+    results = asyncio.run(_run_all(pipeline_app, tags))
     _summarize(results)
 
 

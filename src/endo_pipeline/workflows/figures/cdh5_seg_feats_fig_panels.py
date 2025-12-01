@@ -14,10 +14,10 @@ def main(datasets: Datasets | None = None) -> None:
         make_classic_feature_panels,
         make_imaging_panels,
     )
-    from endo_pipeline.settings.examples import CDH5_SEG_FIG_EXAMPLE
+    from endo_pipeline.settings import CDH5_SEG_FIG_EXAMPLE, DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS
 
     if datasets is None:
-        datasets = get_datasets_in_collection("pca_reference")
+        datasets = get_datasets_in_collection(DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS)
 
     out_dir = get_output_path(__file__)
 
@@ -25,7 +25,7 @@ def main(datasets: Datasets | None = None) -> None:
         CDH5_SEG_FIG_EXAMPLE.dataset_name,
         CDH5_SEG_FIG_EXAMPLE.position,
         CDH5_SEG_FIG_EXAMPLE.timepoint,
-        out_dir,
+        __file__,
     )
 
     make_classic_feature_panels(datasets, out_dir / "classic_feature_panels")

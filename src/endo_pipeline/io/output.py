@@ -219,9 +219,10 @@ def build_fms_annotations(
         notes.append(f"Model: {model_manifest.name}{model_run}")
 
         # Add mlflow run id annotation, if found
-        model_location = model_manifest.locations.get(run_name, None)
-        if model_location is not None and model_location.mlflowid is not None:
-            metadata_builder.add_annotation("mlflow run id", model_location.mlflowid)
+        if run_name is not None:
+            model_location = model_manifest.locations.get(run_name, None)
+            if model_location is not None and model_location.mlflowid is not None:
+                metadata_builder.add_annotation("mlflow run id", model_location.mlflowid)
 
     notes.append(f"\n{additional_notes}")
 

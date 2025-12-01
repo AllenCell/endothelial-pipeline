@@ -14,7 +14,7 @@ def main(dataset_name: str) -> None:
     integration_data_dir = Path(
         "//allen/aics/endothelial/morphological_features/single_cell_track_integration"
     )
-    integration_data_paths = [dataset for dataset in integration_data_dir.glob("*.csv")]
+    integration_data_paths = list(integration_data_dir.glob("*.csv"))
     file_path = [path.as_posix() for path in integration_data_paths if dataset_name in path.name][0]
 
     dataset_config = load_dataset_config(dataset_name)

@@ -15,12 +15,18 @@ parameters:
   resolution_level: 1
   include_cell_piling: false
 locations:
-  diffae_20251115_061147: #128 lat dim w/o flip
+  diffae_20251115_061147:
     mlflowid: 958a497084d14183a05d7f57f305d6dd
     path: null
-  diffae_20251119_111146: #128 lat dim with flip
+  diffae_20251119_111146:
     mlflowid: 8923100ba3d24f2a9f30d3daf745ad8a
     path: null
-  diffae_20251120_024156: #512 lat dim with flip
+  diffae_20251120_024156:
     mlflowid: 3ba4e856f5f240d8adcc53061d7e0801
+    path: null
+  diffae_20251128_075136:
+    mlflowid: 99910d2f506b4bed96c52d9750434b04
+    path: null
+  diffae_20251128_075755:
+    mlflowid: cef0566b6ade4fe5af108bfdc39077ee
     path: null

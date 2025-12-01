@@ -1,14 +1,19 @@
+import typing
+
 import matplotlib.pyplot as plt
 import numpy as np
 
 from endo_pipeline.io import save_plot_to_path
+
+if typing.TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _plot_latent_walk_batch_as_grid(
     batch_index: int,
     array_of_crops: np.ndarray,
     coordinate_values: np.ndarray,
-    save_path: str,
+    save_path: Path,
     file_name: str,
     use_pcs: bool = True,
 ) -> None:
@@ -47,7 +52,7 @@ def _plot_latent_walk_batch_as_grid(
 def plot_latent_walk_as_grid(
     array_of_crops: np.ndarray,
     coordinate_values: np.ndarray,
-    save_path: str,
+    save_path: Path,
     file_name: str,
     use_pcs: bool = True,
 ) -> None:
