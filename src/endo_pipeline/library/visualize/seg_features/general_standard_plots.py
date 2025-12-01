@@ -216,6 +216,9 @@ def hist_2d_of_feats(
         ax=ax,
     )
 
+    # change the background color to grey
+    ax.set_facecolor("grey")
+
     # adjust the axes limits and tick behavior
     x_min = df_group[x_column_name].min() if x_lims[0] == "min" else x_lims[0]
     x_max = df_group[x_column_name].max() if x_lims[1] == "max" else x_lims[1]

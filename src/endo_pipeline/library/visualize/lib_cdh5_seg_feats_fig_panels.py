@@ -367,31 +367,24 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
         # # and its magnitude
 
         # import seaborn as sns
-        # import pandas as pd
 
-        # live_seg_feats_df.groupby("time_hours_since_flow_start")
-        # pd.cut(live_seg_feats_df["time_hours_since_flow_start"], bins=50)
+        # feat_y = feats_plot_args["centroid_velocity_orientation_deg"]["column_name"]
+        # feat_x = feats_plot_args["centroid_velocity_magnitude"]["column_name"]
+        # hue = feats_plot_args[time_col]["column_name"]
 
-        # feat = "centroid_velocity_orientation_deg"
-        # sns.heatmap
-        # fig, ax = hist_2d_of_feats(
-        #     live_seg_feats_df,
-        #     x_column_name=feats_plot_args[time_col]["column_name"],
-        #     y_column_name=feats_plot_args[feat]["column_name"],
-        #     x_label=feats_plot_args[time_col]["label"].capitalize(),
-        #     y_label=feats_plot_args[feat]["label"].capitalize(),
-        #     x_lims=feats_plot_args[time_col]["lims"],
-        #     y_lims=feats_plot_args[feat]["lims"],
-        #     set_xticks=feats_plot_args["time_hrs"]["ticks"],
-        #     set_yticks=feats_plot_args[feat]["ticks"],
-        #     discrete_xticks=feats_plot_args[time_col]["discrete_ticks"],
-        #     discrete_yticks=feats_plot_args[feat]["discrete_ticks"],
-        #     minor_ticks="xy",
-        #     bin_width=(
-        #         feats_plot_args[time_col]["bin_width"],
-        #         feats_plot_args[feat]["bin_width"],
-        #     ),
-        #     figsize=PLOT_PANEL_SIZE,
-        #     tight_layout=False,
-        #     cmap="inferno",
+        # fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+        # ax.scatter(  # type: ignore[call-arg]
+        #     xs=live_seg_feats_df[feat_y],
+        #     zs=live_seg_feats_df[feat_x],
+        #     ys=live_seg_feats_df[hue],
+        #     c=live_seg_feats_df[feat_x],
+        #     alpha=0.2,
+        #     marker=".",
+        #     cmap="jet",
+        #     vmin=0,
+        #     vmax=np.percentile(live_seg_feats_df[feat_x].dropna(), 99.9),
         # )
+        # # NOTE
+        # # if you want a nice idea of if most angles close to 0 are also low
+        # # in magnitude for the 20250611_20X dataset, then you will probably
+        # # need to use a surface plot...
