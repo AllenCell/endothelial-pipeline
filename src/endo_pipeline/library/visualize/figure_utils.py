@@ -176,7 +176,7 @@ def broadcast_title_list(title_list: list[str] | None, target_length: int) -> li
 
 def reshape_panel_list_from_direction(
     num_panels: int,
-    max_panels_per_line: int,
+    max_panels_per_line: int | None,
     direction: Literal["left-right first", "top-down first"],
 ) -> tuple[int, int]:
     """Reshape the list of panels based on the specified direction.

@@ -232,7 +232,7 @@ def fit_pca(
     """
     # Get dataframe manifest name if not provided based on default model manifest
     if dataframe_manifest_name is None:
-        get_feature_dataframe_manifest_name(
+        dataframe_manifest_name = get_feature_dataframe_manifest_name(
             load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
             DEFAULT_MODEL_RUN_NAME,
         )

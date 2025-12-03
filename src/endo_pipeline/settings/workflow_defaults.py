@@ -18,9 +18,6 @@ label-free nuclei segmentation features."""
 DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS: str = "pca_reference"
 """Default dataset collection name for the segmentation feature workflow."""
 
-DEFAULT_MODEL_ZARR_RESOLUTION_LEVEL: int = 1
-"""Default zarr resolution level for loading model input data."""
-
 DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING: Literal["bf", "cdh5"] = "bf"
 """Default image type to condition DiffAE models on."""
 

@@ -25,7 +25,7 @@ def main(datasets: Datasets | None = None) -> None:
         CDH5_SEG_FIG_EXAMPLE.dataset_name,
         CDH5_SEG_FIG_EXAMPLE.position,
         CDH5_SEG_FIG_EXAMPLE.timepoint,
-        out_dir,
+        __file__,
     )
 
     make_classic_feature_panels(datasets, out_dir / "classic_feature_panels")
