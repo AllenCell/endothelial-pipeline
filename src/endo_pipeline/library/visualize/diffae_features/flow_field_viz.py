@@ -16,7 +16,7 @@ from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, ColumnName
 
 def set_slice_plot_bounds_and_labels(
     axs: np.ndarray[plt.Axes, Any],
-    bounds: list[np.ndarray],
+    bounds: list[np.ndarray] | list[tuple[float, float]],
 ) -> np.ndarray[plt.Axes, Any]:
     """
     Set the axis limits and labels for the plots
