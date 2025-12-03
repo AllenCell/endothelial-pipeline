@@ -12,24 +12,31 @@ from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE, C
 
 
 def get_bins(
-    num_bins: list, data: list[np.ndarray] | None = None, bin_limits: list | None = None
+    num_bins: list[int] | tuple[int],
+    data: list[np.ndarray] | None = None,
+    bin_limits: list | None = None,
 ) -> tuple[list, list]:
     """
-    Generate histogram bins for computing Kramers-Moyal
-    estimates from trajectories, either automatically
-    based on data or user-defined bin limits.
+    Generate histogram bins either automatically based on data or user-defined bin limits.
 
-    Inputs:
-    - Nbins: list of number of bins in each dimension
-        (list of length ndim, where ndim is the number
-        of dimensions of the feature space)
-    - data: list of numpy arrays, each array is the trajectory
-        of a single crop in feature space (ndim = len(num_bins))
-    - bin_limits: list of tuples, each tuple contains the lower
-        and upper bounds for the bins in each dimension
+    **Binning Options:**
 
-    Either data or bin_limits must be provided.
-    If bin_limits provided, data is ignored.
+    If `bin_limits` is not provided, the function automatically determines bin edges based on the
+    provided data. It calculates the minimum and maximum values for each dimension across all
+    trajectories, and creates bins that span slightly beyond these extrema (by 0.1 units on each side).
+
+    If `bin_limits` is provided, the function uses these user-defined limits to create the bins.
+
+    If both `data` and `bin_limits` are provided, the function prioritizes `bin_limits` for bin creation.
+
+    Parameters
+    ----------
+    num_bins
+        List or tuple specifying the number of bins for each dimension.
+    data
+        List of numpy arrays, each array is a trajectory with shape (num_timepoints, num_dimensions).
+    bin_limits
+        List of [min, max] pairs for each dimension specifying the bin limits.
 
     Outputs:
     - bins: list of numpy arrays, each array contains
@@ -44,7 +51,8 @@ def get_bins(
         if data is None:
             raise ValueError("Please provide data or or upper and lower bounds for bins.")
         ndim = data[0].shape[1]
-        assert ndim == len(num_bins), "Number of bins must match number of dimensions in data."
+        if ndim != len(num_bins):
+            raise ValueError("Number of bins must match number of dimensions in data.")
         bins = []
         centers = []
         for i in range(ndim):

@@ -31,7 +31,7 @@ def main(
 
     import numpy as np
 
-    from endo_pipeline.configs import dynamics_io, get_datasets_in_collection
+    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
     from endo_pipeline.library.analyze.dynamics_utils import get_and_analyze_ddff
@@ -41,6 +41,15 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
+    from endo_pipeline.settings import (
+        DATASET_COLLECTION_FOR_3D_DYNAMICS,
+        INIT_POINT_3D,
+        KERNEL_PARAMS_3D,
+        NUM_BINS_3D,
+        OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS,
+        TIME_STEP_IN_MINUTES,
+        TRAJECTORY_TIME_SPAN,
+    )
 
     model_manifest = load_model_manifest(model_manifest_name)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
@@ -48,15 +57,17 @@ def main(
     )
 
     # Create output folder if does not exist yet
-    workflow_name = "flow_field_3d"
     output_savedir = get_output_path(
-        workflow_name, dataframe_manifest_name, "outputs", include_timestamp=False
+        OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS,
+        dataframe_manifest_name,
+        "outputs",
+        include_timestamp=False,
     )
     fig_savedir = get_output_path(
-        workflow_name, dataframe_manifest_name, "figs", include_timestamp=False
+        OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS, dataframe_manifest_name, "figs"
     )
     vtk_savedir = get_output_path(
-        workflow_name, dataframe_manifest_name, "outputs", "vtk", include_timestamp=False
+        OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS, dataframe_manifest_name, "outputs", "vtk"
     )
 
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
@@ -65,7 +76,9 @@ def main(
     # the manifest.
     valid_dataset_options = list(dataframe_manifest.locations.keys())
     if datasets is None:
-        dataset_names = get_datasets_in_collection("3d_flow_field_analysis", valid_dataset_options)
+        dataset_names = get_datasets_in_collection(
+            DATASET_COLLECTION_FOR_3D_DYNAMICS, valid_dataset_options
+        )
     else:
         dataset_names = [name for name in datasets if name in valid_dataset_options]
 
@@ -76,36 +89,18 @@ def main(
     fig, _ = feature_viz.plot_pc_scatter(dataset_names, dataframe_manifest, pca)
     save_plot_to_path(fig, fig_savedir, "pca_scatter_all")
 
-    # load default config, get kernel params
-    dynamics_config = dynamics_io.load_dynamics_config("default")
-    kernel_params = dynamics_config["kramers_moyal"]["kernel_params"]
-
-    # get time between frames
-    # in minutes
-    dt = dynamics_config["dt"]
-
-    # time span for the ODE solver
-    # units for time steps are in minutes
-    # 48 hours in minutes =
-    # 48 * 60 = 2880 time steps
-    time_span = [0, 2880]
-
-    # initial condition for the ODE solver
-    # this is fixed across datasets /
-    # shear stress conditions
-    init = np.array([-0.1, -0.7, -0.1])
-
     get_and_analyze_ddff(
         dataset_names,
         dataframe_manifest,
         pca,
-        kernel_params,
-        dt,
-        time_span,
-        init,
-        fig_savedir,
-        vtk_savedir,
-        output_savedir,
+        kernel_params=KERNEL_PARAMS_3D,
+        dt=TIME_STEP_IN_MINUTES,
+        time_span=TRAJECTORY_TIME_SPAN,
+        init=np.array(INIT_POINT_3D),
+        num_bins=NUM_BINS_3D,
+        fig_savedir=fig_savedir,
+        vtk_savedir=vtk_savedir,
+        output_savedir=output_savedir,
     )
 
 
