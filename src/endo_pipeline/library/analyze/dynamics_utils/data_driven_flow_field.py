@@ -114,9 +114,7 @@ def _ddff_model_analysis(
     # the Kramers-Moyal coefficients
     drift_vector_field = [drift_km[..., i] for i in range(ndim)]
     flow_field_dict = {"vectors": drift_vector_field, "grid": grid}
-    # flow_field_dict = compute_extrapolated_vector_field(
-    #     drift_km, centers, extrapolation_method="nearest"
-    # )
+
     # save flow field dictionary as npy
     np.save(
         output_savedir / f"flow_field_dict_{dataset_name}.npy",
@@ -130,9 +128,7 @@ def _ddff_model_analysis(
     # (diagonal diffusion tensor represented as 3D vector field)
     diffusion_vector_field = [diff_km[..., i] for i in range(ndim)]
     diffusion_field_dict = {"vectors": diffusion_vector_field, "grid": grid}
-    # diffusion_field_dict = compute_extrapolated_vector_field(
-    #     diff_km, centers, extrapolation_method="nearest"
-    # )
+
     # save diffusion field dictionary as npy
     np.save(
         output_savedir / f"diffusion_field_dict_{dataset_name}.npy",
@@ -151,15 +147,6 @@ def _ddff_model_analysis(
 
     flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj, plot_bounds, fig_savedir)
 
-    # hack-y work around for intermediate shear stress
-    # simulate second trajectory to get second stable point
-    # if dataset_name == "20250319_20X":
-    #     init = np.array([1.1, 0.0, -0.2])
-    #     time_span = [0, 5000]
-    #     traj_2 = solve_ddff_ode(flow_field_dict, init, time_span)
-    #     traj_list = [traj, traj_2]  # return both trajectories
-    #     return traj_list
-    # else:
     return traj
 
 

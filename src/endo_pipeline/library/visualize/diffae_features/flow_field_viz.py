@@ -17,19 +17,20 @@ from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, ColumnName
 def set_slice_plot_bounds_and_labels(
     axs: np.ndarray[plt.Axes, Any],
     bounds: list[np.ndarray] | list[tuple[float, float]],
+    x_label: str = "PC1",
+    y_label: str = "PC2",
 ) -> np.ndarray[plt.Axes, Any]:
     """
     Set the axis limits and labels for the plots
     of 2D slices of the 3D flow field.
     """
     xmin, xmax = bounds[0][0], bounds[0][1]
-    ymin, ymax = bounds[1][0], bounds[1][1]
-    zmin, zmax = bounds[2][0], bounds[2][1]
 
-    for ax, (qmin, qmax) in zip(axs, [(ymin, ymax), (zmin, zmax)], strict=False):
+    for i, ax in enumerate(axs):
+        qmin, qmax = bounds[i + 1][0], bounds[i + 1][1]
         ax.set_xlim(xmin, xmax)
-        ax.set_xlabel("PC1", fontsize=18)
-        ax.set_ylabel("PC2" if ax == axs[0] else "PC3", fontsize=18)
+        ax.set_xlabel(x_label, fontsize=18)
+        ax.set_ylabel(y_label if i == 0 else "PC3", fontsize=18)
         ax.set_ylim(qmin, qmax)
         ax.set_aspect("equal")
         # set number of x ticks = number of y ticks = 5
@@ -210,6 +211,76 @@ def plot_streamplot_slices(
     ax[1] = plot_one_slice_streamplot((v1, v3), (xgrid, zgrid), slice_indexes[1], ax=ax[1])
 
     return fig, ax
+
+
+def plot_flow_field_stack(
+    flow_field_dict: dict,
+    plot_axes_indicies: tuple[int, int],
+    slice_axis_index: int,
+    plot_bounds: list[np.ndarray],
+    slice_steps: np.ndarray,
+    fig_savedir: Path | None,
+    color: str = "black",
+    norm: bool = True,
+) -> None:
+    """
+    Plot flow field PC{i} vs PC{j} over a stack of slices in the 3rd variable.
+
+    Parameters
+    ----------
+    flow_field_dict
+        Dictionary containing the flow field data.
+    plot_axes_indicies
+        Tuple (i,j) of indices specifying which principal components to plot.
+    slice_axis_index
+        Index of the principal component to slice over.
+    plot_bounds
+        List of arrays specifying the plot bounds for each principal component.
+    slice_steps
+        List of arrays specifying the slice steps for each principal component.
+    fig_savedir
+        Directory to save the figures.
+    color
+        Color of the quiver arrows.
+    norm
+        Whether to normalize the velocity vectors.
+    """
+    # unpack plot axes
+    i, j = plot_axes_indicies
+
+    # get flow field
+    v_i = flow_field_dict["vectors"][i]
+    v_j = flow_field_dict["vectors"][j]
+
+    # get grid and grid spacing
+    x_i_grid = flow_field_dict["grid"][i]
+    x_j_grid = flow_field_dict["grid"][j]
+    x_k_grid = flow_field_dict["grid"][slice_axis_index]
+
+    for n, slice_value in enumerate(slice_steps.tolist()):
+        # set up figure
+        fig, ax = plt.subplots(figsize=(7, 5))
+
+        # get slice indexes for the current slice value
+        x_k_valids = get_slice_indexes(x_k_grid, slice_value)
+
+        # plot quiver plots for the specified slice
+        ax = plot_one_slice_quiver(
+            (v_i, v_j), (x_i_grid, x_j_grid), x_k_valids, ax=ax, color=color, norm=norm
+        )
+        # set the axis limits and labels
+        ax = set_slice_plot_bounds_and_labels(
+            np.array([ax]),
+            plot_bounds,
+            x_label=f"PC{i+1}",
+            y_label=f"PC{j+1}",
+        )
+        ax.set_title(f"PC{slice_axis_index+1} = {slice_value:.4f}")
+        save_plot_to_path(
+            fig,
+            fig_savedir,
+            f"flow_field_pc{slice_axis_index+1}_stack_{n}",
+        )
 
 
 def plot_flow_field_slices(
@@ -434,9 +505,45 @@ def flow_field_viz_main(
     plot_flow_field_slices(flow_field_dict, df_cond, plot_bounds, fig_savedir, pc_vals=pc_vals)
 
     ###### additional plots for visualization of flow field #######
-    # 1) last point of trajectory over flow field
-    # 2) entire trajectory over flow field
-    # 3) trajectory with equally spaced interpolated points
+    # 1) plot stacks of flow field slices
+    # 2) last point of trajectory over flow field
+    # 3) entire trajectory over flow field
+    # 4) trajectory with equally spaced interpolated points
+
+    # 1) plot stacks of flow field slices
+    # get PC1, PC2, and PC3 slices from meshgrid (ijk indexing)
+    pc_slices = [
+        flow_field_dict["grid"][0][:, 0, 0][
+            :: len(flow_field_dict["grid"][0][:, 0, 0]) // 5
+        ],  # PC1
+        flow_field_dict["grid"][1][0, :, 0][
+            :: len(flow_field_dict["grid"][1][0, :, 0]) // 5
+        ],  # PC2
+        flow_field_dict["grid"][2][0, 0, :][
+            :: len(flow_field_dict["grid"][2][0, 0, :]) // 5
+        ],  # PC3
+    ]
+    plot_axes_indicies = [
+        (0, 1),  # PC1 vs PC2 over PC3 slices
+        (0, 2),  # PC1 vs PC3 over PC2 slices
+        (1, 2),  # PC2 vs PC3 over PC1 slices
+    ]
+    slice_axis_indices = [2, 1, 0]  # PC3, PC2, PC1
+
+    for plot_axes, slice_axis in zip(plot_axes_indicies, slice_axis_indices, strict=True):
+        slice_steps = pc_slices[slice_axis]
+        plot_bounds_2d = [
+            plot_bounds[plot_axes[0]],
+            plot_bounds[plot_axes[1]],
+        ]
+        plot_flow_field_stack(
+            flow_field_dict,
+            plot_axes_indicies=(0, 1),
+            slice_axis_index=2,
+            plot_bounds=plot_bounds_2d,
+            slice_steps=slice_steps,
+            fig_savedir=fig_savedir,
+        )
 
     # get z-slice and y-slice closest to PC2 and PC3 values
     zvalids = get_slice_indexes(
@@ -446,7 +553,7 @@ def flow_field_viz_main(
         flow_field_dict["grid"][-2], pc_vals[1]
     )  # get y-slice closest to PC2 = PC2_val
 
-    # 1) plot last point of trajectory over flow field
+    # 2) plot last point of trajectory over flow field
     fig, ax = plt.subplots(1, 2, figsize=(14, 5))
 
     # get the color for the scatter plot
@@ -471,7 +578,7 @@ def flow_field_viz_main(
     # save the figure
     save_plot_to_path(fig, fig_savedir, f"flow_field_{name}_fp")
 
-    # 2) plot entire trajectory over flow field
+    # 3) plot entire trajectory over flow field
     # PC1 v s PC2, PC1 vs PC3
     for j, ax_ in enumerate(ax):
         ax_.plot(traj[:, 0], traj[:, j + 1], linewidth=2.5, color="navy")
@@ -480,7 +587,7 @@ def flow_field_viz_main(
     # save the figure
     save_plot_to_path(fig, fig_savedir, f"flow_field_{name}_traj")
 
-    # 3) trajectory with equally spaced interpolated points
+    # 4) trajectory with equally spaced interpolated points
     interpolated_points = data_driven_flow_field.interpolate_on_curve(traj)
     for j, ax_ in enumerate(ax):
         ax_.scatter(
