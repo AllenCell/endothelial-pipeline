@@ -17,6 +17,7 @@ from .input import (
 from .log_funcs import configure_logging
 from .output import (
     build_fms_annotations,
+    cache_fms_files,
     get_output_path,
     get_timestamp,
     make_name_unique,
@@ -26,6 +27,7 @@ from .output import (
 
 __all__ = [
     "build_fms_annotations",
+    "cache_fms_files",
     "configure_logging",
     "get_checkpoint_path_from_mlflow",
     "get_config_dict_from_mlflow",
