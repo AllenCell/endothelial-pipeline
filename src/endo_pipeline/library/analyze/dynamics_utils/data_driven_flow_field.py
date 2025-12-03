@@ -36,6 +36,7 @@ def _ddff_model_analysis(
     centers: list[np.ndarray],
     time_span: list,
     init: np.ndarray,
+    plot_bounds: list[np.ndarray],
     fig_savedir: Path,
     vtk_savedir: Path,
     output_savedir: Path,
@@ -76,6 +77,8 @@ def _ddff_model_analysis(
         Time span for the ODE solver.
     init
         Initial condition for the trajectory.
+    plot_bounds
+        Bounds for plotting the flow field.
     fig_savedir
         Directory to save figures.
     vtk_savedir
@@ -136,8 +139,7 @@ def _ddff_model_analysis(
     # solve IVP, get back trajectory
     traj = solve_ddff_ode(flow_field_dict, init, time_span)
 
-    # call main flow field viz function (makes and saves plots)
-    flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj, fig_savedir)
+    flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj, plot_bounds, fig_savedir)
 
     # hack-y work around for intermediate shear stress
     # simulate second trajectory to get second stable point
@@ -202,8 +204,7 @@ def get_and_analyze_ddff(
         Directory to save other output files.
     """
     # get bins for KMCs
-    bounds = get_3d_bounds_from_data(dataset_names, dataframe_manifest, pca)
-    bins, centers = get_bins(num_bins, bin_limits=bounds)
+    bounds_for_plots = get_3d_bounds_from_data(dataset_names, dataframe_manifest, pca)
 
     # get experimental condition
     # descriptions of each dataset
@@ -213,6 +214,13 @@ def get_and_analyze_ddff(
     # used for crop reconstruction
     traj_dict = {}
     for dataset_name in dataset_names:
+        bounds_for_km = get_3d_bounds_from_data(
+            dataset_names=[dataset_name],
+            manifest=dataframe_manifest,
+            pca=pca,
+            pad=True,
+        )
+        bins, centers = get_bins(num_bins, bin_limits=bounds_for_km)
         traj = _ddff_model_analysis(
             dataset_name,
             dataframe_manifest,
@@ -223,6 +231,7 @@ def get_and_analyze_ddff(
             centers,
             time_span,
             init,
+            bounds_for_plots,
             fig_savedir,
             vtk_savedir,
             output_savedir,
