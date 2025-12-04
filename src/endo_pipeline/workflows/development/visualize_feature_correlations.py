@@ -52,7 +52,6 @@ def main(
     num_pcs: int | None = None,
     timepoint_annotations: list[TimepointAnnotation] | Literal["default"] | None = "default",
     aggregate: bool = True,
-    plot_correlation_scatter: bool = True,
 ) -> None:
     """
     Visualize correlation heatmaps and clustermaps for DiffAE features, PCs,
@@ -79,10 +78,7 @@ def main(
         List of timepoint annotations to exclude from the analysis. If "default",
         excludes NOT_STEADY_STATE and CELL_PILING timepoints. If None, includes all timepoints.
     aggregate
-        If True, include an aggregated dataset in the analysis.
-    plot_correlation_scatter
-        If True, plot scatter plots for each pair of feature sets.
-        Disabled if there are too many features to plot.
+        If True, uses the aggregated dataset in the analysis.
     """
 
     import itertools
@@ -103,7 +99,6 @@ def main(
     from endo_pipeline.manifests import load_model_manifest
 
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
 
     logger.info("Running correlation heatmap workflow...")
 
@@ -111,7 +106,7 @@ def main(
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     model_location = get_model_location_for_run(model_manifest, run_name_)
-    model_config = get_config_dict_from_mlflow(model_location.mlflowid)
+    model_config = get_config_dict_from_mlflow(model_location.mlflowid)  # type: ignore
     num_features = get_latent_dim_from_config(model_config)
     num_pcs = num_pcs if num_pcs is not None else min(NUM_PCS_TO_ANALYZE, num_features)
 
@@ -124,6 +119,7 @@ def main(
             TimepointAnnotation.CELL_PILING,
         ]
 
+    # Long operation: takes several minutes
     df = get_df_for_feature_correlation_viz(
         dataset_name_list=dataset_name_list,
         dataset_info_columns=dataset_info_columns,
@@ -145,7 +141,6 @@ def main(
     ]
 
     if aggregate:
-        # dataset_name_list = [*dataset_name_list, "aggregate"]
         dataset_name_list = ["aggregate"]
 
     for dataset_name in tqdm(dataset_name_list):
@@ -168,6 +163,7 @@ def main(
                 unique_feature_columns.append(col)
                 seen.add(col)
 
+        # Another long operation: takes several minutes
         logger.info("Computing full correlation matrix for dataset %s", dataset_name)
         full_correlation_matrix = df_dataset[unique_feature_columns].corr()
 
@@ -190,10 +186,6 @@ def main(
             x_filename = x_axis_label.replace(" ", "_").lower()
             y_filename = y_axis_label.replace(" ", "_").lower()
             base_filename = f"correlation_{x_filename}_vs_{y_filename}"
-
-            if x_axis_label == y_axis_label:
-                x_axis_label = f"{x_axis_label} 1"
-                y_axis_label = f"{y_axis_label} 2"
 
             if timepoint_annotations is None:
                 annotation_label = "all_timepoints"
@@ -230,9 +222,6 @@ def main(
                 data_type="correlation",
             )
 
-            if not plot_correlation_scatter:
-                continue
-
             if len(x_cols) > 16 or len(y_cols) > 16:
                 logger.info(
                     "Skipping scatter plot for %s vs %s for dataset %s "
@@ -244,7 +233,7 @@ def main(
                     len(y_cols),
                 )
                 continue
-            # make scatter plot
+
             column_list = []
             for col in x_cols + y_cols:
                 if col not in column_list:
@@ -255,7 +244,7 @@ def main(
                 output_folder=out_subdir,
                 filename=f"{base_filename}_{annotation_label}_scatter",
                 color=colors,
-                title=f"{dataset_name} {annotation_label} {x_axis_label} vs {y_axis_label}",
+                cutoff_percent=0.5,  # Drop top and bottom 0.5% of outliers
             )
 
     logger.info(

@@ -18,9 +18,10 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.colors import Normalize
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, ScalarFormatter
 from scipy import stats as spstats
 from scipy.cluster.hierarchy import linkage
+from tqdm import tqdm
 
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
 from endo_pipeline.io.output import save_plot_to_path
@@ -31,8 +32,17 @@ from endo_pipeline.library.analyze.integration.track_integration import (
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.manifests import ModelManifest
 from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
+from endo_pipeline.settings.figures import FONTSIZE_SMALL
 
 logger = logging.getLogger(__name__)
+
+plt.rcParams.update(
+    {
+        "axes.labelsize": FONTSIZE_SMALL,
+        "xtick.labelsize": FONTSIZE_SMALL,
+        "ytick.labelsize": FONTSIZE_SMALL,
+    }
+)
 
 
 def add_feature_scatter_plot(
@@ -80,6 +90,10 @@ def add_feature_scatter_plot(
     ax.set_ylim(ymin, ymax)
     ax.xaxis.set_major_locator(MaxNLocator(nbins=3, min_n_ticks=3))
     ax.yaxis.set_major_locator(MaxNLocator(nbins=3, min_n_ticks=3))
+    formatter = ScalarFormatter(useMathText=True)
+    formatter.set_scientific(True)
+    formatter.set_powerlimits((-3, 3))
+    ax.xaxis.set_major_formatter(formatter)
     if feat2_id:
         plt.setp(ax.get_yticklabels(), visible=False)
         ax.tick_params(axis="y", which="both", length=0.0)
@@ -110,19 +124,20 @@ def add_correlation_values(
     plt.setp(ax.get_yticklabels(), visible=False)
     ax.tick_params(axis="x", which="both", length=0.0)
     ax.tick_params(axis="y", which="both", length=0.0)
-    spearman, _ = spstats.spearmanr(x, y)
+    pearson, _ = spstats.pearsonr(x, y)
 
     rdbu_cmap = plt.colormaps["RdBu"]
-    normalized_corr = (spearman + 1) / 2  # type: ignore
+    normalized_corr = (pearson + 1) / 2  # type: ignore
     bg_color = rdbu_cmap(normalized_corr)
     ax.set_facecolor(bg_color)
     ax.text(
-        0.25,
-        0.45,
-        f"{spearman:.2f}",
-        size=20,
-        ha="left",
+        0.5,
+        0.5,
+        f"{pearson:.2f}",
+        ha="center",
+        va="center",
         transform=ax.transAxes,
+        fontsize=FONTSIZE_SMALL,
     )
 
 
@@ -164,7 +179,6 @@ def plot_multi_feature_correlations(
     alpha: float = 0.7,
     cutoff_percent: float = 0,
     dpi: int = 300,
-    title: str | None = None,
     output_folder: Path | None = None,
     color: str | list | np.ndarray = "black",
     filename: str = "multi_feature_correlations",
@@ -182,8 +196,6 @@ def plot_multi_feature_correlations(
         The percentage of the data to be removed from the edges
     dpi
         The resolution of the plot
-    title
-        The title of the plot
     output_folder
         The folder where the plot will be saved
     color
@@ -195,7 +207,6 @@ def plot_multi_feature_correlations(
     """
     num_features = len(df.columns)
     assert num_features >= 2
-    npts = df.shape[0]
     prange = []
     for f in df.columns:
         prange.append(np.nanpercentile(df[f].to_numpy(), [cutoff_percent, 100 - cutoff_percent]))
@@ -204,7 +215,7 @@ def plot_multi_feature_correlations(
     fig, axs = plt.subplots(
         num_features,
         num_features,
-        figsize=(2.1 * num_features, 2 * num_features),
+        figsize=(10, 9),
         sharex="col",
         gridspec_kw={"hspace": 0.1, "wspace": 0.1},
         constrained_layout=True,
@@ -212,7 +223,6 @@ def plot_multi_feature_correlations(
     )
 
     for f1id, f1 in enumerate(df.columns):
-        yrange = []
         for f2id, f2 in enumerate(df.columns):
             ax = axs[f1id, f2id]
             y = df[f1].to_numpy()
@@ -227,14 +237,14 @@ def plot_multi_feature_correlations(
                 & ~np.isinf(y)
                 & ~np.isinf(x)
             )[0]
-            valids = np.random.permutation(valids)  # Shuffle valid indices
+            valids = np.random.permutation(valids)  # Shuffle valid indices to avoid overlap
             x = x[valids]
             y = y[valids]
             plot_color = get_plot_color_array(color, valids)
 
             # Make plots
             if f2id < f1id:
-                data_range = add_feature_scatter_plot(
+                _ = add_feature_scatter_plot(
                     ax=ax,
                     feat1_id=f1id,
                     feat2_id=f2id,
@@ -244,45 +254,34 @@ def plot_multi_feature_correlations(
                     color=plot_color,
                     num_features=num_features,
                 )
-                yrange.append(data_range)
             elif f2id > f1id:
                 add_correlation_values(ax=ax, feat1=x, feat2=y)
             else:
                 add_feature_histogram(ax=ax, feat=x)
 
             if f1id == num_features - 1:
-                ax.set_xlabel(f2, fontsize=12)
+                ax.set_xlabel(f2, rotation=45, ha="center")
             if not f2id and f1id:
-                ax.set_ylabel(f1, fontsize=12)
-        if yrange:
-            ymin = np.min([ymin for (ymin, _) in yrange])
-            ymax = np.max([ymax for (_, ymax) in yrange])
-            for f2id in range(len(df.columns)):
-                ax = axs[f1id, f2id]
-                if f2id < f1id:
-                    ax.set_ylim(ymin, ymax)
+                ax.set_ylabel(f1, rotation=0, ha="right")
 
     rdbu_cmap = plt.colormaps["RdBu"]
     cbar = fig.colorbar(
         plt.cm.ScalarMappable(norm=Normalize(-1, 1), cmap=rdbu_cmap), ax=axs, shrink=0.8, pad=0.02
     )
-    cbar.set_label("Correlation", rotation=270, labelpad=20)
-
-    if title is not None:
-        fig.suptitle(title, fontsize=24)
-    else:
-        fig.suptitle(f"Total number of points: {npts}", fontsize=24)
+    cbar.set_label("Pearson correlation coefficient", rotation=270, labelpad=20)
 
     if output_folder is None:
         plt.show()
         return
 
-    save_plot_to_path(
-        figure=fig,
-        output_path=output_folder,
-        figure_name=filename,
-        dpi=dpi,
-    )
+    for file_format in [".png", ".pdf"]:
+        save_plot_to_path(
+            figure=fig,
+            output_path=output_folder,
+            figure_name=filename,
+            dpi=dpi,
+            file_format=file_format,  # type: ignore
+        )
 
 
 def plot_and_save_heatmap(
@@ -302,7 +301,7 @@ def plot_and_save_heatmap(
     filename
         The name of the file to save the heatmap as.
     """
-    fig, ax = plt.subplots(figsize=(10, 10), dpi=300)
+    fig, ax = plt.subplots(figsize=(7, 6), dpi=300)
     annotate = True
     if df.shape[0] > 16 or df.shape[1] > 16:
         annotate = False
@@ -318,6 +317,7 @@ def plot_and_save_heatmap(
         output_path=output_folder,
         figure_name=filename,
         dpi=300,
+        file_format=".pdf",
     )
 
 
@@ -364,22 +364,25 @@ def plot_and_save_clustermap(
         )
     clustering_metric = metric
     if data_type == "correlation":
-        clustering_data = np.abs(df.values)
+        clustering_data = df.values**2  # Cluster on r^2 values
         if clustering_metric == "euclidean":
             logger.warning(
-                "Using 'euclidean' metric for clustering on correlation data may not be appropriate. "
+                "Using 'euclidean' metric for clustering on correlation data "
+                "may not be appropriate. "
                 "Updating to 'cosine' metric."
             )
             clustering_metric = "cosine"
-        center = 0
-        vmin = -1
-        vmax = 1
+        center: float | None = 0.0
+        vmin: float | None = -1.0
+        vmax: float | None = 1.0
+        method = "average"
     else:
         clustering_data = df.values
         center = vmin = vmax = None
+        method = "ward"
 
-    row_linkage = linkage(clustering_data, method="average", metric=clustering_metric)
-    col_linkage = linkage(clustering_data.T, method="average", metric=clustering_metric)
+    row_linkage = linkage(clustering_data, method=method, metric=clustering_metric)
+    col_linkage = linkage(clustering_data.T, method=method, metric=clustering_metric)
 
     cluster_grid = sns.clustermap(
         df,
@@ -388,175 +391,47 @@ def plot_and_save_clustermap(
         center=center,
         vmin=vmin,
         vmax=vmax,
-        figsize=(10, 10),
+        figsize=(7, min(9, 1.5 * df.shape[0])),
         row_cluster=True,
         col_cluster=True,
+        annot_kws={"size": FONTSIZE_SMALL},
         row_linkage=row_linkage,
         col_linkage=col_linkage,
-        cbar_kws={"shrink": 0.6, "aspect": 20},
+        cbar_pos=(0.06, 0.85, 0.03, 0.18),
+    )
+
+    # Set only 5 tick labels on the color bar
+    if cluster_grid.cax is not None:
+        cmin, cmax = cluster_grid.cax.get_ylim()
+        cluster_grid.cax.yaxis.set_ticks(np.linspace(cmin, cmax, 5))
+        cluster_grid.cax.yaxis.set_ticklabels(
+            [f"{tick:.1g}" for tick in np.linspace(cmin, cmax, 5)]
+        )
+
+    # Set tick label rotation
+    cluster_grid.ax_heatmap.set_xticklabels(
+        cluster_grid.ax_heatmap.get_xticklabels(),
+        rotation=45,
+        ha="right",
+    )
+    cluster_grid.ax_heatmap.set_yticklabels(
+        cluster_grid.ax_heatmap.get_yticklabels(),
+        rotation=0,
     )
     save_plot_to_path(
         figure=cluster_grid.figure,
         output_path=output_folder,
         figure_name=f"{filename}_{metric}",
         dpi=300,
+        file_format=".pdf",
     )
-
-
-def get_correlation_matrix_df(
-    features_df: pd.DataFrame,
-    column_names_for_x_axis: list[str],
-    column_names_for_y_axis: list[str],
-    x_axis_label: str,
-    y_axis_label: str,
-    df_format: Literal["long", "wide-corrcoeff", "wide-pval"] = "long",
-    sort_by_correlation: bool = False,
-) -> pd.DataFrame:
-    """
-    Get the Pearson correlations between each column in `column_names_for_x_axis`
-    compared with each column in `column_names_for_y_axis`.
-    This is used to compare the diffae features and the measured features,
-    and then used again to compare the PCs and the measured features.
-    If `df_format` is one of the "wide" options then the outputted dataframe
-    of this function can be passed directly to `seaborn.heatmap` or
-    `seaborn.clustermap` for visualization.
-
-    Parameters
-    ----------
-    features_df
-        The DataFrame containing the features to correlate.
-    column_names_for_x_axis
-        The names of the columns to use for the x-axis.
-    column_names_for_y_axis
-        The names of the columns to use for the y-axis.
-    x_axis_label
-        The name of the x-axis.
-    y_axis_label
-        The name of the y-axis.
-    df_format
-        The format of the output DataFrame. If "long", the output DataFrame will have columns:
-        - y_axis_label
-        - x_axis_label
-        - pearsonr
-        - pval
-        If "wide-corrcoeff", the output DataFrame will have a column for each column in
-        column_names_for_x_axis and the index will be the column names in
-        column_names_for_y_axis, with the values in the DataFrame corresponding to the
-        correlation coefficients from the "long" version of the table.
-        "wide-pval" is similar to "wide-corrcoeff" but the values correspond to the p-values.
-        Defaults to "long".
-    sort_by_correlation
-        If True, the output DataFrame will be sorted by the correlation coefficients
-
-    Returns
-    -------
-    :
-        A DataFrame containing the Pearson correlation coefficients and p-values between
-        the specified columns in `features_df`. The format of the DataFrame depends on
-        the `df_format` parameter.
-
-    Notes
-    -----
-    Rows with non-finite values in the features_df DataFrame will be dropped
-    For the specific comparison where the non-finite value would show up
-    (but not for the other comparisons).
-    """
-
-    if df_format not in ("long", "wide-corrcoeff", "wide-pval"):
-        raise ValueError(
-            f"Unsupported df_format: {df_format}. "
-            f"Supported: 'long', 'wide-corrcoeff', 'wide-pval'."
-        )
-
-    x_data = features_df[column_names_for_x_axis].values  # Shape: (n_samples, n_x_features)
-    y_data = features_df[column_names_for_y_axis].values  # Shape: (n_samples, n_y_features)
-
-    # x_valid: (n_samples, n_x_features, 1), y_valid: (n_samples, 1, n_y_features)
-    x_valid = np.isfinite(x_data)[:, :, np.newaxis]
-    y_valid = np.isfinite(y_data)[:, np.newaxis, :]
-    valid_mask = x_valid & y_valid  # Shape: (n_samples, n_x_features, n_y_features)
-
-    # Count of valid samples for each pair
-    n_valid = valid_mask.sum(axis=0)  # Shape: (n_x_features, n_y_features)
-
-    # Prepare data arrays with broadcasting
-    x_broadcast = x_data[:, :, np.newaxis]  # Shape: (n_samples, n_x_features, 1)
-    y_broadcast = y_data[:, np.newaxis, :]  # Shape: (n_samples, 1, n_y_features)
-
-    # Set invalid values to NaN for computation
-    x_clean = np.where(valid_mask, x_broadcast, np.nan)
-    y_clean = np.where(valid_mask, y_broadcast, np.nan)
-
-    # Vectorized correlation computation using numpy
-    # Compute means for each valid pair
-    x_mean = np.nanmean(x_clean, axis=0)  # Shape: (n_x_features, n_y_features)
-    y_mean = np.nanmean(y_clean, axis=0)  # Shape: (n_x_features, n_y_features)
-
-    # Center the data
-    x_centered = x_clean - x_mean[np.newaxis, :, :]
-    y_centered = y_clean - y_mean[np.newaxis, :, :]
-
-    # Compute covariance and standard deviations
-    covariance = np.nansum(x_centered * y_centered, axis=0)
-    x_std = np.sqrt(np.nansum(x_centered**2, axis=0))
-    y_std = np.sqrt(np.nansum(y_centered**2, axis=0))
-
-    # Compute correlation coefficients
-    with np.errstate(divide="ignore", invalid="ignore"):
-        correlations = covariance / (x_std * y_std)
-
-    # Compute p-values using t-distribution
-    with np.errstate(divide="ignore", invalid="ignore"):
-        t_stats = correlations * np.sqrt((n_valid - 2) / (1 - correlations**2))
-        # Handle perfect correlations
-        t_stats = np.where(np.abs(correlations) >= 1, np.inf, t_stats)
-        pvals = 2 * (1 - spstats.t.cdf(np.abs(t_stats), n_valid - 2))
-
-    # Set NaN where we don't have enough valid samples
-    correlations = np.where(n_valid < 2, np.nan, correlations)
-    pvals = np.where(n_valid < 2, np.nan, pvals)
-
-    # Convert to long format
-    x_indices, y_indices = np.meshgrid(
-        range(len(column_names_for_x_axis)), range(len(column_names_for_y_axis)), indexing="ij"
-    )
-
-    correlation_df = pd.DataFrame(
-        {
-            y_axis_label: [column_names_for_y_axis[j] for j in y_indices.flatten()],
-            x_axis_label: [column_names_for_x_axis[i] for i in x_indices.flatten()],
-            "pearsonr": correlations.flatten(),
-            "pval": pvals.flatten(),
-        }
-    )
-
-    # Handle different output formats
-    if df_format in ("wide-corrcoeff", "wide-pval"):
-        value_col = "pearsonr" if df_format == "wide-corrcoeff" else "pval"
-        correlation_df = correlation_df.pivot(
-            index=y_axis_label,
-            columns=x_axis_label,
-            values=value_col,
-        )
-        correlation_df = correlation_df[column_names_for_x_axis]
-        correlation_df = correlation_df.reindex(index=column_names_for_y_axis)
-
-        if sort_by_correlation:
-            correlation_df = correlation_df.T.loc[
-                correlation_df.T[column_names_for_y_axis]
-                .abs()
-                .sort_values(by=column_names_for_y_axis, axis=0, ascending=False)
-                .index
-            ].T
-
-    return correlation_df
 
 
 def get_df_for_feature_correlation_viz(
     dataset_name_list: list[str],
     dataset_info_columns: list[str],
     classical_feature_columns: list[str],
-    num_pcs: int,
+    num_pcs: int | None,
     pc_columns: list[str],
     diffae_feature_columns: list[str],
     dataset_collection_name_for_pca: str,
@@ -605,7 +480,7 @@ def get_df_for_feature_correlation_viz(
         filtered based on the provided timepoint annotations.
     """
     df_list: list = []
-    for dataset_name in dataset_name_list:
+    for dataset_name in tqdm(dataset_name_list):
         # load and preprocess the different diffae manifests and PCA pipeline
         # NOTE: this takes a little over a minute to load
         merged_feats_df = get_preprocessed_manifests_and_km_bounds(
