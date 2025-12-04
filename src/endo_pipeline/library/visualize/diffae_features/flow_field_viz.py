@@ -263,10 +263,13 @@ def plot_flow_field_stack(
     vector_magnitude = np.sqrt(v_i**2 + v_j**2 + v_k**2)
     # set to zero where magnitude is NaN
     vector_magnitude = np.nan_to_num(vector_magnitude, nan=0.0)
+    vector_magnitude_clipped = np.clip(vector_magnitude, a_min=1e-10, a_max=None)
     # use inferno colormap
     colormap = get_cmap("inferno")
-    norm_colors = LogNorm(vmin=vector_magnitude.min() + 1e-10, vmax=vector_magnitude.max())
-    color = colormap(norm_colors(vector_magnitude))
+    norm_colors = LogNorm(vmin=vector_magnitude_clipped.min(), vmax=vector_magnitude_clipped.max())
+    color = colormap(norm_colors(vector_magnitude_clipped.ravel())).reshape(
+        (*vector_magnitude_clipped.shape, 4)
+    )  # RGBA
 
     # get grid and grid spacing
     x_i_grid = flow_field_dict["grid"][i]
