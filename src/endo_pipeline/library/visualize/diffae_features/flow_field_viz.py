@@ -258,6 +258,8 @@ def plot_flow_field_stack(
 
     # color by magnitude of the flow field
     vector_magnitude = np.sqrt(v_i**2 + v_j**2 + v_k**2)
+    # set to zero where magnitude is NaN
+    vector_magnitude = np.nan_to_num(vector_magnitude, nan=0.0)
     colormap = get_cmap("inferno")
     norm_colors = Normalize().autoscale(vector_magnitude)
     color = colormap(norm_colors(vector_magnitude))
