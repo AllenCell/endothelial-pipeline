@@ -58,7 +58,7 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
         This callback will be executed at the end of each validation epoch. Generated latent space
         walks along PC axes and saves them out as TIFF files for visualization.
 
-        Only executed on rank 0 in distributed training setups to aboid redundant computations.
+        Only executed on rank 0 in distributed training setups to avoid redundant computations.
 
         Args:
             trainer: PyTorch Lightning Trainer instance
