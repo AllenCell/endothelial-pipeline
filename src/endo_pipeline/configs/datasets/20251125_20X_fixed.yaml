@@ -1,0 +1,40 @@
+name: 20251125_20X_fixed
+date: '20251125'
+original_path: /allen/programs/allencell/data/proj0/fa6/f3d/492/40f/8c1/088/945/7f9/3b4/bbb/0a/20251125_GE00009675_Live-Fixed_SLDY/20251125_GE00009675_Live-Fixed_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251125_0abbb3b47f99450888c140f492f3dfa6_1
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: 0abbb3b47f99450888c140f492f3dfa6_1
+barcode: GE00009675
+cell_lines: [AICS-126]
+live_or_fixed_sample: fixed
+is_timelapse: false
+microscope: 3i
+objective: 20X
+shear_stress_regime: min
+pixel_size_xy_in_um: 0.382
+duration: 1
+time_interval_in_minutes: null
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+channel_names: [EGFP, BF]
+flow_conditions:
+- start: -298
+  stop: 0
+  shear_stress: 5.7
+include_scenes: [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+notes: Collect high SS 24h live/fixed paired data after 24h high SS to match live
+  imaging to fixed
+timepoint_annotations: null
+position_annotations: null
+center_z_plane: null
