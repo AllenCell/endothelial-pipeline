@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.cm import get_cmap
-from matplotlib.colors import Normalize
+from matplotlib.colors import LogNorm
 from matplotlib.ticker import MaxNLocator
 
 from endo_pipeline.io import save_plot_to_path
@@ -93,6 +93,8 @@ def plot_one_slice_quiver(
 
     x1_grid = grid[0][slice_indexes].reshape(my_shape)
     x2_grid = grid[1][slice_indexes].reshape(my_shape)
+    if isinstance(color, np.ndarray):
+        color = color[slice_indexes].reshape(my_shape[0], my_shape[1], 4)
     dx1 = velocities[0][slice_indexes].reshape(my_shape)
     dx2 = velocities[1][slice_indexes].reshape(my_shape)
 
@@ -117,10 +119,11 @@ def plot_one_slice_quiver(
     x2_grid_ = x2_grid[::ds, ::ds]
     dx1_ = dx1_[::ds, ::ds]
     dx2_ = dx2_[::ds, ::ds]
+    color_ = color[::ds, ::ds].reshape(-1, 4) if isinstance(color, np.ndarray) else color
 
     # transpose the grid and velocities for quiver plot
     # (meshgrid generated via indexing ij)
-    ax.quiver(x1_grid_.T, x2_grid_.T, dx1_.T, dx2_.T, color=color, scale=scale)
+    ax.quiver(x1_grid_.T, x2_grid_.T, dx1_.T, dx2_.T, color=color_, scale=scale)
 
     return ax
 
@@ -256,12 +259,13 @@ def plot_flow_field_stack(
     v_j = flow_field_dict["vectors"][j]
     v_k = flow_field_dict["vectors"][slice_axis_index]
 
-    # color by magnitude of the flow field
+    # color by (log scaled) magnitude of the flow field
     vector_magnitude = np.sqrt(v_i**2 + v_j**2 + v_k**2)
     # set to zero where magnitude is NaN
     vector_magnitude = np.nan_to_num(vector_magnitude, nan=0.0)
+    # use inferno colormap
     colormap = get_cmap("inferno")
-    norm_colors = Normalize().autoscale(vector_magnitude)
+    norm_colors = LogNorm(vmin=vector_magnitude.min() + 1e-10, vmax=vector_magnitude.max())
     color = colormap(norm_colors(vector_magnitude))
 
     # get grid and grid spacing
