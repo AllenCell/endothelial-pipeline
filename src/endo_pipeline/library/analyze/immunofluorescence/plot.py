@@ -507,9 +507,11 @@ def if_dataset_contact_sheet(df: pd.DataFrame, dataset_list: list[str], output_d
     # create contact sheets
     n_cols = len(positions)
     n_rows = len(dataset_list)
-    for img_content, panels in zip(
-        ["SMAD1", "CDH5"], [contrasted_smad1_img_list, contrasted_gfp_img_list]
-    ):
+
+    for img_content, panels in [
+        ("SMAD1", contrasted_smad1_img_list),
+        ("CDH5", contrasted_gfp_img_list),
+    ]:
         fig = make_contact_sheet(
             panels=panels,
             max_rows=n_rows,
