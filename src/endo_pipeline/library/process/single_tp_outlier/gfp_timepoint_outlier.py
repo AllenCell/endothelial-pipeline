@@ -47,9 +47,9 @@ def plot_gfp_outliers_rolling(
         Threshold percentage for identifying outliers (default is THRESHOLD).
     """
 
-    fig, ax = plt.subplots(figsize=(8, 8))
+    fig, ax = plt.subplots(figsize=(5.3, 3))
     ax.plot(tp_means, label="TP Mean Intensity", color="black", alpha=0.7)
-    ax.plot(rolling_mean, label=f"Rolling Mean (window={window})", color="blue", alpha=0.9)
+    ax.plot(rolling_mean, label=f"Rolling Mean\n(window = {window})", color="blue", alpha=0.9)
     ax.plot(lower_threshold, color="red", linestyle="--", label=f"Lower ({int(percent*100)}%)")
     ax.plot(upper_threshold, color="orange", linestyle="--", label=f"Upper ({int(percent*100)}%)")
 
@@ -57,6 +57,7 @@ def plot_gfp_outliers_rolling(
         ax.scatter(
             dark_outliers, tp_means[dark_outliers], color="red", label="Dark Outliers", zorder=5
         )
+
     if bright_outliers:
         ax.scatter(
             bright_outliers,
@@ -73,25 +74,17 @@ def plot_gfp_outliers_rolling(
         info_lines.append(f"Bright: {bright_outliers}")
 
     if info_lines:
-        fig.text(
-            1.02,
-            0.5,
-            "\n".join(info_lines),
-            fontsize=12,
-            va="center",
-            ha="left",
-            transform=ax.transAxes,
-        )
+        print("\n".join(info_lines))
 
-    ax.set_xlabel("Time (frames)", fontsize=14, labelpad=10)
-    ax.set_ylabel("Average mEGFP intensity in Z-stack (a.u.)", fontsize=14, labelpad=10)
-    ax.tick_params(axis="both", which="major", labelsize=12)
-    ax.legend(fontsize=12, loc="upper right", frameon=True)
+    ax.set_xlabel("Time (frames)")
+    ax.set_ylabel("Average mEGFP intensity in Z-stack (a.u.)")
+    ax.tick_params(axis="both", which="major")
 
-    fig.tight_layout(rect=[0, 0, 0.8, 1])
+    ncols = 4  if not dark_outliers and not bright_outliers else 3
+    ax.legend(loc='lower center', bbox_to_anchor=(0.5, -0.4), ncol=ncols)
 
     save_dir = get_output_path("annotate_tp_outliers")
-    save_plot_to_path(fig, save_dir, f"gfp_outliers_{dataset_name}_P{position}", file_format=".pdf")
+    save_plot_to_path(fig, save_dir, f"gfp_outliers_{dataset_name}_P{position}", file_format=".svg")
     plt.show()
     plt.close(fig)
 
