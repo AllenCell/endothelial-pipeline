@@ -123,7 +123,7 @@ def create_timelapse_mp4(
         output_dir / fname,
         fps=fps,
         codec="libx264",
-        format="FFMPEG",
+        format="FFMPEG",  # type: ignore[arg-type]
         ffmpeg_params=[
             "-pix_fmt",
             "yuv420p",  # required for Windows/QuickTime
@@ -207,18 +207,20 @@ def create_timelapse_mp4(
             else:
                 shear_stress = None
 
+            interval_minutes = dataset_config.time_interval_in_minutes
+            assert interval_minutes is not None
             timestamp_text = add_timestamp(
                 ax,
                 frame=tp,
-                interval_minutes=dataset_config.time_interval_in_minutes,
+                interval_minutes=int(interval_minutes),
                 fontsize=20,
                 shear_stress=shear_stress,
             )
 
             figure.canvas.draw()
             # Drop alpha channel
-            img = np.array(figure.canvas.renderer.buffer_rgba())[:, :, :3]
-            writer.append_data(img)
+            img = np.array(figure.canvas.renderer.buffer_rgba())[:, :, :3]  # type: ignore[attr-defined]
+            writer.append_data(img)  # type: ignore[attr-defined]
 
             timestamp_text.remove()
             gc.collect()

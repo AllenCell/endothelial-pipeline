@@ -177,9 +177,9 @@ def add_timestamp(
     hours = int(duration_minutes // 60)
     minutes = int(duration_minutes % 60)
 
-    shear_stress = f"{shear_stress:.1f} dyn/cm²" if shear_stress is not None else ""
+    shear_stress_label = f"{shear_stress:.1f} dyn/cm²" if shear_stress is not None else ""
+    timestamp = f"{hours:02d}:{minutes:02d} hr:min {shear_stress_label}"
 
-    timestamp = f"{hours:02d}:{minutes:02d} hr:min {shear_stress}"
     return ax.text(
         0.01,
         0.98,
@@ -267,8 +267,8 @@ def reshape_panel_list_from_direction(
 
 def make_contact_sheet(
     panels: list[np.ndarray],
-    max_rows: int | None = None,
-    max_cols: int | None = None,
+    max_rows: int,
+    max_cols: int,
     col_titles: list[str] | None = None,
     row_titles: list[str] | None = None,
     panel_titles: list[str] | None = None,
@@ -289,9 +289,9 @@ def make_contact_sheet(
     panels:
         List of 2D arrays representing the images to be plotted in the contact sheet.
     max_rows:
-        Maximum number of rows in the contact sheet. If None, no limit is applied.
+        Maximum number of rows in the contact sheet.
     max_cols:
-        Maximum number of columns in the contact sheet. If None, no limit is applied.
+        Maximum number of columns in the contact sheet.
     col_titles:
         List of titles for each column. Length of col_titles must match the
         number of columns that are plotted or have length of 1 if provided. If the
