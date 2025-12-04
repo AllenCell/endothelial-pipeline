@@ -4,7 +4,7 @@ original_path: //allen/programs/allencell/data/proj0/8c7/ef7/0cd/5af/a22/66a/644
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251119_FMSID
 zarr_positions: [0, 1, 2, 3, 4, 5]
 fmsid: d6449a79a6264466aa225af0cdef78c7
-barcode: labkey_barcode
+barcode: GE00009605
 cell_lines: [AICS-177 cl. 26]
 live_or_fixed_sample: live
 is_timelapse: true
