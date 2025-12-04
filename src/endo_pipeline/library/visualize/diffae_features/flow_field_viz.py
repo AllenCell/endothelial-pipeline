@@ -4,6 +4,8 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.cm import get_cmap
+from matplotlib.colors import Normalize
 from matplotlib.ticker import MaxNLocator
 
 from endo_pipeline.io import save_plot_to_path
@@ -75,7 +77,7 @@ def plot_one_slice_quiver(
     grid: tuple,
     slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
     ax: plt.Axes,
-    color: str = "dimgrey",
+    color: str | np.ndarray = "dimgrey",
     norm: bool = True,
     ds: int = 3,
     scale: int | float = 30,
@@ -219,9 +221,8 @@ def plot_flow_field_stack(
     slice_axis_index: int,
     plot_bounds: list[np.ndarray],
     slice_steps: np.ndarray,
+    dataset_name: str,
     fig_savedir: Path | None,
-    color: str = "black",
-    norm: bool = True,
 ) -> None:
     """
     Plot flow field PC{i} vs PC{j} over a stack of slices in the 3rd variable.
@@ -235,9 +236,11 @@ def plot_flow_field_stack(
     slice_axis_index
         Index of the principal component to slice over.
     plot_bounds
-        List of arrays specifying the plot bounds for each principal component.
+        List of arrays specifying the plot bounds for the x and y axes of the 2D plots.
     slice_steps
-        List of arrays specifying the slice steps for each principal component.
+        List of arrays specifying the slice steps for the slicing axis.
+    dataset_name
+        Name of the dataset for saving the figure.
     fig_savedir
         Directory to save the figures.
     color
@@ -251,6 +254,13 @@ def plot_flow_field_stack(
     # get flow field
     v_i = flow_field_dict["vectors"][i]
     v_j = flow_field_dict["vectors"][j]
+    v_k = flow_field_dict["vectors"][slice_axis_index]
+
+    # color by magnitude of the flow field
+    vector_magnitude = np.sqrt(v_i**2 + v_j**2 + v_k**2)
+    colormap = get_cmap("inferno")
+    norm_colors = Normalize().autoscale(vector_magnitude)
+    color = colormap(norm_colors(vector_magnitude))
 
     # get grid and grid spacing
     x_i_grid = flow_field_dict["grid"][i]
@@ -266,7 +276,11 @@ def plot_flow_field_stack(
 
         # plot quiver plots for the specified slice
         ax = plot_one_slice_quiver(
-            (v_i, v_j), (x_i_grid, x_j_grid), x_k_valids, ax=ax, color=color, norm=norm
+            (v_i, v_j),
+            (x_i_grid, x_j_grid),
+            x_k_valids,
+            ax=ax,
+            color=color,
         )
         # set the axis limits and labels
         ax = set_slice_plot_bounds_and_labels(
@@ -274,12 +288,12 @@ def plot_flow_field_stack(
             plot_bounds,
             x_label=f"PC{i+1}",
             y_label=f"PC{j+1}",
-        )
+        )[0]
         ax.set_title(f"PC{slice_axis_index+1} = {slice_value:.4f}")
         save_plot_to_path(
             fig,
             fig_savedir,
-            f"flow_field_pc{slice_axis_index+1}_stack_{n}",
+            f"flow_field{dataset_name}_pc{slice_axis_index+1}_stack_{n}",
         )
 
 
@@ -514,13 +528,13 @@ def flow_field_viz_main(
     # get PC1, PC2, and PC3 slices from meshgrid (ijk indexing)
     pc_slices = [
         flow_field_dict["grid"][0][:, 0, 0][
-            :: len(flow_field_dict["grid"][0][:, 0, 0]) // 5
+            :: len(flow_field_dict["grid"][0][:, 0, 0]) // 10
         ],  # PC1
         flow_field_dict["grid"][1][0, :, 0][
-            :: len(flow_field_dict["grid"][1][0, :, 0]) // 5
+            :: len(flow_field_dict["grid"][1][0, :, 0]) // 10
         ],  # PC2
         flow_field_dict["grid"][2][0, 0, :][
-            :: len(flow_field_dict["grid"][2][0, 0, :]) // 5
+            :: len(flow_field_dict["grid"][2][0, 0, :]) // 10
         ],  # PC3
     ]
     plot_axes_indicies = [
@@ -543,6 +557,7 @@ def flow_field_viz_main(
             plot_bounds=plot_bounds_2d,
             slice_steps=slice_steps,
             fig_savedir=fig_savedir,
+            dataset_name=name,
         )
 
     # get z-slice and y-slice closest to PC2 and PC3 values
