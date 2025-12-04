@@ -14,7 +14,7 @@ def main() -> None:
     from collections import Counter
 
     from endo_pipeline.configs import load_all_dataset_configs
-    from endo_pipeline.io.fms import FMS
+    from endo_pipeline.io import cache_fms_files
     from endo_pipeline.manifests import (
         get_available_dataframe_manifests,
         list_datasets_with_dataframes,
@@ -40,13 +40,13 @@ def main() -> None:
             fmsid_list.append(df_fmsid)
 
     # Cache files to VAST
-    cache_file_statuses = FMS.cache_files(fmsid_list)
+    cache_file_statuses = cache_fms_files(fmsid_list)
 
     # Log summary
     logger.info("'%s' FMSIDs queued.", len(fmsid_list))
 
     status_values = []
-    for fmsid, status in cache_file_statuses["cacheFileStatuses"].items():
+    for status in cache_file_statuses["cacheFileStatuses"].values():
         status_values.append(status)
 
     status_counts = Counter(status_values)

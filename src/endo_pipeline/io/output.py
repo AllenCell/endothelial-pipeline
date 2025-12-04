@@ -253,6 +253,7 @@ def upload_file_to_fms(
     :
         FMS file id for the uploaded file.
     """
+
     from endo_pipeline import DEMO_MODE, USE_STAGING
     from endo_pipeline.io.fms import FMS, FMS_FILE_NAME
 
@@ -285,6 +286,30 @@ def upload_file_to_fms(
     logger.debug("Finished upload of [ %s ] to FMS with file id [ %s ]", file_path, fms_file.id)
 
     return fms_file.id
+
+
+def cache_fms_files(fmsids: str | list[str]) -> dict:
+    """
+    Download or extend expiration of a FMS file in the Vast on-prem cache.
+
+    Parameters
+    ----------
+    fmsid
+        FMS file ID.
+    """
+
+    from endo_pipeline import DEMO_MODE
+    from endo_pipeline.io.fms import FMS
+
+    fmsids = [fmsids] if isinstance(fmsids, str) else fmsids
+
+    # When running in demo mode, we skip FMS cache requests. Instead, return
+    # the expected data structure with given FMS ids.
+    if DEMO_MODE:
+        logger.debug("Skipped FMS cache request in demo mode")
+        return {"cacheFileStatuses": dict.fromkeys(fmsids, "DOWNLOAD_COMPLETE")}
+
+    return FMS.cache_files(fmsids)
 
 
 def save_plot_to_path(

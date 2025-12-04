@@ -27,6 +27,7 @@ zarr_channel_indices:
   channel_405: null
   channel_561: null
   channel_640: null
+channel_names: [EGFP, BF]
 flow_conditions:
 - start: 0
   stop: 576
@@ -59,6 +60,13 @@ timepoint_annotations:
     3: [254]
     4: []
     5: [19]
+  not_steady_state:
+    0: [[0, 19]]
+    1: [[0, 19]]
+    2: [[0, 19]]
+    3: [[0, 19]]
+    4: [[0, 19]]
+    5: [[0, 19]]
   unfed:
     0: [[117, 255], [400, 561]]
     1: [[117, 255], [400, 561]]
@@ -80,13 +88,6 @@ timepoint_annotations:
     3: [19, 54, 79, 289, 325, 362]
     4: [19, 54, 79, 289, 325, 362]
     5: [19, 54, 79, 289, 325, 362]
-  not_steady_state:
-    0: [[0,19]]
-    1: [[0,19]]
-    2: [[0,19]]
-    3: [[0,19]]
-    4: [[0,19]]
-    5: [[0,19]]
 position_annotations: null
 center_z_plane:
   0: 11

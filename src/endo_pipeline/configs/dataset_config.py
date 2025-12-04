@@ -197,6 +197,9 @@ class DatasetConfig:
     zarr_channel_indices: ChannelIndices
     """Channel indices for dataset converted to Zarr format."""
 
+    channel_names: list[str]
+    """List of channel names."""
+
     flow_conditions: list[FlowCondition]
     """List of flow conditions for the dataset."""
 

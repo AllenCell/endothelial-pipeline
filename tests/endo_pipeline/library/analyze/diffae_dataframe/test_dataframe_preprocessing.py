@@ -33,6 +33,7 @@ def dataset():
         pixel_size_xy_in_um=0.0,
         duration=4,
         time_interval_in_minutes=1.0,
+        channel_names=[],
         flow_conditions=[],
         n_total_positions=0,
         original_channel_indices=ChannelIndices(brightfield=0, channel_488=0),

@@ -5,10 +5,53 @@ import torch
 import tqdm
 from bioio.writers import OmeTiffWriter
 from cyto_dl.models.im2im.diffusion_autoencoder import DiffusionAutoEncoder as _BaseDiffAE
-from cyto_dl.models.im2im.utils import detach
 from monai.utils import convert_to_tensor
 
 logger = logging.getLogger(__name__)
+
+
+# A cleaner detach function!
+def detach(img: torch.Tensor | np.ndarray) -> np.ndarray:
+    if isinstance(img, torch.Tensor):
+        img = img.detach().cpu()
+        if img.dtype == torch.bfloat16:
+            img = img.half()
+        return img.numpy()
+    return img
+
+
+class _AverageAccumulator:
+    def __init__(self, n_samples: int):
+        self.n_samples = n_samples
+        self._accumulator: torch.Tensor | None = None
+
+    def add(self, sample: torch.Tensor) -> None:
+        self._accumulator = sample if self._accumulator is None else (self._accumulator + sample)
+
+    def result(self) -> torch.Tensor:
+        if self._accumulator is None:
+            raise ValueError("No samples were added to the accumulator.")
+        return self._accumulator / self.n_samples
+
+
+class _AppendAccumulator:
+    def __init__(self, n_samples: int):
+        self.n_samples = n_samples
+        self._accumulator: list[torch.Tensor] = []
+
+    def add(self, sample: torch.Tensor) -> None:
+        self._accumulator.append(sample)
+
+    def result(self) -> torch.Tensor:
+        return torch.cat(self._accumulator, dim=-1)
+
+
+def _get_accumulator(average: bool, n_samples: int):
+    """Function to return accumulator correct to accumulate samples with or without averaging"""
+    if average:
+        return _AverageAccumulator(n_samples)
+    else:
+        return _AppendAccumulator(n_samples)
 
 
 class DiffusionAutoEncoder(_BaseDiffAE):
@@ -42,6 +85,8 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         fixed_sample_seed: int | None = 42,
         **base_kwargs,
     ):
+        self.fixed_noise: torch.Tensor | None = None
+        self.noise_cons = noise_cons
         # Store fixed samples for consistent visualization
         self.fixed_sample_seed = fixed_sample_seed
         self.fixed_samples = None
@@ -67,6 +112,26 @@ class DiffusionAutoEncoder(_BaseDiffAE):
     def _get_seed_for_sample(self, global_sample_idx, extra=0):
         return int(global_sample_idx) + int(extra)
 
+    def _generate_image(self, noise, cond):
+        if cond.ndim != 3 or cond.shape[1] != 1:
+            raise ValueError(f"condition must be (B, 1, D), got {cond.shape}")
+        self.scheduler.set_timesteps(num_inference_steps=self.hparams.n_inference_steps)
+        with torch.no_grad():
+            sample, intermediates = self.inferer.sample(
+                input_noise=noise,
+                diffusion_model=self.autoencoder,
+                scheduler=self.scheduler,
+                save_intermediates=True,
+                conditioning=cond,
+                verbose=False,
+                intermediate_steps=1,
+            )
+        # during training, final image is all-nan, try to return last non-nan image
+        if torch.any(torch.isnan(sample)):
+            while torch.any(torch.isnan(sample)) and len(intermediates) > 0:
+                sample = intermediates.pop(-1)
+        return sample
+
     def _get_samplewise_noise(self, ref_tensor, global_sample_idx):
         shape, device, dtype = ref_tensor.shape, ref_tensor.device, ref_tensor.dtype
         seed = self._get_seed_for_sample(global_sample_idx, extra=999)
@@ -75,7 +140,10 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         return torch.randn(shape, device=device, dtype=dtype, generator=gen)
 
     def _get_fixed_samples(self, batch):
-        """Get fixed samples for consistent visualization across epochs"""
+        """
+        Get fixed samples for consistent visualization across epochs
+        Do note that this does not generate noise
+        """
         if self.fixed_samples is None and self.fixed_sample_seed is not None:
             # Set seed for reproducible sample selection
             generator = torch.Generator()
@@ -93,6 +161,44 @@ class DiffusionAutoEncoder(_BaseDiffAE):
 
         return self.fixed_samples
 
+    def _make_generator(self, seed: int | None, device: str):
+        """Create a torch generator object with an optional seed"""
+        gen = torch.Generator(device=device)
+        if seed is not None:
+            gen.manual_seed(seed)
+        return gen
+
+    def _generate_noise(
+        self,
+        shape,
+        dtype,
+        device: str,
+        seed: int | None = None,
+        generator: torch.Generator | None = None,
+    ) -> torch.Tensor:
+        """
+        Method that generates noise. If there is a pre-made generator, use that
+        else create one from seed
+        """
+        if generator is None and seed is not None:
+            generator = self._make_generator(seed, device)
+
+        return torch.randn(shape, generator=generator, device=device, dtype=dtype)
+
+    def _get_fixed_noise(self, shape, dtype, device: str) -> torch.Tensor:
+        """Generate or retrieve fixed noise for noise_cons mode.
+
+        Only generates noise once and caches it if noise_cons=True.
+        This ensures the exact same noise vector is used across all epochs.
+        """
+        if self.fixed_noise is None:
+            # Fixed noise is always seeded if a fixed_sample_seed exists
+            seed = self.fixed_sample_seed  # can be None → truly random but still cached
+            self.fixed_noise = self._generate_noise(
+                shape=shape, dtype=dtype, device=device, seed=seed
+            )
+        return self.fixed_noise
+
     def save_example(self, stage, cond_img, diff_img):
         """Save the sequence of denoising steps."""
         # Use fixed samples if available
@@ -101,19 +207,27 @@ class DiffusionAutoEncoder(_BaseDiffAE):
             diff_img = self.fixed_samples["diff"]
 
         with torch.no_grad():
-            cond = self.semantic_encoder(cond_img).unsqueeze(2)
+            cond = self.semantic_encoder(cond_img).unsqueeze(1)
 
-        # Use fixed seed for consistent noise generation across epochs
-        if self.fixed_sample_seed is not None:
-            generator = torch.Generator(device=self.device)
-            generator.manual_seed(self.fixed_sample_seed)
-            # Fix: Use torch.randn with generator, then move to correct device if needed
-            noise = torch.randn(
-                diff_img.shape, generator=generator, device=self.device, dtype=diff_img.dtype
-            )
+        # Generate noise
+        device = self.device
+        shape = diff_img.shape
+        dtype = diff_img.dtype
+
+        if self.noise_cons:
+            # Same exact noise vector every epoch → isolates latent changes
+            noise = self._get_fixed_noise(shape, dtype, device)
         else:
-            noise = torch.randn_like(diff_img, device=self.device)
+            # New noise every epoch, but reproducible if a base seed is given
+            if self.fixed_sample_seed is not None:
+                # Offset seed by epoch so we get different (but deterministic) noise each epoch
+                seed = self.fixed_sample_seed + self.trainer.current_epoch
+            else:
+                seed = None  # truly random each call
 
+            noise = self._generate_noise(shape, dtype, device, seed=seed)
+
+        # ==================================================
         sample = self._generate_image(noise, cond)
 
         for img, name in [(cond_img, "cond"), (diff_img, "diff"), (sample, "recon")]:
@@ -148,6 +262,67 @@ class DiffusionAutoEncoder(_BaseDiffAE):
                 f"Diffusion loss should be a scalar, got {diffusion_loss.shape}. Ensure `gamma` is provided if your loss has no reduction."
             )
         return {"loss": diffusion_loss}, latent, None
+
+    def generate_from_latent(
+        self,
+        cond: torch.Tensor,
+        save_name: str = "generated_image",
+        n_noise_samples: int | None = None,
+        average: bool = True,
+        save: bool = True,
+        batch_size: int = 3,
+    ) -> torch.Tensor:
+        """
+        Generate images from latent features.
+
+        Returns
+        -------
+        torch.Tensor
+            Detached tensor on CPU (shape: [N, C, H, W]).
+        """
+        if batch_size <= 0:
+            raise ValueError("Batch size must be at least 1")
+
+        if cond.ndim == 3 and cond.shape[1] == 1:
+            pass
+        elif cond.ndim == 2:
+            cond = cond.unsqueeze(1)  # (N, D) → (N, 1, D)
+        else:
+            raise ValueError(f"cond must be (N, D) or (N, 1, D), got {cond.shape}")
+
+        batch_indices = [
+            (i, min(i + batch_size, cond.shape[0])) for i in range(0, cond.shape[0], batch_size)
+        ]
+        n_noise_samples = int(n_noise_samples or self.hparams.n_noise_samples)
+        accumulator = _get_accumulator(average, n_noise_samples)
+
+        with torch.no_grad():
+            for _ in tqdm.tqdm(range(n_noise_samples), desc="Sampling noise"):
+                noise = torch.stack(
+                    [torch.randn(self.hparams.image_shape, device=self.device)] * cond.shape[0]
+                )
+                sample = torch.cat(
+                    [
+                        self._generate_image(noise[start:stop], cond[start:stop]).squeeze(1)
+                        for start, stop in batch_indices
+                    ],
+                    dim=0,
+                )
+                accumulator.add(sample)
+
+            recon_tensor = accumulator.result()
+
+        recon_tensor = detach(recon_tensor)
+        if isinstance(recon_tensor, np.ndarray):
+            recon_tensor = torch.from_numpy(recon_tensor)
+        recon_tensor = recon_tensor.cpu()
+        if save:
+            recon_np = recon_tensor.numpy().astype(float)
+            OmeTiffWriter.save(
+                uri=f"{self.hparams.save_dir}/{save_name}.tiff",
+                data=recon_np,
+            )
+        return recon_tensor
 
     def generate_from_latent_and_noised_image(
         self,
@@ -208,5 +383,43 @@ class DiffusionAutoEncoder(_BaseDiffAE):
                 ],
                 0,
             )
-        reconstructed_image_numpy = detach(reconstructed_image).astype(float)
-        return reconstructed_image_numpy
+
+        reconstructed_image = detach(reconstructed_image)
+        if isinstance(reconstructed_image, np.ndarray):
+            reconstructed_image = torch.from_numpy(reconstructed_image)
+        reconstructed_image = reconstructed_image.cpu()
+
+        return detach(reconstructed_image)
+
+    # The forward method is modified to make this work with both cross-attention and AdaGN!
+
+    def forward(self, x_cond: torch.Tensor, x_diff: torch.Tensor):
+        B = x_diff.shape[0]
+        device = x_diff.device
+
+        noise = torch.randn_like(x_diff, device=device)
+        timesteps = torch.randint(
+            0,
+            self.inferer.scheduler.num_train_timesteps,
+            (B,),
+            device=device,
+            dtype=torch.long,
+        )
+        loss_weight = self._get_loss_weight(timesteps)
+
+        # Encode condition: (B, lat_dim)
+        latent = self.semantic_encoder(x_cond)
+
+        # (B, 1, lat_dim) for cross-attention
+        # AdaGN will internally .squeeze(1)
+        condition = latent.unsqueeze(1)
+
+        noise_pred = self.inferer(
+            inputs=x_diff,
+            diffusion_model=self.autoencoder,
+            noise=noise,
+            timesteps=timesteps,
+            condition=condition,
+        )
+
+        return noise, noise_pred, latent, loss_weight
