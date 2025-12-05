@@ -1,9 +1,9 @@
 name: 20251125_20X_live
 date: '20251125'
-original_path: /allen/programs/allencell/data/proj0/fa6/f3d/492/40f/8c1/088/945/7f9/3b4/bbb/0a/20251125_GE00009675_Live-Fixed_SLDY/20251125_GE00009675_Live-Fixed_SLDY.sldy
-zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251125_0abbb3b47f99450888c140f492f3dfa6_0
-zarr_positions: [0, 1, 2, 3, 4, 5]
-fmsid: 0abbb3b47f99450888c140f492f3dfa6_0
+original_path: //allen/programs/allencell/data/proj0/311/06e/d9d/431/73e/f88/54f/ce5/289/117/b7/20251125_GE00009675_PreFix_SLDY/20251125_GE00009675_PreFix_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251125_b7117289ce554ff8873e431d9d06e311
+zarr_positions: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+fmsid: b7117289ce554ff8873e431d9d06e311
 barcode: GE00009675
 cell_lines: [AICS-126]
 live_or_fixed_sample: live
@@ -14,7 +14,7 @@ shear_stress_regime: min
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
-n_total_positions: 6
+n_total_positions: 10
 original_channel_indices:
   brightfield: 1
   channel_488: 0
@@ -32,7 +32,7 @@ flow_conditions:
 - start: -298
   stop: 0
   shear_stress: 5.7
-include_scenes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+include_scenes: null
 notes: Collect high SS 24h live/fixed paired data after 24h high SS to match live
   imaging to fixed
 timepoint_annotations: null
