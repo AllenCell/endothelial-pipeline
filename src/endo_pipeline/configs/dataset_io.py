@@ -5,7 +5,6 @@ from pathlib import Path
 import dask.dataframe as dd
 import pandas as pd
 import yaml
-from bioio import BioImage
 from deprecated import deprecated  # type:ignore[import-untyped]
 
 try:
@@ -240,32 +239,6 @@ def get_zarr_path(
         zarr_paths[filepath.name] = str(filepath)
 
     return zarr_paths
-
-
-@deprecated(
-    """
-This method is deprecated and will be removed. Instead use:
-
-    get_available_channels_for_all_positions(dataset_config)
-
-The recommended pattern is:
-
-    from endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
-
-    dataset_config = load_dataset_config(dataset_name)
-    channels = get_available_channels_for_all_positions(dataset_config)
-"""
-)
-def get_available_channels(
-    dataset_name: str, zarr_name: str | None | None = None
-) -> dict[str, list[str]]:
-    """Get the available channels for a given dataset."""
-    zarr_paths = get_zarr_path(dataset_name, zarr_name)
-    channel_names = {}
-    for filename, filepath in zarr_paths.items():
-        reader = BioImage(filepath)
-        channel_names[filename] = reader.channel_names
-    return channel_names
 
 
 @deprecated(
