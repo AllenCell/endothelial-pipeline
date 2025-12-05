@@ -540,15 +540,9 @@ def flow_field_viz_main(
     # 1) plot stacks of flow field slices
     # get PC1, PC2, and PC3 slices from meshgrid (ijk indexing)
     pc_slices = [
-        flow_field_dict["grid"][0][:, 0, 0][
-            :: len(flow_field_dict["grid"][0][:, 0, 0]) // 25
-        ],  # PC1
-        flow_field_dict["grid"][1][0, :, 0][
-            :: len(flow_field_dict["grid"][1][0, :, 0]) // 25
-        ],  # PC2
-        flow_field_dict["grid"][2][0, 0, :][
-            :: len(flow_field_dict["grid"][2][0, 0, :]) // 25
-        ],  # PC3
+        flow_field_dict["grid"][0][:, 0, 0],  # PC1
+        flow_field_dict["grid"][1][0, :, 0],  # PC2
+        flow_field_dict["grid"][2][0, 0, :],  # PC3
     ]
     plot_axes_indicies = [
         (0, 1),  # PC1 vs PC2 over PC3 slices

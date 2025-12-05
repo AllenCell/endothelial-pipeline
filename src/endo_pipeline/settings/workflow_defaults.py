@@ -39,7 +39,7 @@ KERNEL_PARAMS_3D: dict = {
 }
 """Default kernel parameters for 3D flow field estimation."""
 
-NUM_BINS_3D: tuple[int, int, int] = (50, 50, 50)
+NUM_BINS_3D: tuple[int, int, int] = (70, 70, 50)
 """Default number of bins for 3D flow field estimation."""
 
 TIME_STEP_IN_MINUTES: int = 5
