@@ -430,7 +430,7 @@ def plot_and_save_clustermap(
 def get_df_for_feature_correlation_viz(
     dataset_name_list: list[str],
     dataset_info_columns: list[str],
-    classical_feature_columns: list[str],
+    segmentation_feature_columns: list[str],
     num_pcs: int | None,
     pc_columns: list[str],
     diffae_feature_columns: list[str],
@@ -451,8 +451,8 @@ def get_df_for_feature_correlation_viz(
         List of dataset names to process.
     dataset_info_columns
         List of columns containing dataset information.
-    classical_feature_columns
-        List of classical feature column names.
+    segmentation_feature_columns
+        List of segmentation feature column names.
     num_pcs
         Number of principal components to include. If None, uses NUM_PCS_TO_ANALYZE.
     pc_columns
@@ -494,7 +494,7 @@ def get_df_for_feature_correlation_viz(
 
         # check that the chosen measurement column names
         # are actually in the DataFrame
-        columns_to_check = classical_feature_columns + dataset_info_columns
+        columns_to_check = segmentation_feature_columns + dataset_info_columns
         if not all(np.isin(columns_to_check, merged_feats_df.columns)):
             missing_columns = set(columns_to_check) - set(merged_feats_df.columns)
             raise ValueError(
@@ -514,7 +514,10 @@ def get_df_for_feature_correlation_viz(
 
         # keep only the columns that will be used
         cols_to_keep = (
-            dataset_info_columns + classical_feature_columns + diffae_feature_columns + pc_columns
+            dataset_info_columns
+            + segmentation_feature_columns
+            + diffae_feature_columns
+            + pc_columns
         )
 
         merged_feats_df = merged_feats_df[cols_to_keep].copy()

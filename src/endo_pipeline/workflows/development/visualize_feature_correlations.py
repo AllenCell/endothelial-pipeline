@@ -1,45 +1,16 @@
 from typing import Literal
 
-from tqdm import tqdm
-
 from endo_pipeline.configs import TimepointAnnotation
-from endo_pipeline.configs.model_config_utils import get_latent_dim_from_config
-from endo_pipeline.io.input import get_config_dict_from_mlflow
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    get_latent_feature_column_names,
-    get_pc_column_names,
-)
-from endo_pipeline.manifests.model_manifest_utils import (
-    get_model_location_for_run,
-    get_most_recent_run_name,
-)
 from endo_pipeline.settings import (
+    DATASET_INFO_COLUMNS,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     NUM_PCS_TO_ANALYZE,
+    SEGMENTATION_FEATURE_COLUMNS,
 )
 
 TAGS = ["diffae_features", "visualization", "pc_interpretation"]
-
-CLASSICAL_FEATURE_COLUMNS = [
-    "alignment_deg_rel_to_flow",
-    "aspect_ratio",
-    "cell_fluorescence_mean (a.u.)",
-    "num_nuclei_in_crop",
-    "area (um**2)",
-    "nuc_pos_rel_cell_angle_deg",
-    "number_of_neighbors",
-]
-DATASET_INFO_COLUMNS = [
-    "dataset_name",
-    "position",
-    "image_index",
-    "frame_number",
-    "track_id",
-    "crop_index",
-    "label",
-]
 
 
 def main(
@@ -48,7 +19,7 @@ def main(
     run_name: str | None = None,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     dataset_info_columns: list[str] = DATASET_INFO_COLUMNS,
-    classical_feature_columns: list[str] = CLASSICAL_FEATURE_COLUMNS,
+    segmentation_feature_columns: list[str] = SEGMENTATION_FEATURE_COLUMNS,
     num_pcs: int | None = None,
     timepoint_annotations: list[TimepointAnnotation] | Literal["default"] | None = "default",
     aggregate: bool = True,
@@ -70,8 +41,8 @@ def main(
         The name of the segmentation feature manifest to use for measured features.
     dataset_info_columns
         List of dataset metadata column names.
-    classical_feature_columns
-        List of classical feature column names.
+    segmentation_feature_columns
+        List of segmentation feature column names.
     num_pcs
         Number of principal components to include. If None, uses NUM_PCS_TO_ANALYZE.
     timepoint_annotations
@@ -84,8 +55,16 @@ def main(
     import itertools
     import logging
 
+    from tqdm import tqdm
+
     from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.configs.model_config_utils import get_latent_dim_from_config
     from endo_pipeline.io import get_output_path
+    from endo_pipeline.io.input import get_config_dict_from_mlflow
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+        get_latent_feature_column_names,
+        get_pc_column_names,
+    )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
         get_dataset_color,
         get_label_for_column,
@@ -97,6 +76,10 @@ def main(
         plot_multi_feature_correlations,
     )
     from endo_pipeline.manifests import load_model_manifest
+    from endo_pipeline.manifests.model_manifest_utils import (
+        get_model_location_for_run,
+        get_most_recent_run_name,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -123,7 +106,7 @@ def main(
     df = get_df_for_feature_correlation_viz(
         dataset_name_list=dataset_name_list,
         dataset_info_columns=dataset_info_columns,
-        classical_feature_columns=classical_feature_columns,
+        segmentation_feature_columns=segmentation_feature_columns,
         num_pcs=num_pcs,
         pc_columns=pc_columns,
         diffae_feature_columns=diffae_feature_columns,
@@ -136,7 +119,7 @@ def main(
 
     label_column_tuples = [
         ("PC", [get_label_for_column(col) for col in pc_columns]),
-        ("Measurement", [get_label_for_column(col) for col in classical_feature_columns]),
+        ("Measurement", [get_label_for_column(col) for col in segmentation_feature_columns]),
         ("DiffAE Feature", [get_label_for_column(col) for col in diffae_feature_columns]),
     ]
 
