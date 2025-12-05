@@ -19,6 +19,8 @@ from endo_pipeline.settings.flow_field_3d import (
     CLIP_MAGNITUDES,
     CLIP_MAX_MAGNITUDE_PERCENTILE,
     CLIP_MIN_MAGNITUDE_PERCENTILE,
+    FLOW_FIELD_X_AXIS_LABEL,
+    FLOW_FIELD_Y_AXIS_LABELS,
     LOG_NORM_MAGNITUDES,
     NORMALIZE_QUIVER_VECTORS,
     QUIVER_COLORMAP,
@@ -34,20 +36,24 @@ logger = logging.getLogger(__name__)
 def set_slice_plot_bounds_and_labels(
     axs: np.ndarray[plt.Axes, Any],
     bounds: list[np.ndarray] | list[tuple[float, float]],
-    x_label: str = "PC1",
-    y_label: str = "PC2",
+    x_label: str = FLOW_FIELD_X_AXIS_LABEL,
+    y_labels: tuple[str] = FLOW_FIELD_Y_AXIS_LABELS,
 ) -> np.ndarray[plt.Axes, Any]:
     """
     Set the axis limits and labels for the plots
     of 2D slices of the 3D flow field.
     """
+    if len(y_labels) != len(axs):
+        logger.error("Number of y_labels must match number of axes.")
+        raise ValueError("Number of y_labels must match number of axes.")
+
     xmin, xmax = bounds[0][0], bounds[0][1]
 
     for i, ax in enumerate(axs):
         qmin, qmax = bounds[i + 1][0], bounds[i + 1][1]
         ax.set_xlim(xmin, xmax)
         ax.set_xlabel(x_label, fontsize=18)
-        ax.set_ylabel(y_label if i == 0 else "PC3", fontsize=18)
+        ax.set_ylabel(y_labels[i], fontsize=18)
         ax.set_ylim(qmin, qmax)
         ax.set_aspect("equal")
         # set number of x ticks = number of y ticks = 5
@@ -241,7 +247,7 @@ def plot_flow_field_stack(
             np.array([ax]),
             plot_bounds,
             x_label=f"PC{i+1}",
-            y_label=f"PC{j+1}",
+            y_labels=(f"PC{j+1}"),
         )[0]
         ax.set_title(f"PC{slice_axis_index+1} = {slice_value:.4f}")
         plt.tight_layout()

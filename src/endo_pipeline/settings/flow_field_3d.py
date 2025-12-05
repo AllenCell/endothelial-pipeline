@@ -37,6 +37,12 @@ CLIP_MAX_MAGNITUDE_PERCENTILE: float | None = None
 QUIVER_COLORMAP: str = "jet"
 """Colormap for quiver plots in 3D flow field visualization."""
 
+FLOW_FIELD_X_AXIS_LABEL: str = "PC1"
+"""Label for the X axis in the plots of 2D slices of the 3D flow field."""
+
+FLOW_FIELD_Y_AXIS_LABELS: tuple[str, str] = ("PC2", "PC3")
+"""Labels for the Y axes in the plots of 2D slices of the 3D flow field."""
+
 TIME_STEP_IN_MINUTES: int = 5
 """Time step in minutes between consecutive time points for flow field estimation."""
 
