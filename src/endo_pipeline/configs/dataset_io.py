@@ -437,59 +437,6 @@ def load_dataset(
 
 @deprecated(
     """
-This method is deprecated and will be removed. The new pattern for loading Zarr
-datasets is:
-
-    from endo_pipeline.configs import load_dataset_config
-    from endo_pipeline.manifests import get_zarr_location_for_position
-    from endo_pipeline.io import load_image_from_path
-
-    dataset_config = load_dataset_config(dataset_name)
-    zarr_loc = get_zarr_location_for_position(dataset_config, position)
-    zarr = load_image(zarr_loc)
-"""
-)
-def load_dataset_position_as_dask_array(
-    dataset_name: str,
-    position: int | str,
-    channels: list = ["EGFP", "BF"],
-    time_start: int = 0,
-    time_end: int = -1,
-    level: int = 0,
-) -> dask.array.Array:
-    """
-    Load a specific position of a dataset as a Dask array.
-
-    Position can be either an integer or a string.
-    If it is a string then it must the name of a zarr file found in
-    dataset (e.g. a folder ending with the .ome.zarr extension).
-    If it is an integer then it will be used as the index to
-    get the zarr file name from the dataset.
-    """
-    zarr_path_list = get_zarr_path(dataset_name)
-    if isinstance(position, int):
-        if position >= len(zarr_path_list):
-            raise ValueError(
-                f"Position {position} is out of range. There are only {len(zarr_path_list)} zarr files in the dataset."
-            )
-        zarr_name = list(zarr_path_list.keys())[position]
-        for zarr_name in zarr_path_list.keys():
-            if position == extract_p(zarr_name):
-                break
-    elif isinstance(position, str):
-        if position not in zarr_path_list:
-            raise ValueError(f"Zarr file {position} not found in dataset {dataset_name}.")
-        zarr_name = position
-
-    img_dict = load_dataset(
-        dataset_name, channels, time_start, time_end, level, zarr_name=zarr_name
-    )
-    img_dask_arr = img_dict[zarr_name]
-    return img_dask_arr
-
-
-@deprecated(
-    """
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
