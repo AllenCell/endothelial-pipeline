@@ -272,40 +272,6 @@ def get_available_channels(
     """
 This method is deprecated and will be removed. Instead use:
 
-    get_available_channels_for_position(dataset_config, position)
-
-To recreate the behavior of this method, use:
-
-    from endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
-
-    dataset_config = load_dataset_config(dataset_name)
-    channels = get_available_channels_for_position(dataset_config, 0)
-"""
-)
-def get_channel_names(dataset_name: str) -> list[str]:
-    """
-    Retrieve the list of channel names for a specific dataset. The function
-    test_channel_names_consistency validates that all positions have the same channels
-    within a dataset so we can use the first position to get the channel names.
-
-    Args:
-        dataset_name (str): The name of the dataset.
-
-    Returns:
-        list[str]: A list of channel names available in the dataset at the specified position.
-    """
-    zarr_name = get_zarr_name(dataset_name, position=0)
-    zarr_paths = get_zarr_path(dataset_name, zarr_name)
-    path_of_interest = zarr_paths[zarr_name]
-    reader = BioImage(path_of_interest)
-    channel_names = reader.channel_names
-    return channel_names
-
-
-@deprecated(
-    """
-This method is deprecated and will be removed. Instead use:
-
     from endo_pipeline.configs import get_channel_indices_for_all_positions
     get_channel_indices_for_all_positions(dataset_config, position, channel_names)
 """
