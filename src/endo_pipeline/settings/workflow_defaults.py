@@ -59,3 +59,25 @@ OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS: str = "flow_field_3d"
 
 TRAJECTORY_DICT_FILE_NAME: str = "traj_dict"
 """Default file name for saving trajectory dictionaries."""
+
+SEGMENTATION_FEATURE_COLUMNS = [
+    "alignment_deg_rel_to_flow",
+    "aspect_ratio",
+    "cell_fluorescence_mean (a.u.)",
+    "num_nuclei_in_crop",
+    "area (um**2)",
+    "nuc_pos_rel_cell_angle_deg",
+    "number_of_neighbors",
+]
+"""Name of segmentation features to include in analyses."""
+
+DATASET_INFO_COLUMNS = [
+    "dataset_name",
+    "position",
+    "image_index",
+    "frame_number",
+    "track_id",
+    "crop_index",
+    "label",
+]
+"""Name of dataset metadata columns required for analysis."""
