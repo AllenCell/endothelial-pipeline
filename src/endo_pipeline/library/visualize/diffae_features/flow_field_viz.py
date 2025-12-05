@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 def set_slice_plot_bounds_and_labels(
     axs: np.ndarray[plt.Axes, Any],
     bounds: list[np.ndarray] | list[tuple[float, float]],
+    x_label: str = "PC1",
+    y_label: str = "PC2",
 ) -> np.ndarray[plt.Axes, Any]:
     """
     Set the axis limits and labels for the plots
