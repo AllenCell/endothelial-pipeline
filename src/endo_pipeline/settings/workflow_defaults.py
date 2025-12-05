@@ -34,18 +34,18 @@ MODEL_QC_NOISE_LEVELS: tuple = (0.25, 0.5, 0.75)
 """Default noise levels to add to ground truth for the model QC workflow."""
 
 KERNEL_PARAMS_3D: dict = {
-    "bandwidth": 0.135,
+    "bandwidth": 0.145,
     "kernel": "gaussian",
 }
 """Default kernel parameters for 3D flow field estimation."""
 
-NUM_BINS_3D: tuple[int, int, int] = (40, 40, 40)
+NUM_BINS_3D: tuple[int, int, int] = (50, 50, 50)
 """Default number of bins for 3D flow field estimation."""
 
 TIME_STEP_IN_MINUTES: int = 5
 """Time step in minutes between consecutive time points for flow field estimation."""
 
-INIT_POINT_3D: list = [-1.25, -1.0, 0.75]
+INIT_POINT_3D: list = [0.0, -1.25, 0.75]
 """Default initial point for 3D flow field trajectory visualization."""
 
 TRAJECTORY_TIME_SPAN: list[int] = [0, 5000]

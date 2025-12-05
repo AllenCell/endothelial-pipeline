@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,8 @@ from endo_pipeline.library.analyze.dynamics_utils import data_driven_flow_field
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.visualize.diffae_features import feature_viz
 from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, ColumnName
+
+logger = logging.getLogger(__name__)
 
 
 def set_slice_plot_bounds_and_labels(
@@ -79,8 +82,8 @@ def plot_one_slice_quiver(
     ax: plt.Axes,
     color: str | np.ndarray = "dimgrey",
     norm: bool = True,
-    ds: int = 3,
-    scale: int | float = 30,
+    ds: int = 2,
+    scale: int | float = 50,
 ) -> plt.Axes:
     """
     Plot one slice of the flow field (quiver plot)
@@ -90,11 +93,12 @@ def plot_one_slice_quiver(
     # slice the grid to get the points in the slice
     # and reshape to 2d array
     my_shape = [len(np.unique(slice_indexes[i])) for i in range(len(slice_indexes))]
+    logger.debug("Slice shape: %s", my_shape)
 
     x1_grid = grid[0][slice_indexes].reshape(my_shape)
     x2_grid = grid[1][slice_indexes].reshape(my_shape)
     if isinstance(color, np.ndarray):
-        color = color[slice_indexes].reshape(my_shape[0], my_shape[1], 4)
+        color = color[slice_indexes].reshape((*my_shape, 4))
     dx1 = velocities[0][slice_indexes].reshape(my_shape)
     dx2 = velocities[1][slice_indexes].reshape(my_shape)
 
@@ -224,8 +228,7 @@ def plot_flow_field_stack(
     slice_axis_index: int,
     plot_bounds: list[np.ndarray],
     slice_steps: np.ndarray,
-    dataset_name: str,
-    fig_savedir: Path | None,
+    fig_savedir: Path,
 ) -> None:
     """
     Plot flow field PC{i} vs PC{j} over a stack of slices in the 3rd variable.
@@ -242,14 +245,8 @@ def plot_flow_field_stack(
         List of arrays specifying the plot bounds for the x and y axes of the 2D plots.
     slice_steps
         List of arrays specifying the slice steps for the slicing axis.
-    dataset_name
-        Name of the dataset for saving the figure.
     fig_savedir
         Directory to save the figures.
-    color
-        Color of the quiver arrows.
-    norm
-        Whether to normalize the velocity vectors.
     """
     # unpack plot axes
     i, j = plot_axes_indicies
@@ -261,22 +258,26 @@ def plot_flow_field_stack(
 
     # color by (log scaled) magnitude of the flow field
     vector_magnitude = np.sqrt(v_i**2 + v_j**2 + v_k**2)
-    # set to zero where magnitude is NaN
-    vector_magnitude = np.nan_to_num(vector_magnitude, nan=0.0)
-    vector_magnitude_clipped = np.clip(vector_magnitude, a_min=1e-10, a_max=None)
-    # use inferno colormap
-    colormap = get_cmap("inferno")
-    norm_colors = LogNorm(vmin=vector_magnitude_clipped.min(), vmax=vector_magnitude_clipped.max())
+    logger.debug("Vector magnitude array shape: [ %s ]", vector_magnitude.shape)
+    vector_magnitude_clipped = np.clip(
+        vector_magnitude, a_min=np.nanpercentile(vector_magnitude, 0.1), a_max=None
+    )
+    # get colormap values
+    colormap = get_cmap("jet")
+    norm_colors = LogNorm(
+        vmin=np.nanmin(vector_magnitude_clipped), vmax=np.nanmax(vector_magnitude_clipped)
+    )
     color = colormap(norm_colors(vector_magnitude_clipped.ravel())).reshape(
-        (*vector_magnitude_clipped.shape, 4)
-    )  # RGBA
+        (*vector_magnitude.shape, 4)
+    )  # RGBA colors
 
     # get grid and grid spacing
     x_i_grid = flow_field_dict["grid"][i]
     x_j_grid = flow_field_dict["grid"][j]
     x_k_grid = flow_field_dict["grid"][slice_axis_index]
 
-    for n, slice_value in enumerate(slice_steps.tolist()):
+    ax_list = []
+    for n, slice_value in enumerate(slice_steps):
         # set up figure
         fig, ax = plt.subplots(figsize=(7, 5))
 
@@ -299,10 +300,13 @@ def plot_flow_field_stack(
             y_label=f"PC{j+1}",
         )[0]
         ax.set_title(f"PC{slice_axis_index+1} = {slice_value:.4f}")
+        plt.tight_layout()
+        plt.show()
+        ax_list.append(ax)
         save_plot_to_path(
             fig,
             fig_savedir,
-            f"flow_field{dataset_name}_pc{slice_axis_index+1}_stack_{n}",
+            f"flow_field_stack_{n}",
         )
 
 
@@ -537,13 +541,13 @@ def flow_field_viz_main(
     # get PC1, PC2, and PC3 slices from meshgrid (ijk indexing)
     pc_slices = [
         flow_field_dict["grid"][0][:, 0, 0][
-            :: len(flow_field_dict["grid"][0][:, 0, 0]) // 10
+            :: len(flow_field_dict["grid"][0][:, 0, 0]) // 25
         ],  # PC1
         flow_field_dict["grid"][1][0, :, 0][
-            :: len(flow_field_dict["grid"][1][0, :, 0]) // 10
+            :: len(flow_field_dict["grid"][1][0, :, 0]) // 25
         ],  # PC2
         flow_field_dict["grid"][2][0, 0, :][
-            :: len(flow_field_dict["grid"][2][0, 0, :]) // 10
+            :: len(flow_field_dict["grid"][2][0, 0, :]) // 25
         ],  # PC3
     ]
     plot_axes_indicies = [
@@ -553,20 +557,24 @@ def flow_field_viz_main(
     ]
     slice_axis_indices = [2, 1, 0]  # PC3, PC2, PC1
 
-    for plot_axes, slice_axis in zip(plot_axes_indicies, slice_axis_indices, strict=True):
+    for i, slice_axis in enumerate(slice_axis_indices):
+        logger.info("Plotting flow field stack for slice axis PC%s.", slice_axis + 1)
+        plot_axes = plot_axes_indicies[i]
         slice_steps = pc_slices[slice_axis]
         plot_bounds_2d = [
             plot_bounds[plot_axes[0]],
             plot_bounds[plot_axes[1]],
         ]
+        # save to subdirectory of fig_savedir
+        stack_savedir = fig_savedir / f"{name}_pc{slice_axis + 1}_stack"
+        stack_savedir.mkdir(parents=True, exist_ok=True)
         plot_flow_field_stack(
             flow_field_dict,
-            plot_axes_indicies=(0, 1),
-            slice_axis_index=2,
+            plot_axes_indicies=plot_axes,
+            slice_axis_index=slice_axis,
             plot_bounds=plot_bounds_2d,
             slice_steps=slice_steps,
-            fig_savedir=fig_savedir,
-            dataset_name=name,
+            fig_savedir=stack_savedir,
         )
 
     # get z-slice and y-slice closest to PC2 and PC3 values

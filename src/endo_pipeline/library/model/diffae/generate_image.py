@@ -186,6 +186,8 @@ def generate_from_coords(
     walk_img = model_.generate_from_latent(
         coords_, n_noise_samples=n_noise_samples, average=average, save=False
     )
+    if isinstance(walk_img, torch.Tensor):
+        walk_img = walk_img.detach().cpu().numpy()
     return walk_img
 
 
