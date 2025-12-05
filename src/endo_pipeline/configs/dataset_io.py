@@ -270,33 +270,6 @@ def get_available_channels(
 
 @deprecated(
     """
-This method is deprecated and will be removed. Instead use:
-
-    from endo_pipeline.configs import get_channel_indices_for_all_positions
-    get_channel_indices_for_all_positions(dataset_config, position, channel_names)
-"""
-)
-def get_channel_index(
-    dataset_name: str, channel_names: list[str], zarr_name: str | None | None = None
-) -> dict[str, list[int | None]]:
-    """Get the indices of specified channels in the dataset."""
-    zarr_paths = get_zarr_path(dataset_name, zarr_name)
-    channel_indices = {}
-    for filename in zarr_paths.keys():
-        available_channels = get_available_channels(dataset_name, filename)
-        channel_indices[filename] = [
-            (
-                available_channels[filename].index(channel)
-                if channel in available_channels[filename]
-                else None
-            )
-            for channel in channel_names
-        ]
-    return channel_indices
-
-
-@deprecated(
-    """
 This method is deprecated and will be removed. Use the following replacement:
 
     from endo_pipeline.manifests import get_zarr_location_for_position
