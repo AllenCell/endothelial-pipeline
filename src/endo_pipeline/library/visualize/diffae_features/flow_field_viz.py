@@ -30,13 +30,12 @@ def set_slice_plot_bounds_and_labels(
     of 2D slices of the 3D flow field.
     """
     xmin, xmax = bounds[0][0], bounds[0][1]
-    ymin, ymax = bounds[1][0], bounds[1][1]
-    zmin, zmax = bounds[2][0], bounds[2][1]
 
-    for ax, (qmin, qmax) in zip(axs, [(ymin, ymax), (zmin, zmax)], strict=False):
+    for i, ax in enumerate(axs):
+        qmin, qmax = bounds[i + 1][0], bounds[i + 1][1]
         ax.set_xlim(xmin, xmax)
-        ax.set_xlabel("PC1", fontsize=18)
-        ax.set_ylabel("PC2" if ax == axs[0] else "PC3", fontsize=18)
+        ax.set_xlabel(x_label, fontsize=18)
+        ax.set_ylabel(y_label if i == 0 else "PC3", fontsize=18)
         ax.set_ylim(qmin, qmax)
         ax.set_aspect("equal")
         # set number of x ticks = number of y ticks = 5
