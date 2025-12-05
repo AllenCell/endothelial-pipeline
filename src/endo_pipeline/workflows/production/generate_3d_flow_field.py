@@ -41,7 +41,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings import (
+    from endo_pipeline.settings.flow_field_3d import (
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         INIT_POINT_3D,
         KERNEL_PARAMS_3D,

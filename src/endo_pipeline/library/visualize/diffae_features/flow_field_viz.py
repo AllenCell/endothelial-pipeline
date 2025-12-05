@@ -14,7 +14,13 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import get_dataset_des
 from endo_pipeline.library.analyze.dynamics_utils import data_driven_flow_field
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.visualize.diffae_features import feature_viz
-from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, ColumnName
+from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
+from endo_pipeline.settings.flow_field_3d import (
+    NORMALIZE_QUIVER_VECTORS,
+    QUIVER_DOWNSAMPLE_FACTOR,
+    QUIVER_OVERLAY_COLOR,
+    QUIVER_VECTOR_SCALE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -241,10 +247,10 @@ def plot_one_slice_quiver(
     grid: tuple,
     slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
     ax: plt.Axes,
-    color: str | np.ndarray = "dimgrey",
-    norm: bool = True,
-    ds: int = 3,
-    scale: int | float = 30,
+    color: str | np.ndarray = QUIVER_OVERLAY_COLOR,
+    norm: bool = NORMALIZE_QUIVER_VECTORS,
+    ds: int = QUIVER_DOWNSAMPLE_FACTOR,
+    scale: int | float = QUIVER_VECTOR_SCALE,
 ) -> plt.Axes:
     """
     Plot one slice of the flow field (quiver plot)
