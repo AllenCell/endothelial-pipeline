@@ -13,11 +13,29 @@ QUIVER_DOWNSAMPLE_FACTOR: int = 2
 QUIVER_VECTOR_SCALE: float = 50.0
 """Vector scale for quiver plots in 3D flow field visualization."""
 
+QUIVER_NO_OVERLAY_COLOR: str = "black"
+"""Color for quiver plots without fixed point overlay in 3D flow field visualization."""
+
 QUIVER_OVERLAY_COLOR: str = "dimgrey"
-"""Overlay color for quiver plots with scatter plot overlay in 3D flow field visualization."""
+"""Overlay color for quiver plots with fixed point overlay in 3D flow field visualization."""
 
 NORMALIZE_QUIVER_VECTORS: bool = True
 """Whether to normalize quiver vectors in 3D flow field visualization."""
+
+LOG_NORM_MAGNITUDES: bool = True
+"""Whether to use logarithmic normalization for vector magnitude colormap in 3D flow field visualization."""
+
+CLIP_MAGNITUDES: bool = True
+"""Whether to clip vector magnitudes for colormap in 3D flow field visualization."""
+
+CLIP_MIN_MAGNITUDE_PERCENTILE: float | None = 0.1
+"""Percentile for clipping minimum vector magnitudes in 3D flow field visualization."""
+
+CLIP_MAX_MAGNITUDE_PERCENTILE: float | None = None
+"""Percentile for clipping maximum vector magnitudes in 3D flow field visualization."""
+
+QUIVER_COLORMAP: str = "jet"
+"""Colormap for quiver plots in 3D flow field visualization."""
 
 TIME_STEP_IN_MINUTES: int = 5
 """Time step in minutes between consecutive time points for flow field estimation."""

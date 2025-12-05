@@ -16,8 +16,14 @@ from endo_pipeline.library.process.general_image_preprocessing import sequence_t
 from endo_pipeline.library.visualize.diffae_features import feature_viz
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
 from endo_pipeline.settings.flow_field_3d import (
+    CLIP_MAGNITUDES,
+    CLIP_MAX_MAGNITUDE_PERCENTILE,
+    CLIP_MIN_MAGNITUDE_PERCENTILE,
+    LOG_NORM_MAGNITUDES,
     NORMALIZE_QUIVER_VECTORS,
+    QUIVER_COLORMAP,
     QUIVER_DOWNSAMPLE_FACTOR,
+    QUIVER_NO_OVERLAY_COLOR,
     QUIVER_OVERLAY_COLOR,
     QUIVER_VECTOR_SCALE,
 )
@@ -116,8 +122,10 @@ def _get_colormap_norm(
 def _get_colormap_values(
     colormap_name: str,
     color_metric: np.ndarray,
-    log_normalize: bool = True,
-    clip_metric: bool = True,
+    log_normalize: bool = LOG_NORM_MAGNITUDES,
+    clip_metric: bool = CLIP_MAGNITUDES,
+    clip_min_percentile: float | None = CLIP_MIN_MAGNITUDE_PERCENTILE,
+    clip_max_percentile: float | None = CLIP_MAX_MAGNITUDE_PERCENTILE,
 ) -> np.ndarray:
     """
     Get the colormap values for the given color metric.
@@ -125,23 +133,27 @@ def _get_colormap_values(
     Parameters
     ----------
     color_metric
-        The metric to be used for coloring.
+        The metric to be used for coloring (e.g., vector magnitudes).
     log_normalize
-        Whether to log normalize the color mapping.
+        Log normalize the color mapping if True, else linear normalize.
     clip_metric
         Whether to clip the color metric to avoid outliers.
+    clip_min_percentile
+        The minimum percentile for clipping the color metric. If None, no clipping is applied.
+    clip_max_percentile
+        The maximum percentile for clipping the color metric. If None, no clipping is applied.
 
     Returns
     -------
-    norm_colors
-        The normalized color values.
+    color_values
+        The normalized colormap values for the given color metric.
     """
     colormap_object = get_cmap(colormap_name)
     if clip_metric:
         color_metric = np.clip(
             color_metric,
-            a_min=np.nanpercentile(color_metric, 0.1),
-            a_max=None,
+            a_min=np.nanpercentile(color_metric, clip_min_percentile),
+            a_max=np.nanpercentile(color_metric, clip_max_percentile),
         )
     # get colormap normalization
     norm_colors = _get_colormap_norm(color_metric, log_normalize=log_normalize)
@@ -158,9 +170,9 @@ def plot_flow_field_stack(
     plot_bounds: list[np.ndarray],
     slice_steps: np.ndarray,
     fig_savedir: Path,
-    colormap="jet",
-    clip_metric: bool = True,
-    log_normalize: bool = True,
+    colormap=QUIVER_COLORMAP,
+    clip_metric: bool = CLIP_MAGNITUDES,
+    log_normalize: bool = LOG_NORM_MAGNITUDES,
 ) -> None:
     """
     Plot flow field PC{i} vs PC{j} over a stack of slices in the 3rd variable.
@@ -307,8 +319,8 @@ def plot_quiver_slices(
         tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
         tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
     ],
-    color: str = "dimgrey",
-    norm: bool = True,
+    color: str = QUIVER_OVERLAY_COLOR,
+    norm: bool = NORMALIZE_QUIVER_VECTORS,
     fig_ax: tuple | None = None,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
@@ -397,8 +409,8 @@ def plot_flow_field_slices(
     plot_bounds: list[np.ndarray],
     fig_savedir: Path | None,
     pc_vals: tuple[Any, Any] | None = None,
-    color: str = "black",
-    norm: bool = True,
+    color: str = QUIVER_NO_OVERLAY_COLOR,
+    norm: bool = NORMALIZE_QUIVER_VECTORS,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
     Plot 2D slices of the 3D flow field
