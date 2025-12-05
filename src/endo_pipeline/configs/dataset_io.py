@@ -223,23 +223,6 @@ Use one of the following methods to load the dataset config:
 
 The field can then be accessed using:
 
-        dataset.duration
-"""
-)
-def get_dataset_duration_in_frames(dataset_name: str) -> int:
-    dataset_info = get_dataset_info(dataset_name)
-    return dataset_info["duration"]
-
-
-@deprecated(
-    """
-Use one of the following methods to load the dataset config:
-
-        configs.load_all_dataset_configs
-        configs.load_dataset_config(dataset_name)
-
-The field can then be accessed using:
-
         dataset.pixel_size_xy_in_um
 """
 )
