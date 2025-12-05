@@ -40,13 +40,13 @@ QUIVER_COLORMAP: str = "jet"
 FLOW_FIELD_X_AXIS_LABEL: str = "PC1"
 """Label for the X axis in the plots of 2D slices of the 3D flow field."""
 
-FLOW_FIELD_Y_AXIS_LABELS: tuple[str] = ("PC2", "PC3")
+FLOW_FIELD_Y_AXIS_LABELS: tuple[str, str] = ("PC2", "PC3")
 """Labels for the Y axes in the plots of 2D slices of the 3D flow field."""
 
 TIME_STEP_IN_MINUTES: int = 5
 """Time step in minutes between consecutive time points for flow field estimation."""
 
-INIT_POINT_3D: list = [0.5, 0.0, -1.0]
+INIT_POINT_3D: list = [0.5, 0.0, 0.5]
 """Default initial point for 3D flow field trajectory visualization."""
 
 TRAJECTORY_TIME_SPAN: list[int] = [0, 5000]

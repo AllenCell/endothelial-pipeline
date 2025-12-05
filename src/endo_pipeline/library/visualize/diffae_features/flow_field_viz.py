@@ -37,7 +37,7 @@ def set_slice_plot_bounds_and_labels(
     axs: np.ndarray[plt.Axes, Any],
     bounds: list[np.ndarray] | list[tuple[float, float]],
     x_label: str = FLOW_FIELD_X_AXIS_LABEL,
-    y_labels: tuple[str] = FLOW_FIELD_Y_AXIS_LABELS,
+    y_labels: tuple[str, ...] = FLOW_FIELD_Y_AXIS_LABELS,
 ) -> np.ndarray[plt.Axes, Any]:
     """
     Set the axis limits and labels for the plots
@@ -113,16 +113,15 @@ def _get_colormap_norm(
         The colormap normalization object.
     """
     if log_normalize:
-        norm = LogNorm(
+        return LogNorm(
             vmin=np.nanmin(color_metric),
             vmax=np.nanmax(color_metric),
         )
     else:
-        norm = Normalize(
+        return Normalize(
             vmin=np.nanmin(color_metric),
             vmax=np.nanmax(color_metric),
         )
-    return norm
 
 
 def _get_colormap_values(
