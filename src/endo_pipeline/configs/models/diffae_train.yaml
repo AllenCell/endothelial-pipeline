@@ -9,12 +9,14 @@ checkpoint:
   strict: true
 seed: 12345
 
+lat_dim: 4096
+
 data:
   train_dataloaders:
     _target_: monai.data.DataLoader
     drop_last: True  # Critical for DDP - ensures consistent batch sizes across ranks
     num_workers: 24
-    batch_size: 4
+    batch_size: 2
     pin_memory: true
     persistent_workers: true  # Better for multi-epoch training
     shuffle: true
@@ -86,7 +88,7 @@ data:
     _target_: monai.data.DataLoader
     drop_last: True  # Critical for DDP - ensures consistent batch sizes across ranks
     num_workers: 16
-    batch_size: 4
+    batch_size: 2
     pin_memory: true
     persistent_workers: true  # Better for multi-epoch training
     shuffle: false
@@ -175,7 +177,7 @@ model:
     in_channels: 1
     base_encoder:
       _target_: torchvision.models.convnext_tiny
-      num_classes: 8
+      num_classes: ${lat_dim}
   autoencoder:
     _target_: monai.networks.nets.diffusion_model_unet.DiffusionModelUNet
     spatial_dims: 2
@@ -185,15 +187,17 @@ model:
     - 32
     - 64
     - 128
+    - 256
     attention_levels:
     - false
     - true
     - true
+    - true
     num_res_blocks: 1
-    num_head_channels: 16
+    num_head_channels: 64
     with_conditioning: true
-    cross_attention_dim: 1
-    use_combined_linear: false
+    cross_attention_dim: ${lat_dim}
+    use_combined_linear: true
   noise_scheduler:
     _target_: monai.networks.schedulers.ddim.DDIMScheduler
     num_train_timesteps: 1000
@@ -204,10 +208,10 @@ model:
   lr_scheduler:
     _partial_: true
     _target_: torch.optim.lr_scheduler.OneCycleLR
-    max_lr: 0.0001
+    max_lr: 0.0002
     epochs: ${trainer.max_epochs}
-    steps_per_epoch: 1
-    pct_start: 0.01
+    steps_per_epoch: 279 # this works with a batch size of 12 with 4 GPUs
+    pct_start: 0.06 # with max epochs of 7500 this will have LR increase until 750 epochs!
   diffusion_inferer:
     _target_: monai.inferers.DiffusionInferer
     _partial_: true
@@ -260,16 +264,19 @@ callbacks:
     num_pcs: 5
     n_steps: 10
     every_n_epoch: ${model.save_images_every_n_epochs}
+  gradient_logging:
+    _target_: endo_pipeline.library.model.diffae.log_grad.GradientLoggingCallback
+    grouping_level: 3
 
 logger:
   mlflow:
-    _target_: cyto_dl.loggers.MLFlowLogger
+    _target_: endo_pipeline.library.model.diffae.mlflow.MLFlowLogger
     tracking_uri: https://production.int.allencell.org/mlflow/
     experiment_name: ${experiment_name}
     run_name: ${run_name}
 trainer:
   _target_: lightning.Trainer
-  use_distributed_sampler: True
+  use_distributed_sampler: true
   default_root_dir: ${paths.output_dir}
   min_epochs: 1500
   max_epochs: 2000
