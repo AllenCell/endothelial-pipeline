@@ -23,3 +23,6 @@ MAX_SUPP_MOVIE_HEIGHT = 1080
 
 MAX_FIGURE_WIDTH = 7.5
 """Maximum width of figure in inches."""
+
+MAX_FIGURE_HEIGHT = 10
+"""Maximum height of figure in inches."""
