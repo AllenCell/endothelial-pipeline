@@ -607,9 +607,44 @@ def flow_field_viz_main(
     plot_flow_field_slices(flow_field_dict, df_cond, plot_bounds, fig_savedir, pc_vals=pc_vals)
 
     ###### additional plots for visualization of flow field #######
-    # 1) last point of trajectory over flow field
-    # 2) entire trajectory over flow field
-    # 3) trajectory with equally spaced interpolated points
+    # 1) plot stacks of flow field slices
+    # 2) last point of trajectory over flow field
+    # 3) entire trajectory over flow field
+    # 4) trajectory with equally spaced interpolated points
+
+    # 1) plot stacks of flow field slices
+    # get PC1, PC2, and PC3 slices from meshgrid (ijk indexing)
+    pc_slices = [
+        flow_field_dict["grid"][0][:, 0, 0],  # PC1
+        flow_field_dict["grid"][1][0, :, 0],  # PC2
+        flow_field_dict["grid"][2][0, 0, :],  # PC3
+    ]
+    plot_axes_indicies = [
+        (0, 1),  # PC1 vs PC2 over PC3 slices
+        (0, 2),  # PC1 vs PC3 over PC2 slices
+        (1, 2),  # PC2 vs PC3 over PC1 slices
+    ]
+    slice_axis_indices = [2, 1, 0]  # PC3, PC2, PC1
+
+    for i, slice_axis in enumerate(slice_axis_indices):
+        logger.info("Plotting flow field stack for slice axis PC%s.", slice_axis + 1)
+        plot_axes = plot_axes_indicies[i]
+        slice_steps = pc_slices[slice_axis]
+        plot_bounds_2d = [
+            plot_bounds[plot_axes[0]],
+            plot_bounds[plot_axes[1]],
+        ]
+        # save to subdirectory of fig_savedir
+        stack_savedir = fig_savedir / f"{name}_pc{slice_axis + 1}_stack"
+        stack_savedir.mkdir(parents=True, exist_ok=True)
+        plot_flow_field_stack(
+            flow_field_dict,
+            plot_axes_indicies=plot_axes,
+            slice_axis_index=slice_axis,
+            plot_bounds=plot_bounds_2d,
+            slice_steps=slice_steps,
+            fig_savedir=stack_savedir,
+        )
 
     # get z-slice and y-slice closest to PC2 and PC3 values
     zvalids = get_slice_indexes(
@@ -619,7 +654,7 @@ def flow_field_viz_main(
         flow_field_dict["grid"][-2], pc_vals[1]
     )  # get y-slice closest to PC2 = PC2_val
 
-    # 1) plot last point of trajectory over flow field
+    # 2) plot last point of trajectory over flow field
     fig, ax = plt.subplots(1, 2, figsize=(14, 5))
 
     # get the color for the scatter plot
