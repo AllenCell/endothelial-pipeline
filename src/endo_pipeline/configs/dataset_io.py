@@ -2,8 +2,6 @@ import logging
 from os import scandir
 from pathlib import Path
 
-import dask
-import dask.array
 import dask.dataframe as dd
 import pandas as pd
 import yaml
@@ -17,8 +15,6 @@ except ModuleNotFoundError:
 import re
 from collections.abc import Callable
 from typing import Any
-
-from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
 
@@ -379,60 +375,6 @@ def get_total_number_of_positions(dataset_name: str) -> int:
     """
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["n_total_positions"]
-
-
-@deprecated(
-    """
-This method is deprecated and will be removed. The new pattern for loading Zarr
-datasets is:
-
-    from endo_pipeline.configs import load_dataset_config
-    from endo_pipeline.manifests import get_zarr_location_for_position
-    from endo_pipeline.io import load_image
-
-    dataset_config = load_dataset_config(dataset_name)
-    zarr_loc = get_zarr_location_for_position(dataset_config, position)
-    zarr = load_image(zarr_loc)
-
-To recreate the behavior of this specific method (loading Zarrs for all positions
-of a dataset into a dictionary, use:
-
-    from endo_pipeline.configs import load_dataset_config
-    from endo_pipeline.manifests import get_available_zarr_locations
-    from endo_pipeline.io import load_image
-
-    dataset_config = load_dataset_config(dataset_name)
-    zarr_locations = get_available_zarr_locations(dataset_config)
-    zarrs = {zarr_loc.name: load_image(zarr_loc) for zarr_loc in zarr_locations}
-"""
-)
-def load_dataset(
-    dataset_name: str,
-    channels: list = ["EGFP", "BF"],
-    time_start: int = 0,
-    time_end: int = -1,
-    level: int = 0,
-    zarr_name: str | None = None,
-) -> dict[str, dask.array.Array]:
-    """Load a dataset as a dictionary of Dask arrays."""
-    zarr_paths = get_zarr_path(dataset_name, zarr_name)
-    dataset = {}
-
-    for filename, filepath in zarr_paths.items():
-        reader = BioImage(filepath)
-        available_channels = reader.channel_names
-        channels_index = [available_channels.index(c) for c in channels]
-        assert (
-            level in reader.resolution_levels
-        ), f"Invalid resolution level {level}. Available levels are {reader.resolution_levels}"
-        reader.set_resolution_level(level)
-        if time_end < 0:
-            time_end = get_dataset_duration_in_frames(dataset_name) - 1
-        img = reader.get_image_dask_data(
-            DIMENSION_ORDER, T=range(time_start, time_end + 1), C=channels_index
-        )
-        dataset[filename] = img
-    return dataset
 
 
 @deprecated(
