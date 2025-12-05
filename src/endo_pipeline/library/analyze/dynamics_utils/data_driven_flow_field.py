@@ -17,11 +17,11 @@ from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data, get_bins
 from endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import (
+from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
-    TRAJECTORY_DICT_FILE_NAME,
 )
+from endo_pipeline.settings.flow_field_3d import TRAJECTORY_DICT_FILE_NAME
 
 logger = logging.getLogger(__name__)
 

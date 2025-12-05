@@ -156,10 +156,20 @@ def _get_colormap_values(
     """
     colormap_object = get_cmap(colormap_name)
     if clip_metric:
+        a_min = (
+            np.nanpercentile(color_metric, clip_min_percentile)
+            if clip_min_percentile is not None
+            else None
+        )
+        a_max = (
+            np.nanpercentile(color_metric, clip_max_percentile)
+            if clip_max_percentile is not None
+            else None
+        )
         color_metric = np.clip(
             color_metric,
-            a_min=np.nanpercentile(color_metric, clip_min_percentile),
-            a_max=np.nanpercentile(color_metric, clip_max_percentile),
+            a_min=a_min,
+            a_max=a_max,
         )
     # get colormap normalization
     norm_colors = _get_colormap_norm(color_metric, log_normalize=log_normalize)
@@ -247,7 +257,7 @@ def plot_flow_field_stack(
             np.array([ax]),
             plot_bounds,
             x_label=f"PC{i+1}",
-            y_labels=(f"PC{j+1}"),
+            y_labels=(f"PC{j+1}",),
         )[0]
         ax.set_title(f"PC{slice_axis_index+1} = {slice_value:.4f}")
         plt.tight_layout()

@@ -4,7 +4,7 @@ KERNEL_PARAMS_3D: dict = {
 }
 """Default kernel parameters for 3D flow field estimation."""
 
-NUM_BINS_3D: tuple[int, int, int] = (40, 40, 40)
+NUM_BINS_3D: tuple[int, int, int] = (60, 60, 50)
 """Default number of bins for 3D flow field estimation."""
 
 QUIVER_DOWNSAMPLE_FACTOR: int = 2
@@ -40,7 +40,7 @@ QUIVER_COLORMAP: str = "jet"
 FLOW_FIELD_X_AXIS_LABEL: str = "PC1"
 """Label for the X axis in the plots of 2D slices of the 3D flow field."""
 
-FLOW_FIELD_Y_AXIS_LABELS: tuple[str, str] = ("PC2", "PC3")
+FLOW_FIELD_Y_AXIS_LABELS: tuple[str] = ("PC2", "PC3")
 """Labels for the Y axes in the plots of 2D slices of the 3D flow field."""
 
 TIME_STEP_IN_MINUTES: int = 5
