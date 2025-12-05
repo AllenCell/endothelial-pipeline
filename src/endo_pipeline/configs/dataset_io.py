@@ -243,32 +243,6 @@ def get_zarr_path(
 
 @deprecated(
     """
-This method is deprecated and will be removed. Use the following replacement:
-
-    from endo_pipeline.manifests import get_zarr_location_for_position
-
-This method will the location to the Zarr file for the given dataset and
-position. If you need the name of the Zarr file, use .path.name on the returned
-object.
-"""
-)
-def get_zarr_name(dataset_name: str, position: int) -> str:
-    """
-    Get the zarr name for a given dataset and position.
-    """
-    zarr_paths = get_zarr_path(dataset_name)
-    zarr_found_for_position = position in [extract_p(zarr_name) for zarr_name in zarr_paths.keys()]
-    assert (
-        zarr_found_for_position
-    ), f"Zarr file for position {position} not found in dataset {dataset_name}."
-    for zarr_name in zarr_paths.keys():
-        if position == extract_p(zarr_name):
-            break
-    return zarr_name
-
-
-@deprecated(
-    """
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
