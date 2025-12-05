@@ -223,23 +223,6 @@ Use one of the following methods to load the dataset config:
 
 The field can then be accessed using:
 
-        dataset.pixel_size_xy_in_um
-"""
-)
-def get_xy_pixel_size_in_um(dataset_name: str) -> float:
-    dataset_info = get_dataset_info(dataset_name)
-    return dataset_info["pixel_size_xy_in_um"]
-
-
-@deprecated(
-    """
-Use one of the following methods to load the dataset config:
-
-        configs.load_all_dataset_configs
-        configs.load_dataset_config(dataset_name)
-
-The field can then be accessed using:
-
         dataset.time_interval_in_minutes
 """
 )
