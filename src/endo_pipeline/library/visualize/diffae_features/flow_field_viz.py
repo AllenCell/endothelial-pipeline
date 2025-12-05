@@ -1,9 +1,12 @@
+import logging
 from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.cm import get_cmap
+from matplotlib.colors import LogNorm, Normalize
 from matplotlib.ticker import MaxNLocator
 
 from endo_pipeline.io import save_plot_to_path
@@ -12,6 +15,8 @@ from endo_pipeline.library.analyze.dynamics_utils import data_driven_flow_field
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.visualize.diffae_features import feature_viz
 from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, ColumnName
+
+logger = logging.getLogger(__name__)
 
 
 def set_slice_plot_bounds_and_labels(
@@ -67,6 +72,167 @@ def get_slice_indexes(
     # that are within the z-range of interest
     slice_indexes = np.unravel_index(slice_indexes_, sliced_variable_grid.shape)
     return slice_indexes
+
+
+def _get_colormap_norm(
+    color_metric: np.ndarray,
+    log_normalize: bool = True,
+) -> Normalize | LogNorm:
+    """
+    Get the colormap normalization object for the given color metric.
+
+    Parameters
+    ----------
+    color_metric
+        The metric to be used for coloring.
+    log_normalize
+        Whether to log normalize the color mapping.
+
+    Returns
+    -------
+    norm
+        The colormap normalization object.
+    """
+    if log_normalize:
+        norm = LogNorm(
+            vmin=np.nanmin(color_metric),
+            vmax=np.nanmax(color_metric),
+        )
+    else:
+        norm = Normalize(
+            vmin=np.nanmin(color_metric),
+            vmax=np.nanmax(color_metric),
+        )
+    return norm
+
+
+def _get_colormap_values(
+    colormap_name: str,
+    color_metric: np.ndarray,
+    log_normalize: bool = True,
+    clip_metric: bool = True,
+) -> np.ndarray:
+    """
+    Get the colormap values for the given color metric.
+
+    Parameters
+    ----------
+    color_metric
+        The metric to be used for coloring.
+    log_normalize
+        Whether to log normalize the color mapping.
+    clip_metric
+        Whether to clip the color metric to avoid outliers.
+
+    Returns
+    -------
+    norm_colors
+        The normalized color values.
+    """
+    colormap_object = get_cmap(colormap_name)
+    if clip_metric:
+        color_metric = np.clip(
+            color_metric,
+            a_min=np.nanpercentile(color_metric, 0.1),
+            a_max=None,
+        )
+    # get colormap normalization
+    norm_colors = _get_colormap_norm(color_metric, log_normalize=log_normalize)
+    color_values = colormap_object(norm_colors(color_metric.ravel())).reshape(
+        (*color_metric.shape, 4)
+    )  # reshape to get RGBA colors
+    return color_values
+
+
+def plot_flow_field_stack(
+    flow_field_dict: dict,
+    plot_axes_indicies: tuple[int, int],
+    slice_axis_index: int,
+    plot_bounds: list[np.ndarray],
+    slice_steps: np.ndarray,
+    fig_savedir: Path,
+    colormap="jet",
+    clip_metric: bool = True,
+    log_normalize: bool = True,
+) -> None:
+    """
+    Plot flow field PC{i} vs PC{j} over a stack of slices in the 3rd variable.
+
+    Parameters
+    ----------
+    flow_field_dict
+        Dictionary containing the flow field data.
+    plot_axes_indicies
+        Tuple (i,j) of indices specifying which principal components to plot.
+    slice_axis_index
+        Index of the principal component to slice over.
+    plot_bounds
+        List of arrays specifying the plot bounds for the x and y axes of the 2D plots.
+    slice_steps
+        List of arrays specifying the slice steps for the slicing axis.
+    fig_savedir
+        Directory to save the figures.
+    colormap
+        Colormap to use for the quiver plot.
+    clip_metric
+        Whether to clip the color metric to avoid outliers.
+    log_normalize
+        Whether to log normalize the color mapping.
+    """
+    # unpack plot axes
+    i, j = plot_axes_indicies
+
+    # get flow field
+    v_i = flow_field_dict["vectors"][i]
+    v_j = flow_field_dict["vectors"][j]
+    v_k = flow_field_dict["vectors"][slice_axis_index]
+
+    # color by magnitude of the flow field (log normalized or not, clipped or not)
+    vector_magnitude = np.sqrt(v_i**2 + v_j**2 + v_k**2)
+    color = _get_colormap_values(
+        colormap,
+        vector_magnitude,
+        log_normalize=log_normalize,
+        clip_metric=clip_metric,
+    )
+
+    # get grid and grid spacing
+    x_i_grid = flow_field_dict["grid"][i]
+    x_j_grid = flow_field_dict["grid"][j]
+    x_k_grid = flow_field_dict["grid"][slice_axis_index]
+
+    ax_list = []
+    for n, slice_value in enumerate(slice_steps):
+        # set up figure
+        fig, ax = plt.subplots(figsize=(7, 5))
+
+        # get meshgrid indexes for the current slice value
+        x_k_valids = get_slice_indexes(x_k_grid, slice_value)
+
+        # plot quiver plots for the specified slice
+        ax = plot_one_slice_quiver(
+            (v_i, v_j),
+            (x_i_grid, x_j_grid),
+            x_k_valids,
+            ax=ax,
+            color=color,
+        )
+        # set the axis limits and labels
+        ax = set_slice_plot_bounds_and_labels(
+            np.array([ax]),
+            plot_bounds,
+            x_label=f"PC{i+1}",
+            y_label=f"PC{j+1}",
+        )[0]
+        ax.set_title(f"PC{slice_axis_index+1} = {slice_value:.4f}")
+        plt.tight_layout()
+        plt.show()
+        ax_list.append(ax)
+        save_plot_to_path(
+            fig,
+            fig_savedir,
+            f"flow_field_stack_{n}",
+        )
 
 
 def plot_one_slice_quiver(
