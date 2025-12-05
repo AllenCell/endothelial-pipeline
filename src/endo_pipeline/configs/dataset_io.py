@@ -212,37 +212,6 @@ def get_zarr_dir(dataset_name: str) -> str:
 
 @deprecated(
     """
-This method is deprecated and will be removed. Use the following replacement:
-
-    from endo_pipeline.manifests import get_available_zarr_locations
-
-This method will return a list of location objects to Zarr files for all
-positions in the given dataset config. If you need the name of the Zarr file,
-use .path.name on the returned Path object.
-"""
-)
-def get_zarr_path(
-    dataset_name: str,
-    zarr_name: str | None | None = None,
-) -> dict[str, str]:
-    """Get the zarr file paths for a given dataset."""
-    data_dir = get_zarr_dir(dataset_name)
-    zarr_paths = {}
-    if zarr_name:
-        filepath = Path(data_dir) / zarr_name
-        assert filepath.exists(), f"Zarr file {filepath} does not exist."
-        filepath_list = [filepath]
-    else:
-        filepath_list = list(Path(data_dir).glob("*.zarr"))
-
-    for filepath in filepath_list:
-        zarr_paths[filepath.name] = str(filepath)
-
-    return zarr_paths
-
-
-@deprecated(
-    """
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
