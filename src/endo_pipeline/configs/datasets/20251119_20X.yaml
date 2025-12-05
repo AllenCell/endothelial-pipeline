@@ -72,4 +72,10 @@ timepoint_annotations:
     4: [[0, 169], [328, 577]]
     5: [[0, 225], [343, 577]]
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 12
+  1: 11
+  2: 11
+  3: 10
+  4: 11
+  5: 11
