@@ -142,9 +142,9 @@ def plot_bf_outliers(
     # Insert a "fake" third entry to get the legend to divide nicely into
     # three columns.
     (lines, labels) = plt.gca().get_legend_handles_labels()
-    lines.insert(2, plt.Line2D([0], [0], linestyle='none', marker='none'))
-    labels.insert(2,'')
-    ax.legend(lines, labels, loc='lower center', bbox_to_anchor=(0.5, -0.45), ncol=3)
+    lines.insert(2, plt.Line2D([0], [0], linestyle="none", marker="none"))
+    labels.insert(2, "")
+    ax.legend(lines, labels, loc="lower center", bbox_to_anchor=(0.5, -0.45), ncol=3)
 
     ax.set_ylim(mean_for_lim - mean_for_lim * 0.05, mean_for_lim + mean_for_lim * 0.05)
 

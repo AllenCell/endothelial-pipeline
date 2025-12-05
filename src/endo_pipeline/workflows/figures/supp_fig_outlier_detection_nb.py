@@ -1,19 +1,20 @@
 # %%
+import matplotlib.pyplot as plt
+
 from endo_pipeline.configs import (
     TimepointAnnotation,
     get_datasets_in_collection,
     load_dataset_config,
 )
+from endo_pipeline.io import get_output_path
 from endo_pipeline.library.process.single_tp_outlier.bf_timepoint_outlier import detect_bf_outliers
 from endo_pipeline.library.process.single_tp_outlier.gfp_timepoint_outlier import (
     detect_egfp_scope_errors,
 )
-import matplotlib.pyplot as plt
 from endo_pipeline.library.process.single_tp_outlier.timepoint_outlier import performance_stats
+from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
-from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
-from endo_pipeline.io import get_output_path
 
 plt.style.use("endo_pipeline.figure")
 

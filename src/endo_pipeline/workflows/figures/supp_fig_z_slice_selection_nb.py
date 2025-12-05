@@ -1,6 +1,7 @@
 # %%
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+
 from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
 from endo_pipeline.io import get_output_path, load_image
 from endo_pipeline.library.process.z_stack_selection import (
@@ -10,11 +11,11 @@ from endo_pipeline.library.process.z_stack_selection import (
     plot_standard_devs_per_slice,
     visualize_slice_selection,
 )
+from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
-from endo_pipeline.settings.image_data import LOWER_Z_SLICE_OFFSET, UPPER_Z_SLICE_OFFSET
 from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
-from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
+from endo_pipeline.settings.image_data import LOWER_Z_SLICE_OFFSET, UPPER_Z_SLICE_OFFSET
 
 # %%
 DESCRIPTION = "Visualize the selection of Z slices for image preprocessing."
@@ -84,7 +85,7 @@ panels = [
     ),
     FigurePanel(
         letter="C",
-        path=save_dir / f"n_slices_above_in_focus_z_histogram.svg",
+        path=save_dir / "n_slices_above_in_focus_z_histogram.svg",
         x_position=5,
         y_position=0,
         x_offset=0,
@@ -92,7 +93,8 @@ panels = [
     ),
     FigurePanel(
         letter="D",
-        path=save_dir / f"plane_selection_vis_{dataset}_P{position}_{frame}_offset{LOWER_Z_SLICE_OFFSET}_{UPPER_Z_SLICE_OFFSET}_scalebar50um.svg",
+        path=save_dir
+        / f"plane_selection_vis_{dataset}_P{position}_{frame}_offset{LOWER_Z_SLICE_OFFSET}_{UPPER_Z_SLICE_OFFSET}_scalebar50um.svg",
         x_position=0,
         y_position=2.4,
         x_offset=0.1,

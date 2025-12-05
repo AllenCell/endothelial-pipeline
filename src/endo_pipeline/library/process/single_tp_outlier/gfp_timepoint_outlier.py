@@ -80,8 +80,8 @@ def plot_gfp_outliers_rolling(
     ax.set_ylabel("Average mEGFP intensity in Z-stack (a.u.)")
     ax.tick_params(axis="both", which="major")
 
-    ncols = 4  if not dark_outliers and not bright_outliers else 3
-    ax.legend(loc='lower center', bbox_to_anchor=(0.5, -0.4), ncol=ncols)
+    ncols = 4 if not dark_outliers and not bright_outliers else 3
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.4), ncol=ncols)
 
     save_dir = get_output_path("annotate_tp_outliers")
     save_plot_to_path(fig, save_dir, f"gfp_outliers_{dataset_name}_P{position}", file_format=".svg")

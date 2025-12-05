@@ -185,7 +185,10 @@ def plot_standard_devs_per_slice(
 
     # Add a vertical line at the center plane index
     ax.axvline(
-        center_plane, color="red", linestyle="--", label=f"In-focus Z-slice\n(index = {center_plane})"
+        center_plane,
+        color="red",
+        linestyle="--",
+        label=f"In-focus Z-slice\n(index = {center_plane})",
     )
 
     ax.set_title("In-focus Z-slice per timepoint")
