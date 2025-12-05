@@ -241,7 +241,7 @@ def plot_one_slice_quiver(
     grid: tuple,
     slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
     ax: plt.Axes,
-    color: str = "dimgrey",
+    color: str | np.ndarray = "dimgrey",
     norm: bool = True,
     ds: int = 3,
     scale: int | float = 30,
@@ -260,6 +260,10 @@ def plot_one_slice_quiver(
     dx1 = velocities[0][slice_indexes].reshape(my_shape)
     dx2 = velocities[1][slice_indexes].reshape(my_shape)
 
+    # if coloring arrows by some metric, slice and reshape
+    if isinstance(color, np.ndarray):
+        color = color[slice_indexes].reshape((*my_shape, 4))  # RGBA colors
+
     # flatten down to 2D depending on which axis has shape == 1
     which_idx = np.where(np.array(my_shape) == 1)[0][0]
     # get xi_grid[... 0 ...] where 0 is taken from the axis with shape == 1
@@ -276,15 +280,17 @@ def plot_one_slice_quiver(
         dx1_ = dx1.copy()
         dx2_ = dx2.copy()
 
-    # downsample the grid: every 5th point
+    # downsample the grid for quiver plot
     x1_grid_ = x1_grid[::ds, ::ds]
     x2_grid_ = x2_grid[::ds, ::ds]
     dx1_ = dx1_[::ds, ::ds]
     dx2_ = dx2_[::ds, ::ds]
+    # if coloring arrows by some metric, downsample that too and reshape
+    color_ = color[::ds, ::ds].reshape(-1, 4) if isinstance(color, np.ndarray) else color
 
     # transpose the grid and velocities for quiver plot
     # (meshgrid generated via indexing ij)
-    ax.quiver(x1_grid_.T, x2_grid_.T, dx1_.T, dx2_.T, color=color, scale=scale)
+    ax.quiver(x1_grid_.T, x2_grid_.T, dx1_.T, dx2_.T, color=color_, scale=scale)
 
     return ax
 
