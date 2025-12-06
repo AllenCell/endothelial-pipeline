@@ -178,17 +178,17 @@ def plot_standard_devs_per_slice(
         The frame index.
     output_dir
         Directory where the plot will be saved.
-
-    Returns
-    -------
-    None
     """
-    fig, ax = plt.subplots(figsize=(6, 6))
+
+    fig, ax = plt.subplots(figsize=(3, 3))
     ax.plot(stdevs)
 
     # Add a vertical line at the center plane index
     ax.axvline(
-        center_plane, color="red", linestyle="--", label=f"In-focus Z-slice\n(index={center_plane})"
+        center_plane,
+        color="red",
+        linestyle="--",
+        label=f"In-focus Z-slice\n(index = {center_plane})",
     )
 
     ax.set_title("In-focus Z-slice per timepoint")
@@ -197,7 +197,7 @@ def plot_standard_devs_per_slice(
     ax.legend()  # Add legend for the center plane label
 
     fname = f"standard_devs_{dataset}_P{position}_{frame}"
-    save_plot_to_path(fig, output_dir, fname, file_format=".pdf")
+    save_plot_to_path(fig, output_dir, fname, file_format=".svg")
     plt.show()
 
 
@@ -312,7 +312,7 @@ def visualize_slice_selection(
     )
 
     # Create subplots with a 2x3 grid
-    fig, axes = init_subplots(2, 3, figsize=(12, 8))
+    fig, axes = init_subplots(2, 3, figsize=(9.75, 6.5))
 
     # First row: BF stack
     axes[0, 0].imshow(im_below, cmap="gray")
@@ -355,7 +355,7 @@ def visualize_slice_selection(
     plt.tight_layout()
 
     fname = f"plane_selection_vis_{dataset}_P{position}_{frame}_offset{lower_offset}_{upper_offest}_scalebar{scale_bar_um}um"
-    save_plot_to_path(fig, output_dir, fname, file_format=".pdf")
+    save_plot_to_path(fig, output_dir, fname, file_format=".svg")
     plt.show()
 
 
@@ -377,7 +377,7 @@ def plot_global_center_plane(
         )
     else:
         # Only scatter plot
-        fig, ax = plt.subplots(figsize=(6, 6))
+        fig, ax = plt.subplots(figsize=(3.33, 3.33))
         ax = [ax]  # make it indexable like a list
 
     # Scatter plot
@@ -412,7 +412,7 @@ def plot_global_center_plane(
         fig.tight_layout()
 
     fname = f"global_center_plane_{dataset}_P{position}"
-    save_plot_to_path(fig, output_dir, fname, file_format=".pdf")
+    save_plot_to_path(fig, output_dir, fname, file_format=".svg")
     plt.show()
     plt.close(fig)
 
@@ -739,7 +739,7 @@ def plot_histogram_upper_slices_available(datasets: list[str], save_dir: Path) -
 
     df = pd.DataFrame(data)
 
-    fig = plt.figure(figsize=(5, 6))
+    fig = plt.figure(figsize=(3.05, 3.05))
     plt.hist(
         df["available_slices_above"],
         bins=range(10, 18, 1),
@@ -756,19 +756,10 @@ def plot_histogram_upper_slices_available(datasets: list[str], save_dir: Path) -
     df_11 = df[df["available_slices_above"] == 11]
     limiting_datasets = df_11.dataset.unique()
     text = "Datasets in 11:\n" + "\n".join(limiting_datasets)
-    plt.text(
-        0.95,
-        0.95,
-        text,
-        transform=plt.gca().transAxes,
-        fontsize=10,
-        verticalalignment="top",
-        horizontalalignment="right",
-        bbox={"facecolor": "white", "alpha": 0.8},
-    )
+    print(text)
 
     plt.show()
-    save_plot_to_path(fig, save_dir, "n_slices_above_in_focus_z_histogram", file_format=".pdf")
+    save_plot_to_path(fig, save_dir, "n_slices_above_in_focus_z_histogram", file_format=".svg")
 
 
 def compute_profiles(
