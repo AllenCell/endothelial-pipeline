@@ -84,7 +84,7 @@ def plot_image_thumbnail(
     output_path: Path,
     figsize: tuple[float, float],
     dpi: int = FIGURE_SAVE_DPI,
-    file_format: Literal[".png", ".pdf"] = ".png",
+    file_format: Literal[".png", ".pdf", ".svg"] = ".png",
     scalebar_size_um: float | None = None,
     pixel_size: float | None = None,
     scalebar_location: Literal[

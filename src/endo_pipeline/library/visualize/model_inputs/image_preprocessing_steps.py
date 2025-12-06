@@ -7,6 +7,7 @@ import numpy as np
 import torch
 from dask.array import Array
 from matplotlib import pyplot as plt
+from matplotlib.ticker import ScalarFormatter
 from monai.data import MetaTensor
 
 from endo_pipeline.io.output import save_plot_to_path
@@ -102,7 +103,15 @@ def get_image_transforms(model_config):
 
 
 def plot_and_save_histogram(
-    value_np: np.ndarray, transform_name: str, key: str, save_dir: Path, i: int
+    value_np: np.ndarray,
+    transform_name: str,
+    key: str,
+    save_dir: Path,
+    i: int,
+    figsize: tuple = (2, 2),
+    scientific_notation_y_axis: bool = False,
+    xlabel: str | None = "Intensity",
+    ylabel: str | None = "Frequency",
 ) -> None:
     """
     Plot and save a histogram of the values in a NumPy array for a given image transform.
@@ -113,19 +122,27 @@ def plot_and_save_histogram(
         key (str): channel key of the image being processed (e.g., 'raw_bf').
         save_dir (Path): The directory where the histogram plot will be saved.
         i (int): An index representing the order of the transform in the pipeline.
+        figsize (tuple, optional): Figure size for the plot. Defaults to (2, 2).
+        scientific_notation_y_axis: Whether to use scientific notation for the y-axis.
+        xlabel (str | None, optional): Label for the x-axis. Defaults to "Intensity".
+        ylabel (str | None, optional): Label for the y-axis. Defaults to "Frequency".
     """
-    fig, ax = plt.subplots(figsize=(6, 6))
+    fig, ax = plt.subplots(figsize=figsize)
     ax.hist(value_np.ravel(), bins=50, color="grey", alpha=0.7)
-    ax.set_title(f"{transform_name} ({key})", fontsize=14)
-    ax.set_xlabel("Intensity")
-    ax.set_ylabel("Frequency")
+    if xlabel is not None:
+        ax.set_xlabel(xlabel)
+    if ylabel is not None:
+        ax.set_ylabel(ylabel)
+    if scientific_notation_y_axis:
+        ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+        ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
     plt.show()
     save_plot_to_path(
         fig,
         save_dir,
-        f"{key}_{i}_{transform_name}_histogram",
+        f"{key}_{transform_name}_histogram",
         dpi=300,
-        file_format=".pdf",
+        file_format=".svg",
         transparent=True,
     )
     plt.close(fig)
@@ -221,6 +238,7 @@ def visualize_fov_transform_steps(
     Returns:
         The transformed image as a NumPy array.
     """
+    processed_keys = set()
     for step_idx, transform in enumerate(transforms):
         transform_name = transform.__class__.__name__
         logger.info("Applying Transform %d: %s", step_idx + 1, transform_name)
@@ -236,17 +254,35 @@ def visualize_fov_transform_steps(
         if target_key in transform_keys and isinstance(sample, dict):
             value_np = get_target_image_from_sample(sample, target_key)
 
+            first_time = target_key not in processed_keys
+            scalebar_size_um = 50 if first_time else None
+            pixel_size = PIXEL_SIZE_3i_20x if first_time else None
+            xlabel = "Intensity" if first_time else None
+            ylabel = "Frequency" if first_time else None
+
             plot_image_thumbnail(
                 value_np.squeeze(),
-                f"{target_key}_{step_idx + 1}_{transform_name}",
+                f"{target_key}_{transform_name}",
                 save_dir,
-                figsize=(6, 6),
-                scalebar_size_um=50,
-                pixel_size=PIXEL_SIZE_3i_20x,
+                figsize=(2.8, 2.8),
+                scalebar_size_um=scalebar_size_um,
+                pixel_size=pixel_size,
+                file_format=".svg",
             )
+
             plot_and_save_histogram(
-                value_np.squeeze(), transform_name, target_key, save_dir, step_idx
+                value_np.squeeze(),
+                transform_name,
+                target_key,
+                save_dir,
+                step_idx,
+                figsize=(2.2, 2.2),
+                scientific_notation_y_axis=True,
+                xlabel=xlabel,
+                ylabel=ylabel,
             )
+
+            processed_keys.add(target_key)
 
     transformed_image = get_target_image_from_sample(sample, target_key)
     return transformed_image
