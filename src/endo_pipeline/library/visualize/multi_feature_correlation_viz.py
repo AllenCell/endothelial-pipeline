@@ -31,7 +31,7 @@ from endo_pipeline.library.analyze.integration.track_integration import (
 )
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.manifests import ModelManifest
-from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
+from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME, RANDOM_SEED
 from endo_pipeline.settings.figures import FONTSIZE_SMALL
 
 logger = logging.getLogger(__name__)
@@ -231,7 +231,9 @@ def plot_multi_feature_correlations(
                 & ~np.isinf(y)
                 & ~np.isinf(x)
             )[0]
-            valids = np.random.permutation(valids)  # Shuffle valid indices to avoid overlap
+            valids = np.random.default_rng(seed=RANDOM_SEED).permutation(
+                valids
+            )  # Shuffle valid indices to avoid overlap
             x = x[valids]
             y = y[valids]
             plot_color = get_plot_color_array(color, valids)
