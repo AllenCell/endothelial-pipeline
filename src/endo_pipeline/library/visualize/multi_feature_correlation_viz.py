@@ -36,13 +36,7 @@ from endo_pipeline.settings.figures import FONTSIZE_SMALL
 
 logger = logging.getLogger(__name__)
 
-plt.rcParams.update(
-    {
-        "axes.labelsize": FONTSIZE_SMALL,
-        "xtick.labelsize": FONTSIZE_SMALL,
-        "ytick.labelsize": FONTSIZE_SMALL,
-    }
-)
+plt.style.use("endo_pipeline.figure")
 
 
 def add_feature_scatter_plot(
