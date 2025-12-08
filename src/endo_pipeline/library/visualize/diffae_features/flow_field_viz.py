@@ -258,6 +258,14 @@ def plot_flow_field_stack(
             x_label=f"PC{i+1}",
             y_labels=(f"PC{j+1}",),
         )[0]
+        # add colorbar
+        sm = plt.cm.ScalarMappable(
+            cmap=colormap, norm=_get_colormap_norm(vector_magnitude, log_normalize)
+        )
+        sm.set_array([])
+        cbar = fig.colorbar(sm, ax=ax)
+        cbar.set_label("Flow Field Magnitude", fontsize=14)
+        # set title with slice value
         ax.set_title(f"PC{slice_axis_index+1} = {slice_value:.4f}")
         plt.tight_layout()
         plt.show()
