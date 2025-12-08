@@ -49,7 +49,6 @@ dataset_config = DatasetConfig(
     name=dataset_name,
     date="YYYYMMDD",
     original_path="/path/to/original/dataset",
-    zarr_path="//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/DATE_FMSID",
     zarr_positions=[],
     fmsid="FMSID",
     barcode="labkey_barcode",

@@ -28,7 +28,6 @@ def dataset_config():
         name="",
         date="",
         original_path="",
-        zarr_path="",
         zarr_positions=[1, 3, 5],
         fmsid="",
         barcode="",
