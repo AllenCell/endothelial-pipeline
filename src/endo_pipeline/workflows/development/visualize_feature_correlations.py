@@ -1,5 +1,6 @@
 from typing import Literal
 
+from endo_pipeline.cli import tags
 from endo_pipeline.configs import TimepointAnnotation
 from endo_pipeline.settings import (
     DATASET_INFO_COLUMNS,
@@ -10,7 +11,7 @@ from endo_pipeline.settings import (
     SEGMENTATION_FEATURE_COLUMNS,
 )
 
-TAGS = ["diffae_features", "visualization", "pc_interpretation"]
+TAGS = ["diffae_features", "visualization", "pc_interpretation", tags.CPU_ONLY, tags.TEST_READY]
 
 
 def main(
