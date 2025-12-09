@@ -257,14 +257,14 @@ def visualize_fov_transform_steps(
             first_time = target_key not in processed_keys
             scalebar_size_um = 50 if first_time else None
             pixel_size = PIXEL_SIZE_3i_20x if first_time else None
-            xlabel = "Intensity" if first_time else None
+            xlabel = "Intensity (a.u)"
             ylabel = "Frequency" if first_time else None
 
             plot_image_thumbnail(
                 value_np.squeeze(),
                 f"{target_key}_{transform_name}",
                 save_dir,
-                figsize=(2.8, 2.8),
+                figsize=(1.9, 1.9),
                 scalebar_size_um=scalebar_size_um,
                 pixel_size=pixel_size,
                 file_format=".svg",
@@ -276,7 +276,7 @@ def visualize_fov_transform_steps(
                 target_key,
                 save_dir,
                 step_idx,
-                figsize=(2.2, 2.2),
+                figsize=(1.6, 1.6),
                 scientific_notation_y_axis=True,
                 xlabel=xlabel,
                 ylabel=ylabel,

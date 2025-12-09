@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 
 from endo_pipeline.configs import load_dataset_config, load_model_config
 from endo_pipeline.io import get_output_path, load_image
-from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.model_inputs.image_preprocessing_steps import (
     create_data_dict_loaded_image,
@@ -49,160 +48,108 @@ transformed_bf = visualize_fov_transform_steps(transforms, data, save_dir, targe
 # Panel B - CDH5
 transformed_cdh5 = visualize_fov_transform_steps(transforms, data, save_dir, target_key="raw_cdh5")
 
-# %%
-titles = {
-    "a1": "Std. dev. Z-proj.",
-    "a2": "Log transform",
-    "a3": "Clip (0.01, 0.98)",
-    "a4": "Z-score norm.",
-    "c1": "Max int. Z-proj.",
-    "c2": "Clip (0.01, 0.99)\n& rescaled -1 to 1",
-}
-
-for key, title in titles.items():
-    fig, ax = plt.subplots(figsize=(2.8, 0.08))
-    plt.title(title)
-    plt.axis("off")
-    plt.show()
-    save_plot_to_path(fig, save_dir, f"{key}_title", file_format=".svg")
-    plt.close(fig)
-
 # %% Figure
 x_offset = MAX_FIGURE_WIDTH / 4.2
-y_offset = 1.8
-x_crop_offset = 0.3
+y_offset = 1.5
+x_crop_offset = 0.2
 output_path = save_dir / "supp_fig_img_preprocessing.svg"
-panel_specs = [
-    # Titles
-    {"letter": "", "file": "a1_title.svg", "x": 0.1, "y": 0, "x_crop": 0, "y_crop": 0},
-    {"letter": "", "file": "a2_title.svg", "x": x_offset + 0.1, "y": 0, "x_crop": 0, "y_crop": 0},
-    {
-        "letter": "",
-        "file": "a3_title.svg",
-        "x": x_offset * 2 + 0.1,
-        "y": 0,
-        "x_crop": 0,
-        "y_crop": 0,
-    },
-    {
-        "letter": "",
-        "file": "a4_title.svg",
-        "x": x_offset * 3 + 0.1,
-        "y": 0,
-        "x_crop": 0,
-        "y_crop": 0,
-    },
-    # Images
-    {
-        "letter": "A",
-        "file": "raw_bf_Projectd_scalebar50um.svg",
-        "x": 0,
-        "y": 0.2,
-        "x_crop": x_crop_offset,
-        "y_crop": 0,
-    },
-    {
-        "letter": "",
-        "file": "raw_bf_LogImaged.svg",
-        "x": x_offset,
-        "y": 0.2,
-        "x_crop": x_crop_offset,
-        "y_crop": 0,
-    },
-    {
-        "letter": "",
-        "file": "raw_bf_Clipd.svg",
-        "x": x_offset * 2,
-        "y": 0.2,
-        "x_crop": x_crop_offset,
-        "y_crop": 0,
-    },
-    {
-        "letter": "",
-        "file": "raw_bf_NormalizeIntensityd.svg",
-        "x": x_offset * 3,
-        "y": 0.2,
-        "x_crop": x_crop_offset,
-        "y_crop": 0,
-    },
-    # Histograms
-    {
-        "letter": "B",
-        "file": "raw_bf_Projectd_histogram.svg",
-        "x": 0,
-        "y": y_offset,
-        "x_crop": 0,
-        "y_crop": 0,
-    },
-    {
-        "letter": "",
-        "file": "raw_bf_LogImaged_histogram.svg",
-        "x": 1.9,
-        "y": y_offset,
-        "x_crop": 0,
-        "y_crop": 0,
-    },
-    {
-        "letter": "",
-        "file": "raw_bf_Clipd_histogram.svg",
-        "x": 1.9 * 2,
-        "y": y_offset,
-        "x_crop": 0,
-        "y_crop": 0,
-    },
-    {
-        "letter": "",
-        "file": "raw_bf_NormalizeIntensityd_histogram.svg",
-        "x": 1.9 * 3,
-        "y": y_offset,
-        "x_crop": 0,
-        "y_crop": 0,
-    },
-    # CDH5 panels
-    {
-        "letter": "C",
-        "file": "raw_cdh5_Projectd_scalebar50um.svg",
-        "x": 0,
-        "y": 4,
-        "x_crop": x_crop_offset,
-        "y_crop": 0,
-    },
-    {
-        "letter": "",
-        "file": "raw_cdh5_ScaleIntensityRangePercentilesd.svg",
-        "x": x_offset,
-        "y": 4,
-        "x_crop": x_crop_offset,
-        "y_crop": 0,
-    },
-    {
-        "letter": "D",
-        "file": "raw_cdh5_Projectd_histogram.svg",
-        "x": 0,
-        "y": 5.8,
-        "x_crop": 0,
-        "y_crop": 0,
-    },
-    {
-        "letter": "",
-        "file": "raw_cdh5_ScaleIntensityRangePercentilesd_histogram.svg",
-        "x": x_offset,
-        "y": 5.8,
-        "x_crop": 0,
-        "y_crop": 0,
-    },
-]
-
 panels = [
     FigurePanel(
-        letter=spec["letter"],
-        path=save_dir / spec["file"],
-        x_position=spec["x"],
-        y_position=spec["y"],
-        x_offset=spec["x_crop"],
-        y_offset=spec["y_crop"],
-    )
-    for spec in panel_specs
+        letter="A",
+        path=save_dir / "raw_bf_Projectd_scalebar50um.svg",
+        x_position=0,
+        y_position=0.2,
+        x_offset=x_crop_offset,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="",
+        path=save_dir / "raw_bf_LogImaged.svg",
+        x_position=x_offset,
+        y_position=0.2,
+        x_offset=x_crop_offset,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="",
+        path=save_dir / "raw_bf_Clipd.svg",
+        x_position=x_offset * 2,
+        y_position=0.2,
+        x_offset=x_crop_offset,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="",
+        path=save_dir / "raw_bf_NormalizeIntensityd.svg",
+        x_position=x_offset * 3,
+        y_position=0.2,
+        x_offset=x_crop_offset,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="B",
+        path=save_dir / "raw_bf_Projectd_histogram.svg",
+        x_position=0,
+        y_position=1.5,
+        x_offset=0,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="",
+        path=save_dir / "raw_bf_LogImaged_histogram.svg",
+        x_position=x_offset,
+        y_position=1.5,
+        x_offset=0.2,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="",
+        path=save_dir / "raw_bf_Clipd_histogram.svg",
+        x_position=x_offset * 2,
+        y_position=y_offset,
+        x_offset=0.2,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="",
+        path=save_dir / "raw_bf_NormalizeIntensityd_histogram.svg",
+        x_position=x_offset * 3,
+        y_position=1.5,
+        x_offset=0.2,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="C",
+        path=save_dir / "raw_cdh5_Projectd_scalebar50um.svg",
+        x_position=0,
+        y_position=3.3,
+        x_offset=x_crop_offset,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="",
+        path=save_dir / "raw_cdh5_ScaleIntensityRangePercentilesd.svg",
+        x_position=x_offset,
+        y_position=3.3,
+        x_offset=x_crop_offset,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="D",
+        path=save_dir / "raw_cdh5_Projectd_histogram.svg",
+        x_position=0,
+        y_position=4.5,
+        x_offset=0,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="",
+        path=save_dir / "raw_cdh5_ScaleIntensityRangePercentilesd_histogram.svg",
+        x_position=x_offset,
+        y_position=4.5,
+        x_offset=0.2,
+        y_offset=0,
+    ),
 ]
 # %%
 build_figure_from_panels(panels, output_path, width=MAX_FIGURE_WIDTH, height=10)
