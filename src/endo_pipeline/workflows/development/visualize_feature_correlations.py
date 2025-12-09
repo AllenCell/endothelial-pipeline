@@ -74,7 +74,6 @@ def main(
     from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
         get_df_for_feature_correlation_viz,
         plot_and_save_clustermap,
-        plot_and_save_heatmap,
         plot_multi_feature_correlations,
     )
     from endo_pipeline.manifests import load_model_manifest
@@ -198,18 +197,11 @@ def main(
             correlation_df.index.name = x_axis_label
             correlation_df.columns.name = y_axis_label
 
-            # make correlation heatmap
-            plot_and_save_heatmap(
-                df=correlation_df,
-                output_folder=out_subdir,
-                filename=f"{base_filename}_{annotation_label}_heatmap",
-            )
-
             # make correlation clustermap
             plot_and_save_clustermap(
                 df=correlation_df,
                 output_folder=out_subdir,
-                filename=f"{base_filename}_{annotation_label}_clustermap",
+                filename=f"{base_filename}_{annotation_label}",
                 metric="cosine",
                 data_type="correlation",
             )

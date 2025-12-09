@@ -280,40 +280,10 @@ def plot_multi_feature_correlations(
         )
 
 
-def plot_and_save_heatmap(
-    df: pd.DataFrame,
-    output_folder: Path,
-    filename: str = "correlation_heatmap",
-) -> None:
-    """
-    Plot and save a heatmap of the correlation matrix from the given DataFrame.
-
-    Parameters
-    ----------
-    df
-        The DataFrame containing the correlation matrix.
-    output_folder
-        The folder where the heatmap will be saved.
-    filename
-        The name of the file to save the heatmap as.
-    """
-    fig, ax = plt.subplots(figsize=(7, 6), dpi=300)
-    annotate = check_if_heatmap_should_be_annotated(df)
-    sns.heatmap(df, annot=annotate, cmap="RdBu", center=0, vmin=-1, vmax=1, ax=ax)
-    ax.tick_params(axis="y", rotation=0)
-    save_plot_to_path(
-        figure=fig,
-        output_path=output_folder,
-        figure_name=filename,
-        dpi=300,
-        file_format=".pdf",
-    )
-
-
 def plot_and_save_clustermap(
     df: pd.DataFrame,
     output_folder: Path,
-    filename: str = "clustermap",
+    filename: str,
     metric: str = "correlation",
     data_type: Literal["correlation", "samples"] = "samples",
 ) -> None:
@@ -382,6 +352,10 @@ def plot_and_save_clustermap(
         cbar_pos=(0.06, 0.85, 0.03, 0.18),
     )
 
+    # Version without clustering for reference
+    fig, ax = plt.subplots(figsize=(7, min(9, 1.5 * df.shape[0])), dpi=300)
+    sns.heatmap(df, annot=annotate, cmap="RdBu", center=center, vmin=vmin, vmax=vmax, ax=ax)
+
     # Set only 5 tick labels on the color bar
     if cluster_grid.cax is not None:
         cmin, cmax = cluster_grid.cax.get_ylim()
@@ -400,13 +374,14 @@ def plot_and_save_clustermap(
         cluster_grid.ax_heatmap.get_yticklabels(),
         rotation=0,
     )
-    save_plot_to_path(
-        figure=cluster_grid.figure,
-        output_path=output_folder,
-        figure_name=f"{filename}_{metric}",
-        dpi=300,
-        file_format=".pdf",
-    )
+    for figure, label in zip([fig, cluster_grid.figure], ["heatmap", "clustermap"], strict=False):
+        save_plot_to_path(
+            figure=figure,
+            output_path=output_folder,
+            figure_name=f"{filename}_{metric}_{label}",
+            dpi=300,
+            file_format=".pdf",
+        )
 
 
 def get_df_for_feature_correlation_viz(
