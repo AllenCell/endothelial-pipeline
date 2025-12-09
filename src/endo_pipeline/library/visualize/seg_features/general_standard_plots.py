@@ -342,7 +342,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         "area_um2": {
             "column_name": "area (um**2)",
             "label": "Area (μm²)",
-            "lims": (0, "max"),
+            "lims": (0, 5000),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,
@@ -414,7 +414,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         "cell_fluorescence_mean": {
             "column_name": "cell_fluorescence_mean (a.u.)",
             "label": "Mean Cell Fluorescence",
-            "lims": (0, "max"),
+            "lims": (100, 200),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,
