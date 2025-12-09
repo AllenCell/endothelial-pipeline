@@ -705,7 +705,9 @@ def get_preprocessed_manifests_and_km_bounds(
         dataset_name, grid_diffae_manifest, pca
     )
 
-    datasets_for_bounds = get_datasets_in_collection(collection_name_for_pca) + [dataset_name]
+    datasets_for_bounds = list(
+        set(get_datasets_in_collection(collection_name_for_pca) + [dataset_name])
+    )
     bounds = get_3d_bounds_from_data(datasets_for_bounds, grid_diffae_manifest, pca)
 
     # lastly, add a normalized version of the "time_hours" column
