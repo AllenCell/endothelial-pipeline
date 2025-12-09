@@ -298,14 +298,7 @@ def plot_and_save_heatmap(
         The name of the file to save the heatmap as.
     """
     fig, ax = plt.subplots(figsize=(7, 6), dpi=300)
-    annotate = True
-    if df.shape[0] > 16 or df.shape[1] > 16:
-        annotate = False
-        logger.info(
-            "Disabling annotations for heatmap due to large number of features (%s x %s).",
-            df.shape[0],
-            df.shape[1],
-        )
+    annotate = check_if_heatmap_should_be_annotated(df)
     sns.heatmap(df, annot=annotate, cmap="RdBu", center=0, vmin=-1, vmax=1, ax=ax)
     ax.tick_params(axis="y", rotation=0)
     save_plot_to_path(
@@ -350,14 +343,7 @@ def plot_and_save_clustermap(
     2) If "samples", the DataFrame is assumed to contain raw sample data.
        The clustering will be performed on the raw data.
     """
-    annotate = True
-    if df.shape[0] > 16 or df.shape[1] > 16:
-        annotate = False
-        logger.info(
-            "Disabling annotations for clustermap due to large number of features (%s x %s).",
-            df.shape[0],
-            df.shape[1],
-        )
+    annotate = check_if_heatmap_should_be_annotated(df)
     clustering_metric = metric
     if data_type == "correlation":
         clustering_data = df.values**2  # Cluster on r^2 values
@@ -523,3 +509,32 @@ def get_df_for_feature_correlation_viz(
     df = pd.concat(df_list, ignore_index=True)
 
     return df
+
+
+def check_if_heatmap_should_be_annotated(
+    df,
+    max_num_features: int = 16,
+) -> bool:
+    """
+    Check if the heatmap should be annotated based on the number of features.
+
+    Parameters
+    ----------
+    df
+        The DataFrame containing data for the heatmap.
+    max_num_features
+        The maximum number of features to allow annotations. Default is 16.
+
+    Returns
+    -------
+    :
+        True if the heatmap should be annotated, False otherwise.
+    """
+    if df.shape[0] > max_num_features or df.shape[1] > max_num_features:
+        logger.debug(
+            "Disabling annotations for heatmap due to large number of features (%s x %s).",
+            df.shape[0],
+            df.shape[1],
+        )
+        return False
+    return True
