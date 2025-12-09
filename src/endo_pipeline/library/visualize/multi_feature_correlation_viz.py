@@ -209,7 +209,7 @@ def plot_multi_feature_correlations(
     fig, axs = plt.subplots(
         num_features,
         num_features,
-        figsize=(10, 9),
+        figsize=(8.5, 9),
         sharex="col",
         gridspec_kw={"hspace": 0.1, "wspace": 0.1},
         constrained_layout=True,
@@ -343,7 +343,7 @@ def plot_and_save_clustermap(
         center=center,
         vmin=vmin,
         vmax=vmax,
-        figsize=(7, min(9, 1.5 * df.shape[0])),
+        figsize=(8.5, min(9, 1.5 * df.shape[0])),
         row_cluster=True,
         col_cluster=True,
         annot_kws={"size": FONTSIZE_SMALL},
@@ -353,7 +353,7 @@ def plot_and_save_clustermap(
     )
 
     # Version without clustering for reference
-    fig, ax = plt.subplots(figsize=(7, min(9, 1.5 * df.shape[0])), dpi=300)
+    fig, ax = plt.subplots(figsize=(8.5, min(9, 1.5 * df.shape[0])), dpi=300)
     sns.heatmap(df, annot=annotate, cmap="RdBu", center=center, vmin=vmin, vmax=vmax, ax=ax)
 
     # Set only 5 tick labels on the color bar
