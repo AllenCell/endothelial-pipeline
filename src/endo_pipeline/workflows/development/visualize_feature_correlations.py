@@ -55,6 +55,8 @@ def main(
     import itertools
     import logging
 
+    import numpy as np
+    import pandas as pd
     from tqdm import tqdm
 
     from endo_pipeline.configs import get_datasets_in_collection
@@ -148,7 +150,14 @@ def main(
 
         # Another long operation: takes several minutes
         logger.info("Computing full correlation matrix for dataset %s", dataset_name)
-        full_correlation_matrix = df_dataset[unique_feature_columns].corr()
+        values_for_corr = df_dataset[unique_feature_columns].dropna().to_numpy()
+        # Use numpy to compute correlation matrix faster
+        corr_matrix = np.corrcoef(values_for_corr, rowvar=False)
+        corr_df = pd.DataFrame(
+            corr_matrix,
+            index=unique_feature_columns,
+            columns=unique_feature_columns,
+        )
 
         # Pre-compute dataset color mapping once per dataset
         dataset_color_mapping = {
@@ -185,7 +194,7 @@ def main(
             )
 
             # Extract correlation submatrix from pre-computed correlation matrix
-            correlation_df = full_correlation_matrix.loc[x_cols, y_cols].copy()
+            correlation_df = corr_df.loc[x_cols, y_cols].copy()
             correlation_df.index.name = x_axis_label
             correlation_df.columns.name = y_axis_label
 
