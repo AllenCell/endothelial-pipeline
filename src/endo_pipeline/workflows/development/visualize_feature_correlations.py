@@ -23,6 +23,7 @@ def main(
     num_pcs: int | None = None,
     timepoint_annotations: list[TimepointAnnotation] | Literal["default"] | None = "default",
     aggregate: bool = True,
+    skip_multi_feature_scatterplots: bool = False,
 ) -> None:
     """
     Visualize correlation heatmaps and clustermaps for DiffAE features, PCs,
@@ -50,6 +51,8 @@ def main(
         excludes NOT_STEADY_STATE and CELL_PILING timepoints. If None, includes all timepoints.
     aggregate
         If True, uses the aggregated dataset in the analysis.
+    skip_multi_feature_scatterplots
+        If True, skips generating multi-feature scatterplots.
     """
 
     import itertools
@@ -119,8 +122,8 @@ def main(
     )
 
     label_column_tuples = [
-        ("PC", [get_label_for_column(col) for col in pc_columns]),
         ("Measurement", [get_label_for_column(col) for col in segmentation_feature_columns]),
+        ("PC", [get_label_for_column(col) for col in pc_columns]),
         ("DiffAE Feature", [get_label_for_column(col) for col in diffae_feature_columns]),
     ]
 
@@ -147,7 +150,6 @@ def main(
                 unique_feature_columns.append(col)
                 seen.add(col)
 
-        # Another long operation: takes several minutes
         logger.info("Computing full correlation matrix for dataset %s", dataset_name)
         values_for_corr = df_dataset[unique_feature_columns].dropna().to_numpy()
         # Use numpy to compute correlation matrix faster
@@ -193,9 +195,9 @@ def main(
             )
 
             # Extract correlation submatrix from pre-computed correlation matrix
-            correlation_df = corr_df.loc[x_cols, y_cols].copy()
-            correlation_df.index.name = x_axis_label
-            correlation_df.columns.name = y_axis_label
+            correlation_df = corr_df.loc[y_cols, x_cols].copy()
+            correlation_df.columns.name = x_axis_label  # columns go on the x axis
+            correlation_df.index.name = y_axis_label  # index goes on the y axis
 
             # make correlation clustermap
             plot_and_save_clustermap(
@@ -205,6 +207,9 @@ def main(
                 metric="cosine",
                 data_type="correlation",
             )
+
+            if skip_multi_feature_scatterplots:
+                continue
 
             if len(x_cols) > 16 or len(y_cols) > 16:
                 logger.info(
