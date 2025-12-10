@@ -4,8 +4,8 @@ def main() -> None:
     """
     import logging
 
+    import matplotlib.pyplot as plt
     from numpy.random import default_rng
-    from skimage.draw import rectangle_perimeter
 
     from endo_pipeline import NUM_GPUS
     from endo_pipeline.configs import load_dataset_config
@@ -20,7 +20,7 @@ def main() -> None:
     from endo_pipeline.library.model.diffae.generate_image import (
         generate_from_coords_and_noised_image,
     )
-    from endo_pipeline.library.process.image_processing import crop_image
+    from endo_pipeline.library.process.image_processing import contrast_stretching, crop_image
     from endo_pipeline.library.visualize.figure_utils import (
         add_scalebar,
         make_contact_sheet,
@@ -42,7 +42,11 @@ def main() -> None:
         EXAMPLES_DIFFAE_TRAINING_VALIDATION,
     )
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
-    from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL, PIXEL_SIZE_3i_20x
+    from endo_pipeline.settings.image_data import (
+        DIFFAE_ZARR_RESOLUTION_LEVEL,
+        Z_SLICE_OFFSETS,
+        PIXEL_SIZE_3i_20x,
+    )
     from endo_pipeline.settings.plot_defaults import (
         MODEL_QC_GRIDSPEC_KWARGS,
         MODEL_QC_PLOT_DIRECTION,
@@ -52,6 +56,9 @@ def main() -> None:
         DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT,
         RANDOM_SEED,
     )
+
+    plt.style.use("endo_pipeline.figure")
+    import matplotlib.patches as patches
 
     logger = logging.getLogger(__name__)
 
@@ -136,29 +143,82 @@ def main() -> None:
         )
 
         if dataset_name == EXAMPLE_DIFFAE_TRAINING_SCHEMATIC:
+            print(img.shape)
+            center_slice = dataset_config.center_z_plane[position]
+            cdh5_lower_slice = img[0, center_slice - Z_SLICE_OFFSETS[0], :, :].squeeze()
+            cdh5_slice = img[0, center_slice, :, :].squeeze()
+            cdh5_upper_slice = img[0, center_slice + Z_SLICE_OFFSETS[1], :, :].squeeze()
+            bf_lower_slice = img[1, center_slice - Z_SLICE_OFFSETS[0], :, :].squeeze()
+            bf_slice = img[1, center_slice, :, :].squeeze()
+            bf_upper_slice = img[1, center_slice + Z_SLICE_OFFSETS[1], :, :].squeeze()
+
+            for image, image_name, outline_color in zip(
+                [
+                    cdh5_lower_slice,
+                    cdh5_slice,
+                    cdh5_upper_slice,
+                    bf_lower_slice,
+                    bf_slice,
+                    bf_upper_slice,
+                ],
+                [
+                    "cdh5_lower_slice",
+                    "cdh5_slice",
+                    "cdh5_upper_slice",
+                    "bf_lower_slice",
+                    "bf_slice",
+                    "bf_upper_slice",
+                ],
+                [
+                    "white",
+                    "white",
+                    "white",
+                    "black",
+                    "black",
+                    "black",
+                ],
+                strict=True,
+            ):
+                image = contrast_stretching(image)
+                plot_image_thumbnail(
+                    image,
+                    f"{image_name}_{dataset_name}_T{timepoint}",
+                    output_path,
+                    figsize=(0.7, 0.7),
+                    scalebar_size_um=50,
+                    pixel_size=PIXEL_SIZE_3i_20x,
+                    file_format=".pdf",
+                    outline_color=outline_color,
+                    bar_padding=30,
+                    bar_thickness=20,
+                )
+
             for image, image_name in zip(
                 [transformed_diffusion_input_image, transformed_conditioning_input_image],
                 ["diffusion_input_FOV", "conditioning_input_FOV"],
                 strict=True,
             ):
-                # draw a crop location on FOV image
-                image = image.copy()
-                image = image.squeeze()
-                rr, cc = rectangle_perimeter(
-                    start=(start_y, start_x),
-                    end=(start_y + crop_size - 1, start_x + crop_size - 1),
-                    shape=image.shape,
-                )
-                image[rr, cc] = image.max()
-
-                plot_image_thumbnail(
-                    image,
+                fig, ax = plot_image_thumbnail(
+                    image.squeeze(),
                     f"{image_name}_{dataset_name}_T{timepoint}",
-                    output_path,
-                    figsize=(2, 2),
+                    None,
+                    figsize=(0.7, 0.7),
                     scalebar_size_um=50,
                     pixel_size=PIXEL_SIZE_3i_20x,
+                    file_format=".pdf",
+                    bar_thickness=20,
+                    bar_padding=30,
                 )
+                rect = patches.Rectangle(
+                    (start_x, start_y),
+                    crop_size,
+                    crop_size,
+                    linewidth=0.5,
+                    edgecolor="yellow",
+                    facecolor="none",
+                )
+                ax.add_patch(rect)
+                save_plot_to_path(fig, output_path, image_name, file_format=".pdf", pad_inches=0)
 
         # Crop both images to the same region
         conditioning_input_crop = crop_image(
@@ -178,14 +238,13 @@ def main() -> None:
                     image.squeeze(),
                     f"{image_name}_{dataset_name}_T{timepoint}",
                     output_path,
-                    figsize=(2, 2),
+                    figsize=(0.7, 0.7),
                     scalebar_size_um=10,
                     bar_padding=5,
                     bar_thickness=5,
                     pixel_size=PIXEL_SIZE_3i_20x,
+                    file_format=".pdf",
                 )
-
-            continue
 
         # Get latent vector embedding of the crop used for
         # conditioning the denoising process
@@ -199,6 +258,20 @@ def main() -> None:
         denoised_image_by_bf_cond = generate_from_coords_and_noised_image(
             model, conditioning_crop_latent_vector, noise_image, num_gpus=NUM_GPUS
         )
+
+        if dataset_name == EXAMPLE_DIFFAE_TRAINING_SCHEMATIC:
+            plot_image_thumbnail(
+                denoised_image_by_bf_cond.squeeze(),
+                f"denoised_image_by_bf_cond_{dataset_name}_T{timepoint}",
+                output_path,
+                figsize=(0.7, 0.7),
+                scalebar_size_um=10,
+                bar_padding=5,
+                bar_thickness=5,
+                pixel_size=PIXEL_SIZE_3i_20x,
+                file_format=".pdf",
+            )
+            continue
 
         # Do the same thing but with the conditioning vector randomly shuffled
         # This is our negative control for the BF conditioning
@@ -231,9 +304,9 @@ def main() -> None:
 
     # Set defaults for plot titles
     CDH5_LABELS = [
-        "Original\nVE-Cadherin",
-        "Noised\nVE-Cadherin",
-        "VE-Caderhin\nembedding",
+        "Original\nVE-cadherin",
+        "Noised\nVE-cadherin",
+        "VE-cadherin\nembedding",
         "Scrambled\nembedding",
         "Scrambled\ninput image",
     ]
@@ -258,13 +331,13 @@ def main() -> None:
         col_titles=[f"{label_for_conditioning}\ninput", *CDH5_LABELS],
         row_titles=None,
         direction=MODEL_QC_PLOT_DIRECTION,
-        font_size=7,
+        font_size=10,
         subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
         gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
-        fig_kwargs={"figsize": (MAX_FIGURE_WIDTH, 2.75)},
+        fig_kwargs={"figsize": (MAX_FIGURE_WIDTH, 3.4)},
     )
 
-    fig.subplots_adjust(left=0, right=1, top=0.87, bottom=0)
+    fig.subplots_adjust(left=0, right=1, top=0.85, bottom=0)
     all_axes = fig.get_axes()
     col_4_pos = all_axes[4].get_position()
     center_x = col_4_pos.x0 + (col_4_pos.width / 2)
@@ -282,12 +355,17 @@ def main() -> None:
     fig.text(
         x=center_x,
         y=0.97,
-        s="Predicted VE-Cadherin",
+        s="Predicted VE-cadherin",
         ha="center",
-        fontsize=7,
+        fontsize=10,
     )
     save_plot_to_path(
-        fig, output_path, f"Model_QC_Examples_scalebar{scalebar_um}", file_format=".svg"
+        fig,
+        output_path,
+        f"Model_QC_Examples_scalebar{scalebar_um}",
+        file_format=".pdf",
+        pad_inches=0,
+        transparent=True,
     )
 
 

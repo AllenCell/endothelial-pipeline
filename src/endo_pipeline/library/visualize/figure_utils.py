@@ -81,7 +81,7 @@ def add_scalebar(
 def plot_image_thumbnail(
     image: np.ndarray,
     image_name: str,
-    output_path: Path,
+    output_path: Path | None,
     figsize: tuple[float, float],
     dpi: int = FIGURE_SAVE_DPI,
     file_format: Literal[".png", ".pdf", ".svg"] = ".png",
@@ -93,7 +93,8 @@ def plot_image_thumbnail(
     bar_thickness: int = 10,
     bar_padding: int = 20,
     show_plot: bool = True,
-) -> None:
+    outline_color: str | None = None,
+) -> tuple[plt.Figure, plt.Axes]:
     """
     Save a thumbnail image to a specified file path.
 
@@ -125,12 +126,20 @@ def plot_image_thumbnail(
         Thickness of the scale bar in pixels (default is 10).
     bar_padding : int, optional
         Padding between the scale bar and the image edge in pixels (default is 20).
+    outline_color: str, optional
+        Color of the outline around the image. If None, no outline is drawn.
     """
     figure, ax = plt.subplots(figsize=figsize, frameon=False)
 
-    # Create a figure and axis for displaying the image
     ax.imshow(image, cmap="gray")
-    ax.axis("off")  # Remove axes for a clean thumbnail
+    ax.axis("off")
+
+    if outline_color is not None:
+        height, width = image.shape[:2]
+        rect = patches.Rectangle(
+            (0, 0), width, height, linewidth=0.25, edgecolor=outline_color, facecolor="none"
+        )
+        ax.add_patch(rect)
 
     if scalebar_size_um is not None and pixel_size is not None:
         add_scalebar(
@@ -146,10 +155,14 @@ def plot_image_thumbnail(
     if show_plot:
         plt.show()
 
+    if output_path is None:
+        return figure, ax
+
     save_plot_to_path(
         figure, output_path, image_name, dpi=dpi, file_format=file_format, pad_inches=0
     )
     plt.close(figure)
+    return figure, ax
 
 
 def add_timestamp(

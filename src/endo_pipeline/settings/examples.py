@@ -309,14 +309,6 @@ EXAMPLES_DIFFAE_TRAINING_VALIDATION: list[ExampleImage] = [
         description="6. PARALLEL, middle of min flow with bright puncta.",
     ),
     ExampleImage(
-        dataset_name="20250428_20X",
-        position=5,
-        timepoint=293,
-        crop_x_start=285,
-        crop_y_start=485,
-        description="7. PARALLEL, middle of min flow with bright puncta.",
-    ),
-    ExampleImage(
         dataset_name="20250409_20X",
         position=0,
         timepoint=0,
@@ -327,10 +319,10 @@ EXAMPLES_DIFFAE_TRAINING_VALIDATION: list[ExampleImage] = [
     ExampleImage(
         dataset_name="20250728_20X",
         position=0,
-        timepoint=0,
-        crop_x_start=330,
-        crop_y_start=445,
-        description="UNALIGNED, beginning of no flow.",
+        timepoint=236,
+        crop_x_start=420,
+        crop_y_start=375,
+        description="5. PARALLEL, middle of no flow.",
     ),
     ExampleImage(
         dataset_name="20250728_20X",
