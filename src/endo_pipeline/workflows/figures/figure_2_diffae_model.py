@@ -145,8 +145,8 @@ def main() -> None:
                 image = image.copy()
                 image = image.squeeze()
                 rr, cc = rectangle_perimeter(
-                    start=(start_x, start_y),
-                    end=(start_x + crop_size - 1, start_y + crop_size - 1),
+                    start=(start_y, start_x),
+                    end=(start_y + crop_size - 1, start_x + crop_size - 1),
                     shape=image.shape,
                 )
                 image[rr, cc] = image.max()
@@ -258,13 +258,13 @@ def main() -> None:
         col_titles=[f"{label_for_conditioning}\ninput", *CDH5_LABELS],
         row_titles=None,
         direction=MODEL_QC_PLOT_DIRECTION,
-        font_size=6,
+        font_size=7,
         subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
         gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
         fig_kwargs={"figsize": (MAX_FIGURE_WIDTH, 2.75)},
     )
 
-    fig.subplots_adjust(left=0, right=1, top=0.88, bottom=0)
+    fig.subplots_adjust(left=0, right=1, top=0.87, bottom=0)
     all_axes = fig.get_axes()
     col_4_pos = all_axes[4].get_position()
     center_x = col_4_pos.x0 + (col_4_pos.width / 2)
@@ -284,7 +284,7 @@ def main() -> None:
         y=0.97,
         s="Predicted VE-Cadherin",
         ha="center",
-        fontsize=6,
+        fontsize=7,
     )
     save_plot_to_path(
         fig, output_path, f"Model_QC_Examples_scalebar{scalebar_um}", file_format=".svg"
