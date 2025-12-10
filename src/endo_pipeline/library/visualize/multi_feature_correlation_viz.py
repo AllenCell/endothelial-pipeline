@@ -29,6 +29,9 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_datafram
 from endo_pipeline.library.analyze.integration.track_integration import (
     get_preprocessed_manifests_and_km_bounds,
 )
+from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+    calculate_derived_data_dynamics_dependent,
+)
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.manifests import ModelManifest
 from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME, RANDOM_SEED
@@ -448,6 +451,14 @@ def get_df_for_feature_correlation_viz(
             collection_name_for_pca=dataset_collection_name_for_pca,
             num_pcs=num_pcs,
         )[0]
+
+        # the original orientation feature is in radians
+        # and the y-axis is defined as 0 degrees
+        # this keeps the orientation angle range between 0-180 degrees
+        merged_feats_df["orientation_deg"] = np.rad2deg(merged_feats_df["orientation"] + np.pi / 2)
+
+        # get dynamics dependent features
+        merged_feats_df = calculate_derived_data_dynamics_dependent(merged_feats_df)
 
         # check that the chosen measurement column names
         # are actually in the DataFrame
