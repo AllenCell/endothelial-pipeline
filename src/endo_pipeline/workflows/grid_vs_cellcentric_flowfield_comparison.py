@@ -395,7 +395,7 @@ def main(
             model_manifest_name=model_manifest_name,
             run_name=run_name,
             seg_feature_manifest_name=seg_feature_manifest_name,
-            datasets_for_bounds=dataset_collection_name,
+            datasets_for_bounds=dataset_name_list,
             make_integrated_plots=True,
         )
 
