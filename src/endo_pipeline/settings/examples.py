@@ -296,3 +296,48 @@ MODEL_QC_EXAMPLES_REP_2_POSITIONS: list[ExampleImage] = [
     ),
 ]
 """List of example crops for model QC, positions from replicate 2. Datasets not used for model training."""
+
+EXAMPLE_DIFFAE_TRAINING_SCHEMATIC = "20250428_20X"
+
+EXAMPLES_DIFFAE_TRAINING_VALIDATION: list[ExampleImage] = [
+    ExampleImage(
+        dataset_name="20250428_20X",
+        position=0,
+        timepoint=234,
+        crop_x_start=255,
+        crop_y_start=190,
+        description="6. PARALLEL, middle of min flow with bright puncta.",
+    ),
+    ExampleImage(
+        dataset_name="20250428_20X",
+        position=5,
+        timepoint=293,
+        crop_x_start=285,
+        crop_y_start=485,
+        description="7. PARALLEL, middle of min flow with bright puncta.",
+    ),
+    ExampleImage(
+        dataset_name="20250409_20X",
+        position=0,
+        timepoint=0,
+        crop_x_start=140,
+        crop_y_start=200,
+        description="2. UNALIGNED, beginning of no flow.",
+    ),
+    ExampleImage(
+        dataset_name="20250728_20X",
+        position=0,
+        timepoint=0,
+        crop_x_start=330,
+        crop_y_start=445,
+        description="UNALIGNED, beginning of no flow.",
+    ),
+    ExampleImage(
+        dataset_name="20250728_20X",
+        position=0,
+        timepoint=518,
+        crop_x_start=250,
+        crop_y_start=285,
+        description="PERPENDICULAR, end of no flow.",
+    ),
+]
