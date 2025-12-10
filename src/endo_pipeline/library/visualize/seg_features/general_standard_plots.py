@@ -334,7 +334,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         "aspect_ratio": {
             "column_name": "aspect_ratio",
             "label": "Aspect Ratio",
-            "lims": (0, "max"),
+            "lims": (0, 15),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,
