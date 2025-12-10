@@ -349,7 +349,6 @@ def plot_and_save_clustermap(
         figsize=(8.5, min(9, 1.5 * df.shape[0])),
         row_cluster=True,
         col_cluster=True,
-        annot_kws={"size": FONTSIZE_SMALL},
         row_linkage=row_linkage,
         col_linkage=col_linkage,
         cbar_pos=(0.06, 0.85, 0.03, 0.18),
@@ -368,15 +367,17 @@ def plot_and_save_clustermap(
         )
 
     # Set tick label rotation
-    cluster_grid.ax_heatmap.set_xticklabels(
-        cluster_grid.ax_heatmap.get_xticklabels(),
-        rotation=45,
-        ha="right",
-    )
-    cluster_grid.ax_heatmap.set_yticklabels(
-        cluster_grid.ax_heatmap.get_yticklabels(),
-        rotation=0,
-    )
+    for axis in [ax, cluster_grid.ax_heatmap]:
+        axis.set_xticklabels(
+            axis.get_xticklabels(),
+            rotation=45,
+            ha="right",
+        )
+        axis.set_yticklabels(
+            axis.get_yticklabels(),
+            rotation=0,
+        )
+
     for figure, label in zip([fig, cluster_grid.figure], ["heatmap", "clustermap"], strict=False):
         save_plot_to_path(
             figure=figure,
