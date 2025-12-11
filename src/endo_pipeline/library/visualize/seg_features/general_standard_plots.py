@@ -349,7 +349,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         },
         "num_neighbors": {
             "column_name": "number_of_neighbors",
-            "label": "Number of Neighbors",
+            "label": "Number of\nNeighbors",
             "lims": (0, "max"),
             "bin_width": 1,
             "ticks": None,
@@ -405,7 +405,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         },
         "num_nuclei_in_crop": {
             "column_name": "num_nuclei_in_crop",
-            "label": "Number of Nuclei in Crop",
+            "label": "Number of Nuclei\nin Crop",
             "lims": (0, None),
             "bin_width": None,
             "ticks": None,

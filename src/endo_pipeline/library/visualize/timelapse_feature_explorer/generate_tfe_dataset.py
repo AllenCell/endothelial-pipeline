@@ -3,7 +3,6 @@ from pathlib import Path
 
 from colorizer_data import convert_colorizer_data
 
-from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.integration.track_integration import (
     get_preprocessed_manifests_and_km_bounds,
@@ -41,6 +40,7 @@ def generate_tfe_dataset(
     backdrops: bool,
     output_dir_suffix: str = "",
     model_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    dataset_collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
 ) -> None:
     """
     Create timelapse feature explorer manifest and generate backdrop images.
@@ -60,15 +60,12 @@ def generate_tfe_dataset(
 
     try:
         # Load dataframe with the diffae features and computed PCs
-        datasets_for_bounds = list(
-            set([dataset] + get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME))
-        )
         # only take the dataframe from the output (which is the 0th element)
         model_manifest = load_model_manifest(model_name)
         df_tracks = get_preprocessed_manifests_and_km_bounds(
             dataset_name=dataset,
             model_manifest=model_manifest,
-            datasets_for_bounds=datasets_for_bounds,
+            collection_name_for_pca=dataset_collection_name_for_pca,
             drop_rows_without_diffae_feats=False,
         )[0]
     except KeyError:
