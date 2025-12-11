@@ -16,7 +16,8 @@ TAGS = ["diffae_features", "visualization"]
 def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    dataset_collection_name_to_fit_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    dataset_collection_name_to_viz: str = "pca_reference",
     crop_pattern: Literal["grid", "tracked"] = "grid",
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     num_pcs: int | None = None,
@@ -24,7 +25,35 @@ def main(
     include_loadings_legend: bool = False,
     annotate: bool = True,
 ) -> None:
-    """Visualize key attributes of a fit PCA model."""
+    """
+    Visualize key attributes of a fit PCA model.
+
+    Parameters
+    ----------
+    model_manifest_name : str
+        Name of the model manifest to load the DiffAE model from.
+    run_name : str | None
+        Name of the model run within the model manifest. If None, uses the most recent run.
+    dataset_collection_name_to_fit_pca : str
+        Name of the dataset collection to use for fitting the PCA model.
+    dataset_collection_name_to_viz : str
+        Name of the dataset collection to use for visualization.
+    crop_pattern : Literal["grid", "tracked"]
+        Crop pattern used for training the DiffAE model. Must be either 'grid' or 'tracked'.
+    include_cell_piling : bool
+        Whether to include cell piling features in the PCA fitting and visualization.
+    num_pcs : int | None
+        Number of principal components to analyze and visualize.
+        If None, uses NUM_PCS_TO_ANALYZE or the number of latent features, whichever is smaller.
+    num_features : int | None
+        Number of features to analyze and visualize.
+        If None, uses NUM_LATENT_FEATURES or the number of features in the dataset,
+        whichever is smaller.
+    include_loadings_legend : bool
+        Whether to include a legend in the PCA loadings plots.
+    annotate : bool
+        Whether to annotate the heatmap and clustermap of PCA loadings.
+    """
     import logging
 
     from endo_pipeline.configs import get_datasets_in_collection, get_latent_dim_from_config
@@ -72,7 +101,7 @@ def main(
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     fig_savedir = get_output_path(
         "pca_viz",
-        dataset_collection_name,
+        dataset_collection_name_to_fit_pca,
         model_manifest_name,
         run_name_,
         crop_pattern,
@@ -83,11 +112,11 @@ def main(
     logger.debug(
         "Fitting PCA model to datasets in collection [ %s ] "
         "using features from dataframe manifest [ %s ]",
-        dataset_collection_name,
+        dataset_collection_name_to_fit_pca,
         dataframe_manifest_name,
     )
     pca = fit_pca(
-        dataset_collection_name=dataset_collection_name,
+        dataset_collection_name=dataset_collection_name_to_fit_pca,
         dataframe_manifest_name=dataframe_manifest_name,
         include_cell_piling=include_cell_piling,
         num_pcs=num_pc_dim,
@@ -129,7 +158,7 @@ def main(
     # plot scatter of PCA components
     # for the datasets used to fit PCA
     # load model manifests for the given dataset collection
-    dataset_names = get_datasets_in_collection(dataset_collection_name)
+    dataset_names = get_datasets_in_collection(dataset_collection_name_to_viz)
 
     # scatter plot of pca reference datasets
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
@@ -139,10 +168,12 @@ def main(
         pca,
         include_cell_piling=include_cell_piling,
         crop_pattern=crop_pattern,
+        scatter_size=1,
+        alpha=0.2,
+        save_dir=fig_savedir,
     )
-    save_plot_to_path(fig, fig_savedir, "pca_scatter_ref")
 
-    # heatmap and clustemap of PC loadings
+    # heatmap and clustermap of PC loadings
     pca_loadings_df = get_pca_loadings_as_df(pca, df_format="wide")
     fig_heatmap = feature_viz.pc_loading_heatmap_workflow(
         pca_loadings_df,
