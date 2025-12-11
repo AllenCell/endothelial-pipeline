@@ -71,7 +71,7 @@ def _plot_latent_walk_batch_as_grid(
             # top sigma titles
             for j in range(num_steps):
                 ax[i, j].axis("off")
-                column_title = rf"{j - (num_steps // 2)}$\sigma$"
+                column_title = rf"{j - (num_steps // 2)}\u03C3"
                 ax[i, j].set_title(column_title, fontsize=FONTSIZE_MEDIUM)
         else:
             for j in range(num_steps):
