@@ -55,6 +55,15 @@ def main(
         If True, uses the aggregated dataset in the analysis.
     skip_multi_feature_scatterplots
         If True, skips generating multi-feature scatterplots.
+
+    NOTE
+    ----
+    This workflow may take several minutes to run, depending on the number of datasets
+    and features being analyzed.
+    Currently the datasets used to fit the PCA model (`diffae_training`) are also used
+    to generate the correlation visualizations.
+    Future versions may allow specifying separate dataset collections for PCA fitting
+    and visualization.
     """
 
     import itertools
