@@ -23,7 +23,7 @@ def main() -> None:
         use_pcs=True,
         show_coords=False,
         n_noise_samples=1,
-        batches=[(0, 3), (4, 9)],
+        batches=[(0, 3), (4, 10)],
     )
 
 
