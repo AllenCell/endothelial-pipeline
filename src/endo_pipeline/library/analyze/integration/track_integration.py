@@ -609,6 +609,7 @@ def get_preprocessed_manifests_and_km_bounds(
     collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     num_pcs: int | None = None,
     drop_rows_without_diffae_feats: bool = True,
+    filtered: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list]:
     """
     Load and process the DiffAE and live segmentation feature manifests for a given dataset.
@@ -636,6 +637,8 @@ def get_preprocessed_manifests_and_km_bounds(
         NUM_PCS_TO_ANALYZE and the number of latent dimensions will be used.
     drop_rows_without_diffae_feats
         Whether to drop rows in the merged DataFrame that do not have DiffAE features.
+    filtered
+        Whether to filter the merged DataFrame to include only rows marked as "is_included".
 
     Returns
     -------
@@ -658,7 +661,7 @@ def get_preprocessed_manifests_and_km_bounds(
         model_manifest=model_manifest,
         run_name=run_name,
         seg_feature_manifest_name=seg_feature_manifest_name,
-        filtered=False,  # do not filter on timepoints yet: we need all timepoints for TFE workflow
+        filtered=filtered,  # do not filter on timepoints yet: we need all timepoints for TFE workflow
     )
 
     grid_diffae_feat_manifest_name = get_feature_dataframe_manifest_name(
