@@ -17,13 +17,13 @@ def main() -> None:
         crop_pattern="grid",
         dataset_collection=DEFAULT_PCA_DATASET_COLLECTION_NAME,
         include_cell_piling=False,
-        num_pcs=10,
+        num_pcs=11,
         sigma=3.0,
         n_steps=10,
         use_pcs=True,
         show_coords=False,
         n_noise_samples=1,
-        batches=[(0, 3), (4, 10)],
+        batches=[(0, 3), (4, 11)],
     )
 
 
