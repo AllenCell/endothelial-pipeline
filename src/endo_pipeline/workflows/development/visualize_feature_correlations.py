@@ -1,12 +1,12 @@
 from typing import Literal
 
 from endo_pipeline.configs import TimepointAnnotation
-from endo_pipeline.settings import (
+from endo_pipeline.settings.diffae_feature_dataframes import NUM_PCS_TO_ANALYZE
+from endo_pipeline.settings.workflow_defaults import (
     DATASET_INFO_COLUMNS,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
-    NUM_PCS_TO_ANALYZE,
     SEGMENTATION_FEATURE_COLUMNS,
 )
 
