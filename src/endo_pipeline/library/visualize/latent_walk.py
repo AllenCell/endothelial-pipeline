@@ -52,15 +52,15 @@ def _plot_latent_walk_batch_as_grid(
     num_steps = array_of_crops.shape[1]
 
     # Keep MAX_FIGURE_WIDTH, but auto-scale height based on number of rows
-    col_width = ((7.5 * 0.75) / num_steps) * 2  # keeps image size reasonable
+    col_width = (6.5 / num_steps) * 2  # keeps image size reasonable
     fig_height = col_width * num_rows * 0.7
 
     fig, ax = plt.subplots(
         nrows=num_rows + 1,
         ncols=num_steps,
-        figsize=((7.5 * 0.75), fig_height),
+        figsize=(6.5, fig_height),
         gridspec_kw={
-            "height_ratios": [1] * num_rows + [0.15],  # smaller sigma row
+            "height_ratios": [1] * num_rows + [0.12],  # smaller sigma row
             "wspace": 0,  # remove horizontal spacing
             "hspace": 0,  # remove vertical spacing
         },
