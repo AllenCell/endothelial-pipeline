@@ -35,7 +35,7 @@ from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifes
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.manifests import ModelManifest
 from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME, RANDOM_SEED
-from endo_pipeline.settings.figures import FONTSIZE_SMALL
+from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 
 logger = logging.getLogger(__name__)
 
@@ -346,17 +346,29 @@ def plot_and_save_clustermap(
         center=center,
         vmin=vmin,
         vmax=vmax,
-        figsize=(8.5, min(9, 1.5 * df.shape[0])),
+        figsize=(MAX_FIGURE_WIDTH, min(MAX_FIGURE_HEIGHT, 1.5 * df.shape[0])),
         row_cluster=True,
         col_cluster=True,
         row_linkage=row_linkage,
         col_linkage=col_linkage,
         cbar_pos=(0.06, 0.85, 0.03, 0.18),
+        annot_kws={"fontsize": FONTSIZE_SMALL},
     )
 
     # Version without clustering for reference
-    fig, ax = plt.subplots(figsize=(8.5, min(9, 1.5 * df.shape[0])), dpi=300)
-    sns.heatmap(df, annot=annotate, cmap="RdBu", center=center, vmin=vmin, vmax=vmax, ax=ax)
+    fig, ax = plt.subplots(
+        figsize=(MAX_FIGURE_WIDTH, min(MAX_FIGURE_HEIGHT, 0.8 * df.shape[0])), dpi=300
+    )
+    sns.heatmap(
+        df,
+        annot=annotate,
+        cmap="RdBu",
+        center=center,
+        vmin=vmin,
+        vmax=vmax,
+        ax=ax,
+        annot_kws={"fontsize": FONTSIZE_SMALL},
+    )
 
     # Set only 5 tick labels on the color bar
     if cluster_grid.cax is not None:
@@ -382,7 +394,7 @@ def plot_and_save_clustermap(
         save_plot_to_path(
             figure=figure,
             output_path=output_folder,
-            figure_name=f"{filename}_{metric}_{label}",
+            figure_name=f"{filename}_{label}",
             dpi=300,
             file_format=".pdf",
         )
@@ -451,12 +463,24 @@ def get_df_for_feature_correlation_viz(
             seg_feature_manifest_name=seg_feature_manifest_name,
             collection_name_for_pca=dataset_collection_name_for_pca,
             num_pcs=num_pcs,
+            filtered=True,  # filter to only include "is_included" timepoints
         )[0]
 
         # the original orientation feature is in radians
         # and the y-axis is defined as 0 degrees
         # this keeps the orientation angle range between 0-180 degrees
         merged_feats_df["orientation_deg"] = np.rad2deg(merged_feats_df["orientation"] + np.pi / 2)
+
+        # filter data table to only include the steady state timepoints that are
+        # used when projecting the DiffAE features onto PCA axes
+        # in the segmentation-free dynamics workflow
+        # only if timepoint annotations are provided
+        dataset_config = load_dataset_config(dataset_name)
+        merged_feats_df = filter_dataframe_by_annotations(
+            dataframe=merged_feats_df,
+            dataset_config=dataset_config,
+            timepoint_annotations=timepoint_annotations,
+        )
 
         # get dynamics dependent features
         merged_feats_df = calculate_derived_data_dynamics_dependent(merged_feats_df)
@@ -469,17 +493,6 @@ def get_df_for_feature_correlation_viz(
             raise ValueError(
                 f"Not all columns names are in merged_feats_df. Missing:\n{missing_columns}"
             )
-
-        # filter data table to only include the steady state timepoints that are
-        # used when projecting the DiffAE features onto PCA axes
-        # in the segmentation-free dynamics workflow
-        # only if timepoint annotations are provided
-        dataset_config = load_dataset_config(dataset_name)
-        merged_feats_df = filter_dataframe_by_annotations(
-            dataframe=merged_feats_df,
-            dataset_config=dataset_config,
-            timepoint_annotations=timepoint_annotations,
-        )
 
         # keep only the columns that will be used
         cols_to_keep = (
@@ -494,6 +507,9 @@ def get_df_for_feature_correlation_viz(
         df_list.append(merged_feats_df)
     # merge the DataFrames from all datasets
     df = pd.concat(df_list, ignore_index=True)
+
+    # drop rows with NaN or inf values
+    df = df.replace([np.inf, -np.inf], np.nan).dropna()
 
     return df
 
