@@ -273,14 +273,13 @@ def plot_multi_feature_correlations(
         plt.show()
         return
 
-    for file_format in [".png", ".pdf"]:
-        save_plot_to_path(
-            figure=fig,
-            output_path=output_folder,
-            figure_name=filename,
-            dpi=dpi,
-            file_format=file_format,  # type: ignore
-        )
+    save_plot_to_path(
+        figure=fig,
+        output_path=output_folder,
+        figure_name=filename,
+        dpi=dpi,
+        file_format=".png",  # type: ignore
+    )
 
 
 def plot_and_save_clustermap(
