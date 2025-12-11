@@ -191,6 +191,12 @@ def main(
                 y_axis_label,
                 dataset_name,
             )
+
+            # Ensure the figure is in landscape orientation
+            if len(y_cols) > len(x_cols):
+                x_cols, y_cols = y_cols, x_cols
+                x_axis_label, y_axis_label = y_axis_label, x_axis_label
+
             x_filename = x_axis_label.replace(" ", "_").lower()
             y_filename = y_axis_label.replace(" ", "_").lower()
             base_filename = f"correlation_{x_filename}_vs_{y_filename}"
