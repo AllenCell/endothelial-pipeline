@@ -19,7 +19,7 @@ def main(
     run_name: str | None = None,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     dataset_info_columns: list[str] = DATASET_INFO_COLUMNS,
-    segmentation_feature_columns: list[str] = SEGMENTATION_FEATURE_COLUMNS,
+    segmentation_feature_group: str = "default",
     num_pcs: int | None = None,
     timepoint_annotations: list[TimepointAnnotation] | Literal["default"] | None = "default",
     aggregate: bool = True,
@@ -42,8 +42,10 @@ def main(
         The name of the segmentation feature manifest to use for measured features.
     dataset_info_columns
         List of dataset metadata column names.
-    segmentation_feature_columns
-        List of segmentation feature column names.
+    segmentation_feature_group
+        Preset name for selecting segmentation feature columns.
+        If None, uses the default preset.
+        Presets are defined in SEGMENTATION_FEATURE_COLUMNS.
     num_pcs
         Number of principal components to include. If None, uses NUM_PCS_TO_ANALYZE.
     timepoint_annotations
@@ -63,6 +65,7 @@ def main(
     from tqdm import tqdm
 
     from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.configs.dataset_config_utils import get_subset_of_timepoint_annotations
     from endo_pipeline.configs.model_config_utils import get_latent_dim_from_config
     from endo_pipeline.io import get_output_path
     from endo_pipeline.io.input import get_config_dict_from_mlflow
@@ -101,10 +104,22 @@ def main(
     diffae_feature_columns = get_latent_feature_column_names(num_features)
 
     if timepoint_annotations == "default":
-        timepoint_annotations = [
-            TimepointAnnotation.NOT_STEADY_STATE,
-            TimepointAnnotation.CELL_PILING,
-        ]
+        annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
+        timepoint_annotations = get_subset_of_timepoint_annotations(annotations_to_ignore)
+
+    if isinstance(segmentation_feature_group, str):
+        if segmentation_feature_group not in SEGMENTATION_FEATURE_COLUMNS:
+            raise ValueError(
+                f"Segmentation feature columns preset '{segmentation_feature_group}' "
+                f"not found. Available presets: "
+                f"{list(SEGMENTATION_FEATURE_COLUMNS.keys())}"
+            )
+        segmentation_feature_columns = SEGMENTATION_FEATURE_COLUMNS[segmentation_feature_group]
+    else:
+        raise TypeError(
+            "segmentation_feature_group must be a string preset name or None.\n"
+            "Refer to SEGMENTATION_FEATURE_COLUMNS for available presets."
+        )
 
     # Long operation: takes several minutes
     df = get_df_for_feature_correlation_viz(
@@ -180,15 +195,10 @@ def main(
             y_filename = y_axis_label.replace(" ", "_").lower()
             base_filename = f"correlation_{x_filename}_vs_{y_filename}"
 
-            if timepoint_annotations is None:
-                annotation_label = "all_timepoints"
-            else:
-                annotation_label = "exclude_" + "_".join(ann.value for ann in timepoint_annotations)
-
             out_subdir = get_output_path(
                 __file__,
                 dataset_name,
-                annotation_label,
+                segmentation_feature_group,
                 f"{num_features}_features_x_{num_pcs}_pcs",
                 f"{x_filename}_vs_{y_filename}",
                 include_timestamp=True,
@@ -198,12 +208,13 @@ def main(
             correlation_df = corr_df.loc[y_cols, x_cols].copy()
             correlation_df.columns.name = x_axis_label  # columns go on the x axis
             correlation_df.index.name = y_axis_label  # index goes on the y axis
+            correlation_df.to_csv(out_subdir / f"{base_filename}_correlation_matrix.csv")
 
             # make correlation clustermap
             plot_and_save_clustermap(
                 df=correlation_df,
                 output_folder=out_subdir,
-                filename=f"{base_filename}_{annotation_label}",
+                filename=base_filename,
                 metric="cosine",
                 data_type="correlation",
             )
@@ -231,14 +242,13 @@ def main(
             plot_multi_feature_correlations(
                 df=df_dataset[column_list],
                 output_folder=out_subdir,
-                filename=f"{base_filename}_{annotation_label}_scatter",
+                filename=f"{base_filename}_scatter",
                 color=colors,
-                cutoff_percent=0.5,  # Drop top and bottom 0.5% of outliers
             )
 
     logger.info(
         "Correlation heatmap workflow complete. Figures saved to [ %s ]",
-        get_output_path(__file__, include_timestamp=False),
+        out_subdir.parents[2],
     )
 
 
