@@ -9,6 +9,35 @@ from endo_pipeline.manifests import get_zarr_location_for_position
 
 
 # %%
+def test_channel_names_consistency() -> None:
+    """Test that all reader.channel_names are the same for a given dataset."""
+    for dataset_name in get_available_dataset_names():
+        dataset_config = load_dataset_config(dataset_name)
+
+        channel_names_dict = {}
+        for position in dataset_config.zarr_positions:
+            zarr_loc = get_zarr_location_for_position(dataset_config, position)
+            channel_names_dict[position] = load_image(zarr_loc, read=False).channel_names
+
+        # Extract all channel names
+        all_channel_names = list(channel_names_dict.values())
+
+        # Assert that all channel names are identical
+        assert len(all_channel_names) > 0, "No channel names found."
+        first_channel_names = all_channel_names[0]
+        for channel_names in all_channel_names:
+            assert (
+                channel_names == first_channel_names
+            ), f"Inconsistent channel names found in {dataset_name}: \
+                {channel_names} != {first_channel_names}"
+
+    print("All datasets have consistent channel names.")
+
+
+test_channel_names_consistency()
+
+
+# %%
 def get_channel_crop(
     img: BioImage, t: int, c: int, crop_size: tuple[int, int] = (128, 128)
 ) -> np.ndarray:
