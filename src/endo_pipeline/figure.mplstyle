@@ -51,8 +51,6 @@ figure.dpi:  600  # figure dots per inch
 ## ***************************************************************************
 
 savefig.format:      svg    # set default output format to SVG
-savefig.bbox:        tight  # reduce whitespace around bbox
-savefig.pad_inches:  0.1    # padding used with tight bbox
 savefig.transparent: True   # save with transparent background by default
 pdf.fonttype:        42     # TrueType for output fonts (PDF only)
 svg.fonttype:        none   # assume fonts installed on machine (SVG only)

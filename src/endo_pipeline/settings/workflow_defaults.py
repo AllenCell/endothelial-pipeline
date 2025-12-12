@@ -5,7 +5,7 @@ from typing import Literal
 DEFAULT_MODEL_MANIFEST_NAME: str = "diffae_baseline_exclude_cell_piling"
 """Default model manifest for loading models and model features."""
 
-DEFAULT_MODEL_RUN_NAME: str | None = "20251110_latent_512"
+DEFAULT_MODEL_RUN_NAME: str = "20251110_latent_512"
 """Default model run name within the default model manifest."""
 
 DEFAULT_PCA_DATASET_COLLECTION_NAME: str = "diffae_model_training"
