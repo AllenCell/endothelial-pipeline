@@ -188,6 +188,7 @@ def generate_from_coords(
         model_ = model
 
     if isinstance(model_, DiffusionAutoEncoder):
+        # Note that this currently returns a Tensor instead of a numpy array
         walk_img = model_.generate_from_latent(
             coords_,
             n_noise_samples=n_noise_samples,
@@ -200,7 +201,7 @@ def generate_from_coords(
             coords_, n_noise_samples=n_noise_samples, average=average, save=False
         )
 
-    return walk_img
+    return walk_img  # type: ignore[return-value]
 
 
 def generate_from_coords_batch(
