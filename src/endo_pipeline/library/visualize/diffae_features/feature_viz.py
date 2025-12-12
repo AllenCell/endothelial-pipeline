@@ -28,6 +28,7 @@ from endo_pipeline.settings import (
     NUM_PCS_TO_ANALYZE,
     SHEAR_COLOR_DICT,
 )
+from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
@@ -137,6 +138,7 @@ def plot_pc_scatter(
     alpha: float = 0.2,
     scatter_size: float = 1,
     pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
+    color_by_time: bool = False,
     save_dir: Path | None = None,
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
     """
@@ -160,6 +162,10 @@ def plot_pc_scatter(
         Size of scatter plot points.
     pc_column_names
         List of PCA column names to plot.
+    color_by_time
+        If True, color points by timepoint instead of dataset.
+    save_dir
+        Directory to save the plots to. If None, plots are not saved.
 
     Returns
     -------
@@ -182,11 +188,20 @@ def plot_pc_scatter(
             pca,
             include_cell_piling=include_cell_piling,
             crop_pattern=crop_pattern,
-        )[pc_column_names]
+        )[[*pc_column_names, ColumnName.TIMEPOINT]]
         df["dataset_name"] = dataset_name
-        color = get_dataset_color(dataset_name)
-        df["color"] = color
-        patch_dict_for_legend[dataset_name] = mpatches.Patch(color=color, label=dataset_name)
+        if color_by_time:
+            num_timepoints = df[ColumnName.TIMEPOINT].nunique()
+            cmap = plt.get_cmap("viridis")
+            colors = cmap(np.linspace(0, 1, num_timepoints))
+            df["color"] = df[ColumnName.TIMEPOINT].map(
+                dict(zip(sorted(df[ColumnName.TIMEPOINT].unique()), colors, strict=False))
+            )
+            patch_dict_for_legend[dataset_name] = mpatches.Patch(color=cmap(0), label=dataset_name)
+        else:
+            color = get_dataset_color(dataset_name)
+            df["color"] = color
+            patch_dict_for_legend[dataset_name] = mpatches.Patch(color=color, label=dataset_name)
         df_list.append(df)
 
     df_combined = pd.concat(df_list, ignore_index=True)
@@ -230,6 +245,16 @@ def plot_pc_scatter(
             pc_column_names,
             patch_list_for_legend,
         )
+
+        # add colorbar
+        if color_by_time:
+            num_timepoints = df_foreground[ColumnName.TIMEPOINT].nunique()
+            sm = plt.cm.ScalarMappable(
+                cmap="viridis", norm=plt.Normalize(vmin=0, vmax=num_timepoints)
+            )
+            sm.set_array([])
+            cbar = fig.colorbar(sm, ax=ax, orientation="vertical", pad=0.1, shrink=0.5)
+            cbar.set_label("Frame number")
 
         if save_dir is not None:
             save_plot_to_path(
