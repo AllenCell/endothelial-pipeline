@@ -10,8 +10,7 @@ if typing.TYPE_CHECKING:
         DiffusionAutoEncoder as BaseDiffusionAutoEncoder,
     )
 
-    from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
-
+from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +144,7 @@ def generate_from_coords(
     n_noise_samples: int = 1,
     average: bool = False,
     num_gpus: int | None = None,
+    random_seed: int | None = None,
 ) -> np.ndarray:
     """
     Generate a synthetic image from a list of coordinates
@@ -162,7 +162,11 @@ def generate_from_coords(
         Whether to average the generated images.
     num_gpus
         Optional, number of available GPUs.
+    random_seed
+        Random seed for generating noise. Only available for endo-specific
+        DiffusionAutoEncoder model instances.
     """
+
     if not isinstance(coords, np.ndarray):
         if isinstance(coords, list):
             coords_np = np.array(coords)
@@ -183,9 +187,19 @@ def generate_from_coords(
         coords_ = coords_torch
         model_ = model
 
-    walk_img = model_.generate_from_latent(
-        coords_, n_noise_samples=n_noise_samples, average=average, save=False
-    )
+    if isinstance(model_, DiffusionAutoEncoder):
+        walk_img = model_.generate_from_latent(
+            coords_,
+            n_noise_samples=n_noise_samples,
+            average=average,
+            save=False,
+            random_seed=random_seed,
+        )
+    else:
+        walk_img = model_.generate_from_latent(
+            coords_, n_noise_samples=n_noise_samples, average=average, save=False
+        )
+
     return walk_img
 
 
