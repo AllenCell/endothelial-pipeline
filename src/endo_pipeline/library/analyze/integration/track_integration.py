@@ -37,6 +37,7 @@ from endo_pipeline.manifests import (
 from endo_pipeline.settings import (
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
     ColumnName,
 )
@@ -292,7 +293,7 @@ def get_traj_and_flowfield(
 
     # get the columns to use for calculating trajectories
     # and flow fields.
-    cols = [f"pc{pc+1}" for pc in range(3)]
+    cols = DIFFAE_PC_COLUMN_NAMES[:3]
 
     # get list of per-crop trajectories and the corresponding
     # single-timepoint displacement vectors
