@@ -45,7 +45,10 @@ def main(
         get_most_recent_run_name,
         load_model_manifest,
     )
-    from endo_pipeline.settings import OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS, TRAJECTORY_DICT_FILE_NAME
+    from endo_pipeline.settings.flow_field_3d import (
+        OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS,
+        TRAJECTORY_DICT_FILE_NAME,
+    )
 
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
