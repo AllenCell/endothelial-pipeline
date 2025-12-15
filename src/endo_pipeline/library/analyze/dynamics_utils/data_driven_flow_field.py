@@ -1,11 +1,12 @@
 import logging
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 import numpy as np
 from scipy import interpolate as spinterp
 from scipy.integrate import solve_ivp
+from scipy.interpolate import RegularGridInterpolator
 from sklearn.decomposition import PCA
 
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
@@ -121,8 +122,16 @@ def _ddff_model_analysis(
         flow_field_dict,  # type: ignore
         allow_pickle=True,
     )
-    # save flow field as vtk image data
-    vtk_io.save_vector_field_as_vtk(flow_field_dict, vtk_savedir / f"flow_field_{dataset_name}.vtk")
+
+    # get callable version of the flow field
+    # first, extrapolate to fill in NaNs
+    extrapolated_flow_field_dict = compute_extrapolated_vector_field(
+        drift_km, centers, extrapolation_method="linear"
+    )
+    # save out the flow field as vtk image data
+    vtk_io.save_vector_field_as_vtk(
+        extrapolated_flow_field_dict, vtk_savedir / f"flow_field_{dataset_name}.vtk"
+    )
 
     # compute diffusion field on the grid defined by centers
     # (diagonal diffusion tensor represented as 3D vector field)
@@ -143,7 +152,7 @@ def _ddff_model_analysis(
     ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
     # with initial conditions given by init
     # solve IVP, get back trajectory
-    traj = solve_ddff_ode(flow_field_dict, init, time_span)
+    traj = solve_ddff_ode(extrapolated_flow_field_dict, init, time_span)
 
     flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj, plot_bounds, fig_savedir)
 
@@ -249,7 +258,7 @@ def get_and_analyze_ddff(
 def compute_extrapolated_vector_field(
     kmcs: np.ndarray,
     grid_centers: list[np.ndarray],
-    extrapolation_method: Literal["nearest", "linear"] = "nearest",
+    extrapolation_method: str = "linear",
 ) -> dict:
     """
     Extrapolate a 3D vector field from Kramers-Moyal estimates over a specified grid.
@@ -281,56 +290,29 @@ def compute_extrapolated_vector_field(
         Method to use for extrapolating the vector field where there are NaNs.
     """
 
-    ndim = len(grid_centers)  # number of dimensions
+    filled_kmcs = kmcs.copy()
+    n_components = filled_kmcs.shape[-1]
+    X, Y, Z = np.meshgrid(*grid_centers, indexing="ij")
+    grid = (X, Y, Z)
 
-    # generate a mesh grid of points in the state space
-    grid = np.meshgrid(*grid_centers, indexing="ij")  # make meshgrid
+    for i in range(n_components):
+        component = filled_kmcs[..., i]
+        nan_mask = np.isnan(component)
+        if np.any(nan_mask):
+            # Prepare points and values for interpolation
+            interpolator = RegularGridInterpolator(
+                grid_centers,
+                np.where(nan_mask, 0, component),  # fill NaNs with zeros for shape
+                method=extrapolation_method,
+                bounds_error=False,
+                fill_value=None,
+            )
+            nan_points = np.array([X[nan_mask], Y[nan_mask], Z[nan_mask]]).T
+            component[nan_mask] = interpolator(nan_points)
+            filled_kmcs[..., i] = component
 
-    # get the vector field components from
-    # the Kramers-Moyal coefficients
-    vector_field = [kmcs[..., i] for i in range(ndim)]
-
-    # where KMCs have been masked to nan, extrapolate
-    # via nearest neighbors.
-    # use spinterp.interpn with method='nearest'
-    # Find the indices of valid (non-NaN) points
-    valid_mask = ~np.isnan(vector_field[0])
-    # Get the coordinates of valid points
-    valid_points = np.array(np.nonzero(valid_mask)).T
-    # Get the values of valid points
-    valid_values = [vector_field[i][valid_mask] for i in range(ndim)]
-
-    # Create interpolators for each component of the vector field
-    if extrapolation_method not in ["nearest", "linear"]:
-        logger.error(
-            "Extrapolation method [ %s ] not recognized. Use 'nearest' or 'linear'.",
-            extrapolation_method,
-        )
-        raise ValueError(f"Extrapolation method [ {extrapolation_method} ] not recognized.")
-    if extrapolation_method == "nearest":  # nearest neighbor
-        interpolator_func = [
-            spinterp.NearestNDInterpolator(valid_points, valid_values[i]) for i in range(ndim)
-        ]
-    else:  # linear interpolation
-        interpolator_func = [
-            spinterp.LinearNDInterpolator(valid_points, valid_values[i]) for i in range(ndim)
-        ]
-
-    # Find the indices of all points (including NaN points)
-    all_points = (
-        np.array(np.indices(vector_field[0].shape)).reshape(len(vector_field[0].shape), -1).T
-    )
-
-    # Interpolate the NaN points
-    vec_interpolated = [interpolator_func[i](all_points) for i in range(ndim)]
-
-    # reshape back to original grid shape
-    vec_interpolated = [vec.reshape(vector_field[0].shape) for vec in vec_interpolated]
-
-    # Create a dictionary to store the vector field and grid
-    vector_field_dict = {"vectors": vec_interpolated, "grid": grid}
-
-    return vector_field_dict
+    vectors = tuple(filled_kmcs[..., i] for i in range(n_components))
+    return {"vectors": vectors, "grid": grid}
 
 
 def get_callable_vector_field(vector_field_dict: dict, for_solve_ivp: bool = True) -> Callable:
@@ -447,7 +429,7 @@ def solve_ddff_ode(
         Solution trajectory in 3D state space for the given initial condition and time span.
     """
     # turn flow field into callable function (works via interpolation)
-    my_flow = get_callable_vector_field(flow_field_dict)
+    my_flow = get_callable_vector_field(flow_field_dict, for_solve_ivp=True)
     # timepoints at which to evaluate the solution
     t_eval = np.linspace(t_span[0], t_span[1], num_t)
     # solve the IVP
