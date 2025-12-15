@@ -8,11 +8,11 @@ import pandas as pd
 from matplotlib.cm import get_cmap
 from matplotlib.colors import LogNorm, Normalize
 from matplotlib.ticker import MaxNLocator
+from scipy.stats import gaussian_kde
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import get_dataset_descriptions
 from endo_pipeline.library.analyze.dynamics_utils import data_driven_flow_field
-from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.visualize.diffae_features import feature_viz
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
 from endo_pipeline.settings.flow_field_3d import (
@@ -434,37 +434,40 @@ def plot_streamplot_slices(
 
 def plot_flow_field_slices(
     flow_field_dict: dict,
-    df_cond: pd.DataFrame | None,
+    df: pd.DataFrame,
     plot_bounds: list[np.ndarray],
-    fig_savedir: Path | None,
-    pc_vals: tuple[Any, Any] | None = None,
+    fig_savedir: Path,
+    pc_vals: tuple[Any, Any],
     color: str = QUIVER_NO_OVERLAY_COLOR,
     norm: bool = NORMALIZE_QUIVER_VECTORS,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
-    Plot 2D slices of the 3D flow field
-    for the specified 2D slices.
+    Plot 2D slices of the 3D flow field for the specified 2D slices.
 
-    Plots both quiver plots and streamplots.
+    Also overlays a KDE contour plot of the data in the PC1-PC2 and PC1-PC3 planes.
 
-    Inputs:
-    - flow_field_dict: dict
-        Dictionary containing the flow field data.
-        Has keys:
+    **Input dictionary flow_field_dict:**
+
+    The method input ``flow_field_dict`` should have the following key/value pairs:
         - "vectors": tuple of 3D arrays (v1,v2,v3)
         - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid)
-    - df_cond: pd.DataFrame
-        DataFrame containing the data to be plotted.
-        If None, no data is plotted.
-    - fig_savedir: Path
-        Directory to save the figures.
-        If None, no figures are saved.
-    - pc_vals: tuple of floats
-        Values of the 2nd and 3rd principal components
-        (2nd and 3rd variables) to slice the data.
-        If None, the mean of the data at the last
-        time point is used.
 
+    Parameters
+    ----------
+    flow_field_dict
+        Dictionary containing the flow field data.
+    df
+        DataFrame containing the data to be plotted (from one dataset/experimental condition).
+    plot_bounds
+        List of arrays specifying the plot bounds for each principal component.
+    fig_savedir
+        Directory to save the figure.
+    pc_vals
+        Values of the 2nd and 3rd principal components (2nd and 3rd variables) at which to slice the data.
+    color
+        Color for the quiver plot arrows.
+    norm
+        Whether to normalize the quiver plot arrows.
     """
     # get grid and grid spacing
     xgrid, ygrid, zgrid = flow_field_dict["grid"]
@@ -472,24 +475,8 @@ def plot_flow_field_slices(
     # for plotting in 2D, we need to slice
     # the data in PC3 and PC2 to get PC1 v. PC2
     # and PC1 v. PC3 plots, respectively
-
-    # if not specified, use mean of data at last time point
-    # if data are not provided, use pc2 = pc3 = 0
-    if pc_vals is None:
-        if df_cond is None:
-            pc3_val = 0.0
-            pc2_val = 0.0
-        else:
-            # get mean at all time points over crops
-            mean_over_crops_ = df_cond.groupby(ColumnName.TIMEPOINT).mean(numeric_only=True)
-            # get last time point
-            mean_over_crops = mean_over_crops_.iloc[-1]
-            pc3_val = mean_over_crops[DIFFAE_PC_COLUMN_NAMES[2]].mean()
-            pc2_val = mean_over_crops[DIFFAE_PC_COLUMN_NAMES[1]].mean()
-    # if specified, unpack
-    else:
-        pc3_val = pc_vals[0]
-        pc2_val = pc_vals[1]
+    pc3_val = pc_vals[0]
+    pc2_val = pc_vals[1]
 
     # get z-slice closest to PC3 = pc3_val
     zvalids = get_slice_indexes(zgrid, pc3_val)
@@ -499,13 +486,49 @@ def plot_flow_field_slices(
     # plot quiver plots of these PC2 and PC3 slices
     # overlaid on scatter plot of data
     fig, ax = plt.subplots(1, 2, figsize=(14, 5))
-    if df_cond is not None:
-        # get the color for the scatter plot
-        dataset_name = sequence_to_scalar(df_cond[ColumnName.DATASET])
-        scatter_color = feature_viz.get_dataset_color(dataset_name)
-        # plot scatter of data overlaid on quiver plot
-        ax[0].scatter(df_cond.pc_1, df_cond.pc_2, s=0.25, color=scatter_color, alpha=0.15)
-        ax[1].scatter(df_cond.pc_1, df_cond.pc_3, s=0.25, color=scatter_color, alpha=0.15)
+    fig, ax = plt.subplots(2, 1, figsize=(7, 10))
+    if df is not None:
+        # plot KDE of marginal histogram of data in PC1-PC2 and PC1-PC3 planes
+        for i, (pc_x, pc_y) in enumerate(
+            [
+                (DIFFAE_PC_COLUMN_NAMES[0], DIFFAE_PC_COLUMN_NAMES[1]),
+                (DIFFAE_PC_COLUMN_NAMES[0], DIFFAE_PC_COLUMN_NAMES[2]),
+            ]
+        ):
+            # get a 2D meshgrid for the current slice
+            if i == 0:  # PC1-PC2 plane
+                x = xgrid[:, :, 0]
+                y = ygrid[:, :, 0]
+            else:  # PC1-PC3 plane
+                x = xgrid[:, 0, :]
+                y = zgrid[:, 0, :]
+
+            positions = np.vstack([x.ravel(), y.ravel()])
+            grid_shape = x.shape
+
+            # get the data in the current PC1-PC2 or PC1-PC3 plane
+            data_x = df[pc_x].values
+            data_y = df[pc_y].values
+            # calculate the point density (KDE)
+            values = np.vstack([data_x, data_y])
+            z = gaussian_kde(values)(positions).T.reshape(grid_shape)
+            # plot contourf of the density
+            ax[i].contourf(
+                x,
+                y,
+                z,
+                levels=25,
+                cmap="Greys",
+                alpha=0.6,
+            )
+        # add contour plot colorbar
+        cbar = fig.colorbar(
+            plt.cm.ScalarMappable(cmap="Greys"),
+            ax=ax[0],
+        )
+        cbar.set_label("probability density", fontsize=14)
+
+    # plot quiver plots for the specified slices
     fig, ax = plot_quiver_slices(
         flow_field_dict, (zvalids, yvalids), color=color, norm=norm, fig_ax=(fig, ax)
     )
@@ -518,29 +541,11 @@ def plot_flow_field_slices(
     plt.tight_layout()
     plt.show()
 
-    # plot streamplot of these PC2 and PC3 slices
-    fig_, ax_ = plot_streamplot_slices(flow_field_dict, (zvalids, yvalids))
-    # set the axis limits and labels
-    ax_ = set_slice_plot_bounds_and_labels(ax_, plot_bounds)
-    # set titles with slice values
-    ax_[0].set_title(f"PC3 = {pc3_val:.2f}")
-    ax_[1].set_title(f"PC2 = {pc2_val:.2f}")
-    plt.tight_layout()
-    plt.show()
+    dataset_name = df[ColumnName.DATASET].unique()[0]
+    dataset_condition = get_dataset_descriptions([dataset_name], simple=True)[dataset_name]
 
-    if fig_savedir is not None:
-        # if data provided, get
-        # get the condition name
-        # for saving the plot
-        if df_cond is not None:
-            name = df_cond[ColumnName.DATASET].unique()[0]
-            condition = get_dataset_descriptions([name], simple=True)[name]
-        else:
-            condition = "from_data"
-        fig.suptitle(condition, fontsize=16)
-        save_plot_to_path(fig, fig_savedir, f"flow_field_{name}")  # save the figure
-        fig_.suptitle(condition, fontsize=16)
-        save_plot_to_path(fig_, fig_savedir, f"flow_field_streamplot_{name}")  # save the figure
+    fig.suptitle(dataset_condition, fontsize=16)
+    save_plot_to_path(fig, fig_savedir, f"flow_field_{dataset_name}")  # save the figure
 
     return fig, ax
 
