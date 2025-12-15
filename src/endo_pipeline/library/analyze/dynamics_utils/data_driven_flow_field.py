@@ -97,7 +97,13 @@ def _ddff_model_analysis(
         Trajectory in 3D state space for the given initial condition and time span
     """
     # load dataframe and get top 3 PCs
-    df = get_dataframe_for_dynamics_workflows(dataset_name, dataframe_manifest, pca)
+    df = get_dataframe_for_dynamics_workflows(
+        dataset_name,
+        dataframe_manifest,
+        pca,
+        include_cell_piling=False,
+        include_not_steady_state=False,
+    )
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
