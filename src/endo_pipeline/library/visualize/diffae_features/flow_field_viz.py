@@ -11,10 +11,19 @@ from matplotlib.ticker import MaxNLocator
 from scipy.stats import gaussian_kde
 
 from endo_pipeline.io import save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe_utils import get_dataset_descriptions
+from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    get_dataset_descriptions,
+    parse_dataset_description,
+)
 from endo_pipeline.library.analyze.dynamics_utils import data_driven_flow_field
 from endo_pipeline.library.visualize.diffae_features import feature_viz
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
+from endo_pipeline.settings.figures import (
+    FONT_FAMILY,
+    FONTSIZE_LARGE,
+    FONTSIZE_MEDIUM,
+    FONTSIZE_SMALL,
+)
 from endo_pipeline.settings.flow_field_3d import (
     CLIP_MAGNITUDES,
     CLIP_MAX_MAGNITUDE_PERCENTILE,
@@ -57,8 +66,8 @@ def set_slice_plot_bounds_and_labels(
     for i, ax in enumerate(axs):
         qmin, qmax = bounds[i + 1][0], bounds[i + 1][1]
         ax.set_xlim(xmin, xmax)
-        ax.set_xlabel(x_label, fontsize=18)
-        ax.set_ylabel(y_labels[i], fontsize=18)
+        ax.set_xlabel(x_label, fontsize=FONTSIZE_MEDIUM)
+        ax.set_ylabel(y_labels[i], fontsize=FONTSIZE_MEDIUM)
         ax.set_ylim(qmin, qmax)
         ax.set_aspect("equal")
         # set number of x ticks = number of y ticks = 5
@@ -271,7 +280,7 @@ def plot_flow_field_stack(
         )
         sm.set_array([])
         cbar = fig.colorbar(sm, ax=ax)
-        cbar.set_label("Flow Field Magnitude", fontsize=14)
+        cbar.set_label("Flow Field Magnitude", fontsize=FONTSIZE_SMALL)
         # set title with slice value
         ax.set_title(f"PC{slice_axis_index+1} = {slice_value:.4f}")
         plt.tight_layout()
@@ -429,7 +438,7 @@ def plot_quiver_slices(
     )
     sm.set_array([])
     cbar = fig.colorbar(sm, ax=ax[1])
-    cbar.set_label("flow field magnitude (3D)", fontsize=14)
+    cbar.set_label("flow field magnitude (3D)", fontsize=FONTSIZE_SMALL)
 
     return fig, ax
 
@@ -530,7 +539,7 @@ def plot_flow_field_slices(
             plt.cm.ScalarMappable(cmap=KDE_CONTOUR_COLORMAP),
             ax=ax[0],
         )
-        cbar.set_label("marginal probability density", fontsize=14)
+        cbar.set_label("marginal probability density", fontsize=FONTSIZE_SMALL)
 
     # plot quiver plots for the specified slices
     fig, ax = plot_quiver_slices(
@@ -550,9 +559,19 @@ def plot_flow_field_slices(
     plt.show()
 
     dataset_name = df[ColumnName.DATASET].unique()[0]
-    dataset_condition = get_dataset_descriptions([dataset_name], simple=True)[dataset_name]
+    dataset_description_simple = get_dataset_descriptions(
+        [dataset_name], include_duration=False, include_shear_stress=True
+    )[dataset_name]
+    dataset_description_full = parse_dataset_description(dataset_description_simple).replace(
+        ",", ""
+    )
 
-    fig.suptitle(dataset_condition, fontsize=16)
+    fig.suptitle(
+        f"{dataset_name} ({dataset_description_full})",
+        fontsize=FONTSIZE_LARGE,
+        y=1.02,
+        fontfamily=FONT_FAMILY,
+    )
     save_plot_to_path(fig, fig_savedir, f"flow_field_{dataset_name}")  # save the figure
 
     return fig, ax
