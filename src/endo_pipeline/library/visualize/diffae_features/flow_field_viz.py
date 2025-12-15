@@ -25,7 +25,6 @@ from endo_pipeline.settings.flow_field_3d import (
     NORMALIZE_QUIVER_VECTORS,
     QUIVER_COLORMAP,
     QUIVER_DOWNSAMPLE_FACTOR,
-    QUIVER_NO_OVERLAY_COLOR,
     QUIVER_OVERLAY_COLOR,
     QUIVER_VECTOR_SCALE,
 )
@@ -187,7 +186,7 @@ def plot_flow_field_stack(
     plot_bounds: list[np.ndarray],
     slice_steps: np.ndarray,
     fig_savedir: Path,
-    colormap=QUIVER_COLORMAP,
+    colormap_name: str = QUIVER_COLORMAP,
     clip_metric: bool = CLIP_MAGNITUDES,
     log_normalize: bool = LOG_NORM_MAGNITUDES,
 ) -> None:
@@ -208,8 +207,8 @@ def plot_flow_field_stack(
         List of arrays specifying the slice steps for the slicing axis.
     fig_savedir
         Directory to save the figures.
-    colormap
-        Colormap to use for the quiver plot.
+    colormap_name
+        Name of the colormap to use for the flow field magnitude.
     clip_metric
         Whether to clip the color metric to avoid outliers.
     log_normalize
@@ -226,7 +225,7 @@ def plot_flow_field_stack(
     # color by magnitude of the flow field (log normalized or not, clipped or not)
     vector_magnitude = np.sqrt(v_i**2 + v_j**2 + v_k**2)
     color = _get_colormap_values(
-        colormap,
+        colormap_name,
         vector_magnitude,
         log_normalize=log_normalize,
         clip_metric=clip_metric,
@@ -262,7 +261,7 @@ def plot_flow_field_stack(
         )[0]
         # add colorbar
         sm = plt.cm.ScalarMappable(
-            cmap=colormap, norm=_get_colormap_norm(vector_magnitude, log_normalize)
+            cmap=colormap_name, norm=_get_colormap_norm(vector_magnitude, log_normalize)
         )
         sm.set_array([])
         cbar = fig.colorbar(sm, ax=ax)
@@ -348,13 +347,31 @@ def plot_quiver_slices(
         tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
         tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
     ],
-    color: str = QUIVER_OVERLAY_COLOR,
+    colormap_name: str = QUIVER_COLORMAP,
     norm: bool = NORMALIZE_QUIVER_VECTORS,
     fig_ax: tuple | None = None,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
-    Plot quiver plots of the 3D flow field
-    for the specified 2D slices.
+    Plot quiver plots of the 3D flow field for the specified 2D slices.
+
+    **Input dictionary flow_field_dict:**
+
+    The method input ``flow_field_dict`` should have the following key/value pairs:
+        - "vectors": tuple of 3D arrays (v1,v2,v3)
+        - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid)
+
+    Parameters
+    ----------
+    flow_field_dict
+        Dictionary containing the flow field data.
+    slice_indexes
+        Tuple of tuples specifying the slice indexes for the 2D slices.
+    colormap
+        Name of the colormap to use for the quiver plot arrows.
+    norm
+        Whether to normalize the quiver plot arrows.
+    fig_ax
+        Tuple of (fig, ax) to plot on. If None, a new figure and axes are created.
     """
     # get flow field
     v1, v2, v3 = flow_field_dict["vectors"]
@@ -362,16 +379,24 @@ def plot_quiver_slices(
     # get grid and grid spacing
     xgrid, ygrid, zgrid = flow_field_dict["grid"]
 
+    vector_magnitude = np.sqrt(v1**2 + v2**2 + v3**2)
+    color_array = _get_colormap_values(
+        colormap_name,
+        vector_magnitude,
+        log_normalize=True,
+        clip_metric=True,
+    )
+
     # plot quiver plots for the specified slices
     if fig_ax is None:
         fig, ax = plt.subplots(1, 2, figsize=(14, 5))
     else:
         fig, ax = fig_ax
     ax[0] = plot_one_slice_quiver(
-        (v1, v2), (xgrid, ygrid), slice_indexes[0], ax=ax[0], color=color, norm=norm
+        (v1, v2), (xgrid, ygrid), slice_indexes[0], ax=ax[0], color=color_array, norm=norm
     )
     ax[1] = plot_one_slice_quiver(
-        (v1, v3), (xgrid, zgrid), slice_indexes[1], ax=ax[1], color=color, norm=norm
+        (v1, v3), (xgrid, zgrid), slice_indexes[1], ax=ax[1], color=color_array, norm=norm
     )
 
     return fig, ax
@@ -438,7 +463,7 @@ def plot_flow_field_slices(
     plot_bounds: list[np.ndarray],
     fig_savedir: Path,
     pc_vals: tuple[Any, Any],
-    color: str = QUIVER_NO_OVERLAY_COLOR,
+    colormap_name: str = QUIVER_COLORMAP,
     norm: bool = NORMALIZE_QUIVER_VECTORS,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
@@ -464,8 +489,8 @@ def plot_flow_field_slices(
         Directory to save the figure.
     pc_vals
         Values of the 2nd and 3rd principal components (2nd and 3rd variables) at which to slice the data.
-    color
-        Color for the quiver plot arrows.
+    colormap_name
+        Name of the colormap to use for the quiver plot arrows.
     norm
         Whether to normalize the quiver plot arrows.
     """
@@ -530,7 +555,11 @@ def plot_flow_field_slices(
 
     # plot quiver plots for the specified slices
     fig, ax = plot_quiver_slices(
-        flow_field_dict, (zvalids, yvalids), color=color, norm=norm, fig_ax=(fig, ax)
+        flow_field_dict,
+        (zvalids, yvalids),
+        colormap_name=colormap_name,
+        norm=norm,
+        fig_ax=(fig, ax),
     )
 
     # set the axis limits and labels
