@@ -9,7 +9,7 @@ def main(
     positions: list[int] = [0],
     output_dir: Path | None = None,
     segmentation: str = "CDH5",
-    make_backdrops: bool = True,
+    skip_backdrops: bool = False,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     include_diffae_features: bool = True,
@@ -60,6 +60,8 @@ def main(
         generate_tfe_dataset,
     )
     from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+
+    make_backdrops = not skip_backdrops
 
     if datasets is None:
         datasets = ["20250618_20X"]
