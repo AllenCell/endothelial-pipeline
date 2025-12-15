@@ -1,10 +1,8 @@
 import logging
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
 
 import numpy as np
-from scipy import interpolate as spinterp
 from scipy.integrate import solve_ivp
 from scipy.interpolate import RegularGridInterpolator
 from sklearn.decomposition import PCA
@@ -126,7 +124,7 @@ def _ddff_model_analysis(
     # get callable version of the flow field
     # first, extrapolate to fill in NaNs
     extrapolated_flow_field_dict = compute_extrapolated_vector_field(
-        drift_km, centers, extrapolation_method="linear"
+        drift_km, centers, method="linear"
     )
     # save out the flow field as vtk image data
     vtk_io.save_vector_field_as_vtk(
@@ -258,7 +256,7 @@ def get_and_analyze_ddff(
 def compute_extrapolated_vector_field(
     kmcs: np.ndarray,
     grid_centers: list[np.ndarray],
-    extrapolation_method: str = "linear",
+    method: str = "linear",
 ) -> dict:
     """
     Extrapolate a 3D vector field from Kramers-Moyal estimates over a specified grid.
@@ -286,7 +284,7 @@ def compute_extrapolated_vector_field(
         Array of drift or diffusion estimates over a three dimensional grid.
     grid_centers
         List of 1D numpy arrays with the grid points in each dimension
-    extrapolation_method
+    method
         Method to use for extrapolating the vector field where there are NaNs.
     """
 
@@ -300,12 +298,13 @@ def compute_extrapolated_vector_field(
         nan_mask = np.isnan(component)
         if np.any(nan_mask):
             # Prepare points and values for interpolation
+            # fill_value set to None for extrapolation
             interpolator = RegularGridInterpolator(
                 grid_centers,
                 np.where(nan_mask, 0, component),  # fill NaNs with zeros for shape
-                method=extrapolation_method,
+                method=method,
                 bounds_error=False,
-                fill_value=None,
+                fill_value=None,  # extrapolate outside convex hull
             )
             nan_points = np.array([X[nan_mask], Y[nan_mask], Z[nan_mask]]).T
             component[nan_mask] = interpolator(nan_points)
@@ -315,7 +314,9 @@ def compute_extrapolated_vector_field(
     return {"vectors": vectors, "grid": grid}
 
 
-def get_callable_vector_field(vector_field_dict: dict, for_solve_ivp: bool = True) -> Callable:
+def get_callable_vector_field(
+    vector_field_dict: dict, for_solve_ivp: bool = True, method: str = "linear"
+) -> Callable:
     """
     Get a callable vector field from a numpy array via linear interpolation.
 
@@ -342,6 +343,8 @@ def get_callable_vector_field(vector_field_dict: dict, for_solve_ivp: bool = Tru
         Dictionary with arrays defining a vector field evaluated on a mesh grid.
     for_solve_ivp
         Return a function formatted for use with scipy.integrate.solve_ivp if True.
+    method
+        Interpolation method to use ('linear', 'nearest', etc.).
 
     Returns
     -------
@@ -349,40 +352,35 @@ def get_callable_vector_field(vector_field_dict: dict, for_solve_ivp: bool = Tru
         Callable function representing the vector field.
     """
 
-    ndim = len(vector_field_dict["grid"])  # number of dimensions
+    grid = vector_field_dict["grid"]  # tuple of 3D arrays (xgrid, ygrid, zgrid)
 
-    # get the interpolator for f_KM
-    vec_field_grid = np.stack(
-        vector_field_dict["vectors"], axis=-1
-    )  # shape (num_bins_x, num_bins_y, ... , ndim)
-    xyz_grid = np.moveaxis(np.array(vector_field_dict["grid"]), 0, -1).reshape((-1, ndim))
-    vec_field_interp = spinterp.LinearNDInterpolator(
-        xyz_grid, vec_field_grid.reshape((-1, ndim))
-    )  # interpolator for f_KM
+    # Extract 1D axes from meshgrid
+    x = np.unique(grid[0])
+    y = np.unique(grid[1])
+    z = np.unique(grid[2])
+    axes = (x, y, z)
 
-    if for_solve_ivp:
-        # define a callable function to pass
-        # into the ODE solver
-        # for scipy.integrate.solve_ivp,
-        # need time as first argument
-        # and x as second argument even if
-        # the system is time-independent
-        def vec_func_ivp(t: Any, x: np.ndarray) -> np.ndarray:
-            # get interpolated value
-            vec_interp_val = vec_field_interp(x)
-            # return dx/dt = f(x)
-            return vec_interp_val
+    # Stack vector components into shape (nx, ny, nz, 3)
+    vec_field_grid = np.stack(vector_field_dict["vectors"], axis=-1)
+    # Create interpolators for each component
+    # fill_value set to None for extrapolation
+    interpolators = [
+        RegularGridInterpolator(
+            axes, vec_field_grid[..., i], method=method, bounds_error=False, fill_value=None
+        )
+        for i in range(3)
+    ]
 
-        return vec_func_ivp
-    else:
+    def vf_general(point: np.ndarray) -> np.ndarray:
+        # point: shape (3,) or (N, 3)
+        point = np.atleast_2d(point)
+        return np.stack([interp(point) for interp in interpolators], axis=-1).squeeze()
 
-        def vec_func(x: np.ndarray) -> np.ndarray:
-            # get interpolated value
-            vec_interp_val = vec_field_interp(x)
-            # return dx/dt = f(x)
-            return vec_interp_val
+    def vf_solve_ivp(t: float, y: np.ndarray) -> np.ndarray:
+        # y: shape (3,)
+        return vf_general(y)
 
-        return vec_func
+    return vf_solve_ivp if for_solve_ivp else vf_general
 
 
 def solve_ddff_ode(
