@@ -439,61 +439,6 @@ def plot_quiver_slices(
     return fig, ax
 
 
-def plot_one_slice_streamplot(
-    velocities: tuple,
-    grid: tuple,
-    slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
-    ax: plt.Axes,
-) -> plt.Axes:
-    """
-    Plot one slice of the flow field (streamplot)
-    for a given slice of the grid.
-    """
-    my_shape = [len(np.unique(slice_indexes[i])) for i in range(len(slice_indexes))]
-    # slice the grid to get the points in the slice, reshape for plotting
-    x1_grid = grid[0][slice_indexes].reshape(my_shape)
-    x2_grid = grid[1][slice_indexes].reshape(my_shape)
-    # flatten down to 2D depending on which axis has shape == 1
-    which_idx = np.where(np.array(my_shape) == 1)[0][0]
-    # get xi_grid[... 0 ...] where 0 is taken from the axis with shape == 1
-    x1_grid = np.take(x1_grid, 0, axis=which_idx)
-    x2_grid = np.take(x2_grid, 0, axis=which_idx)
-
-    # get the velocities at these points (again, the correct slices)
-    dx1 = velocities[0][slice_indexes].reshape(x1_grid.shape)
-    dx2 = velocities[1][slice_indexes].reshape(x2_grid.shape)
-
-    # transpose the grid and velocities for streamplot
-    # (meshgrid generated via indexing ij)
-    ax.streamplot(x1_grid.T, x2_grid.T, dx1.T, dx2.T, color="black", linewidth=1, density=2)
-    return ax
-
-
-def plot_streamplot_slices(
-    flow_field_dict: dict,
-    slice_indexes: tuple[
-        tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
-        tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
-    ],
-) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
-    """
-    Plot streamplot of the 3D flow field
-    for the specified 2D slices.
-    """
-    # get flow field
-    v1, v2, v3 = flow_field_dict["vectors"]
-
-    # get grid and grid spacing
-    xgrid, ygrid, zgrid = flow_field_dict["grid"]
-
-    # plot streamplot for the specified slices
-    fig, ax = plt.subplots(1, 2, figsize=(14, 5))
-    ax[0] = plot_one_slice_streamplot((v1, v2), (xgrid, ygrid), slice_indexes[0], ax=ax[0])
-    ax[1] = plot_one_slice_streamplot((v1, v3), (xgrid, zgrid), slice_indexes[1], ax=ax[1])
-
-    return fig, ax
-
-
 def plot_flow_field_slices(
     flow_field_dict: dict,
     df: pd.DataFrame,
