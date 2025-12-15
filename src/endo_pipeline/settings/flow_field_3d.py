@@ -34,7 +34,7 @@ CLIP_MIN_MAGNITUDE_PERCENTILE: float | None = 0.1
 CLIP_MAX_MAGNITUDE_PERCENTILE: float | None = None
 """Percentile for clipping maximum vector magnitudes in 3D flow field visualization."""
 
-QUIVER_COLORMAP: str = "jet"
+QUIVER_COLORMAP: str = "turbo"
 """Colormap for quiver plots in 3D flow field visualization."""
 
 FLOW_FIELD_X_AXIS_LABEL: str = "PC1"
