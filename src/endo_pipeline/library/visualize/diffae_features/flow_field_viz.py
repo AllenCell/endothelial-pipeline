@@ -614,7 +614,7 @@ def plot_stable_fixed_points_together(
 
 def flow_field_viz_main(
     flow_field_dict: dict,
-    df_cond: pd.DataFrame,
+    df: pd.DataFrame,
     traj: np.ndarray,
     plot_bounds: list[np.ndarray],
     fig_savedir: Path,
@@ -632,8 +632,8 @@ def flow_field_viz_main(
     ----------
     flow_field_dict
         Dictionary containing the flow field data.
-    df_cond
-        DataFrame containing the data to be plotted.
+    df
+        DataFrame containing the data to be plotted (from one dataset/experimental condition).
     traj
         Trajectory of the system in the flow field.
     plot_bounds
@@ -642,16 +642,7 @@ def flow_field_viz_main(
         Directory to save the figures.
     """
     # dataset flow condition for saving the figures
-    name = df_cond[ColumnName.DATASET].unique()[0]
-    condition = get_dataset_descriptions([name], simple=True, include_shear_stress=True)[name]
-
-    # plot 2D slices at PC2 and PC3 values given by
-    # the last point of the input trajectory
-    pc_vals = (traj[-1, 2], traj[-1, 1])
-
-    # baseline visualization: plot flow field slices
-    # (quiver plot with scatter of data, streamplot)
-    plot_flow_field_slices(flow_field_dict, df_cond, plot_bounds, fig_savedir, pc_vals=pc_vals)
+    name = df[ColumnName.DATASET].unique()[0]
 
     ###### additional plots for visualization of flow field #######
     # 1) plot stacks of flow field slices
@@ -693,49 +684,29 @@ def flow_field_viz_main(
             fig_savedir=stack_savedir,
         )
 
-    # get z-slice and y-slice closest to PC2 and PC3 values
-    zvalids = get_slice_indexes(
-        flow_field_dict["grid"][-1], pc_vals[0]
-    )  # get z-slice closest to PC3 = PC3_val
-    yvalids = get_slice_indexes(
-        flow_field_dict["grid"][-2], pc_vals[1]
-    )  # get y-slice closest to PC2 = PC2_val
+    # plot 2D slices at PC2 and PC3 values given by
+    # the last point of the input trajectory
+    pc_vals = (traj[-1, 2], traj[-1, 1])
+
+    # baseline visualization: plot flow field slices
+    fig, ax = plot_flow_field_slices(flow_field_dict, df, plot_bounds, fig_savedir, pc_vals=pc_vals)
 
     # 2) plot last point of trajectory over flow field
-    fig, ax = plt.subplots(1, 2, figsize=(14, 5))
-
-    # get the color for the scatter plot
-    scatter_color = feature_viz.get_dataset_color(name)
-    # plot scatter of data overlaid on quiver plot
-    ax[0].scatter(df_cond.pc_1, df_cond.pc_2, s=0.25, color=scatter_color, alpha=0.05)
-    ax[1].scatter(df_cond.pc_1, df_cond.pc_3, s=0.25, color=scatter_color, alpha=0.05)
-    fig, ax = plot_quiver_slices(flow_field_dict, (zvalids, yvalids), fig_ax=(fig, ax))
-    fig.suptitle(condition, fontsize=16)
-
-    # plot last point of trajectory
     for j, ax_ in enumerate(ax):  # PC1 v s PC2, PC1 vs PC3
         ax_.scatter(traj[-1, 0], traj[-1, j + 1], s=100, color="black")
 
-    # plot second stable point
-    ax = set_slice_plot_bounds_and_labels(ax, plot_bounds)
-    # set titles with slice values
-    ax[0].set_title(f"PC3 = {pc_vals[0]:.2f}")
-    ax[1].set_title(f"PC2 = {pc_vals[1]:.2f}")
-    plt.tight_layout()
-    plt.show()
     # save the figure
     save_plot_to_path(fig, fig_savedir, f"flow_field_{name}_fp")
 
-    # 2) plot entire trajectory over flow field
+    # 3) plot entire trajectory over flow field
     # PC1 v s PC2, PC1 vs PC3
     for j, ax_ in enumerate(ax):
         ax_.plot(traj[:, 0], traj[:, j + 1], linewidth=2.5, color="navy")
-    plt.tight_layout()
-    plt.show()
+
     # save the figure
     save_plot_to_path(fig, fig_savedir, f"flow_field_{name}_traj")
 
-    # 3) trajectory with equally spaced interpolated points
+    # 4) trajectory with equally spaced interpolated points
     interpolated_points = data_driven_flow_field.interpolate_on_curve(traj)
     for j, ax_ in enumerate(ax):
         ax_.scatter(
@@ -744,7 +715,6 @@ def flow_field_viz_main(
             s=10,
             color="red",
         )
-    plt.tight_layout()
-    plt.show()
+
     # save the figure
     save_plot_to_path(fig, fig_savedir, f"flow_field_{name}_traj_interpolated")
