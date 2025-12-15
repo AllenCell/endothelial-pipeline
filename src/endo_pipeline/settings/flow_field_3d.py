@@ -46,6 +46,18 @@ FLOW_FIELD_X_AXIS_LABEL: str = "PC1"
 FLOW_FIELD_Y_AXIS_LABELS: tuple[str, str] = ("PC2", "PC3")
 """Labels for the Y axes in the plots of 2D slices of the 3D flow field."""
 
+NROWS_2D_FLOW_FIELD: int = 2
+"""Number of rows for the 2D flow field visualization figure."""
+
+NCOLS_2D_FLOW_FIELD: int = 1
+"""Number of columns for the 2D flow field visualization figure."""
+
+FIGSIZE_2D_FLOW_FIELD: tuple[int, int] = (7, 10)
+"""Figure size for the 2D flow field visualization figure."""
+
+FIGSIZE_FLOW_FIELD_STACK: tuple[int, int] = (7, 5)
+"""Figure size for the flow field stack visualization figure."""
+
 TIME_STEP_IN_MINUTES: int = 5
 """Time step in minutes between consecutive time points for flow field estimation."""
 

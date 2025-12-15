@@ -19,13 +19,17 @@ from endo_pipeline.settings.flow_field_3d import (
     CLIP_MAGNITUDES,
     CLIP_MAX_MAGNITUDE_PERCENTILE,
     CLIP_MIN_MAGNITUDE_PERCENTILE,
+    FIGSIZE_2D_FLOW_FIELD,
+    FIGSIZE_FLOW_FIELD_STACK,
     FLOW_FIELD_X_AXIS_LABEL,
     FLOW_FIELD_Y_AXIS_LABELS,
     KDE_CONTOUR_COLORMAP,
     KDE_CONTOUR_LEVELS,
     KDE_CONTOUR_OPACITY,
     LOG_NORM_MAGNITUDES,
+    NCOLS_2D_FLOW_FIELD,
     NORMALIZE_QUIVER_VECTORS,
+    NROWS_2D_FLOW_FIELD,
     QUIVER_COLORMAP,
     QUIVER_DOWNSAMPLE_FACTOR,
     QUIVER_VECTOR_SCALE,
@@ -241,7 +245,7 @@ def plot_flow_field_stack(
     ax_list = []
     for n, slice_value in enumerate(slice_steps):
         # set up figure
-        fig, ax = plt.subplots(figsize=(7, 5))
+        fig, ax = plt.subplots(figsize=FIGSIZE_FLOW_FIELD_STACK)
 
         # get meshgrid indexes for the current slice value
         x_k_valids = get_slice_indexes(x_k_grid, slice_value)
@@ -420,7 +424,9 @@ def plot_quiver_slices(
 
     # plot quiver plots for the specified slices
     if fig_ax is None:
-        fig, ax = plt.subplots(1, 2, figsize=(14, 5))
+        fig, ax = plt.subplots(
+            NROWS_2D_FLOW_FIELD, NCOLS_2D_FLOW_FIELD, figsize=FIGSIZE_2D_FLOW_FIELD
+        )
     else:
         fig, ax = fig_ax
     ax[0] = plot_one_slice_quiver(
@@ -543,7 +549,7 @@ def plot_flow_field_slices(
     yvalids = get_slice_indexes(ygrid, pc2_val)
 
     # plot quiver plots of these PC2 and PC3 slices
-    fig, ax = plt.subplots(1, 2, figsize=(14, 5))
+    fig, ax = plt.subplots(NROWS_2D_FLOW_FIELD, NCOLS_2D_FLOW_FIELD, figsize=FIGSIZE_2D_FLOW_FIELD)
 
     # plot KDE contours of data in PC1-PC2 and PC1-PC3 planes, if specified
     if plot_density:
@@ -626,7 +632,7 @@ def plot_stable_fixed_points_together(
     conditions = get_dataset_descriptions(list_of_datasets, simple=True)
 
     # initialize plots
-    fig, ax = plt.subplots(1, 2, figsize=(14, 5))
+    fig, ax = plt.subplots(NROWS_2D_FLOW_FIELD, NCOLS_2D_FLOW_FIELD, figsize=FIGSIZE_2D_FLOW_FIELD)
 
     # get bounds of the grid - load one of the flow field objects
     # saved in main function
