@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -252,7 +252,7 @@ def plot_flow_field_stack(
             (x_i_grid, x_j_grid),
             x_k_valids,
             ax=ax,
-            color=color_array,
+            color_array=color_array,
         )
         # set the axis limits and labels
         ax = set_slice_plot_bounds_and_labels(
@@ -286,6 +286,7 @@ def plot_one_slice_quiver(
     slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
     ax: plt.Axes,
     color_array: np.ndarray,
+    color: str | None = None,
     norm: bool = NORMALIZE_QUIVER_VECTORS,
     downsample_factor: int = QUIVER_DOWNSAMPLE_FACTOR,
     scale: int | float = QUIVER_VECTOR_SCALE,
@@ -305,6 +306,8 @@ def plot_one_slice_quiver(
         Matplotlib Axes to plot on.
     color_array
         Array of RGBA colors for coloring the quiver arrows.
+    color
+        Optional single color for the quiver arrows.
     norm
         Whether to normalize the quiver plot arrows.
     downsample_factor
@@ -323,7 +326,8 @@ def plot_one_slice_quiver(
     dx2 = velocities[1][slice_indexes].reshape(my_shape)
 
     # if coloring arrows by some metric, slice and reshape
-    color = color_array[slice_indexes].reshape((*my_shape, 4))  # RGBA colors
+    if color is None:
+        color_array = color_array[slice_indexes].reshape((*my_shape, 4))  # RGBA colors
 
     # flatten down to 2D depending on which axis has shape == 1
     which_idx = np.where(np.array(my_shape) == 1)[0][0]
@@ -333,7 +337,8 @@ def plot_one_slice_quiver(
     x2_grid = np.take(x2_grid, 0, axis=which_idx)
     dx1 = np.take(dx1, 0, axis=which_idx)
     dx2 = np.take(dx2, 0, axis=which_idx)
-    color = np.take(color, 0, axis=which_idx)
+    if color is None:
+        color_array = np.take(color_array, 0, axis=which_idx)
 
     if norm:  # norm in 2D
         dx1_ = dx1 / np.sqrt(dx1**2 + dx2**2)
@@ -349,7 +354,11 @@ def plot_one_slice_quiver(
     dx1_ = dx1_[::downsample_factor, ::downsample_factor].T
     dx2_ = dx2_[::downsample_factor, ::downsample_factor].T
     # if coloring arrows by some metric, downsample that too and reshape
-    color_ = color[::downsample_factor, ::downsample_factor].swapaxes(0, 1).reshape(-1, 4)
+    color_ = (
+        (color_array[::downsample_factor, ::downsample_factor].swapaxes(0, 1).reshape(-1, 4))
+        if color is None
+        else color
+    )
 
     # plot quiver
     ax.quiver(x1_grid_, x2_grid_, dx1_, dx2_, color=color_, scale=scale)
@@ -409,10 +418,10 @@ def plot_quiver_slices(
     else:
         fig, ax = fig_ax
     ax[0] = plot_one_slice_quiver(
-        (v1, v2), (xgrid, ygrid), slice_indexes[0], ax=ax[0], color=color_array, norm=norm
+        (v1, v2), (xgrid, ygrid), slice_indexes[0], ax=ax[0], color_array=color_array, norm=norm
     )
     ax[1] = plot_one_slice_quiver(
-        (v1, v3), (xgrid, zgrid), slice_indexes[1], ax=ax[1], color=color_array, norm=norm
+        (v1, v3), (xgrid, zgrid), slice_indexes[1], ax=ax[1], color_array=color_array, norm=norm
     )
 
     return fig, ax
@@ -528,11 +537,10 @@ def plot_flow_field_slices(
     yvalids = get_slice_indexes(ygrid, pc2_val)
 
     # plot quiver plots of these PC2 and PC3 slices
-    # overlaid on scatter plot of data
     fig, ax = plt.subplots(1, 2, figsize=(14, 5))
-    fig, ax = plt.subplots(2, 1, figsize=(7, 10))
-    if df is not None:
-        # plot KDE of marginal histogram of data in PC1-PC2 and PC1-PC3 planes
+
+    # plot KDE contours of data in PC1-PC2 and PC1-PC3 planes, if specified
+    if plot_density:
         for i, (pc_x, pc_y) in enumerate(
             [
                 (DIFFAE_PC_COLUMN_NAMES[0], DIFFAE_PC_COLUMN_NAMES[1]),
@@ -551,8 +559,8 @@ def plot_flow_field_slices(
             grid_shape = x.shape
 
             # get the data in the current PC1-PC2 or PC1-PC3 plane
-            data_x = df[pc_x].values
-            data_y = df[pc_y].values
+            data_x = cast(np.ndarray, df[pc_x].values)
+            data_y = cast(np.ndarray, df[pc_y].values)
             # calculate the point density (KDE)
             values = np.vstack([data_x, data_y])
             z = gaussian_kde(values)(positions).T.reshape(grid_shape)
