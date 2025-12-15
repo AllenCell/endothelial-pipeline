@@ -289,17 +289,13 @@ def plot_one_slice_quiver(
     grid: tuple,
     slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
     ax: plt.Axes,
-    color_array: np.ndarray | None = None,
-    color: str | None = None,
+    color: str | np.ndarray,
     norm: bool = NORMALIZE_QUIVER_VECTORS,
     downsample_factor: int = QUIVER_DOWNSAMPLE_FACTOR,
     scale: int | float = QUIVER_VECTOR_SCALE,
 ) -> plt.Axes:
     """
     Plot one slice of the flow field (quiver plot) for a given slice of the grid.
-
-    Colormap is determined by color_array if provided, else by color if provided.
-    This method will raise an error if neither are provided.
 
     Parameters
     ----------
@@ -311,10 +307,8 @@ def plot_one_slice_quiver(
         Tuple of arrays specifying the slice indexes for the 2D slice.
     ax
         Matplotlib Axes to plot on.
-    color_array
-        Optional, array of RGBA colors for coloring the quiver arrows.
     color
-        Optional single color for the quiver arrows.
+        Array of RGBA colors for coloring the quiver arrows or single color string.
     norm
         Whether to normalize the quiver plot arrows.
     downsample_factor
@@ -322,10 +316,6 @@ def plot_one_slice_quiver(
     scale
         Scale factor for the quiver arrows.
     """
-    if color_array is None and color is None:
-        logger.error("Either color_array or color must be provided for quiver plot.")
-        raise ValueError("Either color_array or color must be provided for quiver plot.")
-
     # slice the grid to get the points in the slice
     # and reshape to 2d array
     my_shape = [len(np.unique(slice_indexes[i])) for i in range(len(slice_indexes))]
@@ -335,10 +325,6 @@ def plot_one_slice_quiver(
     dx1 = velocities[0][slice_indexes].reshape(my_shape)
     dx2 = velocities[1][slice_indexes].reshape(my_shape)
 
-    # if coloring arrows by some metric, slice and reshape
-    if color is None:
-        color_array = color_array[slice_indexes].reshape((*my_shape, 4))  # RGBA colors
-
     # flatten down to 2D depending on which axis has shape == 1
     which_idx = np.where(np.array(my_shape) == 1)[0][0]
     # get xi_grid[... 0 ...] where 0 is taken from the axis with shape == 1
@@ -347,10 +333,8 @@ def plot_one_slice_quiver(
     x2_grid = np.take(x2_grid, 0, axis=which_idx)
     dx1 = np.take(dx1, 0, axis=which_idx)
     dx2 = np.take(dx2, 0, axis=which_idx)
-    if color is None:
-        color_array = np.take(color_array, 0, axis=which_idx)
 
-    if norm:  # norm in 2D
+    if norm:  # normalize vectors in 2D
         dx1_ = dx1 / np.sqrt(dx1**2 + dx2**2)
         dx2_ = dx2 / np.sqrt(dx1**2 + dx2**2)
     else:
@@ -363,12 +347,16 @@ def plot_one_slice_quiver(
     x2_grid_ = x2_grid[::downsample_factor, ::downsample_factor].T
     dx1_ = dx1_[::downsample_factor, ::downsample_factor].T
     dx2_ = dx2_[::downsample_factor, ::downsample_factor].T
-    # if coloring arrows by some metric, downsample that too and reshape
-    color_ = (
-        (color_array[::downsample_factor, ::downsample_factor].swapaxes(0, 1).reshape(-1, 4))
-        if color is None
-        else color
-    )
+
+    # if coloring arrows by some metric, slice, reshape, and downsample color array
+    if isinstance(color, np.ndarray):
+        color_sliced = color[slice_indexes].reshape((*my_shape, 4))  # RGBA colors
+        color_squeezed = np.take(color_sliced, 0, axis=which_idx)
+        color_ = (
+            color_squeezed[::downsample_factor, ::downsample_factor].swapaxes(0, 1).reshape(-1, 4)
+        )
+    else:
+        color_ = color  # single color string
 
     # plot quiver
     ax.quiver(x1_grid_, x2_grid_, dx1_, dx2_, color=color_, scale=scale)
