@@ -17,11 +17,11 @@ from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data, get_bins
 from endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import (
+from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
-    TRAJECTORY_DICT_FILE_NAME,
 )
+from endo_pipeline.settings.flow_field_3d import TRAJECTORY_DICT_FILE_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -105,10 +105,16 @@ def _ddff_model_analysis(
         traj_list, d_traj_list, bins=bins, dt=dt, kernel_params=kernel_params
     )
 
-    # compute interpolated flow field - drift
-    flow_field_dict = compute_extrapolated_vector_field(
-        drift_km, centers, extrapolation_method="nearest"
-    )
+    # compute flow field on the grid defined by centers
+    ndim = len(centers)  # number of dimensions
+    # generate a mesh grid of points in the state space
+    grid = np.meshgrid(*centers, indexing="ij")  # make meshgrid
+
+    # get the vector field components from
+    # the Kramers-Moyal coefficients
+    drift_vector_field = [drift_km[..., i] for i in range(ndim)]
+    flow_field_dict = {"vectors": drift_vector_field, "grid": grid}
+
     # save flow field dictionary as npy
     np.save(
         output_savedir / f"flow_field_dict_{dataset_name}.npy",
@@ -118,11 +124,11 @@ def _ddff_model_analysis(
     # save flow field as vtk image data
     vtk_io.save_vector_field_as_vtk(flow_field_dict, vtk_savedir / f"flow_field_{dataset_name}.vtk")
 
-    # compute interpolated diffusion field
+    # compute diffusion field on the grid defined by centers
     # (diagonal diffusion tensor represented as 3D vector field)
-    diffusion_field_dict = compute_extrapolated_vector_field(
-        diff_km, centers, extrapolation_method="nearest"
-    )
+    diffusion_vector_field = [diff_km[..., i] for i in range(ndim)]
+    diffusion_field_dict = {"vectors": diffusion_vector_field, "grid": grid}
+
     # save diffusion field dictionary as npy
     np.save(
         output_savedir / f"diffusion_field_dict_{dataset_name}.npy",
@@ -141,16 +147,7 @@ def _ddff_model_analysis(
 
     flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj, plot_bounds, fig_savedir)
 
-    # hack-y work around for intermediate shear stress
-    # simulate second trajectory to get second stable point
-    if dataset_name == "20250319_20X":
-        init = np.array([1.1, 0.0, -0.2])
-        time_span = [0, 5000]
-        traj_2 = solve_ddff_ode(flow_field_dict, init, time_span)
-        traj_list = [traj, traj_2]  # return both trajectories
-        return traj_list
-    else:
-        return traj
+    return traj
 
 
 def get_and_analyze_ddff(
