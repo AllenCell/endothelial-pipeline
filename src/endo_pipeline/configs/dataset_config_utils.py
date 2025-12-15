@@ -160,7 +160,7 @@ def get_duration_at_flow(dataset: DatasetConfig, shear_stress: float) -> int:
 
 def get_subset_of_timepoint_annotations(
     annotations_to_ignore: list[TimepointAnnotation],
-) -> dict[int, list[int]]:
+) -> list[TimepointAnnotation]:
     """
     Get a subset of timepoint annotations to use for filtering data points.
 

@@ -1,0 +1,81 @@
+name: 20251119_20X
+date: '20251119'
+original_path: //allen/programs/allencell/data/proj0/8c7/ef7/0cd/5af/a22/66a/644/a62/a79/449/d6/20251119_GE00009605_20X_sldy/20251119_GE00009605_20X_sldy.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20251119_d6449a79a6264466aa225af0cdef78c7
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: d6449a79a6264466aa225af0cdef78c7
+barcode: GE00009605
+cell_lines: [AICS-177 cl. 26]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: min
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+channel_names: [EGFP, BF]
+flow_conditions:
+- start: -14
+  stop: 576
+  shear_stress: 5.9
+include_scenes: null
+notes: Collect low SS 48h timelapse of CDH5 Ex2 del -/- endothelial cells. Mostly
+  parallel alignment by 24h into the timelapse, then unalign and some gaps open up.
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [36, 51, 184, 538, 556]
+    1: [159, 256]
+    2: [251, 256, 497, 556]
+    3: [18, 56, 101, 155, 256, 263, 293, 538]
+    4: [18, 331, 538, 556, 573]
+    5: [18, 170, 538, 556]
+  auto_bf_temp_artifact:
+    0: [64, 72, 182, 271, 449, 475, 502, 542, 554]
+    1: [179, 251, 477, 493, 528, 538, 574]
+    2: [78, 490, 525]
+    3: [10, 494]
+    4: [58, 84, 222, 466, 486]
+    5: [324, 524, 549, 557, 565]
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  bf_temp_artifact:
+    0: []
+    1: [85, 251, 477]
+    2: []
+    3: []
+    4: []
+    5: []
+  not_steady_state:
+    0: [[0, 145], [366, 577]]
+    1: [[0, 133], [354, 577]]
+    2: [[0, 194], [352, 288]]
+    3: [[0, 164], [366, 577]]
+    4: [[0, 169], [328, 577]]
+    5: [[0, 225], [343, 577]]
+position_annotations: null
+center_z_plane:
+  0: 12
+  1: 11
+  2: 11
+  3: 10
+  4: 11
+  5: 11

@@ -32,3 +32,38 @@ RANDOM_SEED: int = 47
 
 MODEL_QC_NOISE_LEVELS: tuple = (0.25, 0.5, 0.75)
 """Default noise levels to add to ground truth for the model QC workflow."""
+
+SEGMENTATION_FEATURE_COLUMNS = {
+    "default": [
+        "alignment_deg_rel_to_flow",
+        "orientation_deg",
+        "aspect_ratio",
+        "centroid_velocity_angle_deg",
+        "cell_fluorescence_mean (a.u.)",
+        "num_nuclei_in_crop",
+        "area (um**2)",
+    ],
+    "supp": [
+        "alignment_deg_rel_to_flow",
+        "orientation_deg",
+        "aspect_ratio",
+        "cell_nuc_orientation_deg_rel_to_migration",
+        "nuc_pos_rel_cell_angle_deg",
+        "centroid_velocity_angle_deg",
+        "cell_fluorescence_mean (a.u.)",
+        "num_nuclei_in_crop",
+        "area (um**2)",
+    ],
+}
+"""Name of segmentation features to include in analyses."""
+
+DATASET_INFO_COLUMNS = [
+    "dataset_name",
+    "position",
+    "image_index",
+    "frame_number",
+    "track_id",
+    "crop_index",
+    "label",
+]
+"""Name of dataset metadata columns required for analysis."""

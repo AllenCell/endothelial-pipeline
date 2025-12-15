@@ -2,6 +2,7 @@ from typing import Annotated, Literal
 
 from cyclopts import Parameter
 
+from endo_pipeline.library.visualize.multi_feature_correlation_viz import plot_and_save_clustermap
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -153,6 +154,14 @@ def main(
         figure=fig_heatmap,
         output_path=fig_savedir,
         figure_name="pca_loadings_heatmap",
+    )
+
+    plot_and_save_clustermap(
+        df=pca_loadings_df,
+        output_folder=fig_savedir,
+        metric="correlation",
+        filename="pca_loadings_clustermap",
+        data_type="samples",
     )
 
     logger.info("PCA visualization complete. Figures saved to [ %s ]", fig_savedir)
