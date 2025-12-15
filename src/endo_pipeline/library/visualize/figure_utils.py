@@ -5,6 +5,7 @@ from typing import Literal
 import matplotlib.axes as maxes
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
+import matplotlib.text
 import numpy as np
 
 from endo_pipeline.io.output import save_plot_to_path
@@ -46,7 +47,9 @@ def add_scalebar(
     scale_bar_px = scale_bar_um / pixel_size
     length_px = scale_bar_px
 
-    ny, nx = ax.images[0].get_array().shape  # image dimensions
+    axes_values = ax.images[0].get_array()
+    assert axes_values is not None
+    ny, nx = axes_values.shape  # image dimensions
 
     # Determine bar position
     if location == "upper left":
@@ -149,8 +152,51 @@ def plot_image_thumbnail(
     plt.close(figure)
 
 
+def add_timestamp(
+    ax,
+    frame: int,
+    interval_minutes: int,
+    fontsize: int = FONTSIZE_LARGE,
+    shear_stress: float | None = None,
+) -> matplotlib.text.Text:
+    """
+    Add a timestamp to the given axis based on frame number and interval (hr:min).
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The axis to add the timestamp to.
+    frame : int
+        The current frame number
+    interval_minutes : int, optional
+        Time interval between frames in minutes.
+    fontsize : int
+        Font size for the timestamp text.
+    shear_stress : float, optional
+        Shear stress value to display alongside the timestamp (in dyn/cm²).
+    """
+    duration_minutes = frame * interval_minutes
+    hours = int(duration_minutes // 60)
+    minutes = int(duration_minutes % 60)
+
+    shear_stress_label = f"{shear_stress:.1f} dyn/cm²" if shear_stress is not None else ""
+    timestamp = f"{hours:02d}:{minutes:02d} hr:min {shear_stress_label}"
+
+    return ax.text(
+        0.01,
+        0.98,
+        timestamp,
+        transform=ax.transAxes,
+        color="white",
+        fontsize=fontsize,
+        ha="left",
+        va="top",
+    )
+
+
 def broadcast_title_list(title_list: list[str] | None, target_length: int) -> list[str] | None:
     """Broadcast a list of titles to a target length.
+
     Parameters
     ----------
     title_list:
@@ -173,7 +219,7 @@ def broadcast_title_list(title_list: list[str] | None, target_length: int) -> li
 
 def reshape_panel_list_from_direction(
     num_panels: int,
-    max_panels_per_line: int,
+    max_panels_per_line: int | None,
     direction: Literal["left-right first", "top-down first"],
 ) -> tuple[int, int]:
     """Reshape the list of panels based on the specified direction.
@@ -224,8 +270,8 @@ def reshape_panel_list_from_direction(
 
 def make_contact_sheet(
     panels: list[np.ndarray],
-    max_rows: int | None = None,
-    max_cols: int | None = None,
+    max_rows: int,
+    max_cols: int,
     col_titles: list[str] | None = None,
     row_titles: list[str] | None = None,
     panel_titles: list[str] | None = None,
@@ -246,9 +292,9 @@ def make_contact_sheet(
     panels:
         List of 2D arrays representing the images to be plotted in the contact sheet.
     max_rows:
-        Maximum number of rows in the contact sheet. If None, no limit is applied.
+        Maximum number of rows in the contact sheet.
     max_cols:
-        Maximum number of columns in the contact sheet. If None, no limit is applied.
+        Maximum number of columns in the contact sheet.
     col_titles:
         List of titles for each column. Length of col_titles must match the
         number of columns that are plotted or have length of 1 if provided. If the

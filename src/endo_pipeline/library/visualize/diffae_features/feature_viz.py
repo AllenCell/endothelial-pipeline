@@ -50,6 +50,7 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     ax.plot(
         np.arange(1, n_components + 1), 0.95 * np.ones(n_components), "r--", alpha=0.8
     )  # 95% explained variance line
+    ax.set_ylim(0, 1.05)
     ax.set_xlabel("Number of components")
     ax.set_ylabel("Cumulative explained variance")
     ax.set_title("Explained variance ratio of PCA components")
@@ -370,6 +371,7 @@ def pc_loading_heatmap_workflow(
     pca_loadings_df: pd.DataFrame,
     diffae_feature_columns: list[str] = DIFFAE_FEATURE_COLUMN_NAMES,
     pc_columns: list[str] = DIFFAE_PC_COLUMN_NAMES,
+    annotate: bool = True,
 ) -> Figure:
     """
     Workflow to visualize PCA loadings as a heatmap.
@@ -382,6 +384,8 @@ def pc_loading_heatmap_workflow(
         List of DiffAE feature column names to include in the heatmap.
     pc_columns
         List of PCA column names to include in the heatmap.
+    annotate
+        If True, annotate the heatmap with loading values.
 
     Returns
     -------
@@ -397,10 +401,18 @@ def pc_loading_heatmap_workflow(
     pca_loadings_df.index = pca_loadings_df.index.map(get_label_for_column)
     pca_loadings_df.columns = pca_loadings_df.columns.map(get_label_for_column)
 
+    if annotate and (len(pca_loadings_df) > 16 or len(pca_loadings_df.columns) > 16):
+        logger.warning(
+            "Heatmap may be difficult to read with more than 16 rows or columns. "
+            "Disabling annotation."
+        )
+        annotate = False
+
     fig_heatmap, ax_heatmap = plt.subplots(figsize=(10, 10))
     ax_heatmap = sns.heatmap(
         pca_loadings_df,
-        annot=True,
+        annot=annotate,
+        fmt=".3f",
         cmap="RdBu",
         center=0,
         ax=ax_heatmap,

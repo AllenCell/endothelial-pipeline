@@ -35,6 +35,7 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
 )
 from endo_pipeline.settings import (
+    DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     NUM_PCS_TO_ANALYZE,
@@ -209,7 +210,7 @@ def merge_diffae_feats_liveseg_feats_tables(
 def get_diffae_feats_liveseg_feats_merged_table(
     dataset_name: str,
     model_manifest: ModelManifest,
-    run_name: str | None = None,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     filtered: bool = False,
 ) -> pd.DataFrame:
@@ -604,11 +605,12 @@ def make_angular_deviation_test(out_dir: Path) -> None:
 def get_preprocessed_manifests_and_km_bounds(
     dataset_name: str,
     model_manifest: ModelManifest,
-    run_name: str | None = None,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
     drop_rows_without_diffae_feats: bool = True,
+    filtered: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list]:
     """
     Load and process the DiffAE and live segmentation feature manifests for a given dataset.
@@ -628,9 +630,16 @@ def get_preprocessed_manifests_and_km_bounds(
         run will be used.
     seg_feature_manifest_name
         The name of the manifest containing segmentation features.
-    datasets_for_bounds
-        List of dataset names to use for computing the PCA bounds.
-        If None, the reference datasets plus dataset_name will be used.
+    collection_name_for_pca
+        The name of the dataset collection to use for fitting the PCA. Defaults to
+        DEFAULT_PCA_DATASET_COLLECTION_NAME.
+    num_pcs
+        The number of principal components to use for the PCA projection. If None, the minimum of
+        NUM_PCS_TO_ANALYZE and the number of latent dimensions will be used.
+    drop_rows_without_diffae_feats
+        Whether to drop rows in the merged DataFrame that do not have DiffAE features.
+    filtered
+        Whether to filter the merged DataFrame to include only rows marked as "is_included".
 
     Returns
     -------
@@ -645,6 +654,7 @@ def get_preprocessed_manifests_and_km_bounds(
     model_config = get_config_dict_from_mlflow(model_location.mlflowid)
     num_latent_dims = get_latent_dim_from_config(model_config)
     diffae_feature_column_names = get_latent_feature_column_names(num_latent_dims)
+    num_pcs = num_pcs if num_pcs is not None else min(NUM_PCS_TO_ANALYZE, num_latent_dims)
 
     # load the tables
     merged_feats_df = get_diffae_feats_liveseg_feats_merged_table(
@@ -652,7 +662,7 @@ def get_preprocessed_manifests_and_km_bounds(
         model_manifest=model_manifest,
         run_name=run_name,
         seg_feature_manifest_name=seg_feature_manifest_name,
-        filtered=False,  # do not filter on timepoints yet: we need all timepoints for TFE workflow
+        filtered=filtered,  # do not filter on timepoints yet: we need all timepoints for TFE workflow
     )
 
     grid_diffae_feat_manifest_name = get_feature_dataframe_manifest_name(
@@ -699,7 +709,9 @@ def get_preprocessed_manifests_and_km_bounds(
         dataset_name, grid_diffae_manifest, pca
     )
 
-    datasets_for_bounds = get_datasets_in_collection(collection_name_for_pca) + [dataset_name]
+    datasets_for_bounds = list(
+        set(get_datasets_in_collection(collection_name_for_pca) + [dataset_name])
+    )
     bounds = get_3d_bounds_from_data(datasets_for_bounds, grid_diffae_manifest, pca)
 
     # lastly, add a normalized version of the "time_hours" column

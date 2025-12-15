@@ -21,9 +21,16 @@ from endo_pipeline.io import load_dataframe
 from endo_pipeline.manifests import (
     DataframeManifest,
     get_dataframe_location_for_dataset,
+    get_feature_dataframe_manifest_name,
     load_dataframe_manifest,
+    load_model_manifest,
 )
-from endo_pipeline.settings import ColumnName
+from endo_pipeline.settings import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    ColumnName,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -194,8 +201,8 @@ def filter_dataframe_by_annotations(
 
 
 def fit_pca(
-    dataset_collection_name: str = "pca_reference",
-    dataframe_manifest_name: str = "diffae_04_10",
+    dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    dataframe_manifest_name: str | None = None,
     filter_dataframe: bool = True,
     include_cell_piling: bool = False,
     num_pcs: int = 8,
@@ -223,7 +230,13 @@ def fit_pca(
     :
         Fit PCA object
     """
-    # Load dataframe manifest for given model
+    # Get dataframe manifest name if not provided based on default model manifest
+    if dataframe_manifest_name is None:
+        dataframe_manifest_name = get_feature_dataframe_manifest_name(
+            load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
+            DEFAULT_MODEL_RUN_NAME,
+        )
+    # Load dataframe manifest
     manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     # Get dataframe locations for manifest for all datasets in collection

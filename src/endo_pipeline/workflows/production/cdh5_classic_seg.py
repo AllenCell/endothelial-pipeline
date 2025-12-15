@@ -4,7 +4,7 @@ TAGS = ["cdh5_segmentation", tags.CPU_ONLY, tags.TEST_READY]
 
 
 def main(
-    datasets: Datasets,
+    datasets: Datasets | None = None,
     n_proc: int = 1,
     save_output: bool = True,
     overwrite: bool = True,
@@ -47,6 +47,7 @@ def main(
     """
 
     from endo_pipeline import DEMO_MODE
+    from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.cdh5_preprocessing import (
         generate_cdh5_segmentation_refined_multiproc_wrapper,
@@ -57,6 +58,8 @@ def main(
     )
 
     out_dir = get_output_path(__file__)
+
+    datasets = use_default_collection(datasets, "live_cdh5_seg_based_feat_datasets")
 
     analysis_queue = build_analysis_queue(
         datasets,

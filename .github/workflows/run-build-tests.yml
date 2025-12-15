@@ -1,9 +1,12 @@
 name: run-build-tests
 
 on:
-  - push
-  - merge_group
-  - workflow_dispatch
+  push:
+    branches-ignore:
+      # Don't run on the merge queue; it causes issues with concurrency settings
+      - "gh-readonly-queue/**"
+  merge_group:
+  workflow_dispatch:
 
 # Cancel actions when new commits are pushed to PR
 concurrency:
@@ -33,3 +36,9 @@ jobs:
 
     - name: Run pytest
       run: uv run --locked --extra ml_workflows pytest tests -v
+
+    - name: Run import test
+      # To catch circular import errors, it's important to isolate this test
+      # from the rest. Issue #1058 was caused by a circular import that was
+      # hidden in a regular `pytest tests`.
+      run: uv run --locked --extra ml_workflows pytest tests/endo_pipeline/test_import_workflows.py -v

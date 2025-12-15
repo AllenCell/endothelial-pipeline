@@ -46,11 +46,11 @@ def make_imaging_panels(
     dataset_name: str,
     position: int,
     timeframe: int,
-    out_dir: Path,
+    workflow_name: str,
 ) -> None:
 
-    out_dir_full = get_output_path(out_dir, "images_high_quality")
-    out_dir_thumb = get_output_path(out_dir, "images_thumbnails")
+    out_dir_full = get_output_path(workflow_name, "images_high_quality")
+    out_dir_thumb = get_output_path(workflow_name, "images_thumbnails")
 
     dataset_config = load_dataset_config(dataset_name)
 
@@ -251,7 +251,6 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
         live_seg_feats_df["dataset"] = live_seg_feats_df["dataset_name"]
         live_seg_feats_df["frame_number"] = live_seg_feats_df["image_index"]
         annotations_to_filter_out = [
-            TimepointAnnotation.CELL_PILING,
             TimepointAnnotation.AUTO_GFP_SCOPE_ERROR,
             TimepointAnnotation.GFP_SCOPE_ERROR,
         ]
@@ -270,6 +269,9 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
             "centroid_velocity_orientation_deg",
             "nuc_orientation_deg_rel_migration",
             "nuc_pos_vs_cell_veloc_dotprod",
+            "aspect_ratio",
+            "cell_fluorescence_mean",
+            "area_um2",
         ]
         # get the plotting arguments for the features
         # (e.g. axis limits, axis titles, bin widths, etc.)
@@ -289,6 +291,9 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
         feats_plot_args["nuc_pos_vs_cell_veloc_dotprod"][
             "label"
         ] = "Cell-Nucleus vs.\nMigration Dot Prod."
+        feats_plot_args["aspect_ratio"]["label"] = "Aspect ratio"
+        feats_plot_args["cell_fluorescence_mean"]["label"] = "Mean VE-Cad fluorescence (a.u.)"
+        feats_plot_args["area_um2"]["label"] = "Cell area (µm²)"
 
         # create and save the panels of each of the features
         for feat in feats_to_plot:

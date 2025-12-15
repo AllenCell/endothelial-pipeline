@@ -17,6 +17,7 @@ from endo_pipeline.configs import (
     load_dataset_collection_config,
     load_dataset_config,
 )
+from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +160,7 @@ def get_duration_at_flow(dataset: DatasetConfig, shear_stress: float) -> int:
 
 def get_subset_of_timepoint_annotations(
     annotations_to_ignore: list[TimepointAnnotation],
-) -> dict[int, list[int]]:
+) -> list[TimepointAnnotation]:
     """
     Get a subset of timepoint annotations to use for filtering data points.
 
@@ -356,11 +357,13 @@ def validate_3d_flow_field_dataset_collection() -> None:
 
     Validation checks that each dataset in the collection is from an experiment
     with a single flow condition, and that the collection contains each of the
-    datasets in the 'pca_reference' collection.
+    datasets in the default PCA dataset collection.
     """
 
     analysis_datasets = load_dataset_collection_config("3d_flow_field_analysis").datasets
-    pca_reference_datasets = load_dataset_collection_config("pca_reference").datasets
+    pca_reference_datasets = load_dataset_collection_config(
+        DEFAULT_PCA_DATASET_COLLECTION_NAME
+    ).datasets
 
     for dataset_name in analysis_datasets:
         dataset_config = load_dataset_config(dataset_name)

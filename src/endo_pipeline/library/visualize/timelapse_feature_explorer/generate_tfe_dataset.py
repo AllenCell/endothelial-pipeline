@@ -23,6 +23,7 @@ from endo_pipeline.manifests import (
 )
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     DIFFAE_FEATURE_COLUMN_NAMES,
@@ -40,7 +41,7 @@ def generate_tfe_dataset(
     backdrops: bool,
     output_dir_suffix: str = "",
     model_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str | None = None,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     dataset_collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     include_diffae_features: bool = True,
 ) -> None:
