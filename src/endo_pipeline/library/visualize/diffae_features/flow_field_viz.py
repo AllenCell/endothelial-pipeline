@@ -137,6 +137,8 @@ def _get_colormap_values(
 
     Parameters
     ----------
+    colormap_name
+        The name of the colormap to be used.
     color_metric
         The metric to be used for coloring (e.g., vector magnitudes).
     log_normalize
