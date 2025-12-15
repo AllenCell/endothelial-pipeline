@@ -256,7 +256,7 @@ def plot_flow_field_stack(
             (x_i_grid, x_j_grid),
             x_k_valids,
             ax=ax,
-            color_array=color_array,
+            color=color_array,
         )
         # set the axis limits and labels
         ax = set_slice_plot_bounds_and_labels(
@@ -418,10 +418,10 @@ def plot_quiver_slices(
     else:
         fig, ax = fig_ax
     ax[0] = plot_one_slice_quiver(
-        (v1, v2), (xgrid, ygrid), slice_indexes[0], ax=ax[0], color_array=color_array, norm=norm
+        (v1, v2), (xgrid, ygrid), slice_indexes[0], ax=ax[0], color=color_array, norm=norm
     )
     ax[1] = plot_one_slice_quiver(
-        (v1, v3), (xgrid, zgrid), slice_indexes[1], ax=ax[1], color_array=color_array, norm=norm
+        (v1, v3), (xgrid, zgrid), slice_indexes[1], ax=ax[1], color=color_array, norm=norm
     )
 
     return fig, ax
@@ -623,6 +623,7 @@ def flow_field_viz_main(
     df: pd.DataFrame,
     traj: np.ndarray,
     plot_bounds: list[np.ndarray],
+    plot_stack: bool,
     fig_savedir: Path,
 ) -> None:
     """
@@ -644,6 +645,8 @@ def flow_field_viz_main(
         Trajectory of the system in the flow field.
     plot_bounds
         List of arrays specifying the plot bounds for each principal component.
+    plot_stack
+        Whether to plot stacks of flow field slices.
     fig_savedir
         Directory to save the figures.
     """
@@ -658,37 +661,38 @@ def flow_field_viz_main(
 
     # 1) plot stacks of flow field slices
     # get PC1, PC2, and PC3 slices from meshgrid (ijk indexing)
-    pc_slices = [
-        flow_field_dict["grid"][0][:, 0, 0],  # PC1
-        flow_field_dict["grid"][1][0, :, 0],  # PC2
-        flow_field_dict["grid"][2][0, 0, :],  # PC3
-    ]
-    plot_axes_indicies = [
-        (0, 1),  # PC1 vs PC2 over PC3 slices
-        (0, 2),  # PC1 vs PC3 over PC2 slices
-        (1, 2),  # PC2 vs PC3 over PC1 slices
-    ]
-    slice_axis_indices = [2, 1, 0]  # PC3, PC2, PC1
-
-    for i, slice_axis in enumerate(slice_axis_indices):
-        logger.info("Plotting flow field stack for slice axis PC%s.", slice_axis + 1)
-        plot_axes = plot_axes_indicies[i]
-        slice_steps = pc_slices[slice_axis]
-        plot_bounds_2d = [
-            plot_bounds[plot_axes[0]],
-            plot_bounds[plot_axes[1]],
+    if plot_stack:
+        pc_slices = [
+            flow_field_dict["grid"][0][:, 0, 0],  # PC1
+            flow_field_dict["grid"][1][0, :, 0],  # PC2
+            flow_field_dict["grid"][2][0, 0, :],  # PC3
         ]
-        # save to subdirectory of fig_savedir
-        stack_savedir = fig_savedir / f"{name}_pc{slice_axis + 1}_stack"
-        stack_savedir.mkdir(parents=True, exist_ok=True)
-        plot_flow_field_stack(
-            flow_field_dict,
-            plot_axes_indicies=plot_axes,
-            slice_axis_index=slice_axis,
-            plot_bounds=plot_bounds_2d,
-            slice_steps=slice_steps,
-            fig_savedir=stack_savedir,
-        )
+        plot_axes_indicies = [
+            (0, 1),  # PC1 vs PC2 over PC3 slices
+            (0, 2),  # PC1 vs PC3 over PC2 slices
+            (1, 2),  # PC2 vs PC3 over PC1 slices
+        ]
+        slice_axis_indices = [2, 1, 0]  # PC3, PC2, PC1
+
+        for i, slice_axis in enumerate(slice_axis_indices):
+            logger.info("Plotting flow field stack for slice axis PC%s.", slice_axis + 1)
+            plot_axes = plot_axes_indicies[i]
+            slice_steps = pc_slices[slice_axis]
+            plot_bounds_2d = [
+                plot_bounds[plot_axes[0]],
+                plot_bounds[plot_axes[1]],
+            ]
+            # save to subdirectory of fig_savedir
+            stack_savedir = fig_savedir / f"{name}_pc{slice_axis + 1}_stack"
+            stack_savedir.mkdir(parents=True, exist_ok=True)
+            plot_flow_field_stack(
+                flow_field_dict,
+                plot_axes_indicies=plot_axes,
+                slice_axis_index=slice_axis,
+                plot_bounds=plot_bounds_2d,
+                slice_steps=slice_steps,
+                fig_savedir=stack_savedir,
+            )
 
     # plot 2D slices at PC2 and PC3 values given by
     # the last point of the input trajectory

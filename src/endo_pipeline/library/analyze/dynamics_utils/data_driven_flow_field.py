@@ -37,6 +37,7 @@ def _ddff_model_analysis(
     time_span: list,
     init: np.ndarray,
     plot_bounds: list[np.ndarray],
+    plot_stack: bool,
     fig_savedir: Path,
     vtk_savedir: Path,
     output_savedir: Path,
@@ -79,6 +80,8 @@ def _ddff_model_analysis(
         Initial condition for the trajectory.
     plot_bounds
         Bounds for plotting the flow field.
+    plot_stack
+        Whether to plot the flow field as a stack of 2D slices in each dimension.
     fig_savedir
         Directory to save figures.
     vtk_savedir
@@ -145,7 +148,9 @@ def _ddff_model_analysis(
     # solve IVP, get back trajectory
     traj = solve_ddff_ode(flow_field_dict, init, time_span)
 
-    flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj, plot_bounds, fig_savedir)
+    flow_field_viz.flow_field_viz_main(
+        flow_field_dict, df, traj, plot_bounds, plot_stack, fig_savedir
+    )
 
     return traj
 
@@ -159,6 +164,7 @@ def get_and_analyze_ddff(
     time_span: list,
     init: np.ndarray,
     num_bins: tuple[int, int, int],
+    plot_stack: bool,
     fig_savedir: Path,
     vtk_savedir: Path,
     output_savedir: Path,
@@ -194,6 +200,8 @@ def get_and_analyze_ddff(
         Initial condition for the trajectory.
     num_bins
         Number of bins for histogramming along each dimension in the 3D state space.
+    plot_stack
+        Whether to plot the flow field as a stack of 2D slices in each dimension.
     fig_savedir
         Directory to save figures.
     vtk_savedir
@@ -237,6 +245,7 @@ def get_and_analyze_ddff(
             time_span,
             init,
             bounds_for_plots if use_common_axis_limits else bounds_for_km,
+            plot_stack,
             fig_savedir,
             vtk_savedir,
             output_savedir,
