@@ -13,12 +13,6 @@ QUIVER_DOWNSAMPLE_FACTOR: int = 2
 QUIVER_VECTOR_SCALE: float = 50.0
 """Vector scale for quiver plots in 3D flow field visualization."""
 
-QUIVER_NO_OVERLAY_COLOR: str = "black"
-"""Color for quiver plots without fixed point overlay in 3D flow field visualization."""
-
-QUIVER_OVERLAY_COLOR: str = "dimgrey"
-"""Overlay color for quiver plots with fixed point overlay in 3D flow field visualization."""
-
 NORMALIZE_QUIVER_VECTORS: bool = True
 """Whether to normalize quiver vectors in 3D flow field visualization."""
 

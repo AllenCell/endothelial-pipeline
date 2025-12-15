@@ -25,7 +25,6 @@ from endo_pipeline.settings.flow_field_3d import (
     NORMALIZE_QUIVER_VECTORS,
     QUIVER_COLORMAP,
     QUIVER_DOWNSAMPLE_FACTOR,
-    QUIVER_OVERLAY_COLOR,
     QUIVER_VECTOR_SCALE,
 )
 
@@ -224,7 +223,7 @@ def plot_flow_field_stack(
 
     # color by magnitude of the flow field (log normalized or not, clipped or not)
     vector_magnitude = np.sqrt(v_i**2 + v_j**2 + v_k**2)
-    color = _get_colormap_values(
+    color_array = _get_colormap_values(
         colormap_name,
         vector_magnitude,
         log_normalize=log_normalize,
@@ -250,7 +249,7 @@ def plot_flow_field_stack(
             (x_i_grid, x_j_grid),
             x_k_valids,
             ax=ax,
-            color=color,
+            color=color_array,
         )
         # set the axis limits and labels
         ax = set_slice_plot_bounds_and_labels(
@@ -283,14 +282,32 @@ def plot_one_slice_quiver(
     grid: tuple,
     slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
     ax: plt.Axes,
-    color: str | np.ndarray = QUIVER_OVERLAY_COLOR,
+    color_array: np.ndarray,
     norm: bool = NORMALIZE_QUIVER_VECTORS,
-    ds: int = QUIVER_DOWNSAMPLE_FACTOR,
+    downsample_factor: int = QUIVER_DOWNSAMPLE_FACTOR,
     scale: int | float = QUIVER_VECTOR_SCALE,
 ) -> plt.Axes:
     """
-    Plot one slice of the flow field (quiver plot)
-    for a given slice of the grid.
+    Plot one slice of the flow field (quiver plot) for a given slice of the grid.
+
+    Parameters
+    ----------
+    velocities
+        Tuple of 2D arrays representing the velocity components in the slice.
+    grid
+        Tuple of 2D arrays representing the grid coordinates in the slice.
+    slice_indexes
+        Tuple of arrays specifying the slice indexes for the 2D slice.
+    ax
+        Matplotlib Axes to plot on.
+    color_array
+        Array of RGBA colors for coloring the quiver arrows.
+    norm
+        Whether to normalize the quiver plot arrows.
+    downsample_factor
+        Factor by which to downsample the quiver plot grid.
+    scale
+        Scale factor for the quiver arrows.
     """
 
     # slice the grid to get the points in the slice
@@ -303,8 +320,7 @@ def plot_one_slice_quiver(
     dx2 = velocities[1][slice_indexes].reshape(my_shape)
 
     # if coloring arrows by some metric, slice and reshape
-    if isinstance(color, np.ndarray):
-        color = color[slice_indexes].reshape((*my_shape, 4))  # RGBA colors
+    color = color_array[slice_indexes].reshape((*my_shape, 4))  # RGBA colors
 
     # flatten down to 2D depending on which axis has shape == 1
     which_idx = np.where(np.array(my_shape) == 1)[0][0]
@@ -314,8 +330,7 @@ def plot_one_slice_quiver(
     x2_grid = np.take(x2_grid, 0, axis=which_idx)
     dx1 = np.take(dx1, 0, axis=which_idx)
     dx2 = np.take(dx2, 0, axis=which_idx)
-    if isinstance(color, np.ndarray):
-        color = np.take(color, 0, axis=which_idx)
+    color = np.take(color, 0, axis=which_idx)
 
     if norm:  # norm in 2D
         dx1_ = dx1 / np.sqrt(dx1**2 + dx2**2)
@@ -326,14 +341,12 @@ def plot_one_slice_quiver(
 
     # downsample the grid for quiver plot
     # and transpose (meshgrid generated via indexing ij)
-    x1_grid_ = x1_grid[::ds, ::ds].T
-    x2_grid_ = x2_grid[::ds, ::ds].T
-    dx1_ = dx1_[::ds, ::ds].T
-    dx2_ = dx2_[::ds, ::ds].T
+    x1_grid_ = x1_grid[::downsample_factor, ::downsample_factor].T
+    x2_grid_ = x2_grid[::downsample_factor, ::downsample_factor].T
+    dx1_ = dx1_[::downsample_factor, ::downsample_factor].T
+    dx2_ = dx2_[::downsample_factor, ::downsample_factor].T
     # if coloring arrows by some metric, downsample that too and reshape
-    color_ = (
-        color[::ds, ::ds].swapaxes(0, 1).reshape(-1, 4) if isinstance(color, np.ndarray) else color
-    )
+    color_ = color[::downsample_factor, ::downsample_factor].swapaxes(0, 1).reshape(-1, 4)
 
     # plot quiver
     ax.quiver(x1_grid_, x2_grid_, dx1_, dx2_, color=color_, scale=scale)
