@@ -423,6 +423,13 @@ def plot_quiver_slices(
     ax[1] = plot_one_slice_quiver(
         (v1, v3), (xgrid, zgrid), slice_indexes[1], ax=ax[1], color=color_array, norm=norm
     )
+    # add colorbar to bottom axis
+    sm = plt.cm.ScalarMappable(
+        cmap=colormap_name, norm=_get_colormap_norm(vector_magnitude, log_normalize=True)
+    )
+    sm.set_array([])
+    cbar = fig.colorbar(sm, ax=ax[1])
+    cbar.set_label("flow field magnitude (3D)", fontsize=14)
 
     return fig, ax
 
