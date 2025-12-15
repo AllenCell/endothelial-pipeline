@@ -1,8 +1,7 @@
-# import argparse
 from pathlib import Path
 
 from endo_pipeline.cli import Datasets
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 
 def main(
@@ -12,7 +11,7 @@ def main(
     segmentation: str = "CDH5",
     make_backdrops: bool = True,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str | None = None,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     include_diffae_features: bool = True,
 ) -> None:
     """
@@ -54,43 +53,6 @@ def main(
        By default, the script generates backdrops. Use this flag to skip that
        step.
     """
-    # parser = argparse.ArgumentParser(
-    #     description="Generate TFE datasets for specified datasets and positions."
-    # )
-    # parser.add_argument(
-    #     "--datasets",
-    #     nargs="+",
-    #     default=["20241120_20X"],
-    #     help="List of datasets to process (default: test dataset).",
-    # )
-    # parser.add_argument(
-    #     "--positions",
-    #     nargs="+",
-    #     type=int,
-    #     default=[0],
-    #     help="List of positions to process (default: test position [0]).",
-    # )
-    # parser.add_argument(
-    #     "--output_dir",
-    #     type=Path,
-    #     default=get_output_path("timelapse_feature_explorer"),
-    #     help="Directory to save the output (default: current directory).",
-    # )
-    # parser.add_argument(
-    #     "--segmentation",
-    #     type=str,
-    #     default="CDH5",
-    #     help="Base directory for program files (default: predefined path).",
-    # )
-    # parser.add_argument(
-    #     "--no_backdrops",
-    #     action="store_false",
-    #     help=(
-    #         "Default without the flag will generate the backdrops. "
-    #         "Adding --no_backdrops will skip that step."
-    #     ),
-    # )
-    # args = parser.parse_args()
 
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import get_output_path
@@ -132,7 +94,6 @@ def main(
 
 
 if __name__ == "__main__":
-    # from endo_pipeline.__main__ import workflow_cli
     from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
     ipython_cli_flexecute(main)
