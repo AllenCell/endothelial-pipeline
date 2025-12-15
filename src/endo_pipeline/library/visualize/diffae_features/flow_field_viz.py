@@ -285,7 +285,7 @@ def plot_one_slice_quiver(
     grid: tuple,
     slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
     ax: plt.Axes,
-    color_array: np.ndarray,
+    color_array: np.ndarray | None = None,
     color: str | None = None,
     norm: bool = NORMALIZE_QUIVER_VECTORS,
     downsample_factor: int = QUIVER_DOWNSAMPLE_FACTOR,
@@ -293,6 +293,9 @@ def plot_one_slice_quiver(
 ) -> plt.Axes:
     """
     Plot one slice of the flow field (quiver plot) for a given slice of the grid.
+
+    Colormap is determined by color_array if provided, else by color if provided.
+    This method will raise an error if neither are provided.
 
     Parameters
     ----------
@@ -305,7 +308,7 @@ def plot_one_slice_quiver(
     ax
         Matplotlib Axes to plot on.
     color_array
-        Array of RGBA colors for coloring the quiver arrows.
+        Optional, array of RGBA colors for coloring the quiver arrows.
     color
         Optional single color for the quiver arrows.
     norm
@@ -315,6 +318,9 @@ def plot_one_slice_quiver(
     scale
         Scale factor for the quiver arrows.
     """
+    if color_array is None and color is None:
+        logger.error("Either color_array or color must be provided for quiver plot.")
+        raise ValueError("Either color_array or color must be provided for quiver plot.")
 
     # slice the grid to get the points in the slice
     # and reshape to 2d array
