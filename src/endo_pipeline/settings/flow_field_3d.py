@@ -1,16 +1,16 @@
 KERNEL_PARAMS_3D: dict = {
-    "bandwidth": 0.125,
+    "bandwidth": 0.2,
     "kernel": "gaussian",
 }
 """Default kernel parameters for 3D flow field estimation."""
 
-NUM_BINS_3D: tuple[int, int, int] = (60, 60, 50)
+NUM_BINS_3D: tuple[int, int, int] = (80, 80, 80)
 """Default number of bins for 3D flow field estimation."""
 
 QUIVER_DOWNSAMPLE_FACTOR: int = 2
 """Downsample factor for quiver plots in 3D flow field visualization."""
 
-QUIVER_VECTOR_SCALE: float = 50.0
+QUIVER_VECTOR_SCALE: float = 40.0
 """Vector scale for quiver plots in 3D flow field visualization."""
 
 NORMALIZE_QUIVER_VECTORS: bool = True
