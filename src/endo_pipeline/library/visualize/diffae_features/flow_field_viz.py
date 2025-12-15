@@ -21,6 +21,9 @@ from endo_pipeline.settings.flow_field_3d import (
     CLIP_MIN_MAGNITUDE_PERCENTILE,
     FLOW_FIELD_X_AXIS_LABEL,
     FLOW_FIELD_Y_AXIS_LABELS,
+    KDE_CONTOUR_COLORMAP,
+    KDE_CONTOUR_LEVELS,
+    KDE_CONTOUR_OPACITY,
     LOG_NORM_MAGNITUDES,
     NORMALIZE_QUIVER_VECTORS,
     QUIVER_COLORMAP,
@@ -478,6 +481,7 @@ def plot_flow_field_slices(
     pc_vals: tuple[Any, Any],
     colormap_name: str = QUIVER_COLORMAP,
     norm: bool = NORMALIZE_QUIVER_VECTORS,
+    plot_density: bool = True,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
     Plot 2D slices of the 3D flow field for the specified 2D slices.
@@ -506,6 +510,8 @@ def plot_flow_field_slices(
         Name of the colormap to use for the quiver plot arrows.
     norm
         Whether to normalize the quiver plot arrows.
+    plot_density
+        Whether to plot the KDE contour of the data in the PC1-PC2 and PC1-PC3 planes.
     """
     # get grid and grid spacing
     xgrid, ygrid, zgrid = flow_field_dict["grid"]
@@ -555,16 +561,16 @@ def plot_flow_field_slices(
                 x,
                 y,
                 z,
-                levels=25,
-                cmap="Greys",
-                alpha=0.6,
+                levels=KDE_CONTOUR_LEVELS,
+                cmap=KDE_CONTOUR_COLORMAP,
+                alpha=KDE_CONTOUR_OPACITY,
             )
         # add contour plot colorbar
         cbar = fig.colorbar(
-            plt.cm.ScalarMappable(cmap="Greys"),
+            plt.cm.ScalarMappable(cmap=KDE_CONTOUR_COLORMAP),
             ax=ax[0],
         )
-        cbar.set_label("probability density", fontsize=14)
+        cbar.set_label("marginal probability density", fontsize=14)
 
     # plot quiver plots for the specified slices
     fig, ax = plot_quiver_slices(

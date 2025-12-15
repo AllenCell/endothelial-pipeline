@@ -31,6 +31,15 @@ CLIP_MAX_MAGNITUDE_PERCENTILE: float | None = None
 QUIVER_COLORMAP: str = "turbo"
 """Colormap for quiver plots in 3D flow field visualization."""
 
+KDE_CONTOUR_COLORMAP: str = "Greys"
+"""Colormap for KDE contours in 3D flow field visualization."""
+
+KDE_CONTOUR_LEVELS: int = 25
+"""Number of contour levels for KDE contours in 3D flow field visualization."""
+
+KDE_CONTOUR_OPACITY: float = 0.75
+"""Opacity for KDE contours in 3D flow field visualization."""
+
 FLOW_FIELD_X_AXIS_LABEL: str = "PC1"
 """Label for the X axis in the plots of 2D slices of the 3D flow field."""
 
