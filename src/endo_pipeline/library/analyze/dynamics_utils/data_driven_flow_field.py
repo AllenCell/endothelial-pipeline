@@ -241,7 +241,9 @@ def _ddff_model_analysis(
     # filter fixed points to only keep stable ones within 2nd-98th percentiles of data
     stable_fpts_high_confidence = []
     for fpt in fpts:
-        within_percentile = _is_point_within_percentile(fpt, pc_data, 2, 98)
+        within_percentile = _is_point_within_percentile(
+            fpt, pc_data, lower_percentile, upper_percentile
+        )
         if within_percentile:
             # get stability and type of the fixed point
             fpt_type = pplane.find_fpt_type(drift_function_jacobian(fpt))
@@ -258,7 +260,9 @@ def _ddff_model_analysis(
     fig_savedir_dataset = fig_savedir / dataset_name
     fig_savedir_dataset.mkdir(parents=True, exist_ok=True)
 
-    flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj, plot_bounds, fig_savedir)
+    flow_field_viz.flow_field_viz_main(
+        flow_field_dict, df, traj, stable_fpts_high_confidence, plot_bounds, fig_savedir
+    )
 
     return traj
 

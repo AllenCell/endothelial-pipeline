@@ -616,6 +616,7 @@ def flow_field_viz_main(
     flow_field_dict: dict,
     df_cond: pd.DataFrame,
     traj: np.ndarray,
+    stable_fixed_points: list[np.ndarray],
     plot_bounds: list[np.ndarray],
     fig_savedir: Path,
 ) -> None:
@@ -636,6 +637,8 @@ def flow_field_viz_main(
         DataFrame containing the data to be plotted.
     traj
         Trajectory of the system in the flow field.
+    stable_fixed_points
+        List of stable fixed points in the flow field.
     plot_bounds
         List of arrays specifying the plot bounds for each principal component.
     fig_savedir
@@ -693,6 +696,36 @@ def flow_field_viz_main(
             fig_savedir=stack_savedir,
         )
 
+    if len(stable_fixed_points) == 0:
+        logger.warning(
+            "No stable fixed points found for dataset [ %s ]; plotting slices at mean of data.",
+            name,
+        )
+        # plot slices at mean of data at last time point
+        mean_at_last_timepoint = df_cond[
+            df_cond[ColumnName.TIMEPOINT] == df_cond[ColumnName.TIMEPOINT].max()
+        ].mean(numeric_only=True)
+        pc_vals = (
+            mean_at_last_timepoint[DIFFAE_PC_COLUMN_NAMES[2]],
+            mean_at_last_timepoint[DIFFAE_PC_COLUMN_NAMES[1]],
+        )  # PC3, PC2
+        fig, ax = plot_flow_field_slices(
+            flow_field_dict, df_cond, plot_bounds, fig_savedir, pc_vals=pc_vals
+        )
+    else:
+        for k, fpt in enumerate(stable_fixed_points):
+            fpt_ = np.atleast_2d(fpt)
+            # plot flow field slices at this stable fixed point
+            pc_vals = (fpt_[2], fpt_[1])  # PC3, PC2
+            fig, ax = plot_flow_field_slices(
+                flow_field_dict, df_cond, plot_bounds, None, pc_vals=pc_vals
+            )
+
+            for j, ax_ in enumerate(ax):  # PC1 v s PC2, PC1 vs PC3
+                ax_.scatter(fpt_[0], fpt_[j + 1], s=75, color="black")
+            # save the figure
+            save_plot_to_path(fig, fig_savedir, f"flow_field_{name}_fpt_{k}")
+
     # get z-slice and y-slice closest to PC2 and PC3 values
     zvalids = get_slice_indexes(
         flow_field_dict["grid"][-1], pc_vals[0]
@@ -711,20 +744,6 @@ def flow_field_viz_main(
     ax[1].scatter(df_cond.pc_1, df_cond.pc_3, s=0.25, color=scatter_color, alpha=0.05)
     fig, ax = plot_quiver_slices(flow_field_dict, (zvalids, yvalids), fig_ax=(fig, ax))
     fig.suptitle(condition, fontsize=16)
-
-    # plot last point of trajectory
-    for j, ax_ in enumerate(ax):  # PC1 v s PC2, PC1 vs PC3
-        ax_.scatter(traj[-1, 0], traj[-1, j + 1], s=100, color="black")
-
-    # plot second stable point
-    ax = set_slice_plot_bounds_and_labels(ax, plot_bounds)
-    # set titles with slice values
-    ax[0].set_title(f"PC3 = {pc_vals[0]:.2f}")
-    ax[1].set_title(f"PC2 = {pc_vals[1]:.2f}")
-    plt.tight_layout()
-    plt.show()
-    # save the figure
-    save_plot_to_path(fig, fig_savedir, f"flow_field_{name}_fp")
 
     # 2) plot entire trajectory over flow field
     # PC1 v s PC2, PC1 vs PC3
