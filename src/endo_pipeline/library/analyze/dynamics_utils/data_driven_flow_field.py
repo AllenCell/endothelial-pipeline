@@ -273,7 +273,13 @@ def _ddff_model_analysis(
     fig_savedir_dataset.mkdir(parents=True, exist_ok=True)
 
     flow_field_viz.flow_field_viz_main(
-        flow_field_dict, df, traj, stable_fpts_high_confidence, plot_bounds, plot_stack, fig_savedir
+        flow_field_dict,
+        df,
+        traj,
+        stable_fpts_high_confidence,
+        plot_bounds,
+        plot_stack,
+        fig_savedir_dataset,
     )
 
     return traj
