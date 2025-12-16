@@ -1,6 +1,8 @@
+"""This script makes a table of segmentation counts across all live 20X 48hr timelapse datasets."""
+
+
 def main():
     import logging
-    from pathlib import Path
 
     import numpy as np
     import pandas as pd
@@ -109,9 +111,7 @@ def main():
     # convert the seg_counts dictionary to a dataframe and save the results
     seg_counts_df = pd.DataFrame(seg_counts)
     out_dir = get_output_path(__file__)
-    seg_counts_df.to_parquet(
-        Path(out_dir) / "segmentation_counts_across_datasets.parquet", index=False
-    )
+    seg_counts_df.to_csv(out_dir / "segmentation_counts_across_datasets.tsv", sep="\t", index=False)
 
 
 if __name__ == "__main__":
