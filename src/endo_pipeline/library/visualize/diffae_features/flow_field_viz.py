@@ -446,7 +446,7 @@ def plot_flow_field_slices(
     flow_field_dict: dict,
     df: pd.DataFrame,
     plot_bounds: list[np.ndarray],
-    fig_savedir: Path,
+    fig_savedir: Path | None,
     pc_vals: tuple[Any, Any],
     colormap_name: str = QUIVER_COLORMAP,
     norm: bool = NORMALIZE_QUIVER_VECTORS,
@@ -472,7 +472,7 @@ def plot_flow_field_slices(
     plot_bounds
         List of arrays specifying the plot bounds for each principal component.
     fig_savedir
-        Directory to save the figure.
+        Optional, directory to save the figure.
     pc_vals
         Values of the 2nd and 3rd principal components (2nd and 3rd variables) at which to slice the data.
     colormap_name
@@ -570,7 +570,9 @@ def plot_flow_field_slices(
         y=1.02,
         fontfamily=FONT_FAMILY,
     )
-    save_plot_to_path(fig, fig_savedir, f"flow_field_{dataset_name}")  # save the figure
+
+    if fig_savedir is not None:
+        save_plot_to_path(fig, fig_savedir, f"flow_field_{dataset_name}")  # save the figure
 
     return fig, ax
 
