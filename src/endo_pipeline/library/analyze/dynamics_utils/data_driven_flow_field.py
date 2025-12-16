@@ -23,12 +23,14 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
 )
-from endo_pipeline.settings.flow_field_3d import TRAJECTORY_DICT_FILE_NAME
+from endo_pipeline.settings.flow_field_3d import SAMPLER_RANDOM_SEED, TRAJECTORY_DICT_FILE_NAME
 
 logger = logging.getLogger(__name__)
 
 
-def sample_from_density(data: np.ndarray, n_samples: int, random_seed: int = 47) -> np.ndarray:
+def sample_from_density(
+    data: np.ndarray, n_samples: int, random_seed: int = SAMPLER_RANDOM_SEED
+) -> np.ndarray:
     """
     Sample points from the density of a given dataset using KDE and rejection sampling.
 
