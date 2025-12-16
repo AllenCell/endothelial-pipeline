@@ -1,7 +1,5 @@
 from typing import Literal
 
-from tqdm import tqdm
-
 from endo_pipeline.configs import TimepointAnnotation
 from endo_pipeline.settings.diffae_feature_dataframes import NUM_PCS_TO_ANALYZE
 from endo_pipeline.settings.workflow_defaults import (
@@ -73,6 +71,7 @@ def main(
 
     import numpy as np
     import pandas as pd
+    from tqdm import tqdm
 
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.configs.dataset_config_utils import get_subset_of_timepoint_annotations
@@ -138,8 +137,8 @@ def main(
         segmentation_feature_columns=segmentation_feature_columns,
         num_pcs=num_pcs,
         pc_columns=pc_columns,
-        dataset_collection_name_for_pca=dataset_collection_name,
         diffae_feature_columns=diffae_feature_columns,
+        dataset_collection_name_for_pca=dataset_collection_name,
         model_manifest=model_manifest,
         run_name=run_name_,
         seg_feature_manifest_name=seg_feature_manifest_name,
@@ -249,6 +248,7 @@ def main(
                     len(y_cols),
                 )
                 continue
+
             column_list = []
             for col in x_cols + y_cols:
                 if col not in column_list:
