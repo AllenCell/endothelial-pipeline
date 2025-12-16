@@ -30,7 +30,7 @@ def process_frame(
     func: Callable[[BioImage, int], np.ndarray],
     img: BioImage,
     frame: int,
-    dataset: str,
+    dataset_name: str,
     position: int,
     backdrop: str,
     output_dir: Path,
@@ -57,13 +57,13 @@ def process_frame(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Save image
-    fname = f"{dataset}_P{position}_{backdrop}_{frame}.png"
+    fname = f"{dataset_name}_P{position}_{backdrop}_{frame}.png"
     output_path = output_dir / fname
     iio.imwrite(output_path, image_contrasted)
 
 
 def generate_backdrops(
-    dataset: str,
+    dataset_name: str,
     position: int,
     backdrops: list[str],
     output_dir: Path,
@@ -73,8 +73,7 @@ def generate_backdrops(
     Generate and save backdrop images to be viewed together with the colorized
     segmentations in the TFE viewer.
     """
-
-    dataset_config = load_dataset_config(dataset)
+    dataset_config = load_dataset_config(dataset_name)
     location = get_zarr_location_for_position(dataset_config, position)
     img = load_image(location, read=False, level=1)
 
@@ -89,7 +88,7 @@ def generate_backdrops(
 
     for backdrop, func in backdrop_functions.items():
         if backdrop in backdrops:
-            print(f"Generating {backdrop} for dataset {dataset}, position {position}...")
+            print(f"Generating {backdrop} for dataset {dataset_name}, position {position}...")
 
             with ThreadPoolExecutor() as executor:
                 futures = [
@@ -98,7 +97,7 @@ def generate_backdrops(
                         func,
                         img,
                         frame,
-                        dataset,
+                        dataset_name,
                         position,
                         backdrop,
                         output_dir,

@@ -341,9 +341,9 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         "orientation_deg": {
             "column_name": "orientation_deg",
             "label": "Orientation (deg)",
-            "lims": (-180, 180),
+            "lims": (0, 180),
             "bin_width": 5,
-            "ticks": range(-180, 181, 90),
+            "ticks": range(0, 181, 90),
             "discrete_ticks": False,
         },
         "nematic_order": {
@@ -365,7 +365,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         "aspect_ratio": {
             "column_name": "aspect_ratio",
             "label": "Aspect Ratio",
-            "lims": (0, "max"),
+            "lims": (0, 15),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,
@@ -373,14 +373,14 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         "area_um2": {
             "column_name": "area (um**2)",
             "label": "Area (μm²)",
-            "lims": (0, "max"),
+            "lims": (0, 5000),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,
         },
         "num_neighbors": {
             "column_name": "number_of_neighbors",
-            "label": "Number of Neighbors",
+            "label": "Number of\nNeighbors",
             "lims": (0, "max"),
             "bin_width": 1,
             "ticks": None,
@@ -388,7 +388,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         },
         "centroid_velocity_magnitude": {
             "column_name": "centroid_velocity_magnitude",
-            "label": "Centroid Velocity Magnitude (μm/min)",
+            "label": "Centroid Velocity\nMagnitude (μm/min)",
             "lims": (0, "max"),
             "bin_width": None,
             "ticks": None,
@@ -436,7 +436,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         },
         "num_nuclei_in_crop": {
             "column_name": "num_nuclei_in_crop",
-            "label": "Number of Nuclei in Crop",
+            "label": "Number of Nuclei\nin Crop",
             "lims": (0, None),
             "bin_width": None,
             "ticks": None,
@@ -445,7 +445,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         "cell_fluorescence_mean": {
             "column_name": "cell_fluorescence_mean (a.u.)",
             "label": "Mean Cell Fluorescence",
-            "lims": (0, "max"),
+            "lims": (100, 200),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,

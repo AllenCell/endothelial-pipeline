@@ -41,6 +41,7 @@ def dataset_config():
         pixel_size_xy_in_um=0.0,
         duration=0,
         time_interval_in_minutes=0.0,
+        channel_names=[],
         flow_conditions=[],
         n_total_positions=0,
         original_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
@@ -257,5 +258,5 @@ def test_get_available_zarr_locations(mock_load_image_manifest, dataset_config):
 
     zarr_locations = get_available_zarr_locations(dataset_config)
 
-    for location, expected_path in zip(zarr_locations, expected_locations):
+    for location, expected_path in zip(zarr_locations, expected_locations, strict=True):
         assert location.path.as_posix() == expected_path.as_posix()
