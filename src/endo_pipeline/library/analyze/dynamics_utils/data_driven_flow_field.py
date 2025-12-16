@@ -393,7 +393,7 @@ def get_and_analyze_ddff(
 
 def compute_extrapolated_vector_field(
     kmcs: np.ndarray,
-    grid_centers: list[np.ndarray],
+    grid_coordinates: list[np.ndarray],
     method: str = "linear",
 ) -> dict:
     """
@@ -406,21 +406,21 @@ def compute_extrapolated_vector_field(
     estimates are `NaN`. This function extrapolates these estimates to the entire grid
     using nearest-neighbor or linear interpolation.
 
-    The array ``kmcs`` should have shape (num_bins_x, num_bins_y, num_bins_z, 3), where
-    num_bins_x, num_bins_y, and num_bins_z are the number of bins in each dimension
-    of the 3D meshgrid defined by ``grid_centers``.
+    The array ``kmcs`` should have shape (num_x, num_y, num_z, 3), where
+    num_x, num_y, and num_z are the number of points in each dimension
+    of the 3D meshgrid defined by ``grid_coordinates``.
 
     **Method output**
 
     The output is a dictionary with two keys:
     - "vectors": tuple of 3D arrays (f1,f2,f3) with the vector values in each dimension
-    - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension
+    - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the meshgrid points in each dimension
 
     Parameters
     ----------
     kmcs
         Array of drift or diffusion estimates over a three dimensional grid.
-    grid_centers
+    grid_coordinates
         List of 1D numpy arrays with the grid points in each dimension
     method
         Method to use for extrapolating the vector field where there are NaNs.
@@ -428,8 +428,7 @@ def compute_extrapolated_vector_field(
 
     filled_kmcs = kmcs.copy()
     n_components = filled_kmcs.shape[-1]
-    X, Y, Z = np.meshgrid(*grid_centers, indexing="ij")
-    grid = (X, Y, Z)
+    x, y, z = np.meshgrid(*grid_coordinates, indexing="ij")
 
     for i in range(n_components):
         component = filled_kmcs[..., i]
@@ -438,18 +437,18 @@ def compute_extrapolated_vector_field(
             # Prepare points and values for interpolation
             # fill_value set to None for extrapolation
             interpolator = RegularGridInterpolator(
-                grid_centers,
+                grid_coordinates,
                 np.where(nan_mask, 0, component),  # fill NaNs with zeros for shape
                 method=method,
                 bounds_error=False,
                 fill_value=None,  # extrapolate outside convex hull
             )
-            nan_points = np.array([X[nan_mask], Y[nan_mask], Z[nan_mask]]).T
+            nan_points = np.array([x[nan_mask], y[nan_mask], z[nan_mask]]).T
             component[nan_mask] = interpolator(nan_points)
             filled_kmcs[..., i] = component
 
     vectors = tuple(filled_kmcs[..., i] for i in range(n_components))
-    return {"vectors": vectors, "grid": grid}
+    return {"vectors": vectors, "grid": (x, y, z)}
 
 
 def get_callable_vector_field(
