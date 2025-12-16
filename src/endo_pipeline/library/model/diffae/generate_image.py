@@ -193,7 +193,7 @@ def generate_from_coords(
 
 def generate_from_coords_batch(
     model: "BaseDiffusionAutoEncoder | DiffusionAutoEncoder",
-    coords_batch: np.ndarray | list[list[list[float]]],
+    coords_batch: np.ndarray,
     num_gpus: int | None = None,
 ) -> list[np.ndarray]:
     """
