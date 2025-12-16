@@ -24,6 +24,7 @@ def main(
     num_features: int | None = None,
     include_loadings_legend: bool = False,
     annotate: bool = True,
+    color_by_time: bool = False,
 ) -> None:
     """
     Visualize key attributes of a fit PCA model.
@@ -170,6 +171,7 @@ def main(
         crop_pattern=crop_pattern,
         scatter_size=1,
         alpha=0.2,
+        color_by_time=color_by_time,
         save_dir=fig_savedir,
     )
 
