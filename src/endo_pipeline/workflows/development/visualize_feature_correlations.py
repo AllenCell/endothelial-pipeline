@@ -145,9 +145,14 @@ def main(
         timepoint_annotations=timepoint_annotations,
     )
 
+    df["|PC 1|"] = df["PC 1"].abs()
+    df["|PC 2|"] = df["PC 2"].abs()
+    pc_abs_group = ["PC 1", "PC 2", "PC 3", "|PC 1|", "|PC 2|"]
+
     label_column_tuples = [
         ("Measurement", [get_label_for_column(col) for col in segmentation_feature_columns]),
         ("PC", [get_label_for_column(col) for col in pc_columns]),
+        ("PC plus abs", pc_abs_group),
         ("DiffAE Feature", [get_label_for_column(col) for col in diffae_feature_columns]),
     ]
 
