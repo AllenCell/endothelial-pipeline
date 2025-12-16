@@ -74,21 +74,13 @@ def main(
     )
 
     # Get fit (3D) PCA object from manifest
-    reducer = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=3)
+    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=3)
 
     traj_dict = np.load(
         output_savedir / f"{TRAJECTORY_DICT_FILE_NAME}.npy", allow_pickle=True
     ).item()
 
-    # Reconstruction of crops from latent space
-    # coordinates via DiffAE model
-    # To note: you should run this script on
-    # a machine with a GPU, and you must
-    # have the ML dependencies installed
-    # (e.g. pytorch, diffae, etc.).
-    # See the README.md for more details on creating
-    # an environment with the ML dependencies.
-
+    # Reconstruction of crops from latent space coordinates via DiffAE model
     latent_coords_batch = []
     experimental_condition_list = []
     for experimental_condition in traj_dict.keys():
@@ -100,7 +92,7 @@ def main(
             interpolated_points = interpolate_on_curve(coords)
 
             # transform interpolated points to full latent space
-            latent_coords = reducer.inverse_transform(interpolated_points)
+            latent_coords = pca.inverse_transform(interpolated_points)
             latent_coords_batch.append(latent_coords)
             experimental_condition_list.append(experimental_condition)
 
@@ -110,7 +102,7 @@ def main(
                 interpolated_points = interpolate_on_curve(coord)
 
                 # transform interpolated points to full latent space
-                latent_coords = reducer.inverse_transform(interpolated_points)
+                latent_coords = pca.inverse_transform(interpolated_points)
                 latent_coords_batch.append(latent_coords)
                 experimental_condition_list.append(f"{experimental_condition}_{jj}")
 
