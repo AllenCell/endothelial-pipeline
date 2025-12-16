@@ -8,6 +8,7 @@ def main(
     datasets: Datasets | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    plot_stack: bool = False,
 ) -> None:
     """
     Visualize 3D (drift) flow fields for the dynamics of the crop-based DiffAE
@@ -21,6 +22,8 @@ def main(
         Name of the model manifest containing the run to load features from.
     run_name
         Name of the specific model run to load featuref for. If None, uses the most recent run.
+    plot_stack
+        If true, plot 3D stacks of the flow field visualizations in each of the three variables.
 
     Returns
     -------
@@ -98,6 +101,7 @@ def main(
         time_span=TRAJECTORY_TIME_SPAN,
         init=np.array(INIT_POINT_3D),
         num_bins=NUM_BINS_3D,
+        plot_stack=plot_stack,
         fig_savedir=fig_savedir,
         vtk_savedir=vtk_savedir,
         output_savedir=output_savedir,

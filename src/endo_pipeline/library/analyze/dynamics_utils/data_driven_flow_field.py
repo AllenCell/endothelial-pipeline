@@ -36,6 +36,7 @@ def _ddff_model_analysis(
     time_span: list,
     init: np.ndarray,
     plot_bounds: list[np.ndarray],
+    plot_stack: bool,
     fig_savedir: Path,
     vtk_savedir: Path,
     output_savedir: Path,
@@ -78,6 +79,8 @@ def _ddff_model_analysis(
         Initial condition for the trajectory.
     plot_bounds
         Bounds for plotting the flow field.
+    plot_stack
+        Whether to plot the flow field as a stack of 2D slices in each dimension.
     fig_savedir
         Directory to save figures.
     vtk_savedir
@@ -93,7 +96,13 @@ def _ddff_model_analysis(
         Trajectory in 3D state space for the given initial condition and time span
     """
     # load dataframe and get top 3 PCs
-    df = get_dataframe_for_dynamics_workflows(dataset_name, dataframe_manifest, pca)
+    df = get_dataframe_for_dynamics_workflows(
+        dataset_name,
+        dataframe_manifest,
+        pca,
+        include_cell_piling=False,
+        include_not_steady_state=False,
+    )
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
@@ -152,7 +161,9 @@ def _ddff_model_analysis(
     # solve IVP, get back trajectory
     traj = solve_ddff_ode(extrapolated_flow_field_dict, init, time_span)
 
-    flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj, plot_bounds, fig_savedir)
+    flow_field_viz.flow_field_viz_main(
+        flow_field_dict, df, traj, plot_bounds, plot_stack, fig_savedir
+    )
 
     return traj
 
@@ -166,9 +177,11 @@ def get_and_analyze_ddff(
     time_span: list,
     init: np.ndarray,
     num_bins: tuple[int, int, int],
+    plot_stack: bool,
     fig_savedir: Path,
     vtk_savedir: Path,
     output_savedir: Path,
+    use_common_axis_limits: bool = False,
 ) -> None:
     """
     Visualize data-driven flow field (DDFF) for a list of datasets.
@@ -200,15 +213,23 @@ def get_and_analyze_ddff(
         Initial condition for the trajectory.
     num_bins
         Number of bins for histogramming along each dimension in the 3D state space.
+    plot_stack
+        Whether to plot the flow field as a stack of 2D slices in each dimension.
     fig_savedir
         Directory to save figures.
     vtk_savedir
         Directory to save .vtk files.
     output_savedir
         Directory to save other output files.
+    use_common_axis_limits
+        Whether to use common axis limits for all datasets when plotting.
     """
-    # get bins for KMCs
-    bounds_for_plots = get_3d_bounds_from_data(dataset_names, dataframe_manifest, pca)
+    if use_common_axis_limits:
+        # get common bounds for all datasets
+        bounds_for_plots = get_3d_bounds_from_data(dataset_names, dataframe_manifest, pca)
+    else:
+        # get bounds for each dataset separately
+        bounds_for_plots = None
 
     # get experimental condition
     # descriptions of each dataset
@@ -218,6 +239,7 @@ def get_and_analyze_ddff(
     # used for crop reconstruction
     traj_dict = {}
     for dataset_name in dataset_names:
+        # get bins for KMCs
         bounds_for_km = get_3d_bounds_from_data(
             dataset_names=[dataset_name],
             manifest=dataframe_manifest,
@@ -235,7 +257,8 @@ def get_and_analyze_ddff(
             centers,
             time_span,
             init,
-            bounds_for_plots,
+            bounds_for_plots if use_common_axis_limits else bounds_for_km,
+            plot_stack,
             fig_savedir,
             vtk_savedir,
             output_savedir,

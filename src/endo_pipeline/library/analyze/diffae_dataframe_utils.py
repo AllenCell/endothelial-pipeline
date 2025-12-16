@@ -557,6 +557,20 @@ def get_dataset_descriptions(
     return description_dict
 
 
+def parse_dataset_description(dataset_description: str) -> str:
+    """Parse dataset description for better readability in plot titles."""
+    # replace underscores with spaces for better readability
+    description_parsed = dataset_description.replace("_", " ")
+    # find [0-9]dyncm2, put comma and space before, put a space between number and unit,
+    # and change dyncm2 to dyn/cm^2 for better readability
+    description_parsed = re.sub(r"(\d+)dyncm2", r", \1 dyn/cm$^2$", description_parsed)
+    # turn capital 'S' into lowercase 's' for shear stress
+    description_parsed = description_parsed.replace(" Shear Stress", " shear stress")
+    # remove unwanted space before comma
+    description_parsed = description_parsed.replace(" ,", ",")
+    return description_parsed
+
+
 def add_description_column(
     df: pd.DataFrame, dataset_name: str, simple: bool = False
 ) -> pd.DataFrame:
