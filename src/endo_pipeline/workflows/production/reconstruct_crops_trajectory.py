@@ -28,6 +28,7 @@ def main(
     :
         Saves the reconstructed crops as TIFF files.
     """
+    import logging
 
     import numpy as np
     from bioio.writers import OmeTiffWriter
@@ -48,6 +49,8 @@ def main(
         OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS,
         TRAJECTORY_DICT_FILE_NAME,
     )
+
+    logger = logging.getLogger(__name__)
 
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
@@ -126,7 +129,7 @@ def main(
         walk_img_split, experimental_condition_list, strict=True
     ):
         # save out stack of images as tif
-        print("Saving reconstructed crops for condition: ", experimental_condition)
+        logger.info("Saving reconstructed crops for [ %s ]", experimental_condition)
         tif_name = f"{experimental_condition}_interpolated_trajectory_reconstructed_crops.tif"
         OmeTiffWriter.save(walk_img, crop_savedir / tif_name, overwrite=True)
 
