@@ -1,10 +1,13 @@
 import logging
+import re
 from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
+from numdifftools import Jacobian
 from scipy.integrate import solve_ivp
 from scipy.interpolate import RegularGridInterpolator
+from scipy.stats import gaussian_kde
 from sklearn.decomposition import PCA
 
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
@@ -14,7 +17,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
 )
 from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data, get_bins
-from endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
+from endo_pipeline.library.visualize.diffae_features import flow_field_viz, pplane, vtk_io
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
@@ -23,6 +26,68 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
 from endo_pipeline.settings.flow_field_3d import TRAJECTORY_DICT_FILE_NAME
 
 logger = logging.getLogger(__name__)
+
+
+def sample_from_density(data: np.ndarray, n_samples: int, random_seed: int = 47) -> np.ndarray:
+    """
+    Sample points from the density of a given dataset using KDE and rejection sampling.
+
+    Parameters
+    ----------
+    data
+        Input data of shape (N, D).
+    n_samples
+        Number of samples to draw.
+    random_seed
+        Random seed for reproducibility.
+
+    Returns
+    -------
+    np.ndarray
+        Sampled points of shape (n_samples, D).
+    """
+    rng = np.random.default_rng(seed=random_seed)
+    kde = gaussian_kde(data.T)
+    n_dims = data.shape[1]
+    samples = []
+    # Estimate bounds for rejection sampling
+    mins = data.min(axis=0)
+    maxs = data.max(axis=0)
+    # Estimate maximum density for rejection
+    test_points = rng.uniform(mins, maxs, size=(10000, n_dims))
+    max_density = kde(test_points.T).max()
+    while len(samples) < n_samples:
+        candidate = rng.uniform(mins, maxs)
+        density = kde(candidate)
+        if rng.uniform(0, max_density) < density:
+            samples.append(candidate)
+    return np.array(samples)
+
+
+def _is_point_within_percentile(point, data, lower=5, upper=95):
+    """
+    Check if a point is within the given percentile range of the data along each axis.
+
+    Parameters
+    ----------
+    point
+        The point to check.
+    data
+        The data to compute percentiles from.
+    lower
+        Lower percentile.
+    upper
+        Upper percentile.
+
+    Returns
+    -------
+    :
+        True if point is within the percentile bounds on all axes, else False.
+    """
+    lower_bounds = np.percentile(data, lower, axis=0)
+    upper_bounds = np.percentile(data, upper, axis=0)
+    point = np.asarray(point)
+    return np.all((point >= lower_bounds) & (point <= upper_bounds))
 
 
 def _ddff_model_analysis(
@@ -34,12 +99,15 @@ def _ddff_model_analysis(
     bins: list[np.ndarray],
     centers: list[np.ndarray],
     time_span: list,
-    init: np.ndarray,
+    init_for_traj: np.ndarray,
+    num_inits_for_root_solver: int,
     plot_bounds: list[np.ndarray],
     fig_savedir: Path,
     vtk_savedir: Path,
     output_savedir: Path,
     pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
+    lower_percentile: float = 5.0,
+    upper_percentile: float = 95.0,
 ) -> np.ndarray | list[np.ndarray]:
     """
     Get 3d flow field (drift coefficient) from principal component features from a given dataset.
@@ -74,8 +142,10 @@ def _ddff_model_analysis(
         List of centers of the bins in each dimension.
     time_span
         Time span for the ODE solver.
-    init
+    init_for_traj
         Initial condition for the trajectory.
+    num_inits_for_root_solver
+        Number of initial conditions to use for finding fixed points.
     plot_bounds
         Bounds for plotting the flow field.
     fig_savedir
@@ -86,6 +156,10 @@ def _ddff_model_analysis(
         Directory to save output files (.npy files with drift field and diffusion field).
     pc_column_names
         List of column names for the principal components to use.
+    lower_percentile
+        Lower percentile for filtering fixed points.
+    upper_percentile
+        Upper percentile for filtering fixed points.
 
     Returns
     -------
@@ -148,9 +222,41 @@ def _ddff_model_analysis(
     )
 
     ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
-    # with initial conditions given by init
-    # solve IVP, get back trajectory
-    traj = solve_ddff_ode(extrapolated_flow_field_dict, init, time_span)
+    # with initial conditions given by init solve IVP, get back trajectory
+    traj = solve_ddff_ode(extrapolated_flow_field_dict, init_for_traj, time_span)
+
+    # sample initial conditions from data density
+    pc_data = df[pc_column_names].values  # get PC data as numpy array
+    sampled_inits_for_root_solver = sample_from_density(pc_data, num_inits_for_root_solver)
+
+    # get callable drift function and its Jacobian
+    drift_function = get_callable_vector_field(
+        extrapolated_flow_field_dict, for_solve_ivp=False, method="cubic"
+    )
+    drift_function_jacobian = Jacobian(drift_function)
+
+    # pass into helper function to get fixed points
+    fpts = pplane.get_fps(drift_function, sampled_inits_for_root_solver)
+
+    # filter fixed points to only keep stable ones within 2nd-98th percentiles of data
+    stable_fpts_high_confidence = []
+    for fpt in fpts:
+        within_percentile = _is_point_within_percentile(fpt, pc_data, 2, 98)
+        if within_percentile:
+            # get stability and type of the fixed point
+            fpt_type = pplane.find_fpt_type(drift_function_jacobian(fpt))
+            # stability of the fixed point is the
+            # first word in the fpt_type string
+            # if verbose, print the point and its stability
+            logger.debug("[ %s ] at [ (%.2f, %.2f, %.2f) ]", fpt_type, fpt[0], fpt[1], fpt[2])
+            # if "Stable" or "stable" in the fpt_type, save the point
+            if re.search(r"stable", fpt_type, re.IGNORECASE) and not re.search(
+                r"unstable", fpt_type, re.IGNORECASE
+            ):
+                stable_fpts_high_confidence.append(fpt)
+
+    fig_savedir_dataset = fig_savedir / dataset_name
+    fig_savedir_dataset.mkdir(parents=True, exist_ok=True)
 
     flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj, plot_bounds, fig_savedir)
 
@@ -164,7 +270,8 @@ def get_and_analyze_ddff(
     kernel_params: dict,
     dt: float,
     time_span: list,
-    init: np.ndarray,
+    init_for_traj: np.ndarray,
+    num_inits_for_root_solver: int,
     num_bins: tuple[int, int, int],
     fig_savedir: Path,
     vtk_savedir: Path,
@@ -196,8 +303,10 @@ def get_and_analyze_ddff(
         Time step between frames.
     time_span
         Time span for the ODE solver.
-    init
+    init_for_traj
         Initial condition for the trajectory.
+    num_inits_for_root_solver
+        Number of initial conditions to use for finding fixed points.
     num_bins
         Number of bins for histogramming along each dimension in the 3D state space.
     fig_savedir
@@ -234,7 +343,8 @@ def get_and_analyze_ddff(
             bins,
             centers,
             time_span,
-            init,
+            init_for_traj,
+            num_inits_for_root_solver,
             bounds_for_plots,
             fig_savedir,
             vtk_savedir,
