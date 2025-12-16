@@ -19,8 +19,8 @@ from endo_pipeline.library.analyze.integration.track_integration import (
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     get_slice_indexes,
+    plot_flow_field_slices,
     plot_one_slice_quiver,
-    plot_quiver_slices,
     set_slice_plot_bounds_and_labels,
 )
 from endo_pipeline.settings import ColumnName
@@ -92,16 +92,32 @@ def plot_quiver_slices_from_diffae_table(
     plot_fixed_points: bool = True,
 ) -> tuple[Figure, np.ndarray]:
 
-    # get valid y and z slice indices
-    yvalids_grids, zvalids_grids = get_valid_slice_indexes(
-        diffae_df, traj_grids, flow_field_dict_grids
-    )
+    # # get valid y and z slice indices
+    # yvalids_grids, zvalids_grids = get_valid_slice_indexes(
+    #     diffae_df, traj_grids, flow_field_dict_grids
+    # )
 
     # get limits of grid from the grid crops flow fields
     bounds = get_grid_bounds(flow_field_dict_grids)
 
-    # plot the flow field
-    fig, axs = plot_quiver_slices(flow_field_dict_grids, (zvalids_grids, yvalids_grids))
+    # plot 2D slices at PC2 and PC3 values given by
+    # the last point of the input trajectory
+    pc_vals = (traj_grids[-1, 2], traj_grids[-1, 1])
+
+    # baseline visualization: plot flow field slices
+    fig, axs = plot_flow_field_slices(
+        flow_field_dict=flow_field_dict_grids,
+        df=diffae_df,
+        plot_bounds=bounds,
+        fig_savedir=None,
+        pc_vals=pc_vals,
+        log_norm_colormap=False,
+    )
+
+    # # plot the flow field
+    # fig, axs = plot_quiver_slices(
+    #     flow_field_dict_grids, (zvalids_grids, yvalids_grids), log_norm_colormap=False
+    # )
     [ax.set_zorder(0) for ax in axs]
     axs = set_slice_plot_bounds_and_labels(axs, bounds)
 

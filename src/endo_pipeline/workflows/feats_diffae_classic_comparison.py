@@ -11,8 +11,10 @@ from endo_pipeline.library.visualize.integration.track_integration_viz import ma
 from endo_pipeline.manifests import load_model_manifest
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    NUM_PCS_TO_ANALYZE,
 )
 
 logger = logging.getLogger(__name__)
@@ -21,7 +23,7 @@ logger = logging.getLogger(__name__)
 def main(
     dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str | None = None,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 ) -> None:
     out_dir = get_output_path(__file__)
@@ -41,6 +43,9 @@ def main(
             run_name=run_name,
             seg_feature_manifest_name=seg_feature_manifest_name,
             collection_name_for_pca=dataset_collection_name,
+            num_pcs=NUM_PCS_TO_ANALYZE,
+            drop_rows_without_diffae_feats=True,
+            filtered=True,
         )
 
         # load or compute the trajectories and flow fields for the grid-based

@@ -8,7 +8,6 @@ from matplotlib import pyplot as plt
 from seaborn import color_palette
 
 from endo_pipeline.configs import get_datasets_in_collection, get_latent_dim_from_config
-from endo_pipeline.configs.dynamics_io import load_dynamics_config
 from endo_pipeline.io import get_config_dict_from_mlflow, load_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     add_description_column,
@@ -40,6 +39,13 @@ from endo_pipeline.settings import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
     ColumnName,
+)
+from endo_pipeline.settings.flow_field_3d import (
+    INIT_POINT_3D,
+    KERNEL_PARAMS_3D,
+    NUM_BINS_3D,
+    TIME_STEP_IN_MINUTES,
+    TRAJECTORY_TIME_SPAN,
 )
 
 logger = logging.getLogger(__name__)
@@ -270,30 +276,29 @@ def get_traj_and_flowfield(
     load_precomputed_trajectories: Path | None,
 ) -> tuple[np.ndarray, dict]:
 
-    # load default config, get kernel params
-    dynamics_config = load_dynamics_config("default")
-    kernel_params = dynamics_config["kramers_moyal"]["kernel_params"]
+    # set kernel params
+    kernel_params = KERNEL_PARAMS_3D
 
-    # get time between frames in minutes
-    dt = dynamics_config["dt"]
+    # set time between frames in minutes
+    dt = TIME_STEP_IN_MINUTES
 
     # time span for the ODE solver
     # units for time steps are in minutes
     # 48 hours in minutes =
     # 48 * 60 = 2880 time steps
-    time_span = [0.0, 2880.0]
+    time_span = TRAJECTORY_TIME_SPAN
 
     # initial condition for the ODE solver
     # this is fixed across datasets /
     # shear stress conditions
-    init = np.array([-0.1, -0.7, -0.1])
+    init = np.array(INIT_POINT_3D)
 
-    num_bins = [50, 50, 50]
+    num_bins = NUM_BINS_3D
     bins, centers = get_bins(num_bins, bin_limits=bounds)
 
     # get the columns to use for calculating trajectories
     # and flow fields.
-    cols = DIFFAE_PC_COLUMN_NAMES[:3]
+    cols = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
     # get list of per-crop trajectories and the corresponding
     # single-timepoint displacement vectors
