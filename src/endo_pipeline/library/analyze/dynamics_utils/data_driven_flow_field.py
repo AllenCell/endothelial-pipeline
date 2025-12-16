@@ -12,7 +12,6 @@ from sklearn.decomposition import PCA
 
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
-    get_dataset_descriptions,
     get_traj_and_diff,
 )
 from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
@@ -111,7 +110,7 @@ def _ddff_model_analysis(
     pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
     lower_percentile: float = 5.0,
     upper_percentile: float = 95.0,
-) -> np.ndarray | list[np.ndarray]:
+) -> dict[str, np.ndarray | list[np.ndarray]]:
     """
     Get 3d flow field (drift coefficient) from principal component features from a given dataset.
 
@@ -126,6 +125,13 @@ def _ddff_model_analysis(
     5. Solves the ODE dx/dt = f(x) using scipy.integrate.solve_ivp, where f(x) is the flow field
         (drift coefficient) and x is the 3D state space.
     6. Visualizes the flow field and the trajectory using the main function in flow_field_viz.py.
+
+    **Method output**
+
+    The output is a dictionary with two keys:
+    - "trajectory": numpy array of shape (num_t, 3) with the trajectory in 3D state space
+    - "stable_fixed_points": list of stable fixed points found in the flow field within the
+        specified percentile bounds.
 
     Parameters
     ----------
@@ -165,11 +171,6 @@ def _ddff_model_analysis(
         Lower percentile for filtering fixed points.
     upper_percentile
         Upper percentile for filtering fixed points.
-
-    Returns
-    -------
-    :
-        Trajectory in 3D state space for the given initial condition and time span
     """
     # load dataframe and get top 3 PCs
     df = get_dataframe_for_dynamics_workflows(
@@ -282,7 +283,12 @@ def _ddff_model_analysis(
         fig_savedir_dataset,
     )
 
-    return traj
+    output_dict = {
+        "trajectory": traj,
+        "stable_fixed_points": stable_fpts_high_confidence,
+    }
+
+    return output_dict
 
 
 def get_and_analyze_ddff(
@@ -351,13 +357,10 @@ def get_and_analyze_ddff(
         # get bounds for each dataset separately
         bounds_for_plots = None
 
-    # get experimental condition
-    # descriptions of each dataset
-    condition_dict = get_dataset_descriptions(dataset_names, simple=True)
-
-    # initialize dict to save trajectories
-    # used for crop reconstruction
+    # initialize dict to save trajectories for crop reconstruction
+    # and dict to store stable fixed points (visualized together later)
     traj_dict = {}
+    stable_fixed_points_dict = {}
     for dataset_name in dataset_names:
         # get bins for KMCs
         bounds_for_km = get_3d_bounds_from_data(
@@ -367,7 +370,7 @@ def get_and_analyze_ddff(
             pad=True,
         )
         bins, centers = get_bins(num_bins, bin_limits=bounds_for_km)
-        traj = _ddff_model_analysis(
+        output_dict = _ddff_model_analysis(
             dataset_name,
             dataframe_manifest,
             pca,
@@ -385,16 +388,20 @@ def get_and_analyze_ddff(
             output_savedir,
         )
 
-        # save out using dataset descriptions
-        condition = condition_dict[dataset_name]
-        traj_dict[condition] = traj
+        # save out trajectory for reconstruction using dataset descriptions
+        traj_dict[dataset_name] = output_dict["trajectory"]
+        stable_fixed_points_dict[dataset_name] = output_dict["stable_fixed_points"]
 
     np.save(output_savedir / TRAJECTORY_DICT_FILE_NAME, traj_dict, allow_pickle=True)  # type: ignore
 
-    # generate plot of stable fixed points from different datasets
-    # overlaid on top of each other
+    # generate plot of stable fixed points from different datasets overlaid on top of each other
     # (for comparison of stable fixed points across conditions)
-    flow_field_viz.plot_stable_fixed_points_together(dataset_names, fig_savedir, output_savedir)
+    if bounds_for_plots is None:
+        # get common bounds if not already computed
+        bounds_for_plots = get_3d_bounds_from_data(dataset_names, dataframe_manifest, pca)
+    flow_field_viz.plot_stable_fixed_points_together(
+        stable_fixed_points_dict, bounds_for_plots, fig_savedir
+    )
 
 
 def compute_extrapolated_vector_field(

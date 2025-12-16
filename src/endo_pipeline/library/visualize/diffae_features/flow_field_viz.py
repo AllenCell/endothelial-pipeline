@@ -578,64 +578,36 @@ def plot_flow_field_slices(
 
 
 def plot_stable_fixed_points_together(
-    list_of_datasets: list[str], fig_savedir: Path, output_savedir: Path
+    stable_fixed_points_dict: dict[str, list[np.ndarray]],
+    plot_bounds: list[np.ndarray],
+    fig_savedir: Path,
 ) -> None:
     """
-    Generate plot of fixed points of the low,
-    high, and intermediate (12dyn) shear stress conditions
-    on the same plot.
+    Generate plot of stable fixed points from multiple datasets together.
+
+    Parameters
+    ----------
+    stable_fixed_points_dict
+        Dictionary mapping dataset names to lists of stable fixed points.
+    fig_savedir
+        Directory to save the figure.
     """
-
-    traj_dict = np.load(output_savedir / "traj_dict.npy", allow_pickle=True).item()
-
-    conditions = get_dataset_descriptions(list_of_datasets, simple=True)
 
     # initialize plots
     fig, ax = plt.subplots(NROWS_2D_FLOW_FIELD, NCOLS_2D_FLOW_FIELD, figsize=FIGSIZE_2D_FLOW_FIELD)
 
-    # get bounds of the grid - load one of the flow field objects
-    # saved in main function
-    flow_field_dict = np.load(
-        output_savedir / f"flow_field_dict_{list_of_datasets[0]}.npy", allow_pickle=True
-    ).item()
-    xmin, xmax = (
-        flow_field_dict["grid"][0][0, 0, 0],
-        flow_field_dict["grid"][0][-1, 0, 0],
-    )
-    ymin, ymax = (
-        flow_field_dict["grid"][1][0, 0, 0],
-        flow_field_dict["grid"][1][0, -1, 0],
-    )
-    zmin, zmax = (
-        flow_field_dict["grid"][2][0, 0, 0],
-        flow_field_dict["grid"][2][0, 0, -1],
-    )
-    bounds_ = [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
-
-    # loop through the datasets and plot the fixed points
-    for name in list_of_datasets:
-        condition = conditions[name]
-        coords = traj_dict[condition]
-        scatter_color = feature_viz.get_dataset_color(name)
-
-        if type(coords) is np.ndarray:  # single attractor
-            # get last point of trajectory
-            fp = coords[-1, :]
+    # loop over datasets and plot their stable fixed points
+    for dataset_name, stable_fixed_points in stable_fixed_points_dict.items():
+        scatter_color = feature_viz.get_dataset_color(dataset_name)
+        for fpt in stable_fixed_points:
             # plot fixed point
             # PC1 vs PC2, PC1 vs PC3
-            ax[0].scatter(fp[0], fp[1], s=100, color=scatter_color, edgecolor="black")
-            ax[1].scatter(fp[0], fp[2], s=100, color=scatter_color, edgecolor="black")
-        elif type(coords) is list:  # multiple attractors
-            for coord in coords:
-                # get last point of trajectory
-                fp = coord[-1, :]
-                # plot fixed point
-                # PC1 vs PC2, PC1 vs PC3
-                ax[0].scatter(fp[0], fp[1], s=100, color=scatter_color, edgecolor="black")
-                ax[1].scatter(fp[0], fp[2], s=100, color=scatter_color, edgecolor="black")
+            ax[0].scatter(fpt[0], fpt[1], s=100, color=scatter_color, edgecolor="black")
+            ax[1].scatter(fpt[0], fpt[2], s=100, color=scatter_color, edgecolor="black")
 
     # set the axis limits and labels
-    ax = set_slice_plot_bounds_and_labels(ax, bounds_)
+    ax = set_slice_plot_bounds_and_labels(ax, plot_bounds)
+
     # set titles with slice values
     plt.tight_layout()
 
