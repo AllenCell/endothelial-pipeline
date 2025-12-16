@@ -35,8 +35,7 @@ def main(
     from endo_pipeline import NUM_GPUS
     from endo_pipeline.io import get_output_path, load_model
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
-    from endo_pipeline.library.analyze.dynamics_utils import (
-        convert_coordinates_from_pc_to_latent,
+    from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import (
         interpolate_on_curve,
     )
     from endo_pipeline.library.model import generate_from_coords_batch
@@ -98,7 +97,7 @@ def main(
             interpolated_points = interpolate_on_curve(coords)
 
             # transform interpolated points to full latent space
-            latent_coords = convert_coordinates_from_pc_to_latent(interpolated_points, reducer)
+            latent_coords = reducer.inverse_transform(interpolated_points)
             latent_coords_batch.append(latent_coords)
             experimental_condition_list.append(experimental_condition)
 
@@ -108,16 +107,23 @@ def main(
                 interpolated_points = interpolate_on_curve(coord)
 
                 # transform interpolated points to full latent space
-                latent_coords = convert_coordinates_from_pc_to_latent(interpolated_points, reducer)
+                latent_coords = reducer.inverse_transform(interpolated_points)
                 latent_coords_batch.append(latent_coords)
                 experimental_condition_list.append(f"{experimental_condition}_{jj}")
 
-    # pass into DiffAE model to generate reconstructed crops
-    # using single noise input (generate images in batch)
-    walk_imgs = generate_from_coords_batch(model, latent_coords_batch, num_gpus=NUM_GPUS)
+    latent_coords_batch_array = np.concatenate(latent_coords_batch)
+    walk_imgs = generate_from_coords_batch(model, latent_coords_batch_array, num_gpus=NUM_GPUS)
+
+    batch_num = len(experimental_condition_list)
+    num_points = latent_coords_batch_array.shape[0]
+    walk_img_split = []
+    for i in range(batch_num):
+        start_idx = (num_points // batch_num) * i
+        end_idx = (num_points // batch_num) * (i + 1)
+        walk_img_split.append(walk_imgs[start_idx:end_idx])
 
     for walk_img, experimental_condition in zip(
-        walk_imgs, experimental_condition_list, strict=False
+        walk_img_split, experimental_condition_list, strict=True
     ):
         # save out stack of images as tif
         print("Saving reconstructed crops for condition: ", experimental_condition)
