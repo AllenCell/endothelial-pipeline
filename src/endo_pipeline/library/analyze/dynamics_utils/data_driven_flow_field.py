@@ -1,11 +1,10 @@
 import logging
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Literal
 
 import numpy as np
-from scipy import interpolate as spinterp
 from scipy.integrate import solve_ivp
+from scipy.interpolate import RegularGridInterpolator
 from sklearn.decomposition import PCA
 
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
@@ -37,6 +36,7 @@ def _ddff_model_analysis(
     time_span: list,
     init: np.ndarray,
     plot_bounds: list[np.ndarray],
+    plot_stack: bool,
     fig_savedir: Path,
     vtk_savedir: Path,
     output_savedir: Path,
@@ -79,6 +79,8 @@ def _ddff_model_analysis(
         Initial condition for the trajectory.
     plot_bounds
         Bounds for plotting the flow field.
+    plot_stack
+        Whether to plot the flow field as a stack of 2D slices in each dimension.
     fig_savedir
         Directory to save figures.
     vtk_savedir
@@ -94,7 +96,13 @@ def _ddff_model_analysis(
         Trajectory in 3D state space for the given initial condition and time span
     """
     # load dataframe and get top 3 PCs
-    df = get_dataframe_for_dynamics_workflows(dataset_name, dataframe_manifest, pca)
+    df = get_dataframe_for_dynamics_workflows(
+        dataset_name,
+        dataframe_manifest,
+        pca,
+        include_cell_piling=False,
+        include_not_steady_state=False,
+    )
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
@@ -121,8 +129,16 @@ def _ddff_model_analysis(
         flow_field_dict,  # type: ignore
         allow_pickle=True,
     )
-    # save flow field as vtk image data
-    vtk_io.save_vector_field_as_vtk(flow_field_dict, vtk_savedir / f"flow_field_{dataset_name}.vtk")
+
+    # get callable version of the flow field
+    # first, extrapolate to fill in NaNs
+    extrapolated_flow_field_dict = compute_extrapolated_vector_field(
+        drift_km, centers, method="linear"
+    )
+    # save out the flow field as vtk image data
+    vtk_io.save_vector_field_as_vtk(
+        extrapolated_flow_field_dict, vtk_savedir / f"flow_field_{dataset_name}.vtk"
+    )
 
     # compute diffusion field on the grid defined by centers
     # (diagonal diffusion tensor represented as 3D vector field)
@@ -143,9 +159,11 @@ def _ddff_model_analysis(
     ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
     # with initial conditions given by init
     # solve IVP, get back trajectory
-    traj = solve_ddff_ode(flow_field_dict, init, time_span)
+    traj = solve_ddff_ode(extrapolated_flow_field_dict, init, time_span)
 
-    flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj, plot_bounds, fig_savedir)
+    flow_field_viz.flow_field_viz_main(
+        flow_field_dict, df, traj, plot_bounds, plot_stack, fig_savedir
+    )
 
     return traj
 
@@ -159,9 +177,11 @@ def get_and_analyze_ddff(
     time_span: list,
     init: np.ndarray,
     num_bins: tuple[int, int, int],
+    plot_stack: bool,
     fig_savedir: Path,
     vtk_savedir: Path,
     output_savedir: Path,
+    use_common_axis_limits: bool = False,
 ) -> None:
     """
     Visualize data-driven flow field (DDFF) for a list of datasets.
@@ -193,15 +213,23 @@ def get_and_analyze_ddff(
         Initial condition for the trajectory.
     num_bins
         Number of bins for histogramming along each dimension in the 3D state space.
+    plot_stack
+        Whether to plot the flow field as a stack of 2D slices in each dimension.
     fig_savedir
         Directory to save figures.
     vtk_savedir
         Directory to save .vtk files.
     output_savedir
         Directory to save other output files.
+    use_common_axis_limits
+        Whether to use common axis limits for all datasets when plotting.
     """
-    # get bins for KMCs
-    bounds_for_plots = get_3d_bounds_from_data(dataset_names, dataframe_manifest, pca)
+    if use_common_axis_limits:
+        # get common bounds for all datasets
+        bounds_for_plots = get_3d_bounds_from_data(dataset_names, dataframe_manifest, pca)
+    else:
+        # get bounds for each dataset separately
+        bounds_for_plots = None
 
     # get experimental condition
     # descriptions of each dataset
@@ -211,6 +239,7 @@ def get_and_analyze_ddff(
     # used for crop reconstruction
     traj_dict = {}
     for dataset_name in dataset_names:
+        # get bins for KMCs
         bounds_for_km = get_3d_bounds_from_data(
             dataset_names=[dataset_name],
             manifest=dataframe_manifest,
@@ -228,7 +257,8 @@ def get_and_analyze_ddff(
             centers,
             time_span,
             init,
-            bounds_for_plots,
+            bounds_for_plots if use_common_axis_limits else bounds_for_km,
+            plot_stack,
             fig_savedir,
             vtk_savedir,
             output_savedir,
@@ -248,8 +278,8 @@ def get_and_analyze_ddff(
 
 def compute_extrapolated_vector_field(
     kmcs: np.ndarray,
-    grid_centers: list[np.ndarray],
-    extrapolation_method: Literal["nearest", "linear"] = "nearest",
+    grid_coordinates: list[np.ndarray],
+    method: str = "linear",
 ) -> dict:
     """
     Extrapolate a 3D vector field from Kramers-Moyal estimates over a specified grid.
@@ -261,79 +291,54 @@ def compute_extrapolated_vector_field(
     estimates are `NaN`. This function extrapolates these estimates to the entire grid
     using nearest-neighbor or linear interpolation.
 
-    The array ``kmcs`` should have shape (num_bins_x, num_bins_y, num_bins_z, 3), where
-    num_bins_x, num_bins_y, and num_bins_z are the number of bins in each dimension
-    of the 3D meshgrid defined by ``grid_centers``.
+    The array ``kmcs`` should have shape (num_x, num_y, num_z, 3), where
+    num_x, num_y, and num_z are the number of points in each dimension
+    of the 3D meshgrid defined by ``grid_coordinates``.
 
     **Method output**
 
     The output is a dictionary with two keys:
     - "vectors": tuple of 3D arrays (f1,f2,f3) with the vector values in each dimension
-    - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension
+    - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the meshgrid points in each dimension
 
     Parameters
     ----------
     kmcs
         Array of drift or diffusion estimates over a three dimensional grid.
-    grid_centers
+    grid_coordinates
         List of 1D numpy arrays with the grid points in each dimension
-    extrapolation_method
+    method
         Method to use for extrapolating the vector field where there are NaNs.
     """
 
-    ndim = len(grid_centers)  # number of dimensions
+    filled_kmcs = kmcs.copy()
+    n_components = filled_kmcs.shape[-1]
+    x, y, z = np.meshgrid(*grid_coordinates, indexing="ij")
 
-    # generate a mesh grid of points in the state space
-    grid = np.meshgrid(*grid_centers, indexing="ij")  # make meshgrid
+    for i in range(n_components):
+        component = filled_kmcs[..., i]
+        nan_mask = np.isnan(component)
+        if np.any(nan_mask):
+            # Prepare points and values for interpolation
+            # fill_value set to None for extrapolation
+            interpolator = RegularGridInterpolator(
+                grid_coordinates,
+                np.where(nan_mask, 0, component),  # fill NaNs with zeros for shape
+                method=method,
+                bounds_error=False,
+                fill_value=None,  # extrapolate outside convex hull
+            )
+            nan_points = np.array([x[nan_mask], y[nan_mask], z[nan_mask]]).T
+            component[nan_mask] = interpolator(nan_points)
+            filled_kmcs[..., i] = component
 
-    # get the vector field components from
-    # the Kramers-Moyal coefficients
-    vector_field = [kmcs[..., i] for i in range(ndim)]
-
-    # where KMCs have been masked to nan, extrapolate
-    # via nearest neighbors.
-    # use spinterp.interpn with method='nearest'
-    # Find the indices of valid (non-NaN) points
-    valid_mask = ~np.isnan(vector_field[0])
-    # Get the coordinates of valid points
-    valid_points = np.array(np.nonzero(valid_mask)).T
-    # Get the values of valid points
-    valid_values = [vector_field[i][valid_mask] for i in range(ndim)]
-
-    # Create interpolators for each component of the vector field
-    if extrapolation_method not in ["nearest", "linear"]:
-        logger.error(
-            "Extrapolation method [ %s ] not recognized. Use 'nearest' or 'linear'.",
-            extrapolation_method,
-        )
-        raise ValueError(f"Extrapolation method [ {extrapolation_method} ] not recognized.")
-    if extrapolation_method == "nearest":  # nearest neighbor
-        interpolator_func = [
-            spinterp.NearestNDInterpolator(valid_points, valid_values[i]) for i in range(ndim)
-        ]
-    else:  # linear interpolation
-        interpolator_func = [
-            spinterp.LinearNDInterpolator(valid_points, valid_values[i]) for i in range(ndim)
-        ]
-
-    # Find the indices of all points (including NaN points)
-    all_points = (
-        np.array(np.indices(vector_field[0].shape)).reshape(len(vector_field[0].shape), -1).T
-    )
-
-    # Interpolate the NaN points
-    vec_interpolated = [interpolator_func[i](all_points) for i in range(ndim)]
-
-    # reshape back to original grid shape
-    vec_interpolated = [vec.reshape(vector_field[0].shape) for vec in vec_interpolated]
-
-    # Create a dictionary to store the vector field and grid
-    vector_field_dict = {"vectors": vec_interpolated, "grid": grid}
-
-    return vector_field_dict
+    vectors = tuple(filled_kmcs[..., i] for i in range(n_components))
+    return {"vectors": vectors, "grid": (x, y, z)}
 
 
-def get_callable_vector_field(vector_field_dict: dict, for_solve_ivp: bool = True) -> Callable:
+def get_callable_vector_field(
+    vector_field_dict: dict, for_solve_ivp: bool = True, method: str = "linear"
+) -> Callable:
     """
     Get a callable vector field from a numpy array via linear interpolation.
 
@@ -360,6 +365,8 @@ def get_callable_vector_field(vector_field_dict: dict, for_solve_ivp: bool = Tru
         Dictionary with arrays defining a vector field evaluated on a mesh grid.
     for_solve_ivp
         Return a function formatted for use with scipy.integrate.solve_ivp if True.
+    method
+        Interpolation method to use ('linear', 'nearest', etc.).
 
     Returns
     -------
@@ -367,40 +374,35 @@ def get_callable_vector_field(vector_field_dict: dict, for_solve_ivp: bool = Tru
         Callable function representing the vector field.
     """
 
-    ndim = len(vector_field_dict["grid"])  # number of dimensions
+    grid = vector_field_dict["grid"]  # tuple of 3D arrays (xgrid, ygrid, zgrid)
 
-    # get the interpolator for f_KM
-    vec_field_grid = np.stack(
-        vector_field_dict["vectors"], axis=-1
-    )  # shape (num_bins_x, num_bins_y, ... , ndim)
-    xyz_grid = np.moveaxis(np.array(vector_field_dict["grid"]), 0, -1).reshape((-1, ndim))
-    vec_field_interp = spinterp.LinearNDInterpolator(
-        xyz_grid, vec_field_grid.reshape((-1, ndim))
-    )  # interpolator for f_KM
+    # Extract 1D axes from meshgrid
+    x = np.unique(grid[0])
+    y = np.unique(grid[1])
+    z = np.unique(grid[2])
+    axes = (x, y, z)
 
-    if for_solve_ivp:
-        # define a callable function to pass
-        # into the ODE solver
-        # for scipy.integrate.solve_ivp,
-        # need time as first argument
-        # and x as second argument even if
-        # the system is time-independent
-        def vec_func_ivp(t: Any, x: np.ndarray) -> np.ndarray:
-            # get interpolated value
-            vec_interp_val = vec_field_interp(x)
-            # return dx/dt = f(x)
-            return vec_interp_val
+    # Stack vector components into shape (nx, ny, nz, 3)
+    vec_field_grid = np.stack(vector_field_dict["vectors"], axis=-1)
+    # Create interpolators for each component
+    # fill_value set to None for extrapolation
+    interpolators = [
+        RegularGridInterpolator(
+            axes, vec_field_grid[..., i], method=method, bounds_error=False, fill_value=None
+        )
+        for i in range(3)
+    ]
 
-        return vec_func_ivp
-    else:
+    def vf_general(point: np.ndarray) -> np.ndarray:
+        # point: shape (3,) or (N, 3)
+        point = np.atleast_2d(point)
+        return np.stack([interp(point) for interp in interpolators], axis=-1).squeeze()
 
-        def vec_func(x: np.ndarray) -> np.ndarray:
-            # get interpolated value
-            vec_interp_val = vec_field_interp(x)
-            # return dx/dt = f(x)
-            return vec_interp_val
+    def vf_solve_ivp(t: float, y: np.ndarray) -> np.ndarray:
+        # y: shape (3,)
+        return vf_general(y)
 
-        return vec_func
+    return vf_solve_ivp if for_solve_ivp else vf_general
 
 
 def solve_ddff_ode(
@@ -447,7 +449,7 @@ def solve_ddff_ode(
         Solution trajectory in 3D state space for the given initial condition and time span.
     """
     # turn flow field into callable function (works via interpolation)
-    my_flow = get_callable_vector_field(flow_field_dict)
+    my_flow = get_callable_vector_field(flow_field_dict, for_solve_ivp=True)
     # timepoints at which to evaluate the solution
     t_eval = np.linspace(t_span[0], t_span[1], num_t)
     # solve the IVP

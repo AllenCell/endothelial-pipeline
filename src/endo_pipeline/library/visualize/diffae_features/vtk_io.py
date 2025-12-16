@@ -60,7 +60,7 @@ def get_vtk_image_data_from_vector_field(vector_field_dict: dict) -> vtk.vtkImag
     # Create a vector array
     vectors = vtk.vtkFloatArray()
     vectors.SetNumberOfComponents(3)
-    vectors.SetName("Vectors")
+    vectors.SetName("Velocity")
 
     # Interleave the x, y, and z components into the vector array
     for i in range(vx.size):
