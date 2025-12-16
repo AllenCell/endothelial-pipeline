@@ -253,7 +253,7 @@ def plot_pc_scatter(
                 cmap="viridis", norm=plt.Normalize(vmin=0, vmax=num_timepoints)
             )
             sm.set_array([])
-            cax = fig.add_axes([0.98, 0.15, 0.05, 0.5])  # [left, bottom, width, height]
+            cax = fig.add_axes((0.98, 0.15, 0.05, 0.5))  # [left, bottom, width, height]
             cbar = fig.colorbar(sm, cax=cax, orientation="vertical")
             cbar.set_label("frame number")
 
