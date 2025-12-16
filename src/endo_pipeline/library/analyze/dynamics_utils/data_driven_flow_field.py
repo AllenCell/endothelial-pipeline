@@ -51,7 +51,7 @@ def sample_from_density(
     rng = np.random.default_rng(seed=random_seed)
     kde = gaussian_kde(data.T)
     n_dims = data.shape[1]
-    samples = []
+    samples: list[np.ndarray] = []
     # Estimate bounds for rejection sampling
     mins = data.min(axis=0)
     maxs = data.max(axis=0)
