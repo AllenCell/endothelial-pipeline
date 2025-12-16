@@ -350,12 +350,10 @@ def get_and_analyze_ddff(
     use_common_axis_limits
         Whether to use common axis limits for all datasets when plotting.
     """
-    if use_common_axis_limits:
-        # get common bounds for all datasets
-        bounds_for_plots = get_3d_bounds_from_data(dataset_names, dataframe_manifest, pca)
-    else:
-        # get bounds for each dataset separately
-        bounds_for_plots = None
+    # get common bounds for all datasets
+    # will be used for flow field plots if use_common_axis_limits is True
+    # regardless, gets used below when plotting stable fixed points together
+    bounds_for_plots = get_3d_bounds_from_data(dataset_names, dataframe_manifest, pca)
 
     # initialize dict to save trajectories for crop reconstruction
     # and dict to store stable fixed points (visualized together later)
@@ -395,10 +393,7 @@ def get_and_analyze_ddff(
     np.save(output_savedir / TRAJECTORY_DICT_FILE_NAME, traj_dict, allow_pickle=True)  # type: ignore
 
     # generate plot of stable fixed points from different datasets overlaid on top of each other
-    # (for comparison of stable fixed points across conditions)
-    if bounds_for_plots is None:
-        # get common bounds if not already computed
-        bounds_for_plots = get_3d_bounds_from_data(dataset_names, dataframe_manifest, pca)
+    # (for comparison of stable fixed points across datasets)
     flow_field_viz.plot_stable_fixed_points_together(
         stable_fixed_points_dict, bounds_for_plots, fig_savedir
     )

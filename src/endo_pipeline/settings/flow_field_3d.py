@@ -67,7 +67,7 @@ INIT_POINT_3D: list = [0.5, 0.0, 0.5]
 TRAJECTORY_TIME_SPAN: list[int] = [0, 5000]
 """Default time span for ODE solver in 3D flow field trajectory visualization."""
 
-NUM_INIT_SAMPLES: int = 200
+NUM_INIT_SAMPLES: int = 250
 """Number of sampled initial points for root finding in 3D flow field analysis."""
 
 SAMPLER_RANDOM_SEED: int = 47

@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.cm import get_cmap
 from matplotlib.colors import LogNorm, Normalize
+from matplotlib.patches import Patch
 from matplotlib.ticker import MaxNLocator
 from scipy.stats import gaussian_kde
 
@@ -597,8 +598,10 @@ def plot_stable_fixed_points_together(
     fig, ax = plt.subplots(NROWS_2D_FLOW_FIELD, NCOLS_2D_FLOW_FIELD, figsize=FIGSIZE_2D_FLOW_FIELD)
 
     # loop over datasets and plot their stable fixed points
+    patch_list_for_legend = []
     for dataset_name, stable_fixed_points in stable_fixed_points_dict.items():
         scatter_color = feature_viz.get_dataset_color(dataset_name)
+        patch_list_for_legend.append(Patch(color=scatter_color, label=dataset_name))
         for fpt in stable_fixed_points:
             # plot fixed point
             # PC1 vs PC2, PC1 vs PC3
@@ -608,7 +611,9 @@ def plot_stable_fixed_points_together(
     # set the axis limits and labels
     ax = set_slice_plot_bounds_and_labels(ax, plot_bounds)
 
-    # set titles with slice values
+    # add legend
+    ax[0].legend(bbox_to_anchor=(1.02, 1.02), title="Datasets", handles=patch_list_for_legend)
+
     plt.tight_layout()
 
     # save the figure
