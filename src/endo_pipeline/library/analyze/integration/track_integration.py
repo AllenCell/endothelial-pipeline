@@ -305,9 +305,7 @@ def get_traj_and_flowfield(
     )
 
     # compute interpolated flow field - drift
-    flow_field_dict = compute_extrapolated_vector_field(
-        drift_km, centers, extrapolation_method="nearest"
-    )
+    flow_field_dict = compute_extrapolated_vector_field(drift_km, centers, method="linear")
 
     if load_precomputed_trajectories is not None:
         logger.debug("Loading precomputed trajectories...")
