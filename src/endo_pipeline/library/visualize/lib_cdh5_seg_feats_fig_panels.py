@@ -366,31 +366,3 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
             # save the panel
             fig.savefig(out_path, bbox_inches="tight", pad_inches=0.05)
             fig.savefig(out_path.with_suffix(".png"), bbox_inches="tight", pad_inches=0.05, dpi=300)
-
-        # # lastly create one panel with the migration angle relative to flow
-        # # in a heatmap but change the colormap to reflect the magnitude of
-        # # the migration vector and another similar one for the nucleus position
-        # # and its magnitude
-
-        # import seaborn as sns
-
-        # feat_y = feats_plot_args["centroid_velocity_orientation_deg"]["column_name"]
-        # feat_x = feats_plot_args["centroid_velocity_magnitude"]["column_name"]
-        # hue = feats_plot_args[time_col]["column_name"]
-
-        # fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-        # ax.scatter(  # type: ignore[call-arg]
-        #     xs=live_seg_feats_df[feat_y],
-        #     zs=live_seg_feats_df[feat_x],
-        #     ys=live_seg_feats_df[hue],
-        #     c=live_seg_feats_df[feat_x],
-        #     alpha=0.2,
-        #     marker=".",
-        #     cmap="jet",
-        #     vmin=0,
-        #     vmax=np.percentile(live_seg_feats_df[feat_x].dropna(), 99.9),
-        # )
-        # # NOTE
-        # # if you want a nice idea of if most angles close to 0 are also low
-        # # in magnitude for the 20250611_20X dataset, then you will probably
-        # # need to use a surface plot...
