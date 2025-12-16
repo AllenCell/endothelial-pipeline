@@ -210,18 +210,9 @@ def generate_from_coords_batch(
         Optional, number of available GPUs.
     """
 
-    # note to self: need to debug what the input type is here
-    # I think the outlier is the latent walk? or maybe the crop
-    # reconstruction? need to check
-    if isinstance(coords_batch, np.ndarray):
-        coords_concat = coords_batch.copy()
-    elif isinstance(coords_batch, list):
-        coords_concat = np.array(coords_batch)
-    else:
-        coords_concat = np.concatenate(coords_batch, axis=0)
-    logger.debug("Concatenated coordinates shape: [ %s ]", coords_concat.shape)
+    logger.debug("Batch coordinate array shape: [ %s ]", coords_batch.shape)
 
-    img = generate_from_coords(model, coords_concat, num_gpus=num_gpus)
+    img = generate_from_coords(model, coords_batch, num_gpus=num_gpus)
     walk_imgs = [img[i] for i in range(len(coords_batch))]
 
     return walk_imgs
