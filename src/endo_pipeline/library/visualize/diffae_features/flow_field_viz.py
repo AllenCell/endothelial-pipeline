@@ -284,7 +284,6 @@ def plot_flow_field_stack(
         # set title with slice value
         ax.set_title(f"PC{slice_axis_index+1} = {slice_value:.4f}")
         plt.tight_layout()
-        plt.show()
         ax_list.append(ax)
         save_plot_to_path(
             fig,
@@ -556,14 +555,13 @@ def plot_flow_field_slices(
     ax[0].set_title(f"PC3 = {pc3_val:.2f}")
     ax[1].set_title(f"PC2 = {pc2_val:.2f}")
     plt.tight_layout()
-    plt.show()
 
     dataset_name = df[ColumnName.DATASET].unique()[0]
     dataset_description_simple = get_dataset_descriptions(
         [dataset_name], include_duration=False, include_shear_stress=True
     )[dataset_name]
     dataset_description_full = parse_dataset_description(dataset_description_simple).replace(
-        ",", ""
+        ", ", ""
     )
 
     fig.suptitle(
@@ -638,7 +636,6 @@ def plot_stable_fixed_points_together(
     ax = set_slice_plot_bounds_and_labels(ax, bounds_)
     # set titles with slice values
     plt.tight_layout()
-    plt.show()
 
     # save the figure
     save_plot_to_path(fig, fig_savedir, "fixed_points_plot")
