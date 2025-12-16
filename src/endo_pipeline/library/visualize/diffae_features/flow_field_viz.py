@@ -738,15 +738,14 @@ def flow_field_viz_main(
         fig, ax = plot_flow_field_slices(flow_field_dict, df, plot_bounds, None, pc_vals=pc_vals)
     else:
         for k, fpt in enumerate(stable_fixed_points):
-            fpt_ = np.atleast_2d(fpt)
             # plot flow field slices at this stable fixed point
-            pc_vals = (fpt_[2], fpt_[1])  # PC3, PC2
+            pc_vals = (fpt[2], fpt[1])  # PC3, PC2
             fig, ax = plot_flow_field_slices(
                 flow_field_dict, df, plot_bounds, None, pc_vals=pc_vals
             )
 
             for j, ax_ in enumerate(ax):  # PC1 v s PC2, PC1 vs PC3
-                ax_.scatter(fpt_[0], fpt_[j + 1], s=75, color="black")
+                ax_.scatter(fpt[0], fpt[j + 1], s=75, color="black")
             # save the figure
             save_plot_to_path(fig, fig_savedir, f"flow_field_{name}_fpt_{k}")
 

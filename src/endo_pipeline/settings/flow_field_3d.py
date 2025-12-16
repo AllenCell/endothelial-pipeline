@@ -4,7 +4,7 @@ KERNEL_PARAMS_3D: dict = {
 }
 """Default kernel parameters for 3D flow field estimation."""
 
-NUM_BINS_3D: tuple[int, int, int] = (80, 80, 80)
+NUM_BINS_3D: tuple[int, int, int] = (100, 100, 100)
 """Default number of bins for 3D flow field estimation."""
 
 QUIVER_DOWNSAMPLE_FACTOR: int = 2
