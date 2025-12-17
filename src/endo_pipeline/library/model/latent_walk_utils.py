@@ -26,7 +26,7 @@ def write_pc_vals(walk_img: np.ndarray, ranges: list) -> np.ndarray:
     return walk_img
 
 
-def get_walk(data: np.ndarray, n_dims: int, sigma: float, n_steps: int) -> tuple[list, list]:
+def get_walk(data: np.ndarray, n_dims: int, sigma: float, n_steps: int) -> tuple[np.ndarray, list]:
     """
     Generate a latent walk based on standard deviation
     or min/max of each dimension.
@@ -62,7 +62,7 @@ def get_walk(data: np.ndarray, n_dims: int, sigma: float, n_steps: int) -> tuple
 
 def get_pca_coords(
     pca_data: np.ndarray, pca: PCA, num_pcs: int, sigma: float, n_steps: int
-) -> tuple[list, list]:
+) -> tuple[np.ndarray, list]:
     """
     Generate PCA coordinates and corresponding PC values for a latent walk.
 
@@ -84,7 +84,7 @@ def get_pca_coords(
     return walk, ranges
 
 
-def get_latent_coords(data: np.ndarray, sigma: float, n_steps: int) -> tuple[list, list]:
+def get_latent_coords(data: np.ndarray, sigma: float, n_steps: int) -> tuple[np.ndarray, list]:
     """
     Generate latent coordinates and corresponding values for a latent walk.
 
