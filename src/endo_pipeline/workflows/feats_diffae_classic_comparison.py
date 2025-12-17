@@ -1,7 +1,6 @@
 import logging
 
 from endo_pipeline.configs import get_datasets_in_collection
-from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 from endo_pipeline.io import get_output_path
 from endo_pipeline.library.analyze.integration.track_integration import (
     get_gridcrop_and_cellcentric_trajectories_and_flow_fields,
@@ -76,4 +75,4 @@ def main(
 
 
 if __name__ == "__main__":
-    ipython_cli_flexecute(main)
+    main()
