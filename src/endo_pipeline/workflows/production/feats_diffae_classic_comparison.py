@@ -1,24 +1,11 @@
-import logging
+"""This workflow outputs plots of track-based cell trajectories integrated with grid-based DiffAE flow fields."""
 
-import fire
-
-from endo_pipeline.configs import get_datasets_in_collection
-from endo_pipeline.io import get_output_path
-from endo_pipeline.library.analyze.integration.track_integration import (
-    get_gridcrop_and_cellcentric_trajectories_and_flow_fields,
-    get_preprocessed_manifests_and_km_bounds,
-)
-from endo_pipeline.library.visualize.integration.track_integration_viz import make_all_plots
-from endo_pipeline.manifests import load_model_manifest
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
-    NUM_PCS_TO_ANALYZE,
 )
-
-logger = logging.getLogger(__name__)
 
 
 def main(
@@ -28,6 +15,17 @@ def main(
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     n_cores: int = 30,
 ) -> None:
+
+    from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.analyze.integration.track_integration import (
+        get_gridcrop_and_cellcentric_trajectories_and_flow_fields,
+        get_preprocessed_manifests_and_km_bounds,
+    )
+    from endo_pipeline.library.visualize.integration.track_integration_viz import make_all_plots
+    from endo_pipeline.manifests import load_model_manifest
+    from endo_pipeline.settings import NUM_PCS_TO_ANALYZE
+
     out_dir = get_output_path(__file__)
     dataset_name_list = get_datasets_in_collection(dataset_collection_name)
     model_manifest = load_model_manifest(model_manifest_name)
@@ -77,4 +75,8 @@ def main(
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    from endo_pipeline.__main__ import workflow_cli
+
+    # import fire
+    # fire.Fire(main)
+    workflow_cli(main)

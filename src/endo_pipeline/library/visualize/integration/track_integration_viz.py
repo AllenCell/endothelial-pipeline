@@ -468,7 +468,7 @@ def make_all_plots(
             )
             list(
                 tqdm(
-                    pool.imap(multiproc_plot_measured_feat_overlay_on_flowfield, args),
+                    pool.imap(multiproc_plot_measured_feat_overlay_on_flowfield, args, chunksize=5),
                     total=len(args),
                     desc=f"Plotting tracks at {dataset_name} {pos}",
                 )
