@@ -56,8 +56,8 @@ def get_walk(data: np.ndarray, n_dims: int, sigma: float, n_steps: int) -> tuple
         dim_traversal[:, dim] = range_
         walk.append(dim_traversal)
         ranges.append(range_)
-    walk = np.concatenate(walk).squeeze()
-    return walk, ranges
+    walk_array = np.concatenate(walk).squeeze()
+    return walk_array, ranges
 
 
 def get_pca_coords(
