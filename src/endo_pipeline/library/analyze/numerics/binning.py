@@ -1,3 +1,4 @@
+import logging
 from typing import cast
 
 import numpy as np
@@ -9,6 +10,8 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
 )
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE, ColumnName
+
+logger = logging.getLogger(__name__)
 
 
 def get_bins(
@@ -52,7 +55,9 @@ def get_bins(
             raise ValueError("Please provide data or or upper and lower bounds for bins.")
         ndim = data[0].shape[1]
         if ndim != len(num_bins):
-            raise ValueError("Number of bins must match number of dimensions in data.")
+            raise ValueError(
+                "Mismatch between number of dimensions in data and length of num_bins."
+            )
         bins = []
         centers = []
         for i in range(ndim):
@@ -65,13 +70,22 @@ def get_bins(
             centers.append(0.5 * (my_bins[1:] + my_bins[:-1]))
     else:  # Use user-defined bins
         ndim = len(bin_limits)
-        assert ndim == len(num_bins), "Number of bins must match number of dimensions in data."
+        if ndim != len(num_bins):
+            raise ValueError(
+                "Mismatch between number of dimensions in bin_limits and length of num_bins."
+            )
         bins = []
         centers = []
         for i in range(ndim):
             my_bins = np.linspace(bin_limits[i][0], bin_limits[i][1], num_bins[i] + 1)
             bins.append(my_bins)
             centers.append(0.5 * (my_bins[1:] + my_bins[:-1]))
+
+    bin_width_str = ", ".join([f"{bins[i][1] - bins[i][0]:.3f}" for i in range(len(bins))])
+    logger.debug(
+        "Generating bins for histogramming with bin widths: [ %s ]",
+        bin_width_str,
+    )
     return bins, centers
 
 
