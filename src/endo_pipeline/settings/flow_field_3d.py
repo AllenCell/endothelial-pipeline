@@ -61,10 +61,10 @@ FIGSIZE_FLOW_FIELD_STACK: tuple[int, int] = (7, 5)
 TIME_STEP_IN_MINUTES: int = 5
 """Time step in minutes between consecutive time points for flow field estimation."""
 
-INIT_POINT_3D: list = [0.5, 0.0, 0.5]
+INIT_POINT_3D: tuple[float, float, float] = (0.5, 0.0, 0.5)
 """Default initial point for 3D flow field trajectory visualization."""
 
-TRAJECTORY_TIME_SPAN: list[int] = [0, 5000]
+TRAJECTORY_TIME_SPAN: tuple[float, float] = (0.0, 5000.0)
 """Default time span for ODE solver in 3D flow field trajectory visualization."""
 
 NUM_INIT_SAMPLES: int = 250

@@ -99,7 +99,7 @@ def _ddff_model_analysis(
     dt: float,
     bins: list[np.ndarray],
     centers: list[np.ndarray],
-    time_span: list,
+    time_span: tuple[float, float],
     init_for_traj: np.ndarray,
     num_inits_for_root_solver: int,
     plot_bounds: list[np.ndarray],
@@ -297,7 +297,7 @@ def get_and_analyze_ddff(
     pca: PCA,
     kernel_params: dict,
     dt: float,
-    time_span: list,
+    time_span: tuple[float, float],
     init_for_traj: np.ndarray,
     num_inits_for_root_solver: int,
     num_bins: tuple[int, int, int],
@@ -531,7 +531,7 @@ def get_callable_vector_field(
 def solve_ddff_ode(
     flow_field_dict: dict,
     init: np.ndarray,
-    t_span: list[int] | list[float],
+    t_span: tuple[float, float],
     num_t: int = 1750,
 ) -> np.ndarray:
     """
@@ -562,7 +562,7 @@ def solve_ddff_ode(
     init
         Initial condition for the trajectory.
     t_span
-        Time span for the ODE solver as [t0, tf].
+        Time span for the ODE solver as (t0, tf).
     num_t
         Number of time points to evaluate the solution at.
 
