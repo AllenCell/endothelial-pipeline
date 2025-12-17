@@ -4,53 +4,47 @@ TAGS = ["diffae_image_generation", "diffae_features"]
 
 
 def main(
+    csv_path: str,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
 ) -> None:
     """
-    Reconstruct crops from latent space coordinates along trajectories output
-    by the workflow `generate_3d_flow_field.py`.
+    Reconstruct crops from PC space coordinates stored in a given CSV file.
 
-    **Image reconstruction output**
-    The reconstructed crops are saved as TIFF files in a local directory.
-    The crops are reconstructed from latent space coordinates along trajectories
-    output by the workflow `generate_3d_flow_field.py`.
+    The reconstructed crops are saved as PNG files in a local directory.
 
     Parameters
     ----------
+    csv_path
+        Path to a CSV file containing latent space coordinates along trajectories.
     model_manifest_name
         Name of the model manifest containing the specific run to load features from.
     run_name
         Run name corresponding to features to load and the model to use for image reconstruction.
-
-    Returns
-    -------
-    :
-        Saves the reconstructed crops as TIFF files.
     """
     import logging
+    from pathlib import Path
 
+    import matplotlib.pyplot as plt
     import numpy as np
-    from bioio.writers import OmeTiffWriter
 
     from endo_pipeline import NUM_GPUS
-    from endo_pipeline.io import get_output_path, load_model
+    from endo_pipeline.io import get_output_path, load_model, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
-    from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import (
-        interpolate_on_curve,
-    )
     from endo_pipeline.library.model import generate_from_coords_batch
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
         get_most_recent_run_name,
         load_model_manifest,
     )
-    from endo_pipeline.settings.flow_field_3d import (
-        OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS,
-        TRAJECTORY_DICT_FILE_NAME,
-    )
 
     logger = logging.getLogger(__name__)
+
+    # convert csv_path to Path object
+    csv_path_obj = Path(csv_path)
+    if not csv_path_obj.exists():
+        logger.error("CSV file [ %s ] does not exist.", csv_path)
+        raise FileNotFoundError(f"CSV file [ {csv_path} ] does not exist.")
 
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
@@ -61,69 +55,35 @@ def main(
         model_manifest, run_name_, crop_pattern="grid"
     )
 
-    # Expected output directory from generate_3d_flow_field.py
-    output_savedir = get_output_path(
-        OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS,
-        dataframe_manifest_name,
-        "outputs",
-        include_timestamp=False,
-    )
-    # Directory to save reconstructed crops
-    crop_savedir = get_output_path(
-        OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS, dataframe_manifest_name, "crops"
-    )
-
     # Get fit (3D) PCA object from manifest
     pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=3)
 
-    traj_dict = np.load(
-        output_savedir / f"{TRAJECTORY_DICT_FILE_NAME}.npy", allow_pickle=True
-    ).item()
+    # Directory to save reconstructed crops
+    csv_file_name = csv_path_obj.stem
+    crop_savedir = get_output_path(
+        "reconstructed_crops", model_manifest_name, run_name_, csv_file_name
+    )
 
-    # Reconstruction of crops from latent space coordinates via DiffAE model
-    latent_coords_batch = []
-    experimental_condition_list = []
-    for experimental_condition in traj_dict.keys():
-        # get full mean trajectory
-        coords = traj_dict[experimental_condition]
+    # load coordinates from csv
+    pc_coords = np.loadtxt(csv_path_obj, delimiter=",")
 
-        if isinstance(coords, np.ndarray):
-            # interpolate points evenly spaced along the trajectory
-            interpolated_points = interpolate_on_curve(coords)
+    # make sure that coords is a 2D array with shape (num_points, num_dimensions)
+    pc_coords = np.atleast_2d(pc_coords)
+    if pc_coords.shape[1] != 3:
+        logger.debug("Transposing input coordinates array for correct shape.")
+        pc_coords = pc_coords.T
 
-            # transform interpolated points to full latent space
-            latent_coords = pca.inverse_transform(interpolated_points)
-            latent_coords_batch.append(latent_coords)
-            experimental_condition_list.append(experimental_condition)
+    # transform interpolated points to full latent space
+    latent_coords = pca.inverse_transform(pc_coords)
 
-        elif isinstance(coords, list):
-            for jj, coord in enumerate(coords):
-                # interpolate points evenly spaced along the trajectory
-                interpolated_points = interpolate_on_curve(coord)
+    walk_imgs = generate_from_coords_batch(model, latent_coords, num_gpus=NUM_GPUS)
 
-                # transform interpolated points to full latent space
-                latent_coords = pca.inverse_transform(interpolated_points)
-                latent_coords_batch.append(latent_coords)
-                experimental_condition_list.append(f"{experimental_condition}_{jj}")
-
-    latent_coords_batch_array = np.concatenate(latent_coords_batch)
-    walk_imgs = generate_from_coords_batch(model, latent_coords_batch_array, num_gpus=NUM_GPUS)
-
-    batch_num = len(experimental_condition_list)
-    num_points = latent_coords_batch_array.shape[0]
-    walk_img_split = []
-    for i in range(batch_num):
-        start_idx = (num_points // batch_num) * i
-        end_idx = (num_points // batch_num) * (i + 1)
-        walk_img_split.append(walk_imgs[start_idx:end_idx])
-
-    for walk_img, experimental_condition in zip(
-        walk_img_split, experimental_condition_list, strict=True
-    ):
-        # save out stack of images as tif
-        logger.info("Saving reconstructed crops for [ %s ]", experimental_condition)
-        tif_name = f"{experimental_condition}_interpolated_trajectory_reconstructed_crops.tif"
-        OmeTiffWriter.save(walk_img, crop_savedir / tif_name, overwrite=True)
+    for i, img in enumerate(walk_imgs):
+        fig, ax = plt.subplots(figsize=(2, 2))
+        ax.imshow(img, cmap="gray")
+        plt.axis("off")
+        plt.tight_layout()
+        save_plot_to_path(fig, crop_savedir, f"coordinate_row_{i:03d}")
 
 
 if __name__ == "__main__":
