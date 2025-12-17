@@ -1,4 +1,6 @@
-from concurrent.futures import ProcessPoolExecutor
+import concurrent
+
+# import multiprocessing
 from pathlib import Path
 from typing import Any, Literal
 
@@ -460,13 +462,13 @@ def make_all_plots(
                     tid,
                 )
             )
-        with ProcessPoolExecutor(max_workers=max_workers_for_parallel_plotting) as executor:
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            # make the plots
             list(
                 tqdm(
                     executor.map(multiproc_plot_measured_feat_overlay_on_flowfield, args),
                     total=len(args),
                     desc=f"Plotting tracks at {pos}",
-                    leave=False,
                 )
             )
 
