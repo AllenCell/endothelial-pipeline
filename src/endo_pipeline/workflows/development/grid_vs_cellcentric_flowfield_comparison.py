@@ -31,7 +31,11 @@ from endo_pipeline.library.visualize.integration.track_integration_viz import (
     plot_pc_integrated_track_as_arrows,
 )
 from endo_pipeline.manifests import load_model_manifest
-from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
+from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +47,7 @@ plt.ioff()  # turns off interactive mode in matplotlib
 
 def process_dataset(
     dataset_name: str,
-    datasets_for_bounds: list[str],
+    collection_name_for_pca: str,
     model_manifest_name: str = "diffae_04_10",
     run_name: str | None = None,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
@@ -62,7 +66,7 @@ def process_dataset(
         model_manifest=model_manifest,
         run_name=run_name,
         seg_feature_manifest_name=seg_feature_manifest_name,
-        collection_name_for_pca=datasets_for_bounds,
+        collection_name_for_pca=collection_name_for_pca,
     )
 
     # keep only the columns that are needed for the analysis to reduce memory usage
@@ -377,14 +381,15 @@ def process_dataset(
 
 
 def main(
-    dataset_collection_name: str = "pca_reference_legacy",
-    model_manifest_name: str = "diffae_04_10",
-    run_name: str | None = None,
+    dataset_collection_name: str = "pca_reference",
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 ) -> None:
     """
     Makes plots comparing cell-centric and grid-based flow fields.
     """
+    from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
 
     dataset_name_list = get_datasets_in_collection(dataset_collection_name)
 
@@ -395,7 +400,7 @@ def main(
             model_manifest_name=model_manifest_name,
             run_name=run_name,
             seg_feature_manifest_name=seg_feature_manifest_name,
-            datasets_for_bounds=dataset_name_list,
+            collection_name_for_pca=DEFAULT_PCA_DATASET_COLLECTION_NAME,
             make_integrated_plots=True,
         )
 

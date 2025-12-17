@@ -17,10 +17,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_traj_and_diff,
     project_features_to_pcs,
 )
-from endo_pipeline.library.analyze.dynamics_utils import (
-    compute_extrapolated_vector_field,
-    solve_ddff_ode,
-)
+from endo_pipeline.library.analyze.dynamics_utils import solve_ddff_ode
 from endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
 from endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_data, get_bins
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
@@ -311,7 +308,13 @@ def get_traj_and_flowfield(
     )
 
     # compute interpolated flow field - drift
-    flow_field_dict = compute_extrapolated_vector_field(drift_km, centers, method="linear")
+    # flow_field_dict = compute_extrapolated_vector_field(drift_km, centers, method="linear")
+
+    # get the vector field components from
+    # the Kramers-Moyal coefficients
+    grid = np.meshgrid(*centers, indexing="ij")
+    drift_vector_field = [drift_km[..., i] for i in range(NUM_PCS_TO_ANALYZE)]
+    flow_field_dict = {"vectors": drift_vector_field, "grid": grid}
 
     if load_precomputed_trajectories is not None:
         logger.debug("Loading precomputed trajectories...")
