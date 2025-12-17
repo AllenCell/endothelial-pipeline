@@ -391,6 +391,11 @@ def compute_extrapolated_vector_field(
         nan_mask = np.isnan(component)
         if np.any(nan_mask):
             if for_vtk_files:
+                if method != "nearest":
+                    logger.warning(
+                        "Using extrapolation method other than 'nearest' for vtk file construction results in "
+                        "significant memory usage and computation time. Consider using 'nearest' method. "
+                    )
                 logger.debug("Starting extrapolation for vtk files.")
                 tic = time()
                 component = fill_nan_for_vtk(component, method=method)
