@@ -2,9 +2,10 @@ from typing import Annotated, Literal
 
 from cyclopts import Parameter
 
-from endo_pipeline.settings import (
+from endo_pipeline.settings.image_data import DIFFAE_DEFAULT_CROP_SIZE
+from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING,
-    DIFFAE_DEFAULT_CROP_SIZE,
+    DEFAULT_NUM_LATENT_DIMENSIONS,
 )
 
 TAGS = ["diffae", "model_training"]
@@ -15,6 +16,7 @@ def main(
     run_name: str | None = None,
     crop_size: int = DIFFAE_DEFAULT_CROP_SIZE,
     condition_on: Literal["bf", "cdh5"] = DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING,
+    latent_dim: int = DEFAULT_NUM_LATENT_DIMENSIONS,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
 ) -> None:
     """
@@ -23,8 +25,8 @@ def main(
     **Training run naming**
 
     If a model manifest name is not given, it will be automatically constructed
-    based on the resolution level of the zarr files, the crop size, and whether
-    cell piling exclusion is enabled or not.
+    based on the resolution level of the zarr files, the crop size, the latent
+    dimension size, and whether cell piling exclusion is enabled or not.
 
     The training run instantiated from this workflow will be saved in the
     corresponding model manifest, with run name either provided by the user or
@@ -39,6 +41,12 @@ def main(
     fluorescence (``cdh5``) image channels. The conditioning channel is set
     using the ``condition_on`` parameter via overriding the training config.
     The default is brightfield.
+
+    **Latent dimension size**
+
+    The number of latent dimensions for the DiffAE model can be specified with
+    the ``latent_dim`` parameter. The default for this number is set via the
+    constant ``DEFAULT_NUM_LATENT_DIMENSIONS`` in ``endo_pipeline.settings.workflow_defaults.``
 
     **Cell piling exclusion**
 
@@ -70,6 +78,8 @@ def main(
         The length of the 2D image crop in pixels to use for model training.
     condition_on
         The abbreviated name of the image channel to condition the model on.
+    latent_dim
+        The number of latent dimensions for the DiffAE model.
     include_cell_piling
         True to include timepoints with cell piling in data used for training, False to exclude.
     """
@@ -90,7 +100,8 @@ def main(
         load_dataframe_manifest,
         save_model_manifest,
     )
-    from endo_pipeline.settings import DIFFAE_IMAGE_LOADING_KEY_PREFIX, DIFFAE_MODEL_TRAIN_CONFIG
+    from endo_pipeline.settings.diffae_configs import DIFFAE_MODEL_TRAIN_CONFIG
+    from endo_pipeline.settings.workflow_defaults import DIFFAE_IMAGE_LOADING_KEY_PREFIX
 
     logger = logging.getLogger(__name__)
 
@@ -115,6 +126,7 @@ def main(
     # Create name components from input parameters
     patch_name = f"_patch_{crop_size}x{crop_size}"
     condition_name = f"_condition_on_{condition_on}"
+    latent_name = f"_latent_{latent_dim}"
     piling_name = "_include_cell_piling" if include_cell_piling else "_exclude_cell_piling"
 
     # Build dataframe manifest name to load training and validation dataframes.
@@ -146,7 +158,7 @@ def main(
 
     # Build the model manifest name, if not provided.
     if model_manifest_name is None:
-        model_manifest_name = f"diffae{patch_name}{condition_name}{piling_name}"
+        model_manifest_name = f"diffae{patch_name}{condition_name}{latent_name}{piling_name}"
 
     # Create or load the model manifest.
     manifest = create_model_manifest(model_manifest_name, __file__)
@@ -174,6 +186,7 @@ def main(
         task_name="train",
         crop_size=crop_size,
         condition_key=f"{DIFFAE_IMAGE_LOADING_KEY_PREFIX}{condition_on}",
+        latent_dim=latent_dim,
         train_dataframe_path=Path(train_dataframe_path),
         val_dataframe_path=Path(val_dataframe_path),
         max_epochs=max_num_epochs,
@@ -202,6 +215,7 @@ def main(
         "training_datasets": list_of_training_datasets,
         "crop_size": crop_size,
         "condition_on": condition_on,
+        "latent_dim": latent_dim,
         "include_cell_piling": include_cell_piling,
     }
     manifest.locations[run_name] = ModelLocation()

@@ -133,7 +133,7 @@ def _ddff_model_analysis(
     # get callable version of the flow field
     # first, extrapolate to fill in NaNs
     extrapolated_flow_field_dict = compute_extrapolated_vector_field(
-        drift_km, centers, method="nearest"
+        drift_km, centers, method="linear", for_vtk_files=True
     )
     # save out the flow field as vtk image data
     volume_extent = {
@@ -284,15 +284,9 @@ def get_and_analyze_ddff(
     flow_field_viz.plot_stable_fixed_points_together(dataset_names, fig_savedir, output_savedir)
 
 
-def fill_nan_for_vtk(data: np.ndarray) -> np.ndarray:
+def fill_nan_for_vtk(data: np.ndarray, method: str = "nearest") -> np.ndarray:
     """
-    Replaces NaN values in a multi-dimensional NumPy array with the value
-    of the nearest non-NaN neighbor using scipy.interpolate.griddata.
-
-    This method is significantly more memory-efficient for large, sparse datasets
-    than the distance_transform_edt approach because it operates on sparse
-    coordinate lists rather than generating large auxiliary index arrays
-    (which likely caused the memory crash).
+    Replaces NaN values in a multi-dimensional NumPy array using scipy.interpolate.griddata.
 
     Parameters
     ----------
@@ -307,31 +301,30 @@ def fill_nan_for_vtk(data: np.ndarray) -> np.ndarray:
     # Create a copy to avoid modifying the original data
     arr = data.copy()
 
-    # 1. Identify NaN and valid points
+    # Identify NaN locations
     nan_mask = np.isnan(arr)
-    valid_mask = ~nan_mask
 
     # If there are no NaNs, return the original array
     if not np.any(nan_mask):
         return arr
 
-    # 2. Get coordinates and values for interpolation source (VALID points)
-    # 'points' are the coordinates of the valid data points
+    # Else, proceed with interpolation
+    # Get a mask for valid (non-NaN) points
+    valid_mask = ~nan_mask
+
+    # Get coordinates and values for interpolation source
     valid_coords = np.array(np.where(valid_mask)).T
-    # 'values' are the corresponding values at those valid coordinates
     valid_values = arr[valid_mask]
 
-    # 3. Get coordinates for interpolation query (NaN points)
-    # 'query_points' are the coordinates where we need imputed values
+    # Get coordinates for interpolation query (NaN points)
     nan_coords = np.array(np.where(nan_mask)).T
 
-    # 4. Use griddata to perform nearest-neighbor interpolation
-    # This performs the nearest neighbor lookup using sparse coordinates.
+    # Use griddata to perform extrapolation
     imputed_values = griddata(
-        points=valid_coords, values=valid_values, xi=nan_coords, method="nearest"
+        points=valid_coords, values=valid_values, xi=nan_coords, method=method
     )
 
-    # 5. Assign the imputed values back into the NaN locations
+    # Assign the extrapolated values back into the NaN locations
     arr[nan_mask] = imputed_values
 
     return arr
@@ -339,7 +332,7 @@ def fill_nan_for_vtk(data: np.ndarray) -> np.ndarray:
 
 def compute_extrapolated_vector_field(
     kmcs: np.ndarray,
-    grid_centers: list[np.ndarray],
+    grid_coordinates: list[np.ndarray],
     method: str = "linear",
     for_vtk_files: bool = False,
 ) -> dict:
@@ -353,21 +346,34 @@ def compute_extrapolated_vector_field(
     estimates are `NaN`. This function extrapolates these estimates to the entire grid
     using nearest-neighbor or linear interpolation.
 
-    The array ``kmcs`` should have shape (num_bins_x, num_bins_y, num_bins_z, 3), where
-    num_bins_x, num_bins_y, and num_bins_z are the number of bins in each dimension
-    of the 3D meshgrid defined by ``grid_centers``.
+    The array ``kmcs`` should have shape (num_x, num_y, num_z, 3), where
+    num_x, num_y, and num_z are the number of points in each dimension
+    of the 3D meshgrid defined by ``grid_coordinates``.
 
     **Method output**
 
     The output is a dictionary with two keys:
     - "vectors": tuple of 3D arrays (f1,f2,f3) with the vector values in each dimension
-    - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension
+    - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the meshgrid points in each dimension
+
+    **Extrapolation for vtk files vs other uses**
+
+    If ``for_vtk_files`` is `True`, the extrapolation is done using a wrapper method for
+    filling NaNs via `scipy.interpolate.griddata`, which ensures no NaNs remain in the output.
+    This is important for saving the vector field as .vtk files for visualization in ParaView,
+    but is slower for large grids.
+
+    If ``for_vtk_files`` is `False`, the extrapolation is done using `scipy.interpolate.RegularGridInterpolator`,
+    which is faster for large grids, but can produce NaNs outside the convex hull of the data points unless
+    they are filled in with a numerical value (here, zero) first when creating the interpolator. This will result
+    in NaNs being converted to zeros outside the convex hull, which is suitable for all other uses of the vector field
+    except vtk files.
 
     Parameters
     ----------
     kmcs
         Array of drift or diffusion estimates over a three dimensional grid.
-    grid_centers
+    grid_coordinates
         List of 1D numpy arrays with the grid points in each dimension
     method
         Method to use for extrapolating the vector field where there are NaNs.
@@ -377,31 +383,30 @@ def compute_extrapolated_vector_field(
 
     filled_kmcs = kmcs.copy()
     n_components = filled_kmcs.shape[-1]
-    X, Y, Z = np.meshgrid(*grid_centers, indexing="ij")
-    grid = (X, Y, Z)
+    x, y, z = np.meshgrid(*grid_coordinates, indexing="ij")
 
     for i in range(n_components):
         component = filled_kmcs[..., i]
         nan_mask = np.isnan(component)
         if np.any(nan_mask):
             if for_vtk_files:
-                component = fill_nan_for_vtk(component)
-            # Prepare points and values for interpolation
-            # fill_value set to None for extrapolation
+                component = fill_nan_for_vtk(component, method=method)
             else:
                 interpolator = RegularGridInterpolator(
-                    grid_centers,
-                    np.where(nan_mask, 0, component),  # fill NaNs with zeros for shape
+                    grid_coordinates,
+                    np.where(
+                        nan_mask, 0, component
+                    ),  # fill NaNs with zeros to avoid producing NaNs outside convex hull
                     method=method,
                     bounds_error=False,
                     fill_value=None,  # extrapolate outside convex hull
                 )
-                nan_points = np.array([X[nan_mask], Y[nan_mask], Z[nan_mask]]).T
+                nan_points = np.array([x[nan_mask], y[nan_mask], z[nan_mask]]).T
                 component[nan_mask] = interpolator(nan_points)
             filled_kmcs[..., i] = component
 
     vectors = tuple(filled_kmcs[..., i] for i in range(n_components))
-    return {"vectors": vectors, "grid": grid}
+    return {"vectors": vectors, "grid": (x, y, z)}
 
 
 def get_callable_vector_field(
@@ -559,19 +564,6 @@ def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
         interpolated_points[:, i] = np.interp(arc_length_new, arc_length, traj[:, i])
 
     return interpolated_points
-
-
-def convert_coordinates_from_pc_to_latent(coords: np.ndarray, reducer: PCA) -> list[list]:
-    """
-    Convert coordinates in PCA-based feature space
-    to latent space using the PCA model.
-    """
-    latent = reducer.inverse_transform(coords)
-    latent.shape[0]
-    # turn coordinate array into list of lists
-    latent_coords = [coord.tolist() for coord in latent]
-
-    return latent_coords
 
 
 def convert_coordinates_from_volume_to_pc(
