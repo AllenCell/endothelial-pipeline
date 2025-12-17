@@ -1,6 +1,4 @@
-import concurrent
-
-# import multiprocessing
+from multiprocessing import Pool
 from pathlib import Path
 from typing import Any, Literal
 
@@ -462,15 +460,20 @@ def make_all_plots(
                     tid,
                 )
             )
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            # make the plots
+
+        # make the plots
+        with Pool(processes=max_workers_for_parallel_plotting) as pool:
+            print("Starting multiprocessing pool for plotting...")
             list(
                 tqdm(
-                    executor.map(multiproc_plot_measured_feat_overlay_on_flowfield, args),
+                    pool.imap(multiproc_plot_measured_feat_overlay_on_flowfield, args),
                     total=len(args),
-                    desc=f"Plotting tracks at {pos}",
+                    desc=f"Plotting tracks at {dataset_name} {pos}",
                 )
             )
+            pool.close()
+            pool.join()
+            print("Multiprocessing pool for plotting complete.")
 
         # for tid in tqdm(
         #     track_ids, total=len(track_ids), desc=f"Plotting tracks at {pos}", leave=False
