@@ -119,8 +119,8 @@ def get_dataset_color(dataset_name: str) -> str:
     dataset_config = load_dataset_config(dataset_name)
     if len(dataset_config.shear_stress_regime) > 1:
         logger.warning(
-            "Color defaults only set for single shear stress regime datasets. "
-            "Returning color for first shear stress regime in list."
+            "Color defaults only set for single shear stress regime datasets \
+            and for the min-to-max and max-to-min shear stress regime datasets. "
         )
 
     shear_stress_regime = tuple(dataset_config.shear_stress_regime)
