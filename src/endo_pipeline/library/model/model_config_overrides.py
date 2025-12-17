@@ -8,7 +8,8 @@ from pydantic.dataclasses import dataclass
 
 from endo_pipeline.configs import load_model_config
 from endo_pipeline.io import get_output_path, get_repository_root_dir
-from endo_pipeline.settings import DEFAULT_NUM_LATENT_DIMENSIONS, DIFFAE_MODEL_TRAIN_CONFIG
+from endo_pipeline.settings.diffae_configs import DIFFAE_MODEL_TRAIN_CONFIG
+from endo_pipeline.settings.workflow_defaults import DEFAULT_NUM_LATENT_DIMENSIONS
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +178,7 @@ class ModelConfigOverride:
             # set condition key
             "model.condition_key": self.condition_key,
             # set number of latent dimensions
-            "model.semantic_encoder.base_encoder.num_classes": self.latent_dim,
+            "lat_dim": self.latent_dim,
             # set training and validation dataframe paths and caching parameters
             "data.train_dataloaders.dataset.dataframe_path": self.train_dataframe_path.as_posix(),
             "data.train_dataloaders.dataset.cache_rate": self.cache_rate,
