@@ -93,11 +93,6 @@ def plot_quiver_slices_from_diffae_table(
     plot_fixed_points: bool = True,
 ) -> tuple[Figure, np.ndarray]:
 
-    # # get valid y and z slice indices
-    # yvalids_grids, zvalids_grids = get_valid_slice_indexes(
-    #     diffae_df, traj_grids, flow_field_dict_grids
-    # )
-
     # get limits of grid from the grid crops flow fields
     bounds = get_grid_bounds(flow_field_dict_grids)
 
@@ -115,10 +110,6 @@ def plot_quiver_slices_from_diffae_table(
         log_norm_colormap=False,
     )
 
-    # # plot the flow field
-    # fig, axs = plot_quiver_slices(
-    #     flow_field_dict_grids, (zvalids_grids, yvalids_grids), log_norm_colormap=False
-    # )
     [ax.set_zorder(0) for ax in axs]
     axs = set_slice_plot_bounds_and_labels(axs, bounds)
 
