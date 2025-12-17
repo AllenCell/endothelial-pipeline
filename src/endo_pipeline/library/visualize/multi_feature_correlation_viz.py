@@ -333,7 +333,7 @@ def plot_and_save_clustermap(
     else:
         clustering_data = df.values
         center = vmin = vmax = None
-        method = "ward"
+        method = "ward" if clustering_metric == "euclidean" else "average"
 
     row_linkage = linkage(clustering_data, method=method, metric=clustering_metric)
     col_linkage = linkage(clustering_data.T, method=method, metric=clustering_metric)
