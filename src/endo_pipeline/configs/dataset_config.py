@@ -143,6 +143,9 @@ class DatasetConfig:
     name: str
     """Unique name of the dataset."""
 
+    date: str
+    """Date the dataset was collected, formatted as YYYYMMDD."""
+
     original_path: str
     """Original path to dataset."""
 
@@ -193,6 +196,9 @@ class DatasetConfig:
 
     zarr_channel_indices: ChannelIndices
     """Channel indices for dataset converted to Zarr format."""
+
+    channel_names: list[str]
+    """List of channel names."""
 
     flow_conditions: list[FlowCondition]
     """List of flow conditions for the dataset."""

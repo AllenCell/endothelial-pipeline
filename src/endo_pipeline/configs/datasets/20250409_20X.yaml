@@ -1,4 +1,5 @@
 name: 20250409_20X
+date: '20250409'
 original_path: //allen/programs/allencell/data/proj0/ac1/24e/dd5/23a/579/6f9/94c/bbc/a02/6b2/df/20250409_GE00007696_20X_timelapse_sldy/20250409_GE00007696_20X_timelapse_sldy.sldy
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250409_df6b2a02bbc94c6f957923add524eac1
 zarr_positions: [0, 1, 2, 3, 4, 5]
@@ -26,6 +27,7 @@ zarr_channel_indices:
   channel_405: null
   channel_561: null
   channel_640: null
+channel_names: [EGFP, BF]
 flow_conditions:
 - start: -25
   stop: 543
@@ -64,19 +66,19 @@ timepoint_annotations:
     4: [48, 50, 112, 222]
     5: [51, 121, 271, 287]
   cell_piling:
-    0: [[411, 543]]
-    1: [[411, 543]]
-    2: [[411, 543]]
-    3: [[411, 543]]
-    4: [[411, 543]]
-    5: [[411, 543]]
+    0: [[513, 543]]
+    1: [[486, 543]]
+    2: [[452, 543]]
+    3: [[444, 543]]
+    4: [[301, 543]]
+    5: [[496, 543]]
   not_steady_state:
-    0: [[0, 189]]
-    1: [[0, 189]]
-    2: [[0, 189]]
-    3: [[0, 189]]
-    4: [[0, 189]]
-    5: [[0, 189]]
+    0: [[0, 140]]
+    1: [[0, 161]]
+    2: [[0, 183]]
+    3: [[0, 177]]
+    4: [[0, 125]]
+    5: [[0, 126]]
 position_annotations: null
 center_z_plane:
   0: 10

@@ -326,3 +326,46 @@ def crop_image(img: np.ndarray, start_x: int, start_y: int, crop_size: int) -> n
 
     slices = [slice(None)] * (img.ndim - 2) + [slice(start_y, end_y), slice(start_x, end_x)]
     return img[tuple(slices)]
+
+
+def stitch_with_overlap(
+    arrays: list[da.Array], overlap_ratio: float = 0.10, reference_frame: int = 0
+) -> da.Array:
+    """
+    Stitch a list of 2D or 3D Dask arrays along the X axis with fixed linear blending in the overlapping region.
+
+    Parameters
+    ----------
+    arrays : list[da.Array]
+        List of tiles to stitch.
+    overlap_ratio : float
+        Fixed overlap ratio between adjacent tiles (default 1%).
+
+    Returns
+    -------
+    stitched : da.Array
+        Stitched array.
+    """
+    stitched = arrays[0]
+
+    for arr in arrays[1:]:
+        # Compute overlap in pixels
+        overlap = max(1, int(min(stitched.shape[-1], arr.shape[-1]) * overlap_ratio))
+
+        # Split new array
+        non_overlap_new = arr[..., overlap:]
+        A = stitched[..., -overlap:]
+        B = arr[..., :overlap]
+
+        # Linear blending
+        wA = da.from_array(
+            np.linspace(1, 0, overlap)[None, None, :]
+            if stitched.ndim == 3
+            else np.linspace(1, 0, overlap)
+        )
+        wB = 1 - wA
+        blended = A * wA + B * wB
+
+        stitched = da.concatenate([stitched[..., :-overlap], blended, non_overlap_new], axis=-1)
+
+    return stitched

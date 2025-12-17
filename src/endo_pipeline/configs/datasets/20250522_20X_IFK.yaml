@@ -1,4 +1,5 @@
 name: 20250522_20X_IFK
+date: '20250522'
 original_path: //allen/programs/allencell/data/proj0/0f7/394/58a/d4b/68b/268/04c/94f/4f3/dda/2f/20250522_GE00008024_20X_sldy/20250522_GE00008024_20X_sldy.sldy
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250522_2fdda4f394f04c26868bd4b58a3940f7
 zarr_positions: [0, 1, 2, 3, 4, 5]
@@ -26,6 +27,7 @@ zarr_channel_indices:
   channel_405: 2
   channel_561: 3
   channel_640: 4
+channel_names: [EGFP, BF, NucViolet, SOX17, SMAD1]
 flow_conditions:
 - start: -337
   stop: -49

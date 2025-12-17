@@ -24,9 +24,6 @@ optional field should be set, uncomment the corresponding line to set the value.
 """
 
 # %%
-if __name__ != "__main__":
-    raise ImportError("This module is a notebook and is not meant to be imported")
-
 from endo_pipeline.configs import PositionAnnotation  # noqa: F401, I001
 from endo_pipeline.configs import TimepointAnnotation  # noqa: F401
 from endo_pipeline.configs import (
@@ -34,7 +31,6 @@ from endo_pipeline.configs import (
     DatasetConfig,
     FlowCondition,
     ShearStressRegime,
-    load_dataset_config,
     save_dataset_config,
     validate_dataset_config,
 )
@@ -44,12 +40,14 @@ from endo_pipeline.manifests import (
     save_image_manifest,
 )
 
-# %%
+# %% Create new dataset config
+
 dataset_name = "unique_dataset_name"
 
-dataset = DatasetConfig(
+dataset_config = DatasetConfig(
     # ============================ REQUIRED FIELDS =============================
     name=dataset_name,
+    date="YYYYMMDD",
     original_path="/path/to/original/dataset",
     zarr_path="//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/DATE_FMSID",
     zarr_positions=[],
@@ -82,6 +80,7 @@ dataset = DatasetConfig(
         brightfield=1,
         channel_488=0,
     ),
+    channel_names=[""],
     flow_conditions=[
         FlowCondition(start=0, stop=576, shear_stress=0.0),
     ],
@@ -150,17 +149,17 @@ dataset = DatasetConfig(
     #         },
     #     }
 )
-save_dataset_config(dataset)
-validate_dataset_config(dataset.name)
+
+save_dataset_config(dataset_config)
+validate_dataset_config(dataset_config.name)
 
 # %% Update image manifest with new dataset location
-dataset_config = load_dataset_config(dataset_name)
-img_manifest = load_image_manifest("image_zarr")
-img_manifest = add_image_location_to_manifest(
-    dataset_config, img_manifest, dataset_config.zarr_path
-)
-save_image_manifest(img_manifest)
+
+zarr_parent_path = "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/"
+image_manifest = load_image_manifest("image_zarr")
+add_image_location_to_manifest(image_manifest, dataset_config, zarr_parent_path)
+save_image_manifest(image_manifest)
 
 # %%
-print("Reminder to add dataset to relavent collections!")
+print("Reminder to add dataset to relevant collections!")
 # %%

@@ -1,4 +1,5 @@
 name: 20241120_20X
+date: '20241120'
 original_path: //allen/programs/allencell/data/proj0/223/29e/308/ce5/8a5/ca8/c44/7ed/88e/73b/15/20241120_GE00007382_20X_timelapse/20241120_20X_timelapse_SLDY.sldy
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241120_1573b88e7edc44ca88a5ce530829e223
 zarr_positions: [0, 1, 2, 3, 4, 5]
@@ -26,6 +27,7 @@ zarr_channel_indices:
   channel_405: null
   channel_561: null
   channel_640: null
+channel_names: [EGFP, BF]
 flow_conditions:
 - start: -28
   stop: 576

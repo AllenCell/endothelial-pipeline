@@ -128,7 +128,7 @@ def plot_measured_feat_pcs(
     alpha: float = 1.0,
 ) -> tuple[Figure, np.ndarray]:
 
-    pc_cols = [pc for pc in {*pc_cols_for_xaxis, *pc_cols_for_yaxis}]
+    pc_cols = list({*pc_cols_for_xaxis, *pc_cols_for_yaxis})
 
     assert len(pc_cols_for_xaxis) == len(
         pc_cols_for_yaxis
@@ -505,7 +505,7 @@ def plot_grid_vs_tracks_flow_field(
         velocities=(v1_grids, v2_grids),
         grid=(g1_grids, g2_grids),
         slice_indexes=slice_indexes,
-        ds=ds,
+        downsample_factor=ds,
         scale=scale,
         ax=ax,
         color="blue",
@@ -514,7 +514,7 @@ def plot_grid_vs_tracks_flow_field(
         velocities=(v1_tracks, v2_tracks),
         grid=(g1_tracks, g2_tracks),
         slice_indexes=slice_indexes,
-        ds=ds,
+        downsample_factor=ds,
         scale=scale,
         ax=ax,
         color="red",

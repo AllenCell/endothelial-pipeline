@@ -2,7 +2,8 @@ from typing import Annotated, Literal
 
 from cyclopts import Parameter
 
-from endo_pipeline.settings import (
+from endo_pipeline.settings.image_data import DIFFAE_DEFAULT_CROP_SIZE
+from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING,
     DEFAULT_NUM_LATENT_DIMENSIONS,
 )
@@ -13,8 +14,7 @@ TAGS = ["diffae", "model_training"]
 def main(
     model_manifest_name: str | None = None,
     run_name: str | None = None,
-    resolution_level: int = 1,
-    crop_size: int = 128,
+    crop_size: int = DIFFAE_DEFAULT_CROP_SIZE,
     condition_on: Literal["bf", "cdh5"] = DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING,
     latent_dim: int = DEFAULT_NUM_LATENT_DIMENSIONS,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
@@ -58,9 +58,8 @@ def main(
     with the same flag.
 
     When ``include_cell_piling`` is True, the workflow will use the "standard"
-    dataframe manifest ``diffae_training_dataframe_resolution_RESOLUTION`` for
-    training with the suffix ``_include_cell_piling``. When False, the suffix will
-    be ``_exclude_cell_piling``.
+    dataframe manifest ``diffae_training_dataframe`` for training with the suffix
+    ``_include_cell_piling``. When False, the suffix will be ``_exclude_cell_piling``.
 
     **Workflow demo**
 
@@ -74,8 +73,6 @@ def main(
         An optional name for the model manifest.
     run_name
         An optional name for the training run.
-    resolution_level
-        The resolution level of the zarr files to be used for training.
     crop_size
         The length of the 2D image crop in pixels to use for model training.
     condition_on
@@ -102,7 +99,8 @@ def main(
         load_dataframe_manifest,
         save_model_manifest,
     )
-    from endo_pipeline.settings import DIFFAE_IMAGE_LOADING_KEY_PREFIX, DIFFAE_MODEL_TRAIN_CONFIG
+    from endo_pipeline.settings.diffae_configs import DIFFAE_MODEL_TRAIN_CONFIG
+    from endo_pipeline.settings.workflow_defaults import DIFFAE_IMAGE_LOADING_KEY_PREFIX
 
     logger = logging.getLogger(__name__)
 
@@ -112,7 +110,7 @@ def main(
     # rates. Note that while 100% of the data is used for demo mode, the cache
     # rate for actual training can be adjusted if needed.
     if DEMO_MODE:
-        name_suffix = "_test_workflow"
+        name_suffix = "_demo"
         max_num_epochs = 1
         log_every_n_steps = 1
         cache_rate = 1.0
@@ -125,7 +123,6 @@ def main(
         replace_rate = 0.5
 
     # Create name components from input parameters
-    res_name = f"_resolution_{resolution_level}"
     patch_name = f"_patch_{crop_size}x{crop_size}"
     condition_name = f"_condition_on_{condition_on}"
     latent_name = f"_latent_{latent_dim}"
@@ -134,7 +131,7 @@ def main(
     # Build dataframe manifest name to load training and validation dataframes.
     # Note that the dataframe manifest name does not include the patch size or
     # conditioning type, as these are not relevant for the dataframe itself.
-    dataframe_manifest_name = f"diffae_training_dataframe{res_name}{piling_name}{name_suffix}"
+    dataframe_manifest_name = f"diffae_training_dataframe{piling_name}{name_suffix}"
 
     try:
         dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
@@ -160,9 +157,7 @@ def main(
 
     # Build the model manifest name, if not provided.
     if model_manifest_name is None:
-        model_manifest_name = (
-            f"diffae{res_name}{patch_name}{condition_name}{latent_name}{piling_name}"
-        )
+        model_manifest_name = f"diffae{patch_name}{condition_name}{latent_name}{piling_name}"
 
     # Create or load the model manifest.
     manifest = create_model_manifest(model_manifest_name, __file__)
@@ -220,7 +215,6 @@ def main(
         "crop_size": crop_size,
         "condition_on": condition_on,
         "latent_dim": latent_dim,
-        "resolution_level": resolution_level,
         "include_cell_piling": include_cell_piling,
     }
     manifest.locations[run_name] = ModelLocation()

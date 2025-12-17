@@ -1,0 +1,7 @@
+name: smad1_control
+description: Datasets for secondary control
+datasets:
+- 20250509_20X_IF11
+- 20250522_20X_IFO
+- 20250929_20X_IF11
+- 20251103_20X_IF9

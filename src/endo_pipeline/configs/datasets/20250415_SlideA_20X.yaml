@@ -1,4 +1,5 @@
 name: 20250415_SlideA_20X
+date: '20250415'
 original_path: //allen/programs/allencell/data/proj0/af5/a86/27d/d28/ffd/319/b4d/ee9/0b6/9a4/80/20250415_GE00007488_slideA_20X_sldy/20250415_GE00007488_slideA_20X_sldy.sldy
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250415_809a40b6ee9b4d319ffdd2827da86af5
 zarr_positions: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
@@ -28,6 +29,7 @@ zarr_channel_indices:
   channel_405: 2
   channel_561: null
   channel_640: null
+channel_names: [EGFP, BF, '405']
 flow_conditions:
 - start: -588
   stop: 0

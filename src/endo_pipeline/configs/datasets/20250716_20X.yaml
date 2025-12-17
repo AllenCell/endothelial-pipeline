@@ -1,4 +1,5 @@
 name: 20250716_20X
+date: '20250716'
 original_path: //allen/programs/allencell/data/proj0/53e/924/468/8e5/226/eab/248/c91/2ec/8c6/32/20250716_GE00008450_20X_SLDY_2/20250716_GE00008450_20X_SLDY.sldy
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250716_328c62ecc91248eab2268e546892453e
 zarr_positions: [0, 1, 2, 3, 4, 5]
@@ -26,6 +27,7 @@ zarr_channel_indices:
   channel_405: null
   channel_561: null
   channel_640: null
+channel_names: [EGFP, BF]
 flow_conditions:
 - start: 15
   stop: 576
@@ -58,6 +60,20 @@ timepoint_annotations:
     5: []
   bf_scope_error:
     2: [0]
+  cell_piling:
+    0: [[332, 576]]
+    1: [[319, 576]]
+    2: [[317, 576]]
+    3: [[370, 576]]
+    4: [[316, 576]]
+    5: [[411, 576]]
+  not_steady_state:
+    0: [[0, 163]]
+    1: [[0, 92]]
+    2: [[0, 104]]
+    3: [[0, 90]]
+    4: [[0, 117]]
+    5: [[0, 113]]
 position_annotations: null
 center_z_plane:
   0: 13

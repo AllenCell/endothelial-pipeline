@@ -90,40 +90,32 @@ def get_available_zarr_locations(dataset: DatasetConfig) -> list[ImageLocation]:
 
 
 def add_image_location_to_manifest(
-    dataset_config: DatasetConfig,
-    img_manifest: ImageManifest,
-    path_prefix: str | Path,
-    add_directory: bool = False,
-) -> ImageManifest:
+    manifest: ImageManifest,
+    dataset: DatasetConfig,
+    parent_path: str | Path,
+) -> None:
     """
-    Add or update image location for given dataset in the manifest
+    Add or update image location for given dataset in the manifest.
+
+    The path is formatted as:
+
+        PARENT_PATH / DATE_FMSID / DATE_FMSID_P{{position}}.ome.zarr
 
     Parameters
     ----------
-    dataset_config : DatasetConfig
-        Dataset configuration object
-    img_manifest : ImageManifest
-        Image manifest object
-    add_directory : bool
-        Whether to add a directory structure to the path with date and fmsid
-    path_prefix : str | Path
-        Prefix path to the image location
-
-    Returns
-    -------
-    img_manifest : ImageManifest
-        Updated image manifest object
+    manifest
+        Image manifest object.
+    dataset
+        Dataset config object.
+    parent_path
+        Path to the parent location for the image.
     """
-    date = dataset_config.name[:8]
-    fmsid = dataset_config.fmsid
-    suffix = "P{{position}}.ome.zarr"
 
-    if add_directory:
-        suffix = f"/{date}_{fmsid}/{date}_{fmsid}_{suffix}"
-    else:
-        suffix = f"{date}_{fmsid}_{suffix}"
+    date = dataset.date
+    fmsid = dataset.fmsid
+    path = Path(parent_path) / f"{date}_{fmsid}" / f"{date}_{fmsid}_P{{{{position}}}}.ome.zarr"
 
-    new_path = f"{path_prefix}/{suffix}"
-    img_manifest.locations[dataset_config.name] = ImageLocation(path=Path(new_path))
+    if dataset.name in manifest.locations.keys():
+        logger.warning("Dataset [ %s ] has existing location and will be overwritten", dataset.name)
 
-    return img_manifest
+    manifest.locations[dataset.name] = ImageLocation(path=path)

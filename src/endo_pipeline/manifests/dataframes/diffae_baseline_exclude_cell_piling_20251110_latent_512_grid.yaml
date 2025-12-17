@@ -1,0 +1,41 @@
+name: diffae_baseline_exclude_cell_piling_20251110_latent_512_grid
+workflow: eval_diffae_grid
+parameters:
+  z_slice_offsets:
+  - 4
+  - 11
+  config_name: diffae_eval
+locations:
+  20250319_20X:
+    fmsid: 2763ba9a3eaa4b98956f78ebc5622d57
+    s3uri: null
+  20250428_20X:
+    fmsid: 4877315e55254451972e850aba35d393
+    s3uri: null
+  20250611_20X:
+    fmsid: d0156d859e404e50b1a1cfded9b313e2
+    s3uri: null
+  20250618_20X:
+    fmsid: 18dee74d839948ee976a678cbba764ce
+    s3uri: null
+  20250714_20X:
+    fmsid: 0dc68bcbcde042768b3abff20ee22a2c
+    s3uri: null
+  20250813_20X:
+    fmsid: 142dcb6df0f84c7fa2f8aed24eeeda98
+    s3uri: null
+  20250818_20X:
+    fmsid: 7a041e6516a64d13bd78231e108cee11
+    s3uri: null
+  20250827_20X:
+    fmsid: feac7c4a64fe495fbc0cde2b71ca071b
+    s3uri: null
+  20250908_20X:
+    fmsid: e28a1b880cba47c7aae91507662de56b
+    s3uri: null
+  20251022_20X:
+    fmsid: a3001d1cb42044888728883e84f03068
+    s3uri: null
+  20251105_20X:
+    fmsid: f4611041c4ba4ce3a9071559e054c860
+    s3uri: null

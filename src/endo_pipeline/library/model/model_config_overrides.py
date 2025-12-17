@@ -100,7 +100,6 @@ class ModelConfigOverride:
             self.cache_rate = OmegaConf.select(
                 config, "data.train_dataloaders.dataset.cache_rate", default=1.0
             )
-
         if self.replace_rate is None:
             self.replace_rate = OmegaConf.select(
                 config, "data.train_dataloaders.dataset.replace_rate", default=1.0
@@ -156,8 +155,10 @@ class ModelConfigOverride:
 
         # Calculate effective epochs.
         multiplier = (1 - self.cache_rate) / (self.cache_rate * self.replace_rate) + 1
-        effective_min_epochs = int(2500 * multiplier)
-        effective_max_epochs = int(self.max_epochs * multiplier)
+        effective_min_epochs = int(5000 * multiplier)
+        effective_max_epochs = max(
+            int(self.max_epochs * multiplier), int(1.5 * effective_min_epochs)
+        )
         effective_save_images_epochs = int(10 * multiplier)
 
         overrides = {
@@ -194,6 +195,7 @@ class ModelConfigOverride:
             # set device usage
             "trainer.accelerator": "cpu" if self.num_gpus is None else "gpu",
             "trainer.devices": self.num_gpus or 1,
+            "trainer.precision": "bf16-mixed" if self.num_gpus is None else "16-mixed",
         }
 
         # If single GPU or none, use "auto" strategy

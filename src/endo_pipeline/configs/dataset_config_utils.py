@@ -17,6 +17,7 @@ from endo_pipeline.configs import (
     load_dataset_collection_config,
     load_dataset_config,
 )
+from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -30,31 +31,6 @@ def get_regime_for_shear_stress(shear_stress: float) -> ShearStressRegime:
 
     logger.error("No shear stress regime found for shear stress [ %f ]", shear_stress)
     raise ValueError(f"No shear stress regime found for shear stress [ {shear_stress} ]")
-
-
-def get_available_zarr_files(dataset: DatasetConfig) -> list[Path]:
-    """Get list of all available Zarr files for given dataset."""
-
-    return [get_zarr_file_for_position(dataset, position) for position in dataset.zarr_positions]
-
-
-def get_zarr_file_for_position(dataset: DatasetConfig, position: int) -> Path:
-    """Get zarr file path for given dataset and position."""
-
-    zarr_path = Path(dataset.zarr_path)
-    zarr_file = zarr_path / f"{zarr_path.stem}_P{position}.ome.zarr"
-
-    if position not in dataset.zarr_positions:
-        logger.error("Position [ %s ] is not valid for dataset [ %s ]", position, dataset.name)
-        raise ValueError(f"Dataset [ {dataset.name} ] only has positions {dataset.zarr_positions}")
-    elif not zarr_file.exists():
-        # This check intentionally does not raise an exception because we do not
-        # want this method to fail if we are just getting the file names and not
-        # actually loading the file. The appropriate exceptions for being unable
-        # to load the file should/will be handled by loading methods.
-        logger.warning("Zarr file [ %s ] does not exist", zarr_file)
-
-    return zarr_file
 
 
 def get_position_string_from_zarr_file_path(zarr_file_path: str | Path) -> str:
@@ -99,7 +75,10 @@ def get_available_channels_for_position(dataset: DatasetConfig, position: int) -
 
     from bioio import BioImage
 
-    zarr_file = get_zarr_file_for_position(dataset, position)
+    from endo_pipeline.manifests import get_zarr_location_for_position
+
+    zarr_file = get_zarr_location_for_position(dataset, position).path
+    assert zarr_file is not None
     return BioImage(zarr_file).channel_names
 
 
@@ -181,7 +160,7 @@ def get_duration_at_flow(dataset: DatasetConfig, shear_stress: float) -> int:
 
 def get_subset_of_timepoint_annotations(
     annotations_to_ignore: list[TimepointAnnotation],
-) -> dict[int, list[int]]:
+) -> list[TimepointAnnotation]:
     """
     Get a subset of timepoint annotations to use for filtering data points.
 
@@ -378,11 +357,13 @@ def validate_3d_flow_field_dataset_collection() -> None:
 
     Validation checks that each dataset in the collection is from an experiment
     with a single flow condition, and that the collection contains each of the
-    datasets in the 'pca_reference' collection.
+    datasets in the default PCA dataset collection.
     """
 
     analysis_datasets = load_dataset_collection_config("3d_flow_field_analysis").datasets
-    pca_reference_datasets = load_dataset_collection_config("pca_reference").datasets
+    pca_reference_datasets = load_dataset_collection_config(
+        DEFAULT_PCA_DATASET_COLLECTION_NAME
+    ).datasets
 
     for dataset_name in analysis_datasets:
         dataset_config = load_dataset_config(dataset_name)

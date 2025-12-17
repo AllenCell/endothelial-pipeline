@@ -7,7 +7,10 @@ from endo_pipeline.configs import (
     PositionAnnotation,
     TimepointAnnotation,
 )
-from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
+from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    filter_dataframe_by_annotations,
+    get_latent_feature_column_names_from_dataframe,
+)
 from endo_pipeline.settings import ColumnName
 
 
@@ -15,6 +18,7 @@ from endo_pipeline.settings import ColumnName
 def dataset():
     return DatasetConfig(
         name="unique_dataset_name",
+        date="YYYYMMDD",
         original_path="/path/to/original/dataset",
         zarr_path="/path/to/zarr/dataset",
         zarr_positions=[1, 3, 5],
@@ -29,6 +33,7 @@ def dataset():
         pixel_size_xy_in_um=0.0,
         duration=4,
         time_interval_in_minutes=1.0,
+        channel_names=[],
         flow_conditions=[],
         n_total_positions=0,
         original_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
@@ -114,3 +119,37 @@ def test_filter_dataframe_by_annotations_without_annotations(dataframe, dataset)
     filtered_df = filter_dataframe_by_annotations(dataframe, dataset, [], [])
     assert filtered_df[ColumnName.POSITION].tolist() == dataframe[ColumnName.POSITION].tolist()
     assert filtered_df[ColumnName.TIMEPOINT].tolist() == dataframe[ColumnName.TIMEPOINT].tolist()
+
+
+@pytest.mark.parametrize(
+    "dataframe, expected_column_names",
+    [
+        (
+            pd.DataFrame(
+                {f"{ColumnName.LATENT_FEATURE_PREFIX}{i}": [0.1 * i] * 5 for i in range(10)}
+            ),
+            [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(10)],
+        ),
+        (
+            pd.DataFrame(
+                {f"{ColumnName.LATENT_FEATURE_PREFIX}{i}_suffix": [0.2 * i] * 3 for i in range(10)}
+            ),
+            [],
+        ),
+        (
+            pd.DataFrame(
+                {
+                    "other_column": [1, 2, 3],
+                    f"{ColumnName.LATENT_FEATURE_PREFIX}0": [0.0, 0.0, 0.0],
+                    f"{ColumnName.LATENT_FEATURE_PREFIX}1": [0.1, 0.1, 0.1],
+                    f"{ColumnName.LATENT_FEATURE_PREFIX}0_extra": [0.2, 0.2, 0.2],
+                    f"{ColumnName.LATENT_FEATURE_PREFIX}one": [0.2, 0.2, 0.2],
+                }
+            ),
+            [f"{ColumnName.LATENT_FEATURE_PREFIX}0", f"{ColumnName.LATENT_FEATURE_PREFIX}1"],
+        ),
+    ],
+)
+def test_get_latent_feature_column_names_from_dataframe(dataframe, expected_column_names):
+    latent_feature_columns = get_latent_feature_column_names_from_dataframe(dataframe)
+    assert latent_feature_columns == expected_column_names

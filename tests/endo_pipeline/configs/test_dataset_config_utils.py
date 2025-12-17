@@ -16,7 +16,6 @@ from endo_pipeline.configs.dataset_config_utils import (
     get_annotated_timepoints_for_position,
     get_available_channels_for_all_positions,
     get_available_channels_for_position,
-    get_available_zarr_files,
     get_channel_indices_for_all_positions,
     get_channel_indices_for_position,
     get_duration_at_flow,
@@ -27,15 +26,16 @@ from endo_pipeline.configs.dataset_config_utils import (
     get_position_string_from_zarr_file_path,
     get_unannotated_positions,
     get_unannotated_timepoints_for_position,
-    get_zarr_file_for_position,
     make_filtered_dataset_collection,
 )
+from endo_pipeline.manifests import ImageLocation
 
 
 @pytest.fixture
 def dataset():
     return DatasetConfig(
         name="unique_dataset_name",
+        date="YYYYMMDD",
         original_path="/path/to/original/dataset",
         zarr_path="/path/to/zarr/dataset",
         zarr_positions=[1, 3, 5],
@@ -50,6 +50,7 @@ def dataset():
         pixel_size_xy_in_um=0.0,
         duration=0,
         time_interval_in_minutes=0.0,
+        channel_names=[],
         flow_conditions=[],
         n_total_positions=0,
         original_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
@@ -80,30 +81,23 @@ def zarr_files(mocker):
     mocker.patch.object(bioio, "BioImage", bioimage_mock)
 
 
-def test_get_available_zarr_files(dataset):
-    zarr_files = get_available_zarr_files(dataset)
+@pytest.fixture
+def mock_get_zarr_location_for_position(mocker):
+    def _mocker(dataset_config, image_locations):
+        manifest_mock = mocker.patch("endo_pipeline.manifests.get_zarr_location_for_position")
+        manifest_mock.side_effect = lambda x, p: image_locations[p] if x == dataset_config else None
 
-    expected = [
-        Path("/path/to/zarr/dataset/dataset_P1.ome.zarr"),
-        Path("/path/to/zarr/dataset/dataset_P3.ome.zarr"),
-        Path("/path/to/zarr/dataset/dataset_P5.ome.zarr"),
-    ]
-
-    assert zarr_files == expected
+    return _mocker
 
 
-def test_get_zarr_file_for_position_valid(dataset):
-    zarr_file = get_zarr_file_for_position(dataset, position=3)
+def test_get_available_channels_for_all_positions(mock_get_zarr_location_for_position, dataset):
+    image_locations = {
+        1: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P1.ome.zarr")),
+        3: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P3.ome.zarr")),
+        5: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P5.ome.zarr")),
+    }
+    mock_get_zarr_location_for_position(dataset, image_locations)
 
-    assert zarr_file == Path("/path/to/zarr/dataset/dataset_P3.ome.zarr")
-
-
-def test_get_zarr_file_for_position_invalid(dataset):
-    with pytest.raises(ValueError):
-        get_zarr_file_for_position(dataset, position=4)
-
-
-def test_get_available_channels_for_all_positions(dataset):
     channels = get_available_channels_for_all_positions(dataset)
 
     assert channels == {
@@ -121,13 +115,28 @@ def test_get_available_channels_for_all_positions(dataset):
         (5, ["Channel1", "Channel3", "Channel4"]),
     ],
 )
-def test_get_available_channels_for_position(dataset, position, expected):
+def test_get_available_channels_for_position(
+    mock_get_zarr_location_for_position, dataset, position, expected
+):
+    image_locations = {
+        1: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P1.ome.zarr")),
+        3: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P3.ome.zarr")),
+        5: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P5.ome.zarr")),
+    }
+    mock_get_zarr_location_for_position(dataset, image_locations)
+
     channels = get_available_channels_for_position(dataset, position)
 
     assert channels == expected
 
 
-def test_get_channel_indices_for_all_positions(dataset):
+def test_get_channel_indices_for_all_positions(mock_get_zarr_location_for_position, dataset):
+    image_locations = {
+        1: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P1.ome.zarr")),
+        3: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P3.ome.zarr")),
+        5: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P5.ome.zarr")),
+    }
+    mock_get_zarr_location_for_position(dataset, image_locations)
     channel_names = ["Channel3", "Channel1", "Channel2"]
 
     channels = get_channel_indices_for_all_positions(dataset, channel_names)
@@ -147,7 +156,15 @@ def test_get_channel_indices_for_all_positions(dataset):
         (5, [1, None]),
     ],
 )
-def test_get_channel_indices_for_position(dataset, position, expected):
+def test_get_channel_indices_for_position(
+    mock_get_zarr_location_for_position, dataset, position, expected
+):
+    image_locations = {
+        1: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P1.ome.zarr")),
+        3: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P3.ome.zarr")),
+        5: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P5.ome.zarr")),
+    }
+    mock_get_zarr_location_for_position(dataset, image_locations)
     channel_names = ["Channel3", "Channel2"]
 
     indices = get_channel_indices_for_position(dataset, position, channel_names)

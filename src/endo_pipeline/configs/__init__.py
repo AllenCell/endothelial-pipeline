@@ -30,7 +30,6 @@ from .dataset_config_utils import (
     get_annotated_timepoints_for_position,
     get_available_channels_for_all_positions,
     get_available_channels_for_position,
-    get_available_zarr_files,
     get_channel_indices_for_all_positions,
     get_channel_indices_for_position,
     get_duration_at_flow,
@@ -44,13 +43,13 @@ from .dataset_config_utils import (
     get_subset_of_timepoint_annotations,
     get_unannotated_positions,
     get_unannotated_timepoints_for_position,
-    get_zarr_file_for_position,
     make_filtered_dataset_collection,
     validate_3d_flow_field_dataset_collection,
     validate_filtered_dataset_collection,
 )
 from .model_config import CytoDLModelConfig
 from .model_config_io import get_model_config_dir, load_model_config
+from .model_config_utils import get_latent_dim_from_config
 
 __all__ = [
     "ChannelIndices",
@@ -71,7 +70,6 @@ __all__ = [
     "get_available_channels_for_position",
     "get_available_dataset_collection_names",
     "get_available_dataset_names",
-    "get_available_zarr_files",
     "get_channel_indices_for_all_positions",
     "get_channel_indices_for_position",
     "get_dataset_collection_config_dir",
@@ -82,6 +80,7 @@ __all__ = [
     "get_flow_at_frame",
     "get_frame_after_flow_change",
     "get_frame_before_flow_change",
+    "get_latent_dim_from_config",
     "get_model_config_dir",
     "get_position_integer_from_zarr_file_path",
     "get_position_string_from_zarr_file_path",
@@ -89,7 +88,6 @@ __all__ = [
     "get_subset_of_timepoint_annotations",
     "get_unannotated_positions",
     "get_unannotated_timepoints_for_position",
-    "get_zarr_file_for_position",
     "load_all_dataset_configs",
     "load_dataset_collection_config",
     "load_dataset_config",

@@ -1,3 +1,6 @@
+import logging
+from pathlib import Path
+
 import networkx
 import numpy as np
 from dask.array import Array
@@ -22,6 +25,18 @@ from skimage.segmentation import (
     relabel_sequential,
     watershed,
 )
+
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import load_image
+from endo_pipeline.library.process.general_image_preprocessing import save_image_output
+from endo_pipeline.manifests import (
+    get_image_location_for_dataset,
+    get_zarr_location_for_position,
+    load_image_manifest,
+)
+from endo_pipeline.settings import DIMENSION_ORDER
+
+logger = logging.getLogger(__name__)
 
 
 def preprocess(
@@ -650,9 +665,7 @@ def split_multinucleate_regions(
     # a single segmented region
     # get properties of nuclei predictions and original segmentations
     nuc_props = regionprops(nuclei_segmentations)
-    nuc_prop_sizes = dict(
-        zip([prop.label for prop in nuc_props], [prop.area for prop in nuc_props])
-    )
+    nuc_prop_sizes = {prop.label: prop.area for prop in nuc_props}
     nuc_props_new = regionprops(
         label_image=nuc_seg_merge_adjacent, intensity_image=nuclei_segmentations
     )
@@ -784,3 +797,159 @@ def split_multinucleate_regions(
     seeds = seeds_cleaned * np.isin(seeds_cleaned, np.unique(seg[np.nonzero(seg)])) * seg_mask_final
 
     return seg, seeds
+
+
+def generate_cdh5_segmentation_refined(
+    out_dir: Path,
+    dataset_name: str,
+    timepoint: int,
+    position: int,
+    img_bin_level: int = 0,
+    save_output: bool = True,
+    create_validation_image: bool = False,
+) -> None:
+    """Produce cdh5 segmentations for a given dataset, position, and timepoint."""
+
+    logger.info(f"Working on {dataset_name} -- T={timepoint}...")
+    logger.info(f"T={timepoint} -- initializing workflow")
+    seg_dir = out_dir / "segmentations"
+    val_dir = out_dir / "validations"
+
+    logger.info(f"T={timepoint} -- loading dataset from zarr")
+    dataset_config = load_dataset_config(dataset_name)
+    zarr_loc = get_zarr_location_for_position(dataset_config, position)
+    img = load_image(zarr_loc, read=False)
+    raw_dask_arr = load_image(
+        zarr_loc, channels=["EGFP"], timepoints=timepoint, level=img_bin_level
+    )
+
+    raw_arr_mip = (
+        raw_dask_arr.max(axis=DIMENSION_ORDER.index("Z"), keepdims=True).compute().squeeze()
+    )
+
+    logger.info(f"T={timepoint} -- preprocessing image")
+    processed_img = preprocess(raw_arr_mip)
+
+    logger.info(f"T={timepoint} -- getting and cleaning image thresholds")
+    hyst, hyst_clean, hyst_removed = get_thresholds(processed_img)
+
+    logger.info(f"T={timepoint} -- getting and cleaning RAG-based segmentations")
+    seg2_lab_no_mask_merge, seg2_lab = generate_segmentations(
+        processed_img, hyst, hyst_clean, hyst_removed, 80
+    )
+
+    logger.info(f"T={timepoint} -- loading nuclei segmentations")
+    seg_manifest = load_image_manifest("nuclear_labelfree_seg")
+    seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position, timepoint)
+    nuc_pred = load_image(seg_location, squeeze=True, compute=True)
+
+    logger.info(f"T={timepoint} -- splitting RAG-based segmentations using nuclei predictions")
+
+    seg_aug, seeds = split_multinucleate_regions(
+        cell_segmentations=seg2_lab_no_mask_merge,
+        nuclei_segmentations=nuc_pred,
+        cell_boundary_thresh=hyst,
+        cell_boundary_image=processed_img,
+    )
+
+    if save_output:
+        # save every nth image for validation
+        if create_validation_image:
+            logger.info(f"T={timepoint} -- saving validation overlay")
+            val_path = (
+                val_dir
+                / dataset_name
+                / f"P{position}"
+                / f"{dataset_name}_P{position}_T{timepoint}.ome.tiff"
+            )
+            Path.mkdir(val_path.parent, exist_ok=True, parents=True)
+
+            seg2_lab_no_mask_merge_bounds = find_boundaries(seg2_lab_no_mask_merge)
+            seg_aug_bounds = find_boundaries(seg_aug)
+
+            images_out = [
+                raw_arr_mip,
+                processed_img,
+                hyst_clean,
+                seg2_lab,
+                seg2_lab_no_mask_merge_bounds,
+                seeds,  # NOTE used to be nuc_pred, remove this comment if done
+                seg_aug,  # add the augmented segmentation
+                seg_aug_bounds,  # add the augmented segmentation boundaries
+            ]
+            images_out_metadata = {
+                "image_name": dataset_name,
+                "channel_names": [
+                    "raw",
+                    "processed",
+                    "hysteresis_threshold",
+                    "segmentations_initial",
+                    "segmentations_merged",
+                    "nuclei_predictions",
+                    "cdh5_segmentations_split_by_nuclei",  # name for augmented segmentation
+                    "cdh5_segmentations_split_by_nuclei_borders",  # name for aug seg boundaries
+                ],
+                "channel_colors": [
+                    (255, 255, 255),
+                    (255, 255, 255),
+                    (0, 255, 255),
+                    (255, 0, 255),
+                    (255, 0, 255),
+                    (255, 0, 0),  # color for the nuclei predictions
+                    (0, 255, 0),  # color for the augmented segmentation
+                    (0, 0, 255),  # color for the augmented segmentation boundaries
+                ],
+                "physical_pixel_sizes": img.physical_pixel_sizes,
+                "dim_order": "YX",
+                "dtype": None,
+            }
+            save_image_output(val_path, images_out, images_out_metadata)
+
+        # save just the cdh5 segmentations
+        logger.info(f"T={timepoint} -- saving segmentation")
+        out_path = (
+            seg_dir
+            / dataset_name
+            / f"P{position}"
+            / f"{dataset_name}_P{position}_T{timepoint}.ome.tiff"
+        )
+        Path.mkdir(out_path.parent, exist_ok=True, parents=True)
+        images_out = [
+            seg_aug,
+        ]
+        images_out_metadata = {
+            "image_name": dataset_name,
+            "channel_names": ["cdh5_segmentations_split_by_nuclei"],
+            "channel_colors": [
+                (255, 255, 255),
+            ],
+            "physical_pixel_sizes": img.physical_pixel_sizes,
+            "dim_order": "YX",
+        }
+        save_image_output(out_path, images_out, images_out_metadata)
+    else:
+        pass
+
+
+def generate_cdh5_segmentation_refined_multiproc_wrapper(args: dict) -> None:
+    """Unpack arguments required for and call `generate_cdh5_segmentation_refined` function.
+    Produces cdh5 segmentations for a given dataset, position, and timepoint using
+    multiprocessing.
+    """
+
+    dataset_name = args["dataset_name"]
+    position = args["position"]
+    timepoint = args["T"]
+    img_bin_level = args["image_bin_level"]
+    save_output = args["save_output"]
+    out_dir = args["output_dir"]
+    create_validation_image = args["is_validation_image"]
+    generate_cdh5_segmentation_refined(
+        out_dir=out_dir,
+        dataset_name=dataset_name,
+        timepoint=timepoint,
+        position=position,
+        img_bin_level=img_bin_level,
+        save_output=save_output,
+        create_validation_image=create_validation_image,
+    )

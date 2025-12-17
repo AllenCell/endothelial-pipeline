@@ -5,13 +5,12 @@ import logging
 from pathlib import Path
 from typing import Literal
 
-import matplotlib.pyplot as plt
 from git import Repo
 from matplotlib.figure import Figure
 
 from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.manifests import ModelManifest
-from endo_pipeline.settings.figures import FIGURE_SAVE_DPI, FONT_FAMILY, PDF_FONT_TYPE
+from endo_pipeline.settings.figures import FIGURE_SAVE_DPI
 
 logger = logging.getLogger(__name__)
 
@@ -219,9 +218,10 @@ def build_fms_annotations(
         notes.append(f"Model: {model_manifest.name}{model_run}")
 
         # Add mlflow run id annotation, if found
-        model_location = model_manifest.locations.get(run_name, None)
-        if model_location is not None and model_location.mlflowid is not None:
-            metadata_builder.add_annotation("mlflow run id", model_location.mlflowid)
+        if run_name is not None:
+            model_location = model_manifest.locations.get(run_name, None)
+            if model_location is not None and model_location.mlflowid is not None:
+                metadata_builder.add_annotation("mlflow run id", model_location.mlflowid)
 
     notes.append(f"\n{additional_notes}")
 
@@ -252,6 +252,7 @@ def upload_file_to_fms(
     :
         FMS file id for the uploaded file.
     """
+
     from endo_pipeline import DEMO_MODE, USE_STAGING
     from endo_pipeline.io.fms import FMS, FMS_FILE_NAME
 
@@ -286,12 +287,36 @@ def upload_file_to_fms(
     return fms_file.id
 
 
+def cache_fms_files(fmsids: str | list[str]) -> dict:
+    """
+    Download or extend expiration of a FMS file in the Vast on-prem cache.
+
+    Parameters
+    ----------
+    fmsid
+        FMS file ID.
+    """
+
+    from endo_pipeline import DEMO_MODE
+    from endo_pipeline.io.fms import FMS
+
+    fmsids = [fmsids] if isinstance(fmsids, str) else fmsids
+
+    # When running in demo mode, we skip FMS cache requests. Instead, return
+    # the expected data structure with given FMS ids.
+    if DEMO_MODE:
+        logger.debug("Skipped FMS cache request in demo mode")
+        return {"cacheFileStatuses": dict.fromkeys(fmsids, "DOWNLOAD_COMPLETE")}
+
+    return FMS.cache_files(fmsids)
+
+
 def save_plot_to_path(
     figure: Figure,
     output_path: Path,
     figure_name: str,
     dpi: int = FIGURE_SAVE_DPI,
-    file_format: Literal[".png", ".pdf"] = ".png",
+    file_format: Literal[".png", ".svg", ".pdf"] = ".png",
     transparent: bool = False,
     pad_inches: float = 0.1,
 ) -> None:
@@ -307,7 +332,7 @@ def save_plot_to_path(
     figure_name
         Name of the figure.
     file_format
-        File format for the figure, either .png or .pdf.
+        File format for the figure. Valid options: .png | .svg | .pdf
     dpi
         Resolution of the figure in dots per inch (dpi).
     transparent
@@ -315,13 +340,6 @@ def save_plot_to_path(
     pad_inches
         Amount of padding around the figure when saving, in inches.
     """
-
-    plt.rcParams.update(
-        {
-            "pdf.fonttype": PDF_FONT_TYPE,
-            "font.family": FONT_FAMILY,
-        }
-    )
 
     output_file = (output_path / figure_name).with_suffix(file_format)
     figure.savefig(

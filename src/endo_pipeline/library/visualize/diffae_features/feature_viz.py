@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, Literal
 
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
@@ -50,6 +50,7 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     ax.plot(
         np.arange(1, n_components + 1), 0.95 * np.ones(n_components), "r--", alpha=0.8
     )  # 95% explained variance line
+    ax.set_ylim(0, 1.05)
     ax.set_xlabel("Number of components")
     ax.set_ylabel("Cumulative explained variance")
     ax.set_title("Explained variance ratio of PCA components")
@@ -57,7 +58,10 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     return fig, ax
 
 
-def plot_component_loadings(loading_matrix: np.ndarray) -> tuple[Figure, Axes]:
+def plot_component_loadings(
+    loading_matrix: np.ndarray,
+    include_legend: bool = True,
+) -> tuple[Figure, Axes]:
     """
     Plot component loadings of PCA model.
 
@@ -65,6 +69,8 @@ def plot_component_loadings(loading_matrix: np.ndarray) -> tuple[Figure, Axes]:
     ----------
     loading_matrix:
         PCA component loadings matrix, shape (n_features, n_components).
+    include_legend
+        True to include legend in the plot, False to exclude it.
 
     Returns
     -------
@@ -74,7 +80,10 @@ def plot_component_loadings(loading_matrix: np.ndarray) -> tuple[Figure, Axes]:
     fig, ax = viz_base.init_plot(figsize=(12, 6))  # initialize figure and axes
 
     # list of markers for each component
-    markers = ["o", "s", "D", "^", "v", "X", "*", "p"]
+    # NEED THIS TO BE FLEXIBLE BASED ON NUMBER OF PCS
+    num_components = loading_matrix.shape[1]
+    markers_unique = ["o", "s", "D", "^", "v", "X", "*", "p"]
+    markers = markers_unique * (num_components // len(markers_unique) + 1)
 
     # plot loadings for each component
     for i in range(loading_matrix.shape[1]):
@@ -82,7 +91,8 @@ def plot_component_loadings(loading_matrix: np.ndarray) -> tuple[Figure, Axes]:
     ax.set_xlabel("Feature index")
     ax.set_ylabel("Loading value")
     ax.set_title("PCA Loadings")
-    ax.legend(loc=(1.05, 0.5), title="PCs")
+    if include_legend:
+        ax.legend(loc=(1.05, 0.5), title="PCs")
 
     return fig, ax
 
@@ -117,6 +127,7 @@ def plot_pc_scatter(
     dataframe_manifest: DataframeManifest,
     pca: PCA,
     include_cell_piling: bool = False,
+    crop_pattern: Literal["grid", "tracked"] = "grid",
     alpha: float = 0.75,
     scatter_size: float = 0.01,
     pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
@@ -134,6 +145,8 @@ def plot_pc_scatter(
         Fit PCA model used to transform the data.
     include_cell_piling
         Include cell piling timepoings from the plot if True, exclude if False.
+    crop_pattern
+        Crop pattern used in the dataframes; either 'grid' or 'tracked'.
     alpha
         Alpha (opacity) value for scatter plot points.
     scatter_size
@@ -159,7 +172,11 @@ def plot_pc_scatter(
         # plot or don't plot cell piling timepoints based on
         # value of include_cell_piling
         df = get_dataframe_for_dynamics_workflows(
-            dataset_name, dataframe_manifest, pca, include_cell_piling=include_cell_piling
+            dataset_name,
+            dataframe_manifest,
+            pca,
+            include_cell_piling=include_cell_piling,
+            crop_pattern=crop_pattern,
         )
 
         # get color for the dataset
@@ -354,6 +371,7 @@ def pc_loading_heatmap_workflow(
     pca_loadings_df: pd.DataFrame,
     diffae_feature_columns: list[str] = DIFFAE_FEATURE_COLUMN_NAMES,
     pc_columns: list[str] = DIFFAE_PC_COLUMN_NAMES,
+    annotate: bool = True,
 ) -> Figure:
     """
     Workflow to visualize PCA loadings as a heatmap.
@@ -366,6 +384,8 @@ def pc_loading_heatmap_workflow(
         List of DiffAE feature column names to include in the heatmap.
     pc_columns
         List of PCA column names to include in the heatmap.
+    annotate
+        If True, annotate the heatmap with loading values.
 
     Returns
     -------
@@ -381,10 +401,18 @@ def pc_loading_heatmap_workflow(
     pca_loadings_df.index = pca_loadings_df.index.map(get_label_for_column)
     pca_loadings_df.columns = pca_loadings_df.columns.map(get_label_for_column)
 
+    if annotate and (len(pca_loadings_df) > 16 or len(pca_loadings_df.columns) > 16):
+        logger.warning(
+            "Heatmap may be difficult to read with more than 16 rows or columns. "
+            "Disabling annotation."
+        )
+        annotate = False
+
     fig_heatmap, ax_heatmap = plt.subplots(figsize=(10, 10))
     ax_heatmap = sns.heatmap(
         pca_loadings_df,
-        annot=True,
+        annot=annotate,
+        fmt=".3f",
         cmap="RdBu",
         center=0,
         ax=ax_heatmap,

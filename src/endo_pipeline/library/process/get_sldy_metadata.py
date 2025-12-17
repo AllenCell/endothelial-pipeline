@@ -485,9 +485,7 @@ def get_test_of_metadata() -> tuple[dict, list]:
         "aa": {"bb": {"cc": {"dd1": 1, "dd2": 2, "dd3": 3}}},
         "aaa": {"bbb": {"ccc": {"ddd1": 1, "ddd2": 2, "ddd3": 3}}},
     }
-    md_keys = [
-        x for x in get_nested_keys(md_test, ls=[], iterable_size_limit=10, check_for_lists=True)
-    ]
+    md_keys = list(get_nested_keys(md_test, ls=[], iterable_size_limit=10, check_for_lists=True))
     return md_test, md_keys
 
 
@@ -503,9 +501,7 @@ def get_example_metadata() -> Any:
 def show_example_usage() -> None:
     metadata = get_example_metadata()
     print("What are the keys / headers in the metadata?")
-    print(
-        [x for x in get_nested_keys(metadata, ls=[], iterable_size_limit=50, check_for_lists=True)]
-    )
+    print(list(get_nested_keys(metadata, ls=[], iterable_size_limit=50, check_for_lists=True)))
 
     print("What is the magnification of the objective used to collect these images?")
     print(get_objective_info(metadata)["magnification"])
