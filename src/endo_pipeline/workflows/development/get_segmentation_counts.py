@@ -26,6 +26,15 @@ def main():
         "num_nuclei_predictions": [],
         "num_cell_segmentations_before_filter": [],
         "num_cell_segmentations_after_filter": [],
+        "dataset_duration_timeframes": [],
+        "timeframes_used_after_filter": [],
+        "timeframes_used_for_training": [],
+        "major_axis_length_mean_um": [],
+        "major_axis_length_std_um": [],
+        "major_axis_length_median_um": [],
+        "major_axis_length_mean_px": [],
+        "major_axis_length_std_px": [],
+        "major_axis_length_median_px": [],
     }
 
     # generate sequence of unique datasets to process and add to the seg_counts dictionary
@@ -97,6 +106,11 @@ def main():
             # and num_cell_seg_after_filt with
             # live_seg_feats_df.query("is_included==True").groupby(["image_index", ColumnName.POSITION]).label.nunique().sum()
 
+            # add some descriptive statistics about cell lengths to the dataset
+            # (this is approximated by reporting the major axis of an ellipse fit to a segmentation)
+            # seg_lengths_px_mean = live_seg_feats_df[ColumnName.MAJOR_AXIS_LENGTH_PX]
+            # seg_lengths_um_mean = live_seg_feats_df[ColumnName.MAJOR_AXIS_LENGTH_UM]
+
             # delete the segmentation features dataframe to keep memory usage down
             del live_seg_feats_df
 
@@ -107,6 +121,7 @@ def main():
         seg_counts["num_nuclei_predictions"].append(num_nuc_pred)
         seg_counts["num_cell_segmentations_before_filter"].append(num_cell_seg_before_filt)
         seg_counts["num_cell_segmentations_after_filter"].append(num_cell_seg_after_filt)
+        seg_counts["dataset_duration_timeframes"].append(dataset_config.duration)
 
     # convert the seg_counts dictionary to a dataframe and save the results
     seg_counts_df = pd.DataFrame(seg_counts)
