@@ -284,7 +284,7 @@ def get_and_analyze_ddff(
     flow_field_viz.plot_stable_fixed_points_together(dataset_names, fig_savedir, output_savedir)
 
 
-def fill_nan_with_nearest(data):
+def fill_nan_for_vtk(data: np.ndarray) -> np.ndarray:
     """
     Replaces NaN values in a multi-dimensional NumPy array with the value
     of the nearest non-NaN neighbor using scipy.interpolate.griddata.
@@ -294,12 +294,15 @@ def fill_nan_with_nearest(data):
     coordinate lists rather than generating large auxiliary index arrays
     (which likely caused the memory crash).
 
-    Args:
-        data (np.ndarray): The input NumPy array (can be 1D, 2D, or 3D)
-                           containing NaN values.
+    Parameters
+    ----------
+    data
+        Input NumPy array with NaN values to be imputed.
 
-    Returns:
-        np.ndarray: A copy of the input array with NaNs imputed.
+    Returns
+    -------
+    :
+        A copy of the input array with NaNs imputed.
     """
     # Create a copy to avoid modifying the original data
     arr = data.copy()
@@ -338,6 +341,7 @@ def compute_extrapolated_vector_field(
     kmcs: np.ndarray,
     grid_centers: list[np.ndarray],
     method: str = "linear",
+    for_vtk_files: bool = False,
 ) -> dict:
     """
     Extrapolate a 3D vector field from Kramers-Moyal estimates over a specified grid.
@@ -367,6 +371,8 @@ def compute_extrapolated_vector_field(
         List of 1D numpy arrays with the grid points in each dimension
     method
         Method to use for extrapolating the vector field where there are NaNs.
+    for_vtk_files
+        Whether the output is intended for saving as .vtk files.
     """
 
     filled_kmcs = kmcs.copy()
@@ -378,18 +384,20 @@ def compute_extrapolated_vector_field(
         component = filled_kmcs[..., i]
         nan_mask = np.isnan(component)
         if np.any(nan_mask):
+            if for_vtk_files:
+                component = fill_nan_for_vtk(component)
             # Prepare points and values for interpolation
             # fill_value set to None for extrapolation
-            # interpolator = RegularGridInterpolator(
-            #     grid_centers,
-            #     np.where(nan_mask, 0, component),  # fill NaNs with zeros for shape
-            #     method=method,
-            #     bounds_error=False,
-            #     fill_value=None,  # extrapolate outside convex hull
-            # )
-            # nan_points = np.array([X[nan_mask], Y[nan_mask], Z[nan_mask]]).T
-            # component[nan_mask] = interpolator(nan_points)
-            component = fill_nan_with_nearest(component)
+            else:
+                interpolator = RegularGridInterpolator(
+                    grid_centers,
+                    np.where(nan_mask, 0, component),  # fill NaNs with zeros for shape
+                    method=method,
+                    bounds_error=False,
+                    fill_value=None,  # extrapolate outside convex hull
+                )
+                nan_points = np.array([X[nan_mask], Y[nan_mask], Z[nan_mask]]).T
+                component[nan_mask] = interpolator(nan_points)
             filled_kmcs[..., i] = component
 
     vectors = tuple(filled_kmcs[..., i] for i in range(n_components))
