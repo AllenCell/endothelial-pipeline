@@ -772,7 +772,7 @@ def get_vector_angles_as_grid(
         list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks), strict=True))
     )
     ang_full = get_vector_vector_angle_fast(vecs_grids, vecs_tracks)
-    ang_arr = ang_full.reshape((50, 50, 50))
+    ang_arr = ang_full.reshape(v1_grids.shape)
     angles = ang_arr[slice_indexes].reshape(my_shape)
     return angles
 
