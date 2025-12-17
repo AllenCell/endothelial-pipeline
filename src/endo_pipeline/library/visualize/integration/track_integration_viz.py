@@ -393,7 +393,7 @@ def make_all_plots(
     flow_field_dict_grids: dict,
     df_all_positions: pd.DataFrame,
     traj_tracks: np.ndarray,
-    max_workers_for_parallel_plotting: int = 30,
+    n_cores: int = 30,
 ) -> None:
 
     # create a subdirectory to save the plots to
@@ -462,10 +462,8 @@ def make_all_plots(
             )
 
         # make the plots
-        with Pool(processes=max_workers_for_parallel_plotting) as pool:
-            print(
-                f"Starting multiprocessing pool for plotting = {max_workers_for_parallel_plotting} processes..."
-            )
+        with Pool(processes=n_cores) as pool:
+            print(f"Starting multiprocessing pool for plotting = {n_cores} processes...")
             list(
                 tqdm(
                     pool.imap(multiproc_plot_measured_feat_overlay_on_flowfield, args, chunksize=5),
@@ -476,24 +474,6 @@ def make_all_plots(
             pool.close()
             pool.join()
             print("Multiprocessing pool for plotting complete.")
-
-        # for tid in tqdm(
-        #     track_ids, total=len(track_ids), desc=f"Plotting tracks at {pos}", leave=False
-        # ):
-        #     # make the plots
-        #     plot_measured_feat_overlay_on_flowfield(
-        #         out_subdir_indiv_pos,
-        #         dataset_name,
-        #         diffae_grid_crops,
-        #         traj_grids,
-        #         flow_field_dict_grids,
-        #         diffae_measured_feat_df=df_one_position,
-        #         meas_feat_col_name_for_color_coding="alignment_deg_rel_to_flow",
-        #         track_id_to_plot=tid,
-        #         hue_norm=(0, 90),
-        #         alpha=0.8,
-        #         show_plot=False,
-        #     )
 
     # plot trajectory heatmap
     out_subdir_heatmap = out_subdir / "trajectory_heatmap"

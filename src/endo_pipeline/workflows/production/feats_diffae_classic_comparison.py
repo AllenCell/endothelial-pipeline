@@ -70,13 +70,11 @@ def main(
             flow_field_dict_grids,
             df_all_positions,
             traj_tracks,
-            max_workers_for_parallel_plotting=n_cores,
+            n_cores=n_cores,
         )
 
 
 if __name__ == "__main__":
     from endo_pipeline.__main__ import workflow_cli
 
-    # import fire
-    # fire.Fire(main)
     workflow_cli(main)
