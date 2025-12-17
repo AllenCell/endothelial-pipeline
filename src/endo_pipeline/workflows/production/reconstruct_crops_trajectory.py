@@ -83,7 +83,7 @@ def main(
         ax.imshow(img, cmap="gray")
         plt.axis("off")
         plt.tight_layout()
-        save_plot_to_path(fig, crop_savedir, f"coordinate_row_{i:03d}")
+        save_plot_to_path(fig, crop_savedir, f"coordinate_row_{i}")
 
 
 if __name__ == "__main__":
