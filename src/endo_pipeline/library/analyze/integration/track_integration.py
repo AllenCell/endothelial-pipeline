@@ -78,7 +78,7 @@ def process_dataset_for_track_integration(
 ) -> None:
     logger.info("Processing dataset: [ %s ]", dataset_name)
 
-    out_subdir = get_output_path(__file__, dataset_name, include_timestamp=False)
+    out_subdir = get_output_path(__file__, dataset_name)
     configure_logging(out_subdir, logger, verbose=True)
 
     model_manifest = load_model_manifest(model_manifest_name)
