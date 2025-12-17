@@ -709,7 +709,11 @@ def get_preprocessed_manifests_and_km_bounds(
     # read in the grid crop-based diffae features
     grid_diffae_manifest = load_dataframe_manifest(grid_diffae_feat_manifest_name)
     diffae_grid_crops = get_dataframe_for_dynamics_workflows(
-        dataset_name, grid_diffae_manifest, pca
+        dataset_name,
+        grid_diffae_manifest,
+        pca,
+        include_cell_piling=False,
+        include_not_steady_state=False,
     )
 
     datasets_for_bounds = list(

@@ -25,6 +25,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    n_cores: int = 1,
 ) -> None:
     out_dir = get_output_path(__file__)
     dataset_name_list = get_datasets_in_collection(dataset_collection_name)
@@ -70,6 +71,7 @@ def main(
             flow_field_dict_grids,
             df_all_positions,
             traj_tracks,
+            max_workers_for_parallel_plotting=n_cores,
         )
 
 

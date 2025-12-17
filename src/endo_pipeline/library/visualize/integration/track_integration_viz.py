@@ -1,3 +1,4 @@
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Any, Literal
 
@@ -358,6 +359,32 @@ def overlay_trajectory_heatmap_on_flowfield(
     plt.close(fig)
 
 
+def multiproc_plot_measured_feat_overlay_on_flowfield(args: tuple) -> None:
+    (
+        out_subdir_indiv_pos,
+        dataset_name,
+        diffae_grid_crops,
+        traj_grids,
+        flow_field_dict_grids,
+        df_one_position,
+        tid,
+    ) = args
+
+    plot_measured_feat_overlay_on_flowfield(
+        out_subdir_indiv_pos,
+        dataset_name,
+        diffae_grid_crops,
+        traj_grids,
+        flow_field_dict_grids,
+        diffae_measured_feat_df=df_one_position,
+        meas_feat_col_name_for_color_coding="alignment_deg_rel_to_flow",
+        track_id_to_plot=tid,
+        hue_norm=(0, 90),
+        alpha=0.8,
+        show_plot=False,
+    )
+
+
 def make_all_plots(
     out_dir: Path,
     dataset_name: str,
@@ -366,6 +393,7 @@ def make_all_plots(
     flow_field_dict_grids: dict,
     df_all_positions: pd.DataFrame,
     traj_tracks: np.ndarray,
+    max_workers_for_parallel_plotting: int = 30,
 ) -> None:
 
     # create a subdirectory to save the plots to
@@ -419,23 +447,46 @@ def make_all_plots(
         # only overlay every 10th track id if there are a lot
         # of tracks to save time + space
         track_ids = track_ids[::10] if len(track_ids[::10]) > 10 else track_ids
-        for tid in tqdm(
-            track_ids, total=len(track_ids), desc=f"Plotting tracks at {pos}", leave=False
-        ):
-            # make the plots
-            plot_measured_feat_overlay_on_flowfield(
-                out_subdir_indiv_pos,
-                dataset_name,
-                diffae_grid_crops,
-                traj_grids,
-                flow_field_dict_grids,
-                diffae_measured_feat_df=df_one_position,
-                meas_feat_col_name_for_color_coding="alignment_deg_rel_to_flow",
-                track_id_to_plot=tid,
-                hue_norm=(0, 90),
-                alpha=0.8,
-                show_plot=False,
+        args = []
+        for tid in track_ids:
+            args.append(
+                (
+                    out_subdir_indiv_pos,
+                    dataset_name,
+                    diffae_grid_crops,
+                    traj_grids,
+                    flow_field_dict_grids,
+                    df_one_position,
+                    tid,
+                )
             )
+        with ProcessPoolExecutor(max_workers=max_workers_for_parallel_plotting) as executor:
+            list(
+                tqdm(
+                    executor.map(multiproc_plot_measured_feat_overlay_on_flowfield, args),
+                    total=len(args),
+                    desc=f"Plotting tracks at {pos}",
+                    leave=False,
+                )
+            )
+
+        # for tid in tqdm(
+        #     track_ids, total=len(track_ids), desc=f"Plotting tracks at {pos}", leave=False
+        # ):
+        #     # make the plots
+        #     plot_measured_feat_overlay_on_flowfield(
+        #         out_subdir_indiv_pos,
+        #         dataset_name,
+        #         diffae_grid_crops,
+        #         traj_grids,
+        #         flow_field_dict_grids,
+        #         diffae_measured_feat_df=df_one_position,
+        #         meas_feat_col_name_for_color_coding="alignment_deg_rel_to_flow",
+        #         track_id_to_plot=tid,
+        #         hue_norm=(0, 90),
+        #         alpha=0.8,
+        #         show_plot=False,
+        #     )
 
     # plot trajectory heatmap
     out_subdir_heatmap = out_subdir / "trajectory_heatmap"
