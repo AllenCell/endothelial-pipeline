@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Callable
 from pathlib import Path
+from time import time
 
 import numpy as np
 from scipy.integrate import solve_ivp
@@ -133,7 +134,7 @@ def _ddff_model_analysis(
     # get callable version of the flow field
     # first, extrapolate to fill in NaNs
     extrapolated_flow_field_dict = compute_extrapolated_vector_field(
-        drift_km, centers, method="linear", for_vtk_files=True
+        drift_km, centers, method="nearest", for_vtk_files=True
     )
     # save out the flow field as vtk image data
     volume_extent = {
@@ -390,7 +391,11 @@ def compute_extrapolated_vector_field(
         nan_mask = np.isnan(component)
         if np.any(nan_mask):
             if for_vtk_files:
+                logger.debug("Starting extrapolation for vtk files.")
+                tic = time()
                 component = fill_nan_for_vtk(component, method=method)
+                toc = time()
+                logger.debug(f"Finished extrapolation for vtk files in {toc - tic:.2f} seconds.")
             else:
                 interpolator = RegularGridInterpolator(
                     grid_coordinates,
