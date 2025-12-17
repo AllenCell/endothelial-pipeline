@@ -6,12 +6,14 @@ NUM_BINS_CROP_HIST = 40
 """Number of bins for histograms used in crop montage sampling."""
 
 SHEAR_COLOR_DICT = {
-    ShearStressRegime.NO: "tab:green",
-    ShearStressRegime.MIN: "tab:orange",
-    ShearStressRegime.LOW: "tab:red",
-    ShearStressRegime.MEDIUM: "tab:purple",
-    ShearStressRegime.HIGH: "tab:cyan",
-    ShearStressRegime.MAX: "tab:blue",
+    (ShearStressRegime.NO,): "tab:green",
+    (ShearStressRegime.MIN,): "tab:orange",
+    (ShearStressRegime.LOW,): "tab:red",
+    (ShearStressRegime.MEDIUM,): "tab:purple",
+    (ShearStressRegime.HIGH,): "tab:cyan",
+    (ShearStressRegime.MAX,): "tab:blue",
+    (ShearStressRegime.MIN, ShearStressRegime.MAX): "tab:brown",
+    (ShearStressRegime.MAX, ShearStressRegime.MIN): "tab:olive",
 }
 """Color dictionary for shear stress levels to color code histogram plots."""
 
