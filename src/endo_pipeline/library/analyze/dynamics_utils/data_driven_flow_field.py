@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 from scipy.integrate import solve_ivp
-from scipy.interpolate import RegularGridInterpolator
+from scipy.interpolate import RegularGridInterpolator, griddata
 from sklearn.decomposition import PCA
 
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
@@ -133,11 +133,19 @@ def _ddff_model_analysis(
     # get callable version of the flow field
     # first, extrapolate to fill in NaNs
     extrapolated_flow_field_dict = compute_extrapolated_vector_field(
-        drift_km, centers, method="linear"
+        drift_km, centers, method="nearest"
     )
     # save out the flow field as vtk image data
+    volume_extent = {
+        "xmin": bins[0][0],
+        "xmax": bins[0][-1],
+        "ymin": bins[1][0],
+        "ymax": bins[1][-1],
+        "zmin": bins[2][0],
+        "zmax": bins[2][-1],
+    }
     vtk_io.save_vector_field_as_vtk(
-        extrapolated_flow_field_dict, vtk_savedir / f"flow_field_{dataset_name}.vtk"
+        extrapolated_flow_field_dict, vtk_savedir / f"flow_field_{dataset_name}.vtk", volume_extent
     )
 
     # compute diffusion field on the grid defined by centers
@@ -153,7 +161,7 @@ def _ddff_model_analysis(
     )
     # save diffusion field as vtk image data
     vtk_io.save_vector_field_as_vtk(
-        diffusion_field_dict, vtk_savedir / f"diffusion_field_{dataset_name}.vtk"
+        diffusion_field_dict, vtk_savedir / f"diffusion_field_{dataset_name}.vtk", volume_extent
     )
 
     ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
@@ -276,6 +284,56 @@ def get_and_analyze_ddff(
     flow_field_viz.plot_stable_fixed_points_together(dataset_names, fig_savedir, output_savedir)
 
 
+def fill_nan_with_nearest(data):
+    """
+    Replaces NaN values in a multi-dimensional NumPy array with the value
+    of the nearest non-NaN neighbor using scipy.interpolate.griddata.
+
+    This method is significantly more memory-efficient for large, sparse datasets
+    than the distance_transform_edt approach because it operates on sparse
+    coordinate lists rather than generating large auxiliary index arrays
+    (which likely caused the memory crash).
+
+    Args:
+        data (np.ndarray): The input NumPy array (can be 1D, 2D, or 3D)
+                           containing NaN values.
+
+    Returns:
+        np.ndarray: A copy of the input array with NaNs imputed.
+    """
+    # Create a copy to avoid modifying the original data
+    arr = data.copy()
+
+    # 1. Identify NaN and valid points
+    nan_mask = np.isnan(arr)
+    valid_mask = ~nan_mask
+
+    # If there are no NaNs, return the original array
+    if not np.any(nan_mask):
+        return arr
+
+    # 2. Get coordinates and values for interpolation source (VALID points)
+    # 'points' are the coordinates of the valid data points
+    valid_coords = np.array(np.where(valid_mask)).T
+    # 'values' are the corresponding values at those valid coordinates
+    valid_values = arr[valid_mask]
+
+    # 3. Get coordinates for interpolation query (NaN points)
+    # 'query_points' are the coordinates where we need imputed values
+    nan_coords = np.array(np.where(nan_mask)).T
+
+    # 4. Use griddata to perform nearest-neighbor interpolation
+    # This performs the nearest neighbor lookup using sparse coordinates.
+    imputed_values = griddata(
+        points=valid_coords, values=valid_values, xi=nan_coords, method="nearest"
+    )
+
+    # 5. Assign the imputed values back into the NaN locations
+    arr[nan_mask] = imputed_values
+
+    return arr
+
+
 def compute_extrapolated_vector_field(
     kmcs: np.ndarray,
     grid_centers: list[np.ndarray],
@@ -322,15 +380,16 @@ def compute_extrapolated_vector_field(
         if np.any(nan_mask):
             # Prepare points and values for interpolation
             # fill_value set to None for extrapolation
-            interpolator = RegularGridInterpolator(
-                grid_centers,
-                np.where(nan_mask, 0, component),  # fill NaNs with zeros for shape
-                method=method,
-                bounds_error=False,
-                fill_value=None,  # extrapolate outside convex hull
-            )
-            nan_points = np.array([X[nan_mask], Y[nan_mask], Z[nan_mask]]).T
-            component[nan_mask] = interpolator(nan_points)
+            # interpolator = RegularGridInterpolator(
+            #     grid_centers,
+            #     np.where(nan_mask, 0, component),  # fill NaNs with zeros for shape
+            #     method=method,
+            #     bounds_error=False,
+            #     fill_value=None,  # extrapolate outside convex hull
+            # )
+            # nan_points = np.array([X[nan_mask], Y[nan_mask], Z[nan_mask]]).T
+            # component[nan_mask] = interpolator(nan_points)
+            component = fill_nan_with_nearest(component)
             filled_kmcs[..., i] = component
 
     vectors = tuple(filled_kmcs[..., i] for i in range(n_components))

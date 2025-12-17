@@ -5,7 +5,9 @@ import vtk
 from vtkmodules.util import numpy_support as vtknp
 
 
-def save_vector_field_as_vtk(vector_field_dict: dict, output_path: Path) -> None:
+def save_vector_field_as_vtk(
+    vector_field_dict: dict, output_path: Path, volume_extent: dict
+) -> None:
     """
     Save 3D vector field data as a VTK file.
 
@@ -16,16 +18,20 @@ def save_vector_field_as_vtk(vector_field_dict: dict, output_path: Path) -> None
         - "grid": Tuple of 3D arrays (xgrid, ygrid, zgrid) with the
             grid points in each dimension.
     - output_path: Path to save the VTK file.
+    - volume_extent: Real dimensions of the 3D volume in PC units.
+        - Format: {xmin: x, xmax: x, ymin: x, ymax: x, zmin: x, zmax: x}
 
     Outputs:
     - None (the file is saved to output_path)
     """
-    image_data = get_vtk_image_data_from_vector_field(vector_field_dict)
+    image_data = get_vtk_image_data_from_vector_field(vector_field_dict, volume_extent)
     save_vtk_image_data(image_data, output_path)
     return
 
 
-def get_vtk_image_data_from_vector_field(vector_field_dict: dict) -> vtk.vtkImageData:
+def get_vtk_image_data_from_vector_field(
+    vector_field_dict: dict, volume_extent: dict
+) -> vtk.vtkImageData:
     """
     Convert 3D vector field to VTK image data format.
 
@@ -35,6 +41,8 @@ def get_vtk_image_data_from_vector_field(vector_field_dict: dict) -> vtk.vtkImag
             vector values in each dimension
         - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid)
             with the grid points in each dimension
+    - volume_extent: Real dimensions of the 3D volume in PC units.
+        - Format: {xmin: x, xmax: x, ymin: x, ymax: x, zmin: x, zmax: x}
 
     Outputs:
     - imageData: vtkImageData object with the vector field data
@@ -43,11 +51,20 @@ def get_vtk_image_data_from_vector_field(vector_field_dict: dict) -> vtk.vtkImag
     vy = vector_field_dict["vectors"][1]
     vz = vector_field_dict["vectors"][2]
 
+    # import pdb; pdb.set_trace()
+
     dims = vx.shape
+    xi, xf = volume_extent["xmin"], volume_extent["xmax"]
+    yi, yf = volume_extent["ymin"], volume_extent["ymax"]
+    zi, zf = volume_extent["zmin"], volume_extent["zmax"]
+    sx = (xf - xi) / dims[0]
+    sy = (yf - yi) / dims[1]
+    sz = (zf - zi) / dims[2]
 
     image_data = vtk.vtkImageData()
     image_data.SetDimensions(dims)
-    image_data.SetSpacing(1, 1, 1)
+    image_data.SetOrigin(xi, yi, zi)
+    image_data.SetSpacing(sx, sy, sz)
 
     # Create VTK arrays from NumPy arrays
     x_array = vtknp.numpy_to_vtk(vx.ravel(order="F"), deep=True, array_type=vtk.VTK_FLOAT)
