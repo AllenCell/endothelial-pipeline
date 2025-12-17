@@ -8,7 +8,8 @@ from pydantic.dataclasses import dataclass
 
 from endo_pipeline.configs import load_model_config
 from endo_pipeline.io import get_output_path, get_repository_root_dir
-from endo_pipeline.settings import DIFFAE_MODEL_TRAIN_CONFIG
+from endo_pipeline.settings.diffae_configs import DIFFAE_MODEL_TRAIN_CONFIG
+from endo_pipeline.settings.workflow_defaults import DEFAULT_NUM_LATENT_DIMENSIONS
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,9 @@ class ModelConfigOverride:
 
     condition_key: str | None = None
     """Key for the image channel to use for semantic conditioning of the diffusion model."""
+
+    latent_dim: int | None = Field(None, gt=0)
+    """Number of dimensions for the latent space of the semantic encoder."""
 
     train_dataframe_path: Path | None = None
     """Path to the training dataset (image loading metadata) parquet file."""
@@ -108,6 +112,11 @@ class ModelConfigOverride:
         if self.condition_key is None:
             self.condition_key = OmegaConf.select(config, "model.condition_key", default="raw_bf")
 
+        if self.latent_dim is None:
+            self.latent_dim = OmegaConf.select(
+                config, "model.semantic_encoder.num_classes", default=DEFAULT_NUM_LATENT_DIMENSIONS
+            )
+
         if self.max_epochs is None:
             self.max_epochs = OmegaConf.select(config, "trainer.max_epochs", default=1000)
 
@@ -168,6 +177,8 @@ class ModelConfigOverride:
             "model.image_shape": [1, self.crop_size, self.crop_size],
             # set condition key
             "model.condition_key": self.condition_key,
+            # set number of latent dimensions
+            "lat_dim": self.latent_dim,
             # set training and validation dataframe paths and caching parameters
             "data.train_dataloaders.dataset.dataframe_path": self.train_dataframe_path.as_posix(),
             "data.train_dataloaders.dataset.cache_rate": self.cache_rate,
