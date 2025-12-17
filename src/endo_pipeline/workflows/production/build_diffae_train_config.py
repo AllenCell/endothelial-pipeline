@@ -45,7 +45,8 @@ def main(
     **Latent dimension size**
 
     The number of latent dimensions for the DiffAE model can be specified with
-    the ``latent_dim`` parameter. By default, this is set to 1024.
+    the ``latent_dim`` parameter. The default for this number is set via the
+    constant ``DEFAULT_NUM_LATENT_DIMENSIONS`` in ``endo_pipeline.settings.workflow_defaults.``
 
     **Cell piling exclusion**
 
