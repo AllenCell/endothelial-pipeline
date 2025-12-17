@@ -101,7 +101,6 @@ def process_dataset_for_track_integration(
         "label",
         "crop_index",
         "model_manifest_name",
-        # "model_name",
         "image_index",
         "frame_number",
         "time_hours",
