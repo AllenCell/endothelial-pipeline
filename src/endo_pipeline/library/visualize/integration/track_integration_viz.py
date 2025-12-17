@@ -463,7 +463,9 @@ def make_all_plots(
 
         # make the plots
         with Pool(processes=max_workers_for_parallel_plotting) as pool:
-            print("Starting multiprocessing pool for plotting...")
+            print(
+                f"Starting multiprocessing pool for plotting = {max_workers_for_parallel_plotting} processes..."
+            )
             list(
                 tqdm(
                     pool.imap(multiproc_plot_measured_feat_overlay_on_flowfield, args),

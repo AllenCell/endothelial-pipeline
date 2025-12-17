@@ -1,5 +1,7 @@
 import logging
 
+import fire
+
 from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.io import get_output_path
 from endo_pipeline.library.analyze.integration.track_integration import (
@@ -24,7 +26,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
-    n_cores: int = 1,
+    n_cores: int = 30,
 ) -> None:
     out_dir = get_output_path(__file__)
     dataset_name_list = get_datasets_in_collection(dataset_collection_name)
@@ -75,4 +77,4 @@ def main(
 
 
 if __name__ == "__main__":
-    main()
+    fire.Fire(main)
