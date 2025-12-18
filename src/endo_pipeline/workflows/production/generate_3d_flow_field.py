@@ -50,6 +50,7 @@ def main(
     use_same_axes
         If true, use the same axis limits for all datasets when plotting flow fields.
     """
+    import logging
 
     import numpy as np
     import pandas as pd
@@ -81,6 +82,9 @@ def main(
         TRAJECTORY_TIME_SPAN,
     )
 
+    logger = logging.getLogger(__name__)
+
+    # load model manifest and get corresponding dataframe manifest name
     model_manifest = load_model_manifest(model_manifest_name)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
         model_manifest, run_name, crop_pattern="grid"
@@ -174,6 +178,16 @@ def main(
                 ],
                 ignore_index=True,
             )
+
+    # save stable fixed points from all datasets to parquet file
+    stable_fpt_file_name = "stable_fixed_points_all_datasets.parquet"
+    logger.info(
+        "Saving stable fixed points from all datasets to [ %s ]",
+        output_savedir / stable_fpt_file_name,
+    )
+    stable_fixed_points_df.to_parquet(
+        output_savedir / stable_fpt_file_name,
+    )
 
     # generate plot of stable fixed points from different datasets overlaid on top of each other
     # (for comparison of stable fixed points across datasets)
