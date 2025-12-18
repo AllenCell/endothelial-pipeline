@@ -12,6 +12,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
+    pc_column_names: list[str] | None = None,
 ) -> None:
     """
     Reconstruct crops from PC space coordinates stored in a given CSV file.
@@ -51,13 +52,17 @@ def main(
         load_model,
         save_plot_to_path,
     )
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+        check_required_columns_in_dataframe,
+        fit_pca,
+    )
     from endo_pipeline.library.model import generate_from_coords_batch
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
         get_most_recent_run_name,
         load_model_manifest,
     )
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
 
     logger = logging.getLogger(__name__)
 
@@ -83,8 +88,12 @@ def main(
         "reconstructed_crops", model_manifest_name, run_name_, dataframe_file_name
     )
 
-    # get coordinates as array from dataframe
-    pc_coords = dataframe.values
+    # get coordinates as array from dataframe, using specified pc column names or default names
+    pc_column_names_ = (
+        DIFFAE_PC_COLUMN_NAMES[:num_pcs] if pc_column_names is None else pc_column_names
+    )
+    check_required_columns_in_dataframe(dataframe, pc_column_names_)  # validate required columns
+    pc_coords = dataframe[pc_column_names_].values  # extract coordinate values
 
     # make sure that coords is a 2D array with shape (num_points, num_dimensions)
     pc_coords = np.atleast_2d(pc_coords)
