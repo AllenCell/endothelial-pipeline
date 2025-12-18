@@ -46,12 +46,6 @@ def main(
         Name of the specific model run to load featuref for. If None, uses the most recent run.
     plot_stack
         If true, plot 3D stacks of the flow field visualizations in each of the three variables.
-
-    Returns
-    -------
-    :
-        Saves the PCA scatter plots, flow field analysis results, and visualizations
-        to the specified output directories.
     """
 
     import numpy as np
