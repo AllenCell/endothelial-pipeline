@@ -197,7 +197,9 @@ def plot_measured_feat_pcs(
             legend=legend,
         )
         if indicate_track_start:
-            first_timepoint_record = measured_feat_df.query("image_index == image_index.min()")
+            first_timepoint_record = measured_feat_df.loc[
+                measured_feat_df[ColumnName.TIMEPOINT].idxmin()
+            ]
             ax.scatter(
                 first_timepoint_record[pc_cols_for_xaxis[j]],
                 first_timepoint_record[pc_cols_for_yaxis[j]],
@@ -211,7 +213,9 @@ def plot_measured_feat_pcs(
                 # label="track start",
             )
         if indicate_track_end:
-            last_timepoint_record = measured_feat_df.query("image_index == image_index.max()")
+            last_timepoint_record = measured_feat_df.loc[
+                measured_feat_df[ColumnName.TIMEPOINT].idxmax()
+            ]
             ax.scatter(
                 last_timepoint_record[pc_cols_for_xaxis[j]],
                 last_timepoint_record[pc_cols_for_yaxis[j]],
