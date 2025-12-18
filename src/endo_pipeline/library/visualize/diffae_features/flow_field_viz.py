@@ -621,8 +621,9 @@ def plot_stable_fixed_points_together(
     # loop over datasets and plot their stable fixed points
     patch_list_for_legend = []
     for dataset_name, dataset_df in stable_fixed_points_df.groupby(ColumnName.DATASET):
-        scatter_color = feature_viz.get_dataset_color(dataset_name)
-        patch_list_for_legend.append(Patch(color=scatter_color, label=dataset_name))
+        dataset_name_ = cast(str, dataset_name)
+        scatter_color = feature_viz.get_dataset_color(dataset_name_)
+        patch_list_for_legend.append(Patch(color=scatter_color, label=dataset_name_))
         fpts = dataset_df[pc_column_names].values
         for fpt in fpts:
             # plot fixed point
