@@ -107,7 +107,7 @@ def plot_quiver_slices_from_diffae_table(
         plot_bounds=bounds,
         fig_savedir=None,
         pc_vals=pc_vals,
-        log_norm_colormap=False,
+        log_norm_colormap=True,
     )
 
     [ax.set_zorder(0) for ax in axs]
