@@ -9,14 +9,24 @@ def main():
 
     from endo_pipeline.configs import (
         TimepointAnnotation,
+        get_all_unannotated_timepoints,
         get_datasets_in_collection,
+        get_subset_of_timepoint_annotations,
         load_dataset_config,
     )
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
     from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
-    from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
-    from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME, ColumnName
+    from endo_pipeline.manifests import (
+        get_dataframe_location_for_dataset,
+        load_dataframe_manifest,
+        load_model_manifest,
+    )
+    from endo_pipeline.settings import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+        ColumnName,
+    )
 
     # Create initial dictionary to keep track of segmentation counts (will later convert to DataFrame)
     seg_counts: dict[str, list] = {
@@ -27,8 +37,8 @@ def main():
         "num_cell_segmentations_before_filter": [],
         "num_cell_segmentations_after_filter": [],
         "dataset_duration_timeframes": [],
-        "timeframes_used_after_filter": [],
-        "timeframes_used_for_training": [],
+        "num_timeframes_left_after_filter": [],
+        "num_timeframes_for_training": [],
         "major_axis_length_mean_um": [],
         "major_axis_length_std_um": [],
         "major_axis_length_median_um": [],
@@ -49,6 +59,28 @@ def main():
         shear_stress = [flow.shear_stress for flow in dataset_config.flow_conditions]
         cell_line = sequence_to_scalar(dataset_config.cell_lines)
 
+        # load the model manifest for counting timepoints used for training
+        model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
+
+        # this chunk was taken from
+        # src\endo_pipeline\workflows\production\create_diffae_training_dataframe.py
+        annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
+        if model_manifest.parameters["include_cell_piling"]:
+            # if including cell piling, then ignore that annotation as well
+            annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
+        # get list of annotations to filter out
+        annotations = get_subset_of_timepoint_annotations(
+            annotations_to_ignore=annotations_to_ignore
+        )
+        # get list of timepoints that do not have any of the annotations
+        # for each position (dict of position -> list of timepoints)
+        only_include_frames = get_all_unannotated_timepoints(
+            dataset_config, annotations=annotations
+        )
+        num_timepoints_for_training = sum(
+            [len(only_include_frames[pos]) for pos in only_include_frames]
+        )
+
         # load in segmentation features dataframe for the dataset if it was put through the classical
         # feature workflows, otherwise record "NaN" for the segmentation counts
         if dataset_name not in dataset_name_list_segmented:
@@ -58,6 +90,7 @@ def main():
             num_nuc_pred = np.nan
             num_cell_seg_before_filt = np.nan
             num_cell_seg_after_filt = np.nan
+            num_timepoints_left_after_filter = np.nan
         else:
             # load segmentation features dataframe
             live_seg_manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
@@ -106,10 +139,28 @@ def main():
             # and num_cell_seg_after_filt with
             # live_seg_feats_df.query("is_included==True").groupby(["image_index", ColumnName.POSITION]).label.nunique().sum()
 
+            # add number of timepoints left after filtering to the dataset
+            num_timepoints_left_after_filter = (
+                live_seg_feats_df[live_seg_feats_df["is_included"]]
+                .groupby(["position"])["image_index"]
+                .nunique()
+                .sum()
+            )
+
             # add some descriptive statistics about cell lengths to the dataset
             # (this is approximated by reporting the major axis of an ellipse fit to a segmentation)
-            # seg_lengths_px_mean = live_seg_feats_df[ColumnName.MAJOR_AXIS_LENGTH_PX]
-            # seg_lengths_um_mean = live_seg_feats_df[ColumnName.MAJOR_AXIS_LENGTH_UM]
+            seg_lengths_px_mean = live_seg_feats_df["major_axis_length"].mean()
+            seg_lengths_px_std = live_seg_feats_df["major_axis_length"].std()
+            seg_lengths_px_median = live_seg_feats_df["major_axis_length"].median()
+            seg_lengths_um_mean = (
+                live_seg_feats_df["major_axis_length"].mean() * dataset_config.pixel_size_xy_in_um
+            )
+            seg_lengths_um_std = (
+                live_seg_feats_df["major_axis_length"].std() * dataset_config.pixel_size_xy_in_um
+            )
+            seg_lengths_um_median = (
+                live_seg_feats_df["major_axis_length"].median() * dataset_config.pixel_size_xy_in_um
+            )
 
             # delete the segmentation features dataframe to keep memory usage down
             del live_seg_feats_df
@@ -118,10 +169,21 @@ def main():
         seg_counts["dataset_name"].append(dataset_name)
         seg_counts["shear_stress_dyn/cm**2"].append(shear_stress)
         seg_counts["cell_line"].append(cell_line)
+        # add segmentation counts information
         seg_counts["num_nuclei_predictions"].append(num_nuc_pred)
         seg_counts["num_cell_segmentations_before_filter"].append(num_cell_seg_before_filt)
         seg_counts["num_cell_segmentations_after_filter"].append(num_cell_seg_after_filt)
+        # add dataset duration information
         seg_counts["dataset_duration_timeframes"].append(dataset_config.duration)
+        seg_counts["num_timeframes_left_after_filter"].append(num_timepoints_left_after_filter)
+        seg_counts["num_timeframes_for_training"].append(num_timepoints_for_training)
+        # add the cell length statistics
+        seg_counts["major_axis_length_mean_px"].append(seg_lengths_px_mean)
+        seg_counts["major_axis_length_std_px"].append(seg_lengths_px_std)
+        seg_counts["major_axis_length_median_px"].append(seg_lengths_px_median)
+        seg_counts["major_axis_length_mean_um"].append(seg_lengths_um_mean)
+        seg_counts["major_axis_length_std_um"].append(seg_lengths_um_std)
+        seg_counts["major_axis_length_median_um"].append(seg_lengths_um_median)
 
     # convert the seg_counts dictionary to a dataframe and save the results
     seg_counts_df = pd.DataFrame(seg_counts)
