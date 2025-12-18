@@ -131,9 +131,9 @@ def main(
     stable_fixed_points_df = pd.DataFrame(
         columns=[
             ColumnName.DATASET,
-            f"{ColumnName.PCA_FEATURE_PREFIX}_1",
-            f"{ColumnName.PCA_FEATURE_PREFIX}_2",
-            f"{ColumnName.PCA_FEATURE_PREFIX}_3",
+            f"{ColumnName.PCA_FEATURE_PREFIX}1",
+            f"{ColumnName.PCA_FEATURE_PREFIX}2",
+            f"{ColumnName.PCA_FEATURE_PREFIX}3",
         ]
     )
     for dataset_name in dataset_names:
