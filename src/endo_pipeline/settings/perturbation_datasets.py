@@ -9,7 +9,7 @@ PERTURBATION_COLOR: str = "tab:pink"
 PERTURBATION_PLOT_MARKER_DICT: dict[str, str] = {
     "20250908_20X": "X",
     "20251022_20X": "o",
-    "20251029_20X": "+",
+    "20251029_20X": "P",
     "20251105_20X": "s",
     "20251119_20X": "^",
 }
