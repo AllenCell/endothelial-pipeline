@@ -4,7 +4,7 @@ KERNEL_PARAMS_3D: dict = {
 }
 """Default kernel parameters for 3D flow field estimation."""
 
-NUM_BINS_3D: tuple[int, int, int] = (80, 80, 80)
+NUM_BINS_3D: tuple[int, int, int] = (100, 100, 100)
 """Default number of bins for 3D flow field estimation."""
 
 QUIVER_DOWNSAMPLE_FACTOR: int = 2
@@ -61,11 +61,17 @@ FIGSIZE_FLOW_FIELD_STACK: tuple[int, int] = (7, 5)
 TIME_STEP_IN_MINUTES: int = 5
 """Time step in minutes between consecutive time points for flow field estimation."""
 
-INIT_POINT_3D: list = [0.5, 0.0, 0.5]
+INIT_POINT_3D: tuple[float, float, float] = (0.5, 0.0, 0.5)
 """Default initial point for 3D flow field trajectory visualization."""
 
-TRAJECTORY_TIME_SPAN: list[int] = [0, 5000]
+TRAJECTORY_TIME_SPAN: tuple[float, float] = (0.0, 5000.0)
 """Default time span for ODE solver in 3D flow field trajectory visualization."""
+
+NUM_INIT_SAMPLES: int = 250
+"""Number of sampled initial points for root finding in 3D flow field analysis."""
+
+SAMPLER_RANDOM_SEED: int = 47
+"""Random seed for initial point sampling in 3D flow field analysis."""
 
 DATASET_COLLECTION_FOR_3D_DYNAMICS: str = "3d_flow_field_analysis"
 """Default dataset collection name for 3D dynamics analysis."""
