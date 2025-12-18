@@ -15,7 +15,9 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_traj_and_diff,
 )
 from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
-from endo_pipeline.library.visualize.diffae_features import flow_field_viz, pplane, vtk_io
+from endo_pipeline.library.visualize.diffae_features.flow_field_viz import flow_field_viz_main
+from endo_pipeline.library.visualize.diffae_features.pplane import find_fpt_type, get_fps
+from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
@@ -210,7 +212,7 @@ def ddff_model_analysis(
         drift_km, centers, method="linear"
     )
     # save out the flow field as vtk image data
-    vtk_io.save_vector_field_as_vtk(
+    save_vector_field_as_vtk(
         extrapolated_flow_field_dict, vtk_savedir / f"flow_field_{dataset_name}.vtk"
     )
 
@@ -226,7 +228,7 @@ def ddff_model_analysis(
         allow_pickle=True,
     )
     # save diffusion field as vtk image data
-    vtk_io.save_vector_field_as_vtk(
+    save_vector_field_as_vtk(
         diffusion_field_dict, vtk_savedir / f"diffusion_field_{dataset_name}.vtk"
     )
 
@@ -245,7 +247,7 @@ def ddff_model_analysis(
     drift_function_jacobian = Jacobian(drift_function)
 
     # pass into helper function to get fixed points
-    fpts = pplane.get_fps(drift_function, sampled_inits_for_root_solver)
+    fpts = get_fps(drift_function, sampled_inits_for_root_solver)
 
     # filter fixed points to only keep stable ones within 2nd-98th percentiles of data
     stable_fpts_high_confidence = []
@@ -255,7 +257,7 @@ def ddff_model_analysis(
         )
         if within_percentile:
             # get stability and type of the fixed point
-            fpt_type = pplane.find_fpt_type(drift_function_jacobian(fpt))
+            fpt_type = find_fpt_type(drift_function_jacobian(fpt))
             # stability of the fixed point is the
             # first word in the fpt_type string
             # if verbose, print the point and its stability
@@ -271,7 +273,7 @@ def ddff_model_analysis(
     fig_savedir_dataset.mkdir(parents=True, exist_ok=True)
 
     # call main visualization function
-    flow_field_viz.flow_field_viz_main(
+    flow_field_viz_main(
         flow_field_dict,
         df,
         traj,
