@@ -204,13 +204,11 @@ def plot_measured_feat_pcs(
                 first_timepoint_record[pc_cols_for_xaxis[j]],
                 first_timepoint_record[pc_cols_for_yaxis[j]],
                 s=100,
-                edgecolor="black",
+                edgecolor=(0, 0, 0, alpha),
                 facecolor=(0, 0, 0, 0),
                 marker="d",
                 lw=1,
-                alpha=alpha,
                 zorder=zorder + 2,
-                # label="track start",
             )
         if indicate_track_end:
             last_timepoint_record = measured_feat_df.loc[
@@ -220,13 +218,11 @@ def plot_measured_feat_pcs(
                 last_timepoint_record[pc_cols_for_xaxis[j]],
                 last_timepoint_record[pc_cols_for_yaxis[j]],
                 s=100,
-                edgecolor="black",
+                edgecolor=(0, 0, 0, alpha),
                 facecolor=(0, 0, 0, 0),
                 lw=1,
                 marker="*",
-                alpha=alpha,
                 zorder=zorder + 3,
-                # label="track end",
             )
 
     return fig, axs  # type: ignore[return-value]
