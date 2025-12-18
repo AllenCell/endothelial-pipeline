@@ -7,7 +7,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from seaborn import color_palette
 
-from endo_pipeline.configs import get_datasets_in_collection, get_latent_dim_from_config
+from endo_pipeline.configs import get_latent_dim_from_config
 from endo_pipeline.io import get_config_dict_from_mlflow, load_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     add_description_column,
@@ -716,10 +716,9 @@ def get_preprocessed_manifests_and_km_bounds(
         include_not_steady_state=False,
     )
 
-    datasets_for_bounds = list(
-        set(get_datasets_in_collection(collection_name_for_pca) + [dataset_name])
-    )
-    bounds = get_3d_bounds_from_data(datasets_for_bounds, grid_diffae_manifest, pca)
+    # get bounds for plotting and flow field estimation
+    # based on this dataset only
+    bounds = get_3d_bounds_from_data([dataset_name], grid_diffae_manifest, pca)
 
     # lastly, add a normalized version of the "time_hours" column
     merged_feats_df = add_normalized_time(merged_feats_df)
