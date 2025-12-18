@@ -199,13 +199,6 @@ def ddff_model_analysis(
     drift_vector_field = [drift_km[..., i] for i in range(ndim)]
     flow_field_dict = {"vectors": drift_vector_field, "grid": grid}
 
-    # save flow field dictionary as npy
-    np.save(
-        output_savedir / f"flow_field_dict_{dataset_name}.npy",
-        flow_field_dict,  # type: ignore
-        allow_pickle=True,
-    )
-
     # get callable version of the flow field
     # first, extrapolate to fill in NaNs
     extrapolated_flow_field_dict = compute_extrapolated_vector_field(
@@ -221,12 +214,6 @@ def ddff_model_analysis(
     diffusion_vector_field = [diff_km[..., i] for i in range(ndim)]
     diffusion_field_dict = {"vectors": diffusion_vector_field, "grid": grid}
 
-    # save diffusion field dictionary as npy
-    np.save(
-        output_savedir / f"diffusion_field_dict_{dataset_name}.npy",
-        diffusion_field_dict,  # type: ignore
-        allow_pickle=True,
-    )
     # save diffusion field as vtk image data
     save_vector_field_as_vtk(
         diffusion_field_dict, vtk_savedir / f"diffusion_field_{dataset_name}.vtk"

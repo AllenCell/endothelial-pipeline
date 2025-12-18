@@ -171,9 +171,9 @@ def main(
                     pd.DataFrame(
                         {
                             ColumnName.DATASET: [dataset_name],
-                            f"{ColumnName.PCA_FEATURE_PREFIX}_1": [stable_fp[0]],
-                            f"{ColumnName.PCA_FEATURE_PREFIX}_2": [stable_fp[1]],
-                            f"{ColumnName.PCA_FEATURE_PREFIX}_3": [stable_fp[2]],
+                            f"{ColumnName.PCA_FEATURE_PREFIX}1": [stable_fp[0]],
+                            f"{ColumnName.PCA_FEATURE_PREFIX}2": [stable_fp[1]],
+                            f"{ColumnName.PCA_FEATURE_PREFIX}3": [stable_fp[2]],
                         }
                     ),
                 ],
