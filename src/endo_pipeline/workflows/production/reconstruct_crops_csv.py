@@ -80,7 +80,7 @@ def main(
     )
 
     # Get fit (3D) PCA object from manifest
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=3)
+    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=num_pcs)
 
     # Directory to save reconstructed crops
     dataframe_file_name = dataframe_path_obj.stem
