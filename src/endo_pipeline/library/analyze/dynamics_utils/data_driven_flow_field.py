@@ -15,14 +15,13 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_traj_and_diff,
 )
 from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
-from endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data, get_bins
 from endo_pipeline.library.visualize.diffae_features import flow_field_viz, pplane, vtk_io
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
 )
-from endo_pipeline.settings.flow_field_3d import SAMPLER_RANDOM_SEED, TRAJECTORY_DICT_FILE_NAME
+from endo_pipeline.settings.flow_field_3d import SAMPLER_RANDOM_SEED
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +90,7 @@ def _is_point_within_percentile(point, data, lower=5, upper=95):
     return np.all((point >= lower_bounds) & (point <= upper_bounds))
 
 
-def _ddff_model_analysis(
+def ddff_model_analysis(
     dataset_name: str,
     dataframe_manifest: DataframeManifest,
     pca: PCA,
@@ -289,114 +288,6 @@ def _ddff_model_analysis(
     }
 
     return output_dict
-
-
-def get_and_analyze_ddff(
-    dataset_names: list[str],
-    dataframe_manifest: DataframeManifest,
-    pca: PCA,
-    kernel_params: dict,
-    dt: float,
-    time_span: tuple[float, float],
-    init_for_traj: np.ndarray,
-    num_inits_for_root_solver: int,
-    num_bins: tuple[int, int, int],
-    plot_stack: bool,
-    fig_savedir: Path,
-    vtk_savedir: Path,
-    output_savedir: Path,
-    use_common_axis_limits: bool = False,
-) -> None:
-    """
-    Visualize data-driven flow field (DDFF) for a list of datasets.
-
-    **Method output**
-
-    This function saves out the trajectories for each dataset in a single dictionary, where the
-    keys are dataset descriptions (based on shear stress conditions) and the values are the
-    trajectories in 3D state space.
-
-    It also saves out figures and other intermediate files via it's calls to other functions.
-    See the docstring for ``_ddff_model_analysis`` for more details.
-
-    Parameters
-    ----------
-    dataset_names
-        List of dataset names to analyze.
-    dataframe_manifest
-        Dataframe manifest with the dataframe locations for each dataset.
-    pca
-        PCA model to use for transforming the data (projecting onto the top 3 PCs).
-    kernel_params
-        Parameters for the kernel-based estimation of Kramers-Moyal coefficients.
-    dt
-        Time step between frames.
-    time_span
-        Time span for the ODE solver.
-    init_for_traj
-        Initial condition for the trajectory.
-    num_inits_for_root_solver
-        Number of initial conditions to use for finding fixed points.
-    num_bins
-        Number of bins for histogramming along each dimension in the 3D state space.
-    plot_stack
-        Whether to plot the flow field as a stack of 2D slices in each dimension.
-    fig_savedir
-        Directory to save figures.
-    vtk_savedir
-        Directory to save .vtk files.
-    output_savedir
-        Directory to save other output files.
-    use_common_axis_limits
-        Whether to use common axis limits for all datasets when plotting.
-    """
-    # get common bounds for all datasets
-    # will be used for flow field plots if use_common_axis_limits is True
-    # regardless, gets used below when plotting stable fixed points together
-    bounds_for_plots = get_3d_bounds_from_data(dataset_names, dataframe_manifest, pca)
-
-    # initialize dict to save trajectories for crop reconstruction
-    # and dict to store stable fixed points (visualized together later)
-    traj_dict = {}
-    stable_fixed_points_dict = {}
-    for dataset_name in dataset_names:
-        # get bins for KMCs
-        bounds_for_km = get_3d_bounds_from_data(
-            dataset_names=[dataset_name],
-            manifest=dataframe_manifest,
-            pca=pca,
-            pad=True,
-        )
-        bins, centers = get_bins(num_bins, bin_limits=bounds_for_km)
-        output_dict = _ddff_model_analysis(
-            dataset_name,
-            dataframe_manifest,
-            pca,
-            kernel_params,
-            dt,
-            bins,
-            centers,
-            time_span,
-            init_for_traj,
-            num_inits_for_root_solver,
-            bounds_for_plots if use_common_axis_limits else bounds_for_km,
-            plot_stack,
-            fig_savedir,
-            vtk_savedir,
-            output_savedir,
-        )
-
-        # save out trajectory for reconstruction using dataset descriptions
-        traj_dict[dataset_name] = output_dict["trajectory"]
-        stable_fixed_points_dict[dataset_name] = output_dict["stable_fixed_points"]
-
-    np.save(output_savedir / TRAJECTORY_DICT_FILE_NAME, traj_dict, allow_pickle=True)  # type: ignore
-
-    # generate plot of stable fixed points from different datasets overlaid on top of each other
-    # (for comparison of stable fixed points across datasets)
-    flow_field_viz.plot_stable_fixed_points_together(
-        stable_fixed_points_dict, bounds_for_plots, fig_savedir
-    )
 
 
 def compute_extrapolated_vector_field(

@@ -9,6 +9,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     plot_stack: bool = False,
+    use_same_axes: bool = False,
 ) -> None:
     """
     Visualize 3D (drift) flow fields for the dynamics of the crop-based DiffAE
@@ -46,6 +47,8 @@ def main(
         Name of the specific model run to load featuref for. If None, uses the most recent run.
     plot_stack
         If true, plot 3D stacks of the flow field visualizations in each of the three variables.
+    use_same_axes
+        If true, use the same axis limits for all datasets when plotting flow fields.
     """
 
     import numpy as np
@@ -53,7 +56,13 @@ def main(
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
-    from endo_pipeline.library.analyze.dynamics_utils import get_and_analyze_ddff
+    from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import (
+        ddff_model_analysis,
+    )
+    from endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data, get_bins
+    from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
+        plot_stable_fixed_points_together,
+    )
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
         load_dataframe_manifest,
@@ -67,6 +76,7 @@ def main(
         NUM_INIT_SAMPLES,
         OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS,
         TIME_STEP_IN_MINUTES,
+        TRAJECTORY_DICT_FILE_NAME,
         TRAJECTORY_TIME_SPAN,
     )
 
@@ -80,7 +90,6 @@ def main(
         OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS,
         dataframe_manifest_name,
         "outputs",
-        include_timestamp=False,
     )
     fig_savedir = get_output_path(
         OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS, dataframe_manifest_name, "figs"
@@ -103,21 +112,51 @@ def main(
 
     pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name)
 
-    get_and_analyze_ddff(
-        dataset_names,
-        dataframe_manifest,
-        pca,
-        kernel_params=KERNEL_PARAMS_3D,
-        dt=TIME_STEP_IN_MINUTES,
-        time_span=TRAJECTORY_TIME_SPAN,
-        init_for_traj=np.array(INIT_POINT_3D),
-        num_inits_for_root_solver=NUM_INIT_SAMPLES,
-        num_bins=NUM_BINS_3D,
-        plot_stack=plot_stack,
-        fig_savedir=fig_savedir,
-        vtk_savedir=vtk_savedir,
-        output_savedir=output_savedir,
-    )
+    # get common bounds for all datasets
+    # will be used for flow field plots if use_common_axis_limits is True
+    # regardless, gets used below when plotting stable fixed points together
+    bounds_for_plots = get_3d_bounds_from_data(dataset_names, dataframe_manifest, pca)
+
+    # initialize dict to save trajectories for crop reconstruction
+    # and dict to store stable fixed points (visualized together later)
+    traj_dict = {}
+    stable_fixed_points_dict = {}
+    for dataset_name in dataset_names:
+        # get bins for KMCs
+        bounds_for_km = get_3d_bounds_from_data(
+            dataset_names=[dataset_name],
+            manifest=dataframe_manifest,
+            pca=pca,
+            pad=True,
+        )
+        bins, centers = get_bins(NUM_BINS_3D, bin_limits=bounds_for_km)
+        output_dict = ddff_model_analysis(
+            dataset_name,
+            dataframe_manifest,
+            pca,
+            KERNEL_PARAMS_3D,
+            TIME_STEP_IN_MINUTES,
+            bins,
+            centers,
+            TRAJECTORY_TIME_SPAN,
+            np.array(INIT_POINT_3D),
+            NUM_INIT_SAMPLES,
+            bounds_for_plots if use_same_axes else bounds_for_km,
+            plot_stack,
+            fig_savedir,
+            vtk_savedir,
+            output_savedir,
+        )
+
+        # save out trajectory for reconstruction using dataset descriptions
+        traj_dict[dataset_name] = output_dict["trajectory"]
+        stable_fixed_points_dict[dataset_name] = output_dict["stable_fixed_points"]
+
+    np.save(output_savedir / TRAJECTORY_DICT_FILE_NAME, traj_dict, allow_pickle=True)  # type: ignore
+
+    # generate plot of stable fixed points from different datasets overlaid on top of each other
+    # (for comparison of stable fixed points across datasets)
+    plot_stable_fixed_points_together(stable_fixed_points_dict, bounds_for_plots, fig_savedir)
 
 
 if __name__ == "__main__":
