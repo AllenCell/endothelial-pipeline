@@ -1,4 +1,8 @@
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+from endo_pipeline.settings.diffae_feature_dataframes import NUM_PCS_TO_ANALYZE
+from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+)
 
 TAGS = ["diffae_image_generation", "diffae_features"]
 
@@ -7,11 +11,20 @@ def main(
     csv_path: str,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    num_pcs: int = NUM_PCS_TO_ANALYZE,
 ) -> None:
     """
     Reconstruct crops from PC space coordinates stored in a given CSV file.
 
     The reconstructed crops are saved as PNG files in a local directory.
+
+    **CSV file format**:
+    The CSV file should contain rows of latent space coordinates, with each row representing a
+    point in the PCA-transformed space. The number of columns should match the number of principal
+    components used during PCA fitting and transformation, which is specified by the `num_pcs` parameter.
+
+    The default number of principal components is set via ``NUM_PCS_TO_ANALYZE`` in
+    ``endo_pipeline.settings.diffae_feature_dataframes``.
 
     Parameters
     ----------
@@ -21,6 +34,8 @@ def main(
         Name of the model manifest containing the specific run to load features from.
     run_name
         Run name corresponding to features to load and the model to use for image reconstruction.
+    num_pcs
+        Number of principal components used in the PCA transformation.
     """
     import logging
     from pathlib import Path
@@ -69,9 +84,22 @@ def main(
 
     # make sure that coords is a 2D array with shape (num_points, num_dimensions)
     pc_coords = np.atleast_2d(pc_coords)
-    if pc_coords.shape[1] != 3:
-        logger.debug("Transposing input coordinates array for correct shape.")
-        pc_coords = pc_coords.T
+    num_points, num_dims = pc_coords.shape
+    logger.debug(
+        "Loaded [ %d ] points with [ %d ] dimensions from CSV file [ %s ].",
+        num_points,
+        num_dims,
+        csv_path,
+    )
+    if num_dims != num_pcs:
+        logger.error(
+            "Expected coordinates of [ %d ] dimensions from CSV, but got [ %d ] dimensions.",
+            num_pcs,
+            num_dims,
+        )
+        raise ValueError(
+            f"Expected coordinates of [ {num_pcs} ] dimensions from CSV, but got [ {num_dims} ] dimensions."
+        )
 
     # transform interpolated points to full latent space
     latent_coords = pca.inverse_transform(pc_coords)
