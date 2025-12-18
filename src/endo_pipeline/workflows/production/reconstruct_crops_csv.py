@@ -8,7 +8,7 @@ TAGS = ["diffae_image_generation", "diffae_features"]
 
 
 def main(
-    dataframe_path: str,
+    path: str,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
@@ -19,25 +19,30 @@ def main(
 
     The reconstructed crops are saved as PNG files in a local directory.
 
-    **CSV file format**:
+    **Dataframe file format**:
 
-    The CSV file should contain rows of latent space coordinates, with each row representing a
-    point in the PCA-transformed space. The number of columns should match the number of principal
-    components used during PCA fitting and transformation, which is specified by the `num_pcs` parameter.
+    The dataframe file (.csv, .parquet, etc.) should contain rows of latent space coordinates,
+    with each row representing a point in the PCA-transformed space.
 
-    The default number of principal components is set via ``NUM_PCS_TO_ANALYZE`` in
-    ``endo_pipeline.settings.diffae_feature_dataframes``.
+    The number of columns should match the number of principal components used during PCA fitting and
+    transformation, which is specified by the `num_pcs` parameter. The default number of principal
+    components is set via ``NUM_PCS_TO_ANALYZE`` in ``endo_pipeline.settings.diffae_feature_dataframes``.
+
+    The column names for the principal components can either be specified via the ``pc_column_names``
+    parameter or will default to the standard naming convention defined in ``DIFFAE_PC_COLUMN_NAMES``.
 
     Parameters
     ----------
-    csv_path
-        Path to a CSV file containing latent space coordinates along trajectories.
+    path
+        Path to a dataframe file containing PC space coordinates.
     model_manifest_name
         Name of the model manifest containing the specific run to load features from.
     run_name
         Run name corresponding to features to load and the model to use for image reconstruction.
     num_pcs
         Number of principal components used in the PCA transformation.
+    pc_column_names
+        List of column names in the dataframe corresponding to the principal components.
     """
     import logging
     from pathlib import Path
@@ -67,7 +72,7 @@ def main(
     logger = logging.getLogger(__name__)
 
     # convert csv_path to Path object
-    dataframe_path_obj = Path(dataframe_path).resolve()
+    dataframe_path_obj = Path(path).resolve()
     dataframe = load_dataframe_from_path(dataframe_path_obj)
 
     # load model manifest, get run name, and load model
