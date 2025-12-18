@@ -6,6 +6,7 @@ def main():
 
     import numpy as np
     import pandas as pd
+    from tqdm import tqdm
 
     from endo_pipeline.configs import (
         TimepointAnnotation,
@@ -53,7 +54,7 @@ def main():
         dataset_name_list_segmented + get_datasets_in_collection("perturbation")
     )
 
-    for dataset_name in dataset_name_list:
+    for dataset_name in tqdm(dataset_name_list):
         # load the dataset config file to get some identifying information about the dataset
         dataset_config = load_dataset_config(dataset_name)
         shear_stress = [flow.shear_stress for flow in dataset_config.flow_conditions]
