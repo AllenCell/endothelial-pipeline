@@ -132,6 +132,8 @@ def plot_measured_feat_pcs(
     axs: np.ndarray | None = None,
     track_id: Literal["mean"] | int | None = "mean",
     hue_norm: tuple[float, float] | None = None,
+    indicate_track_start: bool = True,
+    indicate_track_end: bool = True,
     legend: Literal["auto", "brief", "full", False] = "auto",
     zorder: int = 0,
     alpha: float = 1.0,
@@ -194,6 +196,34 @@ def plot_measured_feat_pcs(
             zorder=zorder + 1,
             legend=legend,
         )
+        if indicate_track_start:
+            first_timepoint_record = measured_feat_df.query("image_index == image_index.min()")
+            ax.scatter(
+                first_timepoint_record[pc_cols_for_xaxis[j]],
+                first_timepoint_record[pc_cols_for_yaxis[j]],
+                s=100,
+                edgecolor="black",
+                facecolor="",
+                marker="d",
+                lw=2,
+                alpha=alpha,
+                zorder=zorder + 2,
+                # label="track start",
+            )
+        if indicate_track_end:
+            last_timepoint_record = measured_feat_df.query("image_index == @image_index.max()")
+            ax.scatter(
+                last_timepoint_record[pc_cols_for_xaxis[j]],
+                last_timepoint_record[pc_cols_for_yaxis[j]],
+                s=100,
+                edgecolor="black",
+                facecolor=None,
+                lw=2,
+                marker="*",
+                alpha=alpha,
+                zorder=zorder + 3,
+                # label="track end",
+            )
 
     return fig, axs  # type: ignore[return-value]
 
@@ -206,6 +236,8 @@ def plot_measured_feat_overlay_on_flowfield(
     flow_field_dict_grids: dict,
     diffae_measured_feat_df: pd.DataFrame,
     meas_feat_col_name_for_color_coding: str,
+    indicate_track_start: bool = True,
+    indicate_track_end: bool = True,
     track_id_to_plot: Literal["mean"] | int | None = "mean",
     hue_norm: tuple[float, float] | None = None,
     legend: Literal["auto", "brief", "full", False] = "auto",
@@ -221,6 +253,8 @@ def plot_measured_feat_overlay_on_flowfield(
         pc_cols_for_xaxis=["pc_1", "pc_1"],
         pc_cols_for_yaxis=["pc_2", "pc_3"],
         track_id=track_id_to_plot,
+        indicate_track_start=indicate_track_start,
+        indicate_track_end=indicate_track_end,
         fig=fig,
         axs=axs,
         hue_norm=hue_norm,
@@ -240,6 +274,11 @@ def plot_measured_feat_overlay_on_flowfield(
             "track_ids must be 'mean', an integer, or None. "
             f"Got {track_id_to_plot} (type: {type(track_id_to_plot)}) instead."
         )
+    # if indicate_track_start:
+    #     stuff
+    # if indicate_track_end:
+    #     stuff
+
     save_plot_to_path(
         figure=fig,
         output_path=out_dir,
@@ -376,6 +415,8 @@ def multiproc_plot_measured_feat_overlay_on_flowfield(args: tuple) -> None:
         flow_field_dict_grids,
         diffae_measured_feat_df=df_one_position,
         meas_feat_col_name_for_color_coding=measured_feature,
+        indicate_track_start=False,
+        indicate_track_end=True,
         track_id_to_plot=tid,
         hue_norm=hue_norm,
         legend=legend,
@@ -438,6 +479,8 @@ def make_all_plots(
             diffae_measured_feat_df=df_all_positions,
             meas_feat_col_name_for_color_coding=measured_feature,
             track_id_to_plot="mean",
+            indicate_track_start=False,
+            indicate_track_end=True,
             hue_norm=hues_for_feats[i],
             legend=legend,
             alpha=0.8,
