@@ -1,15 +1,15 @@
 """Settings for perturbation datasets: knockout (KO) datasets and their isogenic controls."""
 
+PERTURBATION_DATASET_COLLECTION_NAME: str = "perturbation"
+"""Default dataset collection name for perturbation datasets."""
+
 PERTURBATION_COLOR: str = "tab:pink"
 """Default color for KO datasets and isogenic controls in plots."""
 
-KO_PLOT_MARKERS: tuple[str, str, str] = ("X", "D", "*")
-"""Default marker style for KO datasets."""
-
-ISOGENIC_CONTROL_PLOT_MARKERS: tuple[str, str] = ("^", "s")
-
-KO_CELL_LINE: str = "AICS-177 cl. 26"
-"""Default cell line name for KO datasets."""
-
-ISOGENIC_CONTROL_CELL_LINE: str = "AICS-177"
-"""Default cell line name for isogenic control datasets."""
+PERTURBATION_PLOT_MARKER_DICT: dict[str, str] = {
+    "20250908_20X": "X",
+    "20251022_20X": "o",
+    "20251029_20X": "+",
+    "20251105_20X": "s",
+    "20251119_20X": "^",
+}

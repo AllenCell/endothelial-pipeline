@@ -12,7 +12,7 @@ from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import load_dataset_collection_config, load_dataset_config
 from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
@@ -22,14 +22,18 @@ from endo_pipeline.library.visualize.seg_features.general_standard_plots import 
     get_seg_feat_plot_args,
 )
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import (
+from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
-    SHEAR_COLOR_DICT,
+    ColumnName,
 )
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.perturbation_datasets import (
+    PERTURBATION_COLOR,
+    PERTURBATION_DATASET_COLLECTION_NAME,
+)
+from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 plt.style.use("endo_pipeline.figure")
@@ -116,17 +120,25 @@ def get_dataset_color(dataset_name: str) -> str:
     dataset_name
         Name of the dataset to get the color for.
     """
-    dataset_config = load_dataset_config(dataset_name)
-    if len(dataset_config.shear_stress_regime) > 1:
-        logger.warning(
-            "Color defaults only set for single shear stress regime datasets. "
-            "Returning color for first shear stress regime in list."
-        )
+    # check if dataset is in perturbation datasets collection
+    # if so, return perturbation color
+    perturbation_datasets = load_dataset_collection_config(
+        PERTURBATION_DATASET_COLLECTION_NAME
+    ).datasets
+    if dataset_name in perturbation_datasets:
+        return PERTURBATION_COLOR
+    # else, get shear stress regime from dataset config
+    # and return corresponding color
+    else:
+        dataset_config = load_dataset_config(dataset_name)
+        if len(dataset_config.shear_stress_regime) > 1:
+            logger.warning(
+                "Color defaults only set for single shear stress regime datasets. "
+                "Returning color for first shear stress regime in list."
+            )
 
-    shear_stress_regime = dataset_config.shear_stress_regime[0]
-    color = SHEAR_COLOR_DICT[shear_stress_regime]
-
-    return color
+        shear_stress_regime = dataset_config.shear_stress_regime[0]
+        return SHEAR_COLOR_DICT[shear_stress_regime]
 
 
 def plot_pc_scatter(

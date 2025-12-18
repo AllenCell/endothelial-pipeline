@@ -11,7 +11,7 @@ from matplotlib.lines import Line2D
 from matplotlib.ticker import MaxNLocator
 from scipy.stats import gaussian_kde
 
-from endo_pipeline.configs import load_dataset_collection_config, load_dataset_config
+from endo_pipeline.configs import load_dataset_collection_config
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataset_descriptions,
@@ -45,13 +45,7 @@ from endo_pipeline.settings.flow_field_3d import (
     QUIVER_DOWNSAMPLE_FACTOR,
     QUIVER_VECTOR_SCALE,
 )
-from endo_pipeline.settings.perturbation_datasets import (
-    ISOGENIC_CONTROL_CELL_LINE,
-    ISOGENIC_CONTROL_PLOT_MARKERS,
-    KO_CELL_LINE,
-    KO_PLOT_MARKERS,
-    PERTURBATION_COLOR,
-)
+from endo_pipeline.settings.perturbation_datasets import PERTURBATION_PLOT_MARKER_DICT
 
 logger = logging.getLogger(__name__)
 
@@ -610,37 +604,12 @@ def plot_stable_fixed_points_together(
 
     # loop over datasets and plot their stable fixed points
     marker_list_for_legend = []
-    first_isogenic_control = True
-    first_ko_dataset = True
-    second_ko_dataset = False
     for dataset_name, stable_fixed_points in stable_fixed_points_dict.items():
         scatter_color = feature_viz.get_dataset_color(dataset_name)
         scatter_marker = "o"
-        # color perturbation datasets differently
+        # use different markers for perturbation datasets
         if dataset_name in perturbation_collection_config.datasets:
-            # perturbation dataset (KO or isogenic control)
-            dataset_config = load_dataset_config(dataset_name)
-            # check if this is a KO dataset
-            if KO_CELL_LINE in dataset_config.cell_lines:
-                scatter_color = PERTURBATION_COLOR
-                # use different marker for KO datasets
-                if first_ko_dataset:
-                    scatter_marker = KO_PLOT_MARKERS[0]
-                    first_ko_dataset = False
-                    second_ko_dataset = True
-                elif second_ko_dataset:
-                    scatter_marker = KO_PLOT_MARKERS[1]
-                    second_ko_dataset = False
-                else:
-                    scatter_marker = KO_PLOT_MARKERS[2]
-            elif ISOGENIC_CONTROL_CELL_LINE in dataset_config.cell_lines:
-                scatter_color = PERTURBATION_COLOR
-                # use different marker for isogenic controls
-                if first_isogenic_control:
-                    scatter_marker = ISOGENIC_CONTROL_PLOT_MARKERS[0]
-                    first_isogenic_control = False
-                else:
-                    scatter_marker = ISOGENIC_CONTROL_PLOT_MARKERS[1]
+            scatter_marker = PERTURBATION_PLOT_MARKER_DICT.get(dataset_name, "D")
 
         marker_list_for_legend.append(
             Line2D(
