@@ -76,7 +76,6 @@ def main(
         NUM_INIT_SAMPLES,
         OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS,
         TIME_STEP_IN_MINUTES,
-        TRAJECTORY_DICT_FILE_NAME,
         TRAJECTORY_TIME_SPAN,
     )
 
@@ -85,7 +84,7 @@ def main(
         model_manifest, run_name, crop_pattern="grid"
     )
 
-    # Create output folder if does not exist yet
+    # Create output folders if they do not exist yet
     output_savedir = get_output_path(
         OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS,
         dataframe_manifest_name,
@@ -98,6 +97,8 @@ def main(
         OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS, dataframe_manifest_name, "outputs", "vtk"
     )
 
+    # load dataframe manifest with model feature for the given model run
+    # and model manifest
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     # Default list of datasets if not provided. Filter by datasets available in
@@ -110,6 +111,7 @@ def main(
     else:
         dataset_names = [name for name in datasets if name in valid_dataset_options]
 
+    # fit PCA using the features from the given dataframe manifest
     pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name)
 
     # get common bounds for all datasets
@@ -119,7 +121,6 @@ def main(
 
     # initialize dict to save trajectories for crop reconstruction
     # and dict to store stable fixed points (visualized together later)
-    traj_dict = {}
     stable_fixed_points_dict = {}
     for dataset_name in dataset_names:
         # get bins for KMCs
@@ -130,7 +131,7 @@ def main(
             pad=True,
         )
         bins, centers = get_bins(NUM_BINS_3D, bin_limits=bounds_for_km)
-        output_dict = ddff_model_analysis(
+        stable_fixed_points = ddff_model_analysis(
             dataset_name,
             dataframe_manifest,
             pca,
@@ -149,10 +150,7 @@ def main(
         )
 
         # save out trajectory for reconstruction using dataset descriptions
-        traj_dict[dataset_name] = output_dict["trajectory"]
-        stable_fixed_points_dict[dataset_name] = output_dict["stable_fixed_points"]
-
-    np.save(output_savedir / TRAJECTORY_DICT_FILE_NAME, traj_dict, allow_pickle=True)  # type: ignore
+        stable_fixed_points_dict[dataset_name] = stable_fixed_points
 
     # generate plot of stable fixed points from different datasets overlaid on top of each other
     # (for comparison of stable fixed points across datasets)

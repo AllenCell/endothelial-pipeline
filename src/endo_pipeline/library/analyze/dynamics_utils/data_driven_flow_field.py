@@ -109,7 +109,7 @@ def ddff_model_analysis(
     pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
     lower_percentile: float = 5.0,
     upper_percentile: float = 95.0,
-) -> dict[str, np.ndarray | list[np.ndarray]]:
+) -> list[np.ndarray]:
     """
     Get 3d flow field (drift coefficient) from principal component features from a given dataset.
 
@@ -124,13 +124,6 @@ def ddff_model_analysis(
     5. Solves the ODE dx/dt = f(x) using scipy.integrate.solve_ivp, where f(x) is the flow field
         (drift coefficient) and x is the 3D state space.
     6. Visualizes the flow field and the trajectory using the main function in flow_field_viz.py.
-
-    **Method output**
-
-    The output is a dictionary with two keys:
-    - "trajectory": numpy array of shape (num_t, 3) with the trajectory in 3D state space
-    - "stable_fixed_points": list of stable fixed points found in the flow field within the
-        specified percentile bounds.
 
     Parameters
     ----------
@@ -170,6 +163,11 @@ def ddff_model_analysis(
         Lower percentile for filtering fixed points.
     upper_percentile
         Upper percentile for filtering fixed points.
+
+    Returns
+    -------
+    :
+        List of stable fixed points with high confidence (filtered by percentile range).
     """
     # load dataframe and get top 3 PCs
     df = get_dataframe_for_dynamics_workflows(
@@ -272,6 +270,7 @@ def ddff_model_analysis(
     fig_savedir_dataset = fig_savedir / dataset_name
     fig_savedir_dataset.mkdir(parents=True, exist_ok=True)
 
+    # call main visualization function
     flow_field_viz.flow_field_viz_main(
         flow_field_dict,
         df,
@@ -282,12 +281,7 @@ def ddff_model_analysis(
         fig_savedir_dataset,
     )
 
-    output_dict = {
-        "trajectory": traj,
-        "stable_fixed_points": stable_fpts_high_confidence,
-    }
-
-    return output_dict
+    return stable_fpts_high_confidence
 
 
 def compute_extrapolated_vector_field(
