@@ -55,8 +55,9 @@ def main(
     import numpy as np
     import pandas as pd
 
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
-    from endo_pipeline.io import get_output_path
+    from endo_pipeline.io import get_output_path, make_name_unique
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
     from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import (
         ddff_model_analysis,
@@ -179,19 +180,28 @@ def main(
                 ignore_index=True,
             )
 
-    # save stable fixed points from all datasets to parquet file
-    stable_fpt_file_name = "stable_fixed_points_all_datasets.parquet"
-    logger.info(
-        "Saving stable fixed points from all datasets to [ %s ]",
-        output_savedir / stable_fpt_file_name,
-    )
-    stable_fixed_points_df.to_parquet(
-        output_savedir / stable_fpt_file_name,
-    )
-
     # generate plot of stable fixed points from different datasets overlaid on top of each other
     # (for comparison of stable fixed points across datasets)
     plot_stable_fixed_points_together(stable_fixed_points_df, bounds_for_plots, fig_savedir)
+
+    # save stable fixed points from all datasets to parquet file
+    df_file_name = "stable_fixed_points_all_datasets.parquet"
+    if DEMO_MODE:
+        stable_fixed_points_save_path = make_name_unique(output_savedir / f"demo_{df_file_name}")
+    else:
+        # eventually, save to FMS
+        logger.warning(
+            "Saving stable fixed points to FMS not yet implemented, saving locally instead."
+        )
+        stable_fixed_points_save_path = make_name_unique(output_savedir / df_file_name)
+
+    logger.info(
+        "Saving stable fixed points from all datasets to [ %s ]",
+        stable_fixed_points_save_path,
+    )
+    stable_fixed_points_df.to_parquet(
+        stable_fixed_points_save_path,
+    )
 
 
 if __name__ == "__main__":
