@@ -7,10 +7,11 @@ import numpy as np
 import pandas as pd
 from matplotlib.cm import get_cmap
 from matplotlib.colors import LogNorm, Normalize
-from matplotlib.patches import Patch
+from matplotlib.lines import Line2D
 from matplotlib.ticker import MaxNLocator
 from scipy.stats import gaussian_kde
 
+from endo_pipeline.configs import load_dataset_collection_config, load_dataset_config
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataset_descriptions,
@@ -43,6 +44,13 @@ from endo_pipeline.settings.flow_field_3d import (
     QUIVER_COLORMAP,
     QUIVER_DOWNSAMPLE_FACTOR,
     QUIVER_VECTOR_SCALE,
+)
+from endo_pipeline.settings.perturbation_datasets import (
+    ISOGENIC_CONTROL_CELL_LINE,
+    ISOGENIC_CONTROL_PLOT_MARKERS,
+    KO_CELL_LINE,
+    KO_PLOT_MARKERS,
+    PERTURBATION_COLOR,
 )
 
 logger = logging.getLogger(__name__)
@@ -593,26 +601,79 @@ def plot_stable_fixed_points_together(
     fig_savedir
         Directory to save the figure.
     """
+    # load perturbation dataset collection config
+    # color these datasets consistently
+    perturbation_collection_config = load_dataset_collection_config("perturbation")
 
     # initialize plots
     fig, ax = plt.subplots(NROWS_2D_FLOW_FIELD, NCOLS_2D_FLOW_FIELD, figsize=FIGSIZE_2D_FLOW_FIELD)
 
     # loop over datasets and plot their stable fixed points
-    patch_list_for_legend = []
+    marker_list_for_legend = []
+    first_isogenic_control = True
+    first_ko_dataset = True
+    second_ko_dataset = False
     for dataset_name, stable_fixed_points in stable_fixed_points_dict.items():
         scatter_color = feature_viz.get_dataset_color(dataset_name)
-        patch_list_for_legend.append(Patch(color=scatter_color, label=dataset_name))
+        scatter_marker = "o"
+        # color perturbation datasets differently
+        if dataset_name in perturbation_collection_config.datasets:
+            # perturbation dataset (KO or isogenic control)
+            dataset_config = load_dataset_config(dataset_name)
+            # check if this is a KO dataset
+            if KO_CELL_LINE in dataset_config.cell_lines:
+                scatter_color = PERTURBATION_COLOR
+                # use different marker for KO datasets
+                if first_ko_dataset:
+                    scatter_marker = KO_PLOT_MARKERS[0]
+                    first_ko_dataset = False
+                    second_ko_dataset = True
+                elif second_ko_dataset:
+                    scatter_marker = KO_PLOT_MARKERS[1]
+                    second_ko_dataset = False
+                else:
+                    scatter_marker = KO_PLOT_MARKERS[2]
+            elif ISOGENIC_CONTROL_CELL_LINE in dataset_config.cell_lines:
+                scatter_color = PERTURBATION_COLOR
+                # use different marker for isogenic controls
+                if first_isogenic_control:
+                    scatter_marker = ISOGENIC_CONTROL_PLOT_MARKERS[0]
+                    first_isogenic_control = False
+                else:
+                    scatter_marker = ISOGENIC_CONTROL_PLOT_MARKERS[1]
+
+        marker_list_for_legend.append(
+            Line2D(
+                [0],
+                [0],
+                marker=scatter_marker,
+                color="w",
+                label=dataset_name,
+                markerfacecolor=scatter_color,
+                markeredgecolor="black",
+                markersize=8,
+            )
+        )
         for fpt in stable_fixed_points:
             # plot fixed point
             # PC1 vs PC2, PC1 vs PC3
-            ax[0].scatter(fpt[0], fpt[1], s=100, color=scatter_color, edgecolor="black")
-            ax[1].scatter(fpt[0], fpt[2], s=100, color=scatter_color, edgecolor="black")
+            ax[0].scatter(
+                fpt[0], fpt[1], s=100, color=scatter_color, edgecolor="black", marker=scatter_marker
+            )
+            ax[1].scatter(
+                fpt[0], fpt[2], s=100, color=scatter_color, edgecolor="black", marker=scatter_marker
+            )
 
     # set the axis limits and labels
     ax = set_slice_plot_bounds_and_labels(ax, plot_bounds)
 
     # add legend
-    ax[0].legend(bbox_to_anchor=(1.02, 1.02), title="Datasets", handles=patch_list_for_legend)
+    ax[0].legend(
+        bbox_to_anchor=(1.25, 1.02),
+        title="Datasets",
+        handles=marker_list_for_legend,
+        labelspacing=1.5,
+    )
 
     plt.tight_layout()
 
