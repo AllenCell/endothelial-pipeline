@@ -19,7 +19,11 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
 )
 from endo_pipeline.library.analyze.dynamics_utils import data_driven_flow_field
 from endo_pipeline.library.visualize.diffae_features import feature_viz
-from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
+from endo_pipeline.settings.diffae_feature_dataframes import (
+    DIFFAE_PC_COLUMN_NAMES,
+    NUM_PCS_TO_ANALYZE,
+    ColumnName,
+)
 from endo_pipeline.settings.figures import (
     FONT_FAMILY,
     FONTSIZE_LARGE,
@@ -583,11 +587,7 @@ def plot_stable_fixed_points_together(
     stable_fixed_points_df: pd.DataFrame,
     plot_bounds: list[np.ndarray],
     fig_savedir: Path,
-    pc_column_names: tuple[str, str, str] = (
-        DIFFAE_PC_COLUMN_NAMES[0],
-        DIFFAE_PC_COLUMN_NAMES[1],
-        DIFFAE_PC_COLUMN_NAMES[2],
-    ),
+    pc_column_names: list[str] | None = None,
 ) -> None:
     """
     Generate plot of stable fixed points from multiple datasets together.
@@ -609,6 +609,8 @@ def plot_stable_fixed_points_together(
     fig_savedir
         Directory to save the figure.
     """
+    if pc_column_names is None:
+        pc_column_names = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
     # check that required columns are present
     required_columns = [ColumnName.DATASET, *pc_column_names]
     check_required_columns_in_dataframe(stable_fixed_points_df, required_columns)
