@@ -19,6 +19,7 @@ def main(
     The reconstructed crops are saved as PNG files in a local directory.
 
     **CSV file format**:
+
     The CSV file should contain rows of latent space coordinates, with each row representing a
     point in the PCA-transformed space. The number of columns should match the number of principal
     components used during PCA fitting and transformation, which is specified by the `num_pcs` parameter.
