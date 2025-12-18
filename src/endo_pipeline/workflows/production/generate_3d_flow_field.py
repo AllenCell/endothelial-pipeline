@@ -14,6 +14,28 @@ def main(
     Visualize 3D (drift) flow fields for the dynamics of the crop-based DiffAE
     features for each of the single flow datasets.
 
+    **Flow field estimation and analysis**
+
+    1. Estimate 3D flow fields using a Gaussian kernel method on the PCA-reduced
+         DiffAE feature space.
+    2. Use interpolation to get a callable flow field function.
+    3. Identify stable fixed points in the 3D flow field using a root-finding method
+        applied to the flow field function.
+    4. Categorize the identified fixed points based on the eigenvalues of the Jacobian
+        matrix at each fixed point.
+    5. Simulate trajectories in the 3D flow field starting from specified initial points.
+    6. Save the flow field analysis results, including stable fixed point locations.
+
+    **Visualization outputs**
+
+    1. 2D flow field visualizations saved as PNG files in the `figs/` directory, including:
+        a. 2D slice of the 3D flow field "sliced" according to the coordinates
+            of the stable fixed points identified in the 3D flow field.
+        b. Trajectories simulated in the 3D flow field, projected onto 2D slices.
+    2. VTK files for 3D flow field visualizations saved in the `outputs/vtk/` directory.
+    3. Stable fixed point locations from all datasets processed overlaid on a single
+        plot saved as a PNG file in the `figs/` directory.
+
     Parameters
     ----------
     datasets
@@ -35,10 +57,9 @@ def main(
     import numpy as np
 
     from endo_pipeline.configs import get_datasets_in_collection
-    from endo_pipeline.io import get_output_path, save_plot_to_path
+    from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
     from endo_pipeline.library.analyze.dynamics_utils import get_and_analyze_ddff
-    from endo_pipeline.library.visualize.diffae_features import feature_viz
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
         load_dataframe_manifest,
@@ -87,11 +108,6 @@ def main(
         dataset_names = [name for name in datasets if name in valid_dataset_options]
 
     pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name)
-
-    # plot scatter of PCA components and all datasets specified in the command
-    # line (or default list, if not specified)
-    fig, _ = feature_viz.plot_pc_scatter(dataset_names, dataframe_manifest, pca)
-    save_plot_to_path(fig, fig_savedir, "pca_scatter_all")
 
     get_and_analyze_ddff(
         dataset_names,
