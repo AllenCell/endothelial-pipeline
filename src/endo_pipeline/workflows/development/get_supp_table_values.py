@@ -91,6 +91,13 @@ def main():
             num_cell_seg_before_filt = np.nan
             num_cell_seg_after_filt = np.nan
             num_timepoints_left_after_filter = np.nan
+            seg_lengths_px_mean = np.nan
+            seg_lengths_px_std = np.nan
+            seg_lengths_px_median = np.nan
+            seg_lengths_um_mean = np.nan
+            seg_lengths_um_std = np.nan
+            seg_lengths_um_median = np.nan
+
         else:
             # load segmentation features dataframe
             live_seg_manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
@@ -189,6 +196,12 @@ def main():
     seg_counts_df = pd.DataFrame(seg_counts)
     out_dir = get_output_path(__file__)
     seg_counts_df.to_csv(out_dir / "segmentation_counts_across_datasets.tsv", sep="\t", index=False)
+
+    major_axis_len_mean_all_px = seg_counts_df["major_axis_length_mean_px"].mean()
+    major_axis_len_mean_all_um = seg_counts_df["major_axis_length_mean_um"].mean()
+
+    print(f"Mean cell length across all datasets (px): {major_axis_len_mean_all_px}")
+    print(f"Mean cell length across all datasets (um): {major_axis_len_mean_all_um}")
 
 
 if __name__ == "__main__":
