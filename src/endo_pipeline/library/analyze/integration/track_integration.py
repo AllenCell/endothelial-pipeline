@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 from seaborn import color_palette
 from tqdm import tqdm
 
-from endo_pipeline.configs import get_datasets_in_collection, get_latent_dim_from_config
+from endo_pipeline.configs import get_latent_dim_from_config
 from endo_pipeline.io import (
     configure_logging,
     get_config_dict_from_mlflow,
@@ -796,7 +796,7 @@ def get_vector_dot_products_as_grid(
         list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks), strict=True))
     )
     dot_prod_full = np.einsum("ij,ij->i", vecs_grids, vecs_tracks)
-    dot_prod_arr = dot_prod_full.reshape((50, 50, 50))
+    dot_prod_arr = dot_prod_full.reshape(v1_grids.shape)
     dot_prod = dot_prod_arr[slice_indexes].reshape(my_shape)
     return dot_prod
 
@@ -1018,10 +1018,10 @@ def get_preprocessed_manifests_and_km_bounds(
         include_not_steady_state=False,
     )
 
-    datasets_for_bounds = list(
-        set(get_datasets_in_collection(collection_name_for_pca) + [dataset_name])
-    )
-    bounds = get_3d_bounds_from_data(datasets_for_bounds, grid_diffae_manifest, pca)
+    # datasets_for_bounds = list(
+    #     set(get_datasets_in_collection(collection_name_for_pca) + [dataset_name])
+    # )
+    bounds = get_3d_bounds_from_data([dataset_name], grid_diffae_manifest, pca)
 
     # lastly, add a normalized version of the "time_hours" column
     merged_feats_df = add_normalized_time(merged_feats_df)
