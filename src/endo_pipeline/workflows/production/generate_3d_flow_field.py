@@ -52,6 +52,7 @@ def main(
     """
 
     import numpy as np
+    import pandas as pd
 
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
@@ -68,6 +69,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
+    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
     from endo_pipeline.settings.flow_field_3d import (
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         INIT_POINT_3D,
@@ -119,9 +121,16 @@ def main(
     # regardless, gets used below when plotting stable fixed points together
     bounds_for_plots = get_3d_bounds_from_data(dataset_names, dataframe_manifest, pca)
 
-    # initialize dict to save trajectories for crop reconstruction
-    # and dict to store stable fixed points (visualized together later)
-    stable_fixed_points_dict = {}
+    # initialize dataframe to hold stable fixed points from all datasets
+    # with columns for dataset name and 3D PC space coordinates
+    stable_fixed_points_df = pd.DataFrame(
+        columns=[
+            ColumnName.DATASET,
+            f"{ColumnName.PCA_FEATURE_PREFIX}_1",
+            f"{ColumnName.PCA_FEATURE_PREFIX}_2",
+            f"{ColumnName.PCA_FEATURE_PREFIX}_3",
+        ]
+    )
     for dataset_name in dataset_names:
         # get bins for KMCs
         bounds_for_km = get_3d_bounds_from_data(
@@ -149,12 +158,26 @@ def main(
             output_savedir,
         )
 
-        # save out trajectory for reconstruction using dataset descriptions
-        stable_fixed_points_dict[dataset_name] = stable_fixed_points
+        # add stable fixed points from this dataset to the overall dataframe
+        for stable_fp in stable_fixed_points:
+            stable_fixed_points_df = pd.concat(
+                [
+                    stable_fixed_points_df,
+                    pd.DataFrame(
+                        {
+                            ColumnName.DATASET: [dataset_name],
+                            f"{ColumnName.PCA_FEATURE_PREFIX}_1": [stable_fp[0]],
+                            f"{ColumnName.PCA_FEATURE_PREFIX}_2": [stable_fp[1]],
+                            f"{ColumnName.PCA_FEATURE_PREFIX}_3": [stable_fp[2]],
+                        }
+                    ),
+                ],
+                ignore_index=True,
+            )
 
     # generate plot of stable fixed points from different datasets overlaid on top of each other
     # (for comparison of stable fixed points across datasets)
-    plot_stable_fixed_points_together(stable_fixed_points_dict, bounds_for_plots, fig_savedir)
+    plot_stable_fixed_points_together(stable_fixed_points_df, bounds_for_plots, fig_savedir)
 
 
 if __name__ == "__main__":

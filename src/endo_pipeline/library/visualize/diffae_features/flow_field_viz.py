@@ -13,6 +13,7 @@ from scipy.stats import gaussian_kde
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    check_required_columns_in_dataframe,
     get_dataset_descriptions,
     parse_dataset_description,
 )
@@ -579,30 +580,49 @@ def plot_flow_field_slices(
 
 
 def plot_stable_fixed_points_together(
-    stable_fixed_points_dict: dict[str, list[np.ndarray]],
+    stable_fixed_points_df: pd.DataFrame,
     plot_bounds: list[np.ndarray],
     fig_savedir: Path,
+    pc_column_names: tuple[str, str, str] = (
+        DIFFAE_PC_COLUMN_NAMES[0],
+        DIFFAE_PC_COLUMN_NAMES[1],
+        DIFFAE_PC_COLUMN_NAMES[2],
+    ),
 ) -> None:
     """
     Generate plot of stable fixed points from multiple datasets together.
 
+    **Input DataFrame stable_fixed_points_df:**
+
+    The method input ``stable_fixed_points_df`` should have the following columns:
+        - ColumnName.DATASET
+        - pc_column_names[0] (e.g., "pc_1")
+        - pc_column_names[1] (e.g., "pc_2")
+        - pc_column_names[2] (e.g., "pc_3")
+
     Parameters
     ----------
-    stable_fixed_points_dict
-        Dictionary mapping dataset names to lists of stable fixed points.
+    stable_fixed_points_df
+        DataFrame containing stable fixed points from multiple datasets.
+    plot_bounds
+        List of arrays specifying the plot bounds for each principal component.
     fig_savedir
         Directory to save the figure.
     """
+    # check that required columns are present
+    required_columns = [ColumnName.DATASET, *pc_column_names]
+    check_required_columns_in_dataframe(stable_fixed_points_df, required_columns)
 
     # initialize plots
     fig, ax = plt.subplots(NROWS_2D_FLOW_FIELD, NCOLS_2D_FLOW_FIELD, figsize=FIGSIZE_2D_FLOW_FIELD)
 
     # loop over datasets and plot their stable fixed points
     patch_list_for_legend = []
-    for dataset_name, stable_fixed_points in stable_fixed_points_dict.items():
+    for dataset_name, dataset_df in stable_fixed_points_df.groupby(ColumnName.DATASET):
         scatter_color = feature_viz.get_dataset_color(dataset_name)
         patch_list_for_legend.append(Patch(color=scatter_color, label=dataset_name))
-        for fpt in stable_fixed_points:
+        fpts = dataset_df[pc_column_names].values
+        for fpt in fpts:
             # plot fixed point
             # PC1 vs PC2, PC1 vs PC3
             ax[0].scatter(fpt[0], fpt[1], s=100, color=scatter_color, edgecolor="black")

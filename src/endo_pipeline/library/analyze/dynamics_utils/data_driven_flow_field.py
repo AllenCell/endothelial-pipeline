@@ -45,7 +45,7 @@ def sample_from_density(
 
     Returns
     -------
-    np.ndarray
+    :
         Sampled points of shape (n_samples, D).
     """
     rng = np.random.default_rng(seed=random_seed)
