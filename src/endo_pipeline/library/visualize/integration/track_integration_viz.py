@@ -211,7 +211,7 @@ def plot_measured_feat_pcs(
                 # label="track start",
             )
         if indicate_track_end:
-            last_timepoint_record = measured_feat_df.query("image_index == @image_index.max()")
+            last_timepoint_record = measured_feat_df.query("image_index == image_index.max()")
             ax.scatter(
                 last_timepoint_record[pc_cols_for_xaxis[j]],
                 last_timepoint_record[pc_cols_for_yaxis[j]],
