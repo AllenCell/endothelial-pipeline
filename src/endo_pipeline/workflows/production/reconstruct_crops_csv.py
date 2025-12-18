@@ -8,7 +8,7 @@ TAGS = ["diffae_image_generation", "diffae_features"]
 
 
 def main(
-    csv_path: str,
+    dataframe_path: str,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
@@ -45,7 +45,12 @@ def main(
     import numpy as np
 
     from endo_pipeline import NUM_GPUS
-    from endo_pipeline.io import get_output_path, load_model, save_plot_to_path
+    from endo_pipeline.io import (
+        get_output_path,
+        load_dataframe_from_path,
+        load_model,
+        save_plot_to_path,
+    )
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
     from endo_pipeline.library.model import generate_from_coords_batch
     from endo_pipeline.manifests import (
@@ -57,10 +62,8 @@ def main(
     logger = logging.getLogger(__name__)
 
     # convert csv_path to Path object
-    csv_path_obj = Path(csv_path)
-    if not csv_path_obj.exists():
-        logger.error("CSV file [ %s ] does not exist.", csv_path)
-        raise FileNotFoundError(f"CSV file [ {csv_path} ] does not exist.")
+    dataframe_path_obj = Path(dataframe_path).resolve()
+    dataframe = load_dataframe_from_path(dataframe_path_obj)
 
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
@@ -75,31 +78,31 @@ def main(
     pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=3)
 
     # Directory to save reconstructed crops
-    csv_file_name = csv_path_obj.stem
+    dataframe_file_name = dataframe_path_obj.stem
     crop_savedir = get_output_path(
-        "reconstructed_crops", model_manifest_name, run_name_, csv_file_name
+        "reconstructed_crops", model_manifest_name, run_name_, dataframe_file_name
     )
 
-    # load coordinates from csv
-    pc_coords = np.loadtxt(csv_path_obj, delimiter=",")
+    # get coordinates as array from dataframe
+    pc_coords = dataframe.values
 
     # make sure that coords is a 2D array with shape (num_points, num_dimensions)
     pc_coords = np.atleast_2d(pc_coords)
     num_points, num_dims = pc_coords.shape
     logger.debug(
-        "Loaded [ %d ] points with [ %d ] dimensions from CSV file [ %s ].",
+        "Loaded [ %d ] points with [ %d ] dimensions from dataframe file [ %s ].",
         num_points,
         num_dims,
-        csv_path,
+        dataframe_file_name,
     )
     if num_dims != num_pcs:
         logger.error(
-            "Expected coordinates of [ %d ] dimensions from CSV, but got [ %d ] dimensions.",
+            "Expected coordinates of [ %d ] dimensions from loaded dataframe, but got [ %d ] dimensions.",
             num_pcs,
             num_dims,
         )
         raise ValueError(
-            f"Expected coordinates of [ {num_pcs} ] dimensions from CSV, but got [ {num_dims} ] dimensions."
+            f"Expected coordinates of [ {num_pcs} ] dimensions from loaded dataframe, but got [ {num_dims} ] dimensions."
         )
 
     # transform interpolated points to full latent space
