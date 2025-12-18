@@ -141,21 +141,20 @@ def generate_from_coords_and_noised_image(
 
 def generate_from_coords(
     model: "BaseDiffusionAutoEncoder | DiffusionAutoEncoder",
-    coords: np.ndarray | list[list[float]],
+    coords: np.ndarray,
     n_noise_samples: int = 1,
     average: bool = False,
     num_gpus: int | None = None,
 ) -> np.ndarray:
     """
-    Generate a synthetic image from a list of coordinates
-    in the latent space of a model.
+    Generate a synthetic image from coordinates in the latent space of a model.
 
     Parameters
     ----------
     model
         The model to use for generation.
     coords
-        A list of coordinates in the latent space of the model.
+        An array of shape (num_vecs, num_dims) containing latent space coordinates.
     n_noise_samples
         The number of noise samples to use for generation.
     average
@@ -186,40 +185,35 @@ def generate_from_coords(
     walk_img = model_.generate_from_latent(
         coords_, n_noise_samples=n_noise_samples, average=average, save=False
     )
+    if isinstance(walk_img, torch.Tensor):
+        walk_img = walk_img.detach().cpu().numpy()
     return walk_img
 
 
 def generate_from_coords_batch(
     model: "BaseDiffusionAutoEncoder | DiffusionAutoEncoder",
-    coords_batch: np.ndarray | list[list[list[float]]],
+    coords_batch: np.ndarray,
     num_gpus: int | None = None,
 ) -> list[np.ndarray]:
     """
-    Generate synthetic images from a batch of coordinates
-    in the latent space of a model.
+    Generate synthetic images from a batch of coordinates in the latent space of a model.
+
+    Acts as a wrapper around `generate_from_coords` to process a batch of coordinates,
+    returning a list of generated images instead of a single array.
 
     Parameters
     ----------
     model:
         The model to use for generation.
     coords_batch:
-        A batch of lists of coordinates in the latent space of the model.
+        An array of shape (batch_size, num_dims) containing latent space coordinates.
     num_gpus:
         Optional, number of available GPUs.
     """
 
-    # note to self: need to debug what the input type is here
-    # I think the outlier is the latent walk? or maybe the crop
-    # reconstruction? need to check
-    if isinstance(coords_batch, np.ndarray):
-        coords_concat = coords_batch.copy()
-    elif isinstance(coords_batch, list):
-        coords_concat = np.array(coords_batch)
-    else:
-        coords_concat = np.concatenate(coords_batch, axis=0)
-    logger.debug("Concatenated coordinates shape: [ %s ]", coords_concat.shape)
+    logger.debug("Batch coordinate array shape: [ %s ]", coords_batch.shape)
 
-    img = generate_from_coords(model, coords_concat, num_gpus=num_gpus)
+    img = generate_from_coords(model, coords_batch, num_gpus=num_gpus)
     walk_imgs = [img[i] for i in range(len(coords_batch))]
 
     return walk_imgs

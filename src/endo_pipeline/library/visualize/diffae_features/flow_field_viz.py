@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.cm import get_cmap
 from matplotlib.colors import LogNorm, Normalize
+from matplotlib.patches import Patch
 from matplotlib.ticker import MaxNLocator
 from scipy.stats import gaussian_kde
 
@@ -475,7 +476,7 @@ def plot_flow_field_slices(
     plot_bounds
         List of arrays specifying the plot bounds for each principal component.
     fig_savedir
-        Directory to save the figure.
+        Optional, directory to save the figure.
     pc_vals
         Values of the 2nd and 3rd principal components (2nd and 3rd variables) at which to slice the data.
     colormap_name
@@ -574,6 +575,7 @@ def plot_flow_field_slices(
         y=1.02,
         fontfamily=FONT_FAMILY,
     )
+
     if fig_savedir is not None:
         save_plot_to_path(fig, fig_savedir, f"flow_field_{dataset_name}")  # save the figure
 
@@ -581,65 +583,41 @@ def plot_flow_field_slices(
 
 
 def plot_stable_fixed_points_together(
-    list_of_datasets: list[str], fig_savedir: Path, output_savedir: Path
+    stable_fixed_points_dict: dict[str, list[np.ndarray]],
+    plot_bounds: list[np.ndarray],
+    fig_savedir: Path,
 ) -> None:
     """
-    Generate plot of fixed points of the low,
-    high, and intermediate (12dyn) shear stress conditions
-    on the same plot.
+    Generate plot of stable fixed points from multiple datasets together.
+
+    Parameters
+    ----------
+    stable_fixed_points_dict
+        Dictionary mapping dataset names to lists of stable fixed points.
+    fig_savedir
+        Directory to save the figure.
     """
-
-    traj_dict = np.load(output_savedir / "traj_dict.npy", allow_pickle=True).item()
-
-    conditions = get_dataset_descriptions(list_of_datasets, simple=True)
 
     # initialize plots
     fig, ax = plt.subplots(NROWS_2D_FLOW_FIELD, NCOLS_2D_FLOW_FIELD, figsize=FIGSIZE_2D_FLOW_FIELD)
 
-    # get bounds of the grid - load one of the flow field objects
-    # saved in main function
-    flow_field_dict = np.load(
-        output_savedir / f"flow_field_dict_{list_of_datasets[0]}.npy", allow_pickle=True
-    ).item()
-    xmin, xmax = (
-        flow_field_dict["grid"][0][0, 0, 0],
-        flow_field_dict["grid"][0][-1, 0, 0],
-    )
-    ymin, ymax = (
-        flow_field_dict["grid"][1][0, 0, 0],
-        flow_field_dict["grid"][1][0, -1, 0],
-    )
-    zmin, zmax = (
-        flow_field_dict["grid"][2][0, 0, 0],
-        flow_field_dict["grid"][2][0, 0, -1],
-    )
-    bounds_ = [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
-
-    # loop through the datasets and plot the fixed points
-    for name in list_of_datasets:
-        condition = conditions[name]
-        coords = traj_dict[condition]
-        scatter_color = feature_viz.get_dataset_color(name)
-
-        if type(coords) is np.ndarray:  # single attractor
-            # get last point of trajectory
-            fp = coords[-1, :]
+    # loop over datasets and plot their stable fixed points
+    patch_list_for_legend = []
+    for dataset_name, stable_fixed_points in stable_fixed_points_dict.items():
+        scatter_color = feature_viz.get_dataset_color(dataset_name)
+        patch_list_for_legend.append(Patch(color=scatter_color, label=dataset_name))
+        for fpt in stable_fixed_points:
             # plot fixed point
             # PC1 vs PC2, PC1 vs PC3
-            ax[0].scatter(fp[0], fp[1], s=100, color=scatter_color, edgecolor="black")
-            ax[1].scatter(fp[0], fp[2], s=100, color=scatter_color, edgecolor="black")
-        elif type(coords) is list:  # multiple attractors
-            for coord in coords:
-                # get last point of trajectory
-                fp = coord[-1, :]
-                # plot fixed point
-                # PC1 vs PC2, PC1 vs PC3
-                ax[0].scatter(fp[0], fp[1], s=100, color=scatter_color, edgecolor="black")
-                ax[1].scatter(fp[0], fp[2], s=100, color=scatter_color, edgecolor="black")
+            ax[0].scatter(fpt[0], fpt[1], s=100, color=scatter_color, edgecolor="black")
+            ax[1].scatter(fpt[0], fpt[2], s=100, color=scatter_color, edgecolor="black")
 
     # set the axis limits and labels
-    ax = set_slice_plot_bounds_and_labels(ax, bounds_)
-    # set titles with slice values
+    ax = set_slice_plot_bounds_and_labels(ax, plot_bounds)
+
+    # add legend
+    ax[0].legend(bbox_to_anchor=(1.02, 1.02), title="Datasets", handles=patch_list_for_legend)
+
     plt.tight_layout()
 
     # save the figure
@@ -650,6 +628,7 @@ def flow_field_viz_main(
     flow_field_dict: dict,
     df: pd.DataFrame,
     traj: np.ndarray,
+    stable_fixed_points: list[np.ndarray],
     plot_bounds: list[np.ndarray],
     plot_stack: bool,
     fig_savedir: Path,
@@ -671,6 +650,8 @@ def flow_field_viz_main(
         DataFrame containing the data to be plotted (from one dataset/experimental condition).
     traj
         Trajectory of the system in the flow field.
+    stable_fixed_points
+        List of stable fixed points in the flow field.
     plot_bounds
         List of arrays specifying the plot bounds for each principal component.
     plot_stack
@@ -690,17 +671,17 @@ def flow_field_viz_main(
     # 1) plot stacks of flow field slices
     # get PC1, PC2, and PC3 slices from meshgrid (ijk indexing)
     if plot_stack:
-        pc_slices = [
-            flow_field_dict["grid"][0][:, 0, 0],  # PC1
-            flow_field_dict["grid"][1][0, :, 0],  # PC2
-            flow_field_dict["grid"][2][0, 0, :],  # PC3
-        ]
         plot_axes_indicies = [
             (0, 1),  # PC1 vs PC2 over PC3 slices
             (0, 2),  # PC1 vs PC3 over PC2 slices
             (1, 2),  # PC2 vs PC3 over PC1 slices
         ]
         slice_axis_indices = [2, 1, 0]  # PC3, PC2, PC1
+        pc_slices = [
+            flow_field_dict["grid"][0][:, 0, 0],  # PC1
+            flow_field_dict["grid"][1][0, :, 0],  # PC2
+            flow_field_dict["grid"][2][0, 0, :],  # PC3
+        ]
 
         for i, slice_axis in enumerate(slice_axis_indices):
             logger.info("Plotting flow field stack for slice axis PC%s.", slice_axis + 1)
@@ -722,21 +703,34 @@ def flow_field_viz_main(
                 fig_savedir=stack_savedir,
             )
 
-    # plot 2D slices at PC2 and PC3 values given by
-    # the last point of the input trajectory
-    pc_vals = (traj[-1, 2], traj[-1, 1])
+    if len(stable_fixed_points) == 0:
+        logger.warning(
+            "No stable fixed points found for dataset [ %s ]; plotting slices at mean of data.",
+            name,
+        )
+        # plot slices at mean of data at last time point
+        mean_at_last_timepoint = df[
+            df[ColumnName.TIMEPOINT] == df[ColumnName.TIMEPOINT].max()
+        ].mean(numeric_only=True)
+        pc_vals = (
+            mean_at_last_timepoint[DIFFAE_PC_COLUMN_NAMES[2]],
+            mean_at_last_timepoint[DIFFAE_PC_COLUMN_NAMES[1]],
+        )  # PC3, PC2
+        fig, ax = plot_flow_field_slices(flow_field_dict, df, plot_bounds, None, pc_vals=pc_vals)
+    else:
+        for k, fpt in enumerate(stable_fixed_points):
+            # plot flow field slices at this stable fixed point
+            pc_vals = (fpt[2], fpt[1])  # PC3, PC2
+            fig, ax = plot_flow_field_slices(
+                flow_field_dict, df, plot_bounds, None, pc_vals=pc_vals
+            )
 
-    # baseline visualization: plot flow field slices
-    fig, ax = plot_flow_field_slices(flow_field_dict, df, plot_bounds, fig_savedir, pc_vals=pc_vals)
+            for j, ax_ in enumerate(ax):  # PC1 v s PC2, PC1 vs PC3
+                ax_.scatter(fpt[0], fpt[j + 1], s=75, color="black")
+            # save the figure
+            save_plot_to_path(fig, fig_savedir, f"flow_field_{name}_fpt_{k}")
 
-    # 2) plot last point of trajectory over flow field
-    for j, ax_ in enumerate(ax):  # PC1 v s PC2, PC1 vs PC3
-        ax_.scatter(traj[-1, 0], traj[-1, j + 1], s=100, color="black")
-
-    # save the figure
-    save_plot_to_path(fig, fig_savedir, f"flow_field_{name}_fp")
-
-    # 3) plot entire trajectory over flow field
+    # 2) plot entire trajectory over flow field
     # PC1 v s PC2, PC1 vs PC3
     for j, ax_ in enumerate(ax):
         ax_.plot(traj[:, 0], traj[:, j + 1], linewidth=2.5, color="navy")
