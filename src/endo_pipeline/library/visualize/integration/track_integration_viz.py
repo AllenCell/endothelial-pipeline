@@ -132,6 +132,7 @@ def plot_measured_feat_pcs(
     axs: np.ndarray | None = None,
     track_id: Literal["mean"] | int | None = "mean",
     hue_norm: tuple[float, float] | None = None,
+    legend: Literal["auto", "brief", "full", False] = "auto",
     zorder: int = 0,
     alpha: float = 1.0,
 ) -> tuple[Figure, np.ndarray]:
@@ -191,6 +192,7 @@ def plot_measured_feat_pcs(
             alpha=alpha,
             ax=ax,
             zorder=zorder + 1,
+            legend=legend,
         )
 
     return fig, axs  # type: ignore[return-value]
@@ -206,6 +208,7 @@ def plot_measured_feat_overlay_on_flowfield(
     meas_feat_col_name_for_color_coding: str,
     track_id_to_plot: Literal["mean"] | int | None = "mean",
     hue_norm: tuple[float, float] | None = None,
+    legend: Literal["auto", "brief", "full", False] = "auto",
     alpha: float = 0.7,
     show_plot: bool = False,
 ) -> None:
@@ -221,6 +224,7 @@ def plot_measured_feat_overlay_on_flowfield(
         fig=fig,
         axs=axs,
         hue_norm=hue_norm,
+        legend=legend,
         zorder=5,
         alpha=alpha,
     )
@@ -358,7 +362,10 @@ def multiproc_plot_measured_feat_overlay_on_flowfield(args: tuple) -> None:
         traj_grids,
         flow_field_dict_grids,
         df_one_position,
+        measured_feature,
         tid,
+        hue_norm,
+        legend,
     ) = args
 
     plot_measured_feat_overlay_on_flowfield(
@@ -368,9 +375,10 @@ def multiproc_plot_measured_feat_overlay_on_flowfield(args: tuple) -> None:
         traj_grids,
         flow_field_dict_grids,
         diffae_measured_feat_df=df_one_position,
-        meas_feat_col_name_for_color_coding="alignment_deg_rel_to_flow",
+        meas_feat_col_name_for_color_coding=measured_feature,
         track_id_to_plot=tid,
-        hue_norm=(0, 90),
+        hue_norm=hue_norm,
+        legend=legend,
         alpha=0.8,
         show_plot=False,
     )
@@ -405,6 +413,8 @@ def make_all_plots(
     plt.close(fig)
 
     # plot the flow field and the trajectories
+    # first decide if the colormap should be shown in the plot as a legend
+    legend: Literal["auto", "brief", "full", False] = "auto"
     plot_new_traj_overlay_on_grid_traj_and_flowfield(
         out_subdir,
         dataset_name,
@@ -415,7 +425,10 @@ def make_all_plots(
     )
 
     measured_feats_to_plot = ["time_hours", "alignment_deg_rel_to_flow", "eccentricity"]
-    for measured_feature in measured_feats_to_plot:
+    time_start = df_all_positions["time_hours"].min()
+    time_stop = df_all_positions["time_hours"].max()
+    hues_for_feats = [(time_start, time_stop), (0, 90), (0.0, 1.0)]
+    for i, measured_feature in enumerate(measured_feats_to_plot):
         plot_measured_feat_overlay_on_flowfield(
             out_subdir,
             dataset_name,
@@ -425,6 +438,8 @@ def make_all_plots(
             diffae_measured_feat_df=df_all_positions,
             meas_feat_col_name_for_color_coding=measured_feature,
             track_id_to_plot="mean",
+            hue_norm=hues_for_feats[i],
+            legend=legend,
             alpha=0.8,
             show_plot=False,
         )
@@ -433,6 +448,11 @@ def make_all_plots(
     for pos, df_one_position in df_all_positions.groupby("position_as_str"):
         out_subdir_indiv_pos = out_subdir_indiv / str(pos)
         out_subdir_indiv_pos.mkdir(parents=True, exist_ok=True)
+
+        # decide on the feature to color code by and the min and max
+        # of that color coding
+        measured_feature = "alignment_deg_rel_to_flow"
+        hue_norm = (0, 90)
 
         track_ids = sorted(df_one_position["track_id"].unique().tolist())
         # only overlay every 10th track id if there are a lot
@@ -448,13 +468,16 @@ def make_all_plots(
                     traj_grids,
                     flow_field_dict_grids,
                     df_one_position,
+                    measured_feature,
                     tid,
+                    hue_norm,
+                    legend,
                 )
             )
 
         # make the plots
         with Pool(processes=n_cores) as pool:
-            print(f"Starting multiprocessing pool for plotting = {n_cores} processes...")
+            print(f"Starting multiprocessing pool for plotting (using {n_cores} cores)...")
             list(
                 tqdm(
                     pool.imap(multiproc_plot_measured_feat_overlay_on_flowfield, args, chunksize=5),
