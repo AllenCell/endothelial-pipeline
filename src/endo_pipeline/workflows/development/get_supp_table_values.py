@@ -37,6 +37,8 @@ def main():
         "num_nuclei_predictions": [],
         "num_cell_segmentations_before_filter": [],
         "num_cell_segmentations_after_filter": [],
+        "num_tracks_before_filter": [],
+        "num_tracks_after_filter": [],
         "dataset_duration_timeframes": [],
         "num_timeframes_left_after_filter": [],
         "num_timeframes_for_training": [],
@@ -119,6 +121,9 @@ def main():
                 .num_unique_tracks_before_filtering_at_T.apply(sequence_to_scalar)
                 .sum()
             )
+            num_tracks_before_filt = (
+                live_seg_feats_df.groupby(ColumnName.POSITION)["track_id"].nunique().sum()
+            )
 
             # filter out rows based on automatic and manual timepoint annotations
             live_seg_feats_df["dataset"] = live_seg_feats_df["dataset_name"]
@@ -154,6 +159,12 @@ def main():
                 .nunique()
                 .sum()
             )
+            num_tracks_left_after_filter = (
+                live_seg_feats_df[live_seg_feats_df["is_included"]]
+                .groupby(ColumnName.POSITION)["track_id"]
+                .nunique()
+                .sum()
+            )
 
             # add some descriptive statistics about cell lengths to the dataset
             # (this is approximated by reporting the major axis of an ellipse fit to a segmentation)
@@ -181,6 +192,8 @@ def main():
         seg_counts["num_nuclei_predictions"].append(num_nuc_pred)
         seg_counts["num_cell_segmentations_before_filter"].append(num_cell_seg_before_filt)
         seg_counts["num_cell_segmentations_after_filter"].append(num_cell_seg_after_filt)
+        seg_counts["num_tracks_before_filter"].append(num_tracks_before_filt)
+        seg_counts["num_tracks_after_filter"].append(num_tracks_left_after_filter)
         # add dataset duration information
         seg_counts["dataset_duration_timeframes"].append(dataset_config.duration)
         seg_counts["num_timeframes_left_after_filter"].append(num_timepoints_left_after_filter)
