@@ -501,14 +501,3 @@ def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
         interpolated_points[:, i] = np.interp(arc_length_new, arc_length, traj[:, i])
 
     return interpolated_points
-
-
-def convert_coordinates_from_volume_to_pc(
-    xvol: np.ndarray, grid_spacing: float, origin: float
-) -> np.ndarray:
-    """
-    Convert coordinates from 3D volume space to 3D PC space
-    (for saving as .vtk to view in ParaView).
-    """
-    xpc = origin + xvol * grid_spacing
-    return xpc
