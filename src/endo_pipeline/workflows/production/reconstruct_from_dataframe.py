@@ -13,6 +13,7 @@ def main(
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
     pc_column_names: list[str] | None = None,
+    dataset_labels: bool = False,
 ) -> None:
     """
     Reconstruct crops from PC space coordinates stored in a given CSV file.
@@ -31,6 +32,13 @@ def main(
     The column names for the principal components can either be specified via the ``pc_column_names``
     parameter or will default to the standard naming convention defined in ``DIFFAE_PC_COLUMN_NAMES``.
 
+    ** Dataset labels**:
+
+    If the dataframe contains metadata for dataset labels corresponding to each point, the column name
+    for the dataset is specified by ``ColumnName.DATASET`` in ``endo_pipeline.settings.diffae_feature_dataframes``.
+    If the user input parameter ``dataset_labels`` is set to True, the dataset label will be prefixed to the saved
+    file names. Else, the saved file names will only contain the PC coordinate values.
+
     Parameters
     ----------
     path
@@ -43,6 +51,8 @@ def main(
         Number of principal components used in the PCA transformation.
     pc_column_names
         List of column names in the dataframe corresponding to the principal components.
+    dataset_labels
+        If true, the dataset label from the dataframe will be prefixed to the saved file names.
     """
     import logging
     from pathlib import Path
@@ -67,7 +77,7 @@ def main(
         get_most_recent_run_name,
         load_model_manifest,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
 
     logger = logging.getLogger(__name__)
 
@@ -97,7 +107,10 @@ def main(
     pc_column_names_ = (
         DIFFAE_PC_COLUMN_NAMES[:num_pcs] if pc_column_names is None else pc_column_names
     )
-    check_required_columns_in_dataframe(dataframe, pc_column_names_)  # validate required columns
+    required_columns = (
+        [ColumnName.DATASET, *pc_column_names_] if dataset_labels else pc_column_names_
+    )
+    check_required_columns_in_dataframe(dataframe, required_columns)  # validate required columns
     pc_coords = dataframe[pc_column_names_].values  # extract coordinate values
 
     # make sure that coords is a 2D array with shape (num_points, num_dimensions)
@@ -129,7 +142,12 @@ def main(
         ax.imshow(img, cmap="gray")
         plt.axis("off")
         plt.tight_layout()
-        save_plot_to_path(fig, crop_savedir, f"coordinate_row_{i}")
+        file_name = "pc_coordinate_"
+        if dataset_labels:
+            dataset_name = dataframe.iloc[i][ColumnName.DATASET]
+            file_name = f"{dataset_name}_{file_name}"
+        pc_coord_as_str = "_".join([f"{coord:.2f}" for coord in pc_coords[i]])
+        save_plot_to_path(fig, crop_savedir, f"{file_name}{pc_coord_as_str}.png")
 
 
 if __name__ == "__main__":
