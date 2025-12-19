@@ -12,6 +12,8 @@ from endo_pipeline.settings import (
 def main(
     # dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     datasets: Datasets | None = None,
+    positions: list[int] = [0, 1, 2, 3, 4, 5],
+    track_ids: list[int] | None = None,
     datasets_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
@@ -70,6 +72,8 @@ def main(
         make_all_plots(
             out_dir,
             dataset_name,
+            positions,
+            track_ids,
             diffae_grid_crops,
             traj_grids,
             flow_field_dict_grids,

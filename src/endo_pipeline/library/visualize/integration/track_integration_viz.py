@@ -434,6 +434,8 @@ def multiproc_plot_measured_feat_overlay_on_flowfield(args: tuple) -> None:
 def make_all_plots(
     out_dir: Path,
     dataset_name: str,
+    positions: list[int],
+    track_ids: list[int] | None,
     diffae_grid_crops: pd.DataFrame,
     traj_grids: np.ndarray,
     flow_field_dict_grids: dict,
@@ -500,7 +502,9 @@ def make_all_plots(
         )
 
     # plot single track examples
-    for pos, df_one_position in df_all_positions.groupby("position_as_str"):
+    for pos in positions:
+        df_one_position = df_all_positions.query("position == @pos")
+        # for pos, df_one_position in df_all_positions.groupby("position_as_str"):
         out_subdir_indiv_pos = out_subdir_indiv / str(pos)
         out_subdir_indiv_pos.mkdir(parents=True, exist_ok=True)
 
@@ -509,10 +513,12 @@ def make_all_plots(
         measured_feature = "alignment_deg_rel_to_flow"
         hue_norm = (0, 90)
 
-        track_ids = sorted(df_one_position["track_id"].unique().tolist())
-        # only overlay every 10th track id if there are a lot
-        # of tracks to save time + space
-        track_ids = track_ids[::10] if len(track_ids[::10]) > 10 else track_ids
+        if track_ids is None:
+            track_ids = sorted(df_one_position["track_id"].unique().tolist())
+            # only overlay every 10th track id if there are a lot
+            # of tracks to save time + space
+            track_ids = track_ids[::10] if len(track_ids[::10]) > 10 else track_ids
+
         args = []
         for tid in track_ids:
             args.append(
