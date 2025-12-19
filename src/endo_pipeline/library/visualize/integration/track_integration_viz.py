@@ -248,7 +248,7 @@ def plot_measured_feat_overlay_on_flowfield(
     legend: Literal["auto", "brief", "full", False] = "auto",
     alpha: float = 0.7,
     show_plot: bool = False,
-    figure_format: str = ".png",
+    figure_format: Literal[".png", ".svg", ".pdf"] = ".png",
     use_global_pc_lims: bool = False,
 ) -> None:
     fig, axs = plot_quiver_slices_from_diffae_table(
@@ -307,7 +307,7 @@ def plot_new_traj_overlay_on_grid_traj_and_flowfield(
     traj_grids: np.ndarray,
     flow_field_dict_grids: dict,
     traj_tracks: np.ndarray,
-    figure_format: str = ".png",
+    figure_format: Literal[".png", ".svg", ".pdf"] = ".png",
     use_global_pc_lims: bool = False,
 ) -> None:
     fig, axs = plot_quiver_slices_from_diffae_table(
@@ -467,10 +467,7 @@ def make_all_plots(
     n_cores: int = 1,
 ) -> None:
 
-    if for_figures:
-        figure_format = ".pdf"
-    else:
-        figure_format = ".png"
+    figure_format: Literal[".png", ".svg", ".pdf"] = ".pdf" if for_figures else ".png"
 
     # create a subdirectory to save the plots to
     out_subdir = out_dir / dataset_name
