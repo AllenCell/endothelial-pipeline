@@ -1,5 +1,6 @@
 """This workflow outputs plots of track-based cell trajectories integrated with grid-based DiffAE flow fields."""
 
+from endo_pipeline.cli import Datasets
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -9,7 +10,9 @@ from endo_pipeline.settings import (
 
 
 def main(
-    dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    # dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    datasets: Datasets | None = None,
+    datasets_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
@@ -27,7 +30,9 @@ def main(
     from endo_pipeline.settings import NUM_PCS_TO_ANALYZE
 
     out_dir = get_output_path(__file__)
-    dataset_name_list = get_datasets_in_collection(dataset_collection_name)
+    if datasets is None:
+        dataset_name_list = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
+
     model_manifest = load_model_manifest(model_manifest_name)
 
     # create subdirectory to save track-based trajectories to
@@ -42,7 +47,7 @@ def main(
             model_manifest=model_manifest,
             run_name=run_name,
             seg_feature_manifest_name=seg_feature_manifest_name,
-            collection_name_for_pca=dataset_collection_name,
+            collection_name_for_pca=datasets_for_pca,
             num_pcs=NUM_PCS_TO_ANALYZE,
             drop_rows_without_diffae_feats=True,
             filtered=True,

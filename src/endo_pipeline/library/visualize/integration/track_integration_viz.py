@@ -107,9 +107,10 @@ def plot_quiver_slices_from_diffae_table(
         plot_bounds=bounds,
         fig_savedir=None,
         pc_vals=pc_vals,
+        colormap_name="crest",
         log_norm_colormap=True,
     )
-
+    [ax.set_aspect("equal") for ax in axs]
     [ax.set_zorder(0) for ax in axs]
     axs = set_slice_plot_bounds_and_labels(axs, bounds)
 
@@ -132,6 +133,7 @@ def plot_measured_feat_pcs(
     axs: np.ndarray | None = None,
     track_id: Literal["mean"] | int | None = "mean",
     hue_norm: tuple[float, float] | None = None,
+    color_palette: str = "flare",
     indicate_track_start: bool = True,
     indicate_track_end: bool = True,
     legend: Literal["auto", "brief", "full", False] = "auto",
@@ -177,7 +179,7 @@ def plot_measured_feat_pcs(
                 measured_feat_df[pc_cols_for_xaxis[j]],
                 measured_feat_df[pc_cols_for_yaxis[j]],
                 lw=1,
-                color="lightgrey",
+                color="grey",
                 alpha=alpha,
                 zorder=max(0, zorder),
             )
@@ -187,7 +189,7 @@ def plot_measured_feat_pcs(
             y=pc_cols_for_yaxis[j],
             hue=meas_feat_col,
             hue_norm=hue_norm,
-            palette="flare",
+            palette=color_palette,
             linewidth=0,
             marker=".",
             s=50,
@@ -447,7 +449,11 @@ def make_all_plots(
 
     # plot just the flow field
     fig, axs = plot_quiver_slices_from_diffae_table(
-        diffae_grid_crops, traj_grids, flow_field_dict_grids
+        diffae_grid_crops,
+        traj_grids,
+        flow_field_dict_grids,
+        plot_trajectory=False,
+        plot_fixed_points=True,
     )
     plt.tight_layout()
     save_plot_to_path(figure=fig, output_path=out_subdir, figure_name=f"{dataset_name}_flow_field")
