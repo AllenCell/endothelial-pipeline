@@ -9,6 +9,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     plot_stack: bool = False,
+    compute_vtk: bool = True,
     use_same_axes: bool = False,
 ) -> None:
     """
@@ -33,7 +34,10 @@ def main(
         a. 2D slice of the 3D flow field "sliced" according to the coordinates
             of the stable fixed points identified in the 3D flow field.
         b. Trajectories simulated in the 3D flow field, projected onto 2D slices.
-    2. VTK files for 3D flow field visualizations saved in the `outputs/vtk/` directory.
+        c. Optionally, 3D stack plots of the flow field visualizations in each of the three
+            variables (if ``plot_stack`` is True).
+    2. Optionally, VTK files for 3D flow field saved in the `outputs/vtk/` directory
+        (if ``compute_vtk`` is True).
     3. Stable fixed point locations from all datasets processed overlaid on a single
         plot saved as a PNG file in the `figs/` directory.
 
@@ -47,6 +51,8 @@ def main(
         Name of the specific model run to load featuref for. If None, uses the most recent run.
     plot_stack
         If true, plot 3D stacks of the flow field visualizations in each of the three variables.
+    compute_vtk
+        If true, compute and save VTK files for 3D flow fields.
     use_same_axes
         If true, use the same axis limits for all datasets when plotting flow fields.
     """
@@ -158,9 +164,9 @@ def main(
             NUM_INIT_SAMPLES,
             bounds_for_plots if use_same_axes else bounds_for_km,
             plot_stack,
+            compute_vtk,
             fig_savedir,
             vtk_savedir,
-            output_savedir,
         )
 
         # add stable fixed points from this dataset to the overall dataframe

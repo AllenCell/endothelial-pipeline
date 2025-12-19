@@ -35,6 +35,9 @@ logs/
 *.npz
 *.pkl
 
+# import profiling
+imports.txt
+
 # ignore locally generated results
 figs/
 results/
