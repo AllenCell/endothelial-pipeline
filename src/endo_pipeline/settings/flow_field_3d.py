@@ -13,10 +13,10 @@ PAD_BINS_FLOAT: float = 0.1
 QUIVER_DOWNSAMPLE_FACTOR: int = 2
 """Downsample factor for quiver plots in 3D flow field visualization."""
 
-QUIVER_VECTOR_SCALE: float = 40.0
+QUIVER_VECTOR_SCALE: float = 10.0
 """Vector scale for quiver plots in 3D flow field visualization."""
 
-NORMALIZE_QUIVER_VECTORS: bool = True
+NORMALIZE_QUIVER_VECTORS: bool = False
 """Whether to normalize quiver vectors in 3D flow field visualization."""
 
 LOG_NORM_MAGNITUDES: bool = True
@@ -31,7 +31,7 @@ CLIP_MIN_MAGNITUDE_PERCENTILE: float | None = 0.1
 CLIP_MAX_MAGNITUDE_PERCENTILE: float | None = None
 """Percentile for clipping maximum vector magnitudes in 3D flow field visualization."""
 
-QUIVER_COLORMAP: str = "turbo"
+QUIVER_COLORMAP: str = "crest"
 """Colormap for quiver plots in 3D flow field visualization."""
 
 KDE_CONTOUR_COLORMAP: str = "Greys"
