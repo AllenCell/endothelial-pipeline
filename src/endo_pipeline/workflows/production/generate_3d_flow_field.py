@@ -77,16 +77,23 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.diffae_feature_dataframes import (
+        DIFFAE_PC_COLUMN_NAMES,
+        NUM_PCS_TO_ANALYZE,
+        ColumnName,
+    )
     from endo_pipeline.settings.flow_field_3d import (
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         INIT_POINT_3D,
         KERNEL_PARAMS_3D,
+        LOWER_PERCENTILE_FOR_STABLE_FP,
         NUM_BINS_3D,
         NUM_INIT_SAMPLES,
         OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS,
+        PAD_BINS_FLOAT,
         TIME_STEP_IN_MINUTES,
         TRAJECTORY_TIME_SPAN,
+        UPPER_PERCENTILE_FOR_STABLE_FP,
     )
 
     logger = logging.getLogger(__name__)
@@ -134,39 +141,35 @@ def main(
 
     # initialize dataframe to hold stable fixed points from all datasets
     # with columns for dataset name and 3D PC space coordinates
-    stable_fixed_points_df = pd.DataFrame(
-        columns=[
-            ColumnName.DATASET,
-            f"{ColumnName.PCA_FEATURE_PREFIX}1",
-            f"{ColumnName.PCA_FEATURE_PREFIX}2",
-            f"{ColumnName.PCA_FEATURE_PREFIX}3",
-        ]
-    )
+    stable_fixed_points_df = pd.DataFrame(columns=[ColumnName.DATASET, *DIFFAE_PC_COLUMN_NAMES[:3]])
     for dataset_name in dataset_names:
         # get bins for KMCs
         bounds_for_km = get_3d_bounds_from_data(
             dataset_names=[dataset_name],
             manifest=dataframe_manifest,
             pca=pca,
-            pad=True,
+            pad=PAD_BINS_FLOAT,
         )
         bins, centers = get_bins(NUM_BINS_3D, bin_limits=bounds_for_km)
         stable_fixed_points = ddff_model_analysis(
             dataset_name,
             dataframe_manifest,
             pca,
-            KERNEL_PARAMS_3D,
-            TIME_STEP_IN_MINUTES,
-            bins,
-            centers,
-            TRAJECTORY_TIME_SPAN,
-            np.array(INIT_POINT_3D),
-            NUM_INIT_SAMPLES,
-            bounds_for_plots if use_same_axes else bounds_for_km,
-            plot_stack,
-            compute_vtk,
-            fig_savedir,
-            vtk_savedir,
+            kernel_params=KERNEL_PARAMS_3D,
+            dt=TIME_STEP_IN_MINUTES,
+            bins=bins,
+            centers=centers,
+            time_span=TRAJECTORY_TIME_SPAN,
+            init_for_traj=np.array(INIT_POINT_3D),
+            num_inits_for_root_solver=NUM_INIT_SAMPLES,
+            plot_bounds=bounds_for_plots if use_same_axes else bounds_for_km,
+            plot_stack=plot_stack,
+            compute_vtk_files=compute_vtk,
+            fig_savedir=fig_savedir,
+            vtk_savedir=vtk_savedir,
+            pc_column_names=DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
+            lower_percentile=LOWER_PERCENTILE_FOR_STABLE_FP,
+            upper_percentile=UPPER_PERCENTILE_FOR_STABLE_FP,
         )
 
         # add stable fixed points from this dataset to the overall dataframe
@@ -177,9 +180,9 @@ def main(
                     pd.DataFrame(
                         {
                             ColumnName.DATASET: [dataset_name],
-                            f"{ColumnName.PCA_FEATURE_PREFIX}1": [stable_fp[0]],
-                            f"{ColumnName.PCA_FEATURE_PREFIX}2": [stable_fp[1]],
-                            f"{ColumnName.PCA_FEATURE_PREFIX}3": [stable_fp[2]],
+                            DIFFAE_PC_COLUMN_NAMES[0]: [stable_fp[0]],
+                            DIFFAE_PC_COLUMN_NAMES[1]: [stable_fp[1]],
+                            DIFFAE_PC_COLUMN_NAMES[2]: [stable_fp[2]],
                         }
                     ),
                 ],

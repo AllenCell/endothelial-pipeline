@@ -20,10 +20,6 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_viz import flow_
 from endo_pipeline.library.visualize.diffae_features.pplane import find_fpt_type, get_fps
 from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings.diffae_feature_dataframes import (
-    DIFFAE_PC_COLUMN_NAMES,
-    NUM_PCS_TO_ANALYZE,
-)
 from endo_pipeline.settings.flow_field_3d import SAMPLER_RANDOM_SEED
 
 logger = logging.getLogger(__name__)
@@ -109,9 +105,9 @@ def ddff_model_analysis(
     compute_vtk_files: bool,
     fig_savedir: Path,
     vtk_savedir: Path,
-    pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
-    lower_percentile: float = 5.0,
-    upper_percentile: float = 95.0,
+    pc_column_names: list[str],
+    lower_percentile: float,
+    upper_percentile: float,
 ) -> list[np.ndarray]:
     """
     Get 3d flow field (drift coefficient) from principal component features from a given dataset.

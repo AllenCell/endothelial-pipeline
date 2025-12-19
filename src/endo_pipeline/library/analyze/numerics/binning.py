@@ -94,42 +94,41 @@ def get_3d_bounds_from_data(
     manifest: DataframeManifest,
     pca: PCA,
     filter_to_valid: bool = True,
-    pad: bool = False,
+    pad: float = 0.0,
+    pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
 ) -> list[np.ndarray]:
     """
-    Set bounds for 3D state space based on the bounds
-    of the features in the datasets. The 3D state space
-    is based on the first three principal components
-    of the input pca object, which is fit
-    on a fixed set of reference datasets.
+    Set bounds for 3D state space based on the bounds of the features in the datasets.
 
-    Inputs:
-    - dataset_names: list of datasets
-    - manifest: manifest of model feature dataframes
-    - pca: PCA model to use for transforming the data
-    - col_names: which columns to use for bounds
-        - "pc": data is coming from a workflow where
-            the column names have been re-named to
-            reflect that the features are projected
-            onto the first three principal components
-            (i.e., column names in df pc1, pc2, pc3)
-        - "feat": data is coming from a workflow where
-            the column names are the original feature names
-            and the data have been over-written with the
-            features projected onto the full set of
-            principal components (i.e., column name feat_i
-            indicates projection onto the i-th principal component)
-        - this input will become deprecated in the future,
-            when the dataframes will always clearly label
-            what is an original feature and what is a
-            projected feature
+    The 3D state space is based on the first three principal components of the input pca
+    object, which is fit on a fixed set of reference datasets.
 
-    Outputs:
-    - bounds: list of numpy arrays with the bounds
-        for each dimension in the 3D state space
-        - format: [[min_x, max_x], [min_y, max_y], [min_z, max_z]]
+    **Dataframe filtering:**
+
+    By default, the function filters the dataframes to only include "valid" crops,
+    i.e., crops that are not labeled as "cell piling" or "not steady state".
+
+    Parameters
+    ----------
+    dataset_names
+        List of dataset names to get common bounds from.
+    manifest
+        Dataframe manifest object with feature data locations.
+    pca
+        PCA object used to transform the data.
+    filter_to_valid
+        Whether to filter the dataframes to only include "valid" crops.
+    pad
+        Amount to pad the bounds by on each side.
+    pc_column_names
+        List of column names for the principal components to use.
+
+    Returns
+    -------
+    :
+        List of numpy arrays, each array contains the [min, max] bounds for a dimension.
     """
-    num_dims = NUM_PCS_TO_ANALYZE  # always 3 for now
+    num_dims = len(pc_column_names)
     # initialize bounds
     bounds_ = [[np.inf, -np.inf] for _ in range(num_dims)]
 
@@ -151,13 +150,12 @@ def get_3d_bounds_from_data(
             include_not_steady_state=include_not_steady_state,
         )
         # get column names for features
-        pc_column_names = DIFFAE_PC_COLUMN_NAMES[:num_dims]
         for j in range(num_dims):
             candidate_min = df[pc_column_names[j]].min()
             candidate_max = df[pc_column_names[j]].max()
             if pad:
-                candidate_min = candidate_min - 0.1
-                candidate_max = candidate_max + 0.1
+                candidate_min = candidate_min - pad
+                candidate_max = candidate_max + pad
             # update bounds for each dimension
             bounds_[j][0] = min(bounds_[j][0], candidate_min)
             bounds_[j][1] = max(bounds_[j][1], candidate_max)
