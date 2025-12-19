@@ -238,6 +238,8 @@ def plot_measured_feat_overlay_on_flowfield(
     flow_field_dict_grids: dict,
     diffae_measured_feat_df: pd.DataFrame,
     meas_feat_col_name_for_color_coding: str,
+    plot_trajectory: bool = False,
+    plot_fixed_points: bool = True,
     indicate_track_start: bool = True,
     indicate_track_end: bool = True,
     track_id_to_plot: Literal["mean"] | int | None = "mean",
@@ -247,7 +249,11 @@ def plot_measured_feat_overlay_on_flowfield(
     show_plot: bool = False,
 ) -> None:
     fig, axs = plot_quiver_slices_from_diffae_table(
-        diffae_grid_crops, traj_grids, flow_field_dict_grids
+        diffae_grid_crops,
+        traj_grids,
+        flow_field_dict_grids,
+        plot_trajectory=plot_trajectory,
+        plot_fixed_points=plot_fixed_points,
     )
     fig, axs = plot_measured_feat_pcs(
         measured_feat_df=diffae_measured_feat_df,
@@ -276,10 +282,6 @@ def plot_measured_feat_overlay_on_flowfield(
             "track_ids must be 'mean', an integer, or None. "
             f"Got {track_id_to_plot} (type: {type(track_id_to_plot)}) instead."
         )
-    # if indicate_track_start:
-    #     stuff
-    # if indicate_track_end:
-    #     stuff
 
     save_plot_to_path(
         figure=fig,
@@ -417,6 +419,8 @@ def multiproc_plot_measured_feat_overlay_on_flowfield(args: tuple) -> None:
         flow_field_dict_grids,
         diffae_measured_feat_df=df_one_position,
         meas_feat_col_name_for_color_coding=measured_feature,
+        plot_trajectory=False,
+        plot_fixed_points=True,
         indicate_track_start=False,
         indicate_track_end=True,
         track_id_to_plot=tid,
@@ -485,6 +489,8 @@ def make_all_plots(
             diffae_measured_feat_df=df_all_positions,
             meas_feat_col_name_for_color_coding=measured_feature,
             track_id_to_plot="mean",
+            plot_trajectory=False,
+            plot_fixed_points=True,
             indicate_track_start=False,
             indicate_track_end=True,
             hue_norm=hues_for_feats[i],
