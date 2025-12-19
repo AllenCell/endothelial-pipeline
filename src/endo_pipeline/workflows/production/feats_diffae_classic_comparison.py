@@ -31,7 +31,7 @@ def main(
 
     out_dir = get_output_path(__file__)
     if datasets is None:
-        dataset_name_list = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
+        datasets = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
     model_manifest = load_model_manifest(model_manifest_name)
 
@@ -39,7 +39,7 @@ def main(
     out_subdir_traj = out_dir / "trajectories_track_based"
     out_subdir_traj.mkdir(parents=True, exist_ok=True)
 
-    for dataset_name in dataset_name_list:
+    for dataset_name in datasets:
 
         # load and preprocess the different diffae manifests and PCA pipeline
         df_all_positions, diffae_grid_crops, bounds = get_preprocessed_manifests_and_km_bounds(
