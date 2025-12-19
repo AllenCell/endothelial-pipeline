@@ -51,8 +51,6 @@ def get_vtk_image_data_from_vector_field(
     vy = vector_field_dict["vectors"][1]
     vz = vector_field_dict["vectors"][2]
 
-    # import pdb; pdb.set_trace()
-
     dims = vx.shape
     xi, xf = volume_extent["xmin"], volume_extent["xmax"]
     yi, yf = volume_extent["ymin"], volume_extent["ymax"]
