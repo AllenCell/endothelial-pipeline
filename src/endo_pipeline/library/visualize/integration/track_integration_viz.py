@@ -284,6 +284,8 @@ def plot_measured_feat_overlay_on_flowfield(
             f"Got {track_id_to_plot} (type: {type(track_id_to_plot)}) instead."
         )
     [ax.set_aspect("equal") for ax in axs]
+    [ax.set_xlim(-3, 3) for ax in axs]
+    [ax.set_ylim(-3, 3) for ax in axs]
 
     save_plot_to_path(
         figure=fig,
@@ -443,7 +445,8 @@ def make_all_plots(
     flow_field_dict_grids: dict,
     df_all_positions: pd.DataFrame,
     traj_tracks: np.ndarray,
-    n_cores: int = 30,
+    track_integrations_only: bool = False,
+    n_cores: int = 1,
 ) -> None:
 
     # create a subdirectory to save the plots to
@@ -455,53 +458,57 @@ def make_all_plots(
     out_subdir_indiv = out_subdir / "individual_track_overlays"
     out_subdir_indiv.mkdir(parents=True, exist_ok=True)
 
-    # plot just the flow field
-    fig, axs = plot_quiver_slices_from_diffae_table(
-        diffae_grid_crops,
-        traj_grids,
-        flow_field_dict_grids,
-        plot_trajectory=False,
-        plot_fixed_points=True,
-    )
-    plt.tight_layout()
-    save_plot_to_path(figure=fig, output_path=out_subdir, figure_name=f"{dataset_name}_flow_field")
-    plt.close(fig)
-
-    # plot the flow field and the trajectories
     # first decide if the colormap should be shown in the plot as a legend
     legend: Literal["auto", "brief", "full", False] = "auto"
-    plot_new_traj_overlay_on_grid_traj_and_flowfield(
-        out_subdir,
-        dataset_name,
-        diffae_grid_crops,
-        traj_grids,
-        flow_field_dict_grids,
-        traj_tracks,
-    )
 
-    measured_feats_to_plot = ["time_hours", "alignment_deg_rel_to_flow", "eccentricity"]
-    time_start = df_all_positions["time_hours"].min()
-    time_stop = df_all_positions["time_hours"].max()
-    hues_for_feats = [(time_start, time_stop), (0, 90), (0.0, 1.0)]
-    for i, measured_feature in enumerate(measured_feats_to_plot):
-        plot_measured_feat_overlay_on_flowfield(
+    if not track_integrations_only:
+        # plot just the flow field
+        fig, axs = plot_quiver_slices_from_diffae_table(
+            diffae_grid_crops,
+            traj_grids,
+            flow_field_dict_grids,
+            plot_trajectory=False,
+            plot_fixed_points=True,
+        )
+        plt.tight_layout()
+        save_plot_to_path(
+            figure=fig, output_path=out_subdir, figure_name=f"{dataset_name}_flow_field"
+        )
+        plt.close(fig)
+
+        # plot the flow field and the trajectories
+        plot_new_traj_overlay_on_grid_traj_and_flowfield(
             out_subdir,
             dataset_name,
             diffae_grid_crops,
             traj_grids,
             flow_field_dict_grids,
-            diffae_measured_feat_df=df_all_positions,
-            meas_feat_col_name_for_color_coding=measured_feature,
-            track_id_to_plot="mean",
-            plot_trajectory=False,
-            plot_fixed_points=True,
-            indicate_track_start=False,
-            indicate_track_end=True,
-            hue_norm=hues_for_feats[i],
-            legend=legend,
-            alpha=0.8,
-            show_plot=False,
+            traj_tracks,
         )
+
+        measured_feats_to_plot = ["time_hours", "alignment_deg_rel_to_flow", "eccentricity"]
+        time_start = df_all_positions["time_hours"].min()
+        time_stop = df_all_positions["time_hours"].max()
+        hues_for_feats = [(time_start, time_stop), (0, 90), (0.0, 1.0)]
+        for i, measured_feature in enumerate(measured_feats_to_plot):
+            plot_measured_feat_overlay_on_flowfield(
+                out_subdir,
+                dataset_name,
+                diffae_grid_crops,
+                traj_grids,
+                flow_field_dict_grids,
+                diffae_measured_feat_df=df_all_positions,
+                meas_feat_col_name_for_color_coding=measured_feature,
+                track_id_to_plot="mean",
+                plot_trajectory=False,
+                plot_fixed_points=True,
+                indicate_track_start=False,
+                indicate_track_end=True,
+                hue_norm=hues_for_feats[i],
+                legend=legend,
+                alpha=0.8,
+                show_plot=False,
+            )
 
     # plot single track examples
     for pos in positions:
@@ -556,14 +563,15 @@ def make_all_plots(
     out_subdir_heatmap = out_subdir / "trajectory_heatmap"
     out_subdir_heatmap.mkdir(parents=True, exist_ok=True)
 
-    overlay_trajectory_heatmap_on_flowfield(
-        out_dir=out_subdir_heatmap,
-        dataset_name=dataset_name,
-        diffae_grid_crops=diffae_grid_crops,
-        traj_grids=traj_grids,
-        flow_field_dict_grids=flow_field_dict_grids,
-        df_all_positions=df_all_positions,
-    )
+    if not track_integrations_only:
+        overlay_trajectory_heatmap_on_flowfield(
+            out_dir=out_subdir_heatmap,
+            dataset_name=dataset_name,
+            diffae_grid_crops=diffae_grid_crops,
+            traj_grids=traj_grids,
+            flow_field_dict_grids=flow_field_dict_grids,
+            df_all_positions=df_all_positions,
+        )
 
 
 def plot_grid_vs_tracks_flow_field(

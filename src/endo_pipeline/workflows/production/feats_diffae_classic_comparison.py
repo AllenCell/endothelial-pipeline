@@ -78,6 +78,7 @@ def main(
             flow_field_dict_grids,
             df_all_positions,
             traj_tracks,
+            track_integrations_only=True,
             n_cores=n_cores,
         )
 
