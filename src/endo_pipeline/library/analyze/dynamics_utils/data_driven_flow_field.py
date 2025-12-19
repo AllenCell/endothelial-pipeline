@@ -2,11 +2,12 @@ import logging
 import re
 from collections.abc import Callable
 from pathlib import Path
+from time import time
 
 import numpy as np
 from numdifftools import Jacobian
 from scipy.integrate import solve_ivp
-from scipy.interpolate import RegularGridInterpolator
+from scipy.interpolate import RegularGridInterpolator, griddata
 from scipy.stats import gaussian_kde
 from sklearn.decomposition import PCA
 
@@ -210,11 +211,19 @@ def _ddff_model_analysis(
     # get callable version of the flow field
     # first, extrapolate to fill in NaNs
     extrapolated_flow_field_dict = compute_extrapolated_vector_field(
-        drift_km, centers, method="linear"
+        drift_km, centers, method="nearest", for_vtk_files=True
     )
     # save out the flow field as vtk image data
+    volume_extent = {
+        "xmin": bins[0][0],
+        "xmax": bins[0][-1],
+        "ymin": bins[1][0],
+        "ymax": bins[1][-1],
+        "zmin": bins[2][0],
+        "zmax": bins[2][-1],
+    }
     vtk_io.save_vector_field_as_vtk(
-        extrapolated_flow_field_dict, vtk_savedir / f"flow_field_{dataset_name}.vtk"
+        extrapolated_flow_field_dict, vtk_savedir / f"flow_field_{dataset_name}.vtk", volume_extent
     )
 
     # compute diffusion field on the grid defined by centers
@@ -230,7 +239,7 @@ def _ddff_model_analysis(
     )
     # save diffusion field as vtk image data
     vtk_io.save_vector_field_as_vtk(
-        diffusion_field_dict, vtk_savedir / f"diffusion_field_{dataset_name}.vtk"
+        diffusion_field_dict, vtk_savedir / f"diffusion_field_{dataset_name}.vtk", volume_extent
     )
 
     ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
@@ -399,10 +408,57 @@ def get_and_analyze_ddff(
     )
 
 
+def fill_nan_for_vtk(data: np.ndarray, method: str = "nearest") -> np.ndarray:
+    """
+    Replaces NaN values in a multi-dimensional NumPy array using scipy.interpolate.griddata.
+
+    Parameters
+    ----------
+    data
+        Input NumPy array with NaN values to be imputed.
+
+    Returns
+    -------
+    :
+        A copy of the input array with NaNs imputed.
+    """
+    # Create a copy to avoid modifying the original data
+    arr = data.copy()
+
+    # Identify NaN locations
+    nan_mask = np.isnan(arr)
+
+    # If there are no NaNs, return the original array
+    if not np.any(nan_mask):
+        return arr
+
+    # Else, proceed with interpolation
+    # Get a mask for valid (non-NaN) points
+    valid_mask = ~nan_mask
+
+    # Get coordinates and values for interpolation source
+    valid_coords = np.array(np.where(valid_mask)).T
+    valid_values = arr[valid_mask]
+
+    # Get coordinates for interpolation query (NaN points)
+    nan_coords = np.array(np.where(nan_mask)).T
+
+    # Use griddata to perform extrapolation
+    imputed_values = griddata(
+        points=valid_coords, values=valid_values, xi=nan_coords, method=method
+    )
+
+    # Assign the extrapolated values back into the NaN locations
+    arr[nan_mask] = imputed_values
+
+    return arr
+
+
 def compute_extrapolated_vector_field(
     kmcs: np.ndarray,
     grid_coordinates: list[np.ndarray],
     method: str = "linear",
+    for_vtk_files: bool = False,
 ) -> dict:
     """
     Extrapolate a 3D vector field from Kramers-Moyal estimates over a specified grid.
@@ -424,6 +480,19 @@ def compute_extrapolated_vector_field(
     - "vectors": tuple of 3D arrays (f1,f2,f3) with the vector values in each dimension
     - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the meshgrid points in each dimension
 
+    **Extrapolation for vtk files vs other uses**
+
+    If ``for_vtk_files`` is `True`, the extrapolation is done using a wrapper method for
+    filling NaNs via `scipy.interpolate.griddata`, which ensures no NaNs remain in the output.
+    This is important for saving the vector field as .vtk files for visualization in ParaView,
+    but is slower for large grids.
+
+    If ``for_vtk_files`` is `False`, the extrapolation is done using `scipy.interpolate.RegularGridInterpolator`,
+    which is faster for large grids, but can produce NaNs outside the convex hull of the data points unless
+    they are filled in with a numerical value (here, zero) first when creating the interpolator. This will result
+    in NaNs being converted to zeros outside the convex hull, which is suitable for all other uses of the vector field
+    except vtk files.
+
     Parameters
     ----------
     kmcs
@@ -432,6 +501,8 @@ def compute_extrapolated_vector_field(
         List of 1D numpy arrays with the grid points in each dimension
     method
         Method to use for extrapolating the vector field where there are NaNs.
+    for_vtk_files
+        Whether the output is intended for saving as .vtk files.
     """
 
     filled_kmcs = kmcs.copy()
@@ -442,17 +513,29 @@ def compute_extrapolated_vector_field(
         component = filled_kmcs[..., i]
         nan_mask = np.isnan(component)
         if np.any(nan_mask):
-            # Prepare points and values for interpolation
-            # fill_value set to None for extrapolation
-            interpolator = RegularGridInterpolator(
-                grid_coordinates,
-                np.where(nan_mask, 0, component),  # fill NaNs with zeros for shape
-                method=method,
-                bounds_error=False,
-                fill_value=None,  # extrapolate outside convex hull
-            )
-            nan_points = np.array([x[nan_mask], y[nan_mask], z[nan_mask]]).T
-            component[nan_mask] = interpolator(nan_points)
+            if for_vtk_files:
+                if method != "nearest":
+                    logger.warning(
+                        "Using extrapolation method other than 'nearest' for vtk file construction results in "
+                        "significant memory usage and computation time. Consider using 'nearest' method. "
+                    )
+                logger.debug("Starting extrapolation for vtk files.")
+                tic = time()
+                component = fill_nan_for_vtk(component, method=method)
+                toc = time()
+                logger.debug(f"Finished extrapolation for vtk files in {toc - tic:.2f} seconds.")
+            else:
+                interpolator = RegularGridInterpolator(
+                    grid_coordinates,
+                    np.where(
+                        nan_mask, 0, component
+                    ),  # fill NaNs with zeros to avoid producing NaNs outside convex hull
+                    method=method,
+                    bounds_error=False,
+                    fill_value=None,  # extrapolate outside convex hull
+                )
+                nan_points = np.array([x[nan_mask], y[nan_mask], z[nan_mask]]).T
+                component[nan_mask] = interpolator(nan_points)
             filled_kmcs[..., i] = component
 
     vectors = tuple(filled_kmcs[..., i] for i in range(n_components))
