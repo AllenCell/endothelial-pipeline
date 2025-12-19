@@ -179,7 +179,8 @@ def plot_measured_feat_pcs(
                 measured_feat_df[pc_cols_for_xaxis[j]],
                 measured_feat_df[pc_cols_for_yaxis[j]],
                 lw=1,
-                color="grey",
+                color="black",
+                markersize=10,
                 alpha=alpha,
                 zorder=max(0, zorder),
             )
