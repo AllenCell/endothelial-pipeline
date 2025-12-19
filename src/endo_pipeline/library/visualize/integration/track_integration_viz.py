@@ -248,6 +248,8 @@ def plot_measured_feat_overlay_on_flowfield(
     legend: Literal["auto", "brief", "full", False] = "auto",
     alpha: float = 0.7,
     show_plot: bool = False,
+    figure_format: str = ".png",
+    use_global_pc_lims: bool = False,
 ) -> None:
     fig, axs = plot_quiver_slices_from_diffae_table(
         diffae_grid_crops,
@@ -284,13 +286,15 @@ def plot_measured_feat_overlay_on_flowfield(
             f"Got {track_id_to_plot} (type: {type(track_id_to_plot)}) instead."
         )
     [ax.set_aspect("equal") for ax in axs]
-    [ax.set_xlim(-3, 3) for ax in axs]
-    [ax.set_ylim(-3, 3) for ax in axs]
+    if use_global_pc_lims:
+        [ax.set_xlim(-3, 3) for ax in axs]
+        [ax.set_ylim(-3, 3) for ax in axs]
 
     save_plot_to_path(
         figure=fig,
         output_path=out_dir,
         figure_name=f"{dataset_name}{data_subset}_{meas_feat_col_name_for_color_coding}Hue",
+        file_format=figure_format,
     )
     if not show_plot:
         plt.close(fig)
@@ -303,6 +307,8 @@ def plot_new_traj_overlay_on_grid_traj_and_flowfield(
     traj_grids: np.ndarray,
     flow_field_dict_grids: dict,
     traj_tracks: np.ndarray,
+    figure_format: str = ".png",
+    use_global_pc_lims: bool = False,
 ) -> None:
     fig, axs = plot_quiver_slices_from_diffae_table(
         diffae_grid_crops, traj_grids, flow_field_dict_grids
@@ -317,9 +323,15 @@ def plot_new_traj_overlay_on_grid_traj_and_flowfield(
             marker="*",
             zorder=10,
         )
-    plt.tight_layout()
+    if use_global_pc_lims:
+        [ax.set_xlim(-3, 3) for ax in axs]
+        [ax.set_ylim(-3, 3) for ax in axs]
+
     save_plot_to_path(
-        figure=fig, output_path=out_dir, figure_name=f"{dataset_name}_trajectory_grids_vs_tracks"
+        figure=fig,
+        output_path=out_dir,
+        figure_name=f"{dataset_name}_trajectory_grids_vs_tracks",
+        file_format=figure_format,
     )
     plt.close(fig)
 
@@ -413,6 +425,8 @@ def multiproc_plot_measured_feat_overlay_on_flowfield(args: tuple) -> None:
         tid,
         hue_norm,
         legend,
+        figure_format,
+        use_global_pc_lims,
     ) = args
 
     plot_measured_feat_overlay_on_flowfield(
@@ -432,6 +446,8 @@ def multiproc_plot_measured_feat_overlay_on_flowfield(args: tuple) -> None:
         legend=legend,
         alpha=0.8,
         show_plot=False,
+        figure_format=figure_format,
+        use_global_pc_lims=use_global_pc_lims,
     )
 
 
@@ -446,8 +462,15 @@ def make_all_plots(
     df_all_positions: pd.DataFrame,
     traj_tracks: np.ndarray,
     track_integrations_only: bool = False,
+    use_global_pc_lims: bool = False,
+    for_figures: bool = False,
     n_cores: int = 1,
 ) -> None:
+
+    if for_figures:
+        figure_format = ".pdf"
+    else:
+        figure_format = ".png"
 
     # create a subdirectory to save the plots to
     out_subdir = out_dir / dataset_name
@@ -472,7 +495,10 @@ def make_all_plots(
         )
         plt.tight_layout()
         save_plot_to_path(
-            figure=fig, output_path=out_subdir, figure_name=f"{dataset_name}_flow_field"
+            figure=fig,
+            output_path=out_subdir,
+            figure_name=f"{dataset_name}_flow_field",
+            file_format=figure_format,
         )
         plt.close(fig)
 
@@ -484,6 +510,8 @@ def make_all_plots(
             traj_grids,
             flow_field_dict_grids,
             traj_tracks,
+            figure_format=figure_format,
+            use_global_pc_lims=use_global_pc_lims,
         )
 
         measured_feats_to_plot = ["time_hours", "alignment_deg_rel_to_flow", "eccentricity"]
@@ -508,6 +536,8 @@ def make_all_plots(
                 legend=legend,
                 alpha=0.8,
                 show_plot=False,
+                figure_format=figure_format,
+                use_global_pc_lims=use_global_pc_lims,
             )
 
     # plot single track examples
@@ -542,6 +572,8 @@ def make_all_plots(
                     tid,
                     hue_norm,
                     legend,
+                    figure_format,
+                    use_global_pc_lims,
                 )
             )
 

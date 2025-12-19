@@ -17,6 +17,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    for_figures: bool = False,
     n_cores: int = 30,
 ) -> None:
 
@@ -78,7 +79,9 @@ def main(
             flow_field_dict_grids,
             df_all_positions,
             traj_tracks,
-            track_integrations_only=True,
+            track_integrations_only=False,
+            use_global_pc_lims=True,
+            for_figures=for_figures,
             n_cores=n_cores,
         )
 
