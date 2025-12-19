@@ -20,11 +20,6 @@ def main(
     n_cores: int = 30,
 ) -> None:
 
-    print(positions)
-    print(track_ids)
-
-    return
-
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.integration.track_integration import (
