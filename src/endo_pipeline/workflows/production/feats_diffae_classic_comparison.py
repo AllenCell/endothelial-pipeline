@@ -1,6 +1,6 @@
 """This workflow outputs plots of track-based cell trajectories integrated with grid-based DiffAE flow fields."""
 
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import Datasets, Track_ids
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -10,16 +10,20 @@ from endo_pipeline.settings import (
 
 
 def main(
-    # dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     datasets: Datasets | None = None,
     positions: list[int] = [0, 1, 2, 3, 4, 5],
-    track_ids: list[int] | None = None,
+    track_ids: Track_ids | None = None,
     datasets_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     n_cores: int = 30,
 ) -> None:
+
+    print(positions)
+    print(track_ids)
+
+    return
 
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
