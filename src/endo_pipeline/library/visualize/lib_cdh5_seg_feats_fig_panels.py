@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal, cast
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -363,20 +364,13 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
                         linestyle="--",
                         linewidth=1,
                     )
-            # save the panel in high quality
-            save_plot_to_path(
-                figure=fig,
-                output_path=out_dir,
-                figure_name=figure_name,
-                file_format=".pdf",
-                pad_inches=0.05,
-            )
-            # also save a PNG thumbnail for convenient use in presentations
-            save_plot_to_path(
-                figure=fig,
-                output_path=out_dir,
-                figure_name=figure_name,
-                file_format=".png",
-                pad_inches=0.05,
-                dpi=300,
-            )
+            # save the panel in high quality and as a PNG thumbnail
+            # (PNG thumbnail is for convenient use in presentations)
+            for fmt in [".pdf", ".png"]:
+                save_plot_to_path(
+                    figure=fig,
+                    output_path=out_dir,
+                    figure_name=figure_name,
+                    file_format=cast(Literal[".pdf", ".png"], fmt),
+                    pad_inches=0.05,
+                )
