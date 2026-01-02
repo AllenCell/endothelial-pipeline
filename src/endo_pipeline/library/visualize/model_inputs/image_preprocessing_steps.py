@@ -273,7 +273,6 @@ def visualize_fov_transform_steps(
                 transform_name,
                 target_key,
                 save_dir,
-                step_idx,
                 figsize=(1.6, 1.6),
                 scientific_notation_y_axis=True,
                 xlabel=xlabel,
