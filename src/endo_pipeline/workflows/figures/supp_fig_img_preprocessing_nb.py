@@ -49,109 +49,110 @@ transformed_bf = visualize_fov_transform_steps(transforms, data, save_dir, targe
 transformed_cdh5 = visualize_fov_transform_steps(transforms, data, save_dir, target_key="raw_cdh5")
 
 # %% Figure
-x_offset = MAX_FIGURE_WIDTH / 4.2
-y_offset = 1.5
+x_offset = 0.72
 x_crop_offset = 0.2
 output_path = save_dir / "supp_fig_img_preprocessing.svg"
 panels = [
+    # Top row: images
     FigurePanel(
         letter="A",
         path=save_dir / "raw_bf_Projectd_scalebar50um.svg",
-        x_position=0,
-        y_position=0.2,
+        x_position=0 * x_offset,
+        y_position=0,
         x_offset=x_crop_offset,
         y_offset=0,
     ),
     FigurePanel(
         letter="",
         path=save_dir / "raw_bf_LogImaged.svg",
-        x_position=x_offset,
-        y_position=0.2,
+        x_position=1 * x_offset,
+        y_position=0,
         x_offset=x_crop_offset,
         y_offset=0,
     ),
     FigurePanel(
         letter="",
         path=save_dir / "raw_bf_Clipd.svg",
-        x_position=x_offset * 2,
-        y_position=0.2,
+        x_position=2 * x_offset,
+        y_position=0,
         x_offset=x_crop_offset,
         y_offset=0,
     ),
     FigurePanel(
         letter="",
         path=save_dir / "raw_bf_NormalizeIntensityd.svg",
-        x_position=x_offset * 3,
-        y_position=0.2,
+        x_position=3 * x_offset,
+        y_position=0,
         x_offset=x_crop_offset,
         y_offset=0,
     ),
     FigurePanel(
         letter="B",
-        path=save_dir / "raw_bf_Projectd_histogram.svg",
-        x_position=0,
-        y_position=1.5,
-        x_offset=0,
-        y_offset=0,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "raw_bf_LogImaged_histogram.svg",
-        x_position=x_offset,
-        y_position=1.5,
-        x_offset=0.2,
-        y_offset=0,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "raw_bf_Clipd_histogram.svg",
-        x_position=x_offset * 2,
-        y_position=y_offset,
-        x_offset=0.2,
-        y_offset=0,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "raw_bf_NormalizeIntensityd_histogram.svg",
-        x_position=x_offset * 3,
-        y_position=1.5,
-        x_offset=0.2,
-        y_offset=0,
-    ),
-    FigurePanel(
-        letter="C",
         path=save_dir / "raw_cdh5_Projectd_scalebar50um.svg",
-        x_position=0,
-        y_position=3.3,
+        x_position=4 * x_offset + 0.2,
+        y_position=0,
         x_offset=x_crop_offset,
         y_offset=0,
     ),
     FigurePanel(
         letter="",
         path=save_dir / "raw_cdh5_ScaleIntensityRangePercentilesd.svg",
-        x_position=x_offset,
-        y_position=3.3,
+        x_position=5 * x_offset + 0.2,
+        y_position=0,
         x_offset=x_crop_offset,
         y_offset=0,
     ),
+    # Bottom row: plots
     FigurePanel(
-        letter="D",
-        path=save_dir / "raw_cdh5_Projectd_histogram.svg",
+        letter="",
+        path=save_dir / "raw_bf_Projectd_histogram.svg",
         x_position=0,
-        y_position=4.5,
+        y_position=0.7,
+        x_offset=0,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="",
+        path=save_dir / "raw_bf_LogImaged_histogram.svg",
+        x_position=1 * x_offset,
+        y_position=0.7,
+        x_offset=0.2,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="",
+        path=save_dir / "raw_bf_Clipd_histogram.svg",
+        x_position=2 * x_offset,
+        y_position=0.7,
+        x_offset=0.2,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="",
+        path=save_dir / "raw_bf_NormalizeIntensityd_histogram.svg",
+        x_position=3 * x_offset,
+        y_position=0.7,
+        x_offset=0.2,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="",
+        path=save_dir / "raw_cdh5_Projectd_histogram.svg",
+        x_position=4 * x_offset + 0.2,
+        y_position=0.7,
         x_offset=0,
         y_offset=0,
     ),
     FigurePanel(
         letter="",
         path=save_dir / "raw_cdh5_ScaleIntensityRangePercentilesd_histogram.svg",
-        x_position=x_offset,
-        y_position=4.5,
+        x_position=5 * x_offset + 0.2,
+        y_position=0.7,
         x_offset=0.2,
         y_offset=0,
     ),
 ]
 # %%
-build_figure_from_panels(panels, output_path, width=MAX_FIGURE_WIDTH, height=6.25)
+build_figure_from_panels(panels, output_path, width=MAX_FIGURE_WIDTH, height=2)
 
 # %%

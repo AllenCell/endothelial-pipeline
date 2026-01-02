@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from dask.array import Array
 from matplotlib import pyplot as plt
-from matplotlib.ticker import ScalarFormatter
+from matplotlib.ticker import MaxNLocator, ScalarFormatter
 from monai.data import MetaTensor
 
 from endo_pipeline.io.output import save_plot_to_path
@@ -131,6 +131,7 @@ def plot_and_save_histogram(
         ax.set_xlabel(xlabel)
     if ylabel is not None:
         ax.set_ylabel(ylabel)
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=4))  # Set 4 y-ticks
     if scientific_notation_y_axis:
         ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
         ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
@@ -255,14 +256,14 @@ def visualize_fov_transform_steps(
             first_time = target_key not in processed_keys
             scalebar_size_um = 50 if first_time else None
             pixel_size = PIXEL_SIZE_3i_20x if first_time else None
-            xlabel = "Intensity (a.u)"
+            xlabel = "Intensity (a.u)" if first_time else None
             ylabel = "Frequency" if first_time else None
 
             plot_image_thumbnail(
                 value_np.squeeze(),
                 f"{target_key}_{transform_name}",
                 save_dir,
-                figsize=(1.9, 1.9),
+                figsize=(1.2, 1.2),
                 scalebar_size_um=scalebar_size_um,
                 pixel_size=pixel_size,
                 file_format=".svg",
@@ -273,7 +274,7 @@ def visualize_fov_transform_steps(
                 transform_name,
                 target_key,
                 save_dir,
-                figsize=(1.6, 1.6),
+                figsize=(1.5, 1.5),
                 scientific_notation_y_axis=True,
                 xlabel=xlabel,
                 ylabel=ylabel,
