@@ -1,32 +1,95 @@
 import logging
+import re
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Literal
+from time import time
 
 import numpy as np
-from scipy import interpolate as spinterp
+from numdifftools import Jacobian
 from scipy.integrate import solve_ivp
+from scipy.interpolate import RegularGridInterpolator, griddata
+from scipy.stats import gaussian_kde
 from sklearn.decomposition import PCA
 
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
-    get_dataset_descriptions,
     get_traj_and_diff,
 )
 from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
-from endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data, get_bins
-from endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
+from endo_pipeline.library.visualize.diffae_features.flow_field_viz import flow_field_viz_main
+from endo_pipeline.library.visualize.diffae_features.pplane import find_fpt_type, get_fps
+from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings.diffae_feature_dataframes import (
-    DIFFAE_PC_COLUMN_NAMES,
-    NUM_PCS_TO_ANALYZE,
-)
-from endo_pipeline.settings.flow_field_3d import TRAJECTORY_DICT_FILE_NAME
+from endo_pipeline.settings.flow_field_3d import SAMPLER_RANDOM_SEED
 
 logger = logging.getLogger(__name__)
 
 
-def _ddff_model_analysis(
+def sample_from_density(
+    data: np.ndarray, n_samples: int, random_seed: int = SAMPLER_RANDOM_SEED
+) -> np.ndarray:
+    """
+    Sample points from the density of a given dataset using KDE and rejection sampling.
+
+    Parameters
+    ----------
+    data
+        Input data of shape (N, D).
+    n_samples
+        Number of samples to draw.
+    random_seed
+        Random seed for reproducibility.
+
+    Returns
+    -------
+    :
+        Sampled points of shape (n_samples, D).
+    """
+    rng = np.random.default_rng(seed=random_seed)
+    kde = gaussian_kde(data.T)
+    n_dims = data.shape[1]
+    samples: list[np.ndarray] = []
+    # Estimate bounds for rejection sampling
+    mins = data.min(axis=0)
+    maxs = data.max(axis=0)
+    # Estimate maximum density for rejection
+    test_points = rng.uniform(mins, maxs, size=(10000, n_dims))
+    max_density = kde(test_points.T).max()
+    while len(samples) < n_samples:
+        candidate = rng.uniform(mins, maxs)
+        density = kde(candidate)
+        if rng.uniform(0, max_density) < density:
+            samples.append(candidate)
+    return np.array(samples)
+
+
+def _is_point_within_percentile(point, data, lower=5, upper=95):
+    """
+    Check if a point is within the given percentile range of the data along each axis.
+
+    Parameters
+    ----------
+    point
+        The point to check.
+    data
+        The data to compute percentiles from.
+    lower
+        Lower percentile.
+    upper
+        Upper percentile.
+
+    Returns
+    -------
+    :
+        True if point is within the percentile bounds on all axes, else False.
+    """
+    lower_bounds = np.percentile(data, lower, axis=0)
+    upper_bounds = np.percentile(data, upper, axis=0)
+    point = np.asarray(point)
+    return np.all((point >= lower_bounds) & (point <= upper_bounds))
+
+
+def ddff_model_analysis(
     dataset_name: str,
     dataframe_manifest: DataframeManifest,
     pca: PCA,
@@ -34,14 +97,18 @@ def _ddff_model_analysis(
     dt: float,
     bins: list[np.ndarray],
     centers: list[np.ndarray],
-    time_span: list,
-    init: np.ndarray,
+    time_span: tuple[float, float],
+    init_for_traj: np.ndarray,
+    num_inits_for_root_solver: int,
     plot_bounds: list[np.ndarray],
+    plot_stack: bool,
+    compute_vtk_files: bool,
     fig_savedir: Path,
     vtk_savedir: Path,
-    output_savedir: Path,
-    pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
-) -> np.ndarray | list[np.ndarray]:
+    pc_column_names: list[str],
+    lower_percentile: float,
+    upper_percentile: float,
+) -> list[np.ndarray]:
     """
     Get 3d flow field (drift coefficient) from principal component features from a given dataset.
 
@@ -75,10 +142,16 @@ def _ddff_model_analysis(
         List of centers of the bins in each dimension.
     time_span
         Time span for the ODE solver.
-    init
+    init_for_traj
         Initial condition for the trajectory.
+    num_inits_for_root_solver
+        Number of initial conditions to use for finding fixed points.
     plot_bounds
         Bounds for plotting the flow field.
+    plot_stack
+        Whether to plot the flow field as a stack of 2D slices in each dimension.
+    compute_vtk_files
+        Whether to compute and save .vtk files for the flow field and diffusion field.
     fig_savedir
         Directory to save figures.
     vtk_savedir
@@ -87,21 +160,31 @@ def _ddff_model_analysis(
         Directory to save output files (.npy files with drift field and diffusion field).
     pc_column_names
         List of column names for the principal components to use.
+    lower_percentile
+        Lower percentile for filtering fixed points.
+    upper_percentile
+        Upper percentile for filtering fixed points.
 
     Returns
     -------
     :
-        Trajectory in 3D state space for the given initial condition and time span
+        List of stable fixed points with high confidence (filtered by percentile range).
     """
     # load dataframe and get top 3 PCs
-    df = get_dataframe_for_dynamics_workflows(dataset_name, dataframe_manifest, pca)
+    df = get_dataframe_for_dynamics_workflows(
+        dataset_name,
+        dataframe_manifest,
+        pca,
+        include_cell_piling=False,
+        include_not_steady_state=False,
+    )
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
     traj_list, d_traj_list = get_traj_and_diff(df, pc_column_names)
-    # get drift and diffusion estimates
+    # get drift estimates
     # (Kramers-Moyal coefficients)
-    drift_km, diff_km = get_kramers_moyal(
+    drift_km, _ = get_kramers_moyal(
         traj_list, d_traj_list, bins=bins, dt=dt, kernel_params=kernel_params
     )
 
@@ -115,141 +198,134 @@ def _ddff_model_analysis(
     drift_vector_field = [drift_km[..., i] for i in range(ndim)]
     flow_field_dict = {"vectors": drift_vector_field, "grid": grid}
 
-    # save flow field dictionary as npy
-    np.save(
-        output_savedir / f"flow_field_dict_{dataset_name}.npy",
-        flow_field_dict,  # type: ignore
-        allow_pickle=True,
-    )
-    # save flow field as vtk image data
-    vtk_io.save_vector_field_as_vtk(flow_field_dict, vtk_savedir / f"flow_field_{dataset_name}.vtk")
-
-    # compute diffusion field on the grid defined by centers
-    # (diagonal diffusion tensor represented as 3D vector field)
-    diffusion_vector_field = [diff_km[..., i] for i in range(ndim)]
-    diffusion_field_dict = {"vectors": diffusion_vector_field, "grid": grid}
-
-    # save diffusion field dictionary as npy
-    np.save(
-        output_savedir / f"diffusion_field_dict_{dataset_name}.npy",
-        diffusion_field_dict,  # type: ignore
-        allow_pickle=True,
-    )
-    # save diffusion field as vtk image data
-    vtk_io.save_vector_field_as_vtk(
-        diffusion_field_dict, vtk_savedir / f"diffusion_field_{dataset_name}.vtk"
-    )
+    # if compute vtk files, extrapolate and save out the flow field as vtk
+    if compute_vtk_files:
+        extrapolated_flow_field_dict_vtk = compute_extrapolated_vector_field(
+            drift_km, centers, method="nearest", for_vtk_files=True
+        )
+        # save out the flow field as vtk image data
+        volume_extent = {
+            "xmin": bins[0][0],
+            "xmax": bins[0][-1],
+            "ymin": bins[1][0],
+            "ymax": bins[1][-1],
+            "zmin": bins[2][0],
+            "zmax": bins[2][-1],
+        }
+        save_vector_field_as_vtk(
+            extrapolated_flow_field_dict_vtk,
+            vtk_savedir / f"flow_field_{dataset_name}.vtk",
+            volume_extent,
+        )
 
     ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
-    # with initial conditions given by init
-    # solve IVP, get back trajectory
-    traj = solve_ddff_ode(flow_field_dict, init, time_span)
+    # with initial conditions given by init solve IVP, get back trajectory
+    extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
+        drift_km, centers, method="linear", for_vtk_files=False
+    )
+    traj = solve_ddff_ode(extrapolated_flow_field_dict_reg, init_for_traj, time_span)
 
-    flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj, plot_bounds, fig_savedir)
+    # get callable drift function and its Jacobian
+    drift_function = get_callable_vector_field(
+        extrapolated_flow_field_dict_reg, for_solve_ivp=False, method="linear"
+    )
+    drift_function_jacobian = Jacobian(drift_function)
 
-    return traj
+    # sample initial conditions for root solver from data density
+    pc_data = df[pc_column_names].values  # get PC data as numpy array
+    sampled_inits_for_root_solver = sample_from_density(pc_data, num_inits_for_root_solver)
+
+    # pass into helper function to get fixed points
+    fpts = get_fps(drift_function, sampled_inits_for_root_solver)
+
+    # filter fixed points to only keep stable ones within 2nd-98th percentiles of data
+    stable_fpts_high_confidence = []
+    for fpt in fpts:
+        within_percentile = _is_point_within_percentile(
+            fpt, pc_data, lower_percentile, upper_percentile
+        )
+        if within_percentile:
+            # get stability and type of the fixed point
+            fpt_type = find_fpt_type(drift_function_jacobian(fpt))
+            # stability of the fixed point is the
+            # first word in the fpt_type string
+            # if verbose, print the point and its stability
+            logger.debug("[ %s ] at [ (%.2f, %.2f, %.2f) ]", fpt_type, fpt[0], fpt[1], fpt[2])
+            # if "Stable" or "stable" in the fpt_type, save the point
+            if re.search(r"stable", fpt_type, re.IGNORECASE) and not re.search(
+                r"unstable", fpt_type, re.IGNORECASE
+            ):
+                stable_fpts_high_confidence.append(fpt)
+
+    # subfolder for each dataset
+    fig_savedir_dataset = fig_savedir / dataset_name
+    fig_savedir_dataset.mkdir(parents=True, exist_ok=True)
+
+    # call main visualization function
+    flow_field_viz_main(
+        flow_field_dict,
+        df,
+        traj,
+        stable_fpts_high_confidence,
+        plot_bounds,
+        plot_stack,
+        fig_savedir_dataset,
+    )
+
+    return stable_fpts_high_confidence
 
 
-def get_and_analyze_ddff(
-    dataset_names: list[str],
-    dataframe_manifest: DataframeManifest,
-    pca: PCA,
-    kernel_params: dict,
-    dt: float,
-    time_span: list,
-    init: np.ndarray,
-    num_bins: tuple[int, int, int],
-    fig_savedir: Path,
-    vtk_savedir: Path,
-    output_savedir: Path,
-) -> None:
+def fill_nan_for_vtk(data: np.ndarray, method: str = "nearest") -> np.ndarray:
     """
-    Visualize data-driven flow field (DDFF) for a list of datasets.
-
-    **Method output**
-
-    This function saves out the trajectories for each dataset in a single dictionary, where the
-    keys are dataset descriptions (based on shear stress conditions) and the values are the
-    trajectories in 3D state space.
-
-    It also saves out figures and other intermediate files via it's calls to other functions.
-    See the docstring for ``_ddff_model_analysis`` for more details.
+    Replaces NaN values in a multi-dimensional NumPy array using scipy.interpolate.griddata.
 
     Parameters
     ----------
-    dataset_names
-        List of dataset names to analyze.
-    dataframe_manifest
-        Dataframe manifest with the dataframe locations for each dataset.
-    pca
-        PCA model to use for transforming the data (projecting onto the top 3 PCs).
-    kernel_params
-        Parameters for the kernel-based estimation of Kramers-Moyal coefficients.
-    dt
-        Time step between frames.
-    time_span
-        Time span for the ODE solver.
-    init
-        Initial condition for the trajectory.
-    num_bins
-        Number of bins for histogramming along each dimension in the 3D state space.
-    fig_savedir
-        Directory to save figures.
-    vtk_savedir
-        Directory to save .vtk files.
-    output_savedir
-        Directory to save other output files.
+    data
+        Input NumPy array with NaN values to be imputed.
+
+    Returns
+    -------
+    :
+        A copy of the input array with NaNs imputed.
     """
-    # get bins for KMCs
-    bounds_for_plots = get_3d_bounds_from_data(dataset_names, dataframe_manifest, pca)
+    # Create a copy to avoid modifying the original data
+    arr = data.copy()
 
-    # get experimental condition
-    # descriptions of each dataset
-    condition_dict = get_dataset_descriptions(dataset_names, simple=True)
+    # Identify NaN locations
+    nan_mask = np.isnan(arr)
 
-    # initialize dict to save trajectories
-    # used for crop reconstruction
-    traj_dict = {}
-    for dataset_name in dataset_names:
-        bounds_for_km = get_3d_bounds_from_data(
-            dataset_names=[dataset_name],
-            manifest=dataframe_manifest,
-            pca=pca,
-            pad=True,
-        )
-        bins, centers = get_bins(num_bins, bin_limits=bounds_for_km)
-        traj = _ddff_model_analysis(
-            dataset_name,
-            dataframe_manifest,
-            pca,
-            kernel_params,
-            dt,
-            bins,
-            centers,
-            time_span,
-            init,
-            bounds_for_plots,
-            fig_savedir,
-            vtk_savedir,
-            output_savedir,
-        )
+    # If there are no NaNs, return the original array
+    if not np.any(nan_mask):
+        return arr
 
-        # save out using dataset descriptions
-        condition = condition_dict[dataset_name]
-        traj_dict[condition] = traj
+    # Else, proceed with interpolation
+    # Get a mask for valid (non-NaN) points
+    valid_mask = ~nan_mask
 
-    np.save(output_savedir / TRAJECTORY_DICT_FILE_NAME, traj_dict, allow_pickle=True)  # type: ignore
+    # Get coordinates and values for interpolation source
+    valid_coords = np.array(np.where(valid_mask)).T
+    valid_values = arr[valid_mask]
 
-    # generate plot of stable fixed points from different datasets
-    # overlaid on top of each other
-    # (for comparison of stable fixed points across conditions)
-    flow_field_viz.plot_stable_fixed_points_together(dataset_names, fig_savedir, output_savedir)
+    # Get coordinates for interpolation query (NaN points)
+    nan_coords = np.array(np.where(nan_mask)).T
+
+    # Use griddata to perform extrapolation
+    imputed_values = griddata(
+        points=valid_coords, values=valid_values, xi=nan_coords, method=method
+    )
+
+    # Assign the extrapolated values back into the NaN locations
+    arr[nan_mask] = imputed_values
+
+    return arr
 
 
 def compute_extrapolated_vector_field(
     kmcs: np.ndarray,
-    grid_centers: list[np.ndarray],
-    extrapolation_method: Literal["nearest", "linear"] = "nearest",
+    grid_coordinates: list[np.ndarray],
+    method: str = "linear",
+    for_vtk_files: bool = False,
 ) -> dict:
     """
     Extrapolate a 3D vector field from Kramers-Moyal estimates over a specified grid.
@@ -261,79 +337,81 @@ def compute_extrapolated_vector_field(
     estimates are `NaN`. This function extrapolates these estimates to the entire grid
     using nearest-neighbor or linear interpolation.
 
-    The array ``kmcs`` should have shape (num_bins_x, num_bins_y, num_bins_z, 3), where
-    num_bins_x, num_bins_y, and num_bins_z are the number of bins in each dimension
-    of the 3D meshgrid defined by ``grid_centers``.
+    The array ``kmcs`` should have shape (num_x, num_y, num_z, 3), where
+    num_x, num_y, and num_z are the number of points in each dimension
+    of the 3D meshgrid defined by ``grid_coordinates``.
 
     **Method output**
 
     The output is a dictionary with two keys:
     - "vectors": tuple of 3D arrays (f1,f2,f3) with the vector values in each dimension
-    - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension
+    - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the meshgrid points in each dimension
+
+    **Extrapolation for vtk files vs other uses**
+
+    If ``for_vtk_files`` is `True`, the extrapolation is done using a wrapper method for
+    filling NaNs via `scipy.interpolate.griddata`, which ensures no NaNs remain in the output.
+    This is important for saving the vector field as .vtk files for visualization in ParaView,
+    but is slower for large grids.
+
+    If ``for_vtk_files`` is `False`, the extrapolation is done using `scipy.interpolate.RegularGridInterpolator`,
+    which is faster for large grids, but can produce NaNs outside the convex hull of the data points unless
+    they are filled in with a numerical value (here, zero) first when creating the interpolator. This will result
+    in NaNs being converted to zeros outside the convex hull, which is suitable for all other uses of the vector field
+    except vtk files.
 
     Parameters
     ----------
     kmcs
         Array of drift or diffusion estimates over a three dimensional grid.
-    grid_centers
+    grid_coordinates
         List of 1D numpy arrays with the grid points in each dimension
-    extrapolation_method
+    method
         Method to use for extrapolating the vector field where there are NaNs.
+    for_vtk_files
+        Whether the output is intended for saving as .vtk files.
     """
 
-    ndim = len(grid_centers)  # number of dimensions
+    filled_kmcs = kmcs.copy()
+    n_components = filled_kmcs.shape[-1]
+    x, y, z = np.meshgrid(*grid_coordinates, indexing="ij")
 
-    # generate a mesh grid of points in the state space
-    grid = np.meshgrid(*grid_centers, indexing="ij")  # make meshgrid
+    for i in range(n_components):
+        component = filled_kmcs[..., i]
+        nan_mask = np.isnan(component)
+        if np.any(nan_mask):
+            if for_vtk_files:
+                if method != "nearest":
+                    logger.warning(
+                        "Using extrapolation method other than 'nearest' for vtk file construction results in "
+                        "significant memory usage and computation time. Consider using 'nearest' method. "
+                    )
+                logger.debug("Starting extrapolation for vtk files.")
+                tic = time()
+                component = fill_nan_for_vtk(component, method=method)
+                toc = time()
+                logger.debug(f"Finished extrapolation for vtk files in {toc - tic:.2f} seconds.")
+            else:
+                interpolator = RegularGridInterpolator(
+                    grid_coordinates,
+                    np.where(
+                        nan_mask, 0, component
+                    ),  # fill NaNs with zeros to avoid producing NaNs outside convex hull
+                    method=method,
+                    bounds_error=False,
+                    fill_value=None,  # extrapolate outside convex hull
+                )
+                nan_points = np.array([x[nan_mask], y[nan_mask], z[nan_mask]]).T
+                component[nan_mask] = interpolator(nan_points)
+            filled_kmcs[..., i] = component
 
-    # get the vector field components from
-    # the Kramers-Moyal coefficients
-    vector_field = [kmcs[..., i] for i in range(ndim)]
-
-    # where KMCs have been masked to nan, extrapolate
-    # via nearest neighbors.
-    # use spinterp.interpn with method='nearest'
-    # Find the indices of valid (non-NaN) points
-    valid_mask = ~np.isnan(vector_field[0])
-    # Get the coordinates of valid points
-    valid_points = np.array(np.nonzero(valid_mask)).T
-    # Get the values of valid points
-    valid_values = [vector_field[i][valid_mask] for i in range(ndim)]
-
-    # Create interpolators for each component of the vector field
-    if extrapolation_method not in ["nearest", "linear"]:
-        logger.error(
-            "Extrapolation method [ %s ] not recognized. Use 'nearest' or 'linear'.",
-            extrapolation_method,
-        )
-        raise ValueError(f"Extrapolation method [ {extrapolation_method} ] not recognized.")
-    if extrapolation_method == "nearest":  # nearest neighbor
-        interpolator_func = [
-            spinterp.NearestNDInterpolator(valid_points, valid_values[i]) for i in range(ndim)
-        ]
-    else:  # linear interpolation
-        interpolator_func = [
-            spinterp.LinearNDInterpolator(valid_points, valid_values[i]) for i in range(ndim)
-        ]
-
-    # Find the indices of all points (including NaN points)
-    all_points = (
-        np.array(np.indices(vector_field[0].shape)).reshape(len(vector_field[0].shape), -1).T
-    )
-
-    # Interpolate the NaN points
-    vec_interpolated = [interpolator_func[i](all_points) for i in range(ndim)]
-
-    # reshape back to original grid shape
-    vec_interpolated = [vec.reshape(vector_field[0].shape) for vec in vec_interpolated]
-
-    # Create a dictionary to store the vector field and grid
-    vector_field_dict = {"vectors": vec_interpolated, "grid": grid}
-
-    return vector_field_dict
+    vectors = tuple(filled_kmcs[..., i] for i in range(n_components))
+    return {"vectors": vectors, "grid": (x, y, z)}
 
 
-def get_callable_vector_field(vector_field_dict: dict, for_solve_ivp: bool = True) -> Callable:
+def get_callable_vector_field(
+    vector_field_dict: dict, for_solve_ivp: bool = True, method: str = "linear"
+) -> Callable:
     """
     Get a callable vector field from a numpy array via linear interpolation.
 
@@ -360,6 +438,8 @@ def get_callable_vector_field(vector_field_dict: dict, for_solve_ivp: bool = Tru
         Dictionary with arrays defining a vector field evaluated on a mesh grid.
     for_solve_ivp
         Return a function formatted for use with scipy.integrate.solve_ivp if True.
+    method
+        Interpolation method to use ('linear', 'nearest', etc.).
 
     Returns
     -------
@@ -367,46 +447,41 @@ def get_callable_vector_field(vector_field_dict: dict, for_solve_ivp: bool = Tru
         Callable function representing the vector field.
     """
 
-    ndim = len(vector_field_dict["grid"])  # number of dimensions
+    grid = vector_field_dict["grid"]  # tuple of 3D arrays (xgrid, ygrid, zgrid)
 
-    # get the interpolator for f_KM
-    vec_field_grid = np.stack(
-        vector_field_dict["vectors"], axis=-1
-    )  # shape (num_bins_x, num_bins_y, ... , ndim)
-    xyz_grid = np.moveaxis(np.array(vector_field_dict["grid"]), 0, -1).reshape((-1, ndim))
-    vec_field_interp = spinterp.LinearNDInterpolator(
-        xyz_grid, vec_field_grid.reshape((-1, ndim))
-    )  # interpolator for f_KM
+    # Extract 1D axes from meshgrid
+    x = np.unique(grid[0])
+    y = np.unique(grid[1])
+    z = np.unique(grid[2])
+    axes = (x, y, z)
 
-    if for_solve_ivp:
-        # define a callable function to pass
-        # into the ODE solver
-        # for scipy.integrate.solve_ivp,
-        # need time as first argument
-        # and x as second argument even if
-        # the system is time-independent
-        def vec_func_ivp(t: Any, x: np.ndarray) -> np.ndarray:
-            # get interpolated value
-            vec_interp_val = vec_field_interp(x)
-            # return dx/dt = f(x)
-            return vec_interp_val
+    # Stack vector components into shape (nx, ny, nz, 3)
+    vec_field_grid = np.stack(vector_field_dict["vectors"], axis=-1)
+    # Create interpolators for each component
+    # fill_value set to None for extrapolation
+    interpolators = [
+        RegularGridInterpolator(
+            axes, vec_field_grid[..., i], method=method, bounds_error=False, fill_value=None
+        )
+        for i in range(3)
+    ]
 
-        return vec_func_ivp
-    else:
+    def vf_general(point: np.ndarray) -> np.ndarray:
+        # point: shape (3,) or (N, 3)
+        point = np.atleast_2d(point)
+        return np.stack([interp(point) for interp in interpolators], axis=-1).squeeze()
 
-        def vec_func(x: np.ndarray) -> np.ndarray:
-            # get interpolated value
-            vec_interp_val = vec_field_interp(x)
-            # return dx/dt = f(x)
-            return vec_interp_val
+    def vf_solve_ivp(t: float, y: np.ndarray) -> np.ndarray:
+        # y: shape (3,)
+        return vf_general(y)
 
-        return vec_func
+    return vf_solve_ivp if for_solve_ivp else vf_general
 
 
 def solve_ddff_ode(
     flow_field_dict: dict,
     init: np.ndarray,
-    t_span: list[int] | list[float],
+    t_span: tuple[float, float],
     num_t: int = 1750,
 ) -> np.ndarray:
     """
@@ -437,7 +512,7 @@ def solve_ddff_ode(
     init
         Initial condition for the trajectory.
     t_span
-        Time span for the ODE solver as [t0, tf].
+        Time span for the ODE solver as (t0, tf).
     num_t
         Number of time points to evaluate the solution at.
 
@@ -447,7 +522,7 @@ def solve_ddff_ode(
         Solution trajectory in 3D state space for the given initial condition and time span.
     """
     # turn flow field into callable function (works via interpolation)
-    my_flow = get_callable_vector_field(flow_field_dict)
+    my_flow = get_callable_vector_field(flow_field_dict, for_solve_ivp=True)
     # timepoints at which to evaluate the solution
     t_eval = np.linspace(t_span[0], t_span[1], num_t)
     # solve the IVP
@@ -489,27 +564,3 @@ def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
         interpolated_points[:, i] = np.interp(arc_length_new, arc_length, traj[:, i])
 
     return interpolated_points
-
-
-def convert_coordinates_from_pc_to_latent(coords: np.ndarray, reducer: PCA) -> list[list]:
-    """
-    Convert coordinates in PCA-based feature space
-    to latent space using the PCA model.
-    """
-    latent = reducer.inverse_transform(coords)
-    latent.shape[0]
-    # turn coordinate array into list of lists
-    latent_coords = [coord.tolist() for coord in latent]
-
-    return latent_coords
-
-
-def convert_coordinates_from_volume_to_pc(
-    xvol: np.ndarray, grid_spacing: float, origin: float
-) -> np.ndarray:
-    """
-    Convert coordinates from 3D volume space to 3D PC space
-    (for saving as .vtk to view in ParaView).
-    """
-    xpc = origin + xvol * grid_spacing
-    return xpc

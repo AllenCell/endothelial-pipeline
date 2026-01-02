@@ -1,8 +1,5 @@
 from .data_driven_flow_field import (
     compute_extrapolated_vector_field,
-    convert_coordinates_from_pc_to_latent,
-    convert_coordinates_from_volume_to_pc,
-    get_and_analyze_ddff,
     get_callable_vector_field,
     interpolate_on_curve,
     solve_ddff_ode,
@@ -31,8 +28,6 @@ __all__ = [
     "build_drift_lib",
     "build_kramers_moyal_train_test",
     "compute_extrapolated_vector_field",
-    "convert_coordinates_from_pc_to_latent",
-    "convert_coordinates_from_volume_to_pc",
     "get_and_analyze_ddff",
     "get_callable_vector_field",
     "get_fixed_points_by_shear",

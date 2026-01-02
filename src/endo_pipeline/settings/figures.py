@@ -21,8 +21,8 @@ MAX_SUPP_MOVIE_WIDTH = 1920
 MAX_SUPP_MOVIE_HEIGHT = 1080
 """Maximum height in pixels of mp4 movie"""
 
-MAX_FIGURE_WIDTH = 7.5
-"""Maximum width of figure in inches."""
+MAX_FIGURE_WIDTH = 6.5 * 0.75
+"""Maximum width of figure in inches * pixels to points conversion factor for illustrator."""
 
-MAX_FIGURE_HEIGHT = 10
-"""Maximum height of figure in inches."""
+MAX_FIGURE_HEIGHT = 10 * 0.75
+"""Maximum height of figure in inches * pixels to points conversion factor for illustrator."""

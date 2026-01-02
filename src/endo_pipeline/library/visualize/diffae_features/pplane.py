@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable, Sequence, Sized
 from typing import Any
 
@@ -9,19 +10,20 @@ from scipy.integrate import solve_ivp
 from scipy.optimize import fsolve
 
 # set global dictionaries for stability colors and markers
-global stability_color_dict, stability_marker_dict
-stability_color_dict: dict[str, str] = {
+STABILITY_COLOR_DICT: dict[str, str] = {
     "stable": "g",
     "saddle": "tab:purple",
     "unstable": "r",
     "indeterminate": "darkgoldenrod",
 }
-stability_marker_dict: dict[str, str] = {
+STABILITY_MARKER_DICT: dict[str, str] = {
     "stable": "o",
     "saddle": "P",
     "unstable": "s",
     "indeterminate": "p",
 }
+
+logger = logging.getLogger(__name__)
 
 
 def get_trajectories(my_system: Callable, t_vec: np.ndarray, inits: list[tuple]) -> dict:
@@ -82,13 +84,13 @@ def findroot(func: Callable, init: float | Sized) -> np.ndarray:
     - np.nan: if convergence != 1
     """
     sol, _, convergence, _ = fsolve(func, init, full_output=1, xtol=1e-12)
+    # if converged, return solution
     if convergence == 1:
-        return sol
-    if init is float:
+        return np.array(sol)
+    # if not converged, return nan array of same size as init
+    if isinstance(init, float):
         return np.array([np.nan])
     else:
-        # assert that init is type Sized
-        assert isinstance(init, Sized)
         return np.array([np.nan] * len(init))
 
 
@@ -138,16 +140,32 @@ def find_fpt_type(jacobian: np.ndarray) -> str:
         (e.g. "stable spiral", "unstable node")
     """
     # get eigenvalues of the Jacobian
-    # via trace and determinant
-    det_jac = np.linalg.det(jacobian)
-    tr_jac = np.trace(jacobian)
-    if np.isclose(tr_jac, 0) and det_jac > 0:
-        stability = "Indeterminate stability"
-    elif det_jac < 0:
-        stability = "Saddle point"
+    eigvals = np.linalg.eigvals(jacobian)
+    eigval_str = ", ".join(
+        [
+            f"{np.real(ev):.4f}{'+' if np.imag(ev) >= 0 else '-'}{abs(np.imag(ev)):.4f}i"
+            for ev in eigvals
+        ]
+    )
+
+    # determine stability and type of fixed point
+    if np.isclose(np.real(eigvals).max(), 0) and np.isclose(np.real(eigvals).min(), 0):
+        stability = "indeterminate stability"
+    elif np.real(eigvals).min() < 0 < np.real(eigvals).max():
+        stability = "saddle point"
     else:
-        stability = "Stable" if tr_jac < 0 else "Unstable"
-        stability += " spiral" if (tr_jac**2 < 4 * det_jac) else " node"
+        stability = "stable" if np.real(eigvals).max() < 0 else "unstable"
+        if np.imag(eigvals).any():
+            stability += " spiral"
+        else:
+            stability += " node"
+
+    logger.debug("Fixed point type: [ %s ]", stability)
+    logger.debug(
+        "Eigenvalues: [ %s ]",
+        eigval_str,
+    )
+
     return stability
 
 
@@ -246,8 +264,8 @@ def classify_fps(
             ax.plot(
                 fpt[0],
                 fpt[1],
-                marker=stability_marker_dict[fpt_stability],
-                color=stability_color_dict[fpt_stability],
+                marker=STABILITY_MARKER_DICT[fpt_stability],
+                color=STABILITY_COLOR_DICT[fpt_stability],
                 markersize=8,
             )
 

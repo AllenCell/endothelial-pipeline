@@ -333,7 +333,7 @@ def plot_and_save_clustermap(
     else:
         clustering_data = df.values
         center = vmin = vmax = None
-        method = "ward"
+        method = "ward" if clustering_metric == "euclidean" else "average"
 
     row_linkage = linkage(clustering_data, method=method, metric=clustering_metric)
     col_linkage = linkage(clustering_data.T, method=method, metric=clustering_metric)
@@ -403,10 +403,10 @@ def get_df_for_feature_correlation_viz(
     dataset_name_list: list[str],
     dataset_info_columns: list[str],
     segmentation_feature_columns: list[str],
-    num_pcs: int | None,
+    num_pcs: int,
     pc_columns: list[str],
-    diffae_feature_columns: list[str],
     dataset_collection_name_for_pca: str,
+    diffae_feature_columns: list[str],
     model_manifest: ModelManifest,
     run_name: str,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
