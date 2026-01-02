@@ -9,7 +9,7 @@ from skimage.morphology import binary_dilation
 from tqdm import tqdm
 
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
-from endo_pipeline.io import get_output_path, load_dataframe, load_image
+from endo_pipeline.io import get_output_path, load_dataframe, load_image, save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
@@ -319,7 +319,7 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
 
         # create and save the panels of each of the features
         for feat in feats_to_plot:
-            out_path = out_dir / f"{dataset_name}_{feat}.pdf"
+            figure_name = f"{dataset_name}_{feat}"
 
             # create the 2D histogram panel
             fig, ax = hist_2d_of_feats(
@@ -363,6 +363,20 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
                         linestyle="--",
                         linewidth=1,
                     )
-            # save the panel
-            fig.savefig(out_path, bbox_inches="tight", pad_inches=0.05)
-            fig.savefig(out_path.with_suffix(".png"), bbox_inches="tight", pad_inches=0.05, dpi=300)
+            # save the panel in high quality
+            save_plot_to_path(
+                figure=fig,
+                output_path=out_dir,
+                figure_name=figure_name,
+                file_format=".pdf",
+                pad_inches=0.05,
+            )
+            # also save a PNG thumbnail for convenient use in presentations
+            save_plot_to_path(
+                figure=fig,
+                output_path=out_dir,
+                figure_name=figure_name,
+                file_format=".png",
+                pad_inches=0.05,
+                dpi=300,
+            )
