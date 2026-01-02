@@ -1,5 +1,4 @@
 import logging
-import re
 from pathlib import Path
 from typing import Any, Literal
 
@@ -9,7 +8,10 @@ from matplotlib.colors import TABLEAU_COLORS
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe_utils import get_dataset_descriptions
+from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    get_dataset_descriptions,
+    parse_dataset_description,
+)
 from endo_pipeline.library.analyze.numerics import (
     double_exponential_decay,
     exponential_decay,
@@ -93,20 +95,6 @@ def _plot_acf_curves_together(
             )
 
     return fig, ax
-
-
-def _parse_dataset_description(dataset_description: str) -> str:
-    """Parse dataset description for better readability in plot titles."""
-    # replace underscores with spaces for better readability
-    description_parsed = dataset_description.replace("_", " ")
-    # find [0-9]dyncm2, put comma and space before, put a space between number and unit,
-    # and change dyncm2 to dyn/cm^2 for better readability
-    description_parsed = re.sub(r"(\d+)dyncm2", r", \1 dyn/cm$^2$", description_parsed)
-    # turn capital 'S' into lowercase 's' for shear stress
-    description_parsed = description_parsed.replace(" Shear Stress", " shear stress")
-    # remove unwanted space before comma
-    description_parsed = description_parsed.replace(" ,", ",")
-    return description_parsed
 
 
 def _add_relaxation_timescale_to_plot(relaxation_timescales: list[float], ax: plt.Axes) -> plt.Axes:
@@ -421,7 +409,7 @@ def _plot_full_correlation_curves(
 ) -> dict[str, dict[str, Any]]:
     """Plot full correlation curves for a single dataset."""
     # get string for dataset description
-    dataset_description = _parse_dataset_description(dataset_descriptions[dataset_name])
+    dataset_description = parse_dataset_description(dataset_descriptions[dataset_name])
 
     # plot acf and fit exponential decay
     # adds relaxation timescales to correlation_dict

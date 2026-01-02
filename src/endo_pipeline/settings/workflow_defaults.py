@@ -27,35 +27,46 @@ DIFFAE_IMAGE_LOADING_KEY_PREFIX: str = "raw_"
 DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT: str = "raw_cdh5"
 """Default key for channel to use as diffusion image input to the model."""
 
+DEFAULT_NUM_LATENT_DIMENSIONS: int = 1024
+"""Default number of latent dimensions for DiffAE models."""
+
 RANDOM_SEED: int = 47
 """Default random seed for workflows."""
 
 MODEL_QC_NOISE_LEVELS: tuple = (0.25, 0.5, 0.75)
 """Default noise levels to add to ground truth for the model QC workflow."""
 
-KERNEL_PARAMS_3D: dict = {
-    "bandwidth": 0.125,
-    "kernel": "gaussian",
+SEGMENTATION_FEATURE_COLUMNS = {
+    "default": [
+        "alignment_deg_rel_to_flow",
+        "orientation_deg",
+        "aspect_ratio",
+        "centroid_velocity_angle_deg",
+        "cell_fluorescence_mean (a.u.)",
+        "num_nuclei_in_crop",
+        "area (um**2)",
+    ],
+    "supp": [
+        "alignment_deg_rel_to_flow",
+        "orientation_deg",
+        "aspect_ratio",
+        "cell_nuc_orientation_deg_rel_to_migration",
+        "nuc_pos_rel_cell_angle_deg",
+        "centroid_velocity_angle_deg",
+        "cell_fluorescence_mean (a.u.)",
+        "num_nuclei_in_crop",
+        "area (um**2)",
+    ],
 }
-"""Default kernel parameters for 3D flow field estimation."""
+"""Name of segmentation features to include in analyses."""
 
-NUM_BINS_3D: tuple[int, int, int] = (40, 40, 40)
-"""Default number of bins for 3D flow field estimation."""
-
-TIME_STEP_IN_MINUTES: int = 5
-"""Time step in minutes between consecutive time points for flow field estimation."""
-
-INIT_POINT_3D: list = [0.5, 0.0, -1.0]
-"""Default initial point for 3D flow field trajectory visualization."""
-
-TRAJECTORY_TIME_SPAN: list[int] = [0, 5000]
-"""Default time span for ODE solver in 3D flow field trajectory visualization."""
-
-DATASET_COLLECTION_FOR_3D_DYNAMICS: str = "3d_flow_field_analysis"
-"""Default dataset collection name for 3D dynamics analysis."""
-
-OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS: str = "flow_field_3d"
-"""Default output folder name for 3D dynamics analysis."""
-
-TRAJECTORY_DICT_FILE_NAME: str = "traj_dict"
-"""Default file name for saving trajectory dictionaries."""
+DATASET_INFO_COLUMNS = [
+    "dataset_name",
+    "position",
+    "image_index",
+    "frame_number",
+    "track_id",
+    "crop_index",
+    "label",
+]
+"""Name of dataset metadata columns required for analysis."""
