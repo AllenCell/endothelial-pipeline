@@ -66,7 +66,10 @@ def main() -> None:
 
         # Model config has info about image processing steps from training
         # Also has the crop size
-        model_config = get_config_dict_from_mlflow(model_location.mlflowid)
+        ml_flowid = model_location.mlflowid if model_location.mlflowid else None
+        if ml_flowid is None:
+            raise ValueError(f"Model location MLflow ID is None for model {model_manifest_name}")
+        model_config = get_config_dict_from_mlflow(ml_flowid)
         crop_size = model_config.model.image_shape[-1]  # assumes square crops
 
         # Get the condition and diffusion image keys from model config
