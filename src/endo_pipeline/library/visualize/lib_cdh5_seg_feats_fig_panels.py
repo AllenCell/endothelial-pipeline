@@ -218,7 +218,7 @@ def make_imaging_panels(
             )
             plot_image_thumbnail(
                 image=panel_overlay,
-                image_name=f"{dataset_name}_P{position}_T{timeframe}_{panel_name}_v2",
+                image_name=f"{dataset_name}_P{position}_T{timeframe}_{panel_name}",
                 output_path=out_dir_thumb,
                 figsize=IMAGE_PANEL_SIZE,
                 show_plot=False,
@@ -231,6 +231,7 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
 
     # Set some global plotting parameters to be consistent
     # with the other plots in the manuscript
+    plt.style.use("default")
     plt.rcParams.update(
         {
             "pdf.fonttype": PDF_FONT_TYPE,
