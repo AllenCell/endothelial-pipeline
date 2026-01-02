@@ -107,7 +107,6 @@ def plot_and_save_histogram(
     transform_name: str,
     key: str,
     save_dir: Path,
-    i: int,
     figsize: tuple = (2, 2),
     scientific_notation_y_axis: bool = False,
     xlabel: str | None = "Intensity",
@@ -121,7 +120,6 @@ def plot_and_save_histogram(
         transform (str): The transform name whose class name is used for labeling the plot.
         key (str): channel key of the image being processed (e.g., 'raw_bf').
         save_dir (Path): The directory where the histogram plot will be saved.
-        i (int): An index representing the order of the transform in the pipeline.
         figsize (tuple, optional): Figure size for the plot. Defaults to (2, 2).
         scientific_notation_y_axis: Whether to use scientific notation for the y-axis.
         xlabel (str | None, optional): Label for the x-axis. Defaults to "Intensity".

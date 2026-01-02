@@ -26,7 +26,13 @@ def create_model_training_schematic_images(
     noise_image: np.ndarray,
     output_path: Path,
 ) -> None:
-    center_slice = dataset_config.center_z_plane[position]
+    center_slice = (
+        dataset_config.center_z_plane[position]
+        if dataset_config.center_z_plane is not None
+        else None
+    )
+    if center_slice is None:
+        raise ValueError(f"center_slice is None for position {position}")
     cdh5_lower_slice = z_stack_img[0, center_slice - Z_SLICE_OFFSETS[0], :, :].squeeze()
     cdh5_slice = z_stack_img[0, center_slice, :, :].squeeze()
     cdh5_upper_slice = z_stack_img[0, center_slice + Z_SLICE_OFFSETS[1], :, :].squeeze()

@@ -57,13 +57,12 @@ def main() -> None:
     logger = logging.getLogger(__name__)
 
     for model_manifest_name in ["diffae_baseline_exclude_cell_piling", "diffae_cdh5_conditioned"]:
-        run_name = None
         rng = default_rng(seed=RANDOM_SEED)
 
         # Load model manifest and get location for run_name
         model_manifest = load_model_manifest(model_manifest_name)
-        run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
-        model_location = model_manifest.locations[run_name_]
+        run_name = get_most_recent_run_name(model_manifest)
+        model_location = model_manifest.locations[run_name]
 
         # Model config has info about image processing steps from training
         # Also has the crop size
@@ -90,6 +89,12 @@ def main() -> None:
 
         example_set = EXAMPLES_DIFFAE_TRAINING_VALIDATION
 
+        output_path = get_output_path(
+            "figure_2_model_qc",
+            model_manifest_name,
+            run_name,
+        )
+
         for example in example_set:
             dataset_name = example.dataset_name
             logger.info(f"Processing model QC for dataset: {dataset_name}")
@@ -98,12 +103,6 @@ def main() -> None:
             timepoint = example.timepoint
             start_x = example.crop_x_start
             start_y = example.crop_y_start
-
-            output_path = get_output_path(
-                "figure_2_model_qc",
-                model_manifest_name,
-                run_name_,
-            )
 
             dataset_config = load_dataset_config(dataset_name)
             zarr_loc = get_zarr_location_for_position(dataset_config, position)

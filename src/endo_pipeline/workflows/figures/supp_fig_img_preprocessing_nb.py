@@ -152,6 +152,6 @@ panels = [
     ),
 ]
 # %%
-build_figure_from_panels(panels, output_path, width=MAX_FIGURE_WIDTH, height=10)
+build_figure_from_panels(panels, output_path, width=MAX_FIGURE_WIDTH, height=6.25)
 
 # %%
