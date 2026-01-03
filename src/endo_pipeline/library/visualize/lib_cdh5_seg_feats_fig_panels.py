@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal, cast
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -9,7 +10,7 @@ from skimage.morphology import binary_dilation
 from tqdm import tqdm
 
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
-from endo_pipeline.io import get_output_path, load_dataframe, load_image
+from endo_pipeline.io import get_output_path, load_dataframe, load_image, save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
@@ -151,6 +152,11 @@ def make_imaging_panels(
             "colors": [(255, 255, 255), (0, 255, 255)],
             "colors_thumbnail": DEFAULT_COLORS,
         },
+        "cdh5_seg_merge_overlay": {
+            "images": ["cdh5_mip", "cdh5_seg_merged"],
+            "colors": [(255, 255, 255), (255, 0, 255)],
+            "colors_thumbnail": ["magenta"],
+        },
         "nuc_pred_cdh5_seg_overlay": {
             "images": ["cdh5_mip", "nuc_pred", "cdh5_seg_merged"],
             "colors": [(255, 255, 255), (0, 255, 255), (255, 0, 255)],
@@ -212,7 +218,7 @@ def make_imaging_panels(
             )
             plot_image_thumbnail(
                 image=panel_overlay,
-                image_name=f"{dataset_name}_P{position}_T{timeframe}_{panel_name}_v2",
+                image_name=f"{dataset_name}_P{position}_T{timeframe}_{panel_name}",
                 output_path=out_dir_thumb,
                 figsize=IMAGE_PANEL_SIZE,
                 show_plot=False,
@@ -225,6 +231,7 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
 
     # Set some global plotting parameters to be consistent
     # with the other plots in the manuscript
+    plt.style.use("default")
     plt.rcParams.update(
         {
             "pdf.fonttype": PDF_FONT_TYPE,
@@ -261,6 +268,21 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
         # calculate features that are sensitive to how the dataframe is filtered
         live_seg_feats_df = calculate_derived_data_dynamics_dependent(live_seg_feats_df)
 
+        # make another time column that uses the time since flow start as zero
+        # instead of time since the start of imaging
+        # 1. get the first flow conditions start time (this is in units of timeframes)
+        flow_change_times = [flow.start for flow in dataset_config.flow_conditions]
+        # 2. convert to hours
+        flow_change_times_hrs = [
+            flow_start_time * dataset_config.time_interval_in_minutes / 60.0  # type:ignore
+            for flow_start_time in flow_change_times
+        ]
+        flow_start_time_hrs = flow_change_times_hrs[0]
+        # 3. add the new time column
+        live_seg_feats_df["time_hours_since_flow_start"] = (
+            live_seg_feats_df["time_hours"] - flow_start_time_hrs
+        )
+
         # It's plotting time!
         # pick the features to plot
         feats_to_plot = [
@@ -279,7 +301,9 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
 
         # update the y labels of the features being plotted to
         # accomodate these panels being very very small
-        # (and also to make them more informative)
+        # (and/or to make them more informative)
+        time_col = "time_hrs_flow"
+        feats_plot_args[time_col]["label"] = "Time (h)"
         feats_plot_args["alignment_deg"]["label"] = "Cell Alignment (°)"
         feats_plot_args["cell_nuc_orientation_deg"][
             "label"
@@ -287,7 +311,7 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
         feats_plot_args["centroid_velocity_orientation_deg"]["label"] = "Migration Angle (°)"
         feats_plot_args["nuc_orientation_deg_rel_migration"][
             "label"
-        ] = "Cell-Nucleus Angle\nRel. to Migration (°)"
+        ] = "Cell-Nucleus Angle\nRel. Migration (°)"
         feats_plot_args["nuc_pos_vs_cell_veloc_dotprod"][
             "label"
         ] = "Cell-Nucleus vs.\nMigration Dot Prod."
@@ -297,24 +321,24 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
 
         # create and save the panels of each of the features
         for feat in feats_to_plot:
-            out_path = out_dir / f"{dataset_name}_{feat}.pdf"
+            figure_name = f"{dataset_name}_{feat}"
 
             # create the 2D histogram panel
             fig, ax = hist_2d_of_feats(
                 live_seg_feats_df,
-                x_column_name=feats_plot_args["time_hrs"]["column_name"],
+                x_column_name=feats_plot_args[time_col]["column_name"],
                 y_column_name=feats_plot_args[feat]["column_name"],
-                x_label=feats_plot_args["time_hrs"]["label"].capitalize(),
+                x_label=feats_plot_args[time_col]["label"].capitalize(),
                 y_label=feats_plot_args[feat]["label"].capitalize(),
-                x_lims=feats_plot_args["time_hrs"]["lims"],
+                x_lims=feats_plot_args[time_col]["lims"],
                 y_lims=feats_plot_args[feat]["lims"],
                 set_xticks=feats_plot_args["time_hrs"]["ticks"],
                 set_yticks=feats_plot_args[feat]["ticks"],
-                discrete_xticks=feats_plot_args["time_hrs"]["discrete_ticks"],
+                discrete_xticks=feats_plot_args[time_col]["discrete_ticks"],
                 discrete_yticks=feats_plot_args[feat]["discrete_ticks"],
                 minor_ticks="xy",
                 bin_width=(
-                    feats_plot_args["time_hrs"]["bin_width"],
+                    feats_plot_args[time_col]["bin_width"],
                     feats_plot_args[feat]["bin_width"],
                 ),
                 figsize=PLOT_PANEL_SIZE,
@@ -329,6 +353,25 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
                 ax = mark_perpendicular(ax, color="lightgrey")
             if feat == "nuc_pos_vs_cell_veloc_dotprod":
                 ax.axhline(0, color="lightgrey", linestyle="--", linewidth=1)
-
-            # save the panel
-            fig.savefig(out_path, bbox_inches="tight", pad_inches=0.05)
+            # draw a line at the time where imaging started (i.e. negative of flow start time)
+            imaging_start_time = 0 - flow_start_time_hrs
+            for i, flow_change_time in enumerate(flow_change_times_hrs):
+                if i == 0:
+                    ax.axvline(imaging_start_time, color="lime", linestyle="--", linewidth=1)
+                else:
+                    ax.axvline(
+                        flow_change_time - flow_start_time_hrs,
+                        color="cyan",
+                        linestyle="--",
+                        linewidth=1,
+                    )
+            # save the panel in high quality and as a PNG thumbnail
+            # (PNG thumbnail is for convenient use in presentations)
+            for fmt in [".pdf", ".png"]:
+                save_plot_to_path(
+                    figure=fig,
+                    output_path=out_dir,
+                    figure_name=figure_name,
+                    file_format=cast(Literal[".pdf", ".png"], fmt),
+                    pad_inches=0.05,
+                )

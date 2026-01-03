@@ -1,6 +1,7 @@
-import typing
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+from typing import Literal
 
 import imageio.v3 as iio
 import numpy as np
@@ -20,10 +21,6 @@ from endo_pipeline.library.process.image_processing import (
     max_proj_640,
 )
 from endo_pipeline.manifests import get_zarr_location_for_position
-
-if typing.TYPE_CHECKING:
-    from pathlib import Path
-    from typing import Literal
 
 
 def process_frame(
