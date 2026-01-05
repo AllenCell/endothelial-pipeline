@@ -252,8 +252,9 @@ def create_timelapse_mp4(
 
     # Estimate percentiles using first 10 timepoints if not using the standard
     # deviation projection. If using the standard deviation projection, which
-    # already include percentile-based clipping, only load the first stiched
+    # already include percentile-based clipping, only load the first stitched
     # image (for calculating sizes) and use min / max stretching instead.
+    method: Literal["min-max", "percentile"]
     if "std_dev" not in channel_type:
         stitched_images = load_stitched_image_at_timepoint(timepoints=list(range(10)))
         percentile_image = da.concatenate(stitched_images).rechunk().ravel()
