@@ -133,6 +133,10 @@ def main(
                         ColumnName.START_X: lambda x: list(x),
                         ColumnName.END_Y: lambda x: list(x),
                         ColumnName.END_X: lambda x: list(x),
+                        "label": lambda x: list(x),
+                        CytoDLLoadDataKeys.Z_START: lambda x: x.iloc[0],
+                        CytoDLLoadDataKeys.Z_END: lambda x: x.iloc[0],
+                        CytoDLLoadDataKeys.Z_STEP: lambda x: x.iloc[0],
                     }
                 )
                 .reset_index()
@@ -194,6 +198,10 @@ def main(
                 run_name=run_name,
                 prediction_path=prediction_path,
             )
+
+            if DEMO_MODE:
+                logger.info("Demo mode active, exiting after first position.")
+                break
 
     if __name__ == "__main__":
         from endo_pipeline.__main__ import workflow_cli
