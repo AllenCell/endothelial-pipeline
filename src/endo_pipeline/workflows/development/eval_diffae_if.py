@@ -112,6 +112,7 @@ def main(
             df["image_size_y"] = IMG_SHAPE_RESOLUTION_0_3i_Y
             df["crop_size"] = NATIVE_ZARR_RESOLUTION_CROP_SIZE
             df = add_diffae_model_eval_crop_columns(df)
+            df["track_id"] = df["label"]
 
             # Adjust the crop coordinates to be consistent with the resolution level
             resolution = sequence_to_scalar(df["diffae_resolution_level_to_use"])
@@ -133,7 +134,7 @@ def main(
                         ColumnName.START_X: lambda x: list(x),
                         ColumnName.END_Y: lambda x: list(x),
                         ColumnName.END_X: lambda x: list(x),
-                        "label": lambda x: list(x),
+                        "track_id": lambda x: list(x),
                         CytoDLLoadDataKeys.Z_START: lambda x: x.iloc[0],
                         CytoDLLoadDataKeys.Z_END: lambda x: x.iloc[0],
                         CytoDLLoadDataKeys.Z_STEP: lambda x: x.iloc[0],
