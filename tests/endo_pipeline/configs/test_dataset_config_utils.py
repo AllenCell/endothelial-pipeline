@@ -14,10 +14,6 @@ from endo_pipeline.configs import (
 from endo_pipeline.configs.dataset_config_utils import (
     get_annotated_positions,
     get_annotated_timepoints_for_position,
-    get_available_channels_for_all_positions,
-    get_available_channels_for_position,
-    get_channel_indices_for_all_positions,
-    get_channel_indices_for_position,
     get_duration_at_flow,
     get_flow_at_frame,
     get_frame_after_flow_change,
@@ -28,7 +24,6 @@ from endo_pipeline.configs.dataset_config_utils import (
     get_unannotated_timepoints_for_position,
     make_filtered_dataset_collection,
 )
-from endo_pipeline.manifests import ImageLocation
 
 
 @pytest.fixture
@@ -87,88 +82,6 @@ def mock_get_zarr_location_for_position(mocker):
         manifest_mock.side_effect = lambda x, p: image_locations[p] if x == dataset_config else None
 
     return _mocker
-
-
-def test_get_available_channels_for_all_positions(mock_get_zarr_location_for_position, dataset):
-    image_locations = {
-        1: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P1.ome.zarr")),
-        3: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P3.ome.zarr")),
-        5: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P5.ome.zarr")),
-    }
-    mock_get_zarr_location_for_position(dataset, image_locations)
-
-    channels = get_available_channels_for_all_positions(dataset)
-
-    assert channels == {
-        1: ["Channel1", "Channel2"],
-        3: ["Channel1", "Channel2", "Channel3"],
-        5: ["Channel1", "Channel3", "Channel4"],
-    }
-
-
-@pytest.mark.parametrize(
-    "position,expected",
-    [
-        (1, ["Channel1", "Channel2"]),
-        (3, ["Channel1", "Channel2", "Channel3"]),
-        (5, ["Channel1", "Channel3", "Channel4"]),
-    ],
-)
-def test_get_available_channels_for_position(
-    mock_get_zarr_location_for_position, dataset, position, expected
-):
-    image_locations = {
-        1: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P1.ome.zarr")),
-        3: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P3.ome.zarr")),
-        5: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P5.ome.zarr")),
-    }
-    mock_get_zarr_location_for_position(dataset, image_locations)
-
-    channels = get_available_channels_for_position(dataset, position)
-
-    assert channels == expected
-
-
-def test_get_channel_indices_for_all_positions(mock_get_zarr_location_for_position, dataset):
-    image_locations = {
-        1: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P1.ome.zarr")),
-        3: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P3.ome.zarr")),
-        5: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P5.ome.zarr")),
-    }
-    mock_get_zarr_location_for_position(dataset, image_locations)
-    channel_names = ["Channel3", "Channel1", "Channel2"]
-
-    channels = get_channel_indices_for_all_positions(dataset, channel_names)
-
-    assert channels == {
-        1: [None, 0, 1],
-        3: [2, 0, 1],
-        5: [1, 0, None],
-    }
-
-
-@pytest.mark.parametrize(
-    "position,expected",
-    [
-        (1, [None, 1]),
-        (3, [2, 1]),
-        (5, [1, None]),
-    ],
-)
-def test_get_channel_indices_for_position(
-    mock_get_zarr_location_for_position, dataset, position, expected
-):
-    image_locations = {
-        1: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P1.ome.zarr")),
-        3: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P3.ome.zarr")),
-        5: ImageLocation(path=Path("/path/to/zarr/dataset/dataset_P5.ome.zarr")),
-    }
-    mock_get_zarr_location_for_position(dataset, image_locations)
-    channel_names = ["Channel3", "Channel2"]
-
-    indices = get_channel_indices_for_position(dataset, position, channel_names)
-
-    assert indices == expected
 
 
 def test_get_frame_before_flow_change_valid_flow_condition(dataset):
