@@ -6,12 +6,16 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
     datasets: Datasets | None = None,
+    upload_to_fms: bool = True,
 ) -> None:
     """
     Run inference on immunofluorescence data using a pre-trained DiffAE model and centered on
     nuclear segmenation locations.
     """
     import logging
+    from pathlib import Path
+
+    import pandas as pd
 
     from endo_pipeline import DEMO_MODE, NUM_GPUS
     from endo_pipeline.configs import (
@@ -26,10 +30,12 @@ def main(
         add_diffae_model_eval_crop_columns,
         generate_overrides_for_track_based_crops,
         update_prediction_from_tracks_with_metadata,
+        upload_prediction_dataframe_to_fms,
     )
     from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
     from endo_pipeline.manifests import (
         get_dataframe_location_for_dataset,
+        get_feature_dataframe_manifest_name,
         get_zarr_location_for_position,
         load_dataframe_manifest,
         load_model_manifest,
@@ -182,6 +188,39 @@ def main(
                 model_manifest_name=model_manifest_name,
                 run_name=run_name,
                 prediction_path=prediction_path,
+            )
+
+        # Combine predictions from all positions into single dataframe
+        df_dataset_preds = pd.concat(
+            [
+                pd.read_parquet(
+                    output_dir
+                    / f"predict_{dataset_name}_P{position}_{model_manifest_name}_{run_name}_if_crop_features.parquet"
+                )
+                for position in zarr_positions
+            ],
+            ignore_index=True,
+        )
+        fname = (
+            f"predicted_{dataset_name}_{model_manifest_name}_{run_name}_if_crop_features.parquet"
+        )
+        df_dataset_preds.to_parquet(prediction_path / fname, index=False)
+
+        if upload_to_fms:
+            # upload prediction file to FMS
+            # Store FMS ID in dataframe manifest.
+            upload_prediction_dataframe_to_fms(
+                prediction_path,
+                dataset_config,
+                model_manifest,
+                run_name,
+                dataframe_manifest_name=get_feature_dataframe_manifest_name(
+                    model_manifest, run_name, crop_pattern="tracked"
+                ),
+                workflow_name=Path(__file__).stem,
+                workflow_parameters={
+                    "z_slice_offsets": (LOWER_Z_SLICE_OFFSET, UPPER_Z_SLICE_OFFSET)
+                },
             )
 
     if __name__ == "__main__":
