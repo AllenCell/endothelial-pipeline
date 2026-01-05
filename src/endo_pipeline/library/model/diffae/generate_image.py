@@ -187,7 +187,6 @@ def generate_from_coords(
         model_ = model
 
     if isinstance(model_, DiffusionAutoEncoder):
-        # Note that this currently returns a Tensor instead of a numpy array
         walk_img = model_.generate_from_latent(
             coords_,
             n_noise_samples=n_noise_samples,
@@ -195,11 +194,13 @@ def generate_from_coords(
             save=False,
             random_seed=random_seed,
         )
-        walk_img = walk_img.detach().cpu().numpy()
     else:
         walk_img = model_.generate_from_latent(
             coords_, n_noise_samples=n_noise_samples, average=average, save=False
         )
+
+    if isinstance(walk_img, torch.Tensor):
+        return walk_img.detach().cpu().numpy()
 
     return walk_img
 
