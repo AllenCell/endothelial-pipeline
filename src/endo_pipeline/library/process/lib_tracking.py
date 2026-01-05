@@ -12,13 +12,17 @@ from skimage.segmentation import clear_border
 from tqdm import tqdm
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.configs.dataset_io import extract_t, get_zarr_name, get_zarr_path
+from endo_pipeline.configs.dataset_io import extract_t
 from endo_pipeline.library.analyze.shape_features import numpy_mesh_coords
 from endo_pipeline.library.process.general_image_preprocessing import (
     save_image_output,
     sequence_to_scalar,
 )
-from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+from endo_pipeline.manifests import (
+    get_image_location_for_dataset,
+    get_zarr_location_for_position,
+    load_image_manifest,
+)
 from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
@@ -1669,9 +1673,9 @@ def run_tracking_multiproc_wrapper(queue: Sequence) -> None:
         if validation_image:
             # get the raw cadherin channel from either original data or the zarr version
             raw_channel = 0  # zarr files are created such that the first channel is always Cdh5
-            zarr_name = get_zarr_name(dataset_name, position)
-            zarr_path = get_zarr_path(dataset_name, zarr_name)[zarr_name]
-            raw_filepath = Path(zarr_path)
+            dataset_config = load_dataset_config(dataset_name)
+            zarr_loc = get_zarr_location_for_position(dataset_config, position)
+            raw_filepath = zarr_loc.path
         else:
             raw_filepath = None
             raw_channel = 0

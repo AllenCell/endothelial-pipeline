@@ -52,9 +52,9 @@ def get_latent_walk(
         walks.append(dim_traversal)
         ranges.append(range_)
 
-    walk = np.concatenate(walks).squeeze()
+    walk_array = np.concatenate(walks).squeeze()
 
-    return walk, ranges
+    return walk_array, ranges
 
 
 def build_data_for_pca_latent_walk(

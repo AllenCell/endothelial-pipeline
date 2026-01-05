@@ -35,6 +35,7 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
 )
 from endo_pipeline.settings import (
+    DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     NUM_PCS_TO_ANALYZE,
@@ -209,7 +210,7 @@ def merge_diffae_feats_liveseg_feats_tables(
 def get_diffae_feats_liveseg_feats_merged_table(
     dataset_name: str,
     model_manifest: ModelManifest,
-    run_name: str | None = None,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     filtered: bool = False,
 ) -> pd.DataFrame:
@@ -305,9 +306,7 @@ def get_traj_and_flowfield(
     )
 
     # compute interpolated flow field - drift
-    flow_field_dict = compute_extrapolated_vector_field(
-        drift_km, centers, extrapolation_method="nearest"
-    )
+    flow_field_dict = compute_extrapolated_vector_field(drift_km, centers, method="linear")
 
     if load_precomputed_trajectories is not None:
         logger.debug("Loading precomputed trajectories...")
@@ -604,11 +603,12 @@ def make_angular_deviation_test(out_dir: Path) -> None:
 def get_preprocessed_manifests_and_km_bounds(
     dataset_name: str,
     model_manifest: ModelManifest,
-    run_name: str | None = None,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    num_pcs: int | None = None,
+    num_pcs: int = NUM_PCS_TO_ANALYZE,
     drop_rows_without_diffae_feats: bool = True,
+    filtered: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list]:
     """
     Load and process the DiffAE and live segmentation feature manifests for a given dataset.
@@ -636,6 +636,8 @@ def get_preprocessed_manifests_and_km_bounds(
         NUM_PCS_TO_ANALYZE and the number of latent dimensions will be used.
     drop_rows_without_diffae_feats
         Whether to drop rows in the merged DataFrame that do not have DiffAE features.
+    filtered
+        Whether to filter the merged DataFrame to include only rows marked as "is_included".
 
     Returns
     -------
@@ -658,7 +660,7 @@ def get_preprocessed_manifests_and_km_bounds(
         model_manifest=model_manifest,
         run_name=run_name,
         seg_feature_manifest_name=seg_feature_manifest_name,
-        filtered=False,  # do not filter on timepoints yet: we need all timepoints for TFE workflow
+        filtered=filtered,  # do not filter on timepoints yet: we need all timepoints for TFE workflow
     )
 
     grid_diffae_feat_manifest_name = get_feature_dataframe_manifest_name(
