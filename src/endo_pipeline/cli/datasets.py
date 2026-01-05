@@ -93,7 +93,7 @@ Datasets = Annotated[
 
 
 def _track_id_converter(_, tokens: Sequence[Token]) -> list[int]:
-    """Convert CLI tokens into list of datasets by automatically dataset collections."""
+    """Convert CLI tokens into list of track IDs."""
 
     track_ids = []
 
