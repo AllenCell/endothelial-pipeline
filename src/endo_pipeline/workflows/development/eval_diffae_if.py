@@ -14,8 +14,6 @@ def main(
     """
     import logging
 
-    import numpy as np
-
     from endo_pipeline.configs import (
         get_datasets_in_collection,
         load_dataset_config,
@@ -44,8 +42,6 @@ def main(
         ZARR_BRIGHTFIELD_CHANNEL,
         ColumnName,
         CytoDLLoadDataKeys,
-    )
-    from endo_pipeline.settings.image_data import (
         IMG_SHAPE_RESOLUTION_0_3i_X,
         IMG_SHAPE_RESOLUTION_0_3i_Y,
     )
@@ -67,44 +63,25 @@ def main(
         for position in dataset_config.zarr_positions:
             df = df_dataset[df_dataset["position"] == position]
 
-            df[ColumnName.ZARR_PATH] = str(
-                get_zarr_location_for_position(dataset_config, position).path
-            )
-            df[CytoDLLoadDataKeys.Z_START] = (
-                dataset_config.center_z_plane[position] - LOWER_Z_SLICE_OFFSET
-            )
-            df[CytoDLLoadDataKeys.Z_END] = (
-                dataset_config.center_z_plane[position] + UPPER_Z_SLICE_OFFSET
-            )
-            df[CytoDLLoadDataKeys.Z_STEP] = 1
-            df["date"] = dataset_config.date
+            if DEMO_MODE:
+                logger.info("Demo mode active, using only the first 5 cells in FOV.")
+                df = df.head(5)
 
-            shear_regime = "_to_".join(
-                [shear.value for shear in dataset_config.shear_stress_regime]
-            )
-            df["shear_stress_regime"] = shear_regime
-            shear_stress_list = [
-                condition.shear_stress for condition in dataset_config.flow_conditions
-            ]
-            df["shear_stress_1"] = shear_stress_list[0]
-            df["shear_stress_2"] = shear_stress_list[1] if len(shear_stress_list) > 1 else np.nan
+            zarr_path = get_zarr_location_for_position(dataset_config, position).path
+            if dataset_config.center_z_plane is None:
+                raise ValueError(f"Dataset {dataset_name} is missing center_z_plane information.")
+            center_slice = dataset_config.center_z_plane[position]
 
-            durations = [
-                condition.stop - condition.start for condition in dataset_config.flow_conditions
-            ]
-            df["duration_at_ss_1_hr"] = durations[0] * 5 / 60
-            df["duration_at_ss_2_hr"] = (durations[1] * 5 / 60) if len(durations) > 1 else np.nan
-
-            # Filter and preprocess features for immunofluorescence analysis.
+            # Filter and preprocess features for immunofluorescence.
             df = filter.filter_small_objects(df)
             df = filter.filter_img_center(df)
-            df["SMAD1_norm_NucViolet_mean_sum_proj"] = (
-                df["SMAD1_mean_sum_proj"] / df["NucViolet_mean_sum_proj"]
-            )
-            df["SMAD1_norm_area_mean_sum_proj"] = df["SMAD1_mean_sum_proj"] / df["area"]
-            df = df[df["SMAD1_norm_NucViolet_mean_sum_proj"] < 1.0]
+            df = df[df["SMAD1_mean_sum_proj"] / df["NucViolet_mean_sum_proj"] < 1.0]
 
-            # Prepare dataframe for DiffAE model inference
+            # Add columns required for DiffAE model inference
+            df[ColumnName.ZARR_PATH] = str(zarr_path)
+            df[CytoDLLoadDataKeys.Z_START] = center_slice - LOWER_Z_SLICE_OFFSET
+            df[CytoDLLoadDataKeys.Z_END] = center_slice + UPPER_Z_SLICE_OFFSET
+            df[CytoDLLoadDataKeys.Z_STEP] = 1
             df["image_index"] = 0
             df["centroid_X"] = df["centroid_x"]
             df["centroid_Y"] = df["centroid_y"]
@@ -158,8 +135,6 @@ def main(
             )
 
             data_path = output_dir / "aggregated_crop_manifest.parquet"
-            if DEMO_MODE:
-                data_path = output_dir / "DEMO_aggregated_crop_manifest.parquet"
             grouped_df.to_parquet(data_path, index=False)
 
             # Load model for inference
