@@ -1,4 +1,3 @@
-from endo_pipeline import DEMO_MODE, NUM_GPUS
 from endo_pipeline.cli import Datasets
 from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
@@ -14,6 +13,7 @@ def main(
     """
     import logging
 
+    from endo_pipeline import DEMO_MODE, NUM_GPUS
     from endo_pipeline.configs import (
         get_datasets_in_collection,
         load_dataset_config,
@@ -50,22 +50,27 @@ def main(
     output_dir = get_output_path("if_inference")
 
     # Load Data and add info to dataframe
-
     if datasets is None:
         datasets = get_datasets_in_collection("smad1")
+
+    if DEMO_MODE:
+        logger.info("Demo mode active, limiting to first dataset only.")
+        datasets = datasets[:1]
+
     if_df_manifest = load_dataframe_manifest("immunofluorescence")
 
     for dataset_name in datasets:
         dataset_config = load_dataset_config(dataset_name)
         df_location = get_dataframe_location_for_dataset(if_df_manifest, dataset_name)
         df_dataset = load_dataframe(df_location)
+        zarr_positions = dataset_config.zarr_positions
 
-        for position in dataset_config.zarr_positions:
+        if DEMO_MODE:
+            logger.info("Demo mode active, limiting to first position only.")
+            zarr_positions = zarr_positions[:1]
+
+        for position in zarr_positions:
             df = df_dataset[df_dataset["position"] == position]
-
-            if DEMO_MODE:
-                logger.info("Demo mode active, using only the first 5 cells in FOV.")
-                df = df.head(5)
 
             zarr_path = get_zarr_location_for_position(dataset_config, position).path
             if dataset_config.center_z_plane is None:
@@ -76,6 +81,10 @@ def main(
             df = filter.filter_small_objects(df)
             df = filter.filter_img_center(df)
             df = df[df["SMAD1_mean_sum_proj"] / df["NucViolet_mean_sum_proj"] < 1.0]
+
+            if DEMO_MODE:
+                logger.info("Demo mode active, using only the first 5 cells in FOV.")
+                df = df.head(5)
 
             # Add columns required for DiffAE model inference
             df[ColumnName.ZARR_PATH] = str(zarr_path)
@@ -174,10 +183,6 @@ def main(
                 run_name=run_name,
                 prediction_path=prediction_path,
             )
-
-            if DEMO_MODE:
-                logger.info("Demo mode active, exiting after first position.")
-                break
 
     if __name__ == "__main__":
         from endo_pipeline.__main__ import workflow_cli
