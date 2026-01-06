@@ -10,13 +10,12 @@ def main():
 
     from endo_pipeline.configs import (
         TimepointAnnotation,
-        get_all_unannotated_timepoints,
         get_datasets_in_collection,
-        get_subset_of_timepoint_annotations,
         load_dataset_config,
     )
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
+    from endo_pipeline.library.model.train_model import get_included_frames_for_model
     from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
     from endo_pipeline.manifests import (
         get_dataframe_location_for_dataset,
@@ -67,21 +66,8 @@ def main():
         # load the model manifest for counting timepoints used for training
         model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
 
-        # this chunk was taken from
-        # src\endo_pipeline\workflows\production\create_diffae_training_dataframe.py
-        annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
-        if model_manifest.parameters["include_cell_piling"]:
-            # if including cell piling, then ignore that annotation as well
-            annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
-        # get list of annotations to filter out
-        annotations = get_subset_of_timepoint_annotations(
-            annotations_to_ignore=annotations_to_ignore
-        )
-        # get list of timepoints that do not have any of the annotations
-        # for each position (dict of position -> list of timepoints)
-        only_include_frames = get_all_unannotated_timepoints(
-            dataset_config, annotations=annotations
-        )
+        # get list of timepoints that were included for training for each position
+        only_include_frames = get_included_frames_for_model(dataset_config, model_manifest)
         num_timepoints_for_training = sum(
             [len(only_include_frames[pos]) for pos in only_include_frames]
         )
