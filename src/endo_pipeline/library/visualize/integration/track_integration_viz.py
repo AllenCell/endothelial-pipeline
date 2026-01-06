@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from multiprocessing import Pool
 from pathlib import Path
 from typing import Any, Literal
@@ -25,6 +26,28 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     set_slice_plot_bounds_and_labels,
 )
 from endo_pipeline.settings import ColumnName
+from endo_pipeline.settings.flow_field_3d import QUIVER_COLORMAP
+
+
+def set_global_pc_lims(axs: Sequence[plt.Axes], lim: int = 3) -> None:
+    """Set global PC limits for all axes in axs based on lim.
+
+    Parameters
+    ----------
+    axs:
+        Sequence of matplotlib Axes to set limits for.
+    lim:
+        Limit value for both x and y axes. Axes will be set to [-lim, lim].
+
+    Notes
+    -----
+    - lim corresponds to the number of standard deviations along each PC axis in the manuscript.
+    - using global PC limits allows for direct comparison of positioning but may result in lots
+        of empty space in some plots.
+    """
+    for ax in axs:
+        ax.set_xlim(-lim, lim)
+        ax.set_ylim(-lim, lim)
 
 
 def get_valid_slice_indexes(
@@ -91,6 +114,7 @@ def plot_quiver_slices_from_diffae_table(
     flow_field_dict_grids: dict,
     plot_trajectory: bool = True,
     plot_fixed_points: bool = True,
+    flow_field_colormap: str = QUIVER_COLORMAP,
 ) -> tuple[Figure, np.ndarray]:
 
     # get limits of grid from the grid crops flow fields
@@ -107,7 +131,7 @@ def plot_quiver_slices_from_diffae_table(
         plot_bounds=bounds,
         fig_savedir=None,
         pc_vals=pc_vals,
-        colormap_name="crest",
+        colormap_name=flow_field_colormap,
         log_norm_colormap=True,
     )
     [ax.set_aspect("equal") for ax in axs]
@@ -285,10 +309,19 @@ def plot_measured_feat_overlay_on_flowfield(
             "track_ids must be 'mean', an integer, or None. "
             f"Got {track_id_to_plot} (type: {type(track_id_to_plot)}) instead."
         )
-    [ax.set_aspect("equal") for ax in axs]
+
+    # change the data aspect so that X and Y have the same scaling (e.g. distances along PC1 and PC2
+    # axes will be the same and directly comparable).
+    for ax in axs:
+        ax.set_aspect("equal")
+
+    # changing the data aspect above can result in plots with different rectangular
+    # shapes, so here we allow setting global PC limits to make all plots the same size.
+    # This will have the side effect of making all positioning and vector shapes comparable
+    # but may lead to varying (sometimes large) amounts of empty space in each plot.
+    # In the manuscript the PCs range from -3 to 3 standard deviations, so we are using lim=3.
     if use_global_pc_lims:
-        [ax.set_xlim(-3, 3) for ax in axs]
-        [ax.set_ylim(-3, 3) for ax in axs]
+        set_global_pc_lims(axs, lim=3)  # type:ignore[arg-type]
 
     save_plot_to_path(
         figure=fig,
@@ -511,11 +544,11 @@ def make_all_plots(
             use_global_pc_lims=use_global_pc_lims,
         )
 
-        measured_feats_to_plot = ["time_hours", "alignment_deg_rel_to_flow", "eccentricity"]
         time_start = df_all_positions["time_hours"].min()
         time_stop = df_all_positions["time_hours"].max()
+        measured_feats_to_plot = ["time_hours", "alignment_deg_rel_to_flow", "eccentricity"]
         hues_for_feats = [(time_start, time_stop), (0, 90), (0.0, 1.0)]
-        for i, measured_feature in enumerate(measured_feats_to_plot):
+        for feature_name, feature_hue in zip(measured_feats_to_plot, hues_for_feats, strict=False):
             plot_measured_feat_overlay_on_flowfield(
                 out_subdir,
                 dataset_name,
@@ -523,13 +556,13 @@ def make_all_plots(
                 traj_grids,
                 flow_field_dict_grids,
                 diffae_measured_feat_df=df_all_positions,
-                meas_feat_col_name_for_color_coding=measured_feature,
+                meas_feat_col_name_for_color_coding=feature_name,
                 track_id_to_plot="mean",
                 plot_trajectory=False,
                 plot_fixed_points=True,
                 indicate_track_start=False,
                 indicate_track_end=True,
-                hue_norm=hues_for_feats[i],
+                hue_norm=feature_hue,
                 legend=legend,
                 alpha=0.8,
                 show_plot=False,

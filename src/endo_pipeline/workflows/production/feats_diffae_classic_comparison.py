@@ -1,5 +1,3 @@
-"""This workflow outputs plots of track-based cell trajectories integrated with grid-based DiffAE flow fields."""
-
 from endo_pipeline.cli import Datasets, Track_ids
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
@@ -11,7 +9,7 @@ from endo_pipeline.settings import (
 
 def main(
     datasets: Datasets | None = None,
-    positions: list[int] = [0, 1, 2, 3, 4, 5],
+    positions: list[int] | None = None,
     track_ids: Track_ids | None = None,
     datasets_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
@@ -20,6 +18,7 @@ def main(
     for_figures: bool = False,
     n_cores: int = 30,
 ) -> None:
+    """This workflow outputs plots of track-based cell trajectories integrated with grid-based DiffAE flow fields."""
 
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
@@ -40,6 +39,8 @@ def main(
     # create subdirectory to save track-based trajectories to
     out_subdir_traj = out_dir / "trajectories_track_based"
     out_subdir_traj.mkdir(parents=True, exist_ok=True)
+
+    positions = list(range(6)) if positions is None else positions
 
     for dataset_name in datasets:
 

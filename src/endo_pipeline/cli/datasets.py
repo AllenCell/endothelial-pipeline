@@ -90,24 +90,3 @@ Datasets = Annotated[
         validator=_dataset_validator,  # run dataset validator on list of datasets
     ),
 ]
-
-
-def _track_id_converter(_, tokens: Sequence[Token]) -> list[int]:
-    """Convert CLI tokens into list of track IDs."""
-
-    track_ids = []
-
-    for token in tokens:
-        track_ids.append(int(token.value))
-
-    return sorted(set(track_ids))
-
-
-Track_ids = Annotated[
-    list[int],
-    Parameter(
-        consume_multiple=True,  # allows parameter to consume multiple tokens
-        negative_iterable=[],  # remove the "--empty" option
-        converter=_track_id_converter,  # run track_id converter on tokens
-    ),
-]

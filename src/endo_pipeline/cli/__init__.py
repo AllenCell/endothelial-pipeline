@@ -1,6 +1,6 @@
-from .datasets import Datasets, Track_ids
+from .datasets import Datasets, TrackIds
 
 __all__ = [
     "Datasets",
-    "Track_ids",
+    "TrackIds",
 ]
