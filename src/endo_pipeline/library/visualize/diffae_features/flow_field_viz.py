@@ -445,9 +445,9 @@ def plot_quiver_slices(
     cbar = fig.colorbar(sm, ax=ax[1])
     cbar.set_label("flow field magnitude (3D)", fontsize=FONTSIZE_SMALL)
 
-    # set axes aspect to equal
+    # set axes aspect to be square
     for ax_ in ax:
-        ax_.set_aspect("equal")
+        ax_.set_aspect(1.0 / ax_.get_data_ratio())
 
     return fig, ax
 
