@@ -141,6 +141,9 @@ def main():
             # live_seg_feats_df.query("is_included==True").groupby(["image_index", ColumnName.POSITION]).label.nunique().sum()
 
             # add number of timepoints left after filtering to the dataset
+            # the "is_included" column in the dataframe is defined when the dataframe is constructed
+            # based on whether the track at that timepoint passed all filtering steps or not
+            # (see endo_pipeline\library\analyze\live_data_manifest\lib_make_seg_feats_manifest.add_filter_columns for details)
             num_timepoints_left_after_filter = (
                 live_seg_feats_df[live_seg_feats_df["is_included"]]
                 .groupby(["position"])["image_index"]
