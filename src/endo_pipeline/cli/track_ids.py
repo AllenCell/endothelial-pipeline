@@ -12,7 +12,7 @@ def _track_id_converter(_, tokens: Sequence[Token]) -> list[int]:
     return sorted(track_ids)
 
 
-Track_ids = Annotated[
+TrackIds = Annotated[
     list[int],
     Parameter(
         consume_multiple=True,  # allows parameter to consume multiple tokens
