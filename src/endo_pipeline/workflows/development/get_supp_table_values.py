@@ -217,7 +217,7 @@ def main():
     major_axis_len_mean_all_um = seg_counts_df["major_axis_length_mean_um"].mean()
 
     logger.info(f"Mean cell length across all datasets (px): {major_axis_len_mean_all_px}")
-    print(f"Mean cell length across all datasets (um): {major_axis_len_mean_all_um}")
+    logger.info(f"Mean cell length across all datasets (um): {major_axis_len_mean_all_um}")
 
 
 if __name__ == "__main__":
