@@ -22,10 +22,10 @@ def main():
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings import (
+    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_SEG_FEATURE_MANIFEST_NAME,
-        ColumnName,
     )
 
     logger = logging.getLogger(__name__)
