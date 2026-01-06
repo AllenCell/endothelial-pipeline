@@ -287,7 +287,7 @@ def load_image(
     raise FileNotFoundError("Unable to load image; no available locations.")
 
 
-def load_dataframe_from_path(path: Path) -> pd.DataFrame:
+def load_dataframe_from_path(path: Path, *, delay: bool = False) -> pd.DataFrame:
     """
     Load dataframe from path.
 
@@ -297,6 +297,8 @@ def load_dataframe_from_path(path: Path) -> pd.DataFrame:
     ----------
     path
         Path to dataframe file.
+    delay
+        True to delay reading dataframe into memory, False otherwise.
 
     Returns
     -------
@@ -358,7 +360,7 @@ def get_local_path_from_fmsid(fmsid: str) -> Path:
     return local_path
 
 
-def load_dataframe_from_fms(fmsid: str) -> pd.DataFrame:
+def load_dataframe_from_fms(fmsid: str, *, delay: bool = False) -> pd.DataFrame:
     """
     Load dataframe from FMS by file ID.
 
@@ -369,6 +371,8 @@ def load_dataframe_from_fms(fmsid: str) -> pd.DataFrame:
     ----------
     fmsid
         FMS file ID.
+    delay
+        True to delay reading dataframe into memory, False otherwise.
 
     Returns
     -------
@@ -378,10 +382,10 @@ def load_dataframe_from_fms(fmsid: str) -> pd.DataFrame:
 
     local_path = get_local_path_from_fmsid(fmsid)
 
-    return load_dataframe_from_path(local_path)
+    return load_dataframe_from_path(local_path, delay=delay)
 
 
-def load_dataframe_from_s3(s3uri: str) -> pd.DataFrame:
+def load_dataframe_from_s3(s3uri: str, *, delay: bool = False) -> pd.DataFrame:
     """
     Load dataframe from S3 by object URI.
 
@@ -391,6 +395,8 @@ def load_dataframe_from_s3(s3uri: str) -> pd.DataFrame:
     ----------
     s3uri
         S3 object URI.
+    delay
+        True to delay reading dataframe into memory, False otherwise.
 
     Returns
     -------
@@ -416,7 +422,7 @@ def load_dataframe_from_s3(s3uri: str) -> pd.DataFrame:
     raise ValueError(f"Invalid dataframe file format '{s3uri.split('.')[-1]}'")
 
 
-def load_dataframe(location: DataframeLocation) -> pd.DataFrame:
+def load_dataframe(location: DataframeLocation, *, delay: bool = False) -> pd.DataFrame:
     """
     Load dataframe from location.
 
@@ -433,6 +439,8 @@ def load_dataframe(location: DataframeLocation) -> pd.DataFrame:
     ----------
     location
         Dataframe location object.
+    delay
+        True to delay reading dataframe into memory, False otherwise.
 
     Returns
     -------
@@ -441,30 +449,30 @@ def load_dataframe(location: DataframeLocation) -> pd.DataFrame:
 
     if location.fmsid is not None:
         try:
-            return load_dataframe_from_fms(location.fmsid)
+            return load_dataframe_from_fms(location.fmsid, delay=delay)
         except:
             if location.path is not None:
                 try:
-                    return load_dataframe_from_path(location.path)
+                    return load_dataframe_from_path(location.path, delay=delay)
                 except:
                     if location.s3uri is not None:
-                        return load_dataframe_from_s3(location.s3uri)
+                        return load_dataframe_from_s3(location.s3uri, delay=delay)
                     raise
 
             if location.s3uri is not None:
-                return load_dataframe_from_s3(location.s3uri)
+                return load_dataframe_from_s3(location.s3uri, delay=delay)
             raise
 
     if location.path is not None:
         try:
-            return load_dataframe_from_path(location.path)
+            return load_dataframe_from_path(location.path, delay=delay)
         except:
             if location.s3uri is not None:
-                return load_dataframe_from_s3(location.s3uri)
+                return load_dataframe_from_s3(location.s3uri, delay=delay)
             raise
 
     if location.s3uri is not None:
-        return load_dataframe_from_s3(location.s3uri)
+        return load_dataframe_from_s3(location.s3uri, delay=delay)
 
     logger.error("Location does not have a FMS ID or local path or S3 URI.")
     raise FileNotFoundError("Unable to load dataframe; no available locations.")
