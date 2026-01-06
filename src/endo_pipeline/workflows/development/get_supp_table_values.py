@@ -191,15 +191,15 @@ def main():
         seg_counts["shear_stress_dyn/cm**2"].append(shear_stress)
         seg_counts["cell_line"].append(cell_line)
         # add segmentation counts information
-        seg_counts["num_nuclei_predictions"].append(int(num_nuc_pred))
-        seg_counts["num_cell_segmentations_before_filter"].append(int(num_cell_seg_before_filt))
-        seg_counts["num_cell_segmentations_after_filter"].append(int(num_cell_seg_after_filt))
-        seg_counts["num_tracks_before_filter"].append(int(num_tracks_before_filt))
-        seg_counts["num_tracks_after_filter"].append(int(num_tracks_left_after_filter))
+        seg_counts["num_nuclei_predictions"].append(num_nuc_pred)
+        seg_counts["num_cell_segmentations_before_filter"].append(num_cell_seg_before_filt)
+        seg_counts["num_cell_segmentations_after_filter"].append(num_cell_seg_after_filt)
+        seg_counts["num_tracks_before_filter"].append(num_tracks_before_filt)
+        seg_counts["num_tracks_after_filter"].append(num_tracks_left_after_filter)
         # add dataset duration information
-        seg_counts["dataset_duration_timeframes"].append(int(dataset_config.duration))
-        seg_counts["num_timeframes_left_after_filter"].append(int(num_timepoints_left_after_filter))
-        seg_counts["num_timeframes_for_training"].append(int(num_timepoints_for_training))
+        seg_counts["dataset_duration_timeframes"].append(dataset_config.duration)
+        seg_counts["num_timeframes_left_after_filter"].append(num_timepoints_left_after_filter)
+        seg_counts["num_timeframes_for_training"].append(num_timepoints_for_training)
         # add the cell length statistics
         seg_counts["major_axis_length_mean_px"].append(seg_lengths_px_mean)
         seg_counts["major_axis_length_std_px"].append(seg_lengths_px_std)
