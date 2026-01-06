@@ -1,14 +1,14 @@
 name: diffae_finetuning_dataframe
 workflow: create_diffae_finetuning_dataframe
 parameters:
-  z_slice_offsets:
-  - 4
-  - 11
+  z_slice_offsets: [4, 11]
   include_cell_piling: false
 locations:
   training:
     fmsid: 0beddfb4e36e4d5b928639000e70f08c
+    path: null
     s3uri: null
   validation:
     fmsid: 966005e38a1648ddb3f6035d8495e996
+    path: null
     s3uri: null
