@@ -17,6 +17,7 @@ if typing.TYPE_CHECKING:
 
     from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 
+import dask.dataframe as dd
 import pandas as pd
 
 from endo_pipeline.configs import load_model_config
@@ -310,15 +311,18 @@ def load_dataframe_from_path(path: Path, *, delay: bool = False) -> pd.DataFrame
         logger.error("Path [ %s ] could not be loaded", path)
         raise FileNotFoundError(f"No such file '{path}'")
 
+    # Initialize dataframe reader. Use Dask if delayed and Pandas otherwise.
+    reader = dd if delay else pd
+
     if path.suffix == ".csv":
         logger.info("Loading path [ %s ] as CSV file", path)
-        return pd.read_csv(path)
+        return reader.read_csv(path)
     if path.suffix == ".parquet":
         logger.info("Loading path [ %s ] as Parquet file", path)
-        return pd.read_parquet(path)
+        return reader.read_parquet(path)
     if path.suffix == ".tsv":
         logger.info("Loading path [ %s ] as TSV file", path)
-        return pd.read_csv(path, sep="\t")
+        return reader.read_csv(path, sep="\t")
 
     logger.error("Path [ %s ] cannot be loaded as dataframe", path)
     raise ValueError(f"Invalid dataframe file format '{path.suffix}'")
@@ -408,15 +412,18 @@ def load_dataframe_from_s3(s3uri: str, *, delay: bool = False) -> pd.DataFrame:
         logger.error("URL [ %s ] must start with s3://", s3uri)
         raise ValueError(f"Invalid S3 URI '{s3uri}'")
 
+    # Initialize dataframe reader. Use Dask if delayed and Pandas otherwise.
+    reader = dd if delay else pd
+
     if s3uri.endswith(".csv"):
         logger.info("Loading path [ %s ] as CSV file", s3uri)
-        return pd.read_csv(s3uri)
+        return reader.read_csv(s3uri)
     if s3uri.endswith(".parquet"):
         logger.info("Loading path [ %s ] as Parquet file", s3uri)
-        return pd.read_parquet(s3uri)
+        return reader.read_parquet(s3uri)
     if s3uri.endswith(".tsv"):
         logger.info("Loading path [ %s ] as TSV file", s3uri)
-        return pd.read_csv(s3uri, sep="\t")
+        return reader.read_csv(s3uri, sep="\t")
 
     logger.error("Path [ %s ] cannot be loaded as dataframe", s3uri)
     raise ValueError(f"Invalid dataframe file format '{s3uri.split('.')[-1]}'")
