@@ -288,7 +288,15 @@ def load_image(
     raise FileNotFoundError("Unable to load image; no available locations.")
 
 
-def load_dataframe_from_path(path: Path, *, delay: bool = False) -> pd.DataFrame:
+@overload
+def load_dataframe_from_path(path: Path, *, delay: Literal[True] = True) -> pd.DataFrame: ...
+
+
+@overload
+def load_dataframe_from_path(path: Path, *, delay: Literal[False]) -> dd.DataFrame: ...
+
+
+def load_dataframe_from_path(path: Path, *, delay: bool = False) -> pd.DataFrame | dd.DataFrame:
     """
     Load dataframe from path.
 
@@ -364,7 +372,15 @@ def get_local_path_from_fmsid(fmsid: str) -> Path:
     return local_path
 
 
-def load_dataframe_from_fms(fmsid: str, *, delay: bool = False) -> pd.DataFrame:
+@overload
+def load_dataframe_from_fms(fmsid: str, *, delay: Literal[True] = True) -> pd.DataFrame: ...
+
+
+@overload
+def load_dataframe_from_fms(fmsid: str, *, delay: Literal[False]) -> dd.DataFrame: ...
+
+
+def load_dataframe_from_fms(fmsid: str, *, delay: bool = False) -> pd.DataFrame | dd.DataFrame:
     """
     Load dataframe from FMS by file ID.
 
@@ -389,7 +405,15 @@ def load_dataframe_from_fms(fmsid: str, *, delay: bool = False) -> pd.DataFrame:
     return load_dataframe_from_path(local_path, delay=delay)
 
 
-def load_dataframe_from_s3(s3uri: str, *, delay: bool = False) -> pd.DataFrame:
+@overload
+def load_dataframe_from_s3(s3uri: str, *, delay: Literal[True] = True) -> pd.DataFrame: ...
+
+
+@overload
+def load_dataframe_from_s3(s3uri: str, *, delay: Literal[False]) -> dd.DataFrame: ...
+
+
+def load_dataframe_from_s3(s3uri: str, *, delay: bool = False) -> pd.DataFrame | dd.DataFrame:
     """
     Load dataframe from S3 by object URI.
 
@@ -429,7 +453,17 @@ def load_dataframe_from_s3(s3uri: str, *, delay: bool = False) -> pd.DataFrame:
     raise ValueError(f"Invalid dataframe file format '{s3uri.split('.')[-1]}'")
 
 
-def load_dataframe(location: DataframeLocation, *, delay: bool = False) -> pd.DataFrame:
+@overload
+def load_dataframe(location: DataframeLocation, *, delay: Literal[True] = True) -> pd.DataFrame: ...
+
+
+@overload
+def load_dataframe(location: DataframeLocation, *, delay: Literal[False]) -> dd.DataFrame: ...
+
+
+def load_dataframe(
+    location: DataframeLocation, *, delay: bool = False
+) -> pd.DataFrame | dd.DataFrame:
     """
     Load dataframe from location.
 
