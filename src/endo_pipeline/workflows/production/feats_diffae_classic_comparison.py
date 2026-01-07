@@ -86,39 +86,6 @@ def main(
 
         # save plots of the track-based crop trajectories and PCs overlaid
         # on the flow field and trajectories from the grid-based crops
-
-        # make_all_plots(
-        #     out_dir,
-        #     dataset_name,
-        #     positions,
-        #     track_ids,
-        #     diffae_grid_crops,
-        #     traj_grids,
-        #     flow_field_dict_grids,
-        #     df_all_positions,
-        #     traj_tracks,
-        #     track_integrations_only=False,
-        #     use_global_pc_lims=True,
-        #     for_figures=for_figures,
-        #     n_cores=n_cores,
-        # )
-
-        # def make_all_plots(
-        #     out_dir: Path,
-        #     dataset_name: str,
-        #     positions: list[int],
-        #     track_ids: list[int] | None,
-        #     diffae_grid_crops: pd.DataFrame,
-        #     traj_grids: np.ndarray,
-        #     flow_field_dict_grids: dict,
-        #     df_all_positions: pd.DataFrame,
-        #     traj_tracks: np.ndarray,
-        #     track_integrations_only: bool = False,
-        #     use_global_pc_lims: bool = False,
-        #     for_figures: bool = False,
-        #     n_cores: int = 1,
-        # ) -> None:
-
         figure_format: Literal[".png", ".svg", ".pdf"] = ".pdf" if for_figures else ".png"
 
         # create a subdirectory to save the plots to
