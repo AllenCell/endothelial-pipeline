@@ -418,21 +418,16 @@ def load_dataframe_from_s3(s3uri: str) -> pd.DataFrame:
 
 def load_dataframe(location: DataframeLocation) -> pd.DataFrame:
     """
-    Load dataframe from location, defaulting to FMS.
+    Load dataframe from location.
 
-    ======  ======  ====================================================
-    FMS ID  S3 URL  Loading Behavior
-    ======  ======  ====================================================
-    NO      NO      raises exception
-    YES     NO      load from FMS only
-    NO      YES     load from S3 only
-    YES     YES     load from FMS first, then load from S3 if that fails
-    ======  ======  ====================================================
+    This method will prefer loading from the FMS ID first, falling back to (if
+    they exist) local path, and then to S3 URI, if it encounters an error
+    loading from a previous location. See the corresponding unit test for an
+    exhaustive list of behaviors.
 
     Note that the default behavior may change to load from S3 first. While not
     recommended, if you want to ensure that dataframes are only loaded from a
-    specific location, use `load_dataframe_from_s3` or `load_dataframe_from_fms`
-    instead.
+    specific location, use `load_dataframe_from_x` instead.
 
     Parameters
     ----------
@@ -447,16 +442,31 @@ def load_dataframe(location: DataframeLocation) -> pd.DataFrame:
     if location.fmsid is not None:
         try:
             return load_dataframe_from_fms(location.fmsid)
-        except Exception:
+        except:
+            if location.path is not None:
+                try:
+                    return load_dataframe_from_path(location.path)
+                except:
+                    if location.s3uri is not None:
+                        return load_dataframe_from_s3(location.s3uri)
+                    raise
+
             if location.s3uri is not None:
                 return load_dataframe_from_s3(location.s3uri)
-            else:
-                raise
+            raise
+
+    if location.path is not None:
+        try:
+            return load_dataframe_from_path(location.path)
+        except:
+            if location.s3uri is not None:
+                return load_dataframe_from_s3(location.s3uri)
+            raise
 
     if location.s3uri is not None:
         return load_dataframe_from_s3(location.s3uri)
 
-    logger.error("Location does not have an FMS ID or S3 URI.")
+    logger.error("Location does not have a FMS ID or local path or S3 URI.")
     raise FileNotFoundError("Unable to load dataframe; no available locations.")
 
 
@@ -472,6 +482,9 @@ def resolve_dataframe_location(location: DataframeLocation) -> str:
 
     if location.fmsid is not None:
         return get_local_path_from_fmsid(location.fmsid).as_posix()
+
+    if location.path is not None:
+        return location.path.as_posix()
 
     if location.s3uri is not None:
         return location.s3uri

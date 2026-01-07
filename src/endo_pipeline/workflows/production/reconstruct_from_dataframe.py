@@ -61,18 +61,14 @@ def main(
     import numpy as np
 
     from endo_pipeline import NUM_GPUS
-    from endo_pipeline.io import (
-        get_output_path,
-        load_dataframe_from_path,
-        load_model,
-        save_plot_to_path,
-    )
+    from endo_pipeline.io import get_output_path, load_dataframe, load_model, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         check_required_columns_in_dataframe,
         fit_pca,
     )
     from endo_pipeline.library.model import generate_from_coords_batch
     from endo_pipeline.manifests import (
+        build_dataframe_location_from_path,
         get_feature_dataframe_manifest_name,
         get_most_recent_run_name,
         load_model_manifest,
@@ -82,8 +78,9 @@ def main(
     logger = logging.getLogger(__name__)
 
     # convert csv_path to Path object
-    dataframe_path_obj = Path(path).resolve()
-    dataframe = load_dataframe_from_path(dataframe_path_obj)
+    dataframe_path = Path(path).resolve()
+    dataframe_location = build_dataframe_location_from_path(path)
+    dataframe = load_dataframe(dataframe_location)
 
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
@@ -98,7 +95,7 @@ def main(
     pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=num_pcs)
 
     # Directory to save reconstructed crops
-    dataframe_file_name = dataframe_path_obj.stem
+    dataframe_file_name = dataframe_path.stem
     crop_savedir = get_output_path(
         "reconstructed_crops", model_manifest_name, run_name_, dataframe_file_name
     )

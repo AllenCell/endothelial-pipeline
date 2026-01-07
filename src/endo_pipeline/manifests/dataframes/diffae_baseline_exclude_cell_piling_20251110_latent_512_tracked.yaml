@@ -1,31 +1,37 @@
 name: diffae_baseline_exclude_cell_piling_20251110_latent_512_tracked
 workflow: eval_diffae_tracked
 parameters:
-  z_slice_offsets:
-  - 4
-  - 11
+  z_slice_offsets: [4, 11]
 locations:
   20250319_20X:
     fmsid: ee52a904bf3e46509500cceae801e4ce
+    path: null
     s3uri: null
   20250428_20X:
     fmsid: 93bd233fd22444a4b9b0938cb0d58cb8
+    path: null
     s3uri: null
   20250611_20X:
     fmsid: 3959b28b658f43fd8a81ae801780cb9c
+    path: null
     s3uri: null
   20250618_20X:
     fmsid: fe9b2f66414a4c7f91744f8bcfa1a5c8
+    path: null
     s3uri: null
   20250714_20X:
     fmsid: 2a3c8a74b8a445bd851b8da7fadd7d61
+    path: null
     s3uri: null
   20250813_20X:
     fmsid: 018727b5e2ee4379aaa0b8779a10a1fd
+    path: null
     s3uri: null
   20250818_20X:
     fmsid: f7d93820ffb441009cd63d1ad115374c
+    path: null
     s3uri: null
   20250827_20X:
     fmsid: 74f0f030db2d4c56be9c5f006a9b67b5
+    path: null
     s3uri: null
