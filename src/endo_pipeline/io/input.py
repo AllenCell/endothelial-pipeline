@@ -296,6 +296,10 @@ def load_dataframe_from_path(path: Path, *, delay: Literal[True] = True) -> pd.D
 def load_dataframe_from_path(path: Path, *, delay: Literal[False]) -> dd.DataFrame: ...
 
 
+@overload
+def load_dataframe_from_path(path: Path, *, delay: bool = False) -> pd.DataFrame | dd.DataFrame: ...
+
+
 def load_dataframe_from_path(path: Path, *, delay: bool = False) -> pd.DataFrame | dd.DataFrame:
     """
     Load dataframe from path.
@@ -380,6 +384,10 @@ def load_dataframe_from_fms(fmsid: str, *, delay: Literal[True] = True) -> pd.Da
 def load_dataframe_from_fms(fmsid: str, *, delay: Literal[False]) -> dd.DataFrame: ...
 
 
+@overload
+def load_dataframe_from_fms(fmsid: str, *, delay: bool = False) -> pd.DataFrame | dd.DataFrame: ...
+
+
 def load_dataframe_from_fms(fmsid: str, *, delay: bool = False) -> pd.DataFrame | dd.DataFrame:
     """
     Load dataframe from FMS by file ID.
@@ -411,6 +419,10 @@ def load_dataframe_from_s3(s3uri: str, *, delay: Literal[True] = True) -> pd.Dat
 
 @overload
 def load_dataframe_from_s3(s3uri: str, *, delay: Literal[False]) -> dd.DataFrame: ...
+
+
+@overload
+def load_dataframe_from_s3(s3uri: str, *, delay: bool = False) -> pd.DataFrame | dd.DataFrame: ...
 
 
 def load_dataframe_from_s3(s3uri: str, *, delay: bool = False) -> pd.DataFrame | dd.DataFrame:
