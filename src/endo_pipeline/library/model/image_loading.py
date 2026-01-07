@@ -20,7 +20,7 @@ if typing.TYPE_CHECKING:
 from endo_pipeline.configs import DatasetConfig, get_position_integer_from_zarr_file_path
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.process.z_stack_selection import get_plane_indices
-from endo_pipeline.manifests import DataframeLocation, get_available_zarr_locations
+from endo_pipeline.manifests import build_dataframe_location_from_path, get_available_zarr_locations
 from endo_pipeline.settings import (
     DIFFAE_ZARR_RESOLUTION_LEVEL,
     LOG_EPSILON,
@@ -353,7 +353,8 @@ class MultiDimImageDataset(SmartCacheDataset):
             Additional keyword arguments to pass to ``CacheDataset``.
         """
 
-        df = load_dataframe(DataframeLocation(path=Path(dataframe_path)))
+        df_loc = build_dataframe_location_from_path(dataframe_path)
+        df = load_dataframe(df_loc)
         rank = int(os.environ.get("LOCAL_RANK", 0))
         # Use WORLD_SIZE from environment, fallback to num_devices, then default to 1
         world_size = int(os.environ.get("WORLD_SIZE", num_devices or 1))

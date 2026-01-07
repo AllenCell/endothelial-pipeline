@@ -68,7 +68,7 @@ def main(
     )
     from endo_pipeline.library.model import generate_from_coords_batch
     from endo_pipeline.manifests import (
-        DataframeLocation,
+        build_dataframe_location_from_path,
         get_feature_dataframe_manifest_name,
         get_most_recent_run_name,
         load_model_manifest,
@@ -79,7 +79,7 @@ def main(
 
     # convert csv_path to Path object
     dataframe_path = Path(path).resolve()
-    dataframe_location = DataframeLocation(path=dataframe_path)
+    dataframe_location = build_dataframe_location_from_path(path)
     dataframe = load_dataframe(dataframe_location)
 
     # load model manifest, get run name, and load model
