@@ -386,6 +386,7 @@ def plot_quiver_slices(
     ],
     colormap_name: str = QUIVER_COLORMAP,
     norm: bool = NORMALIZE_QUIVER_VECTORS,
+    log_norm_colormap: bool = True,
     fig_ax: tuple | None = None,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
@@ -420,7 +421,7 @@ def plot_quiver_slices(
     color_array = _get_colormap_values(
         colormap_name,
         vector_magnitude,
-        log_normalize=True,
+        log_normalize=log_norm_colormap,
         clip_metric=True,
     )
 
@@ -439,7 +440,8 @@ def plot_quiver_slices(
     )
     # add colorbar to bottom axis
     sm = plt.cm.ScalarMappable(
-        cmap=colormap_name, norm=_get_colormap_norm(vector_magnitude, log_normalize=True)
+        cmap=colormap_name,
+        norm=_get_colormap_norm(vector_magnitude, log_normalize=log_norm_colormap),
     )
     sm.set_array([])
     cbar = fig.colorbar(sm, ax=ax[1])
@@ -456,6 +458,7 @@ def plot_flow_field_slices(
     pc_vals: tuple[Any, Any],
     colormap_name: str = QUIVER_COLORMAP,
     norm: bool = NORMALIZE_QUIVER_VECTORS,
+    log_norm_colormap: bool = True,
     plot_density: bool = True,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
@@ -552,6 +555,7 @@ def plot_flow_field_slices(
         (zvalids, yvalids),
         colormap_name=colormap_name,
         norm=norm,
+        log_norm_colormap=log_norm_colormap,
         fig_ax=(fig, ax),
     )
 

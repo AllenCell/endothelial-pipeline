@@ -7,8 +7,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from seaborn import color_palette
 
-from endo_pipeline.configs import get_datasets_in_collection, get_latent_dim_from_config
-from endo_pipeline.configs.dynamics_io import load_dynamics_config
+from endo_pipeline.configs import get_latent_dim_from_config
 from endo_pipeline.io import get_config_dict_from_mlflow, load_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     add_description_column,
@@ -18,10 +17,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_traj_and_diff,
     project_features_to_pcs,
 )
-from endo_pipeline.library.analyze.dynamics_utils import (
-    compute_extrapolated_vector_field,
-    solve_ddff_ode,
-)
+from endo_pipeline.library.analyze.dynamics_utils import solve_ddff_ode
 from endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
 from endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_data, get_bins
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
@@ -38,8 +34,16 @@ from endo_pipeline.settings import (
     DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
     ColumnName,
+)
+from endo_pipeline.settings.flow_field_3d import (
+    INIT_POINT_3D,
+    KERNEL_PARAMS_3D,
+    NUM_BINS_3D,
+    TIME_STEP_IN_MINUTES,
+    TRAJECTORY_TIME_SPAN,
 )
 
 logger = logging.getLogger(__name__)
@@ -270,30 +274,29 @@ def get_traj_and_flowfield(
     load_precomputed_trajectories: Path | None,
 ) -> tuple[np.ndarray, dict]:
 
-    # load default config, get kernel params
-    dynamics_config = load_dynamics_config("default")
-    kernel_params = dynamics_config["kramers_moyal"]["kernel_params"]
+    # set kernel params
+    kernel_params = KERNEL_PARAMS_3D
 
-    # get time between frames in minutes
-    dt = dynamics_config["dt"]
+    # set time between frames in minutes
+    dt = TIME_STEP_IN_MINUTES
 
     # time span for the ODE solver
     # units for time steps are in minutes
     # 48 hours in minutes =
     # 48 * 60 = 2880 time steps
-    time_span = [0.0, 2880.0]
+    time_span = TRAJECTORY_TIME_SPAN
 
     # initial condition for the ODE solver
     # this is fixed across datasets /
     # shear stress conditions
-    init = np.array([-0.1, -0.7, -0.1])
+    init = np.array(INIT_POINT_3D)
 
-    num_bins = [50, 50, 50]
+    num_bins = NUM_BINS_3D
     bins, centers = get_bins(num_bins, bin_limits=bounds)
 
     # get the columns to use for calculating trajectories
     # and flow fields.
-    cols = [f"pc{pc+1}" for pc in range(3)]
+    cols = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
     # get list of per-crop trajectories and the corresponding
     # single-timepoint displacement vectors
@@ -305,8 +308,11 @@ def get_traj_and_flowfield(
         traj_list, d_traj_list, bins=bins, dt=dt, kernel_params=kernel_params
     )
 
-    # compute interpolated flow field - drift
-    flow_field_dict = compute_extrapolated_vector_field(drift_km, centers, method="linear")
+    # get the vector field components from
+    # the Kramers-Moyal coefficients
+    grid = np.meshgrid(*centers, indexing="ij")
+    drift_vector_field = [drift_km[..., i] for i in range(NUM_PCS_TO_ANALYZE)]
+    flow_field_dict = {"vectors": drift_vector_field, "grid": grid}
 
     if load_precomputed_trajectories is not None:
         logger.debug("Loading precomputed trajectories...")
@@ -704,13 +710,16 @@ def get_preprocessed_manifests_and_km_bounds(
     # read in the grid crop-based diffae features
     grid_diffae_manifest = load_dataframe_manifest(grid_diffae_feat_manifest_name)
     diffae_grid_crops = get_dataframe_for_dynamics_workflows(
-        dataset_name, grid_diffae_manifest, pca
+        dataset_name,
+        grid_diffae_manifest,
+        pca,
+        include_cell_piling=False,
+        include_not_steady_state=False,
     )
 
-    datasets_for_bounds = list(
-        set(get_datasets_in_collection(collection_name_for_pca) + [dataset_name])
-    )
-    bounds = get_3d_bounds_from_data(datasets_for_bounds, grid_diffae_manifest, pca)
+    # get bounds for plotting and flow field estimation
+    # based on this dataset only
+    bounds = get_3d_bounds_from_data([dataset_name], grid_diffae_manifest, pca)
 
     # lastly, add a normalized version of the "time_hours" column
     merged_feats_df = add_normalized_time(merged_feats_df)
