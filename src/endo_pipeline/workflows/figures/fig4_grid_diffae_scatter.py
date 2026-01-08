@@ -1,17 +1,4 @@
-import seaborn as sns
-from matplotlib import pyplot as plt
-
-from endo_pipeline.io import get_output_path
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    fit_pca,
-    get_dataframe_for_dynamics_workflows,
-)
-from endo_pipeline.manifests import (
-    ModelManifest,
-    get_feature_dataframe_manifest_name,
-    load_dataframe_manifest,
-    load_model_manifest,
-)
+from endo_pipeline.manifests import ModelManifest
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -32,6 +19,20 @@ def main(
     drop_rows_without_diffae_feats: bool = True,
     filtered: bool = False,
 ) -> None:
+
+    import seaborn as sns
+    from matplotlib import pyplot as plt
+
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+        fit_pca,
+        get_dataframe_for_dynamics_workflows,
+    )
+    from endo_pipeline.manifests import (
+        get_feature_dataframe_manifest_name,
+        load_dataframe_manifest,
+        load_model_manifest,
+    )
 
     model_manifest = load_model_manifest(model_manifest_name)
     grid_diffae_feat_manifest_name = get_feature_dataframe_manifest_name(
@@ -89,3 +90,9 @@ def main(
     fig.savefig(
         outdir / f"{dataset_name}_grid_diffae_pc1_pc3_scatter.png", dpi=FIG_DPI, facecolor="white"
     )
+
+
+if __name__ == "__main__":
+    from endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)
