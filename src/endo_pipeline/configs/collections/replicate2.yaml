@@ -1,0 +1,12 @@
+name: replicate2
+description: Live 20X datasets not used for training the DiffAE model.
+datasets:
+- 20250224_20X
+- 20250326_20X
+- 20250409_20X
+- 20250604_20X
+- 20250716_20X
+- 20250728_20X
+- 20250806_20X
+- 20250825_20X
+- 20251001_20X
