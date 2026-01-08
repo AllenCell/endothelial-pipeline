@@ -78,7 +78,7 @@ def main(
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
         plot_principal_component_histogram,
     )
-    from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
+    from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
         get_most_recent_run_name,
@@ -93,6 +93,7 @@ def main(
         ColumnName,
     )
     from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
 
     logger = logging.getLogger(__name__)
 
@@ -226,7 +227,7 @@ def main(
         panels,
         max_rows=len(pc_axis_list) * 2,
         max_cols=len(pc_val_list),
-        col_titles=pc_val_list,
+        col_titles=[str(val) for val in pc_val_list],
         row_titles=row_titles,
         fig_kwargs={"layout": "tight", "figsize": (MAX_FIGURE_WIDTH, len(pc_axis_list) * 2)},
         font_size=FONTSIZE_SMALL,
@@ -234,6 +235,14 @@ def main(
     for ax in fig.axes:
         for spine in ax.spines.values():
             spine.set_visible(False)
+
+    add_scalebar(
+        fig.axes[0],
+        scale_bar_um=20,
+        pixel_size=PIXEL_SIZE_3i_20x,
+        bar_thickness=20,
+        padding=10,
+    )
 
     plt.show()
     save_plot_to_path(
