@@ -1,5 +1,10 @@
 from endo_pipeline.cli import Datasets
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME, RANDOM_SEED
+from endo_pipeline.settings import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    NUM_PCS_TO_ANALYZE,
+    RANDOM_SEED,
+)
 
 TAGS = ["pc_interpretation", "diffae_image_generation"]
 
@@ -13,10 +18,17 @@ def main(
     pc_val_list: list[float] = [-1, -0.5, 0, 0.5, 1],
     random_seed: int = RANDOM_SEED,
     plot_heatmap: bool = False,
+    n_pcs_to_analyze: int = NUM_PCS_TO_ANALYZE,
+    origin_tolerance: float = 0.25,
 ) -> None:
     """
     Generate a real walk of cropped images within a specified range of PC values. The crops are
     selected such that one principal component axis varies while the others remain near zero.
+
+    Note if you want to do the top 8:
+    set pc_axis_list to [0, 1, 2, 3, 4, 5, 6, 7]
+    set n_pcs_to_analyze to 8
+    and increase origin_tolerance to 0.3
 
     Parameters
     ----------
@@ -36,6 +48,12 @@ def main(
         Random seed for sampling crops from the filtered DataFrame.
     plot_heatmap
         True to plot a heatmap of the principal component values, False to skip plotting.
+    n_pcs_to_analyze
+        Number of principal components to analyze. Defaults to NUM_PCS_TO_ANALYZE which corresponds
+        to the first 3 principal components. If set to a different value, ensure that pc_axis_list
+        only contains indices that are less than the n_pcs_to_analyze.
+    origin_tolerance
+        Tolerance around zero for other principal components when filtering crops in units of PC value.
 
     Returns
     -------
@@ -72,7 +90,6 @@ def main(
         DEFAULT_PCA_DATASET_COLLECTION_NAME,
         DIFFAE_PC_COLUMN_NAMES,
         NUM_BINS_CROP_HIST,
-        NUM_PCS_TO_ANALYZE,
         ColumnName,
     )
     from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
@@ -107,13 +124,13 @@ def main(
         dataframe_manifest,
         pca,
         filter_to_valid=False,
-        pc_column_names=DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
+        pc_column_names=DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze],
     )
     hist_array_list, bin_edges, df_with_bins = get_histogram_by_component(
         df,
         NUM_BINS_CROP_HIST,
         bin_limits,
-        feat_cols=DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
+        feat_cols=DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze],
     )
 
     if plot_heatmap:
@@ -128,19 +145,22 @@ def main(
 
             df_filtered = get_df_by_bin_value(df_with_bins, pc_axis, pc_val, bin_edges)
 
-            print(len(df_filtered), "crops for PC", pc_axis, "around value", pc_val)
+            logger.info("%d crops for PC %s around value %s", len(df_filtered), pc_axis, pc_val)
 
-            # the other PCs should be close to zero
-            tolerance = 0.25
             for i in range(pca.n_components_):
                 if i != pc_axis:
                     pc_col = DIFFAE_PC_COLUMN_NAMES[i]
                     df_filtered = df_filtered[
-                        (df_filtered[pc_col] >= -tolerance) & (df_filtered[pc_col] <= tolerance)
+                        (df_filtered[pc_col] >= -origin_tolerance)
+                        & (df_filtered[pc_col] <= origin_tolerance)
                     ]
-            print(len(df_filtered), "crops for other PCs near zero")
+            logger.info(len(df_filtered), "crops for other PCs near zero")
             if len(df_filtered) == 0:
-                logger.warning("No crops found for PC", pc_axis, "value", pc_val)
+                logger.warning(
+                    "No crops found for PC %s value %s. Try increasing the origin_tolerance.",
+                    pc_axis,
+                    pc_val,
+                )
                 continue
 
             # one example selected at random
@@ -151,7 +171,7 @@ def main(
     crops_gfp_max_projection = []
 
     for pc_axis, pc_val, df_sample in samples:
-        print("Processing sample for PC", pc_axis, "value", pc_val)
+        logger.info(f"Processing sample for PC {pc_axis} value {pc_val}")
         dataset = df_sample[ColumnName.DATASET].iloc[0]
         dataset = cast(str, dataset)  # Ensure dataset is a string
         dataset_config = load_dataset_config(dataset)
@@ -199,8 +219,8 @@ def main(
 
     row_titles = []
     for pc_axis in pc_axis_list:
-        row_titles.append(f"PC{pc_axis}\nBF Std Dev")
-        row_titles.append(f"PC{pc_axis}\n VE-cad MIP")
+        row_titles.append(f"PC{pc_axis + 1}\nBF Std Dev")
+        row_titles.append(f"PC{pc_axis + 1}\n VE-cad MIP")
 
     fig = make_contact_sheet(
         panels,
