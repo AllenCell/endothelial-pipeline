@@ -1,7 +1,9 @@
 name: diffae_baseline_exclude_cell_piling_20251110_latent_512_grid
 workflow: eval_diffae_grid
 parameters:
-  z_slice_offsets: [4, 11]
+  z_slice_offsets:
+  - 4
+  - 11
   config_name: diffae_eval
 locations:
   20250319_20X:
@@ -54,5 +56,45 @@ locations:
     s3uri: null
   20251119_20X:
     fmsid: dd5e70ba22aa46d895d7f94c3ccea393
+    path: null
+    s3uri: null
+  20250224_20X:
+    fmsid: 8b326e4e535b45edb3f88c95bc4173e1
+    path: null
+    s3uri: null
+  20250326_20X:
+    fmsid: da4ce8ad20ac4f0797606774dfe12c0b
+    path: null
+    s3uri: null
+  20250402_20X:
+    fmsid: d5659bb8f5c94f81939884e6c4ff24dc
+    path: null
+    s3uri: null
+  20250409_20X:
+    fmsid: 9e1dedfc41994abcb00e6a3049cacb7e
+    path: null
+    s3uri: null
+  20250604_20X:
+    fmsid: cf1465667a714904b4b70ca3e751bbdf
+    path: null
+    s3uri: null
+  20250716_20X:
+    fmsid: e9651c3ff1fc45a0b2fb5beb4b46dda6
+    path: null
+    s3uri: null
+  20250728_20X:
+    fmsid: ce4ce2dd12344ad9a5464d0e5d901be8
+    path: null
+    s3uri: null
+  20250806_20X:
+    fmsid: 93eb1b44acbb4e8b85660ce2f37b0164
+    path: null
+    s3uri: null
+  20250825_20X:
+    fmsid: 29a0a3265a9f4f74b85a6d9434fa243b
+    path: null
+    s3uri: null
+  20251001_20X:
+    fmsid: 177eae63d6ac46ff9fa0566879817519
     path: null
     s3uri: null
