@@ -12,7 +12,11 @@ AX_HEIGHT = AX_WIDTH * 2 / 3
 
 
 def save_colorbar(
-    outdir: Path, colormap_name: str = "viridis", figsize: tuple[int, int] = (1, 5)
+    outdir: Path,
+    colormap_name: str = "viridis",
+    filename: str | None = None,
+    figsize: tuple[int, int] = (1, 5),
+    filetype: str = ".png",
 ) -> None:
     """Plots and saves the colorbar specified by "colormap_name".
     A list of all available colormaps can be found with:
@@ -26,7 +30,11 @@ def save_colorbar(
     fig, ax = plt.subplots(figsize=figsize)
     ax.set_axis_off()
     ColorbarBase(ax, cmap=colormap_name)
-    fig.savefig(outdir / f"{colormap_name}", bbox_inches="tight", pad_inches=0)
+    if filename:
+        filename = f"{filename}_{colormap_name}{filetype}"
+    else:
+        filename = f"{colormap_name}{filetype}"
+    fig.savefig(outdir / f"{filename}", bbox_inches="tight", pad_inches=0)
 
 
 def lineplot_of_feats(
