@@ -3,21 +3,17 @@ from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     NUM_PCS_TO_ANALYZE,
     ColumnName,
 )
 
 
 def main(
-    dataset_name: str,
+    dataset_name: str = "20250818_20X",
     model_manifest_name: ModelManifest = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
-    drop_rows_without_diffae_feats: bool = True,
-    filtered: bool = False,
 ) -> None:
 
     import seaborn as sns
