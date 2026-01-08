@@ -1,6 +1,7 @@
 """Data structures for dataframe manifests."""
 
 from dataclasses import field
+from pathlib import Path
 
 from mashumaro.config import BaseConfig
 from pydantic.dataclasses import dataclass
@@ -12,6 +13,9 @@ class DataframeLocation:
 
     fmsid: str | None = None
     """FMS file id for dataframe."""
+
+    path: Path | None = None
+    """Local path to dataframe."""
 
     s3uri: str | None = None
     """S3 URI for dataframe (starting with s3://)."""

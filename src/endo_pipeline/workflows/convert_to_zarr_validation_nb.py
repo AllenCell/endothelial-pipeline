@@ -3,11 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from bioio import BioImage
 
-from endo_pipeline.configs import (
-    get_available_channels_for_all_positions,
-    get_available_dataset_names,
-    load_dataset_config,
-)
+from endo_pipeline.configs import get_available_dataset_names, load_dataset_config
 from endo_pipeline.io import load_image
 from endo_pipeline.manifests import get_zarr_location_for_position
 
@@ -17,7 +13,11 @@ def test_channel_names_consistency() -> None:
     """Test that all reader.channel_names are the same for a given dataset."""
     for dataset_name in get_available_dataset_names():
         dataset_config = load_dataset_config(dataset_name)
-        channel_names_dict = get_available_channels_for_all_positions(dataset_config)
+
+        channel_names_dict = {}
+        for position in dataset_config.zarr_positions:
+            zarr_loc = get_zarr_location_for_position(dataset_config, position)
+            channel_names_dict[position] = load_image(zarr_loc, read=False).channel_names
 
         # Extract all channel names
         all_channel_names = list(channel_names_dict.values())

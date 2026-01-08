@@ -149,9 +149,6 @@ class DatasetConfig:
     original_path: str
     """Original path to dataset."""
 
-    zarr_path: str
-    """Path to dataset converted to Zarr format."""
-
     zarr_positions: list[int]
     """List of available Zarr positions."""
 
