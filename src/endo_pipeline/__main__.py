@@ -68,7 +68,6 @@ def build_pipeline_app():
     build_cli_group(PRODUCTION_WORKFLOWS, "production", True)
     build_cli_group(DEVELOPMENT_WORKFLOWS, "development", True)
     build_cli_group(TESTING_WORKFLOWS, "testing", True)
-    build_cli_group(ARCHIVED_WORKFLOWS, "archive", False)
     build_cli_group(INTERNAL_WORKFLOWS, "internal", True)
 
     pipeline_app.meta.default(pipeline_entrypoint)
