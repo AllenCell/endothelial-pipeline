@@ -235,12 +235,12 @@ def main(
     for ax in fig.axes:
         for spine in ax.spines.values():
             spine.set_visible(False)
-
+    scale_bar_um = 20
     add_scalebar(
         fig.axes[0],
-        scale_bar_um=20,
+        scale_bar_um=scale_bar_um,
         pixel_size=PIXEL_SIZE_3i_20x,
-        bar_thickness=20,
+        bar_thickness=10,
         padding=10,
     )
 
@@ -248,7 +248,7 @@ def main(
     save_plot_to_path(
         fig,
         fig_savedir,
-        f"real_walk_diffae_pc_{'_'.join(map(str, pc_axis_list))}",
+        f"real_walk_diffae_pc_{'_'.join(map(str, pc_axis_list))}_{scale_bar_um}um_scalebar",
     )
 
 
