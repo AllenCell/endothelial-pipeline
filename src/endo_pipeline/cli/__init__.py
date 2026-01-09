@@ -1,11 +1,13 @@
 from .datasets import Datasets
-from .list_types import FloatList, IntList, StringList
+from .list_types import FloatList, IntList, StrList, UniqueIntList, UniqueStrList
 from .track_ids import TrackIds
 
 __all__ = [
     "Datasets",
     "FloatList",
     "IntList",
-    "StringList",
+    "StrList",
     "TrackIds",
+    "UniqueIntList",
+    "UniqueStrList",
 ]
