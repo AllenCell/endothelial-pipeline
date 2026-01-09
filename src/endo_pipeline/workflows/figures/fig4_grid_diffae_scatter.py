@@ -10,7 +10,7 @@ from endo_pipeline.settings import (
 
 def main(
     dataset_name: str = "20250818_20X",
-    model_manifest_name: ModelManifest = DEFAULT_MODEL_MANIFEST_NAME,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
