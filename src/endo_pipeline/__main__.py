@@ -132,6 +132,7 @@ def apply_workflow_options(options: WorkflowOptions):
     """Apply options for running workflows."""
 
     import endo_pipeline
+    import endo_pipeline.cli
 
     if options.debug:
         setup_logging(logging.DEBUG)
@@ -151,13 +152,17 @@ def apply_workflow_options(options: WorkflowOptions):
             endo_pipeline.NUM_GPUS = None
             os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
+        endo_pipeline.cli.NUM_GPUS = endo_pipeline.NUM_GPUS
+
     if options.demo_mode:
         logger.info("Running workflow in demo mode")
         endo_pipeline.DEMO_MODE = True
+        endo_pipeline.cli.DEMO_MODE = True
 
     if options.use_staging:
         logger.info("Using staging environments")
         endo_pipeline.USE_STAGING = True
+        endo_pipeline.cli.USE_STAGING = True
 
 
 def build_cli_group(group: Group, directory: str, show: bool) -> None:
