@@ -438,24 +438,27 @@ def get_pca_loadings_as_df(
 
 
 def project_features_to_pcs(
-    df: pd.DataFrame,
-    pca: PCA,
-    feat_cols: list[str] | None = None,
+    df: pd.DataFrame, pca: PCA, feat_cols: list[str] | None = None, compute_polar: bool = True
 ) -> pd.DataFrame:
     """
-    Project feature data for crops from one dataset onto principal
-    component axes of fit PCA model.
+    Project feature data onto principal component axes of fit PCA model.
 
-    Inputs:
-    - df: pd.DataFrame, DataFrame of feature data with metadata columns
-        for dataset_name, T, FOV_ID, start_x, start_y
-    - pca: PCA model fit to feature data
-    - feature_cols: list, custom list of feature columns to project onto PCA axes
-        - default is None, in which case all feature columns are used
+    Parameters
+    ----------
+    df
+        DataFrame of feature data.
+    pca
+        Fit PCA model.
+    feat_cols
+        List of feature column names to project. If None, will automatically
+        detect latent feature columns in the DataFrame.
+    compute_polar
+        Whether to compute polar coordinates (r, theta) from the first two PCs.
 
-    Outputs:
-    - df_: pd.DataFrame, DataFrame of feature data for crops from
-        dataset dataset_name projected onto PCA axes
+    Returns
+    -------
+    :
+        DataFrame with added columns for each principal component.
     """
     # check that required columns are present in dataframe
     if feat_cols is None:
@@ -469,6 +472,15 @@ def project_features_to_pcs(
     num_pcs = pca.components_.shape[0]  # number of principal components
     pc_cols = get_pc_column_names(num_pcs)
     df_.loc[:, pc_cols] = pca.transform(df_[feat_cols].values)
+
+    # optionally, compute polar coordinates (r, theta) from first two PCs
+    if compute_polar:
+        df_[ColumnName.POLAR_RADIUS] = pcs_to_polar_r(
+            df_[pc_cols[0]].values, df_[pc_cols[1]].values
+        )
+        df_[ColumnName.POLAR_ANGLE] = pcs_to_polar_theta(
+            df_[pc_cols[0]].values, df_[pc_cols[1]].values
+        )
 
     return df_
 
