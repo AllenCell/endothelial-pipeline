@@ -25,11 +25,11 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     load_model_manifest,
 )
-from endo_pipeline.settings import (
+from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    ColumnName,
 )
 
 logger = logging.getLogger(__name__)
@@ -115,6 +115,51 @@ def get_latent_feature_column_names_from_dataframe(dataframe: pd.DataFrame) -> l
     ]
     feat_cols = [col.group() for col in feat_cols_match if col is not None]
     return feat_cols
+
+
+def pcs_to_polar_r(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.ndarray:
+    """
+    Convert Cartesian coordinates (pc1, pc2) to polar coordinate r.
+
+    The polar coordinate r is given by the formula:
+        r = sqrt(pc1^2 + pc2^2)
+
+    Parameters
+    ----------
+    pc1_values
+        Values along the first principal component axis.
+    pc2_values
+        Values along the second principal component axis.
+
+    Returns
+    -------
+    :
+        Polar coordinate r values.
+    """
+    return np.sqrt(pc1_values**2 + pc2_values**2)
+
+
+def pcs_to_polar_theta(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.ndarray:
+    """
+    Convert Cartesian coordinates (pc1, pc2) to polar coordinate theta.
+
+    The polar coordinate theta is given by the formula:
+        theta = arctan2(pc2, pc1)
+
+    Parameters
+    ----------
+    pc1_values
+        Values along the first principal component axis.
+    pc2_values
+        Values along the second principal component axis.
+
+    Returns
+    -------
+    :
+        Polar coordinate theta values.
+    """
+    # angle in range [-pi, pi]
+    return np.arctan2(pc2_values, pc1_values)
 
 
 def filter_dataframe_by_annotations(
