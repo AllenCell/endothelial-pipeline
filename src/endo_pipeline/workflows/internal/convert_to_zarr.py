@@ -26,7 +26,7 @@ def main(
     """
     import logging
 
-    from endo_pipeline import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.convert_to_zarr.convert_dataset import convert_dataset

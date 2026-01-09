@@ -21,7 +21,7 @@ def main(datasets: Datasets | None = None) -> None:
     import numpy as np
     import pandas as pd
 
-    from endo_pipeline import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import (
         get_datasets_in_collection,
         load_dataset_config,

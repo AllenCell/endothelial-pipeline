@@ -50,7 +50,7 @@ def main(
     import pandas as pd
     from sklearn.model_selection import train_test_split
 
-    from endo_pipeline import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import (
         TimepointAnnotation,
         get_all_unannotated_timepoints,

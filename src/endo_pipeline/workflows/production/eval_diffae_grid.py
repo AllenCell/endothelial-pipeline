@@ -64,7 +64,7 @@ def main(
     import logging
     from pathlib import Path
 
-    from endo_pipeline import DEMO_MODE, NUM_GPUS
+    from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
     from endo_pipeline.configs import (
         get_datasets_in_collection,
         load_dataset_config,

@@ -23,7 +23,7 @@ from pathlib import Path
 
 from bioio import BioImage
 
-from endo_pipeline import DEMO_MODE
+from endo_pipeline.cli import DEMO_MODE
 from endo_pipeline.configs import (
     get_available_dataset_names,
     load_dataset_config,

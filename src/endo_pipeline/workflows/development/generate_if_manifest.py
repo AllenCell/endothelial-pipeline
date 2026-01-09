@@ -18,7 +18,7 @@ def main(datasets: Datasets | None = None) -> None:
     """
     import logging
 
-    from endo_pipeline import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.library.process.if_feature_extraction import run_nuclei_feature_extraction
     from endo_pipeline.library.process.if_manifest import (

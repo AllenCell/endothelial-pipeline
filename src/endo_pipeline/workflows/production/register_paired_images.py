@@ -38,7 +38,7 @@ def main(
     import re
     from pathlib import Path
 
-    from endo_pipeline import DEMO_MODE, USE_STAGING
+    from endo_pipeline.cli import DEMO_MODE, USE_STAGING
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import (
         build_fms_annotations,

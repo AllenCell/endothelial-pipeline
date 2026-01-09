@@ -1,4 +1,4 @@
-from endo_pipeline import DEMO_MODE
+from endo_pipeline.cli import DEMO_MODE
 
 # ============================ WORKFLOW DESCRIPTION ============================
 # Notebooks do not have a "docstring" that can be automatically parsed to

@@ -89,7 +89,7 @@ def main(
 
     from cyto_dl.api import CytoDLModel
 
-    from endo_pipeline import DEMO_MODE, NUM_GPUS
+    from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
     from endo_pipeline.configs import load_model_config
     from endo_pipeline.io import get_output_path, make_name_unique, resolve_dataframe_location
     from endo_pipeline.library.model import get_dataset_names_used_for_training

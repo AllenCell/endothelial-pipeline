@@ -55,7 +55,7 @@ def main(
         Saves the montage images to the output directory.
     """
 
-    from endo_pipeline import NUM_GPUS
+    from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.crop_montage import (

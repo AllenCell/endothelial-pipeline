@@ -17,7 +17,7 @@ def main(gen_backdrops: bool = True) -> None:
 
     from colorizer_data import convert_colorizer_data
 
-    from endo_pipeline import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
