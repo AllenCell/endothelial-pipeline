@@ -404,13 +404,13 @@ def get_no_flow_pc_space_example_points_fig4(
     example_points = get_point_nearest_target(data_points, target_points=target_points)
 
     # convert to tuple of tuples
-    example_points = tuple(map(tuple, example_points))
-    target_points = tuple(map(tuple, target_points.T))
+    example_points_as_tuple = tuple(map(tuple, example_points))
+    target_points_as_tuple = tuple(map(tuple, target_points))
 
-    return example_points, target_points
+    return example_points_as_tuple, target_points_as_tuple
 
 
-def get_point_nearest_target(data_points: np.ndarray, target_points: np.ndarray) -> float:
+def get_point_nearest_target(data_points: np.ndarray, target_points: np.ndarray) -> np.ndarray:
     """Get the point in data_points nearest to the target point.
 
     Parameters

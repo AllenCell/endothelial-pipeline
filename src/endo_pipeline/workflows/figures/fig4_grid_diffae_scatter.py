@@ -14,7 +14,10 @@ def main(
         fit_pca,
         get_dataframe_for_dynamics_workflows,
     )
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import make_pc_scatter_fig4a
+    from endo_pipeline.library.visualize.diffae_features.feature_viz import (
+        get_no_flow_pc_space_example_points_fig4,
+        make_pc_scatter_fig4a,
+    )
     from endo_pipeline.library.visualize.seg_features.general_standard_plots import save_colorbar
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
@@ -50,6 +53,10 @@ def main(
         pca,
         include_cell_piling=False,
         include_not_steady_state=False,
+    )
+
+    example_points, target_points = get_no_flow_pc_space_example_points_fig4(
+        diffae_grid_crops, radius=2.2, origin_xy=(0, 0)
     )
 
     hue = ColumnName.TIMEPOINT
