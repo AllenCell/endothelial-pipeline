@@ -15,9 +15,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_bins(
-    bin_widths: tuple[int, ...],
+    bin_widths: tuple[float, ...],
     data: list[np.ndarray] | None = None,
-    bin_limits: list | None = None,
+    bin_limits: list[tuple[float, float]] | None = None,
     pad: float = 0.1,
 ) -> tuple[list, list]:
     """
@@ -40,7 +40,7 @@ def get_bins(
     data
         List of numpy arrays, each array is a trajectory with shape (num_timepoints, num_dimensions).
     bin_limits
-        List of [min, max] pairs for each dimension specifying the bin limits.4
+        List of [min, max] pairs for each dimension specifying the bin limits.
     pad
         Amount to pad the automatically determined bin limits by on each side.
 
@@ -86,19 +86,16 @@ def get_bins(
     return bins, centers
 
 
-def get_3d_bounds_from_data(
+def get_bounds_from_data(
     dataset_names: list[str],
     manifest: DataframeManifest,
     pca: PCA,
     filter_to_valid: bool = True,
     pad: float = 0.0,
     pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
-) -> list[np.ndarray]:
+) -> list[tuple[float, float]]:
     """
-    Set bounds for 3D state space based on the bounds of the features in the datasets.
-
-    The 3D state space is based on the first three principal components of the input pca
-    object, which is fit on a fixed set of reference datasets.
+    Set bounds for state space based on the bounds of the features in the datasets.
 
     **Dataframe filtering:**
 
@@ -123,11 +120,11 @@ def get_3d_bounds_from_data(
     Returns
     -------
     :
-        List of numpy arrays, each array contains the [min, max] bounds for a dimension.
+        List of tuples, each array contains the (min, max) bounds for a dimension.
     """
     num_dims = len(pc_column_names)
     # initialize bounds
-    bounds_ = [[np.inf, -np.inf] for _ in range(num_dims)]
+    bounds = [(np.inf, -np.inf) for _ in range(num_dims)]
 
     for dataset_name in dataset_names:
         if filter_to_valid:
@@ -154,10 +151,8 @@ def get_3d_bounds_from_data(
                 candidate_min = candidate_min - pad
                 candidate_max = candidate_max + pad
             # update bounds for each dimension
-            bounds_[j][0] = min(bounds_[j][0], candidate_min)
-            bounds_[j][1] = max(bounds_[j][1], candidate_max)
-
-    bounds = [np.array(bounds_[i]) for i in range(num_dims)]
+            bounds[j][0] = min(bounds[j][0], candidate_min)
+            bounds[j][1] = max(bounds[j][1], candidate_max)
 
     return bounds
 
@@ -229,7 +224,7 @@ def _get_histogram_by_component_one_dataset(
 def get_histogram_by_component(
     df: pd.DataFrame,
     num_bins: int,
-    bin_limits: list[np.ndarray],
+    bin_limits: list[tuple[float, float]],
     feat_cols: list[str] | None = None,
 ) -> tuple[list[np.ndarray], list[np.ndarray], pd.DataFrame]:
     """
@@ -240,7 +235,7 @@ def get_histogram_by_component(
     - df: pd.DataFrame, feature data for multiple datasets
     - num_bins: int, number of bins to use for histogram
         - right now, this is the same for all components
-    - bin_limits: list[np.ndarray], bin limits for each component
+    - bin_limits: bin limits for each component
     - feat_cols: list[str] | None, column names of the features to use
     """
     # get column names for extracting feature data for a single dataset

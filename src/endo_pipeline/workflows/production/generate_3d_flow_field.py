@@ -68,7 +68,7 @@ def main(
     from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import (
         ddff_model_analysis,
     )
-    from endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data, get_bins
+    from endo_pipeline.library.analyze.numerics import get_bins, get_bounds_from_data
     from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
         plot_stable_fixed_points_together,
     )
@@ -137,14 +137,14 @@ def main(
     # get common bounds for all datasets
     # will be used for flow field plots if use_common_axis_limits is True
     # regardless, gets used below when plotting stable fixed points together
-    bounds_for_plots = get_3d_bounds_from_data(dataset_names, dataframe_manifest, pca)
+    bounds_for_plots = get_bounds_from_data(dataset_names, dataframe_manifest, pca)
 
     # initialize dataframe to hold stable fixed points from all datasets
     # with columns for dataset name and 3D PC space coordinates
     stable_fixed_points_df = pd.DataFrame(columns=[ColumnName.DATASET, *DIFFAE_PC_COLUMN_NAMES[:3]])
     for dataset_name in dataset_names:
         # get bins for KMCs
-        bounds_for_km = get_3d_bounds_from_data(
+        bounds_for_km = get_bounds_from_data(
             dataset_names=[dataset_name],
             manifest=dataframe_manifest,
             pca=pca,

@@ -10,7 +10,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
 )
 from endo_pipeline.library.analyze.numerics import (
-    get_3d_bounds_from_data,
+    get_bounds_from_data,
     get_df_by_bin_value,
     get_histogram_by_component,
 )
@@ -116,9 +116,7 @@ def filter_dataframe(
         DataFrame filtered by the specified PC bin and optional frame range.
     """
 
-    bin_limits = get_3d_bounds_from_data(
-        dataset_names, dataframe_manifest, pca, filter_to_valid=False
-    )
+    bin_limits = get_bounds_from_data(dataset_names, dataframe_manifest, pca, filter_to_valid=False)
     hist_array_list, bin_edges, df_with_bins = get_histogram_by_component(
         df_all,
         NUM_BINS_CROP_HIST,
