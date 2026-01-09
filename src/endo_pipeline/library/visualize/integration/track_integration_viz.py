@@ -25,7 +25,7 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     set_slice_plot_bounds_and_labels,
 )
 from endo_pipeline.settings import ColumnName
-from endo_pipeline.settings.flow_field_3d import QUIVER_COLORMAP
+from endo_pipeline.settings.flow_field_3d import BIN_WIDTHS_3D, QUIVER_COLORMAP
 
 
 def set_global_pc_lims(axs: Sequence[plt.Axes], lim: int = 3) -> None:
@@ -375,7 +375,7 @@ def overlay_trajectory_heatmap_on_flowfield(
     traj_grids: np.ndarray,
     flow_field_dict_grids: dict,
     df_all_positions: pd.DataFrame,
-    num_bins: list[int] = [150, 150, 150],
+    bin_widths: list[int] = BIN_WIDTHS_3D,
 ) -> None:
     """
     Overlay a coarse-grained trajectory heatmap on the flow field.
@@ -406,7 +406,7 @@ def overlay_trajectory_heatmap_on_flowfield(
     )
 
     bounds = get_grid_bounds(flow_field_dict_grids)
-    bins, _ = get_bins(num_bins, bin_limits=bounds)
+    bins, _ = get_bins(bin_widths, bin_limits=bounds)
 
     project_axis = [2, 1]  # this is axis for projecting binned data for each plot
     plot_dim = [1, 2]  # this is the PC dimension plotted on the y-axis against PC1
@@ -414,7 +414,7 @@ def overlay_trajectory_heatmap_on_flowfield(
     bin_data, bin_counts = get_coarse_grained_trajectory_heatmap_data(
         df_all_positions=df_all_positions,
         bounds=bounds,
-        num_bins=num_bins,
+        num_bins=[len(b) - 1 for b in bins],
     )
 
     for j, ax in enumerate(axs):

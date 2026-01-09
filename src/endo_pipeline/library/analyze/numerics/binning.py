@@ -223,7 +223,7 @@ def _get_histogram_by_component_one_dataset(
 
 def get_histogram_by_component(
     df: pd.DataFrame,
-    num_bins: int,
+    bin_width: float,
     bin_limits: list[tuple[float, float]],
     feat_cols: list[str] | None = None,
 ) -> tuple[list[np.ndarray], list[np.ndarray], pd.DataFrame]:
@@ -233,8 +233,7 @@ def get_histogram_by_component(
 
     Input:
     - df: pd.DataFrame, feature data for multiple datasets
-    - num_bins: int, number of bins to use for histogram
-        - right now, this is the same for all components
+    - bin_width: float, width of each histogram bin
     - bin_limits: bin limits for each component
     - feat_cols: list[str] | None, column names of the features to use
     """
@@ -247,13 +246,14 @@ def get_histogram_by_component(
     num_feats = len(feat_cols)
 
     # check that bin_limits is provided and matches the number of features
-    assert (
-        len(bin_limits) == num_feats
-    ), f"Number of bin limits ({len(bin_limits)}) must match number of features ({num_feats})"
+    if len(bin_limits) != num_feats:
+        raise ValueError(
+            f"Number of bin limits ({len(bin_limits)}) must match number of features ({num_feats})"
+        )
 
     # get bin edges for each feature dimension
     bin_edges = [
-        get_bins([num_bins], bin_limits=[bin_limits[dim]])[0][0] for dim in range(num_feats)
+        get_bins([bin_width], bin_limits=[bin_limits[dim]])[0][0] for dim in range(num_feats)
     ]
 
     # loop over each dataset in the dataframe

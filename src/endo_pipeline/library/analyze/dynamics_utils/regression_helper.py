@@ -23,7 +23,7 @@ def _kramers_moyal_train_test_one_dataset(
     df_proj: pd.DataFrame,
     dataset_name: str,
     pc_axes: list,
-    num_bins: list,
+    bin_widths: tuple,
     dt: float,
     train_frac: float,
     fig_savedir: Path,
@@ -67,8 +67,8 @@ def _kramers_moyal_train_test_one_dataset(
         Name of the dataset (used to split out data by flow condition via dataset config).
     pc_axes
         List of principal component axes to use for analysis.
-    num_bins
-        List of number of bins to use for histogramming data.
+    bin_widths
+        Tuple of bin widths along each PC axis for histogramming data.
     dt
         Time step between data points.
     train_frac
@@ -114,7 +114,7 @@ def _kramers_moyal_train_test_one_dataset(
 
         # get bins for histogramming
         # (for drift and diffusion estimates)
-        bins, centers = get_bins(num_bins, data=traj_list)
+        bins, centers = get_bins(bin_widths, data=traj_list)
 
         # get drift and diffusion estimates
         # (Kramers-Moyal coefficients)
@@ -182,7 +182,7 @@ def build_kramers_moyal_train_test(
     dataframe_manifest: DataframeManifest,
     pca: PCA,
     pc_axes: list[int],
-    num_bins: list[int],
+    bin_widths: tuple,
     dt: float,
     fig_savedir: Path,
     train_frac: float = 0.8,
@@ -222,8 +222,8 @@ def build_kramers_moyal_train_test(
         PCA object for projecting feature data onto principal component axes.
     pc_axes
         List of principal component axes to use for analysis.
-    num_bins
-        List of number of bins to use for histogramming data.
+    bin_widths
+        Tuple of bin widths along each PC axis for histogramming data.
     dt
         Time step between data points.
     fig_savedir
@@ -260,7 +260,7 @@ def build_kramers_moyal_train_test(
                 df_proj,
                 dataset_name,
                 pc_axes,
-                num_bins,
+                bin_widths,
                 dt,
                 train_frac,
                 fig_savedir,
