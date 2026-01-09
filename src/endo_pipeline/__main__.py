@@ -10,7 +10,6 @@ from typing import Annotated
 from cyclopts import App, Group, Parameter
 from rich.console import Console
 
-from endo_pipeline import IS_MAIN_PROCESS
 from endo_pipeline.cli.options import PipelineOptions, WorkflowOptions
 
 logger = logging.getLogger("")
@@ -55,6 +54,9 @@ INTERNAL_WORKFLOWS = Group("Internal Workflows", sort_key=5)
 
 WORKFLOW_OPTIONS = WorkflowOptions()
 PIPELINE_OPTIONS = PipelineOptions()
+
+IS_MAIN_PROCESS: bool = int(os.environ.get("LOCAL_RANK", "0")) == 0
+"""True if the current process is the main process, False otherwise."""
 
 
 def build_pipeline_app():
@@ -124,7 +126,6 @@ def workflow_entrypoint(
 def apply_workflow_options(options: WorkflowOptions):
     """Apply options for running workflows."""
 
-    import endo_pipeline
     import endo_pipeline.cli
 
     if options.debug:
@@ -139,22 +140,18 @@ def apply_workflow_options(options: WorkflowOptions):
 
     if IS_MAIN_PROCESS:
         if options.num_gpus is not None and options.num_gpus > 0:
-            endo_pipeline.NUM_GPUS = setup_gpu(options.num_gpus)
+            endo_pipeline.cli.NUM_GPUS = setup_gpu(options.num_gpus)
         else:
             logger.info("Workflow running on CPU")
-            endo_pipeline.NUM_GPUS = None
+            endo_pipeline.cli.NUM_GPUS = None
             os.environ["CUDA_VISIBLE_DEVICES"] = ""
-
-        endo_pipeline.cli.NUM_GPUS = endo_pipeline.NUM_GPUS
 
     if options.demo_mode:
         logger.info("Running workflow in demo mode")
-        endo_pipeline.DEMO_MODE = True
         endo_pipeline.cli.DEMO_MODE = True
 
     if options.use_staging:
         logger.info("Using staging environments")
-        endo_pipeline.USE_STAGING = True
         endo_pipeline.cli.USE_STAGING = True
 
 
