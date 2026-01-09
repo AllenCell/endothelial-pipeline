@@ -23,6 +23,7 @@ def main(
     n_steps: int = 7,
     use_pcs: bool = True,
     n_noise_samples: int = 1,
+    replace_mean_with_pc_value: list[float | None] | None = None,
 ) -> None:
     """
     Create latent walk for a given model using PC axes or original axes.
@@ -49,6 +50,9 @@ def main(
         True to use principal component axes, False to use original latent space axes.
     n_noise_samples
         Number of noise samples to use for generating images.
+    replace_mean_with_pc_value
+        List of PC values to replace the mean with for each PC dimension. Must be of length num_pcs.
+        If None, uses the mean of the data.
     """
 
     import logging
@@ -113,7 +117,9 @@ def main(
         data_for_walk = build_data_for_pca_latent_walk(
             dataset_names, dataframe_manifest, pca, include_cell_piling, crop_pattern
         )
-        walk, ranges = get_pca_latent_walk(data_for_walk, pca, sigma, n_steps)
+        walk, ranges = get_pca_latent_walk(
+            data_for_walk, pca, sigma, n_steps, replace_mean_with_pc_value
+        )
     else:
         # perform latent walk along the raw latent dimensions
         data_for_walk = build_data_for_raw_latent_walk(
@@ -127,6 +133,15 @@ def main(
     # save generated latent walk as grid
     axis_suffix = "_along_pcs" if use_pcs else "_along_latent"
     file_name = f"latent_walk_{int(sigma)}sigma{axis_suffix}"
+    if replace_mean_with_pc_value is not None:
+        replace_str = "_".join(
+            [
+                f"PC{i+1}setto{val}"
+                for i, val in enumerate(replace_mean_with_pc_value)
+                if val is not None
+            ]
+        )
+        file_name += f"_replace_{replace_str}"
     plot_latent_walk_as_grid(walk_img_grid, ranges, save_path, file_name, use_pcs)
 
 
