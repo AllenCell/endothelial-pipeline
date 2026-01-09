@@ -387,6 +387,53 @@ def make_pc_scatter_fig4a(
     return fig
 
 
+def get_no_flow_pc_space_example_points_fig4(
+    df: pd.DataFrame, radius: float, origin_xy: tuple[float, float] = (0.0, 0.0)
+) -> tuple[tuple, tuple]:
+    # no flow data is arranged roughly in a circle in PC1-PC2 space, so
+    # get 8 points that are evenly spaced around the circle (every 45 degrees)
+    angles = np.linspace(0, 2 * np.pi, 9, endpoint=False)  # 8 angles from 0 to 2pi
+    origin_x, origin_y = origin_xy
+    x_locs = (radius - origin_x) * np.cos(angles)
+    y_locs = (radius - origin_y) * np.sin(angles)
+    target_points = np.stack([x_locs, y_locs], axis=0)  # shape (8, 2)
+
+    pc_col_names = DIFFAE_PC_COLUMN_NAMES[:2]
+    data_points = df[pc_col_names].to_numpy()
+
+    example_points = get_point_nearest_target(data_points, target_points=target_points)
+
+    # convert to tuple of tuples
+    example_points = tuple(map(tuple, example_points))
+    target_points = tuple(map(tuple, target_points.T))
+
+    return example_points, target_points
+
+
+def get_point_nearest_target(data_points: np.ndarray, target_points: np.ndarray) -> float:
+    """Get the point in data_points nearest to the target point.
+
+    Parameters
+    ----------
+    data_points
+        Array of shape (n_samples, n_features) containing the data points.
+    target
+        Array of shape (n_features, n_targets) containing the target point.
+
+    Returns
+    -------
+    closest_point:
+        The point in data_points nearest to the target point.
+    """
+    data_points = np.expand_dims(data_points, axis=-1)  # shape (n_samples, n_features, 1)
+    target_points = np.expand_dims(target_points, axis=0)  # shape (1, n_features, n_targets)
+
+    distances = np.linalg.norm(data_points - target_points, axis=1, keepdims=True)
+    closest_indices = np.argmin(distances, axis=0).squeeze()
+    closest_points = data_points[closest_indices, :, 0]
+    return closest_points
+
+
 def plot_principal_component_histogram(
     hist_array: np.ndarray,
     bin_edges: list[np.ndarray],
