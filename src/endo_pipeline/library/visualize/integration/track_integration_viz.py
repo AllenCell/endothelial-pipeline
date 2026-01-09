@@ -375,7 +375,7 @@ def overlay_trajectory_heatmap_on_flowfield(
     traj_grids: np.ndarray,
     flow_field_dict_grids: dict,
     df_all_positions: pd.DataFrame,
-    bin_widths: list[int] = BIN_WIDTHS_3D,
+    bin_widths: tuple[float, float, float] = BIN_WIDTHS_3D,
 ) -> None:
     """
     Overlay a coarse-grained trajectory heatmap on the flow field.
