@@ -9,7 +9,12 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
 )
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE, ColumnName
+from endo_pipeline.settings.diffae_feature_dataframes import (
+    DIFFAE_PC_COLUMN_NAMES,
+    NUM_PCS_TO_ANALYZE,
+    ColumnName,
+)
+from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +23,7 @@ def get_bins(
     bin_widths: tuple[float, ...],
     data: list[np.ndarray] | None = None,
     bin_limits: list[tuple[float, float]] | None = None,
-    pad: float = 0.1,
+    pad: float = PAD_BINS_FLOAT,
 ) -> tuple[list, list]:
     """
     Generate histogram bins either automatically based on data or user-defined bin limits.
