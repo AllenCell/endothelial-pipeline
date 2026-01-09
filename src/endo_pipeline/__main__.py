@@ -2,7 +2,6 @@ import importlib
 import logging
 import os
 import re
-from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
@@ -81,17 +80,6 @@ def pipeline_cli() -> None:
     pipeline_app.meta()
 
 
-def workflow_cli(workflow: Callable) -> None:
-    """Workflow CLI."""
-
-    workflow_app["--help"].group = "Options"
-
-    workflow_app.default(workflow)
-
-    workflow_app.meta.default(workflow_entrypoint)
-    workflow_app.meta()
-
-
 def pipeline_entrypoint(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
     workflow_options: WorkflowOptions = WORKFLOW_OPTIONS,
@@ -110,17 +98,6 @@ def pipeline_entrypoint(
                 app.show = pipeline_options.filter_tag in tags[name] and app.show
 
     pipeline_app(tokens)
-
-
-def workflow_entrypoint(
-    *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
-    workflow_options: WorkflowOptions = WORKFLOW_OPTIONS,
-) -> None:
-    """Workflow CLI entrypoint."""
-
-    apply_workflow_options(workflow_options)
-
-    workflow_app(tokens)
 
 
 def apply_workflow_options(options: WorkflowOptions):
