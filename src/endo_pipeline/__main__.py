@@ -99,7 +99,7 @@ def pipeline_entrypoint(
 
     apply_workflow_options(workflow_options)
 
-    for app in pipeline_app.meta.subapps:
+    for name, app in pipeline_app._commands.items():
         if (
             pipeline_options.show_archive
             and app.group
@@ -107,12 +107,12 @@ def pipeline_entrypoint(
         ):
             app.show = True
 
-        if app.name[0] in tags:
+        if name in tags:
             if pipeline_options.show_tags:
-                app.help = f"| {' | '.join(tags[app.name[0]])} | {app.help}"
+                app.help = f"| {' | '.join(tags[name])} | {app.help}"
 
             if pipeline_options.filter_tag:
-                app.show = pipeline_options.filter_tag in tags[app.name[0]] and app.show
+                app.show = pipeline_options.filter_tag in tags[name] and app.show
 
     pipeline_app(tokens)
 
