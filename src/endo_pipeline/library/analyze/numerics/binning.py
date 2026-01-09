@@ -128,9 +128,11 @@ def get_bounds_from_data(
         List of tuples, each array contains the (min, max) bounds for a dimension.
     """
     num_dims = len(pc_column_names)
-    # initialize bounds
-    bounds = [(np.inf, -np.inf) for _ in range(num_dims)]
+    # initialize bounds - set to extreme values
+    bin_mins = [np.inf for _ in range(num_dims)]
+    bin_maxs = [-np.inf for _ in range(num_dims)]
 
+    # loop over each dataset and update bin mins and maxs
     for dataset_name in dataset_names:
         if filter_to_valid:
             filter_dataframe = True
@@ -156,8 +158,10 @@ def get_bounds_from_data(
                 candidate_min = candidate_min - pad
                 candidate_max = candidate_max + pad
             # update bounds for each dimension
-            bounds[j][0] = min(bounds[j][0], candidate_min)
-            bounds[j][1] = max(bounds[j][1], candidate_max)
+            bin_mins[j] = min(bin_mins[j], candidate_min)
+            bin_maxs[j] = max(bin_maxs[j], candidate_max)
+
+    bounds = [(bin_mins[i], bin_maxs[i]) for i in range(num_dims)]
 
     return bounds
 
