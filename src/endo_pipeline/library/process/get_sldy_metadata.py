@@ -7,12 +7,8 @@ import pandas as pd
 from bioio import BioImage
 from tqdm import tqdm
 
-from endo_pipeline.configs.dataset_io import (
-    get_available_datasets,
-    get_dataset_info,
-    get_original_path,
-    ipython_cli_flexecute,
-)
+from endo_pipeline.configs import get_available_dataset_names, load_dataset_config
+from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 from endo_pipeline.settings.image_data import AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
 
 
@@ -444,10 +440,10 @@ def all_sldy_metadata_to_tsv(save_dir: str | Path | None = None, verbose: bool =
     # Get the name of all the datasets and then filter out datasets
     # that aren't from the 3i microscope
     print("Available datasets:")
-    dataset_name_list = get_available_datasets()
+    dataset_name_list = get_available_dataset_names()
     print("\n")
     datasets_3i = [
-        name for name in dataset_name_list if get_dataset_info(name)["microscope"] == "3i"
+        name for name in dataset_name_list if load_dataset_config(name).microscope == "3i"
     ]
 
     # Create the folder where the metadata will be saved if it
@@ -459,7 +455,7 @@ def all_sldy_metadata_to_tsv(save_dir: str | Path | None = None, verbose: bool =
     df_list = []
     for dataset_name in tqdm(datasets_3i):
         print(f"Working on dataset: {dataset_name}") if verbose else None
-        sldy_filepath = Path(get_original_path(dataset_name))
+        sldy_filepath = Path(load_dataset_config(dataset_name).original_path)
         df_list.append(sldy_metadata_to_df(sldy_filepath))
 
     # Save the metadata as a single tsv file

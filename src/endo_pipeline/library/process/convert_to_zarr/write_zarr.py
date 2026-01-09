@@ -4,7 +4,7 @@ from bioio import BioImage
 from bioio.writers import ome_zarr_writer_2 as ome_zarr_writer
 from bioio_base.types import PhysicalPixelSizes
 
-from endo_pipeline.configs import dataset_io
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.settings.image_data import AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
 
 DEFAULT_XY_SCALING = [0.5, 0.5]
@@ -25,8 +25,9 @@ def get_sldy_metadata(dataset: str) -> dict:
     dict
         The metadata for the dataset as a dictionary of dictionaries.
     """
-    dataset_path = dataset_io.get_original_path(dataset)
-    im = BioImage(dataset_path)
+
+    dataset_config = load_dataset_config(dataset)
+    im = BioImage(dataset_config.original_path)
     metadata = im.metadata
     return metadata
 
