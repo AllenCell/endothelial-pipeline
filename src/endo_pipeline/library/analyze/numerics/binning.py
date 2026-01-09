@@ -15,9 +15,10 @@ logger = logging.getLogger(__name__)
 
 
 def get_bins(
-    num_bins: list[int] | tuple[int],
+    bin_widths: tuple[int, ...],
     data: list[np.ndarray] | None = None,
     bin_limits: list | None = None,
+    pad: float = 0.1,
 ) -> tuple[list, list]:
     """
     Generate histogram bins either automatically based on data or user-defined bin limits.
@@ -26,7 +27,7 @@ def get_bins(
 
     If `bin_limits` is not provided, the function automatically determines bin edges based on the
     provided data. It calculates the minimum and maximum values for each dimension across all
-    trajectories, and creates bins that span slightly beyond these extrema (by 0.1 units on each side).
+    trajectories, and creates bins that span slightly beyond these extrema (by `pad` units on each side).
 
     If `bin_limits` is provided, the function uses these user-defined limits to create the bins.
 
@@ -34,12 +35,14 @@ def get_bins(
 
     Parameters
     ----------
-    num_bins
-        List or tuple specifying the number of bins for each dimension.
+    bin_widths
+        Tuple specifying the (approximate) bin width for each dimension.
     data
         List of numpy arrays, each array is a trajectory with shape (num_timepoints, num_dimensions).
     bin_limits
-        List of [min, max] pairs for each dimension specifying the bin limits.
+        List of [min, max] pairs for each dimension specifying the bin limits.4
+    pad
+        Amount to pad the automatically determined bin limits by on each side.
 
     Outputs:
     - bins: list of numpy arrays, each array contains
@@ -50,40 +53,34 @@ def get_bins(
     If the dimension is 1, bins and centers are still lists (of length 1),
     containing the bin edges and centers for the single dimension.
     """
+    ndim = data[0].shape[1] if data is not None else len(bin_limits)
+    if ndim != len(bin_widths):
+        raise ValueError("Mismatch between expected number of dimensions and length of bin_widths.")
+    bin_limits_: list[tuple[float, float]] = [] if bin_limits is None else bin_limits.copy()
     if bin_limits is None:  # Automatically determine bins based on data
         if data is None:
             raise ValueError("Please provide data or or upper and lower bounds for bins.")
-        ndim = data[0].shape[1]
-        if ndim != len(num_bins):
-            raise ValueError(
-                "Mismatch between number of dimensions in data and length of num_bins."
-            )
-        bins = []
-        centers = []
         for i in range(ndim):
             # Get min and max for each dimension across all trajectories
             traj_min = min([traj[:, i].min() for traj in data])
             traj_max = max([traj[:, i].max() for traj in data])
-            bin_min, bin_max = traj_min - 0.1, traj_max + 0.1
-            my_bins = np.linspace(bin_min, bin_max, num_bins[i] + 1)
-            bins.append(my_bins)
-            centers.append(0.5 * (my_bins[1:] + my_bins[:-1]))
-    else:  # Use user-defined bins
-        ndim = len(bin_limits)
-        if ndim != len(num_bins):
-            raise ValueError(
-                "Mismatch between number of dimensions in bin_limits and length of num_bins."
-            )
-        bins = []
-        centers = []
-        for i in range(ndim):
-            my_bins = np.linspace(bin_limits[i][0], bin_limits[i][1], num_bins[i] + 1)
-            bins.append(my_bins)
-            centers.append(0.5 * (my_bins[1:] + my_bins[:-1]))
+            # Pad min and max by specified amount, and store as bin limits
+            bin_min, bin_max = traj_min - pad, traj_max + pad
+            bin_limits_.append((bin_min, bin_max))
+
+    # Generate bins based on bin limits
+    bins = []
+    centers = []
+    for i in range(ndim):
+        # get number of bins for this dimension based on bin width
+        num_bins = int(np.ceil((bin_limits_[i][1] - bin_limits_[i][0]) / bin_widths[i]))
+        my_bins = np.linspace(bin_limits_[i][0], bin_limits_[i][1], num_bins + 1)
+        bins.append(my_bins)
+        centers.append(0.5 * (my_bins[1:] + my_bins[:-1]))
 
     bin_width_str = ", ".join([f"{bins[i][1] - bins[i][0]:.3f}" for i in range(len(bins))])
     logger.debug(
-        "Generating bins for histogramming with bin widths: [ %s ]",
+        "Generated bins for histogramming with bin widths: [ %s ]",
         bin_width_str,
     )
     return bins, centers

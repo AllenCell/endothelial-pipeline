@@ -83,11 +83,11 @@ def main(
         ColumnName,
     )
     from endo_pipeline.settings.flow_field_3d import (
+        BIN_WIDTHS_3D,
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         INIT_POINT_3D,
         KERNEL_PARAMS_3D,
         LOWER_PERCENTILE_FOR_STABLE_FP,
-        NUM_BINS_3D,
         NUM_INIT_SAMPLES,
         OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS,
         PAD_BINS_FLOAT,
@@ -150,7 +150,7 @@ def main(
             pca=pca,
             pad=PAD_BINS_FLOAT,
         )
-        bins, centers = get_bins(NUM_BINS_3D, bin_limits=bounds_for_km)
+        bins, centers = get_bins(BIN_WIDTHS_3D, bin_limits=bounds_for_km)
         stable_fixed_points = ddff_model_analysis(
             dataset_name,
             dataframe_manifest,
