@@ -30,11 +30,9 @@ def save_colorbar(
     fig, ax = plt.subplots(figsize=figsize)
     ax.set_axis_off()
     ColorbarBase(ax, cmap=colormap_name)
-    if filename:
-        filename = f"{filename}_{colormap_name}{filetype}"
-    else:
-        filename = f"{colormap_name}{filetype}"
-    fig.savefig(outdir / f"{filename}", bbox_inches="tight", pad_inches=0)
+    filename = f"{filename}_" if filename else ""
+
+    fig.savefig(outdir / f"{filename}{colormap_name}{filetype}", bbox_inches="tight", pad_inches=0)
 
 
 def lineplot_of_feats(
