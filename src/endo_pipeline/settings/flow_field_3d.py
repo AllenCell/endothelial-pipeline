@@ -4,7 +4,7 @@ KERNEL_PARAMS_3D: dict = {
 }
 """Default kernel parameters for 3D flow field estimation."""
 
-BIN_WIDTHS_3D: tuple[int, int, int] = (0.05, 0.05, 0.05)
+BIN_WIDTHS_3D: tuple[float, float, float] = (0.05, 0.05, 0.05)
 """Default number of bins for 3D flow field estimation."""
 
 PAD_BINS_FLOAT: float = 0.1
