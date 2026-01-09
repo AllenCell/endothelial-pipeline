@@ -58,7 +58,7 @@ def get_delayed_array_for_position(
         the Dask array.
     scene_index : int, optional
         The scene index. You can find the scene names (in their indexed order)
-        using `BioImage(get_original_path(dataset_name)).scenes`. Default is 0.
+        using `BioImage(dataset_config.original_path).scenes`. Default is 0.
     img : BioImage, optional
         The BioImage object for the dataset. If provided, it will reduce the
         number of times the image is loaded. If None, it will be loaded for
