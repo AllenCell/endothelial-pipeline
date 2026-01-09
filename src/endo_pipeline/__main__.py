@@ -99,14 +99,7 @@ def pipeline_entrypoint(
 
     apply_workflow_options(workflow_options)
 
-    for name, app in pipeline_app._commands.items():
-        if (
-            pipeline_options.show_archive
-            and app.group
-            and app.group[0].name == ARCHIVED_WORKFLOWS.name
-        ):
-            app.show = True
-
+    for name, app in pipeline_app.resolved_commands().items():
         if name in tags:
             if pipeline_options.show_tags:
                 app.help = f"| {' | '.join(tags[name])} | {app.help}"
