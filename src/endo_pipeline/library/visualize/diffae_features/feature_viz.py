@@ -389,14 +389,14 @@ def make_pc_scatter_fig4a(
 
 def get_no_flow_pc_space_example_points_fig4(
     df: pd.DataFrame, radius: float, origin_xy: tuple[float, float] = (0.0, 0.0)
-) -> tuple[tuple, tuple]:
+) -> pd.DataFrame:
     # no flow data is arranged roughly in a circle in PC1-PC2 space, so
     # get 8 points that are evenly spaced around the circle (every 45 degrees)
-    angles = np.linspace(0, 2 * np.pi, 9, endpoint=False)  # 8 angles from 0 to 2pi
+    angles = np.linspace(0, 2 * np.pi, 8, endpoint=False)  # 8 angles from 0 to 2pi
     origin_x, origin_y = origin_xy
     x_locs = (radius - origin_x) * np.cos(angles)
     y_locs = (radius - origin_y) * np.sin(angles)
-    target_points = np.stack([x_locs, y_locs], axis=0)  # shape (8, 2)
+    target_points = np.stack([x_locs, y_locs], axis=0)  # shape (2, 8)
 
     pc_col_names = DIFFAE_PC_COLUMN_NAMES[:2]
     data_points = df[pc_col_names].to_numpy()
@@ -404,10 +404,10 @@ def get_no_flow_pc_space_example_points_fig4(
     example_points = get_point_nearest_target(data_points, target_points=target_points)
 
     # convert to tuple of tuples
-    example_points_as_tuple = tuple(map(tuple, example_points))
-    target_points_as_tuple = tuple(map(tuple, target_points))
+    example_points_df = pd.DataFrame(columns=["pc_1_example", "pc_2_example"], data=example_points)
+    example_points_df[["pc_1_target", "pc_2_target"]] = target_points.T
 
-    return example_points_as_tuple, target_points_as_tuple
+    return example_points_df
 
 
 def get_point_nearest_target(data_points: np.ndarray, target_points: np.ndarray) -> np.ndarray:

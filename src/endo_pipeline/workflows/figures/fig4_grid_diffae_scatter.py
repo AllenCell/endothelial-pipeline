@@ -9,11 +9,15 @@ def main(
 ) -> None:
     """Creates scatter plots in DiffAE PC-space for grid crops colored by timepoint."""
 
-    from endo_pipeline.io import get_output_path, save_plot_to_path
+    from matplotlib import pyplot as plt
+
+    from endo_pipeline import NUM_GPUS
+    from endo_pipeline.io import get_output_path, load_model, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
         get_dataframe_for_dynamics_workflows,
     )
+    from endo_pipeline.library.model import generate_from_coords_batch
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
         get_no_flow_pc_space_example_points_fig4,
         make_pc_scatter_fig4a,
@@ -55,7 +59,7 @@ def main(
         include_not_steady_state=False,
     )
 
-    example_points, target_points = get_no_flow_pc_space_example_points_fig4(
+    example_and_target_points = get_no_flow_pc_space_example_points_fig4(
         diffae_grid_crops, radius=2.2, origin_xy=(0, 0)
     )
 
@@ -68,6 +72,15 @@ def main(
         pc_col_for_yaxis="pc_2",
         hue=hue,
         color_palette=color_palette,
+    )
+    fig1.axes[0].scatter(
+        example_and_target_points["pc_1_target"],
+        example_and_target_points["pc_2_target"],
+        c="cyan",
+        edgecolors="black",
+        lw=1,
+        s=10,
+        label="Example points",
     )
     fig2 = make_pc_scatter_fig4a(
         df=diffae_grid_crops,
@@ -97,6 +110,29 @@ def main(
             filename=f"{hue}_colorbar",
             filetype=filetype,
         )
+
+    # reconstruct images using the target points from pc_1-pc_2-space
+    # set pc_3 to 0 for all points
+    example_and_target_points["pc_3"] = 0
+    pc_coords = example_and_target_points[["pc_1_target", "pc_2_target", "pc_3"]].values
+
+    latent_coords = pca.inverse_transform(pc_coords)
+
+    model = load_model(model_manifest.locations[DEFAULT_MODEL_RUN_NAME], instantiate=True)
+    walk_imgs = generate_from_coords_batch(model, latent_coords, num_gpus=NUM_GPUS)
+
+    crop_savedir = outdir / "reconstructed_example_points"
+    crop_savedir.mkdir(exist_ok=True)
+
+    for i, img in enumerate(walk_imgs):
+        fig, ax = plt.subplots(figsize=(2, 2))
+        ax.imshow(img, cmap="gray")
+        plt.axis("off")
+        plt.tight_layout()
+        file_name_prefix = "reconstruction-pc1_pc2_pc3_"
+        pc_coord_as_str = "_".join([f"{coord:.2f}" for coord in pc_coords[i]])
+        file_name = f"{file_name_prefix}{pc_coord_as_str}.png"
+        save_plot_to_path(fig, crop_savedir, file_name, pad_inches=0)
 
 
 if __name__ == "__main__":
