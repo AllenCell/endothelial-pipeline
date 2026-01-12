@@ -75,7 +75,7 @@ def main(
 
         n_total_crops_grid = df_grid.shape[0]
         logger.info(
-            "Total number of grid-based crops for dataset [ %s ] : [ %d ]",
+            "Total number of grid-based crops from [ %s ] : [ %d ]",
             dataset_name,
             n_total_crops_grid,
         )
@@ -90,7 +90,7 @@ def main(
         )
         n_total_crops_tracked = df_tracked.shape[0]
         logger.info(
-            "Total number of cell-centric crops for dataset [ %s ] : [ %d ]",
+            "Total number of cell-centric crops from [ %s ] : [ %d ]",
             dataset_name,
             n_total_crops_tracked,
         )
