@@ -155,7 +155,7 @@ def main(
                         (df_filtered[pc_col] >= -origin_tolerance)
                         & (df_filtered[pc_col] <= origin_tolerance)
                     ]
-            logger.info(len(df_filtered), "crops for other PCs near zero")
+            logger.info("%d crops for other PCs near zero", len(df_filtered))
             if len(df_filtered) == 0:
                 logger.warning(
                     "No crops found for PC %s value %s. Try increasing the origin_tolerance.",
