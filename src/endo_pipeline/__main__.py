@@ -18,7 +18,6 @@ logger = logging.getLogger("")
 pipeline_app = App(
     help="Endothelial pipeline CLI",
     version_flags=[],
-    default_parameter=Parameter(negative=()),
     console=Console(),
 )
 
