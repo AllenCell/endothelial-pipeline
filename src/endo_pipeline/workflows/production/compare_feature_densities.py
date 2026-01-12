@@ -29,20 +29,22 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
+    from endo_pipeline.settings.density_comparison_plots import (
+        DENSITY_PLOT_DEFAULT_DATASET,
+        DENSITY_PLOT_KDE_BANDWIDTH,
+        DENSITY_PLOT_KWARGS_GRID_CROPS,
+        DENSITY_PLOT_KWARGS_TRACKED_CROPS,
+    )
     from endo_pipeline.settings.diffae_feature_dataframes import (
         DIFFAE_PC_COLUMN_NAMES,
         NUM_PCS_TO_ANALYZE,
     )
     from endo_pipeline.settings.figures import FONTSIZE_MEDIUM
-    from endo_pipeline.settings.plot_defaults import (
-        DENSITY_PLOT_KWARGS_GRID_CROPS,
-        DENSITY_PLOT_KWARGS_TRACKED_CROPS,
-    )
 
     logger = logging.getLogger(__name__)
 
     if datasets is None:
-        datasets_to_analyze = ["20250818_20X"]
+        datasets_to_analyze = [DENSITY_PLOT_DEFAULT_DATASET]
     else:
         datasets_to_analyze = datasets
 
@@ -86,8 +88,18 @@ def main(
         features = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
         for i, feature in enumerate(features):
             ax: plt.Axes = axs[i]
-            kdeplot(df_grid[feature], ax=ax, **DENSITY_PLOT_KWARGS_GRID_CROPS)
-            kdeplot(df_tracked[feature], ax=ax, **DENSITY_PLOT_KWARGS_TRACKED_CROPS)
+            kdeplot(
+                df_grid[feature],
+                ax=ax,
+                bw_method=DENSITY_PLOT_KDE_BANDWIDTH,
+                **DENSITY_PLOT_KWARGS_GRID_CROPS,
+            )
+            kdeplot(
+                df_tracked[feature],
+                ax=ax,
+                bw_method=DENSITY_PLOT_KDE_BANDWIDTH,
+                **DENSITY_PLOT_KWARGS_TRACKED_CROPS,
+            )
 
             # formatting
             ax_label = get_label_for_column(feature)

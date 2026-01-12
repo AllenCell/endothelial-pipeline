@@ -28,19 +28,3 @@ MODEL_QC_FIG_KWARGS: dict = {"figsize": (9, 6)}
 
 MODEL_QC_PLOT_DIRECTION: str = "top-down first"
 """Default direction for arranging panels in model QC plots."""
-
-DENSITY_PLOT_KWARGS_GRID_CROPS: dict = {
-    "label": "grid-based crops",
-    "color": "k",
-    "linewidth": 2.75,
-    "linestyle": "--",
-}
-"""Default plotting keyword arguments for density plots of grid-based crops."""
-
-DENSITY_PLOT_KWARGS_TRACKED_CROPS: dict = {
-    "label": "cell-centric crops",
-    "color": "k",
-    "linewidth": 2.75,
-    "linestyle": "-",
-}
-"""Default plotting keyword arguments for density plots of tracked crops."""
