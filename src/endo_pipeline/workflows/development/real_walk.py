@@ -124,7 +124,7 @@ def main(
         filter_to_valid=False,
         pc_column_names=DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze],
     )
-    hist_array_list, bin_edges, df_with_bins = get_histogram_by_component(
+    hist_array_lists, bin_edges, df_with_bins = get_histogram_by_component(
         df,
         CROP_HIST_BIN_WIDTH,
         bin_limits,
@@ -133,7 +133,7 @@ def main(
 
     if plot_heatmap:
         for i, dataset_name in enumerate(datasets):
-            fig, _ = plot_principal_component_histogram(hist_array_list[i], bin_edges)
+            fig, _ = plot_principal_component_histogram(hist_array_lists[i], bin_edges)
             fig.suptitle(f"Dataset: {dataset_name}", y=0.95, fontsize=25)
             save_plot_to_path(fig, fig_savedir, f"{dataset_name}_pc_histogram")
 

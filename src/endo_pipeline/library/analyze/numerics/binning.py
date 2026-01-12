@@ -168,7 +168,7 @@ def get_bounds_from_data(
 
 def _get_histogram_by_component_one_dataset(
     df: pd.DataFrame, bin_edges: list[np.ndarray], feat_cols: list[str] | None = None
-) -> tuple[np.ndarray, pd.DataFrame]:
+) -> tuple[list[np.ndarray], pd.DataFrame]:
     """
     Compute histogram of feature data at each timepoint for each latent component.
 
@@ -195,11 +195,10 @@ def _get_histogram_by_component_one_dataset(
 
     num_feats = len(feat_cols)
     num_frames = df[ColumnName.TIMEPOINT].nunique()
-    num_bins = bin_edges[0].shape[0] - 1  # number of bins is one less than number of edges
 
-    hist_array = np.zeros(
-        (num_feats, num_bins, num_frames)
-    )  # histogram values for each component as a function of time
+    hist_array_list: list[np.ndarray] = [
+        np.zeros((len(bin_edges[dim]) - 1, num_frames)) for dim in range(num_feats)
+    ]  # histogram values for each component as a function of time
 
     # sort by timepoint
     df = df.sort_values(by=ColumnName.TIMEPOINT).reset_index(drop=True)
@@ -210,7 +209,7 @@ def _get_histogram_by_component_one_dataset(
             # compute histogram of feature data along each component
             t_index = df[ColumnName.TIMEPOINT].unique().tolist().index(t)
             hist = np.histogram(feats, bins=bin_edges[dim], density=True)[0]
-            hist_array[dim, :, t_index] = hist
+            hist_array_list[dim][:, t_index] = hist
 
             # update the dataframe with column of what bin
             # each crop at frame number t is in
@@ -227,7 +226,7 @@ def _get_histogram_by_component_one_dataset(
         df[f"bin_{dim}"] = df[f"bin_{dim}"].astype(int)
 
     # return the histogram array and the updated dataframe
-    return hist_array, df
+    return hist_array_list, df
 
 
 def get_histogram_by_component(
@@ -235,7 +234,7 @@ def get_histogram_by_component(
     bin_width: float,
     bin_limits: list[tuple[float, float]],
     feat_cols: list[str] | None = None,
-) -> tuple[list[np.ndarray], list[np.ndarray], pd.DataFrame]:
+) -> tuple[list[list[np.ndarray]], list[np.ndarray], pd.DataFrame]:
     """
     Get histogram of feature data at each timepoint for each latent component
     across all datasets in the input dataframe.
@@ -267,18 +266,18 @@ def get_histogram_by_component(
 
     # loop over each dataset in the dataframe
     # get histogram / bin indices for each dataset
-    hist_array_list = []
+    hist_array_list_all_datasets = []
     df_list = []
     for _, df_group in df.groupby(ColumnName.DATASET):
-        hist_array, df_group_ = _get_histogram_by_component_one_dataset(
+        hist_array_list_one_dataset, df_group_ = _get_histogram_by_component_one_dataset(
             df_group, bin_edges, feat_cols
         )
         df_list.append(df_group_)
-        hist_array_list.append(hist_array)
+        hist_array_list_all_datasets.append(hist_array_list_one_dataset)
 
     df_all_datasets_binned = pd.concat(df_list, ignore_index=True)
 
-    return hist_array_list, bin_edges, df_all_datasets_binned
+    return hist_array_list_all_datasets, bin_edges, df_all_datasets_binned
 
 
 def _get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:
