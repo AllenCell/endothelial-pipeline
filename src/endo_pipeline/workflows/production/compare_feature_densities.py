@@ -24,6 +24,7 @@ def main(
         fit_pca,
         get_dataframe_for_dynamics_workflows,
     )
+    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
         load_dataframe_manifest,
@@ -84,14 +85,14 @@ def main(
         fig, axs = plt.subplots(3, 1, figsize=(7, 12))
 
         features = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
-        ax_labels = ["PC1", "PC2", "PC3"]
         for i, feature in enumerate(features):
             ax: plt.Axes = axs[i]
             kdeplot(df_grid[feature], ax=ax, **DENSITY_PLOT_KWARGS_GRID_CROPS)
             kdeplot(df_tracked[feature], ax=ax, **DENSITY_PLOT_KWARGS_TRACKED_CROPS)
 
             # formatting
-            ax.set_xlabel(ax_labels[i])
+            ax_label = get_label_for_column(feature)
+            ax.set_xlabel(ax_label)
             ax.set_ylabel("Density")
 
             if i == 0:
