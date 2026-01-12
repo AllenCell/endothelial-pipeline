@@ -81,14 +81,23 @@ def plot_kde_comparison(
         ax.set_xlabel(ax_label)
         ax.set_ylabel("Density")
 
+        # put horizontal legend above the first subplot
+        # in the upper left corner (above the plot)
         if i == 0:
             handles, labels = ax.get_legend_handles_labels()
             ax.legend(
                 handles,
                 labels,
-                bbox_to_anchor=(1.32, 1.0),
+                ncols=ncols,
+                loc="upper left",
+                bbox_to_anchor=(0.0, 1.1),
                 fontsize=FONTSIZE_MEDIUM,
             )
+
+    # set y axes limits to be the same for all subplots
+    y_max = max(ax.get_ylim()[1] for ax in axs)
+    for ax in axs:
+        ax.set_ylim(0, y_max)
 
     return fig, axs
 
