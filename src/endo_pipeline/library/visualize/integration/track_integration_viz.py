@@ -25,7 +25,7 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     set_slice_plot_bounds_and_labels,
 )
 from endo_pipeline.settings import ColumnName
-from endo_pipeline.settings.flow_field_3d import BIN_WIDTHS_3D, QUIVER_COLORMAP
+from endo_pipeline.settings.flow_field_3d import BIN_WIDTH_DEFAULTS, QUIVER_COLORMAP
 
 
 def set_global_pc_lims(axs: Sequence[plt.Axes], lim: int = 3) -> None:
@@ -375,7 +375,7 @@ def overlay_trajectory_heatmap_on_flowfield(
     traj_grids: np.ndarray,
     flow_field_dict_grids: dict,
     df_all_positions: pd.DataFrame,
-    bin_widths: tuple[float, float, float] = BIN_WIDTHS_3D,
+    bin_widths: tuple[float, float, float] = BIN_WIDTH_DEFAULTS,
 ) -> None:
     """
     Overlay a coarse-grained trajectory heatmap on the flow field.

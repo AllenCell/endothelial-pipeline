@@ -49,7 +49,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.flow_field_3d import BIN_WIDTHS_3D
+    from endo_pipeline.settings.flow_field_3d import BIN_WIDTH_DEFAULTS
 
     ################### Load configs from dynamics_config ###################
     dynamics_config = dynamics_io.load_dynamics_config(dynamics_config_name)
@@ -87,7 +87,7 @@ def main(
     bin_xlim = dynamics_config["plt_xlim"]["hist"]
     bin_ylim = dynamics_config["plt_ylim"]["hist"]
     num_pts_pplane = dynamics_config["num_pts_pplane"]
-    bin_widths = (BIN_WIDTHS_3D[0], BIN_WIDTHS_3D[1])
+    bin_widths = (BIN_WIDTH_DEFAULTS[0], BIN_WIDTH_DEFAULTS[1])
 
     # for phase plane plots, fix grid across all datasets
     pplane_xvec = np.linspace(pplane_xlim[0], pplane_xlim[1], num_pts_pplane + 1)

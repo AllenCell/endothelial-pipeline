@@ -39,7 +39,7 @@ from endo_pipeline.settings import (
     ColumnName,
 )
 from endo_pipeline.settings.flow_field_3d import (
-    BIN_WIDTHS_3D,
+    BIN_WIDTH_DEFAULTS,
     INIT_POINT_3D,
     KERNEL_PARAMS_3D,
     TIME_STEP_IN_MINUTES,
@@ -291,7 +291,7 @@ def get_traj_and_flowfield(
     # shear stress conditions
     init = np.array(INIT_POINT_3D)
 
-    bins, centers = get_bins(BIN_WIDTHS_3D, bin_limits=bounds)
+    bins, centers = get_bins(BIN_WIDTH_DEFAULTS, bin_limits=bounds)
 
     # get the columns to use for calculating trajectories
     # and flow fields.

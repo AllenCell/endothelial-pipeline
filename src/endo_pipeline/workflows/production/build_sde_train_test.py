@@ -43,7 +43,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.flow_field_3d import BIN_WIDTHS_3D
+    from endo_pipeline.settings.flow_field_3d import BIN_WIDTH_DEFAULTS
 
     logger = logging.getLogger(__name__)
 
@@ -79,7 +79,7 @@ def main(
     pc_axes = dynamics_config["pcs_to_analyze"]
     dt = dynamics_config["dt"]
     kramers_moyal_config = dynamics_config["kramers_moyal"]
-    bin_widths = (BIN_WIDTHS_3D[0], BIN_WIDTHS_3D[1])  # use 2D bin widths for 2D SDEs
+    bin_widths = (BIN_WIDTH_DEFAULTS[0], BIN_WIDTH_DEFAULTS[1])  # use 2D bin widths for 2D SDEs
     kernel_params = None
     if "kernel_params" in kramers_moyal_config:
         kernel_params = kramers_moyal_config["kernel_params"]
