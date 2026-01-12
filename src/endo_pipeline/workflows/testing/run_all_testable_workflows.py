@@ -43,7 +43,7 @@ def _testable_workflows(pipeline_app: "App", tags: dict[str, list[str]]):
             raise ValueError(
                 f"Workflow {name} claims to be test-ready, but has both GPU and CPU_ONLY tags."
             )
-        if endo_pipeline.NUM_GPUS is None and GPU in these_tags:
+        if endo_pipeline.cli.NUM_GPUS is None and GPU in these_tags:
             continue
         yield name
 
@@ -237,8 +237,8 @@ def main():
     from endo_pipeline.__main__ import pipeline_app, tags
 
     logger = logging.getLogger(__name__)
-    if not endo_pipeline.DEMO_MODE:
-        endo_pipeline.DEMO_MODE = True
+    if not endo_pipeline.cli.DEMO_MODE:
+        endo_pipeline.cli.DEMO_MODE = True
         logger.debug("Forcing demo mode on for testing.")
 
     results = asyncio.run(_run_all(pipeline_app, tags))
