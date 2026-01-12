@@ -1,3 +1,4 @@
+import logging
 from typing import cast
 
 import numpy as np
@@ -10,26 +11,35 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE, ColumnName
 
+logger = logging.getLogger(__name__)
+
 
 def get_bins(
-    num_bins: list, data: list[np.ndarray] | None = None, bin_limits: list | None = None
+    num_bins: list[int] | tuple[int],
+    data: list[np.ndarray] | None = None,
+    bin_limits: list | None = None,
 ) -> tuple[list, list]:
     """
-    Generate histogram bins for computing Kramers-Moyal
-    estimates from trajectories, either automatically
-    based on data or user-defined bin limits.
+    Generate histogram bins either automatically based on data or user-defined bin limits.
 
-    Inputs:
-    - Nbins: list of number of bins in each dimension
-        (list of length ndim, where ndim is the number
-        of dimensions of the feature space)
-    - data: list of numpy arrays, each array is the trajectory
-        of a single crop in feature space (ndim = len(num_bins))
-    - bin_limits: list of tuples, each tuple contains the lower
-        and upper bounds for the bins in each dimension
+    **Binning Options:**
 
-    Either data or bin_limits must be provided.
-    If bin_limits provided, data is ignored.
+    If `bin_limits` is not provided, the function automatically determines bin edges based on the
+    provided data. It calculates the minimum and maximum values for each dimension across all
+    trajectories, and creates bins that span slightly beyond these extrema (by 0.1 units on each side).
+
+    If `bin_limits` is provided, the function uses these user-defined limits to create the bins.
+
+    If both `data` and `bin_limits` are provided, the function prioritizes `bin_limits` for bin creation.
+
+    Parameters
+    ----------
+    num_bins
+        List or tuple specifying the number of bins for each dimension.
+    data
+        List of numpy arrays, each array is a trajectory with shape (num_timepoints, num_dimensions).
+    bin_limits
+        List of [min, max] pairs for each dimension specifying the bin limits.
 
     Outputs:
     - bins: list of numpy arrays, each array contains
@@ -44,7 +54,10 @@ def get_bins(
         if data is None:
             raise ValueError("Please provide data or or upper and lower bounds for bins.")
         ndim = data[0].shape[1]
-        assert ndim == len(num_bins), "Number of bins must match number of dimensions in data."
+        if ndim != len(num_bins):
+            raise ValueError(
+                "Mismatch between number of dimensions in data and length of num_bins."
+            )
         bins = []
         centers = []
         for i in range(ndim):
@@ -57,13 +70,22 @@ def get_bins(
             centers.append(0.5 * (my_bins[1:] + my_bins[:-1]))
     else:  # Use user-defined bins
         ndim = len(bin_limits)
-        assert ndim == len(num_bins), "Number of bins must match number of dimensions in data."
+        if ndim != len(num_bins):
+            raise ValueError(
+                "Mismatch between number of dimensions in bin_limits and length of num_bins."
+            )
         bins = []
         centers = []
         for i in range(ndim):
             my_bins = np.linspace(bin_limits[i][0], bin_limits[i][1], num_bins[i] + 1)
             bins.append(my_bins)
             centers.append(0.5 * (my_bins[1:] + my_bins[:-1]))
+
+    bin_width_str = ", ".join([f"{bins[i][1] - bins[i][0]:.3f}" for i in range(len(bins))])
+    logger.debug(
+        "Generating bins for histogramming with bin widths: [ %s ]",
+        bin_width_str,
+    )
     return bins, centers
 
 
@@ -72,42 +94,41 @@ def get_3d_bounds_from_data(
     manifest: DataframeManifest,
     pca: PCA,
     filter_to_valid: bool = True,
-    pad: bool = False,
+    pad: float = 0.0,
+    pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
 ) -> list[np.ndarray]:
     """
-    Set bounds for 3D state space based on the bounds
-    of the features in the datasets. The 3D state space
-    is based on the first three principal components
-    of the input pca object, which is fit
-    on a fixed set of reference datasets.
+    Set bounds for 3D state space based on the bounds of the features in the datasets.
 
-    Inputs:
-    - dataset_names: list of datasets
-    - manifest: manifest of model feature dataframes
-    - pca: PCA model to use for transforming the data
-    - col_names: which columns to use for bounds
-        - "pc": data is coming from a workflow where
-            the column names have been re-named to
-            reflect that the features are projected
-            onto the first three principal components
-            (i.e., column names in df pc1, pc2, pc3)
-        - "feat": data is coming from a workflow where
-            the column names are the original feature names
-            and the data have been over-written with the
-            features projected onto the full set of
-            principal components (i.e., column name feat_i
-            indicates projection onto the i-th principal component)
-        - this input will become deprecated in the future,
-            when the dataframes will always clearly label
-            what is an original feature and what is a
-            projected feature
+    The 3D state space is based on the first three principal components of the input pca
+    object, which is fit on a fixed set of reference datasets.
 
-    Outputs:
-    - bounds: list of numpy arrays with the bounds
-        for each dimension in the 3D state space
-        - format: [[min_x, max_x], [min_y, max_y], [min_z, max_z]]
+    **Dataframe filtering:**
+
+    By default, the function filters the dataframes to only include "valid" crops,
+    i.e., crops that are not labeled as "cell piling" or "not steady state".
+
+    Parameters
+    ----------
+    dataset_names
+        List of dataset names to get common bounds from.
+    manifest
+        Dataframe manifest object with feature data locations.
+    pca
+        PCA object used to transform the data.
+    filter_to_valid
+        Whether to filter the dataframes to only include "valid" crops.
+    pad
+        Amount to pad the bounds by on each side.
+    pc_column_names
+        List of column names for the principal components to use.
+
+    Returns
+    -------
+    :
+        List of numpy arrays, each array contains the [min, max] bounds for a dimension.
     """
-    num_dims = NUM_PCS_TO_ANALYZE  # always 3 for now
+    num_dims = len(pc_column_names)
     # initialize bounds
     bounds_ = [[np.inf, -np.inf] for _ in range(num_dims)]
 
@@ -129,13 +150,12 @@ def get_3d_bounds_from_data(
             include_not_steady_state=include_not_steady_state,
         )
         # get column names for features
-        pc_column_names = DIFFAE_PC_COLUMN_NAMES[:num_dims]
         for j in range(num_dims):
             candidate_min = df[pc_column_names[j]].min()
             candidate_max = df[pc_column_names[j]].max()
             if pad:
-                candidate_min = candidate_min - 0.1
-                candidate_max = candidate_max + 0.1
+                candidate_min = candidate_min - pad
+                candidate_max = candidate_max + pad
             # update bounds for each dimension
             bounds_[j][0] = min(bounds_[j][0], candidate_min)
             bounds_[j][1] = max(bounds_[j][1], candidate_max)
@@ -175,8 +195,6 @@ def _get_histogram_by_component_one_dataset(
     num_feats = len(feat_cols)
     num_frames = df[ColumnName.TIMEPOINT].nunique()
     num_bins = bin_edges[0].shape[0] - 1  # number of bins is one less than number of edges
-
-    # feats = df_to_array(df_padded, feat_cols)  # get array of just the feature data
 
     hist_array = np.zeros(
         (num_feats, num_bins, num_frames)

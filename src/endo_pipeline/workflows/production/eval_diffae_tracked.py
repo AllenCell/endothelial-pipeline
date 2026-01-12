@@ -1,5 +1,9 @@
 from endo_pipeline.cli import Datasets
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+from endo_pipeline.settings import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PCA_DATASET_COLLECTION_NAME,
+)
 
 TAGS = ["eval_diffae_model", "diffae_features"]
 
@@ -56,8 +60,12 @@ def main(
     import logging
     from pathlib import Path
 
-    from endo_pipeline import DEMO_MODE, NUM_GPUS
-    from endo_pipeline.configs import load_dataset_config, load_model_config
+    from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
+    from endo_pipeline.configs import (
+        get_datasets_in_collection,
+        load_dataset_config,
+        load_model_config,
+    )
     from endo_pipeline.library.model import (
         evaluate_model_on_tracked_crops_from_one_dataset,
         load_model_for_inference,
@@ -70,7 +78,7 @@ def main(
 
     # Default list of datasets if not provided.
     if datasets is None:
-        datasets = ["20250319_20X"]
+        datasets = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in datasets]
 
@@ -129,6 +137,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)

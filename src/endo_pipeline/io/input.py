@@ -3,10 +3,12 @@
 import logging
 import typing
 from pathlib import Path
+from typing import Literal, overload
 
 if typing.TYPE_CHECKING:
     import dask.array as da
     import numpy as np
+    from bioio import BioImage
     from cyto_dl.api import CytoDLModel
     from cyto_dl.models.im2im.diffusion_autoencoder import (
         DiffusionAutoEncoder as BaseDiffusionAutoEncoder,
@@ -15,6 +17,7 @@ if typing.TYPE_CHECKING:
 
     from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 
+import dask.dataframe as dd
 import pandas as pd
 
 from endo_pipeline.configs import load_model_config
@@ -38,14 +41,68 @@ def get_repository_root_dir() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
+@overload
 def load_image_from_path(
     path: Path,
+    *,
+    read: Literal[True] = True,
+    compute: Literal[True],
     squeeze: bool = False,
-    compute: bool = False,
     channels: list[str] | None = None,
     timepoints: int | list[int] | range | None = None,
     level: int = 0,
-) -> "da.Array | np.ndarray":
+) -> "np.ndarray": ...
+
+
+@overload
+def load_image_from_path(
+    path: Path,
+    *,
+    read: Literal[True] = True,
+    compute: Literal[False] = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "da.Array": ...
+
+
+@overload
+def load_image_from_path(
+    path: Path,
+    *,
+    read: Literal[False],
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage": ...
+
+
+@overload
+def load_image_from_path(
+    path: Path,
+    *,
+    read: bool = True,
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage | da.Array | np.ndarray": ...
+
+
+def load_image_from_path(
+    path: Path,
+    *,
+    read: bool = True,
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage | da.Array | np.ndarray":
     """
     Load image from path.
 
@@ -55,6 +112,8 @@ def load_image_from_path(
     ----------
     path
         Path to image file.
+    read
+        True to read the image, False to return the reader object.
     squeeze
         True to drop any single-dimensional entries, False otherwise.
     compute
@@ -84,11 +143,23 @@ def load_image_from_path(
         logger.error("Path [ %s ] could not be loaded", path)
         raise FileNotFoundError(f"No such file '{path}'")
 
-    logger.info("Loading path [ %s ] as %s file", path, "".join(path.suffixes).upper())
+    logger.debug("Loading path [ %s ] as %s file", path, "".join(path.suffixes).upper())
 
     # Initialize image reader and reader arguments.
     reader = BioImage(path)
     reader_arguments = {}
+
+    # Check if resolution level is valid.
+    if level not in reader.resolution_levels:
+        logger.error("Selected resolution level [ %s ] not available for dataset", level)
+        raise ValueError(f"Zarr [ {path.name} ] only has levels {reader.resolution_levels}")
+
+    # Set resolution level for loaded Zarr.
+    reader.set_resolution_level(level)
+
+    # Return just the initialized reader without actually reading the data, if requested.
+    if not read:
+        return reader
 
     # Specify timepoints to load, if provided. Otherwise, all timepoints will be loaded.
     if timepoints is not None:
@@ -98,14 +169,6 @@ def load_image_from_path(
     if channels is not None:
         channels_index = [reader.channel_names.index(channel) for channel in channels]
         reader_arguments["C"] = channels_index
-
-    # Check if resolution level is value.
-    if level not in reader.resolution_levels:
-        logger.error("Selected resolution level [ %s ] not available for dataset", level)
-        raise ValueError(f"Zarr [ {path.name} ] only has levels {reader.resolution_levels}")
-
-    # Set resolution level for loaded Zarr.
-    reader.set_resolution_level(level)
 
     # Read image data.
     image = reader.get_image_dask_data(DIMENSION_ORDER, **reader_arguments)
@@ -121,9 +184,68 @@ def load_image_from_path(
     return image
 
 
+@overload
 def load_image(
-    location: ImageLocation, squeeze: bool = False, compute: bool = False
-) -> "da.Array | np.ndarray":
+    location: ImageLocation,
+    *,
+    read: Literal[True] = True,
+    compute: Literal[True],
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "np.ndarray": ...
+
+
+@overload
+def load_image(
+    location: ImageLocation,
+    *,
+    read: Literal[True] = True,
+    compute: Literal[False] = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "da.Array": ...
+
+
+@overload
+def load_image(
+    location: ImageLocation,
+    *,
+    read: Literal[False],
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage": ...
+
+
+@overload
+def load_image(
+    location: ImageLocation,
+    *,
+    read: bool = True,
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage | da.Array | np.ndarray": ...
+
+
+def load_image(
+    location: ImageLocation,
+    *,
+    read: bool = True,
+    compute: bool = False,
+    squeeze: bool = False,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> "BioImage | da.Array | np.ndarray":
     """
     Load image from location.
 
@@ -131,10 +253,20 @@ def load_image(
     ----------
     location
         Image location object.
+    read
+        True to read the image, False to return the reader object.
     squeeze
         True to drop any single-dimensional entries, False otherwise.
     compute
         True to turn lazy Dask array into in-memory NumPy array, False otherwise.
+    channels
+        Channel(s) to load. Channels should be given as a list of channel names.
+        Use None to load all channels.
+    timepoints
+        Timepoint(s) to load. Timepoints can be given as a single integer, list
+        of integers, or an integer range. Use None to load all timepoints.
+    level
+        Resolution level to load.
 
     Returns
     -------
@@ -142,13 +274,33 @@ def load_image(
     """
 
     if location.path is not None:
-        return load_image_from_path(location.path, squeeze, compute)
+        return load_image_from_path(
+            location.path,
+            read=read,
+            compute=compute,
+            squeeze=squeeze,
+            channels=channels,
+            timepoints=timepoints,
+            level=level,
+        )
 
     logger.error("Location does not have a path.")
     raise FileNotFoundError("Unable to load image; no available locations.")
 
 
-def load_dataframe_from_path(path: Path) -> pd.DataFrame:
+@overload
+def load_dataframe_from_path(path: Path, *, delay: Literal[True] = True) -> pd.DataFrame: ...
+
+
+@overload
+def load_dataframe_from_path(path: Path, *, delay: Literal[False]) -> dd.DataFrame: ...
+
+
+@overload
+def load_dataframe_from_path(path: Path, *, delay: bool = False) -> pd.DataFrame | dd.DataFrame: ...
+
+
+def load_dataframe_from_path(path: Path, *, delay: bool = False) -> pd.DataFrame | dd.DataFrame:
     """
     Load dataframe from path.
 
@@ -158,6 +310,8 @@ def load_dataframe_from_path(path: Path) -> pd.DataFrame:
     ----------
     path
         Path to dataframe file.
+    delay
+        True to delay reading dataframe into memory, False otherwise.
 
     Returns
     -------
@@ -169,15 +323,18 @@ def load_dataframe_from_path(path: Path) -> pd.DataFrame:
         logger.error("Path [ %s ] could not be loaded", path)
         raise FileNotFoundError(f"No such file '{path}'")
 
+    # Initialize dataframe reader. Use Dask if delayed and Pandas otherwise.
+    reader = dd if delay else pd
+
     if path.suffix == ".csv":
-        logger.info("Loading path [ %s ] as CSV file", path)
-        return pd.read_csv(path)
+        logger.debug("Loading path [ %s ] as CSV file", path)
+        return reader.read_csv(path)
     if path.suffix == ".parquet":
-        logger.info("Loading path [ %s ] as Parquet file", path)
-        return pd.read_parquet(path)
+        logger.debug("Loading path [ %s ] as Parquet file", path)
+        return reader.read_parquet(path)
     if path.suffix == ".tsv":
-        logger.info("Loading path [ %s ] as TSV file", path)
-        return pd.read_csv(path, sep="\t")
+        logger.debug("Loading path [ %s ] as TSV file", path)
+        return reader.read_csv(path, sep="\t")
 
     logger.error("Path [ %s ] cannot be loaded as dataframe", path)
     raise ValueError(f"Invalid dataframe file format '{path.suffix}'")
@@ -219,7 +376,19 @@ def get_local_path_from_fmsid(fmsid: str) -> Path:
     return local_path
 
 
-def load_dataframe_from_fms(fmsid: str) -> pd.DataFrame:
+@overload
+def load_dataframe_from_fms(fmsid: str, *, delay: Literal[True] = True) -> pd.DataFrame: ...
+
+
+@overload
+def load_dataframe_from_fms(fmsid: str, *, delay: Literal[False]) -> dd.DataFrame: ...
+
+
+@overload
+def load_dataframe_from_fms(fmsid: str, *, delay: bool = False) -> pd.DataFrame | dd.DataFrame: ...
+
+
+def load_dataframe_from_fms(fmsid: str, *, delay: bool = False) -> pd.DataFrame | dd.DataFrame:
     """
     Load dataframe from FMS by file ID.
 
@@ -230,6 +399,8 @@ def load_dataframe_from_fms(fmsid: str) -> pd.DataFrame:
     ----------
     fmsid
         FMS file ID.
+    delay
+        True to delay reading dataframe into memory, False otherwise.
 
     Returns
     -------
@@ -239,10 +410,22 @@ def load_dataframe_from_fms(fmsid: str) -> pd.DataFrame:
 
     local_path = get_local_path_from_fmsid(fmsid)
 
-    return load_dataframe_from_path(local_path)
+    return load_dataframe_from_path(local_path, delay=delay)
 
 
-def load_dataframe_from_s3(s3uri: str) -> pd.DataFrame:
+@overload
+def load_dataframe_from_s3(s3uri: str, *, delay: Literal[True] = True) -> pd.DataFrame: ...
+
+
+@overload
+def load_dataframe_from_s3(s3uri: str, *, delay: Literal[False]) -> dd.DataFrame: ...
+
+
+@overload
+def load_dataframe_from_s3(s3uri: str, *, delay: bool = False) -> pd.DataFrame | dd.DataFrame: ...
+
+
+def load_dataframe_from_s3(s3uri: str, *, delay: bool = False) -> pd.DataFrame | dd.DataFrame:
     """
     Load dataframe from S3 by object URI.
 
@@ -252,6 +435,8 @@ def load_dataframe_from_s3(s3uri: str) -> pd.DataFrame:
     ----------
     s3uri
         S3 object URI.
+    delay
+        True to delay reading dataframe into memory, False otherwise.
 
     Returns
     -------
@@ -263,42 +448,52 @@ def load_dataframe_from_s3(s3uri: str) -> pd.DataFrame:
         logger.error("URL [ %s ] must start with s3://", s3uri)
         raise ValueError(f"Invalid S3 URI '{s3uri}'")
 
+    # Initialize dataframe reader. Use Dask if delayed and Pandas otherwise.
+    reader = dd if delay else pd
+
     if s3uri.endswith(".csv"):
-        logger.info("Loading path [ %s ] as CSV file", s3uri)
-        return pd.read_csv(s3uri)
+        logger.debug("Loading path [ %s ] as CSV file", s3uri)
+        return reader.read_csv(s3uri)
     if s3uri.endswith(".parquet"):
-        logger.info("Loading path [ %s ] as Parquet file", s3uri)
-        return pd.read_parquet(s3uri)
+        logger.debug("Loading path [ %s ] as Parquet file", s3uri)
+        return reader.read_parquet(s3uri)
     if s3uri.endswith(".tsv"):
-        logger.info("Loading path [ %s ] as TSV file", s3uri)
-        return pd.read_csv(s3uri, sep="\t")
+        logger.debug("Loading path [ %s ] as TSV file", s3uri)
+        return reader.read_csv(s3uri, sep="\t")
 
     logger.error("Path [ %s ] cannot be loaded as dataframe", s3uri)
     raise ValueError(f"Invalid dataframe file format '{s3uri.split('.')[-1]}'")
 
 
-def load_dataframe(location: DataframeLocation) -> pd.DataFrame:
-    """
-    Load dataframe from location, defaulting to FMS.
+@overload
+def load_dataframe(location: DataframeLocation, *, delay: Literal[True] = True) -> pd.DataFrame: ...
 
-    ======  ======  ====================================================
-    FMS ID  S3 URL  Loading Behavior
-    ======  ======  ====================================================
-    NO      NO      raises exception
-    YES     NO      load from FMS only
-    NO      YES     load from S3 only
-    YES     YES     load from FMS first, then load from S3 if that fails
-    ======  ======  ====================================================
+
+@overload
+def load_dataframe(location: DataframeLocation, *, delay: Literal[False]) -> dd.DataFrame: ...
+
+
+def load_dataframe(
+    location: DataframeLocation, *, delay: bool = False
+) -> pd.DataFrame | dd.DataFrame:
+    """
+    Load dataframe from location.
+
+    This method will prefer loading from the FMS ID first, falling back to (if
+    they exist) local path, and then to S3 URI, if it encounters an error
+    loading from a previous location. See the corresponding unit test for an
+    exhaustive list of behaviors.
 
     Note that the default behavior may change to load from S3 first. While not
     recommended, if you want to ensure that dataframes are only loaded from a
-    specific location, use `load_dataframe_from_s3` or `load_dataframe_from_fms`
-    instead.
+    specific location, use `load_dataframe_from_x` instead.
 
     Parameters
     ----------
     location
         Dataframe location object.
+    delay
+        True to delay reading dataframe into memory, False otherwise.
 
     Returns
     -------
@@ -307,17 +502,32 @@ def load_dataframe(location: DataframeLocation) -> pd.DataFrame:
 
     if location.fmsid is not None:
         try:
-            return load_dataframe_from_fms(location.fmsid)
-        except Exception:
+            return load_dataframe_from_fms(location.fmsid, delay=delay)
+        except:
+            if location.path is not None:
+                try:
+                    return load_dataframe_from_path(location.path, delay=delay)
+                except:
+                    if location.s3uri is not None:
+                        return load_dataframe_from_s3(location.s3uri, delay=delay)
+                    raise
+
             if location.s3uri is not None:
-                return load_dataframe_from_s3(location.s3uri)
-            else:
-                raise
+                return load_dataframe_from_s3(location.s3uri, delay=delay)
+            raise
+
+    if location.path is not None:
+        try:
+            return load_dataframe_from_path(location.path, delay=delay)
+        except:
+            if location.s3uri is not None:
+                return load_dataframe_from_s3(location.s3uri, delay=delay)
+            raise
 
     if location.s3uri is not None:
-        return load_dataframe_from_s3(location.s3uri)
+        return load_dataframe_from_s3(location.s3uri, delay=delay)
 
-    logger.error("Location does not have an FMS ID or S3 URI.")
+    logger.error("Location does not have a FMS ID or local path or S3 URI.")
     raise FileNotFoundError("Unable to load dataframe; no available locations.")
 
 
@@ -333,6 +543,9 @@ def resolve_dataframe_location(location: DataframeLocation) -> str:
 
     if location.fmsid is not None:
         return get_local_path_from_fmsid(location.fmsid).as_posix()
+
+    if location.path is not None:
+        return location.path.as_posix()
 
     if location.s3uri is not None:
         return location.s3uri
@@ -376,7 +589,7 @@ def get_config_dict_from_mlflow(mlflowid: str) -> "DictConfig | ListConfig":
     if len(configs) > 1:
         logger.warning("Multiple config artifacts found for run id [ %s ]", mlflowid)
 
-    logger.info("Loading model config [ %s ]", configs[0].path)
+    logger.debug("Loading model config [ %s ]", configs[0].path)
 
     # Define config URI for loading the artifact
     config_uri = f"runs:/{mlflowid}/{configs[0].path}"

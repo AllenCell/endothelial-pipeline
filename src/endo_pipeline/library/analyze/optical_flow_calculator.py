@@ -18,7 +18,9 @@ from skimage.filters import gaussian
 from sklearn.decomposition import PCA
 from tqdm import tqdm
 
-from endo_pipeline.configs import dataset_io
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import load_image
+from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings import DIMENSION_ORDER
 
 
@@ -79,6 +81,7 @@ class FlowCalculator:
 
     def __init__(self, dataset: str, position_or_scene_index: int, debug: bool = False) -> None:
         self.dataset = dataset
+        self.dataset_config = load_dataset_config(self.dataset)
         self.position = position_or_scene_index
         if debug:
             self.set_debug_mode_on()
@@ -97,12 +100,12 @@ class FlowCalculator:
         delta_t: int
             The difference between the start and end timeframes when calculating the flow field vectors.
         """
+
         self.channel = channel
-        zarr_name = dataset_io.get_zarr_name(self.dataset, self.position)
-        self.channel_index = dataset_io.get_channel_index(self.dataset, channel)[zarr_name]
-        assert (
-            len(self.channel) == 1 and len(self.channel) == 1
-        ), f"Only one channel is implemented for flow calculation. Channels provided were {self.channel} corresponding to channel indices {self.channel_index}."
+
+        if len(self.channel) != 1:
+            raise ValueError("Only one channel is implemented for flow calculation.")
+
         self.delta_t = delta_t
         self.load_dataset(level)
         # self.dims = dict(zip('TCYX', self.data.shape))
@@ -112,10 +115,8 @@ class FlowCalculator:
         self.set_number_of_cores(ncores)
 
     def load_dataset(self, level: int) -> None:
-        # self.data = dataset_io.load_dataset(self.dataset, channels=self.channel, level=2)
-        img_data = dataset_io.load_dataset_position_as_dask_array(
-            self.dataset, self.position, self.channel, level=level
-        )  # level=2 not present in ZARRs anymore
+        img_loc = get_zarr_location_for_position(self.dataset_config, self.position)
+        img_data = load_image(img_loc, channels=self.channel, level=level)
         self.data = img_data.max(axis=DIMENSION_ORDER.index("Z"))
 
     def load_flow_from_file(self, fname: str | Path) -> None:
@@ -136,7 +137,8 @@ class FlowCalculator:
 
     def compute_flow_field(self, executor: None = None, save: bool | None = None) -> None:
         step = 1
-        duration = dataset_io.get_dataset_duration_in_frames(self.dataset)
+        duration = self.dataset_config.duration
+
         if self.debug:
             step = int(duration / 10)
             print(f"Running debug mode. Using step of {step} frames.")
@@ -188,7 +190,7 @@ class FlowCalculator:
         px_res = PhysicalPixelSizes(
             *[
                 1,
-                *[dataset_io.get_xy_pixel_size_in_um(self.dataset)] * len(img_dim_order),
+                *[self.dataset_config.pixel_size_xy_in_um] * len(img_dim_order),
             ]
         )
         dim_order_out = "TCYX"

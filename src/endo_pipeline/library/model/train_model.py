@@ -9,7 +9,13 @@ from cyto_dl.api import CytoDLModel
 if typing.TYPE_CHECKING:
     from omegaconf import DictConfig, ListConfig
 
-from endo_pipeline.configs import DatasetConfig, load_dataset_collection_config
+from endo_pipeline.configs import (
+    DatasetConfig,
+    TimepointAnnotation,
+    get_all_unannotated_timepoints,
+    get_subset_of_timepoint_annotations,
+    load_dataset_collection_config,
+)
 from endo_pipeline.io import (
     build_fms_annotations,
     get_output_path,
@@ -17,7 +23,12 @@ from endo_pipeline.io import (
     upload_file_to_fms,
 )
 from endo_pipeline.library.model.model_config_overrides import ModelConfigOverride
-from endo_pipeline.manifests import DataframeLocation, DataframeManifest, save_dataframe_manifest
+from endo_pipeline.manifests import (
+    DataframeLocation,
+    DataframeManifest,
+    ModelManifest,
+    save_dataframe_manifest,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -261,7 +272,6 @@ def build_and_save_dataframe_manifest_for_training(
         name=manifest_name,
         workflow=workflow_name,
         parameters={
-            "resolution_level": resolution_level,
             "z_slice_offsets": z_slice_offsets,
             "include_cell_piling": include_cell_piling,
         },
@@ -325,8 +335,13 @@ def initialize_diffae_model_for_finetuning(
     """
     # override base model with finetuning config parameters
     # ** except ** keep the checkpoint path from the loaded model
-    checkpoint_override = {"checkpoint_path": base_model.cfg["checkpoint_path"]}
+    checkpoint_override = {"checkpoint.ckpt_path": base_model.cfg.checkpoint.ckpt_path}
     template_finetune_config.update(checkpoint_override)
+
+    # if noise_cons is in the model section, drop it
+    if "noise_cons" in base_model.cfg.model:
+        base_model.cfg.model.pop("noise_cons")
+
     # override downloaded model config with finetuning config
     base_model.override_config(template_finetune_config)
 
@@ -385,3 +400,22 @@ def get_dataset_names_used_for_training(
                 training_dataset_names.append(dataset_name)
 
     return sorted(training_dataset_names)
+
+
+def get_included_frames_for_model(
+    dataset_config: DatasetConfig, model_manifest: ModelManifest
+) -> dict[int, list[int]]:
+    """Get list of frames for model training based on timepoint annotations."""
+
+    # Default behavior is to remove all annotations except NOT_STEADY_STATE
+    annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
+
+    # If cell piling is included, then exclude that annotation from filter
+    if model_manifest.parameters["include_cell_piling"]:
+        annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
+
+    # Get list of timepoint annotations to filter out
+    annotations = get_subset_of_timepoint_annotations(annotations_to_ignore=annotations_to_ignore)
+
+    # Get list of timepoints without any of the filtered annotations by position
+    return get_all_unannotated_timepoints(dataset_config, annotations=annotations)

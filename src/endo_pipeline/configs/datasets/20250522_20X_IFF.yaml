@@ -1,6 +1,6 @@
 name: 20250522_20X_IFF
+date: '20250522'
 original_path: //allen/programs/allencell/data/proj0/8e8/0a1/4a6/743/9c7/c0b/945/91a/7a7/eae/7c/20250522_GE00007986_20X_sldy/20250522_GE00007986_20X_sldy.sldy
-zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250522_7ceae7a791a945c0b9c77434a60a18e8
 zarr_positions: [0, 1, 2, 3, 4, 5]
 fmsid: 7ceae7a791a945c0b9c77434a60a18e8
 barcode: GE00007986
@@ -26,6 +26,7 @@ zarr_channel_indices:
   channel_405: 2
   channel_561: 3
   channel_640: 4
+channel_names: [EGFP, BF, NucViolet, SOX17, SMAD1]
 flow_conditions:
 - start: -433
   stop: -145

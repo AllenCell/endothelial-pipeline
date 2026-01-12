@@ -1,3 +1,8 @@
+from endo_pipeline.cli import tags
+
+TAGS = [tags.TEST_READY, tags.GPU]
+
+
 def main(
     model_manifest_name: str = "diffae_finetuned_for_fixed",
     run_name: str | None = None,
@@ -25,7 +30,7 @@ def main(
         Number of PCs to validate.
     """
 
-    from endo_pipeline import NUM_GPUS
+    from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import load_model_config
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
@@ -33,7 +38,10 @@ def main(
     from endo_pipeline.library.model import load_model_for_inference
     from endo_pipeline.library.visualize.integration import viz_validate_pcs_for_integration
     from endo_pipeline.manifests import load_model_manifest
-    from endo_pipeline.settings import DIFFAE_MODEL_EVAL_FINETUNE_CONFIG
+    from endo_pipeline.settings import (
+        DEFAULT_PCA_DATASET_COLLECTION_NAME,
+        DIFFAE_MODEL_EVAL_FINETUNE_CONFIG,
+    )
 
     # Results directory
     save_path = get_output_path("fixed_live_validation")
@@ -64,7 +72,7 @@ def main(
     )
 
     # Load or fit reference PCA model and project features into reference PC space
-    pca = fit_pca("pca_reference_legacy")
+    pca = fit_pca(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
     # Project features from applying fine tuned diffAE model to fixed and live data into
     # reference PC space.
@@ -109,8 +117,8 @@ def main(
             pc,
             raw_data,
             validation_data,
-            axmin=axmin,
-            axmax=axmax,
+            axmin,
+            axmax,
         )
 
         # Plot raw data for paired live and time-lagged live PC values as well as confidence
@@ -120,13 +128,13 @@ def main(
             pc,
             raw_data_ref,
             validation_data_ref,
+            axmin,
+            axmax,
             lagged_live_validation=True,
-            axmin=axmin,
-            axmax=axmax,
         )
 
 
 if __name__ == "__main__":
-    from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)

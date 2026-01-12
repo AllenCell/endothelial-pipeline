@@ -86,7 +86,7 @@ def get_density_map_from_thresholds(
     print(f"T={T} -- loading dataset") if VERBOSE else None
     # get the binning levels of the dataset so we can always use the lowest resolution
     dataset_filepath = Path(get_zarr_path(dataset_name))
-    img_bin_level = sorted([level for level in BioImage(dataset_filepath).resolution_levels])[-1]
+    img_bin_level = sorted(BioImage(dataset_filepath).resolution_levels)[-1]
     # get the name of the cadherin channel
     chan_names = [
         name for name in get_available_channels(dataset_name) if name in ("CDH5", "CDH5_Tubulin")
@@ -141,7 +141,7 @@ def get_density_map_from_segmentations(
     # get the lowest resolution binning level of the dataset so we can downsample the
     # classic cdh5 segmentations (which are done on the native resolution)
     dataset_filepath = Path(get_zarr_path(dataset_name))
-    img_bin_level = sorted([level for level in BioImage(dataset_filepath).resolution_levels])[-1]
+    img_bin_level = sorted(BioImage(dataset_filepath).resolution_levels)[-1]
 
     print(f"T={T} -- loading segmentation") if VERBOSE else None
     # --------------------------------------------------------------------------

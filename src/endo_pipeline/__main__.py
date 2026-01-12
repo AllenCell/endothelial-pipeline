@@ -2,7 +2,6 @@ import importlib
 import logging
 import os
 import re
-from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
@@ -10,7 +9,6 @@ from typing import Annotated
 from cyclopts import App, Group, Parameter
 from rich.console import Console
 
-from endo_pipeline import IS_MAIN_PROCESS
 from endo_pipeline.cli.options import PipelineOptions, WorkflowOptions
 
 logger = logging.getLogger("")
@@ -18,7 +16,6 @@ logger = logging.getLogger("")
 pipeline_app = App(
     help="Endothelial pipeline CLI",
     version_flags=[],
-    default_parameter=Parameter(negative=()),
     console=Console(),
 )
 
@@ -32,6 +29,7 @@ tags: dict[str, list[str]] = {}
 EXTERNAL_LOGGERS = {
     "aicsfiles.client.http.http_client": logging.WARNING,
     "cyto_dl": logging.ERROR,
+    "fontTools.subset": logging.WARNING,
     "fsspec.local": logging.WARNING,
     "git.cmd": logging.WARNING,
     "h5py._conv": logging.WARNING,
@@ -48,35 +46,37 @@ EXTERNAL_LOGGERS = {
 FIGURE_WORKFLOWS = Group("Figure Workflows", sort_key=0)
 PRODUCTION_WORKFLOWS = Group("Production Workflows", sort_key=1)
 DEVELOPMENT_WORKFLOWS = Group("Development Workflows", sort_key=2)
-ARCHIVED_WORKFLOWS = Group("Archived Workflows", sort_key=3)
+TESTING_WORKFLOWS = Group("Test Many Workflows", sort_key=3)
+ARCHIVED_WORKFLOWS = Group("Archived Workflows", sort_key=4)
+INTERNAL_WORKFLOWS = Group("Internal Workflows", sort_key=5)
 
 WORKFLOW_OPTIONS = WorkflowOptions()
 PIPELINE_OPTIONS = PipelineOptions()
 
+IS_MAIN_PROCESS: bool = int(os.environ.get("LOCAL_RANK", "0")) == 0
+"""True if the current process is the main process, False otherwise."""
 
-def pipeline_cli() -> None:
-    """Pipeline CLI."""
 
+def build_pipeline_app():
+    """
+    Add all the options to pipeline_app.
+    This function is split out from pipeline_cli so it can be used in tests.
+    """
     pipeline_app["--help"].group = "Options"
 
     build_cli_group(FIGURE_WORKFLOWS, "figures", True)
     build_cli_group(PRODUCTION_WORKFLOWS, "production", True)
     build_cli_group(DEVELOPMENT_WORKFLOWS, "development", True)
-    build_cli_group(ARCHIVED_WORKFLOWS, "archive", False)
+    build_cli_group(TESTING_WORKFLOWS, "testing", True)
+    build_cli_group(INTERNAL_WORKFLOWS, "internal", True)
 
     pipeline_app.meta.default(pipeline_entrypoint)
+
+
+def pipeline_cli() -> None:
+    """Pipeline CLI."""
+    build_pipeline_app()
     pipeline_app.meta()
-
-
-def workflow_cli(workflow: Callable) -> None:
-    """Workflow CLI."""
-
-    workflow_app["--help"].group = "Options"
-
-    workflow_app.default(workflow)
-
-    workflow_app.meta.default(workflow_entrypoint)
-    workflow_app.meta()
 
 
 def pipeline_entrypoint(
@@ -88,39 +88,21 @@ def pipeline_entrypoint(
 
     apply_workflow_options(workflow_options)
 
-    for app in pipeline_app.meta.subapps:
-        if (
-            pipeline_options.show_archive
-            and app.group
-            and app.group[0].name == ARCHIVED_WORKFLOWS.name
-        ):
-            app.show = True
-
-        if app.name[0] in tags:
+    for name, app in pipeline_app.resolved_commands().items():
+        if name in tags:
             if pipeline_options.show_tags:
-                app.help = f"| {' | '.join(tags[app.name[0]])} | {app.help}"
+                app.help = f"| {' | '.join(tags[name])} | {app.help}"
 
             if pipeline_options.filter_tag:
-                app.show = pipeline_options.filter_tag in tags[app.name[0]] and app.show
+                app.show = pipeline_options.filter_tag in tags[name] and app.show
 
     pipeline_app(tokens)
-
-
-def workflow_entrypoint(
-    *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
-    workflow_options: WorkflowOptions = WORKFLOW_OPTIONS,
-) -> None:
-    """Workflow CLI entrypoint."""
-
-    apply_workflow_options(workflow_options)
-
-    workflow_app(tokens)
 
 
 def apply_workflow_options(options: WorkflowOptions):
     """Apply options for running workflows."""
 
-    import endo_pipeline
+    import endo_pipeline.cli
 
     if options.debug:
         setup_logging(logging.DEBUG)
@@ -134,19 +116,19 @@ def apply_workflow_options(options: WorkflowOptions):
 
     if IS_MAIN_PROCESS:
         if options.num_gpus is not None and options.num_gpus > 0:
-            endo_pipeline.NUM_GPUS = setup_gpu(options.num_gpus)
+            endo_pipeline.cli.NUM_GPUS = setup_gpu(options.num_gpus)
         else:
             logger.info("Workflow running on CPU")
-            endo_pipeline.NUM_GPUS = None
+            endo_pipeline.cli.NUM_GPUS = None
             os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
     if options.demo_mode:
         logger.info("Running workflow in demo mode")
-        endo_pipeline.DEMO_MODE = True
+        endo_pipeline.cli.DEMO_MODE = True
 
     if options.use_staging:
         logger.info("Using staging environments")
-        endo_pipeline.USE_STAGING = True
+        endo_pipeline.cli.USE_STAGING = True
 
 
 def build_cli_group(group: Group, directory: str, show: bool) -> None:
@@ -265,7 +247,7 @@ def silence_external_loggers(external_loggers: dict) -> None:
         external_logger.setLevel(logging_level)
 
 
-def setup_gpu(num_gpus: int | None) -> int | None:
+def setup_gpu(num_gpus: int) -> int | None:
     """
     Set up the GPU environment for workflow.
 

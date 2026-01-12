@@ -34,7 +34,7 @@ class ShearStressRegime(Enum):
     HIGH = ("high", 13.0, 16.0)
     """High shear stress (target: 15 dyn/cm2)."""
 
-    MAX = ("max", 19.5, 35.0)
+    MAX = ("max", 18.5, 35.0)
     """Maximum shear stress tested (target: 20 dyn/cm2)."""
 
     upper: float
@@ -143,11 +143,11 @@ class DatasetConfig:
     name: str
     """Unique name of the dataset."""
 
+    date: str
+    """Date the dataset was collected, formatted as YYYYMMDD."""
+
     original_path: str
     """Original path to dataset."""
-
-    zarr_path: str
-    """Path to dataset converted to Zarr format."""
 
     zarr_positions: list[int]
     """List of available Zarr positions."""
@@ -193,6 +193,9 @@ class DatasetConfig:
 
     zarr_channel_indices: ChannelIndices
     """Channel indices for dataset converted to Zarr format."""
+
+    channel_names: list[str]
+    """List of channel names."""
 
     flow_conditions: list[FlowCondition]
     """List of flow conditions for the dataset."""

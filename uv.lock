@@ -943,7 +943,7 @@ wheels = [
 
 [[package]]
 name = "cyclopts"
-version = "3.24.0"
+version = "4.4.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
@@ -951,14 +951,14 @@ dependencies = [
     { name = "rich" },
     { name = "rich-rst" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/30/ca/7782da3b03242d5f0a16c20371dff99d4bd1fedafe26bc48ff82e42be8c9/cyclopts-3.24.0.tar.gz", hash = "sha256:de6964a041dfb3c57bf043b41e68c43548227a17de1bad246e3a0bfc5c4b7417", size = 76131, upload_time = "2025-09-08T15:40:57.75Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/43/c4/60b6068e703c78656d07b249919754f8f60e9e7da3325560574ee27b4e39/cyclopts-4.4.4.tar.gz", hash = "sha256:f30c591c971d974ab4f223e099f881668daed72de713713c984ca41479d393dd", size = 160046, upload-time = "2026-01-05T03:40:18.438Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f0/8b/2c95f0645c6f40211896375e6fa51f504b8ccb29c21f6ae661fe87ab044e/cyclopts-3.24.0-py3-none-any.whl", hash = "sha256:809d04cde9108617106091140c3964ee6fceb33cecdd537f7ffa360bde13ed71", size = 86154, upload_time = "2025-09-08T15:40:56.41Z" },
+    { url = "https://files.pythonhosted.org/packages/20/5b/0eceb9a5990de9025733a0d212ca43649ba9facd58b8552b6bf93c11439d/cyclopts-4.4.4-py3-none-any.whl", hash = "sha256:316f798fe2f2a30cb70e7140cfde2a46617bfbb575d31bbfdc0b2410a447bd83", size = 197398, upload-time = "2026-01-05T03:40:17.141Z" },
 ]
 
 [[package]]
 name = "cyto-dl"
-version = "0.6.1"
+version = "0.6.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anndata" },
@@ -967,6 +967,7 @@ dependencies = [
     { name = "bioio-base" },
     { name = "bioio-czi" },
     { name = "bioio-ome-tiff" },
+    { name = "bioio-ome-zarr" },
     { name = "bioio-tifffile" },
     { name = "boto3" },
     { name = "edt" },
@@ -997,9 +998,8 @@ dependencies = [
     { name = "tqdm" },
     { name = "universal-pathlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/aa/74/df392a762a8e2e070a11faaf714553d2d30df38343e030100982b6888d76/cyto-dl-0.6.1.tar.gz", hash = "sha256:f3a3a5d5110a3bd549c8c930d614f8f42759824f2a587bfe12a0ac0229d914ee", size = 438080, upload_time = "2025-05-05T20:42:15.459Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/22/df/930ad85f8c005c68c22acf54ae8f8159d86d3ac83acb7ec93ef0449a59b8/cyto_dl-0.6.1-py3-none-any.whl", hash = "sha256:7c33e6df980299a590ac41ecc3a4f053e7c95ad1bd9f595bbcef09eb365ddb92", size = 310639, upload_time = "2025-05-05T20:42:13.398Z" },
+    { url = "https://files.pythonhosted.org/packages/3f/13/7e426b1fd13d14348d14a79685d9f4ecbe4b53be5eeec48462fdd4bb6891/cyto_dl-0.6.2-py3-none-any.whl", hash = "sha256:9d1b97ee245b0a9d5b274a5601dcc85fd9bf4a36dc7b4c70848c4c830393a97c", size = 310855, upload-time = "2025-11-24T19:44:21.716Z" },
 ]
 
 [[package]]
@@ -1229,6 +1229,7 @@ dependencies = [
     { name = "bioio-ome-zarr" },
     { name = "bioio-sldy" },
     { name = "bioio-tifffile" },
+    { name = "cellpose" },
     { name = "colorcet" },
     { name = "colorizer-data" },
     { name = "cyclopts" },
@@ -1255,15 +1256,13 @@ dependencies = [
     { name = "scipy" },
     { name = "seaborn" },
     { name = "sympy" },
+    { name = "termcolor" },
     { name = "torch" },
     { name = "tqdm" },
     { name = "vtk" },
 ]
 
 [package.optional-dependencies]
-cellpose = [
-    { name = "cellpose" },
-]
 internal = [
     { name = "aicsfiles" },
     { name = "s3-tools" },
@@ -1319,11 +1318,11 @@ requires-dist = [
     { name = "bioio-ome-zarr", specifier = ">=1.1.1" },
     { name = "bioio-sldy", specifier = ">=1.0.3" },
     { name = "bioio-tifffile", specifier = ">=1.0.1" },
-    { name = "cellpose", marker = "extra == 'cellpose'", specifier = ">=3.1.0" },
+    { name = "cellpose", specifier = ">=3.1.0" },
     { name = "colorcet", specifier = ">=3.1.0" },
     { name = "colorizer-data", git = "https://github.com/allen-cell-animated/colorizer-data.git?rev=v1.6.3" },
-    { name = "cyclopts", specifier = ">=3.22.4" },
-    { name = "cyto-dl", marker = "extra == 'ml-workflows'", specifier = ">=0.6.1" },
+    { name = "cyclopts", specifier = ">=4.4.4" },
+    { name = "cyto-dl", marker = "extra == 'ml-workflows'", specifier = ">=0.6.2" },
     { name = "deprecated", specifier = ">=1.2.18" },
     { name = "fastparquet", specifier = ">=2024.11.0" },
     { name = "fipy", specifier = ">=3.4.5" },
@@ -1350,11 +1349,12 @@ requires-dist = [
     { name = "scipy", specifier = "==1.13.1" },
     { name = "seaborn", specifier = ">=0.13.2" },
     { name = "sympy", specifier = "==1.13.1" },
+    { name = "termcolor", specifier = ">=3.0.1" },
     { name = "torch", specifier = "~=2.0.0" },
     { name = "tqdm", specifier = ">=4.66.5" },
     { name = "vtk", specifier = ">=9.4.1" },
 ]
-provides-extras = ["internal", "ml-workflows", "cellpose"]
+provides-extras = ["internal", "ml-workflows"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pre-commit", specifier = ">=3.7.1" }]
@@ -1871,13 +1871,12 @@ dependencies = [
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/de/bf/81c848ffe2b42fc141b6db3e4e8e650183b7aab8c4535498ebff25740a3b/imagecodecs-2025.3.30.tar.gz", hash = "sha256:29256f44a7fcfb8f235a3e9b3bae72b06ea2112e63bcc892267a8c01b7097f90", size = 9506573, upload_time = "2025-03-30T04:44:50.368Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2d/09/8c475f73685e864c3742dc38596e3a2b897006402199f42905a09d05395d/imagecodecs-2025.3.30-cp311-cp311-macosx_10_14_x86_64.whl", hash = "sha256:7e0afe1a05a942391abd7d1f25722a07de05d9d12eb6f3ca1ef48e0719c6796a", size = 17946410, upload_time = "2025-03-30T04:43:17.129Z" },
-    { url = "https://files.pythonhosted.org/packages/6b/81/cd6df5a61c85a5f227a3e0b242ad7a04192f8f5dd8b0f65308872e618dbb/imagecodecs-2025.3.30-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:44dc270d78b7cda29e2d430acbd8dab66322766412e596f450871e2831148aa2", size = 15050151, upload_time = "2025-03-30T04:43:20.36Z" },
-    { url = "https://files.pythonhosted.org/packages/00/bc/929ad2025a60e5cfda80330749d6b44ff7a5e1ccf457d998e0e622010881/imagecodecs-2025.3.30-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1cee56331d9a700e9ec518caeba6d9813ffd7c042f1fae47d2dafcdfc259d2a5", size = 44161549, upload_time = "2025-03-30T04:43:25.322Z" },
-    { url = "https://files.pythonhosted.org/packages/b2/e4/23f8d23822b1fab85edc2b11ee9af7dffc5325e57fc1c05fbd8ba64b67b8/imagecodecs-2025.3.30-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e354fa2046bb7029d0a1ff15a8bb31487ca0d479cd42fdb5c312bcd9408ce3fc", size = 45559360, upload_time = "2025-03-30T04:43:31.614Z" },
-    { url = "https://files.pythonhosted.org/packages/7e/2c/99186caec5fbffa0392e5fade328391feee927fcf51f3e010b57afe5f330/imagecodecs-2025.3.30-cp311-cp311-win32.whl", hash = "sha256:4ce5c1eb14716bfa733516a69f3b8b77f05cf0541558cc4e8f8991e57d40cc82", size = 24112582, upload_time = "2025-03-30T04:43:37.002Z" },
-    { url = "https://files.pythonhosted.org/packages/eb/d1/4148e036c1f4d4a56aa437dfccf1d1e38ade691242ae4fb1ed6c75198984/imagecodecs-2025.3.30-cp311-cp311-win_amd64.whl", hash = "sha256:7debc7231780d8e44ffcd13aee2178644d93115c19ff73c96cf3068b219ac3a2", size = 28881661, upload_time = "2025-03-30T04:43:41.259Z" },
-    { url = "https://files.pythonhosted.org/packages/bd/65/52c9ed63fe3ef0601775d3469b495eadf00174ac0f38d9499871866a5e3b/imagecodecs-2025.3.30-cp311-cp311-win_arm64.whl", hash = "sha256:2b5c1c02c70da9561da9b728b97599b3ed0ef7d5399979017ce90029f522587b", size = 23780188, upload_time = "2025-03-30T04:43:45.92Z" },
+    { url = "https://files.pythonhosted.org/packages/2d/09/8c475f73685e864c3742dc38596e3a2b897006402199f42905a09d05395d/imagecodecs-2025.3.30-cp311-cp311-macosx_10_14_x86_64.whl", hash = "sha256:7e0afe1a05a942391abd7d1f25722a07de05d9d12eb6f3ca1ef48e0719c6796a", size = 17946410, upload-time = "2025-03-30T04:43:17.129Z" },
+    { url = "https://files.pythonhosted.org/packages/6b/81/cd6df5a61c85a5f227a3e0b242ad7a04192f8f5dd8b0f65308872e618dbb/imagecodecs-2025.3.30-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:44dc270d78b7cda29e2d430acbd8dab66322766412e596f450871e2831148aa2", size = 15050151, upload-time = "2025-03-30T04:43:20.36Z" },
+    { url = "https://files.pythonhosted.org/packages/00/bc/929ad2025a60e5cfda80330749d6b44ff7a5e1ccf457d998e0e622010881/imagecodecs-2025.3.30-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1cee56331d9a700e9ec518caeba6d9813ffd7c042f1fae47d2dafcdfc259d2a5", size = 44161549, upload-time = "2025-03-30T04:43:25.322Z" },
+    { url = "https://files.pythonhosted.org/packages/b2/e4/23f8d23822b1fab85edc2b11ee9af7dffc5325e57fc1c05fbd8ba64b67b8/imagecodecs-2025.3.30-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e354fa2046bb7029d0a1ff15a8bb31487ca0d479cd42fdb5c312bcd9408ce3fc", size = 45559360, upload-time = "2025-03-30T04:43:31.614Z" },
+    { url = "https://files.pythonhosted.org/packages/eb/d1/4148e036c1f4d4a56aa437dfccf1d1e38ade691242ae4fb1ed6c75198984/imagecodecs-2025.3.30-cp311-cp311-win_amd64.whl", hash = "sha256:7debc7231780d8e44ffcd13aee2178644d93115c19ff73c96cf3068b219ac3a2", size = 28881661, upload-time = "2025-03-30T04:43:41.259Z" },
+    { url = "https://files.pythonhosted.org/packages/bd/65/52c9ed63fe3ef0601775d3469b495eadf00174ac0f38d9499871866a5e3b/imagecodecs-2025.3.30-cp311-cp311-win_arm64.whl", hash = "sha256:2b5c1c02c70da9561da9b728b97599b3ed0ef7d5399979017ce90029f522587b", size = 23780188, upload-time = "2025-03-30T04:43:45.92Z" },
 ]
 
 [[package]]

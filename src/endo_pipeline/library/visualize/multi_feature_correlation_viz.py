@@ -8,6 +8,7 @@ Creates an n_features X n_features grid of plots with:
 3) Correlation values on the upper triangle
 """
 
+import logging
 from pathlib import Path
 from typing import Literal
 
@@ -17,9 +18,10 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.colors import Normalize
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, ScalarFormatter
 from scipy import stats as spstats
 from scipy.cluster.hierarchy import linkage
+from tqdm import tqdm
 
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
 from endo_pipeline.io.output import save_plot_to_path
@@ -27,9 +29,17 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_datafram
 from endo_pipeline.library.analyze.integration.track_integration import (
     get_preprocessed_manifests_and_km_bounds,
 )
+from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+    calculate_derived_data_dynamics_dependent,
+)
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.manifests import ModelManifest
-from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
+from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME, RANDOM_SEED
+from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+
+logger = logging.getLogger(__name__)
+
+plt.style.use("endo_pipeline.figure")
 
 
 def add_feature_scatter_plot(
@@ -72,11 +82,15 @@ def add_feature_scatter_plot(
     x, y = feat1, feat2
     ymin = y.min()
     ymax = y.max()
-    ax.scatter(x, y, s=0.05, c=color, alpha=alpha)
+    ax.scatter(x, y, s=0.05, c=color, alpha=alpha, linewidths=0, marker="o")
     ax.set_xlim(x.min(), x.max())
     ax.set_ylim(ymin, ymax)
     ax.xaxis.set_major_locator(MaxNLocator(nbins=3, min_n_ticks=3))
     ax.yaxis.set_major_locator(MaxNLocator(nbins=3, min_n_ticks=3))
+    formatter = ScalarFormatter(useMathText=True)
+    formatter.set_scientific(True)
+    formatter.set_powerlimits((-3, 3))
+    ax.xaxis.set_major_formatter(formatter)
     if feat2_id:
         plt.setp(ax.get_yticklabels(), visible=False)
         ax.tick_params(axis="y", which="both", length=0.0)
@@ -107,19 +121,20 @@ def add_correlation_values(
     plt.setp(ax.get_yticklabels(), visible=False)
     ax.tick_params(axis="x", which="both", length=0.0)
     ax.tick_params(axis="y", which="both", length=0.0)
-    spearman, _ = spstats.spearmanr(x, y)
+    pearson, _ = spstats.pearsonr(x, y)
 
     rdbu_cmap = plt.colormaps["RdBu"]
-    normalized_corr = (spearman + 1) / 2  # type: ignore
+    normalized_corr = (pearson + 1) / 2  # type: ignore
     bg_color = rdbu_cmap(normalized_corr)
     ax.set_facecolor(bg_color)
     ax.text(
-        0.25,
-        0.45,
-        f"{spearman:.2f}",
-        size=20,
-        ha="left",
+        0.5,
+        0.5,
+        f"{pearson:.2f}",
+        ha="center",
+        va="center",
         transform=ax.transAxes,
+        fontsize=FONTSIZE_SMALL,
     )
 
 
@@ -147,12 +162,20 @@ def add_feature_histogram(ax: Axes, feat: np.ndarray) -> None:
     )
 
 
+def get_plot_color_array(color: str | list | np.ndarray, indices: np.ndarray) -> np.ndarray:
+    """Get plot color array based on input color type."""
+    if isinstance(color, str):
+        plot_color = np.array([color] * len(indices))
+    elif isinstance(color, list | np.ndarray):
+        plot_color = np.array(color)[indices]
+    return plot_color
+
+
 def plot_multi_feature_correlations(
     df: pd.DataFrame,
     alpha: float = 0.7,
     cutoff_percent: float = 0,
-    dpi: int = 150,
-    title: str | None = None,
+    dpi: int = 300,
     output_folder: Path | None = None,
     color: str | list | np.ndarray = "black",
     filename: str = "multi_feature_correlations",
@@ -170,8 +193,6 @@ def plot_multi_feature_correlations(
         The percentage of the data to be removed from the edges
     dpi
         The resolution of the plot
-    title
-        The title of the plot
     output_folder
         The folder where the plot will be saved
     color
@@ -183,7 +204,6 @@ def plot_multi_feature_correlations(
     """
     num_features = len(df.columns)
     assert num_features >= 2
-    npts = df.shape[0]
     prange = []
     for f in df.columns:
         prange.append(np.nanpercentile(df[f].to_numpy(), [cutoff_percent, 100 - cutoff_percent]))
@@ -192,14 +212,14 @@ def plot_multi_feature_correlations(
     fig, axs = plt.subplots(
         num_features,
         num_features,
-        figsize=(2.1 * num_features, 2 * num_features),
+        figsize=(8.5, 9),
         sharex="col",
         gridspec_kw={"hspace": 0.1, "wspace": 0.1},
         constrained_layout=True,
+        dpi=dpi,
     )
 
     for f1id, f1 in enumerate(df.columns):
-        yrange = []
         for f2id, f2 in enumerate(df.columns):
             ax = axs[f1id, f2id]
             y = df[f1].to_numpy()
@@ -214,17 +234,16 @@ def plot_multi_feature_correlations(
                 & ~np.isinf(y)
                 & ~np.isinf(x)
             )[0]
+            valids = np.random.default_rng(seed=RANDOM_SEED).permutation(
+                valids
+            )  # Shuffle valid indices to avoid overlap
             x = x[valids]
             y = y[valids]
-            if isinstance(color, str):
-                plot_color = [color] * len(x)
-            elif isinstance(color, list | np.ndarray):
-                plot_color = np.array(color)
-                plot_color = plot_color[valids]
+            plot_color = get_plot_color_array(color, valids)
 
             # Make plots
             if f2id < f1id:
-                data_range = add_feature_scatter_plot(
+                _ = add_feature_scatter_plot(
                     ax=ax,
                     feat1_id=f1id,
                     feat2_id=f2id,
@@ -234,34 +253,21 @@ def plot_multi_feature_correlations(
                     color=plot_color,
                     num_features=num_features,
                 )
-                yrange.append(data_range)
             elif f2id > f1id:
                 add_correlation_values(ax=ax, feat1=x, feat2=y)
             else:
                 add_feature_histogram(ax=ax, feat=x)
 
             if f1id == num_features - 1:
-                ax.set_xlabel(f2, fontsize=12)
+                ax.set_xlabel(f2, rotation=45, ha="center")
             if not f2id and f1id:
-                ax.set_ylabel(f1, fontsize=12)
-        if yrange:
-            ymin = np.min([ymin for (ymin, _) in yrange])
-            ymax = np.max([ymax for (_, ymax) in yrange])
-            for f2id in range(len(df.columns)):
-                ax = axs[f1id, f2id]
-                if f2id < f1id:
-                    ax.set_ylim(ymin, ymax)
+                ax.set_ylabel(f1, rotation=0, ha="right")
 
     rdbu_cmap = plt.colormaps["RdBu"]
     cbar = fig.colorbar(
         plt.cm.ScalarMappable(norm=Normalize(-1, 1), cmap=rdbu_cmap), ax=axs, shrink=0.8, pad=0.02
     )
-    cbar.set_label("Correlation", rotation=270, labelpad=20)
-
-    if title is not None:
-        fig.suptitle(title, fontsize=24)
-    else:
-        fig.suptitle(f"Total number of points: {npts}", fontsize=24)
+    cbar.set_label("Pearson correlation coefficient", rotation=270, labelpad=20)
 
     if output_folder is None:
         plt.show()
@@ -272,44 +278,19 @@ def plot_multi_feature_correlations(
         output_path=output_folder,
         figure_name=filename,
         dpi=dpi,
-    )
-
-
-def plot_and_save_heatmap(
-    df: pd.DataFrame,
-    output_folder: Path,
-    filename: str = "correlation_heatmap",
-) -> None:
-    """
-    Plot and save a heatmap of the correlation matrix from the given DataFrame.
-
-    Parameters
-    ----------
-    df
-        The DataFrame containing the correlation matrix.
-    output_folder
-        The folder where the heatmap will be saved.
-    filename
-        The name of the file to save the heatmap as.
-    """
-    fig, ax = plt.subplots(figsize=(10, 10))
-    sns.heatmap(df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1, ax=ax)
-    ax.tick_params(axis="y", rotation=0)
-    save_plot_to_path(
-        figure=fig,
-        output_path=output_folder,
-        figure_name=filename,
+        file_format=".png",  # type: ignore
     )
 
 
 def plot_and_save_clustermap(
     df: pd.DataFrame,
     output_folder: Path,
-    filename: str = "correlation_clustermap",
+    filename: str,
+    metric: str = "correlation",
+    data_type: Literal["correlation", "samples"] = "samples",
 ) -> None:
     """
-    Plot and save a clustermap of the correlation matrix from the given DataFrame.
-    Clustering is performed on absolute values of the correlation coefficients.
+    Plot and save a clustermap from the given DataFrame.
 
     Parameters
     ----------
@@ -319,145 +300,115 @@ def plot_and_save_clustermap(
         The folder where the clustermap will be saved.
     filename
         The name of the file to save the clustermap as.
-    """
-    abs_data = df.abs().T
-    col_linkage = linkage(abs_data)
-    cluster_grid = sns.clustermap(
-        df,
-        annot=True,
-        cmap="RdBu",
-        center=0,
-        vmin=-1,
-        vmax=1,
-        figsize=(10, 10),
-        row_cluster=False,
-        col_cluster=True,
-        col_linkage=col_linkage,
-    )
-    save_plot_to_path(
-        figure=cluster_grid.figure,
-        output_path=output_folder,
-        figure_name=filename,
-    )
-
-
-def get_correlation_matrix_df(
-    features_df: pd.DataFrame,
-    column_names_for_x_axis: list[str],
-    column_names_for_y_axis: list[str],
-    x_axis_label: str,
-    y_axis_label: str,
-    df_format: Literal["long", "wide-corrcoeff", "wide-pval"] = "long",
-    sort_by_correlation: bool = False,
-) -> pd.DataFrame:
-    """
-    Get the Pearson correlations between each column in `column_names_for_x_axis`
-    compared with each column in `column_names_for_y_axis`.
-    This is used to compare the diffae features and the measured features,
-    and then used again to compare the PCs and the measured features.
-    If `df_format` is one of the "wide" options then the outputted dataframe
-    of this function can be passed directly to `seaborn.heatmap` or
-    `seaborn.clustermap` for visualization.
-
-    Parameters
-    ----------
-    features_df
-        The DataFrame containing the features to correlate.
-    column_names_for_x_axis
-        The names of the columns to use for the x-axis.
-    column_names_for_y_axis
-        The names of the columns to use for the y-axis.
-    x_axis_label
-        The name of the x-axis.
-    y_axis_label
-        The name of the y-axis.
-    df_format
-        The format of the output DataFrame. If "long", the output DataFrame will have columns:
-        - y_axis_label
-        - x_axis_label
-        - pearsonr
-        - pval
-        If "wide-corrcoeff", the output DataFrame will have a column for each column in
-        column_names_for_x_axis and the index will be the column names in
-        column_names_for_y_axis, with the values in the DataFrame corresponding to the
-        correlation coefficients from the "long" version of the table.
-        "wide-pval" is similar to "wide-corrcoeff" but the values correspond to the p-values.
-        Defaults to "long".
-    sort_by_correlation
-        If True, the output DataFrame will be sorted by the correlation coefficients
-
-    Returns
-    -------
-    :
-        A DataFrame containing the Pearson correlation coefficients and p-values between
-        the specified columns in `features_df`. The format of the DataFrame depends on
-        the `df_format` parameter.
+    metric
+        The distance metric to use for clustering. Default is "correlation".
+    data_type
+        The type of data in the DataFrame. Default is "samples".
 
     Notes
     -----
-    Rows with non-finite values in the features_df DataFrame will be dropped
-    For the specific comparison where the non-finite value would show up
-    (but not for the other comparisons).
+    If the DataFrame is large (more than 16 rows or columns),
+    annotations will be disabled for better readability.
+    data_type can be either "correlation" or "samples".
+    1) If "correlation", the DataFrame is assumed to contain correlation coefficients.
+       The clustering will be performed on the absolute values of the correlations.
+    2) If "samples", the DataFrame is assumed to contain raw sample data.
+       The clustering will be performed on the raw data.
     """
-
-    if df_format not in ("long", "wide-corrcoeff", "wide-pval"):
-        raise ValueError(
-            f"Unsupported df_format: {df_format}. "
-            f"Supported: 'long', 'wide-corrcoeff', 'wide-pval'."
-        )
-
-    records = []
-    for col_for_y in column_names_for_y_axis:
-        for col_for_x in column_names_for_x_axis:
-            valid_records = np.isfinite(features_df[[col_for_y, col_for_x]]).all(axis=1)
-            corr, pval = spstats.pearsonr(
-                features_df[col_for_y][valid_records],
-                features_df[col_for_x][valid_records],
+    annotate = check_if_heatmap_should_be_annotated(df)
+    clustering_metric = metric
+    if data_type == "correlation":
+        clustering_data = df.values**2  # Cluster on r^2 values
+        if clustering_metric == "euclidean":
+            logger.warning(
+                "Using 'euclidean' metric for clustering on correlation data "
+                "may not be appropriate. "
+                "Updating to 'cosine' metric."
             )
-            records.append(
-                {
-                    y_axis_label: col_for_y,
-                    x_axis_label: col_for_x,
-                    "pearsonr": corr,
-                    "pval": pval,
-                }
-            )
-    correlation_df = pd.DataFrame(records)
-
-    if df_format in ("wide-corrcoeff", "wide-pval"):
-        if df_format == "wide-corrcoeff":
-            value_col = "pearsonr"
-        elif df_format == "wide-pval":
-            value_col = "pval"
-        correlation_df = correlation_df.pivot(
-            index=y_axis_label,
-            columns=x_axis_label,
-            values=value_col,
-        )
-        correlation_df = correlation_df[column_names_for_x_axis]  # sort the columns
-        correlation_df = correlation_df.reindex(index=column_names_for_y_axis)  # sort the index
-        if sort_by_correlation:
-            correlation_df = correlation_df.T.loc[
-                correlation_df.T[column_names_for_y_axis]
-                .abs()
-                .sort_values(by=column_names_for_y_axis, axis=0, ascending=False)
-                .index
-            ].T
-
+            clustering_metric = "cosine"
+        center: float | None = 0.0
+        vmin: float | None = -1.0
+        vmax: float | None = 1.0
+        method = "average"
     else:
-        # The table is already in the "long" format by default so no changes are necessary.
-        pass
-    return correlation_df
+        clustering_data = df.values
+        center = vmin = vmax = None
+        method = "ward" if clustering_metric == "euclidean" else "average"
+
+    row_linkage = linkage(clustering_data, method=method, metric=clustering_metric)
+    col_linkage = linkage(clustering_data.T, method=method, metric=clustering_metric)
+
+    cluster_grid = sns.clustermap(
+        df,
+        annot=annotate,
+        cmap="RdBu",
+        center=center,
+        vmin=vmin,
+        vmax=vmax,
+        figsize=(MAX_FIGURE_WIDTH, min(MAX_FIGURE_HEIGHT, 1.5 * df.shape[0])),
+        row_cluster=True,
+        col_cluster=True,
+        row_linkage=row_linkage,
+        col_linkage=col_linkage,
+        cbar_pos=(0.06, 0.85, 0.03, 0.18),
+        annot_kws={"fontsize": FONTSIZE_SMALL},
+    )
+
+    # Version without clustering for reference
+    fig, ax = plt.subplots(
+        figsize=(MAX_FIGURE_WIDTH, min(MAX_FIGURE_HEIGHT, 0.8 * df.shape[0])), dpi=300
+    )
+    sns.heatmap(
+        df,
+        annot=annotate,
+        cmap="RdBu",
+        center=center,
+        vmin=vmin,
+        vmax=vmax,
+        ax=ax,
+        annot_kws={"fontsize": FONTSIZE_SMALL},
+    )
+
+    # Set only 5 tick labels on the color bar
+    if cluster_grid.cax is not None:
+        cmin, cmax = cluster_grid.cax.get_ylim()
+        cluster_grid.cax.yaxis.set_ticks(np.linspace(cmin, cmax, 5))
+        cluster_grid.cax.yaxis.set_ticklabels(
+            [f"{tick:.1g}" for tick in np.linspace(cmin, cmax, 5)]
+        )
+
+    # Set tick label rotation
+    for axis in [ax, cluster_grid.ax_heatmap]:
+        axis.set_xticklabels(
+            axis.get_xticklabels(),
+            rotation=45,
+            ha="right",
+        )
+        axis.set_yticklabels(
+            axis.get_yticklabels(),
+            rotation=0,
+        )
+
+    for figure, label in zip([fig, cluster_grid.figure], ["heatmap", "clustermap"], strict=False):
+        save_plot_to_path(
+            figure=figure,
+            output_path=output_folder,
+            figure_name=f"{filename}_{label}",
+            dpi=300,
+            file_format=".pdf",
+        )
 
 
 def get_df_for_feature_correlation_viz(
     dataset_name_list: list[str],
     dataset_info_columns: list[str],
-    classical_feature_columns: list[str],
+    segmentation_feature_columns: list[str],
+    num_pcs: int,
     pc_columns: list[str],
+    dataset_collection_name_for_pca: str,
     diffae_feature_columns: list[str],
     model_manifest: ModelManifest,
-    run_name: str | None = None,
+    run_name: str,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     timepoint_annotations: list[TimepointAnnotation] | None = None,
 ) -> pd.DataFrame:
@@ -472,12 +423,16 @@ def get_df_for_feature_correlation_viz(
         List of dataset names to process.
     dataset_info_columns
         List of columns containing dataset information.
-    classical_feature_columns
-        List of classical feature column names.
+    segmentation_feature_columns
+        List of segmentation feature column names.
+    num_pcs
+        Number of principal components to include. If None, uses NUM_PCS_TO_ANALYZE.
     pc_columns
         List of PCA component column names.
     diffae_feature_columns
         List of DiffAE feature column names.
+    dataset_collection_name_for_pca
+        The name of the dataset collection used for PCA.
     model_manifest
         The model manifest containing information about the DiffAE model.
     run_name
@@ -497,25 +452,23 @@ def get_df_for_feature_correlation_viz(
         filtered based on the provided timepoint annotations.
     """
     df_list: list = []
-    for dataset_name in dataset_name_list:
+    for dataset_name in tqdm(dataset_name_list):
         # load and preprocess the different diffae manifests and PCA pipeline
         # NOTE: this takes a little over a minute to load
-        merged_feats_df, _, _ = get_preprocessed_manifests_and_km_bounds(
+        merged_feats_df = get_preprocessed_manifests_and_km_bounds(
             dataset_name=dataset_name,
             model_manifest=model_manifest,
             run_name=run_name,
             seg_feature_manifest_name=seg_feature_manifest_name,
-            datasets_for_bounds=dataset_name_list,
-        )
+            collection_name_for_pca=dataset_collection_name_for_pca,
+            num_pcs=num_pcs,
+            filtered=True,  # filter to only include "is_included" timepoints
+        )[0]
 
-        # check that the chosen measurement column names
-        # are actually in the DataFrame
-        columns_to_check = classical_feature_columns + dataset_info_columns
-        if not all(np.isin(columns_to_check, merged_feats_df.columns)):
-            missing_columns = set(columns_to_check) - set(merged_feats_df.columns)
-            raise ValueError(
-                f"Not all columns names are in merged_feats_df. Missing:\n{missing_columns}"
-            )
+        # the original orientation feature is in radians
+        # and the y-axis is defined as 0 degrees
+        # this keeps the orientation angle range between 0-180 degrees
+        merged_feats_df["orientation_deg"] = np.rad2deg(merged_feats_df["orientation"] + np.pi / 2)
 
         # filter data table to only include the steady state timepoints that are
         # used when projecting the DiffAE features onto PCA axes
@@ -528,9 +481,24 @@ def get_df_for_feature_correlation_viz(
             timepoint_annotations=timepoint_annotations,
         )
 
+        # get dynamics dependent features
+        merged_feats_df = calculate_derived_data_dynamics_dependent(merged_feats_df)
+
+        # check that the chosen measurement column names
+        # are actually in the DataFrame
+        columns_to_check = segmentation_feature_columns + dataset_info_columns
+        if not all(np.isin(columns_to_check, merged_feats_df.columns)):
+            missing_columns = set(columns_to_check) - set(merged_feats_df.columns)
+            raise ValueError(
+                f"Not all columns names are in merged_feats_df. Missing:\n{missing_columns}"
+            )
+
         # keep only the columns that will be used
         cols_to_keep = (
-            dataset_info_columns + classical_feature_columns + diffae_feature_columns + pc_columns
+            dataset_info_columns
+            + segmentation_feature_columns
+            + diffae_feature_columns
+            + pc_columns
         )
 
         merged_feats_df = merged_feats_df[cols_to_keep].copy()
@@ -539,4 +507,36 @@ def get_df_for_feature_correlation_viz(
     # merge the DataFrames from all datasets
     df = pd.concat(df_list, ignore_index=True)
 
+    # drop rows with NaN or inf values
+    df = df.replace([np.inf, -np.inf], np.nan).dropna()
+
     return df
+
+
+def check_if_heatmap_should_be_annotated(
+    df,
+    max_num_features: int = 16,
+) -> bool:
+    """
+    Check if the heatmap should be annotated based on the number of features.
+
+    Parameters
+    ----------
+    df
+        The DataFrame containing data for the heatmap.
+    max_num_features
+        The maximum number of features to allow annotations. Default is 16.
+
+    Returns
+    -------
+    :
+        True if the heatmap should be annotated, False otherwise.
+    """
+    if df.shape[0] > max_num_features or df.shape[1] > max_num_features:
+        logger.debug(
+            "Disabling annotations for heatmap due to large number of features (%s x %s).",
+            df.shape[0],
+            df.shape[1],
+        )
+        return False
+    return True

@@ -60,10 +60,10 @@ def plot_paired_fixed_live_validation_features(
     pc: int,
     raw_data: tuple[ArrayLike, ArrayLike],
     paired_validation_features: tuple[Any, Any, Any, Any, Any, Ellipse],
+    axmin: float,
+    axmax: float,
     color_list: list[str] | None = None,
     lagged_live_validation: bool = False,
-    axmin: float | None = None,
-    axmax: float | None = None,
 ) -> None:
     """
     Plot the raw fixed and live data for a given PC along with a unity line for reference

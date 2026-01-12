@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from typing import Literal
 
 import imageio.v3 as iio
 import numpy as np
@@ -8,7 +9,8 @@ import pandas as pd
 from bioio import BioImage
 from tqdm import tqdm
 
-from endo_pipeline.configs import dataset_io
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import load_image
 from endo_pipeline.library.process.image_processing import (
     bf_slice,
     bf_std_dev,
@@ -18,17 +20,18 @@ from endo_pipeline.library.process.image_processing import (
     max_proj_561,
     max_proj_640,
 )
+from endo_pipeline.manifests import get_zarr_location_for_position
 
 
 def process_frame(
     func: Callable[[BioImage, int], np.ndarray],
     img: BioImage,
     frame: int,
-    dataset: str,
+    dataset_name: str,
     position: int,
     backdrop: str,
     output_dir: Path,
-    method: str,
+    method: Literal["min-max", "percentile"],
 ) -> None:
     """
     For an individual frame in the dataset, create and save the desired backdrop image
@@ -51,28 +54,25 @@ def process_frame(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Save image
-    fname = f"{dataset}_P{position}_{backdrop}_{frame}.png"
+    fname = f"{dataset_name}_P{position}_{backdrop}_{frame}.png"
     output_path = output_dir / fname
     iio.imwrite(output_path, image_contrasted)
 
 
 def generate_backdrops(
-    dataset: str,
+    dataset_name: str,
     position: int,
     backdrops: list[str],
     output_dir: Path,
-    method: str = "percentile",
+    method: Literal["min-max", "percentile"] = "percentile",
 ) -> None:
     """
     Generate and save backdrop images to be viewed together with the colorized
     segmentations in the TFE viewer.
     """
-
-    zarr_name = dataset_io.get_zarr_name(dataset, position)
-    zarr_path = dataset_io.get_zarr_dir(dataset)
-    filepath = Path(zarr_path) / zarr_name
-    img = BioImage(filepath)
-    img.set_resolution_level(1)
+    dataset_config = load_dataset_config(dataset_name)
+    location = get_zarr_location_for_position(dataset_config, position)
+    img = load_image(location, read=False, level=1)
 
     backdrop_functions: dict[str, Callable[[BioImage, int], np.ndarray]] = {
         "bf_slice": bf_slice,
@@ -85,7 +85,7 @@ def generate_backdrops(
 
     for backdrop, func in backdrop_functions.items():
         if backdrop in backdrops:
-            print(f"Generating {backdrop} for dataset {dataset}, position {position}...")
+            print(f"Generating {backdrop} for dataset {dataset_name}, position {position}...")
 
             with ThreadPoolExecutor() as executor:
                 futures = [
@@ -94,7 +94,7 @@ def generate_backdrops(
                         func,
                         img,
                         frame,
-                        dataset,
+                        dataset_name,
                         position,
                         backdrop,
                         output_dir,

@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,11 +10,12 @@ from dask.array import Array
 from matplotlib import colormaps
 from matplotlib.ticker import MaxNLocator, MultipleLocator
 
-from endo_pipeline.configs import DatasetConfig, get_zarr_file_for_position, load_dataset_config
-from endo_pipeline.io import load_image_from_path, save_plot_to_path
+from endo_pipeline.configs import DatasetConfig, load_dataset_config
+from endo_pipeline.io import load_image, save_plot_to_path
 from endo_pipeline.library.process.image_processing import contrast_stretching
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
 from endo_pipeline.library.visualize.viz_base import init_subplots
+from endo_pipeline.manifests import ImageLocation, get_zarr_location_for_position
 from endo_pipeline.settings.image_data import (
     LOWER_Z_SLICE_OFFSET,
     UPPER_Z_SLICE_OFFSET,
@@ -51,8 +52,9 @@ def calculate_global_center_plane(
     - "mean_center_plane": The mean center plane across all frames.
     - "std_dev_center_plane": The standard deviation of the center plane across all frames.
     """
-    zarr_file = get_zarr_file_for_position(dataset_config, position)
-    bf_stack_all_frames = load_image_from_path(zarr_file, channels=["BF"], level=1)
+
+    zarr_location = get_zarr_location_for_position(dataset_config, position)
+    bf_stack_all_frames = load_image(zarr_location, channels=["BF"], level=1)
 
     center_planes = []
 
@@ -97,8 +99,9 @@ def get_center_plane_for_position(dataset_config: DatasetConfig, position: int) 
     int
         The global center plane index for the specified position.
     """
-    zarr_file = get_zarr_file_for_position(dataset_config, position)
-    bf_stack_all_frames = load_image_from_path(zarr_file, channels=["BF"], level=1)
+
+    zarr_location = get_zarr_location_for_position(dataset_config, position)
+    bf_stack_all_frames = load_image(zarr_location, channels=["BF"], level=1)
 
     center_planes = []
 
@@ -175,17 +178,17 @@ def plot_standard_devs_per_slice(
         The frame index.
     output_dir
         Directory where the plot will be saved.
-
-    Returns
-    -------
-    None
     """
-    fig, ax = plt.subplots(figsize=(6, 6))
+
+    fig, ax = plt.subplots(figsize=(3, 3))
     ax.plot(stdevs)
 
     # Add a vertical line at the center plane index
     ax.axvline(
-        center_plane, color="red", linestyle="--", label=f"In-focus Z-slice\n(index={center_plane})"
+        center_plane,
+        color="red",
+        linestyle="--",
+        label=f"In-focus Z-slice\n(index = {center_plane})",
     )
 
     ax.set_title("In-focus Z-slice per timepoint")
@@ -194,7 +197,7 @@ def plot_standard_devs_per_slice(
     ax.legend()  # Add legend for the center plane label
 
     fname = f"standard_devs_{dataset}_P{position}_{frame}"
-    save_plot_to_path(fig, output_dir, fname, file_format=".pdf")
+    save_plot_to_path(fig, output_dir, fname, file_format=".svg")
     plt.show()
 
 
@@ -211,8 +214,9 @@ def calculate_center_planes_all_tp_for_pos(
     Returns:
         center_plantes: A list of center planes for each frame in the dataset.
     """
-    zarr_file = get_zarr_file_for_position(dataset_config, position)
-    bf_stack_all_frames = load_image_from_path(zarr_file, channels=["BF"], level=1)
+
+    zarr_location = get_zarr_location_for_position(dataset_config, position)
+    bf_stack_all_frames = load_image(zarr_location, channels=["BF"], level=1)
     center_planes = []
 
     for frame in range(0, dataset_config.duration, 1):
@@ -308,7 +312,7 @@ def visualize_slice_selection(
     )
 
     # Create subplots with a 2x3 grid
-    fig, axes = init_subplots(2, 3, figsize=(12, 8))
+    fig, axes = init_subplots(2, 3, figsize=(9.75, 6.5))
 
     # First row: BF stack
     axes[0, 0].imshow(im_below, cmap="gray")
@@ -316,7 +320,7 @@ def visualize_slice_selection(
     axes[0, 0].set_ylabel("Bright-field Slice")
 
     axes[0, 1].imshow(im_center, cmap="gray")
-    axes[0, 1].set_title(f"In focus Z-slice")
+    axes[0, 1].set_title("In focus Z-slice")
 
     axes[0, 2].imshow(im_above, cmap="gray")
     axes[0, 2].set_title(f"Upper Z-slice (+{upper_offest} offset)")
@@ -351,7 +355,7 @@ def visualize_slice_selection(
     plt.tight_layout()
 
     fname = f"plane_selection_vis_{dataset}_P{position}_{frame}_offset{lower_offset}_{upper_offest}_scalebar{scale_bar_um}um"
-    save_plot_to_path(fig, output_dir, fname, file_format=".pdf")
+    save_plot_to_path(fig, output_dir, fname, file_format=".svg")
     plt.show()
 
 
@@ -373,7 +377,7 @@ def plot_global_center_plane(
         )
     else:
         # Only scatter plot
-        fig, ax = plt.subplots(figsize=(6, 6))
+        fig, ax = plt.subplots(figsize=(3.33, 3.33))
         ax = [ax]  # make it indexable like a list
 
     # Scatter plot
@@ -408,7 +412,7 @@ def plot_global_center_plane(
         fig.tight_layout()
 
     fname = f"global_center_plane_{dataset}_P{position}"
-    save_plot_to_path(fig, output_dir, fname, file_format=".pdf")
+    save_plot_to_path(fig, output_dir, fname, file_format=".svg")
     plt.show()
     plt.close(fig)
 
@@ -619,12 +623,13 @@ def visualize_z_slices_with_offsets(
     dataset_config: DatasetConfig, position: int, timepoint: int, save_dir: Path
 ) -> None:
     """Visualize specific z-slices from BF and CDH5 stacks based on center plane and offsets."""
-    zarr_file = get_zarr_file_for_position(dataset_config, position)
-    bf_stack = load_image_from_path(
-        zarr_file, channels=["BF"], timepoints=timepoint, level=1, squeeze=True
+
+    zarr_location = get_zarr_location_for_position(dataset_config, position)
+    bf_stack = load_image(
+        zarr_location, channels=["BF"], timepoints=timepoint, level=1, squeeze=True
     )
-    cdh5_stack = load_image_from_path(
-        zarr_file, channels=["EGFP"], timepoints=timepoint, level=1, squeeze=True
+    cdh5_stack = load_image(
+        zarr_location, channels=["EGFP"], timepoints=timepoint, level=1, squeeze=True
     )
 
     if dataset_config.center_z_plane is None:
@@ -734,7 +739,7 @@ def plot_histogram_upper_slices_available(datasets: list[str], save_dir: Path) -
 
     df = pd.DataFrame(data)
 
-    fig = plt.figure(figsize=(5, 6))
+    fig = plt.figure(figsize=(3.05, 3.05))
     plt.hist(
         df["available_slices_above"],
         bins=range(10, 18, 1),
@@ -751,32 +756,23 @@ def plot_histogram_upper_slices_available(datasets: list[str], save_dir: Path) -
     df_11 = df[df["available_slices_above"] == 11]
     limiting_datasets = df_11.dataset.unique()
     text = "Datasets in 11:\n" + "\n".join(limiting_datasets)
-    plt.text(
-        0.95,
-        0.95,
-        text,
-        transform=plt.gca().transAxes,
-        fontsize=10,
-        verticalalignment="top",
-        horizontalalignment="right",
-        bbox={"facecolor": "white", "alpha": 0.8},
-    )
+    print(text)
 
     plt.show()
-    save_plot_to_path(fig, save_dir, "n_slices_above_in_focus_z_histogram", file_format=".pdf")
+    save_plot_to_path(fig, save_dir, "n_slices_above_in_focus_z_histogram", file_format=".svg")
 
 
 def compute_profiles(
-    zarr_file: Any, center_slice: int, timepoint: int
+    zarr_location: ImageLocation, center_slice: int, timepoint: int
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compute normalized BF std and CDH5 hist profiles for a given position/timepoint."""
 
     # Load stacks
-    bf_stack = load_image_from_path(
-        zarr_file, channels=["BF"], timepoints=timepoint, level=1, squeeze=True
+    bf_stack = load_image(
+        zarr_location, channels=["BF"], timepoints=timepoint, level=1, squeeze=True
     )
-    cdh5_stack = load_image_from_path(
-        zarr_file, channels=["EGFP"], timepoints=timepoint, level=1, squeeze=True
+    cdh5_stack = load_image(
+        zarr_location, channels=["EGFP"], timepoints=timepoint, level=1, squeeze=True
     )
 
     # Calculate histograms
@@ -852,10 +848,10 @@ def plot_normalized_profiles(
                             dataset,
                         )
                         continue
-                    zarr_file = get_zarr_file_for_position(dataset_config, position)
 
+                    zarr_location = get_zarr_location_for_position(dataset_config, position)
                     x, bf_std_norm, cdh5_hist_norm = compute_profiles(
-                        zarr_file, center_slice, timepoint
+                        zarr_location, center_slice, timepoint
                     )
 
                     axes[0].plot(x, bf_std_norm, color=colors[i])
@@ -903,10 +899,11 @@ def plot_normalized_profiles(
                             dataset,
                         )
                         continue
-                    zarr_file = get_zarr_file_for_position(dataset_config, position)
+
+                    zarr_location = get_zarr_location_for_position(dataset_config, position)
 
                     x, bf_std_norm, cdh5_hist_norm = compute_profiles(
-                        zarr_file, center_slice, timepoint
+                        zarr_location, center_slice, timepoint
                     )
 
                     axes[0].plot(x, bf_std_norm)

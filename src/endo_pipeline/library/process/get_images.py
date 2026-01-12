@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Literal, cast
 
 import dask.array as da
@@ -7,7 +6,8 @@ import pandas as pd
 from bioio import BioImage
 from tqdm import tqdm
 
-from endo_pipeline.configs import dataset_io
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import load_image
 from endo_pipeline.library.process.image_processing import (
     contrast_stretching,
     get_global_custom_range,
@@ -15,19 +15,8 @@ from endo_pipeline.library.process.image_processing import (
     max_proj,
     std_dev,
 )
+from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings import DIMENSION_ORDER, ColumnName
-
-
-def get_zarr_img_for_dataset(
-    dataset: str, position: int, resolution_level: Literal[0, 1] = 1
-) -> BioImage:
-    """Retrieve the BioImage object for a given dataset and position."""
-    zarr_name = dataset_io.get_zarr_name(dataset, position)
-    zarr_path = dataset_io.get_zarr_dir(dataset)
-    filepath = Path(zarr_path) / zarr_name
-    img = BioImage(filepath)
-    img.set_resolution_level(resolution_level)
-    return img
 
 
 def _get_crop(
@@ -96,12 +85,17 @@ def get_crops_in_dataframe(df: pd.DataFrame) -> tuple[
     # loop through each dataset in the dataframe
     for dataset, df_dataset in df.groupby(ColumnName.DATASET):
         dataset = cast(str, dataset)  # Ensure dataset is a string
+        dataset_config = load_dataset_config(dataset)
+
         with tqdm(total=len(df_dataset), desc=f"Processing crops for {dataset}") as pbar:
             # Loop through each position available in the dataset
             for position, df_pos in df_dataset.groupby(ColumnName.POSITION):
                 position = cast(str, position)  # Ensure position is a string
                 position_integer = int(position[-1])  # Extract the position number from the string
-                img = get_zarr_img_for_dataset(dataset, position_integer, resolution_level=1)
+
+                img_loc = get_zarr_location_for_position(dataset_config, position_integer)
+                img = load_image(img_loc, read=False, level=1)
+
                 for _, row in df_pos.iterrows():
                     timepoint = row[ColumnName.TIMEPOINT]
                     crop = _get_crop(

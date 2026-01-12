@@ -62,7 +62,7 @@ def process_dataset(
         model_manifest=model_manifest,
         run_name=run_name,
         seg_feature_manifest_name=seg_feature_manifest_name,
-        datasets_for_bounds=datasets_for_bounds,
+        collection_name_for_pca=datasets_for_bounds,
     )
 
     # keep only the columns that are needed for the analysis to reduce memory usage
@@ -73,7 +73,7 @@ def process_dataset(
         "track_id",
         "label",
         "crop_index",
-        "mlflow_id",
+        "model_manifest_name",
         "model_name",
         "image_index",
         "frame_number",
@@ -395,7 +395,7 @@ def main(
             model_manifest_name=model_manifest_name,
             run_name=run_name,
             seg_feature_manifest_name=seg_feature_manifest_name,
-            datasets_for_bounds=dataset_name_list,
+            datasets_for_bounds=dataset_collection_name,
             make_integrated_plots=True,
         )
 

@@ -1,12 +1,6 @@
 from bioio import BioImage
 
-from endo_pipeline.configs.dataset_io import (
-    get_fmsid,
-    get_microscope,
-    get_original_path,
-    get_time_interval_in_minutes,
-    get_total_number_of_positions,
-)
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.library.process.convert_to_zarr.load_raw_image_data import (
     get_delayed_array_for_position,
     get_included_scenes,
@@ -22,6 +16,7 @@ def convert_dataset(
     output_dataset_name: str,  # date
     output_path: str,
     channel_names: list[str],
+    demo_mode: bool = False,
 ) -> None:
     """
     Convert a raw dataset into a Zarr format with a specific channel order,
@@ -37,20 +32,21 @@ def convert_dataset(
         The base directory where the converted Zarr files will be saved.
     channel_names : list[str], optional
         A list of channel names to include in the output.
-
-    Returns
-    -------
-    None
+    demo_mode: bool
+        If True, process only the first scene for testing purposes
     """
 
-    img = BioImage(get_original_path(dataset))
-    if get_microscope(dataset) == "3i":
+    dataset_config = load_dataset_config(dataset)
+    img = BioImage(dataset_config.original_path)
+
+    if dataset_config.microscope == "3i":
         physical_pixel_sizes = get_sldy_pixel_sizes(img.metadata)
-    if get_microscope(dataset) == "Nikon":
+    if dataset_config.microscope == "Nikon":
         physical_pixel_sizes = img.physical_pixel_sizes
-    interval_min = get_time_interval_in_minutes(dataset)
-    fmsid = get_fmsid(dataset)
-    n_positions = get_total_number_of_positions(dataset)
+
+    interval_min = dataset_config.time_interval_in_minutes
+    fmsid = dataset_config.fmsid
+    n_positions = dataset_config.n_total_positions
 
     assert n_positions % len(img.scenes) == 0, (
         f"Number of positions ({n_positions}) in data_config.yaml must be divisible by "
@@ -86,3 +82,7 @@ def convert_dataset(
                 interval_min,
             )
             count += 1
+
+        if demo_mode:
+            print("Demo mode is ON. Processing only the first scene.")
+            break

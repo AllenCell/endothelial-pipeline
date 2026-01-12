@@ -7,20 +7,17 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from seaborn import color_palette
 
-from endo_pipeline.configs import load_dataset_collection_config
-from endo_pipeline.configs.dynamics_io import load_dynamics_config
-from endo_pipeline.io import load_dataframe
+from endo_pipeline.configs import get_latent_dim_from_config
+from endo_pipeline.io import get_config_dict_from_mlflow, load_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     add_description_column,
     fit_pca,
     get_dataframe_for_dynamics_workflows,
+    get_latent_feature_column_names,
     get_traj_and_diff,
     project_features_to_pcs,
 )
-from endo_pipeline.library.analyze.dynamics_utils import (
-    compute_extrapolated_vector_field,
-    solve_ddff_ode,
-)
+from endo_pipeline.library.analyze.dynamics_utils import solve_ddff_ode
 from endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
 from endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_data, get_bins
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
@@ -29,12 +26,24 @@ from endo_pipeline.manifests import (
     ModelManifest,
     get_dataframe_location_for_dataset,
     get_feature_dataframe_manifest_name,
+    get_model_location_for_run,
+    get_most_recent_run_name,
     load_dataframe_manifest,
 )
 from endo_pipeline.settings import (
+    DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    DIFFAE_PC_COLUMN_NAMES,
+    NUM_PCS_TO_ANALYZE,
     ColumnName,
+)
+from endo_pipeline.settings.flow_field_3d import (
+    INIT_POINT_3D,
+    KERNEL_PARAMS_3D,
+    NUM_BINS_3D,
+    TIME_STEP_IN_MINUTES,
+    TRAJECTORY_TIME_SPAN,
 )
 
 logger = logging.getLogger(__name__)
@@ -185,13 +194,18 @@ def merge_diffae_feats_liveseg_feats_tables(
     live_seg_feats_df["track_id"] = live_seg_feats_df["track_id"].astype(int)
 
     logging.debug("merging segmentation properties and track-based DiffAE data...")
+    unique_cell_seg_id_group = ["dataset_name", "position_as_str", "image_index", "track_id"]
+    unique_crop_id_group = [ColumnName.DATASET, "position_as_str", ColumnName.TIMEPOINT, "track_id"]
+    common_columns = ["zarr_path"]
+
     merged_feats_df = pd.merge(
         left=live_seg_feats_df,
         right=diffae_tracking_df,
         how="left",
-        left_on=["dataset_name", "position_as_str", "image_index", "track_id"],
-        right_on=[ColumnName.DATASET, "position_as_str", ColumnName.TIMEPOINT, "track_id"],
+        left_on=unique_cell_seg_id_group + common_columns,
+        right_on=unique_crop_id_group + common_columns,
         validate="one_to_one",
+        suffixes=("_cdh5_seg", "_diffae_model"),
     )
 
     return merged_feats_df
@@ -200,7 +214,7 @@ def merge_diffae_feats_liveseg_feats_tables(
 def get_diffae_feats_liveseg_feats_merged_table(
     dataset_name: str,
     model_manifest: ModelManifest,
-    run_name: str | None = None,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     filtered: bool = False,
 ) -> pd.DataFrame:
@@ -248,8 +262,8 @@ def get_diffae_feats_liveseg_feats_merged_table(
         # filter the merged table
         merged_feats_df = merged_feats_df[merged_feats_df["is_included"]]
 
-        # remove any rows that were not evaluated by the model and thus have no mlflow_id
-        merged_feats_df.dropna(axis="index", how="any", subset="mlflow_id", inplace=True)
+        # remove any rows that were not evaluated by the model and thus have no model_manifest_name
+        merged_feats_df.dropna(axis="index", how="any", subset="model_manifest_name", inplace=True)
 
     return merged_feats_df
 
@@ -260,33 +274,32 @@ def get_traj_and_flowfield(
     load_precomputed_trajectories: Path | None,
 ) -> tuple[np.ndarray, dict]:
 
-    # load default config, get kernel params
-    dynamics_config = load_dynamics_config("default")
-    kernel_params = dynamics_config["kramers_moyal"]["kernel_params"]
+    # set kernel params
+    kernel_params = KERNEL_PARAMS_3D
 
-    # get time between frames in minutes
-    dt = dynamics_config["dt"]
+    # set time between frames in minutes
+    dt = TIME_STEP_IN_MINUTES
 
     # time span for the ODE solver
     # units for time steps are in minutes
     # 48 hours in minutes =
     # 48 * 60 = 2880 time steps
-    time_span = [0.0, 2880.0]
+    time_span = TRAJECTORY_TIME_SPAN
 
     # initial condition for the ODE solver
     # this is fixed across datasets /
     # shear stress conditions
-    init = np.array([-0.1, -0.7, -0.1])
+    init = np.array(INIT_POINT_3D)
 
-    num_bins = [50, 50, 50]
+    num_bins = NUM_BINS_3D
     bins, centers = get_bins(num_bins, bin_limits=bounds)
 
     # get the columns to use for calculating trajectories
     # and flow fields.
-    cols = [f"pc{pc+1}" for pc in range(3)]
+    cols = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
-    # get list of per-crop trajectories, the corresponding
-    # displacement vectors, and time differences
+    # get list of per-crop trajectories and the corresponding
+    # single-timepoint displacement vectors
     traj_list, d_traj_list = get_traj_and_diff(df, cols)
 
     # get drift and diffusion estimates
@@ -295,10 +308,11 @@ def get_traj_and_flowfield(
         traj_list, d_traj_list, bins=bins, dt=dt, kernel_params=kernel_params
     )
 
-    # compute interpolated flow field - drift
-    flow_field_dict = compute_extrapolated_vector_field(
-        drift_km, centers, extrapolation_method="nearest"
-    )
+    # get the vector field components from
+    # the Kramers-Moyal coefficients
+    grid = np.meshgrid(*centers, indexing="ij")
+    drift_vector_field = [drift_km[..., i] for i in range(NUM_PCS_TO_ANALYZE)]
+    flow_field_dict = {"vectors": drift_vector_field, "grid": grid}
 
     if load_precomputed_trajectories is not None:
         logger.debug("Loading precomputed trajectories...")
@@ -595,9 +609,12 @@ def make_angular_deviation_test(out_dir: Path) -> None:
 def get_preprocessed_manifests_and_km_bounds(
     dataset_name: str,
     model_manifest: ModelManifest,
-    run_name: str | None = None,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
-    datasets_for_bounds: list[str] | None = None,
+    collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    num_pcs: int = NUM_PCS_TO_ANALYZE,
+    drop_rows_without_diffae_feats: bool = True,
+    filtered: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list]:
     """
     Load and process the DiffAE and live segmentation feature manifests for a given dataset.
@@ -617,9 +634,16 @@ def get_preprocessed_manifests_and_km_bounds(
         run will be used.
     seg_feature_manifest_name
         The name of the manifest containing segmentation features.
-    datasets_for_bounds
-        List of dataset names to use for computing the PCA bounds.
-        If None, the reference datasets plus dataset_name will be used.
+    collection_name_for_pca
+        The name of the dataset collection to use for fitting the PCA. Defaults to
+        DEFAULT_PCA_DATASET_COLLECTION_NAME.
+    num_pcs
+        The number of principal components to use for the PCA projection. If None, the minimum of
+        NUM_PCS_TO_ANALYZE and the number of latent dimensions will be used.
+    drop_rows_without_diffae_feats
+        Whether to drop rows in the merged DataFrame that do not have DiffAE features.
+    filtered
+        Whether to filter the merged DataFrame to include only rows marked as "is_included".
 
     Returns
     -------
@@ -629,39 +653,78 @@ def get_preprocessed_manifests_and_km_bounds(
     """
     logger.info(f"Loading and processing manifests for dataset: {dataset_name}")
 
+    run_name = get_most_recent_run_name(model_manifest) if run_name is None else run_name
+    model_location = get_model_location_for_run(model_manifest, run_name)
+    model_config = get_config_dict_from_mlflow(model_location.mlflowid)
+    num_latent_dims = get_latent_dim_from_config(model_config)
+    diffae_feature_column_names = get_latent_feature_column_names(num_latent_dims)
+    num_pcs = num_pcs if num_pcs is not None else min(NUM_PCS_TO_ANALYZE, num_latent_dims)
+
     # load the tables
     merged_feats_df = get_diffae_feats_liveseg_feats_merged_table(
         dataset_name=dataset_name,
         model_manifest=model_manifest,
         run_name=run_name,
         seg_feature_manifest_name=seg_feature_manifest_name,
-        filtered=True,
+        filtered=filtered,  # do not filter on timepoints yet: we need all timepoints for TFE workflow
     )
 
-    # fit the PCA (uses the reference datasets)
-    pca = fit_pca()
+    grid_diffae_feat_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
+    # fit the PCA
+    pca = fit_pca(
+        dataset_collection_name=collection_name_for_pca,
+        dataframe_manifest_name=grid_diffae_feat_manifest_name,
+        num_pcs=num_pcs,
+    )
+
+    # The PCA cannot take in NaN values, so subset the dataframe by the
+    # model_manifest_name column (which has the model_manifest_name if the
+    # eval_diffae_tracked.py workflow was evaluated on that row, otherwise
+    # it has NaN as an entry) and then get the PCs for the subset of data
+    # with DiffAE features only, once that is done we merge the original
+    # dataframe and the DiffAE features dataframe.
+    # This way we avoid passing NaN values to the PCA but still return the
+    # full dataframe with all timepoints which is required by the TFE workflow.
+    merged_feats_df_subset = merged_feats_df[
+        ["model_manifest_name"] + diffae_feature_column_names
+    ].dropna(axis="index", how="any", subset="model_manifest_name")
+    tracked_diffae_feats_df = project_features_to_pcs(
+        merged_feats_df_subset, pca, diffae_feature_column_names
+    )
+    tracked_diffae_feats_df = tracked_diffae_feats_df.drop(
+        columns=["model_manifest_name"] + diffae_feature_column_names
+    )
+    # tracked_diffae_feats_df retains the indexing of merged_feats_df, so we
+    # can merge on the index safely
+    merged_feats_df = pd.merge(
+        left=merged_feats_df,
+        right=tracked_diffae_feats_df,
+        how="left",
+        left_index=True,
+        right_index=True,
+        validate="one_to_one",
+    )
 
     # read in the grid crop-based diffae features
-    model_name = sequence_to_scalar(merged_feats_df["model_name"])
-    manifest = load_dataframe_manifest(model_name)
-    diffae_grid_crops = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
+    grid_diffae_manifest = load_dataframe_manifest(grid_diffae_feat_manifest_name)
+    diffae_grid_crops = get_dataframe_for_dynamics_workflows(
+        dataset_name,
+        grid_diffae_manifest,
+        pca,
+        include_cell_piling=False,
+        include_not_steady_state=False,
+    )
 
-    # add the PC columns to the track-based DiffAE table
-    # (the grid-based DiffAE table already has them, but
-    # but I believe that the columns are named "feat_0",
-    # "feat_1", etc. when they should be named "pc1",
-    # "pc2", etc.)
-    merged_feats_df = project_features_to_pcs(merged_feats_df, pca)
-
-    # use the full set of datasets to be analyzed for the bounds
-    if datasets_for_bounds is None:
-        datasets_for_bounds = load_dataset_collection_config(
-            DEFAULT_PCA_DATASET_COLLECTION_NAME
-        ).datasets + [dataset_name]
-
-    bounds = get_3d_bounds_from_data(datasets_for_bounds, manifest, pca)
+    # get bounds for plotting and flow field estimation
+    # based on this dataset only
+    bounds = get_3d_bounds_from_data([dataset_name], grid_diffae_manifest, pca)
 
     # lastly, add a normalized version of the "time_hours" column
     merged_feats_df = add_normalized_time(merged_feats_df)
+
+    if drop_rows_without_diffae_feats:
+        merged_feats_df = merged_feats_df[merged_feats_df["model_manifest_name"].notna()]
 
     return merged_feats_df, diffae_grid_crops, bounds

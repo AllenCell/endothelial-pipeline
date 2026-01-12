@@ -4,6 +4,9 @@ from pathlib import Path
 from colorizer_data import convert_colorizer_data
 
 from endo_pipeline.io import load_dataframe
+from endo_pipeline.library.analyze.integration.track_integration import (
+    get_preprocessed_manifests_and_km_bounds,
+)
 from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     generate_backdrops,
 )
@@ -13,8 +16,19 @@ from endo_pipeline.library.visualize.timelapse_feature_explorer.tfe_manifest_for
     add_feature_metadata,
     update_manifest_for_tfe,
 )
-from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
-from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
+from endo_pipeline.manifests import (
+    get_dataframe_location_for_dataset,
+    load_dataframe_manifest,
+    load_model_manifest,
+)
+from endo_pipeline.settings import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    DIFFAE_FEATURE_COLUMN_NAMES,
+    DIFFAE_PC_COLUMN_NAMES,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +40,10 @@ def generate_tfe_dataset(
     source_dir: Path,
     backdrops: bool,
     output_dir_suffix: str = "",
+    model_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    dataset_collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    include_diffae_features: bool = True,
 ) -> None:
     """
     Create timelapse feature explorer manifest and generate backdrop images.
@@ -43,10 +61,36 @@ def generate_tfe_dataset(
     output_dir = output_dir / f"{dataset}_P{position}{output_dir_suffix}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    segprops_manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
-    segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset)
+    if include_diffae_features:
+        try:
+            # Load dataframe with the diffae features and computed PCs
+            # only take the dataframe from the output (which is the 0th element)
+            model_manifest = load_model_manifest(model_name)
+            df_tracks = get_preprocessed_manifests_and_km_bounds(
+                dataset_name=dataset,
+                model_manifest=model_manifest,
+                run_name=run_name,
+                collection_name_for_pca=dataset_collection_name_for_pca,
+                drop_rows_without_diffae_feats=False,
+            )[0]
+            include_diffae_features_failed = False
+        except KeyError:
+            logger.warning(
+                f"Dataset {dataset} does not have DiffAE features yet, using base table..."
+            )
+            include_diffae_features_failed = True
+    if include_diffae_features is False or include_diffae_features_failed is True:
+        # load just the CDH5-based segmentation features as a fallback if no DiffAE features exist
+        segprops_manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
+        segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset)
+        df_tracks = load_dataframe(segprops_location)
+        # remove the DiffAE-related entries from LABEL_MAP before constructing the TFE dataset
+        diffae_keys = [
+            key for key in LABEL_MAP if key in DIFFAE_FEATURE_COLUMN_NAMES + DIFFAE_PC_COLUMN_NAMES
+        ]
+        for key in diffae_keys:
+            del LABEL_MAP[key]
 
-    df_tracks = load_dataframe(segprops_location)
     df_position = df_tracks[df_tracks["position"] == position]
 
     df = add_dynamic_features_with_filtering(df_position)
@@ -60,7 +104,8 @@ def generate_tfe_dataset(
             output_dir=output_dir / "backdrops",
         )
 
-    feature_info = add_feature_metadata(df)
+    feature_column_names = list(LABEL_MAP.keys())
+    feature_info = add_feature_metadata(LABEL_MAP)
 
     convert_colorizer_data(
         data=df,
@@ -77,6 +122,6 @@ def generate_tfe_dataset(
             "bf_std_dev_backdrop",
             "gfp_max_proj_backdrop",
         ],
-        feature_column_names=list(LABEL_MAP.keys()),
+        feature_column_names=feature_column_names,
         feature_info=feature_info,
     )

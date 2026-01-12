@@ -24,11 +24,12 @@ from .image_loading import (
     get_z_slice_bounds_per_position,
 )
 from .latent_walk_utils import (
-    get_latent_coords,
-    get_pca_coords,
-    get_walk,
-    write_pc_vals,
-    write_text,
+    build_data_for_pca_latent_walk,
+    build_data_for_raw_latent_walk,
+    generate_latent_walk_images,
+    get_latent_walk,
+    get_pca_latent_walk,
+    get_raw_latent_walk,
 )
 from .mlflow_utils import download_mlflow_artifact, download_model, get_ckpt_path, load_mlflow_model
 from .model_config_overrides import ModelConfigOverride
@@ -47,6 +48,8 @@ __all__ = [
     "MultiDimImageDataset",
     "RotateRanged",
     "build_and_save_dataframe_manifest_for_training",
+    "build_data_for_pca_latent_walk",
+    "build_data_for_raw_latent_walk",
     "build_zarr_image_loading_dataframe",
     "download_mlflow_artifact",
     "download_model",
@@ -54,14 +57,15 @@ __all__ = [
     "evaluate_model_on_tracked_crops_from_one_dataset",
     "generate_from_coords",
     "generate_from_coords_batch",
+    "generate_latent_walk_images",
     "generate_overrides_for_model_eval",
     "generate_overrides_for_track_based_crops",
     "get_ckpt_path",
     "get_cytodl_commit_hash",
     "get_dataset_names_used_for_training",
-    "get_latent_coords",
-    "get_pca_coords",
-    "get_walk",
+    "get_latent_walk",
+    "get_pca_latent_walk",
+    "get_raw_latent_walk",
     "get_z_slice_bounds_per_position",
     "initialize_diffae_model",
     "initialize_diffae_model_for_finetuning",
@@ -71,6 +75,4 @@ __all__ = [
     "update_prediction_from_crops_with_metadata",
     "update_prediction_from_tracks_with_metadata",
     "upload_prediction_dataframe_to_fms",
-    "write_pc_vals",
-    "write_text",
 ]

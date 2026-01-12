@@ -1,6 +1,6 @@
 name: 20250714_20X
+date: '20250714'
 original_path: //allen/programs/allencell/data/proj0/87d/787/b6f/05a/261/c88/848/d33/2b7/046/0a/20250714_GE00008416_20X_SLDY/20250714_GE00008416_20X_SLDY.sldy
-zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250714_0a0462b7d33848c8826105ab6f78787d
 zarr_positions: [0, 1, 2, 3, 4, 5]
 fmsid: 0a0462b7d33848c8826105ab6f78787d
 barcode: GE00008416
@@ -26,6 +26,7 @@ zarr_channel_indices:
   channel_405: null
   channel_561: null
   channel_640: null
+channel_names: [EGFP, BF]
 flow_conditions:
 - start: -22
   stop: 267
@@ -60,6 +61,13 @@ timepoint_annotations:
   cell_piling:
     2: [[469, 576]]
     5: [[545, 576]]
+  not_steady_state:
+    0: [[0, 165], [268, 471]]
+    1: [[0, 164], [268, 503]]
+    2: [[0, 173], [268, 476]]
+    3: [[0, 160], [268, 490]]
+    4: [[0, 152], [268, 466]]
+    5: [[0, 143], [268, 452]]
 position_annotations: null
 center_z_plane:
   0: 10

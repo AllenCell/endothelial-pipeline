@@ -8,7 +8,8 @@ from pydantic.dataclasses import dataclass
 
 from endo_pipeline.configs import load_model_config
 from endo_pipeline.io import get_output_path, get_repository_root_dir
-from endo_pipeline.settings import DIFFAE_MODEL_TRAIN_CONFIG
+from endo_pipeline.settings.diffae_configs import DIFFAE_MODEL_TRAIN_CONFIG
+from endo_pipeline.settings.workflow_defaults import DEFAULT_NUM_LATENT_DIMENSIONS
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,12 @@ class ModelConfigOverride:
 
     crop_size: int | None = Field(None, gt=0)
     """Number of pixels in each dimension of the image crop to use for training."""
+
+    condition_key: str | None = None
+    """Key for the image channel to use for semantic conditioning of the diffusion model."""
+
+    latent_dim: int | None = Field(None, gt=0)
+    """Number of dimensions for the latent space of the semantic encoder."""
 
     train_dataframe_path: Path | None = None
     """Path to the training dataset (image loading metadata) parquet file."""
@@ -94,7 +101,6 @@ class ModelConfigOverride:
             self.cache_rate = OmegaConf.select(
                 config, "data.train_dataloaders.dataset.cache_rate", default=1.0
             )
-
         if self.replace_rate is None:
             self.replace_rate = OmegaConf.select(
                 config, "data.train_dataloaders.dataset.replace_rate", default=1.0
@@ -102,6 +108,14 @@ class ModelConfigOverride:
 
         if self.crop_size is None:
             self.crop_size = OmegaConf.select(config, "model.image_shape[1]", default=128)
+
+        if self.condition_key is None:
+            self.condition_key = OmegaConf.select(config, "model.condition_key", default="raw_bf")
+
+        if self.latent_dim is None:
+            self.latent_dim = OmegaConf.select(
+                config, "model.semantic_encoder.num_classes", default=DEFAULT_NUM_LATENT_DIMENSIONS
+            )
 
         if self.max_epochs is None:
             self.max_epochs = OmegaConf.select(config, "trainer.max_epochs", default=1000)
@@ -142,8 +156,10 @@ class ModelConfigOverride:
 
         # Calculate effective epochs.
         multiplier = (1 - self.cache_rate) / (self.cache_rate * self.replace_rate) + 1
-        effective_min_epochs = int(2500 * multiplier)
-        effective_max_epochs = int(self.max_epochs * multiplier)
+        effective_min_epochs = int(5000 * multiplier)
+        effective_max_epochs = max(
+            int(self.max_epochs * multiplier), int(1.5 * effective_min_epochs)
+        )
         effective_save_images_epochs = int(10 * multiplier)
 
         overrides = {
@@ -159,6 +175,10 @@ class ModelConfigOverride:
             "callbacks.model_checkpoint.dirpath": checkpoint_path.as_posix(),
             # set crop size from input via model.image_shape,
             "model.image_shape": [1, self.crop_size, self.crop_size],
+            # set condition key
+            "model.condition_key": self.condition_key,
+            # set number of latent dimensions
+            "lat_dim": self.latent_dim,
             # set training and validation dataframe paths and caching parameters
             "data.train_dataloaders.dataset.dataframe_path": self.train_dataframe_path.as_posix(),
             "data.train_dataloaders.dataset.cache_rate": self.cache_rate,
@@ -176,6 +196,7 @@ class ModelConfigOverride:
             # set device usage
             "trainer.accelerator": "cpu" if self.num_gpus is None else "gpu",
             "trainer.devices": self.num_gpus or 1,
+            "trainer.precision": "bf16-mixed" if self.num_gpus is None else "16-mixed",
         }
 
         # If single GPU or none, use "auto" strategy

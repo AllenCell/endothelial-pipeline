@@ -1,14 +1,109 @@
+import logging
+from pathlib import Path
+
+import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.gridspec import GridSpec
 
-from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.library.visualize.figure_utils import add_scalebar
+from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
+
+logger = logging.getLogger(__name__)
+
+
+def _plot_latent_walk_batch_as_grid(
+    dimension_labels: list[int],
+    array_of_crops: np.ndarray,
+    coordinate_values: np.ndarray,
+    save_path: Path,
+    file_name: str,
+    use_pcs: bool = True,
+    show_values: bool = True,
+) -> None:
+
+    # Set up the grid
+    num_rows = array_of_crops.shape[0]
+    num_steps = array_of_crops.shape[1]
+    gs = GridSpec(num_rows, num_steps, wspace=0)
+
+    # Desired figure dimensions in inches
+    width = 6.5
+    height = num_rows
+
+    # Set up the figure
+    fig = plt.figure(figsize=(width, height))
+
+    for i in range(num_rows):
+        for j in range(num_steps):
+            ax = fig.add_subplot(gs[i, j])
+            ax.imshow(array_of_crops[i, j], cmap="gray")
+
+            # Turn off x and y ticks
+            ax.set_xticks([])
+            ax.set_yticks([])
+
+            # Ensure figures remains square
+            ax.set_aspect("equal")
+
+            # Remove axis border
+            ax.spines["top"].set_color("white")
+            ax.spines["right"].set_color("white")
+            ax.spines["bottom"].set_color("white")
+            ax.spines["left"].set_color("white")
+
+            # Add value label
+            if show_values:
+                value_label = f"{np.round(coordinate_values[i][j], 2)}"
+                ax.annotate(
+                    value_label,
+                    xy=(0, 1),
+                    xycoords="axes fraction",
+                    xytext=(+0.5, -0.5),
+                    textcoords="offset fontsize",
+                    fontsize=8,
+                    verticalalignment="top",
+                    color="white",
+                    path_effects=[pe.withStroke(linewidth=2, foreground="black")],
+                )
+
+            # Titles only on first row
+            if i == 0:
+                column_title = f"{j - (num_steps // 2)}\u03c3"
+                ax.set_title(column_title, fontsize=10, pad=5)
+
+            # Y labels only on first column
+            if j == 0:
+                ylabel = f"PC {dimension_labels[i]}" if use_pcs else f"Dim {dimension_labels[i]}"
+                ax.set_ylabel(ylabel, labelpad=5)
+
+            # Plot scalebar only on first image
+            if i == 0 and j == 0:
+                scalebar_um = 10
+                add_scalebar(
+                    ax,
+                    scale_bar_um=scalebar_um,
+                    pixel_size=PIXEL_SIZE_3i_20x,
+                    bar_thickness=5,
+                    padding=10,
+                )
+
+    gs.tight_layout(fig, pad=0.25)
+    plt.show()
+
+    output_file = (save_path / file_name).with_suffix(".pdf")
+    fig.savefig(output_file)
+    plt.close(fig)
 
 
 def plot_latent_walk_as_grid(
     array_of_crops: np.ndarray,
     coordinate_values: np.ndarray,
-    save_path: str,
+    save_path: Path,
     file_name: str,
+    use_pcs: bool = True,
+    show_values: bool = True,
+    batches: list[tuple[int, int]] | None = None,
 ) -> None:
     """
     Plot a grid of reconstructed image crops representing a latent walk.
@@ -25,35 +120,34 @@ def plot_latent_walk_as_grid(
         Directory path to save the output figure.
     file_name
         Name of the output figure file.
+    use_pcs
+        True if latent walk was performed along PC axes, False otherwise.
+    show_value
+        True to show the coordinate value on the image, False otherwise.
+    batches
+        If provided, a list of (start_idx, end_idx) tuples specifying
+        the number of PCs to include in each batch. If None, defaults to
+        one
     """
-    num_pcs = array_of_crops.shape[0]
-    num_steps = array_of_crops.shape[1]
 
-    fig, ax = plt.subplots(
-        nrows=num_pcs + 1,
-        ncols=num_steps,
-        figsize=(num_steps * 3, (num_pcs * 3) + 2),
-        gridspec_kw={"height_ratios": [1, 1, 1, 0.02]},
-    )
+    if batches is None:
+        batches = [(0, array_of_crops.shape[0])]
 
-    for i in range(num_pcs + 1):
-        # last "row" is just empty for titles
-        if i == num_pcs:
-            for j in range(num_steps):
-                ax[i, j].axis("off")
-                column_title = rf"{j - (num_steps // 2)}$\sigma$"
-                ax[i, j].set_title(column_title, fontsize=32)
-        else:
-            for j in range(num_steps):
-                ax[i, j].imshow(array_of_crops[i, j], cmap="gray")
-                ax[i, j].set_xticks([])  # Turn off x-axis ticks
-                ax[i, j].set_yticks([])  # Turn off y-axis ticks
-                # add value label as title
-                value_label = f"{np.round(coordinate_values[i][j], 2)}"
-                ax[i, j].set_title(value_label, fontsize=20)
-            # add PC index as y-axis label on left side only
-            ax[i, 0].set_ylabel(f"PC {i+1}", fontsize=36)
+    for start_idx, end_idx in batches:
+        batch_array_of_crops = array_of_crops[start_idx:end_idx, :, :, :]
+        batch_coordinate_values = coordinate_values[start_idx:end_idx]
+        batch_suffix = (
+            f"_{start_idx + 1}_to_{end_idx}" if use_pcs else f"{start_idx}_to_{end_idx - 1}"
+        )
+        dimension_labels = list(range(start_idx + 1, end_idx + 1))
+        batch_file_name = f"{file_name}{batch_suffix}"
 
-    plt.tight_layout()
-
-    save_plot_to_path(fig, save_path, file_name)
+        _plot_latent_walk_batch_as_grid(
+            dimension_labels,
+            batch_array_of_crops,
+            batch_coordinate_values,
+            save_path,
+            batch_file_name,
+            use_pcs,
+            show_values,
+        )

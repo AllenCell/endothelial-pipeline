@@ -1,117 +1,60 @@
-from collections.abc import Sequence
+from endo_pipeline.cli import Datasets, tags
 
-from endo_pipeline.cli import Datasets
-
-TAGS = ["cdh5_segmentation", "tracking"]
-
-
-def run_workflow(queue: Sequence) -> None:
-    """
-    Run the tracking workflow using a queue.
-    The queue is a tuple of (dataset_name, position) and a dataframe.
-    The dataframe contains the parameters for the workflow and is built using build_analysis_queue.
-    """
-    import logging
-    from pathlib import Path
-
-    import numpy as np
-    import pandas as pd
-
-    from endo_pipeline.configs import load_dataset_config
-    from endo_pipeline.configs.dataset_io import extract_t, get_zarr_name, get_zarr_path
-    from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
-    from endo_pipeline.library.process.lib_tracking import run_tracking
-    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
-
-    logger = logging.getLogger(__name__)
-
-    (dataset_name, position), queue_df = queue
-    timepoints_to_eval = queue_df["T"].tolist()
-    position = sequence_to_scalar(queue_df["position"])
-    image_validation_frequency = sequence_to_scalar(queue_df["image_validation_frequency"])
-    validation_image = sequence_to_scalar(queue_df["is_validation_image"])
-    verbose = sequence_to_scalar(queue_df["verbose"])
-    out_dir = sequence_to_scalar(queue_df["output_dir"]) / f"{dataset_name}/P{position}"
-    out_filename_prefix = f"{dataset_name}_P{position}"
-
-    # get the segmentation images
-    dataset_config = load_dataset_config(dataset_name)
-    manifest = load_image_manifest("cdh5_classic_seg")
-    seg_locations = [
-        get_image_location_for_dataset(manifest, dataset_config, position, timepoint)
-        for timepoint in range(dataset_config.duration)
-    ]
-    seg_filepaths = [location.path for location in seg_locations if location.path is not None]
-
-    segmentation_channel = 0  # the segmentation images only contain a single channel
-
-    # run the tracking workflow
-    if seg_filepaths:
-        if validation_image:
-            # get the raw cadherin channel from either original data or the zarr version
-            raw_channel = 0  # zarr files are created such that the first channel is always Cdh5
-            zarr_name = get_zarr_name(dataset_name, position)
-            zarr_path = get_zarr_path(dataset_name, zarr_name)[zarr_name]
-            raw_filepath = Path(zarr_path)
-        else:
-            raw_filepath = None
-            raw_channel = 0
-
-        run_tracking(
-            in_dir=seg_filepaths,
-            out_dir=out_dir,
-            out_filename_prefix=out_filename_prefix,
-            tracking_metrics=["region_overlap"],  # this can be changed to ['centroids'] if desired
-            sorting_key=extract_t,
-            C=segmentation_channel,
-            T=timepoints_to_eval,
-            extra_in_dir=raw_filepath,
-            extra_C=raw_channel,
-            extra_T=timepoints_to_eval,
-            Z_projection=np.max,
-            track_tolerance=3,
-            image_validation_frequency=image_validation_frequency,
-            verbose=verbose,
-        )
-
-        # add the dataset name and position to the output table
-        tracking_table = pd.read_parquet(out_dir / f"{out_filename_prefix}_tracking.parquet")
-        tracking_table["dataset_name"] = dataset_name
-        tracking_table["position"] = position
-        tracking_table.to_parquet(out_dir / f"{out_filename_prefix}_tracking.parquet", index=False)
-
-    else:
-        logger.info(
-            f"""
-            No segmentation images found for {dataset_name}. Skipping tracking analysis.
-            If this is unexpected check that the IS_TEST argument is set to False.
-            """
-        )
-        return
+TAGS = ["cdh5_segmentation", "tracking", tags.CPU_ONLY, tags.TEST_READY]
 
 
 def main(
-    datasets: Datasets,
+    datasets: Datasets | None = None,
     n_proc: int = 1,
     save_output: bool = True,
-    is_test: bool = False,
     verbose: bool = False,
 ) -> None:
-    """Run the tracking workflow on a dataset, a list of datasets, or a dataset collection."""
+    """Run the tracking workflow on a dataset, a list of datasets, or a dataset collection.
+    Saves a table as a .parquet file containing the cell tracks for each dataset analyzed as well
+    as their associated segmentation labels.
+
+    The tracking workflow loads the CDH5 segmentations from a single position in a single dataset
+    and builds cell tracks by finding which cell segmentations at a given timepoint T and T+1 are
+    most similar based on their % overlap. The segmentation and its match must be each other's best
+    match based on % overlap, and if no such pairs are found between T and T+1 then the algorithm
+    will search T+2, T+3, etc. up to a maximum of 4 timepoints ahead, allowing for a maximum
+    of 3 missed timepoints (the "track tolerance") before terminating the track. New tracks are
+    initiated for any segmentations at timepoint T that are not matched to any segmentations at
+    timepoint T-1. The track tolerance is greater than 0 to introduce robustness to incorrect
+    segmentations.
+
+
+    To enter a list of datasets to analyze, use the following format:
+
+    .. code-block:: bash
+
+        --datasets 20250818_20X 20250618_20X
+
+    **Workflow demo**
+
+    The ``--demo-mode`` (``-d``) flag can be used to run the workflow on the first 10 timepoints
+    of the first 2 positions for each of the given datasets for workflow testing purposes.
+    """
     import logging
-    from multiprocessing import Pool
 
     import pandas as pd
     from tqdm import tqdm
 
+    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
     from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
+    from endo_pipeline.library.process.general_image_preprocessing import (
+        build_analysis_queue,
+        process_task_queue,
+    )
+    from endo_pipeline.library.process.lib_tracking import run_tracking_multiproc_wrapper
 
     logger = logging.getLogger(__name__)
 
     out_dir = get_output_path(__file__)
 
+    datasets = use_default_collection(datasets, "live_cdh5_seg_based_feat_datasets")
     logger.info(f"datasets analyzed: {datasets}")
 
     analysis_queue = build_analysis_queue(
@@ -120,34 +63,24 @@ def main(
         out_dir=out_dir,
         overwrite=True,
         verbose=verbose,
-        is_test=is_test,
+        is_test=DEMO_MODE,
         image_validation_frequency=None,
     )
 
+    # Split analysis queue by dataset and position
     analysis_queue_df = pd.DataFrame(analysis_queue)
     analysis_queue_per_position = list(analysis_queue_df.groupby(["dataset_name", "position"]))
 
-    if n_proc > 1:
-        if __name__ == "__main__":
-            n_proc = min(n_proc, len(analysis_queue_per_position))
-            with Pool(processes=n_proc) as pool:
-                list(
-                    tqdm(
-                        pool.imap(run_workflow, analysis_queue_per_position, chunksize=1),
-                        total=len(analysis_queue_per_position),
-                        desc="Tracking (MP)",
-                    )
-                )
-                pool.close()
-                pool.join()
-    else:
-        for queue in tqdm(
-            analysis_queue_per_position,
-            total=len(analysis_queue_per_position),
-            desc="Tracking (1P)",
-        ):
-            run_workflow(queue)
+    # Run tracking algorithm on each position
+    process_task_queue(
+        run_tracking_multiproc_wrapper,
+        analysis_queue_per_position,
+        num_processes=n_proc,
+        description="Tracking",
+        chunksize=1,
+    )
 
+    # Combine tracking algorithm table output into one table per dataset
     if save_output:
         for dataset_name in tqdm(
             datasets, desc="Replacing individual tables with combined table..."

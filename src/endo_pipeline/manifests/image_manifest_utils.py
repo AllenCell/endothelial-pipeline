@@ -78,3 +78,44 @@ def get_zarr_location_for_position(dataset: DatasetConfig, position: int) -> Ima
 
     manifest = load_image_manifest(ZARR_IMAGE_MANIFEST_NAME)
     return get_image_location_for_dataset(manifest, dataset, position=position)
+
+
+def get_available_zarr_locations(dataset: DatasetConfig) -> list[ImageLocation]:
+    """Get list of all available Zarr locations for given dataset."""
+
+    return [
+        get_zarr_location_for_position(dataset, position)
+        for position in sorted(dataset.zarr_positions)
+    ]
+
+
+def add_image_location_to_manifest(
+    manifest: ImageManifest,
+    dataset: DatasetConfig,
+    parent_path: str | Path,
+) -> None:
+    """
+    Add or update image location for given dataset in the manifest.
+
+    The path is formatted as:
+
+        PARENT_PATH / DATE_FMSID / DATE_FMSID_P{{position}}.ome.zarr
+
+    Parameters
+    ----------
+    manifest
+        Image manifest object.
+    dataset
+        Dataset config object.
+    parent_path
+        Path to the parent location for the image.
+    """
+
+    date = dataset.date
+    fmsid = dataset.fmsid
+    path = Path(parent_path) / f"{date}_{fmsid}" / f"{date}_{fmsid}_P{{{{position}}}}.ome.zarr"
+
+    if dataset.name in manifest.locations.keys():
+        logger.warning("Dataset [ %s ] has existing location and will be overwritten", dataset.name)
+
+    manifest.locations[dataset.name] = ImageLocation(path=path)

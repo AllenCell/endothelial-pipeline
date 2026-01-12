@@ -5,13 +5,12 @@ import logging
 from pathlib import Path
 from typing import Literal
 
-import matplotlib.pyplot as plt
 from git import Repo
 from matplotlib.figure import Figure
 
 from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.manifests import ModelManifest
-from endo_pipeline.settings.figures import FIGURE_SAVE_DPI, FONT_FAMILY, PDF_FONT_TYPE
+from endo_pipeline.settings.figures import FIGURE_SAVE_DPI
 
 logger = logging.getLogger(__name__)
 
@@ -219,9 +218,10 @@ def build_fms_annotations(
         notes.append(f"Model: {model_manifest.name}{model_run}")
 
         # Add mlflow run id annotation, if found
-        model_location = model_manifest.locations.get(run_name, None)
-        if model_location is not None and model_location.mlflowid is not None:
-            metadata_builder.add_annotation("mlflow run id", model_location.mlflowid)
+        if run_name is not None:
+            model_location = model_manifest.locations.get(run_name, None)
+            if model_location is not None and model_location.mlflowid is not None:
+                metadata_builder.add_annotation("mlflow run id", model_location.mlflowid)
 
     notes.append(f"\n{additional_notes}")
 
@@ -253,6 +253,9 @@ def upload_file_to_fms(
         FMS file id for the uploaded file.
     """
 
+    from endo_pipeline.cli import DEMO_MODE, USE_STAGING
+    from endo_pipeline.io.fms import FMS, FMS_FILE_NAME
+
     if isinstance(file_path, str):
         file_path = Path(file_path).resolve()
 
@@ -260,14 +263,16 @@ def upload_file_to_fms(
         logger.error("File [ %s ] could not be found", file_path)
         raise FileNotFoundError(f"No such file '{file_path}'")
 
-    from endo_pipeline.io.fms import FMS, FMS_FILE_NAME
-
     # FMS does not allow the same file name to be uploaded multiple times. If
     # a file of the same name is found, we instead append a timestamp to the
     # current file upload to create a unique name.
     logger.debug("Checking if [ %s ] already exists in FMS", file_path)
     record = list(FMS.find(annotations={FMS_FILE_NAME: file_path.name}))
     file_name = make_name_unique(file_path).name if record else file_path.name
+
+    if DEMO_MODE and not USE_STAGING:
+        logger.debug("Skipped FMS upload to production for demo mode")
+        return "FakeFileIDForDemoMode"
 
     logger.debug("Starting upload of [ %s ] to FMS as [ %s ]", file_path, file_name)
     fms_file = FMS.upload_file(
@@ -282,12 +287,36 @@ def upload_file_to_fms(
     return fms_file.id
 
 
+def cache_fms_files(fmsids: str | list[str]) -> dict:
+    """
+    Download or extend expiration of a FMS file in the Vast on-prem cache.
+
+    Parameters
+    ----------
+    fmsid
+        FMS file ID.
+    """
+
+    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.io.fms import FMS
+
+    fmsids = [fmsids] if isinstance(fmsids, str) else fmsids
+
+    # When running in demo mode, we skip FMS cache requests. Instead, return
+    # the expected data structure with given FMS ids.
+    if DEMO_MODE:
+        logger.debug("Skipped FMS cache request in demo mode")
+        return {"cacheFileStatuses": dict.fromkeys(fmsids, "DOWNLOAD_COMPLETE")}
+
+    return FMS.cache_files(fmsids)
+
+
 def save_plot_to_path(
     figure: Figure,
     output_path: Path,
     figure_name: str,
     dpi: int = FIGURE_SAVE_DPI,
-    file_format: Literal[".png", ".pdf"] = ".png",
+    file_format: Literal[".png", ".svg", ".pdf"] = ".png",
     transparent: bool = False,
     pad_inches: float = 0.1,
 ) -> None:
@@ -303,7 +332,7 @@ def save_plot_to_path(
     figure_name
         Name of the figure.
     file_format
-        File format for the figure, either .png or .pdf.
+        File format for the figure. Valid options: .png | .svg | .pdf
     dpi
         Resolution of the figure in dots per inch (dpi).
     transparent
@@ -311,13 +340,6 @@ def save_plot_to_path(
     pad_inches
         Amount of padding around the figure when saving, in inches.
     """
-
-    plt.rcParams.update(
-        {
-            "pdf.fonttype": PDF_FONT_TYPE,
-            "font.family": FONT_FAMILY,
-        }
-    )
 
     output_file = (output_path / figure_name).with_suffix(file_format)
     figure.savefig(

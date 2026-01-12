@@ -1,0 +1,56 @@
+## ***************************************************************************
+## * LINES                                                                   *
+## ***************************************************************************
+
+lines.linewidth:  1  # line width in points
+lines.markersize: 2  # marker size in points
+
+## ***************************************************************************
+## * FONT                                                                    *
+## ***************************************************************************
+
+font.family: Arial  # font family for text
+font.size:   10.0   # default font size in points
+
+## ***************************************************************************
+## * AXES                                                                    *
+## ***************************************************************************
+
+axes.edgecolor:   0.7    # axes edge color
+axes.linewidth:   0.5    # edge line width
+axes.titlesize:   12.0   # font size of the axes title
+axes.titleweight: bold   # font weight of title
+axes.labelsize:   10.0   # font size of the x and y labels
+axes.labelpad:    10.0   # space between label and axis
+axes.labelweight: bold   # weight of the x and y labels
+axes.labelcolor:  black  # color of labels
+
+## ***************************************************************************
+## * TICKS                                                                   *
+## ***************************************************************************
+
+xtick.labelsize: 8.0  # font size of the tick labels
+ytick.labelsize: 8.0  # font size of the tick labels
+
+## ***************************************************************************
+## * LEGEND                                                                  *
+## ***************************************************************************
+
+legend.frameon:       False  # no border around legend
+legend.fontsize:      6.0    # font size for legend in points
+legend.labelspacing:  0.3    # vertical space between the legend entries
+
+## ***************************************************************************
+## * FIGURE                                                                  *
+## ***************************************************************************
+
+figure.dpi:  600  # figure dots per inch
+
+## ***************************************************************************
+## * SAVING FIGURES                                                          *
+## ***************************************************************************
+
+savefig.format:      svg    # set default output format to SVG
+savefig.transparent: True   # save with transparent background by default
+pdf.fonttype:        42     # TrueType for output fonts (PDF only)
+svg.fonttype:        none   # assume fonts installed on machine (SVG only)

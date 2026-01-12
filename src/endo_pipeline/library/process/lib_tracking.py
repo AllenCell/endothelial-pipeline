@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable, Generator, Sequence
 from pathlib import Path
 from typing import Any, Literal
@@ -10,10 +11,21 @@ from skimage.measure import regionprops
 from skimage.segmentation import clear_border
 from tqdm import tqdm
 
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.configs.dataset_io import extract_t
 from endo_pipeline.library.analyze.shape_features import numpy_mesh_coords
-from endo_pipeline.library.process.general_image_preprocessing import save_image_output
+from endo_pipeline.library.process.general_image_preprocessing import (
+    save_image_output,
+    sequence_to_scalar,
+)
+from endo_pipeline.manifests import (
+    get_image_location_for_dataset,
+    get_zarr_location_for_position,
+    load_image_manifest,
+)
 from endo_pipeline.settings import DIMENSION_ORDER
+
+logger = logging.getLogger(__name__)
 
 
 ## NOTE THIS BLOCK SHOULD MAYBE BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE
@@ -31,7 +43,7 @@ def parse_paths(
                 pass
             else:
                 filepath = sorted(
-                    [x for x in filepath.glob(f"*{file_extension}")],
+                    filepath.glob(f"*{file_extension}"),
                     key=sorting_function,
                 )
         else:
@@ -39,7 +51,7 @@ def parse_paths(
                 f"UnexpectedFilePath ({filepath}) - filepath must be either a single file or folder of files."
             )
     if isinstance(filepath, list):
-        filepath_sorted = sorted([fp for fp in filepath], key=sorting_function)
+        filepath_sorted = sorted(filepath, key=sorting_function)
         filepath = [Path(fp) for fp in filepath_sorted]
 
     return filepath
@@ -310,7 +322,7 @@ def match_labels_from_images(
         labeled_images
     ), "reference_index must be less than the number of images in labeled_images"
     assert all(
-        [img.ndim in [2, 3] for img in labeled_images]
+        img.ndim in [2, 3] for img in labeled_images
     ), "all images in labeled_images must be 2D or 3D arrays"
     acceptable_metrics = [
         "centroid",
@@ -463,10 +475,8 @@ def match_labels_from_metrics(
     if metrics_thresholds is not None:
         num_metric_thresholds = len(metrics_thresholds)
         assert all(
-            [
-                all(len(met_val) == num_metric_thresholds for met_val in labeled_metrics.values())
-                for labeled_metrics in list_of_labeled_metric_vals
-            ]
+            all(len(met_val) == num_metric_thresholds for met_val in labeled_metrics.values())
+            for labeled_metrics in list_of_labeled_metric_vals
         ), "metrics and metrics_threshold must have the same length; np.inf can be used if no threshold is desired"
     assert matching_method in [
         "forward",
@@ -901,9 +911,7 @@ def initialize_track_ids(
             strict=False,
         )
     )
-    column_names = [
-        column_name for column_name in ("image_index", "T", "track_id", *props_to_include)
-    ]
+    column_names = ["image_index", "T", "track_id", *props_to_include]
     track_ids = dict(zip(column_names, tracking_data, strict=False))
 
     df_track_ids = pd.DataFrame(track_ids)
@@ -990,7 +998,7 @@ def reassign_track_ids_from_matches(
 
     # check that we are not overwriting any existing track ids
     assert all(
-        [lab not in existing_track_reassignments for lab in new_tracks_reassignments]
+        lab not in existing_track_reassignments for lab in new_tracks_reassignments
     ), "new track ids are overwriting existing track ids"
     # add the 2 dicts together to get a master reassignment dict
     track_id_reassignments = {
@@ -1234,10 +1242,10 @@ def run_tracking(
 
     for fps in [in_dir, out_dir]:
         assert (
-            isinstance(fps, (tuple, list, Path, str)) or fps == None
+            isinstance(fps, (tuple, list, Path, str)) or fps is None
         ), "in_dir, out_dir must be Path-like or a list of Paths"
     assert (
-        isinstance(extra_in_dir, (tuple, list, Path, str)) or extra_in_dir == None
+        isinstance(extra_in_dir, (tuple, list, Path, str)) or extra_in_dir is None
     ), "extra_in_dir must be Path-like or a list of Paths"
 
     if sorting_key is None:
@@ -1287,7 +1295,7 @@ def run_tracking(
             T_range_dict = (
                 {sorting_function(fp): fp for fp in filepath}
                 if sorting_function
-                else {i: fp for i, fp in enumerate(filepath)}
+                else dict(enumerate(filepath))
             )
             if time_list:
                 T_range_dict = {t: fp for t, fp in T_range_dict.items() if t in time_list}
@@ -1551,13 +1559,30 @@ def update_track_table(
     )
 
     # relabel images
-    # NOTE I adopted this reassignment methodology from StackOverflow: https://stackoverflow.com/questions/55949809/efficiently-replace-elements-in-array-based-on-dictionary-numpy-python
     print("- relabeling images...") if verbose else None
-    label_map_arr = np.zeros(shape=new_track_ids["label"].max() + 1, dtype=np.uint32)
-    label_map_arr[new_track_ids["label"]] = new_track_ids["track_id"]
-    track_labeled_image = label_map_arr[labeled_images[reference_index]]
+    track_labeled_image = relabel_array_values(
+        original_array=labeled_images[reference_index],
+        original_values=new_track_ids["label"],
+        relabel_values=new_track_ids["track_id"],
+    )
 
     return track_labeled_image, new_track_ids, existing_track_ids
+
+
+def relabel_array_values(
+    original_array: np.ndarray, original_values: pd.Series, relabel_values: pd.Series
+) -> np.ndarray:
+    """Replace original values with corresponding relabel values in array."""
+
+    id_map: dict[int, int] = pd.Series(relabel_values.values, index=original_values).to_dict()
+    max_value = np.max(original_array) + 1
+    choices = np.zeros(max_value)
+
+    for old in range(max_value):
+        if old in id_map:
+            choices[old] = id_map[old]
+
+    return choices[original_array]
 
 
 def generate_tracks(
@@ -1589,7 +1614,7 @@ def generate_tracks(
 
     track_table = pd.DataFrame()
     for i, (fp, crop, labeled_images) in enumerate(paths_crops_labeled_images_all):
-        if timeframes_for_table == None:
+        if timeframes_for_table is None:
             current_T = i
         else:
             current_T = timeframes_for_table[i]
@@ -1609,3 +1634,80 @@ def generate_tracks(
         )
 
         yield i, fp, track_labeled_image, track_table
+
+
+def get_cdh5_segmentation_filepath_list(dataset_name: str, position: int) -> list[Path]:
+    dataset_config = load_dataset_config(dataset_name)
+    manifest = load_image_manifest("cdh5_classic_seg")
+    seg_locations = [
+        get_image_location_for_dataset(manifest, dataset_config, position, timepoint)
+        for timepoint in range(dataset_config.duration)
+    ]
+    seg_filepaths = [location.path for location in seg_locations if location.path is not None]
+
+    return seg_filepaths
+
+
+def run_tracking_multiproc_wrapper(queue: Sequence) -> None:
+    """
+    Run the tracking workflow using a queue.
+    The queue is a tuple of (dataset_name, position) and a dataframe.
+    The dataframe contains the parameters for the workflow and is built using build_analysis_queue.
+    """
+
+    (dataset_name, position), queue_df = queue
+    timepoints_to_eval = queue_df["T"].tolist()
+    position = sequence_to_scalar(queue_df["position"])
+    image_validation_frequency = sequence_to_scalar(queue_df["image_validation_frequency"])
+    validation_image = sequence_to_scalar(queue_df["is_validation_image"])
+    verbose = sequence_to_scalar(queue_df["verbose"])
+    out_dir = sequence_to_scalar(queue_df["output_dir"]) / f"{dataset_name}/P{position}"
+    out_filename_prefix = f"{dataset_name}_P{position}"
+
+    # get the segmentation images
+    seg_filepaths = get_cdh5_segmentation_filepath_list(dataset_name, position)
+    segmentation_channel = 0  # the segmentation images only contain a single channel
+
+    # run the tracking workflow
+    if seg_filepaths:
+        if validation_image:
+            # get the raw cadherin channel from either original data or the zarr version
+            raw_channel = 0  # zarr files are created such that the first channel is always Cdh5
+            dataset_config = load_dataset_config(dataset_name)
+            zarr_loc = get_zarr_location_for_position(dataset_config, position)
+            raw_filepath = zarr_loc.path
+        else:
+            raw_filepath = None
+            raw_channel = 0
+
+        run_tracking(
+            in_dir=seg_filepaths,
+            out_dir=out_dir,
+            out_filename_prefix=out_filename_prefix,
+            tracking_metrics=["region_overlap"],  # this can be changed to ['centroids'] if desired
+            sorting_key=extract_t,
+            C=segmentation_channel,
+            T=timepoints_to_eval,
+            extra_in_dir=raw_filepath,
+            extra_C=raw_channel,
+            extra_T=timepoints_to_eval,
+            Z_projection=np.max,
+            track_tolerance=3,
+            image_validation_frequency=image_validation_frequency,
+            verbose=verbose,
+        )
+
+        # add the dataset name and position to the output table
+        tracking_table = pd.read_parquet(out_dir / f"{out_filename_prefix}_tracking.parquet")
+        tracking_table["dataset_name"] = dataset_name
+        tracking_table["position"] = position
+        tracking_table.to_parquet(out_dir / f"{out_filename_prefix}_tracking.parquet", index=False)
+
+    else:
+        logger.info(
+            f"""
+            No segmentation images found for {dataset_name}. Skipping tracking analysis.
+            If this is unexpected check that the IS_TEST argument is set to False.
+            """
+        )
+        return

@@ -1,0 +1,81 @@
+name: 20251029_20X
+date: '20251029'
+original_path: /allen/programs/allencell/data/proj0/8db/a1a/eb3/891/fce/67a/546/cff/d50/1ae/44/20251029_GE00009502_20X_SLDY/20251029_GE00009502_20X_SLDY.sldy
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: 441aed50cff54667afce891eb3a1a8db
+barcode: GE00009502
+cell_lines: [AICS-177 cl. 26]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: min
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+channel_names: [EGFP, BF]
+flow_conditions:
+- start: -27
+  stop: 576
+  shear_stress: 6.13
+include_scenes: null
+notes: Collect low SS 48h timelapse of CDH5 Ex2 del -/- endothelial cells. Starting
+  density medium-high; higher than 20250903 and 20250908 starting densities. Gaps
+  in cell monolayer that appear appear beyond 24h in timelapse
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [8, 12, 66, 87, 432, 436, 445, 475, 495, 548, 551, 570]
+    1: [7, 8, 12, 15, 40, 65, 84, 85, 273, 292, 307, 452, 507, 547, 549, 553, 565]
+    2: [8, 16, 129, 377, 399, 424, 441, 471, 541, 548, 552, 553]
+    3: [8, 9, 10, 153, 182, 261, 273, 420, 548, 575]
+    4: [8, 9, 19, 132, 231, 430, 462, 503, 511, 546, 550, 572]
+    5: [7, 8, 19, 41, 122, 202, 249, 257, 291, 293, 334]
+  auto_bf_temp_artifact:
+    0: [8, 12, 397, 491, 550, 551, 552]
+    1: [4, 8, 15, 292, 408, 461, 509, 548, 550, 551]
+    2: [8, 273, 297, 449, 548]
+    3: [8, 22, 63, 273, 547, 548, 550, 551, 568]
+    4: [8, 74, 105, 164, 273, 533, 546, 547, 548, 550, 551, 552]
+    5: [13, 75, 223, 231, 232, 273, 296, 398, 411, 450, 483, 489, 530, 546, 548, 550]
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  bf_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: [41, 546, 548]
+    5: []
+  not_steady_state:
+    0: [[0, 126], [319, 577]]
+    1: [[0, 127], [321, 577]]
+    2: [[0, 119], [115, 288]]
+    3: [[0, 115], [288, 577]]
+    4: [[0, 95], [271, 577]]
+    5: [[0, 114], [283, 577]]
+position_annotations: null
+center_z_plane:
+  0: 10
+  1: 9
+  2: 9
+  3: 9
+  4: 9
+  5: 9

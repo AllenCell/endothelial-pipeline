@@ -1,13 +1,9 @@
 from .input import (
     get_checkpoint_path_from_mlflow,
     get_config_dict_from_mlflow,
-    get_local_path_from_fmsid,
     get_repository_root_dir,
     instantiate_model_target_class,
     load_dataframe,
-    load_dataframe_from_fms,
-    load_dataframe_from_path,
-    load_dataframe_from_s3,
     load_image,
     load_image_from_path,
     load_model,
@@ -17,7 +13,7 @@ from .input import (
 from .log_funcs import configure_logging
 from .output import (
     build_fms_annotations,
-    get_output_dir,
+    cache_fms_files,
     get_output_path,
     get_timestamp,
     make_name_unique,
@@ -27,19 +23,15 @@ from .output import (
 
 __all__ = [
     "build_fms_annotations",
+    "cache_fms_files",
     "configure_logging",
     "get_checkpoint_path_from_mlflow",
     "get_config_dict_from_mlflow",
-    "get_local_path_from_fmsid",
-    "get_output_dir",
     "get_output_path",
     "get_repository_root_dir",
     "get_timestamp",
     "instantiate_model_target_class",
     "load_dataframe",
-    "load_dataframe_from_fms",
-    "load_dataframe_from_path",
-    "load_dataframe_from_s3",
     "load_image",
     "load_image_from_path",
     "load_model",

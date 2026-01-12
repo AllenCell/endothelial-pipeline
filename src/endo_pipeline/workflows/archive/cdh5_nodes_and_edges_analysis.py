@@ -7,8 +7,7 @@ from bioio import BioImage
 from bioio.writers.timeseries_writer import TimeseriesWriter
 
 from endo_pipeline.cli import Datasets
-from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
-from endo_pipeline.library.process.cdh5_preprocessing import extract_t
+from endo_pipeline.configs.dataset_io import extract_t, ipython_cli_flexecute
 from endo_pipeline.library.visualize import vis_cdh5_nodes_and_edges_analysis as vis
 
 """
@@ -24,7 +23,7 @@ def stringified_floatlist_to_floatlist(ls: str, to_tuple: bool = False) -> list 
     Assumes that there is only one set of brackets (either '[]' or '()').
     """
     # if 'ls' is already a list of floats then return the input
-    if isinstance(ls, list) and all([isinstance(x, float) for x in ls]):
+    if isinstance(ls, list) and all(isinstance(x, float) for x in ls):
         float_list = ls
     # otherwise procede with the conversion
     else:
@@ -197,10 +196,7 @@ def main(
         # create a movie from the individual alignment plots
         if save_output:
             plot_paths = sorted(
-                [
-                    filepath
-                    for filepath in Path.glob(out_dir_plots / "angles_vs_dists_polar", "*.tif")
-                ],
+                Path.glob(out_dir_plots / "angles_vs_dists_polar", "*.tif"),
                 key=lambda fp: extract_t(fp.stem, use_last_match=True),
             )
             images = np.concatenate(

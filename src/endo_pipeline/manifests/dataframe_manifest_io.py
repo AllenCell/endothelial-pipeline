@@ -59,8 +59,19 @@ def save_dataframe_manifest(manifest: DataframeManifest) -> None:
         return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=flow_style)
 
     def yaml_encoder(data):
+        # Save copy of default representers
+        default_representers = yaml.representer.Representer.yaml_representers.copy()
+
+        # Override with custom representers
         yaml.SafeDumper.add_representer(list, list_representer)
-        return yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
+
+        # Encode data into YAML
+        encode = yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
+
+        # Remove custom representers so they don't interfere with other uses
+        yaml.SafeDumper.add_representer(list, default_representers[list])
+
+        return encode
 
     try:
         content = str(
@@ -71,3 +82,12 @@ def save_dataframe_manifest(manifest: DataframeManifest) -> None:
     except:
         logger.error("Dataframe manifest [ %s ] could not be saved", manifest.name)
         raise
+
+
+def get_available_dataframe_manifests() -> list[str]:
+    """Get list of available dataframe manifest names."""
+
+    df_manifest_names = [path.stem for path in get_dataframe_manifest_dir().iterdir()]
+    logger.info("Available dataframe manifests: %s", " | ".join(df_manifest_names))
+
+    return df_manifest_names

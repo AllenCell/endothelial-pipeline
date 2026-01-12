@@ -1,8 +1,13 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from cyclopts import Parameter
 
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+from endo_pipeline.settings import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PCA_DATASET_COLLECTION_NAME,
+)
+from endo_pipeline.settings.diffae_feature_dataframes import NUM_LATENT_FEATURES, NUM_PCS_TO_ANALYZE
 
 TAGS = ["diffae_features", "visualization"]
 
@@ -10,22 +15,63 @@ TAGS = ["diffae_features", "visualization"]
 def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    dataset_collection_name: str = "pca_reference",
+    dataset_collection_name_to_fit_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    dataset_collection_name_to_viz: str = "pca_reference",
+    crop_pattern: Literal["grid", "tracked"] = "grid",
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
+    num_pcs: int | None = None,
+    num_features: int | None = None,
+    include_loadings_legend: bool = False,
+    annotate: bool = True,
+    color_by_time: bool = False,
 ) -> None:
-    """Visualize key attributes of a fit PCA model."""
+    """
+    Visualize key attributes of a fit PCA model.
+
+    Parameters
+    ----------
+    model_manifest_name : str
+        Name of the model manifest to load the DiffAE model from.
+    run_name : str | None
+        Name of the model run within the model manifest. If None, uses the most recent run.
+    dataset_collection_name_to_fit_pca : str
+        Name of the dataset collection to use for fitting the PCA model.
+    dataset_collection_name_to_viz : str
+        Name of the dataset collection to use for visualization.
+    crop_pattern : Literal["grid", "tracked"]
+        Crop pattern used for training the DiffAE model. Must be either 'grid' or 'tracked'.
+    include_cell_piling : bool
+        Whether to include cell piling features in the PCA fitting and visualization.
+    num_pcs : int | None
+        Number of principal components to analyze and visualize.
+        If None, uses NUM_PCS_TO_ANALYZE or the number of latent features, whichever is smaller.
+    num_features : int | None
+        Number of features to analyze and visualize.
+        If None, uses NUM_LATENT_FEATURES or the number of features in the dataset,
+        whichever is smaller.
+    include_loadings_legend : bool
+        Whether to include a legend in the PCA loadings plots.
+    annotate : bool
+        Whether to annotate the heatmap and clustermap of PCA loadings.
+    """
     import logging
 
-    from endo_pipeline.configs import get_datasets_in_collection
-    from endo_pipeline.io import get_output_path, save_plot_to_path
+    from endo_pipeline.configs import get_datasets_in_collection, get_latent_dim_from_config
+    from endo_pipeline.io import get_config_dict_from_mlflow, get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
+        get_latent_feature_column_names,
+        get_pc_column_names,
         get_pca_loadings,
         get_pca_loadings_as_df,
     )
     from endo_pipeline.library.visualize.diffae_features import feature_viz
+    from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
+        plot_and_save_clustermap,
+    )
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
+        get_model_location_for_run,
         get_most_recent_run_name,
         load_dataframe_manifest,
         load_model_manifest,
@@ -34,18 +80,34 @@ def main(
     # set up logger
     logger = logging.getLogger(__name__)
 
+    if crop_pattern not in ["tracked", "grid"]:
+        logger.error("Crop pattern must be 'tracked' or 'grid', got [ %s ]", crop_pattern)
+        raise ValueError("Input crop_pattern must be 'grid' or 'tracked'")
+
+    # get model and dataframe manifests
     model_manifest = load_model_manifest(model_manifest_name)
+    run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
+        model_manifest, run_name_, crop_pattern=crop_pattern
     )
+    # get latent dimension from model config
+    model_location = get_model_location_for_run(model_manifest, run_name_)
+    model_config = get_config_dict_from_mlflow(model_location.mlflowid)
+    num_latent_dim = num_features or min(
+        NUM_LATENT_FEATURES, get_latent_dim_from_config(model_config)
+    )
+    num_pc_dim = num_pcs or min(NUM_PCS_TO_ANALYZE, num_latent_dim)
+    feat_col_names = get_latent_feature_column_names(num_latent_dim)
+    pc_col_names = get_pc_column_names(num_pc_dim)
 
     # set up output directory for figures
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     fig_savedir = get_output_path(
         "pca_viz",
-        dataset_collection_name,
+        dataset_collection_name_to_fit_pca,
         model_manifest_name,
         run_name_,
+        crop_pattern,
         "include_cell_piling" if include_cell_piling else "exclude_cell_piling",
     )
 
@@ -53,13 +115,14 @@ def main(
     logger.debug(
         "Fitting PCA model to datasets in collection [ %s ] "
         "using features from dataframe manifest [ %s ]",
-        dataset_collection_name,
+        dataset_collection_name_to_fit_pca,
         dataframe_manifest_name,
     )
     pca = fit_pca(
-        dataset_collection_name=dataset_collection_name,
+        dataset_collection_name=dataset_collection_name_to_fit_pca,
         dataframe_manifest_name=dataframe_manifest_name,
         include_cell_piling=include_cell_piling,
+        num_pcs=num_pc_dim,
     )
 
     # plot cumulative explained variance ratio of PCA components
@@ -69,30 +132,36 @@ def main(
     # plot PC loadings (contribution of each latent dimension to each PC)
     # first, plot for components scaled by the square root of the explained variance
     fig, _ = feature_viz.plot_component_loadings(
-        get_pca_loadings(pca, scaled=True, magnitude=False)
+        get_pca_loadings(pca, scaled=True, magnitude=False),
+        include_legend=include_loadings_legend,
     )
     save_plot_to_path(fig, fig_savedir, "pc_loadings_scaled")
 
     # then, plot components without scaling
     fig, _ = feature_viz.plot_component_loadings(
-        get_pca_loadings(pca, scaled=False, magnitude=False)
+        get_pca_loadings(pca, scaled=False, magnitude=False),
+        include_legend=include_loadings_legend,
     )
     save_plot_to_path(fig, fig_savedir, "pc_loadings_unscaled")
 
     # plot the absolute values of the scaled loadings
-    fig, _ = feature_viz.plot_component_loadings(get_pca_loadings(pca, scaled=True, magnitude=True))
+    fig, _ = feature_viz.plot_component_loadings(
+        get_pca_loadings(pca, scaled=True, magnitude=True),
+        include_legend=include_loadings_legend,
+    )
     save_plot_to_path(fig, fig_savedir, "pc_loadings_scaled_magnitude")
 
     # plot the absolute values of the unscaled loadings
     fig, _ = feature_viz.plot_component_loadings(
-        get_pca_loadings(pca, scaled=False, magnitude=True)
+        get_pca_loadings(pca, scaled=False, magnitude=True),
+        include_legend=include_loadings_legend,
     )
     save_plot_to_path(fig, fig_savedir, "pc_loadings_unscaled_magnitude")
 
     # plot scatter of PCA components
     # for the datasets used to fit PCA
     # load model manifests for the given dataset collection
-    dataset_names = get_datasets_in_collection(dataset_collection_name)
+    dataset_names = get_datasets_in_collection(dataset_collection_name_to_viz)
 
     # scatter plot of pca reference datasets
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
@@ -101,22 +170,39 @@ def main(
         dataframe_manifest,
         pca,
         include_cell_piling=include_cell_piling,
+        crop_pattern=crop_pattern,
+        scatter_size=1,
+        alpha=0.2,
+        color_by_time=color_by_time,
+        save_dir=fig_savedir,
     )
-    save_plot_to_path(fig, fig_savedir, "pca_scatter_ref")
 
-    # heatmap and clustemap of PC loadings
+    # heatmap and clustermap of PC loadings
     pca_loadings_df = get_pca_loadings_as_df(pca, df_format="wide")
-    fig_heatmap = feature_viz.pc_loading_heatmap_workflow(pca_loadings_df)
+    fig_heatmap = feature_viz.pc_loading_heatmap_workflow(
+        pca_loadings_df,
+        diffae_feature_columns=feat_col_names,
+        pc_columns=pc_col_names,
+        annotate=annotate,
+    )
     save_plot_to_path(
         figure=fig_heatmap,
         output_path=fig_savedir,
         figure_name="pca_loadings_heatmap",
     )
 
+    plot_and_save_clustermap(
+        df=pca_loadings_df,
+        output_folder=fig_savedir,
+        metric="correlation",
+        filename="pca_loadings_clustermap",
+        data_type="samples",
+    )
+
     logger.info("PCA visualization complete. Figures saved to [ %s ]", fig_savedir)
 
 
 if __name__ == "__main__":
-    from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)

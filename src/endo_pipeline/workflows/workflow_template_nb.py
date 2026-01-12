@@ -1,3 +1,5 @@
+from endo_pipeline.cli import DEMO_MODE
+
 # ============================ WORKFLOW DESCRIPTION ============================
 # Notebooks do not have a "docstring" that can be automatically parsed to
 # populate the help message. Instead, these workflows may include a description
@@ -48,8 +50,12 @@ logger = logging.getLogger(__name__)
 
 # Call workflow methods here. All methods should be located in the library,
 # config, or io packages. No methods should be defined in the workflow.
-logger.debug(f"debug message")
-logger.info(f"info message")
-logger.warning(f"warn message")
-logger.error(f"error message")
-logger.critical(f"critical message")
+logger.debug("debug message")
+logger.info("info message")
+logger.warning("warn message")
+logger.error("error message")
+logger.critical("critical message")
+
+
+if DEMO_MODE:
+    logger.info("DEMO MODE: running workflow_template_nb.py")

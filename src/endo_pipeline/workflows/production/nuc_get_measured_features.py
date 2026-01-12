@@ -1,63 +1,52 @@
-from pathlib import Path
+from endo_pipeline.cli import Datasets, tags
 
-from endo_pipeline.cli import Datasets
-
-
-def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
-    """Unpack arguments from an argument dictionary and call get_and_save_nuclei_features."""
-    dataset_name = args["dataset_name"]
-    position = args["position"]
-    tp = args["T"]
-    out_dir = args["output_dir"]
-    save_output = args["save_output"]
-    get_and_save_nuclei_features(dataset_name, position, tp, out_dir, save_output)
-
-
-def get_and_save_nuclei_features(
-    dataset_name: str,
-    position: int,
-    tp: int,
-    out_dir: Path,
-    save_output: bool = True,
-) -> None:
-    """Measure nuclei features for a given dataset, position, and timepoint and save the results as
-    a dataframe.
-    """
-    from endo_pipeline.library.analyze.shape_features import (
-        get_nuclei_features_from_dataset_at_timepoint,
-    )
-
-    nuc_props_df = get_nuclei_features_from_dataset_at_timepoint(dataset_name, position, tp)
-
-    out_subdir = out_dir / dataset_name / f"P{position}"
-    out_subdir.mkdir(exist_ok=True, parents=True)
-    out_path = out_subdir / f"{dataset_name}_P{position}_T{tp}_nuclei_labelfree_features.parquet"
-    if save_output:
-        nuc_props_df.to_parquet(out_path, index=False)
+TAGS = [tags.TEST_READY, tags.CPU_ONLY]
 
 
 def main(
-    datasets: Datasets,
+    datasets: Datasets | None = None,
     save_output: bool = True,
     n_proc: int = 1,
     verbose: bool = False,
-    is_test: bool = False,
     concatenate_tables_only: bool = False,
 ) -> None:
-    """Run workflow to measure features from label-free nuclei predictions."""
+    """Run workflow to measure features from label-free nuclei predictions.
+
+    Measures the label-free nuclei segmentation labels brightfield intensity and centroids and
+    matches them to existing cell segmentation labels.
+
+    To enter a list of datasets to analyze, use the following format:
+
+    .. code-block:: bash
+
+        --datasets 20250818_20X 20250618_20X
+
+    **Workflow demo**
+
+    The ``--demo-mode`` (``-d``) flag can be used to run the workflow on the first 3 timepoints
+    of the first 2 positions for each of the given datasets for workflow testing purposes.
+    """
     import logging
-    from concurrent.futures import ProcessPoolExecutor
 
     from tqdm import tqdm
 
+    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
     from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
+    from endo_pipeline.library.analyze.shape_features import (
+        get_and_save_nuclei_features_arg_unpacker,
+    )
+    from endo_pipeline.library.process.general_image_preprocessing import (
+        build_analysis_queue,
+        process_task_queue,
+    )
 
     logger = logging.getLogger(__name__)
 
     out_dir = get_output_path(__file__)
 
+    datasets = use_default_collection(datasets, "live_cdh5_seg_based_feat_datasets")
     logger.info(f"datasets analyzed: {datasets}")
 
     if not concatenate_tables_only:
@@ -68,27 +57,20 @@ def main(
             out_dir=out_dir,
             overwrite=True,
             verbose=verbose,
-            is_test=is_test,
             image_validation_frequency=None,
+            is_test=DEMO_MODE,
+            t_start=0,
+            t_final=3 if DEMO_MODE else None,
         )
 
         # get and save results from images in analysis queue
-        if n_proc > 1:
-            with ProcessPoolExecutor(max_workers=n_proc) as executor:
-                list(
-                    tqdm(
-                        executor.map(get_and_save_nuclei_features_arg_unpacker, analysis_queue),
-                        total=len(analysis_queue),
-                        desc="Getting nuclei features (MP)",
-                    )
-                )
-        else:
-            for args in tqdm(
-                analysis_queue,
-                total=len(analysis_queue),
-                desc="Getting nuclei features (1P)",
-            ):
-                get_and_save_nuclei_features_arg_unpacker(args)
+        process_task_queue(
+            get_and_save_nuclei_features_arg_unpacker,
+            analysis_queue,
+            description="Getting nuclei features",
+            num_processes=n_proc,
+            chunksize=5,
+        )
 
     # concatenate the results outputs from above in to a single table
     if save_output:

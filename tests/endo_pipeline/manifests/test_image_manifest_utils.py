@@ -5,6 +5,7 @@ import pytest
 from endo_pipeline.configs import ChannelIndices, DatasetConfig
 from endo_pipeline.manifests.image_manifest import ImageLocation, ImageManifest
 from endo_pipeline.manifests.image_manifest_utils import (
+    get_available_zarr_locations,
     get_image_location_for_dataset,
     get_zarr_location_for_position,
     list_datasets_with_images,
@@ -25,8 +26,8 @@ def manifest():
 def dataset_config():
     return DatasetConfig(
         name="",
+        date="",
         original_path="",
-        zarr_path="",
         zarr_positions=[1, 3, 5],
         fmsid="",
         barcode="",
@@ -39,6 +40,7 @@ def dataset_config():
         pixel_size_xy_in_um=0.0,
         duration=0,
         time_interval_in_minutes=0.0,
+        channel_names=[],
         flow_conditions=[],
         n_total_positions=0,
         original_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
@@ -233,3 +235,27 @@ def test_get_zarr_location_for_position(mock_load_image_manifest, dataset_config
     location = get_zarr_location_for_position(dataset_config, 3)
 
     assert location.path.as_posix() == "path/to/zarr_3.ome.zarr"
+
+
+def test_get_available_zarr_locations(mock_load_image_manifest, dataset_config):
+    dataset_name = "dataset_name"
+    dataset_config.name = dataset_name
+
+    image_manifest = ImageManifest(
+        name=ZARR_IMAGE_MANIFEST_NAME,
+        workflow="",
+        locations={dataset_name: ImageLocation(path=Path("path/to/zarr_{{position}}.ome.zarr"))},
+    )
+
+    mock_load_image_manifest(ZARR_IMAGE_MANIFEST_NAME, image_manifest)
+
+    expected_locations = [
+        Path("path/to/zarr_1.ome.zarr"),
+        Path("path/to/zarr_3.ome.zarr"),
+        Path("path/to/zarr_5.ome.zarr"),
+    ]
+
+    zarr_locations = get_available_zarr_locations(dataset_config)
+
+    for location, expected_path in zip(zarr_locations, expected_locations, strict=True):
+        assert location.path.as_posix() == expected_path.as_posix()

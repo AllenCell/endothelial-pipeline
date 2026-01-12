@@ -10,10 +10,51 @@ if typing.TYPE_CHECKING:
         DiffusionAutoEncoder as BaseDiffusionAutoEncoder,
     )
 
-    from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
-
+from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 
 logger = logging.getLogger(__name__)
+
+
+def add_noise_to_image(
+    input_image: np.ndarray,
+    noise_image: np.ndarray,
+    noise_level: float,
+) -> np.ndarray:
+    """
+    Add Gaussian noise to an input image at a specified noise level.
+
+    **Noise level weighting**
+
+    The output "noised" image is created using the formula:
+
+        output_image = sqrt(1 - noise_level) * input_image + sqrt(noise_level) * noise_img
+
+    Using this formula, ``noise_level`` represents the fraction of the corrupted image
+    that is contributed by the noise image, with the remainder contributed by the original input image.
+    An input noise_level of 0.0 results in no noise being added (the output image is identical
+    to the input image), while a noise_level of 1.0 results in an image composed entirely of noise.
+
+    Parameters
+    ----------
+    input_image
+        The input image to which noise will be added.
+    noise_image
+        A standard Gaussian noise image of the same shape as the input image.
+    noise_level
+        The level of noise to add, between 0.0 (no noise) and 1.0 (all noise).
+    """
+    if not (0.0 <= noise_level <= 1.0):
+        logger.error("Parameter `noise_level` must be between 0.0 and 1.0.")
+        raise ValueError("Parameter `noise_level` must be between 0.0 and 1.0.")
+
+    # Check edge cases for numerical efficiency
+    if noise_level == 0.0:
+        output_image = input_image.copy()
+    elif noise_level == 1.0:
+        output_image = noise_image.copy()
+    else:  # general case
+        output_image = np.sqrt(1 - noise_level) * input_image + np.sqrt(noise_level) * noise_image
+    return output_image
 
 
 def generate_from_coords_and_noised_image(
@@ -99,28 +140,32 @@ def generate_from_coords_and_noised_image(
 
 def generate_from_coords(
     model: "BaseDiffusionAutoEncoder | DiffusionAutoEncoder",
-    coords: np.ndarray | list[list[float]],
+    coords: np.ndarray,
     n_noise_samples: int = 1,
     average: bool = False,
     num_gpus: int | None = None,
+    random_seed: int | None = None,
 ) -> np.ndarray:
     """
-    Generate a synthetic image from a list of coordinates
-    in the latent space of a model.
+    Generate a synthetic image from coordinates in the latent space of a model.
 
     Parameters
     ----------
     model
         The model to use for generation.
     coords
-        A list of coordinates in the latent space of the model.
+        An array of shape (num_vecs, num_dims) containing latent space coordinates.
     n_noise_samples
         The number of noise samples to use for generation.
     average
         Whether to average the generated images.
     num_gpus
         Optional, number of available GPUs.
+    random_seed
+        Random seed for generating noise. Only available for endo-specific
+        DiffusionAutoEncoder model instances.
     """
+
     if not isinstance(coords, np.ndarray):
         if isinstance(coords, list):
             coords_np = np.array(coords)
@@ -141,43 +186,49 @@ def generate_from_coords(
         coords_ = coords_torch
         model_ = model
 
-    walk_img = model_.generate_from_latent(
-        coords_, n_noise_samples=n_noise_samples, average=average, save=False
-    )
+    if isinstance(model_, DiffusionAutoEncoder):
+        walk_img = model_.generate_from_latent(
+            coords_,
+            n_noise_samples=n_noise_samples,
+            average=average,
+            save=False,
+            random_seed=random_seed,
+        )
+    else:
+        walk_img = model_.generate_from_latent(
+            coords_, n_noise_samples=n_noise_samples, average=average, save=False
+        )
+
+    if isinstance(walk_img, torch.Tensor):
+        return walk_img.detach().cpu().numpy()
+
     return walk_img
 
 
 def generate_from_coords_batch(
     model: "BaseDiffusionAutoEncoder | DiffusionAutoEncoder",
-    coords_batch: np.ndarray | list[list[list[float]]],
+    coords_batch: np.ndarray,
     num_gpus: int | None = None,
 ) -> list[np.ndarray]:
     """
-    Generate synthetic images from a batch of coordinates
-    in the latent space of a model.
+    Generate synthetic images from a batch of coordinates in the latent space of a model.
+
+    Acts as a wrapper around `generate_from_coords` to process a batch of coordinates,
+    returning a list of generated images instead of a single array.
 
     Parameters
     ----------
     model:
         The model to use for generation.
     coords_batch:
-        A batch of lists of coordinates in the latent space of the model.
+        An array of shape (batch_size, num_dims) containing latent space coordinates.
     num_gpus:
         Optional, number of available GPUs.
     """
 
-    # note to self: need to debug what the input type is here
-    # I think the outlier is the latent walk? or maybe the crop
-    # reconstruction? need to check
-    if isinstance(coords_batch, np.ndarray):
-        coords_concat = coords_batch.copy()
-    elif isinstance(coords_batch, list):
-        coords_concat = np.array(coords_batch)
-    else:
-        coords_concat = np.concatenate(coords_batch, axis=0)
-    logger.debug("Concatenated coordinates shape: [ %s ]", coords_concat.shape)
+    logger.debug("Batch coordinate array shape: [ %s ]", coords_batch.shape)
 
-    img = generate_from_coords(model, coords_concat, num_gpus=num_gpus)
+    img = generate_from_coords(model, coords_batch, num_gpus=num_gpus)
     walk_imgs = [img[i] for i in range(len(coords_batch))]
 
     return walk_imgs

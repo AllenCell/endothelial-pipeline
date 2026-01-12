@@ -1,12 +1,38 @@
+from pathlib import Path
 from typing import Any, Literal
 
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
+from matplotlib.colorbar import ColorbarBase
 
 # set the plot shape to the golden ratio
 AX_WIDTH = 4.5
 AX_HEIGHT = AX_WIDTH * 2 / 3
+
+
+def save_colorbar(
+    outdir: Path,
+    colormap_name: str = "viridis",
+    filename: str | None = None,
+    figsize: tuple[int, int] = (1, 5),
+    filetype: str = ".png",
+) -> None:
+    """Plots and saves the colorbar specified by "colormap_name".
+    A list of all available colormaps can be found with:
+    >>> from matplotlib import pyplot as plt
+    >>> plt.colormaps()` will list all available colormaps
+    """
+    valid_colormaps = plt.colormaps()
+    if colormap_name not in valid_colormaps:
+        raise ValueError(f"{colormap_name} is not valid. Valid colormaps are\n: {valid_colormaps}")
+
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.set_axis_off()
+    ColorbarBase(ax, cmap=colormap_name)
+    filename = f"{filename}_" if filename else ""
+
+    fig.savefig(outdir / f"{filename}{colormap_name}{filetype}", bbox_inches="tight", pad_inches=0)
 
 
 def lineplot_of_feats(
@@ -123,6 +149,9 @@ def hist_2d_of_feats(
     discrete_yticks: bool = False,
     minor_ticks: Literal["x", "y", "xy"] | None = None,
     bin_width: tuple[float, float] | None = None,
+    figsize: tuple[float, float] | None = None,
+    tight_layout: bool = True,
+    cmap: str = "viridis",
 ) -> tuple[plt.Figure, plt.Axes]:
     """
     df_group : pd.DataFrame
@@ -155,6 +184,18 @@ def hist_2d_of_feats(
     bin_width: tuple[int, int] | None
         Set the bin width for the histogram using a (width_x, width_y)
         tuple. If None, the default bin width will be used.
+    figsize: tuple[float, float] | None
+        Set the figure size using a (width, height) tuple.
+        If None, the default figure size will be used.
+    tight_layout: bool
+        If True, plt.tight_layout() will be called to adjust the figure layout.
+    colormap: str
+        The colormap to use for the histogram.
+
+    Returns
+    -------
+    tuple[plt.Figure, plt.Axes]
+        The figure and axes objects.
     """
 
     assert (
@@ -167,14 +208,22 @@ def hist_2d_of_feats(
         positions = positions[0]
     fig_title = f"{dataset_name} P{positions}"
 
-    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
+    if figsize is None:
+        figsize = (AX_WIDTH, AX_HEIGHT)
+    else:
+        figsize = figsize
+    fig, ax = plt.subplots(figsize=figsize)
     sns.histplot(
         data=df_group,
         x=x_column_name,
         y=y_column_name,
         binwidth=bin_width,
+        cmap=cmap,
         ax=ax,
     )
+
+    # change the background color to grey
+    ax.set_facecolor("grey")
 
     # adjust the axes limits and tick behavior
     x_min = df_group[x_column_name].min() if x_lims[0] == "min" else x_lims[0]
@@ -203,12 +252,13 @@ def hist_2d_of_feats(
     ax.set_title(fig_title)
     ax.set_xlabel(x_label or x_column_name)
     ax.set_ylabel(y_label or y_column_name)
-    plt.tight_layout()
+    if tight_layout:
+        plt.tight_layout()
 
     return fig, ax
 
 
-def mark_parallel(ax: plt.Axes) -> plt.Axes:
+def mark_parallel(ax: plt.Axes, color: str = "black") -> plt.Axes:
     """
     Draws horizontal lines at -180, 0, and 180 degrees
     to mark the parallel angles.
@@ -225,11 +275,11 @@ def mark_parallel(ax: plt.Axes) -> plt.Axes:
     """
     parallel_angles = [-180, 0, 180]
     for ang in parallel_angles:
-        ax.axhline(ang, color="black", linestyle="--", linewidth=1)
+        ax.axhline(ang, color=color, linestyle="--", linewidth=1)
     return ax
 
 
-def mark_perpendicular(ax: plt.Axes) -> plt.Axes:
+def mark_perpendicular(ax: plt.Axes, color: str = "black") -> plt.Axes:
     """
     Draws horizontal lines at -90 and 90 degrees to mark
     the perpendicular angles.
@@ -246,7 +296,7 @@ def mark_perpendicular(ax: plt.Axes) -> plt.Axes:
     """
     perpendicular_angles = [-90, 90]
     for ang in perpendicular_angles:
-        ax.axhline(ang, color="black", linestyle=":", linewidth=1)
+        ax.axhline(ang, color=color, linestyle=":", linewidth=1)
     return ax
 
 
@@ -278,6 +328,14 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "ticks": range(0, 49, 12),
             "discrete_ticks": False,
         },
+        "time_hrs_flow": {
+            "column_name": "time_hours_since_flow_start",
+            "label": "Time Under Flow (h)",
+            "lims": ("min", "max"),
+            "bin_width": 0.5,
+            "ticks": None,  # range(0, 49, 12),
+            "discrete_ticks": False,
+        },
         "alignment_deg": {
             "column_name": "alignment_deg_rel_to_flow",
             "label": "Alignment (deg)",
@@ -289,9 +347,9 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         "orientation_deg": {
             "column_name": "orientation_deg",
             "label": "Orientation (deg)",
-            "lims": (-180, 180),
+            "lims": (0, 180),
             "bin_width": 5,
-            "ticks": range(-180, 181, 90),
+            "ticks": range(0, 181, 90),
             "discrete_ticks": False,
         },
         "nematic_order": {
@@ -313,7 +371,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         "aspect_ratio": {
             "column_name": "aspect_ratio",
             "label": "Aspect Ratio",
-            "lims": (0, "max"),
+            "lims": (1, 10),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,
@@ -321,14 +379,14 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         "area_um2": {
             "column_name": "area (um**2)",
             "label": "Area (μm²)",
-            "lims": (0, "max"),
+            "lims": (350, 2000),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,
         },
         "num_neighbors": {
             "column_name": "number_of_neighbors",
-            "label": "Number of Neighbors",
+            "label": "Number of\nNeighbors",
             "lims": (0, "max"),
             "bin_width": 1,
             "ticks": None,
@@ -336,7 +394,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         },
         "centroid_velocity_magnitude": {
             "column_name": "centroid_velocity_magnitude",
-            "label": "Centroid Velocity Magnitude (μm/min)",
+            "label": "Centroid Velocity\nMagnitude (μm/min)",
             "lims": (0, "max"),
             "bin_width": None,
             "ticks": None,
@@ -344,7 +402,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         },
         "centroid_velocity_orientation_deg": {
             "column_name": "centroid_velocity_angle_deg",
-            "label": "Centroid Velocity Orientation (deg)",
+            "label": "Centroid Velocity\nOrientation (deg)",
             "lims": (-180, 181),
             "bin_width": 5,
             "ticks": range(-180, 181, 90),
@@ -352,7 +410,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         },
         "cell_nuc_orientation_deg": {
             "column_name": "nuc_pos_rel_cell_angle_deg",
-            "label": "Nuclei Orientation (deg)",
+            "label": "Nuclei Orientation\nRel. to Flow (deg)",
             "lims": (-180, 180),
             "bin_width": 5,
             "ticks": range(-180, 181, 90),
@@ -384,7 +442,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         },
         "num_nuclei_in_crop": {
             "column_name": "num_nuclei_in_crop",
-            "label": "Number of Nuclei in Crop",
+            "label": "Number of Nuclei\nin Crop",
             "lims": (0, None),
             "bin_width": None,
             "ticks": None,
@@ -393,7 +451,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         "cell_fluorescence_mean": {
             "column_name": "cell_fluorescence_mean (a.u.)",
             "label": "Mean Cell Fluorescence",
-            "lims": (0, "max"),
+            "lims": (120, 150),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,
@@ -402,6 +460,22 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "column_name": "cell_solidity",
             "label": "Cell Solidity",
             "lims": (0, 1),
+            "bin_width": None,
+            "ticks": None,
+            "discrete_ticks": False,
+        },
+        "nuc_orientation_deg_rel_migration": {
+            "column_name": "cell_nuc_orientation_deg_rel_to_migration",
+            "label": "Nuclei Orientation\nRel. to Migration (deg)",
+            "lims": (-180, 180),
+            "bin_width": 5,
+            "ticks": range(-180, 181, 90),
+            "discrete_ticks": False,
+        },
+        "nuc_pos_vs_cell_veloc_dotprod": {
+            "column_name": "nuc_pos_vs_cell_veloc_dotprod",
+            "label": "Cell-Nucleus vs.\nMigration Dot Product",
+            "lims": (None, None),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,

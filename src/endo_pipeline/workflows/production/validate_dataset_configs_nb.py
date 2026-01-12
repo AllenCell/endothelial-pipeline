@@ -14,22 +14,33 @@ For each dataset config in the `configs/datasets` directory, confirm:
 """
 
 # %%
+DESCRIPTION = "Validate all existing datasets by checking config schemas and loading files."
+TAGS = ["test_ready", "CPU_only"]
+
+# %%
 import logging
 from pathlib import Path
 
 from bioio import BioImage
 
+from endo_pipeline.cli import DEMO_MODE
 from endo_pipeline.configs import (
     get_available_dataset_names,
     load_dataset_config,
     validate_dataset_config,
 )
+from endo_pipeline.manifests import get_zarr_location_for_position
 
 # %%
 logger = logging.getLogger(__name__)
 
 # %%
-for dataset_name in get_available_dataset_names():
+names = get_available_dataset_names()
+if DEMO_MODE:
+    # Each dataset takes 2-9 seconds to validate
+    names = names[:2]
+
+for dataset_name in names:
     logger.info(f"Running validation for dataset [ {dataset_name} ]")
 
     # Validate dataset config schema.
@@ -48,31 +59,14 @@ for dataset_name in get_available_dataset_names():
             dataset_config.original_path,
         )
 
-    # Check if specified zarr path exists.
-    zarr_path = Path(dataset_config.zarr_path)
-    if not zarr_path.exists():
-        logger.error(
-            "Zarr path does not exist for dataset [ %s ] at [ %s ]", dataset_config.name, zarr_path
-        )
-        continue
+    # For each position, check if the local zarr exists and can be opened.
+    for position in dataset_config.zarr_positions:
+        zarr_file = get_zarr_location_for_position(dataset_config, position).path
 
-    # Check if zarr files exist at specified zarr path.
-    zarr_files = list(zarr_path.glob("*.zarr"))
-    if len(zarr_files) == 0:
-        logger.error(
-            "No Zarr files were found for dataset [ %s ] at [ %s ]",
-            dataset_config.name,
-            dataset_config.zarr_path,
-        )
-        continue
-
-    # Check if zarr files can be loaded
-    for zarr_file in zarr_files:
-        logger.debug("Testing load for zarr file [ %s ]", zarr_file)
         try:
             BioImage(zarr_file)
         except:
             logger.error(
-                "Failed to load zarr for dataset [ %s ] at [ %s ]", dataset_config.name, zarr_file
+                "Failed to load zarr for dataset [ %s ] at [ %s ]", dataset_name, zarr_file
             )
             raise

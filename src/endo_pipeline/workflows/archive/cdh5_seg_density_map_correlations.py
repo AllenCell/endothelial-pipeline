@@ -125,7 +125,7 @@ def main(dataset_name_list: list[str] | None = None) -> None:
             )
             _save_results(out_dir, t, df, pearson, fig)
 
-        table_paths = [fp for fp in out_dir.glob("tables/*.csv")]
+        table_paths = list(out_dir.glob("tables/*.csv"))
         master_table = pd.concat([pd.read_csv(fp) for fp in table_paths])
 
         fig, ax = plt.subplots(figsize=(8, 6), ncols=1, nrows=1)
@@ -160,6 +160,6 @@ def main(dataset_name_list: list[str] | None = None) -> None:
 
 
 if __name__ == "__main__":
-    from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)
