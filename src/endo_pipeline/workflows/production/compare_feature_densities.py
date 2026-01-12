@@ -16,6 +16,8 @@ def main(
     """Compare feature densities between cell-centric and grid-based crops."""
     import logging
 
+    import pandas as pd
+
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
@@ -27,7 +29,10 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.density_comparison_plots import DENSITY_PLOT_DEFAULT_DATASET
+    from endo_pipeline.settings.density_comparison_plots import (
+        DENSITY_PLOT_DEFAULT_DATASET,
+        SAVE_FIG_FILE_FORMATS,
+    )
     from endo_pipeline.settings.diffae_feature_dataframes import (
         DIFFAE_PC_COLUMN_NAMES,
         NUM_PCS_TO_ANALYZE,
@@ -53,6 +58,11 @@ def main(
 
     pca = fit_pca(num_pcs=NUM_PCS_TO_ANALYZE)
 
+    # if pooling, prepare lists to collect dataframes
+    if pool_datasets:
+        dataframe_list_grid = []
+        dataframe_list_tracked = []
+
     for dataset_name in datasets_to_analyze:
         df_grid = get_dataframe_for_dynamics_workflows(
             dataset_name,
@@ -77,6 +87,13 @@ def main(
         n_total_crops_tracked = df_tracked.shape[0]
         logger.info("Total number of cell-centric crops: [ %d ]", n_total_crops_tracked)
 
+        # if pooling, just collect dataframes
+        if pool_datasets:
+            dataframe_list_grid.append(df_grid)
+            dataframe_list_tracked.append(df_tracked)
+            continue
+
+        # else, plot per-dataset
         fig, _ = plot_kde_comparison(
             df_tracked,
             df_grid,
@@ -84,5 +101,20 @@ def main(
         )
 
         fig_filename = f"{dataset_name}"
-        save_plot_to_path(fig, fig_savedir, fig_filename, file_format=".png")
-        save_plot_to_path(fig, fig_savedir, fig_filename, file_format=".pdf")
+        for file_format in SAVE_FIG_FILE_FORMATS:
+            save_plot_to_path(fig, fig_savedir, fig_filename, file_format=file_format)
+
+    # if pooling, plot combined data
+    if pool_datasets:
+        df_grid_pooled = pd.concat(dataframe_list_grid, axis=0)
+        df_tracked_pooled = pd.concat(dataframe_list_tracked, axis=0)
+
+        fig, _ = plot_kde_comparison(
+            df_tracked_pooled,
+            df_grid_pooled,
+            feature_column_names,
+        )
+
+        fig_filename = f"pooled_datasets{'_'.join(datasets_to_analyze)}"
+        for file_format in SAVE_FIG_FILE_FORMATS:
+            save_plot_to_path(fig, fig_savedir, fig_filename, file_format=file_format)

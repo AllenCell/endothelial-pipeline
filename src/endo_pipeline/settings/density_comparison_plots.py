@@ -21,3 +21,6 @@ DENSITY_PLOT_KWARGS_TRACKED_CROPS: dict = {
     "linestyle": "-",
 }
 """Default plotting keyword arguments for density plots of tracked crops."""
+
+SAVE_FIG_FILE_FORMATS: tuple[str, ...] = (".png", ".pdf")
+"""File formats to save figures in."""
