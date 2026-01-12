@@ -2,12 +2,9 @@
 import pandas as pd
 from s3_uploader import run_jobs
 
-from endo_pipeline.configs import (
-    get_datasets_in_collection,
-    get_zarr_file_for_position,
-    load_dataset_config,
-)
+from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
 from endo_pipeline.io.output import get_output_path, get_timestamp
+from endo_pipeline.manifests import get_zarr_location_for_position
 
 # %%
 DESCRIPTION = "Stage dataset for s3 upload."
@@ -31,7 +28,7 @@ for dataset in datasets:
     dataset_config = load_dataset_config(dataset)
 
     for position in dataset_config.zarr_positions:
-        zarr_path = get_zarr_file_for_position(dataset_config, position)
+        zarr_path = get_zarr_location_for_position(dataset_config, position).path
         zarr_name = zarr_path.name
         s3_zarr_path = S3_DIRECTORY + zarr_name
         rows.append(
