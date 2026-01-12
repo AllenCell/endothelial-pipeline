@@ -16,8 +16,8 @@ def main(
     import logging
     from pathlib import Path
 
-    import seaborn as sb
     from matplotlib import pyplot as plt
+    from seaborn import kdeplot
 
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
@@ -87,8 +87,8 @@ def main(
         ax_labels = ["PC1", "PC2", "PC3"]
         for i, feature in enumerate(features):
             ax: plt.Axes = axs[i]
-            sb.kdeplot(df_grid[feature], ax=ax, **DENSITY_PLOT_KWARGS_GRID_CROPS)
-            sb.kdeplot(df_tracked[feature], ax=ax, **DENSITY_PLOT_KWARGS_TRACKED_CROPS)
+            kdeplot(df_grid[feature], ax=ax, **DENSITY_PLOT_KWARGS_GRID_CROPS)
+            kdeplot(df_tracked[feature], ax=ax, **DENSITY_PLOT_KWARGS_TRACKED_CROPS)
 
             # formatting
             ax.set_xlabel(ax_labels[i])
