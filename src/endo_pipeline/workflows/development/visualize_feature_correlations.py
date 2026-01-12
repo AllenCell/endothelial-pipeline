@@ -22,7 +22,7 @@ def main(
     segmentation_feature_group: str = "default",
     num_pcs: int | None = None,
     timepoint_annotations: list[TimepointAnnotation] | Literal["default"] | None = "default",
-    aggregate: bool = True,
+    aggregate_only: bool = True,
     skip_multi_feature_scatterplots: bool = False,
 ) -> None:
     """
@@ -51,8 +51,8 @@ def main(
     timepoint_annotations
         List of timepoint annotations to exclude from the analysis. If "default",
         excludes NOT_STEADY_STATE and CELL_PILING timepoints. If None, includes all timepoints.
-    aggregate
-        If True, uses the aggregated dataset in the analysis.
+    aggregate_only
+        If True, only uses the aggregated dataset in the analysis.
     skip_multi_feature_scatterplots
         If True, skips generating multi-feature scatterplots.
 
@@ -96,6 +96,7 @@ def main(
         get_model_location_for_run,
         get_most_recent_run_name,
     )
+    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
     logger = logging.getLogger(__name__)
 
@@ -111,6 +112,7 @@ def main(
 
     pc_columns = get_pc_column_names(num_pcs)
     diffae_feature_columns = get_latent_feature_column_names(num_features)
+    polar_pc_columns = [ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE]
 
     if timepoint_annotations == "default":
         annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
@@ -138,6 +140,7 @@ def main(
         num_pcs=num_pcs,
         pc_columns=pc_columns,
         diffae_feature_columns=diffae_feature_columns,
+        polar_pc_columns=polar_pc_columns,
         dataset_collection_name_for_pca=dataset_collection_name,
         model_manifest=model_manifest,
         run_name=run_name_,
@@ -145,19 +148,19 @@ def main(
         timepoint_annotations=timepoint_annotations,
     )
 
-    df["|PC 1|"] = df["PC 1"].abs()
-    df["|PC 2|"] = df["PC 2"].abs()
-    pc_abs_group = ["PC 1", "PC 2", "PC 3", "|PC 1|", "|PC 2|"]
+    pc_and_polar_group = [*pc_columns[:3], *polar_pc_columns]
 
     label_column_tuples = [
         ("Measurement", [get_label_for_column(col) for col in segmentation_feature_columns]),
         ("PC", [get_label_for_column(col) for col in pc_columns]),
-        ("PC plus abs", pc_abs_group),
         ("DiffAE Feature", [get_label_for_column(col) for col in diffae_feature_columns]),
+        ("PC with polar transform", [get_label_for_column(col) for col in pc_and_polar_group]),
     ]
 
-    if aggregate:
+    if aggregate_only:
         dataset_name_list = ["aggregate"]
+    else:
+        dataset_name_list = [*dataset_name_list, "aggregate"]
 
     for dataset_name in tqdm(dataset_name_list):
         # if the dataset name is "aggregate", use the full DataFrame

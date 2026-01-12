@@ -35,6 +35,7 @@ from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifes
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.manifests import ModelManifest
 from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME, RANDOM_SEED
+from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 
 logger = logging.getLogger(__name__)
@@ -407,6 +408,7 @@ def get_df_for_feature_correlation_viz(
     pc_columns: list[str],
     dataset_collection_name_for_pca: str,
     diffae_feature_columns: list[str],
+    polar_pc_columns: list[ColumnName],
     model_manifest: ModelManifest,
     run_name: str,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
@@ -486,20 +488,19 @@ def get_df_for_feature_correlation_viz(
 
         # check that the chosen measurement column names
         # are actually in the DataFrame
-        columns_to_check = segmentation_feature_columns + dataset_info_columns
-        if not all(np.isin(columns_to_check, merged_feats_df.columns)):
-            missing_columns = set(columns_to_check) - set(merged_feats_df.columns)
+        # keep only the columns that will be used
+        cols_to_keep = [
+            *dataset_info_columns,
+            *segmentation_feature_columns,
+            *diffae_feature_columns,
+            *pc_columns,
+            *polar_pc_columns,
+        ]
+        if not all(np.isin(cols_to_keep, merged_feats_df.columns)):
+            missing_columns = set(cols_to_keep) - set(merged_feats_df.columns)
             raise ValueError(
                 f"Not all columns names are in merged_feats_df. Missing:\n{missing_columns}"
             )
-
-        # keep only the columns that will be used
-        cols_to_keep = (
-            dataset_info_columns
-            + segmentation_feature_columns
-            + diffae_feature_columns
-            + pc_columns
-        )
 
         merged_feats_df = merged_feats_df[cols_to_keep].copy()
         merged_feats_df.rename(columns=get_label_for_column, inplace=True)
