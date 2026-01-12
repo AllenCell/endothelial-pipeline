@@ -1,6 +1,6 @@
 import logging
 
-from endo_pipeline import USE_STAGING
+from endo_pipeline.cli import USE_STAGING
 
 logger = logging.getLogger(__name__)
 

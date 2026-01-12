@@ -60,7 +60,7 @@ def main(
     import matplotlib.pyplot as plt
     import numpy as np
 
-    from endo_pipeline import NUM_GPUS
+    from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.io import get_output_path, load_dataframe, load_model, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         check_required_columns_in_dataframe,
@@ -148,6 +148,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)

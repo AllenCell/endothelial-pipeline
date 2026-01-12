@@ -33,7 +33,7 @@ def main(
     from cellpose import core, models, train
     from cellpose.io import logger_setup
 
-    from endo_pipeline import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_image, make_name_unique
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
