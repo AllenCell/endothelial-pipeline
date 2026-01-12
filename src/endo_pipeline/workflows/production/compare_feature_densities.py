@@ -14,7 +14,6 @@ def main(
 ):
     """Compare feature densities between cell-centric and grid-based crops."""
     import logging
-    from pathlib import Path
 
     from matplotlib import pyplot as plt
     from seaborn import kdeplot
@@ -54,7 +53,7 @@ def main(
         load_model_manifest(model_manifest_name), run_name, crop_pattern="grid"
     )
 
-    savedir = get_output_path(Path(__file__).stem)
+    savedir = get_output_path(__file__)
 
     pca = fit_pca(num_pcs=NUM_PCS_TO_ANALYZE)
 
