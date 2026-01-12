@@ -74,7 +74,11 @@ def main(
         )
 
         n_total_crops_grid = df_grid.shape[0]
-        logger.info("Total number of grid-based crops: [ %d ]", n_total_crops_grid)
+        logger.info(
+            "Total number of grid-based crops for dataset [ %s ] : [ %d ]",
+            dataset_name,
+            n_total_crops_grid,
+        )
 
         df_tracked = get_dataframe_for_dynamics_workflows(
             dataset_name,
@@ -85,7 +89,11 @@ def main(
             include_not_steady_state=False,
         )
         n_total_crops_tracked = df_tracked.shape[0]
-        logger.info("Total number of cell-centric crops: [ %d ]", n_total_crops_tracked)
+        logger.info(
+            "Total number of cell-centric crops for dataset [ %s ] : [ %d ]",
+            dataset_name,
+            n_total_crops_tracked,
+        )
 
         # if pooling, just collect dataframes
         if pool_datasets:
