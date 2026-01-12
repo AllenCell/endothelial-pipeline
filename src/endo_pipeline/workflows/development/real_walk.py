@@ -69,7 +69,7 @@ def main(
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_image, save_plot_to_path
     from endo_pipeline.library.analyze.numerics import (
-        get_3d_bounds_from_data,
+        get_bounds_from_data,
         get_df_by_bin_value,
         get_histogram_by_component,
     )
@@ -86,14 +86,11 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings import (
-        DEFAULT_PCA_DATASET_COLLECTION_NAME,
-        DIFFAE_PC_COLUMN_NAMES,
-        NUM_BINS_CROP_HIST,
-        ColumnName,
-    )
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
     from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
+    from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH
+    from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
 
     logger = logging.getLogger(__name__)
 
@@ -120,7 +117,7 @@ def main(
         datasets, dataframe_manifest, include_cell_piling=include_cell_piling
     )
 
-    bin_limits = get_3d_bounds_from_data(
+    bin_limits = get_bounds_from_data(
         datasets,
         dataframe_manifest,
         pca,
@@ -129,7 +126,7 @@ def main(
     )
     hist_array_list, bin_edges, df_with_bins = get_histogram_by_component(
         df,
-        NUM_BINS_CROP_HIST,
+        CROP_HIST_BIN_WIDTH,
         bin_limits,
         feat_cols=DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze],
     )

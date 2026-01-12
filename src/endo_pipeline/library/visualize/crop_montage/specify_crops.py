@@ -18,12 +18,12 @@ from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     plot_principal_component_histogram,
 )
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import (
+from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
-    NUM_BINS_CROP_HIST,
     NUM_PCS_TO_ANALYZE,
     ColumnName,
 )
+from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +119,7 @@ def filter_dataframe(
     bin_limits = get_bounds_from_data(dataset_names, dataframe_manifest, pca, filter_to_valid=False)
     hist_array_list, bin_edges, df_with_bins = get_histogram_by_component(
         df_all,
-        NUM_BINS_CROP_HIST,
+        CROP_HIST_BIN_WIDTH,
         bin_limits,
         feat_cols=DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
     )

@@ -2,8 +2,8 @@
 
 from endo_pipeline.configs import ShearStressRegime
 
-NUM_BINS_CROP_HIST = 40
-"""Number of bins for histograms used in crop montage sampling."""
+CROP_HIST_BIN_WIDTH: int = 0.075
+"""Bin width used in crop montage sampling."""
 
 SHEAR_COLOR_DICT = {
     (ShearStressRegime.NO,): "tab:green",
