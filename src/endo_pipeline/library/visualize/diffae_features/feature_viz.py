@@ -10,6 +10,7 @@ import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d import Axes3D
+from seaborn import kdeplot
 from sklearn.decomposition import PCA
 
 from endo_pipeline.configs import load_dataset_config
@@ -22,19 +23,74 @@ from endo_pipeline.library.visualize.seg_features.general_standard_plots import 
     get_seg_feat_plot_args,
 )
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import (
+from endo_pipeline.settings.density_comparison_plots import (
+    DENSITY_PLOT_KDE_BANDWIDTH,
+    DENSITY_PLOT_KWARGS_GRID_CROPS,
+    DENSITY_PLOT_KWARGS_TRACKED_CROPS,
+)
+from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
-    SHEAR_COLOR_DICT,
+    ColumnName,
 )
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
-from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 plt.style.use("endo_pipeline.figure")
 
 logger = logging.getLogger(__name__)
+
+
+def plot_kde_comparison(
+    df_grid: pd.DataFrame,
+    df_tracked: pd.DataFrame,
+    feature_column_names: list[str],
+    kernel_bw: float = DENSITY_PLOT_KDE_BANDWIDTH,
+) -> tuple[Figure, np.ndarray[Axes, Any]]:
+
+    nrows = 1
+    ncols = len(feature_column_names)
+    figsize = (7 * ncols, 4 * nrows)
+    fig, axs = plt.subplots(
+        nrows=nrows,
+        ncols=ncols,
+        figsize=figsize,
+    )
+
+    # plot KDEs for each feature
+
+    for i, feature in enumerate(feature_column_names):
+        ax: plt.Axes = axs[i]
+        kdeplot(
+            df_grid[feature],
+            ax=ax,
+            bw_method=kernel_bw,
+            **DENSITY_PLOT_KWARGS_GRID_CROPS,
+        )
+        kdeplot(
+            df_tracked[feature],
+            ax=ax,
+            bw_method=kernel_bw,
+            **DENSITY_PLOT_KWARGS_TRACKED_CROPS,
+        )
+
+        # formatting
+        ax_label = get_label_for_column(feature)
+        ax.set_xlabel(ax_label)
+        ax.set_ylabel("Density")
+
+        if i == 0:
+            handles, labels = ax.get_legend_handles_labels()
+            ax.legend(
+                handles,
+                labels,
+                bbox_to_anchor=(1.32, 1.0),
+                fontsize=FONTSIZE_MEDIUM,
+            )
+
+    return fig, axs
 
 
 def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
