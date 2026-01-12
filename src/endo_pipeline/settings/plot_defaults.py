@@ -2,7 +2,7 @@
 
 from endo_pipeline.configs import ShearStressRegime
 
-CROP_HIST_BIN_WIDTH: int = 0.075
+CROP_HIST_BIN_WIDTH: float = 0.075
 """Bin width used in crop montage sampling."""
 
 SHEAR_COLOR_DICT = {
