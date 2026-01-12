@@ -129,8 +129,8 @@ def get_bounds_from_data(
     """
     num_dims = len(pc_column_names)
     # initialize bounds - set to extreme values
-    bin_mins = [np.inf for _ in range(num_dims)]
-    bin_maxs = [-np.inf for _ in range(num_dims)]
+    bin_mins = [np.inf] * num_dims
+    bin_maxs = [-np.inf] * num_dims
 
     # loop over each dataset and update bin mins and maxs
     for dataset_name in dataset_names:
