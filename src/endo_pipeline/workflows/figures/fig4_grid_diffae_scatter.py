@@ -121,8 +121,8 @@ def main(
     model = load_model(model_manifest.locations[DEFAULT_MODEL_RUN_NAME], instantiate=True)
     walk_imgs = generate_from_coords_batch(model, latent_coords, num_gpus=NUM_GPUS)
 
-    crop_savedir = outdir / "reconstructed_example_points"
-    crop_savedir.mkdir(exist_ok=True)
+    reconstruction_savedir = outdir / "reconstructed_example_points"
+    reconstruction_savedir.mkdir(exist_ok=True)
 
     for i, img in enumerate(walk_imgs):
         fig, ax = plt.subplots(figsize=(2, 2))
@@ -132,7 +132,12 @@ def main(
         file_name_prefix = "reconstruction-pc1_pc2_pc3_"
         pc_coord_as_str = "_".join([f"{coord:.2f}" for coord in pc_coords[i]])
         file_name = f"{file_name_prefix}{pc_coord_as_str}.png"
-        save_plot_to_path(fig, crop_savedir, file_name, pad_inches=0)
+        save_plot_to_path(fig, reconstruction_savedir, file_name, pad_inches=0)
+
+    real_example_savedir = outdir / f"{dataset_name}_example_points"
+    real_example_savedir.mkdir(exist_ok=True)
+
+    # example_imgs = []
 
 
 if __name__ == "__main__":
