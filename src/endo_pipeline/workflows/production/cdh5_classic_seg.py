@@ -85,8 +85,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+    from endo_pipeline.cli import workflow_cli
 
-    # ipython_cli_flexecute runs a function via either
-    # the command line or an interactive python shell
-    ipython_cli_flexecute(main)
+    workflow_cli(main)

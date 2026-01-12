@@ -8,7 +8,6 @@ from bioio import BioImage
 from tqdm import tqdm
 
 from endo_pipeline.configs import get_available_dataset_names, load_dataset_config
-from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 from endo_pipeline.settings.image_data import AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
 
 
@@ -512,7 +511,3 @@ def show_example_usage() -> None:
 
     print("What are is the voxel size for this acquisition?")
     print(get_voxel_size(metadata))
-
-
-if __name__ == "__main__":
-    ipython_cli_flexecute(all_sldy_metadata_to_tsv)
