@@ -123,6 +123,6 @@ def main(
             feature_column_names,
         )
 
-        fig_filename = f"pooled_datasets{'_'.join(datasets_to_analyze)}"
+        fig_filename = f"pooled_datasets_{'_'.join(datasets_to_analyze)}"
         for file_format in SAVE_FIG_FILE_FORMATS:
             save_plot_to_path(fig, fig_savedir, fig_filename, file_format=file_format)
