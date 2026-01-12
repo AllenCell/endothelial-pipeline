@@ -89,8 +89,9 @@ def plot_kde_comparison(
             ax.legend(
                 handles,
                 labels,
-                ncols=ncols,
+                ncols=2,
                 loc="upper left",
+                borderaxespad=0.0,
                 bbox_to_anchor=(0.0, 1.1),
                 fontsize=FONTSIZE_MEDIUM,
             )
