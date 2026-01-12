@@ -4,7 +4,6 @@ import dask.array as da
 from bioio import BioImage
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.configs.dataset_io import get_dataset_info, get_original_path
 
 
 def get_included_scenes(dataset_name: str) -> list | range:
@@ -24,12 +23,13 @@ def get_included_scenes(dataset_name: str) -> list | range:
         in the dataset config file,
         all scenes are included by default.
     """
-    dataset_info = get_dataset_info(dataset_name)
-    include_scenes = dataset_info.get("include_scenes")
+
+    dataset_config = load_dataset_config(dataset_name)
+    include_scenes = dataset_config.include_scenes
 
     # by default, include all scenes
     if include_scenes is None:
-        include_scenes = range(len(BioImage(dataset_info["original_path"]).scenes))
+        include_scenes = range(len(BioImage(dataset_config.original_path).scenes))
 
     return include_scenes
 
@@ -58,7 +58,7 @@ def get_delayed_array_for_position(
         the Dask array.
     scene_index : int, optional
         The scene index. You can find the scene names (in their indexed order)
-        using `BioImage(get_original_path(dataset_name)).scenes`. Default is 0.
+        using `BioImage(dataset_config.original_path).scenes`. Default is 0.
     img : BioImage, optional
         The BioImage object for the dataset. If provided, it will reduce the
         number of times the image is loaded. If None, it will be loaded for
@@ -70,8 +70,11 @@ def get_delayed_array_for_position(
         A Dask array containing the processed images for all timepoints at
         the given position.
     """
+
+    dataset_config = load_dataset_config(dataset_name)
+
     # Load the dataset as a BioImage object
-    img = img if img else BioImage(get_original_path(dataset_name))
+    img = img if img else BioImage(dataset_config.original_path)
     # Set the scene of the image
     img.set_scene(int(scene_index))
     # Get the timepoints for the specified position

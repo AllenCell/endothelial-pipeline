@@ -9,6 +9,7 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.ticker import MultipleLocator
 from mpl_toolkits.mplot3d import Axes3D
 from seaborn import kdeplot
 from sklearn.decomposition import PCA
@@ -405,6 +406,50 @@ def plot_pc_scatter_from_df(
     ax[1].set_ylabel("PC3")
     ax[0].legend(bbox_to_anchor=(1.02, 1.02), title="Datasets", handles=patch_list_for_legend)
     return ax
+
+
+def make_pc_scatter_fig4a(
+    df: pd.DataFrame,
+    pc_col_for_xaxis: str,
+    pc_col_for_yaxis: str,
+    hue: str | ColumnName = ColumnName.TIMEPOINT,
+    figsize=(2.5, 2.5),
+    color_palette="viridis",
+    marker=".",
+    marker_size=5,
+    linewidth=0,
+    alpha=0.5,
+) -> plt.Figure:
+
+    if pc_col_for_xaxis not in DIFFAE_PC_COLUMN_NAMES:
+        raise ValueError(f"pc_col_for_xaxis must be one of: {DIFFAE_PC_COLUMN_NAMES}")
+    if pc_col_for_yaxis not in DIFFAE_PC_COLUMN_NAMES:
+        raise ValueError(f"pc_col_for_yaxis must be one of: {DIFFAE_PC_COLUMN_NAMES}")
+    if hue not in [x.value for x in ColumnName]:
+        raise ValueError(f"hue must be one of: {[x.value for x in ColumnName]}")
+
+    fig, ax = plt.subplots(figsize=figsize)
+    sns.scatterplot(
+        data=df,
+        x=pc_col_for_xaxis,
+        y=pc_col_for_yaxis,
+        hue=hue,
+        palette=color_palette,
+        marker=marker,
+        s=marker_size,
+        alpha=alpha,
+        linewidth=linewidth,
+        legend=False,
+        ax=ax,
+    )
+    ax.minorticks_on()
+    ax.xaxis.set_minor_locator(MultipleLocator(0.5))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.5))
+    ax.set_xlabel(pc_col_for_xaxis.upper().replace("_", " "))
+    ax.set_ylabel(pc_col_for_yaxis.upper().replace("_", " "))
+    ax.set_aspect("equal")
+
+    return fig
 
 
 def plot_principal_component_histogram(

@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from endo_pipeline.cli import Datasets, tags
 
@@ -7,42 +8,47 @@ TAGS = ["visualization", tags.TEST_READY, tags.CPU_ONLY]
 
 def main(
     datasets: Datasets | None = None,
-    channel: str = "EGFP",
+    channel_type: Literal["EGFP", "BF", "BF_std_dev"] = "EGFP",
+    output_dir: Path | None = None,
     timepoints: list[int] | None = None,
+    positions: list[int] | None = None,
     fps: int = 7,
     annotate_shear_stress: bool = True,
-    output_dir: Path | None = None,
     scale_bar_um: int = 100,
-    zarr_positions: list[int] | None = None,
-    std_dev_proj: bool = False,
 ) -> None:
     """
     Create supplemental timelapse movies single fov or stitched.
 
+    Three movie types are available:
+
+    - ``EGFP`` shows a max projection through Z for the EGFP channel
+    - ``BF`` shows a single focal plane offset from center for the BF channel
+    - ``BF_std_dev`` shows the standard deviation projection for the BF channel
+
+    **CLI example usage**
+
+    .. code-block:: bash
+
+        endopipe supp-movie -v --output-dir //allen/aics/endothelial/morphological_features/image_data/stitched_timelapse_mp4/cdh5/
+
     Parameters
     ----------
-    channel
-        Channel to visualize ("EGFP" or "BF").
-        BF channel shows a single focal plane offset from center.
-        EGFP channel shows a max projection through Z.
+    datasets
+        List of datasets or dataset collections to create movies for.
+    channel_type
+        Channel type to visualize. Valid option: EGFP | BF | BF_std_dev
+    output_dir
+        Directory to save output movie. If None, saves to default location.
     timepoints
-        Number of timepoints to include in the movie. If None, include all timepoints.
+        Timepoints to include in the movie. If None, include all timepoints.
+    positions
+        Zarr positions to include in the stitching. If None, include all positions.
     fps
         Frames per second for the output movie.
     annotate_shear_stress
-        Whether to annotate shear stress on the movie.
+        True to include shear stress annotation on the movie, False otherwise.
     scale_bar_um
-        Size of scale bar in microns (default: 100).
-    output_dir
-        Directory to save output figures. If None, figures will save to default location.
-    single_fov
-        Whether to create movie for single FOV (position 0) or stitch all FOVs.
-    std_dev_proj
-        Whether to use standard deviation projection instead of a single slice for BF.
-        Only applies when channel is "BF".
-
-    CLI usage example:
-        endopipe supp-movie -v --output-dir //allen/aics/endothelial/morphological_features/image_data/stitched_timelapse_mp4/cdh5/
+        Size of scale bar in microns.
     """
 
     import logging
@@ -62,8 +68,7 @@ def main(
     if DEMO_MODE:
         logger.info("DEMO MODE: Using first 10 timepoints of first dataset")
         datasets = datasets[:1]
-        if timepoints is None:
-            timepoints = list(range(10))
+        timepoints = list(range(10))
 
     # Set output directory
     if output_dir is None:
@@ -71,19 +76,17 @@ def main(
     else:
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    print(zarr_positions)
     # Process each dataset sequentially
     for dataset_name in datasets:
         create_timelapse_mp4(
             dataset_name=dataset_name,
-            channel=channel,
-            timepoints=timepoints,
-            fps=fps,
-            annotate_shear_stress=annotate_shear_stress,
+            channel_type=channel_type,
             output_dir=output_dir,
+            timepoints=timepoints,
+            positions=positions,
+            frames_per_second=fps,
+            annotate_shear_stress=annotate_shear_stress,
             scale_bar_um=scale_bar_um,
-            zarr_positions=zarr_positions,
-            std_dev_proj=std_dev_proj,
         )
 
 

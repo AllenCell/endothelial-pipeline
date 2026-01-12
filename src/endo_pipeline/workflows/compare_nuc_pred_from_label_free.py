@@ -17,9 +17,14 @@ from skimage.measure import label
 from skimage.morphology import dilation, disk
 from skimage.segmentation import watershed
 
-from endo_pipeline.configs import dataset_io
-from endo_pipeline.io import get_output_path
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import get_output_path, load_image
 from endo_pipeline.library.process import get_sldy_metadata as sldmd
+from endo_pipeline.manifests import (
+    get_model_location_for_run,
+    get_zarr_location_for_position,
+    load_model_manifest,
+)
 from endo_pipeline.settings import DIMENSION_ORDER
 
 # NOTE
@@ -56,12 +61,12 @@ def plot_and_save_overlays(
 
 
 def get_image_data_from_original(dataset_name: str, scenes_to_use: list[str]) -> Generator:
-
+    dataset_config = load_dataset_config(dataset_name)
     dim_order = DIMENSION_ORDER
     projection_dim = "Z"
     projection_axis = DIMENSION_ORDER.index(projection_dim)
 
-    img_path = Path(dataset_io.get_original_path(dataset_name))
+    img_path = dataset_config.original_path
     img = BioImage(img_path)
     for scene in scenes_to_use:
         img.set_scene(scene)
@@ -101,32 +106,27 @@ def get_image_data_from_original(dataset_name: str, scenes_to_use: list[str]) ->
 
 
 def get_image_data_from_zarr(dataset_name: str) -> Generator:
+    dataset_config = load_dataset_config(dataset_name)
     projection_dim = "Z"
     projection_axis = DIMENSION_ORDER.index(projection_dim)
 
-    nuc_chan = int(*dataset_io.get_channel_index(dataset_name, ["DAPI"]))
-    bf_chan = int(*dataset_io.get_channel_index(dataset_name, ["Brightfield"]))
-    img_dict_nuc = dataset_io.load_dataset(
-        dataset_name,
-        channels=[
-            nuc_chan,
-        ],
-    )
-    img_dict_bf = dataset_io.load_dataset(
-        dataset_name,
-        channels=[
-            bf_chan,
-        ],
-    )
-    for scene_index, filename in enumerate(img_dict_nuc):
-        img_dask_arr_nuc = img_dict_nuc[filename].max(axis=projection_axis, keepdims=True)
-        img_dask_arr_bf_std = img_dict_bf[filename].std(axis=projection_axis, keepdims=True)
+    for position in dataset_config.zarr_positions:
+        zarr_loc = get_zarr_location_for_position(dataset_config, position)
+
+        img_dask_arr_nuc = load_image(zarr_loc, channels=["DAPI"])
+        img_dask_arr_bf = load_image(zarr_loc, channels=["Brightfield"])
+
+        img_dask_arr_nuc_max = img_dask_arr_nuc.max(axis=projection_axis, keepdims=True)
+        img_dask_arr_bf_std = img_dask_arr_bf.std(axis=projection_axis, keepdims=True)
+
+        # Note that overload error existed before switch to using new image
+        # loading methods.
         bf_focus_index = np.argmin(
             [
                 img.std()
                 for img in np.split(
-                    img_dict_bf[filename],
-                    img_dict_bf[filename].shape[projection_axis],
+                    img_dask_arr_bf,
+                    img_dask_arr_bf.shape[projection_axis],
                     axis=projection_axis,
                 )
             ]
@@ -137,12 +137,12 @@ def get_image_data_from_zarr(dataset_name: str) -> Generator:
                 if dim == projection_axis
                 else slice(None)
             )
-            for dim in range(img_dict_bf[filename].ndim)
+            for dim in range(img_dask_arr_bf.ndim)
         ]
-        img_dask_arr_bf_near_focus = img_dict_bf[filename][Z_crop]
+        img_dask_arr_bf_near_focus = img_dask_arr_bf[Z_crop]
         yield (
             scene_index,
-            img_dask_arr_nuc,
+            img_dask_arr_nuc_max,
             img_dask_arr_bf_std,
             img_dask_arr_bf_near_focus,
         )
@@ -170,12 +170,12 @@ get_s_from_path = lambda x: int(re.findall("S[0-9]+", x.stem)[-1].split("S")[-1]
 
 out_dir = get_output_path(__file__)
 
-# CellPose label-free nuclear prediction model that Goutham trained:
-model_config = dataset_io.load_config(config_type="model")
-nuclei_models = [model for model in model_config if model["name"] == "nuc_pred_labelfree"]
-assert len(nuclei_models) == 1, f"Expected 1 model path, found {len(nuclei_models)}"
-model_path = Path(nuclei_models[0]["model_path_retrained"])
-model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
+# Load the retrained CellPose label-free nuclear prediction model
+model_manifest = load_model_manifest("nuc_pred_labelfree")
+run_name = "finetuned_20250419"
+model_location = get_model_location_for_run(model_manifest, run_name)
+model_path = model_location.path.as_posix()  # type: ignore[union-attr]
+model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=model_path)
 
 # CytoDL nuclei predictions from Benji:
 cytodl_nuc_pred_dir = list(Path(out_dir / "raw_seg").glob("*.tif*"))

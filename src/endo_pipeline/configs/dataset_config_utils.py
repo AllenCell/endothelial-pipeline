@@ -57,54 +57,6 @@ def get_position_integer_from_zarr_file_path(zarr_file_path: str | Path) -> int:
     return int(position_str.replace("P", ""))  # Convert 'P[x]' to x
 
 
-def get_available_channels_for_all_positions(dataset: DatasetConfig) -> dict[int, list[str]]:
-    """Get available channels for all positions in given dataset."""
-
-    return {
-        position: get_available_channels_for_position(dataset, position)
-        for position in dataset.zarr_positions
-    }
-
-
-def get_available_channels_for_position(dataset: DatasetConfig, position: int) -> list[str]:
-    """Get available channels for a position in given dataset."""
-
-    # TODO: we may want to replace this with channel names directly tracked in
-    # dataset configs, to avoid needing to load Zarrs every time we want to
-    # access channel names
-
-    from bioio import BioImage
-
-    from endo_pipeline.manifests import get_zarr_location_for_position
-
-    zarr_file = get_zarr_location_for_position(dataset, position).path
-    assert zarr_file is not None
-    return BioImage(zarr_file).channel_names
-
-
-def get_channel_indices_for_all_positions(
-    dataset: DatasetConfig, channel_names: list[str]
-) -> dict[int, list[int | None]]:
-    """Get the index of each of the specified channels in given dataset."""
-
-    return {
-        position: get_channel_indices_for_position(dataset, position, channel_names)
-        for position in dataset.zarr_positions
-    }
-
-
-def get_channel_indices_for_position(
-    dataset: DatasetConfig, position: int, channel_names: list[str]
-) -> list[int | None]:
-    """Get the index of each of the specified channels in given dataset."""
-
-    available_channels = get_available_channels_for_position(dataset, position)
-    return [
-        available_channels.index(channel) if channel in available_channels else None
-        for channel in channel_names
-    ]
-
-
 def get_frame_before_flow_change(dataset: DatasetConfig) -> int | None:
     """Get frame number immediately before the flow changes."""
 

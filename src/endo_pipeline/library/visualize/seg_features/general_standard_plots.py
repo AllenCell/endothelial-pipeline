@@ -1,12 +1,38 @@
+from pathlib import Path
 from typing import Any, Literal
 
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
+from matplotlib.colorbar import ColorbarBase
 
 # set the plot shape to the golden ratio
 AX_WIDTH = 4.5
 AX_HEIGHT = AX_WIDTH * 2 / 3
+
+
+def save_colorbar(
+    outdir: Path,
+    colormap_name: str = "viridis",
+    filename: str | None = None,
+    figsize: tuple[int, int] = (1, 5),
+    filetype: str = ".png",
+) -> None:
+    """Plots and saves the colorbar specified by "colormap_name".
+    A list of all available colormaps can be found with:
+    >>> from matplotlib import pyplot as plt
+    >>> plt.colormaps()` will list all available colormaps
+    """
+    valid_colormaps = plt.colormaps()
+    if colormap_name not in valid_colormaps:
+        raise ValueError(f"{colormap_name} is not valid. Valid colormaps are\n: {valid_colormaps}")
+
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.set_axis_off()
+    ColorbarBase(ax, cmap=colormap_name)
+    filename = f"{filename}_" if filename else ""
+
+    fig.savefig(outdir / f"{filename}{colormap_name}{filetype}", bbox_inches="tight", pad_inches=0)
 
 
 def lineplot_of_feats(
@@ -196,6 +222,9 @@ def hist_2d_of_feats(
         ax=ax,
     )
 
+    # change the background color to grey
+    ax.set_facecolor("grey")
+
     # adjust the axes limits and tick behavior
     x_min = df_group[x_column_name].min() if x_lims[0] == "min" else x_lims[0]
     x_max = df_group[x_column_name].max() if x_lims[1] == "max" else x_lims[1]
@@ -297,6 +326,14 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "lims": (0, "max"),
             "bin_width": 0.5,
             "ticks": range(0, 49, 12),
+            "discrete_ticks": False,
+        },
+        "time_hrs_flow": {
+            "column_name": "time_hours_since_flow_start",
+            "label": "Time Under Flow (h)",
+            "lims": ("min", "max"),
+            "bin_width": 0.5,
+            "ticks": None,  # range(0, 49, 12),
             "discrete_ticks": False,
         },
         "alignment_deg": {
