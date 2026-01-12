@@ -191,7 +191,7 @@ def main(
 
         crop = img[:, :, start_y : start_y + crop_size_y, start_x : start_x + crop_size_x]
 
-        # Extract channels once, these channel indecies are hardcoded
+        # Extract channels once, these channel indices are hardcoded
         # because we defined the order of channels in the zarr
         bf_channel = crop[1, :, :, :].squeeze()
         gfp_channel = crop[0, :, :, :].squeeze()
