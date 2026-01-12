@@ -56,12 +56,22 @@ def pipeline_cli() -> None:
 def workflow_cli(workflow: Callable) -> None:
     """Workflow CLI."""
 
-    workflow_app["--help"].group = "Options"
+    import sys
 
-    workflow_app.default(workflow)
+    if hasattr(sys, "ps1"):
+        # The ps1 string is only defined in interactive mode, so using it to
+        # check for an interactive session. If detected, the workflow is called
+        # directly, rather than passing through the CLI. Note that this approach
+        # only works if the workflow does require any arguments.
+        logger.debug("Detected running in interactive shell")
+        workflow()
+    else:
+        workflow_app["--help"].group = "Options"
 
-    workflow_app.meta.default(workflow_entrypoint)
-    workflow_app.meta()
+        workflow_app.default(workflow)
+
+        workflow_app.meta.default(workflow_entrypoint)
+        workflow_app.meta()
 
 
 def pipeline_entrypoint(
