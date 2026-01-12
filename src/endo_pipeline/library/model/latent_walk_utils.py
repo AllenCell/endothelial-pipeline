@@ -63,13 +63,17 @@ def get_latent_walk(
             std = data[:, dim].std()
             range_ = np.arange(-sigma, sigma + 0.01) * std
 
-        dim_traversal = np.stack([data.mean(axis=0)] * range_.shape[0])
-        dim_traversal[:, dim] = range_
+        # Get baseline values for all dimensions as either the mean value of the
+        # dimension or the given replacement value for that dimension.
+        walk_values = [
+            data[:, i].mean() if replace is None else replace
+            for i, replace in enumerate(replace_values)
+        ]
 
-        for pc_axis, pc_value in enumerate(replace_values):
-            if replace_values[pc_axis] is not None and pc_axis != dim:
-                dim_traversal[:, pc_axis] = pc_value
-                logger.info(f"Replacing mean of PC{pc_axis} with specified PC value {pc_value}")
+        # Stack the baseline values for all steps and then replace only the current
+        # dimension with the selected latent walk values.
+        dim_traversal = np.stack([walk_values] * range_.shape[0])
+        dim_traversal[:, dim] = range_
 
         walks.append(dim_traversal)
         ranges.append(range_)
