@@ -1,3 +1,4 @@
+import logging
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
@@ -15,9 +16,15 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings import ColumnName
 
+logger = logging.getLogger(__name__)
+
 
 def get_latent_walk(
-    data: np.ndarray, n_dims: int, sigma: float | None, n_steps: int
+    data: np.ndarray,
+    n_dims: int,
+    sigma: float | None,
+    n_steps: int,
+    replace_mean_with_pc_value: list[float | None] | None = None,
 ) -> tuple[np.ndarray, list]:
     """
     Generate a latent walk based on standard deviation or min/max of each
@@ -33,7 +40,16 @@ def get_latent_walk(
         Range of values for the latent walk. If None, use min/max of dimension.
     n_steps
         Number of steps in the latent walk.
+    replace_mean_with_pc_value
+        List of PC values to replace the mean with for each PC dimension. Must be of length n_dims.
+        If None, uses the mean of the data.
     """
+    replace_values = (
+        [None] * n_dims if replace_mean_with_pc_value is None else replace_mean_with_pc_value
+    )
+
+    if len(replace_values) != n_dims:
+        raise ValueError(f"Expected replace_values of length {n_dims}, got {len(replace_values)}.")
 
     walks: list[np.ndarray] = []
     ranges: list[np.ndarray] = []
@@ -47,8 +63,18 @@ def get_latent_walk(
             std = data[:, dim].std()
             range_ = np.arange(-sigma, sigma + 0.01) * std
 
-        dim_traversal = np.stack([data.mean(axis=0)] * range_.shape[0])
+        # Get baseline values for all dimensions as either the mean value of the
+        # dimension or the given replacement value for that dimension.
+        walk_values = [
+            data[:, i].mean() if replace is None else replace
+            for i, replace in enumerate(replace_values)
+        ]
+
+        # Stack the baseline values for all steps and then replace only the current
+        # dimension with the selected latent walk values.
+        dim_traversal = np.stack([walk_values] * range_.shape[0])
         dim_traversal[:, dim] = range_
+
         walks.append(dim_traversal)
         ranges.append(range_)
 
@@ -150,7 +176,11 @@ def build_data_for_raw_latent_walk(
 
 
 def get_pca_latent_walk(
-    pca_data: np.ndarray, pca: PCA, sigma: float | None, n_steps: int
+    pca_data: np.ndarray,
+    pca: PCA,
+    sigma: float | None,
+    n_steps: int,
+    replace_mean_with_pc_value: list[float | None] | None = None,
 ) -> tuple[np.ndarray, list]:
     """
     Generate PCA coordinates and corresponding PC values for a latent walk.
@@ -165,10 +195,13 @@ def get_pca_latent_walk(
         Range of values for the latent walk. If None, use min/max of dimension.
     n_steps
         Number of steps in the latent walk.
+    replace_mean_with_pc_value
+        List of PC values to replace the mean with for each PC dimension. Must be of length n_dims.
+        If None, uses the mean of the data.
     """
 
     n_dims = pca.n_components_
-    walk, ranges = get_latent_walk(pca_data, n_dims, sigma, n_steps)
+    walk, ranges = get_latent_walk(pca_data, n_dims, sigma, n_steps, replace_mean_with_pc_value)
     walk = pca.inverse_transform(walk)
     return walk, ranges
 
