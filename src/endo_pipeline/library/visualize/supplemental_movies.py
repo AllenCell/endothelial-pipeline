@@ -234,7 +234,7 @@ def create_timelapse_mp4(
         ]
     )
 
-    # Select the appropriate image loder for the selected channel type
+    # Select the appropriate image loader for the selected channel type
     if channel_type == "EGFP":
         image_loader = load_egfp_image
     elif channel_type == "BF":
