@@ -12,10 +12,10 @@ class ColumnName(StrEnum):
     PCA_FEATURE_PREFIX = "pc_"
     """Prefix for PCA-transformed feature column names."""
 
-    POLAR_RADIUS = "r"
+    POLAR_RADIUS = "polar_r"
     """Column name for polar radius coordinate."""
 
-    POLAR_ANGLE = "theta"
+    POLAR_ANGLE = "polar_theta"
     """Column name for polar angle coordinate."""
 
     DATASET = "dataset"
