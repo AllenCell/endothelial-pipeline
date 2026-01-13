@@ -35,7 +35,7 @@ include_cell_piling = False
 include_not_steady_state = False
 
 # load PC-projected dataframe for an example dataset
-dataset_name = "20250618_20X"  # replicate 1 "no flow"
+dataset_name = "20250611_20X"  # replicate 1 "no flow"
 df = get_dataframe_for_dynamics_workflows(
     dataset_name,
     dataframe_manifest,
@@ -44,9 +44,9 @@ df = get_dataframe_for_dynamics_workflows(
     include_not_steady_state=include_not_steady_state,
 )
 
-df[ColumnName.POLAR_ANGLE] = df[ColumnName.POLAR_ANGLE].apply(
-    lambda x: x + 2 * np.pi if x < 0 else x
-)
+# df[ColumnName.POLAR_ANGLE] = df[ColumnName.POLAR_ANGLE].apply(
+#     lambda x: x + 2 * np.pi if x < 0 else x
+# )
 
 # %%
 for column_name in [ColumnName.POLAR_ANGLE, ColumnName.POLAR_RADIUS]:
@@ -66,7 +66,8 @@ for column_name in [ColumnName.POLAR_ANGLE, ColumnName.POLAR_RADIUS]:
 
 # %%
 bin_width = 0.05
-bin_limits = [(0, 2 * np.pi), (0, 2.75)]
+bin_limits = [(-np.pi, np.pi), (0, 2.75)]
+# bin_limits = [(0, 2 * np.pi), (0, 2.75)]
 bins, centers = get_bins(
     bin_widths=(bin_width, bin_width),
     bin_limits=bin_limits,
@@ -105,7 +106,7 @@ for i in range(2):
     ax.set_xlabel("frame_number")
     ax.set_xticks(np.arange(0, num_frames, step=100))
     ax.set_xticklabels(np.arange(0, num_frames, step=100))
-    ax.set_yticks(np.arange(0, num_bins[i] + 1, step=tick_step_num[i]))
+    ax.set_yticks(np.arange(0, num_bins + 1, step=tick_step_num[i]))
     ax.set_yticklabels(np.round(bins[i], 2)[:: tick_step_num[i]])
     ax.set_title(dataset_name)
     plt.show()
@@ -153,14 +154,73 @@ for traj, d_traj in zip(theta_traj_list, d_theta_list, strict=True):
     ax.plot(traj[:-1][arg_sort], d_traj[arg_sort], "k.", alpha=0.5)
 ax.set_ylim([-1.5, 1.5])
 # %%
-drift_km, _ = get_kramers_moyal(
+drift_theta, diffusion_theta = get_kramers_moyal(
     theta_traj_list,
     d_theta_list,
     bins=[bins[0]],
     dt=5,
     kernel_params={"kernel": "gaussian", "bandwidth": 0.2},
 )
+
+drift_r, diffusion_r = get_kramers_moyal(
+    r_traj_list,
+    d_r_list,
+    bins=[bins[1]],
+    dt=5,
+    kernel_params={"kernel": "gaussian", "bandwidth": 0.2},
+)
 # %%
 fig, ax = plt.subplots()
-ax.plot(centers[0], drift_km, "k-")
+ax.plot(centers[0], drift_theta, "k-")
+ax.plot(centers[0], np.zeros_like(centers[0]), "r--", alpha=0.5)
+ax.set_ylim((-0.1, 0.1))
+ax.set_xlabel("polar angle $\\theta$ (rad)")
+ax.set_ylabel("drift in $\\theta$ (rad/min)")
+
+# find zero crossing
+where_zero = np.argmin(np.abs(drift_theta))
+ax.plot(centers[0][where_zero], drift_theta[where_zero], "bo")
+ax.vlines(
+    centers[0][where_zero],
+    ax.get_ylim()[0],
+    ax.get_ylim()[1],
+    colors="b",
+    linestyles="dashed",
+    alpha=0.5,
+    label=f"$\\theta^* =$ {np.round(centers[0][where_zero],2)} rad",
+)
+ax.legend()
+
+fig, ax = plt.subplots()
+ax.plot(centers[0], diffusion_theta, "k-")
+ax.set_ylim((0.0, 1.1 * ax.get_ylim()[1]))
+ax.set_xlabel("polar angle $\\theta$ (rad)")
+ax.set_ylabel("MSD in $\\theta$ (rad^2/min)")
+
+# %%
+fig, ax = plt.subplots()
+ax.plot(centers[1], drift_r, "k-")
+ax.plot(centers[1], np.zeros_like(centers[1]), "r--", alpha=0.5)
+ax.set_xlabel("polar radius $r$")
+ax.set_ylabel("drift in $r$ (1/min)")
+
+# find zero crossing
+where_zero = np.argmin(np.abs(drift_r))
+ax.plot(centers[1][where_zero], drift_r[where_zero], "bo")
+ax.vlines(
+    centers[1][where_zero],
+    ax.get_ylim()[0],
+    ax.get_ylim()[1],
+    colors="b",
+    linestyles="dashed",
+    alpha=0.5,
+    label=f"$r^* =$ {np.round(centers[0][where_zero],2)} rad",
+)
+ax.legend()
+
+fig, ax = plt.subplots()
+ax.plot(centers[1], diffusion_r, "k-")
+ax.set_ylim((0.0, 1.1 * ax.get_ylim()[1]))
+ax.set_xlabel("polar radius $r$ (rad)")
+ax.set_ylabel("MSD in $r$ (1/min)")
 # %%
