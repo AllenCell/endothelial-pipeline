@@ -6,9 +6,6 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
 )
-from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
-    get_smallest_angle_difference,
-)
 from endo_pipeline.manifests import (
     get_feature_dataframe_manifest_name,
     load_dataframe_manifest,
@@ -45,6 +42,10 @@ df = get_dataframe_for_dynamics_workflows(
     include_not_steady_state=include_not_steady_state,
 )
 
+df[ColumnName.POLAR_ANGLE] = df[ColumnName.POLAR_ANGLE].apply(
+    lambda x: x + 2 * np.pi if x < 0 else x
+)
+
 # %%
 for column_name in [ColumnName.POLAR_ANGLE, ColumnName.POLAR_RADIUS]:
     fig, ax = plt.subplots()
@@ -63,7 +64,7 @@ for column_name in [ColumnName.POLAR_ANGLE, ColumnName.POLAR_RADIUS]:
 
 # %%
 bin_width = 0.05
-bin_limits = [(-np.pi, np.pi), (0, 2.75)]
+bin_limits = [(0, 2 * np.pi), (0, 2.75)]
 num_bins = [int(np.ceil((bin_limits[i][1] - bin_limits[i][0]) / bin_width)) for i in range(2)]
 bins = [np.linspace(bin_limits[i][0], bin_limits[i][1], num_bins[i] + 1) for i in range(2)]
 column_names = [ColumnName.POLAR_ANGLE, ColumnName.POLAR_RADIUS]
@@ -113,14 +114,15 @@ for crop_index, df_crop in df.groupby(ColumnName.CROP_INDEX):
 
     # add column giving difference in timepoint between consecutive dataframe rows
     df_crop_["timepoint_diff"] = df_crop_[ColumnName.TIMEPOINT].diff().shift(-1)
+    d_traj = np.diff(df_crop_[ColumnName.POLAR_ANGLE].values, axis=0)
 
-    angle_diffs = get_smallest_angle_difference(
-        df_crop_[ColumnName.POLAR_ANGLE].values[:-1],
-        df_crop_[ColumnName.POLAR_ANGLE].values[1:],
-        units="rad",
-    )
+    # angle_diffs = -get_smallest_angle_difference(
+    #     df_crop_[ColumnName.POLAR_ANGLE].values[:-1],
+    #     df_crop_[ColumnName.POLAR_ANGLE].values[1:],
+    #     units="rad",
+    # )
     theta_traj_list.append(df_crop_[ColumnName.POLAR_ANGLE].values)
-    d_theta_list.append(angle_diffs)
+    d_theta_list.append(d_traj)
 
 
 # %%
@@ -128,4 +130,5 @@ fig, ax = plt.subplots()
 for traj, d_traj in zip(theta_traj_list, d_theta_list, strict=True):
     arg_sort = np.argsort(traj[:-1])
     ax.plot(traj[:-1][arg_sort], d_traj[arg_sort], "k.", alpha=0.5)
+ax.set_ylim([-1.5, 1.5])
 # %%
