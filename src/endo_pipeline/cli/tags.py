@@ -1,3 +1,3 @@
-TEST_READY = "test_ready"
-GPU = "GPU"
-CPU_ONLY = "CPU_only"
+TEST_READY = "test-ready"
+GPU = "gpu"
+CPU_ONLY = "cpu-only"
