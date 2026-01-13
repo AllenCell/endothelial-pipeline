@@ -173,8 +173,8 @@ def main(
         cdh5_crop = cdh5_mip[..., start_y:end_y, start_x:end_x].squeeze().compute()
 
         crop_string = f"Y{start_y}-{end_y}_X{start_x}-{end_x}"
-        pc_vals_string = f"PC1{row['pc_1']:.2f}_PC2{row['pc_2']:.2f}_PC3{row['pc_3']:.2f}"
-        filename = f"{dataset_name}_P{position}_T{timepoint}_{crop_string}_{pc_vals_string}"
+        pc_vals_string = f"pc1_pc2_pc3_{row['pc_1']:.2f}_{row['pc_2']:.2f}_{row['pc_3']:.2f}"
+        filename = f"{dataset_name}_P{position}_T{timepoint}_{crop_string}-{pc_vals_string}"
 
         # save thumbnail of the real image crops
         # the RBGA images work best with images normalized to [0, 1] or [0, 255]:
