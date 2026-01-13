@@ -1,6 +1,4 @@
-from endo_pipeline.cli import Datasets, tags
-
-TAGS = ["internal", tags.TEST_READY, tags.CPU_ONLY]
+from endo_pipeline.cli import Datasets
 
 
 def main(
@@ -10,6 +8,8 @@ def main(
 ) -> None:
     """
     Convert datasets to Zarr format.
+
+    #internal #test-ready #cpu-only
 
     Parameters
     ----------
