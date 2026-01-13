@@ -38,7 +38,7 @@ include_cell_piling = False
 include_not_steady_state = False
 
 # load PC-projected dataframe for an example dataset
-dataset_name = "20250618_20X"  # replicate 1 "no flow"
+dataset_name = "20250604_20X"  # replicate 1 "no flow"
 df = get_dataframe_for_dynamics_workflows(
     dataset_name,
     dataframe_manifest,
@@ -47,9 +47,13 @@ df = get_dataframe_for_dynamics_workflows(
     include_not_steady_state=include_not_steady_state,
 )
 
-# df[ColumnName.POLAR_ANGLE] = df[ColumnName.POLAR_ANGLE].apply(
-#     lambda x: x + 2 * np.pi if x < 0 else x
-# )
+bin_limits = [(-np.pi, np.pi), (0, 2.75)]
+
+if dataset_name in ["20250402_20X", "20250409_20X", "20250428_20X", "20250604_20X", "20250618_20X"]:
+    df[ColumnName.POLAR_ANGLE] = df[ColumnName.POLAR_ANGLE].apply(
+        lambda x: x + 2 * np.pi if x < 0 else x
+    )
+    bin_limits = [(0, 2 * np.pi), (0, 2.75)]
 
 # %%
 for column_name in [ColumnName.POLAR_ANGLE, ColumnName.POLAR_RADIUS]:
@@ -69,8 +73,6 @@ for column_name in [ColumnName.POLAR_ANGLE, ColumnName.POLAR_RADIUS]:
 
 # %%
 bin_width = 0.05
-bin_limits = [(-np.pi, np.pi), (0, 2.75)]
-# bin_limits = [(0, 2 * np.pi), (0, 2.75)]
 bins, centers = get_bins(
     bin_widths=(bin_width, bin_width),
     bin_limits=bin_limits,
@@ -173,7 +175,6 @@ drift_r, diffusion_r = get_kramers_moyal(
 fig, ax = plt.subplots()
 ax.plot(centers[0], drift_theta, "k-")
 ax.plot(centers[0], np.zeros_like(centers[0]), "r--", alpha=0.5)
-ax.set_ylim((-0.1, 0.1))
 ax.set_xlabel("polar angle $\\theta$ (rad)")
 ax.set_ylabel("drift in $\\theta$ (rad/min)")
 
