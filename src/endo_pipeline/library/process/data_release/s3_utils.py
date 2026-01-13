@@ -1,12 +1,12 @@
 from pathlib import Path
 
 import pandas as pd
-from s3_uploader import check_completion, draft_rm_jobs, draft_sync_jobs, run_all_jobs
+from s3_uploader import draft_rm_jobs, draft_sync_jobs
 
 from endo_pipeline.settings.data_release import DEST_COL, SOURCE_COL
 
 
-def step1_upload_job(
+def create_upload_job(
     csv_path: str,
     save_dir: str,
     log_dir: str,
@@ -31,31 +31,10 @@ def step1_upload_job(
     else:
         for path in output_jobs:
             print(f"Go read and validate this file! {path}")
-            # print(f"Then run it with step2('{path}')")
     return output_jobs
 
 
-def step2_run_jobs(
-    read_dir: str,
-    log_dir: str,
-) -> None:
-    run_all_jobs(
-        local=True,  # Do uploads from local filesystem to S3
-        path=read_dir,  # path containing the job created
-        error_dir=log_dir,
-    )
-    print("Wait for the jobs to finish: run `squeue` to check.")
-    print(f"Verify success with step3('{read_dir}')")
-
-
-def step3_check_job(jobs_path: str):
-    check_completion(
-        jobs_path,
-        "./2025-10-08-to-upload-errors",  # Same as step2's error_dir
-    )
-
-
-def step1_rm_job(
+def create_rm_job(
     csv_path: str,
     save_dir: str,
     log_dir: str,
