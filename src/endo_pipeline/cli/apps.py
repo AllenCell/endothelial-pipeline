@@ -1,6 +1,5 @@
 import logging
 import os
-import re
 from collections.abc import Callable
 from typing import Annotated
 
@@ -11,6 +10,7 @@ from endo_pipeline.cli.commands import build_command_group
 from endo_pipeline.cli.gpu import setup_gpu
 from endo_pipeline.cli.logs import setup_logging, silence_external_loggers
 from endo_pipeline.cli.options import PipelineOptions, WorkflowOptions
+from endo_pipeline.cli.tags import get_app_tags
 
 IS_MAIN_PROCESS: bool = int(os.environ.get("LOCAL_RANK", "0")) == 0
 """True if the current process is the main process, False otherwise."""
@@ -135,7 +135,3 @@ def apply_pipeline_options(apps: dict[str, App], options: PipelineOptions) -> No
 
         if options.filter_tag:
             app.show = options.filter_tag in tags and app.show
-
-
-def get_app_tags(app: App) -> list[str]:
-    return re.findall(r"#([a-z0-9\-]+)", app.help)

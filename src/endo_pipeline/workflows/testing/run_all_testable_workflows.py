@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from termcolor import colored
 
 import endo_pipeline.cli
-from endo_pipeline.cli.apps import get_app_tags
+from endo_pipeline.cli.tags import get_app_tags
 from endo_pipeline.settings.testing import TIMEOUT_MIN
 
 if typing.TYPE_CHECKING:
