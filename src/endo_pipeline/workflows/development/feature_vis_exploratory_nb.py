@@ -7,6 +7,9 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
 )
 from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
+from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+    get_smallest_angle_difference,
+)
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.manifests import (
     get_feature_dataframe_manifest_name,
@@ -35,7 +38,7 @@ include_cell_piling = False
 include_not_steady_state = False
 
 # load PC-projected dataframe for an example dataset
-dataset_name = "20250319_20X"  # replicate 1 "no flow"
+dataset_name = "20250618_20X"  # replicate 1 "no flow"
 df = get_dataframe_for_dynamics_workflows(
     dataset_name,
     dataframe_manifest,
@@ -126,7 +129,15 @@ for crop_index, df_crop in df.groupby(ColumnName.CROP_INDEX):
         df_crop_[ColumnName.TIMEPOINT].diff().shift(-1).fillna(0)
     )
     # compute one-step differences in polar angle and radius
-    df_crop_[f"{ColumnName.POLAR_ANGLE}_diff"] = df_crop_[ColumnName.POLAR_ANGLE].diff().shift(-1)
+    angle_diffs = get_smallest_angle_difference(
+        df_crop_[ColumnName.POLAR_ANGLE].values[1:],
+        df_crop_[ColumnName.POLAR_ANGLE].values[:-1],
+        units="rad",
+    )
+    df_crop_[f"{ColumnName.POLAR_ANGLE}_diff"] = np.concatenate(
+        (angle_diffs, np.array([np.nan]))  # no valid difference at end of trajectory
+    )
+    # df_crop_[ColumnName.POLAR_ANGLE].diff().shift(-1)
     df_crop_[f"{ColumnName.POLAR_RADIUS}_diff"] = df_crop_[ColumnName.POLAR_RADIUS].diff().shift(-1)
 
     # trajectory values to keep -- only keep steps where time difference is 1
@@ -137,22 +148,11 @@ for crop_index, df_crop in df.groupby(ColumnName.CROP_INDEX):
     # i.e., no valid difference at the end of the trajectory (only forward differences)
     gradient_mask = df_crop_[f"{ColumnName.TIMEPOINT}_diff"] == 1
 
-    # angle_diffs = -get_smallest_angle_difference(
-    #     df_crop_[ColumnName.POLAR_ANGLE].values[:-1],
-    #     df_crop_[ColumnName.POLAR_ANGLE].values[1:],
-    #     units="rad",
-    # )
     theta_traj_list.append(df_crop_[traj_mask][ColumnName.POLAR_ANGLE].values)
     d_theta_list.append(df_crop_[gradient_mask][f"{ColumnName.POLAR_ANGLE}_diff"].values)
     r_traj_list.append(df_crop_[traj_mask][ColumnName.POLAR_RADIUS].values)
     d_r_list.append(df_crop_[gradient_mask][f"{ColumnName.POLAR_RADIUS}_diff"].values)
 
-# %%
-fig, ax = plt.subplots()
-for traj, d_traj in zip(theta_traj_list, d_theta_list, strict=True):
-    arg_sort = np.argsort(traj[:-1])
-    ax.plot(traj[:-1][arg_sort], d_traj[arg_sort], "k.", alpha=0.5)
-ax.set_ylim([-1.5, 1.5])
 # %%
 drift_theta, diffusion_theta = get_kramers_moyal(
     theta_traj_list,
