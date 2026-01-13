@@ -35,7 +35,7 @@ include_cell_piling = False
 include_not_steady_state = False
 
 # load PC-projected dataframe for an example dataset
-dataset_name = "20250611_20X"  # replicate 1 "no flow"
+dataset_name = "20250319_20X"  # replicate 1 "no flow"
 df = get_dataframe_for_dynamics_workflows(
     dataset_name,
     dataframe_manifest,
@@ -214,7 +214,7 @@ ax.vlines(
     colors="b",
     linestyles="dashed",
     alpha=0.5,
-    label=f"$r^* =$ {np.round(centers[0][where_zero],2)} rad",
+    label=f"$r^* =$ {np.round(centers[1][where_zero],2)} rad",
 )
 ax.legend()
 
