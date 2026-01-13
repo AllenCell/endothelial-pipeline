@@ -35,12 +35,12 @@ def main(
         If True, the upload/remove jobs will be drafted but not executed.
 
     Example rm job:
-    endopipe datasets-to-s3 --datasets 20241120_20X --rm-datasets  --positions-list 0 1
-    endopipe datasets-to-s3 --datasets 20241120_20X --rm-datasets --no-dry-run  --positions-list 0 1
+    endopipe manage-s3-datasets --datasets 20241120_20X --rm-datasets  --positions-list 0 1
+    endopipe manage-s3-datasets --datasets 20241120_20X --rm-datasets --no-dry-run  --positions-list 0 1
 
     Example add job:
-    endopipe datasets-to-s3 --add-datasets --positions-list 0 1
-    endopipe datasets-to-s3 --add-datasets --no-dry-run --positions-list 0 1
+    endopipe manage-s3-datasets --add-datasets --positions-list 0 1
+    endopipe manage-s3-datasets --add-datasets --no-dry-run --positions-list 0 1
     """
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.library.process.data_release.generate_csv import (
