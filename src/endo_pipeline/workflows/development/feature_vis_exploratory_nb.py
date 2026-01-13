@@ -7,6 +7,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
 )
 from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
+from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.manifests import (
     get_feature_dataframe_manifest_name,
     load_dataframe_manifest,
@@ -66,8 +67,10 @@ for column_name in [ColumnName.POLAR_ANGLE, ColumnName.POLAR_RADIUS]:
 # %%
 bin_width = 0.05
 bin_limits = [(0, 2 * np.pi), (0, 2.75)]
-num_bins = [int(np.ceil((bin_limits[i][1] - bin_limits[i][0]) / bin_width)) for i in range(2)]
-bins = [np.linspace(bin_limits[i][0], bin_limits[i][1], num_bins[i] + 1) for i in range(2)]
+bins, centers = get_bins(
+    bin_widths=(bin_width, bin_width),
+    bin_limits=bin_limits,
+)
 column_names = [ColumnName.POLAR_ANGLE, ColumnName.POLAR_RADIUS]
 tick_step_num = [15, 5]
 num_frames = df[ColumnName.TIMEPOINT].max() + 1
@@ -87,7 +90,8 @@ for i in range(2):
 for i in range(2):
     column_name = column_names[i]
 
-    hist_array = np.zeros((num_bins[i], num_frames))
+    num_bins = len(bins[i]) - 1
+    hist_array = np.zeros((num_bins, num_frames))
 
     for t, df_frame in df.groupby(ColumnName.TIMEPOINT):
         values = df_frame[column_name].values
@@ -109,22 +113,38 @@ for i in range(2):
 # %%
 theta_traj_list = []
 d_theta_list = []
+r_traj_list = []
+d_r_list = []
 for crop_index, df_crop in df.groupby(ColumnName.CROP_INDEX):
     df_crop_ = df_crop.sort_values(by=ColumnName.TIMEPOINT)
     # compute one-step angle differences
 
     # add column giving difference in timepoint between consecutive dataframe rows
-    df_crop_["timepoint_diff"] = df_crop_[ColumnName.TIMEPOINT].diff().shift(-1)
-    d_traj = np.diff(df_crop_[ColumnName.POLAR_ANGLE].values, axis=0)
+    # convert NaN to 0 -- occurs at end of trajectory
+    df_crop_[f"{ColumnName.TIMEPOINT}_diff"] = (
+        df_crop_[ColumnName.TIMEPOINT].diff().shift(-1).fillna(0)
+    )
+    # compute one-step differences in polar angle and radius
+    df_crop_[f"{ColumnName.POLAR_ANGLE}_diff"] = df_crop_[ColumnName.POLAR_ANGLE].diff().shift(-1)
+    df_crop_[f"{ColumnName.POLAR_RADIUS}_diff"] = df_crop_[ColumnName.POLAR_RADIUS].diff().shift(-1)
+
+    # trajectory values to keep -- only keep steps where time difference is 1
+    # and also the last point in the trajectory (which has time difference 0)
+    traj_mask = df_crop_[f"{ColumnName.TIMEPOINT}_diff"] <= 1
+
+    # for the gradient, only keep steps where time difference is exactly 1
+    # i.e., no valid difference at the end of the trajectory (only forward differences)
+    gradient_mask = df_crop_[f"{ColumnName.TIMEPOINT}_diff"] == 1
 
     # angle_diffs = -get_smallest_angle_difference(
     #     df_crop_[ColumnName.POLAR_ANGLE].values[:-1],
     #     df_crop_[ColumnName.POLAR_ANGLE].values[1:],
     #     units="rad",
     # )
-    theta_traj_list.append(df_crop_[ColumnName.POLAR_ANGLE].values)
-    d_theta_list.append(d_traj)
-
+    theta_traj_list.append(df_crop_[traj_mask][ColumnName.POLAR_ANGLE].values)
+    d_theta_list.append(df_crop_[gradient_mask][f"{ColumnName.POLAR_ANGLE}_diff"].values)
+    r_traj_list.append(df_crop_[traj_mask][ColumnName.POLAR_RADIUS].values)
+    d_r_list.append(df_crop_[gradient_mask][f"{ColumnName.POLAR_RADIUS}_diff"].values)
 
 # %%
 fig, ax = plt.subplots()
@@ -140,4 +160,7 @@ drift_km, _ = get_kramers_moyal(
     dt=5,
     kernel_params={"kernel": "gaussian", "bandwidth": 0.2},
 )
+# %%
+fig, ax = plt.subplots()
+ax.plot(centers[0], drift_km, "k-")
 # %%
