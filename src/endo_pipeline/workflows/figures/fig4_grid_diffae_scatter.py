@@ -118,10 +118,8 @@ def main(
             filetype=filetype,
         )
 
-    # reconstruct images using the target points from pc_1-pc_2-space
-    # set pc_3 to 0 for all points
-    example_and_target_points["pc_3"] = 0
-    pc_coords = example_and_target_points[["pc_1_target", "pc_2_target", "pc_3"]].values
+    # reconstruct images using the target points from pc_1-pc_2-pc_3-space
+    pc_coords = example_and_target_points[["pc_1_target", "pc_2_target", "pc_3_target"]].values
 
     latent_coords = pca.inverse_transform(pc_coords)
 
@@ -187,6 +185,11 @@ def main(
             figsize=(2, 2),
             show_plot=False,
         )
+
+    # save the example points dataframe to csv
+    example_and_target_points.to_csv(
+        outdir / f"{dataset_name}_example_and_target_points_in_pc_space.csv", index=False
+    )
 
 
 if __name__ == "__main__":
