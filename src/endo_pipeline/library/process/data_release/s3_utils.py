@@ -55,11 +55,28 @@ def step3_check_job(jobs_path: str):
     )
 
 
-def step1_draft_rm_job():
-    draft_rm_jobs(
-        input_path="2025-10-08-to-remove.csv",
-        target_column="s3_path",
-        output_dir="./rm-jobs",
-        log_dir="./2025-10-08-to-remove-logs",
-        dry_run=True,  # Set to False to do a real deletion
+def step1_rm_job(
+    csv_path: str,
+    save_dir: str,
+    log_dir: str,
+    target_col: str = DEST_COL,
+    dry_run: bool = True,  # Set to False to do a real deletion
+):
+    output_jobs: Path | pd.DataFrame | None = draft_rm_jobs(
+        input_path=csv_path,
+        target_column=target_col,
+        output_dir=save_dir,
+        log_dir=log_dir,
+        dry_run=dry_run,
     )
+    if isinstance(output_jobs, pd.DataFrame):
+        output_df: pd.DataFrame = output_jobs
+        print(
+            "There were some errors!",
+            output_df[output_df["validation_error"].notnull()],
+        )
+    if isinstance(output_jobs, Path):
+        print(f"Go read and validate this file! {output_jobs}")
+    else:
+        print("No jobs were created. Input empty")
+    return output_jobs

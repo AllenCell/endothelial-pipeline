@@ -13,6 +13,7 @@ def create_s3_upload_csv(
     s3_directory: str = S3_INTERNAL_DIRECTORY,
     source_col: str = SOURCE_COL,
     dest_col: str = DEST_COL,
+    positions_list: list[str] | None = None,
 ) -> pd.DataFrame:
     """
     This function a CSV defining files to upload to S3.
@@ -34,7 +35,10 @@ def create_s3_upload_csv(
     for dataset in datasets:
         dataset_config = load_dataset_config(dataset)
 
-        for position in dataset_config.zarr_positions:
+        if positions_list is None:
+            positions_list = dataset_config.zarr_positions
+
+        for position in positions_list:
             img_location = get_zarr_location_for_position(dataset_config, position)
             if img_location is None:
                 ValueError("No zarr path for dataset %s position %s", dataset, position)

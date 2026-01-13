@@ -1,4 +1,4 @@
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import Datasets, UniqueIntList
 from endo_pipeline.io.output import get_output_path
 
 
@@ -6,6 +6,7 @@ def main(
     datasets: Datasets | None = None,
     add_datasets: bool = True,
     dry_run: bool = True,
+    positions_list: UniqueIntList | None = None,
 ) -> None:
     """
     Upload or remove datasets to/from S3.
@@ -13,6 +14,9 @@ def main(
     REQUIRED:
     - Workflow must be run on slurm-master cluster.
     - AWS credentials must be configured.
+
+    To see what files are already there:
+    aws s3 ls s3://allencell-internal-quilt/endo_stg/
 
     Parameters
     ----------
@@ -29,7 +33,11 @@ def main(
         create_s3_rm_zarr_csv,
         create_s3_upload_csv,
     )
-    from endo_pipeline.library.process.data_release.s3_utils import step1_upload_job, step2_run_jobs
+    from endo_pipeline.library.process.data_release.s3_utils import (
+        step1_rm_job,
+        step1_upload_job,
+        step2_run_jobs,
+    )
 
     if datasets is None:
         datasets = get_datasets_in_collection("dataset_release")
@@ -38,7 +46,7 @@ def main(
     log_dir = get_output_path("s3_dataset", "status")
 
     if add_datasets:
-        csv_path = create_s3_upload_csv(datasets, save_dir)
+        csv_path = create_s3_upload_csv(datasets, save_dir, positions_list)
 
         step1_upload_job(
             csv_path=csv_path,
@@ -50,7 +58,14 @@ def main(
         step2_run_jobs(save_dir, log_dir)
 
     else:
-        csv_path = create_s3_rm_zarr_csv(datasets, save_dir)
+        csv_path = create_s3_rm_zarr_csv(datasets, save_dir, positions_list)
+
+        step1_rm_job(
+            csv_path=csv_path,
+            save_dir=save_dir,
+            log_dir=log_dir,
+            dry_run=dry_run,
+        )
 
 
 if __name__ == "__main__":
