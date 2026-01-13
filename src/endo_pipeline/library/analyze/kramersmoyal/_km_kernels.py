@@ -54,7 +54,9 @@ def gaussian(x: np.ndarray, dims: int) -> np.ndarray:
     """Define the Gaussian kernel in dimensions dims."""
 
     def _gaussian_integral(n: int) -> float:
-        if n % 2 == 0:
+        if n == 0:
+            return np.sqrt(2 * np.pi)
+        elif n % 2 == 0:
             return np.sqrt(np.pi * 2) * factorial2(n - 1) / 2
         else:
             return np.sqrt(np.pi * 2) * factorial2(n - 1) * norm.pdf(0)

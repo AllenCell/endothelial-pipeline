@@ -6,6 +6,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
 )
+from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from endo_pipeline.manifests import (
     get_feature_dataframe_manifest_name,
     load_dataframe_manifest,
@@ -131,4 +132,12 @@ for traj, d_traj in zip(theta_traj_list, d_theta_list, strict=True):
     arg_sort = np.argsort(traj[:-1])
     ax.plot(traj[:-1][arg_sort], d_traj[arg_sort], "k.", alpha=0.5)
 ax.set_ylim([-1.5, 1.5])
+# %%
+drift_km, _ = get_kramers_moyal(
+    theta_traj_list,
+    d_theta_list,
+    bins=[bins[0]],
+    dt=5,
+    kernel_params={"kernel": "gaussian", "bandwidth": 0.2},
+)
 # %%
