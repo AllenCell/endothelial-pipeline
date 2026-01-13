@@ -65,7 +65,7 @@ def create_s3_upload_csv(
     return file_path
 
 
-def create_s3_rm_zarr_csv(
+def create_s3_rm_csv(
     datasets: Datasets,
     save_dir: Path,
     s3_directory: str = S3_INTERNAL_DIRECTORY,
