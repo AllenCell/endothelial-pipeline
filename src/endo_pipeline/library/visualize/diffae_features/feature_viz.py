@@ -388,24 +388,35 @@ def make_pc_scatter_fig4a(
 
 
 def get_no_flow_pc_space_example_points_fig4(
-    df: pd.DataFrame, radius: float, origin_xy: tuple[float, float] = (0.0, 0.0)
+    df: pd.DataFrame,
+    radius: float,
+    origin_pc1pc2: tuple[float, float] = (0.0, 0.0),
+    pc3_target: float | None = None,
 ) -> pd.DataFrame:
     # no flow data is arranged roughly in a circle in PC1-PC2 space, so
     # get 8 points that are evenly spaced around the circle (every 45 degrees)
     angles = np.linspace(0, 2 * np.pi, 8, endpoint=False)  # 8 angles from 0 to 2pi
-    origin_x, origin_y = origin_xy
-    x_locs = (radius - origin_x) * np.cos(angles)
-    y_locs = (radius - origin_y) * np.sin(angles)
-    target_points = np.stack([x_locs, y_locs], axis=0)  # shape (2, 8)
+    origin_pc1, origin_pc2 = origin_pc1pc2
+    pc1_targets = (radius - origin_pc1) * np.cos(angles)
+    pc2_targets = (radius - origin_pc2) * np.sin(angles)
 
-    pc_col_names = DIFFAE_PC_COLUMN_NAMES[:2]
+    if pc3_target is None:
+        target_points = np.stack([pc1_targets, pc2_targets], axis=0)  # shape (2, 8)
+        pc_col_names = DIFFAE_PC_COLUMN_NAMES[:2]
+    else:
+        pc3_targets = np.asarray([pc3_target] * len(angles))
+        target_points = np.stack([pc1_targets, pc2_targets, pc3_targets], axis=0)  # shape (3, 8)
+        pc_col_names = DIFFAE_PC_COLUMN_NAMES[:3]
+
     data_points = df[pc_col_names].to_numpy()
 
     example_points = get_point_nearest_target(data_points, target_points=target_points)
 
     # convert to tuple of tuples
-    example_points_df = pd.DataFrame(columns=["pc_1_example", "pc_2_example"], data=example_points)
-    example_points_df[["pc_1_target", "pc_2_target"]] = target_points.T
+    example_point_col_names = [f"pc_{i+1}_example" for i in range(example_points.shape[1])]
+    example_points_df = pd.DataFrame(columns=example_point_col_names, data=example_points)
+    target_point_col_names = [f"pc_{i+1}_target" for i in range(target_points.shape[0])]
+    example_points_df[target_point_col_names] = target_points.T
 
     return example_points_df
 

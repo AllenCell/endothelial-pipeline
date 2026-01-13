@@ -9,10 +9,14 @@ def main(
 ) -> None:
     """Creates scatter plots in DiffAE PC-space for grid crops colored by timepoint."""
 
+    import numpy as np
     from matplotlib import pyplot as plt
+    from skimage.exposure import rescale_intensity
+    from tqdm import tqdm
 
     from endo_pipeline import NUM_GPUS
-    from endo_pipeline.io import get_output_path, load_model, save_plot_to_path
+    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.io import get_output_path, load_image, load_model, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
         get_dataframe_for_dynamics_workflows,
@@ -22,14 +26,17 @@ def main(
         get_no_flow_pc_space_example_points_fig4,
         make_pc_scatter_fig4a,
     )
+    from endo_pipeline.library.visualize.figure_utils import plot_image_thumbnail
     from endo_pipeline.library.visualize.seg_features.general_standard_plots import save_colorbar
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
+        get_zarr_location_for_position,
         load_dataframe_manifest,
         load_model_manifest,
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
     from endo_pipeline.settings.figures import FIGURE_SAVE_DPI
+    from endo_pipeline.settings.image_data import DIMENSION_ORDER
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -60,7 +67,7 @@ def main(
     )
 
     example_and_target_points = get_no_flow_pc_space_example_points_fig4(
-        diffae_grid_crops, radius=2.2, origin_xy=(0, 0)
+        diffae_grid_crops, radius=2.2, origin_pc1pc2=(0, 0), pc3_target=0.0
     )
 
     hue = ColumnName.TIMEPOINT
@@ -137,7 +144,49 @@ def main(
     real_example_savedir = outdir / f"{dataset_name}_example_points"
     real_example_savedir.mkdir(exist_ok=True)
 
-    # example_imgs = []
+    # retrieve the DiffAE grid crop rows containing the example points
+    diffae_grid_crops_examples = diffae_grid_crops.query(
+        """pc_1 in @example_and_target_points['pc_1_example'] \
+        and pc_2 in @example_and_target_points['pc_2_example'] \
+        and pc_3 in @example_and_target_points['pc_3_example']
+        """
+    )
+
+    # load the timelapse and extract crops at the example points
+    dataset_config = load_dataset_config(dataset_name)
+
+    for i, row in tqdm(diffae_grid_crops_examples.iterrows(), desc="Saving closest real examples"):
+        position = int(row[ColumnName.POSITION].replace("P", ""))
+        timepoint = int(row[ColumnName.TIMEPOINT])
+        start_x = int(row[ColumnName.START_X])
+        start_y = int(row[ColumnName.START_Y])
+        end_x = int(row[ColumnName.END_X])
+        end_y = int(row[ColumnName.END_Y])
+        resolution = int(row[ColumnName.RESOLUTION])
+        channel_name = ["EGFP"]
+
+        location = get_zarr_location_for_position(dataset_config, position=position)
+
+        cdh5_mip = load_image(
+            location, compute=False, channels=channel_name, timepoints=timepoint, level=resolution
+        ).max(axis=DIMENSION_ORDER.index("Z"))
+        cdh5_crop = cdh5_mip[..., start_y:end_y, start_x:end_x].squeeze().compute()
+
+        crop_string = f"Y{start_y}-{end_y}_X{start_x}-{end_x}"
+        pc_vals_string = f"PC1{row['pc_1']:.2f}_PC2{row['pc_2']:.2f}_PC3{row['pc_3']:.2f}"
+        filename = f"{dataset_name}_P{position}_T{timepoint}_{crop_string}_{pc_vals_string}"
+
+        # save thumbnail of the real image crops
+        # the RBGA images work best with images normalized to [0, 1] or [0, 255]:
+        thumbnail = np.clip(cdh5_crop, np.percentile(cdh5_crop, 1), np.percentile(cdh5_crop, 99))
+        thumbnail = rescale_intensity(thumbnail, in_range="image", out_range=(0, 1))
+        plot_image_thumbnail(
+            image=thumbnail,
+            image_name=f"{filename}.png",
+            output_path=real_example_savedir,
+            figsize=(2, 2),
+            show_plot=False,
+        )
 
 
 if __name__ == "__main__":

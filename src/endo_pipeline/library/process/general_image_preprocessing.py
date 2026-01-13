@@ -303,8 +303,8 @@ def save_image_output(
             'channel_names': [string, string, ...]
                 where each string is a channel name and channel_names is the same length as
                 the length of images
-            'physical_pixel_sizes': (Z, Y, X)
-                the physical pixel sizes in the order Z, Y, X.
+            'physical_pixel_sizes': PhysicalPixelSize object (Z, Y, X)
+                the physical pixel sizes as a PhysicalPixelSize object
             'dim_order': string
                 the order of the dimensions of the arrays in images (e.g. 'CYX')
 
