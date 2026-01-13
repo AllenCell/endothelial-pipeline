@@ -7,6 +7,7 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS,
     SEGMENTATION_FEATURE_COLUMNS,
 )
 
@@ -14,7 +15,8 @@ TAGS = ["diffae_features", "visualization", "pc_interpretation"]
 
 
 def main(
-    dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    dataset_collection_to_plot: str = DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS,
+    dataset_collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = None,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
@@ -31,8 +33,10 @@ def main(
 
     Parameters
     ----------
-    dataset_collection_name
-        The name of the dataset collection to use.
+    dataset_collection_to_plot
+        The name of the dataset collection to analyze.
+    dataset_collection_name_for_pca
+        The name of the dataset collection to use for PCA fitting.
     model_manifest_name
         The name of the model manifest to use for DiffAE features.
     run_name
@@ -102,7 +106,7 @@ def main(
 
     logger.info("Running correlation heatmap workflow...")
 
-    dataset_name_list = get_datasets_in_collection(dataset_collection_name)
+    dataset_name_list = get_datasets_in_collection(dataset_collection_to_plot)
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     model_location = get_model_location_for_run(model_manifest, run_name_)
@@ -141,7 +145,7 @@ def main(
         pc_columns=pc_columns,
         diffae_feature_columns=diffae_feature_columns,
         polar_pc_columns=polar_pc_columns,
-        dataset_collection_name_for_pca=dataset_collection_name,
+        dataset_collection_name_for_pca=dataset_collection_name_for_pca,
         model_manifest=model_manifest,
         run_name=run_name_,
         seg_feature_manifest_name=seg_feature_manifest_name,
