@@ -43,7 +43,6 @@ from .plot_defaults import (
     MODEL_QC_GRIDSPEC_KWARGS,
     MODEL_QC_PLOT_DIRECTION,
     MODEL_QC_SUBPLOT_KWARGS,
-    NUM_BINS_CROP_HIST,
     SHEAR_COLOR_DICT,
 )
 from .workflow_defaults import (
@@ -92,7 +91,6 @@ __all__ = [
     "MODEL_QC_PLOT_DIRECTION",
     "MODEL_QC_SUBPLOT_KWARGS",
     "NATIVE_ZARR_RESOLUTION_CROP_SIZE",
-    "NUM_BINS_CROP_HIST",
     "NUM_LATENT_FEATURES",
     "NUM_PCS_TO_ANALYZE",
     "NUM_ZSLICES",
