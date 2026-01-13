@@ -1,14 +1,14 @@
 import pandas as pd
 
 from endo_pipeline.cli import Datasets
-from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io.output import get_timestamp
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.data_release import DEST_COL, S3_INTERNAL_DIRECTORY, SOURCE_COL
 
 
 def create_s3_upload_csv(
-    datasets: Datasets | None,
+    datasets: Datasets,
     save_dir: str,
     s3_directory: str = S3_INTERNAL_DIRECTORY,
     source_col: str = SOURCE_COL,
@@ -30,9 +30,6 @@ def create_s3_upload_csv(
     dest_col:
         Name of the column for S3 zarr paths in the CSV.
     """
-    if datasets is None:
-        datasets = get_datasets_in_collection("dataset_release")
-
     rows = []
     for dataset in datasets:
         dataset_config = load_dataset_config(dataset)

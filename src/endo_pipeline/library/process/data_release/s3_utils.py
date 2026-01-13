@@ -31,18 +31,21 @@ def step1_upload_job(
     else:
         for path in output_jobs:
             print(f"Go read and validate this file! {path}")
-            print(f"Then run it with step2('{path}')")
+            # print(f"Then run it with step2('{path}')")
     return output_jobs
 
 
-def step2_run_jobs(jobs_path: str):
+def step2_run_jobs(
+    read_dir: str,
+    log_dir: str,
+) -> None:
     run_all_jobs(
         local=True,  # Do uploads from local filesystem to S3
-        path=jobs_path,
-        error_dir="./2025-10-08-to-upload-errors",
+        path=read_dir,  # path containing the job created
+        error_dir=log_dir,
     )
     print("Wait for the jobs to finish: run `squeue` to check.")
-    print(f"Verify success with step3('{jobs_path}')")
+    print(f"Verify success with step3('{read_dir}')")
 
 
 def step3_check_job(jobs_path: str):
