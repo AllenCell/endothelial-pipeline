@@ -2,9 +2,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from endo_pipeline.cli.logs import silence_external_loggers
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
+)
+from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import (
+    _is_point_within_percentile,
 )
 from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
@@ -21,6 +25,8 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
 )
+
+silence_external_loggers()
 
 # %%
 # get dataframe manifest for grid-based crop features
@@ -179,17 +185,25 @@ ax.set_xlabel("polar angle $\\theta$ (rad)")
 ax.set_ylabel("drift in $\\theta$ (rad/min)")
 
 # find zero crossing
-where_zero = np.argmin(np.abs(drift_theta))
-ax.plot(centers[0][where_zero], drift_theta[where_zero], "bo")
-ax.vlines(
-    centers[0][where_zero],
-    ax.get_ylim()[0],
-    ax.get_ylim()[1],
-    colors="b",
-    linestyles="dashed",
-    alpha=0.5,
-    label=f"$\\theta^* =$ {np.round(centers[0][where_zero],2)} rad",
-)
+where_zero = np.where(np.isclose(drift_theta, 0.0, atol=1e-4))[0]
+for idx in where_zero:
+    fpt_candidate = centers[0][idx]
+    if _is_point_within_percentile(
+        fpt_candidate,
+        df[ColumnName.POLAR_ANGLE].values,
+        lower=5,
+        upper=95,
+    ):
+        ax.plot(centers[0][idx], drift_theta[idx], "bo", markersize=5)
+        ax.vlines(
+            centers[0][idx],
+            ax.get_ylim()[0],
+            ax.get_ylim()[1],
+            colors="b",
+            linestyles="dashed",
+            alpha=0.5,
+            label=f"$\\theta^* =$ {np.round(centers[0][idx],2)} rad",
+        )
 ax.legend()
 
 fig, ax = plt.subplots()
@@ -207,7 +221,7 @@ ax.set_ylabel("drift in $r$ (1/min)")
 
 # find zero crossing
 where_zero = np.argmin(np.abs(drift_r))
-ax.plot(centers[1][where_zero], drift_r[where_zero], "bo")
+ax.plot(centers[1][where_zero], drift_r[where_zero], "bo", markersize=5)
 ax.vlines(
     centers[1][where_zero],
     ax.get_ylim()[0],
