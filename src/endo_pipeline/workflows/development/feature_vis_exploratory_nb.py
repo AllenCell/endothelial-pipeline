@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from endo_pipeline.cli.logs import setup_logging, silence_external_loggers
+from endo_pipeline.configs import load_dataset_collection_config
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
@@ -28,6 +29,7 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_RUN_NAME,
 )
 
+# set up logging
 VERBOSE = True
 DEBUG = False
 
@@ -36,6 +38,16 @@ if VERBOSE:
     setup_logging(level=logging_level)
 
 silence_external_loggers()
+
+# notebook constant
+SPLIT_THETA_DATASETS = [
+    "20250402_20X",
+    "20250409_20X",
+    "20250428_20X",
+    "20250604_20X",
+    "20250618_20X",
+] + load_dataset_collection_config("perturbation").datasets
+
 
 # %%
 # get dataframe manifest for grid-based crop features
@@ -53,7 +65,7 @@ include_cell_piling = False
 include_not_steady_state = False
 
 # load PC-projected dataframe for an example dataset
-dataset_name = "20250604_20X"  # replicate 1 "no flow"
+dataset_name = "20251119_20X"
 df = get_dataframe_for_dynamics_workflows(
     dataset_name,
     dataframe_manifest,
@@ -64,7 +76,7 @@ df = get_dataframe_for_dynamics_workflows(
 
 bin_limits = [(-np.pi, np.pi), (0, 2.75)]
 
-if dataset_name in ["20250402_20X", "20250409_20X", "20250428_20X", "20250604_20X", "20250618_20X"]:
+if dataset_name in SPLIT_THETA_DATASETS:
     df[ColumnName.POLAR_ANGLE] = df[ColumnName.POLAR_ANGLE].apply(
         lambda x: x + 2 * np.pi if x < 0 else x
     )
@@ -214,12 +226,14 @@ for idx in where_zero:
             label=f"$\\theta^* =$ {np.round(centers[0][idx],2)} rad",
         )
 ax.legend()
+ax.set_title(dataset_name)
 
 fig, ax = plt.subplots()
 ax.plot(centers[0], diffusion_theta, "k-")
 ax.set_ylim((0.0, 1.1 * ax.get_ylim()[1]))
 ax.set_xlabel("polar angle $\\theta$ (rad)")
 ax.set_ylabel("MSD in $\\theta$ (rad^2/min)")
+ax.set_title(dataset_name)
 
 # %%
 fig, ax = plt.subplots()
@@ -241,10 +255,12 @@ ax.vlines(
     label=f"$r^* =$ {np.round(centers[1][where_zero],2)} rad",
 )
 ax.legend()
+ax.set_title(dataset_name)
 
 fig, ax = plt.subplots()
 ax.plot(centers[1], diffusion_r, "k-")
 ax.set_ylim((0.0, 1.1 * ax.get_ylim()[1]))
 ax.set_xlabel("polar radius $r$ (rad)")
 ax.set_ylabel("MSD in $r$ (1/min)")
+ax.set_title(dataset_name)
 # %%
