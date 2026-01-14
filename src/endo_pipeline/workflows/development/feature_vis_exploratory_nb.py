@@ -1,8 +1,10 @@
 # %%
+import logging
+
 import matplotlib.pyplot as plt
 import numpy as np
 
-from endo_pipeline.cli.logs import silence_external_loggers
+from endo_pipeline.cli.logs import setup_logging, silence_external_loggers
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
@@ -25,6 +27,13 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
 )
+
+VERBOSE = True
+DEBUG = False
+
+if VERBOSE:
+    logging_level = logging.DEBUG if DEBUG else logging.INFO
+    setup_logging(level=logging_level)
 
 silence_external_loggers()
 
