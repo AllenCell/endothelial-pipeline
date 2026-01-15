@@ -130,15 +130,16 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
 
             # plot histogram heatmap over time
             num_bins = len(bins[i]) - 1
-            num_frames = df_[ColumnName.TIMEPOINT].max() + 1
             frame_min = df_[ColumnName.TIMEPOINT].min()
             frame_max = df_[ColumnName.TIMEPOINT].max()
+            num_frames = frame_max - frame_min + 1
             hist_array = np.zeros((num_bins, num_frames))
 
-            for t, df_frame in df.groupby(ColumnName.TIMEPOINT):
+            for t, df_frame in df_.groupby(ColumnName.TIMEPOINT):
+                timepoint_idx = int(t - frame_min)
                 values = df_frame[column_name].values
                 hist = np.histogram(values, bins=bins[i], density=True)[0]
-                hist_array[:, int(t)] = hist
+                hist_array[:, timepoint_idx] = hist
 
             fig, ax = plt.subplots()
             ax.imshow(
