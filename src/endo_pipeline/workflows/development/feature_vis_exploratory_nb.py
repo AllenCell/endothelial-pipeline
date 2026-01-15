@@ -207,28 +207,33 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
             fig, ax = plt.subplots()
             ax.plot(centers[i], drift, "k-")
             ax.plot(centers[i], np.zeros_like(centers[i]), "r--", alpha=0.5)
-            ax.set_xlabel("polar angle $\\theta$ (rad)")
-            ax.set_ylabel("drift in $\\theta$ (rad/min)")
+            variable_name = "$\\theta$" if column_name == ColumnName.POLAR_ANGLE else "$r$"
+            ax.set_xlabel(f"{column_name} {variable_name}")
+            ax.set_ylabel(f"drift in {variable_name}")
 
-            # find zero crossing
-            where_zero = np.where(np.isclose(drift, 0.0, atol=5e-4))[0]
-            for idx in where_zero:
-                fpt_candidate = centers[i][idx]
+            # find zero crossing -- look at sign changes
+            drift_signed = np.sign(drift)
+            sign_changes = np.where(np.diff(drift_signed))[0]
+            for idx in sign_changes:
+                # use the point closer to zero drift (before or after zero-crossing)
+                point_1 = centers[i][idx]
+                point_2 = centers[i][idx + 1]
+                idx_ = idx if abs(drift[idx]) < abs(drift[idx + 1]) else idx + 1
+
+                fpt_candidate = centers[i][idx_]
                 if _is_point_within_percentile(
                     fpt_candidate,
                     df[column_name].values,
-                    lower=5,
-                    upper=95,
                 ):
-                    ax.plot(centers[i][idx], drift[idx], "bo", markersize=5)
+                    ax.plot(fpt_candidate, drift[idx_], "bo", markersize=5)
                     ax.vlines(
-                        centers[i][idx],
+                        centers[i][idx_],
                         ax.get_ylim()[0],
                         ax.get_ylim()[1],
                         colors="b",
                         linestyles="dashed",
                         alpha=0.5,
-                        label=f"$\\theta^* =$ {np.round(centers[i][idx],2)} rad",
+                        label=f"${variable_name}^* =$ {np.round(fpt_candidate,2)}",
                     )
             ax.legend()
             ax.set_title(fig_title)
@@ -237,8 +242,8 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
             fig, ax = plt.subplots()
             ax.plot(centers[i], diffusion, "k-")
             ax.set_ylim((0.0, 1.1 * ax.get_ylim()[1]))
-            ax.set_xlabel("polar angle $\\theta$ (rad)")
-            ax.set_ylabel("MSD in $\\theta$ (rad^2/min)")
+            ax.set_xlabel(f"{column_name} {variable_name}")
+            ax.set_ylabel(f"MSD in {variable_name}")
             ax.set_title(dataset_name)
             save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name_flow}_{column_name}_diffusion.png")
 # %%
