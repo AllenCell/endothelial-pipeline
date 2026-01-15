@@ -51,7 +51,7 @@ SPLIT_THETA_DATASETS = [
     "20250716_20X",
 ] + load_dataset_collection_config("perturbation").datasets
 
-DATASET_COLLECTION_NAME = "timelapse"
+DATASET_COLLECTION_NAME = "diffae_model_training"
 
 KERNEL_BANDWIDTH = 0.2  # bandwidth for kernel density estimation in KM calculation
 
@@ -96,7 +96,7 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
     )
 
     for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
-        dataset_name_flow = f"{dataset_name}_shear_{shear_stress}"
+        dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
         fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$)"
 
         bin_limits = [(-np.pi, np.pi), (0, 2.75)]
@@ -158,129 +158,87 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
             )
 
         # compute Kramers-Moyal coefficients
-        theta_traj_list = []
-        d_theta_list = []
-        r_traj_list = []
-        d_r_list = []
-        for crop_index, df_crop in df_.groupby(ColumnName.CROP_INDEX):
-            df_crop_ = df_crop.sort_values(by=ColumnName.TIMEPOINT)
+        for i, column_name in enumerate(POLAR_COLUMN_NAMES):
+            traj_list = []
+            d_traj_list = []
+            for crop_index, df_crop in df_.groupby(ColumnName.CROP_INDEX):
+                df_crop_ = df_crop.sort_values(by=ColumnName.TIMEPOINT)
 
-            # add column giving difference in timepoint between consecutive dataframe rows
-            # convert NaN to 0 -- occurs at end of trajectory
-            df_crop_[f"{ColumnName.TIMEPOINT}_diff"] = (
-                df_crop_[ColumnName.TIMEPOINT].diff().shift(-1).fillna(0)
-            )
-            # compute one-step differences in polar angle and radius
-            angle_diffs = get_smallest_angle_difference(
-                df_crop_[ColumnName.POLAR_ANGLE].values[1:],
-                df_crop_[ColumnName.POLAR_ANGLE].values[:-1],
-                units="rad",
-            )
-            df_crop_[f"{ColumnName.POLAR_ANGLE}_diff"] = np.concatenate(
-                (angle_diffs, np.array([np.nan]))  # no valid difference at end of trajectory
-            )
-            # df_crop_[ColumnName.POLAR_ANGLE].diff().shift(-1)
-            df_crop_[f"{ColumnName.POLAR_RADIUS}_diff"] = (
-                df_crop_[ColumnName.POLAR_RADIUS].diff().shift(-1)
-            )
-
-            # trajectory values to keep -- only keep steps where time difference is 1
-            # and also the last point in the trajectory (which has time difference 0)
-            traj_mask = df_crop_[f"{ColumnName.TIMEPOINT}_diff"] <= 1
-
-            # for the gradient, only keep steps where time difference is exactly 1
-            # i.e., no valid difference at the end of the trajectory (only forward differences)
-            gradient_mask = df_crop_[f"{ColumnName.TIMEPOINT}_diff"] == 1
-
-            theta_traj_list.append(df_crop_[traj_mask][ColumnName.POLAR_ANGLE].values)
-            d_theta_list.append(df_crop_[gradient_mask][f"{ColumnName.POLAR_ANGLE}_diff"].values)
-            r_traj_list.append(df_crop_[traj_mask][ColumnName.POLAR_RADIUS].values)
-            d_r_list.append(df_crop_[gradient_mask][f"{ColumnName.POLAR_RADIUS}_diff"].values)
-
-        drift_theta, diffusion_theta = get_kramers_moyal(
-            theta_traj_list,
-            d_theta_list,
-            bins=[bins[0]],
-            dt=5,
-            kernel_params={"kernel": "gaussian", "bandwidth": KERNEL_BANDWIDTH},
-        )
-
-        drift_r, diffusion_r = get_kramers_moyal(
-            r_traj_list,
-            d_r_list,
-            bins=[bins[1]],
-            dt=5,
-            kernel_params={"kernel": "gaussian", "bandwidth": KERNEL_BANDWIDTH},
-        )
-        fig, ax = plt.subplots()
-        ax.plot(centers[0], drift_theta, "k-")
-        ax.plot(centers[0], np.zeros_like(centers[0]), "r--", alpha=0.5)
-        ax.set_xlabel("polar angle $\\theta$ (rad)")
-        ax.set_ylabel("drift in $\\theta$ (rad/min)")
-
-        # find zero crossing
-        where_zero = np.where(np.isclose(drift_theta, 0.0, atol=5e-4))[0]
-        for idx in where_zero:
-            fpt_candidate = centers[0][idx]
-            if _is_point_within_percentile(
-                fpt_candidate,
-                df[ColumnName.POLAR_ANGLE].values,
-                lower=5,
-                upper=95,
-            ):
-                ax.plot(centers[0][idx], drift_theta[idx], "bo", markersize=5)
-                ax.vlines(
-                    centers[0][idx],
-                    ax.get_ylim()[0],
-                    ax.get_ylim()[1],
-                    colors="b",
-                    linestyles="dashed",
-                    alpha=0.5,
-                    label=f"$\\theta^* =$ {np.round(centers[0][idx],2)} rad",
+                # add column giving difference in timepoint between consecutive dataframe rows
+                # convert NaN to 0 -- occurs at end of trajectory
+                df_crop_[f"{ColumnName.TIMEPOINT}_diff"] = (
+                    df_crop_[ColumnName.TIMEPOINT].diff().shift(-1).fillna(0)
                 )
-        ax.legend()
-        ax.set_title(fig_title)
-        save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name_flow}_{ColumnName.POLAR_ANGLE}_drift")
+                # compute one-step differences in polar angle and radius
+                if column_name == ColumnName.POLAR_ANGLE:
+                    angle_diffs = get_smallest_angle_difference(
+                        df_crop_[column_name].values[1:],
+                        df_crop_[column_name].values[:-1],
+                        units="rad",
+                    )
+                    df_crop_[f"{column_name}_diff"] = np.concatenate(
+                        (
+                            angle_diffs,
+                            np.array([np.nan]),
+                        )  # no valid difference at end of trajectory
+                    )
+                else:
+                    df_crop_[f"{column_name}_diff"] = df_crop_[column_name].diff().shift(-1)
 
-        fig, ax = plt.subplots()
-        ax.plot(centers[0], diffusion_theta, "k-")
-        ax.set_ylim((0.0, 1.1 * ax.get_ylim()[1]))
-        ax.set_xlabel("polar angle $\\theta$ (rad)")
-        ax.set_ylabel("MSD in $\\theta$ (rad^2/min)")
-        ax.set_title(dataset_name)
-        save_plot_to_path(
-            fig, FIG_SAVEDIR, f"{dataset_name_flow}_{ColumnName.POLAR_ANGLE}_diffusion"
-        )
+                # trajectory values to keep -- only keep steps where time difference is 1
+                # and also the last point in the trajectory (which has time difference 0)
+                traj_mask = df_crop_[f"{ColumnName.TIMEPOINT}_diff"] <= 1
 
-        fig, ax = plt.subplots()
-        ax.plot(centers[1], drift_r, "k-")
-        ax.plot(centers[1], np.zeros_like(centers[1]), "r--", alpha=0.5)
-        ax.set_xlabel("polar radius $r$")
-        ax.set_ylabel("drift in $r$ (1/min)")
+                # for the gradient, only keep steps where time difference is exactly 1
+                # i.e., no valid difference at the end of the trajectory (only forward differences)
+                gradient_mask = df_crop_[f"{ColumnName.TIMEPOINT}_diff"] == 1
 
-        # find zero crossing
-        where_zero = np.argmin(np.abs(drift_r))
-        ax.plot(centers[1][where_zero], drift_r[where_zero], "bo", markersize=5)
-        ax.vlines(
-            centers[1][where_zero],
-            ax.get_ylim()[0],
-            ax.get_ylim()[1],
-            colors="b",
-            linestyles="dashed",
-            alpha=0.5,
-            label=f"$r^* =$ {np.round(centers[1][where_zero],2)} rad",
-        )
-        ax.legend()
-        ax.set_title(fig_title)
-        save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name_flow}_{ColumnName.POLAR_RADIUS}_drift")
+                traj_list.append(df_crop_[traj_mask][column_name].values)
+                d_traj_list.append(df_crop_[gradient_mask][f"{column_name}_diff"].values)
 
-        fig, ax = plt.subplots()
-        ax.plot(centers[1], diffusion_r, "k-")
-        ax.set_ylim((0.0, 1.1 * ax.get_ylim()[1]))
-        ax.set_xlabel("polar radius $r$ (rad)")
-        ax.set_ylabel("MSD in $r$ (1/min)")
-        ax.set_title(fig_title)
-        save_plot_to_path(
-            fig, FIG_SAVEDIR, f"{dataset_name_flow}_{ColumnName.POLAR_RADIUS}_diffusion"
-        )
+            drift, diffusion = get_kramers_moyal(
+                traj_list,
+                d_traj_list,
+                bins=[bins[i]],
+                dt=5,
+                kernel_params={"kernel": "gaussian", "bandwidth": KERNEL_BANDWIDTH},
+            )
+
+            fig, ax = plt.subplots()
+            ax.plot(centers[0], drift, "k-")
+            ax.plot(centers[0], np.zeros_like(centers[0]), "r--", alpha=0.5)
+            ax.set_xlabel("polar angle $\\theta$ (rad)")
+            ax.set_ylabel("drift in $\\theta$ (rad/min)")
+
+            # find zero crossing
+            where_zero = np.where(np.isclose(drift, 0.0, atol=5e-4))[0]
+            for idx in where_zero:
+                fpt_candidate = centers[0][idx]
+                if _is_point_within_percentile(
+                    fpt_candidate,
+                    df[column_name].values,
+                    lower=5,
+                    upper=95,
+                ):
+                    ax.plot(centers[0][idx], drift[idx], "bo", markersize=5)
+                    ax.vlines(
+                        centers[0][idx],
+                        ax.get_ylim()[0],
+                        ax.get_ylim()[1],
+                        colors="b",
+                        linestyles="dashed",
+                        alpha=0.5,
+                        label=f"$\\theta^* =$ {np.round(centers[0][idx],2)} rad",
+                    )
+            ax.legend()
+            ax.set_title(fig_title)
+            save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name_flow}_{column_name}_drift.png")
+
+            fig, ax = plt.subplots()
+            ax.plot(centers[0], diffusion, "k-")
+            ax.set_ylim((0.0, 1.1 * ax.get_ylim()[1]))
+            ax.set_xlabel("polar angle $\\theta$ (rad)")
+            ax.set_ylabel("MSD in $\\theta$ (rad^2/min)")
+            ax.set_title(dataset_name)
+            save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name_flow}_{column_name}_diffusion.png")
 # %%
