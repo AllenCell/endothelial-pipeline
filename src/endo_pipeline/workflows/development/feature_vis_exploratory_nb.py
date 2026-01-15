@@ -219,7 +219,7 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
         ax.set_ylabel("drift in $\\theta$ (rad/min)")
 
         # find zero crossing
-        where_zero = np.where(np.isclose(drift_theta, 0.0, atol=1e-2))[0]
+        where_zero = np.where(np.isclose(drift_theta, 0.0, atol=5e-4))[0]
         for idx in where_zero:
             fpt_candidate = centers[0][idx]
             if _is_point_within_percentile(
@@ -239,8 +239,8 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
                     label=f"$\\theta^* =$ {np.round(centers[0][idx],2)} rad",
                 )
         ax.legend()
-        ax.set_title(dataset_name)
-        save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name}_drift_theta.png")
+        ax.set_title(fig_title)
+        save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name_flow}_{ColumnName.POLAR_ANGLE}_drift")
 
         fig, ax = plt.subplots()
         ax.plot(centers[0], diffusion_theta, "k-")
@@ -248,7 +248,9 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
         ax.set_xlabel("polar angle $\\theta$ (rad)")
         ax.set_ylabel("MSD in $\\theta$ (rad^2/min)")
         ax.set_title(dataset_name)
-        save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name}_diffusion_theta.png")
+        save_plot_to_path(
+            fig, FIG_SAVEDIR, f"{dataset_name_flow}_{ColumnName.POLAR_ANGLE}_diffusion"
+        )
 
         fig, ax = plt.subplots()
         ax.plot(centers[1], drift_r, "k-")
@@ -269,14 +271,16 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
             label=f"$r^* =$ {np.round(centers[1][where_zero],2)} rad",
         )
         ax.legend()
-        ax.set_title(dataset_name)
-        save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name}_drift_r.png")
+        ax.set_title(fig_title)
+        save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name_flow}_{ColumnName.POLAR_RADIUS}_drift")
 
         fig, ax = plt.subplots()
         ax.plot(centers[1], diffusion_r, "k-")
         ax.set_ylim((0.0, 1.1 * ax.get_ylim()[1]))
         ax.set_xlabel("polar radius $r$ (rad)")
         ax.set_ylabel("MSD in $r$ (1/min)")
-        ax.set_title(dataset_name)
-        save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name}_diffusion_r.png")
+        ax.set_title(fig_title)
+        save_plot_to_path(
+            fig, FIG_SAVEDIR, f"{dataset_name_flow}_{ColumnName.POLAR_RADIUS}_diffusion"
+        )
 # %%
