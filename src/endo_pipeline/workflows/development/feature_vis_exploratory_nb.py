@@ -219,7 +219,7 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
         ax.set_ylabel("drift in $\\theta$ (rad/min)")
 
         # find zero crossing
-        where_zero = np.where(np.isclose(drift_theta, 0.0, atol=1e-4))[0]
+        where_zero = np.where(np.isclose(drift_theta, 0.0, atol=1e-2))[0]
         for idx in where_zero:
             fpt_candidate = centers[0][idx]
             if _is_point_within_percentile(
