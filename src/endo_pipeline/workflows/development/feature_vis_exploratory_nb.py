@@ -205,37 +205,37 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
             )
 
             fig, ax = plt.subplots()
-            ax.plot(centers[0], drift, "k-")
-            ax.plot(centers[0], np.zeros_like(centers[0]), "r--", alpha=0.5)
+            ax.plot(centers[i], drift, "k-")
+            ax.plot(centers[i], np.zeros_like(centers[i]), "r--", alpha=0.5)
             ax.set_xlabel("polar angle $\\theta$ (rad)")
             ax.set_ylabel("drift in $\\theta$ (rad/min)")
 
             # find zero crossing
             where_zero = np.where(np.isclose(drift, 0.0, atol=5e-4))[0]
             for idx in where_zero:
-                fpt_candidate = centers[0][idx]
+                fpt_candidate = centers[i][idx]
                 if _is_point_within_percentile(
                     fpt_candidate,
                     df[column_name].values,
                     lower=5,
                     upper=95,
                 ):
-                    ax.plot(centers[0][idx], drift[idx], "bo", markersize=5)
+                    ax.plot(centers[i][idx], drift[idx], "bo", markersize=5)
                     ax.vlines(
-                        centers[0][idx],
+                        centers[i][idx],
                         ax.get_ylim()[0],
                         ax.get_ylim()[1],
                         colors="b",
                         linestyles="dashed",
                         alpha=0.5,
-                        label=f"$\\theta^* =$ {np.round(centers[0][idx],2)} rad",
+                        label=f"$\\theta^* =$ {np.round(centers[i][idx],2)} rad",
                     )
             ax.legend()
             ax.set_title(fig_title)
             save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name_flow}_{column_name}_drift.png")
 
             fig, ax = plt.subplots()
-            ax.plot(centers[0], diffusion, "k-")
+            ax.plot(centers[i], diffusion, "k-")
             ax.set_ylim((0.0, 1.1 * ax.get_ylim()[1]))
             ax.set_xlabel("polar angle $\\theta$ (rad)")
             ax.set_ylabel("MSD in $\\theta$ (rad^2/min)")
