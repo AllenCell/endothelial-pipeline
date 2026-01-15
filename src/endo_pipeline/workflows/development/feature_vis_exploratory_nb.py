@@ -6,6 +6,7 @@ import numpy as np
 
 from endo_pipeline.cli.logs import setup_logging, silence_external_loggers
 from endo_pipeline.configs import load_dataset_collection_config
+from endo_pipeline.io import get_output_path, save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
@@ -51,6 +52,7 @@ SPLIT_THETA_DATASETS = [
 
 KERNEL_BANDWIDTH = 0.3  # bandwidth for kernel density estimation in KM calculation
 
+FIG_SAVEDIR = get_output_path(__file__)
 # %%
 # get dataframe manifest for grid-based crop features
 model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
@@ -229,6 +231,7 @@ for idx in where_zero:
         )
 ax.legend()
 ax.set_title(dataset_name)
+save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name}_drift_theta.png")
 
 fig, ax = plt.subplots()
 ax.plot(centers[0], diffusion_theta, "k-")
@@ -236,6 +239,7 @@ ax.set_ylim((0.0, 1.1 * ax.get_ylim()[1]))
 ax.set_xlabel("polar angle $\\theta$ (rad)")
 ax.set_ylabel("MSD in $\\theta$ (rad^2/min)")
 ax.set_title(dataset_name)
+save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name}_diffusion_theta.png")
 
 # %%
 fig, ax = plt.subplots()
@@ -258,6 +262,7 @@ ax.vlines(
 )
 ax.legend()
 ax.set_title(dataset_name)
+save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name}_drift_r.png")
 
 fig, ax = plt.subplots()
 ax.plot(centers[1], diffusion_r, "k-")
@@ -265,4 +270,5 @@ ax.set_ylim((0.0, 1.1 * ax.get_ylim()[1]))
 ax.set_xlabel("polar radius $r$ (rad)")
 ax.set_ylabel("MSD in $r$ (1/min)")
 ax.set_title(dataset_name)
+save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name}_diffusion_r.png")
 # %%
