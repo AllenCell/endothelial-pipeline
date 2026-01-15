@@ -46,8 +46,10 @@ SPLIT_THETA_DATASETS = [
     "20250428_20X",
     "20250604_20X",
     "20250618_20X",
+    "20250716_20X",
 ] + load_dataset_collection_config("perturbation").datasets
 
+KERNEL_BANDWIDTH = 0.3  # bandwidth for kernel density estimation in KM calculation
 
 # %%
 # get dataframe manifest for grid-based crop features
@@ -65,7 +67,7 @@ include_cell_piling = False
 include_not_steady_state = False
 
 # load PC-projected dataframe for an example dataset
-dataset_name = "20251119_20X"
+dataset_name = "20250319_20X"
 df = get_dataframe_for_dynamics_workflows(
     dataset_name,
     dataframe_manifest,
@@ -188,7 +190,7 @@ drift_theta, diffusion_theta = get_kramers_moyal(
     d_theta_list,
     bins=[bins[0]],
     dt=5,
-    kernel_params={"kernel": "gaussian", "bandwidth": 0.2},
+    kernel_params={"kernel": "gaussian", "bandwidth": KERNEL_BANDWIDTH},
 )
 
 drift_r, diffusion_r = get_kramers_moyal(
@@ -196,7 +198,7 @@ drift_r, diffusion_r = get_kramers_moyal(
     d_r_list,
     bins=[bins[1]],
     dt=5,
-    kernel_params={"kernel": "gaussian", "bandwidth": 0.2},
+    kernel_params={"kernel": "gaussian", "bandwidth": KERNEL_BANDWIDTH},
 )
 # %%
 fig, ax = plt.subplots()
