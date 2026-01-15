@@ -207,9 +207,9 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
             fig, ax = plt.subplots()
             ax.plot(centers[i], drift, "k-")
             ax.plot(centers[i], np.zeros_like(centers[i]), "r--", alpha=0.5)
-            variable_name = "$\\theta$" if column_name == ColumnName.POLAR_ANGLE else "$r$"
-            ax.set_xlabel(f"{column_name} {variable_name}")
-            ax.set_ylabel(f"drift in {variable_name}")
+            variable_name = "\\theta" if column_name == ColumnName.POLAR_ANGLE else "r"
+            ax.set_xlabel(f"${variable_name}$")
+            ax.set_ylabel(f"drift in ${variable_name}$")
 
             # find zero crossing -- look at sign changes
             drift_signed = np.sign(drift)
@@ -242,8 +242,8 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
             fig, ax = plt.subplots()
             ax.plot(centers[i], diffusion, "k-")
             ax.set_ylim((0.0, 1.1 * ax.get_ylim()[1]))
-            ax.set_xlabel(f"{column_name} {variable_name}")
-            ax.set_ylabel(f"MSD in {variable_name}")
+            ax.set_xlabel(f"${variable_name}$")
+            ax.set_ylabel(f"MSD in ${variable_name}$")
             ax.set_title(dataset_name)
             save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name_flow}_{column_name}_diffusion.png")
 # %%
