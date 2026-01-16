@@ -46,8 +46,11 @@ def main(
     of the first 2 positions for each of the given datasets for workflow testing purposes.
     """
 
+    import logging
+
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
+    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.cdh5_preprocessing import (
         generate_cdh5_segmentation_refined_multiproc_wrapper,
@@ -56,6 +59,8 @@ def main(
         build_analysis_queue,
         process_task_queue,
     )
+
+    logger = logging.getLogger(__name__)
 
     out_dir = get_output_path(__file__)
 
@@ -72,6 +77,19 @@ def main(
         t_start=0,
         t_final=1 if DEMO_MODE else None,
     )
+    timelapse_datasets = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
+    smad1_datasets = get_datasets_in_collection("smad1")
+    for task in analysis_queue:
+        if task.dataset_name in timelapse_datasets:
+            task["nuclei_seg_manifest_name"] = "nuclear_labelfree_seg"
+        elif task.dataset_name in smad1_datasets:
+            task["nuclei_seg_manifest_name"] = "nuclear_stain_seg"
+        else:
+            logger.warning(
+                f"Dataset {task.dataset_name}: no associated nuclei segmentation manifest found. \
+                Setting nuclei_seg_manifest_name to None."
+            )
+            task["nuclei_seg_manifest_name"] = None
 
     process_task_queue(
         generate_cdh5_segmentation_refined_multiproc_wrapper,
