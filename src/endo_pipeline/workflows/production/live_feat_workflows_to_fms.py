@@ -36,6 +36,7 @@ def main(
     from endo_pipeline.library.process.lib_live_feat_workflows_to_fms import (
         fms_upload_cdh5_classic_seg_tracking,
         fms_upload_cdh5_get_measured_features,
+        fms_upload_make_diffae_and_seg_feats_manifest,
         fms_upload_make_seg_feats_manifest,
         fms_upload_nuc_get_measured_features,
     )
@@ -58,6 +59,7 @@ def main(
         "cdh5_seg_measurements": fms_upload_cdh5_get_measured_features,
         "nuclei_labelfree": fms_upload_nuc_get_measured_features,
         "merged_live_data_manifests": fms_upload_make_seg_feats_manifest,
+        "merged_diffae_and_seg_features": fms_upload_make_diffae_and_seg_feats_manifest,
     }
     print(f"Uploading {datasets}")
 
@@ -80,6 +82,10 @@ def main(
         "merged_live_data_manifests": {
             "subdir": "cdh5_live_seg_features",
             "suffix": "_live_segmentation_features.parquet",
+        },
+        "merged_diffae_and_seg_features": {
+            "subdir": "diffae_and_seg_features",
+            "suffix": "_diffae_seg_feats_merged.parquet",
         },
     }
 
