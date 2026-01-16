@@ -42,6 +42,7 @@ def _add_density_overlay(
         color=density_plot_color,
         fill=density_plot_fill,
         alpha=density_plot_alpha,
+        label="density",
     )
     ax2.set_ylabel("density")
     return ax
@@ -103,7 +104,11 @@ def plot_1d_drift(
     ax.plot(x_vals, drift_vals, f"{drift_line_color}{drift_line_style}")
     # draw zero line
     ax.plot(
-        x_vals, np.zeros_like(x_vals), f"{zero_line_color}{zero_line_style}", alpha=zero_line_alpha
+        x_vals,
+        np.zeros_like(x_vals),
+        f"{zero_line_color}{zero_line_style}",
+        alpha=zero_line_alpha,
+        label="$y=0$",
     )
     ax.set_xlabel(f"${variable_name}$")
     ax.set_ylabel(f"drift in ${variable_name}$")
@@ -118,6 +123,8 @@ def plot_1d_drift(
             density_plot_alpha,
             density_plot_fill,
         )
+
+    ax.legend()
     return fig, ax
 
 
@@ -196,6 +203,11 @@ def plot_1d_diffusion(
             density_plot_alpha,
             density_plot_fill,
         )
+
+    # make sure y-limits start at 0
+    ax.set_ylim((0.0, ax.get_ylim()[1]))
+
+    ax.legend()
     return fig, ax
 
 

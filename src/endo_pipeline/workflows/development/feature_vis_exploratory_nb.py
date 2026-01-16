@@ -243,7 +243,6 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
                     label=f"${variable_name}^* =$ {np.round(fpt_candidate,2)}",
                 )
 
-            ax.legend()
             ax.set_title(fig_title)
             save_plot_to_path(fig, fig_savedir_km, f"{dataset_name_flow}_{column_name}_drift")
 
@@ -254,7 +253,6 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
                 data_for_density=df_[column_name].values,
                 density_kernel_bandwidth=KERNEL_BANDWIDTH,
             )
-            ax.set_ylim((0.0, 1.1 * ax.get_ylim()[1]))
             ax.set_title(dataset_name)
             save_plot_to_path(fig, fig_savedir_km, f"{dataset_name_flow}_{column_name}_diffusion")
 # %%
