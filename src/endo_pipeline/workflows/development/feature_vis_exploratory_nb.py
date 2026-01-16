@@ -12,15 +12,15 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
     split_dataset_by_flow,
 )
-
-# from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import (
-#     _is_point_within_percentile,
-# )
 from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     get_smallest_angle_difference,
 )
 from endo_pipeline.library.analyze.numerics.binning import get_bins
+from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
+    plot_1d_diffusion,
+    plot_1d_drift,
+)
 from endo_pipeline.manifests import (
     get_feature_dataframe_manifest_name,
     load_dataframe_manifest,
@@ -134,7 +134,7 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
             ax.set_ylabel(column_name)
             ax.set_title(fig_title)
             save_plot_to_path(
-                fig, fig_savedir_summary, f"{dataset_name_flow}_{column_name}_average.png"
+                fig, fig_savedir_summary, f"{dataset_name_flow}_{column_name}_average"
             )
 
             # plot histogram heatmap over time
@@ -163,7 +163,7 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
             ax.set_yticklabels(np.round(bins[i], 2)[:: TICK_STEP_NUM[i]])
             ax.set_title(fig_title)
             save_plot_to_path(
-                fig, fig_savedir_summary, f"{dataset_name_flow}_{column_name}_histogram_heatmap.png"
+                fig, fig_savedir_summary, f"{dataset_name_flow}_{column_name}_histogram_heatmap"
             )
 
         # compute Kramers-Moyal coefficients
@@ -213,12 +213,14 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
                 kernel_params={"kernel": "gaussian", "bandwidth": KERNEL_BANDWIDTH},
             )
 
-            fig, ax = plt.subplots()
-            ax.plot(centers[i], drift, "k-")
-            ax.plot(centers[i], np.zeros_like(centers[i]), "r--", alpha=0.5)
             variable_name = "\\theta" if column_name == ColumnName.POLAR_ANGLE else "r"
-            ax.set_xlabel(f"${variable_name}$")
-            ax.set_ylabel(f"drift in ${variable_name}$")
+            fig, ax = plot_1d_drift(
+                centers[i],
+                drift,
+                variable_name,
+                data_for_density=df_[column_name].values,
+                density_kernel_bandwidth=KERNEL_BANDWIDTH,
+            )
 
             # find zero crossing -- look at sign changes
             drift_signed = np.sign(drift)
@@ -240,17 +242,19 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
                     alpha=0.5,
                     label=f"${variable_name}^* =$ {np.round(fpt_candidate,2)}",
                 )
+
             ax.legend()
             ax.set_title(fig_title)
-            save_plot_to_path(fig, fig_savedir_km, f"{dataset_name_flow}_{column_name}_drift.png")
+            save_plot_to_path(fig, fig_savedir_km, f"{dataset_name_flow}_{column_name}_drift")
 
-            fig, ax = plt.subplots()
-            ax.plot(centers[i], diffusion, "k-")
-            ax.set_ylim((0.0, 1.1 * ax.get_ylim()[1]))
-            ax.set_xlabel(f"${variable_name}$")
-            ax.set_ylabel(f"MSD in ${variable_name}$")
-            ax.set_title(dataset_name)
-            save_plot_to_path(
-                fig, fig_savedir_km, f"{dataset_name_flow}_{column_name}_diffusion.png"
+            fig, ax = plot_1d_diffusion(
+                centers[i],
+                diffusion,
+                variable_name,
+                data_for_density=df_[column_name].values,
+                density_kernel_bandwidth=KERNEL_BANDWIDTH,
             )
+            ax.set_ylim((0.0, 1.1 * ax.get_ylim()[1]))
+            ax.set_title(dataset_name)
+            save_plot_to_path(fig, fig_savedir_km, f"{dataset_name_flow}_{column_name}_diffusion")
 # %%
