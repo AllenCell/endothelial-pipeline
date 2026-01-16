@@ -178,22 +178,22 @@ def merge_diffae_feats_liveseg_feats_tables(
     diffae_tracking_df["is_unique"] = diffae_tracking_df.groupby(
         [ColumnName.DATASET, ColumnName.POSITION, ColumnName.TIMEPOINT, "track_id"]
     )[ColumnName.TIMEPOINT].transform(lambda t: t.nunique() == t.size)
-    diffae_tracking_df = diffae_tracking_df[diffae_tracking_df["is_unique"]]
+    if not diffae_tracking_df["is_unique"].all():
+        raise ValueError(
+            "Found non-unique track_id and timepoint combinations in the diffae tracking data. "
+            "Tracking data needs to be curated so that each position has unique Track IDs."
+        )
 
-    # give the crop_index column the same value as the track_ids
-    diffae_tracking_df[ColumnName.CROP_INDEX] = add_crop_index(
-        df=diffae_tracking_df, crop_pattern="tracked"
-    )
-    diffae_tracking_df = add_description_column(
-        diffae_tracking_df, dataset_name, simple=True
-    )  # add description column (e.g., 48hr_High)
+    # add crop_index column (track_ids are not unique across positions but crop_index is)
+    diffae_tracking_df = add_crop_index(df=diffae_tracking_df, crop_pattern="tracked")
+    # add description column (e.g., 48hr_High)
+    diffae_tracking_df = add_description_column(diffae_tracking_df, dataset_name, simple=True)
     diffae_tracking_df.rename(columns={ColumnName.POSITION: "position_as_str"}, inplace=True)
 
     logging.debug("processing the live segmentation features data...")
     live_seg_feats_df["position_as_str"] = live_seg_feats_df[ColumnName.POSITION].transform(
         lambda x: "P" + str(x)
     )
-    live_seg_feats_df["track_id"] = live_seg_feats_df["track_id"].astype(int)
 
     logging.debug("merging segmentation properties and track-based DiffAE data...")
     unique_cell_seg_id_group = ["dataset_name", "position_as_str", "image_index", "track_id"]

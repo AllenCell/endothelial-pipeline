@@ -16,6 +16,7 @@ def main(
         "cdh5_seg_measurements",
         "nuclei_labelfree",
         "merged_live_data_manifests",
+        "merged_diffae_and_seg_features",
     ],
     datasets: Datasets,
 ) -> None:
