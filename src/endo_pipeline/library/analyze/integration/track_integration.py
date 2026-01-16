@@ -8,8 +8,9 @@ from matplotlib import pyplot as plt
 from seaborn import color_palette
 
 from endo_pipeline.configs import get_latent_dim_from_config
-from endo_pipeline.io import get_config_dict_from_mlflow, load_dataframe
+from endo_pipeline.io import get_config_dict_from_mlflow, get_output_path, load_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    add_crop_index,
     add_description_column,
     fit_pca,
     get_dataframe_for_dynamics_workflows,
@@ -19,7 +20,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
 )
 from endo_pipeline.library.analyze.dynamics_utils import solve_ddff_ode
 from endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
-from endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_data, get_bins
+from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.manifests import (
@@ -29,11 +30,9 @@ from endo_pipeline.manifests import (
     get_model_location_for_run,
     get_most_recent_run_name,
     load_dataframe_manifest,
+    load_model_manifest,
 )
-from endo_pipeline.settings import (
-    DEFAULT_MODEL_RUN_NAME,
-    DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
     ColumnName,
@@ -44,6 +43,12 @@ from endo_pipeline.settings.flow_field_3d import (
     KERNEL_PARAMS_3D,
     TIME_STEP_IN_MINUTES,
     TRAJECTORY_TIME_SPAN,
+)
+from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 )
 
 logger = logging.getLogger(__name__)
@@ -176,15 +181,12 @@ def merge_diffae_feats_liveseg_feats_tables(
     diffae_tracking_df = diffae_tracking_df[diffae_tracking_df["is_unique"]]
 
     # give the crop_index column the same value as the track_ids
-    diffae_tracking_df[ColumnName.CROP_INDEX] = (
-        diffae_tracking_df.groupby([ColumnName.POSITION, "track_id"], as_index=False)
-        .ngroup()
-        .astype(int)
+    diffae_tracking_df[ColumnName.CROP_INDEX] = add_crop_index(
+        df=diffae_tracking_df, crop_pattern="tracked"
     )
     diffae_tracking_df = add_description_column(
         diffae_tracking_df, dataset_name, simple=True
     )  # add description column (e.g., 48hr_High)
-    diffae_tracking_df["track_id"] = diffae_tracking_df["track_id"].astype(int)
     diffae_tracking_df.rename(columns={ColumnName.POSITION: "position_as_str"}, inplace=True)
 
     logging.debug("processing the live segmentation features data...")
@@ -247,13 +249,13 @@ def get_diffae_feats_liveseg_feats_merged_table(
     )
     diffae_track_manifest = load_dataframe_manifest(tracked_dataframe_manifest_name)
     diffae_track_location = get_dataframe_location_for_dataset(diffae_track_manifest, dataset_name)
-    diffae_tracking_df = load_dataframe(diffae_track_location)
+    diffae_tracking_df = load_dataframe(diffae_track_location, delay=False)  # type: ignore
 
     # load the tracking data of the measured features and merge them
     logging.debug("loading segmentation property data...")
     live_seg_manifest = load_dataframe_manifest(seg_feature_manifest_name)
     live_seg_location = get_dataframe_location_for_dataset(live_seg_manifest, dataset_name)
-    live_seg_feats_df = load_dataframe(live_seg_location)
+    live_seg_feats_df = load_dataframe(live_seg_location, delay=False)  # type: ignore
 
     # merge the two tables
     merged_feats_df = merge_diffae_feats_liveseg_feats_tables(diffae_tracking_df, live_seg_feats_df)
@@ -266,6 +268,31 @@ def get_diffae_feats_liveseg_feats_merged_table(
         merged_feats_df.dropna(axis="index", how="any", subset="model_manifest_name", inplace=True)
 
     return merged_feats_df
+
+
+def get_and_save_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -> None:
+    """Load and merge dataframes with cell-centric DiffAE features and segmentation-based features,
+    then save the merged dataframe as a parquet file.
+
+    Parameters
+    ----------
+    dataset_name
+        The name of the dataset to use.
+    """
+
+    out_dir = get_output_path(__file__)
+    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
+
+    merged_feats_df = get_diffae_feats_liveseg_feats_merged_table(
+        dataset_name=dataset_name,
+        model_manifest=model_manifest,
+        run_name=DEFAULT_MODEL_RUN_NAME,
+        seg_feature_manifest_name=DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+        filtered=False,  # do not filter timepoints (need all timepoints for the TFE workflow)
+    )
+    filename = f"{dataset_name}_diffae_seg_feats_merged.parquet"
+
+    merged_feats_df.to_parquet(out_dir / filename)
 
 
 def get_traj_and_flowfield(
@@ -614,6 +641,7 @@ def get_preprocessed_manifests_and_km_bounds(
     num_pcs: int = NUM_PCS_TO_ANALYZE,
     drop_rows_without_diffae_feats: bool = True,
     filtered: bool = False,
+    delay=False,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list]:
     """
     Load and process the DiffAE and live segmentation feature manifests for a given dataset.
@@ -643,6 +671,8 @@ def get_preprocessed_manifests_and_km_bounds(
         Whether to drop rows in the merged DataFrame that do not have DiffAE features.
     filtered
         Whether to filter the merged DataFrame to include only rows marked as "is_included".
+    delay
+        Whether to use lazy loading (loads a dask dataframe instead of a pandas dataframe).
 
     Returns
     -------
@@ -718,7 +748,7 @@ def get_preprocessed_manifests_and_km_bounds(
 
     # get bounds for plotting and flow field estimation
     # based on this dataset only
-    bounds = get_3d_bounds_from_data([dataset_name], grid_diffae_manifest, pca)
+    bounds = get_bounds_from_data([dataset_name], grid_diffae_manifest, pca)
 
     # lastly, add a normalized version of the "time_hours" column
     merged_feats_df = add_normalized_time(merged_feats_df)

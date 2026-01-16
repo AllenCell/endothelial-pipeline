@@ -681,16 +681,8 @@ def add_crop_index(
     if crop_pattern == "tracked" and "track_id" in df.columns:
         required_columns = [ColumnName.POSITION, "track_id"]
         check_required_columns_in_dataframe(df, required_columns)
-        track_id = df["track_id"].unique().tolist()
-        position = df[ColumnName.POSITION].unique().tolist()
-        tup_list = [(track, pos) for track in track_id for pos in position]
-
-        def _pos_to_index_tracked(j: float, position: str) -> int:
-            return tup_list.index((j, position))
-
-        df[ColumnName.CROP_INDEX] = df.apply(
-            lambda x: _pos_to_index_tracked(x["track_id"], x[ColumnName.POSITION]),
-            axis=1,
+        df[ColumnName.CROP_INDEX] = (
+            df.groupby([ColumnName.POSITION, "track_id"], as_index=False).ngroup().astype(int)
         )
 
     elif crop_pattern == "grid":
