@@ -160,7 +160,7 @@ def fms_upload_make_diffae_and_seg_feats_manifest(
     # Get the DiffAE model annotations
     df = dd.read_parquet(path_to_file)
     model_manifest_name = sequence_to_scalar(df["model_manifest_name"].compute().dropna())
-    run_name = sequence_to_scalar(df["model_run_name"].compute().dropna())
+    run_name = sequence_to_scalar(df["run_name"].compute().dropna())
     model_manifest = load_model_manifest(model_manifest_name)
     # Prepare the annotations for FMS upload
     annotations = build_fms_annotations(

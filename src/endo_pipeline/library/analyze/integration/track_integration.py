@@ -28,7 +28,6 @@ from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
     get_feature_dataframe_manifest_name,
     get_model_location_for_run,
-    get_most_recent_run_name,
     load_dataframe_manifest,
     load_model_manifest,
 )
@@ -45,6 +44,7 @@ from endo_pipeline.settings.flow_field_3d import (
     TRAJECTORY_TIME_SPAN,
 )
 from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
@@ -634,13 +634,9 @@ def make_angular_deviation_test(out_dir: Path) -> None:
 
 def get_preprocessed_manifests_and_km_bounds(
     dataset_name: str,
-    model_manifest: ModelManifest,
-    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
     drop_rows_without_diffae_feats: bool = True,
-    filtered: bool = False,
     delay=False,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list]:
     """
@@ -682,26 +678,29 @@ def get_preprocessed_manifests_and_km_bounds(
     """
     logger.info(f"Loading and processing manifests for dataset: {dataset_name}")
 
-    run_name = get_most_recent_run_name(model_manifest) if run_name is None else run_name
+    # load the cell-centric merged DiffAE + segmentation feature table
+    merged_feats_manifest = load_dataframe_manifest(DEFAULT_DIFFAE_SEG_FEATURE_MANIFEST_NAME)
+    merged_feats_location = get_dataframe_location_for_dataset(merged_feats_manifest, dataset_name)
+    merged_feats_df = load_dataframe(merged_feats_location, delay=True)
+
+    # get the model information
+    model_manifest_name = sequence_to_scalar(
+        merged_feats_df["model_manifest_name"].compute().dropna()
+    )
+    run_name = sequence_to_scalar(merged_feats_df["run_name"].compute().dropna())
+    model_manifest = load_model_manifest(model_manifest_name)
+
+    # load the grid crop-based diffae features manifest
+    grid_diffae_feat_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
+    # fit the PCA
     model_location = get_model_location_for_run(model_manifest, run_name)
     model_config = get_config_dict_from_mlflow(model_location.mlflowid)
     num_latent_dims = get_latent_dim_from_config(model_config)
     diffae_feature_column_names = get_latent_feature_column_names(num_latent_dims)
     num_pcs = num_pcs if num_pcs is not None else min(NUM_PCS_TO_ANALYZE, num_latent_dims)
 
-    # load the tables
-    merged_feats_df = get_diffae_feats_liveseg_feats_merged_table(
-        dataset_name=dataset_name,
-        model_manifest=model_manifest,
-        run_name=run_name,
-        seg_feature_manifest_name=seg_feature_manifest_name,
-        filtered=filtered,  # do not filter on timepoints yet: we need all timepoints for TFE workflow
-    )
-
-    grid_diffae_feat_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
-    )
-    # fit the PCA
     pca = fit_pca(
         dataset_collection_name=collection_name_for_pca,
         dataframe_manifest_name=grid_diffae_feat_manifest_name,
