@@ -12,9 +12,10 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
     split_dataset_by_flow,
 )
-from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import (
-    _is_point_within_percentile,
-)
+
+# from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import (
+#     _is_point_within_percentile,
+# )
 from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     get_smallest_angle_difference,
@@ -51,20 +52,22 @@ SPLIT_THETA_DATASETS = [
     "20250716_20X",
 ] + load_dataset_collection_config("perturbation").datasets
 
-DATASET_COLLECTION_NAME = "diffae_model_training"
+DATASET_COLLECTION_NAME = "timelapse"
 
-KERNEL_BANDWIDTH = 0.2  # bandwidth for kernel density estimation in KM calculation
+KERNEL_BANDWIDTH = 0.175  # bandwidth for kernel density estimation in KM calculation
 
 INCLUDE_CELL_PILING = False
 INCLUDE_NOT_STEADY_STATE = False
 
 POLAR_COLUMN_NAMES = [ColumnName.POLAR_ANGLE, ColumnName.POLAR_RADIUS]
 
-BIN_WIDTH = 0.05
+BIN_WIDTH = 0.075
 
 TICK_STEP_NUM = [15, 5]
 
-FIG_SAVEDIR = get_output_path(__file__)
+BIN_LIMITS_THETA = (-np.pi, np.pi)
+BIN_LIMITS_RADIUS = (0, 2.75)
+
 # %%
 # get dataframe manifest for grid-based crop features
 model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
@@ -74,12 +77,14 @@ dataframe_manifest_name = get_feature_dataframe_manifest_name(
 dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
 # only need first two PCs
-pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=2)
+pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=3)
 # %%
 # loop over datasets in collection
 # plot summary plots
 # compute drift and diffusion coefficients in polar coordinates
 for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).datasets:
+    fig_savedir_summary = get_output_path(__file__, "summary_plots", dataset_name)
+    fig_savedir_km = get_output_path(__file__, "kramers_moyal", dataset_name)
     dataset_config = load_dataset_config(dataset_name)
 
     df = get_dataframe_for_dynamics_workflows(
@@ -99,13 +104,15 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
         dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
         fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$)"
 
-        bin_limits = [(-np.pi, np.pi), (0, 2.75)]
+        bin_limits = [BIN_LIMITS_THETA, BIN_LIMITS_RADIUS]
 
-        if dataset_name in SPLIT_THETA_DATASETS or shear_stress < 7.0:
+        is_low_shear_regime = shear_stress < 11.0 and shear_stress > 0.0
+
+        if dataset_name in SPLIT_THETA_DATASETS or is_low_shear_regime:
             df_[ColumnName.POLAR_ANGLE] = df_[ColumnName.POLAR_ANGLE].apply(
                 lambda x: x + 2 * np.pi if x < 0 else x
             )
-            bin_limits = [(0, 2 * np.pi), (0, 2.75)]
+            bin_limits = [(0, 2 * np.pi), BIN_LIMITS_RADIUS]
 
         bins, centers = get_bins(
             bin_widths=(BIN_WIDTH, BIN_WIDTH),
@@ -126,7 +133,9 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
             ax.set_xlabel("frame number")
             ax.set_ylabel(column_name)
             ax.set_title(fig_title)
-            save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name_flow}_{column_name}_average.png")
+            save_plot_to_path(
+                fig, fig_savedir_summary, f"{dataset_name_flow}_{column_name}_average.png"
+            )
 
             # plot histogram heatmap over time
             num_bins = len(bins[i]) - 1
@@ -154,7 +163,7 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
             ax.set_yticklabels(np.round(bins[i], 2)[:: TICK_STEP_NUM[i]])
             ax.set_title(fig_title)
             save_plot_to_path(
-                fig, FIG_SAVEDIR, f"{dataset_name_flow}_{column_name}_histogram_heatmap.png"
+                fig, fig_savedir_summary, f"{dataset_name_flow}_{column_name}_histogram_heatmap.png"
             )
 
         # compute Kramers-Moyal coefficients
@@ -221,23 +230,19 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
                 idx_ = idx if abs(drift[idx]) < abs(drift[idx + 1]) else idx + 1
 
                 fpt_candidate = centers[i][idx_]
-                if _is_point_within_percentile(
-                    fpt_candidate,
-                    df[column_name].values,
-                ):
-                    ax.plot(fpt_candidate, drift[idx_], "bo", markersize=5)
-                    ax.vlines(
-                        centers[i][idx_],
-                        ax.get_ylim()[0],
-                        ax.get_ylim()[1],
-                        colors="b",
-                        linestyles="dashed",
-                        alpha=0.5,
-                        label=f"${variable_name}^* =$ {np.round(fpt_candidate,2)}",
-                    )
+                ax.plot(fpt_candidate, drift[idx_], "bo", markersize=5)
+                ax.vlines(
+                    centers[i][idx_],
+                    ax.get_ylim()[0],
+                    ax.get_ylim()[1],
+                    colors="b",
+                    linestyles="dashed",
+                    alpha=0.5,
+                    label=f"${variable_name}^* =$ {np.round(fpt_candidate,2)}",
+                )
             ax.legend()
             ax.set_title(fig_title)
-            save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name_flow}_{column_name}_drift.png")
+            save_plot_to_path(fig, fig_savedir_km, f"{dataset_name_flow}_{column_name}_drift.png")
 
             fig, ax = plt.subplots()
             ax.plot(centers[i], diffusion, "k-")
@@ -245,5 +250,7 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
             ax.set_xlabel(f"${variable_name}$")
             ax.set_ylabel(f"MSD in ${variable_name}$")
             ax.set_title(dataset_name)
-            save_plot_to_path(fig, FIG_SAVEDIR, f"{dataset_name_flow}_{column_name}_diffusion.png")
+            save_plot_to_path(
+                fig, fig_savedir_km, f"{dataset_name_flow}_{column_name}_diffusion.png"
+            )
 # %%
