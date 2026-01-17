@@ -80,9 +80,9 @@ def main(
     timelapse_datasets = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
     smad1_datasets = get_datasets_in_collection("smad1")
     for task in analysis_queue:
-        if task.dataset_name in timelapse_datasets:
+        if task["dataset_name"] in timelapse_datasets:
             task["nuclei_seg_manifest_name"] = "nuclear_labelfree_seg"
-        elif task.dataset_name in smad1_datasets:
+        elif task["dataset_name"] in smad1_datasets:
             task["nuclei_seg_manifest_name"] = "nuclear_stain_seg"
         else:
             logger.warning(
