@@ -715,9 +715,11 @@ def get_preprocessed_manifests_and_km_bounds(
     # dataframe and the DiffAE features dataframe.
     # This way we avoid passing NaN values to the PCA but still return the
     # full dataframe with all timepoints which is required by the TFE workflow.
-    merged_feats_df_subset = merged_feats_df[
-        ["model_manifest_name"] + diffae_feature_column_names
-    ].dropna(axis="index", how="any", subset="model_manifest_name")
+    merged_feats_df_subset = (  # type: ignore
+        merged_feats_df[["model_manifest_name"] + diffae_feature_column_names]  # type: ignore
+        .compute()  # type: ignore
+        .dropna(axis="index", how="any", subset="model_manifest_name")  # type: ignore
+    )  # type: ignore
     tracked_diffae_feats_df = project_features_to_pcs(
         merged_feats_df_subset, pca, diffae_feature_column_names
     )
@@ -726,13 +728,11 @@ def get_preprocessed_manifests_and_km_bounds(
     )
     # tracked_diffae_feats_df retains the indexing of merged_feats_df, so we
     # can merge on the index safely
-    merged_feats_df = pd.merge(
-        left=merged_feats_df,
-        right=tracked_diffae_feats_df,
+    merged_feats_df = merged_feats_df.merge(
+        tracked_diffae_feats_df,
         how="left",
         left_index=True,
         right_index=True,
-        validate="one_to_one",
     )
 
     # read in the grid crop-based diffae features
@@ -754,5 +754,8 @@ def get_preprocessed_manifests_and_km_bounds(
 
     if drop_rows_without_diffae_feats:
         merged_feats_df = merged_feats_df[merged_feats_df["model_manifest_name"].notna()]
+
+    if delay is False:
+        merged_feats_df = merged_feats_df.compute()
 
     return merged_feats_df, diffae_grid_crops, bounds
