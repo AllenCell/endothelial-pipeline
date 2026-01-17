@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -55,7 +56,7 @@ logger = logging.getLogger(__name__)
 
 
 def add_normalized_time(
-    df_all_positions: pd.DataFrame,
+    df_all_positions: pd.DataFrame | dd.DataFrame,
     time_col: str = "time_hours",
 ) -> pd.DataFrame:
     """
@@ -75,30 +76,41 @@ def add_normalized_time(
         DataFrame with an additional column
         "normalized_time" containing the normalized time values between 0 and 1.
     """
-    for _, df_pos in df_all_positions.groupby("position_as_str"):
-        for _, df_track in df_pos.groupby("track_id"):
+    required_columns = ["position_as_str", "track_id", time_col]
+    if isinstance(df_all_positions, dd.DataFrame):
+        df_all_positions_subset = df_all_positions[required_columns].compute()
+    else:
+        df_all_positions_subset = df_all_positions[required_columns]
 
-            time_values = df_track[time_col].values.astype(np.float64)
-            sorted_inds = np.argsort(time_values)
-            time_values = time_values[sorted_inds]
-            df_track = df_track.iloc[sorted_inds]
+    # for _, df_track in df_all_positions_subset.groupby(["position_as_str", "track_id"]):
 
-            start_time = np.min(time_values)
-            end_time = np.max(time_values)
+    #     time_values = df_track[time_col].values.astype(np.float64)
+    #     sorted_inds = np.argsort(time_values)
+    #     time_values = time_values[sorted_inds]
+    #     df_track = df_track.iloc[sorted_inds]
 
-            normalized_time_values = np.divide(
-                time_values - start_time,
-                end_time - start_time,
-                out=np.zeros_like(time_values, dtype=np.float64),
-                where=(end_time - start_time) != 0,
-            )
+    #     start_time = np.min(time_values)
+    #     end_time = np.max(time_values)
 
-            normalized_time_values = np.clip(normalized_time_values, 0, 1)
+    #     normalized_time_values = np.divide(
+    #         time_values - start_time,
+    #         end_time - start_time,
+    #         out=np.zeros_like(time_values, dtype=np.float64),
+    #         where=(end_time - start_time) != 0,
+    #     )
 
-            df_all_positions.loc[
-                df_track.index,
-                "normalized_time",
-            ] = normalized_time_values
+    #     normalized_time_values = np.clip(normalized_time_values, 0, 1)
+
+    #     df_all_positions_subset.loc[
+    #         df_track.index,
+    #         "normalized_time",
+    #     ] = normalized_time_values
+
+    df_all_positions["normalized_time"] = df_all_positions_subset.groupby(
+        ["position_as_str", "track_id"]
+    )[time_col].transform(
+        lambda t: 0.0 if np.min(t) == np.max(t) else np.interp(t, (np.min(t), np.max(t)), (0, 1))
+    )
 
     return df_all_positions
 
@@ -681,7 +693,7 @@ def get_preprocessed_manifests_and_km_bounds(
     # load the cell-centric merged DiffAE + segmentation feature table
     merged_feats_manifest = load_dataframe_manifest(DEFAULT_DIFFAE_SEG_FEATURE_MANIFEST_NAME)
     merged_feats_location = get_dataframe_location_for_dataset(merged_feats_manifest, dataset_name)
-    merged_feats_df = load_dataframe(merged_feats_location, delay=True)
+    merged_feats_df = load_dataframe(merged_feats_location, delay=True).reset_index()
 
     # get the model information
     model_manifest_name = sequence_to_scalar(
@@ -756,6 +768,6 @@ def get_preprocessed_manifests_and_km_bounds(
         merged_feats_df = merged_feats_df[merged_feats_df["model_manifest_name"].notna()]
 
     if delay is False:
-        merged_feats_df = merged_feats_df.compute()
+        merged_feats_df = merged_feats_df.compute()  # type: ignore
 
     return merged_feats_df, diffae_grid_crops, bounds
