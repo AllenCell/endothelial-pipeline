@@ -303,13 +303,11 @@ def main(
                     # stability of the fixed point is the
                     # first word in the fpt_type string
                     # if verbose, print the point and its stability
-                    logger.debug(
-                        "[ %s ] at [ (%.2f, %.2f, %.2f) ]", fpt_type, fpt[0], fpt[1], fpt[2]
-                    )
+                    logger.debug("[ %s ] at [ %.2f ]", fpt_type, fpt[0])
                     # plot the fixed point on the drift plot
                     ax.plot(
+                        0,
                         fpt[0],
-                        fpt[1],
                         marker=STABILITY_MARKER_DICT[fpt_stability],
                         color=STABILITY_COLOR_DICT[fpt_stability],
                         markersize=8,

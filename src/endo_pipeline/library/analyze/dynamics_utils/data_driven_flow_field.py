@@ -46,7 +46,8 @@ def sample_from_density(
         Sampled points of shape (n_samples, D).
     """
     # make sure data is in shape (n, ndim)
-    data_ = np.atleast_2d(data)
+    data_ = data[:, np.newaxis] if len(data.shape) == 1 else data
+    logger.debug("Data shape for density estimation: [ %s ]", data_.shape)
 
     rng = np.random.default_rng(seed=random_seed)
     kde = gaussian_kde(data_.T)
