@@ -3,6 +3,7 @@ run_name: diffae_finetune
 task_name: train
 tags:
 - dev
+lat_dim: 512  # CHANGE
 model:
   _target_: endo_pipeline.library.model.DiffAEFinetune
   save_images_every_n_epochs: 10
@@ -25,7 +26,7 @@ model:
     in_channels: 1
     base_encoder:
       _target_: torchvision.models.convnext_tiny
-      num_classes: 8
+      num_classes: ${lat_dim} # CHANGE
   autoencoder:
     _target_: monai.networks.nets.diffusion_model_unet.DiffusionModelUNet
     spatial_dims: 2
@@ -35,15 +36,17 @@ model:
     - 32
     - 64
     - 128
+    - 256 # CHANGE
     attention_levels:
     - false
     - true
     - true
+    - true # CHANGE, even the lines below are changed....chnage is just changed
     num_res_blocks: 1
-    num_head_channels: 16
+    num_head_channels: 64
     with_conditioning: true
-    cross_attention_dim: 1
-    use_combined_linear: false
+    cross_attention_dim: ${lat_dim}
+    use_combined_linear: true
   noise_scheduler:
     _target_: monai.networks.schedulers.ddim.DDIMScheduler
     num_train_timesteps: 1000
@@ -58,7 +61,7 @@ model:
     _partial_: true
     _target_: torch.optim.lr_scheduler.OneCycleLR
     max_lr: 0.0
-    epochs: 500
+    epochs: ${trainer.max_epochs}
     steps_per_epoch: 1
     pct_start: 0.01
   spatial_inferer:
@@ -229,7 +232,7 @@ data:
       num_replace_workers: 24
 logger:
   mlflow:
-    _target_: cyto_dl.loggers.MLFlowLogger
+    _target_: endo_pipeline.library.model.diffae.mlflow.MLFlowLogger
     tracking_uri: https://production.int.allencell.org/mlflow/
     experiment_name: ${experiment_name}
     run_name: ${run_name}
