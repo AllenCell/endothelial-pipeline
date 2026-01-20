@@ -649,7 +649,6 @@ def get_preprocessed_manifests_and_km_bounds(
     collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
     drop_rows_without_diffae_feats: bool = True,
-    delay=False,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list]:
     """
     Load and process the DiffAE and live segmentation feature manifests for a given dataset.
@@ -693,13 +692,11 @@ def get_preprocessed_manifests_and_km_bounds(
     # load the cell-centric merged DiffAE + segmentation feature table
     merged_feats_manifest = load_dataframe_manifest(DEFAULT_DIFFAE_SEG_FEATURE_MANIFEST_NAME)
     merged_feats_location = get_dataframe_location_for_dataset(merged_feats_manifest, dataset_name)
-    merged_feats_df = load_dataframe(merged_feats_location, delay=True).reset_index()
+    merged_feats_df = load_dataframe(merged_feats_location, delay=False).reset_index()
 
     # get the model information
-    model_manifest_name = sequence_to_scalar(
-        merged_feats_df["model_manifest_name"].compute().dropna()
-    )
-    run_name = sequence_to_scalar(merged_feats_df["run_name"].compute().dropna())
+    model_manifest_name = sequence_to_scalar(merged_feats_df["model_manifest_name"].dropna())
+    run_name = sequence_to_scalar(merged_feats_df["run_name"].dropna())
     model_manifest = load_model_manifest(model_manifest_name)
 
     # load the grid crop-based diffae features manifest
@@ -727,11 +724,9 @@ def get_preprocessed_manifests_and_km_bounds(
     # dataframe and the DiffAE features dataframe.
     # This way we avoid passing NaN values to the PCA but still return the
     # full dataframe with all timepoints which is required by the TFE workflow.
-    merged_feats_df_subset = (  # type: ignore
-        merged_feats_df[["model_manifest_name"] + diffae_feature_column_names]  # type: ignore
-        .compute()  # type: ignore
-        .dropna(axis="index", how="any", subset="model_manifest_name")  # type: ignore
-    )  # type: ignore
+    merged_feats_df_subset = merged_feats_df[
+        ["model_manifest_name"] + diffae_feature_column_names
+    ].dropna(axis="index", how="any", subset="model_manifest_name")
     tracked_diffae_feats_df = project_features_to_pcs(
         merged_feats_df_subset, pca, diffae_feature_column_names
     )
@@ -765,9 +760,22 @@ def get_preprocessed_manifests_and_km_bounds(
     merged_feats_df = add_normalized_time(merged_feats_df)
 
     if drop_rows_without_diffae_feats:
-        merged_feats_df = merged_feats_df[merged_feats_df["model_manifest_name"].notna()]
-
-    if delay is False:
-        merged_feats_df = merged_feats_df.compute()  # type: ignore
+        merged_feats_df = merged_feats_df.query("model_manifest_name.notna()")
 
     return merged_feats_df, diffae_grid_crops, bounds
+
+
+def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -> None:
+    """Loads the cell-centric DiffAE + segmentation features merged table, computes the PCs, and
+    then saves the updated merged table with the PCs as a parquet file.
+    """
+
+    out_dir = get_output_path(__file__)
+
+    merged_feats_df = get_preprocessed_manifests_and_km_bounds(
+        dataset_name=dataset_name, drop_rows_without_diffae_feats=False
+    )[0]
+
+    filename = f"{dataset_name}_diffae_seg_feats_merged.parquet"
+
+    merged_feats_df.to_parquet(out_dir / filename)
