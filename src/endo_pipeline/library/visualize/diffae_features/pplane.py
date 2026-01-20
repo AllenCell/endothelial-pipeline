@@ -356,6 +356,87 @@ def plot_flow(ax: plt.Axes, my_flow: Callable, x: list[np.ndarray], num_grid: in
     return ax
 
 
+def build_phase_portrait_legend(
+    fpt_stabilities: list[str],
+    inits: list[tuple] | None = None,
+    nullclines: bool = True,
+) -> list[Line2D]:
+    """
+    Build custom legend for phase portrait plot.
+
+    Parameters
+    ----------
+    fpt_stabilities
+        List of fixed point stabilities present in the plot.
+    inits
+        Optional, list of initial conditions used for trajectories.
+    nullclines
+        If True, include nullclines in the legend.
+
+    Returns
+    -------
+    :
+        List of matplotlib Line2D objects for the legend.
+    """
+    my_handles = []
+    if "stable" in fpt_stabilities:
+        my_handles.append(
+            Line2D(
+                [],
+                [],
+                label="stable",
+                marker="o",
+                markerfacecolor="g",
+                markeredgecolor="g",
+                linestyle="",
+            )
+        )
+    if "unstable" in fpt_stabilities:
+        my_handles.append(
+            Line2D(
+                [],
+                [],
+                label="unstable",
+                marker="s",
+                markerfacecolor="r",
+                markeredgecolor="r",
+                linestyle="",
+            )
+        )
+    if "saddle" in fpt_stabilities:
+        my_handles.append(
+            Line2D(
+                [],
+                [],
+                label="saddle",
+                marker="P",
+                markerfacecolor="tab:purple",
+                markeredgecolor="tab:purple",
+                linestyle="",
+            )
+        )
+    if "indeterminate" in fpt_stabilities:
+        my_handles.append(
+            Line2D(
+                [],
+                [],
+                label="indet.",
+                marker="p",
+                markerfacecolor="darkgoldenrod",
+                markeredgecolor="darkgoldenrod",
+                linestyle="",
+            )
+        )
+
+    if nullclines:
+        my_handles.append(Line2D([], [], label="nullclines", color="black", linestyle="dashed"))
+
+    if inits is not None:
+        my_handles.append(Line2D([], [], label="trajectories", color="blue", linestyle="-"))
+
+    return my_handles
+
+
 def phase_portrait(
     f1: Callable,
     f2: Callable,
@@ -472,62 +553,11 @@ def phase_portrait(
     # as reported by classify_fps
     # this might be something
     # to write as a separate function
-    my_handles = []
-    if "stable" in fpt_stabilities:
-        my_handles.append(
-            Line2D(
-                [],
-                [],
-                label="stable",
-                marker="o",
-                markerfacecolor="g",
-                markeredgecolor="g",
-                linestyle="",
-            )
-        )
-    if "unstable" in fpt_stabilities:
-        my_handles.append(
-            Line2D(
-                [],
-                [],
-                label="unstable",
-                marker="s",
-                markerfacecolor="r",
-                markeredgecolor="r",
-                linestyle="",
-            )
-        )
-    if "saddle" in fpt_stabilities:
-        my_handles.append(
-            Line2D(
-                [],
-                [],
-                label="saddle",
-                marker="P",
-                markerfacecolor="tab:purple",
-                markeredgecolor="tab:purple",
-                linestyle="",
-            )
-        )
-    if "indeterminate" in fpt_stabilities:
-        my_handles.append(
-            Line2D(
-                [],
-                [],
-                label="indet.",
-                marker="p",
-                markerfacecolor="darkgoldenrod",
-                markeredgecolor="darkgoldenrod",
-                linestyle="",
-            )
-        )
-
-    if nullclines:
-        my_handles.append(Line2D([], [], label="nullclines", color="black", linestyle="dashed"))
-
-    if inits is not None:
-        my_handles.append(Line2D([], [], label="trajectories", color="blue", linestyle="-"))
-
+    my_handles = build_phase_portrait_legend(
+        fpt_stabilities,
+        inits=inits,
+        nullclines=nullclines,
+    )
     if len(my_handles) > 0:
         ax.legend(handles=my_handles, bbox_to_anchor=(1.02, 1.01), loc="upper left")
 

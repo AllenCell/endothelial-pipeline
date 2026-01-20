@@ -1,8 +1,10 @@
 # %%
 import logging
+import re
 
 import matplotlib.pyplot as plt
 import numpy as np
+from numdifftools import Jacobian
 
 from endo_pipeline.cli.logs import setup_logging, silence_external_loggers
 from endo_pipeline.configs import load_dataset_collection_config, load_dataset_config
@@ -12,6 +14,11 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
     split_dataset_by_flow,
 )
+from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import (
+    compute_extrapolated_vector_field,
+    get_callable_vector_field,
+    sample_from_density,
+)
 from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     get_smallest_angle_difference,
@@ -20,6 +27,13 @@ from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
     plot_1d_diffusion,
     plot_1d_drift,
+)
+from endo_pipeline.library.visualize.diffae_features.pplane import (
+    STABILITY_COLOR_DICT,
+    STABILITY_MARKER_DICT,
+    build_phase_portrait_legend,
+    find_fpt_type,
+    get_fps,
 )
 from endo_pipeline.manifests import (
     get_feature_dataframe_manifest_name,
@@ -39,6 +53,8 @@ DEBUG = False
 if VERBOSE:
     logging_level = logging.DEBUG if DEBUG else logging.INFO
     setup_logging(level=logging_level)
+
+logger = logging.getLogger(__name__)
 
 silence_external_loggers()
 
@@ -67,6 +83,8 @@ TICK_STEP_NUM = [15, 5]
 
 BIN_LIMITS_THETA = (-np.pi, np.pi)
 BIN_LIMITS_RADIUS = (0, 2.75)
+
+NUM_INITS = 250  # number of initial points to sample for root solver
 
 # %%
 # get dataframe manifest for grid-based crop features
@@ -213,36 +231,71 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
                 kernel_params={"kernel": "gaussian", "bandwidth": KERNEL_BANDWIDTH},
             )
 
+            data_values = df_[column_name].values
+
             variable_name = "\\theta" if column_name == ColumnName.POLAR_ANGLE else "r"
             fig, ax = plot_1d_drift(
                 centers[i],
                 drift,
                 variable_name,
-                data_for_density=df_[column_name].values,
+                data_for_density=data_values,
                 density_kernel_bandwidth=KERNEL_BANDWIDTH,
             )
 
-            # find zero crossing -- look at sign changes
-            drift_signed = np.sign(drift)
-            sign_changes = np.where(np.diff(drift_signed))[0]
-            for idx in sign_changes:
-                # use the point closer to zero drift (before or after zero-crossing)
-                point_1 = centers[i][idx]
-                point_2 = centers[i][idx + 1]
-                idx_ = idx if abs(drift[idx]) < abs(drift[idx + 1]) else idx + 1
+            extrapolated_flow_field_dict = compute_extrapolated_vector_field(
+                drift, centers[i], method="linear", for_vtk_files=False
+            )
+            # get callable drift function and its Jacobian
+            drift_function = get_callable_vector_field(
+                extrapolated_flow_field_dict, for_solve_ivp=False, method="linear"
+            )
+            drift_function_jacobian = Jacobian(drift_function)
 
-                fpt_candidate = centers[i][idx_]
-                ax.plot(fpt_candidate, drift[idx_], "bo", markersize=5)
-                ax.vlines(
-                    centers[i][idx_],
-                    ax.get_ylim()[0],
-                    ax.get_ylim()[1],
-                    colors="b",
-                    linestyles="dashed",
-                    alpha=0.5,
-                    label=f"${variable_name}^* =$ {np.round(fpt_candidate,2)}",
+            sampled_inits_for_root_solver = sample_from_density(data_values, NUM_INITS)
+            ax.scatter(
+                np.zeros_like(sampled_inits_for_root_solver),
+                sampled_inits_for_root_solver,
+                s=1,
+                c="magenta",
+                label="Sampled inits. for root solver",
+            )
+
+            # pass into helper function to get fixed points
+            fpts = get_fps(drift_function, sampled_inits_for_root_solver)
+            stable_fpts = []
+            fpt_stabilities = []
+            for fpt in fpts:
+                # get stability and type of the fixed point
+                fpt_type = find_fpt_type(drift_function_jacobian(fpt))
+                fpt_stability = fpt_type.split(" ")[0].lower()
+                fpt_stabilities.append(fpt_stability)
+                # stability of the fixed point is the
+                # first word in the fpt_type string
+                # if verbose, print the point and its stability
+                logger.debug("[ %s ] at [ (%.2f, %.2f, %.2f) ]", fpt_type, fpt[0], fpt[1], fpt[2])
+                # plot the fixed point on the drift plot
+                ax.plot(
+                    fpt[0],
+                    fpt[1],
+                    marker=STABILITY_MARKER_DICT[fpt_stability],
+                    color=STABILITY_COLOR_DICT[fpt_stability],
+                    markersize=8,
                 )
+                # if "Stable" or "stable" in the fpt_type, save the point
+                if re.search(r"stable", fpt_type, re.IGNORECASE) and not re.search(
+                    r"unstable", fpt_type, re.IGNORECASE
+                ):
+                    stable_fpts.append(fpt)
 
+            # add legend for fixed point stabilities
+            my_handles = build_phase_portrait_legend(
+                fpt_stabilities,
+                inits=None,
+                nullclines=False,
+            )
+            handles, _ = ax.get_legend_handles_labels()
+            handles_new = handles + my_handles
+            ax.legend(handles=handles_new, bbox_to_anchor=(1.02, 1.01), loc="upper left")
             ax.set_title(fig_title)
             save_plot_to_path(fig, fig_savedir_km, f"{dataset_name_flow}_{column_name}_drift")
 
@@ -253,6 +306,7 @@ for dataset_name in load_dataset_collection_config(DATASET_COLLECTION_NAME).data
                 data_for_density=df_[column_name].values,
                 density_kernel_bandwidth=KERNEL_BANDWIDTH,
             )
+            ax.legend()
             ax.set_title(dataset_name)
             save_plot_to_path(fig, fig_savedir_km, f"{dataset_name_flow}_{column_name}_diffusion")
 # %%
