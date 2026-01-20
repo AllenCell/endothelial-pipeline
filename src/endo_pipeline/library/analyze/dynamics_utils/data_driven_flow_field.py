@@ -34,7 +34,7 @@ def sample_from_density(
     Parameters
     ----------
     data
-        Input data of shape (N, D).
+        Input data of shape (n, ndim).
     n_samples
         Number of samples to draw.
     random_seed
@@ -45,15 +45,18 @@ def sample_from_density(
     :
         Sampled points of shape (n_samples, D).
     """
+    # make sure data is in shape (n, ndim)
+    data_ = np.atleast_2d(data)
+
     rng = np.random.default_rng(seed=random_seed)
-    kde = gaussian_kde(data.T)
-    n_dims = data.shape[1]
+    kde = gaussian_kde(data_.T)
+    ndim = data_.shape[1]
     samples: list[np.ndarray] = []
     # Estimate bounds for rejection sampling
-    mins = data.min(axis=0)
-    maxs = data.max(axis=0)
+    mins = data_.min(axis=0)
+    maxs = data_.max(axis=0)
     # Estimate maximum density for rejection
-    test_points = rng.uniform(mins, maxs, size=(10000, n_dims))
+    test_points = rng.uniform(mins, maxs, size=(10000, ndim))
     max_density = kde(test_points.T).max()
     while len(samples) < n_samples:
         candidate = rng.uniform(mins, maxs)
@@ -371,17 +374,21 @@ def compute_extrapolated_vector_field(
     for_vtk_files
         Whether the output is intended for saving as .vtk files.
     """
-
     filled_kmcs = kmcs.copy()
-    n_components = filled_kmcs.shape[-1]
+
+    # make sure that inputs are in expected shape: (num_x1, ..., num_x(ndim), ndim)
+    if len(filled_kmcs.shape) == 1:
+        filled_kmcs = kmcs[:, np.newaxis]
+
+    ndim = filled_kmcs.shape[-1]
     logger.debug(
         "Starting extrapolation of [ %s ] dimensional vector field with method [ %s ].",
-        n_components,
+        ndim,
         method,
     )
     coords_mesh = np.meshgrid(*grid_coordinates, indexing="ij")
 
-    for i in range(n_components):
+    for i in range(ndim):
         component = filled_kmcs[..., i]
         nan_mask = np.isnan(component)
         if np.any(nan_mask):
@@ -406,13 +413,11 @@ def compute_extrapolated_vector_field(
                     bounds_error=False,
                     fill_value=None,  # extrapolate outside convex hull
                 )
-                nan_points = np.array(
-                    [coords_mesh[dim][nan_mask] for dim in range(len(grid_coordinates))]
-                ).T
+                nan_points = np.array([coords_mesh[dim][nan_mask] for dim in range(ndim)]).T
                 component[nan_mask] = interpolator(nan_points)
             filled_kmcs[..., i] = component
 
-    vectors = tuple(filled_kmcs[..., i] for i in range(n_components))
+    vectors = tuple(filled_kmcs[..., i] for i in range(ndim))
     return {"vectors": vectors, "grid": coords_mesh}
 
 

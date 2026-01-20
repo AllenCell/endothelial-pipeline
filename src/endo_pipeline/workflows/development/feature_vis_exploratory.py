@@ -10,6 +10,29 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
 ) -> None:
+    """
+    Analyze and visualize DiffAE feature dynamics in polar coordinates.
+
+    This workflow computes and visualizes the drift and diffusion coefficients
+    in polar coordinates (angle and radius) for the grid-based crop features.
+    The polar coordinates are computed from the first two principal components (PCs)
+    of the DiffAE feature space as:
+        - Angle: arctan2(PC2, PC1)
+        - Radius: sqrt(PC1^2 + PC2^2)
+
+    For each dataset in the specified collection, the workflow performs the following steps:
+    1. Loads the grid-based crop feature dataframe and fits PCA to obtain the first two PCs
+        and the corresponding polar coordinates.
+    2. Splits the dataframe by flow conditions based on shear stress.
+    3. For each flow condition:
+        a. Plots the mean polar angle and radius over time for each position.
+        b. Plots histogram heatmaps of polar angle and radius over time.
+        c. Computes the Kramers-Moyal coefficients (drift and diffusion) for polar angle
+            and radius using kernel density estimation (computes separately for each, i.e.,
+            1D analysis in each of radius and angle).
+        d. Plots the drift and diffusion coefficients along with fixed points identified
+            from the drift function.
+    """
     import logging
     import re
 
@@ -76,7 +99,7 @@ def main(
 
     BIN_WIDTH = 0.075
 
-    TICK_STEP_NUM = [15, 5]
+    TICK_STEP_NUM = [15, 10]
 
     BIN_LIMITS_THETA = (-np.pi, np.pi)
     BIN_LIMITS_RADIUS = (0, 2.75)
@@ -196,7 +219,7 @@ def main(
             for i, column_name in enumerate(POLAR_COLUMN_NAMES):
                 traj_list = []
                 d_traj_list = []
-                for crop_index, df_crop in df_.groupby(ColumnName.CROP_INDEX):
+                for _, df_crop in df_.groupby(ColumnName.CROP_INDEX):
                     df_crop_ = df_crop.sort_values(by=ColumnName.TIMEPOINT)
 
                     # add column giving difference in timepoint between consecutive dataframe rows
@@ -251,7 +274,7 @@ def main(
                 )
 
                 extrapolated_flow_field_dict = compute_extrapolated_vector_field(
-                    drift, centers[i], method="linear", for_vtk_files=False
+                    drift, [centers[i]], method="linear", for_vtk_files=False
                 )
                 # get callable drift function and its Jacobian
                 drift_function = get_callable_vector_field(
