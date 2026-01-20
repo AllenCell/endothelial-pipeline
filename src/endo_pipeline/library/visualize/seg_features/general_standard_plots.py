@@ -492,10 +492,10 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         },
         "polar_angle": {
             "column_name": ColumnName.POLAR_ANGLE,
-            "label": r"$\theta$ (deg)",
-            "lims": (-180, 180),
-            "bin_width": 5,
-            "ticks": range(-180, 181, 90),
+            "label": r"$\theta$",
+            "lims": None,
+            "bin_width": None,
+            "ticks": None,
             "discrete_ticks": False,
         },
     }
