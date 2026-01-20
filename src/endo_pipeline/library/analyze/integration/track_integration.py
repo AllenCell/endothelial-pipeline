@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 from typing import Any
 
-import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -56,7 +55,7 @@ logger = logging.getLogger(__name__)
 
 
 def add_normalized_time(
-    df_all_positions: pd.DataFrame | dd.DataFrame,
+    df_all_positions: pd.DataFrame,
     time_col: str = "time_hours",
 ) -> pd.DataFrame:
     """
@@ -76,41 +75,30 @@ def add_normalized_time(
         DataFrame with an additional column
         "normalized_time" containing the normalized time values between 0 and 1.
     """
-    required_columns = ["position_as_str", "track_id", time_col]
-    if isinstance(df_all_positions, dd.DataFrame):
-        df_all_positions_subset = df_all_positions[required_columns].compute()
-    else:
-        df_all_positions_subset = df_all_positions[required_columns]
 
-    # for _, df_track in df_all_positions_subset.groupby(["position_as_str", "track_id"]):
+    for _, df_track in df_all_positions.groupby(["position_as_str", "track_id"]):
 
-    #     time_values = df_track[time_col].values.astype(np.float64)
-    #     sorted_inds = np.argsort(time_values)
-    #     time_values = time_values[sorted_inds]
-    #     df_track = df_track.iloc[sorted_inds]
+        time_values = df_track[time_col].values.astype(np.float64)
+        sorted_inds = np.argsort(time_values)
+        time_values = time_values[sorted_inds]
+        df_track = df_track.iloc[sorted_inds]
 
-    #     start_time = np.min(time_values)
-    #     end_time = np.max(time_values)
+        start_time = np.min(time_values)
+        end_time = np.max(time_values)
 
-    #     normalized_time_values = np.divide(
-    #         time_values - start_time,
-    #         end_time - start_time,
-    #         out=np.zeros_like(time_values, dtype=np.float64),
-    #         where=(end_time - start_time) != 0,
-    #     )
+        normalized_time_values = np.divide(
+            time_values - start_time,
+            end_time - start_time,
+            out=np.zeros_like(time_values, dtype=np.float64),
+            where=(end_time - start_time) != 0,
+        )
 
-    #     normalized_time_values = np.clip(normalized_time_values, 0, 1)
+        normalized_time_values = np.clip(normalized_time_values, 0, 1)
 
-    #     df_all_positions_subset.loc[
-    #         df_track.index,
-    #         "normalized_time",
-    #     ] = normalized_time_values
-
-    df_all_positions["normalized_time"] = df_all_positions_subset.groupby(
-        ["position_as_str", "track_id"]
-    )[time_col].transform(
-        lambda t: 0.0 if np.min(t) == np.max(t) else np.interp(t, (np.min(t), np.max(t)), (0, 1))
-    )
+        df_all_positions.loc[
+            df_track.index,
+            "normalized_time",
+        ] = normalized_time_values
 
     return df_all_positions
 
@@ -661,13 +649,6 @@ def get_preprocessed_manifests_and_km_bounds(
     ----------
     dataset_name
         The name of the dataset to load and process.
-    model_manifest
-        The model manifest to use for loading the DiffAE features.
-    run_name
-        The run name to use for loading the DiffAE features. If None, the most recent
-        run will be used.
-    seg_feature_manifest_name
-        The name of the manifest containing segmentation features.
     collection_name_for_pca
         The name of the dataset collection to use for fitting the PCA. Defaults to
         DEFAULT_PCA_DATASET_COLLECTION_NAME.
@@ -676,10 +657,6 @@ def get_preprocessed_manifests_and_km_bounds(
         NUM_PCS_TO_ANALYZE and the number of latent dimensions will be used.
     drop_rows_without_diffae_feats
         Whether to drop rows in the merged DataFrame that do not have DiffAE features.
-    filtered
-        Whether to filter the merged DataFrame to include only rows marked as "is_included".
-    delay
-        Whether to use lazy loading (loads a dask dataframe instead of a pandas dataframe).
 
     Returns
     -------
@@ -735,11 +712,13 @@ def get_preprocessed_manifests_and_km_bounds(
     )
     # tracked_diffae_feats_df retains the indexing of merged_feats_df, so we
     # can merge on the index safely
-    merged_feats_df = merged_feats_df.merge(
-        tracked_diffae_feats_df,
+    merged_feats_df = pd.merge(
+        left=merged_feats_df,
+        right=tracked_diffae_feats_df,
         how="left",
         left_index=True,
         right_index=True,
+        validate="one_to_one",
     )
 
     # read in the grid crop-based diffae features

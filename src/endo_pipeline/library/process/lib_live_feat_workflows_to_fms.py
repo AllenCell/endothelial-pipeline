@@ -14,6 +14,7 @@ from endo_pipeline.manifests import (
 )
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 )
 
@@ -175,6 +176,46 @@ def fms_upload_make_diffae_and_seg_feats_manifest(
 
     # Store FMS ID in dataframe manifest
     manifest_name = DEFAULT_DIFFAE_SEG_FEATURE_MANIFEST_NAME
+    workflow_name = "live_feat_workflows_to_fms"
+    manifest = create_dataframe_manifest(manifest_name, workflow_name)
+    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
+    save_dataframe_manifest(manifest)
+
+    logger.info(
+        f"Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
+    )
+
+    return file_id
+
+
+def fms_upload_make_pc_diffae_and_seg_feats_manifest(
+    dataset_name: str,
+    path_to_file: Path,
+) -> str:
+
+    # Define the metadata associated with the file being uploaded to FMS
+    # The segmentations make use of label-free nuclei predictions
+    # to improve segmentation quality, so we include model config
+    # info along with the FMS upload here.
+    dataset_config = load_dataset_config(dataset_name)
+    # Get the DiffAE model annotations
+    df = dd.read_parquet(path_to_file)
+    model_manifest_name = sequence_to_scalar(df["model_manifest_name"].compute().dropna())
+    run_name = sequence_to_scalar(df["run_name"].compute().dropna())
+    model_manifest = load_model_manifest(model_manifest_name)
+    # Prepare the annotations for FMS upload
+    annotations = build_fms_annotations(
+        dataset_config,
+        model_manifest=model_manifest,
+        run_name=run_name,
+    )
+    # Upload the file to FMS
+    file_id = upload_file_to_fms(
+        file_path=path_to_file, annotations=annotations, file_type="parquet"
+    )
+
+    # Store FMS ID in dataframe manifest
+    manifest_name = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
     workflow_name = "live_feat_workflows_to_fms"
     manifest = create_dataframe_manifest(manifest_name, workflow_name)
     manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
