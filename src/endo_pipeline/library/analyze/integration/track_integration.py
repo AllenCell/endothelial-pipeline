@@ -776,6 +776,6 @@ def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -
         dataset_name=dataset_name, drop_rows_without_diffae_feats=False
     )[0]
 
-    filename = f"{dataset_name}_diffae_seg_feats_merged.parquet"
+    filename = f"{dataset_name}_pc_diffae_seg_feats_merged.parquet"
 
     merged_feats_df.to_parquet(out_dir / filename)

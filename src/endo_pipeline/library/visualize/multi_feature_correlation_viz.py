@@ -453,7 +453,6 @@ def get_df_for_feature_correlation_viz(
         merged_feats_df = get_preprocessed_manifests_and_km_bounds(
             dataset_name=dataset_name,
             num_pcs=num_pcs,
-            delay=True,
         )[0]
 
         # the original orientation feature is in radians

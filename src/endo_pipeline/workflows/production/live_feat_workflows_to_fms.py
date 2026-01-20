@@ -17,6 +17,7 @@ def main(
         "nuclei_labelfree",
         "merged_live_data_manifests",
         "merged_diffae_and_seg_features",
+        "merged_pc_diffae_and_seg_features",
     ],
     datasets: Datasets,
 ) -> None:
@@ -37,6 +38,7 @@ def main(
         fms_upload_cdh5_classic_seg_tracking,
         fms_upload_cdh5_get_measured_features,
         fms_upload_make_diffae_and_seg_feats_manifest,
+        fms_upload_make_pc_diffae_and_seg_feats_manifest,
         fms_upload_make_seg_feats_manifest,
         fms_upload_nuc_get_measured_features,
     )
@@ -60,6 +62,7 @@ def main(
         "nuclei_labelfree": fms_upload_nuc_get_measured_features,
         "merged_live_data_manifests": fms_upload_make_seg_feats_manifest,
         "merged_diffae_and_seg_features": fms_upload_make_diffae_and_seg_feats_manifest,
+        "merged_pc_diffae_and_seg_features": fms_upload_make_pc_diffae_and_seg_feats_manifest,
     }
     print(f"Uploading {datasets}")
 
@@ -86,6 +89,10 @@ def main(
         "merged_diffae_and_seg_features": {
             "subdir": "diffae_and_seg_features",
             "suffix": "_diffae_seg_feats_merged.parquet",
+        },
+        "merged_pc_diffae_and_seg_features": {
+            "subdir": "pc_diffae_and_seg_features",
+            "suffix": "_pc_diffae_seg_feats_merged.parquet",
         },
     }
 
