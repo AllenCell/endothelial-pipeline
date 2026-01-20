@@ -1,15 +1,15 @@
-name: 20251125_20X_live
-date: '20251125'
-original_path: //allen/programs/allencell/data/proj0/311/06e/d9d/431/73e/f88/54f/ce5/289/117/b7/20251125_GE00009675_PreFix_SLDY/20251125_GE00009675_PreFix_SLDY.sldy
+name: 20251126_pairedPostFixation
+date: '20251126'
+original_path: //allen/programs/allencell/data/proj0/cf9/1cb/382/032/3a4/74a/54e/639/ead/0d0/1d/20251126_GE00009676_20X_PostFix_SLDY/20251126_GE00009676_20X_PostFix_SLDY.sldy
 zarr_positions: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-fmsid: b7117289ce554ff8873e431d9d06e311
-barcode: GE00009675
+fmsid: 1d0d0ead63954e74a3a40323821cbcf9
+barcode: GE00009676
 cell_lines: [AICS-126]
-live_or_fixed_sample: live
+live_or_fixed_sample: fixed
 is_timelapse: false
 microscope: 3i
 objective: 20X
-shear_stress_regime: min
+shear_stress_regime: max
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
@@ -28,9 +28,9 @@ zarr_channel_indices:
   channel_640: null
 channel_names: [EGFP, BF]
 flow_conditions:
-- start: -298
+- start: -282
   stop: 0
-  shear_stress: 5.7
+  shear_stress: 21.56
 include_scenes: null
 notes: Collect high SS 24h live/fixed paired data after 24h high SS to match live
   imaging to fixed
@@ -70,13 +70,13 @@ timepoint_annotations:
     9: []
 position_annotations: null
 center_z_plane:
-  0: 12
-  1: 11
+  0: 11
+  1: 10
   2: 10
   3: 10
   4: 11
-  5: 11
+  5: 9
   6: 10
-  7: 11
+  7: 12
   8: 11
   9: 10

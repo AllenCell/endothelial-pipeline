@@ -3,4 +3,8 @@ workflow: register_paired_images
 parameters: {}
 locations:
   20250214_pairedFixation:
-    path: //allen/aics/endothelial/morphological_features/IF_integration/live_fixed_resolution_1/20250214_070e32c7355a40a288df2e68ae19adbc_P{{position}}_combined_paired_bf.ome.tiff
+    path: //allen/aics/endothelial/morphological_features/IF_integration/20260116/live_fixed/20250214_070e32c7355a40a288df2e68ae19adbc_P{{position}}_combined_paired_bf.ome.tiff
+  20251126_pairedFixation:
+    path: //allen/aics/endothelial/morphological_features/IF_integration/20260116/live_fixed/20251126_d652e082eb5f4e8ba306f0c0218f0606_P{{position}}_combined_paired_bf.ome.tiff
+  20251125_pairedFixation:
+    path: //allen/aics/endothelial/morphological_features/IF_integration/20260116/live_fixed/20251125_b7117289ce554ff8873e431d9d06e311_P{{position}}_combined_paired_bf.ome.tiff
