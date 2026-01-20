@@ -374,7 +374,12 @@ def compute_extrapolated_vector_field(
 
     filled_kmcs = kmcs.copy()
     n_components = filled_kmcs.shape[-1]
-    x, y, z = np.meshgrid(*grid_coordinates, indexing="ij")
+    logger.debug(
+        "Starting extrapolation of [ %s ] dimensional vector field with method [ %s ].",
+        n_components,
+        method,
+    )
+    coords_mesh = np.meshgrid(*grid_coordinates, indexing="ij")
 
     for i in range(n_components):
         component = filled_kmcs[..., i]
@@ -401,12 +406,14 @@ def compute_extrapolated_vector_field(
                     bounds_error=False,
                     fill_value=None,  # extrapolate outside convex hull
                 )
-                nan_points = np.array([x[nan_mask], y[nan_mask], z[nan_mask]]).T
+                nan_points = np.array(
+                    [coords_mesh[dim][nan_mask] for dim in range(len(grid_coordinates))]
+                ).T
                 component[nan_mask] = interpolator(nan_points)
             filled_kmcs[..., i] = component
 
     vectors = tuple(filled_kmcs[..., i] for i in range(n_components))
-    return {"vectors": vectors, "grid": (x, y, z)}
+    return {"vectors": vectors, "grid": coords_mesh}
 
 
 def get_callable_vector_field(
