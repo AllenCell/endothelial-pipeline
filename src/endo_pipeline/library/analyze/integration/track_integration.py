@@ -76,24 +76,25 @@ def add_normalized_time(
         "normalized_time" containing the normalized time values between 0 and 1.
     """
 
-    for _, df_track in df_all_positions.groupby(["position_as_str", "track_id"]):
+    for _, df_pos in df_all_positions.groupby("position_as_str"):
+        for _, df_track in df_pos.groupby("track_id"):
 
-        time_values = df_track[time_col].values.astype(np.float64)
-        sorted_inds = np.argsort(time_values)
-        time_values = time_values[sorted_inds]
-        df_track = df_track.iloc[sorted_inds]
+            time_values = df_track[time_col].values.astype(np.float64)
+            sorted_inds = np.argsort(time_values)
+            time_values = time_values[sorted_inds]
+            df_track = df_track.iloc[sorted_inds]
 
-        start_time = np.min(time_values)
-        end_time = np.max(time_values)
+            start_time = np.min(time_values)
+            end_time = np.max(time_values)
 
-        normalized_time_values = np.divide(
-            time_values - start_time,
-            end_time - start_time,
-            out=np.zeros_like(time_values, dtype=np.float64),
-            where=(end_time - start_time) != 0,
-        )
+            normalized_time_values = np.divide(
+                time_values - start_time,
+                end_time - start_time,
+                out=np.zeros_like(time_values, dtype=np.float64),
+                where=(end_time - start_time) != 0,
+            )
 
-        normalized_time_values = np.clip(normalized_time_values, 0, 1)
+            normalized_time_values = np.clip(normalized_time_values, 0, 1)
 
         df_all_positions.loc[
             df_track.index,
