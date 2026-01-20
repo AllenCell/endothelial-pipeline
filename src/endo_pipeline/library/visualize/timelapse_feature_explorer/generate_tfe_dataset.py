@@ -16,14 +16,8 @@ from endo_pipeline.library.visualize.timelapse_feature_explorer.tfe_manifest_for
     add_feature_metadata,
     update_manifest_for_tfe,
 )
-from endo_pipeline.manifests import (
-    get_dataframe_location_for_dataset,
-    load_dataframe_manifest,
-    load_model_manifest,
-)
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     DIFFAE_FEATURE_COLUMN_NAMES,
@@ -40,8 +34,6 @@ def generate_tfe_dataset(
     source_dir: Path,
     backdrops: bool,
     output_dir_suffix: str = "",
-    model_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     dataset_collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     include_diffae_features: bool = True,
 ) -> None:
@@ -65,11 +57,8 @@ def generate_tfe_dataset(
         try:
             # Load dataframe with the diffae features and computed PCs
             # only take the dataframe from the output (which is the 0th element)
-            model_manifest = load_model_manifest(model_name)
             df_tracks = get_preprocessed_manifests_and_km_bounds(
                 dataset_name=dataset,
-                model_manifest=model_manifest,
-                run_name=run_name,
                 collection_name_for_pca=dataset_collection_name_for_pca,
                 drop_rows_without_diffae_feats=False,
             )[0]

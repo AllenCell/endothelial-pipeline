@@ -33,8 +33,7 @@ from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifes
     calculate_derived_data_dynamics_dependent,
 )
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
-from endo_pipeline.manifests import ModelManifest
-from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME, RANDOM_SEED
+from endo_pipeline.settings import RANDOM_SEED
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 
 logger = logging.getLogger(__name__)
@@ -407,9 +406,6 @@ def get_df_for_feature_correlation_viz(
     pc_columns: list[str],
     dataset_collection_name_for_pca: str,
     diffae_feature_columns: list[str],
-    model_manifest: ModelManifest,
-    run_name: str,
-    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     timepoint_annotations: list[TimepointAnnotation] | None = None,
 ) -> pd.DataFrame:
     """
@@ -457,12 +453,9 @@ def get_df_for_feature_correlation_viz(
         # NOTE: this takes a little over a minute to load
         merged_feats_df = get_preprocessed_manifests_and_km_bounds(
             dataset_name=dataset_name,
-            model_manifest=model_manifest,
-            run_name=run_name,
-            seg_feature_manifest_name=seg_feature_manifest_name,
             collection_name_for_pca=dataset_collection_name_for_pca,
             num_pcs=num_pcs,
-            filtered=True,  # filter to only include "is_included" timepoints
+            delay=True,
         )[0]
 
         # the original orientation feature is in radians

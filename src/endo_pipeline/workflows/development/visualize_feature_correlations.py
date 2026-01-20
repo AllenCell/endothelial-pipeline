@@ -1,12 +1,12 @@
 from typing import Literal
 
+from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import TimepointAnnotation
 from endo_pipeline.settings.diffae_feature_dataframes import NUM_PCS_TO_ANALYZE
 from endo_pipeline.settings.workflow_defaults import (
     DATASET_INFO_COLUMNS,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     SEGMENTATION_FEATURE_COLUMNS,
 )
 
@@ -14,10 +14,9 @@ TAGS = ["diffae_features", "visualization", "pc_interpretation"]
 
 
 def main(
-    dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    dataset_collection_name: Datasets = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = None,
-    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     dataset_info_columns: list[str] = DATASET_INFO_COLUMNS,
     segmentation_feature_group: str = "default",
     num_pcs: int | None = None,
@@ -139,9 +138,6 @@ def main(
         pc_columns=pc_columns,
         diffae_feature_columns=diffae_feature_columns,
         dataset_collection_name_for_pca=dataset_collection_name,
-        model_manifest=model_manifest,
-        run_name=run_name_,
-        seg_feature_manifest_name=seg_feature_manifest_name,
         timepoint_annotations=timepoint_annotations,
     )
 

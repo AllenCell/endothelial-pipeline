@@ -1,10 +1,5 @@
 from endo_pipeline.cli import Datasets, UniqueIntList
-from endo_pipeline.settings import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-    DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
-)
+from endo_pipeline.settings import DEFAULT_PCA_DATASET_COLLECTION_NAME
 
 
 def main(
@@ -12,9 +7,6 @@ def main(
     positions: list[int] | None = None,
     track_ids: UniqueIntList | None = None,
     datasets_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     track_integrations_only: bool = False,
     use_global_pc_lims: bool = False,
     for_figures: bool = False,
@@ -43,14 +35,11 @@ def main(
         plot_new_traj_overlay_on_grid_traj_and_flowfield,
         plot_quiver_slices_from_diffae_table,
     )
-    from endo_pipeline.manifests import load_model_manifest
     from endo_pipeline.settings import NUM_PCS_TO_ANALYZE
 
     out_dir = get_output_path(__file__)
     if datasets is None:
         datasets = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
-
-    model_manifest = load_model_manifest(model_manifest_name)
 
     # create subdirectory to save track-based trajectories to
     out_subdir_traj = out_dir / "trajectories_track_based"
@@ -63,13 +52,9 @@ def main(
         # load and preprocess the different diffae manifests and PCA pipeline
         df_all_positions, diffae_grid_crops, bounds = get_preprocessed_manifests_and_km_bounds(
             dataset_name=dataset_name,
-            model_manifest=model_manifest,
-            run_name=run_name,
-            seg_feature_manifest_name=seg_feature_manifest_name,
             collection_name_for_pca=datasets_for_pca,
             num_pcs=NUM_PCS_TO_ANALYZE,
             drop_rows_without_diffae_feats=True,
-            filtered=True,
         )
 
         # load or compute the trajectories and flow fields for the grid-based

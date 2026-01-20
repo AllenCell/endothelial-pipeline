@@ -30,7 +30,6 @@ from endo_pipeline.library.visualize.integration.track_integration_viz import (
     plot_grid_vs_tracks_flow_field,
     plot_pc_integrated_track_as_arrows,
 )
-from endo_pipeline.manifests import load_model_manifest
 from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
@@ -44,9 +43,6 @@ plt.ioff()  # turns off interactive mode in matplotlib
 def process_dataset(
     dataset_name: str,
     datasets_for_bounds: list[str],
-    model_manifest_name: str = "diffae_04_10",
-    run_name: str | None = None,
-    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     make_integrated_plots: bool = True,
 ) -> None:
     logger.info(f"Processing dataset: {dataset_name}")
@@ -54,14 +50,9 @@ def process_dataset(
     out_subdir = get_output_path(__file__, dataset_name, include_timestamp=False)
     configure_logging(out_subdir, logger, verbose=True)
 
-    model_manifest = load_model_manifest(model_manifest_name)
-
     # load and preprocess the different diffae manifests and PCA pipeline
     merged_feats_df, diffae_grid_crops, bounds = get_preprocessed_manifests_and_km_bounds(
         dataset_name=dataset_name,
-        model_manifest=model_manifest,
-        run_name=run_name,
-        seg_feature_manifest_name=seg_feature_manifest_name,
         collection_name_for_pca=datasets_for_bounds,
     )
 
