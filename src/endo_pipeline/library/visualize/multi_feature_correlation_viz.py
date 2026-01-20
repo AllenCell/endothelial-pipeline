@@ -404,7 +404,6 @@ def get_df_for_feature_correlation_viz(
     segmentation_feature_columns: list[str],
     num_pcs: int,
     pc_columns: list[str],
-    dataset_collection_name_for_pca: str,
     diffae_feature_columns: list[str],
     timepoint_annotations: list[TimepointAnnotation] | None = None,
 ) -> pd.DataFrame:
@@ -453,7 +452,6 @@ def get_df_for_feature_correlation_viz(
         # NOTE: this takes a little over a minute to load
         merged_feats_df = get_preprocessed_manifests_and_km_bounds(
             dataset_name=dataset_name,
-            collection_name_for_pca=dataset_collection_name_for_pca,
             num_pcs=num_pcs,
             delay=True,
         )[0]
