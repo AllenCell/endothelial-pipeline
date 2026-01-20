@@ -96,10 +96,10 @@ def add_normalized_time(
 
             normalized_time_values = np.clip(normalized_time_values, 0, 1)
 
-        df_all_positions.loc[
-            df_track.index,
-            "normalized_time",
-        ] = normalized_time_values
+            df_all_positions.loc[
+                df_track.index,
+                "normalized_time",
+            ] = normalized_time_values
 
     return df_all_positions
 
