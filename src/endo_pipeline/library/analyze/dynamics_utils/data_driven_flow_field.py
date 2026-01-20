@@ -26,7 +26,10 @@ logger = logging.getLogger(__name__)
 
 
 def sample_from_density(
-    data: np.ndarray, n_samples: int, random_seed: int = SAMPLER_RANDOM_SEED
+    data: np.ndarray,
+    n_samples: int,
+    random_seed: int = SAMPLER_RANDOM_SEED,
+    density: Callable | None = None,
 ) -> np.ndarray:
     """
     Sample points from the density of a given dataset using KDE and rejection sampling.
@@ -39,6 +42,8 @@ def sample_from_density(
         Number of samples to draw.
     random_seed
         Random seed for reproducibility.
+    density
+        Optional precomputed density function for the data points.
 
     Returns
     -------
@@ -50,7 +55,9 @@ def sample_from_density(
     logger.debug("Data shape for density estimation: [ %s ]", data_.shape)
 
     rng = np.random.default_rng(seed=random_seed)
-    kde = gaussian_kde(data_.T)
+
+    density_ = gaussian_kde(data_.T) if density is None else density
+
     ndim = data_.shape[1]
     samples: list[np.ndarray] = []
     # Estimate bounds for rejection sampling
@@ -58,11 +65,12 @@ def sample_from_density(
     maxs = data_.max(axis=0)
     # Estimate maximum density for rejection
     test_points = rng.uniform(mins, maxs, size=(10000, ndim))
-    max_density = kde(test_points.T).max()
+    density_at_tests: np.ndarray = density_(test_points.T)
+    max_density = density_at_tests.max()
     while len(samples) < n_samples:
         candidate = rng.uniform(mins, maxs)
-        density = kde(candidate)
-        if rng.uniform(0, max_density) < density:
+        density_eval = density_(candidate)
+        if rng.uniform(0, max_density) < density_eval:
             samples.append(candidate)
     return np.array(samples)
 

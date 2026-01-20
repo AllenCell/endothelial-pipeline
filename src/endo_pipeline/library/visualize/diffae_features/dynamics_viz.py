@@ -3,18 +3,18 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
-from seaborn import kdeplot
 
 from endo_pipeline.library.visualize import viz_base
 
 
 def _add_density_overlay(
     ax: plt.Axes,
-    data: np.ndarray,
-    density_kernel_bandwidth: float,
+    x_values: np.ndarray,
+    density_values: np.ndarray,
     density_plot_color: str,
     density_plot_alpha: float,
-    density_plot_fill: bool,
+    density_plot_edgecolor: str = "k",
+    density_plot_linewidth: float = 0.5,
 ) -> plt.Axes:
     """
     Add density overlay to an existing Axes using seaborn kdeplot.
@@ -23,26 +23,28 @@ def _add_density_overlay(
     ----------
     ax
         The Axes to add the density overlay to.
-    data
-        Data to overlay density estimation.
-    density_kernel_bandwidth
-        Bandwidth for the kernel density estimation.
+    x_values
+        The values at which the density is evaluated.
+    density
+        The values of the density function.
     density_plot_color
         Color of the density plot overlay.
     density_plot_alpha
         Alpha (transparency) of the density plot overlay.
-    density_plot_fill
-        Whether to fill the area under the density plot.
+    density_plot_edgecolor
+        Edge color of the density plot overlay.
+    density_plot_linewidth
+        Line width of the density plot overlay.
     """
     ax2 = ax.twinx()
-    kdeplot(
-        data,
-        ax=ax2,
-        bw_method=density_kernel_bandwidth,
+    ax2.fill_between(
+        x_values,
+        density_values,
         color=density_plot_color,
-        fill=density_plot_fill,
         alpha=density_plot_alpha,
-        legend=True,
+    )
+    ax2.plot(
+        x_values, density_values, color=density_plot_edgecolor, linewidth=density_plot_linewidth
     )
     ax2.set_ylabel("density")
     return ax
@@ -52,16 +54,16 @@ def plot_1d_drift(
     x_vals: np.ndarray,
     drift_vals: np.ndarray,
     variable_name: str,
-    data_for_density: np.ndarray | None,
-    density_kernel_bandwidth: float = 0.3,
+    density: np.ndarray | None,
     drift_line_color: str = "k",
     drift_line_style: str = "-",
     zero_line_color: str = "r",
     zero_line_style: str = "--",
     zero_line_alpha: float = 0.5,
-    density_plot_color: str = "gray",
+    density_plot_fillcolor: str = "gray",
     density_plot_alpha: float = 0.1,
-    density_plot_fill: bool = True,
+    density_plot_edgecolor: str = "k",
+    density_plot_linewidth: float = 0.5,
 ) -> tuple[plt.Figure, plt.Axes]:
     """
     Plot 1D drift coefficient function with optional overlay of the data density.
@@ -78,10 +80,8 @@ def plot_1d_drift(
         Corresponding drift values.
     variable_name
         Name of the variable being plotted (for labeling purposes).
-    data_for_density
-        Optional data to overlay density estimation.
-    density_kernel_bandwidth
-        Bandwidth for the kernel density estimation.
+    density
+        Optional density function to overlay.
     drift_line_color
         Color of the line representing the drift function.
     drift_line_style
@@ -92,12 +92,14 @@ def plot_1d_drift(
         Style of the zero reference line (y=0).
     zero_line_alpha
         Alpha (transparency) of the zero reference line (y=0).
-    density_plot_color
-        Color of the density plot overlay.
+    density_plot_fillcolor
+        Fill color of the density plot overlay.
     density_plot_alpha
         Alpha (transparency) of the density plot overlay.
-    density_plot_fill
-        Whether to fill the area under the density plot.
+    density_plot_edgecolor
+        Edge color of the density plot overlay.
+    density_plot_linewidth
+        Line width of the density plot overlay.
     """
     fig, ax = plt.subplots()
     # plot drift
@@ -114,14 +116,15 @@ def plot_1d_drift(
     ax.set_ylabel(f"drift in ${variable_name}$")
 
     # if data is provided, overlay density estimation using seaborn kdeplot
-    if data_for_density is not None:
+    if density is not None:
         ax = _add_density_overlay(
             ax,
-            data_for_density,
-            density_kernel_bandwidth,
-            density_plot_color,
+            x_vals,
+            density,
+            density_plot_fillcolor,
             density_plot_alpha,
-            density_plot_fill,
+            density_plot_edgecolor,
+            density_plot_linewidth,
         )
 
     return fig, ax
@@ -131,16 +134,16 @@ def plot_1d_diffusion(
     x_vals: np.ndarray,
     diffusion_vals: np.ndarray,
     variable_name: str,
-    data_for_density: np.ndarray | None,
-    density_kernel_bandwidth: float = 0.3,
+    density: np.ndarray | None,
     diffusion_line_color: str = "k",
     diffusion_line_style: str = "-",
     mean_line_color: str = "b",
     mean_line_style: str = "--",
     mean_line_alpha: float = 0.5,
-    density_plot_color: str = "gray",
+    density_plot_fillcolor: str = "gray",
     density_plot_alpha: float = 0.1,
-    density_plot_fill: bool = True,
+    density_plot_edgecolor: str = "k",
+    density_plot_linewidth: float = 0.5,
 ) -> tuple[plt.Figure, plt.Axes]:
     """
     Plot 1D diffusion coefficient function with optional overlay of the data density.
@@ -157,10 +160,8 @@ def plot_1d_diffusion(
         Corresponding drift values.
     variable_name
         Name of the variable being plotted (for labeling purposes).
-    data_for_density
-        Optional data to overlay density estimation.
-    density_kernel_bandwidth
-        Bandwidth for the kernel density estimation.
+    density
+        Optional density function to overlay.
     diffusion_line_color
         Color of the line representing the drift function.
     diffusion_line_style
@@ -171,36 +172,50 @@ def plot_1d_diffusion(
         Style of the line representing the mean diffusion value.
     mean_line_alpha
         Alpha (transparency) of the mean diffusion value line.
-    density_plot_color
-        Color of the density plot overlay.
+    density_plot_fillcolor
+        Fill color of the density plot overlay.
     density_plot_alpha
         Alpha (transparency) of the density plot overlay.
-    density_plot_fill
-        Whether to fill the area under the density plot.
+    density_plot_edgecolor
+        Edge color of the density plot overlay.
+    density_plot_linewidth
+        Line width of the density plot overlay.
     """
     fig, ax = plt.subplots()
     # plot drift
     ax.plot(x_vals, diffusion_vals, f"{diffusion_line_color}{diffusion_line_style}")
+
     # draw line = mean value of diffusion coefficient
+    # where mean is weighted by the density of data points if provided
+    if density is not None:
+        diffusion_vals_weighted = diffusion_vals * density
+        diffusion_vals_mean = np.trapz(diffusion_vals_weighted, x=x_vals) / np.trapz(
+            density, x=x_vals
+        )
+    else:
+        diffusion_vals_mean = np.mean(diffusion_vals)
+
     ax.plot(
         x_vals,
-        diffusion_vals.mean() * np.ones_like(x_vals),
+        diffusion_vals_mean * np.ones_like(x_vals),
         f"{mean_line_color}{mean_line_style}",
         alpha=mean_line_alpha,
         label=f"$\\langle D({variable_name}) \\rangle$",
     )
+
     ax.set_xlabel(f"${variable_name}$")
     ax.set_ylabel(f"MSD in ${variable_name}$")
 
     # if data is provided, overlay density estimation using seaborn kdeplot
-    if data_for_density is not None:
+    if density is not None:
         ax = _add_density_overlay(
             ax,
-            data_for_density,
-            density_kernel_bandwidth,
-            density_plot_color,
+            x_vals,
+            density,
+            density_plot_fillcolor,
             density_plot_alpha,
-            density_plot_fill,
+            density_plot_edgecolor,
+            density_plot_linewidth,
         )
 
     # make sure y-limits start at 0

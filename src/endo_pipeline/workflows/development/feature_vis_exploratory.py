@@ -4,11 +4,20 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_RUN_NAME,
 )
 
+KERNEL_BANDWIDTH = 0.175
+
+BIN_WIDTH = 0.05
+
+TICK_STEP_NUM = [15, 10]
+
+NUM_INITS = 500  # number of initial points to sample for root solver
+
 
 def main(
     datasets: Datasets | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
+    bw: float = KERNEL_BANDWIDTH,
 ) -> None:
     """
     Analyze and visualize DiffAE feature dynamics in polar coordinates.
@@ -39,6 +48,7 @@ def main(
     import matplotlib.pyplot as plt
     import numpy as np
     from numdifftools import Jacobian
+    from scipy.stats import gaussian_kde
 
     from endo_pipeline.configs import (
         get_datasets_in_collection,
@@ -94,18 +104,10 @@ def main(
 
     DATASET_COLLECTION_NAME = "timelapse"
 
-    KERNEL_BANDWIDTH = 0.175  # bandwidth for kernel density estimation in KM calculation
-
     POLAR_COLUMN_NAMES = [ColumnName.POLAR_ANGLE, ColumnName.POLAR_RADIUS]
-
-    BIN_WIDTH = 0.075
-
-    TICK_STEP_NUM = [15, 10]
 
     BIN_LIMITS_THETA = (-np.pi, np.pi)
     BIN_LIMITS_RADIUS = (0, 2.75)
-
-    NUM_INITS = 500  # number of initial points to sample for root solver
 
     # get dataframe manifest for grid-based crop features
     model_manifest = load_model_manifest(model_manifest_name)
@@ -260,18 +262,32 @@ def main(
                     d_traj_list,
                     bins=[bins[i]],
                     dt=5,
-                    kernel_params={"kernel": "gaussian", "bandwidth": KERNEL_BANDWIDTH},
+                    kernel_params={"kernel": "gaussian", "bandwidth": bw},
                 )
 
                 data_values = df_[column_name].values
+                prob_density = gaussian_kde(data_values[np.newaxis, :], bw_method=bw)
+                density_values = prob_density(centers[i])
+
+                # shift theta back to [-pi, pi] if needed
+                if column_name == ColumnName.POLAR_ANGLE and is_low_shear_regime:
+                    # find where x > pi in centers and shift those values
+                    idx_gt_pi = np.where(centers[i] > np.pi)[0]
+                    centers[i][idx_gt_pi] = centers[i][idx_gt_pi] - 2 * np.pi
+
+                    # sort by so that values of centers are in ascending order
+                    idx_sorted = np.argsort(centers[i])
+                    drift = drift[idx_sorted]
+                    diffusion = diffusion[idx_sorted]
+                    centers[i] = centers[i][idx_sorted]
+                    density_values = density_values[idx_sorted]
 
                 variable_name = "\\theta" if column_name == ColumnName.POLAR_ANGLE else "r"
                 fig, ax = plot_1d_drift(
                     centers[i],
                     drift,
                     variable_name,
-                    data_for_density=data_values,
-                    density_kernel_bandwidth=KERNEL_BANDWIDTH,
+                    density=density_values,
                 )
 
                 extrapolated_flow_field_dict = compute_extrapolated_vector_field(
@@ -283,7 +299,18 @@ def main(
                 )
                 drift_function_jacobian = Jacobian(drift_function)
 
-                sampled_inits_for_root_solver = sample_from_density(data_values, NUM_INITS)
+                sampled_inits_for_root_solver = sample_from_density(
+                    data_values, NUM_INITS, density=prob_density
+                )
+
+                # shift sampled inits for root solver if needed
+                if column_name == ColumnName.POLAR_ANGLE and is_low_shear_regime:
+                    idx_points_gt_pi = np.where(sampled_inits_for_root_solver > np.pi)[0]
+                    sampled_inits_for_root_solver[idx_points_gt_pi] = (
+                        sampled_inits_for_root_solver[idx_points_gt_pi] - 2 * np.pi
+                    )
+
+                # plot sampled initial points for root solver - sanity check
                 ax.scatter(
                     sampled_inits_for_root_solver,
                     ax.get_ylim()[0] * np.ones_like(sampled_inits_for_root_solver),
@@ -300,7 +327,7 @@ def main(
                 fpt_stabilities = []
                 for fpt in fpts:
                     # if outside the range of data, skip
-                    if not is_point_within_percentile(fpt, data_values, lower=1, upper=99):
+                    if not is_point_within_percentile(fpt, data_values, lower=0.1, upper=99.9):
                         logger.debug(
                             "Fixed point at [ %.2f ] is outside data range, skipping.",
                             fpt[0],
@@ -341,12 +368,12 @@ def main(
                 ax.set_title(fig_title)
                 save_plot_to_path(fig, fig_savedir_km, f"{dataset_name_flow}_{column_name}_drift")
 
+                # make similar (but simpler) plot for diffusion coefficient
                 fig, ax = plot_1d_diffusion(
                     centers[i],
                     diffusion,
                     variable_name,
-                    data_for_density=df_[column_name].values,
-                    density_kernel_bandwidth=KERNEL_BANDWIDTH,
+                    density=density_values,
                 )
                 ax.legend()
                 ax.set_title(dataset_name)
