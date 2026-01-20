@@ -454,32 +454,36 @@ def get_callable_vector_field(
         Callable function representing the vector field.
     """
 
-    grid = vector_field_dict["grid"]  # tuple of 3D arrays (xgrid, ygrid, zgrid)
+    grid = vector_field_dict["grid"]  # tuple of arrays (x1_grid, ... , x(ndim)_grid)
+    ndim = len(grid)
+    logger.debug(
+        "Creating callable vector field in [ %s ] dimensions using [ %s ] interpolation.",
+        ndim,
+        method,
+    )
 
     # Extract 1D axes from meshgrid
-    x = np.unique(grid[0])
-    y = np.unique(grid[1])
-    z = np.unique(grid[2])
-    axes = (x, y, z)
+    axes_list = [np.unique(grid[dim]) for dim in range(len(grid))]
+    axes_tuple = tuple(axes_list)
 
-    # Stack vector components into shape (nx, ny, nz, 3)
+    # Stack vector components into shape (n_x1, ...,  n_x(ndim), ndim)
     vec_field_grid = np.stack(vector_field_dict["vectors"], axis=-1)
     # Create interpolators for each component
     # fill_value set to None for extrapolation
     interpolators = [
         RegularGridInterpolator(
-            axes, vec_field_grid[..., i], method=method, bounds_error=False, fill_value=None
+            axes_tuple, vec_field_grid[..., i], method=method, bounds_error=False, fill_value=None
         )
-        for i in range(3)
+        for i in range(ndim)
     ]
 
     def vf_general(point: np.ndarray) -> np.ndarray:
-        # point: shape (3,) or (N, 3)
+        # point: shape (ndim,) or (N, ndim)
         point = np.atleast_2d(point)
         return np.stack([interp(point) for interp in interpolators], axis=-1).squeeze()
 
     def vf_solve_ivp(t: float, y: np.ndarray) -> np.ndarray:
-        # y: shape (3,)
+        # y: shape (ndim,)
         return vf_general(y)
 
     return vf_solve_ivp if for_solve_ivp else vf_general
