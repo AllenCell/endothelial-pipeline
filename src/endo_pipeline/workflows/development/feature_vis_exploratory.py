@@ -54,6 +54,7 @@ def main(
     from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import (
         compute_extrapolated_vector_field,
         get_callable_vector_field,
+        is_point_within_percentile,
         sample_from_density,
     )
     from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
@@ -104,7 +105,7 @@ def main(
     BIN_LIMITS_THETA = (-np.pi, np.pi)
     BIN_LIMITS_RADIUS = (0, 2.75)
 
-    NUM_INITS = 250  # number of initial points to sample for root solver
+    NUM_INITS = 500  # number of initial points to sample for root solver
 
     # get dataframe manifest for grid-based crop features
     model_manifest = load_model_manifest(model_manifest_name)
@@ -284,10 +285,12 @@ def main(
 
                 sampled_inits_for_root_solver = sample_from_density(data_values, NUM_INITS)
                 ax.scatter(
-                    np.zeros_like(sampled_inits_for_root_solver),
                     sampled_inits_for_root_solver,
+                    ax.get_ylim()[0] * np.ones_like(sampled_inits_for_root_solver),
                     s=1,
                     c="magenta",
+                    marker="x",
+                    alpha=0.3,
                     label="Sampled inits. for root solver",
                 )
 
@@ -296,6 +299,14 @@ def main(
                 stable_fpts = []
                 fpt_stabilities = []
                 for fpt in fpts:
+                    # if outside the range of data, skip
+                    if not is_point_within_percentile(fpt, data_values, lower=1, upper=99):
+                        logger.debug(
+                            "Fixed point at [ %.2f ] is outside data range, skipping.",
+                            fpt[0],
+                        )
+                        continue
+
                     # get stability and type of the fixed point
                     fpt_type = find_fpt_type(drift_function_jacobian(fpt))
                     fpt_stability = fpt_type.split(" ")[0].lower()
@@ -306,8 +317,8 @@ def main(
                     logger.debug("[ %s ] at [ %.2f ]", fpt_type, fpt[0])
                     # plot the fixed point on the drift plot
                     ax.plot(
-                        0,
                         fpt[0],
+                        0,
                         marker=STABILITY_MARKER_DICT[fpt_stability],
                         color=STABILITY_COLOR_DICT[fpt_stability],
                         markersize=8,
@@ -326,7 +337,7 @@ def main(
                 )
                 handles, _ = ax.get_legend_handles_labels()
                 handles_new = handles + my_handles
-                ax.legend(handles=handles_new, bbox_to_anchor=(1.02, 1.01), loc="upper left")
+                ax.legend(handles=handles_new, bbox_to_anchor=(1.05, 1.01), loc="upper left")
                 ax.set_title(fig_title)
                 save_plot_to_path(fig, fig_savedir_km, f"{dataset_name_flow}_{column_name}_drift")
 

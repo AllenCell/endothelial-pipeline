@@ -67,7 +67,7 @@ def sample_from_density(
     return np.array(samples)
 
 
-def _is_point_within_percentile(point, data, lower=5, upper=95):
+def is_point_within_percentile(point: tuple, data: np.ndarray, lower=5, upper=95):
     """
     Check if a point is within the given percentile range of the data along each axis.
 
@@ -245,7 +245,7 @@ def ddff_model_analysis(
     # filter fixed points to only keep stable ones within 2nd-98th percentiles of data
     stable_fpts_high_confidence = []
     for fpt in fpts:
-        within_percentile = _is_point_within_percentile(
+        within_percentile = is_point_within_percentile(
             fpt, pc_data, lower_percentile, upper_percentile
         )
         if within_percentile:
