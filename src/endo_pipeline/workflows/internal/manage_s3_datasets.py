@@ -15,13 +15,18 @@ def main(
     REQUIRED:
     - Workflow must be run on slurm-master cluster.
     - AWS credentials must be configured.
-    - Every day you need to login using: aws sso login
 
     To see what files are already there:
-    aws s3 ls s3://allencell-internal-quilt/endo_stg/
+        aws s3 ls s3://allencell-internal-quilt/endo_stg/
 
-    Login:
-    aws sso login
+    Login (if session expired):
+        aws sso login
+
+    Add to your .bashrc if uploads/removals are failing due to metadata service timeouts:
+        export AWS_EC2_METADATA_DISABLED=true
+        export AWS_CLI_DISABLE_CRT=true
+        export AWS_REGION=us-west-2
+        export AWS_DEFAULT_REGION=us-west-2
 
     Parameters
     ----------
