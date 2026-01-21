@@ -18,3 +18,10 @@ BIN_LIMITS_POLAR = [(-pi, pi), (0.0, 3.5)]
 
 TICK_STEP_NUM: int = 7
 """Number of axes ticks for coordinate axis in histogram plots."""
+
+BEHAVES_LIKE_MIN_SHEAR_STRESS: tuple[str, ...] = (
+    "20250428_20X",
+    "20250604_20X",
+    "20250716_20X",
+)
+"""Datasets with distribution of polar angle coordinate qualitatively similar to MIN shear stress datasets."""
