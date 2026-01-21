@@ -810,7 +810,7 @@ def split_dataset_by_flow(
     return data_all, shear_list
 
 
-def get_traj_and_diff(data: pd.DataFrame, column_names: list) -> tuple[list, list]:
+def get_traj_and_diff(df: pd.DataFrame, column_names: list) -> tuple[list, list]:
     """
     Get trajectories and single-timepoint displacement vectors for each crop in feature space.
 
@@ -823,7 +823,7 @@ def get_traj_and_diff(data: pd.DataFrame, column_names: list) -> tuple[list, lis
 
     Parameters
     ----------
-    data
+    df
         DataFrame with columns for each feature.
     column_names
         List of column names corresponding to the features of interest in the DataFrame.
@@ -837,10 +837,10 @@ def get_traj_and_diff(data: pd.DataFrame, column_names: list) -> tuple[list, lis
     """
     # check that required columns are present
     required_columns = [ColumnName.TIMEPOINT, ColumnName.CROP_INDEX, *column_names]
-    check_required_columns_in_dataframe(data, required_columns)
+    check_required_columns_in_dataframe(df, required_columns)
 
     # get list of unique crop indices
-    crop_list = data[ColumnName.CROP_INDEX].unique().tolist()
+    crop_list = df[ColumnName.CROP_INDEX].unique().tolist()
 
     # initialize lists for storing outputs
     traj_list = []
@@ -849,7 +849,7 @@ def get_traj_and_diff(data: pd.DataFrame, column_names: list) -> tuple[list, lis
     # loop over each crop in the dataset
     for crop in crop_list:
         # get data for each crop, sorted by time
-        data_crop = data[data[ColumnName.CROP_INDEX] == crop].sort_values(by=ColumnName.TIMEPOINT)
+        data_crop = df[df[ColumnName.CROP_INDEX] == crop].sort_values(by=ColumnName.TIMEPOINT)
 
         # add column giving difference in timepoint between consecutive dataframe rows
         dt = data_crop[ColumnName.TIMEPOINT].diff().shift(-1)
