@@ -178,7 +178,6 @@ def main(
                 num_bins = len(bins[i]) - 1
                 frame_min = df_[ColumnName.TIMEPOINT].min()
                 frame_max = df_[ColumnName.TIMEPOINT].max()
-                logger.debug("Frame min: [ %d ], Frame max: [ %d ]", frame_min, frame_max)
                 num_frames = frame_max - frame_min + 1
                 hist_array = np.zeros((num_bins, num_frames))
 

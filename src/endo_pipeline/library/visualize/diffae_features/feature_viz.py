@@ -524,7 +524,7 @@ def plot_principal_component_histogram(
         if feature_names is not None:
             ax_.set_ylabel(feature_names[col])
         else:
-            ax_.set_ylabel(f"Latent component {col+1}")
+            ax_.set_ylabel(f"latent component {col+1}")
         if col == ndim - 1:  # only label x-axis on bottom plot
             ax_.set_xlabel("frame number")
         xticks = np.arange(frame_min, frame_max + 1, step=time_tick_step)
@@ -572,7 +572,8 @@ def plot_per_position_average(
 
         if i == ndim - 1:
             ax.set_xlabel("frame number")
-        ax.set_ylabel(f"average of {column_name} over crops")
+        column_label = get_label_for_column(column_name, capitalize=False)
+        ax.set_ylabel(f"average of {column_label} over crops")
         ax.legend(title=f"{ColumnName.POSITION.value}:")
 
     return fig, axs
@@ -763,15 +764,24 @@ def get_label_for_column(
     if column_name in mapping_dict:
         return mapping_dict[column_name]["label"]
 
-    if column_name.startswith("feat_"):
+    if column_name.startswith(f"{ColumnName.LATENT_FEATURE_PREFIX}"):
         feature_number = column_name.split("_")[1]
-        return f"Feature {feature_number}"
-    elif column_name.startswith("pc_"):
+        label = f"feature {feature_number}"
+    elif column_name.startswith(f"{ColumnName.PCA_FEATURE_PREFIX}"):
         pc_number = column_name.split("_")[1]
-        return f"PC {pc_number}"
-    else:
+        label = f"PC {pc_number}"
+    elif column_name == ColumnName.POLAR_RADIUS:
+        label = "polar $r$"
+    elif column_name == ColumnName.POLAR_ANGLE:
+        label = "polar $\\theta$"
+    elif mapping_dict is not None:
         for _, info_dict in mapping_dict.items():
             if column_name == info_dict["column_name"]:
-                return info_dict["label"]
+                label = info_dict["label"]
+    else:
+        label = column_name.replace("_", " ")
 
-    return column_name.replace("_", " ").capitalize() if capitalize else column_name
+    if capitalize:
+        label = label.capitalize()
+
+    return label
