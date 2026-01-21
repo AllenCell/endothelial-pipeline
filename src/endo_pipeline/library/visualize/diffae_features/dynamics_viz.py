@@ -188,7 +188,10 @@ def plot_1d_diffusion(
     # draw line = mean value of diffusion coefficient
     # where mean is weighted by the density of data points if provided
     if density is not None:
-        diffusion_vals_mean = np.trapz(diffusion_vals * density, x=x_vals)
+        where_finite = np.isfinite(density) & np.isfinite(diffusion_vals)
+        diffusion_vals_mean = np.trapz(
+            diffusion_vals[where_finite] * density[where_finite], x=x_vals[where_finite]
+        )
     else:
         diffusion_vals_mean = np.mean(diffusion_vals)
 
