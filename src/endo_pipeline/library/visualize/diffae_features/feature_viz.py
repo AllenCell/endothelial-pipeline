@@ -462,13 +462,15 @@ def plot_component_histograms_over_time(
     frame_range: tuple[int] | None = None,
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
     """
-    Plot histogram of each principal component over time for a given dataset.
+    Plot histogram of individual feature components over time for a given dataset.
 
     ** Histogram and bins **
-    The histogram is computed for each latent component at each time point (frame).
+    The histogram is computed for each feature component at each time point (frame).
     The histogram values are stored in a list of arrays (len = dims), where the shape
-    of each array is (num_bins, num_frames). Both the histogram values and the bin
-    edges for each dimension are returned by the get_histogram_by_component() function.
+    of each array is (num_bins, num_frames).
+
+    Both the histogram values and the bin edges for each dimension can be generated
+    by the get_histogram_by_component() function.
 
     Parameters
     ----------
@@ -484,13 +486,6 @@ def plot_component_histograms_over_time(
         Optional, number of ticks for y-axis (bins).
     frame_range
         Optional, tuple specifying the range of frames for labeling x-axis.
-
-    Returns
-    -------
-    :
-        Figure object for the histogram plots
-    :
-        Array of Axes objects for each principal component histogram plot
     """
     ndim = len(hist_arrays)
 
@@ -723,15 +718,24 @@ def get_label_for_column(
     if column_name in mapping_dict:
         return mapping_dict[column_name]["label"]
 
-    if column_name.startswith("feat_"):
+    if column_name.startswith(f"{ColumnName.LATENT_FEATURE_PREFIX}"):
         feature_number = column_name.split("_")[1]
-        return f"Feature {feature_number}"
-    elif column_name.startswith("pc_"):
+        label = f"feature {feature_number}"
+    elif column_name.startswith(f"{ColumnName.PCA_FEATURE_PREFIX}"):
         pc_number = column_name.split("_")[1]
-        return f"PC {pc_number}"
-    else:
+        label = f"PC {pc_number}"
+    elif column_name == ColumnName.POLAR_RADIUS:
+        label = "polar $r$"
+    elif column_name == ColumnName.POLAR_ANGLE:
+        label = "polar $\\theta$"
+    elif mapping_dict is not None:
         for _, info_dict in mapping_dict.items():
             if column_name == info_dict["column_name"]:
-                return info_dict["label"]
+                label = info_dict["label"]
+    else:
+        label = column_name.replace("_", " ")
 
-    return column_name.replace("_", " ").capitalize() if capitalize else column_name
+    if capitalize:
+        label = label.capitalize()
+
+    return label
