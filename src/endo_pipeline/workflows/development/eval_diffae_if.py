@@ -27,7 +27,6 @@ def main(
     from endo_pipeline.library.analyze.immunofluorescence import filter
     from endo_pipeline.library.model import load_model_for_inference
     from endo_pipeline.library.model.eval_model import (
-        add_diffae_model_eval_crop_columns,
         generate_overrides_for_track_based_crops,
         update_prediction_from_tracks_with_metadata,
         upload_prediction_dataframe_to_fms,
@@ -36,20 +35,16 @@ def main(
     from endo_pipeline.manifests import (
         get_dataframe_location_for_dataset,
         get_feature_dataframe_manifest_name,
-        get_zarr_location_for_position,
         load_dataframe_manifest,
         load_model_manifest,
     )
     from endo_pipeline.settings import (
         DIFFAE_MODEL_EVAL_CONFIG,
         LOWER_Z_SLICE_OFFSET,
-        NATIVE_ZARR_RESOLUTION_CROP_SIZE,
         UPPER_Z_SLICE_OFFSET,
         ZARR_BRIGHTFIELD_CHANNEL,
         ColumnName,
         CytoDLLoadDataKeys,
-        IMG_SHAPE_RESOLUTION_0_3i_X,
-        IMG_SHAPE_RESOLUTION_0_3i_Y,
     )
 
     logger = logging.getLogger(__name__)
@@ -75,14 +70,7 @@ def main(
             logger.info("Demo mode active, limiting to first position only.")
             zarr_positions = zarr_positions[:1]
 
-        for position in zarr_positions:
-            df = df_dataset[df_dataset["position"] == position]
-
-            zarr_path = get_zarr_location_for_position(dataset_config, position).path
-            if dataset_config.center_z_plane is None:
-                raise ValueError(f"Dataset {dataset_name} is missing center_z_plane information.")
-            center_slice = dataset_config.center_z_plane[position]
-
+        for position, df in df_dataset.groupby("position"):
             # Filter and preprocess features for immunofluorescence.
             df = filter.filter_small_objects(df)
             df = filter.filter_img_center(df)
@@ -91,20 +79,6 @@ def main(
             if DEMO_MODE:
                 logger.info("Demo mode active, using only the first 5 cells in FOV.")
                 df = df.head(5)
-
-            # Add columns required for DiffAE model inference
-            df[ColumnName.ZARR_PATH] = str(zarr_path)
-            df[CytoDLLoadDataKeys.Z_START] = center_slice - LOWER_Z_SLICE_OFFSET
-            df[CytoDLLoadDataKeys.Z_END] = center_slice + UPPER_Z_SLICE_OFFSET
-            df[CytoDLLoadDataKeys.Z_STEP] = 1
-            df["image_index"] = 0
-            df["centroid_X"] = df["centroid_x"]
-            df["centroid_Y"] = df["centroid_y"]
-            df["image_size_x"] = IMG_SHAPE_RESOLUTION_0_3i_X
-            df["image_size_y"] = IMG_SHAPE_RESOLUTION_0_3i_Y
-            df["crop_size"] = NATIVE_ZARR_RESOLUTION_CROP_SIZE
-            df = add_diffae_model_eval_crop_columns(df)
-            df["track_id"] = df["label"]
 
             # Adjust the crop coordinates to be consistent with the resolution level
             resolution = sequence_to_scalar(df["diffae_resolution_level_to_use"])

@@ -1,7 +1,6 @@
 # %%
 import logging
 
-import numpy as np
 import pandas as pd
 
 from endo_pipeline.cli import DEMO_MODE
@@ -28,22 +27,6 @@ for dataset_name in smad1_datasets:
 
     df_location = get_dataframe_location_for_dataset(if_df_manifest, dataset_name)
     df_dataset = load_dataframe(df_location)
-
-    df_dataset["date"] = dataset_config.date
-
-    shear_regime = "_to_".join([shear.value for shear in dataset_config.shear_stress_regime])
-    df_dataset["shear_stress_regime"] = shear_regime
-
-    shear_stress_list = [condition.shear_stress for condition in dataset_config.flow_conditions]
-    df_dataset["shear_stress_1"] = shear_stress_list[0]
-    df_dataset["shear_stress_2"] = shear_stress_list[1] if len(shear_stress_list) > 1 else np.nan
-
-    durations = [condition.stop - condition.start for condition in dataset_config.flow_conditions]
-    duration_1 = durations[0]
-    duration_2 = durations[1] if len(durations) > 1 else np.nan
-
-    df_dataset["duration_at_ss_1_hr"] = duration_1 * 5 / 60  # convert to hrs
-    df_dataset["duration_at_ss_2_hr"] = duration_2 * 5 / 60  # convert to hrs
 
     df_smad1_list.append(df_dataset)
 
