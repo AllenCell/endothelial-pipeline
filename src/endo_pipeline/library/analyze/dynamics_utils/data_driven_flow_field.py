@@ -100,7 +100,7 @@ def ddff_model_analysis(
     time_span: tuple[float, float],
     init_for_traj: np.ndarray,
     num_inits_for_root_solver: int,
-    plot_bounds: list[np.ndarray],
+    plot_bounds: list[tuple[float, float]],
     plot_stack: bool,
     compute_vtk_files: bool,
     fig_savedir: Path,

@@ -19,7 +19,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
 )
 from endo_pipeline.library.analyze.dynamics_utils import solve_ddff_ode
 from endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
-from endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_data, get_bins
+from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.manifests import (
@@ -39,9 +39,9 @@ from endo_pipeline.settings import (
     ColumnName,
 )
 from endo_pipeline.settings.flow_field_3d import (
+    BIN_WIDTH_DEFAULTS,
     INIT_POINT_3D,
     KERNEL_PARAMS_3D,
-    NUM_BINS_3D,
     TIME_STEP_IN_MINUTES,
     TRAJECTORY_TIME_SPAN,
 )
@@ -291,8 +291,7 @@ def get_traj_and_flowfield(
     # shear stress conditions
     init = np.array(INIT_POINT_3D)
 
-    num_bins = NUM_BINS_3D
-    bins, centers = get_bins(num_bins, bin_limits=bounds)
+    bins, centers = get_bins(BIN_WIDTH_DEFAULTS, bin_limits=bounds)
 
     # get the columns to use for calculating trajectories
     # and flow fields.
@@ -719,7 +718,7 @@ def get_preprocessed_manifests_and_km_bounds(
 
     # get bounds for plotting and flow field estimation
     # based on this dataset only
-    bounds = get_3d_bounds_from_data([dataset_name], grid_diffae_manifest, pca)
+    bounds = get_bounds_from_data([dataset_name], grid_diffae_manifest, pca)
 
     # lastly, add a normalized version of the "time_hours" column
     merged_feats_df = add_normalized_time(merged_feats_df)
