@@ -195,7 +195,8 @@ def main(
                 bins,
                 frame_range=(frame_min, frame_max),
                 feature_names=VARIABLE_NAMES,
-                bin_tick_step=TICK_STEP_NUM,
+                time_tick_step=50,
+                bin_tick_num=TICK_STEP_NUM,
             )
             fig.suptitle(fig_title)
             save_plot_to_path(
