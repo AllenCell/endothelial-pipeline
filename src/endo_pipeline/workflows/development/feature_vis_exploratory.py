@@ -303,12 +303,16 @@ def main(
                     data_values, NUM_INITS, density=prob_density
                 )
 
-                # shift sampled inits for root solver if needed
                 if column_name == ColumnName.POLAR_ANGLE and is_low_shear_regime:
+                    # shift sampled initial points > pi to be within [-pi, pi]
                     idx_points_gt_pi = np.where(sampled_inits_for_root_solver > np.pi)[0]
                     sampled_inits_for_root_solver[idx_points_gt_pi] = (
                         sampled_inits_for_root_solver[idx_points_gt_pi] - 2 * np.pi
                     )
+
+                    # shift data values used for percentile check
+                    idx_data_gt_pi = np.where(data_values > np.pi)[0]
+                    data_values[idx_data_gt_pi] = data_values[idx_data_gt_pi] - 2 * np.pi
 
                 # plot sampled initial points for root solver - sanity check
                 ax.scatter(
@@ -327,7 +331,7 @@ def main(
                 fpt_stabilities = []
                 for fpt in fpts:
                     # if outside the range of data, skip
-                    if not is_point_within_percentile(fpt, data_values, lower=0.1, upper=99.9):
+                    if not is_point_within_percentile(fpt, data_values, lower=5, upper=95):
                         logger.debug(
                             "Fixed point at [ %.2f ] is outside data range, skipping.",
                             fpt[0],
