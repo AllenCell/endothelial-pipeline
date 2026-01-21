@@ -86,10 +86,10 @@ def main(
     }
 
     for dataset_name in tqdm(datasets):
-        if dataset_name not in available_live_datasets:
+        if dataset_name not in (available_live_datasets + available_fixed_datasets):
             error_msg = (
                 f"Dataset {dataset_name} is not in the list of available live datasets: "
-                f"{available_live_datasets}"
+                f"{available_live_datasets + available_fixed_datasets}"
             )
             logger.error(error_msg)
             raise ValueError(error_msg)
