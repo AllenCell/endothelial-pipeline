@@ -41,12 +41,12 @@ def main(
         If True, the upload/remove jobs will be drafted but not executed.
 
     Example rm job:
-    endopipe manage-s3-datasets --datasets 20241120_20X --rm-datasets  --positions-list 0 1
-    endopipe manage-s3-datasets --datasets 20241120_20X --rm-datasets --no-dry-run  --positions-list 0 1
+    endopipe manage-s3-datasets --datasets 20250618_20X --rm-datasets --positions-list 0 1
+    endopipe manage-s3-datasets --datasets 20250618_20X --rm-datasets --no-dry-run  --positions-list 0 1
 
     Example add job:
-    endopipe manage-s3-datasets --add-datasets --positions-list 0 1
-    endopipe manage-s3-datasets --add-datasets --no-dry-run --positions-list 0 1
+    endopipe manage-s3-datasets --add-datasets 20250618_20X --positions-list 0 1
+    endopipe manage-s3-datasets --add-datasets 20250618_20X --no-dry-run --positions-list 0 1
     """
     from s3_uploader import run_all_jobs
 
