@@ -112,8 +112,8 @@ def plot_1d_drift(
         alpha=zero_line_alpha,
         label="$y=0$",
     )
-    ax.set_xlabel(f"${variable_name}$")
-    ax.set_ylabel(f"drift in ${variable_name}$")
+    ax.set_xlabel(variable_name)
+    ax.set_ylabel(f"drift in {variable_name}")
 
     # if data is provided, overlay density estimation using seaborn kdeplot
     if density is not None:
@@ -200,11 +200,11 @@ def plot_1d_diffusion(
         diffusion_vals_mean * np.ones_like(x_vals),
         f"{mean_line_color}{mean_line_style}",
         alpha=mean_line_alpha,
-        label=f"$\\langle D({variable_name}) \\rangle$",
+        label="$\\langle D \\rangle$",
     )
 
-    ax.set_xlabel(f"${variable_name}$")
-    ax.set_ylabel(f"MSD in ${variable_name}$")
+    ax.set_xlabel(variable_name)
+    ax.set_ylabel(f"Diffusion coeff. in {variable_name}")
 
     # if data is provided, overlay density estimation using seaborn kdeplot
     if density is not None:

@@ -12,12 +12,15 @@ TICK_STEP_NUM = [15, 10]
 
 NUM_INITS = 500  # number of initial points to sample for root solver
 
+SHOW_SAMPLED_INITS = False
+
 
 def main(
     datasets: Datasets | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
     bw: float = KERNEL_BANDWIDTH,
+    show_sampled_inits: bool = SHOW_SAMPLED_INITS,
 ) -> None:
     """
     Analyze and visualize DiffAE feature dynamics in polar coordinates.
@@ -65,7 +68,6 @@ def main(
     from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import (
         compute_extrapolated_vector_field,
         get_callable_vector_field,
-        is_point_within_percentile,
         sample_from_density,
     )
     from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
@@ -73,6 +75,9 @@ def main(
     from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
         plot_1d_diffusion,
         plot_1d_drift,
+    )
+    from endo_pipeline.library.visualize.diffae_features.feature_viz import (
+        plot_principal_component_histogram,
     )
     from endo_pipeline.library.visualize.diffae_features.pplane import (
         STABILITY_COLOR_DICT,
@@ -103,6 +108,7 @@ def main(
     DATASET_COLLECTION_NAME = "timelapse"
 
     POLAR_COLUMN_NAMES = [ColumnName.POLAR_ANGLE, ColumnName.POLAR_RADIUS]
+    VARIABLE_NAMES = ["polar $\\theta$", "polar $r$"]
 
     BIN_LIMITS_THETA = (-np.pi, np.pi)
     BIN_LIMITS_RADIUS = (0, 2.75)
@@ -157,6 +163,8 @@ def main(
                 bin_limits=bin_limits,
             )
 
+            hist_arrays = []
+
             for i, column_name in enumerate(POLAR_COLUMN_NAMES):
                 # plot per position mean
                 fig, ax = plt.subplots()
@@ -179,6 +187,7 @@ def main(
                 num_bins = len(bins[i]) - 1
                 frame_min = df_[ColumnName.TIMEPOINT].min()
                 frame_max = df_[ColumnName.TIMEPOINT].max()
+                logger.debug("Frame min: [ %d ], Frame max: [ %d ]", frame_min, frame_max)
                 num_frames = frame_max - frame_min + 1
                 hist_array = np.zeros((num_bins, num_frames))
 
@@ -188,25 +197,38 @@ def main(
                     hist = np.histogram(values, bins=bins[i], density=True)[0]
                     hist_array[:, timepoint_idx] = hist
 
-                fig, ax = plt.subplots()
-                ax.imshow(
-                    hist_array,
-                    aspect="auto",
-                    cmap="inferno",
-                    interpolation="nearest",
-                    origin="lower",
-                )
+                hist_arrays.append(hist_array)
+                # fig, ax = plt.subplots()
+                # ax.imshow(
+                #     hist_array,
+                #     aspect="auto",
+                #     cmap="inferno",
+                #     interpolation="nearest",
+                #     origin="lower",
+                #     extent=[frame_min, frame_max, bins[i][0], bins[i][-1]],
+                # )
 
-                ax.set_ylabel(column_name)
-                ax.set_xlabel("frame_number")
-                ax.set_xticks(np.arange(frame_min, frame_max + 1, step=100))
-                ax.set_xticklabels(np.arange(frame_min, frame_max + 1, step=100))
-                ax.set_yticks(np.arange(0, num_bins + 1, step=TICK_STEP_NUM[i]))
-                ax.set_yticklabels(np.round(bins[i], 2)[:: TICK_STEP_NUM[i]])
-                ax.set_title(fig_title)
-                save_plot_to_path(
-                    fig, fig_savedir_summary, f"{dataset_name_flow}_{column_name}_histogram_heatmap"
-                )
+                # ax.set_ylabel(column_name)
+                # ax.set_xlabel("frame_number")
+                # xticks = np.arange(frame_min, frame_max + 1, step=100)
+                # yticks = np.linspace(bins[i][0], bins[i][-1], num=TICK_STEP_NUM[i])
+                # ax.set_xticks(xticks, labels=xticks)
+                # ax.set_yticks(yticks, labels = np.round(yticks, 2))
+                # ax.set_title(fig_title)
+                # save_plot_to_path(
+                #     fig, fig_savedir_summary, f"{dataset_name_flow}_{column_name}_histogram_heatmap"
+                # )
+
+            fig, ax = plot_principal_component_histogram(
+                hist_arrays,
+                bins,
+                frame_range=(frame_min, frame_max),
+                feature_names=VARIABLE_NAMES,
+            )
+            fig.suptitle(fig_title)
+            save_plot_to_path(
+                fig, fig_savedir_summary, f"{dataset_name_flow}_polar_histogram_heatmap"
+            )
 
             # compute Kramers-Moyal coefficients
 
@@ -254,11 +276,10 @@ def main(
                     centers[i] = centers[i][idx_sorted]
                     density_values = density_values[idx_sorted]
 
-                variable_name = "\\theta" if column_name == ColumnName.POLAR_ANGLE else "r"
                 fig, ax = plot_1d_drift(
                     centers[i],
                     drift,
-                    variable_name,
+                    VARIABLE_NAMES[i],
                     density=density_values,
                 )
 
@@ -286,16 +307,17 @@ def main(
                     idx_data_gt_pi = np.where(data_values > np.pi)[0]
                     data_values[idx_data_gt_pi] = data_values[idx_data_gt_pi] - 2 * np.pi
 
-                # plot sampled initial points for root solver - sanity check
-                ax.scatter(
-                    sampled_inits_for_root_solver,
-                    ax.get_ylim()[0] * np.ones_like(sampled_inits_for_root_solver),
-                    s=1,
-                    c="magenta",
-                    marker="x",
-                    alpha=0.3,
-                    label="Sampled inits. for root solver",
-                )
+                if show_sampled_inits:
+                    # plot sampled initial points for root solver - sanity check
+                    ax.scatter(
+                        sampled_inits_for_root_solver,
+                        ax.get_ylim()[0] * np.ones_like(sampled_inits_for_root_solver),
+                        s=1,
+                        c="magenta",
+                        marker="x",
+                        alpha=0.3,
+                        label="Sampled inits. for root solver",
+                    )
 
                 # pass into helper function to get fixed points
                 fpts = get_fps(drift_function, sampled_inits_for_root_solver)
@@ -303,7 +325,7 @@ def main(
                 fpt_stabilities = []
                 for fpt in fpts:
                     # if outside the range of data, skip
-                    if not is_point_within_percentile(fpt, data_values, lower=5, upper=95):
+                    if not (fpt[0] > data_values.min() and fpt[0] < data_values.max()):
                         logger.debug(
                             "Fixed point at [ %.2f ] is outside data range, skipping.",
                             fpt[0],
@@ -348,7 +370,7 @@ def main(
                 fig, ax = plot_1d_diffusion(
                     centers[i],
                     diffusion,
-                    variable_name,
+                    VARIABLE_NAMES[i],
                     density=density_values,
                 )
                 ax.legend()
