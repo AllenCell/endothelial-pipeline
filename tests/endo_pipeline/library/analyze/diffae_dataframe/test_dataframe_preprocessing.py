@@ -174,21 +174,21 @@ def test_get_latent_feature_column_names_from_dataframe(dataframe, expected_colu
             ),
             [f"{ColumnName.POLAR_ANGLE}", f"{ColumnName.PCA_FEATURE_PREFIX}{3}"],
             [
-                np.ndarray(
+                np.array(
                     [
                         [np.pi, 2.5],
                         [np.pi - 0.05, 2.6],
                         [-np.pi + 0.05, 2.7],
                     ]
                 ),  # crop 0
-                np.ndarray(
+                np.array(
                     [
                         [0.1, 0.1],
                         [-0.4, 0.55],
                         [0.3, 0.2],
                     ]
                 ),  # crop 1
-                np.ndarray(
+                np.array(
                     [
                         [1.0, 1.5],
                         [1.1, 1.6],
@@ -197,19 +197,19 @@ def test_get_latent_feature_column_names_from_dataframe(dataframe, expected_colu
                 ),  # crop 3
             ],
             [
-                np.ndarray(
+                np.array(
                     [
                         [-0.05, 0.1],
                         [0.1, 0.1],
                     ]
                 ),  # crop 0
-                np.ndarray(
+                np.array(
                     [
                         [-0.5, 0.45],
                         [0.7, -0.35],
                     ]
                 ),  # crop 1
-                np.ndarray(
+                np.array(
                     [
                         [0.1, 0.1],
                         [0.1, 0.1],

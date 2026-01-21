@@ -813,7 +813,9 @@ def split_dataset_by_flow(
     return data_all, shear_list
 
 
-def get_traj_and_diff(df: pd.DataFrame, column_names: list) -> tuple[list, list]:
+def get_traj_and_diff(
+    df: pd.DataFrame, column_names: list
+) -> tuple[list[np.ndarray], list[np.ndarray]]:
     """
     Get trajectories and single-timepoint displacement vectors for each crop in feature space.
 
