@@ -1,0 +1,76 @@
+name: pc_diffae_tracked_seg_features
+workflow: live_feat_workflows_to_fms
+parameters: {}
+locations:
+  20250319_20X:
+    fmsid: c49ae4fdbe094e95ae40b99cd0180e3b
+    path: null
+    s3uri: null
+  20250428_20X:
+    fmsid: d1d1aca9a9ed446cbfbf211c07fee8bf
+    path: null
+    s3uri: null
+  20250611_20X:
+    fmsid: adeed491643e4c0182062d5fa56316d9
+    path: null
+    s3uri: null
+  20250618_20X:
+    fmsid: 96ed25c7aba2467090f2892f795743eb
+    path: null
+    s3uri: null
+  20250714_20X:
+    fmsid: ae798370fb7147d8b971d6c68296ee59
+    path: null
+    s3uri: null
+  20250813_20X:
+    fmsid: 7c91cdfe32b34b4a957ebda76ce4a151
+    path: null
+    s3uri: null
+  20250818_20X:
+    fmsid: f4037eed6e534f0c8d92876488b96ccc
+    path: null
+    s3uri: null
+  20250827_20X:
+    fmsid: e39f595b2e6843f0b350ee38fae2e986
+    path: null
+    s3uri: null
+  20250224_20X:
+    fmsid: 855ee7a86dad4de8b441f86d63700f99
+    path: null
+    s3uri: null
+  20250326_20X:
+    fmsid: 24d94784e79241c4af8acf7a13608419
+    path: null
+    s3uri: null
+  20250402_20X:
+    fmsid: 4a710dcfcfe3489095e2ea50b336543c
+    path: null
+    s3uri: null
+  20250409_20X:
+    fmsid: b33143ec569d45709c5c780cf64bea0d
+    path: null
+    s3uri: null
+  20250604_20X:
+    fmsid: 0b160d486a544655b8fe571593a6a631
+    path: null
+    s3uri: null
+  20250716_20X:
+    fmsid: 8bec6f5de53a495e9b034e17968b0bc8
+    path: null
+    s3uri: null
+  20250728_20X:
+    fmsid: 90bf7bc5990849128a808a658d8dd6fb
+    path: null
+    s3uri: null
+  20250806_20X:
+    fmsid: fe434b2815f14597b3bcee5f76a4d6da
+    path: null
+    s3uri: null
+  20250825_20X:
+    fmsid: b32be1cc9d114580b2e416bc119bff7b
+    path: null
+    s3uri: null
+  20251001_20X:
+    fmsid: ae03f76e655446f09195fa65de9b9b53
+    path: null
+    s3uri: null
