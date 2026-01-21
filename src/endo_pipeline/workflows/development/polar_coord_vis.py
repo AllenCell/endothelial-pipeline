@@ -48,7 +48,6 @@ def main(
     import logging
     import re
 
-    import matplotlib.pyplot as plt
     import numpy as np
     from numdifftools import Jacobian
     from scipy.stats import gaussian_kde
@@ -77,6 +76,7 @@ def main(
         plot_1d_drift,
     )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
+        plot_per_position_average,
         plot_principal_component_histogram,
     )
     from endo_pipeline.library.visualize.diffae_features.pplane import (
@@ -163,26 +163,17 @@ def main(
                 bin_limits=bin_limits,
             )
 
+            fig, ax = plot_per_position_average(
+                df_,
+                POLAR_COLUMN_NAMES,
+            )
+            save_plot_to_path(
+                fig, fig_savedir_summary, f"{dataset_name_flow}_per_position_averages"
+            )
+
             hist_arrays = []
 
             for i, column_name in enumerate(POLAR_COLUMN_NAMES):
-                # plot per position mean
-                fig, ax = plt.subplots()
-
-                for pos, df_pos in df_.groupby(ColumnName.POSITION):
-                    df_pos_ = df_pos.sort_values(by=ColumnName.TIMEPOINT)
-                    mean_over_crops = df_pos_.groupby(ColumnName.TIMEPOINT)[column_name].mean()
-                    timepoints = df_pos_[ColumnName.TIMEPOINT].unique()
-                    ax.plot(timepoints, mean_over_crops, label=pos)
-
-                ax.legend()
-                ax.set_xlabel("frame number")
-                ax.set_ylabel(column_name)
-                ax.set_title(fig_title)
-                save_plot_to_path(
-                    fig, fig_savedir_summary, f"{dataset_name_flow}_{column_name}_average"
-                )
-
                 # plot histogram heatmap over time
                 num_bins = len(bins[i]) - 1
                 frame_min = df_[ColumnName.TIMEPOINT].min()

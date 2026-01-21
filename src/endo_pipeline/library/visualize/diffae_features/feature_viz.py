@@ -17,6 +17,7 @@ from sklearn.decomposition import PCA
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    check_required_columns_in_dataframe,
     get_dataframe_for_dynamics_workflows,
 )
 from endo_pipeline.library.visualize import viz_base
@@ -507,7 +508,7 @@ def plot_principal_component_histogram(
 
     # initialize figure and axes
     # vertical, so they share x-axis (frames)
-    fig, ax = plt.subplots(ndim, 1, figsize=(6, 3 * ndim))
+    fig, ax = plt.subplots(ndim, 1, figsize=(6, 4 * ndim))
 
     # loop over components, plot histogram of feature data projected onto each PC
     for col, ax_ in enumerate(ax.flatten()):
@@ -538,6 +539,43 @@ def plot_principal_component_histogram(
     fig.subplots_adjust(hspace=0.5)
 
     return fig, ax
+
+
+def plot_per_position_average(
+    df: pd.DataFrame, column_names: list[str]
+) -> tuple[Figure, np.ndarray[Axes, Any]]:
+    """
+    Plot per-position average over time of specified columns in the dataframe.
+
+    Parameters
+    ----------
+    df
+        DataFrame containing the data to plot.
+    column_names
+        List of column names to plot the per-position average for.
+    """
+    # confirm required columns are in dataframe
+    required_columns = [ColumnName.POSITION, ColumnName.TIMEPOINT] + column_names
+    check_required_columns_in_dataframe(df, required_columns)
+
+    # share x axis for all subplots (frame number)
+    ndim = len(column_names)
+    fig, axs = plt.subplots(ndim, 1, figsize=(6, 4 * ndim))
+
+    for i, column_name in enumerate(column_names):
+        ax: plt.Axes = axs[i]
+        for pos, df_pos in df.groupby(ColumnName.POSITION):
+            df_pos_ = df_pos.sort_values(by=ColumnName.TIMEPOINT)
+            mean_over_crops = df_pos_.groupby(ColumnName.TIMEPOINT)[column_name].mean()
+            timepoints = df_pos_[ColumnName.TIMEPOINT].unique()
+            ax.plot(timepoints, mean_over_crops, label=pos)
+
+        if i == ndim - 1:
+            ax.set_xlabel("frame number")
+        ax.set_ylabel(f"average of {column_name} over crops")
+        ax.legend(title=ColumnName.POSITION.value)
+
+    return fig, axs
 
 
 def plot_km(
