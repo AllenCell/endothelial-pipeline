@@ -18,6 +18,9 @@ from endo_pipeline.configs import (
     load_dataset_config,
 )
 from endo_pipeline.io import load_dataframe
+from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+    get_smallest_angle_difference,
+)
 from endo_pipeline.manifests import (
     DataframeManifest,
     get_dataframe_location_for_dataset,
@@ -860,14 +863,30 @@ def get_traj_and_diff(df: pd.DataFrame, column_names: list) -> tuple[list, list]
         # add columns giving difference in feature values between consecutive dataframe rows
         df_crop_[diff_column_names] = df_crop_[column_names].diff().shift(-1)
 
-        # trajectory values to keep -- only keep steps where time difference is 1
+        # if one of the column names is `polar_theta`, need to replace with the
+        # circular difference for angular data instead of simple difference
+        if ColumnName.POLAR_ANGLE in column_names:
+            angle_diffs = get_smallest_angle_difference(
+                df_crop_[ColumnName.POLAR_ANGLE].values[1:],
+                df_crop_[ColumnName.POLAR_ANGLE].values[:-1],
+                units="rad",
+            )
+            df_crop_[f"{ColumnName.POLAR_ANGLE}_diff"] = np.concatenate(
+                (
+                    angle_diffs,
+                    np.array([np.nan]),
+                )  # no valid difference at end of trajectory, will be dropped later
+            )
+
+        # trajectory values to keep -- only keep steps where time difference is 1 frame
         # and also the last point in the trajectory (which has time difference 0)
         traj_mask = df_crop_[f"{ColumnName.TIMEPOINT}_diff"] <= 1
 
-        # for the gradient, only keep steps where time difference is exactly 1
+        # for the gradient, only keep steps where time difference is exactly 1 frame
         # i.e., no valid difference at the end of the trajectory (only forward differences)
         gradient_mask = df_crop_[f"{ColumnName.TIMEPOINT}_diff"] == 1
 
+        # append trajectory and displacement data to lists
         traj_list.append(df_crop_[traj_mask][column_names].values)
         d_traj_list.append(df_crop_[gradient_mask][diff_column_names].values)
 
