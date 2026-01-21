@@ -56,7 +56,6 @@ def main(
     )
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
-        get_label_for_column,
         plot_component_histograms_over_time,
     )
     from endo_pipeline.manifests import (
@@ -76,7 +75,7 @@ def main(
     logger = logging.getLogger(__name__)
 
     # get labels for polar coordinate columns
-    variable_names = get_label_for_column(POLAR_COLUMN_NAMES)
+    variable_names = [col.value for col in POLAR_COLUMN_NAMES]
     logger.debug("Using variable names: [ %s ]", variable_names)
 
     # get dataframe manifest for grid-based crop features
