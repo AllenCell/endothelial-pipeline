@@ -200,7 +200,7 @@ def plot_1d_diffusion(
         diffusion_vals_mean * np.ones_like(x_vals),
         f"{mean_line_color}{mean_line_style}",
         alpha=mean_line_alpha,
-        label="$\\langle D \\rangle$",
+        label=f"$\\langle D \\rangle = {round(diffusion_vals_mean,4)}$",
     )
 
     ax.set_xlabel(variable_name)

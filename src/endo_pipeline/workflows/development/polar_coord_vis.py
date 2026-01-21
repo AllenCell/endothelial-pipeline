@@ -8,11 +8,13 @@ KERNEL_BANDWIDTH = 0.175
 
 BIN_WIDTH = 0.05
 
-TICK_STEP_NUM = 15
+TICK_STEP_NUM = 7
 
 NUM_INITS = 500  # number of initial points to sample for root solver
 
 SHOW_SAMPLED_INITS = False
+
+BIN_LIMITS_RADIUS = (0, 3.5)
 
 
 def main(
@@ -76,6 +78,7 @@ def main(
         plot_1d_drift,
     )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
+        get_label_for_column,
         plot_per_position_average,
         plot_principal_component_histogram,
     )
@@ -108,10 +111,9 @@ def main(
     DATASET_COLLECTION_NAME = "timelapse"
 
     POLAR_COLUMN_NAMES = [ColumnName.POLAR_ANGLE, ColumnName.POLAR_RADIUS]
-    VARIABLE_NAMES = ["polar $\\theta$", "polar $r$"]
+    VARIABLE_NAMES = [get_label_for_column(column_name) for column_name in POLAR_COLUMN_NAMES]
 
     BIN_LIMITS_THETA = (-np.pi, np.pi)
-    BIN_LIMITS_RADIUS = (0, 2.75)
 
     # get dataframe manifest for grid-based crop features
     model_manifest = load_model_manifest(model_manifest_name)

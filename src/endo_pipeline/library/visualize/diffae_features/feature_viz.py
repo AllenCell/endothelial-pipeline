@@ -508,7 +508,7 @@ def plot_principal_component_histogram(
 
     # initialize figure and axes
     # vertical, so they share x-axis (frames)
-    fig, ax = plt.subplots(ndim, 1, figsize=(6, 4 * ndim))
+    fig, ax = plt.subplots(ndim, 1, figsize=(7, 3 * ndim))
 
     # loop over components, plot histogram of feature data projected onto each PC
     for col, ax_ in enumerate(ax.flatten()):
@@ -535,8 +535,6 @@ def plot_principal_component_histogram(
         )
         ax_.set_xticks(xticks, labels=xticks)
         ax_.set_yticks(yticks, labels=np.round(yticks, 2))
-
-    fig.subplots_adjust(hspace=0.5)
 
     return fig, ax
 
