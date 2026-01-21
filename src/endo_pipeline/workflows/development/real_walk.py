@@ -76,7 +76,7 @@ def main(
     from endo_pipeline.library.process.image_processing import max_proj, std_dev
     from endo_pipeline.library.visualize.crop_montage import load_data_for_montage, sample_dataframe
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
-        plot_principal_component_histogram,
+        plot_component_histograms_over_time,
     )
     from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
     from endo_pipeline.manifests import (
@@ -133,7 +133,7 @@ def main(
 
     if plot_heatmap:
         for i, dataset_name in enumerate(datasets):
-            fig, _ = plot_principal_component_histogram(hist_array_lists[i], bin_edges)
+            fig, _ = plot_component_histograms_over_time(hist_array_lists[i], bin_edges)
             fig.suptitle(f"Dataset: {dataset_name}", y=0.95, fontsize=25)
             save_plot_to_path(fig, fig_savedir, f"{dataset_name}_pc_histogram")
 

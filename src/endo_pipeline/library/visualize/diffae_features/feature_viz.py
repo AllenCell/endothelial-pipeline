@@ -453,7 +453,7 @@ def make_pc_scatter_fig4a(
     return fig
 
 
-def plot_principal_component_histogram(
+def plot_component_histograms_over_time(
     hist_arrays: list[np.ndarray],
     bin_edges: list[np.ndarray],
     feature_names: list[str] | None = None,

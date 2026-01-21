@@ -15,7 +15,7 @@ from endo_pipeline.library.analyze.numerics import (
     get_histogram_by_component,
 )
 from endo_pipeline.library.visualize.diffae_features.feature_viz import (
-    plot_principal_component_histogram,
+    plot_component_histograms_over_time,
 )
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.diffae_feature_dataframes import (
@@ -126,7 +126,7 @@ def filter_dataframe(
 
     if plot_heatmap:
         for i, dataset_name in enumerate(dataset_names):
-            fig, _ = plot_principal_component_histogram(hist_array_list[i], bin_edges)
+            fig, _ = plot_component_histograms_over_time(hist_array_list[i], bin_edges)
             fig.suptitle(f"Dataset: {dataset_name}", y=0.95, fontsize=25)
             save_plot_to_path(fig, fig_savedir, f"{dataset_name}_pc_histogram")
 
