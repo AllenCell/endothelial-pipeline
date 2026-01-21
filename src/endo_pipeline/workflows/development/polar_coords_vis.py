@@ -1,3 +1,5 @@
+from typing import Literal
+
 from endo_pipeline.cli import Datasets
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
@@ -9,6 +11,7 @@ def main(
     datasets: Datasets | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
+    crop_pattern: Literal["grid", "tracked"] = "grid",
 ) -> None:
     """
     Analyze and visualize DiffAE feature dynamics in polar coordinates.
@@ -36,6 +39,8 @@ def main(
         The name of the model manifest to use.
     run_name
         The name of the model run to use.
+    crop_pattern
+        The crop pattern to get features for, either "grid" or "tracked".
     """
 
     import logging
@@ -77,7 +82,7 @@ def main(
     # get dataframe manifest for grid-based crop features
     model_manifest = load_model_manifest(model_manifest_name)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
+        model_manifest, run_name, crop_pattern=crop_pattern
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
