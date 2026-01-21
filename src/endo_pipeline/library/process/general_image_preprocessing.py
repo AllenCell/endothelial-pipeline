@@ -10,7 +10,7 @@ from bioio import BioImage
 from bioio.writers import OmeTiffWriter
 from tqdm import tqdm
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
 from endo_pipeline.io import get_output_path
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings import DIMENSION_ORDER
@@ -110,6 +110,9 @@ def build_analysis_queue(
 
     logger.info(f"Building analysis queue for the following datasets: {dataset_name_list}")
 
+    timelapse_datasets = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
+    smad1_datasets = get_datasets_in_collection("smad1")
+
     analysis_queue: list = []
     out_dir = (
         Path(out_dir) if out_dir is not None else get_output_path("analysis_queue_output_temp")
@@ -150,6 +153,17 @@ def build_analysis_queue(
             for timepoint in t_range:
                 validation_image = True if timepoint in validation_t_range else False
 
+                if dataset_name in timelapse_datasets:
+                    nuclei_seg_manifest_name = "nuclear_labelfree_seg"
+                elif dataset_name in smad1_datasets:
+                    nuclei_seg_manifest_name = "nuclear_stain_seg"
+                else:
+                    logger.warning(
+                        f"Dataset {dataset_name}: no associated nuclei segmentation manifest found. \
+                        Setting nuclei_seg_manifest_name to None."
+                    )
+                    nuclei_seg_manifest_name = None
+
                 analysis_args = {
                     "dataset_name": dataset_name,
                     "image_bin_level": img_bin_level,
@@ -163,6 +177,7 @@ def build_analysis_queue(
                     "image_validation_frequency": image_validation_frequency,
                     "is_test": is_test,
                     "verbose": verbose,
+                    "nuclei_seg_manifest_name": nuclei_seg_manifest_name,
                 }
 
                 analysis_queue.append(analysis_args)

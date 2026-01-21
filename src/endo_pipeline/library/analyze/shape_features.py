@@ -1801,6 +1801,7 @@ def get_nuclei_features_from_dataset_at_timepoint(
     position: int,
     tp: int,
     out_dir: Path,
+    nuclei_seg_manifest_name: str = "nuclei_labelfree_seg",
     channel_names: tuple = ("EGFP", "BF"),
     save_output: bool = True,
 ) -> pd.DataFrame:
@@ -1822,7 +1823,7 @@ def get_nuclei_features_from_dataset_at_timepoint(
     dim_order = DIMENSION_ORDER
     dataset_config = load_dataset_config(dataset_name)
 
-    nuc_manifest = load_image_manifest("nuclear_labelfree_seg")
+    nuc_manifest = load_image_manifest(nuclei_seg_manifest_name)
     nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_config, position, tp)
     nuc_seg = load_image(nuc_location, squeeze=True, compute=True)
 
@@ -1904,10 +1905,13 @@ def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
     tp = args["T"]
     out_dir = args["output_dir"]
     save_output = args["save_output"]
+    nuclei_seg_manifest_name = args["nuclei_seg_manifest_name"]
+
     get_nuclei_features_from_dataset_at_timepoint(
         dataset_name=dataset_name,
         position=position,
         tp=tp,
         out_dir=out_dir,
+        nuclei_seg_manifest_name=nuclei_seg_manifest_name,
         save_output=save_output,
     )
