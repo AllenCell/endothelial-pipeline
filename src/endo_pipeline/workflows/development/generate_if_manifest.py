@@ -18,6 +18,8 @@ def main(datasets: Datasets | None = None) -> None:
     """
     import logging
 
+    import numpy as np
+
     from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.library.process.if_feature_extraction import run_nuclei_feature_extraction
@@ -46,6 +48,24 @@ def main(datasets: Datasets | None = None) -> None:
 
         # Step 1: Run feature extraction
         df = run_nuclei_feature_extraction(dataset_config, positions)
+
+        # add data info to dataframe
+        df["date"] = dataset_config.date
+        shear_regime = "_to_".join([shear.value for shear in dataset_config.shear_stress_regime])
+        df["shear_stress_regime"] = shear_regime
+
+        shear_stress_list = [condition.shear_stress for condition in dataset_config.flow_conditions]
+        df["shear_stress_1"] = shear_stress_list[0]
+        df["shear_stress_2"] = shear_stress_list[1] if len(shear_stress_list) > 1 else np.nan
+
+        durations = [
+            condition.stop - condition.start for condition in dataset_config.flow_conditions
+        ]
+        duration_1 = durations[0]
+        duration_2 = durations[1] if len(durations) > 1 else np.nan
+
+        df["duration_at_ss_1_hr"] = duration_1 * 5 / 60  # convert to hrs
+        df["duration_at_ss_2_hr"] = duration_2 * 5 / 60  # convert to hrs
 
         # Step 2: Save to CSV
         save_path = save_manifest_to_csv(dataset, df)
