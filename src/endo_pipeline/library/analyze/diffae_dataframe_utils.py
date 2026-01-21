@@ -839,35 +839,37 @@ def get_traj_and_diff(df: pd.DataFrame, column_names: list) -> tuple[list, list]
     required_columns = [ColumnName.TIMEPOINT, ColumnName.CROP_INDEX, *column_names]
     check_required_columns_in_dataframe(df, required_columns)
 
-    # get list of unique crop indices
-    crop_list = df[ColumnName.CROP_INDEX].unique().tolist()
+    # initialize name for difference columns
+    diff_column_names = [f"{col}_diff" for col in column_names]
 
     # initialize lists for storing outputs
     traj_list = []
     d_traj_list = []
 
     # loop over each crop in the dataset
-    for crop in crop_list:
+    for _, df_crop in df.groupby(ColumnName.CROP_INDEX):
         # get data for each crop, sorted by time
-        data_crop = df[df[ColumnName.CROP_INDEX] == crop].sort_values(by=ColumnName.TIMEPOINT)
+        df_crop_ = df_crop.sort_values(by=ColumnName.TIMEPOINT)
 
         # add column giving difference in timepoint between consecutive dataframe rows
-        dt = data_crop[ColumnName.TIMEPOINT].diff().shift(-1)
-        data_crop["timepoint_diff"] = dt
+        # convert NaN to 0 -- occurs at end of trajectory
+        df_crop_[f"{ColumnName.TIMEPOINT}_diff"] = (
+            df_crop_[ColumnName.TIMEPOINT].diff().shift(-1).fillna(0)
+        )
 
-        # filter to only single-timepoint differences (i.e., dt = 1)
-        data_crop = data_crop[data_crop["timepoint_diff"] == 1]
+        # add columns giving difference in feature values between consecutive dataframe rows
+        df_crop_[diff_column_names] = df_crop_[column_names].diff().shift(-1)
 
-        # get displacement vectors for each pair of consecutive-timepoints
-        # for each crop (i.e. do not include displacements for non-consecutive
-        # timepoints where outliers etc were removed)
-        d_traj = np.diff(data_crop[column_names].values, axis=0)
+        # trajectory values to keep -- only keep steps where time difference is 1
+        # and also the last point in the trajectory (which has time difference 0)
+        traj_mask = df_crop_[f"{ColumnName.TIMEPOINT}_diff"] <= 1
 
-        # append data to lists:
-        # trajectory and displacement vectors
-        # leave off last timepoint for trajectory
-        traj_list.append(data_crop[column_names].values)
-        d_traj_list.append(d_traj)
+        # for the gradient, only keep steps where time difference is exactly 1
+        # i.e., no valid difference at the end of the trajectory (only forward differences)
+        gradient_mask = df_crop_[f"{ColumnName.TIMEPOINT}_diff"] == 1
+
+        traj_list.append(df_crop_[traj_mask][column_names].values)
+        d_traj_list.append(df_crop_[gradient_mask][diff_column_names].values)
 
     return traj_list, d_traj_list
 
