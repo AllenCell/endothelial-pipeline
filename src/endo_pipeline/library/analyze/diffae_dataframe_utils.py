@@ -810,7 +810,7 @@ def split_dataset_by_flow(
     return data_all, shear_list
 
 
-def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, list]:
+def get_traj_and_diff(data: pd.DataFrame, column_names: list) -> tuple[list, list]:
     """
     Get trajectories and single-timepoint displacement vectors for each crop in feature space.
 
@@ -819,14 +819,14 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
     The input dataframe should have columns for:
     - frame_number: timepoint of the crop
     - crop_index: unique index for each crop
-    - columns for each feature (e.g., pc_0, pc_1, pc_2, ...) matching input ``pc_column_names``
+    - columns for each feature (e.g., pc_0, pc_1, pc_2, ...) matching input ``column_names``
 
     Parameters
     ----------
     data
         DataFrame with columns for each feature.
-    pc_column_names
-        List of column names corresponding to the PC features in the DataFrame.
+    column_names
+        List of column names corresponding to the features of interest in the DataFrame.
 
     Returns
     -------
@@ -836,7 +836,7 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
         List of displacement vectors along each trajectory in feature space.
     """
     # check that required columns are present
-    required_columns = [ColumnName.TIMEPOINT, ColumnName.CROP_INDEX, *pc_column_names]
+    required_columns = [ColumnName.TIMEPOINT, ColumnName.CROP_INDEX, *column_names]
     check_required_columns_in_dataframe(data, required_columns)
 
     # get list of unique crop indices
@@ -861,12 +861,12 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
         # get displacement vectors for each pair of consecutive-timepoints
         # for each crop (i.e. do not include displacements for non-consecutive
         # timepoints where outliers etc were removed)
-        d_traj = np.diff(data_crop[pc_column_names].values, axis=0)
+        d_traj = np.diff(data_crop[column_names].values, axis=0)
 
         # append data to lists:
         # trajectory and displacement vectors
         # leave off last timepoint for trajectory
-        traj_list.append(data_crop[pc_column_names].values)
+        traj_list.append(data_crop[column_names].values)
         d_traj_list.append(d_traj)
 
     return traj_list, d_traj_list
