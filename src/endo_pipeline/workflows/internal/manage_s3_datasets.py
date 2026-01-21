@@ -99,14 +99,14 @@ def main(
     if dry_run:
         print("Check files and re-run with --no-dry-run to submit jobs.")
     else:
-        # Create a script to check completion
-        script_path = save_dir / "run_check_completion.py"
+        job_code = job_path.name.split("_")[0]
+        script_path = save_dir / f"{job_code}_run_check_completion.py"
         with open(script_path, "w") as f:
             f.write(
                 f"""\
     from s3_uploader import check_completion
 
-    save_dir_str = {str(save_dir)!r}
+    save_dir_str = {save_dir_str!r}
     log_dir_str = {log_dir_str!r}
 
     check_completion(save_dir_str, log_dir_str)
