@@ -52,7 +52,6 @@ def sample_from_density(
     """
     # make sure data is in shape (n, ndim)
     data_ = data[:, np.newaxis] if len(data.shape) == 1 else data
-    logger.debug("Data shape for density estimation: [ %s ]", data_.shape)
 
     rng = np.random.default_rng(seed=random_seed)
 

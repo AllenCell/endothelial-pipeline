@@ -155,8 +155,9 @@ def main(
             bin_limits = [BIN_LIMITS_THETA, BIN_LIMITS_RADIUS]
 
             is_low_shear_regime = shear_stress < 11.0 and shear_stress > 0.0
+            shift_theta_range = is_low_shear_regime or (dataset_name in SPLIT_THETA_DATASETS)
 
-            if dataset_name in SPLIT_THETA_DATASETS or is_low_shear_regime:
+            if shift_theta_range:
                 df_[ColumnName.POLAR_ANGLE] = df_[ColumnName.POLAR_ANGLE].apply(
                     lambda x: x + 2 * np.pi if x < 0 else x
                 )
@@ -270,7 +271,7 @@ def main(
                 density_values = prob_density(centers[i])
 
                 # shift theta back to [-pi, pi] if needed
-                if column_name == ColumnName.POLAR_ANGLE and is_low_shear_regime:
+                if column_name == ColumnName.POLAR_ANGLE and shift_theta_range:
                     # find where x > pi in centers and shift those values
                     idx_gt_pi = np.where(centers[i] > np.pi)[0]
                     centers[i][idx_gt_pi] = centers[i][idx_gt_pi] - 2 * np.pi
@@ -303,7 +304,7 @@ def main(
                     data_values, NUM_INITS, density=prob_density
                 )
 
-                if column_name == ColumnName.POLAR_ANGLE and is_low_shear_regime:
+                if column_name == ColumnName.POLAR_ANGLE and shift_theta_range:
                     # shift sampled initial points > pi to be within [-pi, pi]
                     idx_points_gt_pi = np.where(sampled_inits_for_root_solver > np.pi)[0]
                     sampled_inits_for_root_solver[idx_points_gt_pi] = (
