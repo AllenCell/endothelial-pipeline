@@ -59,6 +59,7 @@ def main(
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
         get_dataframe_for_dynamics_workflows,
+        get_traj_and_diff,
         split_dataset_by_flow,
     )
     from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import (
@@ -68,9 +69,6 @@ def main(
         sample_from_density,
     )
     from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
-    from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
-        get_smallest_angle_difference,
-    )
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
         plot_1d_diffusion,
@@ -154,15 +152,6 @@ def main(
 
             bin_limits = [BIN_LIMITS_THETA, BIN_LIMITS_RADIUS]
 
-            is_low_shear_regime = shear_stress < 11.0 and shear_stress > 0.0
-            shift_theta_range = is_low_shear_regime or (dataset_name in SPLIT_THETA_DATASETS)
-
-            if shift_theta_range:
-                df_[ColumnName.POLAR_ANGLE] = df_[ColumnName.POLAR_ANGLE].apply(
-                    lambda x: x + 2 * np.pi if x < 0 else x
-                )
-                bin_limits = [(0, 2 * np.pi), BIN_LIMITS_RADIUS]
-
             bins, centers = get_bins(
                 bin_widths=(BIN_WIDTH, BIN_WIDTH),
                 bin_limits=bin_limits,
@@ -220,43 +209,25 @@ def main(
                 )
 
             # compute Kramers-Moyal coefficients
+
+            # reset bin limits if shifting theta range
+            # done to better capture dynamics near -pi to pi boundary
+            is_low_shear_regime = shear_stress < 11.0 and shear_stress > 0.0
+            shift_theta_range = is_low_shear_regime or (dataset_name in SPLIT_THETA_DATASETS)
+
+            if shift_theta_range:
+                df_[ColumnName.POLAR_ANGLE] = df_[ColumnName.POLAR_ANGLE].apply(
+                    lambda x: x + 2 * np.pi if x < 0 else x
+                )
+                bin_limits = [(0, 2 * np.pi), BIN_LIMITS_RADIUS]
+
+            bins, centers = get_bins(
+                bin_widths=(BIN_WIDTH, BIN_WIDTH),
+                bin_limits=bin_limits,
+            )
+
             for i, column_name in enumerate(POLAR_COLUMN_NAMES):
-                traj_list = []
-                d_traj_list = []
-                for _, df_crop in df_.groupby(ColumnName.CROP_INDEX):
-                    df_crop_ = df_crop.sort_values(by=ColumnName.TIMEPOINT)
-
-                    # add column giving difference in timepoint between consecutive dataframe rows
-                    # convert NaN to 0 -- occurs at end of trajectory
-                    df_crop_[f"{ColumnName.TIMEPOINT}_diff"] = (
-                        df_crop_[ColumnName.TIMEPOINT].diff().shift(-1).fillna(0)
-                    )
-                    # compute one-step differences in polar angle and radius
-                    if column_name == ColumnName.POLAR_ANGLE:
-                        angle_diffs = get_smallest_angle_difference(
-                            df_crop_[column_name].values[1:],
-                            df_crop_[column_name].values[:-1],
-                            units="rad",
-                        )
-                        df_crop_[f"{column_name}_diff"] = np.concatenate(
-                            (
-                                angle_diffs,
-                                np.array([np.nan]),
-                            )  # no valid difference at end of trajectory
-                        )
-                    else:
-                        df_crop_[f"{column_name}_diff"] = df_crop_[column_name].diff().shift(-1)
-
-                    # trajectory values to keep -- only keep steps where time difference is 1
-                    # and also the last point in the trajectory (which has time difference 0)
-                    traj_mask = df_crop_[f"{ColumnName.TIMEPOINT}_diff"] <= 1
-
-                    # for the gradient, only keep steps where time difference is exactly 1
-                    # i.e., no valid difference at the end of the trajectory (only forward differences)
-                    gradient_mask = df_crop_[f"{ColumnName.TIMEPOINT}_diff"] == 1
-
-                    traj_list.append(df_crop_[traj_mask][column_name].values)
-                    d_traj_list.append(df_crop_[gradient_mask][f"{column_name}_diff"].values)
+                traj_list, d_traj_list = get_traj_and_diff(df_, [column_name])
 
                 drift, diffusion = get_kramers_moyal(
                     traj_list,
