@@ -1,5 +1,4 @@
 from endo_pipeline.cli import Datasets
-from endo_pipeline.settings.polar_coords import KERNEL_BANDWIDTH_POLAR, SPLIT_BY_FLOW
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -10,8 +9,6 @@ def main(
     datasets: Datasets | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
-    bw: float = KERNEL_BANDWIDTH_POLAR,
-    split_by_flow: bool = SPLIT_BY_FLOW,
 ) -> None:
     """
     Analyze and visualize DiffAE feature dynamics in polar coordinates.
@@ -39,10 +36,6 @@ def main(
         The name of the model manifest to use.
     run_name
         The name of the model run to use.
-    bw
-        The kernel bandwidth for polar coordinate density and flow field estimation.
-    split_by_flow
-        Whether to split data by flow conditions for polar coordinate analysis.
     """
 
     import logging
