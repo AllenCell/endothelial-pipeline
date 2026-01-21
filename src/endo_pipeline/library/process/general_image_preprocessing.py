@@ -126,6 +126,19 @@ def build_analysis_queue(
         # load the dataset config
         dataset_config = load_dataset_config(dataset_name)
 
+        # get the nuclei segmentation manifest name associated with this dataset
+        if dataset_name in timelapse_datasets:
+            nuclei_seg_manifest_name = "nuclear_labelfree_seg"
+        elif dataset_name in smad1_datasets:
+            nuclei_seg_manifest_name = "nuclear_stain_seg"
+        else:
+            logger.warning(
+                f"Dataset {dataset_name}: no associated nuclei segmentation manifest found. \
+                Setting nuclei_seg_manifest_name to None."
+            )
+            nuclei_seg_manifest_name = None
+
+        # get a list of all the positions in the dataset that were converted to zarr format
         position_list = dataset_config.zarr_positions
 
         # get the timeframes of the timelapse to be evaluated
@@ -153,17 +166,6 @@ def build_analysis_queue(
             for timepoint in t_range:
                 validation_image = True if timepoint in validation_t_range else False
 
-                if dataset_name in timelapse_datasets:
-                    nuclei_seg_manifest_name = "nuclear_labelfree_seg"
-                elif dataset_name in smad1_datasets:
-                    nuclei_seg_manifest_name = "nuclear_stain_seg"
-                else:
-                    logger.warning(
-                        f"Dataset {dataset_name}: no associated nuclei segmentation manifest found. \
-                        Setting nuclei_seg_manifest_name to None."
-                    )
-                    nuclei_seg_manifest_name = None
-
                 analysis_args = {
                     "dataset_name": dataset_name,
                     "image_bin_level": img_bin_level,
@@ -178,6 +180,7 @@ def build_analysis_queue(
                     "is_test": is_test,
                     "verbose": verbose,
                     "nuclei_seg_manifest_name": nuclei_seg_manifest_name,
+                    "channel_names": dataset_config.channel_names,
                 }
 
                 analysis_queue.append(analysis_args)

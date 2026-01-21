@@ -1906,6 +1906,7 @@ def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
     out_dir = args["output_dir"]
     save_output = args["save_output"]
     nuclei_seg_manifest_name = args["nuclei_seg_manifest_name"]
+    channel_names = args["channel_names"]
 
     get_nuclei_features_from_dataset_at_timepoint(
         dataset_name=dataset_name,
@@ -1913,5 +1914,6 @@ def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
         tp=tp,
         out_dir=out_dir,
         nuclei_seg_manifest_name=nuclei_seg_manifest_name,
+        channel_names=channel_names,
         save_output=save_output,
     )
