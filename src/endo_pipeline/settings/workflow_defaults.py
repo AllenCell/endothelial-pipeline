@@ -65,6 +65,18 @@ SEGMENTATION_FEATURE_COLUMNS = {
         "num_nuclei_in_crop",
         "area (um**2)",
     ],
+    "dynamics_calculation_prereq": [
+        "dataset_name",
+        "position",
+        "track_id",
+        "time_minutes",
+        "T",
+        "centroid_X",
+        "centroid_Y",
+        "nuc_pos_rel_cell_X",
+        "nuc_pos_rel_cell_Y",
+        "pixel_size_xy_in_um",
+    ],
 }
 """Name of segmentation features to include in analyses."""
 
