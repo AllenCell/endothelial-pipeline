@@ -1,5 +1,3 @@
-from s3_uploader import run_all_jobs
-
 from endo_pipeline.cli import Datasets, UniqueIntList
 from endo_pipeline.io.output import get_output_path
 
@@ -22,6 +20,9 @@ def main(
     To see what files are already there:
     aws s3 ls s3://allencell-internal-quilt/endo_stg/
 
+    Login:
+    aws sso login
+
     Parameters
     ----------
     datasets: Datasets | None
@@ -42,6 +43,8 @@ def main(
     endopipe manage-s3-datasets --add-datasets --positions-list 0 1
     endopipe manage-s3-datasets --add-datasets --no-dry-run --positions-list 0 1
     """
+    from s3_uploader import run_all_jobs
+
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.library.process.data_release.generate_csv import (
         create_s3_rm_csv,
@@ -96,14 +99,23 @@ def main(
     if dry_run:
         print("Check files and re-run with --no-dry-run to submit jobs.")
     else:
-        print("Wait for the jobs to finish: run `squeue` to check.")
-        print(f"Verify success with check_completion on '{save_dir_str}'")
+        # Create a script to check completion
+        script_path = save_dir / "run_check_completion.py"
+        with open(script_path, "w") as f:
+            f.write(
+                f"""\
+    from s3_uploader import check_completion
 
-    # to run after everything is complete.
-    # check_completion(
-    #     save_dir_str,
-    #     log_dir_str,
-    # )
+    save_dir_str = {str(save_dir)!r}
+    log_dir_str = {log_dir_str!r}
+
+    check_completion(save_dir_str, log_dir_str)
+    """
+            )
+
+        print("Wait for the jobs to finish: run `squeue` to check.")
+        print("Verify success upon completion:")
+        print(f"  python {script_path}")
 
 
 if __name__ == "__main__":
