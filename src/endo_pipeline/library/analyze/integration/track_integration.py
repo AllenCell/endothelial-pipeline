@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -47,6 +48,7 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 )
@@ -759,3 +761,66 @@ def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -
     filename = f"{dataset_name}_pc_diffae_seg_feats_merged.parquet"
 
     merged_feats_df.to_parquet(out_dir / filename)
+
+
+def load_preprocessed_manifests_and_km_bounds(
+    dataset_name: str, delay: bool = True
+) -> tuple[pd.DataFrame | dd.DataFrame, pd.DataFrame | dd.DataFrame, list]:
+    """
+    Load the preprocessed pc-diffae-seg-merged parquet file for a given dataset.
+
+    Parameters
+    ----------
+    dataset_name
+        The name of the dataset to load.
+    delay
+        Whether to delay the loading of the dataframe (Dask DataFrame) or not (Pandas DataFrame).
+
+    Returns
+    -------
+    :
+        The loaded dataframe with pc-diffae-seg-merged data.
+    """
+    # load the pc-diffae-seg-merged parquet file
+    cell_centric_feats_manifest = load_dataframe_manifest(
+        DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
+    )
+    cell_centric_feats_location = get_dataframe_location_for_dataset(
+        cell_centric_feats_manifest, dataset_name
+    )
+    cell_centric_feats_df = load_dataframe(cell_centric_feats_location, delay=True)
+
+    # get the grid crop-based diffae features
+    # get the model information
+    model_manifest_name = sequence_to_scalar(
+        cell_centric_feats_df["model_manifest_name"].compute().dropna()
+    )
+    run_name = sequence_to_scalar(cell_centric_feats_df["run_name"].compute().dropna())
+    model_manifest = load_model_manifest(model_manifest_name)
+    # load the grid crop-based diffae features manifest
+    grid_diffae_feat_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
+    # fit the PCA
+    pca = fit_pca(
+        dataset_collection_name=DEFAULT_PCA_DATASET_COLLECTION_NAME,
+        dataframe_manifest_name=grid_diffae_feat_manifest_name,
+        num_pcs=NUM_PCS_TO_ANALYZE,
+    )
+    # read in the grid crop-based diffae features
+    grid_diffae_manifest = load_dataframe_manifest(grid_diffae_feat_manifest_name)
+    diffae_grid_crops = get_dataframe_for_dynamics_workflows(
+        dataset_name,
+        grid_diffae_manifest,
+        pca,
+        include_cell_piling=False,
+        include_not_steady_state=False,
+    )
+
+    # get bounds for plotting and flow field estimation
+    bounds = get_bounds_from_data([dataset_name], grid_diffae_manifest, pca)
+
+    if delay is False:
+        cell_centric_feats_df = cell_centric_feats_df.compute()  # type: ignore
+
+    return cell_centric_feats_df, diffae_grid_crops, bounds
