@@ -11,19 +11,19 @@ from endo_pipeline.manifests import (
 )
 
 
-def save_manifest_to_csv(dataset: str, df: pd.DataFrame) -> Path:
-    """Save the extracted features to a CSV file.
+def save_manifest_to_parquet(dataset: str, df: pd.DataFrame) -> Path:
+    """Save the extracted features to a parquet file.
 
     Args:
         dataset (str): The name of the dataset.
         df (pd.DataFrame): The DataFrame containing the extracted features.
 
     Returns:
-        str: The path to the saved CSV file.
+        str: The path to the saved parquet file.
     """
     output_dir = get_output_path("immunofluorescence_manifest")
-    save_path = output_dir / f"{dataset}_if_manifest.csv"
-    df.to_csv(save_path, index=False)
+    save_path = output_dir / f"{dataset}_if_manifest.parquet"
+    df.to_parquet(save_path, index=False)
     return save_path
 
 
