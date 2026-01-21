@@ -62,9 +62,12 @@ def main(
 
     all_available_datasets = load_all_dataset_configs()
     available_live_datasets = []
+    available_fixed_datasets = []
     for ds_cfg in all_available_datasets:
         if ds_cfg.live_or_fixed_sample == "live":
             available_live_datasets.append(ds_cfg.name)
+        elif ds_cfg.live_or_fixed_sample == "fixed":
+            available_fixed_datasets.append(ds_cfg.name)
 
     path_modifiers = {
         "cdh5_seg_tracking": {"subdir": "cdh5_classic_seg_tracking", "suffix": "_tracking.parquet"},
