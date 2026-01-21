@@ -52,6 +52,11 @@ def main(
     )
     from endo_pipeline.library.process.data_release.s3_utils import create_rm_job, create_upload_job
 
+    if add_datasets and rm_datasets:
+        raise ValueError("Select either add_datasets or rm_datasets, not both.")
+    if not add_datasets and not rm_datasets:
+        raise ValueError("You must select either add_datasets or rm_datasets.")
+
     if datasets is None:
         datasets = get_datasets_in_collection("dataset_release")
 
@@ -98,14 +103,16 @@ def main(
 
     if dry_run:
         print("Check files and re-run with --no-dry-run to submit jobs.")
+
     else:
+        # Generate check completion script
         job_code = job_path.name.split("_")[0]
         script_path = save_dir / f"{job_code}_run_check_completion.py"
 
         if rm_datasets:
-            jobs_paths = [str(job_path)]
+            jobs_paths_list = [str(job_path)]
         if add_datasets:
-            jobs_paths = [str(p) for p in jobs_paths]
+            jobs_paths_list = [str(p) for p in jobs_paths]
 
         with open(script_path, "w") as f:
             f.write(
@@ -113,7 +120,7 @@ def main(
 from s3_uploader import check_completion
 
 log_dir_str = {log_dir_str!r}
-jobs_paths = {jobs_paths!r}
+jobs_paths = {jobs_paths_list!r}
 
 for job_path in jobs_paths:
     check_completion(job_path, log_dir_str)
