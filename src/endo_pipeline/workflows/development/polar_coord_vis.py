@@ -8,7 +8,7 @@ KERNEL_BANDWIDTH = 0.175
 
 BIN_WIDTH = 0.05
 
-TICK_STEP_NUM = [15, 10]
+TICK_STEP_NUM = 15
 
 NUM_INITS = 500  # number of initial points to sample for root solver
 
@@ -198,32 +198,13 @@ def main(
                     hist_array[:, timepoint_idx] = hist
 
                 hist_arrays.append(hist_array)
-                # fig, ax = plt.subplots()
-                # ax.imshow(
-                #     hist_array,
-                #     aspect="auto",
-                #     cmap="inferno",
-                #     interpolation="nearest",
-                #     origin="lower",
-                #     extent=[frame_min, frame_max, bins[i][0], bins[i][-1]],
-                # )
-
-                # ax.set_ylabel(column_name)
-                # ax.set_xlabel("frame_number")
-                # xticks = np.arange(frame_min, frame_max + 1, step=100)
-                # yticks = np.linspace(bins[i][0], bins[i][-1], num=TICK_STEP_NUM[i])
-                # ax.set_xticks(xticks, labels=xticks)
-                # ax.set_yticks(yticks, labels = np.round(yticks, 2))
-                # ax.set_title(fig_title)
-                # save_plot_to_path(
-                #     fig, fig_savedir_summary, f"{dataset_name_flow}_{column_name}_histogram_heatmap"
-                # )
 
             fig, ax = plot_principal_component_histogram(
                 hist_arrays,
                 bins,
                 frame_range=(frame_min, frame_max),
                 feature_names=VARIABLE_NAMES,
+                bin_tick_step=TICK_STEP_NUM,
             )
             fig.suptitle(fig_title)
             save_plot_to_path(

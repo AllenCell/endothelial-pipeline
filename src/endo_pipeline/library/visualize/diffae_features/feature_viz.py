@@ -458,7 +458,7 @@ def plot_principal_component_histogram(
     bin_edges: list[np.ndarray],
     feature_names: list[str] | None = None,
     time_tick_step: int = 100,
-    bin_tick_step: int = 5,
+    bin_tick_num: int = 10,
     frame_range: tuple[int] | None = None,
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
     """
@@ -480,8 +480,8 @@ def plot_principal_component_histogram(
         Optional, list of feature names corresponding to each principal component.
     time_tick_step
         Optional, step size for x-axis ticks (time points).
-    bin_tick_step
-        Optional, step size for y-axis ticks (bin edges).
+    bin_tick_num
+        Optional, number of ticks for y-axis (bins).
     frame_range
         Optional, tuple specifying the range of frames for labeling x-axis.
 
@@ -530,7 +530,7 @@ def plot_principal_component_histogram(
         yticks = np.linspace(
             bin_edges[col][0],
             bin_edges[col][-1],
-            num=int((bin_edges[col][-1] - bin_edges[col][0]) / bin_tick_step) + 1,
+            num=bin_tick_num,
         )
         ax_.set_xticks(xticks, labels=xticks)
         ax_.set_yticks(yticks, labels=np.round(yticks, 2))
