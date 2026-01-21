@@ -694,18 +694,16 @@ def get_label_for_column(
     """
     Convert dataframe column names to human-readable labels.
 
+    For example, "feat_0" becomes "Feature 0", and "pc_1" becomes "PC 1".
+
     Parameters
     ----------
     column_name
         Column name to convert.
-        Expects diffae feature names to have the form "feat_0", "feat_1", etc.,
-        Expects PC names to have the form "pc_1", "pc_2", etc.
     mapping_dict
         Optional dictionary mapping column names to human-readable labels.
-        If provided, it will be used to map the column names to labels.
     capitalize
-        If True, the returned label will be capitalized.
-        If False, the label will be returned as is.
+        Capitalize the first letter of the label if True, otherwise leave as is.
 
     Returns
     -------
