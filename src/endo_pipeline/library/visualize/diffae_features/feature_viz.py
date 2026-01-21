@@ -459,7 +459,7 @@ def plot_component_histograms_over_time(
     feature_names: list[str] | None = None,
     time_tick_step: int = 100,
     bin_tick_num: int = 10,
-    frame_range: tuple[int] | None = None,
+    frame_range: tuple[int, int] | None = None,
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
     """
     Plot histogram of individual feature components over time for a given dataset.
