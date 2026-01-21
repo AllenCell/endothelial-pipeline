@@ -1,6 +1,7 @@
 """Methods for working with dataframe manifests."""
 
 import logging
+from pathlib import Path
 
 from endo_pipeline.manifests import (
     DataframeLocation,
@@ -76,3 +77,9 @@ def get_dataframe_manifest_with_parameters(
         raise ValueError("Found multiple manifests with matching parameters")
 
     return manifests[0]
+
+
+def build_dataframe_location_from_path(path: str | Path) -> DataframeLocation:
+    """Create a dataframe location from path."""
+
+    return DataframeLocation(path=Path(path).resolve())

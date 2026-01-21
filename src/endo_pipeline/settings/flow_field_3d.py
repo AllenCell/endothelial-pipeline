@@ -4,7 +4,7 @@ KERNEL_PARAMS_3D: dict = {
 }
 """Default kernel parameters for 3D flow field estimation."""
 
-NUM_BINS_3D: tuple[int, int, int] = (100, 100, 100)
+BIN_WIDTH_DEFAULTS: tuple[float, float, float] = (0.05, 0.05, 0.05)
 """Default number of bins for 3D flow field estimation."""
 
 PAD_BINS_FLOAT: float = 0.1
@@ -31,7 +31,7 @@ CLIP_MIN_MAGNITUDE_PERCENTILE: float | None = 0.1
 CLIP_MAX_MAGNITUDE_PERCENTILE: float | None = None
 """Percentile for clipping maximum vector magnitudes in 3D flow field visualization."""
 
-QUIVER_COLORMAP: str = "turbo"
+QUIVER_COLORMAP: str = "crest"
 """Colormap for quiver plots in 3D flow field visualization."""
 
 KDE_CONTOUR_COLORMAP: str = "Greys"

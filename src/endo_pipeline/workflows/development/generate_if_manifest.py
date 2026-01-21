@@ -20,7 +20,7 @@ def main(datasets: Datasets | None = None) -> None:
 
     import numpy as np
 
-    from endo_pipeline import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.library.process.if_feature_extraction import run_nuclei_feature_extraction
     from endo_pipeline.library.process.if_manifest import (
@@ -82,6 +82,6 @@ def main(datasets: Datasets | None = None) -> None:
 
 
 if __name__ == "__main__":
-    from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)

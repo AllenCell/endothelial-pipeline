@@ -25,11 +25,11 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     load_model_manifest,
 )
-from endo_pipeline.settings import (
+from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    ColumnName,
 )
 
 logger = logging.getLogger(__name__)
@@ -115,6 +115,51 @@ def get_latent_feature_column_names_from_dataframe(dataframe: pd.DataFrame) -> l
     ]
     feat_cols = [col.group() for col in feat_cols_match if col is not None]
     return feat_cols
+
+
+def pcs_to_polar_r(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.ndarray:
+    """
+    Convert Cartesian coordinates (pc1, pc2) to polar coordinate r.
+
+    The polar coordinate r is given by the formula:
+        r = sqrt(pc1^2 + pc2^2)
+
+    Parameters
+    ----------
+    pc1_values
+        Values along the first principal component axis.
+    pc2_values
+        Values along the second principal component axis.
+
+    Returns
+    -------
+    :
+        Polar coordinate r values.
+    """
+    return np.sqrt(pc1_values**2 + pc2_values**2)
+
+
+def pcs_to_polar_theta(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.ndarray:
+    """
+    Convert Cartesian coordinates (pc1, pc2) to polar coordinate theta.
+
+    The polar coordinate theta is given by the formula:
+        theta = arctan2(pc2, pc1)
+
+    Parameters
+    ----------
+    pc1_values
+        Values along the first principal component axis.
+    pc2_values
+        Values along the second principal component axis.
+
+    Returns
+    -------
+    :
+        Polar coordinate theta values.
+    """
+    # angle in range [-pi, pi]
+    return np.arctan2(pc2_values, pc1_values)
 
 
 def filter_dataframe_by_annotations(
@@ -393,24 +438,27 @@ def get_pca_loadings_as_df(
 
 
 def project_features_to_pcs(
-    df: pd.DataFrame,
-    pca: PCA,
-    feat_cols: list[str] | None = None,
+    df: pd.DataFrame, pca: PCA, feat_cols: list[str] | None = None, compute_polar: bool = True
 ) -> pd.DataFrame:
     """
-    Project feature data for crops from one dataset onto principal
-    component axes of fit PCA model.
+    Project feature data onto principal component axes of fit PCA model.
 
-    Inputs:
-    - df: pd.DataFrame, DataFrame of feature data with metadata columns
-        for dataset_name, T, FOV_ID, start_x, start_y
-    - pca: PCA model fit to feature data
-    - feature_cols: list, custom list of feature columns to project onto PCA axes
-        - default is None, in which case all feature columns are used
+    Parameters
+    ----------
+    df
+        DataFrame of feature data.
+    pca
+        Fit PCA model.
+    feat_cols
+        List of feature column names to project. If None, will automatically
+        detect latent feature columns in the DataFrame.
+    compute_polar
+        Whether to compute polar coordinates (r, theta) from the first two PCs.
 
-    Outputs:
-    - df_: pd.DataFrame, DataFrame of feature data for crops from
-        dataset dataset_name projected onto PCA axes
+    Returns
+    -------
+    :
+        DataFrame with added columns for each principal component.
     """
     # check that required columns are present in dataframe
     if feat_cols is None:
@@ -424,6 +472,15 @@ def project_features_to_pcs(
     num_pcs = pca.components_.shape[0]  # number of principal components
     pc_cols = get_pc_column_names(num_pcs)
     df_.loc[:, pc_cols] = pca.transform(df_[feat_cols].values)
+
+    # optionally, compute polar coordinates (r, theta) from first two PCs
+    if compute_polar:
+        df_[ColumnName.POLAR_RADIUS] = pcs_to_polar_r(
+            df_[pc_cols[0]].values, df_[pc_cols[1]].values
+        )
+        df_[ColumnName.POLAR_ANGLE] = pcs_to_polar_theta(
+            df_[pc_cols[0]].values, df_[pc_cols[1]].values
+        )
 
     return df_
 

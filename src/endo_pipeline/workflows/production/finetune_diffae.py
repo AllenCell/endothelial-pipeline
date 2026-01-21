@@ -49,7 +49,7 @@ def main(
     """
     import logging
 
-    from endo_pipeline import DEMO_MODE, NUM_GPUS
+    from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
     from endo_pipeline.configs import load_model_config
     from endo_pipeline.io import (
         get_output_path,
@@ -184,6 +184,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)

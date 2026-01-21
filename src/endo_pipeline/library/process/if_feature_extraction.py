@@ -6,7 +6,7 @@ import pandas as pd
 from skimage.feature import graycomatrix, graycoprops
 from skimage.measure import label, regionprops, shannon_entropy
 
-from endo_pipeline.configs import DatasetConfig, get_available_channels_for_position
+from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.io import load_image
 from endo_pipeline.library.process.image_processing import (
     background_subtract,
@@ -273,7 +273,7 @@ def process_position(
     morph_props = extract_morphological_props(label_image, dataset_config.name, position)
     df_position = pd.DataFrame(morph_props)
 
-    for channel in get_available_channels_for_position(dataset_config, position):
+    for channel in dataset_config.channel_names:
         if channel not in if_channels:
             continue
 

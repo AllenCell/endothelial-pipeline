@@ -20,13 +20,13 @@ def main(
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
     sigma: float = 3.0,
-    n_steps: int = 10,
+    n_steps: int = 7,
     use_pcs: bool = True,
-    show_coords: bool = False,
     n_noise_samples: int = 1,
+    replace_mean_with_pc_value: list[float | None] | None = None,
 ) -> None:
     """
-    Create latent walk for a given model using PC axes or the original latent space axes.
+    Create latent walk for a given model using PC axes or original axes.
 
     Parameters
     ----------
@@ -48,34 +48,27 @@ def main(
         Number of steps in the latent walk. Default is 10.
     use_pcs
         True to use principal component axes, False to use original latent space axes.
-    show_coords
-        True to write the coordinate value used generate a given image, False to not.
     n_noise_samples
         Number of noise samples to use for generating images.
-
-    Returns
-    -------
-    :
-        Saves the latent walk images to the output directory.
-        The images are saved as a multi-channel TIFF file.
+    replace_mean_with_pc_value
+        List of PC values to replace the mean with for each PC dimension. Must be of length num_pcs.
+        If None, uses the mean of the data.
     """
+
     import logging
 
-    import pandas as pd
-
-    from endo_pipeline import NUM_GPUS
+    from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_model
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        fit_pca,
-        get_dataframe_for_dynamics_workflows,
-    )
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
     from endo_pipeline.library.model import (
-        generate_from_coords,
-        get_latent_coords,
-        get_pca_coords,
-        write_pc_vals,
+        build_data_for_pca_latent_walk,
+        build_data_for_raw_latent_walk,
+        generate_latent_walk_images,
+        get_pca_latent_walk,
+        get_raw_latent_walk,
     )
+    from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
     from endo_pipeline.library.visualize.latent_walk import plot_latent_walk_as_grid
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
@@ -83,7 +76,6 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings import ColumnName
 
     logger = logging.getLogger(__name__)
 
@@ -95,6 +87,7 @@ def main(
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     model = load_model(model_manifest.locations[run_name_], instantiate=True)
+    assert isinstance(model, DiffusionAutoEncoder)
 
     # set up output directory
     save_path = get_output_path(
@@ -108,7 +101,7 @@ def main(
 
     # load model configuration and reference dataset manifests
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name_, crop_pattern=crop_pattern
+        model_manifest, run_name_, crop_pattern
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     dataset_names = get_datasets_in_collection(dataset_collection)
@@ -121,65 +114,38 @@ def main(
             include_cell_piling=include_cell_piling,
             num_pcs=num_pcs,
         )
-        dataframe = pd.concat(
-            [
-                get_dataframe_for_dynamics_workflows(
-                    dataset_name,
-                    dataframe_manifest,
-                    pca,
-                    include_cell_piling=include_cell_piling,
-                    crop_pattern=crop_pattern,
-                )
-                for dataset_name in dataset_names
-            ]
+        data_for_walk = build_data_for_pca_latent_walk(
+            dataset_names, dataframe_manifest, pca, include_cell_piling, crop_pattern
         )
-        pc_column_names = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(num_pcs)]
-        data_for_walk = dataframe[pc_column_names].values
-        walk, ranges = get_pca_coords(data_for_walk, pca, num_pcs, sigma, n_steps)
+        walk, ranges = get_pca_latent_walk(
+            data_for_walk, pca, sigma, n_steps, replace_mean_with_pc_value
+        )
     else:
         # perform latent walk along the raw latent dimensions
-        dataframe = pd.concat(
-            [
-                get_dataframe_for_dynamics_workflows(
-                    dataset_name,
-                    dataframe_manifest,
-                    pca=None,
-                    include_cell_piling=include_cell_piling,
-                    crop_pattern=crop_pattern,
-                )
-                for dataset_name in dataset_names
-            ]
+        data_for_walk = build_data_for_raw_latent_walk(
+            dataset_names, dataframe_manifest, model, include_cell_piling, crop_pattern
         )
-        num_latent_dims = model.semantic_encoder.base_encoder.num_classes
-        feature_column_names = [
-            f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(num_latent_dims)
-        ]
-        data_for_walk = dataframe[feature_column_names].values
-        walk, ranges = get_latent_coords(data_for_walk, sigma, n_steps)
+        walk, ranges = get_raw_latent_walk(data_for_walk, sigma, n_steps)
 
     # generate images from the latent walk
-    walk_img = generate_from_coords(model, walk, n_noise_samples=n_noise_samples, num_gpus=NUM_GPUS)
+    walk_img_grid = generate_latent_walk_images(model, walk, ranges, n_noise_samples, NUM_GPUS)
 
-    # vertically stack multi-channel generations
-    walk_img_stack = walk_img.reshape(walk_img.shape[0], -1, walk_img.shape[-1])
-    if show_coords:
-        walk_img_stack = write_pc_vals(walk_img_stack, ranges)
-
+    # save generated latent walk as grid
     axis_suffix = "_along_pcs" if use_pcs else "_along_latent"
     file_name = f"latent_walk_{int(sigma)}sigma{axis_suffix}"
-
-    # also plot the latent walk as a grid and save
-    # reshape to (n_dim, n_steps, img_w, img_h)
-    n_dim = len(ranges)
-    n_steps_actual = ranges[0].shape[0]
-    image_width = walk_img.shape[-2]
-    image_height = walk_img.shape[-1]
-    walk_img_grid = walk_img.reshape(n_dim, n_steps_actual, image_width, image_height)
-
+    if replace_mean_with_pc_value is not None:
+        replace_str = "_".join(
+            [
+                f"PC{i+1}setto{val}"
+                for i, val in enumerate(replace_mean_with_pc_value)
+                if val is not None
+            ]
+        )
+        file_name += f"_replace_{replace_str}"
     plot_latent_walk_as_grid(walk_img_grid, ranges, save_path, file_name, use_pcs)
 
 
 if __name__ == "__main__":
-    from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)

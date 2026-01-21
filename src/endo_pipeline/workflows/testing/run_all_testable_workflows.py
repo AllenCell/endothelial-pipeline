@@ -29,8 +29,7 @@ logger = logging.getLogger(__name__)
 def _testable_workflows(pipeline_app: "App", tags: dict[str, list[str]]):
     from endo_pipeline.cli.tags import CPU_ONLY, GPU, TEST_READY
 
-    for app in pipeline_app.meta.subapps:
-        name = app.name[0]
+    for name in pipeline_app._commands.keys():
         if name not in tags:
             continue
         these_tags = tags[name]
@@ -44,9 +43,9 @@ def _testable_workflows(pipeline_app: "App", tags: dict[str, list[str]]):
             raise ValueError(
                 f"Workflow {name} claims to be test-ready, but has both GPU and CPU_ONLY tags."
             )
-        if endo_pipeline.NUM_GPUS is None and GPU in these_tags:
+        if endo_pipeline.cli.NUM_GPUS is None and GPU in these_tags:
             continue
-        yield app
+        yield name
 
 
 @dataclass
@@ -100,10 +99,8 @@ class _WorkflowResult:
         return not self.failed and not self.slow
 
 
-def _make_command(app: "App") -> tuple[str, list[str]]:
+def _make_command(app: str) -> tuple[str, list[str]]:
     import sys
-
-    name = " ".join(app.name)
 
     # Get tokens list and drop the executable and name of the workflow.
     tokens = [arg for arg in sys.argv[1:] if arg != "run-all-testable-workflows"]
@@ -112,7 +109,7 @@ def _make_command(app: "App") -> tuple[str, list[str]]:
     if "-d" not in tokens and "--demo-mode" not in tokens:
         tokens.append("-d")
 
-    return (name, ["endopipe", name, *tokens])
+    return (app, ["endopipe", app, *tokens])
 
 
 @dataclass
@@ -240,8 +237,8 @@ def main():
     from endo_pipeline.__main__ import pipeline_app, tags
 
     logger = logging.getLogger(__name__)
-    if not endo_pipeline.DEMO_MODE:
-        endo_pipeline.DEMO_MODE = True
+    if not endo_pipeline.cli.DEMO_MODE:
+        endo_pipeline.cli.DEMO_MODE = True
         logger.debug("Forcing demo mode on for testing.")
 
     results = asyncio.run(_run_all(pipeline_app, tags))
@@ -249,6 +246,6 @@ def main():
 
 
 if __name__ == "__main__":
-    from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)

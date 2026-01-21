@@ -253,7 +253,7 @@ def upload_file_to_fms(
         FMS file id for the uploaded file.
     """
 
-    from endo_pipeline import DEMO_MODE, USE_STAGING
+    from endo_pipeline.cli import DEMO_MODE, USE_STAGING
     from endo_pipeline.io.fms import FMS, FMS_FILE_NAME
 
     if isinstance(file_path, str):
@@ -297,7 +297,7 @@ def cache_fms_files(fmsids: str | list[str]) -> dict:
         FMS file ID.
     """
 
-    from endo_pipeline import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.io.fms import FMS
 
     fmsids = [fmsids] if isinstance(fmsids, str) else fmsids

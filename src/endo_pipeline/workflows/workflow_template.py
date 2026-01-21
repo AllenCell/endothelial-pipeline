@@ -92,7 +92,7 @@ def main(param1: str, param2: int, param3: bool, param4: str = "X") -> None:
     # imports are only imported when the main method is called.
     import logging
 
-    from endo_pipeline import DEMO_MODE, NUM_GPUS
+    from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
 
     logger = logging.getLogger(__name__)
 
@@ -121,6 +121,6 @@ def main(param1: str, param2: int, param3: bool, param4: str = "X") -> None:
 # pipeline CLI.
 # ==============================================================================
 if __name__ == "__main__":
-    from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)

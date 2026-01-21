@@ -1,8 +1,0 @@
-name: registered_live_fixed_resolution_1
-workflow: register_paired_images
-parameters:
-  resolution_level: 1
-locations:
-  20250214_pairedFixation:
-    fmsid: 0fe5b7c2e14a4dffbd03249fc41f7760
-    s3uri: null

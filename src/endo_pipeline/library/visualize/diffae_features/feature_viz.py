@@ -9,7 +9,9 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.ticker import MultipleLocator
 from mpl_toolkits.mplot3d import Axes3D
+from seaborn import kdeplot
 from sklearn.decomposition import PCA
 
 from endo_pipeline.configs import load_dataset_config
@@ -22,19 +24,84 @@ from endo_pipeline.library.visualize.seg_features.general_standard_plots import 
     get_seg_feat_plot_args,
 )
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import (
+from endo_pipeline.settings.density_comparison_plots import (
+    DENSITY_PLOT_KDE_BANDWIDTH,
+    DENSITY_PLOT_KWARGS_GRID_CROPS,
+    DENSITY_PLOT_KWARGS_TRACKED_CROPS,
+)
+from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
-    SHEAR_COLOR_DICT,
+    ColumnName,
 )
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
-from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 plt.style.use("endo_pipeline.figure")
 
 logger = logging.getLogger(__name__)
+
+
+def plot_kde_comparison(
+    df_grid: pd.DataFrame,
+    df_tracked: pd.DataFrame,
+    feature_column_names: list[str],
+    kernel_bw: float = DENSITY_PLOT_KDE_BANDWIDTH,
+) -> tuple[Figure, np.ndarray[Axes, Any]]:
+
+    nrows = 1
+    ncols = len(feature_column_names)
+    figsize = (7 * ncols, 4 * nrows)
+    fig, axs = plt.subplots(
+        nrows=nrows,
+        ncols=ncols,
+        figsize=figsize,
+    )
+
+    # plot KDEs for each feature
+
+    for i, feature in enumerate(feature_column_names):
+        ax: plt.Axes = axs[i]
+        kdeplot(
+            df_grid[feature],
+            ax=ax,
+            bw_method=kernel_bw,
+            **DENSITY_PLOT_KWARGS_GRID_CROPS,
+        )
+        kdeplot(
+            df_tracked[feature],
+            ax=ax,
+            bw_method=kernel_bw,
+            **DENSITY_PLOT_KWARGS_TRACKED_CROPS,
+        )
+
+        # formatting
+        ax_label = get_label_for_column(feature)
+        ax.set_xlabel(ax_label)
+        ax.set_ylabel("Density")
+
+        # put horizontal legend above the first subplot
+        # in the upper left corner (above the plot)
+        if i == 0:
+            handles, labels = ax.get_legend_handles_labels()
+            ax.legend(
+                handles,
+                labels,
+                ncols=2,
+                loc="upper left",
+                borderaxespad=0.0,
+                bbox_to_anchor=(0.0, 1.1),
+                fontsize=FONTSIZE_MEDIUM,
+            )
+
+    # set y axes limits to be the same for all subplots
+    y_max = max(ax.get_ylim()[1] for ax in axs)
+    for ax in axs:
+        ax.set_ylim(0, y_max)
+
+    return fig, axs
 
 
 def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
@@ -342,8 +409,52 @@ def plot_pc_scatter_from_df(
     return ax
 
 
+def make_pc_scatter_fig4a(
+    df: pd.DataFrame,
+    pc_col_for_xaxis: str,
+    pc_col_for_yaxis: str,
+    hue: str | ColumnName = ColumnName.TIMEPOINT,
+    figsize=(2.5, 2.5),
+    color_palette="viridis",
+    marker=".",
+    marker_size=5,
+    linewidth=0,
+    alpha=0.5,
+) -> plt.Figure:
+
+    if pc_col_for_xaxis not in DIFFAE_PC_COLUMN_NAMES:
+        raise ValueError(f"pc_col_for_xaxis must be one of: {DIFFAE_PC_COLUMN_NAMES}")
+    if pc_col_for_yaxis not in DIFFAE_PC_COLUMN_NAMES:
+        raise ValueError(f"pc_col_for_yaxis must be one of: {DIFFAE_PC_COLUMN_NAMES}")
+    if hue not in [x.value for x in ColumnName]:
+        raise ValueError(f"hue must be one of: {[x.value for x in ColumnName]}")
+
+    fig, ax = plt.subplots(figsize=figsize)
+    sns.scatterplot(
+        data=df,
+        x=pc_col_for_xaxis,
+        y=pc_col_for_yaxis,
+        hue=hue,
+        palette=color_palette,
+        marker=marker,
+        s=marker_size,
+        alpha=alpha,
+        linewidth=linewidth,
+        legend=False,
+        ax=ax,
+    )
+    ax.minorticks_on()
+    ax.xaxis.set_minor_locator(MultipleLocator(0.5))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.5))
+    ax.set_xlabel(pc_col_for_xaxis.upper().replace("_", " "))
+    ax.set_ylabel(pc_col_for_yaxis.upper().replace("_", " "))
+    ax.set_aspect("equal")
+
+    return fig
+
+
 def plot_principal_component_histogram(
-    hist_array: np.ndarray,
+    hist_arrays: list[np.ndarray],
     bin_edges: list[np.ndarray],
     time_tick_step: int = 100,
     bin_tick_step: int = 5,
@@ -353,14 +464,14 @@ def plot_principal_component_histogram(
 
     ** Histogram and bins **
     The histogram is computed for each latent component at each time point (frame).
-    The histogram values are stored in a 3D array, where the shape is
-    (num_features, num_bins, num_frames). Both the histogram values and the bin
+    The histogram values are stored in a list of arrays (len = dims), where the shape
+    of each array is (num_bins, num_frames). Both the histogram values and the bin
     edges for each dimension are returned by the get_histogram_by_component() function.
 
     Parameters
     ----------
-    hist_array
-        Histogram values for each component as a function of time; (num_dims, num_bins, num_time).
+    hist_arrays
+        Histogram values for each component as a function of time.
     bin_edges
         List of bin edges for each component, generated by get_histogram_by_component() function.
     time_tick_step
@@ -378,17 +489,17 @@ def plot_principal_component_histogram(
 
     # get shape of histogram array
     # used for setting x and y axis limits
-    num_frames = hist_array.shape[-1]
-    num_bins = hist_array.shape[1]
+    num_frames = hist_arrays[0].shape[-1]
 
     # initialize figure and axes
     fig, ax = viz_base.init_subplots(3, 1, figsize=(15, 15))
 
     # loop over components, plot histogram of feature data projected onto each PC
     for col, ax_ in enumerate(ax.flatten()):
+        num_bins = hist_arrays[col].shape[0]
         # plot histogram values - time on x-axis, histogram values on y-axis
         ax_.imshow(
-            hist_array[col], aspect="auto", cmap="inferno", interpolation="nearest", origin="lower"
+            hist_arrays[col], aspect="auto", cmap="inferno", interpolation="nearest", origin="lower"
         )
         ax_.set_title(f"Latent component {col+1}")
         ax_.set_xlabel("Frame number")
