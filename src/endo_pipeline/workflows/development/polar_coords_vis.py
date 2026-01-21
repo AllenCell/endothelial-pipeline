@@ -57,6 +57,7 @@ def main(
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
         plot_component_histograms_over_time,
+        plot_per_position_average_over_time,
     )
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
@@ -128,6 +129,13 @@ def main(
         for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
             fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$)"
+
+            fig, ax = plot_per_position_average_over_time(
+                df_,
+                POLAR_COLUMN_NAMES,
+                variable_names,
+            )
+            save_plot_to_path(fig, fig_savedir, f"{dataset_name_flow}_per_position_averages")
 
             hist_arrays = []
 
