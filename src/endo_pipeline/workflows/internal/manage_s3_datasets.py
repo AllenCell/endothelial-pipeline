@@ -101,21 +101,28 @@ def main(
     else:
         job_code = job_path.name.split("_")[0]
         script_path = save_dir / f"{job_code}_run_check_completion.py"
+
+        if rm_datasets:
+            jobs_paths = [str(job_path)]
+        if add_datasets:
+            jobs_paths = [str(p) for p in jobs_paths]
+
         with open(script_path, "w") as f:
             f.write(
                 f"""\
-    from s3_uploader import check_completion
+from s3_uploader import check_completion
 
-    save_dir_str = {save_dir_str!r}
-    log_dir_str = {log_dir_str!r}
+log_dir_str = {log_dir_str!r}
+jobs_paths = {jobs_paths!r}
 
-    check_completion(save_dir_str, log_dir_str)
-    """
+for job_path in jobs_paths:
+    check_completion(job_path, log_dir_str)
+"""
             )
 
         print("Wait for the jobs to finish: run `squeue` to check.")
-        print("Verify success upon completion:")
-        print(f"  python {script_path}")
+        print("Verify success upon completion by running:")
+        print(f"python {script_path}")
 
 
 if __name__ == "__main__":
