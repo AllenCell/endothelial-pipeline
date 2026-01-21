@@ -843,7 +843,7 @@ def get_traj_and_diff(df: pd.DataFrame, column_names: list) -> tuple[list, list]
     check_required_columns_in_dataframe(df, required_columns)
 
     # initialize name for difference columns
-    diff_column_names = [f"{col}_diff" for col in column_names]
+    diff_column_names = [f"{col}{ColumnName.DIFFERENCE_SUFFIX}" for col in column_names]
 
     # initialize lists for storing outputs
     traj_list = []
@@ -856,7 +856,7 @@ def get_traj_and_diff(df: pd.DataFrame, column_names: list) -> tuple[list, list]
 
         # add column giving difference in timepoint between consecutive dataframe rows
         # convert NaN to 0 -- occurs at end of trajectory
-        df_crop_[f"{ColumnName.TIMEPOINT}_diff"] = (
+        df_crop_[f"{ColumnName.TIMEPOINT}{ColumnName.DIFFERENCE_SUFFIX}"] = (
             df_crop_[ColumnName.TIMEPOINT].diff().shift(-1).fillna(0)
         )
 
@@ -871,7 +871,7 @@ def get_traj_and_diff(df: pd.DataFrame, column_names: list) -> tuple[list, list]
                 df_crop_[ColumnName.POLAR_ANGLE].values[:-1],
                 units="rad",
             )
-            df_crop_[f"{ColumnName.POLAR_ANGLE}_diff"] = np.concatenate(
+            df_crop_[f"{ColumnName.POLAR_ANGLE}{ColumnName.DIFFERENCE_SUFFIX}"] = np.concatenate(
                 (
                     angle_diffs,
                     np.array([np.nan]),
@@ -880,11 +880,11 @@ def get_traj_and_diff(df: pd.DataFrame, column_names: list) -> tuple[list, list]
 
         # trajectory values to keep -- only keep steps where time difference is 1 frame
         # and also the last point in the trajectory (which has time difference 0)
-        traj_mask = df_crop_[f"{ColumnName.TIMEPOINT}_diff"] <= 1
+        traj_mask = df_crop_[f"{ColumnName.TIMEPOINT}{ColumnName.DIFFERENCE_SUFFIX}"] <= 1
 
         # for the gradient, only keep steps where time difference is exactly 1 frame
         # i.e., no valid difference at the end of the trajectory (only forward differences)
-        gradient_mask = df_crop_[f"{ColumnName.TIMEPOINT}_diff"] == 1
+        gradient_mask = df_crop_[f"{ColumnName.TIMEPOINT}{ColumnName.DIFFERENCE_SUFFIX}"] == 1
 
         # append trajectory and displacement data to lists
         traj_list.append(df_crop_[traj_mask][column_names].values)
