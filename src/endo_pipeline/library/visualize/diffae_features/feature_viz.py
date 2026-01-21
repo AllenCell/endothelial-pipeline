@@ -573,7 +573,7 @@ def plot_per_position_average(
         if i == ndim - 1:
             ax.set_xlabel("frame number")
         ax.set_ylabel(f"average of {column_name} over crops")
-        ax.legend(title=ColumnName.POSITION.value)
+        ax.legend(title=f"{ColumnName.POSITION.value}:")
 
     return fig, axs
 
