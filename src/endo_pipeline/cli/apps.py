@@ -62,7 +62,8 @@ def workflow_cli(workflow: Callable) -> None:
         # The ps1 string is only defined in interactive mode, so using it to
         # check for an interactive session. If detected, the workflow is called
         # directly, rather than passing through the CLI. Note that this approach
-        # only works if the workflow does require any arguments.
+        # only works if the workflow does NOT require any arguments (i.e. the
+        # workflow requires no arguments or all arguments have default values).
         logger.debug("Detected running in interactive shell")
         workflow()
     else:
