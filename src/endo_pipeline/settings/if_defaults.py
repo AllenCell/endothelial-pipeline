@@ -1,13 +1,16 @@
-PLOT_FEAT_COLS = ["SMAD1_sum_sum_proj", "SMAD1_norm_area_sum_max_proj"]  # "SMAD1_mean_sum_proj"
+PLOT_FEAT_COLS: list[str] = [
+    "SMAD1_sum_sum_proj",
+    "SMAD1_norm_area_sum_max_proj",
+]  # "SMAD1_mean_sum_proj"
 """Smad1 feature columns for plotting."""
 
-PLOT_FEAT_NAMES = [
+PLOT_FEAT_NAMES: list[str] = [
     "Total SMAD1 intensity in nuclear mask volume",
     "Total SMAD1 intensity / N pixels \nin nuclear mask volume",
 ]  # "SMAD1 mean intensity of sum projection\nin nuclear mask"
 """Smad1 feature names for plotting."""
 
-DATASET_GROUPS = {
+DATASET_GROUPS: dict[str, list[tuple[list[str], str]]] = {
     "20250509": [
         (
             [
