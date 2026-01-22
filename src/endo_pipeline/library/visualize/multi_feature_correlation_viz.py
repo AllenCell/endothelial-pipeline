@@ -460,7 +460,6 @@ def get_df_for_feature_correlation_viz(
             if col not in cols_to_load_unique and col in cols_to_load_overlap:
                 cols_to_load_unique.append(col)
         merged_feats_df = merged_feats_df_delayed[cols_to_load_unique].compute()  # type: ignore
-        merged_feats_df = merged_feats_df.reset_index(drop=True)
 
         # the original orientation feature is in radians
         # and the y-axis is defined as 0 degrees

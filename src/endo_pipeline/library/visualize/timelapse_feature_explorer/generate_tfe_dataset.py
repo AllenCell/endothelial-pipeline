@@ -5,7 +5,7 @@ from colorizer_data import convert_colorizer_data
 
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.integration.track_integration import (
-    get_preprocessed_manifests_and_km_bounds,
+    load_pc_diffae_liveseg_feats_merged_table,
 )
 from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     generate_backdrops,
@@ -56,12 +56,7 @@ def generate_tfe_dataset(
     if include_diffae_features:
         try:
             # Load dataframe with the diffae features and computed PCs
-            # only take the dataframe from the output (which is the 0th element)
-            df_tracks = get_preprocessed_manifests_and_km_bounds(
-                dataset_name=dataset,
-                collection_name_for_pca=dataset_collection_name_for_pca,
-                drop_rows_without_diffae_feats=False,
-            )[0]
+            df_tracks = load_pc_diffae_liveseg_feats_merged_table(dataset)
             include_diffae_features_failed = False
         except KeyError:
             logger.warning(

@@ -846,5 +846,6 @@ def load_pc_diffae_liveseg_feats_merged_table(
         cell_centric_feats_manifest, dataset_name
     )
     cell_centric_feats_df = load_dataframe(cell_centric_feats_location, delay=delay)  # type: ignore
+    cell_centric_feats_df = cell_centric_feats_df.reset_index(drop=True)
 
     return cell_centric_feats_df
