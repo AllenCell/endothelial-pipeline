@@ -15,7 +15,7 @@ TAGS = ["diffae_features", "visualization", "pc_interpretation"]
 
 
 def main(
-    dataset_collection_to_plot: Datasets = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    datasets_to_plot: Datasets | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     dataset_info_columns: list[str] = DATASET_INFO_COLUMNS,
@@ -75,7 +75,7 @@ def main(
     import pandas as pd
     from tqdm import tqdm
 
-    from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.configs.dataset_config_utils import get_subset_of_timepoint_annotations
     from endo_pipeline.configs.model_config_utils import get_latent_dim_from_config
     from endo_pipeline.io import get_output_path
@@ -104,7 +104,10 @@ def main(
 
     logger.info("Running correlation heatmap workflow...")
 
-    dataset_name_list = get_datasets_in_collection(dataset_collection_to_plot)
+    dataset_name_list = use_default_collection(
+        datasets_to_plot, DEFAULT_PCA_DATASET_COLLECTION_NAME
+    )
+
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     model_location = get_model_location_for_run(model_manifest, run_name_)
