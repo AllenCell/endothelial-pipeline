@@ -190,7 +190,7 @@ def compute_projection_properties(
         f"{channel}_glcm_energy_{proj_type}_proj": glcm_features["energy"],
         f"{channel}_glcm_homogeneity_{proj_type}_proj": glcm_features["homogeneity"],
         f"{channel}_norm_area_sum_{proj_type}_proj": (
-            np.sum(p.intensity_image) / p.area * num_zslices
+            np.sum(p.intensity_image) / (p.area * num_zslices)
         ),
     }
 
