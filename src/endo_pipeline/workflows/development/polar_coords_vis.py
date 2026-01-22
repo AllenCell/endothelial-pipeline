@@ -180,3 +180,9 @@ def main(
             )
             fig.suptitle(fig_title)
             save_plot_to_path(fig, fig_savedir, f"{dataset_name_flow}_polar_histogram_heatmap")
+
+
+if __name__ == "__main__":
+    from endo_pipeline.cli import workflow_cli
+
+    workflow_cli(main)
