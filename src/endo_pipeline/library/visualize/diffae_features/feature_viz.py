@@ -512,7 +512,7 @@ def plot_per_position_average_over_time(
             if shift_polar_angle_range and column_name == ColumnName.POLAR_ANGLE:
                 mean_over_crops = mean_over_crops.apply(lambda x: x - 2 * np.pi if x > np.pi else x)
             timepoints = df_pos_[ColumnName.TIMEPOINT].unique()
-            ax.plot(timepoints, mean_over_crops, label=pos)
+            ax.scatter(timepoints, mean_over_crops, label=pos, s=2, marker="o")
 
         if i == ndim - 1:
             ax.set_xlabel("frame number")
