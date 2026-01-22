@@ -498,6 +498,7 @@ def plot_per_position_average_over_time(
         df_[ColumnName.POLAR_ANGLE] = df_[ColumnName.POLAR_ANGLE].apply(
             lambda x: x + 2 * np.pi if x < 0 else x
         )
+        logger.debug("Shifting polar angle range from (-pi, pi) to (0, 2pi) for mean calculation.")
 
     # share x axis for all subplots (frame number)
     ndim = len(column_names)
@@ -505,12 +506,12 @@ def plot_per_position_average_over_time(
 
     for i, column_name in enumerate(column_names):
         ax: plt.Axes = axs[i]
-        for pos, df_pos in df.groupby(ColumnName.POSITION):
+        for pos, df_pos in df_.groupby(ColumnName.POSITION):
             df_pos_ = df_pos.sort_values(by=ColumnName.TIMEPOINT)
             mean_over_crops = df_pos_.groupby(ColumnName.TIMEPOINT)[column_name].mean()
             # shift back polar angle range if specified
-            if shift_polar_angle_range and column_name == ColumnName.POLAR_ANGLE:
-                mean_over_crops = mean_over_crops.apply(lambda x: x - 2 * np.pi if x > np.pi else x)
+            # if shift_polar_angle_range and column_name == ColumnName.POLAR_ANGLE:
+            #     mean_over_crops = mean_over_crops.apply(lambda x: x - 2 * np.pi if x > np.pi else x)
             timepoints = df_pos_[ColumnName.TIMEPOINT].unique()
             ax.plot(timepoints, mean_over_crops, label=pos)
 
