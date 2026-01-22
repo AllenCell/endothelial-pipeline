@@ -1801,7 +1801,7 @@ def get_nuclei_features_from_dataset_at_timepoint(
     position: int,
     tp: int,
     out_dir: Path,
-    nuclei_seg_manifest_name: str = "nuclei_labelfree_seg",
+    nuclei_seg_manifest_name: str = "nuclear_labelfree_seg",
     channel_names: tuple = ("EGFP", "BF"),
     save_output: bool = True,
 ) -> pd.DataFrame:
@@ -1866,11 +1866,15 @@ def get_nuclei_features_from_dataset_at_timepoint(
         + [col for col in nuc_feats_df.columns if col not in ["dataset_name", "position", "T"]]
     ]
 
-    out_subdir = out_dir / dataset_name / f"P{position}"
-    out_subdir.mkdir(exist_ok=True, parents=True)
-    out_path = out_subdir / f"{dataset_name}_P{position}_T{tp}_nuclei_labelfree_features.parquet"
     if save_output:
-        nuc_feats_df.to_parquet(out_path, index=False)
+        out_subdir = out_dir / dataset_name / f"P{position}"
+        out_subdir.mkdir(exist_ok=True, parents=True)
+        if nuclei_seg_manifest_name == "nuclear_labelfree_seg":
+            filename = f"{dataset_name}_P{position}_T{tp}_nuclei_labelfree_features.parquet"
+        elif nuclei_seg_manifest_name == "nuclear_stain_seg":
+            filename = f"{dataset_name}_P{position}_T{tp}_nuclei_stain_features.parquet"
+
+        nuc_feats_df.to_parquet(out_subdir / filename, index=False)
 
     return nuc_feats_df
 
