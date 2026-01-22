@@ -46,6 +46,13 @@ plot_feat_names = [
     "Total SMAD1 intensity in nuclear mask volume",
     "Total SMAD1 intensity / N pixels \nin nuclear mask volume",
 ]  # "SMAD1 mean intensity of sum projection\nin nuclear mask"
+date_list = df["date"].unique().tolist()
+
+if DEMO_MODE:
+    smad1_datasets = smad1_datasets[:1]
+    plot_feat_cols = plot_feat_cols[:1]
+    smad1_datasets = smad1_datasets[:1]
+    date_list = date_list[:1]
 
 # %%
 for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=False):
@@ -62,14 +69,13 @@ for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=Fal
             positions=df_dataset["position"].unique().tolist(),
             save_dir=output_dir,
         )
-        if DEMO_MODE:
-            break
 
 # %%
 for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=False):
     xlim = df[plot_feat].quantile(0.99) * 1.1
     ylim = None
-    for date, df_date in df.groupby("date"):
+    for date in date_list:
+        df_date = df[df["date"] == date]
         output_dir = get_output_path("SMAD1", "feature_density_by_date", plot_feat, str(date))
         date_datasets = df_date["dataset"].unique().tolist()
         plot.feature_density(
@@ -82,16 +88,13 @@ for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=Fal
             ylim=ylim,
             pool_positions=True,
         )
-        if DEMO_MODE:
-            break
-    if DEMO_MODE:
-        break
 
 # %%
 for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=False):
     xlim = df[plot_feat].quantile(0.99) * 1.1
     ylim = None
-    for date, df_date in df.groupby("date"):
+    for date in date_list:
+        df_date = df[df["date"] == date]
         date_datasets = df_date["dataset"].unique().tolist()
         plot.feature_density(
             df_all=df_date,
@@ -104,16 +107,13 @@ for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=Fal
             pool_positions=True,
             per_dataset=True,
         )
-        if DEMO_MODE:
-            break
-    if DEMO_MODE:
-        break
 
 
 for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=False):
     xlim = df[plot_feat].quantile(0.99) * 1.1
     ylim = None
-    for date, df_date in df.groupby("date"):
+    for date in date_list:
+        df_date = df[df["date"] == date]
         group = DATASET_GROUPS[str(date)]
         for subgroup, group_name in group:
             output_dir = get_output_path(
@@ -137,21 +137,12 @@ for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=Fal
                 ylim=ylim,
                 pool_positions=True,
             )
-            if DEMO_MODE:
-                break
-        if DEMO_MODE:
-            break
-    if DEMO_MODE:
-        break
 
 # %%
-for date, df_date in df.groupby("date"):
+for date in date_list:
+    df_date = df[df["date"] == date]
     group = DATASET_GROUPS[str(date)]
     for subgroup, group_name in group:
         output_dir = get_output_path("SMAD1", "contact_sheet", str(date), group_name)
         reversed_group = list(reversed(subgroup))
         if_dataset_contact_sheet(df_date, reversed_group, output_dir)
-        if DEMO_MODE:
-            break
-    if DEMO_MODE:
-        break
