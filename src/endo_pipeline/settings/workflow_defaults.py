@@ -57,6 +57,7 @@ SEGMENTATION_FEATURE_COLUMNS = {
     "supp": [
         "alignment_deg_rel_to_flow",
         "orientation_deg",
+        "orientation",
         "aspect_ratio",
         "cell_nuc_orientation_deg_rel_to_migration",
         "nuc_pos_rel_cell_angle_deg",

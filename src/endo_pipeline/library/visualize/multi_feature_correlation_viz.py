@@ -455,7 +455,14 @@ def get_df_for_feature_correlation_viz(
         # compute only the required columns to save space and time
         # (using a loop instead  of just sets to determine columns to load to preserve column order)
         dynamics_columns = SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
-        cols_to_load = dataset_info_columns + dynamics_columns + diffae_feature_columns + pc_columns
+        supplementary_columns = SEGMENTATION_FEATURE_COLUMNS["supp"]
+        cols_to_load = (
+            dataset_info_columns
+            + dynamics_columns
+            + supplementary_columns
+            + diffae_feature_columns
+            + pc_columns
+        )
         cols_to_load_overlap = sorted(set(cols_to_load) & set(merged_feats_df_delayed.columns))
         cols_to_load_unique = []
         for col in cols_to_load:
