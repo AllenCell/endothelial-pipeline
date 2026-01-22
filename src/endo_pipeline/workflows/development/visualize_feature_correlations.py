@@ -134,10 +134,8 @@ def main(
         dataset_name_list=dataset_name_list,
         dataset_info_columns=dataset_info_columns,
         segmentation_feature_columns=segmentation_feature_columns,
-        num_pcs=num_pcs,
         pc_columns=pc_columns,
         diffae_feature_columns=diffae_feature_columns,
-        dataset_collection_name_for_pca=dataset_collection_name,
         timepoint_annotations=timepoint_annotations,
     )
 

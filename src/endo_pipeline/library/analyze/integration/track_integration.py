@@ -782,13 +782,9 @@ def load_preprocessed_manifests_and_km_bounds(
         The loaded dataframe with pc-diffae-seg-merged data.
     """
     # load the pc-diffae-seg-merged parquet file
-    cell_centric_feats_manifest = load_dataframe_manifest(
-        DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
+    cell_centric_feats_df = load_pc_diffae_liveseg_feats_merged_table(
+        dataset_name=dataset_name, delay=True
     )
-    cell_centric_feats_location = get_dataframe_location_for_dataset(
-        cell_centric_feats_manifest, dataset_name
-    )
-    cell_centric_feats_df = load_dataframe(cell_centric_feats_location, delay=True)
 
     # get the grid crop-based diffae features
     # get the model information
@@ -824,3 +820,31 @@ def load_preprocessed_manifests_and_km_bounds(
         cell_centric_feats_df = cell_centric_feats_df.compute()  # type: ignore
 
     return cell_centric_feats_df, diffae_grid_crops, bounds
+
+
+def load_pc_diffae_liveseg_feats_merged_table(
+    dataset_name: str, delay: bool = True
+) -> pd.DataFrame:
+    """Load the preprocessed pc-diffae-seg-merged parquet file for a given dataset.
+
+    Parameters
+    ----------
+    dataset_name
+        The name of the dataset to load.
+    delay
+        Whether to delay the loading of the dataframe (Dask DataFrame) or not (Pandas DataFrame).
+
+    Returns
+    -------
+        The loaded dataframe with pc-diffae-seg-merged data.
+    """
+    # load the pc-diffae-seg-merged parquet file
+    cell_centric_feats_manifest = load_dataframe_manifest(
+        DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
+    )
+    cell_centric_feats_location = get_dataframe_location_for_dataset(
+        cell_centric_feats_manifest, dataset_name
+    )
+    cell_centric_feats_df = load_dataframe(cell_centric_feats_location, delay=delay)  # type: ignore
+
+    return cell_centric_feats_df
