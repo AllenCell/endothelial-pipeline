@@ -19,6 +19,7 @@ def create_segmentation_measured_feature_manifest(
     """Merge nuclei measurement, cdh5 segmentation measurement, and tracking tables into 1 table."""
     import logging
 
+    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import load_dataframe
     from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
         add_filter_columns,
@@ -28,6 +29,9 @@ def create_segmentation_measured_feature_manifest(
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
     logger = logging.getLogger(__name__)
+
+    timelapse_datasets = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
+    smad1_datasets = get_datasets_in_collection("smad1")
 
     # make the output directory
     out_dir = Path(out_dir)
@@ -42,7 +46,17 @@ def create_segmentation_measured_feature_manifest(
     segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset_name)
     segprops_df = load_dataframe(segprops_location)
 
-    nucprops_manifest = load_dataframe_manifest("nuclei_label_free_segmentation")
+    if dataset_name in smad1_datasets:
+        nuc_seg_manifest_name = "nuclei_stain_measured_features"
+    elif dataset_name in timelapse_datasets:
+        nuc_seg_manifest_name = "nuclei_labelfree_measured_features"
+    else:
+        logger.error(
+            f"No nuclei-based measurements found for dataset {dataset_name} in \
+              collections 'live_cdh5_seg_based_feat_datasets' or 'smad1'."
+        )
+        return
+    nucprops_manifest = load_dataframe_manifest(nuc_seg_manifest_name)
     nucprops_location = get_dataframe_location_for_dataset(nucprops_manifest, dataset_name)
     nucprops_df = load_dataframe(nucprops_location)
 
