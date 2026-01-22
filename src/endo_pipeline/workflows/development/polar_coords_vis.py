@@ -12,6 +12,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: Literal["grid", "tracked"] = "grid",
+    global_axes_limits: bool = False,
 ) -> None:
     """
     Analyze and visualize DiffAE feature dynamics in polar coordinates.
@@ -41,6 +42,8 @@ def main(
         The name of the model run to use.
     crop_pattern
         The crop pattern to get features for, either "grid" or "tracked".
+    global_axes_limits
+        Whether to use global axes limits for the per-position average plots.
     """
 
     import logging
@@ -150,9 +153,11 @@ def main(
                 variable_names,
                 shift_polar_angle_range=shift_polar_angle_range,
             )
-            for i, ax_ in enumerate(ax):
-                ax_.set_ylim(BIN_LIMITS_POLAR[i])
+            if global_axes_limits:
+                for i, ax_ in enumerate(ax):
+                    ax_.set_ylim(BIN_LIMITS_POLAR[i])
 
+            fig.suptitle(fig_title)
             save_plot_to_path(fig, fig_savedir, f"{dataset_name_flow}_per_position_averages")
 
             hist_arrays = []
