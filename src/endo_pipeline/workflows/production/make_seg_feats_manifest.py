@@ -1,15 +1,6 @@
-from collections.abc import Sequence
 from pathlib import Path
 
 from endo_pipeline.cli import Datasets
-
-
-def create_seg_measured_feat_manifest_multiproc_wrapper(args: Sequence) -> None:
-    """Merge nuclei measurement, cdh5 segmentation measurement, and tracking tables together using
-    multiprocessing.
-    """
-    dataset_name, out_dir = args
-    create_segmentation_measured_feature_manifest(dataset_name, out_dir)
 
 
 def create_segmentation_measured_feature_manifest(
@@ -100,11 +91,9 @@ def create_segmentation_measured_feature_manifest(
 
 def main(
     datasets: Datasets,
-    n_proc: int = 1,
 ) -> None:
     """Run workflow for merging nuclei, cdh5 segmentation, and tracking data into a single table."""
     import logging
-    from multiprocessing import Pool
 
     from tqdm import tqdm
 
@@ -117,34 +106,14 @@ def main(
 
     logger.info(f"datasets to analyze: {datasets}")
 
-    # decide whether or not to use multiprocessing
-    # and then create merged tables for each dataset
-    if n_proc > 1:
-        n_proc = min(n_proc, len(datasets))
-        with Pool(processes=n_proc) as pool:
-            args = zip(
-                datasets,
-                [out_dir] * len(datasets),
-                strict=False,
-            )
-            list(
-                tqdm(
-                    pool.imap(create_seg_measured_feat_manifest_multiproc_wrapper, args),
-                    total=len(datasets),
-                    desc="Processing datasets (MP)",
-                    unit="datasets",
-                )
-            )
-            pool.close()
-            pool.join()
-    else:
-        for dataset_name in tqdm(
-            datasets,
-            total=len(datasets),
-            desc="Processing datasets",
-            unit="datasets",
-        ):
-            create_segmentation_measured_feature_manifest(dataset_name, out_dir)
+    # create merged tables for each dataset
+    for dataset_name in tqdm(
+        datasets,
+        total=len(datasets),
+        desc="Processing datasets",
+        unit="datasets",
+    ):
+        create_segmentation_measured_feature_manifest(dataset_name, out_dir)
 
 
 if __name__ == "__main__":
