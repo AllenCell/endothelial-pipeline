@@ -47,9 +47,9 @@ def create_segmentation_measured_feature_manifest(
     segprops_df = load_dataframe(segprops_location)
 
     if dataset_name in smad1_datasets:
-        nuc_seg_manifest_name = "nuclei_stain_measured_features"
+        nuc_seg_manifest_name = "nuclei_stain_segmentation"
     elif dataset_name in timelapse_datasets:
-        nuc_seg_manifest_name = "nuclei_labelfree_measured_features"
+        nuc_seg_manifest_name = "nuclei_labelfree_segmentation"
     else:
         logger.error(
             f"No nuclei-based measurements found for dataset {dataset_name} in \
