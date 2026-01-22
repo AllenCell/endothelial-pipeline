@@ -112,15 +112,6 @@ class MLFlowLogger(_LightningMLFlowLogger):
                 raise
 
     # Checkpoint handling
-    def after_save_checkpoint(self, ckpt_callback: ModelCheckpoint) -> None:
-        try:
-            self._after_save_checkpoint(ckpt_callback)
-        except Exception as e:
-            if self.fault_tolerant:
-                self._warn(f"after_save_checkpoint failed: {e}")
-            else:
-                raise
-
     def _after_save_checkpoint(self, ckpt_callback: ModelCheckpoint) -> None:
         monitor = ckpt_callback.monitor
         if monitor is not None:
@@ -156,16 +147,19 @@ class MLFlowLogger(_LightningMLFlowLogger):
                     raise ValueError("ckpt_callback.dirpath must not be None")
 
             best_path = Path(ckpt_callback.best_model_path).with_name("best.ckpt")
+            if best_path.exists() or best_path.is_symlink():
+                best_path.unlink()
             os.link(ckpt_callback.best_model_path, best_path)
             self.experiment.log_artifact(self.run_id, str(best_path), artifact_path)
             best_path.unlink()
 
         else:
-
             fp = ckpt_callback.best_model_path
             artifact_path = "checkpoints"
             if ckpt_callback.save_top_k == 1:
                 last_path = Path(fp).with_name("last.ckpt")
+                if last_path.exists() or last_path.is_symlink():
+                    last_path.unlink()
                 os.link(fp, last_path)
                 self.experiment.log_artifact(self.run_id, str(last_path), artifact_path)
                 last_path.unlink()
