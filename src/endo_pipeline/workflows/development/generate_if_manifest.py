@@ -79,6 +79,8 @@ def main(datasets: Datasets | None = None) -> None:
         df["duration_at_ss_2_hr"] = duration_2 * 5 / 60  # convert to hrs
 
         # add columns required for DiffAE model inference
+        # may be able to remove in the future if we dont need it because they will be present
+        # in the merged table of cell features
         zarr_positions = dataset_config.zarr_positions
         for position in zarr_positions:
             zarr_path = get_zarr_location_for_position(dataset_config, position).path
