@@ -11,7 +11,7 @@ from endo_pipeline.manifests import (
 )
 
 
-def save_manifest_to_parquet(dataset: str, df: pd.DataFrame) -> Path:
+def save_dataframe_to_parquet(dataset: str, df: pd.DataFrame) -> Path:
     """Save the extracted features to a parquet file.
 
     Args:

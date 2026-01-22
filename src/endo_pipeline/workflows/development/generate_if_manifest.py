@@ -25,7 +25,7 @@ def main(datasets: Datasets | None = None) -> None:
     from endo_pipeline.library.model.eval_model import add_diffae_model_eval_crop_columns
     from endo_pipeline.library.process.if_feature_extraction import run_nuclei_feature_extraction
     from endo_pipeline.library.process.if_manifest import (
-        save_manifest_to_parquet,
+        save_dataframe_to_parquet,
         update_dataframe_manifest,
         upload_manifest_to_fms,
     )
@@ -111,7 +111,7 @@ def main(datasets: Datasets | None = None) -> None:
         df["track_id"] = track_id_str.astype(int)
 
         # Step 2: Save to CSV
-        save_path = save_manifest_to_parquet(dataset, df)
+        save_path = save_dataframe_to_parquet(dataset, df)
 
         if DEMO_MODE:
             logger.info("DEMO_MODE mode enabled. Skipping fms upload and dataset config update")
