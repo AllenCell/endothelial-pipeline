@@ -70,7 +70,6 @@ for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=Fal
 # %%
 for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=False):
     xlim = df[plot_feat].quantile(0.99) * 1.1
-    ylim = None
     for date in date_list:
         df_date = df[df["date"] == date]
         output_dir = get_output_path("SMAD1", "feature_density_by_date", plot_feat, str(date))
@@ -82,14 +81,12 @@ for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=Fal
             feature_name=plot_feat_name,
             save_dir=output_dir,
             xlim=xlim,
-            ylim=ylim,
             pool_positions=True,
         )
 
 # %%
 for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=False):
     xlim = df[plot_feat].quantile(0.99) * 1.1
-    ylim = None
     for date in date_list:
         df_date = df[df["date"] == date]
         date_datasets = df_date["dataset"].unique().tolist()
@@ -100,7 +97,6 @@ for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=Fal
             feature_name=plot_feat_name,
             save_dir=output_dir,
             xlim=xlim,
-            ylim=ylim,
             pool_positions=True,
             per_dataset=True,
         )
@@ -108,7 +104,6 @@ for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=Fal
 # %%
 for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=False):
     xlim = df[plot_feat].quantile(0.99) * 1.1
-    ylim = None
     for date in date_list:
         df_date = df[df["date"] == date]
         group = DATASET_GROUPS[str(date)]
@@ -131,7 +126,6 @@ for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=Fal
                 feature_name=plot_feat_name,
                 save_dir=output_dir,
                 xlim=xlim,
-                ylim=ylim,
                 pool_positions=True,
             )
 
