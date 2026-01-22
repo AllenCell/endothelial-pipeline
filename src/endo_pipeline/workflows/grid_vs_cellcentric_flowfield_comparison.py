@@ -8,7 +8,6 @@ from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 from endo_pipeline.configs import get_datasets_in_collection
-from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 from endo_pipeline.io import configure_logging, get_output_path
 from endo_pipeline.library.analyze.integration.track_integration import (
     get_approx_point_from_grid,
@@ -407,4 +406,6 @@ def main(
 
 
 if __name__ == "__main__":
-    ipython_cli_flexecute(main)
+    from endo_pipeline.cli import workflow_cli
+
+    workflow_cli(main)

@@ -85,15 +85,17 @@ def create_segmentation_measured_feature_manifest(
 
 
 def main(
-    datasets: Datasets,
+    datasets: Datasets | None = None,
     n_proc: int = 1,
 ) -> None:
     """Run workflow for merging nuclei, cdh5 segmentation, and tracking data into a single table."""
+
     import logging
     from multiprocessing import Pool
 
     from tqdm import tqdm
 
+    from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.io import get_output_path
 
     logger = logging.getLogger(__name__)
@@ -101,6 +103,7 @@ def main(
     # set the directory where the output will be saved
     out_dir = get_output_path(__file__)
 
+    datasets = use_default_collection(datasets, "live_cdh5_seg_based_feat_datasets")
     logger.info(f"datasets to analyze: {datasets}")
 
     # decide whether or not to use multiprocessing
@@ -134,6 +137,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+    from endo_pipeline.cli import workflow_cli
 
-    ipython_cli_flexecute(main)
+    workflow_cli(main)
