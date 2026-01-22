@@ -7,9 +7,9 @@ from endo_pipeline.cli import DEMO_MODE
 from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe
 from endo_pipeline.library.analyze.immunofluorescence import filter, plot
-from endo_pipeline.library.analyze.immunofluorescence.dataset_groupings import DATASET_GROUPS
 from endo_pipeline.library.analyze.immunofluorescence.plot import if_dataset_contact_sheet
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.settings.if_defaults import DATASET_GROUPS, PLOT_FEAT_COLS, PLOT_FEAT_NAMES
 
 # %%
 DESCRIPTION = "Analyze SMAD1 intensity distributions under shear stress conditions."
@@ -41,12 +41,9 @@ df["SMAD1_norm_area_mean_sum_proj"] = df["SMAD1_mean_sum_proj"] / df["area"]
 df = df[df["SMAD1_norm_NucViolet_mean_sum_proj"] < 1.0]
 
 # %% Plot distributions of SMAD1 intensity features
-plot_feat_cols = ["SMAD1_sum_sum_proj", "SMAD1_norm_area_sum_max_proj"]  # "SMAD1_mean_sum_proj"
-plot_feat_names = [
-    "Total SMAD1 intensity in nuclear mask volume",
-    "Total SMAD1 intensity / N pixels \nin nuclear mask volume",
-]  # "SMAD1 mean intensity of sum projection\nin nuclear mask"
 date_list = df["date"].unique().tolist()
+plot_feat_cols = PLOT_FEAT_COLS
+plot_feat_names = PLOT_FEAT_NAMES
 
 if DEMO_MODE:
     smad1_datasets = smad1_datasets[:1]
