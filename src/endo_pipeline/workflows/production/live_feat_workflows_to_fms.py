@@ -60,6 +60,7 @@ def main(
         "nuclei_labelfree": fms_upload_nuc_get_measured_features,
         "merged_live_data_manifests": fms_upload_make_seg_feats_manifest,
         "nuclei_stain": fms_upload_nuc_get_measured_features,
+        "merged_fixed_data_manifests": fms_upload_make_seg_feats_manifest,
     }
     print(f"Uploading {datasets}")
 
@@ -89,6 +90,10 @@ def main(
         "nuclei_stain": {
             "subdir": "nuc_stain_get_measured_features",
             "suffix": "_nuclei_stain_features.parquet",
+        },
+        "merged_fixed_data_manifests": {
+            "subdir": "cdh5_fixed_seg_features",
+            "suffix": "_fixed_segmentation_features.parquet",
         },
     }
 

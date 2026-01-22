@@ -83,9 +83,14 @@ def create_segmentation_measured_feature_manifest(
     # NOTE THIS TABLE WILL BE UPLOADED TO FMS
     # save the raw combined data tables
     # (we want to have an accessible version of the raw data)
+    if dataset_name in smad1_datasets:
+        filename = f"{dataset_name}_fixed_segmentation_features.parquet"
+    elif dataset_name in timelapse_datasets:
+        filename = f"{dataset_name}_live_segmentation_features.parquet"
+
     out_dir_raw = out_dir / "segmentation_features_dataframes/"
     out_dir_raw.mkdir(parents=True, exist_ok=True)
-    out_path_raw = out_dir_raw / f"{dataset_name}_live_segmentation_features.parquet"
+    out_path_raw = out_dir_raw / filename
     big_table.to_parquet(out_path_raw, index=False)
 
 

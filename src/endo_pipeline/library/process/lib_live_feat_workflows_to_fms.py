@@ -8,7 +8,10 @@ from endo_pipeline.manifests import (
     create_dataframe_manifest,
     save_dataframe_manifest,
 )
-from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
+from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    FIXED_SEG_FEATURE_MANIFEST_NAME,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +127,12 @@ def fms_upload_make_seg_feats_manifest(
     # to improve segmentation quality, so we include model config
     # info along with the FMS upload here.
     dataset_config = load_dataset_config(dataset_name)
-    model_annotations = get_model_annotations_for_upload()
+    if "_live_segmentation_features" in path_to_file.name:
+        model_annotations = get_model_annotations_for_upload()
+        seg_feature_manifest_name = DEFAULT_SEG_FEATURE_MANIFEST_NAME
+    elif "_fixed_segmentation_features" in path_to_file.name:
+        model_annotations = {}
+        seg_feature_manifest_name = FIXED_SEG_FEATURE_MANIFEST_NAME
     annotations = build_fms_annotations(dataset_config, **model_annotations)
 
     # Upload the file to FMS
