@@ -108,7 +108,7 @@ for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=Fal
             per_dataset=True,
         )
 
-
+# %%
 for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=False):
     xlim = df[plot_feat].quantile(0.99) * 1.1
     ylim = None
@@ -146,3 +146,5 @@ for date in date_list:
         output_dir = get_output_path("SMAD1", "contact_sheet", str(date), group_name)
         reversed_group = list(reversed(subgroup))
         if_dataset_contact_sheet(df_date, reversed_group, output_dir)
+
+# %%
