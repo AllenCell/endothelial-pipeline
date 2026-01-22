@@ -9,11 +9,11 @@ a `list[str]` that will:
 dataset config available)
 - remove any duplicate datasets from the list of datasets
 
-**Example workflow usage**
+## Example workflow usage
 
 .. code-block:: python
 
-    from endopipe.cli import Datasets
+    from endo_pipeline.cli import Datasets
     from endo_pipeline.configs load_dataset_config
 
     def main(datasets: Datasets):
