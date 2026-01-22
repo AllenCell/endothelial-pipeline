@@ -347,11 +347,10 @@ def add_diffae_model_eval_crop_columns(
 
 def preprocess_tracking_manifest_for_model_eval(
     dataset_config: DatasetConfig,
-    save_dir: Path,
     z_slice_bounds_per_position: dict[int, dict[CytoDLLoadDataKeys, int]] | None = None,
     only_include_positions: list[int] | None = None,
     only_include_frames: dict[int, list[int]] | None = None,
-) -> Path:
+) -> pd.DataFrame:
     """Preprocess the manifest for a dataset to prepare it for model prediction."""
 
     manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
@@ -461,10 +460,7 @@ def preprocess_tracking_manifest_for_model_eval(
     # remove temporary column with position index
     grouped_df = grouped_df.drop(columns=["position_index"])
 
-    # save the dataframe to a Parquet file that the DiffAE model will use to load cropped images
-    save_path = save_dir / "aggregated_crop_manifest.parquet"
-    grouped_df.to_parquet(save_path, index=False)
-    return save_path
+    return grouped_df
 
 
 def bbox_in_image_bounds(df: pd.DataFrame, resolution_level: int = 1) -> pd.Series:
@@ -743,12 +739,14 @@ def evaluate_model_on_tracked_crops_from_one_dataset(
     # positions to include, and frames to exclude
     z_slice_bounds_per_position = get_z_slice_bounds_per_position(dataset_config, z_slice_offsets)
 
-    data_path = preprocess_tracking_manifest_for_model_eval(
+    # save the dataframe to a Parquet file that the DiffAE model will use to load cropped images
+    df = preprocess_tracking_manifest_for_model_eval(
         dataset_config,
-        save_path,
         z_slice_bounds_per_position=z_slice_bounds_per_position,
         only_include_positions=only_include_positions,
     )
+    data_path = save_path / "aggregated_crop_manifest.parquet"
+    df.to_parquet(data_path, index=False)
 
     # use timestamp to get unique file name for FMS upload later
     prediction_filename_suffix = f"{dataset_config.name}_{model_manifest_name}_{run_name}"
