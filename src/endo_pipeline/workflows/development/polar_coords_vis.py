@@ -150,6 +150,9 @@ def main(
                 variable_names,
                 shift_polar_angle_range=shift_polar_angle_range,
             )
+            for i, ax_ in enumerate(ax):
+                ax_.set_ylim(BIN_LIMITS_POLAR[i])
+
             save_plot_to_path(fig, fig_savedir, f"{dataset_name_flow}_per_position_averages")
 
             hist_arrays = []
