@@ -185,6 +185,15 @@ def main(
             figsize=(2, 2),
             show_plot=False,
         )
+        plot_image_thumbnail(
+            image=thumbnail,
+            image_name=f"{filename}_sb50um.png",
+            output_path=real_example_savedir,
+            figsize=(2, 2),
+            show_plot=False,
+            scalebar_size_um=50,
+            pixel_size=dataset_config.pixel_size_xy_in_um * (2**resolution),
+        )
 
     # save the example points dataframe to csv
     example_and_target_points.to_csv(

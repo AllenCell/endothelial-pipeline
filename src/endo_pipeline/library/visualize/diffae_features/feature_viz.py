@@ -393,6 +393,31 @@ def get_no_flow_pc_space_example_points_fig4(
     origin_pc1pc2: tuple[float, float] = (0.0, 0.0),
     pc3_target: float | None = None,
 ) -> pd.DataFrame:
+    """Get example points in no-flow PC space for Figure 4.
+    A dataframe with 8 example points that are evenly spaced around a circle
+    is returned. The dataframe also has columns for the real data points
+    that are closest to these example points.
+
+    Parameters
+    ----------
+    df
+        DataFrame containing the first 3 PCA components.
+    radius
+        Radius from origin_pc1pc2 to the target points.
+    origin_pc1pc2
+        Tuple of (pc1, pc2) coordinates for the origin point.
+    pc3_target
+        Optional.
+        If provided pc3 values will be used when finding the real data point
+        that is closest to the example point.
+        If None, only pc1 and pc2 are used and pc3 is ignored.
+
+    Returns
+    -------
+    example_points_df:
+        DataFrame containing the example points and real data points closest to
+        the target points.
+    """
     # no flow data is arranged roughly in a circle in PC1-PC2 space, so
     # get 8 points that are evenly spaced around the circle (every 45 degrees)
     angles = np.linspace(0, 2 * np.pi, 8, endpoint=False)  # 8 angles from 0 to 2pi
