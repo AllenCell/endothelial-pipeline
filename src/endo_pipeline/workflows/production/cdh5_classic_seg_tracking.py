@@ -98,7 +98,6 @@ def main(
 
 
 if __name__ == "__main__":
+    from endo_pipeline.cli import workflow_cli
 
-    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
-
-    ipython_cli_flexecute(main)
+    workflow_cli(main)

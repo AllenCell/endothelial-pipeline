@@ -16,6 +16,7 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
     DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    FIXED_SEG_FEATURE_MANIFEST_NAME,
 )
 
 logger = logging.getLogger(__name__)
@@ -89,13 +90,19 @@ def fms_upload_cdh5_get_measured_features(dataset_name: str, path_to_file: Path)
 
 
 def fms_upload_nuc_get_measured_features(dataset_name: str, path_to_file: Path) -> str:
-    """Upload the nuclei label-free features to FMS and store the FMS ID in a manifest."""
+    """Upload the nuclei label-free or stained features to FMS and store FMS ID in a manifest."""
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
     # info along with the FMS upload here.
     dataset_config = load_dataset_config(dataset_name)
-    model_annotations = get_model_annotations_for_upload()
+
+    if "_nuclei_labelfree_features" in path_to_file.name:
+        model_annotations = get_model_annotations_for_upload()
+        manifest_name = "nuclei_label_free_segmentation"
+    elif "_nuclei_stain_features" in path_to_file.name:
+        model_annotations = {}
+        manifest_name = "nuclei_stain_segmentation"
     annotations = build_fms_annotations(dataset_config, **model_annotations)
 
     # Upload the file to FMS
@@ -104,7 +111,6 @@ def fms_upload_nuc_get_measured_features(dataset_name: str, path_to_file: Path) 
     )
 
     # Store FMS ID in dataframe manifest
-    manifest_name = "nuclei_label_free_segmentation"
     workflow_name = "live_feat_workflows_to_fms"
     manifest = create_dataframe_manifest(manifest_name, workflow_name)
     manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
@@ -127,7 +133,12 @@ def fms_upload_make_seg_feats_manifest(
     # to improve segmentation quality, so we include model config
     # info along with the FMS upload here.
     dataset_config = load_dataset_config(dataset_name)
-    model_annotations = get_model_annotations_for_upload()
+    if "_live_segmentation_features" in path_to_file.name:
+        model_annotations = get_model_annotations_for_upload()
+        seg_feature_manifest_name = DEFAULT_SEG_FEATURE_MANIFEST_NAME
+    elif "_fixed_segmentation_features" in path_to_file.name:
+        model_annotations = {}
+        seg_feature_manifest_name = FIXED_SEG_FEATURE_MANIFEST_NAME
     annotations = build_fms_annotations(dataset_config, **model_annotations)
 
     # Upload the file to FMS

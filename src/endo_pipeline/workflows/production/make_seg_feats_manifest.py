@@ -1,15 +1,6 @@
-from collections.abc import Sequence
 from pathlib import Path
 
 from endo_pipeline.cli import Datasets
-
-
-def create_seg_measured_feat_manifest_multiproc_wrapper(args: Sequence) -> None:
-    """Merge nuclei measurement, cdh5 segmentation measurement, and tracking tables together using
-    multiprocessing.
-    """
-    dataset_name, out_dir = args
-    create_segmentation_measured_feature_manifest(dataset_name, out_dir)
 
 
 def create_segmentation_measured_feature_manifest(
@@ -19,6 +10,7 @@ def create_segmentation_measured_feature_manifest(
     """Merge nuclei measurement, cdh5 segmentation measurement, and tracking tables into 1 table."""
     import logging
 
+    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import load_dataframe
     from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
         add_filter_columns,
@@ -28,6 +20,9 @@ def create_segmentation_measured_feature_manifest(
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
     logger = logging.getLogger(__name__)
+
+    timelapse_datasets = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
+    smad1_datasets = get_datasets_in_collection("smad1")
 
     # make the output directory
     out_dir = Path(out_dir)
@@ -42,7 +37,17 @@ def create_segmentation_measured_feature_manifest(
     segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset_name)
     segprops_df = load_dataframe(segprops_location)
 
-    nucprops_manifest = load_dataframe_manifest("nuclei_label_free_segmentation")
+    if dataset_name in smad1_datasets:
+        nuc_seg_manifest_name = "nuclei_stain_segmentation"
+    elif dataset_name in timelapse_datasets:
+        nuc_seg_manifest_name = "nuclei_labelfree_segmentation"
+    else:
+        logger.error(
+            f"No nuclei-based measurements found for dataset {dataset_name} in \
+              collections 'live_cdh5_seg_based_feat_datasets' or 'smad1'."
+        )
+        return
+    nucprops_manifest = load_dataframe_manifest(nuc_seg_manifest_name)
     nucprops_location = get_dataframe_location_for_dataset(nucprops_manifest, dataset_name)
     nucprops_df = load_dataframe(nucprops_location)
 
@@ -78,22 +83,27 @@ def create_segmentation_measured_feature_manifest(
     # NOTE THIS TABLE WILL BE UPLOADED TO FMS
     # save the raw combined data tables
     # (we want to have an accessible version of the raw data)
+    if dataset_name in smad1_datasets:
+        filename = f"{dataset_name}_fixed_segmentation_features.parquet"
+    elif dataset_name in timelapse_datasets:
+        filename = f"{dataset_name}_live_segmentation_features.parquet"
+
     out_dir_raw = out_dir / "segmentation_features_dataframes/"
     out_dir_raw.mkdir(parents=True, exist_ok=True)
-    out_path_raw = out_dir_raw / f"{dataset_name}_live_segmentation_features.parquet"
+    out_path_raw = out_dir_raw / filename
     big_table.to_parquet(out_path_raw, index=False)
 
 
 def main(
     datasets: Datasets,
-    n_proc: int = 1,
 ) -> None:
     """Run workflow for merging nuclei, cdh5 segmentation, and tracking data into a single table."""
+
     import logging
-    from multiprocessing import Pool
 
     from tqdm import tqdm
 
+    from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.io import get_output_path
 
     logger = logging.getLogger(__name__)
@@ -101,39 +111,20 @@ def main(
     # set the directory where the output will be saved
     out_dir = get_output_path(__file__)
 
+    datasets = use_default_collection(datasets, "live_cdh5_seg_based_feat_datasets")
     logger.info(f"datasets to analyze: {datasets}")
 
-    # decide whether or not to use multiprocessing
-    # and then create merged tables for each dataset
-    if n_proc > 1:
-        n_proc = min(n_proc, len(datasets))
-        with Pool(processes=n_proc) as pool:
-            args = zip(
-                datasets,
-                [out_dir] * len(datasets),
-                strict=False,
-            )
-            list(
-                tqdm(
-                    pool.imap(create_seg_measured_feat_manifest_multiproc_wrapper, args),
-                    total=len(datasets),
-                    desc="Processing datasets (MP)",
-                    unit="datasets",
-                )
-            )
-            pool.close()
-            pool.join()
-    else:
-        for dataset_name in tqdm(
-            datasets,
-            total=len(datasets),
-            desc="Processing datasets",
-            unit="datasets",
-        ):
-            create_segmentation_measured_feature_manifest(dataset_name, out_dir)
+    # create merged tables for each dataset
+    for dataset_name in tqdm(
+        datasets,
+        total=len(datasets),
+        desc="Processing datasets",
+        unit="datasets",
+    ):
+        create_segmentation_measured_feature_manifest(dataset_name, out_dir)
 
 
 if __name__ == "__main__":
-    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+    from endo_pipeline.cli import workflow_cli
 
-    ipython_cli_flexecute(main)
+    workflow_cli(main)

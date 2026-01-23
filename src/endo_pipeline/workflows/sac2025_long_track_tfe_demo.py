@@ -5,10 +5,7 @@ from bioio import BioImage
 from skimage.morphology import dilation, disk
 from tqdm import tqdm
 
-from endo_pipeline.configs.dataset_io import (
-    get_segmentation_features_manifest,
-    ipython_cli_flexecute,
-)
+from endo_pipeline.configs.dataset_io import get_segmentation_features_manifest
 from endo_pipeline.io import get_output_path
 from endo_pipeline.library.process.general_image_preprocessing import (
     save_image_output,
@@ -332,7 +329,3 @@ def generate_tfe_dataset_of_single_track(
         backdrops=True,
         output_dir_suffix=f"tid{track_id}",
     )
-
-
-if __name__ == "__main__":
-    ipython_cli_flexecute(generate_tfe_dataset_of_single_track)

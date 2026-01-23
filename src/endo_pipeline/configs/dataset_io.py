@@ -1,18 +1,12 @@
 import logging
+import re
 from os import scandir
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import yaml
 from deprecated import deprecated  # type:ignore[import-untyped]
-
-try:
-    from IPython import get_ipython
-except ModuleNotFoundError:
-    pass
-import re
-from collections.abc import Callable
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -129,38 +123,6 @@ def load_config(config_type: str = "data") -> dict[Any, Any]:
     with open(config_file) as file:
         config_data = yaml.safe_load(file)
     return config_data
-
-
-# Other miscellaneous methods
-def ipython_cli_flexecute(
-    function: Callable[..., Any],
-    *args: Any,
-    **kwargs: Any,
-) -> Any:
-    """
-    Execute function with arguments and keyword arguments in
-    an IPython shell or via command line interface.
-    """
-    # The following try-except statement will run 'main' without
-    # fire.Fire if an interactive shell is in use,
-    # otherwise it will run 'main' through fire.Fire so that
-    # arguments can easily be passed to 'main' through
-    # some non-interactive shell like bash
-    try:
-        # the following line will return a string if an interactive shell is in use,
-        # otherwise raises NameError since get_ipython is not imported from IPython
-        # or returns None if get_ipython is present but script is being executed
-        # from a non-interactive shell
-        if get_ipython().__class__.__name__ != "NoneType":
-            print(f"Using interactive shell {get_ipython().__class__.__name__}.")
-            function(*args, **kwargs)
-        else:
-            raise NameError
-    except NameError:
-        print("Using non-interactive shell.")
-        from endo_pipeline.cli import workflow_cli
-
-        workflow_cli(function)
 
 
 def extract_t(

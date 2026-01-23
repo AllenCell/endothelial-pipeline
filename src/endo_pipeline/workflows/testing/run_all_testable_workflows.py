@@ -1,9 +1,17 @@
 """
 How to register your workflow for testing:
-1. Make sure your workflow takes under 3 minutes in demo mode
-2. Add "test_ready", along with "GPU" or "CPU_only", to your TAGS
-How to use this wrapper workflow:
-3. Run all the registered workflows with `uv run endopipe -g 1 run-all-testable-workflows`, or leave out the -g 1 for just the CPU workflows.
+
+1. Make sure your workflow runs in under 5 minutes in `DEMO_MODE`
+2. Add #test-ready (along with #gpu or #cpu-only) to your docstring
+3. Run all registered workflows with:
+
+.. code-block:: bash
+
+    # runs all testable workflow
+    uv run endopipe -g 1 run-all-testable-workflows
+
+    # run only the CPU workflows
+    uv run endopipe run-all-testable-workflows
 """
 
 import asyncio
@@ -14,7 +22,8 @@ from dataclasses import dataclass
 
 from termcolor import colored
 
-import endo_pipeline
+import endo_pipeline.cli
+from endo_pipeline.cli.tags import get_app_tags
 from endo_pipeline.settings.testing import TIMEOUT_MIN
 
 if typing.TYPE_CHECKING:
@@ -32,7 +41,9 @@ def _testable_workflows(pipeline_app: "App", tags: dict[str, list[str]]):
     for name in pipeline_app._commands.keys():
         if name not in tags:
             continue
-        these_tags = tags[name]
+
+        these_tags = [tag.lower().replace("_", "-") for tag in tags[name]]
+
         if TEST_READY not in these_tags:
             continue
         if CPU_ONLY not in these_tags and GPU not in these_tags:
@@ -109,7 +120,7 @@ def _make_command(app: str) -> tuple[str, list[str]]:
     if "-d" not in tokens and "--demo-mode" not in tokens:
         tokens.append("-d")
 
-    return (app, ["endopipe", app, *tokens])
+    return (app, ["endopipe2", app, *tokens])
 
 
 @dataclass
@@ -233,10 +244,42 @@ async def _run_all(pipeline_app: "App", tags: dict[str, list[str]]) -> list[_Wor
 
 
 def main():
+    """Run all workflows marked as test ready."""
 
-    from endo_pipeline.__main__ import pipeline_app, tags
+    from endo_pipeline.__main__ import tags
+    from endo_pipeline.cli.apps import pipeline_app
 
     logger = logging.getLogger(__name__)
+
+    # Hacky way to detect if workflow was called via the "old" pipeline CLI
+    # (which means the pipeline_app instance imported from endo_pipeline.cli
+    # will not have any apps registered to it (other than two help commands).
+    # When detected, replace the pipeline_app instance with the version from
+    # __main__. Note that this is also triggered when running this workflow via
+    # the workflow CLI, but the two apps are effectively the same.
+    if len(pipeline_app._commands) < 3:
+        from endo_pipeline.__main__ import pipeline_app as old_pipeline_app
+
+        logger.debug("Detected running using old pipeline CLI.")
+        pipeline_app = old_pipeline_app
+
+    # While in the process of converting workflows from variable-based tagging
+    # using the TAG variable into the docstring-based tagging, we combine the
+    # tag dictionary extracted by the "old" pipeline CLI (variable-based) and
+    # append (or override) with any new docstring-based tags. When ready to
+    # fully switch over to the docstring-based tagging, we can embed the tag
+    # extraction directly in the loop in _testable_workflows.
+    for name, app in pipeline_app.resolved_commands().items():
+        # Ignore the help apps (which start with "-")
+        if name.startswith("-"):
+            continue
+
+        # Extract tags from the app docstring and only append to the tags
+        # dictionary if any are found.
+        app_tags = get_app_tags(app)
+        if app_tags:
+            tags[name] = get_app_tags(app)
+
     if not endo_pipeline.cli.DEMO_MODE:
         endo_pipeline.cli.DEMO_MODE = True
         logger.debug("Forcing demo mode on for testing.")

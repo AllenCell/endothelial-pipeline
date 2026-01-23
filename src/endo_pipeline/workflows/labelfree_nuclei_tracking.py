@@ -1,6 +1,3 @@
-from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
-
-
 def main():
     from pathlib import Path
 
@@ -34,4 +31,6 @@ def main():
 
 
 if __name__ == "__main__":
-    ipython_cli_flexecute(main)
+    from endo_pipeline.cli import workflow_cli
+
+    workflow_cli(main)
