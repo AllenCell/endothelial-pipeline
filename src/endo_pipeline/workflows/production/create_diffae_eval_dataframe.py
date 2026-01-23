@@ -76,7 +76,7 @@ def main(
     }
 
     # Create directory for saving evaluation dataframes
-    file_suffix = f"crop_{crop_pattern}_z_stack_{Z_SLICE_OFFSETS[0]}_{Z_SLICE_OFFSETS[1]}"
+    file_suffix = f"{crop_pattern}_z_stack_{Z_SLICE_OFFSETS[0]}_{Z_SLICE_OFFSETS[1]}{name_suffix}"
     output_path = get_output_path("model_eval_dataframes")
 
     for dataset in datasets:
@@ -126,7 +126,7 @@ def main(
 
         # Output dataframes are locally saved to:
         #   Output directory = /path/to/results/YYYY-MM-DD/model_eval_dataframes/
-        #   File name = dataset_DATASET_crop_grid_z_stack_#_#.parquet
+        #   File name = dataset_DATASET_PATTERN_z_stack_#_#.parquet
         output_file = output_path / f"dataset_{dataset_config.name}_{file_suffix}.parquet"
         df.to_parquet(output_file, index=False)
 
