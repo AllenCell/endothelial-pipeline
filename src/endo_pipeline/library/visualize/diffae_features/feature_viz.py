@@ -454,6 +454,89 @@ def make_pc_scatter_fig4a(
     return fig
 
 
+def get_no_flow_pc_space_example_points_fig4(
+    df: pd.DataFrame,
+    radius: float,
+    origin_pc1pc2: tuple[float, float] = (0.0, 0.0),
+    pc3_target: float | None = None,
+) -> pd.DataFrame:
+    """Get example points in no-flow PC space for Figure 4.
+    A dataframe with 8 example points that are evenly spaced around a circle
+    is returned. The dataframe also has columns for the real data points
+    that are closest to these example points.
+
+    Parameters
+    ----------
+    df
+        DataFrame containing the first 3 PCA components.
+    radius
+        Radius from origin_pc1pc2 to the target points.
+    origin_pc1pc2
+        Tuple of (pc1, pc2) coordinates for the origin point.
+    pc3_target
+        Optional.
+        If provided pc3 values will be used when finding the real data point
+        that is closest to the example point.
+        If None, only pc1 and pc2 are used and pc3 is ignored.
+
+    Returns
+    -------
+    example_points_df:
+        DataFrame containing the example points and real data points closest to
+        the target points.
+    """
+    # no flow data is arranged roughly in a circle in PC1-PC2 space, so
+    # get 8 points that are evenly spaced around the circle (every 45 degrees)
+    angles = np.linspace(0, 2 * np.pi, 8, endpoint=False)  # 8 angles from 0 to 2pi
+    origin_pc1, origin_pc2 = origin_pc1pc2
+    pc1_targets = (radius - origin_pc1) * np.cos(angles)
+    pc2_targets = (radius - origin_pc2) * np.sin(angles)
+
+    if pc3_target is None:
+        target_points = np.stack([pc1_targets, pc2_targets], axis=0)  # shape (2, 8)
+        pc_col_names = DIFFAE_PC_COLUMN_NAMES[:2]
+    else:
+        pc3_targets = np.asarray([pc3_target] * len(angles))
+        target_points = np.stack([pc1_targets, pc2_targets, pc3_targets], axis=0)  # shape (3, 8)
+        pc_col_names = DIFFAE_PC_COLUMN_NAMES[:3]
+
+    data_points = df[pc_col_names].to_numpy()
+
+    example_points = get_point_nearest_target(data_points, target_points=target_points)
+
+    # convert to tuple of tuples
+    example_point_col_names = [f"pc_{i+1}_example" for i in range(example_points.shape[1])]
+    example_points_df = pd.DataFrame(columns=example_point_col_names, data=example_points)
+    target_point_col_names = [f"pc_{i+1}_target" for i in range(target_points.shape[0])]
+    example_points_df[target_point_col_names] = target_points.T
+
+    return example_points_df
+
+
+def get_point_nearest_target(data_points: np.ndarray, target_points: np.ndarray) -> np.ndarray:
+    """Get the point in data_points nearest to the target point.
+
+    Parameters
+    ----------
+    data_points
+        Array of shape (n_samples, n_features) containing the data points.
+    target
+        Array of shape (n_features, n_targets) containing the target point.
+
+    Returns
+    -------
+    closest_point:
+        The point in data_points nearest to the target point.
+    """
+    data_points = np.expand_dims(data_points, axis=-1)  # shape (n_samples, n_features, 1)
+    target_points = np.expand_dims(target_points, axis=0)  # shape (1, n_features, n_targets)
+
+    distances = np.linalg.norm(data_points - target_points, axis=1, keepdims=True)
+    closest_indices = np.argmin(distances, axis=0).squeeze()
+    closest_points = data_points[closest_indices, :, 0]
+    return closest_points
+
+
 def plot_per_position_average_over_time(
     df: pd.DataFrame,
     column_names: list[str],
