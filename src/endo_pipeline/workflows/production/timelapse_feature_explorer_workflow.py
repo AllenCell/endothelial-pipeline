@@ -88,8 +88,6 @@ def main(
                 output_dir=output_dir,
                 source_dir=source_dir_path,
                 backdrops=make_backdrops,
-                model_name=model_manifest_name,
-                run_name=run_name,
                 include_diffae_features=include_diffae_features,
             )
             print(f"Processed dataset: {dataset_name}, position: {position}")
