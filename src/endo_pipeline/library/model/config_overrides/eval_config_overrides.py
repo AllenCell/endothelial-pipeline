@@ -30,13 +30,13 @@ class ModelConfigOverrideEval:
     eval_dataframe_path: Path | None = None
     """Path to the evaluation dataset (image loading metadata) parquet file."""
 
-    cache_rate: float | None = Field(None, ge=0, le=1)
+    cache_rate: float | None = Field(default=None, ge=0, le=1)
     """Fraction of the dataset to cache in memory for evaluation."""
 
-    replace_rate: float | None = Field(None, ge=0, le=1)
+    replace_rate: float | None = Field(default=None, ge=0, le=1)
     """Rate at which cached data is replaced."""
 
-    num_gpus: int | None = Field(None, gt=0)
+    num_gpus: int | None = Field(default=None, gt=0)
     """Number of GPUs to use. None indicates that CPU should be used."""
 
     def __post_init__(self):
