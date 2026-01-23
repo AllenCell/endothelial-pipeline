@@ -16,6 +16,8 @@ def main(
         "cdh5_seg_measurements",
         "nuclei_labelfree",
         "merged_live_data_manifests",
+        "nuclei_stain",
+        "merged_fixed_data_manifests",
     ],
     datasets: Datasets,
 ) -> None:
@@ -57,14 +59,19 @@ def main(
         "cdh5_seg_measurements": fms_upload_cdh5_get_measured_features,
         "nuclei_labelfree": fms_upload_nuc_get_measured_features,
         "merged_live_data_manifests": fms_upload_make_seg_feats_manifest,
+        "nuclei_stain": fms_upload_nuc_get_measured_features,
+        "merged_fixed_data_manifests": fms_upload_make_seg_feats_manifest,
     }
     print(f"Uploading {datasets}")
 
     all_available_datasets = load_all_dataset_configs()
     available_live_datasets = []
+    available_fixed_datasets = []
     for ds_cfg in all_available_datasets:
         if ds_cfg.live_or_fixed_sample == "live":
             available_live_datasets.append(ds_cfg.name)
+        elif ds_cfg.live_or_fixed_sample == "fixed":
+            available_fixed_datasets.append(ds_cfg.name)
 
     path_modifiers = {
         "cdh5_seg_tracking": {"subdir": "cdh5_classic_seg_tracking", "suffix": "_tracking.parquet"},
@@ -80,13 +87,21 @@ def main(
             "subdir": "cdh5_live_seg_features",
             "suffix": "_live_segmentation_features.parquet",
         },
+        "nuclei_stain": {
+            "subdir": "nuc_stain_get_measured_features",
+            "suffix": "_nuclei_stain_features.parquet",
+        },
+        "merged_fixed_data_manifests": {
+            "subdir": "cdh5_fixed_seg_features",
+            "suffix": "_fixed_segmentation_features.parquet",
+        },
     }
 
     for dataset_name in tqdm(datasets):
-        if dataset_name not in available_live_datasets:
+        if dataset_name not in (available_live_datasets + available_fixed_datasets):
             error_msg = (
                 f"Dataset {dataset_name} is not in the list of available live datasets: "
-                f"{available_live_datasets}"
+                f"{available_live_datasets + available_fixed_datasets}"
             )
             logger.error(error_msg)
             raise ValueError(error_msg)
