@@ -1,0 +1,12 @@
+name: diffae_evaluation_dataframe_grid_demo
+workflow: create_diffae_eval_dataframe
+parameters:
+  crop_pattern: grid
+  z_slice_offsets:
+  - 4
+  - 11
+locations:
+  20250618_20X:
+    fmsid: 584c911c9c1d43809156a5916f465680
+    path: null
+    s3uri: null
