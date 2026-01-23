@@ -588,7 +588,8 @@ def plot_component_histograms_over_time(
         if feature_names is not None:
             ax_.set_ylabel(feature_names[col])
         else:
-            ax_.set_ylabel(f"latent component {col+1}")
+            # defaults to "component {col+1}"
+            ax_.set_ylabel(f"component {col+1}")
         if col == ndim - 1:  # only label x-axis on bottom plot
             ax_.set_xlabel("frame number")
         xticks = np.arange(frame_min, frame_max + 1, step=time_tick_step)
