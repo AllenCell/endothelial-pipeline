@@ -1,16 +1,11 @@
-import logging
-
-from endo_pipeline.cli import tags
-
-logger = logging.getLogger(__name__)
-
-TAGS = ["internal", tags.TEST_READY, tags.CPU_ONLY]
-
-
 def main() -> None:
     """
     Ensures files do not expire on VAST by managing their cache status.
+
+    #internal #test-ready #cpu-only
     """
+
+    import logging
     from collections import Counter
 
     from endo_pipeline.configs import load_all_dataset_configs
@@ -20,6 +15,8 @@ def main() -> None:
         list_datasets_with_dataframes,
         load_dataframe_manifest,
     )
+
+    logger = logging.getLogger(__name__)
 
     # Get all FMSIDs from dataset configs and dataframe manifests
     fmsid_list = []
