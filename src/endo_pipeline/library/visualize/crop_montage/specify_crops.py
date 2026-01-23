@@ -10,20 +10,21 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
 )
 from endo_pipeline.library.analyze.numerics import (
-    get_3d_bounds_from_data,
+    get_bounds_from_data,
     get_df_by_bin_value,
     get_histogram_by_component,
 )
 from endo_pipeline.library.visualize.diffae_features.feature_viz import (
-    plot_principal_component_histogram,
+    get_label_for_column,
+    plot_component_histograms_over_time,
 )
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import (
+from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
-    NUM_BINS_CROP_HIST,
     NUM_PCS_TO_ANALYZE,
     ColumnName,
 )
+from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +86,7 @@ def filter_dataframe(
     fig_savedir: Path,
     frame_range: list[int] | None = None,
     plot_heatmap: bool = False,
+    feat_cols: list[str] | None = None,
 ) -> pd.DataFrame:
     """
     Filter a DataFrame by a principal component (PC) bin and optional frame range.
@@ -109,26 +111,32 @@ def filter_dataframe(
         Optional timepoint range [start, end] to further filter the DataFrame.
     plot_heatmap
         If True, generates and saves PC histograms for each dataset.
+    feat_cols
+        List of feature column names to consider for PCA. If None, defaults to DIFFAE_PC_COLUMN_NAMES.
 
     Returns
     -------
     :
         DataFrame filtered by the specified PC bin and optional frame range.
     """
-
-    bin_limits = get_3d_bounds_from_data(
-        dataset_names, dataframe_manifest, pca, filter_to_valid=False
+    feat_cols_ = (
+        DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE] if feat_cols is None else feat_cols.copy()
     )
+
+    bin_limits = get_bounds_from_data(dataset_names, dataframe_manifest, pca, filter_to_valid=False)
     hist_array_list, bin_edges, df_with_bins = get_histogram_by_component(
         df_all,
-        NUM_BINS_CROP_HIST,
+        CROP_HIST_BIN_WIDTH,
         bin_limits,
-        feat_cols=DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
+        feat_cols=feat_cols_,
     )
 
     if plot_heatmap:
+        feat_labels = [get_label_for_column(col, capitalize=True) for col in feat_cols_]
         for i, dataset_name in enumerate(dataset_names):
-            fig, _ = plot_principal_component_histogram(hist_array_list[i], bin_edges)
+            fig, _ = plot_component_histograms_over_time(
+                hist_array_list[i], bin_edges, feature_names=feat_labels
+            )
             fig.suptitle(f"Dataset: {dataset_name}", y=0.95, fontsize=25)
             save_plot_to_path(fig, fig_savedir, f"{dataset_name}_pc_histogram")
 

@@ -18,6 +18,9 @@ from endo_pipeline.configs import (
     load_dataset_config,
 )
 from endo_pipeline.io import load_dataframe
+from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+    get_smallest_angle_difference,
+)
 from endo_pipeline.manifests import (
     DataframeManifest,
     get_dataframe_location_for_dataset,
@@ -25,11 +28,11 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     load_model_manifest,
 )
-from endo_pipeline.settings import (
+from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    ColumnName,
 )
 
 logger = logging.getLogger(__name__)
@@ -115,6 +118,51 @@ def get_latent_feature_column_names_from_dataframe(dataframe: pd.DataFrame) -> l
     ]
     feat_cols = [col.group() for col in feat_cols_match if col is not None]
     return feat_cols
+
+
+def pcs_to_polar_r(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.ndarray:
+    """
+    Convert Cartesian coordinates (pc1, pc2) to polar coordinate r.
+
+    The polar coordinate r is given by the formula:
+        r = sqrt(pc1^2 + pc2^2)
+
+    Parameters
+    ----------
+    pc1_values
+        Values along the first principal component axis.
+    pc2_values
+        Values along the second principal component axis.
+
+    Returns
+    -------
+    :
+        Polar coordinate r values.
+    """
+    return np.sqrt(pc1_values**2 + pc2_values**2)
+
+
+def pcs_to_polar_theta(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.ndarray:
+    """
+    Convert Cartesian coordinates (pc1, pc2) to polar coordinate theta.
+
+    The polar coordinate theta is given by the formula:
+        theta = arctan2(pc2, pc1)
+
+    Parameters
+    ----------
+    pc1_values
+        Values along the first principal component axis.
+    pc2_values
+        Values along the second principal component axis.
+
+    Returns
+    -------
+    :
+        Polar coordinate theta values.
+    """
+    # angle in range [-pi, pi]
+    return np.arctan2(pc2_values, pc1_values)
 
 
 def filter_dataframe_by_annotations(
@@ -393,24 +441,27 @@ def get_pca_loadings_as_df(
 
 
 def project_features_to_pcs(
-    df: pd.DataFrame,
-    pca: PCA,
-    feat_cols: list[str] | None = None,
+    df: pd.DataFrame, pca: PCA, feat_cols: list[str] | None = None, compute_polar: bool = True
 ) -> pd.DataFrame:
     """
-    Project feature data for crops from one dataset onto principal
-    component axes of fit PCA model.
+    Project feature data onto principal component axes of fit PCA model.
 
-    Inputs:
-    - df: pd.DataFrame, DataFrame of feature data with metadata columns
-        for dataset_name, T, FOV_ID, start_x, start_y
-    - pca: PCA model fit to feature data
-    - feature_cols: list, custom list of feature columns to project onto PCA axes
-        - default is None, in which case all feature columns are used
+    Parameters
+    ----------
+    df
+        DataFrame of feature data.
+    pca
+        Fit PCA model.
+    feat_cols
+        List of feature column names to project. If None, will automatically
+        detect latent feature columns in the DataFrame.
+    compute_polar
+        Whether to compute polar coordinates (r, theta) from the first two PCs.
 
-    Outputs:
-    - df_: pd.DataFrame, DataFrame of feature data for crops from
-        dataset dataset_name projected onto PCA axes
+    Returns
+    -------
+    :
+        DataFrame with added columns for each principal component.
     """
     # check that required columns are present in dataframe
     if feat_cols is None:
@@ -424,6 +475,15 @@ def project_features_to_pcs(
     num_pcs = pca.components_.shape[0]  # number of principal components
     pc_cols = get_pc_column_names(num_pcs)
     df_.loc[:, pc_cols] = pca.transform(df_[feat_cols].values)
+
+    # optionally, compute polar coordinates (r, theta) from first two PCs
+    if compute_polar:
+        df_[ColumnName.POLAR_RADIUS] = pcs_to_polar_r(
+            df_[pc_cols[0]].values, df_[pc_cols[1]].values
+        )
+        df_[ColumnName.POLAR_ANGLE] = pcs_to_polar_theta(
+            df_[pc_cols[0]].values, df_[pc_cols[1]].values
+        )
 
     return df_
 
@@ -753,7 +813,9 @@ def split_dataset_by_flow(
     return data_all, shear_list
 
 
-def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, list]:
+def get_traj_and_diff(
+    df: pd.DataFrame, column_names: list
+) -> tuple[list[np.ndarray], list[np.ndarray]]:
     """
     Get trajectories and single-timepoint displacement vectors for each crop in feature space.
 
@@ -762,14 +824,14 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
     The input dataframe should have columns for:
     - frame_number: timepoint of the crop
     - crop_index: unique index for each crop
-    - columns for each feature (e.g., pc_0, pc_1, pc_2, ...) matching input ``pc_column_names``
+    - columns for each feature (e.g., pc_0, pc_1, pc_2, ...) matching input ``column_names``
 
     Parameters
     ----------
-    data
+    df
         DataFrame with columns for each feature.
-    pc_column_names
-        List of column names corresponding to the PC features in the DataFrame.
+    column_names
+        List of column names corresponding to the features of interest in the DataFrame.
 
     Returns
     -------
@@ -779,38 +841,56 @@ def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, 
         List of displacement vectors along each trajectory in feature space.
     """
     # check that required columns are present
-    required_columns = [ColumnName.TIMEPOINT, ColumnName.CROP_INDEX, *pc_column_names]
-    check_required_columns_in_dataframe(data, required_columns)
+    required_columns = [ColumnName.TIMEPOINT, ColumnName.CROP_INDEX, *column_names]
+    check_required_columns_in_dataframe(df, required_columns)
 
-    # get list of unique crop indices
-    crop_list = data[ColumnName.CROP_INDEX].unique().tolist()
+    # initialize name for difference columns
+    diff_column_names = [f"{col}{ColumnName.DIFFERENCE_SUFFIX}" for col in column_names]
+    timepoint_diff_column = f"{ColumnName.TIMEPOINT}{ColumnName.DIFFERENCE_SUFFIX}"
 
     # initialize lists for storing outputs
     traj_list = []
     d_traj_list = []
 
     # loop over each crop in the dataset
-    for crop in crop_list:
+    for _, df_crop in df.groupby(ColumnName.CROP_INDEX):
         # get data for each crop, sorted by time
-        data_crop = data[data[ColumnName.CROP_INDEX] == crop].sort_values(by=ColumnName.TIMEPOINT)
+        df_crop_ = df_crop.sort_values(by=ColumnName.TIMEPOINT)
 
         # add column giving difference in timepoint between consecutive dataframe rows
-        dt = data_crop[ColumnName.TIMEPOINT].diff().shift(-1)
-        data_crop["timepoint_diff"] = dt
+        # convert NaN to 0 -- occurs at end of trajectory
+        df_crop_[timepoint_diff_column] = df_crop_[ColumnName.TIMEPOINT].diff().shift(-1).fillna(0)
 
-        # filter to only single-timepoint differences (i.e., dt = 1)
-        data_crop = data_crop[data_crop["timepoint_diff"] == 1]
+        # add columns giving difference in feature values between consecutive dataframe rows
+        df_crop_[diff_column_names] = df_crop_[column_names].diff().shift(-1)
 
-        # get displacement vectors for each pair of consecutive-timepoints
-        # for each crop (i.e. do not include displacements for non-consecutive
-        # timepoints where outliers etc were removed)
-        d_traj = np.diff(data_crop[pc_column_names].values, axis=0)
+        # if one of the column names is `polar_theta`, need to replace with the
+        # circular difference for angular data instead of simple difference
+        if ColumnName.POLAR_ANGLE in column_names:
+            idx_column_name = column_names.index(ColumnName.POLAR_ANGLE)
+            angle_diffs = get_smallest_angle_difference(
+                df_crop_[ColumnName.POLAR_ANGLE].values[1:],
+                df_crop_[ColumnName.POLAR_ANGLE].values[:-1],
+                units="rad",
+            )
+            df_crop_[diff_column_names[idx_column_name]] = np.concatenate(
+                (
+                    angle_diffs,
+                    np.array([np.nan]),
+                )  # no valid difference at end of trajectory, will be dropped later
+            )
 
-        # append data to lists:
-        # trajectory and displacement vectors
-        # leave off last timepoint for trajectory
-        traj_list.append(data_crop[pc_column_names].values)
-        d_traj_list.append(d_traj)
+        # trajectory values to keep -- only keep steps where time difference is 1 frame
+        # and also the last point in the trajectory (which has time difference 0)
+        traj_mask = df_crop_[timepoint_diff_column] <= 1
+
+        # for the gradient, only keep steps where time difference is exactly 1 frame
+        # i.e., no valid difference at the end of the trajectory (only forward differences)
+        gradient_mask = df_crop_[timepoint_diff_column] == 1
+
+        # append trajectory and displacement data to lists
+        traj_list.append(df_crop_[traj_mask][column_names].values)
+        d_traj_list.append(df_crop_[gradient_mask][diff_column_names].values)
 
     return traj_list, d_traj_list
 

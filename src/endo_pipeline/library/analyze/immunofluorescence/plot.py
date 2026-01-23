@@ -404,7 +404,7 @@ def plot_channel_intensity_histograms(
     """
     n = len(column_names)
     bins = 75
-    colors = plt.get_cmap("tab10")
+    colors = plt.get_cmap("tab10").colors
     title = get_shear_stress_label(df)
 
     # Create subplots

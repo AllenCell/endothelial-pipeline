@@ -1,4 +1,4 @@
-from endo_pipeline.cli import Datasets, TrackIds
+from endo_pipeline.cli import Datasets, UniqueIntList
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -10,7 +10,7 @@ from endo_pipeline.settings import (
 def main(
     datasets: Datasets | None = None,
     positions: list[int] | None = None,
-    track_ids: TrackIds | None = None,
+    track_ids: UniqueIntList | None = None,
     datasets_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
@@ -233,6 +233,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)

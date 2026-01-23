@@ -60,7 +60,7 @@ def main(
     import logging
     from pathlib import Path
 
-    from endo_pipeline import DEMO_MODE, NUM_GPUS
+    from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
     from endo_pipeline.configs import (
         get_datasets_in_collection,
         load_dataset_config,
@@ -137,6 +137,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)

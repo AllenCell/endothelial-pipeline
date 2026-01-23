@@ -19,6 +19,7 @@ from endo_pipeline.manifests import (
     get_zarr_location_for_position,
     load_image_manifest,
 )
+from endo_pipeline.settings.image_data import NUM_ZSLICES
 
 IF_CHANNELS = ["NucViolet", "SOX17", "SMAD1", "NR2F2"]
 NUC_SEG_TYPE = "nuclear_stain_seg"
@@ -150,7 +151,9 @@ def calculate_glcm_features(image: np.ndarray) -> dict:
     return glcm_features
 
 
-def compute_projection_properties(p: Any, channel: str, proj_type: str) -> dict[str, float]:
+def compute_projection_properties(
+    p: Any, channel: str, proj_type: str, num_zslices: int = NUM_ZSLICES
+) -> dict[str, float]:
     """
     Compute statistical properties of a given projection for a specific channel.
 
@@ -186,6 +189,9 @@ def compute_projection_properties(p: Any, channel: str, proj_type: str) -> dict[
         f"{channel}_glcm_correlation_{proj_type}_proj": glcm_features["correlation"],
         f"{channel}_glcm_energy_{proj_type}_proj": glcm_features["energy"],
         f"{channel}_glcm_homogeneity_{proj_type}_proj": glcm_features["homogeneity"],
+        f"{channel}_norm_area_sum_{proj_type}_proj": (
+            np.sum(p.intensity_image) / (p.area * num_zslices)
+        ),
     }
 
 

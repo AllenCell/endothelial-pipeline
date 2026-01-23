@@ -7,7 +7,7 @@ def main() -> None:
     import matplotlib.pyplot as plt
     from numpy.random import default_rng
 
-    from endo_pipeline import NUM_GPUS
+    from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import (
         get_config_dict_from_mlflow,
@@ -267,6 +267,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)

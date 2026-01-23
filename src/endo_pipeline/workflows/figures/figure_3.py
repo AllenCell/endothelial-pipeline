@@ -10,16 +10,16 @@ TAGS = ["diffae_image_generation", "pc_interpretation"]
 def main() -> None:
     import matplotlib.pyplot as plt
 
-    from endo_pipeline import NUM_GPUS
+    from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_model
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
-    from endo_pipeline.library.model import (
+    from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
+    from endo_pipeline.library.model.latent_walk_utils import (
         build_data_for_pca_latent_walk,
         generate_latent_walk_images,
         get_pca_latent_walk,
     )
-    from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
     from endo_pipeline.library.visualize.latent_walk import plot_latent_walk_as_grid
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
@@ -84,6 +84,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)

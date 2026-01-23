@@ -21,11 +21,11 @@ locations:
   20250509_20X_IF9:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/multiscale_zarr/20250509_af418cd153e5484fa5a626b4a2a08e87/20250509_af418cd153e5484fa5a626b4a2a08e87_P{{position}}.ome.zarr
   20250509_20X_IF10:
-    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/multiscale_zarr/220250509_8975c3c6497e4321badfafbe41695d16/20250509_8975c3c6497e4321badfafbe41695d16_P{{position}}.ome.zarr
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/multiscale_zarr/20250509_8975c3c6497e4321badfafbe41695d16/20250509_8975c3c6497e4321badfafbe41695d16_P{{position}}.ome.zarr
   20250509_20X_IF11:
-    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/multiscale_zarr/220250509_1d3787a51bf44df5bd6e790d24e0ac49/20250509_1d3787a51bf44df5bd6e790d24e0ac49_P{{position}}.ome.zarr
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/multiscale_zarr/20250509_1d3787a51bf44df5bd6e790d24e0ac49/20250509_1d3787a51bf44df5bd6e790d24e0ac49_P{{position}}.ome.zarr
   20250509_20X_IF12:
-    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/multiscale_zarr/220250509_d86884f8f7454af3b0be45349231fb7c/20250509_d86884f8f7454af3b0be45349231fb7c_P{{position}}.ome.zarr
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/multiscale_zarr/20250509_d86884f8f7454af3b0be45349231fb7c/20250509_d86884f8f7454af3b0be45349231fb7c_P{{position}}.ome.zarr
   20250522_20X_IFA:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/multiscale_zarr/20250522_524829e4c9c34c68b3dc921fcd74dee2/20250522_524829e4c9c34c68b3dc921fcd74dee2_P{{position}}.ome.zarr
   20250522_20X_IFB:
