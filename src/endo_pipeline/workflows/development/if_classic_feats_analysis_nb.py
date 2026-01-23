@@ -4,14 +4,53 @@ from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
 
 from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-from endo_pipeline.io import get_output_path, load_dataframe
+from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.immunofluorescence.filter import filter_img_center
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.if_defaults import PLOT_FEAT_COLS, PLOT_FEAT_NAMES
 from endo_pipeline.settings.workflow_defaults import FIXED_SEG_FEATURE_MANIFEST_NAME
 
+
 # %%
-output_dir = get_output_path("SMAD1")
+def plot_centroids_by_position_panel(dataframes, df_descriptions, colors, markers, centroid_cols):
+    """
+    Plots centroid scatter plots for each unique position across multiple dataframes in a panelled subplot.
+    """
+    import math
+
+    all_positions = sorted({pos for df in dataframes for pos in df["position"].unique()})
+    n_positions = len(all_positions)
+    ncols = min(3, n_positions)
+    nrows = math.ceil(n_positions / ncols)
+
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 5 * nrows), squeeze=False)
+    for idx, position in enumerate(all_positions):
+        ax = axes[idx // ncols][idx % ncols]
+        for df, description, colr, centroid_col, marker in zip(
+            dataframes, df_descriptions, colors, centroid_cols, markers, strict=False
+        ):
+            df_position = df[df["position"] == position]
+            if not df_position.empty:
+                ax.scatter(
+                    df_position[centroid_col[0]],
+                    df_position[centroid_col[1]],
+                    alpha=0.5,
+                    color=colr,
+                    marker=marker,
+                    label=f"{description} N={len(df_position)}",
+                )
+        ax.set_title(f"Position: {position}")
+        ax.set_xlabel("centroid_x")
+        ax.set_ylabel("centroid_y")
+        ax.legend(loc="upper right")
+    # Hide unused subplots
+    for idx in range(n_positions, nrows * ncols):
+        fig.delaxes(axes[idx // ncols][idx % ncols])
+    plt.tight_layout()
+    plt.show()
+
+
+# %%
 smad1_datasets = get_datasets_in_collection("smad1")
 if_df_manifest = load_dataframe_manifest("immunofluorescence")
 classic_df_manifest = load_dataframe_manifest(FIXED_SEG_FEATURE_MANIFEST_NAME)
@@ -68,42 +107,19 @@ for dataset_name in smad1_datasets:
         print(
             f"Dataset {dataset_name}, Merge length {len(df_merge)} does not match expected length {expected_length}"
         )
+        plot_centroids_by_position_panel(
+            [df_dataset_if, df_dataset_classic, df_merge],
+            ["IF", "Classic", "Merged"],
+            ["blue", "orange", "green"],
+            ["o", "d", "^"],
+            [
+                ["centroid_x", "centroid_y"],
+                ["nuc_with_most_overlap_0_centroid_X", "nuc_with_most_overlap_0_centroid_Y"],
+                ["centroid_x", "centroid_y"],
+            ],
+        )
 
     dataframe_list.append(df_merge)
-
-    # dataframes = [df_dataset_if, df_dataset_classic, df_merge]
-    # df_descriptions = ['IF DataFrame', 'Classic DataFrame', 'Merged DataFrame']
-    # colors = ['blue', 'green', 'red']
-    # markers = ['o', 's', '^']
-    # centroid_cols = [
-    #     ['centroid_x', 'centroid_y'],
-    #     ['nuc_with_most_overlap_0_centroid_X', 'nuc_with_most_overlap_0_centroid_Y'],
-    #     ['centroid_x', 'centroid_y']
-    # ]
-
-    # # Get all unique positions across all dataframes
-    # all_positions = set()
-    # for df in dataframes:
-    #     all_positions.update(df['position'].unique())
-
-    # for position in sorted(all_positions):
-    #     plt.figure()
-    #     for df, description, colr, centroid_col, marker in zip(dataframes, df_descriptions, colors, centroid_cols, markers):
-    #         df_position = df[df['position'] == position]
-    #         if not df_position.empty:
-    #             plt.scatter(
-    #                 df_position[centroid_col[0]],
-    #                 df_position[centroid_col[1]],
-    #                 alpha=0.5,
-    #                 color=colr,
-    #                 marker=marker,
-    #                 label=f'{description} - P{position}, N={len(df_position)}'
-    #             )
-    #     plt.title(f'Position: {position}')
-    #     plt.xlabel('centroid_x')
-    #     plt.ylabel('centroid_y')
-    #     plt.legend(loc="upper right")
-    #     plt.show()
 # %%
 df_all = pd.concat(dataframe_list, ignore_index=True)
 
@@ -168,8 +184,6 @@ def plot_scatter(df, groupby_cols=None, exclude_no=False, date=None):
                     if date
                     else (group_keys[0] if groupby_cols and "date" in groupby_cols else "")
                 )
-                if p > 0.1:
-                    continue
                 plt.figure()
                 plt.scatter(
                     group_df[if_col], group_df[classic_col], alpha=0.5, color=color, label=label
@@ -181,7 +195,12 @@ def plot_scatter(df, groupby_cols=None, exclude_no=False, date=None):
                 plt.show()
 
 
+# %%
 plot_scatter(df, groupby_cols=["date", "shear_stress_regime"])
+
+# %%
 plot_scatter(df, groupby_cols=["shear_stress_regime"])
+
+# %%
 plot_scatter(df, exclude_no=True)  # all data under shear stress
 # %%
