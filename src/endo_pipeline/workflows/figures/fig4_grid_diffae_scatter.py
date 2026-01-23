@@ -9,6 +9,7 @@ def main(
 ) -> None:
     """Creates scatter plots in DiffAE PC-space for grid crops colored by timepoint."""
 
+    import matplotlib.patheffects as pe
     import numpy as np
     from matplotlib import pyplot as plt
     from skimage.exposure import rescale_intensity
@@ -35,7 +36,7 @@ def main(
         load_model_manifest,
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
-    from endo_pipeline.settings.figures import FIGURE_SAVE_DPI
+    from endo_pipeline.settings.figures import FIGURE_SAVE_DPI, FONTSIZE_SMALL
     from endo_pipeline.settings.image_data import DIMENSION_ORDER
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -72,6 +73,7 @@ def main(
 
     hue = ColumnName.TIMEPOINT
     color_palette = "inferno_r"
+    example_point_color = "deepskyblue"
 
     fig1 = make_pc_scatter_fig4a(
         df=diffae_grid_crops,
@@ -83,12 +85,23 @@ def main(
     fig1.axes[0].scatter(
         example_and_target_points["pc_1_target"],
         example_and_target_points["pc_2_target"],
-        c="cyan",
+        c=example_point_color,
         edgecolors="black",
         lw=1,
         s=10,
         label="Example points",
     )
+    for i, row in example_and_target_points.iterrows():
+        fig1.axes[0].annotate(
+            str(i + 1),
+            (row["pc_1_target"], row["pc_2_target"]),
+            xytext=(0.2, 0.2),
+            textcoords="offset fontsize",
+            color=example_point_color,
+            fontsize=FONTSIZE_SMALL,
+            weight="bold",
+            path_effects=[pe.withStroke(linewidth=1, foreground="black")],
+        )
     fig2 = make_pc_scatter_fig4a(
         df=diffae_grid_crops,
         pc_col_for_xaxis="pc_1",
@@ -143,11 +156,8 @@ def main(
     real_example_savedir.mkdir(exist_ok=True)
 
     # retrieve the DiffAE grid crop rows containing the example points
-    diffae_grid_crops_examples = diffae_grid_crops.query(
-        """pc_1 in @example_and_target_points['pc_1_example'] \
-        and pc_2 in @example_and_target_points['pc_2_example'] \
-        and pc_3 in @example_and_target_points['pc_3_example']
-        """
+    diffae_grid_crops_examples = example_and_target_points.merge(
+        diffae_grid_crops, how="left", left_on="pc_1_example", right_on="pc_1"
     )
 
     # load the timelapse and extract crops at the example points
@@ -172,7 +182,7 @@ def main(
 
         crop_string = f"Y{start_y}-{end_y}_X{start_x}-{end_x}"
         pc_vals_string = f"pc1_pc2_pc3_{row['pc_1']:.2f}_{row['pc_2']:.2f}_{row['pc_3']:.2f}"
-        filename = f"{dataset_name}_P{position}_T{timepoint}_{crop_string}-{pc_vals_string}"
+        filename = f"{i}_{dataset_name}_P{position}_T{timepoint}_{crop_string}-{pc_vals_string}"
 
         # save thumbnail of the real image crops
         # the RBGA images work best with images normalized to [0, 1] or [0, 255]:
@@ -185,13 +195,17 @@ def main(
             figsize=(2, 2),
             show_plot=False,
         )
+        sb_size = 20  # um
         plot_image_thumbnail(
             image=thumbnail,
-            image_name=f"{filename}_sb50um.png",
+            image_name=f"{filename}_sb{sb_size}um.png",
             output_path=real_example_savedir,
             figsize=(2, 2),
             show_plot=False,
-            scalebar_size_um=50,
+            scalebar_size_um=sb_size,
+            bar_thickness=5,
+            bar_padding=10,
+            scalebar_location="lower right",
             pixel_size=dataset_config.pixel_size_xy_in_um * (2**resolution),
         )
 
