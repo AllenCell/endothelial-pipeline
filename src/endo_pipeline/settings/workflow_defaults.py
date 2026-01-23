@@ -80,6 +80,13 @@ SEGMENTATION_FEATURE_COLUMNS = {
         "alignment_deg_rel_to_flow",
         "nuc_pos_rel_cell_angle_deg",
     ],
+    "filters": [
+        "is_included",
+        "is_greater_than_min_track_duration",
+        "is_less_than_max_smoothed_area_normd_change",
+        "is_edge_segmentation",
+        "has_more_than_min_num_valid_points_per_track",
+    ],
 }
 """Name of segmentation features to include in analyses."""
 
