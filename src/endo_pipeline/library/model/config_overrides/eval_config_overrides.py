@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from omegaconf import OmegaConf
 from pydantic import Field
@@ -15,22 +15,14 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass(kw_only=True)
-class ModelConfigOverrideBase:
-    """Shared CytoDL model config overrides."""
+class ModelConfigOverrideEval:
+    """CytoDL model config overrides for evaluation."""
 
     run_name: str
     """Run name."""
 
     model_manifest_name: str
     """Manifest name."""
-
-    num_gpus: int | None = Field(None, gt=0)
-    """Number of GPUs to use. None indicates that CPU should be used."""
-
-
-@dataclass(kw_only=True)
-class ModelConfigOverrideEval(ModelConfigOverrideBase):
-    """CytoDL model config overrides for evaluation."""
 
     template_config: str = DIFFAE_MODEL_EVAL_CONFIG
     """Name of model config template."""
@@ -43,6 +35,9 @@ class ModelConfigOverrideEval(ModelConfigOverrideBase):
 
     replace_rate: float | None = Field(None, ge=0, le=1)
     """Rate at which cached data is replaced."""
+
+    num_gpus: int | None = Field(None, gt=0)
+    """Number of GPUs to use. None indicates that CPU should be used."""
 
     def __post_init__(self):
         """Post initialization steps for model config overrides."""
@@ -97,7 +92,9 @@ class ModelConfigOverrideEval(ModelConfigOverrideBase):
         base_suffix = f"{dataset_name}_{self.model_manifest_name}_{self.run_name}"
         save_suffix = f"{base_suffix}_{crop_pattern}_features"
 
-        overrides = {
+        assert self.eval_dataframe_path is not None
+
+        overrides: dict[str, Any] = {
             # set task name
             "task_name": self.task_name,
             # update experiment name and run name
