@@ -1,0 +1,154 @@
+from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+)
+
+
+def main(
+    crop_pattern: CropPattern,
+    datasets: Datasets | None = None,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    config_name: str | None = None,
+) -> None:
+    """
+    Build config for evaluating a DiffAE model.
+
+    #diffae #model-evaluation
+
+    This workflow builds model evaluation configs for each dataset starting with
+    the config used to train the model, then overriding with evaluation-specific
+    configuration. These configurations are saved locally, and can then be used
+    by the `eval-diffae` workflow to calculate latent features.
+
+    ## Crop patterns
+
+    Two types of crop patterns are supported for model evaluation: `grid` or
+    `tracked`. Specific configuration for model evaluation on grid-based vs.
+    track-based crops are applied to the base model configuration.
+
+    ## Workflow demo
+
+    The ``--demo-mode`` (aka ``-d``) flag can be used to run a simplified
+    version of this workflow for testing purposes (e.g. during code review). The
+    workflow will only create the config for a single dataset.
+
+    Parameters
+    ----------
+    crop_pattern
+        Crop pattern used for model evaluation.
+    datasets
+        List of datasets or dataset collections.
+    model_manifest_name
+        Name for the model manifest to use for evaluation.
+    run_name
+        Name for the model run to use for evaluation.
+    config_name
+        Evaluation override config applied over the trained model config.
+    """
+
+    import logging
+
+    from cyto_dl.api import CytoDLModel
+
+    from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
+    from endo_pipeline.configs import get_datasets_in_collection, load_model_config
+    from endo_pipeline.io import get_output_path, resolve_dataframe_location
+    from endo_pipeline.library.model.config_overrides import ModelConfigOverrideEval
+    from endo_pipeline.library.model.eval_model import load_model_for_inference
+    from endo_pipeline.manifests import (
+        DataframeLocation,
+        create_dataframe_manifest,
+        get_dataframe_location_for_dataset,
+        get_feature_dataframe_manifest_name,
+        get_most_recent_run_name,
+        load_dataframe_manifest,
+        load_model_manifest,
+        save_dataframe_manifest,
+    )
+    from endo_pipeline.settings.diffae_configs import DIFFAE_MODEL_EVAL_CONFIG
+    from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
+
+    logger = logging.getLogger(__name__)
+
+    # Default list of datasets if not provided.
+    if datasets is None:
+        datasets = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
+
+    # When running workflow in demo mode, only evaluate the first dataset.
+    if DEMO_MODE:
+        logger.warning("DEMO MODE - Only evaluating first dataset")
+        datasets = datasets[:1]
+
+    # Build dataframe manifest name to load evaluation dataframes.
+    name_suffix = "_demo" if DEMO_MODE else ""
+    dataframe_manifest_name = f"diffae_evaluation_dataframe_{crop_pattern}{name_suffix}"
+
+    try:
+        dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+    except FileNotFoundError:
+        logger.error(
+            "Dataframe manifest [ %s ] not found. "
+            "Please run the create_diffae_eval_dataframe script first "
+            "with matching settings for crop pattern.",
+            dataframe_manifest_name,
+        )
+        raise
+
+    # Load model manifest and get run name.
+    model_manifest = load_model_manifest(model_manifest_name)
+    run_name = get_most_recent_run_name(model_manifest) if run_name is None else run_name
+
+    # Load model based on given model manifest, run name, and eval override config.
+    model_config_name = DIFFAE_MODEL_EVAL_CONFIG if config_name is None else config_name
+    eval_config = load_model_config(model_config_name)
+    base_config = load_model_for_inference(model_manifest, run_name, eval_config).cfg
+
+    logger.info("Model manifest name: [ %s ]", model_manifest_name)
+    logger.info("Run name: [ %s ]", run_name)
+
+    # Create or load the feature dataframe manifest.
+    feature_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern
+    )
+    feature_manifest = create_dataframe_manifest(feature_manifest_name, __file__)
+
+    # Create config output path.
+    config_path = get_output_path(
+        "models", model_manifest_name, run_name, "configs", include_timestamp=False
+    )
+
+    for dataset in datasets:
+        # Get data loading dataframe location.
+        dataframe_location = get_dataframe_location_for_dataset(dataframe_manifest, dataset)
+        dataframe_path = resolve_dataframe_location(dataframe_location)
+
+        # Create evaluation config path.
+        config_file = config_path / f"eval_{crop_pattern}_{dataset}{name_suffix}.yaml"
+
+        # Build the evaluation config overrides.
+        overrides = ModelConfigOverrideEval(
+            model_manifest_name=model_manifest_name,
+            eval_dataframe_path=dataframe_path,
+            run_name=run_name,
+            num_gpus=NUM_GPUS,
+        )
+
+        # Initialize the model with evaluation base config, apply overrides, and save config.
+        cytodl_model = CytoDLModel()
+        cytodl_model.load_config_from_dict(base_config)
+        cytodl_model.override_config(overrides.to_dict(dataset, crop_pattern))
+        cytodl_model.save_config(config_file)
+        logger.info("Evaluation config saved to [ %s ]", config_file)
+
+        # Populate manifest with evaluation run location and parameters.
+        feature_manifest.parameters = {"crop_pattern": crop_pattern}
+        feature_manifest.locations[dataset] = DataframeLocation()
+        save_dataframe_manifest(feature_manifest)
+
+
+if __name__ == "__main__":
+    from endo_pipeline.cli import workflow_cli
+
+    workflow_cli(main)
