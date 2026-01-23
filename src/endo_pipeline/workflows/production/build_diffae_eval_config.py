@@ -112,7 +112,7 @@ def main(
     feature_manifest_name = get_feature_dataframe_manifest_name(
         model_manifest, run_name, crop_pattern
     )
-    feature_manifest = create_dataframe_manifest(feature_manifest_name, __file__)
+    feature_manifest = create_dataframe_manifest(f"{feature_manifest_name}{name_suffix}", __file__)
 
     # Create config output path.
     config_path = get_output_path(
