@@ -11,7 +11,7 @@ from endo_pipeline.settings.if_defaults import PLOT_FEAT_COLS, PLOT_FEAT_NAMES
 from endo_pipeline.settings.workflow_defaults import FIXED_SEG_FEATURE_MANIFEST_NAME
 
 
-# %%
+# %% merge validation
 def plot_centroids_by_position_panel(dataframes, df_descriptions, colors, markers, centroid_cols):
     """
     Plots centroid scatter plots for each unique position across multiple dataframes in a panelled subplot.
@@ -50,7 +50,7 @@ def plot_centroids_by_position_panel(dataframes, df_descriptions, colors, marker
     plt.show()
 
 
-# %%
+# %% load and merge dataframes
 smad1_datasets = get_datasets_in_collection("smad1")
 if_df_manifest = load_dataframe_manifest("immunofluorescence")
 classic_df_manifest = load_dataframe_manifest(FIXED_SEG_FEATURE_MANIFEST_NAME)
@@ -120,7 +120,7 @@ for dataset_name in smad1_datasets:
         )
 
     dataframe_list.append(df_merge)
-# %%
+# %% concatenate all datasets and filter
 df_all = pd.concat(dataframe_list, ignore_index=True)
 
 # Filter dataframe for analysis:
@@ -135,6 +135,7 @@ df = df[df["area"] <= 30000]
 print(f"Initial dataframe length before filtering: {len(df_all)}")
 print(f"Final dataframe length after filtering: {len(df)}")
 
+# %% Visualize results of filtering
 classic_cols = ["area", "area_if"]
 names = ["Cell 2D area (pixels)", "Nuclear 2D area (pixels)"]
 for classic_col, name in zip(classic_cols, names, strict=False):
@@ -144,8 +145,8 @@ for classic_col, name in zip(classic_cols, names, strict=False):
     plt.ylabel("Count")
     plt.legend()
     plt.show()
-# %%
-# Build a string-to-color mapping (instead of Enum for quick plotting)
+
+# %%  Build a string-to-color mapping (instead of Enum for quick plotting)
 SHEAR_COLOR_STR_DICT = {
     "no": "tab:green",
     "min": "tab:orange",
@@ -159,7 +160,7 @@ SHEAR_COLOR_STR_DICT = {
 classic_cols = ["alignment_deg_rel_to_flow", "cell_orientation", "num_nuclei_in_crop"]
 
 
-# %%
+# %% Visualize IF features vs classic features with scatter plots and Pearson correlation
 def plot_scatter(df, groupby_cols=[], exclude_no=False, date=None):
     if exclude_no:
         df = df[df["shear_stress_regime"] != "no"]
