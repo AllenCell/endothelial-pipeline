@@ -217,6 +217,58 @@ def test_get_latent_feature_column_names_from_dataframe(dataframe, expected_colu
                 ),  # crop 3
             ],
         ),
+        (  # test dropping non-consecutive timepoints
+            pd.DataFrame(
+                {
+                    f"{ColumnName.TIMEPOINT}": [0, 2, 3] * 3,
+                    f"{ColumnName.CROP_INDEX}": [0, 0, 0] + [1, 1, 1] + [2, 2, 2],
+                    f"{ColumnName.POLAR_RADIUS}": [0.1, 0.75, 0.6]
+                    + [1.0, 1.5, 1.24]
+                    + [2.5, 3.0, 3.2],
+                    f"{ColumnName.PCA_FEATURE_PREFIX}{3}": [2.5, 2.7, 2.5]
+                    + [0.1, 0.2, 0.3]
+                    + [1.5, 1.7, 1.95],
+                }
+            ),
+            [f"{ColumnName.POLAR_RADIUS}", f"{ColumnName.PCA_FEATURE_PREFIX}{3}"],
+            [
+                np.array(
+                    [
+                        [0.75, 2.7],
+                        [0.6, 2.5],
+                    ]
+                ),
+                np.array(
+                    [
+                        [1.5, 0.2],
+                        [1.24, 0.3],
+                    ]
+                ),
+                np.array(
+                    [
+                        [3.0, 1.7],
+                        [3.2, 1.95],
+                    ]
+                ),
+            ],
+            [
+                np.array(
+                    [
+                        [-0.15, -0.2],
+                    ]
+                ),
+                np.array(
+                    [
+                        [-0.26, 0.1],
+                    ]
+                ),
+                np.array(
+                    [
+                        [0.2, 0.25],
+                    ]
+                ),
+            ],
+        ),
     ],
 )
 def test_get_traj_and_diff(dataframe, column_names, expected_trajectories, expected_differences):
@@ -229,10 +281,16 @@ def test_get_traj_and_diff(dataframe, column_names, expected_trajectories, expec
 
     # make sure returned trajectory and difference arrays have expected shapes
     n_dim = len(column_names)
-    n_frames = dataframe[ColumnName.TIMEPOINT].nunique()
-    for traj, diff in zip(trajectories, differences, strict=True):
-        assert traj.shape == (n_frames, n_dim)
-        assert diff.shape == (n_frames - 1, n_dim)
+    timepoint_diff_column = f"{ColumnName.TIMEPOINT}{ColumnName.DIFFERENCE_SUFFIX}"
+    for crop_index, df_crop in dataframe.groupby(ColumnName.CROP_INDEX):
+        traj: np.ndarray = trajectories[crop_index]
+        diff: np.ndarray = differences[crop_index]
+        # check that timepoint differences > 1 are dropped
+        df_crop[timepoint_diff_column] = df_crop[ColumnName.TIMEPOINT].diff().shift(-1).fillna(0)
+        valid_timepoints = df_crop[timepoint_diff_column] <= 1
+        n_valid_frames = len(df_crop[valid_timepoints])
+        assert traj.shape == (n_valid_frames, n_dim)
+        assert diff.shape == (n_valid_frames - 1, n_dim)
 
     # assert array values are almost equal
     for traj, expected_traj in zip(trajectories, expected_trajectories, strict=True):
