@@ -1,6 +1,6 @@
 PLOT_FEAT_COLS: list[str] = [
     "SMAD1_sum_sum_proj",
-    "SMAD1_norm_area_sum_max_proj",
+    "SMAD1_norm_area_sum_sum_proj",
 ]  # "SMAD1_mean_sum_proj"
 """Smad1 feature columns for plotting."""
 
