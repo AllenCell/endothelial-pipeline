@@ -455,10 +455,23 @@ def make_pc_scatter_fig4a(
 
 
 def plot_per_position_average_over_time(
-    df: pd.DataFrame, column_names: list[str], column_labels: list[str] | None = None
+    df: pd.DataFrame,
+    column_names: list[str],
+    column_labels: list[str] | None = None,
+    shift_polar_angle_range: bool = False,
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
     """
     Plot per-position average over time of specified columns in the dataframe.
+
+    **Polar angle shifting**
+
+    If `shift_polar_angle_range` is True, the polar angle values in the dataframe
+    are shifted from the range (-pi, pi) to (0, 2pi) before computing the mean.
+    This is useful for datasets where the polar angle distribution is concentrated
+    around the -pi/pi boundary, which can lead to incorrect mean calculations.
+
+    After computing the mean, the polar angle values are shifted back to the original
+    range for visualization.
 
     Parameters
     ----------
@@ -466,6 +479,10 @@ def plot_per_position_average_over_time(
         DataFrame containing the data to plot.
     column_names
         List of column names to plot the per-position average for.
+    column_labels
+        Optional, list of labels for the columns to use in the plot.
+    shift_polar_angle_range
+        If True, shift polar angle range from (-pi, pi) to (0, 2pi) for computing the mean.
     """
     # confirm required columns are in dataframe
     required_columns = [ColumnName.POSITION, ColumnName.TIMEPOINT] + column_names
@@ -475,17 +492,27 @@ def plot_per_position_average_over_time(
     if column_labels is None:
         column_labels = [get_label_for_column(col_name) for col_name in column_names]
 
+    # shift polar angle range if specified
+    df_ = df.copy()  # avoid modifying original dataframe
+    if shift_polar_angle_range:
+        df_[ColumnName.POLAR_ANGLE] = df_[ColumnName.POLAR_ANGLE].apply(
+            lambda x: x + 2 * np.pi if x < 0 else x
+        )
+
     # share x axis for all subplots (frame number)
     ndim = len(column_names)
     fig, axs = plt.subplots(ndim, 1, figsize=(6, 4 * ndim))
 
     for i, column_name in enumerate(column_names):
         ax: plt.Axes = axs[i]
-        for pos, df_pos in df.groupby(ColumnName.POSITION):
+        for pos, df_pos in df_.groupby(ColumnName.POSITION):
             df_pos_ = df_pos.sort_values(by=ColumnName.TIMEPOINT)
             mean_over_crops = df_pos_.groupby(ColumnName.TIMEPOINT)[column_name].mean()
+            # shift back polar angle range if specified
+            if shift_polar_angle_range and column_name == ColumnName.POLAR_ANGLE:
+                mean_over_crops = mean_over_crops.apply(lambda x: x - 2 * np.pi if x > np.pi else x)
             timepoints = df_pos_[ColumnName.TIMEPOINT].unique()
-            ax.plot(timepoints, mean_over_crops, label=pos)
+            ax.scatter(timepoints, mean_over_crops, label=pos, s=2, marker="o")
 
         if i == ndim - 1:
             ax.set_xlabel("frame number")
