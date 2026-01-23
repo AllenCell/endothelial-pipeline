@@ -160,7 +160,7 @@ classic_cols = ["alignment_deg_rel_to_flow", "cell_orientation", "num_nuclei_in_
 
 
 # %%
-def plot_scatter(df, groupby_cols=None, exclude_no=False, date=None):
+def plot_scatter(df, groupby_cols=[], exclude_no=False, date=None):
     if exclude_no:
         df = df[df["shear_stress_regime"] != "no"]
     if groupby_cols:
