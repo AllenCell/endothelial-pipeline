@@ -76,6 +76,7 @@ def main(
     from endo_pipeline.library.process.image_processing import max_proj, std_dev
     from endo_pipeline.library.visualize.crop_montage import load_data_for_montage, sample_dataframe
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
+        get_label_for_column,
         plot_component_histograms_over_time,
     )
     from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
@@ -124,16 +125,22 @@ def main(
         filter_to_valid=False,
         pc_column_names=DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze],
     )
+    feat_cols = DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze]
     hist_array_lists, bin_edges, df_with_bins = get_histogram_by_component(
         df,
         CROP_HIST_BIN_WIDTH,
         bin_limits,
-        feat_cols=DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze],
+        feat_cols=feat_cols,
     )
 
     if plot_heatmap:
+        feat_labels = [
+            get_label_for_column(col_name) for col_name in DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze]
+        ]
         for i, dataset_name in enumerate(datasets):
-            fig, _ = plot_component_histograms_over_time(hist_array_lists[i], bin_edges)
+            fig, _ = plot_component_histograms_over_time(
+                hist_array_lists[i], bin_edges, feature_names=feat_labels
+            )
             fig.suptitle(f"Dataset: {dataset_name}", y=0.95, fontsize=25)
             save_plot_to_path(fig, fig_savedir, f"{dataset_name}_pc_histogram")
 
