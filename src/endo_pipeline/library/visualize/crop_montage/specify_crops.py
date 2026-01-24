@@ -32,6 +32,7 @@ def load_data_for_montage(
     dataset_name_list: list[str],
     dataframe_manifest: DataframeManifest,
     include_cell_piling: bool = True,
+    num_pcs: int = 8,
 ) -> tuple[pd.DataFrame, PCA]:
     """
     Load Diff AE feature DataFrames for one or more datasets and optionally apply PCA.
@@ -44,6 +45,9 @@ def load_data_for_montage(
         Dataframe manifest corresponding to features to load.
     include_cell_piling
         True to include cell piling timepoints, False to exclude them.
+    num_pcs
+        Number of principal components to fit in PCA.
+
 
     Returns
     -------
@@ -56,6 +60,7 @@ def load_data_for_montage(
     pca = fit_pca(
         dataframe_manifest_name=dataframe_manifest.name,
         include_cell_piling=include_cell_piling,
+        num_pcs=num_pcs,
     )
 
     df_all = pd.concat(

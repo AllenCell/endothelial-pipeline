@@ -1,10 +1,5 @@
 from endo_pipeline.cli import Datasets
-from endo_pipeline.settings import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-    NUM_PCS_TO_ANALYZE,
-    RANDOM_SEED,
-)
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 TAGS = ["pc_interpretation", "diffae_image_generation"]
 
@@ -14,12 +9,17 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     include_cell_piling: bool = False,
-    pc_axis_list: list[int] = [0, 1, 2],
-    pc_val_list: list[float] = [-1, -0.5, 0, 0.5, 1],
-    random_seed: int = RANDOM_SEED,
-    plot_heatmap: bool = False,
-    n_pcs_to_analyze: int = NUM_PCS_TO_ANALYZE,
-    origin_tolerance: float = 0.25,
+    pc_axis_list: list[int] = [9, 53],
+    pc_val_list: list[float] = [
+        -1.5,
+        -1,
+        -0.5,
+        0,
+        0.5,
+        1,
+        1.5,
+    ],
+    n_pcs_to_analyze: int = 55,
 ) -> None:
     """
     Generate a real walk of cropped images within a specified range of PC values. The crops are
@@ -44,16 +44,10 @@ def main(
         The principal component axis to use for filtering the images (0 for PC1, 1 for PC2, etc.)
     pc_val_list
         The value of the principal component axis to filter the images by.
-    random_seed
-        Random seed for sampling crops from the filtered DataFrame.
-    plot_heatmap
-        True to plot a heatmap of the principal component values, False to skip plotting.
     n_pcs_to_analyze
         Number of principal components to analyze. Defaults to NUM_PCS_TO_ANALYZE which corresponds
         to the first 3 principal components. If set to a different value, ensure that pc_axis_list
         only contains indices that are less than the n_pcs_to_analyze.
-    origin_tolerance
-        Tolerance around zero for other principal components when filtering crops in units of PC value.
 
     Returns
     -------
@@ -65,19 +59,12 @@ def main(
 
     import matplotlib.pyplot as plt
     import numpy as np
+    import pandas as pd
 
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_image, save_plot_to_path
-    from endo_pipeline.library.analyze.numerics import (
-        get_bounds_from_data,
-        get_df_by_bin_value,
-        get_histogram_by_component,
-    )
     from endo_pipeline.library.process.image_processing import max_proj, std_dev
-    from endo_pipeline.library.visualize.crop_montage import load_data_for_montage, sample_dataframe
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import (
-        plot_principal_component_histogram,
-    )
+    from endo_pipeline.library.visualize.crop_montage import load_data_for_montage
     from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
@@ -87,9 +74,8 @@ def main(
         load_model_manifest,
     )
     from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
-    from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import FONTSIZE_SMALL
     from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
-    from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH
     from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
 
     logger = logging.getLogger(__name__)
@@ -114,56 +100,69 @@ def main(
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     df, pca = load_data_for_montage(
-        datasets, dataframe_manifest, include_cell_piling=include_cell_piling
-    )
-
-    bin_limits = get_bounds_from_data(
         datasets,
         dataframe_manifest,
-        pca,
-        filter_to_valid=False,
-        pc_column_names=DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze],
+        include_cell_piling=include_cell_piling,
+        num_pcs=n_pcs_to_analyze,
     )
-    hist_array_lists, bin_edges, df_with_bins = get_histogram_by_component(
-        df,
-        CROP_HIST_BIN_WIDTH,
-        bin_limits,
-        feat_cols=DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze],
-    )
-
-    if plot_heatmap:
-        for i, dataset_name in enumerate(datasets):
-            fig, _ = plot_principal_component_histogram(hist_array_lists[i], bin_edges)
-            fig.suptitle(f"Dataset: {dataset_name}", y=0.95, fontsize=25)
-            save_plot_to_path(fig, fig_savedir, f"{dataset_name}_pc_histogram")
 
     samples = []
+    distance_records = []
+
+    # Compute column means once
+    pc_means = df[DIFFAE_PC_COLUMN_NAMES].mean().values  # numpy array
+    pc_means[0] = -1
+    primary_weight = 10
+
     for pc_axis in pc_axis_list:
+        pc_axis_col = "pc_" + str(pc_axis + 1)
+
+        # Secondary PC columns
+        secondary_cols = [col for col in DIFFAE_PC_COLUMN_NAMES if col != pc_axis_col]
+        secondary_means = pc_means[[DIFFAE_PC_COLUMN_NAMES.index(col) for col in secondary_cols]]
+
+        # Convert to NumPy arrays for speed
+        primary_vals = df[pc_axis_col].values  # shape (n_rows,)
+        secondary_vals = df[secondary_cols].values  # shape (n_rows, n_secondary)
+
+        # Precompute squared differences for secondary PCs (rows x n_secondary)
+        secondary_diff_sq = (secondary_vals - secondary_means) ** 2
+        secondary_distance = secondary_diff_sq.sum(axis=1)  # sum across secondary PCs
+
         for pc_val in pc_val_list:
+            # Compute weighted primary difference
+            primary_diff_sq = primary_weight * (primary_vals - pc_val) ** 2
 
-            df_filtered = get_df_by_bin_value(df_with_bins, pc_axis, pc_val, bin_edges)
+            # Total distance
+            total_distance = primary_diff_sq + secondary_distance
 
-            logger.info("%d crops for PC %s around value %s", len(df_filtered), pc_axis, pc_val)
+            # Find closest row index
+            closest_idx = np.argmin(total_distance)
+            closest_row_df = df.iloc[[closest_idx]].copy()
 
-            for i in range(pca.n_components_):
-                if i != pc_axis:
-                    pc_col = DIFFAE_PC_COLUMN_NAMES[i]
-                    df_filtered = df_filtered[
-                        (df_filtered[pc_col] >= -origin_tolerance)
-                        & (df_filtered[pc_col] <= origin_tolerance)
-                    ]
-            logger.info("%d crops for other PCs near zero", len(df_filtered))
-            if len(df_filtered) == 0:
-                logger.warning(
-                    "No crops found for PC %s value %s. Try increasing the origin_tolerance.",
-                    pc_axis,
-                    pc_val,
-                )
-                continue
+            # Store in samples
+            samples.append((pc_axis, pc_val, closest_row_df))
 
-            # one example selected at random
-            df_sample = sample_dataframe(df_filtered, n_num_crops=1, random_seed=random_seed)
-            samples.append((pc_axis, pc_val, df_sample))
+            # Record for CSV
+            distance_records.append(
+                {
+                    "pc_axis": pc_axis,
+                    "pc_val": pc_val,
+                    "closest_index": closest_idx,
+                    "distance_score": total_distance[closest_idx],
+                }
+            )
+
+            logger.info(
+                "Selected 1 crop for PC %s close to value %s (distance %.4f)",
+                pc_axis,
+                pc_val,
+                total_distance[closest_idx],
+            )
+
+    # Save distance CSV
+    distance_df = pd.DataFrame(distance_records)
+    distance_df.to_csv(fig_savedir / "pc_closest_distance_scores.csv", index=False)
 
     crops_bf_std_deviation = []
     crops_gfp_max_projection = []
@@ -226,7 +225,7 @@ def main(
         max_cols=len(pc_val_list),
         col_titles=[str(val) for val in pc_val_list],
         row_titles=row_titles,
-        fig_kwargs={"layout": "tight", "figsize": (MAX_FIGURE_WIDTH, len(pc_axis_list) * 2)},
+        # fig_kwargs={"layout": "tight", "figsize": (MAX_FIGURE_WIDTH, len(pc_axis_list) * 1.5)},
         font_size=FONTSIZE_SMALL,
     )
     for ax in fig.axes:
@@ -242,6 +241,7 @@ def main(
     )
 
     plt.show()
+    pc_axis_list = [pc + 1 for pc in pc_axis_list]  # add 1 to pc_axis_list for indexing at 1
     save_plot_to_path(
         fig,
         fig_savedir,
