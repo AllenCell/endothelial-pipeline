@@ -870,6 +870,8 @@ def get_label_for_column(
     if column_name in mapping_dict:
         return mapping_dict[column_name]["label"]
 
+    label = None
+
     if column_name.startswith(f"{ColumnName.LATENT_FEATURE_PREFIX}"):
         feature_number = column_name.split("_")[1]
         label = f"feature {feature_number}"
@@ -884,8 +886,9 @@ def get_label_for_column(
         for _, info_dict in mapping_dict.items():
             if column_name == info_dict["column_name"]:
                 label = info_dict["label"]
-    else:
-        label = column_name.replace("_", " ")
+                break
+    if label is None:
+        return column_name
 
     if capitalize:
         label = label.capitalize()
