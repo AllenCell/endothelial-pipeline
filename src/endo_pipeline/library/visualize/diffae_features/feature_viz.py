@@ -881,16 +881,9 @@ def get_label_for_column(
         Human-readable label for the column name.
     """
 
-    # default label: same as column name
-    label = column_name
-
-    # check mapping dict for label override
-    if mapping_dict is None:
-        mapping_dict = get_seg_feat_plot_args()
-    if column_name in mapping_dict:
-        label = mapping_dict[column_name]["label"]
-
     # check for other specific patterns, overriding default label
+    label = None
+
     if column_name.startswith(f"{ColumnName.LATENT_FEATURE_PREFIX}"):
         feature_number = column_name.split("_")[1]
         label = f"feature {feature_number}"
@@ -902,7 +895,17 @@ def get_label_for_column(
     elif column_name == ColumnName.POLAR_ANGLE:
         label = "polar $\\theta$"
 
-    # capitalize if specified
+    # check mapping dict for label override
+    if mapping_dict is None:
+        mapping_dict = get_seg_feat_plot_args()
+    if column_name in mapping_dict:
+        label = mapping_dict[column_name]["label"]
+
+    # if no label found, return column name as is
+    if label is None:
+        return column_name
+
+    # else, take label found and capitalize if specified
     if capitalize:
         label = label.capitalize()
 
