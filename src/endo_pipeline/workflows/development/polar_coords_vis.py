@@ -126,7 +126,7 @@ def main(
     # plot summary plots
     # compute drift and diffusion coefficients in polar coordinates
     for dataset_name in dataset_names:
-        fig_savedir = get_output_path(__file__, "summary_plots", dataset_name)
+        fig_savedir = get_output_path(__file__, dataset_name)
         logger.debug("Saving summary plots to [ %s ]", fig_savedir)
         dataset_config = load_dataset_config(dataset_name)
 
