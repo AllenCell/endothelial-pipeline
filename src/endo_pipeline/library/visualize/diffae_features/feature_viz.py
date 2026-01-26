@@ -590,10 +590,12 @@ def plot_per_position_average_over_time(
         shift_range = lambda x: (
             x + 2 * np.pi if x < 0 else x
         )  # transform from (-pi, pi) to (0, 2pi)
-        if is_theta_rescaled:
-            shift_range = lambda x: (
-                x + np.pi if x < (np.pi / 2) else x
-            )  # or: transform from (0, pi) to (pi/2, 3pi/2)
+        inverse_shift_range = lambda x: (
+            x - 2 * np.pi if x > np.pi else x
+        )  # shift back; apply after mean calculation
+        if is_theta_rescaled:  # instead transform from (0, pi) to (pi/2, 3pi/2)
+            shift_range = lambda x: (x + np.pi if x < (np.pi / 2) else x)
+            inverse_shift_range = lambda x: x - np.pi if x > np.pi else x
         df_[ColumnName.POLAR_ANGLE] = df_[ColumnName.POLAR_ANGLE].apply(shift_range)
 
     # share x axis for all subplots (frame number)
@@ -607,9 +609,6 @@ def plot_per_position_average_over_time(
             mean_over_crops = df_pos_.groupby(ColumnName.TIMEPOINT)[column_name].mean()
             # shift back polar angle range if specified
             if shift_polar_angle_range and column_name == ColumnName.POLAR_ANGLE:
-                inverse_shift_range = lambda x: x - 2 * np.pi if x > np.pi else x
-                if is_theta_rescaled:
-                    inverse_shift_range = lambda x: x - np.pi if x > np.pi else x
                 mean_over_crops = mean_over_crops.apply(inverse_shift_range)
             timepoints = df_pos_[ColumnName.TIMEPOINT].unique()
             ax.scatter(timepoints, mean_over_crops, label=pos, s=2, marker="o")
