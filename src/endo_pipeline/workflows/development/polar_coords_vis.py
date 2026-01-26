@@ -163,6 +163,7 @@ def main(
                 POLAR_COLUMN_NAMES,
                 variable_names,
                 shift_polar_angle_range=shift_polar_angle_range,
+                is_theta_rescaled=rescale_theta,
             )
             if global_axes_limits:
                 for i, ax_ in enumerate(ax):
