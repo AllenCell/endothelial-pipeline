@@ -9,7 +9,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     include_cell_piling: bool = False,
-    pc_axis_list: list[int] = [9, 53],
+    pc_axis_list: list[int] = [0, 1, 2, 3, 4, 5],
     pc_val_list: list[float] = [
         -1.5,
         -1,
@@ -19,7 +19,7 @@ def main(
         1,
         1.5,
     ],
-    n_pcs_to_analyze: int = 55,
+    n_pcs_to_analyze: int = 8,
 ) -> None:
     """
     Generate a real walk of cropped images within a specified range of PC values. The crops are
