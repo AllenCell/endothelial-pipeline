@@ -888,10 +888,7 @@ def get_label_for_column(
                 label = info_dict["label"]
                 break
     if label is None:
-        logger.info(
-            f"Warning: no label found for column '{column_name}'. Using default formatting."
-        )
-        label = column_name.replace("_", " ")
+        return column_name
 
     if capitalize:
         label = label.capitalize()
