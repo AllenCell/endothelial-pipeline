@@ -13,6 +13,7 @@ def main(
     run_name: str = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: Literal["grid", "tracked"] = "grid",
     global_axes_limits: bool = False,
+    rescale_theta: bool = False,
 ) -> None:
     """
     Analyze and visualize DiffAE feature dynamics in polar coordinates.
@@ -44,6 +45,8 @@ def main(
         The crop pattern to get features for, either "grid" or "tracked".
     global_axes_limits
         Whether to use global axes limits for the per-position average plots.
+    rescale_theta
+        Whether to rescale theta values to [0, pi] range with period pi.
     """
 
     import logging
@@ -127,6 +130,8 @@ def main(
             pca=pca,
             include_cell_piling=False,
             include_not_steady_state=False,
+            compute_polar=True,
+            rescale_theta=rescale_theta,
         )
 
         df_by_flow, shear_stress_list = split_dataset_by_flow(
