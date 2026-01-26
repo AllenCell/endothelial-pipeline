@@ -609,7 +609,7 @@ def plot_per_position_average_over_time(
             if shift_polar_angle_range and column_name == ColumnName.POLAR_ANGLE:
                 inverse_shift_range = lambda x: x - 2 * np.pi if x > np.pi else x
                 if is_theta_rescaled:
-                    inverse_shift_range = lambda x: x - np.pi if x > (3 * np.pi / 2) else x
+                    inverse_shift_range = lambda x: x - np.pi if x > np.pi else x
                 mean_over_crops = mean_over_crops.apply(inverse_shift_range)
             timepoints = df_pos_[ColumnName.TIMEPOINT].unique()
             ax.scatter(timepoints, mean_over_crops, label=pos, s=2, marker="o")
