@@ -13,7 +13,7 @@ def main(
     run_name: str = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: Literal["grid", "tracked"] = "grid",
     global_axes_limits: bool = False,
-    rescale_theta: bool = False,
+    rescale_theta: bool = True,
 ) -> None:
     """
     Analyze and visualize DiffAE feature dynamics in polar coordinates.
