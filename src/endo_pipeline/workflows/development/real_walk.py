@@ -115,7 +115,6 @@ def main(
 
     # Compute column means once
     pc_means = df[DIFFAE_PC_COLUMN_NAMES].mean().values  # numpy array
-    pc_means[0] = -1
     primary_weight = 10
 
     for pc_axis in pc_axis_list:
