@@ -111,9 +111,15 @@ def main(
         dataset_names = [name for name in datasets if name in valid_dataset_options]
 
     # compute bins for polar coordinates
+    bin_limits = BIN_LIMITS_POLAR.copy()
+    idx_theta = POLAR_COLUMN_NAMES.index(ColumnName.POLAR_ANGLE)
+    if rescale_theta:
+        from numpy import pi
+
+        bin_limits[idx_theta] = (0.0, pi)
     bins, _ = get_bins(
         bin_widths=BIN_WIDTHS_POLAR,
-        bin_limits=BIN_LIMITS_POLAR,
+        bin_limits=bin_limits,
     )
 
     # loop over datasets in collection
