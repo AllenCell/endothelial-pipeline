@@ -1,5 +1,9 @@
 from endo_pipeline.cli import Datasets
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+from endo_pipeline.settings import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    NUM_LATENT_FEATURES,
+)
 
 TAGS = ["pc_interpretation", "diffae_image_generation"]
 
@@ -9,7 +13,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     include_cell_piling: bool = False,
-    pc_axis_list: list[int] = [0, 1, 2, 3, 4, 5],
+    pc_axis_list: list[int] = [0, 1, 2],
     pc_val_list: list[float] = [
         -1.5,
         -1,
@@ -19,7 +23,7 @@ def main(
         1,
         1.5,
     ],
-    n_pcs_to_analyze: int = 8,
+    n_pcs_to_analyze: int = NUM_LATENT_FEATURES,
 ) -> None:
     """
     Generate a real walk of cropped images within a specified range of PC values. The crops are
@@ -74,7 +78,7 @@ def main(
         load_model_manifest,
     )
     from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
-    from endo_pipeline.settings.figures import FONTSIZE_SMALL
+    from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
     from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
 
@@ -225,7 +229,7 @@ def main(
         max_cols=len(pc_val_list),
         col_titles=[str(val) for val in pc_val_list],
         row_titles=row_titles,
-        # fig_kwargs={"layout": "tight", "figsize": (MAX_FIGURE_WIDTH, len(pc_axis_list) * 1.5)},
+        fig_kwargs={"layout": "tight", "figsize": (MAX_FIGURE_WIDTH, len(pc_axis_list) * 1.5)},
         font_size=FONTSIZE_SMALL,
     )
     for ax in fig.axes:
