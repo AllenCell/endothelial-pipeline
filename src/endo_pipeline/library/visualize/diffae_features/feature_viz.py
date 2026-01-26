@@ -881,8 +881,8 @@ def get_label_for_column(
         Human-readable label for the column name.
     """
 
-    # default label: replace underscores with spaces
-    label = column_name.replace("_", " ")
+    # default label: same as column name
+    label = column_name
 
     # check mapping dict for label override
     if mapping_dict is None:
