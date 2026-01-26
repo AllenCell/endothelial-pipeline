@@ -133,20 +133,12 @@ def main(
         secondary_distance = secondary_diff_sq.sum(axis=1)  # sum across secondary PCs
 
         for pc_val in pc_val_list:
-            # Compute weighted primary difference
-            primary_diff_sq = primary_weight * (primary_vals - pc_val) ** 2
+            total_distance = (primary_weight * (primary_vals - pc_val) ** 2) + secondary_distance
 
-            # Total distance
-            total_distance = primary_diff_sq + secondary_distance
-
-            # Find closest row index
             closest_idx = np.argmin(total_distance)
             closest_row_df = df.iloc[[closest_idx]].copy()
 
-            # Store in samples
             samples.append((pc_axis, pc_val, closest_row_df))
-
-            # Record for CSV
             distance_records.append(
                 {
                     "pc_axis": pc_axis,
