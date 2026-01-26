@@ -110,7 +110,7 @@ def _kramers_moyal_train_test_one_dataset(
 
         # get list of per-crop trajectories and the corresponding
         # single-timepoint displacement vectors
-        traj_list, d_traj_list = get_traj_and_diff(stationary_data, pc_column_names=pc_column_names)
+        traj_list, d_traj_list = get_traj_and_diff(stationary_data, column_names=pc_column_names)
 
         # get bins for histogramming
         # (for drift and diffusion estimates)
