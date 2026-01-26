@@ -145,7 +145,7 @@ def pcs_to_polar_r(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.ndarray
 def pcs_to_polar_theta(
     pc1_values: np.ndarray,
     pc2_values: np.ndarray,
-    rescale: bool = False,
+    rescale: bool = True,
 ) -> np.ndarray:
     """
     Convert Cartesian coordinates (pc1, pc2) to polar coordinate theta.
@@ -459,7 +459,7 @@ def project_features_to_pcs(
     pca: PCA,
     feat_cols: list[str] | None = None,
     compute_polar: bool = True,
-    rescale_theta: bool = False,
+    rescale_theta: bool = True,
 ) -> pd.DataFrame:
     """
     Project feature data onto principal component axes of fit PCA model.
@@ -517,7 +517,7 @@ def get_dataframe_for_dynamics_workflows(
     include_not_steady_state: bool = True,
     crop_pattern: Literal["grid", "tracked"] = "grid",
     compute_polar: bool = True,
-    rescale_theta: bool = False,
+    rescale_theta: bool = True,
 ) -> pd.DataFrame:
     """
     Load DiffAE dataframe data projected onto given PC axes for downstream
