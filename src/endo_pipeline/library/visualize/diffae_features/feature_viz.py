@@ -541,7 +541,6 @@ def plot_per_position_average_over_time(
     df: pd.DataFrame,
     column_names: list[str],
     column_labels: list[str] | None = None,
-    shift_polar_angle_range: bool = False,
     is_theta_rescaled: bool = False,
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
     """
@@ -549,19 +548,12 @@ def plot_per_position_average_over_time(
 
     **Polar angle shifting**
 
-    If `shift_polar_angle_range` is True, the polar angle values in the dataframe
-    are shifted from the range (-pi, pi) to (0, 2pi) before computing the mean.
-    This is useful for datasets where the polar angle distribution is concentrated
-    around the -pi/pi boundary, which can lead to incorrect mean calculations.
+    If plotting polar angle column, angle unwrapping is used to compute the mean
+    correctly. After computing the "unwrapped" mean, the mean angle is shifted back
+    to the original range for visualization.
 
-    However, if `is_theta_rescaled` is True, it indicates that theta has been rescaled
-    in the dataframe to (0, pi), in which case the 0 / pi boundary is where the wrapping
-    occurs for polar angle. In this case, shifting the polar angle range has to
-    be done differently: polar angle values less than pi/2 are shifted by +pi so that
-    the range becomes (pi/2, 3pi/2).
-
-    After computing the mean, the polar angle values are shifted back to the original
-    range for visualization.
+    If is_theta_rescaled is True, the polar angle range is assumed to be [0, pi].
+    If is_theta_rescaled is False, the polar angle range is assumed to be [-pi, pi].
 
     Parameters
     ----------
@@ -571,8 +563,6 @@ def plot_per_position_average_over_time(
         List of column names to plot the per-position average for.
     column_labels
         Optional, list of labels for the columns to use in the plot.
-    shift_polar_angle_range
-        If True, shift polar angle range from (-pi, pi) to (0, 2pi) for computing the mean.
     is_theta_rescaled
         If True, indicates that theta has been rescaled in the dataframe to [0, pi].
     """
@@ -584,33 +574,36 @@ def plot_per_position_average_over_time(
     if column_labels is None:
         column_labels = [get_label_for_column(col_name) for col_name in column_names]
 
-    # shift polar angle range if specified
-    df_ = df.copy()  # avoid modifying original dataframe
-    if shift_polar_angle_range:
-        shift_range = lambda x: (
-            x + 2 * np.pi if x < 0 else x
-        )  # transform from (-pi, pi) to (0, 2pi)
-        inverse_shift_range = lambda x: (
-            x - 2 * np.pi if x > np.pi else x
-        )  # shift back; apply after mean calculation
-        if is_theta_rescaled:  # instead transform from (0, pi) to (pi/2, 3pi/2)
-            shift_range = lambda x: (x + np.pi if x < (np.pi / 2) else x)
-            inverse_shift_range = lambda x: x - np.pi if x > np.pi else x
-        df_[ColumnName.POLAR_ANGLE] = df_[ColumnName.POLAR_ANGLE].apply(shift_range)
-
     # share x axis for all subplots (frame number)
     ndim = len(column_names)
     fig, axs = plt.subplots(ndim, 1, figsize=(6, 4 * ndim))
 
     for i, column_name in enumerate(column_names):
         ax: plt.Axes = axs[i]
-        for pos, df_pos in df_.groupby(ColumnName.POSITION):
-            df_pos_ = df_pos.sort_values(by=ColumnName.TIMEPOINT)
-            mean_over_crops = df_pos_.groupby(ColumnName.TIMEPOINT)[column_name].mean()
-            # shift back polar angle range if specified
-            if shift_polar_angle_range and column_name == ColumnName.POLAR_ANGLE:
-                mean_over_crops = mean_over_crops.apply(inverse_shift_range)
-            timepoints = df_pos_[ColumnName.TIMEPOINT].unique()
+        for pos, df_pos in df.groupby(ColumnName.POSITION):
+            timepoints = df_pos[ColumnName.TIMEPOINT].unique()
+            # if dealing with polar angle column, need to use
+            # angle unwrapping to compute mean correctly
+            if column_name == ColumnName.POLAR_ANGLE:
+                mean_over_crops = np.zeros_like(timepoints, dtype=float)
+                for frame, df_frame in df_pos.groupby(ColumnName.TIMEPOINT):
+                    # unwrap angles for mean calculation
+                    angles_wrapped = df_frame[column_name].to_numpy()
+                    angles_unwrapped = np.unwrap(angles_wrapped, period=np.pi)
+                    unwrapped_mean = angles_unwrapped.mean()
+
+                    # shift back to original range for visualization
+                    if is_theta_rescaled:  # range is [0, pi]
+                        rewrapped_mean = unwrapped_mean % np.pi
+                    else:  # range is [-pi, pi]
+                        rewrapped_mean = ((unwrapped_mean + np.pi) % (2 * np.pi)) - np.pi
+
+                    # store mean value for this frame
+                    frame_index = np.where(timepoints == frame)[0][0]
+                    mean_over_crops[frame_index] = rewrapped_mean
+            else:  # else, calculate mean directly
+                mean_over_crops = df_pos.groupby(ColumnName.TIMEPOINT)[column_name].mean()
+
             ax.scatter(timepoints, mean_over_crops, label=pos, s=2, marker="o")
 
         if i == ndim - 1:
