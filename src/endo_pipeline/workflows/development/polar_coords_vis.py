@@ -53,11 +53,7 @@ def main(
 
     import numpy as np
 
-    from endo_pipeline.configs import (
-        ShearStressRegime,
-        get_datasets_in_collection,
-        load_dataset_config,
-    )
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
@@ -76,7 +72,6 @@ def main(
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
     from endo_pipeline.settings.polar_coords import (
-        BEHAVES_LIKE_MIN_SHEAR_STRESS,
         BIN_LIMITS_POLAR,
         BIN_WIDTHS_POLAR,
         DEFAULT_DATASET_COLLECTION_POLAR_VIS,
@@ -151,9 +146,6 @@ def main(
             # for datasets with theta distribution similar to MIN shear stress,
             # shift polar angle range from (-pi, pi) to (0, 2pi) to avoid
             # numerical errors that come from angle wrapping around at -pi/pi boundary
-            shift_polar_angle_range = (shear_stress_regime == ShearStressRegime.MIN) or (
-                dataset_name in BEHAVES_LIKE_MIN_SHEAR_STRESS
-            )
 
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
             fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$)"
@@ -162,7 +154,6 @@ def main(
                 df_,
                 POLAR_COLUMN_NAMES,
                 variable_names,
-                shift_polar_angle_range=shift_polar_angle_range,
                 is_theta_rescaled=rescale_theta,
             )
             if global_axes_limits:

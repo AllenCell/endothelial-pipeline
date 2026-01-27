@@ -585,24 +585,36 @@ def plot_per_position_average_over_time(
             # if dealing with polar angle column, need to use
             # angle unwrapping to compute mean correctly
             if column_name == ColumnName.POLAR_ANGLE:
+                unwrap_period = np.pi if is_theta_rescaled else 2 * np.pi
+                rewrap_function = (
+                    (lambda angle: angle % np.pi)
+                    if is_theta_rescaled
+                    else (lambda angle: ((angle + np.pi) % (2 * np.pi)) - np.pi)
+                )
                 mean_over_crops = np.zeros_like(timepoints, dtype=float)
                 for frame, df_frame in df_pos.groupby(ColumnName.TIMEPOINT):
-                    # unwrap angles for mean calculation
-                    angles_wrapped = df_frame[column_name].to_numpy()
-                    angles_unwrapped = np.unwrap(angles_wrapped, period=np.pi)
-                    unwrapped_mean = angles_unwrapped.mean()
+                    wrapped_angles = df_frame[column_name].values
+                    init_angle = wrapped_angles[0]
+                    unwrapped_angles = np.zeros_like(wrapped_angles)
+
+                    # unwrap angles using initial angle as reference
+                    for j, wrapped_angle in enumerate(wrapped_angles):
+                        unwrapped_angle = np.unwrap(
+                            np.array([init_angle, wrapped_angle]), period=unwrap_period
+                        )[-1]
+                        unwrapped_angles[j] = unwrapped_angle
+
+                    # compute mean of unwrapped angles
+                    unwrapped_mean = np.mean(unwrapped_angles)
 
                     # shift back to original range for visualization
-                    if is_theta_rescaled:  # range is [0, pi]
-                        rewrapped_mean = unwrapped_mean % np.pi
-                    else:  # range is [-pi, pi]
-                        rewrapped_mean = ((unwrapped_mean + np.pi) % (2 * np.pi)) - np.pi
-
+                    rewrapped_mean = rewrap_function(unwrapped_mean)
                     # store mean value for this frame
                     frame_index = np.where(timepoints == frame)[0][0]
                     mean_over_crops[frame_index] = rewrapped_mean
             else:  # else, calculate mean directly
-                mean_over_crops = df_pos.groupby(ColumnName.TIMEPOINT)[column_name].mean()
+                df_pos_ = df_pos.sort_values(ColumnName.TIMEPOINT).copy()
+                mean_over_crops = df_pos_.groupby(ColumnName.TIMEPOINT)[column_name].mean()
 
             ax.scatter(timepoints, mean_over_crops, label=pos, s=2, marker="o")
 
