@@ -19,7 +19,7 @@ dataset config available)
     def main(datasets: Datasets):
         dataset_configs = [load_dataset_config(dataset) for dataset in datasets]
 
-**Example CLI usage**
+## Example CLI usage
 
 .. code-block:: bash
 

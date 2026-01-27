@@ -16,7 +16,7 @@ around a `str` that will:
     def main(crop_pattern: CropPattern):
         print(crop_pattern)
 
-**Example CLI usage**
+## Example CLI usage
 
 .. code-block:: bash
 
