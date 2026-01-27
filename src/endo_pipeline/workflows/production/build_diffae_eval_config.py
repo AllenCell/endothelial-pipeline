@@ -69,7 +69,10 @@ def main(
         save_dataframe_manifest,
     )
     from endo_pipeline.settings.diffae_configs import DIFFAE_MODEL_EVAL_CONFIG
-    from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_PCA_DATASET_COLLECTION_NAME,
+        DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -84,7 +87,7 @@ def main(
 
     # Build dataframe manifest name to load evaluation dataframes.
     name_suffix = "_demo" if DEMO_MODE else ""
-    dataframe_manifest_name = f"diffae_evaluation_dataframe_{crop_pattern}{name_suffix}"
+    dataframe_manifest_name = f"{DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX}{crop_pattern}{name_suffix}"
 
     try:
         dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)

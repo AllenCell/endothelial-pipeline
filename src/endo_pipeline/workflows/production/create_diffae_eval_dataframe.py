@@ -53,7 +53,10 @@ def main(
         save_dataframe_manifest,
     )
     from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL, Z_SLICE_OFFSETS
-    from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_PCA_DATASET_COLLECTION_NAME,
+        DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -68,7 +71,7 @@ def main(
 
     # Create dataframe manifest and add workflow parameters.
     name_suffix = "_demo" if DEMO_MODE else ""
-    manifest_name = f"diffae_evaluation_dataframe_{crop_pattern}{name_suffix}"
+    manifest_name = f"{DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX}{crop_pattern}{name_suffix}"
     manifest = create_dataframe_manifest(manifest_name, __file__)
     manifest.parameters = {
         "crop_pattern": crop_pattern,
