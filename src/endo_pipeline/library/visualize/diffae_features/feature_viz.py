@@ -542,6 +542,7 @@ def plot_per_position_average_over_time(
     column_names: list[str],
     column_labels: list[str] | None = None,
     shift_polar_angle_range: bool = False,
+    is_theta_rescaled: bool = False,
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
     """
     Plot per-position average over time of specified columns in the dataframe.
@@ -552,6 +553,12 @@ def plot_per_position_average_over_time(
     are shifted from the range (-pi, pi) to (0, 2pi) before computing the mean.
     This is useful for datasets where the polar angle distribution is concentrated
     around the -pi/pi boundary, which can lead to incorrect mean calculations.
+
+    However, if `is_theta_rescaled` is True, it indicates that theta has been rescaled
+    in the dataframe to (0, pi), in which case the 0 / pi boundary is where the wrapping
+    occurs for polar angle. In this case, shifting the polar angle range has to
+    be done differently: polar angle values less than pi/2 are shifted by +pi so that
+    the range becomes (pi/2, 3pi/2).
 
     After computing the mean, the polar angle values are shifted back to the original
     range for visualization.
@@ -566,6 +573,8 @@ def plot_per_position_average_over_time(
         Optional, list of labels for the columns to use in the plot.
     shift_polar_angle_range
         If True, shift polar angle range from (-pi, pi) to (0, 2pi) for computing the mean.
+    is_theta_rescaled
+        If True, indicates that theta has been rescaled in the dataframe to [0, pi].
     """
     # confirm required columns are in dataframe
     required_columns = [ColumnName.POSITION, ColumnName.TIMEPOINT] + column_names
@@ -578,9 +587,16 @@ def plot_per_position_average_over_time(
     # shift polar angle range if specified
     df_ = df.copy()  # avoid modifying original dataframe
     if shift_polar_angle_range:
-        df_[ColumnName.POLAR_ANGLE] = df_[ColumnName.POLAR_ANGLE].apply(
-            lambda x: x + 2 * np.pi if x < 0 else x
-        )
+        shift_range = lambda x: (
+            x + 2 * np.pi if x < 0 else x
+        )  # transform from (-pi, pi) to (0, 2pi)
+        inverse_shift_range = lambda x: (
+            x - 2 * np.pi if x > np.pi else x
+        )  # shift back; apply after mean calculation
+        if is_theta_rescaled:  # instead transform from (0, pi) to (pi/2, 3pi/2)
+            shift_range = lambda x: (x + np.pi if x < (np.pi / 2) else x)
+            inverse_shift_range = lambda x: x - np.pi if x > np.pi else x
+        df_[ColumnName.POLAR_ANGLE] = df_[ColumnName.POLAR_ANGLE].apply(shift_range)
 
     # share x axis for all subplots (frame number)
     ndim = len(column_names)
@@ -593,7 +609,7 @@ def plot_per_position_average_over_time(
             mean_over_crops = df_pos_.groupby(ColumnName.TIMEPOINT)[column_name].mean()
             # shift back polar angle range if specified
             if shift_polar_angle_range and column_name == ColumnName.POLAR_ANGLE:
-                mean_over_crops = mean_over_crops.apply(lambda x: x - 2 * np.pi if x > np.pi else x)
+                mean_over_crops = mean_over_crops.apply(inverse_shift_range)
             timepoints = df_pos_[ColumnName.TIMEPOINT].unique()
             ax.scatter(timepoints, mean_over_crops, label=pos, s=2, marker="o")
 
@@ -864,12 +880,8 @@ def get_label_for_column(
     :
         Human-readable label for the column name.
     """
-    if mapping_dict is None:
-        mapping_dict = get_seg_feat_plot_args()
 
-    if column_name in mapping_dict:
-        return mapping_dict[column_name]["label"]
-
+    # check for other specific patterns, overriding default label
     label = None
 
     if column_name.startswith(f"{ColumnName.LATENT_FEATURE_PREFIX}"):
@@ -882,14 +894,18 @@ def get_label_for_column(
         label = "polar $r$"
     elif column_name == ColumnName.POLAR_ANGLE:
         label = "polar $\\theta$"
-    elif mapping_dict is not None:
-        for _, info_dict in mapping_dict.items():
-            if column_name == info_dict["column_name"]:
-                label = info_dict["label"]
-                break
+
+    # check mapping dict for label override
+    if mapping_dict is None:
+        mapping_dict = get_seg_feat_plot_args()
+    if column_name in mapping_dict:
+        label = mapping_dict[column_name]["label"]
+
+    # if no label found, return column name as is
     if label is None:
         return column_name
 
+    # else, take label found and capitalize if specified
     if capitalize:
         label = label.capitalize()
 
