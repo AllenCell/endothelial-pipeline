@@ -1,5 +1,4 @@
 # %%
-import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -33,7 +32,6 @@ from endo_pipeline.settings.workflow_defaults import (
 )
 
 # %%
-logger = logging.getLogger(__name__)
 silence_external_loggers()
 
 fig_savedir = get_output_path(__file__)
