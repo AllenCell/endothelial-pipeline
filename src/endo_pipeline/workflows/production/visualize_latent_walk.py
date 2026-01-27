@@ -61,14 +61,14 @@ def main(
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_model
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
-    from endo_pipeline.library.model import (
+    from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
+    from endo_pipeline.library.model.latent_walk_utils import (
         build_data_for_pca_latent_walk,
         build_data_for_raw_latent_walk,
         generate_latent_walk_images,
         get_pca_latent_walk,
         get_raw_latent_walk,
     )
-    from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
     from endo_pipeline.library.visualize.latent_walk import plot_latent_walk_as_grid
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
