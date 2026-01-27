@@ -87,6 +87,9 @@ angle_column_names_unwrapped = [name + " (unwrapped)" for name in angle_column_n
 df_angles_unwrapped = pd.DataFrame(data=angles_unwrapped, columns=angle_column_names_unwrapped)
 
 # %%
+# plot wrapped angles and compute correlation
+correlation = df_angles.corr().iloc[0, 1]
+
 fig, ax = plt.subplots(figsize=(6, 6))
 ax.scatter(
     df_angles[angle_column_names[0]],
@@ -96,7 +99,7 @@ ax.scatter(
 )
 ax.set_xlabel(angle_column_names[0])
 ax.set_ylabel(angle_column_names[1])
-ax.set_title("Wrapped angles")
+ax.set_title(f"Wrapped angles (correlation={correlation:.2f})")
 
 save_plot_to_path(
     fig,
@@ -105,6 +108,9 @@ save_plot_to_path(
 )
 
 # %%
+# plot unwrapped angles and compute correlation
+correlation_unwrapped = df_angles_unwrapped.corr().iloc[0, 1]
+
 fig, ax = plt.subplots(figsize=(6, 6))
 ax.scatter(
     df_angles_unwrapped[angle_column_names_unwrapped[0]],
@@ -114,7 +120,7 @@ ax.scatter(
 )
 ax.set_xlabel(angle_column_names_unwrapped[0])
 ax.set_ylabel(angle_column_names_unwrapped[1])
-ax.set_title("Unwrapped angles")
+ax.set_title(f"Unwrapped angles (correlation={correlation_unwrapped:.2f})")
 save_plot_to_path(
     fig,
     fig_savedir,
