@@ -174,7 +174,7 @@ def pcs_to_polar_theta(
         # rescale angle to range [0, pi]
         # by adding pi and dividing by 2
         # (values now have period pi instead of 2pi)
-        theta = (np.pi - theta) / 2
+        theta = (theta + np.pi) / 2
 
     return theta
 
