@@ -34,6 +34,7 @@ from endo_pipeline.manifests import (
 )
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
+    MAX_PCS_TO_COMPUTE,
     NUM_PCS_TO_ANALYZE,
     ColumnName,
 )
@@ -638,7 +639,7 @@ def make_angular_deviation_test(out_dir: Path) -> None:
 def get_preprocessed_manifests_and_km_bounds(
     dataset_name: str,
     collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    num_pcs: int = NUM_PCS_TO_ANALYZE,
+    num_pcs: int = MAX_PCS_TO_COMPUTE,
     drop_rows_without_diffae_feats: bool = True,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list]:
     """
@@ -688,7 +689,6 @@ def get_preprocessed_manifests_and_km_bounds(
     model_config = get_config_dict_from_mlflow(model_location.mlflowid)
     num_latent_dims = get_latent_dim_from_config(model_config)
     diffae_feature_column_names = get_latent_feature_column_names(num_latent_dims)
-    num_pcs = num_pcs if num_pcs is not None else min(NUM_PCS_TO_ANALYZE, num_latent_dims)
 
     pca = fit_pca(
         dataset_collection_name=collection_name_for_pca,
@@ -801,7 +801,7 @@ def load_preprocessed_manifests_and_km_bounds(
     pca = fit_pca(
         dataset_collection_name=DEFAULT_PCA_DATASET_COLLECTION_NAME,
         dataframe_manifest_name=grid_diffae_feat_manifest_name,
-        num_pcs=NUM_PCS_TO_ANALYZE,
+        num_pcs=MAX_PCS_TO_COMPUTE,
     )
     # read in the grid crop-based diffae features
     grid_diffae_manifest = load_dataframe_manifest(grid_diffae_feat_manifest_name)

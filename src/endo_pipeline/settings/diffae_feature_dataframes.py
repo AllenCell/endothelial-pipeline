@@ -120,6 +120,9 @@ NUM_LATENT_FEATURES = 8
 NUM_PCS_TO_ANALYZE = 3
 """Number of top principal components to analyze."""
 
+MAX_PCS_TO_COMPUTE = 100
+"""Maximum number of principal components to compute for this project."""
+
 DIFFAE_FEATURE_COLUMN_NAMES = [
     f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(NUM_LATENT_FEATURES)
 ]
