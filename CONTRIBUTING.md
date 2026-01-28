@@ -257,10 +257,30 @@ There are currently three main model training options. These options may be pass
 - :white_circle: output = resolved model config at `results/models/MODEL_MANIFEST_NAME/RUN_NAME/configs/train.yaml`
 - :purple_circle: output = updated model manifest with pending training run at `src/endo_pipeline/manifests/models/diffae_PATCH_CONDITIONING_LATENT_PILING` (recommendation is to open a draft PR with this change until the next step is complete)
 
-
 #### 3. Train the model
 
 - workflow = `train-diffae`
 - input (identifier options) = **model manifest name**, **run_name**
 - :white_circle: output = model training run on MLflow
 - :purple_circle: output = updated model manifest with MLflow run id at `src/endo_pipeline/manifests/models/diffae_PATCH_CONDITIONING_LATENT_PILING`
+
+### Model evaluation workflows
+
+<sup>
+:purple_circle: = item or change that must be merged into the repo via a PR<br />
+:white_circle: = item or change that should not be merged into the repo
+</sup>
+
+#### 1. Build the evaluation dataframe
+
+- workflow = `create-diffae-eval-dataframe`
+- input (evaluation options) = **crop pattern**
+- :purple_circle: output = evaluation dataframe manifest at `src/endo_pipeline/manifests/dataframes/diffae_evaluation_dataframe_CROP_PATTERN`
+
+#### 2. Build the model evaluation config
+
+- workflow = `build-diffae-eval-config`
+- input (identifier options) = **model manifest name**, **run name**
+- input (evaluation options) = **crop pattern**
+- :white_circle: output = resolved model config for each dataset at `results/models/MODEL_MANIFEST_NAME/RUN_NAME/configs/eval_CROP_DATASET.yaml`
+- :purple_circle: output = updated model manifest with pending evaluation run(s) at `src/endo_pipeline/manifests/models/diffae_(MODEL_MANIFEST_NAME)_(RUN_NAME)_(CROP_PATTERN)` (recommendation is to open a draft PR with this change until the next step is complete)
