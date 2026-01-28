@@ -284,3 +284,10 @@ There are currently three main model training options. These options may be pass
 - input (evaluation options) = **crop pattern**
 - :white_circle: output = resolved model config for each dataset at `results/models/MODEL_MANIFEST_NAME/RUN_NAME/configs/eval_CROP_DATASET.yaml`
 - :purple_circle: output = updated model manifest with pending evaluation run(s) at `src/endo_pipeline/manifests/models/diffae_(MODEL_MANIFEST_NAME)_(RUN_NAME)_(CROP_PATTERN)` (recommendation is to open a draft PR with this change until the next step is complete)
+
+#### 3. Evaluate the model
+
+- workflow = `eval-diffae`
+- input (identifier options) = **model manifest name**, **run_name**
+- input (evaluation options) = **crop pattern**
+- :purple_circle: output = updated model manifest with MLflow run id at `src/endo_pipeline/manifests/models/diffae_(MODEL_MANIFEST_NAME)_(RUN_NAME)_(CROP_PATTERN)`
