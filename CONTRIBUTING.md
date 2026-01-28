@@ -221,8 +221,8 @@ There are two main identifiers for models. These identifiers may be passed to th
 
 | Identifier | Description | CLI | Default |
 | - | - | - | - |
-| **model manifest name** | general name for a set of models | `--model-manifest-name MODEL_MANIFEST_NAME` | `diffae_RESOLUTION_PATCH_PILING` |
-| **run name** | specific name of a model training run | `--run-name RUN_NAME` | `diffae_YYYYMMDD_MMHHSS` |
+| **model manifest name** | general name for a set of models | `--model-manifest-name MODEL_MANIFEST_NAME` | `diffae_baseline_exclude_cell_piling` |
+| **run name** | specific name of a model training run | `--run-name RUN_NAME` | `20251110_latent_512` |
 
 _Note that **model manifest name** is analogous to MLflow "experiments" and **run name** is analogous to MLflow "runs" (these mappings are reflected in the model configs)._
 
@@ -232,9 +232,18 @@ There are currently three main model training options. These options may be pass
 
 | Option | Description | CLI | Formatting |
 | - | - | - | - |
-| **image crop size** | length of the 2D image crop in pixels used for training | `--crop-size CROP_SIZE` | `patch_<CROP_SIZE>x<CROP_SIZE>` |
+| **image crop size** | length of the 2D image crop in pixels used for training | `--crop-size CROP_SIZE` | `patch_CROP_SIZExCROP_SIZE` |
 | **cell piling timepoints** | if timepoints annotated as cell piling are included in the training | `--include-cell-piling` or `--exclude-cell-piling` | `include_cell_piling` or `exclude_cell_piling` |
 | **conditioning image type** | name of image type to use for semantic conditioning (`cdh5` or `bf`) | `--condition-on CONDITION_IMG_NAME` | `condition_on_CONDITION_IMG_NAME`
+
+### Model evaluation options
+
+There is currently one main model evaluation option. This options may be passed to the appropriate workflows via the CLI. Where indicated, these options will also be used to format default manifest names.
+
+| Option | Description | CLI | Options |
+| - | - | - | - |
+| **crop pattern** | select grid-based or track-based crops | `--crop-pattern CROP_PATTERN` | `grid` or `tracked` |
+
 
 ### Model training workflows
 
