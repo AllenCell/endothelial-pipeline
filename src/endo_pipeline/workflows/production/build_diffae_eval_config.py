@@ -11,6 +11,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     config_name: str | None = None,
+    finetune: bool = False,
 ) -> None:
     """
     Build config for evaluating a DiffAE model.
@@ -46,6 +47,8 @@ def main(
         Name for the model run to use for evaluation.
     config_name
         Evaluation override config applied over the trained model config.
+    finetune
+        True to generate config for finetuning, False otherwise.
     """
 
     import logging
@@ -68,7 +71,10 @@ def main(
         load_model_manifest,
         save_dataframe_manifest,
     )
-    from endo_pipeline.settings.diffae_configs import DIFFAE_MODEL_EVAL_CONFIG
+    from endo_pipeline.settings.diffae_configs import (
+        DIFFAE_MODEL_EVAL_CONFIG,
+        DIFFAE_MODEL_EVAL_FINETUNE_CONFIG,
+    )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_PCA_DATASET_COLLECTION_NAME,
         DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX,
@@ -85,8 +91,13 @@ def main(
         logger.warning("DEMO MODE - Only evaluating first dataset")
         datasets = datasets[:1]
 
+    # When running finetune, only the grid crop pattern is allowed.
+    if finetune and crop_pattern != "grid":
+        logger.warning("Only 'grid' crop pattern is supported with finetuned model")
+        crop_pattern = "grid"
+
     # Build dataframe manifest name to load evaluation dataframes.
-    name_suffix = "_demo" if DEMO_MODE else ""
+    name_suffix = ("_finetune" if finetune else "") + ("_demo" if DEMO_MODE else "")
     dataframe_manifest_name = f"{DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX}{crop_pattern}{name_suffix}"
 
     try:
@@ -104,8 +115,17 @@ def main(
     model_manifest = load_model_manifest(model_manifest_name)
     run_name = get_most_recent_run_name(model_manifest) if run_name is None else run_name
 
+    # Select the correct model config name. Use config name if given. Otherwise,
+    # use the base eval config or the finetune eval config, depending on the
+    # finetune flag.
+    if config_name is not None:
+        model_config_name = config_name
+    elif finetune:
+        model_config_name = DIFFAE_MODEL_EVAL_FINETUNE_CONFIG
+    else:
+        model_config_name = DIFFAE_MODEL_EVAL_CONFIG
+
     # Load model based on given model manifest, run name, and eval override config.
-    model_config_name = DIFFAE_MODEL_EVAL_CONFIG if config_name is None else config_name
     eval_config = load_model_config(model_config_name)
     base_config = load_model_for_inference(model_manifest, run_name, eval_config).cfg
 
@@ -139,10 +159,19 @@ def main(
             num_gpus=NUM_GPUS,
         )
 
-        # Initialize the model with evaluation base config, apply overrides, and save config.
+        # Initialize the model with evaluation base config and apply overrides.
         cytodl_model = CytoDLModel()
         cytodl_model.load_config_from_dict(base_config)
-        cytodl_model.override_config(overrides.to_dict(dataset, crop_pattern))
+        cytodl_model.override_config(overrides.to_dict(dataset, crop_pattern, finetune))
+
+        # Remove extra keys that are prevent the config from instantiating
+        # the finetuned model.
+        if finetune:
+            rm_keys = ["num_workers", "cache_num", "csv_path", "dict_meta"]
+            for key in rm_keys:
+                cytodl_model.cfg.data.predict_dataloaders.dataset.pop(key, None)
+
+        # Save config file.
         cytodl_model.save_config(config_file)
         logger.info("Evaluation config saved to [ %s ]", config_file)
 

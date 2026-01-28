@@ -76,7 +76,9 @@ class ModelConfigOverrideEval:
             if accelerator == "gpu":
                 self.num_gpus = OmegaConf.select(config, "trainer.devices", default=1)
 
-    def to_dict(self, dataset_name: str, crop_pattern: Literal["grid", "tracked"]):
+    def to_dict(
+        self, dataset_name: str, crop_pattern: Literal["grid", "tracked"], finetune: bool = False
+    ):
         """Convert to overrides dict."""
 
         # Create directories for outputs if they do not exist.
@@ -172,6 +174,10 @@ class ModelConfigOverrideEval:
                     "model.spatial_inferer": None,
                 }
             )
+
+        # Additional overrides specific to finetuning.
+        if finetune:
+            overrides.update({"model.condition_key": "raw_moving"})
 
         # If single GPU or none, use "auto" strategy
         if self.num_gpus is None or self.num_gpus == 1:
