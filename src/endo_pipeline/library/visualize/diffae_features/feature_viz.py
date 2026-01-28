@@ -581,7 +581,8 @@ def plot_per_position_average_over_time(
     for i, column_name in enumerate(column_names):
         ax: plt.Axes = axs[i]
         for pos, df_pos in df.groupby(ColumnName.POSITION):
-            timepoints = df_pos[ColumnName.TIMEPOINT].unique()
+            # array of unique timepoints
+            timepoints = df_pos[ColumnName.TIMEPOINT].sort_values().unique()
             # if dealing with polar angle column, need to use
             # angle unwrapping to compute mean correctly
             if column_name == ColumnName.POLAR_ANGLE:
@@ -611,10 +612,12 @@ def plot_per_position_average_over_time(
                     rewrapped_mean = rewrap_function(unwrapped_mean)
                     # store mean value for this frame
                     frame_index = np.where(timepoints == frame)[0][0]
+                    logger.debug("Frame [ %d ]; frame index [ %d ]", frame, frame_index)
                     mean_over_crops[frame_index] = rewrapped_mean
             else:  # else, calculate mean directly
-                timepoints = df_pos[ColumnName.TIMEPOINT].sort_values().unique()
-                mean_over_crops = df_pos.groupby(ColumnName.TIMEPOINT)[column_name].mean()
+                mean_over_crops = (
+                    df_pos.groupby(ColumnName.TIMEPOINT)[column_name].mean().to_numpy()
+                )
 
             ax.scatter(timepoints, mean_over_crops, label=pos, s=2, marker="o")
 
