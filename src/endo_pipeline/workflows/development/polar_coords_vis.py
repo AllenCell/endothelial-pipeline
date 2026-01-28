@@ -73,6 +73,7 @@ def main(
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
     from endo_pipeline.settings.polar_coords import (
         BIN_LIMITS_POLAR,
+        BIN_LIMITS_THETA_RESCALED,
         BIN_WIDTHS_POLAR,
         DEFAULT_DATASET_COLLECTION_POLAR_VIS,
         POLAR_COLUMN_NAMES,
@@ -107,11 +108,9 @@ def main(
 
     # compute bins for polar coordinates
     bin_limits = BIN_LIMITS_POLAR.copy()
-    idx_theta = POLAR_COLUMN_NAMES.index(ColumnName.POLAR_ANGLE)
+    idx_theta = POLAR_COLUMN_NAMES.index(ColumnName.POLAR_ANGLE.value)
     if rescale_theta:
-        from numpy import pi
-
-        bin_limits[idx_theta] = (0.0, pi)
+        bin_limits[idx_theta] = BIN_LIMITS_THETA_RESCALED
     bins, _ = get_bins(
         bin_widths=BIN_WIDTHS_POLAR,
         bin_limits=bin_limits,

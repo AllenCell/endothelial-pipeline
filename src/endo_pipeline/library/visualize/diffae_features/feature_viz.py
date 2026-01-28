@@ -585,7 +585,7 @@ def plot_per_position_average_over_time(
             timepoints = df_pos[ColumnName.TIMEPOINT].sort_values().unique()
             # if dealing with polar angle column, need to use
             # angle unwrapping to compute mean correctly
-            if column_name == ColumnName.POLAR_ANGLE:
+            if column_name == ColumnName.POLAR_ANGLE.value:
                 unwrap_period = np.pi if is_theta_rescaled else 2 * np.pi
                 rewrap_function = (
                     (lambda angle: angle % np.pi)
