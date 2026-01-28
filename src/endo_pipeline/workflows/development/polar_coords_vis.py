@@ -62,6 +62,7 @@ def main(
     )
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
+        get_label_for_column,
         plot_component_histograms_over_time,
         plot_per_position_average_over_time,
     )
@@ -83,8 +84,7 @@ def main(
     logger = logging.getLogger(__name__)
 
     # get labels for polar coordinate columns
-    variable_names = [col.value for col in POLAR_COLUMN_NAMES]
-    logger.debug("Using variable names: [ %s ]", variable_names)
+    variable_names = [get_label_for_column(col) for col in POLAR_COLUMN_NAMES]
 
     # get dataframe manifest for grid-based crop features
     model_manifest = load_model_manifest(model_manifest_name)
@@ -152,7 +152,7 @@ def main(
             fig, ax = plot_per_position_average_over_time(
                 df_,
                 POLAR_COLUMN_NAMES,
-                variable_names,
+                column_labels=variable_names,
                 is_theta_rescaled=rescale_theta,
             )
             if global_axes_limits:
