@@ -613,8 +613,8 @@ def plot_per_position_average_over_time(
                     frame_index = np.where(timepoints == frame)[0][0]
                     mean_over_crops[frame_index] = rewrapped_mean
             else:  # else, calculate mean directly
-                df_pos_ = df_pos.sort_values(ColumnName.TIMEPOINT).copy()
-                mean_over_crops = df_pos_.groupby(ColumnName.TIMEPOINT)[column_name].mean()
+                timepoints = df_pos[ColumnName.TIMEPOINT].sort_values().unique()
+                mean_over_crops = df_pos.groupby(ColumnName.TIMEPOINT)[column_name].mean()
 
             ax.scatter(timepoints, mean_over_crops, label=pos, s=2, marker="o")
 
