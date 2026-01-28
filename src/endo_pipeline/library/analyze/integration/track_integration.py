@@ -763,7 +763,7 @@ def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -
     merged_feats_df.to_parquet(out_dir / filename)
 
 
-def load_preprocessed_manifests_and_km_bounds(
+def load_preprocessed_dataframes_and_km_bounds(
     dataset_name: str, delay: bool = True
 ) -> tuple[pd.DataFrame | dd.DataFrame, pd.DataFrame | dd.DataFrame, list]:
     """

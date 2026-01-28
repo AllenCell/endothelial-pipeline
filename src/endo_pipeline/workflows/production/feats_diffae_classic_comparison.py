@@ -25,7 +25,7 @@ def main(
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.integration.track_integration import (
         get_gridcrop_and_cellcentric_trajectories_and_flow_fields,
-        load_preprocessed_manifests_and_km_bounds,
+        load_preprocessed_dataframes_and_km_bounds,
     )
     from endo_pipeline.library.visualize.integration.track_integration_viz import (
         PlotMeasFeatAndFlowFieldOverlayArgs,
@@ -49,7 +49,7 @@ def main(
     for dataset_name in datasets:
 
         # load and preprocess the different diffae manifests and PCA pipeline
-        df_all_positions, diffae_grid_crops, bounds = load_preprocessed_manifests_and_km_bounds(
+        df_all_positions, diffae_grid_crops, bounds = load_preprocessed_dataframes_and_km_bounds(
             dataset_name=dataset_name,
         )
 

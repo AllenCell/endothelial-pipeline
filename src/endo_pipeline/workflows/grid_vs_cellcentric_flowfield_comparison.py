@@ -16,7 +16,7 @@ from endo_pipeline.library.analyze.integration.track_integration import (
     get_vector_angles_as_grid,
     get_vector_dot_products_as_grid,
     get_vector_vector_angle_fast,
-    load_preprocessed_manifests_and_km_bounds,
+    load_preprocessed_dataframes_and_km_bounds,
     make_angular_deviation_test,
 )
 from endo_pipeline.library.visualize.integration.track_integration_viz import (
@@ -49,7 +49,7 @@ def process_dataset(
     configure_logging(out_subdir, logger, verbose=True)
 
     # load and preprocess the different diffae manifests and PCA pipeline
-    merged_feats_df, diffae_grid_crops, bounds = load_preprocessed_manifests_and_km_bounds(
+    merged_feats_df, diffae_grid_crops, bounds = load_preprocessed_dataframes_and_km_bounds(
         dataset_name=dataset_name,
     )
 
