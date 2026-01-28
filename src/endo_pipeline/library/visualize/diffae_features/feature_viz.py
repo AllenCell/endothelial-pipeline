@@ -612,7 +612,6 @@ def plot_per_position_average_over_time(
                     rewrapped_mean = rewrap_function(unwrapped_mean)
                     # store mean value for this frame
                     frame_index = np.where(timepoints == frame)[0][0]
-                    logger.debug("Frame [ %d ]; frame index [ %d ]", frame, frame_index)
                     mean_over_crops[frame_index] = rewrapped_mean
             else:  # else, calculate mean directly
                 mean_over_crops = (
