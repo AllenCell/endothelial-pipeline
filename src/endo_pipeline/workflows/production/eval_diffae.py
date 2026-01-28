@@ -10,6 +10,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
     upload_to_fms: bool = True,
+    finetune: bool = False,
 ) -> None:
     """
     Evaluate a DiffAE model using the provided configuration.
@@ -36,6 +37,8 @@ def main(
         Name for the model run to use for evaluation.
     upload_to_fms
         True to upload model evaluation results to FMS, False otherwise.
+    finetune
+        True to evaluate finetuned model, False otherwise.
     """
 
     import logging
@@ -60,9 +63,14 @@ def main(
 
     logger = logging.getLogger(__name__)
 
+    # When running finetune, only the grid crop pattern is allowed.
+    if finetune and crop_pattern != "grid":
+        logger.warning("Only 'grid' crop pattern is supported with finetuned model")
+        crop_pattern = "grid"
+
     # Get available evaluation runs from given model manifest.
     model_manifest = load_model_manifest(model_manifest_name)
-    name_suffix = "_demo" if DEMO_MODE else ""
+    name_suffix = ("_finetune" if finetune else "") + ("_demo" if DEMO_MODE else "")
     feature_manifest_name = get_feature_dataframe_manifest_name(
         model_manifest, run_name, crop_pattern
     )
@@ -82,7 +90,6 @@ def main(
         datasets = datasets[:1]
 
     # Get config path based on model manifest and run name.
-    name_suffix = "_demo" if DEMO_MODE else ""
     config_path = get_output_path(
         "models",
         model_manifest_name,
@@ -129,6 +136,8 @@ def main(
                 run_name=run_name,
                 prediction_path=output_path,
             )
+
+        logger.info("Prediction saved to [ %s ]", output_path)
 
         # Upload feature dataframe to FMS.
         if upload_to_fms:
