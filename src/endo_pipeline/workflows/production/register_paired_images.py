@@ -63,6 +63,8 @@ def main(
         IF_INTEGRATION_SAVE_DIRECTORY,
         Z_SLICE_OFFSETS,
     )
+    from endo_pipeline.settings.diffae_feature_dataframes import CytoDLLoadDataKeys
+    from endo_pipeline.settings.workflow_defaults import DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX
 
     logger = logging.getLogger(__name__)
 
@@ -127,42 +129,59 @@ def main(
             num_positions_to_align,
         )
 
-        # Save dataframe of aligned images.
-        output_path = output_dir / f"diffae_finetuned_fixed_live_registration{name_suffix}.parquet"
-        df.to_parquet(output_path, index=False)
+        # Save out dataframe of aligned target images.
+        target_output_path = output_dir / f"dataset_{dataset_pair.target}{name_suffix}.parquet"
+        target_df = df.copy().rename(columns={"target_bf": CytoDLLoadDataKeys.FILE_PATH})
+        target_df.to_parquet(target_output_path, index=False)
 
-        # Build annotations and upload data to FMS.
-        moving_dataset_config = load_dataset_config(dataset_pair.moving)
+        # Save out dataframe of moving target images.
+        moving_output_path = output_dir / f"dataset_{dataset_pair.moving}{name_suffix}.parquet"
+        moving_df = df.copy().rename(columns={"moving_bf": CytoDLLoadDataKeys.FILE_PATH})
+        moving_df.to_parquet(moving_output_path, index=False)
+
+        # Build annotations and upload target image dataframe to FMS.
         target_dataset_config = load_dataset_config(dataset_pair.target)
-        fms_annotations = build_fms_annotations(
-            [target_dataset_config, moving_dataset_config],
-            additional_notes="Aligned images from paired fixed and live dataset.",
+        target_fms_annotations = build_fms_annotations(
+            target_dataset_config,
+            additional_notes="Aligned target images from paired fixed and live dataset.",
         )
-        fmsid = upload_file_to_fms(output_path, annotations=fms_annotations, file_type="parquet")
+        target_fmsid = upload_file_to_fms(
+            target_output_path, annotations=target_fms_annotations, file_type="parquet"
+        )
+
+        # Build annotations and upload moving image dataframe to FMS.
+        moving_dataset_config = load_dataset_config(dataset_pair.moving)
+        moving_fms_annotations = build_fms_annotations(
+            moving_dataset_config,
+            additional_notes="Aligned moving images from paired fixed and live dataset.",
+        )
+        moving_fmsid = upload_file_to_fms(
+            moving_output_path, annotations=moving_fms_annotations, file_type="parquet"
+        )
 
         # Add dataframe location to manifest.
-        dataset_pair_name = dataset_pair.target.replace("PreFixation", "Fixation")
-        dataframe_locations[dataset_pair_name] = DataframeLocation(fmsid=fmsid)
+        dataframe_locations[dataset_pair.target] = DataframeLocation(fmsid=target_fmsid)
+        dataframe_locations[dataset_pair.moving] = DataframeLocation(fmsid=moving_fmsid)
 
         # Add image location with position template to manifest.
+        dataset_pair_name = dataset_pair.target.replace("PreFixation", "Fixation")
         path_template = re.sub(r"_P[0-9]_", "_P{{position}}_", df.combined_bf[0])
-        image_locations[dataset_pair_name] = ImageLocation(path=path_template)
+        image_locations[dataset_pair_name] = ImageLocation(path=Path(path_template))
 
         if DEMO_MODE:
             break
 
-    # Set manifest name and parameters.
-    manifest_name = f"registered_live_fixed{name_suffix}"
-
     # Save out dataframe manifest.
-    logger.info("Saving image registration dataframe to dataframe manifest [ %s ]", manifest_name)
-    dataframe_manifest = create_dataframe_manifest(manifest_name, __file__)
+    dataframe_manifest_name = f"{DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX}grid_finetune{name_suffix}"
+    logger.info("Saving image dataframes to dataframe manifest [ %s ]", dataframe_manifest_name)
+    dataframe_manifest = create_dataframe_manifest(dataframe_manifest_name, __file__)
     dataframe_manifest.locations.update(dataframe_locations)
     save_dataframe_manifest(dataframe_manifest)
 
     # Save out image manifest.
-    logger.info("Saving registered image location to image manifest [ %s ]", manifest_name)
-    image_manifest = create_image_manifest(manifest_name, __file__)
+    image_manifest_name = f"registered_live_fixed{name_suffix}"
+    logger.info("Saving registered image location to image manifest [ %s ]", image_manifest_name)
+    image_manifest = create_image_manifest(image_manifest_name, __file__)
     image_manifest.locations.update(image_locations)
     save_image_manifest(image_manifest)
 
