@@ -50,9 +50,9 @@ def evaluate_model_paired_fixed_live(
     """
 
     # get path to aligned data
-    algined_image_manifest = load_dataframe_manifest("diffae_finetuned_fixed_live_registration")
+    algined_image_manifest = load_dataframe_manifest("registered_live_fixed")
     aligned_image_df_location = get_dataframe_location_for_dataset(
-        algined_image_manifest, "20250214_pairedPreFixation"
+        algined_image_manifest, "20250214_pairedFixation"
     )
     data_save_location = resolve_dataframe_location(aligned_image_df_location)
 
@@ -69,7 +69,7 @@ def evaluate_model_paired_fixed_live(
         run_name=run_name,
         num_gpus=num_gpus,
     )
-    target_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "target"})
+    target_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "target_bf"})
     target_overrides.update({"model.condition_key": "raw_moving"})
     model.override_config(target_overrides)
     rm_keys = ["num_workers", "cache_num", "csv_path", "dict_meta"]
@@ -86,7 +86,7 @@ def evaluate_model_paired_fixed_live(
         run_name=run_name,
         num_gpus=num_gpus,
     )
-    moving_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving"})
+    moving_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving_bf"})
     moving_overrides.update({"model.condition_key": "raw_moving"})
     model.override_config(moving_overrides)
     rm_keys = ["num_workers", "cache_num", "csv_path", "dict_meta"]
