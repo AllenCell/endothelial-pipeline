@@ -15,10 +15,6 @@ DEFAULT_SEG_FEATURE_MANIFEST_NAME: str = "live_merged_seg_features"
 """Default manifest name for merged CDH5 segmentation, CDH5 tracking and
 label-free nuclei segmentation features."""
 
-DEFAULT_DIFFAE_SEG_FEATURE_MANIFEST_NAME: str = "diffae_tracked_seg_features"
-"""Default manifest name for DiffAE tracked-cell features merged with
-CDH5 segmentation features."""
-
 DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME: str = "pc_diffae_tracked_seg_features"
 """Default manifest name for PCA-reduced DiffAE tracked-cell features merged with
 DiffAE tracked-cell features and CDH5 segmentation features."""

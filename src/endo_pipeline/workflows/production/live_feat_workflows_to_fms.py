@@ -16,7 +16,6 @@ def main(
         "cdh5_seg_measurements",
         "nuclei_labelfree",
         "merged_live_data_manifests",
-        "merged_diffae_and_seg_features",
         "merged_pc_diffae_and_seg_features",
         "nuclei_stain",
         "merged_fixed_data_manifests",
@@ -25,6 +24,39 @@ def main(
 ) -> None:
     """
     Upload specified feature table to FMS from the endothelial project folder for multiple datasets.
+
+    Parameters
+    ----------
+    manifest_kind : str
+        Kind of manifest to upload. Must be one of the following:
+        - "cdh5_seg_tracking"
+            - CDH5 segmentation tracking feature table found in
+            `manifests/dataframes/cdh5_classic_segmentation_tracking.yaml`produced by the workflow
+            `cdh5_classic_seg_tracking.py`
+        - "cdh5_seg_measurements"
+            - segmentation measured features table found in
+            `manifests/dataframes/cdh5_classic_segmentation.yaml` produced by the workflow
+            `cdh5_get_measured_features.py`
+        - "nuclei_labelfree"
+            - nuclei labelfree measured features table found in
+            `manifests/dataframes/nuclei_label_free_segmentation.yaml` produced by the workflow
+            `nuc_get_measured_features.py` (live timelapse data)
+        - "merged_live_data_manifests"
+            - merged live data found in `manifests/dataframes/live_merged_seg_features.yaml`
+            produced by the workflow `make_seg_feats_manifest.py`
+        - "merged_pc_diffae_and_seg_features"
+            - merged PCA-reduced DiffAE features and live segmentation features found in
+            `manifests/dataframes/pc_diffae_tracked_seg_features.yaml` produced by the workflow
+            `make_pc_diffae_seg_feats_merged_df.py`
+        - "nuclei_stain"
+            - nuclei stain measured features table found in
+            `manifests/dataframes/nuclei_stain_segmentation.yaml` produced by the workflow
+            `nuc_get_measured_features.py` (fixed sample data)
+        - "merged_fixed_data_manifests"
+            - merged fixed data found in `manifests/dataframes/fixed_merged_seg_features.yaml`
+            produced by `make_seg_feats_manifest.py` (fixed sample data)
+    datasets : list of str
+        List of dataset names to upload or a dataset collection.
 
     NOTE Intended only for internal use.
     """
@@ -39,7 +71,6 @@ def main(
     from endo_pipeline.library.process.lib_live_feat_workflows_to_fms import (
         fms_upload_cdh5_classic_seg_tracking,
         fms_upload_cdh5_get_measured_features,
-        fms_upload_make_diffae_and_seg_feats_manifest,
         fms_upload_make_pc_diffae_and_seg_feats_manifest,
         fms_upload_make_seg_feats_manifest,
         fms_upload_nuc_get_measured_features,
@@ -63,7 +94,6 @@ def main(
         "cdh5_seg_measurements": fms_upload_cdh5_get_measured_features,
         "nuclei_labelfree": fms_upload_nuc_get_measured_features,
         "merged_live_data_manifests": fms_upload_make_seg_feats_manifest,
-        "merged_diffae_and_seg_features": fms_upload_make_diffae_and_seg_feats_manifest,
         "merged_pc_diffae_and_seg_features": fms_upload_make_pc_diffae_and_seg_feats_manifest,
         "nuclei_stain": fms_upload_nuc_get_measured_features,
         "merged_fixed_data_manifests": fms_upload_make_seg_feats_manifest,
@@ -92,10 +122,6 @@ def main(
         "merged_live_data_manifests": {
             "subdir": "cdh5_live_seg_features",
             "suffix": "_live_segmentation_features.parquet",
-        },
-        "merged_diffae_and_seg_features": {
-            "subdir": "diffae_and_seg_features",
-            "suffix": "_diffae_seg_feats_merged.parquet",
         },
         "merged_pc_diffae_and_seg_features": {
             "subdir": "pc_diffae_and_seg_features",
