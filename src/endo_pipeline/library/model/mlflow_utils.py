@@ -3,7 +3,7 @@ from pathlib import Path
 
 import mlflow
 
-DEFAULT_TRACKING_URI = "https://production.int.allencell.org/mlflow/"
+from endo_pipeline.settings.method_constants import DEFAULT_MLFLOW_TRACKING_URI
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 def _get_available_artifacts(
     run_id: str,
     artifact_path: str | Path,
-    tracking_uri: str = DEFAULT_TRACKING_URI,
+    tracking_uri: str = DEFAULT_MLFLOW_TRACKING_URI,
     _current_recursion_level: int = 0,  # Internal parameter to manage logging
 ) -> list[str]:
     """
@@ -73,7 +73,7 @@ def download_mlflow_artifact(
     run_id: str,
     artifact_path: Path,
     dst_path: Path,
-    tracking_uri: str = DEFAULT_TRACKING_URI,
+    tracking_uri: str = DEFAULT_MLFLOW_TRACKING_URI,
 ) -> None:
     """
     Download an artifact from MLflow given a run ID and artifact path.
