@@ -16,7 +16,7 @@ def main(
         "cdh5_seg_measurements",
         "nuclei_labelfree",
         "merged_live_data_manifests",
-        "merged_pc_diffae_and_seg_features",
+        "merge_pc_diffae_seg_features",
         "nuclei_stain",
         "merged_fixed_data_manifests",
     ],
@@ -43,10 +43,10 @@ def main(
     - "merged_live_data_manifests"
         - merged live data found in `manifests/dataframes/live_merged_seg_features.yaml`
         produced by the workflow `make_seg_feats_manifest.py`
-    - "merged_pc_diffae_and_seg_features"
+    - "merge_pc_diffae_seg_features"
         - merged PCA-reduced DiffAE features and live segmentation features found in
         `manifests/dataframes/pc_diffae_tracked_seg_features.yaml` produced by the workflow
-        `make_pc_diffae_seg_feats_merged_df.py`
+        `merge_pc_diffae_seg_features.py`
     - "nuclei_stain"
         - nuclei stain measured features table found in
         `manifests/dataframes/nuclei_stain_segmentation.yaml` produced by the workflow
@@ -76,8 +76,8 @@ def main(
     from endo_pipeline.library.process.lib_live_feat_workflows_to_fms import (
         fms_upload_cdh5_classic_seg_tracking,
         fms_upload_cdh5_get_measured_features,
-        fms_upload_make_pc_diffae_and_seg_feats_manifest,
         fms_upload_make_seg_feats_manifest,
+        fms_upload_merge_pc_diffae_seg_features,
         fms_upload_nuc_get_measured_features,
     )
 
@@ -99,7 +99,7 @@ def main(
         "cdh5_seg_measurements": fms_upload_cdh5_get_measured_features,
         "nuclei_labelfree": fms_upload_nuc_get_measured_features,
         "merged_live_data_manifests": fms_upload_make_seg_feats_manifest,
-        "merged_pc_diffae_and_seg_features": fms_upload_make_pc_diffae_and_seg_feats_manifest,
+        "merge_pc_diffae_seg_features": fms_upload_merge_pc_diffae_seg_features,
         "nuclei_stain": fms_upload_nuc_get_measured_features,
         "merged_fixed_data_manifests": fms_upload_make_seg_feats_manifest,
     }
@@ -128,8 +128,8 @@ def main(
             "subdir": "cdh5_live_seg_features",
             "suffix": "_live_segmentation_features.parquet",
         },
-        "merged_pc_diffae_and_seg_features": {
-            "subdir": "pc_diffae_and_seg_features",
+        "merge_pc_diffae_seg_features": {
+            "subdir": "pc_diffae_seg_features",
             "suffix": "_pc_diffae_seg_feats_merged.parquet",
         },
         "nuclei_stain": {

@@ -158,7 +158,7 @@ def fms_upload_make_seg_feats_manifest(
     return file_id
 
 
-def fms_upload_make_pc_diffae_and_seg_feats_manifest(
+def fms_upload_merge_pc_diffae_seg_features(
     dataset_name: str,
     path_to_file: Path,
 ) -> str:
