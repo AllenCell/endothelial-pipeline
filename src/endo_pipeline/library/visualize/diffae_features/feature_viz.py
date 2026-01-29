@@ -20,6 +20,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     check_required_columns_in_dataframe,
     get_dataframe_for_dynamics_workflows,
     rewrap_polar_angle,
+    unwrap_nonsequential_array,
 )
 from endo_pipeline.library.visualize import viz_base
 from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
@@ -598,23 +599,14 @@ def plot_per_position_average_over_time(
                 unwrap_period = polar_angle_range[1] - polar_angle_range[0]
                 mean_over_crops = np.zeros_like(timepoints, dtype=float)
                 for frame, df_frame in df_pos.groupby(ColumnName.TIMEPOINT):
-                    wrapped_angles = df_frame[column_name].values
-                    init_angle = wrapped_angles[0]
-                    unwrapped_angles = np.zeros_like(wrapped_angles)
-
-                    # unwrap angles using initial angle as reference
-                    for j, wrapped_angle in enumerate(wrapped_angles):
-                        unwrapped_angle = np.unwrap(
-                            np.array([init_angle, wrapped_angle]), period=unwrap_period
-                        )[-1]
-                        unwrapped_angles[j] = unwrapped_angle
-
+                    # unwrap angles for this frame and position
+                    unwrapped_angles = unwrap_nonsequential_array(
+                        df_frame[column_name].values, unwrap_period
+                    )
                     # compute mean of unwrapped angles
                     unwrapped_mean = np.mean(unwrapped_angles)
-
                     # shift back to original range for visualization
                     rewrapped_mean = rewrap_polar_angle(unwrapped_mean, polar_angle_range)
-
                     # store mean value for this frame
                     frame_index = np.where(timepoints == frame)[0][0]
                     mean_over_crops[frame_index] = rewrapped_mean
