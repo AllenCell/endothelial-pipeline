@@ -788,7 +788,7 @@ def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
 
 def split_dataset_by_flow(
     df_proj: pd.DataFrame, dataset_config: DatasetConfig
-) -> tuple[list, list]:
+) -> tuple[list[pd.DataFrame], list[float]]:
     """
     Get crop-based feature data (Diffusion AE output) for each flow condition present in a dataset.
 

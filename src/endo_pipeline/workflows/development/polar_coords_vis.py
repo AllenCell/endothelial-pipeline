@@ -139,9 +139,7 @@ def main(
             dataset_config,
         )
 
-        for df_, shear_stress, shear_stress_regime in zip(
-            df_by_flow, shear_stress_list, dataset_config.shear_stress_regime, strict=True
-        ):
+        for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
             # for datasets with theta distribution similar to MIN shear stress,
             # shift polar angle range from (-pi, pi) to (0, 2pi) to avoid
             # numerical errors that come from angle wrapping around at -pi/pi boundary
