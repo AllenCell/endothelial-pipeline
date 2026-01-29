@@ -25,36 +25,41 @@ def main(
     """
     Upload specified feature table to FMS from the endothelial project folder for multiple datasets.
 
+    #internal #fms
+
+    Available manifest kinds:
+    - "cdh5_seg_tracking"
+        - CDH5 segmentation tracking feature table found in
+        `manifests/dataframes/cdh5_classic_segmentation_tracking.yaml`produced by the workflow
+        `cdh5_classic_seg_tracking.py`
+    - "cdh5_seg_measurements"
+        - segmentation measured features table found in
+        `manifests/dataframes/cdh5_classic_segmentation.yaml` produced by the workflow
+        `cdh5_get_measured_features.py`
+    - "nuclei_labelfree"
+        - nuclei labelfree measured features table found in
+        `manifests/dataframes/nuclei_label_free_segmentation.yaml` produced by the workflow
+        `nuc_get_measured_features.py` (live timelapse data)
+    - "merged_live_data_manifests"
+        - merged live data found in `manifests/dataframes/live_merged_seg_features.yaml`
+        produced by the workflow `make_seg_feats_manifest.py`
+    - "merged_pc_diffae_and_seg_features"
+        - merged PCA-reduced DiffAE features and live segmentation features found in
+        `manifests/dataframes/pc_diffae_tracked_seg_features.yaml` produced by the workflow
+        `make_pc_diffae_seg_feats_merged_df.py`
+    - "nuclei_stain"
+        - nuclei stain measured features table found in
+        `manifests/dataframes/nuclei_stain_segmentation.yaml` produced by the workflow
+        `nuc_get_measured_features.py` (fixed sample data)
+    - "merged_fixed_data_manifests"
+        - merged fixed data found in `manifests/dataframes/fixed_merged_seg_features.yaml`
+        produced by `make_seg_feats_manifest.py` (fixed sample data)
+
     Parameters
     ----------
-    manifest_kind : str
+    manifest_kind
         Kind of manifest to upload. Must be one of the following:
-        - "cdh5_seg_tracking"
-            - CDH5 segmentation tracking feature table found in
-            `manifests/dataframes/cdh5_classic_segmentation_tracking.yaml`produced by the workflow
-            `cdh5_classic_seg_tracking.py`
-        - "cdh5_seg_measurements"
-            - segmentation measured features table found in
-            `manifests/dataframes/cdh5_classic_segmentation.yaml` produced by the workflow
-            `cdh5_get_measured_features.py`
-        - "nuclei_labelfree"
-            - nuclei labelfree measured features table found in
-            `manifests/dataframes/nuclei_label_free_segmentation.yaml` produced by the workflow
-            `nuc_get_measured_features.py` (live timelapse data)
-        - "merged_live_data_manifests"
-            - merged live data found in `manifests/dataframes/live_merged_seg_features.yaml`
-            produced by the workflow `make_seg_feats_manifest.py`
-        - "merged_pc_diffae_and_seg_features"
-            - merged PCA-reduced DiffAE features and live segmentation features found in
-            `manifests/dataframes/pc_diffae_tracked_seg_features.yaml` produced by the workflow
-            `make_pc_diffae_seg_feats_merged_df.py`
-        - "nuclei_stain"
-            - nuclei stain measured features table found in
-            `manifests/dataframes/nuclei_stain_segmentation.yaml` produced by the workflow
-            `nuc_get_measured_features.py` (fixed sample data)
-        - "merged_fixed_data_manifests"
-            - merged fixed data found in `manifests/dataframes/fixed_merged_seg_features.yaml`
-            produced by `make_seg_feats_manifest.py` (fixed sample data)
+
     datasets : list of str
         List of dataset names to upload or a dataset collection.
 
