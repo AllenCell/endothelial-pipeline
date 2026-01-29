@@ -62,14 +62,14 @@ def process_dataset(
         "label",
         "crop_index",
         "model_manifest_name",
-        "model_name",
         "image_index",
         "frame_number",
         "time_hours",
         "time_minutes",
         "track_duration",
-    ] + [col for col in merged_feats_df.columns if "feat" in col or "pc" in col]
+    ] + [col for col in merged_feats_df.columns if "pc" in col]
     merged_feats_df = merged_feats_df[cols_to_keep]
+    merged_feats_df = merged_feats_df.compute()
 
     # load or compute the trajectories and flow fields for the grid-based
     # and cell-centric crops
@@ -226,13 +226,13 @@ def process_dataset(
     # Apply the partial functions to the DataFrame to get the approximate grid bin
     # and vector associated with each cell-centric PC1 and PC2 value
     merged_feats_df[["approx_bin_pc1", "approx_bin_pc2"]] = (
-        merged_feats_df.groupby("crop_index", as_index=False)
-        .apply(lambda df: get_approx_grid_bin_from_df(df[["pc_1", "pc_2"]]))  # type: ignore[index]
+        merged_feats_df.groupby("crop_index", as_index=False)[["pc_1", "pc_2"]]
+        .apply(get_approx_grid_bin_from_df)
         .droplevel(level=0)
     )
     merged_feats_df[["approx_vec_pc1", "approx_vec_pc2"]] = (
-        merged_feats_df.groupby("crop_index", as_index=False)
-        .apply(lambda df: get_approx_grid_vec_from_df(df[["pc_1", "pc_2"]]))  # type: ignore[index]
+        merged_feats_df.groupby("crop_index", as_index=False)[["pc_1", "pc_2"]]
+        .apply(get_approx_grid_vec_from_df)
         .droplevel(level=0)
     )
 
