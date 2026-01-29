@@ -49,15 +49,9 @@ def main(
         Whether to rescale theta values to [0, pi] range with period pi.
     """
 
-    import logging
-
     import numpy as np
 
-    from endo_pipeline.configs import (
-        ShearStressRegime,
-        get_datasets_in_collection,
-        load_dataset_config,
-    )
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
@@ -66,6 +60,7 @@ def main(
     )
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
+        get_label_for_column,
         plot_component_histograms_over_time,
         plot_per_position_average_over_time,
     )
@@ -76,19 +71,16 @@ def main(
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
     from endo_pipeline.settings.polar_coords import (
-        BEHAVES_LIKE_MIN_SHEAR_STRESS,
         BIN_LIMITS_POLAR,
+        BIN_LIMITS_THETA_RESCALED,
         BIN_WIDTHS_POLAR,
         DEFAULT_DATASET_COLLECTION_POLAR_VIS,
         POLAR_COLUMN_NAMES,
         TICK_STEP_NUM,
     )
 
-    logger = logging.getLogger(__name__)
-
     # get labels for polar coordinate columns
-    variable_names = [col.value for col in POLAR_COLUMN_NAMES]
-    logger.debug("Using variable names: [ %s ]", variable_names)
+    variable_names = [get_label_for_column(col) for col in POLAR_COLUMN_NAMES]
 
     # get dataframe manifest for grid-based crop features
     model_manifest = load_model_manifest(model_manifest_name)
@@ -112,11 +104,9 @@ def main(
 
     # compute bins for polar coordinates
     bin_limits = BIN_LIMITS_POLAR.copy()
-    idx_theta = POLAR_COLUMN_NAMES.index(ColumnName.POLAR_ANGLE)
+    idx_theta = POLAR_COLUMN_NAMES.index(ColumnName.POLAR_ANGLE.value)
     if rescale_theta:
-        from numpy import pi
-
-        bin_limits[idx_theta] = (0.0, pi)
+        bin_limits[idx_theta] = BIN_LIMITS_THETA_RESCALED
     bins, _ = get_bins(
         bin_widths=BIN_WIDTHS_POLAR,
         bin_limits=bin_limits,
@@ -127,7 +117,6 @@ def main(
     # compute drift and diffusion coefficients in polar coordinates
     for dataset_name in dataset_names:
         fig_savedir = get_output_path(__file__, dataset_name)
-        logger.debug("Saving summary plots to [ %s ]", fig_savedir)
         dataset_config = load_dataset_config(dataset_name)
 
         df = get_dataframe_for_dynamics_workflows(
@@ -145,15 +134,10 @@ def main(
             dataset_config,
         )
 
-        for df_, shear_stress, shear_stress_regime in zip(
-            df_by_flow, shear_stress_list, dataset_config.shear_stress_regime, strict=True
-        ):
+        for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
             # for datasets with theta distribution similar to MIN shear stress,
             # shift polar angle range from (-pi, pi) to (0, 2pi) to avoid
             # numerical errors that come from angle wrapping around at -pi/pi boundary
-            shift_polar_angle_range = (shear_stress_regime == ShearStressRegime.MIN) or (
-                dataset_name in BEHAVES_LIKE_MIN_SHEAR_STRESS
-            )
 
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
             fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$)"
@@ -161,9 +145,8 @@ def main(
             fig, ax = plot_per_position_average_over_time(
                 df_,
                 POLAR_COLUMN_NAMES,
-                variable_names,
-                shift_polar_angle_range=shift_polar_angle_range,
-                is_theta_rescaled=rescale_theta,
+                column_labels=variable_names,
+                polar_angle_range=bin_limits[idx_theta],
             )
             if global_axes_limits:
                 for i, ax_ in enumerate(ax):
