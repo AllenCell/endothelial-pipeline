@@ -1,6 +1,4 @@
-from typing import Literal
-
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import CropPattern, Datasets
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -11,7 +9,7 @@ def main(
     datasets: Datasets | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
-    crop_pattern: Literal["grid", "tracked"] = "grid",
+    crop_pattern: CropPattern = "grid",
     global_axes_limits: bool = False,
     rescale_theta: bool = True,
 ) -> None:
