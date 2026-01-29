@@ -48,14 +48,18 @@ def main(
     endopipe manage-s3-datasets --add-datasets 20250618_20X --positions-list 0 1
     endopipe manage-s3-datasets --add-datasets 20250618_20X --no-dry-run --positions-list 0 1
     """
+    import logging
+
     from s3_uploader import run_all_jobs
 
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.library.process.data_release.generate_csv import (
-        create_s3_rm_csv,
+        create_s3_remove_csv,
         create_s3_upload_csv,
     )
     from endo_pipeline.library.process.data_release.s3_utils import create_rm_job, create_upload_job
+
+    logger = logging.getLogger(__name__)
 
     if add_datasets and rm_datasets:
         raise ValueError("Select either add_datasets or rm_datasets, not both.")
@@ -91,7 +95,7 @@ def main(
         log_dir_str = str(get_output_path("s3_dataset", "remove_datasets", "status"))
         save_dir_str = str(save_dir)
 
-        csv_path = create_s3_rm_csv(datasets, save_dir, positions_list=positions_list)
+        csv_path = create_s3_remove_csv(datasets, save_dir, positions_list=positions_list)
 
         job_path = create_rm_job(
             csv_path=csv_path,
@@ -107,7 +111,7 @@ def main(
         )
 
     if dry_run:
-        print("Check files and re-run with --no-dry-run to submit jobs.")
+        logger.warning("[DRY RUN] Check files and re-run with --no-dry-run to submit jobs.")
 
     else:
         # Generate check completion script

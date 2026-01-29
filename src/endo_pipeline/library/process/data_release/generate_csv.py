@@ -4,7 +4,7 @@ import pandas as pd
 
 from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io.output import get_timestamp
+from endo_pipeline.io import make_name_unique
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.data_release import DEST_COL, S3_INTERNAL_DIRECTORY, SOURCE_COL
 
@@ -59,13 +59,12 @@ def create_s3_upload_csv(
                 }
             )
     df = pd.DataFrame(rows)
-    timestamp = get_timestamp()
-    file_path = save_dir / f"upload_data_{timestamp}.csv"
+    file_path = make_name_unique(save_dir / "upload_data.csv")
     df.to_csv(file_path, index=False)
-    return file_path
+    return str(file_path)
 
 
-def create_s3_rm_csv(
+def create_s3_remove_csv(
     datasets: Datasets,
     save_dir: Path,
     s3_directory: str = S3_INTERNAL_DIRECTORY,
@@ -109,7 +108,6 @@ def create_s3_rm_csv(
                 }
             )
     df = pd.DataFrame(rows)
-    timestamp = get_timestamp()
-    file_path = save_dir / f"remove_data_{timestamp}.csv"
+    file_path = make_name_unique(save_dir / "remove_data.csv")
     df.to_csv(file_path, index=False)
-    return file_path
+    return str(file_path)
