@@ -543,7 +543,7 @@ def plot_per_position_average_over_time(
     df: pd.DataFrame,
     column_names: list[str],
     column_labels: list[str] | None = None,
-    polar_angle_range: tuple[float, float] | None = None,
+    polar_angle_range: tuple[float, float] = (-np.pi, np.pi),
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
     """
     Plot per-position average over time of specified columns in the dataframe.
@@ -553,10 +553,6 @@ def plot_per_position_average_over_time(
     If plotting polar angle column, angle unwrapping is used to compute the mean
     correctly. After computing the "unwrapped" mean, the mean angle is shifted back
     to the original range for visualization.
-
-    If the polar angle is specified in the column_names, the polar_angle_range parameter
-    must not be None. The polar_angle_range parameter is used to determine how to
-    wrap and unwrap the polar angle values.
 
     Parameters
     ----------
@@ -572,12 +568,6 @@ def plot_per_position_average_over_time(
     # confirm required columns are in dataframe
     required_columns = [ColumnName.POSITION, ColumnName.TIMEPOINT] + column_names
     check_required_columns_in_dataframe(df, required_columns)
-
-    if ColumnName.POLAR_ANGLE.value in column_names and polar_angle_range is None:
-        logger.error("Valid polar_angle_range must be provided when plotting polar angle column.")
-        raise ValueError(
-            "Valid polar_angle_range must be provided when plotting polar angle column."
-        )
 
     # get column labels if not provided
     if column_labels is None:
