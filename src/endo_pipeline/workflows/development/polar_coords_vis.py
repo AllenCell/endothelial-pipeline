@@ -49,8 +49,6 @@ def main(
         Whether to rescale theta values to [0, pi] range with period pi.
     """
 
-    import logging
-
     import numpy as np
 
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
@@ -80,8 +78,6 @@ def main(
         POLAR_COLUMN_NAMES,
         TICK_STEP_NUM,
     )
-
-    logger = logging.getLogger(__name__)
 
     # get labels for polar coordinate columns
     variable_names = [get_label_for_column(col) for col in POLAR_COLUMN_NAMES]
@@ -121,7 +117,6 @@ def main(
     # compute drift and diffusion coefficients in polar coordinates
     for dataset_name in dataset_names:
         fig_savedir = get_output_path(__file__, dataset_name)
-        logger.debug("Saving summary plots to [ %s ]", fig_savedir)
         dataset_config = load_dataset_config(dataset_name)
 
         df = get_dataframe_for_dynamics_workflows(
@@ -151,7 +146,7 @@ def main(
                 df_,
                 POLAR_COLUMN_NAMES,
                 column_labels=variable_names,
-                is_theta_rescaled=rescale_theta,
+                polar_angle_range=bin_limits[idx_theta],
             )
             if global_axes_limits:
                 for i, ax_ in enumerate(ax):

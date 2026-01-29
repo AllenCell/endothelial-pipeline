@@ -179,6 +179,31 @@ def pcs_to_polar_theta(
     return theta
 
 
+def rewrap_polar_angle(unwrapped_angle: float, original_range: tuple[float, float]) -> float:
+    """
+    Rewrap unwrapped polar angle value to be within original range.
+
+    Unwrapped angles computed, e.g., using numpy.unwrap can extend beyond the original
+    periodic range of polar angle values. This function rewraps the unwrapped angle back
+    to be within the original range.
+
+    Example:
+        original_range = (0, pi)
+        unwrapped_angle = pi + 0.5
+        rewrapped_angle = 0.5
+
+    Parameters
+    ----------
+    unwrapped_angle
+        Unwrapped polar angle value.
+    original_range
+        Original range of polar angle values.
+    """
+    angle_period = original_range[1] - original_range[0]
+    rewrapped_angle = ((unwrapped_angle - original_range[0]) % angle_period) + original_range[0]
+    return rewrapped_angle
+
+
 def filter_dataframe_by_annotations(
     dataframe: pd.DataFrame,
     dataset_config: DatasetConfig,

@@ -19,6 +19,7 @@ from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     check_required_columns_in_dataframe,
     get_dataframe_for_dynamics_workflows,
+    rewrap_polar_angle,
 )
 from endo_pipeline.library.visualize import viz_base
 from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
@@ -541,7 +542,7 @@ def plot_per_position_average_over_time(
     df: pd.DataFrame,
     column_names: list[str],
     column_labels: list[str] | None = None,
-    is_theta_rescaled: bool = False,
+    polar_angle_range: tuple[float, float] | None = None,
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
     """
     Plot per-position average over time of specified columns in the dataframe.
@@ -552,8 +553,9 @@ def plot_per_position_average_over_time(
     correctly. After computing the "unwrapped" mean, the mean angle is shifted back
     to the original range for visualization.
 
-    If is_theta_rescaled is True, the polar angle range is assumed to be [0, pi].
-    If is_theta_rescaled is False, the polar angle range is assumed to be [-pi, pi].
+    If the polar angle is specified in the column_names, the polar_angle_range parameter
+    must not be None. The polar_angle_range parameter is used to determine how to
+    wrap and unwrap the polar angle values.
 
     Parameters
     ----------
@@ -563,12 +565,18 @@ def plot_per_position_average_over_time(
         List of column names to plot the per-position average for.
     column_labels
         Optional, list of labels for the columns to use in the plot.
-    is_theta_rescaled
-        If True, indicates that theta has been rescaled in the dataframe to [0, pi].
+    polar_angle_range
+        Tuple specifying the range of polar angle values in the dataframe.
     """
     # confirm required columns are in dataframe
     required_columns = [ColumnName.POSITION, ColumnName.TIMEPOINT] + column_names
     check_required_columns_in_dataframe(df, required_columns)
+
+    if ColumnName.POLAR_ANGLE.value in column_names and polar_angle_range is None:
+        logger.error("Valid polar_angle_range must be provided when plotting polar angle column.")
+        raise ValueError(
+            "Valid polar_angle_range must be provided when plotting polar angle column."
+        )
 
     # get column labels if not provided
     if column_labels is None:
@@ -583,15 +591,11 @@ def plot_per_position_average_over_time(
         for pos, df_pos in df.groupby(ColumnName.POSITION):
             # array of unique timepoints
             timepoints = df_pos[ColumnName.TIMEPOINT].sort_values().unique()
+
             # if dealing with polar angle column, need to use
             # angle unwrapping to compute mean correctly
             if column_name == ColumnName.POLAR_ANGLE.value:
-                unwrap_period = np.pi if is_theta_rescaled else 2 * np.pi
-                rewrap_function = (
-                    (lambda angle: angle % np.pi)
-                    if is_theta_rescaled
-                    else (lambda angle: ((angle + np.pi) % (2 * np.pi)) - np.pi)
-                )
+                unwrap_period = polar_angle_range[1] - polar_angle_range[0]
                 mean_over_crops = np.zeros_like(timepoints, dtype=float)
                 for frame, df_frame in df_pos.groupby(ColumnName.TIMEPOINT):
                     wrapped_angles = df_frame[column_name].values
@@ -609,7 +613,8 @@ def plot_per_position_average_over_time(
                     unwrapped_mean = np.mean(unwrapped_angles)
 
                     # shift back to original range for visualization
-                    rewrapped_mean = rewrap_function(unwrapped_mean)
+                    rewrapped_mean = rewrap_polar_angle(unwrapped_mean, polar_angle_range)
+
                     # store mean value for this frame
                     frame_index = np.where(timepoints == frame)[0][0]
                     mean_over_crops[frame_index] = rewrapped_mean
