@@ -1,7 +1,8 @@
-from typing import Annotated, Literal
+from typing import Annotated
 
 from cyclopts import Parameter
 
+from endo_pipeline.cli import CropPattern
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -15,7 +16,7 @@ TAGS = ["diffae_image_generation", "pc_interpretation"]
 def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    crop_pattern: Literal["grid", "tracked"] = "grid",
+    crop_pattern: CropPattern = "grid",
     dataset_collection: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
@@ -54,9 +55,6 @@ def main(
         List of PC values to replace the mean with for each PC dimension. Must be of length num_pcs.
         If None, uses the mean of the data.
     """
-
-    import logging
-
     from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_model
@@ -76,12 +74,6 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-
-    logger = logging.getLogger(__name__)
-
-    if crop_pattern not in ["tracked", "grid"]:
-        logger.error("Crop pattern must be 'tracked' or 'grid', got [ %s ]", crop_pattern)
-        raise ValueError("Input crop_pattern must be 'grid' or 'tracked'")
 
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
