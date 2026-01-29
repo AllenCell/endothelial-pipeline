@@ -18,9 +18,6 @@ from endo_pipeline.configs import (
     load_dataset_config,
 )
 from endo_pipeline.io import load_dataframe
-from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
-    get_smallest_angle_difference,
-)
 from endo_pipeline.manifests import (
     DataframeManifest,
     get_dataframe_location_for_dataset,
@@ -846,7 +843,7 @@ def split_dataset_by_flow(
 
 
 def get_traj_and_diff(
-    df: pd.DataFrame, column_names: list
+    df: pd.DataFrame, column_names: list, polar_angle_period: float = 2 * np.pi
 ) -> tuple[list[np.ndarray], list[np.ndarray]]:
     """
     Get trajectories and single-timepoint displacement vectors for each crop in feature space.
@@ -864,6 +861,8 @@ def get_traj_and_diff(
         DataFrame with columns for each feature.
     column_names
         List of column names corresponding to the features of interest in the DataFrame.
+    polar_angle_period
+        Period of the polar angle feature, used to compute circular differences for angular data.
 
     Returns
     -------
@@ -898,13 +897,12 @@ def get_traj_and_diff(
 
         # if one of the column names is `polar_theta`, need to replace with the
         # circular difference for angular data instead of simple difference
-        if ColumnName.POLAR_ANGLE in column_names:
+        if ColumnName.POLAR_ANGLE.value in column_names:
             idx_column_name = column_names.index(ColumnName.POLAR_ANGLE)
-            angle_diffs = get_smallest_angle_difference(
-                df_crop_[ColumnName.POLAR_ANGLE].values[1:],
-                df_crop_[ColumnName.POLAR_ANGLE].values[:-1],
-                units="rad",
+            unwrapped_angle_traj = np.unwrap(
+                df_crop_[ColumnName.POLAR_ANGLE].values, period=polar_angle_period
             )
+            angle_diffs = np.diff(unwrapped_angle_traj)
             df_crop_[diff_column_names[idx_column_name]] = np.concatenate(
                 (
                     angle_diffs,
