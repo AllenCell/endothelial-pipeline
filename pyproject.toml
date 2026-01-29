@@ -215,6 +215,7 @@ module = [
     "pysindy.*",
     "scipy.*",
     "sklearn.*",
+    "s3_tools.*",
     "torchmetrics.*",
     "vtk.*",
 ]
