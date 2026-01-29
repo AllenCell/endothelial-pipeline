@@ -1,3 +1,4 @@
+from endo_pipeline.cli import Datasets
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -6,13 +7,24 @@ from endo_pipeline.settings.workflow_defaults import (
 
 
 def main(
-    dataset_collection_name: str = "pca_reference",
+    datasets: Datasets | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 ) -> None:
     """
-    Makes plots comparing cell-centric and grid-based flow fields.
+    Make plots comparing cell-centric and grid-based flow fields.
+
+    Parameters
+    ----------
+    datasets
+        List of datasets or dataset collections to use for visualization.
+    model_manifest_name
+        Name of the model manifest containing the run to load features from.
+    run_name
+        Name of the specific model run to load features for. If None, uses the most recent run.
+    seg_feature_manifest_name
+        Name of the segmentation feature manifest to use for segmentation features.
     """
     import matplotlib
     from matplotlib import pyplot as plt
@@ -30,7 +42,10 @@ def main(
     matplotlib.use("Agg")
     plt.ioff()  # turns off interactive mode in matplotlib
 
-    dataset_name_list = get_datasets_in_collection(dataset_collection_name)
+    if datasets is not None:
+        dataset_name_list = datasets.copy()
+    else:
+        dataset_name_list = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
     for dataset_name in dataset_name_list:
         process_dataset_for_track_integration(
