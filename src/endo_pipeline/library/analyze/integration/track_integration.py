@@ -843,6 +843,7 @@ def load_pc_diffae_liveseg_feats_merged_table(
 
     If you load the dataframe like so
     >>> df = load_pc_diffae_liveseg_feats_merged_table(dataset_name)
+
     All available columns can be listed with `df.columns`.
     Columns of interest can be loaded with `df['column_name'].compute()` or
     `df[['column_name_1', 'column_name_2', ...]].compute()`.
