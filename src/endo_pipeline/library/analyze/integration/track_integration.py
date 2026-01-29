@@ -252,13 +252,13 @@ def get_diffae_feats_liveseg_feats_merged_table(
     )
     diffae_track_manifest = load_dataframe_manifest(tracked_dataframe_manifest_name)
     diffae_track_location = get_dataframe_location_for_dataset(diffae_track_manifest, dataset_name)
-    diffae_tracking_df = load_dataframe(diffae_track_location, delay=False)  # type: ignore
+    diffae_tracking_df = load_dataframe(diffae_track_location, delay=False)
 
     # load the tracking data of the measured features and merge them
     logging.debug("loading segmentation property data...")
     live_seg_manifest = load_dataframe_manifest(seg_feature_manifest_name)
     live_seg_location = get_dataframe_location_for_dataset(live_seg_manifest, dataset_name)
-    live_seg_feats_df = load_dataframe(live_seg_location, delay=False)  # type: ignore
+    live_seg_feats_df = load_dataframe(live_seg_location, delay=False)
 
     # merge the two tables
     merged_feats_df = merge_diffae_feats_liveseg_feats_tables(diffae_tracking_df, live_seg_feats_df)
