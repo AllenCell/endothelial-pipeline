@@ -591,7 +591,7 @@ def plot_per_position_average_over_time(
                 for frame, df_frame in df_pos.groupby(ColumnName.TIMEPOINT):
                     # unwrap angles for this frame and position
                     unwrapped_angles = unwrap_nonsequential_array(
-                        df_frame[column_name].values, unwrap_period
+                        df_frame[column_name].to_numpy(), unwrap_period
                     )
                     # compute mean of unwrapped angles
                     unwrapped_mean = np.mean(unwrapped_angles)
