@@ -584,6 +584,7 @@ def plot_flow_field_slices(
         y=1.02,
         fontfamily=FONT_FAMILY,
     )
+
     if fig_savedir is not None:
         save_plot_to_path(fig, fig_savedir, f"flow_field_{dataset_name}")  # save the figure
 
