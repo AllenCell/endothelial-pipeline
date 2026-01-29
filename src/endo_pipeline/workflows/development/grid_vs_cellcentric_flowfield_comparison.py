@@ -1,48 +1,50 @@
-import gc
-import logging
-
-import matplotlib
-import numpy as np
-import pandas as pd
-from matplotlib import pyplot as plt
-from tqdm import tqdm
+"""Makes plots comparing flow fields computed from grid-based and cell-centric diffae crops."""
 
 from endo_pipeline.cli import Datasets
-from endo_pipeline.io import configure_logging, get_output_path
-from endo_pipeline.library.analyze.integration.track_integration import (
-    get_approx_point_from_grid,
-    get_approx_vec_from_grid,
-    get_gridcrop_and_cellcentric_trajectories_and_flow_fields,
-    get_vector_angles_as_grid,
-    get_vector_dot_products_as_grid,
-    get_vector_vector_angle_fast,
-    load_preprocessed_dataframes_and_km_bounds,
-    make_angular_deviation_test,
-)
-from endo_pipeline.library.visualize.integration.track_integration_viz import (
-    get_valid_slice_indexes,
-    grid_vs_track_vec_angle_hist2d,
-    grid_vs_track_vec_dot_prod_hist2d,
-    overlay_flow_fields_on_histograms,
-    plot_and_save_track_flow_field_deviations,
-    plot_and_save_track_flow_field_dot_product_histogram,
-    plot_grid_vs_tracks_flow_field,
-    plot_pc_integrated_track_as_arrows,
-)
 from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
-
-logger = logging.getLogger(__name__)
-
-# the below 2 lines are both used to control memory
-# usage problems when making many plots in a loop
-matplotlib.use("Agg")
-plt.ioff()  # turns off interactive mode in matplotlib
 
 
 def process_dataset(
     dataset_name: str,
     make_integrated_plots: bool = True,
 ) -> None:
+    import gc
+    import logging
+
+    import matplotlib
+    import numpy as np
+    import pandas as pd
+    from matplotlib import pyplot as plt
+    from tqdm import tqdm
+
+    from endo_pipeline.io import configure_logging, get_output_path
+    from endo_pipeline.library.analyze.integration.track_integration import (
+        get_approx_point_from_grid,
+        get_approx_vec_from_grid,
+        get_gridcrop_and_cellcentric_trajectories_and_flow_fields,
+        get_vector_angles_as_grid,
+        get_vector_dot_products_as_grid,
+        get_vector_vector_angle_fast,
+        load_preprocessed_dataframes_and_km_bounds,
+    )
+    from endo_pipeline.library.visualize.integration.track_integration_viz import (
+        get_valid_slice_indexes,
+        grid_vs_track_vec_angle_hist2d,
+        grid_vs_track_vec_dot_prod_hist2d,
+        overlay_flow_fields_on_histograms,
+        plot_and_save_track_flow_field_deviations,
+        plot_and_save_track_flow_field_dot_product_histogram,
+        plot_grid_vs_tracks_flow_field,
+        plot_pc_integrated_track_as_arrows,
+    )
+
+    logger = logging.getLogger(__name__)
+
+    # the below 2 lines are both used to control memory
+    # usage problems when making many plots in a loop
+    matplotlib.use("Agg")
+    plt.ioff()  # turns off interactive mode in matplotlib
+
     logger.info(f"Processing dataset: {dataset_name}")
 
     out_subdir = get_output_path(__file__, dataset_name, include_timestamp=False)
@@ -371,8 +373,12 @@ def main(
     Makes plots comparing cell-centric and grid-based flow fields.
     """
 
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.analyze.integration.track_integration import (
+        make_angular_deviation_test,
+    )
+
     for dataset_name in datasets:
-        logger.info(f"Processing {dataset_name}...")
         process_dataset(
             dataset_name=dataset_name,
             make_integrated_plots=True,
