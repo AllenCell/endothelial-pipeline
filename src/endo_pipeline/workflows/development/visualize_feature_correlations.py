@@ -7,6 +7,7 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS,
     SEGMENTATION_FEATURE_COLUMNS,
 )
 
@@ -14,7 +15,8 @@ TAGS = ["diffae_features", "visualization", "pc_interpretation"]
 
 
 def main(
-    dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    dataset_collection_to_plot: str = DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS,
+    dataset_collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = None,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
@@ -22,7 +24,7 @@ def main(
     segmentation_feature_group: str = "default",
     num_pcs: int | None = None,
     timepoint_annotations: list[TimepointAnnotation] | Literal["default"] | None = "default",
-    aggregate: bool = True,
+    aggregate_only: bool = True,
     skip_multi_feature_scatterplots: bool = False,
 ) -> None:
     """
@@ -31,8 +33,10 @@ def main(
 
     Parameters
     ----------
-    dataset_collection_name
-        The name of the dataset collection to use.
+    dataset_collection_to_plot
+        The name of the dataset collection to analyze.
+    dataset_collection_name_for_pca
+        The name of the dataset collection to use for PCA fitting.
     model_manifest_name
         The name of the model manifest to use for DiffAE features.
     run_name
@@ -51,8 +55,8 @@ def main(
     timepoint_annotations
         List of timepoint annotations to exclude from the analysis. If "default",
         excludes NOT_STEADY_STATE and CELL_PILING timepoints. If None, includes all timepoints.
-    aggregate
-        If True, uses the aggregated dataset in the analysis.
+    aggregate_only
+        If True, only uses the aggregated dataset in the analysis.
     skip_multi_feature_scatterplots
         If True, skips generating multi-feature scatterplots.
 
@@ -96,12 +100,13 @@ def main(
         get_model_location_for_run,
         get_most_recent_run_name,
     )
+    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
     logger = logging.getLogger(__name__)
 
     logger.info("Running correlation heatmap workflow...")
 
-    dataset_name_list = get_datasets_in_collection(dataset_collection_name)
+    dataset_name_list = get_datasets_in_collection(dataset_collection_to_plot)
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     model_location = get_model_location_for_run(model_manifest, run_name_)
@@ -111,6 +116,7 @@ def main(
 
     pc_columns = get_pc_column_names(num_pcs)
     diffae_feature_columns = get_latent_feature_column_names(num_features)
+    polar_pc_columns = [ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE]
 
     if timepoint_annotations == "default":
         annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
@@ -138,21 +144,27 @@ def main(
         num_pcs=num_pcs,
         pc_columns=pc_columns,
         diffae_feature_columns=diffae_feature_columns,
-        dataset_collection_name_for_pca=dataset_collection_name,
+        polar_pc_columns=polar_pc_columns,
+        dataset_collection_name_for_pca=dataset_collection_name_for_pca,
         model_manifest=model_manifest,
         run_name=run_name_,
         seg_feature_manifest_name=seg_feature_manifest_name,
         timepoint_annotations=timepoint_annotations,
     )
 
+    pc_and_polar_group = [*pc_columns[:3], *polar_pc_columns]
+
     label_column_tuples = [
         ("Measurement", [get_label_for_column(col) for col in segmentation_feature_columns]),
         ("PC", [get_label_for_column(col) for col in pc_columns]),
         ("DiffAE Feature", [get_label_for_column(col) for col in diffae_feature_columns]),
+        ("PC with polar transform", [get_label_for_column(col) for col in pc_and_polar_group]),
     ]
 
-    if aggregate:
+    if aggregate_only:
         dataset_name_list = ["aggregate"]
+    else:
+        dataset_name_list = [*dataset_name_list, "aggregate"]
 
     for dataset_name in tqdm(dataset_name_list):
         # if the dataset name is "aggregate", use the full DataFrame
@@ -268,6 +280,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)

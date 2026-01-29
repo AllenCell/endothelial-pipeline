@@ -271,6 +271,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         average: bool = True,
         save: bool = True,
         batch_size: int = 3,
+        random_seed: int | None = None,
     ) -> torch.Tensor:
         """
         Generate images from latent features.
@@ -299,7 +300,12 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         with torch.no_grad():
             for _ in tqdm.tqdm(range(n_noise_samples), desc="Sampling noise"):
                 noise = torch.stack(
-                    [torch.randn(self.hparams.image_shape, device=self.device)] * cond.shape[0]
+                    [
+                        self._generate_noise(
+                            self.hparams.image_shape, None, device=self.device, seed=random_seed
+                        )
+                    ]
+                    * cond.shape[0]
                 )
                 sample = torch.cat(
                     [

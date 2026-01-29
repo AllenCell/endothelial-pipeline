@@ -1,6 +1,4 @@
-from endo_pipeline.cli import Datasets, tags
-
-TAGS = ["internal", tags.TEST_READY, tags.CPU_ONLY]
+from endo_pipeline.cli import Datasets
 
 
 def main(
@@ -10,6 +8,8 @@ def main(
 ) -> None:
     """
     Convert datasets to Zarr format.
+
+    #internal #test-ready #cpu-only
 
     Parameters
     ----------
@@ -26,7 +26,7 @@ def main(
     """
     import logging
 
-    from endo_pipeline import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.convert_to_zarr.convert_dataset import convert_dataset
@@ -55,6 +55,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)

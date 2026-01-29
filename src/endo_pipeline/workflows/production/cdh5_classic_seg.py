@@ -46,7 +46,7 @@ def main(
     of the first 2 positions for each of the given datasets for workflow testing purposes.
     """
 
-    from endo_pipeline import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.cdh5_preprocessing import (
@@ -85,8 +85,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+    from endo_pipeline.cli import workflow_cli
 
-    # ipython_cli_flexecute runs a function via either
-    # the command line or an interactive python shell
-    ipython_cli_flexecute(main)
+    workflow_cli(main)

@@ -1,15 +1,19 @@
-import argparse
 from pathlib import Path
 
-from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import get_output_path
-from endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (
-    generate_tfe_dataset,
-)
-from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+from endo_pipeline.cli import Datasets
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 
-def main() -> None:
+def main(
+    datasets: Datasets | None = None,
+    positions: list[int] = [0],
+    output_dir: Path | None = None,
+    segmentation: str = "CDH5",
+    skip_backdrops: bool = False,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    include_diffae_features: bool = True,
+) -> None:
     """
     Workflow processes datasets and positions to generate timelapse feature
     explorer (TFE) datasets. It allows customization of datasets, positions,
@@ -31,7 +35,7 @@ def main() -> None:
     -----------------------
     --datasets : list of str
         List of dataset names to process. Defaults to:
-        ["20241120_20X"].
+        ["20250618_20X"].
 
     --positions : list of int
         List of positions to process. Defaults to [0].
@@ -49,49 +53,26 @@ def main() -> None:
        By default, the script generates backdrops. Use this flag to skip that
        step.
     """
-    parser = argparse.ArgumentParser(
-        description="Generate TFE datasets for specified datasets and positions."
+
+    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (
+        generate_tfe_dataset,
     )
-    parser.add_argument(
-        "--datasets",
-        nargs="+",
-        default=["20241120_20X"],
-        help="List of datasets to process (default: test dataset).",
-    )
-    parser.add_argument(
-        "--positions",
-        nargs="+",
-        type=int,
-        default=[0],
-        help="List of positions to process (default: test position [0]).",
-    )
-    parser.add_argument(
-        "--output_dir",
-        type=Path,
-        default=get_output_path("timelapse_feature_explorer"),
-        help="Directory to save the output (default: current directory).",
-    )
-    parser.add_argument(
-        "--segmentation",
-        type=str,
-        default="CDH5",
-        help="Base directory for program files (default: predefined path).",
-    )
-    parser.add_argument(
-        "--no_backdrops",
-        action="store_false",
-        help=(
-            "Default without the flag will generate the backdrops. "
-            "Adding --no_backdrops will skip that step."
-        ),
-    )
-    args = parser.parse_args()
+    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+
+    make_backdrops = not skip_backdrops
+
+    if datasets is None:
+        datasets = ["20250618_20X"]
+
+    output_dir = get_output_path("timelapse_feature_explorer") if output_dir is None else output_dir
 
     # Iterate through datasets and positions
-    for dataset in args.datasets:
-        dataset_config = load_dataset_config(dataset)
-        for position in args.positions:
-            if args.segmentation == "CDH5":
+    for dataset_name in datasets:
+        dataset_config = load_dataset_config(dataset_name)
+        for position in positions:
+            if segmentation == "CDH5":
                 manifest = load_image_manifest("cdh5_classic_seg")
                 location = get_image_location_for_dataset(manifest, dataset_config, position, 0)
 
@@ -102,14 +83,19 @@ def main() -> None:
 
             # Generate the TFE dataset
             generate_tfe_dataset(
-                dataset=dataset,
+                dataset=dataset_name,
                 position=position,
-                output_dir=args.output_dir,
+                output_dir=output_dir,
                 source_dir=source_dir_path,
-                backdrops=args.no_backdrops,
+                backdrops=make_backdrops,
+                model_name=model_manifest_name,
+                run_name=run_name,
+                include_diffae_features=include_diffae_features,
             )
-            print(f"Processed dataset: {dataset}, position: {position}")
+            print(f"Processed dataset: {dataset_name}, position: {position}")
 
 
 if __name__ == "__main__":
-    main()
+    from endo_pipeline.cli import workflow_cli
+
+    workflow_cli(main)

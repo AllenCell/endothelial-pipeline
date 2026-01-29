@@ -5,7 +5,7 @@ from typing import Literal
 DEFAULT_MODEL_MANIFEST_NAME: str = "diffae_baseline_exclude_cell_piling"
 """Default model manifest for loading models and model features."""
 
-DEFAULT_MODEL_RUN_NAME: str | None = "20251110_latent_512"
+DEFAULT_MODEL_RUN_NAME: str = "20251110_latent_512"
 """Default model run name within the default model manifest."""
 
 DEFAULT_PCA_DATASET_COLLECTION_NAME: str = "diffae_model_training"
@@ -15,6 +15,10 @@ DEFAULT_SEG_FEATURE_MANIFEST_NAME: str = "live_merged_seg_features"
 """Default manifest name for merged CDH5 segmentation, CDH5 tracking and
 label-free nuclei segmentation features."""
 
+FIXED_SEG_FEATURE_MANIFEST_NAME: str = "fixed_merged_seg_features"
+"""Default manifest name for merged CDH5 segmentation, CDH5 tracking and
+NucViolet-stained nuclei segmentation features for fixed samples."""
+
 DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS: str = "pca_reference"
 """Default dataset collection name for the segmentation feature workflow."""
 
@@ -23,6 +27,9 @@ DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING: Literal["bf", "cdh5"] = "bf"
 
 DIFFAE_IMAGE_LOADING_KEY_PREFIX: str = "raw_"
 """Default key prefix for loading DiffAE model input images."""
+
+DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX: str = "diffae_evaluation_dataframe_"
+"""Prefix for DiffAE model evaluation image loading dataframe."""
 
 DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT: str = "raw_cdh5"
 """Default key for channel to use as diffusion image input to the model."""

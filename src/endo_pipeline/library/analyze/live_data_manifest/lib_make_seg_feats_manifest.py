@@ -14,7 +14,7 @@ from scipy.ndimage import gaussian_filter1d
 from skimage.measure import regionprops
 from tqdm import tqdm
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
 from endo_pipeline.io import get_output_path, load_image
 from endo_pipeline.library.model.eval_model import add_diffae_model_eval_crop_columns
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
@@ -23,7 +23,7 @@ from endo_pipeline.manifests import (
     get_zarr_location_for_position,
     load_image_manifest,
 )
-from endo_pipeline.settings import DIMENSION_ORDER
+from endo_pipeline.settings.image_data import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
 
@@ -852,11 +852,22 @@ def compute_nuclei_centroids(
         dimension order as well as "dataset_name", "position", and
         "image_index" (i.e. the timeframe).
     """
-
+    timelapse_datasets = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
+    smad1_datasets = get_datasets_in_collection("smad1")
+    if dataset_name in smad1_datasets:
+        nuc_seg_manifest_name = "nuclear_stain_seg"
+    elif dataset_name in timelapse_datasets:
+        nuc_seg_manifest_name = "nuclear_labelfree_seg"
+    else:
+        logger.error(
+            f"No nuclei-based measurements found for dataset {dataset_name} in \
+              collections 'live_cdh5_seg_based_feat_datasets' or 'smad1'."
+        )
+        return
     # get the nuclei prediction
     dim_order = DIMENSION_ORDER
     dataset_config = load_dataset_config(dataset_name)
-    seg_manifest = load_image_manifest("nuclear_labelfree_seg")
+    seg_manifest = load_image_manifest(nuc_seg_manifest_name)
     seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position, timeframe)
     nuc_seg = load_image(seg_location, squeeze=False, compute=True)
 

@@ -7,6 +7,7 @@ from .dataframe_manifest_io import (
     save_dataframe_manifest,
 )
 from .dataframe_manifest_utils import (
+    build_dataframe_location_from_path,
     get_dataframe_location_for_dataset,
     get_dataframe_manifest_with_parameters,
     list_datasets_with_dataframes,
@@ -47,6 +48,7 @@ __all__ = [
     "ModelLocation",
     "ModelManifest",
     "add_image_location_to_manifest",
+    "build_dataframe_location_from_path",
     "create_dataframe_manifest",
     "create_image_manifest",
     "create_model_manifest",

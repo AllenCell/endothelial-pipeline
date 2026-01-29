@@ -23,13 +23,6 @@ from .image_loading import (
     build_zarr_image_loading_dataframe,
     get_z_slice_bounds_per_position,
 )
-from .latent_walk_utils import (
-    get_latent_coords,
-    get_pca_coords,
-    get_walk,
-    write_pc_vals,
-    write_text,
-)
 from .mlflow_utils import download_mlflow_artifact, download_model, get_ckpt_path, load_mlflow_model
 from .model_config_overrides import ModelConfigOverride
 from .train_model import (
@@ -59,9 +52,6 @@ __all__ = [
     "get_ckpt_path",
     "get_cytodl_commit_hash",
     "get_dataset_names_used_for_training",
-    "get_latent_coords",
-    "get_pca_coords",
-    "get_walk",
     "get_z_slice_bounds_per_position",
     "initialize_diffae_model",
     "initialize_diffae_model_for_finetuning",
@@ -71,6 +61,4 @@ __all__ = [
     "update_prediction_from_crops_with_metadata",
     "update_prediction_from_tracks_with_metadata",
     "upload_prediction_dataframe_to_fms",
-    "write_pc_vals",
-    "write_text",
 ]

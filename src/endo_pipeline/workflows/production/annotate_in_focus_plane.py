@@ -21,7 +21,7 @@ def main(datasets: Datasets | None = None) -> None:
     import numpy as np
     import pandas as pd
 
-    from endo_pipeline import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import (
         get_datasets_in_collection,
         load_dataset_config,
@@ -114,6 +114,6 @@ def main(datasets: Datasets | None = None) -> None:
 
 if __name__ == "__main__":
 
-    from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)

@@ -4,5 +4,14 @@ parameters:
   resolution_level: 1
 locations:
   20250214_pairedFixation:
-    fmsid: 019f48cb1a304dcb8c5071135040894d
+    fmsid: a39521cee371430e82d84fc08ac9c1c5
+    path: null
+    s3uri: null
+  20251126_pairedFixation:
+    fmsid: 64ef42a2368a4531b3b49767cc3e06da
+    path: null
+    s3uri: null
+  20251125_pairedFixation:
+    fmsid: 092eef18b78049ca974fcf5e73449e4b
+    path: null
     s3uri: null

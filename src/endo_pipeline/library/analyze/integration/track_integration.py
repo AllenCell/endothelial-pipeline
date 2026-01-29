@@ -26,7 +26,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
 )
 from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import solve_ddff_ode
 from endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
-from endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_data, get_bins
+from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.visualize.integration.track_integration_viz import (
@@ -54,13 +54,14 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
     ColumnName,
 )
 from endo_pipeline.settings.flow_field_3d import (
+    BIN_WIDTH_DEFAULTS,
     INIT_POINT_3D,
     KERNEL_PARAMS_3D,
-    NUM_BINS_3D,
     TIME_STEP_IN_MINUTES,
     TRAJECTORY_TIME_SPAN,
 )
 from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 )
@@ -512,7 +513,7 @@ def merge_diffae_feats_liveseg_feats_tables(
 def get_diffae_feats_liveseg_feats_merged_table(
     dataset_name: str,
     model_manifest: ModelManifest,
-    run_name: str | None = None,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     filtered: bool = False,
 ) -> pd.DataFrame:
@@ -589,8 +590,7 @@ def get_traj_and_flowfield(
     # shear stress conditions
     init = np.array(INIT_POINT_3D)
 
-    num_bins = NUM_BINS_3D
-    bins, centers = get_bins(num_bins, bin_limits=bounds)
+    bins, centers = get_bins(BIN_WIDTH_DEFAULTS, bin_limits=bounds)
 
     # get the columns to use for calculating trajectories
     # and flow fields.
@@ -605,9 +605,6 @@ def get_traj_and_flowfield(
     drift_km, diff_km = get_kramers_moyal(
         traj_list, d_traj_list, bins=bins, dt=dt, kernel_params=kernel_params
     )
-
-    # compute interpolated flow field - drift
-    # flow_field_dict = compute_extrapolated_vector_field(drift_km, centers, method="linear")
 
     # get the vector field components from
     # the Kramers-Moyal coefficients
@@ -910,10 +907,10 @@ def make_angular_deviation_test(out_dir: Path) -> None:
 def get_preprocessed_manifests_and_km_bounds(
     dataset_name: str,
     model_manifest: ModelManifest,
-    run_name: str | None = None,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    num_pcs: int | None = None,
+    num_pcs: int = NUM_PCS_TO_ANALYZE,
     drop_rows_without_diffae_feats: bool = True,
     filtered: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list]:
@@ -1018,10 +1015,9 @@ def get_preprocessed_manifests_and_km_bounds(
         include_not_steady_state=False,
     )
 
-    # datasets_for_bounds = list(
-    #     set(get_datasets_in_collection(collection_name_for_pca) + [dataset_name])
-    # )
-    bounds = get_3d_bounds_from_data([dataset_name], grid_diffae_manifest, pca)
+    # get bounds for plotting and flow field estimation
+    # based on this dataset only
+    bounds = get_bounds_from_data([dataset_name], grid_diffae_manifest, pca)
 
     # lastly, add a normalized version of the "time_hours" column
     merged_feats_df = add_normalized_time(merged_feats_df)

@@ -1,6 +1,6 @@
 from .binning import (
-    get_3d_bounds_from_data,
     get_bins,
+    get_bounds_from_data,
     get_df_by_bin_value,
     get_histogram_by_component,
     get_normalization_constant,
@@ -34,9 +34,9 @@ __all__ = [
     "entropy_production",
     "exponential_decay",
     "fit_exp_decay_and_get_relaxation_timescale",
-    "get_3d_bounds_from_data",
     "get_3d_index_combinations",
     "get_bins",
+    "get_bounds_from_data",
     "get_df_by_bin_value",
     "get_histogram_by_component",
     "get_normalization_constant",

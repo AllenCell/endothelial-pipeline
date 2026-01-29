@@ -2,7 +2,6 @@ from typing import Annotated, Literal
 
 from cyclopts import Parameter
 
-from endo_pipeline.library.visualize.multi_feature_correlation_viz import plot_and_save_clustermap
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -67,6 +66,9 @@ def main(
         get_pca_loadings_as_df,
     )
     from endo_pipeline.library.visualize.diffae_features import feature_viz
+    from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
+        plot_and_save_clustermap,
+    )
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
         get_model_location_for_run,
@@ -201,6 +203,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)

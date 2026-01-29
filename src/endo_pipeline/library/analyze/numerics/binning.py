@@ -9,15 +9,21 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
 )
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE, ColumnName
+from endo_pipeline.settings.diffae_feature_dataframes import (
+    DIFFAE_PC_COLUMN_NAMES,
+    NUM_PCS_TO_ANALYZE,
+    ColumnName,
+)
+from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
 
 logger = logging.getLogger(__name__)
 
 
 def get_bins(
-    num_bins: list[int] | tuple[int],
+    bin_widths: tuple[float, ...],
     data: list[np.ndarray] | None = None,
-    bin_limits: list | None = None,
+    bin_limits: list[tuple[float, float]] | None = None,
+    pad: float = PAD_BINS_FLOAT,
 ) -> tuple[list, list]:
     """
     Generate histogram bins either automatically based on data or user-defined bin limits.
@@ -26,7 +32,7 @@ def get_bins(
 
     If `bin_limits` is not provided, the function automatically determines bin edges based on the
     provided data. It calculates the minimum and maximum values for each dimension across all
-    trajectories, and creates bins that span slightly beyond these extrema (by 0.1 units on each side).
+    trajectories, and creates bins that span slightly beyond these extrema (by `pad` units on each side).
 
     If `bin_limits` is provided, the function uses these user-defined limits to create the bins.
 
@@ -34,12 +40,14 @@ def get_bins(
 
     Parameters
     ----------
-    num_bins
-        List or tuple specifying the number of bins for each dimension.
+    bin_widths
+        Tuple specifying the (approximate) bin width for each dimension.
     data
         List of numpy arrays, each array is a trajectory with shape (num_timepoints, num_dimensions).
     bin_limits
         List of [min, max] pairs for each dimension specifying the bin limits.
+    pad
+        Amount to pad the automatically determined bin limits by on each side.
 
     Outputs:
     - bins: list of numpy arrays, each array contains
@@ -50,89 +58,81 @@ def get_bins(
     If the dimension is 1, bins and centers are still lists (of length 1),
     containing the bin edges and centers for the single dimension.
     """
+    ndim = data[0].shape[1] if data is not None else len(bin_limits)
+    if ndim != len(bin_widths):
+        raise ValueError("Mismatch between expected number of dimensions and length of bin_widths.")
+    bin_limits_: list[tuple[float, float]] = [] if bin_limits is None else bin_limits.copy()
     if bin_limits is None:  # Automatically determine bins based on data
         if data is None:
             raise ValueError("Please provide data or or upper and lower bounds for bins.")
-        ndim = data[0].shape[1]
-        if ndim != len(num_bins):
-            raise ValueError(
-                "Mismatch between number of dimensions in data and length of num_bins."
-            )
-        bins = []
-        centers = []
         for i in range(ndim):
             # Get min and max for each dimension across all trajectories
             traj_min = min([traj[:, i].min() for traj in data])
             traj_max = max([traj[:, i].max() for traj in data])
-            bin_min, bin_max = traj_min - 0.1, traj_max + 0.1
-            my_bins = np.linspace(bin_min, bin_max, num_bins[i] + 1)
-            bins.append(my_bins)
-            centers.append(0.5 * (my_bins[1:] + my_bins[:-1]))
-    else:  # Use user-defined bins
-        ndim = len(bin_limits)
-        if ndim != len(num_bins):
-            raise ValueError(
-                "Mismatch between number of dimensions in bin_limits and length of num_bins."
-            )
-        bins = []
-        centers = []
-        for i in range(ndim):
-            my_bins = np.linspace(bin_limits[i][0], bin_limits[i][1], num_bins[i] + 1)
-            bins.append(my_bins)
-            centers.append(0.5 * (my_bins[1:] + my_bins[:-1]))
+            # Pad min and max by specified amount, and store as bin limits
+            bin_min, bin_max = traj_min - pad, traj_max + pad
+            bin_limits_.append((bin_min, bin_max))
+
+    # Generate bins based on bin limits
+    bins = []
+    centers = []
+    for i in range(ndim):
+        # get number of bins for this dimension based on bin width
+        num_bins = int(np.ceil((bin_limits_[i][1] - bin_limits_[i][0]) / bin_widths[i]))
+        my_bins = np.linspace(bin_limits_[i][0], bin_limits_[i][1], num_bins + 1)
+        bins.append(my_bins)
+        centers.append(0.5 * (my_bins[1:] + my_bins[:-1]))
 
     bin_width_str = ", ".join([f"{bins[i][1] - bins[i][0]:.3f}" for i in range(len(bins))])
     logger.debug(
-        "Generating bins for histogramming with bin widths: [ %s ]",
+        "Generated bins for histogramming with bin widths: [ %s ]",
         bin_width_str,
     )
     return bins, centers
 
 
-def get_3d_bounds_from_data(
+def get_bounds_from_data(
     dataset_names: list[str],
     manifest: DataframeManifest,
     pca: PCA,
     filter_to_valid: bool = True,
-    pad: bool = False,
-) -> list[np.ndarray]:
+    pad: float = 0.0,
+    pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
+) -> list[tuple[float, float]]:
     """
-    Set bounds for 3D state space based on the bounds
-    of the features in the datasets. The 3D state space
-    is based on the first three principal components
-    of the input pca object, which is fit
-    on a fixed set of reference datasets.
+    Set bounds for state space based on the bounds of the features in the datasets.
 
-    Inputs:
-    - dataset_names: list of datasets
-    - manifest: manifest of model feature dataframes
-    - pca: PCA model to use for transforming the data
-    - col_names: which columns to use for bounds
-        - "pc": data is coming from a workflow where
-            the column names have been re-named to
-            reflect that the features are projected
-            onto the first three principal components
-            (i.e., column names in df pc1, pc2, pc3)
-        - "feat": data is coming from a workflow where
-            the column names are the original feature names
-            and the data have been over-written with the
-            features projected onto the full set of
-            principal components (i.e., column name feat_i
-            indicates projection onto the i-th principal component)
-        - this input will become deprecated in the future,
-            when the dataframes will always clearly label
-            what is an original feature and what is a
-            projected feature
+    **Dataframe filtering:**
 
-    Outputs:
-    - bounds: list of numpy arrays with the bounds
-        for each dimension in the 3D state space
-        - format: [[min_x, max_x], [min_y, max_y], [min_z, max_z]]
+    By default, the function filters the dataframes to only include "valid" crops,
+    i.e., crops that are not labeled as "cell piling" or "not steady state".
+
+    Parameters
+    ----------
+    dataset_names
+        List of dataset names to get common bounds from.
+    manifest
+        Dataframe manifest object with feature data locations.
+    pca
+        PCA object used to transform the data.
+    filter_to_valid
+        Whether to filter the dataframes to only include "valid" crops.
+    pad
+        Amount to pad the bounds by on each side.
+    pc_column_names
+        List of column names for the principal components to use.
+
+    Returns
+    -------
+    :
+        List of tuples, each array contains the (min, max) bounds for a dimension.
     """
-    num_dims = NUM_PCS_TO_ANALYZE  # always 3 for now
-    # initialize bounds
-    bounds_ = [[np.inf, -np.inf] for _ in range(num_dims)]
+    num_dims = len(pc_column_names)
+    # initialize bounds - set to extreme values
+    bin_mins = [np.inf] * num_dims
+    bin_maxs = [-np.inf] * num_dims
 
+    # loop over each dataset and update bin mins and maxs
     for dataset_name in dataset_names:
         if filter_to_valid:
             filter_dataframe = True
@@ -151,25 +151,24 @@ def get_3d_bounds_from_data(
             include_not_steady_state=include_not_steady_state,
         )
         # get column names for features
-        pc_column_names = DIFFAE_PC_COLUMN_NAMES[:num_dims]
         for j in range(num_dims):
             candidate_min = df[pc_column_names[j]].min()
             candidate_max = df[pc_column_names[j]].max()
             if pad:
-                candidate_min = candidate_min - 0.1
-                candidate_max = candidate_max + 0.1
+                candidate_min = candidate_min - pad
+                candidate_max = candidate_max + pad
             # update bounds for each dimension
-            bounds_[j][0] = min(bounds_[j][0], candidate_min)
-            bounds_[j][1] = max(bounds_[j][1], candidate_max)
+            bin_mins[j] = min(bin_mins[j], candidate_min)
+            bin_maxs[j] = max(bin_maxs[j], candidate_max)
 
-    bounds = [np.array(bounds_[i]) for i in range(num_dims)]
+    bounds = [(bin_mins[i], bin_maxs[i]) for i in range(num_dims)]
 
     return bounds
 
 
 def _get_histogram_by_component_one_dataset(
     df: pd.DataFrame, bin_edges: list[np.ndarray], feat_cols: list[str] | None = None
-) -> tuple[np.ndarray, pd.DataFrame]:
+) -> tuple[list[np.ndarray], pd.DataFrame]:
     """
     Compute histogram of feature data at each timepoint for each latent component.
 
@@ -196,11 +195,10 @@ def _get_histogram_by_component_one_dataset(
 
     num_feats = len(feat_cols)
     num_frames = df[ColumnName.TIMEPOINT].nunique()
-    num_bins = bin_edges[0].shape[0] - 1  # number of bins is one less than number of edges
 
-    hist_array = np.zeros(
-        (num_feats, num_bins, num_frames)
-    )  # histogram values for each component as a function of time
+    hist_array_list: list[np.ndarray] = [
+        np.zeros((len(bin_edges[dim]) - 1, num_frames)) for dim in range(num_feats)
+    ]  # histogram values for each component as a function of time
 
     # sort by timepoint
     df = df.sort_values(by=ColumnName.TIMEPOINT).reset_index(drop=True)
@@ -211,7 +209,7 @@ def _get_histogram_by_component_one_dataset(
             # compute histogram of feature data along each component
             t_index = df[ColumnName.TIMEPOINT].unique().tolist().index(t)
             hist = np.histogram(feats, bins=bin_edges[dim], density=True)[0]
-            hist_array[dim, :, t_index] = hist
+            hist_array_list[dim][:, t_index] = hist
 
             # update the dataframe with column of what bin
             # each crop at frame number t is in
@@ -228,24 +226,23 @@ def _get_histogram_by_component_one_dataset(
         df[f"bin_{dim}"] = df[f"bin_{dim}"].astype(int)
 
     # return the histogram array and the updated dataframe
-    return hist_array, df
+    return hist_array_list, df
 
 
 def get_histogram_by_component(
     df: pd.DataFrame,
-    num_bins: int,
-    bin_limits: list[np.ndarray],
+    bin_width: float,
+    bin_limits: list[tuple[float, float]],
     feat_cols: list[str] | None = None,
-) -> tuple[list[np.ndarray], list[np.ndarray], pd.DataFrame]:
+) -> tuple[list[list[np.ndarray]], list[np.ndarray], pd.DataFrame]:
     """
     Get histogram of feature data at each timepoint for each latent component
     across all datasets in the input dataframe.
 
     Input:
     - df: pd.DataFrame, feature data for multiple datasets
-    - num_bins: int, number of bins to use for histogram
-        - right now, this is the same for all components
-    - bin_limits: list[np.ndarray], bin limits for each component
+    - bin_width: float, width of each histogram bin
+    - bin_limits: bin limits for each component
     - feat_cols: list[str] | None, column names of the features to use
     """
     # get column names for extracting feature data for a single dataset
@@ -257,29 +254,30 @@ def get_histogram_by_component(
     num_feats = len(feat_cols)
 
     # check that bin_limits is provided and matches the number of features
-    assert (
-        len(bin_limits) == num_feats
-    ), f"Number of bin limits ({len(bin_limits)}) must match number of features ({num_feats})"
+    if len(bin_limits) != num_feats:
+        raise ValueError(
+            f"Number of bin limits ({len(bin_limits)}) must match number of features ({num_feats})"
+        )
 
     # get bin edges for each feature dimension
     bin_edges = [
-        get_bins([num_bins], bin_limits=[bin_limits[dim]])[0][0] for dim in range(num_feats)
+        get_bins([bin_width], bin_limits=[bin_limits[dim]])[0][0] for dim in range(num_feats)
     ]
 
     # loop over each dataset in the dataframe
     # get histogram / bin indices for each dataset
-    hist_array_list = []
+    hist_array_list_all_datasets = []
     df_list = []
     for _, df_group in df.groupby(ColumnName.DATASET):
-        hist_array, df_group_ = _get_histogram_by_component_one_dataset(
+        hist_array_list_one_dataset, df_group_ = _get_histogram_by_component_one_dataset(
             df_group, bin_edges, feat_cols
         )
         df_list.append(df_group_)
-        hist_array_list.append(hist_array)
+        hist_array_list_all_datasets.append(hist_array_list_one_dataset)
 
     df_all_datasets_binned = pd.concat(df_list, ignore_index=True)
 
-    return hist_array_list, bin_edges, df_all_datasets_binned
+    return hist_array_list_all_datasets, bin_edges, df_all_datasets_binned
 
 
 def _get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:

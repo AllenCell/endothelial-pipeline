@@ -30,8 +30,9 @@ def main(
 
     from tqdm import tqdm
 
-    from endo_pipeline import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
+    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.shape_features import (
@@ -77,10 +78,15 @@ def main(
         for dataset_name in tqdm(
             datasets, desc="Replacing individual tables with combined table..."
         ):
+            if dataset_name in get_datasets_in_collection("smad1"):
+                out_file_suffix = "nuclei_stain_features"
+            else:
+                out_file_suffix = "nuclei_labelfree_features"
+
             concatenate_and_save_feature_tables(
                 out_dir=out_dir,
                 dataset_name=dataset_name,
-                out_file_suffix="nuclei_labelfree_features",
+                out_file_suffix=out_file_suffix,
                 file_extension=".parquet",
                 remove_initial_files_and_folders=True,
             )
@@ -90,6 +96,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+    from endo_pipeline.cli import workflow_cli
 
-    ipython_cli_flexecute(main)
+    workflow_cli(main)

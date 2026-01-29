@@ -10,8 +10,7 @@ if typing.TYPE_CHECKING:
         DiffusionAutoEncoder as BaseDiffusionAutoEncoder,
     )
 
-    from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
-
+from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -141,28 +140,32 @@ def generate_from_coords_and_noised_image(
 
 def generate_from_coords(
     model: "BaseDiffusionAutoEncoder | DiffusionAutoEncoder",
-    coords: np.ndarray | list[list[float]],
+    coords: np.ndarray,
     n_noise_samples: int = 1,
     average: bool = False,
     num_gpus: int | None = None,
+    random_seed: int | None = None,
 ) -> np.ndarray:
     """
-    Generate a synthetic image from a list of coordinates
-    in the latent space of a model.
+    Generate a synthetic image from coordinates in the latent space of a model.
 
     Parameters
     ----------
     model
         The model to use for generation.
     coords
-        A list of coordinates in the latent space of the model.
+        An array of shape (num_vecs, num_dims) containing latent space coordinates.
     n_noise_samples
         The number of noise samples to use for generation.
     average
         Whether to average the generated images.
     num_gpus
         Optional, number of available GPUs.
+    random_seed
+        Random seed for generating noise. Only available for endo-specific
+        DiffusionAutoEncoder model instances.
     """
+
     if not isinstance(coords, np.ndarray):
         if isinstance(coords, list):
             coords_np = np.array(coords)
@@ -183,11 +186,22 @@ def generate_from_coords(
         coords_ = coords_torch
         model_ = model
 
-    walk_img = model_.generate_from_latent(
-        coords_, n_noise_samples=n_noise_samples, average=average, save=False
-    )
+    if isinstance(model_, DiffusionAutoEncoder):
+        walk_img = model_.generate_from_latent(
+            coords_,
+            n_noise_samples=n_noise_samples,
+            average=average,
+            save=False,
+            random_seed=random_seed,
+        )
+    else:
+        walk_img = model_.generate_from_latent(
+            coords_, n_noise_samples=n_noise_samples, average=average, save=False
+        )
+
     if isinstance(walk_img, torch.Tensor):
-        walk_img = walk_img.detach().cpu().numpy()
+        return walk_img.detach().cpu().numpy()
+
     return walk_img
 
 
@@ -197,15 +211,17 @@ def generate_from_coords_batch(
     num_gpus: int | None = None,
 ) -> list[np.ndarray]:
     """
-    Generate synthetic images from a batch of coordinates
-    in the latent space of a model.
+    Generate synthetic images from a batch of coordinates in the latent space of a model.
+
+    Acts as a wrapper around `generate_from_coords` to process a batch of coordinates,
+    returning a list of generated images instead of a single array.
 
     Parameters
     ----------
     model:
         The model to use for generation.
     coords_batch:
-        A batch of lists of coordinates in the latent space of the model.
+        An array of shape (batch_size, num_dims) containing latent space coordinates.
     num_gpus:
         Optional, number of available GPUs.
     """

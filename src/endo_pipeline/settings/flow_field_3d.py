@@ -4,8 +4,11 @@ KERNEL_PARAMS_3D: dict = {
 }
 """Default kernel parameters for 3D flow field estimation."""
 
-NUM_BINS_3D: tuple[int, int, int] = (100, 100, 100)
+BIN_WIDTH_DEFAULTS: tuple[float, float, float] = (0.05, 0.05, 0.05)
 """Default number of bins for 3D flow field estimation."""
+
+PAD_BINS_FLOAT: float = 0.1
+"""Percentage of padding to add to the min and max of each axis when creating bins for 3D flow field estimation."""
 
 QUIVER_DOWNSAMPLE_FACTOR: int = 2
 """Downsample factor for quiver plots in 3D flow field visualization."""
@@ -28,7 +31,7 @@ CLIP_MIN_MAGNITUDE_PERCENTILE: float | None = 0.1
 CLIP_MAX_MAGNITUDE_PERCENTILE: float | None = None
 """Percentile for clipping maximum vector magnitudes in 3D flow field visualization."""
 
-QUIVER_COLORMAP: str = "turbo"
+QUIVER_COLORMAP: str = "crest"
 """Colormap for quiver plots in 3D flow field visualization."""
 
 KDE_CONTOUR_COLORMAP: str = "Greys"
@@ -73,11 +76,14 @@ NUM_INIT_SAMPLES: int = 250
 SAMPLER_RANDOM_SEED: int = 47
 """Random seed for initial point sampling in 3D flow field analysis."""
 
+UPPER_PERCENTILE_FOR_STABLE_FP: float = 95.0
+"""Upper percentile threshold for stable fixed point identification in 3D flow field analysis."""
+
+LOWER_PERCENTILE_FOR_STABLE_FP: float = 5.0
+"""Lower percentile threshold for stable fixed point identification in 3D flow field analysis."""
+
 DATASET_COLLECTION_FOR_3D_DYNAMICS: str = "3d_flow_field_analysis"
 """Default dataset collection name for 3D dynamics analysis."""
 
 OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS: str = "flow_field_3d"
 """Default output folder name for 3D dynamics analysis."""
-
-TRAJECTORY_DICT_FILE_NAME: str = "traj_dict"
-"""Default file name for saving trajectory dictionaries."""
