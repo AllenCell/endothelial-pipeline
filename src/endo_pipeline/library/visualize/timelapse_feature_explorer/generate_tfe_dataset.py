@@ -11,7 +11,6 @@ from endo_pipeline.library.analyze.integration.track_integration import (
 from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     generate_backdrops,
 )
-from endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import LABEL_MAP
 from endo_pipeline.library.visualize.timelapse_feature_explorer.tfe_manifest_formatting import (
     add_dynamic_features_with_filtering,
     add_feature_metadata,
@@ -22,6 +21,7 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
 )
+from endo_pipeline.settings.feature_info import LABEL_MAP
 from endo_pipeline.settings.workflow_defaults import (
     DATASET_INFO_COLUMNS,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
