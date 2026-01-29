@@ -99,8 +99,6 @@ for job_path in jobs_paths:
         print("Wait for the jobs to finish: run `squeue` to check.")
         print("Verify success upon completion by running:")
         print(f"python {script_path}")
-        for job_path in jobs_paths_list:
-            print(f"s3_uploader check_completion --jobs-file {job_path} --error-dir {log_dir_str}")
 
 
 if __name__ == "__main__":
