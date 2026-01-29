@@ -118,6 +118,7 @@ for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=Fal
                 feature_name=plot_feat_name,
                 save_dir=output_dir,
                 xlim=xlim,
+                y_offset_step=0.001,
             )
             plot.feature_density(
                 df_all=df_date,
@@ -128,6 +129,7 @@ for plot_feat, plot_feat_name in zip(plot_feat_cols, plot_feat_names, strict=Fal
                 xlim=xlim,
                 pool_positions=True,
             )
+
 
 # %%
 for date in date_list:

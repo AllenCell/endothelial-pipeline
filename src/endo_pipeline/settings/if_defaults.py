@@ -1,11 +1,11 @@
 PLOT_FEAT_COLS: list[str] = [
-    "SMAD1_sum_sum_proj",
+    # "SMAD1_sum_sum_proj",
     "SMAD1_norm_area_sum_sum_proj",
 ]  # "SMAD1_mean_sum_proj"
 """Smad1 feature columns for plotting."""
 
 PLOT_FEAT_NAMES: list[str] = [
-    "Total SMAD1 intensity in nuclear mask volume",
+    # "Total SMAD1 intensity in nuclear mask volume",
     "Total SMAD1 intensity / N pixels \nin nuclear mask volume",
 ]  # "SMAD1 mean intensity of sum projection\nin nuclear mask"
 """Smad1 feature names for plotting."""

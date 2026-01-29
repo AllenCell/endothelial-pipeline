@@ -1,4 +1,5 @@
 # %%
+import matplotlib as mpl
 import pandas as pd
 from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
@@ -161,7 +162,7 @@ classic_cols = ["alignment_deg_rel_to_flow", "cell_orientation", "num_nuclei_in_
 
 
 # %% Visualize IF features vs classic features with scatter plots and Pearson correlation
-def plot_scatter(df, groupby_cols=[], exclude_no=False, date=None):
+def plot_scatter(df, groupby_cols=[], exclude_no=False, date=None, color_by_col: str | None = None):
     if exclude_no:
         df = df[df["shear_stress_regime"] != "no"]
     if groupby_cols:
@@ -171,10 +172,8 @@ def plot_scatter(df, groupby_cols=[], exclude_no=False, date=None):
     for group_keys, group_df in grouped:
         ss = group_df["shear_stress_regime"].iloc[0] if "shear_stress_regime" in group_df else None
         if "shear_stress_regime" in groupby_cols:
-            color = SHEAR_COLOR_STR_DICT.get(ss, "gray")
             label = f"Shear stress: {ss}\nN={len(group_df)}"
         else:
-            color = "gray"
             label = f"N={len(group_df)}"
         for if_col, if_feat_name in zip(PLOT_FEAT_COLS, PLOT_FEAT_NAMES, strict=False):
             for classic_col in classic_cols:
@@ -185,14 +184,39 @@ def plot_scatter(df, groupby_cols=[], exclude_no=False, date=None):
                     if date
                     else (group_keys[0] if groupby_cols and "date" in groupby_cols else "")
                 )
-                plt.figure()
-                plt.scatter(
-                    group_df[if_col], group_df[classic_col], alpha=0.5, color=color, label=label
-                )
-                plt.xlabel(if_feat_name)
-                plt.ylabel(classic_col)
-                plt.title(f"{title_date} Pearson r={r:.3f}, p={p_str}")
-                plt.legend(loc="upper right")
+                fig, ax = plt.subplots()
+                if color_by_col is not None:
+                    values = group_df[color_by_col]
+                    norm = plt.Normalize(vmin=values.min(), vmax=values.max())
+                    ax.scatter(
+                        group_df[if_col],
+                        group_df[classic_col],
+                        alpha=0.5,
+                        c=values,
+                        cmap="viridis",
+                        norm=norm,
+                        label=label,
+                    )
+                    # Create a colormap with alpha=1 for the colorbar
+                    cmap = mpl.cm.get_cmap("viridis").copy()
+                    cmap._init()
+                    cmap._lut[:, -1] = 1  # Set alpha channel to 1 (opaque)
+                    sm = mpl.cm.ScalarMappable(cmap=cmap, norm=norm)
+                    sm.set_array([])
+                    fig.colorbar(sm, ax=ax, label=color_by_col)
+                else:
+                    color = (
+                        SHEAR_COLOR_STR_DICT.get(ss, "gray")
+                        if "shear_stress_regime" in groupby_cols
+                        else "gray"
+                    )
+                    ax.scatter(
+                        group_df[if_col], group_df[classic_col], alpha=0.5, color=color, label=label
+                    )
+                ax.set_xlabel(if_feat_name)
+                ax.set_ylabel(classic_col)
+                ax.set_title(f"{title_date} Pearson r={r:.3f}, p={p_str}")
+                ax.legend(loc="upper right")
                 plt.show()
 
 
@@ -200,8 +224,32 @@ def plot_scatter(df, groupby_cols=[], exclude_no=False, date=None):
 plot_scatter(df, groupby_cols=["date", "shear_stress_regime"])
 
 # %%
+plot_scatter(df, groupby_cols=["date", "shear_stress_regime"], color_by_col="duration_at_ss_2_hr")
+
+# %%
+plot_scatter(df, groupby_cols=["date"], exclude_no=True)
+
+# %%
 plot_scatter(df, groupby_cols=["shear_stress_regime"])
 
 # %%
 plot_scatter(df, exclude_no=True)  # all data under shear stress
+# %%
+import matplotlib.pyplot as plt
+
+col_x = "SMAD1_norm_area_sum_sum_proj"
+col_y = "SMAD1_mean_sum_proj"
+# plot the correlation between to df columns:
+x = df[col_x]
+y = df[col_y]
+fig = plt.figure()
+plt.scatter(x, y, alpha=0.5)
+plt.xlabel(col_x)
+plt.ylabel(col_y)
+# calculate pearson correlation
+r, p = pearsonr(x, y)
+p_str = "<0.001" if p < 0.001 else f"{p:.3g}"
+plt.title(f"Pearson r={r:.3f}, p={p_str}")
+plt.show()
+
 # %%
