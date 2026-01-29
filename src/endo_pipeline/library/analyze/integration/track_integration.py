@@ -763,6 +763,7 @@ def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -
 
 def load_preprocessed_dataframes_and_km_bounds(
     dataset_name: str,
+    cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
     num_pcs: int = MAX_PCS_TO_COMPUTE,
     delay: bool = True,
 ) -> tuple[pd.DataFrame | dd.DataFrame, pd.DataFrame | dd.DataFrame, list]:
@@ -773,6 +774,8 @@ def load_preprocessed_dataframes_and_km_bounds(
     ----------
     dataset_name
         The name of the dataset to load.
+    cell_centric_manifest_name
+        The name of the manifest containing the cell-centric pc-diffae-seg-merged features.
     num_pcs
         The number of principal components to use for the PCA projection. This only
         applies to the grid crop-based diffae features dataframe (the cell-centric
@@ -786,7 +789,9 @@ def load_preprocessed_dataframes_and_km_bounds(
         The loaded dataframe with pc-diffae-seg-merged data.
     """
     # load the pc-diffae-seg-merged parquet file
-    cell_centric_feats_df = load_pc_diffae_liveseg_feats_merged_table(dataset_name)
+    cell_centric_feats_df = load_pc_diffae_liveseg_feats_merged_table(
+        dataset_name, cell_centric_manifest_name
+    )
 
     # get the grid crop-based diffae features
     # get the model information
