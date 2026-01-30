@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 from colorizer_data import convert_colorizer_data
 
 from endo_pipeline.io import load_dataframe
@@ -86,7 +87,7 @@ def generate_tfe_dataset(
         )
         & set(df_tracks.columns)
     )
-    df_tracks_subset = df_tracks[cols_to_compute].compute().reset_index(drop=True)  # type: ignore[operator]
+    df_tracks_subset: pd.DataFrame = df_tracks[cols_to_compute].compute().reset_index(drop=True)
 
     df_position = df_tracks_subset.query("position == @position")
 
