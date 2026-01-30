@@ -14,15 +14,7 @@ def main(
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     include_cell_piling: bool = False,
     pc_axis_list: list[int] = [0, 1, 2],
-    pc_val_list: list[float] = [
-        -1.5,
-        -1,
-        -0.5,
-        0,
-        0.5,
-        1,
-        1.5,
-    ],
+    pc_val_list: list[float] | None = None,
     n_pcs_to_analyze: int = NUM_LATENT_FEATURES,
 ) -> None:
     """
@@ -87,6 +79,9 @@ def main(
     # Default list of datasets if not provided. Otherwise, use the provided list.
     if datasets is None:
         datasets = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
+    if pc_val_list is None:
+        # this could get adjusted to be the range of standard deviation just like the latent walk
+        pc_val_list = [-1.5, -1, -0.5, 0, 0.5, 1, 1.5]
 
     # get dataframe manifest corresponding to the model that generated the features
     model_manifest = load_model_manifest(model_manifest_name)
@@ -115,43 +110,35 @@ def main(
 
     # Compute column means once
     pc_means = df[DIFFAE_PC_COLUMN_NAMES].mean()
-    
+
     primary_weight = 10
 
-    pc_col_list = [
-        f"{ColumnName.PCA_FEATURE_PREFIX}{i+1} for i in pc_axis_list
-    ]
-        
+    pc_col_list = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in pc_axis_list]
+
     for pc_axis_col in pc_col_list:
         secondary_cols = [col for col in pc_col_list if col != pc_axis_col]
         secondary_means = pc_means[secondary_cols].values
-        # Convert to NumPy arrays for speed
-        primary_vals = df[pc_axis_col].values  # shape (n_rows,)
-        secondary_vals = df[secondary_cols].values  # shape (n_rows, n_secondary)
-
-        # Precompute squared differences for secondary PCs (rows x n_secondary)
+        primary_vals = df[pc_axis_col].values
+        secondary_vals = df[secondary_cols].values
         secondary_diff_sq = (secondary_vals - secondary_means) ** 2
-        secondary_distance = secondary_diff_sq.sum(axis=1)  # sum across secondary PCs
+        secondary_distance = secondary_diff_sq.sum(axis=1)
 
         for pc_val in pc_val_list:
             total_distance = (primary_weight * (primary_vals - pc_val) ** 2) + secondary_distance
-
             closest_idx = np.argmin(total_distance)
-            closest_row_df = df.iloc[closest_idx:closest_idx+1].copy()
+            closest_row_df = df.iloc[closest_idx : closest_idx + 1].copy()
 
-            samples.append((pc_axis, pc_val, closest_row_df))
+            samples.append((pc_axis_col, pc_val, closest_row_df))
             distance_records.append(
                 {
-                    "pc_axis": pc_axis,
+                    "pc_axis": pc_axis_col,
                     "pc_val": pc_val,
                     "closest_index": closest_idx,
-                    "distance_score": total_distance[closest_idx],
                 }
             )
-
             logger.info(
                 "Selected 1 crop for PC %s close to value %s (distance %.4f)",
-                pc_axis,
+                pc_axis_col,
                 pc_val,
                 total_distance[closest_idx],
             )
