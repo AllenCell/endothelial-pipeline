@@ -81,12 +81,10 @@ def process_dataset_for_track_integration(
 
     out_subdir = get_output_path(__file__, dataset_name)
 
-    model_manifest = load_model_manifest(model_manifest_name)
-
     # load and preprocess the different diffae manifests and PCA pipeline
     merged_feats_df, diffae_grid_crops, bounds = get_preprocessed_manifests_and_km_bounds(
         dataset_name=dataset_name,
-        model_manifest=model_manifest,
+        model_manifest_name=model_manifest_name,
         run_name=run_name,
         seg_feature_manifest_name=seg_feature_manifest_name,
         collection_name_for_pca=collection_name_for_pca,
