@@ -15,7 +15,7 @@ def main(
     - AWS credentials must be configured.
 
     To see what files are already there:
-        aws s3 ls s3://allencell-internal-quilt/endo_stg/
+       AWS_PROFILE=allencell_internal_quilt aws s3 ls s3://allencell-internal-quilt/endo_stg/
 
     Login (if session expired):
         aws sso login
@@ -37,8 +37,8 @@ def main(
         List of position indices to upload. If None, all positions will be uploaded.
 
     Example add job:
-    endopipe add-s3-datasets --datasets 20250618_20X --positions-list 0 1
-    endopipe add-s3-datasets --datasets 20250618_20X --no-dry-run --positions-list 0 1
+    AWS_PROFILE=allencell_internal_quilt endopipe add-s3-datasets --datasets 20250618_20X --positions-list 0 1
+    AWS_PROFILE=allencell_internal_quilt endopipe add-s3-datasets --datasets 20250618_20X --no-dry-run --positions-list 0 1
     """
     import logging
 
