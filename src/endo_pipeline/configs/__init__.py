@@ -40,7 +40,6 @@ from .dataset_config_utils import (
     get_unannotated_positions,
     get_unannotated_timepoints_for_position,
     make_filtered_dataset_collection,
-    validate_3d_flow_field_dataset_collection,
     validate_filtered_dataset_collection,
 )
 from .model_config import CytoDLModelConfig
@@ -87,7 +86,6 @@ __all__ = [
     "make_filtered_dataset_collection",
     "save_dataset_collection_config",
     "save_dataset_config",
-    "validate_3d_flow_field_dataset_collection",
     "validate_all_dataset_configs",
     "validate_dataset_config",
     "validate_filtered_dataset_collection",
