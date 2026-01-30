@@ -1,5 +1,4 @@
 from endo_pipeline.cli import Datasets, UniqueIntList
-from endo_pipeline.io.output import get_output_path
 
 
 def main(
@@ -45,6 +44,7 @@ def main(
     from s3_uploader import run_all_jobs
 
     from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.io.output import get_output_path
     from endo_pipeline.library.process.data_release.generate_csv import create_s3_remove_csv
     from endo_pipeline.library.process.data_release.s3_utils import create_rm_job
 
