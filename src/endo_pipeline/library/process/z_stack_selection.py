@@ -14,7 +14,6 @@ from endo_pipeline.configs import DatasetConfig, load_dataset_config
 from endo_pipeline.io import load_image, save_plot_to_path
 from endo_pipeline.library.process.image_processing import contrast_stretching
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
-from endo_pipeline.library.visualize.viz_base import init_subplots
 from endo_pipeline.manifests import ImageLocation, get_zarr_location_for_position
 from endo_pipeline.settings.image_data import (
     LOWER_Z_SLICE_OFFSET,
@@ -312,7 +311,7 @@ def visualize_slice_selection(
     )
 
     # Create subplots with a 2x3 grid
-    fig, axes = init_subplots(2, 3, figsize=(9.75, 6.5))
+    fig, axes = plt.subplots(2, 3, figsize=(9.75, 6.5))
 
     # First row: BF stack
     axes[0, 0].imshow(im_below, cmap="gray")

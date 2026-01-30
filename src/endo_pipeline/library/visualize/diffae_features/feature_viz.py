@@ -22,7 +22,6 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     rewrap_polar_angle,
     unwrap_nonsequential_array,
 )
-from endo_pipeline.library.visualize import viz_base
 from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
     get_seg_feat_plot_args,
 )
@@ -119,7 +118,7 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     - fig: Figure
     - ax: Axes
     """
-    fig, ax = viz_base.init_plot()  # initialize figure and axes
+    fig, ax = plt.subplots(figsize=(7, 6))  # initialize figure and axes
 
     # plot explained variance ratio
     n_components = len(explained_variance_ratio)
@@ -154,7 +153,7 @@ def plot_component_loadings(
     :
         Figure and Axes objects for the plot.
     """
-    fig, ax = viz_base.init_plot(figsize=(12, 6))  # initialize figure and axes
+    fig, ax = plt.subplot(figsize=(12, 6))  # initialize figure and axes
 
     # list of markers for each component
     # NEED THIS TO BE FLEXIBLE BASED ON NUMBER OF PCS
@@ -781,7 +780,7 @@ def plot_km_drift_2d(
     """
     x_1, x_2 = np.meshgrid(*centers)
 
-    fig, ax = viz_base.init_subplots()
+    fig, ax = plt.subplots(1, 2, figsize=(14, 6))
     ax[0].quiver(x_1, x_2, kmc[0], kmc[1], color="k", linewidth=0.5)
     ax[0].set_xlabel(f"PC{pcs[0]+1}")
     ax[0].set_ylabel(f"PC{pcs[1]+1}")
