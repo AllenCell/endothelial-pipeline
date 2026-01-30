@@ -38,6 +38,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
+    from endo_pipeline.settings.diffae_feature_dataframes import NUM_PCS_TO_ANALYZE
     from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
 
     # get model and dataframe manifests
@@ -59,7 +60,11 @@ def main(
     )
 
     # fit PCA model (using method defaults)
-    pca = fit_pca()
+    pca = fit_pca(
+        dataset_collection_name=DEFAULT_PCA_DATASET_COLLECTION_NAME,
+        dataframe_manifest_name=dataframe_manifest_name,
+        num_pcs=NUM_PCS_TO_ANALYZE,
+    )
 
     # get list of dataset names to visualize
     if datasets is None:
