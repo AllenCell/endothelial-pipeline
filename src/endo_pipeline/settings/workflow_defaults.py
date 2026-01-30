@@ -15,6 +15,10 @@ DEFAULT_SEG_FEATURE_MANIFEST_NAME: str = "live_merged_seg_features"
 """Default manifest name for merged CDH5 segmentation, CDH5 tracking and
 label-free nuclei segmentation features."""
 
+DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME: str = "pc_diffae_tracked_seg_features"
+"""Default manifest name for PCA-reduced DiffAE tracked-cell features merged with
+DiffAE tracked-cell features and CDH5 segmentation features."""
+
 FIXED_SEG_FEATURE_MANIFEST_NAME: str = "fixed_merged_seg_features"
 """Default manifest name for merged CDH5 segmentation, CDH5 tracking and
 NucViolet-stained nuclei segmentation features for fixed samples."""
@@ -56,6 +60,7 @@ SEGMENTATION_FEATURE_COLUMNS = {
     "supp": [
         "alignment_deg_rel_to_flow",
         "orientation_deg",
+        "orientation",
         "aspect_ratio",
         "cell_nuc_orientation_deg_rel_to_migration",
         "nuc_pos_rel_cell_angle_deg",
@@ -63,6 +68,27 @@ SEGMENTATION_FEATURE_COLUMNS = {
         "cell_fluorescence_mean (a.u.)",
         "num_nuclei_in_crop",
         "area (um**2)",
+    ],
+    "dynamics_calculation_prereq": [
+        "dataset_name",
+        "position",
+        "track_id",
+        "time_minutes",
+        "T",
+        "centroid_X",
+        "centroid_Y",
+        "nuc_pos_rel_cell_X",
+        "nuc_pos_rel_cell_Y",
+        "pixel_size_xy_in_um",
+        "alignment_deg_rel_to_flow",
+        "nuc_pos_rel_cell_angle_deg",
+    ],
+    "filters": [
+        "is_included",
+        "is_greater_than_min_track_duration",
+        "is_less_than_max_smoothed_area_normd_change",
+        "is_edge_segmentation",
+        "has_more_than_min_num_valid_points_per_track",
     ],
 }
 """Name of segmentation features to include in analyses."""

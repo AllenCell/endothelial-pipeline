@@ -27,16 +27,16 @@ from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
 from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
 from endo_pipeline.library.analyze.integration.track_integration import (
-    get_preprocessed_manifests_and_km_bounds,
+    load_pc_diffae_liveseg_feats_merged_table,
 )
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
-from endo_pipeline.manifests import ModelManifest
-from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME, RANDOM_SEED
+from endo_pipeline.settings import RANDOM_SEED
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
 
 logger = logging.getLogger(__name__)
 
@@ -404,14 +404,9 @@ def get_df_for_feature_correlation_viz(
     dataset_name_list: list[str],
     dataset_info_columns: list[str],
     segmentation_feature_columns: list[str],
-    num_pcs: int,
     pc_columns: list[str],
-    dataset_collection_name_for_pca: str,
     diffae_feature_columns: list[str],
     polar_pc_columns: list[ColumnName],
-    model_manifest: ModelManifest,
-    run_name: str,
-    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     timepoint_annotations: list[TimepointAnnotation] | None = None,
 ) -> pd.DataFrame:
     """
@@ -455,17 +450,31 @@ def get_df_for_feature_correlation_viz(
     """
     df_list: list = []
     for dataset_name in tqdm(dataset_name_list):
-        # load and preprocess the different diffae manifests and PCA pipeline
-        # NOTE: this takes a little over a minute to load
-        merged_feats_df = get_preprocessed_manifests_and_km_bounds(
-            dataset_name=dataset_name,
-            model_manifest=model_manifest,
-            run_name=run_name,
-            seg_feature_manifest_name=seg_feature_manifest_name,
-            collection_name_for_pca=dataset_collection_name_for_pca,
-            num_pcs=num_pcs,
-            filtered=True,  # filter to only include "is_included" timepoints
-        )[0]
+        # load the pc-diffae-seg-merged parquet file
+        merged_feats_df_delayed = load_pc_diffae_liveseg_feats_merged_table(dataset_name)
+        # compute only the required columns to save space and time
+        # (using a loop instead  of just sets to determine columns to load to preserve column order)
+        dynamics_columns = SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
+        supplementary_columns = SEGMENTATION_FEATURE_COLUMNS["supp"]
+        diffae_nondiffae_columns = [
+            col.value for col in ColumnName if "PREFIX" not in col.name and "SUFFIX" not in col.name
+        ]
+        cols_to_load = (
+            dataset_info_columns
+            + dynamics_columns
+            + supplementary_columns
+            + diffae_nondiffae_columns
+            + diffae_feature_columns
+            + pc_columns
+        )
+        cols_to_load_overlap = sorted(set(cols_to_load) & set(merged_feats_df_delayed.columns))
+        cols_to_load_unique = []
+        for col in cols_to_load:
+            if col not in cols_to_load_unique and col in cols_to_load_overlap:
+                cols_to_load_unique.append(col)
+        merged_feats_df = merged_feats_df_delayed[cols_to_load_unique].compute()  # type: ignore
+        # filter the dataframe to only include rows with DiffAE features
+        merged_feats_df = merged_feats_df.dropna(subset="model_manifest_name")
 
         # the original orientation feature is in radians
         # and the y-axis is defined as 0 degrees
