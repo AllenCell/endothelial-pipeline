@@ -7,7 +7,8 @@ def main() -> None:
     import logging
 
     from endo_pipeline.configs import (
-        validate_3d_flow_field_dataset_collection,
+        load_dataset_collection_config,
+        load_dataset_config,
         validate_filtered_dataset_collection,
     )
 
@@ -17,6 +18,16 @@ def main() -> None:
 
     validate_filtered_dataset_collection("live", "20X", "3i")
 
-    validate_3d_flow_field_dataset_collection()
+    # validate 3d_flow_field_analysis collection
+    flow_field_analysis_datasets = load_dataset_collection_config("3d_flow_field_analysis").datasets
+
+    # confirm that they are all single flow condition datasets
+    for dataset_name in flow_field_analysis_datasets:
+        dataset_config = load_dataset_config(dataset_name)
+        if len(dataset_config.flow_conditions) != 1:
+            logger.error(
+                "Dataset [ %s ] in [ 3d_flow_field_analysis ] has multiple flow conditions.",
+                dataset_name,
+            )
 
     logger.info("Finished validation of dataset collection configs")

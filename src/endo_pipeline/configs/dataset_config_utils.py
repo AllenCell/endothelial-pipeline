@@ -15,9 +15,7 @@ from endo_pipeline.configs import (
     TimepointAnnotation,
     load_all_dataset_configs,
     load_dataset_collection_config,
-    load_dataset_config,
 )
-from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -301,36 +299,6 @@ def make_filtered_dataset_collection(
     )
 
     return dataset_collection
-
-
-def validate_3d_flow_field_dataset_collection() -> None:
-    """
-    Validate dataset collection used as default for generate_3d_flow_field.
-
-    Validation checks that each dataset in the collection is from an experiment
-    with a single flow condition, and that the collection contains each of the
-    datasets in the default PCA dataset collection.
-    """
-
-    analysis_datasets = load_dataset_collection_config("3d_flow_field_analysis").datasets
-    pca_reference_datasets = load_dataset_collection_config(
-        DEFAULT_PCA_DATASET_COLLECTION_NAME
-    ).datasets
-
-    for dataset_name in analysis_datasets:
-        dataset_config = load_dataset_config(dataset_name)
-        if len(dataset_config.flow_conditions) != 1:
-            logger.error(
-                "Dataset [ %s ] in [ 3d_flow_field_analysis ] has multiple flow conditions.",
-                dataset_name,
-            )
-
-    for pca_dataset_name in pca_reference_datasets:
-        if pca_dataset_name not in analysis_datasets:
-            logger.error(
-                "Dataset [ %s ] used for fitting PCA is not in the collection.",
-                dataset_name,
-            )
 
 
 def validate_filtered_dataset_collection(
