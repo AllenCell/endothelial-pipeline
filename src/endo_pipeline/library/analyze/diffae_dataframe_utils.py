@@ -18,9 +18,6 @@ from endo_pipeline.configs import (
     load_dataset_config,
 )
 from endo_pipeline.io import load_dataframe
-from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
-    get_smallest_angle_difference,
-)
 from endo_pipeline.manifests import (
     DataframeManifest,
     get_dataframe_location_for_dataset,
@@ -29,6 +26,7 @@ from endo_pipeline.manifests import (
     load_model_manifest,
 )
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.polar_coords import RESCALE_THETA, THETA_RESCALED_PERIOD
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -518,7 +516,7 @@ def project_features_to_pcs(
     pca: PCA,
     feat_cols: list[str] | None = None,
     compute_polar: bool = True,
-    rescale_theta: bool = True,
+    rescale_theta: bool = RESCALE_THETA,
 ) -> pd.DataFrame:
     """
     Project feature data onto principal component axes of fit PCA model.
@@ -897,7 +895,7 @@ def split_dataset_by_flow(
 
 
 def get_traj_and_diff(
-    df: pd.DataFrame, column_names: list
+    df: pd.DataFrame, column_names: list, polar_angle_period: float = THETA_RESCALED_PERIOD
 ) -> tuple[list[np.ndarray], list[np.ndarray]]:
     """
     Get trajectories and single-timepoint displacement vectors for each crop in feature space.
@@ -909,12 +907,21 @@ def get_traj_and_diff(
     - crop_index: unique index for each crop
     - columns for each feature (e.g., pc_0, pc_1, pc_2, ...) matching input ``column_names``
 
+    **Polar angle handling**
+
+    If one of the input ``column_names`` is 'polar_theta', the function will compute
+    circular differences for the polar angle feature using the given ``polar_angle_period``.
+    Specifically, it will unwrap the polar angle trajectory according to the given period
+    for each crop before computing differences.
+
     Parameters
     ----------
     df
         DataFrame with columns for each feature.
     column_names
         List of column names corresponding to the features of interest in the DataFrame.
+    polar_angle_period
+        Period of the polar angle feature, used to compute circular differences for angular data.
 
     Returns
     -------
@@ -949,14 +956,13 @@ def get_traj_and_diff(
 
         # if one of the column names is `polar_theta`, need to replace with the
         # circular difference for angular data instead of simple difference
-        if ColumnName.POLAR_ANGLE in column_names:
-            idx_column_name = column_names.index(ColumnName.POLAR_ANGLE)
-            angle_diffs = get_smallest_angle_difference(
-                df_crop_[ColumnName.POLAR_ANGLE].values[1:],
-                df_crop_[ColumnName.POLAR_ANGLE].values[:-1],
-                units="rad",
+        if ColumnName.POLAR_ANGLE.value in column_names:
+            angle_diff_column = f"{ColumnName.POLAR_ANGLE}{ColumnName.DIFFERENCE_SUFFIX}"
+            unwrapped_angle_traj = np.unwrap(
+                df_crop_[ColumnName.POLAR_ANGLE].values, period=polar_angle_period
             )
-            df_crop_[diff_column_names[idx_column_name]] = np.concatenate(
+            angle_diffs = np.diff(unwrapped_angle_traj)
+            df_crop_[angle_diff_column] = np.concatenate(
                 (
                     angle_diffs,
                     np.array([np.nan]),
