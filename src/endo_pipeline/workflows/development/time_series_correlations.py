@@ -30,11 +30,13 @@ def main(
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
     from endo_pipeline.library.analyze.numerics import compute_correlation_dict
     from endo_pipeline.library.visualize.diffae_features.correlations import (
         plot_correlation_workflow_outputs,
     )
+    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
         load_dataframe_manifest,
@@ -99,7 +101,13 @@ def main(
         bootstrap_samples=bootstrap_samples,
     )
 
-    plot_correlation_workflow_outputs(correlation_dict, bootstrap_samples)
+    output_path = get_output_path(__file__)
+
+    feature_labels = [get_label_for_column(col) for col in feat_cols]
+
+    plot_correlation_workflow_outputs(
+        correlation_dict, output_path, feature_labels, bootstrap_samples
+    )
 
 
 if __name__ == "__main__":
