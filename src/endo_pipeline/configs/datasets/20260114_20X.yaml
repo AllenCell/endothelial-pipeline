@@ -1,6 +1,6 @@
-name: 20250114_20X
-date: '20250114'
-original_path: //allen/programs/allencell/data/proj0/1a2/07b/4ae/9ab/0cb/0ba/b4e/eed/bb8/693/4b/20260116_GE00009775_20X_sldy/20260116_GE00009775_20X_sldy.sldy
+name: 20260114_20X
+date: '20260114'
+original_path: //allen/programs/allencell/data/proj0/1a2/07b/4ae/9ab/0cb/0ba/b4e/eed/bb8/693/4b/20260116_GE00009775_20X_sldy/20261114_GE00009775_20X_Timelapse_SLDY.sldy
 zarr_positions: [0, 1, 2, 3, 4, 5]
 fmsid: 4b693bb8eedb4e0ba0cb9ab4ae07b1a2
 barcode: GE00009775
@@ -32,7 +32,7 @@ flow_conditions:
   stop: 576
   shear_stress: 14.95
 include_scenes: null
-notes: ''
+notes: 'intermediate shear stress condition 15 dyn/cm2 for 48h'
 timepoint_annotations: null
 position_annotations: null
 center_z_plane: null
