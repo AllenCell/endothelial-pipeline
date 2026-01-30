@@ -153,7 +153,7 @@ def plot_component_loadings(
     :
         Figure and Axes objects for the plot.
     """
-    fig, ax = plt.subplot(figsize=(12, 6))  # initialize figure and axes
+    fig, ax = plt.subplots(figsize=(12, 6))  # initialize figure and axes
 
     # list of markers for each component
     # NEED THIS TO BE FLEXIBLE BASED ON NUMBER OF PCS
