@@ -289,11 +289,11 @@ def load_image(
 
 
 @overload
-def load_dataframe_from_path(path: Path, *, delay: Literal[True] = True) -> pd.DataFrame: ...
+def load_dataframe_from_path(path: Path, *, delay: Literal[False] = False) -> pd.DataFrame: ...
 
 
 @overload
-def load_dataframe_from_path(path: Path, *, delay: Literal[False]) -> dd.DataFrame: ...
+def load_dataframe_from_path(path: Path, *, delay: Literal[True]) -> dd.DataFrame: ...
 
 
 @overload
@@ -377,11 +377,11 @@ def get_local_path_from_fmsid(fmsid: str) -> Path:
 
 
 @overload
-def load_dataframe_from_fms(fmsid: str, *, delay: Literal[True] = True) -> pd.DataFrame: ...
+def load_dataframe_from_fms(fmsid: str, *, delay: Literal[False] = False) -> pd.DataFrame: ...
 
 
 @overload
-def load_dataframe_from_fms(fmsid: str, *, delay: Literal[False]) -> dd.DataFrame: ...
+def load_dataframe_from_fms(fmsid: str, *, delay: Literal[True]) -> dd.DataFrame: ...
 
 
 @overload
@@ -414,11 +414,11 @@ def load_dataframe_from_fms(fmsid: str, *, delay: bool = False) -> pd.DataFrame 
 
 
 @overload
-def load_dataframe_from_s3(s3uri: str, *, delay: Literal[True] = True) -> pd.DataFrame: ...
+def load_dataframe_from_s3(s3uri: str, *, delay: Literal[False] = False) -> pd.DataFrame: ...
 
 
 @overload
-def load_dataframe_from_s3(s3uri: str, *, delay: Literal[False]) -> dd.DataFrame: ...
+def load_dataframe_from_s3(s3uri: str, *, delay: Literal[True]) -> dd.DataFrame: ...
 
 
 @overload
@@ -466,11 +466,19 @@ def load_dataframe_from_s3(s3uri: str, *, delay: bool = False) -> pd.DataFrame |
 
 
 @overload
-def load_dataframe(location: DataframeLocation, *, delay: Literal[True] = True) -> pd.DataFrame: ...
+def load_dataframe(
+    location: DataframeLocation, *, delay: Literal[False] = False
+) -> pd.DataFrame: ...
 
 
 @overload
-def load_dataframe(location: DataframeLocation, *, delay: Literal[False]) -> dd.DataFrame: ...
+def load_dataframe(location: DataframeLocation, *, delay: Literal[True]) -> dd.DataFrame: ...
+
+
+@overload
+def load_dataframe(
+    location: DataframeLocation, *, delay: bool = False
+) -> pd.DataFrame | dd.DataFrame: ...
 
 
 def load_dataframe(

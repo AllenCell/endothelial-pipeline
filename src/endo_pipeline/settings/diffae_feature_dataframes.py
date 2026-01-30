@@ -114,7 +114,7 @@ class CytoDLSaveDataKeys(StrEnum):
     """Key for timepoint (frame number)."""
 
 
-NUM_LATENT_FEATURES = 8
+NUM_LATENT_FEATURES = 512
 """Number of latent features to extract from DiFFAE model."""
 
 NUM_PCS_TO_ANALYZE = 3

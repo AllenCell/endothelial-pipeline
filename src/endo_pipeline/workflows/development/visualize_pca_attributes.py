@@ -1,7 +1,8 @@
-from typing import Annotated, Literal
+from typing import Annotated
 
 from cyclopts import Parameter
 
+from endo_pipeline.cli import CropPattern
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -17,7 +18,7 @@ def main(
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     dataset_collection_name_to_fit_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     dataset_collection_name_to_viz: str = "pca_reference",
-    crop_pattern: Literal["grid", "tracked"] = "grid",
+    crop_pattern: CropPattern = "grid",
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     num_pcs: int | None = None,
     num_features: int | None = None,
@@ -79,10 +80,6 @@ def main(
 
     # set up logger
     logger = logging.getLogger(__name__)
-
-    if crop_pattern not in ["tracked", "grid"]:
-        logger.error("Crop pattern must be 'tracked' or 'grid', got [ %s ]", crop_pattern)
-        raise ValueError("Input crop_pattern must be 'grid' or 'tracked'")
 
     # get model and dataframe manifests
     model_manifest = load_model_manifest(model_manifest_name)

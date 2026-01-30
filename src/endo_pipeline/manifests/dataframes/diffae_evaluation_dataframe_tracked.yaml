@@ -1,0 +1,16 @@
+name: diffae_evaluation_dataframe_tracked
+workflow: create_diffae_eval_dataframe
+parameters:
+  crop_pattern: tracked
+  z_slice_offsets:
+  - 4
+  - 11
+locations:
+  20250402_20X:
+    fmsid: ef59b9b1c86341a98f00b1d550e6c9d3
+    path: null
+    s3uri: null
+  20251001_20X:
+    fmsid: 86fd70bc48da4928a57101e53b5a6a0e
+    path: null
+    s3uri: null
