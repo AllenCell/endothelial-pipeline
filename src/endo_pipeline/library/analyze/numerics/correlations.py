@@ -10,16 +10,17 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
 )
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE
+from endo_pipeline.settings.autocorrelation_workflow import (
+    CROSS_CORR_INDEX_COMBINATIONS,
+    MAX_LAG_INTEGRATE,
+    NUM_TIMEPOINT_FRAC,
+)
+from endo_pipeline.settings.diffae_feature_dataframes import (
+    DIFFAE_PC_COLUMN_NAMES,
+    NUM_PCS_TO_ANALYZE,
+)
 
 logger = logging.getLogger(__name__)
-
-CROSS_CORR_INDEX_COMBINATIONS = [(0, 1), (0, 2), (1, 2)]
-# use lags going from - to + {num_timepoints}//NUM_TIMEPOINT_FRAC for CCF/ACF calculation
-NUM_TIMEPOINT_FRAC = 3
-
-# set upper bound of integration for delta CCF integral calculation
-MAX_LAG_INTEGRATE = 5
 
 
 def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -> np.ndarray:
