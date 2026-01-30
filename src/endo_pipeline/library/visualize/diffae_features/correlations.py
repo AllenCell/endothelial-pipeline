@@ -254,8 +254,8 @@ def _make_all_acf_plots(
     bootstrap_samples: int | None = None,
 ) -> dict[str, dict[str, Any]]:
     # unpack results
-    lags: np.ndarray = correlation_dict["lags"][dataset_name]
-    acf: np.ndarray = correlation_dict["acf"][dataset_name]
+    lags: np.ndarray = correlation_dict[CorrelationDictKeys.TIME_LAGS][dataset_name]
+    acf: np.ndarray = correlation_dict[CorrelationDictKeys.AUTOCORRELATION][dataset_name]
 
     # plot acf for positive lags
     # (acf is symmetric around zero)
@@ -268,8 +268,8 @@ def _make_all_acf_plots(
         correlation_dict,
         bootstrap_samples=bootstrap_samples,
         component_labels=component_labels,
-        plot_title=f"Autocorrelation of features ({dataset_description})",
-        xlabel="Lag (hours)",
+        plot_title=f"autocorrelation of features ({dataset_description})",
+        xlabel="lag (hours)",
         linewidth=2.75,
     )
     ax.legend()
@@ -286,7 +286,7 @@ def _make_all_acf_plots(
         correlation_dict,
         bootstrap_samples=bootstrap_samples,
         component_labels=component_labels,
-        plot_title=f"Autocorrelation of features ({dataset_description})",
+        plot_title=f"autocorrelation of features ({dataset_description})",
         xlabel="lag (hours)",
         linewidth=2.75,
     )
