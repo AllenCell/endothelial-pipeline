@@ -855,6 +855,13 @@ def get_traj_and_diff(
     - crop_index: unique index for each crop
     - columns for each feature (e.g., pc_0, pc_1, pc_2, ...) matching input ``column_names``
 
+    **Polar angle handling**
+
+    If one of the input ``column_names`` is 'polar_theta', the function will compute
+    circular differences for the polar angle feature using the given ``polar_angle_period``.
+    Specifically, it will unwrap the polar angle trajectory according to the given period
+    for each crop before computing differences.
+
     Parameters
     ----------
     df
