@@ -26,6 +26,7 @@ from endo_pipeline.manifests import (
     load_model_manifest,
 )
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.polar_coords import RESCALE_THETA, THETA_RESCALED_PERIOD
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -456,7 +457,7 @@ def project_features_to_pcs(
     pca: PCA,
     feat_cols: list[str] | None = None,
     compute_polar: bool = True,
-    rescale_theta: bool = True,
+    rescale_theta: bool = RESCALE_THETA,
 ) -> pd.DataFrame:
     """
     Project feature data onto principal component axes of fit PCA model.
@@ -843,7 +844,7 @@ def split_dataset_by_flow(
 
 
 def get_traj_and_diff(
-    df: pd.DataFrame, column_names: list, polar_angle_period: float = 2 * np.pi
+    df: pd.DataFrame, column_names: list, polar_angle_period: float = THETA_RESCALED_PERIOD
 ) -> tuple[list[np.ndarray], list[np.ndarray]]:
     """
     Get trajectories and single-timepoint displacement vectors for each crop in feature space.

@@ -1,6 +1,5 @@
-from typing import Literal
-
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.settings.polar_coords import RESCALE_THETA
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -11,9 +10,9 @@ def main(
     datasets: Datasets | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
-    crop_pattern: Literal["grid", "tracked"] = "grid",
+    crop_pattern: CropPattern = "grid",
     global_axes_limits: bool = False,
-    rescale_theta: bool = True,
+    rescale_theta: bool = RESCALE_THETA,
 ) -> None:
     """
     Analyze and visualize DiffAE feature dynamics in polar coordinates.
@@ -78,6 +77,7 @@ def main(
     from endo_pipeline.settings.polar_coords import (
         BEHAVES_LIKE_MIN_SHEAR_STRESS,
         BIN_LIMITS_POLAR,
+        BIN_LIMITS_THETA_RESCALED,
         BIN_WIDTHS_POLAR,
         DEFAULT_DATASET_COLLECTION_POLAR_VIS,
         POLAR_COLUMN_NAMES,
@@ -114,9 +114,7 @@ def main(
     bin_limits = BIN_LIMITS_POLAR.copy()
     idx_theta = POLAR_COLUMN_NAMES.index(ColumnName.POLAR_ANGLE)
     if rescale_theta:
-        from numpy import pi
-
-        bin_limits[idx_theta] = (0.0, pi)
+        bin_limits[idx_theta] = BIN_LIMITS_THETA_RESCALED
     bins, _ = get_bins(
         bin_widths=BIN_WIDTHS_POLAR,
         bin_limits=bin_limits,
