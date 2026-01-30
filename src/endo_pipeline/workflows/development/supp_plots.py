@@ -344,6 +344,7 @@ def main(
         across all models.
     """
     import logging
+    from typing import Any
 
     import matplotlib.pyplot as plt
     import numpy as np
@@ -424,7 +425,7 @@ def main(
     NOISE_LABELS = [f"{level * 100:.0f}% Noise" for level in [*MODEL_QC_NOISE_LEVELS, 1]]
     NUM_IMAGES_DENOISED = len(NOISE_LABELS)
     # Storage for all metrics across models and datasets
-    all_metrics = {"validation_positions": [], "rep_2_positions": []}
+    all_metrics: dict[str, list[dict]] = {"validation_positions": [], "rep_2_positions": []}
 
     # Model labels for plotting
     model_labels = []
@@ -676,24 +677,24 @@ def main(
     # Prepare data for plotting
     models_data = []
     for model_idx in range(len(model_manifest_names)):
-        model_entry = {
+        model_entry: dict[str, Any] = {
             "model_idx": model_idx,
             "model_label": None,
             "validation": {
-                "corr_mean": 0,
-                "corr_std": 0,
-                "ssim_mean": 0,
-                "ssim_std": 0,
-                "lpips_mean": 0,
-                "lpips_std": 0,
+                "corr_mean": 0.0,
+                "corr_std": 0.0,
+                "ssim_mean": 0.0,
+                "ssim_std": 0.0,
+                "lpips_mean": 0.0,
+                "lpips_std": 0.0,
             },
             "rep2": {
-                "corr_mean": 0,
-                "corr_std": 0,
-                "ssim_mean": 0,
-                "ssim_std": 0,
-                "lpips_mean": 0,
-                "lpips_std": 0,
+                "corr_mean": 0.0,
+                "corr_std": 0.0,
+                "ssim_mean": 0.0,
+                "ssim_std": 0.0,
+                "lpips_mean": 0.0,
+                "lpips_std": 0.0,
             },
         }
         # Find validation data for this model
