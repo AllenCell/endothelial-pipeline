@@ -158,6 +158,7 @@ def main(
     # Save distance CSV
     distance_df = pd.DataFrame(distance_records)
     distance_df.to_csv(fig_savedir / "pc_closest_distance_scores.csv", index=False)
+    logger.info(f"Saved distance scores to {fig_savedir / 'pc_closest_distance_scores.csv'}")
 
     crops_bf_std_deviation = []
     crops_gfp_max_projection = []
