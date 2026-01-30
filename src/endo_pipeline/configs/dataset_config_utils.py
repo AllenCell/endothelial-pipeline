@@ -325,5 +325,5 @@ def validate_filtered_dataset_collection(
         logger.info(
             "Loaded dataset collection [ %s ] contains datasets [ %s ]",
             collection_name,
-            " | ".join(generated_collection.datasets),
+            " | ".join(loaded_collection.datasets),
         )
