@@ -485,7 +485,7 @@ def _plot_full_correlation_curves(
 def _plot_single_correlation_metric_vs_shear_stress(
     metric_values: list[np.ndarray],
     shear_stresses: np.ndarray,
-    labels: list[str] | None,
+    labels: list[str],
     ci_bounds: list[tuple] | None = None,
 ) -> tuple[plt.Figure, plt.Axes]:
     # init plot
