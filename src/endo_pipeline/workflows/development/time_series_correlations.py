@@ -29,7 +29,7 @@ def main(
     import logging
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
     from endo_pipeline.library.analyze.numerics import compute_correlation_dict
@@ -56,18 +56,6 @@ def main(
         dataset_names = get_datasets_in_collection("3d_flow_field_analysis")
     else:
         dataset_names = datasets
-
-    # drop any no flow datasets from the list of datasets
-    for dataset_name in dataset_names:
-        dataset_config = load_dataset_config(dataset_name)
-        flow_conditions = dataset_config.flow_conditions
-        if int(flow_conditions[0].shear_stress) == 0:
-            logger.warning(
-                "Dataset [ %s ] has no flow conditions (shear stress = 0). "
-                "Skipping this dataset for correlation analysis.",
-                dataset_name,
-            )
-            dataset_names.remove(dataset_name)
 
     # load dataframe manifest corresponding to the model that generated the features
     model_manifest = load_model_manifest(model_manifest_name)
