@@ -31,3 +31,9 @@ def main() -> None:
             )
 
     logger.info("Finished validation of dataset collection configs")
+
+
+if __name__ == "__main__":
+    from endo_pipeline.cli import workflow_cli
+
+    workflow_cli(main)
