@@ -10,7 +10,7 @@ BIN_WIDTHS_POLAR: tuple[float, float] = (0.05, 0.05)
 DEFAULT_DATASET_COLLECTION_POLAR_VIS: str = "diffae_model_training"
 """Default dataset collection for polar coordinate visualization workflow."""
 
-POLAR_COLUMN_NAMES = [ColumnName.POLAR_ANGLE, ColumnName.POLAR_RADIUS]
+POLAR_COLUMN_NAMES: list[str] = [ColumnName.POLAR_ANGLE.value, ColumnName.POLAR_RADIUS.value]
 """Column names for polar coordinates in the DiffAE feature dataframe, in the order [angle, radius]."""
 
 BIN_LIMITS_POLAR: list[tuple[float, float]] = [(-pi, pi), (0.0, 3.5)]
@@ -27,10 +27,3 @@ THETA_RESCALED_PERIOD: float = pi
 
 TICK_STEP_NUM: int = 7
 """Number of axes ticks for coordinate axis in histogram plots."""
-
-BEHAVES_LIKE_MIN_SHEAR_STRESS: tuple[str, ...] = (
-    "20250428_20X",
-    "20250604_20X",
-    "20250716_20X",
-)
-"""Datasets with distribution of polar angle coordinate qualitatively similar to MIN shear stress datasets."""

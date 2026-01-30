@@ -25,7 +25,6 @@ from endo_pipeline.library.model.image_loading import (
     build_zarr_image_loading_dataframe,
     get_z_slice_bounds_per_position,
 )
-from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.manifests import (
     DataframeLocation,
@@ -108,33 +107,6 @@ def load_model_for_inference(
         model.cfg.run_name = run_name_
 
     return model
-
-
-def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
-    """
-    Extract commit hash from the requirements file uploaded to mlflow.
-
-    Parameters
-    ----------
-    run_id: str
-        The run ID of the MLflow run.
-    model_path: Path
-        The path where the downloaded model artifacts are saved.
-    """
-    try:
-        artifact_path = Path("requirements/train-requirements.txt")
-        download_mlflow_artifact(run_id, artifact_path, model_path)
-    except ValueError:
-        artifact_path = Path("requirements/eval-requirements.txt")
-        download_mlflow_artifact(run_id, artifact_path, model_path)
-
-    with open(model_path / artifact_path) as f:
-        lines = f.readlines()
-    for line in lines:
-        if "git+" in line and "cyto-dl" in line:
-            commit_hash = line.split("git+")[1].split("#egg")[0].split("/")[-1]
-            return commit_hash
-    raise ValueError("No commit hash found in requirements.txt")
 
 
 def generate_overrides_for_model_eval(

@@ -1,40 +1,53 @@
+import gc
 import logging
 from pathlib import Path
 from typing import Any
 
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from seaborn import color_palette
+from tqdm import tqdm
 
 from endo_pipeline.configs import get_latent_dim_from_config
-from endo_pipeline.io import get_config_dict_from_mlflow, load_dataframe
+from endo_pipeline.io import get_config_dict_from_mlflow, get_output_path, load_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    add_crop_index,
     add_description_column,
     fit_pca,
     get_dataframe_for_dynamics_workflows,
+    get_datasets_in_collection,
     get_latent_feature_column_names,
     get_traj_and_diff,
     project_features_to_pcs,
 )
-from endo_pipeline.library.analyze.dynamics_utils import solve_ddff_ode
+from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import solve_ddff_ode
 from endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
 from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
+from endo_pipeline.library.visualize.integration.track_integration_viz import (
+    get_valid_slice_indexes,
+    grid_vs_track_vec_angle_hist2d,
+    grid_vs_track_vec_dot_prod_hist2d,
+    overlay_flow_fields_on_histograms,
+    plot_and_save_track_flow_field_deviations,
+    plot_and_save_track_flow_field_dot_product_histogram,
+    plot_grid_vs_tracks_flow_field,
+    plot_pc_integrated_track_as_arrows,
+)
 from endo_pipeline.manifests import (
     ModelManifest,
     get_dataframe_location_for_dataset,
     get_feature_dataframe_manifest_name,
     get_model_location_for_run,
-    get_most_recent_run_name,
     load_dataframe_manifest,
+    load_model_manifest,
 )
-from endo_pipeline.settings import (
-    DEFAULT_MODEL_RUN_NAME,
-    DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
+    MAX_PCS_TO_COMPUTE,
     NUM_PCS_TO_ANALYZE,
     ColumnName,
 )
@@ -45,8 +58,344 @@ from endo_pipeline.settings.flow_field_3d import (
     TIME_STEP_IN_MINUTES,
     TRAJECTORY_TIME_SPAN,
 )
+from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+    DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def process_dataset_for_track_integration(
+    dataset_name: str,
+    collection_name_for_pca: str,
+    model_manifest_name: str = "diffae_04_10",
+    run_name: str | None = None,
+    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    make_integrated_plots: bool = True,
+) -> None:
+    logger.info("Processing dataset: [ %s ]", dataset_name)
+
+    out_subdir = get_output_path(__file__, dataset_name)
+
+    # load and preprocess the different diffae manifests and PCA pipeline
+    merged_feats_df, diffae_grid_crops, bounds = get_preprocessed_manifests_and_km_bounds(
+        dataset_name=dataset_name,
+        model_manifest_name=model_manifest_name,
+        run_name=run_name,
+        seg_feature_manifest_name=seg_feature_manifest_name,
+        collection_name_for_pca=collection_name_for_pca,
+    )
+
+    # keep only the columns that are needed for the analysis to reduce memory usage
+    cols_to_keep = [
+        "dataset_name",
+        "position",
+        "position_as_str",
+        "track_id",
+        "label",
+        "crop_index",
+        "model_manifest_name",
+        "image_index",
+        "frame_number",
+        "time_hours",
+        "time_minutes",
+        "track_duration",
+    ] + [col for col in merged_feats_df.columns if "feat" in col or "pc" in col]
+    merged_feats_df = merged_feats_df[cols_to_keep]
+
+    # load or compute the trajectories and flow fields for the grid-based
+    # and cell-centric crops
+    traj_grids, flow_field_dict_grids, traj_tracks, flow_field_dict_tracks = (
+        get_gridcrop_and_cellcentric_trajectories_and_flow_fields(
+            dataset_name=dataset_name,
+            merged_feats_df=merged_feats_df,
+            diffae_grid_crops=diffae_grid_crops,
+            bounds=bounds,
+            trajectory_dir=out_subdir,
+        )
+    )
+
+    # get the slice indexes to use for plotting the flow fields
+    # (we will be setting PC3 to a constant, i.e. the z-axis here)
+    _, slice_indexes = get_valid_slice_indexes(diffae_grid_crops, traj_grids, flow_field_dict_grids)
+
+    # get flow field vectors and grid points to plot
+    v1_grids, v2_grids, v3_grids = flow_field_dict_grids["vectors"]
+    g1_grids, g2_grids, g3_grids = flow_field_dict_grids["grid"]
+    v1_tracks, v2_tracks, v3_tracks = flow_field_dict_tracks["vectors"]
+    g1_tracks, g2_tracks, g3_tracks = flow_field_dict_tracks["grid"]
+
+    # Plot the quiver slices for the grid-based and cell-centric crops
+    # at the full resolution:
+    out_path = out_subdir / f"{dataset_name}_quiver_slice_comparison_full_quiver.png"
+    fig, ax = plot_grid_vs_tracks_flow_field(
+        v1_grids,
+        v2_grids,
+        g1_grids,
+        g2_grids,
+        v1_tracks,
+        v2_tracks,
+        g1_tracks,
+        g2_tracks,
+        slice_indexes=slice_indexes,
+        ds=1,
+        scale=60,
+    )
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+    # Plot the quiver slices for the grid-based and cell-centric crops
+    # at the standard/default resolution and include the fixed points
+    # for both the grid and cell-centric crops:
+    out_path = out_subdir / f"{dataset_name}_quiver_slice_comparison_partial_quiver.png"
+    fig, ax = plot_grid_vs_tracks_flow_field(
+        v1_grids,
+        v2_grids,
+        g1_grids,
+        g2_grids,
+        v1_tracks,
+        v2_tracks,
+        g1_tracks,
+        g2_tracks,
+        slice_indexes=slice_indexes,
+    )
+    # add the grid crop based fixed point from the trajectory:
+    ax.scatter(
+        traj_grids[-1, 0],
+        traj_grids[-1, 1],
+        s=250,
+        color="cyan",
+        marker="*",
+        lw=1,
+        edgecolor="darkblue",
+        zorder=10,
+    )
+    # add the cell-centric crop based fixed point from the trajectory:
+    ax.scatter(
+        traj_tracks[-1, 0],
+        traj_tracks[-1, 1],
+        s=250,
+        color="yellow",
+        marker="*",
+        lw=1,
+        edgecolor="darkred",
+        zorder=10,
+    )
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+    # Plot the angular deviation between the grid and cell-centric crop-based
+    # flow field vectors:
+    angles = get_vector_angles_as_grid(
+        v1_grids,
+        v2_grids,
+        v3_grids,
+        v1_tracks,
+        v2_tracks,
+        v3_tracks,
+        slice_indexes,
+    )
+    grid_vs_track_vec_angle_hist2d(
+        angles,
+        out_subdir,
+        filename=f"{dataset_name}_vecvec_angles",
+        extent=(*ax.get_xlim(), *ax.get_ylim()),
+    )
+
+    # Plot the dot product between the grid and cell-centric crop-based
+    dot_prod = get_vector_dot_products_as_grid(
+        v1_grids,
+        v2_grids,
+        v3_grids,
+        v1_tracks,
+        v2_tracks,
+        v3_tracks,
+        slice_indexes,
+    )
+    grid_vs_track_vec_dot_prod_hist2d(
+        dot_prod,
+        out_subdir,
+        filename=f"{dataset_name}_vecvec_dot_products",
+        extent=(*ax.get_xlim(), *ax.get_ylim()),
+    )
+
+    # Compare the angles between grid crop PC vectors
+    # and the PC vectors of a single track
+    merged_feats_df["dpc1"] = merged_feats_df.groupby("crop_index")["pc_1"].diff()
+    merged_feats_df["dpc2"] = merged_feats_df.groupby("crop_index")["pc_2"].diff()
+    merged_feats_df["dt"] = merged_feats_df.groupby("crop_index")["time_minutes"].diff()
+
+    # create partial functions from get_approx_point_from_grid to pass
+    # along to the groupby.apply() method
+    get_approx_grid_bin = lambda pc1_pc2_arr: get_approx_point_from_grid(
+        pc1_pc2_arr,
+        g1_grids,
+        g2_grids,
+        v1_grids,
+        v2_grids,
+        slice_indexes,
+    )
+    get_approx_grid_bin_from_df = lambda df: pd.DataFrame(
+        columns=[["pc_1", "pc_2"]], data=get_approx_grid_bin(df.to_numpy()), index=df.index
+    )
+
+    get_approx_grid_vec = lambda pc1_pc2_arr: get_approx_vec_from_grid(
+        pc1_pc2_arr,
+        g1_grids,
+        g2_grids,
+        v1_grids,
+        v2_grids,
+        slice_indexes,
+    )
+    get_approx_grid_vec_from_df = lambda df: pd.DataFrame(
+        columns=[["pc_1", "pc_2"]], data=get_approx_grid_vec(df.to_numpy()), index=df.index
+    )
+
+    # Apply the partial functions to the DataFrame to get the approximate grid bin
+    # and vector associated with each cell-centric PC1 and PC2 value
+    merged_feats_df[["approx_bin_pc1", "approx_bin_pc2"]] = (
+        merged_feats_df.groupby("crop_index", as_index=False)
+        .apply(lambda df: get_approx_grid_bin_from_df(df[["pc_1", "pc_2"]]))
+        .droplevel(level=0)
+    )
+    merged_feats_df[["approx_vec_pc1", "approx_vec_pc2"]] = (
+        merged_feats_df.groupby("crop_index", as_index=False)
+        .apply(lambda df: get_approx_grid_vec_from_df(df[["pc_1", "pc_2"]]))
+        .droplevel(level=0)
+    )
+
+    # Compute the angle between the approximate grid vector
+    # and the the vector from the cell-centric PC1 and PC2
+    # both in radians and degrees
+    merged_feats_df["track_angle_deviation_rad"] = get_vector_vector_angle_fast(
+        merged_feats_df[["approx_vec_pc1", "approx_vec_pc2"]].values,
+        merged_feats_df[["dpc1", "dpc2"]].values,
+    )
+    merged_feats_df["track_angular_deviation_deg"] = merged_feats_df[
+        "track_angle_deviation_rad"
+    ].transform(np.rad2deg)
+
+    merged_feats_df["pc1_pc2_vec_mag"] = np.linalg.norm(
+        merged_feats_df[["dpc1", "dpc2"]].values, axis=1
+    )
+
+    # group dataframe by a combination of dataset, position, and crop index
+    # note that we have replaced the track id with the crop index in this
+    # case because the crop index is unique throughout all 6 positions,
+    # whereas the track id is only unique within a single position
+    mean_track_deviation_dfs = (
+        merged_feats_df.groupby(["dataset_name", "position_as_str", "crop_index"])[
+            ["track_angular_deviation_deg", "pc1_pc2_vec_mag"]
+        ]
+        .agg("mean")
+        .reset_index()
+    )
+
+    plot_and_save_track_flow_field_deviations(
+        mean_track_deviation_dfs=mean_track_deviation_dfs,
+        out_subdir=out_subdir,
+        dataset_name=dataset_name,
+    )
+
+    # get the dot products
+    merged_feats_df["dot_product_grid_vs_cell"] = np.einsum(
+        "ij,ij->i",
+        merged_feats_df[["approx_vec_pc1", "approx_vec_pc2"]],
+        merged_feats_df[["dpc1", "dpc2"]],
+    )
+    # also aggregate the dot products by crop index (i.e. unique track id across all positions)
+    merged_feats_dot_prod_agg = (
+        merged_feats_df.groupby("crop_index")["dot_product_grid_vs_cell"]
+        .agg(["mean", "median"])
+        .reset_index()
+    )
+
+    plot_title = "Mean per track"
+    col_name = "mean"
+    plot_and_save_track_flow_field_dot_product_histogram(
+        features_dataframe=merged_feats_dot_prod_agg,
+        feature_column_name=col_name,
+        out_dir=out_subdir,
+        filename=f"{dataset_name}_dot_product_grid_vs_cell_{col_name}",
+        plot_title=plot_title,
+    )
+
+    plot_title = "Non-aggregated dot products"
+    col_name = "dot_product_grid_vs_cell"
+    plot_and_save_track_flow_field_dot_product_histogram(
+        features_dataframe=merged_feats_df,
+        feature_column_name=col_name,
+        out_dir=out_subdir,
+        filename=f"{dataset_name}_dot_product_grid_vs_cell_{col_name}",
+        plot_title=plot_title,
+    )
+
+    if make_integrated_plots:
+        # NOTE: this is a very memory-intensive operation despite my attempts to
+        # reduce memory needs here, so if you change the minimum track duration
+        # then expect the workflow to require a lot more memory or crash if you
+        # don't have enough
+        merged_feats_df = merged_feats_df.query("track_duration > 180")
+        groups = merged_feats_df.groupby(["dataset_name", "position_as_str", "crop_index"])
+
+        i = 0
+        for nm, df in tqdm(groups, desc=dataset_name):
+            ds_nm, pos, tid = nm
+            assert (
+                tid % 1
+            ) == 0, f"Track ID should be an integer or convertible to an integer. Got {tid}."
+            hue_min = -1 * np.nanmax(merged_feats_df["dot_product_grid_vs_cell"].abs())
+            hue_max = 1 * np.nanmax(merged_feats_df["dot_product_grid_vs_cell"].abs())
+            hue_center = 0.0
+            plot_pc_integrated_track_as_arrows(
+                dataset_name=str(ds_nm),
+                position_name=str(pos),
+                track_id=int(tid),
+                df=df,
+                v1_grids=v1_grids,
+                v2_grids=v2_grids,
+                g1_grids=g1_grids,
+                g2_grids=g2_grids,
+                slice_indexes=slice_indexes,
+                out_subdir=out_subdir,
+                hue_min=hue_min,
+                hue_max=hue_max,
+                hue_center=hue_center,
+                cmap_name="managua",
+                hued_feat_name="dot_product_grid_vs_cell",
+                track_alpha=0.5,
+            )
+            i += 1
+            if i % 100 == 0:
+                # force garbage collection to keep memory free when
+                # creating plots from a loop every 100th iteration
+                gc.collect()
+
+    # overlay flow fields on the histograms of the data to see where
+    # most of the data being used to extrapolate flow fields is
+    overlay_flow_fields_on_histograms(
+        dataset_name,
+        out_subdir,
+        diffae_grid_crops,
+        merged_feats_df,
+        v1_grids,
+        v2_grids,
+        g1_grids,
+        g2_grids,
+        v1_tracks,
+        v2_tracks,
+        g1_tracks,
+        g2_tracks,
+        slice_indexes,
+    )
 
 
 def add_normalized_time(
@@ -70,6 +419,7 @@ def add_normalized_time(
         DataFrame with an additional column
         "normalized_time" containing the normalized time values between 0 and 1.
     """
+
     for _, df_pos in df_all_positions.groupby("position_as_str"):
         for _, df_track in df_pos.groupby("track_id"):
 
@@ -98,59 +448,6 @@ def add_normalized_time(
     return df_all_positions
 
 
-def get_coarse_grained_trajectory_heatmap_data(
-    df_all_positions: pd.DataFrame,
-    bounds: np.ndarray | list,
-    num_bins: list[int] = [150, 150, 150],
-    pc_cols: list[str] = ["pc_1", "pc_2", "pc_3"],
-    feature_to_use: str = "normalized_time",
-) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Get a coarse-grained trajectory heatmap data from the DataFrame.
-
-    Parameters
-    ----------
-    df_all_positions
-        DataFrame containing tracks for one microscope position.
-    bounds
-        Bounds for the heatmap in each dimension.
-        Should be a list of tuples or a 2D numpy array with shape (ndim, 2),
-        where ndim is the number of dimensions.
-    num_bins
-        Number of bins for each dimension in the heatmap.
-
-    Returns
-    -------
-    Tuple[np.ndarray, np.ndarray]
-        Tuple containing the heatmap data and the bin counts.
-    """
-    if feature_to_use not in df_all_positions.columns:
-        raise ValueError(f"Feature '{feature_to_use}' not found in DataFrame columns.")
-
-    bin_data = np.zeros(num_bins)
-    bin_counts = np.zeros(num_bins, dtype=int)
-    ndim = len(pc_cols)
-    bins_array = np.array(
-        [np.linspace(bounds[i][0], bounds[i][1], num_bins[i]) for i in range(ndim)]
-    ).T
-    for _, df_one_position in df_all_positions.groupby("position_as_str"):
-        for _, df_track in df_one_position.groupby("track_id"):
-            trajectory = df_track[pc_cols].values
-            feature_values = df_track[feature_to_use].values
-            bin_indices = np.zeros((trajectory.shape[0], ndim), dtype=int)
-            for dim in range(len(pc_cols)):
-                # get the bin index in which each timepoint lies
-                bin_indices[:, dim] = np.digitize(trajectory[:, dim], bins_array[:, dim]) - 1
-                # clip the bin indices to be within the valid range
-                bin_indices[:, dim] = np.clip(bin_indices[:, dim], 0, num_bins[dim] - 1)
-            # increment the bin data and count
-            for i in range(trajectory.shape[0]):
-                bin_data[tuple(bin_indices[i])] += feature_values[i]
-                bin_counts[tuple(bin_indices[i])] += 1
-
-    return bin_data, bin_counts
-
-
 def merge_diffae_feats_liveseg_feats_tables(
     diffae_tracking_df: pd.DataFrame,
     live_seg_feats_df: pd.DataFrame,
@@ -170,28 +467,25 @@ def merge_diffae_feats_liveseg_feats_tables(
     dataset_name = sequence_to_scalar(diffae_tracking_df[ColumnName.DATASET])
     logging.debug("processing the diffae tracking data...")
     # process the diffae tracking data
-    diffae_tracking_df["is_unique"] = diffae_tracking_df.groupby(
+    track_is_unique = diffae_tracking_df.groupby(
         [ColumnName.DATASET, ColumnName.POSITION, ColumnName.TIMEPOINT, "track_id"]
     )[ColumnName.TIMEPOINT].transform(lambda t: t.nunique() == t.size)
-    diffae_tracking_df = diffae_tracking_df[diffae_tracking_df["is_unique"]]
+    if not track_is_unique.all():
+        raise ValueError(
+            "Found non-unique track_id and timepoint combinations in the diffae tracking data. "
+            "Tracking data needs to be curated so that each position has unique Track IDs."
+        )
 
-    # give the crop_index column the same value as the track_ids
-    diffae_tracking_df[ColumnName.CROP_INDEX] = (
-        diffae_tracking_df.groupby([ColumnName.POSITION, "track_id"], as_index=False)
-        .ngroup()
-        .astype(int)
-    )
-    diffae_tracking_df = add_description_column(
-        diffae_tracking_df, dataset_name, simple=True
-    )  # add description column (e.g., 48hr_High)
-    diffae_tracking_df["track_id"] = diffae_tracking_df["track_id"].astype(int)
+    # add crop_index column (track_ids are not unique across positions but crop_index is)
+    diffae_tracking_df = add_crop_index(df=diffae_tracking_df, crop_pattern="tracked")
+    # add description column (e.g., 48hr_High)
+    diffae_tracking_df = add_description_column(diffae_tracking_df, dataset_name, simple=True)
     diffae_tracking_df.rename(columns={ColumnName.POSITION: "position_as_str"}, inplace=True)
 
     logging.debug("processing the live segmentation features data...")
     live_seg_feats_df["position_as_str"] = live_seg_feats_df[ColumnName.POSITION].transform(
         lambda x: "P" + str(x)
     )
-    live_seg_feats_df["track_id"] = live_seg_feats_df["track_id"].astype(int)
 
     logging.debug("merging segmentation properties and track-based DiffAE data...")
     unique_cell_seg_id_group = ["dataset_name", "position_as_str", "image_index", "track_id"]
@@ -247,13 +541,13 @@ def get_diffae_feats_liveseg_feats_merged_table(
     )
     diffae_track_manifest = load_dataframe_manifest(tracked_dataframe_manifest_name)
     diffae_track_location = get_dataframe_location_for_dataset(diffae_track_manifest, dataset_name)
-    diffae_tracking_df = load_dataframe(diffae_track_location)
+    diffae_tracking_df = load_dataframe(diffae_track_location, delay=False)
 
     # load the tracking data of the measured features and merge them
     logging.debug("loading segmentation property data...")
     live_seg_manifest = load_dataframe_manifest(seg_feature_manifest_name)
     live_seg_location = get_dataframe_location_for_dataset(live_seg_manifest, dataset_name)
-    live_seg_feats_df = load_dataframe(live_seg_location)
+    live_seg_feats_df = load_dataframe(live_seg_location, delay=False)
 
     # merge the two tables
     merged_feats_df = merge_diffae_feats_liveseg_feats_tables(diffae_tracking_df, live_seg_feats_df)
@@ -470,7 +764,7 @@ def get_vector_angles_as_grid(
         list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks), strict=True))
     )
     ang_full = get_vector_vector_angle_fast(vecs_grids, vecs_tracks)
-    ang_arr = ang_full.reshape((50, 50, 50))
+    ang_arr = ang_full.reshape(v1_grids.shape)
     angles = ang_arr[slice_indexes].reshape(my_shape)
     return angles
 
@@ -494,7 +788,7 @@ def get_vector_dot_products_as_grid(
         list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks), strict=True))
     )
     dot_prod_full = np.einsum("ij,ij->i", vecs_grids, vecs_tracks)
-    dot_prod_arr = dot_prod_full.reshape((50, 50, 50))
+    dot_prod_arr = dot_prod_full.reshape(v1_grids.shape)
     dot_prod = dot_prod_arr[slice_indexes].reshape(my_shape)
     return dot_prod
 
@@ -607,13 +901,11 @@ def make_angular_deviation_test(out_dir: Path) -> None:
 
 def get_preprocessed_manifests_and_km_bounds(
     dataset_name: str,
-    model_manifest: ModelManifest,
-    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str = DEFAULT_MODEL_RUN_NAME,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    num_pcs: int = NUM_PCS_TO_ANALYZE,
-    drop_rows_without_diffae_feats: bool = True,
-    filtered: bool = False,
+    num_pcs: int = MAX_PCS_TO_COMPUTE,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list]:
     """
     Load and process the DiffAE and live segmentation feature manifests for a given dataset.
@@ -639,10 +931,6 @@ def get_preprocessed_manifests_and_km_bounds(
     num_pcs
         The number of principal components to use for the PCA projection. If None, the minimum of
         NUM_PCS_TO_ANALYZE and the number of latent dimensions will be used.
-    drop_rows_without_diffae_feats
-        Whether to drop rows in the merged DataFrame that do not have DiffAE features.
-    filtered
-        Whether to filter the merged DataFrame to include only rows marked as "is_included".
 
     Returns
     -------
@@ -652,26 +940,43 @@ def get_preprocessed_manifests_and_km_bounds(
     """
     logger.info(f"Loading and processing manifests for dataset: {dataset_name}")
 
-    run_name = get_most_recent_run_name(model_manifest) if run_name is None else run_name
-    model_location = get_model_location_for_run(model_manifest, run_name)
-    model_config = get_config_dict_from_mlflow(model_location.mlflowid)
-    num_latent_dims = get_latent_dim_from_config(model_config)
-    diffae_feature_column_names = get_latent_feature_column_names(num_latent_dims)
-    num_pcs = num_pcs if num_pcs is not None else min(NUM_PCS_TO_ANALYZE, num_latent_dims)
+    # get the cell-centric merged DiffAE + segmentation feature table
+    model_manifest = load_model_manifest(model_manifest_name)
 
-    # load the tables
     merged_feats_df = get_diffae_feats_liveseg_feats_merged_table(
         dataset_name=dataset_name,
         model_manifest=model_manifest,
         run_name=run_name,
         seg_feature_manifest_name=seg_feature_manifest_name,
-        filtered=filtered,  # do not filter on timepoints yet: we need all timepoints for TFE workflow
+        filtered=False,  # do not filter timepoints (need all timepoints for the TFE workflow)
     )
 
+    # check the model information matches the default values and what will be used for the PCA
+    model_manifest_name_used_for_latent_feats = sequence_to_scalar(
+        merged_feats_df["model_manifest_name"].dropna()
+    )
+    model_run_name_used_for_latent_feats = sequence_to_scalar(merged_feats_df["run_name"].dropna())
+
+    if (DEFAULT_MODEL_MANIFEST_NAME != model_manifest_name_used_for_latent_feats) or (
+        DEFAULT_MODEL_RUN_NAME != model_run_name_used_for_latent_feats
+    ):
+        raise ValueError(
+            """"The model manifest name or run name used to produce the DiffAE
+            features found in the merged features dataframe does not match the
+            expected default values being used for the PCA.
+            """
+        )
+
+    # load the grid crop-based diffae features manifest
     grid_diffae_feat_manifest_name = get_feature_dataframe_manifest_name(
         model_manifest, run_name, crop_pattern="grid"
     )
     # fit the PCA
+    model_location = get_model_location_for_run(model_manifest, run_name)
+    model_config = get_config_dict_from_mlflow(model_location.mlflowid)
+    num_latent_dims = get_latent_dim_from_config(model_config)
+    diffae_feature_column_names = get_latent_feature_column_names(num_latent_dims)
+
     pca = fit_pca(
         dataset_collection_name=collection_name_for_pca,
         dataframe_manifest_name=grid_diffae_feat_manifest_name,
@@ -695,6 +1000,11 @@ def get_preprocessed_manifests_and_km_bounds(
     tracked_diffae_feats_df = tracked_diffae_feats_df.drop(
         columns=["model_manifest_name"] + diffae_feature_column_names
     )
+    tracked_diffae_feats_df["collection_name_for_pca"] = collection_name_for_pca
+    tracked_diffae_feats_df["datasets_used_for_pca"] = [
+        get_datasets_in_collection(collection_name_for_pca)
+    ] * len(tracked_diffae_feats_df)
+
     # tracked_diffae_feats_df retains the indexing of merged_feats_df, so we
     # can merge on the index safely
     merged_feats_df = pd.merge(
@@ -723,7 +1033,127 @@ def get_preprocessed_manifests_and_km_bounds(
     # lastly, add a normalized version of the "time_hours" column
     merged_feats_df = add_normalized_time(merged_feats_df)
 
-    if drop_rows_without_diffae_feats:
-        merged_feats_df = merged_feats_df[merged_feats_df["model_manifest_name"].notna()]
-
     return merged_feats_df, diffae_grid_crops, bounds
+
+
+def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -> None:
+    """Loads the cell-centric DiffAE + segmentation features merged table, computes the PCs, and
+    then saves the updated merged table with the PCs as a parquet file.
+    """
+
+    out_dir = get_output_path(__file__)
+
+    merged_feats_df = get_preprocessed_manifests_and_km_bounds(dataset_name=dataset_name)[0]
+
+    filename = f"{dataset_name}_pc_diffae_seg_feats_merged.parquet"
+
+    merged_feats_df.to_parquet(out_dir / filename)
+
+
+def load_preprocessed_dataframes_and_km_bounds(
+    dataset_name: str,
+    cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+    num_pcs: int = MAX_PCS_TO_COMPUTE,
+    delay: bool = True,
+) -> tuple[pd.DataFrame | dd.DataFrame, pd.DataFrame | dd.DataFrame, list]:
+    """
+    Load the preprocessed pc-diffae-seg-merged parquet file for a given dataset.
+
+    Parameters
+    ----------
+    dataset_name
+        The name of the dataset to load.
+    cell_centric_manifest_name
+        The name of the manifest containing the cell-centric pc-diffae-seg-merged features.
+    num_pcs
+        The number of principal components to use for the PCA projection. This only
+        applies to the grid crop-based diffae features dataframe (the cell-centric
+        features dataframe has 100 PCs computed already).
+    delay
+        Whether to delay the loading of the dataframe (Dask DataFrame) or not (Pandas DataFrame).
+
+    Returns
+    -------
+    :
+        The loaded dataframe with pc-diffae-seg-merged data.
+    """
+    # load the pc-diffae-seg-merged parquet file
+    cell_centric_feats_df = load_pc_diffae_liveseg_feats_merged_table(
+        dataset_name, cell_centric_manifest_name
+    )
+
+    # get the grid crop-based diffae features
+    # get the model information
+    model_manifest_name = sequence_to_scalar(
+        cell_centric_feats_df["model_manifest_name"].compute().dropna()
+    )
+    run_name = sequence_to_scalar(cell_centric_feats_df["run_name"].compute().dropna())
+    model_manifest = load_model_manifest(model_manifest_name)
+
+    # get the datasets used to calculate the PCA in the cell-centric features
+    collection_name_for_pca = sequence_to_scalar(
+        cell_centric_feats_df["collection_name_for_pca"].compute().dropna()
+    )
+
+    # load the grid crop-based diffae features manifest
+    grid_diffae_feat_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
+    # get the fitted PCA
+    pca = fit_pca(
+        dataset_collection_name=collection_name_for_pca,
+        dataframe_manifest_name=grid_diffae_feat_manifest_name,
+        num_pcs=num_pcs,
+    )
+    # read in the grid crop-based diffae features
+    grid_diffae_manifest = load_dataframe_manifest(grid_diffae_feat_manifest_name)
+    diffae_grid_crops = get_dataframe_for_dynamics_workflows(
+        dataset_name,
+        grid_diffae_manifest,
+        pca,
+        include_cell_piling=False,
+        include_not_steady_state=False,
+    )
+
+    # get bounds for plotting and flow field estimation
+    bounds = get_bounds_from_data([dataset_name], grid_diffae_manifest, pca)
+
+    if delay is False:
+        cell_centric_feats_df = cell_centric_feats_df.compute()  # type: ignore
+
+    return cell_centric_feats_df, diffae_grid_crops, bounds
+
+
+def load_pc_diffae_liveseg_feats_merged_table(
+    dataset_name: str, cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
+) -> dd.DataFrame:
+    """Load the preprocessed pc-diffae-seg-merged parquet file for a given dataset.
+    Performs delayed loading of the dataframe using a dask DataFrame.
+
+    If you load the dataframe like so
+    >>> df = load_pc_diffae_liveseg_feats_merged_table(dataset_name)
+
+    All available columns can be listed with `df.columns`.
+    Columns of interest can be loaded with `df['column_name'].compute()` or
+    `df[['column_name_1', 'column_name_2', ...]].compute()`.
+    Loading the entire dataframe into memory with `df.compute()` takes a lot of memory
+    and time, so it is not recommended.
+
+    Parameters
+    ----------
+    dataset_name
+        The name of the dataset to load.
+
+    Returns
+    -------
+        The loaded dataframe with pc-diffae-seg-merged data.
+    """
+    # load the pc-diffae-seg-merged parquet file
+    cell_centric_feats_manifest = load_dataframe_manifest(cell_centric_manifest_name)
+    cell_centric_feats_location = get_dataframe_location_for_dataset(
+        cell_centric_feats_manifest, dataset_name
+    )
+    cell_centric_feats_df = load_dataframe(cell_centric_feats_location, delay=True)
+    cell_centric_feats_df = cell_centric_feats_df.reset_index(drop=True)
+
+    return cell_centric_feats_df
