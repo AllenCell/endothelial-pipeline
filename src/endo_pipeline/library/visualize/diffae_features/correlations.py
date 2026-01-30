@@ -62,8 +62,8 @@ def _plot_acf_curves_together(
     """Plot multiple ACF curves together for comparison."""
     fig, ax = plt.subplots(figsize=figsize)
 
-    lags: np.ndarray = correlation_dict["lags"][dataset_name]
-    acf_array: np.ndarray = correlation_dict["acf"][dataset_name]
+    lags: np.ndarray = correlation_dict[CorrelationDictKeys.TIME_LAGS][dataset_name]
+    acf_array: np.ndarray = correlation_dict[CorrelationDictKeys.AUTOCORRELATION][dataset_name]
 
     # plot only positive lags
     index_positive = lags > 0
@@ -86,8 +86,12 @@ def _plot_acf_curves_together(
 
         # add confidence intervals if available
         if bootstrap_samples is not None:
-            acf_ci_lower = correlation_dict["acf_ci_lower"][dataset_name][index_positive]
-            acf_ci_upper = correlation_dict["acf_ci_upper"][dataset_name][index_positive]
+            acf_ci_lower = correlation_dict[
+                f"{CorrelationDictKeys.AUTOCORRELATION}_{CorrelationDictKeys.CI_LOWER}"
+            ][dataset_name][index_positive]
+            acf_ci_upper = correlation_dict[
+                f"{CorrelationDictKeys.AUTOCORRELATION}_{CorrelationDictKeys.CI_UPPER}"
+            ][dataset_name][index_positive]
             ax.fill_between(
                 positive_lags_as_hours,
                 acf_ci_lower[:, i],
@@ -100,12 +104,15 @@ def _plot_acf_curves_together(
     return fig, ax
 
 
-def _add_relaxation_timescale_to_plot(relaxation_timescales: list[float], ax: plt.Axes) -> plt.Axes:
+def _add_relaxation_timescale_to_plot(
+    relaxation_timescales: list[float], ax: plt.Axes, component_labels: list[str]
+) -> plt.Axes:
     """Print relaxation timescales on plot of ACFs."""
     # using unicode because slurm nodes and A100s do not support LaTeX rendering
     tau_str = chr(964)  # Greek letter tau (τ)
     strings_per_pc = [
-        f"PC{i+1}: {tau_str} = {tau:.2f} hrs" for i, tau in enumerate(relaxation_timescales)
+        f"{component_labels[i]}: {tau_str} = {tau:.2f} hrs"
+        for i, tau in enumerate(relaxation_timescales)
     ]
     # use ax coordinates to place text in lower left corner of plot
     for i, string in enumerate(strings_per_pc):
@@ -175,6 +182,7 @@ def _add_exp_fit_to_plot(
     acf: np.ndarray,
     lags: np.ndarray,
     ax: plt.Axes,
+    component_labels: list[str],
     exp_decay_func: Literal["exponential_decay", "double_exponential_decay"],
 ) -> tuple[plt.Axes, list[float]]:
     """Fit exponential decay to ACF and add to existing plot."""
@@ -198,7 +206,9 @@ def _add_exp_fit_to_plot(
             relaxation_timescales.append(relaxation_time)
         except RuntimeError:
             logger.warning(
-                "Could not fit [ %s ] to ACF of PC%s, skipping plot step", exp_decay_func, i + 1
+                "Could not fit [ %s ] to ACF of [ %s ], skipping plot step",
+                exp_decay_func,
+                component_labels[i],
             )
             relaxation_timescales.append(np.nan)
             continue
@@ -207,8 +217,8 @@ def _add_exp_fit_to_plot(
         if exp_decay_func == "exponential_decay":
             acf_fit = exponential_decay(lags, *exp_fit)
             logger.debug(
-                "Exponential fit for PC%s: [%.3f + %.3f exp(%.3f tau)]",
-                i + 1,
+                "Exponential fit for [ %s ]: [%.3f + %.3f exp(%.3f tau)]",
+                component_labels[i],
                 exp_fit[2],
                 exp_fit[0],
                 -exp_fit[1],
@@ -217,9 +227,9 @@ def _add_exp_fit_to_plot(
             acf_fit = double_exponential_decay(lags, *exp_fit)
             which_weight_is_larger = np.argmax(np.abs(exp_fit[[0, 2]]))
             logger.debug(
-                "Full double exponential fit for PC%s: "
+                "Full double exponential fit for [ %s ]: "
                 "[%.3f + %.3f exp(%.3f tau) + %.3f exp(%.3f tau) ]",
-                i + 1,
+                component_labels[i],
                 exp_fit[4],
                 exp_fit[0],
                 -exp_fit[1],
@@ -227,8 +237,8 @@ def _add_exp_fit_to_plot(
                 -exp_fit[3],
             )
             logger.debug(
-                "Dominant exponent in multi-exponential fit for PC%s: [ %.3f exp(%.3f tau) ]",
-                i + 1,
+                "Dominant exponent in multi-exponential fit for [ %s ]: [ %.3f exp(%.3f tau) ]",
+                component_labels[i],
                 exp_fit[[0, 2][which_weight_is_larger]],
                 -exp_fit[[1, 3][which_weight_is_larger]],
             )
@@ -239,7 +249,7 @@ def _add_exp_fit_to_plot(
     ax.set_ylim(-0.25, 1.05)
 
     # add relaxation timescale to plot
-    ax = _add_relaxation_timescale_to_plot(relaxation_timescales, ax)
+    ax = _add_relaxation_timescale_to_plot(relaxation_timescales, ax, component_labels)
 
     return ax, relaxation_timescales
 
@@ -291,7 +301,7 @@ def _make_all_acf_plots(
         linewidth=2.75,
     )
     ax, relaxation_timescales = _add_exp_fit_to_plot(
-        acf_, lags_as_hours, ax, exp_decay_func="exponential_decay"
+        acf_, lags_as_hours, ax, component_labels, exp_decay_func="exponential_decay"
     )
     # add relaxation timescales to correlation_dict for output
     correlation_dict[CorrelationDictKeys.RELAXATION_TIME][dataset_name] = relaxation_timescales
