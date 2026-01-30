@@ -15,6 +15,6 @@ parameters:
   latent_dim: 1024
   include_cell_piling: false
 locations:
-  diffae_20260122_064935:
+  diffae_20251110_230226:
     mlflowid: 0b18c1dfe1124d2595ef28fca0ca7440
     path: null
