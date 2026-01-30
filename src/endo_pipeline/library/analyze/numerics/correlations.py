@@ -18,6 +18,7 @@ from endo_pipeline.settings.autocorrelation_workflow import (
     NUM_TIMEPOINT_FRAC,
     CorrelationDictKeys,
 )
+from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
 logger = logging.getLogger(__name__)
 
@@ -333,6 +334,7 @@ def _compute_correlations_for_one_dataset(
     pca: PCA,
     correlation_dict: dict,
     feat_cols: list[str],
+    polar_angle_range: tuple[float, float],
     bootstrap_samples: int | None = None,
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
     cross_corr_index_combinations: list[tuple[int, int]] | None = None,
@@ -356,6 +358,10 @@ def _compute_correlations_for_one_dataset(
             "Dataset [ %s ] not found in the manifest, skipping for this workflow.", dataset_name
         )
         return correlation_dict
+
+    # unwrap angles if polar_angle is in feat_cols
+    if ColumnName.POLAR_ANGLE.value in feat_cols:
+        df[ColumnName.POLAR_ANGLE] = np.unwrap()
 
     # get feature data over time
     time_series_data = df_to_array(df, feat_cols)
@@ -481,6 +487,7 @@ def compute_correlation_dict(
     dataframe_manifest: DataframeManifest,
     pca: PCA,
     feat_cols: list[str],
+    polar_angle_range: tuple[float, float],
     bootstrap_samples: int | None = None,
 ) -> dict[str, dict]:
     """Compute cross-correlation and autocorrelation for features from each dataset."""
@@ -511,6 +518,7 @@ def compute_correlation_dict(
             pca,
             correlation_dict,
             feat_cols,
+            polar_angle_range,
             bootstrap_samples=bootstrap_samples,
         )
     return correlation_dict

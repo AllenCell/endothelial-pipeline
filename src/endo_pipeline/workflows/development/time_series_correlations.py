@@ -46,7 +46,7 @@ def main(
         DIFFAE_PC_COLUMN_NAMES,
         NUM_PCS_TO_ANALYZE,
     )
-    from endo_pipeline.settings.polar_coords import POLAR_COLUMN_NAMES
+    from endo_pipeline.settings.polar_coords import BIN_LIMITS_THETA_RESCALED, POLAR_COLUMN_NAMES
 
     # initialize logger
     logger = logging.getLogger(__name__)
@@ -98,6 +98,7 @@ def main(
         dataframe_manifest,
         pca,
         feat_cols=feat_cols,
+        polar_angle_range=BIN_LIMITS_THETA_RESCALED,
         bootstrap_samples=bootstrap_samples,
     )
 

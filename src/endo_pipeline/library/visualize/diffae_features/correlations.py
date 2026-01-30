@@ -324,7 +324,7 @@ def _make_all_acf_plots(
             linestyle="-",
         )
         ax, _ = _add_exp_fit_to_plot(
-            acf_, lags_as_hours, ax, exp_decay_func="double_exponential_decay"
+            acf_, lags_as_hours, ax, component_labels, exp_decay_func="double_exponential_decay"
         )
         save_plot_to_path(
             fig,
