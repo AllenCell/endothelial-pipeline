@@ -14,9 +14,6 @@ from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from endo_pipeline.io import save_plot_to_path
-from endo_pipeline.library.analyze.integration.track_integration import (
-    get_coarse_grained_trajectory_heatmap_data,
-)
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     get_slice_indexes,
@@ -47,6 +44,59 @@ def set_global_pc_lims(axs: Sequence[plt.Axes], lim: int = 3) -> None:
     for ax in axs:
         ax.set_xlim(-lim, lim)
         ax.set_ylim(-lim, lim)
+
+
+def get_coarse_grained_trajectory_heatmap_data(
+    df_all_positions: pd.DataFrame,
+    bounds: np.ndarray | list,
+    num_bins: list[int] = [150, 150, 150],
+    pc_cols: list[str] = ["pc_1", "pc_2", "pc_3"],
+    feature_to_use: str = "normalized_time",
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Get a coarse-grained trajectory heatmap data from the DataFrame.
+
+    Parameters
+    ----------
+    df_all_positions
+        DataFrame containing tracks for one microscope position.
+    bounds
+        Bounds for the heatmap in each dimension.
+        Should be a list of tuples or a 2D numpy array with shape (ndim, 2),
+        where ndim is the number of dimensions.
+    num_bins
+        Number of bins for each dimension in the heatmap.
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray]
+        Tuple containing the heatmap data and the bin counts.
+    """
+    if feature_to_use not in df_all_positions.columns:
+        raise ValueError(f"Feature '{feature_to_use}' not found in DataFrame columns.")
+
+    bin_data = np.zeros(num_bins)
+    bin_counts = np.zeros(num_bins, dtype=int)
+    ndim = len(pc_cols)
+    bins_array = np.array(
+        [np.linspace(bounds[i][0], bounds[i][1], num_bins[i]) for i in range(ndim)]
+    ).T
+    for _, df_one_position in df_all_positions.groupby("position_as_str"):
+        for _, df_track in df_one_position.groupby("track_id"):
+            trajectory = df_track[pc_cols].values
+            feature_values = df_track[feature_to_use].values
+            bin_indices = np.zeros((trajectory.shape[0], ndim), dtype=int)
+            for dim in range(len(pc_cols)):
+                # get the bin index in which each timepoint lies
+                bin_indices[:, dim] = np.digitize(trajectory[:, dim], bins_array[:, dim]) - 1
+                # clip the bin indices to be within the valid range
+                bin_indices[:, dim] = np.clip(bin_indices[:, dim], 0, num_bins[dim] - 1)
+            # increment the bin data and count
+            for i in range(trajectory.shape[0]):
+                bin_data[tuple(bin_indices[i])] += feature_values[i]
+                bin_counts[tuple(bin_indices[i])] += 1
+
+    return bin_data, bin_counts
 
 
 def get_valid_slice_indexes(
