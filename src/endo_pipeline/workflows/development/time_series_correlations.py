@@ -40,7 +40,11 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import NUM_PCS_TO_ANALYZE
+    from endo_pipeline.settings.diffae_feature_dataframes import (
+        DIFFAE_PC_COLUMN_NAMES,
+        NUM_PCS_TO_ANALYZE,
+    )
+    from endo_pipeline.settings.polar_coords import POLAR_COLUMN_NAMES
 
     # initialize logger
     logger = logging.getLogger(__name__)
@@ -85,8 +89,14 @@ def main(
 
     # get cross and autocorrelation for pc features for each dataset
     # in the list of model manifests
+    # use polar coordinates + PC3 as features
+    feat_cols = [*POLAR_COLUMN_NAMES, DIFFAE_PC_COLUMN_NAMES[2]]
     correlation_dict = compute_correlation_dict(
-        dataset_names, dataframe_manifest, pca, bootstrap_samples
+        dataset_names,
+        dataframe_manifest,
+        pca,
+        feat_cols=feat_cols,
+        bootstrap_samples=bootstrap_samples,
     )
 
     plot_correlation_workflow_outputs(correlation_dict, bootstrap_samples)

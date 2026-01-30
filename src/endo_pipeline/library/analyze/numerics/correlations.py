@@ -18,10 +18,6 @@ from endo_pipeline.settings.autocorrelation_workflow import (
     NUM_TIMEPOINT_FRAC,
     CorrelationDictKeys,
 )
-from endo_pipeline.settings.diffae_feature_dataframes import (
-    DIFFAE_PC_COLUMN_NAMES,
-    NUM_PCS_TO_ANALYZE,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -330,6 +326,7 @@ def _compute_correlations_for_one_dataset(
     dataframe_manifest: DataframeManifest,
     pca: PCA,
     correlation_dict: dict,
+    feat_cols: list[str],
     bootstrap_samples: int | None = None,
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
 ) -> dict[str, dict[str, Any]]:
@@ -344,8 +341,6 @@ def _compute_correlations_for_one_dataset(
             "Dataset [ %s ] not found in the manifest, skipping for this workflow.", dataset_name
         )
         return correlation_dict
-
-    feat_cols = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
     # get feature data
     feats = df_to_array(df, feat_cols)
@@ -440,6 +435,7 @@ def compute_correlation_dict(
     dataset_names: list[str],
     dataframe_manifest: DataframeManifest,
     pca: PCA,
+    feat_cols: list[str],
     bootstrap_samples: int | None = None,
 ) -> dict[str, dict]:
     """Compute cross-correlation and autocorrelation for features from each dataset."""
@@ -465,7 +461,12 @@ def compute_correlation_dict(
     # update dict with correlation functions for each dataset in a loop
     for dataset_name in dataset_names:
         correlation_dict = _compute_correlations_for_one_dataset(
-            dataset_name, dataframe_manifest, pca, correlation_dict, bootstrap_samples
+            dataset_name,
+            dataframe_manifest,
+            pca,
+            correlation_dict,
+            feat_cols,
+            bootstrap_samples=bootstrap_samples,
         )
     return correlation_dict
 
