@@ -142,7 +142,11 @@ def pcs_to_polar_r(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.ndarray
     return np.sqrt(pc1_values**2 + pc2_values**2)
 
 
-def pcs_to_polar_theta(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.ndarray:
+def pcs_to_polar_theta(
+    pc1_values: np.ndarray,
+    pc2_values: np.ndarray,
+    rescale: bool = True,
+) -> np.ndarray:
     """
     Convert Cartesian coordinates (pc1, pc2) to polar coordinate theta.
 
@@ -155,6 +159,8 @@ def pcs_to_polar_theta(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.nda
         Values along the first principal component axis.
     pc2_values
         Values along the second principal component axis.
+    rescale
+        Whether to rescale the angle to be in the range [0, pi] instead of [-pi, pi].
 
     Returns
     -------
@@ -162,7 +168,74 @@ def pcs_to_polar_theta(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.nda
         Polar coordinate theta values.
     """
     # angle in range [-pi, pi]
-    return np.arctan2(pc2_values, pc1_values)
+    theta = np.arctan2(pc2_values, pc1_values)
+
+    if rescale:
+        # rescale angle to range [0, pi]
+        # by adding pi and dividing by 2
+        # (values now have period pi instead of 2pi)
+        theta = (theta + np.pi) / 2
+
+    return theta
+
+
+def rewrap_polar_angle(unwrapped_angle: float, original_range: tuple[float, float]) -> float:
+    """
+    Rewrap unwrapped polar angle value to be within original range.
+
+    Unwrapped angles computed, e.g., using numpy.unwrap can extend beyond the original
+    periodic range of polar angle values. This function rewraps the unwrapped angle back
+    to be within the original range.
+
+    Example:
+        original_range = (0, pi)
+        unwrapped_angle = pi + 0.5
+        rewrapped_angle = 0.5
+
+    Parameters
+    ----------
+    unwrapped_angle
+        Unwrapped polar angle value.
+    original_range
+        Original range of polar angle values.
+    """
+    angle_period = original_range[1] - original_range[0]
+    rewrapped_angle = ((unwrapped_angle - original_range[0]) % angle_period) + original_range[0]
+    return rewrapped_angle
+
+
+def unwrap_nonsequential_array(
+    wrapped_array: np.ndarray,
+    period: float,
+    reference_angle: float | None = None,
+) -> np.ndarray:
+    """
+    Unwrap array of periodic values that may have non-sequential entries.
+
+    Unlike numpy.unwrap, which assumes sequential entries, this function handles
+    non-sequential entries by unwrapping each entry relative to a fixed reference point.
+    If no reference point is provided, the function uses the first entry in the array
+    as the (arbitrary) reference point.
+
+    When applying numpy.unwrap to periodic data with non-sequential entries, the
+    resulting unwrapped values may still have large jumps between entries that are not
+    next to each other in the original sequence.
+
+    Parameters
+    ----------
+    wrapped_array
+        Array of periodic values to unwrap.
+    period
+        Period of the values.
+    """
+    reference_angle_ = wrapped_array[0] if reference_angle is None else reference_angle
+    unwrapped_array = np.array(
+        [
+            np.unwrap(np.array([reference_angle_, wrapped_angle]), period=period)[-1]
+            for wrapped_angle in wrapped_array
+        ]
+    )
+    return unwrapped_array
 
 
 def filter_dataframe_by_annotations(
@@ -441,7 +514,11 @@ def get_pca_loadings_as_df(
 
 
 def project_features_to_pcs(
-    df: pd.DataFrame, pca: PCA, feat_cols: list[str] | None = None, compute_polar: bool = True
+    df: pd.DataFrame,
+    pca: PCA,
+    feat_cols: list[str] | None = None,
+    compute_polar: bool = True,
+    rescale_theta: bool = True,
 ) -> pd.DataFrame:
     """
     Project feature data onto principal component axes of fit PCA model.
@@ -457,6 +534,8 @@ def project_features_to_pcs(
         detect latent feature columns in the DataFrame.
     compute_polar
         Whether to compute polar coordinates (r, theta) from the first two PCs.
+    rescale_theta
+        Whether to rescale the polar angle theta to be in the range [0, pi].
 
     Returns
     -------
@@ -482,7 +561,7 @@ def project_features_to_pcs(
             df_[pc_cols[0]].values, df_[pc_cols[1]].values
         )
         df_[ColumnName.POLAR_ANGLE] = pcs_to_polar_theta(
-            df_[pc_cols[0]].values, df_[pc_cols[1]].values
+            df_[pc_cols[0]].values, df_[pc_cols[1]].values, rescale=rescale_theta
         )
 
     return df_
@@ -496,6 +575,8 @@ def get_dataframe_for_dynamics_workflows(
     include_cell_piling: bool = True,
     include_not_steady_state: bool = True,
     crop_pattern: Literal["grid", "tracked"] = "grid",
+    compute_polar: bool = True,
+    rescale_theta: bool = True,
 ) -> pd.DataFrame:
     """
     Load DiffAE dataframe data projected onto given PC axes for downstream
@@ -518,6 +599,10 @@ def get_dataframe_for_dynamics_workflows(
         True to keep timepoints annotated as "not_steady_state", False to remove them.
     crop_pattern
         Crop pattern used to generate the feature dataframe. Either 'grid' or 'tracked'.
+    compute_polar
+        Whether to compute polar coordinates (r, theta) from the first two PCs.
+    rescale_theta
+        Whether to rescale the polar angle theta to be in the range [0, pi].
 
     Returns
     -------
@@ -560,7 +645,13 @@ def get_dataframe_for_dynamics_workflows(
 
     else:
         # project feature data onto PC axes
-        return project_features_to_pcs(df_with_crop, pca, feat_cols=feat_cols)
+        return project_features_to_pcs(
+            df_with_crop,
+            pca,
+            feat_cols=feat_cols,
+            compute_polar=compute_polar,
+            rescale_theta=rescale_theta,
+        )
 
 
 def get_dataset_descriptions(
@@ -748,7 +839,7 @@ def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
 
 def split_dataset_by_flow(
     df_proj: pd.DataFrame, dataset_config: DatasetConfig
-) -> tuple[list, list]:
+) -> tuple[list[pd.DataFrame], list[float]]:
     """
     Get crop-based feature data (Diffusion AE output) for each flow condition present in a dataset.
 

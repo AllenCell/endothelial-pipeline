@@ -32,6 +32,9 @@ DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING: Literal["bf", "cdh5"] = "bf"
 DIFFAE_IMAGE_LOADING_KEY_PREFIX: str = "raw_"
 """Default key prefix for loading DiffAE model input images."""
 
+DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX: str = "diffae_evaluation_dataframe_"
+"""Prefix for DiffAE model evaluation image loading dataframe."""
+
 DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT: str = "raw_cdh5"
 """Default key for channel to use as diffusion image input to the model."""
 
