@@ -33,7 +33,7 @@ def load_data_for_montage(
     dataset_name_list: list[str],
     dataframe_manifest: DataframeManifest,
     include_cell_piling: bool = True,
-    num_pcs: int = 8,
+    num_pcs: int = NUM_PCS_TO_ANALYZE,
 ) -> tuple[pd.DataFrame, PCA]:
     """
     Load Diff AE feature DataFrames for one or more datasets and optionally apply PCA.
