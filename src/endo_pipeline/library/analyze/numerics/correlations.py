@@ -426,22 +426,45 @@ def _compute_correlations_for_one_dataset(
     delta_ccf_integral = cross_correlation_difference_norm(delta_ccf)
 
     # store results in dict of dicts and return updated dict
-    correlation_dict["lags"][dataset_name] = lags
-    correlation_dict["acf"][dataset_name] = acf
-    correlation_dict["acf_ci_lower"][dataset_name] = acf_lb
-    correlation_dict["acf_ci_upper"][dataset_name] = acf_ub
-    correlation_dict["relaxation_timescales_ci_lower"][dataset_name] = relaxation_timescale_lb
-    correlation_dict["relaxation_timescales_ci_upper"][dataset_name] = relaxation_timescale_ub
-    correlation_dict["ccf"][dataset_name] = ccf
-    correlation_dict["ccf_ci_lower"][dataset_name] = ccf_lb
-    correlation_dict["ccf_ci_upper"][dataset_name] = ccf_ub
-    correlation_dict["delta_ccf"][dataset_name] = delta_ccf
-    correlation_dict["delta_ccf_ci_lower"][dataset_name] = delta_ccf_lb
-    correlation_dict["delta_ccf_ci_upper"][dataset_name] = delta_ccf_ub
-    correlation_dict["delta_ccf_integral"][dataset_name] = delta_ccf_integral
-    correlation_dict["delta_ccf_integral_ci_lower"][dataset_name] = delta_ccf_integral_lb
-    correlation_dict["delta_ccf_integral_ci_upper"][dataset_name] = delta_ccf_integral_ub
-    correlation_dict["max_lag_integrate"][dataset_name] = max_lag_integrate
+    correlation_dict[CorrelationDictKeys.TIME_LAGS][dataset_name] = lags
+    correlation_dict[CorrelationDictKeys.AUTOCORRELATION][dataset_name] = acf
+    correlation_dict[f"{CorrelationDictKeys.AUTOCORRELATION}_{CorrelationDictKeys.CI_LOWER}"][
+        dataset_name
+    ] = acf_lb
+    correlation_dict[f"{CorrelationDictKeys.AUTOCORRELATION}_{CorrelationDictKeys.CI_UPPER}"][
+        dataset_name
+    ] = acf_ub
+    correlation_dict[f"{CorrelationDictKeys.RELAXATION_TIME}_{CorrelationDictKeys.CI_LOWER}"][
+        dataset_name
+    ] = relaxation_timescale_lb
+    correlation_dict[f"{CorrelationDictKeys.RELAXATION_TIME}_{CorrelationDictKeys.CI_UPPER}"][
+        dataset_name
+    ] = relaxation_timescale_ub
+    correlation_dict[CorrelationDictKeys.CROSS_CORRELATION][dataset_name] = ccf
+    correlation_dict[f"{CorrelationDictKeys.CROSS_CORRELATION}_{CorrelationDictKeys.CI_LOWER}"][
+        dataset_name
+    ] = ccf_lb
+    correlation_dict[f"{CorrelationDictKeys.CROSS_CORRELATION}_{CorrelationDictKeys.CI_UPPER}"][
+        dataset_name
+    ] = ccf_ub
+    correlation_dict[CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE][dataset_name] = delta_ccf
+    correlation_dict[
+        f"{CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE}_{CorrelationDictKeys.CI_LOWER}"
+    ][dataset_name] = delta_ccf_lb
+    correlation_dict[
+        f"{CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE}_{CorrelationDictKeys.CI_UPPER}"
+    ][dataset_name] = delta_ccf_ub
+    correlation_dict[CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE_INTEGRAL][
+        dataset_name
+    ] = delta_ccf_integral
+    correlation_dict[
+        f"{CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE_INTEGRAL}_{CorrelationDictKeys.CI_LOWER}"
+    ][dataset_name] = delta_ccf_integral_lb
+    correlation_dict[
+        f"{CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE_INTEGRAL}_{CorrelationDictKeys.CI_UPPER}"
+    ][dataset_name] = delta_ccf_integral_ub
+    correlation_dict[CorrelationDictKeys.INTEGRAL_LAG_UPPER_BOUND][dataset_name] = max_lag_integrate
+
     return correlation_dict
 
 
