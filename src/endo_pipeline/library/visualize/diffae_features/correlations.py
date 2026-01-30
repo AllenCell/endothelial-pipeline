@@ -467,15 +467,11 @@ def _plot_full_correlation_curves(
 def _plot_single_correlation_metric_vs_shear_stress(
     metric_values: list[np.ndarray],
     shear_stresses: np.ndarray,
+    labels: list[str] | None,
     ci_bounds: list[tuple] | None = None,
-    labels: list[str] | None = None,
 ) -> tuple[plt.Figure, plt.Axes]:
     # init plot
     fig, ax = plt.subplots(figsize=(8, 6))
-
-    # set default labels if none provided
-    if labels is None:
-        labels = [f"(PC{j+1}, PC{k+1})" for (j, k) in CROSS_CORR_INDEX_COMBINATIONS]
 
     # sort by ascending shear stress
     sorted_indices = np.argsort(shear_stresses)
@@ -525,6 +521,7 @@ def _plot_correlation_metrics_vs_shear_stress(
     correlation_dict: dict[str, dict[str, Any]],
     list_of_datasets: list[str],
     output_path: Path,
+    component_labels: list[str],
 ) -> None:
     """Plot integral of delta CCF near zero as a function of shear stress."""
 
@@ -536,30 +533,47 @@ def _plot_correlation_metrics_vs_shear_stress(
     # plot correlation metrics vs shear stress
     # with error bars if available
     delta_ccf_integral_values = [
-        correlation_dict["delta_ccf_integral"][dataset_name] for dataset_name in list_of_datasets
+        correlation_dict[CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE_INTEGRAL][dataset_name]
+        for dataset_name in list_of_datasets
     ]
     delta_ccf_integral_ci_bounds = [
         (
-            correlation_dict["delta_ccf_integral_ci_lower"][dataset_name],
-            correlation_dict["delta_ccf_integral_ci_upper"][dataset_name],
+            correlation_dict[
+                f"{CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE_INTEGRAL}_{CorrelationDictKeys.CI_LOWER}"
+            ][dataset_name],
+            correlation_dict[
+                f"{CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE_INTEGRAL}_{CorrelationDictKeys.CI_UPPER}"
+            ][dataset_name],
         )
         for dataset_name in list_of_datasets
     ]
     # also plot mean over PCs
     mean_delta_ccf_integral = [
-        np.array([np.mean(correlation_dict["delta_ccf_integral"][dataset_name])])
+        np.array(
+            [
+                np.mean(
+                    correlation_dict[CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE_INTEGRAL][
+                        dataset_name
+                    ]
+                )
+            ]
+        )
         for dataset_name in list_of_datasets
     ]
 
     # also plot relaxation timescales
     relaxation_timescale_values = [
-        np.array(correlation_dict["relaxation_timescales"][dataset_name])
+        np.array(correlation_dict[CorrelationDictKeys.RELAXATION_TIME][dataset_name])
         for dataset_name in list_of_datasets
     ]
     relaxation_timescale_ci_bounds = [
         (
-            correlation_dict["relaxation_timescales_ci_lower"][dataset_name],
-            correlation_dict["relaxation_timescales_ci_upper"][dataset_name],
+            correlation_dict[
+                f"{CorrelationDictKeys.RELAXATION_TIME}_{CorrelationDictKeys.CI_LOWER}"
+            ][dataset_name],
+            correlation_dict[
+                f"{CorrelationDictKeys.RELAXATION_TIME}_{CorrelationDictKeys.CI_UPPER}"
+            ][dataset_name],
         )
         for dataset_name in list_of_datasets
     ]
@@ -570,11 +584,14 @@ def _plot_correlation_metrics_vs_shear_stress(
     )
 
     fig, ax = _plot_single_correlation_metric_vs_shear_stress(
-        delta_ccf_integral_values, shear_stresses, ci_bounds=delta_ccf_integral_ci_bounds
+        delta_ccf_integral_values,
+        shear_stresses,
+        labels=component_labels,
+        ci_bounds=delta_ccf_integral_ci_bounds,
     )
     ax.legend()
     ax.set_ylabel("$\\langle |\\Delta C_{ij} |\\rangle$")
-    ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
+    ax.set_xlabel("shear stress (dyn/cm$^2$)")
     save_plot_to_path(
         fig,
         output_path,
@@ -582,11 +599,11 @@ def _plot_correlation_metrics_vs_shear_stress(
     )
 
     fig, ax = _plot_single_correlation_metric_vs_shear_stress(
-        mean_delta_ccf_integral, shear_stresses, labels=["Mean over PCs"]
+        mean_delta_ccf_integral, shear_stresses, labels=["Mean over features"]
     )
     ax.legend()
     ax.set_ylabel("$\\overline{|\\Delta C_{ij}|}$")
-    ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
+    ax.set_xlabel("shear stress (dyn/cm$^2$)")
     save_plot_to_path(
         fig,
         output_path,
@@ -596,12 +613,12 @@ def _plot_correlation_metrics_vs_shear_stress(
     fig, ax = _plot_single_correlation_metric_vs_shear_stress(
         relaxation_timescale_values,
         shear_stresses,
+        labels=component_labels,
         ci_bounds=relaxation_timescale_ci_bounds,
-        labels=["PC1", "PC2", "PC3"],
     )
     ax.legend()
-    ax.set_ylabel("Relaxation timescale (hours)")
-    ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
+    ax.set_ylabel("relaxation timescale (hours)")
+    ax.set_xlabel("shear stress (dyn/cm$^2$)")
     save_plot_to_path(
         fig,
         output_path,
@@ -660,4 +677,5 @@ def plot_correlation_workflow_outputs(
         correlation_dict,
         list_of_datasets,
         output_path,
+        component_labels,
     )
