@@ -43,6 +43,13 @@ RANDOM_SEED: int = 47
 MODEL_QC_NOISE_LEVELS: tuple = (0.25, 0.5, 0.75)
 """Default noise levels to add to ground truth for the model QC workflow."""
 
+METRIC_TEXT_BOX_PROPS = {"boxstyle": "round", "facecolor": "wheat", "alpha": 0.3}
+
+DATASET_COLORS = {
+    "validation_positions": "#2E86AB",  # Blue
+    "rep_2_positions": "#A23B72",  # Purple/magenta
+}
+
 SEGMENTATION_FEATURE_COLUMNS = {
     "default": [
         "alignment_deg_rel_to_flow",
