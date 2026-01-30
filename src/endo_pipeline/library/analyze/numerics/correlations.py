@@ -16,6 +16,7 @@ from endo_pipeline.settings.autocorrelation_workflow import (
     MAX_LAG_INTEGRATE,
     NUM_BOOTSTRAP_SAMPLES,
     NUM_TIMEPOINT_FRAC,
+    CorrelationDictKeys,
 )
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
@@ -443,23 +444,23 @@ def compute_correlation_dict(
 ) -> dict[str, dict]:
     """Compute cross-correlation and autocorrelation for features from each dataset."""
     correlation_dict: dict[str, dict[str, np.ndarray]] = {
-        "lags": {},
-        "acf": {},
-        "acf_ci_lower": {},
-        "acf_ci_upper": {},
-        "relaxation_timescales_ci_lower": {},
-        "relaxation_timescales_ci_upper": {},
-        "ccf": {},
-        "ccf_ci_lower": {},
-        "ccf_ci_upper": {},
-        "delta_ccf": {},
-        "delta_ccf_ci_lower": {},
-        "delta_ccf_ci_upper": {},
-        "delta_ccf_integral": {},
-        "delta_ccf_integral_ci_lower": {},
-        "delta_ccf_integral_ci_upper": {},
-        "max_lag_integrate": {},
-        "relaxation_timescales": {},
+        CorrelationDictKeys.TIME_LAGS: {},
+        CorrelationDictKeys.AUTOCORRELATION: {},
+        f"{CorrelationDictKeys.AUTOCORRELATION}_{CorrelationDictKeys.CI_LOWER}": {},
+        f"{CorrelationDictKeys.AUTOCORRELATION}_{CorrelationDictKeys.CI_UPPER}": {},
+        CorrelationDictKeys.RELAXATION_TIME: {},
+        f"{CorrelationDictKeys.RELAXATION_TIME}_{CorrelationDictKeys.CI_LOWER}": {},
+        f"{CorrelationDictKeys.RELAXATION_TIME}_{CorrelationDictKeys.CI_UPPER}": {},
+        CorrelationDictKeys.CROSS_CORRELATION: {},
+        f"{CorrelationDictKeys.CROSS_CORRELATION}_{CorrelationDictKeys.CI_LOWER}": {},
+        f"{CorrelationDictKeys.CROSS_CORRELATION}_{CorrelationDictKeys.CI_UPPER}": {},
+        CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE: {},
+        f"{CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE}_{CorrelationDictKeys.CI_LOWER}": {},
+        f"{CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE}_{CorrelationDictKeys.CI_UPPER}": {},
+        CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE_INTEGRAL: {},
+        f"{CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE_INTEGRAL}_{CorrelationDictKeys.CI_LOWER}": {},
+        f"{CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE_INTEGRAL}_{CorrelationDictKeys.CI_UPPER}": {},
+        CorrelationDictKeys.INTEGRAL_LAG_UPPER_BOUND: {},
     }
     # update dict with correlation functions for each dataset in a loop
     for dataset_name in dataset_names:
