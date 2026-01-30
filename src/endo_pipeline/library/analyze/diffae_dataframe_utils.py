@@ -905,12 +905,12 @@ def get_traj_and_diff(
         # if one of the column names is `polar_theta`, need to replace with the
         # circular difference for angular data instead of simple difference
         if ColumnName.POLAR_ANGLE.value in column_names:
-            idx_column_name = column_names.index(ColumnName.POLAR_ANGLE)
+            angle_diff_column = f"{ColumnName.POLAR_ANGLE}{ColumnName.DIFFERENCE_SUFFIX}"
             unwrapped_angle_traj = np.unwrap(
                 df_crop_[ColumnName.POLAR_ANGLE].values, period=polar_angle_period
             )
             angle_diffs = np.diff(unwrapped_angle_traj)
-            df_crop_[diff_column_names[idx_column_name]] = np.concatenate(
+            df_crop_[angle_diff_column] = np.concatenate(
                 (
                     angle_diffs,
                     np.array([np.nan]),
