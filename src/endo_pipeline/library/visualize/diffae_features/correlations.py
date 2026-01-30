@@ -340,6 +340,7 @@ def _make_all_ccf_plots(
     correlation_dict: dict[str, dict[str, Any]],
     dataset_description: str,
     output_path: Path,
+    component_labels: list[str],
     bootstrap_samples: int | None = None,
     confidence_level: float = CONFIDENCE_LEVEL,
     cross_corr_index_combinations: list[tuple[int, int]] | None = None,
@@ -378,7 +379,9 @@ def _make_all_ccf_plots(
         index_combinations = cross_corr_index_combinations
     for i, (j, k) in enumerate(index_combinations):
         lags_all_as_hours = 5 * lags / 60  # convert from frames (5 minutes) to hours
-        ax.plot(lags_all_as_hours, ccf[:, i], label=f"(PC{j+1}, PC{k+1})")
+        ax.plot(
+            lags_all_as_hours, ccf[:, i], label=f"({component_labels[j]}, {component_labels[k]})"
+        )
         if bootstrap_samples is not None:
             ax.fill_between(
                 lags_all_as_hours,
@@ -405,7 +408,11 @@ def _make_all_ccf_plots(
         # delta ccf is symmetric around zero
         lags_symmetric = lags[1 + num_lags // 2 :]
         lags_symmetric_as_hours = 5 * lags_symmetric / 60
-        ax.plot(lags_symmetric_as_hours, delta_ccf[:, i], label=f"(PC{j+1}, PC{k+1})")
+        ax.plot(
+            lags_symmetric_as_hours,
+            delta_ccf[:, i],
+            label=f"({component_labels[j]}, {component_labels[k]})",
+        )
         if bootstrap_samples is not None:
             ax.fill_between(
                 lags_symmetric_as_hours,
@@ -468,6 +475,7 @@ def _plot_full_correlation_curves(
         correlation_dict,
         dataset_description,
         output_path,
+        component_labels=component_labels,
         bootstrap_samples=bootstrap_samples,
     )
 
