@@ -114,16 +114,17 @@ def main(
     distance_records = []
 
     # Compute column means once
-    pc_means = df[DIFFAE_PC_COLUMN_NAMES].mean().values  # numpy array
+    pc_means = df[DIFFAE_PC_COLUMN_NAMES].mean()
+    
     primary_weight = 10
 
-    for pc_axis in pc_axis_list:
-        pc_axis_col = "pc_" + str(pc_axis + 1)
-
-        # Secondary PC columns
-        secondary_cols = [col for col in DIFFAE_PC_COLUMN_NAMES if col != pc_axis_col]
-        secondary_means = pc_means[[DIFFAE_PC_COLUMN_NAMES.index(col) for col in secondary_cols]]
-
+    pc_col_list = [
+        f"{ColumnName.PCA_FEATURE_PREFIX}{i+1} for i in pc_axis_list
+    ]
+        
+    for pc_axis_col in pc_col_list:
+        secondary_cols = [col for col in pc_col_list if col != pc_axis_col]
+        secondary_means = pc_means[secondary_cols].values
         # Convert to NumPy arrays for speed
         primary_vals = df[pc_axis_col].values  # shape (n_rows,)
         secondary_vals = df[secondary_cols].values  # shape (n_rows, n_secondary)
@@ -136,7 +137,7 @@ def main(
             total_distance = (primary_weight * (primary_vals - pc_val) ** 2) + secondary_distance
 
             closest_idx = np.argmin(total_distance)
-            closest_row_df = df.iloc[[closest_idx]].copy()
+            closest_row_df = df.iloc[closest_idx:closest_idx+1].copy()
 
             samples.append((pc_axis, pc_val, closest_row_df))
             distance_records.append(
