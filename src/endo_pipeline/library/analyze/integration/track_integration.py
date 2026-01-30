@@ -1,3 +1,4 @@
+import gc
 import logging
 from pathlib import Path
 from typing import Any
@@ -7,6 +8,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from seaborn import color_palette
+from tqdm import tqdm
 
 from endo_pipeline.configs import get_latent_dim_from_config
 from endo_pipeline.io import get_config_dict_from_mlflow, get_output_path, load_dataframe
@@ -20,11 +22,21 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_traj_and_diff,
     project_features_to_pcs,
 )
-from endo_pipeline.library.analyze.dynamics_utils import solve_ddff_ode
+from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import solve_ddff_ode
 from endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
 from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
+from endo_pipeline.library.visualize.integration.track_integration_viz import (
+    get_valid_slice_indexes,
+    grid_vs_track_vec_angle_hist2d,
+    grid_vs_track_vec_dot_prod_hist2d,
+    overlay_flow_fields_on_histograms,
+    plot_and_save_track_flow_field_deviations,
+    plot_and_save_track_flow_field_dot_product_histogram,
+    plot_grid_vs_tracks_flow_field,
+    plot_pc_integrated_track_as_arrows,
+)
 from endo_pipeline.manifests import (
     ModelManifest,
     get_dataframe_location_for_dataset,
@@ -55,6 +67,337 @@ from endo_pipeline.settings.workflow_defaults import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def process_dataset_for_track_integration(
+    dataset_name: str,
+    collection_name_for_pca: str,
+    model_manifest_name: str = "diffae_04_10",
+    run_name: str | None = None,
+    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    make_integrated_plots: bool = True,
+) -> None:
+    logger.info("Processing dataset: [ %s ]", dataset_name)
+
+    out_subdir = get_output_path(__file__, dataset_name)
+
+    model_manifest = load_model_manifest(model_manifest_name)
+
+    # load and preprocess the different diffae manifests and PCA pipeline
+    merged_feats_df, diffae_grid_crops, bounds = get_preprocessed_manifests_and_km_bounds(
+        dataset_name=dataset_name,
+        model_manifest=model_manifest,
+        run_name=run_name,
+        seg_feature_manifest_name=seg_feature_manifest_name,
+        collection_name_for_pca=collection_name_for_pca,
+    )
+
+    # keep only the columns that are needed for the analysis to reduce memory usage
+    cols_to_keep = [
+        "dataset_name",
+        "position",
+        "position_as_str",
+        "track_id",
+        "label",
+        "crop_index",
+        "model_manifest_name",
+        "image_index",
+        "frame_number",
+        "time_hours",
+        "time_minutes",
+        "track_duration",
+    ] + [col for col in merged_feats_df.columns if "feat" in col or "pc" in col]
+    merged_feats_df = merged_feats_df[cols_to_keep]
+
+    # load or compute the trajectories and flow fields for the grid-based
+    # and cell-centric crops
+    traj_grids, flow_field_dict_grids, traj_tracks, flow_field_dict_tracks = (
+        get_gridcrop_and_cellcentric_trajectories_and_flow_fields(
+            dataset_name=dataset_name,
+            merged_feats_df=merged_feats_df,
+            diffae_grid_crops=diffae_grid_crops,
+            bounds=bounds,
+            trajectory_dir=out_subdir,
+        )
+    )
+
+    # get the slice indexes to use for plotting the flow fields
+    # (we will be setting PC3 to a constant, i.e. the z-axis here)
+    _, slice_indexes = get_valid_slice_indexes(diffae_grid_crops, traj_grids, flow_field_dict_grids)
+
+    # get flow field vectors and grid points to plot
+    v1_grids, v2_grids, v3_grids = flow_field_dict_grids["vectors"]
+    g1_grids, g2_grids, g3_grids = flow_field_dict_grids["grid"]
+    v1_tracks, v2_tracks, v3_tracks = flow_field_dict_tracks["vectors"]
+    g1_tracks, g2_tracks, g3_tracks = flow_field_dict_tracks["grid"]
+
+    # Plot the quiver slices for the grid-based and cell-centric crops
+    # at the full resolution:
+    out_path = out_subdir / f"{dataset_name}_quiver_slice_comparison_full_quiver.png"
+    fig, ax = plot_grid_vs_tracks_flow_field(
+        v1_grids,
+        v2_grids,
+        g1_grids,
+        g2_grids,
+        v1_tracks,
+        v2_tracks,
+        g1_tracks,
+        g2_tracks,
+        slice_indexes=slice_indexes,
+        ds=1,
+        scale=60,
+    )
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+    # Plot the quiver slices for the grid-based and cell-centric crops
+    # at the standard/default resolution and include the fixed points
+    # for both the grid and cell-centric crops:
+    out_path = out_subdir / f"{dataset_name}_quiver_slice_comparison_partial_quiver.png"
+    fig, ax = plot_grid_vs_tracks_flow_field(
+        v1_grids,
+        v2_grids,
+        g1_grids,
+        g2_grids,
+        v1_tracks,
+        v2_tracks,
+        g1_tracks,
+        g2_tracks,
+        slice_indexes=slice_indexes,
+    )
+    # add the grid crop based fixed point from the trajectory:
+    ax.scatter(
+        traj_grids[-1, 0],
+        traj_grids[-1, 1],
+        s=250,
+        color="cyan",
+        marker="*",
+        lw=1,
+        edgecolor="darkblue",
+        zorder=10,
+    )
+    # add the cell-centric crop based fixed point from the trajectory:
+    ax.scatter(
+        traj_tracks[-1, 0],
+        traj_tracks[-1, 1],
+        s=250,
+        color="yellow",
+        marker="*",
+        lw=1,
+        edgecolor="darkred",
+        zorder=10,
+    )
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+    # Plot the angular deviation between the grid and cell-centric crop-based
+    # flow field vectors:
+    angles = get_vector_angles_as_grid(
+        v1_grids,
+        v2_grids,
+        v3_grids,
+        v1_tracks,
+        v2_tracks,
+        v3_tracks,
+        slice_indexes,
+    )
+    grid_vs_track_vec_angle_hist2d(
+        angles,
+        out_subdir,
+        filename=f"{dataset_name}_vecvec_angles",
+        extent=(*ax.get_xlim(), *ax.get_ylim()),
+    )
+
+    # Plot the dot product between the grid and cell-centric crop-based
+    dot_prod = get_vector_dot_products_as_grid(
+        v1_grids,
+        v2_grids,
+        v3_grids,
+        v1_tracks,
+        v2_tracks,
+        v3_tracks,
+        slice_indexes,
+    )
+    grid_vs_track_vec_dot_prod_hist2d(
+        dot_prod,
+        out_subdir,
+        filename=f"{dataset_name}_vecvec_dot_products",
+        extent=(*ax.get_xlim(), *ax.get_ylim()),
+    )
+
+    # Compare the angles between grid crop PC vectors
+    # and the PC vectors of a single track
+    merged_feats_df["dpc1"] = merged_feats_df.groupby("crop_index")["pc_1"].diff()
+    merged_feats_df["dpc2"] = merged_feats_df.groupby("crop_index")["pc_2"].diff()
+    merged_feats_df["dt"] = merged_feats_df.groupby("crop_index")["time_minutes"].diff()
+
+    # create partial functions from get_approx_point_from_grid to pass
+    # along to the groupby.apply() method
+    get_approx_grid_bin = lambda pc1_pc2_arr: get_approx_point_from_grid(
+        pc1_pc2_arr,
+        g1_grids,
+        g2_grids,
+        v1_grids,
+        v2_grids,
+        slice_indexes,
+    )
+    get_approx_grid_bin_from_df = lambda df: pd.DataFrame(
+        columns=[["pc_1", "pc_2"]], data=get_approx_grid_bin(df.to_numpy()), index=df.index
+    )
+
+    get_approx_grid_vec = lambda pc1_pc2_arr: get_approx_vec_from_grid(
+        pc1_pc2_arr,
+        g1_grids,
+        g2_grids,
+        v1_grids,
+        v2_grids,
+        slice_indexes,
+    )
+    get_approx_grid_vec_from_df = lambda df: pd.DataFrame(
+        columns=[["pc_1", "pc_2"]], data=get_approx_grid_vec(df.to_numpy()), index=df.index
+    )
+
+    # Apply the partial functions to the DataFrame to get the approximate grid bin
+    # and vector associated with each cell-centric PC1 and PC2 value
+    merged_feats_df[["approx_bin_pc1", "approx_bin_pc2"]] = (
+        merged_feats_df.groupby("crop_index", as_index=False)
+        .apply(lambda df: get_approx_grid_bin_from_df(df[["pc_1", "pc_2"]]))
+        .droplevel(level=0)
+    )
+    merged_feats_df[["approx_vec_pc1", "approx_vec_pc2"]] = (
+        merged_feats_df.groupby("crop_index", as_index=False)
+        .apply(lambda df: get_approx_grid_vec_from_df(df[["pc_1", "pc_2"]]))
+        .droplevel(level=0)
+    )
+
+    # Compute the angle between the approximate grid vector
+    # and the the vector from the cell-centric PC1 and PC2
+    # both in radians and degrees
+    merged_feats_df["track_angle_deviation_rad"] = get_vector_vector_angle_fast(
+        merged_feats_df[["approx_vec_pc1", "approx_vec_pc2"]].values,
+        merged_feats_df[["dpc1", "dpc2"]].values,
+    )
+    merged_feats_df["track_angular_deviation_deg"] = merged_feats_df[
+        "track_angle_deviation_rad"
+    ].transform(np.rad2deg)
+
+    merged_feats_df["pc1_pc2_vec_mag"] = np.linalg.norm(
+        merged_feats_df[["dpc1", "dpc2"]].values, axis=1
+    )
+
+    # group dataframe by a combination of dataset, position, and crop index
+    # note that we have replaced the track id with the crop index in this
+    # case because the crop index is unique throughout all 6 positions,
+    # whereas the track id is only unique within a single position
+    mean_track_deviation_dfs = (
+        merged_feats_df.groupby(["dataset_name", "position_as_str", "crop_index"])[
+            ["track_angular_deviation_deg", "pc1_pc2_vec_mag"]
+        ]
+        .agg("mean")
+        .reset_index()
+    )
+
+    plot_and_save_track_flow_field_deviations(
+        mean_track_deviation_dfs=mean_track_deviation_dfs,
+        out_subdir=out_subdir,
+        dataset_name=dataset_name,
+    )
+
+    # get the dot products
+    merged_feats_df["dot_product_grid_vs_cell"] = np.einsum(
+        "ij,ij->i",
+        merged_feats_df[["approx_vec_pc1", "approx_vec_pc2"]],
+        merged_feats_df[["dpc1", "dpc2"]],
+    )
+    # also aggregate the dot products by crop index (i.e. unique track id across all positions)
+    merged_feats_dot_prod_agg = (
+        merged_feats_df.groupby("crop_index")["dot_product_grid_vs_cell"]
+        .agg(["mean", "median"])
+        .reset_index()
+    )
+
+    plot_title = "Mean per track"
+    col_name = "mean"
+    plot_and_save_track_flow_field_dot_product_histogram(
+        features_dataframe=merged_feats_dot_prod_agg,
+        feature_column_name=col_name,
+        out_dir=out_subdir,
+        filename=f"{dataset_name}_dot_product_grid_vs_cell_{col_name}",
+        plot_title=plot_title,
+    )
+
+    plot_title = "Non-aggregated dot products"
+    col_name = "dot_product_grid_vs_cell"
+    plot_and_save_track_flow_field_dot_product_histogram(
+        features_dataframe=merged_feats_df,
+        feature_column_name=col_name,
+        out_dir=out_subdir,
+        filename=f"{dataset_name}_dot_product_grid_vs_cell_{col_name}",
+        plot_title=plot_title,
+    )
+
+    if make_integrated_plots:
+        # NOTE: this is a very memory-intensive operation despite my attempts to
+        # reduce memory needs here, so if you change the minimum track duration
+        # then expect the workflow to require a lot more memory or crash if you
+        # don't have enough
+        merged_feats_df = merged_feats_df.query("track_duration > 180")
+        groups = merged_feats_df.groupby(["dataset_name", "position_as_str", "crop_index"])
+
+        i = 0
+        for nm, df in tqdm(groups, desc=dataset_name):
+            ds_nm, pos, tid = nm
+            assert (
+                tid % 1
+            ) == 0, f"Track ID should be an integer or convertible to an integer. Got {tid}."
+            hue_min = -1 * np.nanmax(merged_feats_df["dot_product_grid_vs_cell"].abs())
+            hue_max = 1 * np.nanmax(merged_feats_df["dot_product_grid_vs_cell"].abs())
+            hue_center = 0.0
+            plot_pc_integrated_track_as_arrows(
+                dataset_name=str(ds_nm),
+                position_name=str(pos),
+                track_id=int(tid),
+                df=df,
+                v1_grids=v1_grids,
+                v2_grids=v2_grids,
+                g1_grids=g1_grids,
+                g2_grids=g2_grids,
+                slice_indexes=slice_indexes,
+                out_subdir=out_subdir,
+                hue_min=hue_min,
+                hue_max=hue_max,
+                hue_center=hue_center,
+                cmap_name="managua",
+                hued_feat_name="dot_product_grid_vs_cell",
+                track_alpha=0.5,
+            )
+            i += 1
+            if i % 100 == 0:
+                # force garbage collection to keep memory free when
+                # creating plots from a loop every 100th iteration
+                gc.collect()
+
+    # overlay flow fields on the histograms of the data to see where
+    # most of the data being used to extrapolate flow fields is
+    overlay_flow_fields_on_histograms(
+        dataset_name,
+        out_subdir,
+        diffae_grid_crops,
+        merged_feats_df,
+        v1_grids,
+        v2_grids,
+        g1_grids,
+        g2_grids,
+        v1_tracks,
+        v2_tracks,
+        g1_tracks,
+        g2_tracks,
+        slice_indexes,
+    )
 
 
 def add_normalized_time(
@@ -105,59 +448,6 @@ def add_normalized_time(
             ] = normalized_time_values
 
     return df_all_positions
-
-
-def get_coarse_grained_trajectory_heatmap_data(
-    df_all_positions: pd.DataFrame,
-    bounds: np.ndarray | list,
-    num_bins: list[int] = [150, 150, 150],
-    pc_cols: list[str] = ["pc_1", "pc_2", "pc_3"],
-    feature_to_use: str = "normalized_time",
-) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Get a coarse-grained trajectory heatmap data from the DataFrame.
-
-    Parameters
-    ----------
-    df_all_positions
-        DataFrame containing tracks for one microscope position.
-    bounds
-        Bounds for the heatmap in each dimension.
-        Should be a list of tuples or a 2D numpy array with shape (ndim, 2),
-        where ndim is the number of dimensions.
-    num_bins
-        Number of bins for each dimension in the heatmap.
-
-    Returns
-    -------
-    Tuple[np.ndarray, np.ndarray]
-        Tuple containing the heatmap data and the bin counts.
-    """
-    if feature_to_use not in df_all_positions.columns:
-        raise ValueError(f"Feature '{feature_to_use}' not found in DataFrame columns.")
-
-    bin_data = np.zeros(num_bins)
-    bin_counts = np.zeros(num_bins, dtype=int)
-    ndim = len(pc_cols)
-    bins_array = np.array(
-        [np.linspace(bounds[i][0], bounds[i][1], num_bins[i]) for i in range(ndim)]
-    ).T
-    for _, df_one_position in df_all_positions.groupby("position_as_str"):
-        for _, df_track in df_one_position.groupby("track_id"):
-            trajectory = df_track[pc_cols].values
-            feature_values = df_track[feature_to_use].values
-            bin_indices = np.zeros((trajectory.shape[0], ndim), dtype=int)
-            for dim in range(len(pc_cols)):
-                # get the bin index in which each timepoint lies
-                bin_indices[:, dim] = np.digitize(trajectory[:, dim], bins_array[:, dim]) - 1
-                # clip the bin indices to be within the valid range
-                bin_indices[:, dim] = np.clip(bin_indices[:, dim], 0, num_bins[dim] - 1)
-            # increment the bin data and count
-            for i in range(trajectory.shape[0]):
-                bin_data[tuple(bin_indices[i])] += feature_values[i]
-                bin_counts[tuple(bin_indices[i])] += 1
-
-    return bin_data, bin_counts
 
 
 def merge_diffae_feats_liveseg_feats_tables(
@@ -476,7 +766,7 @@ def get_vector_angles_as_grid(
         list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks), strict=True))
     )
     ang_full = get_vector_vector_angle_fast(vecs_grids, vecs_tracks)
-    ang_arr = ang_full.reshape((50, 50, 50))
+    ang_arr = ang_full.reshape(v1_grids.shape)
     angles = ang_arr[slice_indexes].reshape(my_shape)
     return angles
 
@@ -500,7 +790,7 @@ def get_vector_dot_products_as_grid(
         list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks), strict=True))
     )
     dot_prod_full = np.einsum("ij,ij->i", vecs_grids, vecs_tracks)
-    dot_prod_arr = dot_prod_full.reshape((50, 50, 50))
+    dot_prod_arr = dot_prod_full.reshape(v1_grids.shape)
     dot_prod = dot_prod_arr[slice_indexes].reshape(my_shape)
     return dot_prod
 
