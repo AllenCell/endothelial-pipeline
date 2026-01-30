@@ -361,7 +361,10 @@ def _compute_correlations_for_one_dataset(
 
     # unwrap angles if polar_angle is in feat_cols
     if ColumnName.POLAR_ANGLE.value in feat_cols:
-        df[ColumnName.POLAR_ANGLE] = np.unwrap()
+        for _, df_crop in df.groupby(ColumnName.CROP_INDEX):
+            df.loc[df_crop.index, ColumnName.POLAR_ANGLE] = np.unwrap(
+                df_crop[ColumnName.POLAR_ANGLE], period=polar_angle_range[1] - polar_angle_range[0]
+            )
 
     # get feature data over time
     time_series_data = df_to_array(df, feat_cols)
