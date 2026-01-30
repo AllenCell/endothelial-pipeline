@@ -221,8 +221,11 @@ def bootstrap_autocorrelation_confidence_intervals(
         bootstrap_relaxation_timescales, 100 * (1 - percentile), axis=0
     )
     confidence_interval_bounds = {
-        "autocorrelation": (acf_lower_bound, acf_upper_bound),
-        "relaxation_timescale": (relaxation_time_lower_bound, relaxation_time_upper_bound),
+        CorrelationDictKeys.AUTOCORRELATION: (acf_lower_bound, acf_upper_bound),
+        CorrelationDictKeys.RELAXATION_TIME: (
+            relaxation_time_lower_bound,
+            relaxation_time_upper_bound,
+        ),
     }
 
     return confidence_interval_bounds
@@ -310,9 +313,12 @@ def bootstrap_cross_correlation_confidence_intervals(
     )
 
     confidence_interval_bounds = {
-        "cross_correlation": (ccf_lower_bound, ccf_upper_bound),
-        "delta_cross_correlation": (delta_ccf_lower_bound, delta_ccf_upper_bound),
-        "delta_cross_correlation_integral": (
+        CorrelationDictKeys.CROSS_CORRELATION: (ccf_lower_bound, ccf_upper_bound),
+        CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE: (
+            delta_ccf_lower_bound,
+            delta_ccf_upper_bound,
+        ),
+        CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE_INTEGRAL: (
             delta_ccf_integral_lower_bound,
             delta_ccf_integral_upper_bound,
         ),
@@ -374,9 +380,9 @@ def _compute_correlations_for_one_dataset(
             confidence_intervals = bootstrap_autocorrelation_confidence_intervals(
                 time_series_data, i, lags, n_bootstraps=bootstrap_samples
             )
-            acf_lb[:, i], acf_ub[:, i] = confidence_intervals["autocorrelation"]
-            (relaxation_timescale_lb[i], relaxation_timescale_ub[i]) = confidence_intervals[
-                "relaxation_timescale"
+            acf_lb[:, i], acf_ub[:, i] = confidence_intervals[CorrelationDictKeys.AUTOCORRELATION]
+            relaxation_timescale_lb[i], relaxation_timescale_ub[i] = confidence_intervals[
+                CorrelationDictKeys.RELAXATION_TIME
             ]
 
     # cross-correlation
@@ -416,12 +422,14 @@ def _compute_correlations_for_one_dataset(
                 max_lag_integrate=max_lag_integrate,
                 n_bootstraps=bootstrap_samples,
             )
-            ccf_lb[:, i], ccf_ub[:, i] = confidence_intervals["cross_correlation"]
-            delta_ccf_lb[:, i], delta_ccf_ub[:, i] = confidence_intervals["delta_cross_correlation"]
+            ccf_lb[:, i], ccf_ub[:, i] = confidence_intervals[CorrelationDictKeys.CROSS_CORRELATION]
+            delta_ccf_lb[:, i], delta_ccf_ub[:, i] = confidence_intervals[
+                CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE
+            ]
             (
                 delta_ccf_integral_lb[i],
                 delta_ccf_integral_ub[i],
-            ) = confidence_intervals["delta_cross_correlation_integral"]
+            ) = confidence_intervals[CorrelationDictKeys.CROSS_CORRELATION_DIFFERENCE_INTEGRAL]
 
     delta_ccf_integral = cross_correlation_difference_norm(delta_ccf)
 
