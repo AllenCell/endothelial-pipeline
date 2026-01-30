@@ -118,9 +118,9 @@ def _add_relaxation_timescale_to_plot(
     ]
     # use ax coordinates to place text in lower left corner of plot
     for i, string in enumerate(strings_per_pc):
-        x_loc = 0.025
+        x_loc = 0.75
         # decrement y_loc for each PC to avoid overlap
-        y_loc = 0.05 + 0.075 * (len(strings_per_pc) - 1 - i)
+        y_loc = 0.095 + 0.075 * (len(strings_per_pc) - 1 - i)
         ax.text(
             x_loc,
             y_loc,
