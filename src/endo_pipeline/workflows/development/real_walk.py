@@ -137,7 +137,7 @@ def main(
             total_distance = (primary_weight * (primary_vals - pc_val) ** 2) + secondary_distance
 
             closest_idx = np.argmin(total_distance)
-            closest_row_df = df.iloc[[closest_idx]].copy()
+            closest_row_df = df.iloc[closest_idx:closest_idx+1].copy()
 
             samples.append((pc_axis, pc_val, closest_row_df))
             distance_records.append(
