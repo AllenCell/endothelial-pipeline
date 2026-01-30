@@ -5,7 +5,7 @@ zarr_positions: [0, 1, 2, 3, 4, 5]
 fmsid: a735e4e04ea6450990fb6234c9953bc3
 barcode: GE00009357
 cell_lines: [AICS-126]
-live_or_fixed_sample: live
+live_or_fixed_sample: fixed
 is_timelapse: false
 microscope: 3i
 objective: 20X
