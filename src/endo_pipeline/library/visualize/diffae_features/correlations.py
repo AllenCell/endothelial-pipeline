@@ -18,6 +18,8 @@ from endo_pipeline.library.analyze.numerics import (
     fit_exp_decay_and_get_relaxation_timescale,
 )
 from endo_pipeline.settings.autocorrelation_workflow import (
+    ACF_CURVE_YLIM,
+    CCF_CURVE_YLIM,
     CONFIDENCE_LEVEL,
     CROSS_CORR_INDEX_COMBINATIONS,
     CorrelationDictKeys,
@@ -246,7 +248,7 @@ def _add_exp_fit_to_plot(
         ax.plot(lags, acf_fit, "k--", linewidth=2.0, alpha=0.85, label="")
 
     ax.legend()
-    ax.set_ylim(-0.25, 1.05)
+    ax.set_ylim(ACF_CURVE_YLIM)
 
     # add relaxation timescale to plot
     ax = _add_relaxation_timescale_to_plot(relaxation_timescales, ax, component_labels)
@@ -283,7 +285,7 @@ def _make_all_acf_plots(
         linewidth=2.75,
     )
     ax.legend()
-    ax.set_ylim(-0.25, 1.05)
+    ax.set_ylim(ACF_CURVE_YLIM)
     save_plot_to_path(
         fig,
         output_path,
@@ -426,7 +428,7 @@ def _make_all_ccf_plots(
     ax.set_xlabel("lag $\\tau$ (hours)")
     ax.set_ylabel("$\\Delta C_{ij}(\\tau)$")
     ax.legend()
-    ax.set_ylim(-0.5, 0.75)
+    ax.set_ylim(CCF_CURVE_YLIM)
     # print integral of delta ccf near zero on plot
     ci_bounds = None
     if bootstrap_samples is not None:

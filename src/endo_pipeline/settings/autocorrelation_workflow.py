@@ -17,6 +17,10 @@ NUM_BOOTSTRAP_SAMPLES = 1000
 CONFIDENCE_LEVEL = 0.95
 """Confidence level for bootstrap confidence intervals."""
 
+ACF_CURVE_YLIM = (-0.1, 0.75)
+
+CCF_CURVE_YLIM = (-0.2, 1.0)
+
 
 class CorrelationDictKeys(StrEnum):
     """Dictionary keys for storing correlation analysis results."""
