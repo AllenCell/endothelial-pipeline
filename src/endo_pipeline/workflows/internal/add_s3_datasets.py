@@ -30,7 +30,7 @@ def main(
     ----------
     datasets: Datasets | None
         List of dataset names. If None, all datasets in the
-        "dataset_release" collection will be used.
+        "add_s3_datasets" collection will be used.
     dry_run: bool
         If True, jobs will be drafted but not executed.
     positions_list: UniqueIntList | None
@@ -51,7 +51,7 @@ def main(
     logger = logging.getLogger(__name__)
 
     if datasets is None:
-        datasets = get_datasets_in_collection("dataset_release")
+        datasets = get_datasets_in_collection("add_s3_datasets")
 
     save_dir = get_output_path("s3_dataset", "add_datasets")
     log_dir_str = str(get_output_path("s3_dataset", "add_datasets", "status"))
