@@ -1,0 +1,37 @@
+name: diffae_patch_128x128_condition_on_bf_exclude_cell_piling
+workflow: build_diffae_train_config
+parameters:
+  training_datasets:
+  - 20250319_20X
+  - 20250428_20X
+  - 20250611_20X
+  - 20250618_20X
+  - 20250714_20X
+  - 20250813_20X
+  - 20250818_20X
+  - 20250827_20X
+  crop_size: 128
+  condition_on: bf
+  include_cell_piling: false
+locations:
+  diffae_20251202_181703:
+    mlflowid: null
+    path: null
+  diffae_20251202_182656:
+    mlflowid: d44fa1bd207f4ff48fec583eb5942bfd
+    path: null
+  diffae_20251202_183139:
+    mlflowid: null
+    path: null
+  diffae_20251206_154510:
+    mlflowid: null
+    path: null
+  diffae_20251206_154534:
+    mlflowid: null
+    path: null
+  diffae_20251207_143744:
+    mlflowid: e24fa9d0db8948cdb7e96115dea1b033
+    path: null
+  diffae_20251207_144141:
+    mlflowid: 1761ebee07d440fa86ff2768eb9bca0d
+    path: null
