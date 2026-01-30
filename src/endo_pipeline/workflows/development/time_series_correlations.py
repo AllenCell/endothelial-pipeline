@@ -1,14 +1,16 @@
 from endo_pipeline.cli import Datasets
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
-
-TAGS = ["diffae_features"]
+from endo_pipeline.settings.autocorrelation_workflow import NUM_BOOTSTRAP_SAMPLES
+from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+)
 
 
 def main(
     datasets: Datasets | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    bootstrap_samples: int | None = 1000,
+    bootstrap_samples: int | None = NUM_BOOTSTRAP_SAMPLES,
 ) -> None:
     """
     Run auto and cross correlation analysis on DiffAE feature time series data.
@@ -38,6 +40,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
+    from endo_pipeline.settings.diffae_feature_dataframes import NUM_PCS_TO_ANALYZE
 
     # initialize logger
     logger = logging.getLogger(__name__)
@@ -69,7 +72,7 @@ def main(
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     # fit PCA object for the given model that generates the model manifests
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name)
+    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=NUM_PCS_TO_ANALYZE)
 
     # if demo mode, limit bootstrap samples to 50 if > 50
     if DEMO_MODE and bootstrap_samples is not None:

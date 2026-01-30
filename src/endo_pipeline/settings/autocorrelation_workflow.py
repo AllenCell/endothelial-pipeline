@@ -8,3 +8,9 @@ NUM_TIMEPOINT_FRAC = 3
 
 MAX_LAG_INTEGRATE = 5
 """Maximum lag (in timepoints) for integrating forward and backward cross-correlation differences."""
+
+NUM_BOOTSTRAP_SAMPLES = 1000
+"""Number of bootstrap samples for estimating confidence intervals in correlation analyses."""
+
+CONFIDENCE_LEVEL = 0.95
+"""Confidence level for bootstrap confidence intervals."""

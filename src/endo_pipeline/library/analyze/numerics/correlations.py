@@ -11,8 +11,10 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
 )
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.autocorrelation_workflow import (
+    CONFIDENCE_LEVEL,
     CROSS_CORR_INDEX_COMBINATIONS,
     MAX_LAG_INTEGRATE,
+    NUM_BOOTSTRAP_SAMPLES,
     NUM_TIMEPOINT_FRAC,
 )
 from endo_pipeline.settings.diffae_feature_dataframes import (
@@ -147,8 +149,8 @@ def bootstrap_autocorrelation_confidence_intervals(
     data: np.ndarray,
     component_index: int,
     lags: np.ndarray,
-    n_bootstraps: int = 200,
-    confidence_level: float = 0.95,
+    n_bootstraps: int = NUM_BOOTSTRAP_SAMPLES,
+    confidence_level: float = CONFIDENCE_LEVEL,
 ) -> dict[str, tuple]:
     """
     Bootstrap the normalized autocorrelation function (ACF) computed from finite data.
@@ -232,9 +234,9 @@ def bootstrap_autocorrelation_confidence_intervals(
 def bootstrap_cross_correlation_confidence_intervals(
     data_feat1: np.ndarray,
     data_feat2: np.ndarray,
-    n_bootstraps: int = 200,
+    n_bootstraps: int = NUM_BOOTSTRAP_SAMPLES,
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
-    confidence_level: float = 0.95,
+    confidence_level: float = CONFIDENCE_LEVEL,
 ) -> dict[str, tuple]:
     """
     Bootstrap the normalized cross-correlation function (CCF) computed from finite data.
