@@ -123,7 +123,7 @@ def _generate_overrides_for_finetuning(
 
     # Calculate effective epochs
     multiplier = (1 - cache_rate) / (cache_rate * replace_rate) + 1
-    effective_min_epochs = int(1000 * multiplier)
+    effective_min_epochs = int(2000 * multiplier)  # THIS WILL BE FIXED?
     # effective_max_epochs = int(max_num_epochs * multiplier)
     effective_max_epochs = max(int(max_num_epochs * multiplier), int(1.5 * effective_min_epochs))
     effective_save_images_epochs = int(10 * multiplier)

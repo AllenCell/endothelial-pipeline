@@ -45,3 +45,7 @@ analyses/results/
 
 # ignore CellPose models which can be quite large
 cellsmap/analyses/nuclei_predictions/models/
+pc_cache/
+cyto_dl_push.venv/
+*.pyc
+__pycache__/

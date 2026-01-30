@@ -171,7 +171,6 @@ def main(
     list_of_training_datasets = get_dataset_names_used_for_training(
         train_dataframe_location, val_dataframe_location, f"{dataset_pair_type}_paired_datasets"
     )
-
     # Create a new model manifest with workflow parameters, if a matching
     # manifest does not already exist. Add the model training run to the list
     # of manifest locations.

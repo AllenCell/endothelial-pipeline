@@ -3,7 +3,7 @@ run_name: diffae_finetune
 task_name: train
 tags:
 - dev
-lat_dim: 512  # CHANGE
+lat_dim: 512
 model:
   _target_: endo_pipeline.library.model.DiffAEFinetune
   save_images_every_n_epochs: 10
@@ -26,7 +26,7 @@ model:
     in_channels: 1
     base_encoder:
       _target_: torchvision.models.convnext_tiny
-      num_classes: ${lat_dim} # CHANGE
+      num_classes: ${lat_dim}
   autoencoder:
     _target_: monai.networks.nets.diffusion_model_unet.DiffusionModelUNet
     spatial_dims: 2
@@ -36,12 +36,12 @@ model:
     - 32
     - 64
     - 128
-    - 256 # CHANGE
+    - 256
     attention_levels:
     - false
     - true
     - true
-    - true # CHANGE, even the lines below are changed....chnage is just changed
+    - true
     num_res_blocks: 1
     num_head_channels: 64
     with_conditioning: true
@@ -56,13 +56,14 @@ model:
   optimizer:
     _partial_: true
     _target_: torch.optim.AdamW
-    lr: 0.0
+    lr: 5.0e-06
+    weight_decay: 0.15  # Add L2 regularization
   lr_scheduler:
     _partial_: true
     _target_: torch.optim.lr_scheduler.OneCycleLR
-    max_lr: 0.0
+    max_lr: 2e-5
     epochs: ${trainer.max_epochs}
-    steps_per_epoch: 1
+    steps_per_epoch: 24
     pct_start: 0.01
   spatial_inferer:
     _target_: cyto_dl.models.im2im.utils.inferers.EmbeddingPatchInferer
@@ -91,6 +92,7 @@ data:
       _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
       dataframe_path: null
       spatial_dims: 2
+      num_devices: ${trainer.devices}
       transform:
         _target_: monai.transforms.Compose
         transforms:
@@ -148,24 +150,6 @@ data:
           prob: 0.5
           std: 0.1
           mean: 0
-        - _target_: monai.transforms.RandFlipd
-          keys:
-          - raw_target
-          - raw_moving
-          prob: 0.5
-          spatial_axis: 0
-        - _target_: monai.transforms.RandFlipd
-          keys:
-          - raw_target
-          - raw_moving
-          prob: 0.5
-          spatial_axis: 1
-        - _target_: monai.transforms.RandRotate90d
-          keys:
-          - raw_target
-          - raw_moving
-          prob: 0.5
-          max_k: 3
       cache_rate: 1.0
       replace_rate: 0.1
       num_init_workers: 24
@@ -182,6 +166,7 @@ data:
       _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
       dataframe_path: null
       spatial_dims: 2
+      num_devices: ${trainer.devices}
       transform:
         _target_: monai.transforms.Compose
         transforms:
@@ -240,8 +225,8 @@ trainer:
   _target_: lightning.Trainer
   use_distributed_sampler: True
   default_root_dir: ${paths.output_dir}
-  min_epochs: 150
-  max_epochs: 200
+  min_epochs: 500
+  max_epochs: 600
   accelerator: gpu
   devices: 1
   precision: 16-mixed
@@ -264,11 +249,11 @@ callbacks:
     _target_: lightning.pytorch.callbacks.ModelCheckpoint
     dirpath: null
     filename: epoch_{epoch:03d}
-    monitor: null
+    monitor: val/coef_corr
     verbose: false
     save_last: true
-    save_top_k: 1
-    mode: min
+    save_top_k: 3
+    mode: max
     auto_insert_metric_name: false
     save_weights_only: false
     every_n_train_steps: null
@@ -285,14 +270,11 @@ callbacks:
     - start_x
     - start_y
     - filename_or_obj
-  latent_walk:
-    _target_: cyto_dl.callbacks.latent_walk_diffae.DiffAELatentWalk
-    every_n_epoch: ${model.save_images_every_n_epochs}
-    n_noise_samples: 1
-    n_steps: 5
-    average: false
-  grad_monitor:
-    _target_: cyto_dl.callbacks.grad_monitor.GradientLoggingCallback
+  early_stopping:
+    monitor: val/coef_corr
+    min_delta: 0.001
+    patience: 20
+    mode: max  # Minimize loss
 extras:
   ignore_warnings: true
   enforce_tags: true
