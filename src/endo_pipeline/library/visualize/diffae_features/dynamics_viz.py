@@ -161,7 +161,7 @@ def compare_stationary_distributions(
         ax[1].set_title("Model PDF")
 
     elif ndim == 1:  # call 1D histogram plot function
-        fig, ax = plt.subplots(figsize=(12, 4))
+        fig, ax = plt.subplots(1, 2, figsize=(12, 4))
         ax[0].plot(bins[0][:-1], p_hist, "k", label="Empirical PDF")
         ax[0].set_title("Empirical PDF")
         ax[1].plot(bins[0][:-1], p_model, "k", label="Model PDF")
