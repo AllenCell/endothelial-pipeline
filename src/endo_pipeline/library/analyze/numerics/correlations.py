@@ -329,40 +329,50 @@ def _compute_correlations_for_one_dataset(
     feat_cols: list[str],
     bootstrap_samples: int | None = None,
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
+    cross_corr_index_combinations: list[tuple[int, int]] | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Compute cross-correlation and autocorrelation for features from one dataset."""
 
     # try to get dataframe for the given dataset
     # if it does not exist, skip this dataset, return dict as is
     try:
-        df = get_dataframe_for_dynamics_workflows(dataset_name, dataframe_manifest, pca)
+        df = get_dataframe_for_dynamics_workflows(
+            dataset_name,
+            dataframe_manifest,
+            pca,
+            include_cell_piling=False,
+            include_not_steady_state=False,
+            compute_polar=True,
+            rescale_theta=True,
+        )
     except KeyError:
         logger.warning(
             "Dataset [ %s ] not found in the manifest, skipping for this workflow.", dataset_name
         )
         return correlation_dict
 
-    # get feature data
-    feats = df_to_array(df, feat_cols)
+    # get feature data over time
+    time_series_data = df_to_array(df, feat_cols)
 
-    num_timepoints = feats.shape[1]
+    num_timepoints = time_series_data.shape[1]
+    num_features = time_series_data.shape[2]
     # make sure lags are symmetric around zero
     max_lags = num_timepoints // NUM_TIMEPOINT_FRAC
     lags = np.arange(-max_lags, max_lags + 1)
 
     num_lags = len(lags)
     # autocorrelation
-    acf = np.zeros((num_lags, 3))
-    acf_lb = np.zeros((num_lags, 3))
-    acf_ub = np.zeros((num_lags, 3))
-    relaxation_timescale_lb = np.zeros(3)
-    relaxation_timescale_ub = np.zeros(3)
-    for i in range(3):
-        acf[:, i] = autocorrelation_function(feats, i)
+    acf = np.zeros((num_lags, num_features))
+    acf_lb = np.zeros((num_lags, num_features))
+    acf_ub = np.zeros((num_lags, num_features))
+    relaxation_timescale_lb = np.zeros(num_features)
+    relaxation_timescale_ub = np.zeros(num_features)
+    for i in range(num_features):
+        acf[:, i] = autocorrelation_function(time_series_data, i)
         if bootstrap_samples is not None:
             # calculate bootstrap confidence intervals for ACF and relaxation timescale
             confidence_intervals = bootstrap_autocorrelation_confidence_intervals(
-                feats, i, lags, n_bootstraps=bootstrap_samples
+                time_series_data, i, lags, n_bootstraps=bootstrap_samples
             )
             acf_lb[:, i], acf_ub[:, i] = confidence_intervals["autocorrelation"]
             (relaxation_timescale_lb[i], relaxation_timescale_ub[i]) = confidence_intervals[
@@ -370,13 +380,13 @@ def _compute_correlations_for_one_dataset(
             ]
 
     # cross-correlation
-    ccf = np.zeros((num_lags, 3))
-    ccf_lb = np.zeros((num_lags, 3))
-    ccf_ub = np.zeros((num_lags, 3))
+    ccf = np.zeros((num_lags, num_features))
+    ccf_lb = np.zeros((num_lags, num_features))
+    ccf_ub = np.zeros((num_lags, num_features))
 
-    delta_ccf = np.zeros((num_lags // 2, 3))
-    delta_ccf_lb = np.zeros((num_lags // 2, 3))
-    delta_ccf_ub = np.zeros((num_lags // 2, 3))
+    delta_ccf = np.zeros((num_lags // 2, num_features))
+    delta_ccf_lb = np.zeros((num_lags // 2, num_features))
+    delta_ccf_ub = np.zeros((num_lags // 2, num_features))
 
     if max_lag_integrate > num_lags // 2:
         max_lag_integrate = num_lags // 2
@@ -384,13 +394,17 @@ def _compute_correlations_for_one_dataset(
             "max_lag_integrate is larger than available lags, setting to [ %s ]",
             max_lag_integrate,
         )
-    delta_ccf_integral = np.zeros(3)
-    delta_ccf_integral_lb = np.zeros(3)
-    delta_ccf_integral_ub = np.zeros(3)
+    delta_ccf_integral = np.zeros(num_features)
+    delta_ccf_integral_lb = np.zeros(num_features)
+    delta_ccf_integral_ub = np.zeros(num_features)
 
-    for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
-        data_feat1 = feats[..., j]
-        data_feat2 = feats[..., k]
+    if cross_corr_index_combinations is None:
+        index_combinations = CROSS_CORR_INDEX_COMBINATIONS
+    else:
+        index_combinations = cross_corr_index_combinations
+    for i, (j, k) in enumerate(index_combinations):
+        data_feat1 = time_series_data[..., j]
+        data_feat2 = time_series_data[..., k]
         ccf[:, i] = cross_correlation_function(data_feat1, data_feat2)
         # get delta CCF = CCF(tau>0) - CCF(tau<0)
         delta_ccf[:, i] = ccf[1 + num_lags // 2 :, i] - ccf[: num_lags // 2, i]
