@@ -1,4 +1,5 @@
 import logging
+from copy import deepcopy
 
 import numpy as np
 import torch
@@ -429,3 +430,12 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         )
 
         return noise, noise_pred, latent, loss_weight
+
+    def predict_step(self, batch, batch_idx):
+        meta = batch[self.hparams.condition_key].meta
+        dtype = torch.bfloat16 if self.trainer.precision == "bf16-mixed" else torch.float16
+        self.to(dtype)
+        batch = convert_to_tensor(batch, dtype=dtype)
+        z, loc = self.encode_image(batch[self.hparams.condition_key])
+        meta.update(loc)
+        return detach(z), deepcopy(meta)

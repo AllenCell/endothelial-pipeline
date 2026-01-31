@@ -1,4 +1,5 @@
 from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.settings.polar_coords import RESCALE_THETA
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -11,7 +12,7 @@ def main(
     run_name: str = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
     global_axes_limits: bool = False,
-    rescale_theta: bool = True,
+    rescale_theta: bool = RESCALE_THETA,
 ) -> None:
     """
     Analyze and visualize DiffAE feature dynamics in polar coordinates.
