@@ -2,6 +2,8 @@
 
 from typing import Literal
 
+from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+
 DEFAULT_MODEL_MANIFEST_NAME: str = "diffae_baseline_exclude_cell_piling"
 """Default model manifest for loading models and model features."""
 
@@ -94,10 +96,10 @@ SEGMENTATION_FEATURE_COLUMNS = {
 """Name of segmentation features to include in analyses."""
 
 DATASET_INFO_COLUMNS = [
-    "dataset_name",
-    "position",
+    ColumnName.DATASET.value,
+    ColumnName.POSITION.value,
     "image_index",
-    "frame_number",
+    ColumnName.TIMEPOINT.value,
     "track_id",
     "crop_index",
     "label",
