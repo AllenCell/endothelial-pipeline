@@ -16,7 +16,6 @@ from endo_pipeline.library.visualize.diffae_features.feature_viz import get_labe
 from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
     get_df_for_feature_correlation_viz,
 )
-from endo_pipeline.manifests import load_model_manifest
 from endo_pipeline.settings.diffae_feature_dataframes import (
     NUM_LATENT_FEATURES,
     NUM_PCS_TO_ANALYZE,
@@ -24,10 +23,7 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
 )
 from endo_pipeline.settings.workflow_defaults import (
     DATASET_INFO_COLUMNS,
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     SEGMENTATION_FEATURE_COLUMNS,
 )
 
@@ -54,14 +50,9 @@ df = get_df_for_feature_correlation_viz(
     dataset_name_list=dataset_name_list,
     dataset_info_columns=DATASET_INFO_COLUMNS,
     segmentation_feature_columns=SEGMENTATION_FEATURE_COLUMNS["default"],
-    num_pcs=NUM_PCS_TO_ANALYZE,
     pc_columns=get_pc_column_names(NUM_PCS_TO_ANALYZE),
     diffae_feature_columns=get_latent_feature_column_names(NUM_LATENT_FEATURES),
     polar_pc_columns=[ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE],
-    dataset_collection_name_for_pca=DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    model_manifest=load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
-    run_name=DEFAULT_MODEL_RUN_NAME,
-    seg_feature_manifest_name=DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     timepoint_annotations=timepoint_annotations,
 )
 # %%

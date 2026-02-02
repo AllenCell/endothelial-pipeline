@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -10,16 +11,13 @@ from seaborn import color_palette
 from tqdm import tqdm
 
 from endo_pipeline.configs import get_latent_dim_from_config
-from endo_pipeline.io import (
-    configure_logging,
-    get_config_dict_from_mlflow,
-    get_output_path,
-    load_dataframe,
-)
+from endo_pipeline.io import get_config_dict_from_mlflow, get_output_path, load_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    add_crop_index,
     add_description_column,
     fit_pca,
     get_dataframe_for_dynamics_workflows,
+    get_datasets_in_collection,
     get_latent_feature_column_names,
     get_traj_and_diff,
     project_features_to_pcs,
@@ -44,12 +42,12 @@ from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
     get_feature_dataframe_manifest_name,
     get_model_location_for_run,
-    get_most_recent_run_name,
     load_dataframe_manifest,
     load_model_manifest,
 )
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
+    MAX_PCS_TO_COMPUTE,
     NUM_PCS_TO_ANALYZE,
     ColumnName,
 )
@@ -61,7 +59,9 @@ from endo_pipeline.settings.flow_field_3d import (
     TRAJECTORY_TIME_SPAN,
 )
 from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 )
@@ -80,14 +80,11 @@ def process_dataset_for_track_integration(
     logger.info("Processing dataset: [ %s ]", dataset_name)
 
     out_subdir = get_output_path(__file__, dataset_name)
-    configure_logging(out_subdir, logger, verbose=True)
-
-    model_manifest = load_model_manifest(model_manifest_name)
 
     # load and preprocess the different diffae manifests and PCA pipeline
     merged_feats_df, diffae_grid_crops, bounds = get_preprocessed_manifests_and_km_bounds(
         dataset_name=dataset_name,
-        model_manifest=model_manifest,
+        model_manifest_name=model_manifest_name,
         run_name=run_name,
         seg_feature_manifest_name=seg_feature_manifest_name,
         collection_name_for_pca=collection_name_for_pca,
@@ -422,6 +419,7 @@ def add_normalized_time(
         DataFrame with an additional column
         "normalized_time" containing the normalized time values between 0 and 1.
     """
+
     for _, df_pos in df_all_positions.groupby("position_as_str"):
         for _, df_track in df_pos.groupby("track_id"):
 
@@ -469,28 +467,25 @@ def merge_diffae_feats_liveseg_feats_tables(
     dataset_name = sequence_to_scalar(diffae_tracking_df[ColumnName.DATASET])
     logging.debug("processing the diffae tracking data...")
     # process the diffae tracking data
-    diffae_tracking_df["is_unique"] = diffae_tracking_df.groupby(
+    track_is_unique = diffae_tracking_df.groupby(
         [ColumnName.DATASET, ColumnName.POSITION, ColumnName.TIMEPOINT, "track_id"]
     )[ColumnName.TIMEPOINT].transform(lambda t: t.nunique() == t.size)
-    diffae_tracking_df = diffae_tracking_df[diffae_tracking_df["is_unique"]]
+    if not track_is_unique.all():
+        raise ValueError(
+            "Found non-unique track_id and timepoint combinations in the diffae tracking data. "
+            "Tracking data needs to be curated so that each position has unique Track IDs."
+        )
 
-    # give the crop_index column the same value as the track_ids
-    diffae_tracking_df[ColumnName.CROP_INDEX] = (
-        diffae_tracking_df.groupby([ColumnName.POSITION, "track_id"], as_index=False)
-        .ngroup()
-        .astype(int)
-    )
-    diffae_tracking_df = add_description_column(
-        diffae_tracking_df, dataset_name, simple=True
-    )  # add description column (e.g., 48hr_High)
-    diffae_tracking_df["track_id"] = diffae_tracking_df["track_id"].astype(int)
+    # add crop_index column (track_ids are not unique across positions but crop_index is)
+    diffae_tracking_df = add_crop_index(df=diffae_tracking_df, crop_pattern="tracked")
+    # add description column (e.g., 48hr_High)
+    diffae_tracking_df = add_description_column(diffae_tracking_df, dataset_name, simple=True)
     diffae_tracking_df.rename(columns={ColumnName.POSITION: "position_as_str"}, inplace=True)
 
     logging.debug("processing the live segmentation features data...")
     live_seg_feats_df["position_as_str"] = live_seg_feats_df[ColumnName.POSITION].transform(
         lambda x: "P" + str(x)
     )
-    live_seg_feats_df["track_id"] = live_seg_feats_df["track_id"].astype(int)
 
     logging.debug("merging segmentation properties and track-based DiffAE data...")
     unique_cell_seg_id_group = ["dataset_name", "position_as_str", "image_index", "track_id"]
@@ -546,13 +541,13 @@ def get_diffae_feats_liveseg_feats_merged_table(
     )
     diffae_track_manifest = load_dataframe_manifest(tracked_dataframe_manifest_name)
     diffae_track_location = get_dataframe_location_for_dataset(diffae_track_manifest, dataset_name)
-    diffae_tracking_df = load_dataframe(diffae_track_location)
+    diffae_tracking_df = load_dataframe(diffae_track_location, delay=False)
 
     # load the tracking data of the measured features and merge them
     logging.debug("loading segmentation property data...")
     live_seg_manifest = load_dataframe_manifest(seg_feature_manifest_name)
     live_seg_location = get_dataframe_location_for_dataset(live_seg_manifest, dataset_name)
-    live_seg_feats_df = load_dataframe(live_seg_location)
+    live_seg_feats_df = load_dataframe(live_seg_location, delay=False)
 
     # merge the two tables
     merged_feats_df = merge_diffae_feats_liveseg_feats_tables(diffae_tracking_df, live_seg_feats_df)
@@ -906,13 +901,11 @@ def make_angular_deviation_test(out_dir: Path) -> None:
 
 def get_preprocessed_manifests_and_km_bounds(
     dataset_name: str,
-    model_manifest: ModelManifest,
-    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str = DEFAULT_MODEL_RUN_NAME,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    num_pcs: int = NUM_PCS_TO_ANALYZE,
-    drop_rows_without_diffae_feats: bool = True,
-    filtered: bool = False,
+    num_pcs: int = MAX_PCS_TO_COMPUTE,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list]:
     """
     Load and process the DiffAE and live segmentation feature manifests for a given dataset.
@@ -938,10 +931,6 @@ def get_preprocessed_manifests_and_km_bounds(
     num_pcs
         The number of principal components to use for the PCA projection. If None, the minimum of
         NUM_PCS_TO_ANALYZE and the number of latent dimensions will be used.
-    drop_rows_without_diffae_feats
-        Whether to drop rows in the merged DataFrame that do not have DiffAE features.
-    filtered
-        Whether to filter the merged DataFrame to include only rows marked as "is_included".
 
     Returns
     -------
@@ -951,26 +940,43 @@ def get_preprocessed_manifests_and_km_bounds(
     """
     logger.info(f"Loading and processing manifests for dataset: {dataset_name}")
 
-    run_name = get_most_recent_run_name(model_manifest) if run_name is None else run_name
-    model_location = get_model_location_for_run(model_manifest, run_name)
-    model_config = get_config_dict_from_mlflow(model_location.mlflowid)
-    num_latent_dims = get_latent_dim_from_config(model_config)
-    diffae_feature_column_names = get_latent_feature_column_names(num_latent_dims)
-    num_pcs = num_pcs if num_pcs is not None else min(NUM_PCS_TO_ANALYZE, num_latent_dims)
+    # get the cell-centric merged DiffAE + segmentation feature table
+    model_manifest = load_model_manifest(model_manifest_name)
 
-    # load the tables
     merged_feats_df = get_diffae_feats_liveseg_feats_merged_table(
         dataset_name=dataset_name,
         model_manifest=model_manifest,
         run_name=run_name,
         seg_feature_manifest_name=seg_feature_manifest_name,
-        filtered=filtered,  # do not filter on timepoints yet: we need all timepoints for TFE workflow
+        filtered=False,  # do not filter timepoints (need all timepoints for the TFE workflow)
     )
 
+    # check the model information matches the default values and what will be used for the PCA
+    model_manifest_name_used_for_latent_feats = sequence_to_scalar(
+        merged_feats_df["model_manifest_name"].dropna()
+    )
+    model_run_name_used_for_latent_feats = sequence_to_scalar(merged_feats_df["run_name"].dropna())
+
+    if (DEFAULT_MODEL_MANIFEST_NAME != model_manifest_name_used_for_latent_feats) or (
+        DEFAULT_MODEL_RUN_NAME != model_run_name_used_for_latent_feats
+    ):
+        raise ValueError(
+            """"The model manifest name or run name used to produce the DiffAE
+            features found in the merged features dataframe does not match the
+            expected default values being used for the PCA.
+            """
+        )
+
+    # load the grid crop-based diffae features manifest
     grid_diffae_feat_manifest_name = get_feature_dataframe_manifest_name(
         model_manifest, run_name, crop_pattern="grid"
     )
     # fit the PCA
+    model_location = get_model_location_for_run(model_manifest, run_name)
+    model_config = get_config_dict_from_mlflow(model_location.mlflowid)
+    num_latent_dims = get_latent_dim_from_config(model_config)
+    diffae_feature_column_names = get_latent_feature_column_names(num_latent_dims)
+
     pca = fit_pca(
         dataset_collection_name=collection_name_for_pca,
         dataframe_manifest_name=grid_diffae_feat_manifest_name,
@@ -994,6 +1000,11 @@ def get_preprocessed_manifests_and_km_bounds(
     tracked_diffae_feats_df = tracked_diffae_feats_df.drop(
         columns=["model_manifest_name"] + diffae_feature_column_names
     )
+    tracked_diffae_feats_df["collection_name_for_pca"] = collection_name_for_pca
+    tracked_diffae_feats_df["datasets_used_for_pca"] = [
+        get_datasets_in_collection(collection_name_for_pca)
+    ] * len(tracked_diffae_feats_df)
+
     # tracked_diffae_feats_df retains the indexing of merged_feats_df, so we
     # can merge on the index safely
     merged_feats_df = pd.merge(
@@ -1022,7 +1033,127 @@ def get_preprocessed_manifests_and_km_bounds(
     # lastly, add a normalized version of the "time_hours" column
     merged_feats_df = add_normalized_time(merged_feats_df)
 
-    if drop_rows_without_diffae_feats:
-        merged_feats_df = merged_feats_df[merged_feats_df["model_manifest_name"].notna()]
-
     return merged_feats_df, diffae_grid_crops, bounds
+
+
+def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -> None:
+    """Loads the cell-centric DiffAE + segmentation features merged table, computes the PCs, and
+    then saves the updated merged table with the PCs as a parquet file.
+    """
+
+    out_dir = get_output_path(__file__)
+
+    merged_feats_df = get_preprocessed_manifests_and_km_bounds(dataset_name=dataset_name)[0]
+
+    filename = f"{dataset_name}_pc_diffae_seg_feats_merged.parquet"
+
+    merged_feats_df.to_parquet(out_dir / filename)
+
+
+def load_preprocessed_dataframes_and_km_bounds(
+    dataset_name: str,
+    cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+    num_pcs: int = MAX_PCS_TO_COMPUTE,
+    delay: bool = True,
+) -> tuple[pd.DataFrame | dd.DataFrame, pd.DataFrame | dd.DataFrame, list]:
+    """
+    Load the preprocessed pc-diffae-seg-merged parquet file for a given dataset.
+
+    Parameters
+    ----------
+    dataset_name
+        The name of the dataset to load.
+    cell_centric_manifest_name
+        The name of the manifest containing the cell-centric pc-diffae-seg-merged features.
+    num_pcs
+        The number of principal components to use for the PCA projection. This only
+        applies to the grid crop-based diffae features dataframe (the cell-centric
+        features dataframe has 100 PCs computed already).
+    delay
+        Whether to delay the loading of the dataframe (Dask DataFrame) or not (Pandas DataFrame).
+
+    Returns
+    -------
+    :
+        The loaded dataframe with pc-diffae-seg-merged data.
+    """
+    # load the pc-diffae-seg-merged parquet file
+    cell_centric_feats_df = load_pc_diffae_liveseg_feats_merged_table(
+        dataset_name, cell_centric_manifest_name
+    )
+
+    # get the grid crop-based diffae features
+    # get the model information
+    model_manifest_name = sequence_to_scalar(
+        cell_centric_feats_df["model_manifest_name"].compute().dropna()
+    )
+    run_name = sequence_to_scalar(cell_centric_feats_df["run_name"].compute().dropna())
+    model_manifest = load_model_manifest(model_manifest_name)
+
+    # get the datasets used to calculate the PCA in the cell-centric features
+    collection_name_for_pca = sequence_to_scalar(
+        cell_centric_feats_df["collection_name_for_pca"].compute().dropna()
+    )
+
+    # load the grid crop-based diffae features manifest
+    grid_diffae_feat_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
+    # get the fitted PCA
+    pca = fit_pca(
+        dataset_collection_name=collection_name_for_pca,
+        dataframe_manifest_name=grid_diffae_feat_manifest_name,
+        num_pcs=num_pcs,
+    )
+    # read in the grid crop-based diffae features
+    grid_diffae_manifest = load_dataframe_manifest(grid_diffae_feat_manifest_name)
+    diffae_grid_crops = get_dataframe_for_dynamics_workflows(
+        dataset_name,
+        grid_diffae_manifest,
+        pca,
+        include_cell_piling=False,
+        include_not_steady_state=False,
+    )
+
+    # get bounds for plotting and flow field estimation
+    bounds = get_bounds_from_data([dataset_name], grid_diffae_manifest, pca)
+
+    if delay is False:
+        cell_centric_feats_df = cell_centric_feats_df.compute()  # type: ignore
+
+    return cell_centric_feats_df, diffae_grid_crops, bounds
+
+
+def load_pc_diffae_liveseg_feats_merged_table(
+    dataset_name: str, cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
+) -> dd.DataFrame:
+    """Load the preprocessed pc-diffae-seg-merged parquet file for a given dataset.
+    Performs delayed loading of the dataframe using a dask DataFrame.
+
+    If you load the dataframe like so
+    >>> df = load_pc_diffae_liveseg_feats_merged_table(dataset_name)
+
+    All available columns can be listed with `df.columns`.
+    Columns of interest can be loaded with `df['column_name'].compute()` or
+    `df[['column_name_1', 'column_name_2', ...]].compute()`.
+    Loading the entire dataframe into memory with `df.compute()` takes a lot of memory
+    and time, so it is not recommended.
+
+    Parameters
+    ----------
+    dataset_name
+        The name of the dataset to load.
+
+    Returns
+    -------
+        The loaded dataframe with pc-diffae-seg-merged data.
+    """
+    # load the pc-diffae-seg-merged parquet file
+    cell_centric_feats_manifest = load_dataframe_manifest(cell_centric_manifest_name)
+    cell_centric_feats_location = get_dataframe_location_for_dataset(
+        cell_centric_feats_manifest, dataset_name
+    )
+    cell_centric_feats_df = load_dataframe(cell_centric_feats_location, delay=True)
+    cell_centric_feats_df = cell_centric_feats_df.reset_index(drop=True)
+
+    return cell_centric_feats_df

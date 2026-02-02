@@ -113,14 +113,10 @@ def generate_from_coords_and_noised_image(
 
     # move model and inputs to gpu if available, else
     # perform reconstruction on cpu
-    if num_gpus:
-        coords_ = coords_torch.to("cuda")
-        noised_image_ = noised_image_torch.to("cuda")
-        model_ = model.to("cuda")
-    else:
-        coords_ = coords_torch
-        noised_image_ = noised_image_torch
-        model_ = model
+    device = "cpu" if num_gpus is None else "cuda"
+    coords_ = coords_torch.to(device)
+    noised_image_ = noised_image_torch.to(device)
+    model_ = model.to(device)
 
     if not hasattr(model_, "generate_from_latent_and_noised_image"):
         logger.error(
@@ -179,12 +175,9 @@ def generate_from_coords(
 
     # move model and inputs to gpu if available, else
     # perform reconstruction on cpu
-    if num_gpus:
-        coords_ = coords_torch.to("cuda")
-        model_ = model.to("cuda")
-    else:
-        coords_ = coords_torch
-        model_ = model
+    device = "cpu" if num_gpus is None else "cuda"
+    coords_ = coords_torch.to(device)
+    model_ = model.to(device)
 
     if isinstance(model_, DiffusionAutoEncoder):
         walk_img = model_.generate_from_latent(

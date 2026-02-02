@@ -4,7 +4,6 @@ import pandas as pd
 import seaborn as sb
 
 from endo_pipeline.library.analyze.immunofluorescence.plot import bootstrap_confidence_cov
-from endo_pipeline.library.visualize import viz_base
 from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE, ColumnName
 
 
@@ -121,7 +120,7 @@ def plot_scatter_by_position_and_frame(
         - ax : An array of matplotlib axes objects for the subplots.
     """
 
-    fig, ax = viz_base.init_subplots(figsize=(15, 5))
+    fig, ax = plt.subplots(1, 2, figsize=(15, 5))
     pc_column_names = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
     for position, df_pos in df.groupby(ColumnName.POSITION):

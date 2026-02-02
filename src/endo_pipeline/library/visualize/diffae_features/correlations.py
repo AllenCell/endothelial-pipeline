@@ -18,7 +18,6 @@ from endo_pipeline.library.analyze.numerics import (
     fit_exp_decay_and_get_relaxation_timescale,
 )
 from endo_pipeline.library.analyze.numerics.correlations import CROSS_CORR_INDEX_COMBINATIONS
-from endo_pipeline.library.visualize.viz_base import init_plot
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +36,7 @@ def _plot_single_acf_curve(
     if fig_ax is not None:
         fig, ax = fig_ax
     else:
-        fig, ax = init_plot(figsize=figsize)
+        fig, ax = plt.subplots(figsize=figsize)
 
     ax.plot(lags, acf, **kwargs)
     ax.set_title(plot_title if plot_title is not None else "Autocorrelation Function")
@@ -57,7 +56,7 @@ def _plot_acf_curves_together(
     **kwargs: Any,
 ) -> tuple[plt.Figure, plt.Axes]:
     """Plot multiple ACF curves together for comparison."""
-    fig, ax = init_plot(figsize=figsize)
+    fig, ax = plt.subplots(figsize=figsize)
 
     lags: np.ndarray = correlation_dict["lags"][dataset_name]
     acf_array: np.ndarray = correlation_dict["acf"][dataset_name]
@@ -340,7 +339,7 @@ def _make_all_ccf_plots(
     max_lag_integrate: int = correlation_dict["max_lag_integrate"][dataset_name]
 
     # plot ccf with confidence intervals if available
-    fig, ax = init_plot(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(12, 6))
     for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
         lags_all_as_hours = 5 * lags / 60  # convert from frames (5 minutes) to hours
         ax.plot(lags_all_as_hours, ccf[:, i], label=f"(PC{j+1}, PC{k+1})")
@@ -365,7 +364,7 @@ def _make_all_ccf_plots(
     )
 
     # plot delta ccf: difference between positive and negative lags
-    fig, ax = init_plot(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(12, 6))
     for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
         # delta ccf is symmetric around zero
         lags_symmetric = lags[1 + num_lags // 2 :]
@@ -440,7 +439,7 @@ def _plot_single_correlation_metric_vs_shear_stress(
     labels: list[str] | None = None,
 ) -> tuple[plt.Figure, plt.Axes]:
     # init plot
-    fig, ax = init_plot(figsize=(8, 6))
+    fig, ax = plt.subplots(figsize=(8, 6))
 
     # set default labels if none provided
     if labels is None:

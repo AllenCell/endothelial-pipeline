@@ -16,7 +16,14 @@ POLAR_COLUMN_NAMES: list[str] = [ColumnName.POLAR_ANGLE.value, ColumnName.POLAR_
 BIN_LIMITS_POLAR: list[tuple[float, float]] = [(-pi, pi), (0.0, 3.5)]
 """Bin limits for polar coordinate analysis, in the order [angle, radius]."""
 
+RESCALE_THETA: bool = True
+"""Whether to rescale polar angle coordinate to [0, pi] range for analysis and visualization."""
+
 BIN_LIMITS_THETA_RESCALED: tuple[float, float] = (0.0, pi)
+"""Bin limits for rescaled polar angle coordinate analysis and visualization."""
+
+THETA_RESCALED_PERIOD: float = pi
+"""Period for rescaled polar angle coordinate."""
 
 TICK_STEP_NUM: int = 7
 """Number of axes ticks for coordinate axis in histogram plots."""
