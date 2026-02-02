@@ -11,10 +11,7 @@ from endo_pipeline.configs import (
     load_dataset_config,
 )
 from endo_pipeline.io import get_output_path, save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    filter_dataframe_by_annotations,
-    unwrap_nonsequential_array,
-)
+from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
 from endo_pipeline.library.analyze.integration.track_integration import (
     load_pc_diffae_liveseg_feats_merged_table,
 )
@@ -118,17 +115,17 @@ for dataset_name in tqdm(datasets):
 
     df_filtered["orientation"] = df_filtered.groupby([ColumnName.POSITION, "track_id"])[
         "orientation"
-        # ].transform(lambda x: np.unwrap(x, period=THETA_RESCALED_PERIOD))
-    ].transform(
-        lambda x: unwrap_nonsequential_array(x, period=THETA_RESCALED_PERIOD, reference_angle=0)
-    )
+    ].transform(lambda x: np.unwrap(x, period=THETA_RESCALED_PERIOD))
+    # ].transform(
+    #     lambda x: unwrap_nonsequential_array(x, period=THETA_RESCALED_PERIOD, reference_angle=0)
+    # )
 
     df_filtered["polar_theta"] = df_filtered.groupby([ColumnName.POSITION, "track_id"])[
         "polar_theta"
-        # ].transform(lambda x: np.unwrap(x, period=THETA_RESCALED_PERIOD))
-    ].transform(
-        lambda x: unwrap_nonsequential_array(x, period=THETA_RESCALED_PERIOD, reference_angle=0)
-    )
+    ].transform(lambda x: np.unwrap(x, period=THETA_RESCALED_PERIOD))
+    # ].transform(
+    #     lambda x: unwrap_nonsequential_array(x, period=THETA_RESCALED_PERIOD, reference_angle=0)
+    # )
 
     df_subset = pd.concat([df_subset, df_filtered[df_filtered.is_included]])
 
@@ -147,9 +144,11 @@ for dataset_name in tqdm(datasets):
         df_features = df_filtered[df_filtered[ColumnName.POSITION] == pos]
         vector_means: dict = {}
         vector_means_multipos: dict = {}
-        for feature in feature_cols:
-            vec_mean_ang, vec_mean_mag = vector_mean_angle_and_mag(df_features[feature].dropna())
-            vector_means[f"{feature}_vec_mean_angle"] = vec_mean_ang
+        for feature in ["orientation", "polar_theta"]:
+            vec_mean_ang, vec_mean_mag = vector_mean_angle_and_mag(
+                df_features[feature].dropna() * 2
+            )
+            vector_means[f"{feature}_vec_mean_angle"] = vec_mean_ang / 2
             vector_means[f"{feature}_vec_mean_magnitude"] = vec_mean_mag
 
             vec_mean_ang_multipos, vec_mean_mag_multipos = vector_mean_angle_and_mag(
