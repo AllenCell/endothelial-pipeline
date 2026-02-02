@@ -93,6 +93,7 @@ def generate_tfe_dataset(
 
     df = add_dynamic_features_with_filtering(df_position)
     df["orientation_deg"] = np.rad2deg(df["orientation"] + np.pi / 2)
+    df["orientation"] += np.pi / 2
     df = update_manifest_for_tfe(df, dataset, position, output_dir)
 
     if backdrops:
