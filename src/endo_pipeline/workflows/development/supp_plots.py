@@ -1,169 +1,15 @@
-from pathlib import Path
-
 import matplotlib.pyplot as plt
 import numpy as np
 
 from endo_pipeline.cli import tags
 from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM, FONTSIZE_SMALL
 from endo_pipeline.settings.workflow_defaults import (
-    DATASET_COLORS,
+    IMAGE_METRIC_DATASET_COLORS,
     METRIC_TEXT_BOX_PROPS,
     RANDOM_SEED,
 )
 
 TAGS = ["diffae", tags.TEST_READY, tags.GPU]
-
-
-def _save_crop_as_tiff(
-    image: np.ndarray,
-    output_path: Path,
-    filename: str,
-) -> None:
-    """
-    Save a crop as a TIFF file.
-
-    Parameters
-    ----------
-    image
-        The image array to save. Can be 2D or 3D (with channel dimension).
-    output_path
-        Path to directory where TIFF should be saved.
-    filename
-        Filename for the saved TIFF (without extension).
-    """
-    import tifffile
-
-    output_file = output_path / f"{filename}.tiff"
-    # Ensure image is in the right format for tifffile
-    image_to_save = image.squeeze()
-    # Convert to float32 if not already a float type to preserve precision
-    if not np.issubdtype(image_to_save.dtype, np.floating):
-        image_to_save = image_to_save.astype(np.float32)
-    tifffile.imwrite(output_file, image_to_save)
-
-
-def _save_all_crops_as_tiff(
-    output_path: Path,
-    dataset_name: str,
-    position: int,
-    timepoint: int,
-    start_x: int,
-    start_y: int,
-    conditioning_input_crop: np.ndarray,
-    diffusion_input_crop: np.ndarray,
-    noisy_diffusion_input_images: list[np.ndarray],
-    noise_image: np.ndarray,
-    denoised_images: list[np.ndarray],
-    noise_levels: list[float],
-    logger,
-) -> None:
-    """
-    Save all crops as TIFF files to a structured directory.
-
-    Parameters
-    ----------
-    output_path
-        Base output path for saving files.
-    dataset_name
-        Name of the dataset.
-    position
-        Position index.
-    timepoint
-        Timepoint index.
-    start_x
-        X coordinate of crop start.
-    start_y
-        Y coordinate of crop start.
-    conditioning_input_crop
-        The conditioning input image crop.
-    diffusion_input_crop
-        The ground truth diffusion input crop.
-    noisy_diffusion_input_images
-        List of noised images at various noise levels.
-    noise_image
-        Pure noise image.
-    denoised_images
-        List of denoised output images.
-    noise_levels
-        List of noise level values (e.g., [0.25, 0.5, 0.75]).
-    logger
-        Logger instance for debug messages.
-    """
-    crops_output_path = (
-        output_path / "crops" / f"{dataset_name}_P{position}_T{timepoint}_X{start_x}_Y{start_y}"
-    )
-    crops_output_path.mkdir(parents=True, exist_ok=True)
-
-    # Save conditioning input crop
-    _save_crop_as_tiff(conditioning_input_crop, crops_output_path, "conditioning_input")
-
-    # Save ground truth (diffusion input crop)
-    _save_crop_as_tiff(diffusion_input_crop, crops_output_path, "ground_truth")
-
-    # Save noised images at each noise level
-    for noised_img, noise_level in zip(noisy_diffusion_input_images, noise_levels, strict=False):
-        noise_pct = int(noise_level * 100)
-        _save_crop_as_tiff(noised_img, crops_output_path, f"noised_{noise_pct:03d}pct")
-
-    # Save pure noise image
-    _save_crop_as_tiff(noise_image, crops_output_path, "noised_100pct")
-
-    # Save denoised images at each noise level
-    for denoise_idx, denoised_img in enumerate(denoised_images):
-        if denoise_idx < len(noise_levels):
-            noise_pct = int(noise_levels[denoise_idx] * 100)
-        else:
-            noise_pct = 100
-        _save_crop_as_tiff(
-            denoised_img, crops_output_path, f"denoised_from_{noise_pct:03d}pct_noise"
-        )
-
-    logger.debug(f"Saved crops to {crops_output_path}")
-
-
-def _compute_denoising_metrics(
-    ground_truth: np.ndarray,
-    denoised_images: list[np.ndarray],
-    lpips_calculator,
-    compute_all_noise_levels: bool,
-) -> tuple[list[dict] | None, dict]:
-    """
-    Compute image quality metrics for denoised images.
-
-    Parameters
-    ----------
-    ground_truth
-        The ground truth image (squeezed).
-    denoised_images
-        List of denoised output images at various noise levels.
-    lpips_calculator
-        LPIPS calculator instance.
-    compute_all_noise_levels
-        If True, compute metrics for all noise levels. If False, only compute
-        metrics for the 100% noise level.
-
-    Returns
-    -------
-    tuple
-        A tuple of (metrics_list, metrics_100) where metrics_list is None if
-        compute_all_noise_levels is False.
-    """
-    from endo_pipeline.library.analyze.image_metrics import compute_all_metrics
-
-    if compute_all_noise_levels:
-        metrics = []
-        for denoised_img in denoised_images:
-            denoised_squeezed = denoised_img.squeeze()
-            metrics.append(
-                compute_all_metrics(ground_truth, denoised_squeezed, lpips_calculator).to_dict()
-            )
-        metrics_100 = metrics[-1]
-    else:
-        denoised_100 = denoised_images[-1].squeeze()
-        metrics_100 = compute_all_metrics(ground_truth, denoised_100, lpips_calculator).to_dict()
-        metrics = None
-
-    return metrics, metrics_100
 
 
 def _create_comparison_bar_plot(
@@ -203,7 +49,6 @@ def _create_comparison_bar_plot(
         Options: "upper right", "lower right", "upper left", "lower left".
     """
     import matplotlib.pyplot as plt
-    import numpy as np
 
     from endo_pipeline.io.output import save_plot_to_path
 
@@ -222,7 +67,7 @@ def _create_comparison_bar_plot(
         yerr=validation_stds,
         capsize=5,
         label="Validation",
-        color=DATASET_COLORS["validation_positions"],
+        color=IMAGE_METRIC_DATASET_COLORS["validation_positions"],
         alpha=0.8,
     )
     ax.bar(
@@ -232,7 +77,7 @@ def _create_comparison_bar_plot(
         yerr=rep2_stds,
         capsize=5,
         label="Rep2",
-        color=DATASET_COLORS["rep_2_positions"],
+        color=IMAGE_METRIC_DATASET_COLORS["rep_2_positions"],
         alpha=0.8,
     )
     ax.set_xlabel("Model", fontsize=FONTSIZE_MEDIUM)
@@ -507,7 +352,6 @@ def main(
     from typing import Any
 
     import matplotlib.pyplot as plt
-    import numpy as np
     from numpy.random import default_rng
 
     from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
@@ -518,8 +362,11 @@ def main(
         load_image,
         load_model,
     )
-    from endo_pipeline.io.output import save_plot_to_path
-    from endo_pipeline.library.analyze.image_metrics import LPIPSCalculator
+    from endo_pipeline.io.output import save_denoising_crops, save_plot_to_path
+    from endo_pipeline.library.analyze.image_metrics import (
+        LPIPSCalculator,
+        compute_denoising_metrics,
+    )
     from endo_pipeline.library.model.diffae.eval_diffae import get_latent_vector_from_crop
     from endo_pipeline.library.model.diffae.generate_image import (
         add_noise_to_image,
@@ -714,7 +561,7 @@ def main(
 
                 # Save crops as TIFF files if requested
                 if save_crops_as_tiff and include_in_metrics:
-                    _save_all_crops_as_tiff(
+                    save_denoising_crops(
                         output_path=output_path,
                         dataset_name=dataset_name,
                         position=position,
@@ -727,13 +574,12 @@ def main(
                         noise_image=noise_image,
                         denoised_images=denoised_images,
                         noise_levels=MODEL_QC_NOISE_LEVELS,
-                        logger=logger,
                     )
 
                 # Compute metrics
                 ground_truth = diffusion_input_crop.squeeze()
 
-                metrics, metrics_100 = _compute_denoising_metrics(
+                metrics, metrics_100 = compute_denoising_metrics(
                     ground_truth=ground_truth,
                     denoised_images=denoised_images,
                     lpips_calculator=lpips_calculator,

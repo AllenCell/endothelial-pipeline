@@ -45,7 +45,7 @@ MODEL_QC_NOISE_LEVELS: tuple = (0.25, 0.5, 0.75)
 
 METRIC_TEXT_BOX_PROPS = {"boxstyle": "round", "facecolor": "wheat", "alpha": 0.3}
 
-DATASET_COLORS = {
+IMAGE_METRIC_DATASET_COLORS = {
     "validation_positions": "#2E86AB",  # Blue
     "rep_2_positions": "#A23B72",  # Purple/magenta
 }

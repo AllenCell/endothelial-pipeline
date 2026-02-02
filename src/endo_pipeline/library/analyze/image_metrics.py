@@ -193,3 +193,50 @@ def compute_all_metrics(
     lpips_score = lpips_calculator.compute(img1, img2)
 
     return ImageMetrics(correlation=corr, ssim=ssim_score, lpips=lpips_score)
+
+
+def compute_denoising_metrics(
+    ground_truth: NDArray,
+    denoised_images: list[NDArray],
+    lpips_calculator: LPIPSCalculator | None = None,
+    compute_all_noise_levels: bool = False,
+) -> tuple[list[dict] | None, dict]:
+    """
+    Compute image quality metrics for denoised images.
+
+    Parameters
+    ----------
+    ground_truth
+        The ground truth image (squeezed).
+    denoised_images
+        List of denoised output images at various noise levels.
+    lpips_calculator
+        LPIPS calculator instance. If None, a new one will be created.
+    compute_all_noise_levels
+        If True, compute metrics for all noise levels. If False, only compute
+        metrics for the 100% noise level (last image in list).
+
+    Returns
+    -------
+    tuple
+        A tuple of (metrics_list, metrics_100) where metrics_list is None if
+        compute_all_noise_levels is False. metrics_100 is the metrics dict for
+        the 100% noise level (last denoised image).
+    """
+    if lpips_calculator is None:
+        lpips_calculator = LPIPSCalculator()
+
+    if compute_all_noise_levels:
+        metrics = []
+        for denoised_img in denoised_images:
+            denoised_squeezed = denoised_img.squeeze()
+            metrics.append(
+                compute_all_metrics(ground_truth, denoised_squeezed, lpips_calculator).to_dict()
+            )
+        metrics_100 = metrics[-1]
+    else:
+        denoised_100 = denoised_images[-1].squeeze()
+        metrics_100 = compute_all_metrics(ground_truth, denoised_100, lpips_calculator).to_dict()
+        metrics = None
+
+    return metrics, metrics_100
