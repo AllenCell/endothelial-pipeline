@@ -61,6 +61,8 @@ license = { text = "AISL" }
 [project.optional-dependencies]
 internal = [
     "aicsfiles>=8.1.1",
+]
+aws = [
     "s3-tools",
 ]
 ml_workflows = [
