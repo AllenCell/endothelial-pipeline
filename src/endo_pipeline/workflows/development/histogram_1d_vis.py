@@ -1,3 +1,7 @@
+from typing import Annotated
+
+from cyclopts import Parameter
+
 from endo_pipeline.cli import CropPattern, Datasets
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
@@ -11,6 +15,7 @@ def main(
     run_name: str = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
     global_axes_limits: bool = False,
+    just_steady_state: Annotated[bool, Parameter(negative="--include-transient")] = True,
 ) -> None:
     """
     Analyze and visualize DiffAE feature dynamics in polar coordinates.
@@ -112,11 +117,14 @@ def main(
         bin_limits=bin_limits,
     )
 
+    # set output director based on whether including transient data
+    file_subdir = "just_steady_state" if just_steady_state else "includes_transient_data"
+
     # loop over datasets in collection
     # plot summary plots
     # compute drift and diffusion coefficients in polar coordinates
     for dataset_name in dataset_names:
-        fig_savedir = get_output_path(__file__, dataset_name)
+        fig_savedir = get_output_path(__file__, file_subdir, dataset_name)
         dataset_config = load_dataset_config(dataset_name)
 
         df = get_dataframe_for_dynamics_workflows(
@@ -124,7 +132,7 @@ def main(
             dataframe_manifest,
             pca=pca,
             include_cell_piling=False,
-            include_not_steady_state=False,
+            include_not_steady_state=not just_steady_state,
             compute_polar=True,
             rescale_theta=RESCALE_THETA,
         )
@@ -152,7 +160,7 @@ def main(
                 for i, ax_ in enumerate(ax):
                     ax_.set_ylim(bin_limits[i])
 
-            fig.suptitle(fig_title)
+            fig.suptitle(fig_title, y=0.91)
             save_plot_to_path(fig, fig_savedir, f"{dataset_name_flow}_per_position_averages")
 
             hist_arrays = []
@@ -181,7 +189,7 @@ def main(
                 time_tick_step=50,
                 bin_tick_num=TICK_STEP_NUM,
             )
-            fig.suptitle(fig_title)
+            fig.suptitle(fig_title, y=0.91)
             save_plot_to_path(fig, fig_savedir, f"{dataset_name_flow}_histogram_heatmap")
 
 
