@@ -1,5 +1,4 @@
 from endo_pipeline.cli import CropPattern, Datasets
-from endo_pipeline.settings.polar_coords import RESCALE_THETA
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -12,7 +11,6 @@ def main(
     run_name: str = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
     global_axes_limits: bool = False,
-    rescale_theta: bool = RESCALE_THETA,
 ) -> None:
     """
     Analyze and visualize DiffAE feature dynamics in polar coordinates.
@@ -75,6 +73,7 @@ def main(
         BIN_WIDTHS_POLAR,
         DEFAULT_DATASET_COLLECTION_POLAR_VIS,
         POLAR_COLUMN_NAMES,
+        RESCALE_THETA,
         TICK_STEP_NUM,
     )
 
@@ -105,8 +104,9 @@ def main(
     # compute bins for polar coordinates
     bin_limits = [*BIN_LIMITS_POLAR, (-3, 3)]
     idx_theta = column_names.index(ColumnName.POLAR_ANGLE.value)
-    if rescale_theta:
+    if RESCALE_THETA:
         bin_limits[idx_theta] = BIN_LIMITS_THETA_RESCALED
+
     bins, _ = get_bins(
         bin_widths=(BIN_WIDTHS_POLAR[0], BIN_WIDTHS_POLAR[1], 0.05),
         bin_limits=bin_limits,
@@ -126,7 +126,7 @@ def main(
             include_cell_piling=False,
             include_not_steady_state=False,
             compute_polar=True,
-            rescale_theta=rescale_theta,
+            rescale_theta=RESCALE_THETA,
         )
 
         df_by_flow, shear_stress_list = split_dataset_by_flow(
