@@ -23,7 +23,7 @@ LABEL_MAP = {
     "track_duration": "Track Duration",
     "num_valid_tp_per_track": "Number of Valid Timepoints",
     "number_of_neighbors": "Number of Neighbors",
-    "nuc_nuclei_in_crop": "Number of Nuclei in Crop",
+    "num_nuclei_in_crop": "Number of Nuclei in Crop",
     # filters
     "is_edge_segmentation": "Filter: Touches Edge of Field of View",
     "is_less_than_max_smoothed_area_normd_change": "Filter: Smoothed Area Change Below Threshold",
