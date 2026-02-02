@@ -1,33 +1,32 @@
 import logging
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
 from colorizer_data import convert_colorizer_data
 
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.integration.track_integration import (
-    get_preprocessed_manifests_and_km_bounds,
+    load_pc_diffae_liveseg_feats_merged_table,
 )
 from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     generate_backdrops,
 )
-from endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import LABEL_MAP
 from endo_pipeline.library.visualize.timelapse_feature_explorer.tfe_manifest_formatting import (
     add_dynamic_features_with_filtering,
     add_feature_metadata,
     update_manifest_for_tfe,
 )
-from endo_pipeline.manifests import (
-    get_dataframe_location_for_dataset,
-    load_dataframe_manifest,
-    load_model_manifest,
-)
-from endo_pipeline.settings import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-    DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
+)
+from endo_pipeline.settings.feature_info import LABEL_MAP
+from endo_pipeline.settings.workflow_defaults import (
+    DATASET_INFO_COLUMNS,
+    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    SEGMENTATION_FEATURE_COLUMNS,
 )
 
 logger = logging.getLogger(__name__)
@@ -40,9 +39,6 @@ def generate_tfe_dataset(
     source_dir: Path,
     backdrops: bool,
     output_dir_suffix: str = "",
-    model_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    dataset_collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     include_diffae_features: bool = True,
 ) -> None:
     """
@@ -64,15 +60,7 @@ def generate_tfe_dataset(
     if include_diffae_features:
         try:
             # Load dataframe with the diffae features and computed PCs
-            # only take the dataframe from the output (which is the 0th element)
-            model_manifest = load_model_manifest(model_name)
-            df_tracks = get_preprocessed_manifests_and_km_bounds(
-                dataset_name=dataset,
-                model_manifest=model_manifest,
-                run_name=run_name,
-                collection_name_for_pca=dataset_collection_name_for_pca,
-                drop_rows_without_diffae_feats=False,
-            )[0]
+            df_tracks = load_pc_diffae_liveseg_feats_merged_table(dataset)
             include_diffae_features_failed = False
         except KeyError:
             logger.warning(
@@ -83,7 +71,7 @@ def generate_tfe_dataset(
         # load just the CDH5-based segmentation features as a fallback if no DiffAE features exist
         segprops_manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
         segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset)
-        df_tracks = load_dataframe(segprops_location)
+        df_tracks = load_dataframe(segprops_location, delay=True)
         # remove the DiffAE-related entries from LABEL_MAP before constructing the TFE dataset
         diffae_keys = [
             key for key in LABEL_MAP if key in DIFFAE_FEATURE_COLUMN_NAMES + DIFFAE_PC_COLUMN_NAMES
@@ -91,9 +79,20 @@ def generate_tfe_dataset(
         for key in diffae_keys:
             del LABEL_MAP[key]
 
-    df_position = df_tracks[df_tracks["position"] == position]
+    cols_to_compute = list(
+        set(
+            DATASET_INFO_COLUMNS
+            + [item for sublist in SEGMENTATION_FEATURE_COLUMNS.values() for item in sublist]
+            + list(LABEL_MAP.keys())
+        )
+        & set(df_tracks.columns)
+    )
+    df_tracks_subset: pd.DataFrame = df_tracks[cols_to_compute].compute().reset_index(drop=True)
+
+    df_position = df_tracks_subset.query("position == @position")
 
     df = add_dynamic_features_with_filtering(df_position)
+    df["orientation_deg"] = np.rad2deg(df["orientation"] + np.pi / 2)
     df = update_manifest_for_tfe(df, dataset, position, output_dir)
 
     if backdrops:
