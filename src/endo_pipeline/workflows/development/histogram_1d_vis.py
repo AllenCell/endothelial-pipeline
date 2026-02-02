@@ -78,8 +78,9 @@ def main(
         TICK_STEP_NUM,
     )
 
-    # get labels for polar coordinate columns
-    variable_names = [get_label_for_column(col) for col in POLAR_COLUMN_NAMES]
+    # get feature column names and labels (for plots)
+    column_names = [*POLAR_COLUMN_NAMES, "pc_3"]
+    variable_names = [get_label_for_column(col) for col in column_names]
 
     # get dataframe manifest for grid-based crop features
     model_manifest = load_model_manifest(model_manifest_name)
@@ -102,12 +103,12 @@ def main(
         dataset_names = [name for name in datasets if name in valid_dataset_options]
 
     # compute bins for polar coordinates
-    bin_limits = BIN_LIMITS_POLAR.copy()
-    idx_theta = POLAR_COLUMN_NAMES.index(ColumnName.POLAR_ANGLE.value)
+    bin_limits = [*BIN_LIMITS_POLAR, (-3, 3)]
+    idx_theta = column_names.index(ColumnName.POLAR_ANGLE.value)
     if rescale_theta:
         bin_limits[idx_theta] = BIN_LIMITS_THETA_RESCALED
     bins, _ = get_bins(
-        bin_widths=BIN_WIDTHS_POLAR,
+        bin_widths=(BIN_WIDTHS_POLAR[0], BIN_WIDTHS_POLAR[1], 0.05),
         bin_limits=bin_limits,
     )
 
@@ -143,20 +144,20 @@ def main(
 
             fig, ax = plot_per_position_average_over_time(
                 df_,
-                POLAR_COLUMN_NAMES,
+                column_names=column_names,
                 column_labels=variable_names,
                 polar_angle_range=bin_limits[idx_theta],
             )
             if global_axes_limits:
                 for i, ax_ in enumerate(ax):
-                    ax_.set_ylim(BIN_LIMITS_POLAR[i])
+                    ax_.set_ylim(bin_limits[i])
 
             fig.suptitle(fig_title)
             save_plot_to_path(fig, fig_savedir, f"{dataset_name_flow}_per_position_averages")
 
             hist_arrays = []
 
-            for i, column_name in enumerate(POLAR_COLUMN_NAMES):
+            for i, column_name in enumerate(column_names):
                 # plot histogram heatmap over time
                 num_bins = len(bins[i]) - 1
                 frame_min = df_[ColumnName.TIMEPOINT].min()
@@ -181,7 +182,7 @@ def main(
                 bin_tick_num=TICK_STEP_NUM,
             )
             fig.suptitle(fig_title)
-            save_plot_to_path(fig, fig_savedir, f"{dataset_name_flow}_polar_histogram_heatmap")
+            save_plot_to_path(fig, fig_savedir, f"{dataset_name_flow}_histogram_heatmap")
 
 
 if __name__ == "__main__":
