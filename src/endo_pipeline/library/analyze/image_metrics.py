@@ -147,7 +147,7 @@ def compute_ssim(img1: NDArray, img2: NDArray) -> float:
     Parameters
     ----------
     img1, img2 : NDArray
-        Images to compare (should be 2D arrays).
+        Images to compare (should be 2D arrays, normalized to [-1, 1]).
 
     Returns
     -------
@@ -160,9 +160,8 @@ def compute_ssim(img1: NDArray, img2: NDArray) -> float:
     if img2.ndim > 2:
         img2 = img2.squeeze()
 
-    # Compute SSIM with appropriate data range
-    data_range = max(img1.max() - img1.min(), img2.max() - img2.min())
-    return float(ssim(img1, img2, data_range=data_range))
+    # Data range is 2.0 for images normalized to [-1, 1]
+    return float(ssim(img1, img2, data_range=2.0))
 
 
 def compute_all_metrics(
