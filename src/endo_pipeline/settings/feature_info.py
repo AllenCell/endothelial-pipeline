@@ -24,6 +24,10 @@ LABEL_MAP = {
     "num_valid_tp_per_track": "Number of Valid Timepoints",
     "number_of_neighbors": "Number of Neighbors",
     "num_nuclei_in_crop": "Number of Nuclei in Crop",
+    "centroid_velocity_angle_deg": "Cell Migration Angle (deg)",
+    "centroid_velocity_magnitude": "Cell Migration Speed (µm/min)",
+    "cell_nuc_orientation_deg_rel_to_migration": "Nucleus Orientation Relative to Migration (deg)",
+    "nuc_pos_rel_cell_angle_deg": "Nucleus Orientation Relative to Flow Angle (deg)",
     # filters
     "is_edge_segmentation": "Filter: Touches Edge of Field of View",
     "is_less_than_max_smoothed_area_normd_change": "Filter: Smoothed Area Change Below Threshold",
