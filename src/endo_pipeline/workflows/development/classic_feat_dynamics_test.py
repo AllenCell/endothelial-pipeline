@@ -1,6 +1,7 @@
 import seaborn as sns
 from matplotlib import pyplot as plt
 
+from endo_pipeline.io import get_output_path, save_plot_to_path
 from endo_pipeline.library.analyze.integration.track_integration import (
     load_pc_diffae_liveseg_feats_merged_table,
 )
@@ -8,6 +9,8 @@ from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifes
     calculate_derived_data_dynamics_dependent,
 )
 from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
+
+out_dir = get_output_path(__file__)
 
 dataset_name = "20251001_20X"
 
@@ -28,7 +31,7 @@ sns.lineplot(
     ax=ax,
 )
 ax.axhline(0, color="grey", linestyle="--")
-plt.show()
+save_plot_to_path(fig, out_dir, "dnum_nuclei_in_crop_dt")
 
 fig, ax = plt.subplots()
 sns.lineplot(
@@ -39,4 +42,4 @@ sns.lineplot(
     ax=ax,
 )
 ax.axhline(0, color="grey", linestyle="--")
-plt.show()
+save_plot_to_path(fig, out_dir, "dmean_EGFP_intensity_dt")
