@@ -51,6 +51,7 @@ def main(
         Whether to rescale theta values to [0, pi] range with period pi.
     """
 
+    import matplotlib.pyplot as plt
     import numpy as np
 
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
@@ -143,10 +144,6 @@ def main(
         )
 
         for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
-            # for datasets with theta distribution similar to MIN shear stress,
-            # shift polar angle range from (-pi, pi) to (0, 2pi) to avoid
-            # numerical errors that come from angle wrapping around at -pi/pi boundary
-
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
             fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$)"
 
@@ -191,6 +188,7 @@ def main(
             )
             fig.suptitle(fig_title, y=0.91)
             save_plot_to_path(fig, fig_savedir, f"{dataset_name_flow}_histogram_heatmap")
+            plt.close("all")
 
 
 if __name__ == "__main__":
