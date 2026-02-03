@@ -82,6 +82,8 @@ SEGMENTATION_FEATURE_COLUMNS = {
         "pixel_size_xy_in_um",
         "alignment_deg_rel_to_flow",
         "nuc_pos_rel_cell_angle_deg",
+        "cell_fluorescence_mean (a.u.)",
+        "num_nuclei_in_crop",
     ],
     "filters": [
         "is_included",
