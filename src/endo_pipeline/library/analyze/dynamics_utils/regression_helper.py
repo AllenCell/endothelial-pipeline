@@ -12,7 +12,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_traj_and_diff,
     split_dataset_by_flow,
 )
-from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal
+from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.numerics import get_bins
 from endo_pipeline.library.visualize.diffae_features import feature_viz
 from endo_pipeline.manifests import DataframeManifest
@@ -118,7 +118,7 @@ def _kramers_moyal_train_test_one_dataset(
 
         # get drift and diffusion estimates
         # (Kramers-Moyal coefficients)
-        drift_km_, diff_km_ = get_kramers_moyal(
+        drift_km_, diff_km_ = get_kramers_moyal_coeffs(
             traj_list,
             d_traj_list,
             bins,

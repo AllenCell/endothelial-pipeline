@@ -23,7 +23,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     project_features_to_pcs,
 )
 from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import solve_ddff_ode
-from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal
+from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
@@ -597,7 +597,7 @@ def get_traj_and_flowfield(
 
     # get drift and diffusion estimates
     # (Kramers-Moyal coefficients)
-    drift_km, diff_km = get_kramers_moyal(
+    drift_km, diff_km = get_kramers_moyal_coeffs(
         traj_list, d_traj_list, bins=bins, dt=dt, kernel_params=kernel_params
     )
 
