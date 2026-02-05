@@ -1,9 +1,9 @@
 from pathlib import Path
 
+import matplotlib as mpl
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from matplotlib import colors, rcParams
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
@@ -215,14 +215,16 @@ def make_summary_plots(
     x: str,
     y: str,
     hue: str | None,
-    hue_norm: colors.Normalize,
+    hue_norm: mpl.colors.Normalize,
     cmap: str,
     cbar_scalarmap: plt.cm.ScalarMappable | None = None,
     x_label: str | None = None,
     y_label: str | None = None,
     legend: bool = False,
 ):
-    rcParams["figure.max_open_warning"] = 30
+    mpl.rcParams["figure.max_open_warning"] = 30
+    if hue is None:
+        hue_as_str: str = ""
 
     x_label = x_label or get_label_for_column(x)
     y_label = y_label or get_label_for_column(y)
@@ -232,7 +234,7 @@ def make_summary_plots(
         data=df,
         x=x,
         y=y,
-        hue=hue,
+        hue=hue_as_str,
         marker="o",
         edgecolor="black",
         hue_norm=hue_norm,
@@ -243,13 +245,13 @@ def make_summary_plots(
     )
     if legend:
         sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
-    ax.set_title(hue.replace("_", " ").capitalize())
+    ax.set_title(hue_as_str.replace("_", " ").capitalize())
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     ax.set_adjustable("box")
     if cbar_scalarmap is not None:
         cbar = ax.figure.colorbar(cbar_scalarmap, ax=ax)
-        if "angle" in hue:
+        if "angle" in hue_as_str:
             cmin, cmax = cbar_scalarmap.get_clim()
             num_steps = 7
             cbar.set_ticks(
