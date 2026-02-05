@@ -1,3 +1,9 @@
+"""This workflow plots various measures of initial cell density vs shear stress.
+Plots are made where data are colored by various different groupings such as
+dataset and measures of deviation in orientation.
+"""
+
+
 def main():
 
     from matplotlib import colors
@@ -14,8 +20,10 @@ def main():
 
     outdir = get_output_path(__file__)
 
+    # get a list of the datasets that will be included in the summary
     datasets = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
 
+    # make a list of the columns we need to compute
     dataset_info_cols = [
         ColumnName.DATASET.value,
         ColumnName.POSITION.value,
@@ -33,8 +41,11 @@ def main():
 
     cols_to_compute = dataset_info_cols + density_cols + filter_cols + feature_cols + other_cols
 
+    # create dataframes summarizing some of the columns we are computing
     summary_df_agg, summary_df = create_summary_dfs(datasets, cols_to_compute)[:2]
 
+    # define some plotting parameters that will be reused as we plot the data
+    # in different ways
     cmap_mag = "inferno"
     hue_norm_mag = colors.Normalize(vmin=0, vmax=1)
     sm_mag = plt.cm.ScalarMappable(cmap=cmap_mag, norm=hue_norm_mag)
@@ -43,6 +54,8 @@ def main():
     hue_norm_angle = colors.Normalize(vmin=0, vmax=pi)
     sm_angle = plt.cm.ScalarMappable(cmap=cmap_ang, norm=hue_norm_angle)
 
+    # these hue groups are the different things that we want to color
+    # the datapoints by (along with corresponding parameter values)
     hue_groups_multiposition = [
         (ColumnName.DATASET.value, "tab20", None, None, True),
         ("shear_stress_regime", "tab10", None, None, True),
@@ -59,7 +72,11 @@ def main():
         ("polar_theta_vec_mean_angle", cmap_ang, hue_norm_angle, sm_angle, False),
     ]
 
+    # make a bunch of plots for each of our different density metrics to
     for dens_col in density_cols:
+
+        # make a summary plot for each of the things we are coloring datapoints
+        # by where each position in a dataset is a data point
         for hue_col, cmap, norm, cbar, legend in hue_groups_single_position:
             out_subdir = outdir / "single_position"
             out_subdir.mkdir(parents=True, exist_ok=True)
@@ -78,6 +95,8 @@ def main():
                 legend=legend,
             )
 
+        # make a summary plot for each of the things we are coloring datapoints
+        # by where positions are aggregated and each data point is a dataset
         for hue_col, cmap, norm, cbar, legend in hue_groups_multiposition:
             out_subdir = outdir / "multiposition"
             out_subdir.mkdir(parents=True, exist_ok=True)
