@@ -288,8 +288,8 @@ def _get_km_powers(ndim: int) -> np.ndarray:
 
 
 def get_kramers_moyal_coeffs(
-    traj_list: list[np.ndarray],
-    d_traj_list: list[np.ndarray],
+    trajectories: list[np.ndarray],
+    displacements: list[np.ndarray],
     bins: list[np.ndarray],
     dt: float,
     kernel_params: dict,
@@ -331,8 +331,8 @@ def get_kramers_moyal_coeffs(
     # and divide by dt to get the correct units (e.g. per minute)
     kmc = (
         _km_wrapper(
-            traj_list,
-            d_traj_list,
+            trajectories,
+            displacements,
             bins=bins,
             kernel_bw=kernel_params["bandwidth"],
             kernel=kernel_params["kernel"],
