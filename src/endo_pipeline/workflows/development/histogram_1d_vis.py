@@ -74,9 +74,9 @@ def main(
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
     from endo_pipeline.settings.histogram_1d_vis import (
+        BIN_LIMITS_RHO,
         BIN_WIDTHS_FOR_HISTOGRAMS,
         FEATURES_FOR_HISTOGRAM_VIS,
-        RHO_BIN_LIMITS,
     )
     from endo_pipeline.settings.polar_coords import (
         BIN_LIMITS_POLAR,
@@ -111,7 +111,7 @@ def main(
         dataset_names = [name for name in datasets if name in valid_dataset_options]
 
     # compute bins for polar coordinates
-    bin_limits = [*BIN_LIMITS_POLAR, RHO_BIN_LIMITS]
+    bin_limits = [*BIN_LIMITS_POLAR, BIN_LIMITS_RHO]
     idx_theta = column_names.index(ColumnName.POLAR_ANGLE.value)
     if RESCALE_THETA:
         bin_limits[idx_theta] = BIN_LIMITS_THETA_RESCALED

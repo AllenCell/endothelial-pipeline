@@ -12,5 +12,5 @@ FEATURES_FOR_HISTOGRAM_VIS: tuple[str, ...] = (
 BIN_WIDTHS_FOR_HISTOGRAMS: tuple[float, ...] = (0.05, 0.05, 0.05)
 """Default bin widths for histogram-over-time plots for polar angle, polar radius, and PC3 values."""
 
-RHO_BIN_LIMITS: tuple[float, float] = (-1.5, 2.5)
-"""Default range for -1 x PC3 values in histogram-over-time plots."""
+BIN_LIMITS_RHO: tuple[float, float] = (-1.5, 2.5)
+"""Default range for -1 x PC3 (ColumnName.PC3_FLIPPED) values in histogram-over-time plots."""
