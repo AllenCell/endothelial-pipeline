@@ -887,6 +887,8 @@ def get_label_for_column(
         label = "polar $r$"
     elif column_name == ColumnName.POLAR_ANGLE:
         label = "polar $\\theta$"
+    elif column_name == ColumnName.PC3_FLIPPED:
+        label = "$\\rho$"
 
     # check mapping dict for label override
     if mapping_dict is None:
