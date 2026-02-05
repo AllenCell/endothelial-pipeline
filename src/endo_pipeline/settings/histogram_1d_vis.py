@@ -19,5 +19,5 @@ BIN_WIDTHS_FOR_HISTOGRAMS: tuple[float, ...] = (0.05, 0.05, 0.05, 0.05)
 BIN_LIMITS_RHO: tuple[float, float] = (-1.5, 2.5)
 """Default range for -1 x PC3 (ColumnName.PC3_FLIPPED) values in histogram-over-time plots."""
 
-BIN_LIMITS_PC18: tuple[float, float] = (-1.5, 2.5)
+BIN_LIMITS_PC18: tuple[float, float] = (-1.5, 1.75)
 """Default range for PC18 (ColumnName.PCA_FEATURE_PREFIX + "18") values in histogram-over-time plots."""
