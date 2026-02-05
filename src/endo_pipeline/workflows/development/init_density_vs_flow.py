@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -18,7 +20,15 @@ from endo_pipeline.library.analyze.integration.track_integration import (
 )
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
+
+
+def test_vector_mean_angle_and_mag():
+    test_angles = generate_test_angles()
+
+    for angles in test_angles:
+        vec_mean_ang, vec_mean_mag = vector_mean_angle_and_mag(angles)
+        print(np.rad2deg(vec_mean_ang), vec_mean_mag)
 
 
 def vector_mean_angle_and_mag(angles: np.ndarray) -> tuple[float, float]:
@@ -69,6 +79,7 @@ def create_summary_df(datasets: Datasets, cols_to_compute) -> tuple[pd.DataFrame
             continue
         else:
             shear_stress = config.flow_conditions[0].shear_stress
+            shear_stress_regime = config.shear_stress_regime[0].value
 
         df_delayed = load_pc_diffae_liveseg_feats_merged_table(dataset_name)
 
@@ -89,6 +100,7 @@ def create_summary_df(datasets: Datasets, cols_to_compute) -> tuple[pd.DataFrame
         df_filtered["orientation"] += np.pi / 2
         # df_filtered["orientation_deg"] = np.rad2deg(df_filtered["orientation"] + np.pi / 2)
         df_filtered["shear_stress"] = shear_stress
+        df_filtered["shear_stress_regime"] = shear_stress_regime
 
         df_subset = pd.concat([df_subset, df_filtered])
 
@@ -104,16 +116,18 @@ def create_summary_df(datasets: Datasets, cols_to_compute) -> tuple[pd.DataFrame
             pos_num_seg_unfilt = sequence_to_scalar(
                 df_grp["num_unique_tracks_before_filtering_at_T"]
             )
-            pos_num_seg_filt = sequence_to_scalar(df_grp["num_unique_tracks_after_filtering_at_T"])
+            pc3 = df_grp[DIFFAE_PC_COLUMN_NAMES[2]].mean()
 
             df_features = df_filtered[df_filtered[ColumnName.POSITION] == pos]
             vector_means: dict = {}
             vector_means_multipos: dict = {}
             for feature in ["orientation", "polar_theta"]:
                 vec_mean_ang, vec_mean_mag = vector_mean_angle_and_mag(
-                    df_features[feature].dropna()
+                    df_features[feature].dropna() * 2
                 )
-                vector_means[f"{feature}_vec_mean_angle"] = (vec_mean_ang + 2 * np.pi) / 2
+                vector_means[f"{feature}_vec_mean_angle"] = (
+                    (vec_mean_ang + 2 * np.pi) % (2 * np.pi) / 2
+                )
                 vector_means[f"{feature}_vec_mean_magnitude"] = vec_mean_mag
 
                 vec_mean_ang_multipos, vec_mean_mag_multipos = vector_mean_angle_and_mag(
@@ -135,9 +149,10 @@ def create_summary_df(datasets: Datasets, cols_to_compute) -> tuple[pd.DataFrame
                             ColumnName.POSITION.value: [pos],
                             ColumnName.TIMEPOINT.value: [tp],
                             "shear_stress": [shear_stress],
+                            "shear_stress_regime": [shear_stress_regime],
                             "total_nuclei_count_at_T": [pos_num_nuclei],
                             "num_unique_tracks_before_filtering_at_T": [pos_num_seg_unfilt],
-                            "num_unique_tracks_after_filtering_at_T": [pos_num_seg_filt],
+                            DIFFAE_PC_COLUMN_NAMES[2]: [pc3],
                             "num_nuclei_in_crop": [pos_nuc_density],
                             **vector_means,
                             **vector_means_multipos,
@@ -169,6 +184,11 @@ def create_multipos_summary_df(summary_df: pd.DataFrame) -> pd.DataFrame:
             "dataset": df_grpd["dataset"].apply(lambda x: x.unique()[0]),
             "shear_stress_regime": df_grpd["shear_stress_regime"].apply(lambda x: x.unique()[0]),
             "total_nuclei_count_at_T": df_grpd["total_nuclei_count_at_T"].sum(),
+            "num_unique_tracks_before_filtering_at_T": df_grpd[
+                "num_unique_tracks_before_filtering_at_T"
+            ].sum(),
+            DIFFAE_PC_COLUMN_NAMES[2]: df_grpd[DIFFAE_PC_COLUMN_NAMES[2]].mean(),
+            "num_nuclei_in_crop": df_grpd["num_nuclei_in_crop"].sum(),
             "shear_stress": df_grpd["shear_stress"].apply(lambda x: float(x.unique())),
             "polar_theta_vec_mean_multipos_magnitude": polar_theta_vec_mean_mag,
             "orientation_vec_mean_multipos_magnitude": orientation_vec_mean_mag,
@@ -178,6 +198,51 @@ def create_multipos_summary_df(summary_df: pd.DataFrame) -> pd.DataFrame:
     )
 
     return summary_df_multipos
+
+
+def make_summary_plots(
+    out_dir: Path,
+    filename: str,
+    df: pd.DataFrame,
+    x: str,
+    y: str,
+    hue: str | None,
+    hue_norm: colors.Normalize,
+    cmap: str,
+    cbar_scalarmap: plt.cm.ScalarMappable | None = None,
+    x_label: str | None = None,
+    y_label: str | None = None,
+    legend: bool = False,
+):
+    x_label = x_label or get_label_for_column(x)
+    y_label = y_label or get_label_for_column(y)
+
+    fig, ax = plt.subplots(figsize=(3, 3))
+    sns.scatterplot(
+        data=df,
+        x=x,
+        y=y,
+        hue=hue,
+        marker="o",
+        edgecolor="black",
+        hue_norm=hue_norm,
+        palette=cmap,
+        s=20,
+        ax=ax,
+        legend=legend,
+    )
+    ax.set_title(hue.replace("_", " ").capitalize())
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    if cbar_scalarmap is not None:
+        cbar = ax.figure.colorbar(cbar_scalarmap, ax=ax)
+        if "angle" in hue:
+            cmin, cmax = sm_angle.get_clim()
+            cbar.set_ticks(
+                np.linspace(cmin, cmax, 5, endpoint=True),
+                labels=np.linspace(np.rad2deg(cmin), np.rad2deg(cmax), 5, endpoint=True, dtype=int),
+            )
+    save_plot_to_path(fig, out_dir, filename)
 
 
 outdir = get_output_path(__file__)
@@ -192,7 +257,7 @@ dataset_info_cols = [
 ]
 density_cols = [
     "num_unique_tracks_before_filtering_at_T",
-    "num_unique_tracks_after_filtering_at_T",
+    DIFFAE_PC_COLUMN_NAMES[2],
     "num_nuclei_in_crop",
     "total_nuclei_count_at_T",
 ]
@@ -206,222 +271,66 @@ summary_df, df_subset = create_summary_df(datasets, cols_to_compute)
 summary_df_multipos = create_multipos_summary_df(summary_df)
 
 
-# def make_summary_plots(df: pd.DataFrame, x:str, y:str, hue:str|None, outdir: Path):
-
-for dens_col in density_cols:
-    out_subdir = outdir / dens_col
-    out_subdir.mkdir(parents=True, exist_ok=True)
-
-    fig, ax = plt.subplots(figsize=(3, 3))
-    sns.scatterplot(
-        data=summary_df,
-        x="shear_stress",
-        y=dens_col,
-        hue=ColumnName.DATASET,
-        marker="o",
-        # s=20,
-        ax=ax,
-        legend=False,
-    )
-    ax.set_xlabel("Shear Stress (dyn/cm²)")
-    # ax.set_ylabel("Cell Density (nuclei/FOV)")
-    plt.show()
-
-
-fig, ax = plt.subplots(figsize=(3, 3))
-sns.scatterplot(
-    data=summary_df,
-    x="shear_stress",
-    y="total_nuclei_count_at_T",
-    hue="polar_theta_vec_mean_magnitude",
-    marker="o",
-    # s=20,
-    ax=ax,
-    legend=False,
-)
-ax.set_xlabel("Shear Stress (dyn/cm²)")
-ax.set_ylabel("Initial Cell Density (nuclei/FOV)")
-
-
-fig, ax = plt.subplots(figsize=(3, 3))
-sns.scatterplot(
-    data=summary_df,
-    x="shear_stress",
-    y="total_nuclei_count_at_T",
-    hue="orientation_vec_mean_magnitude",
-    marker="o",
-    # palette='Spectral',
-    # s=20,
-    ax=ax,
-    legend=False,
-)
-ax.set_xlabel("Shear Stress (dyn/cm²)")
-ax.set_ylabel("Initial Cell Density (nuclei/FOV)")
-
-
-cmap = "inferno"
-hue_norm = colors.Normalize(vmin=0, vmax=1)
-sm = plt.cm.ScalarMappable(cmap=cmap, norm=hue_norm)
+cmap_mag = "inferno"
+hue_norm_mag = colors.Normalize(vmin=0, vmax=1)
+sm_mag = plt.cm.ScalarMappable(cmap=cmap_mag, norm=hue_norm_mag)
 
 cmap_ang = "hsv"
 hue_norm_angle = colors.Normalize(vmin=0, vmax=np.pi)
 sm_angle = plt.cm.ScalarMappable(cmap=cmap_ang, norm=hue_norm_angle)
 
+hue_groups_multiposition = [
+    (ColumnName.DATASET.value, "tab20", None, None, True),
+    ("shear_stress_regime", "tab20", None, None, True),
+    ("orientation_vec_mean_multipos_magnitude", cmap_mag, hue_norm_mag, sm_mag, False),
+    ("polar_theta_vec_mean_multipos_magnitude", cmap_mag, hue_norm_mag, sm_mag, False),
+    ("orientation_vec_mean_multipos_angle", cmap_ang, hue_norm_angle, sm_angle, False),
+    ("polar_theta_vec_mean_multipos_angle", cmap_ang, hue_norm_angle, sm_angle, False),
+]
 
-fig, ax = plt.subplots(figsize=(3, 3))
-sns.scatterplot(
-    data=summary_df_multipos,
-    # data=summary_df,
-    x="shear_stress",
-    y="total_nuclei_count_at_T",
-    hue="dataset",
-    marker="o",
-    edgecolor="black",
-    hue_norm=hue_norm,
-    palette=cmap,
-    s=20,
-    ax=ax,
-    legend=False,
-)
-ax.set_title("")
-ax.set_xlabel("Shear Stress (dyn/cm²)")
-ax.set_ylabel("Initial Cell Density (nuclei/FOV)")
-save_plot_to_path(fig, outdir, "orientation_vector_mean_magnitude_vs_init_density_vs_flow")
+hue_groups_single_position = [
+    ("orientation_vec_mean_magnitude", cmap_mag, hue_norm_mag, sm_mag, False),
+    ("polar_theta_vec_mean_magnitude", cmap_mag, hue_norm_mag, sm_mag, False),
+    ("orientation_vec_mean_angle", cmap_ang, hue_norm_angle, sm_angle, False),
+    ("polar_theta_vec_mean_angle", cmap_ang, hue_norm_angle, sm_angle, False),
+]
 
 
-fig, ax = plt.subplots(figsize=(3, 3))
-sns.scatterplot(
-    data=summary_df_multipos,
-    # data=summary_df,
-    x="shear_stress",
-    y="total_nuclei_count_at_T",
-    hue="orientation_vec_mean_multipos_magnitude",
-    marker="o",
-    edgecolor="black",
-    hue_norm=hue_norm,
-    palette=cmap,
-    s=20,
-    ax=ax,
-    legend=False,
-)
-ax.set_title("Orientation Vector Mean Magnitude")
-ax.set_xlabel("Shear Stress (dyn/cm²)")
-ax.set_ylabel("Initial Cell Density (nuclei/FOV)")
-cbar = ax.figure.colorbar(sm, ax=ax)
-save_plot_to_path(fig, outdir, "orientation_vector_mean_magnitude_vs_init_density_vs_flow")
+for dens_col in density_cols:
+    for hue_col, cmap, norm, cbar, legend in hue_groups_single_position:
+        out_subdir = outdir / "single_position"
+        out_subdir.mkdir(parents=True, exist_ok=True)
 
+        make_summary_plots(
+            out_dir=out_subdir,
+            filename=f"{hue_col}_vs_{dens_col}_vs_flow",
+            df=summary_df.dropna(subset=hue_col),
+            x="shear_stress",
+            x_label="Shear Stress (dyn/cm²)",
+            y=dens_col,
+            hue=hue_col,
+            hue_norm=norm,
+            cmap=cmap,
+            cbar_scalarmap=cbar,
+            legend=legend,
+        )
 
-fig, ax = plt.subplots(figsize=(3, 3))
-sns.scatterplot(
-    data=summary_df_multipos,
-    # data=summary_df,
-    x="shear_stress",
-    y="total_nuclei_count_at_T",
-    hue="polar_theta_vec_mean_multipos_magnitude",
-    marker="o",
-    edgecolor="black",
-    hue_norm=hue_norm,
-    palette=cmap,
-    s=20,
-    ax=ax,
-    legend=False,
-)
-ax.set_title(f"{get_label_for_column('polar_theta').capitalize()} Vector Mean Magnitude")
-ax.set_xlabel("Shear Stress (dyn/cm²)")
-ax.set_ylabel("Initial Cell Density (nuclei/FOV)")
-cbar = ax.figure.colorbar(sm, ax=ax, label="Vector Mean Magnitude")
-save_plot_to_path(fig, outdir, "polar_theta_vector_mean_magnitude_vs_init_density_vs_flow")
+    for hue_col, cmap, norm, cbar, legend in hue_groups_multiposition:
+        out_subdir = outdir / "multiposition"
+        out_subdir.mkdir(parents=True, exist_ok=True)
 
+        make_summary_plots(
+            out_dir=out_subdir,
+            filename=f"{hue_col}_vs_{dens_col}_vs_flow",
+            df=summary_df_multipos,
+            x="shear_stress",
+            x_label="Shear Stress (dyn/cm²)",
+            y=dens_col,
+            hue=hue_col,
+            hue_norm=norm,
+            cmap=cmap,
+            cbar_scalarmap=cbar,
+            legend=legend,
+        )
 
-fig, ax = plt.subplots(figsize=(3, 3))
-sns.scatterplot(
-    data=summary_df_multipos,
-    # data=summary_df,
-    x="shear_stress",
-    y="total_nuclei_count_at_T",
-    hue="orientation_vec_mean_multipos_angle",
-    marker="o",
-    edgecolor="black",
-    hue_norm=hue_norm_angle,
-    palette=cmap_ang,
-    s=20,
-    ax=ax,
-    legend=False,
-)
-ax.set_title("Orientation Vector Mean Angle")
-ax.set_xlabel("Shear Stress (dyn/cm²)")
-ax.set_ylabel("Initial Cell Density (nuclei/FOV)")
-cbar = ax.figure.colorbar(sm_angle, ax=ax)
-cbar.set_ticks(np.linspace(0, np.pi, 7, endpoint=True), labels=range(0, 181, 30))
-save_plot_to_path(fig, outdir, "orientation_vector_mean_angle_vs_init_density_vs_flow")
-
-
-fig, ax = plt.subplots(figsize=(3, 3))
-sns.scatterplot(
-    data=summary_df_multipos,
-    # data=summary_df,
-    x="shear_stress",
-    y="total_nuclei_count_at_T",
-    hue="polar_theta_vec_mean_multipos_angle",
-    marker="o",
-    edgecolor="black",
-    hue_norm=hue_norm_angle,
-    palette=cmap_ang,
-    s=20,
-    ax=ax,
-    legend=False,
-)
-ax.set_title(f"{get_label_for_column('polar_theta').capitalize()} Vector Mean Angle")
-ax.set_xlabel("Shear Stress (dyn/cm²)")
-ax.set_ylabel("Initial Cell Density (nuclei/FOV)")
-cbar = ax.figure.colorbar(sm_angle, ax=ax)
-cbar.set_ticks(np.linspace(0, np.pi, 7, endpoint=True), labels=range(0, 181, 30))
-save_plot_to_path(fig, outdir, "polar_theta_vector_mean_angle_vs_init_density_vs_flow")
-
-
-for nm, df_grp in df_subset.groupby(ColumnName.DATASET):
-    fig, ax = plt.subplots(subplot_kw={"projection": "polar"})
-    sns.histplot(
-        data=df_grp,
-        x="polar_theta",
-        stat="probability",
-        binwidth=np.deg2rad(5),
-        color="tab:blue",
-        alpha=0.5,
-        lw=0.2,
-        ax=ax,
-    )
-    sns.histplot(
-        data=df_grp,
-        x="orientation",
-        stat="probability",
-        binwidth=np.deg2rad(5),
-        color="tab:orange",
-        alpha=0.5,
-        lw=0.2,
-        ax=ax,
-    )
-    ax.set_title(
-        f"{nm}, {sequence_to_scalar(df_grp.shear_stress.unique())} dyn/cm²",
-    )
-    ax.set_xlim(0, np.pi)
-    ax.yaxis.set_tick_params(rotation=45)
-    fig.legend(
-        labels=[get_label_for_column("polar_theta"), get_label_for_column("orientation")],
-        loc="lower center",
-        ncols=2,
-    )
-    plt.tight_layout()
-    save_plot_to_path(fig, outdir, f"{nm}_polar_histograms")
-
-# random distribution in the range of [0,180] degrees.
-# np.random.seed(0)
-# angles_half_rand = np.random.random_sample(size=int(1e6)) * np.pi
-# vec_mean_angle_expect, vec_mean_mag_expect = vector_mean_angle_and_mag(angles_half_rand * 2)
-# vec_mean_angle_expect = (vec_mean_angle_expect + 2 * np.pi) % (2 * np.pi) / 2
-
-test_angles = generate_test_angles()
-
-for angles in test_angles:
-    vec_mean_ang, vec_mean_mag = vector_mean_angle_and_mag(angles)
-    print(np.rad2deg(vec_mean_ang), vec_mean_mag)
+print("Done.")

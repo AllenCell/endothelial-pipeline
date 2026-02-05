@@ -426,7 +426,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "ticks": None,
             "discrete_ticks": False,
         },
-        "num_nuclei": {
+        "total_nuclei_count_at_T": {
             "column_name": "total_nuclei_count_at_T",
             "label": "Number of Nuclei",
             "lims": (0, None),
@@ -497,6 +497,22 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,
+        },
+        "num_unique_tracks_before_filtering_at_T": {
+            "column_name": "num_unique_tracks_before_filtering_at_T",
+            "label": "Num. Segmentations\nBefore Filtering",
+            "lims": (0, None),
+            "bin_width": None,
+            "ticks": None,
+            "discrete_ticks": True,
+        },
+        "num_unique_tracks_after_filtering_at_T": {
+            "column_name": "num_unique_tracks_after_filtering_at_T",
+            "label": "Num. Segmentations\nAfter Filtering",
+            "lims": (0, None),
+            "bin_width": None,
+            "ticks": None,
+            "discrete_ticks": True,
         },
     }
 

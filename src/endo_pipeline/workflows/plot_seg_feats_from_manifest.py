@@ -67,7 +67,7 @@ def plot_seg_manifest_data(
         "cell_nuc_orientation_deg_rel_to_migration",
     ]
     feats_to_plot_y_lineplot_only = [
-        "num_nuclei",
+        "total_nuclei_count_at_T",
         "num_tracks",
     ]
 
