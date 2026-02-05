@@ -40,115 +40,24 @@ def _string_to_kernel(kernel: str) -> Callable:
         )
 
 
-def _km_wrapper(
-    timeseries: list[np.ndarray],
-    grads: list[np.ndarray],
-    bins: list[np.ndarray],
-    powers: np.ndarray,
-    kernel: str,
-    bw: float,
-    tol: float = 1e-10,
-    conv_method: str = "auto",
-) -> np.ndarray:
-    """
-    Estimates the Kramers─Moyal coefficients from a timeseries using a kernel
-    estimator method. `km` can calculate the Kramers─Moyal coefficients for a
-    timeseries of any dimension, up to any desired power.
+def _check_and_adjust_km_inputs(
+    trajectories: list[np.ndarray], displacements: list[np.ndarray], powers: np.ndarray
+) -> tuple[list[np.ndarray], list[np.ndarray], np.ndarray]:
+    if len(trajectories) != len(displacements):
+        raise ValueError("Must have displacements for each timeseries.")
+    if len(displacements[0]) != len(trajectories[0]) - 1:
+        raise ValueError(
+            "Need to have displacements for each timepoint in timeseries except for last."
+        )
 
-    Parameters
-    ----------
-    timeseries: list of np.ndarrays
-        The set of d-dimensional timeseries `(n, d)`, where
-        n is the number of timepoints and d is the dimension.
-
-    grads: list of np.ndarrays
-        The displacement vectors of the timeseries.
-        (length `n-1` and dimensions `d`).
-        The number of trajectories in `timeseries` must
-        be equal to the number of gradients in `grads`.
-
-    bins: list of np.ndarrays
-        List of monotonically increasing bin edges in each dimension.
-        This is the underlying space for the Kramers─Moyal
-        coefficients to be estimated.
-
-    powers: np.ndarray
-        Powers for the operation of calculating the Kramers─Moyal coefficients.
-        The powers are the exponents of the components of the displacement
-        vectors in the Kramers─Moyal coefficients.
-
-        The powers are given in the form of a 2-D array,
-        where each row corresponds to a power, and each column
-        corresponds to a component of the displacement vector
-        that is raised to that power. The first row is always
-        zero, to account for the normalization of the coefficients.
-
-        * e.g., to compute each component of the drift
-        coefficient in 2D, the powers are `[[0, 0], [1, 0], [0, 1]]`,
-        where the first row is the normalization
-
-        The powers can be computed by calling `_get_km_powers(ndim)`, where
-        `ndim` is the dimension of the timeseries. The powers are then
-        automatically generated, but only up to second order.
-
-        The order that they appear dictates the order of the
-        corresponding coefficient in the output `kmc`.
-
-    kernel: string
-        Kernel used to convolute with the Kramers-Moyal coefficients.
-        To select, for example, a Gaussian kernel use
-            `kernel = `gaussian`
-        Has to be the name of a kernel implemented in
-        `library.analyze.kramers_moyal.km_kernels`.
-
-    bw: float (default `None`)
-        Desired bandwidth of the kernel. A value of 1 occupies
-        the full space of the bin space.
-        Recommended are values `0.005 < bw < 0.5`.
-
-    tol: float (default `1e-10`)
-        Round to zero absolute values smaller than `tol`, after the
-        convolutions. These points are set to `NaN` in the output.
-
-    conv_method: str (default `auto`)
-        A string indicating which method to use to calculate the convolution.
-        https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.convolve.html
-
-    Returns
-    -------
-    kmc: np.ndarray
-        The calculated Kramers─Moyal coefficients in accordance to the
-        timeseries dimensions in `(d, bins.shape)` shape. To extract the
-        selected orders of the kmc, use `kmc[i,...]`, with `i` the order
-        according to powers.
-
-    References
-    ----------
-    .. [Lamouroux2009] D. Lamouroux and K. Lehnertz, "Kernel-based regression of
-    drift and diffusion coefficients of stochastic processes." Physics Letters A
-    373(39), 3507─3512, 2009. DOI: 10.1016/j.physleta.2009.07.073
-    .. [Gorjão2019] L. R. Gorjão and F. Meirinhos, "kramersmoyal: Kramers-Moyal
-    coefficients for stochastic processes." Journal of Open Source Software 4(44),
-    1693, 2019. DOI: 10.21105/joss.01693
-    """
-    # check inputs (case of multi_traj and single traj)
-    assert len(timeseries) == len(grads), "Must have gradients for each timeseries"
-    assert len(timeseries) > 0, "No data in timeseries"
-    assert len(grads) > 0, "No data in gradients"
-    assert (
-        len(grads[0]) == len(timeseries[0]) - 1
-    ), "Need to have gradients for each timepoint in timeseries except for last"
-    timeseries = [np.asarray_chkfinite(ts, dtype=float) for ts in timeseries]
-    grads = [np.asarray_chkfinite(g, dtype=float) for g in grads]
-
-    for j, ts in enumerate(timeseries):
-        if len(ts.shape) == 1:
-            timeseries[j] = ts.reshape(-1, 1)
+    # check if timeseries is a list of 1D arrays, if so reshape to 2D arrays with one column
+    if len(trajectories[0].shape) == 1:
+        for j, ts in enumerate(trajectories):
+            trajectories[j] = ts.reshape(-1, 1)
 
     # get dimension of the timeseries
-    ndim = timeseries[0].shape[1]
+    ndim = trajectories[0].shape[1]
 
-    powers = np.asarray_chkfinite(powers, dtype=float)
     # check if powers is a 1D array
     # if so, reshape it to a 2D array with one column
     if len(powers.shape) == 1:
@@ -159,47 +68,114 @@ def _km_wrapper(
     if not (powers[0] == [0] * ndim).all():
         powers = np.array([[0] * ndim, *powers])
 
-    assert ndim == powers.shape[1], "Powers not matching timeseries' dimension"
-    assert ndim == len(bins), "bins not matching timeseries' dimension"
+    if powers.shape[1] != ndim:
+        raise ValueError(
+            "Array of powers must have the same number of columns as the dimension of the timeseries."
+        )
+
+    return trajectories, displacements, powers
+
+
+def _km_wrapper(
+    trajectories: list[np.ndarray],
+    displacements: list[np.ndarray],
+    bins: list[np.ndarray],
+    powers: np.ndarray,
+    kernel: str,
+    kernel_bw: float,
+    tol: float = 1e-10,
+) -> np.ndarray:
+    """
+    Estimates the Kramers─Moyal coefficients from a timeseries using a kernel
+    estimator method. `km` can calculate the Kramers─Moyal coefficients for a
+    timeseries of any dimension, up to any desired power.
+
+    **Binning**
+
+    The input array ``bins`` specifies the bin edges in each dimension of the timeseries.
+    The Kramers─Moyal coefficients are estimated at the center of each bin, and the
+    output `kmc` is given in the shape of the number of bins in each dimension.
+
+    **Power of the Kramers─Moyal coefficients**
+
+    The input array ``powers`` specifies the exponents of the components
+    of the displacement vectors in the Kramers─Moyal coefficients.
+
+    The powers are given in the form of a 2-D array, where each row corresponds
+    to a power, and each column corresponds to a component of the displacement vector
+    that is raised to that power. The first row is always zero, to account for
+    the normalization of the coefficients.
+
+    For example, to compute each component of the drift coefficient in 2D, the powers
+    are `[[0, 0], [1, 0], [0, 1]]`, where the first row is the normalization.
+
+    The powers can be computed by calling ``_get_km_powers(ndim)``, where ``ndim`` is
+    the dimension of the timeseries. The powers are then automatically generated,
+    but only up to second order (drift and diffusion coefficients).
+
+    The order that they appear dictates the order of the corresponding coefficient
+    in the output ``kmc``. To extract the selected orders of the kmc, use ``kmc[i,...]``,
+    with ``i`` being the order according to powers.
+
+    **Kernel**
+
+    The input string ``kernel`` specifies the kernel function that is used to compute
+    the Kramers─Moyal coefficients as a convolution of the kernel with the weighted
+    histogram of the observations. This input has to be a string that corresponds to a
+    kernel function defined in the `km_kernels` module.
+
+    **Low probability density**
+
+    The input ``tol`` specifies the tolerance for small values of the probability density,
+    which is the 0th order Kramers─Moyal coefficient. In bins where the probability density
+    is smaller than this tolerance, the Kramers─Moyal coefficients are set to NaN.
+
+    **References**
+
+    [Lamouroux2009] D. Lamouroux and K. Lehnertz, "Kernel-based regression of
+    drift and diffusion coefficients of stochastic processes." Physics Letters A
+    373(39), 3507─3512, 2009. DOI: 10.1016/j.physleta.2009.07.073
+
+    [Gorjão2019] L. R. Gorjão and F. Meirinhos, "kramersmoyal: Kramers-Moyal
+    coefficients for stochastic processes." Journal of Open Source Software 4(44),
+    1693, 2019. DOI: 10.21105/joss.01693
+
+    Parameters
+    ----------
+    trajectories
+        List of invidual trajectories.
+
+    displacements
+        List of invidual displacements along the trajectories.
+
+    bins: list of np.ndarrays
+        List of monotonically increasing bin edges in each dimension.
+
+    powers
+        Powers for the operation of calculating the Kramers─Moyal coefficients.
+
+    kernel
+        Kernel used to convolute with the Kramers-Moyal coefficients.
+
+    bw
+        Desired bandwidth of the kernel.
+
+    tol
+        Tolerance for small values of the probability density (0th order Kramers─Moyal coefficient).
+    """
+    # check inputs to avoid errors in the middle of the function
+    trajectories, displacements, powers = _check_and_adjust_km_inputs(
+        trajectories, displacements, powers
+    )
 
     # convert specified kernel to callable
     kernel_func = _string_to_kernel(kernel)
 
-    # This is where the calculations take place
-    kmc = _km_worker(timeseries, grads, bins, powers, kernel_func, bw, tol, conv_method)
-
-    return kmc
-
-
-def get_cartesian_product(arrays: np.ndarray | list) -> np.ndarray:
-    shapes = [len(arr) for arr in arrays]
-    indices = np.indices(shapes, sparse=False)
-    unstacked = [arrays[i][sub_indices] for i, sub_indices in enumerate(indices)]
-    return np.stack(unstacked, axis=-1)
-
-
-def _km_worker(
-    timeseries: list[np.ndarray],
-    grads: list[np.ndarray],
-    bins: list[np.ndarray],
-    powers: np.ndarray,
-    kernel_func: Callable,
-    bw: float,
-    tol: float,
-    conv_method: str,
-) -> np.ndarray:
-    """
-    Estimate the Kramers─Moyal coefficients from a timeseries using a kernel
-    estimator method. This is the internal function that does the heavy lifting.
-    """
-
-    # Concatenate all gradients, need to get weights for weighted histogram
-    grads_concat: np.ndarray = np.concatenate(grads, axis=0)
-    # Get trajectories for weighted histogram
-    # (timepoints corresponding to the gradients)
-    # Note that the last timepoint of each trajectory
-    # is not included, as it is not used in the gradients.
-    timeseries_ = np.concatenate([ts[:-1] for ts in timeseries], axis=0)
+    # Get trajectories and corresponding displacements concatenated across all trajectories.
+    # Note that the last timepoint of each trajectory is not included,
+    # as there is no corresponding displacement value for it.
+    trajectories_concat = np.concatenate([ts[:-1] for ts in trajectories], axis=0)
+    displacements_concat: np.ndarray = np.concatenate(displacements, axis=0)
 
     ##### Weights: for each displacement vector, get the coresponding powers/products
     #               of the gradients for the Kramers─Moyal coefficients.
@@ -220,13 +196,13 @@ def _km_worker(
     #                           (x_0(t+1)-x_0(t))^2,
     #                           (x_1(t+1)-x_1(t))^2]
     # If there are L powers and M observations, the result is an L x M array.
-    weights = np.prod(np.power(grads_concat.T, powers[..., None]), axis=1)
+    weights = np.prod(np.power(displacements_concat.T, powers[..., None]), axis=1)
 
     ##### Get weighted histogram for convolution
 
     # If there are L powers, the result in an L x N[0] x N[1] x ... x N[D-1] array
     # where N[i] is the number of bins in dimension i.
-    hist = histogramdd(timeseries_, bins=bins, weights=weights)
+    hist = histogramdd(trajectories_concat, bins=bins, weights=weights)
 
     ##### Generate centered kernel on larger grid (fft'ed convolutions are circular).
 
@@ -240,10 +216,9 @@ def _km_worker(
     # The purpose of this is to artifically construct a periodic kernel
     # that is centered around the origin, so that the input into the convolution
     # is compatible with the circular nature of the convolution obtained via fft.
-    # (Default convolution method is 'auto', which uses
-    # fft if the kernel is large enough.)
+    # (Default convolution method is 'auto', which uses fft if the kernel is large enough.)
     edges_k = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in bins]
-    kernel_ = kernel_func(get_cartesian_product(edges_k), bw=bw)
+    kernel_eval = kernel_func(get_cartesian_product(edges_k), bw=kernel_bw)
 
     ##### KMC computation: convolve the histogram with the kernel
 
@@ -252,7 +227,7 @@ def _km_worker(
     # Note that the first entry of the output is the normalization factor
     # of the kernel estimator, which is the same for all dimensions.
     # The normalization factor is the KDE of the empirical density function.
-    kmc = convolve(hist, kernel_[None, ...], mode="same", method=conv_method)
+    kmc = convolve(hist, kernel_eval[None, ...], mode="same")
 
     # Normalise with correct factorial coefficients * histogram
     mask = np.abs(kmc[0]) < tol  # where probability density is small... (i.e., little to no data)
@@ -265,6 +240,13 @@ def _km_worker(
     )  # divide by Taylor coeff * 0th order coeffs (probability density)
 
     return kmc
+
+
+def get_cartesian_product(arrays: np.ndarray | list) -> np.ndarray:
+    shapes = [len(arr) for arr in arrays]
+    indices = np.indices(shapes, sparse=False)
+    unstacked = [arrays[i][sub_indices] for i, sub_indices in enumerate(indices)]
+    return np.stack(unstacked, axis=-1)
 
 
 def _get_km_powers(ndim: int) -> np.ndarray:
@@ -306,9 +288,9 @@ def _get_km_powers(ndim: int) -> np.ndarray:
 
 
 def get_kramers_moyal_coeffs(
-    traj_list: list,
-    d_traj_list: list,
-    bins: list,
+    traj_list: list[np.ndarray],
+    d_traj_list: list[np.ndarray],
+    bins: list[np.ndarray],
     dt: float,
     kernel_params: dict,
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -340,21 +322,26 @@ def get_kramers_moyal_coeffs(
         for each bin in feature space
     """
 
+    # get powers for first two Kramers-Moyal coefficients (drift and diffusion)
+    # based on dimensionality of data
     ndim = len(bins)
     powers = _get_km_powers(ndim)
 
+    # compute Kramers-Moyal coefficients using kernel estimator method,
+    # and divide by dt to get the correct units (e.g. per minute)
     kmc = (
         _km_wrapper(
             traj_list,
-            grads=d_traj_list,
+            d_traj_list,
             bins=bins,
-            bw=kernel_params["bandwidth"],
+            kernel_bw=kernel_params["bandwidth"],
             kernel=kernel_params["kernel"],
             powers=powers,
         )
         / dt
     )
 
+    # reshape the output to get drift and diffusion coefficients
     if ndim == 1:  # just need to take the first two rows
         drift_km = kmc[1]
         diff_km = kmc[2]
