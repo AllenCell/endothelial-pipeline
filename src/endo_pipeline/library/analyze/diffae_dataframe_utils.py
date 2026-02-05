@@ -572,12 +572,18 @@ def project_features_to_pcs(
 
     # optionally, compute polar coordinates (r, theta) from first two PCs
     if compute_polar:
-        df_[ColumnName.POLAR_RADIUS] = pcs_to_polar_r(
-            df_[pc_cols[0]].values, df_[pc_cols[1]].values
-        )
-        df_[ColumnName.POLAR_ANGLE] = pcs_to_polar_theta(
-            df_[pc_cols[0]].values, df_[pc_cols[1]].values, rescale=rescale_theta
-        )
+        if num_pcs < 2:
+            logger.warning(
+                "Cannot compute polar coordinates from PC1 and PC2 because number of PCs [ %s ] < 2",
+                num_pcs,
+            )
+        else:
+            df_[ColumnName.POLAR_RADIUS] = pcs_to_polar_r(
+                df_[pc_cols[0]].values, df_[pc_cols[1]].values
+            )
+            df_[ColumnName.POLAR_ANGLE] = pcs_to_polar_theta(
+                df_[pc_cols[0]].values, df_[pc_cols[1]].values, rescale=rescale_theta
+            )
 
     if flip_pc3_sign:
         if num_pcs >= 3:
