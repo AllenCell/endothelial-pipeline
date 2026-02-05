@@ -222,9 +222,8 @@ def make_summary_plots(
     y_label: str | None = None,
     legend: bool = False,
 ):
-    mpl.rcParams["figure.max_open_warning"] = 30
-    if hue is None:
-        hue_as_str: str = ""
+    mpl.rcParams["figure.max_open_warning"] = 0
+    hue_as_str: str = "" if hue is None else hue
 
     x_label = x_label or get_label_for_column(x)
     y_label = y_label or get_label_for_column(y)
