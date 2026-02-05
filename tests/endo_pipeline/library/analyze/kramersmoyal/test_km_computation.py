@@ -1,6 +1,6 @@
 import numpy as np
 
-from endo_pipeline.library.analyze.kramersmoyal.km_computation import get_cartesian_product
+from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_cartesian_product
 
 
 def test_get_cartesian_product_2d():

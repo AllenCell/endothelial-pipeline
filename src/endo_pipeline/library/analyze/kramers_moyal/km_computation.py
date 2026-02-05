@@ -5,7 +5,7 @@ import numpy as np
 from scipy.signal import convolve
 from scipy.special import factorial
 
-from endo_pipeline.library.analyze.kramersmoyal import km_kernels
+from endo_pipeline.library.analyze.kramers_moyal import km_kernels
 from endo_pipeline.library.analyze.numerics import histogramdd
 
 
@@ -99,7 +99,7 @@ def _km_wrapper(
         To select, for example, a Gaussian kernel use
             `kernel = `gaussian`
         Has to be the name of a kernel implemented in
-        `library.analyze.kramersmoyal.kernels`.
+        `library.analyze.kramers_moyal.km_kernels`.
 
     bw: float (default `None`)
         Desired bandwidth of the kernel. A value of 1 occupies

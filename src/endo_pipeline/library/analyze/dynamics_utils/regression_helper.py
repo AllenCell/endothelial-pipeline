@@ -12,7 +12,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_traj_and_diff,
     split_dataset_by_flow,
 )
-from endo_pipeline.library.analyze.kramersmoyal.km_computation import get_kramers_moyal
+from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal
 from endo_pipeline.library.analyze.numerics import get_bins
 from endo_pipeline.library.visualize.diffae_features import feature_viz
 from endo_pipeline.manifests import DataframeManifest
