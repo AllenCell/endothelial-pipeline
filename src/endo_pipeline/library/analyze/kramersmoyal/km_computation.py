@@ -7,7 +7,7 @@ from scipy.special import factorial
 
 from endo_pipeline.library.analyze.numerics import histogramdd
 
-from . import _km_kernels
+from . import km_kernels
 
 
 def _string_to_kernel(kernel: str) -> Callable:
@@ -30,7 +30,7 @@ def _string_to_kernel(kernel: str) -> Callable:
     }  # functions that are not kernels
     kernel_dict = {
         name: func
-        for name, func in inspect.getmembers(_km_kernels, inspect.isfunction)
+        for name, func in inspect.getmembers(km_kernels, inspect.isfunction)
         if name not in not_kernel
     }
     if kernel in kernel_dict:
