@@ -305,7 +305,7 @@ def _get_km_powers(ndim: int) -> np.ndarray:
     return powers
 
 
-def _get_km_coeff(
+def get_kramers_moyal_coeffs(
     traj_list: list,
     d_traj_list: list,
     bins: list,
@@ -416,5 +416,5 @@ def get_kramers_moyal(
         print(
             f"bandwidth = {kernel_params['bandwidth']:.3f}," f"kernel = {kernel_params['kernel']}"
         )
-    drift_km, diff_km = _get_km_coeff(traj_list, d_traj_list, bins, dt, kernel_params)
+    drift_km, diff_km = get_kramers_moyal_coeffs(traj_list, d_traj_list, bins, dt, kernel_params)
     return drift_km, diff_km
