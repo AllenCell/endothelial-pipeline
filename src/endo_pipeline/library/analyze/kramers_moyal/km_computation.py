@@ -1,43 +1,9 @@
-import inspect
-from collections.abc import Callable
-
 import numpy as np
 from scipy.signal import convolve
 from scipy.special import factorial
 
-from endo_pipeline.library.analyze.kramers_moyal import km_kernels
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import string_to_kernel
 from endo_pipeline.library.analyze.numerics import histogramdd
-
-
-def _string_to_kernel(kernel: str) -> Callable:
-    """
-    Convert a string to the corresponding kernel function.
-
-    Input:
-    - kernel: string, name of the kernel function
-
-    Output:
-    - kernel_func: callable, the kernel function with the given name
-    as defined in km_kernels
-    """
-    # get dictionary of all callable functions in the kernels module
-    not_kernel = {
-        "factorial2",
-        "kernel",
-        "wraps",
-        "silvermans_rule",
-    }  # functions that are not kernels
-    kernel_dict = {
-        name: func
-        for name, func in inspect.getmembers(km_kernels, inspect.isfunction)
-        if name not in not_kernel
-    }
-    if kernel in kernel_dict:
-        return kernel_dict[kernel]
-    else:
-        raise ValueError(
-            f"Kernel '{kernel}' not recognized. " f" Available kernels: {list(kernel_dict.keys())}"
-        )
 
 
 def _check_and_adjust_km_inputs(
@@ -169,7 +135,7 @@ def _km_wrapper(
     )
 
     # convert specified kernel to callable
-    kernel_func = _string_to_kernel(kernel)
+    kernel_func = string_to_kernel(kernel)
 
     # Get trajectories and corresponding displacements concatenated across all trajectories.
     # Note that the last timepoint of each trajectory is not included,
@@ -251,14 +217,10 @@ def get_cartesian_product(arrays: np.ndarray | list) -> np.ndarray:
 
 def _get_km_powers(ndim: int) -> np.ndarray:
     """
-    Generate the powers for the Kramers-Moyal coefficients
-    based on the dimensionality of the data.
+    Generate the powers for the first two Kramers-Moyal coefficients for ndim dimensions.
 
-    Inputs:
-    - ndim: number of dimensions in the data
-
-    Outputs:
-    - powers: numpy array of powers for Kramers-Moyal coefficients
+    Note that for the second order Kramers-Moyal coefficients (diffusion), we only include
+    the pure powers of each component (i.e., no interaction terms).
 
     For example, for 1D data, the powers are:
     [[0],  # normalization for kernel convolution (density)
