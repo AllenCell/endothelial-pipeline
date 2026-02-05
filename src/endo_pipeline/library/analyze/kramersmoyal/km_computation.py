@@ -5,9 +5,8 @@ import numpy as np
 from scipy.signal import convolve
 from scipy.special import factorial
 
+from endo_pipeline.library.analyze.kramersmoyal import km_kernels
 from endo_pipeline.library.analyze.numerics import histogramdd
-
-from . import km_kernels
 
 
 def _string_to_kernel(kernel: str) -> Callable:
