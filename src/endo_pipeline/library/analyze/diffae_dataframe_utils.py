@@ -573,10 +573,11 @@ def project_features_to_pcs(
     # optionally, compute polar coordinates (r, theta) from first two PCs
     if compute_polar:
         if num_pcs < 2:
-            logger.warning(
+            logger.error(
                 "Cannot compute polar coordinates from PC1 and PC2 because number of PCs [ %s ] < 2",
                 num_pcs,
             )
+            raise ValueError("At least 2 PCs are required to compute polar coordinates.")
         else:
             df_[ColumnName.POLAR_RADIUS] = pcs_to_polar_r(
                 df_[pc_cols[0]].values, df_[pc_cols[1]].values
@@ -589,7 +590,8 @@ def project_features_to_pcs(
         if num_pcs >= 3:
             df_[ColumnName.PC3_FLIPPED] = -df_[pc_cols[2]]
         else:
-            logger.warning("Cannot add column for -(PC3) because number of PCs [ %s ] < 3", num_pcs)
+            logger.error("Cannot add column for -(PC3) because number of PCs [ %s ] < 3", num_pcs)
+            raise ValueError("At least 3 PCs are required to add column for -(PC3).")
 
     return df_
 
