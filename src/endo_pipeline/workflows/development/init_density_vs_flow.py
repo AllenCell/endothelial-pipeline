@@ -188,7 +188,7 @@ def create_multipos_summary_df(summary_df: pd.DataFrame) -> pd.DataFrame:
                 "num_unique_tracks_before_filtering_at_T"
             ].sum(),
             DIFFAE_PC_COLUMN_NAMES[2]: df_grpd[DIFFAE_PC_COLUMN_NAMES[2]].mean(),
-            "num_nuclei_in_crop": df_grpd["num_nuclei_in_crop"].sum(),
+            "num_nuclei_in_crop": df_grpd["num_nuclei_in_crop"].mean(),
             "shear_stress": df_grpd["shear_stress"].apply(lambda x: float(x.unique())),
             "polar_theta_vec_mean_multipos_magnitude": polar_theta_vec_mean_mag,
             "orientation_vec_mean_multipos_magnitude": orientation_vec_mean_mag,
