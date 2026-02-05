@@ -15,7 +15,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
     get_traj_and_diff,
 )
-from endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
+from endo_pipeline.library.analyze.kramersmoyal.km_computation import get_kramers_moyal
 from endo_pipeline.library.visualize.diffae_features.flow_field_viz import flow_field_viz_main
 from endo_pipeline.library.visualize.diffae_features.pplane import find_fpt_type, get_fps
 from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk

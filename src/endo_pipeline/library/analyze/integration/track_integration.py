@@ -23,7 +23,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     project_features_to_pcs,
 )
 from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import solve_ddff_ode
-from endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
+from endo_pipeline.library.analyze.kramersmoyal.km_computation import get_kramers_moyal
 from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
