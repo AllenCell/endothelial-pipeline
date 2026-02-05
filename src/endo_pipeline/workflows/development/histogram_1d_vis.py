@@ -73,18 +73,21 @@ def main(
         load_model_manifest,
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.histogram_1d_vis import (
+        BIN_WIDTHS_FOR_HISTOGRAMS,
+        FEATURES_FOR_HISTOGRAM_VIS,
+        RHO_BIN_LIMITS,
+    )
     from endo_pipeline.settings.polar_coords import (
         BIN_LIMITS_POLAR,
         BIN_LIMITS_THETA_RESCALED,
-        BIN_WIDTHS_POLAR,
         DEFAULT_DATASET_COLLECTION_POLAR_VIS,
-        POLAR_COLUMN_NAMES,
         RESCALE_THETA,
         TICK_STEP_NUM,
     )
 
     # get feature column names and labels (for plots)
-    column_names = [*POLAR_COLUMN_NAMES, "pc_3"]
+    column_names = list(FEATURES_FOR_HISTOGRAM_VIS)
     variable_names = [get_label_for_column(col) for col in column_names]
 
     # get dataframe manifest for grid-based crop features
@@ -108,13 +111,13 @@ def main(
         dataset_names = [name for name in datasets if name in valid_dataset_options]
 
     # compute bins for polar coordinates
-    bin_limits = [*BIN_LIMITS_POLAR, (-3, 3)]
+    bin_limits = [*BIN_LIMITS_POLAR, RHO_BIN_LIMITS]
     idx_theta = column_names.index(ColumnName.POLAR_ANGLE.value)
     if RESCALE_THETA:
         bin_limits[idx_theta] = BIN_LIMITS_THETA_RESCALED
 
     bins, _ = get_bins(
-        bin_widths=(BIN_WIDTHS_POLAR[0], BIN_WIDTHS_POLAR[1], 0.05),
+        bin_widths=BIN_WIDTHS_FOR_HISTOGRAMS,
         bin_limits=bin_limits,
     )
 
