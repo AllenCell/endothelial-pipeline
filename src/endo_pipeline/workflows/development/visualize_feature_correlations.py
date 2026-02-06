@@ -2,7 +2,7 @@ from typing import Literal
 
 from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import TimepointAnnotation
-from endo_pipeline.settings.diffae_feature_dataframes import MAX_PCS_TO_COMPUTE
+from endo_pipeline.settings.diffae_feature_dataframes import MAX_PCS_TO_COMPUTE, NUM_PCS_TO_ANALYZE
 from endo_pipeline.settings.workflow_defaults import (
     DATASET_INFO_COLUMNS,
     DEFAULT_MODEL_MANIFEST_NAME,
@@ -19,7 +19,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     dataset_info_columns: list[str] = DATASET_INFO_COLUMNS,
-    segmentation_feature_group: str = "default",
+    segmentation_feature_group: str = "correlation_workflow",
     num_pcs: int | None = None,
     timepoint_annotations: list[TimepointAnnotation] | Literal["default"] | None = "default",
     aggregate_only: bool = True,
@@ -118,7 +118,7 @@ def main(
 
     pc_columns = get_pc_column_names(num_pcs)
     # use the first 3 PCs and PC18 for correlation (PCs are 1-index)
-    pc_columns = pc_columns[:2] + pc_columns[17:18]
+    pc_columns = pc_columns[:NUM_PCS_TO_ANALYZE] + pc_columns[17:18]
     diffae_feature_columns = get_latent_feature_column_names(num_features)
     polar_pc_columns = [ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE]
 
@@ -151,7 +151,7 @@ def main(
         timepoint_annotations=timepoint_annotations,
     )
 
-    pc_and_polar_group = [*pc_columns[:3], *polar_pc_columns]
+    pc_and_polar_group = [*pc_columns, *polar_pc_columns]
 
     label_column_tuples = [
         ("Measurement", [get_label_for_column(col) for col in segmentation_feature_columns]),

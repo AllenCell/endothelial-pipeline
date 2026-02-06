@@ -90,6 +90,18 @@ SEGMENTATION_FEATURE_COLUMNS = {
         "is_edge_segmentation",
         "has_more_than_min_num_valid_points_per_track",
     ],
+    "correlation_workflow": [
+        "alignment_deg_rel_to_flow",
+        "orientation_deg",
+        "aspect_ratio",
+        "centroid_velocity_angle_deg",
+        "cell_fluorescence_mean (a.u.)",
+        "cell_fluorescence_pct25 (a.u.)",
+        "cell_fluorescence_pct75 (a.u.)",
+        "cell_fluorescence_max (a.u.)",
+        "num_nuclei_in_crop",
+        "area (um**2)",
+    ],
 }
 """Name of segmentation features to include in analyses."""
 
