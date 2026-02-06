@@ -126,3 +126,6 @@ angles = np.arctan2(
     seg_bound_locs[0] - seg_centroid[0],
     seg_bound_locs[1] - seg_centroid[1],
 )
+intensities = raw_arr[seg_bound_locs]
+
+plt.scatter(angles, intensities)
