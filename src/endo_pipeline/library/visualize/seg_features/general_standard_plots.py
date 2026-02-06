@@ -338,7 +338,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "ticks": None,  # range(0, 49, 12),
             "discrete_ticks": False,
         },
-        "alignment_deg": {
+        "alignment_deg_rel_to_flow": {
             "column_name": "alignment_deg_rel_to_flow",
             "label": "Alignment (deg)",
             "lims": (0, 90),
