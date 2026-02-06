@@ -41,18 +41,33 @@ def _get_input_dims_and_norm(x: np.ndarray) -> tuple[int, np.ndarray]:
 
     dims = x.shape[-1]
 
-    # Euclidean norm
+    # Euclidean norm of x
     euc_norm = np.sqrt((x * x).sum(axis=-1))
 
     return dims, euc_norm
 
 
-def kernel(kernel_func: Callable) -> Callable:
+def scaled_kernel(kernel_func: Callable) -> Callable:
     """
-    Transform a kernel function into a scaled kernel function with a given bandwidth.
+    Transform a pre-defined kernel function into a scaled kernel function
+    that can be used for kernel density estimation.
 
-    The output kernel function takes in a distance array and a bandwidth,
-    and returns the scaled kernel values.
+    **Original kernel function**
+
+    The original kernel function ``kernel_func`` should take in an array of distances and the
+    number of dimensions, and return the kernel values. Specifically, the array of distances
+    is an m x n array, where m is the number of pairs of points and n is the number of dimensions.
+    Then row i of the array corresponds to the difference between the i-th pair of points along each dimension.
+
+    **Kernel evaluation and scaling**
+
+    Using this decorator, the resulting scaled kernel function will take in an said
+    array of distances and a bandwidth, compute the norm of the distances (i.e., turn x-y to ||x-y||),
+    and return the scaled kernel values. The scaling is done by dividing the distances by the bandwidth,
+    and then normalizing by the bandwidth raised to the power of the number of dimensions.
+
+    The value is also divided by the volume of the unit ball in that number of dimensions, so that
+    resulting kernel function can be used for kernel density estimation in any number of dimensions.
     """
 
     @wraps(kernel_func)  # just for naming
@@ -64,7 +79,7 @@ def kernel(kernel_func: Callable) -> Callable:
     return decorated
 
 
-@kernel
+@scaled_kernel
 def epanechnikov(x: np.ndarray, dims: int) -> np.ndarray:
     """Define the Epanechnikov kernel in dimensions dims."""
     normalisation = 2.0 / (dims + 2.0)
@@ -75,7 +90,7 @@ def epanechnikov(x: np.ndarray, dims: int) -> np.ndarray:
     return kernel
 
 
-@kernel
+@scaled_kernel
 def gaussian(x: np.ndarray, dims: int) -> np.ndarray:
     """Define the Gaussian kernel in dimensions dims."""
 
@@ -92,7 +107,7 @@ def gaussian(x: np.ndarray, dims: int) -> np.ndarray:
     return kernel
 
 
-@kernel
+@scaled_kernel
 def uniform(x: np.ndarray, dims: int) -> np.ndarray:
     """Define the uniform, or rectangular, kernel in dimensions dims."""
     mask = x < 1.0
@@ -101,7 +116,7 @@ def uniform(x: np.ndarray, dims: int) -> np.ndarray:
     return kernel
 
 
-@kernel
+@scaled_kernel
 def triangular(x: np.ndarray, dims: int) -> np.ndarray:
     """Define the triangular kernel in dimensions dims."""
     normalisation = 1.0 / 2.0
@@ -111,7 +126,7 @@ def triangular(x: np.ndarray, dims: int) -> np.ndarray:
     return kernel
 
 
-@kernel
+@scaled_kernel
 def quartic(x: np.ndarray, dims: int) -> np.ndarray:
     """Define the quartic, or biweight, kernel in dimensions dims."""
     normalisation = 2.0 / (dims + 2.0)
