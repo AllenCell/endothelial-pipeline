@@ -30,6 +30,11 @@ def string_to_kernel(kernel: str) -> Callable:
         )
 
 
+def _volume_unit_ball(dims: int) -> float:
+    # volume of a unit ball in dimension dims
+    return np.pi ** (dims / 2.0) / gamma(dims / 2.0 + 1.0)
+
+
 def kernel(kernel_func: Callable) -> Callable:
     """
     Transform a kernel function into a scaled kernel function with a given bandwidth.
@@ -40,10 +45,6 @@ def kernel(kernel_func: Callable) -> Callable:
 
     @wraps(kernel_func)  # just for naming
     def decorated(x: np.ndarray, bw: float) -> np.ndarray:
-        def _volume_unit_ball(dims: int) -> float:
-            # volume of a unit ball in dimension dims
-            return np.pi ** (dims / 2.0) / gamma(dims / 2.0 + 1.0)
-
         if len(x.shape) == 1:
             x = x.reshape(-1, 1)
 
