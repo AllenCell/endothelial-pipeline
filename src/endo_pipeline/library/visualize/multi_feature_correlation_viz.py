@@ -456,6 +456,7 @@ def get_df_for_feature_correlation_viz(
         # (using a loop instead  of just sets to determine columns to load to preserve column order)
         dynamics_columns = SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
         supplementary_columns = SEGMENTATION_FEATURE_COLUMNS["supp"]
+        correlation_specific_cols = SEGMENTATION_FEATURE_COLUMNS["correlation_workflow"]
         diffae_nondiffae_columns = [
             col.value for col in ColumnName if "PREFIX" not in col.name and "SUFFIX" not in col.name
         ]
@@ -463,6 +464,7 @@ def get_df_for_feature_correlation_viz(
             dataset_info_columns
             + dynamics_columns
             + supplementary_columns
+            + correlation_specific_cols
             + diffae_nondiffae_columns
             + diffae_feature_columns
             + pc_columns
