@@ -1,7 +1,6 @@
 import inspect
 from collections.abc import Callable
 from functools import wraps
-from typing import Any
 
 import numpy as np
 from scipy.special import factorial2, gamma
@@ -135,23 +134,3 @@ def quartic(x: np.ndarray, dims: int) -> np.ndarray:
     kernel = np.zeros_like(x)
     kernel[mask] = ((1.0 - x2[mask]) ** 2) / normalisation
     return kernel
-
-
-def silvermans_rule(
-    timeseries: np.ndarray, multi_traj: bool = False
-) -> np.ndarray[Any, np.dtype[np.floating[Any]]]:
-    """Apply Silverman's rule of thumb for bandwidth selection."""
-    if multi_traj:  # take average of std of each trajectory along each dimension
-        n = 0
-        dim = timeseries[0].shape[1]
-        sigma = np.zeros(dim)
-        for traj in timeseries:
-            n += len(traj)
-            sigma = sigma + traj.std(axis=0)
-        sigma = sigma / len(timeseries)
-    else:  # take std of all data points along each dimension
-        n = timeseries.shape[0]
-        sigma = timeseries.std(axis=0)
-
-    sigma = sigma.max()  # take max std across dimensions
-    return ((4.0 * sigma**5) / (3 * n)) ** (1 / 5)
