@@ -35,10 +35,7 @@ LABEL_MAP = {
     "has_more_than_min_num_valid_points_per_track": "Filter: Num Valid Points Exceeds Threshold",
     "is_included": "Filter: Passed All Filters",
     # Cell-centric DiffAE features and PCs
-    **{
-        f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}"
-        for pc_col in DIFFAE_PC_COLUMN_NAMES[:num_pcs_to_analyze]
-    },
+    **{f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}" for pc_col in DIFFAE_PC_COLUMN_NAMES[:80]},
     ColumnName.POLAR_ANGLE.value: "PC Polar Angle",
     ColumnName.POLAR_RADIUS.value: "PC Polar Radius",
 }

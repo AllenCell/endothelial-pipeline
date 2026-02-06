@@ -18,6 +18,9 @@ class ColumnName(StrEnum):
     POLAR_ANGLE = "polar_theta"
     """Column name for polar angle coordinate computed from PC1 and PC2."""
 
+    PC3_FLIPPED = "rho"
+    """Column name for PC3 value with sign flipped as proxy measure of cell density."""
+
     DIFFERENCE_SUFFIX = "_diff"
     """Suffix for columns representing differences between feature values."""
 
