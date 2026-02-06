@@ -286,7 +286,7 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
         # It's plotting time!
         # pick the features to plot
         feats_to_plot = [
-            "alignment_deg",
+            "alignment_deg_rel_to_flow",
             "cell_nuc_orientation_deg",
             "centroid_velocity_angle_deg",
             "nuc_orientation_deg_rel_migration",
@@ -304,7 +304,7 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
         # (and/or to make them more informative)
         time_col = "time_hrs_flow"
         feats_plot_args[time_col]["label"] = "Time (h)"
-        feats_plot_args["alignment_deg"]["label"] = "Cell Alignment (°)"
+        feats_plot_args["alignment_deg_rel_to_flow"]["label"] = "Cell Alignment (°)"
         feats_plot_args["cell_nuc_orientation_deg"][
             "label"
         ] = "Cell-Nucleus Angle\nRel. to Flow (°)"

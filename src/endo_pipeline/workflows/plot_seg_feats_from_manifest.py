@@ -54,7 +54,7 @@ def plot_seg_manifest_data(
     # choose which features to put on the y-axis
     # (we will put time on the x-axis)
     feats_to_plot_y = [
-        "alignment_deg",
+        "alignment_deg_rel_to_flow",
         "nematic_order",
         "eccentricity",
         "aspect_ratio",
