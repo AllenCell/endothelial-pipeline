@@ -292,7 +292,7 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
             "nuc_orientation_deg_rel_migration",
             "nuc_pos_vs_cell_veloc_dotprod",
             "aspect_ratio",
-            "cell_fluorescence_mean",
+            "cell_fluorescence_mean (a.u.)",
             "area (um**2)",
         ]
         # get the plotting arguments for the features
@@ -316,7 +316,9 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
             "label"
         ] = "Cell-Nucleus vs.\nMigration Dot Prod."
         feats_plot_args["aspect_ratio"]["label"] = "Aspect ratio"
-        feats_plot_args["cell_fluorescence_mean"]["label"] = "Mean VE-Cad fluorescence (a.u.)"
+        feats_plot_args["cell_fluorescence_mean (a.u.)"][
+            "label"
+        ] = "Mean VE-Cad fluorescence (a.u.)"
         feats_plot_args["area (um**2)"]["label"] = "Cell area (µm²)"
 
         # create and save the panels of each of the features
