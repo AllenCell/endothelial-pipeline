@@ -378,7 +378,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "ticks": None,
             "discrete_ticks": False,
         },
-        "area_um2": {
+        "area (um**2)": {
             "column_name": "area (um**2)",
             "label": "Area (μm²)",
             "lims": (350, 2000),
@@ -402,7 +402,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "ticks": None,
             "discrete_ticks": False,
         },
-        "centroid_velocity_orientation_deg": {
+        "centroid_velocity_angle_deg": {
             "column_name": "centroid_velocity_angle_deg",
             "label": "Centroid Velocity\nOrientation (deg)",
             "lims": (-180, 181),
@@ -450,7 +450,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "ticks": None,
             "discrete_ticks": True,
         },
-        "cell_fluorescence_mean": {
+        "cell_fluorescence_mean (a.u.)": {
             "column_name": "cell_fluorescence_mean (a.u.)",
             "label": "Mean Cell Fluorescence",
             "lims": (120, 150),

@@ -19,7 +19,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     dataset_info_columns: list[str] = DATASET_INFO_COLUMNS,
-    segmentation_feature_group: str = "correlation_workflow",
+    segmentation_feature_group: str = "default",
     num_pcs: int | None = None,
     timepoint_annotations: list[TimepointAnnotation] | Literal["default"] | None = "default",
     aggregate_only: bool = True,
