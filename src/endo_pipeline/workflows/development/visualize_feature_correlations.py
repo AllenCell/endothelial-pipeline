@@ -2,7 +2,7 @@ from typing import Literal
 
 from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import TimepointAnnotation
-from endo_pipeline.settings.diffae_feature_dataframes import NUM_PCS_TO_ANALYZE
+from endo_pipeline.settings.diffae_feature_dataframes import MAX_PCS_TO_COMPUTE
 from endo_pipeline.settings.workflow_defaults import (
     DATASET_INFO_COLUMNS,
     DEFAULT_MODEL_MANIFEST_NAME,
@@ -23,7 +23,8 @@ def main(
     num_pcs: int | None = None,
     timepoint_annotations: list[TimepointAnnotation] | Literal["default"] | None = "default",
     aggregate_only: bool = True,
-    skip_multi_feature_scatterplots: bool = False,
+    skip_multi_feature_scatterplots: bool = True,
+    compare_with_diffae_features: bool = False,
 ) -> None:
     """
     Visualize correlation heatmaps and clustermaps for DiffAE features, PCs,
@@ -113,9 +114,11 @@ def main(
     model_location = get_model_location_for_run(model_manifest, run_name_)
     model_config = get_config_dict_from_mlflow(model_location.mlflowid)  # type: ignore
     num_features = get_latent_dim_from_config(model_config)
-    num_pcs = num_pcs if num_pcs is not None else min(NUM_PCS_TO_ANALYZE, num_features)
+    num_pcs = num_pcs if num_pcs is not None else min(MAX_PCS_TO_COMPUTE, num_features)
 
     pc_columns = get_pc_column_names(num_pcs)
+    # use the first 3 PCs and PC18 for correlation (PCs are 1-index)
+    pc_columns = pc_columns[:2] + pc_columns[17:18]
     diffae_feature_columns = get_latent_feature_column_names(num_features)
     polar_pc_columns = [ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE]
 
@@ -153,9 +156,12 @@ def main(
     label_column_tuples = [
         ("Measurement", [get_label_for_column(col) for col in segmentation_feature_columns]),
         ("PC", [get_label_for_column(col) for col in pc_columns]),
-        ("DiffAE Feature", [get_label_for_column(col) for col in diffae_feature_columns]),
         ("PC with polar transform", [get_label_for_column(col) for col in pc_and_polar_group]),
     ]
+    if compare_with_diffae_features:
+        label_column_tuples.append(
+            ("DiffAE Feature", [get_label_for_column(col) for col in diffae_feature_columns])
+        )
 
     if aggregate_only:
         dataset_name_list = ["aggregate"]
