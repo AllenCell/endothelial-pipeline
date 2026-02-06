@@ -481,7 +481,16 @@ def get_df_for_feature_correlation_viz(
         # the original orientation feature is in radians
         # and the y-axis is defined as 0 degrees
         # this keeps the orientation angle range between 0-180 degrees
-        merged_feats_df["orientation_deg"] = np.rad2deg(merged_feats_df["orientation"] + np.pi / 2)
+        merged_feats_df["orientation"] = merged_feats_df["orientation"] + np.pi / 2
+        merged_feats_df["orientation_deg"] = np.rad2deg(merged_feats_df["orientation"])
+
+        # "unwrap" the angle features to avoid issues with periodic data when plotting correlations
+        angle_period = np.pi
+        angle_cols = ["orientation", ColumnName.POLAR_ANGLE.value]
+        for ang_col in angle_cols:
+            merged_feats_df[f"{ang_col}_unwrapped"] = np.unwrap(
+                merged_feats_df[ang_col], period=angle_period
+            )
 
         # filter data table to only include the steady state timepoints that are
         # used when projecting the DiffAE features onto PCA axes
