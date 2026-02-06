@@ -82,8 +82,6 @@ dataset_info_cols = [
     "dataset",
     "position",
     "image_index",
-    "label",
-    "track_id",
 ]
 crop_cols = [
     "start_x_cdh5_seg",
@@ -91,7 +89,13 @@ crop_cols = [
     "end_x_cdh5_seg",
     "end_y_cdh5_seg",
 ]
-df_subset = df[dataset_info_cols + crop_cols].compute()
+seg_info_cols = [
+    "label",
+    "track_id",
+    "centroid_X",
+    "centroid_Y",
+]
+df_subset = df[dataset_info_cols + crop_cols + seg_info_cols].compute()
 record = df_subset.query(
     "label == @seg_of_interest and position == @position and image_index == @tp"
 )
@@ -110,5 +114,15 @@ overlay2 = label2rgb(
 plt.imshow(overlay2[y_slice, x_slice])
 
 seg_bound = find_boundaries(seg_arr == seg_of_interest)
-crop = tuple(slice(dim.min(), dim.max() + 1) for dim in np.where(seg_bound))
+seg_bound_locs = np.where(seg_bound)
+crop = tuple(slice(locs_dim.min(), locs_dim.max() + 1) for locs_dim in seg_bound_locs)
 plt.imshow(seg_bound[crop])
+
+seg_centroid = tuple(int(locs_dim.mean()) for locs_dim in seg_bound_locs)
+
+# get the angle from each pixel in seg_bound to seg_centroid and also
+# the fluorescence intensity at each of those pixels
+angles = np.arctan2(
+    seg_bound_locs[0] - seg_centroid[0],
+    seg_bound_locs[1] - seg_centroid[1],
+)
