@@ -1,0 +1,38 @@
+name: 20260121_20X
+date: '20260121'
+original_path: //allen/programs/allencell/data/proj0/25f/ced/a05/025/035/3aa/b4a/720/124/75e/ff/20260121_GE00009776_20X_SLDY/20260121_GE00009776_20X_sldy.sldy
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: ff75e124720b4a3aa035025a05ced25f
+barcode: GE00009776
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: medium
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+channel_names: [EGPF, BF]
+flow_conditions:
+- start: -20
+  stop: 576
+  shear_stress: 12.13
+include_scenes: null
+notes: 'intermediate shear stress condition 12 dyn/cm2 for 48h'
+timepoint_annotations: null
+position_annotations: null
+center_z_plane: null
