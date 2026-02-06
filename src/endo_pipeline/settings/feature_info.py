@@ -1,4 +1,4 @@
-from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE
+from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
 LABEL_MAP = {
@@ -28,11 +28,7 @@ LABEL_MAP = {
     "has_more_than_min_num_valid_points_per_track": "Filter: Num Valid Points Exceeds Threshold",
     "is_included": "Filter: Passed All Filters",
     # Cell-centric DiffAE features and PCs
-    "pc_1": "PC 1",
-    **{
-        f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}"
-        for pc_col in DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
-    },
+    **{f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}" for pc_col in DIFFAE_PC_COLUMN_NAMES[:80]},
     ColumnName.POLAR_ANGLE.value: "PC Polar Angle",
     ColumnName.POLAR_RADIUS.value: "PC Polar Radius",
 }
