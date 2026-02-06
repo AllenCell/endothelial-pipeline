@@ -35,6 +35,18 @@ def _volume_unit_ball(dims: int) -> float:
     return np.pi ** (dims / 2.0) / gamma(dims / 2.0 + 1.0)
 
 
+def _get_input_dims_and_norm(x: np.ndarray) -> tuple[int, np.ndarray]:
+    if len(x.shape) == 1:
+        x = x.reshape(-1, 1)
+
+    dims = x.shape[-1]
+
+    # Euclidean norm
+    euc_norm = np.sqrt((x * x).sum(axis=-1))
+
+    return dims, euc_norm
+
+
 def kernel(kernel_func: Callable) -> Callable:
     """
     Transform a kernel function into a scaled kernel function with a given bandwidth.
@@ -45,13 +57,7 @@ def kernel(kernel_func: Callable) -> Callable:
 
     @wraps(kernel_func)  # just for naming
     def decorated(x: np.ndarray, bw: float) -> np.ndarray:
-        if len(x.shape) == 1:
-            x = x.reshape(-1, 1)
-
-        dims = x.shape[-1]
-
-        # Euclidean norm
-        dist = np.sqrt((x * x).sum(axis=-1))
+        dims, dist = _get_input_dims_and_norm(x)
 
         return kernel_func(dist / bw, dims) / (bw**dims) / _volume_unit_ball(dims)
 
