@@ -1,6 +1,6 @@
 name: 20260126_20X
 date: '20260126'
-original_path: //allen/programs/allencell/data/proj0/c45/424/393/fa8/25c/079/347/c1a/d79/d19/ae/20260126_GE00009944_20X_SLDY
+original_path: //allen/programs/allencell/data/proj0/c45/424/393/fa8/25c/079/347/c1a/d79/d19/ae/20260126_GE00009944_20X_SLDY/20260126_GE00009944_20X_sldy.sldy
 zarr_positions: [0, 1, 2, 3, 4, 5]
 fmsid: aed19d79c1a34707925cfa8393424c45
 barcode: GE00009944
@@ -33,6 +33,13 @@ flow_conditions:
   shear_stress: 12.04
 include_scenes: null
 notes: ''
-timepoint_annotations: null
+timepoint_annotations:
+  not_steady_state:
+    0: [[0, 75]]
+    1: [[0, 120]]
+    2: [[0, 120]]
+    3: [[0, 110]]
+    4: [[0, 110]]
+    5: [[0, 75]]
 position_annotations: null
 center_z_plane: null

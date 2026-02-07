@@ -33,6 +33,13 @@ flow_conditions:
   shear_stress: 12.13
 include_scenes: null
 notes: 'intermediate shear stress condition 12 dyn/cm2 for 48h'
-timepoint_annotations: null
+timepoint_annotations:
+  not_steady_state:
+    0: [[0, 175]]
+    1: [[0, 170]]
+    2: [[0, 165]]
+    3: [[0, 180]]
+    4: [[0, 148]]
+    5: [[0, 150]]
 position_annotations: null
 center_z_plane: null
