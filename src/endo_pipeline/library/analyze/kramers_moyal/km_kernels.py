@@ -4,12 +4,9 @@ from collections.abc import Callable
 from functools import wraps
 
 import numpy as np
-from scipy.special import factorial2, gamma
-from scipy.stats import norm
+from scipy.special import gamma
 
 AVAILABLE_KERNEL_FUNCTIONS = ["epanechnikov", "gaussian", "uniform", "triangular", "quartic"]
-
-ADDITIONAL_NORMALIZATION: bool = False
 
 logger = logging.getLogger(__name__)
 
@@ -77,45 +74,31 @@ def scaled_kernel(kernel_func: Callable) -> Callable:
     @wraps(kernel_func)  # just for naming
     def decorated(x: np.ndarray, bw: float) -> np.ndarray:
         dims, dist = _get_input_dims_and_distances(x)
-        logger.debug("Additional per-dimension normalization: [ %s ]", ADDITIONAL_NORMALIZATION)
-        return kernel_func(dist / bw, dims) / (bw**dims) / _volume_unit_ball(dims)
+        return kernel_func(dist / bw) / (bw**dims) / _volume_unit_ball(dims)
 
     return decorated
 
 
 @scaled_kernel
-def epanechnikov(x: np.ndarray, dims: int) -> np.ndarray:
+def epanechnikov(x: np.ndarray) -> np.ndarray:
     """Define the Epanechnikov kernel in dimensions dims."""
-    normalisation = 2.0 / (dims + 2.0) if ADDITIONAL_NORMALIZATION else 1.0
     x2 = x**2
     mask = x2 < 1.0
     kernel = np.zeros_like(x)
-    kernel[mask] = (1.0 - x2[mask]) / normalisation
+    kernel[mask] = 1.0 - x2[mask]
     return kernel
 
 
 @scaled_kernel
-def gaussian(x: np.ndarray, dims: int) -> np.ndarray:
+def gaussian(x: np.ndarray) -> np.ndarray:
     """Define the Gaussian kernel in dimensions dims."""
 
-    def _gaussian_integral(n: int) -> float:
-        if n == 0:  # the integral of the 1D Gaussian is sqrt(2*pi)
-            return np.sqrt(np.pi * 2)
-        elif n % 2 == 0:
-            return np.sqrt(np.pi * 2) * factorial2(n - 1) / 2
-        else:
-            return np.sqrt(np.pi * 2) * factorial2(n - 1) * norm.pdf(0)
-
-    normalisation = (
-        dims * _gaussian_integral(dims - 1) if ADDITIONAL_NORMALIZATION else np.sqrt(2 * np.pi)
-    )
-    logger.debug("Gaussian kernel normalization factor: [ %.4f ]", normalisation)
-    kernel = np.exp(-(x**2) / 2.0) / normalisation
+    kernel = np.exp(-(x**2) / 2.0) / np.sqrt(2 * np.pi)
     return kernel
 
 
 @scaled_kernel
-def uniform(x: np.ndarray, dims: int) -> np.ndarray:
+def uniform(x: np.ndarray) -> np.ndarray:
     """Define the uniform, or rectangular, kernel in dimensions dims."""
     mask = x < 1.0
     kernel = np.zeros_like(x)
@@ -124,21 +107,19 @@ def uniform(x: np.ndarray, dims: int) -> np.ndarray:
 
 
 @scaled_kernel
-def triangular(x: np.ndarray, dims: int) -> np.ndarray:
+def triangular(x: np.ndarray) -> np.ndarray:
     """Define the triangular kernel in dimensions dims."""
-    normalisation = 1.0 / 2.0 if ADDITIONAL_NORMALIZATION else 1.0
     mask = x < 1.0
     kernel = np.zeros_like(x)
-    kernel[mask] = (1.0 - np.abs(x[mask])) / normalisation
+    kernel[mask] = 1.0 - np.abs(x[mask])
     return kernel
 
 
 @scaled_kernel
-def quartic(x: np.ndarray, dims: int) -> np.ndarray:
+def quartic(x: np.ndarray) -> np.ndarray:
     """Define the quartic, or biweight, kernel in dimensions dims."""
-    normalisation = 2.0 / (dims + 2.0) if ADDITIONAL_NORMALIZATION else 1.0
     x2 = x**2
     mask = x2 < 1.0
     kernel = np.zeros_like(x)
-    kernel[mask] = ((1.0 - x2[mask]) ** 2) / normalisation
+    kernel[mask] = (1.0 - x2[mask]) ** 2
     return kernel
