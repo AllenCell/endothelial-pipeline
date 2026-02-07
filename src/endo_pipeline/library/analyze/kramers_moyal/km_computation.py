@@ -1,9 +1,13 @@
+import logging
+
 import numpy as np
 from scipy.signal import convolve
 from scipy.special import factorial
 
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import string_to_kernel
 from endo_pipeline.library.analyze.numerics import histogramdd
+
+logger = logging.getLogger(__name__)
 
 
 def _check_and_adjust_km_inputs(
@@ -18,6 +22,9 @@ def _check_and_adjust_km_inputs(
 
     # check if timeseries is a list of 1D arrays, if so reshape to 2D arrays with one column
     if len(trajectories[0].shape) == 1:
+        logger.warning(
+            "Input ``timeseries`` is a list of 1D arrays. Reshaping to 2D arrays with one column."
+        )
         for j, ts in enumerate(trajectories):
             trajectories[j] = ts.reshape(-1, 1)
 
@@ -27,11 +34,15 @@ def _check_and_adjust_km_inputs(
     # check if powers is a 1D array
     # if so, reshape it to a 2D array with one column
     if len(powers.shape) == 1:
+        logger.warning("Input ``powers`` is a 1D array. Reshaping to 2D array with one column.")
         powers = powers.reshape(-1, 1)
 
     # add normalization factor to powers
     # if the first row is not all zeros
     if not (powers[0] == [0] * ndim).all():
+        logger.warning(
+            "First row of input ``powers`` is not all zeros. Adding zeros as first row for proper normalization."
+        )
         powers = np.array([[0] * ndim, *powers])
 
     if powers.shape[1] != ndim:
