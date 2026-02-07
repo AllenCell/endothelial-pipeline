@@ -1,4 +1,3 @@
-import inspect
 import logging
 from collections.abc import Callable
 from functools import wraps
@@ -6,29 +5,7 @@ from functools import wraps
 import numpy as np
 from scipy.special import gamma
 
-AVAILABLE_KERNEL_FUNCTIONS = ["epanechnikov", "gaussian"]
-
 logger = logging.getLogger(__name__)
-
-
-def string_to_kernel(kernel: str) -> Callable:
-    """
-    Convert a kernel name to the corresponding callable (scaled) kernel function.
-    """
-    # get dictionary of all callable kernel functions in this module
-    import sys
-
-    kernel_dict = {
-        name: func
-        for name, func in inspect.getmembers(sys.modules[__name__], inspect.isfunction)
-        if name in AVAILABLE_KERNEL_FUNCTIONS
-    }
-    if kernel in kernel_dict:
-        return kernel_dict[kernel]
-    else:
-        raise ValueError(
-            f"Kernel '{kernel}' not recognized. " f" Available kernels: {list(kernel_dict.keys())}"
-        )
 
 
 def _volume_unit_ball(dims: int) -> float:
@@ -94,3 +71,21 @@ def gaussian(x: np.ndarray) -> np.ndarray:
     """Define the Gaussian kernel."""
     kernel = np.exp(-(x**2) / 2.0) / np.sqrt(2 * np.pi)
     return kernel
+
+
+AVAILABLE_KERNEL_FUNCTIONS = {"epanechnikov": epanechnikov, "gaussian": gaussian}
+
+
+def string_to_kernel(kernel: str) -> Callable:
+    """
+    Convert a kernel name to the corresponding callable (scaled) kernel function.
+    """
+    # check if kernel is in the available implemented kernels,
+    # and return the corresponding function
+    if kernel in AVAILABLE_KERNEL_FUNCTIONS.keys():
+        return AVAILABLE_KERNEL_FUNCTIONS[kernel]
+    else:
+        raise ValueError(
+            f"Kernel '{kernel}' not recognized. "
+            f" Available kernels: {list(AVAILABLE_KERNEL_FUNCTIONS.keys())}"
+        )
