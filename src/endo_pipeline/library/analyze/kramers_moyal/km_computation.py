@@ -1,9 +1,13 @@
+import logging
+
 import numpy as np
 from scipy.signal import convolve
 from scipy.special import factorial
 
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import string_to_kernel
 from endo_pipeline.library.analyze.numerics import histogramdd
+
+logger = logging.getLogger(__name__)
 
 
 def _check_and_adjust_km_inputs(
@@ -18,6 +22,9 @@ def _check_and_adjust_km_inputs(
 
     # check if timeseries is a list of 1D arrays, if so reshape to 2D arrays with one column
     if len(trajectories[0].shape) == 1:
+        logger.warning(
+            "Input ``timeseries`` is a list of 1D arrays. Reshaping to 2D arrays with one column."
+        )
         for j, ts in enumerate(trajectories):
             trajectories[j] = ts.reshape(-1, 1)
 
@@ -27,11 +34,15 @@ def _check_and_adjust_km_inputs(
     # check if powers is a 1D array
     # if so, reshape it to a 2D array with one column
     if len(powers.shape) == 1:
+        logger.warning("Input ``powers`` is a 1D array. Reshaping to 2D array with one column.")
         powers = powers.reshape(-1, 1)
 
     # add normalization factor to powers
     # if the first row is not all zeros
     if not (powers[0] == [0] * ndim).all():
+        logger.warning(
+            "First row of input ``powers`` is not all zeros. Adding zeros as first row for proper normalization."
+        )
         powers = np.array([[0] * ndim, *powers])
 
     if powers.shape[1] != ndim:
@@ -47,7 +58,7 @@ def _km_wrapper(
     displacements: list[np.ndarray],
     bins: list[np.ndarray],
     powers: np.ndarray,
-    kernel: str,
+    kernel_name: str,
     kernel_bw: float,
     tol: float = 1e-10,
 ) -> np.ndarray:
@@ -110,22 +121,16 @@ def _km_wrapper(
     ----------
     trajectories
         List of invidual trajectories.
-
     displacements
         List of invidual displacements along the trajectories.
-
-    bins: list of np.ndarrays
+    bins
         List of monotonically increasing bin edges in each dimension.
-
     powers
         Powers for the operation of calculating the Kramers─Moyal coefficients.
-
-    kernel
+    kernel_name
         Kernel used to convolute with the Kramers-Moyal coefficients.
-
-    bw
+    kernel_bw
         Desired bandwidth of the kernel.
-
     tol
         Tolerance for small values of the probability density (0th order Kramers─Moyal coefficient).
     """
@@ -135,7 +140,7 @@ def _km_wrapper(
     )
 
     # convert specified kernel to callable
-    kernel_func = string_to_kernel(kernel)
+    kernel_func = string_to_kernel(kernel_name)
 
     # Get trajectories and corresponding displacements concatenated across all trajectories.
     # Note that the last timepoint of each trajectory is not included,
@@ -254,7 +259,8 @@ def get_kramers_moyal_coeffs(
     displacements: list[np.ndarray],
     bins: list[np.ndarray],
     dt: float,
-    kernel_params: dict,
+    kernel_name: str,
+    kernel_bw: float,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Get Kramers-Moyal coefficients for a list
@@ -296,8 +302,8 @@ def get_kramers_moyal_coeffs(
             trajectories,
             displacements,
             bins=bins,
-            kernel_bw=kernel_params["bandwidth"],
-            kernel=kernel_params["kernel"],
+            kernel_name=kernel_name,
+            kernel_bw=kernel_bw,
             powers=powers,
         )
         / dt
