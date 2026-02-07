@@ -6,7 +6,7 @@ from functools import wraps
 import numpy as np
 from scipy.special import gamma
 
-AVAILABLE_KERNEL_FUNCTIONS = ["epanechnikov", "gaussian", "uniform", "triangular", "quartic"]
+AVAILABLE_KERNEL_FUNCTIONS = ["epanechnikov", "gaussian"]
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ def scaled_kernel(kernel_func: Callable) -> Callable:
 
 @scaled_kernel
 def epanechnikov(x: np.ndarray) -> np.ndarray:
-    """Define the Epanechnikov kernel in dimensions dims."""
+    """Define the Epanechnikov kernel."""
     x2 = x**2
     mask = x2 < 1.0
     kernel = np.zeros_like(x)
@@ -91,35 +91,6 @@ def epanechnikov(x: np.ndarray) -> np.ndarray:
 
 @scaled_kernel
 def gaussian(x: np.ndarray) -> np.ndarray:
-    """Define the Gaussian kernel in dimensions dims."""
-
+    """Define the Gaussian kernel."""
     kernel = np.exp(-(x**2) / 2.0) / np.sqrt(2 * np.pi)
-    return kernel
-
-
-@scaled_kernel
-def uniform(x: np.ndarray) -> np.ndarray:
-    """Define the uniform, or rectangular, kernel in dimensions dims."""
-    mask = x < 1.0
-    kernel = np.zeros_like(x)
-    kernel[mask] = 1.0
-    return kernel
-
-
-@scaled_kernel
-def triangular(x: np.ndarray) -> np.ndarray:
-    """Define the triangular kernel in dimensions dims."""
-    mask = x < 1.0
-    kernel = np.zeros_like(x)
-    kernel[mask] = 1.0 - np.abs(x[mask])
-    return kernel
-
-
-@scaled_kernel
-def quartic(x: np.ndarray) -> np.ndarray:
-    """Define the quartic, or biweight, kernel in dimensions dims."""
-    x2 = x**2
-    mask = x2 < 1.0
-    kernel = np.zeros_like(x)
-    kernel[mask] = (1.0 - x2[mask]) ** 2
     return kernel
