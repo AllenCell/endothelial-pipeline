@@ -10,7 +10,7 @@ from scipy.stats import norm
 AVAILABLE_KERNEL_FUNCTIONS = ["epanechnikov", "gaussian", "uniform", "triangular", "quartic"]
 
 
-def string_to_kernel(kernel: str) -> Callable:
+def string_to_kernel(kernel_name: str) -> Callable:
     """
     Convert a kernel name to the corresponding callable (scaled) kernel function.
     """
@@ -22,8 +22,8 @@ def string_to_kernel(kernel: str) -> Callable:
         for name, func in inspect.getmembers(sys.modules[__name__], inspect.isfunction)
         if name in AVAILABLE_KERNEL_FUNCTIONS
     }
-    if kernel in kernel_dict:
-        return kernel_dict[kernel]
+    if kernel_name in kernel_dict:
+        return kernel_dict[kernel_name]
     else:
         raise ValueError(
             f"Kernel '{kernel}' not recognized. " f" Available kernels: {list(kernel_dict.keys())}"

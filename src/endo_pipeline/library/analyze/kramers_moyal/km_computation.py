@@ -58,7 +58,7 @@ def _km_wrapper(
     displacements: list[np.ndarray],
     bins: list[np.ndarray],
     powers: np.ndarray,
-    kernel: str,
+    kernel_name: str,
     kernel_bw: float,
     tol: float = 1e-10,
 ) -> np.ndarray:
@@ -127,9 +127,9 @@ def _km_wrapper(
         List of monotonically increasing bin edges in each dimension.
     powers
         Powers for the operation of calculating the Kramers─Moyal coefficients.
-    kernel
+    kernel_name
         Kernel used to convolute with the Kramers-Moyal coefficients.
-    bw
+    kernel_bw
         Desired bandwidth of the kernel.
     tol
         Tolerance for small values of the probability density (0th order Kramers─Moyal coefficient).
@@ -140,7 +140,7 @@ def _km_wrapper(
     )
 
     # convert specified kernel to callable
-    kernel_func = string_to_kernel(kernel)
+    kernel_func = string_to_kernel(kernel_name)
 
     # Get trajectories and corresponding displacements concatenated across all trajectories.
     # Note that the last timepoint of each trajectory is not included,
@@ -302,7 +302,7 @@ def get_kramers_moyal_coeffs(
             displacements,
             bins=bins,
             kernel_bw=kernel_params["bandwidth"],
-            kernel=kernel_params["kernel"],
+            kernel_name=kernel_params["kernel"],
             powers=powers,
         )
         / dt
