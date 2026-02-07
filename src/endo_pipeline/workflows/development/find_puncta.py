@@ -1,11 +1,14 @@
 # %%
-import matplotlib.pyplot as plt
+
 import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.metrics import roc_auc_score
 
 from endo_pipeline.library.analyze.integration.track_integration import (
     load_pc_diffae_liveseg_feats_merged_table,
 )
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
+from endo_pipeline.io import get_config_dict_from_mlflow, get_output_path, save_plot_to_path
 
 # %%
 pc_columns_to_keep = DIFFAE_PC_COLUMN_NAMES[:80]
@@ -60,8 +63,9 @@ no_puncta_files = [
 ]
 
 # %%
+
 df_puncta_list = []
-for file_info in has_puncta_files:
+for file_info in has_puncta_files + no_puncta_files:
     dataset_name = file_info["dataset_name"]
     df = load_pc_diffae_liveseg_feats_merged_table(dataset_name)
     df = df[pc_columns_to_keep + other_cols_to_keep].compute()
@@ -73,98 +77,70 @@ for file_info in has_puncta_files:
     merged = df_sub.merge(
         pairs_df, left_on=["track_id", "image_index"], right_on=["Track", "Frame"], how="inner"
     )
+    merged["has_puncta"] = file_info in has_puncta_files
     df_puncta_list.append(merged)
 
 df_puncta = pd.concat(df_puncta_list, ignore_index=True)
 
-# %%
-df_no_puncta_list = []
-for file_info in no_puncta_files:
-    dataset_name = file_info["dataset_name"]
-    df = load_pc_diffae_liveseg_feats_merged_table(dataset_name)
-    df = df[pc_columns_to_keep + other_cols_to_keep].compute()
+print(df_puncta.head())
 
-    fname = file_info["fname"]
-    df_annotation = pd.read_csv(f"{annotation_path}/{fname}")
-    pairs_df = df_annotation[["Track", "Frame"]]
-    df_sub = df[df["position"] == file_info["position"]]
-    merged = df_sub.merge(
-        pairs_df, left_on=["track_id", "image_index"], right_on=["Track", "Frame"], how="inner"
-    )
-    df_no_puncta_list.append(merged)
+def compute_separation_power(X, y, verbose=True):
+    # Assuming 'X' is your (M samples x N features) matrix
+    # Assuming 'y' is your binary label vector (0s and 1s)
+    ranking = []
+    for feature_name in X.columns:
+        # Calculate AUC
+        score = roc_auc_score(y, X[feature_name])
+        # We care about "Separation Power", so 0.1 is just as good as 0.9.
+        # We calculate 'power' as distance from 0.5 (randomness)
+        separation_power = 2.0 * abs(score - 0.5)
+        
+        ranking.append({
+            'feature': feature_name,
+            'auc': score,
+            'power': separation_power
+        })
 
-df_no_puncta = pd.concat(df_no_puncta_list, ignore_index=True)
+    print("Top features by separation power:")
+    ranking_sorted = sorted(ranking, key=lambda x: x['power'], reverse=True)
+    if verbose:
+        for item in ranking_sorted[:10]:  # Print top 10 features
+            print(f"{item['feature']}: AUC={item['auc']:.3f}, Power={item['power']:.3f}")
+    return ranking_sorted
 
+def rank_features_and_plot_histograms(df, features_to_rank, label_column="has_puncta"):
 
-# %%
-# create another version where you only include pc 1 and 2 that are negative in the plot
-pc_columns_to_adjust = pc_columns_to_keep[:2]  # Adjust this if you want to include more PCs
-mask = (df_puncta[pc_columns_to_adjust] < 1).all(axis=1)
-df_puncta_subset = df_puncta[mask]
+    ranking = compute_separation_power(df[features_to_rank], df["has_puncta"])
 
-mask = (df_no_puncta[pc_columns_to_adjust] < 1).all(axis=1)
-df_no_puncta_subset = df_no_puncta[mask]
-
-
-# %%
-def plot_pc_histograms(df_puncta, df_no_puncta, pc_columns_to_keep):
-    n_pcs = len(pc_columns_to_keep)
+    n_pcs = len(features_to_rank)
     ncols = 10
     nrows = (n_pcs + ncols - 1) // ncols
 
     fig, axes = plt.subplots(nrows, ncols, figsize=(ncols * 2, nrows * 2))
     axes = axes.flatten()
 
-    for i, pc_axis in enumerate(pc_columns_to_keep):
-        x_min = min(df_puncta[pc_axis].min(), df_no_puncta[pc_axis].min())
-        x_max = max(df_puncta[pc_axis].max(), df_no_puncta[pc_axis].max())
-        if i == 0:
+    for i, item in enumerate(ranking):
+        col = item['feature']
+        x_min = df[col].min()
+        x_max = df[col].max()
+        for label in df[label_column].unique():
+            subset = df[df[label_column] == label]
             axes[i].hist(
-                df_puncta[pc_axis],
-                bins=30,
-                range=(x_min, x_max),
-                alpha=0.75,
-                color="blue",
-                label="",
+                subset[col], bins=30, range=(x_min, x_max), alpha=0.75, label=f"{label}"
             )
-            axes[i].hist(
-                df_no_puncta[pc_axis],
-                bins=30,
-                range=(x_min, x_max),
-                alpha=0.75,
-                color="orange",
-                label="",
-            )
-        else:
-            axes[i].hist(
-                df_puncta[pc_axis], bins=30, range=(x_min, x_max), alpha=0.75, color="blue"
-            )
-            axes[i].hist(
-                df_no_puncta[pc_axis], bins=30, range=(x_min, x_max), alpha=0.75, color="orange"
-            )
-        axes[i].set_xlabel(f"PC {i+1}")
+        axes[i].set_xlabel(col)
         axes[i].set_ylabel("Count")
+        axes[i].set_title(f"{col}, Power: {item['power']:.3f}")
 
-    # Hide unused axes
-    for j in range(i + 1, len(axes)):
-        axes[j].axis("off")
-
-    # Add a single legend for the whole figure
-    n_puncta = len(df_puncta)
-    n_no_puncta = len(df_no_puncta)
+    n_puncta = df[label_column].sum()
+    n_no_puncta = len(df) - n_puncta
     legend_labels = [f"With Puncta (N={n_puncta})", f"Without Puncta (N={n_no_puncta})"]
-
     fig.legend(legend_labels, loc="upper right")
 
     plt.tight_layout()
-    plt.show()
+    fig_savedir = get_output_path("find_puncta")
+    save_plot_to_path(fig, fig_savedir, f"find_puncta_histograms.png")
     plt.close()
 
+rank_features_and_plot_histograms(df_puncta, features_to_rank=pc_columns_to_keep, label_column="has_puncta")
 
-# %%
-print("All:")
-plot_pc_histograms(df_puncta, df_no_puncta, pc_columns_to_keep)
-# %%
-print("Puncta subset:")
-plot_pc_histograms(df_puncta_subset, df_no_puncta_subset, pc_columns_to_keep)
-# %%
