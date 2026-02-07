@@ -110,22 +110,16 @@ def _km_wrapper(
     ----------
     trajectories
         List of invidual trajectories.
-
     displacements
         List of invidual displacements along the trajectories.
-
-    bins: list of np.ndarrays
+    bins
         List of monotonically increasing bin edges in each dimension.
-
     powers
         Powers for the operation of calculating the Kramers─Moyal coefficients.
-
     kernel
         Kernel used to convolute with the Kramers-Moyal coefficients.
-
     bw
         Desired bandwidth of the kernel.
-
     tol
         Tolerance for small values of the probability density (0th order Kramers─Moyal coefficient).
     """
