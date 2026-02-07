@@ -1,4 +1,6 @@
 # %%
+import logging
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -30,6 +32,8 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
 )
 
+logger = logging.getLogger(__name__)
+
 # %%
 # get dataframe manifest for grid-based crop features
 model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
@@ -54,7 +58,7 @@ bins, centers = get_bins(
 # %%
 dataset_names = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 for dataset_name in dataset_names:
-    print(f"Dataset: {dataset_name}")
+    logger.info("Processing dataset: [ %s ]", dataset_name)
     df = get_dataframe_for_dynamics_workflows(
         dataset_name,
         dataframe_manifest,
@@ -91,8 +95,10 @@ for dataset_name in dataset_names:
         kernel_params={"kernel": kernel, "bandwidth": bandwidth},
     )
 
-    print(
-        f"Maximum absolute difference:{np.nanmax(abs(drift_wo_addtl_norm-drift_w_addtl_norm)):.8f}"
+    logger.info(
+        "Maximum absolute difference: drift = [ %.8f ]; diffusion = [ %.8f ]",
+        np.nanmax(abs(drift_wo_addtl_norm - drift_w_addtl_norm)),
+        np.nanmax(abs(diffusion_wo_addtl_norm - diffusion_w_addtl_norm)),
     )
 
     where_drift_not_close = np.where(~np.isclose(drift_wo_addtl_norm, drift_w_addtl_norm))
@@ -122,7 +128,7 @@ for dataset_name in dataset_names:
     ax.set_ylabel("polar $r$")
     ax.set_xlim(bin_limits[0])
     ax.set_ylim(bin_limits[1])
-    ax.set_title("Drift coefficient estimate")
+    ax.set_title(f"{dataset_name}; drift coefficient estimate")
 
     where_diffusion_not_close = np.where(
         ~np.isclose(diffusion_wo_addtl_norm, diffusion_w_addtl_norm)
@@ -153,7 +159,7 @@ for dataset_name in dataset_names:
     ax.set_ylabel("polar $r$")
     ax.set_xlim(bin_limits[0])
     ax.set_ylim(bin_limits[1])
-    ax.set_title("Diffusion coefficient estimate")
+    ax.set_title(f"{dataset_name}; diffusion coefficient estimate")
 
 
 # %%
