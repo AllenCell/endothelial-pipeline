@@ -54,7 +54,8 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
 from endo_pipeline.settings.flow_field_3d import (
     BIN_WIDTH_DEFAULTS,
     INIT_POINT_3D,
-    KERNEL_PARAMS_3D,
+    KERNEL_BANDWIDTH,
+    KERNEL_FUNCTION_NAME,
     TIME_STEP_IN_MINUTES,
     TRAJECTORY_TIME_SPAN,
 )
@@ -569,7 +570,8 @@ def get_traj_and_flowfield(
 ) -> tuple[np.ndarray, dict]:
 
     # set kernel params
-    kernel_params = KERNEL_PARAMS_3D
+    kernel_name = KERNEL_FUNCTION_NAME
+    kernel_bw = KERNEL_BANDWIDTH
 
     # set time between frames in minutes
     dt = TIME_STEP_IN_MINUTES
@@ -598,7 +600,7 @@ def get_traj_and_flowfield(
     # get drift and diffusion estimates
     # (Kramers-Moyal coefficients)
     drift_km, diff_km = get_kramers_moyal_coeffs(
-        traj_list, d_traj_list, bins=bins, dt=dt, kernel_params=kernel_params
+        traj_list, d_traj_list, bins=bins, dt=dt, kernel_name=kernel_name, kernel_bw=kernel_bw
     )
 
     # get the vector field components from

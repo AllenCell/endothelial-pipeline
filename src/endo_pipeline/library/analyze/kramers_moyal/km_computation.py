@@ -259,7 +259,8 @@ def get_kramers_moyal_coeffs(
     displacements: list[np.ndarray],
     bins: list[np.ndarray],
     dt: float,
-    kernel_params: dict,
+    kernel_name: str,
+    kernel_bw: float,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Get Kramers-Moyal coefficients for a list
@@ -301,8 +302,8 @@ def get_kramers_moyal_coeffs(
             trajectories,
             displacements,
             bins=bins,
-            kernel_bw=kernel_params["bandwidth"],
-            kernel_name=kernel_params["kernel"],
+            kernel_name=kernel_name,
+            kernel_bw=kernel_bw,
             powers=powers,
         )
         / dt
