@@ -3,6 +3,7 @@ import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
+from skimage.registration import optical_flow_tvl1
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_config_dict_from_mlflow, load_image
@@ -47,18 +48,35 @@ model_config = get_config_dict_from_mlflow(model_location.mlflowid)
 crop_size = model_config.model.image_shape[-1]  # assumes square crops
 
 # %%
-dataset_name = "20250618_20X"
-crop_index = 0
+dataset_name = "20250319_20X"
+position_int = 1
+position = f"P{position_int}"
+row_num = 0  # has to be between 0 and 6
+col_num = 4  # has to be between 0 and 6
+crop_x_start = row_num * crop_size
+crop_y_start = col_num * crop_size
+
+timepoint = 287
 
 dataframe = get_dataframe_for_dynamics_workflows(dataset_name, dataframe_manifest)
-dataframe_crop = dataframe[dataframe[ColumnName.CROP_INDEX] == crop_index].sort_values(
-    by=ColumnName.TIMEPOINT
-)
-position = dataframe_crop[ColumnName.POSITION].iloc[0]
-position_int = int(position[1:])
-timepoint = dataframe_crop[ColumnName.TIMEPOINT].iloc[0]
-crop_x_start = dataframe_crop[ColumnName.START_X].iloc[0]
-crop_y_start = dataframe_crop[ColumnName.START_Y].iloc[0]
+dataframe_crop = dataframe[
+    (dataframe[ColumnName.POSITION] == position)
+    & (dataframe[ColumnName.START_X] == crop_x_start)
+    & (dataframe[ColumnName.START_Y] == crop_y_start)
+].sort_values(by=ColumnName.TIMEPOINT)
+
+if timepoint not in dataframe_crop[ColumnName.TIMEPOINT].values:
+    timepoint_new = dataframe_crop[ColumnName.TIMEPOINT].iloc[
+        (dataframe_crop[ColumnName.TIMEPOINT] - timepoint).abs().argsort()[0]
+    ]
+    logger.warning(
+        "Timepoint [ %s ] not in dataframe for dataset [ %s ], position [ %s ], using next closest timepoint instead: [ %s ]",
+        timepoint,
+        dataset_name,
+        position,
+        timepoint_new,
+    )
+    timepoint = timepoint_new
 # %%
 
 dataset_config = load_dataset_config(dataset_name)
@@ -102,14 +120,29 @@ for i in range(2):
     fig, ax = plt.subplots()
     ax.imshow(cdh5_crops[i].squeeze(), cmap="Grays_r")
 # %%
-bf_diff = bf_crops[1] - bf_crops[0]
-fig, ax = plt.subplots()
-ax.imshow(bf_diff.squeeze(), cmap="Grays_r")
-plt.show()
+v, u = optical_flow_tvl1(bf_crops[0].squeeze(), bf_crops[1].squeeze())
 
-# %%
-cdh5_diff = cdh5_crops[1] - cdh5_crops[0]
+# vector orientation relative to (1, 0): arctan(v/u)
+vec_orientation = np.arctan2(v, u)
 fig, ax = plt.subplots()
-ax.imshow(cdh5_diff.squeeze(), cmap="Grays_r")
-plt.show()
+im = ax.imshow(vec_orientation, cmap="hsv")
+# add colorbar with ticks at -pi, -pi/2, 0, pi/2, pi and labels
+cbar = plt.colorbar(im, ax=ax, ticks=[-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
+cbar.ax.set_yticklabels(["-π", "-π/2", "0", "π/2", "π"])
+
+fig, ax = plt.subplots()
+hist, bins = np.histogram(vec_orientation.flatten(), bins=50)
+# find argmax of histogram and corresponding bin center
+argmax_hist_idx = np.argmax(hist)
+bin_centers = (bins[:-1] + bins[1:]) / 2
+argmax_hist = bin_centers[argmax_hist_idx]
+print(f"Argmax of histogram: {argmax_hist:.2f} radians")
+ax.hist(vec_orientation.flatten(), bins=50)
+# set x-ticks to be at -pi, -pi/2, 0, pi/2, pi and labels
+ax.set_xticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
+ax.set_xticklabels(["-π", "-π/2", "0", "π/2", "π"])
+
+fig, ax = plt.subplots()
+ax.quiver(u, v)
+ax.set_aspect("equal")
 # %%
