@@ -15,7 +15,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
     get_traj_and_diff,
 )
-from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal
+from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.visualize.diffae_features.flow_field_viz import flow_field_viz_main
 from endo_pipeline.library.visualize.diffae_features.pplane import find_fpt_type, get_fps
 from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
@@ -93,7 +93,8 @@ def ddff_model_analysis(
     dataset_name: str,
     dataframe_manifest: DataframeManifest,
     pca: PCA,
-    kernel_params: dict,
+    kernel_name: str,
+    kernel_bw: float,
     dt: float,
     bins: list[np.ndarray],
     centers: list[np.ndarray],
@@ -132,8 +133,10 @@ def ddff_model_analysis(
         Dataframe manifest with the dataframe locations for each dataset.
     pca
         PCA model to use for transforming the data (projecting onto the top 3 PCs).
-    kernel_params
-        Parameters for the kernel-based estimation of Kramers-Moyal coefficients.
+    kernel_name
+        Name of the kernel function to use for Kramers-Moyal coefficient estimation.
+    kernel_bw
+        Bandwidth parameter for the kernel function used in Kramers-Moyal coefficient estimation.
     dt
         Time step between frames.
     bins
@@ -184,8 +187,8 @@ def ddff_model_analysis(
     traj_list, d_traj_list = get_traj_and_diff(df, pc_column_names)
     # get drift estimates
     # (Kramers-Moyal coefficients)
-    drift_km, _ = get_kramers_moyal(
-        traj_list, d_traj_list, bins=bins, dt=dt, kernel_params=kernel_params
+    drift_km, _ = get_kramers_moyal_coeffs(
+        traj_list, d_traj_list, bins=bins, dt=dt, kernel_name=kernel_name, kernel_bw=kernel_bw
     )
 
     # compute flow field on the grid defined by centers
