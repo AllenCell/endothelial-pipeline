@@ -1,3 +1,4 @@
+import inspect
 from collections.abc import Callable
 from functools import wraps
 from typing import Any
@@ -6,17 +7,35 @@ import numpy as np
 from scipy.special import factorial2, gamma
 from scipy.stats import norm
 
+AVAILABLE_KERNEL_FUNCTIONS = ["epanechnikov", "gaussian", "uniform", "triangular", "quartic"]
+
+
+def string_to_kernel(kernel_name: str) -> Callable:
+    """
+    Convert a kernel name to the corresponding callable (scaled) kernel function.
+    """
+    # get dictionary of all callable kernel functions in this module
+    import sys
+
+    kernel_dict = {
+        name: func
+        for name, func in inspect.getmembers(sys.modules[__name__], inspect.isfunction)
+        if name in AVAILABLE_KERNEL_FUNCTIONS
+    }
+    if kernel_name in kernel_dict:
+        return kernel_dict[kernel_name]
+    else:
+        raise ValueError(
+            f"Kernel '{kernel}' not recognized. " f" Available kernels: {list(kernel_dict.keys())}"
+        )
+
 
 def kernel(kernel_func: Callable) -> Callable:
     """
-    Transform a kernel function into a scaled kernel function
-    (for a certain bandwidth ``bw``).
+    Transform a kernel function into a scaled kernel function with a given bandwidth.
 
-    Currently implemented kernels are:
-        Epanechnikov, Gaussian, Uniform, Triangular, Quartic.
-
-    For a good overview of various kernels see
-    https://en.wikipedia.org/wiki/Kernel_(statistics).
+    The output kernel function takes in a distance array and a bandwidth,
+    and returns the scaled kernel values.
     """
 
     @wraps(kernel_func)  # just for naming
@@ -54,7 +73,9 @@ def gaussian(x: np.ndarray, dims: int) -> np.ndarray:
     """Define the Gaussian kernel in dimensions dims."""
 
     def _gaussian_integral(n: int) -> float:
-        if n % 2 == 0:
+        if n == 0:  # the integral of the 1D Gaussian is sqrt(2*pi)
+            return np.sqrt(np.pi * 2)
+        elif n % 2 == 0:
             return np.sqrt(np.pi * 2) * factorial2(n - 1) / 2
         else:
             return np.sqrt(np.pi * 2) * factorial2(n - 1) * norm.pdf(0)
