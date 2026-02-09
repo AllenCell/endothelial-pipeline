@@ -1,8 +1,11 @@
 import numpy as np
+from bioio_base.types import PhysicalPixelSizes
 
+from endo_pipeline.io import get_output_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
 )
+from endo_pipeline.library.process.general_image_preprocessing import save_image_output
 from endo_pipeline.manifests import (
     get_feature_dataframe_manifest_name,
     load_dataframe_manifest,
@@ -12,6 +15,7 @@ from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.image_data import (
     IMG_SHAPE_RESOLUTION_1_3i_X,
     IMG_SHAPE_RESOLUTION_1_3i_Y,
+    PIXEL_SIZE_3i_20x,
 )
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
@@ -52,10 +56,9 @@ crop_index_slices = dict(
     )
 )
 
-# intialize an empty image to hold the segmentation labels
+# check that the crops will fit in an initialized image
 grid_seg = np.zeros((IMG_SHAPE_RESOLUTION_1_3i_Y, IMG_SHAPE_RESOLUTION_1_3i_X), dtype=np.uint16)
 
-# check that the crops will fit in the initialized image
 if (
     grid_df.end_x.max() > IMG_SHAPE_RESOLUTION_1_3i_X
     or grid_df.end_y.max() > IMG_SHAPE_RESOLUTION_1_3i_Y
@@ -65,7 +68,48 @@ if (
         {(IMG_SHAPE_RESOLUTION_1_3i_Y, IMG_SHAPE_RESOLUTION_1_3i_X)}"
     )
 
-for crop_i in crop_index_slices:
-    grid_seg[crop_index_slices[crop_i]] = (
-        crop_i + 1
-    )  # add 1 so that background is 0 and first crop is label 1
+# for crop_i in crop_index_slices:
+#     grid_seg[crop_index_slices[crop_i]] = (
+#         crop_i + 1
+#     )  # add 1 so that background is 0 and first crop is label 1
+
+out_dir = get_output_path(__file__)
+out_dir.mkdir(parents=True, exist_ok=True)
+for tp in sorted(grid_df.frame_number.unique()):
+    grid_df.sort_values(by="frame_number")
+
+
+# we can probably do the multiprocessing at the position level
+for nm, df in grid_df.groupby("position"):
+    # each position has a unique set of crop index labels
+    # intialize an empty image to hold the segmentation labels
+    grid_seg = np.zeros((IMG_SHAPE_RESOLUTION_1_3i_Y, IMG_SHAPE_RESOLUTION_1_3i_X), dtype=np.uint16)
+
+    for crop_i in df.crop_index.unique():
+        grid_seg[crop_index_slices[crop_i]] = (
+            crop_i + 1
+        )  # add 1 so that background is 0 and first crop is label 1
+
+    # save the grid segmentation image for this position and timepoint
+    for tp in range(df.duration.unique().item()):
+        fname = f"{dataset_name}_{tp}_grid_segmentation.ome.tiff"
+
+        resolution_level = df.resolution_level.unique().item()
+        px_res_xy = PIXEL_SIZE_3i_20x * 2**resolution_level
+        px_res = PhysicalPixelSizes(Z=None, Y=px_res_xy, X=px_res_xy)
+
+        metadata = {
+            "image_name": f"{dataset_name}_{tp}",
+            "channel_colors": [(255, 255, 255)],
+            "channel_names": "grid_segmentation",
+            "physical_pixel_sizes": px_res,
+            "dim_order": "YX",
+        }
+        save_image_output(
+            out_path=out_dir / fname, images=[grid_seg], images_metadata=metadata, dtype=np.uint16
+        )
+    break
+
+
+for nm, df in grid_df.groupby(["crop_index", "start_y", "end_y", "start_x", "end_x"]):
+    break

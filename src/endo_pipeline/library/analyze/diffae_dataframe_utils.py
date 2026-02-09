@@ -643,6 +643,8 @@ def get_dataframe_for_dynamics_workflows(
     df = load_dataframe(location)
     feat_cols = get_latent_feature_column_names_from_dataframe(df)
 
+    df_with_crop = add_crop_index(df, crop_pattern)
+
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
     if filter_dataframe:
@@ -654,15 +656,13 @@ def get_dataframe_for_dynamics_workflows(
         timepoint_annotations = get_subset_of_timepoint_annotations(
             annotations_to_ignore=annotations_to_ignore
         )
-        df_filtered = filter_dataframe_by_annotations(
-            df,
+        df_with_crop = filter_dataframe_by_annotations(
+            df_with_crop,
             load_dataset_config(dataset_name),
             timepoint_annotations=timepoint_annotations,
         )
     else:
-        df_filtered = df
-
-    df_with_crop = add_crop_index(df_filtered, crop_pattern)
+        pass
 
     # add dataset duration description column
     dataset_config = load_dataset_config(dataset_name)
