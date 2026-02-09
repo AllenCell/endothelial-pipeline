@@ -6,6 +6,7 @@ dataset and measures of deviation in orientation.
 
 def main():
 
+    import numpy as np
     from matplotlib import colors
     from matplotlib import pyplot as plt
     from numpy import pi
@@ -114,6 +115,47 @@ def main():
                 cbar_scalarmap=cbar,
                 legend=legend,
             )
+
+    # plot hue vectors as quiver plots
+    for dens_col in density_cols:
+
+        out_subdir = outdir / "quiver_plots"
+        out_subdir.mkdir(parents=True, exist_ok=True)
+
+        for col_prefix in ["orientation", "polar_theta"]:
+            fig, ax = plt.subplots(figsize=(6, 6), dpi=300)
+
+            hue_mag_col = f"{col_prefix}_vec_mean_multipos_magnitude"
+            hue_angle_col = f"{col_prefix}_vec_mean_multipos_angle"
+            x_values = summary_df_agg["shear_stress"].to_numpy()
+            y_values = summary_df_agg[dens_col].to_numpy()
+            magnitudes = summary_df_agg[hue_mag_col].to_numpy()
+            angles = summary_df_agg[hue_angle_col].to_numpy()
+
+            u_values = magnitudes * np.cos(angles)
+            v_values = magnitudes * np.sin(angles)
+
+            ax.quiver(
+                x_values,
+                y_values,
+                u_values,
+                v_values,
+                magnitudes,
+                angles="uv",
+                scale=10,
+                headwidth=3,
+                headlength=3,
+                headaxislength=3,
+                minlength=0.1,
+            )
+            ax.set_xlabel("Shear Stress (dyn/cm²)")
+            ax.set_ylabel(dens_col)
+            ax.set_title(f"Quiver plot of {col_prefix} vectors")
+            fig.savefig(
+                out_subdir / f"quiver_{col_prefix}_{dens_col}_vs_flow.png", bbox_inches="tight"
+            )
+            plt.show()
+            plt.close(fig)
 
     print("Done.")
 
