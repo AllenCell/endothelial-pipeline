@@ -9,14 +9,18 @@ logger = logging.getLogger(__name__)
 
 
 def _volume_unit_ball(dims: int) -> float:
+    """Calculate the volume of a unit ball in a given number of dimensions."""
     # volume of a unit ball in dimension dims
     return np.pi ** (dims / 2.0) / gamma(dims / 2.0 + 1.0)
 
 
 def _get_input_dims_and_distances(x: np.ndarray) -> tuple[int, np.ndarray]:
+    """Get the number of dimensions and the Euclidean norm of the input array."""
     if len(x.shape) == 1:
         x = x.reshape(-1, 1)
 
+    # x is an array of shape (n_points, n_dims), where each row corresponds
+    # to the difference between a pair of points along each dimension
     dims = x.shape[-1]
 
     # Euclidean norm of the array of vector differences
