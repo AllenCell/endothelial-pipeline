@@ -5,7 +5,12 @@ import numpy as np
 import pandas as pd
 from colorizer_data import convert_colorizer_data
 
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe
+from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    fit_pca,
+    get_dataframe_for_dynamics_workflows,
+)
 from endo_pipeline.library.analyze.integration.track_integration import (
     load_pc_diffae_liveseg_feats_merged_table,
 )
@@ -17,14 +22,25 @@ from endo_pipeline.library.visualize.timelapse_feature_explorer.tfe_manifest_for
     add_feature_metadata,
     update_manifest_for_tfe,
 )
-from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.manifests import (
+    get_dataframe_location_for_dataset,
+    get_feature_dataframe_manifest_name,
+    get_image_location_for_dataset,
+    load_dataframe_manifest,
+    load_image_manifest,
+    load_model_manifest,
+)
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
+    MAX_PCS_TO_COMPUTE,
+    ColumnName,
 )
-from endo_pipeline.settings.feature_info import LABEL_MAP
+from endo_pipeline.settings.feature_info import LABEL_MAP, LABEL_MAP_GRID
 from endo_pipeline.settings.workflow_defaults import (
     DATASET_INFO_COLUMNS,
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     SEGMENTATION_FEATURE_COLUMNS,
 )
@@ -36,7 +52,7 @@ def generate_tfe_dataset(
     dataset: str,
     position: int,
     output_dir: Path,
-    source_dir: Path,
+    segmentation: str,
     backdrops: bool,
     output_dir_suffix: str = "",
     include_diffae_features: bool = True,
@@ -52,11 +68,82 @@ def generate_tfe_dataset(
         backdrops (bool): Flag to generate backdrops.
         output_dir_suffix (str): Optional suffix to append to the output directory name.
     """
+    # define list of available segmentations
+    available_segmentations = ["CDH5", "grid"]
+
     # Ensure output directory exists
     output_dir_suffix = f"_{output_dir_suffix}" if output_dir_suffix else ""
     output_dir = output_dir / f"{dataset}_P{position}{output_dir_suffix}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    dataset_config = load_dataset_config(dataset)
+
+    match segmentation:
+        case "CDH5":
+            manifest = load_image_manifest("cdh5_classic_seg")
+            location = get_image_location_for_dataset(manifest, dataset_config, position, 0)
+            if location.path is None:
+                logger.warning(
+                    f"No '{segmentation}' segmentation path found for {dataset}. Skipping."
+                )
+                return
+
+            df, feature_column_names, feature_info = get_df_and_label_map_cdh5seg(
+                dataset=dataset,
+                label_map=LABEL_MAP,
+                include_diffae_features=include_diffae_features,
+            )
+
+        case "grid":
+            manifest = load_image_manifest("grid_seg")
+            location = get_image_location_for_dataset(manifest, dataset_config, position, 0)
+            if location.path is None:
+                logger.warning(
+                    f"No '{segmentation}' segmentation path found for {dataset}. Skipping."
+                )
+                return
+
+            df, feature_column_names, feature_info = get_df_and_label_map_grid(
+                dataset=dataset, label_map=LABEL_MAP_GRID
+            )
+
+        case _:
+            raise ValueError(
+                f"crop_pattern must one of {available_segmentations}, got '{segmentation}'."
+            )
+
+    df_position = df.query("position == @position")
+    df_position = update_manifest_for_tfe(df_position, dataset, position, output_dir)
+
+    if backdrops:
+        generate_backdrops(
+            dataset,
+            position,
+            ["bf_slice", "bf_std_dev", "gfp_max_proj"],
+            output_dir=output_dir / "backdrops",
+        )
+
+    convert_colorizer_data(
+        data=df_position,
+        output_dir=output_dir,
+        source_dir=location.path.parent,
+        object_id_column="label",
+        times_column="image_index",
+        track_column="track_id",
+        image_column="seg_image",
+        centroid_x_column="centroid_X",
+        centroid_y_column="centroid_Y",
+        backdrop_column_names=[
+            "bf_slice_backdrop",
+            "bf_std_dev_backdrop",
+            "gfp_max_proj_backdrop",
+        ],
+        feature_column_names=feature_column_names,
+        feature_info=feature_info,
+    )
+
+
+def get_df_and_label_map_cdh5seg(dataset: str, label_map: dict, include_diffae_features: bool):
     if include_diffae_features:
         try:
             # Load dataframe with the diffae features and computed PCs
@@ -72,55 +159,64 @@ def generate_tfe_dataset(
         segprops_manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
         segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset)
         df_tracks = load_dataframe(segprops_location, delay=True)
-        # remove the DiffAE-related entries from LABEL_MAP before constructing the TFE dataset
+        # remove the DiffAE-related entries from label_map before constructing the TFE dataset
         diffae_keys = [
-            key for key in LABEL_MAP if key in DIFFAE_FEATURE_COLUMN_NAMES + DIFFAE_PC_COLUMN_NAMES
+            key for key in label_map if key in DIFFAE_FEATURE_COLUMN_NAMES + DIFFAE_PC_COLUMN_NAMES
         ]
         for key in diffae_keys:
-            del LABEL_MAP[key]
+            del label_map[key]
 
     cols_to_compute = list(
         set(
             DATASET_INFO_COLUMNS
             + [item for sublist in SEGMENTATION_FEATURE_COLUMNS.values() for item in sublist]
-            + list(LABEL_MAP.keys())
+            + list(label_map.keys())
         )
         & set(df_tracks.columns)
     )
     df_tracks_subset: pd.DataFrame = df_tracks[cols_to_compute].compute().reset_index(drop=True)
 
-    df_position = df_tracks_subset.query("position == @position")
-
-    df = add_dynamic_features_with_filtering(df_position)
+    df = add_dynamic_features_with_filtering(df_tracks_subset)
     df["orientation_deg"] = np.rad2deg(df["orientation"] + np.pi / 2)
-    df = update_manifest_for_tfe(df, dataset, position, output_dir)
 
-    if backdrops:
-        generate_backdrops(
-            dataset,
-            position,
-            ["bf_slice", "bf_std_dev", "gfp_max_proj"],
-            output_dir=output_dir / "backdrops",
-        )
+    feature_column_names = list(label_map.keys())
+    feature_info = add_feature_metadata(label_map)
 
-    feature_column_names = list(LABEL_MAP.keys())
-    feature_info = add_feature_metadata(LABEL_MAP)
+    return df, feature_column_names, feature_info
 
-    convert_colorizer_data(
-        data=df,
-        output_dir=output_dir,
-        source_dir=source_dir,
-        object_id_column="label",
-        times_column="image_index",
-        track_column="track_id",
-        image_column="seg_image",
-        centroid_x_column="centroid_X",
-        centroid_y_column="centroid_Y",
-        backdrop_column_names=[
-            "bf_slice_backdrop",
-            "bf_std_dev_backdrop",
-            "gfp_max_proj_backdrop",
-        ],
-        feature_column_names=feature_column_names,
-        feature_info=feature_info,
+
+def get_df_and_label_map_grid(dataset: str, label_map: dict) -> tuple[pd.DataFrame, list, dict]:
+    # dataset = "20250618_20X"
+
+    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
+    run_name = DEFAULT_MODEL_RUN_NAME
+
+    dataframe_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
     )
+    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+
+    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=MAX_PCS_TO_COMPUTE)
+
+    grid_df = get_dataframe_for_dynamics_workflows(dataset, dataframe_manifest, pca)
+    feat_cols = [col for col in grid_df.columns if ColumnName.LATENT_FEATURE_PREFIX in col]
+    grid_df = grid_df.drop(columns=feat_cols)
+
+    dataset_config = load_dataset_config(dataset)
+    if dataset_config.time_interval_in_minutes is None:
+        raise ValueError(f"No time interval found for dataset {dataset}")
+    dt_mins = dataset_config.time_interval_in_minutes
+
+    grid_df["time_minutes"] = grid_df.frame_number * dt_mins
+    grid_df["time_hours"] = grid_df.time_minutes / 60
+    grid_df["centroid_X"] = grid_df[["start_x", "end_x"]].transform("mean")
+    grid_df["centroid_Y"] = grid_df[["start_y", "end_y"]].transform("mean")
+
+    grid_df["label"] = grid_df["crop_index"] + 1
+    grid_df["track_id"] = grid_df["crop_index"] + 1
+    grid_df.rename({"frame_number": "image_index"}, inplace=True)
+
+    feature_column_names = list(label_map.keys())
+    feature_info = add_feature_metadata(label_map)
+
+    return grid_df, feature_column_names, feature_info

@@ -13,7 +13,7 @@ LABEL_MAP = {
     "cell_fluorescence_mean (a.u.)": "Cell Fluorescence Mean (a.u.)",
     "cell_fluorescence_median (a.u.)": "Cell Fluorescence Median (a.u.)",
     "cell_solidity": "Cell Solidity",
-    "tid": "Track ID",
+    # "tid": "Track ID",
     "time_hours": "Time (hours)",
     "time_minutes": "Time (minutes)",
     "track_id": "Track ID",
@@ -29,6 +29,19 @@ LABEL_MAP = {
     "is_included": "Filter: Passed All Filters",
     # Cell-centric DiffAE features and PCs
     "pc_1": "PC 1",
+    **{
+        f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}"
+        for pc_col in DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+    },
+    ColumnName.POLAR_ANGLE.value: "PC Polar Angle",
+    ColumnName.POLAR_RADIUS.value: "PC Polar Radius",
+}
+
+LABEL_MAP_GRID = {
+    "time_hours": "Time (hours)",
+    "time_minutes": "Time (minutes)",
+    "track_id": "Track ID",
+    "duration": "Track Duration",
     **{
         f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}"
         for pc_col in DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
