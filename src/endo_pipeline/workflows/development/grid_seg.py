@@ -46,9 +46,9 @@ crop_index_slices = dict(
         zip(
             map(slice, grid_df.start_y.values, grid_df.end_y.values),
             map(slice, grid_df.start_x.values, grid_df.end_x.values),
-            strict=False,
+            strict=True,
         ),
-        strict=False,
+        strict=True,
     )
 )
 
