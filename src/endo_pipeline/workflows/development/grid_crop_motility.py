@@ -103,8 +103,13 @@ for i in range(2):
     ax.imshow(cdh5_crops[i].squeeze(), cmap="Grays_r")
 # %%
 bf_diff = bf_crops[1] - bf_crops[0]
-fig, axs = plt.subplots()
-ax.imshow(bf_diff.squeeze())
+fig, ax = plt.subplots()
+ax.imshow(bf_diff.squeeze(), cmap="Grays_r")
 plt.show()
 
+# %%
+cdh5_diff = cdh5_crops[1] - cdh5_crops[0]
+fig, ax = plt.subplots()
+ax.imshow(cdh5_diff.squeeze(), cmap="Grays_r")
+plt.show()
 # %%
