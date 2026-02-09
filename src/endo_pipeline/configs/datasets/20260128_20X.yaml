@@ -32,7 +32,7 @@ flow_conditions:
   stop: 576
   shear_stress: 14.96
 include_scenes: null
-notes: 'There are holes in fov 0, 4 and 5'
+notes: There are holes in fov 0, 4 and 5
 timepoint_annotations:
   not_steady_state:
     0: [[0, 95]]
@@ -42,4 +42,10 @@ timepoint_annotations:
     4: [[0, 115]]
     5: [[0, 115]]
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 10
+  1: 9
+  2: 9
+  3: 8
+  4: 8
+  5: 8
