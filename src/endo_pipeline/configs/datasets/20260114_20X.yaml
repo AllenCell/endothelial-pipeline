@@ -34,6 +34,27 @@ flow_conditions:
 include_scenes: null
 notes: intermediate shear stress condition 15 dyn/cm2 for 48h
 timepoint_annotations:
+  auto_bf_scope_error:
+    0: [84, 268, 318, 522]
+    1: [68, 84, 558, 561]
+    2: [74, 269, 340, 528, 574]
+    3: [27, 68, 84, 339, 528]
+    4: [57, 68, 318, 559]
+    5: [27, 559, 564]
+  auto_bf_temp_artifact:
+    0: [339, 558]
+    1: [557]
+    2: [558]
+    3: [339]
+    4: [318]
+    5: [27, 317]
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
   not_steady_state:
     0: [[0, 97]]
     1: [[0, 100]]
