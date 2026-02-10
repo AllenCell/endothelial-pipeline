@@ -80,7 +80,7 @@ def gaussian(x: np.ndarray) -> np.ndarray:
 AVAILABLE_KERNEL_FUNCTIONS = {"epanechnikov": epanechnikov, "gaussian": gaussian}
 
 
-def string_to_kernel(kernel: str) -> Callable:
+def string_to_kernel(kernel: str) -> Callable[[np.ndarray, float], np.ndarray]:
     """
     Convert a kernel name to the corresponding callable (scaled) kernel function.
     """
@@ -97,7 +97,7 @@ def string_to_kernel(kernel: str) -> Callable:
 
 def compile_multivariate_product_kernel(
     kernels: list[Callable[[np.ndarray, float], np.ndarray]],
-) -> Callable[[np.ndarray], np.ndarray]:
+) -> Callable[[np.ndarray, list[float]], np.ndarray]:
     """
     Compile a multivariate kernel by taking the product of 1D kernels for each variable.
 

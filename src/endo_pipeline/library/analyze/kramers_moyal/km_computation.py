@@ -1,5 +1,4 @@
 import logging
-from collections.abc import Callable
 
 import numpy as np
 from scipy.signal import convolve
@@ -203,22 +202,17 @@ def _km_wrapper(
                 "If kernel_name is a list, kernel_bw must also be a list of the same length."
             )
         kernel_funcs = [string_to_kernel(k) for k in kernel_name]
-        kernel_func_prod: Callable[[np.ndarray, list[float]], np.ndarray] = (
-            compile_multivariate_product_kernel(kernel_funcs)
-        )
+        kernel_func_prod = compile_multivariate_product_kernel(kernel_funcs)
         # have to do some reshaping to properly evaluate the kernel at all points in the grid,
         # and then reshape back to the grid shape
         grid_shape = edges_cartesian_prod.shape[:-1]
         ndim = edges_cartesian_prod.shape[-1]
-        kernel_eval: np.ndarray = kernel_func_prod(
-            edges_cartesian_prod.reshape(-1, ndim), kernel_bw
+        kernel_eval = kernel_func_prod(edges_cartesian_prod.reshape(-1, ndim), kernel_bw).reshape(
+            grid_shape
         )
-        kernel_eval = kernel_eval.reshape(grid_shape)
     else:
-        kernel_func: Callable[[np.ndarray, float | list[float]], np.ndarray] = string_to_kernel(
-            kernel_name
-        )
-        kernel_eval: np.ndarray = kernel_func(edges_cartesian_prod, kernel_bw)
+        kernel_func = string_to_kernel(kernel_name)
+        kernel_eval = kernel_func(edges_cartesian_prod, kernel_bw)
 
     ##### KMC computation: convolve the histogram with the kernel
 
