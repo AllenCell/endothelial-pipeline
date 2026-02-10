@@ -39,7 +39,7 @@ fig_savedir = get_output_path(__file__)
 
 # Set up logging if this notebook is run in "notebook mode"
 if __name__ != "__main__":
-    setup_logging(log_level=logging.INFO)
+    setup_logging(level=logging.INFO)
     silence_external_loggers()
 
 # %%
