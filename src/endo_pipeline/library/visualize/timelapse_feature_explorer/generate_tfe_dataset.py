@@ -229,10 +229,12 @@ def get_df_and_label_map_grid(
     if dataset_config.timepoint_annotations is not None:
         filters_for_dataset = list(dataset_config.timepoint_annotations.keys())
         for filt in filters_for_dataset:
-            invalid_tps = []
+            invalid_tps: set = set()
             if position in dataset_config.timepoint_annotations[filt]:
+                if not dataset_config.timepoint_annotations[filt][position]:
+                    continue
                 for tps in dataset_config.timepoint_annotations[filt][position]:
-                    invalid_tps.append(range(*tps) if isinstance(tps, tuple) else tps)
+                    invalid_tps |= set(range(*tps)) if isinstance(tps, tuple) else {tps}
             grid_df[filt] = grid_df["image_index"].isin(invalid_tps)
     else:
         filters_for_dataset = []
