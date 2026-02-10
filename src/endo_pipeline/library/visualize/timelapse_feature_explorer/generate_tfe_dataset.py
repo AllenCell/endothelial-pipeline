@@ -186,7 +186,6 @@ def get_df_and_label_map_cdh5seg(dataset: str, label_map: dict, include_diffae_f
 
 
 def get_df_and_label_map_grid(dataset: str, label_map: dict) -> tuple[pd.DataFrame, list, dict]:
-    # dataset = "20250618_20X"
 
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
     run_name = DEFAULT_MODEL_RUN_NAME
@@ -209,12 +208,13 @@ def get_df_and_label_map_grid(dataset: str, label_map: dict) -> tuple[pd.DataFra
 
     grid_df["time_minutes"] = grid_df.frame_number * dt_mins
     grid_df["time_hours"] = grid_df.time_minutes / 60
-    grid_df["centroid_X"] = grid_df[["start_x", "end_x"]].transform("mean")
-    grid_df["centroid_Y"] = grid_df[["start_y", "end_y"]].transform("mean")
+    grid_df["centroid_X"] = grid_df[["start_x", "end_x"]].mean(axis=1)
+    grid_df["centroid_Y"] = grid_df[["start_y", "end_y"]].mean(axis=1)
 
     grid_df["label"] = grid_df["crop_index"] + 1
     grid_df["track_id"] = grid_df["crop_index"] + 1
-    grid_df.rename({"frame_number": "image_index"}, inplace=True)
+    grid_df["image_index"] = grid_df["frame_number"]
+    grid_df["position"] = grid_df["position"].transform(lambda x: int(x.strip("P")))
 
     feature_column_names = list(label_map.keys())
     feature_info = add_feature_metadata(label_map)

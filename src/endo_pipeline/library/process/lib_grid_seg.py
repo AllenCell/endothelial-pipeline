@@ -150,7 +150,6 @@ def check_crop_indices_against_existing_segmentations(df: pd.DataFrame, out_dir:
 
     pos = df.position.unique().item()
     tp = df.frame_number.unique().item()
-    # for (pos, tp), df in grid_df.groupby(["position", "frame_number"]):
     fp = out_dir / pos / make_grid_seg_filename(pos, tp)
 
     segmentation = load_image_from_path(fp)

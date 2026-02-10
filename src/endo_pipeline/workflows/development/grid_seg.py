@@ -24,7 +24,6 @@ def main(n_cores=4):
             create_grid_segmentation_images(grid_df, out_dir)
 
         else:
-            print(f"Checking {dataset_name} grid segmentation against existing segmentations...")
             nm, df = zip(*grid_df.groupby(["position", "frame_number"]), strict=False)
             num_seg_files = len(nm)
             with ProcessPoolExecutor(max_workers=n_cores) as worker_pool:
