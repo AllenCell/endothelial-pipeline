@@ -1,6 +1,10 @@
+# %%
+import logging
+
 import matplotlib.pyplot as plt
 import numpy as np
 
+from endo_pipeline.cli.logs import setup_logging, silence_external_loggers
 from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.io import get_output_path, save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
@@ -32,6 +36,12 @@ from endo_pipeline.settings.workflow_defaults import (
 KERNEL_NAME = "gaussian"
 KERNEL_BW = 0.15
 fig_savedir = get_output_path(__file__)
+
+# Set up logging if this notebook is run in "notebook mode"
+if __name__ != "__main__":
+    setup_logging(log_level=logging.INFO)
+    silence_external_loggers()
+
 # %%
 # get dataframe manifest for grid-based crop features
 model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
@@ -57,7 +67,6 @@ bins, centers = get_bins(
 # %%
 dataset_names = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 for dataset_name in dataset_names:
-    print(f"Dataset: {dataset_name}")
     df = get_dataframe_for_dynamics_workflows(
         dataset_name,
         dataframe_manifest,
@@ -92,10 +101,6 @@ for dataset_name in dataset_names:
         kernel_period=theta_period,
     )
 
-    # print(f"Maximum absolute difference:{np.nanmax(abs(drift_wo_addtl_norm-drift_w_addtl_norm)):.8f}")
-
-    # where_drift_not_close = np.where(~np.isclose(drift_wo_addtl_norm, drift_w_addtl_norm))
-
     fig, ax = plt.subplots()
     theta_data = df[ColumnName.POLAR_ANGLE].to_numpy()
     ax.scatter(
@@ -103,8 +108,6 @@ for dataset_name in dataset_names:
     )
     ax.plot(centers[0], drift_non_periodic, "k-", label="non-periodic kernel")
     ax.plot(centers[0], drift_periodic, "r--", label="periodic kernel")
-    # for i, j in zip(where_drift_not_close[0], where_drift_not_close[1],strict=True):
-    #     ax.scatter(centers[0][i], centers[1][j], color="red", label="Difference > tol" if (i, j) == (where_drift_not_close[0][0], where_drift_not_close[1][0]) else "")
     ax.legend(loc="upper left")
     ax.set_xlabel("polar $\\theta$")
     ax.set_ylabel("drift in $\\theta$")
@@ -118,8 +121,6 @@ for dataset_name in dataset_names:
     )
     ax.plot(centers[0], diffusion_non_periodic, "k-", label="non-periodic kernel")
     ax.plot(centers[0], diffusion_periodic, "r--", label="periodic kernel")
-    # for i, j in zip(where_drift_not_close[0], where_drift_not_close[1],strict=True):
-    #     ax.scatter(centers[0][i], centers[1][j], color="red", label="Difference > tol" if (i, j) == (where_drift_not_close[0][0], where_drift_not_close[1][0]) else "")
     ax.legend(loc="upper left")
     ax.set_xlabel("polar $\\theta$")
     ax.set_ylabel("diffusion in $\\theta$")
@@ -127,3 +128,5 @@ for dataset_name in dataset_names:
     ax.set_title(f"{dataset_name}; diffusion coefficient estimate")
     save_plot_to_path(fig, fig_savedir, f"{dataset_name}_diffusion_comparison.png")
     plt.close("all")
+
+# %%
