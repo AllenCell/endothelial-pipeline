@@ -4,6 +4,8 @@ parameters: {}
 locations:
   20250618_20X:
     path: //allen/aics/endothelial/timelapse_feature_explorer_grid/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
+  20250409_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer_grid/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
   20250428_20X:
     path: //allen/aics/endothelial/timelapse_feature_explorer_grid/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
   20250319_20X:
