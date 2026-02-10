@@ -41,3 +41,9 @@ def main(n_cores=4):
                 )
 
     print("\N{PARTY POPPER} Done.")
+
+
+if __name__ == "__main__":
+    from endo_pipeline.cli import workflow_cli
+
+    workflow_cli(main)
