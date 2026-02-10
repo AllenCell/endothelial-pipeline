@@ -143,24 +143,6 @@ def _km_wrapper(
         trajectories, displacements, powers
     )
 
-    # convert specified kernel to callable
-    if isinstance(kernel_name, list):
-        if not isinstance(kernel_bw, list):
-            logger.error(
-                "If kernel_name is a list, kernel_bw must also be a list of the same length."
-            )
-            raise ValueError(
-                "If kernel_name is a list, kernel_bw must also be a list of the same length."
-            )
-        kernel_funcs = [string_to_kernel(k) for k in kernel_name]
-        kernel_func: Callable[[np.ndarray, float | list[float]], np.ndarray] = (
-            compile_multivariate_product_kernel(kernel_funcs)
-        )
-    else:
-        kernel_func: Callable[[np.ndarray, float | list[float]], np.ndarray] = string_to_kernel(
-            kernel_name
-        )
-
     # Get trajectories and corresponding displacements concatenated across all trajectories.
     # Note that the last timepoint of each trajectory is not included,
     # as there is no corresponding displacement value for it.
@@ -209,12 +191,34 @@ def _km_wrapper(
     # (Default convolution method is 'auto', which uses fft if the kernel is large enough.)
     edges_extended = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in bins]
     edges_cartesian_prod = get_cartesian_product(edges_extended)
-    # have to do some reshaping to properly evaluate the kernel at all points in the grid,
-    # and then reshape back to the grid shape
-    grid_shape = edges_cartesian_prod.shape[:-1]
-    ndim = edges_cartesian_prod.shape[-1]
-    kernel_eval: np.ndarray = kernel_func(edges_cartesian_prod.reshape(-1, ndim), bw=kernel_bw)
-    kernel_eval = kernel_eval.reshape(grid_shape)
+
+    # convert specified kernel to callable, splitting into case of product kernel
+    # (list of kernels for each dimension) vs single multivariate kernel
+    if isinstance(kernel_name, list):
+        if not isinstance(kernel_bw, list):
+            logger.error(
+                "If kernel_name is a list, kernel_bw must also be a list of the same length."
+            )
+            raise ValueError(
+                "If kernel_name is a list, kernel_bw must also be a list of the same length."
+            )
+        kernel_funcs = [string_to_kernel(k) for k in kernel_name]
+        kernel_func_prod: Callable[[np.ndarray, list[float]], np.ndarray] = (
+            compile_multivariate_product_kernel(kernel_funcs)
+        )
+        # have to do some reshaping to properly evaluate the kernel at all points in the grid,
+        # and then reshape back to the grid shape
+        grid_shape = edges_cartesian_prod.shape[:-1]
+        ndim = edges_cartesian_prod.shape[-1]
+        kernel_eval: np.ndarray = kernel_func_prod(
+            edges_cartesian_prod.reshape(-1, ndim), kernel_bw
+        )
+        kernel_eval = kernel_eval.reshape(grid_shape)
+    else:
+        kernel_func: Callable[[np.ndarray, float | list[float]], np.ndarray] = string_to_kernel(
+            kernel_name
+        )
+        kernel_eval: np.ndarray = kernel_func(edges_cartesian_prod, kernel_bw)
 
     ##### KMC computation: convolve the histogram with the kernel
 
