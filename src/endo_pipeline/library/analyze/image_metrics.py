@@ -9,8 +9,7 @@ This module provides functions for computing various image quality metrics:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, NamedTuple
 
 from numpy.typing import NDArray
 from scipy.stats import pearsonr
@@ -19,22 +18,12 @@ from skimage.metrics import structural_similarity as ssim
 if TYPE_CHECKING:
     import torch
 
-
-@dataclass
-class ImageMetrics:
+class ImageMetrics(NamedTuple):
     """Container for image similarity metrics."""
 
     correlation: float
     ssim: float
     lpips: float
-
-    def to_dict(self) -> dict[str, float]:
-        """Convert metrics to dictionary."""
-        return {
-            "correlation": self.correlation,
-            "ssim": self.ssim,
-            "lpips": self.lpips,
-        }
 
 
 class LPIPSCalculator:
@@ -46,13 +35,13 @@ class LPIPSCalculator:
 
     Parameters
     ----------
-    net_type : str
-        Network type for LPIPS ('vgg' or 'alex'). Default is 'vgg'.
+    net_type : {'vgg', 'alex'}
+        Network type for LPIPS. Default is 'vgg'.
     device : str | None
         Device to run LPIPS on ('cuda', 'cpu', or None for auto-detect).
     """
 
-    def __init__(self, net_type: str = "vgg", device: str | None = None):
+    def __init__(self, net_type: Literal["vgg", "alex"]= "vgg", device: str | None = None):
         self.net_type = net_type
         self._device = device
         self._model: torch.nn.Module | None = None
@@ -174,15 +163,17 @@ def compute_all_metrics(
 
     Parameters
     ----------
-    img1, img2 : NDArray
-        Images to compare.
-    lpips_calculator : LPIPSCalculator | None
+    img1 
+        First image (or patch) to compare
+    img2 
+        Second image (or patch) to compare
+    lpips_calculator 
         Pre-initialized LPIPS calculator. If None, a new one will be created.
 
     Returns
     -------
-    ImageMetrics
-        Container with correlation, SSIM, and LPIPS scores.
+    Container with correlation, SSIM, and LPIPS scores.
+
     """
     corr = compute_correlation(img1, img2)
     ssim_score = compute_ssim(img1, img2)
@@ -230,12 +221,12 @@ def compute_denoising_metrics(
         for denoised_img in denoised_images:
             denoised_squeezed = denoised_img.squeeze()
             metrics.append(
-                compute_all_metrics(ground_truth, denoised_squeezed, lpips_calculator).to_dict()
+                compute_all_metrics(ground_truth, denoised_squeezed, lpips_calculator)._asdict()
             )
         metrics_100 = metrics[-1]
     else:
         denoised_100 = denoised_images[-1].squeeze()
-        metrics_100 = compute_all_metrics(ground_truth, denoised_100, lpips_calculator).to_dict()
+        metrics_100 = compute_all_metrics(ground_truth, denoised_100, lpips_calculator)._asdict()
         metrics = None
 
     return metrics, metrics_100
