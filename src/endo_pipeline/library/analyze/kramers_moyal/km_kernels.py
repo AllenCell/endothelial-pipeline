@@ -93,3 +93,54 @@ def string_to_kernel(kernel: str) -> Callable:
             f"Kernel '{kernel}' not recognized. "
             f" Available kernels: {list(AVAILABLE_KERNEL_FUNCTIONS.keys())}"
         )
+
+
+def compile_multivariate_product_kernel(
+    kernels: list[Callable[[np.ndarray, float], np.ndarray]],
+    bandwidths: list[float],
+) -> Callable[[np.ndarray], np.ndarray]:
+    """
+    Compile a multivariate kernel by taking the product of 1D kernels for each variable.
+
+    This function allows for specifying different kernels and bandwidths for each variable/dimension,
+    when performing multivariate kernel-based estimation.
+
+    **Input kernels and bandwidths**
+
+    The input `kernels` is a list of 1D scaled kernel functions, one for each variable/dimension.
+    Each kernel function should take in an array of distances and a bandwidth, and return
+    the scaled kernel values (see the `scaled_kernel` decorator for how to create such functions
+    from basic kernel definitions).
+
+    The input `bandwidths` is a list of bandwidths for each variable/dimension, which will be passed
+    to the corresponding kernel function for that variable.
+
+    **Input to the resulting multivariate kernel function**
+
+    The resulting multivariate kernel function will take in an array of differences along each dimension,
+    where each row corresponds to the difference between a pair of points along each dimension.
+    The function will evaluate the product of the kernel evaluations for each variable, using the
+    specified kernels and bandwidths.
+
+    Parameters
+    ----------
+    kernels
+        List of 1D kernel functions, one for each variable/dimension.
+    bandwidths
+        List of bandwidths for each variable/dimension.
+
+    Returns
+    -------
+        A function that returns the product of the kernel evaluations for each variable.
+    """
+
+    def multivariate_kernel(x: np.ndarray) -> np.ndarray:
+        kernel_eval_list = []
+        for d in range(x.shape[-1]):
+            kernel_eval = kernels[d](x[..., d], bandwidths[d])
+            kernel_eval_list.append(kernel_eval)
+
+        kernel_product = np.prod(kernel_eval_list, axis=0)
+        return kernel_product
+
+    return multivariate_kernel
