@@ -549,6 +549,32 @@ def calculate_derived_data_dynamics_dependent(big_table: pd.DataFrame) -> pd.Dat
         big_table[["nuc_pos_rel_cell_X_um", "nuc_pos_rel_cell_Y_um"]],
     )
 
+    # add fluorescence intensity dynamics column
+    logger.info("Calculating fluorescence intensity dynamics...")
+    big_table["dmean_EGFP_intensity_dt"] = (
+        big_table.groupby(["dataset_name", "position", "track_id"], as_index=True)
+        .apply(
+            lambda df: pd.DataFrame(
+                df["cell_fluorescence_mean (a.u.)"].diff() / df["time_minutes"].diff(),
+                index=df.index,
+            )
+        )
+        .droplevel([0, 1, 2])
+    )
+
+    # add approximate cell density dynamics column
+    logger.info("Calculating approximate cell density dynamics...")
+    big_table["dnum_nuclei_in_crop_dt"] = (
+        big_table.groupby(["dataset_name", "position", "track_id"], as_index=True)
+        .apply(
+            lambda df: pd.DataFrame(
+                df["num_nuclei_in_crop"].diff() / df["time_minutes"].diff(),
+                index=df.index,
+            )
+        )
+        .droplevel([0, 1, 2])
+    )
+
     # add column for the number of tracks at a given
     # timepoint per dataset per position
     logger.info("Adding number of tracks for each timepoint...")
