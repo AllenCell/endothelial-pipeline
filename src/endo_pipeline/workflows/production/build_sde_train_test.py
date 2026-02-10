@@ -97,7 +97,8 @@ def main(
         bin_widths,
         dt,
         fig_savedir,
-        kernel_params=kernel_params,
+        kernel_name=kernel_params["kernel"] if kernel_params is not None else "gaussian",
+        kernel_bw=kernel_params["bandwidth"] if kernel_params is not None else 0.2,
     )
 
     #### Save train-test data ####
