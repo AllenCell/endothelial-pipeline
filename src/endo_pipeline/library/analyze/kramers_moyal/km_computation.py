@@ -1,10 +1,14 @@
 import logging
+from collections.abc import Callable
 
 import numpy as np
 from scipy.signal import convolve
 from scipy.special import factorial
 
-from endo_pipeline.library.analyze.kramers_moyal.km_kernels import string_to_kernel
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import (
+    compile_multivariate_product_kernel,
+    string_to_kernel,
+)
 from endo_pipeline.library.analyze.numerics import histogramdd
 
 logger = logging.getLogger(__name__)
@@ -58,8 +62,8 @@ def _km_wrapper(
     displacements: list[np.ndarray],
     bins: list[np.ndarray],
     powers: np.ndarray,
-    kernel_name: str,
-    kernel_bw: float,
+    kernel_name: str | list[str],
+    kernel_bw: float | list[float],
     tol: float = 1e-10,
 ) -> np.ndarray:
     """
@@ -140,7 +144,22 @@ def _km_wrapper(
     )
 
     # convert specified kernel to callable
-    kernel_func = string_to_kernel(kernel_name)
+    if isinstance(kernel_name, list):
+        if not isinstance(kernel_bw, list):
+            logger.error(
+                "If kernel_name is a list, kernel_bw must also be a list of the same length."
+            )
+            raise ValueError(
+                "If kernel_name is a list, kernel_bw must also be a list of the same length."
+            )
+        kernel_funcs = [string_to_kernel(k) for k in kernel_name]
+        kernel_func: Callable[[np.ndarray, float | list[float]], np.ndarray] = (
+            compile_multivariate_product_kernel(kernel_funcs)
+        )
+    else:
+        kernel_func: Callable[[np.ndarray, float | list[float]], np.ndarray] = string_to_kernel(
+            kernel_name
+        )
 
     # Get trajectories and corresponding displacements concatenated across all trajectories.
     # Note that the last timepoint of each trajectory is not included,
@@ -183,13 +202,19 @@ def _km_wrapper(
     # of the histogram in each dimension and centered around the origin.
 
     # The kernel is then evaluated at all points in this extended grid (obtained
-    # via the cartesian product of the entries of edges_k).
+    # via the cartesian product of the entries of edges_extended).
     # The purpose of this is to artifically construct a periodic kernel
     # that is centered around the origin, so that the input into the convolution
     # is compatible with the circular nature of the convolution obtained via fft.
     # (Default convolution method is 'auto', which uses fft if the kernel is large enough.)
-    edges_k = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in bins]
-    kernel_eval = kernel_func(get_cartesian_product(edges_k), bw=kernel_bw)
+    edges_extended = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in bins]
+    edges_cartesian_prod = get_cartesian_product(edges_extended)
+    # have to do some reshaping to properly evaluate the kernel at all points in the grid,
+    # and then reshape back to the grid shape
+    grid_shape = edges_cartesian_prod.shape[:-1]
+    ndim = edges_cartesian_prod.shape[-1]
+    kernel_eval: np.ndarray = kernel_func(edges_cartesian_prod.reshape(-1, ndim), bw=kernel_bw)
+    kernel_eval = kernel_eval.reshape(grid_shape)
 
     ##### KMC computation: convolve the histogram with the kernel
 
@@ -259,8 +284,8 @@ def get_kramers_moyal_coeffs(
     displacements: list[np.ndarray],
     bins: list[np.ndarray],
     dt: float,
-    kernel_name: str,
-    kernel_bw: float,
+    kernel_name: str | list[str],
+    kernel_bw: float | list[float],
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Get Kramers-Moyal coefficients for a list
