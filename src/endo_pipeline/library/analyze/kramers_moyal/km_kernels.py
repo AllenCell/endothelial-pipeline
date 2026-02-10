@@ -128,15 +128,15 @@ def compile_multivariate_product_kernel(
         A function that returns the product of the kernel evaluations for each variable.
     """
 
-    def multivariate_kernel(x: np.ndarray, bandwidths: list[float]) -> np.ndarray:
+    def multivariate_kernel(x: np.ndarray, bw: list[float]) -> np.ndarray:
         kernel_eval_list = []
         ndim = x.shape[-1]
-        if ndim != len(bandwidths):
+        if ndim != len(bw):
             raise ValueError(
-                f"Number of dimensions in input x ({ndim}) does not match number of bandwidths ({len(bandwidths)})"
+                f"Number of dimensions in input x ({ndim}) does not match number of bandwidths ({len(bw)})"
             )
         for d in range(x.shape[-1]):
-            kernel_eval = kernels[d](x[..., d], bandwidths[d])
+            kernel_eval = kernels[d](x[..., d], bw[d])
             kernel_eval_list.append(kernel_eval)
 
         kernel_product = np.prod(kernel_eval_list, axis=0)
