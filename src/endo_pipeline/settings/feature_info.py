@@ -42,10 +42,19 @@ LABEL_MAP_GRID = {
     "time_minutes": "Time (minutes)",
     "track_id": "Track ID",
     "duration": "Track Duration",
+    # various PC values
     **{
         f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}"
         for pc_col in DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
     },
     ColumnName.POLAR_ANGLE.value: "PC Polar Angle",
     ColumnName.POLAR_RADIUS.value: "PC Polar Radius",
+    # filters
+    "auto_bf_scope_error": "Filter: Auto-detected Brightfield Microscope Error",
+    "auto_bf_temp_artifact": "Filter: Auto-detected Temperature Artifact",
+    "auto_gfp_scope_error": "Filter: Auto-detected GFP Channel Microscope Error",
+    "bf_scope_error": "Filter: Manually Annotated Brightfield Microscope Error",
+    "cell_piling": "Filter: Manually Annotated Significant Cell Piling",
+    "gfp_scope_error": "Filter: Manually Annotated GFP Channel Microscope Error",
+    "not_steady_state": "Filter: Cells Not At Steady State",
 }

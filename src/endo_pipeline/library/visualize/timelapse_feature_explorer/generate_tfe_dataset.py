@@ -21,6 +21,7 @@ from endo_pipeline.library.visualize.timelapse_feature_explorer.tfe_manifest_for
     add_dynamic_features_with_filtering,
     add_feature_metadata,
     update_manifest_for_tfe,
+    update_manifest_for_tfe_grid,
 )
 from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
@@ -88,11 +89,13 @@ def generate_tfe_dataset(
                 )
                 return
 
-            df, feature_column_names, feature_info = get_df_and_label_map_cdh5seg(
+            df_position, feature_column_names, feature_info = get_df_and_label_map_cdh5seg(
                 dataset=dataset,
+                position=position,
                 label_map=LABEL_MAP,
                 include_diffae_features=include_diffae_features,
             )
+            df_position = update_manifest_for_tfe(df_position, dataset, position, output_dir)
 
         case "grid":
             manifest = load_image_manifest("grid_seg")
@@ -103,17 +106,15 @@ def generate_tfe_dataset(
                 )
                 return
 
-            df, feature_column_names, feature_info = get_df_and_label_map_grid(
-                dataset=dataset, label_map=LABEL_MAP_GRID
+            df_position, feature_column_names, feature_info = get_df_and_label_map_grid(
+                dataset=dataset, position=position, label_map=LABEL_MAP_GRID
             )
+            df_position = update_manifest_for_tfe_grid(df_position, dataset, position, output_dir)
 
         case _:
             raise ValueError(
                 f"crop_pattern must one of {available_segmentations}, got '{segmentation}'."
             )
-
-    df_position = df.query("position == @position")
-    df_position = update_manifest_for_tfe(df_position, dataset, position, output_dir)
 
     if backdrops:
         generate_backdrops(
@@ -143,7 +144,9 @@ def generate_tfe_dataset(
     )
 
 
-def get_df_and_label_map_cdh5seg(dataset: str, label_map: dict, include_diffae_features: bool):
+def get_df_and_label_map_cdh5seg(
+    dataset: str, position: int, label_map: dict, include_diffae_features: bool
+):
     if include_diffae_features:
         try:
             # Load dataframe with the diffae features and computed PCs
@@ -185,7 +188,9 @@ def get_df_and_label_map_cdh5seg(dataset: str, label_map: dict, include_diffae_f
     return df, feature_column_names, feature_info
 
 
-def get_df_and_label_map_grid(dataset: str, label_map: dict) -> tuple[pd.DataFrame, list, dict]:
+def get_df_and_label_map_grid(
+    dataset: str, position: int, label_map: dict
+) -> tuple[pd.DataFrame, list, dict]:
 
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
     run_name = DEFAULT_MODEL_RUN_NAME
@@ -197,7 +202,9 @@ def get_df_and_label_map_grid(dataset: str, label_map: dict) -> tuple[pd.DataFra
 
     pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=MAX_PCS_TO_COMPUTE)
 
-    grid_df = get_dataframe_for_dynamics_workflows(dataset, dataframe_manifest, pca)
+    grid_df = get_dataframe_for_dynamics_workflows(
+        dataset, dataframe_manifest, pca, filter_dataframe=False
+    )
     feat_cols = [col for col in grid_df.columns if ColumnName.LATENT_FEATURE_PREFIX in col]
     grid_df = grid_df.drop(columns=feat_cols)
 
@@ -215,6 +222,16 @@ def get_df_and_label_map_grid(dataset: str, label_map: dict) -> tuple[pd.DataFra
     grid_df["track_id"] = grid_df["crop_index"] + 1
     grid_df["image_index"] = grid_df["frame_number"]
     grid_df["position"] = grid_df["position"].transform(lambda x: int(x.strip("P")))
+
+    grid_df = grid_df.query("position == @position")
+
+    # add the timepoint annotations as filter columns
+    if dataset_config.timepoint_annotations is not None:
+        for filt in dataset_config.timepoint_annotations:
+            invalid_tps = []
+            for tps in dataset_config.timepoint_annotations[filt][position]:
+                invalid_tps.append(range(*tps) if isinstance(tps, tuple) else tps)
+            grid_df[filt] = grid_df["image_index"].isin(invalid_tps)
 
     feature_column_names = list(label_map.keys())
     feature_info = add_feature_metadata(label_map)
