@@ -74,9 +74,11 @@ def main(
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
     from endo_pipeline.settings.histogram_1d_vis import (
+        BIN_LIMITS_PC18,
         BIN_LIMITS_RHO,
         BIN_WIDTHS_FOR_HISTOGRAMS,
         FEATURES_FOR_HISTOGRAM_VIS,
+        NUM_PCS_TO_FIT,
     )
     from endo_pipeline.settings.polar_coords import (
         BIN_LIMITS_POLAR,
@@ -97,8 +99,8 @@ def main(
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
-    # only need first two PCs
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=3)
+    # fit PCA
+    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=NUM_PCS_TO_FIT)
 
     # Default list of datasets if not provided, only include datasets available in
     # the provided dataframe manifest
@@ -111,7 +113,7 @@ def main(
         dataset_names = [name for name in datasets if name in valid_dataset_options]
 
     # compute bins for polar coordinates
-    bin_limits = [*BIN_LIMITS_POLAR, BIN_LIMITS_RHO]
+    bin_limits = [*BIN_LIMITS_POLAR, BIN_LIMITS_RHO, BIN_LIMITS_PC18]
     idx_theta = column_names.index(ColumnName.POLAR_ANGLE.value)
     if RESCALE_THETA:
         bin_limits[idx_theta] = BIN_LIMITS_THETA_RESCALED
