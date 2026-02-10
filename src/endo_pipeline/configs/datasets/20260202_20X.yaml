@@ -33,7 +33,28 @@ flow_conditions:
   shear_stress: 14.7
 include_scenes: null
 notes: ''
-timepoint_annotations: null
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [5, 38, 175, 285, 292, 336]
+    1: [0, 312, 336]
+    2: [286]
+    3: [37]
+    4: []
+    5: [3, 37]
+  auto_bf_temp_artifact:
+    0: [38]
+    1: []
+    2: []
+    3: []
+    4: []
+    5: [37, 554]
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
 position_annotations: null
 center_z_plane:
   0: 12
