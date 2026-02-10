@@ -227,11 +227,17 @@ def get_df_and_label_map_grid(
 
     # add the timepoint annotations as filter columns
     if dataset_config.timepoint_annotations is not None:
-        for filt in dataset_config.timepoint_annotations:
+        filters_for_dataset = list(dataset_config.timepoint_annotations.keys())
+        for filt in filters_for_dataset:
             invalid_tps = []
-            for tps in dataset_config.timepoint_annotations[filt][position]:
-                invalid_tps.append(range(*tps) if isinstance(tps, tuple) else tps)
+            if position in dataset_config.timepoint_annotations[filt]:
+                for tps in dataset_config.timepoint_annotations[filt][position]:
+                    invalid_tps.append(range(*tps) if isinstance(tps, tuple) else tps)
             grid_df[filt] = grid_df["image_index"].isin(invalid_tps)
+    else:
+        filters_for_dataset = []
+    # clean up the label_map to remove filters not used in this dataset
+    label_map = {col: label_map[col] for col in label_map if col in grid_df.columns}
 
     feature_column_names = list(label_map.keys())
     feature_info = add_feature_metadata(label_map)

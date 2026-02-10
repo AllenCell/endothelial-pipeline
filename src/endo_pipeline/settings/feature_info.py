@@ -51,10 +51,14 @@ LABEL_MAP_GRID = {
     ColumnName.POLAR_RADIUS.value: "PC Polar Radius",
     # filters
     "auto_bf_scope_error": "Filter: Auto-detected Brightfield Microscope Error",
-    "auto_bf_temp_artifact": "Filter: Auto-detected Temperature Artifact",
+    "auto_bf_temp_artifact": "Filter: Auto-detected Temporary Artifact",
     "auto_gfp_scope_error": "Filter: Auto-detected GFP Channel Microscope Error",
     "bf_scope_error": "Filter: Manually Annotated Brightfield Microscope Error",
-    "cell_piling": "Filter: Manually Annotated Significant Cell Piling",
+    "bf_temp_artifact": "Filter: Manually Annotated Temporary Artifact",
     "gfp_scope_error": "Filter: Manually Annotated GFP Channel Microscope Error",
+    "cell_piling": "Filter: Manually Annotated Significant Cell Piling",
     "not_steady_state": "Filter: Cells Not At Steady State",
+    "unfed": "Filter: Unfed (More Than 3 Hours Since Fresh Media Introduced)",
+    "xy_shift": "Filter: Significant Change in XY position of FOV",
+    "z_shift": "Filter: Significant Change in Z position of FOV",
 }
