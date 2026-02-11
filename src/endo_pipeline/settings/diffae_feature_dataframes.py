@@ -135,3 +135,17 @@ DIFFAE_PC_COLUMN_NAMES = [
     f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(NUM_LATENT_FEATURES)
 ]
 """Full set of column names for PCA-transformed features in DiFFAE feature dataframes."""
+
+DIFFAE_PC_COLUMN_NAME_GROUPS: dict[str, list[str]] = {
+    "default": DIFFAE_PC_COLUMN_NAMES[:3]
+    + DIFFAE_PC_COLUMN_NAMES[17:18]
+    + [ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE],
+    "polar_coord": [ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE],
+    "first_3_pcs": DIFFAE_PC_COLUMN_NAMES[:3],
+    "first_100_pcs": DIFFAE_PC_COLUMN_NAMES[:100],
+    "all": DIFFAE_PC_COLUMN_NAMES,
+}
+
+DIFFAE_FEATURE_COLUMN_NAME_GROUPS = {
+    "all": DIFFAE_FEATURE_COLUMN_NAMES,
+}
