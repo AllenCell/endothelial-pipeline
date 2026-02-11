@@ -33,6 +33,13 @@ flow_conditions:
   shear_stress: 14.98
 include_scenes: null
 notes: ''
-timepoint_annotations: null
+timepoint_annotations:
+  not_steady_state:
+    0: [[0, 112]]
+    1: [[0, 100]]
+    2: [[0, 115]]
+    3: [[0, 100]]
+    4: [[0, 100]]
+    5: [[0, 100]]
 position_annotations: null
 center_z_plane: null
