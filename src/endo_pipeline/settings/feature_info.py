@@ -1,5 +1,5 @@
 from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.diffae_feature_dataframes import MAX_PCS_TO_COMPUTE, ColumnName
 
 LABEL_MAP = {
     "alignment_deg_rel_to_flow": "Alignment Relative to Flow (degrees)",
@@ -45,7 +45,7 @@ LABEL_MAP_GRID = {
     # various PC values
     **{
         f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}"
-        for pc_col in DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+        for pc_col in DIFFAE_PC_COLUMN_NAMES[:MAX_PCS_TO_COMPUTE]
     },
     ColumnName.POLAR_ANGLE.value: "PC Polar Angle",
     ColumnName.POLAR_RADIUS.value: "PC Polar Radius",

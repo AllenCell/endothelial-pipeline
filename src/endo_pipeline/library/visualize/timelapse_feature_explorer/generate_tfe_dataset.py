@@ -182,6 +182,8 @@ def get_df_and_label_map_cdh5seg(
     df = add_dynamic_features_with_filtering(df_tracks_subset)
     df["orientation_deg"] = np.rad2deg(df["orientation"] + np.pi / 2)
 
+    df = df[df["position"] == position]
+
     feature_column_names = list(label_map.keys())
     feature_info = add_feature_metadata(label_map)
 
