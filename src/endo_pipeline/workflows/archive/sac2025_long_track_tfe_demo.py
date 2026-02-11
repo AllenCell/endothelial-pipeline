@@ -11,9 +11,6 @@ from endo_pipeline.library.process.general_image_preprocessing import (
     save_image_output,
     sequence_to_scalar,
 )
-from endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (
-    generate_tfe_dataset,
-)
 from endo_pipeline.settings import DIMENSION_ORDER
 
 
@@ -319,13 +316,18 @@ def generate_tfe_dataset_of_single_track(
 
     generate_crop_outline_images(out_dir, dataset_name, position, track_id, crop_size)
 
-    _, out_dir_box_only = get_out_subdirs(out_dir, dataset_name, position)
+    # NOTE the code below for generating a TFE dataset with a crop box
+    # highlighting a single "segmentation" does not work anymore and would
+    # need to be updated in generate_tfe_dataset to specify the crop box
+    # segmentations (for example you could have "segmentation= 'single-track-highlight'")
 
-    generate_tfe_dataset(
-        dataset=dataset_name,
-        position=position,
-        output_dir=out_dir,
-        segmentation=out_dir_box_only,
-        backdrops=True,
-        output_dir_suffix=f"tid{track_id}",
-    )
+    # _, out_dir_box_only = get_out_subdirs(out_dir, dataset_name, position)
+
+    # generate_tfe_dataset(
+    #     dataset=dataset_name,
+    #     position=position,
+    #     output_dir=out_dir,
+    #     segmentation=out_dir_box_only,  # out_dir_box_only is not a valid arg for segmentation
+    #     backdrops=True,
+    #     output_dir_suffix=f"tid{track_id}",
+    # )
