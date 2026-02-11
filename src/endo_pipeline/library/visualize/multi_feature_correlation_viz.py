@@ -406,7 +406,6 @@ def get_df_for_feature_correlation_viz(
     segmentation_feature_columns: list[str],
     pc_columns: list[str],
     diffae_feature_columns: list[str],
-    polar_pc_columns: list[ColumnName],
     timepoint_annotations: list[TimepointAnnotation] | None = None,
 ) -> pd.DataFrame:
     """
@@ -511,7 +510,6 @@ def get_df_for_feature_correlation_viz(
             *segmentation_feature_columns,
             *diffae_feature_columns,
             *pc_columns,
-            *polar_pc_columns,
         ]
         if not all(np.isin(cols_to_keep, merged_feats_df.columns)):
             missing_columns = set(cols_to_keep) - set(merged_feats_df.columns)
