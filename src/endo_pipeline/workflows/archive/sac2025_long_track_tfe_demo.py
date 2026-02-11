@@ -325,7 +325,7 @@ def generate_tfe_dataset_of_single_track(
         dataset=dataset_name,
         position=position,
         output_dir=out_dir,
-        source_dir=out_dir_box_only,
+        segmentation=out_dir_box_only,
         backdrops=True,
         output_dir_suffix=f"tid{track_id}",
     )
