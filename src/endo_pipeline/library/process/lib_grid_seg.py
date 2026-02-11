@@ -106,7 +106,7 @@ def create_grid_segmentation_images(grid_df: pd.DataFrame, out_dir: Path) -> Non
 
     # we can probably do the multiprocessing at the position level
     for pos, df in grid_df.groupby("position"):
-        out_subdir = out_dir / pos
+        out_subdir = out_dir / str(pos)
         out_subdir.mkdir(exist_ok=True)
 
         # each position has a unique set of crop index labels

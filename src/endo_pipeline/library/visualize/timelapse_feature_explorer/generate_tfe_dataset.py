@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from colorizer_data import convert_colorizer_data
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import get_annotated_timepoints_for_position, load_dataset_config
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     fit_pca,
@@ -231,13 +231,15 @@ def get_df_and_label_map_grid(
     if dataset_config.timepoint_annotations is not None:
         filters_for_dataset = list(dataset_config.timepoint_annotations.keys())
         for filt in filters_for_dataset:
-            invalid_tps: set = set()
+            # timepoint_annotations = dataset_config.timepoint_annotations[filt].get(position, [])
+            # invalid_tps: set = set()
             if position in dataset_config.timepoint_annotations[filt]:
+                invalid_tps = get_annotated_timepoints_for_position(
+                    dataset_config, position, [filt]
+                )
                 if not dataset_config.timepoint_annotations[filt][position]:
                     continue
-                for tps in dataset_config.timepoint_annotations[filt][position]:
-                    invalid_tps |= set(range(*tps)) if isinstance(tps, tuple) else {tps}
-            grid_df[filt] = grid_df["image_index"].isin(invalid_tps)
+                grid_df[filt] = grid_df["image_index"].isin(invalid_tps)
     else:
         filters_for_dataset = []
     # clean up the label_map to remove filters not used in this dataset
