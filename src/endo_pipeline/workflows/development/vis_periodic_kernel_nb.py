@@ -50,7 +50,7 @@ dataframe_manifest_name = get_feature_dataframe_manifest_name(
 )
 dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 # %%
-# only need first two PCs
+# only need first 3 PCs
 pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=3)
 
 # %%
