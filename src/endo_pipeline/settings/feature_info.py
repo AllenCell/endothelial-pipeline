@@ -49,6 +49,7 @@ LABEL_MAP_GRID = {
     },
     ColumnName.POLAR_ANGLE.value: "PC Polar Angle",
     ColumnName.POLAR_RADIUS.value: "PC Polar Radius",
+    ColumnName.PC3_FLIPPED.value: "PC Rho",
     # filters
     "auto_bf_scope_error": "Filter: Auto-detected Brightfield Microscope Error",
     "auto_bf_temp_artifact": "Filter: Auto-detected Temporary Artifact",
