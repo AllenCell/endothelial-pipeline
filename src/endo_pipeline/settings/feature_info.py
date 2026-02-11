@@ -40,8 +40,8 @@ LABEL_MAP = {
 LABEL_MAP_GRID = {
     "time_hours": "Time (hours)",
     "time_minutes": "Time (minutes)",
-    "track_id": "Track ID",
-    "duration": "Track Duration",
+    # "track_id": "Track ID",
+    # "duration": "Track Duration",
     # various PC values
     **{
         f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}"

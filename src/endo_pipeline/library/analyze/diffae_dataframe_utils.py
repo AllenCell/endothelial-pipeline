@@ -805,29 +805,17 @@ def add_crop_index(
         required_columns = [ColumnName.POSITION, "track_id"]
         check_required_columns_in_dataframe(df, required_columns)
         df[ColumnName.CROP_INDEX] = (
-            df.groupby([ColumnName.POSITION, "track_id"], as_index=False).ngroup().astype(int)
+            df.groupby(required_columns, as_index=False).ngroup().astype(int)
         )
 
     elif crop_pattern == "grid":
-        required_columns = [ColumnName.START_X, ColumnName.START_Y, ColumnName.POSITION]
+        required_columns = [ColumnName.POSITION, ColumnName.START_X, ColumnName.START_Y]
         check_required_columns_in_dataframe(df, required_columns)
 
-        # get list of unique starting positions and FOV_IDs
-        start_x = df[ColumnName.START_X].unique().tolist()
-        start_y = df[ColumnName.START_Y].unique().tolist()
-        position = df[ColumnName.POSITION].unique().tolist()
-        tup_list = [(x, y, pos) for x in start_x for y in start_y for pos in position]
-
-        # function to convert starting position and FOV_ID to crop index
-        def _pos_to_index_grid(x: float, y: float, position: str) -> int:
-            return tup_list.index((x, y, position))
-
-        # apply function to DataFrame to get crop index
-        df[ColumnName.CROP_INDEX] = df.apply(
-            lambda x: _pos_to_index_grid(
-                x[ColumnName.START_X], x[ColumnName.START_Y], x[ColumnName.POSITION]
-            ),
-            axis=1,
+        # group by the required columns and assign a unique integer (the crop_index)
+        # to each group based on the index of that group
+        df[ColumnName.CROP_INDEX] = (
+            df.groupby(required_columns, as_index=False).ngroup().astype(int)
         )
 
     return df
