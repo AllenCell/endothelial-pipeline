@@ -94,8 +94,8 @@ def get_pc_column_names(num_pcs: str | int) -> list[str]:
     :
         List of PCA feature column names.
     """
-    if isinstance(int, num_pcs):
-        pc_cols = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(num_pcs)]
+    if isinstance(num_pcs, int):
+        pc_cols = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(int(num_pcs))]
     elif isinstance(num_pcs, str):
         pc_cols = DIFFAE_PC_COLUMN_NAME_GROUPS.get(num_pcs, [])
         if not pc_cols:
@@ -103,7 +103,6 @@ def get_pc_column_names(num_pcs: str | int) -> list[str]:
                 f"Invalid num_pcs string [ {num_pcs} ]. Must be either an integer or\
                 one of the following strings: {list(DIFFAE_PC_COLUMN_NAME_GROUPS.keys())}"
             )
-        pc_cols = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(int(num_pcs))]
     else:
         raise ValueError("num_pcs must be either an integer or a string.")
     return pc_cols
