@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Callable
 from functools import wraps
+from typing import Literal, NamedTuple
 
 import numpy as np
 from scipy.special import gamma
@@ -109,19 +110,45 @@ AVAILABLE_KERNEL_FUNCTIONS = {
 }
 
 
-def string_to_kernel(kernel: str) -> Callable[[np.ndarray, float, float | None], np.ndarray]:
-    """
-    Convert a kernel name to the corresponding callable (scaled) kernel function.
-    """
-    # check if kernel is in the available implemented kernels,
-    # and return the corresponding function
-    if kernel in AVAILABLE_KERNEL_FUNCTIONS.keys():
-        return AVAILABLE_KERNEL_FUNCTIONS[kernel]
-    else:
-        raise ValueError(
-            f"Kernel '{kernel}' not recognized. "
-            f" Available kernels: {list(AVAILABLE_KERNEL_FUNCTIONS.keys())}"
-        )
+class KramersMoyalKernel(NamedTuple):
+    """Structure for kernels used to calculate Kramers-Moyal coefficients."""
+
+    name: Literal["epanechnikov", "gaussian", "periodic"]
+    """Name of the kernel."""
+
+    kernel_function: Callable
+
+    bandwidth: float
+    """Kernel bandwidth."""
+
+    period: float | None = None
+    """Kernel period (only required for periodic kernel)."""
+
+    def __new__(cls, name: str, bandwidth: float, period: float | None) -> "KramersMoyalKernel":
+        """Create a new KramersMoyalKernel instance, with validation of kernel name and bandwidth."""
+
+        obj = object.__new__(cls)
+
+        # validate kernel name and bandwidth, and set attributes
+        if name not in AVAILABLE_KERNEL_FUNCTIONS.keys():
+            raise ValueError(
+                f"Kernel '{name}' not recognized. "
+                f" Available kernels: {list(AVAILABLE_KERNEL_FUNCTIONS.keys())}"
+            )
+        if name == "periodic" and period is None:
+            raise ValueError("Period must be specified for periodic kernel.")
+        if bandwidth <= 0:
+            raise ValueError(f"Bandwidth must be positive, got {bandwidth}")
+
+        obj.name = name
+        obj.bandwidth = bandwidth
+        obj.period = period
+
+        return obj
+
+    def string_to_kernel(self) -> Callable[[np.ndarray, float, float | None], np.ndarray]:
+        """Convert the kernel name to the corresponding callable (scaled) kernel function."""
+        return AVAILABLE_KERNEL_FUNCTIONS[self.name]
 
 
 def compile_multivariate_product_kernel(
