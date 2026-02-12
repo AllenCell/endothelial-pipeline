@@ -293,8 +293,9 @@ def get_kramers_moyal_coeffs(
     The input ``kernel`` can be a single kernel function that is applied to all dimensions,
     or a list of kernel functions for each dimension (in which case the product kernel is used).
 
-    In general, the kernel is specified as a ``KramersMoyalKernel`` dataclass, which is a named tuple that
-    includes the kernel name, bandwidth, and period (if applicable).
+    In general, the kernel is specified as a ``KramersMoyalKernel`` dataclass, which has attributes
+    for the kernel name, bandwidth, and period (if applicable). If a list of kernels is provided,
+    each kernel in the list should be a ``KramersMoyalKernel`` dataclass corresponding to each dimension.
 
     Parameters
     ----------

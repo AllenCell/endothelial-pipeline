@@ -1,7 +1,8 @@
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass
 from functools import wraps
-from typing import Literal, NamedTuple
+from typing import Literal
 
 import numpy as np
 from scipy.special import gamma
@@ -99,7 +100,7 @@ def periodic(x: np.ndarray) -> np.ndarray:
     Input x should be the sin(pi * distance / period), where ``distance``
     is the Euclidean norm of the difference between points.
     """
-    kernel = np.exp(-2 * (x**2)) / np.sqrt(2 * np.pi)
+    kernel = np.exp(-2 * (x**2))
     return kernel
 
 
@@ -110,7 +111,8 @@ AVAILABLE_KERNEL_FUNCTIONS = {
 }
 
 
-class KramersMoyalKernel(NamedTuple):
+@dataclass(frozen=True)
+class KramersMoyalKernel:
     """Structure for kernels used to calculate Kramers-Moyal coefficients."""
 
     name: Literal["epanechnikov", "gaussian", "periodic"]
@@ -123,8 +125,7 @@ class KramersMoyalKernel(NamedTuple):
     """Kernel period (only required for periodic kernel)."""
 
     def __post_init__(self) -> None:
-        """Validate kernel name and bandwidth, and set attributes."""
-        # validate kernel name and bandwidth, and set attributes
+        """Validate kernel name, bandwidth, and period."""
         if self.name not in AVAILABLE_KERNEL_FUNCTIONS.keys():
             raise ValueError(
                 f"Kernel '{self.name}' not recognized. "
@@ -132,6 +133,8 @@ class KramersMoyalKernel(NamedTuple):
             )
         if self.name == "periodic" and self.period is None:
             raise ValueError("Period must be specified for periodic kernel.")
+        if self.name != "periodic" and self.period is not None:
+            raise ValueError("Period should not be specified for non-periodic kernels.")
         if self.bandwidth <= 0:
             raise ValueError(f"Bandwidth must be positive, got {self.bandwidth}")
 

@@ -96,7 +96,7 @@ for dataset_name in dataset_names:
         diff,
         bins,
         dt=5 / 60,
-        kernel=KramersMoyalKernel(name=KERNEL_NAME_2, bandwidth=KERNEL_BW),
+        kernel=KramersMoyalKernel(name=KERNEL_NAME_2, bandwidth=KERNEL_BW, period=theta_period),
     )
 
     fig, ax = plt.subplots()
