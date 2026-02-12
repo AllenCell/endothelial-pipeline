@@ -190,7 +190,7 @@ def _km_wrapper(
 
     # convert specified kernel to callable, splitting into case of product kernel
     # (list of kernels for each dimension) vs single multivariate kernel
-    if isinstance(kernel, list[KramersMoyalKernel]):
+    if isinstance(kernel, list):
         kernel_funcs = [k.string_to_kernel() for k in kernel]
         kernel_bandwidths = [k.bandwidth for k in kernel]
         kernel_periods = [k.period for k in kernel]

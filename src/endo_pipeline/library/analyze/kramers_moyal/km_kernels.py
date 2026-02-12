@@ -122,27 +122,18 @@ class KramersMoyalKernel(NamedTuple):
     period: float | None = None
     """Kernel period (only required for periodic kernel)."""
 
-    def __new__(cls, name: str, bandwidth: float, period: float | None) -> "KramersMoyalKernel":
-        """Create a new KramersMoyalKernel instance, with validation of kernel name and bandwidth."""
-
-        obj = object.__new__(cls)
-
+    def __post_init__(self) -> None:
+        """Validate kernel name and bandwidth, and set attributes."""
         # validate kernel name and bandwidth, and set attributes
-        if name not in AVAILABLE_KERNEL_FUNCTIONS.keys():
+        if self.name not in AVAILABLE_KERNEL_FUNCTIONS.keys():
             raise ValueError(
-                f"Kernel '{name}' not recognized. "
+                f"Kernel '{self.name}' not recognized. "
                 f" Available kernels: {list(AVAILABLE_KERNEL_FUNCTIONS.keys())}"
             )
-        if name == "periodic" and period is None:
+        if self.name == "periodic" and self.period is None:
             raise ValueError("Period must be specified for periodic kernel.")
-        if bandwidth <= 0:
-            raise ValueError(f"Bandwidth must be positive, got {bandwidth}")
-
-        obj.name = name
-        obj.bandwidth = bandwidth
-        obj.period = period
-
-        return obj
+        if self.bandwidth <= 0:
+            raise ValueError(f"Bandwidth must be positive, got {self.bandwidth}")
 
     def string_to_kernel(self) -> Callable[[np.ndarray, float, float | None], np.ndarray]:
         """Convert the kernel name to the corresponding callable (scaled) kernel function."""
