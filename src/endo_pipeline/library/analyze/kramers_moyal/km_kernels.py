@@ -14,7 +14,9 @@ def _volume_unit_ball(dims: int) -> float:
     return np.pi ** (dims / 2.0) / gamma(dims / 2.0 + 1.0)
 
 
-def _get_input_dims_and_distances(x: np.ndarray) -> tuple[int, np.ndarray]:
+def _get_input_dims_and_distances(
+    x: np.ndarray, period: float | None = None
+) -> tuple[int, np.ndarray]:
     """Get the number of dimensions and the Euclidean norm of the input array."""
     if len(x.shape) == 1:
         x = x.reshape(-1, 1)
@@ -24,9 +26,16 @@ def _get_input_dims_and_distances(x: np.ndarray) -> tuple[int, np.ndarray]:
     dims = x.shape[-1]
 
     # Euclidean norm of the array of vector differences
-    euc_norm = np.sqrt((x * x).sum(axis=-1))
+    distances = np.sqrt((x * x).sum(axis=-1))
 
-    return dims, euc_norm
+    # if period is not None, use the sine squared distance for periodic data
+    #  (for implementation of the the exp sine squared kernel)
+    if period is not None:
+        # sine squared of distance for periodic data
+        # (i.e., the exp sine squared kernel)
+        distances = np.sin(np.pi * distances / period) ** 2
+
+    return dims, distances
 
 
 def scaled_kernel(kernel_func: Callable) -> Callable:
@@ -53,8 +62,8 @@ def scaled_kernel(kernel_func: Callable) -> Callable:
     """
 
     @wraps(kernel_func)  # just for naming
-    def decorated(x: np.ndarray, bw: float) -> np.ndarray:
-        dims, dist = _get_input_dims_and_distances(x)
+    def decorated(x: np.ndarray, bw: float, period: float | None = None) -> np.ndarray:
+        dims, dist = _get_input_dims_and_distances(x, period)
         return kernel_func(dist / bw) / (bw**dims) / _volume_unit_ball(dims)
 
     return decorated

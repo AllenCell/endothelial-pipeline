@@ -406,7 +406,6 @@ def get_df_for_feature_correlation_viz(
     segmentation_feature_columns: list[str],
     pc_columns: list[str],
     diffae_feature_columns: list[str],
-    polar_pc_columns: list[ColumnName],
     timepoint_annotations: list[TimepointAnnotation] | None = None,
 ) -> pd.DataFrame:
     """
@@ -479,7 +478,15 @@ def get_df_for_feature_correlation_viz(
         # the original orientation feature is in radians
         # and the y-axis is defined as 0 degrees
         # this keeps the orientation angle range between 0-180 degrees
-        merged_feats_df["orientation_deg"] = np.rad2deg(merged_feats_df["orientation"] + np.pi / 2)
+        merged_feats_df["orientation"] = merged_feats_df["orientation"] + np.pi / 2
+
+        # "unwrap" the angle features to avoid issues with periodic data when plotting correlations
+        angle_period = np.pi
+        angle_cols = ["orientation", ColumnName.POLAR_ANGLE.value]
+        for ang_col in angle_cols:
+            merged_feats_df[ang_col] = np.unwrap(merged_feats_df[ang_col], period=angle_period)
+
+        merged_feats_df["orientation_deg"] = np.rad2deg(merged_feats_df["orientation"])
 
         # filter data table to only include the steady state timepoints that are
         # used when projecting the DiffAE features onto PCA axes
@@ -503,7 +510,6 @@ def get_df_for_feature_correlation_viz(
             *segmentation_feature_columns,
             *diffae_feature_columns,
             *pc_columns,
-            *polar_pc_columns,
         ]
         if not all(np.isin(cols_to_keep, merged_feats_df.columns)):
             missing_columns = set(cols_to_keep) - set(merged_feats_df.columns)

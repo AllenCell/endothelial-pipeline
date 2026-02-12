@@ -10,7 +10,7 @@ from endo_pipeline.cli.commands import build_command_group
 from endo_pipeline.cli.gpu import setup_gpu
 from endo_pipeline.cli.logs import setup_logging, silence_external_loggers
 from endo_pipeline.cli.options import PipelineOptions, WorkflowOptions
-from endo_pipeline.cli.tags import get_app_tags
+from endo_pipeline.cli.tags import check_workflow_tags, get_app_tags
 
 IS_MAIN_PROCESS: bool = int(os.environ.get("LOCAL_RANK", "0")) == 0
 """True if the current process is the main process, False otherwise."""
@@ -82,6 +82,10 @@ def pipeline_entrypoint(
 ) -> None:
     """Pipeline CLI entrypoint."""
 
+    # If pipeline CLI is called with a workflow, check for known workflow errors.
+    if tokens:
+        check_workflow_tags(pipeline_app[tokens[0]])
+
     apply_workflow_options(workflow_options)
 
     # Only apply pipeline options if running the pipeline CLI without any
@@ -99,6 +103,7 @@ def workflow_entrypoint(
 ) -> None:
     """Workflow CLI entrypoint."""
 
+    check_workflow_tags(workflow_app)
     apply_workflow_options(workflow_options)
     workflow_app(tokens)
 
