@@ -135,6 +135,8 @@ class KramersMoyalKernel:
             raise ValueError("Period must be specified for periodic kernel.")
         if self.name != "periodic" and self.period is not None:
             raise ValueError("Period should not be specified for non-periodic kernels.")
+        if self.period is not None and self.period <= 0:
+            raise ValueError(f"Period must be positive, got {self.period}")
         if self.bandwidth <= 0:
             raise ValueError(f"Bandwidth must be positive, got {self.bandwidth}")
 
