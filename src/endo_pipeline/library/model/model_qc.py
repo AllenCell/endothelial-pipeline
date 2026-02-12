@@ -567,13 +567,14 @@ def evaluate_single_model(
 
     # Conditional import for metrics
     lpips_calculator = None
-    compute_denoising_metrics = None
+    _compute_denoising_metrics = None
     if compute_metrics:
         from endo_pipeline.library.analyze.image_metrics import (
             LPIPSCalculator,
-            compute_denoising_metrics,  # type: ignore[assignment]
+            compute_denoising_metrics,
         )
 
+        _compute_denoising_metrics = compute_denoising_metrics
         lpips_calculator = LPIPSCalculator()
 
     # --- Setup ---
@@ -742,9 +743,10 @@ def evaluate_single_model(
                     result[example_set_label]["baseline_lpips"].append(lpips_val)
 
             # Model metrics
+            metrics: list[dict] | None = None
             if compute_metrics and include_in_metrics:
-                if compute_denoising_metrics is not None:
-                    metrics, metrics_100 = compute_denoising_metrics(
+                if _compute_denoising_metrics is not None:
+                    metrics, metrics_100 = _compute_denoising_metrics(
                         ground_truth=ground_truth,
                         denoised_images=denoised_images,
                         lpips_calculator=lpips_calculator,
