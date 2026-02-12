@@ -226,9 +226,18 @@ def _km_wrapper(
     # The normalization factor is the KDE of the empirical density function.
     kmc = convolve(hist, kernel_eval[None, ...], mode="same")
 
-    # Normalise with correct factorial coefficients * histogram
-    mask = np.abs(kmc[0]) < tol  # where probability density is small... (i.e., little to no data)
-    kmc[0:, mask] = np.nan  # ...set kmc coeffs to nan
+    # make sure that estimates are properly normalized (i.e., kernel estimate
+    # is a proper kernel density estimate) by making sure that the 0th order Kramers-Moyal
+    # coefficient (i.e., the probability density) integrates to 1
+    norm_coeff = kmc[0].copy()
+    for ii in range(len(bins)):
+        bin_width = bins[ii][1] - bins[ii][0]
+        norm_coeff = np.trapz(norm_coeff, dx=bin_width, axis=-1)
+    kmc /= norm_coeff
+
+    # Mask out bins where the probability density is smaller than the specified tolerance
+    mask = np.abs(kmc[0]) < tol
+    kmc[0:, mask] = np.nan
 
     # get correct Taylor expansion coefficients (e.g., divide 2nd order powers by 2!)
     taylors = np.prod(factorial(powers[1:]), axis=1)
