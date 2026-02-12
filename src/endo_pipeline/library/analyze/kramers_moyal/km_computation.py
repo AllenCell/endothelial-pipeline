@@ -5,8 +5,8 @@ from scipy.signal import convolve
 from scipy.special import factorial
 
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import (
+    KramersMoyalKernel,
     compile_multivariate_product_kernel,
-    string_to_kernel,
 )
 from endo_pipeline.library.analyze.numerics import histogramdd
 
@@ -61,9 +61,7 @@ def _km_wrapper(
     displacements: list[np.ndarray],
     bins: list[np.ndarray],
     powers: np.ndarray,
-    kernel_name: str | list[str],
-    kernel_bw: float | list[float],
-    kernel_period: float | list[float | None] | None = None,
+    kernel: KramersMoyalKernel | list[KramersMoyalKernel],
     tol: float = 1e-10,
 ) -> np.ndarray:
     """
@@ -131,12 +129,8 @@ def _km_wrapper(
         List of monotonically increasing bin edges in each dimension.
     powers
         Powers for the operation of calculating the Kramers─Moyal coefficients.
-    kernel_name
+    kernel
         Kernel used to convolute with the Kramers-Moyal coefficients.
-    kernel_bw
-        Desired bandwidth of the kernel.
-    kernel_period
-        If not None, a periodic kernel is used with the specified period.
     tol
         Tolerance for small values of the probability density (0th order Kramers─Moyal coefficient).
     """
@@ -196,26 +190,21 @@ def _km_wrapper(
 
     # convert specified kernel to callable, splitting into case of product kernel
     # (list of kernels for each dimension) vs single multivariate kernel
-    if isinstance(kernel_name, list):
-        if not isinstance(kernel_bw, list):
-            logger.error(
-                "If kernel_name is a list, kernel_bw must also be a list of the same length."
-            )
-            raise ValueError(
-                "If kernel_name is a list, kernel_bw must also be a list of the same length."
-            )
-        kernel_funcs = [string_to_kernel(k) for k in kernel_name]
+    if isinstance(kernel, list[KramersMoyalKernel]):
+        kernel_funcs = [k.string_to_kernel() for k in kernel]
+        kernel_bandwidths = [k.bandwidth for k in kernel]
+        kernel_periods = [k.period for k in kernel]
         kernel_func_prod = compile_multivariate_product_kernel(kernel_funcs)
         # have to do some reshaping to properly evaluate the kernel at all points in the grid,
         # and then reshape back to the grid shape
         grid_shape = edges_cartesian_prod.shape[:-1]
         ndim = edges_cartesian_prod.shape[-1]
         kernel_eval = kernel_func_prod(
-            edges_cartesian_prod.reshape(-1, ndim), kernel_bw, kernel_period
+            edges_cartesian_prod.reshape(-1, ndim), kernel_bandwidths, kernel_periods
         ).reshape(grid_shape)
     else:
-        kernel_func = string_to_kernel(kernel_name)
-        kernel_eval = kernel_func(edges_cartesian_prod, kernel_bw, kernel_period)
+        kernel_func = kernel.string_to_kernel()
+        kernel_eval = kernel_func(edges_cartesian_prod, kernel.bandwidth, kernel.period)
 
     ##### KMC computation: convolve the histogram with the kernel
 
@@ -294,12 +283,18 @@ def get_kramers_moyal_coeffs(
     displacements: list[np.ndarray],
     bins: list[np.ndarray],
     dt: float,
-    kernel_name: str | list[str],
-    kernel_bw: float | list[float],
-    kernel_period: float | None | list[float | None] = None,
+    kernel: KramersMoyalKernel | list[KramersMoyalKernel],
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Get estimates of first and second Kramers-Moyal coefficients from a list of trajectories.
+
+    **Kernel specification**
+
+    The input ``kernel`` can be a single kernel function that is applied to all dimensions,
+    or a list of kernel functions for each dimension (in which case the product kernel is used).
+
+    In general, the kernel is specified as a ``KramersMoyalKernel`` dataclass, which is a named tuple that
+    includes the kernel name, bandwidth, and period (if applicable).
 
     Parameters
     ----------
@@ -311,12 +306,8 @@ def get_kramers_moyal_coeffs(
         List of monotonically increasing bin edges in each dimension.
     dt
         Time step between consecutive observations in the trajectories.
-    kernel_name
-        Kernel used to convolute with the conditional moments to get the Kramers-Moyal coefficients.
-    kernel_bw
-        Desired bandwidth of the kernel.
-    kernel_period
-        If not None, a periodic kernel is used with the specified period.
+    kernel
+        Kernel used to convolute with the Kramers-Moyal coefficients.
 
     Returns
     -------
@@ -338,9 +329,7 @@ def get_kramers_moyal_coeffs(
             trajectories,
             displacements,
             bins=bins,
-            kernel_name=kernel_name,
-            kernel_bw=kernel_bw,
-            kernel_period=kernel_period,
+            kernel=kernel,
             powers=powers,
         )
         / dt
