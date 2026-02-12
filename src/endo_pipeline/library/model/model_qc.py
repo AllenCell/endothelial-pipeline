@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, cast
 
 import numpy as np
 import tifffile
@@ -172,11 +172,11 @@ def run_denoising_experiments(
 
     return {
         "images_to_denoise": images_to_denoise,
-        "noise_image": noise_image,
+        "noise_image": [noise_image],
         "denoised_normal": denoised_normal,
         "denoised_scrambled_embedding": denoised_scrambled_emb,
         "denoised_scrambled_input": denoised_scrambled_input,
-        "conditioning_latent": latent,
+        "conditioning_latent": [latent],
     }
 
 
@@ -368,7 +368,7 @@ def _save_negative_control_sheet(
         max_cols=6,
         col_titles=[f"{label_for_conditioning} input", *cdh5_labels],
         row_titles=noise_labels,
-        direction=MODEL_QC_PLOT_DIRECTION,
+        direction=cast(Literal["left-right first", "top-down first"], MODEL_QC_PLOT_DIRECTION),
         font_size=FONTSIZE_MEDIUM,
         subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
         gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
@@ -571,7 +571,7 @@ def evaluate_single_model(
     if compute_metrics:
         from endo_pipeline.library.analyze.image_metrics import (
             LPIPSCalculator,
-            compute_denoising_metrics,
+            compute_denoising_metrics,  # type: ignore[assignment]
         )
 
         lpips_calculator = LPIPSCalculator()
@@ -589,7 +589,10 @@ def evaluate_single_model(
 
     logger.info("Processing model %d: %s (seed=%d)", model_idx + 1, manifest_name, random_seed)
 
-    model_config = get_config_dict_from_mlflow(model_location.mlflowid)
+    if model_location.mlflowid is not None:
+        model_config = get_config_dict_from_mlflow(model_location.mlflowid)
+    else:
+        raise ValueError("mlflowid is None")
     crop_size = model_config.model.image_shape[-1]
     cond_key = model_config.model.condition_key
     diffusion_key = DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT
@@ -717,7 +720,7 @@ def evaluate_single_model(
                     noisy_diffusion_input_images=noisy_images,
                     noise_image=noise_image,
                     denoised_images=denoised_images,
-                    noise_levels=MODEL_QC_NOISE_LEVELS,
+                    noise_levels=list(MODEL_QC_NOISE_LEVELS),
                 )
 
             ground_truth = diffusion_input_crop.squeeze()
@@ -740,16 +743,17 @@ def evaluate_single_model(
 
             # Model metrics
             if compute_metrics and include_in_metrics:
-                metrics, metrics_100 = compute_denoising_metrics(
-                    ground_truth=ground_truth,
-                    denoised_images=denoised_images,
-                    lpips_calculator=lpips_calculator,
-                    compute_all_noise_levels=save_intermediate_plots and is_default_seed,
-                )
-                result[example_set_label]["correlations_100"].append(metrics_100["correlation"])
-                result[example_set_label]["ssims_100"].append(metrics_100["ssim"])
-                result[example_set_label]["lpips_100"].append(metrics_100["lpips"])
-                example_metrics_100.append(metrics_100)
+                if compute_denoising_metrics is not None:
+                    metrics, metrics_100 = compute_denoising_metrics(
+                        ground_truth=ground_truth,
+                        denoised_images=denoised_images,
+                        lpips_calculator=lpips_calculator,
+                        compute_all_noise_levels=save_intermediate_plots and is_default_seed,
+                    )
+                    result[example_set_label]["correlations_100"].append(metrics_100["correlation"])
+                    result[example_set_label]["ssims_100"].append(metrics_100["ssim"])
+                    result[example_set_label]["lpips_100"].append(metrics_100["lpips"])
+                    example_metrics_100.append(metrics_100)
 
                 if save_intermediate_plots and is_default_seed:
                     _save_intermediate_contact_sheet(
@@ -1034,12 +1038,14 @@ def create_comparison_plots_and_summary(
         for i in range(len(models_data))
     )
 
-    # Create comparison plots for each metric
-    for metric_key, ylabel, title_base, extra_kw in [
+    metric_configs: list[tuple[str, str, str, dict[str, Any]]] = [
         ("corr", "Pearson Correlation (100% Noise)", "Correlation", {}),
         ("ssim", "SSIM Score (100% Noise)", "SSIM", {}),
         ("lpips", "LPIPS Score (100% Noise)", "LPIPS", {}),
-    ]:
+    ]
+
+    # Create comparison plots for each metric
+    for metric_key, ylabel, title_base, extra_kw in metric_configs:
         create_comparison_bar_plot(
             models_data=models_data,
             metric_key=metric_key,

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, cast
 
 import numpy as np
 
@@ -87,7 +87,7 @@ def create_denoising_contact_sheet(
         max_cols=6,
         col_titles=[f"{label_for_conditioning} input", *cdh5_labels],
         row_titles=noise_labels,
-        direction=MODEL_QC_PLOT_DIRECTION,
+        direction=cast(Literal["left-right first", "top-down first"], MODEL_QC_PLOT_DIRECTION),
         font_size=font_size_medium,
         subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
         gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
