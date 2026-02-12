@@ -11,20 +11,10 @@ if TYPE_CHECKING:
     import matplotlib.figure
 
 
-# =====================================================
-# Default Labels for Latent Dimension Comparison Study
-# =====================================================
-
-# Order: 8 BF, 16 BF, 32 BF, 64 BF, 128 BF, 256 BF, 512 BF, 1024 BF, 512 CDH5, 1024 CDH5
-LATENT_COMPARISON_LABELS = [
-    "8 BF", "16 BF", "32 BF", "64 BF", "128 BF", "256 BF",
-    "512 BF", "1024 BF", "512 CDH5", "1024 CDH5"
-]
-
-
 # ========================
 # Contact Sheet Functions
 # ========================
+
 
 def create_denoising_contact_sheet(
     conditioning_input_crop: np.ndarray,
@@ -57,7 +47,6 @@ def create_denoising_contact_sheet(
 
     Returns
     -------
-    matplotlib.figure.Figure
         The contact sheet figure.
     """
     from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
@@ -120,6 +109,7 @@ def create_denoising_contact_sheet(
 
     return fig
 
+
 def create_summary_contact_sheet(
     example_results: list[np.ndarray],
     num_examples: int,
@@ -142,7 +132,6 @@ def create_summary_contact_sheet(
 
     Returns
     -------
-    matplotlib.figure.Figure
         The summary contact sheet figure.
     """
     from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
@@ -171,6 +160,7 @@ def create_summary_contact_sheet(
 
     return fig
 
+
 def create_comparison_bar_plot(
     models_data: list[dict],
     metric_key: str,
@@ -181,7 +171,6 @@ def create_comparison_bar_plot(
     legend_text: str,
     model_labels: list[str] | None = None,
     ylim: tuple[float, float] | None = None,
-    text_box_loc: str = "upper right",
     show_baseline: bool = False,
 ) -> None:
     """
@@ -208,13 +197,12 @@ def create_comparison_bar_plot(
         "Model 1", "Model 2", etc. labels.
     ylim
         Optional y-axis limits as (min, max).
-    text_box_loc
-        Location for the model details text box (default: "upper right").
-        Options: "upper right", "lower right", "upper left", "lower left".
     show_baseline
         Whether to show baseline metrics as horizontal dashed lines.
     """
     import matplotlib.pyplot as plt
+
+    plt.style.use("endo_pipeline.figure")
 
     from endo_pipeline.io.output import save_plot_to_path
     from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM, FONTSIZE_SMALL
@@ -228,9 +216,10 @@ def create_comparison_bar_plot(
         model_labels_short = model_labels[: len(models_data)]
     else:
         model_labels_short = [f"Model {i+1}" for i in range(len(models_data))]
-    x_pos = np.arange(len(model_labels_short))
+    num_models = len(model_labels_short)
+    x_pos = np.arange(num_models)
     bar_width = 0.35
-    fig, ax = plt.subplots(figsize=(max(10, len(model_labels_short) * 1.5), 7))
+    fig, ax = plt.subplots(figsize=(max(10, num_models * 1.5), 7))
     validation_means = [m["validation"][f"{metric_key}_mean"] for m in models_data]
     validation_stds = [m["validation"][f"{metric_key}_std"] for m in models_data]
     rep2_means = [m["rep2"][f"{metric_key}_mean"] for m in models_data]
@@ -255,19 +244,19 @@ def create_comparison_bar_plot(
         color=IMAGE_METRIC_DATASET_COLORS["rep_2_positions"],
         alpha=0.8,
     )
-    
+
     # Add baseline horizontal lines if available
     if show_baseline and models_data and models_data[0].get("baseline_validation") is not None:
         baseline_val_mean = models_data[0]["baseline_validation"][f"{metric_key}_mean"]
         baseline_rep2_mean = models_data[0]["baseline_rep2"][f"{metric_key}_mean"]
-        
+
         ax.axhline(
             y=baseline_val_mean,
             color=IMAGE_METRIC_DATASET_COLORS["validation_positions"],
             linestyle="--",
             linewidth=2,
             alpha=0.7,
-            label=f"Baseline (Val): {baseline_val_mean:.3f}",
+            label="Baseline (Val)",
         )
         ax.axhline(
             y=baseline_rep2_mean,
@@ -275,41 +264,39 @@ def create_comparison_bar_plot(
             linestyle="--",
             linewidth=2,
             alpha=0.7,
-            label=f"Baseline (Rep2): {baseline_rep2_mean:.3f}",
+            label="Baseline (Rep2)",
         )
-    
+
     ax.set_xlabel("Latent Size / Conditioning", fontsize=FONTSIZE_MEDIUM)
     ax.set_ylabel(ylabel, fontsize=FONTSIZE_MEDIUM)
     ax.set_title(title, fontsize=FONTSIZE_LARGE)
     ax.set_xticks(x_pos)
-    ax.set_xticklabels(model_labels_short, fontsize=FONTSIZE_MEDIUM, rotation=45, ha="right")
-    ax.legend(fontsize=FONTSIZE_MEDIUM, loc="upper left")
+    # Only rotate labels when there are many models
+    rotation = 45 if num_models > 4 else 0
+    ha_labels = "right" if num_models > 4 else "center"
+    ax.set_xticklabels(
+        model_labels_short, fontsize=FONTSIZE_MEDIUM, rotation=rotation, ha=ha_labels
+    )
+    ax.legend(fontsize=FONTSIZE_MEDIUM, loc="lower left")
     ax.grid(True, alpha=0.3, axis="y")
     if ylim is not None:
         ax.set_ylim(*ylim)
-    text_box_positions = {
-        "upper right": (0.98, 0.98, "top", "right"),
-        "lower right": (0.98, 0.02, "bottom", "right"),
-        "upper left": (0.02, 0.98, "top", "left"),
-        "lower left": (0.02, 0.02, "bottom", "left"),
-    }
-    x_pos_text, y_pos_text, va, ha = text_box_positions.get(
-        text_box_loc, (0.98, 0.98, "top", "right")
-    )
+
+    # Place model details text box inside the plot at bottom-right
     ax.text(
-        x_pos_text,
-        y_pos_text,
+        0.98,
+        0.02,
         legend_text,
         transform=ax.transAxes,
         fontsize=FONTSIZE_SMALL - 2,
-        verticalalignment=va,
-        horizontalalignment=ha,
+        verticalalignment="bottom",
+        horizontalalignment="right",
         bbox=METRIC_TEXT_BOX_PROPS,
-        family="monospace",
     )
     plt.tight_layout()
     save_plot_to_path(fig, output_path, filename)
     plt.close(fig)
+
 
 def create_contact_sheet_with_metrics_column(
     panels: list,
@@ -360,11 +347,12 @@ def create_contact_sheet_with_metrics_column(
 
     Returns
     -------
-    matplotlib.figure.Figure
         The created figure
     """
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
+
+    plt.style.use("endo_pipeline.figure")
 
     from endo_pipeline.settings.workflow_defaults import METRIC_TEXT_BOX_PROPS
 
@@ -430,12 +418,11 @@ def create_contact_sheet_with_metrics_column(
             ha="center",
             va="center",
             fontsize=fontsize_medium,
-            weight="bold",
         )
         ax.axis("off")
 
     ax = fig.add_subplot(gs[0, num_img_cols + row_header_offset])
-    ax.text(0.5, 0.5, "Metrics", ha="center", va="center", fontsize=fontsize_medium, weight="bold")
+    ax.text(0.5, 0.5, "Metrics", ha="center", va="center", fontsize=fontsize_medium)
     ax.axis("off")
 
     for row_idx in range(num_rows):
@@ -448,7 +435,6 @@ def create_contact_sheet_with_metrics_column(
                 ha="center",
                 va="center",
                 fontsize=fontsize_small,
-                weight="bold",
                 rotation=90,
             )
             ax.axis("off")
@@ -492,7 +478,6 @@ def create_contact_sheet_with_metrics_column(
                 va="center",
                 fontsize=fontsize_small,
                 bbox=METRIC_TEXT_BOX_PROPS,
-                family="monospace",
             )
 
     return fig

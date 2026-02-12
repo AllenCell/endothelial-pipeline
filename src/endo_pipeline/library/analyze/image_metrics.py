@@ -18,6 +18,7 @@ from skimage.metrics import structural_similarity as ssim
 if TYPE_CHECKING:
     import torch
 
+
 class ImageMetrics(NamedTuple):
     """Container for image similarity metrics."""
 
@@ -41,7 +42,7 @@ class LPIPSCalculator:
         Device to run LPIPS on ('cuda', 'cpu', or None for auto-detect).
     """
 
-    def __init__(self, net_type: Literal["vgg", "alex"]= "vgg", device: str | None = None):
+    def __init__(self, net_type: Literal["vgg", "alex"] = "vgg", device: str | None = None):
         self.net_type = net_type
         self._device = device
         self._model: torch.nn.Module | None = None
@@ -163,11 +164,11 @@ def compute_all_metrics(
 
     Parameters
     ----------
-    img1 
+    img1
         First image (or patch) to compare
-    img2 
+    img2
         Second image (or patch) to compare
-    lpips_calculator 
+    lpips_calculator
         Pre-initialized LPIPS calculator. If None, a new one will be created.
 
     Returns

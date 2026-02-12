@@ -110,3 +110,49 @@ DATASET_INFO_COLUMNS = [
     "label",
 ]
 """Name of dataset metadata columns required for analysis."""
+
+# =========================================
+# Default model configurations for model qc
+# =========================================
+
+# 10 models: 8 BF latent dims (8-1024) + 2 CDH5 conditioned (512, 1024)
+DEFAULT_MODEL_QC_MANIFEST_NAMES = [
+    "diffae_baseline_exclude_cell_piling",  # 8 BF
+    "diffae_baseline_exclude_cell_piling",  # 16 BF
+    "diffae_baseline_exclude_cell_piling",  # 32 BF
+    "diffae_baseline_exclude_cell_piling",  # 64 BF
+    "diffae_baseline_exclude_cell_piling",  # 128 BF
+    "diffae_baseline_exclude_cell_piling",  # 256 BF
+    "diffae_baseline_exclude_cell_piling",  # 512 BF
+    "diffae_baseline_exclude_cell_piling",  # 1024 BF
+    "diffae_cdh5_conditioned",  # 512 CDH5
+    "diffae_cdh5_conditioned",  # 1024 CDH5
+]
+
+DEFAULT_MODEL_QC_RUN_NAMES = [
+    "20260207_latent_8",
+    "20260205_latent_16",
+    "20260203_latent_32",
+    "20260206_latent_64",
+    "20260127_latent_128",
+    "20260122_latent_256",
+    "20251110_latent_512",
+    "20251110_latent_1024",
+    "20260130_latent_512",
+    "20251110_latent_1024",
+]
+
+# Order: 8 BF, 16 BF, 32 BF, 64 BF, 128 BF, 256 BF, 512 BF, 1024 BF, 512 CDH5, 1024 CDH5
+DEFAULT_MODEL_QC_LABELS = [
+    "8 BF",
+    "16 BF",
+    "32 BF",
+    "64 BF",
+    "128 BF",
+    "256 BF",
+    "512 BF",
+    "1024 BF",
+    "512 CDH5",
+    "1024 CDH5",
+]
+"""Default x-axis labels for the 10-model latent dimension comparison bar plots."""
