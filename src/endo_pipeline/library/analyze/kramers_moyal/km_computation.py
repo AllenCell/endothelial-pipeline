@@ -63,6 +63,7 @@ def _km_wrapper(
     powers: np.ndarray,
     kernel_name: str | list[str],
     kernel_bw: float | list[float],
+    kernel_period: float | list[float | None] | None = None,
     tol: float = 1e-10,
 ) -> np.ndarray:
     """
@@ -134,6 +135,8 @@ def _km_wrapper(
         Kernel used to convolute with the Kramers-Moyal coefficients.
     kernel_bw
         Desired bandwidth of the kernel.
+    kernel_period
+        If not None, a periodic kernel is used with the specified period.
     tol
         Tolerance for small values of the probability density (0th order Kramers─Moyal coefficient).
     """
@@ -207,12 +210,12 @@ def _km_wrapper(
         # and then reshape back to the grid shape
         grid_shape = edges_cartesian_prod.shape[:-1]
         ndim = edges_cartesian_prod.shape[-1]
-        kernel_eval = kernel_func_prod(edges_cartesian_prod.reshape(-1, ndim), kernel_bw).reshape(
-            grid_shape
-        )
+        kernel_eval = kernel_func_prod(
+            edges_cartesian_prod.reshape(-1, ndim), kernel_bw, kernel_period
+        ).reshape(grid_shape)
     else:
         kernel_func = string_to_kernel(kernel_name)
-        kernel_eval = kernel_func(edges_cartesian_prod, kernel_bw)
+        kernel_eval = kernel_func(edges_cartesian_prod, kernel_bw, kernel_period)
 
     ##### KMC computation: convolve the histogram with the kernel
 
@@ -284,33 +287,34 @@ def get_kramers_moyal_coeffs(
     dt: float,
     kernel_name: str | list[str],
     kernel_bw: float | list[float],
+    kernel_period: float | None | list[float | None] = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Get Kramers-Moyal coefficients for a list
-    of trajectories in d-dimensional space using
-    a kernel density estimation method.
+    Get estimates of first and second Kramers-Moyal coefficients from a list of trajectories.
 
-    Inputs:
-    - traj_list: list of numpy arrays, each array is a single
-        trajectory in (d-dim) feature space
-    - d_traj_list: list of numpy arrays, each array is the
-        displacement vectors along that trajectory
-    - bins: list of numpy arrays, each array contains the
-        bin edges for a dimension (used for computing
-        conditional averages)
-    - dt: time step between data points (used to compute
-        Kramers-Moyal coefficients)
-        - this is the actual time elapsed between data points
-            in the desired unit (e.g. minutes)
-    - kernel_params: dictionary containing kernel parameters
-        - bandwidth: float, bandwidth for kernel density estimation
-        - kernel: str, type of kernel to use (e.g. 'gaussian')
+    Parameters
+    ----------
+    trajectories
+        List of invidual trajectories.
+    displacements
+        List of invidual displacements along the trajectories.
+    bins
+        List of monotonically increasing bin edges in each dimension.
+    dt
+        Time step between consecutive observations in the trajectories.
+    kernel_name
+        Kernel used to convolute with the conditional moments to get the Kramers-Moyal coefficients.
+    kernel_bw
+        Desired bandwidth of the kernel.
+    kernel_period
+        If not None, a periodic kernel is used with the specified period.
 
-    Outputs:
-    - drift_km: numpy array, Kramers-Moyal drift estimate
-        for each bin in feature space
-    - diff_km: numpy array, Kramers-Moyal diffusion estimate
-        for each bin in feature space
+    Returns
+    -------
+    :
+        First Kramers-Moyal coefficient (drift).
+    :
+        Second Kramers-Moyal coefficient (diffusion).
     """
 
     # get powers for first two Kramers-Moyal coefficients (drift and diffusion)
@@ -327,6 +331,7 @@ def get_kramers_moyal_coeffs(
             bins=bins,
             kernel_name=kernel_name,
             kernel_bw=kernel_bw,
+            kernel_period=kernel_period,
             powers=powers,
         )
         / dt

@@ -14,7 +14,9 @@ def _volume_unit_ball(dims: int) -> float:
     return np.pi ** (dims / 2.0) / gamma(dims / 2.0 + 1.0)
 
 
-def _get_input_dims_and_distances(x: np.ndarray) -> tuple[int, np.ndarray]:
+def _get_input_dims_and_distances(
+    x: np.ndarray, period: float | None = None
+) -> tuple[int, np.ndarray]:
     """Get the number of dimensions and the Euclidean norm of the input array."""
     if len(x.shape) == 1:
         x = x.reshape(-1, 1)
@@ -24,9 +26,16 @@ def _get_input_dims_and_distances(x: np.ndarray) -> tuple[int, np.ndarray]:
     dims = x.shape[-1]
 
     # Euclidean norm of the array of vector differences
-    euc_norm = np.sqrt((x * x).sum(axis=-1))
+    distances = np.sqrt((x * x).sum(axis=-1))
 
-    return dims, euc_norm
+    # if period is not None, use the sine squared distance for periodic data
+    #  (for implementation of the the exp sine squared kernel)
+    if period is not None:
+        # sine squared of distance for periodic data
+        # (i.e., the exp sine squared kernel)
+        distances = np.sin(np.pi * distances / period) ** 2
+
+    return dims, distances
 
 
 def scaled_kernel(kernel_func: Callable) -> Callable:
@@ -53,8 +62,8 @@ def scaled_kernel(kernel_func: Callable) -> Callable:
     """
 
     @wraps(kernel_func)  # just for naming
-    def decorated(x: np.ndarray, bw: float) -> np.ndarray:
-        dims, dist = _get_input_dims_and_distances(x)
+    def decorated(x: np.ndarray, bw: float, period: float | None = None) -> np.ndarray:
+        dims, dist = _get_input_dims_and_distances(x, period)
         return kernel_func(dist / bw) / (bw**dims) / _volume_unit_ball(dims)
 
     return decorated
@@ -80,7 +89,7 @@ def gaussian(x: np.ndarray) -> np.ndarray:
 AVAILABLE_KERNEL_FUNCTIONS = {"epanechnikov": epanechnikov, "gaussian": gaussian}
 
 
-def string_to_kernel(kernel: str) -> Callable[[np.ndarray, float], np.ndarray]:
+def string_to_kernel(kernel: str) -> Callable[[np.ndarray, float, float | None], np.ndarray]:
     """
     Convert a kernel name to the corresponding callable (scaled) kernel function.
     """
@@ -96,8 +105,8 @@ def string_to_kernel(kernel: str) -> Callable[[np.ndarray, float], np.ndarray]:
 
 
 def compile_multivariate_product_kernel(
-    kernels: list[Callable[[np.ndarray, float], np.ndarray]],
-) -> Callable[[np.ndarray, list[float]], np.ndarray]:
+    kernels: list[Callable[[np.ndarray, float, float | None], np.ndarray]],
+) -> Callable[[np.ndarray, list[float], list[float | None] | None], np.ndarray]:
     """
     Compile a multivariate kernel by taking the product of 1D kernels for each variable.
 
@@ -128,15 +137,21 @@ def compile_multivariate_product_kernel(
         A function that returns the product of the kernel evaluations for each variable.
     """
 
-    def multivariate_kernel(x: np.ndarray, bw: list[float]) -> np.ndarray:
+    def multivariate_kernel(
+        x: np.ndarray, bw: list[float], period: list[float | None] | None = None
+    ) -> np.ndarray:
         kernel_eval_list = []
         ndim = x.shape[-1]
         if ndim != len(bw):
             raise ValueError(
                 f"Number of dimensions in input x ({ndim}) does not match number of bandwidths ({len(bw)})"
             )
+        if period is not None and len(period) != ndim:
+            raise ValueError(
+                f"Number of dimensions in input x ({ndim}) does not match number of periods ({len(period)})"
+            )
         for d in range(x.shape[-1]):
-            kernel_eval = kernels[d](x[..., d], bw[d])
+            kernel_eval = kernels[d](x[..., d], bw[d], period[d] if period is not None else None)
             kernel_eval_list.append(kernel_eval)
 
         kernel_product = np.prod(kernel_eval_list, axis=0)
