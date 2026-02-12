@@ -116,8 +116,6 @@ class KramersMoyalKernel(NamedTuple):
     name: Literal["epanechnikov", "gaussian", "periodic"]
     """Name of the kernel."""
 
-    kernel_function: Callable
-
     bandwidth: float
     """Kernel bandwidth."""
 
