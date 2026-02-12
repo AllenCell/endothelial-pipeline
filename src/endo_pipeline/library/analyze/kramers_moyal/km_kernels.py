@@ -86,7 +86,27 @@ def gaussian(x: np.ndarray) -> np.ndarray:
     return kernel
 
 
-AVAILABLE_KERNEL_FUNCTIONS = {"epanechnikov": epanechnikov, "gaussian": gaussian}
+@scaled_kernel
+def periodic(x: np.ndarray) -> np.ndarray:
+    """
+    Define the periodic (exponential sine squared) kernel.
+
+    Differs from the Gaussian kernel in that the exponential factor is
+    -2 times the sine squared of the distance, rather than -0.5 times
+    the squared distance.
+
+    Input x should be the sin(pi * distance / period), where ``distance``
+    is the Euclidean norm of the difference between points.
+    """
+    kernel = np.exp(-2 * (x**2)) / np.sqrt(2 * np.pi)
+    return kernel
+
+
+AVAILABLE_KERNEL_FUNCTIONS = {
+    "epanechnikov": epanechnikov,
+    "gaussian": gaussian,
+    "periodic": periodic,
+}
 
 
 def string_to_kernel(kernel: str) -> Callable[[np.ndarray, float, float | None], np.ndarray]:
