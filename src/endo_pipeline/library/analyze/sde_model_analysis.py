@@ -8,14 +8,8 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import PCA
 
-from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    get_dataframe_for_dynamics_workflows,
-    split_dataset_by_flow,
-)
 from endo_pipeline.library.analyze.numerics import (
     SteadyFP,
     entropy_production,
@@ -25,8 +19,7 @@ from endo_pipeline.library.analyze.numerics import (
     vector_field_component,
 )
 from endo_pipeline.library.visualize.diffae_features import dynamics_viz, pplane
-from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, ColumnName
+from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES
 
 logger = logging.getLogger(__name__)
 
@@ -219,100 +212,6 @@ def model_data_comparison_one_dataset(
     return fig1, ax1, fig2, ax2
 
 
-def model_data_comparison(
-    sde_model: list[Callable],
-    dataset_names: list[str],
-    manifest: DataframeManifest,
-    pca: PCA,
-    pc_axes: list,
-    bins: list,
-    pplane_xvec: np.ndarray,
-    pplane_yvec: np.ndarray,
-    fig_savedir: Path,
-) -> None:
-    """
-    Compare model fit to data for all datasets in manifest,
-    at all flow conditions. For each dataset, project data onto PCs,
-    split by flow condition, and compare model fit to data
-    for each flow condition by calling the function
-    `model_data_comparison_one_dataset`.
-
-    Inputs:
-    - sde_model: list of Callable functions, [drift, diffusion]
-    - dataset_names: list of dataset names to use for model comparison
-    - manifest: manifest of model feature dataframes
-    - pca: PCA object fit to feature data
-    - pc_axes: list of ints, indices of which PCs model
-        fitting was performed on
-    - bins: list of np.ndarrays, bin edges for each PC
-    - ds_to_skip: list of str, dataset names to skip
-        in analysis (also skipped in fitting model)
-    - pplane_xvec: np.ndarray, x values for phase portrait
-    - pplane_yvec: np.ndarray, y values for phase portrait
-    - fig_savedir: Path, directory to save figures
-
-    Outputs:
-    - None, saves figures to fig_savedir
-    """
-
-    for dataset_name in dataset_names:
-        # load DiffAE feature data from this one dataset
-        # projected onto principal component axes as defined
-        # by fit PCA object pca. Restrict to stationary frames if provided
-        df_proj = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca=pca)
-
-        # split out data by flow condition
-        # split out data by flow condition
-        df_by_flow, shear_list = split_dataset_by_flow(df_proj, load_dataset_config(dataset_name))
-        del df_proj  # free up memory
-        num_flow = len(shear_list)
-
-        for j in range(num_flow):
-            # if multiple flow conditions,
-            # we want to restrict data to
-            # only the last 100 frames of
-            # that flow condition as our
-            # cutoff for stationary data
-            if num_flow > 1:
-                frame_max = df_by_flow[j][ColumnName.TIMEPOINT].max()
-                frame_cutoff = frame_max - 100
-                stationary_data = df_by_flow[j][df_by_flow[j][ColumnName.TIMEPOINT] > frame_cutoff]
-            # else, it is just the whole dataset
-            else:
-                stationary_data = df_by_flow[j]
-
-            # call function to compare model and data
-            fig1, _, fig2, _ = model_data_comparison_one_dataset(
-                sde_model,
-                stationary_data,
-                shear_list[j],
-                pc_axes,
-                bins,
-                pplane_xvec,
-                pplane_yvec,
-            )
-
-            # add dataset name and shear stress to figure
-            # suptitle for comparison of histograms
-            sup_title = (
-                f"{dataset_name},  {shear_list[j]}" f"dyn/cm$^2$ \n {fig2.texts[0].get_text()}"
-            )
-            fig2.suptitle(sup_title, fontsize=fig2.texts[0].get_fontsize(), y=1.15)
-            plt.show()
-
-            # save figures
-            save_plot_to_path(
-                fig1,
-                fig_savedir,
-                f"{dataset_name}_phase_portrait_shear_{int(shear_list[j])}",
-            )
-            save_plot_to_path(
-                fig2,
-                fig_savedir,
-                f"{dataset_name}_stationary_dist_shear_{int(shear_list[j])}",
-            )
-
-
 def get_fixed_points_by_shear(
     drift_function: Callable, plt_lims: list, shear_range: np.ndarray
 ) -> list[dict]:
@@ -371,40 +270,6 @@ def get_fixed_points_by_shear(
         fpt_dict_list.append(fpt_dict)  # add to list
 
     return fpt_dict_list
-
-
-def run_fixed_point_analysis(
-    drift_function: Callable,
-    shear_range: np.ndarray,
-    pc_axes: list,
-    plt_lims: list,
-    fig_savedir: Path,
-) -> None:
-    """
-    Run fixed point analysis for a given drift function
-    at different shear stresses. Calls `get_fixed_points_by_shear`
-    to get fixed points and their types at each shear stress,
-    then calls `viz.dynamics_viz.plot_fixed_points_by_shear`
-    to plot the fixed points. Saves figures to fig_savedir.
-
-    Inputs:
-    - drift_function: Callable, drift function
-    - shear_range: np.ndarray, shear stresses at
-        which to evaluate fixed points
-    - pc_axes: list of ints, indices of which PCs model
-        fitting was performed on
-    - plt_lims: list of np.ndarrays, limits for
-        excluding fixed points outside of plotting range
-    - fig_savedir: str, directory to save figures
-
-    Outputs:
-    - None, saves figures to fig_savedir
-    """
-    logger.info("Running fixed point analysis")
-    fpt_dict_list = get_fixed_points_by_shear(drift_function, plt_lims, shear_range)
-    figs, _ = dynamics_viz.plot_fixed_points_by_shear(fpt_dict_list, shear_range, pc_axes, plt_lims)
-    for i in range(len(figs)):
-        save_plot_to_path(figs[i], fig_savedir, f"fixed_points_by_shear_{i}")
 
 
 def get_epr(
@@ -470,42 +335,6 @@ def get_epr(
         )
 
     return epr
-
-
-def run_epr_analysis(
-    sde_model: list[Callable],
-    bins: list,
-    centers: list,
-    shear_range: np.ndarray,
-    fig_savedir: Path,
-    additive_noise: bool,
-) -> None:
-    """
-    Get and plot entropy production rate as a function of
-    shear stress for a fit SDE model. Calls `get_epr` to get
-    entropy production rate, then calls
-    `viz.dynamics_viz.plot_entropy_production_rate` to plot it.
-
-    Inputs:
-    - sde_model: list of Callables, [drift, diffusion]
-    - bins: list of np.ndarrays, bin edges
-        for each dimension of state space
-    - centers: list of np.ndarrays, bin centers
-        for each dimension of state space
-    - shear_range: np.ndarray, shear stresses at which
-         to evaluate entropy production rate
-    - fig_savedir: str, directory to save figures
-    - additive_noise: bool, indicates whether model
-        has additive noise (constant diffusion) or not
-
-    Outputs:
-    - None, saves figures to fig_savedir
-    """
-    logger.info("Running entropy production rate analysis")
-    epr = get_epr(sde_model, bins, centers, shear_range, additive_noise)
-    fig, _ = dynamics_viz.plot_entropy_production_rate(epr, shear_range)
-    plt.show()
-    save_plot_to_path(fig, fig_savedir, "epr")
 
 
 def run_gen_potential_analysis(
