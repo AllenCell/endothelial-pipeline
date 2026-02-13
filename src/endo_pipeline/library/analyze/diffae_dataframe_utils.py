@@ -689,7 +689,7 @@ def get_dataframe_for_dynamics_workflows(
             annotations_to_ignore=annotations_to_ignore
         )
         df_filtered = filter_dataframe_by_annotations(
-            DIFFAE_PC_COLUMN_NAME_GROUPS,
+            df_,
             load_dataset_config(dataset_name),
             timepoint_annotations=timepoint_annotations,
         )
