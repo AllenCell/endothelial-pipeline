@@ -88,8 +88,8 @@ def plot_and_save_drift_quiver(
     quiver_scale: float = 10,
     quiver_color: str = "k",
     nullcline_styles: tuple[str, str] = ("dashed", "dashdot"),
-    nullcline_color: str = "b",
-    nullcline_linewidth: float = 2.5,
+    nullcline_colors: tuple[str, str] = ("r", "b"),
+    nullcline_linewidth: float = 1.5,
     nullcline_opacity: float = 0.7,
 ):
     """
@@ -121,8 +121,8 @@ def plot_and_save_drift_quiver(
         Color for the quiver arrows.
     nullcline_styles
         Tuple of line styles for the nullclines of each variable.
-    nullcline_color
-        Color for the nullcline lines.
+    nullcline_colors
+        Tuple of colors for the nullclines of each variable.
     nullcline_linewidth
         Line width for the nullcline lines.
     nullcline_opacity
@@ -146,13 +146,19 @@ def plot_and_save_drift_quiver(
                 meshgrid[1],
                 drift[..., var_index],
                 levels=[0],
-                colors=nullcline_color,
+                colors=nullcline_colors[var_index],
                 linestyles=nullcline_styles[var_index],
                 linewidths=nullcline_linewidth,
                 alpha=nullcline_opacity,
             )
             # add legend for nullclines
-            ax.plot([], [], color="k", linestyle=nullcline_styles[var_index], label=f"{var_name}")
+            ax.plot(
+                [],
+                [],
+                color=nullcline_colors[var_index],
+                linestyle=nullcline_styles[var_index],
+                label=f"d{var_name}/dt",
+            )
         ax.legend(title="Nullclines", loc=(1.025, 0.90))
 
     ax.set_xlabel(variable_labels[0])
