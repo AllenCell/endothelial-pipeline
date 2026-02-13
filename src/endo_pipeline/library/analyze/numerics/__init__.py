@@ -22,7 +22,7 @@ from .gen_potential import (
     gradient_flow_term,
     probability_flux,
 )
-from .sde_model_eval import mesh_grid_function, vector_field_component, vector_field_function
+from .sde_model_eval import mesh_grid_function, vector_field_component
 
 __all__ = [
     "SteadyFP",
@@ -46,5 +46,4 @@ __all__ = [
     "mesh_grid_function",
     "probability_flux",
     "vector_field_component",
-    "vector_field_function",
 ]
