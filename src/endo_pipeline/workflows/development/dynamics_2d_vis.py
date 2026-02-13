@@ -83,11 +83,9 @@ def main(
 
     # get labels for feature columns
     column_names = list(DYNAMICS_COLUMN_NAMES)
-    variable_labels = [get_label_for_column(col) for col in column_names]
-    variable_labels_simple = [label.replace("polar", "") for label in variable_labels]
-    index_polar_angle = column_names.index(ColumnName.POLAR_ANGLE.value)
-    index_polar_r = column_names.index(ColumnName.POLAR_RADIUS.value)
-    index_rho = column_names.index(ColumnName.PC3_FLIPPED.value)
+    variable_labels_dict = {
+        col: get_label_for_column(col).replace("polar", "") for col in column_names
+    }
 
     # get bin widths and limits for each column, adjusting limits if rescaling theta
     global_bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
@@ -98,6 +96,15 @@ def main(
         - global_bin_limits_dict[ColumnName.POLAR_ANGLE.value][0]
     )
     bin_widths = [BIN_WIDTHS_DYNAMICS[col] for col in column_names]
+
+    # set up kernel functions
+    kernel_function_dict = {
+        ColumnName.POLAR_ANGLE.value: KramersMoyalKernel(
+            "periodic", bw=0.15, period=polar_angle_period
+        ),
+        ColumnName.POLAR_RADIUS.value: KramersMoyalKernel("gaussian", bw=0.15),
+        ColumnName.PC3_FLIPPED.value: KramersMoyalKernel("gaussian", bw=0.15),
+    }
 
     # get dataframe manifest for grid-based crop features
     model_manifest = load_model_manifest(model_manifest_name)
@@ -167,109 +174,64 @@ def main(
 
             bin_limits = [bin_limits_dict[col] for col in column_names]
 
+            # get bins and centers for each variable based on bin widths and limits
             bins, centers = get_bins(
                 bin_widths=bin_widths,
                 bin_limits=bin_limits,
             )
 
+            # get trajectories and differences for each variable, adjusting
+            # polar angle differences for periodicity if needed
             trajectories, differences = get_traj_and_diff(
                 df_, column_names=column_names, polar_angle_period=polar_angle_period
             )
 
-            # contour plots of dr/dt and d(rho)/dt over (r, rho)
-            drift_r_rho, _ = get_kramers_moyal_coeffs(
-                [traj[:, [index_polar_r, index_rho]] for traj in trajectories],
-                [diff[:, [index_polar_r, index_rho]] for diff in differences],
-                bins=[bins[index_polar_r], bins[index_rho]],
-                dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
-                kernel=[
-                    KramersMoyalKernel("gaussian", bw=0.15),
-                    KramersMoyalKernel("gaussian", bw=0.15),
-                ],
-            )
+            # loop over pairwise combinations of columns and plot drift contours
+            for column1, column2 in [
+                (ColumnName.POLAR_RADIUS.value, ColumnName.PC3_FLIPPED.value),
+                (ColumnName.POLAR_RADIUS.value, ColumnName.POLAR_ANGLE.value),
+                (ColumnName.PC3_FLIPPED.value, ColumnName.POLAR_ANGLE.value),
+            ]:
+                # need to get indices of columns to select correct data from
+                # trajectories and differences
+                index_column1 = column_names.index(column1)
+                index_column2 = column_names.index(column2)
 
-            centers_mesh = np.meshgrid(centers[index_polar_r], centers[index_rho], indexing="ij")
+                # estimate 2D drift coefficients using Kramers-Moyal estimation
+                # with appropriate kernels for each variable
+                drift, _ = get_kramers_moyal_coeffs(
+                    [traj[:, [index_column1, index_column2]] for traj in trajectories],
+                    [diff[:, [index_column1, index_column2]] for diff in differences],
+                    bins=[bins[index_column1], bins[index_column2]],
+                    dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
+                    kernel=[
+                        kernel_function_dict[column1],
+                        kernel_function_dict[column2],
+                    ],
+                )
 
-            plot_and_save_drift_contours(
-                meshgrid=centers_mesh,
-                drift=drift_r_rho,
-                variable_labels=[
-                    variable_labels_simple[index_polar_r],
-                    variable_labels_simple[index_rho],
-                ],
-                bin_limits=[
-                    global_bin_limits_dict[ColumnName.POLAR_RADIUS.value],
-                    global_bin_limits_dict[ColumnName.PC3_FLIPPED.value],
-                ],
-                fig_title=fig_title,
-                fig_savedir=fig_savedir,
-                filename_prefix=f"{dataset_name_flow}_r_rho",
-            )
-            plt.close("all")
+                # get 2D meshgrid of bin centers for plotting
+                centers_mesh = np.meshgrid(
+                    centers[index_column1], centers[index_column2], indexing="ij"
+                )
 
-            # contour plots of dr/dt and d(rho)/dt over (r, rho)
-            drift_r_theta, _ = get_kramers_moyal_coeffs(
-                [traj[:, [index_polar_r, index_polar_angle]] for traj in trajectories],
-                [diff[:, [index_polar_r, index_polar_angle]] for diff in differences],
-                bins=[bins[index_polar_r], bins[index_polar_angle]],
-                dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
-                kernel=[
-                    KramersMoyalKernel("gaussian", bw=0.15),
-                    KramersMoyalKernel("periodic", bw=0.15, period=polar_angle_period),
-                ],
-            )
-
-            centers_mesh = np.meshgrid(
-                centers[index_polar_r], centers[index_polar_angle], indexing="ij"
-            )
-            plot_and_save_drift_contours(
-                meshgrid=centers_mesh,
-                drift=drift_r_theta,
-                variable_labels=[
-                    variable_labels_simple[index_polar_r],
-                    variable_labels_simple[index_polar_angle],
-                ],
-                bin_limits=[
-                    global_bin_limits_dict[ColumnName.POLAR_RADIUS.value],
-                    global_bin_limits_dict[ColumnName.POLAR_ANGLE.value],
-                ],
-                fig_title=fig_title,
-                fig_savedir=fig_savedir,
-                filename_prefix=f"{dataset_name_flow}_r_theta",
-            )
-            plt.close("all")
-
-            # finally, do the same for rho vs theta
-            drift_rho_theta, _ = get_kramers_moyal_coeffs(
-                [traj[:, [index_rho, index_polar_angle]] for traj in trajectories],
-                [diff[:, [index_rho, index_polar_angle]] for diff in differences],
-                bins=[bins[index_rho], bins[index_polar_angle]],
-                dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
-                kernel_name=[
-                    KramersMoyalKernel("gaussian", bw=0.15),
-                    KramersMoyalKernel("periodic", bw=0.15, period=polar_angle_period),
-                ],
-            )
-
-            centers_mesh = np.meshgrid(
-                centers[index_rho], centers[index_polar_angle], indexing="ij"
-            )
-            plot_and_save_drift_contours(
-                meshgrid=centers_mesh,
-                drift=drift_rho_theta,
-                variable_labels=[
-                    variable_labels_simple[index_rho],
-                    variable_labels_simple[index_polar_angle],
-                ],
-                bin_limits=[
-                    global_bin_limits_dict[ColumnName.PC3_FLIPPED.value],
-                    global_bin_limits_dict[ColumnName.POLAR_ANGLE.value],
-                ],
-                fig_title=fig_title,
-                fig_savedir=fig_savedir,
-                filename_prefix=f"{dataset_name_flow}_rho_theta",
-            )
-            plt.close("all")
+                # plot drift contours and save
+                plot_and_save_drift_contours(
+                    centers_mesh,
+                    drift,
+                    variable_labels=[
+                        variable_labels_dict[column1],
+                        variable_labels_dict[column2],
+                    ],
+                    bin_limits=[
+                        global_bin_limits_dict[column1],
+                        global_bin_limits_dict[column2],
+                    ],
+                    fig_title=fig_title,
+                    fig_savedir=fig_savedir,
+                    filename_prefix=f"{dataset_name_flow}_{column1}_{column2}",
+                )
+                plt.close("all")
 
 
 if __name__ == "__main__":
