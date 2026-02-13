@@ -144,6 +144,27 @@ def _convolve_histogram_with_kernel(
     return kmc
 
 
+def _reshape_outputs_to_drift_diffusion_coefficients(
+    ndim: int, kmc: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    """Reshape the output of kernel convolution to get the drift and diffusion coefficients in the correct shape."""
+    if ndim == 1:  # just need to take the first two rows
+        drift_km = kmc[1]
+        diff_km = kmc[2]
+    else:  # if ndim > 1, need to make sure arrays are in the right shape
+        # permuted axes (0, ndim, ndim-1, ..., 1)
+        axes_permute = [0, *list(reversed(range(1, ndim + 1)))]
+        #  swap last ndim axes to get correct shape:
+        # n_powers x N[ndim] x N[ndim-1] x ... x N[1]
+        kmc = np.transpose(kmc, axes_permute)
+        # take drift terms, shape is N[1] x N[2] x ... x N[ndim] x ndim
+        drift_km = kmc[1 : ndim + 1].T
+        # take diffusion terms, shape is N[1] x N[2] x ... x N[ndim] x ndim
+        diff_km = kmc[ndim + 1 :].T
+
+    return drift_km, diff_km
+
+
 def _compile_multivariate_product_kernel(
     kernels: list[Callable[[np.ndarray, float, float | None], np.ndarray]],
 ) -> Callable[[np.ndarray, list[float], list[float | None] | None], np.ndarray]:
@@ -222,166 +243,6 @@ def _evaluate_multivariate_product_kernel(
     return kernel_func_prod(x.reshape(-1, ndim), bandwidths, periods).reshape(grid_shape)
 
 
-def _km_wrapper(
-    trajectories: list[np.ndarray],
-    displacements: list[np.ndarray],
-    bins: list[np.ndarray],
-    powers: np.ndarray,
-    kernel: KramersMoyalKernel | list[KramersMoyalKernel],
-    tol: float = 1e-10,
-) -> np.ndarray:
-    """
-    Estimates the Kramers─Moyal coefficients from a timeseries using a kernel
-    estimator method. `km` can calculate the Kramers─Moyal coefficients for a
-    timeseries of any dimension, up to any desired power.
-
-    **Binning**
-
-    The input array ``bins`` specifies the bin edges in each dimension of the timeseries.
-    The Kramers─Moyal coefficients are estimated at the center of each bin, and the
-    output `kmc` is given in the shape of the number of bins in each dimension.
-
-    **Power of the Kramers─Moyal coefficients**
-
-    The input array ``powers`` specifies the exponents of the components
-    of the displacement vectors in the Kramers─Moyal coefficients.
-
-    The powers are given in the form of a 2-D array, where each row corresponds
-    to a power, and each column corresponds to a component of the displacement vector
-    that is raised to that power. The first row is always zero, to account for
-    the normalization of the coefficients.
-
-    For example, to compute each component of the drift coefficient in 2D, the powers
-    are `[[0, 0], [1, 0], [0, 1]]`, where the first row is the normalization.
-
-    The powers can be computed by calling ``_get_km_powers(ndim)``, where ``ndim`` is
-    the dimension of the timeseries. The powers are then automatically generated,
-    but only up to second order (drift and diffusion coefficients).
-
-    The order that they appear dictates the order of the corresponding coefficient
-    in the output ``kmc``. To extract the selected orders of the kmc, use ``kmc[i,...]``,
-    with ``i`` being the order according to powers.
-
-    **Kernel**
-
-    The input string ``kernel`` specifies the kernel function that is used to compute
-    the Kramers─Moyal coefficients as a convolution of the kernel with the weighted
-    histogram of the observations. This input has to be a string that corresponds to a
-    kernel function defined in the `km_kernels` module.
-
-    **Low probability density**
-
-    The input ``tol`` specifies the tolerance for small values of the probability density,
-    which is the 0th order Kramers─Moyal coefficient. In bins where the probability density
-    is smaller than this tolerance, the Kramers─Moyal coefficients are set to NaN.
-
-    **References**
-
-    [Lamouroux2009] D. Lamouroux and K. Lehnertz, "Kernel-based regression of
-    drift and diffusion coefficients of stochastic processes." Physics Letters A
-    373(39), 3507─3512, 2009. DOI: 10.1016/j.physleta.2009.07.073
-
-    [Gorjão2019] L. R. Gorjão and F. Meirinhos, "kramersmoyal: Kramers-Moyal
-    coefficients for stochastic processes." Journal of Open Source Software 4(44),
-    1693, 2019. DOI: 10.21105/joss.01693
-
-    Parameters
-    ----------
-    trajectories
-        List of invidual trajectories.
-    displacements
-        List of invidual displacements along the trajectories.
-    bins
-        List of monotonically increasing bin edges in each dimension.
-    powers
-        Powers for the operation of calculating the Kramers─Moyal coefficients.
-    kernel
-        Kernel used to convolute with the Kramers-Moyal coefficients.
-    tol
-        Tolerance for small values of the probability density (0th order Kramers─Moyal coefficient).
-    """
-
-    # Get trajectories and corresponding displacements concatenated across all trajectories.
-    # Note that the last timepoint of each trajectory is not included,
-    # as there is no corresponding displacement value for it.
-    trajectories_concat = np.concatenate([ts[:-1] for ts in trajectories], axis=0)
-    displacements_concat: np.ndarray = np.concatenate(displacements, axis=0)
-
-    ##### Weights: for each displacement vector, get the coresponding powers/products
-    #               of the gradients for the Kramers─Moyal coefficients.
-    weights = np.prod(np.power(displacements_concat.T, powers[..., None]), axis=1)
-
-    ##### Get weighted histogram for convolution
-
-    # If there are L powers, the result in an L x N[0] x N[1] x ... x N[D-1] array
-    # where N[i] is the number of bins in dimension i.
-    hist = histogramdd(trajectories_concat, bins=bins, weights=weights)
-
-    ##### Generate centered kernel on larger grid (fft'ed convolutions are circular).
-
-    # Map edges to interval [0, L_i] in each dimension, where L_i is the number of bins
-    # times the bin width in dimension i. Then edges_k is the bin edges
-    # for the interval [-L_i, L_i] with the same bin width. This grid is twice the size
-    # of the histogram in each dimension and centered around the origin.
-
-    # The kernel is then evaluated at all points in this extended grid (obtained
-    # via the cartesian product of the entries of edges_extended).
-    # The purpose of this is to artifically construct a periodic kernel
-    # that is centered around the origin, so that the input into the convolution
-    # is compatible with the circular nature of the convolution obtained via fft.
-    # (Default convolution method is 'auto', which uses fft if the kernel is large enough.)
-    edges_extended = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in bins]
-    edges_cartesian_prod = get_cartesian_product(edges_extended)
-
-    # convert specified kernel to callable, splitting into case of product kernel
-    # (list of kernels for each dimension) vs single multivariate kernel
-    if isinstance(kernel, list):
-        kernel_funcs = [k.string_to_kernel() for k in kernel]
-        kernel_bandwidths = [k.bandwidth for k in kernel]
-        kernel_periods = [k.period for k in kernel]
-        kernel_func_prod = _compile_multivariate_product_kernel(kernel_funcs)
-        # have to do some reshaping to properly evaluate the kernel at all points in the grid,
-        # and then reshape back to the grid shape
-        grid_shape = edges_cartesian_prod.shape[:-1]
-        ndim = edges_cartesian_prod.shape[-1]
-        kernel_eval = kernel_func_prod(
-            edges_cartesian_prod.reshape(-1, ndim), kernel_bandwidths, kernel_periods
-        ).reshape(grid_shape)
-    else:
-        kernel_func = kernel.string_to_kernel()
-        kernel_eval = kernel_func(edges_cartesian_prod, kernel.bandwidth, kernel.period)
-
-    ##### KMC computation: convolve the histogram with the kernel
-
-    # Convolve weighted histogram of kmc observations (displacements ^ powers)
-    # with augmented periodic kernel and trim it back to the original size.
-    # Note that the first entry of the output is the normalization factor
-    # of the kernel estimator, which is the same for all dimensions.
-    # The normalization factor is the KDE of the empirical density function.
-    kmc = convolve(hist, kernel_eval[None, ...], mode="same")
-
-    # make sure that estimates are properly normalized (i.e., kernel estimate
-    # is a proper kernel density estimate) by making sure that the 0th order Kramers-Moyal
-    # coefficient (i.e., the probability density) integrates to 1
-    norm_coeff = kmc[0].copy()
-    for ii in range(len(bins)):
-        bin_width = bins[ii][1] - bins[ii][0]
-        norm_coeff = np.trapz(norm_coeff, dx=bin_width, axis=-1)
-    kmc /= norm_coeff
-
-    # Mask out bins where the probability density is smaller than the specified tolerance
-    mask = np.abs(kmc[0]) < tol
-    kmc[0:, mask] = np.nan
-
-    # get correct Taylor expansion coefficients (e.g., divide 2nd order powers by 2!)
-    taylors = np.prod(factorial(powers[1:]), axis=1)
-    kmc[1:, ~mask] /= (
-        taylors[..., None] * kmc[0, ~mask]
-    )  # divide by Taylor coeff * 0th order coeffs (probability density)
-
-    return kmc
-
-
 def get_cartesian_product(arrays: np.ndarray | list) -> np.ndarray:
     shapes = [len(arr) for arr in arrays]
     indices = np.indices(shapes, sparse=False)
@@ -398,15 +259,15 @@ def _get_km_powers(ndim: int) -> np.ndarray:
 
     For example, for 1D data, the powers are:
     [[0],  # normalization for kernel convolution (density)
-     [1],  # f
-     [2]]  # D
+     [1],  # drift
+     [2]]  # diffusion
 
     For 2D data, the powers are:
     [[0,0],  # normalization for kernel convolution (density)
-     [1,0],  # f_1
-     [0,1],  # f_2
-     [2,0],  # D_1
-     [0,2]]  # D_2
+     [1,0],  # drift_1
+     [0,1],  # drift_2
+     [2,0],  # diffusion_11
+     [0,2]]  # diffusion_22
     """
 
     if ndim == 1:  # straightforward case for 1D data
@@ -492,19 +353,8 @@ def get_kramers_moyal_coeffs(
     # dt to get the correct units (e.g. per minute)
     kmc = _convolve_histogram_with_kernel(hist, kernel_eval, bins, powers) / dt
 
-    # reshape the output to get drift and diffusion coefficients
-    if ndim == 1:  # just need to take the first two rows
-        drift_km = kmc[1]
-        diff_km = kmc[2]
-    else:  # if ndim > 1, need to make sure arrays are in the right shape
-        # permuted axes (0, ndim, ndim-1, ..., 1)
-        axes_permute = [0, *list(reversed(range(1, ndim + 1)))]
-        #  swap last ndim axes to get correct shape:
-        # n_powers x N[ndim] x N[ndim-1] x ... x N[1]
-        kmc = np.transpose(kmc, axes_permute)
-        # take drift terms, shape is N[1] x N[2] x ... x N[ndim] x ndim
-        drift_km = kmc[1 : ndim + 1].T
-        # take diffusion terms, shape is N[1] x N[2] x ... x N[ndim] x ndim
-        diff_km = kmc[ndim + 1 :].T
+    # reshape the output of kernel convolution to get just the drift and diffusion coefficients
+    # and have them in the correct shape
+    drift, diffusion = _reshape_outputs_to_drift_diffusion_coefficients(ndim, kmc)
 
-    return drift_km, diff_km
+    return drift, diffusion
