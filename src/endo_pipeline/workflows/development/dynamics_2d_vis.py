@@ -69,6 +69,7 @@ def main(
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
         plot_and_save_drift_contours,
+        plot_and_save_drift_quiver,
     )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.manifests import (
@@ -227,19 +228,32 @@ def main(
                 centers_mesh = np.meshgrid(
                     centers[index_column1], centers[index_column2], indexing="ij"
                 )
+                variable_labels_plot = [
+                    variable_labels_dict[column1],
+                    variable_labels_dict[column2],
+                ]
+                bin_limits_plot = [
+                    bin_limits_dict[column1],
+                    bin_limits_dict[column2],
+                ]
 
                 # plot drift contours and save
                 plot_and_save_drift_contours(
                     centers_mesh,
                     drift,
-                    variable_labels=[
-                        variable_labels_dict[column1],
-                        variable_labels_dict[column2],
-                    ],
-                    bin_limits=[
-                        global_bin_limits_dict[column1],
-                        global_bin_limits_dict[column2],
-                    ],
+                    variable_labels=variable_labels_plot,
+                    bin_limits=bin_limits_plot,
+                    fig_title=fig_title,
+                    fig_savedir=fig_savedir,
+                    filename_prefix=f"{dataset_name_flow}_{column1}_{column2}",
+                )
+
+                # plot quiver plot of drift and save
+                plot_and_save_drift_quiver(
+                    centers_mesh,
+                    drift,
+                    variable_labels=variable_labels_plot,
+                    bin_limits=bin_limits_plot,
                     fig_title=fig_title,
                     fig_savedir=fig_savedir,
                     filename_prefix=f"{dataset_name_flow}_{column1}_{column2}",
