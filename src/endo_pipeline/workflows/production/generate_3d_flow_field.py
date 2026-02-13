@@ -66,7 +66,7 @@ def main(
     from endo_pipeline.io import get_output_path, make_name_unique
     from endo_pipeline.library.analyze.data_driven_flow_field import ddff_model_analysis
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
-    from endo_pipeline.library.analyze.numerics import get_bins, get_bounds_from_data
+    from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
     from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
         plot_stable_fixed_points_together,
     )

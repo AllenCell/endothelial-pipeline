@@ -10,11 +10,13 @@ import numpy as np
 import pandas as pd
 
 from endo_pipeline.io import save_plot_to_path
-from endo_pipeline.library.analyze.numerics import (
-    SteadyFP,
+from endo_pipeline.library.analyze.numerics.binning import get_normalization_constant
+from endo_pipeline.library.analyze.numerics.fp_solvers import SteadyFP
+from endo_pipeline.library.analyze.numerics.gen_potential import (
     entropy_production,
-    get_normalization_constant,
     grad_flux_decomposition,
+)
+from endo_pipeline.library.analyze.numerics.sde_model_eval import (
     mesh_grid_function,
     vector_field_component,
 )
