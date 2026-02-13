@@ -191,14 +191,17 @@ def get_df_and_label_map_cdh5seg(
 
 
 def get_df_and_label_map_grid(
-    dataset: str, position: int, label_map: dict
+    dataset: str,
+    position: int,
+    label_map: dict,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    model_run_name: str = DEFAULT_MODEL_RUN_NAME,
 ) -> tuple[pd.DataFrame, list, dict]:
 
-    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
-    run_name = DEFAULT_MODEL_RUN_NAME
+    model_manifest = load_model_manifest(model_manifest_name)
 
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
+        model_manifest, model_run_name, crop_pattern="grid"
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
