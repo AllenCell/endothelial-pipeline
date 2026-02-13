@@ -57,6 +57,7 @@ def main(
         split_dataset_by_flow,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
+    from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.manifests import (
@@ -175,8 +176,10 @@ def main(
                 [diff[:, [index_polar_r, index_rho]] for diff in differences],
                 bins=[bins[index_polar_r], bins[index_rho]],
                 dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
-                kernel_name="gaussian",
-                kernel_bw=0.15,
+                kernel=[
+                    KramersMoyalKernel("gaussian", bw=0.15),
+                    KramersMoyalKernel("gaussian", bw=0.15),
+                ],
             )
 
             centers_mesh = np.meshgrid(centers[index_polar_r], centers[index_rho], indexing="ij")
@@ -259,8 +262,10 @@ def main(
                 [diff[:, [index_polar_r, index_polar_angle]] for diff in differences],
                 bins=[bins[index_polar_r], bins[index_polar_angle]],
                 dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
-                kernel_name="gaussian",
-                kernel_bw=0.15,
+                kernel=[
+                    KramersMoyalKernel("gaussian", bw=0.15),
+                    KramersMoyalKernel("periodic", bw=0.15, period=polar_angle_period),
+                ],
             )
 
             centers_mesh = np.meshgrid(
@@ -345,8 +350,10 @@ def main(
                 [diff[:, [index_rho, index_polar_angle]] for diff in differences],
                 bins=[bins[index_rho], bins[index_polar_angle]],
                 dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
-                kernel_name="gaussian",
-                kernel_bw=0.15,
+                kernel_name=[
+                    KramersMoyalKernel("gaussian", bw=0.15),
+                    KramersMoyalKernel("periodic", bw=0.15, period=polar_angle_period),
+                ],
             )
 
             centers_mesh = np.meshgrid(
