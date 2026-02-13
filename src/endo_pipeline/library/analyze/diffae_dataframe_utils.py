@@ -708,13 +708,17 @@ def get_dataframe_for_dynamics_workflows(
 
     else:
         # project feature data onto PC axes
-        return project_features_to_pcs(
+        df_with_pcs = project_features_to_pcs(
             df_with_crop,
             pca,
             feat_cols=feat_cols,
             compute_polar=compute_polar,
             rescale_theta=rescale_theta,
         )
+        df_drop_original_feats = df_with_pcs.drop(
+            columns=feat_cols
+        )  # drop original feature columns to save memory
+        return df_drop_original_feats
 
 
 def get_dataset_descriptions(
