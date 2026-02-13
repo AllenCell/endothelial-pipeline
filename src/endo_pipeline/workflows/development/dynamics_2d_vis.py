@@ -12,27 +12,36 @@ def main(
     crop_pattern: CropPattern = "grid",
 ) -> None:
     """
-    Analyze and visualize DiffAE feature dynamics in polar coordinates.
-    This workflow computes and visualizes the dynamics of DiffAE features
-    in polar coordinates (angle and radius) for the grid-based crop features.
-    The polar coordinates are computed from the first two principal components (PCs)
-    of the DiffAE feature space as:
-        - Angle: arctan2(PC2, PC1)
-        - Radius: sqrt(PC1^2 + PC2^2)
-    If rescale_theta is True, the polar angles are rescaled to be within (0, pi) as:
-        - angle_rescaled = (angle + pi) / 2
-    For each dataset in the specified collection, the workflow performs the following steps:
-    1. Loads the grid-based crop feature dataframe and fits PCA to obtain the first two PCs
-        and the corresponding polar coordinates.
-    2. Splits the dataframe by flow conditions based on shear stress.
-    3. For each flow condition:
-        a. Plots the mean polar angle and radius over time for each position.
-        b. Plots histogram heatmaps of polar angle and radius over time.
+    Analyze and visualize DiffAE feature dynamics.
+
+    This workflow computes and visualizes the dynamics of DiffAE features in for
+    the grid-based crop features.
+
+    The specific features to analyze and visualize are defined in the settings
+    via the DYNAMICS_COLUMN_NAMES variable, and the default dataset to analyze
+    is defined via the DEFAULT_DATASET_DYNAMICS_VIS variable.
+
+    The workflow can also be run on a custom set of datasets using the
+    `--datasets` command-line argument, but will only run on datasets that are
+    present in the dataframe.
+
+    For each dataset in the specified collection, the workflow performs the
+    following steps:
+        1. Loads the grid-based crop feature dataframe, projects
+            features into PCA space, and perform any additional feature
+            transformations (e.g., computing polar coordinates, rescaling
+            polar angle).
+        2. Splits the dataframe by flow conditions based on shear stress.
+        3. For each flow condition, loops over pairwise combinations of features:
+            a. Estimates 2D drift coefficients (Kramers-Moyal) for each pair of
+                features using a kernel-based estimation method with appropriate
+                kernels for each variable.
+            b. Plots contours of these estimated drift coefficients.
 
     Parameters
     ----------
     datasets
-        The datasets to process. If None, uses the default dataset collection.
+        Specific datasets to run the workflow on.
     model_manifest_name
         The name of the model manifest to use.
     run_name
