@@ -55,6 +55,40 @@ def _check_and_adjust_km_inputs(
     return trajectories, displacements, powers
 
 
+def _get_km_powers(ndim: int) -> np.ndarray:
+    """
+    Generate the powers for the first two Kramers-Moyal coefficients for ndim dimensions.
+
+    Note that for the second order Kramers-Moyal coefficients (diffusion), we only include
+    the pure powers of each component (i.e., no interaction terms).
+
+    For example, for 1D data, the powers are:
+    [[0],  # normalization for kernel convolution (density)
+     [1],  # drift
+     [2]]  # diffusion
+
+    For 2D data, the powers are:
+    [[0,0],  # normalization for kernel convolution (density)
+     [1,0],  # drift_1
+     [0,1],  # drift_2
+     [2,0],  # diffusion_11
+     [0,2]]  # diffusion_22
+    """
+
+    if ndim == 1:  # straightforward case for 1D data
+        powers = np.array([[0], [1], [2]])
+        #                   /    f    D
+        #          index:   0    1    2
+    else:  # if ndim > 1, utilize identity matrix to generate powers
+        n_powers = 2 * ndim + 1
+        powers = np.zeros((n_powers, ndim), dtype=int)  # row 0 is all zeros
+        # drift powers: row 1 to ndim
+        powers[1 : ndim + 1] = np.eye(ndim, dtype=int)
+        # diffusion powers: row ndim+1 to end (no interaction terms)
+        powers[ndim + 1 :] = 2 * np.eye(ndim, dtype=int)
+    return powers
+
+
 def _get_weighted_histogram_for_convolution(
     trajectories: list[np.ndarray],
     displacements: list[np.ndarray],
@@ -248,40 +282,6 @@ def get_cartesian_product(arrays: np.ndarray | list) -> np.ndarray:
     indices = np.indices(shapes, sparse=False)
     unstacked = [arrays[i][sub_indices] for i, sub_indices in enumerate(indices)]
     return np.stack(unstacked, axis=-1)
-
-
-def _get_km_powers(ndim: int) -> np.ndarray:
-    """
-    Generate the powers for the first two Kramers-Moyal coefficients for ndim dimensions.
-
-    Note that for the second order Kramers-Moyal coefficients (diffusion), we only include
-    the pure powers of each component (i.e., no interaction terms).
-
-    For example, for 1D data, the powers are:
-    [[0],  # normalization for kernel convolution (density)
-     [1],  # drift
-     [2]]  # diffusion
-
-    For 2D data, the powers are:
-    [[0,0],  # normalization for kernel convolution (density)
-     [1,0],  # drift_1
-     [0,1],  # drift_2
-     [2,0],  # diffusion_11
-     [0,2]]  # diffusion_22
-    """
-
-    if ndim == 1:  # straightforward case for 1D data
-        powers = np.array([[0], [1], [2]])
-        #                   /    f    D
-        #          index:   0    1    2
-    else:  # if ndim > 1, utilize identity matrix to generate powers
-        n_powers = 2 * ndim + 1
-        powers = np.zeros((n_powers, ndim), dtype=int)  # row 0 is all zeros
-        # drift powers: row 1 to ndim
-        powers[1 : ndim + 1] = np.eye(ndim, dtype=int)
-        # diffusion powers: row ndim+1 to end (no interaction terms)
-        powers[ndim + 1 :] = 2 * np.eye(ndim, dtype=int)
-    return powers
 
 
 def get_kramers_moyal_coeffs(
