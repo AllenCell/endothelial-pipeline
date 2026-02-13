@@ -29,7 +29,11 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAME_GROUPS,
     ColumnName,
 )
-from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RESCALE_THETA
+from endo_pipeline.settings.dynamics_workflows import (
+    METADATA_COLUMNS_TO_KEEP,
+    PERIOD_THETA_RESCALED,
+    RESCALE_THETA,
+)
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -659,18 +663,12 @@ def get_dataframe_for_dynamics_workflows(
     df = load_dataframe(location)
     feat_cols = get_latent_feature_column_names_from_dataframe(df)
 
-    # default columns to keep are metadata columns for start_x, start_y,
-    # timepoint, and position (needed for filtering and adding crop index)
-    columns_to_keep_ = [
-        ColumnName.START_X,
-        ColumnName.START_Y,
-        ColumnName.TIMEPOINT,
-        ColumnName.POSITION,
-    ]
+    # start with default metadatac columns to keep
+    columns_to_keep_ = list(METADATA_COLUMNS_TO_KEEP)
     if columns_to_keep is not None:
-        columns_to_keep_.extend(columns_to_keep)
+        columns_to_keep_.extend(columns_to_keep)  # add any additional specified columns to keep
     columns_to_keep_.extend(feat_cols)  # also keep feature columns for PCA projection
-    columns_to_keep_ = list(set(columns_to_keep_))  # remove duplicates if any
+    columns_to_keep_ = list(set(columns_to_keep_))  # remove duplicates, if any
 
     # keep only necessary columns to save memory
     df_ = df[columns_to_keep_].copy()

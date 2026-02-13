@@ -4,6 +4,14 @@ from numpy import pi
 
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
+METADATA_COLUMNS_TO_KEEP: tuple[str, ...] = (
+    ColumnName.DATASET.value,
+    ColumnName.POSITION.value,
+    ColumnName.TIMEPOINT.value,
+    ColumnName.START_X.value,
+    ColumnName.START_Y.value,
+)
+
 DYNAMICS_COLUMN_NAMES: tuple[str, ...] = (
     ColumnName.POLAR_ANGLE.value,
     ColumnName.POLAR_RADIUS.value,
