@@ -47,7 +47,7 @@ def main(
     import numpy as np
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
@@ -69,33 +69,35 @@ def main(
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
-        BIN_LIMITS_POLAR,
+        BIN_LIMIT_PERCENTILE_CUTOFF,
+        BIN_LIMITS_DYNAMICS,
         BIN_LIMITS_THETA_RESCALED,
-        DEFAULT_DATASET_COLLECTION_POLAR_VIS,
+        BIN_WIDTHS_DYNAMICS,
+        DEFAULT_DATASET_DYNAMICS_VIS,
+        DYNAMICS_COLUMN_NAMES,
         RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
-    from endo_pipeline.settings.histogram_1d_vis import (
-        BIN_LIMITS_RHO,
-        BIN_WIDTHS_FOR_HISTOGRAMS,
-        FEATURES_FOR_HISTOGRAM_VIS,
-    )
-
-    KM_PERCENTILE = 2.5
-
-    bin_widths = BIN_WIDTHS_FOR_HISTOGRAMS.copy()
-    global_bin_limits = [*BIN_LIMITS_POLAR, BIN_LIMITS_RHO]
 
     logger = logging.getLogger(__name__)
 
-    # get labels for polar coordinate columns
-    column_names = list(FEATURES_FOR_HISTOGRAM_VIS)
+    # get labels for feature columns
+    column_names = list(DYNAMICS_COLUMN_NAMES)
     variable_labels = [get_label_for_column(col) for col in column_names]
     variable_labels_simple = [label.replace("polar", "") for label in variable_labels]
-
     index_polar_angle = column_names.index(ColumnName.POLAR_ANGLE.value)
     index_polar_r = column_names.index(ColumnName.POLAR_RADIUS.value)
     index_rho = column_names.index(ColumnName.PC3_FLIPPED.value)
+
+    # get bin widths and limits for each column, adjusting limits if rescaling theta
+    global_bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
+    if RESCALE_THETA:
+        global_bin_limits_dict[ColumnName.POLAR_ANGLE.value] = BIN_LIMITS_THETA_RESCALED
+    polar_angle_period = (
+        global_bin_limits_dict[ColumnName.POLAR_ANGLE.value][1]
+        - global_bin_limits_dict[ColumnName.POLAR_ANGLE.value][0]
+    )
+    bin_widths = [BIN_WIDTHS_DYNAMICS[col] for col in column_names]
 
     # get dataframe manifest for grid-based crop features
     model_manifest = load_model_manifest(model_manifest_name)
@@ -111,9 +113,12 @@ def main(
     # the provided dataframe manifest
     valid_dataset_options = list(dataframe_manifest.locations.keys())
     if datasets is None:
-        dataset_names = get_datasets_in_collection(
-            DEFAULT_DATASET_COLLECTION_POLAR_VIS, valid_dataset_options
-        )
+        if DEFAULT_DATASET_DYNAMICS_VIS not in valid_dataset_options:
+            raise ValueError(
+                f"Default dataset [ {DEFAULT_DATASET_DYNAMICS_VIS} ] not found in dataframe manifest. "
+                f"Available datasets: {valid_dataset_options}"
+            )
+        dataset_names = [DEFAULT_DATASET_DYNAMICS_VIS]
     else:
         dataset_names = [name for name in datasets if name in valid_dataset_options]
 
@@ -150,19 +155,17 @@ def main(
 
             # for computing drift and diffusion coefficients, need to
             # adjust bin limits if polar angle range is shifted
-            bin_limits = global_bin_limits.copy()
-            if RESCALE_THETA:
-                bin_limits[index_polar_angle] = BIN_LIMITS_THETA_RESCALED
+            bin_limits_dict = global_bin_limits_dict.copy()
 
             # set bin limits for r and rho based on percentiles of data
-            for i, col_name in enumerate(column_names):
+            for col_name in enumerate(column_names):
                 if col_name == ColumnName.POLAR_ANGLE.value:
                     continue
-                bin_min = np.percentile(df_[col_name].to_numpy(), KM_PERCENTILE)
-                bin_max = np.percentile(df_[col_name].to_numpy(), 100 - KM_PERCENTILE)
-                bin_limits[i] = (bin_min, bin_max)
+                bin_min = np.percentile(df_[col_name].to_numpy(), BIN_LIMIT_PERCENTILE_CUTOFF)
+                bin_max = np.percentile(df_[col_name].to_numpy(), 100 - BIN_LIMIT_PERCENTILE_CUTOFF)
+                bin_limits_dict[col_name] = (bin_min, bin_max)
 
-            polar_angle_period = bin_limits[index_polar_angle][1] - bin_limits[index_polar_angle][0]
+            bin_limits = [bin_limits_dict[col] for col in column_names]
 
             bins, centers = get_bins(
                 bin_widths=bin_widths,
@@ -194,7 +197,10 @@ def main(
                     variable_labels_simple[index_polar_r],
                     variable_labels_simple[index_rho],
                 ],
-                bin_limits=[global_bin_limits[index_polar_r], global_bin_limits[index_rho]],
+                bin_limits=[
+                    global_bin_limits_dict[ColumnName.POLAR_RADIUS.value],
+                    global_bin_limits_dict[ColumnName.PC3_FLIPPED.value],
+                ],
                 fig_title=fig_title,
                 fig_savedir=fig_savedir,
                 filename_prefix=f"{dataset_name_flow}_r_rho",
@@ -223,7 +229,10 @@ def main(
                     variable_labels_simple[index_polar_r],
                     variable_labels_simple[index_polar_angle],
                 ],
-                bin_limits=[global_bin_limits[index_polar_r], global_bin_limits[index_polar_angle]],
+                bin_limits=[
+                    global_bin_limits_dict[ColumnName.POLAR_RADIUS.value],
+                    global_bin_limits_dict[ColumnName.POLAR_ANGLE.value],
+                ],
                 fig_title=fig_title,
                 fig_savedir=fig_savedir,
                 filename_prefix=f"{dataset_name_flow}_r_theta",
@@ -252,7 +261,10 @@ def main(
                     variable_labels_simple[index_rho],
                     variable_labels_simple[index_polar_angle],
                 ],
-                bin_limits=[global_bin_limits[index_rho], global_bin_limits[index_polar_angle]],
+                bin_limits=[
+                    global_bin_limits_dict[ColumnName.PC3_FLIPPED.value],
+                    global_bin_limits_dict[ColumnName.POLAR_ANGLE.value],
+                ],
                 fig_title=fig_title,
                 fig_savedir=fig_savedir,
                 filename_prefix=f"{dataset_name_flow}_rho_theta",

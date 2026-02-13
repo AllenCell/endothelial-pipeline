@@ -4,17 +4,29 @@ from numpy import pi
 
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
-BIN_WIDTHS_POLAR: tuple[float, float] = (0.05, 0.05)
-"""Bin widths for polar coordinate density and flow field estimation in the order [angle, radius]."""
+DYNAMICS_COLUMN_NAMES: tuple[str, ...] = (
+    ColumnName.POLAR_ANGLE.value,
+    ColumnName.POLAR_RADIUS.value,
+    ColumnName.PC3_FLIPPED.value,
+)
+"""Column names in the DiffAE feature dataframe to use for dynamics analysis and visualization."""
 
-DEFAULT_DATASET_COLLECTION_POLAR_VIS: str = "diffae_model_training"
-"""Default dataset collection for polar coordinate visualization workflow."""
+BIN_WIDTHS_DYNAMICS: dict[str, float] = {
+    ColumnName.POLAR_ANGLE.value: 0.05,
+    ColumnName.POLAR_RADIUS.value: 0.05,
+    ColumnName.PC3_FLIPPED.value: 0.05,
+}
+"""Bin widths for each coordinate in dynamics analysis and visualization."""
 
-POLAR_COLUMN_NAMES: list[str] = [ColumnName.POLAR_ANGLE.value, ColumnName.POLAR_RADIUS.value]
-"""Column names for polar coordinates in the DiffAE feature dataframe, in the order [angle, radius]."""
+BIN_LIMITS_DYNAMICS: dict[str, tuple[float, float]] = {
+    ColumnName.POLAR_ANGLE.value: (-pi, pi),
+    ColumnName.POLAR_RADIUS.value: (0.0, 3.5),
+    ColumnName.PC3_FLIPPED.value: (-1.5, 2.5),
+}
+"""Bin limits for each coordinate in dynamics analysis and visualization."""
 
-BIN_LIMITS_POLAR: list[tuple[float, float]] = [(-pi, pi), (0.0, 3.5)]
-"""Bin limits for polar coordinate analysis, in the order [angle, radius]."""
+DEFAULT_DATASET_DYNAMICS_VIS: str = "20250618_20X"
+"""Default dataset for dynamics visualization workflows."""
 
 RESCALE_THETA: bool = True
 """Whether to rescale polar angle coordinate to [0, pi] range for analysis and visualization."""
@@ -22,8 +34,8 @@ RESCALE_THETA: bool = True
 BIN_LIMITS_THETA_RESCALED: tuple[float, float] = (0.0, pi)
 """Bin limits for rescaled polar angle coordinate analysis and visualization."""
 
-THETA_RESCALED_PERIOD: float = pi
+PERIOD_THETA_RESCALED: float = pi
 """Period for rescaled polar angle coordinate."""
 
-TICK_STEP_NUM: int = 7
-"""Number of axes ticks for coordinate axis in histogram plots."""
+BIN_LIMIT_PERCENTILE_CUTOFF: float = 2.5
+"""Percentile cutoff for getting bin limits for computing Kramer-Moyal coefficients."""

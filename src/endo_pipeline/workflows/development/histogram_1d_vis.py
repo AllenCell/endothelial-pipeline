@@ -73,19 +73,14 @@ def main(
         load_model_manifest,
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
-    from endo_pipeline.settings.dynamics_workflows import (
-        BIN_LIMITS_POLAR,
-        BIN_LIMITS_THETA_RESCALED,
-        DEFAULT_DATASET_COLLECTION_POLAR_VIS,
-        RESCALE_THETA,
-        TICK_STEP_NUM,
-    )
+    from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED, RESCALE_THETA
     from endo_pipeline.settings.histogram_1d_vis import (
-        BIN_LIMITS_PC18,
-        BIN_LIMITS_RHO,
-        BIN_WIDTHS_FOR_HISTOGRAMS,
+        BIN_LIMITS_HISTOGRAMS,
+        BIN_WIDTHS_HISTOGRAMS,
+        DEFAULT_DATASET_COLLECTION_HISTOGRAM_VIS,
         FEATURES_FOR_HISTOGRAM_VIS,
         NUM_PCS_TO_FIT,
+        TICK_STEP_NUM,
     )
 
     # get feature column names and labels (for plots)
@@ -107,19 +102,21 @@ def main(
     valid_dataset_options = list(dataframe_manifest.locations.keys())
     if datasets is None:
         dataset_names = get_datasets_in_collection(
-            DEFAULT_DATASET_COLLECTION_POLAR_VIS, valid_dataset_options
+            DEFAULT_DATASET_COLLECTION_HISTOGRAM_VIS, valid_dataset_options
         )
     else:
         dataset_names = [name for name in datasets if name in valid_dataset_options]
 
     # compute bins for polar coordinates
-    bin_limits = [*BIN_LIMITS_POLAR, BIN_LIMITS_RHO, BIN_LIMITS_PC18]
-    idx_theta = column_names.index(ColumnName.POLAR_ANGLE.value)
+    bin_limits_dict = BIN_LIMITS_HISTOGRAMS.copy()
     if RESCALE_THETA:
-        bin_limits[idx_theta] = BIN_LIMITS_THETA_RESCALED
+        bin_limits_dict[ColumnName.POLAR_ANGLE.value] = BIN_LIMITS_THETA_RESCALED
+
+    bin_widths = [BIN_WIDTHS_HISTOGRAMS[col] for col in column_names]
+    bin_limits = [bin_limits_dict[col] for col in column_names]
 
     bins, _ = get_bins(
-        bin_widths=BIN_WIDTHS_FOR_HISTOGRAMS,
+        bin_widths=bin_widths,
         bin_limits=bin_limits,
     )
 
@@ -156,7 +153,7 @@ def main(
                 df_,
                 column_names=column_names,
                 column_labels=variable_names,
-                polar_angle_range=bin_limits[idx_theta],
+                polar_angle_range=bin_limits_dict[ColumnName.POLAR_ANGLE.value],
             )
             if global_axes_limits:
                 for i, ax_ in enumerate(ax):
