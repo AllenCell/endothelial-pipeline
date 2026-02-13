@@ -1,10 +1,10 @@
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass
 from functools import wraps
 from typing import Literal
 
 import numpy as np
-from pydantic import BaseModel, Field
 from scipy.special import gamma
 
 logger = logging.getLogger(__name__)
@@ -111,20 +111,29 @@ AVAILABLE_KERNEL_FUNCTIONS = {
 }
 
 
-class KramersMoyalKernel(BaseModel):
+@dataclass(frozen=True)
+class KramersMoyalKernel:
     """Structure for kernels used to calculate Kramers-Moyal coefficients."""
 
     name: Literal["epanechnikov", "gaussian", "periodic"]
     """Name of the kernel."""
 
-    bandwidth: float = Field(gt=0)
+    bandwidth: float
     """Kernel bandwidth."""
 
-    period: float | None = Field(default=None, gt=0)
+    period: float | None = None
     """Kernel period (only required for periodic kernel)."""
 
     def __post_init__(self) -> None:
         """Validate kernel name, bandwidth, and period."""
+        if self.bandwidth <= 0:
+            raise ValueError("Bandwidth must be positive.")
+        if self.period is not None and self.period <= 0:
+            raise ValueError("Period must be positive if specified.")
+        if self.name not in AVAILABLE_KERNEL_FUNCTIONS.keys():
+            raise ValueError(
+                f"Invalid kernel name: {self.name}. Must be one of {list(AVAILABLE_KERNEL_FUNCTIONS.keys())}."
+            )
         if self.name == "periodic" and self.period is None:
             raise ValueError("Period must be specified for periodic kernel.")
         if self.name != "periodic" and self.period is not None:
