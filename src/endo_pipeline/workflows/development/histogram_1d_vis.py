@@ -73,19 +73,19 @@ def main(
         load_model_manifest,
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.dynamics_workflows import (
+        BIN_LIMITS_POLAR,
+        BIN_LIMITS_THETA_RESCALED,
+        DEFAULT_DATASET_COLLECTION_POLAR_VIS,
+        RESCALE_THETA,
+        TICK_STEP_NUM,
+    )
     from endo_pipeline.settings.histogram_1d_vis import (
         BIN_LIMITS_PC18,
         BIN_LIMITS_RHO,
         BIN_WIDTHS_FOR_HISTOGRAMS,
         FEATURES_FOR_HISTOGRAM_VIS,
         NUM_PCS_TO_FIT,
-    )
-    from endo_pipeline.settings.polar_coords import (
-        BIN_LIMITS_POLAR,
-        BIN_LIMITS_THETA_RESCALED,
-        DEFAULT_DATASET_COLLECTION_POLAR_VIS,
-        RESCALE_THETA,
-        TICK_STEP_NUM,
     )
 
     # get feature column names and labels (for plots)

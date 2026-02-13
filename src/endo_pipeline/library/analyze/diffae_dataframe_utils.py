@@ -29,7 +29,7 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAME_GROUPS,
     ColumnName,
 )
-from endo_pipeline.settings.polar_coords import RESCALE_THETA, THETA_RESCALED_PERIOD
+from endo_pipeline.settings.dynamics_workflows import RESCALE_THETA, THETA_RESCALED_PERIOD
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
