@@ -42,25 +42,30 @@ def _get_input_dims_and_distances(
 
 def scaled_kernel(kernel_func: Callable) -> Callable:
     """
-    Transform a pre-defined kernel function into a scaled kernel function
-    that can be used for kernel density estimation.
+    Transform a pre-defined kernel function into a scaled kernel function that
+    can be used for kernel density estimation.
 
     **Original kernel function**
 
-    The original kernel function ``kernel_func`` should take in an array of distances and the
-    number of dimensions, and return the kernel values. Specifically, the array of distances
-    is an m x n array, where m is the number of pairs of points and n is the number of dimensions.
-    Then row i of the array corresponds to the difference between the i-th pair of points along each dimension.
+    The original kernel function ``kernel_func`` should take in an array of
+    distances and the number of dimensions, and return the kernel values.
+    Specifically, the array of distances is an m x n array, where m is the
+    number of pairs of points and n is the number of dimensions. Then row i of
+    the array corresponds to the difference between the i-th pair of points
+    along each dimension.
 
     **Kernel evaluation and scaling**
 
-    Using this decorator, the resulting scaled kernel function will take in an said
-    array of distances and a bandwidth, compute the norm of the distances (i.e., turn x-y to ||x-y||),
-    and return the scaled kernel values. The scaling is done by dividing the distances by the bandwidth,
-    and then normalizing by the bandwidth raised to the power of the number of dimensions.
+    Using this decorator, the resulting scaled kernel function will take in an
+    said array of distances and a bandwidth, compute the norm of the distances
+    (i.e., turn x-y to ||x-y||), and return the scaled kernel values. The
+    scaling is done by dividing the distances by the bandwidth, and then
+    normalizing by the bandwidth raised to the power of the number of
+    dimensions.
 
-    The value is also divided by the volume of the unit ball in that number of dimensions, so that
-    resulting kernel function can be used for kernel density estimation in any number of dimensions.
+    The value is also divided by the volume of the unit ball in that number of
+    dimensions, so that resulting kernel function can be used for kernel density
+    estimation in any number of dimensions.
     """
 
     @wraps(kernel_func)  # just for naming
@@ -142,59 +147,3 @@ class KramersMoyalKernel:
     def string_to_kernel(self) -> Callable[[np.ndarray, float, float | None], np.ndarray]:
         """Convert the kernel name to the corresponding callable (scaled) kernel function."""
         return AVAILABLE_KERNEL_FUNCTIONS[self.name]
-
-
-def compile_multivariate_product_kernel(
-    kernels: list[Callable[[np.ndarray, float, float | None], np.ndarray]],
-) -> Callable[[np.ndarray, list[float], list[float | None] | None], np.ndarray]:
-    """
-    Compile a multivariate kernel by taking the product of 1D kernels for each variable.
-
-    This function allows for specifying different kernels and bandwidths for each variable/dimension,
-    when performing multivariate kernel-based estimation.
-
-    **Input kernels**
-
-    The input `kernels` is a list of 1D scaled kernel functions, one for each variable/dimension.
-    Each kernel function should take in an array of distances and a bandwidth, and return
-    the scaled kernel values (see the `scaled_kernel` decorator for how to create such functions
-    from basic kernel definitions).
-
-    **Input to the resulting multivariate kernel function**
-
-    The resulting multivariate kernel function will take in an array of differences along each dimension,
-    where each row corresponds to the difference between a pair of points along each dimension, and
-    a list of bandwidths for each variable/dimension. The function will evaluate the product of the kernel
-    evaluations for each variable, using the specified kernels and bandwidths.
-
-    Parameters
-    ----------
-    kernels
-        List of 1D kernel functions, one for each variable/dimension.
-
-    Returns
-    -------
-        A function that returns the product of the kernel evaluations for each variable.
-    """
-
-    def multivariate_kernel(
-        x: np.ndarray, bw: list[float], period: list[float | None] | None = None
-    ) -> np.ndarray:
-        kernel_eval_list = []
-        ndim = x.shape[-1]
-        if ndim != len(bw):
-            raise ValueError(
-                f"Number of dimensions in input x ({ndim}) does not match number of bandwidths ({len(bw)})"
-            )
-        if period is not None and len(period) != ndim:
-            raise ValueError(
-                f"Number of dimensions in input x ({ndim}) does not match number of periods ({len(period)})"
-            )
-        for d in range(x.shape[-1]):
-            kernel_eval = kernels[d](x[..., d], bw[d], period[d] if period is not None else None)
-            kernel_eval_list.append(kernel_eval)
-
-        kernel_product = np.prod(kernel_eval_list, axis=0)
-        return kernel_product
-
-    return multivariate_kernel
