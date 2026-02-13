@@ -161,7 +161,7 @@ def main(
             bin_limits_dict = global_bin_limits_dict.copy()
 
             # set bin limits for r and rho based on percentiles of data
-            for col_name in enumerate(column_names):
+            for col_name in column_names:
                 if col_name == ColumnName.POLAR_ANGLE.value:
                     continue
                 bin_min = np.percentile(df_[col_name].to_numpy(), BIN_LIMIT_PERCENTILE_CUTOFF)
