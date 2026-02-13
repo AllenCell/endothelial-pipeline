@@ -1,8 +1,53 @@
+from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
+
+from endo_pipeline.io import save_plot_to_path
+
+
+def plot_and_save_drift_contours(
+    meshgrid: tuple[np.ndarray, np.ndarray],
+    drift: np.ndarray,
+    variable_labels: list[str],
+    bin_limits: list[tuple[float, float]],
+    fig_title: str,
+    fig_savedir: Path,
+    filename_prefix: str,
+) -> None:
+    from matplotlib.colors import TwoSlopeNorm
+
+    for var_index, var_name in enumerate(variable_labels):
+        fig, ax = plt.subplots()
+        contour = ax.contourf(
+            meshgrid[0],
+            meshgrid[1],
+            drift[..., var_index],
+            levels=50,
+            cmap="RdBu_r",
+            norm=TwoSlopeNorm(vcenter=0),
+        )
+        # add dashed line for nullcline
+        ax.contour(
+            meshgrid[0],
+            meshgrid[1],
+            drift[..., var_index],
+            levels=[0],
+            colors="k",
+            linestyles="dashed",
+        )
+        fig.colorbar(contour, ax=ax, label=f"d{var_name}/dt")
+        ax.set_xlabel(variable_labels[0])
+        ax.set_ylabel(variable_labels[1])
+        ax.set_xlim(bin_limits[0])
+        ax.set_ylim(bin_limits[1])
+        fig.suptitle(
+            f"{fig_title} \n d{var_name}/dt vs ({variable_labels[0]}, {variable_labels[1]})", y=1.05
+        )
+        var_name_for_file = var_name.replace("$", "").replace("\\", "")
+        save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_d{var_name_for_file}dt")
 
 
 def plot_fixed_points_by_shear(

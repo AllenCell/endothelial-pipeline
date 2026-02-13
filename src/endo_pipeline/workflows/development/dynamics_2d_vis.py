@@ -59,6 +59,9 @@ def main(
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
+    from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
+        plot_and_save_drift_contours,
+    )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
@@ -183,35 +186,16 @@ def main(
             )
 
             centers_mesh = np.meshgrid(centers[index_polar_r], centers[index_rho], indexing="ij")
-            for var_index, var_name in zip([0, 1], ["r", "$\\rho$"], strict=True):
-                fig, ax = plt.subplots()
-                contour = ax.contourf(
-                    centers_mesh[0],
-                    centers_mesh[1],
-                    drift_r_rho[..., var_index],
-                    levels=50,
-                    cmap="RdBu_r",
-                    norm=TwoSlopeNorm(vcenter=0),
-                )
-                # add dashed line for nullcline
-                ax.contour(
-                    centers_mesh[0],
-                    centers_mesh[1],
-                    drift_r_rho[..., var_index],
-                    levels=[0],
-                    colors="k",
-                    linestyles="dashed",
-                )
-                fig.colorbar(contour, ax=ax, label=f"d{var_name}/dt")
-                ax.set_xlabel(variable_names[index_polar_r])
-                ax.set_ylabel(variable_names[index_rho])
-                ax.set_xlim(global_bin_limits[index_polar_r])
-                ax.set_ylim(global_bin_limits[index_rho])
-                fig.suptitle(f"{fig_title} \n d{var_name}/dt vs (r, $\\rho$)", y=1.05)
-                var_name_for_file = var_name.replace("$", "").replace("\\", "").replace("^", "")
-                save_plot_to_path(
-                    fig, fig_savedir, f"{dataset_name_flow}_d{var_name_for_file}dt_r_rho"
-                )
+
+            plot_and_save_drift_contours(
+                meshgrid=centers_mesh,
+                drift=drift_r_rho,
+                variable_labels=["$r$", "$\\rho$"],
+                bin_limits=[global_bin_limits[index_polar_r], global_bin_limits[index_rho]],
+                fig_title=dataset_name_flow,
+                fig_savedir=fig_savedir,
+                filename_prefix=f"{dataset_name_flow}_r_rho",
+            )
 
             # put contours on the same plot to get a quasi "phase plane" view
             fig, ax = plt.subplots()
@@ -271,35 +255,15 @@ def main(
             centers_mesh = np.meshgrid(
                 centers[index_polar_r], centers[index_polar_angle], indexing="ij"
             )
-            for var_index, var_name in zip([0, 1], ["r", "$\\theta$"], strict=True):
-                fig, ax = plt.subplots()
-                contour = ax.contourf(
-                    centers_mesh[0],
-                    centers_mesh[1],
-                    drift_r_theta[..., var_index],
-                    levels=50,
-                    cmap="RdBu_r",
-                    norm=TwoSlopeNorm(vcenter=0),
-                )
-                # add dashed line for nullcline
-                ax.contour(
-                    centers_mesh[0],
-                    centers_mesh[1],
-                    drift_r_theta[..., var_index],
-                    levels=[0],
-                    colors="k",
-                    linestyles="dashed",
-                )
-                fig.colorbar(contour, ax=ax, label=f"d{var_name}/dt")
-                ax.set_xlabel(variable_names[index_polar_r])
-                ax.set_ylabel(variable_names[index_polar_angle])
-                ax.set_xlim(global_bin_limits[index_polar_r])
-                ax.set_ylim(global_bin_limits[index_polar_angle])
-                fig.suptitle(f"{fig_title} \n d{var_name}/dt vs (r, $\\theta$)", y=1.05)
-                var_name_for_file = var_name.replace("$", "").replace("\\", "").replace("^", "")
-                save_plot_to_path(
-                    fig, fig_savedir, f"{dataset_name_flow}_d{var_name_for_file}dt_r_theta"
-                )
+            plot_and_save_drift_contours(
+                meshgrid=centers_mesh,
+                drift=drift_r_theta,
+                variable_labels=["$r$", "$\\theta$"],
+                bin_limits=[global_bin_limits[index_polar_r], global_bin_limits[index_polar_angle]],
+                fig_title=dataset_name_flow,
+                fig_savedir=fig_savedir,
+                filename_prefix=f"{dataset_name_flow}_r_theta",
+            )
 
             # put contours on the same plot to get a quasi "phase plane" view
             fig, ax = plt.subplots()
@@ -359,36 +323,16 @@ def main(
             centers_mesh = np.meshgrid(
                 centers[index_rho], centers[index_polar_angle], indexing="ij"
             )
+            plot_and_save_drift_contours(
+                meshgrid=centers_mesh,
+                drift=drift_rho_theta,
+                variable_labels=["$\\rho$", "$\\theta$"],
+                bin_limits=[global_bin_limits[index_rho], global_bin_limits[index_polar_angle]],
+                fig_title=dataset_name_flow,
+                fig_savedir=fig_savedir,
+                filename_prefix=f"{dataset_name_flow}_rho_theta",
+            )
 
-            for var_index, var_name in zip([0, 1], ["$\\rho$", "$\\theta$"], strict=True):
-                fig, ax = plt.subplots()
-                contour = ax.contourf(
-                    centers_mesh[0],
-                    centers_mesh[1],
-                    drift_rho_theta[..., var_index],
-                    levels=50,
-                    cmap="RdBu_r",
-                    norm=TwoSlopeNorm(vcenter=0),
-                )
-                # add dashed line for nullcline
-                ax.contour(
-                    centers_mesh[0],
-                    centers_mesh[1],
-                    drift_rho_theta[..., var_index],
-                    levels=[0],
-                    colors="k",
-                    linestyles="dashed",
-                )
-                fig.colorbar(contour, ax=ax, label=f"d{var_name}/dt")
-                ax.set_xlabel(variable_names[index_rho])
-                ax.set_ylabel(variable_names[index_polar_angle])
-                ax.set_xlim(global_bin_limits[index_rho])
-                ax.set_ylim(global_bin_limits[index_polar_angle])
-                fig.suptitle(f"{fig_title} \n d{var_name}/dt vs ($\\rho$, $\\theta$)", y=1.05)
-                var_name_for_file = var_name.replace("$", "").replace("\\", "").replace("^", "")
-                save_plot_to_path(
-                    fig, fig_savedir, f"{dataset_name_flow}_d{var_name_for_file}dt_rho_theta"
-                )
             # put contours on the same plot to get a quasi "phase plane" view
             fig, ax = plt.subplots()
 
