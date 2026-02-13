@@ -12,6 +12,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_traj_and_diff,
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.manifests import (
@@ -84,8 +85,7 @@ for dataset_name in dataset_names:
         diff,
         bins,
         dt=5 / 60,
-        kernel_name=KERNEL_NAME,
-        kernel_bw=KERNEL_BW_1,
+        kernel=KramersMoyalKernel(name=KERNEL_NAME, bandwidth=KERNEL_BW_1),
     )
 
     # next, estimate using a product kernel but with the same bandwidth for both variables
@@ -95,8 +95,10 @@ for dataset_name in dataset_names:
         diff,
         bins,
         dt=5 / 60,
-        kernel_name=[KERNEL_NAME, KERNEL_NAME],
-        kernel_bw=[KERNEL_BW_1, KERNEL_BW_1],
+        kernel=[
+            KramersMoyalKernel(name=KERNEL_NAME, bandwidth=KERNEL_BW_1),
+            KramersMoyalKernel(name=KERNEL_NAME, bandwidth=KERNEL_BW_1),
+        ],
     )
 
     # finally, estimate using a product kernel with different bandwidths for the two variables
@@ -105,8 +107,10 @@ for dataset_name in dataset_names:
         diff,
         bins,
         dt=5 / 60,
-        kernel_name=[KERNEL_NAME, KERNEL_NAME],
-        kernel_bw=[KERNEL_BW_1, KERNEL_BW_2],
+        kernel=[
+            KramersMoyalKernel(name=KERNEL_NAME, bandwidth=KERNEL_BW_1),
+            KramersMoyalKernel(name=KERNEL_NAME, bandwidth=KERNEL_BW_2),
+        ],
     )
     validation_diff = np.abs(drift_non_product - drift_product_validate)
     meshgrid = np.meshgrid(*centers, indexing="ij")

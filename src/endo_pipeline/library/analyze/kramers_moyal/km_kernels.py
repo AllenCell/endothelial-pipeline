@@ -1,6 +1,8 @@
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass
 from functools import wraps
+from typing import Literal
 
 import numpy as np
 from scipy.special import gamma
@@ -86,22 +88,60 @@ def gaussian(x: np.ndarray) -> np.ndarray:
     return kernel
 
 
-AVAILABLE_KERNEL_FUNCTIONS = {"epanechnikov": epanechnikov, "gaussian": gaussian}
+@scaled_kernel
+def periodic(x: np.ndarray) -> np.ndarray:
+    """
+    Define the periodic (exponential sine squared) kernel.
+
+    Differs from the Gaussian kernel in that the exponential factor is
+    -2 times the sine squared of the distance, rather than -0.5 times
+    the squared distance.
+
+    Input x should be the sin(pi * distance / period), where ``distance``
+    is the Euclidean norm of the difference between points.
+    """
+    kernel = np.exp(-2 * (x**2))
+    return kernel
 
 
-def string_to_kernel(kernel: str) -> Callable[[np.ndarray, float, float | None], np.ndarray]:
-    """
-    Convert a kernel name to the corresponding callable (scaled) kernel function.
-    """
-    # check if kernel is in the available implemented kernels,
-    # and return the corresponding function
-    if kernel in AVAILABLE_KERNEL_FUNCTIONS.keys():
-        return AVAILABLE_KERNEL_FUNCTIONS[kernel]
-    else:
-        raise ValueError(
-            f"Kernel '{kernel}' not recognized. "
-            f" Available kernels: {list(AVAILABLE_KERNEL_FUNCTIONS.keys())}"
-        )
+AVAILABLE_KERNEL_FUNCTIONS = {
+    "epanechnikov": epanechnikov,
+    "gaussian": gaussian,
+    "periodic": periodic,
+}
+
+
+@dataclass(frozen=True)
+class KramersMoyalKernel:
+    """Structure for kernels used to calculate Kramers-Moyal coefficients."""
+
+    name: Literal["epanechnikov", "gaussian", "periodic"]
+    """Name of the kernel."""
+
+    bandwidth: float
+    """Kernel bandwidth."""
+
+    period: float | None = None
+    """Kernel period (only required for periodic kernel)."""
+
+    def __post_init__(self) -> None:
+        """Validate kernel name, bandwidth, and period."""
+        if self.bandwidth <= 0:
+            raise ValueError("Bandwidth must be positive.")
+        if self.period is not None and self.period <= 0:
+            raise ValueError("Period must be positive if specified.")
+        if self.name not in AVAILABLE_KERNEL_FUNCTIONS.keys():
+            raise ValueError(
+                f"Invalid kernel name: {self.name}. Must be one of {list(AVAILABLE_KERNEL_FUNCTIONS.keys())}."
+            )
+        if self.name == "periodic" and self.period is None:
+            raise ValueError("Period must be specified for periodic kernel.")
+        if self.name != "periodic" and self.period is not None:
+            raise ValueError("Period should not be specified for non-periodic kernels.")
+
+    def string_to_kernel(self) -> Callable[[np.ndarray, float, float | None], np.ndarray]:
+        """Convert the kernel name to the corresponding callable (scaled) kernel function."""
+        return AVAILABLE_KERNEL_FUNCTIONS[self.name]
 
 
 def compile_multivariate_product_kernel(
