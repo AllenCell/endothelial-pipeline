@@ -5,6 +5,7 @@ from functools import wraps
 from typing import Literal
 
 import numpy as np
+from pydantic import Field
 from scipy.special import gamma
 
 logger = logging.getLogger(__name__)
@@ -118,27 +119,18 @@ class KramersMoyalKernel:
     name: Literal["epanechnikov", "gaussian", "periodic"]
     """Name of the kernel."""
 
-    bandwidth: float
+    bandwidth: float = Field(..., gt=0)
     """Kernel bandwidth."""
 
-    period: float | None = None
+    period: float | None = Field(None, gt=0)
     """Kernel period (only required for periodic kernel)."""
 
     def __post_init__(self) -> None:
         """Validate kernel name, bandwidth, and period."""
-        if self.name not in AVAILABLE_KERNEL_FUNCTIONS.keys():
-            raise ValueError(
-                f"Kernel '{self.name}' not recognized. "
-                f" Available kernels: {list(AVAILABLE_KERNEL_FUNCTIONS.keys())}"
-            )
         if self.name == "periodic" and self.period is None:
             raise ValueError("Period must be specified for periodic kernel.")
         if self.name != "periodic" and self.period is not None:
             raise ValueError("Period should not be specified for non-periodic kernels.")
-        if self.period is not None and self.period <= 0:
-            raise ValueError(f"Period must be positive, got {self.period}")
-        if self.bandwidth <= 0:
-            raise ValueError(f"Bandwidth must be positive, got {self.bandwidth}")
 
     def string_to_kernel(self) -> Callable[[np.ndarray, float, float | None], np.ndarray]:
         """Convert the kernel name to the corresponding callable (scaled) kernel function."""
