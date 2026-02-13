@@ -102,6 +102,48 @@ def _get_weighted_histogram_for_convolution(
     return histogramdd(trajectories_concat, bins=bins, weights=weights)
 
 
+def _convolve_histogram_with_kernel(
+    hist: np.ndarray,
+    kernel_eval: np.ndarray,
+    bins: list[np.ndarray],
+    powers: np.ndarray,
+    tol: float = 1e-10,
+) -> np.ndarray:
+    """
+    Compute the Kramers-Moyal coefficients by convolving the weighted histogram of observations with kernel.
+
+    This function takes in the weighted histogram of the observations (displacements raised to powers) and
+    the evaluated kernel on the extended histogram grid, and performs the convolution to compute the Kramers-Moyal
+    coefficients. The coefficients are then normalized to ensure that the 0th order coefficient (probability density)
+    integrates to 1, and the higher order coefficients are divided by the appropriate Taylor expansion coefficients
+    and the 0th order coefficient.
+    """
+
+    # Convolve weighted histogram of kmc observations
+    # mode "same" returns the convolution at the same size as
+    # the input histogram, which is what we want
+    kmc = convolve(hist, kernel_eval[None, ...], mode="same")
+
+    # make sure that estimates are properly normalized
+    norm_coeff = kmc[0].copy()
+    for ii in range(len(bins)):
+        bin_width = bins[ii][1] - bins[ii][0]
+        norm_coeff = np.trapz(norm_coeff, dx=bin_width, axis=-1)
+    kmc /= norm_coeff
+
+    # Mask out bins where the probability density is smaller than the specified tolerance
+    mask = np.abs(kmc[0]) < tol
+    kmc[0:, mask] = np.nan
+
+    # get correct Taylor expansion coefficients (e.g., divide 2nd order powers by 2!)
+    taylors = np.prod(factorial(powers[1:]), axis=1)
+    kmc[1:, ~mask] /= (
+        taylors[..., None] * kmc[0, ~mask]
+    )  # divide by Taylor coeff * 0th order coeffs (probability density)
+
+    return kmc
+
+
 def _compile_multivariate_product_kernel(
     kernels: list[Callable[[np.ndarray, float, float | None], np.ndarray]],
 ) -> Callable[[np.ndarray, list[float], list[float | None] | None], np.ndarray]:
@@ -442,26 +484,13 @@ def get_kramers_moyal_coeffs(
     # Convert kernels into a callable and evaluate on the grid of points given by
     # the cartesian product of the extended edges.
     if isinstance(kernel, list):
-        kernel_eval = _evaluate_multivariate_product_kernel(  # noqa: F841
-            edges_cartesian_prod, kernel
-        )
+        kernel_eval = _evaluate_multivariate_product_kernel(edges_cartesian_prod, kernel)
     else:
-        kernel_eval = _evaluate_single_multivariate_kernel(  # noqa: F841
-            edges_cartesian_prod, kernel
-        )
+        kernel_eval = _evaluate_single_multivariate_kernel(edges_cartesian_prod, kernel)
 
-    # compute Kramers-Moyal coefficients using kernel estimator method,
-    # and divide by dt to get the correct units (e.g. per minute)
-    kmc = (
-        _km_wrapper(
-            trajectories,
-            displacements,
-            bins=bins,
-            kernel=kernel,
-            powers=powers,
-        )
-        / dt
-    )
+    # Calculate coefficients by convolving histogram with kernel and divide by
+    # dt to get the correct units (e.g. per minute)
+    kmc = _convolve_histogram_with_kernel(hist, kernel_eval, bins, powers) / dt
 
     # reshape the output to get drift and diffusion coefficients
     if ndim == 1:  # just need to take the first two rows
