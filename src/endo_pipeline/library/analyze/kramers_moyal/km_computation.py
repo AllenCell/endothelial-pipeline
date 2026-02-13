@@ -1,13 +1,11 @@
 import logging
+from collections.abc import Callable
 
 import numpy as np
 from scipy.signal import convolve
 from scipy.special import factorial
 
-from endo_pipeline.library.analyze.kramers_moyal.km_kernels import (
-    KramersMoyalKernel,
-    compile_multivariate_product_kernel,
-)
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics import histogramdd
 
 logger = logging.getLogger(__name__)
@@ -102,6 +100,84 @@ def _get_weighted_histogram_for_convolution(
 
     # Return the weighted histogram of the observations for convolution with the kernel function
     return histogramdd(trajectories_concat, bins=bins, weights=weights)
+
+
+def _compile_multivariate_product_kernel(
+    kernels: list[Callable[[np.ndarray, float, float | None], np.ndarray]],
+) -> Callable[[np.ndarray, list[float], list[float | None] | None], np.ndarray]:
+    """
+    Compile a multivariate kernel by taking the product of 1D kernels for each variable.
+
+    This function allows for specifying different kernels and bandwidths for each variable/dimension,
+    when performing multivariate kernel-based estimation.
+
+    **Input kernels**
+
+    The input `kernels` is a list of 1D scaled kernel functions, one for each variable/dimension.
+    Each kernel function should take in an array of distances and a bandwidth, and return
+    the scaled kernel values (see the `scaled_kernel` decorator for how to create such functions
+    from basic kernel definitions).
+
+    **Input to the resulting multivariate kernel function**
+
+    The resulting multivariate kernel function will take in an array of differences along each dimension,
+    where each row corresponds to the difference between a pair of points along each dimension, and
+    a list of bandwidths for each variable/dimension. The function will evaluate the product of the kernel
+    evaluations for each variable, using the specified kernels and bandwidths.
+
+    Parameters
+    ----------
+    kernels
+        List of 1D kernel functions, one for each variable/dimension.
+
+    Returns
+    -------
+        A function that returns the product of the kernel evaluations for each variable.
+    """
+
+    def multivariate_kernel(
+        x: np.ndarray, bw: list[float], period: list[float | None] | None = None
+    ) -> np.ndarray:
+        kernel_eval_list = []
+        ndim = x.shape[-1]
+        if ndim != len(bw):
+            raise ValueError(
+                f"Number of dimensions in input x ({ndim}) does not match number of bandwidths ({len(bw)})"
+            )
+        if period is not None and len(period) != ndim:
+            raise ValueError(
+                f"Number of dimensions in input x ({ndim}) does not match number of periods ({len(period)})"
+            )
+        for d in range(x.shape[-1]):
+            kernel_eval = kernels[d](x[..., d], bw[d], period[d] if period is not None else None)
+            kernel_eval_list.append(kernel_eval)
+
+        kernel_product = np.prod(kernel_eval_list, axis=0)
+        return kernel_product
+
+    return multivariate_kernel
+
+
+def _evaluate_single_multivariate_kernel(x: np.ndarray, kernel: KramersMoyalKernel) -> np.ndarray:
+    """Evaluate a single multivariate kernel on the input array of differences along each dimension."""
+    kernel_func = kernel.string_to_kernel()
+    return kernel_func(x, kernel.bandwidth, kernel.bandwidth)
+
+
+def _evaluate_multivariate_product_kernel(
+    x: np.ndarray, kernel_list: list[KramersMoyalKernel]
+) -> np.ndarray:
+    """Evaluate a multivariate product kernel on the input array of differences along each dimension."""
+    kernel_funcs = [kernel.string_to_kernel() for kernel in kernel_list]
+    bandwidths = [kernel.bandwidth for kernel in kernel_list]
+    periods = [kernel.period for kernel in kernel_list]
+    kernel_func_prod = _compile_multivariate_product_kernel(kernel_funcs)
+
+    # have to do some reshaping to properly evaluate the kernel at all points in the grid,
+    # and then reshape back to the grid shape
+    grid_shape = x.shape[:-1]
+    ndim = x.shape[-1]
+    return kernel_func_prod(x.reshape(-1, ndim), bandwidths, periods).reshape(grid_shape)
 
 
 def _km_wrapper(
@@ -221,7 +297,7 @@ def _km_wrapper(
         kernel_funcs = [k.string_to_kernel() for k in kernel]
         kernel_bandwidths = [k.bandwidth for k in kernel]
         kernel_periods = [k.period for k in kernel]
-        kernel_func_prod = compile_multivariate_product_kernel(kernel_funcs)
+        kernel_func_prod = _compile_multivariate_product_kernel(kernel_funcs)
         # have to do some reshaping to properly evaluate the kernel at all points in the grid,
         # and then reshape back to the grid shape
         grid_shape = edges_cartesian_prod.shape[:-1]
@@ -358,6 +434,21 @@ def get_kramers_moyal_coeffs(
     # get weighted histogram for convolution with kernel function
     hist = _get_weighted_histogram_for_convolution(trajectories, displacements, bins, powers)
     logger.debug("Histogram shape: %s", hist.shape)
+
+    # Generate centered kernel on larger grid
+    edges_extended = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in bins]
+    edges_cartesian_prod = get_cartesian_product(edges_extended)
+
+    # Convert kernels into a callable and evaluate on the grid of points given by
+    # the cartesian product of the extended edges.
+    if isinstance(kernel, list):
+        kernel_eval = _evaluate_multivariate_product_kernel(  # noqa: F841
+            edges_cartesian_prod, kernel
+        )
+    else:
+        kernel_eval = _evaluate_single_multivariate_kernel(  # noqa: F841
+            edges_cartesian_prod, kernel
+        )
 
     # compute Kramers-Moyal coefficients using kernel estimator method,
     # and divide by dt to get the correct units (e.g. per minute)
