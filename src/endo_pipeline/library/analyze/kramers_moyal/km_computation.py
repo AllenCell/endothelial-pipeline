@@ -134,10 +134,6 @@ def _km_wrapper(
     tol
         Tolerance for small values of the probability density (0th order Kramers─Moyal coefficient).
     """
-    # check inputs to avoid errors in the middle of the function
-    trajectories, displacements, powers = _check_and_adjust_km_inputs(
-        trajectories, displacements, powers
-    )
 
     # Get trajectories and corresponding displacements concatenated across all trajectories.
     # Note that the last timepoint of each trajectory is not included,
@@ -322,6 +318,11 @@ def get_kramers_moyal_coeffs(
     # based on dimensionality of data
     ndim = len(bins)
     powers = _get_km_powers(ndim)
+
+    # check inputs to avoid errors in the middle of the function
+    trajectories, displacements, powers = _check_and_adjust_km_inputs(
+        trajectories, displacements, powers
+    )
 
     # compute Kramers-Moyal coefficients using kernel estimator method,
     # and divide by dt to get the correct units (e.g. per minute)
