@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 def _check_and_adjust_km_inputs(
     trajectories: list[np.ndarray], displacements: list[np.ndarray], powers: np.ndarray
 ) -> tuple[list[np.ndarray], list[np.ndarray], np.ndarray]:
+    """Check the inputs for the Kramers-Moyal coefficient computation and adjust them if necessary."""
     if len(trajectories) != len(displacements):
         raise ValueError("Must have displacements for each timeseries.")
     if len(displacements[0]) != len(trajectories[0]) - 1:
@@ -54,6 +55,53 @@ def _check_and_adjust_km_inputs(
         )
 
     return trajectories, displacements, powers
+
+
+def _get_weighted_histogram_for_convolution(
+    trajectories: list[np.ndarray],
+    displacements: list[np.ndarray],
+    bins: list[np.ndarray],
+    powers: np.ndarray,
+) -> np.ndarray:
+    """
+    Get the weighted histogram of the observations for convolution with the kernel function.
+
+    This function computes the weighted histogram of the observations, where the weights are given by
+    the products of the components of the displacement vectors raised to the corresponding powers
+    specified in `powers`. The resulting weighted histogram is then used for convolution with the kernel
+    function to estimate the Kramers-Moyal coefficients.
+
+    For example, in 2D, suppose we input
+
+        powers = [[0, 0], [1, 0], [0, 1], [1, 1], [2, 0], [0, 2]],
+
+    Then raising the concatenated displacements ``x(t+1)-x(t)` to the powers and taking the product across
+    dimensions looks like:
+        np.power(grads.T, powers[..., None]) = [[1, 1],
+                                                [x_0(t+1)-x_0(t), 1]
+                                                [1 , x_1(t+1)-x_1(t)],
+                                                [x_0(t+1)-x_0(t), (x_1(t+1)-x_1(t))],
+                                                [(x_0(t+1)-x_0(t))^2, 1],
+                                                [1, (x_1(t+1)-x_1(t))^2]]
+        np.prod(..., axis=1) = [1,
+                                x_0(t+1)-x_0(t),
+                                x_1(t+1)-x_1(t),
+                                (x_0(t+1)-x_0(t))(x_1(t+1)-x_1(t)),
+                                (x_0(t+1)-x_0(t))^2,
+                                (x_1(t+1)-x_1(t))^2]
+
+    If there are L powers and M observations of the displacements, the result is an L x M array.
+    """
+    # Note that there is no corresponding displacement value for the last timepoint
+    # of each trajectory, so we only take the timepoints up to the second to last one for the histogram.
+    trajectories_concat = np.concatenate([ts[:-1] for ts in trajectories], axis=0)
+    displacements_concat: np.ndarray = np.concatenate(displacements, axis=0)
+
+    # Get weights for each displacement vector
+    weights = np.prod(np.power(displacements_concat.T, powers[..., None]), axis=1)
+
+    # Return the weighted histogram of the observations for convolution with the kernel function
+    return histogramdd(trajectories_concat, bins=bins, weights=weights)
 
 
 def _km_wrapper(
@@ -143,23 +191,6 @@ def _km_wrapper(
 
     ##### Weights: for each displacement vector, get the coresponding powers/products
     #               of the gradients for the Kramers─Moyal coefficients.
-
-    # Raises each component of the gradient array to the corresponding
-    #    element of the powers and then multiplies them together.
-    # e.g., for 2D, powers = [[0, 0], [1, 0], [0, 1], [1, 1], [2, 0], [0, 2]], we have:
-    # > np.power(grads.T, powers[..., None]) = [[1, 1],
-    #                                           [x_0(t+1)-x_0(t), 1]
-    #                                           [1 , x_1(t+1)-x_1(t)],
-    #                                           [x_0(t+1)-x_0(t), (x_1(t+1)-x_1(t))],
-    #                                           [(x_0(t+1)-x_0(t))^2, 1],
-    #                                           [1, (x_1(t+1)-x_1(t))^2]]
-    # > np.prod(..., axis=1) = [1,
-    #                           (x_0(t+1)-x_0(t)),
-    #                           (x_1(t+1)-x_1(t)),
-    #                           (x_0(t+1)-x_0(t))(x_1(t+1)-x_1(t)),
-    #                           (x_0(t+1)-x_0(t))^2,
-    #                           (x_1(t+1)-x_1(t))^2]
-    # If there are L powers and M observations, the result is an L x M array.
     weights = np.prod(np.power(displacements_concat.T, powers[..., None]), axis=1)
 
     ##### Get weighted histogram for convolution
@@ -323,6 +354,10 @@ def get_kramers_moyal_coeffs(
     trajectories, displacements, powers = _check_and_adjust_km_inputs(
         trajectories, displacements, powers
     )
+
+    # get weighted histogram for convolution with kernel function
+    hist = _get_weighted_histogram_for_convolution(trajectories, displacements, bins, powers)
+    logger.debug("Histogram shape: %s", hist.shape)
 
     # compute Kramers-Moyal coefficients using kernel estimator method,
     # and divide by dt to get the correct units (e.g. per minute)
