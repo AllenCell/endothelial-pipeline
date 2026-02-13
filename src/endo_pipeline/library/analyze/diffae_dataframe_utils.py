@@ -614,6 +614,7 @@ def project_features_to_pcs(
 def get_dataframe_for_dynamics_workflows(
     dataset_name: str,
     manifest: DataframeManifest,
+    columns_to_keep: list[str] | None = None,
     pca: PCA | None = None,
     filter_dataframe: bool = True,
     include_cell_piling: bool = True,
@@ -658,6 +659,22 @@ def get_dataframe_for_dynamics_workflows(
     df = load_dataframe(location)
     feat_cols = get_latent_feature_column_names_from_dataframe(df)
 
+    # default columns to keep are metadata columns for start_x, start_y,
+    # timepoint, and position (needed for filtering and adding crop index)
+    columns_to_keep_ = [
+        ColumnName.START_X,
+        ColumnName.START_Y,
+        ColumnName.TIMEPOINT,
+        ColumnName.POSITION,
+    ]
+    if columns_to_keep is not None:
+        columns_to_keep_.extend(columns_to_keep)
+    columns_to_keep_.extend(feat_cols)  # also keep feature columns for PCA projection
+    columns_to_keep_ = list(set(columns_to_keep_))  # remove duplicates if any
+
+    # keep only necessary columns to save memory
+    df_ = df[columns_to_keep_].copy()
+
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
     if filter_dataframe:
@@ -670,12 +687,12 @@ def get_dataframe_for_dynamics_workflows(
             annotations_to_ignore=annotations_to_ignore
         )
         df_filtered = filter_dataframe_by_annotations(
-            df,
+            DIFFAE_PC_COLUMN_NAME_GROUPS,
             load_dataset_config(dataset_name),
             timepoint_annotations=timepoint_annotations,
         )
     else:
-        df_filtered = df
+        df_filtered = df_
 
     df_with_crop = add_crop_index(df_filtered, crop_pattern)
 
