@@ -1,11 +1,10 @@
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass
 from functools import wraps
 from typing import Literal
 
 import numpy as np
-from pydantic import Field
+from pydantic import BaseModel, Field
 from scipy.special import gamma
 
 logger = logging.getLogger(__name__)
@@ -112,17 +111,16 @@ AVAILABLE_KERNEL_FUNCTIONS = {
 }
 
 
-@dataclass(frozen=True)
-class KramersMoyalKernel:
+class KramersMoyalKernel(BaseModel):
     """Structure for kernels used to calculate Kramers-Moyal coefficients."""
 
     name: Literal["epanechnikov", "gaussian", "periodic"]
     """Name of the kernel."""
 
-    bandwidth: float = Field(..., gt=0)
+    bandwidth: float = Field(gt=0)
     """Kernel bandwidth."""
 
-    period: float | None = Field(None, gt=0)
+    period: float | None = Field(default=None, gt=0)
     """Kernel period (only required for periodic kernel)."""
 
     def __post_init__(self) -> None:
