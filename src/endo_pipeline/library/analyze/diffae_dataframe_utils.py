@@ -632,22 +632,39 @@ def get_dataframe_for_dynamics_workflows(
     analysis in the stochastic dynamics workflow. Adds crop index column to
     DataFrame, and projects feature data onto PC axes.
 
+    **Column selection and filtering**
+
+    The input DataFrame is filtered to keep only necessary columns to save
+    memory. At a minimum, the metadata columns defined in
+    METADATA_COLUMNS_TO_KEEP and the latent feature columns needed for PCA
+    projection are kept. Additional columns can be specified to keep via the
+    input ``columns_to_keep``.
+
+    In the case that the input ``pca`` is not None, the feature data is
+    projected onto the PC axes defined by the PCA model, and the original latent
+    feature columns are dropped to save memory.
+
     Parameters
     ----------
     dataset_name
         Name of dataset
     manifest
         Dataframe manifest for loading model features.
+    columns_to_keep
+        List of additional column names to keep in the output DataFrame.
     pca
         PCA model to fit to feature data. If None, do not project feature data.
     filter_dataframe
-        Whether to filter out annotated timepoints and positions from the dataframe.
+        Whether to filter out annotated timepoints and positions from the
+        dataframe.
     include_cell_piling
         True keep timepoints annotated as "cell_piling", False to remove them.
     include_not_steady_state
-        True to keep timepoints annotated as "not_steady_state", False to remove them.
+        True to keep timepoints annotated as "not_steady_state", False to remove
+        them.
     crop_pattern
-        Crop pattern used to generate the feature dataframe. Either 'grid' or 'tracked'.
+        Crop pattern used to generate the feature dataframe. Either 'grid' or
+        'tracked'.
     compute_polar
         Whether to compute polar coordinates (r, theta) from the first two PCs.
     rescale_theta
