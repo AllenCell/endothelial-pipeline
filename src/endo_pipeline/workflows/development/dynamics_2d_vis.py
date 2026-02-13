@@ -75,6 +75,8 @@ def main(
         BIN_WIDTHS_DYNAMICS,
         DEFAULT_DATASET_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
+        KERNEL_BANDWIDTHS_DYNAMICS,
+        KERNEL_NAMES_DYNAMICS,
         NUM_PCS_TO_FIT_FOR_DYNAMICS,
         RESCALE_THETA,
     )
@@ -97,15 +99,6 @@ def main(
         - global_bin_limits_dict[ColumnName.POLAR_ANGLE.value][0]
     )
     bin_widths = [BIN_WIDTHS_DYNAMICS[col] for col in column_names]
-
-    # set up kernel functions
-    kernel_function_dict = {
-        ColumnName.POLAR_ANGLE.value: KramersMoyalKernel(
-            "periodic", bw=0.15, period=polar_angle_period
-        ),
-        ColumnName.POLAR_RADIUS.value: KramersMoyalKernel("gaussian", bw=0.15),
-        ColumnName.PC3_FLIPPED.value: KramersMoyalKernel("gaussian", bw=0.15),
-    }
 
     # get dataframe manifest for grid-based crop features
     model_manifest = load_model_manifest(model_manifest_name)
@@ -202,15 +195,23 @@ def main(
 
                 # estimate 2D drift coefficients using Kramers-Moyal estimation
                 # with appropriate kernels for each variable
+                kernel1 = KramersMoyalKernel(
+                    name=KERNEL_NAMES_DYNAMICS[column1],
+                    bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column1],
+                    period=polar_angle_period if column1 == ColumnName.POLAR_ANGLE.value else None,
+                )
+                kernel2 = KramersMoyalKernel(
+                    name=KERNEL_NAMES_DYNAMICS[column2],
+                    bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column2],
+                    period=polar_angle_period if column2 == ColumnName.POLAR_ANGLE.value else None,
+                )
+
                 drift, _ = get_kramers_moyal_coeffs(
                     [traj[:, [index_column1, index_column2]] for traj in trajectories],
                     [diff[:, [index_column1, index_column2]] for diff in differences],
                     bins=[bins[index_column1], bins[index_column2]],
                     dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
-                    kernel=[
-                        kernel_function_dict[column1],
-                        kernel_function_dict[column2],
-                    ],
+                    kernel=[kernel1, kernel2],
                 )
 
                 # get 2D meshgrid of bin centers for plotting

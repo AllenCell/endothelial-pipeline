@@ -37,6 +37,19 @@ BIN_LIMITS_THETA_RESCALED: tuple[float, float] = (0.0, pi)
 PERIOD_THETA_RESCALED: float = pi
 """Period for rescaled polar angle coordinate."""
 
+KERNEL_NAMES_DYNAMICS: dict[str, str] = {
+    ColumnName.POLAR_ANGLE.value: "periodic",
+    ColumnName.POLAR_RADIUS.value: "gaussian",
+    ColumnName.PC3_FLIPPED.value: "gaussian",
+}
+"""Kernel names for each coordinate in dynamics analysis and visualization."""
+
+KERNEL_BANDWIDTHS_DYNAMICS: dict[str, float] = {
+    ColumnName.POLAR_ANGLE.value: 0.15,
+    ColumnName.POLAR_RADIUS.value: 0.15,
+    ColumnName.PC3_FLIPPED.value: 0.15,
+}
+
 BIN_LIMIT_PERCENTILE_CUTOFF: float = 2.5
 """Percentile cutoff for getting bin limits for computing Kramer-Moyal coefficients."""
 
