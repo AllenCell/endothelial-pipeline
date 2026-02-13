@@ -6,6 +6,7 @@ from typing import Any
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
+from deprecated import deprecated
 from matplotlib import pyplot as plt
 from seaborn import color_palette
 from tqdm import tqdm
@@ -1126,6 +1127,11 @@ def load_preprocessed_dataframes_and_km_bounds(
     return cell_centric_feats_df, diffae_grid_crops, bounds
 
 
+@deprecated(
+    """This function is deprecated.
+    Use the pattern for `load_dataframe` with the manifest name and location instead.
+    """
+)
 def load_pc_diffae_liveseg_feats_merged_table(
     dataset_name: str, cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
 ) -> dd.DataFrame:

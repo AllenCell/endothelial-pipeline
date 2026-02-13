@@ -6,9 +6,6 @@ import pandas as pd
 from colorizer_data import convert_colorizer_data
 
 from endo_pipeline.io import load_dataframe
-from endo_pipeline.library.analyze.integration.track_integration import (
-    load_pc_diffae_liveseg_feats_merged_table,
-)
 from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     generate_backdrops,
 )
@@ -25,6 +22,7 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
 from endo_pipeline.settings.feature_info import LABEL_MAP
 from endo_pipeline.settings.workflow_defaults import (
     DATASET_INFO_COLUMNS,
+    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     SEGMENTATION_FEATURE_COLUMNS,
 )
@@ -40,6 +38,7 @@ def generate_tfe_dataset(
     backdrops: bool,
     output_dir_suffix: str = "",
     include_diffae_features: bool = True,
+    cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
 ) -> None:
     """
     Create timelapse feature explorer manifest and generate backdrop images.
@@ -60,7 +59,13 @@ def generate_tfe_dataset(
     if include_diffae_features:
         try:
             # Load dataframe with the diffae features and computed PCs
-            df_tracks = load_pc_diffae_liveseg_feats_merged_table(dataset)
+            cell_centric_feats_manifest = load_dataframe_manifest(cell_centric_manifest_name)
+            cell_centric_feats_location = get_dataframe_location_for_dataset(
+                cell_centric_feats_manifest, dataset
+            )
+            df_tracks = load_dataframe(cell_centric_feats_location, delay=True)
+            df_tracks = df_tracks.reset_index(drop=True)
+
             include_diffae_features_failed = False
         except KeyError:
             logger.warning(
