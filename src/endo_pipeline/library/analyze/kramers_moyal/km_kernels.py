@@ -42,25 +42,30 @@ def _get_input_dims_and_distances(
 
 def scaled_kernel(kernel_func: Callable) -> Callable:
     """
-    Transform a pre-defined kernel function into a scaled kernel function
-    that can be used for kernel density estimation.
+    Transform a pre-defined kernel function into a scaled kernel function that
+    can be used for kernel density estimation.
 
     **Original kernel function**
 
-    The original kernel function ``kernel_func`` should take in an array of distances and the
-    number of dimensions, and return the kernel values. Specifically, the array of distances
-    is an m x n array, where m is the number of pairs of points and n is the number of dimensions.
-    Then row i of the array corresponds to the difference between the i-th pair of points along each dimension.
+    The original kernel function ``kernel_func`` should take in an array of
+    distances and the number of dimensions, and return the kernel values.
+    Specifically, the array of distances is an m x n array, where m is the
+    number of pairs of points and n is the number of dimensions. Then row i of
+    the array corresponds to the difference between the i-th pair of points
+    along each dimension.
 
     **Kernel evaluation and scaling**
 
-    Using this decorator, the resulting scaled kernel function will take in an said
-    array of distances and a bandwidth, compute the norm of the distances (i.e., turn x-y to ||x-y||),
-    and return the scaled kernel values. The scaling is done by dividing the distances by the bandwidth,
-    and then normalizing by the bandwidth raised to the power of the number of dimensions.
+    Using this decorator, the resulting scaled kernel function will take in an
+    said array of distances and a bandwidth, compute the norm of the distances
+    (i.e., turn x-y to ||x-y||), and return the scaled kernel values. The
+    scaling is done by dividing the distances by the bandwidth, and then
+    normalizing by the bandwidth raised to the power of the number of
+    dimensions.
 
-    The value is also divided by the volume of the unit ball in that number of dimensions, so that
-    resulting kernel function can be used for kernel density estimation in any number of dimensions.
+    The value is also divided by the volume of the unit ball in that number of
+    dimensions, so that resulting kernel function can be used for kernel density
+    estimation in any number of dimensions.
     """
 
     @wraps(kernel_func)  # just for naming
