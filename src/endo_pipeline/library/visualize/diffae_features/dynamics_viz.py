@@ -85,6 +85,12 @@ def plot_and_save_drift_quiver(
     fig_savedir: Path,
     filename_prefix: str,
     include_nullclines: bool = True,
+    quiver_scale: float = 10,
+    quiver_color: str = "k",
+    nullcline_styles: tuple[str, str] = ("dashed", "dashdot"),
+    nullcline_color: str = "b",
+    nullcline_linewidth: float = 2.5,
+    nullcline_opacity: float = 0.7,
 ):
     """
     Plot quiver plot of the drift vector field over the 2D state space.
@@ -107,6 +113,20 @@ def plot_and_save_drift_quiver(
         Directory to save the figure.
     filename_prefix
         Prefix for the filename when saving the figure, e.g., "dataset_1".
+    include_nullclines
+        Whether to include nullclines (where drift components are zero).
+    quiver_scale
+        Scale factor for the quiver plot (smaller values make arrows longer).
+    quiver_color
+        Color for the quiver arrows.
+    nullcline_styles
+        Tuple of line styles for the nullclines of each variable.
+    nullcline_color
+        Color for the nullcline lines.
+    nullcline_linewidth
+        Line width for the nullcline lines.
+    nullcline_opacity
+        Opacity for the nullcline lines (between 0 and 1).
     """
     fig, ax = plt.subplots()
     ax.quiver(
@@ -114,21 +134,26 @@ def plot_and_save_drift_quiver(
         meshgrid[1],
         drift[..., 0],
         drift[..., 1],
-        color="k",
+        color=quiver_color,
         pivot="tail",
-        scale=50,
+        scale=quiver_scale,
     )
     if include_nullclines:
-        for var_index in range(len(variable_labels)):
+        for var_index, var_name in enumerate(variable_labels):
             # add dashed line for nullcline
             ax.contour(
                 meshgrid[0],
                 meshgrid[1],
                 drift[..., var_index],
                 levels=[0],
-                colors="k",
-                linestyles="dashed",
+                colors=nullcline_color,
+                linestyles=nullcline_styles[var_index],
+                linewidths=nullcline_linewidth,
+                alpha=nullcline_opacity,
             )
+            # add legend for nullclines
+            ax.plot([], [], color="k", linestyle=nullcline_styles[var_index], label=f"{var_name}")
+        ax.legend(title="Nullclines", loc=(1.025, 0.90))
 
     ax.set_xlabel(variable_labels[0])
     ax.set_ylabel(variable_labels[1])
