@@ -75,19 +75,20 @@ def main(
         BIN_WIDTHS_DYNAMICS,
         DEFAULT_DATASET_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
+        NUM_PCS_TO_FIT_FOR_DYNAMICS,
         RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
 
     logger = logging.getLogger(__name__)
 
-    # get labels for feature columns
+    # get labels for provided set of feature columns
     column_names = list(DYNAMICS_COLUMN_NAMES)
     variable_labels_dict = {
         col: get_label_for_column(col).replace("polar", "") for col in column_names
     }
 
-    # get bin widths and limits for each column, adjusting limits if rescaling theta
+    # unpack default bin widths and limits for each column, adjusting limits if rescaling theta
     global_bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
     if RESCALE_THETA:
         global_bin_limits_dict[ColumnName.POLAR_ANGLE.value] = BIN_LIMITS_THETA_RESCALED
@@ -113,8 +114,10 @@ def main(
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
-    # only need first two PCs
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=3)
+    # fit PCA
+    pca = fit_pca(
+        dataframe_manifest_name=dataframe_manifest_name, num_pcs=NUM_PCS_TO_FIT_FOR_DYNAMICS
+    )
 
     # Default list of datasets if not provided, only include datasets available in
     # the provided dataframe manifest
@@ -133,9 +136,8 @@ def main(
         logger.warning("DEMO MODE: limiting to first dataset only")
         dataset_names = dataset_names[:1]
 
-    # loop over datasets in collection
-    # plot summary plots
-    # compute drift and diffusion coefficients in polar coordinates
+    # loop over datasets in collection, compute 2D drift coefficients for each
+    # pairwise combination of polar coordinates, and plot contours of drift coefficients
     for dataset_name in dataset_names:
         fig_savedir = get_output_path(__file__, crop_pattern, dataset_name)
         logger.debug("Saving summary plots to [ %s ]", fig_savedir)
@@ -156,6 +158,7 @@ def main(
             dataset_config,
         )
 
+        # compute on a per-shear stress condition basis
         for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
             fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$)"
@@ -188,9 +191,9 @@ def main(
 
             # loop over pairwise combinations of columns and plot drift contours
             for column1, column2 in [
-                (ColumnName.POLAR_RADIUS.value, ColumnName.PC3_FLIPPED.value),
-                (ColumnName.POLAR_RADIUS.value, ColumnName.POLAR_ANGLE.value),
-                (ColumnName.PC3_FLIPPED.value, ColumnName.POLAR_ANGLE.value),
+                (ColumnName.POLAR_RADIUS.value, ColumnName.PC3_FLIPPED.value),  # r and rho
+                (ColumnName.POLAR_RADIUS.value, ColumnName.POLAR_ANGLE.value),  # r and theta
+                (ColumnName.PC3_FLIPPED.value, ColumnName.POLAR_ANGLE.value),  # rho and theta
             ]:
                 # need to get indices of columns to select correct data from
                 # trajectories and differences

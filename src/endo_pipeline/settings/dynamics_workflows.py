@@ -39,3 +39,6 @@ PERIOD_THETA_RESCALED: float = pi
 
 BIN_LIMIT_PERCENTILE_CUTOFF: float = 2.5
 """Percentile cutoff for getting bin limits for computing Kramer-Moyal coefficients."""
+
+NUM_PCS_TO_FIT_FOR_DYNAMICS: int = 3
+"""Number of principal components to fit for dynamics analysis and visualization."""
