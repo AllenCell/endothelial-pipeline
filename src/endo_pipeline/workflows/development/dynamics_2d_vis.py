@@ -45,11 +45,10 @@ def main(
 
     import matplotlib.pyplot as plt
     import numpy as np
-    from matplotlib.colors import TwoSlopeNorm
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, save_plot_to_path
+    from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
         get_dataframe_for_dynamics_workflows,
@@ -91,7 +90,8 @@ def main(
 
     # get labels for polar coordinate columns
     column_names = list(FEATURES_FOR_HISTOGRAM_VIS)
-    variable_names = [get_label_for_column(col) for col in column_names]
+    variable_labels = [get_label_for_column(col) for col in column_names]
+    variable_labels_simple = [label.replace("polar", "") for label in variable_labels]
 
     index_polar_angle = column_names.index(ColumnName.POLAR_ANGLE.value)
     index_polar_r = column_names.index(ColumnName.POLAR_RADIUS.value)
@@ -190,54 +190,15 @@ def main(
             plot_and_save_drift_contours(
                 meshgrid=centers_mesh,
                 drift=drift_r_rho,
-                variable_labels=["$r$", "$\\rho$"],
+                variable_labels=[
+                    variable_labels_simple[index_polar_r],
+                    variable_labels_simple[index_rho],
+                ],
                 bin_limits=[global_bin_limits[index_polar_r], global_bin_limits[index_rho]],
-                fig_title=dataset_name_flow,
+                fig_title=fig_title,
                 fig_savedir=fig_savedir,
                 filename_prefix=f"{dataset_name_flow}_r_rho",
             )
-
-            # put contours on the same plot to get a quasi "phase plane" view
-            fig, ax = plt.subplots()
-            for var_index, var_name, linestyle in zip(
-                [0, 1], ["r", "$\\rho$"], ["dashed", "dashdot"], strict=True
-            ):
-                # contour plot, but now just show sign of drift
-                # average over polar angle to get 2D contour
-                contour = ax.contourf(
-                    centers_mesh[0],
-                    centers_mesh[1],
-                    np.sign(drift_r_rho[..., var_index]),
-                    cmap="RdBu_r",
-                    norm=TwoSlopeNorm(vcenter=0),
-                    alpha=0.4,
-                )
-                # still add dashed line for nullcline
-                ax.contour(
-                    centers_mesh[0],
-                    centers_mesh[1],
-                    drift_r_rho[..., var_index],
-                    levels=[0],
-                    colors="k",
-                    linestyles=linestyle,
-                )
-                fig.colorbar(contour, ax=ax, label=f"d{var_name}/dt")
-                ax.set_xlabel(variable_names[index_polar_r])
-                ax.set_ylabel(variable_names[index_rho])
-                ax.set_xlim(global_bin_limits[index_polar_r])
-                ax.set_ylim(global_bin_limits[index_rho])
-
-            ax.set_xlabel(variable_names[index_polar_r])
-            ax.set_ylabel(variable_names[index_rho])
-            ax.set_xlim(global_bin_limits[index_polar_r])
-            ax.set_ylim(global_bin_limits[index_rho])
-            fig.suptitle(
-                f"{fig_title} \n dr/dt and d$\\rho$/dt vs (r, $\\rho$)",
-                y=1.0,
-            )
-
-            save_plot_to_path(fig, fig_savedir, f"{dataset_name_flow}_r_rho_phase")
-
             plt.close("all")
 
             # contour plots of dr/dt and d(rho)/dt over (r, rho)
@@ -258,54 +219,15 @@ def main(
             plot_and_save_drift_contours(
                 meshgrid=centers_mesh,
                 drift=drift_r_theta,
-                variable_labels=["$r$", "$\\theta$"],
+                variable_labels=[
+                    variable_labels_simple[index_polar_r],
+                    variable_labels_simple[index_polar_angle],
+                ],
                 bin_limits=[global_bin_limits[index_polar_r], global_bin_limits[index_polar_angle]],
-                fig_title=dataset_name_flow,
+                fig_title=fig_title,
                 fig_savedir=fig_savedir,
                 filename_prefix=f"{dataset_name_flow}_r_theta",
             )
-
-            # put contours on the same plot to get a quasi "phase plane" view
-            fig, ax = plt.subplots()
-            for var_index, var_name, linestyle in zip(
-                [0, 1], ["r", "$\\theta$"], ["dashed", "dashdot"], strict=True
-            ):
-                # contour plot, but now just show sign of drift
-                # average over polar angle to get 2D contour
-                contour = ax.contourf(
-                    centers_mesh[0],
-                    centers_mesh[1],
-                    np.sign(drift_r_theta[..., var_index]),
-                    cmap="RdBu_r",
-                    norm=TwoSlopeNorm(vcenter=0),
-                    alpha=0.4,
-                )
-                # still add dashed line for nullcline
-                ax.contour(
-                    centers_mesh[0],
-                    centers_mesh[1],
-                    drift_r_theta[..., var_index],
-                    levels=[0],
-                    colors="k",
-                    linestyles=linestyle,
-                )
-                fig.colorbar(contour, ax=ax, label=f"d{var_name}/dt")
-                ax.set_xlabel(variable_names[index_polar_r])
-                ax.set_ylabel(variable_names[index_polar_angle])
-                ax.set_xlim(global_bin_limits[index_polar_r])
-                ax.set_ylim(global_bin_limits[index_polar_angle])
-
-            ax.set_xlabel(variable_names[index_polar_r])
-            ax.set_ylabel(variable_names[index_polar_angle])
-            ax.set_xlim(global_bin_limits[index_polar_r])
-            ax.set_ylim(global_bin_limits[index_polar_angle])
-            fig.suptitle(
-                f"{fig_title} \n dr/dt and d$\theta$/dt vs (r, $\\theta$)",
-                y=1.0,
-            )
-
-            save_plot_to_path(fig, fig_savedir, f"{dataset_name_flow}_r_theta_phase")
-
             plt.close("all")
 
             # finally, do the same for rho vs theta
@@ -326,48 +248,16 @@ def main(
             plot_and_save_drift_contours(
                 meshgrid=centers_mesh,
                 drift=drift_rho_theta,
-                variable_labels=["$\\rho$", "$\\theta$"],
+                variable_labels=[
+                    variable_labels_simple[index_rho],
+                    variable_labels_simple[index_polar_angle],
+                ],
                 bin_limits=[global_bin_limits[index_rho], global_bin_limits[index_polar_angle]],
-                fig_title=dataset_name_flow,
+                fig_title=fig_title,
                 fig_savedir=fig_savedir,
                 filename_prefix=f"{dataset_name_flow}_rho_theta",
             )
-
-            # put contours on the same plot to get a quasi "phase plane" view
-            fig, ax = plt.subplots()
-
-            for var_index, var_name, linestyle in zip(
-                [0, 1], ["$\\rho$", "$\\theta$"], ["dashed", "dashdot"], strict=True
-            ):
-                # contour plot, but now just show sign of drift
-                # average over polar angle to get 2D contour
-                contour = ax.contourf(
-                    centers_mesh[0],
-                    centers_mesh[1],
-                    np.sign(drift_rho_theta[..., var_index]),
-                    cmap="RdBu_r",
-                    norm=TwoSlopeNorm(vcenter=0),
-                    alpha=0.4,
-                )
-                # still add dashed line for nullcline
-                ax.contour(
-                    centers_mesh[0],
-                    centers_mesh[1],
-                    drift_rho_theta[..., var_index],
-                    levels=[0],
-                    colors="k",
-                    linestyles=linestyle,
-                )
-                fig.colorbar(contour, ax=ax, label=f"d{var_name}/dt")
-            ax.set_xlabel(variable_names[index_rho])
-            ax.set_ylabel(variable_names[index_polar_angle])
-            ax.set_xlim(global_bin_limits[index_rho])
-            ax.set_ylim(global_bin_limits[index_polar_angle])
-            fig.suptitle(
-                f"{fig_title} \n d$\\rho$/dt and d$\\theta$/dt vs ($\\rho$, $\\theta$)",
-                y=1.0,
-            )
-            save_plot_to_path(fig, fig_savedir, f"{dataset_name_flow}_rho_theta_phase")
+            plt.close("all")
 
 
 if __name__ == "__main__":
