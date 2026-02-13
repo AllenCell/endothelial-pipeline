@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 from endo_pipeline.configs import get_latent_dim_from_config
 from endo_pipeline.io import get_config_dict_from_mlflow, get_output_path, load_dataframe
+from endo_pipeline.library.analyze.data_driven_flow_field import solve_ddff_ode
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     add_crop_index,
     add_description_column,
@@ -22,7 +23,6 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_traj_and_diff,
     project_features_to_pcs,
 )
-from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import solve_ddff_ode
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
