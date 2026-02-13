@@ -660,7 +660,7 @@ def get_dataframe_for_dynamics_workflows(
     """
 
     location = get_dataframe_location_for_dataset(manifest, dataset_name)
-    df = load_dataframe(location)
+    df = load_dataframe(location, delay=True)
     feat_cols = get_latent_feature_column_names_from_dataframe(df)
 
     # start with default metadatac columns to keep
@@ -675,7 +675,7 @@ def get_dataframe_for_dynamics_workflows(
     columns_to_keep_ = list(set(columns_to_keep_))  # remove duplicates, if any
 
     # keep only necessary columns to save memory
-    df_ = df[columns_to_keep_].copy()
+    df_ = df[columns_to_keep_].copy().compute()
 
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
