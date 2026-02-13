@@ -668,6 +668,10 @@ def get_dataframe_for_dynamics_workflows(
     if columns_to_keep is not None:
         columns_to_keep_.extend(columns_to_keep)  # add any additional specified columns to keep
     columns_to_keep_.extend(feat_cols)  # also keep feature columns for PCA projection
+    if crop_pattern == "tracked":
+        columns_to_keep_.extend(
+            [ColumnName.TRACK_ID]
+        )  # also keep track ID column for tracked crops
     columns_to_keep_ = list(set(columns_to_keep_))  # remove duplicates, if any
 
     # keep only necessary columns to save memory
@@ -831,11 +835,13 @@ def add_crop_index(
         logger.error("Crop pattern must be 'tracked' or 'grid', got [ %s ]", crop_pattern)
         raise ValueError("Input crop_pattern must be 'grid' or 'tracked'")
 
-    if crop_pattern == "tracked" and "track_id" in df.columns:
-        required_columns = [ColumnName.POSITION, "track_id"]
+    if crop_pattern == "tracked" and ColumnName.TRACK_ID in df.columns:
+        required_columns = [ColumnName.POSITION, ColumnName.TRACK_ID]
         check_required_columns_in_dataframe(df, required_columns)
         df[ColumnName.CROP_INDEX] = (
-            df.groupby([ColumnName.POSITION, "track_id"], as_index=False).ngroup().astype(int)
+            df.groupby([ColumnName.POSITION, ColumnName.TRACK_ID], as_index=False)
+            .ngroup()
+            .astype(int)
         )
 
     elif crop_pattern == "grid":
