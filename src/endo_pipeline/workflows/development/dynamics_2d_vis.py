@@ -155,6 +155,7 @@ def main(
             pca=pca,
             include_cell_piling=False,
             include_not_steady_state=False,
+            crop_pattern="tracked",
             compute_polar=True,
             rescale_theta=RESCALE_THETA,
         )
