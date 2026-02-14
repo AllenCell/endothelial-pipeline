@@ -692,7 +692,7 @@ def get_dataframe_for_dynamics_workflows(
     columns_to_keep_ = list(set(columns_to_keep_))  # remove duplicates, if any
 
     # keep only necessary columns to save memory
-    df_ = df[columns_to_keep_].copy().compute()
+    df_ = df[columns_to_keep_].compute()
 
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
