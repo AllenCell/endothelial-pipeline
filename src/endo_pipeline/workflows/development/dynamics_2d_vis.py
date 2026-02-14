@@ -97,7 +97,7 @@ def main(
     # get labels for provided set of feature columns
     column_names = list(DYNAMICS_COLUMN_NAMES)
     variable_labels_dict = {
-        col: get_label_for_column(col).replace("polar", "") for col in column_names
+        col: get_label_for_column(col).replace("polar ", "") for col in column_names
     }
 
     # unpack default bin widths and limits for each column, adjusting limits if rescaling theta
