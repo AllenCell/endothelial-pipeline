@@ -59,7 +59,7 @@ def calculate_edge_intensity_distribution_for_segmentations(
         else:
             df_edge_intens = pd.concat([df_edge_intens, seg_record], ignore_index=True)
     out_subdir = out_dir / dataset_name / f"P{position}"
-    out_subdir.mkdir(exist_ok=True)
+    out_subdir.mkdir(exist_ok=True, parents_ok=True)
     df_edge_intens.to_parquet(
         out_subdir / f"{dataset_name}_P{position}_T{timepoint}_edge_intensities.parquet"
     )
