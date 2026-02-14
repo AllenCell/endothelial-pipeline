@@ -70,21 +70,6 @@ def main(n_cores=1):
         # position = args["position"]
         # tp = args["T"]
 
-        # dataset_name = "20250402_20X"
-
-        # # check that the segmentation of interest is in fact what I thought it would be
-        # overlay = label2rgb(
-        #     seg_arr == seg_of_interest,
-        #     rescale_intensity(np.clip(raw_arr, a_min=20, a_max=150), out_range=(0, 1)),
-        #     bg_label=0,
-        #     alpha=0.3,
-        # )
-        # plt.imshow(overlay)
-
-        # plt.imshow(seg_arr == seg_of_interest)
-        # plt.imshow(raw_arr, vmax=140)
-        # # looks good.
-
         df = load_pc_diffae_liveseg_feats_merged_table(dataset_name)
         dataset_config = load_dataset_config(dataset_name)
 
@@ -107,9 +92,6 @@ def main(n_cores=1):
         ]
         filter_cols = ["is_included"]
         df_subset = df[dataset_info_cols + crop_cols + seg_info_cols + filter_cols].compute()
-        # record = df_subset.query(
-        #     "label == @seg_of_interest and position == @position and image_index == @tp"
-        # )
 
         df_subset = df_subset[df_subset.is_included]
         df_subset["frame_number"] = df_subset["image_index"]
@@ -128,14 +110,8 @@ def main(n_cores=1):
 
         df_subset = df_subset.query("position == 0")
 
-        test_timepoints = sorted(df_subset.image_index.unique())[:5]
-        df_subset = df_subset[df_subset["image_index"] == test_timepoints]
-        # valid_timepoints = get_all_unannotated_timepoints(dataset_config)
-        # get_unannotated_timepoints_for_position(dataset_config, position)
-
-        # for grp in df_subset.groupby("position"):
-        #     break
-        # df_subset.groupby("position").apply(lambda x: x.image_index.isin(valid_timepoints[position]))
+        # test_timepoints = sorted(df_subset.image_index.unique())[:5]
+        # df_subset = df_subset[df_subset["image_index"] == test_timepoints]
 
         grps = df_subset.groupby(["dataset", "position", "image_index"])
 
@@ -152,9 +128,6 @@ def main(n_cores=1):
             )
         )
 
-        # for dataset_name in tqdm(
-        #     dataset_name_list, desc="Replacing individual tables with combined table..."
-        # ):
         concatenate_and_save_feature_tables(
             out_dir=out_dir,
             dataset_name=dataset_name,
