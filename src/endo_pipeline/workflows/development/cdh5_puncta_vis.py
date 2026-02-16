@@ -4,11 +4,18 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
+# low_flow_fp = Path(
+#     r"C:\Users\serge.parent\Documents\projects\cellsmap\results\2026-02-14\cdh5_puncta_quant\20250402_20X_edge_intensities.parquet"
+# )
+# high_flow_fp = Path(
+#     r"C:\Users\serge.parent\Documents\projects\cellsmap\results\2026-02-14\cdh5_puncta_quant\20250611_20X_edge_intensities.parquet"
+# )
+
 low_flow_fp = Path(
-    r"C:\Users\serge.parent\Documents\projects\cellsmap\results\2026-02-14\cdh5_puncta_quant\20250402_20X_edge_intensities.parquet"
+    "//allen/aics/users/serge.parent/cellsmap/results/2026-02-14/cdh5_puncta_quant/20250402_20X_edge_intensities.parquet"
 )
 high_flow_fp = Path(
-    r"C:\Users\serge.parent\Documents\projects\cellsmap\results\2026-02-14\cdh5_puncta_quant\20250611_20X_edge_intensities.parquet"
+    "//allen/aics/users/serge.parent/cellsmap/results/2026-02-14/cdh5_puncta_quant/20250611_20X_edge_intensities.parquet"
 )
 
 low_flow_df = pd.read_parquet(low_flow_fp)
