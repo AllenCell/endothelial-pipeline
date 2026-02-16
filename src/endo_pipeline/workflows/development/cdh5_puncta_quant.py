@@ -93,9 +93,10 @@ def main(n_cores=1):
         ]
         dynamics_cols = SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
         filter_cols = ["is_included"]
-        df_subset = df[
-            dataset_info_cols + crop_cols + seg_info_cols + filter_cols + dynamics_cols
-        ].compute()
+        cols_to_compute = list(
+            set(dataset_info_cols + crop_cols + seg_info_cols + filter_cols + dynamics_cols)
+        )
+        df_subset = df[cols_to_compute].compute()
 
         df_subset = df_subset[df_subset.is_included]
         df_subset["frame_number"] = df_subset["image_index"]

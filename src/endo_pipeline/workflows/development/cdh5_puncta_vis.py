@@ -1,11 +1,13 @@
-from pathlib import Path
-
-import numpy as np
-import pandas as pd
-from matplotlib import pyplot as plt
+"""Visualization of first-pass CDH5 puncta quantifications."""
 
 
 def main():
+    from pathlib import Path
+
+    import numpy as np
+    import pandas as pd
+    from matplotlib import pyplot as plt
+
     low_flow_fp = Path(
         "//allen/aics/users/serge.parent/cellsmap/results/2026-02-14/cdh5_puncta_quant/20250402_20X_edge_intensities.parquet"
     )
