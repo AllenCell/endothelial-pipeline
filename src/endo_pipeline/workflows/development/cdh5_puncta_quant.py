@@ -37,6 +37,7 @@ def main(n_cores=1):
     from endo_pipeline.library.analyze.intensity_features import (
         calculate_edge_intensity_distribution_for_segmentations_mp,
     )
+    from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
 
     low_flow_dataset_name = "20250402_20X"
     high_flow_dataset_name = "20250611_20X"
@@ -90,8 +91,11 @@ def main(n_cores=1):
             "centroid_X",
             "centroid_Y",
         ]
+        dynamics_cols = SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
         filter_cols = ["is_included"]
-        df_subset = df[dataset_info_cols + crop_cols + seg_info_cols + filter_cols].compute()
+        df_subset = df[
+            dataset_info_cols + crop_cols + seg_info_cols + filter_cols + dynamics_cols
+        ].compute()
 
         df_subset = df_subset[df_subset.is_included]
         df_subset["frame_number"] = df_subset["image_index"]
