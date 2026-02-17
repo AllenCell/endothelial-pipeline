@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
 
+from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
 
@@ -18,7 +19,6 @@ def _plot_latent_walk_batch_as_grid(
     coordinate_values: np.ndarray,
     save_path: Path,
     file_name: str,
-    use_pcs: bool = True,
     show_values: bool = True,
 ) -> None:
 
@@ -74,7 +74,7 @@ def _plot_latent_walk_batch_as_grid(
 
             # Y labels only on first column
             if j == 0:
-                ylabel = f"PC {dimension_labels[i]}" if use_pcs else f"Dim {dimension_labels[i]}"
+                ylabel = dimension_labels[i]
                 ax.set_ylabel(ylabel, labelpad=5)
 
             # Plot scalebar only on first image
@@ -99,6 +99,7 @@ def _plot_latent_walk_batch_as_grid(
 def plot_latent_walk_as_grid(
     array_of_crops: np.ndarray,
     coordinate_values: np.ndarray,
+    column_names: list[str],
     save_path: Path,
     file_name: str,
     use_pcs: bool = True,
@@ -116,6 +117,8 @@ def plot_latent_walk_as_grid(
     coordinate_values
         An ND numpy array of shape (num_dims, num_steps)
         containing the coordinate values for each dimension and step.
+    column_names
+        List of column names corresponding to the dimensions in the latent walk.
     save_path
         Directory path to save the output figure.
     file_name
@@ -139,7 +142,9 @@ def plot_latent_walk_as_grid(
         batch_suffix = (
             f"_{start_idx + 1}_to_{end_idx}" if use_pcs else f"{start_idx}_to_{end_idx - 1}"
         )
-        dimension_labels = list(range(start_idx + 1, end_idx + 1))
+        dimension_labels = [
+            get_label_for_column(column_names[i]) for i in range(start_idx, end_idx)
+        ]
         batch_file_name = f"{file_name}{batch_suffix}"
 
         _plot_latent_walk_batch_as_grid(
@@ -148,6 +153,5 @@ def plot_latent_walk_as_grid(
             batch_coordinate_values,
             save_path,
             batch_file_name,
-            use_pcs,
             show_values,
         )
