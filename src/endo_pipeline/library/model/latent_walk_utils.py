@@ -23,7 +23,7 @@ def get_latent_walk(
     n_dims: int,
     sigma: float | None,
     n_steps: int,
-    replace_mean_with_pc_value: list[float | None] | None = None,
+    replace_mean_with_value: list[float | None] | None = None,
 ) -> tuple[np.ndarray, list]:
     """
     Generate a latent walk based on standard deviation or min/max of each
@@ -39,13 +39,11 @@ def get_latent_walk(
         Range of values for the latent walk. If None, use min/max of dimension.
     n_steps
         Number of steps in the latent walk.
-    replace_mean_with_pc_value
-        List of PC values to replace the mean with for each PC dimension. Must be of length n_dims.
+    replace_mean_with_value
+        List of values to replace the mean with for each dimension. Must be of length n_dims.
         If None, uses the mean of the data.
     """
-    replace_values = (
-        [None] * n_dims if replace_mean_with_pc_value is None else replace_mean_with_pc_value
-    )
+    replace_values = [None] * n_dims if replace_mean_with_value is None else replace_mean_with_value
 
     if len(replace_values) != n_dims:
         raise ValueError(f"Expected replace_values of length {n_dims}, got {len(replace_values)}.")

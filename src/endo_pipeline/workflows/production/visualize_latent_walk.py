@@ -25,7 +25,7 @@ def main(
     n_steps: int = 7,
     use_pcs: bool = True,
     n_noise_samples: int = 1,
-    replace_mean_with_pc_value: list[float | None] | None = None,
+    replace_mean_with_value: list[float | None] | None = None,
 ) -> None:
     """
     Create latent walk for a given model using PC axes or original axes.
@@ -144,9 +144,7 @@ def main(
         raise
 
     # get latent walk
-    walk, ranges = get_latent_walk(
-        data_for_walk, n_dims, sigma, n_steps, replace_mean_with_pc_value
-    )
+    walk, ranges = get_latent_walk(data_for_walk, n_dims, sigma, n_steps, replace_mean_with_value)
     if use_pcs:
         # if using PCs, inverse transform the walk to get back to latent space
         # coordinates (for passing to the model to generate images)
@@ -158,11 +156,11 @@ def main(
     # save generated latent walk as grid
     axis_suffix = "_along_pcs" if use_pcs else "_along_latent"
     file_name = f"latent_walk_{int(sigma)}sigma{axis_suffix}"
-    if replace_mean_with_pc_value is not None:
+    if replace_mean_with_value is not None:
         replace_str = "_".join(
             [
                 f"{column_names[i]}setto{str(val).replace('.', 'p')}"
-                for i, val in enumerate(replace_mean_with_pc_value)
+                for i, val in enumerate(replace_mean_with_value)
                 if val is not None
             ]
         )
