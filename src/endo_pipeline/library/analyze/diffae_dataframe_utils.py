@@ -192,6 +192,39 @@ def pcs_to_polar_theta(
     return theta
 
 
+def polar_to_pcs(
+    theta_values: np.ndarray, r_values: np.ndarray, is_theta_rescaled: bool = RESCALE_THETA
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Convert polar coordinates (theta, r) back to Cartesian coordinates (pc1, pc2).
+
+    The conversion from polar to Cartesian coordinates is given by the formulas:
+        pc1 = r * cos(theta)
+        pc2 = r * sin(theta)
+
+    If the input theta values are rescaled to be in the range [0, pi], they will be
+    unrescaled back to the range [-pi, pi] before conversion.
+
+    Parameters
+    ----------
+    theta_values
+        Polar coordinate theta values.
+    r_values
+        Polar coordinate r values.
+    is_theta_rescaled
+        Whether the input theta values were rescaled to be in the range [0, pi].
+    """
+
+    if is_theta_rescaled:
+        # unrescale theta back to range [-pi, pi]
+        theta_values = (theta_values * 2) - np.pi
+
+    pc1_values = r_values * np.cos(theta_values)
+    pc2_values = r_values * np.sin(theta_values)
+
+    return pc1_values, pc2_values
+
+
 def rewrap_polar_angle(unwrapped_angle: float, original_range: tuple[float, float]) -> float:
     """
     Rewrap unwrapped polar angle value to be within original range.
