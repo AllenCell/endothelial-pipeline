@@ -19,7 +19,7 @@ def main(
     crop_pattern: CropPattern = "grid",
     dataset_collection: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
-    num_pcs: int = NUM_PCS_TO_ANALYZE,
+    n_dims: int = NUM_PCS_TO_ANALYZE,
     columns: StrList | None = None,
     replace_mean_with_value: OptionalFloatList | None = None,
     sigma: float = 3.0,
@@ -35,26 +35,33 @@ def main(
     model_manifest_name
         Name of the model manifest containing the specific run to load.
     run_name
-        Run name corresponding to the model to load. If None, uses the most recent run.
+        Run name corresponding to the model to load. If None, uses the most
+        recent run.
     crop_pattern
-        Crop pattern used to generate the feature dataframe. Either 'grid' or 'tracked'.
+        Crop pattern used to generate the feature dataframe. Either 'grid' or
+        'tracked'.
     include_cell_piling
-        True to include timepoints with cell piling to fit the PCA model, False to exclude them.
-    num_pcs
-        Number of principal components to use for the
-        latent walk.
+        True to include timepoints with cell piling to fit the PCA model, False
+        to exclude them.
+    n_dims
+        Number of axes to use for the latent walk (either PCs or original latent
+        dimensions, depending on use_pcs).
+    columns
+        List of column names to use for the latent walk. If None, defaults to
+        using all PCs or all latent dimensions.
+    replace_mean_with_value
+        List of values to replace the mean with for each dimension. If None,
+        uses the mean of the data.
     sigma
-        Number of standard deviations from the mean to traverse
-        for the latent walk.
+        Number of standard deviations from the mean to traverse for the latent
+        walk.
     n_steps
         Number of steps in the latent walk. Default is 10.
     use_pcs
-        True to use principal component axes, False to use original latent space axes.
+        True to use principal component axes, False to use original latent space
+        axes.
     n_noise_samples
         Number of noise samples to use for generating images.
-    replace_mean_with_pc_value
-        List of PC values to replace the mean with for each PC dimension. Must be of length num_pcs.
-        If None, uses the mean of the data.
     """
     import logging
 
@@ -109,9 +116,8 @@ def main(
             dataset_collection_name=dataset_collection,
             dataframe_manifest_name=dataframe_manifest_name,
             include_cell_piling=include_cell_piling,
-            num_pcs=num_pcs,
+            num_pcs=n_dims,
         )
-        n_dims = pca.n_components_
         column_names = (
             [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(n_dims)]
             if columns is None
@@ -119,7 +125,6 @@ def main(
         )
     else:
         # perform latent walk along the raw latent dimensions
-        n_dims = model.semantic_encoder.base_encoder.num_classes
         column_names = (
             [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(n_dims)]
             if columns is None
