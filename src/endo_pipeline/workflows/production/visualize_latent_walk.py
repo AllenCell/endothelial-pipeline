@@ -61,9 +61,8 @@ def main(
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
     from endo_pipeline.library.model.latent_walk_utils import (
-        build_data_for_pca_latent_walk,
-        build_data_for_raw_latent_walk,
         generate_latent_walk_images,
+        get_dataframe_for_latent_walk,
         get_pca_latent_walk,
         get_raw_latent_walk,
     )
@@ -74,6 +73,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
+    from endo_pipeline.settings import ColumnName
 
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
@@ -106,16 +106,30 @@ def main(
             include_cell_piling=include_cell_piling,
             num_pcs=num_pcs,
         )
-        data_for_walk = build_data_for_pca_latent_walk(
-            dataset_names, dataframe_manifest, pca, include_cell_piling, crop_pattern
+        column_names = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(pca.n_components_)]
+        data_for_walk = get_dataframe_for_latent_walk(
+            dataset_names,
+            dataframe_manifest,
+            pca,
+            include_cell_piling,
+            crop_pattern,
+            column_names=column_names,
         )
         walk, ranges = get_pca_latent_walk(
             data_for_walk, pca, sigma, n_steps, replace_mean_with_pc_value
         )
     else:
         # perform latent walk along the raw latent dimensions
-        data_for_walk = build_data_for_raw_latent_walk(
-            dataset_names, dataframe_manifest, model, include_cell_piling, crop_pattern
+        num_latent_dims = model.semantic_encoder.base_encoder.num_classes
+        column_names = [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(num_latent_dims)]
+
+        data_for_walk = get_dataframe_for_latent_walk(
+            dataset_names,
+            dataframe_manifest,
+            model,
+            include_cell_piling,
+            crop_pattern,
+            column_names=column_names,
         )
         walk, ranges = get_raw_latent_walk(data_for_walk, sigma, n_steps)
 
