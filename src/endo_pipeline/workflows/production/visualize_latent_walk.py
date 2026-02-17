@@ -194,7 +194,7 @@ def main(
     walk_img_grid = generate_latent_walk_images(model, walk, ranges, n_noise_samples, NUM_GPUS)
 
     # save generated latent walk as grid
-    file_name = f"latent_walk_{int(sigma)}sigma"
+    file_name = f"latent_walk_{int(sigma)}sigma_"
     if replace_mean_with_value is not None:
         replace_str = "_".join(
             [
