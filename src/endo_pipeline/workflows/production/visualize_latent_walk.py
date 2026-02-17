@@ -161,7 +161,7 @@ def main(
     if replace_mean_with_pc_value is not None:
         replace_str = "_".join(
             [
-                f"PC{i+1}setto{val}"
+                f"{column_names[i]}setto{str(val).replace('.', 'p')}"
                 for i, val in enumerate(replace_mean_with_pc_value)
                 if val is not None
             ]
