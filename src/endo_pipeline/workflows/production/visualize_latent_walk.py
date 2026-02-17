@@ -126,6 +126,7 @@ def main(
                 else columns
             )
             compute_polar = True
+            n_dims = len(column_names)
         else:
             column_names = (
                 [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(n_dims)]
