@@ -139,12 +139,14 @@ def plot_latent_walk_as_grid(
     for start_idx, end_idx in batches:
         batch_array_of_crops = array_of_crops[start_idx:end_idx, :, :, :]
         batch_coordinate_values = coordinate_values[start_idx:end_idx]
-        batch_suffix = (
-            f"_{start_idx + 1}_to_{end_idx}" if use_pcs else f"{start_idx}_to_{end_idx - 1}"
-        )
         dimension_labels = [
             get_label_for_column(column_names[i]) for i in range(start_idx, end_idx)
         ]
+        # remove special latex characters from labels for filename
+        labels_for_filename = [
+            label.replace("\\", "").replace("$", "") for label in dimension_labels
+        ]
+        batch_suffix = "_".join(labels_for_filename)
         batch_file_name = f"{file_name}{batch_suffix}"
 
         _plot_latent_walk_batch_as_grid(
