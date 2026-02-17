@@ -1,29 +1,42 @@
-from concurrent.futures import ProcessPoolExecutor
-
-from tqdm import tqdm
-
 from endo_pipeline.cli import Datasets
-from endo_pipeline.configs import get_datasets_in_collection
-from endo_pipeline.io import get_output_path
-from endo_pipeline.library.process.lib_grid_seg import (
-    check_crop_indices_against_existing_segmentations,
-    create_grid_segmentation_images,
-    load_grid_diffae_df_for_tfe,
-)
 
 
-def main(datasets: Datasets | None, n_cores=4):
-    """Creates grid-based segmentations based on the crop locations from the grid-based
-    DiffAE dataframe of the first dataset in `datasets`, then checks that the crop indices
-    subsequent datasets in `datasets` match the existing segmentations.
+def main(datasets: Datasets | None, n_cores: int = 4):
+    """Creates grid-based segmentations based on the crop locations from the
+    grid-based DiffAE dataframe of the first dataset in `datasets`, then checks
+    that the crop indices for subsequent datasets in `datasets` matches these
+    segmentations.
+
+    Parameters
+    ----------
+    datasets:
+        List of dataset names to check. If `None`, defaults to all datasets in
+        the "diffae_model_training" and "replicate_2_datasets" collections.
+    n_cores:
+        Number of CPU cores to use when checking that crop indices for all
+        datasets matches the segmentations produced for the first dataset.
+        This is very time-consuming, so using as many cores as possible without
+        exceeding RAM capacity is recommended. Default is 4.
     """
+
+    from concurrent.futures import ProcessPoolExecutor
+
+    from tqdm import tqdm
+
+    from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.process.lib_grid_seg import (
+        check_crop_indices_against_existing_segmentations,
+        create_grid_segmentation_images,
+        load_grid_diffae_df_for_tfe,
+    )
+
     if datasets is None:
         datasets = get_datasets_in_collection("diffae_model_training")
-        datasets.append(get_datasets_in_collection("replicate_2_datasets"))
+        datasets.extend(get_datasets_in_collection("replicate_2_datasets"))
 
     for i, dataset_name in enumerate(datasets):
         out_dir = get_output_path(__file__)
-        out_dir.mkdir(parents=True, exist_ok=True)
 
         grid_df = load_grid_diffae_df_for_tfe(dataset_name)
 

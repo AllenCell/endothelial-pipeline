@@ -13,7 +13,6 @@ LABEL_MAP = {
     "cell_fluorescence_mean (a.u.)": "Cell Fluorescence Mean (a.u.)",
     "cell_fluorescence_median (a.u.)": "Cell Fluorescence Median (a.u.)",
     "cell_solidity": "Cell Solidity",
-    # "tid": "Track ID",
     "time_hours": "Time (hours)",
     "time_minutes": "Time (minutes)",
     "track_id": "Track ID",
@@ -40,8 +39,6 @@ LABEL_MAP = {
 LABEL_MAP_GRID = {
     "time_hours": "Time (hours)",
     "time_minutes": "Time (minutes)",
-    # "track_id": "Track ID",
-    # "duration": "Track Duration",
     # various PC values
     **{
         f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}"
