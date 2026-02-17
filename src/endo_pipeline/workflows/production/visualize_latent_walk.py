@@ -67,8 +67,7 @@ def main(
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
     from endo_pipeline.library.model.latent_walk_utils import (
         generate_latent_walk_images,
-        get_pca_latent_walk,
-        get_raw_latent_walk,
+        get_latent_walk,
     )
     from endo_pipeline.library.visualize.latent_walk import plot_latent_walk_as_grid
     from endo_pipeline.manifests import (
@@ -129,13 +128,15 @@ def main(
     )
     data_for_walk = dataframe_all_datasets[column_names].values
 
+    # get coordinate values for latent walk along PC axes or original latent
+    # dimensions
+    walk, ranges = get_latent_walk(
+        data_for_walk, n_dims, sigma, n_steps, replace_mean_with_pc_value
+    )
     if use_pcs:
-        walk, ranges = get_pca_latent_walk(
-            data_for_walk, pca, sigma, n_steps, replace_mean_with_pc_value
-        )
-    else:
-        # perform latent walk along the raw latent dimensions
-        walk, ranges = get_raw_latent_walk(data_for_walk, sigma, n_steps)
+        # perform latent walk along the principal component axes and transform
+        # back to original latent space
+        walk = pca.inverse_transform(walk)
 
     # generate images from the latent walk
     walk_img_grid = generate_latent_walk_images(model, walk, ranges, n_noise_samples, NUM_GPUS)

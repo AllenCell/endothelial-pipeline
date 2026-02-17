@@ -175,58 +175,6 @@ def build_data_for_raw_latent_walk(
     return dataframe[column_names].values
 
 
-def get_pca_latent_walk(
-    pca_data: np.ndarray,
-    pca: PCA,
-    sigma: float | None,
-    n_steps: int,
-    replace_mean_with_pc_value: list[float | None] | None = None,
-) -> tuple[np.ndarray, list]:
-    """
-    Generate PCA coordinates and corresponding PC values for a latent walk.
-
-    Parameters
-    ----------
-    pca_data
-        Array containing the data projected onto PCA axes for the latent walk.
-    pca
-        PCA model fit to the data.
-    sigma
-        Range of values for the latent walk. If None, use min/max of dimension.
-    n_steps
-        Number of steps in the latent walk.
-    replace_mean_with_pc_value
-        List of PC values to replace the mean with for each PC dimension. Must be of length n_dims.
-        If None, uses the mean of the data.
-    """
-
-    n_dims = pca.n_components_
-    walk, ranges = get_latent_walk(pca_data, n_dims, sigma, n_steps, replace_mean_with_pc_value)
-    walk = pca.inverse_transform(walk)
-    return walk, ranges
-
-
-def get_raw_latent_walk(
-    data: np.ndarray, sigma: float | None, n_steps: int
-) -> tuple[np.ndarray, list]:
-    """
-    Generate latent coordinates and corresponding values for a latent walk.
-
-    Parameters
-    ----------
-    data
-        Array containing the data for the latent walk.
-    sigma
-        Range of values for the latent walk. If None, use min/max of dimension.
-    n_steps
-        Number of steps in the latent walk.
-    """
-
-    n_dims = data.shape[1]
-    walk, ranges = get_latent_walk(data, n_dims, sigma, n_steps)
-    return walk, ranges
-
-
 def generate_latent_walk_images(
     model: "DiffusionAutoEncoder",
     walk: np.ndarray,
