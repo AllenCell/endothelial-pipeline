@@ -97,3 +97,11 @@ FloatList = Annotated[
         negative_iterable=[],  # remove the "--empty" option
     ),
 ]
+
+OptionalFloatList = Annotated[
+    list[float | None],
+    Parameter(
+        consume_multiple=True,  # allows parameter to consume multiple tokens
+        negative_iterable=[],  # remove the "--empty" option
+    ),
+]

@@ -2,7 +2,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from endo_pipeline.cli import CropPattern, StrList
+from endo_pipeline.cli import CropPattern, OptionalFloatList, StrList
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -21,11 +21,11 @@ def main(
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
     columns: StrList | None = None,
+    replace_mean_with_value: OptionalFloatList | None = None,
     sigma: float = 3.0,
     n_steps: int = 7,
     use_pcs: bool = True,
     n_noise_samples: int = 1,
-    replace_mean_with_value: list[float | None] | None = None,
 ) -> None:
     """
     Create latent walk for a given model using PC axes or original axes.
