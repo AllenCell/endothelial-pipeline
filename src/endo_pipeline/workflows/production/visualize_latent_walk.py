@@ -42,7 +42,7 @@ def main(
         'tracked'.
     include_cell_piling
         True to include timepoints with cell piling to fit the PCA model, False
-        to exclude them.
+        to exclude them (``--exclude-cell-piling``).
     n_dims
         Number of axes to use for the latent walk (either PCs or original latent
         dimensions, depending on use_pcs).
