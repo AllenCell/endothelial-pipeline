@@ -132,7 +132,9 @@ def main(
     )
 
     # get latent walk
-    walk, ranges = get_latent_walk(data_for_walk, n_dims, sigma, n_steps)
+    walk, ranges = get_latent_walk(
+        data_for_walk, n_dims, sigma, n_steps, replace_mean_with_pc_value
+    )
     if use_pcs:
         # if using PCs, inverse transform the walk to get back to latent space
         # coordinates (for passing to the model to generate images)
