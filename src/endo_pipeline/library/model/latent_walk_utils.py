@@ -83,7 +83,7 @@ def get_latent_walk(
 def get_dataframe_for_latent_walk(
     dataset_names: list[str],
     dataframe_manifest: DataframeManifest,
-    pca: PCA,
+    pca: PCA | None,
     include_cell_piling: bool,
     crop_pattern: Literal["grid", "tracked"],
     column_names: list[str],
@@ -98,7 +98,7 @@ def get_dataframe_for_latent_walk(
     dataframe_manifest
         Manifest for dataframes containing feature data
     pca
-        PCA model to fit to feature data.
+        PCA model to fit to feature data, or None to not perform PCA projection.
     include_cell_piling
         True keep timepoints annotated as cell piling, False otherwise.
     crop_pattern

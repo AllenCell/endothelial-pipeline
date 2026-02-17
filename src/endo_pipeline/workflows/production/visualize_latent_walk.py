@@ -48,7 +48,7 @@ def main(
         dimensions, depending on use_pcs).
     columns
         List of column names to use for the latent walk. If None, defaults to
-        using all PCs or all latent dimensions.
+        using all PCs or all latent dimensions as specified by n_dims.
     replace_mean_with_value
         List of values to replace the mean with for each dimension. If None,
         uses the mean of the data.
@@ -125,6 +125,7 @@ def main(
         )
     else:
         # perform latent walk along the raw latent dimensions
+        pca = None
         column_names = (
             [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(n_dims)]
             if columns is None
@@ -136,10 +137,10 @@ def main(
         data_for_walk = get_dataframe_for_latent_walk(
             dataset_names,
             dataframe_manifest,
-            model,
+            pca,
             include_cell_piling,
             crop_pattern,
-            column_names=column_names,
+            column_names,
         )
     except KeyError:
         logger.error(
