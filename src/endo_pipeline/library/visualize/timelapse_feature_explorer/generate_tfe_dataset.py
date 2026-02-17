@@ -145,7 +145,11 @@ def generate_tfe_dataset(
 
 
 def get_df_and_label_map_cdh5seg(
-    dataset: str, position: int, label_map: dict, include_diffae_features: bool
+    dataset: str,
+    position: int,
+    label_map: dict,
+    include_diffae_features: bool,
+    dataframe_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 ):
     if include_diffae_features:
         try:
@@ -159,7 +163,7 @@ def get_df_and_label_map_cdh5seg(
             include_diffae_features_failed = True
     if include_diffae_features is False or include_diffae_features_failed is True:
         # load just the CDH5-based segmentation features as a fallback if no DiffAE features exist
-        segprops_manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
+        segprops_manifest = load_dataframe_manifest(dataframe_manifest_name)
         segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset)
         df_tracks = load_dataframe(segprops_location, delay=True)
         # remove the DiffAE-related entries from label_map before constructing the TFE dataset
@@ -196,6 +200,7 @@ def get_df_and_label_map_grid(
     label_map: dict,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     model_run_name: str = DEFAULT_MODEL_RUN_NAME,
+    num_pcs_for_pca: int = MAX_PCS_TO_COMPUTE,
 ) -> tuple[pd.DataFrame, list, dict]:
 
     model_manifest = load_model_manifest(model_manifest_name)
@@ -205,7 +210,7 @@ def get_df_and_label_map_grid(
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=MAX_PCS_TO_COMPUTE)
+    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=num_pcs_for_pca)
 
     grid_df = get_dataframe_for_dynamics_workflows(
         dataset, dataframe_manifest, pca, filter_dataframe=False
