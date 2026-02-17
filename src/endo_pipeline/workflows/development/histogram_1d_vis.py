@@ -1,5 +1,8 @@
+from typing import Annotated
+
+from cyclopts import Parameter
+
 from endo_pipeline.cli import CropPattern, Datasets
-from endo_pipeline.settings.polar_coords import RESCALE_THETA
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -12,7 +15,7 @@ def main(
     run_name: str = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
     global_axes_limits: bool = False,
-    rescale_theta: bool = RESCALE_THETA,
+    just_steady_state: Annotated[bool, Parameter(negative="--include-transient")] = True,
 ) -> None:
     """
     Analyze and visualize DiffAE feature dynamics in polar coordinates.
@@ -48,6 +51,7 @@ def main(
         Whether to rescale theta values to [0, pi] range with period pi.
     """
 
+    import matplotlib.pyplot as plt
     import numpy as np
 
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
@@ -69,17 +73,24 @@ def main(
         load_model_manifest,
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.histogram_1d_vis import (
+        BIN_LIMITS_PC18,
+        BIN_LIMITS_RHO,
+        BIN_WIDTHS_FOR_HISTOGRAMS,
+        FEATURES_FOR_HISTOGRAM_VIS,
+        NUM_PCS_TO_FIT,
+    )
     from endo_pipeline.settings.polar_coords import (
         BIN_LIMITS_POLAR,
         BIN_LIMITS_THETA_RESCALED,
-        BIN_WIDTHS_POLAR,
         DEFAULT_DATASET_COLLECTION_POLAR_VIS,
-        POLAR_COLUMN_NAMES,
+        RESCALE_THETA,
         TICK_STEP_NUM,
     )
 
-    # get labels for polar coordinate columns
-    variable_names = [get_label_for_column(col) for col in POLAR_COLUMN_NAMES]
+    # get feature column names and labels (for plots)
+    column_names = list(FEATURES_FOR_HISTOGRAM_VIS)
+    variable_names = [get_label_for_column(col) for col in column_names]
 
     # get dataframe manifest for grid-based crop features
     model_manifest = load_model_manifest(model_manifest_name)
@@ -88,8 +99,8 @@ def main(
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
-    # only need first two PCs
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=3)
+    # fit PCA
+    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=NUM_PCS_TO_FIT)
 
     # Default list of datasets if not provided, only include datasets available in
     # the provided dataframe manifest
@@ -102,20 +113,24 @@ def main(
         dataset_names = [name for name in datasets if name in valid_dataset_options]
 
     # compute bins for polar coordinates
-    bin_limits = BIN_LIMITS_POLAR.copy()
-    idx_theta = POLAR_COLUMN_NAMES.index(ColumnName.POLAR_ANGLE.value)
-    if rescale_theta:
+    bin_limits = [*BIN_LIMITS_POLAR, BIN_LIMITS_RHO, BIN_LIMITS_PC18]
+    idx_theta = column_names.index(ColumnName.POLAR_ANGLE.value)
+    if RESCALE_THETA:
         bin_limits[idx_theta] = BIN_LIMITS_THETA_RESCALED
+
     bins, _ = get_bins(
-        bin_widths=BIN_WIDTHS_POLAR,
+        bin_widths=BIN_WIDTHS_FOR_HISTOGRAMS,
         bin_limits=bin_limits,
     )
+
+    # set output director based on whether including transient data
+    file_subdir = "just_steady_state" if just_steady_state else "includes_transient_data"
 
     # loop over datasets in collection
     # plot summary plots
     # compute drift and diffusion coefficients in polar coordinates
     for dataset_name in dataset_names:
-        fig_savedir = get_output_path(__file__, dataset_name)
+        fig_savedir = get_output_path(__file__, file_subdir, dataset_name)
         dataset_config = load_dataset_config(dataset_name)
 
         df = get_dataframe_for_dynamics_workflows(
@@ -123,9 +138,9 @@ def main(
             dataframe_manifest,
             pca=pca,
             include_cell_piling=False,
-            include_not_steady_state=False,
+            include_not_steady_state=not just_steady_state,
             compute_polar=True,
-            rescale_theta=rescale_theta,
+            rescale_theta=RESCALE_THETA,
         )
 
         df_by_flow, shear_stress_list = split_dataset_by_flow(
@@ -134,29 +149,25 @@ def main(
         )
 
         for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
-            # for datasets with theta distribution similar to MIN shear stress,
-            # shift polar angle range from (-pi, pi) to (0, 2pi) to avoid
-            # numerical errors that come from angle wrapping around at -pi/pi boundary
-
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
             fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$)"
 
             fig, ax = plot_per_position_average_over_time(
                 df_,
-                POLAR_COLUMN_NAMES,
+                column_names=column_names,
                 column_labels=variable_names,
                 polar_angle_range=bin_limits[idx_theta],
             )
             if global_axes_limits:
                 for i, ax_ in enumerate(ax):
-                    ax_.set_ylim(BIN_LIMITS_POLAR[i])
+                    ax_.set_ylim(bin_limits[i])
 
-            fig.suptitle(fig_title)
+            fig.suptitle(fig_title, y=0.91)
             save_plot_to_path(fig, fig_savedir, f"{dataset_name_flow}_per_position_averages")
 
             hist_arrays = []
 
-            for i, column_name in enumerate(POLAR_COLUMN_NAMES):
+            for i, column_name in enumerate(column_names):
                 # plot histogram heatmap over time
                 num_bins = len(bins[i]) - 1
                 frame_min = df_[ColumnName.TIMEPOINT].min()
@@ -180,8 +191,9 @@ def main(
                 time_tick_step=50,
                 bin_tick_num=TICK_STEP_NUM,
             )
-            fig.suptitle(fig_title)
-            save_plot_to_path(fig, fig_savedir, f"{dataset_name_flow}_polar_histogram_heatmap")
+            fig.suptitle(fig_title, y=0.91)
+            save_plot_to_path(fig, fig_savedir, f"{dataset_name_flow}_histogram_heatmap")
+            plt.close("all")
 
 
 if __name__ == "__main__":

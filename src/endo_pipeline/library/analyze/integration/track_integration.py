@@ -23,7 +23,8 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     project_features_to_pcs,
 )
 from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import solve_ddff_ode
-from endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
+from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
@@ -54,7 +55,8 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
 from endo_pipeline.settings.flow_field_3d import (
     BIN_WIDTH_DEFAULTS,
     INIT_POINT_3D,
-    KERNEL_PARAMS_3D,
+    KERNEL_BANDWIDTH,
+    KERNEL_FUNCTION_NAME,
     TIME_STEP_IN_MINUTES,
     TRAJECTORY_TIME_SPAN,
 )
@@ -569,7 +571,8 @@ def get_traj_and_flowfield(
 ) -> tuple[np.ndarray, dict]:
 
     # set kernel params
-    kernel_params = KERNEL_PARAMS_3D
+    kernel_name = KERNEL_FUNCTION_NAME
+    kernel_bw = KERNEL_BANDWIDTH
 
     # set time between frames in minutes
     dt = TIME_STEP_IN_MINUTES
@@ -597,8 +600,8 @@ def get_traj_and_flowfield(
 
     # get drift and diffusion estimates
     # (Kramers-Moyal coefficients)
-    drift_km, diff_km = get_kramers_moyal(
-        traj_list, d_traj_list, bins=bins, dt=dt, kernel_params=kernel_params
+    drift_km, diff_km = get_kramers_moyal_coeffs(
+        traj_list, d_traj_list, bins=bins, dt=dt, kernel=KramersMoyalKernel(kernel_name, kernel_bw)
     )
 
     # get the vector field components from
@@ -1078,9 +1081,12 @@ def load_preprocessed_dataframes_and_km_bounds(
         The loaded dataframe with pc-diffae-seg-merged data.
     """
     # load the pc-diffae-seg-merged parquet file
-    cell_centric_feats_df = load_pc_diffae_liveseg_feats_merged_table(
-        dataset_name, cell_centric_manifest_name
+    cell_centric_feats_manifest = load_dataframe_manifest(cell_centric_manifest_name)
+    cell_centric_feats_location = get_dataframe_location_for_dataset(
+        cell_centric_feats_manifest, dataset_name
     )
+    cell_centric_feats_df = load_dataframe(cell_centric_feats_location, delay=True)
+    cell_centric_feats_df = cell_centric_feats_df.reset_index(drop=True)
 
     # get the grid crop-based diffae features
     # get the model information
@@ -1122,38 +1128,3 @@ def load_preprocessed_dataframes_and_km_bounds(
         cell_centric_feats_df = cell_centric_feats_df.compute()  # type: ignore
 
     return cell_centric_feats_df, diffae_grid_crops, bounds
-
-
-def load_pc_diffae_liveseg_feats_merged_table(
-    dataset_name: str, cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
-) -> dd.DataFrame:
-    """Load the preprocessed pc-diffae-seg-merged parquet file for a given dataset.
-    Performs delayed loading of the dataframe using a dask DataFrame.
-
-    If you load the dataframe like so
-    >>> df = load_pc_diffae_liveseg_feats_merged_table(dataset_name)
-
-    All available columns can be listed with `df.columns`.
-    Columns of interest can be loaded with `df['column_name'].compute()` or
-    `df[['column_name_1', 'column_name_2', ...]].compute()`.
-    Loading the entire dataframe into memory with `df.compute()` takes a lot of memory
-    and time, so it is not recommended.
-
-    Parameters
-    ----------
-    dataset_name
-        The name of the dataset to load.
-
-    Returns
-    -------
-        The loaded dataframe with pc-diffae-seg-merged data.
-    """
-    # load the pc-diffae-seg-merged parquet file
-    cell_centric_feats_manifest = load_dataframe_manifest(cell_centric_manifest_name)
-    cell_centric_feats_location = get_dataframe_location_for_dataset(
-        cell_centric_feats_manifest, dataset_name
-    )
-    cell_centric_feats_df = load_dataframe(cell_centric_feats_location, delay=True)
-    cell_centric_feats_df = cell_centric_feats_df.reset_index(drop=True)
-
-    return cell_centric_feats_df

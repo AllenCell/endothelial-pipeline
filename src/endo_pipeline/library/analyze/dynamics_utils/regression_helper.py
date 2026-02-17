@@ -12,11 +12,13 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_traj_and_diff,
     split_dataset_by_flow,
 )
-from endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
+from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics import get_bins
 from endo_pipeline.library.visualize.diffae_features import feature_viz
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, ColumnName
+from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
+from endo_pipeline.settings.flow_field_3d import KERNEL_BANDWIDTH, KERNEL_FUNCTION_NAME
 
 
 def _kramers_moyal_train_test_one_dataset(
@@ -27,7 +29,8 @@ def _kramers_moyal_train_test_one_dataset(
     dt: float,
     train_frac: float,
     fig_savedir: Path,
-    kernel_params: dict | None = None,
+    kernel_name: str = KERNEL_FUNCTION_NAME,
+    kernel_bw: float = KERNEL_BANDWIDTH,
 ) -> tuple[
     np.ndarray,
     np.ndarray,
@@ -75,8 +78,10 @@ def _kramers_moyal_train_test_one_dataset(
         Fraction of data to use for training in train/test split.
     fig_savedir
         Directory to save figures.
-    kernel_params
-        Dictionary of parameters for kernel regression method.
+    kernel_name
+        Name of the kernel function to use for Kramers-Moyal coefficient estimation.
+    kernel_bw
+        Bandwidth parameter for the kernel function used in Kramers-Moyal coefficient estimation.
     """
 
     # for extracting just the axes (specified via PCs)
@@ -118,12 +123,8 @@ def _kramers_moyal_train_test_one_dataset(
 
         # get drift and diffusion estimates
         # (Kramers-Moyal coefficients)
-        drift_km_, diff_km_ = get_kramers_moyal(
-            traj_list,
-            d_traj_list,
-            bins,
-            dt,
-            kernel_params=kernel_params,
+        drift_km_, diff_km_ = get_kramers_moyal_coeffs(
+            traj_list, d_traj_list, bins, dt, kernel=KramersMoyalKernel(kernel_name, kernel_bw)
         )
 
         # plot drift and diffusion estimates
@@ -186,7 +187,8 @@ def build_kramers_moyal_train_test(
     dt: float,
     fig_savedir: Path,
     train_frac: float = 0.8,
-    kernel_params: dict | None = None,
+    kernel_name: str = KERNEL_FUNCTION_NAME,
+    kernel_bw: float = KERNEL_BANDWIDTH,
 ) -> dict:
     """
     Generate train/test sets for regression on Kramers-Moyal estimates from multiple datasets.
@@ -230,8 +232,10 @@ def build_kramers_moyal_train_test(
         Directory to save figures.
     train_frac
         Fraction of data to use for training in train/test split.
-    kernel_params
-        Dictionary of parameters for kernel regression method.
+    kernel_name
+        Name of the kernel function to use for Kramers-Moyal coefficient estimation.
+    kernel_bw
+        Bandwidth parameter for the kernel function used in Kramers-Moyal coefficient estimation.
     """
 
     # initialize lists to store train test sets for each dataset
@@ -264,7 +268,8 @@ def build_kramers_moyal_train_test(
                 dt,
                 train_frac,
                 fig_savedir,
-                kernel_params=kernel_params,
+                kernel_name=kernel_name,
+                kernel_bw=kernel_bw,
             )
         )
 
