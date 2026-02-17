@@ -22,7 +22,7 @@ def main(
     n_dims: int = NUM_PCS_TO_ANALYZE,
     columns: StrList | None = None,
     replace_mean_with_value: OptionalFloatList | None = None,
-    sigma: float | None = None,
+    sigma: float = 3.0,
     n_steps: int = 7,
     use_pcs: bool = True,
     use_polar: bool = False,
@@ -167,7 +167,9 @@ def main(
         raise
 
     # get latent walk
-    walk, ranges = get_latent_walk(data_for_walk, n_dims, sigma, n_steps, replace_mean_with_value)
+    walk, ranges = get_latent_walk(
+        data_for_walk, n_dims, sigma if sigma > 0 else None, n_steps, replace_mean_with_value
+    )
     if use_polar:
         # have to manually convert from polar to cartesian coordinates before
         # applying inverse PCA transformation
