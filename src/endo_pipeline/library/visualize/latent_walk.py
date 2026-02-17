@@ -145,8 +145,10 @@ def plot_latent_walk_as_grid(
             get_label_for_column(column_names[i]) for i in range(start_idx, end_idx)
         ]
         # remove special latex characters from labels for filename
+        # and remove 'polar ' prefix if present
         labels_for_filename = [
-            label.replace("\\", "").replace("$", "") for label in dimension_labels
+            label.replace("\\", "").replace("$", "").replace("polar ", "")
+            for label in dimension_labels
         ]
         batch_suffix = "_".join(labels_for_filename)
         batch_file_name = f"{file_name}{batch_suffix}"
