@@ -29,15 +29,16 @@ def main(n_cores=1):
 
     from endo_pipeline.configs import get_subset_of_timepoint_annotations, load_dataset_config
     from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
-    from endo_pipeline.io import get_output_path
+    from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
-    from endo_pipeline.library.analyze.integration.track_integration import (
-        load_pc_diffae_liveseg_feats_merged_table,
-    )
     from endo_pipeline.library.analyze.intensity_features import (
         calculate_edge_intensity_distribution_for_segmentations_mp,
     )
-    from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
+    from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+        SEGMENTATION_FEATURE_COLUMNS,
+    )
 
     low_flow_dataset_name = "20250402_20X"
     high_flow_dataset_name = "20250611_20X"
@@ -71,7 +72,10 @@ def main(n_cores=1):
         # position = args["position"]
         # tp = args["T"]
 
-        df = load_pc_diffae_liveseg_feats_merged_table(dataset_name)
+        df_manifest = load_dataframe_manifest(DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME)
+        df_loc = get_dataframe_location_for_dataset(df_manifest, dataset_name)
+        df = load_dataframe(df_loc, delay=True)
+        df = df.reset_index(drop=True)
         dataset_config = load_dataset_config(dataset_name)
 
         dataset_info_cols = [
