@@ -2,7 +2,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from endo_pipeline.cli import CropPattern
+from endo_pipeline.cli import CropPattern, StrList
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -20,6 +20,7 @@ def main(
     dataset_collection: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
+    columns: StrList | None = None,
     sigma: float = 3.0,
     n_steps: int = 7,
     use_pcs: bool = True,
@@ -106,7 +107,11 @@ def main(
             num_pcs=num_pcs,
         )
         n_dims = pca.n_components_
-        column_names = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(n_dims)]
+        column_names = (
+            [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(n_dims)]
+            if columns is None
+            else columns
+        )
         data_for_walk = get_dataframe_for_latent_walk(
             dataset_names,
             dataframe_manifest,
@@ -118,8 +123,11 @@ def main(
     else:
         # perform latent walk along the raw latent dimensions
         n_dims = model.semantic_encoder.base_encoder.num_classes
-        column_names = [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(n_dims)]
-
+        column_names = (
+            [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(n_dims)]
+            if columns is None
+            else columns
+        )
         data_for_walk = get_dataframe_for_latent_walk(
             dataset_names,
             dataframe_manifest,
