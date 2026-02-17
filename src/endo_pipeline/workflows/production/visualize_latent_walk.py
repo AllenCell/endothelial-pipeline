@@ -56,6 +56,8 @@ def main(
         List of PC values to replace the mean with for each PC dimension. Must be of length num_pcs.
         If None, uses the mean of the data.
     """
+    import logging
+
     from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_model
@@ -75,11 +77,14 @@ def main(
     )
     from endo_pipeline.settings import ColumnName
 
+    logger = logging.getLogger(__name__)
+
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     model = load_model(model_manifest.locations[run_name_], instantiate=True)
-    assert isinstance(model, DiffusionAutoEncoder)
+    if not isinstance(model, DiffusionAutoEncoder):
+        raise ValueError(f"Expected model of type DiffusionAutoEncoder, got {type(model)}.")
 
     # set up output directory
     save_path = get_output_path(
@@ -122,14 +127,21 @@ def main(
         )
 
     # get dataframe for getting the standard dev. based latent walk
-    data_for_walk = get_dataframe_for_latent_walk(
-        dataset_names,
-        dataframe_manifest,
-        model,
-        include_cell_piling,
-        crop_pattern,
-        column_names=column_names,
-    )
+    try:
+        data_for_walk = get_dataframe_for_latent_walk(
+            dataset_names,
+            dataframe_manifest,
+            model,
+            include_cell_piling,
+            crop_pattern,
+            column_names=column_names,
+        )
+    except KeyError:
+        logger.error(
+            "Passed in an invalid column name for latent walk dataframe; column names specified: [ %s ].",
+            ", ".join(column_names),
+        )
+        raise
 
     # get latent walk
     walk, ranges = get_latent_walk(
