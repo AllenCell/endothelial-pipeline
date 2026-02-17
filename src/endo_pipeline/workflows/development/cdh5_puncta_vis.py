@@ -70,6 +70,7 @@ def main():
 
         cmap = "inferno"
         fig, ax = plt.subplots(subplot_kw={"projection": "polar"})
+        ax.semilogy()
         intens = np.concatenate(df_sub.intensity.values)
         ang = np.concatenate(df_sub.angle.values)
         ax.hist2d(
@@ -88,6 +89,7 @@ def main():
         plt.close(fig)
 
         fig, ax = plt.subplots(subplot_kw={"projection": "polar"})
+        ax.semilogy()
         intens = np.concatenate(df_sub.intensity.values)
         ang = np.concatenate(df_sub.intens_angle_rel_migration.values)
         ax.hist2d(
@@ -145,36 +147,36 @@ def main():
     save_plot_to_path(fig, outdir, fname)
     plt.close(fig)
 
-    fig, ax = plt.subplots()
-    sns.histplot(
-        low_flow_df.num_peaks,
-        binwidth=1,
-        color="tab:blue",
-        label=low_flow_df.dataset.unique().item(),
-        element="step",
-        fill=False,
-        discrete=True,
-        cumulative=True,
-        ax=ax,
-    )
-    sns.histplot(
-        high_flow_df.num_peaks,
-        binwidth=1,
-        color="tab:orange",
-        label=high_flow_df.dataset.unique().item(),
-        element="step",
-        fill=False,
-        discrete=True,
-        cumulative=True,
-        ax=ax,
-    )
-    ax.set_ylabel("Cumulative count")
-    ax.set_xlabel("Number of peaks in edge intensity distribution")
-    ax.legend()
-    plt.tight_layout()
-    fname = "cdh5_edge_intens_quant_num_peaks_cumulative.png"
-    save_plot_to_path(fig, outdir, fname)
-    plt.close(fig)
+    # fig, ax = plt.subplots()
+    # sns.histplot(
+    #     low_flow_df.num_peaks,
+    #     binwidth=1,
+    #     color="tab:blue",
+    #     label=low_flow_df.dataset.unique().item(),
+    #     element="step",
+    #     fill=False,
+    #     discrete=True,
+    #     cumulative=True,
+    #     ax=ax,
+    # )
+    # sns.histplot(
+    #     high_flow_df.num_peaks,
+    #     binwidth=1,
+    #     color="tab:orange",
+    #     label=high_flow_df.dataset.unique().item(),
+    #     element="step",
+    #     fill=False,
+    #     discrete=True,
+    #     cumulative=True,
+    #     ax=ax,
+    # )
+    # ax.set_ylabel("Cumulative count")
+    # ax.set_xlabel("Number of peaks in edge intensity distribution")
+    # ax.legend()
+    # plt.tight_layout()
+    # fname = "cdh5_edge_intens_quant_num_peaks_cumulative.png"
+    # save_plot_to_path(fig, outdir, fname)
+    # plt.close(fig)
 
     fig, ax = plt.subplots()
     sns.histplot(
@@ -202,36 +204,36 @@ def main():
     save_plot_to_path(fig, outdir, fname)
     plt.close(fig)
 
-    fig, ax = plt.subplots()
-    sns.histplot(
-        reduce(lambda a, b: a + b, low_flow_df.peak_prominences.values.tolist(), []),
-        binwidth=1,
-        color="tab:blue",
-        label=low_flow_df.dataset.unique().item(),
-        element="step",
-        fill=False,
-        discrete=True,
-        cumulative=True,
-        ax=ax,
-    )
-    sns.histplot(
-        reduce(lambda a, b: a + b, high_flow_df.peak_prominences.values.tolist(), []),
-        binwidth=1,
-        color="tab:orange",
-        label=high_flow_df.dataset.unique().item(),
-        element="step",
-        fill=False,
-        discrete=True,
-        cumulative=True,
-        ax=ax,
-    )
-    ax.set_ylabel("Cumulative count")
-    ax.set_xlabel("Peak prominence value")
-    ax.legend()
-    plt.tight_layout()
-    fname = "cdh5_edge_intens_quant_peak_prom_cumulative.png"
-    save_plot_to_path(fig, outdir, fname)
-    plt.close(fig)
+    # fig, ax = plt.subplots()
+    # sns.histplot(
+    #     reduce(lambda a, b: a + b, low_flow_df.peak_prominences.values.tolist(), []),
+    #     binwidth=1,
+    #     color="tab:blue",
+    #     label=low_flow_df.dataset.unique().item(),
+    #     element="step",
+    #     fill=False,
+    #     discrete=True,
+    #     cumulative=True,
+    #     ax=ax,
+    # )
+    # sns.histplot(
+    #     reduce(lambda a, b: a + b, high_flow_df.peak_prominences.values.tolist(), []),
+    #     binwidth=1,
+    #     color="tab:orange",
+    #     label=high_flow_df.dataset.unique().item(),
+    #     element="step",
+    #     fill=False,
+    #     discrete=True,
+    #     cumulative=True,
+    #     ax=ax,
+    # )
+    # ax.set_ylabel("Cumulative count")
+    # ax.set_xlabel("Peak prominence value")
+    # ax.legend()
+    # plt.tight_layout()
+    # fname = "cdh5_edge_intens_quant_peak_prom_cumulative.png"
+    # save_plot_to_path(fig, outdir, fname)
+    # plt.close(fig)
 
 
 if __name__ == "__main__":

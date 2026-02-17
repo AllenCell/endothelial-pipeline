@@ -42,7 +42,8 @@ def main(n_cores=1):
 
     low_flow_dataset_name = "20250402_20X"
     high_flow_dataset_name = "20250611_20X"
-    dataset_name_list = [low_flow_dataset_name, high_flow_dataset_name]
+    interm_flow_dataset_name = "20250818_20X"
+    dataset_name_list = [low_flow_dataset_name, high_flow_dataset_name, interm_flow_dataset_name]
 
     for dataset_name in dataset_name_list:
         out_dir = get_output_path(__file__)
@@ -119,9 +120,6 @@ def main(n_cores=1):
 
         df_subset = df_subset.query("position == 0")
 
-        # test_timepoints = sorted(df_subset.image_index.unique())[:5]
-        # df_subset = df_subset[df_subset["image_index"] == test_timepoints]
-
         grps = df_subset.groupby(["dataset", "position", "image_index"])
 
         worker_pool = ProcessPoolExecutor(max_workers=n_cores)
@@ -145,59 +143,6 @@ def main(n_cores=1):
             file_extension=".parquet",
             remove_initial_files_and_folders=True,
         )
-
-    # def initial_test():
-    #     x_slice = slice(record.start_x_cdh5_seg.values.item(), record.end_x_cdh5_seg.values.item())
-    #     y_slice = slice(record.start_y_cdh5_seg.values.item(), record.end_y_cdh5_seg.values.item())
-
-    #     # plt.imshow(overlay[y_slice, x_slice])
-    #     # plt.show()
-    #     # plt.clf()
-
-    #     overlay2 = label2rgb(
-    #         find_boundaries(seg_arr == seg_of_interest),
-    #         rescale_intensity(np.clip(raw_arr, a_min=20, a_max=150), out_range=(0, 1)),
-    #         bg_label=0,
-    #         alpha=0.3,
-    #     )
-    #     plt.imshow(overlay2[y_slice, x_slice])
-    #     plt.show()
-    #     plt.clf()
-
-    #     seg_bound = find_boundaries(seg_arr == seg_of_interest)
-    #     seg_bound_locs = np.where(seg_bound)
-    #     crop = tuple(slice(locs_dim.min(), locs_dim.max() + 1) for locs_dim in seg_bound_locs)
-    #     plt.imshow(seg_bound[crop])
-    #     plt.show()
-    #     plt.clf()
-
-    #     seg_centroid = tuple(int(locs_dim.mean()) for locs_dim in seg_bound_locs)
-
-    #     # get the angle from each pixel in seg_bound to seg_centroid and also
-    #     # the fluorescence intensity at each of those pixels
-    #     angles = np.arctan2(
-    #         seg_bound_locs[0] - seg_centroid[0],
-    #         seg_bound_locs[1] - seg_centroid[1],
-    #     )
-    #     intensities = raw_arr[seg_bound_locs]
-
-    #     plt.scatter(angles, intensities, color="k")
-    #     plt.show()
-    #     plt.clf()
-
-    #     import seaborn as sns
-
-    #     # Are the distributions of intensities different between high and low AT ALL?
-    #     sns.histplot(intensities)
-
-    #     intensities.std()
-
-    #     # take peak of histogram (use mean instead?) to get baseline of fluorescence intensity
-    #     # compare with 95th percentile of intensities(??) to determine if there is a "puncta"
-    #     # of high fluorescence at the cell boundary(??)
-
-    #     # make sure to filter to steady state only
-    #     # pick just 1 position to start with for low and high each
 
 
 if __name__ == "__main__":
