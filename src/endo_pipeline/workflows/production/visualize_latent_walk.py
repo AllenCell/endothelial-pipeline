@@ -66,12 +66,10 @@ def main(
     """
     import logging
 
-    import numpy as np
-
     from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_model
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca, polar_to_pcs
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
     from endo_pipeline.library.model.latent_walk_utils import (
         generate_latent_walk_images,
@@ -172,12 +170,11 @@ def main(
         walk_polar = walk.copy()
         polar_angle_idx = column_names.index(f"{ColumnName.POLAR_ANGLE}")
         polar_radius_idx = column_names.index(f"{ColumnName.POLAR_RADIUS}")
-        walk[:, polar_angle_idx] = walk_polar[:, polar_radius_idx] * np.cos(
-            walk_polar[:, polar_angle_idx]
+        pcs_from_polar = polar_to_pcs(
+            walk_polar[:, polar_radius_idx], walk_polar[:, polar_angle_idx]
         )
-        walk[:, polar_radius_idx] = walk_polar[:, polar_radius_idx] * np.sin(
-            walk_polar[:, polar_angle_idx]
-        )
+        walk[:, polar_angle_idx] = pcs_from_polar[:, 0]
+        walk[:, polar_radius_idx] = pcs_from_polar[:, 1]
     if use_pcs:
         # if using PCs, inverse transform the walk to get back to latent space
         # coordinates (for passing to the model to generate images)
