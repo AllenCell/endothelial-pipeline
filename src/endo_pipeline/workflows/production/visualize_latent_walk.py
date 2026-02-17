@@ -25,6 +25,7 @@ def main(
     sigma: float = 3.0,
     n_steps: int = 7,
     use_pcs: bool = True,
+    use_polar: bool = False,
     n_noise_samples: int = 1,
 ) -> None:
     """
@@ -64,6 +65,8 @@ def main(
         Number of noise samples to use for generating images.
     """
     import logging
+
+    import numpy as np
 
     from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import get_datasets_in_collection
@@ -118,14 +121,25 @@ def main(
             include_cell_piling=include_cell_piling,
             num_pcs=n_dims,
         )
-        column_names = (
-            [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(n_dims)]
-            if columns is None
-            else columns
-        )
+        if use_polar:
+            column_names = (
+                [f"{ColumnName.POLAR_ANGLE}", f"{ColumnName.POLAR_RADIUS}"]
+                if columns is None
+                else columns
+            )
+            compute_polar = True
+        else:
+            column_names = (
+                [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(n_dims)]
+                if columns is None
+                else columns
+            )
+            compute_polar = False
+
     else:
         # perform latent walk along the raw latent dimensions
         pca = None
+        compute_polar = False
         column_names = (
             [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(n_dims)]
             if columns is None
@@ -141,6 +155,7 @@ def main(
             include_cell_piling,
             crop_pattern,
             column_names,
+            compute_polar=compute_polar,
         )
     except KeyError:
         logger.error(
@@ -151,6 +166,18 @@ def main(
 
     # get latent walk
     walk, ranges = get_latent_walk(data_for_walk, n_dims, sigma, n_steps, replace_mean_with_value)
+    if use_polar:
+        # have to manually convert from polar to cartesian coordinates before
+        # applying inverse PCA transformation
+        walk_polar = walk.copy()
+        polar_angle_idx = column_names.index(f"{ColumnName.POLAR_ANGLE}")
+        polar_radius_idx = column_names.index(f"{ColumnName.POLAR_RADIUS}")
+        walk[:, polar_angle_idx] = walk_polar[:, polar_radius_idx] * np.cos(
+            walk_polar[:, polar_angle_idx]
+        )
+        walk[:, polar_radius_idx] = walk_polar[:, polar_radius_idx] * np.sin(
+            walk_polar[:, polar_angle_idx]
+        )
     if use_pcs:
         # if using PCs, inverse transform the walk to get back to latent space
         # coordinates (for passing to the model to generate images)

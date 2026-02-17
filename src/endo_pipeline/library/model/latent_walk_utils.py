@@ -87,6 +87,7 @@ def get_dataframe_for_latent_walk(
     include_cell_piling: bool,
     crop_pattern: Literal["grid", "tracked"],
     column_names: list[str],
+    compute_polar: bool = False,
 ) -> np.ndarray:
     """
     Build data array for latent walk on data projected onto PCA axes.
@@ -117,6 +118,7 @@ def get_dataframe_for_latent_walk(
                 pca,
                 include_cell_piling=include_cell_piling,
                 crop_pattern=crop_pattern,
+                compute_polar=compute_polar,
             )
             for dataset_name in dataset_names
         ]
