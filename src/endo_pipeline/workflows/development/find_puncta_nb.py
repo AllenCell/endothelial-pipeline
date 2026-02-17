@@ -4,11 +4,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.metrics import roc_auc_score
 
-from endo_pipeline.io import get_output_path, save_plot_to_path
-from endo_pipeline.library.analyze.integration.track_integration import (
-    load_pc_diffae_liveseg_feats_merged_table,
-)
+from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
+from endo_pipeline.settings.workflow_defaults import DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
 
 # %%
 pc_columns_to_keep = DIFFAE_PC_COLUMN_NAMES[:80]
@@ -66,7 +65,15 @@ no_puncta_files = [
 df_puncta_list = []
 for file_info in has_puncta_files + no_puncta_files:
     dataset_name = file_info["dataset_name"]
-    df = load_pc_diffae_liveseg_feats_merged_table(dataset_name)
+    cell_centric_feats_manifest = load_dataframe_manifest(
+        DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
+    )
+    cell_centric_feats_location = get_dataframe_location_for_dataset(
+        cell_centric_feats_manifest, dataset_name
+    )
+    df = load_dataframe(cell_centric_feats_location, delay=True)
+    df = df.reset_index(drop=True)
+
     df = df[pc_columns_to_keep + other_cols_to_keep].compute()
 
     fname = file_info["fname"]

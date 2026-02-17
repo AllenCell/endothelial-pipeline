@@ -52,7 +52,6 @@ df = get_df_for_feature_correlation_viz(
     segmentation_feature_columns=SEGMENTATION_FEATURE_COLUMNS["default"],
     pc_columns=get_pc_column_names(NUM_PCS_TO_ANALYZE),
     diffae_feature_columns=get_latent_feature_column_names(NUM_LATENT_FEATURES),
-    polar_pc_columns=[ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE],
     timepoint_annotations=timepoint_annotations,
 )
 # %%

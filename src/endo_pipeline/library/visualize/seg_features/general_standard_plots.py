@@ -338,7 +338,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "ticks": None,  # range(0, 49, 12),
             "discrete_ticks": False,
         },
-        "alignment_deg": {
+        "alignment_deg_rel_to_flow": {
             "column_name": "alignment_deg_rel_to_flow",
             "label": "Alignment (deg)",
             "lims": (0, 90),
@@ -378,7 +378,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "ticks": None,
             "discrete_ticks": False,
         },
-        "area_um2": {
+        "area (um**2)": {
             "column_name": "area (um**2)",
             "label": "Area (μm²)",
             "lims": (350, 2000),
@@ -402,7 +402,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "ticks": None,
             "discrete_ticks": False,
         },
-        "centroid_velocity_orientation_deg": {
+        "centroid_velocity_angle_deg": {
             "column_name": "centroid_velocity_angle_deg",
             "label": "Centroid Velocity\nOrientation (deg)",
             "lims": (-180, 181),
@@ -426,7 +426,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "ticks": None,
             "discrete_ticks": False,
         },
-        "num_nuclei": {
+        "total_nuclei_count_at_T": {
             "column_name": "total_nuclei_count_at_T",
             "label": "Number of Nuclei",
             "lims": (0, None),
@@ -450,7 +450,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "ticks": None,
             "discrete_ticks": True,
         },
-        "cell_fluorescence_mean": {
+        "cell_fluorescence_mean (a.u.)": {
             "column_name": "cell_fluorescence_mean (a.u.)",
             "label": "Mean Cell Fluorescence",
             "lims": (120, 150),
@@ -497,6 +497,22 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,
+        },
+        "num_unique_tracks_before_filtering_at_T": {
+            "column_name": "num_unique_tracks_before_filtering_at_T",
+            "label": "Num. Segmentations\nBefore Filtering",
+            "lims": (0, None),
+            "bin_width": None,
+            "ticks": None,
+            "discrete_ticks": True,
+        },
+        "num_unique_tracks_after_filtering_at_T": {
+            "column_name": "num_unique_tracks_after_filtering_at_T",
+            "label": "Num. Segmentations\nAfter Filtering",
+            "lims": (0, None),
+            "bin_width": None,
+            "ticks": None,
+            "discrete_ticks": True,
         },
     }
 

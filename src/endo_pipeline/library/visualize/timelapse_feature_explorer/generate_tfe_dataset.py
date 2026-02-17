@@ -11,9 +11,6 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
 )
-from endo_pipeline.library.analyze.integration.track_integration import (
-    load_pc_diffae_liveseg_feats_merged_table,
-)
 from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     generate_backdrops,
 )
@@ -42,6 +39,7 @@ from endo_pipeline.settings.workflow_defaults import (
     DATASET_INFO_COLUMNS,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     SEGMENTATION_FEATURE_COLUMNS,
 )
@@ -57,6 +55,7 @@ def generate_tfe_dataset(
     backdrops: bool,
     output_dir_suffix: str = "",
     include_diffae_features: bool = True,
+    cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
 ) -> None:
     """
     Create timelapse feature explorer manifest and generate backdrop images.
@@ -149,12 +148,15 @@ def get_df_and_label_map_cdh5seg(
     position: int,
     label_map: dict,
     include_diffae_features: bool,
-    dataframe_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    dataframe_manifest_name_cellcentric: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+    dataframe_manifest_name_seg_only: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 ):
     if include_diffae_features:
         try:
             # Load dataframe with the diffae features and computed PCs
-            df_tracks = load_pc_diffae_liveseg_feats_merged_table(dataset)
+            segprops_manifest = load_dataframe_manifest(dataframe_manifest_name_cellcentric)
+            segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset)
+            df_tracks = load_dataframe(segprops_location, delay=True)
             include_diffae_features_failed = False
         except KeyError:
             logger.warning(
@@ -163,7 +165,7 @@ def get_df_and_label_map_cdh5seg(
             include_diffae_features_failed = True
     if include_diffae_features is False or include_diffae_features_failed is True:
         # load just the CDH5-based segmentation features as a fallback if no DiffAE features exist
-        segprops_manifest = load_dataframe_manifest(dataframe_manifest_name)
+        segprops_manifest = load_dataframe_manifest(dataframe_manifest_name_seg_only)
         segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset)
         df_tracks = load_dataframe(segprops_location, delay=True)
         # remove the DiffAE-related entries from label_map before constructing the TFE dataset
