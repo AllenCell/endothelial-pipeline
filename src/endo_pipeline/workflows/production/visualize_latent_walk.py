@@ -112,14 +112,6 @@ def main(
             if columns is None
             else columns
         )
-        data_for_walk = get_dataframe_for_latent_walk(
-            dataset_names,
-            dataframe_manifest,
-            pca,
-            include_cell_piling,
-            crop_pattern,
-            column_names=column_names,
-        )
     else:
         # perform latent walk along the raw latent dimensions
         n_dims = model.semantic_encoder.base_encoder.num_classes
@@ -128,14 +120,16 @@ def main(
             if columns is None
             else columns
         )
-        data_for_walk = get_dataframe_for_latent_walk(
-            dataset_names,
-            dataframe_manifest,
-            model,
-            include_cell_piling,
-            crop_pattern,
-            column_names=column_names,
-        )
+
+    # get dataframe for getting the standard dev. based latent walk
+    data_for_walk = get_dataframe_for_latent_walk(
+        dataset_names,
+        dataframe_manifest,
+        model,
+        include_cell_piling,
+        crop_pattern,
+        column_names=column_names,
+    )
 
     # get latent walk
     walk, ranges = get_latent_walk(data_for_walk, n_dims, sigma, n_steps)
