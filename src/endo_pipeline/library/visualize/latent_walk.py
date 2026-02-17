@@ -20,6 +20,7 @@ def _plot_latent_walk_batch_as_grid(
     save_path: Path,
     file_name: str,
     show_values: bool = True,
+    label_sigmas: bool = True,
 ) -> None:
 
     # Set up the grid
@@ -68,9 +69,10 @@ def _plot_latent_walk_batch_as_grid(
                 )
 
             # Titles only on first row
-            if i == 0:
-                column_title = f"{j - (num_steps // 2)}\u03c3"
-                ax.set_title(column_title, fontsize=10, pad=5)
+            if label_sigmas:
+                if i == 0:
+                    column_title = f"{j - (num_steps // 2)}\u03c3"
+                    ax.set_title(column_title, fontsize=10, pad=5)
 
             # Y labels only on first column
             if j == 0:
@@ -102,8 +104,8 @@ def plot_latent_walk_as_grid(
     column_names: list[str],
     save_path: Path,
     file_name: str,
-    use_pcs: bool = True,
     show_values: bool = True,
+    label_sigmas: bool = True,
     batches: list[tuple[int, int]] | None = None,
 ) -> None:
     """
@@ -156,4 +158,5 @@ def plot_latent_walk_as_grid(
             save_path,
             batch_file_name,
             show_values,
+            label_sigmas,
         )
