@@ -63,8 +63,7 @@ def main(
     from endo_pipeline.library.model.latent_walk_utils import (
         generate_latent_walk_images,
         get_dataframe_for_latent_walk,
-        get_pca_latent_walk,
-        get_raw_latent_walk,
+        get_latent_walk,
     )
     from endo_pipeline.library.visualize.latent_walk import plot_latent_walk_as_grid
     from endo_pipeline.manifests import (
@@ -106,7 +105,8 @@ def main(
             include_cell_piling=include_cell_piling,
             num_pcs=num_pcs,
         )
-        column_names = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(pca.n_components_)]
+        n_dims = pca.n_components_
+        column_names = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(n_dims)]
         data_for_walk = get_dataframe_for_latent_walk(
             dataset_names,
             dataframe_manifest,
@@ -115,13 +115,10 @@ def main(
             crop_pattern,
             column_names=column_names,
         )
-        walk, ranges = get_pca_latent_walk(
-            data_for_walk, pca, sigma, n_steps, replace_mean_with_pc_value
-        )
     else:
         # perform latent walk along the raw latent dimensions
-        num_latent_dims = model.semantic_encoder.base_encoder.num_classes
-        column_names = [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(num_latent_dims)]
+        n_dims = model.semantic_encoder.base_encoder.num_classes
+        column_names = [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(n_dims)]
 
         data_for_walk = get_dataframe_for_latent_walk(
             dataset_names,
@@ -131,7 +128,13 @@ def main(
             crop_pattern,
             column_names=column_names,
         )
-        walk, ranges = get_raw_latent_walk(data_for_walk, sigma, n_steps)
+
+    # get latent walk
+    walk, ranges = get_latent_walk(data_for_walk, n_dims, sigma, n_steps)
+    if use_pcs:
+        # if using PCs, inverse transform the walk to get back to latent space
+        # coordinates (for passing to the model to generate images)
+        walk = pca.inverse_transform(walk)
 
     # generate images from the latent walk
     walk_img_grid = generate_latent_walk_images(model, walk, ranges, n_noise_samples, NUM_GPUS)
