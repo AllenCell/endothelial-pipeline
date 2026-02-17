@@ -115,7 +115,11 @@ def main(
         # perform latent walk along the principal components
         if use_polar:
             column_names = (
-                [f"{ColumnName.POLAR_ANGLE}", f"{ColumnName.POLAR_RADIUS}"]
+                [
+                    f"{ColumnName.POLAR_ANGLE}",
+                    f"{ColumnName.POLAR_RADIUS}",
+                    f"{ColumnName.PC3_FLIPPED}",
+                ]
                 if columns is None
                 else columns
             )
@@ -170,11 +174,15 @@ def main(
         walk_polar = walk.copy()
         polar_angle_idx = column_names.index(f"{ColumnName.POLAR_ANGLE}")
         polar_radius_idx = column_names.index(f"{ColumnName.POLAR_RADIUS}")
+        flipped_pc3_idx = column_names.index(f"{ColumnName.PC3_FLIPPED}")
         pc1_values, pc2_values = polar_to_pcs(
             walk_polar[:, polar_angle_idx], walk_polar[:, polar_radius_idx]
         )
         walk[:, polar_angle_idx] = pc1_values
         walk[:, polar_radius_idx] = pc2_values
+        walk[:, flipped_pc3_idx] = -walk[
+            :, flipped_pc3_idx
+        ]  # convert back to original orientation of PC3
     if use_pcs:
         # if using PCs, inverse transform the walk to get back to latent space
         # coordinates (for passing to the model to generate images)
