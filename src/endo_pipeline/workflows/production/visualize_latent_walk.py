@@ -22,7 +22,7 @@ def main(
     n_dims: int = NUM_PCS_TO_ANALYZE,
     columns: StrList | None = None,
     replace_mean_with_value: OptionalFloatList | None = None,
-    sigma: float | None = 3.0,
+    sigma: float | None = None,
     n_steps: int = 7,
     use_pcs: bool = True,
     use_polar: bool = False,
@@ -171,11 +171,11 @@ def main(
         walk_polar = walk.copy()
         polar_angle_idx = column_names.index(f"{ColumnName.POLAR_ANGLE}")
         polar_radius_idx = column_names.index(f"{ColumnName.POLAR_RADIUS}")
-        pcs_from_polar = polar_to_pcs(
-            walk_polar[:, polar_radius_idx], walk_polar[:, polar_angle_idx]
+        pc1_values, pc2_values = polar_to_pcs(
+            walk_polar[:, polar_angle_idx], walk_polar[:, polar_radius_idx]
         )
-        walk[:, polar_angle_idx] = pcs_from_polar[:, 0]
-        walk[:, polar_radius_idx] = pcs_from_polar[:, 1]
+        walk[:, polar_angle_idx] = pc1_values
+        walk[:, polar_radius_idx] = pc2_values
     if use_pcs:
         # if using PCs, inverse transform the walk to get back to latent space
         # coordinates (for passing to the model to generate images)
