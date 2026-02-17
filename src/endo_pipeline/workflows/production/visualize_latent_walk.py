@@ -113,12 +113,6 @@ def main(
 
     if use_pcs:
         # perform latent walk along the principal components
-        pca = fit_pca(
-            dataset_collection_name=dataset_collection,
-            dataframe_manifest_name=dataframe_manifest_name,
-            include_cell_piling=include_cell_piling,
-            num_pcs=n_dims,
-        )
         if use_polar:
             column_names = (
                 [f"{ColumnName.POLAR_ANGLE}", f"{ColumnName.POLAR_RADIUS}"]
@@ -134,7 +128,12 @@ def main(
                 else columns
             )
             compute_polar = False
-
+        pca = fit_pca(
+            dataset_collection_name=dataset_collection,
+            dataframe_manifest_name=dataframe_manifest_name,
+            include_cell_piling=include_cell_piling,
+            num_pcs=n_dims,
+        )
     else:
         # perform latent walk along the raw latent dimensions
         pca = None
