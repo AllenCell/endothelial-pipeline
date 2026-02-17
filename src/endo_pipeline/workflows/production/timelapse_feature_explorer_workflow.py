@@ -62,7 +62,11 @@ def main(
     if datasets is None:
         datasets = ["20250618_20X"]
 
-    output_dir = get_output_path("timelapse_feature_explorer") if output_dir is None else output_dir
+    output_dir = (
+        get_output_path(f"timelapse_feature_explorer_{segmentation}")
+        if output_dir is None
+        else output_dir
+    )
 
     # Iterate through datasets and positions
     for dataset_name in datasets:
