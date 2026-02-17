@@ -22,7 +22,7 @@ def main(
     n_dims: int = NUM_PCS_TO_ANALYZE,
     columns: StrList | None = None,
     replace_mean_with_value: OptionalFloatList | None = None,
-    sigma: float = 3.0,
+    sigma: float | None = 3.0,
     n_steps: int = 7,
     use_pcs: bool = True,
     use_polar: bool = False,
