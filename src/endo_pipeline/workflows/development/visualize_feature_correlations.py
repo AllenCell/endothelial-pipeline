@@ -2,7 +2,6 @@ from typing import Literal
 
 from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import TimepointAnnotation
-from endo_pipeline.settings.diffae_feature_dataframes import NUM_PCS_TO_ANALYZE
 from endo_pipeline.settings.workflow_defaults import (
     DATASET_INFO_COLUMNS,
     DEFAULT_MODEL_MANIFEST_NAME,
@@ -20,10 +19,11 @@ def main(
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     dataset_info_columns: list[str] = DATASET_INFO_COLUMNS,
     segmentation_feature_group: str = "default",
-    num_pcs: int | None = None,
+    pc_group: str = "default",
     timepoint_annotations: list[TimepointAnnotation] | Literal["default"] | None = "default",
     aggregate_only: bool = True,
-    skip_multi_feature_scatterplots: bool = False,
+    skip_multi_feature_scatterplots: bool = True,
+    compare_with_diffae_features: bool = False,
 ) -> None:
     """
     Visualize correlation heatmaps and clustermaps for DiffAE features, PCs,
@@ -98,7 +98,6 @@ def main(
         get_model_location_for_run,
         get_most_recent_run_name,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
     logger = logging.getLogger(__name__)
 
@@ -113,11 +112,9 @@ def main(
     model_location = get_model_location_for_run(model_manifest, run_name_)
     model_config = get_config_dict_from_mlflow(model_location.mlflowid)  # type: ignore
     num_features = get_latent_dim_from_config(model_config)
-    num_pcs = num_pcs if num_pcs is not None else min(NUM_PCS_TO_ANALYZE, num_features)
 
-    pc_columns = get_pc_column_names(num_pcs)
     diffae_feature_columns = get_latent_feature_column_names(num_features)
-    polar_pc_columns = [ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE]
+    pc_columns = get_pc_column_names(pc_group)
 
     if timepoint_annotations == "default":
         annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
@@ -144,18 +141,17 @@ def main(
         segmentation_feature_columns=segmentation_feature_columns,
         pc_columns=pc_columns,
         diffae_feature_columns=diffae_feature_columns,
-        polar_pc_columns=polar_pc_columns,
         timepoint_annotations=timepoint_annotations,
     )
-
-    pc_and_polar_group = [*pc_columns[:3], *polar_pc_columns]
 
     label_column_tuples = [
         ("Measurement", [get_label_for_column(col) for col in segmentation_feature_columns]),
         ("PC", [get_label_for_column(col) for col in pc_columns]),
-        ("DiffAE Feature", [get_label_for_column(col) for col in diffae_feature_columns]),
-        ("PC with polar transform", [get_label_for_column(col) for col in pc_and_polar_group]),
     ]
+    if compare_with_diffae_features:
+        label_column_tuples.append(
+            ("DiffAE Feature", [get_label_for_column(col) for col in diffae_feature_columns])
+        )
 
     if aggregate_only:
         dataset_name_list = ["aggregate"]
@@ -222,7 +218,7 @@ def main(
                 __file__,
                 dataset_name,
                 segmentation_feature_group,
-                f"{num_features}_features_x_{num_pcs}_pcs",
+                f"{num_features}_features_x_{pc_group}_pcs",
                 f"{x_filename}_vs_{y_filename}",
                 include_timestamp=True,
             )

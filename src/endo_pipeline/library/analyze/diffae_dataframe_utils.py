@@ -25,7 +25,10 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     load_model_manifest,
 )
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.diffae_feature_dataframes import (
+    DIFFAE_PC_COLUMN_NAME_GROUPS,
+    ColumnName,
+)
 from endo_pipeline.settings.polar_coords import RESCALE_THETA, THETA_RESCALED_PERIOD
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
@@ -75,21 +78,33 @@ def get_latent_feature_column_names(num_latent_dims: int) -> list[str]:
     return feat_cols
 
 
-def get_pc_column_names(num_pcs: int) -> list[str]:
+def get_pc_column_names(num_pcs: str | int) -> list[str]:
     """
     Get list of PCA feature column names for given number of principal components.
 
     Parameters
     ----------
     num_pcs
-        Number of principal components.
+        Either number of principal components (if an integer is provided) or a
+        group of principal components to include (if a string is provided,
+        e.g., "default" or "polar_coords").
 
     Returns
     -------
     :
         List of PCA feature column names.
     """
-    pc_cols = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(num_pcs)]
+    if isinstance(num_pcs, int):
+        pc_cols = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(int(num_pcs))]
+    elif isinstance(num_pcs, str):
+        pc_cols = DIFFAE_PC_COLUMN_NAME_GROUPS.get(num_pcs, [])
+        if not pc_cols:
+            raise ValueError(
+                f"Invalid num_pcs string [ {num_pcs} ]. Must be either an integer or\
+                one of the following strings: {list(DIFFAE_PC_COLUMN_NAME_GROUPS.keys())}"
+            )
+    else:
+        raise ValueError("num_pcs must be either an integer or a string.")
     return pc_cols
 
 
@@ -643,6 +658,8 @@ def get_dataframe_for_dynamics_workflows(
     df = load_dataframe(location)
     feat_cols = get_latent_feature_column_names_from_dataframe(df)
 
+    df_with_crop = add_crop_index(df, crop_pattern)
+
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
     if filter_dataframe:
@@ -654,15 +671,13 @@ def get_dataframe_for_dynamics_workflows(
         timepoint_annotations = get_subset_of_timepoint_annotations(
             annotations_to_ignore=annotations_to_ignore
         )
-        df_filtered = filter_dataframe_by_annotations(
-            df,
+        df_with_crop = filter_dataframe_by_annotations(
+            df_with_crop,
             load_dataset_config(dataset_name),
             timepoint_annotations=timepoint_annotations,
         )
     else:
-        df_filtered = df
-
-    df_with_crop = add_crop_index(df_filtered, crop_pattern)
+        pass
 
     # add dataset duration description column
     dataset_config = load_dataset_config(dataset_name)
@@ -803,32 +818,14 @@ def add_crop_index(
 
     if crop_pattern == "tracked" and "track_id" in df.columns:
         required_columns = [ColumnName.POSITION, "track_id"]
-        check_required_columns_in_dataframe(df, required_columns)
-        df[ColumnName.CROP_INDEX] = (
-            df.groupby([ColumnName.POSITION, "track_id"], as_index=False).ngroup().astype(int)
-        )
-
     elif crop_pattern == "grid":
-        required_columns = [ColumnName.START_X, ColumnName.START_Y, ColumnName.POSITION]
-        check_required_columns_in_dataframe(df, required_columns)
+        required_columns = [ColumnName.POSITION, ColumnName.START_X, ColumnName.START_Y]
 
-        # get list of unique starting positions and FOV_IDs
-        start_x = df[ColumnName.START_X].unique().tolist()
-        start_y = df[ColumnName.START_Y].unique().tolist()
-        position = df[ColumnName.POSITION].unique().tolist()
-        tup_list = [(x, y, pos) for x in start_x for y in start_y for pos in position]
+    check_required_columns_in_dataframe(df, required_columns)
 
-        # function to convert starting position and FOV_ID to crop index
-        def _pos_to_index_grid(x: float, y: float, position: str) -> int:
-            return tup_list.index((x, y, position))
-
-        # apply function to DataFrame to get crop index
-        df[ColumnName.CROP_INDEX] = df.apply(
-            lambda x: _pos_to_index_grid(
-                x[ColumnName.START_X], x[ColumnName.START_Y], x[ColumnName.POSITION]
-            ),
-            axis=1,
-        )
+    # group by the required columns and assign a unique integer (the crop_index)
+    # to each group based on the index of that group
+    df[ColumnName.CROP_INDEX] = df.groupby(required_columns, as_index=False).ngroup().astype(int)
 
     return df
 

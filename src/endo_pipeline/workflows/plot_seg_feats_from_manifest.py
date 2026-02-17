@@ -54,20 +54,20 @@ def plot_seg_manifest_data(
     # choose which features to put on the y-axis
     # (we will put time on the x-axis)
     feats_to_plot_y = [
-        "alignment_deg",
+        "alignment_deg_rel_to_flow",
         "nematic_order",
         "eccentricity",
         "aspect_ratio",
-        "area_um2",
+        "area (um**2)",
         "num_neighbors",
         "centroid_velocity_magnitude",
-        "centroid_velocity_orientation_deg",
+        "centroid_velocity_angle_deg",
         "cell_nuc_dist",
         "cell_nuc_orientation_deg",
         "cell_nuc_orientation_deg_rel_to_migration",
     ]
     feats_to_plot_y_lineplot_only = [
-        "num_nuclei",
+        "total_nuclei_count_at_T",
         "num_tracks",
     ]
 
