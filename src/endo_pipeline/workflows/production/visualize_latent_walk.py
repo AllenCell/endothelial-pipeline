@@ -67,6 +67,7 @@ def main(
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
         get_dataframe_for_dynamics_workflows,
+        polar_to_pcs,
     )
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
     from endo_pipeline.library.model.latent_walk_utils import (
@@ -145,12 +146,27 @@ def main(
     )
     data_for_walk = dataframe_all_datasets[column_names]
 
-    # get coordinate values for latent walk along PC axes or original latent
-    # dimensions
+    # get coordinate values for latent walk and the ranges of the walk for each
+    # dimension
     walk, ranges = get_latent_walk(
         data_for_walk, column_names, sigma, n_steps, replace_mean_with_pc_value
     )
-    walk = walk.to_numpy()  # convert to numpy array for image generation
+    # if polar angle and radius are included in the column names, convert them
+    # to PC1 and PC2 coordinates for image generation (inverse PCA
+    # transformation cannot be performed with polar coordinates)
+    if (
+        ColumnName.POLAR_ANGLE.value in column_names
+        and ColumnName.POLAR_RADIUS.value in column_names
+    ):
+        pc1_column_name = f"{ColumnName.PCA_FEATURE_PREFIX}1"
+        pc2_column_name = f"{ColumnName.PCA_FEATURE_PREFIX}2"
+        angle = walk[ColumnName.POLAR_ANGLE.value].to_numpy()
+        radius = walk[ColumnName.POLAR_RADIUS.value].to_numpy()
+        pc1_values, pc2_values = polar_to_pcs(angle, radius)
+        walk[pc1_column_name] = pc1_values
+        walk[pc2_column_name] = pc2_values
+
+    walk = walk.to_numpy()
     if use_pcs:
         # perform latent walk along the principal component axes and transform
         # back to original latent space
