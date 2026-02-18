@@ -177,7 +177,8 @@ def main(
             pc3_column_name = f"{ColumnName.PCA_FEATURE_PREFIX}3"
             walk[pc3_column_name] = -walk[ColumnName.PC3_FLIPPED.value].to_numpy()
 
-        walk = pca.inverse_transform(walk)
+        pc_column_names = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(n_dims)]
+        walk = pca.inverse_transform(walk[pc_column_names].to_numpy())
     else:
         walk = walk.to_numpy()
     # generate images from the latent walk
