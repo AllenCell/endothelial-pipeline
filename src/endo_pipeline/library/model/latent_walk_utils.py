@@ -2,6 +2,7 @@ import logging
 from typing import TYPE_CHECKING
 
 import numpy as np
+import pandas as pd
 
 from endo_pipeline.library.model.diffae import DiffusionAutoEncoder, generate_from_coords
 
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_latent_walk(
-    data: np.ndarray,
+    dataframe: pd.DataFrame,
     n_dims: int,
     sigma: float | None,
     n_steps: int,
@@ -46,6 +47,7 @@ def get_latent_walk(
     walks: list[np.ndarray] = []
     ranges: list[np.ndarray] = []
 
+    data = dataframe.to_numpy()
     for dim in range(n_dims):
         if sigma is None:
             data_min = data[:, dim].min()

@@ -76,7 +76,7 @@ def main() -> None:
             for dataset_name in dataset_names
         ]
     )
-    data_for_walk = dataframe_all_datasets[column_names].values
+    data_for_walk = dataframe_all_datasets[column_names]
 
     # walk along pcs, get PC-space coordinates, then transform back to latent
     # space coordinates for image generation

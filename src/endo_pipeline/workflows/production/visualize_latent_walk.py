@@ -126,7 +126,7 @@ def main(
             for dataset_name in dataset_names
         ]
     )
-    data_for_walk = dataframe_all_datasets[column_names].values
+    data_for_walk = dataframe_all_datasets[column_names]
 
     # get coordinate values for latent walk along PC axes or original latent
     # dimensions
