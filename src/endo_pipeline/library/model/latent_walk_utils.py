@@ -5,11 +5,76 @@ import numpy as np
 import pandas as pd
 
 from endo_pipeline.library.model.diffae import DiffusionAutoEncoder, generate_from_coords
+from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
 if TYPE_CHECKING:
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
 
 logger = logging.getLogger(__name__)
+
+
+def _get_max_dim_in_column_names(column_names: list[str], feature_prefix: str) -> int:
+    """
+    Get the maximum number of dimensions from the provided column names.
+
+    Parameters
+    ----------
+    column_names
+        List of column names corresponding to each dimension.
+
+    Returns
+    -------
+    int
+        Maximum number of dimensions based on the column names.
+    """
+    max_dim = 0
+    for column_name in column_names:
+        if column_name.startswith(feature_prefix):
+            dim_number_str = column_name.replace(feature_prefix, "")
+            if dim_number_str.isdigit():
+                current_dim = int(dim_number_str)
+                max_dim = max(max_dim, current_dim)
+    return max_dim
+
+
+def get_num_dims_from_column_names(column_names: list[str]) -> int:
+    """
+    Get the number of dimensions for the latent walk based on the provided
+    column names.
+
+    Parameters
+    ----------
+    column_names
+        List of column names corresponding to each dimension.
+
+    Returns
+    -------
+    int
+        Number of dimensions for the latent walk.
+    """
+    # depending on whether column names are for PCA features or latent features,
+    # get the maximum dimension number from the column names
+    max_pc_dim = _get_max_dim_in_column_names(column_names, ColumnName.PCA_FEATURE_PREFIX.value)
+    max_latent_dim = _get_max_dim_in_column_names(
+        column_names, ColumnName.LATENT_FEATURE_PREFIX.value
+    )
+
+    max_dim = max(max_pc_dim, max_latent_dim)
+
+    # check special case for polar coordinates, which at minimum need the first
+    # two PC dimensions to be included
+    if (
+        ColumnName.POLAR_ANGLE.value in column_names
+        or ColumnName.POLAR_RADIUS.value in column_names
+    ):
+        max_dim = max(max_dim, 2)
+
+    # check if PC3_FLIPPED is included, which also requires at minimum the first
+    # three PC dimensions to be included
+    if ColumnName.PC3_FLIPPED.value in column_names:
+        max_dim = max(max_dim, 3)
+
+    return max_dim
 
 
 def get_baseline_walk_values(
@@ -18,7 +83,8 @@ def get_baseline_walk_values(
     replace_mean_with_pc_value: list[float | None] | None = None,
 ) -> list[float]:
     """
-    Get baseline walk values for each dimension based on the mean of the data or provided replacement values.
+    Get baseline walk values for each dimension based on the mean of the data or
+    provided replacement values.
 
     Parameters
     ----------
@@ -27,8 +93,8 @@ def get_baseline_walk_values(
     column_names
         List of column names corresponding to each dimension.
     replace_mean_with_pc_value
-        List of PC values to replace the mean with for each PC dimension. Must be of length equal to number of dimensions.
-        If None, uses the mean of the data.
+        List of PC values to replace the mean with for each PC dimension. If
+        None, uses the mean of the data.
 
     Returns
     -------
@@ -79,8 +145,8 @@ def get_latent_walk(
     n_steps
         Number of steps in the latent walk.
     replace_mean_with_pc_value
-        List of PC values to replace the mean with for each PC dimension. Must be of length n_dims.
-        If None, uses the mean of the data.
+        List of PC values to replace the mean with for each PC dimension. If
+        None, uses the mean of the data.
     """
     walks: list[pd.DataFrame] = []
     ranges: list[np.ndarray] = []

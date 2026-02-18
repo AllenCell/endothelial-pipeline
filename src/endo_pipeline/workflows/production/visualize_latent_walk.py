@@ -7,7 +7,6 @@ from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    NUM_PCS_TO_ANALYZE,
 )
 
 TAGS = ["diffae_image_generation", "pc_interpretation"]
@@ -20,7 +19,6 @@ def main(
     dataset_collection: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     columns: list[str] | None = None,
-    n_dims: int = NUM_PCS_TO_ANALYZE,
     sigma: float = 3.0,
     n_steps: int = 7,
     use_pcs: bool = True,
@@ -35,26 +33,31 @@ def main(
     model_manifest_name
         Name of the model manifest containing the specific run to load.
     run_name
-        Run name corresponding to the model to load. If None, uses the most recent run.
+        Run name corresponding to the model to load. If None, uses the most
+        recent run.
     crop_pattern
-        Crop pattern used to generate the feature dataframe. Either 'grid' or 'tracked'.
+        Crop pattern used to generate the feature dataframe. Either 'grid' or
+        'tracked'.
     include_cell_piling
-        True to include timepoints with cell piling to fit the PCA model, False to exclude them.
-    num_pcs
-        Number of principal components to use for the
-        latent walk.
+        True to include timepoints with cell piling to fit the PCA model, False
+        to exclude them.
+    columns
+        List of column names corresponding to the dimensions to perform the
+        latent walk along. ∑If None, defaults to polar angle, polar radius, and
+        flipped PC3.
     sigma
-        Number of standard deviations from the mean to traverse
-        for the latent walk.
+        Number of standard deviations from the mean to traverse for the latent
+        walk.
     n_steps
         Number of steps in the latent walk. Default is 10.
     use_pcs
-        True to use principal component axes, False to use original latent space axes.
+        True to use principal component axes, False to use original latent space
+        axes.
     n_noise_samples
         Number of noise samples to use for generating images.
     replace_mean_with_pc_value
-        List of PC values to replace the mean with for each PC dimension. Must be of length num_pcs.
-        If None, uses the mean of the data.
+        List of PC values to replace the mean with for each PC dimension. Must
+        be of length num_pcs. If None, uses the mean of the data.
     """
     import pandas as pd
 
@@ -69,6 +72,7 @@ def main(
     from endo_pipeline.library.model.latent_walk_utils import (
         generate_latent_walk_images,
         get_latent_walk,
+        get_num_dims_from_column_names,
     )
     from endo_pipeline.library.visualize.latent_walk import plot_latent_walk_as_grid
     from endo_pipeline.manifests import (
@@ -102,6 +106,22 @@ def main(
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     dataset_names = get_datasets_in_collection(dataset_collection)
 
+    # default column names if none provided
+    column_names = (
+        [ColumnName.POLAR_ANGLE.value, ColumnName.POLAR_RADIUS.value, ColumnName.PC3_FLIPPED.value]
+        if columns is None
+        else columns
+    )
+
+    # get number of dimensions for latent walk based on column names e.g., if
+    # "pc_11" is in the column names, then the fit pca object needs to be fit
+    # with at least 11 pcs, and the latent walk needs to be performed in at
+    # least 11 dimensions
+    n_dims = get_num_dims_from_column_names(column_names)
+
+    # initialize pca variable to None in case use_pcs is False, so that it can
+    # be passed to get_dataframe_for_dynamics_workflows without error
+    pca = None
     if use_pcs:
         # get fit pca object and data for latent walk
         pca = fit_pca(
@@ -109,18 +129,6 @@ def main(
             dataframe_manifest_name=dataframe_manifest_name,
             include_cell_piling=include_cell_piling,
             num_pcs=n_dims,
-        )
-        column_names = (
-            [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(n_dims)]
-            if columns is None
-            else columns
-        )
-    else:
-        pca = None
-        column_names = (
-            [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(n_dims)]
-            if columns is None
-            else columns
         )
 
     dataframe_all_datasets = pd.concat(
