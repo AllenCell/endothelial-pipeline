@@ -190,7 +190,7 @@ def main(
     if replace_mean_with_val is not None:
         replace_str = "_".join(
             [
-                f"{column_name}_setto_{val}"
+                f"{column_name}_setto_{str(val).replace('.', 'p')}"
                 for column_name, val in zip(column_names, replace_mean_with_val, strict=True)
             ]
         )
