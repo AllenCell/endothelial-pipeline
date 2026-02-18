@@ -24,19 +24,20 @@ from scipy.cluster.hierarchy import linkage
 from tqdm import tqdm
 
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
-from endo_pipeline.io.output import save_plot_to_path
+from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
-from endo_pipeline.library.analyze.integration.track_integration import (
-    load_pc_diffae_liveseg_feats_merged_table,
-)
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings import RANDOM_SEED
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
-from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
+from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+    SEGMENTATION_FEATURE_COLUMNS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -407,6 +408,7 @@ def get_df_for_feature_correlation_viz(
     pc_columns: list[str],
     diffae_feature_columns: list[str],
     timepoint_annotations: list[TimepointAnnotation] | None = None,
+    cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
 ) -> pd.DataFrame:
     """
     Load and preprocess the manifests for the given dataset names,
@@ -450,7 +452,13 @@ def get_df_for_feature_correlation_viz(
     df_list: list = []
     for dataset_name in tqdm(dataset_name_list):
         # load the pc-diffae-seg-merged parquet file
-        merged_feats_df_delayed = load_pc_diffae_liveseg_feats_merged_table(dataset_name)
+        cell_centric_feats_manifest = load_dataframe_manifest(cell_centric_manifest_name)
+        cell_centric_feats_location = get_dataframe_location_for_dataset(
+            cell_centric_feats_manifest, dataset_name
+        )
+        merged_feats_df_delayed = load_dataframe(cell_centric_feats_location, delay=True)
+        merged_feats_df_delayed = merged_feats_df_delayed.reset_index(drop=True)
+
         # compute only the required columns to save space and time
         # (using a loop instead  of just sets to determine columns to load to preserve column order)
         dynamics_columns = SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
