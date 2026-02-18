@@ -154,24 +154,28 @@ def main(
     # if polar angle and radius are included in the column names, convert them
     # to PC1 and PC2 coordinates for image generation (inverse PCA
     # transformation cannot be performed with polar coordinates)
-    if (
-        ColumnName.POLAR_ANGLE.value in column_names
-        and ColumnName.POLAR_RADIUS.value in column_names
-    ):
-        pc1_column_name = f"{ColumnName.PCA_FEATURE_PREFIX}1"
-        pc2_column_name = f"{ColumnName.PCA_FEATURE_PREFIX}2"
-        angle = walk[ColumnName.POLAR_ANGLE.value].to_numpy()
-        radius = walk[ColumnName.POLAR_RADIUS.value].to_numpy()
-        pc1_values, pc2_values = polar_to_pcs(angle, radius)
-        walk[pc1_column_name] = pc1_values
-        walk[pc2_column_name] = pc2_values
-
-    walk = walk.to_numpy()
     if use_pcs:
-        # perform latent walk along the principal component axes and transform
-        # back to original latent space
-        walk = pca.inverse_transform(walk)
+        if (
+            ColumnName.POLAR_ANGLE.value in column_names
+            and ColumnName.POLAR_RADIUS.value in column_names
+        ):
+            pc1_column_name = f"{ColumnName.PCA_FEATURE_PREFIX}1"
+            pc2_column_name = f"{ColumnName.PCA_FEATURE_PREFIX}2"
+            angle = walk[ColumnName.POLAR_ANGLE.value].to_numpy()
+            radius = walk[ColumnName.POLAR_RADIUS.value].to_numpy()
+            pc1_values, pc2_values = polar_to_pcs(angle, radius)
+            walk[pc1_column_name] = pc1_values
+            walk[pc2_column_name] = pc2_values
 
+        # if flipped pc3 is included in the column names, convert it to regular pc3
+        # before performing inverse PCA transformation for image generation (inverse PCA
+        if ColumnName.PC3_FLIPPED.value in column_names:
+            pc3_column_name = f"{ColumnName.PCA_FEATURE_PREFIX}3"
+            walk[pc3_column_name] = -walk[ColumnName.PC3_FLIPPED.value].to_numpy()
+
+        walk = pca.inverse_transform(walk)
+    else:
+        walk = walk.to_numpy()
     # generate images from the latent walk
     walk_img_grid = generate_latent_walk_images(model, walk, ranges, n_noise_samples, NUM_GPUS)
 
