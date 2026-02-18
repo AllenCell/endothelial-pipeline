@@ -19,6 +19,7 @@ def main(
     crop_pattern: CropPattern = "grid",
     dataset_collection: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
+    columns: list[str] | None = None,
     n_dims: int = NUM_PCS_TO_ANALYZE,
     sigma: float = 3.0,
     n_steps: int = 7,
@@ -109,10 +110,18 @@ def main(
             include_cell_piling=include_cell_piling,
             num_pcs=n_dims,
         )
-        column_names = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(n_dims)]
+        column_names = (
+            [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(n_dims)]
+            if columns is None
+            else columns
+        )
     else:
         pca = None
-        column_names = [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(n_dims)]
+        column_names = (
+            [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(n_dims)]
+            if columns is None
+            else columns
+        )
 
     dataframe_all_datasets = pd.concat(
         [
