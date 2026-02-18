@@ -54,7 +54,7 @@ def get_latent_walk(
     sigma: float | None,
     n_steps: int,
     replace_mean_with_pc_value: list[float | None] | None = None,
-) -> tuple[np.ndarray, list]:
+) -> tuple[pd.DataFrame, list[np.ndarray]]:
     """
     Generate a latent walk based on standard deviation or min/max of each
     dimension.
@@ -82,7 +82,7 @@ def get_latent_walk(
     if len(replace_values) != n_dims:
         raise ValueError(f"Expected replace_values of length {n_dims}, got {len(replace_values)}.")
 
-    walks: list[np.ndarray] = []
+    walks: list[pd.DataFrame] = []
     ranges: list[np.ndarray] = []
 
     # Get baseline values for all dimensions as either the mean value of the
@@ -105,12 +105,12 @@ def get_latent_walk(
         dim_traversal_df = pd.DataFrame(dim_traversal_array, columns=column_names)
         dim_traversal_df[column_name] = range_
 
-        walks.append(dim_traversal_df.to_numpy())
+        walks.append(dim_traversal_df)
         ranges.append(range_)
 
-    walk_array = np.concatenate(walks).squeeze()
+    walk_dataframe = pd.concat(walks, ignore_index=True)
 
-    return walk_array, ranges
+    return walk_dataframe, ranges
 
 
 def generate_latent_walk_images(

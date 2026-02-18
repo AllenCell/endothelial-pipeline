@@ -133,6 +133,7 @@ def main(
     walk, ranges = get_latent_walk(
         data_for_walk, column_names, sigma, n_steps, replace_mean_with_pc_value
     )
+    walk = walk.to_numpy()  # convert to numpy array for image generation
     if use_pcs:
         # perform latent walk along the principal component axes and transform
         # back to original latent space
