@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def _plot_latent_walk_batch_as_grid(
-    dimension_labels: list[int],
+    dimension_labels: list[str],
     array_of_crops: np.ndarray,
     coordinate_values: np.ndarray,
     save_path: Path,
