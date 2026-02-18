@@ -89,22 +89,23 @@ def get_latent_walk(
     # dimension or the given replacement value for that dimension.
     baseline_walk_values = get_baseline_walk_values(dataframe, column_names, replace_values)
 
-    data = dataframe.to_numpy()
-    for dim in range(n_dims):
+    for column_name in column_names:
+        data = dataframe[column_name]
         if sigma is None:
-            data_min = data[:, dim].min()
-            data_max = data[:, dim].max()
+            data_min = data.min()
+            data_max = data.max()
             range_ = np.linspace(data_min, data_max, n_steps)
         else:
-            std = data[:, dim].std()
+            std = data.std()
             range_ = np.arange(-sigma, sigma + 0.01) * std
 
         # Stack the baseline values for all steps and then replace only the current
         # dimension with the selected latent walk values.
-        dim_traversal = np.stack([baseline_walk_values] * range_.shape[0])
-        dim_traversal[:, dim] = range_
+        dim_traversal_array = np.stack([baseline_walk_values] * range_.shape[0])
+        dim_traversal_df = pd.DataFrame(dim_traversal_array, columns=column_names)
+        dim_traversal_df[column_name] = range_
 
-        walks.append(dim_traversal)
+        walks.append(dim_traversal_df.to_numpy())
         ranges.append(range_)
 
     walk_array = np.concatenate(walks).squeeze()
