@@ -247,30 +247,42 @@ def get_peaks_of_edge_intensities(
         distance=peak_to_peak_distance_minimum,
         prominence=peak_prominence,
     )
-    peak_angles = edge_data.angle.iloc[peak_locs]
-    peak_intensities = edge_data.intensity_smoothed.iloc[peak_locs]
+    peak_angles = edge_data.angle.iloc[peak_locs].tolist()
+    peak_intensities = edge_data.intensity_smoothed.iloc[peak_locs].tolist()
     return edge_data, peak_angles, peak_intensities, peak_details
 
 
-def count_peaks(
-    angles: np.ndarray,
-    intensities: np.ndarray,
-    peak_prominence_min: int = 50,
-    peak_to_peak_distance_minimum: int = 100,
-) -> int:
-    _, peak_angles, _, _ = get_peaks_of_edge_intensities(
-        angles, intensities, peak_prominence_min, peak_to_peak_distance_minimum
-    )
-    return len(peak_angles)
+# def count_peaks(
+#     angles: np.ndarray,
+#     intensities: np.ndarray,
+#     peak_prominence_min: int = 50,
+#     peak_to_peak_distance_minimum: int = 100,
+# ) -> int:
+#     _, peak_angles, _, _ = get_peaks_of_edge_intensities(
+#         angles, intensities, peak_prominence_min, peak_to_peak_distance_minimum
+#     )
+#     return len(peak_angles)
 
 
-def get_peak_prominence_vals(
-    angles: np.ndarray,
-    intensities: np.ndarray,
-    peak_prominence_min: int = 50,
-    peak_to_peak_distance_minimum: int = 100,
-) -> list:
-    _, _, _, peak_details = get_peaks_of_edge_intensities(
-        angles, intensities, peak_prominence_min, peak_to_peak_distance_minimum
-    )
-    return peak_details["prominences"].tolist()
+# def get_peak_prominence_vals(
+#     angles: np.ndarray,
+#     intensities: np.ndarray,
+#     peak_prominence_min: int = 50,
+#     peak_to_peak_distance_minimum: int = 100,
+# ) -> list:
+#     _, _, _, peak_details = get_peaks_of_edge_intensities(
+#         angles, intensities, peak_prominence_min, peak_to_peak_distance_minimum
+#     )
+#     return peak_details["prominences"].tolist()
+
+
+# def get_peak_intensity_vals(
+#     angles: np.ndarray,
+#     intensities: np.ndarray,
+#     peak_prominence_min: int = 50,
+#     peak_to_peak_distance_minimum: int = 100,
+# ) -> list:
+#     _, _, peak_intensities, _ = get_peaks_of_edge_intensities(
+#         angles, intensities, peak_prominence_min, peak_to_peak_distance_minimum
+#     )
+#     return peak_intensities.tolist()
