@@ -12,6 +12,42 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def get_baseline_walk_values(
+    dataframe: pd.DataFrame, column_names: list[str], replace_mean_with_pc_value: list[float | None]
+) -> list[float]:
+    """
+    Get baseline walk values for each dimension based on the mean of the data or provided replacement values.
+
+    Parameters
+    ----------
+    dataframe
+        DataFrame containing the data to calculate mean values from.
+    column_names
+        List of column names corresponding to each dimension.
+    replace_mean_with_pc_value
+        List of PC values to replace the mean with for each PC dimension. Must be of length equal to number of dimensions.
+        If None, uses the mean of the data.
+
+    Returns
+    -------
+    list[float]
+        List of baseline walk values for each dimension.
+    """
+    if len(replace_mean_with_pc_value) != len(column_names):
+        raise ValueError(
+            f"Expected replace_mean_with_pc_value of length {len(column_names)}, got {len(replace_mean_with_pc_value)}."
+        )
+
+    baseline_values = []
+    for col_name, replace_value in zip(column_names, replace_mean_with_pc_value, strict=True):
+        if replace_value is None:
+            baseline_values.append(dataframe[col_name].mean())
+        else:
+            baseline_values.append(replace_value)
+
+    return baseline_values
+
+
 def get_latent_walk(
     dataframe: pd.DataFrame,
     column_names: list[str],
@@ -49,6 +85,10 @@ def get_latent_walk(
     walks: list[np.ndarray] = []
     ranges: list[np.ndarray] = []
 
+    # Get baseline values for all dimensions as either the mean value of the
+    # dimension or the given replacement value for that dimension.
+    baseline_walk_values = get_baseline_walk_values(dataframe, column_names, replace_values)
+
     data = dataframe.to_numpy()
     for dim in range(n_dims):
         if sigma is None:
@@ -59,16 +99,9 @@ def get_latent_walk(
             std = data[:, dim].std()
             range_ = np.arange(-sigma, sigma + 0.01) * std
 
-        # Get baseline values for all dimensions as either the mean value of the
-        # dimension or the given replacement value for that dimension.
-        walk_values = [
-            data[:, i].mean() if replace is None else replace
-            for i, replace in enumerate(replace_values)
-        ]
-
         # Stack the baseline values for all steps and then replace only the current
         # dimension with the selected latent walk values.
-        dim_traversal = np.stack([walk_values] * range_.shape[0])
+        dim_traversal = np.stack([baseline_walk_values] * range_.shape[0])
         dim_traversal[:, dim] = range_
 
         walks.append(dim_traversal)
