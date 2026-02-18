@@ -149,7 +149,11 @@ def main(
     # get coordinate values for latent walk and the ranges of the walk for each
     # dimension
     walk, ranges = get_latent_walk(
-        data_for_walk, column_names, sigma, n_steps, replace_mean_with_pc_value
+        data_for_walk,
+        column_names,
+        sigma if sigma > 0 else None,
+        n_steps,
+        replace_mean_with_pc_value,
     )
     # if polar angle and radius are included in the column names, convert them
     # to PC1 and PC2 coordinates for image generation (inverse PCA
