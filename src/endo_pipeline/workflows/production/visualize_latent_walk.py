@@ -190,8 +190,8 @@ def main(
     if replace_mean_with_pc_value is not None:
         replace_str = "_".join(
             [
-                f"PC{i+1}setto{val}"
-                for i, val in enumerate(replace_mean_with_pc_value)
+                f"{column_name}_setto_{val}"
+                for column_name, val in zip(column_names, replace_mean_with_pc_value, strict=True)
                 if val is not None
             ]
         )
