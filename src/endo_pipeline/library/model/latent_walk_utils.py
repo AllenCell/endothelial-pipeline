@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def get_latent_walk(
     dataframe: pd.DataFrame,
-    n_dims: int,
+    column_names: list[str],
     sigma: float | None,
     n_steps: int,
     replace_mean_with_pc_value: list[float | None] | None = None,
@@ -37,6 +37,8 @@ def get_latent_walk(
         List of PC values to replace the mean with for each PC dimension. Must be of length n_dims.
         If None, uses the mean of the data.
     """
+    n_dims = len(column_names)
+
     replace_values = (
         [None] * n_dims if replace_mean_with_pc_value is None else replace_mean_with_pc_value
     )

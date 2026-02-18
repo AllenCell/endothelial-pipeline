@@ -80,7 +80,7 @@ def main() -> None:
 
     # walk along pcs, get PC-space coordinates, then transform back to latent
     # space coordinates for image generation
-    walk, ranges = get_latent_walk(data_for_walk, pca, sigma=sigma, n_steps=n_steps)
+    walk, ranges = get_latent_walk(data_for_walk, column_names, sigma=sigma, n_steps=n_steps)
     walk = pca.inverse_transform(walk)
 
     # Generate images from the latent walk
