@@ -48,7 +48,7 @@ def get_baseline_walk_values(
         )
 
     baseline_values = []
-    for col_name, replace_value in zip(column_names, replace_mean_with_pc_value, strict=True):
+    for col_name, replace_value in zip(column_names, replace_values, strict=True):
         if replace_value is None:
             baseline_values.append(dataframe[col_name].mean())
         else:
