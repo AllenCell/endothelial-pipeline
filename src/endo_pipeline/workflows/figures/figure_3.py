@@ -95,9 +95,9 @@ def main() -> None:
     plot_latent_walk_as_grid(
         walk_img_grid,
         ranges,
+        column_names,
         save_path,
         file_name,
-        use_pcs=True,
         show_values=True,
         batches=[(0, 3), (3, n_dims)],
     )
