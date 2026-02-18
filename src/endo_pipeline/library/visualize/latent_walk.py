@@ -20,6 +20,7 @@ def _plot_latent_walk_batch_as_grid(
     save_path: Path,
     file_name: str,
     show_values: bool = True,
+    label_sigmas: bool = True,
 ) -> None:
 
     # Set up the grid
@@ -69,7 +70,10 @@ def _plot_latent_walk_batch_as_grid(
 
             # Titles only on first row
             if i == 0:
-                column_title = f"{j - (num_steps // 2)}\u03c3"
+                if label_sigmas:
+                    column_title = f"{j - (num_steps // 2)}\u03c3"
+                else:
+                    column_title = f"Step {j+1}"
                 ax.set_title(column_title, fontsize=10, pad=5)
 
             # Y labels only on first column
@@ -103,6 +107,7 @@ def plot_latent_walk_as_grid(
     save_path: Path,
     file_name: str,
     show_values: bool = True,
+    label_sigmas: bool = True,
     batches: list[tuple[int, int]] | None = None,
 ) -> None:
     """
@@ -116,6 +121,8 @@ def plot_latent_walk_as_grid(
     coordinate_values
         An ND numpy array of shape (num_dims, num_steps)
         containing the coordinate values for each dimension and step.
+    column_names
+        A list of column names corresponding to each dimension in the latent walk.
     save_path
         Directory path to save the output figure.
     file_name
@@ -124,6 +131,8 @@ def plot_latent_walk_as_grid(
         True if latent walk was performed along PC axes, False otherwise.
     show_value
         True to show the coordinate value on the image, False otherwise.
+    label_sigmas
+        True to label the column titles with sigma values, False to label with step number.
     batches
         If provided, a list of (start_idx, end_idx) tuples specifying
         the number of PCs to include in each batch. If None, defaults to
@@ -154,4 +163,5 @@ def plot_latent_walk_as_grid(
             save_path,
             batch_file_name,
             show_values,
+            label_sigmas,
         )

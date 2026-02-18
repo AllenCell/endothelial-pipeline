@@ -196,7 +196,14 @@ def main(
             ]
         )
         file_name += f"_replace_{replace_str}"
-    plot_latent_walk_as_grid(walk_img_grid, ranges, column_names, save_path, file_name)
+    plot_latent_walk_as_grid(
+        walk_img_grid,
+        ranges,
+        column_names,
+        save_path,
+        file_name,
+        label_sigmas=True if sigma > 0 else False,
+    )
 
 
 if __name__ == "__main__":

@@ -99,6 +99,7 @@ def main() -> None:
         save_path,
         file_name,
         show_values=True,
+        label_sigmas=True,
         batches=[(0, 3), (3, n_dims)],
     )
 
