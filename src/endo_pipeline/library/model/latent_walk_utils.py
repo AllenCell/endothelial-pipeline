@@ -80,7 +80,7 @@ def get_num_dims_from_column_names(column_names: list[str]) -> int:
 def get_baseline_walk_values(
     dataframe: pd.DataFrame,
     column_names: list[str],
-    replace_mean_with_pc_value: list[float | None] | None = None,
+    replace_mean_with_val: list[float] | None = None,
 ) -> list[float]:
     """
     Get baseline walk values for each dimension based on the mean of the data or
@@ -92,9 +92,9 @@ def get_baseline_walk_values(
         DataFrame containing the data to calculate mean values from.
     column_names
         List of column names corresponding to each dimension.
-    replace_mean_with_pc_value
-        List of PC values to replace the mean with for each PC dimension. If
-        None, uses the mean of the data.
+    replace_mean_with_val
+        Optional, list of values to replace the mean with for each dimension. If
+        None, uses the mean of the data for each dimension.
 
     Returns
     -------
@@ -103,14 +103,12 @@ def get_baseline_walk_values(
     """
     n_dims = len(column_names)
 
-    # convert replace_mean_with_pc_value to a list of length n_dims, filling with None if it is None
-    replace_values = (
-        [None] * n_dims if replace_mean_with_pc_value is None else replace_mean_with_pc_value
-    )
+    # convert replace_mean_with_val to a list of length n_dims, filling with None if it is None
+    replace_values = [None] * n_dims if replace_mean_with_val is None else replace_mean_with_val
 
     if len(replace_values) != n_dims:
         raise ValueError(
-            f"Expected replace_mean_with_pc_value of length {len(column_names)}, got {len(replace_values)}."
+            f"Expected replace_mean_with_val of length {len(column_names)}, got {len(replace_values)}."
         )
 
     baseline_values = []
@@ -128,7 +126,7 @@ def get_latent_walk(
     column_names: list[str],
     sigma: float | None,
     n_steps: int,
-    replace_mean_with_pc_value: list[float | None] | None = None,
+    replace_mean_with_val: list[float] | None = None,
 ) -> tuple[pd.DataFrame, list[np.ndarray]]:
     """
     Generate a latent walk based on standard deviation or min/max of each
@@ -144,18 +142,16 @@ def get_latent_walk(
         Range of values for the latent walk. If None, use min/max of dimension.
     n_steps
         Number of steps in the latent walk.
-    replace_mean_with_pc_value
-        List of PC values to replace the mean with for each PC dimension. If
-        None, uses the mean of the data.
+    replace_mean_with_val
+        Optional, list of values to replace the mean with for each dimension
+        when generating the latent walk. If None, uses the mean of the data.
     """
     walks: list[pd.DataFrame] = []
     ranges: list[np.ndarray] = []
 
     # Get baseline values for all dimensions as either the mean value of the
     # dimension or the given replacement value for that dimension.
-    baseline_walk_values = get_baseline_walk_values(
-        dataframe, column_names, replace_mean_with_pc_value
-    )
+    baseline_walk_values = get_baseline_walk_values(dataframe, column_names, replace_mean_with_val)
 
     for column_name in column_names:
         data = dataframe[column_name]

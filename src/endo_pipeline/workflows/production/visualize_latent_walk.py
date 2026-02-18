@@ -2,7 +2,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from endo_pipeline.cli import CropPattern, StrList
+from endo_pipeline.cli import CropPattern, FloatList, StrList
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -23,7 +23,7 @@ def main(
     n_steps: int = 7,
     use_pcs: bool = True,
     n_noise_samples: int = 1,
-    replace_mean_with_pc_value: list[float | None] | None = None,
+    replace_mean_with_val: FloatList | None = None,
 ) -> None:
     """
     Create latent walk for a given model using PC axes or original axes.
@@ -55,9 +55,9 @@ def main(
         axes.
     n_noise_samples
         Number of noise samples to use for generating images.
-    replace_mean_with_pc_value
-        List of PC values to replace the mean with for each PC dimension. Must
-        be of length num_pcs. If None, uses the mean of the data.
+    replace_mean_with_val
+        Optional, list of values to replace the mean with for each dimension
+        when generating the latent walk. If None, uses the mean of the data.
     """
     import pandas as pd
 
@@ -153,7 +153,7 @@ def main(
         column_names,
         sigma if sigma > 0 else None,
         n_steps,
-        replace_mean_with_pc_value,
+        replace_mean_with_val,
     )
     # if polar angle and radius are included in the column names, convert them
     # to PC1 and PC2 coordinates for image generation (inverse PCA
@@ -187,12 +187,11 @@ def main(
     # save generated latent walk as grid
     axis_suffix = "_along_pcs" if use_pcs else "_along_latent"
     file_name = f"latent_walk_{int(sigma)}sigma{axis_suffix}"
-    if replace_mean_with_pc_value is not None:
+    if replace_mean_with_val is not None:
         replace_str = "_".join(
             [
                 f"{column_name}_setto_{val}"
-                for column_name, val in zip(column_names, replace_mean_with_pc_value, strict=True)
-                if val is not None
+                for column_name, val in zip(column_names, replace_mean_with_val, strict=True)
             ]
         )
         file_name += f"_replace_{replace_str}"
