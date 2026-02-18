@@ -96,18 +96,16 @@ pca = fit_pca(num_pcs=80)
 # %%
 df_mig_list = []
 for file_info in mixed_mig_files + coherent_mig_files:
-    dataset_name = file_info["dataset_name"]
+    dataset_name: str = file_info["dataset_name"]
 
     df = get_dataframe_for_dynamics_workflows(
         dataset_name, dataframe_manifest, pca, filter_dataframe=False
     )
 
-    # df = df[pc_columns_to_keep + other_cols_to_keep]
-
     fname = file_info["fname"]
     df_annotation = pd.read_csv(f"{annotation_path}/{fname}")
     pairs_df = df_annotation[["Track", "Frame"]]
-    # df_sub = df[df["position"] == file_info["position"]]
+
     merged = df.merge(
         pairs_df, left_on=["crop_index", "frame_number"], right_on=["Track", "Frame"], how="inner"
     )
@@ -146,8 +144,6 @@ def compute_separation_power(X, y, verbose=True):
 
 
 # %%
-
-
 def rank_features_and_plot_histograms(df, features_to_rank, label_column="coherent_migration"):
 
     ranking = compute_separation_power(df[features_to_rank], df["coherent_migration"])
@@ -191,5 +187,4 @@ rank_features_and_plot_histograms(
     features_to_rank=pc_columns_to_keep + other_cols_to_keep,
     label_column="coherent_migration",
 )
-
 # %%
