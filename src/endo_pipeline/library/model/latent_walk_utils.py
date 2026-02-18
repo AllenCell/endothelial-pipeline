@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_baseline_walk_values(
-    dataframe: pd.DataFrame, column_names: list[str], replace_mean_with_pc_value: list[float | None]
+    dataframe: pd.DataFrame,
+    column_names: list[str],
+    replace_mean_with_pc_value: list[float | None] | None = None,
 ) -> list[float]:
     """
     Get baseline walk values for each dimension based on the mean of the data or provided replacement values.
@@ -33,9 +35,16 @@ def get_baseline_walk_values(
     list[float]
         List of baseline walk values for each dimension.
     """
-    if len(replace_mean_with_pc_value) != len(column_names):
+    n_dims = len(column_names)
+
+    # convert replace_mean_with_pc_value to a list of length n_dims, filling with None if it is None
+    replace_values = (
+        [None] * n_dims if replace_mean_with_pc_value is None else replace_mean_with_pc_value
+    )
+
+    if len(replace_values) != n_dims:
         raise ValueError(
-            f"Expected replace_mean_with_pc_value of length {len(column_names)}, got {len(replace_mean_with_pc_value)}."
+            f"Expected replace_mean_with_pc_value of length {len(column_names)}, got {len(replace_values)}."
         )
 
     baseline_values = []
@@ -73,21 +82,14 @@ def get_latent_walk(
         List of PC values to replace the mean with for each PC dimension. Must be of length n_dims.
         If None, uses the mean of the data.
     """
-    n_dims = len(column_names)
-
-    replace_values = (
-        [None] * n_dims if replace_mean_with_pc_value is None else replace_mean_with_pc_value
-    )
-
-    if len(replace_values) != n_dims:
-        raise ValueError(f"Expected replace_values of length {n_dims}, got {len(replace_values)}.")
-
     walks: list[pd.DataFrame] = []
     ranges: list[np.ndarray] = []
 
     # Get baseline values for all dimensions as either the mean value of the
     # dimension or the given replacement value for that dimension.
-    baseline_walk_values = get_baseline_walk_values(dataframe, column_names, replace_values)
+    baseline_walk_values = get_baseline_walk_values(
+        dataframe, column_names, replace_mean_with_pc_value
+    )
 
     for column_name in column_names:
         data = dataframe[column_name]
