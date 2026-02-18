@@ -2,7 +2,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from endo_pipeline.cli import CropPattern
+from endo_pipeline.cli import CropPattern, StrList
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -18,7 +18,7 @@ def main(
     crop_pattern: CropPattern = "grid",
     dataset_collection: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
-    columns: list[str] | None = None,
+    columns: StrList | None = None,
     sigma: float = 3.0,
     n_steps: int = 7,
     use_pcs: bool = True,
