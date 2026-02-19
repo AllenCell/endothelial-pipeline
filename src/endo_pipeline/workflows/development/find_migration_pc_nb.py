@@ -231,11 +231,12 @@ def run_lda_feature_ranking(
     )
 
     lda_transform = {
-        'weights': optimal_axis.tolist(),
-        'intercept': float(lda.intercept_[0]),
+        "weights": optimal_axis.tolist(),
+        "intercept": float(lda.intercept_[0]),
+        "features": features_to_rank,
     }
     json_path = output_dir / f"lda_transform_{fname_suffix}.json"
-    with open(json_path, 'w') as f:
+    with open(json_path, "w") as f:
         json.dump(lda_transform, f, indent=4)
 
     for minimal_weight in [2.0, 3.0, 4.0]:
@@ -245,7 +246,32 @@ def run_lda_feature_ranking(
         projected_data_sparse = df_features @ sparse_axis + lda.intercept_[0]
         df_proj[f"LDA_SP_{int(minimal_weight)}"] = projected_data_sparse
 
-    return lda, optimal_axis, df_proj
+    return lda_transform, df_proj
+
+
+# %%
+def apply_lda_projection(
+    df, features_included_in_lda_rank, lda_weights, lda_intercept, sparse_axes=None
+) -> pd.DataFrame:
+
+    df_features = df[features_included_in_lda_rank]
+    lda_weights = np.array(lda_weights)
+    lda_intercept = float(lda_intercept)
+    df_result = pd.DataFrame(index=df_features.index)
+    # LDA projection
+    df_result["LDA"] = df_features @ lda_weights + lda_intercept
+    # Sparse projections
+    if sparse_axes is not None:
+        for minimal_weight in [2.0, 3.0, 4.0]:
+            sparse_axis = np.where(np.abs(lda_weights) >= minimal_weight, lda_weights, 0)
+            print("Highly contributing pcs at minimal weight threshold of", minimal_weight)
+            print([features_to_rank[pc] for pc in np.where(np.abs(sparse_axis) > 0)[0]])
+            projected_data_sparse = df_features @ sparse_axis + lda_intercept
+            df_result[f"LDA_SP_{int(minimal_weight)}"] = projected_data_sparse
+
+    # merge the df_result with the original df to keep all other columns
+    df_result = df.merge(df_result, left_index=True, right_index=True)
+    return df_result
 
 
 # %% PC ranking and histogram plotting
@@ -257,10 +283,8 @@ rank_features_and_plot_histograms(
     output_dir=output_dir,
 )
 
-##% LDA feature ranking and histogram plotting, pcs only
-lda, optimal_axis, df_proj = run_lda_feature_ranking(
-    df_mig, pc_columns_to_keep, output_dir, "pcs_only"
-)
+# %% LDA feature ranking and histogram plotting, pcs only
+lda_transform, df_proj = run_lda_feature_ranking(df_mig, pc_columns_to_keep, output_dir, "pcs_only")
 rank_features_and_plot_histograms(
     df_proj,
     df_proj.columns.drop("coherent_migration"),
@@ -268,31 +292,17 @@ rank_features_and_plot_histograms(
     fname="find_coherent_mig_histograms_lda_pcs_only.png",
 )
 
-# %% LDA with rho, polar_r, polar_theta
-lda, optimal_axis, df_proj = run_lda_feature_ranking(
-    df_mig,
-    features_to_rank,
-    output_dir,
-    "all_features",
+# %% apply LDA projection to original dataframe
+dataset_name = "20250319_20X"
+df = get_dataframe_for_dynamics_workflows(
+    dataset_name, dataframe_manifest, pca, filter_dataframe=True
 )
-rank_features_and_plot_histograms(
-    df_proj,
-    df_proj.columns.drop("coherent_migration"),
-    label_column="coherent_migration",
-    fname="find_coherent_mig_histograms_lda_all.png",
-)
-
-# %% Without top 3 PCs, with rho, polar_r, polar_theta
-lda, optimal_axis, df_proj = run_lda_feature_ranking(
-    df_mig,
-    features_to_rank[3:],
-    output_dir,
-    "transformed_pcs_no_top_3",
-)
-rank_features_and_plot_histograms(
-    df_proj,
-    df_proj.columns.drop("coherent_migration"),
-    label_column="coherent_migration",
-    fname="find_coherent_mig_histograms_lda_transformed_pcs.png",
+# %%
+df_proj_full = apply_lda_projection(
+    df,
+    features_included_in_lda_rank=lda_transform["features"],
+    lda_weights=lda_transform["weights"],
+    lda_intercept=lda_transform["intercept"],
+    sparse_axes=[2.0, 3.0, 4.0],
 )
 # %%
