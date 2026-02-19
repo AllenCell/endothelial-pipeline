@@ -70,6 +70,13 @@ timepoint_annotations:
     3: [[0, 65]]
     4: [[0, 70]]
     5: [[0, 75]]
+  cell_piling:
+    0: [[330, 576]]
+    1: [[300, 576]]
+    2: [[330, 576]]
+    3: [[220, 576]]
+    4: [[220, 576]]
+    5: [[220, 576]]
 position_annotations: null
 center_z_plane:
   0: 12
