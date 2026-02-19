@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from scipy import signal
+from scipy.signal import find_peaks, peak_widths
 from skimage.color import label2rgb
 from skimage.exposure import rescale_intensity
 from skimage.segmentation import find_boundaries
@@ -157,8 +157,6 @@ def show_intensity_measure_example(
         & (df.image_index == timepoint)
         & (df.label == seg_label)
     ]
-    # x_slice = slice(record.start_x_cdh5_seg.values.item(), record.end_x_cdh5_seg.values.item())
-    # y_slice = slice(record.start_y_cdh5_seg.values.item(), record.end_y_cdh5_seg.values.item())
     y_slice, x_slice = [slice(d.min() - 10, d.max() + 11) for d in np.where(seg_arr == seg_label)]
 
     overlay = label2rgb(
@@ -167,17 +165,9 @@ def show_intensity_measure_example(
         bg_label=0,
         alpha=0.3,
     )
-    # fig, ax = plt.subplots()
-    # ax.imshow(overlay[y_slice, x_slice])
-    # plt.show()
-    # plt.clf()
 
     seg_bound = find_boundaries(seg_arr == seg_label)
     seg_bound_locs = np.where(seg_bound)
-    # crop = tuple(slice(locs_dim.min(), locs_dim.max() + 1) for locs_dim in seg_bound_locs)
-    # plt.imshow(seg_bound[crop])
-    # plt.show()
-    # plt.clf()
 
     seg_centroid = (
         record["centroid_Y"].values.item(),
@@ -191,10 +181,21 @@ def show_intensity_measure_example(
         seg_bound_locs[1] - seg_centroid[1],
     )
     intensities = raw_arr[seg_bound_locs]
-    # intensities_smoothed = (
-    #     pd.Series(intensities).rolling(window=11, min_periods=1, center=True).mean().values
-    # )
-    edge_data, peak_angles, peak_intensities, _ = get_peaks_of_edge_intensities(angles, intensities)
+
+    edge_data, peak_angles, peak_intensities, peak_details, peak_width_details = (
+        get_peaks_of_edge_intensities(angles, intensities)
+    )
+    peak_args = tuple(
+        zip(
+            peak_angles,
+            peak_intensities,
+            peak_details["prominences"].tolist(),
+            peak_width_details["width_heights"].tolist(),
+            peak_width_details["left_ips"].tolist(),
+            peak_width_details["right_ips"].tolist(),
+            strict=True,
+        )
+    )
 
     fig = plt.figure(figsize=(9, 3))
     gs = fig.add_gridspec(nrows=1, ncols=3)  # , width_ratios=[1, 1], wspace=0.05)
@@ -211,11 +212,27 @@ def show_intensity_measure_example(
     ax2.set_xlabel("Angle (rad)")
     ax2.set_xticks(np.linspace(-np.pi, np.pi, 5, endpoint=True))
     ax2.set_xticklabels(["-π", "-π/2", "0", "π/2", "π"])
-    for x, y in zip(peak_angles.values, peak_intensities.values, strict=True):
+    for (
+        angle,
+        intens,
+        prominence,
+        width_height,
+        left_width_idx,
+        right_width_idx,
+    ) in peak_args:
+        ax2.vlines(x=angle, ymin=intens - prominence, ymax=intens, color="tab:orange", lw=1, ls="-")
+        ax2.hlines(
+            y=width_height,
+            xmin=edge_data.angle.iloc[int(left_width_idx)],
+            xmax=edge_data.angle.iloc[int(right_width_idx)],
+            color="tab:orange",
+            lw=1,
+            ls="-",
+        )
         ax2.annotate(
             text=" ",
-            xy=(x, y),
-            xytext=(x + 0.3, y + 20),
+            xy=(angle, intens),
+            xytext=(angle + 0.3, intens + 20),
             xycoords="data",
             arrowprops={
                 "arrowstyle": "-|>",
@@ -232,57 +249,31 @@ def get_peaks_of_edge_intensities(
     angles: np.ndarray,
     intensities: np.ndarray,
     peak_prominence: int = 50,
-    peak_to_peak_distance_minimum: int = 100,
+    peak_to_peak_distance_minimum: int = 50,
+    smoothing_window_size: int = 5,
 ) -> tuple[pd.DataFrame, np.ndarray, np.ndarray, dict]:
     edge_data = pd.DataFrame({"angle": angles, "intensity": intensities}).sort_values("angle")
     # edge_data["intensity_smoothed"] = ndimage.gaussian_filter1d(edge_data["intensity"], sigma=3)
     # edge_data["intensity_smoothed"] = (
-    #     edge_data["intensity"].rolling(window=21, center=True, win_type="gaussian").mean(std=3)
+    #     edge_data["intensity"]
+    #     .rolling(window=smoothing_window_size, center=True, win_type="gaussian")
+    #     .mean(std=7)
     # )
     edge_data["intensity_smoothed"] = (
-        edge_data["intensity"].rolling(window=5, center=True).quantile(0.75)
+        edge_data["intensity"].rolling(window=smoothing_window_size, center=True).quantile(0.95)
     )
-    peak_locs, peak_details = signal.find_peaks(
+    peak_locs, peak_details = find_peaks(
         edge_data.intensity_smoothed,
         distance=peak_to_peak_distance_minimum,
         prominence=peak_prominence,
     )
+    peak_width_details = peak_widths(
+        edge_data.intensity_smoothed, peak_locs, prominence_data=tuple(peak_details.values())
+    )
+    peak_width_details = dict(
+        zip(("widths", "width_heights", "left_ips", "right_ips"), peak_width_details, strict=True)
+    )
+
     peak_angles = edge_data.angle.iloc[peak_locs].tolist()
     peak_intensities = edge_data.intensity_smoothed.iloc[peak_locs].tolist()
-    return edge_data, peak_angles, peak_intensities, peak_details
-
-
-# def count_peaks(
-#     angles: np.ndarray,
-#     intensities: np.ndarray,
-#     peak_prominence_min: int = 50,
-#     peak_to_peak_distance_minimum: int = 100,
-# ) -> int:
-#     _, peak_angles, _, _ = get_peaks_of_edge_intensities(
-#         angles, intensities, peak_prominence_min, peak_to_peak_distance_minimum
-#     )
-#     return len(peak_angles)
-
-
-# def get_peak_prominence_vals(
-#     angles: np.ndarray,
-#     intensities: np.ndarray,
-#     peak_prominence_min: int = 50,
-#     peak_to_peak_distance_minimum: int = 100,
-# ) -> list:
-#     _, _, _, peak_details = get_peaks_of_edge_intensities(
-#         angles, intensities, peak_prominence_min, peak_to_peak_distance_minimum
-#     )
-#     return peak_details["prominences"].tolist()
-
-
-# def get_peak_intensity_vals(
-#     angles: np.ndarray,
-#     intensities: np.ndarray,
-#     peak_prominence_min: int = 50,
-#     peak_to_peak_distance_minimum: int = 100,
-# ) -> list:
-#     _, _, peak_intensities, _ = get_peaks_of_edge_intensities(
-#         angles, intensities, peak_prominence_min, peak_to_peak_distance_minimum
-#     )
-#     return peak_intensities.tolist()
+    return edge_data, peak_angles, peak_intensities, peak_details, peak_width_details
