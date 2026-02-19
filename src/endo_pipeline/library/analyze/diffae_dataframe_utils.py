@@ -340,6 +340,7 @@ def fit_pca(
     filter_dataframe: bool = True,
     include_cell_piling: bool = False,
     num_pcs: int = 8,
+    return_pca_input_dataframe: bool = False,
 ) -> PCA:
     """
     Fit PCA model to fixed set of reference datasets, as defined in the given
@@ -409,7 +410,8 @@ def fit_pca(
     # get the feature columns from the data,
     # these are the columns that start with 'feat_'
     diffae_feature_cols = get_latent_feature_column_names_from_dataframe(data_ref)
-    pca.fit(data_ref[diffae_feature_cols].values)  # fit PCA
+    pca_input_dataframe = data_ref[diffae_feature_cols]
+    pca.fit(pca_input_dataframe.values)  # fit PCA
 
     # log info about explained variance ratio
     logger.info(
@@ -424,6 +426,8 @@ def fit_pca(
     )
 
     # return the fit PCA pipeline
+    if return_pca_input_dataframe:
+        return pca, pca_input_dataframe
     return pca
 
 
