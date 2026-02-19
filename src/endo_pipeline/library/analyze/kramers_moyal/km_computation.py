@@ -6,7 +6,7 @@ from scipy.signal import convolve
 from scipy.special import factorial
 
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
-from endo_pipeline.library.analyze.numerics import histogramdd
+from endo_pipeline.library.analyze.numerics.binning import histogramdd
 
 logger = logging.getLogger(__name__)
 

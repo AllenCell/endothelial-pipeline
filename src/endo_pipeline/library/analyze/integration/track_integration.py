@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 from endo_pipeline.configs import get_latent_dim_from_config
 from endo_pipeline.io import get_config_dict_from_mlflow, get_output_path, load_dataframe
+from endo_pipeline.library.analyze.data_driven_flow_field import solve_ddff_ode
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     add_crop_index,
     add_description_column,
@@ -22,7 +23,6 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_traj_and_diff,
     project_features_to_pcs,
 )
-from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import solve_ddff_ode
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
@@ -1081,9 +1081,12 @@ def load_preprocessed_dataframes_and_km_bounds(
         The loaded dataframe with pc-diffae-seg-merged data.
     """
     # load the pc-diffae-seg-merged parquet file
-    cell_centric_feats_df = load_pc_diffae_liveseg_feats_merged_table(
-        dataset_name, cell_centric_manifest_name
+    cell_centric_feats_manifest = load_dataframe_manifest(cell_centric_manifest_name)
+    cell_centric_feats_location = get_dataframe_location_for_dataset(
+        cell_centric_feats_manifest, dataset_name
     )
+    cell_centric_feats_df = load_dataframe(cell_centric_feats_location, delay=True)
+    cell_centric_feats_df = cell_centric_feats_df.reset_index(drop=True)
 
     # get the grid crop-based diffae features
     # get the model information
@@ -1125,38 +1128,3 @@ def load_preprocessed_dataframes_and_km_bounds(
         cell_centric_feats_df = cell_centric_feats_df.compute()  # type: ignore
 
     return cell_centric_feats_df, diffae_grid_crops, bounds
-
-
-def load_pc_diffae_liveseg_feats_merged_table(
-    dataset_name: str, cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
-) -> dd.DataFrame:
-    """Load the preprocessed pc-diffae-seg-merged parquet file for a given dataset.
-    Performs delayed loading of the dataframe using a dask DataFrame.
-
-    If you load the dataframe like so
-    >>> df = load_pc_diffae_liveseg_feats_merged_table(dataset_name)
-
-    All available columns can be listed with `df.columns`.
-    Columns of interest can be loaded with `df['column_name'].compute()` or
-    `df[['column_name_1', 'column_name_2', ...]].compute()`.
-    Loading the entire dataframe into memory with `df.compute()` takes a lot of memory
-    and time, so it is not recommended.
-
-    Parameters
-    ----------
-    dataset_name
-        The name of the dataset to load.
-
-    Returns
-    -------
-        The loaded dataframe with pc-diffae-seg-merged data.
-    """
-    # load the pc-diffae-seg-merged parquet file
-    cell_centric_feats_manifest = load_dataframe_manifest(cell_centric_manifest_name)
-    cell_centric_feats_location = get_dataframe_location_for_dataset(
-        cell_centric_feats_manifest, dataset_name
-    )
-    cell_centric_feats_df = load_dataframe(cell_centric_feats_location, delay=True)
-    cell_centric_feats_df = cell_centric_feats_df.reset_index(drop=True)
-
-    return cell_centric_feats_df

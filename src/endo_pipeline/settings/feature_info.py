@@ -1,5 +1,5 @@
 from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.diffae_feature_dataframes import MAX_PCS_TO_COMPUTE, ColumnName
 
 LABEL_MAP = {
     "alignment_deg_rel_to_flow": "Alignment Relative to Flow (degrees)",
@@ -13,7 +13,6 @@ LABEL_MAP = {
     "cell_fluorescence_mean (a.u.)": "Cell Fluorescence Mean (a.u.)",
     "cell_fluorescence_median (a.u.)": "Cell Fluorescence Median (a.u.)",
     "cell_solidity": "Cell Solidity",
-    "tid": "Track ID",
     "time_hours": "Time (hours)",
     "time_minutes": "Time (minutes)",
     "track_id": "Track ID",
@@ -35,4 +34,29 @@ LABEL_MAP = {
     },
     ColumnName.POLAR_ANGLE.value: "PC Polar Angle",
     ColumnName.POLAR_RADIUS.value: "PC Polar Radius",
+}
+
+LABEL_MAP_GRID = {
+    "time_hours": "Time (hours)",
+    "time_minutes": "Time (minutes)",
+    # various PC values
+    **{
+        f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}"
+        for pc_col in DIFFAE_PC_COLUMN_NAMES[:MAX_PCS_TO_COMPUTE]
+    },
+    ColumnName.POLAR_ANGLE.value: "PC Polar Angle",
+    ColumnName.POLAR_RADIUS.value: "PC Polar Radius",
+    ColumnName.PC3_FLIPPED.value: "PC Rho",
+    # filters
+    "auto_bf_scope_error": "Filter: Auto-detected Brightfield Microscope Error",
+    "auto_bf_temp_artifact": "Filter: Auto-detected Temporary Artifact",
+    "auto_gfp_scope_error": "Filter: Auto-detected GFP Channel Microscope Error",
+    "bf_scope_error": "Filter: Manually Annotated Brightfield Microscope Error",
+    "bf_temp_artifact": "Filter: Manually Annotated Temporary Artifact",
+    "gfp_scope_error": "Filter: Manually Annotated GFP Channel Microscope Error",
+    "cell_piling": "Filter: Manually Annotated Significant Cell Piling",
+    "not_steady_state": "Filter: Cells Not At Steady State",
+    "unfed": "Filter: Unfed (More Than 3 Hours Since Fresh Media Introduced)",
+    "xy_shift": "Filter: Significant Change in XY position of FOV",
+    "z_shift": "Filter: Significant Change in Z position of FOV",
 }

@@ -12,12 +12,12 @@ from matplotlib.ticker import MaxNLocator
 from scipy.stats import gaussian_kde
 
 from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.library.analyze import data_driven_flow_field
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     check_required_columns_in_dataframe,
     get_dataset_descriptions,
     parse_dataset_description,
 )
-from endo_pipeline.library.analyze.dynamics_utils import data_driven_flow_field
 from endo_pipeline.library.visualize.diffae_features import feature_viz
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,

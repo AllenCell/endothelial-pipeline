@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from endo_pipeline.cli import Datasets
 
@@ -7,7 +8,7 @@ def main(
     datasets: Datasets | None = None,
     positions: list[int] = [0],
     output_dir: Path | None = None,
-    segmentation: str = "CDH5",
+    segmentation: Literal["CDH5", "grid"] = "CDH5",
     skip_backdrops: bool = False,
     include_diffae_features: bool = True,
 ) -> None:
@@ -51,39 +52,31 @@ def main(
        step.
     """
 
-    from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (
         generate_tfe_dataset,
     )
-    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
     make_backdrops = not skip_backdrops
 
     if datasets is None:
         datasets = ["20250618_20X"]
 
-    output_dir = get_output_path("timelapse_feature_explorer") if output_dir is None else output_dir
+    output_dir = (
+        get_output_path(f"timelapse_feature_explorer_{segmentation}")
+        if output_dir is None
+        else output_dir
+    )
 
     # Iterate through datasets and positions
     for dataset_name in datasets:
-        dataset_config = load_dataset_config(dataset_name)
         for position in positions:
-            if segmentation == "CDH5":
-                manifest = load_image_manifest("cdh5_classic_seg")
-                location = get_image_location_for_dataset(manifest, dataset_config, position, 0)
-
-                if location.path is not None:
-                    source_dir_path = location.path.parent
-                else:
-                    continue
-
             # Generate the TFE dataset
             generate_tfe_dataset(
                 dataset=dataset_name,
                 position=position,
                 output_dir=output_dir,
-                source_dir=source_dir_path,
+                segmentation=segmentation,
                 backdrops=make_backdrops,
                 include_diffae_features=include_diffae_features,
             )
