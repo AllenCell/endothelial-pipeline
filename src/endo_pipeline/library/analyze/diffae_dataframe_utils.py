@@ -29,7 +29,11 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAME_GROUPS,
     ColumnName,
 )
-from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RESCALE_THETA
+from endo_pipeline.settings.dynamics_workflows import (
+    METADATA_COLUMNS_TO_KEEP,
+    PERIOD_THETA_RESCALED,
+    RESCALE_THETA,
+)
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -614,6 +618,7 @@ def project_features_to_pcs(
 def get_dataframe_for_dynamics_workflows(
     dataset_name: str,
     manifest: DataframeManifest,
+    columns_to_keep: list[str] | None = None,
     pca: PCA | None = None,
     filter_dataframe: bool = True,
     include_cell_piling: bool = True,
@@ -627,22 +632,39 @@ def get_dataframe_for_dynamics_workflows(
     analysis in the stochastic dynamics workflow. Adds crop index column to
     DataFrame, and projects feature data onto PC axes.
 
+    **Column selection and filtering**
+
+    The input DataFrame is filtered to keep only necessary columns to save
+    memory. At a minimum, the metadata columns defined in
+    METADATA_COLUMNS_TO_KEEP and the latent feature columns needed for PCA
+    projection are kept. Additional columns can be specified to keep via the
+    input ``columns_to_keep``.
+
+    In the case that the input ``pca`` is not None, the feature data is
+    projected onto the PC axes defined by the PCA model, and the original latent
+    feature columns are dropped to save memory.
+
     Parameters
     ----------
     dataset_name
         Name of dataset
     manifest
         Dataframe manifest for loading model features.
+    columns_to_keep
+        List of additional column names to keep in the output DataFrame.
     pca
         PCA model to fit to feature data. If None, do not project feature data.
     filter_dataframe
-        Whether to filter out annotated timepoints and positions from the dataframe.
+        Whether to filter out annotated timepoints and positions from the
+        dataframe.
     include_cell_piling
         True keep timepoints annotated as "cell_piling", False to remove them.
     include_not_steady_state
-        True to keep timepoints annotated as "not_steady_state", False to remove them.
+        True to keep timepoints annotated as "not_steady_state", False to remove
+        them.
     crop_pattern
-        Crop pattern used to generate the feature dataframe. Either 'grid' or 'tracked'.
+        Crop pattern used to generate the feature dataframe. Either 'grid' or
+        'tracked'.
     compute_polar
         Whether to compute polar coordinates (r, theta) from the first two PCs.
     rescale_theta
@@ -655,8 +677,22 @@ def get_dataframe_for_dynamics_workflows(
     """
 
     location = get_dataframe_location_for_dataset(manifest, dataset_name)
-    df = load_dataframe(location)
+    df = load_dataframe(location, delay=True)
     feat_cols = get_latent_feature_column_names_from_dataframe(df)
+
+    # start with default metadatac columns to keep
+    columns_to_keep_ = list(METADATA_COLUMNS_TO_KEEP)
+    if columns_to_keep is not None:
+        columns_to_keep_.extend(columns_to_keep)  # add any additional specified columns to keep
+    columns_to_keep_.extend(feat_cols)  # also keep feature columns for PCA projection
+    if crop_pattern == "tracked":
+        columns_to_keep_.extend(
+            [ColumnName.TRACK_ID]
+        )  # also keep track ID column for tracked crops
+    columns_to_keep_ = list(set(columns_to_keep_))  # remove duplicates, if any
+
+    # keep only necessary columns to save memory
+    df_ = df[columns_to_keep_].compute()
 
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
@@ -670,12 +706,12 @@ def get_dataframe_for_dynamics_workflows(
             annotations_to_ignore=annotations_to_ignore
         )
         df_filtered = filter_dataframe_by_annotations(
-            df,
+            df_,
             load_dataset_config(dataset_name),
             timepoint_annotations=timepoint_annotations,
         )
     else:
-        df_filtered = df
+        df_filtered = df_
 
     df_with_crop = add_crop_index(df_filtered, crop_pattern)
 
@@ -689,13 +725,17 @@ def get_dataframe_for_dynamics_workflows(
 
     else:
         # project feature data onto PC axes
-        return project_features_to_pcs(
+        df_with_pcs = project_features_to_pcs(
             df_with_crop,
             pca,
             feat_cols=feat_cols,
             compute_polar=compute_polar,
             rescale_theta=rescale_theta,
         )
+        df_drop_original_feats = df_with_pcs.drop(
+            columns=feat_cols
+        )  # drop original feature columns to save memory
+        return df_drop_original_feats
 
 
 def get_dataset_descriptions(
@@ -816,11 +856,13 @@ def add_crop_index(
         logger.error("Crop pattern must be 'tracked' or 'grid', got [ %s ]", crop_pattern)
         raise ValueError("Input crop_pattern must be 'grid' or 'tracked'")
 
-    if crop_pattern == "tracked" and "track_id" in df.columns:
-        required_columns = [ColumnName.POSITION, "track_id"]
+    if crop_pattern == "tracked" and ColumnName.TRACK_ID in df.columns:
+        required_columns = [ColumnName.POSITION, ColumnName.TRACK_ID]
         check_required_columns_in_dataframe(df, required_columns)
         df[ColumnName.CROP_INDEX] = (
-            df.groupby([ColumnName.POSITION, "track_id"], as_index=False).ngroup().astype(int)
+            df.groupby([ColumnName.POSITION, ColumnName.TRACK_ID], as_index=False)
+            .ngroup()
+            .astype(int)
         )
 
     elif crop_pattern == "grid":

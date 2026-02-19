@@ -97,7 +97,7 @@ def main(
     # get labels for provided set of feature columns
     column_names = list(DYNAMICS_COLUMN_NAMES)
     variable_labels_dict = {
-        col: get_label_for_column(col).replace("polar", "") for col in column_names
+        col: get_label_for_column(col).replace("polar ", "") for col in column_names
     }
 
     # unpack default bin widths and limits for each column, adjusting limits if rescaling theta
@@ -117,9 +117,12 @@ def main(
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
-    # fit PCA
+    # fit PCA - ALWAYS on grid-based crop features
+    dataframe_manifest_name_for_pca = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
     pca = fit_pca(
-        dataframe_manifest_name=dataframe_manifest_name, num_pcs=NUM_PCS_TO_FIT_FOR_DYNAMICS
+        dataframe_manifest_name=dataframe_manifest_name_for_pca, num_pcs=NUM_PCS_TO_FIT_FOR_DYNAMICS
     )
 
     # Default list of datasets if not provided, only include datasets available in
@@ -152,6 +155,7 @@ def main(
             pca=pca,
             include_cell_piling=False,
             include_not_steady_state=False,
+            crop_pattern=crop_pattern,
             compute_polar=True,
             rescale_theta=RESCALE_THETA,
         )
