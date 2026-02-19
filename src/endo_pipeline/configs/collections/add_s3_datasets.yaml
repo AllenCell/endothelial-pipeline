@@ -1,4 +1,4 @@
-name: add_data_to_s3
+name: add_s3_datasets
 description: Upload these datasets to S3 storage
 datasets:
 - 20250428_20X # 9 dyn / cm2 rep 1
