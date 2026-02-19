@@ -1,4 +1,6 @@
 # %%
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -194,7 +196,12 @@ def rank_features_and_plot_histograms(
     plt.close()
 
 
-def run_lda_feature_ranking(df_mig, features_to_rank, output_dir):
+def run_lda_feature_ranking(
+    df_mig: pd.DataFrame,
+    features_to_rank: list,
+    output_dir: Path,
+    fname_suffix: str = "",
+):
     features_to_rank = [
         col.value if hasattr(col, "value") else str(col) for col in features_to_rank
     ]
@@ -215,7 +222,7 @@ def run_lda_feature_ranking(df_mig, features_to_rank, output_dir):
     ax.set_xticklabels(features_to_rank, rotation=45, ha="right", fontsize=6)
     fig.tight_layout()
     plt.show()
-    fig.savefig(output_dir / "lda_optimal_axis.png", dpi=150)
+    fig.savefig(output_dir / f"lda_optimal_axis_{fname_suffix}.png", dpi=150)
     plt.close(fig)
 
     df_proj = pd.DataFrame(
@@ -242,7 +249,9 @@ rank_features_and_plot_histograms(
 )
 
 ##% LDA feature ranking and histogram plotting, pcs only
-lda, optimal_axis, df_proj = run_lda_feature_ranking(df_mig, pc_columns_to_keep, output_dir)
+lda, optimal_axis, df_proj = run_lda_feature_ranking(
+    df_mig, pc_columns_to_keep, output_dir, "pcs_only"
+)
 rank_features_and_plot_histograms(
     df_proj,
     df_proj.columns.drop("coherent_migration"),
@@ -251,7 +260,12 @@ rank_features_and_plot_histograms(
 )
 
 # %% LDA with rho, polar_r, polar_theta
-lda, optimal_axis, df_proj = run_lda_feature_ranking(df_mig, features_to_rank, output_dir)
+lda, optimal_axis, df_proj = run_lda_feature_ranking(
+    df_mig,
+    features_to_rank,
+    output_dir,
+    "all_features",
+)
 rank_features_and_plot_histograms(
     df_proj,
     df_proj.columns.drop("coherent_migration"),
@@ -260,7 +274,12 @@ rank_features_and_plot_histograms(
 )
 
 # %% Without top 3 PCs, with rho, polar_r, polar_theta
-lda, optimal_axis, df_proj = run_lda_feature_ranking(df_mig, features_to_rank[3:], output_dir)
+lda, optimal_axis, df_proj = run_lda_feature_ranking(
+    df_mig,
+    features_to_rank[3:],
+    output_dir,
+    "transformed_pcs_no_top_3",
+)
 rank_features_and_plot_histograms(
     df_proj,
     df_proj.columns.drop("coherent_migration"),
