@@ -9,16 +9,19 @@ TAGS = ["diffae_image_generation", "pc_interpretation"]
 
 def main() -> None:
     import matplotlib.pyplot as plt
+    import pandas as pd
 
     from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_model
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+        fit_pca,
+        get_dataframe_for_dynamics_workflows,
+    )
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
     from endo_pipeline.library.model.latent_walk_utils import (
-        build_data_for_pca_latent_walk,
         generate_latent_walk_images,
-        get_pca_latent_walk,
+        get_latent_walk,
     )
     from endo_pipeline.library.visualize.latent_walk import plot_latent_walk_as_grid
     from endo_pipeline.manifests import (
@@ -26,6 +29,7 @@ def main() -> None:
         load_dataframe_manifest,
         load_model_manifest,
     )
+    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
     plt.style.use("endo_pipeline.figure")
 
@@ -35,7 +39,7 @@ def main() -> None:
     dataset_collection = DEFAULT_PCA_DATASET_COLLECTION_NAME
     crop_pattern = "grid"
     include_cell_piling = False
-    num_pcs = 11
+    n_dims = 11
     n_steps = 7
     sigma = 3.0
     random_seed = 5
@@ -57,12 +61,27 @@ def main() -> None:
         dataset_collection_name=dataset_collection,
         dataframe_manifest_name=dataframe_manifest_name,
         include_cell_piling=include_cell_piling,
-        num_pcs=num_pcs,
+        num_pcs=n_dims,
     )
-    data_for_walk = build_data_for_pca_latent_walk(
-        dataset_names, dataframe_manifest, pca, include_cell_piling, crop_pattern
+    column_names = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(n_dims)]
+    dataframe_all_datasets = pd.concat(
+        [
+            get_dataframe_for_dynamics_workflows(
+                dataset_name,
+                dataframe_manifest,
+                pca=pca,
+                include_cell_piling=include_cell_piling,
+                crop_pattern=crop_pattern,
+            )
+            for dataset_name in dataset_names
+        ]
     )
-    walk, ranges = get_pca_latent_walk(data_for_walk, pca, sigma=sigma, n_steps=n_steps)
+    data_for_walk = dataframe_all_datasets[column_names].values
+
+    # walk along pcs, get PC-space coordinates, then transform back to latent
+    # space coordinates for image generation
+    walk, ranges = get_latent_walk(data_for_walk, n_dims, sigma=sigma, n_steps=n_steps)
+    walk = pca.inverse_transform(walk)
 
     # Generate images from the latent walk
     walk_img_grid = generate_latent_walk_images(
@@ -79,7 +98,7 @@ def main() -> None:
         file_name,
         use_pcs=True,
         show_values=True,
-        batches=[(0, 3), (3, 11)],
+        batches=[(0, 3), (3, n_dims)],
     )
 
 
