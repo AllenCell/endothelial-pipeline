@@ -98,7 +98,7 @@ def get_baseline_walk_values(
 
     Returns
     -------
-    list[float]
+    :
         List of baseline walk values for each dimension.
     """
     n_dims = len(column_names)
@@ -180,12 +180,38 @@ def get_latent_walk(
 def generate_latent_walk_images(
     model: "DiffusionAutoEncoder",
     walk: np.ndarray,
-    ranges: list,
+    ranges: list[np.ndarray],
     n_noise_samples: int = 1,
     num_gpus: int | None = None,
     random_seed: int | None = None,
 ) -> np.ndarray:
-    # Ggenerate images from the latent walk
+    """
+    Generate images from a latent walk using the provided model.
+
+    Parameters
+    ----------
+    model
+        Model to use for image generation.
+    walk
+        Numpy array of shape (n_steps, n_dim) containing the latent walk
+        coordinates.
+    ranges
+        List of numpy arrays containing the ranges of values for each dimension
+        in the walk.
+    n_noise_samples
+        Number of noise samples to use for generating images.
+    num_gpus
+        Number of GPUs to use for image generation. If None, uses CPU.
+    random_seed
+        Random seed for reproducibility of image generation. If None, does not
+        set a random seed.
+
+    Returns
+    -------
+    :
+        Array of stacked generated images from the latent walk, reshaped to
+        (n_dim, n_steps, img_width, img_height).
+    """
     walk_img = generate_from_coords(
         model, walk, n_noise_samples=n_noise_samples, num_gpus=num_gpus, random_seed=random_seed
     )

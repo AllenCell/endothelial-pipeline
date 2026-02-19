@@ -1,50 +1,6 @@
 from collections.abc import Callable
 
 import numpy as np
-import pysindy as ps
-
-
-def vector_field_function(sindy_model: ps.SINDy) -> Callable:
-    """
-    Turn fit regression model (SINDy object) into vector-valued
-    function f that can be evaluated at a point x as f(x) using
-    the model's built-in `predict' function. This function serves
-    to wrap the model's predict function into a callable function
-    that can be used to evaluate the model at a single point x.
-
-    The returned function allows for control parameters
-    as an optional argument.
-
-    This function is used when the dimension
-    of the state space is greater than 1.
-    """
-
-    def f(x: np.ndarray, u: float | None = None) -> np.ndarray:
-        # if x is a single point, convert to 2D array
-        # input shape has to be (n_samples, n_features),
-        # where n_features = dimension of state space
-        if len(x.shape) == 1:
-            x_in = x[None, :]
-        else:
-            x_in = x.copy()
-
-        # optionally pass control parameter u to the model
-        if u is None:
-            f_out = sindy_model.predict(x_in)  # predict = evaluate the model at x
-        else:
-            f_out = sindy_model.predict(
-                x_in, u=u
-            )  # predict = evaluate the model at x with control parameter u
-
-        # if the output is a single point, convert to 1D array
-        if f_out.shape[0] == 1:
-            f_out = f_out[0]
-
-        # SINDy model outputs its own class
-        # of arrays (AxesArray), so convert to numpy array
-        return np.asarray(f_out)
-
-    return f  # return the the callable function f
 
 
 def mesh_grid_function(f: Callable, ndim: int = 2) -> Callable:

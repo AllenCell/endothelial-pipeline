@@ -68,7 +68,7 @@ def main(
 
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_image, save_plot_to_path
-    from endo_pipeline.library.analyze.numerics import (
+    from endo_pipeline.library.analyze.numerics.binning import (
         get_bounds_from_data,
         get_df_by_bin_value,
         get_histogram_by_component,

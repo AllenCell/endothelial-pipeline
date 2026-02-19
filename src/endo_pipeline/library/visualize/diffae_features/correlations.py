@@ -12,12 +12,12 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataset_descriptions,
     parse_dataset_description,
 )
-from endo_pipeline.library.analyze.numerics import (
+from endo_pipeline.library.analyze.numerics.correlations import (
+    CROSS_CORR_INDEX_COMBINATIONS,
     double_exponential_decay,
     exponential_decay,
     fit_exp_decay_and_get_relaxation_timescale,
 )
-from endo_pipeline.library.analyze.numerics.correlations import CROSS_CORR_INDEX_COMBINATIONS
 
 logger = logging.getLogger(__name__)
 
