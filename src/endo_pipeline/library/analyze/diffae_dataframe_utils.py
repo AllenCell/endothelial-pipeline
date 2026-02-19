@@ -858,13 +858,6 @@ def add_crop_index(
 
     if crop_pattern == "tracked" and ColumnName.TRACK_ID in df.columns:
         required_columns = [ColumnName.POSITION, ColumnName.TRACK_ID]
-        check_required_columns_in_dataframe(df, required_columns)
-        df[ColumnName.CROP_INDEX] = (
-            df.groupby([ColumnName.POSITION, ColumnName.TRACK_ID], as_index=False)
-            .ngroup()
-            .astype(int)
-        )
-
     elif crop_pattern == "grid":
         required_columns = [ColumnName.POSITION, ColumnName.START_X, ColumnName.START_Y]
 
