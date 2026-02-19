@@ -69,7 +69,8 @@ timepoint_annotations:
     3: [[240, 576]]
     4: [[312, 576]]
     5: [[192, 576]]
-position_annotations: null
+position_annotations:
+  hole_in_monolayer: [1]
 center_z_plane:
   0: 11
   1: 10
