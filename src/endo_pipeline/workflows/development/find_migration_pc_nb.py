@@ -1,9 +1,9 @@
 # %%
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
-from sklearn.metrics import roc_auc_score
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.metrics import roc_auc_score
 
 from endo_pipeline.io import get_output_path, save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
@@ -22,6 +22,7 @@ from endo_pipeline.settings.workflow_defaults import (
 )
 
 # %%
+output_dir = get_output_path("find_coherent_mig")
 pc_columns_to_keep = DIFFAE_PC_COLUMN_NAMES[:80]
 other_cols_to_keep = ["polar_r", "polar_theta", "rho"]
 
@@ -107,7 +108,6 @@ for file_info in mixed_mig_files + coherent_mig_files:
     fname = file_info["fname"]
     df_annotation = pd.read_csv(f"{annotation_path}/{fname}")
     pairs_df = df_annotation[["Track", "Frame"]]
-
     merged = df.merge(
         pairs_df, left_on=["crop_index", "frame_number"], right_on=["Track", "Frame"], how="inner"
     )
@@ -146,7 +146,13 @@ def compute_separation_power(X, y, verbose=True):
 
 
 # %%
-def rank_features_and_plot_histograms(df, features_to_rank, label_column="coherent_migration", fname="find_coherent_mig_histograms.png"):
+def rank_features_and_plot_histograms(
+    df,
+    features_to_rank,
+    label_column="coherent_migration",
+    fname="find_coherent_mig_histograms.png",
+    output_dir=output_dir,
+):
 
     ranking = compute_separation_power(df[features_to_rank], df["coherent_migration"])
 
@@ -161,9 +167,15 @@ def rank_features_and_plot_histograms(df, features_to_rank, label_column="cohere
         col = item["feature"]
         x_min = df[col].min()
         x_max = df[col].max()
-        for label in df[label_column].unique():
+        for label in [True, False]:
             subset = df[df[label_column] == label]
-            axes[i].hist(subset[col], bins=30, range=(x_min, x_max), alpha=0.75, label=f"{label}")
+            if label is True:
+                label_name = "Coherent Migration"
+            if label is False:
+                label_name = "Mixed Migration"
+            axes[i].hist(
+                subset[col], bins=30, range=(x_min, x_max), alpha=0.75, label=f"{label_name}"
+            )
         axes[i].set_xlabel(col)
         axes[i].set_ylabel("Count")
         axes[i].set_title(f"{col}, Power: {item['power']:.3f}")
@@ -178,56 +190,81 @@ def rank_features_and_plot_histograms(df, features_to_rank, label_column="cohere
 
     plt.tight_layout()
     plt.show()
-    fig_savedir = get_output_path("find_coherent_mig")
-    save_plot_to_path(fig, fig_savedir, fname)
+    save_plot_to_path(fig, output_dir, fname)
     plt.close()
 
 
-# %%
+def run_lda_feature_ranking(df_mig, features_to_rank, output_dir):
+    features_to_rank = [
+        col.value if hasattr(col, "value") else str(col) for col in features_to_rank
+    ]
+    df_features = df_mig[features_to_rank]
+    df_features.columns = [
+        col.value if hasattr(col, "value") else str(col) for col in df_features.columns
+    ]
+
+    lda = LinearDiscriminantAnalysis(n_components=1)
+    lda.fit(df_features, df_mig["coherent_migration"])
+    optimal_axis = lda.coef_[0]
+    projected_data = lda.transform(df_features)
+
+    # Plot the weights of each pc in the optimal axis
+    fig, ax = plt.subplots(figsize=(12, 4))
+    ax.bar(features_to_rank, optimal_axis)
+    ax.set_xticks(range(len(features_to_rank)))
+    ax.set_xticklabels(features_to_rank, rotation=45, ha="right", fontsize=6)
+    fig.tight_layout()
+    plt.show()
+    fig.savefig(output_dir / "lda_optimal_axis.png", dpi=150)
+    plt.close(fig)
+
+    df_proj = pd.DataFrame(
+        np.c_[projected_data, df_mig["coherent_migration"]], columns=["LDA", "coherent_migration"]
+    )
+
+    for minimal_weight in [2.0, 3.0, 4.0]:
+        sparse_axis = np.where(np.abs(optimal_axis) >= minimal_weight, optimal_axis, 0)
+        print("Highly contributing pcs at minimal weight threshold of", minimal_weight)
+        print([features_to_rank[pc] for pc in np.where(np.abs(sparse_axis) > 0)[0]])
+        projected_data_sparse = df_features @ sparse_axis + lda.intercept_[0]
+        df_proj[f"LDA_SP_{int(minimal_weight)}"] = projected_data_sparse
+
+    return lda, optimal_axis, df_proj
+
+
+# %% PC ranking and histogram plotting
+features_to_rank = pc_columns_to_keep + other_cols_to_keep
 rank_features_and_plot_histograms(
     df_mig,
-    features_to_rank=pc_columns_to_keep + other_cols_to_keep,
+    features_to_rank=features_to_rank,
     label_column="coherent_migration",
+    output_dir=output_dir,
 )
-# %%
 
-# Instead of looking at one feature at a time, let's look for the optimal linear
-# combination of features that best separates coherent vs mixed migration using LDA.
-
-lda = LinearDiscriminantAnalysis(n_components=1)
-lda.fit(df_mig[pc_columns_to_keep], df_mig["coherent_migration"])
-
-optimal_axis = lda.coef_[0]
-
-projected_data = lda.transform(df_mig[pc_columns_to_keep])
-
-# Plot the weights of each pc in the optimal axis to see which pcs contribute
-# most to the separation of coherent vs mixed migration.
-fig, ax = plt.subplots(figsize=(12, 4))
-ax.bar(pc_columns_to_keep, optimal_axis)
-ax.set_xticks(range(len(pc_columns_to_keep)))
-ax.set_xticklabels(pc_columns_to_keep, rotation=45, ha="right", fontsize=6)
-fig.tight_layout()
-fig.savefig(get_output_path("find_coherent_mig") / "lda_optimal_axis.png", dpi=150)
-
-df_proj = pd.DataFrame(np.c_[projected_data, df_mig["coherent_migration"]], columns=['LDA', 'coherent_migration'])
-
-# Let's also look at a sparse version of the axis where we only keep pcs that have
-# a certain minimum weight (absolute value) in the optimal axis.
-for minimal_weight in [2.0, 3.0, 4.0]:
-
-    sparse_axis = np.where(np.abs(optimal_axis) >= minimal_weight, optimal_axis, 0)
-
-    print("Highly contributing pcs at minimal weight threshold of", minimal_weight)
-    print([pc_columns_to_keep[pc] for pc in np.where(np.abs(sparse_axis)>0)[0]])
-
-    projected_data_sparse = df_mig[pc_columns_to_keep] @ sparse_axis + lda.intercept_[0]
-
-    df_proj[f'LDA_SP_{int(minimal_weight)}'] = projected_data_sparse
-
+##% LDA feature ranking and histogram plotting, pcs only
+lda, optimal_axis, df_proj = run_lda_feature_ranking(df_mig, pc_columns_to_keep, output_dir)
 rank_features_and_plot_histograms(
     df_proj,
-    df_proj.columns.drop('coherent_migration'),
+    df_proj.columns.drop("coherent_migration"),
     label_column="coherent_migration",
-    fname="find_coherent_mig_histograms_lda.png"
+    fname="find_coherent_mig_histograms_lda_pcs_only.png",
 )
+
+# %% LDA with rho, polar_r, polar_theta
+lda, optimal_axis, df_proj = run_lda_feature_ranking(df_mig, features_to_rank, output_dir)
+rank_features_and_plot_histograms(
+    df_proj,
+    df_proj.columns.drop("coherent_migration"),
+    label_column="coherent_migration",
+    fname="find_coherent_mig_histograms_lda_all.png",
+)
+
+# %% Without top 3 PCs, with rho, polar_r, polar_theta
+lda, optimal_axis, df_proj = run_lda_feature_ranking(df_mig, features_to_rank[3:], output_dir)
+rank_features_and_plot_histograms(
+    df_proj,
+    df_proj.columns.drop("coherent_migration"),
+    label_column="coherent_migration",
+    fname="find_coherent_mig_histograms_lda_transformed_pcs.png",
+)
+# %%
