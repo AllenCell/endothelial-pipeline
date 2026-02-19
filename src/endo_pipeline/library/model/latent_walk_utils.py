@@ -18,7 +18,8 @@ def get_baseline_walk_values(
     replace_mean_with_pc_value: list[float | None] | None = None,
 ) -> list[float]:
     """
-    Get baseline walk values for each dimension based on the mean of the data or provided replacement values.
+    Get baseline walk values for each dimension based on the mean of the data or
+    provided replacement values.
 
     Parameters
     ----------
@@ -27,12 +28,13 @@ def get_baseline_walk_values(
     column_names
         List of column names corresponding to each dimension.
     replace_mean_with_pc_value
-        List of PC values to replace the mean with for each PC dimension. Must be of length equal to number of dimensions.
-        If None, uses the mean of the data.
+        List of PC values to replace the mean with for each PC dimension. Must
+        be of length equal to number of dimensions. If None, uses the mean of
+        the data.
 
     Returns
     -------
-    list[float]
+    :
         List of baseline walk values for each dimension.
     """
     n_dims = len(column_names)
