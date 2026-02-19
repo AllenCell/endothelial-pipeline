@@ -126,13 +126,14 @@ def main(
             for dataset_name in dataset_names
         ]
     )
-    data_for_walk = dataframe_all_datasets[column_names].values
+    data_for_walk = dataframe_all_datasets[column_names]
 
     # get coordinate values for latent walk along PC axes or original latent
     # dimensions
     walk, ranges = get_latent_walk(
-        data_for_walk, n_dims, sigma, n_steps, replace_mean_with_pc_value
+        data_for_walk, column_names, sigma, n_steps, replace_mean_with_pc_value
     )
+    walk = walk.to_numpy()  # convert to numpy array for image generation
     if use_pcs:
         # perform latent walk along the principal component axes and transform
         # back to original latent space

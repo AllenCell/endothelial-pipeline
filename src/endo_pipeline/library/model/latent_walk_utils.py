@@ -2,6 +2,7 @@ import logging
 from typing import TYPE_CHECKING
 
 import numpy as np
+import pandas as pd
 
 from endo_pipeline.library.model.diffae import DiffusionAutoEncoder, generate_from_coords
 
@@ -11,13 +12,60 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def get_baseline_walk_values(
+    dataframe: pd.DataFrame,
+    column_names: list[str],
+    replace_mean_with_pc_value: list[float | None] | None = None,
+) -> list[float]:
+    """
+    Get baseline walk values for each dimension based on the mean of the data or
+    provided replacement values.
+
+    Parameters
+    ----------
+    dataframe
+        DataFrame containing the data to calculate mean values from.
+    column_names
+        List of column names corresponding to each dimension.
+    replace_mean_with_pc_value
+        List of PC values to replace the mean with for each PC dimension. Must
+        be of length equal to number of dimensions. If None, uses the mean of
+        the data.
+
+    Returns
+    -------
+    :
+        List of baseline walk values for each dimension.
+    """
+    n_dims = len(column_names)
+
+    # convert replace_mean_with_pc_value to a list of length n_dims, filling with None if it is None
+    replace_values = (
+        [None] * n_dims if replace_mean_with_pc_value is None else replace_mean_with_pc_value
+    )
+
+    if len(replace_values) != n_dims:
+        raise ValueError(
+            f"Expected replace_mean_with_pc_value of length {len(column_names)}, got {len(replace_values)}."
+        )
+
+    baseline_values = []
+    for col_name, replace_value in zip(column_names, replace_values, strict=True):
+        if replace_value is None:
+            baseline_values.append(dataframe[col_name].mean())
+        else:
+            baseline_values.append(replace_value)
+
+    return baseline_values
+
+
 def get_latent_walk(
-    data: np.ndarray,
-    n_dims: int,
+    dataframe: pd.DataFrame,
+    column_names: list[str],
     sigma: float | None,
     n_steps: int,
     replace_mean_with_pc_value: list[float | None] | None = None,
-) -> tuple[np.ndarray, list]:
+) -> tuple[pd.DataFrame, list[np.ndarray]]:
     """
     Generate a latent walk based on standard deviation or min/max of each
     dimension.
@@ -36,43 +84,37 @@ def get_latent_walk(
         List of PC values to replace the mean with for each PC dimension. Must be of length n_dims.
         If None, uses the mean of the data.
     """
-    replace_values = (
-        [None] * n_dims if replace_mean_with_pc_value is None else replace_mean_with_pc_value
-    )
-
-    if len(replace_values) != n_dims:
-        raise ValueError(f"Expected replace_values of length {n_dims}, got {len(replace_values)}.")
-
-    walks: list[np.ndarray] = []
+    walks: list[pd.DataFrame] = []
     ranges: list[np.ndarray] = []
 
-    for dim in range(n_dims):
+    # Get baseline values for all dimensions as either the mean value of the
+    # dimension or the given replacement value for that dimension.
+    baseline_walk_values = get_baseline_walk_values(
+        dataframe, column_names, replace_mean_with_pc_value
+    )
+
+    for column_name in column_names:
+        data = dataframe[column_name]
         if sigma is None:
-            data_min = data[:, dim].min()
-            data_max = data[:, dim].max()
+            data_min = data.min()
+            data_max = data.max()
             range_ = np.linspace(data_min, data_max, n_steps)
         else:
-            std = data[:, dim].std()
+            std = data.std()
             range_ = np.arange(-sigma, sigma + 0.01) * std
-
-        # Get baseline values for all dimensions as either the mean value of the
-        # dimension or the given replacement value for that dimension.
-        walk_values = [
-            data[:, i].mean() if replace is None else replace
-            for i, replace in enumerate(replace_values)
-        ]
 
         # Stack the baseline values for all steps and then replace only the current
         # dimension with the selected latent walk values.
-        dim_traversal = np.stack([walk_values] * range_.shape[0])
-        dim_traversal[:, dim] = range_
+        dim_traversal_array = np.stack([baseline_walk_values] * range_.shape[0])
+        dim_traversal_df = pd.DataFrame(dim_traversal_array, columns=column_names)
+        dim_traversal_df[column_name] = range_
 
-        walks.append(dim_traversal)
+        walks.append(dim_traversal_df)
         ranges.append(range_)
 
-    walk_array = np.concatenate(walks).squeeze()
+    walk_dataframe = pd.concat(walks, ignore_index=True)
 
-    return walk_array, ranges
+    return walk_dataframe, ranges
 
 
 def generate_latent_walk_images(

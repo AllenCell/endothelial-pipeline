@@ -76,11 +76,12 @@ def main() -> None:
             for dataset_name in dataset_names
         ]
     )
-    data_for_walk = dataframe_all_datasets[column_names].values
+    data_for_walk = dataframe_all_datasets[column_names]
 
     # walk along pcs, get PC-space coordinates, then transform back to latent
     # space coordinates for image generation
-    walk, ranges = get_latent_walk(data_for_walk, n_dims, sigma=sigma, n_steps=n_steps)
+    walk, ranges = get_latent_walk(data_for_walk, column_names, sigma=sigma, n_steps=n_steps)
+    walk = walk.to_numpy()
     walk = pca.inverse_transform(walk)
 
     # Generate images from the latent walk
