@@ -1,4 +1,5 @@
 # %%
+import json
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -228,6 +229,14 @@ def run_lda_feature_ranking(
     df_proj = pd.DataFrame(
         np.c_[projected_data, df_mig["coherent_migration"]], columns=["LDA", "coherent_migration"]
     )
+
+    lda_transform = {
+        'weights': optimal_axis.tolist(),
+        'intercept': float(lda.intercept_[0]),
+    }
+    json_path = output_dir / f"lda_transform_{fname_suffix}.json"
+    with open(json_path, 'w') as f:
+        json.dump(lda_transform, f, indent=4)
 
     for minimal_weight in [2.0, 3.0, 4.0]:
         sparse_axis = np.where(np.abs(optimal_axis) >= minimal_weight, optimal_axis, 0)
