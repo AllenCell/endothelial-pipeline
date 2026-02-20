@@ -1,7 +1,7 @@
-import concurrent
 import logging
 import math
 from collections.abc import Sequence
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Any, Literal
 
@@ -999,7 +999,7 @@ def add_num_nuclei_in_crop_column(
                 )
             ]
         else:
-            with concurrent.futures.ProcessPoolExecutor(max_workers=max_cores) as executor:
+            with ProcessPoolExecutor(max_workers=max_cores) as executor:
                 results = list(
                     tqdm(
                         executor.map(compute_nuclei_centroids_multiproc, args),
@@ -1038,3 +1038,111 @@ def add_num_nuclei_in_crop_column(
     # drop the nuclei coordinates lists since they are not needed anymore
     merged_feats_df = merged_feats_df.drop(columns=["coords_Y", "coords_X"])
     return merged_feats_df
+
+
+def get_labels_in_crop(
+    segmentation_image: np.ndarray, region_of_interest: tuple[slice, ...]
+) -> list:
+    labels_in_crop = np.unique(segmentation_image[region_of_interest])
+    return labels_in_crop.tolist()
+
+
+def create_labels_in_crop_columns(df_sub: pd.DataFrame, out_dir: Path) -> None:
+    ds_nm = sequence_to_scalar(df_sub["dataset_name"])
+    pos = sequence_to_scalar(df_sub["position"])
+    tp = sequence_to_scalar(df_sub["T"])
+
+    # load image
+    dataset_config = load_dataset_config(ds_nm)
+    image_manifest = load_image_manifest("cdh5_classic_seg")
+    image_loc = get_image_location_for_dataset(image_manifest, dataset_config, pos, tp)
+    img = load_image(image_loc, compute=True, squeeze=True)
+
+    # find other cell labels that are also in the crop
+    df_sub["all_labels_in_crop"] = df_sub.apply(
+        lambda row: get_labels_in_crop(
+            segmentation_image=img,
+            region_of_interest=(
+                slice(row.start_y_cdh5_seg, row.end_y_cdh5_seg),
+                slice(row.start_x_cdh5_seg, row.end_x_cdh5_seg),
+            ),
+        ),
+        axis=1,
+    )
+
+    fname = f"{ds_nm}_pos{pos}_tp{tp}_labels_in_crop.parquet"
+    df_sub[["dataset_name", "position", "T", "label", "all_labels_in_crop"]].to_parquet(
+        out_dir / fname, index=False
+    )
+
+
+def add_all_labels_in_crop_column(df: pd.DataFrame, max_cores: int = 4) -> pd.DataFrame:
+    # make temporary output directory to save "all_labels_in_crop" data
+    dataset = sequence_to_scalar(df["dataset_name"])
+    out_dir = get_output_path("temp_labels_in_crop", dataset)
+
+    groupby_cols = ["dataset_name", "position", "T"]
+    _, df_grps = zip(*df.groupby(groupby_cols), strict=True)
+
+    with ProcessPoolExecutor(max_workers=max_cores) as executor:
+        list(
+            tqdm(
+                executor.map(create_labels_in_crop_columns, df_grps, [out_dir] * len(df_grps)),
+                total=len(df_grps),
+                desc=f"Creating labels in crop columns: {dataset}",
+            )
+        )
+
+    # concatenate all the temporary tables into a single dataframe
+    df_lab_in_crop = pd.concat(
+        [pd.read_parquet(fp) for fp in out_dir.glob("*_labels_in_crop.parquet")]
+    )
+
+    df = df.merge(df_lab_in_crop, on=[*groupby_cols, "label"], how="left", validate=True)
+
+    # remove the temporary files and the temporary folder
+    for fp in out_dir.glob("*_labels_in_crop.parquet"):
+        fp.unlink()
+    out_dir.rmdir()
+
+    return df
+
+
+def add_vector_mean_of_migration_in_crop_column():
+    from endo_pipeline.io import load_dataframe
+    from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+        SEGMENTATION_FEATURE_COLUMNS,
+    )
+
+    dataframe_manifest_name_cellcentric = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
+
+    # load dataset and calculate dynamics-dependent features:
+    dataset = "20250611_20X"
+    segprops_manifest = load_dataframe_manifest(dataframe_manifest_name_cellcentric)
+    segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset)
+    df_delayed = load_dataframe(segprops_location, delay=True)
+
+    cols_to_compute = list(
+        set(
+            SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
+            + SEGMENTATION_FEATURE_COLUMNS["filters"]
+            + ["label", "start_x_cdh5_seg", "end_x_cdh5_seg", "start_y_cdh5_seg", "end_y_cdh5_seg"]
+        )
+    )
+    df = df_delayed[cols_to_compute].compute().reset_index(drop=True)
+    df = df[df.is_included]
+    df = calculate_derived_data_dynamics_dependent(df)
+    df = df[df.bbox_is_in_bounds]  # move into the function `add_labels_in_crop_column`?
+
+    # add column for the labels of other cells that are in the crop of each cell
+    # so we can calculate mean migration vector of those other cells in the crop
+    df = add_all_labels_in_crop_column(df, max_cores=4)
+    # NOTE the function `add_all_labels_in_crop_column` takes a while to run
+    # and should be moved in to `calculate_derived_data_dynamics_dependent`
+    # if possible
+
+    # get the migration vectors of those other cells
+
+    # calculate the vector means of all cells within the crop

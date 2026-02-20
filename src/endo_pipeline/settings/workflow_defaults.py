@@ -91,6 +91,7 @@ SEGMENTATION_FEATURE_COLUMNS = {
         "is_less_than_max_smoothed_area_normd_change",
         "is_edge_segmentation",
         "has_more_than_min_num_valid_points_per_track",
+        "bbox_is_in_bounds",
     ],
 }
 """Name of segmentation features to include in analyses."""
