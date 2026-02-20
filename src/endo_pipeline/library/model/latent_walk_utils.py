@@ -1,31 +1,71 @@
 import logging
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import PCA
 
 from endo_pipeline.library.model.diffae import DiffusionAutoEncoder, generate_from_coords
 
 if TYPE_CHECKING:
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
 
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    get_dataframe_for_dynamics_workflows,
-)
-from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import ColumnName
-
 logger = logging.getLogger(__name__)
 
 
+def get_baseline_walk_values(
+    dataframe: pd.DataFrame,
+    column_names: list[str],
+    replace_mean_with_pc_value: list[float | None] | None = None,
+) -> list[float]:
+    """
+    Get baseline walk values for each dimension based on the mean of the data or
+    provided replacement values.
+
+    Parameters
+    ----------
+    dataframe
+        DataFrame containing the data to calculate mean values from.
+    column_names
+        List of column names corresponding to each dimension.
+    replace_mean_with_pc_value
+        List of PC values to replace the mean with for each PC dimension. Must
+        be of length equal to number of dimensions. If None, uses the mean of
+        the data.
+
+    Returns
+    -------
+    :
+        List of baseline walk values for each dimension.
+    """
+    n_dims = len(column_names)
+
+    # convert replace_mean_with_pc_value to a list of length n_dims, filling with None if it is None
+    replace_values = (
+        [None] * n_dims if replace_mean_with_pc_value is None else replace_mean_with_pc_value
+    )
+
+    if len(replace_values) != n_dims:
+        raise ValueError(
+            f"Expected replace_mean_with_pc_value of length {len(column_names)}, got {len(replace_values)}."
+        )
+
+    baseline_values = []
+    for col_name, replace_value in zip(column_names, replace_values, strict=True):
+        if replace_value is None:
+            baseline_values.append(dataframe[col_name].mean())
+        else:
+            baseline_values.append(replace_value)
+
+    return baseline_values
+
+
 def get_latent_walk(
-    data: np.ndarray,
-    n_dims: int,
+    dataframe: pd.DataFrame,
+    column_names: list[str],
     sigma: float | None,
     n_steps: int,
     replace_mean_with_pc_value: list[float | None] | None = None,
-) -> tuple[np.ndarray, list]:
+) -> tuple[pd.DataFrame, list[np.ndarray]]:
     """
     Generate a latent walk based on standard deviation or min/max of each
     dimension.
@@ -44,187 +84,37 @@ def get_latent_walk(
         List of PC values to replace the mean with for each PC dimension. Must be of length n_dims.
         If None, uses the mean of the data.
     """
-    replace_values = (
-        [None] * n_dims if replace_mean_with_pc_value is None else replace_mean_with_pc_value
-    )
-
-    if len(replace_values) != n_dims:
-        raise ValueError(f"Expected replace_values of length {n_dims}, got {len(replace_values)}.")
-
-    walks: list[np.ndarray] = []
+    walks: list[pd.DataFrame] = []
     ranges: list[np.ndarray] = []
 
-    for dim in range(n_dims):
+    # Get baseline values for all dimensions as either the mean value of the
+    # dimension or the given replacement value for that dimension.
+    baseline_walk_values = get_baseline_walk_values(
+        dataframe, column_names, replace_mean_with_pc_value
+    )
+
+    for column_name in column_names:
+        data = dataframe[column_name]
         if sigma is None:
-            data_min = data[:, dim].min()
-            data_max = data[:, dim].max()
+            data_min = data.min()
+            data_max = data.max()
             range_ = np.linspace(data_min, data_max, n_steps)
         else:
-            std = data[:, dim].std()
+            std = data.std()
             range_ = np.arange(-sigma, sigma + 0.01) * std
-
-        # Get baseline values for all dimensions as either the mean value of the
-        # dimension or the given replacement value for that dimension.
-        walk_values = [
-            data[:, i].mean() if replace is None else replace
-            for i, replace in enumerate(replace_values)
-        ]
 
         # Stack the baseline values for all steps and then replace only the current
         # dimension with the selected latent walk values.
-        dim_traversal = np.stack([walk_values] * range_.shape[0])
-        dim_traversal[:, dim] = range_
+        dim_traversal_array = np.stack([baseline_walk_values] * range_.shape[0])
+        dim_traversal_df = pd.DataFrame(dim_traversal_array, columns=column_names)
+        dim_traversal_df[column_name] = range_
 
-        walks.append(dim_traversal)
+        walks.append(dim_traversal_df)
         ranges.append(range_)
 
-    walk_array = np.concatenate(walks).squeeze()
+    walk_dataframe = pd.concat(walks, ignore_index=True)
 
-    return walk_array, ranges
-
-
-def build_data_for_pca_latent_walk(
-    dataset_names: list[str],
-    dataframe_manifest: DataframeManifest,
-    pca: PCA,
-    include_cell_piling: bool,
-    crop_pattern: Literal["grid", "tracked"],
-) -> np.ndarray:
-    """
-    Build data array for latent walk on data projected onto PCA axes.
-
-    Parameters
-    ----------
-    dataset_names
-        List of dataset names to include in array.
-    dataframe_manifest
-        Manifest for dataframes containing feature data
-    pca
-        PCA model to fit to feature data.
-    include_cell_piling
-        True keep timepoints annotated as cell piling, False otherwise.
-    crop_pattern
-        Crop pattern used to generate the feature dataframe.
-
-    Returns
-    -------
-    :
-        Combined data array projected onto PCA axes.
-    """
-
-    column_names = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(pca.n_components_)]
-    dataframe = pd.concat(
-        [
-            get_dataframe_for_dynamics_workflows(
-                dataset_name,
-                dataframe_manifest,
-                pca,
-                include_cell_piling=include_cell_piling,
-                crop_pattern=crop_pattern,
-            )
-            for dataset_name in dataset_names
-        ]
-    )
-
-    return dataframe[column_names].values
-
-
-def build_data_for_raw_latent_walk(
-    dataset_names: list[str],
-    dataframe_manifest: DataframeManifest,
-    model,
-    include_cell_piling: bool,
-    crop_pattern: Literal["grid", "tracked"],
-) -> np.ndarray:
-    """
-    Build data array for latent walk on raw feature data.
-
-    Parameters
-    ----------
-    dataset_names
-        List of dataset names to include in array.
-    dataframe_manifest
-        Manifest for dataframes containing feature data
-    include_cell_piling
-        True keep timepoints annotated as cell piling, False otherwise.
-    crop_pattern
-        Crop pattern used to generate the feature dataframe.
-
-    Returns
-    -------
-    :
-        Combined data array.
-    """
-
-    num_latent_dims = model.semantic_encoder.base_encoder.num_classes
-    column_names = [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(num_latent_dims)]
-
-    dataframe = pd.concat(
-        [
-            get_dataframe_for_dynamics_workflows(
-                dataset_name,
-                dataframe_manifest,
-                pca=None,
-                include_cell_piling=include_cell_piling,
-                crop_pattern=crop_pattern,
-            )
-            for dataset_name in dataset_names
-        ]
-    )
-
-    return dataframe[column_names].values
-
-
-def get_pca_latent_walk(
-    pca_data: np.ndarray,
-    pca: PCA,
-    sigma: float | None,
-    n_steps: int,
-    replace_mean_with_pc_value: list[float | None] | None = None,
-) -> tuple[np.ndarray, list]:
-    """
-    Generate PCA coordinates and corresponding PC values for a latent walk.
-
-    Parameters
-    ----------
-    pca_data
-        Array containing the data projected onto PCA axes for the latent walk.
-    pca
-        PCA model fit to the data.
-    sigma
-        Range of values for the latent walk. If None, use min/max of dimension.
-    n_steps
-        Number of steps in the latent walk.
-    replace_mean_with_pc_value
-        List of PC values to replace the mean with for each PC dimension. Must be of length n_dims.
-        If None, uses the mean of the data.
-    """
-
-    n_dims = pca.n_components_
-    walk, ranges = get_latent_walk(pca_data, n_dims, sigma, n_steps, replace_mean_with_pc_value)
-    walk = pca.inverse_transform(walk)
-    return walk, ranges
-
-
-def get_raw_latent_walk(
-    data: np.ndarray, sigma: float | None, n_steps: int
-) -> tuple[np.ndarray, list]:
-    """
-    Generate latent coordinates and corresponding values for a latent walk.
-
-    Parameters
-    ----------
-    data
-        Array containing the data for the latent walk.
-    sigma
-        Range of values for the latent walk. If None, use min/max of dimension.
-    n_steps
-        Number of steps in the latent walk.
-    """
-
-    n_dims = data.shape[1]
-    walk, ranges = get_latent_walk(data, n_dims, sigma, n_steps)
-    return walk, ranges
+    return walk_dataframe, ranges
 
 
 def generate_latent_walk_images(

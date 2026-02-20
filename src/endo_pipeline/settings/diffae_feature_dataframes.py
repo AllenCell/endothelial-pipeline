@@ -18,6 +18,9 @@ class ColumnName(StrEnum):
     POLAR_ANGLE = "polar_theta"
     """Column name for polar angle coordinate computed from PC1 and PC2."""
 
+    PC3_FLIPPED = "rho"
+    """Column name for PC3 value with sign flipped as proxy measure of cell density."""
+
     DIFFERENCE_SUFFIX = "_diff"
     """Suffix for columns representing differences between feature values."""
 
@@ -44,6 +47,9 @@ class ColumnName(StrEnum):
 
     CROP_INDEX = "crop_index"
     """Column name for crop index."""
+
+    TRACK_ID = "track_id"
+    """Column name for track identifier."""
 
     START_X = "start_x"
     """Upper-left x-coordinate of the crop."""
@@ -132,3 +138,17 @@ DIFFAE_PC_COLUMN_NAMES = [
     f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(NUM_LATENT_FEATURES)
 ]
 """Full set of column names for PCA-transformed features in DiFFAE feature dataframes."""
+
+DIFFAE_PC_COLUMN_NAME_GROUPS: dict[str, list[str]] = {
+    "default": DIFFAE_PC_COLUMN_NAMES[:3]
+    + DIFFAE_PC_COLUMN_NAMES[17:18]
+    + [ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE],
+    "polar_coord": [ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE],
+    "first_3_pcs": DIFFAE_PC_COLUMN_NAMES[:3],
+    "first_100_pcs": DIFFAE_PC_COLUMN_NAMES[:100],
+    "all": DIFFAE_PC_COLUMN_NAMES,
+}
+
+DIFFAE_FEATURE_COLUMN_NAME_GROUPS = {
+    "all": DIFFAE_FEATURE_COLUMN_NAMES,
+}

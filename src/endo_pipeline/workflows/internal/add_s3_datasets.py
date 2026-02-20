@@ -13,8 +13,11 @@ def main(
     - Workflow must be run on slurm-master cluster.
     - AWS credentials must be configured.
 
+    export AWS_PROFILE=allencell_internal_quilt
+    or add AWS_PROFILE=allencell_internal_quilt to each command below.
+
     To see what files are already there:
-       AWS_PROFILE=allencell_internal_quilt aws s3 ls s3://allencell-internal-quilt/endo_stg/
+       aws s3 ls s3://allencell-internal-quilt/endo_stg/
 
     Login (if session expired):
         aws sso login

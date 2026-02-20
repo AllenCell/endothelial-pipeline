@@ -286,14 +286,14 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
         # It's plotting time!
         # pick the features to plot
         feats_to_plot = [
-            "alignment_deg",
+            "alignment_deg_rel_to_flow",
             "cell_nuc_orientation_deg",
-            "centroid_velocity_orientation_deg",
+            "centroid_velocity_angle_deg",
             "nuc_orientation_deg_rel_migration",
             "nuc_pos_vs_cell_veloc_dotprod",
             "aspect_ratio",
-            "cell_fluorescence_mean",
-            "area_um2",
+            "cell_fluorescence_mean (a.u.)",
+            "area (um**2)",
         ]
         # get the plotting arguments for the features
         # (e.g. axis limits, axis titles, bin widths, etc.)
@@ -304,11 +304,11 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
         # (and/or to make them more informative)
         time_col = "time_hrs_flow"
         feats_plot_args[time_col]["label"] = "Time (h)"
-        feats_plot_args["alignment_deg"]["label"] = "Cell Alignment (°)"
+        feats_plot_args["alignment_deg_rel_to_flow"]["label"] = "Cell Alignment (°)"
         feats_plot_args["cell_nuc_orientation_deg"][
             "label"
         ] = "Cell-Nucleus Angle\nRel. to Flow (°)"
-        feats_plot_args["centroid_velocity_orientation_deg"]["label"] = "Migration Angle (°)"
+        feats_plot_args["centroid_velocity_angle_deg"]["label"] = "Migration Angle (°)"
         feats_plot_args["nuc_orientation_deg_rel_migration"][
             "label"
         ] = "Cell-Nucleus Angle\nRel. Migration (°)"
@@ -316,8 +316,10 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
             "label"
         ] = "Cell-Nucleus vs.\nMigration Dot Prod."
         feats_plot_args["aspect_ratio"]["label"] = "Aspect ratio"
-        feats_plot_args["cell_fluorescence_mean"]["label"] = "Mean VE-Cad fluorescence (a.u.)"
-        feats_plot_args["area_um2"]["label"] = "Cell area (µm²)"
+        feats_plot_args["cell_fluorescence_mean (a.u.)"][
+            "label"
+        ] = "Mean VE-Cad fluorescence (a.u.)"
+        feats_plot_args["area (um**2)"]["label"] = "Cell area (µm²)"
 
         # create and save the panels of each of the features
         for feat in feats_to_plot:

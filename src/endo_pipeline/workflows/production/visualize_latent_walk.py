@@ -19,7 +19,7 @@ def main(
     crop_pattern: CropPattern = "grid",
     dataset_collection: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
-    num_pcs: int = NUM_PCS_TO_ANALYZE,
+    n_dims: int = NUM_PCS_TO_ANALYZE,
     sigma: float = 3.0,
     n_steps: int = 7,
     use_pcs: bool = True,
@@ -55,17 +55,19 @@ def main(
         List of PC values to replace the mean with for each PC dimension. Must be of length num_pcs.
         If None, uses the mean of the data.
     """
+    import pandas as pd
+
     from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_model
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+        fit_pca,
+        get_dataframe_for_dynamics_workflows,
+    )
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
     from endo_pipeline.library.model.latent_walk_utils import (
-        build_data_for_pca_latent_walk,
-        build_data_for_raw_latent_walk,
         generate_latent_walk_images,
-        get_pca_latent_walk,
-        get_raw_latent_walk,
+        get_latent_walk,
     )
     from endo_pipeline.library.visualize.latent_walk import plot_latent_walk_as_grid
     from endo_pipeline.manifests import (
@@ -74,6 +76,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
+    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
@@ -99,25 +102,42 @@ def main(
     dataset_names = get_datasets_in_collection(dataset_collection)
 
     if use_pcs:
-        # perform latent walk along the principal components
+        # get fit pca object and data for latent walk
         pca = fit_pca(
             dataset_collection_name=dataset_collection,
             dataframe_manifest_name=dataframe_manifest_name,
             include_cell_piling=include_cell_piling,
-            num_pcs=num_pcs,
+            num_pcs=n_dims,
         )
-        data_for_walk = build_data_for_pca_latent_walk(
-            dataset_names, dataframe_manifest, pca, include_cell_piling, crop_pattern
-        )
-        walk, ranges = get_pca_latent_walk(
-            data_for_walk, pca, sigma, n_steps, replace_mean_with_pc_value
-        )
+        column_names = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(n_dims)]
     else:
-        # perform latent walk along the raw latent dimensions
-        data_for_walk = build_data_for_raw_latent_walk(
-            dataset_names, dataframe_manifest, model, include_cell_piling, crop_pattern
-        )
-        walk, ranges = get_raw_latent_walk(data_for_walk, sigma, n_steps)
+        pca = None
+        column_names = [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(n_dims)]
+
+    dataframe_all_datasets = pd.concat(
+        [
+            get_dataframe_for_dynamics_workflows(
+                dataset_name,
+                dataframe_manifest,
+                pca=pca,
+                include_cell_piling=include_cell_piling,
+                crop_pattern=crop_pattern,
+            )
+            for dataset_name in dataset_names
+        ]
+    )
+    data_for_walk = dataframe_all_datasets[column_names]
+
+    # get coordinate values for latent walk along PC axes or original latent
+    # dimensions
+    walk, ranges = get_latent_walk(
+        data_for_walk, column_names, sigma, n_steps, replace_mean_with_pc_value
+    )
+    walk = walk.to_numpy()  # convert to numpy array for image generation
+    if use_pcs:
+        # perform latent walk along the principal component axes and transform
+        # back to original latent space
+        walk = pca.inverse_transform(walk)
 
     # generate images from the latent walk
     walk_img_grid = generate_latent_walk_images(model, walk, ranges, n_noise_samples, NUM_GPUS)

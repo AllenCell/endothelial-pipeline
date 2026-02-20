@@ -56,6 +56,25 @@ def update_manifest_for_tfe(
     return df
 
 
+def update_manifest_for_tfe_grid(
+    df: pd.DataFrame, dataset: str, position: int, output_dir: Path
+) -> pd.DataFrame:
+    """Update DataFrame for TFE with grid-based features by adding necessary columns.
+    This is a wrapper for update_manifest_for_tfe that updates the seg_image column entries
+    to have the pattern "PX_TX_grid_segmentation.ome.tiff".
+    """
+    df = update_manifest_for_tfe(df, dataset, position, output_dir)
+    df["seg_image"] = (
+        "P"
+        + df["position"].astype(str)
+        + "_T"
+        + df["image_index"].astype(str)
+        + "_grid_segmentation"
+        + ".ome.tiff"
+    )
+    return df
+
+
 def add_intensity_mean_pcs(df: pd.DataFrame) -> pd.DataFrame:
     """
     Perform PCA on the intensity mean features and add the projected features

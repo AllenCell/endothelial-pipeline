@@ -64,11 +64,9 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, make_name_unique
+    from endo_pipeline.library.analyze.data_driven_flow_field import ddff_model_analysis
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
-    from endo_pipeline.library.analyze.dynamics_utils.data_driven_flow_field import (
-        ddff_model_analysis,
-    )
-    from endo_pipeline.library.analyze.numerics import get_bins, get_bounds_from_data
+    from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
     from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
         plot_stable_fixed_points_together,
     )
@@ -86,7 +84,8 @@ def main(
         BIN_WIDTH_DEFAULTS,
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         INIT_POINT_3D,
-        KERNEL_PARAMS_3D,
+        KERNEL_BANDWIDTH,
+        KERNEL_FUNCTION_NAME,
         LOWER_PERCENTILE_FOR_STABLE_FP,
         NUM_INIT_SAMPLES,
         OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS,
@@ -155,7 +154,8 @@ def main(
             dataset_name,
             dataframe_manifest,
             pca,
-            kernel_params=KERNEL_PARAMS_3D,
+            kernel_name=KERNEL_FUNCTION_NAME,
+            kernel_bw=KERNEL_BANDWIDTH,
             dt=TIME_STEP_IN_MINUTES,
             bins=bins,
             centers=centers,
