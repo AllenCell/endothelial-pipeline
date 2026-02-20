@@ -16,6 +16,7 @@ from tqdm import tqdm
 
 from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
 from endo_pipeline.io import get_output_path, load_image
+from endo_pipeline.library.analyze.lib_init_density_vs_flow import vector_mean_angle_and_mag
 from endo_pipeline.library.model.eval_model import add_diffae_model_eval_crop_columns
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.manifests import (
@@ -1076,39 +1077,112 @@ def create_labels_in_crop_columns(df_sub: pd.DataFrame, out_dir: Path) -> None:
     )
 
 
-def add_all_labels_in_crop_column(df: pd.DataFrame, max_cores: int = 4) -> pd.DataFrame:
+def add_all_labels_in_crop_column(
+    df: pd.DataFrame, max_cores: int = 4, recalculate: bool = True
+) -> pd.DataFrame:
     # make temporary output directory to save "all_labels_in_crop" data
     dataset = sequence_to_scalar(df["dataset_name"])
-    out_dir = get_output_path("temp_labels_in_crop", dataset)
+    out_dir = get_output_path("temp_labels_in_crop")
+    out_subdir = out_dir / dataset
 
-    groupby_cols = ["dataset_name", "position", "T"]
-    _, df_grps = zip(*df.groupby(groupby_cols), strict=True)
+    df = df[df.bbox_is_in_bounds]
 
-    with ProcessPoolExecutor(max_workers=max_cores) as executor:
-        list(
-            tqdm(
-                executor.map(create_labels_in_crop_columns, df_grps, [out_dir] * len(df_grps)),
-                total=len(df_grps),
-                desc=f"Creating labels in crop columns: {dataset}",
+    if recalculate:
+        groupby_cols = ["dataset_name", "position", "T"]
+        _, df_grps = zip(*df.groupby(groupby_cols), strict=True)
+
+        with ProcessPoolExecutor(max_workers=max_cores) as executor:
+            list(
+                tqdm(
+                    executor.map(create_labels_in_crop_columns, df_grps, [out_dir] * len(df_grps)),
+                    total=len(df_grps),
+                    desc=f"Creating labels in crop columns: {dataset}",
+                )
             )
+
+        # concatenate all the temporary tables into a single dataframe
+        df_lab_in_crop = pd.concat(
+            [pd.read_parquet(fp) for fp in out_subdir.glob("*_pos*_tp*_labels_in_crop.parquet")]
         )
 
-    # concatenate all the temporary tables into a single dataframe
-    df_lab_in_crop = pd.concat(
-        [pd.read_parquet(fp) for fp in out_dir.glob("*_labels_in_crop.parquet")]
-    )
+        df = df.merge(
+            df_lab_in_crop, on=[*groupby_cols, "label"], how="left", validate="one_to_one"
+        ).reset_index(drop=True)
 
-    df = df.merge(df_lab_in_crop, on=[*groupby_cols, "label"], how="left", validate=True)
+        df.to_parquet(out_dir / f"{dataset}_labels_in_crop.parquet", index=False)
 
-    # remove the temporary files and the temporary folder
-    for fp in out_dir.glob("*_labels_in_crop.parquet"):
-        fp.unlink()
-    out_dir.rmdir()
+        # remove the temporary files and the temporary folder
+        for fp in out_dir.glob("*_pos*_tp*_labels_in_crop.parquet"):
+            fp.unlink()
+        out_subdir.rmdir()
+    else:
+        df = pd.read_parquet(out_dir / f"{dataset}_labels_in_crop.parquet")
 
     return df
 
 
-def add_vector_mean_of_migration_in_crop_column():
+def map_label_to_column(
+    df_sub: pd.DataFrame, column_name_to_map: str = "centroid_velocity_angle"
+) -> list:
+    label_velocity_dict = dict(zip(df_sub.label, df_sub[column_name_to_map], strict=True))
+    return df_sub.all_labels_in_crop.map(lambda ls: [*map(label_velocity_dict.get, ls)])
+
+
+def sanitize_list_to_numbers(ls: list) -> list:
+    return [x for x in ls if x and np.isfinite(x)]
+
+
+def add_vector_mean_of_migration_in_crop_column(df: pd.DataFrame) -> pd.DataFrame:
+
+    df["all_velocity_angles_in_crop"] = (
+        df.groupby(["dataset_name", "position", "T"])
+        .apply(lambda df_sub: pd.DataFrame(map_label_to_column(df_sub, "centroid_velocity_angle")))
+        .droplevel([0, 1, 2])
+    )
+    df["all_velocity_magnitudes_in_crop"] = (
+        df.groupby(["dataset_name", "position", "T"])
+        .apply(
+            lambda df_sub: pd.DataFrame(map_label_to_column(df_sub, "centroid_velocity_magnitude"))
+        )
+        .droplevel([0, 1, 2])
+    )
+    df["all_centroid_dx_dt_in_crop"] = (
+        df.groupby(["dataset_name", "position", "T"])
+        .apply(lambda df_sub: pd.DataFrame(map_label_to_column(df_sub, "centroid_dx_dt")))
+        .droplevel([0, 1, 2])
+    )
+    df["all_centroid_dy_dt_in_crop"] = (
+        df.groupby(["dataset_name", "position", "T"])
+        .apply(lambda df_sub: pd.DataFrame(map_label_to_column(df_sub, "centroid_dy_dt")))
+        .droplevel([0, 1, 2])
+    )
+
+    # calculate the vector means of all cells within the crop
+    df["all_velocity_angles_in_crop"] = df["all_velocity_angles_in_crop"].transform(
+        sanitize_list_to_numbers
+    )
+    df["all_centroid_dx_dt_in_crop"] = df["all_centroid_dx_dt_in_crop"].transform(
+        sanitize_list_to_numbers
+    )
+    df["all_centroid_dy_dt_in_crop"] = df["all_centroid_dy_dt_in_crop"].transform(
+        sanitize_list_to_numbers
+    )
+
+    df[["vec_mean_angle_in_crop", "vec_mean_mag_in_crop"]] = pd.DataFrame(
+        df["all_velocity_angles_in_crop"]
+        .transform(
+            lambda angles: (
+                vector_mean_angle_and_mag(angles) if len(angles) > 1 else (np.nan, np.nan)
+            )
+        )
+        .tolist(),
+        index=df.index,
+    )
+
+    return df
+
+
+def vector_mean_of_migration_in_crop_workflow():
     from endo_pipeline.io import load_dataframe
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.workflow_defaults import (
@@ -1133,16 +1207,18 @@ def add_vector_mean_of_migration_in_crop_column():
     )
     df = df_delayed[cols_to_compute].compute().reset_index(drop=True)
     df = df[df.is_included]
-    df = calculate_derived_data_dynamics_dependent(df)
-    df = df[df.bbox_is_in_bounds]  # move into the function `add_labels_in_crop_column`?
 
     # add column for the labels of other cells that are in the crop of each cell
     # so we can calculate mean migration vector of those other cells in the crop
-    df = add_all_labels_in_crop_column(df, max_cores=4)
+    df = add_all_labels_in_crop_column(df, max_cores=4, recalculate=False)
     # NOTE the function `add_all_labels_in_crop_column` takes a while to run
     # and should be moved in to `calculate_derived_data_dynamics_dependent`
     # if possible
 
-    # get the migration vectors of those other cells
+    # compute the migration vectors for each cell
+    df = calculate_derived_data_dynamics_dependent(df)
 
-    # calculate the vector means of all cells within the crop
+    # find the migration vectors for all cells in a crop
+    ## NOTE these calculations should eventually be moved in to the function
+    # `calculate_derived_data_dynamics_dependent`
+    df = add_vector_mean_of_migration_in_crop_column(df)
