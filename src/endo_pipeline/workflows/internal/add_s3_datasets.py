@@ -39,8 +39,8 @@ def main(
         List of position indices to upload. If None, all positions will be uploaded.
 
     Example add job:
-    AWS_PROFILE=allencell_internal_quilt endopipe add-s3-datasets --datasets 20250618_20X --positions-list 0 1
-    AWS_PROFILE=allencell_internal_quilt endopipe add-s3-datasets --datasets 20250618_20X --no-dry-run --positions-list 0 1
+    endopipe add-s3-datasets --datasets 20250618_20X --positions-list 0 1
+    endopipe add-s3-datasets --datasets 20250618_20X --no-dry-run --positions-list 0 1
     """
     import logging
 
