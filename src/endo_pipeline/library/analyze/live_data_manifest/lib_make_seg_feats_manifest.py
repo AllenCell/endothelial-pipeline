@@ -467,6 +467,10 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
         validate="one_to_one",
     )
 
+    # add column for the labels of other cells that are in the crop of each cell
+    # so we can calculate mean migration vector of those other cells in the crop
+    big_table = add_all_labels_in_crop_column(big_table, use_precomputed=False)
+
     return big_table
 
 
@@ -575,6 +579,10 @@ def calculate_derived_data_dynamics_dependent(big_table: pd.DataFrame) -> pd.Dat
         )
         .droplevel([0, 1, 2])
     )
+
+    # find the migration vectors for all cells in a crop
+    logger.info("Calculating vector mean of migration per crop...")
+    big_table = add_vector_mean_of_migration_in_crop_column(big_table)
 
     # add column for the number of tracks at a given
     # timepoint per dataset per position
@@ -1078,23 +1086,28 @@ def create_labels_in_crop_columns(df_sub: pd.DataFrame, out_dir: Path) -> None:
 
 
 def add_all_labels_in_crop_column(
-    df: pd.DataFrame, max_cores: int = 4, recalculate: bool = True
+    df: pd.DataFrame, use_precomputed: bool = False, max_cores: int | None = None
 ) -> pd.DataFrame:
     # make temporary output directory to save "all_labels_in_crop" data
+    labels_in_crop_dir = get_output_path(__file__, "labels_in_crop", include_timestamp=False)
     dataset = sequence_to_scalar(df["dataset_name"])
-    out_dir = get_output_path("temp_labels_in_crop")
-    out_subdir = out_dir / dataset
+    labels_in_crop_subdir = labels_in_crop_dir / dataset
+    labels_in_crop_path = labels_in_crop_dir / f"{dataset}_labels_in_crop.parquet"
 
     df = df[df.bbox_is_in_bounds]
 
-    if recalculate:
+    if use_precomputed:
+        df = pd.read_parquet(labels_in_crop_dir / f"{dataset}_labels_in_crop.parquet")
+    else:
         groupby_cols = ["dataset_name", "position", "T"]
         _, df_grps = zip(*df.groupby(groupby_cols), strict=True)
 
         with ProcessPoolExecutor(max_workers=max_cores) as executor:
             list(
                 tqdm(
-                    executor.map(create_labels_in_crop_columns, df_grps, [out_dir] * len(df_grps)),
+                    executor.map(
+                        create_labels_in_crop_columns, df_grps, [labels_in_crop_dir] * len(df_grps)
+                    ),
                     total=len(df_grps),
                     desc=f"Creating labels in crop columns: {dataset}",
                 )
@@ -1102,21 +1115,22 @@ def add_all_labels_in_crop_column(
 
         # concatenate all the temporary tables into a single dataframe
         df_lab_in_crop = pd.concat(
-            [pd.read_parquet(fp) for fp in out_subdir.glob("*_pos*_tp*_labels_in_crop.parquet")]
+            [
+                pd.read_parquet(fp)
+                for fp in labels_in_crop_subdir.glob("*_pos*_tp*_labels_in_crop.parquet")
+            ]
         )
 
         df = df.merge(
             df_lab_in_crop, on=[*groupby_cols, "label"], how="left", validate="one_to_one"
         ).reset_index(drop=True)
 
-        df.to_parquet(out_dir / f"{dataset}_labels_in_crop.parquet", index=False)
+        df.to_parquet(labels_in_crop_path, index=False)
 
         # remove the temporary files and the temporary folder
-        for fp in out_dir.glob("*_pos*_tp*_labels_in_crop.parquet"):
+        for fp in labels_in_crop_dir.glob("*_pos*_tp*_labels_in_crop.parquet"):
             fp.unlink()
-        out_subdir.rmdir()
-    else:
-        df = pd.read_parquet(out_dir / f"{dataset}_labels_in_crop.parquet")
+        labels_in_crop_subdir.rmdir()
 
     return df
 
@@ -1182,7 +1196,7 @@ def add_vector_mean_of_migration_in_crop_column(df: pd.DataFrame) -> pd.DataFram
     return df
 
 
-def vector_mean_of_migration_in_crop_workflow():
+def test_vector_mean_of_migration_in_crop_workflow():
     from endo_pipeline.io import load_dataframe
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.workflow_defaults import (
@@ -1208,17 +1222,6 @@ def vector_mean_of_migration_in_crop_workflow():
     df = df_delayed[cols_to_compute].compute().reset_index(drop=True)
     df = df[df.is_included]
 
-    # add column for the labels of other cells that are in the crop of each cell
-    # so we can calculate mean migration vector of those other cells in the crop
-    df = add_all_labels_in_crop_column(df, max_cores=4, recalculate=False)
-    # NOTE the function `add_all_labels_in_crop_column` takes a while to run
-    # and should be moved in to `calculate_derived_data_dynamics_dependent`
-    # if possible
-
-    # compute the migration vectors for each cell
+    # compute the dynamics-dependent features which includes the
+    # vector mean of migration per crop
     df = calculate_derived_data_dynamics_dependent(df)
-
-    # find the migration vectors for all cells in a crop
-    ## NOTE these calculations should eventually be moved in to the function
-    # `calculate_derived_data_dynamics_dependent`
-    df = add_vector_mean_of_migration_in_crop_column(df)
