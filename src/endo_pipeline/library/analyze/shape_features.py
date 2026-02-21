@@ -574,10 +574,17 @@ def calculate_region_border_metrics(
             cell_eccentricity: The eccentricities of the regions in labeled_image.
             cell_orientation: The orientations of the regions in labeled_image.
             cell_fluorescence_mean (au): The mean fluorescence of intensity_image for each
-                region in labeled_image (if intensity_image is provided).
+                region in labeled_image (if intensity_image and labeled_image is provided).
                 Other fluorescence measures include _std, _median, _min, _max, _pct25, and _pct75.
             edge_labels: The labels of the edges that touch each region in labeled_image.
             node_labels: The labels of the nodes that touch each region in labeled_image.
+            edge_fluorescences (au): A list of fluorescence values from intensity_image at the edges
+                of each region in the edges image calculated from binary_image.
+            node_fluorescences (au): A list of fluorescence values from intensity_image at the nodes
+                of each region in the nodes image calculated from binary_image.
+            edge_and_node_fluorescence_mean (au): The mean fluorescence of intensity_image for the
+                edges and nodes of each region in labeled_image (if intensity_image and
+                labeled_image is provided).
             node_pair_labels: The labels of the node pairs that are at the end of each edge label
                 that touches each region in labeled_image.
 
@@ -813,6 +820,11 @@ def calculate_labeled_image_metrics(
         ~segmentation.clear_border(labeled_image).astype(bool) * labeled_image
     )
 
+    edge_props = measure.regionprops(edges, intensity_image=intensity_image)
+    edge_props_dict = {prop.label: prop for prop in edge_props}
+    node_props = measure.regionprops(nodes, intensity_image=intensity_image)
+    node_props_dict = {prop.label: prop for prop in node_props}
+
     # create the output lists
     print("    -- generating dictionary of lists output") if verbose else None
     region_label = []
@@ -835,6 +847,8 @@ def calculate_labeled_image_metrics(
     edge_labels = []
     node_labels = []
     node_pairs = []
+    edge_fluor_list = []
+    node_fluor_list = []
     is_border_region = []
 
     for prop in region_props:
@@ -846,7 +860,10 @@ def calculate_labeled_image_metrics(
         region_major_axis_length.append(prop.major_axis_length)
         region_minor_axis_length.append(prop.minor_axis_length)
         region_eccentricity.append(prop.eccentricity)
-        region_orientation.append(prop.orientation)
+        # add pi/2 to to orientation to make the orientation have 0 and pi
+        # represent the X axis and pi/2 represent the Y axis (instead of
+        # the default where 0 and pi represent the Y axis and pi/2 the X axis)
+        region_orientation.append(prop.orientation + np.pi / 2)
         region_fluor_mean.append(prop.intensity_mean)
         region_fluor_std.append(prop.intensity_std)
         region_fluor_median.append(prop.intensity_median)
@@ -856,11 +873,26 @@ def calculate_labeled_image_metrics(
         region_fluor_max.append(prop.intensity_max)
         neighboring_regions.append(prop.region_neighbors)
         edge_labels.append(prop.neighbors)
-        node_labels.append(
-            {node for edge in prop.neighbors for node in edge_neighbors_nodelabs[edge]}
-        )
+        node_neighbors = {node for edge in prop.neighbors for node in edge_neighbors_nodelabs[edge]}
+        node_labels.append(node_neighbors)
         node_pairs.append([edge_neighbors_nodelabs[edge] for edge in prop.neighbors])
         is_border_region.append(prop.label in border_labels)
+        edge_fluors = [
+            intens
+            for edge in prop.neighbors
+            for intens in intensity_image[
+                tuple(zip(*edge_props_dict[edge].coords, strict=True))
+            ].tolist()
+        ]
+        edge_fluor_list.append(edge_fluors)
+        node_fluors = [
+            intens
+            for node in node_neighbors
+            for intens in intensity_image[
+                tuple(zip(*node_props_dict[node].coords, strict=True))
+            ].tolist()
+        ]
+        node_fluor_list.append(node_fluors)
 
     # create the output dictionary of lists
     metrics = {
@@ -884,6 +916,8 @@ def calculate_labeled_image_metrics(
         "edge_labels": edge_labels,
         "node_labels": node_labels,
         "node_pair_labels": node_pairs,
+        "edge_fluorescences (au)": edge_fluor_list,
+        "node_fluorescences (au)": node_fluor_list,
         "touches_image_border": is_border_region,
     }
 
@@ -1462,6 +1496,8 @@ def build_cdh5_measured_features_tables(
     - edge_labels
     - node_labels
     - node_pair_labels
+    - edge_fluorescences (a.u.)
+    - node_fluorescences (a.u.)
     - touches_image_border
     - measurement_timestamp
     - git_branch_name
@@ -1661,6 +1697,8 @@ def build_cdh5_measured_features_tables(
                     "edge_labels": labeled_region_metrics["edge_labels"],
                     "node_labels": labeled_region_metrics["node_labels"],
                     "node_pair_labels": labeled_region_metrics["node_pair_labels"],
+                    "edge_fluorescences (a.u.)": labeled_region_metrics["edge_fluorescences (au)"],
+                    "node_fluorescences (a.u.)": labeled_region_metrics["node_fluorescences (au)"],
                     "touches_image_border": labeled_region_metrics["touches_image_border"],
                 }
             )
