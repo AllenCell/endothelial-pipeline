@@ -214,8 +214,11 @@ def main():
             label=df_sub.dataset.unique().item(),
             discrete=True,
             stat="percent",
+            alpha=0.3,
             ax=ax,
         )
+    ax.set_xlim(-0.5)
+    ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
     ax.set_xlabel("Number of peaks in edge intensity distribution")
     ax.legend()
     plt.tight_layout()
@@ -224,11 +227,10 @@ def main():
     plt.close(fig)
 
     fig, ax = plt.subplots()
-
     for df_sub in [low_flow_df, high_flow_df, interm_flow_df]:
         peak_prominences = [
             item
-            for sublist in df_sub.peak_widths.values.tolist()
+            for sublist in df_sub.peak_prominences.values.tolist()
             for item in sublist
             if len(sublist) > 0
         ]
@@ -236,11 +238,12 @@ def main():
             peak_prominences,
             binwidth=1,
             label=df_sub.dataset.unique().item(),
-            discrete=True,
             stat="percent",
+            alpha=0.3,
+            kde=True,
             ax=ax,
         )
-    ax.set_xlim(0, intens_lim)
+    ax.set_xlim(0, np.percentile(peak_prominences, 99.9))
     ax.set_xlabel("Peak prominence value")
     ax.legend()
     plt.tight_layout()
@@ -260,10 +263,12 @@ def main():
             peak_widths_flat,
             binwidth=1,
             label=df_sub.dataset.unique().item(),
-            discrete=True,
             stat="percent",
+            alpha=0.3,
+            kde=True,
             ax=ax,
         )
+    ax.set_xlim(0)
     ax.set_xlabel("Peak width value")
     ax.legend()
     plt.tight_layout()
