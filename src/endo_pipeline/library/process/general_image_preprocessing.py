@@ -110,7 +110,6 @@ def build_analysis_queue(
 
     logger.info(f"Building analysis queue for the following datasets: {dataset_name_list}")
 
-    timelapse_datasets = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
     smad1_datasets = get_datasets_in_collection("smad1")
 
     analysis_queue: list = []
@@ -127,16 +126,10 @@ def build_analysis_queue(
         dataset_config = load_dataset_config(dataset_name)
 
         # get the nuclei segmentation manifest name associated with this dataset
-        if dataset_name in timelapse_datasets:
-            nuclei_seg_manifest_name = "nuclear_labelfree_seg"
-        elif dataset_name in smad1_datasets:
+        if dataset_name in smad1_datasets:
             nuclei_seg_manifest_name = "nuclear_stain_seg"
         else:
-            logger.warning(
-                f"Dataset {dataset_name}: no associated nuclei segmentation manifest found. \
-                Setting nuclei_seg_manifest_name to None."
-            )
-            nuclei_seg_manifest_name = None
+            nuclei_seg_manifest_name = "nuclear_labelfree_seg"
 
         # get a list of all the positions in the dataset that were converted to zarr format
         position_list = dataset_config.zarr_positions
