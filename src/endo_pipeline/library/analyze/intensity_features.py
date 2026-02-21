@@ -251,6 +251,7 @@ def get_peaks_of_edge_intensities(
     peak_prominence: int = 50,
     peak_to_peak_distance_minimum: int = 50,
     smoothing_window_size: int = 5,
+    rel_dist_from_peak_to_measure_width: float = 0.95,
 ) -> tuple[pd.DataFrame, np.ndarray, np.ndarray, dict]:
     edge_data = pd.DataFrame({"angle": angles, "intensity": intensities}).sort_values("angle")
     # edge_data["intensity_smoothed"] = ndimage.gaussian_filter1d(edge_data["intensity"], sigma=3)
@@ -268,7 +269,10 @@ def get_peaks_of_edge_intensities(
         prominence=peak_prominence,
     )
     peak_width_details = peak_widths(
-        edge_data.intensity_smoothed, peak_locs, prominence_data=tuple(peak_details.values())
+        edge_data.intensity_smoothed,
+        peaks=peak_locs,
+        rel_height=rel_dist_from_peak_to_measure_width,
+        prominence_data=tuple(peak_details.values()),
     )
     peak_width_details = dict(
         zip(("widths", "width_heights", "left_ips", "right_ips"), peak_width_details, strict=True)
