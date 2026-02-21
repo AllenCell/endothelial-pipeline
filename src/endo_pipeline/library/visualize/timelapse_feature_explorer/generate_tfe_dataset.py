@@ -186,7 +186,7 @@ def get_df_and_label_map_cdh5seg(
     df_tracks_subset: pd.DataFrame = df_tracks[cols_to_compute].compute().reset_index(drop=True)
 
     df = add_dynamic_features_with_filtering(df_tracks_subset)
-    df["orientation_deg"] = np.rad2deg(df["orientation"] + np.pi / 2)
+    df["orientation_deg"] = np.rad2deg(df["orientation"])
 
     df = df[df["position"] == position]
 

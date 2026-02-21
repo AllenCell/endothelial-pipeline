@@ -102,10 +102,6 @@ def create_summary_dfs(
             timepoint_annotations=timepoint_annotations,
         )
 
-        # the original orientation feature has the y-axis defined as 0 radians
-        # we will shift it to have the flow direction (x-axis) as 0 radians (more intuitive)
-        df_filtered["orientation"] += np.pi / 2
-
         df_filtered["shear_stress"] = shear_stress
         df_filtered["shear_stress_regime"] = shear_stress_regime
 
