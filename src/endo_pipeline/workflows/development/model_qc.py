@@ -1,25 +1,4 @@
-r"""
-Unified Model QC workflow for Diffusion Autoencoder model evaluation.
-
-This module combines the functionality of:
-- Basic model QC with denoising visualization and negative controls
-- Multi-model comparison with quantitative metrics (correlation, SSIM, LPIPS)
-- Support for single or multiple random seeds for robustness analysis
-
-Usage modes:
------------
-1. Basic QC (single model, visual checks with negative controls):
-   endopipe model_qc --model_manifest_name model1
-
-2. Comparison mode (multiple models, metrics):
-   endopipe model_qc --mode comparison \\
-       --model_manifest_name model1 --model_manifest_name model2
-
-3. Full analysis (comparison + negative controls + intermediate plots):
-   endopipe model_qc --mode comparison \\
-       --model_manifest_name model1 --model_manifest_name model2 \\
-       --include_negative_controls --save_intermediate_plots
-"""
+"""Model QC workflow for Diffusion Autoencoder evaluation."""
 
 import logging
 from typing import Literal
@@ -32,11 +11,6 @@ from endo_pipeline.settings.workflow_defaults import (
 )
 
 TAGS = ["diffae", tags.TEST_READY, tags.GPU]
-
-
-# ============================
-# Main Workflow Entry Point
-# ============================
 
 
 def main(
@@ -54,69 +28,73 @@ def main(
     r"""
     Run quality check assessment for trained Diffusion Autoencoder models.
 
-    This unified workflow supports two main modes:
-    - "basic": Single model evaluation with visual QC and optional negative controls
-    - "comparison": Multi-model evaluation with quantitative metrics and comparison plots
+    This workflow combines:
+
+    - Basic model QC with denoising visualization and negative controls
+    - Multi-model comparison with quantitative metrics (correlation, SSIM, LPIPS)
+    - Support for single or multiple random seeds for robustness analysis
+
+    It supports two main modes:
+
+    - **basic** : single model evaluation with visual QC and optional
+      negative controls.
+    - **comparison** : multi-model evaluation with quantitative metrics
+      and comparison plots.
+
+    Usage Modes
+    -----------
+    1. Basic QC (single model, visual checks with negative controls)::
+
+        endopipe model-qc --model_manifest_name model1
+
+    2. Comparison mode (multiple models, metrics)::
+
+        endopipe model-qc --mode comparison \\
+            --model_manifest_name model1 --model_manifest_name model2
+
+    3. Full analysis (comparison + negative controls + intermediate plots)::
+
+        endopipe model-qc --mode comparison \\
+            --model_manifest_name model1 --model_manifest_name model2 \\
+            --include_negative_controls --save_intermediate_plots
 
     Mode-Dependent Defaults
     -----------------------
-    All flags below can be explicitly overridden in either mode. When set to
-    None (the default), they resolve based on the active mode:
+    All flags below can be explicitly overridden in either mode.  When set
+    to ``None`` (the default), they resolve based on the active mode:
 
-    +----------------------------+-----------------------+---------------------------+
-    | Flag                       | Basic (1 model)       | Comparison (>1 model)     |
-    +============================+=======================+===========================+
-    | compute_metrics            | False (opt-in)        | True (always)             |
-    +----------------------------+-----------------------+---------------------------+
-    | include_negative_controls  | True (unless          | False (opt-in)            |
-    |                            | compute_metrics=True) |                           |
-    +----------------------------+-----------------------+---------------------------+
-    | save_intermediate_plots    | True (always)         | False (opt-in)            |
-    +----------------------------+-----------------------+---------------------------+
-    | save_crops_as_tiff         | False (opt-in)        | False (opt-in)            |
-    +----------------------------+-----------------------+---------------------------+
-    | compute_baseline           | False unless           | True unless               |
-    |                            | compute_metrics=True  | --no-compute_baseline     |
-    +----------------------------+-----------------------+---------------------------+
+    | Flag                          | Basic (1 model)                      | Comparison (2+ models)                |
+    | ----------------------------- | ------------------------------------ | ------------------------------------- |
+    | ``--compute-metrics``           | ``False`` (opt-in)                     | ``True`` (always)                       |
+    | ``--include-negative-controls`` | ``True`` (unless ``--compute-metrics``)  | ``False`` (opt-in)                      |
+    | ``--save-intermediate-plots``   | ``True`` (always)                      | ``False`` (opt-in)                      |
+    | ``--save-crops-as-tiff``        | ``False`` (opt-in)                     | ``False`` (opt-in)                      |
+    | ``--compute-baseline``          | ``False`` unless ``--compute-metrics`` | ``True`` unless ``--no-compute_baseline`` |
 
     Parameters
     ----------
     model_manifest_name
-        Name(s) of the model manifest to load. Can be a single string for basic mode,
-        or a list for comparison mode. Defaults to the 10-model latent dimension
-        comparison study (8 BF latent dims 8-1024 + 2 CDH5 conditioned 512, 1024).
-        For single model: --model_manifest_name model1
-        For multiple models: --model_manifest_name model1 --model_manifest_name model2
+        Model manifest name(s).  Provide once per model.
     run_name
-        Run name(s) within the model manifest to load. Defaults to the runs for the
-        10-model latent comparison study. Provide once per model when using multiple manifests.
+        MLflow run name(s), one per manifest.  ``None`` → most recent.
     mode
-        Workflow mode. If None (default), auto-detected from the number of models:
-        single model → "basic", multiple models → "comparison".
-        Can be explicitly set to override auto-detection (e.g., running the
-        default 10-model study requires ``--mode comparison``).
+        ``"basic"`` or ``"comparison"``.  Auto-detected from the number of
+        models when omitted.
     random_seed
-        Random seed for reproducibility of noise generation. When num_seeds > 1,
-        this becomes the center of the seed range.
+        Seed for noise generation.  Centre of the seed range when
+        *num_seeds* > 1.
     include_negative_controls
-        If True, generates denoising with scrambled embeddings and scrambled input
-        images as negative controls. See mode-dependent defaults table above.
+        Generate scrambled-embedding / scrambled-input negative controls.
     save_intermediate_plots
-        If True, saves individual contact sheets for each example.
-        See mode-dependent defaults table above.
+        Save per-example contact sheets.
     save_crops_as_tiff
-        If True, saves crops as individual TIFF files. Optional in both modes.
-        Only saved for default seed.
+        Save individual crops as TIFF files (default seed only).
     compute_metrics
-        If True, computes quantitative metrics (Pearson correlation, SSIM, LPIPS).
-        In comparison mode, also generates comparison bar plots.
-        See mode-dependent defaults table above.
+        Compute Pearson correlation, SSIM, and LPIPS metrics.
     compute_baseline
-        If True, computes baseline metrics by comparing ground truth CDH5 to CDH5
-        from the next timepoint (timepoint + 1). See mode-dependent defaults table above.
+        Compute next-timepoint baseline metrics.
     num_seeds
-        Number of random seeds to evaluate. If > 1, evaluates across multiple seeds
-        centered around random_seed and averages the results.
+        Number of seeds to evaluate.  Results are averaged when > 1.
 
     Examples
     --------
@@ -133,7 +111,9 @@ def main(
     Full analysis with all features (default 10 models):
         endopipe model-qc --mode comparison --include_negative_controls --save_intermediate_plots --num_seeds 10
     """
-    from endo_pipeline.cli import DEMO_MODE
+    import matplotlib.pyplot as plt
+
+    from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
     from endo_pipeline.library.model.model_qc import (
         aggregate_seed_metrics,
         build_models_data,
@@ -146,6 +126,8 @@ def main(
         MODEL_QC_EXAMPLES_TRAINING_POSITIONS,
         MODEL_QC_EXAMPLES_VALIDATION_POSITIONS,
     )
+
+    plt.style.use("endo_pipeline.figure")
 
     logger = logging.getLogger(__name__)
 
@@ -207,12 +189,15 @@ def main(
             (MODEL_QC_EXAMPLES_VALIDATION_POSITIONS, "validation_positions"),
             (MODEL_QC_EXAMPLES_REP_2_POSITIONS, "rep_2_positions"),
         ]
+
+    # Define the example sets for the metrics
     example_sets_for_metrics = {"validation_positions", "rep_2_positions"}
 
     if DEMO_MODE:
-        logger.info("DEMO MODE: Limiting MODEL_QC_EXAMPLES to training set")
-        example_sets_all = [example_sets_all[0]]
-        example_sets_for_metrics = {"training_positions"}
+        first_set_examples, first_set_label = example_sets_all[0]
+        logger.info("DEMO MODE: Limiting to first example of '%s'", first_set_label)
+        example_sets_all = [(first_set_examples[:1], first_set_label)]
+        example_sets_for_metrics = {first_set_label}
 
     # Generate list of seeds to evaluate
     if num_seeds == 1:
@@ -227,13 +212,17 @@ def main(
     logger.info(f"Default seed for saving crops/plots: {random_seed}")
 
     # Storage for all results across seeds
-    all_seed_results: dict[int, dict[int, dict]] = {
+    # Structure: {model_idx: {seed: {example_set_label: [per-example metrics]}}}
+    all_seed_results: dict[int, dict[int, dict[str, list[dict]]]] = {
         model_idx: {} for model_idx in range(len(model_manifest_names))
     }
 
     logger.info("Running model evaluations...")
+    # Setting up strict to be True is another safety net that ensures
+    # length of run names is the same as length of the model manifest
+    # names if provided
     for model_idx, (manifest_name, run_name_input) in enumerate(
-        zip(model_manifest_names, run_names, strict=False)
+        zip(model_manifest_names, run_names, strict=True)
     ):
         for seed in seeds_to_evaluate:
             is_default = seed == random_seed
@@ -250,6 +239,7 @@ def main(
                 compute_metrics=compute_metrics,
                 compute_baseline=compute_baseline,
                 is_default_seed=is_default,
+                num_gpus=NUM_GPUS,
             )
             all_seed_results[model_idx][seed] = result
 
