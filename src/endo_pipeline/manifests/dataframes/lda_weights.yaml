@@ -1,4 +1,4 @@
-name: lda_wieghts
+name: lda_weights
 workflow: find_migration_pc_nb.py
 parameters: {}
 locations:
