@@ -1,15 +1,14 @@
 # %%
-import matplotlib.pyplot as plt
 import pandas as pd
-from sklearn.metrics import roc_auc_score
 
-from endo_pipeline.io import get_output_path, save_plot_to_path
+from endo_pipeline.io import get_output_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
 )
 from endo_pipeline.library.analyze.migration_pc.lda_analysis import (
     apply_lda_projection,
+    rank_features_and_plot_histograms,
     run_lda_feature_ranking,
 )
 from endo_pipeline.manifests import (
@@ -26,7 +25,6 @@ from endo_pipeline.settings.workflow_defaults import (
 # %%
 output_dir = get_output_path("find_coherent_mig")
 pc_columns_to_keep = DIFFAE_PC_COLUMN_NAMES[:80]
-other_cols_to_keep = ["polar_r", "polar_theta", "rho"]
 
 # %%
 annotation_path = "//allen/aics/users/chantelle.leveille/annotations"
@@ -104,7 +102,7 @@ for file_info in mixed_mig_files + coherent_mig_files:
     dataset_name: str = file_info["dataset_name"]
 
     df = get_dataframe_for_dynamics_workflows(
-        dataset_name, dataframe_manifest, pca, filter_dataframe=False
+        dataset_name, dataframe_manifest, pca=pca, filter_dataframe=False
     )
 
     fname = file_info["fname"]
@@ -122,87 +120,13 @@ for file_info in mixed_mig_files + coherent_mig_files:
 
 df_mig = pd.concat(df_mig_list, ignore_index=True)
 
-print(df_mig.head())
-
-
-# %%
-def compute_separation_power(X, y, verbose=True):
-    # Assuming 'X' is your (M samples x N features) matrix
-    # Assuming 'y' is your binary label vector (0s and 1s)
-    ranking = []
-    for feature_name in X.columns:
-        # Calculate AUC
-        score = roc_auc_score(y, X[feature_name])
-        # We care about "Separation Power", so 0.1 is just as good as 0.9.
-        # We calculate 'power' as distance from 0.5 (randomness)
-        separation_power = 2.0 * abs(score - 0.5)
-
-        ranking.append({"feature": feature_name, "auc": score, "power": separation_power})
-
-    print("Top features by separation power:")
-    ranking_sorted = sorted(ranking, key=lambda x: x["power"], reverse=True)
-    if verbose:
-        for item in ranking_sorted[:10]:  # Print top 10 features
-            print(f"{item['feature']}: AUC={item['auc']:.3f}, Power={item['power']:.3f}")
-    return ranking_sorted
-
-
-# %%
-def rank_features_and_plot_histograms(
-    df,
-    features_to_rank,
-    label_column="coherent_migration",
-    fname="find_coherent_mig_histograms.png",
-    output_dir=output_dir,
-):
-
-    ranking = compute_separation_power(df[features_to_rank], df["coherent_migration"])
-
-    n_pcs = len(features_to_rank)
-    ncols = 10
-    nrows = (n_pcs + ncols - 1) // ncols
-
-    fig, axes = plt.subplots(nrows, ncols, figsize=(ncols * 2, nrows * 2))
-    axes = axes.flatten()
-
-    for i, item in enumerate(ranking):
-        col = item["feature"]
-        x_min = df[col].min()
-        x_max = df[col].max()
-        for label in [True, False]:
-            subset = df[df[label_column] == label]
-            if label is True:
-                label_name = "Coherent Migration"
-            if label is False:
-                label_name = "Mixed Migration"
-            axes[i].hist(
-                subset[col], bins=30, range=(x_min, x_max), alpha=0.75, label=f"{label_name}"
-            )
-        axes[i].set_xlabel(col)
-        axes[i].set_ylabel("Count")
-        axes[i].set_title(f"{col}, Power: {item['power']:.3f}")
-
-    n_coherent_migration = df[label_column].sum()
-    n_no_coherent_migration = len(df) - n_coherent_migration
-    legend_labels = [
-        f"Coherent Migration (N={n_coherent_migration})",
-        f"Mixed Migration (N={n_no_coherent_migration})",
-    ]
-    fig.legend(legend_labels, loc="upper right")
-
-    plt.tight_layout()
-    plt.show()
-    save_plot_to_path(fig, output_dir, fname)
-    plt.close()
-
 
 # %% PC ranking and histogram plotting
-features_to_rank = pc_columns_to_keep + other_cols_to_keep
 rank_features_and_plot_histograms(
     df_mig,
-    features_to_rank=features_to_rank,
-    label_column="coherent_migration",
+    features_to_rank=pc_columns_to_keep,
     output_dir=output_dir,
+    label_column="coherent_migration",
 )
 
 # %% LDA feature ranking and histogram plotting, pcs only
@@ -210,6 +134,7 @@ lda_transform, df_proj = run_lda_feature_ranking(df_mig, pc_columns_to_keep, out
 rank_features_and_plot_histograms(
     df_proj,
     df_proj.columns.drop("coherent_migration"),
+    output_dir=output_dir,
     label_column="coherent_migration",
     fname="find_coherent_mig_histograms_lda_pcs_only.png",
 )
@@ -217,12 +142,12 @@ rank_features_and_plot_histograms(
 # %% apply LDA projection to original dataframe
 dataset_name = "20250319_20X"
 df = get_dataframe_for_dynamics_workflows(
-    dataset_name, dataframe_manifest, pca, filter_dataframe=True
+    dataset_name, dataframe_manifest, pca=pca, filter_dataframe=True
 )
 # %%
 df_proj_full = apply_lda_projection(
     df,
-    features_included_in_lda_rank=lda_transform["features"],
+    features_in_lda_rank=lda_transform["features"],
     lda_weights=lda_transform["weights"],
     lda_intercept=lda_transform["intercept"],
     sparse_axes=[2.0, 3.0, 4.0],
