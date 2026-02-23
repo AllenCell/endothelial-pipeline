@@ -29,7 +29,10 @@ def main(
 
     .. code-block:: bash
 
-        endopipe supp-movie -v --output-dir //allen/aics/endothelial/morphological_features/image_data/stitched_timelapse_mp4/cdh5/
+        endopipe supp-movie -v --output-dir //allen/aics/endothelial/morphological_features/image_data/stitched_timelapse_mp4/CDH5/
+
+        or ../BF_STD_DEV/
+
 
     Parameters
     ----------

@@ -9,7 +9,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
 )
-from endo_pipeline.library.analyze.numerics import (
+from endo_pipeline.library.analyze.numerics.binning import (
     get_bounds_from_data,
     get_df_by_bin_value,
     get_histogram_by_component,

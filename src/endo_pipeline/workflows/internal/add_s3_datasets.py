@@ -1,5 +1,4 @@
 from endo_pipeline.cli import Datasets, UniqueIntList
-from endo_pipeline.io.output import get_output_path
 
 
 def main(
@@ -14,8 +13,11 @@ def main(
     - Workflow must be run on slurm-master cluster.
     - AWS credentials must be configured.
 
+    export AWS_PROFILE=allencell_internal_quilt
+    or add AWS_PROFILE=allencell_internal_quilt to each command below.
+
     To see what files are already there:
-        aws s3 ls s3://allencell-internal-quilt/endo_stg/
+       aws s3 ls s3://allencell-internal-quilt/endo_stg/
 
     Login (if session expired):
         aws sso login
@@ -30,7 +32,7 @@ def main(
     ----------
     datasets: Datasets | None
         List of dataset names. If None, all datasets in the
-        "dataset_release" collection will be used.
+        "add_s3_datasets" collection will be used.
     dry_run: bool
         If True, jobs will be drafted but not executed.
     positions_list: UniqueIntList | None
@@ -45,13 +47,14 @@ def main(
     from s3_uploader import run_all_jobs
 
     from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.io.output import get_output_path
     from endo_pipeline.library.process.data_release.generate_csv import create_s3_upload_csv
     from endo_pipeline.library.process.data_release.s3_utils import create_upload_job
 
     logger = logging.getLogger(__name__)
 
     if datasets is None:
-        datasets = get_datasets_in_collection("dataset_release")
+        datasets = get_datasets_in_collection("add_s3_datasets")
 
     save_dir = get_output_path("s3_dataset", "add_datasets")
     log_dir_str = str(get_output_path("s3_dataset", "add_datasets", "status"))

@@ -1,0 +1,79 @@
+name: 20260202_20X
+date: '20260202'
+original_path: //allen/programs/allencell/data/proj0/4d6/489/eee/8e1/e71/f6a/34f/bb7/a65/b18/fc/20260202_GE000010080_20x_SLDY/20260202_GE000010080_20x_SLDY.sldy
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: fcb18a65bb734ff6ae718e1eee4894d6
+barcode: GE00010080
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: high
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+channel_names: [EGPF, BF]
+flow_conditions:
+- start: -16
+  stop: 576
+  shear_stress: 14.7
+include_scenes: null
+notes: ''
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [5, 38, 175, 285, 292, 336]
+    1: [0, 312, 336]
+    2: [286]
+    3: [37]
+    4: []
+    5: [3, 37]
+  auto_bf_temp_artifact:
+    0: [38]
+    1: []
+    2: []
+    3: []
+    4: []
+    5: [37, 554]
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  not_steady_state:
+    0: [[0, 102]]
+    1: [[0, 98]]
+    2: [[0, 94]]
+    3: [[0, 105]]
+    4: [[0, 90]]
+    5: [[0, 90]]
+  cell_piling:
+    0: [[240, 576]]
+    1: [[156, 576]]
+    2: [[228, 576]]
+    3: [[240, 576]]
+    4: [[168, 576]]
+    5: [[276, 576]]
+position_annotations: null
+center_z_plane:
+  0: 12
+  1: 11
+  2: 10
+  3: 10
+  4: 11
+  5: 11
