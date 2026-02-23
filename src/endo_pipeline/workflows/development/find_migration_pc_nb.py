@@ -2,7 +2,12 @@
 import pandas as pd
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
+from endo_pipeline.io import (
+    build_fms_annotations,
+    get_output_path,
+    load_dataframe,
+    upload_file_to_fms,
+)
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
@@ -13,6 +18,7 @@ from endo_pipeline.library.analyze.migration_pc.lda_analysis import (
     run_lda_feature_ranking,
 )
 from endo_pipeline.manifests import (
+    get_dataframe_location_for_dataset,
     get_feature_dataframe_manifest_name,
     load_dataframe_manifest,
     load_model_manifest,
@@ -146,18 +152,7 @@ rank_features_and_plot_histograms(
     fname="find_coherent_mig_histograms_lda_pcs_only.png",
 )
 
-# %% Test applying LDA projection to an original dataframe
-dataset_name = "20250319_20X"
-df = get_dataframe_for_dynamics_workflows(
-    dataset_name, dataframe_manifest, pca=pca, filter_dataframe=True
-)
-df_proj_full = apply_lda_projection(
-    df,
-    features_in_lda_rank=df_lda["features"],
-    lda_weights=df_lda["weights"],
-    lda_intercept=df_lda["intercept"][0],
-    sparse_axes=[2.0, 3.0, 4.0],
-)
+
 # %% Upload LDA feature ranking results to FMS
 if UPLOAD_TO_FMS:
     dataset_config = load_dataset_config("20250319_20X")
@@ -169,4 +164,21 @@ if UPLOAD_TO_FMS:
     upload_file_to_fms(lda_csv_path, annotations=annotations, file_type="csv")
 
 
+# %% Test applying LDA projection to an original dataframe
+dataset_name = "20250319_20X"
+df = get_dataframe_for_dynamics_workflows(
+    dataset_name, dataframe_manifest, pca=pca, filter_dataframe=True
+)
+# %% Use saved lda weights to apply LDA projection to original dataframe
+lda_dataframe_manifest = load_dataframe_manifest("lda_weights")
+lda_location = get_dataframe_location_for_dataset(lda_dataframe_manifest, "80_pcs")
+df_lda = load_dataframe(lda_location)
+# %%
+df_proj_full = apply_lda_projection(
+    df,
+    features_in_lda_rank=df_lda["features"],
+    lda_weights=df_lda["weights"],
+    lda_intercept=df_lda["intercept"][0],
+    sparse_axes=[2.0, 3.0, 4.0],
+)
 # %%
