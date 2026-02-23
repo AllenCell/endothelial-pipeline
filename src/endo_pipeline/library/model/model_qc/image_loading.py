@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -22,6 +22,7 @@ from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
 if TYPE_CHECKING:
     from omegaconf import DictConfig
 
+    from endo_pipeline.manifests.image_manifest import ImageLocation
     from endo_pipeline.settings.examples import ExampleImage
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ def load_transformed_image(
     model_config: DictConfig,
     diffusion_input_key: str,
     timepoint: int | None = None,
-) -> tuple[dict, str, list]:
+) -> tuple[dict[str, Any], ImageLocation, list[Any]]:
     """Load a zarr image, apply transforms, and return the transformed sample.
 
     Parameters

@@ -339,6 +339,7 @@ def evaluate_single_model(
 
             # Baseline metrics (next-timepoint comparison)
             if compute_baseline and compute_metrics and include_in_metrics:
+                assert lpips_calculator is not None  # guaranteed by compute_metrics
                 try:
                     corr, ssim_val, lpips_val = compute_baseline_for_example(
                         example,
@@ -377,6 +378,7 @@ def evaluate_single_model(
                     example_metrics_100.append(metrics_100)
 
                 if save_intermediate_plots and is_default_seed:
+                    assert metrics is not None  # set when compute_all_noise_levels=True
                     save_intermediate_contact_sheet(
                         conditioning_input_crop,
                         ground_truth,
