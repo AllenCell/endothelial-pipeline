@@ -344,7 +344,6 @@ def fit_pca(
     filter_dataframe: bool = True,
     include_cell_piling: bool = False,
     num_pcs: int = 8,
-    return_pca_input_dataframe: bool = False,
 ) -> PCA:
     """
     Fit PCA model to fixed set of reference datasets, as defined in the given
