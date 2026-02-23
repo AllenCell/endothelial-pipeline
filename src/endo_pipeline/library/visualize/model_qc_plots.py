@@ -5,7 +5,23 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 
+import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.gridspec import GridSpec
+
+from endo_pipeline.io.output import save_plot_to_path
+from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
+from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM, FONTSIZE_SMALL
+from endo_pipeline.settings.plot_defaults import (
+    MODEL_QC_FIG_KWARGS,
+    MODEL_QC_GRIDSPEC_KWARGS,
+    MODEL_QC_PLOT_DIRECTION,
+    MODEL_QC_SUBPLOT_KWARGS,
+)
+from endo_pipeline.settings.workflow_defaults import (
+    IMAGE_METRIC_DATASET_COLORS,
+    METRIC_TEXT_BOX_PROPS,
+)
 
 if TYPE_CHECKING:
     import matplotlib.figure
@@ -49,14 +65,6 @@ def create_denoising_contact_sheet(
     -------
         The contact sheet figure.
     """
-    from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
-    from endo_pipeline.settings.plot_defaults import (
-        MODEL_QC_FIG_KWARGS,
-        MODEL_QC_GRIDSPEC_KWARGS,
-        MODEL_QC_PLOT_DIRECTION,
-        MODEL_QC_SUBPLOT_KWARGS,
-    )
-
     cdh5_labels = [
         "Original CDH5",
         "Noised CDH5",
@@ -134,12 +142,6 @@ def create_summary_contact_sheet(
     -------
         The summary contact sheet figure.
     """
-    from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
-    from endo_pipeline.settings.plot_defaults import (
-        MODEL_QC_GRIDSPEC_KWARGS,
-        MODEL_QC_SUBPLOT_KWARGS,
-    )
-
     num_cols = 3
     fig = make_contact_sheet(
         panels=example_results,
@@ -200,16 +202,6 @@ def create_comparison_bar_plot(
     show_baseline
         Whether to show baseline metrics as horizontal dashed lines.
     """
-    import matplotlib.pyplot as plt
-
-    plt.style.use("endo_pipeline.figure")
-
-    from endo_pipeline.io.output import save_plot_to_path
-    from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM, FONTSIZE_SMALL
-    from endo_pipeline.settings.workflow_defaults import (
-        IMAGE_METRIC_DATASET_COLORS,
-        METRIC_TEXT_BOX_PROPS,
-    )
 
     # Use provided labels or generate generic ones
     if model_labels is not None:
@@ -219,7 +211,7 @@ def create_comparison_bar_plot(
     num_models = len(model_labels_short)
     x_pos = np.arange(num_models)
     bar_width = 0.35
-    fig, ax = plt.subplots(figsize=(max(10, num_models * 1.5), 7))
+    fig, ax = plt.subplots(figsize=(max(12, num_models * 1.5 + 3), 7))
     validation_means = [m["validation"][f"{metric_key}_mean"] for m in models_data]
     validation_stds = [m["validation"][f"{metric_key}_std"] for m in models_data]
     rep2_means = [m["rep2"][f"{metric_key}_mean"] for m in models_data]
@@ -256,7 +248,7 @@ def create_comparison_bar_plot(
             linestyle="--",
             linewidth=2,
             alpha=0.7,
-            label="Baseline (Val)",
+            label="Consecutive crops (Val)",
         )
         ax.axhline(
             y=baseline_rep2_mean,
@@ -264,7 +256,7 @@ def create_comparison_bar_plot(
             linestyle="--",
             linewidth=2,
             alpha=0.7,
-            label="Baseline (Rep2)",
+            label="Consecutive crops (Rep2)",
         )
 
     ax.set_xlabel("Latent Size / Conditioning", fontsize=FONTSIZE_MEDIUM)
@@ -277,23 +269,31 @@ def create_comparison_bar_plot(
     ax.set_xticklabels(
         model_labels_short, fontsize=FONTSIZE_MEDIUM, rotation=rotation, ha=ha_labels
     )
-    ax.legend(fontsize=FONTSIZE_MEDIUM, loc="lower left")
     ax.grid(True, alpha=0.3, axis="y")
     if ylim is not None:
         ax.set_ylim(*ylim)
 
-    # Place model details text box inside the plot at bottom-right
+    fig.subplots_adjust(right=0.72)
+
+    # Color legend: top-right, outside the axes but inside the figure
+    ax.legend(
+        fontsize=FONTSIZE_MEDIUM,
+        loc="upper left",
+        bbox_to_anchor=(1.02, 1.0),
+        framealpha=0.9,
+    )
+
+    # Model details text box on the right, vertically centered with the axes
     ax.text(
-        0.98,
-        0.02,
+        1.04,
+        0.4,
         legend_text,
         transform=ax.transAxes,
         fontsize=FONTSIZE_SMALL - 2,
-        verticalalignment="bottom",
-        horizontalalignment="right",
+        verticalalignment="top",
+        horizontalalignment="left",
         bbox=METRIC_TEXT_BOX_PROPS,
     )
-    plt.tight_layout()
     save_plot_to_path(fig, output_path, filename)
     plt.close(fig)
 
@@ -349,13 +349,6 @@ def create_contact_sheet_with_metrics_column(
     -------
         The created figure
     """
-    import matplotlib.pyplot as plt
-    from matplotlib.gridspec import GridSpec
-
-    plt.style.use("endo_pipeline.figure")
-
-    from endo_pipeline.settings.workflow_defaults import METRIC_TEXT_BOX_PROPS
-
     row_header_offset = 1 if show_row_header_column else 0
     total_cols = row_header_offset + num_img_cols + 1
 
