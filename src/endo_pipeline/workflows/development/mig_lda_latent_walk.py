@@ -1,6 +1,9 @@
 import json
 from pathlib import Path
 
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -65,6 +68,11 @@ model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
 model_manifest = load_model_manifest(model_manifest_name)
 run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
 model = load_model(model_manifest.locations[run_name_], instantiate=True)
-walk_img = generate_from_coords(model, walk_diffae_space, n_noise_samples=1, num_gpus=1, random_seed=42)
 
-import pdb; pdb.set_trace()
+walk_img = generate_from_coords(model, walk_diffae_space, n_noise_samples=1, num_gpus=1, random_seed=666)
+
+fig, axs = plt.subplots(1, nsteps, figsize=(nsteps*2, 2))
+for i in range(nsteps): axs[i].imshow(walk_img[i], cmap="gray"); axs[i].axis("off")
+plt.tight_layout()
+plt.savefig(Path(output_dir) / "lda_walk.png")
+plt.close()
