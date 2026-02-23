@@ -211,7 +211,8 @@ def create_comparison_bar_plot(
     num_models = len(model_labels_short)
     x_pos = np.arange(num_models)
     bar_width = 0.35
-    fig, ax = plt.subplots(figsize=(max(12, num_models * 1.5 + 3), 7))
+    with plt.style.context("endo_pipeline.figure"):
+        fig, ax = plt.subplots(figsize=(max(12, num_models * 1.5 + 3), 7))
     validation_means = [m["validation"][f"{metric_key}_mean"] for m in models_data]
     validation_stds = [m["validation"][f"{metric_key}_std"] for m in models_data]
     rep2_means = [m["rep2"][f"{metric_key}_mean"] for m in models_data]

@@ -111,8 +111,6 @@ def main(
     Full analysis with all features (default 10 models):
         endopipe model-qc --mode comparison --include_negative_controls --save_intermediate_plots --num_seeds 10
     """
-    import matplotlib.pyplot as plt
-
     from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
     from endo_pipeline.library.model.model_qc import (
         aggregate_seed_metrics,
@@ -126,8 +124,6 @@ def main(
         MODEL_QC_EXAMPLES_TRAINING_POSITIONS,
         MODEL_QC_EXAMPLES_VALIDATION_POSITIONS,
     )
-
-    plt.style.use("endo_pipeline.figure")
 
     logger = logging.getLogger(__name__)
 
