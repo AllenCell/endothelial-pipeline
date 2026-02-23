@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -36,7 +35,7 @@ def run_lda_feature_ranking(
     features_to_rank: list,
     output_dir: Path,
     fname_suffix: str = "",
-):
+) -> tuple[dict, pd.DataFrame, pd.DataFrame]:
     features_to_rank = [
         col.value if hasattr(col, "value") else str(col) for col in features_to_rank
     ]
@@ -64,14 +63,13 @@ def run_lda_feature_ranking(
         np.c_[projected_data, df_mig["coherent_migration"]], columns=["LDA", "coherent_migration"]
     )
 
-    lda_transform = {
-        "weights": optimal_axis.tolist(),
-        "intercept": float(lda.intercept_[0]),
-        "features": features_to_rank,
-    }
-    json_path = output_dir / f"lda_transform_{fname_suffix}.json"
-    with open(json_path, "w") as f:
-        json.dump(lda_transform, f, indent=4)
+    # Convert to DataFrame
+    df_lda = pd.DataFrame({"weights": optimal_axis.tolist(), "features": features_to_rank})
+    df_lda["intercept"] = float(lda.intercept_[0])
+
+    # Save as CSV
+    csv_path = output_dir / f"lda_transform_{fname_suffix}.csv"
+    df_lda.to_csv(csv_path, index=False)
 
     for minimal_weight in [2.0, 3.0, 4.0]:
         sparse_axis = np.where(np.abs(optimal_axis) >= minimal_weight, optimal_axis, 0)
@@ -80,7 +78,7 @@ def run_lda_feature_ranking(
         projected_data_sparse = df_features @ sparse_axis + lda.intercept_[0]
         df_proj[f"LDA_SP_{int(minimal_weight)}"] = projected_data_sparse
 
-    return lda_transform, df_proj
+    return df_lda, df_proj, csv_path
 
 
 def apply_lda_projection(

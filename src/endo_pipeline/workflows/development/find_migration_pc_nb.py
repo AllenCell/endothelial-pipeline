@@ -1,7 +1,8 @@
 # %%
 import pandas as pd
 
-from endo_pipeline.io import get_output_path
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
@@ -21,6 +22,10 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
 )
+
+DESCRIPTION = "Manual annotations for migration type; LDA ranks top contributing PCs."
+
+UPLOAD_TO_FMS = False
 
 # %%
 output_dir = get_output_path("find_coherent_mig")
@@ -130,7 +135,9 @@ rank_features_and_plot_histograms(
 )
 
 # %% LDA feature ranking and histogram plotting, pcs only
-lda_transform, df_proj = run_lda_feature_ranking(df_mig, pc_columns_to_keep, output_dir, "pcs_only")
+df_lda, df_proj, lda_csv_path = run_lda_feature_ranking(
+    df_mig, pc_columns_to_keep, output_dir, "pcs_only"
+)
 rank_features_and_plot_histograms(
     df_proj,
     df_proj.columns.drop("coherent_migration"),
@@ -139,17 +146,27 @@ rank_features_and_plot_histograms(
     fname="find_coherent_mig_histograms_lda_pcs_only.png",
 )
 
-# %% apply LDA projection to original dataframe
+# %% Test applying LDA projection to an original dataframe
 dataset_name = "20250319_20X"
 df = get_dataframe_for_dynamics_workflows(
     dataset_name, dataframe_manifest, pca=pca, filter_dataframe=True
 )
-# %%
 df_proj_full = apply_lda_projection(
     df,
-    features_in_lda_rank=lda_transform["features"],
-    lda_weights=lda_transform["weights"],
-    lda_intercept=lda_transform["intercept"],
+    features_in_lda_rank=df_lda["features"],
+    lda_weights=df_lda["weights"],
+    lda_intercept=df_lda["intercept"][0],
     sparse_axes=[2.0, 3.0, 4.0],
 )
+# %% Upload LDA feature ranking results to FMS
+if UPLOAD_TO_FMS:
+    dataset_config = load_dataset_config("20250319_20X")
+    dataset_config_2 = load_dataset_config("20250813_20X")
+
+    annotations = build_fms_annotations(
+        dataset=[dataset_config, dataset_config_2], additional_notes=DESCRIPTION
+    )
+    upload_file_to_fms(lda_csv_path, annotations=annotations, file_type="csv")
+
+
 # %%

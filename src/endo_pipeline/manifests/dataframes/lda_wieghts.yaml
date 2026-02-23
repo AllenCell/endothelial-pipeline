@@ -1,0 +1,8 @@
+name: lda_wieghts
+workflow: find_migration_pc_nb.py
+parameters: {}
+locations:
+  80_pcs:
+    fmsid: null
+    path: null
+    s3uri: null
