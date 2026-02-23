@@ -76,3 +76,15 @@ for i in range(nsteps): axs[i].imshow(walk_img[i], cmap="gray"); axs[i].axis("of
 plt.tight_layout()
 plt.savefig(Path(output_dir) / "lda_walk.png")
 plt.close()
+
+from pacmap import PaCMAP
+reducer = PaCMAP(n_components=2, n_neighbors=30, MN_ratio=1.5, FP_ratio=2.0, save_pairs=True, save_tree=True)
+emb_data = reducer.fit_transform(pca_transformed_data[::10])
+emb_walk = reducer.transform(walk_pca_space)
+plt.figure(figsize=(10, 10))
+plt.scatter(emb_data[:, 0], emb_data[:, 1], alpha=0.1, s=5)
+plt.plot(emb_walk[:, 0], emb_walk[:, 1], color="red", lw=5)
+plt.scatter(emb_walk[:, 0], emb_walk[:, 1], color="red", s=100)
+plt.tight_layout()
+plt.savefig(Path(output_dir) / "lda_walk_pacmap_projection.png")
+plt.close()
