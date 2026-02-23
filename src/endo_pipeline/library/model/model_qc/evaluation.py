@@ -192,10 +192,7 @@ def evaluate_single_model(
     lpips_calculator = None
     _compute_denoising_metrics = None
     if compute_metrics:
-        from endo_pipeline.library.analyze.image_metrics import (
-            LPIPSCalculator,
-            compute_denoising_metrics,
-        )
+        from .image_metrics import LPIPSCalculator, compute_denoising_metrics
 
         _compute_denoising_metrics = compute_denoising_metrics
         lpips_calculator = LPIPSCalculator()
