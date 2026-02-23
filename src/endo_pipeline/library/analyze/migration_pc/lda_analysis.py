@@ -35,7 +35,7 @@ def run_lda_feature_ranking(
     features_to_rank: list,
     output_dir: Path,
     fname_suffix: str = "",
-) -> tuple[dict, pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame, Path]:
     features_to_rank = [
         col.value if hasattr(col, "value") else str(col) for col in features_to_rank
     ]

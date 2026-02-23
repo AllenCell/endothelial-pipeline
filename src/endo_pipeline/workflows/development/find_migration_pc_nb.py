@@ -110,7 +110,7 @@ pca = fit_pca(num_pcs=80)
 # %%
 df_mig_list = []
 for file_info in mixed_mig_files + coherent_mig_files:
-    dataset_name: str = file_info["dataset_name"]
+    dataset_name = str(file_info["dataset_name"])
 
     df = get_dataframe_for_dynamics_workflows(
         dataset_name, dataframe_manifest, pca=pca, filter_dataframe=False
@@ -146,7 +146,7 @@ df_lda, df_proj, lda_csv_path = run_lda_feature_ranking(
 )
 rank_features_and_plot_histograms(
     df_proj,
-    df_proj.columns.drop("coherent_migration"),
+    list(df_proj.columns.drop("coherent_migration")),
     output_dir=output_dir,
     label_column="coherent_migration",
     fname="find_coherent_mig_histograms_lda_pcs_only.png",
