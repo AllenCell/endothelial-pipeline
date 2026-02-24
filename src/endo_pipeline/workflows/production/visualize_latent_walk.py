@@ -31,9 +31,12 @@ def main(
     **Input columns**
 
     The columns to perform the latent walk along can be specified with the
-    ``columns`` argument. If not specified, defaults to polar angle, polar
+    ``walk_on_columns`` argument. If not specified, defaults to polar angle, polar
     radius, and flipped PC3, which are the most interpretable dimensions in the
-    latent space.
+    latent space. The CLI flag for this argument is ``--along``, e.g.,
+
+    .. code-block:: bash
+        endopipe visualize-latent-walk --along polar_theta
 
     If using PCs, any of the PCs can be selected by specifying the corresponding
     column name (e.g. "pc_1", "pc_2", etc.). If using original axes, any of the
@@ -70,7 +73,7 @@ def main(
     command line flag as follows:
 
     .. code-block:: bash
-        endopipe visualize-latent-walk --columns polar_theta polar_r \
+        endopipe visualize-latent-walk --along polar_theta polar_r \
         --set-column-value.polar_r 1.0
 
     Parameters
@@ -86,7 +89,7 @@ def main(
     include_cell_piling
         True to include timepoints with cell piling to fit the PCA model, False
         to exclude them.
-    columns
+    walk_on_columns
         List of column names corresponding to the dimensions to perform the
         latent walk along.
     sigma
