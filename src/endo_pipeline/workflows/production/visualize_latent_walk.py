@@ -2,7 +2,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from endo_pipeline.cli import CropPattern, FloatList, StrList
+from endo_pipeline.cli import CropPattern, StrList
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -23,7 +23,7 @@ def main(
     n_steps: int = 7,
     use_pcs: bool = True,
     n_noise_samples: int = 1,
-    replace_mean_with_val: FloatList | None = None,
+    set_column_value: dict[str, float] | None = None,
 ) -> None:
     """
     Create latent walk for a given model using PC axes or original axes.
@@ -48,6 +48,30 @@ def main(
     (-2, -1, 0, 1, 2) standard devations along the selected dimensions. If not
     specified, the latent walk will traverse the full range of the data in each
     dimension.
+
+    **Setting values of other columns when generating the latent walk**
+
+    By default, when generating the latent walk, the values of all columns other
+    than the current column being traversed are set to the mean value of those
+    columns in the data. However, there may be cases where you want to set the
+    values of certain columns to specific values instead of the mean when
+    generating the latent walk.
+
+    The option ``set_column_value`` allows you to do this by providing a
+    dictionary where the keys are the column names and the values are the
+    specific values you want to set for those columns when generating the latent
+    walk.
+
+    For example, you may want to set the polar radius to be equal to 1.0 when
+    traversing along the polar angle dimension to see how changing the polar
+    angle affects the images at that specific radius. To do this, you would set
+    ``set_column_value`` to ``{"polar_r": 1.0}`` where "polar_r" is the name of
+    the column corresponding to the polar radius in your data. This is done via
+    command line flag as follows:
+
+    .. code-block:: bash
+        endopipe visualize-latent-walk --columns polar_theta polar_r \
+        --set-column-value.polar_r 1.0
 
     Parameters
     ----------
@@ -75,10 +99,9 @@ def main(
         axes.
     n_noise_samples
         Number of noise samples to use for generating images.
-    replace_mean_with_val
-        Optional, list of values to set as the baseline value for each dimension
-        not being traversed in the latent walk. If None, the mean value will be
-        used as the baseline.
+    set_column_value
+        Optional, dictionary mapping column names to values to set for those
+        columns when generating the latent walk.
     """
     import pandas as pd
 
@@ -177,7 +200,7 @@ def main(
         column_names,
         sigma,
         n_steps,
-        replace_mean_with_val,
+        set_column_value,
     )
     # if polar angle and radius are included in the column names, convert them
     # to PC1 and PC2 coordinates for image generation (inverse PCA
@@ -212,11 +235,11 @@ def main(
     axis_suffix = "_along_" + "_".join(column_names)
     sigma_suffix = f"_{int(sigma)}sigma_" if sigma is not None else ""
     file_name = f"latent_walk{sigma_suffix}{axis_suffix}"
-    if replace_mean_with_val is not None:
+    if set_column_value is not None:
         replace_str = "_".join(
             [
                 f"{column_name}_setto_{str(val).replace('.', 'p')}"
-                for column_name, val in zip(column_names, replace_mean_with_val, strict=True)
+                for column_name, val in set_column_value.items()
             ]
         )
         file_name += f"_replace_{replace_str}"
