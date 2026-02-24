@@ -43,6 +43,7 @@ def main() -> None:
     n_steps = 7
     sigma = 3.0
     random_seed = 5
+    batches = [(0, 3), (3, n_dims)]
 
     # Load model manifest and instantiate model
     model_manifest = load_model_manifest(model_manifest_name)
@@ -92,16 +93,21 @@ def main() -> None:
     # Save generated latent walk as main (PC 1 - 3) and supplement (PC 4 - 11) figures
     save_path = get_output_path("figures", include_timestamp=False)
     file_name = f"latent_walk_{int(sigma)}sigma_along_pcs"
-    plot_latent_walk_as_grid(
-        walk_img_grid,
-        ranges,
-        column_names,
-        save_path,
-        file_name,
-        show_values=True,
-        label_sigmas=True,
-        batches=[(0, 3), (3, n_dims)],
-    )
+
+    for start_idx, end_idx in batches:
+        batch_walk_images = walk_img_grid[start_idx:end_idx, :, :, :]
+        batch_coordinate_values = ranges[start_idx:end_idx]
+        batch_file_name = f"{file_name}_{start_idx+1}_{end_idx}"
+
+        plot_latent_walk_as_grid(
+            batch_walk_images,
+            batch_coordinate_values,
+            column_names,
+            save_path,
+            batch_file_name,
+            show_values=True,
+            label_sigmas=True,
+        )
 
 
 if __name__ == "__main__":

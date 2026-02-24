@@ -13,16 +13,41 @@ from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
 logger = logging.getLogger(__name__)
 
 
-def _plot_latent_walk_batch_as_grid(
-    dimension_labels: list[str],
+def plot_latent_walk_as_grid(
     array_of_crops: np.ndarray,
     coordinate_values: np.ndarray,
+    column_names: list[str],
     save_path: Path,
     file_name: str,
     show_values: bool = True,
     label_sigmas: bool = True,
 ) -> None:
+    """
+    Plot a grid of reconstructed image crops representing a latent walk.
 
+    Parameters
+    ----------
+    array_of_crops
+        Array of shape (num_dims, num_steps, h, w) containing the reconstructed
+        image crops.
+    coordinate_values
+        Array of shape (num_dims, num_steps) containing the coordinate values
+        for each dimension and step.
+    column_names
+        A list of column names corresponding to each dimension in the latent
+        walk.
+    save_path
+        Directory path to save the output figure.
+    file_name
+        Name of the output figure file.
+    use_pcs
+        True if latent walk was performed along PC axes, False otherwise.
+    show_value
+        True to show the coordinate value on the image, False otherwise.
+    label_sigmas
+        True to label the column titles with sigma values, False to label with
+        step number.
+    """
     # Set up the grid
     num_rows = array_of_crops.shape[0]
     num_steps = array_of_crops.shape[1]
@@ -78,7 +103,7 @@ def _plot_latent_walk_batch_as_grid(
 
             # Y labels only on first column
             if j == 0:
-                ylabel = dimension_labels[i]
+                ylabel = get_label_for_column(column_names[i], capitalize=True)
                 ax.set_ylabel(ylabel, labelpad=5)
 
             # Plot scalebar only on first image
@@ -98,70 +123,3 @@ def _plot_latent_walk_batch_as_grid(
     output_file = (save_path / file_name).with_suffix(".pdf")
     fig.savefig(output_file)
     plt.close(fig)
-
-
-def plot_latent_walk_as_grid(
-    array_of_crops: np.ndarray,
-    coordinate_values: np.ndarray,
-    column_names: list[str],
-    save_path: Path,
-    file_name: str,
-    show_values: bool = True,
-    label_sigmas: bool = True,
-    batches: list[tuple[int, int]] | None = None,
-) -> None:
-    """
-    Plot a grid of reconstructed image crops representing a latent walk.
-
-    Parameters
-    ----------
-    array_of_crops
-        An ND numpy array of shape (num_dims, num_steps, h, w)
-        containing the reconstructed image crops.
-    coordinate_values
-        An ND numpy array of shape (num_dims, num_steps)
-        containing the coordinate values for each dimension and step.
-    column_names
-        A list of column names corresponding to each dimension in the latent walk.
-    save_path
-        Directory path to save the output figure.
-    file_name
-        Name of the output figure file.
-    use_pcs
-        True if latent walk was performed along PC axes, False otherwise.
-    show_value
-        True to show the coordinate value on the image, False otherwise.
-    label_sigmas
-        True to label the column titles with sigma values, False to label with step number.
-    batches
-        If provided, a list of (start_idx, end_idx) tuples specifying
-        the number of PCs to include in each batch. If None, defaults to
-        one
-    """
-
-    if batches is None:
-        batches = [(0, array_of_crops.shape[0])]
-
-    for start_idx, end_idx in batches:
-        batch_array_of_crops = array_of_crops[start_idx:end_idx, :, :, :]
-        batch_coordinate_values = coordinate_values[start_idx:end_idx]
-        dimension_labels = [
-            get_label_for_column(column_names[i], capitalize=True)
-            for i in range(start_idx, end_idx)
-        ]
-        # remove spaces, $ and \ from labels for file naming
-        labels_for_filename = [
-            label.replace(" ", "_").replace("$", "").replace("\\", "") for label in dimension_labels
-        ]
-        batch_suffix = "_" + "_".join(labels_for_filename)
-        batch_file_name = f"{file_name}{batch_suffix}"
-
-        _plot_latent_walk_batch_as_grid(
-            dimension_labels,
-            batch_array_of_crops,
-            batch_coordinate_values,
-            save_path,
-            batch_file_name,
-            show_values,
-            label_sigmas,
-        )
