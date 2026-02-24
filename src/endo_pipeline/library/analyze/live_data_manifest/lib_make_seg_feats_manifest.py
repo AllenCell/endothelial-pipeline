@@ -1134,7 +1134,7 @@ def add_all_labels_in_crop_column(
         df.to_parquet(labels_in_crop_path, index=False)
 
         # remove the temporary files and the temporary folder
-        for fp in labels_in_crop_dir.glob("*_pos*_tp*_labels_in_crop.parquet"):
+        for fp in labels_in_crop_subdir.glob("*_pos*_tp*_labels_in_crop.parquet"):
             fp.unlink()
         labels_in_crop_subdir.rmdir()
 
