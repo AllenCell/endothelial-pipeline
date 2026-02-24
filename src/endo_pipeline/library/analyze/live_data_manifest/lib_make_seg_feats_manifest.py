@@ -1072,8 +1072,8 @@ def create_labels_in_crop_columns(df_sub: pd.DataFrame, out_dir: Path) -> None:
         lambda row: get_labels_in_crop(
             segmentation_image=img,
             region_of_interest=(
-                slice(row.start_y_cdh5_seg, row.end_y_cdh5_seg),
-                slice(row.start_x_cdh5_seg, row.end_x_cdh5_seg),
+                slice(row.start_y, row.end_y),
+                slice(row.start_x, row.end_x),
             ),
         ),
         axis=1,
