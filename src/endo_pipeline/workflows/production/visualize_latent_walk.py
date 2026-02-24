@@ -210,7 +210,8 @@ def main(
 
     # save generated latent walk as grid
     axis_suffix = "_along_" + "_".join(column_names)
-    file_name = f"latent_walk_{int(sigma)}sigma{axis_suffix}"
+    sigma_suffix = f"_{int(sigma)}sigma_" if sigma is not None else ""
+    file_name = f"latent_walk{sigma_suffix}{axis_suffix}"
     if replace_mean_with_val is not None:
         replace_str = "_".join(
             [
