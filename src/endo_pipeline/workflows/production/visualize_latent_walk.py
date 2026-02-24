@@ -231,7 +231,7 @@ def main(
     # dimension
     walk, ranges = get_latent_walk(
         data_for_walk,
-        column_names,
+        walk_column_names,
         sigma,
         n_steps,
         set_column_value,

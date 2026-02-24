@@ -188,7 +188,6 @@ def get_column_names_for_latent_walk_dataframe(input_column_names: list[str]) ->
 
 def get_baseline_walk_values(
     dataframe: pd.DataFrame,
-    column_names: list[str],
     set_column_value: dict[str, float] | None = None,
 ) -> list[float]:
     """
@@ -199,8 +198,6 @@ def get_baseline_walk_values(
     ----------
     dataframe
         DataFrame containing the data to calculate mean values from.
-    column_names
-        List of column names corresponding to each dimension.
     set_column_value
         Optional, dictionary mapping column names to values to set for those
         columns when generating the latent walk. If None, uses the mean of the
@@ -213,7 +210,7 @@ def get_baseline_walk_values(
     """
 
     baseline_values = []
-    for column_name in column_names:
+    for column_name in dataframe.columns:
         if (set_column_value is None) or (column_name not in set_column_value.keys()):
             baseline_values.append(dataframe[column_name].mean())
         else:
@@ -224,7 +221,7 @@ def get_baseline_walk_values(
 
 def get_latent_walk(
     dataframe: pd.DataFrame,
-    column_names: list[str],
+    walk_column_names: list[str],
     sigma: float | None,
     n_steps: int,
     set_column_value: dict[str, float] | None = None,
@@ -253,24 +250,24 @@ def get_latent_walk(
 
     # Get baseline values for all dimensions as either the mean value of the
     # dimension or the given replacement value for that dimension.
-    baseline_walk_values = get_baseline_walk_values(dataframe, column_names, set_column_value)
+    baseline_walk_values = get_baseline_walk_values(dataframe, set_column_value)
 
-    for column_name in column_names:
-        data = dataframe[column_name]
+    for column_name in walk_column_names:
+        walk_data = dataframe[column_name]
         if sigma is None:
-            data_min = data.min()
-            data_max = data.max()
+            data_min = walk_data.min()
+            data_max = walk_data.max()
             range_ = np.linspace(data_min, data_max, n_steps)
         else:
             if sigma <= 0:
                 raise ValueError(f"Input sigma must be positive, got {sigma}.")
-            std = data.std()
+            std = walk_data.std()
             range_ = np.arange(-sigma, sigma + 0.01) * std
 
         # Stack the baseline values for all steps and then replace only the current
         # dimension with the selected latent walk values.
         dim_traversal_array = np.stack([baseline_walk_values] * range_.shape[0])
-        dim_traversal_df = pd.DataFrame(dim_traversal_array, columns=column_names)
+        dim_traversal_df = pd.DataFrame(dim_traversal_array, columns=dataframe.columns)
         dim_traversal_df[column_name] = range_
 
         walks.append(dim_traversal_df)
