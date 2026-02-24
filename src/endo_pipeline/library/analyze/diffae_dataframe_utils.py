@@ -1121,3 +1121,77 @@ def fill_missing_timepoints(data_crop: pd.DataFrame) -> pd.DataFrame:
     data_crop_filled = data_crop_filled.reset_index()
 
     return data_crop_filled
+
+
+def compute_population_cov(
+    df: pd.DataFrame,
+    column_names: list[str],
+    time_step_minutes: float,
+) -> tuple[np.ndarray, pd.DataFrame]:
+    """
+    Compute the population (ensemble) coefficient of variation at each timepoint.
+
+    The population CoV is defined as std / |mean| across all crops at each timepoint.
+    Using the absolute value of the mean prevents sign-flip artefacts for features
+    whose ensemble mean passes through zero.
+
+    Parameters
+    ----------
+    df
+        Feature dataframe for a single dataset / flow condition, containing a
+        ``frame_number`` column and the feature columns listed in ``column_names``.
+    column_names
+        Feature column names to compute CoV for.
+    time_step_minutes
+        Duration of one frame in minutes, used to convert frame indices to hours.
+
+    Returns
+    -------
+    time_values
+        1-D array of time values in hours.
+    cov_df
+        DataFrame of CoV values indexed by frame number, with one column per feature.
+    """
+    grouped = df.groupby(ColumnName.TIMEPOINT.value)[column_names]
+    cov_df: pd.DataFrame = grouped.std() / grouped.mean().abs()
+    time_values: np.ndarray = cov_df.index.values * time_step_minutes / 60
+    return time_values, cov_df
+
+
+def compute_per_crop_temporal_cov(
+    df: pd.DataFrame,
+    column_names: list[str],
+) -> dict[str, np.ndarray]:
+    """
+    Compute the temporal CoV (std / |mean| over time) for every individual crop.
+
+    Missing timepoints are treated as NaN so that crops with gaps are still
+    included.  Crops where |mean| ≈ 0 produce infinite or NaN CoV and are
+    silently dropped from the returned arrays.
+
+    Parameters
+    ----------
+    df
+        Feature dataframe for a single dataset / flow condition.  Must contain
+        ``crop_index`` and ``frame_number`` columns.
+    column_names
+        Feature column names to compute CoV for.
+
+    Returns
+    -------
+    :
+        Mapping from feature column name to 1-D array of finite per-crop temporal
+        CoV values.
+    """
+    # shape: (n_crops, n_timepoints, n_features)
+    crop_array = df_to_array(df, column_names)
+
+    crop_cov_dict: dict[str, np.ndarray] = {}
+    for feat_idx, col in enumerate(column_names):
+        crop_feat = crop_array[..., feat_idx]  # (n_crops, n_timepoints)
+        temporal_std = np.nanstd(crop_feat, axis=1)
+        temporal_mean_abs = np.abs(np.nanmean(crop_feat, axis=1))
+        cov = np.where(temporal_mean_abs > 0, temporal_std / temporal_mean_abs, np.nan)
+        crop_cov_dict[col] = cov[np.isfinite(cov)]
+
+    return crop_cov_dict

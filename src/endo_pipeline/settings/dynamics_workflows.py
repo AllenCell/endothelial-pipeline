@@ -33,6 +33,13 @@ BIN_LIMITS_DYNAMICS: dict[str, tuple[float, float]] = {
 }
 """Bin limits for each coordinate in dynamics analysis and visualization."""
 
+BIN_LIMITS_COV_VS_TIME: dict[str, tuple[float, float]] = {
+    ColumnName.POLAR_ANGLE.value: (0.0, 1.5),
+    ColumnName.POLAR_RADIUS.value: (0.0, 1.5),
+    ColumnName.PC3_FLIPPED.value: (0.0, 10),
+}
+"""Bin limits for coefficient of variation vs time plots in dynamics visualization."""
+
 DEFAULT_DATASET_DYNAMICS_VIS: str = "20250618_20X"
 """Default dataset for dynamics visualization workflows."""
 
