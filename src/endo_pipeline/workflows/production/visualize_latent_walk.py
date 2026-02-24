@@ -124,6 +124,7 @@ def main(
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
     from endo_pipeline.library.model.latent_walk_utils import (
         generate_latent_walk_images,
+        get_column_names_for_latent_walk_dataframe,
         get_latent_walk,
         get_num_pcs_from_column_names,
     )
@@ -163,11 +164,21 @@ def main(
     dataset_names = get_datasets_in_collection(dataset_collection)
 
     # default column names if none provided
-    column_names = (
+    # default column names for walk if none provided
+    walk_column_names = (
         [ColumnName.POLAR_ANGLE.value, ColumnName.POLAR_RADIUS.value, ColumnName.PC3_FLIPPED.value]
         if walk_on_columns is None
         else walk_on_columns
     )
+
+    # get column names not used for walk but to be set to specific values when generating the walk
+    set_column_names = list(set_column_value.keys()) if set_column_value is not None else []
+
+    # columns to keep in dataframe are the union of the walk column names and the set column names
+    input_column_names = list(set(walk_column_names + set_column_names))
+
+    # process input column names and add any additional ones needed for the walk / image generation
+    column_names = get_column_names_for_latent_walk_dataframe(input_column_names)
 
     compute_polar = False
     if (

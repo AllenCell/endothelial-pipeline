@@ -5,6 +5,10 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
+from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    get_latent_feature_column_names,
+    get_pc_column_names,
+)
 from endo_pipeline.library.model.diffae import generate_from_coords
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
@@ -75,6 +79,111 @@ def get_num_pcs_from_column_names(column_names: list[str]) -> int:
         max_pc_dim = max(max_pc_dim, 3)
 
     return max_pc_dim
+
+
+def _add_preceding_dims_to_column_names(column_names: list[str], feature_prefix: str) -> list[str]:
+    """
+    Add preceding dimension column names to the provided column names based on
+    the provided feature prefix.
+    For example, column_names = ["pc_3"] and feature_prefix = "pc_", this method
+    would add "pc_1" and "pc_2" to the output list of column names since they
+    are the preceding dimensions for "pc_3".
+    """
+    max_dim = get_max_dim_in_column_names(column_names, feature_prefix)
+    if max_dim == 0:
+        return column_names
+    elif feature_prefix == ColumnName.PCA_FEATURE_PREFIX.value:
+        all_dim_columns = get_pc_column_names(num_pcs=max_dim)
+    elif feature_prefix == ColumnName.LATENT_FEATURE_PREFIX.value:
+        all_dim_columns = get_latent_feature_column_names(num_latent_dims=max_dim)
+    else:
+        raise ValueError(f"Invalid feature prefix: {feature_prefix}")
+    column_names_with_preceding_dims = list(set(column_names) | set(all_dim_columns))
+    return column_names_with_preceding_dims
+
+
+def get_column_names_for_latent_walk_dataframe(input_column_names: list[str]) -> list[str]:
+    """
+    Set up column names for the latent walk based on the provided column names.
+
+    For example, if the provided columns include any of the PC features, the
+    preceding PC features must also be present in the dataframe so that their
+    values can be used as the baseline for the latent walk. So if the provided
+    column names include PC3, then the column names for the latent walk should
+    include PC1, PC2, and PC3.
+
+    In the case that PC3 is included but neither {PC1, PC2} nor {polar angle,
+    polar radius} are included, then the column names for the PC1 and PC2 are
+    added (as opposed to the polar angle and radius). Either are sufficient for
+    calculating the PC1, PC2, and PC3 coordinates for image generation, but the
+    PC1 and PC2 coordinates are used as the baseline for the latent walk in this
+    case since they are more commonly used as the baseline for latent walks in
+    general.
+
+    Similarly, if the provided column names include any of the latent features,
+    the preceding latent features must also be present in the dataframe so that
+    their values can be used as the baseline for the latent walk.
+
+    If either of the polar coordinate columns are included, both must be
+    included, so that the inverse transform can be applied to convert back to
+    Cartesian coordinates for image generation.
+    """
+    column_names = input_column_names.copy()
+    # special cases for transformed variables: polar coordinates and flipped pc3
+    polar_subset = {ColumnName.POLAR_ANGLE.value, ColumnName.POLAR_RADIUS.value}
+    pc1_pc2_subset = {
+        f"{ColumnName.PCA_FEATURE_PREFIX.value}1",
+        f"{ColumnName.PCA_FEATURE_PREFIX.value}2",
+    }
+    # first, check that columns do not have both the polar coordinates and the
+    # PC1 and PC2 coordinates, since this would be redundant and could cause
+    # issues with image generation since the polar coordinates would not be able
+    # to be used for the inverse PCA transformation to get the Cartesian
+    # coordinates for image generation
+    if polar_subset.issubset(column_names) and pc1_pc2_subset.issubset(column_names):
+        raise ValueError(
+            f"Column names cannot include both polar coordinates and PC1 and PC2 coordinates. Column names provided: {column_names}"
+        )
+    if (
+        ColumnName.POLAR_ANGLE.value in column_names
+        and ColumnName.POLAR_RADIUS.value not in column_names
+    ):
+        # if polar angle is included in the column names but polar radius is
+        # not, add polar radius to the column names
+        column_names.append(ColumnName.POLAR_RADIUS.value)
+    if (
+        ColumnName.POLAR_RADIUS.value in column_names
+        and ColumnName.POLAR_ANGLE.value not in column_names
+    ):
+        # if polar radius is included in the column names but polar angle is
+        # not, add polar angle to the column names
+        column_names.append(ColumnName.POLAR_ANGLE.value)
+    if ColumnName.PC3_FLIPPED.value in column_names:
+        # if PC3_FLIPPED is included in the column names, need to either
+        # have PC1 and PC2 OR polar angle and radius included in the column names
+        # so that the PC1, PC2, and PC3 coordinates can be calculated for image generation
+        if not polar_subset.issubset(column_names) and not pc1_pc2_subset.issubset(column_names):
+            # if neither the polar coordinate columns nor the PC1 and PC2 columns are included in the column names, add the PC1 and PC2 columns to the column names
+            column_names = _add_preceding_dims_to_column_names(
+                column_names, ColumnName.PCA_FEATURE_PREFIX.value
+            )
+
+    # add preceding latent feature columns if any latent feature columns are included in the column names
+    try:
+        column_names = _add_preceding_dims_to_column_names(
+            column_names, ColumnName.LATENT_FEATURE_PREFIX.value
+        )
+    except ValueError:
+        pass
+
+    try:
+        column_names = _add_preceding_dims_to_column_names(
+            column_names, ColumnName.PCA_FEATURE_PREFIX.value
+        )
+    except ValueError:
+        pass
+
+    return column_names
 
 
 def get_baseline_walk_values(
