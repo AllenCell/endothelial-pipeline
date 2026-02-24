@@ -18,7 +18,7 @@ def main(
     crop_pattern: CropPattern = "grid",
     dataset_collection: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
-    columns: StrList | None = None,
+    walk_on_columns: Annotated[StrList | None, Parameter("--along", negative="")] = None,
     sigma: float | None = None,
     n_steps: int = 7,
     use_pcs: bool = True,
@@ -155,8 +155,8 @@ def main(
     # default column names if none provided
     column_names = (
         [ColumnName.POLAR_ANGLE.value, ColumnName.POLAR_RADIUS.value, ColumnName.PC3_FLIPPED.value]
-        if columns is None
-        else columns
+        if walk_on_columns is None
+        else walk_on_columns
     )
 
     # initialize pca variable to None in case use_pcs is False, so that it can
