@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _get_max_dim_in_column_names(column_names: list[str], feature_prefix: str) -> int:
+def get_max_dim_in_column_names(column_names: list[str], feature_prefix: str) -> int:
     """
     Get the maximum number of dimensions from the provided column names.
 
@@ -38,6 +38,8 @@ def _get_max_dim_in_column_names(column_names: list[str], feature_prefix: str) -
 
     # Iterate through valid matches and convert capture group to integer
     dims = [int(match.group(1)) for match in matches if match]
+    if len(dims) == 0:
+        raise ValueError(f"No column names found with prefix '{feature_prefix}' in {column_names}.")
 
     return max(dims)
 
@@ -59,8 +61,8 @@ def get_num_dims_from_column_names(column_names: list[str]) -> int:
     """
     # depending on whether column names are for PCA features or latent features,
     # get the maximum dimension number from the column names
-    max_pc_dim = _get_max_dim_in_column_names(column_names, ColumnName.PCA_FEATURE_PREFIX.value)
-    max_latent_dim = _get_max_dim_in_column_names(
+    max_pc_dim = get_max_dim_in_column_names(column_names, ColumnName.PCA_FEATURE_PREFIX.value)
+    max_latent_dim = get_max_dim_in_column_names(
         column_names, ColumnName.LATENT_FEATURE_PREFIX.value
     )
 
