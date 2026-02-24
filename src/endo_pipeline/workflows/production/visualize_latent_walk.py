@@ -139,12 +139,12 @@ def main(
     # "pc_11" is in the column names, then the fit pca object needs to be fit
     # with at least 11 pcs, and the latent walk needs to be performed in at
     # least 11 dimensions
-    n_dims = get_num_dims_from_column_names(column_names)
 
     # initialize pca variable to None in case use_pcs is False, so that it can
     # be passed to get_dataframe_for_dynamics_workflows without error
     pca = None
     if use_pcs:
+        n_dims = get_num_dims_from_column_names(column_names)
         # get fit pca object and data for latent walk
         pca = fit_pca(
             dataset_collection_name=dataset_collection,
