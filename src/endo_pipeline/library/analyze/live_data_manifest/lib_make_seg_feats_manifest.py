@@ -1092,6 +1092,7 @@ def add_all_labels_in_crop_column(
     labels_in_crop_dir = get_output_path(__file__, "labels_in_crop", include_timestamp=False)
     dataset = sequence_to_scalar(df["dataset_name"])
     labels_in_crop_subdir = labels_in_crop_dir / dataset
+    labels_in_crop_subdir.mkdir(parents=True, exist_ok=True)
     labels_in_crop_path = labels_in_crop_dir / f"{dataset}_labels_in_crop.parquet"
 
     df = df[df.bbox_is_in_bounds]
