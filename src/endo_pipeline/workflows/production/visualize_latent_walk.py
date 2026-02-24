@@ -23,7 +23,7 @@ def main(
     n_steps: int = 7,
     use_pcs: bool = True,
     n_noise_samples: int = 1,
-    set_column_value: dict[str, float] | None = None,
+    set_column_value: Annotated[dict[str, float] | None, Parameter("--with", negative="")] = None,
 ) -> None:
     """
     Create latent walk for a given model using PC axes or original axes.
@@ -70,11 +70,11 @@ def main(
     angle affects the images at that specific radius. To do this, you would set
     ``set_column_value`` to ``{"polar_r": 1.0}`` where "polar_r" is the name of
     the column corresponding to the polar radius in your data. This is done via
-    command line flag as follows:
+    the command line flag ``--with`` as follows:
 
     .. code-block:: bash
         endopipe visualize-latent-walk --along polar_theta polar_r \
-        --set-column-value.polar_r 1.0
+        --with.polar_r 1.0
 
     Parameters
     ----------
