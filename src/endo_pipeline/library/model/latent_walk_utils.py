@@ -160,6 +160,8 @@ def get_latent_walk(
             data_max = data.max()
             range_ = np.linspace(data_min, data_max, n_steps)
         else:
+            if sigma <= 0:
+                raise ValueError(f"Input sigma must be positive, got {sigma}.")
             std = data.std()
             range_ = np.arange(-sigma, sigma + 0.01) * std
 
