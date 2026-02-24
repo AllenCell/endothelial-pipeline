@@ -226,7 +226,7 @@ def main(
         column_names,
         save_path,
         file_name,
-        label_sigmas=True if sigma > 0 else False,
+        label_sigmas=False if sigma is None else True,
     )
 
 
