@@ -144,6 +144,10 @@ def main(
         # column names provided; for example, if "pc_11" is in the column names,
         # then the fit pca object needs to be fit with at least 11 pcs
         num_pcs = get_num_pcs_from_column_names(column_names)
+        if num_pcs == 0:
+            raise ValueError(
+                f"Column names indicate use_pcs=True but no PC-related column names found in {column_names}."
+            )
         # get fit pca object and data for latent walk
         pca = fit_pca(
             dataset_collection_name=dataset_collection,
