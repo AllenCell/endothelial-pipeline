@@ -474,7 +474,9 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     return big_table
 
 
-def calculate_derived_data_dynamics_dependent(big_table: pd.DataFrame) -> pd.DataFrame:
+def calculate_derived_data_dynamics_dependent(
+    big_table: pd.DataFrame, compute_per_crop_metrics: bool = False
+) -> pd.DataFrame:
     """
     This function calculates dynamics-dependent features and
     adds them to the main segmentation features table.
@@ -580,9 +582,10 @@ def calculate_derived_data_dynamics_dependent(big_table: pd.DataFrame) -> pd.Dat
         .droplevel([0, 1, 2])
     )
 
-    # find the migration vectors for all cells in a crop
-    logger.info("Calculating vector mean of migration per crop...")
-    big_table = add_vector_mean_of_migration_in_crop_column(big_table)
+    if compute_per_crop_metrics:
+        # find the migration vectors for all cells in a crop
+        logger.info("Calculating vector mean of migration per crop...")
+        big_table = add_vector_mean_of_migration_in_crop_column(big_table)
 
     # add column for the number of tracks at a given
     # timepoint per dataset per position
