@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -8,25 +9,27 @@ from sklearn.metrics import roc_auc_score
 
 from endo_pipeline.io import save_plot_to_path
 
+logger = logging.getLogger(__name__)
 
-def compute_separation_power(X: pd.DataFrame, y: pd.Series, verbose: bool = True):
-    # Assuming 'X' is your (M samples x N features) matrix
+
+def compute_separation_power(df_features: pd.DataFrame, y: pd.Series, verbose: bool = True):
+    # Assuming 'df_features' is your (M samples x N features) matrix
     # Assuming 'y' is your binary label vector (0s and 1s)
     ranking = []
-    for feature_name in X.columns:
+    for feature_name in df_features.columns:
         # Calculate AUC
-        score = roc_auc_score(y, X[feature_name])
+        score = roc_auc_score(y, df_features[feature_name])
         # We care about "Separation Power", so 0.1 is just as good as 0.9.
         # We calculate 'power' as distance from 0.5 (randomness)
         separation_power = 2.0 * abs(score - 0.5)
 
         ranking.append({"feature": feature_name, "auc": score, "power": separation_power})
 
-    print("Top features by separation power:")
+    logger.info("Top features by separation power:")
     ranking_sorted = sorted(ranking, key=lambda x: x["power"], reverse=True)
     if verbose:
-        for item in ranking_sorted[:10]:  # Print top 10 features
-            print(f"{item['feature']}: AUC={item['auc']:.3f}, Power={item['power']:.3f}")
+        for item in ranking_sorted[:10]:
+            logger.info(f"{item['feature']}: AUC={item['auc']:.3f}, Power={item['power']:.3f}")
     return ranking_sorted
 
 
@@ -73,8 +76,8 @@ def run_lda_feature_ranking(
 
     for minimal_weight in [2.0, 3.0, 4.0]:
         sparse_axis = np.where(np.abs(optimal_axis) >= minimal_weight, optimal_axis, 0)
-        print("Highly contributing pcs at minimal weight threshold of", minimal_weight)
-        print([features_to_rank[pc] for pc in np.where(np.abs(sparse_axis) > 0)[0]])
+        logger.info("Highly contributing pcs at minimal weight threshold of", minimal_weight)
+        logger.info([features_to_rank[pc] for pc in np.where(np.abs(sparse_axis) > 0)[0]])
         projected_data_sparse = df_features @ sparse_axis + lda.intercept_[0]
         df_proj[f"LDA_SP_{int(minimal_weight)}"] = projected_data_sparse
 
@@ -99,8 +102,8 @@ def apply_lda_projection(
     if sparse_axes is not None:
         for minimal_weight in [2.0, 3.0, 4.0]:
             sparse_axis = np.where(np.abs(lda_weights) >= minimal_weight, lda_weights, 0)
-            print("Highly contributing pcs at minimal weight threshold of", minimal_weight)
-            print([features_in_lda_rank[pc] for pc in np.where(np.abs(sparse_axis) > 0)[0]])
+            logger.info("Highly contributing pcs at minimal weight threshold of", minimal_weight)
+            logger.info([features_in_lda_rank[pc] for pc in np.where(np.abs(sparse_axis) > 0)[0]])
             projected_data_sparse = df_features @ sparse_axis + lda_intercept
             df_result[f"LDA_SP_{int(minimal_weight)}"] = projected_data_sparse
 

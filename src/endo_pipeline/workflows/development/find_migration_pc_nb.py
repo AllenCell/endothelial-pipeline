@@ -1,4 +1,6 @@
 # %%
+import logging
+
 import pandas as pd
 
 from endo_pipeline.configs import load_dataset_config
@@ -28,6 +30,8 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
 )
+
+logger = logging.getLogger(__name__)
 
 DESCRIPTION = "Manual annotations for migration type; LDA ranks top contributing PCs."
 
@@ -125,9 +129,9 @@ for file_info in mixed_mig_files + coherent_mig_files:
     merged["coherent_migration"] = file_info in coherent_mig_files
     df_mig_list.append(merged)
 
-    assert len(merged) == len(
-        df_annotation
-    ), f"Expected {len(df_annotation)} rows after merge, got {len(merged)} for file {fname}"
+    if len(merged) != len(df_annotation):
+        logger.error("File '%s' had different number of rows after merge", fname)
+        raise ValueError(f"Different dataframe lengths: '{len(df_annotation)}' vs. '{len(merged)}'")
 
 df_mig = pd.concat(df_mig_list, ignore_index=True)
 
