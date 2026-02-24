@@ -106,7 +106,10 @@ def plot_latent_walk_as_grid(
 
             # Y labels only on first column
             if j == 0:
-                ylabel = get_label_for_column(column_names[i], capitalize=True)
+                ylabel = get_label_for_column(column_names[i])
+                # if "pc" in the label, capitalize "PC"
+                if "pc" in ylabel.lower():
+                    ylabel = ylabel.upper()
                 ax.set_ylabel(ylabel, labelpad=5)
 
             # Plot scalebar only on first image
