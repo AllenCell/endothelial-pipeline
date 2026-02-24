@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.library.model.diffae import DiffusionAutoEncoder, generate_from_coords
+from endo_pipeline.library.model.diffae import generate_from_coords
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
 if TYPE_CHECKING:
