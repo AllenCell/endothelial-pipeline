@@ -83,7 +83,7 @@ def plot_lda_vs_optical_flow(
     features,
     optical_flow_features,
     color_by_dataset=True,
-    point_alpha=0.5,
+    point_alpha=0.25,
     figsize=(24, 2.5 * 9),
 ):
     datasets_used = df["dataset"].unique()
