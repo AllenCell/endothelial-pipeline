@@ -892,7 +892,7 @@ def compute_nuclei_centroids(
     if dataset_name in smad1_datasets:
         nuc_seg_manifest_name = "nuclear_stain_seg"
     elif dataset_name in timelapse_datasets:
-        nuc_seg_manifest_name = "nuclear_label_free_seg"
+        nuc_seg_manifest_name = "nuclear_labelfree_seg"
     else:
         logger.error(
             f"No nuclei-based measurements found for dataset {dataset_name} in \
