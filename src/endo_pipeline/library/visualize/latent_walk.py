@@ -1,11 +1,13 @@
 import logging
 from pathlib import Path
+from typing import Literal
 
 import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
 
+from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
@@ -19,6 +21,7 @@ def plot_latent_walk_as_grid(
     column_names: list[str],
     save_path: Path,
     file_name: str,
+    file_format: Literal[".png", ".svg", ".pdf"] = ".png",
     show_values: bool = True,
     label_sigmas: bool = True,
 ) -> None:
@@ -120,6 +123,5 @@ def plot_latent_walk_as_grid(
     gs.tight_layout(fig, pad=0.25)
     plt.show()
 
-    output_file = (save_path / file_name).with_suffix(".pdf")
-    fig.savefig(output_file)
+    save_plot_to_path(fig, save_path, file_name, file_format=file_format)
     plt.close(fig)

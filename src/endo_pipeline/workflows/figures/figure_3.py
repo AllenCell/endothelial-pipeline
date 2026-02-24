@@ -44,6 +44,7 @@ def main() -> None:
     sigma = 3.0
     random_seed = 5
     batches = [(0, 3), (3, n_dims)]
+    file_format = ".pdf"
 
     # Load model manifest and instantiate model
     model_manifest = load_model_manifest(model_manifest_name)
@@ -97,7 +98,7 @@ def main() -> None:
     for start_idx, end_idx in batches:
         batch_walk_images = walk_img_grid[start_idx:end_idx, :, :, :]
         batch_coordinate_values = ranges[start_idx:end_idx]
-        batch_file_name = f"{file_name}_{start_idx+1}_{end_idx}"
+        batch_file_name = f"{file_name}_{start_idx+1}_to_{end_idx}"
 
         plot_latent_walk_as_grid(
             batch_walk_images,
@@ -107,6 +108,7 @@ def main() -> None:
             batch_file_name,
             show_values=True,
             label_sigmas=True,
+            file_format=file_format,
         )
 
 
