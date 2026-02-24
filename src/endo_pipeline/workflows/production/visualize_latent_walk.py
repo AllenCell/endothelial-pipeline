@@ -77,8 +77,7 @@ def main(
     the command line flag ``--with`` as follows:
 
     .. code-block:: bash
-        endopipe visualize-latent-walk --along polar_theta polar_r \
-        --with.polar_r 1.0
+        endopipe visualize-latent-walk --along polar_theta --with.polar_r 1.0
 
     Parameters
     ----------
