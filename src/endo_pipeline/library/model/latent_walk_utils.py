@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -21,20 +22,24 @@ def _get_max_dim_in_column_names(column_names: list[str], feature_prefix: str) -
     ----------
     column_names
         List of column names corresponding to each dimension.
+    feature_prefix
+        Prefix to look for in column names, e.g., "pc_" or "feat_".
 
     Returns
     -------
     int
         Maximum number of dimensions based on the column names.
     """
-    max_dim = 0
-    for column_name in column_names:
-        if column_name.startswith(feature_prefix):
-            dim_number_str = column_name.replace(feature_prefix, "")
-            if dim_number_str.isdigit():
-                current_dim = int(dim_number_str)
-                max_dim = max(max_dim, current_dim)
-    return max_dim
+    # Define pattern that starts with feature prefix followed by 1 or more digits
+    pattern = rf"{feature_prefix}(\d+)"
+
+    # Apply match to each column name in list
+    matches = [re.match(pattern, column) for column in column_names]
+
+    # Iterate through valid matches and convert capture group to integer
+    dims = [int(match.group(1)) for match in matches if match]
+
+    return max(dims)
 
 
 def get_num_dims_from_column_names(column_names: list[str]) -> int:
