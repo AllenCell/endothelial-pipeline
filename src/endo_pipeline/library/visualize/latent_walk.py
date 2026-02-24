@@ -52,9 +52,7 @@ def plot_latent_walk_as_grid(
         step number.
     """
     # Set up the grid
-    logger.debug("Walk image array shape: %s", array_of_crops.shape)
-    logger.debug("Columns to plot: %s", column_names)
-    num_rows = len(column_names)
+    num_rows = array_of_crops.shape[0]
     num_steps = array_of_crops.shape[1]
     gs = GridSpec(num_rows, num_steps, wspace=0)
 
