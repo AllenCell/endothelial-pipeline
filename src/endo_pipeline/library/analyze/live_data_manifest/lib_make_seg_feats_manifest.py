@@ -1194,34 +1194,3 @@ def add_vector_mean_of_migration_in_crop_column(df: pd.DataFrame) -> pd.DataFram
     )
 
     return df
-
-
-def test_vector_mean_of_migration_in_crop_workflow():
-    from endo_pipeline.io import load_dataframe
-    from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
-    from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
-        SEGMENTATION_FEATURE_COLUMNS,
-    )
-
-    dataframe_manifest_name_cellcentric = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
-
-    # load dataset and calculate dynamics-dependent features:
-    dataset = "20250611_20X"
-    segprops_manifest = load_dataframe_manifest(dataframe_manifest_name_cellcentric)
-    segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset)
-    df_delayed = load_dataframe(segprops_location, delay=True)
-
-    cols_to_compute = list(
-        set(
-            SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
-            + SEGMENTATION_FEATURE_COLUMNS["filters"]
-            + ["label", "start_x_cdh5_seg", "end_x_cdh5_seg", "start_y_cdh5_seg", "end_y_cdh5_seg"]
-        )
-    )
-    df = df_delayed[cols_to_compute].compute().reset_index(drop=True)
-    df = df[df.is_included]
-
-    # compute the dynamics-dependent features which includes the
-    # vector mean of migration per crop
-    df = calculate_derived_data_dynamics_dependent(df)
