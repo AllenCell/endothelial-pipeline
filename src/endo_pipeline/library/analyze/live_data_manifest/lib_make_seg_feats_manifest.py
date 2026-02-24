@@ -1055,11 +1055,30 @@ def add_num_nuclei_in_crop_column(
 def get_labels_in_crop(
     segmentation_image: np.ndarray, region_of_interest: tuple[slice, ...]
 ) -> list:
+    """Returns a list of the unique labels that are found in the region of
+    interest of the provided segmentation image.
+    """
     labels_in_crop = np.unique(segmentation_image[region_of_interest])
     return labels_in_crop.tolist()
 
 
 def create_labels_in_crop_columns(df_sub: pd.DataFrame, out_dir: Path) -> None:
+    """Create an intermediate parquet file with the "all_labels_in_crop" column
+    for a subset of the main DataFrame that contains one row per labeled
+    segmentation and includes the "all_labels_in_crop" column.
+
+    Note: This function saves parquet tables so that it can be distributed to
+    multiple processes to compute the "all_labels_in_crop" column in parallel
+    for each timepoint and position, and these parquet tables are then later
+    concatenated together and merged with the main DataFrame.
+
+    Parameters
+    ----------
+    df_sub:
+        A subset of the main DataFrame that contains one row per labeled segmentation and includes the "all_labels_in_crop" column.
+    out_dir:
+        The directory to save the parquet file with the "all_labels_in_crop" column for this subset of the main DataFrame.
+    """
     ds_nm = sequence_to_scalar(df_sub["dataset_name"])
     pos = sequence_to_scalar(df_sub["position"])
     tp = sequence_to_scalar(df_sub["T"])
@@ -1091,6 +1110,26 @@ def create_labels_in_crop_columns(df_sub: pd.DataFrame, out_dir: Path) -> None:
 def add_all_labels_in_crop_column(
     df: pd.DataFrame, use_precomputed: bool = False, max_cores: int | None = None
 ) -> pd.DataFrame:
+    """Return the provided dataframe with a column added to the DataFrame that
+    contains a list of the labels of all segmentations that are found in a
+    cell-centric crop.
+
+    Parameters
+    ----------
+    df:
+        The DataFrame to add the column to. This DataFrame should contain the
+        following columns: "dataset_name", "position", "T", "label", "start_y",
+        "end_y", "start_x", and "end_x".
+    use_precomputed:
+        If True, the function will use precomputed "all_labels_in_crop" data.
+        This saves time but should only be used if you are sure that the precomputed
+        data is correct and corresponds to the data in the provided DataFrame.
+        Default is False.
+    max_cores:
+        The maximum number of CPU cores to use for multiprocessing when computing
+        the labels in a crop. If None, it will use all available cores.
+        Only used if use_precomputed = False.
+    """
     # make temporary output directory to save "all_labels_in_crop" data
     labels_in_crop_dir = get_output_path(__file__, "labels_in_crop", include_timestamp=False)
     dataset = sequence_to_scalar(df["dataset_name"])
@@ -1144,15 +1183,41 @@ def add_all_labels_in_crop_column(
 def map_label_to_column(
     df_sub: pd.DataFrame, column_name_to_map: str = "centroid_velocity_angle"
 ) -> list:
+    """Uses the "all_labels_in_crop" column to map the label of each cell in the
+    crop to the value in the specified column for that label, and returns a list
+    of those values for each cell in the crop as a list.
+
+    Parameters
+    ----------
+    df_sub:
+        A subset of the main DataFrame that contains one row per labeled segmentation
+        and includes the "all_labels_in_crop" column.
+    column_name_to_map:
+        The name of the column to map the labels to. This column should be
+        present in df_sub and should contain the value that you want to map for
+        each label.
+
+    Returns
+    -------
+    list:
+        A list where each entry is a list of the values from the specified column
+        for all the labels in the crop of that row.
+    """
     label_velocity_dict = dict(zip(df_sub.label, df_sub[column_name_to_map], strict=True))
     return df_sub.all_labels_in_crop.map(lambda ls: [*map(label_velocity_dict.get, ls)])
 
 
 def sanitize_list_to_numbers(ls: list) -> list:
+    """Returns the provided list with all empty, None, and non-finite values removed."""
     return [x for x in ls if x and np.isfinite(x)]
 
 
 def add_vector_mean_of_migration_in_crop_column(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Returns the provided dataframe with two new columns:
+    - "vec_mean_angle_in_crop": the vector mean of the migration angles of all cells in the crop
+    - "vec_mean_mag_in_crop": the vector mean of the migration magnitudes of all cells in the crop
+    """
 
     df["all_velocity_angles_in_crop"] = (
         df.groupby(["dataset_name", "position", "T"])
