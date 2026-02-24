@@ -642,7 +642,7 @@ def project_features_to_pcs(
         if num_pcs >= 3:
             df_[ColumnName.PC3_FLIPPED] = -df_[pc_cols[2]]
         else:
-            logger.warning("Cannot add column for -(PC3) because number of PCs [ %s ] < 3", num_pcs)
+            logger.error("Cannot add column for -(PC3) because number of PCs [ %s ] < 3", num_pcs)
             raise ValueError("At least 3 PCs are required to add column for -(PC3).")
 
     return df_
