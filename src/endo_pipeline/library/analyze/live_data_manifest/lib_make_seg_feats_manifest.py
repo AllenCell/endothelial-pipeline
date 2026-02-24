@@ -1107,7 +1107,9 @@ def add_all_labels_in_crop_column(
             list(
                 tqdm(
                     executor.map(
-                        create_labels_in_crop_columns, df_grps, [labels_in_crop_dir] * len(df_grps)
+                        create_labels_in_crop_columns,
+                        df_grps,
+                        [labels_in_crop_subdir] * len(df_grps),
                     ),
                     total=len(df_grps),
                     desc=f"Creating labels in crop columns: {dataset}",
