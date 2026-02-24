@@ -2,7 +2,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from endo_pipeline.cli import CropPattern, StrList
+from endo_pipeline.cli import CropPattern
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -18,12 +18,16 @@ def main(
     crop_pattern: CropPattern = "grid",
     dataset_collection: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
-    walk_on_columns: Annotated[StrList | None, Parameter("--along", negative="")] = None,
+    walk_on_columns: Annotated[
+        list[str] | None, Parameter(name="--along", consume_multiple=True, negative_iterable=[])
+    ] = None,
     sigma: float | None = None,
     n_steps: int = 7,
     use_pcs: bool = True,
     n_noise_samples: int = 1,
-    set_column_value: Annotated[dict[str, float] | None, Parameter("--with", negative="")] = None,
+    set_column_value: Annotated[
+        dict[str, float] | None, Parameter(name="--with", negative="")
+    ] = None,
 ) -> None:
     """
     Create latent walk for a given model using PC axes or original axes.
@@ -165,6 +169,17 @@ def main(
         else walk_on_columns
     )
 
+    compute_polar = False
+    if (
+        ColumnName.POLAR_ANGLE.value in column_names
+        or ColumnName.POLAR_RADIUS.value in column_names
+    ):
+        compute_polar = True
+
+    flip_pc3_sign = False
+    if ColumnName.PC3_FLIPPED.value in column_names:
+        flip_pc3_sign = True
+
     # initialize pca variable to None in case use_pcs is False, so that it can
     # be passed to get_dataframe_for_dynamics_workflows without error
     pca = None
@@ -193,6 +208,8 @@ def main(
                 pca=pca,
                 include_cell_piling=include_cell_piling,
                 crop_pattern=crop_pattern,
+                compute_polar=compute_polar,
+                flip_pc3_sign=flip_pc3_sign,
             )
             for dataset_name in dataset_names
         ]

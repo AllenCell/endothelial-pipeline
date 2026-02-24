@@ -642,7 +642,7 @@ def project_features_to_pcs(
         if num_pcs >= 3:
             df_[ColumnName.PC3_FLIPPED] = -df_[pc_cols[2]]
         else:
-            logger.error("Cannot add column for -(PC3) because number of PCs [ %s ] < 3", num_pcs)
+            logger.warning("Cannot add column for -(PC3) because number of PCs [ %s ] < 3", num_pcs)
             raise ValueError("At least 3 PCs are required to add column for -(PC3).")
 
     return df_
@@ -659,6 +659,7 @@ def get_dataframe_for_dynamics_workflows(
     crop_pattern: Literal["grid", "tracked"] = "grid",
     compute_polar: bool = True,
     rescale_theta: bool = True,
+    flip_pc3_sign: bool = True,
 ) -> pd.DataFrame:
     """
     Load DiffAE dataframe data projected onto given PC axes for downstream
@@ -700,6 +701,9 @@ def get_dataframe_for_dynamics_workflows(
         'tracked'.
     compute_polar
         Whether to compute polar coordinates (r, theta) from the first two PCs.
+    flip_pc3_sign
+        Whether to add an addtional column with the sign of PC3 flipped for consistency.
+
     rescale_theta
         Whether to rescale the polar angle theta to be in the range [0, pi].
 
@@ -764,6 +768,7 @@ def get_dataframe_for_dynamics_workflows(
             feat_cols=feat_cols,
             compute_polar=compute_polar,
             rescale_theta=rescale_theta,
+            flip_pc3_sign=flip_pc3_sign,
         )
         df_drop_original_feats = df_with_pcs.drop(
             columns=feat_cols
