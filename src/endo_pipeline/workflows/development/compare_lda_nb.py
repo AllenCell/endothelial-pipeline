@@ -21,12 +21,12 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_RUN_NAME,
 )
 
-# %% Use saved lda weights to apply LDA projection to original dataframe
+# %% Load lda weights to apply LDA projection to original dataframe
 lda_dataframe_manifest = load_dataframe_manifest("lda_weights")
 lda_location = get_dataframe_location_for_dataset(lda_dataframe_manifest, "80_pcs")
 df_lda = load_dataframe(lda_location)
 
-# %% diffae features
+# %% Load diffae features
 model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
 dataframe_manifest_name = get_feature_dataframe_manifest_name(
     model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern="grid"
@@ -34,13 +34,13 @@ dataframe_manifest_name = get_feature_dataframe_manifest_name(
 dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 pca = fit_pca(num_pcs=80)
 
-# %% optical flow features
+# %% Load optical flow features
 dataframe_manifest_optical_flow = load_dataframe_manifest("optical_flow")
 
 # %%
 datasets = get_datasets_in_collection("diffae_model_training")
 
-# %%
+# %% Combine and calculate features
 df_proj_full_list = []
 
 for dataset_name in datasets:
