@@ -39,13 +39,10 @@ def run_lda_feature_ranking(
     output_dir: Path,
     fname_suffix: str = "",
 ) -> tuple[pd.DataFrame, pd.DataFrame, Path]:
-    features_to_rank = [
-        col.value if hasattr(col, "value") else str(col) for col in features_to_rank
-    ]
+
+    features_to_rank = list(map(str, features_to_rank))
     df_features = df_mig[features_to_rank]
-    df_features.columns = [
-        col.value if hasattr(col, "value") else str(col) for col in df_features.columns
-    ]
+    df_features.columns = [str(col) for col in df_features.columns]
 
     lda = LinearDiscriminantAnalysis(n_components=1)
     lda.fit(df_features, df_mig["coherent_migration"])
