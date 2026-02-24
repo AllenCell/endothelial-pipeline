@@ -136,21 +136,20 @@ optical_flow_features = [
     "optical_flow_std_v",
 ]
 
-# features = ["LDA", "LDA_SP_2", "LDA_SP_3", "LDA_SP_4", "pc_1", "pc_2", "pc_3", "polar_r", "polar_theta"]
-features = ["LDA_SP_4", "pc_1", "pc_2", "pc_3", "polar_r", "polar_theta"]
+features = ["LDA", "LDA_SP_2", "LDA_SP_3", "LDA_SP_4", "pc_1", "pc_2", "pc_3"]
 
 # %%
 datasets_used = ["20250618_20X", "20250611_20X"]
 
 plot_lda_vs_optical_flow(
-    df[df["dataset"].isin(datasets_used)], features, optical_flow_features, color_by_dataset=False
+    df[df["dataset"].isin(datasets_used)], features, optical_flow_features, color_by_dataset=True
 )
 
 # %%
 datasets_used = ["20250319_20X", "20250813_20X"]
 
 plot_lda_vs_optical_flow(
-    df[df["dataset"].isin(datasets_used)], features, optical_flow_features, color_by_dataset=False
+    df[df["dataset"].isin(datasets_used)], features, optical_flow_features, color_by_dataset=True
 )
 # %%
 datasets_used = [
