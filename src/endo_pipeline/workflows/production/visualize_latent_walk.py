@@ -266,7 +266,7 @@ def main(
     walk_img_grid = generate_latent_walk_images(model, walk, ranges, n_noise_samples, NUM_GPUS)
 
     # save generated latent walk as grid
-    axis_suffix = "_along_" + "_".join(column_names)
+    axis_suffix = "_along_" + "_".join(walk_column_names)
     sigma_suffix = f"_{int(sigma)}sigma_" if sigma is not None else ""
     file_name = f"latent_walk{sigma_suffix}{axis_suffix}"
     if set_column_value is not None:
