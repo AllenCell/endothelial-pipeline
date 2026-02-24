@@ -19,7 +19,7 @@ def main(
     dataset_collection: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     columns: StrList | None = None,
-    sigma: float = 3.0,
+    sigma: float | None = None,
     n_steps: int = 7,
     use_pcs: bool = True,
     n_noise_samples: int = 1,
@@ -27,6 +27,27 @@ def main(
 ) -> None:
     """
     Create latent walk for a given model using PC axes or original axes.
+
+    **Input columns**
+
+    The columns to perform the latent walk along can be specified with the
+    ``columns`` argument. If not specified, defaults to polar angle, polar
+    radius, and flipped PC3, which are the most interpretable dimensions in the
+    latent space.
+
+    If using PCs, any of the PCs can be selected by specifying the corresponding
+    column name (e.g. "pc_1", "pc_2", etc.). If using original axes, any of the
+    original latent space dimensions can be selected by specifying the
+    corresponding column name (e.g. "feat_1", "feat_2", etc.).
+
+    **Latent walk ranges**
+
+    The range of the latent walk can be specified with the ``sigma`` argument,
+    which indicates the number of standard deviations from the mean to traverse
+    for the latent walk. For example, if sigma=2, the latent walk will traverse
+    (-2, -1, 0, 1, 2) standard devations along the selected dimensions. If not
+    specified, the latent walk will traverse the full range of the data in each
+    dimension.
 
     Parameters
     ----------
@@ -43,21 +64,21 @@ def main(
         to exclude them.
     columns
         List of column names corresponding to the dimensions to perform the
-        latent walk along. ∑If None, defaults to polar angle, polar radius, and
-        flipped PC3.
+        latent walk along.
     sigma
-        Number of standard deviations from the mean to traverse for the latent
-        walk.
+        Optional, number of standard deviations from the mean to traverse for
+        the latent walk.
     n_steps
-        Number of steps in the latent walk. Default is 10.
+        Number of steps in the latent walk.
     use_pcs
         True to use principal component axes, False to use original latent space
         axes.
     n_noise_samples
         Number of noise samples to use for generating images.
     replace_mean_with_val
-        Optional, list of values to replace the mean with for each dimension
-        when generating the latent walk. If None, uses the mean of the data.
+        Optional, list of values to set as the baseline value for each dimension
+        not being traversed in the latent walk. If None, the mean value will be
+        used as the baseline.
     """
     import pandas as pd
 
@@ -151,7 +172,7 @@ def main(
     walk, ranges = get_latent_walk(
         data_for_walk,
         column_names,
-        sigma if sigma > 0 else None,
+        sigma,
         n_steps,
         replace_mean_with_val,
     )
