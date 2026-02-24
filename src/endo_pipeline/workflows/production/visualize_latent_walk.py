@@ -280,7 +280,7 @@ def main(
     plot_latent_walk_as_grid(
         walk_img_grid,
         ranges,
-        column_names,
+        walk_column_names,
         save_path,
         file_name,
         label_sigmas=False if sigma is None else True,
