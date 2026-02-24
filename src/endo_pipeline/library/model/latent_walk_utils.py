@@ -44,29 +44,22 @@ def get_max_dim_in_column_names(column_names: list[str], feature_prefix: str) ->
     return max(dims)
 
 
-def get_num_dims_from_column_names(column_names: list[str]) -> int:
+def get_num_pcs_from_column_names(column_names: list[str]) -> int:
     """
-    Get the number of dimensions for the latent walk based on the provided
-    column names.
+    Get the number of principal components needed for the latent walk based on
+    the provided column names.
 
     Parameters
     ----------
     column_names
         List of column names corresponding to each dimension.
-
-    Returns
-    -------
-    int
-        Number of dimensions for the latent walk.
     """
-    # depending on whether column names are for PCA features or latent features,
-    # get the maximum dimension number from the column names
-    max_pc_dim = get_max_dim_in_column_names(column_names, ColumnName.PCA_FEATURE_PREFIX.value)
-    max_latent_dim = get_max_dim_in_column_names(
-        column_names, ColumnName.LATENT_FEATURE_PREFIX.value
-    )
-
-    max_dim = max(max_pc_dim, max_latent_dim)
+    # get the maximum PC dimension number from the column names; if no PC
+    # dimensions are included, set max_pc_dim to 0
+    try:
+        max_pc_dim = get_max_dim_in_column_names(column_names, ColumnName.PCA_FEATURE_PREFIX.value)
+    except ValueError:
+        max_pc_dim = 0
 
     # check special case for polar coordinates, which at minimum need the first
     # two PC dimensions to be included
@@ -74,14 +67,14 @@ def get_num_dims_from_column_names(column_names: list[str]) -> int:
         ColumnName.POLAR_ANGLE.value in column_names
         or ColumnName.POLAR_RADIUS.value in column_names
     ):
-        max_dim = max(max_dim, 2)
+        max_pc_dim = max(max_pc_dim, 2)
 
     # check if PC3_FLIPPED is included, which also requires at minimum the first
     # three PC dimensions to be included
     if ColumnName.PC3_FLIPPED.value in column_names:
-        max_dim = max(max_dim, 3)
+        max_pc_dim = max(max_pc_dim, 3)
 
-    return max_dim
+    return max_pc_dim
 
 
 def get_baseline_walk_values(

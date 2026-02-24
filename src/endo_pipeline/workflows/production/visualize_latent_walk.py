@@ -88,13 +88,14 @@ def main(
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
         get_dataframe_for_dynamics_workflows,
+        get_pc_column_names,
         polar_to_pcs,
     )
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
     from endo_pipeline.library.model.latent_walk_utils import (
         generate_latent_walk_images,
         get_latent_walk,
-        get_num_dims_from_column_names,
+        get_num_pcs_from_column_names,
     )
     from endo_pipeline.library.visualize.latent_walk import plot_latent_walk_as_grid
     from endo_pipeline.manifests import (
@@ -135,22 +136,20 @@ def main(
         else columns
     )
 
-    # get number of dimensions for latent walk based on column names e.g., if
-    # "pc_11" is in the column names, then the fit pca object needs to be fit
-    # with at least 11 pcs, and the latent walk needs to be performed in at
-    # least 11 dimensions
-
     # initialize pca variable to None in case use_pcs is False, so that it can
     # be passed to get_dataframe_for_dynamics_workflows without error
     pca = None
     if use_pcs:
-        n_dims = get_num_dims_from_column_names(column_names)
+        # get minimum number of pcs needed for the fit pca object based on the
+        # column names provided; for example, if "pc_11" is in the column names,
+        # then the fit pca object needs to be fit with at least 11 pcs
+        num_pcs = get_num_pcs_from_column_names(column_names)
         # get fit pca object and data for latent walk
         pca = fit_pca(
             dataset_collection_name=dataset_collection,
             dataframe_manifest_name=dataframe_manifest_name,
             include_cell_piling=include_cell_piling,
-            num_pcs=n_dims,
+            num_pcs=num_pcs,
         )
 
     dataframe_all_datasets = pd.concat(
@@ -198,7 +197,7 @@ def main(
             pc3_column_name = f"{ColumnName.PCA_FEATURE_PREFIX}3"
             walk[pc3_column_name] = -walk[ColumnName.PC3_FLIPPED.value].to_numpy()
 
-        pc_column_names = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(n_dims)]
+        pc_column_names = get_pc_column_names(num_pcs)
         walk = pca.inverse_transform(walk[pc_column_names].to_numpy())
     else:
         walk = walk.to_numpy()
