@@ -475,7 +475,9 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
 
 
 def calculate_derived_data_dynamics_dependent(
-    big_table: pd.DataFrame, compute_per_crop_metrics: bool = False
+    big_table: pd.DataFrame,
+    compute_per_crop_metrics: bool = False,
+    max_velocity_rolling_window_size: int = 5,
 ) -> pd.DataFrame:
     """
     This function calculates dynamics-dependent features and
@@ -519,6 +521,23 @@ def calculate_derived_data_dynamics_dependent(
         )
         .droplevel([0, 1, 2])
     )
+
+    # get the windowed mean of the centroid velocities to smooth out noise
+    for window in range(2, max_velocity_rolling_window_size + 1):
+        big_table[f"centroid_dx_dt_rolling_mean_window_{window}"] = (
+            big_table.groupby(["dataset_name", "position", "track_id"], as_index=True)[
+                "centroid_dx_dt"
+            ]
+            .rolling(window, min_periods=1)
+            .mean()
+        ).droplevel([0, 1, 2])
+        big_table[f"centroid_dy_dt_rolling_mean_window_{window}"] = (
+            big_table.groupby(["dataset_name", "position", "track_id"], as_index=True)[
+                "centroid_dy_dt"
+            ]
+            .rolling(window, min_periods=1)
+            .mean()
+        ).droplevel([0, 1, 2])
 
     logger.info("Calculating centroid velocity magnitude and angle...")
     big_table["centroid_velocity_magnitude"] = np.linalg.norm(
