@@ -401,7 +401,7 @@ def _make_all_ccf_plots(
             )
     ax.set_title(f"$C_{{ij}}(\\tau) - C_{{ij}}(-\\tau)$ ({dataset_description})")
     ax.set_xlabel("Lag $\\tau$ (hours)")
-    ax.set_ylabel(r"$\Delta C_{ij}(\\tau)$")
+    ax.set_ylabel("$\Delta C_{ij}(\\tau)$")
     ax.legend()
     ax.set_ylim(-2, 2)
     # print integral of delta ccf near zero on plot
@@ -580,7 +580,7 @@ def _plot_correlation_metrics_vs_shear_stress(
     fig, ax = _plot_single_correlation_metric_vs_shear_stress(
         mean_delta_ccf_integral,
         shear_stresses,
-        features=feature_names,
+        feature_names,
         labels=["Mean over features"],
     )
     ax.legend()
