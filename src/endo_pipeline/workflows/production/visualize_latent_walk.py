@@ -271,7 +271,7 @@ def main(
     if set_column_value is not None:
         replace_str = "_".join(
             [
-                f"{column_name}_setto_{str(val).replace('.', 'p')}"
+                f"{column_name}_setto_{str(val).replace('.', 'p').replace('-', 'neg')}"
                 for column_name, val in set_column_value.items()
             ]
         )
