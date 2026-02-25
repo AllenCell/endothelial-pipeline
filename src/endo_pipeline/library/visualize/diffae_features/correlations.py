@@ -96,12 +96,15 @@ def _plot_acf_curves_together(
     return fig, ax
 
 
-def _add_relaxation_timescale_to_plot(relaxation_timescales: list[float], ax: plt.Axes) -> plt.Axes:
+def _add_relaxation_timescale_to_plot(
+    relaxation_timescales: list[float], feature_labels: list[str], ax: plt.Axes
+) -> plt.Axes:
     """Print relaxation timescales on plot of ACFs."""
     # using unicode because slurm nodes and A100s do not support LaTeX rendering
     tau_str = chr(964)  # Greek letter tau (τ)
     strings_per_pc = [
-        f"PC{i+1}: {tau_str} = {tau:.2f} hrs" for i, tau in enumerate(relaxation_timescales)
+        f"{feature_labels[i]}: {tau_str} = {tau:.2f} hrs"
+        for i, tau in enumerate(relaxation_timescales)
     ]
     # use ax coordinates to place text in lower left corner of plot
     for i, string in enumerate(strings_per_pc):
@@ -123,7 +126,11 @@ def _add_relaxation_timescale_to_plot(relaxation_timescales: list[float], ax: pl
 
 
 def _add_delta_ccf_integral_to_plot(
-    delta_ccf_integral: np.ndarray, max_lag_integrate: int, ci_bounds: tuple | None, ax: plt.Axes
+    delta_ccf_integral: np.ndarray,
+    max_lag_integrate: int,
+    ci_bounds: tuple | None,
+    feature_labels: list[str],
+    ax: plt.Axes,
 ) -> plt.Axes:
     """Print integral of delta CCF near zero on plot of delta CCFs."""
     integral_upper_bound_hrs = round(5 * max_lag_integrate / 60, 2)  # convert from frames to hours
@@ -132,7 +139,7 @@ def _add_delta_ccf_integral_to_plot(
         for (j, k) in CROSS_CORR_INDEX_COMBINATIONS
     ]
     strings_per_pc = [
-        rf"PC{j+1}, PC{k+1}: {string} = {integral:.2f}"
+        f"{feature_labels[j]}, {feature_labels[k]}: {string} = {integral:.2f}"
         for (j, k), string, integral in zip(
             CROSS_CORR_INDEX_COMBINATIONS, integral_srings, delta_ccf_integral, strict=True
         )
@@ -171,6 +178,7 @@ def _add_exp_fit_to_plot(
     acf: np.ndarray,
     lags: np.ndarray,
     ax: plt.Axes,
+    feature_labels: list[str],
     exp_decay_func: Literal["exponential_decay", "double_exponential_decay"],
 ) -> tuple[plt.Axes, list[float]]:
     """Fit exponential decay to ACF and add to existing plot."""
@@ -185,7 +193,7 @@ def _add_exp_fit_to_plot(
 
     # fit exponential decay to each PC's ACF and plot on existing axes
     relaxation_timescales = []
-    for i in range(3):
+    for i in range(len(feature_labels)):
         try:
             exp_fit, relaxation_time = fit_exp_decay_and_get_relaxation_timescale(
                 acf[:, i], lags, exp_decay_func=exp_decay_func
@@ -234,7 +242,7 @@ def _add_exp_fit_to_plot(
     ax.set_ylim(-0.25, 1.05)
 
     # add relaxation timescale to plot
-    ax = _add_relaxation_timescale_to_plot(relaxation_timescales, ax)
+    ax = _add_relaxation_timescale_to_plot(relaxation_timescales, feature_labels, ax)
 
     return ax, relaxation_timescales
 
@@ -261,7 +269,7 @@ def _make_all_acf_plots(
         dataset_name,
         correlation_dict,
         bootstrap_samples=bootstrap_samples,
-        component_labels=["PC1", "PC2", "PC3"],
+        component_labels=correlation_dict["features"][dataset_name],
         plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
         xlabel="Lag (hours)",
         linewidth=2.75,
@@ -279,13 +287,14 @@ def _make_all_acf_plots(
         dataset_name,
         correlation_dict,
         bootstrap_samples=bootstrap_samples,
-        component_labels=["PC1", "PC2", "PC3"],
+        component_labels=correlation_dict["features"][dataset_name],
         plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
         xlabel="Lag (hours)",
         linewidth=2.75,
     )
+    feats = correlation_dict["features"][dataset_name]
     ax, relaxation_timescales = _add_exp_fit_to_plot(
-        acf_, lags_as_hours, ax, exp_decay_func="exponential_decay"
+        acf_, lags_as_hours, ax, feats, exp_decay_func="exponential_decay"
     )
     # add relaxation timescales to correlation_dict for output
     correlation_dict["relaxation_timescales"][dataset_name] = relaxation_timescales
@@ -301,14 +310,18 @@ def _make_all_acf_plots(
             dataset_name,
             correlation_dict,
             bootstrap_samples=bootstrap_samples,
-            component_labels=["PC1", "PC2", "PC3"],
+            component_labels=correlation_dict["features"][dataset_name],
             plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
             xlabel="Lag (hours)",
             linewidth=2.75,
             linestyle="-",
         )
         ax, _ = _add_exp_fit_to_plot(
-            acf_, lags_as_hours, ax, exp_decay_func="double_exponential_decay"
+            acf_,
+            lags_as_hours,
+            ax,
+            correlation_dict["features"][dataset_name],
+            exp_decay_func="double_exponential_decay",
         )
         save_plot_to_path(
             fig,
@@ -337,12 +350,13 @@ def _make_all_ccf_plots(
     delta_ccf_ci_upper: np.ndarray = correlation_dict["delta_ccf_ci_upper"][dataset_name]
     delta_ccf_integral: np.ndarray = correlation_dict["delta_ccf_integral"][dataset_name]
     max_lag_integrate: int = correlation_dict["max_lag_integrate"][dataset_name]
+    feature_labels: list[str] = correlation_dict["features"][dataset_name]
 
     # plot ccf with confidence intervals if available
     fig, ax = plt.subplots(figsize=(12, 6))
     for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
         lags_all_as_hours = 5 * lags / 60  # convert from frames (5 minutes) to hours
-        ax.plot(lags_all_as_hours, ccf[:, i], label=f"(PC{j+1}, PC{k+1})")
+        ax.plot(lags_all_as_hours, ccf[:, i], label=f"({feature_labels[j]}, {feature_labels[k]})")
         if bootstrap_samples is not None:
             ax.fill_between(
                 lags_all_as_hours,
@@ -356,7 +370,7 @@ def _make_all_ccf_plots(
     ax.set_xlabel("Lag (hours)")
     ax.set_ylabel("CCF")
     ax.legend()
-    ax.set_ylim(-0.25, 0.75)
+    ax.set_ylim(-0.25, 2)
     save_plot_to_path(
         fig,
         output_path,
@@ -383,7 +397,7 @@ def _make_all_ccf_plots(
     ax.set_xlabel("Lag $\\tau$ (hours)")
     ax.set_ylabel("$\Delta C_{ij}(\\tau)$")
     ax.legend()
-    ax.set_ylim(-0.5, 0.75)
+    ax.set_ylim(-2, 2)
     # print integral of delta ccf near zero on plot
     ci_bounds = None
     if bootstrap_samples is not None:
@@ -391,7 +405,9 @@ def _make_all_ccf_plots(
             correlation_dict["delta_ccf_integral_ci_lower"][dataset_name],
             correlation_dict["delta_ccf_integral_ci_upper"][dataset_name],
         )
-    ax = _add_delta_ccf_integral_to_plot(delta_ccf_integral, max_lag_integrate, ci_bounds, ax)
+    ax = _add_delta_ccf_integral_to_plot(
+        delta_ccf_integral, max_lag_integrate, ci_bounds, feature_labels, ax
+    )
     save_plot_to_path(
         fig,
         output_path,
@@ -537,6 +553,8 @@ def _plot_correlation_metrics_vs_shear_stress(
         [_get_shear_stress_from_dataset_name(dataset_name) for dataset_name in list_of_datasets]
     )
 
+    feature_names = correlation_dict["features"][list_of_datasets[0]]
+
     fig, ax = _plot_single_correlation_metric_vs_shear_stress(
         delta_ccf_integral_values, shear_stresses, ci_bounds=delta_ccf_integral_ci_bounds
     )
@@ -565,7 +583,7 @@ def _plot_correlation_metrics_vs_shear_stress(
         relaxation_timescale_values,
         shear_stresses,
         ci_bounds=relaxation_timescale_ci_bounds,
-        labels=["PC1", "PC2", "PC3"],
+        labels=feature_names,
     )
     ax.legend()
     ax.set_ylabel("Relaxation timescale (hours)")
