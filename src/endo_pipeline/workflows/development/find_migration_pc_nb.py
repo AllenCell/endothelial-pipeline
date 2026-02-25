@@ -127,6 +127,7 @@ for file_info in mixed_mig_files + coherent_mig_files:
         pairs_df, left_on=["crop_index", "frame_number"], right_on=["Track", "Frame"], how="inner"
     )
     merged["coherent_migration"] = file_info in coherent_mig_files
+    merged["migration_type"] = "coherent" if file_info in coherent_mig_files else "mixed"
     df_mig_list.append(merged)
 
     if len(merged) != len(df_annotation):
@@ -141,7 +142,7 @@ rank_features_and_plot_histograms(
     df_mig,
     features_to_rank=pc_columns_to_keep,
     output_dir=output_dir,
-    label_column="coherent_migration",
+    label_column="migration_type",
 )
 
 # %% LDA feature ranking and histogram plotting, pcs only
@@ -150,7 +151,7 @@ df_lda, df_proj, lda_csv_path = run_lda_feature_ranking(
 )
 rank_features_and_plot_histograms(
     df_proj,
-    list(df_proj.columns.drop("coherent_migration")),
+    list(df_proj.columns.drop(["coherent_migration"])),
     output_dir=output_dir,
     label_column="coherent_migration",
     fname="find_coherent_mig_histograms_lda_pcs_only.png",

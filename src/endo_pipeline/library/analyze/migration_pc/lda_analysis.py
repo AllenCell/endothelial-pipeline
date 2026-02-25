@@ -35,14 +35,13 @@ def compute_separation_power(df_features: pd.DataFrame, y: pd.Series, verbose: b
 
 def run_lda_feature_ranking(
     df_mig: pd.DataFrame,
-    features_to_rank: list,
+    features_to_rank: list[str],
     output_dir: Path,
     fname_suffix: str = "",
 ) -> tuple[pd.DataFrame, pd.DataFrame, Path]:
 
-    features_to_rank = list(map(str, features_to_rank))
+    features_to_rank = [str(col) for col in features_to_rank]
     df_features = df_mig[features_to_rank]
-    df_features.columns = [str(col) for col in df_features.columns]
 
     lda = LinearDiscriminantAnalysis(n_components=1)
     lda.fit(df_features, df_mig["coherent_migration"])
@@ -73,7 +72,7 @@ def run_lda_feature_ranking(
 
     for minimal_weight in [2.0, 3.0, 4.0]:
         sparse_axis = np.where(np.abs(optimal_axis) >= minimal_weight, optimal_axis, 0)
-        logger.info("Highly contributing pcs at minimal weight threshold of", minimal_weight)
+        logger.info("Highly contributing pcs at minimal weight threshold of %s", minimal_weight)
         logger.info([features_to_rank[pc] for pc in np.where(np.abs(sparse_axis) > 0)[0]])
         projected_data_sparse = df_features @ sparse_axis + lda.intercept_[0]
         df_proj[f"LDA_SP_{int(minimal_weight)}"] = projected_data_sparse
@@ -84,7 +83,7 @@ def run_lda_feature_ranking(
 def apply_lda_projection(
     df: pd.DataFrame,
     features_in_lda_rank: list[str],
-    lda_weights: np.ndarray | list,
+    lda_weights: np.ndarray[any] | list[float],
     lda_intercept: float,
     sparse_axes: list[float] | None = None,
 ) -> pd.DataFrame:
@@ -113,44 +112,42 @@ def rank_features_and_plot_histograms(
     df: pd.DataFrame,
     features_to_rank: list[str],
     output_dir: Path,
-    label_column: str = "coherent_migration",
+    label_column: str = "migration_type",
     fname: str = "find_coherent_mig_histograms.png",
 ):
-
-    ranking = compute_separation_power(df[features_to_rank], df["coherent_migration"])
+    ranking = compute_separation_power(df[features_to_rank], df[label_column])
 
     n_pcs = len(features_to_rank)
-    ncols = 10
+    ncols = len(ranking) if len(ranking) < 10 else 10
     nrows = (n_pcs + ncols - 1) // ncols
 
     fig, axes = plt.subplots(nrows, ncols, figsize=(ncols * 2, nrows * 2))
     axes = axes.flatten()
 
+    # Map boolean to string if needed
+    if label_column == "coherent_migration":
+        label_map = {True: "coherent", False: "mixed"}
+    else:
+        label_map = {"coherent": "Coherent Migration", "mixed": "Mixed Migration"}
+
     for i, item in enumerate(ranking):
         col = item["feature"]
         x_min = df[col].min()
         x_max = df[col].max()
-        for label in [True, False]:
+        for label, label_name in label_map.items():
             subset = df[df[label_column] == label]
-            if label is True:
-                label_name = "Coherent Migration"
-            if label is False:
-                label_name = "Mixed Migration"
-            axes[i].hist(
-                subset[col], bins=30, range=(x_min, x_max), alpha=0.75, label=f"{label_name}"
-            )
+            axes[i].hist(subset[col], bins=30, range=(x_min, x_max), alpha=0.75, label=label_name)
         axes[i].set_xlabel(col)
         axes[i].set_ylabel("Count")
         axes[i].set_title(f"{col}, Power: {item['power']:.3f}")
 
-    n_coherent_migration = df[label_column].sum()
-    n_no_coherent_migration = len(df) - n_coherent_migration
+    n_coherent = (df[label_column] == "coherent").sum()
+    n_mixed = (df[label_column] == "mixed").sum()
     legend_labels = [
-        f"Coherent Migration (N={n_coherent_migration})",
-        f"Mixed Migration (N={n_no_coherent_migration})",
+        f"Coherent Migration (N={n_coherent})",
+        f"Mixed Migration (N={n_mixed})",
     ]
-    fig.legend(legend_labels, loc="upper right")
-
+    fig.legend(legend_labels, loc="lower right", bbox_to_anchor=(1.02, 1), borderaxespad=0)
     plt.tight_layout()
     plt.show()
     save_plot_to_path(fig, output_dir, fname)
