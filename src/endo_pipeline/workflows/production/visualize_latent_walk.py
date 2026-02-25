@@ -275,7 +275,7 @@ def main(
                 for column_name, val in set_column_value.items()
             ]
         )
-        file_name += f"_{replace_str}"
+        file_name += f"_with_{replace_str}"
     plot_latent_walk_as_grid(
         walk_img_grid,
         ranges,
