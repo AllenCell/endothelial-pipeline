@@ -83,7 +83,7 @@ def run_lda_feature_ranking(
 def apply_lda_projection(
     df: pd.DataFrame,
     features_in_lda_rank: list[str],
-    lda_weights: np.ndarray[any] | list[float],
+    lda_weights: list[float],
     lda_intercept: float,
     sparse_axes: list[float] | None = None,
 ) -> pd.DataFrame:
@@ -124,11 +124,10 @@ def rank_features_and_plot_histograms(
     fig, axes = plt.subplots(nrows, ncols, figsize=(ncols * 2, nrows * 2))
     axes = axes.flatten()
 
-    # Map boolean to string if needed
     if label_column == "coherent_migration":
-        label_map = {True: "coherent", False: "mixed"}
+        label_map: dict[bool, str] = {True: "coherent", False: "mixed"}
     else:
-        label_map = {"coherent": "Coherent Migration", "mixed": "Mixed Migration"}
+        label_map: dict[str, str] = {"coherent": "Coherent Migration", "mixed": "Mixed Migration"}
 
     for i, item in enumerate(ranking):
         col = item["feature"]

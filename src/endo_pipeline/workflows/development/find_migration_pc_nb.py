@@ -181,8 +181,8 @@ df_lda = load_dataframe(lda_location)
 # %%
 df_proj_full = apply_lda_projection(
     df,
-    features_in_lda_rank=df_lda["features"],
-    lda_weights=df_lda["weights"],
+    features_in_lda_rank=df_lda["features"].to_list(),
+    lda_weights=df_lda["weights"].to_list(),
     lda_intercept=df_lda["intercept"][0],
     sparse_axes=[2.0, 3.0, 4.0],
 )
