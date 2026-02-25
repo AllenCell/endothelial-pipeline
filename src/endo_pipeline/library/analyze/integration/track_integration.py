@@ -1017,7 +1017,7 @@ def get_preprocessed_manifests_and_km_bounds(
         left_index=True,
         right_index=True,
         validate="one_to_one",
-    )
+    ).reset_index(drop=True)
 
     # read in the grid crop-based diffae features
     grid_diffae_manifest = load_dataframe_manifest(grid_diffae_feat_manifest_name)

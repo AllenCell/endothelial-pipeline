@@ -73,6 +73,7 @@ SEGMENTATION_FEATURE_COLUMNS = {
         "dataset_name",
         "position",
         "track_id",
+        "label",
         "time_minutes",
         "T",
         "centroid_X",
@@ -84,6 +85,7 @@ SEGMENTATION_FEATURE_COLUMNS = {
         "nuc_pos_rel_cell_angle_deg",
         "cell_fluorescence_mean (a.u.)",
         "num_nuclei_in_crop",
+        "all_labels_in_crop",
     ],
     "filters": [
         "is_included",
@@ -91,6 +93,7 @@ SEGMENTATION_FEATURE_COLUMNS = {
         "is_less_than_max_smoothed_area_normd_change",
         "is_edge_segmentation",
         "has_more_than_min_num_valid_points_per_track",
+        "bbox_is_in_bounds",
     ],
 }
 """Name of segmentation features to include in analyses."""
