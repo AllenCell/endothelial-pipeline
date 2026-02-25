@@ -74,7 +74,7 @@ def run_lda_feature_ranking(
     if minimal_weight is not None:
         for weight in minimal_weight:
             sparse_axis = np.where(np.abs(optimal_axis) >= weight, optimal_axis, 0)
-            logger.info("Highly contributing pcs at minimal weight threshold of %s", weight)
+            logger.info(f"Highly contributing pcs at minimal weight threshold of {weight}")
             logger.info([features_to_rank[pc] for pc in np.where(np.abs(sparse_axis) > 0)[0]])
             projected_data_sparse = df_features @ sparse_axis + lda.intercept_[0]
             df_proj[f"LDA_SP_{int(weight)}"] = projected_data_sparse
@@ -100,7 +100,7 @@ def apply_lda_projection(
     if sparse_axes is not None:
         for minimal_weight in [2.0, 3.0, 4.0]:
             sparse_axis = np.where(np.abs(lda_weights) >= minimal_weight, lda_weights, 0)
-            logger.info("Highly contributing pcs at minimal weight threshold of", minimal_weight)
+            logger.info(f"Highly contributing pcs at minimal weight threshold of {minimal_weight}")
             logger.info([features_in_lda_rank[pc] for pc in np.where(np.abs(sparse_axis) > 0)[0]])
             projected_data_sparse = df_features @ sparse_axis + lda_intercept
             df_result[f"LDA_SP_{int(minimal_weight)}"] = projected_data_sparse
