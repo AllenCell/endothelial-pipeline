@@ -597,6 +597,7 @@ def _plot_correlation_metrics_vs_shear_stress(
         shear_stresses,
         features=feature_names,
         ci_bounds=relaxation_timescale_ci_bounds,
+        labels=feature_names,
     )
     ax.legend()
     ax.set_ylabel("Relaxation timescale (hours)")
