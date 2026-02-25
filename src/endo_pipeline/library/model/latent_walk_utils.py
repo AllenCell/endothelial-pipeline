@@ -1,10 +1,12 @@
 import logging
+import re
 from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.library.model.diffae import DiffusionAutoEncoder, generate_from_coords
+from endo_pipeline.library.model.diffae import generate_from_coords
+from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
 if TYPE_CHECKING:
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
@@ -12,10 +14,73 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def get_max_dim_in_column_names(column_names: list[str], feature_prefix: str) -> int:
+    """
+    Get the maximum number of dimensions from the provided column names.
+
+    Parameters
+    ----------
+    column_names
+        List of column names corresponding to each dimension.
+    feature_prefix
+        Prefix to look for in column names, e.g., "pc_" or "feat_".
+
+    Returns
+    -------
+    int
+        Maximum number of dimensions based on the column names.
+    """
+    # Define pattern that starts with feature prefix followed by 1 or more digits
+    pattern = rf"{feature_prefix}(\d+)"
+
+    # Apply match to each column name in list
+    matches = [re.match(pattern, column) for column in column_names]
+
+    # Iterate through valid matches and convert capture group to integer
+    dims = [int(match.group(1)) for match in matches if match]
+    if len(dims) == 0:
+        raise ValueError(f"No column names found with prefix '{feature_prefix}' in {column_names}.")
+
+    return max(dims)
+
+
+def get_num_pcs_from_column_names(column_names: list[str]) -> int:
+    """
+    Get the number of principal components needed for the latent walk based on
+    the provided column names.
+
+    Parameters
+    ----------
+    column_names
+        List of column names corresponding to each dimension.
+    """
+    # get the maximum PC dimension number from the column names; if no PC
+    # dimensions are included, set max_pc_dim to 0
+    try:
+        max_pc_dim = get_max_dim_in_column_names(column_names, ColumnName.PCA_FEATURE_PREFIX.value)
+    except ValueError:
+        max_pc_dim = 0
+
+    # check special case for polar coordinates, which at minimum need the first
+    # two PC dimensions to be included
+    if (
+        ColumnName.POLAR_ANGLE.value in column_names
+        or ColumnName.POLAR_RADIUS.value in column_names
+    ):
+        max_pc_dim = max(max_pc_dim, 2)
+
+    # check if PC3_FLIPPED is included, which also requires at minimum the first
+    # three PC dimensions to be included
+    if ColumnName.PC3_FLIPPED.value in column_names:
+        max_pc_dim = max(max_pc_dim, 3)
+
+    return max_pc_dim
+
+
 def get_baseline_walk_values(
     dataframe: pd.DataFrame,
     column_names: list[str],
-    replace_mean_with_pc_value: list[float | None] | None = None,
+    replace_mean_with_val: list[float] | None = None,
 ) -> list[float]:
     """
     Get baseline walk values for each dimension based on the mean of the data or
@@ -27,10 +92,9 @@ def get_baseline_walk_values(
         DataFrame containing the data to calculate mean values from.
     column_names
         List of column names corresponding to each dimension.
-    replace_mean_with_pc_value
-        List of PC values to replace the mean with for each PC dimension. Must
-        be of length equal to number of dimensions. If None, uses the mean of
-        the data.
+    replace_mean_with_val
+        Optional, list of values to replace the mean with for each dimension. If
+        None, uses the mean of the data for each dimension.
 
     Returns
     -------
@@ -39,14 +103,12 @@ def get_baseline_walk_values(
     """
     n_dims = len(column_names)
 
-    # convert replace_mean_with_pc_value to a list of length n_dims, filling with None if it is None
-    replace_values = (
-        [None] * n_dims if replace_mean_with_pc_value is None else replace_mean_with_pc_value
-    )
+    # convert replace_mean_with_val to a list of length n_dims, filling with None if it is None
+    replace_values = [None] * n_dims if replace_mean_with_val is None else replace_mean_with_val
 
     if len(replace_values) != n_dims:
         raise ValueError(
-            f"Expected replace_mean_with_pc_value of length {len(column_names)}, got {len(replace_values)}."
+            f"Expected replace_mean_with_val of length {len(column_names)}, got {len(replace_values)}."
         )
 
     baseline_values = []
@@ -64,7 +126,7 @@ def get_latent_walk(
     column_names: list[str],
     sigma: float | None,
     n_steps: int,
-    replace_mean_with_pc_value: list[float | None] | None = None,
+    replace_mean_with_val: list[float] | None = None,
 ) -> tuple[pd.DataFrame, list[np.ndarray]]:
     """
     Generate a latent walk based on standard deviation or min/max of each
@@ -80,18 +142,16 @@ def get_latent_walk(
         Range of values for the latent walk. If None, use min/max of dimension.
     n_steps
         Number of steps in the latent walk.
-    replace_mean_with_pc_value
-        List of PC values to replace the mean with for each PC dimension. Must be of length n_dims.
-        If None, uses the mean of the data.
+    replace_mean_with_val
+        Optional, list of values to replace the mean with for each dimension
+        when generating the latent walk. If None, uses the mean of the data.
     """
     walks: list[pd.DataFrame] = []
     ranges: list[np.ndarray] = []
 
     # Get baseline values for all dimensions as either the mean value of the
     # dimension or the given replacement value for that dimension.
-    baseline_walk_values = get_baseline_walk_values(
-        dataframe, column_names, replace_mean_with_pc_value
-    )
+    baseline_walk_values = get_baseline_walk_values(dataframe, column_names, replace_mean_with_val)
 
     for column_name in column_names:
         data = dataframe[column_name]
@@ -100,6 +160,8 @@ def get_latent_walk(
             data_max = data.max()
             range_ = np.linspace(data_min, data_max, n_steps)
         else:
+            if sigma <= 0:
+                raise ValueError(f"Input sigma must be positive, got {sigma}.")
             std = data.std()
             range_ = np.arange(-sigma, sigma + 0.01) * std
 
@@ -120,12 +182,38 @@ def get_latent_walk(
 def generate_latent_walk_images(
     model: "DiffusionAutoEncoder",
     walk: np.ndarray,
-    ranges: list,
+    ranges: list[np.ndarray],
     n_noise_samples: int = 1,
     num_gpus: int | None = None,
     random_seed: int | None = None,
 ) -> np.ndarray:
-    # Ggenerate images from the latent walk
+    """
+    Generate images from a latent walk using the provided model.
+
+    Parameters
+    ----------
+    model
+        Model to use for image generation.
+    walk
+        Numpy array of shape (n_steps, n_dim) containing the latent walk
+        coordinates.
+    ranges
+        List of numpy arrays containing the ranges of values for each dimension
+        in the walk.
+    n_noise_samples
+        Number of noise samples to use for generating images.
+    num_gpus
+        Number of GPUs to use for image generation. If None, uses CPU.
+    random_seed
+        Random seed for reproducibility of image generation. If None, does not
+        set a random seed.
+
+    Returns
+    -------
+    :
+        Array of stacked generated images from the latent walk, reshaped to
+        (n_dim, n_steps, img_width, img_height).
+    """
     walk_img = generate_from_coords(
         model, walk, n_noise_samples=n_noise_samples, num_gpus=num_gpus, random_seed=random_seed
     )

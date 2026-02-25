@@ -6,3 +6,6 @@ SOURCE_COL: str = "local_zarr_path"
 
 DEST_COL: str = "s3_zarr_path"
 """Name of the column for S3 zarr paths in the upload / remove CSV."""
+
+BFF_FILE_PATH_COL: str = "File Path"
+"""Name of the required column for file paths in the BFF CSV."""

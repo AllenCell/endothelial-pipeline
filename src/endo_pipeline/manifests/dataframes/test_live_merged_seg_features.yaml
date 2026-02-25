@@ -1,0 +1,16 @@
+name: test_live_merged_seg_features
+workflow: live_feat_workflows_to_fms
+parameters: {}
+locations:
+  20250611_20X:
+    fmsid: null
+    path: //allen/aics/users/serge.parent/cellsmap/results/2026-02-24/make_seg_feats_manifest/segmentation_features_dataframes/20250611_20X_live_segmentation_features.parquet
+    s3uri: null
+  20250618_20X:
+    fmsid: null
+    path: //allen/aics/users/serge.parent/cellsmap/results/2026-02-24/make_seg_feats_manifest/segmentation_features_dataframes/20250618_20X_live_segmentation_features.parquet
+    s3uri: null
+  20250813_20X:
+    fmsid: null
+    path: //allen/aics/users/serge.parent/cellsmap/results/2026-02-24/make_seg_feats_manifest/segmentation_features_dataframes/20250813_20X_live_segmentation_features.parquet
+    s3uri: null

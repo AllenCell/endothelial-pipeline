@@ -97,6 +97,9 @@ class PositionAnnotation(StrEnum):
     DUST_ARTIFACT = "dust_artifact"
     """Manually annotated position includes a dust artifact."""
 
+    HOLE_IN_MONOLAYER = "hole_in_monolayer"
+    """Hole in the monolayer that persist throughout the entire duration of timelapse."""
+
 
 @dataclass
 class FlowCondition:
