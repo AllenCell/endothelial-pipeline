@@ -81,6 +81,7 @@ SEGMENTATION_FEATURE_COLUMNS = {
         "nuc_pos_rel_cell_X",
         "nuc_pos_rel_cell_Y",
         "pixel_size_xy_in_um",
+        "time_resolution_minutes",
         "alignment_deg_rel_to_flow",
         "nuc_pos_rel_cell_angle_deg",
         "cell_fluorescence_mean (a.u.)",

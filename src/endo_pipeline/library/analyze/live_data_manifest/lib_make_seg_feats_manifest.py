@@ -16,6 +16,7 @@ from tqdm import tqdm
 
 from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
 from endo_pipeline.io import get_output_path, load_image
+from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.lib_init_density_vs_flow import vector_mean_angle_and_mag
 from endo_pipeline.library.model.eval_model import add_diffae_model_eval_crop_columns
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
@@ -477,7 +478,7 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
 def calculate_derived_data_dynamics_dependent(
     big_table: pd.DataFrame,
     compute_per_crop_metrics: bool = False,
-    max_velocity_rolling_window_size: int = 5,
+    max_timeframes_to_average_for_velocity: int = 5,
 ) -> pd.DataFrame:
     """
     This function calculates dynamics-dependent features and
@@ -523,20 +524,28 @@ def calculate_derived_data_dynamics_dependent(
     )
 
     # get the windowed mean of the centroid velocities to smooth out noise
-    for window in range(2, max_velocity_rolling_window_size + 1):
-        big_table[f"centroid_dx_dt_rolling_mean_window_{window}"] = (
+    for window in range(2, max_timeframes_to_average_for_velocity + 1):
+        big_table["time_minutes_timedelta"] = pd.to_timedelta(big_table["time_minutes"], unit="m")
+        window_in_minutes = window * sequence_to_scalar(big_table["time_resolution_minutes"])
+
+        big_table[f"centroid_dx_dt_rolling_mean_window_{window_in_minutes}min"] = (
             big_table.groupby(["dataset_name", "position", "track_id"], as_index=True)[
-                "centroid_dx_dt"
-            ]
-            .rolling(window, min_periods=1)
-            .mean()
+                ["centroid_dx_dt", "time_minutes_timedelta"]
+            ].apply(
+                lambda df, window_in_minutes=window_in_minutes: df.rolling(
+                    f"{window_in_minutes}min", min_periods=1, on="time_minutes_timedelta"
+                )["centroid_dx_dt"].mean()
+            )
         ).droplevel([0, 1, 2])
-        big_table[f"centroid_dy_dt_rolling_mean_window_{window}"] = (
+
+        big_table[f"centroid_dy_dt_rolling_mean_window_{window_in_minutes}min"] = (
             big_table.groupby(["dataset_name", "position", "track_id"], as_index=True)[
-                "centroid_dy_dt"
-            ]
-            .rolling(window, min_periods=1)
-            .mean()
+                ["centroid_dy_dt", "time_minutes_timedelta"]
+            ].apply(
+                lambda df, window_in_minutes=window_in_minutes: df.rolling(
+                    f"{window_in_minutes}min", min_periods=1, on="time_minutes_timedelta"
+                )["centroid_dy_dt"].mean()
+            )
         ).droplevel([0, 1, 2])
 
     logger.info("Calculating centroid velocity magnitude and angle...")
@@ -1222,6 +1231,9 @@ def map_label_to_column(
         A list where each entry is a list of the values from the specified column
         for all the labels in the crop of that row.
     """
+    check_required_columns_in_dataframe(
+        df_sub, required_columns=["label", column_name_to_map, "all_labels_in_crop"]
+    )
     label_velocity_dict = dict(zip(df_sub.label, df_sub[column_name_to_map], strict=True))
     return df_sub.all_labels_in_crop.map(lambda ls: [*map(label_velocity_dict.get, ls)])
 
