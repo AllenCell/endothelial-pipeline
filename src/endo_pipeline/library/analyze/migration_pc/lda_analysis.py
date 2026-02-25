@@ -38,6 +38,7 @@ def run_lda_feature_ranking(
     features_to_rank: list[str],
     output_dir: Path,
     fname_suffix: str = "",
+    minimal_weight: list[float] = [2.0, 3.0, 4.0],
 ) -> tuple[pd.DataFrame, pd.DataFrame, Path]:
 
     features_to_rank = [str(col) for col in features_to_rank]
@@ -70,12 +71,13 @@ def run_lda_feature_ranking(
     csv_path = output_dir / f"lda_transform_{fname_suffix}.csv"
     df_lda.to_csv(csv_path, index=False)
 
-    for minimal_weight in [2.0, 3.0, 4.0]:
-        sparse_axis = np.where(np.abs(optimal_axis) >= minimal_weight, optimal_axis, 0)
-        logger.info("Highly contributing pcs at minimal weight threshold of %s", minimal_weight)
-        logger.info([features_to_rank[pc] for pc in np.where(np.abs(sparse_axis) > 0)[0]])
-        projected_data_sparse = df_features @ sparse_axis + lda.intercept_[0]
-        df_proj[f"LDA_SP_{int(minimal_weight)}"] = projected_data_sparse
+    if minimal_weight is not None:
+        for weight in minimal_weight:
+            sparse_axis = np.where(np.abs(optimal_axis) >= weight, optimal_axis, 0)
+            logger.info("Highly contributing pcs at minimal weight threshold of %s", weight)
+            logger.info([features_to_rank[pc] for pc in np.where(np.abs(sparse_axis) > 0)[0]])
+            projected_data_sparse = df_features @ sparse_axis + lda.intercept_[0]
+            df_proj[f"LDA_SP_{int(weight)}"] = projected_data_sparse
 
     return df_lda, df_proj, csv_path
 
@@ -122,7 +124,10 @@ def rank_features_and_plot_histograms(
     nrows = (n_pcs + ncols - 1) // ncols
 
     fig, axes = plt.subplots(nrows, ncols, figsize=(ncols * 2, nrows * 2))
-    axes = axes.flatten()
+    if nrows + ncols > 2:
+        axes = axes.flatten()
+    else:
+        axes = [axes]
 
     if label_column == "coherent_migration":
         label_map: dict[bool, str] = {True: "coherent", False: "mixed"}
@@ -140,8 +145,8 @@ def rank_features_and_plot_histograms(
         axes[i].set_ylabel("Count")
         axes[i].set_title(f"{col}, Power: {item['power']:.3f}")
 
-    n_coherent = (df[label_column] == "coherent").sum()
-    n_mixed = (df[label_column] == "mixed").sum()
+    n_coherent = (df[label_column] == True).sum()
+    n_mixed = (df[label_column] == False).sum()
     legend_labels = [
         f"Coherent Migration (N={n_coherent})",
         f"Mixed Migration (N={n_mixed})",

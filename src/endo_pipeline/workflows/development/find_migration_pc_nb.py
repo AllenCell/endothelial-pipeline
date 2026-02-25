@@ -157,6 +157,19 @@ rank_features_and_plot_histograms(
     fname="find_coherent_mig_histograms_lda_pcs_only.png",
 )
 
+# Run LDA on randomized labels as a control
+df_mig_random = df_mig.copy()
+df_mig_random['coherent_migration'] = df_mig['coherent_migration'].sample(frac=1).values
+df_lda_random, df_proj_random, _ = run_lda_feature_ranking(
+    df_mig_random, pc_columns_to_keep, output_dir, "pcs_only_random", minimal_weight=None
+)
+rank_features_and_plot_histograms(
+    df_proj_random,
+    list(df_proj_random.columns.drop(["coherent_migration"])),
+    output_dir=output_dir,
+    label_column="coherent_migration",
+    fname="find_coherent_mig_histograms_lda_pcs_only_random.png",
+)
 
 # %% Upload LDA feature ranking results to FMS
 if UPLOAD_TO_FMS:
