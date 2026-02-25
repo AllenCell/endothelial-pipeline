@@ -1,5 +1,4 @@
 from endo_pipeline.cli import Datasets, UniqueIntList
-from endo_pipeline.io.output import get_output_path
 
 
 def main(
@@ -15,7 +14,7 @@ def main(
     - AWS credentials must be configured.
 
     To see what files are already there:
-        aws s3 ls s3://allencell-internal-quilt/endo_stg/
+        AWS_PROFILE=allencell_internal_quilt aws s3 ls s3://allencell-internal-quilt/endo_stg/
 
     Login (if session expired):
         aws sso login
@@ -30,28 +29,29 @@ def main(
     ----------
     datasets: Datasets | None
         List of dataset names. If None, all datasets in the
-        "dataset_release" collection will be used.
+        "remove_s3_datasets" collection will be used.
     dry_run: bool
         If True, jobs will be drafted but not executed.
     positions_list: UniqueIntList | None
         List of position indices to upload. If None, all positions will be uploaded.
 
     Example rm job:
-    endopipe remove-s3-datasets --datasets 20250618_20X --positions-list 0 1
-    endopipe remove-s3-datasets --datasets 20250618_20X --no-dry-run  --positions-list 0 1
+    AWS_PROFILE=allencell_internal_quilt endopipe remove-s3-datasets --datasets 20250618_20X --positions-list 0 1
+    AWS_PROFILE=allencell_internal_quilt endopipe remove-s3-datasets --datasets 20250618_20X --no-dry-run  --positions-list 0 1
     """
     import logging
 
     from s3_uploader import run_all_jobs
 
     from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.io.output import get_output_path
     from endo_pipeline.library.process.data_release.generate_csv import create_s3_remove_csv
     from endo_pipeline.library.process.data_release.s3_utils import create_rm_job
 
     logger = logging.getLogger(__name__)
 
     if datasets is None:
-        datasets = get_datasets_in_collection("dataset_release")
+        datasets = get_datasets_in_collection("remove_s3_datasets")
 
     save_dir = get_output_path("s3_dataset", "remove_datasets")
     log_dir_str = str(get_output_path("s3_dataset", "remove_datasets", "status"))

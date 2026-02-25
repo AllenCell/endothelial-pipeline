@@ -48,6 +48,9 @@ class ColumnName(StrEnum):
     CROP_INDEX = "crop_index"
     """Column name for crop index."""
 
+    TRACK_ID = "track_id"
+    """Column name for track identifier."""
+
     START_X = "start_x"
     """Upper-left x-coordinate of the crop."""
 

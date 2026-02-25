@@ -2,12 +2,11 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from endo_pipeline.cli import CropPattern
+from endo_pipeline.cli import CropPattern, FloatList, StrList
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    NUM_PCS_TO_ANALYZE,
 )
 
 TAGS = ["diffae_image_generation", "pc_interpretation"]
@@ -19,53 +18,84 @@ def main(
     crop_pattern: CropPattern = "grid",
     dataset_collection: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
-    num_pcs: int = NUM_PCS_TO_ANALYZE,
-    sigma: float = 3.0,
+    columns: StrList | None = None,
+    sigma: float | None = None,
     n_steps: int = 7,
     use_pcs: bool = True,
     n_noise_samples: int = 1,
-    replace_mean_with_pc_value: list[float | None] | None = None,
+    replace_mean_with_val: FloatList | None = None,
 ) -> None:
     """
     Create latent walk for a given model using PC axes or original axes.
+
+    **Input columns**
+
+    The columns to perform the latent walk along can be specified with the
+    ``columns`` argument. If not specified, defaults to polar angle, polar
+    radius, and flipped PC3, which are the most interpretable dimensions in the
+    latent space.
+
+    If using PCs, any of the PCs can be selected by specifying the corresponding
+    column name (e.g. "pc_1", "pc_2", etc.). If using original axes, any of the
+    original latent space dimensions can be selected by specifying the
+    corresponding column name (e.g. "feat_1", "feat_2", etc.).
+
+    **Latent walk ranges**
+
+    The range of the latent walk can be specified with the ``sigma`` argument,
+    which indicates the number of standard deviations from the mean to traverse
+    for the latent walk. For example, if sigma=2, the latent walk will traverse
+    (-2, -1, 0, 1, 2) standard devations along the selected dimensions. If not
+    specified, the latent walk will traverse the full range of the data in each
+    dimension.
 
     Parameters
     ----------
     model_manifest_name
         Name of the model manifest containing the specific run to load.
     run_name
-        Run name corresponding to the model to load. If None, uses the most recent run.
+        Run name corresponding to the model to load. If None, uses the most
+        recent run.
     crop_pattern
-        Crop pattern used to generate the feature dataframe. Either 'grid' or 'tracked'.
+        Crop pattern used to generate the feature dataframe. Either 'grid' or
+        'tracked'.
     include_cell_piling
-        True to include timepoints with cell piling to fit the PCA model, False to exclude them.
-    num_pcs
-        Number of principal components to use for the
-        latent walk.
+        True to include timepoints with cell piling to fit the PCA model, False
+        to exclude them.
+    columns
+        List of column names corresponding to the dimensions to perform the
+        latent walk along.
     sigma
-        Number of standard deviations from the mean to traverse
-        for the latent walk.
+        Optional, number of standard deviations from the mean to traverse for
+        the latent walk.
     n_steps
-        Number of steps in the latent walk. Default is 10.
+        Number of steps in the latent walk.
     use_pcs
-        True to use principal component axes, False to use original latent space axes.
+        True to use principal component axes, False to use original latent space
+        axes.
     n_noise_samples
         Number of noise samples to use for generating images.
-    replace_mean_with_pc_value
-        List of PC values to replace the mean with for each PC dimension. Must be of length num_pcs.
-        If None, uses the mean of the data.
+    replace_mean_with_val
+        Optional, list of values to set as the baseline value for each dimension
+        not being traversed in the latent walk. If None, the mean value will be
+        used as the baseline.
     """
+    import pandas as pd
+
     from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_model
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+        fit_pca,
+        get_dataframe_for_dynamics_workflows,
+        get_pc_column_names,
+        polar_to_pcs,
+    )
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
     from endo_pipeline.library.model.latent_walk_utils import (
-        build_data_for_pca_latent_walk,
-        build_data_for_raw_latent_walk,
         generate_latent_walk_images,
-        get_pca_latent_walk,
-        get_raw_latent_walk,
+        get_latent_walk,
+        get_num_pcs_from_column_names,
     )
     from endo_pipeline.library.visualize.latent_walk import plot_latent_walk_as_grid
     from endo_pipeline.manifests import (
@@ -74,6 +104,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
+    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
@@ -98,43 +129,105 @@ def main(
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     dataset_names = get_datasets_in_collection(dataset_collection)
 
+    # default column names if none provided
+    column_names = (
+        [ColumnName.POLAR_ANGLE.value, ColumnName.POLAR_RADIUS.value, ColumnName.PC3_FLIPPED.value]
+        if columns is None
+        else columns
+    )
+
+    # initialize pca variable to None in case use_pcs is False, so that it can
+    # be passed to get_dataframe_for_dynamics_workflows without error
+    pca = None
     if use_pcs:
-        # perform latent walk along the principal components
+        # get minimum number of pcs needed for the fit pca object based on the
+        # column names provided; for example, if "pc_11" is in the column names,
+        # then the fit pca object needs to be fit with at least 11 pcs
+        num_pcs = get_num_pcs_from_column_names(column_names)
+        if num_pcs == 0:
+            raise ValueError(
+                f"Column names indicate use_pcs=True but no PC-related column names found in {column_names}."
+            )
+        # get fit pca object and data for latent walk
         pca = fit_pca(
             dataset_collection_name=dataset_collection,
             dataframe_manifest_name=dataframe_manifest_name,
             include_cell_piling=include_cell_piling,
             num_pcs=num_pcs,
         )
-        data_for_walk = build_data_for_pca_latent_walk(
-            dataset_names, dataframe_manifest, pca, include_cell_piling, crop_pattern
-        )
-        walk, ranges = get_pca_latent_walk(
-            data_for_walk, pca, sigma, n_steps, replace_mean_with_pc_value
-        )
-    else:
-        # perform latent walk along the raw latent dimensions
-        data_for_walk = build_data_for_raw_latent_walk(
-            dataset_names, dataframe_manifest, model, include_cell_piling, crop_pattern
-        )
-        walk, ranges = get_raw_latent_walk(data_for_walk, sigma, n_steps)
 
+    dataframe_all_datasets = pd.concat(
+        [
+            get_dataframe_for_dynamics_workflows(
+                dataset_name,
+                dataframe_manifest,
+                pca=pca,
+                include_cell_piling=include_cell_piling,
+                crop_pattern=crop_pattern,
+            )
+            for dataset_name in dataset_names
+        ]
+    )
+    data_for_walk = dataframe_all_datasets[column_names]
+
+    # get coordinate values for latent walk and the ranges of the walk for each
+    # dimension
+    walk, ranges = get_latent_walk(
+        data_for_walk,
+        column_names,
+        sigma,
+        n_steps,
+        replace_mean_with_val,
+    )
+    # if polar angle and radius are included in the column names, convert them
+    # to PC1 and PC2 coordinates for image generation (inverse PCA
+    # transformation cannot be performed with polar coordinates)
+    if use_pcs:
+        if (
+            ColumnName.POLAR_ANGLE.value in column_names
+            and ColumnName.POLAR_RADIUS.value in column_names
+        ):
+            pc1_column_name = f"{ColumnName.PCA_FEATURE_PREFIX}1"
+            pc2_column_name = f"{ColumnName.PCA_FEATURE_PREFIX}2"
+            angle = walk[ColumnName.POLAR_ANGLE.value].to_numpy()
+            radius = walk[ColumnName.POLAR_RADIUS.value].to_numpy()
+            pc1_values, pc2_values = polar_to_pcs(angle, radius)
+            walk[pc1_column_name] = pc1_values
+            walk[pc2_column_name] = pc2_values
+
+        # if flipped pc3 is included in the column names, convert it to regular pc3
+        # before performing inverse PCA transformation for image generation (inverse PCA
+        if ColumnName.PC3_FLIPPED.value in column_names:
+            pc3_column_name = f"{ColumnName.PCA_FEATURE_PREFIX}3"
+            walk[pc3_column_name] = -walk[ColumnName.PC3_FLIPPED.value].to_numpy()
+
+        pc_column_names = get_pc_column_names(num_pcs)
+        walk = pca.inverse_transform(walk[pc_column_names].to_numpy())
+    else:
+        walk = walk.to_numpy()
     # generate images from the latent walk
     walk_img_grid = generate_latent_walk_images(model, walk, ranges, n_noise_samples, NUM_GPUS)
 
     # save generated latent walk as grid
-    axis_suffix = "_along_pcs" if use_pcs else "_along_latent"
-    file_name = f"latent_walk_{int(sigma)}sigma{axis_suffix}"
-    if replace_mean_with_pc_value is not None:
+    axis_suffix = "_along_" + "_".join(column_names)
+    sigma_suffix = f"_{int(sigma)}sigma_" if sigma is not None else ""
+    file_name = f"latent_walk{sigma_suffix}{axis_suffix}"
+    if replace_mean_with_val is not None:
         replace_str = "_".join(
             [
-                f"PC{i+1}setto{val}"
-                for i, val in enumerate(replace_mean_with_pc_value)
-                if val is not None
+                f"{column_name}_setto_{str(val).replace('.', 'p')}"
+                for column_name, val in zip(column_names, replace_mean_with_val, strict=True)
             ]
         )
         file_name += f"_replace_{replace_str}"
-    plot_latent_walk_as_grid(walk_img_grid, ranges, save_path, file_name, use_pcs)
+    plot_latent_walk_as_grid(
+        walk_img_grid,
+        ranges,
+        column_names,
+        save_path,
+        file_name,
+        label_sigmas=False if sigma is None else True,
+    )
 
 
 if __name__ == "__main__":
