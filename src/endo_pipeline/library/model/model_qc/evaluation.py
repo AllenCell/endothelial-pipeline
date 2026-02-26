@@ -1,7 +1,5 @@
 """Core model evaluation logic for model QC."""
 
-from __future__ import annotations
-
 import logging
 from typing import TYPE_CHECKING
 
@@ -14,10 +12,7 @@ from endo_pipeline.library.model.diffae.generate_image import (
     generate_from_coords_and_noised_image,
 )
 from endo_pipeline.manifests import get_most_recent_run_name, load_model_manifest
-from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT,
-    MODEL_QC_NOISE_LEVELS,
-)
+from endo_pipeline.settings.workflow_defaults import DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT
 
 from .image_loading import load_and_preprocess_example_crop
 from .metrics import compute_baseline_for_example
@@ -134,12 +129,13 @@ def evaluate_single_model(
     manifest_name: str,
     run_name_input: str | None,
     random_seed: int,
-    example_sets_all: list[tuple[list[ExampleImage], str]],
+    example_sets_all: list[tuple[list["ExampleImage"], str]],
     example_sets_for_metrics: set[str],
     save_intermediate_plots: bool,
     save_crops_as_tiff: bool,
     include_negative_controls: bool,
     compute_metrics: bool,
+    noise_levels: tuple[float, ...],
     compute_baseline: bool = True,
     is_default_seed: bool = True,
     num_gpus: int | None = None,
@@ -176,6 +172,10 @@ def evaluate_single_model(
         Whether to run negative-control experiments.
     compute_metrics
         Whether to compute quantitative metrics.
+    noise_levels
+        Tuple of noise fractions (e.g. ``(0.25, 0.5, 0.75)``) used for
+        the denoising sweep.  A 100 % noise level is always appended
+        automatically.
     compute_baseline
         Whether to compute next-timepoint baseline metrics.
     is_default_seed
@@ -198,7 +198,7 @@ def evaluate_single_model(
         lpips_calculator = LPIPSCalculator()
 
     # --- Setup ---
-    noise_labels = [f"{level * 100:.0f}% Noise" for level in [*MODEL_QC_NOISE_LEVELS, 1]]
+    noise_labels = [f"{level * 100:.0f}% Noise" for level in [*noise_levels, 1]]
     rng = default_rng(seed=random_seed)
 
     model_manifest = load_model_manifest(manifest_name)
@@ -266,7 +266,7 @@ def evaluate_single_model(
             if run_all:
                 noisy_images = [
                     add_noise_to_image(diffusion_input_crop, noise_image, lvl)
-                    for lvl in MODEL_QC_NOISE_LEVELS
+                    for lvl in noise_levels
                 ]
                 images_to_denoise = [*noisy_images, noise_image]
             else:
@@ -309,7 +309,7 @@ def evaluate_single_model(
                     denoised_scrambled_emb,
                     denoised_scrambled_input,
                     label_for_conditioning,
-                    list(MODEL_QC_NOISE_LEVELS),
+                    list(noise_levels),
                     output_path,
                     example,
                 )
@@ -332,7 +332,7 @@ def evaluate_single_model(
                     noisy_diffusion_input_images=noisy_images,
                     noise_image=noise_image,
                     denoised_images=denoised_images,
-                    noise_levels=list(MODEL_QC_NOISE_LEVELS),
+                    noise_levels=list(noise_levels),
                 )
 
             ground_truth = diffusion_input_crop.squeeze()
