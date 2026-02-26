@@ -109,3 +109,32 @@ DATASET_INFO_COLUMNS = [
     "label",
 ]
 """Name of dataset metadata columns required for analysis."""
+
+DEFAULT_OPTICAL_FLOW_COLLECTION: str = "diffae_optical_flow"
+"""Default dataset collection for the optical-flow feature workflow."""
+
+DEFAULT_OPTICAL_FLOW_MANIFEST_NAME: str = "diffae_optical_flow"
+"""Default dataframe manifest name for optical-flow features."""
+
+OPTICAL_FLOW_BASE_FEATURES: list = [
+    "optical_flow_mean_speed",
+    "optical_flow_mean_unit_vector",
+    "optical_flow_std_speed",
+    "optical_flow_mean_angle",
+    "optical_flow_angle_std",
+    "optical_flow_mean_u",
+    "optical_flow_mean_v",
+    "optical_flow_std_u",
+    "optical_flow_std_v",
+]
+"""Base feature names computed per (crop, timepoint, dt) by optical-flow extraction."""
+
+DEFAULT_OPTICAL_FLOW_MAX_DT: int = 5
+"""Maximum frame gap for multi-scale optical-flow sweep (dt = 1 … MAX_DT)."""
+
+OPTICAL_FLOW_FEATURE_COLS: list = [
+    f"{f}_dt{d}"
+    for d in range(1, DEFAULT_OPTICAL_FLOW_MAX_DT + 1)
+    for f in OPTICAL_FLOW_BASE_FEATURES
+]
+"""Prebuilt list of optical-flow feature column names at the default MAX_DT."""
