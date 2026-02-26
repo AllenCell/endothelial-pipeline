@@ -7,6 +7,7 @@ from endo_pipeline.cli import tags
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_QC_MANIFEST_NAMES,
     DEFAULT_MODEL_QC_RUN_NAMES,
+    MODEL_QC_NOISE_LEVELS,
     RANDOM_SEED,
 )
 
@@ -127,16 +128,10 @@ def main(
 
     logger = logging.getLogger(__name__)
 
-    # Normalize inputs to lists
-    if isinstance(model_manifest_name, str):
-        model_manifest_names = [model_manifest_name]
-    else:
-        model_manifest_names = list(model_manifest_name)
+    model_manifest_names = list(model_manifest_name)
 
     if run_name is None:
         run_names = [None] * len(model_manifest_names)
-    elif isinstance(run_name, str):
-        run_names = [run_name]
     else:
         run_names = list(run_name)
 
@@ -209,9 +204,7 @@ def main(
 
     # Storage for all results across seeds
     # Structure: {model_idx: {seed: {example_set_label: [per-example metrics]}}}
-    all_seed_results: dict[int, dict[int, dict[str, list[dict]]]] = {
-        model_idx: {} for model_idx in range(len(model_manifest_names))
-    }
+    all_seed_results: dict[int, dict[int, dict[str, list[dict]]]] = {}
 
     logger.info("Running model evaluations...")
     # Setting up strict to be True is another safety net that ensures
@@ -220,6 +213,7 @@ def main(
     for model_idx, (manifest_name, run_name_input) in enumerate(
         zip(model_manifest_names, run_names, strict=True)
     ):
+        all_seed_results[model_idx] = {}
         for seed in seeds_to_evaluate:
             is_default = seed == random_seed
             result = evaluate_single_model(
@@ -233,6 +227,7 @@ def main(
                 save_crops_as_tiff=save_crops_as_tiff,
                 include_negative_controls=include_negative_controls,
                 compute_metrics=compute_metrics,
+                noise_levels=MODEL_QC_NOISE_LEVELS,
                 compute_baseline=compute_baseline,
                 is_default_seed=is_default,
                 num_gpus=NUM_GPUS,
