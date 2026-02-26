@@ -12,7 +12,25 @@ from endo_pipeline.io import save_plot_to_path
 logger = logging.getLogger(__name__)
 
 
-def compute_separation_power(df_features: pd.DataFrame, y: pd.Series, verbose: bool = True):
+def compute_separation_power(
+    df_features: pd.DataFrame, y: pd.Series, verbose: bool = True
+) -> list[dict[str, float | str]]:
+    """Rank features by class separation power based on ROC AUC.
+
+    Parameters
+    ----------
+    df_features : pandas.DataFrame
+        Feature matrix with shape ``(n_samples, n_features)``.
+    y : pandas.Series
+        Binary labels aligned to ``df_features`` rows.
+    verbose : bool, default=True
+        If ``True``, logs the top-ranked features.
+
+    Returns
+    -------
+    list[dict[str, float | str]]
+        Sorted ranking entries with keys ``feature``, ``auc``, and ``power``.
+    """
     # Assuming 'df_features' is your (M samples x N features) matrix
     # Assuming 'y' is your binary label vector (0s and 1s)
     ranking = []
@@ -33,22 +51,64 @@ def compute_separation_power(df_features: pd.DataFrame, y: pd.Series, verbose: b
     return ranking_sorted
 
 
-def run_lda_feature_ranking(
+def fit_lda_feature_ranking(
     df_mig: pd.DataFrame,
     features_to_rank: list[str],
-    output_dir: Path,
-    fname_suffix: str = "",
-    minimal_weight: list[float] | None = [2.0, 3.0, 4.0, 5.0],
-) -> tuple[pd.DataFrame, pd.DataFrame, Path]:
+    binary_target_feature: str,
+) -> tuple[list[str], np.ndarray, float, np.ndarray]:
+    """Fit a one-component LDA model for coherent migration labels.
 
+    Parameters
+    ----------
+    df_mig : pandas.DataFrame
+        Input dataframe containing feature columns and binary target labels.
+    features_to_rank : list[str]
+        Feature columns used to fit the LDA model.
+    binary_target_feature : str
+        Column name used as the binary target label for LDA fitting.
+
+    Returns
+    -------
+    tuple[list[str], numpy.ndarray, float, numpy.ndarray]
+        Normalized feature names, LDA coefficients, intercept, and transformed
+        projections of shape ``(n_samples, 1)``.
+    """
     features_to_rank = [str(col) for col in features_to_rank]
     df_features = df_mig[features_to_rank]
 
     lda = LinearDiscriminantAnalysis(n_components=1)
-    lda.fit(df_features, df_mig["coherent_migration"])
+    lda.fit(df_features, df_mig[binary_target_feature])
     optimal_axis = lda.coef_[0]
     projected_data = lda.transform(df_features)
+    lda_intercept = float(lda.intercept_[0])
 
+    return features_to_rank, optimal_axis, lda_intercept, projected_data
+
+
+def plot_lda_optimal_axis(
+    features_to_rank: list[str],
+    optimal_axis: np.ndarray,
+    output_dir: Path,
+    fname_suffix: str = "",
+):
+    """Plot and save LDA coefficients across ranked features.
+
+    Parameters
+    ----------
+    features_to_rank : list[str]
+        Ordered feature names corresponding to coefficient values.
+    optimal_axis : numpy.ndarray
+        LDA coefficient vector.
+    output_dir : pathlib.Path
+        Directory where the figure is written.
+    fname_suffix : str, default=""
+        Optional suffix appended to the output filename.
+
+    Returns
+    -------
+    None
+        This function saves a plot and returns nothing.
+    """
     # Plot the weights of each pc in the optimal axis
     fig, ax = plt.subplots(figsize=(12, 4))
     ax.bar(features_to_rank, optimal_axis)
@@ -59,25 +119,75 @@ def run_lda_feature_ranking(
     fig.savefig(output_dir / f"lda_optimal_axis_{fname_suffix}.png", dpi=150)
     plt.close(fig)
 
+
+def build_lda_outputs(
+    df_mig: pd.DataFrame,
+    features_to_rank: list[str],
+    optimal_axis: np.ndarray,
+    lda_intercept: float,
+    projected_data: np.ndarray,
+    binary_target_feature: str,
+    minimal_weight: list[float] | None = [2.0, 3.0, 4.0, 5.0],
+    save: bool = False,
+    output_dir: Path | None = None,
+    fname_suffix: str = "",
+) -> tuple[pd.DataFrame, pd.DataFrame, Path | None]:
+    """Build LDA output tables and save transform weights CSV.
+
+    Parameters
+    ----------
+    df_mig : pandas.DataFrame
+        Input dataframe containing feature columns and binary target labels.
+    features_to_rank : list[str]
+        Ordered feature names corresponding to the LDA coefficients.
+    optimal_axis : numpy.ndarray
+        LDA coefficient vector.
+    lda_intercept : float
+        LDA intercept term.
+    projected_data : numpy.ndarray
+        LDA projections from ``fit_lda_feature_ranking``.
+    binary_target_feature : str
+        Column name copied to the projection dataframe as the target label.
+    minimal_weight : list[float] or None, default=[2.0, 3.0, 4.0, 5.0]
+        Thresholds used to create sparse projection columns; if ``None``, no
+        sparse columns are added.
+    save : bool, default=False
+        If ``True``, saves ``df_lda`` as a CSV and returns its path.
+    output_dir : pathlib.Path or None, default=None
+        Directory used to save the transform CSV.
+    fname_suffix : str, default=""
+        Optional suffix appended to the CSV filename.
+
+    Returns
+    -------
+    tuple[pandas.DataFrame, pandas.DataFrame, pathlib.Path | None]
+        LDA transform dataframe, projection dataframe, and optional CSV path.
+    """
+    df_features = df_mig[features_to_rank]
+
     df_proj = pd.DataFrame(
-        np.c_[projected_data, df_mig["coherent_migration"]], columns=["LDA", "coherent_migration"]
+        np.c_[projected_data, df_mig[binary_target_feature]],
+        columns=["LDA", binary_target_feature],
     )
 
     # Convert to DataFrame
     df_lda = pd.DataFrame({"weights": optimal_axis.tolist(), "features": features_to_rank})
-    df_lda["intercept"] = float(lda.intercept_[0])
-
-    # Save as CSV
-    csv_path = output_dir / f"lda_transform_{fname_suffix}.csv"
-    df_lda.to_csv(csv_path, index=False)
+    df_lda["intercept"] = lda_intercept
 
     if minimal_weight is not None:
         for weight in minimal_weight:
             sparse_axis = np.where(np.abs(optimal_axis) >= weight, optimal_axis, 0)
             logger.info(f"Highly contributing pcs at minimal weight threshold of {weight}")
             logger.info([features_to_rank[pc] for pc in np.where(np.abs(sparse_axis) > 0)[0]])
-            projected_data_sparse = df_features @ sparse_axis + lda.intercept_[0]
+            projected_data_sparse = df_features @ sparse_axis + lda_intercept
             df_proj[f"LDA_SP_{int(weight)}"] = projected_data_sparse
+
+    csv_path: Path | None = None
+    if save:
+        if output_dir is None:
+            raise ValueError("output_dir must be provided when save=True")
+        csv_path = output_dir / f"lda_feature_ranking_{fname_suffix}.csv"
+        df_lda.to_csv(csv_path, index=False)
 
     return df_lda, df_proj, csv_path
 
@@ -89,7 +199,26 @@ def apply_lda_projection(
     lda_intercept: float,
     sparse_axes: list[float] | None = None,
 ) -> pd.DataFrame:
+    """Apply stored LDA coefficients to a dataframe.
 
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input dataframe containing ``features_in_lda_rank``.
+    features_in_lda_rank : list[str]
+        Feature column order matching ``lda_weights``.
+    lda_weights : numpy.ndarray
+        LDA coefficient vector.
+    lda_intercept : float
+        LDA intercept term.
+    sparse_axes : list[float] or None, default=None
+        If provided, sparse projections are computed at fixed thresholds.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Original dataframe with appended LDA projection columns.
+    """
     df_features = df[features_in_lda_rank]
     lda_weights_array = np.asarray(lda_weights, dtype=float)
     lda_intercept = float(lda_intercept)
@@ -112,14 +241,6 @@ def apply_lda_projection(
     return df_result
 
 
-def rank_features_by_separation(
-    df: pd.DataFrame,
-    features_to_rank: list[str],
-    label_column: str = "migration_type",
-):
-    return compute_separation_power(df[features_to_rank], df[label_column])
-
-
 def plot_ranked_feature_histograms(
     df: pd.DataFrame,
     ranking: list[dict[str, float | str]],
@@ -127,7 +248,26 @@ def plot_ranked_feature_histograms(
     label_column: str = "migration_type",
     fname: str = "find_coherent_mig_histograms.png",
 ):
+    """Plot and save histograms for ranked features by class label.
 
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input dataframe containing ranked features and labels.
+    ranking : list[dict[str, float | str]]
+        Ranking metadata from ``compute_separation_power``.
+    output_dir : pathlib.Path
+        Directory where the figure is saved.
+    label_column : str, default="migration_type"
+        Column used to separate classes in histograms.
+    fname : str, default="find_coherent_mig_histograms.png"
+        Output figure filename.
+
+    Returns
+    -------
+    None
+        This function saves a figure and returns nothing.
+    """
     n_pcs = len(ranking)
     ncols = len(ranking) if len(ranking) < 10 else 10
     nrows = (n_pcs + ncols - 1) // ncols
