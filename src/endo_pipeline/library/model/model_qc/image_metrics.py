@@ -4,8 +4,6 @@ Provides Pearson correlation, SSIM, and LPIPS computations used by the
 model QC pipeline to compare ground-truth and reconstructed images.
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Literal, NamedTuple
 
 from numpy.typing import NDArray
@@ -20,34 +18,34 @@ class ImageMetrics(NamedTuple):
     """Container for image similarity metrics."""
 
     correlation: float
+    """Pearson correlation coefficient between the two images (range [-1, 1])."""
+
     ssim: float
+    """Structural Similarity Index Measure (SSIM) score (range [0, 1], 1 = identical)."""
+
     lpips: float
+    """Learned Perceptual Image Patch Similarity (LPIPS) score (lower is better, 0 = identical)."""
 
 
 class LPIPSCalculator:
-    """
-    Lazily-initialized LPIPS (Learned Perceptual Image Patch Similarity) calculator.
+    """Lazily-initialized LPIPS (Learned Perceptual Image Patch Similarity) calculator.
 
     The underlying ``torchmetrics`` model is created on first use to prevent
     unnecessary GPU memory allocation when the metric is not explicitly called.
-
-    Parameters
-    ----------
-    net_type : {'vgg', 'alex'}, default='vgg'
-        The backbone network architecture used to extract features for
-        the similarity calculation.
-    device : str, optional
-        Torch device string (e.g., 'cuda', 'cpu'). If ``None``, the device
-        is auto-detected based on CUDA availability.
-
-    Attributes
-    ----------
-    model : torchmetrics.image.lpip.LearnedPerceptualImagePatchSimilarity or None
-        The underlying LPIPS model instance, initialized only after the
-        first call.
     """
 
     def __init__(self, net_type: Literal["vgg", "alex"] = "vgg", device: str | None = None):
+        """Initialise the LPIPS calculator.
+
+        Parameters
+        ----------
+        net_type
+            The backbone network architecture used to extract features for
+            the similarity calculation.
+        device
+            Torch device string (e.g., 'cuda', 'cpu'). If ``None``, the device
+            is auto-detected based on CUDA availability.
+        """
         self.net_type = net_type
         self._device = device
         self._model: torch.nn.Module | None = None
@@ -62,8 +60,12 @@ class LPIPSCalculator:
         return self._device
 
     @property
-    def model(self) -> torch.nn.Module:
-        """Lazily initialise and return the LPIPS model."""
+    def model(self) -> "torch.nn.Module":
+        """Lazily initialise and return the underlying LPIPS model.
+
+        The ``torchmetrics`` LPIPS model instance is created on first
+        access and moved to the configured device.
+        """
         if self._model is None:
             from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
 
