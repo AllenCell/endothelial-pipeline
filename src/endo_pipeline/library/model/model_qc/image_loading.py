@@ -1,7 +1,5 @@
 """Image loading and preprocessing helpers for model QC."""
 
-from __future__ import annotations
-
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -22,18 +20,16 @@ from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
 if TYPE_CHECKING:
     from omegaconf import DictConfig
 
-    from endo_pipeline.manifests.image_manifest import ImageLocation
     from endo_pipeline.settings.examples import ExampleImage
 
 logger = logging.getLogger(__name__)
 
 
 def load_transformed_image(
-    example: ExampleImage,
-    model_config: DictConfig,
-    diffusion_input_key: str,
+    example: "ExampleImage",
+    model_config: "DictConfig",
     timepoint: int | None = None,
-) -> tuple[dict[str, Any], ImageLocation, list[Any]]:
+) -> dict[str, Any]:
     """Load a zarr image, apply transforms, and return the transformed sample.
 
     Parameters
@@ -42,8 +38,6 @@ def load_transformed_image(
         The example image metadata (dataset, position, timepoint, etc.).
     model_config
         The model configuration loaded from MLflow.
-    diffusion_input_key
-        Key identifying the diffusion input channel.
     timepoint
         Timepoint to load. If None, uses ``example.timepoint``.
 
@@ -51,10 +45,6 @@ def load_transformed_image(
     -------
     sample
         The transformed image data dictionary.
-    zarr_loc
-        The zarr file location.
-    transforms
-        The image transforms that were applied.
     """
     dataset_config = load_dataset_config(example.dataset_name)
     zarr_loc = get_zarr_location_for_position(dataset_config, example.position)
@@ -69,12 +59,12 @@ def load_transformed_image(
     data = create_data_dict_loaded_image(img)
     transforms = get_image_transforms(model_config)
     sample = apply_img_transforms(transforms, data)
-    return sample, zarr_loc, transforms
+    return sample
 
 
 def load_and_preprocess_example_crop(
-    example: ExampleImage,
-    model_config: DictConfig,
+    example: "ExampleImage",
+    model_config: "DictConfig",
     crop_size: int,
     channel_key_for_conditioning_input: str,
     diffusion_input_key: str,
@@ -101,7 +91,7 @@ def load_and_preprocess_example_crop(
     diffusion_crop
         Cropped diffusion input image.
     """
-    sample, _, _ = load_transformed_image(example, model_config, diffusion_input_key)
+    sample = load_transformed_image(example, model_config)
 
     conditioning_img = get_target_image_from_sample(
         sample, target_key=channel_key_for_conditioning_input
