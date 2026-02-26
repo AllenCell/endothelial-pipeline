@@ -1,7 +1,5 @@
 """Metric computation, aggregation, and comparison plot generation for model QC."""
 
-from __future__ import annotations
-
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -31,12 +29,12 @@ logger = logging.getLogger(__name__)
 
 
 def compute_baseline_for_example(
-    example: ExampleImage,
-    model_config: DictConfig,
+    example: "ExampleImage",
+    model_config: "DictConfig",
     diffusion_input_key: str,
     crop_size: int,
     ground_truth: np.ndarray,
-    lpips_calculator: LPIPSCalculator,
+    lpips_calculator: "LPIPSCalculator",
 ) -> tuple[float, float, float]:
     """Compare ground truth to the next-timepoint CDH5 crop.
 
@@ -66,10 +64,9 @@ def compute_baseline_for_example(
         If the next-timepoint image cannot be loaded or metrics cannot be
         computed (e.g. missing timepoint). Callers should handle this.
     """
-    sample_next, _, _ = load_transformed_image(
+    sample_next = load_transformed_image(
         example,
         model_config,
-        diffusion_input_key,
         timepoint=example.timepoint + 1,
     )
     diffusion_next = get_target_image_from_sample(
