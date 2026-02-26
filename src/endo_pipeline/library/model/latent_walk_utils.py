@@ -92,9 +92,9 @@ def _add_preceding_dims_to_column_names(column_names: list[str], feature_prefix:
     max_dim = get_max_dim_in_column_names(column_names, feature_prefix)
     if max_dim == 0:
         return column_names
-    elif feature_prefix == ColumnName.PCA_FEATURE_PREFIX.value:
+    elif feature_prefix == ColumnName.PCA_FEATURE_PREFIX:
         all_dim_columns = get_pc_column_names(num_pcs=max_dim)
-    elif feature_prefix == ColumnName.LATENT_FEATURE_PREFIX.value:
+    elif feature_prefix == ColumnName.LATENT_FEATURE_PREFIX:
         all_dim_columns = get_latent_feature_column_names(num_latent_dims=max_dim)
     else:
         raise ValueError(f"Invalid feature prefix: {feature_prefix}")
@@ -132,8 +132,8 @@ def get_column_names_for_latent_walk_dataframe(input_column_names: list[str]) ->
     # special cases for transformed variables: polar coordinates and flipped pc3
     polar_subset = {ColumnName.POLAR_ANGLE.value, ColumnName.POLAR_RADIUS.value}
     pc1_pc2_subset = {
-        f"{ColumnName.PCA_FEATURE_PREFIX.value}1",
-        f"{ColumnName.PCA_FEATURE_PREFIX.value}2",
+        f"{ColumnName.PCA_FEATURE_PREFIX}1",
+        f"{ColumnName.PCA_FEATURE_PREFIX}2",
     }
     # first, check that columns do not have both the polar coordinates and the
     # PC1 and PC2 coordinates, since this would be redundant and could cause
@@ -144,21 +144,15 @@ def get_column_names_for_latent_walk_dataframe(input_column_names: list[str]) ->
         raise ValueError(
             f"Column names cannot include both polar coordinates and PC1 and PC2 coordinates. Column names provided: {column_names}"
         )
-    if (
-        ColumnName.POLAR_ANGLE.value in column_names
-        and ColumnName.POLAR_RADIUS.value not in column_names
-    ):
+    if ColumnName.POLAR_ANGLE in column_names and ColumnName.POLAR_RADIUS not in column_names:
         # if polar angle is included in the column names but polar radius is
         # not, add polar radius to the column names
         column_names.append(ColumnName.POLAR_RADIUS.value)
-    if (
-        ColumnName.POLAR_RADIUS.value in column_names
-        and ColumnName.POLAR_ANGLE.value not in column_names
-    ):
+    if ColumnName.POLAR_RADIUS in column_names and ColumnName.POLAR_ANGLE not in column_names:
         # if polar radius is included in the column names but polar angle is
         # not, add polar angle to the column names
         column_names.append(ColumnName.POLAR_ANGLE.value)
-    if ColumnName.PC3_FLIPPED.value in column_names:
+    if ColumnName.PC3_FLIPPED in column_names:
         # if PC3_FLIPPED is included in the column names, need to either
         # have PC1 and PC2 OR polar angle and radius included in the column names
         # so that the PC1, PC2, and PC3 coordinates can be calculated for image generation
