@@ -112,16 +112,23 @@ def apply_lda_projection(
     return df_result
 
 
-def rank_features_and_plot_histograms(
+def rank_features_by_separation(
     df: pd.DataFrame,
     features_to_rank: list[str],
+    label_column: str = "migration_type",
+):
+    return compute_separation_power(df[features_to_rank], df[label_column])
+
+
+def plot_ranked_feature_histograms(
+    df: pd.DataFrame,
+    ranking: list[dict[str, float | str]],
     output_dir: Path,
     label_column: str = "migration_type",
     fname: str = "find_coherent_mig_histograms.png",
 ):
-    ranking = compute_separation_power(df[features_to_rank], df[label_column])
 
-    n_pcs = len(features_to_rank)
+    n_pcs = len(ranking)
     ncols = len(ranking) if len(ranking) < 10 else 10
     nrows = (n_pcs + ncols - 1) // ncols
 

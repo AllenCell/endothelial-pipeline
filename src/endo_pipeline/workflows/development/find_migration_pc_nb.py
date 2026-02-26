@@ -16,7 +16,8 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
 )
 from endo_pipeline.library.analyze.migration_pc.lda_analysis import (
     apply_lda_projection,
-    rank_features_and_plot_histograms,
+    plot_ranked_feature_histograms,
+    rank_features_by_separation,
     run_lda_feature_ranking,
 )
 from endo_pipeline.manifests import (
@@ -143,9 +144,14 @@ df_mig = pd.concat(df_mig_list, ignore_index=True)
 
 
 # %% PC ranking and histogram plotting
-rank_features_and_plot_histograms(
+pc_ranking = rank_features_by_separation(
     df_mig,
     features_to_rank=pc_columns_to_keep,
+    label_column="migration_type",
+)
+plot_ranked_feature_histograms(
+    df_mig,
+    pc_ranking,
     output_dir=output_dir,
     label_column="migration_type",
 )
@@ -154,9 +160,14 @@ rank_features_and_plot_histograms(
 df_lda, df_proj, lda_csv_path = run_lda_feature_ranking(
     df_mig, pc_columns_to_keep, output_dir, "pcs_only"
 )
-rank_features_and_plot_histograms(
+lda_ranking = rank_features_by_separation(
     df_proj,
     list(df_proj.columns.drop(["coherent_migration"])),
+    label_column="coherent_migration",
+)
+plot_ranked_feature_histograms(
+    df_proj,
+    lda_ranking,
     output_dir=output_dir,
     label_column="coherent_migration",
     fname="find_coherent_mig_histograms_lda_pcs_only.png",
@@ -168,9 +179,14 @@ df_mig_random["coherent_migration"] = df_mig["coherent_migration"].sample(frac=1
 df_lda_random, df_proj_random, _ = run_lda_feature_ranking(
     df_mig_random, pc_columns_to_keep, output_dir, "pcs_only_random", minimal_weight=None
 )
-rank_features_and_plot_histograms(
+lda_random_ranking = rank_features_by_separation(
     df_proj_random,
     list(df_proj_random.columns.drop(["coherent_migration"])),
+    label_column="coherent_migration",
+)
+plot_ranked_feature_histograms(
+    df_proj_random,
+    lda_random_ranking,
     output_dir=output_dir,
     label_column="coherent_migration",
     fname="find_coherent_mig_histograms_lda_pcs_only_random.png",
