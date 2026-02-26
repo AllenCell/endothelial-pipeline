@@ -1,0 +1,8 @@
+name: diffae_optical_flow
+workflow: compute_optical_flow_feats
+parameters: {}
+locations:
+  20250618_20X:
+    fmsid: 2aadc0e0adf94211ad365ecd4de108b6
+    path: null
+    s3uri: null
