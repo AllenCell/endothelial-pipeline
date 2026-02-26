@@ -230,20 +230,52 @@ def get_latent_walk(
     Generate a latent walk based on standard deviation or min/max of each
     dimension.
 
+    **Specifying walk dimensions**
+
+    The ``walk_column_names`` parameter specifies the dimensions to traverse in
+    the latent walk. For example, if the column names for the PCA features are
+    "pc_1", "pc_2", and "pc_3", and the ``walk_column_names`` parameter is set
+    to ["pc_3"], then the latent walk will only traverse the "pc_3" dimension
+    while holding the "pc_1" and "pc_2" dimensions constant at the baseline walk
+    values.
+
+    **Baseline walk values**
+
+    For the dimensions that are not being traversed in the walk, the values for
+    those dimensions will be held constant at the baseline walk values. By
+    default, the baseline walk values are set to the mean of the data for each
+    dimension, but the user can also specify custom baseline walk values for any
+    dimensions using the ``set_column_value`` parameter. This method calls the
+    method ``get_baseline_walk_values`` to get the baseline walk values for each
+    dimension based on the provided data and the ``set_column_value`` parameter.
+
+    **Walk range**
+
+    The range of values to traverse for each dimension in the walk can be set
+    based on either the standard deviation of the data for that dimension or the
+    minimum and maximum values of the data for that dimension.
+
+    If the ``sigma``
+    parameter is set to a positive value, the walk range for each dimension will
+    be set to [-sigma * std, sigma * std], where std is the standard deviation of
+    the data for that dimension.
+
+    If the ``sigma`` parameter is set to None, the
+    walk range for each dimension will be set to [min, max], where min and max
+    are the minimum and maximum values of the data for that dimension.
+
     Parameters
     ----------
-    data
-        Numpy array containing the data to be traversed.
-    n_dims
-        Number of dimensions for the latent walk.
+    dataframe
+        Data to use for calculating baseline mean values and walk ranges.
+    walk_column_names
+        List of column names to actually traverse in the latent walk.
     sigma
-        Range of values for the latent walk. If None, use min/max of dimension.
+        Optional, number of standard deviations to use for the walk range.
     n_steps
         Number of steps in the latent walk.
     set_column_value
-        Optional, dictionary mapping column names to values to set for those
-        columns when generating the latent walk. If None, uses the mean of the
-        data for each dimension as the baseline walk values.
+        Optional, dictionary mapping column names to set baseline values.
     """
     walks: list[pd.DataFrame] = []
     ranges: list[np.ndarray] = []
