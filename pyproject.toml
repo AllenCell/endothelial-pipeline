@@ -216,6 +216,7 @@ module = [
     "s3_uploader.*",
     "torchmetrics.*",
     "vtk.*",
+    "sklearn.*",
 ]
 ignore_missing_imports = true
 

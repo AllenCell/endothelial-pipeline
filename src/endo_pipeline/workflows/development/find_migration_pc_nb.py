@@ -16,8 +16,11 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
 )
 from endo_pipeline.library.analyze.migration_pc.lda_analysis import (
     apply_lda_projection,
-    rank_features_and_plot_histograms,
-    run_lda_feature_ranking,
+    build_lda_outputs,
+    compute_separation_power,
+    fit_lda_feature_ranking,
+    plot_lda_optimal_axis,
+    plot_ranked_feature_histograms,
 )
 from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
@@ -36,6 +39,7 @@ logger = logging.getLogger(__name__)
 DESCRIPTION = "Manual annotations for migration type; LDA ranks top contributing PCs."
 
 UPLOAD_TO_FMS = False
+COHERENT_MIGRATION_COL = "coherent_migration"
 
 # %%
 output_dir = get_output_path("find_coherent_mig")
@@ -131,7 +135,7 @@ for file_info in mixed_mig_files + coherent_mig_files:
         right_on=["crop_index", "Frame"],
         how="inner",
     )
-    merged["coherent_migration"] = file_info in coherent_mig_files
+    merged[COHERENT_MIGRATION_COL] = file_info in coherent_mig_files
     merged["migration_type"] = "coherent" if file_info in coherent_mig_files else "mixed"
     df_mig_list.append(merged)
 
@@ -143,41 +147,87 @@ df_mig = pd.concat(df_mig_list, ignore_index=True)
 
 
 # %% PC ranking and histogram plotting
-rank_features_and_plot_histograms(
+pc_ranking = compute_separation_power(df_mig[pc_columns_to_keep], df_mig["migration_type"])
+plot_ranked_feature_histograms(
     df_mig,
-    features_to_rank=pc_columns_to_keep,
+    pc_ranking,
     output_dir=output_dir,
     label_column="migration_type",
 )
 
 # %% LDA feature ranking and histogram plotting, pcs only
-df_lda, df_proj, lda_csv_path = run_lda_feature_ranking(
-    df_mig, pc_columns_to_keep, output_dir, "pcs_only"
+features_ranked, optimal_axis, lda_intercept, projected_data = fit_lda_feature_ranking(
+    df_mig, pc_columns_to_keep, binary_target_feature=COHERENT_MIGRATION_COL
 )
-rank_features_and_plot_histograms(
-    df_proj,
-    list(df_proj.columns.drop(["coherent_migration"])),
+plot_lda_optimal_axis(features_ranked, optimal_axis, output_dir, "pcs_only")
+df_lda, df_proj, lda_csv_path = build_lda_outputs(
+    df_mig,
+    features_ranked,
+    optimal_axis,
+    lda_intercept,
+    projected_data,
+    binary_target_feature=COHERENT_MIGRATION_COL,
     output_dir=output_dir,
-    label_column="coherent_migration",
+    fname_suffix="pcs_only",
+)
+lda_features = list(df_proj.columns.drop([COHERENT_MIGRATION_COL]))
+lda_ranking = compute_separation_power(df_proj[lda_features], df_proj[COHERENT_MIGRATION_COL])
+plot_ranked_feature_histograms(
+    df_proj,
+    lda_ranking,
+    output_dir=output_dir,
+    label_column=COHERENT_MIGRATION_COL,
     fname="find_coherent_mig_histograms_lda_pcs_only.png",
 )
 
-# Run LDA on randomized labels as a control
+# %% Run LDA on randomized labels as a control
 df_mig_random = df_mig.copy()
-df_mig_random["coherent_migration"] = df_mig["coherent_migration"].sample(frac=1).values
-df_lda_random, df_proj_random, _ = run_lda_feature_ranking(
-    df_mig_random, pc_columns_to_keep, output_dir, "pcs_only_random", minimal_weight=None
+df_mig_random[COHERENT_MIGRATION_COL] = df_mig[COHERENT_MIGRATION_COL].sample(frac=1).values
+features_ranked_random, optimal_axis_random, lda_intercept_random, projected_data_random = (
+    fit_lda_feature_ranking(
+        df_mig_random,
+        pc_columns_to_keep,
+        binary_target_feature=COHERENT_MIGRATION_COL,
+    )
 )
-rank_features_and_plot_histograms(
-    df_proj_random,
-    list(df_proj_random.columns.drop(["coherent_migration"])),
+# %%
+plot_lda_optimal_axis(
+    features_ranked_random,
+    optimal_axis_random,
+    output_dir,
+    "pcs_only_random",
+    title_suffix="* scrambled annotations",
+)
+# %%
+df_lda_random, df_proj_random, _ = build_lda_outputs(
+    df_mig_random,
+    features_ranked_random,
+    optimal_axis_random,
+    lda_intercept_random,
+    projected_data_random,
+    binary_target_feature=COHERENT_MIGRATION_COL,
+    minimal_weight=None,
     output_dir=output_dir,
-    label_column="coherent_migration",
+    fname_suffix="pcs_only_random",
+)
+lda_random_features = list(df_proj_random.columns.drop([COHERENT_MIGRATION_COL]))
+lda_random_ranking = compute_separation_power(
+    df_proj_random[lda_random_features], df_proj_random[COHERENT_MIGRATION_COL]
+)
+# %%
+plot_ranked_feature_histograms(
+    df_proj_random,
+    lda_random_ranking,
+    output_dir=output_dir,
+    label_column=COHERENT_MIGRATION_COL,
     fname="find_coherent_mig_histograms_lda_pcs_only_random.png",
+    legend_suffix="* scrambled",
 )
 
 # %% Upload LDA feature ranking results to FMS
 if UPLOAD_TO_FMS:
+    if lda_csv_path is None:
+        raise ValueError("lda_csv_path is None; ensure build_lda_outputs is called with save=True")
     dataset_config = load_dataset_config("20250319_20X")
     dataset_config_2 = load_dataset_config("20250813_20X")
 
@@ -200,8 +250,8 @@ df_lda = load_dataframe(lda_location)
 df_proj_full = apply_lda_projection(
     df,
     features_in_lda_rank=df_lda["features"].to_list(),
-    lda_weights=df_lda["weights"].to_list(),
+    lda_weights=df_lda["weights"].to_numpy(),
     lda_intercept=df_lda["intercept"][0],
-    sparse_axes=[2.0, 3.0, 4.0],
+    sparse_axes=[2.0, 3.0, 4.0, 5.0],
 )
 # %%
