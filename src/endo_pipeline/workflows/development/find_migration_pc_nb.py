@@ -1,4 +1,6 @@
 # %%
+import logging
+
 import pandas as pd
 
 from endo_pipeline.configs import load_dataset_config
@@ -28,6 +30,8 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
 )
+
+logger = logging.getLogger(__name__)
 
 DESCRIPTION = "Manual annotations for migration type; LDA ranks top contributing PCs."
 
@@ -118,16 +122,22 @@ for file_info in mixed_mig_files + coherent_mig_files:
 
     fname = file_info["fname"]
     df_annotation = pd.read_csv(f"{annotation_path}/{fname}")
-    pairs_df = df_annotation[["Track", "Frame"]]
+    df_annotation["crop_index"] = df_annotation["Track"] - 1
+
+    pairs_df = df_annotation[["crop_index", "Frame"]]
     merged = df.merge(
-        pairs_df, left_on=["crop_index", "frame_number"], right_on=["Track", "Frame"], how="inner"
+        pairs_df,
+        left_on=["crop_index", "frame_number"],
+        right_on=["crop_index", "Frame"],
+        how="inner",
     )
     merged["coherent_migration"] = file_info in coherent_mig_files
+    merged["migration_type"] = "coherent" if file_info in coherent_mig_files else "mixed"
     df_mig_list.append(merged)
 
-    assert len(merged) == len(
-        df_annotation
-    ), f"Expected {len(df_annotation)} rows after merge, got {len(merged)} for file {fname}"
+    if len(merged) != len(df_annotation):
+        logger.error("File '%s' had different number of rows after merge", fname)
+        raise ValueError(f"Different dataframe lengths: '{len(df_annotation)}' vs. '{len(merged)}'")
 
 df_mig = pd.concat(df_mig_list, ignore_index=True)
 
@@ -137,7 +147,7 @@ rank_features_and_plot_histograms(
     df_mig,
     features_to_rank=pc_columns_to_keep,
     output_dir=output_dir,
-    label_column="coherent_migration",
+    label_column="migration_type",
 )
 
 # %% LDA feature ranking and histogram plotting, pcs only
@@ -146,12 +156,25 @@ df_lda, df_proj, lda_csv_path = run_lda_feature_ranking(
 )
 rank_features_and_plot_histograms(
     df_proj,
-    list(df_proj.columns.drop("coherent_migration")),
+    list(df_proj.columns.drop(["coherent_migration"])),
     output_dir=output_dir,
     label_column="coherent_migration",
     fname="find_coherent_mig_histograms_lda_pcs_only.png",
 )
 
+# Run LDA on randomized labels as a control
+df_mig_random = df_mig.copy()
+df_mig_random["coherent_migration"] = df_mig["coherent_migration"].sample(frac=1).values
+df_lda_random, df_proj_random, _ = run_lda_feature_ranking(
+    df_mig_random, pc_columns_to_keep, output_dir, "pcs_only_random", minimal_weight=None
+)
+rank_features_and_plot_histograms(
+    df_proj_random,
+    list(df_proj_random.columns.drop(["coherent_migration"])),
+    output_dir=output_dir,
+    label_column="coherent_migration",
+    fname="find_coherent_mig_histograms_lda_pcs_only_random.png",
+)
 
 # %% Upload LDA feature ranking results to FMS
 if UPLOAD_TO_FMS:
@@ -176,8 +199,8 @@ df_lda = load_dataframe(lda_location)
 # %%
 df_proj_full = apply_lda_projection(
     df,
-    features_in_lda_rank=df_lda["features"],
-    lda_weights=df_lda["weights"],
+    features_in_lda_rank=df_lda["features"].to_list(),
+    lda_weights=df_lda["weights"].to_list(),
     lda_intercept=df_lda["intercept"][0],
     sparse_axes=[2.0, 3.0, 4.0],
 )
