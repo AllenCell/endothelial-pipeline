@@ -122,9 +122,14 @@ for file_info in mixed_mig_files + coherent_mig_files:
 
     fname = file_info["fname"]
     df_annotation = pd.read_csv(f"{annotation_path}/{fname}")
-    pairs_df = df_annotation[["Track", "Frame"]]
+    df_annotation["crop_index"] = df_annotation["Track"] - 1
+
+    pairs_df = df_annotation[["crop_index", "Frame"]]
     merged = df.merge(
-        pairs_df, left_on=["crop_index", "frame_number"], right_on=["Track", "Frame"], how="inner"
+        pairs_df,
+        left_on=["crop_index", "frame_number"],
+        right_on=["crop_index", "Frame"],
+        how="inner",
     )
     merged["coherent_migration"] = file_info in coherent_mig_files
     merged["migration_type"] = "coherent" if file_info in coherent_mig_files else "mixed"
@@ -159,7 +164,7 @@ rank_features_and_plot_histograms(
 
 # Run LDA on randomized labels as a control
 df_mig_random = df_mig.copy()
-df_mig_random['coherent_migration'] = df_mig['coherent_migration'].sample(frac=1).values
+df_mig_random["coherent_migration"] = df_mig["coherent_migration"].sample(frac=1).values
 df_lda_random, df_proj_random, _ = run_lda_feature_ranking(
     df_mig_random, pc_columns_to_keep, output_dir, "pcs_only_random", minimal_weight=None
 )
