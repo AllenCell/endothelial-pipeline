@@ -46,6 +46,7 @@ python src/endo_pipeline/workflows/tiff_to_zarr_conversion.py cdh5_classic_seg 3
 
 import re
 import sys
+import warnings
 from collections.abc import Sequence
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
@@ -54,6 +55,7 @@ import pandas as pd
 from bioio import BioImage
 from bioio_ome_zarr.writers import OMEZarrWriter  # type: ignore
 from bioio_ome_zarr.writers.metadata import Channel  # type: ignore
+from dask.array.core import PerformanceWarning
 from tqdm import tqdm
 
 
@@ -142,11 +144,14 @@ if __name__ == "__main__":
     results_path = Path("//allen/aics/users/jessica.yu/2026-02-25/tiff_to_zarr")
     convert_csv_path = results_path / f"tiff_to_zarr_conversion_{image_manifest_name}.csv"
 
+    # Silence warnings from Dask
+    warnings.simplefilter(action="ignore", category=PerformanceWarning)
+
     # If running in batches, get batch index and only load that batch from the
     # dataframe. If not, load the entire dataframe.
     if len(sys.argv) > 2:
         batch_index = int(sys.argv[2])
-        batch_size = 10
+        batch_size = 16
         batch_start = int(batch_index) * batch_size + 1
         df = pd.read_csv(convert_csv_path, skiprows=range(1, batch_start), nrows=batch_size)
 
