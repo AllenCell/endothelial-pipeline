@@ -704,7 +704,7 @@ def get_dataframe_for_dynamics_workflows(
     compute_polar
         Whether to compute polar coordinates (r, theta) from the first two PCs.
     flip_pc3_sign
-        True to add an addtional column with the sign of PC3 flipped for
+        True to add an additional column with the sign of PC3 flipped for
         consistency, False otherwise.
     rescale_theta
         Whether to rescale the polar angle theta to be in the range [0, pi].
