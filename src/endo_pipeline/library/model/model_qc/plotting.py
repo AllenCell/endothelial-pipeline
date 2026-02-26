@@ -4,8 +4,6 @@ All figure-creation logic lives in ``model_qc_plots``; this module only
 adds the example-ID filename generation and the save / close step.
 """
 
-from __future__ import annotations
-
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -47,7 +45,7 @@ def _ensure_dir(path: Path) -> Path:
     return path
 
 
-def _example_id(example: ExampleImage) -> str:
+def _example_id(example: "ExampleImage") -> str:
     """Build a compact string identifier for an example image.
 
     Parameters
@@ -75,7 +73,7 @@ def save_negative_control_sheet(
     label_for_conditioning: str,
     noise_levels: list[float],
     output_path: Path,
-    example: ExampleImage,
+    example: "ExampleImage",
 ) -> None:
     """Create and save the negative-control contact sheet for one example.
 
@@ -133,7 +131,7 @@ def save_intermediate_contact_sheet(
     label_for_conditioning: str,
     noise_labels: list[str],
     output_path: Path,
-    example: ExampleImage,
+    example: "ExampleImage",
 ) -> None:
     """Create and save per-example intermediate contact sheet with metrics.
 
