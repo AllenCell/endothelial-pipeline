@@ -9,14 +9,13 @@ from tqdm import tqdm
 
 from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import get_subset_of_timepoint_annotations, load_dataset_config
-from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
-from endo_pipeline.library.analyze.integration.track_integration import (
-    load_pc_diffae_liveseg_feats_merged_table,
-)
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
+from endo_pipeline.settings.workflow_defaults import DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
 
 
 def test_vector_mean_angle_and_mag():
@@ -66,7 +65,9 @@ def generate_test_angles() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarr
 
 
 def create_summary_dfs(
-    datasets: Datasets, cols_to_compute: list[str]
+    datasets: Datasets,
+    cols_to_compute: list[str],
+    dataset_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 
     dataset_info_cols = [
@@ -90,9 +91,11 @@ def create_summary_dfs(
             shear_stress = config.flow_conditions[0].shear_stress
             shear_stress_regime = config.shear_stress_regime[0].value
 
-        df_delayed = load_pc_diffae_liveseg_feats_merged_table(dataset_name)
+        dataset_manifest = load_dataframe_manifest(dataset_manifest_name)
+        dataset_location = get_dataframe_location_for_dataset(dataset_manifest, dataset_name)
+        df_delayed = load_dataframe(dataset_location, delay=True)
 
-        df = df_delayed[cols_to_compute].compute()
+        df = df_delayed[cols_to_compute].compute().reset_index()
         df.dataset = dataset_name
         annotations_to_ignore: list = []
         timepoint_annotations = get_subset_of_timepoint_annotations(annotations_to_ignore)
