@@ -345,9 +345,9 @@ def _compute_correlations_for_one_dataset(
     feat_cols = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
     # add polar coordinate features to the list of features for correlation analysis
     polar_column_names = [
-        str(ColumnName.POLAR_ANGLE.value),
-        str(ColumnName.POLAR_RADIUS.value),
-        str(ColumnName.PC3_FLIPPED.value),
+        ColumnName.POLAR_ANGLE,
+        ColumnName.POLAR_RADIUS,
+        ColumnName.PC3_FLIPPED,
     ]
     feat_cols.extend(polar_column_names)
 
