@@ -2,7 +2,6 @@
 import logging
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 
 from endo_pipeline.configs import get_subset_of_timepoint_annotations, load_dataset_config
@@ -15,6 +14,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
+from endo_pipeline.library.analyze.migration_pc.compare_feats import plot_lda_vs_optical_flow
 from endo_pipeline.library.analyze.migration_pc.lda_analysis import apply_lda_projection
 from endo_pipeline.library.analyze.migration_pc.specify_manual_annotations import (
     ANNOTATION_PATH,
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 # %%
 # datasets = get_datasets_in_collection("diffae_model_training")
-datasets = ["20250611_20X", "20250618_20X", "20250813_20X", "20250319_20X"]
+datasets = ["20250618_20X", "20250428_20X", "20250319_20X"]
 
 # %% Load lda weights to apply LDA projection to original dataframe
 lda_dataframe_manifest = load_dataframe_manifest("lda_weights")
@@ -57,7 +57,7 @@ dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 pca = fit_pca(num_pcs=80)
 
 # %% Load optical flow features
-dataframe_manifest_optical_flow_new = load_dataframe_manifest("optical_flow_new")
+dataframe_manifest_optical_flow_new = load_dataframe_manifest("optical_flow_bf")
 
 df_proj_full_list_new = []
 
@@ -73,7 +73,7 @@ for dataset_name in datasets:
         features_in_lda_rank=lda_features,
         lda_weights=lda_weights,
         lda_intercept=lda_intercept,
-        sparse_axes=[2.0, 3.0, 4.0],
+        sparse_axes=[2.0, 3.0, 4.0, 5.0],
     )
 
     # Get optical flow features
@@ -95,100 +95,15 @@ for dataset_name in datasets:
 # %%
 df_new = pd.concat(df_proj_full_list_new, ignore_index=True)
 
-
 # %%
-def plot_lda_vs_optical_flow(
-    df,
-    features,
-    optical_flow_features,
-    color_by_dataset=True,
-    point_alpha=0.25,
-    figsize=(24, 2.5 * 9),
-    max_points=10000,
-):
-    # Drop rows with NaNs in relevant columns
-    df = df.dropna(subset=features + optical_flow_features + ["dataset"])
-    rng = np.random.default_rng(42)
-    datasets_used = df["dataset"].unique()
-    n_rows, n_cols = len(optical_flow_features), len(features)
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize, sharex="col", sharey="row")
-    if n_rows == 1 and n_cols == 1:
-        axes = np.array([[axes]])
-    elif n_rows == 1 or n_cols == 1:
-        axes = axes.reshape((n_rows, n_cols))
-
-    if color_by_dataset:
-        colors = plt.cm.tab10(np.arange(len(datasets_used)))
-    else:
-        colors = ["tab:blue"] * len(datasets_used)
-
-    df_np = df.copy()
-    for col in features + optical_flow_features + ["dataset"]:
-        if col not in df_np:
-            continue
-        df_np[col] = df_np[col].to_numpy()
-
-    # Compute N for each dataset for legend
-    legend_labels = []
-    for i, dataset in enumerate(datasets_used):
-        mask = df["dataset"] == dataset
-        n_points = np.sum(mask)
-        legend_labels.append(f"{dataset} (N={n_points})")
-
-    for row, of_feature in enumerate(optical_flow_features):
-        of_data = df_np[of_feature]
-        for col, feature in enumerate(features):
-            ax = axes[row, col]
-            feat_data = df_np[feature]
-
-            # calculate correlation coefficient
-            corr_coef = np.corrcoef(feat_data, of_data)[0, 1]
-
-            for i, dataset in enumerate(datasets_used):
-                mask = df["dataset"] == dataset
-                x_full = feat_data[mask]
-                y_full = of_data[mask]
-                x, y = x_full, y_full
-                if max_points is not None and len(x) > max_points:
-                    idx = rng.choice(len(x), max_points, replace=False)
-                    x = x.iloc[idx]
-                    y = y.iloc[idx]
-                ax.scatter(
-                    x,
-                    y,
-                    alpha=point_alpha,
-                    color=colors[i],
-                    label=legend_labels[i] if (row == 0 and col == 0) else None,  # Only label once
-                    rasterized=True,
-                )
-            if row == 0:
-                ax.set_title(feature)
-            if col == 0:
-                ax.set_ylabel(of_feature)
-            ax.annotate(f"r={corr_coef:.2f}", xy=(0.05, 0.9), xycoords="axes fraction", fontsize=10)
-            ax.grid(True)
-
-    # Add legend to the first axis with handles
-    for ax in axes.flat:
-        handles, labels = ax.get_legend_handles_labels()
-        if handles:
-            ax.legend(loc="upper right", fontsize=10, frameon=True)
-            break
-
-    plt.tight_layout()
-    plt.show()
-    plt.close(fig)
-
-
-# %%
-features = ["LDA", "LDA_SP_2", "LDA_SP_3", "LDA_SP_4", "pc_1", "pc_2", "pc_3"]
-datasets_used = ["20250611_20X", "20250618_20X", "20250813_20X", "20250319_20X"]
+features = ["LDA", "LDA_SP_2", "LDA_SP_3", "LDA_SP_4", "LDA_SP_5", "pc_1", "pc_2", "pc_3"]
+datasets_used = ["20250618_20X", "20250428_20X", "20250319_20X"]
 # %%
 # for dt in range(2, 11):
-dt = 5
+dt = 1
 optical_flow_features = [
     f"optical_flow_mean_speed_dt{dt}",
-    # f"optical_flow_mean_unit_vector_dt{dt}",
+    f"optical_flow_mean_unit_vector_dt{dt}",
     f"optical_flow_std_speed_dt{dt}",
     f"optical_flow_mean_angle_dt{dt}",
     f"optical_flow_angle_std_dt{dt}",
