@@ -1,6 +1,5 @@
 """Metric computation, aggregation, and comparison plot generation for model QC."""
 
-import logging
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -19,8 +18,6 @@ if TYPE_CHECKING:
     from endo_pipeline.settings.examples import ExampleImage
 
     from .image_metrics import LPIPSCalculator
-
-logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -326,7 +323,7 @@ def build_models_data(
 
 
 # ---------------------------------------------------------------------------
-# Comparison plots & summary logging
+# Comparison plots & summary
 # ---------------------------------------------------------------------------
 
 
@@ -342,7 +339,7 @@ def create_comparison_plots_and_summary(
 
     Generates one bar plot per metric (correlation, SSIM, LPIPS) comparing
     all models on validation and rep-2 splits, and prints a formatted
-    summary table to the logger.
+    summary table.
 
     Parameters
     ----------
@@ -411,38 +408,28 @@ def create_comparison_plots_and_summary(
         )
 
     # Print summary table
-    logger.info("\n" + "=" * 80)
-    logger.info("SUMMARY: Model Performance%s", seeds_info)
-    logger.info("=" * 80)
+    print("\n" + "=" * 80)
+    print(f"SUMMARY: Model Performance{seeds_info}")
+    print("=" * 80)
 
     if compute_baseline and baseline_data["validation"]["corr_mean"] > 0:
-        logger.info("\nBASELINE (Temporal - Next Timepoint Comparison):")
+        print("\nBASELINE (Temporal - Next Timepoint Comparison):")
         for split_label, split_key in [("Validation", "validation"), ("Rep2      ", "rep2")]:
             b = baseline_data[split_key]
-            logger.info(
-                "  %s - Corr: %.3f ± %.3f, SSIM: %.3f ± %.3f, LPIPS: %.3f ± %.3f",
-                split_label,
-                b["corr_mean"],
-                b["corr_std"],
-                b["ssim_mean"],
-                b["ssim_std"],
-                b["lpips_mean"],
-                b["lpips_std"],
+            print(
+                f"  {split_label} - Corr: {b['corr_mean']:.3f} ± {b['corr_std']:.3f}, "
+                f"SSIM: {b['ssim_mean']:.3f} ± {b['ssim_std']:.3f}, "
+                f"LPIPS: {b['lpips_mean']:.3f} ± {b['lpips_std']:.3f}"
             )
-        logger.info("-" * 80)
+        print("-" * 80)
 
     for model_data in models_data:
-        logger.info("\n%s:", model_data["model_label"])
+        print(f"\n{model_data['model_label']}:")
         for split_label, split_key in [("Validation", "validation"), ("Rep2      ", "rep2")]:
             d = model_data[split_key]
-            logger.info(
-                "  %s - Corr: %.3f ± %.3f, SSIM: %.3f ± %.3f, LPIPS: %.3f ± %.3f",
-                split_label,
-                d["corr_mean"],
-                d["corr_std"],
-                d["ssim_mean"],
-                d["ssim_std"],
-                d["lpips_mean"],
-                d["lpips_std"],
+            print(
+                f"  {split_label} - Corr: {d['corr_mean']:.3f} ± {d['corr_std']:.3f}, "
+                f"SSIM: {d['ssim_mean']:.3f} ± {d['ssim_std']:.3f}, "
+                f"LPIPS: {d['lpips_mean']:.3f} ± {d['lpips_std']:.3f}"
             )
-    logger.info("=" * 80)
+    print("=" * 80)
