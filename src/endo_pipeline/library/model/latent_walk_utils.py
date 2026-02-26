@@ -214,6 +214,15 @@ def get_baseline_walk_values(
         if (set_column_value is None) or (column_name not in set_column_value.keys()):
             baseline_values.append(dataframe[column_name].mean())
         else:
+            set_value = set_column_value[column_name]
+            if set_value < dataframe[column_name].min() or set_value > dataframe[column_name].max():
+                logger.warning(
+                    "Provided set_column_value [ (%s, %.3f) ] is out of bounds [ (%.3f, %.3f) ] of the data. Using provided value anyway.",
+                    column_name,
+                    set_value,
+                    dataframe[column_name].min(),
+                    dataframe[column_name].max(),
+                )
             baseline_values.append(set_column_value[column_name])
 
     return baseline_values
