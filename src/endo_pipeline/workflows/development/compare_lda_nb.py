@@ -1,4 +1,6 @@
 # %%
+import logging
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -14,6 +16,12 @@ from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifes
     calculate_derived_data_dynamics_dependent,
 )
 from endo_pipeline.library.analyze.migration_pc.lda_analysis import apply_lda_projection
+from endo_pipeline.library.analyze.migration_pc.specify_manual_annotations import (
+    ANNOTATION_PATH,
+    COHERENT_MIG_FILES,
+    COHERENT_MIGRATION_COL,
+    MIXED_MIG_FILES,
+)
 from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
     get_feature_dataframe_manifest_name,
@@ -26,6 +34,8 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_RUN_NAME,
 )
 
+logger = logging.getLogger(__name__)
+
 # %%
 # datasets = get_datasets_in_collection("diffae_model_training")
 datasets = ["20250611_20X", "20250618_20X", "20250813_20X", "20250319_20X"]
@@ -34,6 +44,9 @@ datasets = ["20250611_20X", "20250618_20X", "20250813_20X", "20250319_20X"]
 lda_dataframe_manifest = load_dataframe_manifest("lda_weights")
 lda_location = get_dataframe_location_for_dataset(lda_dataframe_manifest, "80_pcs")
 df_lda = load_dataframe(lda_location)
+lda_features = df_lda["features"].to_list()
+lda_weights = df_lda["weights"].to_numpy()
+lda_intercept = float(df_lda["intercept"].iloc[0])
 
 # %% Load diffae features
 model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
@@ -57,9 +70,9 @@ for dataset_name in datasets:
 
     df_proj_full = apply_lda_projection(
         df_dataset,
-        features_in_lda_rank=df_lda["features"],
-        lda_weights=df_lda["weights"],
-        lda_intercept=df_lda["intercept"][0],
+        features_in_lda_rank=lda_features,
+        lda_weights=lda_weights,
+        lda_intercept=lda_intercept,
         sparse_axes=[2.0, 3.0, 4.0],
     )
 
@@ -236,9 +249,9 @@ for dataset_name in datasets:
 
     df_proj_full = apply_lda_projection(
         df_filtered,
-        features_in_lda_rank=df_lda["features"],
-        lda_weights=df_lda["weights"],
-        lda_intercept=df_lda["intercept"][0],
+        features_in_lda_rank=lda_features,
+        lda_weights=lda_weights,
+        lda_intercept=lda_intercept,
         sparse_axes=[2.0, 3.0, 4.0],
     )
 
@@ -273,42 +286,71 @@ plot_lda_vs_optical_flow(
     figsize=(24, 2.5 * 2),
 )
 # %%
-# df_mig_of = pd.merge(
-#     df_mig,
-#     df_new,
-#     left_on=["dataset", "position", "frame_number", "start_x", "start_y"],
-#     right_on=["dataset", "position", "frame_number", "start_x", "start_y"],
-#     how="inner",
-# )
+df_mig_list = []
+for file_info in MIXED_MIG_FILES + COHERENT_MIG_FILES:
+    dataset_name = str(file_info["dataset_name"])
 
-# # %%
+    df = get_dataframe_for_dynamics_workflows(
+        dataset_name, dataframe_manifest, pca=pca, filter_dataframe=False
+    )
 
-# for dt in range(1, 11):
-#     optical_flow_features = [
-#         f"optical_flow_mean_speed_dt{dt}",
-#         f"optical_flow_mean_unit_vector_dt{dt}",
-#         f"optical_flow_std_speed_dt{dt}",
-#         f"optical_flow_mean_angle_dt{dt}",
-#         f"optical_flow_angle_std_dt{dt}",
-#         f"optical_flow_mean_u_dt{dt}",
-#         f"optical_flow_mean_v_dt{dt}",
-#         f"optical_flow_std_u_dt{dt}",
-#         f"optical_flow_std_v_dt{dt}",
-#     ]
+    fname = file_info["fname"]
+    df_annotation = pd.read_csv(f"{ANNOTATION_PATH}/{fname}")
+    df_annotation["crop_index"] = df_annotation["Track"] - 1
 
-#     for feat in optical_flow_features:
-#         true_vals = df_mig_of[df_mig_of["coherent_migration"] == True][feat]
-#         false_vals = df_mig_of[df_mig_of["coherent_migration"] == False][feat]
+    pairs_df = df_annotation[["crop_index", "Frame"]]
+    merged = df.merge(
+        pairs_df,
+        left_on=["crop_index", "frame_number"],
+        right_on=["crop_index", "Frame"],
+        how="inner",
+    )
+    merged[COHERENT_MIGRATION_COL] = file_info in COHERENT_MIG_FILES
+    merged["migration_type"] = "coherent" if file_info in COHERENT_MIG_FILES else "mixed"
+    df_mig_list.append(merged)
 
-#         plt.figure(figsize=(8, 5))
-#         plt.hist(true_vals, bins=30, alpha=0.6, label="True", color="blue", density=True)
-#         plt.hist(false_vals, bins=30, alpha=0.6, label="False", color="orange", density=True)
+    if len(merged) != len(df_annotation):
+        logger.error("File '%s' had different number of rows after merge", fname)
+        raise ValueError(f"Different dataframe lengths: '{len(df_annotation)}' vs. '{len(merged)}'")
 
-#         plt.xlabel(feat)
-#         plt.ylabel("Density")
-#         plt.title("Distribution by Coherent Migration")
-#         plt.legend()
-#         plt.show()
-#     break
+df_mig = pd.concat(df_mig_list, ignore_index=True)
+
+df_mig_of = pd.merge(
+    df_mig,
+    df_new,
+    left_on=["dataset", "position", "frame_number", "start_x", "start_y"],
+    right_on=["dataset", "position", "frame_number", "start_x", "start_y"],
+    how="inner",
+)
+
+## %%
+for dt in range(1, 11):
+    optical_flow_features = [
+        f"optical_flow_mean_speed_dt{dt}",
+        f"optical_flow_mean_unit_vector_dt{dt}",
+        f"optical_flow_std_speed_dt{dt}",
+        f"optical_flow_mean_angle_dt{dt}",
+        f"optical_flow_angle_std_dt{dt}",
+        f"optical_flow_mean_u_dt{dt}",
+        f"optical_flow_mean_v_dt{dt}",
+        f"optical_flow_std_u_dt{dt}",
+        f"optical_flow_std_v_dt{dt}",
+    ]
+
+    for feat in optical_flow_features:
+        is_coherent_migration = df_mig_of[COHERENT_MIGRATION_COL]
+        true_vals = df_mig_of[is_coherent_migration][feat]
+        false_vals = df_mig_of[~is_coherent_migration][feat]
+
+        plt.figure(figsize=(8, 5))
+        plt.hist(true_vals, bins=30, alpha=0.6, label="True", color="blue", density=True)
+        plt.hist(false_vals, bins=30, alpha=0.6, label="False", color="orange", density=True)
+
+        plt.xlabel(feat)
+        plt.ylabel("Density")
+        plt.title("Distribution by Coherent Migration")
+        plt.legend()
+        plt.show()
+    break
 
 # %%

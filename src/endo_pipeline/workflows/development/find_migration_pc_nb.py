@@ -22,6 +22,12 @@ from endo_pipeline.library.analyze.migration_pc.lda_analysis import (
     plot_lda_optimal_axis,
     plot_ranked_feature_histograms,
 )
+from endo_pipeline.library.analyze.migration_pc.specify_manual_annotations import (
+    ANNOTATION_PATH,
+    COHERENT_MIG_FILES,
+    COHERENT_MIGRATION_COL,
+    MIXED_MIG_FILES,
+)
 from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
     get_feature_dataframe_manifest_name,
@@ -39,74 +45,10 @@ logger = logging.getLogger(__name__)
 DESCRIPTION = "Manual annotations for migration type; LDA ranks top contributing PCs."
 
 UPLOAD_TO_FMS = False
-COHERENT_MIGRATION_COL = "coherent_migration"
 
 # %%
 output_dir = get_output_path("find_coherent_mig")
 pc_columns_to_keep = DIFFAE_PC_COLUMN_NAMES[:80]
-
-# %%
-annotation_path = "//allen/aics/users/chantelle.leveille/annotations"
-mixed_mig_files = [
-    {
-        "dataset_name": "20250319_20X",
-        "position": 2,
-        "fname": "mixed_mig/12.2 shear stress 20250319_20X_P2-annotations.csv",
-    },
-    {
-        "dataset_name": "20250319_20X",
-        "position": 3,
-        "fname": "mixed_mig/12.2 shear stress 20250319_20X_P3-annotations.csv",
-    },
-    {
-        "dataset_name": "20250813_20X",
-        "position": 0,
-        "fname": "mixed_mig/14.65 shear stress 20250813_20X_P0-annotations.csv",
-    },
-    {
-        "dataset_name": "20250813_20X",
-        "position": 1,
-        "fname": "mixed_mig/14.65 shear stress 20250813_20X_P1-annotations.csv",
-    },
-    {
-        "dataset_name": "20250813_20X",
-        "position": 4,
-        "fname": "mixed_mig/14.65 shear stress 20250813_20X_P4-annotations.csv",
-    },
-]
-
-coherent_mig_files = [
-    {
-        "dataset_name": "20250319_20X",
-        "position": 0,
-        "fname": "coherent_mig/12.2 shear stress 20250319_20X_P0-annotations.csv",
-    },
-    {
-        "dataset_name": "20250319_20X",
-        "position": 2,
-        "fname": "coherent_mig/12.2 shear stress 20250319_20X_P2-annotations.csv",
-    },
-    {
-        "dataset_name": "20250319_20X",
-        "position": 5,
-        "fname": "coherent_mig/12.2 shear stress 20250319_20X_P5-annotations.csv",
-    },
-    {
-        "dataset_name": "20250813_20X",
-        "position": 1,
-        "fname": "coherent_mig/14.65 shear stress 20250813_20X_P1-annotations.csv",
-    },
-    {
-        "dataset_name": "20250813_20X",
-        "position": 3,
-        "fname": "coherent_mig/14.65 shear stress 20250813_20X_P3-annotations.csv",
-    },
-    {
-        "dataset_name": "20250813_20X",
-        "position": 5,
-        "fname": "coherent_mig/14.65 shear stress 20250813_20X_P5-annotations.csv",
-    },
-]
 
 # %%
 model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
@@ -117,7 +59,7 @@ dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 pca = fit_pca(num_pcs=80)
 # %%
 df_mig_list = []
-for file_info in mixed_mig_files + coherent_mig_files:
+for file_info in MIXED_MIG_FILES + COHERENT_MIG_FILES:
     dataset_name = str(file_info["dataset_name"])
 
     df = get_dataframe_for_dynamics_workflows(
@@ -125,7 +67,7 @@ for file_info in mixed_mig_files + coherent_mig_files:
     )
 
     fname = file_info["fname"]
-    df_annotation = pd.read_csv(f"{annotation_path}/{fname}")
+    df_annotation = pd.read_csv(f"{ANNOTATION_PATH}/{fname}")
     df_annotation["crop_index"] = df_annotation["Track"] - 1
 
     pairs_df = df_annotation[["crop_index", "Frame"]]
@@ -135,8 +77,8 @@ for file_info in mixed_mig_files + coherent_mig_files:
         right_on=["crop_index", "Frame"],
         how="inner",
     )
-    merged[COHERENT_MIGRATION_COL] = file_info in coherent_mig_files
-    merged["migration_type"] = "coherent" if file_info in coherent_mig_files else "mixed"
+    merged[COHERENT_MIGRATION_COL] = file_info in COHERENT_MIG_FILES
+    merged["migration_type"] = "coherent" if file_info in COHERENT_MIG_FILES else "mixed"
     df_mig_list.append(merged)
 
     if len(merged) != len(df_annotation):
