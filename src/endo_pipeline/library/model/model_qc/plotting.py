@@ -103,6 +103,8 @@ def save_negative_control_sheet(
     example : ExampleImage
         The example metadata used in the filename.
     """
+    _ensure_dir(output_path)
+
     denoising_results: dict[str, list[np.ndarray]] = {
         "images_to_denoise": images_to_denoise,
         "denoised_normal": denoised_images,

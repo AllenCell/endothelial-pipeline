@@ -185,10 +185,8 @@ def main(
     example_sets_for_metrics = {"validation_positions", "rep_2_positions"}
 
     if DEMO_MODE:
-        first_set_examples, first_set_label = example_sets_all[0]
-        logger.info("DEMO MODE: Limiting to first example of '%s'", first_set_label)
-        example_sets_all = [(first_set_examples[:1], first_set_label)]
-        example_sets_for_metrics = {first_set_label}
+        logger.info("DEMO MODE: Limiting to first example of each set")
+        example_sets_all = [(examples[:1], label) for examples, label in example_sets_all]
 
     # Generate list of seeds to evaluate
     if num_seeds == 1:
