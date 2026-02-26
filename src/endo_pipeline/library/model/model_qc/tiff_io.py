@@ -1,7 +1,5 @@
 """TIFF file I/O helpers for saving model QC crops."""
 
-from __future__ import annotations
-
 import logging
 from pathlib import Path
 
