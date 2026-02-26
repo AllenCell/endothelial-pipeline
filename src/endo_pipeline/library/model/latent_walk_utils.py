@@ -85,21 +85,34 @@ def _add_preceding_dims_to_column_names(column_names: list[str], feature_prefix:
     """
     Add preceding dimension column names to the provided column names based on
     the provided feature prefix.
+
     For example, column_names = ["pc_3"] and feature_prefix = "pc_", this method
     would add "pc_1" and "pc_2" to the output list of column names since they
     are the preceding dimensions for "pc_3".
     """
-    max_dim = get_max_dim_in_column_names(column_names, feature_prefix)
-    if max_dim == 0:
+    try:
+        # get max dimension number for the given feature prefix from the column names
+        max_dim = get_max_dim_in_column_names(column_names, feature_prefix)
+
+        # get all column names for the preceding dimensions based on the feature
+        # prefix and max dimension number
+        if feature_prefix == ColumnName.PCA_FEATURE_PREFIX:
+            all_dim_columns = get_pc_column_names(num_pcs=max_dim)
+        elif feature_prefix == ColumnName.LATENT_FEATURE_PREFIX:
+            all_dim_columns = get_latent_feature_column_names(num_latent_dims=max_dim)
+        else:
+            raise ValueError(f"Invalid feature prefix: {feature_prefix}")
+        # combine the original column names with the preceding dimension column
+        # names, ensuring no duplicates
+        column_names_with_preceding_dims = list(set(column_names + all_dim_columns))
+        return column_names_with_preceding_dims
+    except ValueError:
+        logger.warning(
+            "No column names found with prefix [ %s ] in [ %s ]. No preceding dimensions will be added.",
+            feature_prefix,
+            column_names,
+        )
         return column_names
-    elif feature_prefix == ColumnName.PCA_FEATURE_PREFIX:
-        all_dim_columns = get_pc_column_names(num_pcs=max_dim)
-    elif feature_prefix == ColumnName.LATENT_FEATURE_PREFIX:
-        all_dim_columns = get_latent_feature_column_names(num_latent_dims=max_dim)
-    else:
-        raise ValueError(f"Invalid feature prefix: {feature_prefix}")
-    column_names_with_preceding_dims = list(set(column_names) | set(all_dim_columns))
-    return column_names_with_preceding_dims
 
 
 def get_column_names_for_latent_walk_dataframe(input_column_names: list[str]) -> list[str]:
@@ -163,19 +176,12 @@ def get_column_names_for_latent_walk_dataframe(input_column_names: list[str]) ->
             )
 
     # add preceding latent feature columns if any latent feature columns are included in the column names
-    try:
-        column_names = _add_preceding_dims_to_column_names(
-            column_names, ColumnName.LATENT_FEATURE_PREFIX.value
-        )
-    except ValueError:
-        pass
-
-    try:
-        column_names = _add_preceding_dims_to_column_names(
-            column_names, ColumnName.PCA_FEATURE_PREFIX.value
-        )
-    except ValueError:
-        pass
+    column_names = _add_preceding_dims_to_column_names(
+        column_names, ColumnName.LATENT_FEATURE_PREFIX.value
+    )
+    column_names = _add_preceding_dims_to_column_names(
+        column_names, ColumnName.PCA_FEATURE_PREFIX.value
+    )
 
     return column_names
 
