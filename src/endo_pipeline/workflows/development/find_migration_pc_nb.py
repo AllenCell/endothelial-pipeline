@@ -162,7 +162,7 @@ rank_features_and_plot_histograms(
     fname="find_coherent_mig_histograms_lda_pcs_only.png",
 )
 
-# Run LDA on randomized labels as a control
+# %% Run LDA on randomized labels as a control
 df_mig_random = df_mig.copy()
 df_mig_random["coherent_migration"] = df_mig["coherent_migration"].sample(frac=1).values
 df_lda_random, df_proj_random, _ = run_lda_feature_ranking(
@@ -200,8 +200,8 @@ df_lda = load_dataframe(lda_location)
 df_proj_full = apply_lda_projection(
     df,
     features_in_lda_rank=df_lda["features"].to_list(),
-    lda_weights=df_lda["weights"].to_list(),
+    lda_weights=df_lda["weights"].to_numpy(),
     lda_intercept=df_lda["intercept"][0],
-    sparse_axes=[2.0, 3.0, 4.0],
+    sparse_axes=[2.0, 3.0, 4.0, 5.0],
 )
 # %%
