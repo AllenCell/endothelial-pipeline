@@ -217,9 +217,9 @@ def get_baseline_walk_values(
             set_value = set_column_value[column_name]
             if set_value < dataframe[column_name].min() or set_value > dataframe[column_name].max():
                 logger.warning(
-                    "Provided set_column_value [ (%s, %.3f) ] is out of bounds [ (%.3f, %.3f) ] of the data. Using provided value anyway.",
-                    column_name,
+                    "Provided baseline value [ %.3f ] for [ %s ] is out of the range of the data: [ (%.3f, %.3f) ]. Using provided value anyway.",
                     set_value,
+                    column_name,
                     dataframe[column_name].min(),
                     dataframe[column_name].max(),
                 )
