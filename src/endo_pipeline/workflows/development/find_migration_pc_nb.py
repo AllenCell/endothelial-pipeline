@@ -190,7 +190,15 @@ features_ranked_random, optimal_axis_random, lda_intercept_random, projected_dat
         binary_target_feature=COHERENT_MIGRATION_COL,
     )
 )
-plot_lda_optimal_axis(features_ranked_random, optimal_axis_random, output_dir, "pcs_only_random")
+# %%
+plot_lda_optimal_axis(
+    features_ranked_random,
+    optimal_axis_random,
+    output_dir,
+    "pcs_only_random",
+    title_suffix="* scrambled annotations",
+)
+# %%
 df_lda_random, df_proj_random, _ = build_lda_outputs(
     df_mig_random,
     features_ranked_random,
@@ -206,12 +214,14 @@ lda_random_features = list(df_proj_random.columns.drop([COHERENT_MIGRATION_COL])
 lda_random_ranking = compute_separation_power(
     df_proj_random[lda_random_features], df_proj_random[COHERENT_MIGRATION_COL]
 )
+# %%
 plot_ranked_feature_histograms(
     df_proj_random,
     lda_random_ranking,
     output_dir=output_dir,
     label_column=COHERENT_MIGRATION_COL,
     fname="find_coherent_mig_histograms_lda_pcs_only_random.png",
+    legend_suffix="* scrambled",
 )
 
 # %% Upload LDA feature ranking results to FMS

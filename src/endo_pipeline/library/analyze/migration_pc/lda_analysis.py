@@ -90,6 +90,7 @@ def plot_lda_optimal_axis(
     optimal_axis: np.ndarray,
     output_dir: Path,
     fname_suffix: str = "",
+    title_suffix: str = "",
 ):
     """Plot and save LDA coefficients across ranked features.
 
@@ -103,6 +104,8 @@ def plot_lda_optimal_axis(
         Directory where the figure is written.
     fname_suffix : str, default=""
         Optional suffix appended to the output filename.
+    title_suffix : str, default=""
+        Optional suffix appended to the plot title.
 
     Returns
     -------
@@ -112,6 +115,7 @@ def plot_lda_optimal_axis(
     # Plot the weights of each pc in the optimal axis
     fig, ax = plt.subplots(figsize=(12, 4))
     ax.bar(features_to_rank, optimal_axis)
+    ax.set_title(f"LDA Optimal Axis {title_suffix}".strip())
     ax.set_xticks(range(len(features_to_rank)))
     ax.set_xticklabels(features_to_rank, rotation=45, ha="right", fontsize=6)
     fig.tight_layout()
@@ -247,6 +251,7 @@ def plot_ranked_feature_histograms(
     output_dir: Path,
     label_column: str = "migration_type",
     fname: str = "find_coherent_mig_histograms.png",
+    legend_suffix: str = "",
 ):
     """Plot and save histograms for ranked features by class label.
 
@@ -262,6 +267,8 @@ def plot_ranked_feature_histograms(
         Column used to separate classes in histograms.
     fname : str, default="find_coherent_mig_histograms.png"
         Output figure filename.
+    legend_suffix : str, default=""
+        Optional text appended to class names in the figure legend.
 
     Returns
     -------
@@ -301,9 +308,10 @@ def plot_ranked_feature_histograms(
     else:
         n_coherent = int(df[label_column].eq("coherent").sum())
         n_mixed = int(df[label_column].eq("mixed").sum())
+    suffix_text = f" {legend_suffix}" if legend_suffix else ""
     legend_labels = [
-        f"Coherent Migration (N={n_coherent})",
-        f"Mixed Migration (N={n_mixed})",
+        f"Coherent Migration{suffix_text} (N={n_coherent})",
+        f"Mixed Migration{suffix_text} (N={n_mixed})",
     ]
     fig.legend(legend_labels, loc="lower right", bbox_to_anchor=(1.02, 1), borderaxespad=0)
     plt.tight_layout()
