@@ -1,7 +1,5 @@
 """Denoising experiment helpers for model QC."""
 
-from __future__ import annotations
-
 import logging
 from typing import TYPE_CHECKING
 
@@ -22,10 +20,10 @@ logger = logging.getLogger(__name__)
 
 
 def run_denoising_experiments(
-    model: DiffusionAutoEncoder,
+    model: "DiffusionAutoEncoder",
     conditioning_input_crop: np.ndarray,
     diffusion_input_crop: np.ndarray,
-    rng: Generator,
+    rng: "Generator",
     noise_levels: list[float],
     num_gpus: int,
 ) -> dict[str, list[np.ndarray]]:
