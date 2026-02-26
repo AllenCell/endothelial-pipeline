@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def compute_separation_power(
-    df_features: pd.DataFrame, y: pd.Series, verbose: bool = True
+    df_features: pd.DataFrame, y: pd.Series
 ) -> list[dict[str, float | str]]:
     """Rank features by class separation power based on ROC AUC.
 
@@ -23,8 +23,6 @@ def compute_separation_power(
         Feature matrix with shape ``(n_samples, n_features)``.
     y : pandas.Series
         Binary labels aligned to ``df_features`` rows.
-    verbose : bool, default=True
-        If ``True``, logs the top-ranked features.
 
     Returns
     -------
@@ -45,9 +43,8 @@ def compute_separation_power(
 
     logger.info("Top features by separation power:")
     ranking_sorted = sorted(ranking, key=lambda x: x["power"], reverse=True)
-    if verbose:
-        for item in ranking_sorted[:10]:
-            logger.info(f"{item['feature']}: AUC={item['auc']:.3f}, Power={item['power']:.3f}")
+    for item in ranking_sorted[:10]:
+        logger.info(f"{item['feature']}: AUC={item['auc']:.3f}, Power={item['power']:.3f}")
     return ranking_sorted
 
 
