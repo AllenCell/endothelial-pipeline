@@ -1099,21 +1099,6 @@ wheels = [
 ]
 
 [[package]]
-name = "derivative"
-version = "0.6.3"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "importlib-metadata" },
-    { name = "numpy" },
-    { name = "scikit-learn" },
-    { name = "scipy" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c5/e8/79b4127aa6b797b7a74fa20635229e2d97af384fb1950d25700a2fce13a2/derivative-0.6.3.tar.gz", hash = "sha256:72e7fd56e92665f939b5449c4b9ceea88fdf02eda7378cf0a3e961ab0df58181", size = 15223, upload-time = "2024-08-27T02:28:10.936Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cd/3a/6a615fa5a1fb1e11f0ad41febedea907a2f20a310f7a9fc5b3a16639c2ad/derivative-0.6.3-py3-none-any.whl", hash = "sha256:e121926a21e13a5ab1db07e10e26a5e805494a1255eac032c2fba309547e64c9", size = 14866, upload-time = "2024-08-27T02:28:09.248Z" },
-]
-
-[[package]]
 name = "distlib"
 version = "0.3.9"
 source = { registry = "https://pypi.org/simple" }
@@ -1250,7 +1235,6 @@ dependencies = [
     { name = "pandas" },
     { name = "pathlib" },
     { name = "pyarrow" },
-    { name = "pysindy" },
     { name = "scikit-image" },
     { name = "scikit-learn" },
     { name = "scipy" },
@@ -1263,11 +1247,9 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-aws = [
-    { name = "s3-tools" },
-]
 internal = [
     { name = "aicsfiles" },
+    { name = "s3-tools" },
 ]
 ml-workflows = [
     { name = "cyto-dl" },
@@ -1344,8 +1326,7 @@ requires-dist = [
     { name = "pandas", specifier = "==2.2.2" },
     { name = "pathlib", specifier = ">=1.0.1" },
     { name = "pyarrow", specifier = "<=19.0.1" },
-    { name = "pysindy", specifier = ">=1.7.5" },
-    { name = "s3-tools", marker = "extra == 'aws'", git = "https://github.com/aics-int/aws-s3-upload-tools?rev=v0.2.0" },
+    { name = "s3-tools", marker = "extra == 'internal'", git = "https://github.com/aics-int/aws-s3-upload-tools?rev=v0.2.1" },
     { name = "scikit-image", specifier = "==0.22.0" },
     { name = "scikit-learn", specifier = "==1.5.1" },
     { name = "scipy", specifier = "==1.13.1" },
@@ -1356,7 +1337,7 @@ requires-dist = [
     { name = "tqdm", specifier = ">=4.66.5" },
     { name = "vtk", specifier = ">=9.4.1" },
 ]
-provides-extras = ["internal", "aws", "ml-workflows"]
+provides-extras = ["internal", "ml-workflows"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pre-commit", specifier = ">=3.7.1" }]
@@ -3926,24 +3907,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pysindy"
-version = "1.7.5"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "cmake" },
-    { name = "derivative" },
-    { name = "matplotlib" },
-    { name = "numpy" },
-    { name = "scikit-learn" },
-    { name = "scipy" },
-    { name = "scs" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/5d/ce/7b5895cb57cc9c2f46ce928755a46aafb31d1f00a74997a38c101864fe44/pysindy-1.7.5.tar.gz", hash = "sha256:a99c99b7a1e032e53113e2174abcf22d04ce1f0404deb8994fc4e3b6d34c7820", size = 3212319, upload-time = "2023-04-07T15:13:05.219Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3f/90/b574bcbd68a8db8dc01b6a0098f506cf698ac2e77cfee19b43a9ed2240c8/pysindy-1.7.5-py3-none-any.whl", hash = "sha256:c93177f4ddf30b400d1a573c466540f7f027b47e92720fe4ad80527dcb8b4fe2", size = 121026, upload-time = "2023-04-07T15:13:03.211Z" },
-]
-
-[[package]]
 name = "pytest"
 version = "8.3.5"
 source = { registry = "https://pypi.org/simple" }
@@ -4311,8 +4274,8 @@ wheels = [
 
 [[package]]
 name = "s3-tools"
-version = "0.2.0"
-source = { git = "https://github.com/aics-int/aws-s3-upload-tools?rev=v0.2.0#4d42218a9594ff4b4799046a4a473c332f3d6aa7" }
+version = "0.2.1"
+source = { git = "https://github.com/aics-int/aws-s3-upload-tools?rev=v0.2.1#1a15b38e972e62b5a2a99d69cfef15bc15a1f1ec" }
 dependencies = [
     { name = "aiostream" },
     { name = "cyclopts" },
@@ -4430,24 +4393,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/36/07/035d22ff9795129c5a847c64cb43c1fa9188826b59344fee28a3ab02e283/scipy-1.13.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a78b4b3345f1b6f68a763c6e25c0c9a23a9fd0f39f5f3d200efe8feda560a5fa", size = 38569931, upload-time = "2024-05-23T03:20:01.82Z" },
     { url = "https://files.pythonhosted.org/packages/d9/10/f9b43de37e5ed91facc0cfff31d45ed0104f359e4f9a68416cbf4e790241/scipy-1.13.1-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:45484bee6d65633752c490404513b9ef02475b4284c4cfab0ef946def50b3f59", size = 38838145, upload-time = "2024-05-23T03:20:09.173Z" },
     { url = "https://files.pythonhosted.org/packages/4a/48/4513a1a5623a23e95f94abd675ed91cfb19989c58e9f6f7d03990f6caf3d/scipy-1.13.1-cp311-cp311-win_amd64.whl", hash = "sha256:5713f62f781eebd8d597eb3f88b8bf9274e79eeabf63afb4a737abc6c84ad37b", size = 46196227, upload-time = "2024-05-23T03:20:16.433Z" },
-]
-
-[[package]]
-name = "scs"
-version = "3.2.7.post2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy" },
-    { name = "scipy" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c5/2f/3f15676b0f4cc73879400d94f2c5c64130cad0bbca266aff1365dc643e79/scs-3.2.7.post2.tar.gz", hash = "sha256:4245a4f76328cc73911f20e1414df68d41ead4bcc4a187503a9cd639b644014b", size = 1600725, upload-time = "2025-01-04T17:02:03.387Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/2b/a8/75e215fb61f65c7dee0a5d2c8e2b9043967fd332b70a4d47478bca45ec10/scs-3.2.7.post2-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:6d551b90d9e2c0497ee17d8c3db325d6fcefa4419057954e68709da8b9184d4f", size = 105857, upload-time = "2025-01-04T17:00:37.796Z" },
-    { url = "https://files.pythonhosted.org/packages/1f/e4/b757b7926cc3355ba41ba747afb5e4d6c553d05be840ea25dc47b47b47b1/scs-3.2.7.post2-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:7c15d035dda04a6626d3cd9b68d3bf814d2e0eb3cb372021775bd358fd8c7405", size = 93594, upload-time = "2025-01-04T17:00:39.96Z" },
-    { url = "https://files.pythonhosted.org/packages/e7/34/bf8e999e13e00946660a1e9009e67d5718356c06b9a2b2905f10829a7c45/scs-3.2.7.post2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6da6add18f039e7e08f0ebc13cb1f853ec4c96ae81d7a578f46e0f9f0e5bf4b5", size = 10443087, upload-time = "2025-01-04T17:00:41.588Z" },
-    { url = "https://files.pythonhosted.org/packages/d3/03/d41749f5c680241345669da533bc7ce6f5f1fac6d88fb255792fdd187e3f/scs-3.2.7.post2-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:d6c965f026e56c92b59a9c96744eb90178982c270ab196f58a0260ac392785aa", size = 5066487, upload-time = "2025-01-04T17:00:44.95Z" },
-    { url = "https://files.pythonhosted.org/packages/ac/b1/26db804cdc4009745f4bc4be2a478ac2c29f017672747a3ce64d46bccc7f/scs-3.2.7.post2-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:0427a5bf9aa43eb2a22083e1a43412db5054a88d695fdaa6018cd6fb3a9f0203", size = 11612089, upload-time = "2025-01-04T17:00:47.344Z" },
-    { url = "https://files.pythonhosted.org/packages/bf/34/a42b90bff9330ac57e1dcc8c35b978cee47d6e9eee14cb71981b801fc7cf/scs-3.2.7.post2-cp311-cp311-win_amd64.whl", hash = "sha256:4d05ec092c891eb842630f343ebc0c46d2ef6047f325a835771b13f9804d6b3b", size = 7432186, upload-time = "2025-01-04T17:00:50.702Z" },
 ]
 
 [[package]]

@@ -1,7 +1,7 @@
-import concurrent
 import logging
 import math
 from collections.abc import Sequence
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Any, Literal
 
@@ -16,6 +16,8 @@ from tqdm import tqdm
 
 from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
 from endo_pipeline.io import get_output_path, load_image
+from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.lib_init_density_vs_flow import vector_mean_angle_and_mag
 from endo_pipeline.library.model.eval_model import add_diffae_model_eval_crop_columns
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.manifests import (
@@ -466,10 +468,18 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
         validate="one_to_one",
     )
 
+    # add column for the labels of other cells that are in the crop of each cell
+    # so we can calculate mean migration vector of those other cells in the crop
+    big_table = add_all_labels_in_crop_column(big_table, use_precomputed=False)
+
     return big_table
 
 
-def calculate_derived_data_dynamics_dependent(big_table: pd.DataFrame) -> pd.DataFrame:
+def calculate_derived_data_dynamics_dependent(
+    big_table: pd.DataFrame,
+    compute_per_crop_metrics: bool = False,
+    max_timeframes_to_average_for_velocity: int = 5,
+) -> pd.DataFrame:
     """
     This function calculates dynamics-dependent features and
     adds them to the main segmentation features table.
@@ -513,6 +523,31 @@ def calculate_derived_data_dynamics_dependent(big_table: pd.DataFrame) -> pd.Dat
         .droplevel([0, 1, 2])
     )
 
+    # get the windowed mean of the centroid velocities to smooth out noise
+    for window in range(2, max_timeframes_to_average_for_velocity + 1):
+        big_table["time_minutes_timedelta"] = pd.to_timedelta(big_table["time_minutes"], unit="m")
+        window_in_minutes = window * sequence_to_scalar(big_table["time_resolution_minutes"])
+
+        big_table[f"centroid_dx_dt_rolling_mean_window_{window_in_minutes}min"] = (
+            big_table.groupby(["dataset_name", "position", "track_id"], as_index=True)[
+                ["centroid_dx_dt", "time_minutes_timedelta"]
+            ].apply(
+                lambda df, window_in_minutes=window_in_minutes: df.rolling(
+                    f"{window_in_minutes}min", min_periods=1, on="time_minutes_timedelta"
+                )["centroid_dx_dt"].mean()
+            )
+        ).droplevel([0, 1, 2])
+
+        big_table[f"centroid_dy_dt_rolling_mean_window_{window_in_minutes}min"] = (
+            big_table.groupby(["dataset_name", "position", "track_id"], as_index=True)[
+                ["centroid_dy_dt", "time_minutes_timedelta"]
+            ].apply(
+                lambda df, window_in_minutes=window_in_minutes: df.rolling(
+                    f"{window_in_minutes}min", min_periods=1, on="time_minutes_timedelta"
+                )["centroid_dy_dt"].mean()
+            )
+        ).droplevel([0, 1, 2])
+
     logger.info("Calculating centroid velocity magnitude and angle...")
     big_table["centroid_velocity_magnitude"] = np.linalg.norm(
         [big_table["centroid_dx_dt"], big_table["centroid_dy_dt"]], axis=0
@@ -548,6 +583,37 @@ def calculate_derived_data_dynamics_dependent(big_table: pd.DataFrame) -> pd.Dat
         big_table[["centroid_dx_dt", "centroid_dy_dt"]],
         big_table[["nuc_pos_rel_cell_X_um", "nuc_pos_rel_cell_Y_um"]],
     )
+
+    # add fluorescence intensity dynamics column
+    logger.info("Calculating fluorescence intensity dynamics...")
+    big_table["dmean_EGFP_intensity_dt"] = (
+        big_table.groupby(["dataset_name", "position", "track_id"], as_index=True)
+        .apply(
+            lambda df: pd.DataFrame(
+                df["cell_fluorescence_mean (a.u.)"].diff() / df["time_minutes"].diff(),
+                index=df.index,
+            )
+        )
+        .droplevel([0, 1, 2])
+    )
+
+    # add approximate cell density dynamics column
+    logger.info("Calculating approximate cell density dynamics...")
+    big_table["dnum_nuclei_in_crop_dt"] = (
+        big_table.groupby(["dataset_name", "position", "track_id"], as_index=True)
+        .apply(
+            lambda df: pd.DataFrame(
+                df["num_nuclei_in_crop"].diff() / df["time_minutes"].diff(),
+                index=df.index,
+            )
+        )
+        .droplevel([0, 1, 2])
+    )
+
+    if compute_per_crop_metrics:
+        # find the migration vectors for all cells in a crop
+        logger.info("Calculating vector mean of migration per crop...")
+        big_table = add_vector_mean_of_migration_in_crop_column(big_table)
 
     # add column for the number of tracks at a given
     # timepoint per dataset per position
@@ -973,7 +1039,7 @@ def add_num_nuclei_in_crop_column(
                 )
             ]
         else:
-            with concurrent.futures.ProcessPoolExecutor(max_workers=max_cores) as executor:
+            with ProcessPoolExecutor(max_workers=max_cores) as executor:
                 results = list(
                     tqdm(
                         executor.map(compute_nuclei_centroids_multiproc, args),
@@ -1012,3 +1078,221 @@ def add_num_nuclei_in_crop_column(
     # drop the nuclei coordinates lists since they are not needed anymore
     merged_feats_df = merged_feats_df.drop(columns=["coords_Y", "coords_X"])
     return merged_feats_df
+
+
+def get_labels_in_crop(
+    segmentation_image: np.ndarray, region_of_interest: tuple[slice, ...]
+) -> list:
+    """Returns a list of the unique labels that are found in the region of
+    interest of the provided segmentation image.
+    """
+    labels_in_crop = np.unique(segmentation_image[region_of_interest])
+    return labels_in_crop.tolist()
+
+
+def create_labels_in_crop_columns(df_sub: pd.DataFrame, out_dir: Path) -> None:
+    """Create an intermediate parquet file with the "all_labels_in_crop" column
+    for a subset of the main DataFrame that contains one row per labeled
+    segmentation and includes the "all_labels_in_crop" column.
+
+    Note: This function saves parquet tables so that it can be distributed to
+    multiple processes to compute the "all_labels_in_crop" column in parallel
+    for each timepoint and position, and these parquet tables are then later
+    concatenated together and merged with the main DataFrame.
+
+    Parameters
+    ----------
+    df_sub:
+        A subset of the main DataFrame that contains one row per labeled segmentation and includes the "all_labels_in_crop" column.
+    out_dir:
+        The directory to save the parquet file with the "all_labels_in_crop" column for this subset of the main DataFrame.
+    """
+    ds_nm = sequence_to_scalar(df_sub["dataset_name"])
+    pos = sequence_to_scalar(df_sub["position"])
+    tp = sequence_to_scalar(df_sub["T"])
+
+    # load image
+    dataset_config = load_dataset_config(ds_nm)
+    image_manifest = load_image_manifest("cdh5_classic_seg")
+    image_loc = get_image_location_for_dataset(image_manifest, dataset_config, pos, tp)
+    img = load_image(image_loc, compute=True, squeeze=True)
+
+    # find other cell labels that are also in the crop
+    df_sub["all_labels_in_crop"] = df_sub.apply(
+        lambda row: get_labels_in_crop(
+            segmentation_image=img,
+            region_of_interest=(
+                slice(row.start_y, row.end_y),
+                slice(row.start_x, row.end_x),
+            ),
+        ),
+        axis=1,
+    )
+
+    fname = f"{ds_nm}_pos{pos}_tp{tp}_labels_in_crop.parquet"
+    df_sub[["dataset_name", "position", "T", "label", "all_labels_in_crop"]].to_parquet(
+        out_dir / fname, index=False
+    )
+
+
+def add_all_labels_in_crop_column(
+    df: pd.DataFrame, use_precomputed: bool = False, max_cores: int | None = None
+) -> pd.DataFrame:
+    """Return the provided dataframe with a column added to the DataFrame that
+    contains a list of the labels of all segmentations that are found in a
+    cell-centric crop.
+
+    Parameters
+    ----------
+    df:
+        The DataFrame to add the column to. This DataFrame should contain the
+        following columns: "dataset_name", "position", "T", "label", "start_y",
+        "end_y", "start_x", and "end_x".
+    use_precomputed:
+        If True, the function will use precomputed "all_labels_in_crop" data.
+        This saves time but should only be used if you are sure that the precomputed
+        data is correct and corresponds to the data in the provided DataFrame.
+        Default is False.
+    max_cores:
+        The maximum number of CPU cores to use for multiprocessing when computing
+        the labels in a crop. If None, it will use all available cores.
+        Only used if use_precomputed = False.
+    """
+    # make temporary output directory to save "all_labels_in_crop" data
+    labels_in_crop_dir = get_output_path(__file__, "labels_in_crop", include_timestamp=False)
+    dataset = sequence_to_scalar(df["dataset_name"])
+    labels_in_crop_subdir = labels_in_crop_dir / dataset
+    labels_in_crop_subdir.mkdir(parents=True, exist_ok=True)
+    labels_in_crop_path = labels_in_crop_dir / f"{dataset}_labels_in_crop.parquet"
+
+    df = df[df.bbox_is_in_bounds]
+
+    if use_precomputed:
+        df = pd.read_parquet(labels_in_crop_dir / f"{dataset}_labels_in_crop.parquet")
+    else:
+        groupby_cols = ["dataset_name", "position", "T"]
+        _, df_grps = zip(*df.groupby(groupby_cols), strict=True)
+
+        with ProcessPoolExecutor(max_workers=max_cores) as executor:
+            list(
+                tqdm(
+                    executor.map(
+                        create_labels_in_crop_columns,
+                        df_grps,
+                        [labels_in_crop_subdir] * len(df_grps),
+                    ),
+                    total=len(df_grps),
+                    desc=f"Creating labels in crop columns: {dataset}",
+                )
+            )
+
+        # concatenate all the temporary tables into a single dataframe
+        df_lab_in_crop = pd.concat(
+            [
+                pd.read_parquet(fp)
+                for fp in labels_in_crop_subdir.glob("*_pos*_tp*_labels_in_crop.parquet")
+            ]
+        )
+
+        df = df.merge(
+            df_lab_in_crop, on=[*groupby_cols, "label"], how="left", validate="one_to_one"
+        ).reset_index(drop=True)
+
+        df.to_parquet(labels_in_crop_path, index=False)
+
+        # remove the temporary files and the temporary folder
+        for fp in labels_in_crop_subdir.glob("*_pos*_tp*_labels_in_crop.parquet"):
+            fp.unlink()
+        labels_in_crop_subdir.rmdir()
+
+    return df
+
+
+def map_label_to_column(
+    df_sub: pd.DataFrame, column_name_to_map: str = "centroid_velocity_angle"
+) -> list:
+    """Uses the "all_labels_in_crop" column to map the label of each cell in the
+    crop to the value in the specified column for that label, and returns a list
+    of those values for each cell in the crop as a list.
+
+    Parameters
+    ----------
+    df_sub:
+        A subset of the main DataFrame that contains one row per labeled segmentation
+        and includes the "all_labels_in_crop" column.
+    column_name_to_map:
+        The name of the column to map the labels to. This column should be
+        present in df_sub and should contain the value that you want to map for
+        each label.
+
+    Returns
+    -------
+    list:
+        A list where each entry is a list of the values from the specified column
+        for all the labels in the crop of that row.
+    """
+    check_required_columns_in_dataframe(
+        df_sub, required_columns=["label", column_name_to_map, "all_labels_in_crop"]
+    )
+    label_velocity_dict = dict(zip(df_sub.label, df_sub[column_name_to_map], strict=True))
+    return df_sub.all_labels_in_crop.map(lambda ls: [*map(label_velocity_dict.get, ls)])
+
+
+def sanitize_list_to_numbers(ls: list) -> list:
+    """Returns the provided list with all empty, None, and non-finite values removed."""
+    return [x for x in ls if x and np.isfinite(x)]
+
+
+def add_vector_mean_of_migration_in_crop_column(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Returns the provided dataframe with two new columns:
+    - "vec_mean_angle_in_crop": the vector mean of the migration angles of all cells in the crop
+    - "vec_mean_mag_in_crop": the vector mean of the migration magnitudes of all cells in the crop
+    """
+
+    df["all_velocity_angles_in_crop"] = (
+        df.groupby(["dataset_name", "position", "T"])
+        .apply(lambda df_sub: pd.DataFrame(map_label_to_column(df_sub, "centroid_velocity_angle")))
+        .droplevel([0, 1, 2])
+    )
+    df["all_velocity_magnitudes_in_crop"] = (
+        df.groupby(["dataset_name", "position", "T"])
+        .apply(
+            lambda df_sub: pd.DataFrame(map_label_to_column(df_sub, "centroid_velocity_magnitude"))
+        )
+        .droplevel([0, 1, 2])
+    )
+    df["all_centroid_dx_dt_in_crop"] = (
+        df.groupby(["dataset_name", "position", "T"])
+        .apply(lambda df_sub: pd.DataFrame(map_label_to_column(df_sub, "centroid_dx_dt")))
+        .droplevel([0, 1, 2])
+    )
+    df["all_centroid_dy_dt_in_crop"] = (
+        df.groupby(["dataset_name", "position", "T"])
+        .apply(lambda df_sub: pd.DataFrame(map_label_to_column(df_sub, "centroid_dy_dt")))
+        .droplevel([0, 1, 2])
+    )
+
+    # calculate the vector means of all cells within the crop
+    df["all_velocity_angles_in_crop"] = df["all_velocity_angles_in_crop"].transform(
+        sanitize_list_to_numbers
+    )
+    df["all_centroid_dx_dt_in_crop"] = df["all_centroid_dx_dt_in_crop"].transform(
+        sanitize_list_to_numbers
+    )
+    df["all_centroid_dy_dt_in_crop"] = df["all_centroid_dy_dt_in_crop"].transform(
+        sanitize_list_to_numbers
+    )
+
+    df[["vec_mean_angle_in_crop", "vec_mean_mag_in_crop"]] = pd.DataFrame(
+        df["all_velocity_angles_in_crop"]
+        .transform(
+            lambda angles: (
+                vector_mean_angle_and_mag(angles) if len(angles) > 1 else (np.nan, np.nan)
+            )
+        )
+        .tolist(),
+        index=df.index,
+    )
+
+    return df

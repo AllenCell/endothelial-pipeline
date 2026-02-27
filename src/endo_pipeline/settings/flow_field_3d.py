@@ -1,8 +1,8 @@
-KERNEL_PARAMS_3D: dict = {
-    "bandwidth": 0.2,
-    "kernel": "gaussian",
-}
-"""Default kernel parameters for 3D flow field estimation."""
+KERNEL_FUNCTION_NAME: str = "gaussian"
+"""Default kernel function name for 3D flow field estimation."""
+
+KERNEL_BANDWIDTH: float = 0.2
+"""Default kernel bandwidth for 3D flow field estimation."""
 
 BIN_WIDTH_DEFAULTS: tuple[float, float, float] = (0.05, 0.05, 0.05)
 """Default number of bins for 3D flow field estimation."""

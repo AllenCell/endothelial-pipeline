@@ -25,8 +25,15 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     load_model_manifest,
 )
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
-from endo_pipeline.settings.polar_coords import RESCALE_THETA, THETA_RESCALED_PERIOD
+from endo_pipeline.settings.diffae_feature_dataframes import (
+    DIFFAE_PC_COLUMN_NAME_GROUPS,
+    ColumnName,
+)
+from endo_pipeline.settings.dynamics_workflows import (
+    METADATA_COLUMNS_TO_KEEP,
+    PERIOD_THETA_RESCALED,
+    RESCALE_THETA,
+)
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -75,21 +82,33 @@ def get_latent_feature_column_names(num_latent_dims: int) -> list[str]:
     return feat_cols
 
 
-def get_pc_column_names(num_pcs: int) -> list[str]:
+def get_pc_column_names(num_pcs: str | int) -> list[str]:
     """
     Get list of PCA feature column names for given number of principal components.
 
     Parameters
     ----------
     num_pcs
-        Number of principal components.
+        Either number of principal components (if an integer is provided) or a
+        group of principal components to include (if a string is provided,
+        e.g., "default" or "polar_coords").
 
     Returns
     -------
     :
         List of PCA feature column names.
     """
-    pc_cols = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(num_pcs)]
+    if isinstance(num_pcs, int):
+        pc_cols = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(int(num_pcs))]
+    elif isinstance(num_pcs, str):
+        pc_cols = DIFFAE_PC_COLUMN_NAME_GROUPS.get(num_pcs, [])
+        if not pc_cols:
+            raise ValueError(
+                f"Invalid num_pcs string [ {num_pcs} ]. Must be either an integer or\
+                one of the following strings: {list(DIFFAE_PC_COLUMN_NAME_GROUPS.keys())}"
+            )
+    else:
+        raise ValueError("num_pcs must be either an integer or a string.")
     return pc_cols
 
 
@@ -175,6 +194,39 @@ def pcs_to_polar_theta(
         theta = (theta + np.pi) / 2
 
     return theta
+
+
+def polar_to_pcs(
+    theta_values: np.ndarray, r_values: np.ndarray, is_theta_rescaled: bool = RESCALE_THETA
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Convert polar coordinates (theta, r) back to Cartesian coordinates (pc1, pc2).
+
+    The conversion from polar to Cartesian coordinates is given by the formulas:
+        pc1 = r * cos(theta)
+        pc2 = r * sin(theta)
+
+    If the input theta values are rescaled to be in the range [0, pi], they will be
+    unrescaled back to the range [-pi, pi] before conversion.
+
+    Parameters
+    ----------
+    theta_values
+        Polar coordinate theta values.
+    r_values
+        Polar coordinate r values.
+    is_theta_rescaled
+        Whether the input theta values were rescaled to be in the range [0, pi].
+    """
+
+    if is_theta_rescaled:
+        # unrescale theta back to range [-pi, pi]
+        theta_values = (theta_values * 2) - np.pi
+
+    pc1_values = r_values * np.cos(theta_values)
+    pc2_values = r_values * np.sin(theta_values)
+
+    return pc1_values, pc2_values
 
 
 def rewrap_polar_angle(unwrapped_angle: float, original_range: tuple[float, float]) -> float:
@@ -524,17 +576,18 @@ def project_features_to_pcs(
 
     **Variable transformation**
 
-    The feature data in the input DataFrame is projected onto the principal component
-    axes defined by the input PCA model. New columns are added to the DataFrame for
-    each principal component (e.g., pc_1, pc_2, pc_3, ...).
+    The feature data in the input DataFrame is projected onto the principal
+    component axes defined by the input PCA model. New columns are added to the
+    DataFrame for each principal component (e.g., pc_1, pc_2, pc_3, ...).
 
-    Optionally, based on the input ``compute_polar`` flag, polar coordinates (r, theta)
-    are computed from the first two principal components and added as new columns.
+    Optionally, based on the input ``compute_polar`` flag, polar coordinates (r,
+    theta) are computed from the first two principal components and added as new
+    columns.
 
-    Also optionally, based on the input ``flip_pc3_sign`` flag, an additional column (rho)
-    that is equivalent to pc_3 but with the sign flipped is added. This sign flip is done
-    for consistency such that higher rho values correspond to higher cell density
-    in the original image crops.
+    Also optionally, based on the input ``flip_pc3_sign`` flag, an additional
+    column (rho) that is equivalent to pc_3 but with the sign flipped is added.
+    This sign flip is done for consistency such that higher rho values
+    correspond to higher cell density in the original image crops.
 
     Parameters
     ----------
@@ -550,7 +603,8 @@ def project_features_to_pcs(
     rescale_theta
         Whether to rescale the polar angle theta to be in the range [0, pi].
     flip_pc3_sign
-        Whether to add an addtional column with the sign of PC3 flipped for consistency.
+        True to add an addtional column with the sign of PC3 flipped for
+        consistency, False otherwise.
 
     Returns
     -------
@@ -579,16 +633,19 @@ def project_features_to_pcs(
             )
             raise ValueError("At least 2 PCs are required to compute polar coordinates.")
         else:
-            df_[ColumnName.POLAR_RADIUS] = pcs_to_polar_r(
-                df_[pc_cols[0]].values, df_[pc_cols[1]].values
-            )
-            df_[ColumnName.POLAR_ANGLE] = pcs_to_polar_theta(
-                df_[pc_cols[0]].values, df_[pc_cols[1]].values, rescale=rescale_theta
-            )
-
+            polar_radius_and_polar_angle_cols = {
+                ColumnName.POLAR_RADIUS.value: pcs_to_polar_r(
+                    df_[pc_cols[0]].values, df_[pc_cols[1]].values
+                ),
+                ColumnName.POLAR_ANGLE.value: pcs_to_polar_theta(
+                    df_[pc_cols[0]].values, df_[pc_cols[1]].values, rescale=rescale_theta
+                ),
+            }
+            df_ = df_.assign(**polar_radius_and_polar_angle_cols)
     if flip_pc3_sign:
         if num_pcs >= 3:
-            df_[ColumnName.PC3_FLIPPED] = -df_[pc_cols[2]]
+            pc3_flipped_col = {ColumnName.PC3_FLIPPED.value: -df_[pc_cols[2]]}
+            df_ = df_.assign(**pc3_flipped_col)
         else:
             logger.error("Cannot add column for -(PC3) because number of PCs [ %s ] < 3", num_pcs)
             raise ValueError("At least 3 PCs are required to add column for -(PC3).")
@@ -599,6 +656,7 @@ def project_features_to_pcs(
 def get_dataframe_for_dynamics_workflows(
     dataset_name: str,
     manifest: DataframeManifest,
+    columns_to_keep: list[str] | None = None,
     pca: PCA | None = None,
     filter_dataframe: bool = True,
     include_cell_piling: bool = True,
@@ -606,11 +664,24 @@ def get_dataframe_for_dynamics_workflows(
     crop_pattern: Literal["grid", "tracked"] = "grid",
     compute_polar: bool = True,
     rescale_theta: bool = True,
+    flip_pc3_sign: bool = True,
 ) -> pd.DataFrame:
     """
     Load DiffAE dataframe data projected onto given PC axes for downstream
     analysis in the stochastic dynamics workflow. Adds crop index column to
     DataFrame, and projects feature data onto PC axes.
+
+    **Column selection and filtering**
+
+    The input DataFrame is filtered to keep only necessary columns to save
+    memory. At a minimum, the metadata columns defined in
+    METADATA_COLUMNS_TO_KEEP and the latent feature columns needed for PCA
+    projection are kept. Additional columns can be specified to keep via the
+    input ``columns_to_keep``.
+
+    In the case that the input ``pca`` is not None, the feature data is
+    projected onto the PC axes defined by the PCA model, and the original latent
+    feature columns are dropped to save memory.
 
     Parameters
     ----------
@@ -618,18 +689,26 @@ def get_dataframe_for_dynamics_workflows(
         Name of dataset
     manifest
         Dataframe manifest for loading model features.
+    columns_to_keep
+        List of additional column names to keep in the output DataFrame.
     pca
         PCA model to fit to feature data. If None, do not project feature data.
     filter_dataframe
-        Whether to filter out annotated timepoints and positions from the dataframe.
+        Whether to filter out annotated timepoints and positions from the
+        dataframe.
     include_cell_piling
         True keep timepoints annotated as "cell_piling", False to remove them.
     include_not_steady_state
-        True to keep timepoints annotated as "not_steady_state", False to remove them.
+        True to keep timepoints annotated as "not_steady_state", False to remove
+        them.
     crop_pattern
-        Crop pattern used to generate the feature dataframe. Either 'grid' or 'tracked'.
+        Crop pattern used to generate the feature dataframe. Either 'grid' or
+        'tracked'.
     compute_polar
         Whether to compute polar coordinates (r, theta) from the first two PCs.
+    flip_pc3_sign
+        True to add an additional column with the sign of PC3 flipped for
+        consistency, False otherwise.
     rescale_theta
         Whether to rescale the polar angle theta to be in the range [0, pi].
 
@@ -640,8 +719,22 @@ def get_dataframe_for_dynamics_workflows(
     """
 
     location = get_dataframe_location_for_dataset(manifest, dataset_name)
-    df = load_dataframe(location)
+    df = load_dataframe(location, delay=True)
     feat_cols = get_latent_feature_column_names_from_dataframe(df)
+
+    # start with default metadatac columns to keep
+    columns_to_keep_ = list(METADATA_COLUMNS_TO_KEEP)
+    if columns_to_keep is not None:
+        columns_to_keep_.extend(columns_to_keep)  # add any additional specified columns to keep
+    columns_to_keep_.extend(feat_cols)  # also keep feature columns for PCA projection
+    if crop_pattern == "tracked":
+        columns_to_keep_.extend(
+            [ColumnName.TRACK_ID]
+        )  # also keep track ID column for tracked crops
+    columns_to_keep_ = list(set(columns_to_keep_))  # remove duplicates, if any
+
+    # keep only necessary columns to save memory
+    df_ = df[columns_to_keep_].compute()
 
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
@@ -655,12 +748,12 @@ def get_dataframe_for_dynamics_workflows(
             annotations_to_ignore=annotations_to_ignore
         )
         df_filtered = filter_dataframe_by_annotations(
-            df,
+            df_,
             load_dataset_config(dataset_name),
             timepoint_annotations=timepoint_annotations,
         )
     else:
-        df_filtered = df
+        df_filtered = df_
 
     df_with_crop = add_crop_index(df_filtered, crop_pattern)
 
@@ -674,13 +767,18 @@ def get_dataframe_for_dynamics_workflows(
 
     else:
         # project feature data onto PC axes
-        return project_features_to_pcs(
+        df_with_pcs = project_features_to_pcs(
             df_with_crop,
             pca,
             feat_cols=feat_cols,
             compute_polar=compute_polar,
             rescale_theta=rescale_theta,
+            flip_pc3_sign=flip_pc3_sign,
         )
+        df_drop_original_feats = df_with_pcs.drop(
+            columns=feat_cols
+        )  # drop original feature columns to save memory
+        return df_drop_original_feats
 
 
 def get_dataset_descriptions(
@@ -801,34 +899,16 @@ def add_crop_index(
         logger.error("Crop pattern must be 'tracked' or 'grid', got [ %s ]", crop_pattern)
         raise ValueError("Input crop_pattern must be 'grid' or 'tracked'")
 
-    if crop_pattern == "tracked" and "track_id" in df.columns:
-        required_columns = [ColumnName.POSITION, "track_id"]
-        check_required_columns_in_dataframe(df, required_columns)
-        df[ColumnName.CROP_INDEX] = (
-            df.groupby([ColumnName.POSITION, "track_id"], as_index=False).ngroup().astype(int)
-        )
-
+    if crop_pattern == "tracked" and ColumnName.TRACK_ID in df.columns:
+        required_columns = [ColumnName.POSITION, ColumnName.TRACK_ID]
     elif crop_pattern == "grid":
-        required_columns = [ColumnName.START_X, ColumnName.START_Y, ColumnName.POSITION]
-        check_required_columns_in_dataframe(df, required_columns)
+        required_columns = [ColumnName.POSITION, ColumnName.START_X, ColumnName.START_Y]
 
-        # get list of unique starting positions and FOV_IDs
-        start_x = df[ColumnName.START_X].unique().tolist()
-        start_y = df[ColumnName.START_Y].unique().tolist()
-        position = df[ColumnName.POSITION].unique().tolist()
-        tup_list = [(x, y, pos) for x in start_x for y in start_y for pos in position]
+    check_required_columns_in_dataframe(df, required_columns)
 
-        # function to convert starting position and FOV_ID to crop index
-        def _pos_to_index_grid(x: float, y: float, position: str) -> int:
-            return tup_list.index((x, y, position))
-
-        # apply function to DataFrame to get crop index
-        df[ColumnName.CROP_INDEX] = df.apply(
-            lambda x: _pos_to_index_grid(
-                x[ColumnName.START_X], x[ColumnName.START_Y], x[ColumnName.POSITION]
-            ),
-            axis=1,
-        )
+    # group by the required columns and assign a unique integer (the crop_index)
+    # to each group based on the index of that group
+    df[ColumnName.CROP_INDEX] = df.groupby(required_columns, as_index=False).ngroup().astype(int)
 
     return df
 
@@ -926,7 +1006,7 @@ def split_dataset_by_flow(
 
 
 def get_traj_and_diff(
-    df: pd.DataFrame, column_names: list, polar_angle_period: float = THETA_RESCALED_PERIOD
+    df: pd.DataFrame, column_names: list, polar_angle_period: float = PERIOD_THETA_RESCALED
 ) -> tuple[list[np.ndarray], list[np.ndarray]]:
     """
     Get trajectories and single-timepoint displacement vectors for each crop in feature space.

@@ -186,11 +186,6 @@ def get_dataset_color(dataset_name: str) -> str:
         Name of the dataset to get the color for.
     """
     dataset_config = load_dataset_config(dataset_name)
-    if len(dataset_config.shear_stress_regime) > 1:
-        logger.warning(
-            "Color defaults only set for single shear stress regime datasets \
-            and for the min-to-max and max-to-min shear stress regime datasets. "
-        )
 
     shear_stress_regime = tuple(dataset_config.shear_stress_regime)
     color = SHEAR_COLOR_DICT[shear_stress_regime]
@@ -887,6 +882,8 @@ def get_label_for_column(
         label = "polar $r$"
     elif column_name == ColumnName.POLAR_ANGLE:
         label = "polar $\\theta$"
+    elif column_name == ColumnName.PC3_FLIPPED:
+        label = "$\\rho$"
 
     # check mapping dict for label override
     if mapping_dict is None:

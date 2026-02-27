@@ -1,8 +1,172 @@
+from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.colors import TwoSlopeNorm
 from mpl_toolkits.mplot3d import Axes3D
+
+from endo_pipeline.io import save_plot_to_path
+
+
+def plot_and_save_drift_contours(
+    meshgrid: tuple[np.ndarray, np.ndarray],
+    drift: np.ndarray,
+    variable_labels: list[str],
+    bin_limits: list[tuple[float, float]],
+    fig_title: str,
+    fig_savedir: Path,
+    filename_prefix: str,
+) -> None:
+    """
+    Plot contour of each component of the drift vector field over the 2D state
+    space.
+
+    The contour lines are colored according to the value of the drift component,
+    using a diverging colormap centered at zero to visualize the direction and
+    magnitude of the drift.
+
+    Parameters
+    ----------
+    meshgrid
+        Meshgrid on which the drift is evaluated, typically obtained from
+        np.meshgrid(..., indexing="ij").
+    drift
+        Drift vector field evaluated on the meshgrid, with shape (nx, ny, ndim).
+    variable_labels
+        Labels for axes corresponding to the state space variables, e.g.,
+        ["$x_1$", "$x_2$"].
+    bin_limits
+        Limits for the axes, specified as a list of tuples.
+    fig_title
+        Title for the figure.
+    fig_savedir
+        Directory to save the figure.
+    filename_prefix
+        Prefix for the filename when saving the figure, e.g., "dataset_1".
+    """
+    for var_index, var_name in enumerate(variable_labels):
+        fig, ax = plt.subplots()
+        contour = ax.contourf(
+            meshgrid[0],
+            meshgrid[1],
+            drift[..., var_index],
+            levels=50,
+            cmap="RdBu_r",
+            norm=TwoSlopeNorm(vcenter=0),
+        )
+        # add dashed line for nullcline
+        ax.contour(
+            meshgrid[0],
+            meshgrid[1],
+            drift[..., var_index],
+            levels=[0],
+            colors="k",
+            linestyles="dashed",
+        )
+        fig.colorbar(contour, ax=ax, label=f"d{var_name}/dt")
+        ax.set_xlabel(variable_labels[0])
+        ax.set_ylabel(variable_labels[1])
+        ax.set_xlim(bin_limits[0])
+        ax.set_ylim(bin_limits[1])
+        fig.suptitle(
+            f"{fig_title} \n d{var_name}/dt vs ({variable_labels[0]}, {variable_labels[1]})", y=1.05
+        )
+        var_name_for_file = var_name.replace("$", "").replace("\\", "")
+        save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_d{var_name_for_file}dt")
+
+
+def plot_and_save_drift_quiver(
+    meshgrid: tuple[np.ndarray, np.ndarray],
+    drift: np.ndarray,
+    variable_labels: list[str],
+    bin_limits: list[tuple[float, float]],
+    fig_title: str,
+    fig_savedir: Path,
+    filename_prefix: str,
+    include_nullclines: bool = True,
+    quiver_scale: float = 10,
+    quiver_color: str = "k",
+    nullcline_styles: tuple[str, str] = ("dashed", "dashdot"),
+    nullcline_colors: tuple[str, str] = ("r", "b"),
+    nullcline_linewidth: float = 1.5,
+    nullcline_opacity: float = 0.7,
+):
+    """
+    Plot quiver plot of the drift vector field over the 2D state space.
+
+    Parameters
+    ----------
+    meshgrid
+        Meshgrid on which the drift is evaluated, typically obtained from
+        np.meshgrid(..., indexing="ij").
+    drift
+        Drift vector field evaluated on the meshgrid, with shape (nx, ny, ndim).
+    variable_labels
+        Labels for axes corresponding to the state space variables, e.g.,
+        ["$x_1$", "$x_2$"].
+    bin_limits
+        Limits for the axes, specified as a list of tuples.
+    fig_title
+        Title for the figure.
+    fig_savedir
+        Directory to save the figure.
+    filename_prefix
+        Prefix for the filename when saving the figure, e.g., "dataset_1".
+    include_nullclines
+        Whether to include nullclines (where drift components are zero).
+    quiver_scale
+        Scale factor for the quiver plot (smaller values make arrows longer).
+    quiver_color
+        Color for the quiver arrows.
+    nullcline_styles
+        Tuple of line styles for the nullclines of each variable.
+    nullcline_colors
+        Tuple of colors for the nullclines of each variable.
+    nullcline_linewidth
+        Line width for the nullcline lines.
+    nullcline_opacity
+        Opacity for the nullcline lines (between 0 and 1).
+    """
+    fig, ax = plt.subplots()
+    ax.quiver(
+        meshgrid[0],
+        meshgrid[1],
+        drift[..., 0],
+        drift[..., 1],
+        color=quiver_color,
+        pivot="tail",
+        scale=quiver_scale,
+    )
+    if include_nullclines:
+        for var_index, var_name in enumerate(variable_labels):
+            # add dashed line for nullcline
+            ax.contour(
+                meshgrid[0],
+                meshgrid[1],
+                drift[..., var_index],
+                levels=[0],
+                colors=nullcline_colors[var_index],
+                linestyles=nullcline_styles[var_index],
+                linewidths=nullcline_linewidth,
+                alpha=nullcline_opacity,
+            )
+            # add legend for nullclines
+            ax.plot(
+                [],
+                [],
+                color=nullcline_colors[var_index],
+                linestyle=nullcline_styles[var_index],
+                label=f"d{var_name}/dt",
+            )
+        ax.legend(title="Nullclines", loc=(1.025, 0.90))
+
+    ax.set_xlabel(variable_labels[0])
+    ax.set_ylabel(variable_labels[1])
+    ax.set_xlim(bin_limits[0])
+    ax.set_ylim(bin_limits[1])
+    fig.suptitle(f"{fig_title} \n drift in ({variable_labels[0]}, {variable_labels[1]})", y=1.05)
+    save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_drift_quiver")
 
 
 def plot_fixed_points_by_shear(
