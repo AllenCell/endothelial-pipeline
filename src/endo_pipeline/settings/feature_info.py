@@ -27,8 +27,6 @@ LABEL_MAP = {
     "centroid_velocity_magnitude": "Cell Migration Speed (µm/min)",
     "cell_nuc_orientation_deg_rel_to_migration": "Nucleus Orientation Relative to Migration (deg)",
     "nuc_pos_rel_cell_angle_deg": "Nucleus Orientation Relative to Flow Angle (deg)",
-    "vec_mean_angle_in_crop_deg": "Vector Mean Angle of Migration in Crop (deg)",
-    "vec_mean_mag_in_crop": "Vector Mean Magnitude of Migration in Crop (µm/min)",
     # filters
     "is_edge_segmentation": "Filter: Touches Edge of Field of View",
     "is_less_than_max_smoothed_area_normd_change": "Filter: Smoothed Area Change Below Threshold",
