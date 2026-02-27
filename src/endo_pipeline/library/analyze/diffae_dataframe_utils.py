@@ -631,16 +631,19 @@ def project_features_to_pcs(
             )
             raise ValueError("At least 2 PCs are required to compute polar coordinates.")
         else:
-            df_[ColumnName.POLAR_RADIUS] = pcs_to_polar_r(
-                df_[pc_cols[0]].values, df_[pc_cols[1]].values
-            )
-            df_[ColumnName.POLAR_ANGLE] = pcs_to_polar_theta(
-                df_[pc_cols[0]].values, df_[pc_cols[1]].values, rescale=rescale_theta
-            )
-
+            polar_radius_and_polar_angle_cols = {
+                ColumnName.POLAR_RADIUS.value: pcs_to_polar_r(
+                    df_[pc_cols[0]].values, df_[pc_cols[1]].values
+                ),
+                ColumnName.POLAR_ANGLE.value: pcs_to_polar_theta(
+                    df_[pc_cols[0]].values, df_[pc_cols[1]].values, rescale=rescale_theta
+                ),
+            }
+            df_ = df_.assign(**polar_radius_and_polar_angle_cols)
     if flip_pc3_sign:
         if num_pcs >= 3:
-            df_[ColumnName.PC3_FLIPPED] = -df_[pc_cols[2]]
+            pc3_flipped_col = {ColumnName.PC3_FLIPPED.value: -df_[pc_cols[2]]}
+            df_ = df_.assign(**pc3_flipped_col)
         else:
             logger.error("Cannot add column for -(PC3) because number of PCs [ %s ] < 3", num_pcs)
             raise ValueError("At least 3 PCs are required to add column for -(PC3).")
