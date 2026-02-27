@@ -97,9 +97,6 @@ def generate_tfe_dataset(
             df_position = add_dynamic_features_with_filtering(df_position)
             df_position["orientation_deg"] = np.rad2deg(df_position["orientation"] + np.pi / 2)
             df_position["orientation"] += np.pi / 2
-            df_position["vec_mean_angle_in_crop_deg"] = np.rad2deg(
-                df_position["vec_mean_angle_in_crop"]
-            )
             df_position = update_manifest_for_tfe(df_position, dataset, position, output_dir)
 
         case "grid":
