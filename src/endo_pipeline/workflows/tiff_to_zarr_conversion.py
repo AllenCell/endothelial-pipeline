@@ -30,8 +30,8 @@ pip install bioio==3.0.0 bioio-ome-tiff==1.4.0 bioio-ome-zarr==3.0.2 \
 Set the path to the conversion CSV and then run this workflow using:
 
 ```bash
-python src/endo_pipeline/workflows/tiff_to_zarr_conversion.py nuclear_labelfree_seg
-python src/endo_pipeline/workflows/tiff_to_zarr_conversion.py cdh5_classic_seg
+python src/endo_pipeline/workflows/tiff_to_zarr_conversion.py path/to/csv nuclear_labelfree_seg
+python src/endo_pipeline/workflows/tiff_to_zarr_conversion.py path/to/csv cdh5_classic_seg
 ```
 
 You may optionally select a batch by providing a batch index. By default, each
@@ -39,8 +39,8 @@ batch contains 10 rows (this can be changed in the workflow). If the batch index
 does not include any rows, the workflow will exit early.
 
 ```bash
-python src/endo_pipeline/workflows/tiff_to_zarr_conversion.py nuclear_labelfree_seg 0
-python src/endo_pipeline/workflows/tiff_to_zarr_conversion.py cdh5_classic_seg 3
+python src/endo_pipeline/workflows/tiff_to_zarr_conversion.py path/to/csv nuclear_labelfree_seg 0
+python src/endo_pipeline/workflows/tiff_to_zarr_conversion.py path/to/csv cdh5_classic_seg 3
 ```
 """
 
@@ -135,13 +135,13 @@ def convert_tiff_to_zarr_for_row(row):
 
 
 if __name__ == "__main__":
-    image_manifest_name = sys.argv[1]
+    image_manifest_name = sys.argv[2]
 
     if image_manifest_name not in ("nuclear_labelfree_seg", "cdh5_classic_seg"):
         print("Image manifest name must be 'nuclear_labelfree_seg' or 'cdh5_classic_seg'")
         exit()
 
-    results_path = Path("//allen/aics/users/jessica.yu/2026-02-25/tiff_to_zarr")
+    results_path = Path(sys.argv[1])
     convert_csv_path = results_path / f"tiff_to_zarr_conversion_{image_manifest_name}.csv"
 
     # Silence warnings from Dask
@@ -149,8 +149,8 @@ if __name__ == "__main__":
 
     # If running in batches, get batch index and only load that batch from the
     # dataframe. If not, load the entire dataframe.
-    if len(sys.argv) > 2:
-        batch_index = int(sys.argv[2])
+    if len(sys.argv) > 3:
+        batch_index = int(sys.argv[3])
         batch_size = 16
         batch_start = int(batch_index) * batch_size + 1
         df = pd.read_csv(convert_csv_path, skiprows=range(1, batch_start), nrows=batch_size)
