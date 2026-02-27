@@ -186,7 +186,7 @@ def apply_img_transforms(
         Transformed sample (dict).
     """
     for i, transform in enumerate(transforms):
-        logger.info("Applying Transform %s: %s", i + 1, {transform.__class__.__name__})
+        logger.debug("Applying Transform %s: %s", i + 1, {transform.__class__.__name__})
 
         sample = transform(sample)
 
