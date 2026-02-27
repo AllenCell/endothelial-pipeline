@@ -335,7 +335,16 @@ def _compute_correlations_for_one_dataset(
     # try to get dataframe for the given dataset
     # if it does not exist, skip this dataset, return dict as is
     try:
-        df = get_dataframe_for_dynamics_workflows(dataset_name, dataframe_manifest, pca=pca)
+        df = get_dataframe_for_dynamics_workflows(
+            dataset_name,
+            dataframe_manifest,
+            pca=pca,
+            filter_dataframe=True,
+            include_cell_piling=False,
+            include_not_steady_state=False,
+            compute_polar=True,
+            rescale_theta=True,
+        )
     except KeyError:
         logger.warning(
             "Dataset [ %s ] not found in the manifest, skipping for this workflow.", dataset_name
