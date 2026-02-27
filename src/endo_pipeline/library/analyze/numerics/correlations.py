@@ -11,6 +11,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
 )
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE, ColumnName
+from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RESCALE_THETA
 
 logger = logging.getLogger(__name__)
 
@@ -329,6 +330,7 @@ def _compute_correlations_for_one_dataset(
     correlation_dict: dict,
     bootstrap_samples: int | None = None,
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
+    rescale_polar_angle: bool = RESCALE_THETA,
 ) -> dict[str, dict[str, Any]]:
     """Compute cross-correlation and autocorrelation for features from one dataset."""
 
@@ -343,7 +345,7 @@ def _compute_correlations_for_one_dataset(
             include_cell_piling=False,
             include_not_steady_state=False,
             compute_polar=True,
-            rescale_theta=True,
+            rescale_theta=rescale_polar_angle,
         )
     except KeyError:
         logger.warning(
@@ -359,6 +361,14 @@ def _compute_correlations_for_one_dataset(
         ColumnName.PC3_FLIPPED,
     ]
     feat_cols.extend(polar_column_names)
+
+    # unwrap angles if polar_angle is in feat_cols
+    if ColumnName.POLAR_ANGLE.value in feat_cols:
+        polar_angle_range = (0, PERIOD_THETA_RESCALED) if rescale_polar_angle else (0, 2 * np.pi)
+        for _, df_crop in df.groupby(ColumnName.CROP_INDEX):
+            df.loc[df_crop.index, ColumnName.POLAR_ANGLE] = np.unwrap(
+                df_crop[ColumnName.POLAR_ANGLE], period=polar_angle_range[1] - polar_angle_range[0]
+            )
 
     # get feature data
     feats = df_to_array(df, feat_cols)
