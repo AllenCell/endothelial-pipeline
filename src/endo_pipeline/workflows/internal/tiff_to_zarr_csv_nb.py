@@ -76,6 +76,11 @@ for manifest_name, channel_name in image_channel_pairs:
             # Create output path for Zarr segmentations
             save_path = zarr_seg_path / Path(*original_zarr_path.parts[-2:])
 
+            # Check if the output path already exists
+            if save_path.exists():
+                logger.debug("Converted zarr '%s' already exists. Skipping.", save_path)
+                continue
+
             # Get dataset duration  because Tiff segmentations are individual
             # timepoints for each file, but the converted Zarr segmentation will
             # have all timpoints in a single file.
