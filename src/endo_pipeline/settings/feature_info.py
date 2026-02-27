@@ -22,16 +22,24 @@ LABEL_MAP = {
     "num_valid_tp_per_track": "Number of Valid Timepoints",
     "number_of_neighbors": "Number of Neighbors",
     "num_nuclei_in_crop": "Number of Nuclei in Crop",
+    # dynamics features
     "centroid_velocity_angle_deg": "Cell Migration Angle (deg)",
     "centroid_velocity_magnitude": "Cell Migration Speed (µm/min)",
     "cell_nuc_orientation_deg_rel_to_migration": "Nucleus Orientation Relative to Migration (deg)",
     "nuc_pos_rel_cell_angle_deg": "Nucleus Orientation Relative to Flow Angle (deg)",
+    "vec_mean_angle_in_crop_deg": "Vector Mean Angle of Migration in Crop (deg)",
+    "vec_mean_mag_in_crop": "Vector Mean Magnitude of Migration in Crop (µm/min)",
     # filters
     "is_edge_segmentation": "Filter: Touches Edge of Field of View",
     "is_less_than_max_smoothed_area_normd_change": "Filter: Smoothed Area Change Below Threshold",
     "is_greater_than_min_track_duration": "Filter: Exceeds Min Track Duration",
     "has_more_than_min_num_valid_points_per_track": "Filter: Num Valid Points Exceeds Threshold",
     "is_included": "Filter: Passed All Filters",
+    "bbox_is_in_bounds": "Annotation: Crop Box Limits are Within FOV",
+    "not_steady_state": "Annotation: Cell Population Not At Steady State",
+    "unfed": "Annotation: Unfed Cells (More Than 3 Hours Since Fresh Media Introduced)",
+    "xy_shift": "Annotation: Significant Change in XY position of FOV",
+    "z_shift": "Annotation: Significant Change in Z position of FOV",
     # Cell-centric DiffAE features and PCs
     **{
         f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}"

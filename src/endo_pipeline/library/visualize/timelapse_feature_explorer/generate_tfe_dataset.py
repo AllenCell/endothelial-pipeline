@@ -97,6 +97,9 @@ def generate_tfe_dataset(
             df_position = add_dynamic_features_with_filtering(df_position)
             df_position["orientation_deg"] = np.rad2deg(df_position["orientation"] + np.pi / 2)
             df_position["orientation"] += np.pi / 2
+            df_position["vec_mean_angle_in_crop_deg"] = np.rad2deg(
+                df_position["vec_mean_angle_in_crop"]
+            )
             df_position = update_manifest_for_tfe(df_position, dataset, position, output_dir)
 
         case "grid":
@@ -192,6 +195,25 @@ def get_df_and_label_map_cdh5seg(
     df["orientation_deg"] = np.rad2deg(df["orientation"] + np.pi / 2)
 
     df = df[df["position"] == position]
+
+    # add the timepoint annotations as filter columns
+    dataset_config = load_dataset_config(dataset)
+    if dataset_config.timepoint_annotations is not None:
+        filters_for_dataset = list(dataset_config.timepoint_annotations.keys())
+        for filt in filters_for_dataset:
+            # timepoint_annotations = dataset_config.timepoint_annotations[filt].get(position, [])
+            # invalid_tps: set = set()
+            if position in dataset_config.timepoint_annotations[filt]:
+                invalid_tps = get_annotated_timepoints_for_position(
+                    dataset_config, position, [filt]
+                )
+                if not dataset_config.timepoint_annotations[filt][position]:
+                    continue
+                df[filt] = df["image_index"].isin(invalid_tps)
+    else:
+        filters_for_dataset = []
+    # clean up the label_map to remove filters not used in this dataset
+    label_map = {col: label_map[col] for col in label_map if col in df.columns}
 
     feature_column_names = list(label_map.keys())
     feature_info = add_feature_metadata(label_map)
