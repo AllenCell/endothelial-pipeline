@@ -1003,10 +1003,13 @@ def get_preprocessed_manifests_and_km_bounds(
     tracked_diffae_feats_df = tracked_diffae_feats_df.drop(
         columns=["model_manifest_name"] + diffae_feature_column_names
     )
-    tracked_diffae_feats_df["collection_name_for_pca"] = collection_name_for_pca
-    tracked_diffae_feats_df["datasets_used_for_pca"] = [
-        get_datasets_in_collection(collection_name_for_pca)
-    ] * len(tracked_diffae_feats_df)
+    tracked_diffae_feats_df = tracked_diffae_feats_df.assign(
+        collection_name_for_pca=collection_name_for_pca
+    )
+    tracked_diffae_feats_df = tracked_diffae_feats_df.assign(
+        datasets_used_for_pca=[get_datasets_in_collection(collection_name_for_pca)]
+        * len(tracked_diffae_feats_df)
+    )
 
     # tracked_diffae_feats_df retains the indexing of merged_feats_df, so we
     # can merge on the index safely
@@ -1017,14 +1020,14 @@ def get_preprocessed_manifests_and_km_bounds(
         left_index=True,
         right_index=True,
         validate="one_to_one",
-    )
+    ).reset_index(drop=True)
 
     # read in the grid crop-based diffae features
     grid_diffae_manifest = load_dataframe_manifest(grid_diffae_feat_manifest_name)
     diffae_grid_crops = get_dataframe_for_dynamics_workflows(
-        dataset_name,
-        grid_diffae_manifest,
-        pca,
+        dataset_name=dataset_name,
+        manifest=grid_diffae_manifest,
+        pca=pca,
         include_cell_piling=False,
         include_not_steady_state=False,
     )

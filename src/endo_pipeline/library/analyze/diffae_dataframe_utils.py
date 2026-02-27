@@ -576,17 +576,18 @@ def project_features_to_pcs(
 
     **Variable transformation**
 
-    The feature data in the input DataFrame is projected onto the principal component
-    axes defined by the input PCA model. New columns are added to the DataFrame for
-    each principal component (e.g., pc_1, pc_2, pc_3, ...).
+    The feature data in the input DataFrame is projected onto the principal
+    component axes defined by the input PCA model. New columns are added to the
+    DataFrame for each principal component (e.g., pc_1, pc_2, pc_3, ...).
 
-    Optionally, based on the input ``compute_polar`` flag, polar coordinates (r, theta)
-    are computed from the first two principal components and added as new columns.
+    Optionally, based on the input ``compute_polar`` flag, polar coordinates (r,
+    theta) are computed from the first two principal components and added as new
+    columns.
 
-    Also optionally, based on the input ``flip_pc3_sign`` flag, an additional column (rho)
-    that is equivalent to pc_3 but with the sign flipped is added. This sign flip is done
-    for consistency such that higher rho values correspond to higher cell density
-    in the original image crops.
+    Also optionally, based on the input ``flip_pc3_sign`` flag, an additional
+    column (rho) that is equivalent to pc_3 but with the sign flipped is added.
+    This sign flip is done for consistency such that higher rho values
+    correspond to higher cell density in the original image crops.
 
     Parameters
     ----------
@@ -602,7 +603,8 @@ def project_features_to_pcs(
     rescale_theta
         Whether to rescale the polar angle theta to be in the range [0, pi].
     flip_pc3_sign
-        Whether to add an addtional column with the sign of PC3 flipped for consistency.
+        True to add an addtional column with the sign of PC3 flipped for
+        consistency, False otherwise.
 
     Returns
     -------
@@ -631,16 +633,19 @@ def project_features_to_pcs(
             )
             raise ValueError("At least 2 PCs are required to compute polar coordinates.")
         else:
-            df_[ColumnName.POLAR_RADIUS] = pcs_to_polar_r(
-                df_[pc_cols[0]].values, df_[pc_cols[1]].values
-            )
-            df_[ColumnName.POLAR_ANGLE] = pcs_to_polar_theta(
-                df_[pc_cols[0]].values, df_[pc_cols[1]].values, rescale=rescale_theta
-            )
-
+            polar_radius_and_polar_angle_cols = {
+                ColumnName.POLAR_RADIUS.value: pcs_to_polar_r(
+                    df_[pc_cols[0]].values, df_[pc_cols[1]].values
+                ),
+                ColumnName.POLAR_ANGLE.value: pcs_to_polar_theta(
+                    df_[pc_cols[0]].values, df_[pc_cols[1]].values, rescale=rescale_theta
+                ),
+            }
+            df_ = df_.assign(**polar_radius_and_polar_angle_cols)
     if flip_pc3_sign:
         if num_pcs >= 3:
-            df_[ColumnName.PC3_FLIPPED] = -df_[pc_cols[2]]
+            pc3_flipped_col = {ColumnName.PC3_FLIPPED.value: -df_[pc_cols[2]]}
+            df_ = df_.assign(**pc3_flipped_col)
         else:
             logger.error("Cannot add column for -(PC3) because number of PCs [ %s ] < 3", num_pcs)
             raise ValueError("At least 3 PCs are required to add column for -(PC3).")
@@ -659,6 +664,7 @@ def get_dataframe_for_dynamics_workflows(
     crop_pattern: Literal["grid", "tracked"] = "grid",
     compute_polar: bool = True,
     rescale_theta: bool = True,
+    flip_pc3_sign: bool = True,
 ) -> pd.DataFrame:
     """
     Load DiffAE dataframe data projected onto given PC axes for downstream
@@ -700,6 +706,9 @@ def get_dataframe_for_dynamics_workflows(
         'tracked'.
     compute_polar
         Whether to compute polar coordinates (r, theta) from the first two PCs.
+    flip_pc3_sign
+        True to add an additional column with the sign of PC3 flipped for
+        consistency, False otherwise.
     rescale_theta
         Whether to rescale the polar angle theta to be in the range [0, pi].
 
@@ -764,6 +773,7 @@ def get_dataframe_for_dynamics_workflows(
             feat_cols=feat_cols,
             compute_polar=compute_polar,
             rescale_theta=rescale_theta,
+            flip_pc3_sign=flip_pc3_sign,
         )
         df_drop_original_feats = df_with_pcs.drop(
             columns=feat_cols
