@@ -2,7 +2,35 @@ name: diffae_optical_flow
 workflow: compute_optical_flow_feats
 parameters: {}
 locations:
+  20250428_20X:
+    fmsid: c68421293c5a42608363c1d5aa1b950a
+    path: null
+    s3uri: null
   20250618_20X:
     fmsid: 2aadc0e0adf94211ad365ecd4de108b6
+    path: null
+    s3uri: null
+  20250319_20X:
+    fmsid: db24b75bb722402e99b137346f4a35d2
+    path: null
+    s3uri: null
+  20250813_20X:
+    fmsid: 00c86e2ca8d54a2786269233d9ddb340
+    path: null
+    s3uri: null
+  20250611_20X:
+    fmsid: 2b648479085d41c88d038c098288b435
+    path: null
+    s3uri: null
+  20250818_20X:
+    fmsid: 7cdfc0c9427c40f9b854ef712989e966
+    path: null
+    s3uri: null
+  20250714_20X:
+    fmsid: 98789844f392473488d0f0799b18280d
+    path: null
+    s3uri: null
+  20250827_20X:
+    fmsid: 64875df7846c4f409d3094d401244c49
     path: null
     s3uri: null
