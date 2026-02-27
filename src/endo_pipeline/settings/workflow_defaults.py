@@ -130,7 +130,13 @@ OPTICAL_FLOW_BASE_FEATURES: list = [
 """Base feature names computed per (crop, timepoint, dt) by optical-flow extraction."""
 
 DEFAULT_OPTICAL_FLOW_MAX_DT: int = 5
-"""Maximum frame gap for multi-scale optical-flow sweep (dt = 1 … MAX_DT)."""
+"""Maximum frame gap for multi-scale optical-flow sweep (dt = 1 ... MAX_DT)."""
+
+DEFAULT_OMP_NUM_THREADS: str = "1"
+"""Default OMP_NUM_THREADS for optical-flow workers (pinned to avoid over-subscription)."""
+
+DEFAULT_OPENBLAS_NUM_THREADS: str = "1"
+"""Default OPENBLAS_NUM_THREADS for optical-flow workers."""
 
 OPTICAL_FLOW_FEATURE_COLS: list = [
     f"{f}_dt{d}"
