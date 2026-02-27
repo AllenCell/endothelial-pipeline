@@ -48,8 +48,7 @@ def main() -> None:
 
     # Load model manifest and instantiate model
     model_manifest = load_model_manifest(model_manifest_name)
-    model = load_model(model_manifest.locations[run_name], instantiate=True)
-    assert isinstance(model, DiffusionAutoEncoder)
+    model: DiffusionAutoEncoder = load_model(model_manifest.locations[run_name], instantiate=True)
 
     # Load model configuration and reference dataset manifests
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
@@ -100,10 +99,12 @@ def main() -> None:
         batch_coordinate_values = ranges[start_idx:end_idx]
         batch_file_name = f"{file_name}_{start_idx+1}_to_{end_idx}"
 
+        batch_column_names = column_names[start_idx:end_idx]
+
         plot_latent_walk_as_grid(
             batch_walk_images,
             batch_coordinate_values,
-            column_names,
+            batch_column_names,
             save_path,
             batch_file_name,
             show_values=True,
