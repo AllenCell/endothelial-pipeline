@@ -143,12 +143,14 @@ def build_analysis_queue(
 
         # get the timeframes of the timelapse to be evaluated
         if t_final is None:
-            t_final = dataset_config.duration
-        t_range = range(t_start, t_final, t_step)
+            t_final_as_int = dataset_config.duration
+        else:
+            t_final_as_int = t_final
+        t_range = range(t_start, t_final_as_int, t_step)
 
         # get the timeframes to be used for validation images, if any
         if image_validation_frequency is not None:
-            validation_t_range = range(t_start, t_final, image_validation_frequency)
+            validation_t_range = range(t_start, t_final_as_int, image_validation_frequency)
         else:
             validation_t_range = range(0)  # empty range will produce empty list
 
