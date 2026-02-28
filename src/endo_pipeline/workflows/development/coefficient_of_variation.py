@@ -25,15 +25,21 @@ def main(
 
         1. Loads the crop feature dataframe, projects features into PCA space,
            and computes polar coordinates.
-        2. Splits the dataframe by flow conditions based on shear stress.
-        3. Accumulates CoV data across all dataset / flow conditions and produces
-           two summary figures:
+        2. Rewraps polar theta to the correct periodic range and min-max scales
+           all feature columns to [0, 1] for stable CoV computation.
+        3. Splits the dataframe by flow conditions based on shear stress.
+        4. Accumulates CoV data across all dataset / flow conditions and produces
+           three summary figures:
 
            a. **Population CoV vs time** — one line per dataset-condition,
               coloured by shear stress regime.
            b. **Ergodicity test** — violin plot of per-crop temporal CoV
               distributions with the mean population CoV overlaid.  Overlap
               indicates ergodic behaviour; separation indicates non-ergodicity.
+           c. **Variance ratio vs time** — line plot of mean per-crop
+              cumulative temporal variance divided by population variance
+              at each timepoint, with ± SEM shaded bands.  A ratio near 1
+              indicates ergodic behaviour.
 
     Parameters
     ----------
@@ -58,13 +64,16 @@ def main(
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         compute_per_crop_temporal_cov,
         compute_population_cov,
+        compute_variance_ratio_vs_time,
         fit_pca,
         get_dataframe_for_dynamics_workflows,
+        rewrap_polar_angle,
         split_dataset_by_flow,
     )
     from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
         plot_ergodicity_test,
         plot_population_cov_vs_time,
+        plot_variance_ratio,
     )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.manifests import (
@@ -128,6 +137,7 @@ def main(
     # (crop_temporal_cov_array, mean_pop_cov, color, label) for the ergodicity test.
     pop_cov_data: dict[str, list[tuple]] = {col: [] for col in column_names}
     erg_data: dict[str, list[tuple]] = {col: [] for col in column_names}
+    var_ratio_data: dict[str, list[tuple]] = {col: [] for col in column_names}
 
     for dataset_name in dataset_names:
         dataset_config = load_dataset_config(dataset_name)
@@ -143,6 +153,18 @@ def main(
             rescale_theta=RESCALE_THETA,
         )
         df = df.dropna(subset=column_names)
+
+        # rewrap polar theta so that mean and std behave correctly for periodic data
+        theta_col = ColumnName.POLAR_ANGLE.value
+        if theta_col in column_names:
+            theta_range = BIN_LIMITS_THETA_RESCALED if RESCALE_THETA else (-np.pi, np.pi)
+            df[theta_col] = df[theta_col].apply(rewrap_polar_angle, original_range=theta_range)
+
+        # min-max scale each feature column to [0, 1] so that CoV is stable
+        # and comparable across features with different native ranges
+        for col in column_names:
+            lo, hi = global_bin_limits_dict[col]
+            df[col] = (df[col] - lo) / (hi - lo)
 
         df_by_flow, shear_stress_list = split_dataset_by_flow(df, dataset_config)
 
@@ -160,10 +182,17 @@ def main(
             # --- per-crop temporal CoV (time: std / |mean| over timepoints for each crop) ---
             crop_cov_dict = compute_per_crop_temporal_cov(df_, column_names)
 
+            # --- variance ratio vs time (individual cumulative var / population var) ---
+            vr_time, vr_dict = compute_variance_ratio_vs_time(
+                df_, column_names, TIME_STEP_IN_MINUTES
+            )
+
             for col in column_names:
                 pop_cov_data[col].append((time_values, cov_df[col].to_numpy(), color, label))
                 mean_pop_cov = float(np.nanmean(cov_df[col].to_numpy()))
                 erg_data[col].append((crop_cov_dict[col], mean_pop_cov, color, label))
+                r_mean, r_upper, r_lower = vr_dict[col]
+                var_ratio_data[col].append((vr_time, r_mean, r_upper, r_lower, color, label))
 
             logger.debug(
                 "Processed dataset [ %s ] at shear stress [ %s ] dyn/cm^2",
@@ -178,6 +207,9 @@ def main(
 
     # --- Plot 2: ergodicity test ---
     fig, axs = plot_ergodicity_test(erg_data, variable_labels_dict, fig_savedir)
+
+    # --- Plot 3: variance ratio (temporal var / population var) ---
+    fig, axs = plot_variance_ratio(var_ratio_data, variable_labels_dict, fig_savedir)
 
 
 if __name__ == "__main__":

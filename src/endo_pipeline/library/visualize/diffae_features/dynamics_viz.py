@@ -654,3 +654,92 @@ def plot_ergodicity_test(
         bbox_inches="tight",
     )
     return fig, axs
+
+
+def plot_variance_ratio(
+    var_ratio_data: dict[str, list[tuple]],
+    variable_labels_dict: dict[str, str],
+    fig_savedir: Path,
+) -> tuple[Figure, list[Axes]]:
+    """
+    Plot the ratio of individual to population variance as a function of time.
+
+    At each timepoint the ratio is the mean per-crop cumulative temporal
+    variance divided by the population (cross-sectional) variance.  A shaded
+    band shows ± 1 SEM across crops.  A dashed reference line at ratio = 1
+    marks the ergodic expectation.
+
+    Each dataset-condition is drawn as a separate line and coloured by shear
+    stress regime.
+
+    Parameters
+    ----------
+    var_ratio_data
+        Mapping from feature column name to a list of
+        ``(time_values, ratio_mean, ratio_upper, ratio_lower, color, label)``
+        tuples — one per dataset / flow condition.
+    variable_labels_dict
+        Human-readable label for each feature column name.
+    fig_savedir
+        Directory to save the figure.
+    """
+    column_names = list(var_ratio_data.keys())
+    n_cols = len(column_names)
+
+    fig, axs = plt.subplots(
+        ncols=n_cols,
+        figsize=(5 * n_cols, 5),
+        dpi=300,
+    )
+    if n_cols == 1:
+        axs = [axs]
+
+    for col, ax in zip(column_names, axs, strict=False):
+        for entry in var_ratio_data[col]:
+            time_values, ratio_mean, ratio_upper, ratio_lower, color, label = entry
+            ax.plot(
+                time_values,
+                ratio_mean,
+                color=color,
+                alpha=0.9,
+                linewidth=1.2,
+            )
+            ax.fill_between(
+                time_values,
+                y1=ratio_upper,
+                y2=ratio_lower,
+                alpha=0.25,
+                color=color,
+                label=label,
+            )
+        # reference line at ratio = 1
+        ax.axhline(1.0, color="k", linestyle="--", linewidth=0.8, alpha=0.7)
+        ax.set_xlabel("Time (hours)")
+        ax.set_ylabel("Var$_{\\mathrm{individual}}$ / Var$_{\\mathrm{population}}$")
+        ax.set_ylim(0, 1.5)
+        ax.set_title(variable_labels_dict[col])
+
+    # shared legend below subplots
+    handles_seen: dict[str, Artist] = {}
+    for entry in var_ratio_data[column_names[-1]]:
+        _, _, _, _, color, label = entry
+        if label not in handles_seen:
+            handles_seen[label] = Patch(facecolor=color, alpha=0.45, label=label)
+    fig.legend(
+        handles=list(handles_seen.values()),
+        loc="lower center",
+        ncol=min(3, len(handles_seen)),
+        bbox_to_anchor=(0.5, -0.18),
+        fontsize=7,
+    )
+    fig.suptitle(
+        "Individual / population variance ratio vs time",
+        y=1.01,
+    )
+    fig.tight_layout()
+    fig.savefig(
+        fig_savedir / "variance_ratio_vs_time.png",
+        dpi=300,
+        bbox_inches="tight",
+    )
+    return fig, axs

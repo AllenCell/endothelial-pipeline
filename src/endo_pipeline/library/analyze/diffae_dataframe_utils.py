@@ -1195,3 +1195,86 @@ def compute_per_crop_temporal_cov(
         crop_cov_dict[col] = cov[np.isfinite(cov)]
 
     return crop_cov_dict
+
+
+def compute_variance_ratio_vs_time(
+    df: pd.DataFrame,
+    column_names: list[str],
+    time_step_minutes: float,
+) -> tuple[np.ndarray, dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]]]:
+    """
+    Compute ratio of individual to population variance as a function of time.
+
+    At each timepoint *T* the function computes:
+
+    * **Population variance** — variance of the feature across all crops at *T*.
+    * **Individual cumulative variance** — for each crop, the variance of the
+      feature from timepoint 0 up to and including *T*.
+    * **Ratio** — mean individual cumulative variance / population variance.
+
+    A ratio close to 1 at all times indicates ergodic behaviour; deviations
+    reveal non-ergodicity.
+
+    Parameters
+    ----------
+    df
+        Feature dataframe for a single dataset / flow condition.  Must contain
+        ``crop_index`` and ``frame_number`` columns.
+    column_names
+        Feature column names to compute the variance ratio for.
+    time_step_minutes
+        Duration of one frame in minutes, used to convert frame indices to
+        hours.
+
+    Returns
+    -------
+    time_values
+        1-D array of time values in hours (one per timepoint).
+    ratio_dict
+        Mapping from feature column name to a tuple
+        ``(ratio_mean, ratio_upper, ratio_lower)`` where each element is a
+        1-D array aligned with *time_values*.  ``ratio_upper`` and
+        ``ratio_lower`` are the mean ± SEM bounds.
+    """
+    # shape: (n_crops, n_timepoints, n_features)
+    crop_array = df_to_array(df, column_names)
+    n_crops, n_timepoints, _ = crop_array.shape
+
+    timepoints = np.arange(n_timepoints)
+    time_values = timepoints * time_step_minutes / 60
+
+    ratio_dict: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}
+    for feat_idx, col in enumerate(column_names):
+        crop_feat = crop_array[..., feat_idx]  # (n_crops, n_timepoints)
+
+        # population variance at each timepoint (across crops)
+        pop_var = np.nanvar(crop_feat, axis=0)  # (n_timepoints,)
+
+        # per-crop cumulative temporal variance up to each timepoint
+        # ind_cum_var[i, t] = Var(crop_feat[i, 0:t+1])
+        ind_cum_var = np.full((n_crops, n_timepoints), np.nan)
+        for t in range(n_timepoints):
+            if t == 0:
+                # variance of a single value is 0
+                ind_cum_var[:, t] = 0.0
+            else:
+                ind_cum_var[:, t] = np.nanvar(crop_feat[:, : t + 1], axis=1)
+
+        # mean and SEM of individual cumulative variance across crops
+        mean_ind_var = np.nanmean(ind_cum_var, axis=0)  # (n_timepoints,)
+        n_valid = np.sum(np.isfinite(ind_cum_var), axis=0)
+        sem_ind_var = np.where(
+            n_valid > 1,
+            np.nanstd(ind_cum_var, axis=0) / np.sqrt(n_valid),
+            0.0,
+        )
+
+        # ratio = mean individual var / population var
+        with np.errstate(divide="ignore", invalid="ignore"):
+            ratio_mean = np.where(pop_var > 0, mean_ind_var / pop_var, np.nan)
+            ratio_upper = np.where(pop_var > 0, (mean_ind_var + sem_ind_var) / pop_var, np.nan)
+            ratio_lower = np.where(pop_var > 0, (mean_ind_var - sem_ind_var) / pop_var, np.nan)
+
+        ratio_dict[col] = (ratio_mean, ratio_upper, ratio_lower)
+
+    return time_values, ratio_dict
