@@ -134,6 +134,9 @@ def main(
         dataframe_manifest_name=dataframe_manifest_name_for_pca, num_pcs=NUM_PCS_TO_FIT_FOR_DYNAMICS
     )
 
+    # plotting timepoints in unit hours: conversion factor
+    time_conversion_factor = TIME_STEP_IN_MINUTES / 60
+
     # dataset list from specified collection
     if datasets is None:
         dataset_names = get_datasets_in_collection("3d_flow_field_analysis")
@@ -188,26 +191,24 @@ def main(
             color = SHEAR_COLOR_DICT[(shear_stress_regime,)]
             label = f"{dataset_name} ({int(shear_stress)} dyn/cm$^2$)"
 
-            # non-periodic columns: standard mean ± std
-            non_periodic_cols = [c for c in column_names if c != theta_col]
-            t_vals, mean_df, std_df = compute_population_mean_std(
-                df_flow, non_periodic_cols, TIME_STEP_IN_MINUTES
-            )
-            for col in non_periodic_cols:
-                mean_std_unscaled[col].append(
-                    (t_vals, mean_df[col].to_numpy(), std_df[col].to_numpy(), color, label)
-                )
+            t_vals = df[ColumnName.TIMEPOINT.value].sort_values().unique() * time_conversion_factor
 
-            # periodic column (polar theta): circular mean ± std via unwrap
-            if theta_col in column_names:
-                t_vals_c, mean_c, std_c = compute_circular_mean_std(
-                    df_flow, theta_col, TIME_STEP_IN_MINUTES, theta_range
-                )
-                # compute_circular_mean_std rewraps each timepoint independently,
-                # so the mean can jump between 0 and pi when the true mean is near
-                # a range boundary; unwrap across time to restore continuity
-                mean_c = np.unwrap(mean_c, period=theta_period)
-                mean_std_unscaled[theta_col].append((t_vals_c, mean_c, std_c, color, label))
+            # compute mean ± std for each column at each timepoint; for theta,
+            # use circular stats to account for periodicity
+            grouped_df = df_flow.groupby(ColumnName.TIMEPOINT.value)
+
+            for col in column_names:
+                if col != theta_col:
+                    mean_arr = grouped_df[col].mean().to_numpy()
+                    std_arr = grouped_df[col].std().to_numpy()
+                else:
+                    mean_arr, std_arr = compute_circular_mean_std(df_flow, col, theta_range)
+                    # compute_circular_mean_std rewraps each timepoint independently,
+                    # so the mean can jump between 0 and pi when the true mean is near
+                    # a range boundary; unwrap across time to restore continuity
+                    mean_arr = np.unwrap(mean_arr, period=theta_period)
+                # add to dict for plotting
+                mean_std_scaled[col].append((t_vals, mean_arr, std_arr, color, label))
 
         # min-max scale each feature column to [0, 1] so that CoV is stable
         # and comparable across features with different native ranges

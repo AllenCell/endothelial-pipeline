@@ -9,7 +9,6 @@ from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 def compute_circular_mean_std(
     df: pd.DataFrame,
     column_name: str,
-    time_step_minutes: float,
     original_range: tuple[float, float],
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
@@ -51,8 +50,7 @@ def compute_circular_mean_std(
         mean_values[i] = circmean(unwrapped_angles, low=original_range[0], high=original_range[1])
         std_values[i] = circstd(unwrapped_angles, low=original_range[0], high=original_range[1])
 
-    time_values = timepoints * time_step_minutes / 60
-    return time_values, mean_values, std_values
+    return mean_values, std_values
 
 
 def compute_population_mean_std(
