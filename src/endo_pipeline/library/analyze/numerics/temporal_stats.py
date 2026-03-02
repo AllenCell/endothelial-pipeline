@@ -1,11 +1,8 @@
 import numpy as np
 import pandas as pd
+from scipy.stats import circmean, circstd
 
 from endo_pipeline.library.analyze.diffae_dataframe_utils import df_to_array
-from endo_pipeline.library.analyze.numerics.circular_stats import (
-    compute_circular_mean,
-    compute_circular_std,
-)
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
 
@@ -52,8 +49,8 @@ def compute_circular_mean_std(
 
     for i, (_, df_frame) in enumerate(df.groupby(ColumnName.TIMEPOINT.value)):
         unwrapped_angles = df_frame[column_name].to_numpy()
-        mean_values[i] = compute_circular_mean(unwrapped_angles, original_range, rewrap=True)
-        std_values[i] = compute_circular_std(unwrapped_angles, original_range)
+        mean_values[i] = circmean(unwrapped_angles, low=original_range[0], high=original_range[1])
+        std_values[i] = circstd(unwrapped_angles, low=original_range[0], high=original_range[1])
 
     time_values = timepoints * time_step_minutes / 60
     return time_values, mean_values, std_values
