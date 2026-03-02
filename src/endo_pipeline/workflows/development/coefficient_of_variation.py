@@ -77,7 +77,7 @@ def main(
         compute_binned_variance_ratio_vs_time,
         compute_circular_mean_std,
         compute_cumulative_variance_ratio_vs_time,
-        compute_per_crop_temporal_covariance,
+        compute_per_crop_temporal_cov,
     )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features.variation_analysis import (
@@ -231,7 +231,7 @@ def main(
                 mean_population_cov = float(np.nanmean(scaled_population_cov))
                 scaled_crop_array = df_to_array(df_flow_scaled, [col])
                 # per-crop covariance (covariance computed over all timepoints)
-                per_crop_cov = compute_per_crop_temporal_covariance(scaled_crop_array)
+                per_crop_cov = compute_per_crop_temporal_cov(scaled_crop_array)
                 # compute ratio of cumulative covariance per crop versus
                 # population covariance at each timepoint, with SEM across
                 # crops
