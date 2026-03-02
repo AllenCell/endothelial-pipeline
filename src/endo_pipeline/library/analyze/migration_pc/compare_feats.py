@@ -11,12 +11,7 @@ def plot_lda_vs_optical_flow(
     figsize=(24, 2.5 * 9),
     max_points=10000,
     clip_quantiles=None,
-):
-    title_fontsize = 14
-    label_fontsize = 14
-    tick_fontsize = 14
-    annot_fontsize = 14
-    legend_fontsize = 14
+) -> None:
 
     # Drop rows with NaNs in relevant columns
     df = df.dropna(subset=features + optical_flow_features + ["dataset"])
@@ -90,23 +85,17 @@ def plot_lda_vs_optical_flow(
                     rasterized=True,
                 )
             if row == 0:
-                ax.set_title(feature, fontsize=title_fontsize)
+                ax.set_title(feature)
             if col == 0:
-                ax.set_ylabel(of_feature, fontsize=label_fontsize)
-            ax.tick_params(axis="both", labelsize=tick_fontsize)
-            ax.annotate(
-                f"r={corr_coef:.2f}",
-                xy=(0.05, 0.9),
-                xycoords="axes fraction",
-                fontsize=annot_fontsize,
-            )
+                ax.set_ylabel(of_feature)
+            ax.annotate(f"r={corr_coef:.2f}", xy=(0.05, 0.9), xycoords="axes fraction", fontsize=14)
             ax.grid(True)
 
     # Add legend to the first axis with handles
     for ax in axes.flat:
         handles, labels = ax.get_legend_handles_labels()
         if handles:
-            ax.legend(loc="upper right", fontsize=legend_fontsize, frameon=True)
+            ax.legend(loc="upper right", fontsize=14, frameon=True)
             break
 
     plt.tight_layout()

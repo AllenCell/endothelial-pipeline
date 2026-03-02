@@ -377,7 +377,8 @@ def fit_pca(
     filter_dataframe: bool = True,
     include_cell_piling: bool = False,
     num_pcs: int = 8,
-) -> PCA:
+    return_pca_input_dataframe: bool = False,
+) -> PCA | tuple[PCA, pd.DataFrame]:
     """
     Fit PCA model to fixed set of reference datasets, as defined in the given
     dataset collection name.
@@ -395,11 +396,15 @@ def fit_pca(
         True to include cell piling timepoints in the data used to fit PCA, False to exclude them.
     num_pcs
         Number of principal components to fit.
+    return_pca_input_dataframe
+        Whether to return the input dataframe used to fit PCA along with the fit PCA object.
 
     Returns
     -------
     :
         Fit PCA object
+    pd.DataFrame, optional
+        Input dataframe used to fit PCA, returned if `return_pca_input_dataframe` is True.
     """
     # Get dataframe manifest name if not provided based on default model manifest
     if dataframe_manifest_name is None:
@@ -446,8 +451,8 @@ def fit_pca(
     # get the feature columns from the data,
     # these are the columns that start with 'feat_'
     diffae_feature_cols = get_latent_feature_column_names_from_dataframe(data_ref)
-    pca.fit(data_ref[diffae_feature_cols].values)  # fit PCA
-
+    pca_input_dataframe = data_ref[diffae_feature_cols]
+    pca.fit(pca_input_dataframe.values)
     # log info about explained variance ratio
     logger.info(
         "Explained variance ratios: %s",
@@ -461,6 +466,9 @@ def fit_pca(
     )
 
     # return the fit PCA pipeline
+    if return_pca_input_dataframe:
+        return pca, pca_input_dataframe
+
     return pca
 
 
