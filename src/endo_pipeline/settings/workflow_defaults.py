@@ -129,6 +129,12 @@ OPTICAL_FLOW_BASE_FEATURES: list = [
 ]
 """Base feature names computed per (crop, timepoint, dt) by optical-flow extraction."""
 
+OPTICAL_FLOW_CHANNEL_PERCENTILE: dict = {
+    "EGFP": 95,  # sparse fluorescence → exclude empty background
+    "BF": 0,  # dense texture → keep all pixels
+}
+"""Intensity percentile thresholds per channel for optical-flow masking."""
+
 DEFAULT_OPTICAL_FLOW_MAX_DT: int = 5
 """Maximum frame gap for multi-scale optical-flow sweep (dt = 1 ... MAX_DT)."""
 
