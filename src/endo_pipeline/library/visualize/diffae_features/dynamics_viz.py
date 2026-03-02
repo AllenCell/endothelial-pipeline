@@ -3,6 +3,8 @@ from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
 from matplotlib.artist import Artist
 from matplotlib.axes import Axes
 from matplotlib.colors import TwoSlopeNorm
@@ -559,9 +561,6 @@ def plot_ergodicity_test(
     fig_savedir
         Directory to save the figure.
     """
-    import pandas as pd
-    import seaborn as sns
-
     column_names = list(erg_data.keys())
     n_cols = len(column_names)
 
@@ -739,6 +738,192 @@ def plot_variance_ratio(
     fig.tight_layout()
     fig.savefig(
         fig_savedir / "variance_ratio_vs_time.png",
+        dpi=300,
+        bbox_inches="tight",
+    )
+    return fig, axs
+
+
+def plot_binned_variance_ratio(
+    var_ratio_data: dict[str, list[tuple]],
+    variable_labels_dict: dict[str, str],
+    fig_savedir: Path,
+) -> tuple[Figure, list[Axes]]:
+    """
+    Plot the ratio of individual to population variance computed within time bins.
+
+    This is the non-cumulative counterpart of :func:`plot_variance_ratio`.
+    At each time-bin centre the ratio is the mean per-crop variance *within
+    the bin* divided by the population variance within the same bin.  A shaded
+    band shows ± 1 SEM across crops.  A dashed reference line at ratio = 1
+    marks the ergodic expectation.
+
+    **How to interpret the plot**
+
+    * **Ratio ≈ 1 everywhere** — individual crops fluctuate as much as the
+      whole population within each short window → ergodic.
+    * **Ratio ≪ 1** — crops occupy narrow, distinct niches in feature space →
+      heterogeneous / non-ergodic.
+    * **Ratio rising toward 1** — the system is mixing over time.
+    * Comparing this binned plot with the cumulative version reveals whether
+      ergodicity is driven by local fluctuations (binned ratio ≈ 1) or slow
+      drift (cumulative ratio ≈ 1 but binned ratio < 1).
+
+    Parameters
+    ----------
+    var_ratio_data
+        Mapping from feature column name to a list of
+        ``(time_values, ratio_mean, ratio_upper, ratio_lower, color, label)``
+        tuples — one per dataset / flow condition.
+    variable_labels_dict
+        Human-readable label for each feature column name.
+    fig_savedir
+        Directory to save the figure.
+    """
+    column_names = list(var_ratio_data.keys())
+    n_cols = len(column_names)
+
+    fig, axs = plt.subplots(
+        ncols=n_cols,
+        figsize=(5 * n_cols, 5),
+        dpi=300,
+    )
+    if n_cols == 1:
+        axs = [axs]
+
+    for col, ax in zip(column_names, axs, strict=False):
+        for entry in var_ratio_data[col]:
+            time_values, ratio_mean, ratio_upper, ratio_lower, color, label = entry
+            ax.plot(
+                time_values,
+                ratio_mean,
+                color=color,
+                alpha=0.9,
+                linewidth=1.2,
+            )
+            ax.fill_between(
+                time_values,
+                y1=ratio_upper,
+                y2=ratio_lower,
+                alpha=0.25,
+                color=color,
+                label=label,
+            )
+        # reference line at ratio = 1
+        ax.axhline(1.0, color="k", linestyle="--", linewidth=0.8, alpha=0.7)
+        ax.set_xlabel("Time (hours)")
+        ax.set_ylabel("Var$_{\\mathrm{individual}}$ / Var$_{\\mathrm{population}}$ (binned)")
+        ax.set_ylim(0, 1.5)
+        ax.set_title(variable_labels_dict[col])
+
+    # shared legend below subplots
+    handles_seen: dict[str, Artist] = {}
+    for entry in var_ratio_data[column_names[-1]]:
+        _, _, _, _, color, label = entry
+        if label not in handles_seen:
+            handles_seen[label] = Patch(facecolor=color, alpha=0.45, label=label)
+    fig.legend(
+        handles=list(handles_seen.values()),
+        loc="lower center",
+        ncol=min(3, len(handles_seen)),
+        bbox_to_anchor=(0.5, -0.18),
+        fontsize=7,
+    )
+    fig.suptitle(
+        "Individual / population variance ratio vs time (binned)",
+        y=1.01,
+    )
+    fig.tight_layout()
+    fig.savefig(
+        fig_savedir / "binned_variance_ratio_vs_time.png",
+        dpi=300,
+        bbox_inches="tight",
+    )
+    return fig, axs
+
+
+def plot_mean_feature_vs_time(
+    mean_std_data: dict[str, list[tuple]],
+    variable_labels_dict: dict[str, str],
+    fig_savedir: Path,
+    filename: str,
+    title: str,
+    ylabel_suffix: str = "",
+) -> tuple[Figure, list[Axes]]:
+    """
+    Plot population mean ± std of each feature as a function of time.
+
+    Each dataset-condition is drawn as a line (mean) with a shaded band
+    (± 1 std) and coloured by shear stress regime.
+
+    Parameters
+    ----------
+    mean_std_data
+        Mapping from feature column name to a list of
+        ``(time_values, mean_array, std_array, color, label)`` tuples — one
+        per dataset / flow condition.
+    variable_labels_dict
+        Human-readable label for each feature column name.
+    fig_savedir
+        Directory to save the figure.
+    filename
+        Filename (without directory) for the saved figure.
+    title
+        Figure suptitle.
+    ylabel_suffix
+        Optional suffix appended to each y-axis label (e.g. " (scaled)").
+    """
+    column_names = list(mean_std_data.keys())
+    n_cols = len(column_names)
+
+    fig, axs = plt.subplots(
+        ncols=n_cols,
+        figsize=(5 * n_cols, 5),
+        dpi=300,
+    )
+    if n_cols == 1:
+        axs = [axs]
+
+    for col, ax in zip(column_names, axs, strict=False):
+        for entry in mean_std_data[col]:
+            time_values, mean_arr, std_arr, color, label = entry
+            ax.plot(
+                time_values,
+                mean_arr,
+                color=color,
+                alpha=0.9,
+                linewidth=1.2,
+            )
+            ax.fill_between(
+                time_values,
+                y1=mean_arr + std_arr,
+                y2=mean_arr - std_arr,
+                alpha=0.25,
+                color=color,
+                label=label,
+                edgecolor="none",
+            )
+        ax.set_xlabel("Time (hours)")
+        ax.set_ylabel(f"{variable_labels_dict[col]}{ylabel_suffix}")
+        ax.set_title(variable_labels_dict[col])
+
+    # shared legend below subplots
+    handles_seen: dict[str, Artist] = {}
+    for entry in mean_std_data[column_names[-1]]:
+        _, _, _, color, label = entry
+        if label not in handles_seen:
+            handles_seen[label] = Patch(facecolor=color, alpha=0.45, label=label)
+    fig.legend(
+        handles=list(handles_seen.values()),
+        loc="lower center",
+        ncol=min(3, len(handles_seen)),
+        bbox_to_anchor=(0.5, -0.18),
+        fontsize=7,
+    )
+    fig.suptitle(title, y=1.01)
+    fig.tight_layout()
+    fig.savefig(
+        fig_savedir / filename,
         dpi=300,
         bbox_inches="tight",
     )

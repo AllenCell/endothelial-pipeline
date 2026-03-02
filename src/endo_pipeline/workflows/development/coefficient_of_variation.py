@@ -29,17 +29,23 @@ def main(
            all feature columns to [0, 1] for stable CoV computation.
         3. Splits the dataframe by flow conditions based on shear stress.
         4. Accumulates CoV data across all dataset / flow conditions and produces
-           three summary figures:
+           five summary figures:
 
-           a. **Population CoV vs time** — one line per dataset-condition,
+           a. **Mean feature vs time (unscaled)** — population mean ± std
+              for each feature in its original units.
+           b. **Mean feature vs time (scaled)** — same as (a) but after
+              min-max scaling features to [0, 1].
+           c. **Population CoV vs time** — one line per dataset-condition,
               coloured by shear stress regime.
-           b. **Ergodicity test** — violin plot of per-crop temporal CoV
+           d. **Ergodicity test** — violin plot of per-crop temporal CoV
               distributions with the mean population CoV overlaid.  Overlap
               indicates ergodic behaviour; separation indicates non-ergodicity.
-           c. **Variance ratio vs time** — line plot of mean per-crop
+           e. **Variance ratio vs time** — line plot of mean per-crop
               cumulative temporal variance divided by population variance
               at each timepoint, with ± SEM shaded bands.  A ratio near 1
               indicates ergodic behaviour.
+           f. **Binned variance ratio vs time** — same as (e) but with temporal
+              variance computed within rolling time windows instead of cumulatively from t=0.
 
     Parameters
     ----------
@@ -62,16 +68,21 @@ def main(
     from endo_pipeline.configs.dataset_config_io import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+        compute_binned_variance_ratio_vs_time,
+        compute_circular_mean_std,
+        compute_cumulative_variance_ratio_vs_time,
         compute_per_crop_temporal_cov,
         compute_population_cov,
-        compute_variance_ratio_vs_time,
+        compute_population_mean_std,
         fit_pca,
         get_dataframe_for_dynamics_workflows,
         rewrap_polar_angle,
         split_dataset_by_flow,
     )
     from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
+        plot_binned_variance_ratio,
         plot_ergodicity_test,
+        plot_mean_feature_vs_time,
         plot_population_cov_vs_time,
         plot_variance_ratio,
     )
@@ -88,6 +99,7 @@ def main(
         BIN_LIMITS_THETA_RESCALED,
         DYNAMICS_COLUMN_NAMES,
         NUM_PCS_TO_FIT_FOR_DYNAMICS,
+        PERIOD_THETA_RESCALED,
         RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
@@ -138,6 +150,9 @@ def main(
     pop_cov_data: dict[str, list[tuple]] = {col: [] for col in column_names}
     erg_data: dict[str, list[tuple]] = {col: [] for col in column_names}
     var_ratio_data: dict[str, list[tuple]] = {col: [] for col in column_names}
+    binned_var_ratio_data: dict[str, list[tuple]] = {col: [] for col in column_names}
+    mean_std_unscaled: dict[str, list[tuple]] = {col: [] for col in column_names}
+    mean_std_scaled: dict[str, list[tuple]] = {col: [] for col in column_names}
 
     for dataset_name in dataset_names:
         dataset_config = load_dataset_config(dataset_name)
@@ -154,11 +169,46 @@ def main(
         )
         df = df.dropna(subset=column_names)
 
-        # rewrap polar theta so that mean and std behave correctly for periodic data
+        # polar angle periodicity settings
         theta_col = ColumnName.POLAR_ANGLE.value
+        theta_range = BIN_LIMITS_THETA_RESCALED if RESCALE_THETA else (-np.pi, np.pi)
+        theta_period = PERIOD_THETA_RESCALED if RESCALE_THETA else 2 * np.pi
+
+        # rewrap polar theta so that mean and std behave correctly for periodic data
         if theta_col in column_names:
-            theta_range = BIN_LIMITS_THETA_RESCALED if RESCALE_THETA else (-np.pi, np.pi)
             df[theta_col] = df[theta_col].apply(rewrap_polar_angle, original_range=theta_range)
+
+        # split by flow conditions (shared by unscaled and scaled paths)
+        df_by_flow, shear_stress_list = split_dataset_by_flow(df, dataset_config)
+
+        # collect unscaled mean ± std per flow condition
+        for df_flow, shear_stress, shear_stress_regime in zip(
+            df_by_flow, shear_stress_list, dataset_config.shear_stress_regime, strict=True
+        ):
+            color = SHEAR_COLOR_DICT[(shear_stress_regime,)]
+            label = f"{dataset_name} ({int(shear_stress)} dyn/cm$^2$)"
+
+            # non-periodic columns: standard mean ± std
+            non_periodic_cols = [c for c in column_names if c != theta_col]
+            t_vals, mean_df, std_df = compute_population_mean_std(
+                df_flow, non_periodic_cols, TIME_STEP_IN_MINUTES
+            )
+            for col in non_periodic_cols:
+                mean_std_unscaled[col].append(
+                    (t_vals, mean_df[col].to_numpy(), std_df[col].to_numpy(), color, label)
+                )
+
+            # periodic column (polar theta): circular mean ± std via unwrap
+            if theta_col in column_names:
+                # TODO: consider using scipy.stats.circmean and circstd instead of unwrapping and rewrapping.
+                t_vals_c, mean_c, std_c = compute_circular_mean_std(
+                    df_flow, theta_col, TIME_STEP_IN_MINUTES, theta_period, theta_range
+                )
+                # compute_circular_mean_std rewraps each timepoint independently,
+                # so the mean can jump between 0 and pi when the true mean is near
+                # a range boundary; unwrap across time to restore continuity
+                mean_c = np.unwrap(mean_c, period=theta_period)
+                mean_std_unscaled[theta_col].append((t_vals_c, mean_c, std_c, color, label))
 
         # min-max scale each feature column to [0, 1] so that CoV is stable
         # and comparable across features with different native ranges
@@ -166,6 +216,7 @@ def main(
             lo, hi = global_bin_limits_dict[col]
             df[col] = (df[col] - lo) / (hi - lo)
 
+        # re-split after scaling (split uses metadata columns, not feature values)
         df_by_flow, shear_stress_list = split_dataset_by_flow(df, dataset_config)
 
         # iterate over flow conditions within the dataset
@@ -179,11 +230,21 @@ def main(
             # --- population CoV (ensemble: std / |mean| across crops at each timepoint) ---
             time_values, cov_df = compute_population_cov(df_, column_names, TIME_STEP_IN_MINUTES)
 
+            # --- scaled mean ± std vs time ---
+            t_vals_s, mean_df_s, std_df_s = compute_population_mean_std(
+                df_, column_names, TIME_STEP_IN_MINUTES
+            )
+
             # --- per-crop temporal CoV (time: std / |mean| over timepoints for each crop) ---
             crop_cov_dict = compute_per_crop_temporal_cov(df_, column_names)
 
             # --- variance ratio vs time (individual cumulative var / population var) ---
-            vr_time, vr_dict = compute_variance_ratio_vs_time(
+            vr_time, vr_dict = compute_cumulative_variance_ratio_vs_time(
+                df_, column_names, TIME_STEP_IN_MINUTES
+            )
+
+            # --- binned variance ratio vs time (individual var / population var per bin) ---
+            bvr_time, bvr_dict = compute_binned_variance_ratio_vs_time(
                 df_, column_names, TIME_STEP_IN_MINUTES
             )
 
@@ -193,6 +254,13 @@ def main(
                 erg_data[col].append((crop_cov_dict[col], mean_pop_cov, color, label))
                 r_mean, r_upper, r_lower = vr_dict[col]
                 var_ratio_data[col].append((vr_time, r_mean, r_upper, r_lower, color, label))
+                br_mean, br_upper, br_lower = bvr_dict[col]
+                binned_var_ratio_data[col].append(
+                    (bvr_time, br_mean, br_upper, br_lower, color, label)
+                )
+                mean_std_scaled[col].append(
+                    (t_vals_s, mean_df_s[col].to_numpy(), std_df_s[col].to_numpy(), color, label)
+                )
 
             logger.debug(
                 "Processed dataset [ %s ] at shear stress [ %s ] dyn/cm^2",
@@ -200,16 +268,37 @@ def main(
                 int(shear_stress),
             )
 
-    # --- Plot 1: population CoV vs time, all datasets on one figure ---
-    fig, axs = plot_population_cov_vs_time(
+    # --- Plot 1: mean feature value (unscaled) ± std vs time ---
+    _ = plot_mean_feature_vs_time(
+        mean_std_unscaled,
+        variable_labels_dict,
+        fig_savedir,
+        filename="mean_feature_vs_time.png",
+        title="Population mean ± std vs time",
+    )
+
+    # --- Plot 2: mean feature value (scaled to [0, 1]) ± std vs time ---
+    _ = plot_mean_feature_vs_time(
+        mean_std_scaled,
+        variable_labels_dict,
+        fig_savedir,
+        filename="mean_feature_scaled_vs_time.png",
+        title="Population mean ± std vs time (scaled)",
+        ylabel_suffix=" (scaled)",
+    )
+    # --- Plot 3: population CoV vs time, all datasets on one figure ---
+    _ = plot_population_cov_vs_time(
         pop_cov_data, variable_labels_dict, fig_savedir, ylim_dict=BIN_LIMITS_COV_VS_TIME
     )
 
-    # --- Plot 2: ergodicity test ---
-    fig, axs = plot_ergodicity_test(erg_data, variable_labels_dict, fig_savedir)
+    # --- Plot 4: ergodicity test (where population mean lies within individual variance) ---
+    _ = plot_ergodicity_test(erg_data, variable_labels_dict, fig_savedir)
 
-    # --- Plot 3: variance ratio (temporal var / population var) ---
-    fig, axs = plot_variance_ratio(var_ratio_data, variable_labels_dict, fig_savedir)
+    # --- Plot 5: variance ratio (temporal var / population var) ---
+    _ = plot_variance_ratio(var_ratio_data, variable_labels_dict, fig_savedir)
+
+    # --- Plot 5b: binned variance ratio (per-bin individual var / population var) ---
+    _ = plot_binned_variance_ratio(binned_var_ratio_data, variable_labels_dict, fig_savedir)
 
 
 if __name__ == "__main__":

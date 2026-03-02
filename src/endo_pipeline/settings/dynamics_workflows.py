@@ -36,7 +36,7 @@ BIN_LIMITS_DYNAMICS: dict[str, tuple[float, float]] = {
 BIN_LIMITS_COV_VS_TIME: dict[str, tuple[float, float]] = {
     ColumnName.POLAR_ANGLE.value: (0.0, 1.5),
     ColumnName.POLAR_RADIUS.value: (0.0, 1.5),
-    ColumnName.PC3_FLIPPED.value: (0.0, 10),
+    ColumnName.PC3_FLIPPED.value: (0.0, 1.5),
 }
 """Bin limits for coefficient of variation vs time plots in dynamics visualization."""
 
