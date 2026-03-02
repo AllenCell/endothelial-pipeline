@@ -252,6 +252,14 @@ def add_filter_columns(
     return big_table
 
 
+# def add_cell_piling_and_steady_state_annotation_columns(big_table: pd.DataFrame) -> pd.DataFrame:
+#     """Adds the annotations about cell piling and steady state that were done by
+#     hand as columns to the data table.
+#     """
+
+#     return big_table
+
+
 def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.DataFrame:
     """
     This function uses the existing columns in the data table to calculate
@@ -348,6 +356,9 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
         lambda x: make_orientation_relative_to_flow(x)
     )
     big_table["alignment_deg_rel_to_flow"] = np.rad2deg(big_table["alignment_rel_to_flow"])
+
+    # add column for the orientation in degrees
+    big_table["orientation_deg"] = np.rad2deg(big_table["orientation"])
 
     # add column for nematic order and aspect ratio
     # to compare to Saurabhs modeling results
@@ -663,30 +674,20 @@ def calculate_smoothed_normd_area(
     return area_normd
 
 
-# restrict orientation to be between 0 and pi/2 instead of between -pi/2 and pi/2 so that
-# we can interpret this orientation as being either parallel or perpendicular to flow
-def shift_orientation_phase(orientation: float) -> float:
-    return orientation - np.pi / 2
-
-
-def restrict_orientation_to_positive(orientation: float) -> float:
-    return abs(orientation)
-
-
 def make_orientation_relative_to_flow(orientation: float) -> float:
     """
-    Changes 0 degrees from being the positive Y-axis (up)
-    to being the positive X-axis (to the right).
-    Also adjusts the range of possible angles from being
-    between -pi/2 and pi/2 to being between 0 and pi/2.
+    Restricts the orientation to be between 0 and pi/2 to
+    be between 0 and pi/4. This way the orientations can
+    be interpreted as being either aligned (i.e. parallel)
+    to the flow (0 degrees) or perpendicular to flow (90 degrees).
+    Orientation must be in radians.
     """
-    # you can visualize this process as folding a paper circle in half
-    # (the top half) and then rotating this half circle 90 degrees to
-    # the right, and then folding it in half again so you are only
-    # left with the top right quadrant of the circle.
-    return restrict_orientation_to_positive(
-        shift_orientation_phase(restrict_orientation_to_positive(orientation))
-    )
+    # restrict the x and y components of the orientation to be strictly
+    # positive so that the angle is between 0 and pi/2
+    x_component_rel_flow = np.abs(np.cos(orientation))
+    y_component_rel_flow = np.abs(np.sin(orientation))
+    # take the arctan of these components to get the angle relative to flow
+    return np.arctan(y_component_rel_flow / x_component_rel_flow)
 
 
 def get_nuclei_rel_to_cell_position(
