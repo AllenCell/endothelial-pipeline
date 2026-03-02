@@ -80,14 +80,14 @@ def main(
         compute_population_cov,
         compute_population_mean_std,
     )
-    from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
+    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+    from endo_pipeline.library.visualize.diffae_features.variation_analysis import (
         plot_binned_variance_ratio,
         plot_ergodicity_test,
         plot_mean_feature_vs_time,
         plot_population_cov_vs_time,
         plot_variance_ratio,
     )
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
         load_dataframe_manifest,
