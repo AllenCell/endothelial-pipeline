@@ -19,6 +19,8 @@ from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     check_required_columns_in_dataframe,
     get_dataframe_for_dynamics_workflows,
+)
+from endo_pipeline.library.analyze.numerics.circular_stats import (
     rewrap_polar_angle,
     unwrap_nonsequential_array,
 )

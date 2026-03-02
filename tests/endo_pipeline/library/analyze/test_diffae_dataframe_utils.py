@@ -13,6 +13,8 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_latent_feature_column_names_from_dataframe,
     get_traj_and_diff,
     project_features_to_pcs,
+)
+from endo_pipeline.library.analyze.numerics.circular_stats import (
     rewrap_polar_angle,
     unwrap_nonsequential_array,
 )

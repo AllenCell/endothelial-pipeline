@@ -69,15 +69,17 @@ def main(
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         compute_binned_variance_ratio_vs_time,
-        compute_circular_mean_std,
         compute_cumulative_variance_ratio_vs_time,
         compute_per_crop_temporal_cov,
         compute_population_cov,
         compute_population_mean_std,
         fit_pca,
         get_dataframe_for_dynamics_workflows,
-        rewrap_polar_angle,
         split_dataset_by_flow,
+    )
+    from endo_pipeline.library.analyze.numerics.circular_stats import (
+        compute_circular_mean_std,
+        rewrap_polar_angle,
     )
     from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
         plot_binned_variance_ratio,
