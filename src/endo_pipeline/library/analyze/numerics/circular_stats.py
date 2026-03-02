@@ -1,7 +1,4 @@
 import numpy as np
-import pandas as pd
-
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
 
 def rewrap_polar_angle(unwrapped_angle: float, original_range: tuple[float, float]) -> float:
@@ -91,57 +88,21 @@ def compute_circular_mean(
         return unwrapped_mean
 
 
-def compute_circular_mean_std(
-    df: pd.DataFrame,
-    column_name: str,
-    time_step_minutes: float,
-    period: float,
-    original_range: tuple[float, float],
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def compute_circular_std(angles: np.ndarray, original_angle_range: tuple[float, float]) -> float:
     """
-    Compute circular mean and standard deviation of a periodic column at each timepoint.
-
-    TODO: consider using scipy.stats.circmean and circstd instead of unwrapping and rewrapping.
-
-    At each timepoint the values are unwrapped across crops using
-    :func:`unwrap_nonsequential_array`, then the standard mean and std are
-    computed on the unwrapped values.  The mean is finally rewrapped back to
-    ``original_range`` using :func:`rewrap_polar_angle`.
+    Compute the circular standard deviation of a set of angles.
 
     Parameters
     ----------
-    df
-        Feature dataframe for a single dataset / flow condition, containing a
-        ``frame_number`` column and the periodic feature column.
-    column_name
-        Name of the periodic feature column.
-    time_step_minutes
-        Duration of one frame in minutes, used to convert frame indices to
-        hours.
-    period
-        Period of the periodic variable (e.g. ``pi`` for rescaled theta).
-    original_range
-        Original range of the periodic variable, passed to
-        :func:`rewrap_polar_angle`.
-
-    Returns
-    -------
-    time_values
-        1-D array of time values in hours.
-    mean_values
-        1-D array of rewrapped circular mean at each timepoint.
-    std_values
-        1-D array of standard deviation of the unwrapped values at each
-        timepoint.
+    angles
+        An array of angles from which to compute the circular standard deviation.
+    original_angle_range
+        A tuple specifying the original range of the angles, e.g., (0, 360) for
+        degrees or (0, 2*np.pi) for radians.
     """
-    timepoints = df[ColumnName.TIMEPOINT.value].sort_values().unique()
-    mean_values = np.empty(len(timepoints), dtype=float)
-    std_values = np.empty(len(timepoints), dtype=float)
+    angle_period = original_angle_range[1] - original_angle_range[0]
 
-    for i, (_, df_frame) in enumerate(df.groupby(ColumnName.TIMEPOINT.value)):
-        unwrapped = unwrap_nonsequential_array(df_frame[column_name].to_numpy(), period)
-        mean_values[i] = rewrap_polar_angle(np.mean(unwrapped).item(), original_range)
-        std_values[i] = np.std(unwrapped)
+    unwrapped_angles = unwrap_nonsequential_array(angles, angle_period)
+    unwrapped_std = np.std(unwrapped_angles)
 
-    time_values = timepoints * time_step_minutes / 60
-    return time_values, mean_values, std_values
+    return unwrapped_std
