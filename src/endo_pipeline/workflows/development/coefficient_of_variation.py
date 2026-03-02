@@ -72,7 +72,6 @@ def main(
         get_dataframe_for_dynamics_workflows,
         split_dataset_by_flow,
     )
-    from endo_pipeline.library.analyze.numerics.circular_stats import rewrap_polar_angle
     from endo_pipeline.library.analyze.numerics.temporal_stats import (
         compute_binned_variance_ratio_vs_time,
         compute_circular_mean_std,
@@ -175,10 +174,6 @@ def main(
         theta_col = ColumnName.POLAR_ANGLE.value
         theta_range = BIN_LIMITS_THETA_RESCALED if RESCALE_THETA else (-np.pi, np.pi)
         theta_period = PERIOD_THETA_RESCALED if RESCALE_THETA else 2 * np.pi
-
-        # rewrap polar theta so that mean and std behave correctly for periodic data
-        if theta_col in column_names:
-            df[theta_col] = df[theta_col].apply(rewrap_polar_angle, original_range=theta_range)
 
         # split by flow conditions (shared by unscaled and scaled paths)
         df_by_flow, shear_stress_list = split_dataset_by_flow(df, dataset_config)

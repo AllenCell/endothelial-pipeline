@@ -13,9 +13,8 @@ def compute_circular_mean_std(
     original_range: tuple[float, float],
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Compute circular mean and standard deviation of a periodic column at each timepoint.
-
-    TODO: consider using scipy.stats.circmean and circstd instead of unwrapping and rewrapping.
+    Compute circular mean and standard deviation of a periodic column at each
+    timepoint.
 
     Parameters
     ----------
@@ -30,8 +29,8 @@ def compute_circular_mean_std(
     period
         Period of the periodic variable (e.g. ``pi`` for rescaled theta).
     original_range
-        Original range of the periodic variable, passed to
-        :func:`rewrap_polar_angle`.
+        Original range of the periodic variable, passed to circmean and circstd
+        to ensure correct handling of wraparound.
 
     Returns
     -------

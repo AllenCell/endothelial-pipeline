@@ -11,6 +11,7 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 from mpl_toolkits.mplot3d import Axes3D
+from scipy.stats import circmean
 from seaborn import kdeplot
 from sklearn.decomposition import PCA
 
@@ -19,10 +20,6 @@ from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     check_required_columns_in_dataframe,
     get_dataframe_for_dynamics_workflows,
-)
-from endo_pipeline.library.analyze.numerics.circular_stats import (
-    rewrap_polar_angle,
-    unwrap_nonsequential_array,
 )
 from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
     get_seg_feat_plot_args,
@@ -582,20 +579,16 @@ def plot_per_position_average_over_time(
             # if dealing with polar angle column, need to use
             # angle unwrapping to compute mean correctly
             if column_name == ColumnName.POLAR_ANGLE.value:
-                unwrap_period = polar_angle_range[1] - polar_angle_range[0]
                 mean_over_crops = np.zeros_like(timepoints, dtype=float)
                 for frame, df_frame in df_pos.groupby(ColumnName.TIMEPOINT):
-                    # unwrap angles for this frame and position
-                    unwrapped_angles = unwrap_nonsequential_array(
-                        df_frame[column_name].to_numpy(), unwrap_period
+                    circular_mean = circmean(
+                        df_frame[column_name].to_numpy(),
+                        high=polar_angle_range[1],
+                        low=polar_angle_range[0],
                     )
-                    # compute mean of unwrapped angles
-                    unwrapped_mean = np.mean(unwrapped_angles)
-                    # shift back to original range for visualization
-                    rewrapped_mean = rewrap_polar_angle(unwrapped_mean, polar_angle_range)
                     # store mean value for this frame
                     frame_index = np.where(timepoints == frame)[0][0]
-                    mean_over_crops[frame_index] = rewrapped_mean
+                    mean_over_crops[frame_index] = circular_mean
             else:  # else, calculate mean directly
                 mean_over_crops = (
                     df_pos.groupby(ColumnName.TIMEPOINT)[column_name].mean().to_numpy()
