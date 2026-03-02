@@ -36,9 +36,17 @@ from endo_pipeline.settings.workflow_defaults import (
 
 logger = logging.getLogger(__name__)
 
+CLIP_QUANTILES = (0.01, 0.99)
+
 # %%
-# datasets = get_datasets_in_collection("diffae_model_training")
-datasets = ["20250618_20X", "20250428_20X", "20250319_20X"]
+datasets = [
+    "20250618_20X",
+    "20250428_20X",
+    "20250319_20X",
+    "20250813_20X",
+    "20250611_20X",
+    "20250818_20X",
+]
 
 # %% Load lda weights to apply LDA projection to original dataframe
 lda_dataframe_manifest = load_dataframe_manifest("lda_weights")
@@ -97,7 +105,8 @@ df_new = pd.concat(df_proj_full_list_new, ignore_index=True)
 
 # %%
 features = ["LDA", "LDA_SP_2", "LDA_SP_3", "LDA_SP_4", "LDA_SP_5", "pc_1", "pc_2", "pc_3"]
-datasets_used = ["20250618_20X", "20250428_20X", "20250319_20X"]
+datasets_used = ["20250618_20X", "20250428_20X", "20250319_20X", "20250813_20X", "20250611_20X"]
+
 # %%
 # for dt in range(2, 11):
 dt = 1
@@ -114,9 +123,16 @@ optical_flow_features = [
 ]
 
 df_sub_new = df_new[df_new["dataset"].isin(datasets_used)]
-
+# %%
 print("Plotting for dt =", dt)
-plot_lda_vs_optical_flow(df_sub_new, features, optical_flow_features, color_by_dataset=False)
+CLIP_QUANTILES = (0.001, 0.999)
+plot_lda_vs_optical_flow(
+    df_sub_new,
+    features,
+    optical_flow_features,
+    color_by_dataset=False,
+    clip_quantiles=CLIP_QUANTILES,
+)
 
 # %% Load classic features
 dataframe_manifest_classic = load_dataframe_manifest("test_live_merged_seg_features")
@@ -167,7 +183,7 @@ for dataset_name in datasets:
         features_in_lda_rank=lda_features,
         lda_weights=lda_weights,
         lda_intercept=lda_intercept,
-        sparse_axes=[2.0, 3.0, 4.0],
+        sparse_axes=[2.0, 3.0, 4.0, 5.0],
     )
 
     df_list.append(df_proj_full)
@@ -179,7 +195,6 @@ print("Shape of merged dataframe:", df_merged.shape)
 print("Shape of filtered dataframe:", df_filtered.shape)
 
 # %%
-features = ["LDA", "LDA_SP_2", "LDA_SP_3", "LDA_SP_4", "pc_1", "pc_2", "pc_3"]
 classic_features = ["vec_mean_angle_in_crop", "vec_mean_mag_in_crop"]
 
 datasets_used = ["20250611_20X", "20250618_20X"]
@@ -190,6 +205,7 @@ plot_lda_vs_optical_flow(
     classic_features,
     color_by_dataset=False,
     figsize=(24, 2.5 * 2),
+    clip_quantiles=CLIP_QUANTILES,
 )
 
 # %%
@@ -199,6 +215,7 @@ plot_lda_vs_optical_flow(
     classic_features,
     color_by_dataset=False,
     figsize=(24, 2.5 * 2),
+    clip_quantiles=CLIP_QUANTILES,
 )
 # %%
 df_mig_list = []
@@ -238,34 +255,32 @@ df_mig_of = pd.merge(
     how="inner",
 )
 
-## %%
-for dt in range(1, 11):
-    optical_flow_features = [
-        f"optical_flow_mean_speed_dt{dt}",
-        f"optical_flow_mean_unit_vector_dt{dt}",
-        f"optical_flow_std_speed_dt{dt}",
-        f"optical_flow_mean_angle_dt{dt}",
-        f"optical_flow_angle_std_dt{dt}",
-        f"optical_flow_mean_u_dt{dt}",
-        f"optical_flow_mean_v_dt{dt}",
-        f"optical_flow_std_u_dt{dt}",
-        f"optical_flow_std_v_dt{dt}",
-    ]
+dt = 1
+optical_flow_features = [
+    f"optical_flow_mean_speed_dt{dt}",
+    f"optical_flow_mean_unit_vector_dt{dt}",
+    f"optical_flow_std_speed_dt{dt}",
+    f"optical_flow_mean_angle_dt{dt}",
+    f"optical_flow_angle_std_dt{dt}",
+    f"optical_flow_mean_u_dt{dt}",
+    f"optical_flow_mean_v_dt{dt}",
+    f"optical_flow_std_u_dt{dt}",
+    f"optical_flow_std_v_dt{dt}",
+]
+# %%
+for feat in optical_flow_features:
+    is_coherent_migration = df_mig_of[COHERENT_MIGRATION_COL]
+    true_vals = df_mig_of[is_coherent_migration][feat]
+    false_vals = df_mig_of[~is_coherent_migration][feat]
 
-    for feat in optical_flow_features:
-        is_coherent_migration = df_mig_of[COHERENT_MIGRATION_COL]
-        true_vals = df_mig_of[is_coherent_migration][feat]
-        false_vals = df_mig_of[~is_coherent_migration][feat]
+    plt.figure(figsize=(8, 5))
+    plt.hist(true_vals, bins=30, alpha=0.6, label="Coherent Migration", color="blue", density=True)
+    plt.hist(false_vals, bins=30, alpha=0.6, label="Mixed Migration", color="orange", density=True)
 
-        plt.figure(figsize=(8, 5))
-        plt.hist(true_vals, bins=30, alpha=0.6, label="True", color="blue", density=True)
-        plt.hist(false_vals, bins=30, alpha=0.6, label="False", color="orange", density=True)
-
-        plt.xlabel(feat)
-        plt.ylabel("Density")
-        plt.title("Distribution by Coherent Migration")
-        plt.legend()
-        plt.show()
-    break
+    plt.xlabel(feat)
+    plt.ylabel("Density")
+    plt.title("Distribution by Coherent Migration")
+    plt.legend()
+    plt.show()
 
 # %%
