@@ -1,4 +1,4 @@
-from endo_pipeline.cli import CropPattern
+from endo_pipeline.cli import CropPattern, Datasets
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -6,7 +6,7 @@ from endo_pipeline.settings.workflow_defaults import (
 
 
 def main(
-    dataset_collection_name: str = "3d_flow_field_analysis",
+    datasets: Datasets | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
@@ -135,14 +135,17 @@ def main(
     )
 
     # dataset list from specified collection
-    dataset_names = get_datasets_in_collection(dataset_collection_name)
+    if datasets is None:
+        dataset_names = get_datasets_in_collection("3d_flow_field_analysis")
+    else:
+        dataset_names = datasets.copy()
 
     if DEMO_MODE:
         logger.warning("DEMO MODE: limiting to first dataset only")
         dataset_names = dataset_names[:1]
 
     # output directory for summary figures (keyed by collection, not individual dataset)
-    fig_savedir = get_output_path(__file__, crop_pattern, dataset_collection_name)
+    fig_savedir = get_output_path(__file__, crop_pattern)
     logger.debug("Saving summary plots to [ %s ]", fig_savedir)
 
     # Accumulators for multi-dataset plots.
@@ -197,7 +200,6 @@ def main(
 
             # periodic column (polar theta): circular mean ± std via unwrap
             if theta_col in column_names:
-                # TODO: consider using scipy.stats.circmean and circstd instead of unwrapping and rewrapping.
                 t_vals_c, mean_c, std_c = compute_circular_mean_std(
                     df_flow, theta_col, TIME_STEP_IN_MINUTES, theta_period, theta_range
                 )
