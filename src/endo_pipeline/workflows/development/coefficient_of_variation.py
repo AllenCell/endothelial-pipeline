@@ -201,7 +201,7 @@ def main(
             # periodic column (polar theta): circular mean ± std via unwrap
             if theta_col in column_names:
                 t_vals_c, mean_c, std_c = compute_circular_mean_std(
-                    df_flow, theta_col, TIME_STEP_IN_MINUTES, theta_period, theta_range
+                    df_flow, theta_col, TIME_STEP_IN_MINUTES, theta_range
                 )
                 # compute_circular_mean_std rewraps each timepoint independently,
                 # so the mean can jump between 0 and pi when the true mean is near
