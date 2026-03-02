@@ -200,25 +200,16 @@ def main(
                 lo, hi = global_bin_limits_dict[col]
                 df_flow_scaled[col] = (df_flow[col] - lo) / (hi - lo)
 
+                grouped_df_unscaled = df_flow.groupby(ColumnName.TIMEPOINT.value)
+                grouped_df_scaled = df_flow_scaled.groupby(ColumnName.TIMEPOINT.value)
                 # compute mean ± std in original units and in scaled units for
                 # plotting, using circular stats for theta in both cases
                 if col != theta_col:
-                    grouped_df_unscaled = df_flow.groupby(ColumnName.TIMEPOINT.value)
                     unscaled_mean = grouped_df_unscaled[col].mean().to_numpy()
                     unscaled_std = grouped_df_unscaled[col].std().to_numpy()
 
-                    grouped_df_scaled = df_flow_scaled.groupby(ColumnName.TIMEPOINT.value)
                     scaled_mean = grouped_df_scaled[col].mean().to_numpy()
                     scaled_std = grouped_df_scaled[col].std().to_numpy()
-                    scaled_population_cov = (
-                        grouped_df_scaled[col].std() / grouped_df_scaled[col].mean().abs()
-                    ).to_numpy()
-                    mean_population_cov = float(np.nanmean(scaled_population_cov))
-                    scaled_crop_array = df_to_array(df_flow_scaled, [col])
-                    per_crop_cov = compute_per_crop_temporal_covariance(scaled_crop_array)
-                    cvr_mean, cvr_upper, cvr_lower = compute_cumulative_variance_ratio_vs_time(
-                        scaled_crop_array
-                    )
                 else:
                     unscaled_mean, unscaled_std = compute_circular_mean_std(
                         df_flow, col, theta_range
@@ -231,22 +222,37 @@ def main(
                     scaled_mean, scaled_std = compute_circular_mean_std(df_flow_scaled, col, (0, 1))
                     scaled_mean = np.unwrap(scaled_mean, period=1)
 
+                # for scaled features, also compute additional covariance measures
+                # starting with population CoV vs time (std/mean across all crops at each timepoint)
+                scaled_population_cov = (
+                    grouped_df_scaled[col].std() / grouped_df_scaled[col].mean().abs()
+                ).to_numpy()
+                # take mean of this population measure over all time
+                mean_population_cov = float(np.nanmean(scaled_population_cov))
+                scaled_crop_array = df_to_array(df_flow_scaled, [col])
+                # per-crop covariance (covariance computed over all timepoints)
+                per_crop_cov = compute_per_crop_temporal_covariance(scaled_crop_array)
+                # compute ratio of cumulative covariance per crop versus
+                # population covariance at each timepoint, with SEM across
+                # crops
+                cvr_mean, cvr_upper, cvr_lower = compute_cumulative_variance_ratio_vs_time(
+                    scaled_crop_array
+                )
+                # compute same variance ratio but with temporal variance
+                # computed within rolling time windows instead of
+                # cumulatively from t=0
+                bvr_time, bvr_mean, bvr_upper, bvr_lower = compute_binned_variance_ratio_vs_time(
+                    scaled_crop_array
+                )
+
                 # add to dicts for plotting
                 mean_std_unscaled[col].append((t_vals, unscaled_mean, unscaled_std, color, label))
                 mean_std_scaled[col].append((t_vals, scaled_mean, scaled_std, color, label))
                 pop_cov_data[col].append((t_vals, scaled_population_cov, color, label))
                 erg_data[col].append((per_crop_cov, mean_population_cov, color, label))
                 var_ratio_data[col].append((t_vals, cvr_mean, cvr_upper, cvr_lower, color, label))
-
-            # --- binned variance ratio vs time (individual var / population var per bin) ---
-            bvr_time, bvr_dict = compute_binned_variance_ratio_vs_time(
-                df_flow_scaled, column_names, TIME_STEP_IN_MINUTES
-            )
-
-            for col in column_names:
-                br_mean, br_upper, br_lower = bvr_dict[col]
                 binned_var_ratio_data[col].append(
-                    (bvr_time, br_mean, br_upper, br_lower, color, label)
+                    (bvr_time, bvr_mean, bvr_upper, bvr_lower, color, label)
                 )
 
             logger.debug(

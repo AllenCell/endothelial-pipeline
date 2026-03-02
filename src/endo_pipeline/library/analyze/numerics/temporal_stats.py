@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 from scipy.stats import circmean, circstd
 
-from endo_pipeline.library.analyze.diffae_dataframe_utils import df_to_array
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
 
@@ -179,13 +178,13 @@ def compute_cumulative_variance_ratio_vs_time(
 
     Returns
     -------
-    time_values
-        1-D array of time values in hours (one per timepoint).
-    ratio_dict
-        Mapping from feature column name to a tuple
-        ``(ratio_mean, ratio_upper, ratio_lower)`` where each element is a
-        1-D array aligned with *time_values*.  ``ratio_upper`` and
-        ``ratio_lower`` are the mean ± SEM bounds.
+    ratio_mean
+        1-D array of mean ratio of individual to population variance at each
+        timepoint.
+    ratio_upper
+        1-D array of upper bound of mean ± SEM for the ratio at each timepoint.
+    ratio_lower
+        1-D array of lower bound of mean ± SEM for the ratio at each timepoint.
     """
     # shape: (n_crops, n_timepoints, 1)
     n_crops, n_timepoints, _ = crop_array.shape
@@ -222,13 +221,12 @@ def compute_cumulative_variance_ratio_vs_time(
 
 
 def compute_binned_variance_ratio_vs_time(
-    df: pd.DataFrame,
-    column_names: list[str],
-    time_step_minutes: float,
-    bin_size_hours: int = 2,
-) -> tuple[np.ndarray, dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]]]:
+    crop_array: np.ndarray,
+    bin_size: int = 2,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Compute ratio of individual to population variance within non-overlapping time bins.
+    Compute ratio of individual to population variance within non-overlapping
+    time bins.
 
     This is the *binned* (non-cumulative) counterpart of
     :func:`compute_variance_ratio_vs_time`.  Instead of accumulating variance
@@ -237,8 +235,8 @@ def compute_binned_variance_ratio_vs_time(
 
     At each time bin the function computes:
 
-    * **Population variance** — variance of the feature across all crops and
-      all timepoints that fall in the bin.
+    * **Population variance** — variance of the feature across all crops and all
+      timepoints that fall in the bin.
     * **Individual bin variance** — for each crop, the variance of the feature
       over the timepoints within the bin.
     * **Ratio** — mean individual bin variance / population variance.
@@ -249,9 +247,9 @@ def compute_binned_variance_ratio_vs_time(
       temporal variability within a short window is comparable to the spread
       across the population — consistent with **ergodic** behaviour.
     * A ratio **<< 1** means individual crops explore only a small fraction of
-      the population-level spread within each window, indicating
-      **non-ergodic** or **heterogeneous** dynamics where different crops
-      occupy distinct regions of feature space.
+      the population-level spread within each window, indicating **non-ergodic**
+      or **heterogeneous** dynamics where different crops occupy distinct
+      regions of feature space.
     * A ratio that **increases toward 1** over time suggests that the system is
       *mixing* — crops start in distinct states but progressively explore more
       of the available feature space.
@@ -262,72 +260,63 @@ def compute_binned_variance_ratio_vs_time(
 
     Parameters
     ----------
-    df
-        Feature dataframe for a single dataset / flow condition.  Must contain
-        ``crop_index`` and ``frame_number`` columns.
-    column_names
-        Feature column names to compute the variance ratio for.
-    time_step_minutes
-        Duration of one frame in minutes, used to convert bin centres to hours.
-    bin_size_hours
-        Width of each non-overlapping time bin in hours.
+    crop_array
+        3-D array of shape (n_crops, n_timepoints, 1) containing the feature
+        values for each crop and timepoint.  Missing timepoints should be
+        represented as NaN so that crops with gaps are still included in the
+        variance calculations.
+    bin_size
+        Width of binning window in time steps (frames).
 
     Returns
     -------
-    bin_centres_hours
-        1-D array of bin-centre time values in hours.
-    ratio_dict
-        Mapping from feature column name to a tuple
-        ``(ratio_mean, ratio_upper, ratio_lower)`` where each element is a
-        1-D array aligned with *bin_centres_hours*.  ``ratio_upper`` and
-        ``ratio_lower`` are the mean ± SEM bounds.
+    bin_centres
+        1-D array of time values corresponding to the centre of each bin.
+    ratio_mean
+        1-D array of mean ratio of individual to population variance for each
+        bin.
+    ratio_upper
+        1-D array of upper bound of mean ± SEM for the ratio in each bin.
+    ratio_lower
+        1-D array of lower bound of mean ± SEM for the ratio in each bin.
     """
     # shape: (n_crops, n_timepoints, n_features)
-    crop_array = df_to_array(df, column_names)
-    n_crops, n_timepoints, _ = crop_array.shape
+    n_timepoints = crop_array.shape[1]
 
     # convert bin size from hours to frames
-    bin_size_frames = int(bin_size_hours * 60 / time_step_minutes)
-    bin_edges = np.arange(0, n_timepoints + 1, bin_size_frames)
+    bin_edges = np.arange(0, n_timepoints + 1, bin_size)
     # ensure last bin edge covers remaining frames
     if bin_edges[-1] < n_timepoints:
         bin_edges = np.append(bin_edges, n_timepoints)
     n_bins = len(bin_edges) - 1
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
-    bin_centres_hours = bin_centres * time_step_minutes / 60
 
-    ratio_dict: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}
-    for feat_idx, col in enumerate(column_names):
-        crop_feat = crop_array[..., feat_idx]  # (n_crops, n_timepoints)
+    ratio_mean = np.full(n_bins, np.nan)
+    ratio_upper = np.full(n_bins, np.nan)
+    ratio_lower = np.full(n_bins, np.nan)
 
-        ratio_mean = np.full(n_bins, np.nan)
-        ratio_upper = np.full(n_bins, np.nan)
-        ratio_lower = np.full(n_bins, np.nan)
+    for b in range(n_bins):
+        t_start = bin_edges[b]
+        t_end = bin_edges[b + 1]
+        bin_data = crop_array[:, t_start:t_end]  # (n_crops, bin_width)
 
-        for b in range(n_bins):
-            t_start = bin_edges[b]
-            t_end = bin_edges[b + 1]
-            bin_data = crop_feat[:, t_start:t_end]  # (n_crops, bin_width)
+        if bin_data.shape[1] < 2:
+            # cannot compute variance from a single timepoint
+            continue
 
-            if bin_data.shape[1] < 2:
-                # cannot compute variance from a single timepoint
-                continue
+        # population variance: flatten all crops x timepoints in this bin
+        pop_var = np.nanvar(bin_data)
 
-            # population variance: flatten all crops x timepoints in this bin
-            pop_var = np.nanvar(bin_data)
+        # per-crop variance within this bin
+        ind_var = np.nanvar(bin_data, axis=1)  # (n_crops,)
 
-            # per-crop variance within this bin
-            ind_var = np.nanvar(bin_data, axis=1)  # (n_crops,)
+        mean_ind_var = np.nanmean(ind_var)
+        n_valid = np.sum(np.isfinite(ind_var))
+        sem_ind_var = np.nanstd(ind_var) / np.sqrt(n_valid) if n_valid > 1 else 0.0
 
-            mean_ind_var = np.nanmean(ind_var)
-            n_valid = np.sum(np.isfinite(ind_var))
-            sem_ind_var = np.nanstd(ind_var) / np.sqrt(n_valid) if n_valid > 1 else 0.0
+        if pop_var > 0:
+            ratio_mean[b] = mean_ind_var / pop_var
+            ratio_upper[b] = (mean_ind_var + sem_ind_var) / pop_var
+            ratio_lower[b] = (mean_ind_var - sem_ind_var) / pop_var
 
-            if pop_var > 0:
-                ratio_mean[b] = mean_ind_var / pop_var
-                ratio_upper[b] = (mean_ind_var + sem_ind_var) / pop_var
-                ratio_lower[b] = (mean_ind_var - sem_ind_var) / pop_var
-
-        ratio_dict[col] = (ratio_mean, ratio_upper, ratio_lower)
-
-    return bin_centres_hours, ratio_dict
+    return bin_centres, ratio_mean, ratio_upper, ratio_lower
