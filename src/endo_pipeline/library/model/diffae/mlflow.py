@@ -1,5 +1,6 @@
 import math
 import os
+import shutil
 import tempfile
 import warnings
 from argparse import Namespace
@@ -112,16 +113,83 @@ class MLFlowLogger(_LightningMLFlowLogger):
                 raise
 
     # Checkpoint handling
+    def after_save_checkpoint(self, ckpt_callback: ModelCheckpoint) -> None:
+        try:
+            self._after_save_checkpoint(ckpt_callback)
+        except Exception as e:
+            if self.fault_tolerant:
+                self._warn(f"after_save_checkpoint failed: {e}")
+            else:
+                raise
+
+    def _resolve_last_checkpoint(self, ckpt_callback: ModelCheckpoint) -> str | None:
+        """Determine the path of the most recently saved checkpoint."""
+        # Try last_model_path (set when save_last=True)
+        last_path = getattr(ckpt_callback, "last_model_path", "")
+        if last_path and Path(last_path).is_file():
+            return last_path
+
+        # Try best_model_path (always the last saved when monitor=None)
+        best_path = ckpt_callback.best_model_path
+        if best_path and Path(best_path).is_file():
+            return best_path
+
+        # Scan dirpath for the most recently modified checkpoint
+        dirpath = ckpt_callback.dirpath
+        if dirpath and Path(dirpath).is_dir():
+            ckpt_files = [
+                f
+                for f in Path(dirpath).iterdir()
+                if f.is_file() and f.suffix == ".ckpt" and f.name not in ("best.ckpt", "last.ckpt")
+            ]
+            if ckpt_files:
+                return str(max(ckpt_files, key=lambda p: p.stat().st_mtime))
+
+        return None
+
+    def _log_named_checkpoint(self, src_path: str, name: str, artifact_path: str) -> None:
+        """
+        Copy a checkpoint file to a named destination and log it as an MLflow artifact.
+
+        Creates a temporary copy of the checkpoint at ``src_path`` with the given
+        ``name`` in the same directory, uploads it to MLflow under ``artifact_path``,
+        then removes the temporary copy regardless of success or failure.
+
+        Args:
+            src_path: Absolute or relative path to the source checkpoint file.
+            name: Filename to use for the temporary copy (e.g. ``"best.ckpt"``).
+            artifact_path: Destination directory path within the MLflow artifact store
+                (e.g. ``"checkpoints/best"``).
+        """
+        dest = Path(src_path).with_name(name)
+
+        # If the source already has the desired name, log it directly — no copy needed.
+        if dest.resolve() == Path(src_path).resolve():
+            self.experiment.log_artifact(self.run_id, str(src_path), artifact_path)
+            return
+
+        try:
+            if dest.exists():
+                dest.unlink()
+            shutil.copy2(src_path, dest)
+            self.experiment.log_artifact(self.run_id, str(dest), artifact_path)
+        finally:
+            if dest.exists():
+                dest.unlink()
+
     def _after_save_checkpoint(self, ckpt_callback: ModelCheckpoint) -> None:
         monitor = ckpt_callback.monitor
+
         if monitor is not None:
             artifact_path = f"checkpoints/{monitor}"
+
+            # Top-k management (upload new, delete old)
             existing = {
                 a.path.split("/")[-1]
                 for a in self.experiment.list_artifacts(self.run_id, artifact_path)
             }
             top_k = {k.split("/")[-1] for k in ckpt_callback.best_k_models.keys()}
-            to_delete = existing - top_k
+            to_delete = existing - top_k - {"best.ckpt", "last.ckpt"}
             to_upload = top_k - existing
 
             repo = get_artifact_repository(self.experiment.get_run(self.run_id).info.artifact_uri)
@@ -146,25 +214,26 @@ class MLFlowLogger(_LightningMLFlowLogger):
                 else:
                     raise ValueError("ckpt_callback.dirpath must not be None")
 
-            best_path = Path(ckpt_callback.best_model_path).with_name("best.ckpt")
-            if best_path.exists() or best_path.is_symlink():
-                best_path.unlink()
-            os.link(ckpt_callback.best_model_path, best_path)
-            self.experiment.log_artifact(self.run_id, str(best_path), artifact_path)
-            best_path.unlink()
+            # Log best.ckpt when a metric is monitored
+            best_src = ckpt_callback.best_model_path
+            if best_src and Path(best_src).is_file():
+                self._log_named_checkpoint(best_src, "best.ckpt", artifact_path)
+            else:
+                self._warn(
+                    f"best_model_path is empty or missing ({best_src!r}). "
+                    "Skipping best.ckpt logging."
+                )
 
         else:
-            fp = ckpt_callback.best_model_path
             artifact_path = "checkpoints"
-            if ckpt_callback.save_top_k == 1:
-                last_path = Path(fp).with_name("last.ckpt")
-                if last_path.exists() or last_path.is_symlink():
-                    last_path.unlink()
-                os.link(fp, last_path)
-                self.experiment.log_artifact(self.run_id, str(last_path), artifact_path)
-                last_path.unlink()
+
+        # --- Log last.ckpt only when save_last is enabled in the callback config ---
+        if ckpt_callback.save_last:
+            last_src = self._resolve_last_checkpoint(ckpt_callback)
+            if last_src:
+                self._log_named_checkpoint(last_src, "last.ckpt", artifact_path)
             else:
-                self.experiment.log_artifact(self.run_id, fp, artifact_path)
+                self._warn("Could not determine last checkpoint path. Skipping last.ckpt logging.")
 
 
 def _delete_local_artifact(repo, artifact_path: str):
