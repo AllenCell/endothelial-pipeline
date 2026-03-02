@@ -78,7 +78,6 @@ def main(
         compute_cumulative_variance_ratio_vs_time,
         compute_per_crop_temporal_cov,
         compute_population_cov,
-        compute_population_mean_std,
     )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features.variation_analysis import (
@@ -192,64 +191,59 @@ def main(
             label = f"{dataset_name} ({int(shear_stress)} dyn/cm$^2$)"
 
             t_vals = df[ColumnName.TIMEPOINT.value].sort_values().unique() * time_conversion_factor
-
+            df_flow_scaled = df_flow.copy()
             # compute mean ± std for each column at each timepoint; for theta,
             # use circular stats to account for periodicity
-            grouped_df = df_flow.groupby(ColumnName.TIMEPOINT.value)
-
             for col in column_names:
+                # get scaled values for CoV computation and plotting, using
+                # global bin limits for all datasets to preserve comparability
+                lo, hi = global_bin_limits_dict[col]
+                df_flow_scaled[col] = (df_flow[col] - lo) / (hi - lo)
+
+                # compute mean ± std in original units and in scaled units for
+                # plotting, using circular stats for theta in both cases
                 if col != theta_col:
-                    mean_arr = grouped_df[col].mean().to_numpy()
-                    std_arr = grouped_df[col].std().to_numpy()
+                    grouped_df_unscaled = df_flow.groupby(ColumnName.TIMEPOINT.value)
+                    unscaled_mean = grouped_df_unscaled[col].mean().to_numpy()
+                    unscaled_std = grouped_df_unscaled[col].std().to_numpy()
+
+                    grouped_df_scaled = df_flow_scaled.groupby(ColumnName.TIMEPOINT.value)
+                    scaled_mean = grouped_df_scaled[col].mean().to_numpy()
+                    scaled_std = grouped_df_scaled[col].std().to_numpy()
                 else:
-                    mean_arr, std_arr = compute_circular_mean_std(df_flow, col, theta_range)
+                    unscaled_mean, unscaled_std = compute_circular_mean_std(
+                        df_flow, col, theta_range
+                    )
                     # compute_circular_mean_std rewraps each timepoint independently,
                     # so the mean can jump between 0 and pi when the true mean is near
                     # a range boundary; unwrap across time to restore continuity
-                    mean_arr = np.unwrap(mean_arr, period=theta_period)
-                # add to dict for plotting
-                mean_std_scaled[col].append((t_vals, mean_arr, std_arr, color, label))
+                    unscaled_mean = np.unwrap(unscaled_mean, period=theta_period)
 
-        # min-max scale each feature column to [0, 1] so that CoV is stable
-        # and comparable across features with different native ranges
-        for col in column_names:
-            lo, hi = global_bin_limits_dict[col]
-            df[col] = (df[col] - lo) / (hi - lo)
+                    scaled_mean, scaled_std = compute_circular_mean_std(df_flow_scaled, col, (0, 1))
+                    scaled_mean = np.unwrap(scaled_mean, period=1)
 
-        # re-split after scaling (split uses metadata columns, not feature values)
-        df_by_flow, shear_stress_list = split_dataset_by_flow(df, dataset_config)
-
-        # iterate over flow conditions within the dataset
-        for df_, shear_stress, shear_stress_regime in zip(
-            df_by_flow, shear_stress_list, dataset_config.shear_stress_regime, strict=True
-        ):
-            # color by shear stress regime (SHEAR_COLOR_DICT keys are 1-tuples)
-            color = SHEAR_COLOR_DICT[(shear_stress_regime,)]
-            label = f"{dataset_name} ({int(shear_stress)} dyn/cm$^2$)"
+                # add to dicts for plotting
+                mean_std_unscaled[col].append((t_vals, unscaled_mean, unscaled_std, color, label))
+                mean_std_scaled[col].append((t_vals, scaled_mean, scaled_std, color, label))
 
             # --- population CoV (ensemble: std / |mean| across crops at each timepoint) ---
-            time_values, cov_df = compute_population_cov(df_, column_names, TIME_STEP_IN_MINUTES)
-
-            # --- scaled mean ± std vs time ---
-            t_vals_s, mean_df_s, std_df_s = compute_population_mean_std(
-                df_, column_names, TIME_STEP_IN_MINUTES
-            )
+            _, cov_df = compute_population_cov(df_flow_scaled, column_names, TIME_STEP_IN_MINUTES)
 
             # --- per-crop temporal CoV (time: std / |mean| over timepoints for each crop) ---
-            crop_cov_dict = compute_per_crop_temporal_cov(df_, column_names)
+            crop_cov_dict = compute_per_crop_temporal_cov(df_flow_scaled, column_names)
 
             # --- variance ratio vs time (individual cumulative var / population var) ---
             vr_time, vr_dict = compute_cumulative_variance_ratio_vs_time(
-                df_, column_names, TIME_STEP_IN_MINUTES
+                df_flow_scaled, column_names, TIME_STEP_IN_MINUTES
             )
 
             # --- binned variance ratio vs time (individual var / population var per bin) ---
             bvr_time, bvr_dict = compute_binned_variance_ratio_vs_time(
-                df_, column_names, TIME_STEP_IN_MINUTES
+                df_flow_scaled, column_names, TIME_STEP_IN_MINUTES
             )
 
             for col in column_names:
-                pop_cov_data[col].append((time_values, cov_df[col].to_numpy(), color, label))
+                pop_cov_data[col].append((t_vals, cov_df[col].to_numpy(), color, label))
                 mean_pop_cov = float(np.nanmean(cov_df[col].to_numpy()))
                 erg_data[col].append((crop_cov_dict[col], mean_pop_cov, color, label))
                 r_mean, r_upper, r_lower = vr_dict[col]
@@ -257,9 +251,6 @@ def main(
                 br_mean, br_upper, br_lower = bvr_dict[col]
                 binned_var_ratio_data[col].append(
                     (bvr_time, br_mean, br_upper, br_lower, color, label)
-                )
-                mean_std_scaled[col].append(
-                    (t_vals_s, mean_df_s[col].to_numpy(), std_df_s[col].to_numpy(), color, label)
                 )
 
             logger.debug(
