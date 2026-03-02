@@ -216,6 +216,9 @@ def main(
                     mean_population_cov = float(np.nanmean(scaled_population_cov))
                     scaled_crop_array = df_to_array(df_flow_scaled, [col])
                     per_crop_cov = compute_per_crop_temporal_covariance(scaled_crop_array)
+                    cvr_mean, cvr_upper, cvr_lower = compute_cumulative_variance_ratio_vs_time(
+                        scaled_crop_array
+                    )
                 else:
                     unscaled_mean, unscaled_std = compute_circular_mean_std(
                         df_flow, col, theta_range
@@ -233,11 +236,7 @@ def main(
                 mean_std_scaled[col].append((t_vals, scaled_mean, scaled_std, color, label))
                 pop_cov_data[col].append((t_vals, scaled_population_cov, color, label))
                 erg_data[col].append((per_crop_cov, mean_population_cov, color, label))
-
-            # --- variance ratio vs time (individual cumulative var / population var) ---
-            vr_time, vr_dict = compute_cumulative_variance_ratio_vs_time(
-                df_flow_scaled, column_names, TIME_STEP_IN_MINUTES
-            )
+                var_ratio_data[col].append((t_vals, cvr_mean, cvr_upper, cvr_lower, color, label))
 
             # --- binned variance ratio vs time (individual var / population var per bin) ---
             bvr_time, bvr_dict = compute_binned_variance_ratio_vs_time(
@@ -245,8 +244,6 @@ def main(
             )
 
             for col in column_names:
-                r_mean, r_upper, r_lower = vr_dict[col]
-                var_ratio_data[col].append((vr_time, r_mean, r_upper, r_lower, color, label))
                 br_mean, br_upper, br_lower = bvr_dict[col]
                 binned_var_ratio_data[col].append(
                     (bvr_time, br_mean, br_upper, br_lower, color, label)
