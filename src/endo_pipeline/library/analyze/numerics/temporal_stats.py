@@ -131,8 +131,7 @@ def compute_population_cov(
 
 
 def compute_per_crop_temporal_covariance(
-    df: pd.DataFrame,
-    column_names: list[str],
+    crop_array: np.ndarray,
 ) -> dict[str, np.ndarray]:
     """
     Compute the temporal CoV (std / |mean| over time) for every individual crop.
@@ -143,15 +142,10 @@ def compute_per_crop_temporal_covariance(
 
     Parameters
     ----------
-    df
-        Feature dataframe for a single dataset / flow condition, containing a
-        ``crop_index`` column and the feature columns listed in ``column_names``.
-    column_names
-        Feature column names to compute temporal CoV for.
+    crop_array
+        3-D array of shape (n_crops, n_timepoints, n_features) containing the
+        feature values for each crop and timepoint.
     """
-    # convert to array with filling missing timepoints with NaN
-    crop_array = df_to_array(df, column_names)  # shape: (n_crops, n_timepoints, n_features)
-
     temporal_std = np.nanstd(crop_array, axis=1)
     temporal_mean_abs = np.abs(np.nanmean(crop_array, axis=1))
     cov = np.where(temporal_mean_abs > 0, temporal_std / temporal_mean_abs, np.nan)

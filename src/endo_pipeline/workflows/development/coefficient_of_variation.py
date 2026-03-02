@@ -68,6 +68,7 @@ def main(
     from endo_pipeline.configs.dataset_config_io import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+        df_to_array,
         fit_pca,
         get_dataframe_for_dynamics_workflows,
         split_dataset_by_flow,
@@ -213,7 +214,8 @@ def main(
                         grouped_df_scaled[col].std() / grouped_df_scaled[col].mean().abs()
                     ).to_numpy()
                     mean_population_cov = float(np.nanmean(scaled_population_cov))
-                    per_crop_cov = compute_per_crop_temporal_covariance(df_flow_scaled, [col])
+                    scaled_crop_array = df_to_array(df_flow_scaled, [col])
+                    per_crop_cov = compute_per_crop_temporal_covariance(scaled_crop_array)
                 else:
                     unscaled_mean, unscaled_std = compute_circular_mean_std(
                         df_flow, col, theta_range
