@@ -33,6 +33,7 @@ from endo_pipeline.manifests import (
     get_feature_dataframe_manifest_name,
     load_dataframe_manifest,
     load_model_manifest,
+    save_dataframe_manifest,
 )
 from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, SEGMENTATION_FEATURE_COLUMNS
 from endo_pipeline.settings.workflow_defaults import (
@@ -125,8 +126,11 @@ plot_cca_projection_validation(
 if UPLOAD_TO_FMS:
     dataset_configs = [load_dataset_config(dataset_name) for dataset_name in datasets]
     annotations = build_fms_annotations(dataset=dataset_configs, additional_notes=DESCRIPTION)
-    upload_file_to_fms(cca_csv_path, annotations=annotations, file_type="csv")
+    fms_id = upload_file_to_fms(cca_csv_path, annotations=annotations, file_type="csv")
 
+    dataframe_manifest_cca = load_dataframe_manifest("cca_weights")
+    dataframe_manifest_cca["locations"]["80_pcs"]["fms_id"] = fms_id
+    save_dataframe_manifest(dataframe_manifest_cca)
 
 # %%
 if PLOT_CLASSIC:

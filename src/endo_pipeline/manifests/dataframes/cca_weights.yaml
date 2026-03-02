@@ -1,0 +1,8 @@
+name: cca_weights
+workflow: migration_pc_cca_nb.py
+parameters: {}
+locations:
+  80_pcs:
+    fmsid: null
+    path: null
+    s3uri: null
