@@ -9,7 +9,7 @@ def compute_circular_mean_std(
     df: pd.DataFrame,
     column_name: str,
     original_range: tuple[float, float],
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Compute circular mean and standard deviation of a periodic column at each
     timepoint.
@@ -54,7 +54,7 @@ def compute_circular_mean_std(
 
 def compute_per_crop_temporal_cov(
     crop_array: np.ndarray,
-) -> dict[str, np.ndarray]:
+) -> np.ndarray:
     """
     Compute the temporal CoV (std / |mean| over time) for every individual crop.
 
@@ -146,7 +146,7 @@ def compute_cumulative_variance_ratio_vs_time(
 def compute_binned_variance_ratio_vs_time(
     crop_array: np.ndarray,
     bin_size: int = 2,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute ratio of individual to population variance within non-overlapping
     time bins.
