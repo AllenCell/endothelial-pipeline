@@ -21,11 +21,6 @@ def compute_circular_mean_std(
         ``frame_number`` column and the periodic feature column.
     column_name
         Name of the periodic feature column.
-    time_step_minutes
-        Duration of one frame in minutes, used to convert frame indices to
-        hours.
-    period
-        Period of the periodic variable (e.g. ``pi`` for rescaled theta).
     original_range
         Original range of the periodic variable, passed to circmean and circstd
         to ensure correct handling of wraparound.
