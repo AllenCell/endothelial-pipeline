@@ -76,7 +76,7 @@ def main(
         compute_binned_variance_ratio_vs_time,
         compute_circular_mean_std,
         compute_cumulative_variance_ratio_vs_time,
-        compute_per_crop_temporal_cov,
+        compute_per_crop_temporal_covariance,
     )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features.variation_analysis import (
@@ -209,10 +209,11 @@ def main(
                     grouped_df_scaled = df_flow_scaled.groupby(ColumnName.TIMEPOINT.value)
                     scaled_mean = grouped_df_scaled[col].mean().to_numpy()
                     scaled_std = grouped_df_scaled[col].std().to_numpy()
-                    scaled_cov = (
+                    scaled_population_cov = (
                         grouped_df_scaled[col].std() / grouped_df_scaled[col].mean().abs()
                     ).to_numpy()
-                    mean_pop_cov = float(np.nanmean(scaled_cov))
+                    mean_population_cov = float(np.nanmean(scaled_population_cov))
+                    per_crop_cov = compute_per_crop_temporal_covariance(df_flow_scaled, [col])
                 else:
                     unscaled_mean, unscaled_std = compute_circular_mean_std(
                         df_flow, col, theta_range
@@ -228,9 +229,8 @@ def main(
                 # add to dicts for plotting
                 mean_std_unscaled[col].append((t_vals, unscaled_mean, unscaled_std, color, label))
                 mean_std_scaled[col].append((t_vals, scaled_mean, scaled_std, color, label))
-                pop_cov_data[col].append((t_vals, scaled_cov, color, label))
-                crop_cov_dict = compute_per_crop_temporal_cov(df_flow_scaled, column_names)
-                erg_data[col].append((crop_cov_dict[col], mean_pop_cov, color, label))
+                pop_cov_data[col].append((t_vals, scaled_population_cov, color, label))
+                erg_data[col].append((per_crop_cov, mean_population_cov, color, label))
 
             # --- variance ratio vs time (individual cumulative var / population var) ---
             vr_time, vr_dict = compute_cumulative_variance_ratio_vs_time(
