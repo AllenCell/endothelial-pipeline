@@ -273,18 +273,20 @@ def plot_ergodicity_test(
     return fig, axs
 
 
-def plot_variance_ratio(
+def plot_variance_ratio_vs_time(
     var_ratio_data: dict[str, list[tuple]],
     variable_labels_dict: dict[str, str],
     title: str,
+    ylabel_suffix: str = "",
 ) -> tuple[Figure, list[Axes]]:
     """
     Plot the ratio of individual to population variance as a function of time.
 
-    At each timepoint the ratio is the mean per-crop cumulative temporal
-    variance divided by the population (cross-sectional) variance.  A shaded
-    band shows ± 1 SEM across crops.  A dashed reference line at ratio = 1
-    marks the ergodic expectation.
+    Can be used to plot either the cumulative variance ratio (per-crop
+    cumulative temporal variance vs population variance) or the binned variance
+    ratio (per-crop variance within binned window of time vs population variance
+    within same bins). A shaded band shows ± 1 SEM across crops. A dashed
+    reference line at ratio = 1 marks the ergodic expectation.
 
     Each dataset-condition is drawn as a separate line and coloured by shear
     stress regime.
@@ -292,13 +294,15 @@ def plot_variance_ratio(
     Parameters
     ----------
     var_ratio_data
-        Mapping from feature column name to a list of
-        ``(time_values, ratio_mean, ratio_upper, ratio_lower, color, label)``
-        tuples — one per dataset / flow condition.
+        Mapping from feature column name to a list of ``(time_values,
+        ratio_mean, ratio_upper, ratio_lower, color, label)`` tuples — one per
+        dataset / flow condition.
     variable_labels_dict
         Human-readable label for each feature column name.
     fig_savedir
         Directory to save the figure.
+    ylabel_suffix
+        Optional suffix appended to each y-axis label (e.g. " (cumulative)").
     """
     column_names = list(var_ratio_data.keys())
     n_cols = len(column_names)
@@ -326,7 +330,9 @@ def plot_variance_ratio(
         # reference line at ratio = 1
         ax.axhline(1.0, color="k", linestyle="--", linewidth=0.8, alpha=0.7)
         ax.set_xlabel("Time (hours)")
-        ax.set_ylabel("Var$_{\\mathrm{individual}}$ / Var$_{\\mathrm{population}}$")
+        ax.set_ylabel(
+            f"Var$_{{\\mathrm{{individual}}}}$ / Var$_{{\\mathrm{{population}}}}$ {ylabel_suffix}"
+        )
         ax.set_ylim(0, 1.5)
         ax.set_title(variable_labels_dict[col])
 

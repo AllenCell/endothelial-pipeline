@@ -80,11 +80,10 @@ def main(
     from endo_pipeline.library.model.latent_walk_utils import get_num_pcs_from_column_names
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features.variation_analysis import (
-        plot_binned_variance_ratio,
         plot_ergodicity_test,
         plot_mean_feature_vs_time,
         plot_population_cov_vs_time,
-        plot_variance_ratio,
+        plot_variance_ratio_vs_time,
     )
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
@@ -308,17 +307,21 @@ def main(
     )
     save_plot_to_path(fig, fig_savedir, "ergodicity_test")
 
-    # --- Plot 5: variance ratio (temporal var / population var) ---
-    fig, _ = plot_variance_ratio(
-        var_ratio_data, variable_labels_dict, title="Individual / population variance ratio vs time"
+    # --- Plot 5: cumulative variance ratio (temporal var / population var) ---
+    fig, _ = plot_variance_ratio_vs_time(
+        var_ratio_data,
+        variable_labels_dict,
+        title="Individual / population variance ratio vs time (cumulative)",
+        ylabel_suffix=" (cumulative)",
     )
-    save_plot_to_path(fig, fig_savedir, "variance_ratio_vs_time")
+    save_plot_to_path(fig, fig_savedir, "cumulative_variance_ratio_vs_time")
 
     # --- Plot 5b: binned variance ratio (per-bin individual var / population var) ---
-    fig, _ = plot_binned_variance_ratio(
+    fig, _ = plot_variance_ratio_vs_time(
         binned_var_ratio_data,
         variable_labels_dict,
         title="Individual / population variance ratio vs time (binned)",
+        ylabel_suffix=" (binned)",
     )
     save_plot_to_path(fig, fig_savedir, "binned_variance_ratio_vs_time")
 
