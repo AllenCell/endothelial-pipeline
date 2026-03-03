@@ -1,3 +1,5 @@
+from typing import Literal
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -33,6 +35,51 @@ def _initialize_figure_for_variation_analysis(n_cols: int) -> tuple[Figure, list
     axs: list[Axes]
     axs = [ax] if n_cols == 1 else ax
     return fig, axs
+
+
+def _build_handles_seen_for_legend(
+    data_entry: list[tuple],
+    alpha: float = 0.45,
+    handle_type: Literal["line", "patch"] = "patch",
+) -> dict[str, Artist]:
+    """
+    Helper function to build a mapping of unique labels to matplotlib Artist
+    handles for legend creation.
+
+    **Input data format**
+
+    Each tuple in the input list be such that the last two elements are (color, label), e.g.:
+
+    .. code-block:: python
+        data_entry = (time_values, cov_series, color, label)
+
+
+    Parameters
+    ----------
+    data_entry
+        A list of tuples containing data for plotting.
+    alpha
+        Transparency level for the legend handles.
+    handle_type
+        Type of matplotlib Artist to create for the legend handles, either "line" or "patch".
+    """
+    handles_seen: dict[str, Artist] = {}
+    for data_tuple in data_entry:
+        color, label = data_tuple[-2], data_tuple[-1]
+        if label not in handles_seen:
+            if handle_type == "line":
+                handles_seen[label] = Line2D(
+                    [0],
+                    [0],
+                    color=color,
+                    label=label,
+                    alpha=alpha,
+                )
+            elif handle_type == "patch":
+                handles_seen[label] = Patch(facecolor=color, alpha=alpha, label=label)
+            else:
+                raise ValueError(f"Invalid handle_type: {handle_type}. Must be 'line' or 'patch'.")
+    return handles_seen
 
 
 def plot_population_cov_vs_time(
@@ -77,11 +124,11 @@ def plot_population_cov_vs_time(
             ax.set_ylim(ylim_dict[col])
 
     # shared legend below subplots — collect unique label / color pairs from the last column
-    handles_seen: dict[str, Artist] = {}
-    for _, _, color, label in pop_cov_data[column_names[-1]]:
-        if label not in handles_seen:
-            (line,) = axs[-1].plot([], [], color=color, label=label)
-            handles_seen[label] = line
+    handles_seen = _build_handles_seen_for_legend(
+        pop_cov_data[column_names[-1]],
+        alpha=1.0,
+        handle_type="line",
+    )
     fig.legend(
         handles=list(handles_seen.values()),
         loc="lower center",
@@ -265,11 +312,7 @@ def plot_variance_ratio(
         ax.set_title(variable_labels_dict[col])
 
     # shared legend below subplots
-    handles_seen: dict[str, Artist] = {}
-    for entry in var_ratio_data[column_names[-1]]:
-        _, _, _, _, color, label = entry
-        if label not in handles_seen:
-            handles_seen[label] = Patch(facecolor=color, alpha=0.45, label=label)
+    handles_seen = _build_handles_seen_for_legend(var_ratio_data[column_names[-1]])
     fig.legend(
         handles=list(handles_seen.values()),
         loc="lower center",
@@ -352,11 +395,7 @@ def plot_binned_variance_ratio(
         ax.set_title(variable_labels_dict[col])
 
     # shared legend below subplots
-    handles_seen: dict[str, Artist] = {}
-    for entry in var_ratio_data[column_names[-1]]:
-        _, _, _, _, color, label = entry
-        if label not in handles_seen:
-            handles_seen[label] = Patch(facecolor=color, alpha=0.45, label=label)
+    handles_seen = _build_handles_seen_for_legend(var_ratio_data[column_names[-1]])
     fig.legend(
         handles=list(handles_seen.values()),
         loc="lower center",
@@ -430,11 +469,7 @@ def plot_mean_feature_vs_time(
         ax.set_title(variable_labels_dict[col])
 
     # shared legend below subplots
-    handles_seen: dict[str, Artist] = {}
-    for entry in mean_std_data[column_names[-1]]:
-        _, _, _, color, label = entry
-        if label not in handles_seen:
-            handles_seen[label] = Patch(facecolor=color, alpha=0.45, label=label)
+    handles_seen = _build_handles_seen_for_legend(mean_std_data[column_names[-1]])
     fig.legend(
         handles=list(handles_seen.values()),
         loc="lower center",
