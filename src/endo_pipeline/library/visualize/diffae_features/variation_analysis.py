@@ -41,7 +41,7 @@ def _build_handles_seen_for_legend(
     data_entry: list[tuple],
     alpha: float = 0.45,
     handle_type: Literal["line", "patch"] = "patch",
-) -> dict[str, Artist]:
+) -> list[Artist]:
     """
     Helper function to build a mapping of unique labels to matplotlib Artist
     handles for legend creation.
@@ -63,20 +63,22 @@ def _build_handles_seen_for_legend(
     handle_type
         Type of matplotlib Artist to create for the legend handles, either "line" or "patch".
     """
-    handles_seen: dict[str, Artist] = {}
+    handles_seen: list[Artist] = []
     for data_tuple in data_entry:
         color, label = data_tuple[-2], data_tuple[-1]
         if label not in handles_seen:
             if handle_type == "line":
-                handles_seen[label] = Line2D(
-                    [0],
-                    [0],
-                    color=color,
-                    label=label,
-                    alpha=alpha,
+                handles_seen.append(
+                    Line2D(
+                        [0],
+                        [0],
+                        color=color,
+                        label=label,
+                        alpha=alpha,
+                    )
                 )
             elif handle_type == "patch":
-                handles_seen[label] = Patch(facecolor=color, alpha=alpha, label=label)
+                handles_seen.append(Patch(facecolor=color, alpha=alpha, label=label))
             else:
                 raise ValueError(f"Invalid handle_type: {handle_type}. Must be 'line' or 'patch'.")
     return handles_seen
@@ -130,7 +132,7 @@ def plot_population_cov_vs_time(
         handle_type="line",
     )
     fig.legend(
-        handles=list(handles_seen.values()),
+        handles=handles_seen,
         loc="lower center",
         ncol=min(3, len(handles_seen)),
         bbox_to_anchor=(0.5, -0.18),
@@ -314,7 +316,7 @@ def plot_variance_ratio(
     # shared legend below subplots
     handles_seen = _build_handles_seen_for_legend(var_ratio_data[column_names[-1]])
     fig.legend(
-        handles=list(handles_seen.values()),
+        handles=handles_seen,
         loc="lower center",
         ncol=min(3, len(handles_seen)),
         bbox_to_anchor=(0.5, -0.18),
@@ -397,7 +399,7 @@ def plot_binned_variance_ratio(
     # shared legend below subplots
     handles_seen = _build_handles_seen_for_legend(var_ratio_data[column_names[-1]])
     fig.legend(
-        handles=list(handles_seen.values()),
+        handles=handles_seen,
         loc="lower center",
         ncol=min(3, len(handles_seen)),
         bbox_to_anchor=(0.5, -0.18),
@@ -471,7 +473,7 @@ def plot_mean_feature_vs_time(
     # shared legend below subplots
     handles_seen = _build_handles_seen_for_legend(mean_std_data[column_names[-1]])
     fig.legend(
-        handles=list(handles_seen.values()),
+        handles=handles_seen,
         loc="lower center",
         ncol=min(3, len(handles_seen)),
         bbox_to_anchor=(0.5, -0.18),
