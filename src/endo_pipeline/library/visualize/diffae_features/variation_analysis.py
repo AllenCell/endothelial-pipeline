@@ -41,6 +41,7 @@ def plot_population_cov_vs_time(
     column_names = list(pop_cov_data.keys())
     n_cols = len(column_names)
 
+    axs: list[Axes]
     fig, axs = plt.subplots(
         ncols=n_cols,
         figsize=(5 * n_cols, 5),
