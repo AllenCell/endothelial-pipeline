@@ -75,7 +75,6 @@ def main(
     from endo_pipeline.library.analyze.numerics.temporal_stats import (
         compute_binned_variance_ratio_vs_time,
         compute_cumulative_variance_ratio_vs_time,
-        compute_per_crop_temporal_cov,
     )
     from endo_pipeline.library.model.latent_walk_utils import get_num_pcs_from_column_names
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
@@ -231,7 +230,8 @@ def main(
                 scaled_std = (
                     grouped_df_scaled[col].apply(std_function, **std_function_kwargs).to_numpy()
                 )
-
+                # unwrap mean values for theta if needed so that mean ± std
+                # bands are plotted correctly
                 if unwrap_mean:
                     unscaled_mean = np.unwrap(unscaled_mean, period=theta_period)
                     scaled_mean = np.unwrap(scaled_mean, period=1)
@@ -245,15 +245,29 @@ def main(
 
                 # take mean of this population measure over all time
                 mean_population_cov = float(np.nanmean(scaled_population_cov))
-                scaled_crop_array = df_to_array(df_flow_scaled, [col])
-                # per-crop covariance (covariance computed over all timepoints)
-                per_crop_cov = compute_per_crop_temporal_cov(scaled_crop_array)
+
+                # for each crop, compute covariance over all timepoints (as
+                # opposed to population covariance which is computed across
+                # crops at each timepoint).  This gives one CoV value per crop
+                # which can be compared to the mean population CoV in an
+                # ergodicity test.
+                per_crop_cov = (
+                    df_flow_scaled.groupby(ColumnName.CROP_INDEX).apply(
+                        std_function, **std_function_kwargs
+                    )
+                    / df_flow_scaled.groupby(ColumnName.CROP_INDEX)
+                    .apply(mean_function, **mean_function_kwargs)
+                    .abs()
+                )
+
                 # compute ratio of cumulative covariance per crop versus
                 # population covariance at each timepoint, with SEM across
                 # crops
+                scaled_crop_array = df_to_array(df_flow_scaled, [col])
                 cvr_time, cvr_mean, cvr_upper, cvr_lower = (
                     compute_cumulative_variance_ratio_vs_time(scaled_crop_array)
                 )
+
                 # compute same variance ratio but with temporal variance
                 # computed within rolling time windows instead of
                 # cumulatively from t=0

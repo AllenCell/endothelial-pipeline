@@ -55,29 +55,6 @@ def compute_circular_std(angles: pd.Series, original_angle_range: tuple[float, f
     return unwrapped_std
 
 
-def compute_per_crop_temporal_cov(
-    crop_array: np.ndarray,
-) -> np.ndarray:
-    """
-    Compute the temporal CoV (std / |mean| over time) for every individual crop.
-
-    Missing timepoints are treated as NaN so that crops with gaps are still
-    included.  Crops where |mean| close to 0 produce infinite or NaN CoV and are
-    silently dropped from the returned arrays.
-
-    Parameters
-    ----------
-    crop_array
-        3-D array of shape (n_crops, n_timepoints, 1) containing the
-        feature values for each crop and timepoint.
-    """
-    temporal_std = np.nanstd(crop_array, axis=1)
-    temporal_mean_abs = np.abs(np.nanmean(crop_array, axis=1))
-    cov = np.where(temporal_mean_abs > 0, temporal_std / temporal_mean_abs, np.nan)
-    cov_finite = cov[np.isfinite(cov)]
-    return cov_finite
-
-
 def compute_cumulative_variance_ratio_vs_time(
     crop_array: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
