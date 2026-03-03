@@ -14,7 +14,11 @@ from scipy.ndimage import gaussian_filter1d
 from skimage.measure import regionprops
 from tqdm import tqdm
 
-from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+from endo_pipeline.configs import (
+    get_annotated_timepoints_for_position,
+    get_datasets_in_collection,
+    load_dataset_config,
+)
 from endo_pipeline.io import get_output_path, load_image
 from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.lib_init_density_vs_flow import vector_mean_angle_and_mag
@@ -252,12 +256,46 @@ def add_filter_columns(
     return big_table
 
 
-# def add_cell_piling_and_steady_state_annotation_columns(big_table: pd.DataFrame) -> pd.DataFrame:
-#     """Adds the annotations about cell piling and steady state that were done by
-#     hand as columns to the data table.
-#     """
-
-#     return big_table
+def add_cell_piling_and_steady_state_annotation_columns(big_table: pd.DataFrame) -> pd.DataFrame:
+    """Adds the annotations about cell piling and steady state that were done by
+    hand as columns to the data table.
+    """
+    # load dataset config and timepoint annotations
+    dataset = sequence_to_scalar(big_table["dataset_name"])
+    dataset_config = load_dataset_config(dataset)
+    if dataset_config.timepoint_annotations is not None:
+        filters_for_dataset = list(dataset_config.timepoint_annotations.keys())
+        for filt in filters_for_dataset:
+            # add the timepoint annotations as filter columns
+            big_table[filt] = (
+                big_table.groupby("position", as_index=True)
+                .apply(
+                    lambda df, filt=filt: pd.DataFrame(
+                        (
+                            df["image_index"].isin(
+                                get_annotated_timepoints_for_position(
+                                    dataset_config, sequence_to_scalar(df.position), [filt]
+                                )
+                            )
+                            if sequence_to_scalar(df.position)
+                            in dataset_config.timepoint_annotations[filt]
+                            else False
+                        ),
+                        index=df.index,
+                    )
+                )
+                .droplevel(0)
+            )
+    #         if position in dataset_config.timepoint_annotations[filt]:
+    #             invalid_tps = get_annotated_timepoints_for_position(
+    #                 dataset_config, position, [filt]
+    #             )
+    #             if not dataset_config.timepoint_annotations[filt][position]:
+    #                 continue
+    #             df[filt] = df["image_index"].isin(invalid_tps)
+    # else:
+    #     filters_for_dataset = []
+    return big_table
 
 
 def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.DataFrame:
