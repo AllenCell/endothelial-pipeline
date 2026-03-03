@@ -10,6 +10,8 @@ from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
+from endo_pipeline.io import save_plot_to_path
+
 
 def plot_population_cov_vs_time(
     pop_cov_data: dict[str, list[tuple]],
@@ -74,11 +76,7 @@ def plot_population_cov_vs_time(
     )
     fig.suptitle("Population CoV vs time", y=1.01)
     fig.tight_layout()
-    fig.savefig(
-        fig_savedir / "population_cov_vs_time.png",
-        dpi=300,
-        bbox_inches="tight",
-    )
+    save_plot_to_path(fig, fig_savedir, "population_cov_vs_time")
 
     return fig, axs
 
@@ -198,11 +196,7 @@ def plot_ergodicity_test(
         y=1.01,
     )
     fig.tight_layout()
-    fig.savefig(
-        fig_savedir / "ergodicity_test.png",
-        dpi=300,
-        bbox_inches="tight",
-    )
+    save_plot_to_path(fig, fig_savedir, "ergodicity_test")
     return fig, axs
 
 
@@ -287,11 +281,7 @@ def plot_variance_ratio(
         y=1.01,
     )
     fig.tight_layout()
-    fig.savefig(
-        fig_savedir / "variance_ratio_vs_time.png",
-        dpi=300,
-        bbox_inches="tight",
-    )
+    save_plot_to_path(fig, fig_savedir, "variance_ratio_vs_time")
     return fig, axs
 
 
@@ -385,11 +375,7 @@ def plot_binned_variance_ratio(
         y=1.01,
     )
     fig.tight_layout()
-    fig.savefig(
-        fig_savedir / "binned_variance_ratio_vs_time.png",
-        dpi=300,
-        bbox_inches="tight",
-    )
+    save_plot_to_path(fig, fig_savedir, "binned_variance_ratio_vs_time")
     return fig, axs
 
 
@@ -473,9 +459,9 @@ def plot_mean_feature_vs_time(
     )
     fig.suptitle(title, y=1.01)
     fig.tight_layout()
-    fig.savefig(
-        fig_savedir / filename,
-        dpi=300,
-        bbox_inches="tight",
+    save_plot_to_path(
+        fig,
+        fig_savedir,
+        filename,
     )
     return fig, axs
