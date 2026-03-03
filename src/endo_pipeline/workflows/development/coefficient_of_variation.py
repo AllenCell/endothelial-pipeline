@@ -1,4 +1,4 @@
-from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.cli import CropPattern, Datasets, StrList
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -10,6 +10,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
+    columns: StrList | None = None,
 ) -> None:
     """
     Compute and visualize coefficient of variation (CoV) statistics over time.
@@ -52,6 +53,8 @@ def main(
         The name of the model run to use.
     crop_pattern
         The crop pattern to get features for, either "grid" or "tracked".
+    column_names
+        List of specific column names to include in the analysis.
     """
 
     import logging
@@ -105,7 +108,7 @@ def main(
     logger = logging.getLogger(__name__)
 
     # get labels for provided set of feature columns
-    column_names = list(DEFAULT_COV_ANALYSIS_COLUMNS)
+    column_names = columns or list(DEFAULT_COV_ANALYSIS_COLUMNS)
     num_pcs = get_num_pcs_from_column_names(column_names)
     variable_labels_dict = {
         col: get_label_for_column(col).replace("polar ", "") for col in column_names
