@@ -1488,7 +1488,7 @@ def build_cdh5_measured_features_tables(
     - cell_fluorescence_mean (a.u.)
     - cell_fluorescence_std (a.u.)
     - cell_fluorescence_median (a.u.)
-    - cell_fluoresnce_min (a.u.)
+    - cell_fluorescence_min (a.u.)
     - cell_fluorescence_pct25 (a.u.)
     - cell_fluorescence_pct75 (a.u.)
     - cell_fluorescence_max (a.u.)
