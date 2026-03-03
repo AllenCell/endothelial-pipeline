@@ -188,7 +188,9 @@ def main(
             color = SHEAR_COLOR_DICT[(shear_stress_regime,)]
             label = f"{dataset_name} ({int(shear_stress)} dyn/cm$^2$)"
 
-            t_vals = df[ColumnName.TIMEPOINT.value].sort_values().unique() * time_conversion_factor
+            t_vals = (
+                df_flow[ColumnName.TIMEPOINT.value].sort_values().unique() * time_conversion_factor
+            )
             df_flow_scaled = df_flow.copy()
             # compute mean ± std for each column at each timepoint; for theta,
             # use circular stats to account for periodicity
@@ -235,8 +237,8 @@ def main(
                 # compute ratio of cumulative covariance per crop versus
                 # population covariance at each timepoint, with SEM across
                 # crops
-                cvr_mean, cvr_upper, cvr_lower = compute_cumulative_variance_ratio_vs_time(
-                    scaled_crop_array
+                cvr_time, cvr_mean, cvr_upper, cvr_lower = (
+                    compute_cumulative_variance_ratio_vs_time(scaled_crop_array)
                 )
                 # compute same variance ratio but with temporal variance
                 # computed within rolling time windows instead of
@@ -250,7 +252,7 @@ def main(
                 mean_std_scaled[col].append((t_vals, scaled_mean, scaled_std, color, label))
                 pop_cov_data[col].append((t_vals, scaled_population_cov, color, label))
                 erg_data[col].append((per_crop_cov, mean_population_cov, color, label))
-                var_ratio_data[col].append((t_vals, cvr_mean, cvr_upper, cvr_lower, color, label))
+                var_ratio_data[col].append((cvr_time, cvr_mean, cvr_upper, cvr_lower, color, label))
                 binned_var_ratio_data[col].append(
                     (bvr_time, bvr_mean, bvr_upper, bvr_lower, color, label)
                 )

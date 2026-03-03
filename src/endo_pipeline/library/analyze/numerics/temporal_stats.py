@@ -123,7 +123,7 @@ def compute_per_crop_temporal_cov(
 
 def compute_cumulative_variance_ratio_vs_time(
     crop_array: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute ratio of individual to population variance as a function of time.
 
@@ -147,6 +147,8 @@ def compute_cumulative_variance_ratio_vs_time(
 
     Returns
     -------
+    cv_timepoints
+        1-D array of time values in frames corresponding to each timepoint.
     ratio_mean
         1-D array of mean ratio of individual to population variance at each
         timepoint.
@@ -157,9 +159,10 @@ def compute_cumulative_variance_ratio_vs_time(
     """
     # shape: (n_crops, n_timepoints, 1)
     n_crops, n_timepoints, _ = crop_array.shape
+    cv_timepoints = np.arange(n_timepoints)
 
     # population variance at each timepoint (across crops)
-    pop_var = np.nanvar(crop_array, axis=0)  # (n_timepoints,)
+    pop_var = np.nanvar(crop_array, axis=0).flatten()  # (n_timepoints,)
 
     # per-crop cumulative temporal variance up to each timepoint
     # ind_cum_var[i, t] = Var(crop_feat[i, 0:t+1])
@@ -186,7 +189,7 @@ def compute_cumulative_variance_ratio_vs_time(
         ratio_upper = np.where(pop_var > 0, (mean_ind_var + sem_ind_var) / pop_var, np.nan)
         ratio_lower = np.where(pop_var > 0, (mean_ind_var - sem_ind_var) / pop_var, np.nan)
 
-    return ratio_mean, ratio_upper, ratio_lower
+    return cv_timepoints, ratio_mean, ratio_upper, ratio_lower
 
 
 def compute_binned_variance_ratio_vs_time(
