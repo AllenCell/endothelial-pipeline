@@ -60,6 +60,7 @@ def main(
     import logging
 
     import numpy as np
+    from scipy.stats import circmean, circstd
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import load_dataset_config
@@ -73,8 +74,6 @@ def main(
     )
     from endo_pipeline.library.analyze.numerics.temporal_stats import (
         compute_binned_variance_ratio_vs_time,
-        compute_circular_mean,
-        compute_circular_std,
         compute_cumulative_variance_ratio_vs_time,
         compute_per_crop_temporal_cov,
     )
@@ -204,49 +203,46 @@ def main(
 
                 grouped_df_unscaled = df_flow.groupby(ColumnName.TIMEPOINT.value)
                 grouped_df_scaled = df_flow_scaled.groupby(ColumnName.TIMEPOINT.value)
+
                 # compute mean ± std in original units and in scaled units for
                 # plotting, using circular stats for theta in both cases
                 if col != theta_col:
-                    unscaled_mean = grouped_df_unscaled[col].mean().to_numpy()
-                    unscaled_std = grouped_df_unscaled[col].std().to_numpy()
-
-                    scaled_mean = grouped_df_scaled[col].mean().to_numpy()
-                    scaled_std = grouped_df_scaled[col].std().to_numpy()
+                    mean_function = np.mean
+                    mean_function_kwargs = {}
+                    std_function = np.std
+                    std_function_kwargs = {}
+                    unwrap_mean = False
                 else:
-                    # apply circular mean function to each timepoint group;
-                    # returns mean in original angle range
-                    unscaled_mean = (
-                        grouped_df_unscaled[col]
-                        .apply(compute_circular_mean, original_angle_range=theta_range)
-                        .to_numpy()
-                    )
-                    unscaled_std = (
-                        grouped_df_unscaled[col]
-                        .apply(compute_circular_std, original_angle_range=theta_range)
-                        .to_numpy()
-                    )
-                    # compute_circular_mean rewraps each timepoint independently,
-                    # so the mean can jump between 0 and pi when the true mean is near
-                    # a range boundary; unwrap across time to restore continuity
-                    unscaled_mean = np.unwrap(unscaled_mean, period=theta_period)
+                    mean_function = circmean
+                    mean_function_kwargs = {"high": theta_range[1], "low": theta_range[0]}
+                    std_function = circstd
+                    std_function_kwargs = {"high": theta_range[1], "low": theta_range[0]}
+                    unwrap_mean = True
 
-                    scaled_mean = (
-                        grouped_df_scaled[col]
-                        .apply(compute_circular_mean, original_angle_range=(0, 1))
-                        .to_numpy()
-                    )
-                    scaled_std = (
-                        grouped_df_scaled[col]
-                        .apply(compute_circular_std, original_angle_range=(0, 1))
-                        .to_numpy()
-                    )
+                unscaled_mean = (
+                    grouped_df_unscaled[col].apply(mean_function, **mean_function_kwargs).to_numpy()
+                )
+                unscaled_std = (
+                    grouped_df_unscaled[col].apply(std_function, **std_function_kwargs).to_numpy()
+                )
+                scaled_mean = (
+                    grouped_df_scaled[col].apply(mean_function, **mean_function_kwargs).to_numpy()
+                )
+                scaled_std = (
+                    grouped_df_scaled[col].apply(std_function, **std_function_kwargs).to_numpy()
+                )
+
+                if unwrap_mean:
+                    unscaled_mean = np.unwrap(unscaled_mean, period=theta_period)
                     scaled_mean = np.unwrap(scaled_mean, period=1)
 
                 # for scaled features, also compute additional covariance measures
                 # starting with population CoV vs time (std/mean across all crops at each timepoint)
                 scaled_population_cov = (
-                    grouped_df_scaled[col].std() / grouped_df_scaled[col].mean().abs()
+                    grouped_df_scaled[col].apply(std_function, **std_function_kwargs)
+                    / grouped_df_scaled[col].apply(mean_function, **mean_function_kwargs).abs()
                 ).to_numpy()
+
                 # take mean of this population measure over all time
                 mean_population_cov = float(np.nanmean(scaled_population_cov))
                 scaled_crop_array = df_to_array(df_flow_scaled, [col])
