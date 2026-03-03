@@ -9,6 +9,32 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
 
+def _initialize_figure_for_variation_analysis(n_cols: int) -> tuple[Figure, list[Axes]]:
+    """
+    Helper function to initialize a matplotlib figure with the specified number of columns.
+
+    Parameters
+    ----------
+    n_cols
+        Number of columns (subplots) in the figure.
+
+    Returns
+    -------
+    fig
+        The created matplotlib Figure object.
+    axs
+        List of Axes objects corresponding to each subplot.
+    """
+    fig, ax = plt.subplots(
+        ncols=n_cols,
+        figsize=(5 * n_cols, 5),
+        dpi=300,
+    )
+    axs: list[Axes]
+    axs = [ax] if n_cols == 1 else ax
+    return fig, axs
+
+
 def plot_population_cov_vs_time(
     pop_cov_data: dict[str, list[tuple]],
     variable_labels_dict: dict[str, str],
@@ -39,13 +65,7 @@ def plot_population_cov_vs_time(
     column_names = list(pop_cov_data.keys())
     n_cols = len(column_names)
 
-    fig, ax = plt.subplots(
-        ncols=n_cols,
-        figsize=(5 * n_cols, 5),
-        dpi=300,
-    )
-    axs: list[Axes]
-    axs = [ax] if n_cols == 1 else ax
+    fig, axs = _initialize_figure_for_variation_analysis(n_cols)
 
     for col, ax in zip(column_names, axs, strict=False):
         for time_values, cov_series, color, label in pop_cov_data[col]:
@@ -107,13 +127,7 @@ def plot_ergodicity_test(
     column_names = list(erg_data.keys())
     n_cols = len(column_names)
 
-    fig, axs = plt.subplots(
-        ncols=n_cols,
-        figsize=(5 * n_cols, 5),
-        dpi=300,
-    )
-    if n_cols == 1:
-        axs = [axs]
+    fig, axs = _initialize_figure_for_variation_analysis(n_cols)
 
     for col, ax in zip(column_names, axs, strict=False):
         entries = erg_data[col]
@@ -223,13 +237,7 @@ def plot_variance_ratio(
     column_names = list(var_ratio_data.keys())
     n_cols = len(column_names)
 
-    fig, axs = plt.subplots(
-        ncols=n_cols,
-        figsize=(5 * n_cols, 5),
-        dpi=300,
-    )
-    if n_cols == 1:
-        axs = [axs]
+    fig, axs = _initialize_figure_for_variation_analysis(n_cols)
 
     for col, ax in zip(column_names, axs, strict=False):
         for entry in var_ratio_data[col]:
@@ -316,13 +324,7 @@ def plot_binned_variance_ratio(
     column_names = list(var_ratio_data.keys())
     n_cols = len(column_names)
 
-    fig, axs = plt.subplots(
-        ncols=n_cols,
-        figsize=(5 * n_cols, 5),
-        dpi=300,
-    )
-    if n_cols == 1:
-        axs = [axs]
+    fig, axs = _initialize_figure_for_variation_analysis(n_cols)
 
     for col, ax in zip(column_names, axs, strict=False):
         for entry in var_ratio_data[col]:
@@ -402,13 +404,7 @@ def plot_mean_feature_vs_time(
     column_names = list(mean_std_data.keys())
     n_cols = len(column_names)
 
-    fig, axs = plt.subplots(
-        ncols=n_cols,
-        figsize=(5 * n_cols, 5),
-        dpi=300,
-    )
-    if n_cols == 1:
-        axs = [axs]
+    fig, axs = _initialize_figure_for_variation_analysis(n_cols)
 
     for col, ax in zip(column_names, axs, strict=False):
         for entry in mean_std_data[col]:

@@ -169,7 +169,7 @@ def compute_cumulative_variance_ratio_vs_time(
             # variance of a single value is 0
             ind_cum_var[:, t] = 0.0
         else:
-            ind_cum_var[:, t] = np.nanvar(crop_array[:, : t + 1], axis=1)
+            ind_cum_var[:, t] = np.nanvar(crop_array[:, : t + 1], axis=1).flatten()
 
     # mean and SEM of individual cumulative variance across crops
     mean_ind_var = np.nanmean(ind_cum_var, axis=0)  # (n_timepoints,)
