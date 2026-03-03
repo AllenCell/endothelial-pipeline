@@ -5,13 +5,13 @@ import pandas as pd
 from tqdm import tqdm
 
 cdh5_measured_feat_data_dir = Path(
-    r"\\allen\aics\users\serge.parent\cellsmap\results\2026-02-27\cdh5_get_measured_features"
+    "//allen/aics/users/serge.parent/cellsmap/results/2026-02-27/cdh5_get_measured_features"
 )
 live_seg_feat_data_dir = Path(
-    r"\\allen\aics\users\serge.parent\cellsmap\results\2026-03-03\make_seg_feats_manifest\segmentation_features_dataframes"
+    "//allen/aics/users/serge.parent/cellsmap/results/2026-03-03/make_seg_feats_manifest/segmentation_features_dataframes"
 )
 pc_diffae_classic_feat_data_dir = Path(
-    r"\\allen\aics\users\serge.parent\cellsmap\results\2026-03-03\track_integration"
+    "//allen/aics/users/serge.parent/cellsmap/results/2026-03-03/track_integration"
 )
 
 col_names_to_fix = {
