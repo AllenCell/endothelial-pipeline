@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    check_required_columns_in_dataframe,
     rewrap_polar_angle,
     unwrap_nonsequential_array,
 )
@@ -59,7 +60,10 @@ def compute_circular_std(angles: pd.Series, original_angle_range: tuple[float, f
 
 
 def compute_cumulative_variance_over_time(
-    crop_dataframe: pd.DataFrame, variance_function: Callable[..., float], **var_func_kwargs
+    crop_dataframe: pd.DataFrame,
+    feature_column: str,
+    variance_function: Callable[..., float],
+    **var_func_kwargs,
 ) -> np.ndarray:
     """
     Compute cumulative variance of a feature over time.
@@ -74,6 +78,8 @@ def compute_cumulative_variance_over_time(
     ----------
     crop_dataframe
         DataFrame containing the feature values for each crop and timepoint.
+    feature_column
+        Name of the column in `crop_dataframe` that contains the feature values to analyze.
     variance_function
         Function to compute the variance. Should accept a 1-D array and return a float.
     **var_func_kwargs
@@ -84,6 +90,7 @@ def compute_cumulative_variance_over_time(
     crop_cumulative_var
         1-D array of cumulative variance values for each timepoint.
     """
+    check_required_columns_in_dataframe(crop_dataframe, [feature_column, ColumnName.TIMEPOINT])
 
     crop_cumulative_var = np.zeros(crop_dataframe[ColumnName.TIMEPOINT].nunique())
     for i, t in enumerate(crop_dataframe[ColumnName.TIMEPOINT].unique()):
@@ -92,7 +99,9 @@ def compute_cumulative_variance_over_time(
             # skip to next iteration
             continue
         else:
-            data_to_t = crop_dataframe[crop_dataframe[ColumnName.TIMEPOINT] <= t].to_numpy()
+            data_to_t = crop_dataframe[crop_dataframe[ColumnName.TIMEPOINT] <= t][
+                feature_column
+            ].to_numpy()
             crop_cumulative_var[i] = variance_function(data_to_t, **var_func_kwargs)
     return crop_cumulative_var
 

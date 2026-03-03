@@ -273,9 +273,10 @@ def main(
                 )
                 # compute cumulative variance for each crop at each timepoint
                 cumulative_var_per_crop = (
-                    df_scaled_crop_grouped[col]
+                    df_scaled_crop_grouped[[col, ColumnName.TIMEPOINT]]
                     .apply(
                         compute_cumulative_variance_over_time,
+                        feature_column=col,
                         variance_function=var_function,
                         **function_kwargs,
                     )
