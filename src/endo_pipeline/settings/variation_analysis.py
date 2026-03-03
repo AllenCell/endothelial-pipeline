@@ -2,7 +2,7 @@
 
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
-BIN_LIMITS_COV_VS_TIME: dict[str, tuple[float, float]] = {
+COV_VS_TIME_YLIM_DICT: dict[str, tuple[float, float]] = {
     ColumnName.POLAR_ANGLE.value: (0.0, 1.5),
     ColumnName.POLAR_RADIUS.value: (0.0, 1.5),
     ColumnName.PC3_FLIPPED.value: (0.0, 1.5),

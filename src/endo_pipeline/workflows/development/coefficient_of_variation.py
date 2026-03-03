@@ -98,7 +98,7 @@ def main(
     )
     from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
     from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
-    from endo_pipeline.settings.variation_analysis import BIN_LIMITS_COV_VS_TIME
+    from endo_pipeline.settings.variation_analysis import COV_VS_TIME_YLIM_DICT
 
     logger = logging.getLogger(__name__)
 
@@ -278,7 +278,7 @@ def main(
     )
     # --- Plot 3: population CoV vs time, all datasets on one figure ---
     _ = plot_population_cov_vs_time(
-        pop_cov_data, variable_labels_dict, fig_savedir, ylim_dict=BIN_LIMITS_COV_VS_TIME
+        pop_cov_data, variable_labels_dict, fig_savedir, ylim_dict=COV_VS_TIME_YLIM_DICT
     )
 
     # --- Plot 4: ergodicity test (where population mean lies within individual variance) ---
