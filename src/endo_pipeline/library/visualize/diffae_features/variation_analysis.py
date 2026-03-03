@@ -84,6 +84,30 @@ def _build_handles_seen_for_legend(
     return handles_seen
 
 
+def _format_fig_with_legend_and_title(
+    fig: Figure,
+    suptitle: str,
+    legend_handles: list[Artist],
+    legend_ncol: int,
+    legend_loc: str = "lower center",
+    legend_bbox_to_anchor: tuple[float, float] = (0.5, -0.18),
+    legend_fontsize: int = 7,
+    suptitle_y: float = 1.01,
+    tight_layout: bool = True,
+) -> None:
+    """Helper function to format a matplotlib figure with a suptitle and shared legend."""
+    fig.suptitle(suptitle, y=suptitle_y)
+    fig.legend(
+        handles=legend_handles,
+        loc=legend_loc,
+        ncol=legend_ncol,
+        bbox_to_anchor=legend_bbox_to_anchor,
+        fontsize=legend_fontsize,
+    )
+    if tight_layout:
+        fig.tight_layout()
+
+
 def plot_population_cov_vs_time(
     pop_cov_data: dict[str, list[tuple]],
     variable_labels_dict: dict[str, str],
@@ -131,15 +155,12 @@ def plot_population_cov_vs_time(
         alpha=1.0,
         handle_type="line",
     )
-    fig.legend(
-        handles=handles_seen,
-        loc="lower center",
-        ncol=min(3, len(handles_seen)),
-        bbox_to_anchor=(0.5, -0.18),
-        fontsize=7,
+    _format_fig_with_legend_and_title(
+        fig,
+        suptitle=title,
+        legend_handles=handles_seen,
+        legend_ncol=min(3, len(handles_seen)),
     )
-    fig.suptitle(title, y=1.01)
-    fig.tight_layout()
 
     return fig, axs
 
@@ -241,18 +262,14 @@ def plot_ergodicity_test(
             label="Mean population CoV",
         ),
     ]
-    fig.legend(
-        handles=legend_elements,
-        loc="lower center",
-        ncol=2,
-        bbox_to_anchor=(0.5, -0.06),
-        fontsize=8,
+    _format_fig_with_legend_and_title(
+        fig,
+        suptitle=title,
+        legend_handles=legend_elements,
+        legend_ncol=2,
+        legend_bbox_to_anchor=(0.5, -0.06),
+        legend_fontsize=8,
     )
-    fig.suptitle(
-        title,
-        y=1.01,
-    )
-    fig.tight_layout()
     return fig, axs
 
 
@@ -315,18 +332,12 @@ def plot_variance_ratio(
 
     # shared legend below subplots
     handles_seen = _build_handles_seen_for_legend(var_ratio_data[column_names[-1]])
-    fig.legend(
-        handles=handles_seen,
-        loc="lower center",
-        ncol=min(3, len(handles_seen)),
-        bbox_to_anchor=(0.5, -0.18),
-        fontsize=7,
+    _format_fig_with_legend_and_title(
+        fig,
+        suptitle=title,
+        legend_handles=handles_seen,
+        legend_ncol=min(3, len(handles_seen)),
     )
-    fig.suptitle(
-        title,
-        y=1.01,
-    )
-    fig.tight_layout()
     return fig, axs
 
 
@@ -398,18 +409,12 @@ def plot_binned_variance_ratio(
 
     # shared legend below subplots
     handles_seen = _build_handles_seen_for_legend(var_ratio_data[column_names[-1]])
-    fig.legend(
-        handles=handles_seen,
-        loc="lower center",
-        ncol=min(3, len(handles_seen)),
-        bbox_to_anchor=(0.5, -0.18),
-        fontsize=7,
+    _format_fig_with_legend_and_title(
+        fig,
+        suptitle=title,
+        legend_handles=handles_seen,
+        legend_ncol=min(3, len(handles_seen)),
     )
-    fig.suptitle(
-        title,
-        y=1.01,
-    )
-    fig.tight_layout()
     return fig, axs
 
 
@@ -472,13 +477,10 @@ def plot_mean_feature_vs_time(
 
     # shared legend below subplots
     handles_seen = _build_handles_seen_for_legend(mean_std_data[column_names[-1]])
-    fig.legend(
-        handles=handles_seen,
-        loc="lower center",
-        ncol=min(3, len(handles_seen)),
-        bbox_to_anchor=(0.5, -0.18),
-        fontsize=7,
+    _format_fig_with_legend_and_title(
+        fig,
+        suptitle=title,
+        legend_handles=handles_seen,
+        legend_ncol=min(3, len(handles_seen)),
     )
-    fig.suptitle(title, y=1.01)
-    fig.tight_layout()
     return fig, axs
