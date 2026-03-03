@@ -47,6 +47,15 @@ RANDOM_SEED: int = 47
 MODEL_QC_NOISE_LEVELS: tuple = (0.25, 0.5, 0.75)
 """Default noise levels to add to ground truth for the model QC workflow."""
 
+METRIC_TEXT_BOX_PROPS = {"boxstyle": "round", "facecolor": "wheat", "alpha": 0.3}
+"""Matplotlib text-box properties for metric annotations in QC plots."""
+
+IMAGE_METRIC_DATASET_COLORS = {
+    "validation_positions": "#2C6FAC",  # Medium blue
+    "rep_2_positions": "#7ABBE0",  # Light blue
+}
+"""Color palette for image metric bar plots, keyed by dataset split name."""
+
 SEGMENTATION_FEATURE_COLUMNS = {
     "default": [
         "alignment_deg_rel_to_flow",
@@ -149,4 +158,57 @@ OPTICAL_FLOW_FEATURE_COLS: list = [
     for d in range(1, DEFAULT_OPTICAL_FLOW_MAX_DT + 1)
     for f in OPTICAL_FLOW_BASE_FEATURES
 ]
+
 """Prebuilt list of optical-flow feature column names at the default MAX_DT."""
+# =========================================
+# Default model configurations for model qc
+# =========================================
+
+DEFAULT_MODEL_QC_MANIFEST_NAMES = [
+    "diffae_baseline_exclude_cell_piling",  # 8 BF
+    "diffae_baseline_exclude_cell_piling",  # 16 BF
+    "diffae_baseline_exclude_cell_piling",  # 32 BF
+    "diffae_baseline_exclude_cell_piling",  # 64 BF
+    "diffae_baseline_exclude_cell_piling",  # 128 BF
+    "diffae_baseline_exclude_cell_piling",  # 256 BF
+    "diffae_baseline_exclude_cell_piling",  # 512 BF
+    "diffae_baseline_exclude_cell_piling",  # 1024 BF
+    "diffae_cdh5_conditioned",  # 512 CDH5
+    "diffae_cdh5_conditioned",  # 1024 CDH5
+]
+"""Default manifest names for the 10-model QC comparison study.
+
+Covers 8 brightfield-conditioned latent dimensions (8--1024) and 2 CDH5-
+conditioned models (512, 1024).
+"""
+
+DEFAULT_MODEL_QC_RUN_NAMES = [
+    "20260207_latent_8",
+    "20260205_latent_16",
+    "20260203_latent_32",
+    "20260206_latent_64",
+    "20260127_latent_128",
+    "20260122_latent_256",
+    "20251110_latent_512",
+    "20251110_latent_1024",
+    "20260130_latent_512",
+    "20251110_latent_1024",
+]
+"""Run names corresponding to each entry in :data:`DEFAULT_MODEL_QC_MANIFEST_NAMES`."""
+DEFAULT_MODEL_QC_LABELS = [
+    "8 BF",
+    "16 BF",
+    "32 BF",
+    "64 BF",
+    "128 BF",
+    "256 BF",
+    "512 BF",
+    "1024 BF",
+    "512 CDH5",
+    "1024 CDH5",
+]
+"""X-axis labels for the 10-model latent dimension comparison bar plots.
+
+Order: 8 BF, 16 BF, 32 BF, 64 BF, 128 BF, 256 BF, 512 BF, 1024 BF,
+512 CDH5, 1024 CDH5.
+"""

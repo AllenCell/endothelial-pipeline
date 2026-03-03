@@ -1,5 +1,5 @@
 name: nuclear_labelfree_seg_zarr
-workflow: generate_label_free_nuc_pred (manifest updated manually)
+workflow: tiff_to_zarr_conversion (manifest updated manually)
 parameters: {}
 locations:
   20250224_20X:
@@ -8,6 +8,8 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg_zarr/20250319_0d94f8d3054e4e8c99af07dd92774798/20250319_0d94f8d3054e4e8c99af07dd92774798_P{{position}}.ome.zarr
   20250326_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg_zarr/20250326_eb97addf262c44c5a6117ad1d4acc353/20250326_eb97addf262c44c5a6117ad1d4acc353_P{{position}}.ome.zarr
+  20250402_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg_zarr/20250402_90e37b7d8f1440efa84995b4697fb269/20250402_90e37b7d8f1440efa84995b4697fb269_P{{position}}.ome.zarr
   20250409_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg_zarr/20250409_df6b2a02bbc94c6f957923add524eac1/20250409_df6b2a02bbc94c6f957923add524eac1_P{{position}}.ome.zarr
   20250428_20X:
@@ -34,3 +36,5 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg_zarr/20250825_c2a006900d0342668998fbdd295f347b/20250825_c2a006900d0342668998fbdd295f347b_P{{position}}.ome.zarr
   20250827_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg_zarr/20250827_c96180b30a224a48bac3b6d8fe1ffbb4/20250827_c96180b30a224a48bac3b6d8fe1ffbb4_P{{position}}.ome.zarr
+  20251001_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg_zarr/20251001_271124f03a16409499e8a84b0030cb15/20251001_271124f03a16409499e8a84b0030cb15_P{{position}}.ome.zarr
