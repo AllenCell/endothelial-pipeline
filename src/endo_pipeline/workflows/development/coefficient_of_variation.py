@@ -246,7 +246,7 @@ def main(
                 # computed within rolling time windows instead of
                 # cumulatively from t=0
                 bvr_time, bvr_mean, bvr_upper, bvr_lower = compute_binned_variance_ratio_vs_time(
-                    scaled_crop_array
+                    scaled_crop_array, TIME_WINDOW_BIN_SIZE
                 )
                 bvr_time *= time_conversion_factor
 
