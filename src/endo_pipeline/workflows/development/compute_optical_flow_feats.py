@@ -8,7 +8,7 @@ from pathlib import Path
 import dask.array as da
 import numpy as np
 import pandas as pd
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed  # type: ignore[import-untyped]
 from skimage.exposure import rescale_intensity
 from tqdm.auto import tqdm
 

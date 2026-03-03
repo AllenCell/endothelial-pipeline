@@ -101,7 +101,7 @@ def flow_stats(
         corresponds to one row in a table built from a list
         of records.
     """
-    base = {"crop_index": crop_idx, "timepoint": timepoint, "dt": dt}
+    base: dict[str, int | float] = {"crop_index": crop_idx, "timepoint": timepoint, "dt": dt}
     mask = (crop0 > thresh) | (crop1 > thresh)
     if not mask.any():
         logger.debug(
@@ -311,6 +311,6 @@ def pivot_flow_records(records: list[dict]) -> pd.DataFrame:
             values=feat,
             aggfunc="first",
         )
-        pv.columns = [f"{feat}_dt{int(c)}" for c in pv.columns]
+        pv.columns = pd.Index([f"{feat}_dt{int(c)}" for c in pv.columns])
         parts.append(pv)
     return pd.concat(parts, axis=1).reset_index()
