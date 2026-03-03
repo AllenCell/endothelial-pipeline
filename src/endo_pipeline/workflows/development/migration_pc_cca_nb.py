@@ -45,16 +45,13 @@ logger = logging.getLogger(__name__)
 
 DESCRIPTION = "Optical flow on BF for migration coherence metric; CCA ranks top contributing PCs."
 
-# %%
-# OPTICAL_FLOW_FEATURE = "optical_flow_mean_unit_vector_dt1"
-OPTICAL_FLOW_FEATURE = "optical_flow_angle_std_dt1"
+OPTICAL_FLOW_FEATURE = "optical_flow_angle_std_dt1"  # "optical_flow_mean_unit_vector_dt1"
 CLASSIC_FEATURE = "vec_mean_mag_in_crop"
 PLOT_CLASSIC = False
 UPLOAD_TO_FMS = False
 
 datasets = get_datasets_in_collection("diffae_model_training")
 output_dir = get_output_path("migration_pc_cca")
-
 
 # %% Load diffae features
 model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
@@ -123,13 +120,16 @@ plot_cca_projection_validation(
 )
 
 # %%
+UPLOAD_TO_FMS = True
 if UPLOAD_TO_FMS:
     dataset_configs = [load_dataset_config(dataset_name) for dataset_name in datasets]
-    annotations = build_fms_annotations(dataset=dataset_configs, additional_notes=DESCRIPTION)
+    annotations = build_fms_annotations(
+        dataset=dataset_configs, additional_notes=DESCRIPTION + OPTICAL_FLOW_FEATURE
+    )
     fms_id = upload_file_to_fms(cca_csv_path, annotations=annotations, file_type="csv")
 
     dataframe_manifest_cca = load_dataframe_manifest("cca_weights")
-    dataframe_manifest_cca["locations"]["80_pcs"]["fms_id"] = fms_id
+    dataframe_manifest_cca.locations["80_pcs"].fmsid = fms_id
     save_dataframe_manifest(dataframe_manifest_cca)
 
 # %%
