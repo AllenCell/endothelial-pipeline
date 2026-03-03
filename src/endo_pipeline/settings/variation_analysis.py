@@ -8,3 +8,10 @@ COV_VS_TIME_YLIM_DICT: dict[str, tuple[float, float]] = {
     ColumnName.PC3_FLIPPED.value: (0.0, 1.5),
 }
 """Bin limits for coefficient of variation vs time plots in visualization."""
+
+DEFAULT_COV_ANALYSIS_COLUMNS: tuple[str, ...] = (
+    ColumnName.POLAR_ANGLE.value,
+    ColumnName.POLAR_RADIUS.value,
+    ColumnName.PC3_FLIPPED.value,
+)
+"""Default column names to include in coefficient of variation analysis."""

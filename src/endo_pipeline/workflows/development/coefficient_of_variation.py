@@ -91,19 +91,21 @@ def main(
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
         BIN_LIMITS_THETA_RESCALED,
-        DYNAMICS_COLUMN_NAMES,
         NUM_PCS_TO_FIT_FOR_DYNAMICS,
         PERIOD_THETA_RESCALED,
         RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
     from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
-    from endo_pipeline.settings.variation_analysis import COV_VS_TIME_YLIM_DICT
+    from endo_pipeline.settings.variation_analysis import (
+        COV_VS_TIME_YLIM_DICT,
+        DEFAULT_COV_ANALYSIS_COLUMNS,
+    )
 
     logger = logging.getLogger(__name__)
 
     # get labels for provided set of feature columns
-    column_names = list(DYNAMICS_COLUMN_NAMES)
+    column_names = list(DEFAULT_COV_ANALYSIS_COLUMNS)
     variable_labels_dict = {
         col: get_label_for_column(col).replace("polar ", "") for col in column_names
     }

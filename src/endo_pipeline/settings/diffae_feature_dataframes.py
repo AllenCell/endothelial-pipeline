@@ -144,7 +144,6 @@ DIFFAE_PC_COLUMN_NAME_GROUPS: dict[str, list[str]] = {
     + DIFFAE_PC_COLUMN_NAMES[17:18]
     + [ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE],
     "polar_coord": [ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE],
-    "polar_plus_density": [ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE, ColumnName.PC3_FLIPPED],
     "first_3_pcs": DIFFAE_PC_COLUMN_NAMES[:3],
     "first_100_pcs": DIFFAE_PC_COLUMN_NAMES[:100],
     "all": DIFFAE_PC_COLUMN_NAMES,
