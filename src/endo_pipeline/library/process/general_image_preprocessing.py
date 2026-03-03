@@ -110,7 +110,7 @@ def build_analysis_queue(
 
     logger.info(f"Building analysis queue for the following datasets: {dataset_name_list}")
 
-    timelapse_datasets = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
+    timelapse_datasets = get_datasets_in_collection("timelapse")
     smad1_datasets = get_datasets_in_collection("smad1")
 
     analysis_queue: list = []
