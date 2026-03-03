@@ -413,6 +413,33 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     big_table["area (um**2)"] = big_table["area"] * big_table["pixel_size_xy_in_um"] ** 2
     big_table["perimeter (um)"] = big_table["perimeter"] * big_table["pixel_size_xy_in_um"]
 
+    # compute intensity means and standard deviations for edge and node pixels
+    # separately and together
+    big_table["edge_means (a.u.)"] = big_table["edge_fluorescences (a.u.)"].transform(
+        lambda x: x.mean()
+    )
+    big_table["edge_std (a.u.)"] = big_table["edge_fluorescences (a.u.)"].transform(
+        lambda x: x.std()
+    )
+    big_table["node_means (a.u.)"] = big_table["node_fluorescences (a.u.)"].transform(
+        lambda x: x.mean()
+    )
+    big_table["node_std (a.u.)"] = big_table["node_fluorescences (a.u.)"].transform(
+        lambda x: x.std()
+    )
+    big_table["edge_and_node_means (a.u.)"] = big_table.apply(
+        lambda row: np.mean(
+            row["edge_fluorescences (a.u.)"].tolist() + row["node_fluorescences (a.u.)"].tolist()
+        ),
+        axis=1,
+    )
+    big_table["edge_and_node_std (a.u.)"] = big_table.apply(
+        lambda row: np.std(
+            row["edge_fluorescences (a.u.)"].tolist() + row["node_fluorescences (a.u.)"].tolist()
+        ),
+        axis=1,
+    )
+
     # add a column for the number of neighbors
     # touching each region that is being tracked
     logger.info("Calculating number of neighbors...")
