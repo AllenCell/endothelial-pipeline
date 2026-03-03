@@ -147,7 +147,6 @@ def apply_cca_projection(
     df: pd.DataFrame,
     manifest_name: str = "cca_weights",
     location_key: str = "80_pcs",
-    sparse_axes: list[float] | None = [0.1, 0.2, 0.3],
     return_column_info: bool = False,
 ) -> pd.DataFrame | tuple[pd.DataFrame, dict[str, list[str]]]:
     """Load CCA weights from a manifest and project onto a dataframe.
@@ -160,8 +159,6 @@ def apply_cca_projection(
         Name of the dataframe manifest containing the CCA weights.
     location_key : str
         Key within the manifest's locations dict (e.g. ``"80_pcs"``).
-    sparse_axes : list[float] or None, default=[0.1, 0.2, 0.3]
-        If provided, sparse projections are computed at fixed thresholds.
     return_column_info : bool, default=False
         If True, also return a dict mapping each added column name to
         the list of input features used.
@@ -199,20 +196,6 @@ def apply_cca_projection(
     )
     df_result["cca_top3"] = df[top3_features].to_numpy() @ top3_weights
     column_info["cca_top3"] = top3_features
-
-    # Threshold-based sparse projections
-    if sparse_axes is not None:
-        for minimal_weight in sparse_axes:
-            sparse_axis = np.where(np.abs(weights) >= minimal_weight, weights, 0)
-            nonzero_idx = np.where(np.abs(sparse_axis) > 0)[0]
-            sparse_features = [features[i] for i in nonzero_idx]
-
-            projected_data_sparse = df_features.to_numpy() @ sparse_axis
-
-            weight_str = str(minimal_weight).replace(".", "")
-            col_name = f"cca_sp{weight_str}"
-            df_result[col_name] = projected_data_sparse
-            column_info[col_name] = sparse_features
 
     df_result = df.merge(df_result, left_index=True, right_index=True)
     if return_column_info:

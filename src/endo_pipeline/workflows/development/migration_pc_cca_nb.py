@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 DESCRIPTION = "Optical flow on BF for migration coherence metric; CCA ranks top contributing PCs."
 
-OPTICAL_FLOW_FEATURE = "optical_flow_angle_std_dt1"  # "optical_flow_mean_unit_vector_dt1"
+OPTICAL_FLOW_FEATURE = "optical_flow_mean_unit_vector_dt1"
 UPLOAD_TO_FMS = False
 
 datasets = get_datasets_in_collection("diffae_model_training")
@@ -118,10 +118,10 @@ plot_cca_projection_validation(
 df_of_plus, cca_column_info = apply_cca_projection(df_of, return_column_info=True)
 
 for col_name, feats in cca_column_info.items():
+    logger.info(f"{col_name}: {feats}")
     print(f"{col_name}: {feats}")
 
 # %%
-feature_lists = [["cca", "cca_sp01", "cca_sp02", "cca_sp03", "cca_top3"], ["pc_1", "pc_2", "pc_3"]]
-for features in feature_lists:
-    plot_feature_correlations(df_of_plus, features, OPTICAL_FLOW_FEATURE, output_dir)
+feature_list = ["cca", "cca_top3"]
+plot_feature_correlations(df_of_plus, feature_list, OPTICAL_FLOW_FEATURE, output_dir)
 # %%
