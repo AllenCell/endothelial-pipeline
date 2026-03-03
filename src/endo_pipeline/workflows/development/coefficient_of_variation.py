@@ -62,7 +62,7 @@ def main(
     from typing import Any
 
     import numpy as np
-    from scipy.stats import circmean, circstd
+    from scipy.stats import circmean, circstd, circvar
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import load_dataset_config
@@ -76,7 +76,7 @@ def main(
     )
     from endo_pipeline.library.analyze.numerics.temporal_stats import (
         compute_binned_variance_ratio_vs_time,
-        compute_cumulative_variance_ratio_vs_time,
+        compute_cumulative_variance_over_time,
     )
     from endo_pipeline.library.model.latent_walk_utils import get_num_pcs_from_column_names
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
@@ -213,11 +213,13 @@ def main(
                 if col != theta_col:
                     mean_function = np.mean
                     std_function = np.std
+                    var_function = circvar
                     function_kwargs = {}
                     unwrap_mean = False
                 else:
                     mean_function = circmean
                     std_function = circstd
+                    var_function = circvar
                     function_kwargs = {"high": theta_range[1], "low": theta_range[0]}
                     unwrap_mean = True
 
@@ -254,21 +256,40 @@ def main(
                 # crops at each timepoint).  This gives one CoV value per crop
                 # which can be compared to the mean population CoV in an
                 # ergodicity test.
-                per_crop_cov = df_flow_scaled.groupby(ColumnName.CROP_INDEX).apply(
+                df_scaled_crop_grouped = df_flow_scaled.groupby(ColumnName.CROP_INDEX)
+                per_crop_cov = df_scaled_crop_grouped[col].apply(
                     std_function, **function_kwargs
                 ).to_numpy() / np.absolute(
-                    df_flow_scaled.groupby(ColumnName.CROP_INDEX)
-                    .apply(mean_function, **function_kwargs)
-                    .to_numpy()
+                    df_scaled_crop_grouped[col].apply(mean_function, **function_kwargs).to_numpy()
                 )
 
                 # compute ratio of cumulative covariance per crop versus
                 # population covariance at each timepoint, with SEM across
                 # crops
                 scaled_crop_array = df_to_array(df_flow_scaled, [col])
-                cvr_time, cvr_mean, cvr_upper, cvr_lower = (
-                    compute_cumulative_variance_ratio_vs_time(scaled_crop_array)
+                # population variance at each timepoint (across crops) for scaled feature
+                scaled_population_var = (
+                    grouped_df_scaled[col].apply(var_function, **function_kwargs).to_numpy()
                 )
+                # compute cumulative variance for each crop at each timepoint
+                cumulative_var_per_crop = (
+                    df_scaled_crop_grouped[col]
+                    .apply(
+                        compute_cumulative_variance_over_time,
+                        variance_function=var_function,
+                        **function_kwargs,
+                    )
+                    .to_numpy()
+                )
+                # compute sem for the cumulative variance across crops at each timepoint
+                cumulative_var_mean = np.nanmean(cumulative_var_per_crop, axis=0)
+                cumulative_var_sem = np.nanstd(cumulative_var_per_crop, axis=0) / np.sqrt(
+                    cumulative_var_per_crop.shape[0]
+                )
+                # ratio of mean cumulative variance across crops to population variance at each timepoint
+                cvr_mean = cumulative_var_mean / scaled_population_var
+                cvr_upper = (cumulative_var_mean + cumulative_var_sem) / scaled_population_var
+                cvr_lower = (cumulative_var_mean - cumulative_var_sem) / scaled_population_var
 
                 # compute same variance ratio but with temporal variance
                 # computed within rolling time windows instead of
@@ -282,7 +303,7 @@ def main(
                 mean_std_scaled[col].append((t_vals, scaled_mean, scaled_std, color, label))
                 pop_cov_data[col].append((t_vals, scaled_population_cov, color, label))
                 erg_data[col].append((per_crop_cov, mean_population_cov, color, label))
-                var_ratio_data[col].append((cvr_time, cvr_mean, cvr_upper, cvr_lower, color, label))
+                var_ratio_data[col].append((t_vals, cvr_mean, cvr_upper, cvr_lower, color, label))
                 binned_var_ratio_data[col].append(
                     (bvr_time, bvr_mean, bvr_upper, bvr_lower, color, label)
                 )
