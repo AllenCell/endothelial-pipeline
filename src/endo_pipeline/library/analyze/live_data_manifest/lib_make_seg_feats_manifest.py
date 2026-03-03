@@ -270,31 +270,21 @@ def add_cell_piling_and_steady_state_annotation_columns(big_table: pd.DataFrame)
             big_table[filt] = (
                 big_table.groupby("position", as_index=True)
                 .apply(
-                    lambda df, filt=filt: pd.DataFrame(
-                        (
-                            df["image_index"].isin(
-                                get_annotated_timepoints_for_position(
-                                    dataset_config, sequence_to_scalar(df.position), [filt]
+                    lambda df, filt=filt: (
+                        pd.DataFrame(
+                            (
+                                df["image_index"].isin(
+                                    get_annotated_timepoints_for_position(
+                                        dataset_config, sequence_to_scalar(df.position), [filt]
+                                    )
                                 )
-                            )
-                            if sequence_to_scalar(df.position)
-                            in dataset_config.timepoint_annotations[filt]
-                            else False
-                        ),
-                        index=df.index,
+                            ),
+                            index=df.index,
+                        )
                     )
                 )
                 .droplevel(0)
             )
-    #         if position in dataset_config.timepoint_annotations[filt]:
-    #             invalid_tps = get_annotated_timepoints_for_position(
-    #                 dataset_config, position, [filt]
-    #             )
-    #             if not dataset_config.timepoint_annotations[filt][position]:
-    #                 continue
-    #             df[filt] = df["image_index"].isin(invalid_tps)
-    # else:
-    #     filters_for_dataset = []
     return big_table
 
 
