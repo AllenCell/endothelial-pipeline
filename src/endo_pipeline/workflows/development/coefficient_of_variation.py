@@ -241,6 +241,7 @@ def main(
                 cvr_time, cvr_mean, cvr_upper, cvr_lower = (
                     compute_cumulative_variance_ratio_vs_time(scaled_crop_array)
                 )
+                cvr_time *= time_conversion_factor
                 # compute same variance ratio but with temporal variance
                 # computed within rolling time windows instead of
                 # cumulatively from t=0
