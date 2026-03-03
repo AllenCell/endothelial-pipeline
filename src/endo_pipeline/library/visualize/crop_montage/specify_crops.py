@@ -64,7 +64,7 @@ def load_data_for_montage(
             get_dataframe_for_dynamics_workflows(
                 name,
                 dataframe_manifest,
-                pca,
+                pca=pca,
                 include_cell_piling=include_cell_piling,
                 include_not_steady_state=True,
             )
