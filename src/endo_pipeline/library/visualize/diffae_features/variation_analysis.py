@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -10,13 +8,11 @@ from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
-from endo_pipeline.io import save_plot_to_path
-
 
 def plot_population_cov_vs_time(
     pop_cov_data: dict[str, list[tuple]],
     variable_labels_dict: dict[str, str],
-    fig_savedir: Path,
+    title: str,
     ylim_dict: dict[str, tuple[float, float]] | None = None,
 ) -> tuple[Figure, list[Axes]]:
     """
@@ -43,14 +39,13 @@ def plot_population_cov_vs_time(
     column_names = list(pop_cov_data.keys())
     n_cols = len(column_names)
 
-    axs: list[Axes]
-    fig, axs = plt.subplots(
+    fig, ax = plt.subplots(
         ncols=n_cols,
         figsize=(5 * n_cols, 5),
         dpi=300,
     )
-    if n_cols == 1:
-        axs = [axs]
+    axs: list[Axes]
+    axs = [ax] if n_cols == 1 else ax
 
     for col, ax in zip(column_names, axs, strict=False):
         for time_values, cov_series, color, label in pop_cov_data[col]:
@@ -74,9 +69,8 @@ def plot_population_cov_vs_time(
         bbox_to_anchor=(0.5, -0.18),
         fontsize=7,
     )
-    fig.suptitle("Population CoV vs time", y=1.01)
+    fig.suptitle(title, y=1.01)
     fig.tight_layout()
-    save_plot_to_path(fig, fig_savedir, "population_cov_vs_time")
 
     return fig, axs
 
@@ -84,7 +78,7 @@ def plot_population_cov_vs_time(
 def plot_ergodicity_test(
     erg_data: dict[str, list[tuple]],
     variable_labels_dict: dict[str, str],
-    fig_savedir: Path,
+    title: str,
 ) -> tuple[Figure, list[Axes]]:
     """
     Visualize the ergodicity test by comparing temporal and ensemble CoV.
@@ -192,18 +186,17 @@ def plot_ergodicity_test(
         fontsize=8,
     )
     fig.suptitle(
-        "Ergodicity test: individual-crop temporal CoV vs population CoV",
+        title,
         y=1.01,
     )
     fig.tight_layout()
-    save_plot_to_path(fig, fig_savedir, "ergodicity_test")
     return fig, axs
 
 
 def plot_variance_ratio(
     var_ratio_data: dict[str, list[tuple]],
     variable_labels_dict: dict[str, str],
-    fig_savedir: Path,
+    title: str,
 ) -> tuple[Figure, list[Axes]]:
     """
     Plot the ratio of individual to population variance as a function of time.
@@ -277,18 +270,17 @@ def plot_variance_ratio(
         fontsize=7,
     )
     fig.suptitle(
-        "Individual / population variance ratio vs time",
+        title,
         y=1.01,
     )
     fig.tight_layout()
-    save_plot_to_path(fig, fig_savedir, "variance_ratio_vs_time")
     return fig, axs
 
 
 def plot_binned_variance_ratio(
     var_ratio_data: dict[str, list[tuple]],
     variable_labels_dict: dict[str, str],
-    fig_savedir: Path,
+    title: str,
 ) -> tuple[Figure, list[Axes]]:
     """
     Plot the ratio of individual to population variance computed within time bins.
@@ -371,19 +363,16 @@ def plot_binned_variance_ratio(
         fontsize=7,
     )
     fig.suptitle(
-        "Individual / population variance ratio vs time (binned)",
+        title,
         y=1.01,
     )
     fig.tight_layout()
-    save_plot_to_path(fig, fig_savedir, "binned_variance_ratio_vs_time")
     return fig, axs
 
 
 def plot_mean_feature_vs_time(
     mean_std_data: dict[str, list[tuple]],
     variable_labels_dict: dict[str, str],
-    fig_savedir: Path,
-    filename: str,
     title: str,
     ylabel_suffix: str = "",
 ) -> tuple[Figure, list[Axes]]:
@@ -459,9 +448,4 @@ def plot_mean_feature_vs_time(
     )
     fig.suptitle(title, y=1.01)
     fig.tight_layout()
-    save_plot_to_path(
-        fig,
-        fig_savedir,
-        filename,
-    )
     return fig, axs

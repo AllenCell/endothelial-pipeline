@@ -64,7 +64,7 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.configs.dataset_config_io import get_datasets_in_collection
-    from endo_pipeline.io import get_output_path
+    from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         df_to_array,
         fit_pca,
@@ -230,7 +230,7 @@ def main(
                 ).to_numpy()
                 # take mean of this population measure over all time
                 mean_population_cov = float(np.nanmean(scaled_population_cov))
-                scaled_crop_array = df_to_array(df_flow_scaled, [col])
+                scaled_crop_array = np.atleast_2d(df_to_array(df_flow_scaled, [col]))
                 # per-crop covariance (covariance computed over all timepoints)
                 per_crop_cov = compute_per_crop_temporal_cov(scaled_crop_array)
                 # compute ratio of cumulative covariance per crop versus
@@ -263,36 +263,64 @@ def main(
             )
 
     # --- Plot 1: mean feature value (unscaled) ± std vs time ---
-    _ = plot_mean_feature_vs_time(
+    fig, _ = plot_mean_feature_vs_time(
         mean_std_unscaled,
         variable_labels_dict,
-        fig_savedir,
-        filename="mean_feature_vs_time.png",
         title="Population mean ± std vs time",
+    )
+    save_plot_to_path(
+        fig,
+        fig_savedir,
+        "mean_feature_unscaled_vs_time",
     )
 
     # --- Plot 2: mean feature value (scaled to [0, 1]) ± std vs time ---
-    _ = plot_mean_feature_vs_time(
+    fig, _ = plot_mean_feature_vs_time(
         mean_std_scaled,
         variable_labels_dict,
-        fig_savedir,
-        filename="mean_feature_scaled_vs_time.png",
         title="Population mean ± std vs time (scaled)",
         ylabel_suffix=" (scaled)",
     )
+    save_plot_to_path(
+        fig,
+        fig_savedir,
+        "mean_feature_scaled_vs_time",
+    )
+
     # --- Plot 3: population CoV vs time, all datasets on one figure ---
-    _ = plot_population_cov_vs_time(
-        pop_cov_data, variable_labels_dict, fig_savedir, ylim_dict=COV_VS_TIME_YLIM_DICT
+    fig, _ = plot_population_cov_vs_time(
+        pop_cov_data,
+        variable_labels_dict,
+        title="Population CoV vs time",
+        ylim_dict=COV_VS_TIME_YLIM_DICT,
+    )
+    save_plot_to_path(
+        fig,
+        fig_savedir,
+        "population_cov_vs_time",
     )
 
     # --- Plot 4: ergodicity test (where population mean lies within individual variance) ---
-    _ = plot_ergodicity_test(erg_data, variable_labels_dict, fig_savedir)
+    fig, _ = plot_ergodicity_test(
+        erg_data,
+        variable_labels_dict,
+        title="Ergodicity test: individual-crop temporal CoV vs population CoV",
+    )
+    save_plot_to_path(fig, fig_savedir, "ergodicity_test")
 
     # --- Plot 5: variance ratio (temporal var / population var) ---
-    _ = plot_variance_ratio(var_ratio_data, variable_labels_dict, fig_savedir)
+    fig, _ = plot_variance_ratio(
+        var_ratio_data, variable_labels_dict, title="Individual / population variance ratio vs time"
+    )
+    save_plot_to_path(fig, fig_savedir, "variance_ratio_vs_time")
 
     # --- Plot 5b: binned variance ratio (per-bin individual var / population var) ---
-    _ = plot_binned_variance_ratio(binned_var_ratio_data, variable_labels_dict, fig_savedir)
+    fig, _ = plot_binned_variance_ratio(
+        binned_var_ratio_data,
+        variable_labels_dict,
+        title="Individual / population variance ratio vs time (binned)",
+    )
+    save_plot_to_path(fig, fig_savedir, "binned_variance_ratio_vs_time")
 
 
 if __name__ == "__main__":
