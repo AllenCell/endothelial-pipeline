@@ -93,7 +93,9 @@ cca_results, cca_csv_path = calculate_cca_results(
     output_dir=output_dir,
     scale_cca=False,
 )
+# %%
 plot_cca_results(cca_results, output_dir)
+# %%
 if UPLOAD_TO_FMS:
     dataset_configs = [load_dataset_config(dataset_name) for dataset_name in datasets]
     annotations = build_fms_annotations(

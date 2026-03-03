@@ -56,66 +56,46 @@ def plot_cca_results(
     output_dir: Path,
     xtick_fontsize: int = 8,
 ) -> None:
-    if cca_results.empty:
-        return
-
     target_feature = str(cca_results.attrs["target_feature"])
     corr = float(cca_results.attrs["corr"])
-    xdata = np.asarray(cca_results.attrs["x_canonical"])
-    ydata = np.asarray(cca_results.attrs["y_canonical"])
-    x_weights = cca_results["weight"].to_numpy()
-    input_features = cca_results["input_feature"].tolist()
-    datasets_used = list(cca_results.attrs.get("datasets_used", []))
+    x_c = np.asarray(cca_results.attrs["x_canonical"])
+    y_c = np.asarray(cca_results.attrs["y_canonical"])
+    weights = cca_results["weight"].to_numpy()
+    features = cca_results["input_feature"].tolist()
+    datasets_used = cca_results.attrs.get("datasets_used", [])
 
-    fig, (ax1, ax2) = plt.subplots(
-        1,
-        2,
-        figsize=(13, 4),
-        gridspec_kw={"width_ratios": [1, 2]},
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 4), gridspec_kw={"width_ratios": [1, 2]})
+
+    # Density scatter of canonical variables
+    xmin, xmax = np.percentile(x_c, [1, 99])
+    ymin, ymax = np.percentile(y_c, [1, 99])
+    hb = ax1.hexbin(x_c, y_c, gridsize=80, bins="log", mincnt=1, cmap="viridis")
+    fig.colorbar(hb, ax=ax1, pad=0.01).set_label("Point density (log scale)")
+    ax1.set(
+        xlabel="Canonical Variable 1 (PCs)",
+        ylabel=f"Canonical Variable 1 ({target_feature})",
+        xlim=(xmin, xmax),
+        ylim=(ymin, ymax),
     )
 
-    xmin, xmax = np.percentile(xdata, [1, 99])
-    ymin, ymax = np.percentile(ydata, [1, 99])
-
-    density = ax1.hexbin(
-        xdata,
-        ydata,
-        gridsize=80,
-        bins="log",
-        mincnt=1,
-        cmap="viridis",
+    # Weight bar chart
+    ax2.bar(range(len(features)), weights)
+    ax2.set_xticks(range(len(features)))
+    ax2.set_xticklabels(features, rotation=45, ha="right", fontsize=xtick_fontsize)
+    ax2.legend(
+        handles=[Line2D([], [], linestyle="none", label=d) for d in datasets_used],
+        title="Datasets used",
+        loc="upper right",
+        frameon=True,
+        fontsize=8,
+        handlelength=0,
+        handletextpad=0,
     )
-    cbar = fig.colorbar(density, ax=ax1, pad=0.01)
-    cbar.set_label("Point density (log scale)")
-    ax1.set_xlabel("Canonical Variable 1 (PCs)")
-    ax1.set_ylabel(f"Canonical Variable 1 ({target_feature})")
-    ax1.set_xlim(xmin, xmax)
-    ax1.set_ylim(ymin, ymax)
-    ax2.bar(range(len(input_features)), x_weights)
-    ax2.set_xticks(range(len(input_features)))
-    ax2.set_xticklabels(input_features, rotation=45, ha="right", fontsize=xtick_fontsize)
-    if datasets_used:
-        dataset_handles = [
-            Line2D([], [], linestyle="none", marker=None, label=dataset)
-            for dataset in datasets_used
-        ]
-        ax2.legend(
-            handles=dataset_handles,
-            title="Datasets used",
-            loc="upper right",
-            frameon=True,
-            fontsize=8,
-            handlelength=0,
-            handletextpad=0,
-        )
+
     fig.suptitle(f"CCA Projection vs {target_feature}, Canonical Correlation = {corr:.3f}")
     fig.tight_layout()
     plt.show()
-    save_plot_to_path(
-        fig,
-        output_dir,
-        f"cca_projection_{target_feature}.png",
-    )
+    save_plot_to_path(fig, output_dir, f"cca_projection_{target_feature}.png")
     plt.close(fig)
 
 
@@ -161,53 +141,6 @@ def plot_cca_projection_validation(
     plt.show()
     save_plot_to_path(fig, output_dir, f"cca_projection_validation_{target_feature}.png")
     plt.close(fig)
-
-
-def apply_cca_projection_from_results(
-    df: pd.DataFrame,
-    cca_results: pd.DataFrame,
-    sparse_axes: list[float] | None = None,
-) -> pd.DataFrame:
-    """Apply CCA coefficients from a results DataFrame.
-
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        Input dataframe containing the CCA input features.
-    cca_results : pandas.DataFrame
-        CCA weights DataFrame returned by ``calculate_cca_results``,
-        with columns ``input_feature`` and ``weight``.
-    sparse_axes : list[float] or None, default=None
-        If provided, sparse projections are computed at fixed thresholds.
-
-    Returns
-    -------
-    pandas.DataFrame
-        Original dataframe with appended CCA projection columns.
-    """
-    features_in_rank = cca_results["input_feature"].tolist()
-    cca_weights = cca_results["weight"].to_numpy()
-    target_feature = cca_results.attrs.get("target_feature", "cca")
-
-    df_features = df[features_in_rank]
-    df_result = pd.DataFrame(index=df_features.index)
-
-    # CCA projection (center then project)
-    df_result[f"CCA_{target_feature}"] = (df_features - df_features.mean()).to_numpy() @ cca_weights
-
-    # Sparse projections
-    if sparse_axes is not None:
-        for minimal_weight in sparse_axes:
-            sparse_axis = np.where(np.abs(cca_weights) >= minimal_weight, cca_weights, 0)
-            logger.info(
-                f"Highly contributing features at minimal weight threshold of {minimal_weight}"
-            )
-            logger.info([features_in_rank[i] for i in np.where(np.abs(sparse_axis) > 0)[0]])
-            projected_data_sparse = (df_features - df_features.mean()).to_numpy() @ sparse_axis
-            df_result[f"CCA_SP_{int(minimal_weight)}_{target_feature}"] = projected_data_sparse
-
-    df_result = df.merge(df_result, left_index=True, right_index=True)
-    return df_result
 
 
 def apply_cca_projection(
@@ -256,7 +189,7 @@ def apply_cca_projection(
     df_result["cca"] = df_features.to_numpy() @ weights
     column_info["cca"] = features
 
-    # Top-3 sparse CCA projection
+    # Top-3 PCs
     top3_features = ["pc_1", "pc_2", "pc_3"]
     top3_weights = (
         cca_weights_df.loc[cca_weights_df["input_feature"].isin(top3_features)]
