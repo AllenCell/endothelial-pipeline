@@ -102,6 +102,7 @@ def main(
     from endo_pipeline.settings.variation_analysis import (
         COV_VS_TIME_YLIM_DICT,
         DEFAULT_COV_ANALYSIS_COLUMNS,
+        TIME_WINDOW_BIN_SIZE,
     )
 
     logger = logging.getLogger(__name__)
@@ -244,7 +245,7 @@ def main(
                 # computed within rolling time windows instead of
                 # cumulatively from t=0
                 bvr_time, bvr_mean, bvr_upper, bvr_lower = compute_binned_variance_ratio_vs_time(
-                    scaled_crop_array
+                    scaled_crop_array, bin_size=TIME_WINDOW_BIN_SIZE
                 )
 
                 # add to dicts for plotting

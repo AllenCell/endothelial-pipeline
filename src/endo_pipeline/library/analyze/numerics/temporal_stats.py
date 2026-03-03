@@ -194,7 +194,7 @@ def compute_cumulative_variance_ratio_vs_time(
 
 def compute_binned_variance_ratio_vs_time(
     crop_array: np.ndarray,
-    bin_size: int = 2,
+    bin_size: int,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute ratio of individual to population variance within non-overlapping

@@ -15,3 +15,6 @@ DEFAULT_COV_ANALYSIS_COLUMNS: tuple[str, ...] = (
     ColumnName.PC3_FLIPPED.value,
 )
 """Default column names to include in coefficient of variation analysis."""
+
+TIME_WINDOW_BIN_SIZE: int = 12
+"""Default size of rolling windows over time for binned per-crop variance."""
