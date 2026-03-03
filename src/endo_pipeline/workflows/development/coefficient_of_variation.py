@@ -12,16 +12,11 @@ def main(
     crop_pattern: CropPattern = "grid",
 ) -> None:
     """
-    Compute and visualize coefficient of variation (CoV).
+    Compute and visualize coefficient of variation (CoV) statistics over time.
 
-    This workflow computes and visualizes the CoV of dynamics features
-    for the grid-based crops.
+    **Workflow overview**
 
-    The specific features to analyze and visualize are defined in the settings
-    via the DYNAMICS_COLUMN_NAMES variable, and the default dataset to analyze
-    is defined via the DEFAULT_DATASET_DYNAMICS_VIS variable.
-
-    For all datasets in the specified collection the workflow:
+    For all specified datasets the workflow:
 
         1. Loads the crop feature dataframe, projects features into PCA space,
            and computes polar coordinates.
@@ -49,8 +44,8 @@ def main(
 
     Parameters
     ----------
-    dataset_collection_name
-        The name of the dataset collection to run the workflow on.
+    datasets
+        Specific datasets to run the workflow on.
     model_manifest_name
         The name of the model manifest to use.
     run_name
@@ -75,7 +70,7 @@ def main(
     )
     from endo_pipeline.library.analyze.numerics.temporal_stats import (
         compute_binned_variance_ratio_vs_time,
-        compute_circular_mean_std,
+        compute_circular_mean_and_std_over_time,
         compute_cumulative_variance_ratio_vs_time,
         compute_per_crop_temporal_cov,
     )
@@ -211,7 +206,7 @@ def main(
                     scaled_mean = grouped_df_scaled[col].mean().to_numpy()
                     scaled_std = grouped_df_scaled[col].std().to_numpy()
                 else:
-                    unscaled_mean, unscaled_std = compute_circular_mean_std(
+                    unscaled_mean, unscaled_std = compute_circular_mean_and_std_over_time(
                         df_flow, col, theta_range
                     )
                     # compute_circular_mean_std rewraps each timepoint independently,
@@ -219,7 +214,9 @@ def main(
                     # a range boundary; unwrap across time to restore continuity
                     unscaled_mean = np.unwrap(unscaled_mean, period=theta_period)
 
-                    scaled_mean, scaled_std = compute_circular_mean_std(df_flow_scaled, col, (0, 1))
+                    scaled_mean, scaled_std = compute_circular_mean_and_std_over_time(
+                        df_flow_scaled, col, (0, 1)
+                    )
                     scaled_mean = np.unwrap(scaled_mean, period=1)
 
                 # for scaled features, also compute additional covariance measures
