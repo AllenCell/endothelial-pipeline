@@ -58,6 +58,8 @@ def main(
     """
 
     import logging
+    from collections.abc import Callable
+    from typing import Any
 
     import numpy as np
     from scipy.stats import circmean, circstd
@@ -205,30 +207,31 @@ def main(
 
                 # compute mean ± std in original units and in scaled units for
                 # plotting, using circular stats for theta in both cases
+                mean_function: Callable[..., float]
+                std_function: Callable[..., float]
+                function_kwargs: dict[str, Any]
                 if col != theta_col:
                     mean_function = np.mean
-                    mean_function_kwargs = {}
                     std_function = np.std
-                    std_function_kwargs = {}
+                    function_kwargs = {}
                     unwrap_mean = False
                 else:
                     mean_function = circmean
-                    mean_function_kwargs = {"high": theta_range[1], "low": theta_range[0]}
                     std_function = circstd
-                    std_function_kwargs = {"high": theta_range[1], "low": theta_range[0]}
+                    function_kwargs = {"high": theta_range[1], "low": theta_range[0]}
                     unwrap_mean = True
 
                 unscaled_mean = (
-                    grouped_df_unscaled[col].apply(mean_function, **mean_function_kwargs).to_numpy()
+                    grouped_df_unscaled[col].apply(mean_function, **function_kwargs).to_numpy()
                 )
                 unscaled_std = (
-                    grouped_df_unscaled[col].apply(std_function, **std_function_kwargs).to_numpy()
+                    grouped_df_unscaled[col].apply(std_function, **function_kwargs).to_numpy()
                 )
                 scaled_mean = (
-                    grouped_df_scaled[col].apply(mean_function, **mean_function_kwargs).to_numpy()
+                    grouped_df_scaled[col].apply(mean_function, **function_kwargs).to_numpy()
                 )
                 scaled_std = (
-                    grouped_df_scaled[col].apply(std_function, **std_function_kwargs).to_numpy()
+                    grouped_df_scaled[col].apply(std_function, **function_kwargs).to_numpy()
                 )
                 # unwrap mean values for theta if needed so that mean ± std
                 # bands are plotted correctly
@@ -239,8 +242,8 @@ def main(
                 # for scaled features, also compute additional covariance measures
                 # starting with population CoV vs time (std/mean across all crops at each timepoint)
                 scaled_population_cov = (
-                    grouped_df_scaled[col].apply(std_function, **std_function_kwargs)
-                    / grouped_df_scaled[col].apply(mean_function, **mean_function_kwargs).abs()
+                    grouped_df_scaled[col].apply(std_function, **function_kwargs)
+                    / grouped_df_scaled[col].apply(mean_function, **function_kwargs).abs()
                 ).to_numpy()
 
                 # take mean of this population measure over all time
@@ -251,13 +254,12 @@ def main(
                 # crops at each timepoint).  This gives one CoV value per crop
                 # which can be compared to the mean population CoV in an
                 # ergodicity test.
-                per_crop_cov = (
-                    df_flow_scaled.groupby(ColumnName.CROP_INDEX).apply(
-                        std_function, **std_function_kwargs
-                    )
-                    / df_flow_scaled.groupby(ColumnName.CROP_INDEX)
-                    .apply(mean_function, **mean_function_kwargs)
-                    .abs()
+                per_crop_cov = df_flow_scaled.groupby(ColumnName.CROP_INDEX).apply(
+                    std_function, **function_kwargs
+                ).to_numpy() / np.absolute(
+                    df_flow_scaled.groupby(ColumnName.CROP_INDEX)
+                    .apply(mean_function, **function_kwargs)
+                    .to_numpy()
                 )
 
                 # compute ratio of cumulative covariance per crop versus
