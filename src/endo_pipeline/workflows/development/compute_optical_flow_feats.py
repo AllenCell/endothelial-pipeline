@@ -188,6 +188,9 @@ def _plot_demo_summary(
     scan_pairs = all_pairs[::pair_step]
 
     records = []
+    # Cache full-image flow fields when scope is "image" to avoid redundant
+    # TVL1 calls across crops for the same frame pair.
+    _image_flow_cache: dict[tuple[int, int], tuple[np.ndarray, np.ndarray]] = {}
     for ci_idx in scan_cids:
         _sx, _sy = int(sx_arr[ci_idx]), int(sy_arr[ci_idx])
         _ex, _ey = int(ex_arr[ci_idx]), int(ey_arr[ci_idx])
@@ -195,7 +198,13 @@ def _plot_demo_summary(
         for t0, t1 in scan_pairs:
             f0, f1 = cache[t0], cache[t1]
             c0, c1 = f0[_sy:_ey, _sx:_ex], f1[_sy:_ey, _sx:_ex]
-            uf, vf = compute_tvl1(c0, c1)
+            if flow_scope == "image":
+                if (t0, t1) not in _image_flow_cache:
+                    _image_flow_cache[(t0, t1)] = compute_tvl1(f0, f1)
+                uf_full, vf_full = _image_flow_cache[(t0, t1)]
+                uf, vf = uf_full[_sy:_ey, _sx:_ex], vf_full[_sy:_ey, _sx:_ex]
+            else:
+                uf, vf = compute_tvl1(c0, c1)
             ang = np.arctan2(vf, uf)
             mask = (c0 > thresh) | (c1 > thresh)
             cstd = float(sp_stats.circstd(ang[mask])) if mask.any() else float("nan")
@@ -247,7 +256,11 @@ def _plot_demo_summary(
 
         f0, f1 = cache[t0], cache[t1]
         c0, c1 = f0[_sy:_ey, _sx:_ex], f1[_sy:_ey, _sx:_ex]
-        uf, vf = compute_tvl1(c0, c1)
+        if flow_scope == "image":
+            uf_full, vf_full = compute_tvl1(f0, f1)
+            uf, vf = uf_full[_sy:_ey, _sx:_ex], vf_full[_sy:_ey, _sx:_ex]
+        else:
+            uf, vf = compute_tvl1(c0, c1)
         sp = np.sqrt(uf**2 + vf**2)
         ang = np.arctan2(vf, uf)
         mask = (c0 > thresh) | (c1 > thresh)
