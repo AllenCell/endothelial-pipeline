@@ -230,7 +230,7 @@ def main(
                 ).to_numpy()
                 # take mean of this population measure over all time
                 mean_population_cov = float(np.nanmean(scaled_population_cov))
-                scaled_crop_array = np.atleast_2d(df_to_array(df_flow_scaled, [col]))
+                scaled_crop_array = df_to_array(df_flow_scaled, [col])
                 # per-crop covariance (covariance computed over all timepoints)
                 per_crop_cov = compute_per_crop_temporal_cov(scaled_crop_array)
                 # compute ratio of cumulative covariance per crop versus
