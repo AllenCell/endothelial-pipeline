@@ -89,7 +89,6 @@ def main(
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
-        BIN_LIMITS_COV_VS_TIME,
         BIN_LIMITS_DYNAMICS,
         BIN_LIMITS_THETA_RESCALED,
         DYNAMICS_COLUMN_NAMES,
@@ -99,6 +98,7 @@ def main(
     )
     from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
     from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
+    from endo_pipeline.settings.variation_analysis import BIN_LIMITS_COV_VS_TIME
 
     logger = logging.getLogger(__name__)
 
