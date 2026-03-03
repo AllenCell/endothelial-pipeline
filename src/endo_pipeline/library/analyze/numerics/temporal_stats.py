@@ -5,11 +5,10 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     rewrap_polar_angle,
     unwrap_nonsequential_array,
 )
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
 
 def compute_circular_mean(
-    angles: np.ndarray, original_angle_range: tuple[float, float], rewrap: bool = True
+    angles: pd.Series, original_angle_range: tuple[float, float], rewrap: bool = True
 ) -> float:
     """
     Compute the circular mean of a set of angles.
@@ -27,7 +26,7 @@ def compute_circular_mean(
     """
     angle_period = original_angle_range[1] - original_angle_range[0]
 
-    unwrapped_angles = unwrap_nonsequential_array(angles, angle_period)
+    unwrapped_angles = unwrap_nonsequential_array(angles.to_numpy(), angle_period)
     unwrapped_mean = np.mean(unwrapped_angles)
 
     if rewrap:
@@ -36,7 +35,7 @@ def compute_circular_mean(
         return unwrapped_mean
 
 
-def compute_circular_std(angles: np.ndarray, original_angle_range: tuple[float, float]) -> float:
+def compute_circular_std(angles: pd.Series, original_angle_range: tuple[float, float]) -> float:
     """
     Compute the circular standard deviation of a set of angles.
 
@@ -50,52 +49,10 @@ def compute_circular_std(angles: np.ndarray, original_angle_range: tuple[float, 
     """
     angle_period = original_angle_range[1] - original_angle_range[0]
 
-    unwrapped_angles = unwrap_nonsequential_array(angles, angle_period)
+    unwrapped_angles = unwrap_nonsequential_array(angles.to_numpy(), angle_period)
     unwrapped_std = np.std(unwrapped_angles)
 
     return unwrapped_std
-
-
-def compute_circular_mean_and_std_over_time(
-    df: pd.DataFrame,
-    column_name: str,
-    original_range: tuple[float, float],
-) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Compute circular mean and standard deviation of a periodic column at each
-    timepoint.
-
-    Parameters
-    ----------
-    df
-        Feature dataframe for a single dataset / flow condition, containing a
-        ``frame_number`` column and the periodic feature column.
-    column_name
-        Name of the periodic feature column.
-    original_range
-        Original range of the periodic variable, passed to circmean and circstd
-        to ensure correct handling of wraparound.
-
-    Returns
-    -------
-    time_values
-        1-D array of time values in hours.
-    mean_values
-        1-D array of rewrapped circular mean at each timepoint.
-    std_values
-        1-D array of standard deviation of the unwrapped values at each
-        timepoint.
-    """
-    timepoints = df[ColumnName.TIMEPOINT.value].sort_values().unique()
-    mean_values = np.empty(len(timepoints), dtype=float)
-    std_values = np.empty(len(timepoints), dtype=float)
-
-    for i, (_, df_frame) in enumerate(df.groupby(ColumnName.TIMEPOINT.value)):
-        unwrapped_angles = df_frame[column_name].to_numpy()
-        mean_values[i] = compute_circular_mean(unwrapped_angles, original_range, rewrap=True)
-        std_values[i] = compute_circular_std(unwrapped_angles, original_range)
-
-    return mean_values, std_values
 
 
 def compute_per_crop_temporal_cov(

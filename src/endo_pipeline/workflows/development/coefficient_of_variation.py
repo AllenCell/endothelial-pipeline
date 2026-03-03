@@ -213,32 +213,33 @@ def main(
                     scaled_mean = grouped_df_scaled[col].mean().to_numpy()
                     scaled_std = grouped_df_scaled[col].std().to_numpy()
                 else:
+                    # apply circular mean function to each timepoint group;
+                    # returns mean in original angle range
                     unscaled_mean = (
-                        grouped_df_scaled[col].apply(
-                            lambda x, theta_range=theta_range: compute_circular_mean(
-                                x, original_angle_range=theta_range
-                            )
-                        )
-                    ).to_numpy()
+                        grouped_df_unscaled[col]
+                        .apply(compute_circular_mean, original_angle_range=theta_range)
+                        .to_numpy()
+                    )
                     unscaled_std = (
-                        grouped_df_scaled[col].apply(
-                            lambda x, theta_range=theta_range: compute_circular_std(
-                                x, original_angle_range=theta_range
-                            )
-                        )
-                    ).to_numpy()
-
+                        grouped_df_unscaled[col]
+                        .apply(compute_circular_std, original_angle_range=theta_range)
+                        .to_numpy()
+                    )
                     # compute_circular_mean rewraps each timepoint independently,
                     # so the mean can jump between 0 and pi when the true mean is near
                     # a range boundary; unwrap across time to restore continuity
                     unscaled_mean = np.unwrap(unscaled_mean, period=theta_period)
 
                     scaled_mean = (
-                        grouped_df_scaled[col].apply(lambda x: compute_circular_mean(x, (0, 1)))
-                    ).to_numpy()
+                        grouped_df_scaled[col]
+                        .apply(compute_circular_mean, original_angle_range=(0, 1))
+                        .to_numpy()
+                    )
                     scaled_std = (
-                        grouped_df_scaled[col].apply(lambda x: compute_circular_std(x, (0, 1)))
-                    ).to_numpy()
+                        grouped_df_scaled[col]
+                        .apply(compute_circular_std, original_angle_range=(0, 1))
+                        .to_numpy()
+                    )
                     scaled_mean = np.unwrap(scaled_mean, period=1)
 
                 # for scaled features, also compute additional covariance measures
