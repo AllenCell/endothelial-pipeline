@@ -74,6 +74,7 @@ def main(
         compute_cumulative_variance_ratio_vs_time,
         compute_per_crop_temporal_cov,
     )
+    from endo_pipeline.library.model.latent_walk_utils import get_num_pcs_from_column_names
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features.variation_analysis import (
         plot_binned_variance_ratio,
@@ -91,7 +92,6 @@ def main(
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
         BIN_LIMITS_THETA_RESCALED,
-        NUM_PCS_TO_FIT_FOR_DYNAMICS,
         PERIOD_THETA_RESCALED,
         RESCALE_THETA,
     )
@@ -106,6 +106,7 @@ def main(
 
     # get labels for provided set of feature columns
     column_names = list(DEFAULT_COV_ANALYSIS_COLUMNS)
+    num_pcs = get_num_pcs_from_column_names(column_names)
     variable_labels_dict = {
         col: get_label_for_column(col).replace("polar ", "") for col in column_names
     }
@@ -126,9 +127,7 @@ def main(
     dataframe_manifest_name_for_pca = get_feature_dataframe_manifest_name(
         model_manifest, run_name, crop_pattern="grid"
     )
-    pca = fit_pca(
-        dataframe_manifest_name=dataframe_manifest_name_for_pca, num_pcs=NUM_PCS_TO_FIT_FOR_DYNAMICS
-    )
+    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_for_pca, num_pcs=num_pcs)
 
     # plotting timepoints in unit hours: conversion factor
     time_conversion_factor = TIME_STEP_IN_MINUTES / 60
