@@ -7,7 +7,8 @@ import pandas as pd
 from matplotlib.lines import Line2D
 from sklearn.cross_decomposition import CCA
 
-from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.io import load_dataframe, save_plot_to_path
+from endo_pipeline.manifests import load_dataframe_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -162,12 +163,12 @@ def plot_cca_projection_validation(
     plt.close(fig)
 
 
-def apply_cca_projection(
+def apply_cca_projection_from_results(
     df: pd.DataFrame,
     cca_results: pd.DataFrame,
     sparse_axes: list[float] | None = None,
 ) -> pd.DataFrame:
-    """Apply stored CCA coefficients to a dataframe.
+    """Apply CCA coefficients from a results DataFrame.
 
     Parameters
     ----------
@@ -207,3 +208,115 @@ def apply_cca_projection(
 
     df_result = df.merge(df_result, left_index=True, right_index=True)
     return df_result
+
+
+def apply_cca_projection(
+    df: pd.DataFrame,
+    manifest_name: str = "cca_weights",
+    location_key: str = "80_pcs",
+    sparse_axes: list[float] | None = [0.1, 0.2, 0.3],
+    return_column_info: bool = False,
+) -> pd.DataFrame | tuple[pd.DataFrame, dict[str, list[str]]]:
+    """Load CCA weights from a manifest and project onto a dataframe.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input dataframe containing the CCA input features.
+    manifest_name : str
+        Name of the dataframe manifest containing the CCA weights.
+    location_key : str
+        Key within the manifest's locations dict (e.g. ``"80_pcs"``).
+    sparse_axes : list[float] or None, default=[0.1, 0.2, 0.3]
+        If provided, sparse projections are computed at fixed thresholds.
+    return_column_info : bool, default=False
+        If True, also return a dict mapping each added column name to
+        the list of input features used.
+
+    Returns
+    -------
+    pandas.DataFrame or tuple[pandas.DataFrame, dict[str, list[str]]]
+        The dataframe with appended CCA projection columns. If
+        *return_column_info* is True, a tuple of (dataframe, column_info)
+        is returned instead.
+    """
+
+    manifest = load_dataframe_manifest(manifest_name)
+    location = manifest.locations[location_key]
+    cca_weights_df = load_dataframe(location)
+
+    features = cca_weights_df["input_feature"].tolist()
+    weights = cca_weights_df["weight"].to_numpy()
+
+    df_features = df[features]
+    df_result = pd.DataFrame(index=df_features.index)
+    column_info: dict[str, list[str]] = {}
+
+    # Full CCA projection
+    df_result["cca"] = df_features.to_numpy() @ weights
+    column_info["cca"] = features
+
+    # Top-3 sparse CCA projection
+    top3_features = ["pc_1", "pc_2", "pc_3"]
+    top3_weights = (
+        cca_weights_df.loc[cca_weights_df["input_feature"].isin(top3_features)]
+        .set_index("input_feature")
+        .loc[top3_features, "weight"]
+        .to_numpy()
+    )
+    df_result["cca_top3"] = df[top3_features].to_numpy() @ top3_weights
+    column_info["cca_top3"] = top3_features
+
+    # Threshold-based sparse projections
+    if sparse_axes is not None:
+        for minimal_weight in sparse_axes:
+            sparse_axis = np.where(np.abs(weights) >= minimal_weight, weights, 0)
+            nonzero_idx = np.where(np.abs(sparse_axis) > 0)[0]
+            sparse_features = [features[i] for i in nonzero_idx]
+
+            projected_data_sparse = df_features.to_numpy() @ sparse_axis
+
+            weight_str = str(minimal_weight).replace(".", "")
+            col_name = f"cca_sp{weight_str}"
+            df_result[col_name] = projected_data_sparse
+            column_info[col_name] = sparse_features
+
+    df_result = df.merge(df_result, left_index=True, right_index=True)
+    if return_column_info:
+        return df_result, column_info
+    return df_result
+
+
+def plot_feature_correlations(
+    df: pd.DataFrame,
+    features: list[str],
+    target_feature: str,
+    output_dir: Path | None = None,
+) -> None:
+    """Plot scatter subplots of features vs a target with correlation labels.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Dataframe containing all columns in *features* and *target_feature*.
+    features : list[str]
+        Column names to plot on the x-axes.
+    target_feature : str
+        Column name for the shared y-axis.
+    output_dir : Path or None, default=None
+        If provided, the figure is saved to this directory.
+    """
+    fig, axes = plt.subplots(1, len(features), figsize=(5 * len(features), 4), sharey=True)
+    if len(features) == 1:
+        axes = [axes]
+    for ax, feature in zip(axes, features, strict=False):
+        corr = df[[feature, target_feature]].corr().iloc[0, 1]
+        ax.scatter(df[feature], df[target_feature], alpha=0.5, s=4)
+        ax.set_title(f"corr={corr:.2f}")
+        ax.set_xlabel(feature)
+    axes[0].set_ylabel(target_feature)
+    fig.tight_layout()
+    plt.show()
+    if output_dir is not None:
+        save_plot_to_path(fig, output_dir, f"feature_correlations_{'_'.join(features[:3])}.png")
+    plt.close(fig)
