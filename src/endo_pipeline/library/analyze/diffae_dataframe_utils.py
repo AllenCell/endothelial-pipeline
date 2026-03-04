@@ -403,29 +403,24 @@ def build_pca_input_dataframe(
             load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
             DEFAULT_MODEL_RUN_NAME,
         )
+
     # Load dataframe manifest
     manifest = load_dataframe_manifest(dataframe_manifest_name)
 
-    # Get dataframe locations for manifest for all datasets in collection
+    # Get datasets in collection
     dataset_names = get_datasets_in_collection(dataset_collection_name)
-    locations = [
-        get_dataframe_location_for_dataset(manifest, dataset_name) for dataset_name in dataset_names
-    ]
     logger.info("Datasets being used to fit PCA: [ %s ]", ", ".join(dataset_names))
 
-    # Load all dataframes, filter out annotated timepoints, and concatenate.
-    # Filtering does or doesn't remove cell piling timepoints based on
-    # the input include_cell_piling.
+    # Load and filter out annotated timepoints (if requested) for each dataset
     dataframe_list = []
-    for location, dataset_name in zip(locations, dataset_names, strict=True):
+    for dataset_name in dataset_names:
+        location = get_dataframe_location_for_dataset(manifest, dataset_name)
         dataframe = load_dataframe(location)
         if filter_dataframe:
             annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
             if include_cell_piling:
                 annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
-            timepoint_annotations = get_subset_of_timepoint_annotations(
-                annotations_to_ignore=annotations_to_ignore
-            )
+            timepoint_annotations = get_subset_of_timepoint_annotations(annotations_to_ignore)
             dataframe_filtered = filter_dataframe_by_annotations(
                 dataframe,
                 load_dataset_config(dataset_name),
@@ -434,14 +429,11 @@ def build_pca_input_dataframe(
         else:
             dataframe_filtered = dataframe
         dataframe_list.append(dataframe_filtered)
+
+    # Merge dataframes for all datasets and filter for feature columns ("feat_" prefix)
     data_ref = pd.concat(dataframe_list, ignore_index=True)
-
-    # get the feature columns from the data,
-    # these are the columns that start with 'feat_'
     diffae_feature_cols = get_latent_feature_column_names_from_dataframe(data_ref)
-    pca_input_dataframe = data_ref[diffae_feature_cols]
-
-    return pca_input_dataframe
+    return data_ref[diffae_feature_cols]
 
 
 def fit_pca(
