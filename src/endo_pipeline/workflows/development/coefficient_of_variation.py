@@ -269,10 +269,9 @@ def main(
 
                 # compute ratio of cumulative covariance per crop versus
                 # population covariance at each timepoint, with SEM across
-                # crops
-                scaled_crop_array = df_to_array(
-                    df_flow_scaled, [col]
-                ).squeeze()  # shape: (n_crops, n_timepoints)
+                # crops; use (n_crops, n_timepoints) array of features for this calculation
+                scaled_crop_array = df_to_array(df_flow_scaled, [col]).squeeze()
+                t_vals_full = np.arange(scaled_crop_array.shape[1]) * time_conversion_factor
                 # population variance at each timepoint (across crops) for scaled feature
                 scaled_population_var = var_function(scaled_crop_array, **function_kwargs, axis=0)
                 # compute cumulative variance for each crop at each timepoint
@@ -299,13 +298,16 @@ def main(
                 bvr_time, bvr_mean, bvr_upper, bvr_lower = compute_binned_variance_ratio_vs_time(
                     scaled_crop_array, bin_size=TIME_WINDOW_BIN_SIZE
                 )
+                bvr_time = bvr_time * time_conversion_factor
 
                 # add to dicts for plotting
                 mean_std_unscaled[col].append((t_vals, unscaled_mean, unscaled_std, color, label))
                 mean_std_scaled[col].append((t_vals, scaled_mean, scaled_std, color, label))
                 pop_cov_data[col].append((t_vals, scaled_population_cov, color, label))
                 erg_data[col].append((per_crop_cov, mean_population_cov, color, label))
-                var_ratio_data[col].append((t_vals, cvr_mean, cvr_upper, cvr_lower, color, label))
+                var_ratio_data[col].append(
+                    (t_vals_full, cvr_mean, cvr_upper, cvr_lower, color, label)
+                )
                 binned_var_ratio_data[col].append(
                     (bvr_time, bvr_mean, bvr_upper, bvr_lower, color, label)
                 )
