@@ -71,7 +71,7 @@ def merge_measured_segmentation_features_tables(
         "orientation",  # redundant even though has different phase shift than cell orientation
     ]
     big_table = big_table.drop(columns=duplicate_cols)
-    big_table = big_table.rename({"cell_orientation": "orientation"})
+    big_table = big_table.rename(columns={"cell_orientation": "orientation"})
 
     return big_table
 
