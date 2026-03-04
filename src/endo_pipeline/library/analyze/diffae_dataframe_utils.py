@@ -378,26 +378,25 @@ def build_pca_input_dataframe(
     include_cell_piling: bool = False,
 ) -> pd.DataFrame:
     """
-    Fit PCA model to fixed set of reference datasets, as defined in the given
-    dataset collection name.
+    Build input dataframe for fitting PCA model using given dataset collection.
 
     Parameters
     ----------
     dataset_collection_name
         Name of the dataset collection to load reference datasets from.
-        This is used to load the model manifests that contain the reference datasets.
     dataframe_manifest_name
         Name of the dataframe manifest to load the model features from.
     filter_dataframe
-        Whether to remove annotated timepoints and positions from the dataframes before fitting PCA.
+        True to remove annotated timepoints and positions, False otherwise.
     include_cell_piling
-        True to include cell piling timepoints in the data used to fit PCA, False to exclude them.
+        True to include cell piling timepoints, False otherwise.
 
     Returns
     -------
     :
-        Input dataframe used to fit PCA, returned if `return_pca_input_dataframe` is True.
+        Input dataframe for fitting PCA.
     """
+
     # Get dataframe manifest name if not provided based on default model manifest
     if dataframe_manifest_name is None:
         dataframe_manifest_name = get_feature_dataframe_manifest_name(
@@ -453,20 +452,18 @@ def fit_pca(
     num_pcs: int = 8,
 ) -> PCA:
     """
-    Fit PCA model to fixed set of reference datasets, as defined in the given
-    dataset collection name.
+    Fit PCA model using given datasets in given dataset collection.
 
     Parameters
     ----------
     dataset_collection_name
         Name of the dataset collection to load reference datasets from.
-        This is used to load the model manifests that contain the reference datasets.
     dataframe_manifest_name
         Name of the dataframe manifest to load the model features from.
     filter_dataframe
-        Whether to remove annotated timepoints and positions from the dataframes before fitting PCA.
+        True to remove annotated timepoints and positions, False otherwise.
     include_cell_piling
-        True to include cell piling timepoints in the data used to fit PCA, False to exclude them.
+        True to include cell piling timepoints, False otherwise.
     num_pcs
         Number of principal components to fit.
 
