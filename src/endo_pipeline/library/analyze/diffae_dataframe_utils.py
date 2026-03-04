@@ -465,25 +465,23 @@ def fit_pca(
         Fit PCA object
     """
 
-    # fit PCA
-    pca = PCA(n_components=num_pcs, svd_solver="full")
-
-    # get the feature columns from the data,
-    # these are the columns that start with 'feat_'
+    # Build PCA input dataframe
     pca_input_dataframe = build_pca_input_dataframe(
         dataset_collection_name, dataframe_manifest_name, filter_dataframe, include_cell_piling
     )
+
+    # Fit PCA
+    pca = PCA(n_components=num_pcs, svd_solver="full")
     pca.fit(pca_input_dataframe.values)
-    # log info about explained variance ratio
+
+    # Log info about explained variance ratio
     logger.info(
         "Explained variance ratios: %s",
         np.round(pca.explained_variance_ratio_, 4).tolist(),
     )
-
-    cumul_exp_var = np.cumsum(pca.explained_variance_ratio_)
     logger.info(
         "Cumulative explained variance: %s",
-        np.round(cumul_exp_var, 4).tolist(),
+        np.round(np.cumsum(pca.explained_variance_ratio_), 4).tolist(),
     )
 
     return pca
