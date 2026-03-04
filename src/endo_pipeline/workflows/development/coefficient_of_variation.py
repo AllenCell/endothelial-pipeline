@@ -1,3 +1,7 @@
+from typing import Annotated
+
+from cyclopts import Parameter
+
 from endo_pipeline.cli import CropPattern, Datasets, StrList
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
@@ -11,6 +15,7 @@ def main(
     run_name: str = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
     columns: StrList | None = None,
+    just_steady_state: Annotated[bool, Parameter(negative="--include-transient")] = True,
 ) -> None:
     """
     Compute and visualize coefficient of variation (CoV) statistics over time.
@@ -168,7 +173,7 @@ def main(
             dataframe_manifest,
             pca=pca,
             include_cell_piling=False,
-            include_not_steady_state=False,
+            include_not_steady_state=not just_steady_state,
             crop_pattern=crop_pattern,
             compute_polar=True,
             rescale_theta=RESCALE_THETA,
