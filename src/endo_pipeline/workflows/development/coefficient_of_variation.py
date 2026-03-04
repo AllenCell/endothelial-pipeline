@@ -209,35 +209,47 @@ def main(
                 # plotting, using circular stats for theta in both cases
                 mean_function: Callable[..., float]
                 std_function: Callable[..., float]
-                function_kwargs: dict[str, Any]
+                var_function: Callable[..., float]
+                unscaled_function_kwargs: dict[str, Any]
+                scaled_function_kwargs: dict[str, Any]
                 if col != theta_col:
                     mean_function = np.nanmean
                     std_function = np.nanstd
                     var_function = np.nanvar
-                    function_kwargs = {}
+                    unscaled_function_kwargs = {}
+                    scaled_function_kwargs = {}
                     unwrap_mean = False
                 else:
                     mean_function = circmean
                     std_function = circstd
                     var_function = circvar
-                    function_kwargs = {
+                    unscaled_function_kwargs = {
                         "high": theta_range[1],
                         "low": theta_range[0],
+                        "nan_policy": "omit",
+                    }
+                    scaled_function_kwargs = {
+                        "high": 1,
+                        "low": 0,
                         "nan_policy": "omit",
                     }
                     unwrap_mean = True
 
                 unscaled_mean = (
-                    grouped_df_unscaled[col].apply(mean_function, **function_kwargs).to_numpy()
+                    grouped_df_unscaled[col]
+                    .apply(mean_function, **unscaled_function_kwargs)
+                    .to_numpy()
                 )
                 unscaled_std = (
-                    grouped_df_unscaled[col].apply(std_function, **function_kwargs).to_numpy()
+                    grouped_df_unscaled[col]
+                    .apply(std_function, **unscaled_function_kwargs)
+                    .to_numpy()
                 )
                 scaled_mean = (
-                    grouped_df_scaled[col].apply(mean_function, **function_kwargs).to_numpy()
+                    grouped_df_scaled[col].apply(mean_function, **scaled_function_kwargs).to_numpy()
                 )
                 scaled_std = (
-                    grouped_df_scaled[col].apply(std_function, **function_kwargs).to_numpy()
+                    grouped_df_scaled[col].apply(std_function, **scaled_function_kwargs).to_numpy()
                 )
                 # unwrap mean values for theta if needed so that mean ± std
                 # bands are plotted correctly
@@ -248,8 +260,8 @@ def main(
                 # for scaled features, also compute additional covariance measures
                 # starting with population CoV vs time (std/mean across all crops at each timepoint)
                 scaled_population_cov = (
-                    grouped_df_scaled[col].apply(std_function, **function_kwargs)
-                    / grouped_df_scaled[col].apply(mean_function, **function_kwargs).abs()
+                    grouped_df_scaled[col].apply(std_function, **scaled_function_kwargs)
+                    / grouped_df_scaled[col].apply(mean_function, **scaled_function_kwargs).abs()
                 ).to_numpy()
 
                 # take mean of this population measure over all time
@@ -262,9 +274,11 @@ def main(
                 # ergodicity test.
                 df_scaled_crop_grouped = df_flow_scaled.groupby(ColumnName.CROP_INDEX)
                 per_crop_cov = df_scaled_crop_grouped[col].apply(
-                    std_function, **function_kwargs
+                    std_function, **scaled_function_kwargs
                 ).to_numpy() / np.absolute(
-                    df_scaled_crop_grouped[col].apply(mean_function, **function_kwargs).to_numpy()
+                    df_scaled_crop_grouped[col]
+                    .apply(mean_function, **scaled_function_kwargs)
+                    .to_numpy()
                 )
 
                 # compute ratio of cumulative covariance per crop versus
@@ -273,10 +287,12 @@ def main(
                 scaled_crop_array = df_to_array(df_flow_scaled, [col]).squeeze()
                 t_vals_full = np.arange(scaled_crop_array.shape[1]) * time_conversion_factor
                 # population variance at each timepoint (across crops) for scaled feature
-                scaled_population_var = var_function(scaled_crop_array, **function_kwargs, axis=0)
+                scaled_population_var = var_function(
+                    scaled_crop_array, **scaled_function_kwargs, axis=0
+                )
                 # compute cumulative variance for each crop at each timepoint
                 cumulative_var_per_crop = compute_cumulative_variance_over_time(
-                    scaled_crop_array, var_function, **function_kwargs
+                    scaled_crop_array, var_function, **scaled_function_kwargs
                 )
                 # compute sem for the cumulative variance across crops at each timepoint
                 num_valid_crops = np.sum(
