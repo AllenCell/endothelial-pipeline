@@ -4,11 +4,9 @@ import numpy as np
 import pandas as pd
 
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    check_required_columns_in_dataframe,
     rewrap_polar_angle,
     unwrap_nonsequential_array,
 )
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
 
 def compute_circular_mean(
@@ -60,50 +58,51 @@ def compute_circular_std(angles: pd.Series, original_angle_range: tuple[float, f
 
 
 def compute_cumulative_variance_over_time(
-    crop_dataframe: pd.DataFrame,
-    feature_column: str,
-    variance_function: Callable[..., float],
-    **var_func_kwargs,
+    crop_array: np.ndarray, variance_function: Callable[..., float], **var_func_kwargs
 ) -> np.ndarray:
     """
-    Compute cumulative variance of a feature over time.
+    Compute per-crop cumulative variance of a feature over time.
 
-    At each timepoint *T* the function computes:
+    **Handling of NaN values**
 
-    * **Population variance** — variance of the feature across all crops at *T*.
-    * **Individual cumulative variance** — for each crop, the variance of the
-      feature from timepoint 0 up to and including *T*.
+    * If all values for a crop up to a given timepoint are NaN, the cumulative
+        variance for that crop at that timepoint will be set to NaN
+    * If some but not all values for a crop up to a given timepoint are NaN, the
+        variance function will be applied to all values. Thus, if the variance
+        function can handle NaN values (e.g., by ignoring them), then the
+        cumulative variance will be computed using the available data. If the
+        variance function does not handle NaN values, it may return NaN for that
+        crop and timepoint.
 
     Parameters
     ----------
-    crop_dataframe
-        DataFrame containing the feature values for each crop and timepoint.
-    feature_column
-        Name of the column in `crop_dataframe` that contains the feature values to analyze.
+    crop_array
+        2-D array containing the feature values for each crop and timepoint.
     variance_function
-        Function to compute the variance. Should accept a 1-D array and return a float.
+        Function to compute the variance. Should accept a 1-D array and return a
+        float.
     **var_func_kwargs
         Additional keyword arguments to pass to the variance function.
-
-    Returns
-    -------
-    crop_cumulative_var
-        1-D array of cumulative variance values for each timepoint.
     """
-    check_required_columns_in_dataframe(crop_dataframe, [feature_column, ColumnName.TIMEPOINT])
 
-    crop_cumulative_var = np.zeros(crop_dataframe[ColumnName.TIMEPOINT].nunique())
-    for i, t in enumerate(crop_dataframe[ColumnName.TIMEPOINT].unique()):
-        if t == 0:
+    cumulative_var_per_crop = np.zeros_like(crop_array)  # shape: (n_crops, n_timepoints)
+    for i in range(crop_array.shape[1]):
+        if i == 0:
             # cannot compute variance from a single timepoint, so set to 0 and
             # skip to next iteration
             continue
         else:
-            data_to_t = crop_dataframe[crop_dataframe[ColumnName.TIMEPOINT] <= t][
-                feature_column
-            ].to_numpy()
-            crop_cumulative_var[i] = variance_function(data_to_t, **var_func_kwargs)
-    return crop_cumulative_var
+            data_to_t = crop_array[:, : i + 1]  # all crops from time 0 to i
+            if np.isnan(data_to_t).all():
+                # if all values are NaN, skip variance calculation and set to NaN
+                cumulative_var_per_crop[:, i] = np.nan
+                continue
+            # for each crop, compute variance of the feature from time 0 to i
+            cumulative_var_per_crop[:, i] = variance_function(data_to_t, **var_func_kwargs, axis=1)
+
+    # where data are missing, set to NaN
+    cumulative_var_per_crop[~np.isfinite(crop_array)] = np.nan
+    return cumulative_var_per_crop
 
 
 def compute_binned_variance_ratio_vs_time(

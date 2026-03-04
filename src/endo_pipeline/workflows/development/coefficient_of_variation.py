@@ -211,16 +211,20 @@ def main(
                 std_function: Callable[..., float]
                 function_kwargs: dict[str, Any]
                 if col != theta_col:
-                    mean_function = np.mean
-                    std_function = np.std
-                    var_function = circvar
+                    mean_function = np.nanmean
+                    std_function = np.nanstd
+                    var_function = np.nanvar
                     function_kwargs = {}
                     unwrap_mean = False
                 else:
                     mean_function = circmean
                     std_function = circstd
                     var_function = circvar
-                    function_kwargs = {"high": theta_range[1], "low": theta_range[0]}
+                    function_kwargs = {
+                        "high": theta_range[1],
+                        "low": theta_range[0],
+                        "nan_policy": "omit",
+                    }
                     unwrap_mean = True
 
                 unscaled_mean = (
@@ -266,27 +270,24 @@ def main(
                 # compute ratio of cumulative covariance per crop versus
                 # population covariance at each timepoint, with SEM across
                 # crops
-                scaled_crop_array = df_to_array(df_flow_scaled, [col])
+                scaled_crop_array = df_to_array(
+                    df_flow_scaled, [col]
+                ).squeeze()  # shape: (n_crops, n_timepoints)
                 # population variance at each timepoint (across crops) for scaled feature
-                scaled_population_var = (
-                    grouped_df_scaled[col].apply(var_function, **function_kwargs).to_numpy()
-                )
+                scaled_population_var = var_function(scaled_crop_array, **function_kwargs, axis=0)
                 # compute cumulative variance for each crop at each timepoint
-                cumulative_var_per_crop = (
-                    df_scaled_crop_grouped[[col, ColumnName.TIMEPOINT]]
-                    .apply(
-                        compute_cumulative_variance_over_time,
-                        feature_column=col,
-                        variance_function=var_function,
-                        **function_kwargs,
-                    )
-                    .to_numpy()
+                cumulative_var_per_crop = compute_cumulative_variance_over_time(
+                    scaled_crop_array, var_function, **function_kwargs
                 )
                 # compute sem for the cumulative variance across crops at each timepoint
+                num_valid_crops = np.sum(
+                    np.isfinite(scaled_crop_array), axis=0
+                )  # count crops with data at each timepoint
                 cumulative_var_mean = np.nanmean(cumulative_var_per_crop, axis=0)
                 cumulative_var_sem = np.nanstd(cumulative_var_per_crop, axis=0) / np.sqrt(
-                    cumulative_var_per_crop.shape[0]
+                    num_valid_crops
                 )
+
                 # ratio of mean cumulative variance across crops to population variance at each timepoint
                 cvr_mean = cumulative_var_mean / scaled_population_var
                 cvr_upper = (cumulative_var_mean + cumulative_var_sem) / scaled_population_var
