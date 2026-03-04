@@ -10,7 +10,12 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
 )
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE, ColumnName
+from endo_pipeline.settings.diffae_feature_dataframes import (
+    DIFFAE_PC_COLUMN_NAMES,
+    NUM_PCS_TO_ANALYZE,
+    ColumnName,
+)
+from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RESCALE_THETA
 
 logger = logging.getLogger(__name__)
 
@@ -329,13 +334,23 @@ def _compute_correlations_for_one_dataset(
     correlation_dict: dict,
     bootstrap_samples: int | None = None,
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
+    rescale_polar_angle: bool = RESCALE_THETA,
 ) -> dict[str, dict[str, Any]]:
     """Compute cross-correlation and autocorrelation for features from one dataset."""
 
     # try to get dataframe for the given dataset
     # if it does not exist, skip this dataset, return dict as is
     try:
-        df = get_dataframe_for_dynamics_workflows(dataset_name, dataframe_manifest, pca=pca)
+        df = get_dataframe_for_dynamics_workflows(
+            dataset_name,
+            dataframe_manifest,
+            pca=pca,
+            filter_dataframe=True,
+            include_cell_piling=False,
+            include_not_steady_state=False,
+            compute_polar=True,
+            rescale_theta=rescale_polar_angle,
+        )
     except KeyError:
         logger.warning(
             "Dataset [ %s ] not found in the manifest, skipping for this workflow.", dataset_name
@@ -350,6 +365,14 @@ def _compute_correlations_for_one_dataset(
         ColumnName.PC3_FLIPPED,
     ]
     feat_cols.extend(polar_column_names)
+
+    # unwrap angles if polar_angle is in feat_cols
+    if ColumnName.POLAR_ANGLE in feat_cols:
+        polar_angle_period = PERIOD_THETA_RESCALED if rescale_polar_angle else 2 * np.pi
+        for _, df_crop in df.groupby(ColumnName.CROP_INDEX):
+            df.loc[df_crop.index, ColumnName.POLAR_ANGLE] = np.unwrap(
+                df_crop[ColumnName.POLAR_ANGLE], period=polar_angle_period
+            )
 
     # get feature data
     feats = df_to_array(df, feat_cols)
