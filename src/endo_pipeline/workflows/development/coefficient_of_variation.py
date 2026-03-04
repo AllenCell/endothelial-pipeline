@@ -248,7 +248,7 @@ def main(
                 bvr_time, bvr_mean, bvr_upper, bvr_lower = compute_binned_variance_ratio_vs_time(
                     scaled_crop_array, TIME_WINDOW_BIN_SIZE
                 )
-                bvr_time *= time_conversion_factor
+                bvr_time = bvr_time * time_conversion_factor
 
                 # add to dicts for plotting
                 mean_std_unscaled[col].append((t_vals, unscaled_mean, unscaled_std, color, label))
