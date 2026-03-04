@@ -18,6 +18,7 @@ from .output import (
     get_timestamp,
     make_name_unique,
     save_plot_to_path,
+    slugify,
     upload_file_to_fms,
 )
 
@@ -39,5 +40,6 @@ __all__ = [
     "make_name_unique",
     "resolve_dataframe_location",
     "save_plot_to_path",
+    "slugify",
     "upload_file_to_fms",
 ]
