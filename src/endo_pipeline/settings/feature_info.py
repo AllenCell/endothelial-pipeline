@@ -35,6 +35,7 @@ LABEL_MAP = {
     "is_included": "Filter: Passed All Filters",
     "bbox_is_in_bounds": "Annotation: Crop Box Limits are Within FOV",
     "not_steady_state": "Annotation: Cell Population Not At Steady State",
+    "cell_piling": "Annotation: Significant Cell Piling in FOV",
     "unfed": "Annotation: Unfed Cells (More Than 3 Hours Since Fresh Media Introduced)",
     "xy_shift": "Annotation: Significant Change in XY position of FOV",
     "z_shift": "Annotation: Significant Change in Z position of FOV",
@@ -45,6 +46,7 @@ LABEL_MAP = {
     },
     ColumnName.POLAR_ANGLE.value: "PC Polar Angle",
     ColumnName.POLAR_RADIUS.value: "PC Polar Radius",
+    ColumnName.PC3_FLIPPED.value: "PC Rho",
 }
 
 LABEL_MAP_GRID = {

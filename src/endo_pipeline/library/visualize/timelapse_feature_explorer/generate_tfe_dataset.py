@@ -198,14 +198,10 @@ def get_df_and_label_map_cdh5seg(
     if dataset_config.timepoint_annotations is not None:
         filters_for_dataset = list(dataset_config.timepoint_annotations.keys())
         for filt in filters_for_dataset:
-            # timepoint_annotations = dataset_config.timepoint_annotations[filt].get(position, [])
-            # invalid_tps: set = set()
             if position in dataset_config.timepoint_annotations[filt]:
                 invalid_tps = get_annotated_timepoints_for_position(
                     dataset_config, position, [filt]
                 )
-                if not dataset_config.timepoint_annotations[filt][position]:
-                    continue
                 df[filt] = df["image_index"].isin(invalid_tps)
     else:
         filters_for_dataset = []
