@@ -171,3 +171,19 @@ DEFAULT_MODEL_QC_LABELS = [
 Order: 8 BF, 16 BF, 32 BF, 64 BF, 128 BF, 256 BF, 512 BF, 1024 BF,
 512 CDH5, 1024 CDH5.
 """
+
+# ================================
+# Default CCA latent walk features
+# ================================
+
+OPTICAL_FLOW_FEATURE = "optical_flow_mean_unit_vector_dt1"
+"""Target feature used for CCA; also used to drop rows with missing flow data."""
+
+CCA_WEIGHTS_MANIFEST_NAME = "cca_weights"
+"""Manifest name for saved CCA weight vectors."""
+
+CCA_WEIGHTS_LOCATION_KEY = "80_pcs"
+"""Location key within the CCA weights manifest."""
+
+OPTICAL_FLOW_MANIFEST_NAME = "optical_flow_bf"
+"""Manifest name for optical-flow feature dataframes."""
