@@ -371,14 +371,12 @@ def filter_dataframe_by_annotations(
     return dataframe_filtered
 
 
-def fit_pca(
+def build_pca_input_dataframe(
     dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     dataframe_manifest_name: str | None = None,
     filter_dataframe: bool = True,
     include_cell_piling: bool = False,
-    num_pcs: int = 8,
-    return_pca_input_dataframe: bool = False,
-) -> PCA | tuple[PCA, pd.DataFrame]:
+) -> pd.DataFrame:
     """
     Fit PCA model to fixed set of reference datasets, as defined in the given
     dataset collection name.
@@ -394,16 +392,10 @@ def fit_pca(
         Whether to remove annotated timepoints and positions from the dataframes before fitting PCA.
     include_cell_piling
         True to include cell piling timepoints in the data used to fit PCA, False to exclude them.
-    num_pcs
-        Number of principal components to fit.
-    return_pca_input_dataframe
-        Whether to return the input dataframe used to fit PCA along with the fit PCA object.
 
     Returns
     -------
     :
-        Fit PCA object
-    pd.DataFrame, optional
         Input dataframe used to fit PCA, returned if `return_pca_input_dataframe` is True.
     """
     # Get dataframe manifest name if not provided based on default model manifest
@@ -445,13 +437,58 @@ def fit_pca(
         dataframe_list.append(dataframe_filtered)
     data_ref = pd.concat(dataframe_list, ignore_index=True)
 
+    # get the feature columns from the data,
+    # these are the columns that start with 'feat_'
+    diffae_feature_cols = get_latent_feature_column_names_from_dataframe(data_ref)
+    pca_input_dataframe = data_ref[diffae_feature_cols]
+
+    return pca_input_dataframe
+
+
+def fit_pca(
+    dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    dataframe_manifest_name: str | None = None,
+    filter_dataframe: bool = True,
+    include_cell_piling: bool = False,
+    num_pcs: int = 8,
+    return_pca_input_dataframe: bool = False,
+) -> PCA | tuple[PCA, pd.DataFrame]:
+    """
+    Fit PCA model to fixed set of reference datasets, as defined in the given
+    dataset collection name.
+
+    Parameters
+    ----------
+    dataset_collection_name
+        Name of the dataset collection to load reference datasets from.
+        This is used to load the model manifests that contain the reference datasets.
+    dataframe_manifest_name
+        Name of the dataframe manifest to load the model features from.
+    filter_dataframe
+        Whether to remove annotated timepoints and positions from the dataframes before fitting PCA.
+    include_cell_piling
+        True to include cell piling timepoints in the data used to fit PCA, False to exclude them.
+    num_pcs
+        Number of principal components to fit.
+    return_pca_input_dataframe
+        Whether to return the input dataframe used to fit PCA along with the fit PCA object.
+
+    Returns
+    -------
+    :
+        Fit PCA object
+    pd.DataFrame, optional
+        Input dataframe used to fit PCA, returned if `return_pca_input_dataframe` is True.
+    """
+
     # fit PCA
     pca = PCA(n_components=num_pcs, svd_solver="full")
 
     # get the feature columns from the data,
     # these are the columns that start with 'feat_'
-    diffae_feature_cols = get_latent_feature_column_names_from_dataframe(data_ref)
-    pca_input_dataframe = data_ref[diffae_feature_cols]
+    pca_input_dataframe = build_pca_input_dataframe(
+        dataset_collection_name, dataframe_manifest_name, filter_dataframe, include_cell_piling
+    )
     pca.fit(pca_input_dataframe.values)
     # log info about explained variance ratio
     logger.info(
