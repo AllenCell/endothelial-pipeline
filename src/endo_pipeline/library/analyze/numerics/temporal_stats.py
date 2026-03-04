@@ -1,60 +1,6 @@
 from collections.abc import Callable
 
 import numpy as np
-import pandas as pd
-
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    rewrap_polar_angle,
-    unwrap_nonsequential_array,
-)
-
-
-def compute_circular_mean(
-    angles: pd.Series, original_angle_range: tuple[float, float], rewrap: bool = True
-) -> float:
-    """
-    Compute the circular mean of a set of angles.
-
-    Parameters
-    ----------
-    angles
-        An array of angles from which to compute the circular mean.
-    original_angle_range
-        A tuple specifying the original range of the angles, e.g., (0, 360) for
-        degrees or (0, 2*np.pi) for radians.
-    rewrap
-        If True, the resulting mean will be rewrapped to the original angle
-        range. If False, the mean will be returned in the unwrapped form.
-    """
-    angle_period = original_angle_range[1] - original_angle_range[0]
-
-    unwrapped_angles = unwrap_nonsequential_array(angles.to_numpy(), angle_period)
-    unwrapped_mean = np.mean(unwrapped_angles)
-
-    if rewrap:
-        return rewrap_polar_angle(unwrapped_mean, original_angle_range)
-    else:
-        return unwrapped_mean
-
-
-def compute_circular_std(angles: pd.Series, original_angle_range: tuple[float, float]) -> float:
-    """
-    Compute the circular standard deviation of a set of angles.
-
-    Parameters
-    ----------
-    angles
-        An array of angles from which to compute the circular standard deviation.
-    original_angle_range
-        A tuple specifying the original range of the angles, e.g., (0, 360) for
-        degrees or (0, 2*np.pi) for radians.
-    """
-    angle_period = original_angle_range[1] - original_angle_range[0]
-
-    unwrapped_angles = unwrap_nonsequential_array(angles.to_numpy(), angle_period)
-    unwrapped_std = np.std(unwrapped_angles)
-
-    return unwrapped_std
 
 
 def compute_cumulative_variance_over_time(
