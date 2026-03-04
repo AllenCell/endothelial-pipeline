@@ -745,15 +745,6 @@ def get_smallest_angle_difference(
     return np.array(list(smallest_angle_difference_helper()))
 
 
-def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
-    dataset_config = load_dataset_config(dataset_name)
-    manifest = load_image_manifest("cdh5_classic_seg")
-    return {
-        timepoint: get_image_location_for_dataset(manifest, dataset_config, position, timepoint)
-        for timepoint in range(dataset_config.duration)
-    }
-
-
 def get_nuclei_coords(
     props: regionprops,  # type:ignore
     props_dim_order: str,
