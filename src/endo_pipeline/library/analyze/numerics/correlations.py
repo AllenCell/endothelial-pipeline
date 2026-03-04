@@ -368,10 +368,10 @@ def _compute_correlations_for_one_dataset(
 
     # unwrap angles if polar_angle is in feat_cols
     if ColumnName.POLAR_ANGLE in feat_cols:
-        polar_angle_range = (0, PERIOD_THETA_RESCALED) if rescale_polar_angle else (0, 2 * np.pi)
+        polar_angle_period = PERIOD_THETA_RESCALED if rescale_polar_angle else 2 * np.pi
         for _, df_crop in df.groupby(ColumnName.CROP_INDEX):
             df.loc[df_crop.index, ColumnName.POLAR_ANGLE] = np.unwrap(
-                df_crop[ColumnName.POLAR_ANGLE], period=polar_angle_range[1] - polar_angle_range[0]
+                df_crop[ColumnName.POLAR_ANGLE], period=polar_angle_period
             )
 
     # get feature data
