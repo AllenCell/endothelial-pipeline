@@ -92,14 +92,13 @@ def make_imaging_panels(
     nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_config, position, timeframe)
     nuc_pred = load_image(nuc_location, compute=True, squeeze=False)
 
-    cdh5_seg_manifest = load_image_manifest("cdh5_classic_seg")
+    cdh5_seg_manifest = load_image_manifest("cdh5_classic_seg_zarr")
+    cdh5_seg_location = get_image_location_for_dataset(cdh5_seg_manifest, dataset_config, position)
     cdh5_seg_sequential_timeframes = list(range(timeframe, timeframe + 5))
+
     for tf in cdh5_seg_sequential_timeframes:
-        cdh5_seg_location = get_image_location_for_dataset(
-            cdh5_seg_manifest, dataset_config, position, tf
-        )
         image_dict[f"cdh5_seg_split_{tf}"] = load_image(
-            cdh5_seg_location, compute=True, squeeze=False
+            cdh5_seg_location, compute=True, squeeze=False, timepoints=tf
         )
 
     bf_center_Z = dataset_config.center_z_plane[position]  # type:ignore[index]
