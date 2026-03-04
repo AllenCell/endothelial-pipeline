@@ -451,8 +451,7 @@ def fit_pca(
     filter_dataframe: bool = True,
     include_cell_piling: bool = False,
     num_pcs: int = 8,
-    return_pca_input_dataframe: bool = False,
-) -> PCA | tuple[PCA, pd.DataFrame]:
+) -> PCA:
     """
     Fit PCA model to fixed set of reference datasets, as defined in the given
     dataset collection name.
@@ -470,15 +469,11 @@ def fit_pca(
         True to include cell piling timepoints in the data used to fit PCA, False to exclude them.
     num_pcs
         Number of principal components to fit.
-    return_pca_input_dataframe
-        Whether to return the input dataframe used to fit PCA along with the fit PCA object.
 
     Returns
     -------
     :
         Fit PCA object
-    pd.DataFrame, optional
-        Input dataframe used to fit PCA, returned if `return_pca_input_dataframe` is True.
     """
 
     # fit PCA
@@ -501,10 +496,6 @@ def fit_pca(
         "Cumulative explained variance: %s",
         np.round(cumul_exp_var, 4).tolist(),
     )
-
-    # return the fit PCA pipeline
-    if return_pca_input_dataframe:
-        return pca, pca_input_dataframe
 
     return pca
 
