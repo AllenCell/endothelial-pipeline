@@ -11,6 +11,7 @@ from endo_pipeline.io import (
     upload_file_to_fms,
 )
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    build_pca_input_dataframe,
     fit_pca,
     get_dataframe_for_dynamics_workflows,
     project_features_to_pcs,
@@ -51,7 +52,8 @@ dataframe_manifest_name = get_feature_dataframe_manifest_name(
     model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern="grid"
 )
 dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
-pca, df_pca = fit_pca(num_pcs=80, return_pca_input_dataframe=True)
+df_pca = build_pca_input_dataframe()
+pca = fit_pca(num_pcs=80)
 df_pca = project_features_to_pcs(df_pca, pca)
 
 # %% Load optical flow features
