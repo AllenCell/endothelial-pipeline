@@ -66,9 +66,12 @@ def merge_measured_segmentation_features_tables(
         "cell_centroid",
         "cell_area (px**2)",
         "cell_perimeter (px)",
+        "cell_eccentricity",
         "touches_border",
+        "orientation",  # redundant even though has different phase shift than cell orientation
     ]
     big_table = big_table.drop(columns=duplicate_cols)
+    big_table = big_table.rename({"cell_orientation": "orientation"})
 
     return big_table
 
