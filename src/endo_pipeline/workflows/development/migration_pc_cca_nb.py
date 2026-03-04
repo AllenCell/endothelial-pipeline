@@ -85,7 +85,9 @@ df_of = pd.concat(df_of_list, ignore_index=True)
 df_of_list = None  # clear list to save memory
 
 # %%
-df_of_sub = df_of.dropna(subset=DIFFAE_PC_COLUMN_NAMES[:80] + [OPTICAL_FLOW_FEATURE])
+df_of_sub = df_of.dropna(subset=[OPTICAL_FLOW_FEATURE])
+# Excluded timepoints result in NaN values for the timepoint before and after the dropped timepoint.
+
 cca_results, cca_csv_path = calculate_cca_results(
     df_of_sub,
     OPTICAL_FLOW_FEATURE,
@@ -93,6 +95,7 @@ cca_results, cca_csv_path = calculate_cca_results(
     output_dir=output_dir,
     scale_cca=False,
 )
+
 # %%
 plot_cca_results(cca_results, output_dir)
 # %%
