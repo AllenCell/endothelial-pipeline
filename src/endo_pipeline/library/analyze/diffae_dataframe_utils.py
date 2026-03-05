@@ -288,6 +288,15 @@ def unwrap_nonsequential_array(
     return unwrapped_array
 
 
+def filter_dataframe_by_track_length(
+    dataframe: pd.DataFrame, track_length_column: str, minimum_track_length: int
+) -> pd.DataFrame:
+    """Filter dataframe to only include tracks above a minimum track length."""
+    # check that required columns are present in dataframe
+    check_required_columns_in_dataframe(dataframe, [track_length_column])
+    return dataframe[dataframe[track_length_column] >= minimum_track_length]
+
+
 def filter_dataframe_by_annotations(
     dataframe: pd.DataFrame,
     dataset_config: DatasetConfig,
@@ -651,13 +660,6 @@ def project_features_to_pcs(
             raise ValueError("At least 3 PCs are required to add column for -(PC3).")
 
     return df_
-
-
-def filter_dataframe_by_track_length(
-    df: pd.DataFrame, track_length_column: str, minimum_track_length: int
-) -> pd.DataFrame:
-    """Filter dataframe to only include tracks above a minimum track length."""
-    return df[df[track_length_column] >= minimum_track_length]
 
 
 def get_dataframe_for_dynamics_workflows(
