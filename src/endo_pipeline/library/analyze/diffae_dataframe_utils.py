@@ -665,23 +665,39 @@ def get_dataframe_for_dynamics_workflows(
     compute_polar: bool = True,
     rescale_theta: bool = True,
     flip_pc3_sign: bool = True,
+    minimum_track_length: int | None = None,
 ) -> pd.DataFrame:
     """
     Load DiffAE dataframe data projected onto given PC axes for downstream
     analysis in the stochastic dynamics workflow. Adds crop index column to
     DataFrame, and projects feature data onto PC axes.
 
-    **Column selection and filtering**
+    **Column selection and memory optimization**
 
-    The input DataFrame is filtered to keep only necessary columns to save
-    memory. At a minimum, the metadata columns defined in
-    METADATA_COLUMNS_TO_KEEP and the latent feature columns needed for PCA
+    The input DataFrame is filtered to keep only necessary columns when
+    initially loaded to save memory. At a minimum, the metadata columns defined
+    in METADATA_COLUMNS_TO_KEEP and the latent feature columns needed for PCA
     projection are kept. Additional columns can be specified to keep via the
     input ``columns_to_keep``.
 
     In the case that the input ``pca`` is not None, the feature data is
     projected onto the PC axes defined by the PCA model, and the original latent
     feature columns are dropped to save memory.
+
+    **Dataframe filtering**
+
+    The input ``filter_dataframe`` flag determines whether to filter out:
+        - annotated timepoints,
+        - annotated positions, and/or
+        - tracks below a minimum track length (if crop_pattern is 'tracked' and
+          minimum_track_length is specified)
+
+    If filtering is applied, the input flags ``include_cell_piling`` and
+    ``include_not_steady_state`` determine whether to include or exclude
+    timepoints annotated as "cell piling" and "not steady state", respectively.
+
+    If ``minimum_track_length`` is specified and the crop pattern is 'tracked',
+    tracks below the minimum track length will be filtered out.
 
     Parameters
     ----------
@@ -706,16 +722,16 @@ def get_dataframe_for_dynamics_workflows(
         'tracked'.
     compute_polar
         Whether to compute polar coordinates (r, theta) from the first two PCs.
+    rescale_theta
+        Whether to rescale the polar angle theta to be in the range [0, pi].
     flip_pc3_sign
         True to add an additional column with the sign of PC3 flipped for
         consistency, False otherwise.
-    rescale_theta
-        Whether to rescale the polar angle theta to be in the range [0, pi].
+    minimum_track_length
+        If crop_pattern is 'tracked', minimum track length (in number of
+        timepoints) of tracks to keep in the dataframe. If None, do not filter
+        by track length.
 
-    Returns
-    -------
-    :
-        Dataframe of feature data.
     """
 
     location = get_dataframe_location_for_dataset(manifest, dataset_name)
@@ -729,8 +745,8 @@ def get_dataframe_for_dynamics_workflows(
     columns_to_keep_.extend(feat_cols)  # also keep feature columns for PCA projection
     if crop_pattern == "tracked":
         columns_to_keep_.extend(
-            [ColumnName.TRACK_ID]
-        )  # also keep track ID column for tracked crops
+            [ColumnName.TRACK_ID, ColumnName.TRACK_LENGTH]
+        )  # also keep track ID and track length columns for tracked crops
     columns_to_keep_ = list(set(columns_to_keep_))  # remove duplicates, if any
 
     # keep only necessary columns to save memory
@@ -752,6 +768,10 @@ def get_dataframe_for_dynamics_workflows(
             load_dataset_config(dataset_name),
             timepoint_annotations=timepoint_annotations,
         )
+        if crop_pattern == "tracked" and minimum_track_length is not None:
+            # if crop pattern is 'tracked' and minimum track length is specified,
+            # also filter by track length
+            df_filtered = df_filtered[df_filtered[ColumnName.TRACK_LENGTH] >= minimum_track_length]
     else:
         df_filtered = df_
 
