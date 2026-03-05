@@ -176,7 +176,7 @@ def process_dataset(
 
 
 def main(datasets: Datasets, n_proc: int = 1, is_test: bool = False) -> None:
-    print(f"Processing: {datasets}")
+    logger.debug(f"Processing: {datasets}")
 
     out_dir = get_output_path(__file__)
 

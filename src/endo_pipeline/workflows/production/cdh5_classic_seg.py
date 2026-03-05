@@ -45,6 +45,8 @@ def main(
     of the first 2 positions for each of the given datasets for workflow testing purposes.
     """
 
+    import logging
+
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.io import get_output_path
@@ -55,6 +57,8 @@ def main(
         build_analysis_queue,
         process_task_queue,
     )
+
+    logger = logging.getLogger(__name__)
 
     out_dir = get_output_path(__file__)
 
@@ -79,7 +83,7 @@ def main(
         chunksize=5,
     )
 
-    print("\N{MICROSCOPE} Done analysis.")
+    logger.debug("...done analysis!")
 
 
 if __name__ == "__main__":

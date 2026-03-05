@@ -441,9 +441,9 @@ def all_sldy_metadata_to_tsv(save_dir: str | Path | None = None) -> None:
 
     # Get the name of all the datasets and then filter out datasets
     # that aren't from the 3i microscope
-    print("Available datasets:")
+    logger.debug("Available datasets:")
     dataset_name_list = get_available_dataset_names()
-    print("\n")
+    logger.debug("\n")
     datasets_3i = [
         name for name in dataset_name_list if load_dataset_config(name).microscope == "3i"
     ]

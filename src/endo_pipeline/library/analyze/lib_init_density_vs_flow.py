@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import matplotlib as mpl
@@ -16,6 +17,8 @@ from endo_pipeline.library.visualize.diffae_features.feature_viz import get_labe
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
 from endo_pipeline.settings.workflow_defaults import DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
+
+logger = logging.getLogger(__name__)
 
 
 def test_vector_mean_angle_and_mag():
@@ -85,7 +88,7 @@ def create_summary_dfs(
     for dataset_name in tqdm(datasets):
         config = load_dataset_config(dataset_name)
         if len(config.flow_conditions) != 1:
-            print(f"Dataset {dataset_name} is not monoflow, skipping.")
+            logger.debug(f"Dataset {dataset_name} is not monoflow, skipping.")
             continue
         else:
             shear_stress = config.flow_conditions[0].shear_stress

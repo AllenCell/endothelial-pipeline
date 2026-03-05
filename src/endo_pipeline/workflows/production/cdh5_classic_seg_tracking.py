@@ -91,8 +91,7 @@ def main(
                 remove_initial_files_and_folders=True,
             )
 
-    logger.info("...done analysis.")
-    print("\N{MICROSCOPE}")
+    logger.info("...done analysis!")
 
 
 if __name__ == "__main__":
