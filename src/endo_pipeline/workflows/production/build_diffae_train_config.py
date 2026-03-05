@@ -99,7 +99,7 @@ def main(
     from endo_pipeline.configs import load_model_config
     from endo_pipeline.io import get_output_path, make_name_unique, resolve_dataframe_location
     from endo_pipeline.library.model import get_dataset_names_used_for_training
-    from endo_pipeline.library.model.model_config_overrides import ModelConfigOverride
+    from endo_pipeline.library.model.config_overrides import ModelConfigOverrideTrain
     from endo_pipeline.manifests import (
         ModelLocation,
         create_model_manifest,
@@ -160,7 +160,7 @@ def main(
     val_dataframe_path = resolve_dataframe_location(val_dataframe_location)
 
     # Load template training config.
-    template_training_config = load_model_config(DIFFAE_MODEL_TRAIN_CONFIG)
+    template_config = load_model_config(DIFFAE_MODEL_TRAIN_CONFIG)
 
     # Build the model manifest name, if not provided.
     if model_manifest_name is None:
@@ -186,10 +186,9 @@ def main(
     config_file = config_path / "train.yaml"
 
     # Build the training config overrides.
-    overrides = ModelConfigOverride(
+    overrides = ModelConfigOverrideTrain(
         model_manifest_name=model_manifest_name,
         run_name=run_name,
-        task_name="train",
         crop_size=crop_size,
         condition_key=f"{DIFFAE_IMAGE_LOADING_KEY_PREFIX}{condition_on}",
         latent_dim=latent_dim,
@@ -202,9 +201,9 @@ def main(
         num_gpus=NUM_GPUS,
     )
 
-    # Initialize the model with training template and overrides and save config.
+    # # Initialize the model with training template and overrides and save config.
     cytodl_model = CytoDLModel()
-    cytodl_model.load_config_from_dict(template_training_config)
+    cytodl_model.load_config_from_dict(template_config)
     cytodl_model.override_config(overrides.to_dict())
     cytodl_model.save_config(config_file)
     logger.info("Training config saved to [ %s ]", config_file)
