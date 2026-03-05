@@ -1529,9 +1529,9 @@ def build_cdh5_measured_features_tables(
 
     logger.debug(f"T={tp} -- loading classic segmentation")
 
-    seg_manifest = load_image_manifest("cdh5_classic_seg")
-    seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position, tp)
-    seg_arr = load_image(seg_location, squeeze=True, compute=True)
+    seg_manifest = load_image_manifest("cdh5_classic_seg_zarr")
+    seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position)
+    seg_arr = load_image(seg_location, squeeze=True, compute=True, timepoints=tp)
     seg_filepath = seg_location.path.as_posix() if seg_location.path is not None else ""
 
     # NOTE: the segmentation images are stored as a single channel and single timepoint
