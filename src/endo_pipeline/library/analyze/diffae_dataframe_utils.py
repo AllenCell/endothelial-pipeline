@@ -675,6 +675,15 @@ def project_features_to_pcs(
     return df_
 
 
+def _add_track_length_column(
+    df_grouped: pd.DataFrame, time_column: str, track_length_column: str
+) -> pd.DataFrame:
+    """Add a column for track length (in number of timepoints) to a dataframe grouped by unique track ID."""
+    track_length = df_grouped[time_column].max() - df_grouped[time_column].min() + 1
+    df_grouped[track_length_column] = track_length
+    return df_grouped
+
+
 def get_dataframe_for_dynamics_workflows(
     dataset_name: str,
     manifest: DataframeManifest,
@@ -792,9 +801,18 @@ def get_dataframe_for_dynamics_workflows(
         )
         if crop_pattern == "tracked" and minimum_track_length is not None:
             # if crop pattern is 'tracked' and minimum track length is specified,
-            # also filter by track length
+            # also filter by track length (need to add track length column first)
+            dfs_with_track_length = []
+            for track_id, df_grouped in df_filtered.groupby(
+                [ColumnName.POSITION, ColumnName.TRACK_ID]
+            ):
+                df_grouped_with_track_length = _add_track_length_column(
+                    df_grouped, ColumnName.TIMEPOINT, ColumnName.TRACK_LENGTH
+                )
+                dfs_with_track_length.append(df_grouped_with_track_length)
+            df_with_track_length = pd.concat(dfs_with_track_length, ignore_index=True)
             df_filtered = filter_dataframe_by_track_length(
-                df_filtered, ColumnName.TRACK_LENGTH, minimum_track_length
+                df_with_track_length, ColumnName.TRACK_LENGTH, minimum_track_length
             )
     else:
         df_filtered = df_
