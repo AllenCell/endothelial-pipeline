@@ -22,6 +22,7 @@ from endo_pipeline.library.analyze.migration_pc.cca_analysis import (
     plot_cca_projection_validation,
     plot_cca_results,
     plot_feature_correlations,
+    plot_optical_flow_feature_distribution,
 )
 from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
@@ -60,7 +61,7 @@ df_pca = project_features_to_pcs(df_pca, pca)
 dataframe_manifest_optical_flow = load_dataframe_manifest("optical_flow_bf")
 df_of_list = []
 for dataset_name in datasets:
-    print(f"Processing dataset: {dataset_name} for optical flow features")
+    logger.info(f"Processing dataset: {dataset_name} for optical flow features")
     # Get PCS
     df_dataset = get_dataframe_for_dynamics_workflows(
         dataset_name, dataframe_manifest, pca=pca, filter_dataframe=True
@@ -87,19 +88,21 @@ df_of = pd.concat(df_of_list, ignore_index=True)
 df_of_list = None  # clear list to save memory
 
 # %%
-df_of_sub = df_of.dropna(subset=[OPTICAL_FLOW_FEATURE])
 # Excluded timepoints result in NaN values for the timepoint before and after the dropped timepoint.
+df_of_sub = df_of.dropna(subset=[OPTICAL_FLOW_FEATURE])
 
-cca_results, cca_csv_path = calculate_cca_results(
-    df_of_sub,
-    OPTICAL_FLOW_FEATURE,
-    input_features=DIFFAE_PC_COLUMN_NAMES[:80],
-    output_dir=output_dir,
-    scale_cca=False,
-)
+for dataset in datasets:
+    df_of_subset = df_of_sub[df_of_sub["dataset"] == dataset]
 
-# %%
-plot_cca_results(cca_results, output_dir)
+    cca_results, cca_csv_path = calculate_cca_results(
+        df_of_subset,
+        OPTICAL_FLOW_FEATURE,
+        input_features=DIFFAE_PC_COLUMN_NAMES[:80],
+        output_dir=output_dir,
+        scale_cca=False,
+    )
+    plot_cca_results(cca_results, output_dir)
+
 # %%
 if UPLOAD_TO_FMS:
     dataset_configs = [load_dataset_config(dataset_name) for dataset_name in datasets]
@@ -120,13 +123,18 @@ plot_cca_projection_validation(
 )
 
 # %%
-df_of_plus, cca_column_info = apply_cca_projection(df_of, return_column_info=True)
-
-for col_name, feats in cca_column_info.items():
-    logger.info(f"{col_name}: {feats}")
-    print(f"{col_name}: {feats}")
+df_of_plus = apply_cca_projection(df_of)
 
 # %%
 feature_list = ["cca", "cca_top3"]
 plot_feature_correlations(df_of_plus, feature_list, OPTICAL_FLOW_FEATURE, output_dir)
+# %%
+plot_optical_flow_feature_distribution(
+    df=df_of,
+    optical_flow_feature=OPTICAL_FLOW_FEATURE,
+    datasets=["20250611_20X", "20250618_20X"],
+    binwidth=0.02,
+    bins=50,
+    kde=True,
+)
 # %%

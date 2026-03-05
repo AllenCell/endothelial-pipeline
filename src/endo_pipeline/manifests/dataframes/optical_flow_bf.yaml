@@ -1,5 +1,5 @@
 name: optical_flow_bf
-workflow: optical_flow
+workflow: compute_optical_flow_feats
 parameters: {}
 locations:
   20250428_20X:

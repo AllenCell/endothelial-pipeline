@@ -5,7 +5,11 @@ import re
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from endo_pipeline.configs import get_subset_of_timepoint_annotations, load_dataset_config
+from endo_pipeline.configs import (
+    get_datasets_in_collection,
+    get_subset_of_timepoint_annotations,
+    load_dataset_config,
+)
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     filter_dataframe_by_annotations,
@@ -35,14 +39,7 @@ CLIP_QUANTILES = (0.01, 0.99)
 COHERENT_MIGRATION_COL = "coherent_migration"
 
 # %%
-datasets = [
-    "20250618_20X",
-    "20250428_20X",
-    "20250319_20X",
-    "20250813_20X",
-    "20250611_20X",
-    "20250818_20X",
-]
+datasets = get_datasets_in_collection("diffae_model_training")
 
 # %% Load lda weights to apply LDA projection to original dataframe
 lda_dataframe_manifest = load_dataframe_manifest("lda_weights")
