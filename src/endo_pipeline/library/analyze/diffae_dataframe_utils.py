@@ -292,6 +292,12 @@ def filter_dataframe_by_track_length(
     dataframe: pd.DataFrame, track_length_column: str, minimum_track_length: int
 ) -> pd.DataFrame:
     """Filter dataframe to only include tracks above a minimum track length."""
+
+    logger.debug(
+        "Filtering dataframe to only include tracks with length >= [ %s ] timepoints.",
+        minimum_track_length,
+    )
+    logger.debug("Dataframe length before filtering: [ %s ] rows.", len(dataframe))
     # check that required columns are present in dataframe
     check_required_columns_in_dataframe(dataframe, [track_length_column])
     dataframe_filtered = dataframe[dataframe[track_length_column] >= minimum_track_length]
@@ -307,6 +313,12 @@ def filter_dataframe_by_track_length(
             f"No tracks with length >= minimum_track_length [ {minimum_track_length} ] after filtering. "
             "Check track length distribution and/or adjust minimum_track_length."
         )
+
+    # reset index of filtered dataframe
+    dataframe_filtered = dataframe_filtered.reset_index(drop=True)
+
+    logger.debug("Dataframe length after filtering: [ %s ] rows.", len(dataframe_filtered))
+
     return dataframe_filtered
 
 
