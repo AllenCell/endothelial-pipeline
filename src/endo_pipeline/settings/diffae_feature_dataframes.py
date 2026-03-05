@@ -51,6 +51,9 @@ class ColumnName(StrEnum):
     TRACK_ID = "track_id"
     """Column name for track identifier."""
 
+    TRACK_LENGTH = "track_duration"
+    """Column name for track length (number of timepoints in the track)."""
+
     START_X = "start_x"
     """Upper-left x-coordinate of the crop."""
 
