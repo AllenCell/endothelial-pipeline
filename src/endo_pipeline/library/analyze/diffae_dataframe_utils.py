@@ -294,7 +294,20 @@ def filter_dataframe_by_track_length(
     """Filter dataframe to only include tracks above a minimum track length."""
     # check that required columns are present in dataframe
     check_required_columns_in_dataframe(dataframe, [track_length_column])
-    return dataframe[dataframe[track_length_column] >= minimum_track_length]
+    dataframe_filtered = dataframe[dataframe[track_length_column] >= minimum_track_length]
+
+    # if empty dataframe after filtering, raise error
+    if dataframe_filtered.empty:
+        logger.error(
+            "No tracks with length >= minimum_track_length [ %s ] after filtering. "
+            "Check track length distribution and/or adjust minimum_track_length.",
+            minimum_track_length,
+        )
+        raise ValueError(
+            f"No tracks with length >= minimum_track_length [ {minimum_track_length} ] after filtering. "
+            "Check track length distribution and/or adjust minimum_track_length."
+        )
+    return dataframe_filtered
 
 
 def filter_dataframe_by_annotations(
