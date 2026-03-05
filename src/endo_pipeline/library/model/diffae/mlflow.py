@@ -147,35 +147,43 @@ class MLFlowLogger(_LightningMLFlowLogger):
 
         return None
 
-    def _log_named_checkpoint(self, src_path: str, name: str, artifact_path: str) -> None:
+    def _log_named_checkpoint_as_artifact(
+        self,
+        source_path: str,
+        target_name: str,
+        artifact_path: str,
+    ) -> None:
+        """Log a checkpoint under a given name as an MLflow artifact.
+
+        Creates a temporary copy of the checkpoint at ``source_path`` renamed
+        to ``target_name``, uploads it to MLflow under ``artifact_path``, and
+        cleans up the copy afterwards.  If a file with ``target_name`` already
+        exists in the same directory (e.g. the source itself), it is logged
+        directly and no copy is made.
+
+        Parameters
+        ----------
+        source_path
+            Absolute or relative path to the source checkpoint file.
+        target_name
+            Filename to use for the uploaded artifact (e.g. ``"best.ckpt"``).
+        artifact_path
+            Destination directory inside the MLflow artifact store
+            (e.g. ``"checkpoints/val_loss"``).
         """
-        Copy a checkpoint file to a named destination and log it as an MLflow artifact.
+        # Get name of target path by renaming file in source path
+        target_path = Path(source_path).with_name(target_name)
 
-        Creates a temporary copy of the checkpoint at ``src_path`` with the given
-        ``name`` in the same directory, uploads it to MLflow under ``artifact_path``,
-        then removes the temporary copy regardless of success or failure.
+        # If the target path does not exist, make a temporary copy of the source path
+        if not target_path.exists():
+            shutil.copy2(source_path, target_path)
 
-        Args:
-            src_path: Absolute or relative path to the source checkpoint file.
-            name: Filename to use for the temporary copy (e.g. ``"best.ckpt"``).
-            artifact_path: Destination directory path within the MLflow artifact store
-                (e.g. ``"checkpoints/best"``).
-        """
-        dest = Path(src_path).with_name(name)
+        # Log the target path as an artifact
+        self.experiment.log_artifact(self.run_id, str(target_path), artifact_path)
 
-        # If the source already has the desired name, log it directly — no copy needed.
-        if dest.resolve() == Path(src_path).resolve():
-            self.experiment.log_artifact(self.run_id, str(src_path), artifact_path)
-            return
-
-        try:
-            if dest.exists():
-                dest.unlink()
-            shutil.copy2(src_path, dest)
-            self.experiment.log_artifact(self.run_id, str(dest), artifact_path)
-        finally:
-            if dest.exists():
-                dest.unlink()
+        # Delete the temporary copy, if one was created.
+        if Path(source_path).resolve() != target_path.resolve():
+            target_path.unlink()
 
     def _after_save_checkpoint(self, ckpt_callback: ModelCheckpoint) -> None:
         monitor = ckpt_callback.monitor
@@ -217,7 +225,7 @@ class MLFlowLogger(_LightningMLFlowLogger):
             # Log best.ckpt when a metric is monitored
             best_src = ckpt_callback.best_model_path
             if best_src and Path(best_src).is_file():
-                self._log_named_checkpoint(best_src, "best.ckpt", artifact_path)
+                self._log_named_checkpoint_as_artifact(best_src, "best.ckpt", artifact_path)
             else:
                 self._warn(
                     f"best_model_path is empty or missing ({best_src!r}). "
@@ -231,7 +239,7 @@ class MLFlowLogger(_LightningMLFlowLogger):
         if ckpt_callback.save_last:
             last_src = self._resolve_last_checkpoint(ckpt_callback)
             if last_src:
-                self._log_named_checkpoint(last_src, "last.ckpt", artifact_path)
+                self._log_named_checkpoint_as_artifact(last_src, "last.ckpt", artifact_path)
             else:
                 self._warn("Could not determine last checkpoint path. Skipping last.ckpt logging.")
 
