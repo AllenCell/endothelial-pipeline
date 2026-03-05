@@ -26,13 +26,13 @@ class ModelConfigOverrideTrain:
     template_config: str = DIFFAE_MODEL_TRAIN_CONFIG
     """Name of model config template."""
 
-    crop_size: int | None = Field(None, gt=0)
+    crop_size: int | None = Field(default=None, gt=0)
     """Number of pixels in each dimension of the image crop to use for training."""
 
     condition_key: str | None = None
     """Key for the image channel to use for semantic conditioning of the diffusion model."""
 
-    latent_dim: int | None = Field(None, gt=0)
+    latent_dim: int | None = Field(default=None, gt=0)
     """Number of dimensions for the latent space of the semantic encoder."""
 
     train_dataframe_path: Path | None = None
@@ -41,7 +41,7 @@ class ModelConfigOverrideTrain:
     val_dataframe_path: Path | None = None
     """Path to the validation dataset (image loading metadata) parquet file."""
 
-    max_epochs: int | None = Field(None, gt=0)
+    max_epochs: int | None = Field(default=None, gt=0)
     """Maximum number of epochs to train the model for."""
 
     cache_rate: float | None = Field(default=None, ge=0, le=1)
@@ -50,7 +50,7 @@ class ModelConfigOverrideTrain:
     replace_rate: float | None = Field(default=None, ge=0, le=1)
     """Rate at which cached data is replaced."""
 
-    log_steps: int | None = Field(None, gt=0)
+    log_steps: int | None = Field(default=None, gt=0)
     """Interval at which to log training metrics."""
 
     num_gpus: int | None = Field(default=None, gt=0)
@@ -150,6 +150,12 @@ class ModelConfigOverrideTrain:
             "logs",
             include_timestamp=False,
         )
+
+        assert self.cache_rate is not None
+        assert self.replace_rate is not None
+        assert self.max_epochs is not None
+        assert self.train_dataframe_path is not None
+        assert self.val_dataframe_path is not None
 
         # Calculate effective epochs.
         multiplier = (1 - self.cache_rate) / (self.cache_rate * self.replace_rate) + 1
