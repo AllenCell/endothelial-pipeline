@@ -21,7 +21,6 @@ from .image_loading import (
 from .train_model import (
     build_and_save_dataframe_manifest_for_training,
     get_dataset_names_used_for_training,
-    initialize_diffae_model,
     initialize_diffae_model_for_finetuning,
 )
 
@@ -38,7 +37,6 @@ __all__ = [
     "generate_overrides_for_model_eval",
     "get_dataset_names_used_for_training",
     "get_z_slice_bounds_per_position",
-    "initialize_diffae_model",
     "initialize_diffae_model_for_finetuning",
     "load_model_for_inference",
     "preprocess_tracking_manifest_for_model_eval",
