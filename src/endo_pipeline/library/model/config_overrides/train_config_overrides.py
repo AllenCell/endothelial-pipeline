@@ -1,6 +1,5 @@
 import logging
 from pathlib import Path
-from typing import Literal
 
 from omegaconf import OmegaConf
 from pydantic import Field
@@ -14,22 +13,15 @@ from endo_pipeline.settings.workflow_defaults import DEFAULT_NUM_LATENT_DIMENSIO
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class ModelConfigOverride:
-    """
-    To dynamically override a cyto-dl configuration, create an instance of this
-    class, and call the `to_dict()` method to get a collection of key-value pairs
-    to replace values in the original config.
-    """
+@dataclass(kw_only=True)
+class ModelConfigOverrideTrain:
+    """CytoDL model config overrides for training."""
 
     run_name: str
     """Run name."""
 
     model_manifest_name: str
     """Manifest name."""
-
-    task_name: Literal["train", "eval"]
-    """Model task name."""
 
     template_config: str = DIFFAE_MODEL_TRAIN_CONFIG
     """Name of model config template."""
@@ -52,29 +44,33 @@ class ModelConfigOverride:
     max_epochs: int | None = Field(None, gt=0)
     """Maximum number of epochs to train the model for."""
 
-    cache_rate: float | None = Field(None, ge=0, le=1)
+    cache_rate: float | None = Field(default=None, ge=0, le=1)
     """Fraction of the dataset to cache in memory for training."""
 
-    replace_rate: float | None = Field(None, ge=0, le=1)
+    replace_rate: float | None = Field(default=None, ge=0, le=1)
     """Rate at which cached data is replaced."""
 
     log_steps: int | None = Field(None, gt=0)
     """Interval at which to log training metrics."""
 
-    num_gpus: int | None = Field(None, gt=0)
+    num_gpus: int | None = Field(default=None, gt=0)
     """Number of GPUs to use. None indicates that CPU should be used."""
 
     def __post_init__(self):
+        """Post initialization steps for model config overrides."""
+
+        self.task_name = "train"
+
         config = load_model_config(self.template_config)
 
         if self.train_dataframe_path is None:
-            train = OmegaConf.select(config, "data.train_dataloaders.dataset.dataframe_path")
+            train_path = OmegaConf.select(config, "data.train_dataloaders.dataset.dataframe_path")
 
-            if train is None:
+            if train_path is None:
                 logger.error("Training dataframe could not be found in config")
                 raise ValueError("Training dataframe is required and not found in the config")
             else:
-                self.train_dataframe_path = Path(train)
+                self.train_dataframe_path = Path(train_path)
 
             if self.train_dataframe_path.exists():
                 logger.error(
@@ -83,13 +79,13 @@ class ModelConfigOverride:
                 raise ValueError(f"Training dataframe not found at [ {self.train_dataframe_path}]")
 
         if self.val_dataframe_path is None:
-            val = OmegaConf.select(config, "data.val_dataloaders.dataset.dataframe_path")
+            val_path = OmegaConf.select(config, "data.val_dataloaders.dataset.dataframe_path")
 
-            if val is None:
+            if val_path is None:
                 logger.error("Validation dataframe could not be found in config")
                 raise ValueError("Validation dataframe is required and not found in the config")
             else:
-                self.val_dataframe_path = Path(val)
+                self.val_dataframe_path = Path(val_path)
 
             if self.val_dataframe_path.exists():
                 logger.error(
@@ -101,6 +97,7 @@ class ModelConfigOverride:
             self.cache_rate = OmegaConf.select(
                 config, "data.train_dataloaders.dataset.cache_rate", default=1.0
             )
+
         if self.replace_rate is None:
             self.replace_rate = OmegaConf.select(
                 config, "data.train_dataloaders.dataset.replace_rate", default=1.0
