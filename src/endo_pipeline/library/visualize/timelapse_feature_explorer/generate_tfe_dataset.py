@@ -55,7 +55,6 @@ def generate_tfe_dataset(
     backdrops: bool,
     output_dir_suffix: str = "",
     include_diffae_features: bool = True,
-    cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
 ) -> None:
     """
     Create timelapse feature explorer manifest and generate backdrop images.
