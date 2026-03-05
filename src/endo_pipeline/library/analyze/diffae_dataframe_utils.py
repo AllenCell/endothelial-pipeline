@@ -788,7 +788,7 @@ def get_dataframe_for_dynamics_workflows(
     columns_to_keep_.extend(feat_cols)  # also keep feature columns for PCA projection
     if crop_pattern == "tracked":
         columns_to_keep_.extend(
-            [ColumnName.TRACK_ID, ColumnName.TRACK_LENGTH]
+            [ColumnName.TRACK_ID]
         )  # also keep track ID and track length columns for tracked crops
     columns_to_keep_ = list(set(columns_to_keep_))  # remove duplicates, if any
 
