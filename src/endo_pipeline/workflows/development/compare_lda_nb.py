@@ -1,5 +1,6 @@
 # %%
 import logging
+import re
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -16,12 +17,6 @@ from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifes
 )
 from endo_pipeline.library.analyze.migration_pc.compare_feats import plot_lda_vs_optical_flow
 from endo_pipeline.library.analyze.migration_pc.lda_analysis import apply_lda_projection
-from endo_pipeline.library.analyze.migration_pc.specify_manual_annotations import (
-    ANNOTATION_PATH,
-    COHERENT_MIG_FILES,
-    COHERENT_MIGRATION_COL,
-    MIXED_MIG_FILES,
-)
 from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
     get_feature_dataframe_manifest_name,
@@ -37,6 +32,7 @@ from endo_pipeline.settings.workflow_defaults import (
 logger = logging.getLogger(__name__)
 
 CLIP_QUANTILES = (0.01, 0.99)
+COHERENT_MIGRATION_COL = "coherent_migration"
 
 # %%
 datasets = [
@@ -70,7 +66,7 @@ dataframe_manifest_optical_flow_new = load_dataframe_manifest("optical_flow_bf")
 df_proj_full_list_new = []
 
 for dataset_name in datasets:
-    print(f"Processing dataset: {dataset_name}")
+    logging.info(f"Processing dataset: {dataset_name}")
     # Get PCS and LDA features
     df_dataset = get_dataframe_for_dynamics_workflows(
         dataset_name, dataframe_manifest, pca=pca, filter_dataframe=True
@@ -108,7 +104,6 @@ features = ["LDA", "LDA_SP_2", "LDA_SP_3", "LDA_SP_4", "LDA_SP_5", "pc_1", "pc_2
 datasets_used = ["20250618_20X", "20250428_20X", "20250319_20X", "20250813_20X", "20250611_20X"]
 
 # %%
-# for dt in range(2, 11):
 dt = 1
 optical_flow_features = [
     f"optical_flow_mean_speed_dt{dt}",
@@ -124,8 +119,6 @@ optical_flow_features = [
 
 df_sub_new = df_new[df_new["dataset"].isin(datasets_used)]
 # %%
-print("Plotting for dt =", dt)
-CLIP_QUANTILES = (0.001, 0.999)
 plot_lda_vs_optical_flow(
     df_sub_new,
     features,
@@ -189,10 +182,6 @@ for dataset_name in datasets:
     df_list.append(df_proj_full)
 
 df_all_classic = pd.concat(df_list, ignore_index=True)
-# %%
-# print shape of df_merge and df_filtered
-print("Shape of merged dataframe:", df_merged.shape)
-print("Shape of filtered dataframe:", df_filtered.shape)
 
 # %%
 classic_features = ["vec_mean_angle_in_crop", "vec_mean_mag_in_crop"]
@@ -219,31 +208,51 @@ plot_lda_vs_optical_flow(
 )
 # %%
 df_mig_list = []
-for file_info in MIXED_MIG_FILES + COHERENT_MIG_FILES:
-    dataset_name = str(file_info["dataset_name"])
+annotation_manifests = [
+    load_dataframe_manifest("coherent_migration_annotations"),
+    load_dataframe_manifest("incoherent_migration_annotations"),
+]
+for annotation_manifest in annotation_manifests:
+    for location_name, location in annotation_manifest.locations.items():
+        parsed = re.match(r"^(coherent_mig|incoherent_mig)_(.+)_P(\d+)$", location_name)
+        if parsed is None:
+            logger.error("Invalid annotation location key in manifest: %s", location_name)
+            raise ValueError(f"Invalid annotation location key: {location_name}")
 
-    df = get_dataframe_for_dynamics_workflows(
-        dataset_name, dataframe_manifest, pca=pca, filter_dataframe=False
-    )
+        migration_type = parsed.group(1)
+        dataset_name = parsed.group(2)
+        position = int(parsed.group(3))
 
-    fname = file_info["fname"]
-    df_annotation = pd.read_csv(f"{ANNOTATION_PATH}/{fname}")
-    df_annotation["crop_index"] = df_annotation["Track"] - 1
+        if location.path is None:
+            logger.error("Missing path for annotation location: %s", location_name)
+            raise ValueError(f"Missing path for annotation location: {location_name}")
 
-    pairs_df = df_annotation[["crop_index", "Frame"]]
-    merged = df.merge(
-        pairs_df,
-        left_on=["crop_index", "frame_number"],
-        right_on=["crop_index", "Frame"],
-        how="inner",
-    )
-    merged[COHERENT_MIGRATION_COL] = file_info in COHERENT_MIG_FILES
-    merged["migration_type"] = "coherent" if file_info in COHERENT_MIG_FILES else "mixed"
-    df_mig_list.append(merged)
+        df = get_dataframe_for_dynamics_workflows(
+            dataset_name, dataframe_manifest, pca=pca, filter_dataframe=False
+        )
+        df = df[df["position"] == position]
 
-    if len(merged) != len(df_annotation):
-        logger.error("File '%s' had different number of rows after merge", fname)
-        raise ValueError(f"Different dataframe lengths: '{len(df_annotation)}' vs. '{len(merged)}'")
+        annotation_path = str(location.path)
+        df_annotation = pd.read_csv(annotation_path)
+        df_annotation["crop_index"] = df_annotation["Track"] - 1
+
+        pairs_df = df_annotation[["crop_index", "Frame"]]
+        merged = df.merge(
+            pairs_df,
+            left_on=["crop_index", "frame_number"],
+            right_on=["crop_index", "Frame"],
+            how="inner",
+        )
+        merged[COHERENT_MIGRATION_COL] = migration_type == "coherent_mig"
+        merged["migration_type"] = "coherent" if migration_type == "coherent_mig" else "incoherent"
+        df_mig_list.append(merged)
+
+        if len(merged) != len(df_annotation):
+            logger.error("File '%s' had different number of rows after merge", annotation_path)
+            raise ValueError(
+                f"Different dataframe lengths for '{location_name}': "
+                f"'{len(df_annotation)}' vs. '{len(merged)}'"
+            )
 
 df_mig = pd.concat(df_mig_list, ignore_index=True)
 
@@ -255,18 +264,7 @@ df_mig_of = pd.merge(
     how="inner",
 )
 
-dt = 1
-optical_flow_features = [
-    f"optical_flow_mean_speed_dt{dt}",
-    f"optical_flow_mean_unit_vector_dt{dt}",
-    f"optical_flow_std_speed_dt{dt}",
-    f"optical_flow_mean_angle_dt{dt}",
-    f"optical_flow_angle_std_dt{dt}",
-    f"optical_flow_mean_u_dt{dt}",
-    f"optical_flow_mean_v_dt{dt}",
-    f"optical_flow_std_u_dt{dt}",
-    f"optical_flow_std_v_dt{dt}",
-]
+
 # %%
 for feat in optical_flow_features:
     is_coherent_migration = df_mig_of[COHERENT_MIGRATION_COL]

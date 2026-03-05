@@ -120,10 +120,13 @@ def plot_cca_projection_validation(
 
     projected = df[features].to_numpy() @ weights
 
-    assert projected.shape == x_canonical.shape, (
-        f"Shape mismatch: projected {projected.shape} vs x_canonical {x_canonical.shape}. "
-        "Ensure the same rows (after dropna) are used for both."
-    )
+    if projected.shape != x_canonical.shape:
+        error_message = (
+            f"Shape mismatch: projected {projected.shape} vs x_canonical {x_canonical.shape}. "
+            "Ensure the same rows (after dropna) are used for both."
+        )
+        logger.error(error_message)
+        raise ValueError(error_message)
 
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.scatter(projected, x_canonical, alpha=0.3, s=4)
@@ -147,8 +150,7 @@ def apply_cca_projection(
     df: pd.DataFrame,
     manifest_name: str = "cca_weights",
     location_key: str = "80_pcs",
-    return_column_info: bool = False,
-) -> pd.DataFrame | tuple[pd.DataFrame, dict[str, list[str]]]:
+) -> pd.DataFrame:
     """Load CCA weights from a manifest and project onto a dataframe.
 
     Parameters
@@ -159,16 +161,11 @@ def apply_cca_projection(
         Name of the dataframe manifest containing the CCA weights.
     location_key : str
         Key within the manifest's locations dict (e.g. ``"80_pcs"``).
-    return_column_info : bool, default=False
-        If True, also return a dict mapping each added column name to
-        the list of input features used.
 
     Returns
     -------
-    pandas.DataFrame or tuple[pandas.DataFrame, dict[str, list[str]]]
-        The dataframe with appended CCA projection columns. If
-        *return_column_info* is True, a tuple of (dataframe, column_info)
-        is returned instead.
+    pandas.DataFrame
+        The dataframe with appended CCA projection columns.
     """
 
     manifest = load_dataframe_manifest(manifest_name)
@@ -180,11 +177,9 @@ def apply_cca_projection(
 
     df_features = df[features]
     df_result = pd.DataFrame(index=df_features.index)
-    column_info: dict[str, list[str]] = {}
 
     # Full CCA projection
     df_result["cca"] = df_features.to_numpy() @ weights
-    column_info["cca"] = features
 
     # Top-3 PCs
     top3_features = ["pc_1", "pc_2", "pc_3"]
@@ -195,11 +190,8 @@ def apply_cca_projection(
         .to_numpy()
     )
     df_result["cca_top3"] = df[top3_features].to_numpy() @ top3_weights
-    column_info["cca_top3"] = top3_features
 
     df_result = df.merge(df_result, left_index=True, right_index=True)
-    if return_column_info:
-        return df_result, column_info
     return df_result
 
 
