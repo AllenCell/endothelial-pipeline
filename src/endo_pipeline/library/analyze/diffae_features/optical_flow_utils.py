@@ -160,7 +160,7 @@ def compute_tvl1(
     tuple[np.ndarray, np.ndarray]
         ``(u, v)`` flow arrays, each shaped ``(H, W)``.
     """
-    v, u = optical_flow_tvl1(f0, f1)
+    v, u = optical_flow_tvl1(f0, f1, attachment = 7.5)
     return u, v
 
 

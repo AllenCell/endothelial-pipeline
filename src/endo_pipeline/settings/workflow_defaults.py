@@ -144,7 +144,7 @@ OPTICAL_FLOW_CHANNEL_PERCENTILE: dict = {
 }
 """Intensity percentile thresholds per channel for optical-flow masking."""
 
-DEFAULT_OPTICAL_FLOW_MAX_DT: int = 5
+DEFAULT_OPTICAL_FLOW_MAX_DT: int = 1
 """Maximum frame gap for multi-scale optical-flow sweep (dt = 1 ... MAX_DT)."""
 
 DEFAULT_OMP_NUM_THREADS: str = "1"

@@ -9,7 +9,6 @@ import dask.array as da
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed  # type: ignore[import-untyped]
-from skimage.exposure import rescale_intensity
 from tqdm.auto import tqdm
 
 from endo_pipeline.configs import (
@@ -77,11 +76,14 @@ def _default_annotations_to_exclude(
 ) -> list[TimepointAnnotation]:
     """Build the default timepoint-annotation exclusion list.
 
-    Translates the two user-facing boolean "include" flags into a list
-    of :class:`TimepointAnnotation` values that should be *excluded*
-    from processing.  The logic is inverted: setting a flag to
-    ``False`` (the default) **adds** its annotation to the exclusion
-    list, so those timepoints are dropped.
+    Quality annotations (scope errors, temporary artifacts, XY/Z shifts,
+    unfed) are **always** excluded — computing optical flow against
+    corrupted frames would contaminate neighbouring good frames.  This
+    keeps :func:`get_valid_timepoints` in sync with the dataframe
+    filter applied by :func:`get_dataframe_for_dynamics_workflows`.
+
+    The two lifecycle annotations (``CELL_PILING``,
+    ``NOT_STEADY_STATE``) are controlled by boolean flags.
 
     Parameters
     ----------
@@ -96,7 +98,20 @@ def _default_annotations_to_exclude(
     -------
          Annotations whose timepoints should be filtered out.
     """
-    excl: list[TimepointAnnotation] = []
+    # Quality annotations — always excluded to prevent computing flow
+    # against corrupted frames (and contaminating adjacent good frames).
+    excl: list[TimepointAnnotation] = [
+        TimepointAnnotation.AUTO_BF_SCOPE_ERROR,
+        TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT,
+        TimepointAnnotation.AUTO_GFP_SCOPE_ERROR,
+        TimepointAnnotation.BF_SCOPE_ERROR,
+        TimepointAnnotation.BF_TEMP_ARTIFACT,
+        TimepointAnnotation.GFP_SCOPE_ERROR,
+        TimepointAnnotation.UNFED,
+        TimepointAnnotation.XY_SHIFT,
+        TimepointAnnotation.Z_SHIFT,
+    ]
+    # Lifecycle annotations — toggleable via flags.
     if not include_pre_steady_state:
         excl.append(TimepointAnnotation.NOT_STEADY_STATE)
     if not include_cell_piling:
@@ -305,7 +320,7 @@ def _plot_demo_summary(
             X,
             Y,
             uf[::step, ::step],
-            -vf[::step, ::step],
+            vf[::step, ::step],
             sp_sub,
             cmap="autumn",
             clim=[0, np.percentile(sp, 97)],
@@ -389,7 +404,7 @@ def _plot_demo_summary(
     fig.savefig(
         out_dir
         / f"demo_coherent_vs_incoherent_{ds_name}_{pos_str}_{'_'.join(channel)}_{flow_scope}.png",
-        dpi=150,
+        dpi=300,
         facecolor="white",
     )
     logger.info("  Saved coherent-vs-incoherent figure to %s", out_dir)
@@ -489,9 +504,12 @@ def main(
             and avoids boundary artefacts.
         "crop" - Run TVL1 independently on each crop.
 
-    Z-projection (channel-aware):
-        BF   -> std(axis=Z) followed by log1p (enhances texture contrast).
-        EGFP -> max-intensity projection.
+    Z-projection & normalization (channel-aware, matches DiffAE training):
+        BF   -> std(axis=Z) -> log(x+1e-12) -> clip [0.1, 99.9] pctl -> z-score.
+        EGFP -> max(axis=Z) -> clip [10, 98] pctl -> scale to [-1, 1].
+
+    TVL1 attachment (lambda) is set to 7.5 (half the default 15) to
+    compensate for the wider normalised intensity range.
 
     Intensity threshold (channel-aware):
         EGFP -> 95th percentile (sparse fluorescent signal; excludes background).
@@ -646,7 +664,8 @@ def main(
             zarr_loc = get_zarr_location_for_position(ds_cfg, pos_idx)
             img = load_image(zarr_loc, channels=channel, level=level, compute=False)
             z_ax = DIMENSION_ORDER.index("Z")
-            proj = da.log1p(img.std(axis=z_ax)) if is_bf else img.max(axis=z_ax)
+            # BF: std Z-projection -> log(x + 1e-12) to match DiffAE training
+            proj = da.log(img.std(axis=z_ax) + 1e-12) if is_bf else img.max(axis=z_ax)
 
             # Frame pairs
             pairs = [
@@ -665,17 +684,31 @@ def main(
             )  # (n_needed, y, x)
             cache: dict[int, np.ndarray] = {}
             for j, t in enumerate(needed_idxs):
-                cache[t] = rescale_intensity(
-                    needed_arr[j].astype(np.float32, copy=False), out_range=(0.0, 1.0)
-                )
+                frame = needed_arr[j].astype(np.float32, copy=False)
+                if is_bf:
+                    # Match DiffAE BF pipeline:
+                    #   Clipd [0.1, 99.9] -> NormalizeIntensityd (z-score)
+                    lo, hi = np.percentile(frame, [0.1, 99.9])
+                    frame = np.clip(frame, lo, hi)
+                    std = frame.std()
+                    frame = (frame - frame.mean()) / (std if std > 0 else 1.0)
+                else:
+                    # Match DiffAE EGFP pipeline:
+                    #   ScaleIntensityRangePercentilesd(lower=10, upper=98,
+                    #       b_min=-1, b_max=1, clip=True)
+                    lo, hi = np.percentile(frame, [10, 98])
+                    frame = np.clip(frame, lo, hi)
+                    frame = (frame - lo) / (hi - lo + 1e-8) * 2.0 - 1.0
+                cache[t] = frame
             del needed_arr
             logger.info("    cached %d frames in %.1fs", len(cache), time.time() - cache_t)
 
             # Intensity threshold (subsample 10% of pixels for speed + memory)
+            # pct=0 (BF) → -inf so all pixels pass regardless of normalization
             thresh = (
                 float(np.percentile(np.concatenate([f.ravel()[::10] for f in cache.values()]), pct))
                 if pct > 0
-                else 0.0
+                else -float("inf")
             )
             logger.info(
                 "    thresh(%d-pct)=%.6f  pairs=%d  crops=%d", pct, thresh, len(pairs), n_crops
