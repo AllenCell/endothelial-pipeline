@@ -371,70 +371,56 @@ def filter_dataframe_by_annotations(
     return dataframe_filtered
 
 
-def fit_pca(
+def build_pca_input_dataframe(
     dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     dataframe_manifest_name: str | None = None,
     filter_dataframe: bool = True,
     include_cell_piling: bool = False,
-    num_pcs: int = 8,
-    return_pca_input_dataframe: bool = False,
-) -> PCA | tuple[PCA, pd.DataFrame]:
+) -> pd.DataFrame:
     """
-    Fit PCA model to fixed set of reference datasets, as defined in the given
-    dataset collection name.
+    Build input dataframe for fitting PCA model using given dataset collection.
 
     Parameters
     ----------
     dataset_collection_name
         Name of the dataset collection to load reference datasets from.
-        This is used to load the model manifests that contain the reference datasets.
     dataframe_manifest_name
         Name of the dataframe manifest to load the model features from.
     filter_dataframe
-        Whether to remove annotated timepoints and positions from the dataframes before fitting PCA.
+        True to remove annotated timepoints and positions, False otherwise.
     include_cell_piling
-        True to include cell piling timepoints in the data used to fit PCA, False to exclude them.
-    num_pcs
-        Number of principal components to fit.
-    return_pca_input_dataframe
-        Whether to return the input dataframe used to fit PCA along with the fit PCA object.
+        True to include cell piling timepoints, False otherwise.
 
     Returns
     -------
     :
-        Fit PCA object
-    pd.DataFrame, optional
-        Input dataframe used to fit PCA, returned if `return_pca_input_dataframe` is True.
+        Input dataframe for fitting PCA.
     """
+
     # Get dataframe manifest name if not provided based on default model manifest
     if dataframe_manifest_name is None:
         dataframe_manifest_name = get_feature_dataframe_manifest_name(
             load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
             DEFAULT_MODEL_RUN_NAME,
         )
+
     # Load dataframe manifest
     manifest = load_dataframe_manifest(dataframe_manifest_name)
 
-    # Get dataframe locations for manifest for all datasets in collection
+    # Get datasets in collection
     dataset_names = get_datasets_in_collection(dataset_collection_name)
-    locations = [
-        get_dataframe_location_for_dataset(manifest, dataset_name) for dataset_name in dataset_names
-    ]
     logger.info("Datasets being used to fit PCA: [ %s ]", ", ".join(dataset_names))
 
-    # Load all dataframes, filter out annotated timepoints, and concatenate.
-    # Filtering does or doesn't remove cell piling timepoints based on
-    # the input include_cell_piling.
+    # Load and filter out annotated timepoints (if requested) for each dataset
     dataframe_list = []
-    for location, dataset_name in zip(locations, dataset_names, strict=True):
+    for dataset_name in dataset_names:
+        location = get_dataframe_location_for_dataset(manifest, dataset_name)
         dataframe = load_dataframe(location)
         if filter_dataframe:
             annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
             if include_cell_piling:
                 annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
-            timepoint_annotations = get_subset_of_timepoint_annotations(
-                annotations_to_ignore=annotations_to_ignore
-            )
+            timepoint_annotations = get_subset_of_timepoint_annotations(annotations_to_ignore)
             dataframe_filtered = filter_dataframe_by_annotations(
                 dataframe,
                 load_dataset_config(dataset_name),
@@ -443,31 +429,60 @@ def fit_pca(
         else:
             dataframe_filtered = dataframe
         dataframe_list.append(dataframe_filtered)
+
+    # Merge dataframes for all datasets and filter for feature columns ("feat_" prefix)
     data_ref = pd.concat(dataframe_list, ignore_index=True)
-
-    # fit PCA
-    pca = PCA(n_components=num_pcs, svd_solver="full")
-
-    # get the feature columns from the data,
-    # these are the columns that start with 'feat_'
     diffae_feature_cols = get_latent_feature_column_names_from_dataframe(data_ref)
-    pca_input_dataframe = data_ref[diffae_feature_cols]
+    return data_ref[diffae_feature_cols]
+
+
+def fit_pca(
+    dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    dataframe_manifest_name: str | None = None,
+    filter_dataframe: bool = True,
+    include_cell_piling: bool = False,
+    num_pcs: int = 8,
+) -> PCA:
+    """
+    Fit PCA model using given datasets in given dataset collection.
+
+    Parameters
+    ----------
+    dataset_collection_name
+        Name of the dataset collection to load reference datasets from.
+    dataframe_manifest_name
+        Name of the dataframe manifest to load the model features from.
+    filter_dataframe
+        True to remove annotated timepoints and positions, False otherwise.
+    include_cell_piling
+        True to include cell piling timepoints, False otherwise.
+    num_pcs
+        Number of principal components to fit.
+
+    Returns
+    -------
+    :
+        Fit PCA object
+    """
+
+    # Build PCA input dataframe
+    pca_input_dataframe = build_pca_input_dataframe(
+        dataset_collection_name, dataframe_manifest_name, filter_dataframe, include_cell_piling
+    )
+
+    # Fit PCA
+    pca = PCA(n_components=num_pcs, svd_solver="full")
     pca.fit(pca_input_dataframe.values)
-    # log info about explained variance ratio
+
+    # Log info about explained variance ratio
     logger.info(
         "Explained variance ratios: %s",
         np.round(pca.explained_variance_ratio_, 4).tolist(),
     )
-
-    cumul_exp_var = np.cumsum(pca.explained_variance_ratio_)
     logger.info(
         "Cumulative explained variance: %s",
-        np.round(cumul_exp_var, 4).tolist(),
+        np.round(np.cumsum(pca.explained_variance_ratio_), 4).tolist(),
     )
-
-    # return the fit PCA pipeline
-    if return_pca_input_dataframe:
-        return pca, pca_input_dataframe
 
     return pca
 
