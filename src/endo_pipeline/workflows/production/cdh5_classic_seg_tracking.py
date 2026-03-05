@@ -7,7 +7,6 @@ def main(
     datasets: Datasets | None = None,
     n_proc: int = 1,
     save_output: bool = True,
-    verbose: bool = False,
 ) -> None:
     """Run the tracking workflow on a dataset, a list of datasets, or a dataset collection.
     Saves a table as a .parquet file containing the cell tracks for each dataset analyzed as well
@@ -62,7 +61,6 @@ def main(
         save_output=save_output,
         out_dir=out_dir,
         overwrite=True,
-        verbose=verbose,
         is_test=DEMO_MODE,
         image_validation_frequency=None,
     )

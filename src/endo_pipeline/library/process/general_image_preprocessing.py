@@ -33,7 +33,6 @@ def build_analysis_queue(
     overwrite: bool = False,
     out_dir: str | Path | None = None,
     image_validation_frequency: int | None = None,
-    verbose: bool = False,
     is_test: bool = False,
 ) -> list:
     """
@@ -69,8 +68,6 @@ def build_analysis_queue(
     image_validation_frequency:
         The frequency at which to create validation images (default: None,
         which means no validation images will be created).
-    verbose:
-        Whether or not to print verbose output (default: False).
     is_test:
         Whether or not to run in test mode (default: False). If True, only up to
         the first 2 positions and up to the first 10 entries (as specified by
@@ -180,7 +177,6 @@ def build_analysis_queue(
                     "is_validation_image": validation_image,
                     "image_validation_frequency": image_validation_frequency,
                     "is_test": is_test,
-                    "verbose": verbose,
                     "nuclei_seg_manifest_name": nuclei_seg_manifest_name,
                     "channel_names": dataset_config.channel_names,
                 }

@@ -515,7 +515,6 @@ def calculate_region_border_metrics(
     binary_image: np.ndarray,
     intensity_image: np.ndarray | Array | None = None,
     labeled_image: np.ndarray | Array | None = None,
-    verbose: bool = True,
 ) -> list:
     """
     Takes a binary image representation of one or more structures that look
@@ -605,13 +604,13 @@ def calculate_region_border_metrics(
 
     ## calculate neighbor node angles and distances
     neighbor_node_metrics = calculate_neighbor_node_metrics(
-        binary_image, nodes, edges, intensity_image, verbose
+        binary_image, nodes, edges, intensity_image
     )  # -> list of dictionaries(?)
 
     ## associate edges with the labeled_image
     if isinstance(labeled_image, np.ndarray):
         labeled_image_metrics = calculate_labeled_image_metrics(
-            binary_image, labeled_image, nodes, edges, intensity_image, verbose
+            binary_image, labeled_image, nodes, edges, intensity_image
         )
     else:
         labeled_image_metrics = None
@@ -625,7 +624,6 @@ def calculate_labeled_image_metrics(
     nodes: np.ndarray | None = None,
     edges: np.ndarray | None = None,
     intensity_image: np.ndarray | None = None,
-    verbose: bool = True,
 ) -> dict:
     """
     Takes a binary image representation of one or more structures that look
@@ -697,7 +695,7 @@ def calculate_labeled_image_metrics(
     seeds *= ~binary_image
 
     # create the nodes and edges arrays if they were not provided
-    print("    -- getting node and edge labels") if verbose else None
+    logger.debug("- getting node and edge labels")
     nodes, edges, skel, conn = (
         (nodes, edges, None, None)
         if (isinstance(nodes, np.ndarray) and isinstance(edges, np.ndarray))
@@ -715,14 +713,14 @@ def calculate_labeled_image_metrics(
     )
 
     # get the node labels that define each edge
-    print("    -- getting neighboring node information") if verbose else None
+    logger.debug("- getting neighboring node information")
     node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs = (
         get_neighbor_nodes_and_edges(nodes, edges, as_dict=True)
     )
 
     # run a watershed using the labeled (minus any regions that overlap with binary_image)
     # image as seeds to find which parts of labels touch which edges
-    (print("    -- expanding labels in labeled_image to be adjacent to edges") if verbose else None)
+    logger.debug("- expanding labels in labeled_image to be adjacent to edges")
     regions = segmentation.watershed(
         np.logical_or(nodes, edges),
         markers=seeds,
@@ -730,7 +728,7 @@ def calculate_labeled_image_metrics(
         mask=~np.logical_or(nodes, edges),
     ).astype(np.int32)
     # make the labeling of regions start after the biggest edge label
-    print("    -- relabeling labeled_image") if verbose else None
+    logger.debug("- relabeling labeled_image")
     regions_offset = regions.copy()
     regions_offset[regions.astype(bool)] += edges.max()
     # combine the edges labels and the offset regions labels
@@ -738,12 +736,8 @@ def calculate_labeled_image_metrics(
 
     # create a RAG from the regions and find out which edge labels and connected to which
     # region labels
-    (
-        print("    -- finding which edge labels touch which labeled_image regions")
-        if verbose
-        else None
-    )
-    # rag = graph.RAG(regions_offset)
+    logger.debug("- finding which edge labels touch which labeled_image regions")
+
     rag = graph.rag_boundary(
         regions_offset, np.zeros(labeled_image.shape, dtype=float), connectivity=1
     )
@@ -751,7 +745,7 @@ def calculate_labeled_image_metrics(
     # or unreachable areas)
     rag.remove_node(0) if 0 in rag.nodes else None
 
-    print("    -- finding which region labels are neighbors") if verbose else None
+    logger.debug("- finding which region labels are neighbors")
     rag_of_labeled_image = graph.rag_boundary(
         labeled_image, np.zeros(labeled_image.shape, dtype=float), connectivity=1
     )
@@ -770,7 +764,7 @@ def calculate_labeled_image_metrics(
     )
 
     # get the region properties of the labels in regions
-    print("    -- getting labeled_image region properties") if verbose else None
+    logger.debug("- getting labeled_image region properties")
     extra_region_props = (
         intensity_std,
         intensity_median,
@@ -782,18 +776,11 @@ def calculate_labeled_image_metrics(
     )
 
     # add the neighbors of each region in regions
-    (
-        print(
-            "    -- adding node label and edge label information to region labeled_image properties"
-        )
-        if verbose
-        else None
+    logger.debug(
+        "- adding node label and edge label information to region labeled_image properties"
     )
-    (
-        print("    -- adding neighboring region information to labeled_image properties")
-        if verbose
-        else None
-    )
+    logger.debug("- adding neighboring region information to labeled_image properties")
+
     for region in region_props:
         # include the neighbor labels if the label is an edge label (but not if it happens to
         # a label originating from labeled_image)
@@ -826,7 +813,7 @@ def calculate_labeled_image_metrics(
     node_props_dict = {prop.label: prop for prop in node_props}
 
     # create the output lists
-    print("    -- generating dictionary of lists output") if verbose else None
+    logger.debug("- generating dictionary of lists output")
     region_label = []
     region_centroid = []
     region_area = []
@@ -929,7 +916,6 @@ def calculate_neighbor_node_metrics(
     nodes: np.ndarray | None = None,
     edges: np.ndarray | None = None,
     intensity_image: np.ndarray | None = None,
-    verbose: bool = True,
 ) -> dict:
     """
     Takes a binary image representation of one or more structures that look
@@ -1001,17 +987,17 @@ def calculate_neighbor_node_metrics(
     node_props = measure.regionprops(nodes)
     node_labels, node_centroids = zip(*[(n.label, n.centroid) for n in node_props], strict=False)
 
-    (print("    -- getting home node and neighboring node centroids") if verbose else None)
+    logger.debug("- getting home node and neighboring node centroids")
     node_label_grid1, node_label_grid2 = np.meshgrid(node_labels, node_labels, indexing="ij")
     ## construct vectors from the node centroids
     vec_nodes = build_vector(*numpy_mesh_coords(node_centroids, node_centroids, indexing="ij"))
     node_labels_index_dict = dict(zip(node_labels, range(len(node_labels)), strict=False))
-    print(f"    -- array shape = {vec_nodes.shape}") if verbose else None
+    logger.debug(f"- array shape = {vec_nodes.shape}")
 
-    (print("    -- calculating distances of lines between neighboring nodes") if verbose else None)
+    logger.debug("- calculating distances of lines between neighboring nodes")
     dists = np.linalg.norm(vec_nodes, axis=2)
 
-    (print("    -- calculating angles of lines between neighboring nodes") if verbose else None)
+    logger.debug("- calculating angles of lines between neighboring nodes")
     ## determine angle of these lines relative to the horizontal
     ## (fluid flow direction is horizontal)
     ## construct a horizontal vector for reference
@@ -1026,7 +1012,7 @@ def calculate_neighbor_node_metrics(
     ## 90-180 to be between 0-90
     angles[angles > np.pi / 2] = abs(angles[angles > np.pi / 2] - np.pi)
 
-    print("    -- getting node neighbors") if verbose else None
+    logger.debug("- getting node neighbors")
     ## get the node neighbors
     node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs = (
         get_neighbor_nodes_and_edges(nodes, edges)
@@ -1034,7 +1020,7 @@ def calculate_neighbor_node_metrics(
     del node_neighbors_edgelabs  # remove unused images to save on memory
 
     ## create a connectivity matrix mask
-    print("    -- creating node connectivity mask") if verbose else None
+    logger.debug("- creating node connectivity mask")
     neighbors_mask = np.zeros(dists.shape, dtype=bool)
     ## node == i, neighbor == j
     node_neighbors_labels_list = [
@@ -1051,7 +1037,7 @@ def calculate_neighbor_node_metrics(
     neighbors_mask_oneway = np.tril(neighbors_mask)
 
     ## filter the node-node distance and angle arrays so that only connected nodes are finite
-    print("    -- filtering out unconnected node pairs") if verbose else None
+    logger.debug("- filtering out unconnected node pairs")
     home_nodes_filtered = node_label_grid1[neighbors_mask_oneway]
     neighbor_nodes_filtered = node_label_grid2[neighbors_mask_oneway]
     dists_filtered = dists[neighbors_mask_oneway]
@@ -1076,7 +1062,7 @@ def calculate_neighbor_node_metrics(
         try:
             prop.node_pair = edge_neighbors_nodelabs[prop.label]
         except IndexError:
-            print(prop.label)
+            logger.info(prop.label)
 
     node_pairs_filtered = list(zip(home_nodes_filtered, neighbor_nodes_filtered, strict=False))
     edge_props_filtered = [
@@ -1429,7 +1415,6 @@ def build_cdh5_measured_features_tables(
     position: int = 0,
     save_output: bool | None = True,
     create_validation_image: bool = False,
-    verbose: bool = True,
 ) -> None:
     """
     Build tables of measured features from the segmentation images
@@ -1460,8 +1445,6 @@ def build_cdh5_measured_features_tables(
         Whether to save the output tables (and validation images if selected).
     create_validation_image: bool
         Whether to create a validation image.
-    verbose: bool
-        Whether to print progress messages.
 
     Returns
     -------
@@ -1583,7 +1566,7 @@ def build_cdh5_measured_features_tables(
     logger.debug(f"T={tp} -- calculating distances and angles between neighboring nodes")
 
     neighbor_node_metrics, labeled_region_metrics = calculate_region_border_metrics(
-        seg_borders.astype(bool), raw_arr, seg_arr, verbose=verbose
+        seg_borders.astype(bool), raw_arr, seg_arr
     )
 
     ## save a table of the results
@@ -1925,7 +1908,6 @@ def build_cdh5_measured_features_tables_multiproc_wrapper(args: dict) -> None:
     tp = args["T"]
     save_output = args["save_output"]
     out_dir = args["output_dir"]
-    verbose = args["verbose"]
     create_validation_image = args["is_validation_image"]
     build_cdh5_measured_features_tables(
         dataset_name,
@@ -1934,7 +1916,6 @@ def build_cdh5_measured_features_tables_multiproc_wrapper(args: dict) -> None:
         position,
         save_output=save_output,
         create_validation_image=create_validation_image,
-        verbose=verbose,
     )
 
 

@@ -8,7 +8,6 @@ def main(
     n_proc: int = 1,
     save_output: bool = True,
     overwrite: bool = True,
-    verbose: bool = False,
 ) -> None:
     """Run the cdh5 segmentation workflow on a dataset, list of datasets, or dataset collection.
 
@@ -66,7 +65,6 @@ def main(
         save_output=save_output,
         out_dir=out_dir,
         overwrite=overwrite,
-        verbose=verbose,
         image_validation_frequency=48,
         is_test=DEMO_MODE,
         t_start=0,

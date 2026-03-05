@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 from endo_pipeline.cli import Datasets
-from endo_pipeline.io import configure_logging, get_output_path, load_dataframe
+from endo_pipeline.io import get_output_path, load_dataframe
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
@@ -179,8 +179,6 @@ def main(datasets: Datasets, n_proc: int = 1, is_test: bool = False) -> None:
     print(f"Processing: {datasets}")
 
     out_dir = get_output_path(__file__)
-
-    configure_logging(out_dir, logger, verbose=True)
 
     if n_proc > 1:
         with ProcessPoolExecutor(max_workers=n_proc) as executor:
