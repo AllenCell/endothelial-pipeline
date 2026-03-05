@@ -521,10 +521,13 @@ def calculate_region_border_metrics(
     approximately dendritic, filamentous, or network-like and creates a node
     and edge representation of the binary image to calculate angles between
     lines connecting neighboring nodes and a horizontal line as well as the
-    lengths of those lines. Also calculates the edge lengths and intensities
-    at the edges of an intensity_image if provided.
+    lengths of those lines.
+
+    Also calculates the edge lengths and intensities at the edges of an
+    intensity_image if provided.
     Note that the edge lengths and local curvatures are not being used to
     calculate angles, only node-to-neighboring-node lines.
+
     If labeled_image is provided then metrics for each region in labeled_image
     will be returned as a second dictionary of lists, including associated
     node labels, edge labels, and paired node labels.
@@ -549,7 +552,9 @@ def calculate_region_border_metrics(
 
     Returns
     -------
-    [neighbor_node_metrics, labeled_image_metrics]: list of dicts
+    :
+        List of dictionaries containing neighbor node metrics and labeled image metrics.
+
         neighbor_node_metrics: dict of lists
             node_pair_labels: The labels of the nodes used to build a line with
                 the order (origin_node, neighboring_node).
