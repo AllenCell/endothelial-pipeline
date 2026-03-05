@@ -532,6 +532,42 @@ def calculate_region_border_metrics(
     will be returned as a second dictionary of lists, including associated
     node labels, edge labels, and paired node labels.
 
+    **Neighbor node metrics**
+
+    ======================  ===================================================================
+    Metric                  Description
+    ======================  ===================================================================
+    node_pair_labels        labels of (origin, neighbor) nodes used to build a line
+    node_pair_centroids     centroids of (origin, neighbor) nodes used to build a line
+    distances               linear distance between node_pair_centroids
+    angles                  angle between the line formed by node_pair_centroids and horizontal
+    edge_labels             labels of the edges in binary_image connecting the paired nodes
+    edge_num_pixels         number of pixels that constitute each edge
+    length (px)             length of each edge in pixels
+    fluor_mean (au)         mean fluorescence of intensity_image at an edge
+    ======================  ===================================================================
+
+    **Labeled image metrics**
+
+    ============================  =================================================================
+    Metric                        Description
+    ============================  =================================================================
+    cell_label                    labels of the regions in labeled_image
+    cell_centroid                 centroids of the regions in labeled_image
+    cell_area (px**2)             areas of the regions in labeled_image
+    cell_perimeter (px)           perimeters of the regions in labeled_image
+    cell_solidity                 solidities of the regions in labeled_image
+    cell_eccentricity             eccentricities of the regions in labeled_image
+    cell_orientation              orientations of the regions in labeled_image
+    cell_fluorescence_mean (au)   mean fluorescence of intensity_image for each region
+    edge_labels                   labels of the edges that touch each region in labeled_image
+    node_labels                   labels of the nodes that touch each region in labeled_image
+    edge_fluorescences (au)       list of fluorescence values at the edges of each region
+    node_fluorescences (au)       list of fluorescence values at the nodes of each region
+    node_pair_labels              labels of the nodes at the end of each edge label for each region
+    ============================  =================================================================
+
+
     Parameters
     ----------
     binary_image: np.ndarray
@@ -554,43 +590,6 @@ def calculate_region_border_metrics(
     -------
     :
         List of dictionaries containing neighbor node metrics and labeled image metrics.
-
-        neighbor_node_metrics: dict of lists
-            node_pair_labels: The labels of the nodes used to build a line with
-                the order (origin_node, neighboring_node).
-            node_pair_centroids: The centroids of the nodes used to build a line with the
-                order (origin_node, neighboring_node)
-            distances: The linear distance between node_pair_centroids.
-            angles: The angle between the line formed by node_pair_centroids and a horizontal line.
-            edge_labels: The labels of the edges in binary_image that connect the paired nodes.
-            edge_num_pixels: The number of pixels that constitute each edge. Does not account
-                for differences in distance based on connectivity (but 'length (px)' does).
-            length (px): The length of each edge in pixels (N.B. this does not include the
-                distance from the node to the edge).
-            fluor_mean (au): The mean fluorescence of intensity_image at an edge if provided.
-                Other measures for fluor include _std, _median, _min, _max, _pct25, and _pct75.
-        labeled_image_metrics: dict of lists or None
-            cell_label: The labels of the regions in labeled_image.
-            cell_centroid: The centroids of the regions in labeled_image.
-            cell_area (px**2): The areas of the regions in labeled_image.
-            cell_perimeter (px): The perimeters of the regions in labeled_image.
-            cell_solidity: The solidities of the regions in labeled_image
-            cell_eccentricity: The eccentricities of the regions in labeled_image.
-            cell_orientation: The orientations of the regions in labeled_image.
-            cell_fluorescence_mean (au): The mean fluorescence of intensity_image for each
-                region in labeled_image (if intensity_image and labeled_image is provided).
-                Other fluorescence measures include _std, _median, _min, _max, _pct25, and _pct75.
-            edge_labels: The labels of the edges that touch each region in labeled_image.
-            node_labels: The labels of the nodes that touch each region in labeled_image.
-            edge_fluorescences (au): A list of fluorescence values from intensity_image at the edges
-                of each region in the edges image calculated from binary_image.
-            node_fluorescences (au): A list of fluorescence values from intensity_image at the nodes
-                of each region in the nodes image calculated from binary_image.
-            edge_and_node_fluorescence_mean (au): The mean fluorescence of intensity_image for the
-                edges and nodes of each region in labeled_image (if intensity_image and
-                labeled_image is provided).
-            node_pair_labels: The labels of the node pairs that are at the end of each edge label
-                that touches each region in labeled_image.
 
     NOTE: The lists in each 'metrics' dict have the same indexing order (i.e. you can build a
         table directly from this dict via a pandas DataFrame).
