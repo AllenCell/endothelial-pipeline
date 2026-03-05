@@ -653,6 +653,13 @@ def project_features_to_pcs(
     return df_
 
 
+def filter_dataframe_by_track_length(
+    df: pd.DataFrame, track_length_column: str, minimum_track_length: int
+) -> pd.DataFrame:
+    """Filter dataframe to only include tracks above a minimum track length."""
+    return df[df[track_length_column] >= minimum_track_length]
+
+
 def get_dataframe_for_dynamics_workflows(
     dataset_name: str,
     manifest: DataframeManifest,
@@ -771,7 +778,9 @@ def get_dataframe_for_dynamics_workflows(
         if crop_pattern == "tracked" and minimum_track_length is not None:
             # if crop pattern is 'tracked' and minimum track length is specified,
             # also filter by track length
-            df_filtered = df_filtered[df_filtered[ColumnName.TRACK_LENGTH] >= minimum_track_length]
+            df_filtered = filter_dataframe_by_track_length(
+                df_filtered, ColumnName.TRACK_LENGTH, minimum_track_length
+            )
     else:
         df_filtered = df_
 
