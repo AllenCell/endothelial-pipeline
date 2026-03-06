@@ -50,7 +50,7 @@ def add_optical_flow_features(
         df_merged = df_dataset.merge(
             df_optical_flow,
             on=merge_columns,
-            how="inner",
+            how="left",
         )
         merged_dfs.append(df_merged)
 
