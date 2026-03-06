@@ -1104,9 +1104,9 @@ def create_labels_in_crop_columns(df_sub: pd.DataFrame, out_dir: Path) -> None:
 
     # load image
     dataset_config = load_dataset_config(ds_nm)
-    image_manifest = load_image_manifest("cdh5_classic_seg")
-    image_loc = get_image_location_for_dataset(image_manifest, dataset_config, pos, tp)
-    img = load_image(image_loc, compute=True, squeeze=True)
+    image_manifest = load_image_manifest("cdh5_classic_seg_zarr")
+    image_loc = get_image_location_for_dataset(image_manifest, dataset_config, pos)
+    img = load_image(image_loc, compute=True, squeeze=True, timepoints=tp)
 
     # find other cell labels that are also in the crop
     df_sub["all_labels_in_crop"] = df_sub.apply(
