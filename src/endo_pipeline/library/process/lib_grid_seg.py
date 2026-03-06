@@ -43,7 +43,7 @@ def load_grid_diffae_df_for_tfe(
     # load the grid-based diffae features dataframe to get the crop locations and
     # crop labels for a given dataset
     grid_df = get_dataframe_for_dynamics_workflows(
-        dataset_name, dataframe_manifest, filter_dataframe=False
+        dataset_name, dataframe_manifest, filter_by_annotations=False
     )
 
     # we don't need the latent feature columns for this workflow

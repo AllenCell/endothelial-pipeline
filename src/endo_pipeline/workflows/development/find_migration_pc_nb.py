@@ -1,5 +1,6 @@
 # %%
 import logging
+import re
 
 import pandas as pd
 
@@ -37,76 +38,13 @@ from endo_pipeline.settings.workflow_defaults import (
 logger = logging.getLogger(__name__)
 
 DESCRIPTION = "Manual annotations for migration type; LDA ranks top contributing PCs."
+COHERENT_MIGRATION_COL = "coherent_migration"
 
 UPLOAD_TO_FMS = False
-COHERENT_MIGRATION_COL = "coherent_migration"
 
 # %%
 output_dir = get_output_path("find_coherent_mig")
 pc_columns_to_keep = DIFFAE_PC_COLUMN_NAMES[:80]
-
-# %%
-annotation_path = "//allen/aics/users/chantelle.leveille/annotations"
-mixed_mig_files = [
-    {
-        "dataset_name": "20250319_20X",
-        "position": 2,
-        "fname": "mixed_mig/12.2 shear stress 20250319_20X_P2-annotations.csv",
-    },
-    {
-        "dataset_name": "20250319_20X",
-        "position": 3,
-        "fname": "mixed_mig/12.2 shear stress 20250319_20X_P3-annotations.csv",
-    },
-    {
-        "dataset_name": "20250813_20X",
-        "position": 0,
-        "fname": "mixed_mig/14.65 shear stress 20250813_20X_P0-annotations.csv",
-    },
-    {
-        "dataset_name": "20250813_20X",
-        "position": 1,
-        "fname": "mixed_mig/14.65 shear stress 20250813_20X_P1-annotations.csv",
-    },
-    {
-        "dataset_name": "20250813_20X",
-        "position": 4,
-        "fname": "mixed_mig/14.65 shear stress 20250813_20X_P4-annotations.csv",
-    },
-]
-
-coherent_mig_files = [
-    {
-        "dataset_name": "20250319_20X",
-        "position": 0,
-        "fname": "coherent_mig/12.2 shear stress 20250319_20X_P0-annotations.csv",
-    },
-    {
-        "dataset_name": "20250319_20X",
-        "position": 2,
-        "fname": "coherent_mig/12.2 shear stress 20250319_20X_P2-annotations.csv",
-    },
-    {
-        "dataset_name": "20250319_20X",
-        "position": 5,
-        "fname": "coherent_mig/12.2 shear stress 20250319_20X_P5-annotations.csv",
-    },
-    {
-        "dataset_name": "20250813_20X",
-        "position": 1,
-        "fname": "coherent_mig/14.65 shear stress 20250813_20X_P1-annotations.csv",
-    },
-    {
-        "dataset_name": "20250813_20X",
-        "position": 3,
-        "fname": "coherent_mig/14.65 shear stress 20250813_20X_P3-annotations.csv",
-    },
-    {
-        "dataset_name": "20250813_20X",
-        "position": 5,
-        "fname": "coherent_mig/14.65 shear stress 20250813_20X_P5-annotations.csv",
-    },
-]
 
 # %%
 model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
@@ -117,31 +55,55 @@ dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 pca = fit_pca(num_pcs=80)
 # %%
 df_mig_list = []
-for file_info in mixed_mig_files + coherent_mig_files:
-    dataset_name = str(file_info["dataset_name"])
+annotation_manifests = [
+    load_dataframe_manifest("coherent_migration_annotations"),
+    load_dataframe_manifest("incoherent_migration_annotations"),
+]
+for annotation_manifest in annotation_manifests:
+    for location_name, location in annotation_manifest.locations.items():
+        parsed = re.match(r"^(coherent_mig|incoherent_mig)_(.+)_P(\d+)$", location_name)
+        if parsed is None:
+            logger.error("Invalid annotation location key in manifest: %s", location_name)
+            raise ValueError(f"Invalid annotation location key: {location_name}")
 
-    df = get_dataframe_for_dynamics_workflows(
-        dataset_name, dataframe_manifest, pca=pca, filter_dataframe=False
-    )
+        migration_type = parsed.group(1)
+        dataset_name = parsed.group(2)
+        position = int(parsed.group(3))
 
-    fname = file_info["fname"]
-    df_annotation = pd.read_csv(f"{annotation_path}/{fname}")
-    df_annotation["crop_index"] = df_annotation["Track"] - 1
+        if location.path is None:
+            logger.error("Missing path for annotation location: %s", location_name)
+            raise ValueError(f"Missing path for annotation location: {location_name}")
 
-    pairs_df = df_annotation[["crop_index", "Frame"]]
-    merged = df.merge(
-        pairs_df,
-        left_on=["crop_index", "frame_number"],
-        right_on=["crop_index", "Frame"],
-        how="inner",
-    )
-    merged[COHERENT_MIGRATION_COL] = file_info in coherent_mig_files
-    merged["migration_type"] = "coherent" if file_info in coherent_mig_files else "mixed"
-    df_mig_list.append(merged)
+        df_all = get_dataframe_for_dynamics_workflows(
+            dataset_name, dataframe_manifest, pca=pca, filter_by_annotations=False
+        )
+        position_numeric = pd.to_numeric(
+            df_all["position"].astype(str).str.extract(r"(\d+)")[0],
+            errors="coerce",
+        )
+        df = df_all[position_numeric == position]
 
-    if len(merged) != len(df_annotation):
-        logger.error("File '%s' had different number of rows after merge", fname)
-        raise ValueError(f"Different dataframe lengths: '{len(df_annotation)}' vs. '{len(merged)}'")
+        annotation_path = str(location.path)
+        df_annotation = pd.read_csv(annotation_path)
+        df_annotation["crop_index"] = df_annotation["Track"] - 1
+
+        pairs_df = df_annotation[["crop_index", "Frame"]]
+        merged = df.merge(
+            pairs_df,
+            left_on=["crop_index", "frame_number"],
+            right_on=["crop_index", "Frame"],
+            how="inner",
+        )
+        merged[COHERENT_MIGRATION_COL] = migration_type == "coherent_mig"
+        merged["migration_type"] = "coherent" if migration_type == "coherent_mig" else "incoherent"
+        df_mig_list.append(merged)
+
+        if len(merged) != len(df_annotation):
+            logger.error("File '%s' had different number of rows after merge", annotation_path)
+            raise ValueError(
+                f"Different dataframe lengths for '{location_name}': "
+                f"'{len(df_annotation)}' vs. '{len(merged)}'"
+            )
 
 df_mig = pd.concat(df_mig_list, ignore_index=True)
 
@@ -240,7 +202,7 @@ if UPLOAD_TO_FMS:
 # %% Test applying LDA projection to an original dataframe
 dataset_name = "20250319_20X"
 df = get_dataframe_for_dynamics_workflows(
-    dataset_name, dataframe_manifest, pca=pca, filter_dataframe=True
+    dataset_name, dataframe_manifest, pca=pca, filter_by_annotations=True
 )
 # %% Use saved lda weights to apply LDA projection to original dataframe
 lda_dataframe_manifest = load_dataframe_manifest("lda_weights")

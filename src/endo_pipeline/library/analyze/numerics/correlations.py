@@ -10,11 +10,17 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
 )
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE
+from endo_pipeline.settings.diffae_feature_dataframes import (
+    DIFFAE_PC_COLUMN_NAMES,
+    NUM_PCS_TO_ANALYZE,
+    ColumnName,
+)
+from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RESCALE_THETA
 
 logger = logging.getLogger(__name__)
 
-CROSS_CORR_INDEX_COMBINATIONS = [(0, 1), (0, 2), (1, 2)]
+# include all pairs of the first three PCs and all pairs of the three polar coordinates for cross-correlation analysis
+CROSS_CORR_INDEX_COMBINATIONS = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5)]
 # use lags going from - to + {num_timepoints}//NUM_TIMEPOINT_FRAC for CCF/ACF calculation
 NUM_TIMEPOINT_FRAC = 3
 
@@ -328,13 +334,23 @@ def _compute_correlations_for_one_dataset(
     correlation_dict: dict,
     bootstrap_samples: int | None = None,
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
+    rescale_polar_angle: bool = RESCALE_THETA,
 ) -> dict[str, dict[str, Any]]:
     """Compute cross-correlation and autocorrelation for features from one dataset."""
 
     # try to get dataframe for the given dataset
     # if it does not exist, skip this dataset, return dict as is
     try:
-        df = get_dataframe_for_dynamics_workflows(dataset_name, dataframe_manifest, pca)
+        df = get_dataframe_for_dynamics_workflows(
+            dataset_name,
+            dataframe_manifest,
+            pca=pca,
+            filter_by_annotations=True,
+            include_cell_piling=False,
+            include_not_steady_state=False,
+            compute_polar=True,
+            rescale_theta=rescale_polar_angle,
+        )
     except KeyError:
         logger.warning(
             "Dataset [ %s ] not found in the manifest, skipping for this workflow.", dataset_name
@@ -342,9 +358,25 @@ def _compute_correlations_for_one_dataset(
         return correlation_dict
 
     feat_cols = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+    # add polar coordinate features to the list of features for correlation analysis
+    polar_column_names = [
+        ColumnName.POLAR_ANGLE,
+        ColumnName.POLAR_RADIUS,
+        ColumnName.PC3_FLIPPED,
+    ]
+    feat_cols.extend(polar_column_names)
+
+    # unwrap angles if polar_angle is in feat_cols
+    if ColumnName.POLAR_ANGLE in feat_cols:
+        polar_angle_period = PERIOD_THETA_RESCALED if rescale_polar_angle else 2 * np.pi
+        for _, df_crop in df.groupby(ColumnName.CROP_INDEX):
+            df.loc[df_crop.index, ColumnName.POLAR_ANGLE] = np.unwrap(
+                df_crop[ColumnName.POLAR_ANGLE], period=polar_angle_period
+            )
 
     # get feature data
     feats = df_to_array(df, feat_cols)
+    num_feats = len(feat_cols)
 
     num_timepoints = feats.shape[1]
     # make sure lags are symmetric around zero
@@ -353,12 +385,12 @@ def _compute_correlations_for_one_dataset(
 
     num_lags = len(lags)
     # autocorrelation
-    acf = np.zeros((num_lags, 3))
-    acf_lb = np.zeros((num_lags, 3))
-    acf_ub = np.zeros((num_lags, 3))
-    relaxation_timescale_lb = np.zeros(3)
-    relaxation_timescale_ub = np.zeros(3)
-    for i in range(3):
+    acf = np.zeros((num_lags, num_feats))
+    acf_lb = np.zeros((num_lags, num_feats))
+    acf_ub = np.zeros((num_lags, num_feats))
+    relaxation_timescale_lb = np.zeros(num_feats)
+    relaxation_timescale_ub = np.zeros(num_feats)
+    for i in range(num_feats):
         acf[:, i] = autocorrelation_function(feats, i)
         if bootstrap_samples is not None:
             # calculate bootstrap confidence intervals for ACF and relaxation timescale
@@ -371,13 +403,13 @@ def _compute_correlations_for_one_dataset(
             ]
 
     # cross-correlation
-    ccf = np.zeros((num_lags, 3))
-    ccf_lb = np.zeros((num_lags, 3))
-    ccf_ub = np.zeros((num_lags, 3))
+    ccf = np.zeros((num_lags, num_feats))
+    ccf_lb = np.zeros((num_lags, num_feats))
+    ccf_ub = np.zeros((num_lags, num_feats))
 
-    delta_ccf = np.zeros((num_lags // 2, 3))
-    delta_ccf_lb = np.zeros((num_lags // 2, 3))
-    delta_ccf_ub = np.zeros((num_lags // 2, 3))
+    delta_ccf = np.zeros((num_lags // 2, num_feats))
+    delta_ccf_lb = np.zeros((num_lags // 2, num_feats))
+    delta_ccf_ub = np.zeros((num_lags // 2, num_feats))
 
     if max_lag_integrate > num_lags // 2:
         max_lag_integrate = num_lags // 2
@@ -385,9 +417,9 @@ def _compute_correlations_for_one_dataset(
             "max_lag_integrate is larger than available lags, setting to [ %s ]",
             max_lag_integrate,
         )
-    delta_ccf_integral = np.zeros(3)
-    delta_ccf_integral_lb = np.zeros(3)
-    delta_ccf_integral_ub = np.zeros(3)
+    delta_ccf_integral = np.zeros(num_feats)
+    delta_ccf_integral_lb = np.zeros(num_feats)
+    delta_ccf_integral_ub = np.zeros(num_feats)
 
     for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
         data_feat1 = feats[..., j]
@@ -413,6 +445,7 @@ def _compute_correlations_for_one_dataset(
     delta_ccf_integral = cross_correlation_difference_norm(delta_ccf)
 
     # store results in dict of dicts and return updated dict
+    correlation_dict["features"][dataset_name] = feat_cols
     correlation_dict["lags"][dataset_name] = lags
     correlation_dict["acf"][dataset_name] = acf
     correlation_dict["acf_ci_lower"][dataset_name] = acf_lb
@@ -440,6 +473,7 @@ def compute_correlation_dict(
 ) -> dict[str, dict]:
     """Compute cross-correlation and autocorrelation for features from each dataset."""
     correlation_dict: dict[str, dict[str, np.ndarray]] = {
+        "features": {},
         "lags": {},
         "acf": {},
         "acf_ci_lower": {},

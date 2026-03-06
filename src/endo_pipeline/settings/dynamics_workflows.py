@@ -10,6 +10,8 @@ METADATA_COLUMNS_TO_KEEP: tuple[str, ...] = (
     ColumnName.TIMEPOINT.value,
     ColumnName.START_X.value,
     ColumnName.START_Y.value,
+    ColumnName.END_X.value,
+    ColumnName.END_Y.value,
 )
 
 DYNAMICS_COLUMN_NAMES: tuple[str, ...] = (

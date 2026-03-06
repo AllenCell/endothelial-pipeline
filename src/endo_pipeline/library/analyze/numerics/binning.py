@@ -135,18 +135,18 @@ def get_bounds_from_data(
     # loop over each dataset and update bin mins and maxs
     for dataset_name in dataset_names:
         if filter_to_valid:
-            filter_dataframe = True
+            filter_by_annotations = True
             include_cell_piling = False
             include_not_steady_state = False
         else:
-            filter_dataframe = False
+            filter_by_annotations = False
             include_cell_piling = True
             include_not_steady_state = True
         df = get_dataframe_for_dynamics_workflows(
             dataset_name,
             manifest,
             pca=pca,
-            filter_dataframe=filter_dataframe,
+            filter_by_annotations=filter_by_annotations,
             include_cell_piling=include_cell_piling,
             include_not_steady_state=include_not_steady_state,
         )

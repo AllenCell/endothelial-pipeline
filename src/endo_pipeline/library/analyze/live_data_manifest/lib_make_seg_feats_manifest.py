@@ -14,7 +14,11 @@ from scipy.ndimage import gaussian_filter1d
 from skimage.measure import regionprops
 from tqdm import tqdm
 
-from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+from endo_pipeline.configs import (
+    get_annotated_timepoints_for_position,
+    get_datasets_in_collection,
+    load_dataset_config,
+)
 from endo_pipeline.io import get_output_path, load_image
 from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.lib_init_density_vs_flow import vector_mean_angle_and_mag
@@ -62,9 +66,12 @@ def merge_measured_segmentation_features_tables(
         "cell_centroid",
         "cell_area (px**2)",
         "cell_perimeter (px)",
+        "cell_eccentricity",
         "touches_border",
+        "orientation",  # redundant even though has different phase shift than cell orientation
     ]
     big_table = big_table.drop(columns=duplicate_cols)
+    big_table = big_table.rename(columns={"cell_orientation": "orientation"})
 
     return big_table
 
@@ -252,6 +259,38 @@ def add_filter_columns(
     return big_table
 
 
+def add_cell_piling_and_steady_state_annotation_columns(big_table: pd.DataFrame) -> pd.DataFrame:
+    """Adds the annotations about cell piling and steady state that were done by
+    hand as columns to the data table.
+    """
+    # load dataset config and timepoint annotations
+    dataset = sequence_to_scalar(big_table["dataset_name"])
+    dataset_config = load_dataset_config(dataset)
+    if dataset_config.timepoint_annotations is not None:
+        filters_for_dataset = list(dataset_config.timepoint_annotations.keys())
+        for filt in filters_for_dataset:
+            # add the timepoint annotations as filter columns
+            big_table[filt] = (
+                big_table.groupby("position", as_index=True)
+                .apply(
+                    lambda df, filt=filt: (
+                        pd.DataFrame(
+                            (
+                                df["image_index"].isin(
+                                    get_annotated_timepoints_for_position(
+                                        dataset_config, sequence_to_scalar(df.position), [filt]
+                                    )
+                                )
+                            ),
+                            index=df.index,
+                        )
+                    )
+                )
+                .droplevel(0)
+            )
+    return big_table
+
+
 def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.DataFrame:
     """
     This function uses the existing columns in the data table to calculate
@@ -349,6 +388,9 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     )
     big_table["alignment_deg_rel_to_flow"] = np.rad2deg(big_table["alignment_rel_to_flow"])
 
+    # add column for the orientation in degrees
+    big_table["orientation_deg"] = np.rad2deg(big_table["orientation"])
+
     # add column for nematic order and aspect ratio
     # to compare to Saurabhs modeling results
     logger.info("Calculating nematic order and aspect ratio...")
@@ -363,6 +405,33 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     )
     big_table["area (um**2)"] = big_table["area"] * big_table["pixel_size_xy_in_um"] ** 2
     big_table["perimeter (um)"] = big_table["perimeter"] * big_table["pixel_size_xy_in_um"]
+
+    # compute intensity means and standard deviations for edge and node pixels
+    # separately and together
+    big_table["edge_fluorescence_means (a.u.)"] = big_table["edge_fluorescences (a.u.)"].transform(
+        lambda x: x.mean()
+    )
+    big_table["edge_fluorescence_std (a.u.)"] = big_table["edge_fluorescences (a.u.)"].transform(
+        lambda x: x.std()
+    )
+    big_table["node_fluorescence_means (a.u.)"] = big_table["node_fluorescences (a.u.)"].transform(
+        lambda x: x.mean()
+    )
+    big_table["node_fluorescence_std (a.u.)"] = big_table["node_fluorescences (a.u.)"].transform(
+        lambda x: x.std()
+    )
+    big_table["edge_and_node_fluorescence_means (a.u.)"] = big_table.apply(
+        lambda row: np.mean(
+            row["edge_fluorescences (a.u.)"].tolist() + row["node_fluorescences (a.u.)"].tolist()
+        ),
+        axis=1,
+    )
+    big_table["edge_and_node_fluorescence_std (a.u.)"] = big_table.apply(
+        lambda row: np.std(
+            row["edge_fluorescences (a.u.)"].tolist() + row["node_fluorescences (a.u.)"].tolist()
+        ),
+        axis=1,
+    )
 
     # add a column for the number of neighbors
     # touching each region that is being tracked
@@ -663,30 +732,20 @@ def calculate_smoothed_normd_area(
     return area_normd
 
 
-# restrict orientation to be between 0 and pi/2 instead of between -pi/2 and pi/2 so that
-# we can interpret this orientation as being either parallel or perpendicular to flow
-def shift_orientation_phase(orientation: float) -> float:
-    return orientation - np.pi / 2
-
-
-def restrict_orientation_to_positive(orientation: float) -> float:
-    return abs(orientation)
-
-
 def make_orientation_relative_to_flow(orientation: float) -> float:
     """
-    Changes 0 degrees from being the positive Y-axis (up)
-    to being the positive X-axis (to the right).
-    Also adjusts the range of possible angles from being
-    between -pi/2 and pi/2 to being between 0 and pi/2.
+    Restricts the orientation to be between 0 and pi/2 to
+    be between 0 and pi/4. This way the orientations can
+    be interpreted as being either aligned (i.e. parallel)
+    to the flow (0 degrees) or perpendicular to flow (90 degrees).
+    Orientation must be in radians.
     """
-    # you can visualize this process as folding a paper circle in half
-    # (the top half) and then rotating this half circle 90 degrees to
-    # the right, and then folding it in half again so you are only
-    # left with the top right quadrant of the circle.
-    return restrict_orientation_to_positive(
-        shift_orientation_phase(restrict_orientation_to_positive(orientation))
-    )
+    # restrict the x and y components of the orientation to be strictly
+    # positive so that the angle is between 0 and pi/2
+    x_component_rel_flow = np.abs(np.cos(orientation))
+    y_component_rel_flow = np.abs(np.sin(orientation))
+    # take the arctan of these components to get the angle relative to flow
+    return np.arctan2(y_component_rel_flow, x_component_rel_flow)
 
 
 def get_nuclei_rel_to_cell_position(

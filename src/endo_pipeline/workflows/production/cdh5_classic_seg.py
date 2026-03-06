@@ -8,7 +8,6 @@ def main(
     n_proc: int = 1,
     save_output: bool = True,
     overwrite: bool = True,
-    verbose: bool = False,
 ) -> None:
     """Run the cdh5 segmentation workflow on a dataset, list of datasets, or dataset collection.
 
@@ -46,6 +45,8 @@ def main(
     of the first 2 positions for each of the given datasets for workflow testing purposes.
     """
 
+    import logging
+
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.io import get_output_path
@@ -57,6 +58,8 @@ def main(
         process_task_queue,
     )
 
+    logger = logging.getLogger(__name__)
+
     out_dir = get_output_path(__file__)
 
     datasets = use_default_collection(datasets, "live_cdh5_seg_based_feat_datasets")
@@ -66,7 +69,6 @@ def main(
         save_output=save_output,
         out_dir=out_dir,
         overwrite=overwrite,
-        verbose=verbose,
         image_validation_frequency=48,
         is_test=DEMO_MODE,
         t_start=0,
@@ -81,7 +83,7 @@ def main(
         chunksize=5,
     )
 
-    print("\N{MICROSCOPE} Done analysis.")
+    logger.debug("...done analysis!")
 
 
 if __name__ == "__main__":
