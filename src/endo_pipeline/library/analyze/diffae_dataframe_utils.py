@@ -717,7 +717,7 @@ def get_dataframe_for_dynamics_workflows(
     manifest: DataframeManifest,
     columns_to_keep: list[str] | None = None,
     pca: PCA | None = None,
-    filter_dataframe: bool = True,
+    filter_by_annotations: bool = True,
     include_cell_piling: bool = True,
     include_not_steady_state: bool = True,
     crop_pattern: Literal["grid", "tracked"] = "grid",
@@ -745,13 +745,9 @@ def get_dataframe_for_dynamics_workflows(
 
     **Dataframe filtering**
 
-    The input ``filter_dataframe`` flag determines whether to filter out:
-        - annotated timepoints,
-        - annotated positions, and/or
-        - tracks below a minimum track length (if crop_pattern is 'tracked' and
-          minimum_track_length is specified)
-
-    If filtering is applied, the input flags ``include_cell_piling`` and
+    The input ``filter_by_annotations`` flag determines whether to filter out
+    annotated timepoints and positions from the dataframe. If filtering is
+    applied, the input flags ``include_cell_piling`` and
     ``include_not_steady_state`` determine whether to include or exclude
     timepoints annotated as "cell piling" and "not steady state", respectively.
 
@@ -768,7 +764,7 @@ def get_dataframe_for_dynamics_workflows(
         List of additional column names to keep in the output DataFrame.
     pca
         PCA model to fit to feature data. If None, do not project feature data.
-    filter_dataframe
+    filter_by_annotations
         Whether to filter out annotated timepoints and positions from the
         dataframe.
     include_cell_piling
@@ -819,7 +815,7 @@ def get_dataframe_for_dynamics_workflows(
 
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
-    if filter_dataframe:
+    if filter_by_annotations:
         annotations_to_ignore = []
         if include_cell_piling:
             annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
@@ -833,21 +829,22 @@ def get_dataframe_for_dynamics_workflows(
             load_dataset_config(dataset_name),
             timepoint_annotations=timepoint_annotations,
         )
-        if crop_pattern == "tracked" and minimum_track_length is not None:
-            # if crop pattern is 'tracked' and minimum track length is specified,
-            # also filter by track length (need to add track length column first)
-            df_filtered[ColumnName.TRACK_LENGTH] = df_filtered.groupby(
-                [ColumnName.POSITION, ColumnName.TRACK_ID]
-            )[ColumnName.TIMEPOINT].transform(lambda g: g.max() - g.min() + 1)
-
-            # Filter by new track length column
-            df_filtered = filter_dataframe_by_track_length(
-                df_filtered, ColumnName.TRACK_LENGTH, minimum_track_length
-            )
     else:
         df_filtered = df_
 
     df_with_crop = add_crop_index(df_filtered, crop_pattern)
+
+    if crop_pattern == "tracked" and minimum_track_length is not None:
+        # if crop pattern is 'tracked' and minimum track length is specified,
+        # also filter by track length (need to add track length column first)
+        df_filtered[ColumnName.TRACK_LENGTH] = df_filtered.groupby([ColumnName.CROP_INDEX])[
+            ColumnName.TIMEPOINT
+        ].transform(lambda g: g.max() - g.min() + 1)
+
+        # Filter by new track length column
+        df_filtered = filter_dataframe_by_track_length(
+            df_filtered, ColumnName.TRACK_LENGTH, minimum_track_length
+        )
 
     # add dataset duration description column
     dataset_config = load_dataset_config(dataset_name)
