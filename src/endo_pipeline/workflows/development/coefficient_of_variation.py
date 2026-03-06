@@ -264,10 +264,7 @@ def main(
 
                 # for scaled features, also compute additional covariance measures
                 # starting with population CoV vs time (std/mean across all crops at each timepoint)
-                scaled_population_cov = (
-                    grouped_df_scaled[col].apply(std_function, **scaled_function_kwargs)
-                    / grouped_df_scaled[col].apply(mean_function, **scaled_function_kwargs).abs()
-                ).to_numpy()
+                scaled_population_cov = scaled_std / np.absolute(scaled_mean)
 
                 # take mean of this population measure over all time
                 mean_population_cov = float(np.nanmean(scaled_population_cov))
