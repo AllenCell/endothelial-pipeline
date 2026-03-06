@@ -745,7 +745,7 @@ def make_orientation_relative_to_flow(orientation: float) -> float:
     x_component_rel_flow = np.abs(np.cos(orientation))
     y_component_rel_flow = np.abs(np.sin(orientation))
     # take the arctan of these components to get the angle relative to flow
-    return np.arctan(y_component_rel_flow / x_component_rel_flow)
+    return np.arctan2(y_component_rel_flow, x_component_rel_flow)
 
 
 def get_nuclei_rel_to_cell_position(
