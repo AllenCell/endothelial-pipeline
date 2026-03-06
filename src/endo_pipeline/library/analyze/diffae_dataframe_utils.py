@@ -800,6 +800,12 @@ def get_dataframe_for_dynamics_workflows(
         timepoints) of tracks to keep in the dataframe. If None, do not filter
         by track length.
 
+    Returns
+    -------
+    :
+        DataFrame with specified feature columns (PC projected or not),
+        specified metadata columns, and crop index column for downstream
+        analysis in various "dynamics workflows".
     """
 
     location = get_dataframe_location_for_dataset(manifest, dataset_name)
@@ -840,9 +846,7 @@ def get_dataframe_for_dynamics_workflows(
             # if crop pattern is 'tracked' and minimum track length is specified,
             # also filter by track length (need to add track length column first)
             dfs_with_track_length = []
-            for _, df_grouped in df_filtered.groupby(
-                [ColumnName.POSITION, ColumnName.TRACK_ID]
-            ):
+            for _, df_grouped in df_filtered.groupby([ColumnName.POSITION, ColumnName.TRACK_ID]):
                 df_grouped_with_track_length = _add_track_length_column(
                     df_grouped, ColumnName.TIMEPOINT, ColumnName.TRACK_LENGTH
                 )
