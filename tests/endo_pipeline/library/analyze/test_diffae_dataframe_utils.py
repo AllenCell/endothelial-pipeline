@@ -10,6 +10,7 @@ from endo_pipeline.configs import (
 )
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     filter_dataframe_by_annotations,
+    filter_dataframe_by_track_length,
     get_latent_feature_column_names_from_dataframe,
     get_traj_and_diff,
     project_features_to_pcs,
@@ -438,3 +439,91 @@ def test_project_features_to_pcs(
         assert pca_model.n_components_ == num_components
     except ValueError:  # if a ValueError is raised, check that it was expected
         assert raises_error
+
+
+@pytest.mark.parametrize(
+    "dataframe, track_length_column, minimum_track_length, expected_filtered_dataframe",
+    [
+        (
+            pd.DataFrame(
+                {
+                    ColumnName.TRACK_LENGTH: [1, 2, 3, 4, 5],
+                    "other_column": [10, 20, 30, 40, 50],
+                }
+            ),
+            ColumnName.TRACK_LENGTH,
+            3,
+            pd.DataFrame(
+                {
+                    ColumnName.TRACK_LENGTH: [3, 4, 5],
+                    "other_column": [30, 40, 50],
+                }
+            ),
+        ),
+        (
+            pd.DataFrame(
+                {
+                    ColumnName.TRACK_LENGTH: [0, 1, 2],
+                    "other_column": [10, 20, 30],
+                }
+            ),
+            ColumnName.TRACK_LENGTH,
+            1,
+            pd.DataFrame(
+                {
+                    ColumnName.TRACK_LENGTH: [1, 2],
+                    "other_column": [20, 30],
+                }
+            ),
+        ),
+    ],
+)
+def test_filter_dataframe_by_track_length_valid_column(
+    dataframe, track_length_column, minimum_track_length, expected_filtered_dataframe
+):
+    filtered_df = filter_dataframe_by_track_length(
+        dataframe, track_length_column, minimum_track_length
+    )
+    pd.testing.assert_frame_equal(filtered_df, expected_filtered_dataframe, check_like=True)
+
+
+@pytest.mark.parametrize(
+    "dataframe, track_length_column, minimum_track_length",
+    [
+        (
+            pd.DataFrame(
+                {
+                    "some_other_column": [1, 2, 3],
+                }
+            ),
+            ColumnName.TRACK_LENGTH,
+            3,
+        ),
+        (
+            pd.DataFrame(
+                {
+                    ColumnName.TRACK_LENGTH: [1, 2, 3],
+                }
+            ),
+            "non_existent_column",
+            3,
+        ),
+    ],
+)
+def test_filter_dataframe_by_track_length_invalid_column(
+    dataframe, track_length_column, minimum_track_length
+):
+    with pytest.raises(ValueError):
+        filter_dataframe_by_track_length(dataframe, track_length_column, minimum_track_length)
+
+
+def test_filter_dataframe_by_track_length_all_filtered_out():
+    # if all tracks are shorter than minimum_track_length, should return empty dataframe with same columns
+    dataframe = pd.DataFrame(
+        {
+            ColumnName.TRACK_LENGTH: [1, 2, 3],
+            "other_column": [10, 20, 30],
+        }
+    )
+    with pytest.raises(ValueError):
+        filter_dataframe_by_track_length(dataframe, ColumnName.TRACK_LENGTH, 4)
