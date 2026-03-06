@@ -70,8 +70,7 @@ def main(
         chunksize=5,
     )
 
-    logger.info("...done analysis.")
-    print("\N{MICROSCOPE}")
+    logger.info("...done analysis!")
 
 
 if __name__ == "__main__":

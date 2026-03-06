@@ -63,7 +63,6 @@ def load_images_sequentially(
     image_buffer_prior: int = 0,
     image_buffer_next: int = 0,
     axis: str | None = None,
-    verbose: bool = False,
 ) -> Generator:
     """Load a list of sequential images from a list of filepaths or from a single filepath.
     1. If no crop is provided then the entire image for each image specified by filepaths will be loaded.
@@ -96,7 +95,7 @@ def load_images_sequentially(
     ------
     image_list: list of np.array objects
     """
-    print("Preparing filepath and crop lists...") if verbose else None
+    logger.debug("Preparing filepath and crop lists...")
     assert isinstance(
         filepaths, (list, tuple, Path)
     ), "filepaths must be a list of filepaths or a Path object"
@@ -176,7 +175,7 @@ def load_images_sequentially(
         # update the crop dictionary to reflect the current slice of images being loaded
         crop_list = crops[relative_slice]
 
-        (print("Identifying which images have already been loaded...") if verbose else None)
+        logger.debug("Identifying which images have already been loaded...")
         loaded_relative_indices_to_keep = [
             j for j, fp in enumerate(old_image_list) if fp in image_list
         ]
@@ -186,14 +185,10 @@ def load_images_sequentially(
         )
         old_image_list = image_list.copy()
 
-        (print("Carrying over loaded images and loading new images...") if verbose else None)
+        logger.debug("Carrying over loaded images and loading new images...")
         loaded_images = [loaded_images[j] for j in loaded_relative_indices_to_keep]
 
-        (
-            print(f"[new images being loaded: {tuple([fp.name for fp in new_image_list])}]")
-            if verbose
-            else None
-        )
+        logger.debug(f"[new images being loaded: {tuple([fp.name for fp in new_image_list])}]")
 
         new_images = []
         for j in new_image_relative_indices:
@@ -201,11 +196,7 @@ def load_images_sequentially(
             img = BioImage(image_list[j])
             img_dims = img.dims
             crop = {dim: range(*img_dims[dim])[crop_list[j][dim]] for dim in crop_list[j]}
-            (
-                print(f"Converting crop list (len={len(crop_list)}) to range objects...")
-                if verbose
-                else None
-            )
+            logger.debug(f"Converting crop list (len={len(crop_list)}) to range objects...")
 
             new_images.append(img.get_image_data(DIMENSION_ORDER, **crop))
 
@@ -230,7 +221,6 @@ def match_labels_from_images(
         "reciprocal_matches_only",
     ] = "forward",
     exclude_if_any_thresholded: bool = False,
-    verbose: bool = False,
 ) -> dict:
     """
     Match labels between frames based on a list of metrics.
@@ -378,7 +368,7 @@ def match_labels_from_images(
     # call the matching functions based on which metrics are used
     if "region_overlap" in metric_names:
         # if metrics = 'region_overlap' then a different matching function is needed
-        print("-- using region_overlap for matching labels") if verbose else None
+        logger.debug("-- using region_overlap for matching labels")
         matched_labels_dict = match_labels_from_overlaps(
             labeled_images, reference_index, matching_method
         )
@@ -392,7 +382,7 @@ def match_labels_from_images(
             }
             list_of_labeled_metric_vals.append(labeled_metric_vals)
         # both metrics = 'centroids' and metrics = a list of metrics are handled the same way
-        print(f"-- using {metric_names} for matching labels") if verbose else None
+        logger.debug(f"-- using {metric_names} for matching labels")
         matched_labels_dict = match_labels_from_metrics(
             list_of_labeled_metric_vals,
             reference_index,
@@ -929,7 +919,6 @@ def reassign_track_ids_from_matches(
     recent_track_ids["image_index_relative"] = (
         recent_track_ids["image_index"].copy() - current_image_index
     )
-    # print('reassign_track_ids_from_matches:', f'current_T={current_T}')
     recent_track_ids["match_at_current_image_index"] = recent_track_ids.apply(
         lambda row: row["matched_query_label"][reference_index - row["image_index_relative"]],
         axis=1,
@@ -1213,7 +1202,6 @@ def run_tracking(
     Z_projection: Callable | None = None,
     track_tolerance: int = 0,
     image_validation_frequency: int = 0,
-    verbose: bool = False,
 ) -> None:
     """
     in_dir_extra is supposed to be a folder or list of filepaths to the raw images that can be
@@ -1341,7 +1329,7 @@ def run_tracking(
         crops_for_overlay,
     ) = zip(*img_queue_list, strict=False)
 
-    print("Generating tracks...") if verbose else None
+    logger.debug("Generating tracks...")
     results = generate_tracks(
         image_filepaths=img_fps_for_tracking,
         img_crops=crops_for_tracking,
@@ -1349,7 +1337,6 @@ def run_tracking(
         timeframes_for_table=timeframes,
         image_buffer_prior=0,
         image_buffer_next=track_tolerance + 1,
-        verbose=verbose,
     )
 
     # create output directories if they don't exist and get image metadata from the input image
@@ -1392,7 +1379,7 @@ def run_tracking(
                         + "".join(input_image_filepath.suffixes)
                     )
 
-                print(f"- saving images to {out_path}") if verbose else None
+                logger.debug(f"- saving images to {out_path}")
                 overlay_path = img_fps_for_overlay[idx]
                 overlay_crop = crops_for_overlay[idx]
                 if extra_in_dir:
@@ -1446,7 +1433,7 @@ def run_tracking(
     table_out_name = f"{out_filename_prefix}_tracking.parquet"
     out_path = out_dir / table_out_name
     out_dir.mkdir(parents=True, exist_ok=True)
-    print(f"Saving tracking table to {out_path}") if verbose else None
+    logger.debug(f"Saving tracking table to {out_path}")
 
     # split the 'centroid' column into separate columns for each dimension
     if "centroid" in track_table.columns:
@@ -1473,22 +1460,20 @@ def update_track_table(
     image_buffer_prior: int = 0,
     image_buffer_next: int = 1,
     reference_index: int = 0,
-    verbose: bool = False,
 ) -> tuple:
 
-    print("- updating tracks...") if verbose else None
+    logger.debug("- updating tracks...")
 
     current_image_index = (
         int(existing_track_ids["image_index"].max()) + 1 if not existing_track_ids.empty else 0
     )
 
-    print("- matching labels...") if verbose else None
+    logger.debug("- matching labels...")
     matched_labels = match_labels_from_images(
         labeled_images,
         reference_index=reference_index,
         metrics=tracking_metrics,
         matching_method="reciprocal_matches_only",
-        verbose=verbose,
     )
 
     matched_labels_props_list = [matched_labels[lab]["regionprops"] for lab in matched_labels]
@@ -1523,7 +1508,7 @@ def update_track_table(
         newest_track_id_label < np.iinfo(np.uint32).max
     ), "HALTING: NUMBER OF NEW TRACKS EXCEEDS 32-BIT INTEGER LIMIT"
 
-    print("- initializing track ids...") if verbose else None
+    logger.debug("- initializing track ids...")
     new_track_ids = initialize_track_ids(
         matched_labels_props_list,
         image_index=current_image_index,
@@ -1541,7 +1526,7 @@ def update_track_table(
         ].copy()
 
         # update track ids
-        print("- reassigning track ids...") if verbose else None
+        logger.debug("- reassigning track ids...")
         new_track_ids = update_new_track_ids(
             recent_track_ids,
             new_track_ids,
@@ -1551,7 +1536,7 @@ def update_track_table(
     else:
         pass
     # concatenate reassigned track ids to existing track ids
-    (print("- concatenating existing track table and new track table...") if verbose else None)
+    logger.debug("- concatenating existing track table and new track table...")
     existing_track_ids = (
         pd.concat([existing_track_ids, new_track_ids])
         if not existing_track_ids.empty
@@ -1559,7 +1544,7 @@ def update_track_table(
     )
 
     # relabel images
-    print("- relabeling images...") if verbose else None
+    logger.debug("- relabeling images...")
     track_labeled_image = relabel_array_values(
         original_array=labeled_images[reference_index],
         original_values=new_track_ids["label"],
@@ -1592,7 +1577,6 @@ def generate_tracks(
     timeframes_for_table: Sequence | None = None,
     image_buffer_prior: int = 0,
     image_buffer_next: int = 1,
-    verbose: bool = False,
 ) -> Generator:
     """
     Will build tracks from images and save a version of the images relabeled according to
@@ -1609,7 +1593,6 @@ def generate_tracks(
         crops=img_crops,
         image_buffer_prior=image_buffer_prior,
         image_buffer_next=image_buffer_next,
-        verbose=verbose,
     )
 
     track_table = pd.DataFrame()
@@ -1619,7 +1602,7 @@ def generate_tracks(
         else:
             current_T = timeframes_for_table[i]
 
-        print(f"Working on {fp.name}...") if verbose else None
+        logger.debug(f"Working on {fp.name}...")
         labeled_images = [img_arr.squeeze() for img_arr in labeled_images]
 
         track_labeled_image, current_tracks, track_table = update_track_table(
@@ -1630,7 +1613,6 @@ def generate_tracks(
             image_buffer_prior,
             image_buffer_next,
             reference_index=0,
-            verbose=verbose,
         )
 
         yield i, fp, track_labeled_image, track_table
@@ -1660,7 +1642,6 @@ def run_tracking_multiproc_wrapper(queue: Sequence) -> None:
     position = sequence_to_scalar(queue_df["position"])
     image_validation_frequency = sequence_to_scalar(queue_df["image_validation_frequency"])
     validation_image = sequence_to_scalar(queue_df["is_validation_image"])
-    verbose = sequence_to_scalar(queue_df["verbose"])
     out_dir = sequence_to_scalar(queue_df["output_dir"]) / f"{dataset_name}/P{position}"
     out_filename_prefix = f"{dataset_name}_P{position}"
 
@@ -1694,7 +1675,6 @@ def run_tracking_multiproc_wrapper(queue: Sequence) -> None:
             Z_projection=np.max,
             track_tolerance=3,
             image_validation_frequency=image_validation_frequency,
-            verbose=verbose,
         )
 
         # add the dataset name and position to the output table
