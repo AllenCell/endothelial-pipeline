@@ -1,7 +1,6 @@
 import logging
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 from colorizer_data import convert_colorizer_data
 
@@ -186,7 +185,6 @@ def get_df_and_label_map_cdh5seg(
     df_tracks_subset: pd.DataFrame = df_tracks[cols_to_compute].compute().reset_index(drop=True)
 
     df = add_dynamic_features_with_filtering(df_tracks_subset)
-    df["orientation_deg"] = np.rad2deg(df["orientation"] + np.pi / 2)
 
     df = df[df["position"] == position]
 
@@ -215,7 +213,7 @@ def get_df_and_label_map_grid(
     pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=num_pcs_for_pca)
 
     grid_df = get_dataframe_for_dynamics_workflows(
-        dataset, dataframe_manifest, pca=pca, filter_dataframe=False
+        dataset, dataframe_manifest, pca=pca, filter_by_annotations=False
     )
     feat_cols = [col for col in grid_df.columns if ColumnName.LATENT_FEATURE_PREFIX in col]
     grid_df = grid_df.drop(columns=feat_cols)

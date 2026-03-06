@@ -75,7 +75,7 @@ for annotation_manifest in annotation_manifests:
             raise ValueError(f"Missing path for annotation location: {location_name}")
 
         df_all = get_dataframe_for_dynamics_workflows(
-            dataset_name, dataframe_manifest, pca=pca, filter_dataframe=False
+            dataset_name, dataframe_manifest, pca=pca, filter_by_annotations=False
         )
         position_numeric = pd.to_numeric(
             df_all["position"].astype(str).str.extract(r"(\d+)")[0],
@@ -202,7 +202,7 @@ if UPLOAD_TO_FMS:
 # %% Test applying LDA projection to an original dataframe
 dataset_name = "20250319_20X"
 df = get_dataframe_for_dynamics_workflows(
-    dataset_name, dataframe_manifest, pca=pca, filter_dataframe=True
+    dataset_name, dataframe_manifest, pca=pca, filter_by_annotations=True
 )
 # %% Use saved lda weights to apply LDA projection to original dataframe
 lda_dataframe_manifest = load_dataframe_manifest("lda_weights")

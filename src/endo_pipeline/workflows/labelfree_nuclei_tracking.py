@@ -26,7 +26,6 @@ def main():
         sorting_key=extract_t,
         C=2,
         image_validation_frequency=1,
-        verbose=False,
     )
 
 

@@ -152,7 +152,6 @@ def main(
         datasets,
         t_final=t_final,
         out_dir=out_dir,
-        verbose=verbose,
     )
     analysis_queue_df = pd.DataFrame(analysis_queue)
     for dataset_name in datasets:

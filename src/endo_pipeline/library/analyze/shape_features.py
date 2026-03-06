@@ -515,20 +515,58 @@ def calculate_region_border_metrics(
     binary_image: np.ndarray,
     intensity_image: np.ndarray | Array | None = None,
     labeled_image: np.ndarray | Array | None = None,
-    verbose: bool = True,
 ) -> list:
     """
     Takes a binary image representation of one or more structures that look
     approximately dendritic, filamentous, or network-like and creates a node
     and edge representation of the binary image to calculate angles between
     lines connecting neighboring nodes and a horizontal line as well as the
-    lengths of those lines. Also calculates the edge lengths and intensities
-    at the edges of an intensity_image if provided.
+    lengths of those lines.
+
+    Also calculates the edge lengths and intensities at the edges of an
+    intensity_image if provided.
     Note that the edge lengths and local curvatures are not being used to
     calculate angles, only node-to-neighboring-node lines.
+
     If labeled_image is provided then metrics for each region in labeled_image
     will be returned as a second dictionary of lists, including associated
     node labels, edge labels, and paired node labels.
+
+    **Neighbor node metrics**
+
+    ======================  ===================================================================
+    Metric                  Description
+    ======================  ===================================================================
+    node_pair_labels        labels of (origin, neighbor) nodes used to build a line
+    node_pair_centroids     centroids of (origin, neighbor) nodes used to build a line
+    distances               linear distance between node_pair_centroids
+    angles                  angle between the line formed by node_pair_centroids and horizontal
+    edge_labels             labels of the edges in binary_image connecting the paired nodes
+    edge_num_pixels         number of pixels that constitute each edge
+    length (px)             length of each edge in pixels
+    fluor_mean (au)         mean fluorescence of intensity_image at an edge
+    ======================  ===================================================================
+
+    **Labeled image metrics**
+
+    ============================  =================================================================
+    Metric                        Description
+    ============================  =================================================================
+    cell_label                    labels of the regions in labeled_image
+    cell_centroid                 centroids of the regions in labeled_image
+    cell_area (px**2)             areas of the regions in labeled_image
+    cell_perimeter (px)           perimeters of the regions in labeled_image
+    cell_solidity                 solidities of the regions in labeled_image
+    cell_eccentricity             eccentricities of the regions in labeled_image
+    cell_orientation              orientations of the regions in labeled_image
+    cell_fluorescence_mean (au)   mean fluorescence of intensity_image for each region
+    edge_labels                   labels of the edges that touch each region in labeled_image
+    node_labels                   labels of the nodes that touch each region in labeled_image
+    edge_fluorescences (au)       list of fluorescence values at the edges of each region
+    node_fluorescences (au)       list of fluorescence values at the nodes of each region
+    node_pair_labels              labels of the nodes at the end of each edge label for each region
+    ============================  =================================================================
+
 
     Parameters
     ----------
@@ -550,36 +588,8 @@ def calculate_region_border_metrics(
 
     Returns
     -------
-    [neighbor_node_metrics, labeled_image_metrics]: list of dicts
-        neighbor_node_metrics: dict of lists
-            node_pair_labels: The labels of the nodes used to build a line with
-                the order (origin_node, neighboring_node).
-            node_pair_centroids: The centroids of the nodes used to build a line with the
-                order (origin_node, neighboring_node)
-            distances: The linear distance between node_pair_centroids.
-            angles: The angle between the line formed by node_pair_centroids and a horizontal line.
-            edge_labels: The labels of the edges in binary_image that connect the paired nodes.
-            edge_num_pixels: The number of pixels that constitute each edge. Does not account
-                for differences in distance based on connectivity (but 'length (px)' does).
-            length (px): The length of each edge in pixels (N.B. this does not include the
-                distance from the node to the edge).
-            fluor_mean (au): The mean fluorescence of intensity_image at an edge if provided.
-                Other measures for fluor include _std, _median, _min, _max, _pct25, and _pct75.
-        labeled_image_metrics: dict of lists or None
-            cell_label: The labels of the regions in labeled_image.
-            cell_centroid: The centroids of the regions in labeled_image.
-            cell_area (px**2): The areas of the regions in labeled_image.
-            cell_perimeter (px): The perimeters of the regions in labeled_image.
-            cell_solidity: The solidities of the regions in labeled_image
-            cell_eccentricity: The eccentricities of the regions in labeled_image.
-            cell_orientation: The orientations of the regions in labeled_image.
-            cell_fluorescence_mean (au): The mean fluorescence of intensity_image for each
-                region in labeled_image (if intensity_image is provided).
-                Other fluorescence measures include _std, _median, _min, _max, _pct25, and _pct75.
-            edge_labels: The labels of the edges that touch each region in labeled_image.
-            node_labels: The labels of the nodes that touch each region in labeled_image.
-            node_pair_labels: The labels of the node pairs that are at the end of each edge label
-                that touches each region in labeled_image.
+    :
+        List of dictionaries containing neighbor node metrics and labeled image metrics.
 
     NOTE: The lists in each 'metrics' dict have the same indexing order (i.e. you can build a
         table directly from this dict via a pandas DataFrame).
@@ -598,13 +608,13 @@ def calculate_region_border_metrics(
 
     ## calculate neighbor node angles and distances
     neighbor_node_metrics = calculate_neighbor_node_metrics(
-        binary_image, nodes, edges, intensity_image, verbose
+        binary_image, nodes, edges, intensity_image
     )  # -> list of dictionaries(?)
 
     ## associate edges with the labeled_image
     if isinstance(labeled_image, np.ndarray):
         labeled_image_metrics = calculate_labeled_image_metrics(
-            binary_image, labeled_image, nodes, edges, intensity_image, verbose
+            binary_image, labeled_image, nodes, edges, intensity_image
         )
     else:
         labeled_image_metrics = None
@@ -618,7 +628,6 @@ def calculate_labeled_image_metrics(
     nodes: np.ndarray | None = None,
     edges: np.ndarray | None = None,
     intensity_image: np.ndarray | None = None,
-    verbose: bool = True,
 ) -> dict:
     """
     Takes a binary image representation of one or more structures that look
@@ -690,7 +699,7 @@ def calculate_labeled_image_metrics(
     seeds *= ~binary_image
 
     # create the nodes and edges arrays if they were not provided
-    print("    -- getting node and edge labels") if verbose else None
+    logger.debug("- getting node and edge labels")
     nodes, edges, skel, conn = (
         (nodes, edges, None, None)
         if (isinstance(nodes, np.ndarray) and isinstance(edges, np.ndarray))
@@ -708,14 +717,14 @@ def calculate_labeled_image_metrics(
     )
 
     # get the node labels that define each edge
-    print("    -- getting neighboring node information") if verbose else None
+    logger.debug("- getting neighboring node information")
     node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs = (
         get_neighbor_nodes_and_edges(nodes, edges, as_dict=True)
     )
 
     # run a watershed using the labeled (minus any regions that overlap with binary_image)
     # image as seeds to find which parts of labels touch which edges
-    (print("    -- expanding labels in labeled_image to be adjacent to edges") if verbose else None)
+    logger.debug("- expanding labels in labeled_image to be adjacent to edges")
     regions = segmentation.watershed(
         np.logical_or(nodes, edges),
         markers=seeds,
@@ -723,7 +732,7 @@ def calculate_labeled_image_metrics(
         mask=~np.logical_or(nodes, edges),
     ).astype(np.int32)
     # make the labeling of regions start after the biggest edge label
-    print("    -- relabeling labeled_image") if verbose else None
+    logger.debug("- relabeling labeled_image")
     regions_offset = regions.copy()
     regions_offset[regions.astype(bool)] += edges.max()
     # combine the edges labels and the offset regions labels
@@ -731,12 +740,8 @@ def calculate_labeled_image_metrics(
 
     # create a RAG from the regions and find out which edge labels and connected to which
     # region labels
-    (
-        print("    -- finding which edge labels touch which labeled_image regions")
-        if verbose
-        else None
-    )
-    # rag = graph.RAG(regions_offset)
+    logger.debug("- finding which edge labels touch which labeled_image regions")
+
     rag = graph.rag_boundary(
         regions_offset, np.zeros(labeled_image.shape, dtype=float), connectivity=1
     )
@@ -744,7 +749,7 @@ def calculate_labeled_image_metrics(
     # or unreachable areas)
     rag.remove_node(0) if 0 in rag.nodes else None
 
-    print("    -- finding which region labels are neighbors") if verbose else None
+    logger.debug("- finding which region labels are neighbors")
     rag_of_labeled_image = graph.rag_boundary(
         labeled_image, np.zeros(labeled_image.shape, dtype=float), connectivity=1
     )
@@ -763,7 +768,7 @@ def calculate_labeled_image_metrics(
     )
 
     # get the region properties of the labels in regions
-    print("    -- getting labeled_image region properties") if verbose else None
+    logger.debug("- getting labeled_image region properties")
     extra_region_props = (
         intensity_std,
         intensity_median,
@@ -775,18 +780,11 @@ def calculate_labeled_image_metrics(
     )
 
     # add the neighbors of each region in regions
-    (
-        print(
-            "    -- adding node label and edge label information to region labeled_image properties"
-        )
-        if verbose
-        else None
+    logger.debug(
+        "- adding node label and edge label information to region labeled_image properties"
     )
-    (
-        print("    -- adding neighboring region information to labeled_image properties")
-        if verbose
-        else None
-    )
+    logger.debug("- adding neighboring region information to labeled_image properties")
+
     for region in region_props:
         # include the neighbor labels if the label is an edge label (but not if it happens to
         # a label originating from labeled_image)
@@ -813,8 +811,13 @@ def calculate_labeled_image_metrics(
         ~segmentation.clear_border(labeled_image).astype(bool) * labeled_image
     )
 
+    edge_props = measure.regionprops(edges, intensity_image=intensity_image)
+    edge_props_dict = {prop.label: prop for prop in edge_props}
+    node_props = measure.regionprops(nodes, intensity_image=intensity_image)
+    node_props_dict = {prop.label: prop for prop in node_props}
+
     # create the output lists
-    print("    -- generating dictionary of lists output") if verbose else None
+    logger.debug("- generating dictionary of lists output")
     region_label = []
     region_centroid = []
     region_area = []
@@ -835,6 +838,8 @@ def calculate_labeled_image_metrics(
     edge_labels = []
     node_labels = []
     node_pairs = []
+    edge_fluor_list = []
+    node_fluor_list = []
     is_border_region = []
 
     for prop in region_props:
@@ -846,7 +851,10 @@ def calculate_labeled_image_metrics(
         region_major_axis_length.append(prop.major_axis_length)
         region_minor_axis_length.append(prop.minor_axis_length)
         region_eccentricity.append(prop.eccentricity)
-        region_orientation.append(prop.orientation)
+        # add pi/2 to to orientation to make the orientation have 0 and pi
+        # represent the X axis and pi/2 represent the Y axis (instead of
+        # the default where 0 and pi represent the Y axis and pi/2 the X axis)
+        region_orientation.append(prop.orientation + np.pi / 2)
         region_fluor_mean.append(prop.intensity_mean)
         region_fluor_std.append(prop.intensity_std)
         region_fluor_median.append(prop.intensity_median)
@@ -856,11 +864,26 @@ def calculate_labeled_image_metrics(
         region_fluor_max.append(prop.intensity_max)
         neighboring_regions.append(prop.region_neighbors)
         edge_labels.append(prop.neighbors)
-        node_labels.append(
-            {node for edge in prop.neighbors for node in edge_neighbors_nodelabs[edge]}
-        )
+        node_neighbors = {node for edge in prop.neighbors for node in edge_neighbors_nodelabs[edge]}
+        node_labels.append(node_neighbors)
         node_pairs.append([edge_neighbors_nodelabs[edge] for edge in prop.neighbors])
         is_border_region.append(prop.label in border_labels)
+        edge_fluors = [
+            intens
+            for edge in prop.neighbors
+            for intens in intensity_image[
+                tuple(zip(*edge_props_dict[edge].coords, strict=True))
+            ].tolist()
+        ]
+        edge_fluor_list.append(edge_fluors)
+        node_fluors = [
+            intens
+            for node in node_neighbors
+            for intens in intensity_image[
+                tuple(zip(*node_props_dict[node].coords, strict=True))
+            ].tolist()
+        ]
+        node_fluor_list.append(node_fluors)
 
     # create the output dictionary of lists
     metrics = {
@@ -884,6 +907,8 @@ def calculate_labeled_image_metrics(
         "edge_labels": edge_labels,
         "node_labels": node_labels,
         "node_pair_labels": node_pairs,
+        "edge_fluorescences (au)": edge_fluor_list,
+        "node_fluorescences (au)": node_fluor_list,
         "touches_image_border": is_border_region,
     }
 
@@ -895,7 +920,6 @@ def calculate_neighbor_node_metrics(
     nodes: np.ndarray | None = None,
     edges: np.ndarray | None = None,
     intensity_image: np.ndarray | None = None,
-    verbose: bool = True,
 ) -> dict:
     """
     Takes a binary image representation of one or more structures that look
@@ -967,17 +991,17 @@ def calculate_neighbor_node_metrics(
     node_props = measure.regionprops(nodes)
     node_labels, node_centroids = zip(*[(n.label, n.centroid) for n in node_props], strict=False)
 
-    (print("    -- getting home node and neighboring node centroids") if verbose else None)
+    logger.debug("- getting home node and neighboring node centroids")
     node_label_grid1, node_label_grid2 = np.meshgrid(node_labels, node_labels, indexing="ij")
     ## construct vectors from the node centroids
     vec_nodes = build_vector(*numpy_mesh_coords(node_centroids, node_centroids, indexing="ij"))
     node_labels_index_dict = dict(zip(node_labels, range(len(node_labels)), strict=False))
-    print(f"    -- array shape = {vec_nodes.shape}") if verbose else None
+    logger.debug(f"- array shape = {vec_nodes.shape}")
 
-    (print("    -- calculating distances of lines between neighboring nodes") if verbose else None)
+    logger.debug("- calculating distances of lines between neighboring nodes")
     dists = np.linalg.norm(vec_nodes, axis=2)
 
-    (print("    -- calculating angles of lines between neighboring nodes") if verbose else None)
+    logger.debug("- calculating angles of lines between neighboring nodes")
     ## determine angle of these lines relative to the horizontal
     ## (fluid flow direction is horizontal)
     ## construct a horizontal vector for reference
@@ -992,7 +1016,7 @@ def calculate_neighbor_node_metrics(
     ## 90-180 to be between 0-90
     angles[angles > np.pi / 2] = abs(angles[angles > np.pi / 2] - np.pi)
 
-    print("    -- getting node neighbors") if verbose else None
+    logger.debug("- getting node neighbors")
     ## get the node neighbors
     node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs = (
         get_neighbor_nodes_and_edges(nodes, edges)
@@ -1000,7 +1024,7 @@ def calculate_neighbor_node_metrics(
     del node_neighbors_edgelabs  # remove unused images to save on memory
 
     ## create a connectivity matrix mask
-    print("    -- creating node connectivity mask") if verbose else None
+    logger.debug("- creating node connectivity mask")
     neighbors_mask = np.zeros(dists.shape, dtype=bool)
     ## node == i, neighbor == j
     node_neighbors_labels_list = [
@@ -1017,7 +1041,7 @@ def calculate_neighbor_node_metrics(
     neighbors_mask_oneway = np.tril(neighbors_mask)
 
     ## filter the node-node distance and angle arrays so that only connected nodes are finite
-    print("    -- filtering out unconnected node pairs") if verbose else None
+    logger.debug("- filtering out unconnected node pairs")
     home_nodes_filtered = node_label_grid1[neighbors_mask_oneway]
     neighbor_nodes_filtered = node_label_grid2[neighbors_mask_oneway]
     dists_filtered = dists[neighbors_mask_oneway]
@@ -1042,7 +1066,7 @@ def calculate_neighbor_node_metrics(
         try:
             prop.node_pair = edge_neighbors_nodelabs[prop.label]
         except IndexError:
-            print(prop.label)
+            logger.info(prop.label)
 
     node_pairs_filtered = list(zip(home_nodes_filtered, neighbor_nodes_filtered, strict=False))
     edge_props_filtered = [
@@ -1395,7 +1419,6 @@ def build_cdh5_measured_features_tables(
     position: int = 0,
     save_output: bool | None = True,
     create_validation_image: bool = False,
-    verbose: bool = True,
 ) -> None:
     """
     Build tables of measured features from the segmentation images
@@ -1426,8 +1449,6 @@ def build_cdh5_measured_features_tables(
         Whether to save the output tables (and validation images if selected).
     create_validation_image: bool
         Whether to create a validation image.
-    verbose: bool
-        Whether to print progress messages.
 
     Returns
     -------
@@ -1454,7 +1475,7 @@ def build_cdh5_measured_features_tables(
     - cell_fluorescence_mean (a.u.)
     - cell_fluorescence_std (a.u.)
     - cell_fluorescence_median (a.u.)
-    - cell_fluoresnce_min (a.u.)
+    - cell_fluorescence_min (a.u.)
     - cell_fluorescence_pct25 (a.u.)
     - cell_fluorescence_pct75 (a.u.)
     - cell_fluorescence_max (a.u.)
@@ -1462,6 +1483,8 @@ def build_cdh5_measured_features_tables(
     - edge_labels
     - node_labels
     - node_pair_labels
+    - edge_fluorescences (a.u.)
+    - node_fluorescences (a.u.)
     - touches_image_border
     - measurement_timestamp
     - git_branch_name
@@ -1547,7 +1570,7 @@ def build_cdh5_measured_features_tables(
     logger.debug(f"T={tp} -- calculating distances and angles between neighboring nodes")
 
     neighbor_node_metrics, labeled_region_metrics = calculate_region_border_metrics(
-        seg_borders.astype(bool), raw_arr, seg_arr, verbose=verbose
+        seg_borders.astype(bool), raw_arr, seg_arr
     )
 
     ## save a table of the results
@@ -1661,6 +1684,8 @@ def build_cdh5_measured_features_tables(
                     "edge_labels": labeled_region_metrics["edge_labels"],
                     "node_labels": labeled_region_metrics["node_labels"],
                     "node_pair_labels": labeled_region_metrics["node_pair_labels"],
+                    "edge_fluorescences (a.u.)": labeled_region_metrics["edge_fluorescences (au)"],
+                    "node_fluorescences (a.u.)": labeled_region_metrics["node_fluorescences (au)"],
                     "touches_image_border": labeled_region_metrics["touches_image_border"],
                 }
             )
@@ -1882,7 +1907,6 @@ def build_cdh5_measured_features_tables_multiproc_wrapper(args: dict) -> None:
     tp = args["T"]
     save_output = args["save_output"]
     out_dir = args["output_dir"]
-    verbose = args["verbose"]
     create_validation_image = args["is_validation_image"]
     build_cdh5_measured_features_tables(
         dataset_name,
@@ -1891,7 +1915,6 @@ def build_cdh5_measured_features_tables_multiproc_wrapper(args: dict) -> None:
         position,
         save_output=save_output,
         create_validation_image=create_validation_image,
-        verbose=verbose,
     )
 
 

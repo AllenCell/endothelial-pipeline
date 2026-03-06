@@ -1,195 +1,54 @@
+from collections.abc import Callable
+
 import numpy as np
-import pandas as pd
-
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    rewrap_polar_angle,
-    unwrap_nonsequential_array,
-)
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
 
-def compute_circular_mean(
-    angles: np.ndarray, original_angle_range: tuple[float, float], rewrap: bool = True
-) -> float:
-    """
-    Compute the circular mean of a set of angles.
-
-    Parameters
-    ----------
-    angles
-        An array of angles from which to compute the circular mean.
-    original_angle_range
-        A tuple specifying the original range of the angles, e.g., (0, 360) for
-        degrees or (0, 2*np.pi) for radians.
-    rewrap
-        If True, the resulting mean will be rewrapped to the original angle
-        range. If False, the mean will be returned in the unwrapped form.
-    """
-    angle_period = original_angle_range[1] - original_angle_range[0]
-
-    unwrapped_angles = unwrap_nonsequential_array(angles, angle_period)
-    unwrapped_mean = np.mean(unwrapped_angles)
-
-    if rewrap:
-        return rewrap_polar_angle(unwrapped_mean, original_angle_range)
-    else:
-        return unwrapped_mean
-
-
-def compute_circular_std(angles: np.ndarray, original_angle_range: tuple[float, float]) -> float:
-    """
-    Compute the circular standard deviation of a set of angles.
-
-    Parameters
-    ----------
-    angles
-        An array of angles from which to compute the circular standard deviation.
-    original_angle_range
-        A tuple specifying the original range of the angles, e.g., (0, 360) for
-        degrees or (0, 2*np.pi) for radians.
-    """
-    angle_period = original_angle_range[1] - original_angle_range[0]
-
-    unwrapped_angles = unwrap_nonsequential_array(angles, angle_period)
-    unwrapped_std = np.std(unwrapped_angles)
-
-    return unwrapped_std
-
-
-def compute_circular_mean_and_std_over_time(
-    df: pd.DataFrame,
-    column_name: str,
-    original_range: tuple[float, float],
-) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Compute circular mean and standard deviation of a periodic column at each
-    timepoint.
-
-    Parameters
-    ----------
-    df
-        Feature dataframe for a single dataset / flow condition, containing a
-        ``frame_number`` column and the periodic feature column.
-    column_name
-        Name of the periodic feature column.
-    original_range
-        Original range of the periodic variable, passed to circmean and circstd
-        to ensure correct handling of wraparound.
-
-    Returns
-    -------
-    time_values
-        1-D array of time values in hours.
-    mean_values
-        1-D array of rewrapped circular mean at each timepoint.
-    std_values
-        1-D array of standard deviation of the unwrapped values at each
-        timepoint.
-    """
-    timepoints = df[ColumnName.TIMEPOINT.value].sort_values().unique()
-    mean_values = np.empty(len(timepoints), dtype=float)
-    std_values = np.empty(len(timepoints), dtype=float)
-
-    for i, (_, df_frame) in enumerate(df.groupby(ColumnName.TIMEPOINT.value)):
-        unwrapped_angles = df_frame[column_name].to_numpy()
-        mean_values[i] = compute_circular_mean(unwrapped_angles, original_range, rewrap=True)
-        std_values[i] = compute_circular_std(unwrapped_angles, original_range)
-
-    return mean_values, std_values
-
-
-def compute_per_crop_temporal_cov(
-    crop_array: np.ndarray,
+def compute_cumulative_variance_over_time(
+    crop_array: np.ndarray, variance_function: Callable[..., float], **var_func_kwargs
 ) -> np.ndarray:
     """
-    Compute the temporal CoV (std / |mean| over time) for every individual crop.
+    Compute per-crop cumulative variance of a feature over time.
 
-    Missing timepoints are treated as NaN so that crops with gaps are still
-    included.  Crops where |mean| close to 0 produce infinite or NaN CoV and are
-    silently dropped from the returned arrays.
+    **Handling of NaN values**
 
-    Parameters
-    ----------
-    crop_array
-        3-D array of shape (n_crops, n_timepoints, 1) containing the
-        feature values for each crop and timepoint.
-    """
-    temporal_std = np.nanstd(crop_array, axis=1)
-    temporal_mean_abs = np.abs(np.nanmean(crop_array, axis=1))
-    cov = np.where(temporal_mean_abs > 0, temporal_std / temporal_mean_abs, np.nan)
-    cov_finite = cov[np.isfinite(cov)]
-    return cov_finite
-
-
-def compute_cumulative_variance_ratio_vs_time(
-    crop_array: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Compute ratio of individual to population variance as a function of time.
-
-    At each timepoint *T* the function computes:
-
-    * **Population variance** — variance of the feature across all crops at *T*.
-    * **Individual cumulative variance** — for each crop, the variance of the
-      feature from timepoint 0 up to and including *T*.
-    * **Ratio** — mean individual cumulative variance / population variance.
-
-    A ratio close to 1 at all times indicates ergodic behaviour; deviations
-    reveal non-ergodicity.
+    * If all values for a crop up to a given timepoint are NaN, the cumulative
+        variance for that crop at that timepoint will be set to NaN
+    * If some but not all values for a crop up to a given timepoint are NaN, the
+        variance function will be applied to all values. Thus, if the variance
+        function can handle NaN values (e.g., by ignoring them), then the
+        cumulative variance will be computed using the available data. If the
+        variance function does not handle NaN values, it may return NaN for that
+        crop and timepoint.
 
     Parameters
     ----------
     crop_array
-        3-D array of shape (n_crops, n_timepoints, 1) containing the
-        feature values for each crop and timepoint.  Missing timepoints should
-        be represented as NaN so that crops with gaps are still included in the
-        variance calculations.
-
-    Returns
-    -------
-    cv_timepoints
-        1-D array of time values in frames corresponding to each timepoint.
-    ratio_mean
-        1-D array of mean ratio of individual to population variance at each
-        timepoint.
-    ratio_upper
-        1-D array of upper bound of mean ± SEM for the ratio at each timepoint.
-    ratio_lower
-        1-D array of lower bound of mean ± SEM for the ratio at each timepoint.
+        2-D array containing the feature values for each crop and timepoint.
+    variance_function
+        Function to compute the variance. Should accept a 1-D array and return a
+        float.
+    **var_func_kwargs
+        Additional keyword arguments to pass to the variance function.
     """
-    # shape: (n_crops, n_timepoints, 1)
-    n_crops, n_timepoints, _ = crop_array.shape
-    cv_timepoints = np.arange(n_timepoints)
 
-    # population variance at each timepoint (across crops)
-    pop_var = np.nanvar(crop_array, axis=0).flatten()  # (n_timepoints,)
-
-    # per-crop cumulative temporal variance up to each timepoint
-    # ind_cum_var[i, t] = Var(crop_feat[i, 0:t+1])
-    ind_cum_var = np.full((n_crops, n_timepoints), np.nan)
-    for t in range(n_timepoints):
-        if t == 0:
-            # variance of a single value is 0
-            ind_cum_var[:, t] = 0.0
+    cumulative_var_per_crop = np.zeros_like(crop_array)  # shape: (n_crops, n_timepoints)
+    for i in range(crop_array.shape[1]):
+        if i == 0:
+            # cannot compute variance from a single timepoint, so set to 0 and
+            # skip to next iteration
+            continue
         else:
-            ind_cum_var[:, t] = np.nanvar(crop_array[:, : t + 1], axis=1).flatten()
+            data_to_t = crop_array[:, : i + 1]  # all crops from time 0 to i
+            if np.isnan(data_to_t).all():
+                # if all values are NaN, skip variance calculation and set to NaN
+                cumulative_var_per_crop[:, i] = np.nan
+                continue
+            # for each crop, compute variance of the feature from time 0 to i
+            cumulative_var_per_crop[:, i] = variance_function(data_to_t, **var_func_kwargs, axis=1)
 
-    # mean and SEM of individual cumulative variance across crops
-    mean_ind_var = np.nanmean(ind_cum_var, axis=0)  # (n_timepoints,)
-    n_valid = np.sum(np.isfinite(ind_cum_var), axis=0)
-    sem_ind_var = np.where(
-        n_valid > 1,
-        np.nanstd(ind_cum_var, axis=0) / np.sqrt(n_valid),
-        0.0,
-    )
-
-    # ratio = mean individual var / population var
-    with np.errstate(divide="ignore", invalid="ignore"):
-        ratio_mean = np.where(pop_var > 0, mean_ind_var / pop_var, np.nan)
-        ratio_upper = np.where(pop_var > 0, (mean_ind_var + sem_ind_var) / pop_var, np.nan)
-        ratio_lower = np.where(pop_var > 0, (mean_ind_var - sem_ind_var) / pop_var, np.nan)
-
-    return cv_timepoints, ratio_mean, ratio_upper, ratio_lower
+    # where data are missing, set to NaN
+    cumulative_var_per_crop[~np.isfinite(crop_array)] = np.nan
+    return cumulative_var_per_crop
 
 
 def compute_binned_variance_ratio_vs_time(

@@ -33,7 +33,6 @@ def build_analysis_queue(
     overwrite: bool = False,
     out_dir: str | Path | None = None,
     image_validation_frequency: int | None = None,
-    verbose: bool = False,
     is_test: bool = False,
 ) -> list:
     """
@@ -69,8 +68,6 @@ def build_analysis_queue(
     image_validation_frequency:
         The frequency at which to create validation images (default: None,
         which means no validation images will be created).
-    verbose:
-        Whether or not to print verbose output (default: False).
     is_test:
         Whether or not to run in test mode (default: False). If True, only up to
         the first 2 positions and up to the first 10 entries (as specified by
@@ -128,12 +125,14 @@ def build_analysis_queue(
 
         # get the timeframes of the timelapse to be evaluated
         if t_final is None:
-            t_final = dataset_config.duration
-        t_range = range(t_start, t_final, t_step)
+            t_final_as_int = dataset_config.duration
+        else:
+            t_final_as_int = t_final
+        t_range = range(t_start, t_final_as_int, t_step)
 
         # get the timeframes to be used for validation images, if any
         if image_validation_frequency is not None:
-            validation_t_range = range(t_start, t_final, image_validation_frequency)
+            validation_t_range = range(t_start, t_final_as_int, image_validation_frequency)
         else:
             validation_t_range = range(0)  # empty range will produce empty list
 
@@ -163,7 +162,6 @@ def build_analysis_queue(
                     "is_validation_image": validation_image,
                     "image_validation_frequency": image_validation_frequency,
                     "is_test": is_test,
-                    "verbose": verbose,
                     "channel_names": dataset_config.channel_names,
                 }
 

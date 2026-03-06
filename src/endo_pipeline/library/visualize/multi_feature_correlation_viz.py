@@ -483,11 +483,6 @@ def get_df_for_feature_correlation_viz(
         # filter the dataframe to only include rows with DiffAE features
         merged_feats_df = merged_feats_df.dropna(subset="model_manifest_name")
 
-        # the original orientation feature is in radians
-        # and the y-axis is defined as 0 degrees
-        # this keeps the orientation angle range between 0-180 degrees
-        merged_feats_df["orientation"] = merged_feats_df["orientation"] + np.pi / 2
-
         # "unwrap" the angle features to avoid issues with periodic data when plotting correlations
         angle_period = np.pi
         angle_cols = ["orientation", ColumnName.POLAR_ANGLE.value]

@@ -64,7 +64,7 @@ for dataset_name in datasets:
     logger.info(f"Processing dataset: {dataset_name} for optical flow features")
     # Get PCS
     df_dataset = get_dataframe_for_dynamics_workflows(
-        dataset_name, dataframe_manifest, pca=pca, filter_dataframe=True
+        dataset_name, dataframe_manifest, pca=pca, filter_by_annotations=True
     )
 
     # Get optical flow features

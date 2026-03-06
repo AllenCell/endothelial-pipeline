@@ -288,6 +288,65 @@ def unwrap_nonsequential_array(
     return unwrapped_array
 
 
+def filter_dataframe_by_track_length(
+    dataframe: pd.DataFrame, track_length_column: str, minimum_track_length: int
+) -> pd.DataFrame:
+    """
+    Filter dataframe to only include tracks above a minimum track length.
+
+    **Error handling**
+
+    If no tracks remain after filtering, a ValueError is raised with a message
+    indicating that no tracks with length >= minimum_track_length remain after
+    filtering, and suggesting to check the track length distribution and/or
+    adjust the minimum_track_length threshold.
+
+    Parameters
+    ----------
+    dataframe
+        DataFrame containing data of interest, which must include a column for
+        track length.
+    track_length_column
+        Name of the column containing track length values.
+    minimum_track_length
+        Minimum track length to filter tracks.
+
+    Returns
+    -------
+    pd.DataFrame
+        Filtered DataFrame containing only tracks with length >=
+        minimum_track_length.
+    """
+
+    logger.debug(
+        "Filtering dataframe to only include tracks with length >= [ %s ] timepoints.",
+        minimum_track_length,
+    )
+    logger.debug("Dataframe length before filtering: [ %s ] rows.", len(dataframe))
+    # check that required columns are present in dataframe
+    check_required_columns_in_dataframe(dataframe, [track_length_column])
+    dataframe_filtered = dataframe[dataframe[track_length_column] >= minimum_track_length]
+
+    # if empty dataframe after filtering, raise error
+    if dataframe_filtered.empty:
+        logger.error(
+            "No tracks with length >= minimum_track_length [ %s ] after filtering. "
+            "Check track length distribution and/or adjust minimum_track_length.",
+            minimum_track_length,
+        )
+        raise ValueError(
+            f"No tracks with length >= minimum_track_length [ {minimum_track_length} ] after filtering. "
+            "Check track length distribution and/or adjust minimum_track_length."
+        )
+
+    # reset index of filtered dataframe
+    dataframe_filtered = dataframe_filtered.reset_index(drop=True)
+
+    logger.debug("Dataframe length after filtering: [ %s ] rows.", len(dataframe_filtered))
+
+    return dataframe_filtered
+
+
 def filter_dataframe_by_annotations(
     dataframe: pd.DataFrame,
     dataset_config: DatasetConfig,
@@ -374,7 +433,7 @@ def filter_dataframe_by_annotations(
 def build_pca_input_dataframe(
     dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     dataframe_manifest_name: str | None = None,
-    filter_dataframe: bool = True,
+    filter_by_annotations: bool = True,
     include_cell_piling: bool = False,
 ) -> pd.DataFrame:
     """
@@ -386,8 +445,8 @@ def build_pca_input_dataframe(
         Name of the dataset collection to load reference datasets from.
     dataframe_manifest_name
         Name of the dataframe manifest to load the model features from.
-    filter_dataframe
-        True to remove annotated timepoints and positions, False otherwise.
+    filter_by_annotations
+        Whether to remove annotated timepoints and positions from the dataframes before fitting PCA.
     include_cell_piling
         True to include cell piling timepoints, False otherwise.
 
@@ -416,7 +475,7 @@ def build_pca_input_dataframe(
     for dataset_name in dataset_names:
         location = get_dataframe_location_for_dataset(manifest, dataset_name)
         dataframe = load_dataframe(location)
-        if filter_dataframe:
+        if filter_by_annotations:
             annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
             if include_cell_piling:
                 annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
@@ -439,7 +498,7 @@ def build_pca_input_dataframe(
 def fit_pca(
     dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     dataframe_manifest_name: str | None = None,
-    filter_dataframe: bool = True,
+    filter_by_annotations: bool = True,
     include_cell_piling: bool = False,
     num_pcs: int = 8,
 ) -> PCA:
@@ -452,7 +511,7 @@ def fit_pca(
         Name of the dataset collection to load reference datasets from.
     dataframe_manifest_name
         Name of the dataframe manifest to load the model features from.
-    filter_dataframe
+    filter_by_annotations
         True to remove annotated timepoints and positions, False otherwise.
     include_cell_piling
         True to include cell piling timepoints, False otherwise.
@@ -467,7 +526,7 @@ def fit_pca(
 
     # Build PCA input dataframe
     pca_input_dataframe = build_pca_input_dataframe(
-        dataset_collection_name, dataframe_manifest_name, filter_dataframe, include_cell_piling
+        dataset_collection_name, dataframe_manifest_name, filter_by_annotations, include_cell_piling
     )
 
     # Fit PCA
@@ -681,30 +740,42 @@ def get_dataframe_for_dynamics_workflows(
     manifest: DataframeManifest,
     columns_to_keep: list[str] | None = None,
     pca: PCA | None = None,
-    filter_dataframe: bool = True,
+    filter_by_annotations: bool = True,
     include_cell_piling: bool = True,
     include_not_steady_state: bool = True,
     crop_pattern: Literal["grid", "tracked"] = "grid",
     compute_polar: bool = True,
     rescale_theta: bool = True,
     flip_pc3_sign: bool = True,
+    minimum_track_length: int | None = None,
 ) -> pd.DataFrame:
     """
     Load DiffAE dataframe data projected onto given PC axes for downstream
     analysis in the stochastic dynamics workflow. Adds crop index column to
     DataFrame, and projects feature data onto PC axes.
 
-    **Column selection and filtering**
+    **Column selection and memory optimization**
 
-    The input DataFrame is filtered to keep only necessary columns to save
-    memory. At a minimum, the metadata columns defined in
-    METADATA_COLUMNS_TO_KEEP and the latent feature columns needed for PCA
+    The input DataFrame is filtered to keep only necessary columns when
+    initially loaded to save memory. At a minimum, the metadata columns defined
+    in METADATA_COLUMNS_TO_KEEP and the latent feature columns needed for PCA
     projection are kept. Additional columns can be specified to keep via the
     input ``columns_to_keep``.
 
     In the case that the input ``pca`` is not None, the feature data is
     projected onto the PC axes defined by the PCA model, and the original latent
     feature columns are dropped to save memory.
+
+    **Dataframe filtering**
+
+    The input ``filter_by_annotations`` flag determines whether to filter out
+    annotated timepoints and positions from the dataframe. If filtering is
+    applied, the input flags ``include_cell_piling`` and
+    ``include_not_steady_state`` determine whether to include or exclude
+    timepoints annotated as "cell piling" and "not steady state", respectively.
+
+    If ``minimum_track_length`` is specified and the crop pattern is 'tracked',
+    tracks below the minimum track length will be filtered out.
 
     Parameters
     ----------
@@ -716,7 +787,7 @@ def get_dataframe_for_dynamics_workflows(
         List of additional column names to keep in the output DataFrame.
     pca
         PCA model to fit to feature data. If None, do not project feature data.
-    filter_dataframe
+    filter_by_annotations
         Whether to filter out annotated timepoints and positions from the
         dataframe.
     include_cell_piling
@@ -729,16 +800,22 @@ def get_dataframe_for_dynamics_workflows(
         'tracked'.
     compute_polar
         Whether to compute polar coordinates (r, theta) from the first two PCs.
+    rescale_theta
+        Whether to rescale the polar angle theta to be in the range [0, pi].
     flip_pc3_sign
         True to add an additional column with the sign of PC3 flipped for
         consistency, False otherwise.
-    rescale_theta
-        Whether to rescale the polar angle theta to be in the range [0, pi].
+    minimum_track_length
+        If crop_pattern is 'tracked', minimum track length (in number of
+        timepoints) of tracks to keep in the dataframe. If None, do not filter
+        by track length.
 
     Returns
     -------
     :
-        Dataframe of feature data.
+        DataFrame with specified feature columns (PC projected or not),
+        specified metadata columns, and crop index column for downstream
+        analysis in various "dynamics workflows".
     """
 
     location = get_dataframe_location_for_dataset(manifest, dataset_name)
@@ -753,7 +830,7 @@ def get_dataframe_for_dynamics_workflows(
     if crop_pattern == "tracked":
         columns_to_keep_.extend(
             [ColumnName.TRACK_ID]
-        )  # also keep track ID column for tracked crops
+        )  # also keep track ID and track length columns for tracked crops
     columns_to_keep_ = list(set(columns_to_keep_))  # remove duplicates, if any
 
     # keep only necessary columns to save memory
@@ -761,7 +838,7 @@ def get_dataframe_for_dynamics_workflows(
 
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
-    if filter_dataframe:
+    if filter_by_annotations:
         annotations_to_ignore = []
         if include_cell_piling:
             annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
@@ -779,6 +856,18 @@ def get_dataframe_for_dynamics_workflows(
         df_filtered = df_
 
     df_with_crop = add_crop_index(df_filtered, crop_pattern)
+
+    if crop_pattern == "tracked" and minimum_track_length is not None:
+        # if crop pattern is 'tracked' and minimum track length is specified,
+        # also filter by track length (need to add track length column first)
+        df_filtered[ColumnName.TRACK_LENGTH] = df_filtered.groupby([ColumnName.CROP_INDEX])[
+            ColumnName.TIMEPOINT
+        ].transform(lambda g: g.max() - g.min() + 1)
+
+        # Filter by new track length column
+        df_filtered = filter_dataframe_by_track_length(
+            df_filtered, ColumnName.TRACK_LENGTH, minimum_track_length
+        )
 
     # add dataset duration description column
     dataset_config = load_dataset_config(dataset_name)
