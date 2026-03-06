@@ -65,6 +65,7 @@ for dataset_name in datasets:
 df_pca_all = pd.concat(df_pca_datasets, ignore_index=True)
 del df_pca_datasets  # clear list to save memory
 
+# %%
 df_of = add_optical_flow_features(
     df_pca_all,
     datasets=datasets,
