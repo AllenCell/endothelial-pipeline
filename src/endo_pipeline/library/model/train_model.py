@@ -22,7 +22,6 @@ from endo_pipeline.io import (
     load_dataframe,
     upload_file_to_fms,
 )
-from endo_pipeline.library.model.model_config_overrides import ModelConfigOverride
 from endo_pipeline.manifests import (
     DataframeLocation,
     DataframeManifest,
@@ -31,35 +30,6 @@ from endo_pipeline.manifests import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-def initialize_diffae_model(
-    template_training_config,
-    overrides: ModelConfigOverride | None = None,
-) -> "CytoDLModel":
-    """
-    Initialize a DiffAE model for training, applying overrides and configuration.
-
-    Parameters
-    ----------
-    template_training_config
-        The loaded training configuration to use as the base.
-    overrides
-        Optionally, a ModelConfigOverride object (read from code, CLI, etc).
-        If None, uses values from config as much as possible.
-
-    Returns
-    -------
-    CytoDLModel
-        An initialized ``CytoDLModel`` for training the DiffAE model.
-    """
-
-    cytodl_model = CytoDLModel()
-    cytodl_model.load_config_from_dict(template_training_config)
-    if overrides is not None:
-        cytodl_model.override_config(overrides.to_dict())
-
-    return cytodl_model
 
 
 def _generate_overrides_for_finetuning(
