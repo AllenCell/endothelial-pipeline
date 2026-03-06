@@ -121,7 +121,7 @@ for file_info in mixed_mig_files + coherent_mig_files:
     dataset_name = str(file_info["dataset_name"])
 
     df = get_dataframe_for_dynamics_workflows(
-        dataset_name, dataframe_manifest, pca=pca, filter_dataframe=False
+        dataset_name, dataframe_manifest, pca=pca, filter_by_annotations=False
     )
 
     fname = file_info["fname"]
