@@ -228,7 +228,7 @@ def apply_lda_projection(
     df_result["LDA"] = df_features @ lda_weights_array + lda_intercept
     # Sparse projections
     if sparse_axes is not None:
-        for minimal_weight in [2.0, 3.0, 4.0]:
+        for minimal_weight in sparse_axes:
             sparse_axis = np.where(
                 np.abs(lda_weights_array) >= minimal_weight, lda_weights_array, 0
             )

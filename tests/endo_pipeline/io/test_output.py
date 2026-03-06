@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from endo_pipeline.io.output import get_output_path, get_timestamp, make_name_unique
+from endo_pipeline.io.output import get_output_path, get_timestamp, make_name_unique, slugify
 
 
 @pytest.fixture
@@ -28,6 +28,23 @@ def mock_datetime(mocker):
     )
 
     yield year, month, day, hour, minute, second
+
+
+@pytest.mark.parametrize(
+    "string,expected_slug",
+    [
+        ("abc123", "abc123"),  # already valid slug
+        ("abc`~!@#$%^&*()+={}[]\\|:;\"'><,./?123", "abc123"),  # removes invalid characters
+        ("ABC123", "abc123"),  # makes alphabetical characters lowercase
+        ("ABC 123", "abc_123"),  # replaces spaces with underscore
+        ("ABC-123", "abc_123"),  # replaces hyphens with underscore
+        (" ABC123\n", "abc123"),  # remove leading and trailing whitespace
+    ],
+)
+def test_slugify(string, expected_slug):
+    slug = slugify(string)
+
+    assert slug == expected_slug
 
 
 def test_get_timestamp(mock_datetime):
