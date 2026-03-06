@@ -498,7 +498,7 @@ def build_pca_input_dataframe(
 def fit_pca(
     dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     dataframe_manifest_name: str | None = None,
-    filter_dataframe: bool = True,
+    filter_by_annotations: bool = True,
     include_cell_piling: bool = False,
     num_pcs: int = 8,
 ) -> PCA:
@@ -511,7 +511,7 @@ def fit_pca(
         Name of the dataset collection to load reference datasets from.
     dataframe_manifest_name
         Name of the dataframe manifest to load the model features from.
-    filter_dataframe
+    filter_by_annotations
         True to remove annotated timepoints and positions, False otherwise.
     include_cell_piling
         True to include cell piling timepoints, False otherwise.
@@ -526,7 +526,7 @@ def fit_pca(
 
     # Build PCA input dataframe
     pca_input_dataframe = build_pca_input_dataframe(
-        dataset_collection_name, dataframe_manifest_name, filter_dataframe, include_cell_piling
+        dataset_collection_name, dataframe_manifest_name, filter_by_annotations, include_cell_piling
     )
 
     # Fit PCA
