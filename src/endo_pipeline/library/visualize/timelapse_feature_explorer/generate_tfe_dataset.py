@@ -113,9 +113,6 @@ def generate_tfe_dataset(
             )
             df_position = update_manifest_for_tfe_grid(df_position, dataset, position, output_dir)
 
-            manifest_of = load_dataframe_manifest("optical_flow_bf")
-            if dataset_config.name in manifest_of.locations:
-                df_position = add_optical_flow_features(df_position, [dataset_config.name])
         case _:
             raise ValueError(
                 f"crop_pattern must one of {available_segmentations}, got '{segmentation}'."
@@ -225,6 +222,10 @@ def get_df_and_label_map_grid(
     )
     feat_cols = [col for col in grid_df.columns if ColumnName.LATENT_FEATURE_PREFIX in col]
     grid_df = grid_df.drop(columns=feat_cols)
+
+    manifest_of = load_dataframe_manifest("optical_flow_bf")
+    if dataset in manifest_of.locations:
+        grid_df = add_optical_flow_features(grid_df, [dataset])
 
     dataset_config = load_dataset_config(dataset)
     if dataset_config.time_interval_in_minutes is None:
