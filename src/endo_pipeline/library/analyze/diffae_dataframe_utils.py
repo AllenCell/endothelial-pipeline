@@ -433,7 +433,7 @@ def filter_dataframe_by_annotations(
 def fit_pca(
     dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     dataframe_manifest_name: str | None = None,
-    filter_dataframe: bool = True,
+    filter_by_annotations: bool = True,
     include_cell_piling: bool = False,
     num_pcs: int = 8,
 ) -> PCA:
@@ -448,7 +448,7 @@ def fit_pca(
         This is used to load the model manifests that contain the reference datasets.
     dataframe_manifest_name
         Name of the dataframe manifest to load the model features from.
-    filter_dataframe
+    filter_by_annotations
         Whether to remove annotated timepoints and positions from the dataframes before fitting PCA.
     include_cell_piling
         True to include cell piling timepoints in the data used to fit PCA, False to exclude them.
@@ -482,7 +482,7 @@ def fit_pca(
     dataframe_list = []
     for location, dataset_name in zip(locations, dataset_names, strict=True):
         dataframe = load_dataframe(location)
-        if filter_dataframe:
+        if filter_by_annotations:
             annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
             if include_cell_piling:
                 annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
