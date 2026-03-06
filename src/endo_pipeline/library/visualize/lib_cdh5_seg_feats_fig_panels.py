@@ -88,9 +88,9 @@ def make_imaging_panels(
     )
 
     # Load the nuclei predictions image (this one is nuclei predictions only)
-    nuc_manifest = load_image_manifest("nuclear_labelfree_seg")
-    nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_config, position, timeframe)
-    nuc_pred = load_image(nuc_location, compute=True, squeeze=False)
+    nuc_manifest = load_image_manifest("nuclear_labelfree_seg_zarr")
+    nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_config, position)
+    nuc_pred = load_image(nuc_location, compute=True, squeeze=False, timepoints=timeframe)
 
     cdh5_seg_manifest = load_image_manifest("cdh5_classic_seg")
     cdh5_seg_sequential_timeframes = list(range(timeframe, timeframe + 5))
