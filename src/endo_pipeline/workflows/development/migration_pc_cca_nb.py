@@ -20,7 +20,7 @@ from endo_pipeline.library.analyze.migration_pc.cca_analysis import (
     plot_optical_flow_feature_distribution,
 )
 from endo_pipeline.library.analyze.migration_pc.optical_flow_feature import (
-    load_and_merge_optical_flow_features,
+    add_optical_flow_features,
 )
 from endo_pipeline.manifests import (
     get_feature_dataframe_manifest_name,
@@ -65,7 +65,7 @@ for dataset_name in datasets:
 df_pca_all = pd.concat(df_pca_datasets, ignore_index=True)
 del df_pca_datasets  # clear list to save memory
 
-df_of = load_and_merge_optical_flow_features(
+df_of = add_optical_flow_features(
     df_pca_all,
     datasets=datasets,
     optical_flow_manifest_name="optical_flow_bf",

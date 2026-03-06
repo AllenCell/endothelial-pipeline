@@ -11,6 +11,9 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
 )
+from endo_pipeline.library.analyze.migration_pc.optical_flow_feature import (
+    add_optical_flow_features,
+)
 from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     generate_backdrops,
 )
@@ -110,6 +113,9 @@ def generate_tfe_dataset(
             )
             df_position = update_manifest_for_tfe_grid(df_position, dataset, position, output_dir)
 
+            manifest_of = load_dataframe_manifest("optical_flow_bf")
+            if dataset_config.name in manifest_of.locations:
+                df_position = add_optical_flow_features(df_position, [dataset_config.name])
         case _:
             raise ValueError(
                 f"crop_pattern must one of {available_segmentations}, got '{segmentation}'."
