@@ -1801,7 +1801,6 @@ def get_nuclei_features_from_dataset_at_timepoint(
     position: int,
     tp: int,
     out_dir: Path,
-    nuclei_seg_manifest_name: str = "nuclear_labelfree_seg",
     channel_names: tuple = ("EGFP", "BF"),
     save_output: bool = True,
 ) -> pd.DataFrame:
@@ -1869,11 +1868,7 @@ def get_nuclei_features_from_dataset_at_timepoint(
     if save_output:
         out_subdir = out_dir / dataset_name / f"P{position}"
         out_subdir.mkdir(exist_ok=True, parents=True)
-        if nuclei_seg_manifest_name == "nuclear_labelfree_seg":
-            filename = f"{dataset_name}_P{position}_T{tp}_nuclei_labelfree_features.parquet"
-        elif nuclei_seg_manifest_name == "nuclear_stain_seg":
-            filename = f"{dataset_name}_P{position}_T{tp}_nuclei_stain_features.parquet"
-
+        filename = f"{dataset_name}_P{position}_T{tp}_nuclei_labelfree_features.parquet"
         nuc_feats_df.to_parquet(out_subdir / filename, index=False)
 
     return nuc_feats_df
@@ -1909,7 +1904,6 @@ def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
     tp = args["T"]
     out_dir = args["output_dir"]
     save_output = args["save_output"]
-    nuclei_seg_manifest_name = args["nuclei_seg_manifest_name"]
     channel_names = args["channel_names"]
 
     get_nuclei_features_from_dataset_at_timepoint(
@@ -1917,7 +1911,6 @@ def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
         position=position,
         tp=tp,
         out_dir=out_dir,
-        nuclei_seg_manifest_name=nuclei_seg_manifest_name,
         channel_names=channel_names,
         save_output=save_output,
     )
