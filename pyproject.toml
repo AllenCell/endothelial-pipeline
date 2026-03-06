@@ -212,11 +212,11 @@ module = [
     "numdifftools.*",
     "omegaconf.*",
     "scipy.*",
+    "sklearn",
     "sklearn.*",
     "s3_uploader.*",
     "torchmetrics.*",
     "vtk.*",
-    "sklearn.*",
 ]
 ignore_missing_imports = true
 
