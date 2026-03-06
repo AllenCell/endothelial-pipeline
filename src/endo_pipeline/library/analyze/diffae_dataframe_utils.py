@@ -745,7 +745,7 @@ def get_dataframe_for_dynamics_workflows(
     df = load_dataframe(location, delay=True)
     feat_cols = get_latent_feature_column_names_from_dataframe(df)
 
-    # start with default metadatac columns to keep
+    # start with default metadata columns to keep
     columns_to_keep_ = list(METADATA_COLUMNS_TO_KEEP)
     if columns_to_keep is not None:
         columns_to_keep_.extend(columns_to_keep)  # add any additional specified columns to keep
