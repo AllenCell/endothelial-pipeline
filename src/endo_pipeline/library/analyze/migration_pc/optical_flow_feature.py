@@ -33,17 +33,13 @@ def add_optical_flow_features(
     """
 
     merge_columns = ["dataset", "position", "frame_number", "start_x", "start_y"]
-
     dataframe_manifest_optical_flow = load_dataframe_manifest(optical_flow_manifest_name)
 
     merged_dfs = []
     for dataset_name in datasets:
-        logger.info("Processing dataset: %s for optical flow features", dataset_name)
+        logger.info("Adding optical flow features for dataset: %s", dataset_name)
 
         df_dataset = df[df["dataset"] == dataset_name]
-        if df_dataset.empty:
-            logger.info("No rows found in input dataframe for dataset %s. Skipping.", dataset_name)
-            continue
 
         optical_flow_location = get_dataframe_location_for_dataset(
             dataframe_manifest_optical_flow, dataset_name
@@ -57,8 +53,5 @@ def add_optical_flow_features(
             how="inner",
         )
         merged_dfs.append(df_merged)
-
-    if not merged_dfs:
-        return df.iloc[0:0].copy()
 
     return pd.concat(merged_dfs, ignore_index=True)
