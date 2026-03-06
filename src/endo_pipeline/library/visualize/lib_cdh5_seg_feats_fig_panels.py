@@ -10,7 +10,7 @@ from skimage.morphology import binary_dilation
 from tqdm import tqdm
 
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
-from endo_pipeline.io import get_output_path, load_dataframe, load_image, save_plot_to_path
+from endo_pipeline.io import get_output_path, load_dataframe, load_image, save_plot_to_path, slugify
 from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
@@ -322,7 +322,7 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
 
         # create and save the panels of each of the features
         for feat in feats_to_plot:
-            figure_name = f"{dataset_name}_{feat}"
+            figure_name = f"{dataset_name}_{slugify(feat)}"
 
             # create the 2D histogram panel
             fig, ax = hist_2d_of_feats(
