@@ -85,7 +85,7 @@ for dataset_name in datasets:
 
 # %%
 df_of = pd.concat(df_of_list, ignore_index=True)
-df_of_list = None  # clear list to save memory
+del df_of_list  # clear list to save memory
 
 # %%
 # Excluded timepoints result in NaN values for the timepoint before and after the dropped timepoint.
