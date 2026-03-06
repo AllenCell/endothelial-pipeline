@@ -291,7 +291,32 @@ def unwrap_nonsequential_array(
 def filter_dataframe_by_track_length(
     dataframe: pd.DataFrame, track_length_column: str, minimum_track_length: int
 ) -> pd.DataFrame:
-    """Filter dataframe to only include tracks above a minimum track length."""
+    """
+    Filter dataframe to only include tracks above a minimum track length.
+
+    **Error handling**
+
+    If no tracks remain after filtering, a ValueError is raised with a message
+    indicating that no tracks with length >= minimum_track_length remain after
+    filtering, and suggesting to check the track length distribution and/or
+    adjust the minimum_track_length threshold.
+
+    Parameters
+    ----------
+    dataframe
+        DataFrame containing data of interest, which must include a column for
+        track length.
+    track_length_column
+        Name of the column containing track length values.
+    minimum_track_length
+        Minimum track length to filter tracks.
+
+    Returns
+    -------
+    pd.DataFrame
+        Filtered DataFrame containing only tracks with length >=
+        minimum_track_length.
+    """
 
     logger.debug(
         "Filtering dataframe to only include tracks with length >= [ %s ] timepoints.",
