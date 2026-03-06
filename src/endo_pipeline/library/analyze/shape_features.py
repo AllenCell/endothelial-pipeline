@@ -1823,9 +1823,9 @@ def get_nuclei_features_from_dataset_at_timepoint(
     dim_order = DIMENSION_ORDER
     dataset_config = load_dataset_config(dataset_name)
 
-    nuc_manifest = load_image_manifest(nuclei_seg_manifest_name)
-    nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_config, position, tp)
-    nuc_seg = load_image(nuc_location, squeeze=True, compute=True)
+    nuc_manifest = load_image_manifest("nuclear_labelfree_seg_zarr")
+    nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_config, position)
+    nuc_seg = load_image(nuc_location, squeeze=True, compute=True, timepoints=tp)
 
     cdh5_manifest = load_image_manifest("cdh5_classic_seg")
     cdh5_location = get_image_location_for_dataset(cdh5_manifest, dataset_config, position, tp)
