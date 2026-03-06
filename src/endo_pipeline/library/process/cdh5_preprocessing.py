@@ -843,9 +843,9 @@ def generate_cdh5_segmentation_refined(
     )
 
     logger.info(f"T={timepoint} -- loading nuclei segmentations")
-    seg_manifest = load_image_manifest(nuclei_seg_manifest_name)
-    seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position, timepoint)
-    nuc_pred = load_image(seg_location, squeeze=True, compute=True)
+    seg_manifest = load_image_manifest("nuclear_labelfree_seg_zarr")
+    seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position)
+    nuc_pred = load_image(seg_location, squeeze=True, compute=True, timepoints=timepoint)
 
     logger.info(f"T={timepoint} -- splitting RAG-based segmentations using nuclei predictions")
 
