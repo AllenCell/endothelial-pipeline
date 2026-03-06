@@ -840,7 +840,7 @@ def get_dataframe_for_dynamics_workflows(
             # if crop pattern is 'tracked' and minimum track length is specified,
             # also filter by track length (need to add track length column first)
             dfs_with_track_length = []
-            for track_id, df_grouped in df_filtered.groupby(
+            for _, df_grouped in df_filtered.groupby(
                 [ColumnName.POSITION, ColumnName.TRACK_ID]
             ):
                 df_grouped_with_track_length = _add_track_length_column(
