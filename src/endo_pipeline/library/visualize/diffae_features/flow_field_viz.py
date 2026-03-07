@@ -241,7 +241,7 @@ def plot_flow_field_stack(
     if feature_labels is None:
         feature_labels = [
             feature_viz.get_label_for_column(DIFFAE_PC_COLUMN_NAMES[idx])
-            for idx in NUM_PCS_TO_ANALYZE
+            for idx in range(NUM_PCS_TO_ANALYZE)
         ]
 
     # unpack plot axes
@@ -500,7 +500,8 @@ def plot_flow_field_slices(
     fig_savedir
         Optional, directory to save the figure.
     feature_vals
-        Values of the 2nd and 3rd variables at which to slice the data.
+        Values at which to slice the data of the variables that make up the 3rd
+        and 2nd axes of the 3D space (e.g., PC3 and PC2) for plotting the 2D slices.
     colormap_name
         Name of the colormap to use for the quiver plot arrows.
     norm
@@ -512,32 +513,31 @@ def plot_flow_field_slices(
         the analysis (e.g. the top 3 PCs). Used for labeling the slice values in
         the plot titles and logging.
     """
-    if column_names is None:
-        column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+    column_names_ = column_names or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+
     column_labels = [feature_viz.get_label_for_column(col) for col in column_names]
     # get grid and grid spacing
     xgrid, ygrid, zgrid = flow_field_dict["grid"]
 
-    # for plotting in 2D, we need to slice
-    # the data in PC3 and PC2 to get PC1 v. PC2
-    # and PC1 v. PC3 plots, respectively
-    pc3_val = feature_vals[0]
-    pc2_val = feature_vals[1]
+    # for plotting in 2D, we need to slice the data in feature space at the
+    # specified values of the 2nd and 3rd variables (e.g., PC2 and PC3)
+    feature3_val = feature_vals[0]
+    feature2_val = feature_vals[1]
 
-    # get z-slice closest to PC3 = pc3_val
-    zvalids = get_slice_indexes(zgrid, pc3_val)
-    # get y-slice closest to PC2 = pc2_val
-    yvalids = get_slice_indexes(ygrid, pc2_val)
+    # get z-slice closest to PC3 = feature3_val
+    zvalids = get_slice_indexes(zgrid, feature3_val)
+    # get y-slice closest to PC2 = feature2_val
+    yvalids = get_slice_indexes(ygrid, feature2_val)
 
     # plot quiver plots of these PC2 and PC3 slices
     fig, ax = plt.subplots(NROWS_2D_FLOW_FIELD, NCOLS_2D_FLOW_FIELD, figsize=FIGSIZE_2D_FLOW_FIELD)
 
     # plot KDE contours of data in PC1-PC2 and PC1-PC3 planes, if specified
     if plot_density:
-        for i, (pc_x, pc_y) in enumerate(
+        for i, (feature_x, feature_y) in enumerate(
             [
-                (column_names[0], column_names[1]),
-                (column_names[0], column_names[2]),
+                (column_names_[0], column_names_[1]),
+                (column_names_[0], column_names_[2]),
             ]
         ):
             # get a 2D meshgrid for the current slice
@@ -551,9 +551,10 @@ def plot_flow_field_slices(
             positions = np.vstack([x.ravel(), y.ravel()])
             grid_shape = x.shape
 
-            # get the data in the current PC1-PC2 or PC1-PC3 plane
-            data_x = cast(np.ndarray, df[pc_x].values)
-            data_y = cast(np.ndarray, df[pc_y].values)
+            # get the data in the current feature_x-feature_y plane (e.g.,
+            # PC1-PC2 or PC1-PC3)
+            data_x = cast(np.ndarray, df[feature_x].values)
+            data_y = cast(np.ndarray, df[feature_y].values)
             # calculate the point density (KDE)
             values = np.vstack([data_x, data_y])
             z = gaussian_kde(values)(positions).T.reshape(grid_shape)
@@ -585,11 +586,11 @@ def plot_flow_field_slices(
 
     # set the axis limits and labels
     ax = set_slice_plot_bounds_and_labels(
-        ax, plot_bounds, xlabel=column_labels[0], y_labels=(column_labels[1], column_labels[2])
+        ax, plot_bounds, x_label=column_labels[0], y_labels=(column_labels[1], column_labels[2])
     )
     # set titles with slice values
-    ax[0].set_title(f"{column_labels[2]} = {pc3_val:.2f}")
-    ax[1].set_title(f"{column_labels[1]} = {pc2_val:.2f}")
+    ax[0].set_title(f"{column_labels[2]} = {feature3_val:.2f}")
+    ax[1].set_title(f"{column_labels[1]} = {feature2_val:.2f}")
     plt.tight_layout()
 
     dataset_name = df[ColumnName.DATASET].unique()[0]
@@ -668,7 +669,7 @@ def plot_stable_fixed_points_together(
 
     # set the axis limits and labels
     ax = set_slice_plot_bounds_and_labels(
-        ax, plot_bounds, xlabel=column_labels[0], y_labels=(column_labels[1], column_labels[2])
+        ax, plot_bounds, x_label=column_labels[0], y_labels=(column_labels[1], column_labels[2])
     )
 
     # add legend
@@ -780,14 +781,14 @@ def flow_field_viz_main(
             mean_at_last_timepoint[column_names[1]],
         )  # feature 3, feature 2
         fig, ax = plot_flow_field_slices(
-            flow_field_dict, df, plot_bounds, None, pc_vals=feature_vals
+            flow_field_dict, df, plot_bounds, None, feature_vals=feature_vals
         )
     else:
         for k, fpt in enumerate(stable_fixed_points):
             # plot flow field slices at this stable fixed point
             feature_vals = (fpt[2], fpt[1])  # feature 3, feature 2
             fig, ax = plot_flow_field_slices(
-                flow_field_dict, df, plot_bounds, None, pc_vals=feature_vals
+                flow_field_dict, df, plot_bounds, None, feature_vals=feature_vals
             )
 
             for j, ax_ in enumerate(ax):  # feature 1 vs feature 2, feature 1 vs feature 3
