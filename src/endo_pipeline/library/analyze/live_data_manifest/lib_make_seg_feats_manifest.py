@@ -394,9 +394,7 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     # add column for nematic order and aspect ratio
     # to compare to Saurabhs modeling results
     logger.info("Calculating nematic order and aspect ratio...")
-    big_table["nematic_order"] = big_table["orientation"].transform(
-        lambda x: get_nematic_order(x - np.pi / 2)
-    )
+    big_table["nematic_order"] = big_table["orientation"].transform(get_nematic_order)
     big_table["aspect_ratio"] = big_table["eccentricity"].transform(get_aspect_ratio)
 
     # add pixel sizes
