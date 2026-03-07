@@ -89,6 +89,8 @@ def main(
         BIN_WIDTH_DEFAULTS,
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         INIT_POINT_3D,
+        KERNEL_BANDWIDTH,
+        KERNEL_FUNCTION_NAME,
         LOWER_PERCENTILE_FOR_STABLE_FP,
         NUM_INIT_SAMPLES,
         OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS,
@@ -156,8 +158,14 @@ def main(
 
     kernel = [
         KramersMoyalKernel(
-            name=KERNEL_NAMES_DYNAMICS[col],
-            bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[col],
+            name=(
+                KERNEL_NAMES_DYNAMICS[col] if col in KERNEL_NAMES_DYNAMICS else KERNEL_FUNCTION_NAME
+            ),
+            bandwidth=(
+                KERNEL_BANDWIDTHS_DYNAMICS[col]
+                if col in KERNEL_BANDWIDTHS_DYNAMICS
+                else KERNEL_BANDWIDTH
+            ),
             period=(
                 PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
                 if col == ColumnName.POLAR_ANGLE.value
