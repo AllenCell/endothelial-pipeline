@@ -148,6 +148,7 @@ def main(
             manifest=dataframe_manifest,
             pca=pca,
             pad=PAD_BINS_FLOAT,
+            column_names=DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
         )
         bins, centers = get_bins(BIN_WIDTH_DEFAULTS, bin_limits=bounds_for_km)
         stable_fixed_points = ddff_model_analysis(
@@ -167,7 +168,7 @@ def main(
             compute_vtk_files=compute_vtk,
             fig_savedir=fig_savedir,
             vtk_savedir=vtk_savedir,
-            pc_column_names=DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
+            column_names=DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
             lower_percentile=LOWER_PERCENTILE_FOR_STABLE_FP,
             upper_percentile=UPPER_PERCENTILE_FOR_STABLE_FP,
         )

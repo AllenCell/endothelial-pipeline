@@ -107,24 +107,30 @@ def ddff_model_analysis(
     compute_vtk_files: bool,
     fig_savedir: Path,
     vtk_savedir: Path,
-    pc_column_names: list[str],
+    column_names: list[str],
     lower_percentile: float,
     upper_percentile: float,
 ) -> list[np.ndarray]:
     """
-    Get 3d flow field (drift coefficient) from principal component features from a given dataset.
+    Get 3d flow field (drift coefficient) from principal component features from
+    a given dataset.
 
     For a single dataset, this workflow:
 
     1. Loads the dataframe for the given dataset and gets the top 3 PCs.
-    2. Computes the drift and diffusion coefficients (first and second Kramers-Moyal coefficients)
+    2. Computes the drift and diffusion coefficients (first and second
+       Kramers-Moyal coefficients)
         using a kernel-based method.
-    3. Extrapolates the drift and diffusion coefficients to get a flow field over the entire 3D
+    3. Extrapolates the drift and diffusion coefficients to get a flow field
+       over the entire 3D
         space as specified by the input bins and centers.
-    4. Saves out these vector fields as .npy files and as .vtk files for visualization.
-    5. Solves the ODE dx/dt = f(x) using scipy.integrate.solve_ivp, where f(x) is the flow field
+    4. Saves out these vector fields as .npy files and as .vtk files for
+       visualization.
+    5. Solves the ODE dx/dt = f(x) using scipy.integrate.solve_ivp, where f(x)
+       is the flow field
         (drift coefficient) and x is the 3D state space.
-    6. Visualizes the flow field and the trajectory using the main function in flow_field_viz.py.
+    6. Visualizes the flow field and the trajectory using the main function in
+       flow_field_viz.py.
 
     Parameters
     ----------
@@ -133,15 +139,19 @@ def ddff_model_analysis(
     dataframe_manifest
         Dataframe manifest with the dataframe locations for each dataset.
     pca
-        PCA model to use for transforming the data (projecting onto the top 3 PCs).
+        PCA model to use for transforming the data (projecting onto the top 3
+        PCs).
     kernel_name
-        Name of the kernel function to use for Kramers-Moyal coefficient estimation.
+        Name of the kernel function to use for Kramers-Moyal coefficient
+        estimation.
     kernel_bw
-        Bandwidth parameter for the kernel function used in Kramers-Moyal coefficient estimation.
+        Bandwidth parameter for the kernel function used in Kramers-Moyal
+        coefficient estimation.
     dt
         Time step between frames.
     bins
-        List of the bin edges for histogramming along each dimension in the 3D state space.
+        List of the bin edges for histogramming along each dimension in the 3D
+        state space.
     centers
         List of centers of the bins in each dimension.
     time_span
@@ -153,17 +163,21 @@ def ddff_model_analysis(
     plot_bounds
         Bounds for plotting the flow field.
     plot_stack
-        Whether to plot the flow field as a stack of 2D slices in each dimension.
+        Whether to plot the flow field as a stack of 2D slices in each
+        dimension.
     compute_vtk_files
-        Whether to compute and save .vtk files for the flow field and diffusion field.
+        Whether to compute and save .vtk files for the flow field and diffusion
+        field.
     fig_savedir
         Directory to save figures.
     vtk_savedir
         Directory to save .vtk files.
     output_savedir
-        Directory to save output files (.npy files with drift field and diffusion field).
-    pc_column_names
-        List of column names for the principal components to use.
+        Directory to save output files (.npy files with drift field and
+        diffusion field).
+    column_names
+        List of column names corresponding to features to use for the analysis
+        (e.g. the top 3 PCs).
     lower_percentile
         Lower percentile for filtering fixed points.
     upper_percentile
@@ -172,20 +186,21 @@ def ddff_model_analysis(
     Returns
     -------
     :
-        List of stable fixed points with high confidence (filtered by percentile range).
+        List of stable fixed points with high confidence (filtered by percentile
+        range).
     """
     # load dataframe and get top 3 PCs
     df = get_dataframe_for_dynamics_workflows(
         dataset_name,
         dataframe_manifest,
-        pca,
+        pca=pca,
         include_cell_piling=False,
         include_not_steady_state=False,
     )
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
-    traj_list, d_traj_list = get_traj_and_diff(df, pc_column_names)
+    traj_list, d_traj_list = get_traj_and_diff(df, column_names)
     # get drift estimates
     # (Kramers-Moyal coefficients)
     drift_km, _ = get_kramers_moyal_coeffs(
@@ -236,8 +251,8 @@ def ddff_model_analysis(
     drift_function_jacobian = Jacobian(drift_function)
 
     # sample initial conditions for root solver from data density
-    pc_data = df[pc_column_names].values  # get PC data as numpy array
-    sampled_inits_for_root_solver = sample_from_density(pc_data, num_inits_for_root_solver)
+    feature_data = df[column_names].values  # get feature data as numpy array
+    sampled_inits_for_root_solver = sample_from_density(feature_data, num_inits_for_root_solver)
 
     # pass into helper function to get fixed points
     fpts = get_fps(drift_function, sampled_inits_for_root_solver)
@@ -246,7 +261,7 @@ def ddff_model_analysis(
     stable_fpts_high_confidence = []
     for fpt in fpts:
         within_percentile = _is_point_within_percentile(
-            fpt, pc_data, lower_percentile, upper_percentile
+            fpt, feature_data, lower_percentile, upper_percentile
         )
         if within_percentile:
             # get stability and type of the fixed point
@@ -269,6 +284,7 @@ def ddff_model_analysis(
     flow_field_viz_main(
         flow_field_dict,
         df,
+        column_names,
         traj,
         stable_fpts_high_confidence,
         plot_bounds,
