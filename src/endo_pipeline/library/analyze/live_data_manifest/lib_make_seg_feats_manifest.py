@@ -394,9 +394,7 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     # add column for nematic order and aspect ratio
     # to compare to Saurabhs modeling results
     logger.info("Calculating nematic order and aspect ratio...")
-    big_table["nematic_order"] = big_table["orientation"].transform(
-        lambda x: get_nematic_order(x - np.pi / 2)
-    )
+    big_table["nematic_order"] = big_table["orientation"].transform(get_nematic_order)
     big_table["aspect_ratio"] = big_table["eccentricity"].transform(get_aspect_ratio)
 
     # add pixel sizes
@@ -536,10 +534,21 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
         how="left",
         validate="one_to_one",
     )
+    del num_nuclei_in_crop_df
 
     # add column for the labels of other cells that are in the crop of each cell
     # so we can calculate mean migration vector of those other cells in the crop
-    big_table = add_all_labels_in_crop_column(big_table, use_precomputed=False)
+    add_all_labels_in_crop_df = add_all_labels_in_crop_column(
+        big_table[required_columns], use_precomputed=False
+    )
+    added_cols = list(set(add_all_labels_in_crop_df.columns) - set(big_table.columns))
+    big_table = pd.merge(
+        left=big_table,
+        right=add_all_labels_in_crop_df[crops + added_cols],
+        on=crops,
+        how="left",
+        validate="one_to_one",
+    )
 
     return big_table
 
@@ -1168,7 +1177,7 @@ def create_labels_in_crop_columns(df_sub: pd.DataFrame, out_dir: Path) -> None:
     """
     ds_nm = sequence_to_scalar(df_sub["dataset_name"])
     pos = sequence_to_scalar(df_sub["position"])
-    tp = sequence_to_scalar(df_sub["T"])
+    tp = sequence_to_scalar(df_sub["image_index"])
 
     # load image
     dataset_config = load_dataset_config(ds_nm)
@@ -1189,13 +1198,13 @@ def create_labels_in_crop_columns(df_sub: pd.DataFrame, out_dir: Path) -> None:
     )
 
     fname = f"{ds_nm}_pos{pos}_tp{tp}_labels_in_crop.parquet"
-    df_sub[["dataset_name", "position", "T", "label", "all_labels_in_crop"]].to_parquet(
+    df_sub[["dataset_name", "position", "image_index", "label", "all_labels_in_crop"]].to_parquet(
         out_dir / fname, index=False
     )
 
 
 def add_all_labels_in_crop_column(
-    df: pd.DataFrame, use_precomputed: bool = False, max_cores: int | None = None
+    big_table: pd.DataFrame, use_precomputed: bool = False, max_cores: int | None = None
 ) -> pd.DataFrame:
     """Return the provided dataframe with a column added to the DataFrame that
     contains a list of the labels of all segmentations that are found in a
@@ -1205,8 +1214,8 @@ def add_all_labels_in_crop_column(
     ----------
     df:
         The DataFrame to add the column to. This DataFrame should contain the
-        following columns: "dataset_name", "position", "T", "label", "start_y",
-        "end_y", "start_x", and "end_x".
+        following columns: "dataset_name", "position", "image_index", "label",
+        "start_y", "end_y", "start_x", and "end_x".
     use_precomputed:
         If True, the function will use precomputed "all_labels_in_crop" data.
         This saves time but should only be used if you are sure that the precomputed
@@ -1219,17 +1228,17 @@ def add_all_labels_in_crop_column(
     """
     # make temporary output directory to save "all_labels_in_crop" data
     labels_in_crop_dir = get_output_path(__file__, "labels_in_crop", include_timestamp=False)
-    dataset = sequence_to_scalar(df["dataset_name"])
+    dataset = sequence_to_scalar(big_table["dataset_name"])
     labels_in_crop_subdir = labels_in_crop_dir / dataset
     labels_in_crop_subdir.mkdir(parents=True, exist_ok=True)
     labels_in_crop_path = labels_in_crop_dir / f"{dataset}_labels_in_crop.parquet"
 
-    df = df[df.bbox_is_in_bounds]
+    df = big_table[big_table.bbox_is_in_bounds]
 
     if use_precomputed:
         df = pd.read_parquet(labels_in_crop_dir / f"{dataset}_labels_in_crop.parquet")
     else:
-        groupby_cols = ["dataset_name", "position", "T"]
+        groupby_cols = ["dataset_name", "position", "image_index"]
         _, df_grps = zip(*df.groupby(groupby_cols), strict=True)
 
         with ProcessPoolExecutor(max_workers=max_cores) as executor:
