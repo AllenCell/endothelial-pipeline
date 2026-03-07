@@ -606,18 +606,19 @@ def plot_stable_fixed_points_together(
     stable_fixed_points_df: pd.DataFrame,
     plot_bounds: list[np.ndarray],
     fig_savedir: Path,
-    pc_column_names: list[str] | None = None,
+    column_names: list[str],
 ) -> None:
     """
     Generate plot of stable fixed points from multiple datasets together.
 
     **Input DataFrame stable_fixed_points_df:**
 
-    The method input ``stable_fixed_points_df`` should have the following columns:
+    The method input ``stable_fixed_points_df`` should have the following
+    columns:
         - ColumnName.DATASET
-        - pc_column_names[0] (e.g., "pc_1")
-        - pc_column_names[1] (e.g., "pc_2")
-        - pc_column_names[2] (e.g., "pc_3")
+        - column_names[0] (e.g., "pc_1")
+        - column_names[1] (e.g., "pc_2")
+        - column_names[2] (e.g., "pc_3")
 
     Parameters
     ----------
@@ -627,11 +628,13 @@ def plot_stable_fixed_points_together(
         List of arrays specifying the plot bounds for each principal component.
     fig_savedir
         Directory to save the figure.
+    column_names
+        List of column names corresponding to features being used for the
+        analysis (e.g. the top 3 PCs). Used for indexing the columns in the DataFrame.
     """
-    if pc_column_names is None:
-        pc_column_names = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+
     # check that required columns are present
-    required_columns = [ColumnName.DATASET, *pc_column_names]
+    required_columns = [ColumnName.DATASET, *column_names]
     check_required_columns_in_dataframe(stable_fixed_points_df, required_columns)
 
     # initialize plots
@@ -643,7 +646,7 @@ def plot_stable_fixed_points_together(
         dataset_name_ = cast(str, dataset_name)
         scatter_color = feature_viz.get_dataset_color(dataset_name_)
         patch_list_for_legend.append(Patch(color=scatter_color, label=dataset_name_))
-        fpts = dataset_df[pc_column_names].values
+        fpts = dataset_df[column_names].values
         for fpt in fpts:
             # plot fixed point
             # PC1 vs PC2, PC1 vs PC3
