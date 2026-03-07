@@ -207,8 +207,8 @@ def main(
         stable_fixed_points = ddff_model_analysis(
             dataset_name,
             dataframe_manifest,
-            crop_pattern,
-            pca,
+            crop_pattern=crop_pattern,
+            pca=pca,
             kernel=kernel,
             dt=TIME_STEP_IN_MINUTES,
             bins=bins,

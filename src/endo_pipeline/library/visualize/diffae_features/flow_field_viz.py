@@ -513,7 +513,9 @@ def plot_flow_field_slices(
         the analysis (e.g. the top 3 PCs). Used for labeling the slice values in
         the plot titles and logging.
     """
-    column_names_ = column_names or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+    column_names_ = (
+        column_names if column_names is not None else DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+    )
 
     column_labels = [feature_viz.get_label_for_column(col) for col in column_names_]
     # get grid and grid spacing
