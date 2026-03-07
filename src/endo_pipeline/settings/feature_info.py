@@ -64,3 +64,10 @@ LABEL_MAP_GRID = {
     "optical_flow_mean_speed_dt1": "Optical Flow Mean Speed",
     "optical_flow_std_speed_dt1": "Optical Flow Speed Std Dev",
 }
+
+RANGE_MAP = {
+    "optical_flow_mean_unit_vector_dt1": (0, 1),
+    "optical_flow_angle_std_dt1": (0, 4),
+    "optical_flow_mean_speed_dt1": (0, 8),
+    "optical_flow_std_speed_dt1": (0, 10),
+}
