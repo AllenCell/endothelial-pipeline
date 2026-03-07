@@ -76,11 +76,8 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import (
-        DIFFAE_PC_COLUMN_NAMES,
-        NUM_PCS_TO_ANALYZE,
-        ColumnName,
-    )
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
+    from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
     from endo_pipeline.settings.flow_field_3d import (
         BIN_WIDTH_DEFAULTS,
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
@@ -132,7 +129,7 @@ def main(
         dataset_names = [name for name in datasets if name in valid_dataset_options]
 
     # get feature column names to use for flow field analysis
-    column_names: list[str] = columns or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+    column_names: list[str] = columns or list(DYNAMICS_COLUMN_NAMES)
     if len(column_names) != 3:
         raise ValueError(
             f"Exactly 3 column names must be provided for 3D flow field analysis, but {len(column_names)} were provided: {column_names}"
