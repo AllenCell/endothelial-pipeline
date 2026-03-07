@@ -521,6 +521,7 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
         "start_x",
         "end_x",
         "diffae_resolution_level_to_use",
+        "bbox_is_in_bounds",
     ]
     num_nuclei_in_crop_df = add_num_nuclei_in_crop_column(
         big_table[required_columns], use_precomputed=False
