@@ -3,6 +3,7 @@ import re
 from collections.abc import Callable
 from pathlib import Path
 from time import time
+from typing import Literal
 
 import numpy as np
 from numdifftools import Jacobian
@@ -93,6 +94,7 @@ def _is_point_within_percentile(point, data, lower=5, upper=95):
 def ddff_model_analysis(
     dataset_name: str,
     dataframe_manifest: DataframeManifest,
+    crop_pattern: Literal["grid", "tracked"],
     pca: PCA,
     kernel: KramersMoyalKernel,
     dt: float,
@@ -191,6 +193,7 @@ def ddff_model_analysis(
         pca=pca,
         include_cell_piling=False,
         include_not_steady_state=False,
+        crop_pattern=crop_pattern,
     )
 
     # get list of per-crop trajectories, the corresponding

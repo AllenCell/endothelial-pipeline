@@ -1,4 +1,4 @@
-from endo_pipeline.cli import Datasets, StrList
+from endo_pipeline.cli import CropPattern, Datasets, StrList
 from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 TAGS = ["dynamical_systems", "diffae_features"]
@@ -8,6 +8,7 @@ def main(
     datasets: Datasets | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    crop_pattern: CropPattern = "grid",
     plot_stack: bool = False,
     compute_vtk: bool = True,
     use_same_axes: bool = False,
@@ -50,6 +51,8 @@ def main(
         Name of the model manifest containing the run to load features from.
     run_name
         Name of the specific model run to load featuref for. If None, uses the most recent run.
+    crop_pattern
+        The crop pattern to get features for, either "grid" or "tracked".
     plot_stack
         If true, plot 3D stacks of the flow field visualizations in each of the three variables.
     compute_vtk
@@ -105,7 +108,7 @@ def main(
     # load model manifest and get corresponding dataframe manifest name
     model_manifest = load_model_manifest(model_manifest_name)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
+        model_manifest, run_name, crop_pattern=crop_pattern
     )
 
     # Create output folders if they do not exist yet
@@ -147,8 +150,14 @@ def main(
             f"Exactly 3 column names must be provided for 3D flow field analysis, but {len(column_names)} were provided: {column_names}"
         )
 
-    # fit PCA using the features from the given dataframe manifest
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name)
+    # fit PCA using the features from the given dataframe manifest PCA always
+    # fit on the grid-based features, even if the features for flow field
+    # analysis are from tracked-based crops, to ensure that the PCA space is the
+    # same across analyses
+    dataframe_manifest_name_pca = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
+    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_pca)
 
     # get common bounds for all datasets
     # will be used for flow field plots if use_common_axis_limits is True
@@ -192,6 +201,7 @@ def main(
         stable_fixed_points = ddff_model_analysis(
             dataset_name,
             dataframe_manifest,
+            crop_pattern,
             pca,
             kernel=kernel,
             dt=TIME_STEP_IN_MINUTES,
