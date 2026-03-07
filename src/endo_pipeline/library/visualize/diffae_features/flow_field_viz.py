@@ -515,7 +515,7 @@ def plot_flow_field_slices(
     """
     column_names_ = column_names or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
-    column_labels = [feature_viz.get_label_for_column(col) for col in column_names]
+    column_labels = [feature_viz.get_label_for_column(col) for col in column_names_]
     # get grid and grid spacing
     xgrid, ygrid, zgrid = flow_field_dict["grid"]
 
