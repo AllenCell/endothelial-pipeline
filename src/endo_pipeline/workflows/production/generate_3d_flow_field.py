@@ -134,6 +134,11 @@ def main(
         )
     else:
         dataset_names = [name for name in datasets if name in valid_dataset_options]
+    if DEMO_MODE:
+        logger.warning(
+            "DEMO MODE: Using only the first dataset from the manifest for quick visualization."
+        )
+        dataset_names = dataset_names[:1]
 
     # get feature column names to use for flow field analysis
     column_names: list[str] = columns or list(DYNAMICS_COLUMN_NAMES)
