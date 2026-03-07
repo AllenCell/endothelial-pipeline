@@ -123,7 +123,7 @@ def main(
         dataframe_manifest,
         pca,
         filter_to_valid=False,
-        pc_column_names=DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze],
+        column_names=DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze],
     )
     feat_cols = DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze]
     hist_array_lists, bin_edges, df_with_bins = get_histogram_by_component(
