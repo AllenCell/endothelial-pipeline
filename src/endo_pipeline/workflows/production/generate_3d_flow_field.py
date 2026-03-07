@@ -82,6 +82,7 @@ def main(
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
+        BIN_WIDTHS_DYNAMICS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
@@ -188,6 +189,11 @@ def main(
         )
         for col in column_names
     ]
+    bin_widths = []
+    for i, col in enumerate(column_names):
+        bin_widths.append(
+            BIN_WIDTHS_DYNAMICS[col] if col in BIN_WIDTHS_DYNAMICS else BIN_WIDTH_DEFAULTS[i]
+        )
     for dataset_name in dataset_names:
         # get bins for KMCs
         bounds_for_km = get_bounds_from_data(
@@ -197,7 +203,7 @@ def main(
             pad=PAD_BINS_FLOAT,
             column_names=column_names,
         )
-        bins, centers = get_bins(BIN_WIDTH_DEFAULTS, bin_limits=bounds_for_km)
+        bins, centers = get_bins(bin_widths, bin_limits=bounds_for_km)
         stable_fixed_points = ddff_model_analysis(
             dataset_name,
             dataframe_manifest,
