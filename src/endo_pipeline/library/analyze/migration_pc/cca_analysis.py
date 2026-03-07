@@ -4,10 +4,13 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from matplotlib.lines import Line2D
 from sklearn.cross_decomposition import CCA
 
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe, save_plot_to_path
+from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
 from endo_pipeline.manifests import load_dataframe_manifest
 
 logger = logging.getLogger(__name__)
@@ -239,27 +242,36 @@ def plot_optical_flow_feature_distribution(
     binwidth: float = 0.02,
     bins: int = 50,
     kde: bool = True,
-    figsize: tuple[int, int] = (8, 4),
+    figsize: tuple[int, int] = (4, 2.5),
 ) -> None:
     """Plot an optical-flow feature histogram per dataset on a shared axis."""
-    import seaborn as sns
-
     fig, ax = plt.subplots(figsize=figsize)
     for dataset in datasets:
+        color = get_dataset_color(dataset)
+
+        dataset_config = load_dataset_config(dataset)
+        flow_conditions = dataset_config.flow_conditions
+        shear_stress_values = [flow_condition.shear_stress for flow_condition in flow_conditions]
+        shear_stress_label = "-".join(f"{value:g}" for value in shear_stress_values)
         df_of_subset = df[df["dataset"] == dataset]
         sns.histplot(
             df_of_subset[optical_flow_feature],
             bins=bins,
             kde=kde,
-            label=dataset,
+            label=f"{dataset}, shear={shear_stress_label}",
             binwidth=binwidth,
             ax=ax,
+            color=color,
         )
 
     ax.set_xlabel(optical_flow_feature)
     ax.set_ylabel("Count")
-    ax.set_title("optical flow feature AFTER\nto matching model training steps and filling nans")
-    ax.legend()
+    ax.legend(
+        loc="lower center",
+        bbox_to_anchor=(0.5, 1.02),
+        frameon=False,
+        fontsize=8,
+    )
     fig.tight_layout()
     plt.show()
     plt.close(fig)

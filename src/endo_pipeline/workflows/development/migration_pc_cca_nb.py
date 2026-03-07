@@ -17,7 +17,6 @@ from endo_pipeline.library.analyze.migration_pc.cca_analysis import (
     plot_cca_projection_validation,
     plot_cca_results,
     plot_feature_correlations,
-    plot_optical_flow_feature_distribution,
 )
 from endo_pipeline.library.analyze.migration_pc.optical_flow_feature import (
     add_optical_flow_features,
@@ -113,13 +112,3 @@ df_of_plus = apply_cca_projection(df_of)
 # %%
 feature_list = ["cca", "cca_top3"]
 plot_feature_correlations(df_of_plus, feature_list, OPTICAL_FLOW_FEATURE, output_dir)
-# %%
-plot_optical_flow_feature_distribution(
-    df=df_of,
-    optical_flow_feature=OPTICAL_FLOW_FEATURE,
-    datasets=["20250611_20X", "20250618_20X"],
-    binwidth=0.02,
-    bins=50,
-    kde=True,
-)
-# %%
