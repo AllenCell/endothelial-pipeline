@@ -1,4 +1,4 @@
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import Datasets, StrList
 from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 TAGS = ["dynamical_systems", "diffae_features"]
@@ -11,6 +11,7 @@ def main(
     plot_stack: bool = False,
     compute_vtk: bool = True,
     use_same_axes: bool = False,
+    columns: StrList | None = None,
 ) -> None:
     """
     Visualize 3D (drift) flow fields for the dynamics of the crop-based DiffAE
@@ -130,13 +131,19 @@ def main(
     else:
         dataset_names = [name for name in datasets if name in valid_dataset_options]
 
+    # get feature column names to use for flow field analysis
+    column_names: list[str] = columns or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+    if len(column_names) != 3:
+        raise ValueError(
+            f"Exactly 3 column names must be provided for 3D flow field analysis, but {len(column_names)} were provided: {column_names}"
+        )
+
     # fit PCA using the features from the given dataframe manifest
     pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name)
 
     # get common bounds for all datasets
     # will be used for flow field plots if use_common_axis_limits is True
     # regardless, gets used below when plotting stable fixed points together
-    column_names = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
     bounds_for_plots = get_bounds_from_data(
         dataset_names, dataframe_manifest, pca, column_names=column_names
     )
@@ -195,7 +202,9 @@ def main(
 
     # generate plot of stable fixed points from different datasets overlaid on top of each other
     # (for comparison of stable fixed points across datasets)
-    plot_stable_fixed_points_together(stable_fixed_points_df, bounds_for_plots, fig_savedir)
+    plot_stable_fixed_points_together(
+        stable_fixed_points_df, bounds_for_plots, fig_savedir, column_names
+    )
 
     # save stable fixed points from all datasets to parquet file
     df_file_name = "stable_fixed_points_all_datasets.parquet"
