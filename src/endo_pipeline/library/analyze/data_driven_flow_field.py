@@ -94,8 +94,7 @@ def ddff_model_analysis(
     dataset_name: str,
     dataframe_manifest: DataframeManifest,
     pca: PCA,
-    kernel_name: str,
-    kernel_bw: float,
+    kernel: KramersMoyalKernel,
     dt: float,
     bins: list[np.ndarray],
     centers: list[np.ndarray],
@@ -141,12 +140,8 @@ def ddff_model_analysis(
     pca
         PCA model to use for transforming the data (projecting onto the top 3
         PCs).
-    kernel_name
-        Name of the kernel function to use for Kramers-Moyal coefficient
-        estimation.
-    kernel_bw
-        Bandwidth parameter for the kernel function used in Kramers-Moyal
-        coefficient estimation.
+    kernel
+        Kernel to use for Kramers-Moyal coefficient estimation.
     dt
         Time step between frames.
     bins
@@ -203,9 +198,7 @@ def ddff_model_analysis(
     traj_list, d_traj_list = get_traj_and_diff(df, column_names)
     # get drift estimates
     # (Kramers-Moyal coefficients)
-    drift_km, _ = get_kramers_moyal_coeffs(
-        traj_list, d_traj_list, bins=bins, dt=dt, kernel=KramersMoyalKernel(kernel_name, kernel_bw)
-    )
+    drift_km, _ = get_kramers_moyal_coeffs(traj_list, d_traj_list, bins=bins, dt=dt, kernel=kernel)
 
     # compute flow field on the grid defined by centers
     ndim = len(centers)  # number of dimensions

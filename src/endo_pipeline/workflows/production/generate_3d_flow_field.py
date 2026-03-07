@@ -67,6 +67,7 @@ def main(
     from endo_pipeline.io import get_output_path, make_name_unique
     from endo_pipeline.library.analyze.data_driven_flow_field import ddff_model_analysis
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
+    from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
     from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
         plot_stable_fixed_points_together,
@@ -77,13 +78,17 @@ def main(
         load_model_manifest,
     )
     from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
-    from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+    from endo_pipeline.settings.dynamics_workflows import (
+        DYNAMICS_COLUMN_NAMES,
+        KERNEL_BANDWIDTHS_DYNAMICS,
+        KERNEL_NAMES_DYNAMICS,
+        PERIOD_THETA_RESCALED,
+        RESCALE_THETA,
+    )
     from endo_pipeline.settings.flow_field_3d import (
         BIN_WIDTH_DEFAULTS,
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         INIT_POINT_3D,
-        KERNEL_BANDWIDTH,
-        KERNEL_FUNCTION_NAME,
         LOWER_PERCENTILE_FOR_STABLE_FP,
         NUM_INIT_SAMPLES,
         OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS,
@@ -148,6 +153,19 @@ def main(
     # initialize dataframe to hold stable fixed points from all datasets
     # with columns for dataset name and 3D PC space coordinates
     stable_fixed_points_df = pd.DataFrame(columns=[ColumnName.DATASET, *DIFFAE_PC_COLUMN_NAMES[:3]])
+
+    kernel = [
+        KramersMoyalKernel(
+            name=KERNEL_NAMES_DYNAMICS[col],
+            bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[col],
+            period=(
+                PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
+                if col == ColumnName.POLAR_ANGLE.value
+                else None
+            ),
+        )
+        for col in column_names
+    ]
     for dataset_name in dataset_names:
         # get bins for KMCs
         bounds_for_km = get_bounds_from_data(
@@ -162,8 +180,7 @@ def main(
             dataset_name,
             dataframe_manifest,
             pca,
-            kernel_name=KERNEL_FUNCTION_NAME,
-            kernel_bw=KERNEL_BANDWIDTH,
+            kernel=kernel,
             dt=TIME_STEP_IN_MINUTES,
             bins=bins,
             centers=centers,
