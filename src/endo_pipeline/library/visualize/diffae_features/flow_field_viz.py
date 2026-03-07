@@ -210,6 +210,7 @@ def plot_flow_field_stack(
     colormap_name: str = QUIVER_COLORMAP,
     clip_metric: bool = CLIP_MAGNITUDES,
     log_normalize: bool = LOG_NORM_MAGNITUDES,
+    feature_labels: list[str] | None = None,
 ) -> None:
     """
     Plot flow field PC{i} vs PC{j} over a stack of slices in the 3rd variable.
@@ -234,7 +235,15 @@ def plot_flow_field_stack(
         Whether to clip the color metric to avoid outliers.
     log_normalize
         Whether to log normalize the color mapping.
+    feature_labels
+        List of labels for each feature variable in the plot. If None, default labels are used.
     """
+    if feature_labels is None:
+        feature_labels = [
+            feature_viz.get_label_for_column(DIFFAE_PC_COLUMN_NAMES[idx])
+            for idx in NUM_PCS_TO_ANALYZE
+        ]
+
     # unpack plot axes
     i, j = plot_axes_indicies
 
@@ -277,8 +286,8 @@ def plot_flow_field_stack(
         ax = set_slice_plot_bounds_and_labels(
             np.array([ax]),
             plot_bounds,
-            x_label=f"PC{i+1}",
-            y_labels=(f"PC{j+1}",),
+            x_label=feature_labels[i],
+            y_labels=(feature_labels[j],),
         )[0]
         # add colorbar
         sm = plt.cm.ScalarMappable(
@@ -288,7 +297,7 @@ def plot_flow_field_stack(
         cbar = fig.colorbar(sm, ax=ax)
         cbar.set_label("Flow Field Magnitude", fontsize=FONTSIZE_SMALL)
         # set title with slice value
-        ax.set_title(f"PC{slice_axis_index+1} = {slice_value:.4f}")
+        ax.set_title(f"{feature_labels[slice_axis_index]} = {slice_value:.4f}")
         plt.tight_layout()
         ax_list.append(ax)
         save_plot_to_path(
@@ -575,7 +584,9 @@ def plot_flow_field_slices(
     )
 
     # set the axis limits and labels
-    ax = set_slice_plot_bounds_and_labels(ax, plot_bounds)
+    ax = set_slice_plot_bounds_and_labels(
+        ax, plot_bounds, xlabel=column_labels[0], y_labels=(column_labels[1], column_labels[2])
+    )
     # set titles with slice values
     ax[0].set_title(f"{column_labels[2]} = {pc3_val:.2f}")
     ax[1].set_title(f"{column_labels[1]} = {pc2_val:.2f}")
@@ -637,6 +648,8 @@ def plot_stable_fixed_points_together(
     required_columns = [ColumnName.DATASET, *column_names]
     check_required_columns_in_dataframe(stable_fixed_points_df, required_columns)
 
+    column_labels = [feature_viz.get_label_for_column(col) for col in column_names]
+
     # initialize plots
     fig, ax = plt.subplots(NROWS_2D_FLOW_FIELD, NCOLS_2D_FLOW_FIELD, figsize=FIGSIZE_2D_FLOW_FIELD)
 
@@ -654,7 +667,9 @@ def plot_stable_fixed_points_together(
             ax[1].scatter(fpt[0], fpt[2], s=100, color=scatter_color, edgecolor="black")
 
     # set the axis limits and labels
-    ax = set_slice_plot_bounds_and_labels(ax, plot_bounds)
+    ax = set_slice_plot_bounds_and_labels(
+        ax, plot_bounds, xlabel=column_labels[0], y_labels=(column_labels[1], column_labels[2])
+    )
 
     # add legend
     ax[0].legend(bbox_to_anchor=(1.02, 1.02), title="Datasets", handles=patch_list_for_legend)
@@ -727,6 +742,7 @@ def flow_field_viz_main(
             flow_field_dict["grid"][1][0, :, 0],  # feature 2
             flow_field_dict["grid"][2][0, 0, :],  # feature 3
         ]
+        column_labels = [feature_viz.get_label_for_column(col) for col in column_names]
 
         for i, slice_axis in enumerate(slice_axis_indices):
             column_name = column_names[slice_axis]
@@ -747,6 +763,7 @@ def flow_field_viz_main(
                 plot_bounds=plot_bounds_2d,
                 slice_steps=slice_steps,
                 fig_savedir=stack_savedir,
+                feature_labels=column_labels,
             )
 
     if len(stable_fixed_points) == 0:
