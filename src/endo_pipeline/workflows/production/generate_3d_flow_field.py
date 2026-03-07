@@ -136,7 +136,10 @@ def main(
     # get common bounds for all datasets
     # will be used for flow field plots if use_common_axis_limits is True
     # regardless, gets used below when plotting stable fixed points together
-    bounds_for_plots = get_bounds_from_data(dataset_names, dataframe_manifest, pca)
+    column_names = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+    bounds_for_plots = get_bounds_from_data(
+        dataset_names, dataframe_manifest, pca, column_names=column_names
+    )
 
     # initialize dataframe to hold stable fixed points from all datasets
     # with columns for dataset name and 3D PC space coordinates
@@ -148,7 +151,7 @@ def main(
             manifest=dataframe_manifest,
             pca=pca,
             pad=PAD_BINS_FLOAT,
-            column_names=DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
+            column_names=column_names,
         )
         bins, centers = get_bins(BIN_WIDTH_DEFAULTS, bin_limits=bounds_for_km)
         stable_fixed_points = ddff_model_analysis(
@@ -168,7 +171,7 @@ def main(
             compute_vtk_files=compute_vtk,
             fig_savedir=fig_savedir,
             vtk_savedir=vtk_savedir,
-            column_names=DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
+            column_names=column_names,
             lower_percentile=LOWER_PERCENTILE_FOR_STABLE_FP,
             upper_percentile=UPPER_PERCENTILE_FOR_STABLE_FP,
         )
@@ -181,9 +184,9 @@ def main(
                     pd.DataFrame(
                         {
                             ColumnName.DATASET: [dataset_name],
-                            DIFFAE_PC_COLUMN_NAMES[0]: [stable_fp[0]],
-                            DIFFAE_PC_COLUMN_NAMES[1]: [stable_fp[1]],
-                            DIFFAE_PC_COLUMN_NAMES[2]: [stable_fp[2]],
+                            column_names[0]: [stable_fp[0]],
+                            column_names[1]: [stable_fp[1]],
+                            column_names[2]: [stable_fp[2]],
                         }
                     ),
                 ],
