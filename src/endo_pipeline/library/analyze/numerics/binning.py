@@ -132,10 +132,9 @@ def get_bounds_from_data(
         List of tuples, each array contains the (min, max) bounds for a
         dimension.
     """
-    if column_names is None:
-        column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+    column_names_ = column_names or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
-    num_dims = len(column_names)
+    num_dims = len(column_names_)
     # initialize bounds - set to extreme values
     bin_mins = [np.inf] * num_dims
     bin_maxs = [-np.inf] * num_dims
@@ -160,8 +159,8 @@ def get_bounds_from_data(
         )
         # get column names for features
         for j in range(num_dims):
-            candidate_min = df[column_names[j]].min()
-            candidate_max = df[column_names[j]].max()
+            candidate_min = df[column_names_[j]].min()
+            candidate_max = df[column_names_[j]].max()
             if pad:
                 candidate_min = candidate_min - pad
                 candidate_max = candidate_max + pad
