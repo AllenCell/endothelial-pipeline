@@ -77,7 +77,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
+    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
@@ -152,7 +152,7 @@ def main(
 
     # initialize dataframe to hold stable fixed points from all datasets
     # with columns for dataset name and 3D PC space coordinates
-    stable_fixed_points_df = pd.DataFrame(columns=[ColumnName.DATASET, *DIFFAE_PC_COLUMN_NAMES[:3]])
+    stable_fixed_points_df = pd.DataFrame(columns=[ColumnName.DATASET, *column_names])
 
     kernel = [
         KramersMoyalKernel(
