@@ -142,29 +142,28 @@ def _is_point_within_percentile(
     :
         True if point is within the percentile bounds on all axes, else False.
     """
-    lower_bounds = np.zeros(len(column_names))
-    upper_bounds = np.zeros(len(column_names))
+    is_within_bounds = np.zeros(len(column_names), dtype=bool)
     for i, column_name in enumerate(column_names):
         if column_name == ColumnName.POLAR_ANGLE.value:
             # for polar angle, compute circular percentiles
             angles = data[column_name].to_numpy()
-            lower_bounds[i] = _compute_circular_percentile(
-                angles, lower_percentile, is_angle_rescaled
-            )
-            upper_bounds[i] = _compute_circular_percentile(
-                angles, upper_percentile, is_angle_rescaled
-            )
+            lower_bound = _compute_circular_percentile(angles, lower_percentile, is_angle_rescaled)
+            upper_bound = _compute_circular_percentile(angles, upper_percentile, is_angle_rescaled)
+            # for circular variables, a point is considered within bounds if it
+            # is either greater than the lower bound or less than the upper
+            # bound (accounting for wraparound)
+            is_within_bounds[i] = (lower_bound <= point[i]) | (point[i] <= upper_bound)
         else:
-            lower_bounds[i] = np.percentile(data[column_name], lower_percentile)
-            upper_bounds[i] = np.percentile(data[column_name], upper_percentile)
-
-    logger.debug(
-        "Percentile bounds for point filtering: " "lower bounds [ %s ], upper bounds [ %s ]",
-        lower_bounds,
-        upper_bounds,
-    )
-    point = np.asarray(point)
-    return np.all((point >= lower_bounds) & (point <= upper_bounds))
+            lower_bound = np.percentile(data[column_name], lower_percentile)
+            upper_bound = np.percentile(data[column_name], upper_percentile)
+            is_within_bounds[i] = (lower_bound <= point[i]) & (point[i] <= upper_bound)
+        logger.debug(
+            "Percentile bounds for column [ %s ]: [ %.4f, %.4f ]",
+            column_name,
+            lower_bound,
+            upper_bound,
+        )
+    return np.all(is_within_bounds)
 
 
 def ddff_model_analysis(
