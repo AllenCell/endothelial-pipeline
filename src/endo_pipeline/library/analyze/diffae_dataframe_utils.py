@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Literal, cast
+from typing import Literal, cast, overload
 
 import numpy as np
 import pandas as pd
@@ -159,14 +159,30 @@ def pcs_to_polar_r(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.ndarray
     return np.sqrt(pc1_values**2 + pc2_values**2)
 
 
-def rescale_polar_angle(theta_values: np.ndarray) -> np.ndarray:
+@overload
+def rescale_polar_angle(theta_values: np.ndarray) -> np.ndarray: ...
+
+
+@overload
+def rescale_polar_angle(theta_values: float) -> float: ...
+
+
+def rescale_polar_angle(theta_values: np.ndarray | float) -> np.ndarray | float:
     """
     Rescale polar angle values to be within the range [0, pi].
     """
     return (theta_values + np.pi) / 2
 
 
-def unrescale_polar_angle(theta_values: np.ndarray) -> np.ndarray:
+@overload
+def unrescale_polar_angle(theta_values: np.ndarray) -> np.ndarray: ...
+
+
+@overload
+def unrescale_polar_angle(theta_values: float) -> float: ...
+
+
+def unrescale_polar_angle(theta_values: np.ndarray | float) -> np.ndarray | float:
     """
     Unrescale polar angle values from the range [0, pi] back to the range [-pi, pi].
     """

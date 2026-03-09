@@ -157,6 +157,12 @@ def _is_point_within_percentile(
         else:
             lower_bounds[i] = np.percentile(data[column_name], lower_percentile)
             upper_bounds[i] = np.percentile(data[column_name], upper_percentile)
+
+    logger.debug(
+        "Percentile bounds for point filtering: " "lower bounds [ %s ], upper bounds [ %s ]",
+        lower_bounds,
+        upper_bounds,
+    )
     point = np.asarray(point)
     return np.all((point >= lower_bounds) & (point <= upper_bounds))
 
