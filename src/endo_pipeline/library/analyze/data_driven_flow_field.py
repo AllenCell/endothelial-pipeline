@@ -259,8 +259,10 @@ def ddff_model_analysis(
     drift_function_jacobian = Jacobian(drift_function)
 
     # sample initial conditions for root solver from data density
-    feature_data = df[column_names].values  # get feature data as numpy array
-    sampled_inits_for_root_solver = sample_from_density(feature_data, num_inits_for_root_solver)
+    feature_data = df[column_names]  # get feature data as numpy array
+    sampled_inits_for_root_solver = sample_from_density(
+        feature_data.to_numpy(), num_inits_for_root_solver
+    )
 
     # pass into helper function to get fixed points
     fpts = get_fps(drift_function, sampled_inits_for_root_solver)
@@ -269,7 +271,7 @@ def ddff_model_analysis(
     stable_fpts_high_confidence = []
     for fpt in fpts:
         within_percentile = _is_point_within_percentile(
-            fpt, feature_data, lower_percentile, upper_percentile
+            fpt, feature_data, column_names, lower_percentile, upper_percentile
         )
         if within_percentile:
             # get stability and type of the fixed point
