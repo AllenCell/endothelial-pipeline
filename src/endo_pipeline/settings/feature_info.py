@@ -15,7 +15,7 @@ LABEL_MAP = {
     "cell_solidity": "Cell Solidity",
     "time_hours": "Time (hours)",
     "time_minutes": "Time (minutes)",
-    "track_id": "Track ID",
+    ColumnName.TRACK_ID: "Track ID",
     "smoothed_area_normd_diff": "Smoothed Area Difference (Normalized)",
     "track_duration": "Track Duration",
     "num_valid_tp_per_track": "Number of Valid Timepoints",

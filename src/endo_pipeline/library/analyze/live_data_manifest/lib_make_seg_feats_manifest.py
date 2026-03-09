@@ -29,7 +29,9 @@ from endo_pipeline.manifests import (
     get_zarr_location_for_position,
     load_image_manifest,
 )
+from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.image_data import DIMENSION_ORDER
+from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg
 
 logger = logging.getLogger(__name__)
 
@@ -58,20 +60,36 @@ def merge_measured_segmentation_features_tables(
         left_on=["dataset_name", "position", "T", "label"],
         right_on=["dataset_name", "position", "T", "cdh5_segmentation_label"],
     )
+
+    return big_table
+
+
+def sanitize_columns(big_table: pd.DataFrame) -> pd.DataFrame:
+    """Remove redundant columns and rename columns for consistency and readability."""
     # the following columns are redundant with another in the table and
     # can be dropped:
     duplicate_cols = [
-        "cell_label",
-        "cdh5_segmentation_label",
-        "cell_centroid",
-        "cell_area (px**2)",
-        "cell_perimeter (px)",
-        "cell_eccentricity",
+        "cell_label",  # redundant with "label"
+        "cdh5_segmentation_label",  # redundant with "label"
+        # "cell_centroid",  # redundant with "centroid"
+        "centroid",  # redundant with "cell_centroid"
+        # "cell_area (px**2)",  # redundant with "area"
+        "area",  # redundant with "cell_area (px**2)"
+        # "cell_perimeter (px)",  # redundant with "perimeter"
+        "perimeter",  # redundant with "cell_perimeter (px)"
+        # "cell_eccentricity",  # redundant with "eccentricity"
+        "eccentricity",  # redundant with "cell_eccentricity"
         "touches_border",
-        "orientation",  # redundant even though has different phase shift than cell orientation
+        "orientation",  # redundant with "cell orientation"; though has a different phase shift
     ]
     big_table = big_table.drop(columns=duplicate_cols)
-    big_table = big_table.rename(columns={"cell_orientation": "orientation"})
+
+    columns_to_rename = {
+        "dataset_name": ColumnName.DATASET,
+        "image_index": ColumnName.TIMEPOINT,
+        "cell_orientation": ColumnNameSeg.ORIENTATION,
+    }
+    big_table = big_table.rename(columns=columns_to_rename)
 
     return big_table
 
