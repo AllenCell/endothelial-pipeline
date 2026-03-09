@@ -6,8 +6,6 @@ from endo_pipeline.settings import (
     RANDOM_SEED,
 )
 
-TAGS = ["pc_interpretation", "diffae_image_generation"]
-
 
 def main(
     datasets: Datasets | None = None,
@@ -24,6 +22,8 @@ def main(
     """
     Generate a real walk of cropped images within a specified range of PC values. The crops are
     selected such that one principal component axis varies while the others remain near zero.
+
+    #pc-interpretation #diffae-image-generation
 
     Note if you want to do the top 8:
     set pc_axis_list to [0, 1, 2, 3, 4, 5, 6, 7]

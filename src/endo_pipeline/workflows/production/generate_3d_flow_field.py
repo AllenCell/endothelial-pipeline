@@ -1,8 +1,6 @@
 from endo_pipeline.cli import CropPattern, Datasets, StrList
 from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
-TAGS = ["dynamical_systems", "diffae_features"]
-
 
 def main(
     datasets: Datasets | None = None,
@@ -17,6 +15,8 @@ def main(
     """
     Visualize 3D (drift) flow fields for the dynamics of the crop-based DiffAE
     features for each of the single flow datasets.
+
+    #dynamical-systems #diffae-feature-analysis
 
     **Flow field estimation and analysis**
 
