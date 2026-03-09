@@ -3,6 +3,7 @@ from typing import cast
 
 import numpy as np
 import pandas as pd
+from scipy.stats import circmean, vonmises
 from sklearn.decomposition import PCA
 
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
@@ -17,6 +18,35 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
 from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
 
 logger = logging.getLogger(__name__)
+
+
+def circpercentile(data: np.ndarray, q: float) -> float:
+    """
+    Compute the q-th percentile of circular data.
+
+    Parameters
+    ----------
+    data
+        1D array of circular data (e.g., angles in radians).
+    q
+        Percentile to compute (between 0 and 100).
+
+    Returns
+    -------
+    :
+        The q-th percentile of the circular data, in the same units as the input data.
+    """
+    if not (0 <= q <= 100):
+        raise ValueError("Percentile must be between 0 and 100.")
+    # Convert q to a value between 0 and 1. (i.e., quantile to compute)
+    q = q / 100.0
+
+    # Use von Mises distribution to compute the circular percentile
+    circ_mean = circmean(data)  # compute circular mean of the data
+    kappa, _, _ = vonmises.fit(
+        data, loc=circ_mean
+    )  # fit von Mises distribution to data (kappa parameter)
+    return vonmises.ppf(q, kappa, loc=circ_mean)
 
 
 def get_bins(
