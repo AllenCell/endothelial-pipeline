@@ -171,29 +171,21 @@ def main(
     # with columns for dataset name and 3D PC space coordinates
     stable_fixed_points_df = pd.DataFrame(columns=[ColumnName.DATASET, *column_names])
 
-    kernel = [
-        KramersMoyalKernel(
-            name=(
-                KERNEL_NAMES_DYNAMICS[col] if col in KERNEL_NAMES_DYNAMICS else KERNEL_FUNCTION_NAME
-            ),
-            bandwidth=(
-                KERNEL_BANDWIDTHS_DYNAMICS[col]
-                if col in KERNEL_BANDWIDTHS_DYNAMICS
-                else KERNEL_BANDWIDTH
-            ),
-            period=(
-                PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
-                if col == ColumnName.POLAR_ANGLE.value
-                else None
-            ),
-        )
-        for col in column_names
-    ]
+    # initialize kernels and bin widths for each of the three variables for flow
+    # field estimation
+    kernels = []
     bin_widths = []
-    for i, col in enumerate(column_names):
-        bin_widths.append(
-            BIN_WIDTHS_DYNAMICS[col] if col in BIN_WIDTHS_DYNAMICS else BIN_WIDTH_DEFAULTS[i]
-        )
+    rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
+
+    for index, column_name in enumerate(column_names):
+        name = KERNEL_NAMES_DYNAMICS.get(column_name, KERNEL_FUNCTION_NAME)
+        bandwidth = KERNEL_BANDWIDTHS_DYNAMICS.get(column_name, KERNEL_BANDWIDTH)
+        period = rescaled_theta if column_name == ColumnName.POLAR_ANGLE else None
+        bin_width = BIN_WIDTHS_DYNAMICS.get(column_name, BIN_WIDTH_DEFAULTS[index])
+
+        kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
+        bin_widths.append(bin_width)
+
     for dataset_name in dataset_names:
         # get bins for KMCs
         bounds_for_km = get_bounds_from_data(
@@ -209,7 +201,7 @@ def main(
             dataframe_manifest,
             crop_pattern=crop_pattern,
             pca=pca,
-            kernel=kernel,
+            kernel=kernels,
             dt=TIME_STEP_IN_MINUTES,
             bins=bins,
             centers=centers,
