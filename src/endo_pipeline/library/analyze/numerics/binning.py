@@ -42,7 +42,7 @@ def circpercentile(data: np.ndarray, q: float) -> float:
     q = q / 100.0
 
     # Use von Mises distribution to compute the circular percentile
-    circ_mean = circmean(data)  # compute circular mean of the data
+    circ_mean = circmean(data, low=-np.pi, high=np.pi)  # compute circular mean of the data
     kappa, _, _ = vonmises.fit(
         data, loc=circ_mean
     )  # fit von Mises distribution to data (kappa parameter)
