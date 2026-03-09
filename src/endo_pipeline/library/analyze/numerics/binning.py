@@ -132,9 +132,7 @@ def get_bounds_from_data(
         List of tuples, each array contains the (min, max) bounds for a
         dimension.
     """
-    column_names_ = (
-        column_names if column_names is not None else DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
-    )
+    column_names_ = column_names or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
     num_dims = len(column_names_)
     # initialize bounds - set to extreme values
