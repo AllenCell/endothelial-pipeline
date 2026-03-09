@@ -1,6 +1,5 @@
 import logging
 from pathlib import Path
-from typing import Literal
 
 import networkx
 import numpy as np
@@ -806,9 +805,6 @@ def generate_cdh5_segmentation_refined(
     timepoint: int,
     position: int,
     img_bin_level: int = 0,
-    nuclei_seg_manifest_name: Literal[
-        "nuclear_labelfree_seg", "nuclear_stain_seg"
-    ] = "nuclear_labelfree_seg",
     save_output: bool = True,
     create_validation_image: bool = False,
 ) -> None:
@@ -843,9 +839,9 @@ def generate_cdh5_segmentation_refined(
     )
 
     logger.info(f"T={timepoint} -- loading nuclei segmentations")
-    seg_manifest = load_image_manifest(nuclei_seg_manifest_name)
-    seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position, timepoint)
-    nuc_pred = load_image(seg_location, squeeze=True, compute=True)
+    seg_manifest = load_image_manifest("nuclear_labelfree_seg_zarr")
+    seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position)
+    nuc_pred = load_image(seg_location, squeeze=True, compute=True, timepoints=timepoint)
 
     logger.info(f"T={timepoint} -- splitting RAG-based segmentations using nuclei predictions")
 
@@ -945,17 +941,16 @@ def generate_cdh5_segmentation_refined_multiproc_wrapper(args: dict) -> None:
     position = args["position"]
     timepoint = args["T"]
     img_bin_level = args["image_bin_level"]
-    nuclei_seg_manifest_name = args["nuclei_seg_manifest_name"]
     save_output = args["save_output"]
     out_dir = args["output_dir"]
     create_validation_image = args["is_validation_image"]
+
     generate_cdh5_segmentation_refined(
         out_dir=out_dir,
         dataset_name=dataset_name,
         timepoint=timepoint,
         position=position,
         img_bin_level=img_bin_level,
-        nuclei_seg_manifest_name=nuclei_seg_manifest_name,
         save_output=save_output,
         create_validation_image=create_validation_image,
     )
