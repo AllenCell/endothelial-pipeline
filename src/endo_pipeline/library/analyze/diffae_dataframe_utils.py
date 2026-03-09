@@ -872,24 +872,31 @@ def get_dataframe_for_dynamics_workflows(
         df_segmentations_delayed = load_dataframe(seg_feat_loc, delay=True)
         cols_to_compute = [
             "dataset_name",
-            "position_as_str",
+            ColumnName.POSITION,
             "image_index",
             ColumnName.TRACK_ID,
             "track_duration",
             "is_included",
         ]
         df_segmentations = df_segmentations_delayed[cols_to_compute].compute()
+        # NOTE the 2 lines below are temporary until we update how we store position
+        # and change the column names to be consistent across dataframes
+        df_segmentations[ColumnName.POSITION] = df_segmentations[ColumnName.POSITION].transform(
+            lambda pos: f"P{pos}"
+        )
+        df_segmentations.rename(columns={"dataset_name": ColumnName.DATASET}, inplace=True)
+        df_segmentations.rename(columns={"image_index": ColumnName.TIMEPOINT}, inplace=True)
         original_df_length = len(df_filtered)
         df_filtered = df_filtered.merge(
             df_segmentations,
-            right_on=[
+            on=[
                 ColumnName.DATASET,
                 ColumnName.POSITION,
                 ColumnName.TIMEPOINT,
                 ColumnName.TRACK_ID,
             ],
-            left_on=["dataset_name", "position_as_str", "image_index", ColumnName.TRACK_ID],
             how="left",
+            validate="one_to_one",
         )
         if original_df_length != len(df_filtered):
             raise ValueError(
