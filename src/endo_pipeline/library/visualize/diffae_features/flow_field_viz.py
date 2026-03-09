@@ -523,18 +523,19 @@ def plot_flow_field_slices(
 
     # for plotting in 2D, we need to slice the data in feature space at the
     # specified values of the 2nd and 3rd variables (e.g., PC2 and PC3)
-    feature3_val = feature_vals[0]
-    feature2_val = feature_vals[1]
+    feature_z_val = feature_vals[0]
+    feature_y_val = feature_vals[1]
 
-    # get z-slice closest to PC3 = feature3_val
-    zvalids = get_slice_indexes(zgrid, feature3_val)
-    # get y-slice closest to PC2 = feature2_val
-    yvalids = get_slice_indexes(ygrid, feature2_val)
+    # get z-slice closest to z = feature_z_val
+    zvalids = get_slice_indexes(zgrid, feature_z_val)
+    # get y-slice closest to y = feature_y_val
+    yvalids = get_slice_indexes(ygrid, feature_y_val)
 
-    # plot quiver plots of these PC2 and PC3 slices
+    # plot quiver plots of these y and z slices, with optional KDE contours of
+    # the data in these slices
     fig, ax = plt.subplots(NROWS_2D_FLOW_FIELD, NCOLS_2D_FLOW_FIELD, figsize=FIGSIZE_2D_FLOW_FIELD)
 
-    # plot KDE contours of data in PC1-PC2 and PC1-PC3 planes, if specified
+    # plot KDE contours of data in x-y and x-z planes, if specified
     if plot_density:
         for i, (feature_x, feature_y) in enumerate(
             [
@@ -543,18 +544,17 @@ def plot_flow_field_slices(
             ]
         ):
             # get a 2D meshgrid for the current slice
-            if i == 0:  # PC1-PC2 plane
+            if i == 0:  # x-y plane
                 x = xgrid[:, :, 0]
                 y = ygrid[:, :, 0]
-            else:  # PC1-PC3 plane
+            else:  # x-z plane
                 x = xgrid[:, 0, :]
                 y = zgrid[:, 0, :]
 
             positions = np.vstack([x.ravel(), y.ravel()])
             grid_shape = x.shape
 
-            # get the data in the current feature_x-feature_y plane (e.g.,
-            # PC1-PC2 or PC1-PC3)
+            # get the data in the current 2D plane (x-y or x-z)
             data_x = cast(np.ndarray, df[feature_x].values)
             data_y = cast(np.ndarray, df[feature_y].values)
             # calculate the point density (KDE)
@@ -591,8 +591,8 @@ def plot_flow_field_slices(
         ax, plot_bounds, x_label=column_labels[0], y_labels=(column_labels[1], column_labels[2])
     )
     # set titles with slice values
-    ax[0].set_title(f"{column_labels[2]} = {feature3_val:.2f}")
-    ax[1].set_title(f"{column_labels[1]} = {feature2_val:.2f}")
+    ax[0].set_title(f"{column_labels[2]} = {feature_z_val:.2f}")
+    ax[1].set_title(f"{column_labels[1]} = {feature_y_val:.2f}")
     plt.tight_layout()
 
     dataset_name = df[ColumnName.DATASET].unique()[0]
@@ -665,7 +665,7 @@ def plot_stable_fixed_points_together(
         fpts = dataset_df[column_names].values
         for fpt in fpts:
             # plot fixed point
-            # PC1 vs PC2, PC1 vs PC3
+            # x-y, x-z
             ax[0].scatter(fpt[0], fpt[1], s=100, color=scatter_color, edgecolor="black")
             ax[1].scatter(fpt[0], fpt[2], s=100, color=scatter_color, edgecolor="black")
 
