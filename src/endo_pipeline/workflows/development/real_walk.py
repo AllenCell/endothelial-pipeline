@@ -6,8 +6,6 @@ from endo_pipeline.settings import (
     RANDOM_SEED,
 )
 
-TAGS = ["pc_interpretation", "diffae_image_generation"]
-
 
 def main(
     datasets: Datasets | None = None,
@@ -24,6 +22,8 @@ def main(
     """
     Generate a real walk of cropped images within a specified range of PC values. The crops are
     selected such that one principal component axis varies while the others remain near zero.
+
+    #pc-interpretation #diffae-image-generation
 
     Note if you want to do the top 8:
     set pc_axis_list to [0, 1, 2, 3, 4, 5, 6, 7]
@@ -123,7 +123,7 @@ def main(
         dataframe_manifest,
         pca,
         filter_to_valid=False,
-        pc_column_names=DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze],
+        column_names=DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze],
     )
     feat_cols = DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze]
     hist_array_lists, bin_edges, df_with_bins = get_histogram_by_component(

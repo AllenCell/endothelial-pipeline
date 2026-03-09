@@ -179,7 +179,7 @@ def plot_quiver_slices_from_diffae_table(
         df=diffae_df,
         plot_bounds=bounds,
         fig_savedir=None,
-        pc_vals=pc_vals,
+        feature_vals=pc_vals,
         colormap_name=flow_field_colormap,
         log_norm_colormap=True,
     )
