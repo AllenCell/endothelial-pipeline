@@ -783,14 +783,24 @@ def flow_field_viz_main(
             mean_at_last_timepoint[column_names[1]],
         )  # feature 3, feature 2
         fig, ax = plot_flow_field_slices(
-            flow_field_dict, df, plot_bounds, None, feature_vals=feature_vals
+            flow_field_dict,
+            df,
+            plot_bounds,
+            None,
+            feature_vals=feature_vals,
+            column_names=column_names,
         )
     else:
         for k, fpt in enumerate(stable_fixed_points):
             # plot flow field slices at this stable fixed point
             feature_vals = (fpt[2], fpt[1])  # feature 3, feature 2
             fig, ax = plot_flow_field_slices(
-                flow_field_dict, df, plot_bounds, None, feature_vals=feature_vals
+                flow_field_dict,
+                df,
+                plot_bounds,
+                None,
+                feature_vals=feature_vals,
+                column_names=column_names,
             )
 
             for j, ax_ in enumerate(ax):  # feature 1 vs feature 2, feature 1 vs feature 3
