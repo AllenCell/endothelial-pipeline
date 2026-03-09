@@ -10,7 +10,7 @@ from skimage.morphology import binary_dilation
 from tqdm import tqdm
 
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
-from endo_pipeline.io import get_output_path, load_dataframe, load_image, save_plot_to_path
+from endo_pipeline.io import get_output_path, load_dataframe, load_image, save_plot_to_path, slugify
 from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
@@ -92,14 +92,13 @@ def make_imaging_panels(
     nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_config, position, timeframe)
     nuc_pred = load_image(nuc_location, compute=True, squeeze=False)
 
-    cdh5_seg_manifest = load_image_manifest("cdh5_classic_seg")
+    cdh5_seg_manifest = load_image_manifest("cdh5_classic_seg_zarr")
+    cdh5_seg_location = get_image_location_for_dataset(cdh5_seg_manifest, dataset_config, position)
     cdh5_seg_sequential_timeframes = list(range(timeframe, timeframe + 5))
+
     for tf in cdh5_seg_sequential_timeframes:
-        cdh5_seg_location = get_image_location_for_dataset(
-            cdh5_seg_manifest, dataset_config, position, tf
-        )
         image_dict[f"cdh5_seg_split_{tf}"] = load_image(
-            cdh5_seg_location, compute=True, squeeze=False
+            cdh5_seg_location, compute=True, squeeze=False, timepoints=tf
         )
 
     bf_center_Z = dataset_config.center_z_plane[position]  # type:ignore[index]
@@ -323,7 +322,7 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
 
         # create and save the panels of each of the features
         for feat in feats_to_plot:
-            figure_name = f"{dataset_name}_{feat}"
+            figure_name = f"{dataset_name}_{slugify(feat)}"
 
             # create the 2D histogram panel
             fig, ax = hist_2d_of_feats(

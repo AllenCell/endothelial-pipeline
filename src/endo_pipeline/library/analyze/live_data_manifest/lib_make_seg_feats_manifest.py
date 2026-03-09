@@ -804,15 +804,6 @@ def get_smallest_angle_difference(
     return np.array(list(smallest_angle_difference_helper()))
 
 
-def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
-    dataset_config = load_dataset_config(dataset_name)
-    manifest = load_image_manifest("cdh5_classic_seg")
-    return {
-        timepoint: get_image_location_for_dataset(manifest, dataset_config, position, timepoint)
-        for timepoint in range(dataset_config.duration)
-    }
-
-
 def get_nuclei_coords(
     props: regionprops,  # type:ignore
     props_dim_order: str,
@@ -1172,9 +1163,9 @@ def create_labels_in_crop_columns(df_sub: pd.DataFrame, out_dir: Path) -> None:
 
     # load image
     dataset_config = load_dataset_config(ds_nm)
-    image_manifest = load_image_manifest("cdh5_classic_seg")
-    image_loc = get_image_location_for_dataset(image_manifest, dataset_config, pos, tp)
-    img = load_image(image_loc, compute=True, squeeze=True)
+    image_manifest = load_image_manifest("cdh5_classic_seg_zarr")
+    image_loc = get_image_location_for_dataset(image_manifest, dataset_config, pos)
+    img = load_image(image_loc, compute=True, squeeze=True, timepoints=tp)
 
     # find other cell labels that are also in the crop
     df_sub["all_labels_in_crop"] = df_sub.apply(

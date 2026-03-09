@@ -1552,9 +1552,9 @@ def build_cdh5_measured_features_tables(
 
     logger.debug(f"T={tp} -- loading classic segmentation")
 
-    seg_manifest = load_image_manifest("cdh5_classic_seg")
-    seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position, tp)
-    seg_arr = load_image(seg_location, squeeze=True, compute=True)
+    seg_manifest = load_image_manifest("cdh5_classic_seg_zarr")
+    seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position)
+    seg_arr = load_image(seg_location, squeeze=True, compute=True, timepoints=tp)
     seg_filepath = seg_location.path.as_posix() if seg_location.path is not None else ""
 
     # NOTE: the segmentation images are stored as a single channel and single timepoint
@@ -1852,9 +1852,9 @@ def get_nuclei_features_from_dataset_at_timepoint(
     nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_config, position, tp)
     nuc_seg = load_image(nuc_location, squeeze=True, compute=True)
 
-    cdh5_manifest = load_image_manifest("cdh5_classic_seg")
-    cdh5_location = get_image_location_for_dataset(cdh5_manifest, dataset_config, position, tp)
-    cdh5_seg = load_image(cdh5_location, squeeze=True, compute=True)
+    cdh5_manifest = load_image_manifest("cdh5_classic_seg_zarr")
+    cdh5_location = get_image_location_for_dataset(cdh5_manifest, dataset_config, position)
+    cdh5_seg = load_image(cdh5_location, squeeze=True, compute=True, timepoints=tp)
 
     img_loc = get_zarr_location_for_position(dataset_config, position)
     raw_img = load_image(img_loc, channels=list(channel_names), timepoints=tp, level=0)
