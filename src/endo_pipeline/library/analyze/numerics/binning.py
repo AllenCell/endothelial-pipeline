@@ -46,7 +46,7 @@ def circpercentile(data: np.ndarray, q: float) -> float:
     kappa, _, _ = vonmises.fit(
         data, loc=circ_mean
     )  # fit von Mises distribution to data (kappa parameter)
-    return vonmises.ppf(q, kappa, loc=circ_mean)
+    return vonmises.ppf(q, kappa=kappa, loc=circ_mean)
 
 
 def get_bins(
