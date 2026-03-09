@@ -16,13 +16,19 @@ from sklearn.decomposition import PCA
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
     get_traj_and_diff,
+    rescale_polar_angle,
+    rewrap_polar_angle,
+    unrescale_polar_angle,
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+from endo_pipeline.library.analyze.numerics.binning import circpercentile
 from endo_pipeline.library.visualize.diffae_features.flow_field_viz import flow_field_viz_main
 from endo_pipeline.library.visualize.diffae_features.pplane import find_fpt_type, get_fps
 from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
 from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.dynamics_workflows import RESCALE_THETA
 from endo_pipeline.settings.flow_field_3d import SAMPLER_RANDOM_SEED
 
 logger = logging.getLogger(__name__)
@@ -66,12 +72,54 @@ def sample_from_density(
     return np.array(samples)
 
 
+def _compute_circular_percentile(
+    angles: np.ndarray,
+    percentile: float,
+    is_angle_rescaled: bool = RESCALE_THETA,
+) -> float:
+    """
+    Compute the percentile cutoff for circular angle data.
+
+    Parameters
+    ----------
+    angles
+        The array containing the angle data to compute percentiles from.
+    percentile
+        Percentile to compute.
+    is_angle_rescaled
+        Whether the angle data is rescaled, which affects how circular
+        percentiles are computed.
+
+    Returns
+    -------
+    :
+        Percentile cutoff for the specified axis.
+    """
+    # if angles are rescaled, unrescale them before computing circular
+    # percentiles
+    if is_angle_rescaled:
+        angles = unrescale_polar_angle(angles)
+
+    # compute circular percentile using circpercentile function, which accounts
+    # for the circular nature of the data
+    percentile_cutoff = circpercentile(angles, percentile)
+
+    # rewrap and rescale the percentile cutoff if the angles were originally
+    # rescaled, to ensure the cutoff is in the same scale as the original data
+    percentile_cutoff = rewrap_polar_angle(percentile_cutoff, (-np.pi, np.pi))
+    if is_angle_rescaled:
+        percentile_cutoff = rescale_polar_angle(percentile_cutoff)
+
+    return percentile_cutoff
+
+
 def _is_point_within_percentile(
     point: np.ndarray | tuple[float, ...],
     data: pd.DataFrame,
     column_names: list[str],
     lower_percentile: float = 5,
     upper_percentile: float = 95,
+    is_angle_rescaled: bool = RESCALE_THETA,
 ):
     """
     Check if a point is within the given percentile range of the data along each axis.
@@ -96,9 +144,19 @@ def _is_point_within_percentile(
     """
     lower_bounds = np.zeros(len(column_names))
     upper_bounds = np.zeros(len(column_names))
-    for i, col in enumerate(column_names):
-        lower_bounds[i] = np.percentile(data[col], lower_percentile)
-        upper_bounds[i] = np.percentile(data[col], upper_percentile)
+    for i, column_name in enumerate(column_names):
+        if column_name == ColumnName.POLAR_ANGLE.value:
+            # for polar angle, compute circular percentiles
+            angles = data[column_name].to_numpy()
+            lower_bounds[i] = _compute_circular_percentile(
+                angles, lower_percentile, is_angle_rescaled
+            )
+            upper_bounds[i] = _compute_circular_percentile(
+                angles, upper_percentile, is_angle_rescaled
+            )
+        else:
+            lower_bounds[i] = np.percentile(data[column_name], lower_percentile)
+            upper_bounds[i] = np.percentile(data[column_name], upper_percentile)
     point = np.asarray(point)
     return np.all((point >= lower_bounds) & (point <= upper_bounds))
 
