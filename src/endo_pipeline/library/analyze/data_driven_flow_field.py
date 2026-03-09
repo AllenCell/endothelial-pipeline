@@ -6,6 +6,7 @@ from time import time
 from typing import Literal
 
 import numpy as np
+import pandas as pd
 from numdifftools import Jacobian
 from scipy.integrate import solve_ivp
 from scipy.interpolate import RegularGridInterpolator, griddata
@@ -65,7 +66,13 @@ def sample_from_density(
     return np.array(samples)
 
 
-def _is_point_within_percentile(point, data, lower=5, upper=95):
+def _is_point_within_percentile(
+    point: np.ndarray | tuple[float, ...],
+    data: pd.DataFrame,
+    column_names: list[str],
+    lower_percentile: float = 5,
+    upper_percentile: float = 95,
+):
     """
     Check if a point is within the given percentile range of the data along each axis.
 
@@ -74,10 +81,12 @@ def _is_point_within_percentile(point, data, lower=5, upper=95):
     point
         The point to check.
     data
-        The data to compute percentiles from.
-    lower
+        The dataframe containing the data to compare against.
+    column_names
+        List of column names corresponding to the dimensions of the point and data.
+    lower_percentile
         Lower percentile.
-    upper
+    upper_percentile
         Upper percentile.
 
     Returns
@@ -85,8 +94,11 @@ def _is_point_within_percentile(point, data, lower=5, upper=95):
     :
         True if point is within the percentile bounds on all axes, else False.
     """
-    lower_bounds = np.percentile(data, lower, axis=0)
-    upper_bounds = np.percentile(data, upper, axis=0)
+    lower_bounds = np.zeros(len(column_names))
+    upper_bounds = np.zeros(len(column_names))
+    for i, col in enumerate(column_names):
+        lower_bounds[i] = np.percentile(data[col], lower_percentile)
+        upper_bounds[i] = np.percentile(data[col], upper_percentile)
     point = np.asarray(point)
     return np.all((point >= lower_bounds) & (point <= upper_bounds))
 
