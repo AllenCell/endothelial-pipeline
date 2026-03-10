@@ -149,10 +149,11 @@ def _is_point_within_percentile(
             angles = data[column_name].to_numpy()
             lower_bound = _compute_circular_percentile(angles, lower_percentile, is_angle_rescaled)
             upper_bound = _compute_circular_percentile(angles, upper_percentile, is_angle_rescaled)
-            # for circular variables, a point is considered within bounds if it
-            # is either greater than the lower bound or less than the upper
-            # bound (accounting for wraparound)
-            is_within_bounds[i] = (lower_bound <= point[i]) | (point[i] <= upper_bound)
+            # for circular variables, need to account for bounds wrapping around
+            if lower_bound <= upper_bound:
+                is_within_bounds[i] = (lower_bound <= point[i]) & (point[i] <= upper_bound)
+            else:
+                is_within_bounds[i] = (point[i] >= lower_bound) | (point[i] <= upper_bound)
         else:
             lower_bound = np.percentile(data[column_name], lower_percentile)
             upper_bound = np.percentile(data[column_name], upper_percentile)
