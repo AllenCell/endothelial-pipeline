@@ -57,12 +57,70 @@ def parse_paths(
     return filepath
 
 
+def load_images_sequentially_2(
+    filepaths: str | Path | Sequence[Path] | Sequence[str],
+    crops: Sequence[dict] | dict | None = None,
+    image_buffer_prior: int = 0,
+    image_buffer_next: int = 0,
+    axis: str | None = None,
+    return_filepaths_and_crops_instead_of_images: bool = False,
+) -> Generator:
+    """Load a list of sequential images from a list of filepaths or from a single filepath.
+    1. If no crop is provided then the entire image for each image specified by filepaths will be loaded.
+    2. If a list of filepaths is provided and a list of crop dictionaries is provided then they
+    must have the same length and the crop dictionary at index i will be applied to the image at index i.
+    3. If a list of filepaths is provided but only a single crop dictionary is provided then
+    the crop dictionary will be applied to all images.
+    4. If a single filepath is provided but a list of crop dictionaries is provided then the image will
+    be loaded for each crop specified in the list of crop dictionaries.
+
+    Note that this function is a generator.
+
+    Parameters
+    ----------
+    filepaths: list of Path objects or a Path object
+
+    crops: list of dicts
+        List of crop dictionaries to apply to each loaded image. If None then no cropping will be applied.
+        Default is None.
+    image_buffer_prior: int
+        The number of images to keep loaded from before the current one. Default is 0.
+    image_buffer_next: int
+        The number of images to loaded ahead of the current one. Default is 0.
+        The total number of images loaded will be 1 + image_buffer_prior + image_buffer_next.
+    axis: str
+        The axis iterate over when loading the images. Can be one of 'filepaths', 'T', 'Z', 'C', 'Y', or 'X'.
+        Default behavior is to iterate over the list of filepaths if "filepaths" is a list or over the 'T' axis if filepaths is a Path object.
+
+    Yields
+    ------
+    image_list: list of np.array objects
+    """
+    logger.debug("Preparing filepath and crop lists...")
+    if not isinstance(filepaths, (list, tuple, Path)):
+        raise TypeError("filepaths must be a list of filepaths or a Path object")
+    if not isinstance(crops, (list, tuple, dict, None)):
+        raise TypeError(
+            "crops must be a list of crop dictionaries or a single crop dictionary if provided"
+        )
+    # assert (
+    #     len(filepaths) == len(crops)
+    #     if isinstance(filepaths, (list, tuple)) and isinstance(crops, (list, tuple))
+    #     else True
+    # ), "If lists are provided for both filepaths and crops then they must have the same length"
+
+    axis = "filepaths" if isinstance(filepaths, (list, tuple)) else axis or "T"
+
+    yield axis
+
+
 def load_images_sequentially(
     filepaths: str | Path | Sequence[Path] | Sequence[str],
     crops: Sequence[dict] | dict | None = None,
     image_buffer_prior: int = 0,
     image_buffer_next: int = 0,
     axis: str | None = None,
+    return_filepaths_and_crops_instead_of_images: bool = False,
 ) -> Generator:
     """Load a list of sequential images from a list of filepaths or from a single filepath.
     1. If no crop is provided then the entire image for each image specified by filepaths will be loaded.
@@ -163,6 +221,7 @@ def load_images_sequentially(
     ), f"If crops is defined then it must have the same length as filepaths (filepaths has length {len(filepath_list)}, but crops has length {len(crops)})."
 
     old_image_list: list = []
+    old_crop_list: list = []
     loaded_images: list = []
     for i in range(total_image_length):
 
@@ -177,13 +236,16 @@ def load_images_sequentially(
 
         logger.debug("Identifying which images have already been loaded...")
         loaded_relative_indices_to_keep = [
-            j for j, fp in enumerate(old_image_list) if fp in image_list
+            j
+            for j, fp in enumerate(old_image_list)
+            if fp in image_list and old_crop_list[j] in crop_list
         ]
         new_fps = [(j, fp) for j, fp in enumerate(image_list) if fp not in old_image_list]
         new_image_relative_indices, new_image_list = (
-            zip(*new_fps, strict=False) if new_fps else ([], [])
+            zip(*new_fps, strict=True) if new_fps else ([], [])
         )
         old_image_list = image_list.copy()
+        old_crop_list = crop_list.copy()
 
         logger.debug("Carrying over loaded images and loading new images...")
         loaded_images = [loaded_images[j] for j in loaded_relative_indices_to_keep]
@@ -198,7 +260,10 @@ def load_images_sequentially(
             crop = {dim: range(*img_dims[dim])[crop_list[j][dim]] for dim in crop_list[j]}
             logger.debug(f"Converting crop list (len={len(crop_list)}) to range objects...")
 
-            new_images.append(img.get_image_data(DIMENSION_ORDER, **crop))
+            if return_filepaths_and_crops_instead_of_images:
+                new_images.append((image_list[j], crop))
+            else:
+                new_images.append(img.get_image_dask_data(DIMENSION_ORDER, **crop).compute())
 
         loaded_images += new_images
 
@@ -1327,7 +1392,7 @@ def run_tracking(
         crops_for_tracking,
         img_fps_for_overlay,
         crops_for_overlay,
-    ) = zip(*img_queue_list, strict=False)
+    ) = zip(*img_queue_list, strict=True)
 
     logger.debug("Generating tracks...")
     results = generate_tracks(
@@ -1620,12 +1685,9 @@ def generate_tracks(
 
 def get_cdh5_segmentation_filepath_list(dataset_name: str, position: int) -> list[Path]:
     dataset_config = load_dataset_config(dataset_name)
-    manifest = load_image_manifest("cdh5_classic_seg")
-    seg_locations = [
-        get_image_location_for_dataset(manifest, dataset_config, position, timepoint)
-        for timepoint in range(dataset_config.duration)
-    ]
-    seg_filepaths = [location.path for location in seg_locations if location.path is not None]
+    manifest = load_image_manifest("cdh5_classic_seg_zarr")
+    seg_locations = get_image_location_for_dataset(manifest, dataset_config, position)
+    seg_filepaths = seg_locations.path
 
     return seg_filepaths
 
@@ -1675,6 +1737,7 @@ def run_tracking_multiproc_wrapper(queue: Sequence) -> None:
             Z_projection=np.max,
             track_tolerance=3,
             image_validation_frequency=image_validation_frequency,
+            bin_level=None,
         )
 
         # add the dataset name and position to the output table
