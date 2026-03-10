@@ -209,63 +209,63 @@ def main(
                 (ColumnName.POLAR_RADIUS.value, ColumnName.POLAR_ANGLE.value),  # r and theta
                 (ColumnName.PC3_FLIPPED.value, ColumnName.POLAR_ANGLE.value),  # rho and theta
             ]:
-                # need to get indices of columns to select correct data from
-                # trajectories and differences
-                index_column1 = column_names.index(column1)
-                index_column2 = column_names.index(column2)
-
-                # estimate 2D drift coefficients using Kramers-Moyal estimation
-                # with appropriate kernels for each variable
-                kernel1 = KramersMoyalKernel(
-                    name=KERNEL_NAMES_DYNAMICS[column1],
-                    bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column1],
-                    period=polar_angle_period if column1 == ColumnName.POLAR_ANGLE.value else None,
-                )
-                kernel2 = KramersMoyalKernel(
-                    name=KERNEL_NAMES_DYNAMICS[column2],
-                    bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column2],
-                    period=polar_angle_period if column2 == ColumnName.POLAR_ANGLE.value else None,
-                )
-
-                # get 2D trajectories and differences for the pair of variables,
-                # and bins for the pair of variables
-                traj_2d = [traj[:, [index_column1, index_column2]] for traj in trajectories]
-                diff_2d = [diff[:, [index_column1, index_column2]] for diff in differences]
-                bins_2d = [bins[index_column1], bins[index_column2]]
+                # build kernels for each variable in the pair based on settings,
+                # adjusting for periodicity if needed, and get bin edges and
+                # centers for each variable in the pair. also get variable labels
+                # and axis limits for plotting, adjusting limits if rescaling
+                # theta and if not using global limits
+                kernels = []
+                bins_2d = []
+                centers_2d = []
+                column_labels_2d = []
+                axes_limits_2d = []
+                column_indexes = [
+                    column_names.index(column_name) for column_name in [column1, column2]
+                ]
+                for column_index, column_name in zip(
+                    column_indexes, [column1, column2], strict=True
+                ):
+                    kernels.append(
+                        KramersMoyalKernel(
+                            name=KERNEL_NAMES_DYNAMICS[column_name],
+                            bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
+                            period=(
+                                polar_angle_period
+                                if column_name == ColumnName.POLAR_ANGLE.value
+                                else None
+                            ),
+                        )
+                    )
+                    bins_2d.append(bins[column_index])
+                    centers_2d.append(centers[column_index])
+                    column_labels_2d.append(variable_labels_dict[column_name])
+                    axes_limits_2d.append(
+                        bin_limits_dict[column_name]
+                        if not global_limits
+                        else global_bin_limits_dict[column_name]
+                    )
+                # get 2D trajectories and differences for the pair of variables
+                traj_2d = [traj[:, column_indexes] for traj in trajectories]
+                diff_2d = [diff[:, column_indexes] for diff in differences]
 
                 drift, _ = get_kramers_moyal_coeffs(
                     traj_2d,
                     diff_2d,
                     bins=bins_2d,
                     dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
-                    kernel=[kernel1, kernel2],
+                    kernel=kernels,
                 )
 
                 # get 2D meshgrid of bin centers for plotting
-                centers_mesh = np.meshgrid(
-                    centers[index_column1], centers[index_column2], indexing="ij"
-                )
-                variable_labels_plot = [
-                    variable_labels_dict[column1],
-                    variable_labels_dict[column2],
-                ]
-                axes_limits_plot = [
-                    (
-                        bin_limits_dict[column1]
-                        if not global_limits
-                        else global_bin_limits_dict[column1]
-                    ),
-                    (
-                        bin_limits_dict[column2]
-                        if not global_limits
-                        else global_bin_limits_dict[column2]
-                    ),
-                ]
+                centers_mesh = np.meshgrid(*centers_2d, indexing="ij")
 
+                # get histogram for masking low-confidence regions of drift
+                # estimates, using same kernels as for drift estimation, and set
+                # drift to nan in low-confidence regions
                 hist_kde = get_kernel_density_estimate(
                     traj_2d,
                     bins=bins_2d,
-                    kernel=[kernel1, kernel2],
+                    kernel=kernels,
                 )
                 low_confidence_mask = hist_kde < HISTOGRAM_THRESHOLD_FOR_MASKING
                 drift[low_confidence_mask] = np.nan
@@ -274,8 +274,8 @@ def main(
                 plot_and_save_drift_contours(
                     centers_mesh,
                     drift,
-                    variable_labels=variable_labels_plot,
-                    axes_limits=axes_limits_plot,
+                    variable_labels=column_labels_2d,
+                    axes_limits=axes_limits_2d,
                     fig_title=fig_title,
                     fig_savedir=fig_savedir,
                     filename_prefix=f"{dataset_name_flow}_{column1}_{column2}",
@@ -285,8 +285,8 @@ def main(
                 plot_and_save_drift_quiver(
                     centers_mesh,
                     drift,
-                    variable_labels=variable_labels_plot,
-                    axes_limits=axes_limits_plot,
+                    variable_labels=column_labels_2d,
+                    axes_limits=axes_limits_2d,
                     fig_title=fig_title,
                     fig_savedir=fig_savedir,
                     filename_prefix=f"{dataset_name_flow}_{column1}_{column2}",
