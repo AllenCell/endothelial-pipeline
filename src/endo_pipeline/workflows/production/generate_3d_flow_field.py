@@ -82,6 +82,7 @@ def main(
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
+        BIN_LIMITS_THETA_RESCALED,
         BIN_WIDTHS_DYNAMICS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
@@ -216,6 +217,7 @@ def main(
             column_names=column_names,
             lower_percentile=LOWER_PERCENTILE_FOR_STABLE_FP,
             upper_percentile=UPPER_PERCENTILE_FOR_STABLE_FP,
+            polar_angle_range=BIN_LIMITS_THETA_RESCALED if RESCALE_THETA else (-np.pi, np.pi),
         )
 
         # add stable fixed points from this dataset to the overall dataframe
