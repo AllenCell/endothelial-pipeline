@@ -1,0 +1,38 @@
+name: 20260225_20X
+date: '20260225'
+original_path: //allen/programs/allencell/data/proj0/ae4/7a4/47f/44e/9dc/e09/f4b/17c/3cb/afe/50/20260225_GE00010358_20X_SLDY/20260225_GE00010358_20X_sldy.sldy
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: 50afe3cb17cf4be099dc44e47f7a4ae4
+barcode: GE00010358
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: high
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+channel_names: [EGFP, BF]
+flow_conditions:
+- start: -15
+  stop: 576
+  shear_stress: 15.60
+include_scenes: null
+notes: Better than 20260218 timelapse, minimal early piling (some ~TP 330 FOV 3, 1-indexed), no membrane gaps. GFP and BF look good.
+timepoint_annotations: null
+position_annotations: null
+center_z_plane: null

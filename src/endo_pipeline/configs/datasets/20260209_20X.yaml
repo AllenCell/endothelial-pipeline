@@ -1,0 +1,38 @@
+name: 20260209_20X
+date: '20260209'
+original_path: //allen/programs/allencell/data/proj0/2d6/bd9/a91/50e/db4/378/e4f/893/11f/00e/37/20260209_GE00010256_20X_SLDY/20260209_GE00010256_20X_SLDY.sldy
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: 3700e11f893e4f378db450ea91bd92d6
+barcode: GE00010256
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: medium
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+channel_names: [EGFP, BF]
+flow_conditions:
+- start: -13
+  stop: 576
+  shear_stress: 12.04
+include_scenes: null
+notes: 6-7 non-endos across tiles. Gaps in monolayer FOV 2 ~TP 336, FOV 5 ~TP 414 (1-indexed). Slight global brightening TP 26.
+timepoint_annotations: null
+position_annotations: null
+center_z_plane: null
