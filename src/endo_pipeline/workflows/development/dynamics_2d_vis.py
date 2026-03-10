@@ -10,6 +10,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
+    global_limits: bool = True,
 ) -> None:
     """
     Analyze and visualize DiffAE feature dynamics.
@@ -40,6 +41,8 @@ def main(
 
     Parameters
     ----------
+    global_limits
+        Whether to use global limits for all datasets when plotting drift contours.
     datasets
         Specific datasets to run the workflow on.
     model_manifest_name
@@ -220,10 +223,16 @@ def main(
                     period=polar_angle_period if column2 == ColumnName.POLAR_ANGLE.value else None,
                 )
 
+                # get 2D trajectories and differences for the pair of variables,
+                # and bins for the pair of variables
+                traj_2d = [traj[:, [index_column1, index_column2]] for traj in trajectories]
+                diff_2d = [diff[:, [index_column1, index_column2]] for diff in differences]
+                bins_2d = [bins[index_column1], bins[index_column2]]
+
                 drift, _ = get_kramers_moyal_coeffs(
-                    [traj[:, [index_column1, index_column2]] for traj in trajectories],
-                    [diff[:, [index_column1, index_column2]] for diff in differences],
-                    bins=[bins[index_column1], bins[index_column2]],
+                    traj_2d,
+                    diff_2d,
+                    bins=bins_2d,
                     dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
                     kernel=[kernel1, kernel2],
                 )
@@ -236,9 +245,17 @@ def main(
                     variable_labels_dict[column1],
                     variable_labels_dict[column2],
                 ]
-                bin_limits_plot = [
-                    bin_limits_dict[column1],
-                    bin_limits_dict[column2],
+                axes_limits_plot = [
+                    (
+                        bin_limits_dict[column1]
+                        if not global_limits
+                        else global_bin_limits_dict[column1]
+                    ),
+                    (
+                        bin_limits_dict[column2]
+                        if not global_limits
+                        else global_bin_limits_dict[column2]
+                    ),
                 ]
 
                 # plot drift contours and save
@@ -246,7 +263,7 @@ def main(
                     centers_mesh,
                     drift,
                     variable_labels=variable_labels_plot,
-                    bin_limits=bin_limits_plot,
+                    axes_limits=axes_limits_plot,
                     fig_title=fig_title,
                     fig_savedir=fig_savedir,
                     filename_prefix=f"{dataset_name_flow}_{column1}_{column2}",
@@ -257,7 +274,7 @@ def main(
                     centers_mesh,
                     drift,
                     variable_labels=variable_labels_plot,
-                    bin_limits=bin_limits_plot,
+                    axes_limits=axes_limits_plot,
                     fig_title=fig_title,
                     fig_savedir=fig_savedir,
                     filename_prefix=f"{dataset_name_flow}_{column1}_{column2}",
