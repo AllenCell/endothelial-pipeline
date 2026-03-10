@@ -1,7 +1,7 @@
 from endo_pipeline.cli import Datasets
 
 
-def main(datasets: Datasets | None, n_cores: int = 4):
+def main(datasets: Datasets | None = None, n_cores: int = 4):
     """Creates grid-based segmentations based on the crop locations from the
     grid-based DiffAE dataframe of the first dataset in `datasets`, then checks
     that the crop indices for subsequent datasets in `datasets` matches these
