@@ -1,20 +1,22 @@
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import CropPattern, Datasets, StrList
 from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
-
-TAGS = ["dynamical_systems", "diffae_features"]
 
 
 def main(
     datasets: Datasets | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    crop_pattern: CropPattern = "grid",
     plot_stack: bool = False,
     compute_vtk: bool = True,
     use_same_axes: bool = False,
+    columns: StrList | None = None,
 ) -> None:
     """
     Visualize 3D (drift) flow fields for the dynamics of the crop-based DiffAE
     features for each of the single flow datasets.
+
+    #dynamical-systems #diffae-feature-analysis
 
     **Flow field estimation and analysis**
 
@@ -49,6 +51,8 @@ def main(
         Name of the model manifest containing the run to load features from.
     run_name
         Name of the specific model run to load featuref for. If None, uses the most recent run.
+    crop_pattern
+        The crop pattern to get features for, either "grid" or "tracked".
     plot_stack
         If true, plot 3D stacks of the flow field visualizations in each of the three variables.
     compute_vtk
@@ -66,6 +70,7 @@ def main(
     from endo_pipeline.io import get_output_path, make_name_unique
     from endo_pipeline.library.analyze.data_driven_flow_field import ddff_model_analysis
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
+    from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
     from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
         plot_stable_fixed_points_together,
@@ -75,10 +80,14 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import (
-        DIFFAE_PC_COLUMN_NAMES,
-        NUM_PCS_TO_ANALYZE,
-        ColumnName,
+    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.dynamics_workflows import (
+        BIN_WIDTHS_DYNAMICS,
+        DYNAMICS_COLUMN_NAMES,
+        KERNEL_BANDWIDTHS_DYNAMICS,
+        KERNEL_NAMES_DYNAMICS,
+        PERIOD_THETA_RESCALED,
+        RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_3d import (
         BIN_WIDTH_DEFAULTS,
@@ -100,7 +109,7 @@ def main(
     # load model manifest and get corresponding dataframe manifest name
     model_manifest = load_model_manifest(model_manifest_name)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
+        model_manifest, run_name, crop_pattern=crop_pattern
     )
 
     # Create output folders if they do not exist yet
@@ -129,18 +138,54 @@ def main(
         )
     else:
         dataset_names = [name for name in datasets if name in valid_dataset_options]
+    if DEMO_MODE:
+        logger.warning(
+            "DEMO MODE: Using only the first dataset from the manifest for quick visualization."
+        )
+        dataset_names = dataset_names[:1]
 
-    # fit PCA using the features from the given dataframe manifest
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name)
+    # get feature column names to use for flow field analysis
+    column_names: list[str] = columns or list(DYNAMICS_COLUMN_NAMES)
+    if len(column_names) != 3:
+        raise ValueError(
+            f"Exactly 3 column names must be provided for 3D flow field analysis, but {len(column_names)} were provided: {column_names}"
+        )
+
+    # fit PCA using the features from the given dataframe manifest PCA always
+    # fit on the grid-based features, even if the features for flow field
+    # analysis are from tracked-based crops, to ensure that the PCA space is the
+    # same across analyses
+    dataframe_manifest_name_pca = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
+    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_pca)
 
     # get common bounds for all datasets
     # will be used for flow field plots if use_common_axis_limits is True
     # regardless, gets used below when plotting stable fixed points together
-    bounds_for_plots = get_bounds_from_data(dataset_names, dataframe_manifest, pca)
+    bounds_for_plots = get_bounds_from_data(
+        dataset_names, dataframe_manifest, pca, column_names=column_names
+    )
 
     # initialize dataframe to hold stable fixed points from all datasets
     # with columns for dataset name and 3D PC space coordinates
-    stable_fixed_points_df = pd.DataFrame(columns=[ColumnName.DATASET, *DIFFAE_PC_COLUMN_NAMES[:3]])
+    stable_fixed_points_df = pd.DataFrame(columns=[ColumnName.DATASET, *column_names])
+
+    # initialize kernels and bin widths for each of the three variables for flow
+    # field estimation
+    kernels = []
+    bin_widths = []
+    rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
+
+    for index, column_name in enumerate(column_names):
+        name = KERNEL_NAMES_DYNAMICS.get(column_name, KERNEL_FUNCTION_NAME)
+        bandwidth = KERNEL_BANDWIDTHS_DYNAMICS.get(column_name, KERNEL_BANDWIDTH)
+        period = rescaled_theta if column_name == ColumnName.POLAR_ANGLE else None
+        bin_width = BIN_WIDTHS_DYNAMICS.get(column_name, BIN_WIDTH_DEFAULTS[index])
+
+        kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
+        bin_widths.append(bin_width)
+
     for dataset_name in dataset_names:
         # get bins for KMCs
         bounds_for_km = get_bounds_from_data(
@@ -148,14 +193,15 @@ def main(
             manifest=dataframe_manifest,
             pca=pca,
             pad=PAD_BINS_FLOAT,
+            column_names=column_names,
         )
-        bins, centers = get_bins(BIN_WIDTH_DEFAULTS, bin_limits=bounds_for_km)
+        bins, centers = get_bins(bin_widths, bin_limits=bounds_for_km)
         stable_fixed_points = ddff_model_analysis(
             dataset_name,
             dataframe_manifest,
-            pca,
-            kernel_name=KERNEL_FUNCTION_NAME,
-            kernel_bw=KERNEL_BANDWIDTH,
+            crop_pattern=crop_pattern,
+            pca=pca,
+            kernel=kernels,
             dt=TIME_STEP_IN_MINUTES,
             bins=bins,
             centers=centers,
@@ -167,7 +213,7 @@ def main(
             compute_vtk_files=compute_vtk,
             fig_savedir=fig_savedir,
             vtk_savedir=vtk_savedir,
-            pc_column_names=DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
+            column_names=column_names,
             lower_percentile=LOWER_PERCENTILE_FOR_STABLE_FP,
             upper_percentile=UPPER_PERCENTILE_FOR_STABLE_FP,
         )
@@ -180,9 +226,9 @@ def main(
                     pd.DataFrame(
                         {
                             ColumnName.DATASET: [dataset_name],
-                            DIFFAE_PC_COLUMN_NAMES[0]: [stable_fp[0]],
-                            DIFFAE_PC_COLUMN_NAMES[1]: [stable_fp[1]],
-                            DIFFAE_PC_COLUMN_NAMES[2]: [stable_fp[2]],
+                            column_names[0]: [stable_fp[0]],
+                            column_names[1]: [stable_fp[1]],
+                            column_names[2]: [stable_fp[2]],
                         }
                     ),
                 ],
@@ -191,7 +237,9 @@ def main(
 
     # generate plot of stable fixed points from different datasets overlaid on top of each other
     # (for comparison of stable fixed points across datasets)
-    plot_stable_fixed_points_together(stable_fixed_points_df, bounds_for_plots, fig_savedir)
+    plot_stable_fixed_points_together(
+        stable_fixed_points_df, bounds_for_plots, fig_savedir, column_names
+    )
 
     # save stable fixed points from all datasets to parquet file
     df_file_name = "stable_fixed_points_all_datasets.parquet"

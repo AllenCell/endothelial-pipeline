@@ -168,7 +168,7 @@ def extract_t(
     t = re.findall("T[0-9]+", fp_as_string)
     t_value = int(t[index].split("T")[-1]) if t else default_if_not_found
     if not t:
-        print("""No 'T[0-9]+' found in filename. Using T == default_if_not_found.""")
+        logger.debug("""No 'T[0-9]+' found in filename. Using T == default_if_not_found.""")
 
     return t_value if int_only else f"T{t_value}"
 
@@ -218,7 +218,7 @@ def extract_p(
     p = re.findall("P[0-9]+", fp_as_string)
     position_value = int(p[index].split("P")[-1]) if p else default_if_not_found
     if not p:
-        print("""No 'P[0-9]+' found in filename. Using P == default_if_not_found.""")
+        logger.debug("""No 'P[0-9]+' found in filename. Using P == default_if_not_found.""")
 
     return position_value if int_only else f"P{position_value}"
 
@@ -277,7 +277,7 @@ def concatenate_and_save_feature_tables(
         concatenated_df = pd.concat(feats_dfs, ignore_index=True)
         table_writer(concatenated_df, concatenated_df_out_path)
     else:
-        print(f"No feature tables found for {dataset_name}.")
+        logger.debug(f"No feature tables found for {dataset_name}.")
 
     if check_saved_dataframe:
         # check that the concatenated dataframe at least has the same shape
@@ -290,7 +290,7 @@ def concatenate_and_save_feature_tables(
                 f"Saved dataframe {concatenated_df_out_path} \
                     does not match the concatenated dataframe."
             )
-        print(f"Concatenated dataframe saved to {concatenated_df_out_path}.")
+        logger.info(f"Concatenated dataframe saved to {concatenated_df_out_path}.")
 
     if remove_initial_files_and_folders:
         # remove files that match input_filename_contains
@@ -306,7 +306,7 @@ def concatenate_and_save_feature_tables(
         # a directory is not empty then we will skip it
         if not any(list(scandir(dir_path))):
             dir_path.rmdir()
-            print(f"Removed empty directory {dir_path}.")
+            logger.debug(f"Removed empty directory {dir_path}.")
         else:
-            print(f"Directory {dir_path} is not empty, skipping removal.")
+            logger.debug(f"Directory {dir_path} is not empty, skipping removal.")
             continue

@@ -30,9 +30,9 @@ def main(
 
     ## Workflow demo
 
-    The ``--demo-mode`` (aka ``-d``) flag can be used to run a simplified
-    version of this workflow for testing purposes (e.g. during code review). The
-    workflow will only create the config for a single dataset.
+    The `--demo-mode` (aka `-d`) flag can be used to run a simplified version of
+    this workflow for testing purposes (e.g. during code review). The workflow
+    will only create the config for a single dataset.
 
     Parameters
     ----------

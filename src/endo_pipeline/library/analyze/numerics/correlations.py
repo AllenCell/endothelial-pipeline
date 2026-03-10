@@ -345,7 +345,7 @@ def _compute_correlations_for_one_dataset(
             dataset_name,
             dataframe_manifest,
             pca=pca,
-            filter_dataframe=True,
+            filter_by_annotations=True,
             include_cell_piling=False,
             include_not_steady_state=False,
             compute_polar=True,

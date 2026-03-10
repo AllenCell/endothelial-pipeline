@@ -97,15 +97,17 @@ def get_bounds_from_data(
     pca: PCA,
     filter_to_valid: bool = True,
     pad: float = 0.0,
-    pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
+    column_names: list[str] | None = None,
 ) -> list[tuple[float, float]]:
     """
-    Set bounds for state space based on the bounds of the features in the datasets.
+    Set bounds for state space based on the bounds of the features in the
+    datasets.
 
     **Dataframe filtering:**
 
-    By default, the function filters the dataframes to only include "valid" crops,
-    i.e., crops that are not labeled as "cell piling" or "not steady state".
+    By default, the function filters the dataframes to only include "valid"
+    crops, i.e., crops that are not labeled as "cell piling" or "not steady
+    state".
 
     Parameters
     ----------
@@ -119,15 +121,20 @@ def get_bounds_from_data(
         Whether to filter the dataframes to only include "valid" crops.
     pad
         Amount to pad the bounds by on each side.
-    pc_column_names
-        List of column names for the principal components to use.
+    column_names
+        List of column names for the features to use when determining the
+        bounds. If None, uses the default top PCA feature columns (PC1, PC2,
+        PC3) defined in DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE].
 
     Returns
     -------
     :
-        List of tuples, each array contains the (min, max) bounds for a dimension.
+        List of tuples, each array contains the (min, max) bounds for a
+        dimension.
     """
-    num_dims = len(pc_column_names)
+    column_names_ = column_names or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+
+    num_dims = len(column_names_)
     # initialize bounds - set to extreme values
     bin_mins = [np.inf] * num_dims
     bin_maxs = [-np.inf] * num_dims
@@ -135,25 +142,25 @@ def get_bounds_from_data(
     # loop over each dataset and update bin mins and maxs
     for dataset_name in dataset_names:
         if filter_to_valid:
-            filter_dataframe = True
+            filter_by_annotations = True
             include_cell_piling = False
             include_not_steady_state = False
         else:
-            filter_dataframe = False
+            filter_by_annotations = False
             include_cell_piling = True
             include_not_steady_state = True
         df = get_dataframe_for_dynamics_workflows(
             dataset_name,
             manifest,
             pca=pca,
-            filter_dataframe=filter_dataframe,
+            filter_by_annotations=filter_by_annotations,
             include_cell_piling=include_cell_piling,
             include_not_steady_state=include_not_steady_state,
         )
         # get column names for features
         for j in range(num_dims):
-            candidate_min = df[pc_column_names[j]].min()
-            candidate_max = df[pc_column_names[j]].max()
+            candidate_min = df[column_names_[j]].min()
+            candidate_max = df[column_names_[j]].max()
             if pad:
                 candidate_min = candidate_min - pad
                 candidate_max = candidate_max + pad

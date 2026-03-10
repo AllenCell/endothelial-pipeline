@@ -66,7 +66,7 @@ for dataset_name in datasets:
     logging.info(f"Processing dataset: {dataset_name}")
     # Get PCS and LDA features
     df_dataset = get_dataframe_for_dynamics_workflows(
-        dataset_name, dataframe_manifest, pca=pca, filter_dataframe=True
+        dataset_name, dataframe_manifest, pca=pca, filter_by_annotations=True
     )
 
     df_proj_full = apply_lda_projection(
@@ -225,7 +225,7 @@ for annotation_manifest in annotation_manifests:
             raise ValueError(f"Missing path for annotation location: {location_name}")
 
         df = get_dataframe_for_dynamics_workflows(
-            dataset_name, dataframe_manifest, pca=pca, filter_dataframe=False
+            dataset_name, dataframe_manifest, pca=pca, filter_by_annotations=False
         )
         df = df[df["position"] == position]
 

@@ -2,6 +2,7 @@
 
 import datetime
 import logging
+import re
 from pathlib import Path
 from typing import Literal
 
@@ -13,6 +14,48 @@ from endo_pipeline.manifests import ModelManifest
 from endo_pipeline.settings.figures import FIGURE_SAVE_DPI
 
 logger = logging.getLogger(__name__)
+
+
+def slugify(string: str) -> str:
+    """
+    Convert input string into a URL- and filename-friendly slug.
+
+    The string is converted to lowercase, leading or trailing whitespaces are
+    removed, non-alphanumeric characters are removed, and all remaining
+    whitespaces or hyphens are replaced with underscores.
+
+    Examples
+    --------
+    >>> slugify("ABC123")
+    abc123
+
+    >>> slugify("ABC-123")
+    abc_123
+
+    >>> slugify("  abc !*()123 ")
+    abc_123
+
+    Parameters
+    ----------
+    string
+        Input string.
+
+    Returns
+    -------
+    :
+        Output slug.
+    """
+
+    # Convert to lowercase and remove any leading or trailing whitespaces
+    slug = string.lower().strip()
+
+    # Only keep alphanumeric characters or underscores (\w), spaces (\w), and hyphens (-)
+    slug = re.sub(r"[^\w\s-]", "", slug)
+
+    # Replace spaces and hyphens with underscores
+    slug = re.sub(r"[\s_-]+", "_", slug)
+
+    return slug
 
 
 def get_timestamp() -> str:

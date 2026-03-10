@@ -57,7 +57,7 @@ df_pca = project_features_to_pcs(df_pca, pca)
 df_pca_datasets = []
 for dataset_name in datasets:
     df_dataset = get_dataframe_for_dynamics_workflows(
-        dataset_name, dataframe_manifest, pca=pca, filter_dataframe=True
+        dataset_name, dataframe_manifest, pca=pca, filter_by_annotations=True
     )
     df_pca_datasets.append(df_dataset)
 

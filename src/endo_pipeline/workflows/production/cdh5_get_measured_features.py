@@ -7,7 +7,6 @@ def main(
     datasets: Datasets | None = None,
     n_proc: int = 1,
     save_output: bool = True,
-    verbose: bool = False,
 ) -> None:
     """Run the CDH5-based measured features extraction workflow.
 
@@ -30,7 +29,7 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
-    from endo_pipeline.io import configure_logging, get_output_path
+    from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.shape_features import (
         build_cdh5_measured_features_tables_multiproc_wrapper,
     )
@@ -43,7 +42,6 @@ def main(
 
     out_dir = get_output_path(__file__)
 
-    configure_logging(out_dir, logger, verbose=verbose)
     datasets = use_default_collection(datasets, "live_cdh5_seg_based_feat_datasets")
     logger.info(f"datasets analyzed: {datasets}")
 
@@ -52,7 +50,6 @@ def main(
         save_output=save_output,
         out_dir=out_dir,
         overwrite=True,
-        verbose=verbose,
         image_validation_frequency=None,
         is_test=DEMO_MODE,
         t_start=0,
@@ -89,8 +86,7 @@ def main(
                 remove_initial_files_and_folders=True,
             )
 
-    logger.info("...done analysis.")
-    print("\N{MICROSCOPE}")
+    logger.info("...done analysis!")
 
 
 if __name__ == "__main__":
