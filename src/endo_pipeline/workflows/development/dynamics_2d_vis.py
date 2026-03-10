@@ -67,7 +67,10 @@ def main(
         get_traj_and_diff,
         split_dataset_by_flow,
     )
-    from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
+    from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
+        get_kernel_density_estimate,
+        get_kramers_moyal_coeffs,
+    )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
@@ -88,6 +91,7 @@ def main(
         BIN_WIDTHS_DYNAMICS,
         DEFAULT_DATASET_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
+        HISTOGRAM_THRESHOLD_FOR_MASKING,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
         NUM_PCS_TO_FIT_FOR_DYNAMICS,
@@ -257,6 +261,14 @@ def main(
                         else global_bin_limits_dict[column2]
                     ),
                 ]
+
+                hist_kde = get_kernel_density_estimate(
+                    traj_2d,
+                    bins=bins_2d,
+                    kernel=[kernel1, kernel2],
+                )
+                low_confidence_mask = hist_kde < HISTOGRAM_THRESHOLD_FOR_MASKING
+                drift[low_confidence_mask] = np.nan
 
                 # plot drift contours and save
                 plot_and_save_drift_contours(
