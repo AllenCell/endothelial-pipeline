@@ -273,7 +273,7 @@ def _evaluate_single_multivariate_kernel(x: np.ndarray, kernel: KramersMoyalKern
     along each dimension.
     """
     kernel_func = kernel.string_to_kernel()
-    return kernel_func(x, kernel.bandwidth, kernel.bandwidth)
+    return kernel_func(x, kernel.bandwidth, kernel.period)
 
 
 def _evaluate_multivariate_product_kernel(
