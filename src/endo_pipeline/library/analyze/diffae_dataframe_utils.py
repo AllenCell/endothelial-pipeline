@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Literal, cast, overload
+from typing import Literal, cast
 
 import numpy as np
 import pandas as pd
@@ -159,36 +159,6 @@ def pcs_to_polar_r(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.ndarray
     return np.sqrt(pc1_values**2 + pc2_values**2)
 
 
-@overload
-def rescale_polar_angle(theta_values: np.ndarray) -> np.ndarray: ...
-
-
-@overload
-def rescale_polar_angle(theta_values: float) -> float: ...
-
-
-def rescale_polar_angle(theta_values: np.ndarray | float) -> np.ndarray | float:
-    """
-    Rescale polar angle values to be within the range [0, pi].
-    """
-    return (theta_values + np.pi) / 2
-
-
-@overload
-def unrescale_polar_angle(theta_values: np.ndarray) -> np.ndarray: ...
-
-
-@overload
-def unrescale_polar_angle(theta_values: float) -> float: ...
-
-
-def unrescale_polar_angle(theta_values: np.ndarray | float) -> np.ndarray | float:
-    """
-    Unrescale polar angle values from the range [0, pi] back to the range [-pi, pi].
-    """
-    return (theta_values * 2) - np.pi
-
-
 def pcs_to_polar_theta(
     pc1_values: np.ndarray,
     pc2_values: np.ndarray,
@@ -221,7 +191,7 @@ def pcs_to_polar_theta(
         # rescale angle to range [0, pi]
         # by adding pi and dividing by 2
         # (values now have period pi instead of 2pi)
-        theta = rescale_polar_angle(theta)
+        theta = (theta + np.pi) / 2
 
     return theta
 
@@ -251,7 +221,7 @@ def polar_to_pcs(
 
     if is_theta_rescaled:
         # unrescale theta back to range [-pi, pi]
-        theta_values = unrescale_polar_angle(theta_values)
+        theta_values = (theta_values * 2) - np.pi
 
     pc1_values = r_values * np.cos(theta_values)
     pc2_values = r_values * np.sin(theta_values)
