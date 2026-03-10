@@ -2,10 +2,10 @@ from endo_pipeline.cli import Datasets
 
 
 def main(datasets: Datasets | None = None, n_cores: int = 4):
-    """Creates grid-based segmentations based on the crop locations from the
-    grid-based DiffAE dataframe of the first dataset in `datasets`, then checks
-    that the crop indices for subsequent datasets in `datasets` matches these
-    segmentations.
+    """Creates grid-based segmentations based on the first dataset with the
+    longest duration in the dataset collections ("diffae_model_training", "replicate_2_datasets")
+    and checks that the crop locations from the grid-based DiffAE dataframe of all
+    other datasets in the provided argument `datasets` matches these segmentations.
 
     Parameters
     ----------
@@ -19,11 +19,12 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
         exceeding RAM capacity is recommended. Default is 4.
     """
 
+    import logging
     from concurrent.futures import ProcessPoolExecutor
 
     from tqdm import tqdm
 
-    from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.lib_grid_seg import (
         check_crop_indices_against_existing_segmentations,
@@ -32,33 +33,54 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 
+    logger = logging.getLogger(__name__)
+
+    datasets_all = get_datasets_in_collection("diffae_model_training")
+    datasets_all.extend(get_datasets_in_collection("replicate_2_datasets"))
+
+    # The grid-based segmentations are reused for multiple datasets since the
+    # crop indices are in the same position for each movie, therefore we must
+    # create segmentations based on the dataset with the longest timelapse
+    # duration so that segmentations are present for all timepoints for all
+    # other datasets
+    dataset_configs_all = [load_dataset_config(ds_nm) for ds_nm in datasets_all]
+    max_timelapse_duration = max(config.duration for config in dataset_configs_all)
+    for config in dataset_configs_all:
+        if config.duration == max_timelapse_duration:
+            logger.info(
+                f"Dataset {config.name} is the first dataset with the longest \
+                timelapse duration of {max_timelapse_duration} minutes, and \
+                will be used to create the grid segmentations."
+            )
+            examplary_dataset = config.name
+
     if datasets is None:
-        datasets = get_datasets_in_collection("diffae_model_training")
-        datasets.extend(get_datasets_in_collection("replicate_2_datasets"))
+        datasets = datasets_all
 
-    for i, dataset_name in enumerate(datasets):
-        out_dir = get_output_path(__file__)
+    grid_df = load_grid_diffae_df_for_tfe(examplary_dataset)
+    out_dir = get_output_path(__file__)
+    create_grid_segmentation_images(grid_df, out_dir)
 
+    # Now we check that the crop indices for each dataset in `datasets` matches
+    # the segmentations we produced earlier when we load a grid-based
+    # DiffAE dataframe for each dataset.
+    for dataset_name in datasets:
         grid_df = load_grid_diffae_df_for_tfe(dataset_name)
 
-        if i == 0:
-            create_grid_segmentation_images(grid_df, out_dir)
-
-        else:
-            nm, df = zip(*grid_df.groupby([ColumnName.POSITION, ColumnName.TIMEPOINT]), strict=True)
-            num_seg_files = len(nm)
-            with ProcessPoolExecutor(max_workers=n_cores) as worker_pool:
-                list(
-                    tqdm(
-                        worker_pool.map(
-                            check_crop_indices_against_existing_segmentations,
-                            df,
-                            [out_dir] * num_seg_files,
-                        ),
-                        desc=f"Checking grid segmentations for {dataset_name}",
-                        total=num_seg_files,
-                    )
+        nm, df = zip(*grid_df.groupby([ColumnName.POSITION, ColumnName.TIMEPOINT]), strict=True)
+        num_seg_files = len(nm)
+        with ProcessPoolExecutor(max_workers=n_cores) as worker_pool:
+            list(
+                tqdm(
+                    worker_pool.map(
+                        check_crop_indices_against_existing_segmentations,
+                        df,
+                        [out_dir] * num_seg_files,
+                    ),
+                    desc=f"Checking grid segmentations for {dataset_name}",
+                    total=num_seg_files,
                 )
+            )
 
     print("\N{PARTY POPPER} Done.")
 
