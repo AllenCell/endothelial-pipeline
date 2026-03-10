@@ -69,47 +69,106 @@ def sample_from_density(
     return np.array(samples)
 
 
-def _is_point_within_percentile(
-    point: np.ndarray | tuple[float, ...],
+def _compute_percentile_values(
     data: pd.DataFrame,
     column_names: list[str],
-    lower_percentile: float = 5,
-    upper_percentile: float = 95,
+    q: float,
+    polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
+) -> dict[str, float]:
+    """
+    Compute the lower and upper percentile bounds for each column in the data.
+
+    Parameters
+    ----------
+    data
+        DataFrame containing the data.
+    column_names
+        List of column names to compute percentiles for.
+    q
+        Percentile to compute (e.g. 2 for the 2nd percentile).
+    polar_angle_range
+        The range of the polar angle variable (e.g. [0, 2pi] or [-pi, pi]) for
+        handling wraparound when computing percentiles for circular variables.
+
+    Returns
+    -------
+    :
+        Dictionary mapping column names to their percentile values.
+    """
+    percentile_values: dict[str, float] = {}
+    for column_name in column_names:
+        if column_name == ColumnName.POLAR_ANGLE.value:
+            percentile_value = circpercentile(data[column_name], q=q, polar_range=polar_angle_range)
+        else:
+            percentile_value = np.percentile(data[column_name], q=q)
+        percentile_values[column_name] = percentile_value
+    return percentile_values
+
+
+def _is_point_within_percentile_bounds(
+    point: np.ndarray | tuple[float, ...],
+    column_names: list[str],
+    lower_percentile_bounds: dict[str, float],
+    upper_percentile_bounds: dict[str, float],
     polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
 ):
     """
-    Check if a point is within the given percentile range of the data along each
-    axis.
+    Check if a point is within a specified percentile range along each dimension
+    of a dataset, accounting for circular variables.
+
+    **Percentile bound specification**
+
+    The inputs lower_percentile_bounds and upper_percentile_bounds should be
+    lists of floats specifying the lower and upper percentiles of the data as
+    computed by, e.g., numpy.percentile or the circpercentile function for
+    circular variables. That is to say, lower_percentile_bounds[i] should be the
+    value of the lower percentile for the data in column column_names[i], not
+    the specified percentile (e.g. 2) itself.
+
+    **Handling circular variables*
+
+    For circular variables (e.g. angles), the function checks if the point is
+    within the bounds accounting for wraparound. For example, if the lower
+    percentile bound is 350 degrees and the upper percentile bound is 10
+    degrees, then a point at 355 degrees would be considered within bounds,
+    while a point at 20 degrees would not be.
+
+    Furthermore, we do not want to return multiple equivalent points that are
+    separated by the wraparound boundary for circular variables. Thus, we also
+    specify the polar angle range (e.g. [0, 360] or [-pi, pi]) to ensure that
+    the point is only considered within bounds if it is within the bounds in the
+    specified polar angle range. For example, if the polar angle range is [0,
+    360], then a point at -5 degrees would not be considered "within bounds"
+    even if the lower percentile bound is 350 and the upper percentile bound is
+    10, degrees.
 
     Parameters
     ----------
     point
         The point to check.
-    data
-        The dataframe containing the data to compare against.
     column_names
         List of column names corresponding to the dimensions of the point and
         data.
-    lower_percentile
-        Lower percentile.
-    upper_percentile
-        Upper percentile.
+    lower_percentile_bounds
+        Dictionary mapping column names to pre-computed lower percentile bounds.
+    upper_percentile_bounds
+        Dictionary mapping column names to pre-computed upper percentile bounds.
     polar_angle_range
         The range of the polar angle variable (e.g. [0, 2pi] or [-pi, pi]) for
-        computing circular percentiles.
+        handling wraparound when checking if the point is within bounds for
+        circular variables.
 
     Returns
     -------
     :
         True if point is within the percentile bounds on all axes, else False.
     """
-    is_within_bounds = np.zeros(len(column_names), dtype=bool)
+    num_variables = len(column_names)
+    is_within_bounds = np.zeros(num_variables, dtype=bool)
     for i, column_name in enumerate(column_names):
+        lower_bound = lower_percentile_bounds[column_name]
+        upper_bound = upper_percentile_bounds[column_name]
         if column_name == ColumnName.POLAR_ANGLE.value:
-            # for polar angle, compute circular percentiles
-            angles = data[column_name].to_numpy()
-            lower_bound = circpercentile(angles, lower_percentile, polar_range=polar_angle_range)
-            upper_bound = circpercentile(angles, upper_percentile, polar_range=polar_angle_range)
             # for circular variables, need to account for bounds wrapping around
             if lower_bound <= upper_bound:
                 is_within_bounds[i] = (lower_bound <= point[i]) & (point[i] <= upper_bound)
@@ -120,15 +179,7 @@ def _is_point_within_percentile(
                     polar_angle_range[0] <= point[i] <= upper_bound
                 )
         else:
-            lower_bound = np.percentile(data[column_name], lower_percentile)
-            upper_bound = np.percentile(data[column_name], upper_percentile)
             is_within_bounds[i] = (lower_bound <= point[i]) & (point[i] <= upper_bound)
-        logger.debug(
-            "Percentile bounds for column [ %s ]: [ %.4f, %.4f ]",
-            column_name,
-            lower_bound,
-            upper_bound,
-        )
     return np.all(is_within_bounds)
 
 
@@ -297,11 +348,25 @@ def ddff_model_analysis(
     # pass into helper function to get fixed points
     fpts = get_fps(drift_function, sampled_inits_for_root_solver)
 
-    # filter fixed points to only keep stable ones within 2nd-98th percentiles of data
+    # filter fixed points to only keep stable ones within a given range of
+    # percentiles of data (e.g., 2 to 98) to get high confidence fixed points
+    # that are within the region of state space supported by the data
+    lower_percentile_bounds = _compute_percentile_values(
+        feature_data, column_names, q=lower_percentile, polar_angle_range=polar_angle_range
+    )
+    logger.debug(
+        "Lower percentile bounds for filtering fixed points: [ %s ]", lower_percentile_bounds
+    )
+    upper_percentile_bounds = _compute_percentile_values(
+        feature_data, column_names, q=upper_percentile, polar_angle_range=polar_angle_range
+    )
+    logger.debug(
+        "Upper percentile bounds for filtering fixed points: [ %s ]", upper_percentile_bounds
+    )
     stable_fpts_high_confidence = []
     for fpt in fpts:
-        within_percentile = _is_point_within_percentile(
-            fpt, feature_data, column_names, lower_percentile, upper_percentile, polar_angle_range
+        within_percentile = _is_point_within_percentile_bounds(
+            fpt, column_names, lower_percentile_bounds, upper_percentile_bounds, polar_angle_range
         )
         if within_percentile:
             # get stability and type of the fixed point
