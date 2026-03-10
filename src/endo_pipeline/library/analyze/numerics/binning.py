@@ -34,7 +34,7 @@ def circpercentile(
         Percentile to compute (between 0 and 100).
     polar_range
         Tuple specifying the circular range of the data (e.g., (0,
-        2*np.pi) for angles in radians).
+        np.pi) for angles in radians).
     method
         Method to use for interpolation when the desired percentile lies between
         two data points (passed into np.percentile).
