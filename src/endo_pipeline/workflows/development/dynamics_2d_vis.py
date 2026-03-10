@@ -1,4 +1,5 @@
 from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.settings.dynamics_workflows import HISTOGRAM_THRESHOLD_FOR_MASKING
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -11,6 +12,7 @@ def main(
     run_name: str = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
     global_limits: bool = True,
+    mask_threshold: float | None = HISTOGRAM_THRESHOLD_FOR_MASKING,
 ) -> None:
     """
     Analyze and visualize DiffAE feature dynamics.
@@ -30,10 +32,11 @@ def main(
     following steps:
         1. Loads the grid-based crop feature dataframe, projects
             features into PCA space, and perform any additional feature
-            transformations (e.g., computing polar coordinates, rescaling
-            polar angle).
+            transformations (e.g., computing polar coordinates, rescaling polar
+            angle).
         2. Splits the dataframe by flow conditions based on shear stress.
-        3. For each flow condition, loops over pairwise combinations of features:
+        3. For each flow condition, loops over pairwise combinations of
+           features:
             a. Estimates 2D drift coefficients (Kramers-Moyal) for each pair of
                 features using a kernel-based estimation method with appropriate
                 kernels for each variable.
@@ -41,8 +44,6 @@ def main(
 
     Parameters
     ----------
-    global_limits
-        Whether to use global limits for all datasets when plotting drift contours.
     datasets
         Specific datasets to run the workflow on.
     model_manifest_name
@@ -51,6 +52,12 @@ def main(
         The name of the model run to use.
     crop_pattern
         The crop pattern to get features for, either "grid" or "tracked".
+    global_limits
+        Whether to use global limits for all datasets when plotting drift
+        contours.
+    mask_threshold
+        Threshold for masking low-confidence regions of drift estimates based on
+        histogram of data points. If None, no masking is applied.
     """
 
     import logging
@@ -91,7 +98,6 @@ def main(
         BIN_WIDTHS_DYNAMICS,
         DEFAULT_DATASET_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
-        HISTOGRAM_THRESHOLD_FOR_MASKING,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
         NUM_PCS_TO_FIT_FOR_DYNAMICS,
@@ -262,13 +268,14 @@ def main(
                 # get histogram for masking low-confidence regions of drift
                 # estimates, using same kernels as for drift estimation, and set
                 # drift to nan in low-confidence regions
-                hist_kde = get_kernel_density_estimate(
-                    traj_2d,
-                    bins=bins_2d,
-                    kernel=kernels,
-                )
-                low_confidence_mask = hist_kde < HISTOGRAM_THRESHOLD_FOR_MASKING
-                drift[low_confidence_mask] = np.nan
+                if mask_threshold is not None:
+                    hist_kde = get_kernel_density_estimate(
+                        traj_2d,
+                        bins=bins_2d,
+                        kernel=kernels,
+                    )
+                    low_confidence_mask = hist_kde < mask_threshold
+                    drift[low_confidence_mask] = np.nan
 
                 # plot drift contours and save
                 plot_and_save_drift_contours(
