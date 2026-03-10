@@ -3,7 +3,6 @@ from typing import cast
 
 import numpy as np
 import pandas as pd
-from scipy.stats import circmean, vonmises
 from sklearn.decomposition import PCA
 
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
@@ -20,33 +19,38 @@ from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
 logger = logging.getLogger(__name__)
 
 
-def circpercentile(data: np.ndarray, q: float) -> float:
+def circpercentile(angles: np.ndarray, q: float, period=np.pi, method="linear"):
     """
     Compute the q-th percentile of circular data.
 
     Parameters
     ----------
-    data
+    angles
         1D array of circular data (e.g., angles in radians).
     q
         Percentile to compute (between 0 and 100).
-
-    Returns
-    -------
-    :
-        The q-th percentile of the circular data, in the same units as the input data.
+    period
+        The period of the circular data (e.g., 2 * np.pi for angles in radians).
+    method
+        Method to use for interpolation when the desired percentile lies between
+        two data points (passed into np.percentile).
     """
-    if not (0 <= q <= 100):
-        raise ValueError("Percentile must be between 0 and 100.")
-    # Convert q to a value between 0 and 1. (i.e., quantile to compute)
-    q = q / 100.0
 
-    # Use von Mises distribution to compute the circular percentile
-    circ_mean = circmean(data, low=-np.pi, high=np.pi)  # compute circular mean of the data
-    kappa, _, _ = vonmises.fit(
-        data, loc=circ_mean
-    )  # fit von Mises distribution to data (kappa parameter)
-    return vonmises.ppf(q, kappa=kappa, loc=circ_mean)
+    sorted_angles = np.sort(angles)
+
+    # Find largest gap (including wrap-around gap)
+    angle_diffs = np.diff(sorted_angles, append=sorted_angles[0] + period)
+    where_largest_diff = np.argmax(angle_diffs)
+
+    # Cut at end of largest gap; shift so data are contiguous on line
+    angle_cut = (sorted_angles[where_largest_diff] + angle_diffs[where_largest_diff]) % period
+    contiguous_angles = np.mod(angles - angle_cut, period)
+
+    # Ordinary percentile in linear space
+    angle_percentile = np.percentile(contiguous_angles, q, method=method)
+
+    # Wrap back to circular domain
+    return np.mod(angle_percentile + angle_cut, period)
 
 
 def get_bins(
