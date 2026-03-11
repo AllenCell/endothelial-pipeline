@@ -1,0 +1,207 @@
+from endo_pipeline.cli import CropPattern, Datasets, StrList
+from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+
+
+def main(
+    datasets: Datasets | None = None,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
+    crop_pattern: CropPattern = "grid",
+    plot_stack: bool = False,
+    compute_vtk: bool = True,
+    use_same_axes: bool = False,
+    columns: StrList | None = None,
+) -> None:
+    """
+    Visualize 3D (drift) flow fields for the dynamics of the crop-based DiffAE
+    features for each of the single flow datasets.
+
+    #dynamical-systems #diffae-feature-analysis
+
+    **Flow field estimation and analysis**
+
+    1. Estimate 3D flow fields using a Gaussian kernel method on the PCA-reduced
+         DiffAE feature space.
+    2. Use interpolation to get a callable flow field function.
+    3. Identify stable fixed points in the 3D flow field using a root-finding method
+        applied to the flow field function.
+    4. Categorize the identified fixed points based on the eigenvalues of the Jacobian
+        matrix at each fixed point.
+    5. Simulate trajectories in the 3D flow field starting from specified initial points.
+    6. Save the flow field analysis results, including stable fixed point locations.
+
+    **Visualization outputs**
+
+    1. 2D flow field visualizations saved as PNG files in the `figs/` directory, including:
+        a. 2D slice of the 3D flow field "sliced" according to the coordinates
+            of the stable fixed points identified in the 3D flow field.
+        b. Trajectories simulated in the 3D flow field, projected onto 2D slices.
+        c. Optionally, 3D stack plots of the flow field visualizations in each of the three
+            variables (if ``plot_stack`` is True).
+    2. Optionally, VTK files for 3D flow field saved in the `outputs/vtk/` directory
+        (if ``compute_vtk`` is True).
+    3. Stable fixed point locations from all datasets processed overlaid on a single
+        plot saved as a PNG file in the `figs/` directory.
+
+    Parameters
+    ----------
+    datasets
+        List of datasets or dataset collections to use for visualization.
+    model_manifest_name
+        Name of the model manifest containing the run to load features from.
+    run_name
+        Name of the specific model run to load featuref for. If None, uses the most recent run.
+    crop_pattern
+        The crop pattern to get features for, either "grid" or "tracked".
+    plot_stack
+        If true, plot 3D stacks of the flow field visualizations in each of the three variables.
+    compute_vtk
+        If true, compute and save VTK files for 3D flow fields.
+    use_same_axes
+        If true, use the same axis limits for all datasets when plotting flow fields.
+    """
+    import logging
+
+    import numpy as np
+
+    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.analyze.data_driven_flow_field import ddff_model_analysis
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
+    from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+    from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
+    from endo_pipeline.manifests import (
+        get_feature_dataframe_manifest_name,
+        load_dataframe_manifest,
+        load_model_manifest,
+    )
+    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.dynamics_workflows import (
+        BIN_WIDTHS_DYNAMICS,
+        DYNAMICS_COLUMN_NAMES,
+        KERNEL_BANDWIDTHS_DYNAMICS,
+        KERNEL_NAMES_DYNAMICS,
+        PERIOD_THETA_RESCALED,
+        RESCALE_THETA,
+    )
+    from endo_pipeline.settings.flow_field_3d import (
+        BIN_WIDTH_DEFAULTS,
+        DATASET_COLLECTION_FOR_3D_DYNAMICS,
+        INIT_POINT_3D,
+        KERNEL_BANDWIDTH,
+        KERNEL_FUNCTION_NAME,
+        LOWER_PERCENTILE_FOR_STABLE_FP,
+        NUM_INIT_SAMPLES,
+        PAD_BINS_FLOAT,
+        TIME_STEP_IN_MINUTES,
+        TRAJECTORY_TIME_SPAN,
+        UPPER_PERCENTILE_FOR_STABLE_FP,
+    )
+
+    logger = logging.getLogger(__name__)
+
+    # load model manifest and get corresponding dataframe manifest name
+    model_manifest = load_model_manifest(model_manifest_name)
+    dataframe_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern=crop_pattern
+    )
+
+    # Create output folders if they do not exist yet
+    fig_savedir = get_output_path(__file__, dataframe_manifest_name, "figs")
+    vtk_savedir = get_output_path(__file__, dataframe_manifest_name, "outputs", "vtk")
+
+    # load dataframe manifest with model feature for the given model run
+    # and model manifest
+    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+
+    # Default list of datasets if not provided. Filter by datasets available in
+    # the manifest.
+    valid_dataset_options = list(dataframe_manifest.locations.keys())
+    if datasets is None:
+        dataset_names = get_datasets_in_collection(
+            DATASET_COLLECTION_FOR_3D_DYNAMICS, valid_dataset_options
+        )
+    else:
+        dataset_names = [name for name in datasets if name in valid_dataset_options]
+    if DEMO_MODE:
+        logger.warning(
+            "DEMO MODE: Using only the first dataset from the manifest for quick visualization."
+        )
+        dataset_names = dataset_names[:1]
+
+    # get feature column names to use for flow field analysis
+    column_names: list[str] = columns or list(DYNAMICS_COLUMN_NAMES)
+    if len(column_names) != 3:
+        raise ValueError(
+            f"Exactly 3 column names must be provided for 3D flow field analysis, but {len(column_names)} were provided: {column_names}"
+        )
+
+    # fit PCA using the features from the given dataframe manifest PCA always
+    # fit on the grid-based features, even if the features for flow field
+    # analysis are from tracked-based crops, to ensure that the PCA space is the
+    # same across analyses
+    dataframe_manifest_name_pca = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
+    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_pca)
+
+    # get common bounds for all datasets
+    # will be used for flow field plots if use_common_axis_limits is True
+    # regardless, gets used below when plotting stable fixed points together
+    bounds_for_plots = get_bounds_from_data(
+        dataset_names, dataframe_manifest, pca, column_names=column_names
+    )
+
+    # initialize kernels and bin widths for each of the three variables for flow
+    # field estimation
+    kernels = []
+    bin_widths = []
+    rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
+
+    for index, column_name in enumerate(column_names):
+        name = KERNEL_NAMES_DYNAMICS.get(column_name, KERNEL_FUNCTION_NAME)
+        bandwidth = KERNEL_BANDWIDTHS_DYNAMICS.get(column_name, KERNEL_BANDWIDTH)
+        period = rescaled_theta if column_name == ColumnName.POLAR_ANGLE else None
+        bin_width = BIN_WIDTHS_DYNAMICS.get(column_name, BIN_WIDTH_DEFAULTS[index])
+
+        kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
+        bin_widths.append(bin_width)
+
+    for dataset_name in dataset_names:
+        # get bins for KMCs
+        bounds_for_km = get_bounds_from_data(
+            dataset_names=[dataset_name],
+            manifest=dataframe_manifest,
+            pca=pca,
+            pad=PAD_BINS_FLOAT,
+            column_names=column_names,
+        )
+        bins, centers = get_bins(bin_widths, bin_limits=bounds_for_km)
+        _ = ddff_model_analysis(
+            dataset_name,
+            dataframe_manifest,
+            crop_pattern=crop_pattern,
+            pca=pca,
+            kernel=kernels,
+            dt=TIME_STEP_IN_MINUTES,
+            bins=bins,
+            centers=centers,
+            time_span=TRAJECTORY_TIME_SPAN,
+            init_for_traj=np.array(INIT_POINT_3D),
+            num_inits_for_root_solver=NUM_INIT_SAMPLES,
+            plot_bounds=bounds_for_plots if use_same_axes else bounds_for_km,
+            plot_stack=plot_stack,
+            compute_vtk_files=compute_vtk,
+            fig_savedir=fig_savedir,
+            vtk_savedir=vtk_savedir,
+            column_names=column_names,
+            lower_percentile=LOWER_PERCENTILE_FOR_STABLE_FP,
+            upper_percentile=UPPER_PERCENTILE_FOR_STABLE_FP,
+        )
+
+
+if __name__ == "__main__":
+    from endo_pipeline.cli import workflow_cli
+
+    workflow_cli(main)
