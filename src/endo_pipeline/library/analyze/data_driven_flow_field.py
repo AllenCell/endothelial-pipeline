@@ -83,8 +83,7 @@ def _is_point_within_percentile(point, data, lower=5, upper=95):
 
 
 def get_stable_fixed_points(
-    drift_coeffs: np.ndarray,
-    centers: list[np.ndarray],
+    drift_function: Callable,
     dataframe: pd.DataFrame,
     column_names: list[str],
     num_inits_for_root_solver: int,
@@ -136,15 +135,7 @@ def get_stable_fixed_points(
     feature_data = dataframe[column_names].to_numpy()  # get feature data as numpy array
     dataset_name = dataframe[ColumnName.DATASET].iloc[0]  # get dataset name from dataframe
 
-    ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
-    extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
-        drift_coeffs, centers, method="linear", for_vtk_files=False
-    )
-
-    # get callable drift function and its Jacobian
-    drift_function = get_callable_vector_field(
-        extrapolated_flow_field_dict_reg, for_solve_ivp=False, method="linear"
-    )
+    # create Jacobian function for finding stability of fixed points
     drift_function_jacobian = Jacobian(drift_function)
 
     # sample initial conditions for root solver from data density

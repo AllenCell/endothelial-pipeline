@@ -54,7 +54,11 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, make_name_unique
-    from endo_pipeline.library.analyze.data_driven_flow_field import get_stable_fixed_points
+    from endo_pipeline.library.analyze.data_driven_flow_field import (
+        compute_extrapolated_vector_field,
+        get_callable_vector_field,
+        get_stable_fixed_points,
+    )
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
         get_dataframe_for_dynamics_workflows,
@@ -204,9 +208,19 @@ def main(
             traj_list, d_traj_list, bins=bins, dt=TIME_STEP_IN_MINUTES, kernel=kernels
         )
 
+        ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
+        extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
+            drift_coeffs, centers, method="linear", for_vtk_files=False
+        )
+
+        # get callable drift function to be used for root finding to identify
+        # fixed points
+        drift_function = get_callable_vector_field(
+            extrapolated_flow_field_dict_reg, for_solve_ivp=False, method="linear"
+        )
+
         stable_fixed_points_dataset = get_stable_fixed_points(
-            drift_coeffs=drift_coeffs,
-            centers=centers,
+            drift_function=drift_function,
             dataframe=df,
             column_names=column_names,
             num_inits_for_root_solver=NUM_INIT_SAMPLES,
