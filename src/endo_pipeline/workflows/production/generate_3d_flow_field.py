@@ -158,12 +158,10 @@ def main(
         dataset_names, dataframe_manifest, pca, column_names=column_names
     )
 
-    # initialize dataframe to hold drift coefficients for all datasets, with
-    # columns for dataset name, bin centers in each of the three dimensions, and
-    # the corresponding drift coefficients
-    drift_coeffs_all_datasets = pd.DataFrame(
-        columns=[ColumnName.DATASET, *column_names, *drift_column_names]
-    )
+    # initialize dataframes to hold drift coefficients and bin centers for all
+    # datasets, with an additional column for dataset name
+    drift_coeffs_all_datasets = pd.DataFrame(columns=[ColumnName.DATASET, *drift_column_names])
+    grid_points_all_datasets = pd.DataFrame(columns=[ColumnName.DATASET, *column_names])
 
     # initialize dataframe to hold stable fixed points from all datasets
     # with columns for dataset name and 3D PC space coordinates
@@ -221,15 +219,23 @@ def main(
         drift_coeffs_df = pd.DataFrame(
             {
                 ColumnName.DATASET: dataset_name,
-                **{column_name: centers[index] for index, column_name in enumerate(column_names)},
                 **{
-                    drift_column_name: drift_coeffs[..., index]
+                    drift_column_name: drift_coeffs[..., index].flatten()
                     for index, drift_column_name in enumerate(drift_column_names)
                 },
             }
         )
+        grid_points_df = pd.DataFrame(
+            {
+                ColumnName.DATASET: dataset_name,
+                **{column_name: centers[index] for index, column_name in enumerate(column_names)},
+            }
+        )
         drift_coeffs_all_datasets = pd.concat(
             [drift_coeffs_all_datasets, drift_coeffs_df], ignore_index=True
+        )
+        grid_points_all_datasets = pd.concat(
+            [grid_points_all_datasets, grid_points_df], ignore_index=True
         )
 
         ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
@@ -272,9 +278,11 @@ def main(
 
     # save stable fixed points from all datasets to parquet file
     drift_coeffs_file_name = "drift_coeffs_all_datasets.parquet"
+    grid_points_file_name = "grid_points_all_datasets.parquet"
     fixed_points_file_name = "stable_fixed_points_all_datasets.parquet"
     if DEMO_MODE:
         drift_coeffs_save_path = make_name_unique(output_savedir / f"demo_{drift_coeffs_file_name}")
+        grid_points_save_path = make_name_unique(output_savedir / f"demo_{grid_points_file_name}")
         stable_fixed_points_save_path = make_name_unique(
             output_savedir / f"demo_{fixed_points_file_name}"
         )
@@ -284,6 +292,7 @@ def main(
             "Saving stable fixed points to FMS not yet implemented, saving locally instead."
         )
         drift_coeffs_save_path = make_name_unique(output_savedir / drift_coeffs_file_name)
+        grid_points_save_path = make_name_unique(output_savedir / grid_points_file_name)
         stable_fixed_points_save_path = make_name_unique(output_savedir / fixed_points_file_name)
 
     logger.info(
@@ -292,6 +301,14 @@ def main(
     )
     drift_coeffs_all_datasets.to_parquet(
         drift_coeffs_save_path,
+    )
+
+    logger.info(
+        "Saving grid points for drift coefficients from all datasets to [ %s ]",
+        grid_points_save_path,
+    )
+    grid_points_all_datasets.to_parquet(
+        grid_points_save_path,
     )
 
     logger.info(

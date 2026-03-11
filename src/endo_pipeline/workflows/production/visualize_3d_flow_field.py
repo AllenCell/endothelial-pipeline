@@ -8,6 +8,7 @@ from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RU
 
 def main(
     path_to_drift_dataframe: Annotated[str, Parameter(name="--drift")],
+    path_to_grid_points_dataframe: Annotated[str, Parameter(name="--grid-points")],
     path_to_fixed_points_dataframe: Annotated[str | None, Parameter(name="--fixed-points")] = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
@@ -31,7 +32,8 @@ def main(
 
     2. Optionally, a path to a dataframe containing the stable fixed point
        locations to overlay on the flow field visualizations. If not provided,
-       stable fixed points will not be overlaid on the flow field visualizations.
+       stable fixed points will not be overlaid on the flow field
+       visualizations.
 
     **Visualization outputs**
 
@@ -51,6 +53,10 @@ def main(
     path_to_drift_dataframe
         Path to the dataframe containing the drift estimates for the 3D flow
         field.
+    path_to_grid_points_dataframe
+        Path to the dataframe containing the corresponding 1D arrays of grid
+        points in each of the three dimensions of the feature space for the 3D
+        flow field.
     path_to_fixed_points_dataframe
         Optional path to the dataframe containing the stable fixed point
         locations to overlay on the flow field visualizations.
@@ -107,7 +113,8 @@ def main(
 
     # get feature column names to use for flow field analysis
     column_names: list[str] = columns or list(DYNAMICS_COLUMN_NAMES)
-    if len(column_names) != 3:
+    ndim = len(column_names)
+    if ndim != 3:
         raise ValueError(
             f"Exactly 3 column names must be provided for 3D flow field analysis, but {len(column_names)} were provided: {column_names}"
         )
@@ -118,6 +125,14 @@ def main(
     drift_dataframe: pd.DataFrame = load_dataframe(drift_dataframe_location, delay=False)
     check_required_columns_in_dataframe(
         drift_dataframe,
+        required_columns=[*drift_column_names, ColumnName.DATASET],
+    )
+    grid_points_dataframe_location = DataframeLocation(path=Path(path_to_grid_points_dataframe))
+    grid_points_dataframe: pd.DataFrame = load_dataframe(
+        grid_points_dataframe_location, delay=False
+    )
+    check_required_columns_in_dataframe(
+        grid_points_dataframe,
         required_columns=[*column_names, ColumnName.DATASET],
     )
     if path_to_fixed_points_dataframe is not None:
@@ -139,6 +154,9 @@ def main(
         )
         dataset_names = dataset_names[:1]
         drift_dataframe = drift_dataframe[drift_dataframe[ColumnName.DATASET] == dataset_names[0]]
+        grid_points_dataframe = grid_points_dataframe[
+            grid_points_dataframe[ColumnName.DATASET] == dataset_names[0]
+        ]
         if path_to_fixed_points_dataframe is not None:
             fixed_points_dataframe = fixed_points_dataframe[
                 fixed_points_dataframe[ColumnName.DATASET] == dataset_names[0]
@@ -160,17 +178,25 @@ def main(
         dataset_names, dataframe_manifest, pca, column_names=column_names
     )
 
-    for dataset_name, drift_dataset in drift_dataframe.groupby(ColumnName.DATASET):
-        # type assertion for mypy
-        assert isinstance(dataset_name, str), "Dataset name should be a string."
+    for dataset_name in dataset_names:
+        logger.info(f"Visualizing flow field for dataset [ {dataset_name} ]")
+        drift_dataset: pd.DataFrame = drift_dataframe[
+            drift_dataframe[ColumnName.DATASET] == dataset_name
+        ]
+        grid_points_dataset: pd.DataFrame = grid_points_dataframe[
+            grid_points_dataframe[ColumnName.DATASET] == dataset_name
+        ]
 
-        drift_values = drift_dataset[drift_column_names].to_numpy()
-        feature_values = [drift_dataset[column_name].to_numpy() for column_name in column_names]
-        grid = np.meshgrid(*feature_values, indexing="ij")
+        grid_points_as_list: list[np.ndarray] = [
+            grid_points_dataset[column_name].to_numpy() for column_name in column_names
+        ]
+        grid_shape = tuple(len(points) for points in grid_points_as_list)
+
+        drift_values = drift_dataset[drift_column_names].to_numpy().reshape(*grid_shape, ndim)
+        grid = np.meshgrid(*grid_points_as_list, indexing="ij")
 
         # get the vector field components from
         # the Kramers-Moyal coefficients
-        ndim = len(feature_values)  # number of dimensions
         # assert check for development
         assert (
             drift_values.shape[-1] == ndim
@@ -184,19 +210,21 @@ def main(
         # if compute vtk files, extrapolate and save out the flow field as vtk
         if compute_vtk:
             extrapolated_flow_field_dict_vtk = compute_extrapolated_vector_field(
-                drift_values, feature_values, method="nearest", for_vtk_files=True
+                drift_values, grid_points_as_list, method="nearest", for_vtk_files=True
             )
             # save out the flow field as vtk image data volume extent for vtk
             # file is determined by the min and max of the feature values in
             # each dimension, plus an extra half-bin width on either side
-            bin_widths = [feature_values[i][1] - feature_values[i][0] for i in range(ndim)]
+            bin_widths = [
+                grid_points_as_list[i][1] - grid_points_as_list[i][0] for i in range(ndim)
+            ]
             volume_extent = {
-                "xmin": feature_values[0][0] - bin_widths[0] / 2,
-                "xmax": feature_values[0][-1] + bin_widths[0] / 2,
-                "ymin": feature_values[1][0] - bin_widths[1] / 2,
-                "ymax": feature_values[1][-1] + bin_widths[1] / 2,
-                "zmin": feature_values[2][0] - bin_widths[2] / 2,
-                "zmax": feature_values[2][-1] + bin_widths[2] / 2,
+                "xmin": grid_points_as_list[0][0] - bin_widths[0] / 2,
+                "xmax": grid_points_as_list[0][-1] + bin_widths[0] / 2,
+                "ymin": grid_points_as_list[1][0] - bin_widths[1] / 2,
+                "ymax": grid_points_as_list[1][-1] + bin_widths[1] / 2,
+                "zmin": grid_points_as_list[2][0] - bin_widths[2] / 2,
+                "zmax": grid_points_as_list[2][-1] + bin_widths[2] / 2,
             }
             save_vector_field_as_vtk(
                 extrapolated_flow_field_dict_vtk,
@@ -207,7 +235,7 @@ def main(
         ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
         # with initial conditions given by init solve IVP, get back trajectory
         extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
-            drift_values, feature_values, method="linear", for_vtk_files=False
+            drift_values, grid_points_as_list, method="linear", for_vtk_files=False
         )
         time_span = (TRAJECTORY_TIME_SPAN,)
         init_for_traj = (np.array(INIT_POINT_3D),)
@@ -223,7 +251,7 @@ def main(
                 fixed_points.append(row[column_names].to_numpy())
 
         # subfolder for each dataset
-        fig_savedir_dataset = fig_savedir / dataset_name
+        fig_savedir_dataset: Path = fig_savedir / dataset_name
         fig_savedir_dataset.mkdir(parents=True, exist_ok=True)
 
         # get per-dataset bounds for plotting, if not using same axes for all datasets
