@@ -64,6 +64,7 @@ def main(
         fields.
     """
     import logging
+    from pathlib import Path
 
     import numpy as np
     import pandas as pd
@@ -82,6 +83,7 @@ def main(
     from endo_pipeline.library.visualize.diffae_features.flow_field_viz import flow_field_viz_main
     from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
     from endo_pipeline.manifests import (
+        DataframeLocation,
         get_feature_dataframe_manifest_name,
         load_dataframe_manifest,
         load_model_manifest,
@@ -112,14 +114,18 @@ def main(
     drift_column_names = [f"{name}_drift" for name in column_names]
 
     # load dataframes and check that required columns are present
-    drift_dataframe: pd.DataFrame = load_dataframe(path_to_drift_dataframe, delay=False)
+    drift_dataframe_location = DataframeLocation(path=Path(path_to_drift_dataframe))
+    drift_dataframe: pd.DataFrame = load_dataframe(drift_dataframe_location, delay=False)
     check_required_columns_in_dataframe(
         drift_dataframe,
         required_columns=[*column_names, ColumnName.DATASET],
     )
     if path_to_fixed_points_dataframe is not None:
+        fixed_points_dataframe_location = DataframeLocation(
+            path=Path(path_to_fixed_points_dataframe)
+        )
         fixed_points_dataframe: pd.DataFrame = load_dataframe(
-            path_to_fixed_points_dataframe, delay=False
+            fixed_points_dataframe_location, delay=False
         )
         check_required_columns_in_dataframe(
             fixed_points_dataframe,
@@ -150,6 +156,9 @@ def main(
     )
 
     for dataset_name, drift_dataset in drift_dataframe.groupby(ColumnName.DATASET):
+        # type assertion for mypy
+        assert isinstance(dataset_name, str), "Dataset name should be a string."
+
         drift_values = drift_dataset[drift_column_names].to_numpy()
         feature_values = [drift_dataset[column_name].to_numpy() for column_name in column_names]
         grid = np.meshgrid(*feature_values, indexing="ij")
