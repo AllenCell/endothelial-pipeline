@@ -29,9 +29,7 @@ from endo_pipeline.manifests import (
     get_zarr_location_for_position,
     load_image_manifest,
 )
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.image_data import DIMENSION_ORDER
-from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg
 
 logger = logging.getLogger(__name__)
 
@@ -61,14 +59,17 @@ def merge_measured_segmentation_features_tables(
         right_on=["dataset_name", "position", "T", "cdh5_segmentation_label"],
     )
 
+    big_table = remove_redundant_columns(big_table)
+
     return big_table
 
 
-def sanitize_columns(big_table: pd.DataFrame) -> pd.DataFrame:
+def remove_redundant_columns(big_table: pd.DataFrame) -> pd.DataFrame:
     """Remove redundant columns and rename columns for consistency and readability."""
     # the following columns are redundant with another in the table and
     # can be dropped:
     duplicate_cols = [
+        "T",  # redundant with "image_index"
         "cell_label",  # redundant with "label"
         "cdh5_segmentation_label",  # redundant with "label"
         # "cell_centroid",  # redundant with "centroid"
@@ -79,18 +80,108 @@ def sanitize_columns(big_table: pd.DataFrame) -> pd.DataFrame:
         "perimeter",  # redundant with "cell_perimeter (px)"
         # "cell_eccentricity",  # redundant with "eccentricity"
         "eccentricity",  # redundant with "cell_eccentricity"
-        "touches_border",
+        "touches_border",  # redundant with "touches_image_border"
         "orientation",  # redundant with "cell orientation"; though has a different phase shift
+        "centroid",  # redundant with "cell_centroid"
+        "centroid_X",
+        "centroid_Y",
     ]
     big_table = big_table.drop(columns=duplicate_cols)
 
+    # to minimize the required refactoring I'm renaming some of the redundant
+    # columns to the same name as the column they are redundant with
+    # I'm doing this so that all measured columns are derived from the
+    # same workflow (the `cdh5_get_measured_features.py` workflow)
+    # even though the redundant column should be the same
     columns_to_rename = {
-        "dataset_name": ColumnName.DATASET,
-        "image_index": ColumnName.TIMEPOINT,
-        "cell_orientation": ColumnNameSeg.ORIENTATION,
+        "cell_orientation": "orientation",
+        "cell_area (px**2)": "area",
+        "cell_perimeter (px)": "perimeter",
+        "cell_eccentricity": "eccentricity",
+        "cell_centroid": "centroid",
     }
     big_table = big_table.rename(columns=columns_to_rename)
+    big_table[["centroid_Y", "centroid_X"]] = pd.DataFrame(
+        big_table["centroid"].tolist(), index=big_table.index
+    )
 
+    return big_table
+
+
+def sanitize_column_names(big_table: pd.DataFrame) -> pd.DataFrame:
+    """Make the column names consistent with elsewhere in the code base."""
+    # NOTE: maybe you don't need to rename ALL of the columns and can instead just
+    # rename the ones that are shared with the dynamics workflow
+    # dataset_info_cols_to_rename = {
+    #     "dataset_name": ColumnNameSeg.DATASET,
+    #     "position": ColumnNameSeg.POSITION,
+    #     "T": ColumnNameSeg.TIMEPOINT,
+    #     "track_id": ColumnNameSeg.TRACK_ID,
+    #     "label": ColumnNameSeg.LABEL,
+    #     "num_unique_tracks_after_filtering_at_T": ColumnNameSeg.NUM_TRACKS_AFTER_FILTERING,
+    #     "num_unique_tracks_before_filtering_at_T": ColumnNameSeg.NUM_TRACKS_BEFORE_FILTERING,
+    #     "shear_stress_regime": ColumnNameSeg.SHEAR_STRESS_REGIME,
+    # }
+    # filter_cols_to_rename = {
+    #     "is_included": ColumnNameSeg.IS_INCLUDED,
+    #     "is_edge_segmentation": ColumnNameSeg.IS_EDGE_SEGMENTATION,
+    #     "is_less_than_max_smoothed_area_normd_change": ColumnNameSeg.IS_LESS_THAN_MAX_SMOOTHED_AREA_NORMD_CHANGE,
+    #     "is_greater_than_min_track_duration": ColumnNameSeg.IS_GREATER_THAN_MIN_TRACK_DURATION,
+    #     "has_more_than_min_num_valid_points_per_track": ColumnNameSeg.HAS_MORE_THAN_MIN_NUM_VALID_POINTS_PER_TRACK,
+    #     "bbox_is_in_bounds": ColumnNameSeg.IS_EDGE_BBOX,
+    # }
+    # annotation_cols_to_rename = {
+    #     "auto_bf_scope_error": ColumnNameSeg.AUTO_BF_SCOPE_ERROR,
+    #     "auto_bf_temp_artifact": ColumnNameSeg.AUTO_BF_TEMP_ARTIFACT,
+    #     "auto_gfp_scope_error": ColumnNameSeg.AUTO_GFP_SCOPE_ERROR,
+    #     "bf_scope_error": ColumnNameSeg.BF_SCOPE_ERROR,
+    #     "bf_temp_artifact": ColumnNameSeg.BF_TEMP_ARTIFACT,
+    #     "gfp_scope_error": ColumnNameSeg.GFP_SCOPE_ERROR,
+    #     "cell_piling": ColumnNameSeg.CELL_PILING,
+    #     "not_steady_state": ColumnNameSeg.NOT_STEADY_STATE,
+    # }
+    # temporal_feature_cols_to_rename = {
+    #     "time_hours": ColumnNameSeg.TIME_HRS,
+    #     "time_minutes": ColumnNameSeg.TIME_MINS,
+    #     "track_duration": ColumnNameSeg.TRACK_DURATION,
+    # }
+    # morpho_feature_cols_to_rename = {
+    #     "orientation": ColumnNameSeg.ORIENTATION,
+    #     "alignment_rel_to_flow": ColumnNameSeg.ALIGNMENT,
+    #     "alignment_deg_rel_to_flow": ColumnNameSeg.ALIGNMENT_DEG,
+    #     "orientation_deg": ColumnNameSeg.ORIENTATION_DEG,
+    #     "nematic_order": ColumnNameSeg.NEMATIC_ORDER,
+    #     "aspect_ratio": ColumnNameSeg.ASPECT_RATIO,
+    #     "eccentricity": ColumnNameSeg.ECCENTRICITY,
+    #     "major_axis_length": ColumnNameSeg.MAJOR_AXIS,
+    #     "minor_axis_length": ColumnNameSeg.MINOR_AXIS,
+    #     "solidity": ColumnNameSeg.SOLIDITY,
+    #     "area (um**2)": ColumnNameSeg.AREA,
+    #     "perimeter (um)": ColumnNameSeg.PERIMETER,
+    #     "nucpos_rel_cell_X": ColumnNameSeg.NUCLEI_POSITION_X,
+    #     "nucpos_rel_cell_Y": ColumnNameSeg.NUCLEI_POSITION_Y,
+    #     "nucpos_rel_cell_angle": ColumnNameSeg.NUCLEI_POSITION_ANGLE,
+    #     "nucpos_rel_cell_angle_deg": ColumnNameSeg.NUCLEI_POSITION_ANGLE_DEG,
+    #     "nuc_pos_rel_cell_magnitude": ColumnNameSeg.NUCLEI_POSITION_MAGNITUDE,
+    # }
+    # crop_based_feature_cols_to_rename = {
+    #     "num_nuclei_in_crop": ColumnNameSeg.NUM_NUCLEI_IN_CROP,
+    #     "all_labels_in_crop": ColumnNameSeg.LABELS_IN_CROP,
+    #     "start_x": ColumnNameSeg.START_X,
+    #     "start_y": ColumnNameSeg.START_Y,
+    #     "end_x": ColumnNameSeg.END_X,
+    #     "end_y": ColumnNameSeg.END_Y,
+    #     "crop_size": ColumnNameSeg.CROP_SIZE,
+    # }
+    # other_feature_cols_to_rename = {
+    #     "number_of_neighbors": ColumnNameSeg.NUM_NEIGHBORS,
+    #     "neighboring_cell_labels": ColumnNameSeg.LABELS_OF_NEIGHBORS,
+    #     "centroid": ColumnNameSeg.CENTROID,
+    #     "centroid_X": ColumnNameSeg.CENTROID_X,
+    #     "centroid_Y": ColumnNameSeg.CENTROID_Y,
+    # }
+
+    # big_table = big_table.rename(columns={})
     return big_table
 
 

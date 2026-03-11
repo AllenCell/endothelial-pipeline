@@ -17,6 +17,7 @@ def create_segmentation_measured_feature_manifest(
         add_filter_columns,
         calculate_derived_data_dynamics_independent,
         merge_measured_segmentation_features_tables,
+        sanitize_column_names,
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
@@ -82,6 +83,9 @@ def create_segmentation_measured_feature_manifest(
     big_table = add_filter_columns(big_table, out_dir, min_track_duration=24, max_area_change=0.1)
 
     big_table = add_cell_piling_and_steady_state_annotation_columns(big_table)
+
+    #
+    big_table = sanitize_column_names(big_table)
 
     # NOTE THIS TABLE WILL BE UPLOADED TO FMS
     # save the raw combined data tables
