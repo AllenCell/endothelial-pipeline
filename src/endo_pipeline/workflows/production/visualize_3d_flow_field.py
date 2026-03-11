@@ -1,9 +1,14 @@
-from endo_pipeline.cli import CropPattern, Datasets, StrList
+from typing import Annotated
+
+from cyclopts import Parameter
+
+from endo_pipeline.cli import CropPattern, StrList
 from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 
 def main(
-    datasets: Datasets | None = None,
+    path_to_drift_dataframe: Annotated[str, Parameter(name="--drift")],
+    path_to_fixed_points_dataframe: Annotated[str | None, Parameter(name="--fixed-points")] = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
@@ -16,59 +21,60 @@ def main(
     Visualize 3D (drift) flow fields for the dynamics of the crop-based DiffAE
     features for each of the single flow datasets.
 
-    #dynamical-systems #diffae-feature-analysis
+    #dynamical-systems #diffae-feature-analysis #visualization
 
-    **Flow field estimation and analysis**
+    **Workflow inputs**
 
-    1. Estimate 3D flow fields using a Gaussian kernel method on the PCA-reduced
-         DiffAE feature space.
-    2. Use interpolation to get a callable flow field function.
-    3. Identify stable fixed points in the 3D flow field using a root-finding method
-        applied to the flow field function.
-    4. Categorize the identified fixed points based on the eigenvalues of the Jacobian
-        matrix at each fixed point.
-    5. Simulate trajectories in the 3D flow field starting from specified initial points.
-    6. Save the flow field analysis results, including stable fixed point locations.
+    1. Path to a dataframe containing the drift estimates for the 3D flow field,
+       along with the corresponding meshgrid coordinates and dataset labels for
+       each point in the feature space.
+
+    2. Optionally, a path to a dataframe containing the stable fixed point
+       locations to overlay on the flow field visualizations. If not provided,
+       stable fixed points will not be overlaid on the flow field visualizations.
 
     **Visualization outputs**
 
-    1. 2D flow field visualizations saved as PNG files in the `figs/` directory, including:
+    1. 2D flow field visualizations saved as PNG files in the `figs/` directory,
+       including:
         a. 2D slice of the 3D flow field "sliced" according to the coordinates
-            of the stable fixed points identified in the 3D flow field.
-        b. Trajectories simulated in the 3D flow field, projected onto 2D slices.
-        c. Optionally, 3D stack plots of the flow field visualizations in each of the three
-            variables (if ``plot_stack`` is True).
-    2. Optionally, VTK files for 3D flow field saved in the `outputs/vtk/` directory
-        (if ``compute_vtk`` is True).
-    3. Stable fixed point locations from all datasets processed overlaid on a single
-        plot saved as a PNG file in the `figs/` directory.
+            of the stable fixed points.
+        b. Trajectories simulated in the 3D flow field, projected onto 2D
+           slices.
+        c. Optionally, 3D stack plots of the flow field visualizations in each
+           of the three variables (if ``plot_stack`` is True).
+    2. Optionally, VTK files for 3D flow field saved in the `outputs/vtk/`
+       directory (if ``compute_vtk`` is True).
 
     Parameters
     ----------
-    datasets
-        List of datasets or dataset collections to use for visualization.
-    model_manifest_name
-        Name of the model manifest containing the run to load features from.
-    run_name
-        Name of the specific model run to load featuref for. If None, uses the most recent run.
-    crop_pattern
-        The crop pattern to get features for, either "grid" or "tracked".
+    path_to_drift_dataframe
+        Path to the dataframe containing the drift estimates for the 3D flow
+        field.
+    path_to_fixed_points_dataframe
+        Optional path to the dataframe containing the stable fixed point
+        locations to overlay on the flow field visualizations.
     plot_stack
-        If true, plot 3D stacks of the flow field visualizations in each of the three variables.
+        If true, plot 3D stacks of the flow field visualizations in each of the
+        three variables.
     compute_vtk
         If true, compute and save VTK files for 3D flow fields.
     use_same_axes
-        If true, use the same axis limits for all datasets when plotting flow fields.
+        If true, use the same axis limits for all datasets when plotting flow
+        fields.
     """
     import logging
 
     import numpy as np
+    import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection
-    from endo_pipeline.io import get_output_path
+    from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.data_driven_flow_field import ddff_model_analysis
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+        check_required_columns_in_dataframe,
+        fit_pca,
+    )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
     from endo_pipeline.manifests import (
@@ -87,7 +93,6 @@ def main(
     )
     from endo_pipeline.settings.flow_field_3d import (
         BIN_WIDTH_DEFAULTS,
-        DATASET_COLLECTION_FOR_3D_DYNAMICS,
         INIT_POINT_3D,
         KERNEL_BANDWIDTH,
         KERNEL_FUNCTION_NAME,
@@ -106,29 +111,11 @@ def main(
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
         model_manifest, run_name, crop_pattern=crop_pattern
     )
+    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     # Create output folders if they do not exist yet
     fig_savedir = get_output_path(__file__, dataframe_manifest_name, "figs")
-    vtk_savedir = get_output_path(__file__, dataframe_manifest_name, "outputs", "vtk")
-
-    # load dataframe manifest with model feature for the given model run
-    # and model manifest
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
-
-    # Default list of datasets if not provided. Filter by datasets available in
-    # the manifest.
-    valid_dataset_options = list(dataframe_manifest.locations.keys())
-    if datasets is None:
-        dataset_names = get_datasets_in_collection(
-            DATASET_COLLECTION_FOR_3D_DYNAMICS, valid_dataset_options
-        )
-    else:
-        dataset_names = [name for name in datasets if name in valid_dataset_options]
-    if DEMO_MODE:
-        logger.warning(
-            "DEMO MODE: Using only the first dataset from the manifest for quick visualization."
-        )
-        dataset_names = dataset_names[:1]
+    vtk_savedir = get_output_path(__file__, dataframe_manifest_name, "vtk")
 
     # get feature column names to use for flow field analysis
     column_names: list[str] = columns or list(DYNAMICS_COLUMN_NAMES)
@@ -136,6 +123,28 @@ def main(
         raise ValueError(
             f"Exactly 3 column names must be provided for 3D flow field analysis, but {len(column_names)} were provided: {column_names}"
         )
+
+    # load dataframes and check that required columns are present
+    drift_dataframe: pd.DataFrame = load_dataframe(path_to_drift_dataframe, delay=False)
+    check_required_columns_in_dataframe(
+        drift_dataframe,
+        required_columns=[*column_names, ColumnName.DATASET],
+    )
+    if path_to_fixed_points_dataframe is not None:
+        fixed_points_dataframe: pd.DataFrame = load_dataframe(
+            path_to_fixed_points_dataframe, delay=False
+        )
+        check_required_columns_in_dataframe(
+            fixed_points_dataframe,
+            required_columns=[*column_names, ColumnName.DATASET],
+        )
+
+    dataset_names = drift_dataframe[ColumnName.DATASET].unique().tolist()
+    if DEMO_MODE:
+        logger.warning(
+            "DEMO MODE: Using only the first dataset from the manifest for quick visualization."
+        )
+        dataset_names = dataset_names[:1]
 
     # fit PCA using the features from the given dataframe manifest PCA always
     # fit on the grid-based features, even if the features for flow field

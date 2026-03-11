@@ -32,15 +32,7 @@ def main(
 
     **Visualization outputs**
 
-    1. 2D flow field visualizations saved as PNG files in the `figs/` directory, including:
-        a. 2D slice of the 3D flow field "sliced" according to the coordinates
-            of the stable fixed points identified in the 3D flow field.
-        b. Trajectories simulated in the 3D flow field, projected onto 2D slices.
-        c. Optionally, 3D stack plots of the flow field visualizations in each of the three
-            variables (if ``plot_stack`` is True).
-    2. Optionally, VTK files for 3D flow field saved in the `outputs/vtk/` directory
-        (if ``compute_vtk`` is True).
-    3. Stable fixed point locations from all datasets processed overlaid on a single
+    - Stable fixed point locations from all datasets processed overlaid on a single
         plot saved as a PNG file in the `figs/` directory.
 
     Parameters
