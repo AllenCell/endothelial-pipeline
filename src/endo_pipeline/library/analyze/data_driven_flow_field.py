@@ -4,12 +4,15 @@ from collections.abc import Callable
 from time import time
 
 import numpy as np
+import pandas as pd
 from numdifftools import Jacobian
 from scipy.integrate import solve_ivp
 from scipy.interpolate import RegularGridInterpolator, griddata
 from scipy.stats import gaussian_kde
 
+from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
 from endo_pipeline.library.visualize.diffae_features.pplane import find_fpt_type, get_fps
+from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.flow_field_3d import SAMPLER_RANDOM_SEED
 
 logger = logging.getLogger(__name__)
@@ -82,11 +85,12 @@ def _is_point_within_percentile(point, data, lower=5, upper=95):
 def get_stable_fixed_points(
     drift_coeffs: np.ndarray,
     centers: list[np.ndarray],
-    feature_data: np.ndarray,
+    dataframe: pd.DataFrame,
+    column_names: list[str],
     num_inits_for_root_solver: int,
     lower_percentile: float,
     upper_percentile: float,
-) -> list[np.ndarray]:
+) -> pd.DataFrame:
     """
     Get stable fixed points with high confidence from a data-driven flow field
     analysis.
@@ -106,9 +110,13 @@ def get_stable_fixed_points(
     centers
         List of 1D numpy arrays with the grid points in each dimension
         corresponding to the drift coefficients.
-    feature_data
-        The original feature data used to compute the Kramers-Moyal
-        coefficients, as a numpy array of shape (num_samples, num_features).
+    dataframe
+        Dataframe containing the feature data for the dataset, which is used to
+        filter the fixed points to only keep those within a certain percentile
+        range of the data.
+    column_names
+        List of column names corresponding to the features used in the analysis,
+        in the same order as the columns in feature_data.
     num_inits_for_root_solver
         Number of initial conditions to use for finding fixed points.
     lower_percentile
@@ -119,9 +127,14 @@ def get_stable_fixed_points(
     Returns
     -------
     :
-        List of stable fixed points with high confidence (filtered by percentile
-        range).
+        Dataframe containing of stable fixed points with high confidence (i.e.,
+        points filtered by percentile range).
     """
+    check_required_columns_in_dataframe(
+        dataframe, [*column_names, ColumnName.DATASET]
+    )  # check required columns are in dataframe
+    feature_data = dataframe[column_names].to_numpy()  # get feature data as numpy array
+    dataset_name = dataframe[ColumnName.DATASET].iloc[0]  # get dataset name from dataframe
 
     ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
     extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
@@ -141,7 +154,7 @@ def get_stable_fixed_points(
     fpts = get_fps(drift_function, sampled_inits_for_root_solver)
 
     # filter fixed points to only keep stable ones within 2nd-98th percentiles of data
-    stable_fpts_high_confidence = []
+    stable_fpts_high_confidence = pd.DataFrame(columns=[ColumnName.DATASET, *column_names])
     for fpt in fpts:
         within_percentile = _is_point_within_percentile(
             fpt, feature_data, lower_percentile, upper_percentile
@@ -157,7 +170,20 @@ def get_stable_fixed_points(
             if re.search(r"stable", fpt_type, re.IGNORECASE) and not re.search(
                 r"unstable", fpt_type, re.IGNORECASE
             ):
-                stable_fpts_high_confidence.append(fpt)
+                stable_fpts_high_confidence = pd.concat(
+                    [
+                        stable_fpts_high_confidence,
+                        pd.DataFrame(
+                            {
+                                ColumnName.DATASET: [dataset_name],
+                                column_names[0]: [fpt[0]],
+                                column_names[1]: [fpt[1]],
+                                column_names[2]: [fpt[2]],
+                            }
+                        ),
+                    ],
+                    ignore_index=True,
+                )
 
     return stable_fpts_high_confidence
 

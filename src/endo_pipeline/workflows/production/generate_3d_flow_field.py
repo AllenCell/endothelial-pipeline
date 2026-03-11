@@ -155,7 +155,7 @@ def main(
 
     # initialize dataframe to hold stable fixed points from all datasets
     # with columns for dataset name and 3D PC space coordinates
-    stable_fixed_points_df = pd.DataFrame(columns=[ColumnName.DATASET, *column_names])
+    stable_fixed_points_all_datasets = pd.DataFrame(columns=[ColumnName.DATASET, *column_names])
 
     # initialize kernels and bin widths for each of the three variables for flow
     # field estimation
@@ -204,36 +204,29 @@ def main(
             traj_list, d_traj_list, bins=bins, dt=TIME_STEP_IN_MINUTES, kernel=kernels
         )
 
-        stable_fixed_points = get_stable_fixed_points(
+        stable_fixed_points_dataset = get_stable_fixed_points(
             drift_coeffs=drift_coeffs,
             centers=centers,
-            feature_data=df[column_names].to_numpy(),  # get feature data as numpy array
+            dataframe=df,
+            column_names=column_names,
             num_inits_for_root_solver=NUM_INIT_SAMPLES,
             lower_percentile=LOWER_PERCENTILE_FOR_STABLE_FP,
             upper_percentile=UPPER_PERCENTILE_FOR_STABLE_FP,
         )
 
         # add stable fixed points from this dataset to the overall dataframe
-        for stable_fp in stable_fixed_points:
-            stable_fixed_points_df = pd.concat(
-                [
-                    stable_fixed_points_df,
-                    pd.DataFrame(
-                        {
-                            ColumnName.DATASET: [dataset_name],
-                            column_names[0]: [stable_fp[0]],
-                            column_names[1]: [stable_fp[1]],
-                            column_names[2]: [stable_fp[2]],
-                        }
-                    ),
-                ],
-                ignore_index=True,
-            )
+        stable_fixed_points_all_datasets = pd.concat(
+            [
+                stable_fixed_points_all_datasets,
+                stable_fixed_points_dataset,
+            ],
+            ignore_index=True,
+        )
 
     # generate plot of stable fixed points from different datasets overlaid on top of each other
     # (for comparison of stable fixed points across datasets)
     plot_stable_fixed_points_together(
-        stable_fixed_points_df, bounds_for_plots, fig_savedir, column_names
+        stable_fixed_points_all_datasets, bounds_for_plots, fig_savedir, column_names
     )
 
     # save stable fixed points from all datasets to parquet file
@@ -251,7 +244,7 @@ def main(
         "Saving stable fixed points from all datasets to [ %s ]",
         stable_fixed_points_save_path,
     )
-    stable_fixed_points_df.to_parquet(
+    stable_fixed_points_all_datasets.to_parquet(
         stable_fixed_points_save_path,
     )
 
