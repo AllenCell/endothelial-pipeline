@@ -138,6 +138,11 @@ def main(
             "DEMO MODE: Using only the first dataset from the manifest for quick visualization."
         )
         dataset_names = dataset_names[:1]
+        drift_dataframe = drift_dataframe[drift_dataframe[ColumnName.DATASET] == dataset_names[0]]
+        if path_to_fixed_points_dataframe is not None:
+            fixed_points_dataframe = fixed_points_dataframe[
+                fixed_points_dataframe[ColumnName.DATASET] == dataset_names[0]
+            ]
 
     # fit PCA using the features from the given dataframe manifest PCA always
     # fit on the grid-based features, even if the features for flow field
