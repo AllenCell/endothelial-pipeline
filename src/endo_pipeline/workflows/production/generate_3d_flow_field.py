@@ -7,9 +7,6 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
-    plot_stack: bool = False,
-    compute_vtk: bool = True,
-    use_same_axes: bool = False,
     columns: StrList | None = None,
 ) -> None:
     """
@@ -45,12 +42,9 @@ def main(
         Name of the specific model run to load featuref for. If None, uses the most recent run.
     crop_pattern
         The crop pattern to get features for, either "grid" or "tracked".
-    plot_stack
-        If true, plot 3D stacks of the flow field visualizations in each of the three variables.
-    compute_vtk
-        If true, compute and save VTK files for 3D flow fields.
-    use_same_axes
-        If true, use the same axis limits for all datasets when plotting flow fields.
+    columns
+        List of column names in the dataframe to use for flow field analysis. If None,
+        uses default column names specified in settings.
     """
     import logging
 
@@ -84,7 +78,6 @@ def main(
     from endo_pipeline.settings.flow_field_3d import (
         BIN_WIDTH_DEFAULTS,
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
-        INIT_POINT_3D,
         KERNEL_BANDWIDTH,
         KERNEL_FUNCTION_NAME,
         LOWER_PERCENTILE_FOR_STABLE_FP,
@@ -92,7 +85,6 @@ def main(
         OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS,
         PAD_BINS_FLOAT,
         TIME_STEP_IN_MINUTES,
-        TRAJECTORY_TIME_SPAN,
         UPPER_PERCENTILE_FOR_STABLE_FP,
     )
 
@@ -112,9 +104,6 @@ def main(
     )
     fig_savedir = get_output_path(
         OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS, dataframe_manifest_name, "figs"
-    )
-    vtk_savedir = get_output_path(
-        OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS, dataframe_manifest_name, "outputs", "vtk"
     )
 
     # load dataframe manifest with model feature for the given model run
@@ -197,14 +186,7 @@ def main(
             dt=TIME_STEP_IN_MINUTES,
             bins=bins,
             centers=centers,
-            time_span=TRAJECTORY_TIME_SPAN,
-            init_for_traj=np.array(INIT_POINT_3D),
             num_inits_for_root_solver=NUM_INIT_SAMPLES,
-            plot_bounds=bounds_for_plots if use_same_axes else bounds_for_km,
-            plot_stack=plot_stack,
-            compute_vtk_files=compute_vtk,
-            fig_savedir=fig_savedir,
-            vtk_savedir=vtk_savedir,
             column_names=column_names,
             lower_percentile=LOWER_PERCENTILE_FOR_STABLE_FP,
             upper_percentile=UPPER_PERCENTILE_FOR_STABLE_FP,

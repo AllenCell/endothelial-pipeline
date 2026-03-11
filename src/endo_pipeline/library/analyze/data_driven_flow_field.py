@@ -1,7 +1,6 @@
 import logging
 import re
 from collections.abc import Callable
-from pathlib import Path
 from time import time
 from typing import Literal
 
@@ -18,9 +17,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
-from endo_pipeline.library.visualize.diffae_features.flow_field_viz import flow_field_viz_main
 from endo_pipeline.library.visualize.diffae_features.pplane import find_fpt_type, get_fps
-from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.flow_field_3d import SAMPLER_RANDOM_SEED
 
@@ -100,14 +97,7 @@ def ddff_model_analysis(
     dt: float,
     bins: list[np.ndarray],
     centers: list[np.ndarray],
-    time_span: tuple[float, float],
-    init_for_traj: np.ndarray,
     num_inits_for_root_solver: int,
-    plot_bounds: list[tuple[float, float]],
-    plot_stack: bool,
-    compute_vtk_files: bool,
-    fig_savedir: Path,
-    vtk_savedir: Path,
     column_names: list[str],
     lower_percentile: float,
     upper_percentile: float,
@@ -151,27 +141,8 @@ def ddff_model_analysis(
         state space.
     centers
         List of centers of the bins in each dimension.
-    time_span
-        Time span for the ODE solver.
-    init_for_traj
-        Initial condition for the trajectory.
     num_inits_for_root_solver
         Number of initial conditions to use for finding fixed points.
-    plot_bounds
-        Bounds for plotting the flow field.
-    plot_stack
-        Whether to plot the flow field as a stack of 2D slices in each
-        dimension.
-    compute_vtk_files
-        Whether to compute and save .vtk files for the flow field and diffusion
-        field.
-    fig_savedir
-        Directory to save figures.
-    vtk_savedir
-        Directory to save .vtk files.
-    output_savedir
-        Directory to save output files (.npy files with drift field and
-        diffusion field).
     column_names
         List of column names corresponding to features to use for the analysis
         (e.g. the top 3 PCs).
@@ -199,46 +170,15 @@ def ddff_model_analysis(
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
     traj_list, d_traj_list = get_traj_and_diff(df, column_names)
+
     # get drift estimates
     # (Kramers-Moyal coefficients)
     drift_km, _ = get_kramers_moyal_coeffs(traj_list, d_traj_list, bins=bins, dt=dt, kernel=kernel)
 
-    # compute flow field on the grid defined by centers
-    ndim = len(centers)  # number of dimensions
-    # generate a mesh grid of points in the state space
-    grid = np.meshgrid(*centers, indexing="ij")  # make meshgrid
-
-    # get the vector field components from
-    # the Kramers-Moyal coefficients
-    drift_vector_field = [drift_km[..., i] for i in range(ndim)]
-    flow_field_dict = {"vectors": drift_vector_field, "grid": grid}
-
-    # if compute vtk files, extrapolate and save out the flow field as vtk
-    if compute_vtk_files:
-        extrapolated_flow_field_dict_vtk = compute_extrapolated_vector_field(
-            drift_km, centers, method="nearest", for_vtk_files=True
-        )
-        # save out the flow field as vtk image data
-        volume_extent = {
-            "xmin": bins[0][0],
-            "xmax": bins[0][-1],
-            "ymin": bins[1][0],
-            "ymax": bins[1][-1],
-            "zmin": bins[2][0],
-            "zmax": bins[2][-1],
-        }
-        save_vector_field_as_vtk(
-            extrapolated_flow_field_dict_vtk,
-            vtk_savedir / f"flow_field_{dataset_name}.vtk",
-            volume_extent,
-        )
-
-    ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
-    # with initial conditions given by init solve IVP, get back trajectory
+    ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
     extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
         drift_km, centers, method="linear", for_vtk_files=False
     )
-    traj = solve_ddff_ode(extrapolated_flow_field_dict_reg, init_for_traj, time_span)
 
     # get callable drift function and its Jacobian
     drift_function = get_callable_vector_field(
@@ -271,22 +211,6 @@ def ddff_model_analysis(
                 r"unstable", fpt_type, re.IGNORECASE
             ):
                 stable_fpts_high_confidence.append(fpt)
-
-    # subfolder for each dataset
-    fig_savedir_dataset = fig_savedir / dataset_name
-    fig_savedir_dataset.mkdir(parents=True, exist_ok=True)
-
-    # call main visualization function
-    flow_field_viz_main(
-        flow_field_dict,
-        df,
-        column_names,
-        traj,
-        stable_fpts_high_confidence,
-        plot_bounds,
-        plot_stack,
-        fig_savedir_dataset,
-    )
 
     return stable_fpts_high_confidence
 

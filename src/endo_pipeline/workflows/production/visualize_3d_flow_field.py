@@ -72,7 +72,6 @@ def main(
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.data_driven_flow_field import (
         compute_extrapolated_vector_field,
-        save_vector_field_as_vtk,
         solve_ddff_ode,
     )
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
@@ -81,6 +80,7 @@ def main(
     )
     from endo_pipeline.library.analyze.numerics.binning import get_bounds_from_data
     from endo_pipeline.library.visualize.diffae_features.flow_field_viz import flow_field_viz_main
+    from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
         load_dataframe_manifest,
