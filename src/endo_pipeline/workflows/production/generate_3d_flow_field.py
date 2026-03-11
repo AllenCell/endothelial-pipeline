@@ -222,18 +222,27 @@ def main(
                 },
             }
         )
-        grid_points_df = pd.concat(
-            [
-                pd.DataFrame(
-                    {
-                        ColumnName.DATASET: dataset_name,
-                        column_name: centers[index].tolist(),
-                    }
-                )
-                for index, column_name in enumerate(column_names)
-            ],
-            axis=1,
-            ignore_index=True,
+        # To store as datframe, the grid points are padded with NaN values to
+        # ensure that each column has the same number of rows. The grid
+        # points will be un-padded in the visualization workflow.
+        max_grid_size = max(len(centers[0]), len(centers[1]), len(centers[2]))
+        centers_padded = [
+            np.pad(
+                centers[index],
+                (0, max_grid_size - len(centers[index])),
+                mode="constant",
+                constant_values=np.nan,
+            )
+            for index in range(len(centers))
+        ]
+        grid_points_df = pd.DataFrame(
+            {
+                ColumnName.DATASET: dataset_name,
+                **{
+                    column_name: centers_padded[index].tolist()
+                    for index, column_name in enumerate(column_names)
+                },
+            }
         )
         drift_coeffs_all_datasets = pd.concat(
             [drift_coeffs_all_datasets, drift_coeffs_df], ignore_index=True
