@@ -57,72 +57,22 @@ def parse_paths(
     return filepath
 
 
-def load_images_sequentially_2(
-    filepaths: str | Path | Sequence[Path] | Sequence[str],
-    crops: Sequence[dict] | dict | None = None,
-    image_buffer_prior: int = 0,
-    image_buffer_next: int = 0,
-    axis: str | None = None,
-    return_filepaths_and_crops_instead_of_images: bool = False,
-) -> Generator:
-    """Load a list of sequential images from a list of filepaths or from a single filepath.
-    1. If no crop is provided then the entire image for each image specified by filepaths will be loaded.
-    2. If a list of filepaths is provided and a list of crop dictionaries is provided then they
-    must have the same length and the crop dictionary at index i will be applied to the image at index i.
-    3. If a list of filepaths is provided but only a single crop dictionary is provided then
-    the crop dictionary will be applied to all images.
-    4. If a single filepath is provided but a list of crop dictionaries is provided then the image will
-    be loaded for each crop specified in the list of crop dictionaries.
-
-    Note that this function is a generator.
-
-    Parameters
-    ----------
-    filepaths: list of Path objects or a Path object
-
-    crops: list of dicts
-        List of crop dictionaries to apply to each loaded image. If None then no cropping will be applied.
-        Default is None.
-    image_buffer_prior: int
-        The number of images to keep loaded from before the current one. Default is 0.
-    image_buffer_next: int
-        The number of images to loaded ahead of the current one. Default is 0.
-        The total number of images loaded will be 1 + image_buffer_prior + image_buffer_next.
-    axis: str
-        The axis iterate over when loading the images. Can be one of 'filepaths', 'T', 'Z', 'C', 'Y', or 'X'.
-        Default behavior is to iterate over the list of filepaths if "filepaths" is a list or over the 'T' axis if filepaths is a Path object.
-
-    Yields
-    ------
-    image_list: list of np.array objects
-    """
-    logger.debug("Preparing filepath and crop lists...")
-    if not isinstance(filepaths, (list, tuple, Path)):
-        raise TypeError("filepaths must be a list of filepaths or a Path object")
-    if not isinstance(crops, (list, tuple, dict, None)):
-        raise TypeError(
-            "crops must be a list of crop dictionaries or a single crop dictionary if provided"
-        )
-    # assert (
-    #     len(filepaths) == len(crops)
-    #     if isinstance(filepaths, (list, tuple)) and isinstance(crops, (list, tuple))
-    #     else True
-    # ), "If lists are provided for both filepaths and crops then they must have the same length"
-
-    axis = "filepaths" if isinstance(filepaths, (list, tuple)) else axis or "T"
-
-    yield axis
-
-
 def load_images_sequentially(
     filepaths: str | Path | Sequence[Path] | Sequence[str],
     crops: Sequence[dict] | dict | None = None,
     image_buffer_prior: int = 0,
     image_buffer_next: int = 0,
-    axis: str | None = None,
-    return_filepaths_and_crops_instead_of_images: bool = False,
+    axis: Literal["filepaths", "T"] | None = None,
+    return_filepaths_and_crops_instead: bool = False,
+    dim_order: str = DIMENSION_ORDER,
 ) -> Generator:
-    """Load a list of sequential images from a list of filepaths or from a single filepath.
+    """
+    Loads images from "T - image_buffer_prior" to "T + image_buffer_next" for
+    each timepoint T in the images specified by filepaths.
+
+    The images are cropped according to the crop dictionaries provided in crops. The axis argument specifies which axis to iterate over when loading the images, and the crop dictionaries are applied accordingly. The function yields a list of loaded images for each timepoint T, along with their corresponding filepaths and crop dictionaries if return_filepaths_and_crops_instead_of_images is True.
+
+    Load a list of sequential images from a list of filepaths or from a single filepath.
     1. If no crop is provided then the entire image for each image specified by filepaths will be loaded.
     2. If a list of filepaths is provided and a list of crop dictionaries is provided then they
     must have the same length and the crop dictionary at index i will be applied to the image at index i.
@@ -135,139 +85,293 @@ def load_images_sequentially(
 
     Parameters
     ----------
-    filepaths: list of Path objects or a Path object
-
-    crops: list of dicts
-        List of crop dictionaries to apply to each loaded image. If None then no cropping will be applied.
+    filepaths:
+        the filepaths (or a list of filepaths) to the images that will be loaded
+    crops:
+        List of crop dictionaries to apply to each loaded image. If None then no
+        cropping will be applied.
         Default is None.
-    image_buffer_prior: int
+    image_buffer_prior:
         The number of images to keep loaded from before the current one. Default is 0.
     image_buffer_next: int
         The number of images to loaded ahead of the current one. Default is 0.
         The total number of images loaded will be 1 + image_buffer_prior + image_buffer_next.
-    axis: str
-        The axis iterate over when loading the images. Can be one of 'filepaths', 'T', 'Z', 'C', 'Y', or 'X'.
-        Default behavior is to iterate over the list of filepaths if "filepaths" is a list or over the 'T' axis if filepaths is a Path object.
+    axis:
+        The axis iterate over when loading the images.
+        Can be one of 'filepaths', 'T', 'Z', 'C', 'Y', or 'X'.
+        Default behavior is to iterate over the list of filepaths if "filepaths"
+        is a list or over the 'T' axis if filepaths is a Path object.
+    return_filepaths_and_crops_instead:
+        used for testing purposes - if True then the function will yield the filepaths and crops
+        that would be used to load the images instead of yielding the loaded images themselves.
 
     Yields
     ------
-    image_list: list of np.array objects
+    current filepath, current crop, and a list of the newly loaded images
+    if
     """
-    logger.debug("Preparing filepath and crop lists...")
-    assert isinstance(
-        filepaths, (list, tuple, Path)
-    ), "filepaths must be a list of filepaths or a Path object"
-    assert (
-        isinstance(crops, (list, tuple, dict)) if crops else True
-    ), "crops must be a list of crop dictionaries or a single crop dictionary if provided"
-    assert (
-        len(filepaths) == len(crops)
-        if isinstance(filepaths, (list, tuple)) and isinstance(crops, (list, tuple))
-        else True
-    ), "If lists are provided for both filepaths and crops then they must have the same length"
+    logger.debug("Checking filepaths and crops...")
+    # do some argument checks
+    if not isinstance(filepaths, (list, tuple, Path)):
+        raise TypeError("filepaths must be a list of filepaths or a Path object")
+    if not isinstance(crops, (list, tuple, dict, type(None))):
+        raise TypeError(
+            "crops must be a list of crop dictionaries or a single crop dictionary if provided"
+        )
+    if isinstance(filepaths, (list, tuple)) and isinstance(crops, (list, tuple)):
+        if len(filepaths) != len(crops):
+            raise ValueError(
+                f"If both filepaths and crops are lists then they must have the same length \
+                    (filepaths has length {len(filepaths)}, but crops has length {len(crops)})."
+            )
 
-    if isinstance(filepaths, (list, tuple)):
-        filepath_list = list(filepaths)
-    if isinstance(filepaths, Path):
-        filepath = filepaths  # Chantelle got it
+    # the axis will be iterated over when loading the images, so the length of the axis will
+    # determine how many images are loaded in total and how the crop dictionaries are applied
+    axis = "filepaths" if isinstance(filepaths, (list, tuple)) else axis or "T"
+    if axis not in ["filepaths", "T", "C", "Z", "Y", "X"]:
+        raise ValueError('axis must be one of "filepaths", "T", "C", "Z", "Y", or "X"')
 
-    crops = list(crops) if isinstance(crops, (list, tuple)) else crops
-
-    axis = "filepaths" if isinstance(filepath_list, (list, tuple)) else axis or "T"
-
-    assert axis in ["filepaths", "T", "C", "Z", "Y", "X"]
+    # determine the number of images in total to load based on the axis being iterated over
+    axis_length = len(filepaths) if axis == "filepaths" else int(*BioImage(filepaths).dims[axis])
 
     # if no crop is provided then make a default crop dictionary that includes the entire image
-    crops = crops or {
-        "T": slice(None),
-        "C": slice(None),
-        "Z": slice(None),
-        "Y": slice(None),
-        "X": slice(None),
-    }
-    # if a single crop dictionary is provided then turn it into a list of the same length that
-    # specified by 'axis'
+    crops = crops or {dim: slice(None) for dim in dim_order}
+
+    # To keep things conceptually simpler we will make the crop and filepaths
+    # into lists of the same length as axis_length regardless of what combo was
+    # provided. These lists will then be iterated through in a pairwise fashion
+    # based on the slicing in relatives_slices.
+    filepath_list = [filepaths] * axis_length if isinstance(filepaths, Path) else filepaths
     if isinstance(crops, dict):
-        # This is where case 3 in the crop dictionary is handled:
-        if axis == "filepaths":
-            crops = [crops] * len(filepath_list)
-        else:  # axis = 'T' there is only one filepath
-            new_crops: list = []
-            assert (
-                len(axis) == 1
-            ), "Axis must be a single dimension (T, C, Z, Y, or X) if a single file is provided."
-            axis_length: int = int(*BioImage(filepath).dims[axis])
+        # if the iteration axis is a dimension in the crop dictionary then
+        # create a list of crop dictionaries that slice along the axis with
+        # the appropriate buffering
+        if axis in crops:
+            crop_list = []
             for i in range(axis_length):
-                new_crop = crops.copy()
-                new_crop[axis] = i
-
-            crops = new_crops
+                crops_temp = crops.copy()
+                crops_temp[axis] = slice(
+                    max(0, i - image_buffer_prior), min(axis_length, i + 1 + image_buffer_next)
+                )
+                crop_list.append(crops_temp)
+        # otherwise the axis must be "filepath" and we assume that the crop dictionary
+        # is to be applied to each image specified by the filepaths, and thus
+        # make a list of the same crop dictionary repeated for each filepath
+        else:
+            crop_list = [crops] * len(filepath_list)
     else:
-        pass
+        crop_list = crops
 
-    # if a list of filepaths is provided then use that, otherwise create a list of filepaths that is the same length as the number of crops
-    if axis != "filepaths":  # Chantelle got lost here
-        filepath_list = [filepath] * len(crops)
-    total_image_length = len(filepath_list)
-
-    ## NOTE: in the event that filepath = a single multi-T image and crops=None,
-    ## the crop value at the key indicated by 'axis' will be updated later in the
-    ## function to reflect the current slice of images being loaded.
-    ## The function will not load the entire image timelapse for the length of the
-    ## image axis as the list of crops above implies.
-
-    assert len(filepath_list) == len(
-        crops
-    ), f"If crops is defined then it must have the same length as filepaths (filepaths has length {len(filepath_list)}, but crops has length {len(crops)})."
-
-    old_image_list: list = []
-    old_crop_list: list = []
+    # initialize a list to keep our loaded images so that we don't have to
+    # reload images from
     loaded_images: list = []
-    for i in range(total_image_length):
+    # create an initial previous_indices entry which is just an empty range
+    previous_indices: range = range(0, 0)
+    # for i, relative_slice in enumerate(relatives_slices):
+    for i in range(axis_length):
+        # as we iterate through the loaded images lists and add new images
+        # we will drop the loaded images from the first index, effectively
+        # making a sliding window of loaded images that moves with the iteration
+        # index i
+        loaded_images = loaded_images[slice(1, None)]
 
-        relative_slice = slice(
+        # identify the indices of the images to load based on the current index
+        # and the image buffer sizes
+        indices_temp = range(
             max(0, i - image_buffer_prior),
             min(len(filepath_list), i + 1 + image_buffer_next),
         )
-        # update the image list to reflect the current slice of images being loaded
-        image_list = filepath_list[relative_slice]
-        # update the crop dictionary to reflect the current slice of images being loaded
-        crop_list = crops[relative_slice]
+        # identify which indices are new based on the previous indices and the
+        # current indices
+        new_indices = set(indices_temp) - set(previous_indices)
+        # create a slice object corresponding to the new indices so we can load the new images only
+        slice_temp = slice(min(new_indices), max(new_indices) + 1) if new_indices else slice(0, 0)
 
-        logger.debug("Identifying which images have already been loaded...")
-        loaded_relative_indices_to_keep = [
-            j
-            for j, fp in enumerate(old_image_list)
-            if fp in image_list and old_crop_list[j] in crop_list
-        ]
-        new_fps = [(j, fp) for j, fp in enumerate(image_list) if fp not in old_image_list]
-        new_image_relative_indices, new_image_list = (
-            zip(*new_fps, strict=True) if new_fps else ([], [])
-        )
-        old_image_list = image_list.copy()
-        old_crop_list = crop_list.copy()
+        # get the filepaths and crops of the new images to load based on the slice object
+        filepaths_new = filepath_list[slice_temp]
+        crops_temp = crop_list[slice_temp]
 
-        logger.debug("Carrying over loaded images and loading new images...")
-        loaded_images = [loaded_images[j] for j in loaded_relative_indices_to_keep]
+        # redefine the current indices to instead be the previous indices
+        # before starting the next iteration
+        previous_indices = range(indices_temp.start, indices_temp.stop)
 
-        logger.debug(f"[new images being loaded: {tuple([fp.name for fp in new_image_list])}]")
-
-        new_images = []
-        for j in new_image_relative_indices:
-            # convert slice objects to range objects so that they can be used as arguments in `get_image_data`
-            img = BioImage(image_list[j])
-            img_dims = img.dims
-            crop = {dim: range(*img_dims[dim])[crop_list[j][dim]] for dim in crop_list[j]}
-            logger.debug(f"Converting crop list (len={len(crop_list)}) to range objects...")
-
-            if return_filepaths_and_crops_instead_of_images:
-                new_images.append((image_list[j], crop))
-            else:
+        # yield the loaded images (or the filepaths and crops) for this current
+        # iteration instead of returning them this is so that we can keep the
+        # loaded images and our position in the loop in memory while we continue
+        # on with the tracking workflow before continuing this loop
+        if return_filepaths_and_crops_instead:
+            yield (filepath_list[i], crop_list[i], (filepaths_new, crops_temp))
+        else:
+            # initialize a list to hold the new images that will be loaded in this iteration
+            new_images: list = []
+            for fp, crop in zip(filepaths_new, crops_temp, strict=True):
+                logger.debug(f"New image to load: {fp} with crop {crop}")
+                # load the image and apply the crop to it
+                img = BioImage(fp)
+                img_dims = img.dims
+                crop = {dim: range(*img_dims[dim])[crop[dim]] for dim in crop}
                 new_images.append(img.get_image_dask_data(DIMENSION_ORDER, **crop).compute())
 
-        loaded_images += new_images
+                # update the list of loaded images to include the new images
+                loaded_images += new_images
 
-        yield Path(filepath_list[i]), crops[i], loaded_images
+            yield Path(filepath_list[i]), crop_list[i], loaded_images
+
+
+# def load_images_sequentially(
+#     filepaths: str | Path | Sequence[Path] | Sequence[str],
+#     crops: Sequence[dict] | dict | None = None,
+#     image_buffer_prior: int = 0,
+#     image_buffer_next: int = 0,
+#     axis: str | None = None,
+#     return_filepaths_and_crops_instead_of_images: bool = False,
+# ) -> Generator:
+#     """Load a list of sequential images from a list of filepaths or from a single filepath.
+#     1. If no crop is provided then the entire image for each image specified by filepaths will be loaded.
+#     2. If a list of filepaths is provided and a list of crop dictionaries is provided then they
+#     must have the same length and the crop dictionary at index i will be applied to the image at index i.
+#     3. If a list of filepaths is provided but only a single crop dictionary is provided then
+#     the crop dictionary will be applied to all images.
+#     4. If a single filepath is provided but a list of crop dictionaries is provided then the image will
+#     be loaded for each crop specified in the list of crop dictionaries.
+
+#     Note that this function is a generator.
+
+#     Parameters
+#     ----------
+#     filepaths: list of Path objects or a Path object
+
+#     crops: list of dicts
+#         List of crop dictionaries to apply to each loaded image. If None then no cropping will be applied.
+#         Default is None.
+#     image_buffer_prior: int
+#         The number of images to keep loaded from before the current one. Default is 0.
+#     image_buffer_next: int
+#         The number of images to loaded ahead of the current one. Default is 0.
+#         The total number of images loaded will be 1 + image_buffer_prior + image_buffer_next.
+#     axis: str
+#         The axis iterate over when loading the images. Can be one of 'filepaths', 'T', 'Z', 'C', 'Y', or 'X'.
+#         Default behavior is to iterate over the list of filepaths if "filepaths" is a list or over the 'T' axis if filepaths is a Path object.
+
+#     Yields
+#     ------
+#     image_list: list of np.array objects
+#     """
+#     logger.debug("Preparing filepath and crop lists...")
+#     assert isinstance(
+#         filepaths, (list, tuple, Path)
+#     ), "filepaths must be a list of filepaths or a Path object"
+#     assert (
+#         isinstance(crops, (list, tuple, dict)) if crops else True
+#     ), "crops must be a list of crop dictionaries or a single crop dictionary if provided"
+#     assert (
+#         len(filepaths) == len(crops)
+#         if isinstance(filepaths, (list, tuple)) and isinstance(crops, (list, tuple))
+#         else True
+#     ), "If lists are provided for both filepaths and crops then they must have the same length"
+
+#     if isinstance(filepaths, (list, tuple)):
+#         filepath_list = list(filepaths)
+#     if isinstance(filepaths, Path):
+#         filepath = filepaths  # Chantelle got it
+
+#     crops = list(crops) if isinstance(crops, (list, tuple)) else crops
+
+#     axis = "filepaths" if isinstance(filepath_list, (list, tuple)) else axis or "T"
+
+#     assert axis in ["filepaths", "T", "C", "Z", "Y", "X"]
+
+#     # if no crop is provided then make a default crop dictionary that includes the entire image
+#     crops = crops or {
+#         "T": slice(None),
+#         "C": slice(None),
+#         "Z": slice(None),
+#         "Y": slice(None),
+#         "X": slice(None),
+#     }
+#     # if a single crop dictionary is provided then turn it into a list of the same length that
+#     # specified by 'axis'
+#     if isinstance(crops, dict):
+#         # This is where case 3 in the crop dictionary is handled:
+#         if axis == "filepaths":
+#             crops = [crops] * len(filepath_list)
+#         else:  # axis = 'T' there is only one filepath
+#             new_crops: list = []
+#             assert (
+#                 len(axis) == 1
+#             ), "Axis must be a single dimension (T, C, Z, Y, or X) if a single file is provided."
+#             axis_length: int = int(*BioImage(filepath).dims[axis])
+#             for i in range(axis_length):
+#                 new_crop = crops.copy()
+#                 new_crop[axis] = i
+
+#             crops = new_crops
+#     else:
+#         pass
+
+#     # if a list of filepaths is provided then use that, otherwise create a list of filepaths that is the same length as the number of crops
+#     if axis != "filepaths":  # Chantelle got lost here
+#         filepath_list = [filepath] * len(crops)
+#     total_image_length = len(filepath_list)
+
+#     ## NOTE: in the event that filepath = a single multi-T image and crops=None,
+#     ## the crop value at the key indicated by 'axis' will be updated later in the
+#     ## function to reflect the current slice of images being loaded.
+#     ## The function will not load the entire image timelapse for the length of the
+#     ## image axis as the list of crops above implies.
+
+#     assert len(filepath_list) == len(
+#         crops
+#     ), f"If crops is defined then it must have the same length as filepaths (filepaths has length {len(filepath_list)}, but crops has length {len(crops)})."
+
+#     old_image_list: list = []
+#     old_crop_list: list = []
+#     loaded_images: list = []
+#     for i in range(total_image_length):
+
+#         relative_slice = slice(
+#             max(0, i - image_buffer_prior),
+#             min(len(filepath_list), i + 1 + image_buffer_next),
+#         )
+#         # update the image list to reflect the current slice of images being loaded
+#         image_list = filepath_list[relative_slice]
+#         # update the crop dictionary to reflect the current slice of images being loaded
+#         crop_list = crops[relative_slice]
+
+#         logger.debug("Identifying which images have already been loaded...")
+#         loaded_relative_indices_to_keep = [
+#             j
+#             for j, fp in enumerate(old_image_list)
+#             if fp in image_list and old_crop_list[j] in crop_list
+#         ]
+#         new_fps = [(j, fp) for j, fp in enumerate(image_list) if fp not in old_image_list]
+#         new_image_relative_indices, new_image_list = (
+#             zip(*new_fps, strict=True) if new_fps else ([], [])
+#         )
+#         old_image_list = image_list.copy()
+#         old_crop_list = crop_list.copy()
+
+#         logger.debug("Carrying over loaded images and loading new images...")
+#         loaded_images = [loaded_images[j] for j in loaded_relative_indices_to_keep]
+
+#         logger.debug(f"[new images being loaded: {tuple([fp.name for fp in new_image_list])}]")
+
+#         new_images = []
+#         for j in new_image_relative_indices:
+#             # convert slice objects to range objects so that they can be used as arguments in `get_image_data`
+#             img = BioImage(image_list[j])
+#             img_dims = img.dims
+#             crop = {dim: range(*img_dims[dim])[crop_list[j][dim]] for dim in crop_list[j]}
+#             logger.debug(f"Converting crop list (len={len(crop_list)}) to range objects...")
+
+#             if return_filepaths_and_crops_instead_of_images:
+#                 new_images.append((image_list[j], crop))
+#             else:
+#                 new_images.append(img.get_image_dask_data(DIMENSION_ORDER, **crop).compute())
+
+#         loaded_images += new_images
+
+#         yield Path(filepath_list[i]), crops[i], loaded_images
 
 
 ## NOTE END OF CODE BLOCK THAT SHOULD BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE
