@@ -140,6 +140,7 @@ def main(
         raise ValueError(
             f"Exactly 3 column names must be provided for 3D flow field analysis, but {len(column_names)} were provided: {column_names}"
         )
+    drift_column_names = [f"{name}_drift" for name in column_names]
 
     # fit PCA using the features from the given dataframe manifest PCA always
     # fit on the grid-based features, even if the features for flow field
@@ -155,6 +156,13 @@ def main(
     # regardless, gets used below when plotting stable fixed points together
     bounds_for_plots = get_bounds_from_data(
         dataset_names, dataframe_manifest, pca, column_names=column_names
+    )
+
+    # initialize dataframe to hold drift coefficients for all datasets, with
+    # columns for dataset name, bin centers in each of the three dimensions, and
+    # the corresponding drift coefficients
+    drift_coeffs_all_datasets = pd.DataFrame(
+        columns=[ColumnName.DATASET, *column_names, *drift_column_names]
     )
 
     # initialize dataframe to hold stable fixed points from all datasets
@@ -208,6 +216,22 @@ def main(
             traj_list, d_traj_list, bins=bins, dt=TIME_STEP_IN_MINUTES, kernel=kernels
         )
 
+        # build dataframe with columns for bin centers in each of the three dimensions and
+        # the corresponding drift coefficients, to be used for visualization workflow
+        drift_coeffs_df = pd.DataFrame(
+            {
+                ColumnName.DATASET: dataset_name,
+                **{column_name: centers[index] for index, column_name in enumerate(column_names)},
+                **{
+                    drift_column_name: drift_coeffs[..., index]
+                    for index, drift_column_name in enumerate(drift_column_names)
+                },
+            }
+        )
+        drift_coeffs_all_datasets = pd.concat(
+            [drift_coeffs_all_datasets, drift_coeffs_df], ignore_index=True
+        )
+
         ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
         extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
             drift_coeffs, centers, method="linear", for_vtk_files=False
@@ -247,15 +271,28 @@ def main(
     )
 
     # save stable fixed points from all datasets to parquet file
-    df_file_name = "stable_fixed_points_all_datasets.parquet"
+    drift_coeffs_file_name = "drift_coeffs_all_datasets.parquet"
+    fixed_points_file_name = "stable_fixed_points_all_datasets.parquet"
     if DEMO_MODE:
-        stable_fixed_points_save_path = make_name_unique(output_savedir / f"demo_{df_file_name}")
+        drift_coeffs_save_path = make_name_unique(output_savedir / f"demo_{drift_coeffs_file_name}")
+        stable_fixed_points_save_path = make_name_unique(
+            output_savedir / f"demo_{fixed_points_file_name}"
+        )
     else:
         # eventually, save to FMS
         logger.warning(
             "Saving stable fixed points to FMS not yet implemented, saving locally instead."
         )
-        stable_fixed_points_save_path = make_name_unique(output_savedir / df_file_name)
+        drift_coeffs_save_path = make_name_unique(output_savedir / drift_coeffs_file_name)
+        stable_fixed_points_save_path = make_name_unique(output_savedir / fixed_points_file_name)
+
+    logger.info(
+        "Saving drift coefficients from all datasets to [ %s ]",
+        drift_coeffs_save_path,
+    )
+    drift_coeffs_all_datasets.to_parquet(
+        drift_coeffs_save_path,
+    )
 
     logger.info(
         "Saving stable fixed points from all datasets to [ %s ]",
