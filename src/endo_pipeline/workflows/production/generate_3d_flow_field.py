@@ -54,7 +54,7 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, make_name_unique
-    from endo_pipeline.library.analyze.data_driven_flow_field import ddff_model_analysis
+    from endo_pipeline.library.analyze.data_driven_flow_field import get_stable_fixed_points
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
         get_dataframe_for_dynamics_workflows,
@@ -204,7 +204,7 @@ def main(
             traj_list, d_traj_list, bins=bins, dt=TIME_STEP_IN_MINUTES, kernel=kernels
         )
 
-        stable_fixed_points = ddff_model_analysis(
+        stable_fixed_points = get_stable_fixed_points(
             drift_coeffs=drift_coeffs,
             centers=centers,
             feature_data=df[column_names].to_numpy(),  # get feature data as numpy array

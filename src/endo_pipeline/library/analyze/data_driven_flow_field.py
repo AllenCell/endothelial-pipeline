@@ -79,7 +79,7 @@ def _is_point_within_percentile(point, data, lower=5, upper=95):
     return np.all((point >= lower_bounds) & (point <= upper_bounds))
 
 
-def ddff_model_analysis(
+def get_stable_fixed_points(
     drift_coeffs: np.ndarray,
     centers: list[np.ndarray],
     feature_data: np.ndarray,
@@ -88,8 +88,8 @@ def ddff_model_analysis(
     upper_percentile: float,
 ) -> list[np.ndarray]:
     """
-    Get 3d flow field (drift coefficient) from principal component features from
-    a given dataset.
+    Get stable fixed points with high confidence from a data-driven flow field
+    analysis.
 
     For a single dataset, this workflow:
 
