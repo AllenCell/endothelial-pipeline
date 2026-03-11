@@ -130,7 +130,7 @@ def main(
         dataset_names = [name for name in datasets if name in valid_dataset_options]
     if DEMO_MODE:
         logger.warning(
-            "DEMO MODE: Using only the first dataset from the manifest for quick visualization."
+            "DEMO MODE: Using only the first dataset from the manifest for quick testing."
         )
         dataset_names = dataset_names[:1]
 

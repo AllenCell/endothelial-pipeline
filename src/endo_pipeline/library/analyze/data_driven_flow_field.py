@@ -2,6 +2,7 @@ import logging
 import re
 from collections.abc import Callable
 from time import time
+from typing import Literal, overload
 
 import numpy as np
 import pandas as pd
@@ -83,7 +84,7 @@ def _is_point_within_percentile(point, data, lower=5, upper=95):
 
 
 def get_stable_fixed_points(
-    drift_function: Callable,
+    drift_function: Callable[[np.ndarray], np.ndarray],
     dataframe: pd.DataFrame,
     column_names: list[str],
     num_inits_for_root_solver: int,
@@ -313,9 +314,21 @@ def compute_extrapolated_vector_field(
     return {"vectors": vectors, "grid": (x, y, z)}
 
 
+@overload
+def get_callable_vector_field(
+    vector_field_dict: dict, for_solve_ivp: Literal[True], method: str = "linear"
+) -> Callable[[float, np.ndarray], np.ndarray]: ...
+
+
+@overload
+def get_callable_vector_field(
+    vector_field_dict: dict, for_solve_ivp: Literal[False], method: str = "linear"
+) -> Callable[[np.ndarray], np.ndarray]: ...
+
+
 def get_callable_vector_field(
     vector_field_dict: dict, for_solve_ivp: bool = True, method: str = "linear"
-) -> Callable:
+) -> Callable[[float, np.ndarray], np.ndarray] | Callable[[np.ndarray], np.ndarray]:
     """
     Get a callable vector field from a numpy array via linear interpolation.
 
