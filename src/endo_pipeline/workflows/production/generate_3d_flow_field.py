@@ -22,10 +22,10 @@ def main(
     2. Use interpolation to get a callable flow field function.
     3. Identify stable fixed points in the 3D flow field using a root-finding method
         applied to the flow field function.
-    4. Categorize the identified fixed points based on the eigenvalues of the Jacobian
-        matrix at each fixed point.
-    5. Simulate trajectories in the 3D flow field starting from specified initial points.
-    6. Save the flow field analysis results, including stable fixed point locations.
+    4. Save the following outputs to the `outputs/` directory:
+        - Dataframe with the estimated drift coefficients at each grid point for each dataset.
+        - Dataframe with the corresponding grid point coordinates for each dataset.
+        - Dataframe with the stable fixed point locations for each dataset.
 
     **Visualization outputs**
 
@@ -91,7 +91,6 @@ def main(
         KERNEL_FUNCTION_NAME,
         LOWER_PERCENTILE_FOR_STABLE_FP,
         NUM_INIT_SAMPLES,
-        OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS,
         PAD_BINS_FLOAT,
         TIME_STEP_IN_MINUTES,
         UPPER_PERCENTILE_FOR_STABLE_FP,
@@ -107,13 +106,11 @@ def main(
 
     # Create output folders if they do not exist yet
     output_savedir = get_output_path(
-        OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS,
+        __file__,
         dataframe_manifest_name,
         "outputs",
     )
-    fig_savedir = get_output_path(
-        OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS, dataframe_manifest_name, "figs"
-    )
+    fig_savedir = get_output_path(__file__, dataframe_manifest_name, "figs")
 
     # load dataframe manifest with model feature for the given model run
     # and model manifest
