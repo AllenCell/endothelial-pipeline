@@ -186,10 +186,13 @@ def main(
         grid_points_dataset: pd.DataFrame = grid_points_dataframe[
             grid_points_dataframe[ColumnName.DATASET] == dataset_name
         ]
-
-        grid_points_as_list: list[np.ndarray] = [
+        # to store as datframe, the grid points were padded with NaN values to
+        # ensure that each column has the same number of rows, so here we remove
+        # the NaN values to get back the original grid points
+        grid_points_padded: list[np.ndarray] = [
             grid_points_dataset[column_name].to_numpy() for column_name in column_names
         ]
+        grid_points_as_list = [points[~np.isnan(points)] for points in grid_points_padded]
         grid_shape = tuple(len(points) for points in grid_points_as_list)
 
         drift_values = drift_dataset[drift_column_names].to_numpy().reshape(*grid_shape, ndim)

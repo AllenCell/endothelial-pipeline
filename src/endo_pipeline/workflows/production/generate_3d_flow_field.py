@@ -217,16 +217,23 @@ def main(
             {
                 ColumnName.DATASET: dataset_name,
                 **{
-                    drift_column_name: drift_coeffs[..., index].flatten()
+                    drift_column_name: drift_coeffs[..., index].flatten().tolist()
                     for index, drift_column_name in enumerate(drift_column_names)
                 },
             }
         )
-        grid_points_df = pd.DataFrame(
-            {
-                ColumnName.DATASET: dataset_name,
-                **{column_name: centers[index] for index, column_name in enumerate(column_names)},
-            }
+        grid_points_df = pd.concat(
+            [
+                pd.DataFrame(
+                    {
+                        ColumnName.DATASET: dataset_name,
+                        column_name: centers[index].tolist(),
+                    }
+                )
+                for index, column_name in enumerate(column_names)
+            ],
+            axis=1,
+            ignore_index=True,
         )
         drift_coeffs_all_datasets = pd.concat(
             [drift_coeffs_all_datasets, drift_coeffs_df], ignore_index=True
