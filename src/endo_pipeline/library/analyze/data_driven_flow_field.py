@@ -2,23 +2,14 @@ import logging
 import re
 from collections.abc import Callable
 from time import time
-from typing import Literal
 
 import numpy as np
 from numdifftools import Jacobian
 from scipy.integrate import solve_ivp
 from scipy.interpolate import RegularGridInterpolator, griddata
 from scipy.stats import gaussian_kde
-from sklearn.decomposition import PCA
 
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    get_dataframe_for_dynamics_workflows,
-    get_traj_and_diff,
-)
-from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
-from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.visualize.diffae_features.pplane import find_fpt_type, get_fps
-from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.flow_field_3d import SAMPLER_RANDOM_SEED
 
 logger = logging.getLogger(__name__)
@@ -89,16 +80,10 @@ def _is_point_within_percentile(point, data, lower=5, upper=95):
 
 
 def ddff_model_analysis(
-    dataset_name: str,
-    dataframe_manifest: DataframeManifest,
-    crop_pattern: Literal["grid", "tracked"],
-    pca: PCA,
-    kernel: KramersMoyalKernel,
-    dt: float,
-    bins: list[np.ndarray],
+    drift_coeffs: np.ndarray,
     centers: list[np.ndarray],
+    feature_data: np.ndarray,
     num_inits_for_root_solver: int,
-    column_names: list[str],
     lower_percentile: float,
     upper_percentile: float,
 ) -> list[np.ndarray]:
@@ -108,44 +93,24 @@ def ddff_model_analysis(
 
     For a single dataset, this workflow:
 
-    1. Loads the dataframe for the given dataset and gets the top 3 PCs.
-    2. Computes the drift and diffusion coefficients (first and second
-       Kramers-Moyal coefficients)
-        using a kernel-based method.
-    3. Extrapolates the drift and diffusion coefficients to get a flow field
-       over the entire 3D
-        space as specified by the input bins and centers.
-    4. Saves out these vector fields as .npy files and as .vtk files for
-       visualization.
-    5. Solves the ODE dx/dt = f(x) using scipy.integrate.solve_ivp, where f(x)
-       is the flow field
-        (drift coefficient) and x is the 3D state space.
-    6. Visualizes the flow field and the trajectory using the main function in
-       flow_field_viz.py.
+    1. Extrapolates the drift and diffusion coefficients to get a flow field
+       over the entire 3D space as specified by the input bins and centers.
+    2. Finds fixed points of the flow field by finding roots of the drift
+         function.
 
     Parameters
     ----------
-    dataset_name
-        Name of dataset for which to compute the flow field.
-    dataframe_manifest
-        Dataframe manifest with the dataframe locations for each dataset.
-    pca
-        PCA model to use for transforming the data (projecting onto the top 3
-        PCs).
-    kernel
-        Kernel to use for Kramers-Moyal coefficient estimation.
-    dt
-        Time step between frames.
-    bins
-        List of the bin edges for histogramming along each dimension in the 3D
-        state space.
+    drift_coeffs
+        Array of drift coefficients (first Kramers-Moyal estimates) over a three
+        dimensional grid.
     centers
-        List of centers of the bins in each dimension.
+        List of 1D numpy arrays with the grid points in each dimension
+        corresponding to the drift coefficients.
+    feature_data
+        The original feature data used to compute the Kramers-Moyal
+        coefficients, as a numpy array of shape (num_samples, num_features).
     num_inits_for_root_solver
         Number of initial conditions to use for finding fixed points.
-    column_names
-        List of column names corresponding to features to use for the analysis
-        (e.g. the top 3 PCs).
     lower_percentile
         Lower percentile for filtering fixed points.
     upper_percentile
@@ -157,27 +122,10 @@ def ddff_model_analysis(
         List of stable fixed points with high confidence (filtered by percentile
         range).
     """
-    # load dataframe and get top 3 PCs
-    df = get_dataframe_for_dynamics_workflows(
-        dataset_name,
-        dataframe_manifest,
-        pca=pca,
-        include_cell_piling=False,
-        include_not_steady_state=False,
-        crop_pattern=crop_pattern,
-    )
-
-    # get list of per-crop trajectories, the corresponding
-    # displacement vectors, and time differences
-    traj_list, d_traj_list = get_traj_and_diff(df, column_names)
-
-    # get drift estimates
-    # (Kramers-Moyal coefficients)
-    drift_km, _ = get_kramers_moyal_coeffs(traj_list, d_traj_list, bins=bins, dt=dt, kernel=kernel)
 
     ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
     extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
-        drift_km, centers, method="linear", for_vtk_files=False
+        drift_coeffs, centers, method="linear", for_vtk_files=False
     )
 
     # get callable drift function and its Jacobian
@@ -187,7 +135,6 @@ def ddff_model_analysis(
     drift_function_jacobian = Jacobian(drift_function)
 
     # sample initial conditions for root solver from data density
-    feature_data = df[column_names].values  # get feature data as numpy array
     sampled_inits_for_root_solver = sample_from_density(feature_data, num_inits_for_root_solver)
 
     # pass into helper function to get fixed points

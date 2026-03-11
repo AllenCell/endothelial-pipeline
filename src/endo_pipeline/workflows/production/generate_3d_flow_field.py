@@ -55,7 +55,12 @@ def main(
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, make_name_unique
     from endo_pipeline.library.analyze.data_driven_flow_field import ddff_model_analysis
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+        fit_pca,
+        get_dataframe_for_dynamics_workflows,
+        get_traj_and_diff,
+    )
+    from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
     from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
@@ -177,17 +182,33 @@ def main(
             column_names=column_names,
         )
         bins, centers = get_bins(bin_widths, bin_limits=bounds_for_km)
-        stable_fixed_points = ddff_model_analysis(
+
+        # load dataframe and filter / preprocess it for dynamics workflows (PCA,
+        # filter annotated timepoints, transform angular variables),
+        df = get_dataframe_for_dynamics_workflows(
             dataset_name,
             dataframe_manifest,
-            crop_pattern=crop_pattern,
             pca=pca,
-            kernel=kernels,
-            dt=TIME_STEP_IN_MINUTES,
-            bins=bins,
+            include_cell_piling=False,
+            include_not_steady_state=False,
+            crop_pattern=crop_pattern,
+        )
+
+        # get list of per-crop trajectories, the corresponding
+        # displacement vectors, and time differences
+        traj_list, d_traj_list = get_traj_and_diff(df, column_names)
+
+        # get drift estimates
+        # (Kramers-Moyal coefficients)
+        drift_coeffs, _ = get_kramers_moyal_coeffs(
+            traj_list, d_traj_list, bins=bins, dt=TIME_STEP_IN_MINUTES, kernel=kernels
+        )
+
+        stable_fixed_points = ddff_model_analysis(
+            drift_coeffs=drift_coeffs,
             centers=centers,
+            feature_data=df[column_names].to_numpy(),  # get feature data as numpy array
             num_inits_for_root_solver=NUM_INIT_SAMPLES,
-            column_names=column_names,
             lower_percentile=LOWER_PERCENTILE_FOR_STABLE_FP,
             upper_percentile=UPPER_PERCENTILE_FOR_STABLE_FP,
         )
