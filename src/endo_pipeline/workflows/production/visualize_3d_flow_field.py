@@ -198,13 +198,6 @@ def main(
         drift_values = drift_dataset[drift_column_names].to_numpy().reshape(*grid_shape, ndim)
         grid = np.meshgrid(*grid_points_as_list, indexing="ij")
 
-        # get the vector field components from
-        # the Kramers-Moyal coefficients
-        # assert check for development
-        assert (
-            drift_values.shape[-1] == ndim
-        ), "Drift values should have the same number of dimensions as feature values."
-
         # build flow field dict for downstream functions that expect the flow
         # field in this format
         drift_vector_field = [drift_values[..., i] for i in range(ndim)]
@@ -240,7 +233,7 @@ def main(
         extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
             drift_values, grid_points_as_list, method="linear", for_vtk_files=False
         )
-        time_span = (TRAJECTORY_TIME_SPAN,)
+        time_span = (0, TRAJECTORY_TIME_SPAN)
         init_for_traj = (np.array(INIT_POINT_3D),)
         traj = solve_ddff_ode(extrapolated_flow_field_dict_reg, init_for_traj, time_span)
 
