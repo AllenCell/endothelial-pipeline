@@ -234,7 +234,7 @@ def main(
             drift_values, grid_points_as_list, method="linear", for_vtk_files=False
         )
         time_span = (0, TRAJECTORY_TIME_SPAN)
-        init_for_traj = (np.array(INIT_POINT_3D),)
+        init_for_traj = np.array(INIT_POINT_3D)
         traj = solve_ddff_ode(extrapolated_flow_field_dict_reg, init_for_traj, time_span)
 
         # filter fixed points to only keep stable ones within 2nd-98th percentiles of data
