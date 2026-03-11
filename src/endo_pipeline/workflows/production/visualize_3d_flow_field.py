@@ -190,45 +190,45 @@ def main(
                 volume_extent,
             )
 
-            ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
-            # with initial conditions given by init solve IVP, get back trajectory
-            extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
-                drift_values, feature_values, method="linear", for_vtk_files=False
+        ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
+        # with initial conditions given by init solve IVP, get back trajectory
+        extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
+            drift_values, feature_values, method="linear", for_vtk_files=False
+        )
+        time_span = (TRAJECTORY_TIME_SPAN,)
+        init_for_traj = (np.array(INIT_POINT_3D),)
+        traj = solve_ddff_ode(extrapolated_flow_field_dict_reg, init_for_traj, time_span)
+
+        # filter fixed points to only keep stable ones within 2nd-98th percentiles of data
+        fixed_points = []
+        if fixed_points_dataframe is not None:
+            fixed_points_subset = fixed_points_dataframe[
+                fixed_points_dataframe[ColumnName.DATASET] == dataset_name
+            ]
+            for _, row in fixed_points_subset.iterrows():
+                fixed_points.append(row[column_names].to_numpy())
+
+        # subfolder for each dataset
+        fig_savedir_dataset = fig_savedir / dataset_name
+        fig_savedir_dataset.mkdir(parents=True, exist_ok=True)
+
+        # get per-dataset bounds for plotting, if not using same axes for all datasets
+        if not use_same_axes:
+            bounds_for_plots = get_bounds_from_data(
+                [dataset_name], dataframe_manifest, pca, column_names=column_names
             )
-            time_span = (TRAJECTORY_TIME_SPAN,)
-            init_for_traj = (np.array(INIT_POINT_3D),)
-            traj = solve_ddff_ode(extrapolated_flow_field_dict_reg, init_for_traj, time_span)
 
-            # filter fixed points to only keep stable ones within 2nd-98th percentiles of data
-            fixed_points = []
-            if fixed_points_dataframe is not None:
-                fixed_points_subset = fixed_points_dataframe[
-                    fixed_points_dataframe[ColumnName.DATASET] == dataset_name
-                ]
-                for _, row in fixed_points_subset.iterrows():
-                    fixed_points.append(row[column_names].to_numpy())
-
-            # subfolder for each dataset
-            fig_savedir_dataset = fig_savedir / dataset_name
-            fig_savedir_dataset.mkdir(parents=True, exist_ok=True)
-
-            # get per-dataset bounds for plotting, if not using same axes for all datasets
-            if not use_same_axes:
-                bounds_for_plots = get_bounds_from_data(
-                    [dataset_name], dataframe_manifest, pca, column_names=column_names
-                )
-
-            # call main visualization function
-            flow_field_viz_main(
-                flow_field_dict,
-                drift_dataset,
-                column_names,
-                traj,
-                fixed_points,
-                bounds_for_plots,
-                plot_stack,
-                fig_savedir_dataset,
-            )
+        # call main visualization function
+        flow_field_viz_main(
+            flow_field_dict,
+            drift_dataset,
+            column_names,
+            traj,
+            fixed_points,
+            bounds_for_plots,
+            plot_stack,
+            fig_savedir_dataset,
+        )
 
 
 if __name__ == "__main__":
