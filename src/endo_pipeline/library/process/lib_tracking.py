@@ -67,19 +67,29 @@ def load_images_sequentially(
     dim_order: str = DIMENSION_ORDER,
 ) -> Generator:
     """
-    Loads images from "T - image_buffer_prior" to "T + image_buffer_next" for
-    each timepoint T in the images specified by filepaths.
+    Loads images using filepaths from "T - image_buffer_prior" to "T + image_buffer_next"
+    at each timepoint T according to "axis".
+    If axis is "filepaths" then iterates over the list of filepaths.
+    If axis is "T" then iterates over the T dimension of the image specified by
+    filepaths (which must be a single file and not a list in this case).
 
-    The images are cropped according to the crop dictionaries provided in crops. The axis argument specifies which axis to iterate over when loading the images, and the crop dictionaries are applied accordingly. The function yields a list of loaded images for each timepoint T, along with their corresponding filepaths and crop dictionaries if return_filepaths_and_crops_instead_of_images is True.
-
-    Load a list of sequential images from a list of filepaths or from a single filepath.
-    1. If no crop is provided then the entire image for each image specified by filepaths will be loaded.
+    The expected use cases are below:
+    1. If a single filepath is provided and one or no crops are provided then the image specified
+    by filepath is assumed to be a timelapse.
+    If the crop dictionary has a stop point specified in the slice for the "T" dimension
+    then only images up to that stopping point will be loaded.
+    The "T" axis will be iterated over in this case.
     2. If a list of filepaths is provided and a list of crop dictionaries is provided then they
-    must have the same length and the crop dictionary at index i will be applied to the image at index i.
+    must have the same length and the crop dictionary at index i will be applied to the image at
+    index i. The idea here is that each crop dictionary will specify a single T value, and the
+    function will load images before and after that T value according to image_buffer_prior and
+    image_buffer_next.
+    The list of filepaths will be iterated over in this case.
     3. If a list of filepaths is provided but only a single crop dictionary is provided then
     the crop dictionary will be applied to all images.
-    4. If a single filepath is provided but a list of crop dictionaries is provided then the image will
-    be loaded for each crop specified in the list of crop dictionaries.
+    The idea here is that the crop dictionary will specify (Z,Y,X) or (Y,X) dimensions
+    to crop, but will NOT specify which timepoints "T" to load (i.e. `"T": slice(None)`).
+    The list of filepaths will be iterated over in this case.
 
     Note that this function is a generator.
 
@@ -98,12 +108,15 @@ def load_images_sequentially(
         The total number of images loaded will be 1 + image_buffer_prior + image_buffer_next.
     axis:
         The axis iterate over when loading the images.
-        Can be one of 'filepaths', 'T', 'Z', 'C', 'Y', or 'X'.
+        Can be one of 'filepaths', 'T'.
         Default behavior is to iterate over the list of filepaths if "filepaths"
         is a list or over the 'T' axis if filepaths is a Path object.
     return_filepaths_and_crops_instead:
         used for testing purposes - if True then the function will yield the filepaths and crops
         that would be used to load the images instead of yielding the loaded images themselves.
+    dim_order:
+        The dimension order to load the image in.
+        Default is the global DIMENSION_ORDER variable.
 
     Yields
     ------
@@ -124,6 +137,11 @@ def load_images_sequentially(
                 f"If both filepaths and crops are lists then they must have the same length \
                     (filepaths has length {len(filepaths)}, but crops has length {len(crops)})."
             )
+    if isinstance(filepaths, Path) and isinstance(crops, (list, tuple)):
+        raise ValueError(
+            "If crops is a list of crop dictionaries then filepaths must also be a list of \
+            filepaths of the same length (not a single Path object)."
+        )
 
     # the axis will be iterated over when loading the images, so the length of the axis will
     # determine how many images are loaded in total and how the crop dictionaries are applied
@@ -141,12 +159,14 @@ def load_images_sequentially(
     # into lists of the same length as axis_length regardless of what combo was
     # provided. These lists will then be iterated through in a pairwise fashion
     # based on the slicing in relatives_slices.
-    filepath_list = [filepaths] * axis_length if isinstance(filepaths, Path) else filepaths
     if isinstance(crops, dict):
-        # if the iteration axis is a dimension in the crop dictionary then
-        # create a list of crop dictionaries that slice along the axis with
-        # the appropriate buffering
+        # if the iteration axis is a dimension in the crop dictionary
         if axis in crops:
+            # and that dimension has a specified slice, then adjust axis_length accordingly
+            if crops[axis].stop is not None:
+                axis_length = min(axis_length, crops[axis].stop)
+            # create a list of crop dictionaries that slice along the axis with
+            # the appropriate buffering
             crop_list = []
             for i in range(axis_length):
                 crops_temp = crops.copy()
@@ -158,9 +178,10 @@ def load_images_sequentially(
         # is to be applied to each image specified by the filepaths, and thus
         # make a list of the same crop dictionary repeated for each filepath
         else:
-            crop_list = [crops] * len(filepath_list)
+            crop_list = [crops] * len(axis_length)
     else:
         crop_list = crops
+    filepath_list = [filepaths] * axis_length if isinstance(filepaths, Path) else filepaths
 
     # initialize a list to keep our loaded images so that we don't have to
     # reload images from
