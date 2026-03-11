@@ -215,13 +215,16 @@ def main(
         )
 
         # add stable fixed points from this dataset to the overall dataframe
-        stable_fixed_points_all_datasets = pd.concat(
-            [
-                stable_fixed_points_all_datasets,
-                stable_fixed_points_dataset,
-            ],
-            ignore_index=True,
-        )
+        # (checking if returned dataframe is empty first to avoid issues with
+        # concatenation)
+        if not stable_fixed_points_dataset.empty:
+            stable_fixed_points_all_datasets = pd.concat(
+                [
+                    stable_fixed_points_all_datasets,
+                    stable_fixed_points_dataset,
+                ],
+                ignore_index=True,
+            )
 
     # generate plot of stable fixed points from different datasets overlaid on top of each other
     # (for comparison of stable fixed points across datasets)
