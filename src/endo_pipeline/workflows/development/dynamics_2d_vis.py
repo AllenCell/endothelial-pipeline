@@ -210,7 +210,7 @@ def main(
             )
 
             # loop over pairwise combinations of columns and plot drift contours
-            for column1, column2 in [
+            for column_name_pair in [
                 (ColumnName.POLAR_RADIUS, ColumnName.PC3_FLIPPED),  # r and rho
                 (ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE),  # r and theta
                 (ColumnName.PC3_FLIPPED, ColumnName.POLAR_ANGLE),  # rho and theta
@@ -224,13 +224,11 @@ def main(
                 bins_2d = []
                 centers_2d = []
                 column_labels_2d = []
+                column_indexes = []
                 axes_limits_2d = []
-                column_indexes = [
-                    column_names.index(column_name) for column_name in [column1, column2]
-                ]
-                for column_index, column_name in zip(
-                    column_indexes, [column1, column2], strict=True
-                ):
+                for column_name in column_name_pair:
+                    column_index = column_names.index(column_name)
+                    column_indexes.append(column_index)
                     kernels.append(
                         KramersMoyalKernel(
                             name=KERNEL_NAMES_DYNAMICS[column_name],
@@ -277,6 +275,7 @@ def main(
                     low_confidence_mask = hist_kde < mask_threshold
                     drift[low_confidence_mask] = np.nan
 
+                filename_prefix = f"{dataset_name_flow}_{'_'.join(column_name_pair)}"
                 # plot drift contours and save
                 plot_and_save_drift_contours(
                     centers_mesh,
@@ -285,7 +284,7 @@ def main(
                     axes_limits=axes_limits_2d,
                     fig_title=fig_title,
                     fig_savedir=fig_savedir,
-                    filename_prefix=f"{dataset_name_flow}_{column1}_{column2}",
+                    filename_prefix=filename_prefix,
                 )
 
                 # plot quiver plot of drift and save
@@ -296,7 +295,7 @@ def main(
                     axes_limits=axes_limits_2d,
                     fig_title=fig_title,
                     fig_savedir=fig_savedir,
-                    filename_prefix=f"{dataset_name_flow}_{column1}_{column2}",
+                    filename_prefix=filename_prefix,
                 )
                 plt.close("all")
 
