@@ -168,15 +168,21 @@ def _convolve_histogram_with_kernel(
         norm_coeff = np.trapz(norm_coeff, dx=bin_width, axis=-1)
     kmc /= norm_coeff
 
-    # Mask out bins where the probability density is smaller than the specified tolerance
+    # Mask out bins where the probability density is smaller than the specified
+    # tolerance
     mask = np.abs(kmc[0]) < tol
     kmc[0:, mask] = np.nan
 
-    # get correct Taylor expansion coefficients (e.g., divide 2nd order powers by 2!)
-    taylors = np.prod(factorial(powers[1:]), axis=1)
-    kmc[1:, ~mask] /= (
-        taylors[..., None] * kmc[0, ~mask]
-    )  # divide by Taylor coeff * 0th order coeffs (probability density)
+    # get correct Taylor expansion coefficients (e.g., divide 2nd order powers
+    # by 2!, etc.)
+
+    # if we have higher order coefficients beyond the 0th order density
+    # coefficient, then we need to divide by the appropriate Taylor expansion
+    # coefficients and the 0th order coefficient to get the correct estimates of
+    # the Kramers-Moyal coefficients.
+    if powers.shape[0] > 1:
+        taylors = np.prod(factorial(powers[1:]), axis=1)
+        kmc[1:, ~mask] /= taylors[..., None] * kmc[0, ~mask]
 
     return kmc
 
@@ -273,7 +279,7 @@ def _evaluate_single_multivariate_kernel(x: np.ndarray, kernel: KramersMoyalKern
     along each dimension.
     """
     kernel_func = kernel.string_to_kernel()
-    return kernel_func(x, kernel.bandwidth, kernel.bandwidth)
+    return kernel_func(x, kernel.bandwidth, kernel.period)
 
 
 def _evaluate_multivariate_product_kernel(
@@ -380,3 +386,68 @@ def get_kramers_moyal_coeffs(
     drift, diffusion = _reshape_outputs_to_drift_diffusion_coefficients(ndim, kmc)
 
     return drift, diffusion
+
+
+def get_kernel_density_estimate(
+    trajectories: list[np.ndarray],
+    bins: list[np.ndarray],
+    kernel: KramersMoyalKernel | list[KramersMoyalKernel],
+) -> np.ndarray:
+    """
+    Get kernel density estimate of the probability density of the observations.
+
+    This function is similar to `get_kramers_moyal_coeffs`, but only returns the
+    0th order Kramers-Moyal coefficient, which corresponds to the probability
+    density of the observations. This can be useful for visualizing the density
+    of the data in state space, and for masking out regions with low density
+    when visualizing the drift and diffusion estimates.
+
+    Parameters
+    ----------
+    trajectories
+        List of invidual n-dimensional trajectories (observations).
+    bins
+        List of monotonically increasing bin edges in each dimension.
+    kernel
+        Kernel used to convolute with the histogram of observations to get the
+        kernel density estimate.
+
+    Returns
+    -------
+    :
+        Kernel density estimate of the n-dimensional joint probability density
+        of the observations.
+    """
+    # get powers for first two Kramers-Moyal coefficients (drift and diffusion)
+    # based on dimensionality of data
+    ndim = len(bins)
+    powers = np.zeros(
+        (1, ndim), dtype=int
+    )  # power for 0th order coefficient (density) is all zeros
+
+    # check inputs to avoid errors in the middle of the function
+    displacements = [
+        np.zeros_like(ts[:-1]) for ts in trajectories
+    ]  # dummy displacements since we only care about density of observations
+    trajectories, displacements, powers = _check_and_adjust_km_inputs(
+        trajectories, displacements, powers
+    )
+
+    # get weighted histogram for convolution with kernel function
+    hist = _get_weighted_histogram_for_convolution(trajectories, displacements, bins, powers)
+
+    # Generate centered kernel on larger grid
+    edges_extended = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in bins]
+    edges_cartesian_prod = get_cartesian_product(edges_extended)
+
+    # Convert kernels into a callable and evaluate on the grid of points given by
+    # the cartesian product of the extended edges.
+    if isinstance(kernel, list):
+        kernel_eval = _evaluate_multivariate_product_kernel(edges_cartesian_prod, kernel)
+    else:
+        kernel_eval = _evaluate_single_multivariate_kernel(edges_cartesian_prod, kernel)
+
+    # Calculate KDE by convolving histogram with kernel
+    prob_kde = _convolve_histogram_with_kernel(hist, kernel_eval, bins, powers)[0]
+
+    return prob_kde

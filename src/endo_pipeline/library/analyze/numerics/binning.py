@@ -60,7 +60,7 @@ def get_bins(
     data: list[np.ndarray] | None = None,
     bin_limits: list[tuple[float, float]] | None = None,
     pad: float = PAD_BINS_FLOAT,
-) -> tuple[list, list]:
+) -> tuple[list[np.ndarray], list[np.ndarray]]:
     """
     Generate histogram bins either automatically based on data or user-defined bin limits.
 

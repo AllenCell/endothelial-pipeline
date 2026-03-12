@@ -65,3 +65,6 @@ BIN_LIMIT_PERCENTILE_CUTOFF: float = 2.5
 
 NUM_PCS_TO_FIT_FOR_DYNAMICS: int = 3
 """Number of principal components to fit for dynamics analysis and visualization."""
+
+HISTOGRAM_THRESHOLD_FOR_MASKING: float = 0.05
+"""Histogram threshold for masking in dynamics visualization workflows."""
