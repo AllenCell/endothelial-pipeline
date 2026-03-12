@@ -42,18 +42,16 @@ def load_images_sequentially(
 
     Parameters
     ----------
-    filepaths:
-        the filepaths (or a list of filepaths) to the images that will be loaded
-    timepoints:
-        List of timepoints to apply to each loaded image. If None then no
-        cropping will be applied.
-        Default is None.
-    image_buffer_prior:
+    image_location
+        The location of the images that will be loaded
+    timepoints
+        Range of timepoints to apply to each loaded image.
+    image_buffer_prior
         The number of images to keep loaded from before the current one. Default is 0.
-    image_buffer_next: int
+    image_buffer_next
         The number of images to loaded ahead of the current one. Default is 0.
         The total number of images loaded will be 1 + image_buffer_prior + image_buffer_next.
-    return_filepaths_and_crops_instead:
+    return_filepaths_and_crops_instead
         used for testing purposes - if True then the function will yield the filepath, timepoint
         and timepoints between image_buffer_prior and image_buffer_next for each iteration
         instead of the loaded images.
@@ -65,7 +63,8 @@ def load_images_sequentially(
     return_filepaths_and_crops_instead is True)
     """
     # initialize a list to keep our loaded images so that we don't have to
-    # reload images from
+    # reload images that were loaded in the previous iteration if they are still
+    # within the buffer range
     loaded_images: list = []
     # create an initial set of the previous timepoints which is just an empty range
     tps_chunk_previous: range = range(0, 0)
@@ -100,7 +99,9 @@ def load_images_sequentially(
             for t in tps_chunk_new:
                 logger.debug(f"New images to load: {image_location} at T={tps_chunk_new}")
                 # load the new images
-                new_images.append(load_image(location=image_location, timepoints=t, compute=True))
+                new_images.append(
+                    load_image(location=image_location, timepoints=t, squeeze=True, compute=True)
+                )
 
             # update the list of loaded images to include the new images
             loaded_images += new_images
@@ -1300,9 +1301,8 @@ def generate_tracks(
     for fp, current_T, labeled_images in paths_timepoints_labeled_images_all:
 
         logger.debug(f"Working on {fp.path.name}...")
-        labeled_images = [img_arr.squeeze() for img_arr in labeled_images]
 
-        track_labeled_image, current_tracks, track_table = update_track_table(
+        track_labeled_image, _, track_table = update_track_table(
             labeled_images,
             track_table,
             current_T,
