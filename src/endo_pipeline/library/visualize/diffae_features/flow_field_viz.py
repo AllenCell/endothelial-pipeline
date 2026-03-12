@@ -12,18 +12,23 @@ from matplotlib.ticker import MaxNLocator
 from scipy.stats import gaussian_kde
 
 from endo_pipeline.io import save_plot_to_path
-from endo_pipeline.library.analyze import data_driven_flow_field
+from endo_pipeline.library.analyze.data_driven_flow_field import interpolate_on_curve
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     check_required_columns_in_dataframe,
     get_dataset_descriptions,
     parse_dataset_description,
+    rewrap_polar_angle,
 )
-from endo_pipeline.library.visualize.diffae_features import feature_viz
+from endo_pipeline.library.visualize.diffae_features.feature_viz import (
+    get_dataset_color,
+    get_label_for_column,
+)
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
     ColumnName,
 )
+from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED, RESCALE_THETA
 from endo_pipeline.settings.figures import (
     FONT_FAMILY,
     FONTSIZE_LARGE,
@@ -240,8 +245,7 @@ def plot_flow_field_stack(
     """
     if feature_labels is None:
         feature_labels = [
-            feature_viz.get_label_for_column(DIFFAE_PC_COLUMN_NAMES[idx])
-            for idx in range(NUM_PCS_TO_ANALYZE)
+            get_label_for_column(DIFFAE_PC_COLUMN_NAMES[idx]) for idx in range(NUM_PCS_TO_ANALYZE)
         ]
 
     # unpack plot axes
@@ -515,7 +519,7 @@ def plot_flow_field_slices(
     """
     column_names_ = column_names or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
-    column_labels = [feature_viz.get_label_for_column(col) for col in column_names_]
+    column_labels = [get_label_for_column(col) for col in column_names_]
     # get grid and grid spacing
     xgrid, ygrid, zgrid = flow_field_dict["grid"]
 
@@ -649,7 +653,7 @@ def plot_stable_fixed_points_together(
     required_columns = [ColumnName.DATASET, *column_names]
     check_required_columns_in_dataframe(stable_fixed_points_df, required_columns)
 
-    column_labels = [feature_viz.get_label_for_column(col) for col in column_names]
+    column_labels = [get_label_for_column(col) for col in column_names]
 
     # initialize plots
     fig, ax = plt.subplots(NROWS_2D_FLOW_FIELD, NCOLS_2D_FLOW_FIELD, figsize=FIGSIZE_2D_FLOW_FIELD)
@@ -658,7 +662,7 @@ def plot_stable_fixed_points_together(
     patch_list_for_legend = []
     for dataset_name, dataset_df in stable_fixed_points_df.groupby(ColumnName.DATASET):
         dataset_name_ = cast(str, dataset_name)
-        scatter_color = feature_viz.get_dataset_color(dataset_name_)
+        scatter_color = get_dataset_color(dataset_name_)
         patch_list_for_legend.append(Patch(color=scatter_color, label=dataset_name_))
         fpts = dataset_df[column_names].values
         for fpt in fpts:
@@ -743,7 +747,7 @@ def flow_field_viz_main(
             flow_field_dict["grid"][1][0, :, 0],  # feature 2
             flow_field_dict["grid"][2][0, 0, :],  # feature 3
         ]
-        column_labels = [feature_viz.get_label_for_column(col) for col in column_names]
+        column_labels = [get_label_for_column(col) for col in column_names]
 
         for i, slice_axis in enumerate(slice_axis_indices):
             column_name = column_names[slice_axis]
@@ -806,16 +810,48 @@ def flow_field_viz_main(
             # save the figure
             save_plot_to_path(fig, fig_savedir, f"flow_field_{name}_fpt_{k}")
 
-    # 2) plot entire trajectory over flow field
-    # feature 1 vs feature 2, feature 1 vs feature 3
+    # 2) plot entire trajectory over flow field feature 1 vs feature 2, feature
+    # 1 vs feature 3
+    # 3) same plot with equally spaced interpolated points along the trajectory
+    # overlaid in red
+    interpolated_points = interpolate_on_curve(traj)
+
+    # need to account for possible wrap-around in the trajectory due
+    # to periodic boundary conditions along circular features (e.g., PC angles)
+    # when plotting the trajectory over the flow field slices
+    if ColumnName.POLAR_ANGLE in column_names:
+        polar_angle_index = column_names.index(ColumnName.POLAR_ANGLE)
+        polar_angle_range = BIN_LIMITS_THETA_RESCALED if RESCALE_THETA else (-np.pi, np.pi)
+        traj[:, polar_angle_index] = rewrap_polar_angle(
+            traj[:, polar_angle_index], polar_angle_range
+        )
+        interpolated_points[:, polar_angle_index] = rewrap_polar_angle(
+            interpolated_points[:, polar_angle_index], polar_angle_range
+        )
+
     for j, ax_ in enumerate(ax):
-        ax_.plot(traj[:, 0], traj[:, j + 1], linewidth=2.5, color="navy")
+        if ColumnName.POLAR_ANGLE in column_names:
+            # identify where the trajectory wraps around by looking for large
+            # jumps in the circular feature (large enough that they exceed the
+            # threshold for half the range of the circular feature)
+            abs_diff_along_circular_feature = np.abs(np.diff(traj[:, polar_angle_index]))
+            diff_threshold = (polar_angle_range[1] - polar_angle_range[0]) / 2
+            wrap_around_mask = abs_diff_along_circular_feature > diff_threshold
+            # get the indices where the trajectory wraps around, and add 1 to
+            # get the index of the point after the wrap (where the trajectory
+            # reappears on the other side of the plot)
+            wrap_around_indices = np.where(wrap_around_mask)[0] + 1
+            # split the trajectory into segments at these indices
+            traj_segments = np.split(traj, wrap_around_indices, axis=0)
+            for segment in traj_segments:
+                ax_.plot(segment[:, 0], segment[:, j + 1], linewidth=2.5, color="navy")
+        else:
+            ax_.plot(traj[:, 0], traj[:, j + 1], linewidth=2.5, color="navy")
 
     # save the figure
     save_plot_to_path(fig, fig_savedir, f"flow_field_{name}_traj")
 
-    # 4) trajectory with equally spaced interpolated points
-    interpolated_points = data_driven_flow_field.interpolate_on_curve(traj)
+    # 3) trajectory with equally spaced interpolated points
     for j, ax_ in enumerate(ax):
         ax_.scatter(
             interpolated_points[:, 0],
