@@ -863,7 +863,7 @@ def get_dataframe_for_dynamics_workflows(
     else:
         df_filtered = df_
 
-    if crop_pattern == "tracked" and minimum_track_length is not None:
+    if crop_pattern == "tracked":
         # some additional filtering with the "is_included" column from the
         # segmentation features dataframe is needed to remove some of the
         # incorrect segmentations that are present in the tracked crops data
@@ -875,7 +875,7 @@ def get_dataframe_for_dynamics_workflows(
             ColumnName.POSITION,
             "image_index",
             ColumnName.TRACK_ID,
-            "track_duration",
+            ColumnName.TRACK_LENGTH,
             "is_included",
         ]
         df_segmentations = df_segmentations_delayed[cols_to_compute].compute()
@@ -905,8 +905,10 @@ def get_dataframe_for_dynamics_workflows(
                 f"Check the merge keys and the dataframes to ensure that the merge is correct."
             )
         df_filtered = df_filtered[df_filtered["is_included"]]
+
+    if minimum_track_length is not None:
         df_filtered = filter_dataframe_by_track_length(
-            df_filtered, "track_duration", minimum_track_length
+            df_filtered, ColumnName.TRACK_LENGTH, minimum_track_length
         )
 
     # add dataset duration description column
