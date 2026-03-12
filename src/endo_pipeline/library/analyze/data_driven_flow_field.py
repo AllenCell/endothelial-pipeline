@@ -287,6 +287,20 @@ def get_stable_fixed_points(
                     )
                 )
 
+    # check if any stable fixed points with high confidence were found, and if
+    # not, log a warning and return an empty dataframe with the correct columns
+    if len(stable_fpts_high_confidence_list) == 0:
+        logger.warning(
+            "No stable fixed points with high confidence found for dataset [ %s ]."
+            "Consider adjusting percentile thresholds or number of initial conditions for root solver.",
+            dataset_name,
+        )
+        return pd.DataFrame(
+            columns=[ColumnName.DATASET, *column_names]
+        )  # return empty dataframe with correct columns
+
+    # else, concatenate the list of dataframes for each fixed point into a
+    # single dataframe and return it
     stable_fpts_high_confidence = pd.concat(stable_fpts_high_confidence_list, ignore_index=True)
     return stable_fpts_high_confidence
 
