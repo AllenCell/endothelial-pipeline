@@ -157,12 +157,12 @@ def main(
 
     # initialize dataframes to hold drift coefficients and bin centers for all
     # datasets, with an additional column for dataset name
-    drift_coeffs_all_datasets = pd.DataFrame(columns=[ColumnName.DATASET, *drift_column_names])
-    grid_points_all_datasets = pd.DataFrame(columns=[ColumnName.DATASET, *column_names])
+    drift_coeffs_all_datasets_list = []
+    grid_points_all_datasets_list = []
 
     # initialize dataframe to hold stable fixed points from all datasets
     # with columns for dataset name and 3D PC space coordinates
-    stable_fixed_points_all_datasets = pd.DataFrame(columns=[ColumnName.DATASET, *column_names])
+    stable_fixed_points_all_datasets_list = []
 
     # initialize kernels and bin widths for each of the three variables for flow
     # field estimation
@@ -222,6 +222,7 @@ def main(
                 },
             }
         )
+        drift_coeffs_all_datasets_list.append(drift_coeffs_df)
         # To store as datframe, the grid points are padded with NaN values to
         # ensure that each column has the same number of rows. The grid
         # points will be un-padded in the visualization workflow.
@@ -244,12 +245,7 @@ def main(
                 },
             }
         )
-        drift_coeffs_all_datasets = pd.concat(
-            [drift_coeffs_all_datasets, drift_coeffs_df], ignore_index=True
-        )
-        grid_points_all_datasets = pd.concat(
-            [grid_points_all_datasets, grid_points_df], ignore_index=True
-        )
+        grid_points_all_datasets_list.append(grid_points_df)
 
         ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
         extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
@@ -275,19 +271,26 @@ def main(
         # (checking if returned dataframe is empty first to avoid issues with
         # concatenation)
         if not stable_fixed_points_dataset.empty:
-            stable_fixed_points_all_datasets = pd.concat(
-                [
-                    stable_fixed_points_all_datasets,
-                    stable_fixed_points_dataset,
-                ],
-                ignore_index=True,
-            )
+            stable_fixed_points_all_datasets_list.append(stable_fixed_points_dataset)
+
+    # concatenate dataframes for all datasets
+    drift_coeffs_all_datasets = pd.concat(drift_coeffs_all_datasets_list, ignore_index=True)
+    grid_points_all_datasets = pd.concat(grid_points_all_datasets_list, ignore_index=True)
+    stable_fixed_points_all_datasets = pd.concat(
+        stable_fixed_points_all_datasets_list, ignore_index=True
+    )
 
     # generate plot of stable fixed points from different datasets overlaid on top of each other
     # (for comparison of stable fixed points across datasets)
-    plot_stable_fixed_points_together(
-        stable_fixed_points_all_datasets, bounds_for_plots, fig_savedir, column_names
-    )
+    if not stable_fixed_points_all_datasets.empty:
+        plot_stable_fixed_points_together(
+            stable_fixed_points_all_datasets, bounds_for_plots, fig_savedir, column_names
+        )
+    else:
+        logger.warning(
+            "No stable fixed points identified across all datasets, so skipping"
+            "generation of plot comparing stable fixed points across datasets."
+        )
 
     # save stable fixed points from all datasets to parquet file
     drift_coeffs_file_name = "drift_coeffs_all_datasets.parquet"

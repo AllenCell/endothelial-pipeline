@@ -146,7 +146,7 @@ def get_stable_fixed_points(
     fpts = get_fps(drift_function, sampled_inits_for_root_solver)
 
     # filter fixed points to only keep stable ones within 2nd-98th percentiles of data
-    stable_fpts_high_confidence = pd.DataFrame(columns=[ColumnName.DATASET, *column_names])
+    stable_fpts_high_confidence_list = []
     for fpt in fpts:
         within_percentile = _is_point_within_percentile(
             fpt, feature_data, lower_percentile, upper_percentile
@@ -162,21 +162,18 @@ def get_stable_fixed_points(
             if re.search(r"stable", fpt_type, re.IGNORECASE) and not re.search(
                 r"unstable", fpt_type, re.IGNORECASE
             ):
-                stable_fpts_high_confidence = pd.concat(
-                    [
-                        stable_fpts_high_confidence,
-                        pd.DataFrame(
-                            {
-                                ColumnName.DATASET: [dataset_name],
-                                column_names[0]: [fpt[0]],
-                                column_names[1]: [fpt[1]],
-                                column_names[2]: [fpt[2]],
-                            }
-                        ),
-                    ],
-                    ignore_index=True,
+                stable_fpts_high_confidence_list.append(
+                    pd.DataFrame(
+                        {
+                            ColumnName.DATASET: [dataset_name],
+                            column_names[0]: [fpt[0]],
+                            column_names[1]: [fpt[1]],
+                            column_names[2]: [fpt[2]],
+                        }
+                    )
                 )
 
+    stable_fpts_high_confidence = pd.concat(stable_fpts_high_confidence_list, ignore_index=True)
     return stable_fpts_high_confidence
 
 
