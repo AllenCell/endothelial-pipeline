@@ -47,6 +47,9 @@ def main(
            of the three variables (if ``plot_stack`` is True).
     2. Optionally, VTK files for 3D flow field saved in the `outputs/vtk/`
        directory (if ``compute_vtk`` is True).
+    3. Optionally, a plot comparing the stable fixed points across datasets
+       overlaid on a common set of axes, saved as a PNG file in the `figs/`
+       directory (if stable fixed point data is provided for at least two datasets).
 
     Parameters
     ----------
@@ -87,7 +90,10 @@ def main(
         get_dataframe_for_dynamics_workflows,
     )
     from endo_pipeline.library.analyze.numerics.binning import get_bounds_from_data
-    from endo_pipeline.library.visualize.diffae_features.flow_field_viz import flow_field_viz_main
+    from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
+        flow_field_viz_main,
+        plot_stable_fixed_points_together,
+    )
     from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
     from endo_pipeline.manifests import (
         DataframeLocation,
@@ -136,6 +142,7 @@ def main(
         grid_points_dataframe,
         required_columns=[*column_names, ColumnName.DATASET],
     )
+    fixed_points_dataframe: pd.DataFrame | None = None
     if path_to_fixed_points_dataframe is not None:
         fixed_points_dataframe_location = DataframeLocation(
             path=Path(path_to_fixed_points_dataframe)
@@ -158,7 +165,7 @@ def main(
         grid_points_dataframe = grid_points_dataframe[
             grid_points_dataframe[ColumnName.DATASET] == dataset_names[0]
         ]
-        if path_to_fixed_points_dataframe is not None:
+        if fixed_points_dataframe is not None:
             fixed_points_dataframe = fixed_points_dataframe[
                 fixed_points_dataframe[ColumnName.DATASET] == dataset_names[0]
             ]
@@ -179,6 +186,19 @@ def main(
         dataset_names, dataframe_manifest, pca, column_names=column_names
     )
 
+    # if provided, plot stable fixed points together across datasets
+    if fixed_points_dataframe is not None:
+        plot_stable_fixed_points_together(
+            fixed_points_dataframe, bounds_for_plots, fig_savedir, column_names
+        )
+    else:
+        logger.warning(
+            "No stable fixed points identified across all datasets, so skipping"
+            "generation of plot comparing stable fixed points across datasets."
+        )
+
+    # next, loop through each dataset to visualize the flow field and trajectories in
+    # the feature space for that dataset, with fixed points overlaid if they are provided
     for dataset_name in dataset_names:
         logger.info(f"Visualizing flow field for dataset [ {dataset_name} ]")
         # load dataframe with feature data

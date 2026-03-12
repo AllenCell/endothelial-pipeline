@@ -10,8 +10,8 @@ def main(
     columns: StrList | None = None,
 ) -> None:
     """
-    Visualize 3D (drift) flow fields for the dynamics of the crop-based DiffAE
-    features for each of the single flow datasets.
+    Generate 3D (drift) flow fields for the dynamics of the crop-based DiffAE
+    features for a given set of datasets.
 
     #dynamical-systems #diffae-feature-analysis
 
@@ -20,17 +20,14 @@ def main(
     1. Estimate 3D flow fields using a Gaussian kernel method on the PCA-reduced
          DiffAE feature space.
     2. Use interpolation to get a callable flow field function.
-    3. Identify stable fixed points in the 3D flow field using a root-finding method
-        applied to the flow field function.
-    4. Save the following outputs to the `outputs/` directory:
-        - Dataframe with the estimated drift coefficients at each grid point for each dataset.
-        - Dataframe with the corresponding grid point coordinates for each dataset.
+    3. Identify stable fixed points in the 3D flow field using a root-finding
+       method applied to the flow field function.
+    4. Save the following outputs locally:
+        - Dataframe with the estimated drift coefficients at each grid point for
+          each dataset.
+        - Dataframe with the corresponding grid point coordinates for each
+          dataset.
         - Dataframe with the stable fixed point locations for each dataset.
-
-    **Visualization outputs**
-
-    - Stable fixed point locations from all datasets processed overlaid on a single
-        plot saved as a PNG file in the `figs/` directory.
 
     Parameters
     ----------
@@ -39,12 +36,13 @@ def main(
     model_manifest_name
         Name of the model manifest containing the run to load features from.
     run_name
-        Name of the specific model run to load featuref for. If None, uses the most recent run.
+        Name of the specific model run to load featuref for. If None, uses the
+        most recent run.
     crop_pattern
         The crop pattern to get features for, either "grid" or "tracked".
     columns
-        List of column names in the dataframe to use for flow field analysis. If None,
-        uses default column names specified in settings.
+        List of column names in the dataframe to use for flow field analysis. If
+        None, uses default column names specified in settings.
     """
     import logging
 
@@ -67,9 +65,6 @@ def main(
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
-    from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
-        plot_stable_fixed_points_together,
-    )
     from endo_pipeline.manifests import (
         build_dataframe_location_from_path,
         create_dataframe_manifest,
@@ -182,13 +177,6 @@ def main(
         model_manifest, run_name, crop_pattern="grid"
     )
     pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_pca)
-
-    # get common bounds for all datasets
-    # will be used for flow field plots if use_common_axis_limits is True
-    # regardless, gets used below when plotting stable fixed points together
-    bounds_for_plots = get_bounds_from_data(
-        dataset_names, dataframe_manifest, pca, column_names=column_names
-    )
 
     # initialize list to hold dataframes of stable fixed points from all
     # datasets with columns for dataset name and 3D PC space coordinates
@@ -360,21 +348,6 @@ def main(
         # add to DataframeManifest for stable fixed points for this dataset
         fixed_points_location = build_dataframe_location_from_path(stable_fixed_points_save_path)
         fixed_points_dataframe_manifest.locations[dataset_name] = fixed_points_location
-
-    # generate plot of stable fixed points from different datasets overlaid on
-    # top of each other (for comparison of stable fixed points across datasets)
-    if len(stable_fixed_points_all_datasets_list) > 0:
-        stable_fixed_points_all_datasets = pd.concat(
-            stable_fixed_points_all_datasets_list, ignore_index=True
-        )
-        plot_stable_fixed_points_together(
-            stable_fixed_points_all_datasets, bounds_for_plots, fig_savedir, column_names
-        )
-    else:
-        logger.warning(
-            "No stable fixed points identified across all datasets, so skipping"
-            "generation of plot comparing stable fixed points across datasets."
-        )
 
     # save updated dataframe manifests for drift coefficients, grid points, and
     # stable fixed points with locations for each dataset
