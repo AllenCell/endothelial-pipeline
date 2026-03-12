@@ -97,7 +97,7 @@ def _compute_percentile_values(
     """
     percentile_values: dict[str, float] = {}
     for column_name in column_names:
-        if column_name == ColumnName.POLAR_ANGLE.value:
+        if column_name == ColumnName.POLAR_ANGLE:
             percentile_value = circpercentile(data[column_name], q=q, polar_range=polar_angle_range)
         else:
             percentile_value = np.percentile(data[column_name], q=q)
