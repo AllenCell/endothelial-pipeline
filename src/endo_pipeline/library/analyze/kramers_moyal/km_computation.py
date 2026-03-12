@@ -168,18 +168,21 @@ def _convolve_histogram_with_kernel(
         norm_coeff = np.trapz(norm_coeff, dx=bin_width, axis=-1)
     kmc /= norm_coeff
 
-    # Mask out bins where the probability density is smaller than the specified tolerance
+    # Mask out bins where the probability density is smaller than the specified
+    # tolerance
     mask = np.abs(kmc[0]) < tol
     kmc[0:, mask] = np.nan
 
-    # get correct Taylor expansion coefficients (e.g., divide 2nd order powers by 2!)
-    if (
-        powers.shape[0] > 1
-    ):  # if we have higher order coefficients beyond the 0th order density coefficient
+    # get correct Taylor expansion coefficients (e.g., divide 2nd order powers
+    # by 2!, etc.)
+
+    # if we have higher order coefficients beyond the 0th order density
+    # coefficient, then we need to divide by the appropriate Taylor expansion
+    # coefficients and the 0th order coefficient to get the correct estimates of
+    # the Kramers-Moyal coefficients.
+    if powers.shape[0] > 1:
         taylors = np.prod(factorial(powers[1:]), axis=1)
-        kmc[1:, ~mask] /= (
-            taylors[..., None] * kmc[0, ~mask]
-        )  # divide by Taylor coeff * 0th order coeffs (probability density)
+        kmc[1:, ~mask] /= taylors[..., None] * kmc[0, ~mask]
 
     return kmc
 
