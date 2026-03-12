@@ -1,15 +1,9 @@
-from typing import Annotated
-
-from cyclopts import Parameter
-
-from endo_pipeline.cli import CropPattern, StrList
+from endo_pipeline.cli import CropPattern, Datasets, StrList
 from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 
 def main(
-    path_to_drift_dataframe: Annotated[str, Parameter(name="--drift")],
-    path_to_grid_points_dataframe: Annotated[str, Parameter(name="--grid-points")],
-    path_to_fixed_points_dataframe: Annotated[str | None, Parameter(name="--fixed-points")] = None,
+    datasets: Datasets | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
@@ -45,14 +39,19 @@ def main(
            slices.
         c. Optionally, 3D stack plots of the flow field visualizations in each
            of the three variables (if ``plot_stack`` is True).
-    2. Optionally, VTK files for 3D flow field saved in the `outputs/vtk/`
+    2. Optionally, VTK files for 3D flow field saved in the `vtk/`
        directory (if ``compute_vtk`` is True).
     3. Optionally, a plot comparing the stable fixed points across datasets
        overlaid on a common set of axes, saved as a PNG file in the `figs/`
-       directory (if stable fixed point data is provided for at least two datasets).
+       directory (if stable fixed point data is provided for at least two
+       datasets).
 
     Parameters
     ----------
+    datasets
+        Optional list of dataset names to visualize. If not provided, will
+        visualize all datasets in the dataframe manifest corresponding to the
+        given model manifest and run name.
     path_to_drift_dataframe
         Path to the dataframe containing the drift estimates for the 3D flow
         field.
@@ -96,14 +95,21 @@ def main(
     )
     from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
     from endo_pipeline.manifests import (
-        DataframeLocation,
+        DataframeManifest,
+        get_dataframe_location_for_dataset,
         get_feature_dataframe_manifest_name,
         load_dataframe_manifest,
         load_model_manifest,
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
     from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
-    from endo_pipeline.settings.flow_field_3d import INIT_POINT_3D, TRAJECTORY_TIME_SPAN
+    from endo_pipeline.settings.flow_field_3d import (
+        DATAFRAME_MANIFEST_PREFIX_DRIFT,
+        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        DATAFRAME_MANIFEST_PREFIX_GRID,
+        INIT_POINT_3D,
+        TRAJECTORY_TIME_SPAN,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -113,6 +119,57 @@ def main(
         model_manifest, run_name, crop_pattern=crop_pattern
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataframe_manifest_name}"
+    grid_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{dataframe_manifest_name}"
+    fixed_points_dataframe_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataframe_manifest_name}"
+    )
+    fixed_points_dataframe_manifest: DataframeManifest | None
+    try:
+        drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
+        grid_dataframe_manifest = load_dataframe_manifest(grid_dataframe_manifest_name)
+    except FileNotFoundError:
+        logger.error(
+            "Dataframe manifests for model manifest [ %s ], run name [ %s ], and crop pattern [ %s ] could not be found.",
+            model_manifest_name,
+            run_name,
+            crop_pattern,
+        )
+        raise
+    try:
+        fixed_points_dataframe_manifest = load_dataframe_manifest(
+            fixed_points_dataframe_manifest_name
+        )
+    except FileNotFoundError:
+        logger.warning(
+            "Dataframe manifest for fixed points [ %s ] could not be found, so stable fixed points "
+            "will not be overlaid on flow field visualizations.",
+            fixed_points_dataframe_manifest_name,
+        )
+        fixed_points_dataframe_manifest = None
+
+    if set(drift_dataframe_manifest.datasets) != set(grid_dataframe_manifest.datasets):
+        logger.error(
+            "Datasets in drift dataframe manifest [ %s ] do not match datasets in grid points dataframe manifest [ %s ].",
+            drift_dataframe_manifest_name,
+            grid_dataframe_manifest_name,
+        )
+        raise ValueError("Datasets in drift and grid point dataframe manifests do not match.")
+
+    # either run on specified datasets or all datasets in the manifest if no specific datasets are provided
+    valid_dataset_names = drift_dataframe_manifest.datasets
+    dataset_names = datasets or drift_dataframe_manifest.datasets
+    dataset_names = [
+        dataset_name for dataset_name in dataset_names if dataset_name in valid_dataset_names
+    ]
+    if len(dataset_names) == 0:
+        logger.error(
+            "No valid dataset names provided. Dataset names in the loaded flow field dataframe manifest [ %s ] are: [ %s ]",
+            drift_dataframe_manifest_name,
+            valid_dataset_names,
+        )
+        raise ValueError("No valid dataset names provided.")
 
     # Create output folders if they do not exist yet
     fig_savedir = get_output_path(__file__, dataframe_manifest_name, "figs")
@@ -127,48 +184,11 @@ def main(
         )
     drift_column_names = [f"{name}_drift" for name in column_names]
 
-    # load dataframes and check that required columns are present
-    drift_dataframe_location = DataframeLocation(path=Path(path_to_drift_dataframe))
-    drift_dataframe: pd.DataFrame = load_dataframe(drift_dataframe_location, delay=False)
-    check_required_columns_in_dataframe(
-        drift_dataframe,
-        required_columns=[*drift_column_names, ColumnName.DATASET],
-    )
-    grid_points_dataframe_location = DataframeLocation(path=Path(path_to_grid_points_dataframe))
-    grid_points_dataframe: pd.DataFrame = load_dataframe(
-        grid_points_dataframe_location, delay=False
-    )
-    check_required_columns_in_dataframe(
-        grid_points_dataframe,
-        required_columns=[*column_names, ColumnName.DATASET],
-    )
-    fixed_points_dataframe: pd.DataFrame | None = None
-    if path_to_fixed_points_dataframe is not None:
-        fixed_points_dataframe_location = DataframeLocation(
-            path=Path(path_to_fixed_points_dataframe)
-        )
-        fixed_points_dataframe: pd.DataFrame = load_dataframe(
-            fixed_points_dataframe_location, delay=False
-        )
-        check_required_columns_in_dataframe(
-            fixed_points_dataframe,
-            required_columns=[*column_names, ColumnName.DATASET],
-        )
-
-    dataset_names = drift_dataframe[ColumnName.DATASET].unique().tolist()
     if DEMO_MODE:
         logger.warning(
             "DEMO MODE: Using only the first dataset from the manifest for quick visualization."
         )
         dataset_names = dataset_names[:1]
-        drift_dataframe = drift_dataframe[drift_dataframe[ColumnName.DATASET] == dataset_names[0]]
-        grid_points_dataframe = grid_points_dataframe[
-            grid_points_dataframe[ColumnName.DATASET] == dataset_names[0]
-        ]
-        if fixed_points_dataframe is not None:
-            fixed_points_dataframe = fixed_points_dataframe[
-                fixed_points_dataframe[ColumnName.DATASET] == dataset_names[0]
-            ]
 
     # fit PCA using the features from the given dataframe manifest PCA always
     # fit on the grid-based features, even if the features for flow field
@@ -186,19 +206,9 @@ def main(
         dataset_names, dataframe_manifest, pca, column_names=column_names
     )
 
-    # if provided, plot stable fixed points together across datasets
-    if fixed_points_dataframe is not None:
-        plot_stable_fixed_points_together(
-            fixed_points_dataframe, bounds_for_plots, fig_savedir, column_names
-        )
-    else:
-        logger.warning(
-            "No stable fixed points identified across all datasets, so skipping"
-            "generation of plot comparing stable fixed points across datasets."
-        )
-
     # next, loop through each dataset to visualize the flow field and trajectories in
     # the feature space for that dataset, with fixed points overlaid if they are provided
+    fixed_point_dataframe_list = []
     for dataset_name in dataset_names:
         logger.info(f"Visualizing flow field for dataset [ {dataset_name} ]")
         # load dataframe with feature data
@@ -210,25 +220,58 @@ def main(
             include_not_steady_state=False,
             crop_pattern=crop_pattern,
         )[[*column_names, ColumnName.DATASET, ColumnName.TIMEPOINT]]
-        # get dataset-specific subsets of the dataframes for the drift values
-        # and grid points
-        drift_dataset: pd.DataFrame = drift_dataframe[
-            drift_dataframe[ColumnName.DATASET] == dataset_name
-        ]
-        grid_points_dataset: pd.DataFrame = grid_points_dataframe[
-            grid_points_dataframe[ColumnName.DATASET] == dataset_name
-        ]
+
+        # load flow field dataframes and check that required columns are present
+        drift_dataframe_location = get_dataframe_location_for_dataset(
+            drift_dataframe_manifest, dataset_name
+        )
+        drift_dataframe: pd.DataFrame = load_dataframe(drift_dataframe_location, delay=False)
+        check_required_columns_in_dataframe(
+            drift_dataframe,
+            required_columns=[*drift_column_names, ColumnName.DATASET],
+        )
+        grid_points_dataframe_location = get_dataframe_location_for_dataset(
+            grid_dataframe_manifest, dataset_name
+        )
+        grid_points_dataframe: pd.DataFrame = load_dataframe(
+            grid_points_dataframe_location, delay=False
+        )
+        check_required_columns_in_dataframe(
+            grid_points_dataframe,
+            required_columns=[*column_names, ColumnName.DATASET],
+        )
+
+        # load fixed point dataframe if it exists, and check that required
+        # columns are present turn fixed point dataframe into list of arrays of
+        # fixed point coordinates for each dataset to use for plotting
+        fixed_points_list: list[np.ndarray] = []
+        if fixed_points_dataframe_manifest is not None:
+            fixed_points_dataframe_location = get_dataframe_location_for_dataset(
+                fixed_points_dataframe_manifest, dataset_name
+            )
+            fixed_points_dataframe: pd.DataFrame = load_dataframe(
+                fixed_points_dataframe_location, delay=False
+            )
+            check_required_columns_in_dataframe(
+                fixed_points_dataframe,
+                required_columns=[*column_names, ColumnName.DATASET],
+            )
+            fixed_point_dataframe_list.append(fixed_points_dataframe)
+            fixed_points_list = []
+            for _, row in fixed_points_dataframe.iterrows():
+                fixed_points_list.append(row[column_names].to_numpy())
+
         # to store as datframe, the grid points were padded with NaN values to
         # ensure that each column has the same number of rows, so here we remove
         # the NaN values to get back the original grid points
-        grid_points_padded: list[np.ndarray] = [
-            grid_points_dataset[column_name].to_numpy() for column_name in column_names
+        grid_points_padded = [
+            grid_points_dataframe[column_name].to_numpy() for column_name in column_names
         ]
         grid_points_as_list = [points[~np.isnan(points)] for points in grid_points_padded]
         grid_shape = tuple(len(points) for points in grid_points_as_list)
-
-        drift_values = drift_dataset[drift_column_names].to_numpy().reshape(*grid_shape, ndim)
         grid = np.meshgrid(*grid_points_as_list, indexing="ij")
+
+        drift_values = drift_dataframe[drift_column_names].to_numpy().reshape(*grid_shape, ndim)
 
         # build flow field dict for downstream functions that expect the flow
         # field in this format
@@ -272,15 +315,6 @@ def main(
             t_span=TRAJECTORY_TIME_SPAN,
         )
 
-        # filter fixed points to only keep stable ones within 2nd-98th percentiles of data
-        fixed_points = []
-        if fixed_points_dataframe is not None:
-            fixed_points_subset = fixed_points_dataframe[
-                fixed_points_dataframe[ColumnName.DATASET] == dataset_name
-            ]
-            for _, row in fixed_points_subset.iterrows():
-                fixed_points.append(row[column_names].to_numpy())
-
         # subfolder for each dataset
         fig_savedir_dataset: Path = fig_savedir / dataset_name
         fig_savedir_dataset.mkdir(parents=True, exist_ok=True)
@@ -297,10 +331,24 @@ def main(
             feature_data,
             column_names,
             traj,
-            fixed_points,
+            fixed_points_list,
             bounds_for_plots,
             plot_stack,
             fig_savedir_dataset,
+        )
+
+    # finally, if fixed point data is available for at least two datasets, then
+    # plot the fixed points together across datasets on a common set of axes to
+    # compare their locations
+    if len(fixed_point_dataframe_list) > 1:
+        fixed_points_dataframe = pd.concat(fixed_point_dataframe_list, ignore_index=True)
+        plot_stable_fixed_points_together(
+            fixed_points_dataframe, bounds_for_plots, fig_savedir, column_names
+        )
+    else:
+        logger.warning(
+            "No stable fixed points identified for more than one dataset, so skipping"
+            "generation of plot comparing stable fixed points across datasets."
         )
 
 
