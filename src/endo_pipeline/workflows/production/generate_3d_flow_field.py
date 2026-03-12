@@ -117,8 +117,13 @@ def main(
         dataframe_manifest_name,
         include_timestamp=False,
     )
+    logger.info(
+        "Dataframes with 3D flow field estimation results will be saved to: [ %s ]",
+        dataframe_savedir,
+    )
     # figs get saved in local directory with timestamp for versioning
     fig_savedir = get_output_path(__file__, dataframe_manifest_name)
+    logger.info("Figures for 3D flow field visualization will be saved to: [ %s ]", fig_savedir)
 
     # load dataframe manifest with model feature for the given model run
     # and model manifest
@@ -163,13 +168,8 @@ def main(
         dataset_names, dataframe_manifest, pca, column_names=column_names
     )
 
-    # initialize dataframes to hold drift coefficients and bin centers for all
-    # datasets, with an additional column for dataset name
-    drift_coeffs_all_datasets_list = []
-    grid_points_all_datasets_list = []
-
-    # initialize dataframe to hold stable fixed points from all datasets
-    # with columns for dataset name and 3D PC space coordinates
+    # initialize list to hold dataframes of stable fixed points from all
+    # datasets with columns for dataset name and 3D PC space coordinates
     stable_fixed_points_all_datasets_list = []
 
     # initialize kernels and bin widths for each of the three variables for flow
@@ -230,7 +230,7 @@ def main(
                 },
             }
         )
-        drift_coeffs_all_datasets_list.append(drift_coeffs_df)
+
         # To store as datframe, the grid points are padded with NaN values to
         # ensure that each column has the same number of rows. The grid
         # points will be un-padded in the visualization workflow.
@@ -253,7 +253,31 @@ def main(
                 },
             }
         )
-        grid_points_all_datasets_list.append(grid_points_df)
+
+        # save stable fixed points from all datasets to parquet file
+        drift_coeffs_file_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataset_name}.parquet"
+        grid_points_file_name = f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{dataset_name}.parquet"
+        if DEMO_MODE:
+            drift_coeffs_save_path = make_name_unique(
+                dataframe_savedir / f"demo_{drift_coeffs_file_name}"
+            )
+            grid_points_save_path = make_name_unique(
+                dataframe_savedir / f"demo_{grid_points_file_name}"
+            )
+        else:
+            # eventually, save to FMS
+            logger.warning(
+                "Saving stable fixed points to FMS not yet implemented, saving locally instead."
+            )
+            drift_coeffs_save_path = make_name_unique(dataframe_savedir / drift_coeffs_file_name)
+            grid_points_save_path = make_name_unique(dataframe_savedir / grid_points_file_name)
+
+        drift_coeffs_df.to_parquet(
+            drift_coeffs_save_path,
+        )
+        grid_points_df.to_parquet(
+            grid_points_save_path,
+        )
 
         ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
         extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
@@ -277,21 +301,39 @@ def main(
         )
 
         # add stable fixed points from this dataset to the overall dataframe
-        # (checking if returned dataframe is empty first to avoid issues with
-        # concatenation)
-        if not stable_fixed_points_dataset.empty:
-            stable_fixed_points_all_datasets_list.append(stable_fixed_points_dataset)
+        # (checking first if returned dataframe is empty first to avoid issues
+        # with concatenation and saving an empty dataframe)
+        if stable_fixed_points_dataset.empty:
+            continue
 
-    # concatenate dataframes for all datasets
-    drift_coeffs_all_datasets = pd.concat(drift_coeffs_all_datasets_list, ignore_index=True)
-    grid_points_all_datasets = pd.concat(grid_points_all_datasets_list, ignore_index=True)
-    stable_fixed_points_all_datasets = pd.concat(
-        stable_fixed_points_all_datasets_list, ignore_index=True
-    )
+        stable_fixed_points_all_datasets_list.append(stable_fixed_points_dataset)
 
-    # generate plot of stable fixed points from different datasets overlaid on top of each other
-    # (for comparison of stable fixed points across datasets)
-    if not stable_fixed_points_all_datasets.empty:
+        # save stable fixed points from this dataset to parquet file
+        stable_fixed_points_file_name = (
+            f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataset_name}.parquet"
+        )
+        if DEMO_MODE:
+            stable_fixed_points_save_path = make_name_unique(
+                dataframe_savedir / f"demo_{stable_fixed_points_file_name}"
+            )
+        else:
+            # eventually, save to FMS
+            logger.warning(
+                "Saving stable fixed points to FMS not yet implemented, saving locally instead."
+            )
+            stable_fixed_points_save_path = make_name_unique(
+                dataframe_savedir / stable_fixed_points_file_name
+            )
+        stable_fixed_points_dataset.to_parquet(
+            stable_fixed_points_save_path,
+        )
+
+    # generate plot of stable fixed points from different datasets overlaid on
+    # top of each other (for comparison of stable fixed points across datasets)
+    if len(stable_fixed_points_all_datasets_list) > 0:
+        stable_fixed_points_all_datasets = pd.concat(
+            stable_fixed_points_all_datasets_list, ignore_index=True
+        )
         plot_stable_fixed_points_together(
             stable_fixed_points_all_datasets, bounds_for_plots, fig_savedir, column_names
         )
@@ -300,53 +342,6 @@ def main(
             "No stable fixed points identified across all datasets, so skipping"
             "generation of plot comparing stable fixed points across datasets."
         )
-
-    # save stable fixed points from all datasets to parquet file
-    drift_coeffs_file_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_all_datasets.parquet"
-    grid_points_file_name = f"{DATAFRAME_MANIFEST_PREFIX_GRID}_all_datasets.parquet"
-    fixed_points_file_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_all_datasets.parquet"
-    if DEMO_MODE:
-        drift_coeffs_save_path = make_name_unique(
-            dataframe_savedir / f"demo_{drift_coeffs_file_name}"
-        )
-        grid_points_save_path = make_name_unique(
-            dataframe_savedir / f"demo_{grid_points_file_name}"
-        )
-        stable_fixed_points_save_path = make_name_unique(
-            dataframe_savedir / f"demo_{fixed_points_file_name}"
-        )
-    else:
-        # eventually, save to FMS
-        logger.warning(
-            "Saving stable fixed points to FMS not yet implemented, saving locally instead."
-        )
-        drift_coeffs_save_path = make_name_unique(dataframe_savedir / drift_coeffs_file_name)
-        grid_points_save_path = make_name_unique(dataframe_savedir / grid_points_file_name)
-        stable_fixed_points_save_path = make_name_unique(dataframe_savedir / fixed_points_file_name)
-
-    logger.info(
-        "Saving drift coefficients from all datasets to [ %s ]",
-        drift_coeffs_save_path,
-    )
-    drift_coeffs_all_datasets.to_parquet(
-        drift_coeffs_save_path,
-    )
-
-    logger.info(
-        "Saving grid points for drift coefficients from all datasets to [ %s ]",
-        grid_points_save_path,
-    )
-    grid_points_all_datasets.to_parquet(
-        grid_points_save_path,
-    )
-
-    logger.info(
-        "Saving stable fixed points from all datasets to [ %s ]",
-        stable_fixed_points_save_path,
-    )
-    stable_fixed_points_all_datasets.to_parquet(
-        stable_fixed_points_save_path,
-    )
 
 
 if __name__ == "__main__":
