@@ -1,0 +1,100 @@
+name: optical_flow_bf
+workflow: compute_optical_flow_feats
+parameters: {}
+locations:
+  20250428_20X:
+    fmsid: b1da3cd332104eaf9510485419afc47f
+    path: null
+    s3uri: null
+  20250618_20X:
+    fmsid: 66bfac761eb4490f8b7fe4576ed12e12
+    path: null
+    s3uri: null
+  20250319_20X:
+    fmsid: cb42d7bf519649ab82621a10096eacd1
+    path: null
+    s3uri: null
+  20250813_20X:
+    fmsid: 29a226bb46c2449d8ec01ae63e023f7d
+    path: null
+    s3uri: null
+  20250611_20X:
+    fmsid: cfee20e3c4904494a68118bcc4625d17
+    path: null
+    s3uri: null
+  20250818_20X:
+    fmsid: de911a69ef974ae6b454cec3ec94bf23
+    path: null
+    s3uri: null
+  20250714_20X:
+    fmsid: b6c2a453607d4aad831b4238e61be00f
+    path: null
+    s3uri: null
+  20250827_20X:
+    fmsid: 13195cbdf6e54537bed81ada070dc687
+    path: null
+    s3uri: null
+  20250402_20X:
+    fmsid: 4426ac5698d548908dd90cad0b2cbb27
+    path: null
+    s3uri: null
+  20250409_20X:
+    fmsid: 4f85366d635242a1af32a73e18fcf2b3
+    path: null
+    s3uri: null
+  20250716_20X:
+    fmsid: 0ce7e4b17d564eec85e820d106b5b792
+    path: null
+    s3uri: null
+  20250604_20X:
+    fmsid: 9f589830cf004fba9ca43983272f8b34
+    path: null
+    s3uri: null
+  20260121_20X:
+    fmsid: cb27a2df7ad34020b776f12904719e6d
+    path: null
+    s3uri: null
+  20260126_20X:
+    fmsid: db5c6f7564fa470487262b40dedb22f9
+    path: null
+    s3uri: null
+  20250326_20X:
+    fmsid: 984a38f1ee2c4726a9d020012db072db
+    path: null
+    s3uri: null
+  20251001_20X:
+    fmsid: c9102972951b4b66b20c6120644c8a2a
+    path: null
+    s3uri: null
+  20250728_20X:
+    fmsid: 5992d51a15d44420bac2089ea0df8d9c
+    path: null
+    s3uri: null
+  20250224_20X:
+    fmsid: b00f628f53af4755be1b680fbdd0f2b4
+    path: null
+    s3uri: null
+  20250806_20X:
+    fmsid: d39b0b8ba1094d4ba3715172cf3acc2c
+    path: null
+    s3uri: null
+  20250825_20X:
+    fmsid: 680192e6cc2d435295349bda38ea1d99
+    path: null
+    s3uri: null
+  20260114_20X:
+    fmsid: 33fd0b3cbe77408b850f3a0954ba3cd2
+    path: null
+    s3uri: null
+  20260128_20X:
+    fmsid: e785fc26e60b4ebcb56ecf5e869612e9
+    path: null
+    s3uri: null
+  20260202_20X:
+    fmsid: 266a5899379d486297c0484258a6f078
+    path: null
+    s3uri: null
+  20260204_20X:
+    fmsid: ab9253ab61fb44f8bb39777780442728
+    path: null
+    s3uri: null
