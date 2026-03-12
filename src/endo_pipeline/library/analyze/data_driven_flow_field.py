@@ -105,7 +105,7 @@ def _compute_percentile_values(
     return percentile_values
 
 
-def _is_point_within_percentile_bounds(
+def is_point_within_percentile_bounds(
     point: np.ndarray | tuple[float, ...],
     column_names: list[str],
     lower_percentile_bounds: dict[str, float],
@@ -374,7 +374,7 @@ def ddff_model_analysis(
     )
     stable_fpts_high_confidence = []
     for fpt in fpts:
-        within_percentile = _is_point_within_percentile_bounds(
+        within_percentile = is_point_within_percentile_bounds(
             fpt, column_names, lower_percentile_bounds, upper_percentile_bounds, polar_angle_range
         )
         if within_percentile:
