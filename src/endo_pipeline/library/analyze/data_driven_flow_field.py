@@ -163,23 +163,23 @@ def _is_point_within_percentile_bounds(
     :
         True if point is within the percentile bounds on all axes, else False.
     """
-    num_variables = len(column_names)
-    is_within_bounds = np.zeros(num_variables, dtype=bool)
+    is_within_bounds = []
     for i, column_name in enumerate(column_names):
         lower_bound = lower_percentile_bounds[column_name]
         upper_bound = upper_percentile_bounds[column_name]
         if column_name == ColumnName.POLAR_ANGLE:
             # for circular variables, need to account for bounds wrapping around
             if lower_bound <= upper_bound:
-                is_within_bounds[i] = (lower_bound <= point[i]) & (point[i] <= upper_bound)
+                is_within_bounds.append((lower_bound <= point[i]) & (point[i] <= upper_bound))
             else:
                 # check if point is within bounds accounting for wraparound
                 # and given polar range (e.g. [0, 2pi] or [-pi, pi])
-                is_within_bounds[i] = (polar_angle_range[1] >= point[i] >= lower_bound) | (
-                    polar_angle_range[0] <= point[i] <= upper_bound
+                is_within_bounds.append(
+                    (polar_angle_range[1] >= point[i] >= lower_bound)
+                    | (polar_angle_range[0] <= point[i] <= upper_bound)
                 )
         else:
-            is_within_bounds[i] = (lower_bound <= point[i]) & (point[i] <= upper_bound)
+            is_within_bounds.append((lower_bound <= point[i]) & (point[i] <= upper_bound))
     return np.all(is_within_bounds)
 
 
