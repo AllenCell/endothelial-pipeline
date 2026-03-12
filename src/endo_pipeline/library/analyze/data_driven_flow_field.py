@@ -168,7 +168,7 @@ def _is_point_within_percentile_bounds(
     for i, column_name in enumerate(column_names):
         lower_bound = lower_percentile_bounds[column_name]
         upper_bound = upper_percentile_bounds[column_name]
-        if column_name == ColumnName.POLAR_ANGLE.value:
+        if column_name == ColumnName.POLAR_ANGLE:
             # for circular variables, need to account for bounds wrapping around
             if lower_bound <= upper_bound:
                 is_within_bounds[i] = (lower_bound <= point[i]) & (point[i] <= upper_bound)
