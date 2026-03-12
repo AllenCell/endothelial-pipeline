@@ -42,7 +42,7 @@ class ColumnNameSeg(StrEnum):
     MIN_NUM_VALID_TIMEPOINTS_PER_TRACK = "min_num_valid_tp_per_track"
     NUM_VALID_TIMEPOINTS_IN_TRACK = "num_valid_tp_per_track"
 
-    IS_EDGE_BBOX = "bbox_is_in_bounds"
+    IS_VALID_BBOX = "bbox_is_in_bounds"
 
     # annotation columns
     AUTO_BF_SCOPE_ERROR = "auto_bf_scope_error"

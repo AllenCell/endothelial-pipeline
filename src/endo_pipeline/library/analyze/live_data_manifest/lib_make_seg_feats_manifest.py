@@ -30,6 +30,7 @@ from endo_pipeline.manifests import (
     load_image_manifest,
 )
 from endo_pipeline.settings.image_data import DIMENSION_ORDER
+from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,7 @@ def merge_measured_segmentation_features_tables(
 
 
 def remove_redundant_columns(big_table: pd.DataFrame) -> pd.DataFrame:
-    """Remove redundant columns and rename columns for consistency and readability."""
+    """Remove duplicated columns resulting from the merging of dataframes."""
     # the following columns are redundant with another in the table and
     # can be dropped:
     duplicate_cols = [
@@ -112,24 +113,24 @@ def sanitize_column_names(big_table: pd.DataFrame) -> pd.DataFrame:
     """Make the column names consistent with elsewhere in the code base."""
     # NOTE: maybe you don't need to rename ALL of the columns and can instead just
     # rename the ones that are shared with the dynamics workflow
-    # dataset_info_cols_to_rename = {
-    #     "dataset_name": ColumnNameSeg.DATASET,
-    #     "position": ColumnNameSeg.POSITION,
-    #     "T": ColumnNameSeg.TIMEPOINT,
-    #     "track_id": ColumnNameSeg.TRACK_ID,
-    #     "label": ColumnNameSeg.LABEL,
-    #     "num_unique_tracks_after_filtering_at_T": ColumnNameSeg.NUM_TRACKS_AFTER_FILTERING,
-    #     "num_unique_tracks_before_filtering_at_T": ColumnNameSeg.NUM_TRACKS_BEFORE_FILTERING,
-    #     "shear_stress_regime": ColumnNameSeg.SHEAR_STRESS_REGIME,
-    # }
-    # filter_cols_to_rename = {
-    #     "is_included": ColumnNameSeg.IS_INCLUDED,
-    #     "is_edge_segmentation": ColumnNameSeg.IS_EDGE_SEGMENTATION,
-    #     "is_less_than_max_smoothed_area_normd_change": ColumnNameSeg.IS_LESS_THAN_MAX_SMOOTHED_AREA_NORMD_CHANGE,
-    #     "is_greater_than_min_track_duration": ColumnNameSeg.IS_GREATER_THAN_MIN_TRACK_DURATION,
-    #     "has_more_than_min_num_valid_points_per_track": ColumnNameSeg.HAS_MORE_THAN_MIN_NUM_VALID_POINTS_PER_TRACK,
-    #     "bbox_is_in_bounds": ColumnNameSeg.IS_EDGE_BBOX,
-    # }
+    dataset_info_cols = {
+        "dataset_name": ColumnNameSeg.DATASET,
+        "position": ColumnNameSeg.POSITION,
+        "T": ColumnNameSeg.TIMEPOINT,
+        "track_id": ColumnNameSeg.TRACK_ID,
+        "label": ColumnNameSeg.LABEL,
+        "num_unique_tracks_after_filtering_at_T": ColumnNameSeg.NUM_TRACKS_AFTER_FILTERING,
+        "num_unique_tracks_before_filtering_at_T": ColumnNameSeg.NUM_TRACKS_BEFORE_FILTERING,
+        "shear_stress_regime": ColumnNameSeg.SHEAR_STRESS_REGIME,
+    }
+    filter_cols = {
+        "is_included": ColumnNameSeg.IS_INCLUDED,
+        "is_edge_segmentation": ColumnNameSeg.IS_EDGE_SEGMENTATION,
+        "is_less_than_max_smoothed_area_normd_change": ColumnNameSeg.IS_LESS_THAN_MAX_SMOOTHED_AREA_NORMD_CHANGE,
+        "is_greater_than_min_track_duration": ColumnNameSeg.IS_GREATER_THAN_MIN_TRACK_DURATION,
+        "has_more_than_min_num_valid_points_per_track": ColumnNameSeg.HAS_MORE_THAN_MIN_NUM_VALID_POINTS_PER_TRACK,
+        "bbox_is_in_bounds": ColumnNameSeg.IS_VALID_BBOX,
+    }
     # annotation_cols_to_rename = {
     #     "auto_bf_scope_error": ColumnNameSeg.AUTO_BF_SCOPE_ERROR,
     #     "auto_bf_temp_artifact": ColumnNameSeg.AUTO_BF_TEMP_ARTIFACT,
@@ -140,48 +141,69 @@ def sanitize_column_names(big_table: pd.DataFrame) -> pd.DataFrame:
     #     "cell_piling": ColumnNameSeg.CELL_PILING,
     #     "not_steady_state": ColumnNameSeg.NOT_STEADY_STATE,
     # }
-    # temporal_feature_cols_to_rename = {
-    #     "time_hours": ColumnNameSeg.TIME_HRS,
-    #     "time_minutes": ColumnNameSeg.TIME_MINS,
-    #     "track_duration": ColumnNameSeg.TRACK_DURATION,
-    # }
-    # morpho_feature_cols_to_rename = {
-    #     "orientation": ColumnNameSeg.ORIENTATION,
-    #     "alignment_rel_to_flow": ColumnNameSeg.ALIGNMENT,
-    #     "alignment_deg_rel_to_flow": ColumnNameSeg.ALIGNMENT_DEG,
-    #     "orientation_deg": ColumnNameSeg.ORIENTATION_DEG,
-    #     "nematic_order": ColumnNameSeg.NEMATIC_ORDER,
-    #     "aspect_ratio": ColumnNameSeg.ASPECT_RATIO,
-    #     "eccentricity": ColumnNameSeg.ECCENTRICITY,
-    #     "major_axis_length": ColumnNameSeg.MAJOR_AXIS,
-    #     "minor_axis_length": ColumnNameSeg.MINOR_AXIS,
-    #     "solidity": ColumnNameSeg.SOLIDITY,
-    #     "area (um**2)": ColumnNameSeg.AREA,
-    #     "perimeter (um)": ColumnNameSeg.PERIMETER,
-    #     "nucpos_rel_cell_X": ColumnNameSeg.NUCLEI_POSITION_X,
-    #     "nucpos_rel_cell_Y": ColumnNameSeg.NUCLEI_POSITION_Y,
-    #     "nucpos_rel_cell_angle": ColumnNameSeg.NUCLEI_POSITION_ANGLE,
-    #     "nucpos_rel_cell_angle_deg": ColumnNameSeg.NUCLEI_POSITION_ANGLE_DEG,
-    #     "nuc_pos_rel_cell_magnitude": ColumnNameSeg.NUCLEI_POSITION_MAGNITUDE,
-    # }
-    # crop_based_feature_cols_to_rename = {
-    #     "num_nuclei_in_crop": ColumnNameSeg.NUM_NUCLEI_IN_CROP,
-    #     "all_labels_in_crop": ColumnNameSeg.LABELS_IN_CROP,
-    #     "start_x": ColumnNameSeg.START_X,
-    #     "start_y": ColumnNameSeg.START_Y,
-    #     "end_x": ColumnNameSeg.END_X,
-    #     "end_y": ColumnNameSeg.END_Y,
-    #     "crop_size": ColumnNameSeg.CROP_SIZE,
-    # }
-    # other_feature_cols_to_rename = {
-    #     "number_of_neighbors": ColumnNameSeg.NUM_NEIGHBORS,
-    #     "neighboring_cell_labels": ColumnNameSeg.LABELS_OF_NEIGHBORS,
-    #     "centroid": ColumnNameSeg.CENTROID,
-    #     "centroid_X": ColumnNameSeg.CENTROID_X,
-    #     "centroid_Y": ColumnNameSeg.CENTROID_Y,
-    # }
+    temporal_feature_cols = {
+        "time_hours": ColumnNameSeg.TIME_HRS,
+        "time_minutes": ColumnNameSeg.TIME_MINS,
+        "track_duration": ColumnNameSeg.TRACK_DURATION,
+    }
+    morpho_feature_cols = {
+        "orientation": ColumnNameSeg.ORIENTATION,
+        "alignment_rel_to_flow": ColumnNameSeg.ALIGNMENT,
+        "alignment_deg_rel_to_flow": ColumnNameSeg.ALIGNMENT_DEG,
+        "orientation_deg": ColumnNameSeg.ORIENTATION_DEG,
+        "nematic_order": ColumnNameSeg.NEMATIC_ORDER,
+        "aspect_ratio": ColumnNameSeg.ASPECT_RATIO,
+        "eccentricity": ColumnNameSeg.ECCENTRICITY,
+        "major_axis_length": ColumnNameSeg.MAJOR_AXIS,
+        "minor_axis_length": ColumnNameSeg.MINOR_AXIS,
+        "solidity": ColumnNameSeg.SOLIDITY,
+        "area (um**2)": ColumnNameSeg.AREA,
+        "perimeter (um)": ColumnNameSeg.PERIMETER,
+        "nucpos_rel_cell_X": ColumnNameSeg.NUCLEI_POSITION_X,
+        "nucpos_rel_cell_Y": ColumnNameSeg.NUCLEI_POSITION_Y,
+        "nucpos_rel_cell_angle": ColumnNameSeg.NUCLEI_POSITION_ANGLE,
+        "nucpos_rel_cell_angle_deg": ColumnNameSeg.NUCLEI_POSITION_ANGLE_DEG,
+        "nuc_pos_rel_cell_magnitude": ColumnNameSeg.NUCLEI_POSITION_MAGNITUDE,
+    }
+    fluorescence_feature_cols = {
+        "edge_fluorescences (a.u.)": ColumnNameSeg.EDGE_FLUOR,
+        "node_fluorescences (a.u.)": ColumnNameSeg.NODE_FLUOR,
+        "cell_fluorescence_mean (a.u.)": ColumnNameSeg.CELL_FLUOR_MEAN,
+        "edge_fluorescence_means (a.u.)": ColumnNameSeg.EDGE_FLUOR_MEAN,
+        "node_fluorescence_means (a.u.)": ColumnNameSeg.NODE_FLUOR_MEAN,
+        "edge_and_node_fluorescence_means (a.u.)": ColumnNameSeg.EDGE_AND_NODE_FLUOR_MEAN,
+        "cell_fluorescence_std (a.u.)": ColumnNameSeg.CELL_FLUOR_STD,
+        "edge_fluorescence_std (a.u.)": ColumnNameSeg.EDGE_FLUOR_STD,
+        "node_fluorescence_std (a.u.)": ColumnNameSeg.NODE_FLUOR_STD,
+        "edge_and_node_fluorescence_std (a.u.)": ColumnNameSeg.EDGE_AND_NODE_FLUOR_STD,
+    }
+    crop_based_feature_cols = {
+        "num_nuclei_in_crop": ColumnNameSeg.NUM_NUCLEI_IN_CROP,
+        "all_labels_in_crop": ColumnNameSeg.LABELS_IN_CROP,
+        "start_x": ColumnNameSeg.START_X,
+        "start_y": ColumnNameSeg.START_Y,
+        "end_x": ColumnNameSeg.END_X,
+        "end_y": ColumnNameSeg.END_Y,
+        "crop_size": ColumnNameSeg.CROP_SIZE,
+    }
+    other_feature_cols = {
+        "number_of_neighbors": ColumnNameSeg.NUM_NEIGHBORS,
+        "neighboring_cell_labels": ColumnNameSeg.LABELS_OF_NEIGHBORS,
+        "centroid": ColumnNameSeg.CENTROID,
+        "centroid_X": ColumnNameSeg.CENTROID_X,
+        "centroid_Y": ColumnNameSeg.CENTROID_Y,
+    }
+    cols_to_rename = {
+        **dataset_info_cols,
+        **filter_cols,
+        **temporal_feature_cols,
+        **morpho_feature_cols,
+        **fluorescence_feature_cols,
+        **crop_based_feature_cols,
+        **other_feature_cols,
+    }
 
-    # big_table = big_table.rename(columns={})
+    big_table = big_table.rename(columns=cols_to_rename)
     return big_table
 
 
@@ -630,7 +652,7 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
         "start_x",
         "end_x",
         "diffae_resolution_level_to_use",
-        "bbox_is_in_bounds",
+        ColumnNameSeg.IS_VALID_BBOX,
     ]
     num_nuclei_in_crop_df = add_num_nuclei_in_crop_column(
         big_table[required_columns], use_precomputed=False
@@ -1343,7 +1365,7 @@ def add_all_labels_in_crop_column(
     labels_in_crop_subdir.mkdir(parents=True, exist_ok=True)
     labels_in_crop_path = labels_in_crop_dir / f"{dataset}_labels_in_crop.parquet"
 
-    df = big_table[big_table.bbox_is_in_bounds]
+    df = big_table[big_table[ColumnNameSeg.IS_VALID_BBOX]]
 
     if use_precomputed:
         df = pd.read_parquet(labels_in_crop_dir / f"{dataset}_labels_in_crop.parquet")

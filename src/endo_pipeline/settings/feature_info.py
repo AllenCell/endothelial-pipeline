@@ -27,7 +27,6 @@ LABEL_MAP = {
     "has_more_than_min_num_valid_points_per_track": "Filter: Num Valid Points Exceeds Threshold",
     "is_included": "Filter: Passed All Filters",
     # Cell-centric DiffAE features and PCs
-    "pc_1": "PC 1",
     **{
         f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}"
         for pc_col in DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
