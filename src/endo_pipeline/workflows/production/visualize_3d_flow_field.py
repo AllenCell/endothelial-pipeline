@@ -189,6 +189,9 @@ def main(
             "DEMO MODE: Using only the first dataset from the manifest for quick visualization."
         )
         dataset_names = dataset_names[:1]
+        drift_dataframe_manifest_name = f"demo_{drift_dataframe_manifest_name}"
+        grid_dataframe_manifest_name = f"demo_{grid_dataframe_manifest_name}"
+        fixed_points_dataframe_manifest_name = f"demo_{fixed_points_dataframe_manifest_name}"
 
     # fit PCA using the features from the given dataframe manifest PCA always
     # fit on the grid-based features, even if the features for flow field

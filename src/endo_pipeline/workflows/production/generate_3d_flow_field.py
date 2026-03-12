@@ -160,6 +160,9 @@ def main(
             "DEMO MODE: Using only the first dataset from the manifest for quick testing."
         )
         dataset_names = dataset_names[:1]
+        drift_dataframe_manifest_name = f"demo_{drift_dataframe_manifest_name}"
+        grid_dataframe_manifest_name = f"demo_{grid_dataframe_manifest_name}"
+        fixed_points_dataframe_manifest_name = f"demo_{fixed_points_dataframe_manifest_name}"
 
     # get feature column names to use for flow field analysis
     column_names: list[str] = columns or list(DYNAMICS_COLUMN_NAMES)
