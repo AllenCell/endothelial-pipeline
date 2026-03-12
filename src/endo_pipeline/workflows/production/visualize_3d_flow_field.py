@@ -84,6 +84,7 @@ def main(
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         check_required_columns_in_dataframe,
         fit_pca,
+        get_dataframe_for_dynamics_workflows,
     )
     from endo_pipeline.library.analyze.numerics.binning import get_bounds_from_data
     from endo_pipeline.library.visualize.diffae_features.flow_field_viz import flow_field_viz_main
@@ -180,6 +181,17 @@ def main(
 
     for dataset_name in dataset_names:
         logger.info(f"Visualizing flow field for dataset [ {dataset_name} ]")
+        # load dataframe with feature data
+        feature_data = get_dataframe_for_dynamics_workflows(
+            dataset_name,
+            dataframe_manifest,
+            pca=pca,
+            include_cell_piling=False,
+            include_not_steady_state=False,
+            crop_pattern=crop_pattern,
+        )[[*column_names, ColumnName.DATASET, ColumnName.TIMEPOINT]]
+        # get dataset-specific subsets of the dataframes for the drift values
+        # and grid points
         drift_dataset: pd.DataFrame = drift_dataframe[
             drift_dataframe[ColumnName.DATASET] == dataset_name
         ]
@@ -233,9 +245,12 @@ def main(
         extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
             drift_values, grid_points_as_list, method="linear", for_vtk_files=False
         )
-        time_span = (0, TRAJECTORY_TIME_SPAN)
-        init_for_traj = np.array(INIT_POINT_3D)
-        traj = solve_ddff_ode(extrapolated_flow_field_dict_reg, init_for_traj, time_span)
+
+        traj = solve_ddff_ode(
+            extrapolated_flow_field_dict_reg,
+            init=np.array(INIT_POINT_3D),
+            t_span=TRAJECTORY_TIME_SPAN,
+        )
 
         # filter fixed points to only keep stable ones within 2nd-98th percentiles of data
         fixed_points = []
@@ -259,7 +274,7 @@ def main(
         # call main visualization function
         flow_field_viz_main(
             flow_field_dict,
-            drift_dataset,
+            feature_data,
             column_names,
             traj,
             fixed_points,
