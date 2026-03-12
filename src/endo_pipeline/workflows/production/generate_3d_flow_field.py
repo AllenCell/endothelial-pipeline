@@ -87,6 +87,10 @@ def main(
     )
     from endo_pipeline.settings.flow_field_3d import (
         BIN_WIDTH_DEFAULTS,
+        DATAFRAME_MANIFEST_PREFIX_DRIFT,
+        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        DATAFRAME_MANIFEST_PREFIX_GRID,
+        DATAFRAME_OUTPUT_DIR,
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         KERNEL_BANDWIDTH,
         KERNEL_FUNCTION_NAME,
@@ -105,13 +109,16 @@ def main(
         model_manifest, run_name, crop_pattern=crop_pattern
     )
 
-    # Create output folders if they do not exist yet
-    output_savedir = get_output_path(
-        __file__,
+    # Create output folders if they do not exist yet for dataframes, save in
+    # local directory without timestamp for intermediate level of "static-ness"
+    # (ensure they don't get periodically deleted)
+    dataframe_savedir = get_output_path(
+        DATAFRAME_OUTPUT_DIR,
         dataframe_manifest_name,
-        "outputs",
+        include_timestamp=False,
     )
-    fig_savedir = get_output_path(__file__, dataframe_manifest_name, "figs")
+    # figs get saved in local directory with timestamp for versioning
+    fig_savedir = get_output_path(__file__, dataframe_manifest_name)
 
     # load dataframe manifest with model feature for the given model run
     # and model manifest
@@ -295,23 +302,27 @@ def main(
         )
 
     # save stable fixed points from all datasets to parquet file
-    drift_coeffs_file_name = "drift_coeffs_all_datasets.parquet"
-    grid_points_file_name = "grid_points_all_datasets.parquet"
-    fixed_points_file_name = "stable_fixed_points_all_datasets.parquet"
+    drift_coeffs_file_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_all_datasets.parquet"
+    grid_points_file_name = f"{DATAFRAME_MANIFEST_PREFIX_GRID}_all_datasets.parquet"
+    fixed_points_file_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_all_datasets.parquet"
     if DEMO_MODE:
-        drift_coeffs_save_path = make_name_unique(output_savedir / f"demo_{drift_coeffs_file_name}")
-        grid_points_save_path = make_name_unique(output_savedir / f"demo_{grid_points_file_name}")
+        drift_coeffs_save_path = make_name_unique(
+            dataframe_savedir / f"demo_{drift_coeffs_file_name}"
+        )
+        grid_points_save_path = make_name_unique(
+            dataframe_savedir / f"demo_{grid_points_file_name}"
+        )
         stable_fixed_points_save_path = make_name_unique(
-            output_savedir / f"demo_{fixed_points_file_name}"
+            dataframe_savedir / f"demo_{fixed_points_file_name}"
         )
     else:
         # eventually, save to FMS
         logger.warning(
             "Saving stable fixed points to FMS not yet implemented, saving locally instead."
         )
-        drift_coeffs_save_path = make_name_unique(output_savedir / drift_coeffs_file_name)
-        grid_points_save_path = make_name_unique(output_savedir / grid_points_file_name)
-        stable_fixed_points_save_path = make_name_unique(output_savedir / fixed_points_file_name)
+        drift_coeffs_save_path = make_name_unique(dataframe_savedir / drift_coeffs_file_name)
+        grid_points_save_path = make_name_unique(dataframe_savedir / grid_points_file_name)
+        stable_fixed_points_save_path = make_name_unique(dataframe_savedir / fixed_points_file_name)
 
     logger.info(
         "Saving drift coefficients from all datasets to [ %s ]",
