@@ -92,7 +92,7 @@ def load_images_sequentially(
         # loop in memory while we continue on with the tracking workflow before
         # continuing this loop
         if return_filepaths_and_crops_instead:
-            yield image_location, tp, tps_chunk_new
+            yield tp, tps_chunk_new
         else:
             # initialize a list to hold the new images that will be loaded in this iteration
             new_images: list = []
@@ -106,7 +106,7 @@ def load_images_sequentially(
             # update the list of loaded images to include the new images
             loaded_images += new_images
 
-            yield image_location, tp, loaded_images
+            yield tp, loaded_images
 
 
 def match_labels_from_images(
@@ -1091,7 +1091,7 @@ def run_tracking(
     image_location: ImageLocation,
     timepoints_to_eval: range,
     out_dir: Path,
-    out_filename_prefix: str | None | None = None,
+    out_filename_prefix: str | None = None,
     tracking_metrics: list[str] = ["region_overlap"],  # for nuclei try 'centroids'
     track_tolerance: int = 0,
 ) -> None:
@@ -1113,26 +1113,18 @@ def run_tracking(
     """
 
     out_dir = Path(out_dir)
+    out_filename_prefix = out_filename_prefix or out_dir.stem
 
     logger.debug("Generating tracks...")
-    results = generate_tracks(
+    track_table = generate_tracks(
         image_location=image_location,
         timeframes_for_table=timepoints_to_eval,
         tracking_metrics=tracking_metrics,
         image_buffer_prior=0,
         image_buffer_next=track_tolerance + 1,
+        output_name=out_filename_prefix,
     )
 
-    for image_loc, tp, track_table in tqdm(
-        results,
-        total=len(timepoints_to_eval),
-        desc=f"{(out_filename_prefix or Path(out_dir).name)}",
-        unit="frame",
-        position=1,
-    ):
-        pass
-
-    out_filename_prefix = out_filename_prefix or out_dir.stem
     table_out_name = f"{out_filename_prefix}_tracking.parquet"
     out_path = out_dir / table_out_name
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -1163,7 +1155,7 @@ def update_track_table(
     image_buffer_prior: int = 0,
     image_buffer_next: int = 1,
     reference_index: int = 0,
-) -> tuple:
+) -> pd.DataFrame:
 
     logger.debug("- updating tracks...")
 
@@ -1246,15 +1238,7 @@ def update_track_table(
         else new_track_ids
     )
 
-    # relabel images
-    logger.debug("- relabeling images...")
-    track_labeled_image = relabel_array_values(
-        original_array=labeled_images[reference_index],
-        original_values=new_track_ids["label"],
-        relabel_values=new_track_ids["track_id"],
-    )
-
-    return track_labeled_image, new_track_ids, existing_track_ids
+    return existing_track_ids
 
 
 def relabel_array_values(
@@ -1276,10 +1260,11 @@ def relabel_array_values(
 def generate_tracks(
     image_location: ImageLocation,
     timeframes_for_table: range,
+    output_name: str,
     tracking_metrics: list = ["centroid"],
     image_buffer_prior: int = 0,
     image_buffer_next: int = 1,
-) -> Generator:
+) -> pd.DataFrame:
     """
     Will build tracks from images and save a version of the images relabeled according to
     track_id as well as a table of the results to out_dir.
@@ -1298,11 +1283,16 @@ def generate_tracks(
     )
 
     track_table = pd.DataFrame()
-    for fp, current_T, labeled_images in paths_timepoints_labeled_images_all:
+    for current_T, labeled_images in tqdm(
+        paths_timepoints_labeled_images_all,
+        total=len(timeframes_for_table),
+        desc=output_name,
+        unit="frame",
+        position=1,
+    ):
+        logger.debug(f"Working on {output_name}...")
 
-        logger.debug(f"Working on {fp.path.name}...")
-
-        track_labeled_image, _, track_table = update_track_table(
+        track_table = update_track_table(
             labeled_images,
             track_table,
             current_T,
@@ -1312,7 +1302,7 @@ def generate_tracks(
             reference_index=0,
         )
 
-        yield fp, track_labeled_image, track_table
+    return track_table
 
 
 def get_cdh5_segmentation_location(dataset_name: str, position: int) -> ImageLocation:
