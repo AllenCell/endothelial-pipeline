@@ -116,10 +116,10 @@ def main(
     # unpack default bin widths and limits for each column, adjusting limits if rescaling theta
     global_bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
     if RESCALE_THETA:
-        global_bin_limits_dict[ColumnName.POLAR_ANGLE.value] = BIN_LIMITS_THETA_RESCALED
+        global_bin_limits_dict[ColumnName.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
     polar_angle_period = (
-        global_bin_limits_dict[ColumnName.POLAR_ANGLE.value][1]
-        - global_bin_limits_dict[ColumnName.POLAR_ANGLE.value][0]
+        global_bin_limits_dict[ColumnName.POLAR_ANGLE][1]
+        - global_bin_limits_dict[ColumnName.POLAR_ANGLE][0]
     )
     bin_widths = [BIN_WIDTHS_DYNAMICS[col] for col in column_names]
 
@@ -189,7 +189,7 @@ def main(
 
             # set bin limits for r and rho based on percentiles of data
             for col_name in column_names:
-                if col_name == ColumnName.POLAR_ANGLE.value:
+                if col_name == ColumnName.POLAR_ANGLE:
                     continue
                 bin_min = np.percentile(df_[col_name].to_numpy(), BIN_LIMIT_PERCENTILE_CUTOFF)
                 bin_max = np.percentile(df_[col_name].to_numpy(), 100 - BIN_LIMIT_PERCENTILE_CUTOFF)
@@ -211,9 +211,9 @@ def main(
 
             # loop over pairwise combinations of columns and plot drift contours
             for column1, column2 in [
-                (ColumnName.POLAR_RADIUS.value, ColumnName.PC3_FLIPPED.value),  # r and rho
-                (ColumnName.POLAR_RADIUS.value, ColumnName.POLAR_ANGLE.value),  # r and theta
-                (ColumnName.PC3_FLIPPED.value, ColumnName.POLAR_ANGLE.value),  # rho and theta
+                (ColumnName.POLAR_RADIUS, ColumnName.PC3_FLIPPED),  # r and rho
+                (ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE),  # r and theta
+                (ColumnName.PC3_FLIPPED, ColumnName.POLAR_ANGLE),  # rho and theta
             ]:
                 # build kernels for each variable in the pair based on settings,
                 # adjusting for periodicity if needed, and get bin edges and
@@ -237,7 +237,7 @@ def main(
                             bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
                             period=(
                                 polar_angle_period
-                                if column_name == ColumnName.POLAR_ANGLE.value
+                                if column_name == ColumnName.POLAR_ANGLE
                                 else None
                             ),
                         )
