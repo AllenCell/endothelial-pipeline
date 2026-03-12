@@ -20,7 +20,9 @@ from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
 logger = logging.getLogger(__name__)
 
 
-def circpercentile(angles: np.ndarray, q: float, polar_range: tuple[float, float] = (0, np.pi)):
+def circpercentile(
+    angles: np.ndarray, q: float, polar_range: tuple[float, float] = (0, np.pi)
+) -> float:
     """
     Compute the q-th percentile of circular data.
 
