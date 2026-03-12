@@ -78,6 +78,7 @@ def main(
     import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.data_driven_flow_field import (
         compute_extrapolated_vector_field,
@@ -107,6 +108,7 @@ def main(
         DATAFRAME_MANIFEST_PREFIX_DRIFT,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         DATAFRAME_MANIFEST_PREFIX_GRID,
+        DATASET_COLLECTION_FOR_3D_DYNAMICS,
         INIT_POINT_3D,
         TRAJECTORY_TIME_SPAN,
     )
@@ -120,10 +122,15 @@ def main(
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
-    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataframe_manifest_name}"
-    grid_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{dataframe_manifest_name}"
+    demo_prefix = "demo_" if DEMO_MODE else ""
+    drift_dataframe_manifest_name = (
+        f"{demo_prefix}{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataframe_manifest_name}"
+    )
+    grid_dataframe_manifest_name = (
+        f"{demo_prefix}{DATAFRAME_MANIFEST_PREFIX_GRID}_{dataframe_manifest_name}"
+    )
     fixed_points_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataframe_manifest_name}"
+        f"{demo_prefix}{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataframe_manifest_name}"
     )
     fixed_points_dataframe_manifest: DataframeManifest | None
     try:
@@ -149,7 +156,9 @@ def main(
         )
         fixed_points_dataframe_manifest = None
 
-    if set(drift_dataframe_manifest.datasets) != set(grid_dataframe_manifest.datasets):
+    if set(drift_dataframe_manifest.locations.keys()) != set(
+        grid_dataframe_manifest.locations.keys()
+    ):
         logger.error(
             "Datasets in drift dataframe manifest [ %s ] do not match datasets in grid points dataframe manifest [ %s ].",
             drift_dataframe_manifest_name,
@@ -158,16 +167,20 @@ def main(
         raise ValueError("Datasets in drift and grid point dataframe manifests do not match.")
 
     # either run on specified datasets or all datasets in the manifest if no specific datasets are provided
-    valid_dataset_names = drift_dataframe_manifest.datasets
-    dataset_names = datasets or drift_dataframe_manifest.datasets
-    dataset_names = [
-        dataset_name for dataset_name in dataset_names if dataset_name in valid_dataset_names
-    ]
+    valid_dataset_options = list(
+        set(drift_dataframe_manifest.locations.keys() + dataframe_manifest.locations.keys())
+    )
+    if datasets is None:
+        dataset_names = get_datasets_in_collection(
+            DATASET_COLLECTION_FOR_3D_DYNAMICS, valid_dataset_options
+        )
+    else:
+        dataset_names = [name for name in datasets if name in valid_dataset_options]
     if len(dataset_names) == 0:
         logger.error(
             "No valid dataset names provided. Dataset names in the loaded flow field dataframe manifest [ %s ] are: [ %s ]",
             drift_dataframe_manifest_name,
-            valid_dataset_names,
+            valid_dataset_options,
         )
         raise ValueError("No valid dataset names provided.")
 
@@ -189,9 +202,6 @@ def main(
             "DEMO MODE: Using only the first dataset from the manifest for quick visualization."
         )
         dataset_names = dataset_names[:1]
-        drift_dataframe_manifest_name = f"demo_{drift_dataframe_manifest_name}"
-        grid_dataframe_manifest_name = f"demo_{grid_dataframe_manifest_name}"
-        fixed_points_dataframe_manifest_name = f"demo_{fixed_points_dataframe_manifest_name}"
 
     # fit PCA using the features from the given dataframe manifest PCA always
     # fit on the grid-based features, even if the features for flow field
