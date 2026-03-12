@@ -20,9 +20,7 @@ from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
 logger = logging.getLogger(__name__)
 
 
-def circpercentile(
-    angles: np.ndarray, q: float, polar_range: tuple[float, float] = (0, np.pi), method="linear"
-):
+def circpercentile(angles: np.ndarray, q: float, polar_range: tuple[float, float] = (0, np.pi)):
     """
     Compute the q-th percentile of circular data.
 
@@ -35,9 +33,6 @@ def circpercentile(
     polar_range
         Tuple specifying the circular range of the data (e.g., (0,
         np.pi) for angles in radians).
-    method
-        Method to use for interpolation when the desired percentile lies between
-        two data points (passed into np.percentile).
     """
 
     sorted_angles = np.sort(angles)
@@ -52,7 +47,7 @@ def circpercentile(
     contiguous_angles = np.mod(angles - angle_cut, period)
 
     # Ordinary percentile in linear space
-    angle_percentile = np.percentile(contiguous_angles, q, method=method)
+    angle_percentile = np.percentile(contiguous_angles, q)
 
     # Shift back to circular space, and rewrap to original polar range
     return rewrap_polar_angle(angle_percentile + angle_cut, polar_range)
