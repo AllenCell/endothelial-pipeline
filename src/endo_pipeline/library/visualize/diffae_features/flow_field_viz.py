@@ -9,7 +9,6 @@ from matplotlib.cm import get_cmap
 from matplotlib.colors import LogNorm, Normalize
 from matplotlib.patches import Patch
 from matplotlib.ticker import MaxNLocator
-from scipy.stats import gaussian_kde
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.data_driven_flow_field import interpolate_on_curve
@@ -19,6 +18,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     parse_dataset_description,
     rewrap_polar_angle,
 )
+from endo_pipeline.library.analyze.numerics.binning import get_normalization_constant
 from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     get_dataset_color,
     get_label_for_column,
@@ -475,15 +475,15 @@ def plot_flow_field_slices(
     feature_vals: tuple[Any, Any],
     colormap_name: str = QUIVER_COLORMAP,
     norm: bool = NORMALIZE_QUIVER_VECTORS,
+    prob_kde: np.ndarray | None = None,
     log_norm_colormap: bool = True,
-    plot_density: bool = True,
     column_names: list[str] | None = None,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
     Plot 2D slices of the 3D flow field for the specified 2D slices.
 
-    Also overlays a KDE contour plot of the data in the 2D slice if plot_density
-    is True.
+    Also overlays a KDE contour plot of the data in the 2D slice if `kernel` is
+    not None.
 
     **Input dictionary flow_field_dict:**
 
@@ -505,13 +505,17 @@ def plot_flow_field_slices(
         Optional, directory to save the figure.
     feature_vals
         Values at which to slice the data of the variables that make up the 3rd
-        and 2nd axes of the 3D space (e.g., PC3 and PC2) for plotting the 2D slices.
+        and 2nd axes of the 3D space (e.g., PC3 and PC2) for plotting the 2D
+        slices.
     colormap_name
         Name of the colormap to use for the quiver plot arrows.
     norm
         Whether to normalize the quiver plot arrows.
-    plot_density
-        Whether to plot the KDE contour of the data in the 2D sliced planes.
+    prob_kde
+        Optional, 3D array representing the probability density estimate for the
+        data in the slices. If None, no KDE contours are plotted.
+    log_norm_colormap
+        Whether to use a logarithmic normalization for the colormap.
     column_names
         Optional, list of column names corresponding to features being used for
         the analysis (e.g. the top 3 PCs). Used for labeling the slice values in
@@ -521,7 +525,7 @@ def plot_flow_field_slices(
 
     column_labels = [get_label_for_column(col) for col in column_names_]
     # get grid and grid spacing
-    xgrid, ygrid, zgrid = flow_field_dict["grid"]
+    meshgrid_tuple = flow_field_dict["grid"]
 
     # for plotting in 2D, we need to slice the data in feature space at the
     # specified values of the 2nd and 3rd variables (e.g., PC2 and PC3)
@@ -529,44 +533,54 @@ def plot_flow_field_slices(
     feature_y_val = feature_vals[1]
 
     # get z-slice closest to z = feature_z_val
-    zvalids = get_slice_indexes(zgrid, feature_z_val)
+    zvalids = get_slice_indexes(meshgrid_tuple[-1], feature_z_val)
     # get y-slice closest to y = feature_y_val
-    yvalids = get_slice_indexes(ygrid, feature_y_val)
+    yvalids = get_slice_indexes(meshgrid_tuple[1], feature_y_val)
 
     # plot quiver plots of these y and z slices, with optional KDE contours of
     # the data in these slices
     fig, ax = plt.subplots(NROWS_2D_FLOW_FIELD, NCOLS_2D_FLOW_FIELD, figsize=FIGSIZE_2D_FLOW_FIELD)
 
     # plot KDE contours of data in x-y and x-z planes, if specified
-    if plot_density:
-        for i, (feature_x, feature_y) in enumerate(
-            [
-                (column_names_[0], column_names_[1]),
-                (column_names_[0], column_names_[2]),
-            ]
+    if prob_kde is not None:
+        for subplot_index, plot_axis_index_pair, slice_axis_index in zip(
+            [0, 1], [(0, 1), (0, 2)], [2, 1], strict=True
         ):
             # get a 2D meshgrid for the current slice
-            if i == 0:  # x-y plane
-                x = xgrid[:, :, 0]
-                y = ygrid[:, :, 0]
-            else:  # x-z plane
-                x = xgrid[:, 0, :]
-                y = zgrid[:, 0, :]
+            # take the slice along the z-axis for x-y plane and y-axis for x-z plane
+            mesh_dim_1 = np.take(meshgrid_tuple[plot_axis_index_pair[0]], 0, axis=slice_axis_index)
+            mesh_dim_2 = np.take(
+                meshgrid_tuple[plot_axis_index_pair[1]],
+                0,
+                axis=slice_axis_index,
+            )
 
-            positions = np.vstack([x.ravel(), y.ravel()])
-            grid_shape = x.shape
-
-            # get the data in the current 2D plane (x-y or x-z)
-            data_x = cast(np.ndarray, df[feature_x].values)
-            data_y = cast(np.ndarray, df[feature_y].values)
-            # calculate the point density (KDE)
-            values = np.vstack([data_x, data_y])
-            z = gaussian_kde(values)(positions).T.reshape(grid_shape)
+            # marginalize probability density over the variable that is sliced (e.g., z or y)
+            dx_along_sliced_axis = np.unique(
+                np.diff(meshgrid_tuple[slice_axis_index], axis=slice_axis_index)
+            )[-1]
+            marginal_prob_kde = np.trapz(prob_kde, dx=dx_along_sliced_axis, axis=slice_axis_index)
+            logger.debug(
+                "dx along sliced axis (index [ %d ]): %.3f", slice_axis_index, dx_along_sliced_axis
+            )
+            # normalize to ensure it represents a probability density (i.e., integrates to 1)
+            dx_along_plot_axes = [
+                np.unique(np.diff(meshgrid_tuple[idx], axis=idx))[-1]
+                for idx in plot_axis_index_pair
+            ]
+            marginal_norm_constant = get_normalization_constant(
+                marginal_prob_kde, dx_along_plot_axes
+            )
+            logger.debug(
+                "Normalization constant for marginalized KDE: %.5f", marginal_norm_constant
+            )
+            marginal_prob_kde: np.ndarray = marginal_prob_kde / marginal_norm_constant
+            logger.debug("Marginalized KDE shape: [ %s ]", marginal_prob_kde.shape)
             # plot contourf of the density
-            ax[i].contourf(
-                x,
-                y,
-                z,
+            ax[subplot_index].contourf(
+                mesh_dim_1,
+                mesh_dim_2,
+                marginal_prob_kde,
                 levels=KDE_CONTOUR_LEVELS,
                 cmap=KDE_CONTOUR_COLORMAP,
                 alpha=KDE_CONTOUR_OPACITY,
@@ -691,6 +705,7 @@ def flow_field_viz_main(
     column_names: list[str],
     traj: np.ndarray,
     stable_fixed_points: list[np.ndarray],
+    prob_kde: np.ndarray | None,
     plot_bounds: list[np.ndarray],
     plot_stack: bool,
     fig_savedir: Path,
@@ -700,7 +715,8 @@ def flow_field_viz_main(
 
     **Input dictionary flow_field_dict:**
 
-    The method input ``flow_field_dict`` should have the following key/value pairs:
+    The method input ``flow_field_dict`` should have the following key/value
+    pairs:
         - "vectors": tuple of 3D arrays (v1,v2,v3)
         - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid)
 
@@ -709,13 +725,18 @@ def flow_field_viz_main(
     flow_field_dict
         Dictionary containing the flow field data.
     df
-        DataFrame containing the data to be plotted (from one dataset/experimental condition).
+        DataFrame containing the data to be plotted (from one
+        dataset/experimental condition).
     column_names
-        List of column names corresponding to features being used for the analysis (e.g. the top 3 PCs).
+        List of column names corresponding to features being used for the
+        analysis (e.g. the top 3 PCs).
     traj
         Trajectory of the system in the flow field.
     stable_fixed_points
         List of stable fixed points in the flow field.
+    prob_kde
+        Optional, 3D array representing the probability density estimate for the
+        data in the slices. If None, no KDE contours are plotted.
     plot_bounds
         List of arrays specifying the plot bounds for each principal component.
     plot_stack
@@ -789,6 +810,7 @@ def flow_field_viz_main(
             df,
             plot_bounds,
             None,
+            prob_kde=prob_kde,
             feature_vals=feature_vals,
             column_names=column_names,
         )
@@ -801,6 +823,7 @@ def flow_field_viz_main(
                 df,
                 plot_bounds,
                 None,
+                prob_kde=prob_kde,
                 feature_vals=feature_vals,
                 column_names=column_names,
             )

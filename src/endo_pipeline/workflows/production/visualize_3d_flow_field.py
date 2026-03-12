@@ -86,7 +86,11 @@ def main(
         fit_pca,
         get_dataframe_for_dynamics_workflows,
     )
-    from endo_pipeline.library.analyze.numerics.binning import get_bounds_from_data
+    from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
+        get_kernel_density_estimate,
+    )
+    from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+    from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
     from endo_pipeline.library.visualize.diffae_features.flow_field_viz import flow_field_viz_main
     from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
     from endo_pipeline.manifests import (
@@ -96,8 +100,19 @@ def main(
         load_model_manifest,
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
-    from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
-    from endo_pipeline.settings.flow_field_3d import INIT_POINT_3D, TRAJECTORY_TIME_SPAN
+    from endo_pipeline.settings.dynamics_workflows import (
+        DYNAMICS_COLUMN_NAMES,
+        KERNEL_BANDWIDTHS_DYNAMICS,
+        KERNEL_NAMES_DYNAMICS,
+        PERIOD_THETA_RESCALED,
+        RESCALE_THETA,
+    )
+    from endo_pipeline.settings.flow_field_3d import (
+        INIT_POINT_3D,
+        KERNEL_BANDWIDTH,
+        KERNEL_FUNCTION_NAME,
+        TRAJECTORY_TIME_SPAN,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -179,6 +194,24 @@ def main(
         dataset_names, dataframe_manifest, pca, column_names=column_names
     )
 
+    # initialize kernels to be used for KDE estimation of the data histogram
+    kernels = []
+    rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
+
+    for column_name in column_names:
+        name = KERNEL_NAMES_DYNAMICS.get(column_name, KERNEL_FUNCTION_NAME)
+        bandwidth = KERNEL_BANDWIDTHS_DYNAMICS.get(column_name, KERNEL_BANDWIDTH)
+        period = rescaled_theta if column_name == ColumnName.POLAR_ANGLE else None
+        kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
+
+    # set list of column names to keep from the loaded feature dataframes
+    dataframe_columns = [
+        *column_names,
+        ColumnName.DATASET,
+        ColumnName.TIMEPOINT,
+        ColumnName.CROP_INDEX,
+    ]
+
     for dataset_name in dataset_names:
         logger.info(f"Visualizing flow field for dataset [ {dataset_name} ]")
         # load dataframe with feature data
@@ -189,7 +222,7 @@ def main(
             include_cell_piling=False,
             include_not_steady_state=False,
             crop_pattern=crop_pattern,
-        )[[*column_names, ColumnName.DATASET, ColumnName.TIMEPOINT]]
+        )[dataframe_columns]
         # get dataset-specific subsets of the dataframes for the drift values
         # and grid points
         drift_dataset: pd.DataFrame = drift_dataframe[
@@ -207,6 +240,29 @@ def main(
         grid_points_as_list = [points[~np.isnan(points)] for points in grid_points_padded]
         grid_shape = tuple(len(points) for points in grid_points_as_list)
 
+        # get bin widths and limits for vtk file extent and for estimating KDE
+        # of data for plotting
+        bin_widths = [grid_points_as_list[i][1] - grid_points_as_list[i][0] for i in range(ndim)]
+        bin_limits = [
+            (
+                grid_points_as_list[i][0] - bin_widths[i] / 2,
+                grid_points_as_list[i][-1] + bin_widths[i] / 2,
+            )
+            for i in range(ndim)
+        ]
+
+        # estimate KDE in 3D for plotting
+        bin_edges = get_bins(bin_widths=bin_widths, bin_limits=bin_limits)[0]
+        # build expected inputs for the KDE function: a list of 2D arrays of
+        # shape (n_timepoints_in_traj, 2) and the appropriate kernel for
+        # each column pair
+        trajs = []
+        for _, traj_df in feature_data.groupby(ColumnName.CROP_INDEX):
+            trajs.append(traj_df.sort_values(by=ColumnName.TIMEPOINT)[column_names].to_numpy())
+        prob_kde = get_kernel_density_estimate(trajs, bin_edges, kernels)
+
+        # unpack drift values from dataframe and reshape to grid shape for flow
+        # field visualization and ODE solving,
         drift_values = drift_dataset[drift_column_names].to_numpy().reshape(*grid_shape, ndim)
         grid = np.meshgrid(*grid_points_as_list, indexing="ij")
 
@@ -223,16 +279,13 @@ def main(
             # save out the flow field as vtk image data volume extent for vtk
             # file is determined by the min and max of the feature values in
             # each dimension, plus an extra half-bin width on either side
-            bin_widths = [
-                grid_points_as_list[i][1] - grid_points_as_list[i][0] for i in range(ndim)
-            ]
             volume_extent = {
-                "xmin": grid_points_as_list[0][0] - bin_widths[0] / 2,
-                "xmax": grid_points_as_list[0][-1] + bin_widths[0] / 2,
-                "ymin": grid_points_as_list[1][0] - bin_widths[1] / 2,
-                "ymax": grid_points_as_list[1][-1] + bin_widths[1] / 2,
-                "zmin": grid_points_as_list[2][0] - bin_widths[2] / 2,
-                "zmax": grid_points_as_list[2][-1] + bin_widths[2] / 2,
+                "xmin": bin_limits[0][0],
+                "xmax": bin_limits[0][1],
+                "ymin": bin_limits[1][0],
+                "ymax": bin_limits[1][1],
+                "zmin": bin_limits[2][0],
+                "zmax": bin_limits[2][1],
             }
             save_vector_field_as_vtk(
                 extrapolated_flow_field_dict_vtk,
@@ -278,6 +331,7 @@ def main(
             column_names,
             traj,
             fixed_points,
+            prob_kde,
             bounds_for_plots,
             plot_stack,
             fig_savedir_dataset,
