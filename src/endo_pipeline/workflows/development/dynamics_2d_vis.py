@@ -1,4 +1,5 @@
 from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.settings.dynamics_workflows import HISTOGRAM_THRESHOLD_FOR_MASKING
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -10,6 +11,8 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
+    global_limits: bool = True,
+    mask_threshold: float | None = HISTOGRAM_THRESHOLD_FOR_MASKING,
 ) -> None:
     """
     Analyze and visualize DiffAE feature dynamics.
@@ -29,10 +32,11 @@ def main(
     following steps:
         1. Loads the grid-based crop feature dataframe, projects
             features into PCA space, and perform any additional feature
-            transformations (e.g., computing polar coordinates, rescaling
-            polar angle).
+            transformations (e.g., computing polar coordinates, rescaling polar
+            angle).
         2. Splits the dataframe by flow conditions based on shear stress.
-        3. For each flow condition, loops over pairwise combinations of features:
+        3. For each flow condition, loops over pairwise combinations of
+           features:
             a. Estimates 2D drift coefficients (Kramers-Moyal) for each pair of
                 features using a kernel-based estimation method with appropriate
                 kernels for each variable.
@@ -48,6 +52,12 @@ def main(
         The name of the model run to use.
     crop_pattern
         The crop pattern to get features for, either "grid" or "tracked".
+    global_limits
+        Whether to use global limits for all datasets when plotting drift
+        contours.
+    mask_threshold
+        Threshold for masking low-confidence regions of drift estimates based on
+        histogram of data points. If None, no masking is applied.
     """
 
     import logging
@@ -64,7 +74,10 @@ def main(
         get_traj_and_diff,
         split_dataset_by_flow,
     )
-    from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
+    from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
+        get_kernel_density_estimate,
+        get_kramers_moyal_coeffs,
+    )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
@@ -103,10 +116,10 @@ def main(
     # unpack default bin widths and limits for each column, adjusting limits if rescaling theta
     global_bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
     if RESCALE_THETA:
-        global_bin_limits_dict[ColumnName.POLAR_ANGLE.value] = BIN_LIMITS_THETA_RESCALED
+        global_bin_limits_dict[ColumnName.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
     polar_angle_period = (
-        global_bin_limits_dict[ColumnName.POLAR_ANGLE.value][1]
-        - global_bin_limits_dict[ColumnName.POLAR_ANGLE.value][0]
+        global_bin_limits_dict[ColumnName.POLAR_ANGLE][1]
+        - global_bin_limits_dict[ColumnName.POLAR_ANGLE][0]
     )
     bin_widths = [BIN_WIDTHS_DYNAMICS[col] for col in column_names]
 
@@ -176,7 +189,7 @@ def main(
 
             # set bin limits for r and rho based on percentiles of data
             for col_name in column_names:
-                if col_name == ColumnName.POLAR_ANGLE.value:
+                if col_name == ColumnName.POLAR_ANGLE:
                     continue
                 bin_min = np.percentile(df_[col_name].to_numpy(), BIN_LIMIT_PERCENTILE_CUTOFF)
                 bin_max = np.percentile(df_[col_name].to_numpy(), 100 - BIN_LIMIT_PERCENTILE_CUTOFF)
@@ -197,70 +210,92 @@ def main(
             )
 
             # loop over pairwise combinations of columns and plot drift contours
-            for column1, column2 in [
-                (ColumnName.POLAR_RADIUS.value, ColumnName.PC3_FLIPPED.value),  # r and rho
-                (ColumnName.POLAR_RADIUS.value, ColumnName.POLAR_ANGLE.value),  # r and theta
-                (ColumnName.PC3_FLIPPED.value, ColumnName.POLAR_ANGLE.value),  # rho and theta
+            for column_name_pair in [
+                (ColumnName.POLAR_RADIUS, ColumnName.PC3_FLIPPED),  # r and rho
+                (ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE),  # r and theta
+                (ColumnName.PC3_FLIPPED, ColumnName.POLAR_ANGLE),  # rho and theta
             ]:
-                # need to get indices of columns to select correct data from
-                # trajectories and differences
-                index_column1 = column_names.index(column1)
-                index_column2 = column_names.index(column2)
-
-                # estimate 2D drift coefficients using Kramers-Moyal estimation
-                # with appropriate kernels for each variable
-                kernel1 = KramersMoyalKernel(
-                    name=KERNEL_NAMES_DYNAMICS[column1],
-                    bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column1],
-                    period=polar_angle_period if column1 == ColumnName.POLAR_ANGLE.value else None,
-                )
-                kernel2 = KramersMoyalKernel(
-                    name=KERNEL_NAMES_DYNAMICS[column2],
-                    bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column2],
-                    period=polar_angle_period if column2 == ColumnName.POLAR_ANGLE.value else None,
-                )
+                # build kernels for each variable in the pair based on settings,
+                # adjusting for periodicity if needed, and get bin edges and
+                # centers for each variable in the pair. also get variable labels
+                # and axis limits for plotting, adjusting limits if rescaling
+                # theta and if not using global limits
+                kernels = []
+                bins_2d = []
+                centers_2d = []
+                column_labels_2d = []
+                column_indexes = []
+                axes_limits_2d = []
+                for column_name in column_name_pair:
+                    column_index = column_names.index(column_name)
+                    column_indexes.append(column_index)
+                    kernels.append(
+                        KramersMoyalKernel(
+                            name=KERNEL_NAMES_DYNAMICS[column_name],
+                            bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
+                            period=(
+                                polar_angle_period
+                                if column_name == ColumnName.POLAR_ANGLE
+                                else None
+                            ),
+                        )
+                    )
+                    bins_2d.append(bins[column_index])
+                    centers_2d.append(centers[column_index])
+                    column_labels_2d.append(variable_labels_dict[column_name])
+                    axes_limits_2d.append(
+                        bin_limits_dict[column_name]
+                        if not global_limits
+                        else global_bin_limits_dict[column_name]
+                    )
+                # get 2D trajectories and differences for the pair of variables
+                traj_2d = [traj[:, column_indexes] for traj in trajectories]
+                diff_2d = [diff[:, column_indexes] for diff in differences]
 
                 drift, _ = get_kramers_moyal_coeffs(
-                    [traj[:, [index_column1, index_column2]] for traj in trajectories],
-                    [diff[:, [index_column1, index_column2]] for diff in differences],
-                    bins=[bins[index_column1], bins[index_column2]],
+                    traj_2d,
+                    diff_2d,
+                    bins=bins_2d,
                     dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
-                    kernel=[kernel1, kernel2],
+                    kernel=kernels,
                 )
 
                 # get 2D meshgrid of bin centers for plotting
-                centers_mesh = np.meshgrid(
-                    centers[index_column1], centers[index_column2], indexing="ij"
-                )
-                variable_labels_plot = [
-                    variable_labels_dict[column1],
-                    variable_labels_dict[column2],
-                ]
-                bin_limits_plot = [
-                    bin_limits_dict[column1],
-                    bin_limits_dict[column2],
-                ]
+                centers_mesh = np.meshgrid(*centers_2d, indexing="ij")
 
+                # get histogram for masking low-confidence regions of drift
+                # estimates, using same kernels as for drift estimation, and set
+                # drift to nan in low-confidence regions
+                if mask_threshold is not None:
+                    hist_kde = get_kernel_density_estimate(
+                        traj_2d,
+                        bins=bins_2d,
+                        kernel=kernels,
+                    )
+                    low_confidence_mask = hist_kde < mask_threshold
+                    drift[low_confidence_mask] = np.nan
+
+                filename_prefix = f"{dataset_name_flow}_{'_'.join(column_name_pair)}"
                 # plot drift contours and save
                 plot_and_save_drift_contours(
                     centers_mesh,
                     drift,
-                    variable_labels=variable_labels_plot,
-                    bin_limits=bin_limits_plot,
+                    variable_labels=column_labels_2d,
+                    axes_limits=axes_limits_2d,
                     fig_title=fig_title,
                     fig_savedir=fig_savedir,
-                    filename_prefix=f"{dataset_name_flow}_{column1}_{column2}",
+                    filename_prefix=filename_prefix,
                 )
 
                 # plot quiver plot of drift and save
                 plot_and_save_drift_quiver(
                     centers_mesh,
                     drift,
-                    variable_labels=variable_labels_plot,
-                    bin_limits=bin_limits_plot,
+                    variable_labels=column_labels_2d,
+                    axes_limits=axes_limits_2d,
                     fig_title=fig_title,
                     fig_savedir=fig_savedir,
-                    filename_prefix=f"{dataset_name_flow}_{column1}_{column2}",
+                    filename_prefix=filename_prefix,
                 )
                 plt.close("all")
 
