@@ -71,9 +71,12 @@ def main(
         plot_stable_fixed_points_together,
     )
     from endo_pipeline.manifests import (
+        build_dataframe_location_from_path,
+        create_dataframe_manifest,
         get_feature_dataframe_manifest_name,
         load_dataframe_manifest,
         load_model_manifest,
+        save_dataframe_manifest,
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
@@ -111,11 +114,30 @@ def main(
 
     # Create output folders if they do not exist yet for dataframes, save in
     # local directory without timestamp for intermediate level of "static-ness"
-    # (ensure they don't get periodically deleted)
+    # (ensure they don't get periodically deleted).
+    #
+    # Also build dataframe manifests for the outputs of this workflow (drift
+    # coefficients, grid points, and stable fixed points) with names that
+    # include the input dataframe manifest name for traceability and to avoid
+    # naming conflicts with other runs. The dataframe manifests get saved to the
+    # dataframe manifest directory, and the dataframes themselves get saved to
+    # the output directory specified in settings.
     dataframe_savedir = get_output_path(
-        DATAFRAME_OUTPUT_DIR,
-        dataframe_manifest_name,
-        include_timestamp=False,
+        DATAFRAME_OUTPUT_DIR, dataframe_manifest_name, include_timestamp=False
+    )
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataframe_manifest_name}"
+    grid_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{dataframe_manifest_name}"
+    fixed_points_dataframe_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataframe_manifest_name}"
+    )
+    drift_dataframe_manifest = create_dataframe_manifest(
+        drift_dataframe_manifest_name, workflow_name=__file__
+    )
+    grid_dataframe_manifest = create_dataframe_manifest(
+        grid_dataframe_manifest_name, workflow_name=__file__
+    )
+    fixed_points_dataframe_manifest = create_dataframe_manifest(
+        fixed_points_dataframe_manifest_name, workflow_name=__file__
     )
     logger.info(
         "Dataframes with 3D flow field estimation results will be saved to: [ %s ]",
@@ -254,7 +276,9 @@ def main(
             }
         )
 
-        # save stable fixed points from all datasets to parquet file
+        # save drift coefficients and grid points dataframes to parquet files,
+        # with names that include the input dataframe manifest name for
+        # traceability and to avoid naming conflicts with other runs
         drift_coeffs_file_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataset_name}.parquet"
         grid_points_file_name = f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{dataset_name}.parquet"
         if DEMO_MODE:
@@ -278,6 +302,12 @@ def main(
         grid_points_df.to_parquet(
             grid_points_save_path,
         )
+
+        # add to DataframeManifest for drift coefficients and grid points for this dataset
+        drift_location = build_dataframe_location_from_path(drift_coeffs_save_path)
+        grid_location = build_dataframe_location_from_path(grid_points_save_path)
+        drift_dataframe_manifest.locations[dataset_name] = drift_location
+        grid_dataframe_manifest.locations[dataset_name] = grid_location
 
         ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
         extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
@@ -327,6 +357,9 @@ def main(
         stable_fixed_points_dataset.to_parquet(
             stable_fixed_points_save_path,
         )
+        # add to DataframeManifest for stable fixed points for this dataset
+        fixed_points_location = build_dataframe_location_from_path(stable_fixed_points_save_path)
+        fixed_points_dataframe_manifest.locations[dataset_name] = fixed_points_location
 
     # generate plot of stable fixed points from different datasets overlaid on
     # top of each other (for comparison of stable fixed points across datasets)
@@ -342,6 +375,20 @@ def main(
             "No stable fixed points identified across all datasets, so skipping"
             "generation of plot comparing stable fixed points across datasets."
         )
+
+    # save updated dataframe manifests for drift coefficients, grid points, and
+    # stable fixed points with locations for each dataset
+    for dataframe_manifest in [
+        drift_dataframe_manifest,
+        grid_dataframe_manifest,
+        fixed_points_dataframe_manifest,
+    ]:
+        logger.info(
+            "Saving dataframe manifest [ %s ] with updated locations for datasets [ %s ]",
+            dataframe_manifest.name,
+            list(dataframe_manifest.locations.keys()),
+        )
+        save_dataframe_manifest(dataframe_manifest)
 
 
 if __name__ == "__main__":
