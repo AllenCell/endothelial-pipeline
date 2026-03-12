@@ -18,7 +18,6 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     parse_dataset_description,
     rewrap_polar_angle,
 )
-from endo_pipeline.library.analyze.numerics.binning import get_normalization_constant
 from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     get_dataset_color,
     get_label_for_column,
@@ -568,22 +567,6 @@ def plot_flow_field_slices(
             marginal_prob_kde = np.trapz(
                 prob_kde_no_nan, dx=dx_along_sliced_axis, axis=slice_axis_index
             )
-            logger.debug(
-                "dx along sliced axis (index [ %d ]): %.3f", slice_axis_index, dx_along_sliced_axis
-            )
-            # normalize to ensure it represents a probability density (i.e., integrates to 1)
-            dx_along_plot_axes = [
-                np.unique(np.diff(meshgrid_tuple[idx], axis=idx))[-1]
-                for idx in plot_axis_index_pair
-            ]
-            marginal_norm_constant = get_normalization_constant(
-                marginal_prob_kde, dx_along_plot_axes
-            )
-            logger.debug(
-                "Normalization constant for marginalized KDE: %.5f", marginal_norm_constant
-            )
-            marginal_prob_kde: np.ndarray = marginal_prob_kde / marginal_norm_constant
-            logger.debug("Marginalized KDE shape: [ %s ]", marginal_prob_kde.shape)
             # plot contourf of the density
             ax[subplot_index].contourf(
                 mesh_dim_1,
