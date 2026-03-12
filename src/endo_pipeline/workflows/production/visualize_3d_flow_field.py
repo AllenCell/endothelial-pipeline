@@ -90,7 +90,7 @@ def main(
         get_kernel_density_estimate,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
-    from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
+    from endo_pipeline.library.analyze.numerics.binning import get_bounds_from_data
     from endo_pipeline.library.visualize.diffae_features.flow_field_viz import flow_field_viz_main
     from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
     from endo_pipeline.manifests import (
@@ -252,7 +252,13 @@ def main(
         ]
 
         # estimate KDE in 3D for plotting
-        bin_edges = get_bins(bin_widths=bin_widths, bin_limits=bin_limits)[0]
+        num_bins = [len(points) for points in grid_points_as_list]
+        logger.debug("Bin limits for KDE estimation: [ %s ]", bin_limits)
+        logger.debug("Number of bins for KDE estimation: [ %s ]", num_bins)
+        bin_edges = [
+            np.linspace(bin_limit[0], bin_limit[1], num_bin + 1)
+            for bin_limit, num_bin in zip(bin_limits, num_bins, strict=True)
+        ]
         # build expected inputs for the KDE function: a list of 2D arrays of
         # shape (n_timepoints_in_traj, 2) and the appropriate kernel for
         # each column pair
