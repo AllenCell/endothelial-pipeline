@@ -1,6 +1,18 @@
 name: flow_field_drift_diffae_baseline_exclude_cell_piling_20251110_latent_512_grid
 workflow: generate_3d_flow_field
-parameters: {}
+parameters:
+  model_manifest_name: diffae_baseline_exclude_cell_piling
+  run_name: 20251110_latent_512
+  crop_pattern: grid
+  columns: [polar_theta, polar_r, rho]
+  kernel_names: [periodic, gaussian, gaussian]
+  kernel_bandwidths: [0.15, 0.15, 0.15]
+  bin_widths: [0.05, 0.05, 0.05]
+  pad_bins_float: 0.1
+  time_step_in_minutes: 5
+  num_init_samples_for_root_solver: 250
+  lower_percentile_for_stable_fp: 5.0
+  upper_percentile_for_stable_fp: 95.0
 locations:
   20250319_20X:
     fmsid: null
@@ -32,7 +44,7 @@ locations:
     s3uri: null
   20250618_20X:
     fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_drift_20250618_20X_20260313_002248.parquet
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_drift_20250618_20X_20260313_185557.parquet
     s3uri: null
   20250716_20X:
     fmsid: null
