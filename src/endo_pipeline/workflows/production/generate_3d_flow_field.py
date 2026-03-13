@@ -13,13 +13,13 @@ def main(
 
     **Workflow defaults**
 
-    This workflow runs on features derived from the DiffAE model specified by
-    the `model_manifest_name` and `run_name` parameters as obtained from image
-    crops of the specified `crop_pattern` type (i.e., grid-based or
-    tracked-based crops). By default, it uses the model manifest and run
-    specified by the `DEFAULT_MODEL_MANIFEST_NAME` and `DEFAULT_MODEL_RUN_NAME`
-    settings, and uses the time series of features extracted from grid-based
-    crops.
+    This workflow runs on features derived from the DiffAE model (specified by
+    the default settings `DEFAULT_MODEL_MANIFEST_NAME` and
+    `DEFAULT_MODEL_RUN_NAME`) as obtained from image crops of the specified
+    `crop_pattern` type (i.e., grid-based or tracked-based crops). By default,
+    it uses the time series of features extracted from grid-based crops but can
+    also be run using features extracted from tracked-based crops by setting the
+    `crop_pattern` parameter to "tracked".
 
     The specific features used for flow field estimation and analysis are
     determined by the `DYNAMICS_COLUMN_NAMES` setting, which specifies the names
@@ -60,11 +60,6 @@ def main(
     datasets
         Optional list of datasets or dataset collections to use for
         visualization.
-    model_manifest_name
-        Name of the model manifest containing the run to load features from.
-    run_name
-        Name of the specific model run to load features for. If None, uses the
-        most recent run.
     crop_pattern
         The crop pattern to get features for, either "grid" or "tracked".
     """
