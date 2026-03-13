@@ -468,7 +468,7 @@ def plot_quiver_slices(
 
 def plot_flow_field_slices(
     flow_field_dict: dict,
-    df: pd.DataFrame,
+    dataset_name: str,
     plot_bounds: list[np.ndarray],
     fig_savedir: Path | None,
     feature_vals: tuple[Any, Any],
@@ -495,9 +495,8 @@ def plot_flow_field_slices(
     ----------
     flow_field_dict
         Dictionary containing the flow field data.
-    df
-        DataFrame containing the data to be plotted (from one
-        dataset/experimental condition).
+    dataset_name
+        Name of the dataset being plotted.
     plot_bounds
         List of arrays specifying the plot bounds for each principal component.
     fig_savedir
@@ -597,7 +596,6 @@ def plot_flow_field_slices(
     ax[1].set_title(f"{column_labels[1]} = {feature_y_val:.2f}")
     plt.tight_layout()
 
-    dataset_name = df[ColumnName.DATASET].unique()[0]
     dataset_description_simple = get_dataset_descriptions(
         [dataset_name], include_duration=False, include_shear_stress=True
     )[dataset_name]
@@ -731,7 +729,7 @@ def flow_field_viz_main(
         Directory to save the figures.
     """
     # dataset flow condition for saving the figures
-    name = df[ColumnName.DATASET].unique()[0]
+    dataset_name = df[ColumnName.DATASET].unique()[0]
 
     ###### additional plots for visualization of flow field #######
     # 1) plot stacks of flow field slices
@@ -766,7 +764,7 @@ def flow_field_viz_main(
                 plot_bounds[plot_axes[1]],
             ]
             # save to subdirectory of fig_savedir
-            stack_savedir = fig_savedir / f"{name}_{column_name}_stack"
+            stack_savedir = fig_savedir / f"{dataset_name}_{column_name}_stack"
             stack_savedir.mkdir(parents=True, exist_ok=True)
             plot_flow_field_stack(
                 flow_field_dict,
@@ -781,7 +779,7 @@ def flow_field_viz_main(
     if len(stable_fixed_points) == 0:
         logger.warning(
             "No stable fixed points found for dataset [ %s ]; plotting slices at mean of data.",
-            name,
+            dataset_name,
         )
         # plot slices at mean of data at last time point
         mean_at_last_timepoint = df[
@@ -793,7 +791,7 @@ def flow_field_viz_main(
         )  # feature 3, feature 2
         fig, ax = plot_flow_field_slices(
             flow_field_dict,
-            df,
+            dataset_name,
             plot_bounds,
             None,
             prob_kde=prob_kde,
@@ -806,7 +804,7 @@ def flow_field_viz_main(
             feature_vals = (fpt[2], fpt[1])  # feature 3, feature 2
             fig, ax = plot_flow_field_slices(
                 flow_field_dict,
-                df,
+                dataset_name,
                 plot_bounds,
                 None,
                 prob_kde=prob_kde,
@@ -817,7 +815,7 @@ def flow_field_viz_main(
             for j, ax_ in enumerate(ax):  # feature 1 vs feature 2, feature 1 vs feature 3
                 ax_.scatter(fpt[0], fpt[j + 1], s=75, color="black")
             # save the figure
-            save_plot_to_path(fig, fig_savedir, f"flow_field_{name}_fpt_{k}")
+            save_plot_to_path(fig, fig_savedir, f"flow_field_{dataset_name}_fpt_{k}")
 
     # 2) plot entire trajectory over flow field feature 1 vs feature 2, feature
     # 1 vs feature 3
@@ -858,7 +856,7 @@ def flow_field_viz_main(
             ax_.plot(traj[:, 0], traj[:, j + 1], linewidth=2.5, color="navy")
 
     # save the figure
-    save_plot_to_path(fig, fig_savedir, f"flow_field_{name}_traj")
+    save_plot_to_path(fig, fig_savedir, f"flow_field_{dataset_name}_traj")
 
     # 3) trajectory with equally spaced interpolated points
     for j, ax_ in enumerate(ax):
@@ -870,4 +868,4 @@ def flow_field_viz_main(
         )
 
     # save the figure
-    save_plot_to_path(fig, fig_savedir, f"flow_field_{name}_traj_interpolated")
+    save_plot_to_path(fig, fig_savedir, f"flow_field_{dataset_name}_traj_interpolated")
