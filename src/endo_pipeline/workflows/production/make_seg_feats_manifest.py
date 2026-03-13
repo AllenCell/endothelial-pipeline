@@ -83,6 +83,8 @@ def create_segmentation_measured_feature_manifest(
 
     big_table = add_cell_piling_and_steady_state_annotation_columns(big_table)
 
+    big_table = big_table.reset_index(drop=True)
+
     # NOTE THIS TABLE WILL BE UPLOADED TO FMS
     # save the raw combined data tables
     # (we want to have an accessible version of the raw data)
