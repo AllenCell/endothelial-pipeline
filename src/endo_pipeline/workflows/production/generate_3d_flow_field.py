@@ -287,9 +287,7 @@ def main(
             )
         else:
             # eventually, save to FMS
-            logger.warning(
-                "Saving stable fixed points to FMS not yet implemented, saving locally instead."
-            )
+            logger.warning("Saving dataframes to FMS not yet implemented, saving locally instead.")
             drift_coeffs_save_path = make_name_unique(dataframe_savedir / drift_coeffs_file_name)
             grid_points_save_path = make_name_unique(dataframe_savedir / grid_points_file_name)
 
@@ -345,9 +343,7 @@ def main(
             )
         else:
             # eventually, save to FMS
-            logger.warning(
-                "Saving stable fixed points to FMS not yet implemented, saving locally instead."
-            )
+            logger.warning("Saving dataframes to FMS not yet implemented, saving locally instead.")
             stable_fixed_points_save_path = make_name_unique(
                 dataframe_savedir / stable_fixed_points_file_name
             )
