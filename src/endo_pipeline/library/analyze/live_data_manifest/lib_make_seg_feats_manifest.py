@@ -161,11 +161,11 @@ def sanitize_column_names(big_table: pd.DataFrame) -> pd.DataFrame:
     crop_based_feature_cols = {
         "num_nuclei_in_crop": ColNmSeg.NUM_NUCLEI_IN_CROP,
         "all_labels_in_crop": ColNmSeg.LABELS_IN_CROP,
-        "start_x": ColNmSeg.START_X,
-        "start_y": ColNmSeg.START_Y,
-        "end_x": ColNmSeg.END_X,
-        "end_y": ColNmSeg.END_Y,
-        "crop_size": ColNmSeg.CROP_SIZE,
+        # "start_x": ColNmSeg.START_X,
+        # "start_y": ColNmSeg.START_Y,
+        # "end_x": ColNmSeg.END_X,
+        # "end_y": ColNmSeg.END_Y,
+        # "crop_size": ColNmSeg.CROP_SIZE,
         "filepath_raw_image": ColNmSeg.TIMELAPSE_PATH,
     }
     other_feature_cols = {
@@ -583,7 +583,6 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
         ColNmSeg.END_Y,
         ColNmSeg.START_X,
         ColNmSeg.END_X,
-        ColNmSeg.RESOLUTION_FOR_DIFFAE,
         ColNmSeg.IS_VALID_BBOX,
     ]
     num_nuclei_in_crop_df = add_num_nuclei_in_crop_column(
