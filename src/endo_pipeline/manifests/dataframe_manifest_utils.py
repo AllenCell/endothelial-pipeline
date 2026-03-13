@@ -19,7 +19,7 @@ def list_datasets_with_dataframes(manifest: DataframeManifest) -> list[str]:
     return [
         name
         for name, location in manifest.locations.items()
-        if location.fmsid is not None or location.s3uri is not None
+        if location.fmsid is not None or location.s3uri is not None or location.path is not None
     ]
 
 
