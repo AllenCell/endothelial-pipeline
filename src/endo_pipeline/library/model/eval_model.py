@@ -355,7 +355,9 @@ def preprocess_tracking_manifest_for_model_eval(
     return grouped_df
 
 
-def bbox_in_image_bounds(df: pd.DataFrame, resolution_level: int = DIFFAE_ZARR_RESOLUTION_LEVEL) -> pd.Series:
+def bbox_in_image_bounds(
+    df: pd.DataFrame, resolution_level: int = DIFFAE_ZARR_RESOLUTION_LEVEL
+) -> pd.Series:
     """Indicate if bounding boxes fit in image bounds without being clipped."""
     # adjust the image size according to the desired downsample factor
     downsample_factor = 2**resolution_level
