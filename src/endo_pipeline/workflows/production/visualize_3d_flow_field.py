@@ -168,7 +168,10 @@ def main(
 
     # either run on specified datasets or all datasets in the manifest if no specific datasets are provided
     valid_dataset_options = list(
-        set(drift_dataframe_manifest.locations.keys() + dataframe_manifest.locations.keys())
+        set(
+            list(drift_dataframe_manifest.locations.keys())
+            + list(dataframe_manifest.locations.keys())
+        )
     )
     if datasets is None:
         dataset_names = get_datasets_in_collection(
@@ -360,7 +363,7 @@ def main(
         )
     else:
         logger.warning(
-            "No stable fixed points identified for more than one dataset, so skipping"
+            "No stable fixed points identified for more than one dataset, so skipping "
             "generation of plot comparing stable fixed points across datasets."
         )
 
