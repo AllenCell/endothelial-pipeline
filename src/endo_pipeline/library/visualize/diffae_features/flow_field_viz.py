@@ -548,11 +548,7 @@ def plot_flow_field_slices(
             # get a 2D meshgrid for the current slice
             # take the slice along the z-axis for x-y plane and y-axis for x-z plane
             mesh_dim_1 = np.take(meshgrid_tuple[plot_axis_index_pair[0]], 0, axis=slice_axis_index)
-            mesh_dim_2 = np.take(
-                meshgrid_tuple[plot_axis_index_pair[1]],
-                0,
-                axis=slice_axis_index,
-            )
+            mesh_dim_2 = np.take(meshgrid_tuple[plot_axis_index_pair[1]], 0, axis=slice_axis_index)
 
             # marginalize probability density over the variable that is sliced (e.g., z or y)
             dx_along_sliced_axis = np.unique(
