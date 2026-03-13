@@ -148,20 +148,9 @@ def main(
     fixed_points_dataframe_manifest_name = (
         f"{demo_prefix}{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataframe_manifest_name}"
     )
-    try:
-        drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
-        grid_dataframe_manifest = load_dataframe_manifest(grid_dataframe_manifest_name)
-        fixed_points_dataframe_manifest = load_dataframe_manifest(
-            fixed_points_dataframe_manifest_name
-        )
-    except FileNotFoundError:
-        logger.error(
-            "Dataframe manifests for model manifest [ %s ], run name [ %s ], and crop pattern [ %s ] could not be found.",
-            model_manifest_name,
-            run_name,
-            crop_pattern,
-        )
-        raise
+    drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
+    grid_dataframe_manifest = load_dataframe_manifest(grid_dataframe_manifest_name)
+    fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
 
     if set(drift_dataframe_manifest.locations.keys()) != set(
         grid_dataframe_manifest.locations.keys()
