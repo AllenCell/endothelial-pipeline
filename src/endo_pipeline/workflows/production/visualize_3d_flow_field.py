@@ -138,15 +138,15 @@ def main(
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
-    demo_prefix = "demo_" if DEMO_MODE else ""
+    demo_suffix = "_demo" if DEMO_MODE else ""
     drift_dataframe_manifest_name = (
-        f"{demo_prefix}{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataframe_manifest_name}"
+        f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataframe_manifest_name}{demo_suffix}"
     )
     grid_dataframe_manifest_name = (
-        f"{demo_prefix}{DATAFRAME_MANIFEST_PREFIX_GRID}_{dataframe_manifest_name}"
+        f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{dataframe_manifest_name}{demo_suffix}"
     )
     fixed_points_dataframe_manifest_name = (
-        f"{demo_prefix}{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataframe_manifest_name}"
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataframe_manifest_name}{demo_suffix}"
     )
     drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
     grid_dataframe_manifest = load_dataframe_manifest(grid_dataframe_manifest_name)

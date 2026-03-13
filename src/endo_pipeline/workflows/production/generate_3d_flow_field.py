@@ -120,8 +120,13 @@ def main(
     dataframe_savedir = get_output_path(
         DATAFRAME_OUTPUT_DIR, dataframe_manifest_name, include_timestamp=False
     )
-    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataframe_manifest_name}"
-    grid_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{dataframe_manifest_name}"
+    demo_suffix = "_demo" if DEMO_MODE else ""
+    drift_dataframe_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataframe_manifest_name}{demo_suffix}"
+    )
+    grid_dataframe_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{dataframe_manifest_name}{demo_suffix}"
+    )
     fixed_points_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataframe_manifest_name}"
     )
@@ -157,9 +162,6 @@ def main(
             "DEMO MODE: Using only the first dataset from the manifest for quick testing."
         )
         dataset_names = dataset_names[:1]
-        drift_dataframe_manifest_name = f"demo_{drift_dataframe_manifest_name}"
-        grid_dataframe_manifest_name = f"demo_{grid_dataframe_manifest_name}"
-        fixed_points_dataframe_manifest_name = f"demo_{fixed_points_dataframe_manifest_name}"
 
     # get feature column names to use for flow field analysis
     column_names: list[str] = columns or list(DYNAMICS_COLUMN_NAMES)
