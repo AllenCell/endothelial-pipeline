@@ -107,9 +107,9 @@ def main(
         model_manifest, run_name, crop_pattern=crop_pattern
     )
 
-    # Create output folders if they do not exist yet for dataframes, save in
-    # local directory without timestamp for intermediate level of "static-ness"
-    # (ensure they don't get periodically deleted).
+    # Create/set output folder for dataframes, save in local directory without
+    # timestamp for intermediate level of "static-ness" (ensure they don't get
+    # periodically deleted).
     #
     # Also build dataframe manifests for the outputs of this workflow (drift
     # coefficients, grid points, and stable fixed points) with names that
@@ -138,9 +138,6 @@ def main(
         "Dataframes with 3D flow field estimation results will be saved to: [ %s ]",
         dataframe_savedir,
     )
-    # figs get saved in local directory with timestamp for versioning
-    fig_savedir = get_output_path(__file__, dataframe_manifest_name)
-    logger.info("Figures for 3D flow field visualization will be saved to: [ %s ]", fig_savedir)
 
     # load dataframe manifest with model feature for the given model run
     # and model manifest
