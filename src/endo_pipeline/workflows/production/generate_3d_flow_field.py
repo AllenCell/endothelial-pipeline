@@ -103,10 +103,7 @@ def main(
         RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_3d import (
-        BIN_WIDTH_DEFAULTS,
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
-        KERNEL_BANDWIDTH,
-        KERNEL_FUNCTION_NAME,
         LOWER_PERCENTILE_FOR_STABLE_FP,
         NUM_INIT_SAMPLES,
         PAD_BINS_FLOAT,
@@ -194,12 +191,27 @@ def main(
     bin_widths = []
     rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
 
-    for index, column_name in enumerate(column_names):
-        name = KERNEL_NAMES_DYNAMICS.get(column_name, KERNEL_FUNCTION_NAME)
-        bandwidth = KERNEL_BANDWIDTHS_DYNAMICS.get(column_name, KERNEL_BANDWIDTH)
-        period = rescaled_theta if column_name == ColumnName.POLAR_ANGLE else None
-        bin_width = BIN_WIDTHS_DYNAMICS.get(column_name, BIN_WIDTH_DEFAULTS[index])
+    # ensure that the column names are in the kernel name, bandwidth, and bin
+    # width dictionaries, and get the corresponding kernels and bin widths for
+    # each variable. For the polar angle variable, also specify the period for
+    # the kernel based on the rescaled theta range, to ensure that the
+    # periodicity of the polar angle is taken into account in the flow field
+    # estimation.
+    column_name_checks = []
+    for settings_dict in [KERNEL_NAMES_DYNAMICS, KERNEL_BANDWIDTHS_DYNAMICS, BIN_WIDTHS_DYNAMICS]:
+        column_name_check = [column_name in settings_dict for column_name in column_names]
+        column_name_checks.extend(column_name_check)
 
+    if not all(column_name_checks):
+        raise ValueError(
+            f"Column names {column_names} must be present in kernel, bandwidth, "
+            "and bin width settings for dynamics workflows."
+        )
+    for column_name in column_names:
+        name = KERNEL_NAMES_DYNAMICS[column_name]
+        bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
+        period = rescaled_theta if column_name == ColumnName.POLAR_ANGLE else None
+        bin_width = BIN_WIDTHS_DYNAMICS[column_name]
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
         bin_widths.append(bin_width)
 

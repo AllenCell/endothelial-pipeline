@@ -132,18 +132,14 @@ def main(
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
+        BIN_WIDTHS_DYNAMICS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
         PERIOD_THETA_RESCALED,
         RESCALE_THETA,
     )
-    from endo_pipeline.settings.flow_field_3d import (
-        INIT_POINT_3D,
-        KERNEL_BANDWIDTH,
-        KERNEL_FUNCTION_NAME,
-        TRAJECTORY_TIME_SPAN,
-    )
+    from endo_pipeline.settings.flow_field_3d import INIT_POINT_3D, TRAJECTORY_TIME_SPAN
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -230,15 +226,34 @@ def main(
         dataset_names, dataframe_manifest, pca, column_names=column_names
     )
 
-    # initialize kernels to be used for KDE estimation of the data histogram
+    # initialize kernels and bins to be used for KDE estimation of the data histogram
     kernels = []
+    bin_widths = []
     rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
 
+    # ensure that the column names are in the kernel name, bandwidth, and bin
+    # width dictionaries, and get the corresponding kernels and bin widths for
+    # each variable. For the polar angle variable, also specify the period for
+    # the kernel based on the rescaled theta range, to ensure that the
+    # periodicity of the polar angle is taken into account in the flow field
+    # estimation.
+    column_name_checks = []
+    for settings_dict in [KERNEL_NAMES_DYNAMICS, KERNEL_BANDWIDTHS_DYNAMICS, BIN_WIDTHS_DYNAMICS]:
+        column_name_check = [column_name in settings_dict for column_name in column_names]
+        column_name_checks.extend(column_name_check)
+
+    if not all(column_name_checks):
+        raise ValueError(
+            f"Column names {column_names} must be present in kernel, bandwidth, "
+            "and bin width settings for dynamics workflows."
+        )
     for column_name in column_names:
-        name = KERNEL_NAMES_DYNAMICS.get(column_name, KERNEL_FUNCTION_NAME)
-        bandwidth = KERNEL_BANDWIDTHS_DYNAMICS.get(column_name, KERNEL_BANDWIDTH)
+        name = KERNEL_NAMES_DYNAMICS[column_name]
+        bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
         period = rescaled_theta if column_name == ColumnName.POLAR_ANGLE else None
+        bin_width = BIN_WIDTHS_DYNAMICS[column_name]
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
+        bin_widths.append(bin_width)
 
     # set list of column names to keep from the loaded feature dataframes
     columns_plus_metadata_to_keep = [
@@ -276,9 +291,8 @@ def main(
         grid_points_as_list = [points[~np.isnan(points)] for points in grid_points_padded]
         grid_shape = tuple(len(points) for points in grid_points_as_list)
 
-        # get bin widths and limits for vtk file extent and for estimating KDE
+        # get bins for vtk file extent and for estimating KDE
         # of data for plotting
-        bin_widths = [grid_points_as_list[i][1] - grid_points_as_list[i][0] for i in range(ndim)]
         bin_limits = [
             (
                 grid_points_as_list[i][0] - bin_widths[i] / 2,
@@ -286,15 +300,12 @@ def main(
             )
             for i in range(ndim)
         ]
-
-        # estimate KDE in 3D for plotting
         num_bins = [len(points) for points in grid_points_as_list]
-        logger.debug("Bin limits for KDE estimation: [ %s ]", bin_limits)
-        logger.debug("Number of bins for KDE estimation: [ %s ]", num_bins)
         bin_edges = [
             np.linspace(bin_limit[0], bin_limit[1], num_bin + 1)
             for bin_limit, num_bin in zip(bin_limits, num_bins, strict=True)
         ]
+
         # build expected inputs for the KDE function: a list of 2D arrays of
         # shape (n_timepoints_in_traj, 2) and the appropriate kernel for
         # each column pair
