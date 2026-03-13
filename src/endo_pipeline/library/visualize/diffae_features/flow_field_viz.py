@@ -481,8 +481,8 @@ def plot_flow_field_slices(
     """
     Plot 2D slices of the 3D flow field for the specified 2D slices.
 
-    Also overlays a KDE contour plot of the data in the 2D slice if `kernel` is
-    not None.
+    Also overlays a KDE contour plot of the data in the 2D slice if `prob_kde`
+    is not None.
 
     **Input dictionary flow_field_dict:**
 
