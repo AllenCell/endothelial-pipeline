@@ -1,11 +1,8 @@
 from endo_pipeline.cli import CropPattern, Datasets
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 
 def main(
     datasets: Datasets | None = None,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
 ) -> None:
     """
@@ -121,11 +118,17 @@ def main(
         TIME_STEP_IN_MINUTES,
         UPPER_PERCENTILE_FOR_STABLE_FP,
     )
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+    )
 
     logger = logging.getLogger(__name__)
 
-    # load model manifest and get corresponding dataframe manifest name
-    model_manifest = load_model_manifest(model_manifest_name)
+    # Load default model manifest and get corresponding feature dataframe
+    # manifest name for default run name and specified crop pattern.
+    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
+    run_name = DEFAULT_MODEL_RUN_NAME
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
         model_manifest, run_name, crop_pattern=crop_pattern
     )
