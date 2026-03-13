@@ -328,13 +328,13 @@ def main(
                 dataset_config,
                 model_manifest=model_manifest,
                 run_name=run_name,
-                notes=FMS_ANNOTATION_NOTES_DRIFT,
+                additional_notes=FMS_ANNOTATION_NOTES_DRIFT,
             )
             grid_annotations = build_fms_annotations(
                 dataset_config,
                 model_manifest=model_manifest,
                 run_name=run_name,
-                notes=FMS_ANNOTATION_NOTES_GRID,
+                additional_notes=FMS_ANNOTATION_NOTES_GRID,
             )
             drift_fmsid = upload_file_to_fms(
                 drift_coeffs_save_path, annotations=drift_annotations, file_type="parquet"
@@ -396,7 +396,7 @@ def main(
                 dataset_config,
                 model_manifest=model_manifest,
                 run_name=run_name,
-                notes=FMS_ANNOTATION_NOTES_FIXED_POINTS,
+                additional_notes=FMS_ANNOTATION_NOTES_FIXED_POINTS,
             )
             fixed_points_fmsid = upload_file_to_fms(
                 stable_fixed_points_save_path,
