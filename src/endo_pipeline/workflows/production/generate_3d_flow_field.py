@@ -8,6 +8,7 @@ def main(
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
     columns: StrList | None = None,
+    upload_to_fms: bool = True,
 ) -> None:
     """
     Generate 3D (drift) flow fields for the dynamics of the crop-based DiffAE
@@ -43,6 +44,12 @@ def main(
     columns
         List of column names in the dataframe to use for flow field analysis. If
         None, uses default column names specified in settings.
+    upload_to_fms
+        Whether to upload the resulting dataframes to FMS (in addition to saving
+        locally). If True, the dataframes will be uploaded to FMS and the
+        corresponding locations will be saved in the dataframe manifests. If
+        False, the dataframes will only be saved locally and the dataframe
+        manifests will not be updated.
     """
     import logging
 
@@ -51,7 +58,12 @@ def main(
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, make_name_unique
+    from endo_pipeline.io import (
+        build_fms_annotations,
+        get_output_path,
+        make_name_unique,
+        upload_file_to_fms,
+    )
     from endo_pipeline.library.analyze.data_driven_flow_field import (
         compute_extrapolated_vector_field,
         get_callable_vector_field,
@@ -66,7 +78,7 @@ def main(
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
     from endo_pipeline.manifests import (
-        build_dataframe_location_from_path,
+        DataframeLocation,
         create_dataframe_manifest,
         get_feature_dataframe_manifest_name,
         list_datasets_with_dataframes,
@@ -91,6 +103,9 @@ def main(
         DATAFRAME_MANIFEST_PREFIX_GRID,
         DATAFRAME_OUTPUT_DIR,
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
+        FMS_ANNOTATION_NOTES_DRIFT,
+        FMS_ANNOTATION_NOTES_FIXED_POINTS,
+        FMS_ANNOTATION_NOTES_GRID,
         KERNEL_BANDWIDTH,
         KERNEL_FUNCTION_NAME,
         LOWER_PERCENTILE_FOR_STABLE_FP,
@@ -214,8 +229,6 @@ def main(
             "kernel_names": [kernel.name for kernel in kernels],
             "kernel_bandwidths": [kernel.bandwidth for kernel in kernels],
             "bin_widths": bin_widths,
-            "pad_bins_float": PAD_BINS_FLOAT,
-            "time_step_in_minutes": TIME_STEP_IN_MINUTES,
             "num_init_samples_for_root_solver": NUM_INIT_SAMPLES,
             "lower_percentile_for_stable_fp": LOWER_PERCENTILE_FOR_STABLE_FP,
             "upper_percentile_for_stable_fp": UPPER_PERCENTILE_FOR_STABLE_FP,
@@ -303,29 +316,42 @@ def main(
         # traceability and to avoid naming conflicts with other runs
         drift_coeffs_file_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataset_name}.parquet"
         grid_points_file_name = f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{dataset_name}.parquet"
-        if DEMO_MODE:
-            drift_coeffs_save_path = make_name_unique(
-                dataframe_savedir / f"demo_{drift_coeffs_file_name}"
-            )
-            grid_points_save_path = make_name_unique(
-                dataframe_savedir / f"demo_{grid_points_file_name}"
-            )
-        else:
-            # eventually, save to FMS
-            logger.warning("Saving dataframes to FMS not yet implemented, saving locally instead.")
-            drift_coeffs_save_path = make_name_unique(dataframe_savedir / drift_coeffs_file_name)
-            grid_points_save_path = make_name_unique(dataframe_savedir / grid_points_file_name)
-
+        drift_coeffs_save_path = make_name_unique(dataframe_savedir / drift_coeffs_file_name)
+        grid_points_save_path = make_name_unique(dataframe_savedir / grid_points_file_name)
         drift_coeffs_df.to_parquet(drift_coeffs_save_path)
         grid_points_df.to_parquet(grid_points_save_path)
 
-        # add to DataframeManifest for drift coefficients and grid points for this dataset
-        drift_location = build_dataframe_location_from_path(drift_coeffs_save_path)
-        grid_location = build_dataframe_location_from_path(grid_points_save_path)
-        drift_dataframe_manifest.locations[dataset_name] = drift_location
-        grid_dataframe_manifest.locations[dataset_name] = grid_location
-        save_dataframe_manifest(drift_dataframe_manifest)
-        save_dataframe_manifest(grid_dataframe_manifest)
+        # Upload dataframes to FMS and update manifests
+        if upload_to_fms:
+            dataset_config = load_dataset_config(dataset_name)
+            drift_annotations = build_fms_annotations(
+                dataset_config,
+                model_manifest=model_manifest,
+                run_name=run_name,
+                notes=FMS_ANNOTATION_NOTES_DRIFT,
+            )
+            grid_annotations = build_fms_annotations(
+                dataset_config,
+                model_manifest=model_manifest,
+                run_name=run_name,
+                notes=FMS_ANNOTATION_NOTES_GRID,
+            )
+            drift_fmsid = upload_file_to_fms(
+                drift_coeffs_save_path, annotations=drift_annotations, file_type="parquet"
+            )
+            grid_fmsid = upload_file_to_fms(
+                grid_points_save_path, annotations=grid_annotations, file_type="parquet"
+            )
+            drift_dataframe_manifest.locations[dataset_name] = DataframeLocation(fmsid=drift_fmsid)
+            grid_dataframe_manifest.locations[dataset_name] = DataframeLocation(fmsid=grid_fmsid)
+            save_dataframe_manifest(drift_dataframe_manifest)
+            save_dataframe_manifest(grid_dataframe_manifest)
+        else:
+            # if not uploading to FMS, just log the local save paths for
+            # traceability since the dataframe manifests won't be updated with
+            # locations
+            logger.info("Saving drift dataframe locally to [ %s ]", drift_coeffs_save_path)
+            logger.info("Saving grid points dataframe locally to [ %s ]", grid_points_save_path)
 
         ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
         extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
@@ -360,21 +386,34 @@ def main(
         stable_fixed_points_file_name = (
             f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataset_name}.parquet"
         )
-        if DEMO_MODE:
-            stable_fixed_points_save_path = make_name_unique(
-                dataframe_savedir / f"demo_{stable_fixed_points_file_name}"
-            )
-        else:
-            # eventually, save to FMS
-            logger.warning("Saving dataframes to FMS not yet implemented, saving locally instead.")
-            stable_fixed_points_save_path = make_name_unique(
-                dataframe_savedir / stable_fixed_points_file_name
-            )
+        stable_fixed_points_save_path = make_name_unique(
+            dataframe_savedir / stable_fixed_points_file_name
+        )
         stable_fixed_points_dataset.to_parquet(stable_fixed_points_save_path)
-        # add to DataframeManifest for stable fixed points for this dataset
-        fixed_points_location = build_dataframe_location_from_path(stable_fixed_points_save_path)
-        fixed_points_dataframe_manifest.locations[dataset_name] = fixed_points_location
-        save_dataframe_manifest(fixed_points_dataframe_manifest)
+        # if uploading to FMS, update the dataframe manifest
+        if upload_to_fms:
+            fixed_points_annotations = build_fms_annotations(
+                dataset_config,
+                model_manifest=model_manifest,
+                run_name=run_name,
+                notes=FMS_ANNOTATION_NOTES_FIXED_POINTS,
+            )
+            fixed_points_fmsid = upload_file_to_fms(
+                stable_fixed_points_save_path,
+                annotations=fixed_points_annotations,
+                file_type="parquet",
+            )
+            fixed_points_dataframe_manifest.locations[dataset_name] = DataframeLocation(
+                fmsid=fixed_points_fmsid
+            )
+            save_dataframe_manifest(fixed_points_dataframe_manifest)
+        else:
+            # else, log the local save path for traceability since the dataframe
+            # manifest won't be updated with location
+            logger.info(
+                "Saving stable fixed points dataframe locally to [ %s ]",
+                stable_fixed_points_save_path,
+            )
 
 
 if __name__ == "__main__":
