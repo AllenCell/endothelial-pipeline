@@ -561,9 +561,7 @@ def plot_flow_field_slices(
             # replace NaNs with 0 for integration, since we want to integrate
             # over the entire slice and NaNs represent points where the density
             # is not defined (e.g., outside the bounds of the data)
-            prob_kde_no_nan = np.nan_to_num(
-                prob_kde, nan=0.0
-            )  # replace NaNs with 0 for integration
+            prob_kde_no_nan = np.nan_to_num(prob_kde, nan=0.0)
             marginal_prob_kde = np.trapz(
                 prob_kde_no_nan, dx=dx_along_sliced_axis, axis=slice_axis_index
             )
