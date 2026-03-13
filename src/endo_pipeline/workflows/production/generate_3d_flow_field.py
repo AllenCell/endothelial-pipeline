@@ -458,8 +458,14 @@ def main(
             )
             save_dataframe_manifest(fixed_points_dataframe_manifest)
         else:
-            # else, log the local save path for traceability since the dataframe
-            # manifest won't be updated with location
+            # else, same as above: if in demo mode, update the "demo" dataframe
+            # manifest with location built from local save path, and if not in
+            # demo mode, just log the local save path
+            if DEMO_MODE:
+                fixed_points_dataframe_manifest.locations[dataset_name] = (
+                    build_dataframe_location_from_path(stable_fixed_points_save_path)
+                )
+                save_dataframe_manifest(fixed_points_dataframe_manifest)
             logger.info(
                 "Saving stable fixed points dataframe locally to [ %s ]",
                 stable_fixed_points_save_path,
