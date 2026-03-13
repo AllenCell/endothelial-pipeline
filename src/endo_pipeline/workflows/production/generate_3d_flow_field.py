@@ -50,7 +50,7 @@ def main(
     import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, make_name_unique
     from endo_pipeline.library.analyze.data_driven_flow_field import (
         compute_extrapolated_vector_field,
@@ -201,6 +201,15 @@ def main(
         bin_widths.append(bin_width)
 
     for dataset_name in dataset_names:
+        dataset_config = load_dataset_config(dataset_name)
+        if len(dataset_config.shear_stress_regime) > 1:
+            logger.warning(
+                "Dataset [ %s ] has more than one shear stress condition: [ %s ]. "
+                "Skipping for 3D flow field analysis.",
+                dataset_name,
+                dataset_config.shear_stress_regime,
+            )
+            continue
         # get bins for KMCs
         bounds_for_km = get_bounds_from_data(
             dataset_names=[dataset_name],
