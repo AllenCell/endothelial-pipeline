@@ -316,12 +316,8 @@ def main(
             drift_coeffs_save_path = make_name_unique(dataframe_savedir / drift_coeffs_file_name)
             grid_points_save_path = make_name_unique(dataframe_savedir / grid_points_file_name)
 
-        drift_coeffs_df.to_parquet(
-            drift_coeffs_save_path,
-        )
-        grid_points_df.to_parquet(
-            grid_points_save_path,
-        )
+        drift_coeffs_df.to_parquet(drift_coeffs_save_path)
+        grid_points_df.to_parquet(grid_points_save_path)
 
         # add to DataframeManifest for drift coefficients and grid points for this dataset
         drift_location = build_dataframe_location_from_path(drift_coeffs_save_path)
@@ -374,9 +370,7 @@ def main(
             stable_fixed_points_save_path = make_name_unique(
                 dataframe_savedir / stable_fixed_points_file_name
             )
-        stable_fixed_points_dataset.to_parquet(
-            stable_fixed_points_save_path,
-        )
+        stable_fixed_points_dataset.to_parquet(stable_fixed_points_save_path)
         # add to DataframeManifest for stable fixed points for this dataset
         fixed_points_location = build_dataframe_location_from_path(stable_fixed_points_save_path)
         fixed_points_dataframe_manifest.locations[dataset_name] = fixed_points_location
