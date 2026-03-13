@@ -7,7 +7,7 @@ def main(
 ) -> None:
     """
     Generate 3D (drift) flow fields for the dynamics of the crop-based DiffAE
-    features for each of the single flow datasets.
+    features for a given set of datasets.
 
     #dynamical-systems #diffae-feature-analysis
 
@@ -48,7 +48,7 @@ def main(
     2. Use interpolation to get a callable flow field function.
     3. Identify stable fixed points in the 3D flow field using a root-finding
        method applied to the flow field function.
-    4. Save the following outputs to the `outputs/` directory:
+    4. Save the following outputs locally:
         - Dataframe with the estimated drift coefficients at each grid point for
           each dataset.
         - Dataframe with the corresponding grid point coordinates for each
@@ -69,7 +69,7 @@ def main(
     import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, make_name_unique
     from endo_pipeline.library.analyze.data_driven_flow_field import (
         compute_extrapolated_vector_field,
@@ -84,13 +84,13 @@ def main(
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
-    from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
-        plot_stable_fixed_points_together,
-    )
     from endo_pipeline.manifests import (
+        build_dataframe_location_from_path,
+        create_dataframe_manifest,
         get_feature_dataframe_manifest_name,
         load_dataframe_manifest,
         load_model_manifest,
+        save_dataframe_manifest,
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
@@ -103,6 +103,10 @@ def main(
         RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_3d import (
+        DATAFRAME_MANIFEST_PREFIX_DRIFT,
+        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        DATAFRAME_MANIFEST_PREFIX_GRID,
+        DATAFRAME_OUTPUT_DIR,
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         LOWER_PERCENTILE_FOR_STABLE_FP,
         NUM_INIT_SAMPLES,
@@ -117,21 +121,54 @@ def main(
 
     logger = logging.getLogger(__name__)
 
+    # set workflow defaults
+    model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
+    run_name = DEFAULT_MODEL_RUN_NAME
+    column_names = list(DYNAMICS_COLUMN_NAMES)
+    if len(column_names) != 3:
+        raise ValueError(
+            f"Exactly 3 column names must be provided for 3D flow field analysis, but {len(column_names)} were provided: {column_names}"
+        )
+    drift_column_names = [f"{name}_drift" for name in column_names]
+
     # Load default model manifest and get corresponding feature dataframe
     # manifest name for default run name and specified crop pattern.
-    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
-    run_name = DEFAULT_MODEL_RUN_NAME
+    model_manifest = load_model_manifest(model_manifest_name)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
         model_manifest, run_name, crop_pattern=crop_pattern
     )
 
-    # Create output folders if they do not exist yet
-    output_savedir = get_output_path(
-        __file__,
-        dataframe_manifest_name,
-        "outputs",
+    # Create/set output folder for dataframes, save in local directory without
+    # timestamp for intermediate level of "static-ness" (ensure they don't get
+    # periodically deleted).
+    #
+    # Also build dataframe manifests for the outputs of this workflow (drift
+    # coefficients, grid points, and stable fixed points) with names that
+    # include the input dataframe manifest name for traceability and to avoid
+    # naming conflicts with other runs. The dataframe manifests get saved to the
+    # dataframe manifest directory, and the dataframes themselves get saved to
+    # the output directory specified in settings.
+    dataframe_savedir = get_output_path(
+        DATAFRAME_OUTPUT_DIR, dataframe_manifest_name, include_timestamp=False
     )
-    fig_savedir = get_output_path(__file__, dataframe_manifest_name, "figs")
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataframe_manifest_name}"
+    grid_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{dataframe_manifest_name}"
+    fixed_points_dataframe_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataframe_manifest_name}"
+    )
+    drift_dataframe_manifest = create_dataframe_manifest(
+        drift_dataframe_manifest_name, workflow_name=__file__
+    )
+    grid_dataframe_manifest = create_dataframe_manifest(
+        grid_dataframe_manifest_name, workflow_name=__file__
+    )
+    fixed_points_dataframe_manifest = create_dataframe_manifest(
+        fixed_points_dataframe_manifest_name, workflow_name=__file__
+    )
+    logger.info(
+        "Dataframes with 3D flow field estimation results will be saved to: [ %s ]",
+        dataframe_savedir,
+    )
 
     # load dataframe manifest with model feature for the given model run
     # and model manifest
@@ -151,14 +188,9 @@ def main(
             "DEMO MODE: Using only the first dataset from the manifest for quick testing."
         )
         dataset_names = dataset_names[:1]
-
-    # use set feature column names for dynamics workflows as specified in settings
-    column_names = list(DYNAMICS_COLUMN_NAMES)
-    if len(column_names) != 3:
-        raise ValueError(
-            f"Exactly 3 column names must be provided for 3D flow field analysis, but {len(column_names)} were provided: {column_names}"
-        )
-    drift_column_names = [f"{name}_drift" for name in column_names]
+        drift_dataframe_manifest_name = f"demo_{drift_dataframe_manifest_name}"
+        grid_dataframe_manifest_name = f"demo_{grid_dataframe_manifest_name}"
+        fixed_points_dataframe_manifest_name = f"demo_{fixed_points_dataframe_manifest_name}"
 
     # fit PCA using the features from the given dataframe manifest PCA always
     # fit on the grid-based features, even if the features for flow field
@@ -169,26 +201,14 @@ def main(
     )
     pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_pca)
 
-    # get common bounds for all datasets
-    # will be used for flow field plots if use_common_axis_limits is True
-    # regardless, gets used below when plotting stable fixed points together
-    bounds_for_plots = get_bounds_from_data(
-        dataset_names, dataframe_manifest, pca, column_names=column_names
-    )
-
-    # initialize dataframes to hold drift coefficients and bin centers for all
-    # datasets, with an additional column for dataset name
-    drift_coeffs_all_datasets_list = []
-    grid_points_all_datasets_list = []
-
-    # initialize dataframe to hold stable fixed points from all datasets
-    # with columns for dataset name and 3D PC space coordinates
+    # initialize list to hold dataframes of stable fixed points from all
+    # datasets with columns for dataset name and 3D PC space coordinates
     stable_fixed_points_all_datasets_list = []
 
     # initialize kernels and bin widths for each of the three variables for flow
     # field estimation
-    kernels = []
-    bin_widths = []
+    kernels: list[KramersMoyalKernel] = []
+    bin_widths: list[float] = []
     rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
 
     # ensure that the column names are in the kernel name, bandwidth, and bin
@@ -215,7 +235,38 @@ def main(
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
         bin_widths.append(bin_width)
 
+    # add parameters to dataframe manifests for traceability
+    for output_dataframe_manifest in [
+        drift_dataframe_manifest,
+        grid_dataframe_manifest,
+        fixed_points_dataframe_manifest,
+    ]:
+        output_dataframe_manifest.parameters = {
+            "model_manifest_name": model_manifest_name,
+            "run_name": run_name,
+            "crop_pattern": crop_pattern,
+            "columns": column_names,
+            "kernel_names": [kernel.name for kernel in kernels],
+            "kernel_bandwidths": [kernel.bandwidth for kernel in kernels],
+            "bin_widths": bin_widths,
+            "pad_bins_float": PAD_BINS_FLOAT,
+            "time_step_in_minutes": TIME_STEP_IN_MINUTES,
+            "num_init_samples_for_root_solver": NUM_INIT_SAMPLES,
+            "lower_percentile_for_stable_fp": LOWER_PERCENTILE_FOR_STABLE_FP,
+            "upper_percentile_for_stable_fp": UPPER_PERCENTILE_FOR_STABLE_FP,
+        }
+        save_dataframe_manifest(output_dataframe_manifest)
+
     for dataset_name in dataset_names:
+        dataset_config = load_dataset_config(dataset_name)
+        if len(dataset_config.shear_stress_regime) > 1:
+            logger.warning(
+                "Dataset [ %s ] has more than one shear stress condition: [ %s ]. "
+                "Skipping for 3D flow field analysis.",
+                dataset_name,
+                dataset_config.shear_stress_regime,
+            )
+            continue
         # get bins for KMCs
         bounds_for_km = get_bounds_from_data(
             dataset_names=[dataset_name],
@@ -258,7 +309,7 @@ def main(
                 },
             }
         )
-        drift_coeffs_all_datasets_list.append(drift_coeffs_df)
+
         # To store as datframe, the grid points are padded with NaN values to
         # ensure that each column has the same number of rows. The grid
         # points will be un-padded in the visualization workflow.
@@ -281,7 +332,39 @@ def main(
                 },
             }
         )
-        grid_points_all_datasets_list.append(grid_points_df)
+
+        # save drift coefficients and grid points dataframes to parquet files,
+        # with names that include the input dataframe manifest name for
+        # traceability and to avoid naming conflicts with other runs
+        drift_coeffs_file_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataset_name}.parquet"
+        grid_points_file_name = f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{dataset_name}.parquet"
+        if DEMO_MODE:
+            drift_coeffs_save_path = make_name_unique(
+                dataframe_savedir / f"demo_{drift_coeffs_file_name}"
+            )
+            grid_points_save_path = make_name_unique(
+                dataframe_savedir / f"demo_{grid_points_file_name}"
+            )
+        else:
+            # eventually, save to FMS
+            logger.warning("Saving dataframes to FMS not yet implemented, saving locally instead.")
+            drift_coeffs_save_path = make_name_unique(dataframe_savedir / drift_coeffs_file_name)
+            grid_points_save_path = make_name_unique(dataframe_savedir / grid_points_file_name)
+
+        drift_coeffs_df.to_parquet(
+            drift_coeffs_save_path,
+        )
+        grid_points_df.to_parquet(
+            grid_points_save_path,
+        )
+
+        # add to DataframeManifest for drift coefficients and grid points for this dataset
+        drift_location = build_dataframe_location_from_path(drift_coeffs_save_path)
+        grid_location = build_dataframe_location_from_path(grid_points_save_path)
+        drift_dataframe_manifest.locations[dataset_name] = drift_location
+        grid_dataframe_manifest.locations[dataset_name] = grid_location
+        save_dataframe_manifest(drift_dataframe_manifest)
+        save_dataframe_manifest(grid_dataframe_manifest)
 
         ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
         extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
@@ -305,72 +388,34 @@ def main(
         )
 
         # add stable fixed points from this dataset to the overall dataframe
-        # (checking if returned dataframe is empty first to avoid issues with
-        # concatenation)
-        if not stable_fixed_points_dataset.empty:
-            stable_fixed_points_all_datasets_list.append(stable_fixed_points_dataset)
+        # (checking first if returned dataframe is empty first to avoid issues
+        # with concatenation and saving an empty dataframe)
+        if stable_fixed_points_dataset.empty:
+            continue
 
-    # concatenate dataframes for all datasets
-    drift_coeffs_all_datasets = pd.concat(drift_coeffs_all_datasets_list, ignore_index=True)
-    grid_points_all_datasets = pd.concat(grid_points_all_datasets_list, ignore_index=True)
-    stable_fixed_points_all_datasets = pd.concat(
-        stable_fixed_points_all_datasets_list, ignore_index=True
-    )
+        stable_fixed_points_all_datasets_list.append(stable_fixed_points_dataset)
 
-    # generate plot of stable fixed points from different datasets overlaid on top of each other
-    # (for comparison of stable fixed points across datasets)
-    if not stable_fixed_points_all_datasets.empty:
-        plot_stable_fixed_points_together(
-            stable_fixed_points_all_datasets, bounds_for_plots, fig_savedir, column_names
+        # save stable fixed points from this dataset to parquet file
+        stable_fixed_points_file_name = (
+            f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataset_name}.parquet"
         )
-    else:
-        logger.warning(
-            "No stable fixed points identified across all datasets, so skipping"
-            "generation of plot comparing stable fixed points across datasets."
+        if DEMO_MODE:
+            stable_fixed_points_save_path = make_name_unique(
+                dataframe_savedir / f"demo_{stable_fixed_points_file_name}"
+            )
+        else:
+            # eventually, save to FMS
+            logger.warning("Saving dataframes to FMS not yet implemented, saving locally instead.")
+            stable_fixed_points_save_path = make_name_unique(
+                dataframe_savedir / stable_fixed_points_file_name
+            )
+        stable_fixed_points_dataset.to_parquet(
+            stable_fixed_points_save_path,
         )
-
-    # save stable fixed points from all datasets to parquet file
-    drift_coeffs_file_name = "drift_coeffs_all_datasets.parquet"
-    grid_points_file_name = "grid_points_all_datasets.parquet"
-    fixed_points_file_name = "stable_fixed_points_all_datasets.parquet"
-    if DEMO_MODE:
-        drift_coeffs_save_path = make_name_unique(output_savedir / f"demo_{drift_coeffs_file_name}")
-        grid_points_save_path = make_name_unique(output_savedir / f"demo_{grid_points_file_name}")
-        stable_fixed_points_save_path = make_name_unique(
-            output_savedir / f"demo_{fixed_points_file_name}"
-        )
-    else:
-        # eventually, save to FMS
-        logger.warning(
-            "Saving stable fixed points to FMS not yet implemented, saving locally instead."
-        )
-        drift_coeffs_save_path = make_name_unique(output_savedir / drift_coeffs_file_name)
-        grid_points_save_path = make_name_unique(output_savedir / grid_points_file_name)
-        stable_fixed_points_save_path = make_name_unique(output_savedir / fixed_points_file_name)
-
-    logger.info(
-        "Saving drift coefficients from all datasets to [ %s ]",
-        drift_coeffs_save_path,
-    )
-    drift_coeffs_all_datasets.to_parquet(
-        drift_coeffs_save_path,
-    )
-
-    logger.info(
-        "Saving grid points for drift coefficients from all datasets to [ %s ]",
-        grid_points_save_path,
-    )
-    grid_points_all_datasets.to_parquet(
-        grid_points_save_path,
-    )
-
-    logger.info(
-        "Saving stable fixed points from all datasets to [ %s ]",
-        stable_fixed_points_save_path,
-    )
-    stable_fixed_points_all_datasets.to_parquet(
-        stable_fixed_points_save_path,
-    )
+        # add to DataframeManifest for stable fixed points for this dataset
+        fixed_points_location = build_dataframe_location_from_path(stable_fixed_points_save_path)
+        fixed_points_dataframe_manifest.locations[dataset_name] = fixed_points_location
+        save_dataframe_manifest(fixed_points_dataframe_manifest)
 
 
 if __name__ == "__main__":

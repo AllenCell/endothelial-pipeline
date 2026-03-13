@@ -1,0 +1,100 @@
+name: flow_field_fixed_points_diffae_baseline_exclude_cell_piling_20251110_latent_512_grid
+workflow: generate_3d_flow_field
+parameters:
+  model_manifest_name: diffae_baseline_exclude_cell_piling
+  run_name: 20251110_latent_512
+  crop_pattern: grid
+  columns: [polar_theta, polar_r, rho]
+  kernel_names: [periodic, gaussian, gaussian]
+  kernel_bandwidths: [0.15, 0.15, 0.15]
+  bin_widths: [0.05, 0.05, 0.05]
+  pad_bins_float: 0.1
+  time_step_in_minutes: 5
+  num_init_samples_for_root_solver: 250
+  lower_percentile_for_stable_fp: 5.0
+  upper_percentile_for_stable_fp: 95.0
+locations:
+  20250319_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20250319_20X_20260313_001848.parquet
+    s3uri: null
+  20250326_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20250326_20X_20260313_001947.parquet
+    s3uri: null
+  20250402_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20250402_20X_20260313_002019.parquet
+    s3uri: null
+  20250409_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20250409_20X_20260313_002101.parquet
+    s3uri: null
+  20250428_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20250428_20X_20260313_002142.parquet
+    s3uri: null
+  20250604_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20250604_20X_20260313_002215.parquet
+    s3uri: null
+  20250611_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20250611_20X_20260313_002239.parquet
+    s3uri: null
+  20250618_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20250618_20X_20260313_185622.parquet
+    s3uri: null
+  20250716_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20250716_20X_20260313_002352.parquet
+    s3uri: null
+  20250813_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20250813_20X_20260313_002502.parquet
+    s3uri: null
+  20250908_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20250908_20X_20260313_002657.parquet
+    s3uri: null
+  20251001_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20251001_20X_20260313_002732.parquet
+    s3uri: null
+  20251022_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20251022_20X_20260313_002830.parquet
+    s3uri: null
+  20251029_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20251029_20X_20260313_002859.parquet
+    s3uri: null
+  20251105_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20251105_20X_20260313_002940.parquet
+    s3uri: null
+  20251119_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20251119_20X_20260313_003009.parquet
+    s3uri: null
+  20260114_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20260114_20X_20260313_003037.parquet
+    s3uri: null
+  20260121_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20260121_20X_20260313_003122.parquet
+    s3uri: null
+  20260128_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20260128_20X_20260313_003223.parquet
+    s3uri: null
+  20260202_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20260202_20X_20260313_003248.parquet
+    s3uri: null
+  20260204_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/flow_field_3d_dataframes/diffae_baseline_exclude_cell_piling_20251110_latent_512_grid/flow_field_fixed_points_20260204_20X_20260313_003320.parquet
+    s3uri: null
