@@ -542,9 +542,10 @@ def plot_flow_field_slices(
 
     # plot KDE contours of data in x-y and x-z planes, if specified
     if prob_kde is not None:
-        for subplot_index, plot_axis_index_pair, slice_axis_index in zip(
-            [0, 1], [(0, 1), (0, 2)], [2, 1], strict=True
-        ):
+        for subplot_index, plot_axis_index_pair, slice_axis_index in [
+            (0, (0, 1), 2),  # feature 1 vs feature 2 over feature 3 slices
+            (1, (0, 2), 1),  # feature 1 vs feature 3 over feature 2 slices
+        ]:
             # get a 2D meshgrid for the current slice
             # take the slice along the z-axis for x-y plane and y-axis for x-z plane
             mesh_dim_1 = np.take(meshgrid_tuple[plot_axis_index_pair[0]], 0, axis=slice_axis_index)
