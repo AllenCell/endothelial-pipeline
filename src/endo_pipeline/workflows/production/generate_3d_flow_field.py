@@ -143,7 +143,7 @@ def main(
         f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{dataframe_manifest_name}{demo_suffix}"
     )
     fixed_points_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataframe_manifest_name}"
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataframe_manifest_name}{demo_suffix}"
     )
     drift_dataframe_manifest = create_dataframe_manifest(
         drift_dataframe_manifest_name, workflow_name=__file__
