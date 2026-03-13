@@ -18,19 +18,15 @@ def main(
 
     #dynamical-systems #diffae-feature-analysis #visualization
 
-    **Workflow inputs**
+    **Dataframe loading pattern**
 
-    1. Path to a dataframe containing the drift estimates for the 3D flow field,
-       along dataset labels for each point in the feature space.
-
-    2. Path to a dataframe containing the corresponding 1D arrays of grid points
-       in each of the three dimensions of the feature space for the 3D flow
-       field, along dataset labels for each point in the feature space.
-
-    3. Optionally, a path to a dataframe containing the stable fixed point
-       locations to overlay on the flow field visualizations. If not provided,
-       stable fixed points will not be overlaid on the flow field
-       visualizations.
+    The dataframe manifests that this workflow expects to find for loading the
+    flow field data are determined by the given model manifest and run names,
+    the specified crop pattern, and the expected naming convention for the
+    dataframe manifests corresponding to the flow field dataframes as specified
+    by the settings `DATAFRAME_MANIFEST_PREFIX_DRIFT`,
+    `DATAFRAME_MANIFEST_PREFIX_GRID`, and
+    `DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS`.
 
     **Visualization outputs**
 
