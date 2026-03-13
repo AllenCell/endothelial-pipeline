@@ -184,8 +184,8 @@ def main(
 
     # initialize kernels and bin widths for each of the three variables for flow
     # field estimation
-    kernels = []
-    bin_widths = []
+    kernels: list[KramersMoyalKernel] = []
+    bin_widths: list[float] = []
     rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
 
     for index, column_name in enumerate(column_names):
@@ -196,6 +196,28 @@ def main(
 
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
         bin_widths.append(bin_width)
+
+    # add parameters to dataframe manifests for traceability
+    for output_dataframe_manifest in [
+        drift_dataframe_manifest,
+        grid_dataframe_manifest,
+        fixed_points_dataframe_manifest,
+    ]:
+        output_dataframe_manifest.parameters = {
+            "model_manifest_name": model_manifest_name,
+            "run_name": run_name,
+            "crop_pattern": crop_pattern,
+            "columns": column_names,
+            "kernel_names": [kernel.name for kernel in kernels],
+            "kernel_bandwidths": [kernel.bandwidth for kernel in kernels],
+            "bin_widths": bin_widths,
+            "pad_bins_float": PAD_BINS_FLOAT,
+            "time_step_in_minutes": TIME_STEP_IN_MINUTES,
+            "num_init_samples_for_root_solver": NUM_INIT_SAMPLES,
+            "lower_percentile_for_stable_fp": LOWER_PERCENTILE_FOR_STABLE_FP,
+            "upper_percentile_for_stable_fp": UPPER_PERCENTILE_FOR_STABLE_FP,
+        }
+        save_dataframe_manifest(output_dataframe_manifest)
 
     for dataset_name in dataset_names:
         dataset_config = load_dataset_config(dataset_name)
