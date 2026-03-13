@@ -91,13 +91,24 @@ DATAFRAME_MANIFEST_PREFIX_DRIFT: str = "flow_field_drift"
 """Prefix for setting and getting dataframe manifest name for drift dataframes
 in 3D flow field analysis."""
 
+FMS_ANNOTATION_NOTES_DRIFT: str = "Drift coefficients for 3D flow field estimation."
+"""Annotation notes for drift coefficient dataframes uploaded to FMS in 3D flow field analysis."""
+
 DATAFRAME_MANIFEST_PREFIX_GRID: str = "flow_field_grid"
 """Prefix for setting and getting dataframe manifest name for grid dataframes in
 3D flow field analysis."""
 
+FMS_ANNOTATION_NOTES_GRID: str = "Grid point coordinates for 3D flow field estimation."
+"""Annotation notes for grid point dataframes uploaded to FMS in 3D flow field analysis."""
+
 DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS: str = "flow_field_fixed_points"
 """Prefix for setting and getting dataframe manifest name for fixed point dataframes
 in 3D flow field analysis."""
+
+FMS_ANNOTATION_NOTES_FIXED_POINTS: str = (
+    "Stable fixed points identified from 3D flow field analysis."
+)
+"""Annotation notes for fixed point dataframes uploaded to FMS in 3D flow field analysis."""
 
 DATAFRAME_OUTPUT_DIR: str = "flow_field_3d_dataframes"
 """Directory for storing 3D flow field dataframes."""

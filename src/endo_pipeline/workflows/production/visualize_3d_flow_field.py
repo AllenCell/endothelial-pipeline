@@ -38,10 +38,12 @@ def main(
     methods `fit_pca` and `project_features_to_pcs` in the
     `diffae_dataframe_utils` module.
 
+    **Dataframe loading pattern**
+
     The dataframe manifests that this workflow expects to find for loading the
-    flow field data are determined by the default model manifest and run name,
+    flow field data are determined by the given model manifest and run names,
     the specified crop pattern, and the expected naming convention for the
-    dataframe manifests corresponding to the flow field dataframes, as specified
+    dataframe manifests corresponding to the flow field dataframes as specified
     by the settings `DATAFRAME_MANIFEST_PREFIX_DRIFT`,
     `DATAFRAME_MANIFEST_PREFIX_GRID`, and
     `DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS`.
@@ -57,8 +59,8 @@ def main(
            slices.
         c. Optionally, 3D stack plots of the flow field visualizations in each
            of the three variables (if ``plot_stack`` is True).
-    2. Optionally, VTK files for 3D flow field saved in the `vtk/` directory (if
-       ``compute_vtk`` is True).
+    2. Optionally, VTK files for 3D flow field saved in the `vtk/`
+       directory (if ``compute_vtk`` is True).
     3. Optionally, a plot comparing the stable fixed points across datasets
        overlaid on a common set of axes, saved as a PNG file in the `figs/`
        directory (if stable fixed point data is provided for at least two
@@ -114,6 +116,7 @@ def main(
     from endo_pipeline.manifests import (
         get_dataframe_location_for_dataset,
         get_feature_dataframe_manifest_name,
+        list_datasets_with_dataframes,
         load_dataframe_manifest,
         load_model_manifest,
     )
@@ -145,46 +148,36 @@ def main(
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
     column_names = list(DYNAMICS_COLUMN_NAMES)
-    if len(column_names) != 3:
+    ndim = len(column_names)
+    if ndim != 3:
         raise ValueError(
-            f"Exactly 3 column names must be provided for 3D flow field analysis, but {len(column_names)} were provided: {column_names}"
+            f"Exactly 3 column names must be provided for 3D flow field analysis, but {ndim} were provided: {column_names}"
         )
     drift_column_names = [f"{name}_drift" for name in column_names]
 
     # load model manifest and get corresponding dataframe manifest name
     model_manifest = load_model_manifest(model_manifest_name)
-    dataframe_manifest_name = get_feature_dataframe_manifest_name(
+    feature_dataframe_manifest_name = get_feature_dataframe_manifest_name(
         model_manifest, run_name, crop_pattern=crop_pattern
     )
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    demo_prefix = "demo_" if DEMO_MODE else ""
+    demo_suffix = "_demo" if DEMO_MODE else ""
     drift_dataframe_manifest_name = (
-        f"{demo_prefix}{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataframe_manifest_name}"
+        f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{feature_dataframe_manifest_name}{demo_suffix}"
     )
     grid_dataframe_manifest_name = (
-        f"{demo_prefix}{DATAFRAME_MANIFEST_PREFIX_GRID}_{dataframe_manifest_name}"
+        f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{feature_dataframe_manifest_name}{demo_suffix}"
     )
     fixed_points_dataframe_manifest_name = (
-        f"{demo_prefix}{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataframe_manifest_name}"
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{feature_dataframe_manifest_name}{demo_suffix}"
     )
-    try:
-        drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
-        grid_dataframe_manifest = load_dataframe_manifest(grid_dataframe_manifest_name)
-        fixed_points_dataframe_manifest = load_dataframe_manifest(
-            fixed_points_dataframe_manifest_name
-        )
-    except FileNotFoundError:
-        logger.error(
-            "Dataframe manifests for model manifest [ %s ], run name [ %s ], and crop pattern [ %s ] could not be found.",
-            model_manifest_name,
-            run_name,
-            crop_pattern,
-        )
-        raise
+    drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
+    grid_dataframe_manifest = load_dataframe_manifest(grid_dataframe_manifest_name)
+    fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
 
-    if set(drift_dataframe_manifest.locations.keys()) != set(
-        grid_dataframe_manifest.locations.keys()
+    if list_datasets_with_dataframes(drift_dataframe_manifest) != list_datasets_with_dataframes(
+        grid_dataframe_manifest
     ):
         logger.error(
             "Datasets in drift dataframe manifest [ %s ] do not match datasets in grid points dataframe manifest [ %s ].",
@@ -199,7 +192,8 @@ def main(
     # when loading dataframes for specific datasets, and log an error if no
     # valid dataset names are provided after this filtering step
     valid_dataset_options = list(
-        set(drift_dataframe_manifest.locations.keys()) & set(dataframe_manifest.locations.keys())
+        set(list_datasets_with_dataframes(drift_dataframe_manifest))
+        & set(list_datasets_with_dataframes(feature_dataframe_manifest))
     )
     if datasets is None:
         dataset_names = get_datasets_in_collection(
@@ -216,17 +210,9 @@ def main(
         raise ValueError("No valid dataset names provided.")
 
     # Create output folders if they do not exist yet
-    fig_savedir = get_output_path(__file__, dataframe_manifest_name, "figs")
-    vtk_savedir = get_output_path(__file__, dataframe_manifest_name, "vtk")
-
-    # get feature column names to use for flow field analysis
-    column_names = list(DYNAMICS_COLUMN_NAMES)
-    ndim = len(column_names)
-    if ndim != 3:
-        raise ValueError(
-            f"Exactly 3 column names must be provided for 3D flow field analysis, but {len(column_names)} were provided: {column_names}"
-        )
-    drift_column_names = [f"{name}_drift" for name in column_names]
+    fig_savedir = get_output_path(__file__, feature_dataframe_manifest_name, "figs")
+    if compute_vtk:
+        vtk_savedir = get_output_path(__file__, feature_dataframe_manifest_name, "vtk")
 
     if DEMO_MODE:
         logger.warning(
@@ -247,7 +233,7 @@ def main(
     # will be used for flow field plots if use_common_axis_limits is True
     # regardless, gets used below when plotting stable fixed points together
     bounds_for_plots = get_bounds_from_data(
-        dataset_names, dataframe_manifest, pca, column_names=column_names
+        dataset_names, feature_dataframe_manifest, pca, column_names=column_names
     )
 
     # initialize kernels and bins to be used for KDE estimation of the data histogram
@@ -297,7 +283,7 @@ def main(
         # load dataframe with feature data
         feature_data = get_dataframe_for_dynamics_workflows(
             dataset_name,
-            dataframe_manifest,
+            feature_dataframe_manifest,
             pca=pca,
             include_cell_piling=False,
             include_not_steady_state=False,
@@ -308,7 +294,7 @@ def main(
         drift_dataframe_location = get_dataframe_location_for_dataset(
             drift_dataframe_manifest, dataset_name
         )
-        drift_dataframe: pd.DataFrame = load_dataframe(drift_dataframe_location, delay=False)
+        drift_dataframe = load_dataframe(drift_dataframe_location, delay=False)
         check_required_columns_in_dataframe(
             drift_dataframe,
             required_columns=[*drift_column_names, ColumnName.DATASET],
@@ -316,9 +302,7 @@ def main(
         grid_points_dataframe_location = get_dataframe_location_for_dataset(
             grid_dataframe_manifest, dataset_name
         )
-        grid_points_dataframe: pd.DataFrame = load_dataframe(
-            grid_points_dataframe_location, delay=False
-        )
+        grid_points_dataframe = load_dataframe(grid_points_dataframe_location, delay=False)
         check_required_columns_in_dataframe(
             grid_points_dataframe,
             required_columns=[*column_names, ColumnName.DATASET],
@@ -332,9 +316,7 @@ def main(
             fixed_points_dataframe_location = get_dataframe_location_for_dataset(
                 fixed_points_dataframe_manifest, dataset_name
             )
-            fixed_points_dataframe: pd.DataFrame = load_dataframe(
-                fixed_points_dataframe_location, delay=False
-            )
+            fixed_points_dataframe = load_dataframe(fixed_points_dataframe_location, delay=False)
             check_required_columns_in_dataframe(
                 fixed_points_dataframe,
                 required_columns=[*column_names, ColumnName.DATASET],
@@ -433,7 +415,7 @@ def main(
         # get per-dataset bounds for plotting, if not using same axes for all datasets
         if not use_same_axes:
             bounds_for_plots = get_bounds_from_data(
-                [dataset_name], dataframe_manifest, pca, column_names=column_names
+                [dataset_name], feature_dataframe_manifest, pca, column_names=column_names
             )
 
         # call main visualization function
