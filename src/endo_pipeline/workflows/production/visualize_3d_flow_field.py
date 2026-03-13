@@ -258,7 +258,7 @@ def main(
         drift_dataframe_location = get_dataframe_location_for_dataset(
             drift_dataframe_manifest, dataset_name
         )
-        drift_dataframe: pd.DataFrame = load_dataframe(drift_dataframe_location, delay=False)
+        drift_dataframe = load_dataframe(drift_dataframe_location, delay=False)
         check_required_columns_in_dataframe(
             drift_dataframe,
             required_columns=[*drift_column_names, ColumnName.DATASET],
@@ -266,9 +266,7 @@ def main(
         grid_points_dataframe_location = get_dataframe_location_for_dataset(
             grid_dataframe_manifest, dataset_name
         )
-        grid_points_dataframe: pd.DataFrame = load_dataframe(
-            grid_points_dataframe_location, delay=False
-        )
+        grid_points_dataframe = load_dataframe(grid_points_dataframe_location, delay=False)
         check_required_columns_in_dataframe(
             grid_points_dataframe,
             required_columns=[*column_names, ColumnName.DATASET],
@@ -282,9 +280,7 @@ def main(
             fixed_points_dataframe_location = get_dataframe_location_for_dataset(
                 fixed_points_dataframe_manifest, dataset_name
             )
-            fixed_points_dataframe: pd.DataFrame = load_dataframe(
-                fixed_points_dataframe_location, delay=False
-            )
+            fixed_points_dataframe = load_dataframe(fixed_points_dataframe_location, delay=False)
             check_required_columns_in_dataframe(
                 fixed_points_dataframe,
                 required_columns=[*column_names, ColumnName.DATASET],
