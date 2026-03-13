@@ -197,12 +197,13 @@ def main(
         )
         raise ValueError("Datasets in drift and grid point dataframe manifests do not match.")
 
-    # either run on specified datasets or all datasets in the manifest if no specific datasets are provided
+    # either run on specified datasets or all datasets in the manifest if no
+    # specific datasets are provided restrict to datasets that are present in
+    # both the drift and feature dataframe manifests to avoid errors later on
+    # when loading dataframes for specific datasets, and log an error if no
+    # valid dataset names are provided after this filtering step
     valid_dataset_options = list(
-        set(
-            list(drift_dataframe_manifest.locations.keys())
-            + list(dataframe_manifest.locations.keys())
-        )
+        set(drift_dataframe_manifest.locations.keys()) & set(dataframe_manifest.locations.keys())
     )
     if datasets is None:
         dataset_names = get_datasets_in_collection(
