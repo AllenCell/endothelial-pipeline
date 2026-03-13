@@ -6,7 +6,7 @@ def main(
     crop_pattern: CropPattern = "grid",
 ) -> None:
     """
-    Visualize 3D (drift) flow fields for the dynamics of the crop-based DiffAE
+    Generate 3D (drift) flow fields for the dynamics of the crop-based DiffAE
     features for each of the single flow datasets.
 
     #dynamical-systems #diffae-feature-analysis

@@ -3,15 +3,12 @@ from typing import Annotated
 from cyclopts import Parameter
 
 from endo_pipeline.cli import CropPattern
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 
 def main(
     path_to_drift_dataframe: Annotated[str, Parameter(name="--drift")],
     path_to_grid_points_dataframe: Annotated[str, Parameter(name="--grid-points")],
     path_to_fixed_points_dataframe: Annotated[str | None, Parameter(name="--fixed-points")] = None,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
     plot_stack: bool = False,
     compute_vtk: bool = False,
@@ -22,6 +19,30 @@ def main(
     features as estimated by the `generate_3d_flow_field` workflow.
 
     #dynamical-systems #diffae-feature-analysis #visualization
+
+    **Workflow defaults**
+
+    This workflow runs on drift estimates of the features derived from the
+    default DiffAE model (specified by the default settings
+    `DEFAULT_MODEL_MANIFEST_NAME` and `DEFAULT_MODEL_RUN_NAME`) as obtained from
+    image crops of the specified `crop_pattern` type (i.e., grid-based or
+    tracked-based crops).
+
+    By default, it uses estimates from timeseries features extracted from
+    grid-based crops but can also be run using the estimates from tracked-based
+    crops by setting the `crop_pattern` parameter to "tracked". Note that to do
+    so, the `generate_3d_flow_field` workflow must have been run with the same
+    `crop_pattern` setting to generate the appropriate flow field estimates for
+    the tracked-based crops.
+
+    The specific features used for flow field estimation and analysis are
+    determined by the `DYNAMICS_COLUMN_NAMES` setting, which specifies the names
+    of the features to use for flow field analysis and visualization. By
+    default, these are set to be the polar angle, polar radius, and rho features
+    derived from the DiffAE features via a 3D PCA transformation. For more
+    details on the specific features used and how they are derived, see the
+    methods `fit_pca` and `project_features_to_pcs` in the
+    `diffae_dataframe_utils` module.
 
     **Workflow inputs**
 
@@ -66,13 +87,6 @@ def main(
     path_to_fixed_points_dataframe
         Optional path to the dataframe containing the stable fixed point
         locations to overlay on the flow field visualizations.
-    model_manifest_name
-        Name of the model manifest to use for loading the corresponding
-        dataframe manifest and feature dataframes.
-    run_name
-        Optional run name to use for loading the corresponding dataframe
-        manifest and feature dataframes. If not provided, will use the default
-        run name.
     crop_pattern
         Crop pattern to use for loading the feature dataframes. If not provided,
         will use the default crop pattern of "grid".
@@ -83,12 +97,8 @@ def main(
         If true, compute and save VTK files for 3D flow fields.
     use_same_axes
         If true, use the same axis limits for all datasets when plotting flow
-        fields.
-    columns
-        Optional list of column names to use for the flow field analysis and
-        visualization. If not provided, will use the default column names
-        defined in `DYNAMICS_COLUMN_NAMES`. Must provide exactly 3 column names
-        for 3D flow field analysis.
+        fields for each dataset. If false, use dataset-specific axis limits
+        based on the bounds of the data for each dataset.
     """
     import logging
     from pathlib import Path
@@ -134,11 +144,16 @@ def main(
         KERNEL_FUNCTION_NAME,
         TRAJECTORY_TIME_SPAN,
     )
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+    )
 
     logger = logging.getLogger(__name__)
 
     # load model manifest and get corresponding dataframe manifest name
-    model_manifest = load_model_manifest(model_manifest_name)
+    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
+    run_name = DEFAULT_MODEL_RUN_NAME
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
         model_manifest, run_name, crop_pattern=crop_pattern
     )
