@@ -1,4 +1,4 @@
-from endo_pipeline.cli import CropPattern, Datasets, StrList
+from endo_pipeline.cli import CropPattern, Datasets
 from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 
@@ -7,7 +7,6 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
-    columns: StrList | None = None,
 ) -> None:
     """
     Visualize 3D (drift) flow fields for the dynamics of the crop-based DiffAE
@@ -15,36 +14,62 @@ def main(
 
     #dynamical-systems #diffae-feature-analysis
 
+    **Workflow defaults**
+
+    This workflow runs on features derived from the DiffAE model specified by
+    the `model_manifest_name` and `run_name` parameters as obtained from image
+    crops of the specified `crop_pattern` type (i.e., grid-based or
+    tracked-based crops). By default, it uses the model manifest and run
+    specified by the `DEFAULT_MODEL_MANIFEST_NAME` and `DEFAULT_MODEL_RUN_NAME`
+    settings, and uses the time series of features extracted from grid-based
+    crops.
+
+    The specific features used for flow field estimation and analysis are
+    determined by the `DYNAMICS_COLUMN_NAMES` setting, which specifies the names
+    of the three features to use for flow field estimation and analysis. By
+    default, these are set to be the polar angle, polar radius, and rho features
+    derived from the DiffAE features via a 3D PCA transformation. For more
+    details on the specific features used and how they are derived, see the
+    methods `fit_pca` and `project_features_to_pcs` in the
+    `diffae_dataframe_utils` module.
+
+    The workflow runs on the datasets specified via the `datasets` parameter,
+    which can be a list of dataset names or dataset collection names. By
+    default, it uses the datasets specified in the setting
+    `DATASET_COLLECTION_FOR_3D_DYNAMICS`.
+
     **Flow field estimation and analysis**
 
-    1. Estimate 3D flow fields using a Gaussian kernel method on the PCA-reduced
-         DiffAE feature space.
+    Using the 3D feature space defined by the DiffAE + PC derived features:
+
+        (polar_theta, polar_r, rho)
+
+    this workflow will do the following for each specified dataset:
+
+    1. Estimate 3D flow fields using a kernel-based method for estimating
+       Kramers-Moyal coefficients from time series data.
     2. Use interpolation to get a callable flow field function.
-    3. Identify stable fixed points in the 3D flow field using a root-finding method
-        applied to the flow field function.
+    3. Identify stable fixed points in the 3D flow field using a root-finding
+       method applied to the flow field function.
     4. Save the following outputs to the `outputs/` directory:
-        - Dataframe with the estimated drift coefficients at each grid point for each dataset.
-        - Dataframe with the corresponding grid point coordinates for each dataset.
+        - Dataframe with the estimated drift coefficients at each grid point for
+          each dataset.
+        - Dataframe with the corresponding grid point coordinates for each
+          dataset.
         - Dataframe with the stable fixed point locations for each dataset.
-
-    **Visualization outputs**
-
-    - Stable fixed point locations from all datasets processed overlaid on a single
-        plot saved as a PNG file in the `figs/` directory.
 
     Parameters
     ----------
     datasets
-        List of datasets or dataset collections to use for visualization.
+        Optional list of datasets or dataset collections to use for
+        visualization.
     model_manifest_name
         Name of the model manifest containing the run to load features from.
     run_name
-        Name of the specific model run to load featuref for. If None, uses the most recent run.
+        Name of the specific model run to load features for. If None, uses the
+        most recent run.
     crop_pattern
         The crop pattern to get features for, either "grid" or "tracked".
-    columns
-        List of column names in the dataframe to use for flow field analysis. If None,
-        uses default column names specified in settings.
     """
     import logging
 
@@ -132,8 +157,8 @@ def main(
         )
         dataset_names = dataset_names[:1]
 
-    # get feature column names to use for flow field analysis
-    column_names: list[str] = columns or list(DYNAMICS_COLUMN_NAMES)
+    # use set feature column names for dynamics workflows as specified in settings
+    column_names = list(DYNAMICS_COLUMN_NAMES)
     if len(column_names) != 3:
         raise ValueError(
             f"Exactly 3 column names must be provided for 3D flow field analysis, but {len(column_names)} were provided: {column_names}"
