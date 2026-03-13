@@ -24,6 +24,8 @@ class ColumnNameSeg(StrEnum):
     NUM_TRACKS_BEFORE_FILTERING = "num_unique_tracks_before_filtering_at_T"
     SHEAR_STRESS_REGIME = "shear_stress_regime"
     NUM_NUCLEI_AT_TIMEPOINT = "total_nuclei_count_at_T"
+    TIMELAPSE_DURATION = ColumnNameDiffAE.TIMELAPSE_DURATION
+    """The duration of the timelapse dataset, in hours."""
 
     # timelapse information
     IMAGE_SIZE_X = "image_size_X"
@@ -67,6 +69,7 @@ class ColumnNameSeg(StrEnum):
     TIME_HRS = "time_hours"
     TIME_MINS = "time_minutes"
     TRACK_LENGTH = ColumnNameDiffAE.TRACK_LENGTH
+    NORMALIZED_TIME_PER_TRACK = "normalized_time"
 
     # morphological features
     ORIENTATION = "orientation"

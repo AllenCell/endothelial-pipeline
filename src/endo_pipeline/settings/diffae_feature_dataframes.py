@@ -27,6 +27,9 @@ class ColumnName(StrEnum):
     DATASET = "dataset"
     """Column name for dataset name."""
 
+    TIMELAPSE_DURATION = "duration"
+    """The duration of the timelapse dataset, in hours."""
+
     MODEL_MANIFEST = "model_manifest_name"
     """Column name for model manifest name."""
 
