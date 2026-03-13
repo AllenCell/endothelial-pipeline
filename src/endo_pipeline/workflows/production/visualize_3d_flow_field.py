@@ -119,7 +119,6 @@ def main(
     )
     from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
     from endo_pipeline.manifests import (
-        DataframeManifest,
         get_dataframe_location_for_dataset,
         get_feature_dataframe_manifest_name,
         load_dataframe_manifest,
@@ -163,10 +162,12 @@ def main(
     fixed_points_dataframe_manifest_name = (
         f"{demo_prefix}{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataframe_manifest_name}"
     )
-    fixed_points_dataframe_manifest: DataframeManifest | None
     try:
         drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
         grid_dataframe_manifest = load_dataframe_manifest(grid_dataframe_manifest_name)
+        fixed_points_dataframe_manifest = load_dataframe_manifest(
+            fixed_points_dataframe_manifest_name
+        )
     except FileNotFoundError:
         logger.error(
             "Dataframe manifests for model manifest [ %s ], run name [ %s ], and crop pattern [ %s ] could not be found.",
@@ -175,17 +176,6 @@ def main(
             crop_pattern,
         )
         raise
-    try:
-        fixed_points_dataframe_manifest = load_dataframe_manifest(
-            fixed_points_dataframe_manifest_name
-        )
-    except FileNotFoundError:
-        logger.warning(
-            "Dataframe manifest for fixed points [ %s ] could not be found, so stable fixed points "
-            "will not be overlaid on flow field visualizations.",
-            fixed_points_dataframe_manifest_name,
-        )
-        fixed_points_dataframe_manifest = None
 
     if set(drift_dataframe_manifest.locations.keys()) != set(
         grid_dataframe_manifest.locations.keys()
@@ -313,7 +303,7 @@ def main(
         # columns are present turn fixed point dataframe into list of arrays of
         # fixed point coordinates for each dataset to use for plotting
         fixed_points_list: list[np.ndarray] = []
-        if fixed_points_dataframe_manifest is not None:
+        try:
             fixed_points_dataframe_location = get_dataframe_location_for_dataset(
                 fixed_points_dataframe_manifest, dataset_name
             )
@@ -325,9 +315,15 @@ def main(
                 required_columns=[*column_names, ColumnName.DATASET],
             )
             fixed_point_dataframe_list.append(fixed_points_dataframe)
-            fixed_points_list = []
             for _, row in fixed_points_dataframe.iterrows():
                 fixed_points_list.append(row[column_names].to_numpy())
+        except KeyError:
+            logger.warning(
+                "No fixed point dataframe found for dataset [ %s ] in dataframe manifest [ %s ]. "
+                "Stable fixed points will not be overlaid on the flow field visualizations for this dataset.",
+                dataset_name,
+                fixed_points_dataframe_manifest.name,
+            )
 
         # to store as datframe, the grid points were padded with NaN values to
         # ensure that each column has the same number of rows, so here we remove
@@ -444,7 +440,7 @@ def main(
         )
     else:
         logger.warning(
-            "No stable fixed points identified for more than one dataset, so skipping "
+            "Stable fixed points only identified for one or fewer datasets, so skipping "
             "generation of plot comparing stable fixed points across datasets."
         )
 
