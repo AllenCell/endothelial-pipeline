@@ -147,7 +147,7 @@ def project_paired_fixed_live_data_into_ref_pc_space(
 def create_reference_timelapse_datasets(
     pca: PCA,
     reference_dataset_name: str,
-    model: str = "diffae_04_10",
+    model: str,
     time_lag: int = 3,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
