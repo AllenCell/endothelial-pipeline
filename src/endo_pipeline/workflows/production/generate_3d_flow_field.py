@@ -8,7 +8,7 @@ def main(
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
     columns: StrList | None = None,
-    upload_to_fms: bool = True,
+    upload_to_fms: bool = False,
 ) -> None:
     """
     Generate 3D (drift) flow fields for the dynamics of the crop-based DiffAE
@@ -45,11 +45,10 @@ def main(
         List of column names in the dataframe to use for flow field analysis. If
         None, uses default column names specified in settings.
     upload_to_fms
-        Whether to upload the resulting dataframes to FMS (in addition to saving
-        locally). If True, the dataframes will be uploaded to FMS and the
-        corresponding locations will be saved in the dataframe manifests. If
-        False, the dataframes will only be saved locally and the dataframe
-        manifests will not be updated.
+        If True, the dataframes will be uploaded to FMS and the corresponding
+        locations will be saved in the dataframe manifests. If False, the
+        dataframes will only be saved locally and the dataframe manifests will
+        not be updated.
     """
     import logging
 
@@ -270,11 +269,11 @@ def main(
         # displacement vectors, and time differences
         traj_list, d_traj_list = get_traj_and_diff(df, column_names)
 
-        # get drift estimates
-        # (Kramers-Moyal coefficients)
-        drift_coeffs, _ = get_kramers_moyal_coeffs(
-            traj_list, d_traj_list, bins=bins, dt=TIME_STEP_IN_MINUTES, kernel=kernels
-        )
+        # get drift estimates in units hours^-1 for each bin in 3D space
+        # (Kramers-Moyal coefficient estimation)
+        drift_coeffs = get_kramers_moyal_coeffs(
+            traj_list, d_traj_list, bins=bins, dt=TIME_STEP_IN_MINUTES / 60, kernel=kernels
+        )[0]
 
         # build dataframe with columns for bin centers in each of the three dimensions and
         # the corresponding drift coefficients, to be used for visualization workflow
