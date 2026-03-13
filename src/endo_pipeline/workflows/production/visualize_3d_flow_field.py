@@ -52,16 +52,6 @@ def main(
         Optional list of dataset names to visualize. If not provided, will
         visualize all datasets in the dataframe manifest corresponding to the
         given model manifest and run name.
-    path_to_drift_dataframe
-        Path to the dataframe containing the drift estimates for the 3D flow
-        field.
-    path_to_grid_points_dataframe
-        Path to the dataframe containing the corresponding 1D arrays of grid
-        points in each of the three dimensions of the feature space for the 3D
-        flow field.
-    path_to_fixed_points_dataframe
-        Optional path to the dataframe containing the stable fixed point
-        locations to overlay on the flow field visualizations.
     model_manifest_name
         Name of the model manifest to use for loading the corresponding
         dataframe manifest and feature dataframes.
