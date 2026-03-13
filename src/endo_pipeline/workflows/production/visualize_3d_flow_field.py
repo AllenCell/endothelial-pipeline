@@ -8,7 +8,7 @@ def main(
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
     plot_stack: bool = False,
-    compute_vtk: bool = True,
+    compute_vtk: bool = False,
     use_same_axes: bool = False,
     columns: StrList | None = None,
 ) -> None:
@@ -21,10 +21,13 @@ def main(
     **Workflow inputs**
 
     1. Path to a dataframe containing the drift estimates for the 3D flow field,
-       along with the corresponding meshgrid coordinates and dataset labels for
-       each point in the feature space.
+       along dataset labels for each point in the feature space.
 
-    2. Optionally, a path to a dataframe containing the stable fixed point
+    2. Path to a dataframe containing the corresponding 1D arrays of grid points
+       in each of the three dimensions of the feature space for the 3D flow
+       field, along dataset labels for each point in the feature space.
+
+    3. Optionally, a path to a dataframe containing the stable fixed point
        locations to overlay on the flow field visualizations. If not provided,
        stable fixed points will not be overlaid on the flow field
        visualizations.
@@ -34,7 +37,8 @@ def main(
     1. 2D flow field visualizations saved as PNG files in the `figs/` directory,
        including:
         a. 2D slice of the 3D flow field "sliced" according to the coordinates
-            of the stable fixed points.
+           of the stable fixed points, with the stable fixed points and kernel
+           density estimate of the data overlaid.
         b. Trajectories simulated in the 3D flow field, projected onto 2D
            slices.
         c. Optionally, 3D stack plots of the flow field visualizations in each
@@ -62,6 +66,16 @@ def main(
     path_to_fixed_points_dataframe
         Optional path to the dataframe containing the stable fixed point
         locations to overlay on the flow field visualizations.
+    model_manifest_name
+        Name of the model manifest to use for loading the corresponding
+        dataframe manifest and feature dataframes.
+    run_name
+        Optional run name to use for loading the corresponding dataframe
+        manifest and feature dataframes. If not provided, will use the default
+        run name.
+    crop_pattern
+        Crop pattern to use for loading the feature dataframes. If not provided,
+        will use the default crop pattern of "grid".
     plot_stack
         If true, plot 3D stacks of the flow field visualizations in each of the
         three variables.
@@ -70,6 +84,11 @@ def main(
     use_same_axes
         If true, use the same axis limits for all datasets when plotting flow
         fields.
+    columns
+        Optional list of column names to use for the flow field analysis and
+        visualization. If not provided, will use the default column names
+        defined in `DYNAMICS_COLUMN_NAMES`. Must provide exactly 3 column names
+        for 3D flow field analysis.
     """
     import logging
     from pathlib import Path
@@ -89,6 +108,10 @@ def main(
         fit_pca,
         get_dataframe_for_dynamics_workflows,
     )
+    from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
+        get_kernel_density_estimate,
+    )
+    from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bounds_from_data
     from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
         flow_field_viz_main,
@@ -103,13 +126,21 @@ def main(
         load_model_manifest,
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
-    from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+    from endo_pipeline.settings.dynamics_workflows import (
+        DYNAMICS_COLUMN_NAMES,
+        KERNEL_BANDWIDTHS_DYNAMICS,
+        KERNEL_NAMES_DYNAMICS,
+        PERIOD_THETA_RESCALED,
+        RESCALE_THETA,
+    )
     from endo_pipeline.settings.flow_field_3d import (
         DATAFRAME_MANIFEST_PREFIX_DRIFT,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         DATAFRAME_MANIFEST_PREFIX_GRID,
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         INIT_POINT_3D,
+        KERNEL_BANDWIDTH,
+        KERNEL_FUNCTION_NAME,
         TRAJECTORY_TIME_SPAN,
     )
 
@@ -222,9 +253,29 @@ def main(
         dataset_names, dataframe_manifest, pca, column_names=column_names
     )
 
-    # next, loop through each dataset to visualize the flow field and trajectories in
-    # the feature space for that dataset, with fixed points overlaid if they are provided
+    # initialize kernels to be used for KDE estimation of the data histogram
+    kernels = []
+    rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
+
+    for column_name in column_names:
+        name = KERNEL_NAMES_DYNAMICS.get(column_name, KERNEL_FUNCTION_NAME)
+        bandwidth = KERNEL_BANDWIDTHS_DYNAMICS.get(column_name, KERNEL_BANDWIDTH)
+        period = rescaled_theta if column_name == ColumnName.POLAR_ANGLE else None
+        kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
+
+    # set list of column names to keep from the loaded feature dataframes
+    columns_plus_metadata_to_keep = [
+        *column_names,
+        ColumnName.DATASET,
+        ColumnName.TIMEPOINT,
+        ColumnName.CROP_INDEX,
+    ]
+
+    # next, loop through each dataset to visualize the flow field and
+    # trajectories in the feature space for that dataset, with fixed points (if
+    # they are provided) and KDE of the data for that dataset overlaid
     fixed_point_dataframe_list = []
+
     for dataset_name in dataset_names:
         logger.info(f"Visualizing flow field for dataset [ {dataset_name} ]")
         # load dataframe with feature data
@@ -235,7 +286,7 @@ def main(
             include_cell_piling=False,
             include_not_steady_state=False,
             crop_pattern=crop_pattern,
-        )[[*column_names, ColumnName.DATASET, ColumnName.TIMEPOINT]]
+        )[columns_plus_metadata_to_keep]
 
         # load flow field dataframes and check that required columns are present
         drift_dataframe_location = get_dataframe_location_for_dataset(
@@ -285,6 +336,37 @@ def main(
         ]
         grid_points_as_list = [points[~np.isnan(points)] for points in grid_points_padded]
         grid_shape = tuple(len(points) for points in grid_points_as_list)
+
+        # get bin widths and limits for vtk file extent and for estimating KDE
+        # of data for plotting
+        bin_widths = [grid_points_as_list[i][1] - grid_points_as_list[i][0] for i in range(ndim)]
+        bin_limits = [
+            (
+                grid_points_as_list[i][0] - bin_widths[i] / 2,
+                grid_points_as_list[i][-1] + bin_widths[i] / 2,
+            )
+            for i in range(ndim)
+        ]
+
+        # estimate KDE in 3D for plotting
+        num_bins = [len(points) for points in grid_points_as_list]
+        logger.debug("Bin limits for KDE estimation: [ %s ]", bin_limits)
+        logger.debug("Number of bins for KDE estimation: [ %s ]", num_bins)
+        bin_edges = [
+            np.linspace(bin_limit[0], bin_limit[1], num_bin + 1)
+            for bin_limit, num_bin in zip(bin_limits, num_bins, strict=True)
+        ]
+        # build expected inputs for the KDE function: a list of 2D arrays of
+        # shape (n_timepoints_in_traj, 2) and the appropriate kernel for
+        # each column pair
+        trajs = []
+        for _, traj_df in feature_data.groupby(ColumnName.CROP_INDEX):
+            trajs.append(traj_df.sort_values(by=ColumnName.TIMEPOINT)[column_names].to_numpy())
+        prob_kde = get_kernel_density_estimate(trajs, bin_edges, kernels)
+
+        # unpack drift values from dataframe and reshape to grid shape for flow
+        # field visualization and ODE solving,
+        drift_values = drift_dataframe[drift_column_names].to_numpy().reshape(*grid_shape, ndim)
         grid = np.meshgrid(*grid_points_as_list, indexing="ij")
 
         drift_values = drift_dataframe[drift_column_names].to_numpy().reshape(*grid_shape, ndim)
@@ -302,16 +384,13 @@ def main(
             # save out the flow field as vtk image data volume extent for vtk
             # file is determined by the min and max of the feature values in
             # each dimension, plus an extra half-bin width on either side
-            bin_widths = [
-                grid_points_as_list[i][1] - grid_points_as_list[i][0] for i in range(ndim)
-            ]
             volume_extent = {
-                "xmin": grid_points_as_list[0][0] - bin_widths[0] / 2,
-                "xmax": grid_points_as_list[0][-1] + bin_widths[0] / 2,
-                "ymin": grid_points_as_list[1][0] - bin_widths[1] / 2,
-                "ymax": grid_points_as_list[1][-1] + bin_widths[1] / 2,
-                "zmin": grid_points_as_list[2][0] - bin_widths[2] / 2,
-                "zmax": grid_points_as_list[2][-1] + bin_widths[2] / 2,
+                "xmin": bin_limits[0][0],
+                "xmax": bin_limits[0][1],
+                "ymin": bin_limits[1][0],
+                "ymax": bin_limits[1][1],
+                "zmin": bin_limits[2][0],
+                "zmax": bin_limits[2][1],
             }
             save_vector_field_as_vtk(
                 extrapolated_flow_field_dict_vtk,
@@ -348,6 +427,7 @@ def main(
             column_names,
             traj,
             fixed_points_list,
+            prob_kde,
             bounds_for_plots,
             plot_stack,
             fig_savedir_dataset,
