@@ -303,6 +303,8 @@ def main(
         grid_location = build_dataframe_location_from_path(grid_points_save_path)
         drift_dataframe_manifest.locations[dataset_name] = drift_location
         grid_dataframe_manifest.locations[dataset_name] = grid_location
+        save_dataframe_manifest(drift_dataframe_manifest)
+        save_dataframe_manifest(grid_dataframe_manifest)
 
         ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
         extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
@@ -353,20 +355,7 @@ def main(
         # add to DataframeManifest for stable fixed points for this dataset
         fixed_points_location = build_dataframe_location_from_path(stable_fixed_points_save_path)
         fixed_points_dataframe_manifest.locations[dataset_name] = fixed_points_location
-
-    # save updated dataframe manifests for drift coefficients, grid points, and
-    # stable fixed points with locations for each dataset
-    for dataframe_manifest in [
-        drift_dataframe_manifest,
-        grid_dataframe_manifest,
-        fixed_points_dataframe_manifest,
-    ]:
-        logger.info(
-            "Saving dataframe manifest [ %s ] with updated locations for datasets [ %s ]",
-            dataframe_manifest.name,
-            list(dataframe_manifest.locations.keys()),
-        )
-        save_dataframe_manifest(dataframe_manifest)
+        save_dataframe_manifest(fixed_points_dataframe_manifest)
 
 
 if __name__ == "__main__":
