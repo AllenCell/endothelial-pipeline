@@ -31,6 +31,7 @@ from endo_pipeline.settings import (
     CytoDLLoadDataKeys,
     CytoDLSaveDataKeys,
 )
+from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
 
 logger = logging.getLogger(__name__)
 
@@ -214,24 +215,24 @@ def add_diffae_model_eval_crop_columns(
         Dataframe with additional columns for DiffAE model evaluation crops.
     """
     # add the size of the crop used to get DiffAE features at full res
-    df["crop_size"] = crop_size
+    df[ColNmSeg.CROP_SIZE] = crop_size
 
     # convert centroids to bounding box coordinates and add them as columns
-    df[ColumnName.START_X] = (df["centroid_X"] - df["crop_size"] / 2).astype(int)
-    df[ColumnName.START_Y] = (df["centroid_Y"] - df["crop_size"] / 2).astype(int)
-    df[ColumnName.END_X] = (df["centroid_X"] + df["crop_size"] / 2).astype(int)
-    df[ColumnName.END_Y] = (df["centroid_Y"] + df["crop_size"] / 2).astype(int)
+    df[ColNmSeg.START_X] = (df[ColNmSeg.CENTROID_X] - df[ColNmSeg.CROP_SIZE] / 2).astype(int)
+    df[ColNmSeg.START_Y] = (df[ColNmSeg.CENTROID_Y] - df[ColNmSeg.CROP_SIZE] / 2).astype(int)
+    df[ColNmSeg.END_X] = (df[ColNmSeg.CENTROID_X] + df[ColNmSeg.CROP_SIZE] / 2).astype(int)
+    df[ColNmSeg.END_Y] = (df[ColNmSeg.CENTROID_Y] + df[ColNmSeg.CROP_SIZE] / 2).astype(int)
 
     # add a column indicating if the size of the bounding box does
     # not match the downsampled crop size (because the model expects
     # identically sized square crops)
     # check if bounding boxes fit in image bounds without being clipped
-    df["bbox_is_in_bounds"] = bbox_in_image_bounds(df, diffae_resolution_level)
+    df[ColNmSeg.IS_VALID_BBOX] = bbox_in_image_bounds(df, diffae_resolution_level)
 
     # Add column for the resolution level to load images at for DiffAE model:
     # Note from Erin 8/21/25: this has updated now that we have resolution level 1
     # zarr files, removed downsample transform from the model config
-    df["diffae_resolution_level_to_use"] = diffae_resolution_level
+    df[ColNmSeg.RESOLUTION_FOR_DIFFAE] = diffae_resolution_level
 
     return df
 
@@ -354,37 +355,37 @@ def preprocess_tracking_manifest_for_model_eval(
     return grouped_df
 
 
-def bbox_in_image_bounds(df: pd.DataFrame, resolution_level: int = 1) -> pd.Series:
+def bbox_in_image_bounds(df: pd.DataFrame, resolution_level: int = DIFFAE_ZARR_RESOLUTION_LEVEL) -> pd.Series:
     """Indicate if bounding boxes fit in image bounds without being clipped."""
     # adjust the image size according to the desired downsample factor
     downsample_factor = 2**resolution_level
     cols_to_downsample = [
-        "image_size_x",
-        "image_size_y",
-        ColumnName.START_X,
-        ColumnName.START_Y,
-        ColumnName.END_X,
-        ColumnName.END_Y,
-        "crop_size",
+        ColNmSeg.IMAGE_SIZE_X,
+        ColNmSeg.IMAGE_SIZE_Y,
+        ColNmSeg.START_X,
+        ColNmSeg.START_Y,
+        ColNmSeg.END_X,
+        ColNmSeg.END_Y,
+        ColNmSeg.CROP_SIZE,
     ]
     df_temp = df[cols_to_downsample].copy(deep=True)
     for col in cols_to_downsample:
         df_temp[col] = df[col] // downsample_factor
 
     # limit start and end of x and y bboxes to be within image size limits
-    df_temp[ColumnName.START_X] = df_temp[ColumnName.START_X].transform(lambda x: max(0, x))
-    df_temp[ColumnName.START_Y] = df_temp[ColumnName.START_Y].transform(lambda y: max(0, y))
-    df_temp[ColumnName.END_X] = df_temp[[ColumnName.END_X, "image_size_x"]].min(axis=1)
-    df_temp[ColumnName.END_Y] = df_temp[[ColumnName.END_Y, "image_size_y"]].min(axis=1)
+    df_temp[ColNmSeg.START_X] = df_temp[ColNmSeg.START_X].transform(lambda x: max(0, x))
+    df_temp[ColNmSeg.START_Y] = df_temp[ColNmSeg.START_Y].transform(lambda y: max(0, y))
+    df_temp[ColNmSeg.END_X] = df_temp[[ColNmSeg.END_X, ColNmSeg.IMAGE_SIZE_X]].min(axis=1)
+    df_temp[ColNmSeg.END_Y] = df_temp[[ColNmSeg.END_Y, ColNmSeg.IMAGE_SIZE_Y]].min(axis=1)
 
     # filter the dataframe to exclude anything where the size of
     # the bounding box does not match the downsampled crop size
     # (because the model expects identically sized square crops)
-    bbox_size_y = df_temp.end_y - df_temp.start_y
-    bbox_size_x = df_temp.end_x - df_temp.start_x
+    bbox_size_y = df_temp[ColNmSeg.END_Y] - df_temp[ColNmSeg.START_Y]
+    bbox_size_x = df_temp[ColNmSeg.END_X] - df_temp[ColNmSeg.START_X]
     # ask if both x and y bbox dimensions equal downsampled crop size
-    bbox_size_is_correct = (bbox_size_y == df_temp["crop_size"]) & (
-        bbox_size_x == df_temp["crop_size"]
+    bbox_size_is_correct = (bbox_size_y == df_temp[ColNmSeg.CROP_SIZE]) & (
+        bbox_size_x == df_temp[ColNmSeg.CROP_SIZE]
     )
     return bbox_size_is_correct
 

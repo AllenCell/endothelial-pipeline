@@ -26,11 +26,11 @@ from endo_pipeline.library.model.eval_model import add_diffae_model_eval_crop_co
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.manifests import (
     get_image_location_for_dataset,
-    get_zarr_location_for_position,
     load_image_manifest,
 )
 from endo_pipeline.settings.image_data import DIMENSION_ORDER
-from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg
+from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
+from endo_pipeline.settings.image_data import IMG_SHAPE_RESOLUTION_0_3i_X, IMG_SHAPE_RESOLUTION_0_3i_Y
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +62,8 @@ def merge_measured_segmentation_features_tables(
 
     big_table = remove_redundant_columns(big_table)
 
+    big_table = sanitize_column_names(big_table)
+
     return big_table
 
 
@@ -71,15 +73,11 @@ def remove_redundant_columns(big_table: pd.DataFrame) -> pd.DataFrame:
     # can be dropped:
     duplicate_cols = [
         "T",  # redundant with "image_index"
-        "cell_label",  # redundant with "label"
+        "label",  # redundant with "cell_label"
         "cdh5_segmentation_label",  # redundant with "label"
-        # "cell_centroid",  # redundant with "centroid"
         "centroid",  # redundant with "cell_centroid"
-        # "cell_area (px**2)",  # redundant with "area"
         "area",  # redundant with "cell_area (px**2)"
-        # "cell_perimeter (px)",  # redundant with "perimeter"
         "perimeter",  # redundant with "cell_perimeter (px)"
-        # "cell_eccentricity",  # redundant with "eccentricity"
         "eccentricity",  # redundant with "cell_eccentricity"
         "touches_border",  # redundant with "touches_image_border"
         "orientation",  # redundant with "cell orientation"; though has a different phase shift
@@ -87,26 +85,8 @@ def remove_redundant_columns(big_table: pd.DataFrame) -> pd.DataFrame:
         "centroid_X",
         "centroid_Y",
     ]
-    big_table = big_table.drop(columns=duplicate_cols)
 
-    # to minimize the required refactoring I'm renaming some of the redundant
-    # columns to the same name as the column they are redundant with
-    # I'm doing this so that all measured columns are derived from the
-    # same workflow (the `cdh5_get_measured_features.py` workflow)
-    # even though the redundant column should be the same
-    columns_to_rename = {
-        "cell_orientation": "orientation",
-        "cell_area (px**2)": "area",
-        "cell_perimeter (px)": "perimeter",
-        "cell_eccentricity": "eccentricity",
-        "cell_centroid": "centroid",
-    }
-    big_table = big_table.rename(columns=columns_to_rename)
-    big_table[["centroid_Y", "centroid_X"]] = pd.DataFrame(
-        big_table["centroid"].tolist(), index=big_table.index
-    )
-
-    return big_table
+    return big_table.drop(columns=duplicate_cols)
 
 
 def sanitize_column_names(big_table: pd.DataFrame) -> pd.DataFrame:
@@ -114,84 +94,89 @@ def sanitize_column_names(big_table: pd.DataFrame) -> pd.DataFrame:
     # NOTE: maybe you don't need to rename ALL of the columns and can instead just
     # rename the ones that are shared with the dynamics workflow
     dataset_info_cols = {
-        "dataset_name": ColumnNameSeg.DATASET,
-        "position": ColumnNameSeg.POSITION,
-        "T": ColumnNameSeg.TIMEPOINT,
-        "track_id": ColumnNameSeg.TRACK_ID,
-        "label": ColumnNameSeg.LABEL,
-        "num_unique_tracks_after_filtering_at_T": ColumnNameSeg.NUM_TRACKS_AFTER_FILTERING,
-        "num_unique_tracks_before_filtering_at_T": ColumnNameSeg.NUM_TRACKS_BEFORE_FILTERING,
-        "shear_stress_regime": ColumnNameSeg.SHEAR_STRESS_REGIME,
+        "dataset_name": ColNmSeg.DATASET,
+        "position": ColNmSeg.POSITION,
+        "image_index": ColNmSeg.TIMEPOINT,
+        "track_id": ColNmSeg.TRACK_ID,
+        "cell_label": ColNmSeg.LABEL,
+        "num_unique_tracks_after_filtering_at_T": ColNmSeg.NUM_TRACKS_AFTER_FILTERING,
+        "num_unique_tracks_before_filtering_at_T": ColNmSeg.NUM_TRACKS_BEFORE_FILTERING,
+        "shear_stress_regime": ColNmSeg.SHEAR_STRESS_REGIME,
     }
     filter_cols = {
-        "is_included": ColumnNameSeg.IS_INCLUDED,
-        "is_edge_segmentation": ColumnNameSeg.IS_EDGE_SEGMENTATION,
-        "is_less_than_max_smoothed_area_normd_change": ColumnNameSeg.IS_LESS_THAN_MAX_SMOOTHED_AREA_NORMD_CHANGE,
-        "is_greater_than_min_track_duration": ColumnNameSeg.IS_GREATER_THAN_MIN_TRACK_DURATION,
-        "has_more_than_min_num_valid_points_per_track": ColumnNameSeg.HAS_MORE_THAN_MIN_NUM_VALID_POINTS_PER_TRACK,
-        "bbox_is_in_bounds": ColumnNameSeg.IS_VALID_BBOX,
+        "is_included": ColNmSeg.IS_INCLUDED,
+        "touches_image_border": ColNmSeg.IS_EDGE_SEGMENTATION,
+        "is_less_than_max_smoothed_area_normd_change": ColNmSeg.IS_LESS_THAN_MAX_SMOOTHED_AREA_NORMD_CHANGE,
+        "is_greater_than_min_track_duration": ColNmSeg.IS_GREATER_THAN_MIN_TRACK_DURATION,
+        "has_more_than_min_num_valid_points_per_track": ColNmSeg.HAS_MORE_THAN_MIN_NUM_VALID_POINTS_PER_TRACK,
+        "bbox_is_in_bounds": ColNmSeg.IS_VALID_BBOX,
     }
     # annotation_cols_to_rename = {
-    #     "auto_bf_scope_error": ColumnNameSeg.AUTO_BF_SCOPE_ERROR,
-    #     "auto_bf_temp_artifact": ColumnNameSeg.AUTO_BF_TEMP_ARTIFACT,
-    #     "auto_gfp_scope_error": ColumnNameSeg.AUTO_GFP_SCOPE_ERROR,
-    #     "bf_scope_error": ColumnNameSeg.BF_SCOPE_ERROR,
-    #     "bf_temp_artifact": ColumnNameSeg.BF_TEMP_ARTIFACT,
-    #     "gfp_scope_error": ColumnNameSeg.GFP_SCOPE_ERROR,
-    #     "cell_piling": ColumnNameSeg.CELL_PILING,
-    #     "not_steady_state": ColumnNameSeg.NOT_STEADY_STATE,
+    #     "auto_bf_scope_error": ColNmSeg.AUTO_BF_SCOPE_ERROR,
+    #     "auto_bf_temp_artifact": ColNmSeg.AUTO_BF_TEMP_ARTIFACT,
+    #     "auto_gfp_scope_error": ColNmSeg.AUTO_GFP_SCOPE_ERROR,
+    #     "bf_scope_error": ColNmSeg.BF_SCOPE_ERROR,
+    #     "bf_temp_artifact": ColNmSeg.BF_TEMP_ARTIFACT,
+    #     "gfp_scope_error": ColNmSeg.GFP_SCOPE_ERROR,
+    #     "cell_piling": ColNmSeg.CELL_PILING,
+    #     "not_steady_state": ColNmSeg.NOT_STEADY_STATE,
     # }
     temporal_feature_cols = {
-        "time_hours": ColumnNameSeg.TIME_HRS,
-        "time_minutes": ColumnNameSeg.TIME_MINS,
-        "track_duration": ColumnNameSeg.TRACK_DURATION,
+        "time_hours": ColNmSeg.TIME_HRS,
+        "time_minutes": ColNmSeg.TIME_MINS,
+        "track_duration": ColNmSeg.TRACK_LENGTH,
     }
     morpho_feature_cols = {
-        "orientation": ColumnNameSeg.ORIENTATION,
-        "alignment_rel_to_flow": ColumnNameSeg.ALIGNMENT,
-        "alignment_deg_rel_to_flow": ColumnNameSeg.ALIGNMENT_DEG,
-        "orientation_deg": ColumnNameSeg.ORIENTATION_DEG,
-        "nematic_order": ColumnNameSeg.NEMATIC_ORDER,
-        "aspect_ratio": ColumnNameSeg.ASPECT_RATIO,
-        "eccentricity": ColumnNameSeg.ECCENTRICITY,
-        "major_axis_length": ColumnNameSeg.MAJOR_AXIS,
-        "minor_axis_length": ColumnNameSeg.MINOR_AXIS,
-        "solidity": ColumnNameSeg.SOLIDITY,
-        "area (um**2)": ColumnNameSeg.AREA,
-        "perimeter (um)": ColumnNameSeg.PERIMETER,
-        "nucpos_rel_cell_X": ColumnNameSeg.NUCLEI_POSITION_X,
-        "nucpos_rel_cell_Y": ColumnNameSeg.NUCLEI_POSITION_Y,
-        "nucpos_rel_cell_angle": ColumnNameSeg.NUCLEI_POSITION_ANGLE,
-        "nucpos_rel_cell_angle_deg": ColumnNameSeg.NUCLEI_POSITION_ANGLE_DEG,
-        "nuc_pos_rel_cell_magnitude": ColumnNameSeg.NUCLEI_POSITION_MAGNITUDE,
+        "cell_orientation": ColNmSeg.ORIENTATION,
+        "alignment_rel_to_flow": ColNmSeg.ALIGNMENT,
+        "alignment_deg_rel_to_flow": ColNmSeg.ALIGNMENT_DEG,
+        "orientation_deg": ColNmSeg.ORIENTATION_DEG,
+        "nematic_order": ColNmSeg.NEMATIC_ORDER,
+        "aspect_ratio": ColNmSeg.ASPECT_RATIO,
+        "cell_eccentricity": ColNmSeg.ECCENTRICITY,
+        "major_axis_length": ColNmSeg.MAJOR_AXIS,
+        "minor_axis_length": ColNmSeg.MINOR_AXIS,
+        "cell_solidity": ColNmSeg.SOLIDITY,
+        "cell_area (px**2)": ColNmSeg.AREA_PX_SQ,
+        "cell_perimeter (px)": ColNmSeg.PERIMETER_PX,
+        "nucpos_rel_cell_X": ColNmSeg.NUCLEI_POSITION_X,
+        "nucpos_rel_cell_Y": ColNmSeg.NUCLEI_POSITION_Y,
+        "nucpos_rel_cell_angle": ColNmSeg.NUCLEI_POSITION_ANGLE,
+        "nucpos_rel_cell_angle_deg": ColNmSeg.NUCLEI_POSITION_ANGLE_DEG,
+        "nuc_pos_rel_cell_magnitude": ColNmSeg.NUCLEI_POSITION_DISTANCE,
     }
     fluorescence_feature_cols = {
-        "edge_fluorescences (a.u.)": ColumnNameSeg.EDGE_FLUOR,
-        "node_fluorescences (a.u.)": ColumnNameSeg.NODE_FLUOR,
-        "cell_fluorescence_mean (a.u.)": ColumnNameSeg.CELL_FLUOR_MEAN,
-        "edge_fluorescence_means (a.u.)": ColumnNameSeg.EDGE_FLUOR_MEAN,
-        "node_fluorescence_means (a.u.)": ColumnNameSeg.NODE_FLUOR_MEAN,
-        "edge_and_node_fluorescence_means (a.u.)": ColumnNameSeg.EDGE_AND_NODE_FLUOR_MEAN,
-        "cell_fluorescence_std (a.u.)": ColumnNameSeg.CELL_FLUOR_STD,
-        "edge_fluorescence_std (a.u.)": ColumnNameSeg.EDGE_FLUOR_STD,
-        "node_fluorescence_std (a.u.)": ColumnNameSeg.NODE_FLUOR_STD,
-        "edge_and_node_fluorescence_std (a.u.)": ColumnNameSeg.EDGE_AND_NODE_FLUOR_STD,
+        "edge_fluorescences (a.u.)": ColNmSeg.EDGE_FLUOR,
+        "node_fluorescences (a.u.)": ColNmSeg.NODE_FLUOR,
+        "cell_fluorescence_mean (a.u.)": ColNmSeg.CELL_FLUOR_MEAN,
+        "cell_fluorescence_std (a.u.)": ColNmSeg.CELL_FLUOR_STD,
+        "cell_fluorescence_median (a.u.)": ColNmSeg.CELL_FLUOR_MEDIAN,
+        "cell_fluorescence_min (a.u.)": ColNmSeg.CELL_FLUOR_MIN,
+        "cell_fluorescence_max (a.u.)": ColNmSeg.CELL_FLUOR_MAX,
+        "cell_fluorescence_pct25 (a.u.)": ColNmSeg.CELL_FLUOR_PCT25,
+        "cell_fluorescence_pct75 (a.u.)": ColNmSeg.CELL_FLUOR_PCT75,
+        # "edge_fluorescence_means (a.u.)": ColNmSeg.EDGE_FLUOR_MEAN,
+        # "node_fluorescence_means (a.u.)": ColNmSeg.NODE_FLUOR_MEAN,
+        # "edge_and_node_fluorescence_means (a.u.)": ColNmSeg.EDGE_AND_NODE_FLUOR_MEAN,
+        # "edge_fluorescence_std (a.u.)": ColNmSeg.EDGE_FLUOR_STD,
+        # "node_fluorescence_std (a.u.)": ColNmSeg.NODE_FLUOR_STD,
+        # "edge_and_node_fluorescence_std (a.u.)": ColNmSeg.EDGE_AND_NODE_FLUOR_STD,
     }
     crop_based_feature_cols = {
-        "num_nuclei_in_crop": ColumnNameSeg.NUM_NUCLEI_IN_CROP,
-        "all_labels_in_crop": ColumnNameSeg.LABELS_IN_CROP,
-        "start_x": ColumnNameSeg.START_X,
-        "start_y": ColumnNameSeg.START_Y,
-        "end_x": ColumnNameSeg.END_X,
-        "end_y": ColumnNameSeg.END_Y,
-        "crop_size": ColumnNameSeg.CROP_SIZE,
+        "num_nuclei_in_crop": ColNmSeg.NUM_NUCLEI_IN_CROP,
+        "all_labels_in_crop": ColNmSeg.LABELS_IN_CROP,
+        "start_x": ColNmSeg.START_X,
+        "start_y": ColNmSeg.START_Y,
+        "end_x": ColNmSeg.END_X,
+        "end_y": ColNmSeg.END_Y,
+        "crop_size": ColNmSeg.CROP_SIZE,
+        "filepath_raw_image": ColNmSeg.TIMELAPSE_PATH,
     }
     other_feature_cols = {
-        "number_of_neighbors": ColumnNameSeg.NUM_NEIGHBORS,
-        "neighboring_cell_labels": ColumnNameSeg.LABELS_OF_NEIGHBORS,
-        "centroid": ColumnNameSeg.CENTROID,
-        "centroid_X": ColumnNameSeg.CENTROID_X,
-        "centroid_Y": ColumnNameSeg.CENTROID_Y,
+        "number_of_neighbors": ColNmSeg.NUM_NEIGHBORS,
+        "neighboring_cell_labels": ColNmSeg.NEIGHBOR_LABELS,
+        "cell_centroid": ColNmSeg.CENTROID,
+        "filepath_segmentation_image": ColNmSeg.SEGMENTATION_PATH,
     }
     cols_to_rename = {
         **dataset_info_cols,
@@ -203,8 +188,7 @@ def sanitize_column_names(big_table: pd.DataFrame) -> pd.DataFrame:
         **other_feature_cols,
     }
 
-    big_table = big_table.rename(columns=cols_to_rename)
-    return big_table
+    return big_table.rename(columns=cols_to_rename)
 
 
 def write_filter_log_file(
@@ -239,12 +223,12 @@ def save_filter_validation_plots(
     big_table_filtered: pd.DataFrame,
     min_track_duration: int,
 ) -> None:
-    for (dataset_nm, position), df in big_table_filtered.groupby(["dataset_name", "position"]):
-        summary = df.groupby("T")[
+    for (dataset_nm, position), df in big_table_filtered.groupby([ColNmSeg.DATASET, ColNmSeg.POSITION]):
+        summary = df.groupby(ColNmSeg.TIMEPOINT)[
             [
-                "T",
-                "num_unique_tracks_before_filtering_at_T",
-                "num_unique_tracks_after_filtering_at_T",
+                ColNmSeg.TIMEPOINT,
+                ColNmSeg.NUM_TRACKS_BEFORE_FILTERING,
+                ColNmSeg.NUM_TRACKS_AFTER_FILTERING,
             ]
         ].agg("median")
         timelapse_duration = load_dataset_config(dataset_nm).duration
@@ -257,15 +241,15 @@ def save_filter_validation_plots(
         ax.set_xlabel("Timepoint")
         ax.set_ylabel("Number of unique tracks")
         sns.lineplot(
-            x="T",
-            y="num_unique_tracks_before_filtering_at_T",
+            x=ColNmSeg.TIMEPOINT,
+            y=ColNmSeg.NUM_TRACKS_BEFORE_FILTERING,
             data=summary,
             ax=ax,
             label="Before filtering",
         )
         sns.lineplot(
-            x="T",
-            y="num_unique_tracks_after_filtering_at_T",
+            x=ColNmSeg.TIMEPOINT,
+            y=ColNmSeg.NUM_TRACKS_AFTER_FILTERING,
             data=summary,
             ax=ax,
             label="After filtering",
@@ -312,59 +296,54 @@ def add_filter_columns(
     # get the number of segmentations in total and per timepoint
     num_rows_before_filtering = len(big_table)
     num_unique_tracks_before_filtering = (
-        big_table.groupby(["dataset_name", "position"])["track_id"].nunique().sum()
+        big_table.groupby([ColNmSeg.DATASET, ColNmSeg.POSITION])[ColNmSeg.TRACK_ID].nunique().sum()
     )
 
     # keep only tracks with duration longer than min_track_duration
-    big_table["min_track_duration"] = min_track_duration
-    big_table["is_greater_than_min_track_duration"] = (
-        big_table["track_duration"] > min_track_duration
+    big_table[ColNmSeg.MIN_TRACK_DURATION] = min_track_duration
+    big_table[ColNmSeg.IS_GREATER_THAN_MIN_TRACK_DURATION] = (
+        big_table[ColNmSeg.TRACK_LENGTH] > min_track_duration
     )
 
     # keep only tracks where area_change is not too large
-    big_table["max_smoothed_area_normd_change"] = max_area_change
-    big_table["is_less_than_max_smoothed_area_normd_change"] = (
-        big_table["smoothed_area_normd_diff"].abs() < max_area_change
+    big_table[ColNmSeg.MAX_SMOOTHED_AREA_NORMALIZED_CHANGE] = max_area_change
+    big_table[ColNmSeg.IS_LESS_THAN_MAX_SMOOTHED_AREA_NORMD_CHANGE] = (
+        big_table[ColNmSeg.SMOOTHED_AREA_NORMD_DIFF].abs() < max_area_change
     )
 
-    # drop segmentation touches_image_border
-    big_table.rename(
-        columns={"touches_image_border": "is_edge_segmentation"},
-        inplace=True,
-    )
-
-    # is_included is just all the previous filters combined
-    big_table["is_included"] = (
-        big_table["is_greater_than_min_track_duration"]
-        & big_table["is_less_than_max_smoothed_area_normd_change"]
-        & ~big_table["is_edge_segmentation"]
+    # is_included is just all the previous filters combined with the
+    # filter to exclude segmentations that touch the edges of the image
+    big_table[ColNmSeg.IS_INCLUDED] = (
+        big_table[ColNmSeg.IS_GREATER_THAN_MIN_TRACK_DURATION]
+        & big_table[ColNmSeg.IS_LESS_THAN_MAX_SMOOTHED_AREA_NORMD_CHANGE]
+        & ~big_table[ColNmSeg.IS_EDGE_SEGMENTATION]
     )
 
     # drop because there are insufficient valid timepoints
-    big_table["num_valid_tp_per_track"] = big_table.groupby(
-        ["dataset_name", "position", "track_id"]
-    )["is_included"].transform(sum)
-    big_table["min_num_valid_tp_per_track"] = min_num_valid_points_per_track
-    big_table["has_more_than_min_num_valid_points_per_track"] = (
-        big_table["num_valid_tp_per_track"] > min_num_valid_points_per_track
+    big_table[ColNmSeg.NUM_VALID_TIMEPOINTS_IN_TRACK] = big_table.groupby(
+        [ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TRACK_ID]
+    )[ColNmSeg.IS_INCLUDED].transform(sum)
+    big_table[ColNmSeg.MIN_NUM_VALID_TIMEPOINTS_PER_TRACK] = min_num_valid_points_per_track
+    big_table[ColNmSeg.HAS_MORE_THAN_MIN_NUM_VALID_POINTS_PER_TRACK] = (
+        big_table[ColNmSeg.NUM_VALID_TIMEPOINTS_IN_TRACK] > min_num_valid_points_per_track
     )
 
     # update is_included column with valid_tp_per_track
-    big_table["is_included"] = (
-        big_table["is_included"] & big_table["has_more_than_min_num_valid_points_per_track"]
+    big_table[ColNmSeg.IS_INCLUDED] = (
+        big_table[ColNmSeg.IS_INCLUDED] & big_table[ColNmSeg.HAS_MORE_THAN_MIN_NUM_VALID_POINTS_PER_TRACK]
     )
 
     # get the number of unique tracks after filtering in total and per timepoint
-    num_rows_after_filtering = np.count_nonzero(big_table["is_included"])
+    num_rows_after_filtering = np.count_nonzero(big_table[ColNmSeg.IS_INCLUDED])
     num_unique_tracks_after_filtering = (
-        big_table[big_table["is_included"]]
-        .groupby(["dataset_name", "position"])["track_id"]
+        big_table[big_table[ColNmSeg.IS_INCLUDED]]
+        .groupby([ColNmSeg.DATASET, ColNmSeg.POSITION])[ColNmSeg.TRACK_ID]
         .nunique()
         .sum()
     )
-    big_table["num_unique_tracks_after_filtering_at_T"] = (
-        big_table[big_table["is_included"]]
-        .groupby(["dataset_name", "position", "T"])["track_id"]
+    big_table[ColNmSeg.NUM_TRACKS_AFTER_FILTERING] = (
+        big_table[big_table[ColNmSeg.IS_INCLUDED]]
+        .groupby([ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TIMEPOINT])[ColNmSeg.TRACK_ID]
         .transform(lambda x: x.nunique())
     )
 
@@ -372,7 +351,7 @@ def add_filter_columns(
     if out_dir:
         # save a log file and create some plots showing number of
         # tracks before and after filtering
-        datasets_analyzed = big_table["dataset_name"].unique().tolist()
+        datasets_analyzed = big_table[ColNmSeg.DATASET].unique().tolist()
         write_filter_log_file(
             out_dir,
             datasets_analyzed,
@@ -384,7 +363,7 @@ def add_filter_columns(
         # create some validation plots
         save_filter_validation_plots(
             out_dir,
-            big_table[big_table["is_included"]],
+            big_table[big_table[ColNmSeg.IS_INCLUDED]],
             min_track_duration,
         )
     return big_table
@@ -395,21 +374,21 @@ def add_cell_piling_and_steady_state_annotation_columns(big_table: pd.DataFrame)
     hand as columns to the data table.
     """
     # load dataset config and timepoint annotations
-    dataset = sequence_to_scalar(big_table["dataset_name"])
+    dataset = sequence_to_scalar(big_table[ColNmSeg.DATASET])
     dataset_config = load_dataset_config(dataset)
     if dataset_config.timepoint_annotations is not None:
         filters_for_dataset = list(dataset_config.timepoint_annotations.keys())
         for filt in filters_for_dataset:
             # add the timepoint annotations as filter columns
             big_table[filt] = (
-                big_table.groupby("position", as_index=True)
+                big_table.groupby(ColNmSeg.POSITION, as_index=True)
                 .apply(
                     lambda df, filt=filt: (
                         pd.DataFrame(
                             (
-                                df["image_index"].isin(
+                                df[ColNmSeg.TIMEPOINT].isin(
                                     get_annotated_timepoints_for_position(
-                                        dataset_config, sequence_to_scalar(df.position), [filt]
+                                        dataset_config, sequence_to_scalar(df[ColNmSeg.POSITION]), [filt]
                                     )
                                 )
                             ),
@@ -440,124 +419,98 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     - the centroid velocity magnitude and angle
     - the number of neighbors touching each region
     """
-    big_table.rename(columns={"filepath_raw_image": "zarr_path"}, inplace=True)
-
-    um_per_px_map = {}
-    time_res_map = {}
-    shear_stress_regime_map = {}
-
-    for dataset_name in big_table["dataset_name"].unique():
-        data_config = load_dataset_config(dataset_name)
-        um_per_px_map[dataset_name] = data_config.pixel_size_xy_in_um
-        time_res_map[dataset_name] = data_config.time_interval_in_minutes
-        shear_regime = "_to_".join([shear.value for shear in data_config.shear_stress_regime])
-        shear_stress_regime_map[dataset_name] = shear_regime
+    dataset_name = sequence_to_scalar(big_table[ColNmSeg.DATASET])
+    data_config = load_dataset_config(dataset_name)
 
     # add the shear stress regime to the data table
     logger.info("Adding shear stress regime...")
-    big_table["shear_stress_regime"] = big_table["dataset_name"].transform(
-        lambda dataset_name: shear_stress_regime_map[dataset_name]
-    )
+    shear_stress_regime = "_to_".join([shear.value for shear in data_config.shear_stress_regime])
+    big_table[ColNmSeg.SHEAR_STRESS_REGIME] = shear_stress_regime
 
     # dimensionalize the time column
     logger.info("Adding time intervals per timepoint...")
-    big_table["time_resolution_minutes"] = big_table["dataset_name"].transform(
-        lambda dataset_name: time_res_map[dataset_name]
-    )
+    big_table[ColNmSeg.TIME_RESOLUTION_MINUTES] = data_config.time_interval_in_minutes
+
     logger.info("Calculating time in minutes and hours...")
-    big_table["time_minutes"] = big_table["image_index"] * big_table["time_resolution_minutes"]
-    big_table["time_hours"] = big_table["time_minutes"] / 60
-    # (NOTE the image index column is produced in the
-    # tracking workflow, and is used instead of the
-    # "T" column because that one may not represent
-    # the acquisition timepoint for datasets that were
-    # collected as a montage, and therefore have their
-    # many positions represented in the T dimension;
-    # e.g. position 0 may have their first, second,
-    # third, etc. timepoints represented as
-    # T = 0, 6, 12, etc...; the zarr-converted data
-    # will not have this problem, and therefore using
-    # the image index will be consistent across both
-    # versions of the data)
+    big_table[ColNmSeg.TIME_MINS] = big_table[ColNmSeg.TIMEPOINT] * big_table[ColNmSeg.TIME_RESOLUTION_MINUTES]
+    big_table[ColNmSeg.TIME_HRS] = big_table[ColNmSeg.TIME_MINS] / 60
 
     # add a column for the number of unique tracks
     # per dataset per position per timepoint
     # (this should be 1 everywhere)
-    big_table["num_unique_tracks_per_timeframe"] = big_table.groupby(
-        ["dataset_name", "position", "image_index", "track_id"]
+    big_table[ColNmSeg.NUM_UNIQUE_TRACKS_PER_TIMEPOINT] = big_table.groupby(
+        [ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TIMEPOINT, ColNmSeg.TRACK_ID]
     ).transform("size")
 
     # add the columns for the fold change in area
     logger.info("Calculating locally-normalized area...")
     sigma = 2.0
-    big_table["gaussian_sigma_for_area_smoothing"] = sigma
-    big_table["smoothed_area_normd"] = big_table.groupby(["dataset_name", "position", "track_id"])[
-        "area"
+    big_table[ColNmSeg.SIGMA_FOR_AREA_SMOOTHING] = sigma
+    big_table[ColNmSeg.SMOOTHED_AREA_NORMALIZED] = big_table.groupby([ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TRACK_ID])[
+        ColNmSeg.AREA_PX_SQ
     ].transform(lambda x: calculate_smoothed_normd_area(x, smoothing_sigma=sigma))
-    big_table["smoothed_area_normd_diff"] = big_table.groupby(
-        ["dataset_name", "position", "track_id"]
-    )["smoothed_area_normd"].transform(lambda x: x.diff())
+    big_table[ColNmSeg.SMOOTHED_AREA_NORMD_DIFF] = big_table.groupby(
+        [ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TRACK_ID]
+    )[ColNmSeg.SMOOTHED_AREA_NORMALIZED].transform(lambda x: x.diff())
 
     # add column for the number of tracks at a given
     # timepoint per dataset per position
     logger.info("Adding number of tracks for each timepoint...")
-    big_table["num_unique_tracks_before_filtering_at_T"] = big_table.groupby(
-        ["dataset_name", "position", "T"]
-    )["track_id"].transform(lambda x: x.nunique())
+    big_table[ColNmSeg.NUM_TRACKS_BEFORE_FILTERING] = big_table.groupby(
+        [ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TIMEPOINT]
+    )[ColNmSeg.TRACK_ID].transform(lambda x: x.nunique())
 
     # add the duration of each track
     logger.info("Calculating track durations...")
-    big_table["track_duration"] = big_table.groupby(["dataset_name", "position", "track_id"])[
-        "image_index"
+    big_table[ColNmSeg.TRACK_LENGTH] = big_table.groupby([ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TRACK_ID])[
+        ColNmSeg.TIMEPOINT
     ].transform(lambda t: t.max() - t.min())
 
     # add column for orientation in degrees of the
     # ellipse fitted to each segmentation in degrees
     logger.info("Converting orientation to degrees...")
-    big_table["alignment_rel_to_flow"] = big_table["orientation"].transform(
+    big_table[ColNmSeg.ALIGNMENT] = big_table[ColNmSeg.ORIENTATION].transform(
         lambda x: make_orientation_relative_to_flow(x)
     )
-    big_table["alignment_deg_rel_to_flow"] = np.rad2deg(big_table["alignment_rel_to_flow"])
+    big_table[ColNmSeg.ALIGNMENT_DEG] = np.rad2deg(big_table[ColNmSeg.ALIGNMENT])
 
     # add column for the orientation in degrees
-    big_table["orientation_deg"] = np.rad2deg(big_table["orientation"])
+    big_table[ColNmSeg.ORIENTATION_DEG] = np.rad2deg(big_table[ColNmSeg.ORIENTATION])
 
     # add column for nematic order and aspect ratio
     # to compare to Saurabhs modeling results
     logger.info("Calculating nematic order and aspect ratio...")
-    big_table["nematic_order"] = big_table["orientation"].transform(get_nematic_order)
-    big_table["aspect_ratio"] = big_table["eccentricity"].transform(get_aspect_ratio)
+    big_table[ColNmSeg.NEMATIC_ORDER] = big_table[ColNmSeg.ORIENTATION].transform(get_nematic_order)
+    big_table[ColNmSeg.ASPECT_RATIO] = big_table[ColNmSeg.ECCENTRICITY].transform(get_aspect_ratio)
 
     # add pixel sizes
-    big_table["pixel_size_xy_in_um"] = big_table["dataset_name"].transform(
-        lambda dataset_name: um_per_px_map[dataset_name]
-    )
-    big_table["area (um**2)"] = big_table["area"] * big_table["pixel_size_xy_in_um"] ** 2
-    big_table["perimeter (um)"] = big_table["perimeter"] * big_table["pixel_size_xy_in_um"]
+    big_table[ColNmSeg.PIXEL_SIZE_XY_IN_UM] = data_config.pixel_size_xy_in_um
+    big_table[ColNmSeg.AREA] = big_table[ColNmSeg.AREA_PX_SQ] * big_table[ColNmSeg.PIXEL_SIZE_XY_IN_UM] ** 2
+    big_table[ColNmSeg.PERIMETER] = big_table[ColNmSeg.PERIMETER_PX] * big_table[ColNmSeg.PIXEL_SIZE_XY_IN_UM]
 
     # compute intensity means and standard deviations for edge and node pixels
     # separately and together
-    big_table["edge_fluorescence_means (a.u.)"] = big_table["edge_fluorescences (a.u.)"].transform(
+    big_table[ColNmSeg.EDGE_FLUOR_MEAN] = big_table[ColNmSeg.EDGE_FLUOR].transform(
         lambda x: x.mean()
     )
-    big_table["edge_fluorescence_std (a.u.)"] = big_table["edge_fluorescences (a.u.)"].transform(
+    big_table[ColNmSeg.EDGE_FLUOR_STD] = big_table[ColNmSeg.EDGE_FLUOR].transform(
         lambda x: x.std()
     )
-    big_table["node_fluorescence_means (a.u.)"] = big_table["node_fluorescences (a.u.)"].transform(
+    big_table[ColNmSeg.NODE_FLUOR_MEAN] = big_table[ColNmSeg.NODE_FLUOR].transform(
         lambda x: x.mean()
     )
-    big_table["node_fluorescence_std (a.u.)"] = big_table["node_fluorescences (a.u.)"].transform(
+    big_table[ColNmSeg.NODE_FLUOR_STD] = big_table[ColNmSeg.NODE_FLUOR].transform(
         lambda x: x.std()
     )
-    big_table["edge_and_node_fluorescence_means (a.u.)"] = big_table.apply(
+    big_table[ColNmSeg.EDGE_AND_NODE_FLUOR_MEAN] = big_table.apply(
         lambda row: np.mean(
-            row["edge_fluorescences (a.u.)"].tolist() + row["node_fluorescences (a.u.)"].tolist()
+            row[ColNmSeg.EDGE_FLUOR].tolist() + row[ColNmSeg.NODE_FLUOR].tolist()
         ),
         axis=1,
     )
-    big_table["edge_and_node_fluorescence_std (a.u.)"] = big_table.apply(
+    big_table[ColNmSeg.EDGE_AND_NODE_FLUOR_STD] = big_table.apply(
         lambda row: np.std(
-            row["edge_fluorescences (a.u.)"].tolist() + row["node_fluorescences (a.u.)"].tolist()
+            row[ColNmSeg.EDGE_FLUOR].tolist() + row[ColNmSeg.NODE_FLUOR].tolist()
         ),
         axis=1,
     )
@@ -565,70 +518,46 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     # add a column for the number of neighbors
     # touching each region that is being tracked
     logger.info("Calculating number of neighbors...")
-    big_table["number_of_neighbors"] = big_table["neighboring_cell_labels"].transform(
+    big_table[ColNmSeg.NUM_NEIGHBORS] = big_table[ColNmSeg.NEIGHBOR_LABELS].transform(
         lambda x: len(x)
     )
 
-    # add the image size to the data table
-    new_cols = {}
-    for (ds_nm, pos), grp in big_table.groupby(["dataset_name", "position"]):
-        data_config = load_dataset_config(ds_nm)
-
-        zarr_loc = get_zarr_location_for_position(data_config, pos)
-        assert (
-            grp["zarr_path"].transform(Path) == zarr_loc.path
-        ).all(), "Zarr path mismatch in group."
-
-        logger.info(f"getting image size for {ds_nm} position {pos}...")
-        img = load_image(zarr_loc, read=False, level=0)
-        image_size_y, image_size_x = img.dims.Y, img.dims.X
-
-        new_cols[(ds_nm, pos)] = {
-            "image_size_x": image_size_x,
-            "image_size_y": image_size_y,
-            "EGFP_channel_index_zarr": data_config.zarr_channel_indices.channel_488,
-            "brightfield_channel_index_zarr": data_config.zarr_channel_indices.brightfield,
-        }
-    big_table = big_table.merge(
-        big_table.groupby(["dataset_name", "position"])
-        .apply(
-            lambda df: pd.DataFrame(
-                columns=new_cols[tuple(df.name)].keys(),
-                data=new_cols[tuple(df.name)],
-                index=df.index,
-            ),  # type: ignore[call-overload]
-            include_groups=False,
-        )
-        .droplevel([0, 1]),
-        left_index=True,
-        right_index=True,
-    )
+    # add the image size and channel indices to the data table
+    big_table[ColNmSeg.IMAGE_SIZE_X] = IMG_SHAPE_RESOLUTION_0_3i_X
+    big_table[ColNmSeg.IMAGE_SIZE_Y] = IMG_SHAPE_RESOLUTION_0_3i_Y
+    big_table[ColNmSeg.CDH5_CHANNEL_INDEX_ZARR] = data_config.zarr_channel_indices.channel_488
+    big_table[ColNmSeg.BF_CHANNEL_INDEX_ZARR] = data_config.zarr_channel_indices.brightfield
 
     # add the number of nuclei that overlap the most with each cell
     # (this can be used as a filter later so we only measure cells
     # with a single clearly distinguishable nuclei)
-    big_table["num_nuclei_with_most_overlap"] = big_table["nuclei_seg_in_cdh5_seg_frac"].transform(
+    big_table[ColNmSeg.NUM_NUC_WITH_MOST_OVERLAP] = big_table[ColNmSeg.NUCLEI_LABELS_IN_CDH5_SEGMENTATION].transform(
         len
     )
 
+    # split the centroid column into separate x and y columns
+    big_table[[ColNmSeg.CENTROID_Y, ColNmSeg.CENTROID_X]] = pd.DataFrame(
+        big_table[ColNmSeg.CENTROID].tolist(), index=big_table.index
+    )
+
     # add the nuclei centroids relative to the cell centroids
-    big_table["nuc_pos_rel_cell_X"], big_table["nuc_pos_rel_cell_Y"] = (
+    big_table[ColNmSeg.NUCLEI_POSITION_X], big_table[ColNmSeg.NUCLEI_POSITION_Y] = (
         get_nuclei_rel_to_cell_position(
-            big_table["centroid_X"],
-            big_table["centroid_Y"],
-            big_table["nuc_with_most_overlap_0_centroid_X"],
-            big_table["nuc_with_most_overlap_0_centroid_Y"],
+            big_table[ColNmSeg.CENTROID_X],
+            big_table[ColNmSeg.CENTROID_Y],
+            big_table[ColNmSeg.NUCLEI_CENTROID_X],
+            big_table[ColNmSeg.NUCLEI_CENTROID_Y],
         )
     )
 
-    # get the angles and magnitudes of the nuclei relative positions
-    big_table["nuc_pos_rel_cell_magnitude"] = np.linalg.norm(
-        [big_table["nuc_pos_rel_cell_X"], big_table["nuc_pos_rel_cell_Y"]], axis=0
+    # get the angles and distances of the nuclei relative positions
+    big_table[ColNmSeg.NUCLEI_POSITION_DISTANCE] = np.linalg.norm(
+        [big_table[ColNmSeg.NUCLEI_POSITION_X], big_table[ColNmSeg.NUCLEI_POSITION_Y]], axis=0
     )
-    big_table["nuc_pos_rel_cell_angle"] = np.arctan2(
-        big_table["nuc_pos_rel_cell_Y"], big_table["nuc_pos_rel_cell_X"]
+    big_table[ColNmSeg.NUCLEI_POSITION_ANGLE] = np.arctan2(
+        big_table[ColNmSeg.NUCLEI_POSITION_Y], big_table[ColNmSeg.NUCLEI_POSITION_X]
     )
-    big_table["nuc_pos_rel_cell_angle_deg"] = np.rad2deg(big_table["nuc_pos_rel_cell_angle"])
+    big_table[ColNmSeg.NUCLEI_POSITION_ANGLE_DEG] = np.rad2deg(big_table[ColNmSeg.NUCLEI_POSITION_ANGLE])
 
     # add the DiffAE crop locations and binning level; these can be used to load
     # a crop from the zarr files and compute the number of nuclei in that crop
@@ -637,27 +566,27 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     # compute the number of nuclei found in a defined crop size
     # (first take a subset using only the required columns to reduce memory usage)
     required_columns = [
-        "dataset_name",
-        "position",
-        "image_index",
-        "track_id",
-        "label",
-        "centroid_Y",
-        "centroid_X",
-        "image_size_y",
-        "image_size_x",
-        "crop_size",
-        "start_y",
-        "end_y",
-        "start_x",
-        "end_x",
-        "diffae_resolution_level_to_use",
-        ColumnNameSeg.IS_VALID_BBOX,
+        ColNmSeg.DATASET,
+        ColNmSeg.POSITION,
+        ColNmSeg.TIMEPOINT,
+        ColNmSeg.TRACK_ID,
+        ColNmSeg.LABEL,
+        ColNmSeg.CENTROID_Y,
+        ColNmSeg.CENTROID_X,
+        ColNmSeg.IMAGE_SIZE_Y,
+        ColNmSeg.IMAGE_SIZE_X,
+        ColNmSeg.CROP_SIZE,
+        ColNmSeg.START_Y,
+        ColNmSeg.END_Y,
+        ColNmSeg.START_X,
+        ColNmSeg.END_X,
+        ColNmSeg.RESOLUTION_FOR_DIFFAE,
+        ColNmSeg.IS_VALID_BBOX,
     ]
     num_nuclei_in_crop_df = add_num_nuclei_in_crop_column(
         big_table[required_columns], use_precomputed=False
     )
-    crops = ["dataset_name", "position", "image_index", "track_id"]
+    crops = [ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TIMEPOINT, ColNmSeg.TRACK_ID]
     added_cols = list(set(num_nuclei_in_crop_df.columns) - set(big_table.columns))
     big_table = pd.merge(
         left=big_table,
@@ -825,8 +754,7 @@ def calculate_derived_data_dynamics_dependent(
         logger.info("Calculating vector mean of migration per crop...")
         big_table = add_vector_mean_of_migration_in_crop_column(big_table)
 
-    # add column for the number of tracks at a given
-    # timepoint per dataset per position
+    # add column for the number of tracks at a given timepoint per dataset per position
     logger.info("Adding number of tracks for each timepoint...")
     big_table["num_tracks_at_T"] = big_table.groupby(["dataset_name", "position", "T"])[
         "track_id"
@@ -1123,7 +1051,7 @@ def compute_nuclei_centroids(
     if dataset_name in smad1_datasets:
         nuc_seg_manifest_name = "nuclear_stain_seg"
     elif dataset_name in timelapse_datasets:
-        nuc_seg_manifest_name = "nuclear_labelfree_seg"
+        nuc_seg_manifest_name = "nuclear_labelfree_seg_zarr"
     else:
         logger.error(
             f"No nuclei-based measurements found for dataset {dataset_name} in \
@@ -1134,8 +1062,11 @@ def compute_nuclei_centroids(
     dim_order = DIMENSION_ORDER
     dataset_config = load_dataset_config(dataset_name)
     seg_manifest = load_image_manifest(nuc_seg_manifest_name)
-    seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position, timeframe)
-    nuc_seg = load_image(seg_location, squeeze=False, compute=True)
+    seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position)
+    # Delaying the image.squeeze() operation until after loading the image
+    # so that I can use it to find dim_order_squeezed which will be used
+    # to split the centroids into separate columns for each dimension
+    nuc_seg = load_image(seg_location, squeeze=False, compute=True, timepoints=timeframe)
 
     # get nuclei segmentation properties and dimension order of those properties
     props = regionprops(nuc_seg.squeeze())
@@ -1147,9 +1078,9 @@ def compute_nuclei_centroids(
         props_dim_order=dim_order_squeezed,
         kind="centroid",
     )
-    centroids["dataset_name"] = dataset_name
-    centroids["position"] = position
-    centroids["image_index"] = timeframe
+    centroids[ColNmSeg.DATASET] = dataset_name
+    centroids[ColNmSeg.POSITION] = position
+    centroids[ColNmSeg.TIMEPOINT] = timeframe
 
     return centroids
 
@@ -1218,7 +1149,7 @@ def add_num_nuclei_in_crop_column(
     """
     # get the nuclei coordinates
     nuclei_centroids_dir = get_output_path(__file__, "nuclei_coords", include_timestamp=False)
-    dataset_name = sequence_to_scalar(merged_feats_df["dataset_name"])
+    dataset_name = sequence_to_scalar(merged_feats_df[ColNmSeg.DATASET])
     nuclei_centroids_path = nuclei_centroids_dir / f"{dataset_name}_nuclei_centroids.parquet"
 
     # if the nuclei coordinates are already computed, load them
@@ -1228,7 +1159,7 @@ def add_num_nuclei_in_crop_column(
     # (this will take about 60 minutes divided by n_cores used)
     else:
         # compute the nuclei prediction centroids
-        groups = merged_feats_df.groupby(["dataset_name", "position", "image_index"])
+        groups = merged_feats_df.groupby([ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TIMEPOINT])
         args = groups.groups.keys()
         if max_cores == 1:
             results = [  # type:ignore[misc]
@@ -1256,10 +1187,10 @@ def add_num_nuclei_in_crop_column(
     merged_feats_df = pd.merge(
         merged_feats_df,
         nuc_centroid_indices,
-        on=["dataset_name", "position", "image_index"],
+        on=[ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TIMEPOINT],
         how="left",
     )
-    groups = merged_feats_df.groupby(["dataset_name", "position", "image_index"])
+    groups = merged_feats_df.groupby([ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TIMEPOINT])
 
     num_nuclei_in_crop = []
     for nm, df in tqdm(groups, desc=f"Counting nuclei in crops: {dataset_name}"):
@@ -1267,12 +1198,12 @@ def add_num_nuclei_in_crop_column(
         num_nuc_centroids = get_num_unique_values_in_bounds_from_df(
             nuclei_coords_Y=np.stack(list(df["coords_Y"])),
             nuclei_coords_X=np.stack(list(df["coords_X"])),
-            crop_bounds_Y=(df["start_y"], df["end_y"]),
-            crop_bounds_X=(df["start_x"], df["end_x"]),
+            crop_bounds_Y=(df[ColNmSeg.START_Y], df[ColNmSeg.END_Y]),
+            crop_bounds_X=(df[ColNmSeg.START_X], df[ColNmSeg.END_X]),
         )
         num_nuclei_in_crop.append(pd.Series(num_nuc_centroids, index=df.index))
 
-    merged_feats_df["num_nuclei_in_crop"] = pd.concat(
+    merged_feats_df[ColNmSeg.NUM_NUCLEI_IN_CROP] = pd.concat(
         num_nuclei_in_crop, axis=0, ignore_index=False
     )
     # drop the nuclei coordinates lists since they are not needed anymore
@@ -1307,32 +1238,31 @@ def create_labels_in_crop_columns(df_sub: pd.DataFrame, out_dir: Path) -> None:
     out_dir:
         The directory to save the parquet file with the "all_labels_in_crop" column for this subset of the main DataFrame.
     """
-    ds_nm = sequence_to_scalar(df_sub["dataset_name"])
-    pos = sequence_to_scalar(df_sub["position"])
-    tp = sequence_to_scalar(df_sub["image_index"])
+    ds_nm = sequence_to_scalar(df_sub[ColNmSeg.DATASET])
+    pos = sequence_to_scalar(df_sub[ColNmSeg.POSITION])
+    tp = sequence_to_scalar(df_sub[ColNmSeg.TIMEPOINT])
 
     # load image
     dataset_config = load_dataset_config(ds_nm)
-    image_manifest = load_image_manifest("cdh5_classic_seg")
-    image_loc = get_image_location_for_dataset(image_manifest, dataset_config, pos, tp)
-    img = load_image(image_loc, compute=True, squeeze=True)
+    image_manifest = load_image_manifest("cdh5_classic_seg_zarr")
+    image_loc = get_image_location_for_dataset(image_manifest, dataset_config, pos)
+    img = load_image(image_loc, compute=True, squeeze=True, timepoints=tp)
 
     # find other cell labels that are also in the crop
-    df_sub["all_labels_in_crop"] = df_sub.apply(
+    df_sub[ColNmSeg.LABELS_IN_CROP] = df_sub.apply(
         lambda row: get_labels_in_crop(
             segmentation_image=img,
             region_of_interest=(
-                slice(row.start_y, row.end_y),
-                slice(row.start_x, row.end_x),
+                slice(row[ColNmSeg.START_Y], row[ColNmSeg.END_Y]),
+                slice(row[ColNmSeg.START_X], row[ColNmSeg.END_X]),
             ),
         ),
         axis=1,
     )
 
     fname = f"{ds_nm}_pos{pos}_tp{tp}_labels_in_crop.parquet"
-    df_sub[["dataset_name", "position", "image_index", "label", "all_labels_in_crop"]].to_parquet(
-        out_dir / fname, index=False
-    )
+    col_subset = [ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TIMEPOINT, ColNmSeg.LABEL, ColNmSeg.LABELS_IN_CROP]
+    df_sub[col_subset].to_parquet(out_dir / fname, index=False)
 
 
 def add_all_labels_in_crop_column(
@@ -1360,17 +1290,17 @@ def add_all_labels_in_crop_column(
     """
     # make temporary output directory to save "all_labels_in_crop" data
     labels_in_crop_dir = get_output_path(__file__, "labels_in_crop", include_timestamp=False)
-    dataset = sequence_to_scalar(big_table["dataset_name"])
+    dataset = sequence_to_scalar(big_table[ColNmSeg.DATASET])
     labels_in_crop_subdir = labels_in_crop_dir / dataset
     labels_in_crop_subdir.mkdir(parents=True, exist_ok=True)
     labels_in_crop_path = labels_in_crop_dir / f"{dataset}_labels_in_crop.parquet"
 
-    df = big_table[big_table[ColumnNameSeg.IS_VALID_BBOX]]
+    df = big_table[big_table[ColNmSeg.IS_VALID_BBOX]]
 
     if use_precomputed:
         df = pd.read_parquet(labels_in_crop_dir / f"{dataset}_labels_in_crop.parquet")
     else:
-        groupby_cols = ["dataset_name", "position", "image_index"]
+        groupby_cols = [ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TIMEPOINT]
         _, df_grps = zip(*df.groupby(groupby_cols), strict=True)
 
         with ProcessPoolExecutor(max_workers=max_cores) as executor:
@@ -1395,7 +1325,7 @@ def add_all_labels_in_crop_column(
         )
 
         df = df.merge(
-            df_lab_in_crop, on=[*groupby_cols, "label"], how="left", validate="one_to_one"
+            df_lab_in_crop, on=[*groupby_cols, ColNmSeg.LABEL], how="left", validate="one_to_one"
         ).reset_index(drop=True)
 
         df.to_parquet(labels_in_crop_path, index=False)

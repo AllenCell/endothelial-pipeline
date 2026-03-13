@@ -23,6 +23,15 @@ class ColumnNameSeg(StrEnum):
     """The number of unique tracks that pass filtering criteria at the timepoint of interest."""
     NUM_TRACKS_BEFORE_FILTERING = "num_unique_tracks_before_filtering_at_T"
     SHEAR_STRESS_REGIME = "shear_stress_regime"
+    NUM_NUCLEI_AT_TIMEPOINT = "total_nuclei_count_at_T"
+
+    # timelapse information
+    IMAGE_SIZE_X = "image_size_X"
+    """The size of the image in the X dimension (pixels)."""
+    IMAGE_SIZE_Y = "image_size_Y"
+    """The size of the image in the Y dimension (pixels)."""
+    PIXEL_SIZE_XY_IN_UM = "pixel_size_xy_in_um"
+    TIME_RESOLUTION_MINUTES = "time_resolution_minutes"
 
     # filter columns
     IS_INCLUDED = "is_included"
@@ -33,7 +42,7 @@ class ColumnNameSeg(StrEnum):
 
     IS_LESS_THAN_MAX_SMOOTHED_AREA_NORMD_CHANGE = "is_less_than_max_smoothed_area_normd_change"
     SMOOTHED_AREA_NORMD_DIFF = "smoothed_area_normd_diff"
-    MAX_SMOOTHED_NORMALIZED_AREA = "max_smoothed_area_normd_change"
+    MAX_SMOOTHED_AREA_NORMALIZED_CHANGE = "max_smoothed_area_normd_change"
 
     IS_GREATER_THAN_MIN_TRACK_DURATION = "is_greater_than_min_track_duration"
     MIN_TRACK_DURATION = "min_track_duration"
@@ -57,7 +66,7 @@ class ColumnNameSeg(StrEnum):
     # temporal features
     TIME_HRS = "time_hours"
     TIME_MINS = "time_minutes"
-    TRACK_DURATION = "track_duration"
+    TRACK_LENGTH = ColumnNameDiffAE.TRACK_LENGTH
 
     # morphological features
     ORIENTATION = "orientation"
@@ -72,26 +81,46 @@ class ColumnNameSeg(StrEnum):
     SOLIDITY = "solidity"
     AREA = "area_um_squared"
     PERIMETER = "perimeter_um"
+    AREA_PX_SQ = "area_px_squared"
+    PERIMETER_PX = "perimeter_px"
     NUCLEI_POSITION_X = "nuclei_position_X"
     NUCLEI_POSITION_Y = "nuclei_position_Y"
     NUCLEI_POSITION_ANGLE = "nuclei_position_angle"
     NUCLEI_POSITION_ANGLE_DEG = "nuclei_position_angle_deg"
-    NUCLEI_POSITION_MAGNITUDE = "nuclei_position_magnitude"
+    NUCLEI_POSITION_DISTANCE = "nuclei_position_distance"
+    NUCLEI_LABEL = "nuclei_seg_with_most_overlap_0"
+    NUCLEI_CENTROID_X = "nuc_with_most_overlap_0_centroid_X"
+    NUCLEI_CENTROID_Y = "nuc_with_most_overlap_0_centroid_Y"
 
     # fluorescence features
     EDGE_FLUOR = "edge_fluorescence_au"
     NODE_FLUOR = "node_fluorescence_au"
 
-    CELL_FLUOR_MEAN = "cell_fluorescence_mean"
-    EDGE_FLUOR_MEAN = "edge_fluorescence_mean"
-    NODE_FLUOR_MEAN = "node_fluorescence_mean"
-    EDGE_AND_NODE_FLUOR_MEAN = "edge_and_node_fluorescence_mean"
-    CELL_FLUOR_STD = "cell_fluorescence_std"
-    EDGE_FLUOR_STD = "edge_fluorescence_std"
-    NODE_FLUOR_STD = "node_fluorescence_std"
-    EDGE_AND_NODE_FLUOR_STD = "edge_and_node_fluorescence_std"
+    CELL_FLUOR_MEAN = "cell_fluorescence_mean_au"
+    CELL_FLUOR_STD = "cell_fluorescence_std_au"
+    CELL_FLUOR_MEDIAN = "cell_fluorescence_median_au"
+    CELL_FLUOR_MIN = "cell_fluorescence_min_au"
+    CELL_FLUOR_MAX = "cell_fluorescence_max_au"
+    CELL_FLUOR_PCT25 = "cell_fluorescence_pct25_au"
+    CELL_FLUOR_PCT75 = "cell_fluorescence_pct75_au"
 
-    # crop-based features
+    EDGE_FLUOR_MEAN = "edge_fluorescence_mean_au"
+    EDGE_FLUOR_STD = "edge_fluorescence_std_au"
+
+    NODE_FLUOR_MEAN = "node_fluorescence_mean_au"
+    NODE_FLUOR_STD = "node_fluorescence_std_au"
+
+    EDGE_AND_NODE_FLUOR_MEAN = "edge_and_node_fluorescence_mean_au"
+    EDGE_AND_NODE_FLUOR_STD = "edge_and_node_fluorescence_std_au"
+
+    # other features
+    NUM_NEIGHBORS = "number_of_neighbors"
+    NEIGHBOR_LABELS = "neighboring_cell_labels"
+    CENTROID = "centroid"
+    CENTROID_X = "centroid_X"
+    CENTROID_Y = "centroid_Y"
+
+    # DiffAE and crop-based feature columns
     NUM_NUCLEI_IN_CROP = "num_nuclei_in_crop"
     LABELS_IN_CROP = "all_labels_in_crop"
     START_X = "start_X"
@@ -99,33 +128,26 @@ class ColumnNameSeg(StrEnum):
     START_Y = "start_Y"
     END_Y = "end_Y"
     CROP_SIZE = "crop_size"
-
-    # other features
-    NUM_NEIGHBORS = "number_of_neighbors"
-    LABELS_OF_NEIGHBORS = "neighboring_cell_labels"
-    CENTROID = "centroid"
-    CENTROID_X = "centroid_X"
-    CENTROID_Y = "centroid_Y"
+    TIMELAPSE_PATH = ColumnNameDiffAE.ZARR_PATH
+    RESOLUTION_FOR_DIFFAE = "diffae_resolution_level_to_use"
 
     # workflow verification columns
+    SEGMENTATION_PATH = "filepath_segmentation_image"
     TRACKING_REF_IDX = "reference_index"
     TRACKING_MATCHED_QUERY_LABEL = "matched_query_label"
-    TRCACKING_OPTIMIZED_METRIC_VAL = "optimized_metric_value"
+    TRACKING_OPTIMIZED_METRIC_VAL = "optimized_metric_value"
     TRACKING_MATCHING_METHOD = "matching_method"
     CDH5_CHANNEL_INDEX_ZARR = "cdh5_channel_index_in_zarr"
     BF_CHANNEL_INDEX_ZARR = "brightfield_channel_index_zarr"
-    RESOLUTION_FOR_DIFFAE = "diffae_resolution_level_to_use"
     NUM_NUC_WITH_MOST_OVERLAP = "num_nuclei_with_most_overlap"
-    SMOOTHED_AREA_NORMD = "smoothed_area_normd"
+    SMOOTHED_AREA_NORMALIZED = "smoothed_area_normd"
     SIGMA_FOR_AREA_SMOOTHING = "gaussian_sigma_for_area_smoothing"
     NUM_UNIQUE_TRACKS_PER_TIMEPOINT = "num_unique_tracks_per_timeframe"
-    TIMELAPSE_FILEPATH = "zarr_path"
     SEGMENTATION_FILEPATH = "segmentation_zarr_path"
-
-    # timelapse information
-    IMAGE_SIZE_X = "image_size_X"
-    """The size of the image in the X dimension (pixels)."""
-    IMAGE_SIZE_Y = "image_size_Y"
-    """The size of the image in the Y dimension (pixels)."""
-    PIXEL_SIZE_XY_IN_UM = "pixel_size_xy_in_um"
-    TIME_RESOLUTION_MINUTES = "time_resolution_minutes"
+    NODE_LABELS = "node_labels"
+    EDGE_LABELS = "edge_labels"
+    NODE_PAIR_LABELS = "node_pair_labels"
+    NUCLEI_LABELS_IN_CDH5_SEGMENTATION = "nuclei_segmentation_labels"
+    NUCLEI_FRACTION_IN_CDH5_SEGMENTATION = "nuclei_seg_in_cdh5_seg_frac"
+    NUCLEI_INTENSITY_COLUMN_PREFIX = "nuc_seg_intens_"
+    NUCLEI_SEG_LABEL_PREFIX = "nuclei_seg_with_most_overlap_"
