@@ -14,7 +14,7 @@ def main(
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
     plot_stack: bool = False,
-    compute_vtk: bool = True,
+    compute_vtk: bool = False,
     use_same_axes: bool = False,
     columns: StrList | None = None,
 ) -> None:
@@ -27,10 +27,13 @@ def main(
     **Workflow inputs**
 
     1. Path to a dataframe containing the drift estimates for the 3D flow field,
-       along with the corresponding meshgrid coordinates and dataset labels for
-       each point in the feature space.
+       along dataset labels for each point in the feature space.
 
-    2. Optionally, a path to a dataframe containing the stable fixed point
+    2. Path to a dataframe containing the corresponding 1D arrays of grid points
+       in each of the three dimensions of the feature space for the 3D flow
+       field, along dataset labels for each point in the feature space.
+
+    3. Optionally, a path to a dataframe containing the stable fixed point
        locations to overlay on the flow field visualizations. If not provided,
        stable fixed points will not be overlaid on the flow field
        visualizations.
@@ -40,7 +43,8 @@ def main(
     1. 2D flow field visualizations saved as PNG files in the `figs/` directory,
        including:
         a. 2D slice of the 3D flow field "sliced" according to the coordinates
-            of the stable fixed points.
+           of the stable fixed points, with the stable fixed points and kernel
+           density estimate of the data overlaid.
         b. Trajectories simulated in the 3D flow field, projected onto 2D
            slices.
         c. Optionally, 3D stack plots of the flow field visualizations in each
@@ -60,6 +64,16 @@ def main(
     path_to_fixed_points_dataframe
         Optional path to the dataframe containing the stable fixed point
         locations to overlay on the flow field visualizations.
+    model_manifest_name
+        Name of the model manifest to use for loading the corresponding
+        dataframe manifest and feature dataframes.
+    run_name
+        Optional run name to use for loading the corresponding dataframe
+        manifest and feature dataframes. If not provided, will use the default
+        run name.
+    crop_pattern
+        Crop pattern to use for loading the feature dataframes. If not provided,
+        will use the default crop pattern of "grid".
     plot_stack
         If true, plot 3D stacks of the flow field visualizations in each of the
         three variables.
@@ -68,6 +82,11 @@ def main(
     use_same_axes
         If true, use the same axis limits for all datasets when plotting flow
         fields.
+    columns
+        Optional list of column names to use for the flow field analysis and
+        visualization. If not provided, will use the default column names
+        defined in `DYNAMICS_COLUMN_NAMES`. Must provide exactly 3 column names
+        for 3D flow field analysis.
     """
     import logging
     from pathlib import Path
@@ -205,7 +224,7 @@ def main(
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
 
     # set list of column names to keep from the loaded feature dataframes
-    dataframe_columns = [
+    columns_plus_metadata_to_keep = [
         *column_names,
         ColumnName.DATASET,
         ColumnName.TIMEPOINT,
@@ -222,7 +241,7 @@ def main(
             include_cell_piling=False,
             include_not_steady_state=False,
             crop_pattern=crop_pattern,
-        )[dataframe_columns]
+        )[columns_plus_metadata_to_keep]
         # get dataset-specific subsets of the dataframes for the drift values
         # and grid points
         drift_dataset: pd.DataFrame = drift_dataframe[
