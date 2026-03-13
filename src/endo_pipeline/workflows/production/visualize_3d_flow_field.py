@@ -107,6 +107,7 @@ def main(
     from endo_pipeline.manifests import (
         get_dataframe_location_for_dataset,
         get_feature_dataframe_manifest_name,
+        list_datasets_with_dataframes,
         load_dataframe_manifest,
         load_model_manifest,
     )
@@ -133,20 +134,20 @@ def main(
 
     # load model manifest and get corresponding dataframe manifest name
     model_manifest = load_model_manifest(model_manifest_name)
-    dataframe_manifest_name = get_feature_dataframe_manifest_name(
+    feature_dataframe_manifest_name = get_feature_dataframe_manifest_name(
         model_manifest, run_name, crop_pattern=crop_pattern
     )
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     demo_suffix = "_demo" if DEMO_MODE else ""
     drift_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataframe_manifest_name}{demo_suffix}"
+        f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{feature_dataframe_manifest_name}{demo_suffix}"
     )
     grid_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{dataframe_manifest_name}{demo_suffix}"
+        f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{feature_dataframe_manifest_name}{demo_suffix}"
     )
     fixed_points_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataframe_manifest_name}{demo_suffix}"
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{feature_dataframe_manifest_name}{demo_suffix}"
     )
     drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
     grid_dataframe_manifest = load_dataframe_manifest(grid_dataframe_manifest_name)
@@ -168,7 +169,8 @@ def main(
     # when loading dataframes for specific datasets, and log an error if no
     # valid dataset names are provided after this filtering step
     valid_dataset_options = list(
-        set(drift_dataframe_manifest.locations.keys()) & set(dataframe_manifest.locations.keys())
+        set(list_datasets_with_dataframes(drift_dataframe_manifest))
+        & set(list_datasets_with_dataframes(feature_dataframe_manifest))
     )
     if datasets is None:
         dataset_names = get_datasets_in_collection(
@@ -185,8 +187,8 @@ def main(
         raise ValueError("No valid dataset names provided.")
 
     # Create output folders if they do not exist yet
-    fig_savedir = get_output_path(__file__, dataframe_manifest_name, "figs")
-    vtk_savedir = get_output_path(__file__, dataframe_manifest_name, "vtk")
+    fig_savedir = get_output_path(__file__, feature_dataframe_manifest_name, "figs")
+    vtk_savedir = get_output_path(__file__, feature_dataframe_manifest_name, "vtk")
 
     # get feature column names to use for flow field analysis
     column_names: list[str] = columns or list(DYNAMICS_COLUMN_NAMES)
@@ -216,7 +218,7 @@ def main(
     # will be used for flow field plots if use_common_axis_limits is True
     # regardless, gets used below when plotting stable fixed points together
     bounds_for_plots = get_bounds_from_data(
-        dataset_names, dataframe_manifest, pca, column_names=column_names
+        dataset_names, feature_dataframe_manifest, pca, column_names=column_names
     )
 
     # initialize kernels to be used for KDE estimation of the data histogram
@@ -247,7 +249,7 @@ def main(
         # load dataframe with feature data
         feature_data = get_dataframe_for_dynamics_workflows(
             dataset_name,
-            dataframe_manifest,
+            feature_dataframe_manifest,
             pca=pca,
             include_cell_piling=False,
             include_not_steady_state=False,
@@ -385,7 +387,7 @@ def main(
         # get per-dataset bounds for plotting, if not using same axes for all datasets
         if not use_same_axes:
             bounds_for_plots = get_bounds_from_data(
-                [dataset_name], dataframe_manifest, pca, column_names=column_names
+                [dataset_name], feature_dataframe_manifest, pca, column_names=column_names
             )
 
         # call main visualization function

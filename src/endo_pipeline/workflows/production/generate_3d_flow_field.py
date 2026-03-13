@@ -69,6 +69,7 @@ def main(
         build_dataframe_location_from_path,
         create_dataframe_manifest,
         get_feature_dataframe_manifest_name,
+        list_datasets_with_dataframes,
         load_dataframe_manifest,
         load_model_manifest,
         save_dataframe_manifest,
@@ -150,7 +151,7 @@ def main(
 
     # Default list of datasets if not provided. Filter by datasets available in
     # the manifest.
-    valid_dataset_options = list(dataframe_manifest.locations.keys())
+    valid_dataset_options = list_datasets_with_dataframes(dataframe_manifest)
     if datasets is None:
         dataset_names = get_datasets_in_collection(
             DATASET_COLLECTION_FOR_3D_DYNAMICS, valid_dataset_options
