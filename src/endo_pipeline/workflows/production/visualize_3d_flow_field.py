@@ -2,7 +2,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from endo_pipeline.cli import CropPattern, StrList
+from endo_pipeline.cli import CropPattern
 from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 
@@ -16,15 +16,17 @@ def main(
     plot_stack: bool = False,
     compute_vtk: bool = False,
     use_same_axes: bool = False,
-    columns: StrList | None = None,
 ) -> None:
     """
     Visualize 3D (drift) flow fields for the dynamics of the crop-based DiffAE
-    features for each of the single flow datasets.
+    features as estimated by the `generate_3d_flow_field` workflow.
 
     #dynamical-systems #diffae-feature-analysis #visualization
 
     **Workflow inputs**
+
+    The inputs to this workflow are paths to the outputs of the
+    `generate_3d_flow_field` workflow, which are:
 
     1. Path to a dataframe containing the drift estimates for the 3D flow field,
        along dataset labels for each point in the feature space.
@@ -147,7 +149,7 @@ def main(
     vtk_savedir = get_output_path(__file__, dataframe_manifest_name, "vtk")
 
     # get feature column names to use for flow field analysis
-    column_names: list[str] = columns or list(DYNAMICS_COLUMN_NAMES)
+    column_names = list(DYNAMICS_COLUMN_NAMES)
     ndim = len(column_names)
     if ndim != 3:
         raise ValueError(
