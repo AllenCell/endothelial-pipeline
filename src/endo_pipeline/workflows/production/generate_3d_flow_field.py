@@ -384,7 +384,7 @@ def main(
 
         # save stable fixed points from this dataset to parquet file
         stable_fixed_points_file_name = (
-            f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataset_name}.parquet"
+            f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataset_name}{demo_suffix}.parquet"
         )
         stable_fixed_points_save_path = make_name_unique(
             dataframe_savedir / stable_fixed_points_file_name
