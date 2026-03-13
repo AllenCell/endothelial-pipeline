@@ -65,8 +65,8 @@ def main(
         The crop pattern to get features for, either "grid" or "tracked".
     upload_to_fms
         If True, upload the output dataframes to FMS and update the
-        corresponding dataframe manifests with the FMS locations. If False, just
-        save the output dataframes locally and log the save paths.
+        corresponding dataframe manifests with the FMS locations. If False,
+        save the output dataframes locally and log paths.
     """
     import logging
 
@@ -96,6 +96,7 @@ def main(
     from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
     from endo_pipeline.manifests import (
         DataframeLocation,
+        build_dataframe_location_from_path,
         create_dataframe_manifest,
         get_feature_dataframe_manifest_name,
         list_datasets_with_dataframes,
@@ -383,9 +384,22 @@ def main(
             save_dataframe_manifest(drift_dataframe_manifest)
             save_dataframe_manifest(grid_dataframe_manifest)
         else:
-            # if not uploading to FMS, just log the local save paths for
-            # traceability since the dataframe manifests won't be updated with
-            # locations
+            # If not uploading to FMS, depends on if we're in "demo mode" or
+            # not. If in demo mode, update "demo" dataframe manifests with
+            # locations built from local save paths, so that the dataframes can
+            # be loaded from the local paths in the visualization workflow. If
+            # not in demo mode, just log the local save paths for traceability
+            # since the dataframe manifests won't be updated with locations
+            if DEMO_MODE:
+                drift_dataframe_manifest.locations[dataset_name] = (
+                    build_dataframe_location_from_path(drift_coeffs_save_path)
+                )
+                grid_dataframe_manifest.locations[dataset_name] = (
+                    build_dataframe_location_from_path(grid_points_save_path)
+                )
+                save_dataframe_manifest(drift_dataframe_manifest)
+                save_dataframe_manifest(grid_dataframe_manifest)
+
             logger.info("Saving drift dataframe locally to [ %s ]", drift_coeffs_save_path)
             logger.info("Saving grid points dataframe locally to [ %s ]", grid_points_save_path)
 
