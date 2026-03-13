@@ -49,7 +49,7 @@ def main(
     2. Use interpolation to get a callable flow field function.
     3. Identify stable fixed points in the 3D flow field using a root-finding
        method applied to the flow field function.
-    4. Save the following outputs locally:
+    4. Save the following outputs for each dataset as parquet files:
         - Dataframe with the estimated drift coefficients at each grid point for
           each dataset.
         - Dataframe with the corresponding grid point coordinates for each
