@@ -1552,9 +1552,9 @@ def build_cdh5_measured_features_tables(
 
     logger.debug(f"T={tp} -- loading classic segmentation")
 
-    seg_manifest = load_image_manifest("cdh5_classic_seg")
-    seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position, tp)
-    seg_arr = load_image(seg_location, squeeze=True, compute=True)
+    seg_manifest = load_image_manifest("cdh5_classic_seg_zarr")
+    seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position)
+    seg_arr = load_image(seg_location, squeeze=True, compute=True, timepoints=tp)
     seg_filepath = seg_location.path.as_posix() if seg_location.path is not None else ""
 
     # NOTE: the segmentation images are stored as a single channel and single timepoint
@@ -1826,7 +1826,6 @@ def get_nuclei_features_from_dataset_at_timepoint(
     position: int,
     tp: int,
     out_dir: Path,
-    nuclei_seg_manifest_name: str = "nuclear_labelfree_seg",
     channel_names: tuple = ("EGFP", "BF"),
     save_output: bool = True,
 ) -> pd.DataFrame:
@@ -1848,13 +1847,13 @@ def get_nuclei_features_from_dataset_at_timepoint(
     dim_order = DIMENSION_ORDER
     dataset_config = load_dataset_config(dataset_name)
 
-    nuc_manifest = load_image_manifest(nuclei_seg_manifest_name)
-    nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_config, position, tp)
-    nuc_seg = load_image(nuc_location, squeeze=True, compute=True)
+    nuc_manifest = load_image_manifest("nuclear_labelfree_seg_zarr")
+    nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_config, position)
+    nuc_seg = load_image(nuc_location, squeeze=True, compute=True, timepoints=tp)
 
-    cdh5_manifest = load_image_manifest("cdh5_classic_seg")
-    cdh5_location = get_image_location_for_dataset(cdh5_manifest, dataset_config, position, tp)
-    cdh5_seg = load_image(cdh5_location, squeeze=True, compute=True)
+    cdh5_manifest = load_image_manifest("cdh5_classic_seg_zarr")
+    cdh5_location = get_image_location_for_dataset(cdh5_manifest, dataset_config, position)
+    cdh5_seg = load_image(cdh5_location, squeeze=True, compute=True, timepoints=tp)
 
     img_loc = get_zarr_location_for_position(dataset_config, position)
     raw_img = load_image(img_loc, channels=list(channel_names), timepoints=tp, level=0)
@@ -1894,11 +1893,7 @@ def get_nuclei_features_from_dataset_at_timepoint(
     if save_output:
         out_subdir = out_dir / dataset_name / f"P{position}"
         out_subdir.mkdir(exist_ok=True, parents=True)
-        if nuclei_seg_manifest_name == "nuclear_labelfree_seg":
-            filename = f"{dataset_name}_P{position}_T{tp}_nuclei_labelfree_features.parquet"
-        elif nuclei_seg_manifest_name == "nuclear_stain_seg":
-            filename = f"{dataset_name}_P{position}_T{tp}_nuclei_stain_features.parquet"
-
+        filename = f"{dataset_name}_P{position}_T{tp}_nuclei_labelfree_features.parquet"
         nuc_feats_df.to_parquet(out_subdir / filename, index=False)
 
     return nuc_feats_df
@@ -1932,7 +1927,6 @@ def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
     tp = args["T"]
     out_dir = args["output_dir"]
     save_output = args["save_output"]
-    nuclei_seg_manifest_name = args["nuclei_seg_manifest_name"]
     channel_names = args["channel_names"]
 
     get_nuclei_features_from_dataset_at_timepoint(
@@ -1940,7 +1934,6 @@ def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
         position=position,
         tp=tp,
         out_dir=out_dir,
-        nuclei_seg_manifest_name=nuclei_seg_manifest_name,
         channel_names=channel_names,
         save_output=save_output,
     )

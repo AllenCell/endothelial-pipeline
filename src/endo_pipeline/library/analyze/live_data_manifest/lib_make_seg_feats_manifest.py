@@ -14,23 +14,19 @@ from scipy.ndimage import gaussian_filter1d
 from skimage.measure import regionprops
 from tqdm import tqdm
 
-from endo_pipeline.configs import (
-    get_annotated_timepoints_for_position,
-    get_datasets_in_collection,
-    load_dataset_config,
-)
+from endo_pipeline.configs import get_annotated_timepoints_for_position, load_dataset_config
 from endo_pipeline.io import get_output_path, load_image
 from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.lib_init_density_vs_flow import vector_mean_angle_and_mag
 from endo_pipeline.library.model.eval_model import add_diffae_model_eval_crop_columns
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
-from endo_pipeline.manifests import (
-    get_image_location_for_dataset,
-    load_image_manifest,
+from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+from endo_pipeline.settings.image_data import (
+    DIMENSION_ORDER,
+    IMG_SHAPE_RESOLUTION_0_3i_X,
+    IMG_SHAPE_RESOLUTION_0_3i_Y,
 )
-from endo_pipeline.settings.image_data import DIMENSION_ORDER
 from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
-from endo_pipeline.settings.image_data import IMG_SHAPE_RESOLUTION_0_3i_X, IMG_SHAPE_RESOLUTION_0_3i_Y
 
 logger = logging.getLogger(__name__)
 
@@ -223,7 +219,9 @@ def save_filter_validation_plots(
     big_table_filtered: pd.DataFrame,
     min_track_duration: int,
 ) -> None:
-    for (dataset_nm, position), df in big_table_filtered.groupby([ColNmSeg.DATASET, ColNmSeg.POSITION]):
+    for (dataset_nm, position), df in big_table_filtered.groupby(
+        [ColNmSeg.DATASET, ColNmSeg.POSITION]
+    ):
         summary = df.groupby(ColNmSeg.TIMEPOINT)[
             [
                 ColNmSeg.TIMEPOINT,
@@ -330,7 +328,8 @@ def add_filter_columns(
 
     # update is_included column with valid_tp_per_track
     big_table[ColNmSeg.IS_INCLUDED] = (
-        big_table[ColNmSeg.IS_INCLUDED] & big_table[ColNmSeg.HAS_MORE_THAN_MIN_NUM_VALID_POINTS_PER_TRACK]
+        big_table[ColNmSeg.IS_INCLUDED]
+        & big_table[ColNmSeg.HAS_MORE_THAN_MIN_NUM_VALID_POINTS_PER_TRACK]
     )
 
     # get the number of unique tracks after filtering in total and per timepoint
@@ -388,7 +387,9 @@ def add_cell_piling_and_steady_state_annotation_columns(big_table: pd.DataFrame)
                             (
                                 df[ColNmSeg.TIMEPOINT].isin(
                                     get_annotated_timepoints_for_position(
-                                        dataset_config, sequence_to_scalar(df[ColNmSeg.POSITION]), [filt]
+                                        dataset_config,
+                                        sequence_to_scalar(df[ColNmSeg.POSITION]),
+                                        [filt],
                                     )
                                 )
                             ),
@@ -432,7 +433,9 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     big_table[ColNmSeg.TIME_RESOLUTION_MINUTES] = data_config.time_interval_in_minutes
 
     logger.info("Calculating time in minutes and hours...")
-    big_table[ColNmSeg.TIME_MINS] = big_table[ColNmSeg.TIMEPOINT] * big_table[ColNmSeg.TIME_RESOLUTION_MINUTES]
+    big_table[ColNmSeg.TIME_MINS] = (
+        big_table[ColNmSeg.TIMEPOINT] * big_table[ColNmSeg.TIME_RESOLUTION_MINUTES]
+    )
     big_table[ColNmSeg.TIME_HRS] = big_table[ColNmSeg.TIME_MINS] / 60
 
     # add a column for the number of unique tracks
@@ -446,9 +449,11 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     logger.info("Calculating locally-normalized area...")
     sigma = 2.0
     big_table[ColNmSeg.SIGMA_FOR_AREA_SMOOTHING] = sigma
-    big_table[ColNmSeg.SMOOTHED_AREA_NORMALIZED] = big_table.groupby([ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TRACK_ID])[
-        ColNmSeg.AREA_PX_SQ
-    ].transform(lambda x: calculate_smoothed_normd_area(x, smoothing_sigma=sigma))
+    big_table[ColNmSeg.SMOOTHED_AREA_NORMALIZED] = big_table.groupby(
+        [ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TRACK_ID]
+    )[ColNmSeg.AREA_PX_SQ].transform(
+        lambda x: calculate_smoothed_normd_area(x, smoothing_sigma=sigma)
+    )
     big_table[ColNmSeg.SMOOTHED_AREA_NORMD_DIFF] = big_table.groupby(
         [ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TRACK_ID]
     )[ColNmSeg.SMOOTHED_AREA_NORMALIZED].transform(lambda x: x.diff())
@@ -462,9 +467,9 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
 
     # add the duration of each track
     logger.info("Calculating track durations...")
-    big_table[ColNmSeg.TRACK_LENGTH] = big_table.groupby([ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TRACK_ID])[
-        ColNmSeg.TIMEPOINT
-    ].transform(lambda t: t.max() - t.min())
+    big_table[ColNmSeg.TRACK_LENGTH] = big_table.groupby(
+        [ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TRACK_ID]
+    )[ColNmSeg.TIMEPOINT].transform(lambda t: t.max() - t.min())
 
     # add column for orientation in degrees of the
     # ellipse fitted to each segmentation in degrees
@@ -485,33 +490,29 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
 
     # add pixel sizes
     big_table[ColNmSeg.PIXEL_SIZE_XY_IN_UM] = data_config.pixel_size_xy_in_um
-    big_table[ColNmSeg.AREA] = big_table[ColNmSeg.AREA_PX_SQ] * big_table[ColNmSeg.PIXEL_SIZE_XY_IN_UM] ** 2
-    big_table[ColNmSeg.PERIMETER] = big_table[ColNmSeg.PERIMETER_PX] * big_table[ColNmSeg.PIXEL_SIZE_XY_IN_UM]
+    big_table[ColNmSeg.AREA] = (
+        big_table[ColNmSeg.AREA_PX_SQ] * big_table[ColNmSeg.PIXEL_SIZE_XY_IN_UM] ** 2
+    )
+    big_table[ColNmSeg.PERIMETER] = (
+        big_table[ColNmSeg.PERIMETER_PX] * big_table[ColNmSeg.PIXEL_SIZE_XY_IN_UM]
+    )
 
     # compute intensity means and standard deviations for edge and node pixels
     # separately and together
     big_table[ColNmSeg.EDGE_FLUOR_MEAN] = big_table[ColNmSeg.EDGE_FLUOR].transform(
         lambda x: x.mean()
     )
-    big_table[ColNmSeg.EDGE_FLUOR_STD] = big_table[ColNmSeg.EDGE_FLUOR].transform(
-        lambda x: x.std()
-    )
+    big_table[ColNmSeg.EDGE_FLUOR_STD] = big_table[ColNmSeg.EDGE_FLUOR].transform(lambda x: x.std())
     big_table[ColNmSeg.NODE_FLUOR_MEAN] = big_table[ColNmSeg.NODE_FLUOR].transform(
         lambda x: x.mean()
     )
-    big_table[ColNmSeg.NODE_FLUOR_STD] = big_table[ColNmSeg.NODE_FLUOR].transform(
-        lambda x: x.std()
-    )
+    big_table[ColNmSeg.NODE_FLUOR_STD] = big_table[ColNmSeg.NODE_FLUOR].transform(lambda x: x.std())
     big_table[ColNmSeg.EDGE_AND_NODE_FLUOR_MEAN] = big_table.apply(
-        lambda row: np.mean(
-            row[ColNmSeg.EDGE_FLUOR].tolist() + row[ColNmSeg.NODE_FLUOR].tolist()
-        ),
+        lambda row: np.mean(row[ColNmSeg.EDGE_FLUOR].tolist() + row[ColNmSeg.NODE_FLUOR].tolist()),
         axis=1,
     )
     big_table[ColNmSeg.EDGE_AND_NODE_FLUOR_STD] = big_table.apply(
-        lambda row: np.std(
-            row[ColNmSeg.EDGE_FLUOR].tolist() + row[ColNmSeg.NODE_FLUOR].tolist()
-        ),
+        lambda row: np.std(row[ColNmSeg.EDGE_FLUOR].tolist() + row[ColNmSeg.NODE_FLUOR].tolist()),
         axis=1,
     )
 
@@ -531,9 +532,9 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     # add the number of nuclei that overlap the most with each cell
     # (this can be used as a filter later so we only measure cells
     # with a single clearly distinguishable nuclei)
-    big_table[ColNmSeg.NUM_NUC_WITH_MOST_OVERLAP] = big_table[ColNmSeg.NUCLEI_LABELS_IN_CDH5_SEGMENTATION].transform(
-        len
-    )
+    big_table[ColNmSeg.NUM_NUC_WITH_MOST_OVERLAP] = big_table[
+        ColNmSeg.NUCLEI_LABELS_IN_CDH5_SEGMENTATION
+    ].transform(len)
 
     # split the centroid column into separate x and y columns
     big_table[[ColNmSeg.CENTROID_Y, ColNmSeg.CENTROID_X]] = pd.DataFrame(
@@ -557,7 +558,9 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     big_table[ColNmSeg.NUCLEI_POSITION_ANGLE] = np.arctan2(
         big_table[ColNmSeg.NUCLEI_POSITION_Y], big_table[ColNmSeg.NUCLEI_POSITION_X]
     )
-    big_table[ColNmSeg.NUCLEI_POSITION_ANGLE_DEG] = np.rad2deg(big_table[ColNmSeg.NUCLEI_POSITION_ANGLE])
+    big_table[ColNmSeg.NUCLEI_POSITION_ANGLE_DEG] = np.rad2deg(
+        big_table[ColNmSeg.NUCLEI_POSITION_ANGLE]
+    )
 
     # add the DiffAE crop locations and binning level; these can be used to load
     # a crop from the zarr files and compute the number of nuclei in that crop
@@ -873,15 +876,6 @@ def get_smallest_angle_difference(
     return np.array(list(smallest_angle_difference_helper()))
 
 
-def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
-    dataset_config = load_dataset_config(dataset_name)
-    manifest = load_image_manifest("cdh5_classic_seg")
-    return {
-        timepoint: get_image_location_for_dataset(manifest, dataset_config, position, timepoint)
-        for timepoint in range(dataset_config.duration)
-    }
-
-
 def get_nuclei_coords(
     props: regionprops,  # type:ignore
     props_dim_order: str,
@@ -1046,26 +1040,12 @@ def compute_nuclei_centroids(
         dimension order as well as "dataset_name", "position", and
         "image_index" (i.e. the timeframe).
     """
-    timelapse_datasets = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
-    smad1_datasets = get_datasets_in_collection("smad1")
-    if dataset_name in smad1_datasets:
-        nuc_seg_manifest_name = "nuclear_stain_seg"
-    elif dataset_name in timelapse_datasets:
-        nuc_seg_manifest_name = "nuclear_labelfree_seg_zarr"
-    else:
-        logger.error(
-            f"No nuclei-based measurements found for dataset {dataset_name} in \
-              collections 'live_cdh5_seg_based_feat_datasets' or 'smad1'."
-        )
-        return
+
     # get the nuclei prediction
     dim_order = DIMENSION_ORDER
     dataset_config = load_dataset_config(dataset_name)
-    seg_manifest = load_image_manifest(nuc_seg_manifest_name)
+    seg_manifest = load_image_manifest("nuclear_labelfree_seg_zarr")
     seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position)
-    # Delaying the image.squeeze() operation until after loading the image
-    # so that I can use it to find dim_order_squeezed which will be used
-    # to split the centroids into separate columns for each dimension
     nuc_seg = load_image(seg_location, squeeze=False, compute=True, timepoints=timeframe)
 
     # get nuclei segmentation properties and dimension order of those properties
@@ -1261,7 +1241,13 @@ def create_labels_in_crop_columns(df_sub: pd.DataFrame, out_dir: Path) -> None:
     )
 
     fname = f"{ds_nm}_pos{pos}_tp{tp}_labels_in_crop.parquet"
-    col_subset = [ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TIMEPOINT, ColNmSeg.LABEL, ColNmSeg.LABELS_IN_CROP]
+    col_subset = [
+        ColNmSeg.DATASET,
+        ColNmSeg.POSITION,
+        ColNmSeg.TIMEPOINT,
+        ColNmSeg.LABEL,
+        ColNmSeg.LABELS_IN_CROP,
+    ]
     df_sub[col_subset].to_parquet(out_dir / fname, index=False)
 
 

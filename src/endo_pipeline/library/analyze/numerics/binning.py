@@ -7,6 +7,7 @@ from sklearn.decomposition import PCA
 
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
+    rewrap_polar_angle,
 )
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.diffae_feature_dataframes import (
@@ -19,12 +20,47 @@ from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
 logger = logging.getLogger(__name__)
 
 
+def circpercentile(
+    angles: np.ndarray, q: float, polar_range: tuple[float, float] = (0, np.pi)
+) -> float:
+    """
+    Compute the q-th percentile of circular data.
+
+    Parameters
+    ----------
+    angles
+        1D array of circular data (e.g., angles in radians).
+    q
+        Percentile to compute (between 0 and 100).
+    polar_range
+        Tuple specifying the circular range of the data (e.g., (0,
+        np.pi) for angles in radians).
+    """
+
+    sorted_angles = np.sort(angles)
+
+    # Find largest gap (including wrap-around gap)
+    period = polar_range[1] - polar_range[0]
+    angle_diffs = np.diff(sorted_angles, append=sorted_angles[0] + period)
+    where_largest_diff = np.argmax(angle_diffs)
+
+    # Cut at end of largest gap; shift so data are contiguous on line
+    angle_cut = (sorted_angles[where_largest_diff] + angle_diffs[where_largest_diff]) % period
+    contiguous_angles = np.mod(angles - angle_cut, period)
+
+    # Ordinary percentile in linear space
+    angle_percentile = np.percentile(contiguous_angles, q)
+
+    # Shift back to circular space, and rewrap to original polar range
+    return rewrap_polar_angle(angle_percentile + angle_cut, polar_range)
+
+
 def get_bins(
     bin_widths: tuple[float, ...],
     data: list[np.ndarray] | None = None,
     bin_limits: list[tuple[float, float]] | None = None,
     pad: float = PAD_BINS_FLOAT,
-) -> tuple[list, list]:
+) -> tuple[list[np.ndarray], list[np.ndarray]]:
     """
     Generate histogram bins either automatically based on data or user-defined bin limits.
 
@@ -97,15 +133,17 @@ def get_bounds_from_data(
     pca: PCA,
     filter_to_valid: bool = True,
     pad: float = 0.0,
-    pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
+    column_names: list[str] | None = None,
 ) -> list[tuple[float, float]]:
     """
-    Set bounds for state space based on the bounds of the features in the datasets.
+    Set bounds for state space based on the bounds of the features in the
+    datasets.
 
     **Dataframe filtering:**
 
-    By default, the function filters the dataframes to only include "valid" crops,
-    i.e., crops that are not labeled as "cell piling" or "not steady state".
+    By default, the function filters the dataframes to only include "valid"
+    crops, i.e., crops that are not labeled as "cell piling" or "not steady
+    state".
 
     Parameters
     ----------
@@ -119,15 +157,20 @@ def get_bounds_from_data(
         Whether to filter the dataframes to only include "valid" crops.
     pad
         Amount to pad the bounds by on each side.
-    pc_column_names
-        List of column names for the principal components to use.
+    column_names
+        List of column names for the features to use when determining the
+        bounds. If None, uses the default top PCA feature columns (PC1, PC2,
+        PC3) defined in DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE].
 
     Returns
     -------
     :
-        List of tuples, each array contains the (min, max) bounds for a dimension.
+        List of tuples, each array contains the (min, max) bounds for a
+        dimension.
     """
-    num_dims = len(pc_column_names)
+    column_names_ = column_names or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+
+    num_dims = len(column_names_)
     # initialize bounds - set to extreme values
     bin_mins = [np.inf] * num_dims
     bin_maxs = [-np.inf] * num_dims
@@ -152,8 +195,8 @@ def get_bounds_from_data(
         )
         # get column names for features
         for j in range(num_dims):
-            candidate_min = df[pc_column_names[j]].min()
-            candidate_max = df[pc_column_names[j]].max()
+            candidate_min = df[column_names_[j]].min()
+            candidate_max = df[column_names_[j]].max()
             if pad:
                 candidate_min = candidate_min - pad
                 candidate_max = candidate_max + pad
