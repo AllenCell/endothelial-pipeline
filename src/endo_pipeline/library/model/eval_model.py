@@ -250,52 +250,53 @@ def preprocess_tracking_manifest_for_model_eval(
     df = load_dataframe(location)
 
     # keep only rows that were not filtered out
-    df = df[df["is_included"]]
+    df = df[df[ColNmSeg.IS_INCLUDED]]
 
     # filter the dataframe in-place to remove clipped bounding boxes
-    df = df[df["bbox_is_in_bounds"]]
+    df = df[df[ColNmSeg.IS_VALID_BBOX]]
 
     # filter the dataframe to include only the relevant columns
     columns_to_keep = [
-        ColumnName.ZARR_PATH,
-        "image_index",
-        "track_id",
-        "label",
-        ColumnName.START_X,
-        ColumnName.START_Y,
-        ColumnName.END_X,
-        ColumnName.END_Y,
-        "image_size_x",
-        "image_size_y",
-        "crop_size",
-        "diffae_resolution_level_to_use",
+        ColNmSeg.TIMELAPSE_PATH,
+        # ColNmSeg.POSITION,
+        ColNmSeg.TIMEPOINT,
+        ColNmSeg.TRACK_ID,
+        ColNmSeg.LABEL,
+        ColNmSeg.START_X,
+        ColNmSeg.START_Y,
+        ColNmSeg.END_X,
+        ColNmSeg.END_Y,
+        ColNmSeg.IMAGE_SIZE_X,
+        ColNmSeg.IMAGE_SIZE_Y,
+        ColNmSeg.CROP_SIZE,
+        ColNmSeg.RESOLUTION_FOR_DIFFAE,
     ]
     df = df[columns_to_keep]
 
     # Adjust the crop coordinates to be consistent with the resolution level
-    resolution = sequence_to_scalar(df["diffae_resolution_level_to_use"])
+    resolution = sequence_to_scalar(df[ColNmSeg.RESOLUTION_FOR_DIFFAE])
 
     # Need to confirm that this is loading at the default resolution level of 1
     # If I understand correctly, gets set by add_diffae_model_eval_crop_columns
     logger.debug("Loading images at resolution level: [ %d ]", resolution)
     columns_to_downsample = [
-        ColumnName.START_X,
-        ColumnName.START_Y,
-        ColumnName.END_X,
-        ColumnName.END_Y,
+        ColNmSeg.START_X,
+        ColNmSeg.START_Y,
+        ColNmSeg.END_X,
+        ColNmSeg.END_Y,
     ]
     for col in columns_to_downsample:
         df[col] = df[col] // (2**resolution)
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = (
-        df.groupby([ColumnName.ZARR_PATH, "image_index"])
+        df.groupby([ColNmSeg.TIMELAPSE_PATH, ColNmSeg.TIMEPOINT])
         .agg(
             {
-                ColumnName.START_Y: lambda x: list(x),
-                ColumnName.START_X: lambda x: list(x),
-                ColumnName.END_Y: lambda x: list(x),
-                ColumnName.END_X: lambda x: list(x),
-                "track_id": lambda x: list(x),
+                ColNmSeg.START_Y: lambda x: list(x),
+                ColNmSeg.START_X: lambda x: list(x),
+                ColNmSeg.END_Y: lambda x: list(x),
+                ColNmSeg.END_X: lambda x: list(x),
+                ColNmSeg.TRACK_ID: lambda x: list(x),
             }
         )
         .reset_index()
@@ -305,12 +306,12 @@ def preprocess_tracking_manifest_for_model_eval(
     grouped_df[ColumnName.RESOLUTION] = resolution
 
     # only run a single timepoint from zarr
-    grouped_df[CytoDLLoadDataKeys.TIME_START] = grouped_df["image_index"]
-    grouped_df[CytoDLLoadDataKeys.TIME_END] = grouped_df["image_index"]
+    grouped_df[CytoDLLoadDataKeys.TIME_START] = grouped_df[ColNmSeg.TIMEPOINT]
+    grouped_df[CytoDLLoadDataKeys.TIME_END] = grouped_df[ColNmSeg.TIMEPOINT]
     grouped_df = grouped_df.rename(
         {
-            ColumnName.ZARR_PATH: CytoDLLoadDataKeys.FILE_PATH,
-            "image_index": CytoDLLoadDataKeys.TIMEPOINT,
+            ColNmSeg.TIMELAPSE_PATH: CytoDLLoadDataKeys.FILE_PATH,
+            ColNmSeg.TIMEPOINT: CytoDLLoadDataKeys.TIMEPOINT,
         },
         axis=1,
     )
@@ -351,6 +352,7 @@ def preprocess_tracking_manifest_for_model_eval(
 
     # remove temporary column with position index
     grouped_df = grouped_df.drop(columns=["position_index"])
+    # grouped_df = grouped_df.drop(columns=[ColNmSeg.POSITION])
 
     return grouped_df
 
