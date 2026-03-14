@@ -115,6 +115,18 @@ class CytoDLLoadDataKeys(StrEnum):
     SCENE = "scene"
     """Key for scene identifier."""
 
+    START_X = ColumnName.START_X
+    """Key for starting x-coordinate of the crop."""
+
+    START_Y = ColumnName.START_Y
+    """Key for starting y-coordinate of the crop."""
+
+    END_X = ColumnName.END_X
+    """Key for ending x-coordinate of the crop."""
+
+    END_Y = ColumnName.END_Y
+    """Key for ending y-coordinate of the crop."""
+
 
 class CytoDLSaveDataKeys(StrEnum):
     """Metadata keys passed to CytoDL callback object SaveTabularData."""
