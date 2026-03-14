@@ -247,18 +247,12 @@ def preprocess_tracking_manifest_for_model_eval(
 
     manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
     location = get_dataframe_location_for_dataset(manifest, dataset_config.name)
-    df = load_dataframe(location)
+    df = load_dataframe(location, delay=True)
 
-    # keep only rows that were not filtered out
-    df = df[df[ColNmSeg.IS_INCLUDED]]
-
-    # filter the dataframe in-place to remove clipped bounding boxes
-    df = df[df[ColNmSeg.IS_VALID_BBOX]]
-
-    # filter the dataframe to include only the relevant columns
+    # define which columns to compute and keep from the dataframe
     columns_to_keep = [
         ColNmSeg.TIMELAPSE_PATH,
-        # ColNmSeg.POSITION,
+        ColNmSeg.POSITION,
         ColNmSeg.TIMEPOINT,
         ColNmSeg.TRACK_ID,
         ColNmSeg.LABEL,
@@ -271,6 +265,21 @@ def preprocess_tracking_manifest_for_model_eval(
         ColNmSeg.CROP_SIZE,
         ColNmSeg.RESOLUTION_FOR_DIFFAE,
     ]
+    columns_for_filtering = [
+        ColNmSeg.IS_INCLUDED,
+        ColNmSeg.IS_VALID_BBOX,
+    ]
+
+    # compute the required and filtering columns
+    df = df[columns_to_keep + columns_for_filtering].compute()
+
+    # keep only rows that were not filtered out
+    df = df[df[ColNmSeg.IS_INCLUDED]]
+
+    # filter the dataframe in-place to remove clipped bounding boxes
+    df = df[df[ColNmSeg.IS_VALID_BBOX]]
+
+    # filter the dataframe to include only the relevant columns
     df = df[columns_to_keep]
 
     # Adjust the crop coordinates to be consistent with the resolution level
@@ -289,7 +298,7 @@ def preprocess_tracking_manifest_for_model_eval(
         df[col] = df[col] // (2**resolution)
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = (
-        df.groupby([ColNmSeg.TIMELAPSE_PATH, ColNmSeg.TIMEPOINT])
+        df.groupby([ColNmSeg.TIMELAPSE_PATH, ColNmSeg.TIMEPOINT, ColNmSeg.POSITION])
         .agg(
             {
                 ColNmSeg.START_Y: lambda x: list(x),
@@ -303,7 +312,7 @@ def preprocess_tracking_manifest_for_model_eval(
     )
     # Add which channel to load and what resolution to load it at
     grouped_df[CytoDLLoadDataKeys.CHANNELS] = ZARR_BRIGHTFIELD_CHANNEL
-    grouped_df[ColumnName.RESOLUTION] = resolution
+    grouped_df[CytoDLLoadDataKeys.RESOLUTION] = resolution
 
     # only run a single timepoint from zarr
     grouped_df[CytoDLLoadDataKeys.TIME_START] = grouped_df[ColNmSeg.TIMEPOINT]
@@ -312,13 +321,13 @@ def preprocess_tracking_manifest_for_model_eval(
         {
             ColNmSeg.TIMELAPSE_PATH: CytoDLLoadDataKeys.FILE_PATH,
             ColNmSeg.TIMEPOINT: CytoDLLoadDataKeys.TIMEPOINT,
+            ColNmSeg.START_X: CytoDLLoadDataKeys.START_X,
+            ColNmSeg.START_Y: CytoDLLoadDataKeys.START_Y,
+            ColNmSeg.END_X: CytoDLLoadDataKeys.END_X,
+            ColNmSeg.END_Y: CytoDLLoadDataKeys.END_Y,
+
         },
         axis=1,
-    )
-
-    # add temporary column with position index for filtering
-    grouped_df["position_index"] = grouped_df[CytoDLLoadDataKeys.FILE_PATH].apply(
-        lambda x: get_position_integer_from_zarr_file_path(x)
     )
 
     # only load images for specified position indices
@@ -327,12 +336,12 @@ def preprocess_tracking_manifest_for_model_eval(
             "Filtering Zarr files to only include positions: [ %s ]", only_include_positions
         )
 
-        grouped_df = grouped_df[grouped_df["position_index"].isin(only_include_positions)]
+        grouped_df = grouped_df[grouped_df[ColNmSeg.POSITION].isin(only_include_positions)]
 
     # add column for excluding frames, if specified
     if only_include_frames is not None:
         # if position has no frames to exclude, set to None
-        grouped_df[CytoDLLoadDataKeys.INCLUDE_TIMEPOINTS] = grouped_df["position_index"].apply(
+        grouped_df[CytoDLLoadDataKeys.INCLUDE_TIMEPOINTS] = grouped_df[ColNmSeg.POSITION].apply(
             lambda x: only_include_frames.get(x, None)
         )
 
@@ -340,19 +349,18 @@ def preprocess_tracking_manifest_for_model_eval(
     if z_slice_bounds_per_position is not None:
         # get z info dict for each position index
         # unpack the start, stop, and step values from those dictionaries
-        grouped_df[CytoDLLoadDataKeys.Z_START] = grouped_df["position_index"].apply(
+        grouped_df[CytoDLLoadDataKeys.Z_START] = grouped_df[ColNmSeg.POSITION].apply(
             lambda x: z_slice_bounds_per_position.get(x, {}).get(CytoDLLoadDataKeys.Z_START, 0)
         )
-        grouped_df[CytoDLLoadDataKeys.Z_END] = grouped_df["position_index"].apply(
+        grouped_df[CytoDLLoadDataKeys.Z_END] = grouped_df[ColNmSeg.POSITION].apply(
             lambda x: z_slice_bounds_per_position.get(x, {}).get(CytoDLLoadDataKeys.Z_END, -1)
         )
-        grouped_df[CytoDLLoadDataKeys.Z_STEP] = grouped_df["position_index"].apply(
+        grouped_df[CytoDLLoadDataKeys.Z_STEP] = grouped_df[ColNmSeg.POSITION].apply(
             lambda x: z_slice_bounds_per_position.get(x, {}).get(CytoDLLoadDataKeys.Z_STEP, 1)
         )
 
     # remove temporary column with position index
-    grouped_df = grouped_df.drop(columns=["position_index"])
-    # grouped_df = grouped_df.drop(columns=[ColNmSeg.POSITION])
+    grouped_df = grouped_df.drop(columns=[ColNmSeg.POSITION])
 
     return grouped_df
 
