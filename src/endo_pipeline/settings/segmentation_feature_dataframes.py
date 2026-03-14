@@ -27,10 +27,28 @@ class ColumnNameSeg(StrEnum):
     TIMELAPSE_DURATION = ColumnNameDiffAE.TIMELAPSE_DURATION
     """The duration of the timelapse dataset, in hours."""
 
+    # DiffAE and crop-based feature columns
+    NUM_NUCLEI_IN_CROP = "num_nuclei_in_crop"
+    LABELS_IN_CROP = "all_labels_in_crop"
+    START_X = "start_x_resolution_0"
+    END_X = "end_x_resolution_0"
+    START_Y = "start_y_resolution_0"
+    END_Y = "end_y_resolution_0"
+    CROP_SIZE = "crop_size"
+    CROP_INDEX = ColumnNameDiffAE.CROP_INDEX
+    TIMELAPSE_PATH = ColumnNameDiffAE.ZARR_PATH
+    RESOLUTION_FOR_DIFFAE = "diffae_resolution_level_to_use"
+
+    # temporal features
+    TRACK_LENGTH = ColumnNameDiffAE.TRACK_LENGTH
+    TIME_HRS = "time_hours"
+    TIME_MINS = "time_minutes"
+    NORMALIZED_TIME_PER_TRACK = "normalized_time"
+
     # timelapse information
-    IMAGE_SIZE_X = "image_size_X"
+    IMAGE_SIZE_X = "image_size_x"
     """The size of the image in the X dimension (pixels)."""
-    IMAGE_SIZE_Y = "image_size_Y"
+    IMAGE_SIZE_Y = "image_size_y"
     """The size of the image in the Y dimension (pixels)."""
     PIXEL_SIZE_XY_IN_UM = "pixel_size_xy_in_um"
     TIME_RESOLUTION_MINUTES = "time_resolution_minutes"
@@ -65,12 +83,6 @@ class ColumnNameSeg(StrEnum):
     CELL_PILING = "cell_piling"
     NOT_STEADY_STATE = "not_steady_state"
 
-    # temporal features
-    TIME_HRS = "time_hours"
-    TIME_MINS = "time_minutes"
-    TRACK_LENGTH = ColumnNameDiffAE.TRACK_LENGTH
-    NORMALIZED_TIME_PER_TRACK = "normalized_time"
-
     # morphological features
     ORIENTATION = "orientation"
     ORIENTATION_DEG = "orientation_deg"
@@ -86,8 +98,8 @@ class ColumnNameSeg(StrEnum):
     PERIMETER = "perimeter_um"
     AREA_PX_SQ = "area_px_squared"
     PERIMETER_PX = "perimeter_px"
-    NUCLEI_POSITION_X = "nuclei_position_X"
-    NUCLEI_POSITION_Y = "nuclei_position_Y"
+    NUCLEI_POSITION_X = "nuclei_position_x"
+    NUCLEI_POSITION_Y = "nuclei_position_y"
     NUCLEI_POSITION_ANGLE = "nuclei_position_angle"
     NUCLEI_POSITION_ANGLE_DEG = "nuclei_position_angle_deg"
     NUCLEI_POSITION_DISTANCE = "nuclei_position_distance"
@@ -120,19 +132,8 @@ class ColumnNameSeg(StrEnum):
     NUM_NEIGHBORS = "number_of_neighbors"
     NEIGHBOR_LABELS = "neighboring_cell_labels"
     CENTROID = "centroid"
-    CENTROID_X = "centroid_X"
-    CENTROID_Y = "centroid_Y"
-
-    # DiffAE and crop-based feature columns
-    NUM_NUCLEI_IN_CROP = "num_nuclei_in_crop"
-    LABELS_IN_CROP = "all_labels_in_crop"
-    START_X = "start_X"
-    END_X = "end_X"
-    START_Y = "start_Y"
-    END_Y = "end_Y"
-    CROP_SIZE = "crop_size"
-    TIMELAPSE_PATH = ColumnNameDiffAE.ZARR_PATH
-    RESOLUTION_FOR_DIFFAE = "diffae_resolution_level_to_use"
+    CENTROID_X = "centroid_x"
+    CENTROID_Y = "centroid_y"
 
     # workflow verification columns
     SEGMENTATION_PATH = "filepath_segmentation_image"
