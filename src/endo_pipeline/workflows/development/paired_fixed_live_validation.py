@@ -84,7 +84,7 @@ def main(
 
     lagged_ref_features, truncated_ref_features = (
         validate_pcs_for_integration.create_reference_timelapse_datasets(
-            pca, reference_dataset_name
+            pca, reference_dataset_name, model=model_manifest_name
         )
     )
 
