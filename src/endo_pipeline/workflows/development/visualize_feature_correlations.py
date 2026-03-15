@@ -98,6 +98,7 @@ def main(
         get_model_location_for_run,
         get_most_recent_run_name,
     )
+    from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
 
     logger = logging.getLogger(__name__)
 
@@ -164,7 +165,7 @@ def main(
         if dataset_name == "aggregate":
             df_dataset = df
         else:
-            df_dataset = df.query("dataset_name==@dataset_name").copy()
+            df_dataset = df.query("@ColNmSeg.DATASET==@dataset_name").copy()
 
         # Pre-compute full correlation matrix once per dataset
         all_feature_columns = []
@@ -190,9 +191,9 @@ def main(
 
         # Pre-compute dataset color mapping once per dataset
         dataset_color_mapping = {
-            ds_nm: get_dataset_color(ds_nm) for ds_nm in df_dataset["dataset_name"].unique()
+            ds_nm: get_dataset_color(ds_nm) for ds_nm in df_dataset[ColNmSeg.DATASET].unique()
         }
-        colors = df_dataset["dataset_name"].map(dataset_color_mapping).to_list()
+        colors = df_dataset[ColNmSeg.DATASET].map(dataset_color_mapping).to_list()
 
         for (x_axis_label, x_cols), (
             y_axis_label,
