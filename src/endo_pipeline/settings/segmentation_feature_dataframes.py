@@ -23,6 +23,7 @@ class ColumnNameSeg(StrEnum):
     """The number of unique tracks that pass filtering criteria at the timepoint of interest."""
     NUM_TRACKS_BEFORE_FILTERING = "num_unique_tracks_before_filtering_at_T"
     SHEAR_STRESS_REGIME = "shear_stress_regime"
+    SHEAR_STRESS = "shear_stress"
     NUM_NUCLEI_AT_TIMEPOINT = "total_nuclei_count_at_T"
 
     # DiffAE and crop-based feature columns
@@ -41,6 +42,7 @@ class ColumnNameSeg(StrEnum):
     TRACK_LENGTH = ColumnNameDiffAE.TRACK_LENGTH
     TIME_HRS = "time_hours"
     TIME_MINS = "time_minutes"
+    TIME_HRS_SINCE_FLOW = "time_hours_since_flow_start"
 
     # timelapse information
     IMAGE_SIZE_X = "image_size_x"
