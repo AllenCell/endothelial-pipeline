@@ -72,6 +72,9 @@ class ColumnName(StrEnum):
     CROP_SIZE_Y = "crop_size_y"
     """Height of the crop in pixels."""
 
+    DURATION = "duration"
+    """Timelapse duration in timeframes"""
+
 
 class CytoDLLoadDataKeys(StrEnum):
     """Metadata keys passed into MultiDimImageDataset for loading images."""

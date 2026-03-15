@@ -34,6 +34,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     PERIOD_THETA_RESCALED,
     RESCALE_THETA,
 )
+from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -871,29 +872,27 @@ def get_dataframe_for_dynamics_workflows(
         seg_feat_loc = get_dataframe_location_for_dataset(seg_feat_manifest, dataset_name)
         df_segmentations_delayed = load_dataframe(seg_feat_loc, delay=True)
         cols_to_compute = [
-            "dataset_name",
-            ColumnName.POSITION,
-            "image_index",
-            ColumnName.TRACK_ID,
-            ColumnName.TRACK_LENGTH,
-            "is_included",
+            ColNmSeg.DATASET,
+            ColNmSeg.POSITION,
+            ColNmSeg.TIMEPOINT,
+            ColNmSeg.TRACK_ID,
+            ColNmSeg.TRACK_LENGTH,
+            ColNmSeg.IS_INCLUDED,
         ]
         df_segmentations = df_segmentations_delayed[cols_to_compute].compute()
         # NOTE the 2 lines below are temporary until we update how we store position
         # and change the column names to be consistent across dataframes
-        df_segmentations[ColumnName.POSITION] = df_segmentations[ColumnName.POSITION].transform(
+        df_segmentations[ColNmSeg.POSITION] = df_segmentations[ColNmSeg.POSITION].transform(
             lambda pos: f"P{pos}"
         )
-        df_segmentations.rename(columns={"dataset_name": ColumnName.DATASET}, inplace=True)
-        df_segmentations.rename(columns={"image_index": ColumnName.TIMEPOINT}, inplace=True)
         original_df_length = len(df_filtered)
         df_filtered = df_filtered.merge(
             df_segmentations,
             on=[
-                ColumnName.DATASET,
-                ColumnName.POSITION,
-                ColumnName.TIMEPOINT,
-                ColumnName.TRACK_ID,
+                ColNmSeg.DATASET,
+                ColNmSeg.POSITION,
+                ColNmSeg.TIMEPOINT,
+                ColNmSeg.TRACK_ID,
             ],
             how="left",
             validate="one_to_one",
@@ -904,16 +903,16 @@ def get_dataframe_for_dynamics_workflows(
                 f"Original length: {original_df_length}, new length: {len(df_filtered)}. "
                 f"Check the merge keys and the dataframes to ensure that the merge is correct."
             )
-        df_filtered = df_filtered[df_filtered["is_included"]]
+        df_filtered = df_filtered[df_filtered[ColNmSeg.IS_INCLUDED]]
 
     if minimum_track_length is not None:
         df_filtered = filter_dataframe_by_track_length(
-            df_filtered, ColumnName.TRACK_LENGTH, minimum_track_length
+            df_filtered, ColNmSeg.TRACK_LENGTH, minimum_track_length
         )
 
     # add dataset duration description column
     dataset_config = load_dataset_config(dataset_name)
-    df_filtered["duration"] = dataset_config.duration
+    df_filtered[ColumnName.DURATION] = dataset_config.duration
 
     if pca is None:
         # do not project feature data onto PCA axes
