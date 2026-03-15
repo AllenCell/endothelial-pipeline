@@ -1,5 +1,5 @@
 from pathlib import Path
-from enum import StrEnum
+from typing import Literal
 
 import pandas as pd
 from colorizer_data import FeatureInfo
@@ -12,46 +12,48 @@ from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images 
     add_backdrop_fname_to_manifest,
 )
 from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
-
-
-class ColumnNameTFE(StrEnum):
-    """Dataframe column names used in the timelapse feature explorer manifest."""
-
-    DATASET = "dataset"
-    POSITION = "position"
-    TIMEPOINT = ColNmSeg.TIMEPOINT
-    TRACK_ID = ColNmSeg.TRACK_ID
-    LABEL =  ColNmSeg.LABEL
-    SEGMENTATION_IMAGE_FILENAME = "seg_image"
+from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameTFE as ColNmTFE
 
 
 def update_manifest_for_tfe(
-    df: pd.DataFrame, dataset: str, position: int, timeframe_column_name: str, output_dir: Path
+    df: pd.DataFrame,
+    dataset: str,
+    position: int,
+    output_dir: Path,
+    segmentation: Literal["CDH5", "grid"],
 ) -> pd.DataFrame:
     """
     Update the manifest DataFrame for TFE by adding necessary columns.
 
     Args:
-        df (pd.DataFrame): The input manifest DataFrame.
-        dataset (str): The dataset name.
-        position (int): The position identifier.
-        output_dir (Path): The output directory for backdrops.
+        df:
+            The input manifest DataFrame.
+        dataset:
+            The dataset name.
+        position:
+            The position identifier.
+        output_dir:
+            The output directory for backdrops.
+        segmentation:
+            Whether "CDH5" or "grid" segmentations are being converted to a TFE dataset.
 
     Returns:
         pd.DataFrame: The updated manifest DataFrame.
     """
-    # Add dataset and position columns
-    df[ColumnNameTFE.DATASET] = dataset
-    df[ColumnNameTFE.POSITION] = position
+    if segmentation == "CDH5":
+        construct_segmentation_image_filename = (
+            lambda timepoint: f"{dataset}_P{position}_T{timepoint}.ome.tiff"
+        )
+    elif segmentation == "grid":
+        construct_segmentation_image_filename = (
+            lambda timepoint: f"P{position}_T{timepoint}_grid_segmentation.ome.tiff"
+        )
+    else:
+        raise ValueError(f"Invalid segmentation type: {segmentation} (must be 'CDH5' or 'grid').")
 
     # Generate segmentation image filenames
-    df[ColumnNameTFE.SEGMENTATION_IMAGE_FILENAME] = (
-        df[ColumnNameTFE.DATASET]
-        + "_P"
-        + df[ColumnNameTFE.POSITION].astype(str)
-        + "_T"
-        + df[timeframe_column_name].astype(str)
-        + ".ome.tiff"
+    df[ColNmTFE.SEGMENTATION_IMAGE_FILENAME] = df[ColNmSeg.TIMEPOINT].transform(
+        construct_segmentation_image_filename
     )
 
     # Add backdrop filenames to the manifest
@@ -59,7 +61,7 @@ def update_manifest_for_tfe(
         df,
         dataset,
         position,
-        timeframe_column_name,
+        ColNmSeg.TIMEPOINT,
         ["bf_slice", "bf_std_dev", "gfp_max_proj"],
         output_dir=output_dir / "backdrops",
     )
@@ -67,25 +69,6 @@ def update_manifest_for_tfe(
     # # Add track ID as a feature
     # df["tid"] = df["track_id"]
 
-    return df
-
-
-def update_manifest_for_tfe_grid(
-    df: pd.DataFrame, dataset: str, position: int, timeframe_column_name: str, output_dir: Path
-) -> pd.DataFrame:
-    """Update DataFrame for TFE with grid-based features by adding necessary columns.
-    This is a wrapper for update_manifest_for_tfe that updates the seg_image column entries
-    to have the pattern "PX_TX_grid_segmentation.ome.tiff".
-    """
-    df = update_manifest_for_tfe(df, dataset, position, timeframe_column_name, output_dir)
-    df[ColumnNameTFE.SEGMENTATION_IMAGE_FILENAME] = (
-        "P"
-        + df[ColumnNameTFE.POSITION].astype(str)
-        + "_T"
-        + df[ColumnNameTFE.TIMEPOINT].astype(str)
-        + "_grid_segmentation"
-        + ".ome.tiff"
-    )
     return df
 
 

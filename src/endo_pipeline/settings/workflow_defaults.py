@@ -1,6 +1,7 @@
 """Workflow default settings."""
 
 from typing import Literal
+
 from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
 
 DEFAULT_MODEL_MANIFEST_NAME: str = "diffae_baseline_exclude_cell_piling"

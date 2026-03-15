@@ -121,9 +121,8 @@ def add_backdrop_fname_to_manifest(
 ) -> pd.DataFrame:
     """Add the backdrop file name to the manifest DataFrame."""
     for backdrop in backdrops:
-        df[f"{backdrop}_backdrop"] = df.apply(
-            lambda row, backdrop=backdrop: output_dir
-            / f"{dataset}_P{position}_{backdrop}_{row[timeframe_column_name]}.png",
-            axis=1,
+        df[f"{backdrop}_backdrop"] = df[timeframe_column_name].transform(
+            lambda timepoint, dataset=dataset, position=position, backdrop=backdrop: output_dir
+            / f"{dataset}_P{position}_{backdrop}_{timepoint}.png"
         )
     return df
