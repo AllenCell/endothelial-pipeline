@@ -433,13 +433,19 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
 
     # dimensionalize the time column
     logger.info("Adding time intervals per timepoint...")
-    big_table[ColNmSeg.TIME_RESOLUTION_MINUTES] = data_config.time_interval_in_minutes
+    if data_config.time_interval_in_minutes is not None:
+        dt_in_mins = data_config.time_interval_in_minutes
+    else:
+        dt_in_mins = np.nan
+    big_table[ColNmSeg.TIME_RESOLUTION_MINUTES] = dt_in_mins
 
     logger.info("Calculating time in minutes and hours...")
-    big_table[ColNmSeg.TIME_MINS] = (
-        big_table[ColNmSeg.TIMEPOINT] * big_table[ColNmSeg.TIME_RESOLUTION_MINUTES]
-    )
+    big_table[ColNmSeg.TIME_MINS] = big_table[ColNmSeg.TIMEPOINT] * dt_in_mins
     big_table[ColNmSeg.TIME_HRS] = big_table[ColNmSeg.TIME_MINS] / 60
+
+    # add time elapsed since flow onset (in hours)
+    flow_start_time_hrs = data_config.flow_conditions[0].shear_stress * dt_in_mins / 60.0
+    big_table[ColNmSeg.TIME_HRS_SINCE_FLOW] = big_table[ColNmSeg.TIME_HRS] - flow_start_time_hrs
 
     # add a column for the number of unique tracks
     # per dataset per position per timepoint
