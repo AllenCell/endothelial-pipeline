@@ -226,9 +226,6 @@ def make_imaging_panels(
 
 
 def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
-
-    Path.mkdir(out_dir, exist_ok=True, parents=True)
-
     # Set some global plotting parameters to be consistent
     # with the other plots in the manuscript
     plt.style.use("default")
@@ -243,6 +240,9 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
     )
 
     for dataset_name in tqdm(datasets):
+        out_subdir = out_dir / dataset_name
+        out_subdir.mkdir(exist_ok=True, parents=True)
+
         # load dataset config
         dataset_config = load_dataset_config(dataset_name)
 
@@ -369,7 +369,7 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
             for fmt in [".pdf", ".png"]:
                 save_plot_to_path(
                     figure=fig,
-                    output_path=out_dir,
+                    output_path=out_subdir,
                     figure_name=figure_name,
                     file_format=cast(Literal[".pdf", ".png"], fmt),
                     pad_inches=0.05,
