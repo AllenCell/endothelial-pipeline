@@ -177,3 +177,10 @@ class ColumnNameSeg(StrEnum):
     NUCLEI_FRACTION_IN_CDH5_SEGMENTATION = "nuclei_seg_in_cdh5_seg_frac"
     NUCLEI_INTENSITY_COLUMN_PREFIX = "nuc_seg_intens_"
     NUCLEI_SEG_LABEL_PREFIX = "nuclei_seg_with_most_overlap_"
+
+
+class ColumnNameTFE(StrEnum):
+    """Dataframe column names used in the timelapse feature explorer manifest."""
+
+    SEGMENTATION_IMAGE_FILENAME = "seg_image"
+    """Column name for the segmentation image filename (filename and suffix only; not full path)."""
