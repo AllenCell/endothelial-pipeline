@@ -146,7 +146,6 @@ class ColumnNameSeg(StrEnum):
     SMOOTHED_AREA_NORMALIZED = "smoothed_area_normd"
     SIGMA_FOR_AREA_SMOOTHING = "gaussian_sigma_for_area_smoothing"
     NUM_UNIQUE_TRACKS_PER_TIMEPOINT = "num_unique_tracks_per_timeframe"
-    SEGMENTATION_FILEPATH = "segmentation_zarr_path"
     NODE_LABELS = "node_labels"
     EDGE_LABELS = "edge_labels"
     NODE_PAIR_LABELS = "node_pair_labels"
