@@ -86,41 +86,21 @@ def remove_redundant_columns(big_table: pd.DataFrame) -> pd.DataFrame:
 
 
 def sanitize_column_names(big_table: pd.DataFrame) -> pd.DataFrame:
-    """Make the column names consistent with elsewhere in the code base."""
-    # NOTE: maybe you don't need to rename ALL of the columns and can instead just
-    # rename the ones that are shared with the dynamics workflow
+    """Make the column names consistent with elsewhere in the code base.
+    Do this by renaming the column names that exist in the original merged
+    segmentation features table to column names as described in
+    `endo_pipeline/settings/segmentation_feature_dataframes.py`
+    """
+
     dataset_info_cols = {
         "dataset_name": ColNmSeg.DATASET,
         "position": ColNmSeg.POSITION,
         "image_index": ColNmSeg.TIMEPOINT,
         "track_id": ColNmSeg.TRACK_ID,
         "cell_label": ColNmSeg.LABEL,
-        "num_unique_tracks_after_filtering_at_T": ColNmSeg.NUM_TRACKS_AFTER_FILTERING,
-        "num_unique_tracks_before_filtering_at_T": ColNmSeg.NUM_TRACKS_BEFORE_FILTERING,
-        "shear_stress_regime": ColNmSeg.SHEAR_STRESS_REGIME,
     }
     filter_cols = {
-        "is_included": ColNmSeg.IS_INCLUDED,
         "touches_image_border": ColNmSeg.IS_EDGE_SEGMENTATION,
-        "is_less_than_max_smoothed_area_normd_change": ColNmSeg.IS_LESS_THAN_MAX_SMOOTHED_AREA_NORMD_CHANGE,
-        "is_greater_than_min_track_duration": ColNmSeg.IS_GREATER_THAN_MIN_TRACK_DURATION,
-        "has_more_than_min_num_valid_points_per_track": ColNmSeg.HAS_MORE_THAN_MIN_NUM_VALID_POINTS_PER_TRACK,
-        "bbox_is_in_bounds": ColNmSeg.IS_VALID_BBOX,
-    }
-    # annotation_cols_to_rename = {
-    #     "auto_bf_scope_error": ColNmSeg.AUTO_BF_SCOPE_ERROR,
-    #     "auto_bf_temp_artifact": ColNmSeg.AUTO_BF_TEMP_ARTIFACT,
-    #     "auto_gfp_scope_error": ColNmSeg.AUTO_GFP_SCOPE_ERROR,
-    #     "bf_scope_error": ColNmSeg.BF_SCOPE_ERROR,
-    #     "bf_temp_artifact": ColNmSeg.BF_TEMP_ARTIFACT,
-    #     "gfp_scope_error": ColNmSeg.GFP_SCOPE_ERROR,
-    #     "cell_piling": ColNmSeg.CELL_PILING,
-    #     "not_steady_state": ColNmSeg.NOT_STEADY_STATE,
-    # }
-    temporal_feature_cols = {
-        "time_hours": ColNmSeg.TIME_HRS,
-        "time_minutes": ColNmSeg.TIME_MINS,
-        "track_duration": ColNmSeg.TRACK_LENGTH,
     }
     morpho_feature_cols = {
         "cell_orientation": ColNmSeg.ORIENTATION,
@@ -151,25 +131,11 @@ def sanitize_column_names(big_table: pd.DataFrame) -> pd.DataFrame:
         "cell_fluorescence_max (a.u.)": ColNmSeg.CELL_FLUOR_MAX,
         "cell_fluorescence_pct25 (a.u.)": ColNmSeg.CELL_FLUOR_PCT25,
         "cell_fluorescence_pct75 (a.u.)": ColNmSeg.CELL_FLUOR_PCT75,
-        # "edge_fluorescence_means (a.u.)": ColNmSeg.EDGE_FLUOR_MEAN,
-        # "node_fluorescence_means (a.u.)": ColNmSeg.NODE_FLUOR_MEAN,
-        # "edge_and_node_fluorescence_means (a.u.)": ColNmSeg.EDGE_AND_NODE_FLUOR_MEAN,
-        # "edge_fluorescence_std (a.u.)": ColNmSeg.EDGE_FLUOR_STD,
-        # "node_fluorescence_std (a.u.)": ColNmSeg.NODE_FLUOR_STD,
-        # "edge_and_node_fluorescence_std (a.u.)": ColNmSeg.EDGE_AND_NODE_FLUOR_STD,
     }
     crop_based_feature_cols = {
-        "num_nuclei_in_crop": ColNmSeg.NUM_NUCLEI_IN_CROP,
-        "all_labels_in_crop": ColNmSeg.LABELS_IN_CROP,
-        # "start_x": ColNmSeg.START_X,
-        # "start_y": ColNmSeg.START_Y,
-        # "end_x": ColNmSeg.END_X,
-        # "end_y": ColNmSeg.END_Y,
-        # "crop_size": ColNmSeg.CROP_SIZE,
         "filepath_raw_image": ColNmSeg.TIMELAPSE_PATH,
     }
     other_feature_cols = {
-        "number_of_neighbors": ColNmSeg.NUM_NEIGHBORS,
         "neighboring_cell_labels": ColNmSeg.NEIGHBOR_LABELS,
         "cell_centroid": ColNmSeg.CENTROID,
         "filepath_segmentation_image": ColNmSeg.SEGMENTATION_PATH,
@@ -177,7 +143,6 @@ def sanitize_column_names(big_table: pd.DataFrame) -> pd.DataFrame:
     cols_to_rename = {
         **dataset_info_cols,
         **filter_cols,
-        **temporal_feature_cols,
         **morpho_feature_cols,
         **fluorescence_feature_cols,
         **crop_based_feature_cols,
@@ -429,7 +394,7 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     big_table[ColNmSeg.SHEAR_STRESS_REGIME] = shear_stress_regime
 
     shear_stresses = [condition.shear_stress for condition in data_config.flow_conditions]
-    big_table[ColNmSeg.SHEAR_STRESS] = shear_stresses
+    big_table[ColNmSeg.SHEAR_STRESS] = [shear_stresses] * len(big_table)
 
     # dimensionalize the time column
     logger.info("Adding time intervals per timepoint...")
@@ -444,7 +409,7 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     big_table[ColNmSeg.TIME_HRS] = big_table[ColNmSeg.TIME_MINS] / 60
 
     # add time elapsed since flow onset (in hours)
-    flow_start_time_hrs = data_config.flow_conditions[0].shear_stress * dt_in_mins / 60.0
+    flow_start_time_hrs = data_config.flow_conditions[0].start * dt_in_mins / 60.0
     big_table[ColNmSeg.TIME_HRS_SINCE_FLOW] = big_table[ColNmSeg.TIME_HRS] - flow_start_time_hrs
 
     # add a column for the number of unique tracks
