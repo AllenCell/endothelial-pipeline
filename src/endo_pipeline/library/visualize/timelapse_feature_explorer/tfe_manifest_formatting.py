@@ -1,4 +1,5 @@
 from pathlib import Path
+from enum import StrEnum
 
 import pandas as pd
 from colorizer_data import FeatureInfo
@@ -10,10 +11,22 @@ from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifes
 from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     add_backdrop_fname_to_manifest,
 )
+from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
+
+
+class ColumnNameTFE(StrEnum):
+    """Dataframe column names used in the timelapse feature explorer manifest."""
+
+    DATASET = "dataset"
+    POSITION = "position"
+    TIMEPOINT = ColNmSeg.TIMEPOINT
+    TRACK_ID = ColNmSeg.TRACK_ID
+    LABEL =  ColNmSeg.LABEL
+    SEGMENTATION_IMAGE_FILENAME = "seg_image"
 
 
 def update_manifest_for_tfe(
-    df: pd.DataFrame, dataset: str, position: int, output_dir: Path
+    df: pd.DataFrame, dataset: str, position: int, timeframe_column_name: str, output_dir: Path
 ) -> pd.DataFrame:
     """
     Update the manifest DataFrame for TFE by adding necessary columns.
@@ -28,16 +41,16 @@ def update_manifest_for_tfe(
         pd.DataFrame: The updated manifest DataFrame.
     """
     # Add dataset and position columns
-    df["dataset"] = dataset
-    df["position"] = position
+    df[ColumnNameTFE.DATASET] = dataset
+    df[ColumnNameTFE.POSITION] = position
 
     # Generate segmentation image filenames
-    df["seg_image"] = (
-        df["dataset"]
+    df[ColumnNameTFE.SEGMENTATION_IMAGE_FILENAME] = (
+        df[ColumnNameTFE.DATASET]
         + "_P"
-        + df["position"].astype(str)
+        + df[ColumnNameTFE.POSITION].astype(str)
         + "_T"
-        + df["image_index"].astype(str)
+        + df[timeframe_column_name].astype(str)
         + ".ome.tiff"
     )
 
@@ -46,29 +59,30 @@ def update_manifest_for_tfe(
         df,
         dataset,
         position,
+        timeframe_column_name,
         ["bf_slice", "bf_std_dev", "gfp_max_proj"],
         output_dir=output_dir / "backdrops",
     )
 
-    # Add track ID as a feature
-    df["tid"] = df["track_id"]
+    # # Add track ID as a feature
+    # df["tid"] = df["track_id"]
 
     return df
 
 
 def update_manifest_for_tfe_grid(
-    df: pd.DataFrame, dataset: str, position: int, output_dir: Path
+    df: pd.DataFrame, dataset: str, position: int, timeframe_column_name: str, output_dir: Path
 ) -> pd.DataFrame:
     """Update DataFrame for TFE with grid-based features by adding necessary columns.
     This is a wrapper for update_manifest_for_tfe that updates the seg_image column entries
     to have the pattern "PX_TX_grid_segmentation.ome.tiff".
     """
-    df = update_manifest_for_tfe(df, dataset, position, output_dir)
-    df["seg_image"] = (
+    df = update_manifest_for_tfe(df, dataset, position, timeframe_column_name, output_dir)
+    df[ColumnNameTFE.SEGMENTATION_IMAGE_FILENAME] = (
         "P"
-        + df["position"].astype(str)
+        + df[ColumnNameTFE.POSITION].astype(str)
         + "_T"
-        + df["image_index"].astype(str)
+        + df[ColumnNameTFE.TIMEPOINT].astype(str)
         + "_grid_segmentation"
         + ".ome.tiff"
     )
@@ -112,8 +126,8 @@ def add_dynamic_features_with_filtering(df: pd.DataFrame) -> pd.DataFrame:
     For TFE we need to preserve the rows that are filtered out, so we filter them
     and then calculate the features and then merge them back in.
     """
-    df_filtered_rows = df[~df["is_included"]]
-    df_keep = df[df["is_included"]]
+    df_filtered_rows = df[~df[ColNmSeg.IS_INCLUDED]]
+    df_keep = df[df[ColNmSeg.IS_INCLUDED]]
     df_calc = calculate_derived_data_dynamics_dependent(df_keep)
 
     df_result = pd.concat([df_calc, df_filtered_rows], ignore_index=True)

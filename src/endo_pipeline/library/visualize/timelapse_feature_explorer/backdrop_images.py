@@ -115,6 +115,7 @@ def add_backdrop_fname_to_manifest(
     df: pd.DataFrame,
     dataset: str,
     position: int,
+    timeframe_column_name: str,
     backdrops: list[str],
     output_dir: Path,
 ) -> pd.DataFrame:
@@ -122,7 +123,7 @@ def add_backdrop_fname_to_manifest(
     for backdrop in backdrops:
         df[f"{backdrop}_backdrop"] = df.apply(
             lambda row, backdrop=backdrop: output_dir
-            / f"{dataset}_P{position}_{backdrop}_{row['image_index']}.png",
+            / f"{dataset}_P{position}_{backdrop}_{row[timeframe_column_name]}.png",
             axis=1,
         )
     return df
