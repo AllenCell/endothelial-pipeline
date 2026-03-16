@@ -1,3 +1,5 @@
+import pytest
+
 from endo_pipeline.settings.dynamics_workflows import (
     BIN_WIDTHS_DYNAMICS,
     DYNAMICS_COLUMN_NAMES,
@@ -6,7 +8,15 @@ from endo_pipeline.settings.dynamics_workflows import (
 )
 
 
-def test_kramers_moyal_settings_consistency():
+@pytest.mark.parametrize(
+    "settings_dict",
+    [
+        pytest.param(KERNEL_NAMES_DYNAMICS, id="kernel_names"),
+        pytest.param(KERNEL_BANDWIDTHS_DYNAMICS, id="kernel_bandwidths"),
+        pytest.param(BIN_WIDTHS_DYNAMICS, id="bin_widths"),
+    ],
+)
+def test_kramers_moyal_settings_consistency(settings_dict):
     """
     Test column name consistency across settings dictionaries for dynamics
     workflows.
@@ -18,12 +28,4 @@ def test_kramers_moyal_settings_consistency():
     correctly without key errors, and that the appropriate kernels and bin
     widths are applied for each variable.
     """
-
-    column_name_checks = []
-    for settings_dict in [KERNEL_NAMES_DYNAMICS, KERNEL_BANDWIDTHS_DYNAMICS, BIN_WIDTHS_DYNAMICS]:
-        column_name_check = [column_name in settings_dict for column_name in DYNAMICS_COLUMN_NAMES]
-        column_name_checks.extend(column_name_check)
-    assert all(column_name_checks), (
-        f"Column names {DYNAMICS_COLUMN_NAMES} must be present in kernel, bandwidth, "
-        "and bin width settings for dynamics workflows."
-    )
+    assert all(column_name in settings_dict for column_name in DYNAMICS_COLUMN_NAMES)
