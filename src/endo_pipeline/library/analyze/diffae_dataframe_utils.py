@@ -1321,8 +1321,9 @@ def get_traj_and_diff(
         # a warning and skip this trajectory
         if filtered_traj.size == 0 or filtered_d_traj.size == 0:
             logger.warning(
-                "Empty trajectory or difference array for crop [ %s ]",
+                "Empty trajectory or difference array for crop [ %s ] at time lag [ %s ]. Skipping this trajectory.",
                 df_crop[ColumnName.CROP_INDEX].iloc[0],
+                time_lag,
             )
             continue
 
