@@ -145,7 +145,7 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
         )
 
     demo_suffix = "_demo" if DEMO_MODE else ""
-    fig_savedir = get_output_path(f"{Path(__file__).stem}{demo_suffix}")
+    fig_savedir = get_output_path(f"{Path(__file__).stem}{demo_suffix}", crop_pattern)
 
     # loop over datasets in collection
     # plot summary plots
@@ -175,7 +175,8 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
             msd_vals = np.nan * np.ones_like(dt_array, dtype=float)
 
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
-            fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$)"
+            crop_pattern_title = f"features from crops using pattern: {crop_pattern}"
+            fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$) \n {crop_pattern_title}"
 
             # for computing drift and diffusion coefficients, need to
             # adjust bin limits if polar angle range is shifted
