@@ -2,6 +2,40 @@ from endo_pipeline.cli import CropPattern, Datasets
 
 
 def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -> None:
+    """
+    Run MSD analysis workflow for datasets in the specified collection, using
+    the specified crop pattern for selecting features.
+
+    For each dataset, compute the MSD of the features:
+        - polar angle (theta)
+        - polar radius (r)
+        - DiffAE-based density proxy (rho=-PC3)
+    using the Kramers-Moyal approach to estimate drift and diffusion
+    coefficients from the trajectories of these features at different time lags.
+
+    Then compute the MSD as 2 * diffusion, and plot the MSD vs time lag on a
+    log-log plot, along with a fit to MSD ~ dt^alpha to estimate the anomalous
+    diffusion exponent alpha.
+
+    **Workflow defaults:**
+
+    This workflow runs on the features computed using the default model and run
+    (as specified in the global constants DEFAULT_MODEL_MANIFEST_NAME and
+    DEFAULT_MODEL_RUN_NAME) and the specified crop pattern (default "grid").
+
+    Unless specified otherwise, the workflow will run on all datasets in the
+    "timelapse" collection that have the required dataframes available for the
+    specified crop pattern.
+
+    Parameters
+    ----------
+    datasets
+        Optional list of datasets to run the workflow on.
+    crop_pattern
+        Crop pattern to use for selecting features. Must be one of the values
+        defined in the CropPattern enum.
+    """
+
     import matplotlib.pyplot as plt
     import numpy as np
 
