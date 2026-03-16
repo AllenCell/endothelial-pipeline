@@ -1160,33 +1160,51 @@ def split_dataset_by_flow(
 
 
 def get_traj_and_diff(
-    df: pd.DataFrame, column_names: list, polar_angle_period: float = PERIOD_THETA_RESCALED
+    df: pd.DataFrame,
+    column_names: list,
+    polar_angle_period: float = PERIOD_THETA_RESCALED,
+    time_lag: int = 1,
 ) -> tuple[list[np.ndarray], list[np.ndarray]]:
     """
-    Get trajectories and single-timepoint displacement vectors for each crop in feature space.
+    Get trajectories and single-timepoint displacement vectors (forward
+    differences) for each single-crop trajectory in feature space.
 
     **Input dataframe**
 
     The input dataframe should have columns for:
     - frame_number: timepoint of the crop
     - crop_index: unique index for each crop
-    - columns for each feature (e.g., pc_0, pc_1, pc_2, ...) matching input ``column_names``
+    - columns for each feature (e.g., pc_0, pc_1, pc_2, ...)
+       matching input ``column_names``
 
     **Polar angle handling**
 
-    If one of the input ``column_names`` is 'polar_theta', the function will compute
-    circular differences for the polar angle feature using the given ``polar_angle_period``.
-    Specifically, it will unwrap the polar angle trajectory according to the given period
-    for each crop before computing differences.
+    If one of the input ``column_names`` is 'polar_theta', the function will
+    compute circular differences for the polar angle feature using the given
+    ``polar_angle_period``. Specifically, it will unwrap the polar angle
+    trajectory according to the given period for each crop before computing
+    differences.
+
+    **Time lag handling**
+
+    The input ``time_lag`` determines the time lag (in number of frames) to use
+    when computing forward differences. By default, it is set to 1, which corresponds
+    to forward differences between consecutive timepoints. If a different time lag is
+    specified, the function will compute differences between timepoints that are
+    separated by ``time_lag`` number of frames.
 
     Parameters
     ----------
     df
         DataFrame with columns for each feature.
     column_names
-        List of column names corresponding to the features of interest in the DataFrame.
+        List of column names corresponding to the features of interest in the
+        DataFrame.
     polar_angle_period
-        Period of the polar angle feature, used to compute circular differences for angular data.
+        Period of the polar angle feature, used to compute circular differences
+        for angular data.
+    time_lag
+        Time lag (in number of frames) for forward difference calculation.
 
     Returns
     -------
@@ -1209,38 +1227,43 @@ def get_traj_and_diff(
 
     # loop over each crop in the dataset
     for _, df_crop in df.groupby(ColumnName.CROP_INDEX):
-        # get data for each crop, sorted by time
+
+        # skip if time_lag is larger than number of timepoints in this trajectory
+        if time_lag > df_crop[ColumnName.TIMEPOINT].nunique():
+            continue
+
         df_crop_ = df_crop.sort_values(by=ColumnName.TIMEPOINT)
 
-        # add column giving difference in timepoint between consecutive dataframe rows
-        # convert NaN to 0 -- occurs at end of trajectory
-        df_crop_[timepoint_diff_column] = df_crop_[ColumnName.TIMEPOINT].diff().shift(-1).fillna(0)
+        # add column giving difference in timepoint between rows separated by
+        # time_lag convert NaN to 0 -- occurs at end of trajectory
+        df_crop_[f"{ColumnName.TIMEPOINT}{ColumnName.DIFFERENCE_SUFFIX}"] = (
+            df_crop_[ColumnName.TIMEPOINT].diff(periods=time_lag).shift(-time_lag).fillna(0)
+        )
 
         # add columns giving difference in feature values between consecutive dataframe rows
-        df_crop_[diff_column_names] = df_crop_[column_names].diff().shift(-1)
+        df_crop_[diff_column_names] = df_crop_[column_names].diff(periods=time_lag).shift(-time_lag)
 
         # if one of the column names is `polar_theta`, need to replace with the
         # circular difference for angular data instead of simple difference
         if ColumnName.POLAR_ANGLE.value in column_names:
             angle_diff_column = f"{ColumnName.POLAR_ANGLE}{ColumnName.DIFFERENCE_SUFFIX}"
-            unwrapped_angle_traj = np.unwrap(
+            df_crop_[f"{ColumnName.POLAR_ANGLE}_unwrapped"] = np.unwrap(
                 df_crop_[ColumnName.POLAR_ANGLE].values, period=polar_angle_period
             )
-            angle_diffs = np.diff(unwrapped_angle_traj)
-            df_crop_[angle_diff_column] = np.concatenate(
-                (
-                    angle_diffs,
-                    np.array([np.nan]),
-                )  # no valid difference at end of trajectory, will be dropped later
+            df_crop_[angle_diff_column] = (
+                df_crop_[f"{ColumnName.POLAR_ANGLE}_unwrapped"]
+                .diff(periods=time_lag)
+                .shift(-time_lag)
             )
+            df_crop_.drop(columns=[f"{ColumnName.POLAR_ANGLE}_unwrapped"], inplace=True)
 
-        # trajectory values to keep -- only keep steps where time difference is 1 frame
-        # and also the last point in the trajectory (which has time difference 0)
-        traj_mask = df_crop_[timepoint_diff_column] <= 1
+        # trajectory values to keep -- only keep steps where time difference is <= time_lag
+        # which includes the last point in the trajectory (which has time difference set to 0)
+        traj_mask = df_crop_[timepoint_diff_column] <= time_lag
 
-        # for the gradient, only keep steps where time difference is exactly 1 frame
+        # for the gradient, only keep steps where time difference is exactly time_lag frames
         # i.e., no valid difference at the end of the trajectory (only forward differences)
-        gradient_mask = df_crop_[timepoint_diff_column] == 1
+        gradient_mask = df_crop_[timepoint_diff_column] == time_lag
 
         # append trajectory and displacement data to lists
         traj_list.append(df_crop_[traj_mask][column_names].values)
