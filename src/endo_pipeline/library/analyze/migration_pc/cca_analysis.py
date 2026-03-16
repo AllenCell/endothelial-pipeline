@@ -242,7 +242,7 @@ def plot_optical_flow_feature_distribution(
     binwidth: float = 0.02,
     bins: int = 50,
     kde: bool = True,
-    figsize: tuple[int, int] = (4, 2.5),
+    figsize: tuple[float, float] = (4, 2.5),
 ) -> None:
     """Plot an optical-flow feature histogram per dataset on a shared axis."""
     fig, ax = plt.subplots(figsize=figsize)
