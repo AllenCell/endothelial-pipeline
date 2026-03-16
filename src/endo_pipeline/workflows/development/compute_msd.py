@@ -1,4 +1,5 @@
 from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.library.analyze.diffae_dataframe_utils import get_traj_and_diff
 
 
 def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -> None:
@@ -201,66 +202,19 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
                     bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
                     period=polar_angle_period if column_name == ColumnName.POLAR_ANGLE else None,
                 )
-                for j, d_frame in enumerate(dt_array):
-                    traj_list = []
-                    d_traj_list = []
-                    for _, df_crop in df_.groupby(ColumnName.CROP_INDEX):
-                        # skip if d_frame is larger than number of timepoints in this trajectory
-                        if d_frame > df_crop[ColumnName.TIMEPOINT].nunique():
-                            continue
-
-                        df_crop_ = df_crop.sort_values(by=ColumnName.TIMEPOINT)
-                        # add column giving difference in timepoint between consecutive dataframe rows
-                        # convert NaN to 0 -- occurs at end of trajectory
-                        df_crop_[f"{ColumnName.TIMEPOINT}{ColumnName.DIFFERENCE_SUFFIX}"] = (
-                            df_crop_[ColumnName.TIMEPOINT]
-                            .diff(periods=d_frame)
-                            .shift(-d_frame)
-                            .fillna(0)
-                        )
-                        # compute d_frame differences, unwrapping polar angle if needed
-                        column_name_to_diff = column_name
-                        if column_name == ColumnName.POLAR_ANGLE:
-                            df_crop_[f"{ColumnName.POLAR_ANGLE}_unwrapped"] = np.unwrap(
-                                df_crop_[ColumnName.POLAR_ANGLE].values, period=polar_angle_period
-                            )
-                            column_name_to_diff = f"{ColumnName.POLAR_ANGLE}_unwrapped"
-                        else:
-                            column_name_to_diff = column_name
-
-                        df_crop_[f"{column_name}{ColumnName.DIFFERENCE_SUFFIX}"] = (
-                            df_crop_[column_name_to_diff].diff(periods=d_frame).shift(-d_frame)
-                        )
-
-                        # trajectory values to keep -- only keep steps where time difference is <= d_frame
-                        # and also the last d_frame points in the trajectory
-                        # (which have time difference 0 from fillna)
-                        traj_mask = (
-                            df_crop_[f"{ColumnName.TIMEPOINT}{ColumnName.DIFFERENCE_SUFFIX}"]
-                            <= d_frame
-                        )
-
-                        # for the gradient, only keep steps where time difference is exactly d_frame
-                        # i.e., no valid difference at the end of the trajectory (only forward differences)
-                        gradient_mask = (
-                            df_crop_[f"{ColumnName.TIMEPOINT}{ColumnName.DIFFERENCE_SUFFIX}"]
-                            == d_frame
-                        )
-
-                        traj_vals: np.ndarray = df_crop_[traj_mask][column_name].to_numpy()
-                        grad_vals: np.ndarray = df_crop_[gradient_mask][
-                            f"{column_name}{ColumnName.DIFFERENCE_SUFFIX}"
-                        ].to_numpy()
-                        if d_frame > 1:
-                            # drop last d_frame - 1 points, as there is no valid difference there
-                            traj_vals = traj_vals[: -d_frame + 1]
-                        traj_list.append(traj_vals.reshape(-1, 1))
-                        d_traj_list.append(grad_vals.reshape(-1, 1))
+                for j, time_lag in enumerate(dt_array):
+                    traj_list, d_traj_list = get_traj_and_diff(
+                        df_,
+                        column_names=[column_name],
+                        polar_angle_period=polar_angle_period,
+                        time_lag=time_lag,
+                    )
 
                     if len(traj_list) == 0 or len(d_traj_list) == 0:
                         continue
 
-                    # want diffusion coefficient unscaled by dt, so set to dt = 1
+                    # want conditional squared displacements unscaled by dt, so
+                    # set to dt = 1
                     diffusion = get_kramers_moyal_coeffs(
                         traj_list,
                         d_traj_list,
