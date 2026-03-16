@@ -266,13 +266,14 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
                     if len(traj_list) == 0 or len(d_traj_list) == 0:
                         continue
 
-                    drift, diffusion = get_kramers_moyal_coeffs(
+                    # want diffusion coefficient unscaled by dt, so set to dt = 1
+                    diffusion = get_kramers_moyal_coeffs(
                         traj_list,
                         d_traj_list,
                         bins=[bins[i]],
-                        dt=1,  # want unscaled by dt, so set to 1
+                        dt=1,
                         kernel=kernel,
-                    )
+                    )[-1]
                     # want msd, which is 2 * diffusion
                     msd_all = 2 * diffusion
 
