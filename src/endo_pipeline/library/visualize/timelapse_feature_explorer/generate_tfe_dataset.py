@@ -176,7 +176,12 @@ def get_df_and_label_map_cdh5seg(
         df_tracks = load_dataframe(segprops_location, delay=True)
         # remove the DiffAE-related entries from label_map before constructing the TFE dataset
         diffae_keys = [
-            key for key in label_map if key in DIFFAE_FEATURE_COLUMN_NAMES + DIFFAE_PC_COLUMN_NAMES
+            key
+            for key in label_map
+            if key
+            in DIFFAE_FEATURE_COLUMN_NAMES
+            + DIFFAE_PC_COLUMN_NAMES
+            + [ColumnName.POLAR_ANGLE, ColumnName.POLAR_RADIUS, ColumnName.PC3_FLIPPED]
         ]
         for key in diffae_keys:
             del label_map[key]
