@@ -239,12 +239,35 @@ def plot_optical_flow_feature_distribution(
     df: pd.DataFrame,
     optical_flow_feature: str,
     datasets: list[str],
+    output_dir: Path,
     binwidth: float = 0.02,
     bins: int = 50,
     kde: bool = True,
     figsize: tuple[float, float] = (4, 2.5),
 ) -> None:
-    """Plot an optical-flow feature histogram per dataset on a shared axis."""
+    """Plot an optical-flow feature histogram per dataset on a shared axis.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Dataframe containing a ``"dataset"`` column and the column named by
+        *optical_flow_feature*.
+    optical_flow_feature : str
+        Column name of the optical-flow feature to plot.
+    datasets : list[str]
+        Dataset identifiers to include. Each dataset is plotted as a separate
+        histogram with its own colour and shear-stress label.
+    output_dir : Path
+        Directory where the figure is saved.
+    binwidth : float, default=0.02
+        Width of each histogram bin passed to :func:`seaborn.histplot`.
+    bins : int, default=50
+        Number of histogram bins passed to :func:`seaborn.histplot`.
+    kde : bool, default=True
+        Whether to overlay a kernel-density estimate on the histogram.
+    figsize : tuple[float, float], default=(4, 2.5)
+        Width and height of the figure in inches.
+    """
     fig, ax = plt.subplots(figsize=figsize)
     for dataset in datasets:
         color = get_dataset_color(dataset)
@@ -274,4 +297,5 @@ def plot_optical_flow_feature_distribution(
     )
     fig.tight_layout()
     plt.show()
+    save_plot_to_path(fig, output_dir, f"{optical_flow_feature}_dist_{'_'.join(datasets)}.png")
     plt.close(fig)

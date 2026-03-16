@@ -8,7 +8,7 @@ from scipy.stats import binned_statistic_2d
 
 from endo_pipeline.cli import DEMO_MODE
 from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-from endo_pipeline.io import get_output_path
+from endo_pipeline.io import get_output_path, save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
@@ -70,6 +70,7 @@ for dataset_name in datasets:
         df=df_of,
         optical_flow_feature=OPTICAL_FLOW_FEATURE,
         datasets=[dataset_name],
+        output_dir=output_dir,
         binwidth=0.02,
         bins=50,
         kde=True,
@@ -83,17 +84,50 @@ def plot_scatter_and_binned_heatmap(
     x_col: str,
     y_col: str,
     color_col: str,
+    vmin: float | None = None,
+    vmax: float | None = None,
     x_bin_size: float = 0.25,
     y_bin_size: float = 0.25,
-    vmin: float = 0,
-    vmax: float = 1,
 ) -> None:
-    """Plot scatter (left) and binned mean heatmap (right) side by side."""
+    """Plot scatter (left) and binned mean heatmap (right) side by side.
+
+    The left panel shows a per-point scatter coloured by *color_col* and the
+    right panel shows the mean of *color_col* within 2-D bins.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Dataframe containing columns *x_col*, *y_col*, *color_col*, and
+        ``"dataset"``.
+    dataset_name : str
+        Dataset identifier used to filter rows and label the figure title
+        with the corresponding shear-stress condition.
+    x_col : str
+        Column name for the x-axis of both panels.
+    y_col : str
+        Column name for the y-axis of both panels.
+    color_col : str
+        Column name whose values are mapped to colour in the scatter and
+        averaged per bin in the heatmap.
+    vmin : float or None, default=None
+        Lower bound of the colour scale. If ``None``, derived from the data.
+    vmax : float or None, default=None
+        Upper bound of the colour scale. If ``None``, derived from the data.
+    x_bin_size : float, default=0.25
+        Bin width along the x-axis for the heatmap.
+    y_bin_size : float, default=0.25
+        Bin width along the y-axis for the heatmap.
+    """
     cmap = plt.get_cmap("cool")
     df_plot = df[(df["dataset"] == dataset_name) & df[color_col].notna()]
     x = df_plot[x_col].values
     y = df_plot[y_col].values
     z = df_plot[color_col].values
+
+    if vmin is None:
+        vmin = np.nanmin(z)
+    if vmax is None:
+        vmax = np.nanmax(z)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
 
@@ -135,6 +169,7 @@ def plot_scatter_and_binned_heatmap(
     plt.suptitle(title)
     plt.tight_layout()
     plt.show()
+    save_plot_to_path(fig, output_dir, f"{dataset_name}_{x_col}_vs_{y_col}_colored_by_{color_col}")
     plt.close()
 
 
@@ -147,6 +182,8 @@ for dataset_name in datasets:
         x_col="polar_r",
         y_col="rho",
         color_col=OPTICAL_FLOW_FEATURE,
+        vmax=1,
+        vmin=0,
         x_bin_size=0.25,
         y_bin_size=0.25,
     )
@@ -156,6 +193,8 @@ for dataset_name in datasets:
         x_col="polar_r",
         y_col="polar_theta",
         color_col=OPTICAL_FLOW_FEATURE,
+        vmax=1,
+        vmin=0,
         x_bin_size=0.25,
         y_bin_size=0.25,
     )
@@ -165,6 +204,8 @@ for dataset_name in datasets:
         x_col="rho",
         y_col="polar_theta",
         color_col=OPTICAL_FLOW_FEATURE,
+        vmax=1,
+        vmin=0,
         x_bin_size=0.25,
         y_bin_size=0.25,
     )
