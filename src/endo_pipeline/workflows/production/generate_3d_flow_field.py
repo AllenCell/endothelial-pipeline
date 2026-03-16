@@ -379,23 +379,22 @@ def main(
             grid_dataframe_manifest.locations[dataset_name] = DataframeLocation(fmsid=grid_fmsid)
             save_dataframe_manifest(drift_dataframe_manifest)
             save_dataframe_manifest(grid_dataframe_manifest)
+        # If not uploading to FMS, depends on if we're in "demo mode" or
+        # not. If in demo mode, update "demo" dataframe manifests with
+        # locations built from local save paths, so that the dataframes can
+        # be loaded from the local paths in the visualization workflow. If
+        # not in demo mode, just log the local save paths for traceability
+        # since the dataframe manifests won't be updated with locations
+        elif DEMO_MODE:
+            drift_dataframe_manifest.locations[dataset_name] = build_dataframe_location_from_path(
+                drift_coeffs_save_path
+            )
+            grid_dataframe_manifest.locations[dataset_name] = build_dataframe_location_from_path(
+                grid_points_save_path
+            )
+            save_dataframe_manifest(drift_dataframe_manifest)
+            save_dataframe_manifest(grid_dataframe_manifest)
         else:
-            # If not uploading to FMS, depends on if we're in "demo mode" or
-            # not. If in demo mode, update "demo" dataframe manifests with
-            # locations built from local save paths, so that the dataframes can
-            # be loaded from the local paths in the visualization workflow. If
-            # not in demo mode, just log the local save paths for traceability
-            # since the dataframe manifests won't be updated with locations
-            if DEMO_MODE:
-                drift_dataframe_manifest.locations[dataset_name] = (
-                    build_dataframe_location_from_path(drift_coeffs_save_path)
-                )
-                grid_dataframe_manifest.locations[dataset_name] = (
-                    build_dataframe_location_from_path(grid_points_save_path)
-                )
-                save_dataframe_manifest(drift_dataframe_manifest)
-                save_dataframe_manifest(grid_dataframe_manifest)
-
             logger.info("Saving drift dataframe locally to [ %s ]", drift_coeffs_save_path)
             logger.info("Saving grid points dataframe locally to [ %s ]", grid_points_save_path)
 
@@ -453,15 +452,15 @@ def main(
                 fmsid=fixed_points_fmsid
             )
             save_dataframe_manifest(fixed_points_dataframe_manifest)
+        # else, same as above: if in demo mode, update the "demo" dataframe
+        # manifest with location built from local save path, and if not in
+        # demo mode, just log the local save path
+        elif DEMO_MODE:
+            fixed_points_dataframe_manifest.locations[dataset_name] = (
+                build_dataframe_location_from_path(stable_fixed_points_save_path)
+            )
+            save_dataframe_manifest(fixed_points_dataframe_manifest)
         else:
-            # else, same as above: if in demo mode, update the "demo" dataframe
-            # manifest with location built from local save path, and if not in
-            # demo mode, just log the local save path
-            if DEMO_MODE:
-                fixed_points_dataframe_manifest.locations[dataset_name] = (
-                    build_dataframe_location_from_path(stable_fixed_points_save_path)
-                )
-                save_dataframe_manifest(fixed_points_dataframe_manifest)
             logger.info(
                 "Saving stable fixed points dataframe locally to [ %s ]",
                 stable_fixed_points_save_path,
