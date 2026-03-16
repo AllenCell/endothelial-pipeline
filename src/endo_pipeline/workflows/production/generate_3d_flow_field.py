@@ -221,22 +221,10 @@ def main(
     bin_widths: list[float] = []
     rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
 
-    # ensure that the column names are in the kernel name, bandwidth, and bin
-    # width dictionaries, and get the corresponding kernels and bin widths for
-    # each variable. For the polar angle variable, also specify the period for
-    # the kernel based on the rescaled theta range, to ensure that the
-    # periodicity of the polar angle is taken into account in the flow field
-    # estimation.
-    column_name_checks = []
-    for settings_dict in [KERNEL_NAMES_DYNAMICS, KERNEL_BANDWIDTHS_DYNAMICS, BIN_WIDTHS_DYNAMICS]:
-        column_name_check = [column_name in settings_dict for column_name in column_names]
-        column_name_checks.extend(column_name_check)
-
-    if not all(column_name_checks):
-        raise ValueError(
-            f"Column names {column_names} must be present in kernel, bandwidth, "
-            "and bin width settings for dynamics workflows."
-        )
+    # Get the corresponding kernels and bin widths for each variable. For the
+    # polar angle variable, also specify the period for the kernel based on the
+    # rescaled theta range, to ensure that the periodicity of the polar angle is
+    # taken into account in the flow field estimation.
     for column_name in column_names:
         name = KERNEL_NAMES_DYNAMICS[column_name]
         bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
