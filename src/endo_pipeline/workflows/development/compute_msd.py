@@ -1,4 +1,7 @@
-def main() -> None:
+from endo_pipeline.cli import CropPattern, Datasets
+
+
+def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -> None:
     import matplotlib.pyplot as plt
     import numpy as np
 
@@ -38,13 +41,11 @@ def main() -> None:
         DEFAULT_MODEL_RUN_NAME,
     )
 
-    MAX_DT = 35  # maximum time lag (in number of frames) to consider for msd calculation
+    # maximum time lag (in number of frames) to consider for msd calculation
+    MAX_DT = 35
 
-    CROP_PATTERN = "grid"
-
-    NUM_PCS = 3
-
-    DATASET_COLLECTION_NAME = "timelapse"
+    model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
+    model_run_name = DEFAULT_MODEL_RUN_NAME
 
     # get labels for provided set of feature columns
     column_names = list(DYNAMICS_COLUMN_NAMES)
@@ -63,22 +64,25 @@ def main() -> None:
     bin_widths = [BIN_WIDTHS_DYNAMICS[col] for col in column_names]
 
     # get dataframe manifest for grid-based crop features
-    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
+    model_manifest = load_model_manifest(model_manifest_name)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern=CROP_PATTERN
+        model_manifest, model_run_name, crop_pattern=crop_pattern
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     # only need first two PCs
     dataframe_manifest_name_for_pca = get_feature_dataframe_manifest_name(
-        model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern="grid"
+        model_manifest, model_run_name, crop_pattern="grid"
     )
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_for_pca, num_pcs=NUM_PCS)
+    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_for_pca, num_pcs=3)
 
     # Default list of datasets if not provided, only include datasets available in
     # the provided dataframe manifest
     valid_dataset_options = list_datasets_with_dataframes(dataframe_manifest)
-    dataset_names = get_datasets_in_collection(DATASET_COLLECTION_NAME, valid_dataset_options)
+    if datasets is not None:
+        dataset_names = [ds for ds in datasets if ds in valid_dataset_options]
+    else:
+        dataset_names = get_datasets_in_collection("timelapse", valid_dataset_options)
 
     fig_savedir = get_output_path(__file__)
 
@@ -94,7 +98,7 @@ def main() -> None:
             pca=pca,
             include_cell_piling=False,
             include_not_steady_state=False,
-            crop_pattern=CROP_PATTERN,
+            crop_pattern=crop_pattern,
             compute_polar=True,
             rescale_theta=RESCALE_THETA,
             flip_pc3_sign=True,
