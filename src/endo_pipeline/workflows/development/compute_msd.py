@@ -23,6 +23,15 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
     (as specified in the global constants DEFAULT_MODEL_MANIFEST_NAME and
     DEFAULT_MODEL_RUN_NAME) and the specified crop pattern (default "grid").
 
+    It specifically uses the features as specified by the global constant
+    DYNAMICS_COLUMN_NAMES, which by default includes the polar angle, polar
+    radius, and DiffAE-based density proxy. The bin widths, limits, and kernel
+    parameters for computing the Kramers-Moyal coefficients are specified by the
+    global constants BIN_WIDTHS_DYNAMICS, BIN_LIMITS_DYNAMICS,
+    KERNEL_BANDWIDTHS_DYNAMICS, and KERNEL_NAMES_DYNAMICS. The bin limits for
+    the non-polar angle features are adjusted based on the percentiles of the
+    data, as specified by the global constant BIN_LIMIT_PERCENTILE_CUTOFF.
+
     Unless specified otherwise, the workflow will run on all datasets in the
     "timelapse" collection that have the required dataframes available for the
     specified crop pattern.
