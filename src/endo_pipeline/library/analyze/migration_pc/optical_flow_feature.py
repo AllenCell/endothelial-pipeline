@@ -25,6 +25,8 @@ def add_optical_flow_features(
             Dataset names to process.
     optical_flow_manifest_name : str, default="optical_flow_bf"
             Name of the dataframe manifest containing optical-flow feature tables.
+    optical_flow_feature_columns : list[str], default=OPTICAL_FLOW_BASE_FEATURES
+            List of optical-flow feature column names to merge into the input dataframe.
 
     Returns
     -------
