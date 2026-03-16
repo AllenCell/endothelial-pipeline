@@ -52,6 +52,7 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
         defined in the CropPattern enum.
     """
     import logging
+    from pathlib import Path
 
     import matplotlib.pyplot as plt
     import numpy as np
@@ -143,7 +144,8 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
             dataset_names[0],
         )
 
-    fig_savedir = get_output_path(__file__)
+    demo_suffix = "_demo" if DEMO_MODE else ""
+    fig_savedir = get_output_path(f"{Path(__file__).stem}{demo_suffix}")
 
     # loop over datasets in collection
     # plot summary plots
