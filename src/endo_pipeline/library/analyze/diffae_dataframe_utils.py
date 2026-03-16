@@ -38,6 +38,7 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 )
 
 logger = logging.getLogger(__name__)
@@ -748,6 +749,7 @@ def get_dataframe_for_dynamics_workflows(
     rescale_theta: bool = True,
     flip_pc3_sign: bool = True,
     minimum_track_length: int | None = None,
+    segmentation_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 ) -> pd.DataFrame:
     """
     Load DiffAE dataframe data projected onto given PC axes for downstream
@@ -836,6 +838,12 @@ def get_dataframe_for_dynamics_workflows(
     # keep only necessary columns to save memory
     df_ = df[columns_to_keep_].compute()
 
+    # the crop indices have to be added before any filtering
+    # so that they are consistently assigned across datasets
+    # for the grid crop pattern, which is critical for the
+    # grid-based TFE workflow to run correctly
+    df_ = add_crop_index(df_, crop_pattern)
+
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
     if filter_by_annotations:
@@ -855,32 +863,66 @@ def get_dataframe_for_dynamics_workflows(
     else:
         df_filtered = df_
 
-    df_with_crop = add_crop_index(df_filtered, crop_pattern)
+    if crop_pattern == "tracked":
+        # some additional filtering with the "is_included" column from the
+        # segmentation features dataframe is needed to remove some of the
+        # incorrect segmentations that are present in the tracked crops data
+        seg_feat_manifest = load_dataframe_manifest(segmentation_feature_manifest_name)
+        seg_feat_loc = get_dataframe_location_for_dataset(seg_feat_manifest, dataset_name)
+        df_segmentations_delayed = load_dataframe(seg_feat_loc, delay=True)
+        cols_to_compute = [
+            "dataset_name",
+            ColumnName.POSITION,
+            "image_index",
+            ColumnName.TRACK_ID,
+            ColumnName.TRACK_LENGTH,
+            "is_included",
+        ]
+        df_segmentations = df_segmentations_delayed[cols_to_compute].compute()
+        # NOTE the 2 lines below are temporary until we update how we store position
+        # and change the column names to be consistent across dataframes
+        df_segmentations[ColumnName.POSITION] = df_segmentations[ColumnName.POSITION].transform(
+            lambda pos: f"P{pos}"
+        )
+        df_segmentations.rename(columns={"dataset_name": ColumnName.DATASET}, inplace=True)
+        df_segmentations.rename(columns={"image_index": ColumnName.TIMEPOINT}, inplace=True)
+        original_df_length = len(df_filtered)
+        df_filtered = df_filtered.merge(
+            df_segmentations,
+            on=[
+                ColumnName.DATASET,
+                ColumnName.POSITION,
+                ColumnName.TIMEPOINT,
+                ColumnName.TRACK_ID,
+            ],
+            how="left",
+            validate="one_to_one",
+        )
+        if original_df_length != len(df_filtered):
+            raise ValueError(
+                f"Length of df_diffae_dynamics changed after merging with segmentation features dataframe. "
+                f"Original length: {original_df_length}, new length: {len(df_filtered)}. "
+                f"Check the merge keys and the dataframes to ensure that the merge is correct."
+            )
+        df_filtered = df_filtered[df_filtered["is_included"]]
 
-    if crop_pattern == "tracked" and minimum_track_length is not None:
-        # if crop pattern is 'tracked' and minimum track length is specified,
-        # also filter by track length (need to add track length column first)
-        df_filtered[ColumnName.TRACK_LENGTH] = df_filtered.groupby([ColumnName.CROP_INDEX])[
-            ColumnName.TIMEPOINT
-        ].transform(lambda g: g.max() - g.min() + 1)
-
-        # Filter by new track length column
+    if minimum_track_length is not None:
         df_filtered = filter_dataframe_by_track_length(
             df_filtered, ColumnName.TRACK_LENGTH, minimum_track_length
         )
 
     # add dataset duration description column
     dataset_config = load_dataset_config(dataset_name)
-    df_with_crop["duration"] = dataset_config.duration
+    df_filtered["duration"] = dataset_config.duration
 
     if pca is None:
         # do not project feature data onto PCA axes
-        return df_with_crop
+        return df_filtered
 
     else:
         # project feature data onto PC axes
         df_with_pcs = project_features_to_pcs(
-            df_with_crop,
+            df_filtered,
             pca,
             feat_cols=feat_cols,
             compute_polar=compute_polar,
