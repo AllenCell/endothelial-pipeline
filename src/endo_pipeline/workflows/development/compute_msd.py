@@ -218,25 +218,19 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
                             .shift(-d_frame)
                             .fillna(0)
                         )
-                        # compute d_frame differences in polar angle and radius
+                        # compute d_frame differences, unwrapping polar angle if needed
+                        column_name_to_diff = column_name
                         if column_name == ColumnName.POLAR_ANGLE:
-                            unwrapped_angle_traj = np.unwrap(
+                            df_crop_[f"{ColumnName.POLAR_ANGLE}_unwrapped"] = np.unwrap(
                                 df_crop_[ColumnName.POLAR_ANGLE].values, period=polar_angle_period
                             )
-                            angle_diffs = np.diff(unwrapped_angle_traj)
-                            # no valid difference at end of trajectory, will be dropped later
-                            df_crop_[f"{column_name}{ColumnName.DIFFERENCE_SUFFIX}"] = (
-                                np.concatenate(
-                                    (
-                                        angle_diffs,
-                                        np.array([np.nan]),
-                                    )
-                                )
-                            )
+                            column_name_to_diff = f"{ColumnName.POLAR_ANGLE}_unwrapped"
                         else:
-                            df_crop_[f"{column_name}{ColumnName.DIFFERENCE_SUFFIX}"] = (
-                                df_crop_[column_name].diff(periods=d_frame).shift(-d_frame)
-                            )
+                            column_name_to_diff = column_name
+
+                        df_crop_[f"{column_name}{ColumnName.DIFFERENCE_SUFFIX}"] = (
+                            df_crop_[column_name_to_diff].diff(periods=d_frame).shift(-d_frame)
+                        )
 
                         # trajectory values to keep -- only keep steps where time difference is <= d_frame
                         # and also the last d_frame points in the trajectory
