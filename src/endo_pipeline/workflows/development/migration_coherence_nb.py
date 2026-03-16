@@ -12,6 +12,8 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
 )
 from endo_pipeline.library.analyze.migration_pc.optical_flow_feature import (
     add_optical_flow_features,
+)
+from endo_pipeline.library.visualize.migration_coherence import (
     plot_optical_flow_feature_distribution,
     plot_scatter_and_binned_heatmap,
 )
