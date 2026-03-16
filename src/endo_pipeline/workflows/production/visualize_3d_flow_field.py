@@ -149,10 +149,6 @@ def main(
     run_name = DEFAULT_MODEL_RUN_NAME
     column_names = list(DYNAMICS_COLUMN_NAMES)
     ndim = len(column_names)
-    if ndim != 3:
-        raise ValueError(
-            f"Exactly 3 column names must be provided for 3D flow field analysis, but {ndim} were provided: {column_names}"
-        )
     drift_column_names = [f"{name}_drift" for name in column_names]
 
     # load model manifest and get corresponding dataframe manifest name
