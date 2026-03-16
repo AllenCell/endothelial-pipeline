@@ -13,6 +13,8 @@ LABEL_MAP = {
     ColNmSeg.CELL_FLUOR_MAX: "Cell Fluorescence Max (a.u.)",
     ColNmSeg.CELL_FLUOR_MEAN: "Cell Fluorescence Mean (a.u.)",
     ColNmSeg.CELL_FLUOR_MEDIAN: "Cell Fluorescence Median (a.u.)",
+    ColNmSeg.EDGE_FLUOR_MEAN: "Edge Fluorescence Mean (a.u.)",
+    ColNmSeg.NODE_FLUOR_MEAN: "Node Fluorescence Mean (a.u.)",
     ColNmSeg.SOLIDITY: "Cell Solidity",
     ColNmSeg.TIME_HRS: "Time (hours)",
     ColNmSeg.TIME_MINS: "Time (minutes)",
