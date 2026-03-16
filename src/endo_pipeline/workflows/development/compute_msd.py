@@ -253,15 +253,15 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
                             == d_frame
                         )
 
-                        traj_vals = df_crop_[traj_mask][column_name].values
-                        grad_vals = df_crop_[gradient_mask][
+                        traj_vals: np.ndarray = df_crop_[traj_mask][column_name].to_numpy()
+                        grad_vals: np.ndarray = df_crop_[gradient_mask][
                             f"{column_name}{ColumnName.DIFFERENCE_SUFFIX}"
-                        ].values
+                        ].to_numpy()
                         if d_frame > 1:
                             # drop last d_frame - 1 points, as there is no valid difference there
                             traj_vals = traj_vals[: -d_frame + 1]
-                        traj_list.append(traj_vals)
-                        d_traj_list.append(grad_vals)
+                        traj_list.append(traj_vals.reshape(-1, 1))
+                        d_traj_list.append(grad_vals.reshape(-1, 1))
 
                     if len(traj_list) == 0 or len(d_traj_list) == 0:
                         continue
