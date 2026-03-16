@@ -71,3 +71,6 @@ HISTOGRAM_THRESHOLD_FOR_MASKING: float = 0.05
 
 MAX_MSD_LAG: int = 35
 """Maximum time lag (in number of frames) to consider for mean squared displacement calculation."""
+
+MSD_Y_AXIS_LIMITS: tuple[float, float] = (2e-3, 3e-1)
+"""Axes limits for mean squared displacement plots."""

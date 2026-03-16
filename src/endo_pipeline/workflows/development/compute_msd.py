@@ -35,7 +35,8 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
     constant BIN_LIMIT_PERCENTILE_CUTOFF.
 
     The maximum time lag to consider for MSD calculation is specified by the
-    global constant MAX_MSD_LAG.
+    global constant MAX_MSD_LAG. The y-axis limits for the MSD plots are
+    specified by the global constant MSD_Y_AXIS_LIMITS.
 
     Unless specified otherwise, the workflow will run on all datasets in the
     "timelapse" collection that have the required dataframes available for the
@@ -83,6 +84,7 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
         MAX_MSD_LAG,
+        MSD_Y_AXIS_LIMITS,
         RESCALE_THETA,
     )
     from endo_pipeline.settings.workflow_defaults import (
@@ -293,6 +295,7 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
                 )
                 ax.set_xlabel("Time lag $\\Delta t$ (minutes)")
                 ax.set_ylabel(f"MSD in {variable_labels_dict[column_name]}")
+                ax.set_ylim(MSD_Y_AXIS_LIMITS)
                 ax.set_title(fig_title)
                 ax.legend()
                 save_plot_to_path(
