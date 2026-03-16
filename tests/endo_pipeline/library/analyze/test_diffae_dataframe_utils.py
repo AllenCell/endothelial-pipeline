@@ -9,6 +9,7 @@ from endo_pipeline.configs import (
     TimepointAnnotation,
 )
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    compute_forward_differences_along_trajectory,
     filter_dataframe_by_annotations,
     filter_dataframe_by_track_length,
     get_latent_feature_column_names_from_dataframe,
@@ -527,3 +528,147 @@ def test_filter_dataframe_by_track_length_all_filtered_out():
     )
     with pytest.raises(ValueError):
         filter_dataframe_by_track_length(dataframe, ColumnName.TRACK_LENGTH, 4)
+
+
+@pytest.mark.parametrize(
+    "timepoints, feature_values, time_lag, expected_traj, expected_d_traj",
+    [
+        (
+            # Basic case: consecutive timepoints, time_lag=1
+            # Last point has diff=0 so it's in traj but not d_traj
+            [0, 1, 2, 3],
+            [1.0, 2.0, 4.0, 7.0],
+            1,
+            np.array([[1.0], [2.0], [4.0], [7.0]]),
+            np.array([[1.0], [2.0], [3.0]]),
+        ),
+        (
+            # Non-consecutive timepoints: gap of 2 between t=0 and t=2
+            # t=0 has timepoint diff=2 > time_lag=1, so excluded from both traj and d_traj
+            # t=2 has diff=1, included in traj and d_traj
+            # t=3 has diff=0 (fillna), included in traj but not d_traj
+            [0, 2, 3],
+            [1.0, 2.0, 3.0],
+            1,
+            np.array([[2.0], [3.0]]),
+            np.array([[1.0]]),
+        ),
+        (
+            # time_lag=2: consecutive timepoints [0, 1, 2, 3]
+            # All timepoints initially pass traj_mask (timepoint diffs: 2, 2, 0, 0; all <= 2)
+            # Last time_lag-1=1 point is then dropped from traj
+            # Only first two in d_traj (timepoint diffs == 2)
+            [0, 1, 2, 3],
+            [1.0, 2.0, 4.0, 7.0],
+            2,
+            np.array([[1.0], [2.0], [4.0]]),
+            np.array([[3.0], [5.0]]),
+        ),
+        (
+            # time_lag=2 with a gap: timepoints [0, 1, 3]
+            # t=0: timepoint diff=3 > 2, excluded by traj_mask
+            # t=1: diff=0 (fillna), passes traj_mask
+            # t=3: diff=0 (fillna), passes traj_mask
+            # After dropping last time_lag-1=1 point: only t=1 remains in traj
+            # No pairs separated by exactly 2 frames, so d_traj is empty
+            [0, 1, 3],
+            [1.0, 2.0, 4.0],
+            2,
+            np.array([[2.0]]),
+            np.zeros((0, 1)),
+        ),
+    ],
+)
+def test_compute_forward_differences_along_trajectory_scalar_feature(
+    timepoints, feature_values, time_lag, expected_traj, expected_d_traj
+):
+    col = f"{ColumnName.PCA_FEATURE_PREFIX}0"
+    df_traj = pd.DataFrame(
+        {
+            ColumnName.TIMEPOINT: timepoints,
+            col: feature_values,
+        }
+    )
+    traj, d_traj = compute_forward_differences_along_trajectory(df_traj, [col], time_lag=time_lag)
+    np.testing.assert_array_almost_equal(traj, expected_traj)
+    np.testing.assert_array_almost_equal(d_traj, expected_d_traj)
+
+
+def test_compute_forward_differences_along_trajectory_multiple_features():
+    """Multiple features are all returned in the correct column order."""
+    cols = [f"{ColumnName.PCA_FEATURE_PREFIX}{i}" for i in range(3)]
+    df_traj = pd.DataFrame(
+        {
+            ColumnName.TIMEPOINT: [0, 1, 2],
+            cols[0]: [1.0, 2.0, 3.0],
+            cols[1]: [10.0, 20.0, 30.0],
+            cols[2]: [100.0, 200.0, 300.0],
+        }
+    )
+    traj, d_traj = compute_forward_differences_along_trajectory(df_traj, cols, time_lag=1)
+
+    # shapes: 3 timepoints in traj, 2 forward differences, 3 features
+    assert traj.shape == (3, 3)
+    assert d_traj.shape == (2, 3)
+
+    np.testing.assert_array_almost_equal(
+        traj,
+        np.array([[1.0, 10.0, 100.0], [2.0, 20.0, 200.0], [3.0, 30.0, 300.0]]),
+    )
+    np.testing.assert_array_almost_equal(
+        d_traj,
+        np.array([[1.0, 10.0, 100.0], [1.0, 10.0, 100.0]]),
+    )
+
+
+def test_compute_forward_differences_along_trajectory_polar_angle_unwrapping():
+    """
+    When 'polar_theta' is in column_names, differences are computed using
+    np.unwrap so that a wrap-around near the period boundary produces a small
+    difference instead of a large jump.
+    """
+    period = np.pi  # matches PERIOD_THETA_RESCALED
+    eps = 0.05
+    # angles [pi/2 - eps, -(pi/2 - eps), 0.0]:
+    # without unwrapping: diff[0] = -(pi - 2*eps)  (large negative)
+    # with unwrapping via period=pi: diff[0] = 2*eps  (small positive)
+    angles = [np.pi / 2 - eps, -(np.pi / 2 - eps), 0.0]
+    df_traj = pd.DataFrame(
+        {
+            ColumnName.TIMEPOINT: [0, 1, 2],
+            ColumnName.POLAR_ANGLE: angles,
+        }
+    )
+    traj, d_traj = compute_forward_differences_along_trajectory(
+        df_traj,
+        [ColumnName.POLAR_ANGLE.value],
+        polar_angle_period=period,
+        time_lag=1,
+    )
+
+    # Trajectory values are the raw (non-unwrapped) angles
+    np.testing.assert_array_almost_equal(traj[:, 0], angles)
+
+    # Differences should be based on the unwrapped sequence
+    unwrapped = np.unwrap(np.array(angles), period=period)
+    expected_diffs = np.diff(unwrapped)
+    np.testing.assert_array_almost_equal(d_traj[:, 0], expected_diffs)
+    # Specifically: the wrap-around diff should be small (2*eps), not large
+    assert abs(d_traj[0, 0]) < np.pi / 2
+
+
+def test_compute_forward_differences_along_trajectory_single_timepoint():
+    """A single-row trajectory produces an empty differences array."""
+    col = f"{ColumnName.PCA_FEATURE_PREFIX}0"
+    df_traj = pd.DataFrame(
+        {
+            ColumnName.TIMEPOINT: [0],
+            col: [5.0],
+        }
+    )
+    traj, d_traj = compute_forward_differences_along_trajectory(df_traj, [col], time_lag=1)
+
+    # Trajectory has 1 point; no forward differences possible
+    assert traj.shape == (1, 1)
+    assert d_traj.shape == (0, 1)
+    np.testing.assert_array_almost_equal(traj, np.array([[5.0]]))
