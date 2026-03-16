@@ -2,6 +2,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from endo_pipeline.cli.apps import apply_workflow_options
+from endo_pipeline.cli.options import WorkflowOptions
 from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
 from endo_pipeline.io import get_output_path, save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
@@ -48,10 +50,11 @@ CROP_PATTERN = "grid"
 
 NUM_PCS = 3
 
-DATASET_COLLECTION_NAME = "timelapse"
+DATASET_COLLECTION_NAME = "diffae_model_training"
 
-column_names = list(DYNAMICS_COLUMN_NAMES)
+apply_workflow_options(WorkflowOptions(verbose=True))
 
+# %%
 # get labels for provided set of feature columns
 column_names = list(DYNAMICS_COLUMN_NAMES)
 variable_labels_dict = {
@@ -246,7 +249,7 @@ for dataset_name in dataset_names:
                 label=f"MSD ~ $\\Delta t^{{{linear_fit[0]:.2f}}}$ (R$^2$ = {1-res[0]:.2f}):",
             )
             ax.set_xlabel("Time lag $\\Delta t$ (minutes)")
-            ax.set_ylabel(f"MSD in ${variable_labels_dict[column_name]}$")
+            ax.set_ylabel(f"MSD in {variable_labels_dict[column_name]}")
             ax.set_title(fig_title)
             ax.legend()
             save_plot_to_path(
