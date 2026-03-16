@@ -19,7 +19,8 @@ from endo_pipeline.library.visualize.seg_features.general_standard_plots import 
     mark_perpendicular,
 )
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
-from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
+from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME, SEGMENTATION_FEATURE_COLUMNS
+from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
 
 logger = logging.getLogger(__name__)
 
@@ -53,29 +54,32 @@ def plot_seg_manifest_data(
 
     # choose which features to put on the y-axis
     # (we will put time on the x-axis)
+    angular_feats = [
+        ColNmSeg.ALIGNMENT_DEG,
+        ColNmSeg.ORIENTATION_DEG,
+        ColNmSeg.CENTROID_VELOCITY_ANGLE_DEG,
+        ColNmSeg.NUCLEI_POSITION_ANGLE_DEG,
+        ColNmSeg.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
+    ]
     feats_to_plot_y = [
-        "alignment_deg_rel_to_flow",
-        "nematic_order",
-        "eccentricity",
-        "aspect_ratio",
-        "area (um**2)",
-        "num_neighbors",
-        "centroid_velocity_magnitude",
-        "centroid_velocity_angle_deg",
-        "cell_nuc_dist",
-        "cell_nuc_orientation_deg",
-        "cell_nuc_orientation_deg_rel_to_migration",
+        ColNmSeg.NEMATIC_ORDER,
+        ColNmSeg.ECCENTRICITY,
+        ColNmSeg.ASPECT_RATIO,
+        ColNmSeg.AREA_UM_SQ,
+        ColNmSeg.NUM_NEIGHBORS,
+        ColNmSeg.CENTROID_VELOCITY_UM_PER_MIN,
+        ColNmSeg.NUCLEI_POSITION_DISTANCE,
     ]
     feats_to_plot_y_lineplot_only = [
-        "total_nuclei_count_at_T",
-        "num_tracks",
+        ColNmSeg.NUM_NUCLEI_AT_TIMEPOINT,
+        ColNmSeg.NUM_TRACKS_AFTER_FILTERING,
     ]
 
     # get the plotting arguments for the features
     # (e.g. axis limits, axis titles, bin widths, etc.)
     feats_plot_args = get_seg_feat_plot_args()
 
-    for feat in feats_to_plot_y + feats_to_plot_y_lineplot_only:
+    for feat in angular_feats + feats_to_plot_y + feats_to_plot_y_lineplot_only:
         filename_out = f"{dataset_name}_P{position}_{feat}.png"
 
         # plot alignment vs time as line plots
@@ -84,14 +88,14 @@ def plot_seg_manifest_data(
 
         fig, ax = lineplot_of_feats(
             df_group=seg_feats_df_subset,
-            x_column_name=feats_plot_args["time_hrs"]["column_name"],
+            x_column_name=feats_plot_args[ColNmSeg.TIME_HRS]["column_name"],
             y_column_name=feats_plot_args[feat]["column_name"],
-            x_label=feats_plot_args["time_hrs"]["label"],
+            x_label=feats_plot_args[ColNmSeg.TIME_HRS]["label"],
             y_label=feats_plot_args[feat]["label"],
             y_lims=feats_plot_args[feat]["lims"],
-            set_xticks=feats_plot_args["time_hrs"]["ticks"],
+            set_xticks=feats_plot_args[ColNmSeg.TIME_HRS]["ticks"],
             set_yticks=feats_plot_args[feat]["ticks"],
-            discrete_xticks=feats_plot_args["time_hrs"]["discrete_ticks"],
+            discrete_xticks=feats_plot_args[ColNmSeg.TIME_HRS]["discrete_ticks"],
             discrete_yticks=feats_plot_args[feat]["discrete_ticks"],
             minor_ticks="xy",
         )
@@ -108,23 +112,23 @@ def plot_seg_manifest_data(
 
             fig, ax = hist_2d_of_feats(
                 seg_feats_df_subset,
-                x_column_name=feats_plot_args["time_hrs"]["column_name"],
+                x_column_name=feats_plot_args[ColNmSeg.TIME_HRS]["column_name"],
                 y_column_name=feats_plot_args[feat]["column_name"],
-                x_label=feats_plot_args["time_hrs"]["label"],
+                x_label=feats_plot_args[ColNmSeg.TIME_HRS]["label"],
                 y_label=feats_plot_args[feat]["label"],
-                x_lims=feats_plot_args["time_hrs"]["lims"],
+                x_lims=feats_plot_args[ColNmSeg.TIME_HRS]["lims"],
                 y_lims=feats_plot_args[feat]["lims"],
-                set_xticks=feats_plot_args["time_hrs"]["ticks"],
+                set_xticks=feats_plot_args[ColNmSeg.TIME_HRS]["ticks"],
                 set_yticks=feats_plot_args[feat]["ticks"],
-                discrete_xticks=feats_plot_args["time_hrs"]["discrete_ticks"],
+                discrete_xticks=feats_plot_args[ColNmSeg.TIME_HRS]["discrete_ticks"],
                 discrete_yticks=feats_plot_args[feat]["discrete_ticks"],
                 minor_ticks="xy",
                 bin_width=(
-                    feats_plot_args["time_hrs"]["bin_width"],
+                    feats_plot_args[ColNmSeg.TIME_HRS]["bin_width"],
                     feats_plot_args[feat]["bin_width"],
                 ),
             )
-            if "orientation" in feat:
+            if feat in angular_feats:
                 ax = mark_parallel(ax)
                 ax = mark_perpendicular(ax)
             fig.savefig(out_subdir_histplots / filename_out, bbox_inches="tight")
@@ -147,19 +151,26 @@ def process_dataset(
     # load the segmentation features table
     segprops_manifest = load_dataframe_manifest(seg_feature_manifest_name)
     segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset_name)
-    segprops_dataframe = load_dataframe(segprops_location)
+    segprops_dataframe = load_dataframe(segprops_location, delay=True)
+
+    # choose which features to plot (not all columns correspond to features for plotting)
+    cols_to_compute = []
+    for group in ["default", "supp", "dynamics_dependent", "filters"]:
+        cols_to_compute.extend(SEGMENTATION_FEATURE_COLUMNS[group])
+    cols_to_compute = list(set(cols_to_compute))
+    segprops_dataframe = segprops_dataframe[cols_to_compute].compute().reset_index()
 
     # get the FMS ID for the live merged segmentation features
     # and add it to the log
     logger.info(f"Dataset {dataset_name} FMS ID: {segprops_location.fmsid}")
 
     # apply the data filter
-    segprops_dataframe = segprops_dataframe[segprops_dataframe["is_included"]]
+    segprops_dataframe = segprops_dataframe[segprops_dataframe[ColNmSeg.IS_INCLUDED]]
 
     # iterate over each position in each dataset
     for (dataset_nm, pos), df_group in tqdm(
-        segprops_dataframe.groupby(["dataset_name", "position"]),
-        total=len(segprops_dataframe.groupby(["dataset_name", "position"])),
+        segprops_dataframe.groupby([ColNmSeg.DATASET, ColNmSeg.POSITION]),
+        total=len(segprops_dataframe.groupby([ColNmSeg.DATASET, ColNmSeg.POSITION])),
         desc=f"Plotting features: {dataset_name}",
         unit="position",
     ):
