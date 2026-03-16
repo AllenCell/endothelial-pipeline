@@ -46,7 +46,6 @@ class ColumnNameSeg(StrEnum):
     TIME_MINS = "time_minutes"
     TIME_HRS_SINCE_FLOW = "time_hours_since_flow_start"
     NORMALIZED_TIME_PER_TRACK = "normalized_time"
-    TIME_HRS_SINCE_FLOW = "time_hours_since_flow_start"
 
     # timelapse information
     IMAGE_SIZE_X = "image_size_x"
