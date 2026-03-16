@@ -1237,6 +1237,9 @@ def compute_forward_differences_along_trajectory(
     # difference set to 0)
     traj_mask = df_traj[timepoint_diff_column] <= time_lag
     filtered_traj_array = df_traj[traj_mask][column_names].to_numpy()
+    if time_lag > 1:
+        # drop last time_lag - 1 points, as there is no valid difference there
+        filtered_traj_array = filtered_traj_array[: -time_lag + 1]
 
     # for the gradient, only keep steps where time difference is exactly
     # time_lag frames i.e., no valid difference at the end of the trajectory
@@ -1313,6 +1316,17 @@ def get_traj_and_diff(
         filtered_traj, filtered_d_traj = compute_forward_differences_along_trajectory(
             df_crop_, column_names, polar_angle_period, time_lag
         )
+
+        # if either the returned trajectory or difference arrays are empty, log
+        # a warning and skip this trajectory
+        if filtered_traj.size == 0 or filtered_d_traj.size == 0:
+            logger.warning(
+                "Empty trajectory or difference array for crop [ %s ]",
+                df_crop[ColumnName.CROP_INDEX].iloc[0],
+            )
+            continue
+
+        # else, append and continue through the loop
         traj_list.append(filtered_traj)
         d_traj_list.append(filtered_d_traj)
 
