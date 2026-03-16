@@ -36,8 +36,12 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
     constant BIN_LIMIT_PERCENTILE_CUTOFF.
 
     The maximum time lag to consider for MSD calculation is specified by the
-    global constant MAX_MSD_LAG. The y-axis limits for the MSD plots are
-    specified by the global constant MSD_Y_AXIS_LIMITS.
+    global constant MAX_MSD_LAG. If `crop_pattern` is "tracked," only tracks
+    with length greater than or equal to the global constant
+    MINIMUM_MSD_TRACK_LENGTH will be included in the MSD calculation.
+
+    The y-axis limits for the MSD plots are specified by the global constant
+    MSD_Y_AXIS_LIMITS.
 
     Unless specified otherwise, the workflow will run on all datasets in the
     "timelapse" collection that have the required dataframes available for the
@@ -88,6 +92,7 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
         MAX_MSD_LAG,
+        MINIMUM_MSD_TRACK_LENGTH,
         MSD_Y_AXIS_LIMITS,
         RESCALE_THETA,
     )
@@ -163,6 +168,7 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
             compute_polar=True,
             rescale_theta=RESCALE_THETA,
             flip_pc3_sign=True,
+            minimum_track_length=MINIMUM_MSD_TRACK_LENGTH if crop_pattern == "tracked" else None,
         )
 
         df_by_flow, shear_stress_list = split_dataset_by_flow(
