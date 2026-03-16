@@ -28,7 +28,7 @@ zarr_channel_indices:
   channel_640: null
 channel_names: [EGFP, BF]
 flow_conditions:
-- start: -85
+- start: -17
   stop: 576
   shear_stress: 14.98
 include_scenes: null
