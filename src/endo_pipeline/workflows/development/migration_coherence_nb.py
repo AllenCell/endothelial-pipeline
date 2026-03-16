@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import binned_statistic_2d
 
+from endo_pipeline.cli import DEMO_MODE
 from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
 from endo_pipeline.io import get_output_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
@@ -37,6 +38,9 @@ OPTICAL_FLOW_FEATURE = "optical_flow_mean_unit_vector_dt1"
 datasets = get_datasets_in_collection("diffae_model_training") + get_datasets_in_collection(
     "replicate_2_datasets"
 )
+if DEMO_MODE:
+    datasets = datasets[:2]
+
 output_dir = get_output_path("migration_coherence")
 
 # %% Load diffae features
