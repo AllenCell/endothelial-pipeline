@@ -10,7 +10,7 @@ from endo_pipeline.manifests import (
     save_dataframe_manifest,
 )
 
-apply_workflow_options(WorkflowOptions(use_staging=True, verbose=True))
+apply_workflow_options(WorkflowOptions(use_staging=False, verbose=True))
 
 # Define manifest names
 model_manifest_name = "diffae_baseline_exclude_cell_piling"
