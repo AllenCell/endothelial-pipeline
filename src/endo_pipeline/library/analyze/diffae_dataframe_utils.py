@@ -1317,20 +1317,23 @@ def get_traj_and_diff(
             df_crop_, column_names, polar_angle_period, time_lag
         )
 
-        # if either the returned trajectory or difference arrays are empty, log
-        # a warning and skip this trajectory
+        # if either the returned trajectory or difference arrays are empty, skip
+        # this trajectory
         if filtered_traj.size == 0 or filtered_d_traj.size == 0:
-            logger.warning(
-                "Empty trajectory or difference array for crop [ %s ] at time lag [ %s ]. Skipping this trajectory.",
-                df_crop[ColumnName.CROP_INDEX].iloc[0],
-                time_lag,
-            )
             continue
 
         # else, append and continue through the loop
         traj_list.append(filtered_traj)
         d_traj_list.append(filtered_d_traj)
 
+    # if lists are empty, log warning
+    if len(traj_list) == 0 or len(d_traj_list) == 0:
+        logger.warning(
+            "No valid trajectories found after computing forward differences with time lag [ %s ]. "
+            "Check that the input dataframe has the required columns and that the time lag is not "
+            "larger than the number of timepoints in the trajectories.",
+            time_lag,
+        )
     return traj_list, d_traj_list
 
 
