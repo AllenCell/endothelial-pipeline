@@ -84,6 +84,9 @@ class ColumnNameSeg(StrEnum):
     GFP_SCOPE_ERROR = "gfp_scope_error"
     CELL_PILING = "cell_piling"
     NOT_STEADY_STATE = "not_steady_state"
+    UNFED = "unfed"
+    XY_SHIFT = "xy_shift"
+    Z_SHIFT = "z_shift"
 
     # morphological features
     ORIENTATION = "orientation"
