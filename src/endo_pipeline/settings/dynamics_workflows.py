@@ -69,8 +69,8 @@ NUM_PCS_TO_FIT_FOR_DYNAMICS: int = 3
 HISTOGRAM_THRESHOLD_FOR_MASKING: float = 0.05
 """Histogram threshold for masking in dynamics visualization workflows."""
 
-MAX_MSD_LAG: int = 35
+MAX_MSD_LAG: int = 24
 """Maximum time lag (in number of frames) to consider for mean squared displacement calculation."""
 
-MSD_Y_AXIS_LIMITS: tuple[float, float] = (2e-3, 5e-1)
+MSD_Y_AXIS_LIMITS: tuple[float, float] = (2e-3, 1e0)
 """Axes limits for mean squared displacement plots."""
