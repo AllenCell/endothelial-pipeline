@@ -1,22 +1,42 @@
-from endo_pipeline.cli import CropPattern, Datasets, StrList
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+from endo_pipeline.cli import CropPattern, Datasets
 
 
 def main(
     datasets: Datasets | None = None,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
     plot_stack: bool = False,
     compute_vtk: bool = False,
     use_same_axes: bool = False,
-    columns: StrList | None = None,
 ) -> None:
     """
     Visualize 3D (drift) flow fields for the dynamics of the crop-based DiffAE
-    features for each of the single flow datasets.
+    features as estimated by the `generate_3d_flow_field` workflow.
 
     #dynamical-systems #diffae-feature-analysis #visualization
+
+    **Workflow defaults**
+
+    This workflow runs on drift estimates of the features derived from the
+    default DiffAE model (specified by the default settings
+    `DEFAULT_MODEL_MANIFEST_NAME` and `DEFAULT_MODEL_RUN_NAME`) as obtained from
+    image crops of the specified `crop_pattern` type (i.e., grid-based or
+    tracked-based crops).
+
+    By default, it uses estimates from timeseries features extracted from
+    grid-based crops but can also be run using the estimates from tracked-based
+    crops by setting the `crop_pattern` parameter to "tracked". Note that to do
+    so, the `generate_3d_flow_field` workflow must have been run with the same
+    `crop_pattern` setting to generate the appropriate flow field estimates for
+    the tracked-based crops.
+
+    The specific features used for flow field estimation and analysis are
+    determined by the `DYNAMICS_COLUMN_NAMES` setting, which specifies the names
+    of the features to use for flow field analysis and visualization. By
+    default, these are set to be the polar angle, polar radius, and rho features
+    derived from the DiffAE features via a 3D PCA transformation. For more
+    details on the specific features used and how they are derived, see the
+    methods `fit_pca` and `project_features_to_pcs` in the
+    `diffae_dataframe_utils` module.
 
     **Dataframe loading pattern**
 
@@ -52,13 +72,6 @@ def main(
         Optional list of dataset names to visualize. If not provided, will
         visualize all datasets in the dataframe manifest corresponding to the
         given model manifest and run name.
-    model_manifest_name
-        Name of the model manifest to use for loading the corresponding
-        dataframe manifest and feature dataframes.
-    run_name
-        Optional run name to use for loading the corresponding dataframe
-        manifest and feature dataframes. If not provided, will use the default
-        run name.
     crop_pattern
         Crop pattern to use for loading the feature dataframes. If not provided,
         will use the default crop pattern of "grid".
@@ -69,12 +82,8 @@ def main(
         If true, compute and save VTK files for 3D flow fields.
     use_same_axes
         If true, use the same axis limits for all datasets when plotting flow
-        fields.
-    columns
-        Optional list of column names to use for the flow field analysis and
-        visualization. If not provided, will use the default column names
-        defined in `DYNAMICS_COLUMN_NAMES`. Must provide exactly 3 column names
-        for 3D flow field analysis.
+        fields for each dataset. If false, use dataset-specific axis limits
+        based on the bounds of the data for each dataset.
     """
     import logging
     from pathlib import Path
@@ -113,6 +122,7 @@ def main(
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
+        BIN_WIDTHS_DYNAMICS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
@@ -125,12 +135,21 @@ def main(
         DATAFRAME_MANIFEST_PREFIX_GRID,
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         INIT_POINT_3D,
-        KERNEL_BANDWIDTH,
-        KERNEL_FUNCTION_NAME,
         TRAJECTORY_TIME_SPAN,
+    )
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
     )
 
     logger = logging.getLogger(__name__)
+
+    # set workflow defaults
+    model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
+    run_name = DEFAULT_MODEL_RUN_NAME
+    column_names = list(DYNAMICS_COLUMN_NAMES)
+    ndim = len(column_names)
+    drift_column_names = [f"{name}_drift" for name in column_names]
 
     # load model manifest and get corresponding dataframe manifest name
     model_manifest = load_model_manifest(model_manifest_name)
@@ -153,8 +172,8 @@ def main(
     grid_dataframe_manifest = load_dataframe_manifest(grid_dataframe_manifest_name)
     fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
 
-    if set(drift_dataframe_manifest.locations.keys()) != set(
-        grid_dataframe_manifest.locations.keys()
+    if list_datasets_with_dataframes(drift_dataframe_manifest) != list_datasets_with_dataframes(
+        grid_dataframe_manifest
     ):
         logger.error(
             "Datasets in drift dataframe manifest [ %s ] do not match datasets in grid points dataframe manifest [ %s ].",
@@ -188,16 +207,8 @@ def main(
 
     # Create output folders if they do not exist yet
     fig_savedir = get_output_path(__file__, feature_dataframe_manifest_name, "figs")
-    vtk_savedir = get_output_path(__file__, feature_dataframe_manifest_name, "vtk")
-
-    # get feature column names to use for flow field analysis
-    column_names: list[str] = columns or list(DYNAMICS_COLUMN_NAMES)
-    ndim = len(column_names)
-    if ndim != 3:
-        raise ValueError(
-            f"Exactly 3 column names must be provided for 3D flow field analysis, but {len(column_names)} were provided: {column_names}"
-        )
-    drift_column_names = [f"{name}_drift" for name in column_names]
+    if compute_vtk:
+        vtk_savedir = get_output_path(__file__, feature_dataframe_manifest_name, "vtk")
 
     if DEMO_MODE:
         logger.warning(
@@ -221,15 +232,22 @@ def main(
         dataset_names, feature_dataframe_manifest, pca, column_names=column_names
     )
 
-    # initialize kernels to be used for KDE estimation of the data histogram
+    # initialize kernels and bins to be used for KDE estimation of the data histogram
     kernels = []
+    bin_widths = []
     rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
 
+    # Get the corresponding kernels and bin widths for each variable. For the
+    # polar angle variable, also specify the period for the kernel based on the
+    # rescaled theta range, to ensure that the periodicity of the polar angle is
+    # taken into account in the flow field estimation.
     for column_name in column_names:
-        name = KERNEL_NAMES_DYNAMICS.get(column_name, KERNEL_FUNCTION_NAME)
-        bandwidth = KERNEL_BANDWIDTHS_DYNAMICS.get(column_name, KERNEL_BANDWIDTH)
+        name = KERNEL_NAMES_DYNAMICS[column_name]
+        bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
         period = rescaled_theta if column_name == ColumnName.POLAR_ANGLE else None
+        bin_width = BIN_WIDTHS_DYNAMICS[column_name]
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
+        bin_widths.append(bin_width)
 
     # set list of column names to keep from the loaded feature dataframes
     columns_plus_metadata_to_keep = [
@@ -306,10 +324,10 @@ def main(
         ]
         grid_points_as_list = [points[~np.isnan(points)] for points in grid_points_padded]
         grid_shape = tuple(len(points) for points in grid_points_as_list)
+        grid = np.meshgrid(*grid_points_as_list, indexing="ij")
 
-        # get bin widths and limits for vtk file extent and for estimating KDE
+        # get bins for vtk file extent and for estimating KDE
         # of data for plotting
-        bin_widths = [grid_points_as_list[i][1] - grid_points_as_list[i][0] for i in range(ndim)]
         bin_limits = [
             (
                 grid_points_as_list[i][0] - bin_widths[i] / 2,
@@ -317,15 +335,12 @@ def main(
             )
             for i in range(ndim)
         ]
-
-        # estimate KDE in 3D for plotting
         num_bins = [len(points) for points in grid_points_as_list]
-        logger.debug("Bin limits for KDE estimation: [ %s ]", bin_limits)
-        logger.debug("Number of bins for KDE estimation: [ %s ]", num_bins)
         bin_edges = [
             np.linspace(bin_limit[0], bin_limit[1], num_bin + 1)
             for bin_limit, num_bin in zip(bin_limits, num_bins, strict=True)
         ]
+
         # build expected inputs for the KDE function: a list of 2D arrays of
         # shape (n_timepoints_in_traj, 2) and the appropriate kernel for
         # each column pair
@@ -336,9 +351,6 @@ def main(
 
         # unpack drift values from dataframe and reshape to grid shape for flow
         # field visualization and ODE solving,
-        drift_values = drift_dataframe[drift_column_names].to_numpy().reshape(*grid_shape, ndim)
-        grid = np.meshgrid(*grid_points_as_list, indexing="ij")
-
         drift_values = drift_dataframe[drift_column_names].to_numpy().reshape(*grid_shape, ndim)
 
         # build flow field dict for downstream functions that expect the flow

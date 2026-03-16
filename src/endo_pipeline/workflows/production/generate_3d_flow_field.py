@@ -1,13 +1,9 @@
-from endo_pipeline.cli import CropPattern, Datasets, StrList
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
+from endo_pipeline.cli import CropPattern, Datasets
 
 
 def main(
     datasets: Datasets | None = None,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
-    columns: StrList | None = None,
     upload_to_fms: bool = False,
 ) -> None:
     """
@@ -16,14 +12,44 @@ def main(
 
     #dynamical-systems #diffae-feature-analysis
 
+    **Workflow defaults**
+
+    This workflow runs on features derived from the DiffAE model (specified by
+    the default settings `DEFAULT_MODEL_MANIFEST_NAME` and
+    `DEFAULT_MODEL_RUN_NAME`) as obtained from image crops of the specified
+    `crop_pattern` type (i.e., grid-based or tracked-based crops). By default,
+    it uses the time series of features extracted from grid-based crops but can
+    also be run using features extracted from tracked-based crops by setting the
+    `crop_pattern` parameter to "tracked".
+
+    The specific features used for flow field estimation and analysis are
+    determined by the `DYNAMICS_COLUMN_NAMES` setting, which specifies the names
+    of the three features to use for flow field estimation and analysis. By
+    default, these are set to be the polar angle, polar radius, and rho features
+    derived from the DiffAE features via a 3D PCA transformation. For more
+    details on the specific features used and how they are derived, see the
+    methods `fit_pca` and `project_features_to_pcs` in the
+    `diffae_dataframe_utils` module.
+
+    The workflow runs on the datasets specified via the `datasets` parameter,
+    which can be a list of dataset names or dataset collection names. By
+    default, it uses the datasets specified in the setting
+    `DATASET_COLLECTION_FOR_3D_DYNAMICS`.
+
     **Flow field estimation and analysis**
 
-    1. Estimate 3D flow fields using a Gaussian kernel method on the PCA-reduced
-         DiffAE feature space.
+    Using the 3D feature space defined by the DiffAE + PC derived features:
+
+        (polar_theta, polar_r, rho)
+
+    this workflow will do the following for each specified dataset:
+
+    1. Estimate 3D flow fields using a kernel-based method for estimating
+       Kramers-Moyal coefficients from time series data.
     2. Use interpolation to get a callable flow field function.
     3. Identify stable fixed points in the 3D flow field using a root-finding
        method applied to the flow field function.
-    4. Save the following outputs locally:
+    4. Save the following outputs for each dataset as parquet files:
         - Dataframe with the estimated drift coefficients at each grid point for
           each dataset.
         - Dataframe with the corresponding grid point coordinates for each
@@ -33,22 +59,14 @@ def main(
     Parameters
     ----------
     datasets
-        List of datasets or dataset collections to use for visualization.
-    model_manifest_name
-        Name of the model manifest containing the run to load features from.
-    run_name
-        Name of the specific model run to load featuref for. If None, uses the
-        most recent run.
+        Optional list of datasets or dataset collections to use for
+        visualization.
     crop_pattern
         The crop pattern to get features for, either "grid" or "tracked".
-    columns
-        List of column names in the dataframe to use for flow field analysis. If
-        None, uses default column names specified in settings.
     upload_to_fms
-        If True, the dataframes will be uploaded to FMS and the corresponding
-        locations will be saved in the dataframe manifests. If False, the
-        dataframes will only be saved locally and the dataframe manifests will
-        not be updated.
+        If True, upload the output dataframes to FMS and update the
+        corresponding dataframe manifests with the FMS locations. If False,
+        save the output dataframes locally and log paths.
     """
     import logging
 
@@ -78,6 +96,7 @@ def main(
     from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
     from endo_pipeline.manifests import (
         DataframeLocation,
+        build_dataframe_location_from_path,
         create_dataframe_manifest,
         get_feature_dataframe_manifest_name,
         list_datasets_with_dataframes,
@@ -96,27 +115,34 @@ def main(
         RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_3d import (
-        BIN_WIDTH_DEFAULTS,
         DATAFRAME_MANIFEST_PREFIX_DRIFT,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         DATAFRAME_MANIFEST_PREFIX_GRID,
-        DATAFRAME_OUTPUT_DIR,
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         FMS_ANNOTATION_NOTES_DRIFT,
         FMS_ANNOTATION_NOTES_FIXED_POINTS,
         FMS_ANNOTATION_NOTES_GRID,
-        KERNEL_BANDWIDTH,
-        KERNEL_FUNCTION_NAME,
         LOWER_PERCENTILE_FOR_STABLE_FP,
         NUM_INIT_SAMPLES,
         PAD_BINS_FLOAT,
         TIME_STEP_IN_MINUTES,
         UPPER_PERCENTILE_FOR_STABLE_FP,
     )
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+    )
 
     logger = logging.getLogger(__name__)
 
-    # load model manifest and get corresponding dataframe manifest name
+    # set workflow defaults
+    model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
+    run_name = DEFAULT_MODEL_RUN_NAME
+    column_names = list(DYNAMICS_COLUMN_NAMES)
+    drift_column_names = [f"{name}_drift" for name in column_names]
+
+    # Load default model manifest and get corresponding feature dataframe
+    # manifest name for default run name and specified crop pattern.
     model_manifest = load_model_manifest(model_manifest_name)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
         model_manifest, run_name, crop_pattern=crop_pattern
@@ -132,9 +158,7 @@ def main(
     # naming conflicts with other runs. The dataframe manifests get saved to the
     # dataframe manifest directory, and the dataframes themselves get saved to
     # the output directory specified in settings.
-    dataframe_savedir = get_output_path(
-        DATAFRAME_OUTPUT_DIR, dataframe_manifest_name, include_timestamp=False
-    )
+    dataframe_savedir = get_output_path(__file__, dataframe_manifest_name)
     demo_suffix = "_demo" if DEMO_MODE else ""
     drift_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataframe_manifest_name}{demo_suffix}"
@@ -178,14 +202,6 @@ def main(
         )
         dataset_names = dataset_names[:1]
 
-    # get feature column names to use for flow field analysis
-    column_names: list[str] = columns or list(DYNAMICS_COLUMN_NAMES)
-    if len(column_names) != 3:
-        raise ValueError(
-            f"Exactly 3 column names must be provided for 3D flow field analysis, but {len(column_names)} were provided: {column_names}"
-        )
-    drift_column_names = [f"{name}_drift" for name in column_names]
-
     # fit PCA using the features from the given dataframe manifest PCA always
     # fit on the grid-based features, even if the features for flow field
     # analysis are from tracked-based crops, to ensure that the PCA space is the
@@ -205,12 +221,15 @@ def main(
     bin_widths: list[float] = []
     rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
 
-    for index, column_name in enumerate(column_names):
-        name = KERNEL_NAMES_DYNAMICS.get(column_name, KERNEL_FUNCTION_NAME)
-        bandwidth = KERNEL_BANDWIDTHS_DYNAMICS.get(column_name, KERNEL_BANDWIDTH)
+    # Get the corresponding kernels and bin widths for each variable. For the
+    # polar angle variable, also specify the period for the kernel based on the
+    # rescaled theta range, to ensure that the periodicity of the polar angle is
+    # taken into account in the flow field estimation.
+    for column_name in column_names:
+        name = KERNEL_NAMES_DYNAMICS[column_name]
+        bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
         period = rescaled_theta if column_name == ColumnName.POLAR_ANGLE else None
-        bin_width = BIN_WIDTHS_DYNAMICS.get(column_name, BIN_WIDTH_DEFAULTS[index])
-
+        bin_width = BIN_WIDTHS_DYNAMICS[column_name]
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
         bin_widths.append(bin_width)
 
@@ -345,10 +364,22 @@ def main(
             grid_dataframe_manifest.locations[dataset_name] = DataframeLocation(fmsid=grid_fmsid)
             save_dataframe_manifest(drift_dataframe_manifest)
             save_dataframe_manifest(grid_dataframe_manifest)
+        # If not uploading to FMS, depends on if we're in "demo mode" or
+        # not. If in demo mode, update "demo" dataframe manifests with
+        # locations built from local save paths, so that the dataframes can
+        # be loaded from the local paths in the visualization workflow. If
+        # not in demo mode, just log the local save paths for traceability
+        # since the dataframe manifests won't be updated with locations
+        elif DEMO_MODE:
+            drift_dataframe_manifest.locations[dataset_name] = build_dataframe_location_from_path(
+                drift_coeffs_save_path
+            )
+            grid_dataframe_manifest.locations[dataset_name] = build_dataframe_location_from_path(
+                grid_points_save_path
+            )
+            save_dataframe_manifest(drift_dataframe_manifest)
+            save_dataframe_manifest(grid_dataframe_manifest)
         else:
-            # if not uploading to FMS, just log the local save paths for
-            # traceability since the dataframe manifests won't be updated with
-            # locations
             logger.info("Saving drift dataframe locally to [ %s ]", drift_coeffs_save_path)
             logger.info("Saving grid points dataframe locally to [ %s ]", grid_points_save_path)
 
@@ -406,9 +437,15 @@ def main(
                 fmsid=fixed_points_fmsid
             )
             save_dataframe_manifest(fixed_points_dataframe_manifest)
+        # else, same as above: if in demo mode, update the "demo" dataframe
+        # manifest with location built from local save path, and if not in
+        # demo mode, just log the local save path
+        elif DEMO_MODE:
+            fixed_points_dataframe_manifest.locations[dataset_name] = (
+                build_dataframe_location_from_path(stable_fixed_points_save_path)
+            )
+            save_dataframe_manifest(fixed_points_dataframe_manifest)
         else:
-            # else, log the local save path for traceability since the dataframe
-            # manifest won't be updated with location
             logger.info(
                 "Saving stable fixed points dataframe locally to [ %s ]",
                 stable_fixed_points_save_path,
