@@ -5,6 +5,7 @@ They must be run on the Allen Institute intranet either
 in a Linux or MacOS environment through the CLI.
 """
 
+import time
 from typing import Literal
 
 from endo_pipeline.cli import Datasets
@@ -168,6 +169,8 @@ def main(
             f"{manifest_filepath.stem}_fms{timestamp}{manifest_filepath.suffix}"
         )
         manifest_filepath.rename(manifest_filepath_timestamped)
+
+        time.sleep(2)  # add a delay to let FMS register that the file has been renamed (??)
 
         fms_upload_func_dict[manifest_kind](dataset_name, manifest_filepath_timestamped)
 
