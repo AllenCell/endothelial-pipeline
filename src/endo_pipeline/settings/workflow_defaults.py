@@ -86,6 +86,7 @@ SEGMENTATION_FEATURE_COLUMNS = {
         ColNmSeg.TRACK_ID,
         ColNmSeg.LABEL,
         ColNmSeg.TIME_HRS,
+        ColNmSeg.TIME_MINS,
         ColNmSeg.TIMEPOINT,
         ColNmSeg.CENTROID_X,
         ColNmSeg.CENTROID_Y,
