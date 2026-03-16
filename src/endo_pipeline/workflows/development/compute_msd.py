@@ -308,6 +308,7 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
                     fig_savedir,
                     f"msd_{column_name}_{dataset_name_flow}",
                 )
+                plt.close("all")
 
 
 if __name__ == "__main__":
