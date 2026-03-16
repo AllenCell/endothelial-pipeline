@@ -109,6 +109,3 @@ FMS_ANNOTATION_NOTES_FIXED_POINTS: str = (
     "Stable fixed points identified from 3D flow field analysis."
 )
 """Annotation notes for fixed point dataframes uploaded to FMS in 3D flow field analysis."""
-
-DATAFRAME_OUTPUT_DIR: str = "flow_field_3d_dataframes"
-"""Directory for storing 3D flow field dataframes."""

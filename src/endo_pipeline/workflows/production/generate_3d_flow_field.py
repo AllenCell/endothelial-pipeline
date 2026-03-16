@@ -118,7 +118,6 @@ def main(
         DATAFRAME_MANIFEST_PREFIX_DRIFT,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         DATAFRAME_MANIFEST_PREFIX_GRID,
-        DATAFRAME_OUTPUT_DIR,
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         FMS_ANNOTATION_NOTES_DRIFT,
         FMS_ANNOTATION_NOTES_FIXED_POINTS,
@@ -159,9 +158,7 @@ def main(
     # naming conflicts with other runs. The dataframe manifests get saved to the
     # dataframe manifest directory, and the dataframes themselves get saved to
     # the output directory specified in settings.
-    dataframe_savedir = get_output_path(
-        DATAFRAME_OUTPUT_DIR, dataframe_manifest_name, include_timestamp=False
-    )
+    dataframe_savedir = get_output_path(__file__, dataframe_manifest_name)
     demo_suffix = "_demo" if DEMO_MODE else ""
     drift_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataframe_manifest_name}{demo_suffix}"
