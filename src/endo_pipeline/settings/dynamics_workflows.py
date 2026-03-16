@@ -68,3 +68,6 @@ NUM_PCS_TO_FIT_FOR_DYNAMICS: int = 3
 
 HISTOGRAM_THRESHOLD_FOR_MASKING: float = 0.05
 """Histogram threshold for masking in dynamics visualization workflows."""
+
+MAX_MSD_LAG: int = 35
+"""Maximum time lag (in number of frames) to consider for mean squared displacement calculation."""

@@ -25,12 +25,17 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
 
     It specifically uses the features as specified by the global constant
     DYNAMICS_COLUMN_NAMES, which by default includes the polar angle, polar
-    radius, and DiffAE-based density proxy. The bin widths, limits, and kernel
-    parameters for computing the Kramers-Moyal coefficients are specified by the
-    global constants BIN_WIDTHS_DYNAMICS, BIN_LIMITS_DYNAMICS,
-    KERNEL_BANDWIDTHS_DYNAMICS, and KERNEL_NAMES_DYNAMICS. The bin limits for
-    the non-polar angle features are adjusted based on the percentiles of the
-    data, as specified by the global constant BIN_LIMIT_PERCENTILE_CUTOFF.
+    radius, and DiffAE-based density proxy.
+
+    The bin widths, limits, and kernel parameters for computing the
+    Kramers-Moyal coefficients are specified by the global constants
+    BIN_WIDTHS_DYNAMICS, BIN_LIMITS_DYNAMICS, KERNEL_BANDWIDTHS_DYNAMICS, and
+    KERNEL_NAMES_DYNAMICS. The bin limits for the non-polar angle features are
+    adjusted based on the percentiles of the data, as specified by the global
+    constant BIN_LIMIT_PERCENTILE_CUTOFF.
+
+    The maximum time lag to consider for MSD calculation is specified by the
+    global constant MAX_MSD_LAG.
 
     Unless specified otherwise, the workflow will run on all datasets in the
     "timelapse" collection that have the required dataframes available for the
@@ -77,15 +82,13 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
+        MAX_MSD_LAG,
         RESCALE_THETA,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
     )
-
-    # maximum time lag (in number of frames) to consider for msd calculation
-    MAX_DT = 35
 
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     model_run_name = DEFAULT_MODEL_RUN_NAME
@@ -153,7 +156,7 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
         )
 
         for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
-            dt_array = np.arange(1, MAX_DT + 1)
+            dt_array = np.arange(1, MAX_MSD_LAG + 1)
             msd_vals = np.nan * np.ones_like(dt_array, dtype=float)
 
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
