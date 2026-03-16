@@ -23,6 +23,7 @@ class ColumnNameSeg(StrEnum):
     """The number of unique tracks that pass filtering criteria at the timepoint of interest."""
     NUM_TRACKS_BEFORE_FILTERING = "num_unique_tracks_before_filtering_at_T"
     SHEAR_STRESS_REGIME = "shear_stress_regime"
+    SHEAR_STRESS = "shear_stress"
     NUM_NUCLEI_AT_TIMEPOINT = "total_nuclei_count_at_T"
     TIMELAPSE_DURATION = ColumnNameDiffAE.TIMELAPSE_DURATION
     """The duration of the timelapse dataset, in hours."""
@@ -44,6 +45,7 @@ class ColumnNameSeg(StrEnum):
     TIME_HRS = "time_hours"
     TIME_MINS = "time_minutes"
     NORMALIZED_TIME_PER_TRACK = "normalized_time"
+    TIME_HRS_SINCE_FLOW = "time_hours_since_flow_start"
 
     # timelapse information
     IMAGE_SIZE_X = "image_size_x"
@@ -169,7 +171,6 @@ class ColumnNameSeg(StrEnum):
     SMOOTHED_AREA_NORMALIZED = "smoothed_area_normd"
     SIGMA_FOR_AREA_SMOOTHING = "gaussian_sigma_for_area_smoothing"
     NUM_UNIQUE_TRACKS_PER_TIMEPOINT = "num_unique_tracks_per_timeframe"
-    SEGMENTATION_FILEPATH = "segmentation_zarr_path"
     NODE_LABELS = "node_labels"
     EDGE_LABELS = "edge_labels"
     NODE_PAIR_LABELS = "node_pair_labels"
