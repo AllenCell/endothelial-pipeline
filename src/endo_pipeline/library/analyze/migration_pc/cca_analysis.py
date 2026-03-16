@@ -4,13 +4,10 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from matplotlib.lines import Line2D
 from sklearn.cross_decomposition import CCA
 
-from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe, save_plot_to_path
-from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
 from endo_pipeline.manifests import load_dataframe_manifest
 
 logger = logging.getLogger(__name__)
@@ -232,70 +229,4 @@ def plot_feature_correlations(
     plt.show()
     if output_dir is not None:
         save_plot_to_path(fig, output_dir, f"feature_correlations_{'_'.join(features[:3])}.png")
-    plt.close(fig)
-
-
-def plot_optical_flow_feature_distribution(
-    df: pd.DataFrame,
-    optical_flow_feature: str,
-    datasets: list[str],
-    output_dir: Path,
-    binwidth: float = 0.02,
-    bins: int = 50,
-    kde: bool = True,
-    figsize: tuple[float, float] = (4, 2.5),
-) -> None:
-    """Plot an optical-flow feature histogram per dataset on a shared axis.
-
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        Dataframe containing a ``"dataset"`` column and the column named by
-        *optical_flow_feature*.
-    optical_flow_feature : str
-        Column name of the optical-flow feature to plot.
-    datasets : list[str]
-        Dataset identifiers to include. Each dataset is plotted as a separate
-        histogram with its own colour and shear-stress label.
-    output_dir : Path
-        Directory where the figure is saved.
-    binwidth : float, default=0.02
-        Width of each histogram bin passed to :func:`seaborn.histplot`.
-    bins : int, default=50
-        Number of histogram bins passed to :func:`seaborn.histplot`.
-    kde : bool, default=True
-        Whether to overlay a kernel-density estimate on the histogram.
-    figsize : tuple[float, float], default=(4, 2.5)
-        Width and height of the figure in inches.
-    """
-    fig, ax = plt.subplots(figsize=figsize)
-    for dataset in datasets:
-        color = get_dataset_color(dataset)
-
-        dataset_config = load_dataset_config(dataset)
-        flow_conditions = dataset_config.flow_conditions
-        shear_stress_values = [flow_condition.shear_stress for flow_condition in flow_conditions]
-        shear_stress_label = "-".join(f"{value:g}" for value in shear_stress_values)
-        df_of_subset = df[df["dataset"] == dataset]
-        sns.histplot(
-            df_of_subset[optical_flow_feature],
-            bins=bins,
-            kde=kde,
-            label=f"{dataset}, shear={shear_stress_label}",
-            binwidth=binwidth,
-            ax=ax,
-            color=color,
-        )
-
-    ax.set_xlabel(optical_flow_feature)
-    ax.set_ylabel("Count")
-    ax.legend(
-        loc="lower center",
-        bbox_to_anchor=(0.5, 1.02),
-        frameon=False,
-        fontsize=8,
-    )
-    fig.tight_layout()
-    plt.show()
-    save_plot_to_path(fig, output_dir, f"{optical_flow_feature}_dist_{'_'.join(datasets)}.png")
     plt.close(fig)
