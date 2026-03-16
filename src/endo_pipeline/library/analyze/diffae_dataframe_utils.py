@@ -889,10 +889,10 @@ def get_dataframe_for_dynamics_workflows(
         df_filtered = df_filtered.merge(
             df_segmentations,
             on=[
-                ColumnName.DATASET,
-                ColumnName.POSITION,
-                ColumnName.TIMEPOINT,
-                ColumnName.TRACK_ID,
+                ColNmSeg.DATASET,
+                ColNmSeg.POSITION,
+                ColNmSeg.TIMEPOINT,
+                ColNmSeg.TRACK_ID,
             ],
             how="left",
             validate="one_to_one",
@@ -907,7 +907,7 @@ def get_dataframe_for_dynamics_workflows(
 
     if minimum_track_length is not None:
         df_filtered = filter_dataframe_by_track_length(
-            df_filtered, ColumnName.TRACK_LENGTH, minimum_track_length
+            df_filtered, ColNmSeg.TRACK_LENGTH, minimum_track_length
         )
 
     # add dataset duration description column
