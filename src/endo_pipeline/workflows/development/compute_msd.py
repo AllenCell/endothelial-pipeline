@@ -50,10 +50,12 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
         Crop pattern to use for selecting features. Must be one of the values
         defined in the CropPattern enum.
     """
+    import logging
 
     import matplotlib.pyplot as plt
     import numpy as np
 
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
@@ -92,6 +94,7 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
         DEFAULT_MODEL_RUN_NAME,
     )
 
+    logger = logging.getLogger(__name__)
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     model_run_name = DEFAULT_MODEL_RUN_NAME
 
@@ -131,6 +134,13 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
         dataset_names = [ds for ds in datasets if ds in valid_dataset_options]
     else:
         dataset_names = get_datasets_in_collection("timelapse", valid_dataset_options)
+
+    if DEMO_MODE:
+        dataset_names = dataset_names[:1]
+        logger.warning(
+            "Running in demo mode, only processing first dataset: [ %s ]",
+            dataset_names[0],
+        )
 
     fig_savedir = get_output_path(__file__)
 
