@@ -161,7 +161,7 @@ def process_dataset(
     cols_to_compute = []
     for group in ["default", "supp", "dynamics_calculation_prereq", "filters"]:
         cols_to_compute.extend(SEGMENTATION_FEATURE_COLUMNS[group])
-    cols_to_compute = list(set(cols_to_compute))
+    cols_to_compute = list(set(cols_to_compute) & set(segprops_dataframe.columns))
     segprops_dataframe = segprops_dataframe[cols_to_compute].compute().reset_index()
 
     # get the FMS ID for the live merged segmentation features
