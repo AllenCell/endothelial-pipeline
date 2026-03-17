@@ -10,6 +10,7 @@ from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifes
 from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     add_backdrop_fname_to_manifest,
 )
+from endo_pipeline.settings.feature_info import RANGE_MAP
 
 
 def update_manifest_for_tfe(
@@ -134,9 +135,16 @@ def add_feature_metadata(label_map: dict) -> dict:
 
     # Iterate through the label_map to populate feature_info
     for feature, label in label_map.items():
-        feature_info[feature] = FeatureInfo(
-            label=label,
-        )
+        if feature in RANGE_MAP:
+            feature_info[feature] = FeatureInfo(
+                label=label,
+                min=RANGE_MAP[feature][0],
+                max=RANGE_MAP[feature][1],
+            )
+        else:
+            feature_info[feature] = FeatureInfo(
+                label=label,
+            )
 
     # Return the feature_info dictionary
     return feature_info
