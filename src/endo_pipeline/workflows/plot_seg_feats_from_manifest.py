@@ -159,7 +159,7 @@ def process_dataset(
 
     # choose which features to plot (not all columns correspond to features for plotting)
     cols_to_compute = []
-    for group in ["default", "supp", "dynamics_dependent", "filters"]:
+    for group in ["default", "supp", "dynamics_calculation_prereq", "filters"]:
         cols_to_compute.extend(SEGMENTATION_FEATURE_COLUMNS[group])
     cols_to_compute = list(set(cols_to_compute))
     segprops_dataframe = segprops_dataframe[cols_to_compute].compute().reset_index()
