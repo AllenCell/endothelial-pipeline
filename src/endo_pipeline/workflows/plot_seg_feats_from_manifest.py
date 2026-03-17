@@ -1,26 +1,10 @@
 import logging
-from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import pandas as pd
-from matplotlib import pyplot as plt
-from tqdm import tqdm
 
 from endo_pipeline.cli import Datasets
-from endo_pipeline.io import get_output_path, load_dataframe
-from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
-    calculate_derived_data_dynamics_dependent,
-)
-from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
-    get_seg_feat_plot_args,
-    hist_2d_of_feats,
-    lineplot_of_feats,
-    mark_parallel,
-    mark_perpendicular,
-)
-from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
-from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME, SEGMENTATION_FEATURE_COLUMNS
-from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
+from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +35,16 @@ def plot_seg_manifest_data(
     - number of nuclei (line plot only)
     - number of tracks (line plot only)
     """
+    from matplotlib import pyplot as plt
+
+    from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
+        get_seg_feat_plot_args,
+        hist_2d_of_feats,
+        lineplot_of_feats,
+        mark_parallel,
+        mark_perpendicular,
+    )
+    from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
 
     # choose which features to put on the y-axis
     # (we will put time on the x-axis)
@@ -148,6 +142,16 @@ def process_dataset(
     each position.
     """
 
+    from tqdm import tqdm
+
+    from endo_pipeline.io import load_dataframe
+    from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+        calculate_derived_data_dynamics_dependent,
+    )
+    from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+    from endo_pipeline.settings import SEGMENTATION_FEATURE_COLUMNS
+    from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
+
     # load the segmentation features table
     segprops_manifest = load_dataframe_manifest(seg_feature_manifest_name)
     segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset_name)
@@ -186,10 +190,21 @@ def process_dataset(
         )
 
 
-def main(datasets: Datasets, n_proc: int = 1, is_test: bool = False) -> None:
+def main(datasets: Datasets, n_proc: int = 1) -> None:
+    from concurrent.futures import ProcessPoolExecutor
+
+    from tqdm import tqdm
+
+    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.io import get_output_path
+
     logger.debug(f"Processing: {datasets}")
 
     out_dir = get_output_path(__file__)
+
+    if DEMO_MODE:
+        logger.info(f"Running in demo mode. Only processing first dataset {datasets[0]}.")
+        datasets = datasets[:1]
 
     if n_proc > 1:
         with ProcessPoolExecutor(max_workers=n_proc) as executor:
@@ -211,5 +226,3 @@ def main(datasets: Datasets, n_proc: int = 1, is_test: bool = False) -> None:
         ):
             # process dataset below will both load and plot the data
             process_dataset(dataset, out_dir)
-            if is_test:
-                break
