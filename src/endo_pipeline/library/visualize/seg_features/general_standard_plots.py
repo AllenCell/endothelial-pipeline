@@ -94,11 +94,11 @@ def lineplot_of_feats(
     """
 
     assert (
-        len(df_group["dataset_name"].unique()) == 1
-    ), f'Only a single dataset allowed in df_group, datasets found: {df_group["dataset_name"].unique()}'
-    dataset_name = df_group["dataset_name"].unique()[0]
+        len(df_group[ColNmSeg.DATASET].unique()) == 1
+    ), f"Only a single dataset allowed in df_group, datasets found: {df_group[ColNmSeg.DATASET].unique()}"
+    dataset_name = df_group[ColNmSeg.DATASET].unique()[0]
 
-    positions = tuple(pos for pos in df_group.position.unique())
+    positions = tuple(pos for pos in df_group[ColNmSeg.POSITION].unique())
     if len(positions) == 1:
         positions = positions[0]
     fig_title = f"{dataset_name} P{positions}"
@@ -202,11 +202,11 @@ def hist_2d_of_feats(
     """
 
     assert (
-        len(df_group["dataset_name"].unique()) == 1
-    ), f'Only a single dataset allowed in df_group, datasets found: {df_group["dataset_name"].unique()}'
-    dataset_name = df_group["dataset_name"].unique()[0]
+        len(df_group[ColNmSeg.DATASET].unique()) == 1
+    ), f"Only a single dataset allowed in df_group, datasets found: {df_group[ColNmSeg.DATASET].unique()}"
+    dataset_name = df_group[ColNmSeg.DATASET].unique()[0]
 
-    positions = tuple(pos for pos in df_group.position.unique())
+    positions = tuple(pos for pos in df_group[ColNmSeg.POSITION].unique())
     if len(positions) == 1:
         positions = positions[0]
     fig_title = f"{dataset_name} P{positions}"
@@ -336,7 +336,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "label": "Time Under Flow (h)",
             "lims": ("min", "max"),
             "bin_width": 0.5,
-            "ticks": None,  # range(0, 49, 12),
+            "ticks": range(0, 49, 12),
             "discrete_ticks": False,
         },
         ColNmSeg.ALIGNMENT_DEG: {
