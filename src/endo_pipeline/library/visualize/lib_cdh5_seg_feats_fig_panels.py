@@ -36,6 +36,7 @@ from endo_pipeline.manifests import (
 from endo_pipeline.settings.examples import CDH5_SEG_FIG_EXAMPLE
 from endo_pipeline.settings.figures import FONT_FAMILY, FONTSIZE_SMALL, PDF_FONT_TYPE
 from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
+from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
 
 IMAGE_PANEL_SIZE = (3, 3)
 PLOT_PANEL_SIZE = (1.1, 1.1)
@@ -249,7 +250,41 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
         # Load the tables with cdh5 segmentation measurements
         live_seg_manifest = load_dataframe_manifest("live_merged_seg_features")
         live_seg_location = get_dataframe_location_for_dataset(live_seg_manifest, dataset_name)
-        live_seg_feats_df = load_dataframe(live_seg_location)
+        live_seg_feats_df_delayed = load_dataframe(live_seg_location, delay=True)
+
+        # pick the features you need:
+        # features to plot:
+        periodic_feats = [
+            ColNmSeg.NUCLEI_POSITION_ANGLE_DEG,
+            ColNmSeg.CENTROID_VELOCITY_ANGLE_DEG,
+            ColNmSeg.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
+        ]
+        feats_to_plot = periodic_feats + [
+            ColNmSeg.ALIGNMENT_DEG,
+            ColNmSeg.ORIENTATION_DEG,
+            ColNmSeg.ASPECT_RATIO,
+            ColNmSeg.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD,
+            ColNmSeg.CELL_FLUOR_MEAN,
+            ColNmSeg.EDGE_FLUOR_MEAN,
+            ColNmSeg.NODE_FLUOR_MEAN,
+            ColNmSeg.AREA_UM_SQ,
+        ]
+
+        time_col = ColNmSeg.TIME_HRS_SINCE_FLOW
+
+        # filtering features:
+        filter_cols = SEGMENTATION_FEATURE_COLUMNS["filters"]
+
+        # columns for calculating dynamic features
+        dynamics_cols = SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
+
+        # figure out which columns to compute:
+        cols_to_compute = set(
+            [time_col] + periodic_feats + feats_to_plot + filter_cols + dynamics_cols
+        ) & set(live_seg_feats_df_delayed.columns)
+
+        # compute the columns you need
+        live_seg_feats_df = live_seg_feats_df_delayed[list(cols_to_compute)].compute()
 
         # filter out rows based on track-based features
         live_seg_feats_df = live_seg_feats_df[live_seg_feats_df[ColNmSeg.IS_INCLUDED]]
@@ -267,22 +302,6 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
         live_seg_feats_df = calculate_derived_data_dynamics_dependent(live_seg_feats_df)
 
         # It's plotting time!
-        # pick the features to plot
-        periodic_feats = [
-            ColNmSeg.NUCLEI_POSITION_ANGLE_DEG,
-            ColNmSeg.CENTROID_VELOCITY_ANGLE_DEG,
-            ColNmSeg.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
-        ]
-        feats_to_plot = periodic_feats + [
-            ColNmSeg.ALIGNMENT_DEG,
-            ColNmSeg.ORIENTATION_DEG,
-            ColNmSeg.ASPECT_RATIO,
-            ColNmSeg.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD,
-            ColNmSeg.CELL_FLUOR_MEAN,
-            ColNmSeg.EDGE_FLUOR_MEAN,
-            ColNmSeg.NODE_FLUOR_MEAN,
-            ColNmSeg.AREA_UM_SQ,
-        ]
         # get the plotting arguments for the features
         # (e.g. axis limits, axis titles, bin widths, etc.)
         feats_plot_args = get_seg_feat_plot_args()
@@ -304,7 +323,15 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
             "label"
         ] = "Cell-Nucleus vs.\nMigration Dot Prod."
         feats_plot_args[ColNmSeg.ASPECT_RATIO]["label"] = "Aspect ratio"
-        feats_plot_args[ColNmSeg.CELL_FLUOR_MEAN]["label"] = "Mean VE-Cad fluorescence (a.u.)"
+        feats_plot_args[ColNmSeg.CELL_FLUOR_MEAN][
+            "label"
+        ] = "Mean VE-Cad Fluorescence\nin Cell (a.u.)"
+        feats_plot_args[ColNmSeg.EDGE_FLUOR_MEAN][
+            "label"
+        ] = "Mean VE-Cad Fluorescence\nat Edges (a.u.)"
+        feats_plot_args[ColNmSeg.NODE_FLUOR_MEAN][
+            "label"
+        ] = "Mean VE-Cad Fluorescence\nat Nodes (a.u.)"
         feats_plot_args[ColNmSeg.AREA_UM_SQ]["label"] = "Cell area (µm²)"
 
         # create and save the panels of each of the features
