@@ -336,7 +336,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "label": "Time Under Flow (h)",
             "lims": ("min", "max"),
             "bin_width": 0.5,
-            "ticks": None,  # range(0, 49, 12),
+            "ticks": range(0, 49, 12),
             "discrete_ticks": False,
         },
         ColNmSeg.ALIGNMENT_DEG: {
