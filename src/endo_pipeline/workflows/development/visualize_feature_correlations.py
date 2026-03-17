@@ -165,7 +165,7 @@ def main(
         if dataset_name == "aggregate":
             df_dataset = df
         else:
-            df_dataset = df.query("@ColNmSeg.DATASET==@dataset_name").copy()
+            df_dataset = df[df[ColNmSeg.DATASET] == dataset_name].copy()
 
         # Pre-compute full correlation matrix once per dataset
         all_feature_columns = []
