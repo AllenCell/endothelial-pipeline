@@ -226,3 +226,9 @@ def main(datasets: Datasets, n_proc: int = 1) -> None:
         ):
             # process dataset below will both load and plot the data
             process_dataset(dataset, out_dir)
+
+
+if __name__ == "__main__":
+    from endo_pipeline.cli import workflow_cli
+
+    workflow_cli(main)
