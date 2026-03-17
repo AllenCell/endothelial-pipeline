@@ -32,7 +32,15 @@ flow_conditions:
   stop: 576
   shear_stress: 15.72
 include_scenes: null
-notes: Possible early piling FOVs 1-2, cells may be stressed from high SS and low density. Persistent hole in monolayer right side FOV 3. BF progressively darker TP 200-240.
+notes: Possible early piling FOVs 1-2, cells may be stressed from high SS and low
+  density. Persistent hole in monolayer right side FOV 3. BF progressively darker
+  TP 200-240.
 timepoint_annotations: null
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 11
+  1: 10
+  2: 10
+  3: 10
+  4: 10
+  5: 11

@@ -32,7 +32,14 @@ flow_conditions:
   stop: 576
   shear_stress: 12.06
 include_scenes: null
-notes: Cell piling from right side ~TP 288. Hole fills by TP 50 FOV 4. BF darkening FOVs 5-6 TP 67-68, TP 279-294, TP 314. Non-endos FOVs 2-4. Debris bottom FOV 2.
+notes: Cell piling from right side ~TP 288. Hole fills by TP 50 FOV 4. BF darkening
+  FOVs 5-6 TP 67-68, TP 279-294, TP 314. Non-endos FOVs 2-4. Debris bottom FOV 2.
 timepoint_annotations: null
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 10
+  1: 10
+  2: 9
+  3: 9
+  4: 9
+  5: 9

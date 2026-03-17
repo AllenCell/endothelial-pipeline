@@ -30,9 +30,16 @@ channel_names: [EGFP, BF]
 flow_conditions:
 - start: -15
   stop: 576
-  shear_stress: 15.60
+  shear_stress: 15.6
 include_scenes: null
-notes: Better than 20260218 timelapse, minimal early piling (some ~TP 330 FOV 3, 1-indexed), no membrane gaps. GFP and BF look good.
+notes: Better than 20260218 timelapse, minimal early piling (some ~TP 330 FOV 3, 1-indexed),
+  no membrane gaps. GFP and BF look good.
 timepoint_annotations: null
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 11
+  1: 11
+  2: 11
+  3: 11
+  4: 11
+  5: 11

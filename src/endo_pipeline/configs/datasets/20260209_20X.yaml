@@ -32,7 +32,14 @@ flow_conditions:
   stop: 576
   shear_stress: 12.04
 include_scenes: null
-notes: 6-7 non-endos across tiles. Gaps in monolayer FOV 2 ~TP 336, FOV 5 ~TP 414 (1-indexed). Slight global brightening TP 26.
+notes: 6-7 non-endos across tiles. Gaps in monolayer FOV 2 ~TP 336, FOV 5 ~TP 414
+  (1-indexed). Slight global brightening TP 26.
 timepoint_annotations: null
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 11
+  1: 11
+  2: 10
+  3: 10
+  4: 11
+  5: 11
