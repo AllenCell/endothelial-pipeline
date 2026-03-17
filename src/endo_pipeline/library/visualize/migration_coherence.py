@@ -125,9 +125,9 @@ def plot_scatter_and_binned_heatmap(
     """
     cmap = plt.get_cmap("cool")
     df_plot = df[(df["dataset"] == dataset_name) & df[color_col].notna()]
-    x = df_plot[x_col].values
-    y = df_plot[y_col].values
-    z = df_plot[color_col].values
+    x = df_plot[x_col].to_numpy()
+    y = df_plot[y_col].to_numpy()
+    z = df_plot[color_col].to_numpy()
 
     if vmin is None:
         vmin = np.nanmin(z)
