@@ -150,13 +150,14 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
         )
 
     demo_suffix = "_demo" if DEMO_MODE else ""
-    fig_savedir = get_output_path(f"{Path(__file__).stem}{demo_suffix}", crop_pattern)
+    workflow_savedir_name = f"{Path(__file__).stem}{demo_suffix}"
 
     # loop over datasets in collection
     # plot summary plots
     # compute drift and diffusion coefficients in polar coordinates
     for dataset_name in dataset_names:
         dataset_config = load_dataset_config(dataset_name)
+        fig_savedir = get_output_path(workflow_savedir_name, crop_pattern, dataset_name)
 
         df = get_dataframe_for_dynamics_workflows(
             dataset_name,
