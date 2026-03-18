@@ -230,36 +230,3 @@ def plot_feature_correlations(
     if output_dir is not None:
         save_plot_to_path(fig, output_dir, f"feature_correlations_{'_'.join(features[:3])}.png")
     plt.close(fig)
-
-
-def plot_optical_flow_feature_distribution(
-    df: pd.DataFrame,
-    optical_flow_feature: str,
-    datasets: list[str],
-    binwidth: float = 0.02,
-    bins: int = 50,
-    kde: bool = True,
-    figsize: tuple[int, int] = (8, 4),
-) -> None:
-    """Plot an optical-flow feature histogram per dataset on a shared axis."""
-    import seaborn as sns
-
-    fig, ax = plt.subplots(figsize=figsize)
-    for dataset in datasets:
-        df_of_subset = df[df["dataset"] == dataset]
-        sns.histplot(
-            df_of_subset[optical_flow_feature],
-            bins=bins,
-            kde=kde,
-            label=dataset,
-            binwidth=binwidth,
-            ax=ax,
-        )
-
-    ax.set_xlabel(optical_flow_feature)
-    ax.set_ylabel("Count")
-    ax.set_title("optical flow feature AFTER\nto matching model training steps and filling nans")
-    ax.legend()
-    fig.tight_layout()
-    plt.show()
-    plt.close(fig)

@@ -74,7 +74,7 @@ logger = logging.getLogger(__name__)
 def process_dataset_for_track_integration(
     dataset_name: str,
     collection_name_for_pca: str,
-    model_manifest_name: str = "diffae_04_10",
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = None,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     make_integrated_plots: bool = True,

@@ -4,12 +4,7 @@ import logging
 import pandas as pd
 
 from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-from endo_pipeline.io import (
-    build_fms_annotations,
-    get_output_path,
-    load_dataframe,
-    upload_file_to_fms,
-)
+from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     build_pca_input_dataframe,
     fit_pca,
@@ -22,10 +17,11 @@ from endo_pipeline.library.analyze.migration_pc.cca_analysis import (
     plot_cca_projection_validation,
     plot_cca_results,
     plot_feature_correlations,
-    plot_optical_flow_feature_distribution,
+)
+from endo_pipeline.library.analyze.migration_pc.optical_flow_feature import (
+    add_optical_flow_features,
 )
 from endo_pipeline.manifests import (
-    get_dataframe_location_for_dataset,
     get_feature_dataframe_manifest_name,
     load_dataframe_manifest,
     load_model_manifest,
@@ -58,34 +54,22 @@ pca = fit_pca(num_pcs=80)
 df_pca = project_features_to_pcs(df_pca, pca)
 
 # %% Load optical flow features
-dataframe_manifest_optical_flow = load_dataframe_manifest("optical_flow_bf")
-df_of_list = []
+df_pca_datasets = []
 for dataset_name in datasets:
-    logger.info(f"Processing dataset: {dataset_name} for optical flow features")
-    # Get PCS
     df_dataset = get_dataframe_for_dynamics_workflows(
         dataset_name, dataframe_manifest, pca=pca, filter_by_annotations=True
     )
+    df_pca_datasets.append(df_dataset)
 
-    # Get optical flow features
-    optical_flow_location = get_dataframe_location_for_dataset(
-        dataframe_manifest_optical_flow, dataset_name
-    )
-    df_optical_flow_new = load_dataframe(optical_flow_location)
-
-    # merge the two dataframes on the dataset, position, frame_number, start_x, start_y columns
-    df_of_dataset = df_dataset.merge(
-        df_optical_flow_new,
-        on=["dataset", "position", "frame_number", "start_x", "start_y"],
-        how="inner",
-        suffixes=("", "_optical_flow"),
-    )
-
-    df_of_list.append(df_of_dataset)
+df_pca_all = pd.concat(df_pca_datasets, ignore_index=True)
+del df_pca_datasets  # clear list to save memory
 
 # %%
-df_of = pd.concat(df_of_list, ignore_index=True)
-del df_of_list  # clear list to save memory
+df_of = add_optical_flow_features(
+    df_pca_all,
+    datasets=datasets,
+    optical_flow_manifest_name="optical_flow_bf",
+)
 
 # %%
 # Excluded timepoints result in NaN values for the timepoint before and after the dropped timepoint.
@@ -128,13 +112,3 @@ df_of_plus = apply_cca_projection(df_of)
 # %%
 feature_list = ["cca", "cca_top3"]
 plot_feature_correlations(df_of_plus, feature_list, OPTICAL_FLOW_FEATURE, output_dir)
-# %%
-plot_optical_flow_feature_distribution(
-    df=df_of,
-    optical_flow_feature=OPTICAL_FLOW_FEATURE,
-    datasets=["20250611_20X", "20250618_20X"],
-    binwidth=0.02,
-    bins=50,
-    kde=True,
-)
-# %%

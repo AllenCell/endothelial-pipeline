@@ -8,11 +8,7 @@ if typing.TYPE_CHECKING:
     from cyto_dl.api import CytoDLModel
     from omegaconf import DictConfig, ListConfig
 
-from endo_pipeline.configs import (
-    DatasetConfig,
-    get_position_integer_from_zarr_file_path,
-    get_position_string_from_zarr_file_path,
-)
+from endo_pipeline.configs import DatasetConfig, get_position_integer_from_zarr_file_path
 from endo_pipeline.io import load_dataframe, load_model
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.manifests import (
@@ -416,7 +412,7 @@ def update_prediction_from_crops_with_metadata(
     pred_df[ColumnName.CROP_SIZE_X] = crop_size[1]
 
     pred_df[ColumnName.POSITION] = pred_df[CytoDLSaveDataKeys.FILE_PATH].apply(
-        lambda s: get_position_string_from_zarr_file_path(s)
+        lambda s: get_position_integer_from_zarr_file_path(s)
     )
     pred_df.rename(
         columns={
@@ -447,7 +443,7 @@ def update_prediction_from_tracks_with_metadata(
     pred_df[ColumnName.CROP_SIZE_Y] = crop_size[0]
     pred_df[ColumnName.CROP_SIZE_X] = crop_size[1]
     pred_df[ColumnName.POSITION] = pred_df[CytoDLSaveDataKeys.FILE_PATH].apply(
-        lambda s: get_position_string_from_zarr_file_path(s)
+        lambda s: get_position_integer_from_zarr_file_path(s)
     )
     pred_df.rename(
         columns={
