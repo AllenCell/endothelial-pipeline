@@ -10,6 +10,9 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
 )
+from endo_pipeline.library.analyze.migration_pc.optical_flow_feature import (
+    add_optical_flow_features,
+)
 from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     generate_backdrops,
 )
@@ -217,6 +220,10 @@ def get_df_and_label_map_grid(
     )
     feat_cols = [col for col in grid_df.columns if ColumnName.LATENT_FEATURE_PREFIX in col]
     grid_df = grid_df.drop(columns=feat_cols)
+
+    manifest_of = load_dataframe_manifest("optical_flow_bf")
+    if dataset in manifest_of.locations:
+        grid_df = add_optical_flow_features(grid_df, [dataset])
 
     dataset_config = load_dataset_config(dataset)
     if dataset_config.time_interval_in_minutes is None:

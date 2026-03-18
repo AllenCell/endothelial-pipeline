@@ -1,12 +1,12 @@
 from pathlib import Path
 from typing import Literal
 
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import Datasets, IntList
 
 
 def main(
     datasets: Datasets | None = None,
-    positions: list[int] = [0],
+    positions: IntList | None = None,
     output_dir: Path | None = None,
     segmentation: Literal["CDH5", "grid"] = "CDH5",
     skip_backdrops: bool = False,
@@ -61,6 +61,9 @@ def main(
 
     if datasets is None:
         datasets = ["20250618_20X"]
+
+    if positions is None:
+        positions = [0]
 
     output_dir = (
         get_output_path(f"timelapse_feature_explorer_{segmentation}")
