@@ -71,7 +71,8 @@ def save_and_upload(dataset: str, df: pd.DataFrame, workflow: str = "optical_flo
             manifest = create_dataframe_manifest(DEFAULT_OPTICAL_FLOW_MANIFEST_NAME, workflow)
         except Exception:
             manifest = DataframeManifest(
-                name=DEFAULT_OPTICAL_FLOW_MANIFEST_NAME, workflow=workflow,
+                name=DEFAULT_OPTICAL_FLOW_MANIFEST_NAME,
+                workflow=workflow,
             )
     if manifest.locations is None:
         manifest.locations = {}

@@ -12,6 +12,80 @@ from .config import COHERENCE_BOX_SIZES, DEMO_SCAN_N_CROPS, DEMO_SCAN_N_PAIRS, Q
 logger = logging.getLogger(__name__)
 
 
+def _scan_crop_pairs(
+    cache: dict[int, np.ndarray],
+    crop_grid: pd.DataFrame,
+    thresh: float,
+    flow_scope: str,
+    attachment: float,
+) -> pd.DataFrame:
+    """Subsample (crop, timepoint) pairs and compute R-bar for each.
+
+    Returns a DataFrame with columns ci_idx, crop, t0, t1, sx, sy, ex, ey,
+    circ_std, rbar — sorted by rbar descending.
+    """
+    sorted_tp = sorted(cache.keys())
+    cids = crop_grid[ColumnName.CROP_INDEX].values
+    sx_arr = crop_grid[ColumnName.START_X].values.astype(int)
+    sy_arr = crop_grid[ColumnName.START_Y].values.astype(int)
+    ex_arr = crop_grid["end_x"].values.astype(int)
+    ey_arr = crop_grid["end_y"].values.astype(int)
+
+    crop_step = max(1, len(cids) // DEMO_SCAN_N_CROPS)
+    scan_cids = range(0, len(cids), crop_step)
+
+    all_pairs = [(sorted_tp[i], sorted_tp[i + 1]) for i in range(len(sorted_tp) - 1)]
+    pair_step = max(1, len(all_pairs) // DEMO_SCAN_N_PAIRS)
+    scan_pairs = all_pairs[::pair_step]
+
+    records: list[dict] = []
+    _image_flow_cache: dict[tuple[int, int], tuple[np.ndarray, np.ndarray]] = {}
+    for ci_idx in scan_cids:
+        _sx, _sy = int(sx_arr[ci_idx]), int(sy_arr[ci_idx])
+        _ex, _ey = int(ex_arr[ci_idx]), int(ey_arr[ci_idx])
+        _cidx = int(cids[ci_idx])
+        for t0, t1 in scan_pairs:
+            f0, f1 = cache[t0], cache[t1]
+            c0, c1 = f0[_sy:_ey, _sx:_ex], f1[_sy:_ey, _sx:_ex]
+            if flow_scope == "image":
+                if (t0, t1) not in _image_flow_cache:
+                    _image_flow_cache[(t0, t1)] = compute_tvl1(f0, f1, attachment=attachment)
+                uf_full, vf_full = _image_flow_cache[(t0, t1)]
+                uf, vf = uf_full[_sy:_ey, _sx:_ex], vf_full[_sy:_ey, _sx:_ex]
+            else:
+                uf, vf = compute_tvl1(c0, c1, attachment=attachment)
+            ang = np.arctan2(vf, uf)
+            sp_scan = np.sqrt(uf**2 + vf**2)
+            mask = (c0 > thresh) | (c1 > thresh)
+            cstd = float(sp_stats.circstd(ang[mask])) if mask.any() else float("nan")
+
+            nz_mask = mask & (sp_scan > 0)
+            if nz_mask.any():
+                unit_u = uf[nz_mask] / sp_scan[nz_mask]
+                unit_v = vf[nz_mask] / sp_scan[nz_mask]
+                rbar = float(np.sqrt(unit_u.mean() ** 2 + unit_v.mean() ** 2))
+            else:
+                rbar = float("nan")
+
+            records.append(
+                {
+                    "ci_idx": ci_idx,
+                    "crop": _cidx,
+                    "t0": t0,
+                    "t1": t1,
+                    "sx": _sx,
+                    "sy": _sy,
+                    "ex": _ex,
+                    "ey": _ey,
+                    "circ_std": cstd,
+                    "rbar": rbar,
+                }
+            )
+
+    scan_df = pd.DataFrame(records).dropna(subset=["rbar"])
+    return scan_df.sort_values("rbar", ascending=False).reset_index(drop=True)
+
+
 def plot_demo_summary(
     cache: dict[int, np.ndarray],
     crop_grid: pd.DataFrame,
@@ -60,10 +134,10 @@ def plot_demo_summary(
         Whether block-averaged coherence was computed.  Reflected
         in the figure title and output filename.
     """
+    from pathlib import Path
+
     import matplotlib.pyplot as plt
     from matplotlib.patches import Patch
-    from pathlib import Path
-    from scipy import stats as sp_stats
 
     plt.style.use("endo_pipeline.figure")
     out_dir = Path(out_dir)
@@ -232,7 +306,8 @@ def plot_demo_summary(
         med_sp = float(np.median(sp_sub[sp_sub > 0])) if (sp_sub > 0).any() else 1.0
         q_scale = med_sp / (step * 0.6) if med_sp > 0 else 1.0
         ax.quiver(
-            X, Y,
+            X,
+            Y,
             uf[::step, ::step],
             vf[::step, ::step],
             sp_sub,
@@ -264,9 +339,7 @@ def plot_demo_summary(
             ax.legend(fontsize=6, loc="upper right")
         ax.set_xlabel("\u03b8 (rad)", fontsize=8)
         ax.set_ylabel("Density", fontsize=8)
-        ax.set_title(
-            f"(c) $\\theta$ distribution  $\\bar{{R}}$ = {rbar_val:.4f}", fontsize=9
-        )
+        ax.set_title(f"(c) $\\theta$ distribution  $\\bar{{R}}$ = {rbar_val:.4f}", fontsize=9)
         ax.tick_params(labelsize=7)
 
         # (d) & (e) — block-coherence bar charts or speed/R̄ histograms
@@ -293,7 +366,7 @@ def plot_demo_summary(
 
             box_labels = [str(b) for b in COHERENCE_BOX_SIZES]
 
-            # (d) σ_θ vs block size
+            # (d) angle-std vs block size
             ax = axes[3]
             ax.set_facecolor("white")
             colors_d = ["steelblue" if b <= 10 else "teal" for b in COHERENCE_BOX_SIZES]
@@ -318,11 +391,23 @@ def plot_demo_summary(
             ax.set_facecolor("white")
             if mask.any():
                 sp_m = sp[mask] if sp.shape == mask.shape else sp
-                ax.hist(sp_m, bins=60, color="steelblue", edgecolor="white", linewidth=0.3, density=True)
-                ax.axvline(float(sp_m.mean()), color="navy", ls="--", lw=1.5,
-                           label=f"\u03bc = {float(sp_m.mean()):.3f}")
-                ax.axvline(float(np.median(sp_m)), color="dodgerblue", ls=":", lw=1.5,
-                           label=f"med = {float(np.median(sp_m)):.3f}")
+                ax.hist(
+                    sp_m, bins=60, color="steelblue", edgecolor="white", linewidth=0.3, density=True
+                )
+                ax.axvline(
+                    float(sp_m.mean()),
+                    color="navy",
+                    ls="--",
+                    lw=1.5,
+                    label=f"\u03bc = {float(sp_m.mean()):.3f}",
+                )
+                ax.axvline(
+                    float(np.median(sp_m)),
+                    color="dodgerblue",
+                    ls=":",
+                    lw=1.5,
+                    label=f"med = {float(np.median(sp_m)):.3f}",
+                )
                 ax.legend(fontsize=6, loc="upper right")
             ax.set_xlabel("Speed (px/frame)", fontsize=8)
             ax.set_ylabel("Density", fontsize=8)
@@ -334,12 +419,29 @@ def plot_demo_summary(
             ax.set_facecolor("white")
             crop_rbar = scan_df.loc[scan_df["crop"] == _cidx, "rbar"].dropna().values
             if len(crop_rbar) > 0:
-                ax.hist(crop_rbar, bins=max(8, len(crop_rbar) // 2), color="mediumseagreen",
-                        edgecolor="white", linewidth=0.3, density=True, rwidth=0.75)
-                ax.axvline(float(np.mean(crop_rbar)), color="black", ls="--", lw=1.5,
-                           label=f"mean $\\bar{{R}}$ = {float(np.mean(crop_rbar)):.3f}")
-                ax.axvline(float(np.median(crop_rbar)), color="forestgreen", ls=":", lw=1.5,
-                           label=f"median = {float(np.median(crop_rbar)):.3f}")
+                ax.hist(
+                    crop_rbar,
+                    bins=max(8, len(crop_rbar) // 2),
+                    color="mediumseagreen",
+                    edgecolor="white",
+                    linewidth=0.3,
+                    density=True,
+                    rwidth=0.75,
+                )
+                ax.axvline(
+                    float(np.mean(crop_rbar)),
+                    color="black",
+                    ls="--",
+                    lw=1.5,
+                    label=f"mean $\\bar{{R}}$ = {float(np.mean(crop_rbar)):.3f}",
+                )
+                ax.axvline(
+                    float(np.median(crop_rbar)),
+                    color="forestgreen",
+                    ls=":",
+                    lw=1.5,
+                    label=f"median = {float(np.median(crop_rbar)):.3f}",
+                )
                 ax.legend(fontsize=6, loc="upper right")
             ax.set_xlabel(r"$\bar{R}$", fontsize=8)
             ax.set_ylabel("Density", fontsize=8)

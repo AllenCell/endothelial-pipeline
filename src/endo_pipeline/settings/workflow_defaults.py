@@ -146,7 +146,7 @@ OPTICAL_FLOW_CHANNEL_PERCENTILE: dict = {
 
 OPTICAL_FLOW_CHANNEL_ATTACHMENT: dict[str, float] = {
     "EGFP": 7.5,  # half of skimage default (15); wider normalised range
-    "BF": 2.5,    # z-score normalisation compresses dynamic range
+    "BF": 2.5,  # z-score normalisation compresses dynamic range
 }
 """TVL1 attachment (lambda) per channel.
 

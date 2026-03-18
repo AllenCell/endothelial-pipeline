@@ -119,7 +119,9 @@ def compute_flow_statistics(
     if not mask.any():
         logger.debug(
             "No foreground pixels above thresh=%.3g for crop_idx=%d, timepoint=%d; returning NaNs.",
-            thresh, crop_idx, timepoint,
+            thresh,
+            crop_idx,
+            timepoint,
         )
         base.update(dict.fromkeys(OPTICAL_FLOW_BASE_FEATURES, np.nan))
         return base
@@ -185,9 +187,9 @@ def compute_tvl1(
 
     Parameters
     ----------
-    f0 
+    f0
         Reference frame.
-    f1 
+    f1
         Subsequent frame.
     attachment
         TVL1 data-fidelity weight (λ).  Lower values yield smoother
@@ -195,9 +197,9 @@ def compute_tvl1(
 
     Returns
     -------
-    u 
+    u
         Horizontal (column-direction) flow component.
-    v 
+    v
         Vertical (row-direction) flow component.
     """
     v, u = optical_flow_tvl1(f0, f1, attachment=attachment)
@@ -247,7 +249,15 @@ def compute_crop_flow(
     """
     u, v = compute_tvl1(c0, c1, attachment=attachment)
     return compute_flow_statistics(
-        u, v, c0, c1, crop_idx, tp, dt, thresh, compute_block_coherence,
+        u,
+        v,
+        c0,
+        c1,
+        crop_idx,
+        tp,
+        dt,
+        thresh,
+        compute_block_coherence,
     )
 
 

@@ -210,7 +210,11 @@ def main(
     logger.info(
         "annotations_to_exclude (%d): %s",
         len(annotations_to_exclude),
-        [a.value for a in annotations_to_exclude] if annotations_to_exclude else "[] (no filtering)",
+        (
+            [a.value for a in annotations_to_exclude]
+            if annotations_to_exclude
+            else "[] (no filtering)"
+        ),
     )
     assert flow_scope in ("image", "crop")
 
@@ -232,7 +236,9 @@ def main(
 
     # Shared manifests
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
-    dataframe_name = get_feature_dataframe_manifest_name(model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern="grid")
+    dataframe_name = get_feature_dataframe_manifest_name(
+        model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern="grid"
+    )
     dataframe_manifest = load_dataframe_manifest(dataframe_name)
 
     all_dataset_parts: list[pd.DataFrame] = []
@@ -243,7 +249,10 @@ def main(
 
         dataset_config = load_dataset_config(dataset_name)
         df_dataset = get_dataframe_for_dynamics_workflows(
-            dataset_name, dataframe_manifest, pca=None, filter_by_annotations=False,
+            dataset_name,
+            dataframe_manifest,
+            pca=None,
+            filter_by_annotations=False,
         )
 
         position_list = sorted(df_dataset[ColumnName.POSITION].unique().tolist())
@@ -265,7 +274,10 @@ def main(
                 logger.info("DEMO_MODE: limiting to %d frame(s)", len(valid_timepoints))
             valid_timepoint_set = set(valid_timepoints)
             logger.info(
-                "Position %d, valid_timepoints = %d/%d", position, len(valid_timepoints), dataset_config.duration,
+                "Position %d, valid_timepoints = %d/%d",
+                position,
+                len(valid_timepoints),
+                dataset_config.duration,
             )
 
             df_position = df_dataset[
@@ -287,11 +299,16 @@ def main(
 
             # Z-project
             zarr_path = get_zarr_location_for_position(
-                dataset_config, position,
+                dataset_config,
+                position,
             )
             image_dask = load_image(zarr_path, channels=channel, level=level, compute=False)
             z_axis = DIMENSION_ORDER.index("Z")
-            z_projection = da.log(image_dask.std(axis=z_axis) + 1e-12) if is_bf else image_dask.max(axis=z_axis)
+            z_projection = (
+                da.log(image_dask.std(axis=z_axis) + 1e-12)
+                if is_bf
+                else image_dask.max(axis=z_axis)
+            )
 
             # Frame pairs
             frame_pairs = [
@@ -326,13 +343,21 @@ def main(
 
             # Intensity threshold
             intensity_threshold = (
-                float(np.percentile(np.concatenate([f.ravel()[::10] for f in frame_cache.values()]), intensity_pctl))
+                float(
+                    np.percentile(
+                        np.concatenate([f.ravel()[::10] for f in frame_cache.values()]),
+                        intensity_pctl,
+                    )
+                )
                 if intensity_pctl > 0
                 else -float("inf")
             )
             logger.info(
                 "threshold(%d-pctl)=%.6f pairs=%d crops=%d",
-                intensity_pctl, intensity_threshold, len(frame_pairs), num_crops,
+                intensity_pctl,
+                intensity_threshold,
+                len(frame_pairs),
+                num_crops,
             )
 
             # Compute flow
@@ -355,18 +380,27 @@ def main(
                 ):
                     frame_0, frame_1 = _cache[t0], _cache[t1]
                     return compute_image_pair_flow(
-                        frame_0, frame_1,
-                        _start_y, _end_y, _start_x, _end_x,
-                        _crop_ids, t0, dt, _threshold, _attachment, _compute_block,
+                        frame_0,
+                        frame_1,
+                        _start_y,
+                        _end_y,
+                        _start_x,
+                        _end_x,
+                        _crop_ids,
+                        t0,
+                        dt,
+                        _threshold,
+                        _attachment,
+                        _compute_block,
                     )
 
                 with ThreadPoolExecutor(max_workers=16) as pool:
                     futures = {
-                        pool.submit(_image_pair, t0, t1, dt): (t0, dt)
-                        for t0, t1, dt in frame_pairs
+                        pool.submit(_image_pair, t0, t1, dt): (t0, dt) for t0, t1, dt in frame_pairs
                     }
                     for future in tqdm(
-                        as_completed(futures), total=len(futures),
+                        as_completed(futures),
+                        total=len(futures),
                         desc=f"{dataset_name} pos={position}",
                     ):
                         records.extend(future.result())
@@ -392,9 +426,16 @@ def main(
 
             if visualize:
                 plot_demo_summary(
-                    frame_cache, crop_grid, dataset_name, position,
-                    intensity_threshold, results_dir, channel, flow_scope,
-                    attachment, compute_block_coherence,
+                    frame_cache,
+                    crop_grid,
+                    dataset_name,
+                    position,
+                    intensity_threshold,
+                    results_dir,
+                    channel,
+                    flow_scope,
+                    attachment,
+                    compute_block_coherence,
                 )
 
             frame_cache.clear()
@@ -418,7 +459,9 @@ def main(
 
             logger.info(
                 "Position %d done in %.1fs for %d records",
-                position, time.time() - position_start, len(records),
+                position,
+                time.time() - position_start,
+                len(records),
             )
             dataset_parts.append(df_position)
 
@@ -432,7 +475,9 @@ def main(
     df_final = pd.concat(all_dataset_parts, ignore_index=True)
     logger.info(
         "DONE %d rows x %d cols in %.1fs",
-        len(df_final), len(df_final.columns), time.time() - workflow_start,
+        len(df_final),
+        len(df_final.columns),
+        time.time() - workflow_start,
     )
 
 
