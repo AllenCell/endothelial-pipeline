@@ -339,7 +339,9 @@ def main(
             )
             save_dataframe_manifest(drift_dataframe_manifest)
         else:
-            logger.info("Saving drift dataframe locally to [ %s ]", drift_coeffs_save_path)
+            logger.info(
+                "Saving dataframe of drift coefficients locally to [ %s ]", drift_coeffs_save_path
+            )
 
         ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
         extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
@@ -403,7 +405,7 @@ def main(
             save_dataframe_manifest(fixed_points_dataframe_manifest)
         else:
             logger.info(
-                "Saving stable fixed points dataframe locally to [ %s ]",
+                "Saving dataframe of fixed points locally to [ %s ]",
                 fixed_points_save_path,
             )
 

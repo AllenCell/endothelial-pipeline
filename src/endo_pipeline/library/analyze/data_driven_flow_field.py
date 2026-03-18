@@ -12,10 +12,15 @@ from scipy.stats import gaussian_kde
 
 from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.numerics.binning import circpercentile
-from endo_pipeline.library.visualize.diffae_features.pplane import get_fpt_type, get_fpts
+from endo_pipeline.library.visualize.diffae_features.pplane import (
+    get_fpt_type,
+    get_fpts,
+    get_stability_label_from_fpt_type,
+)
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED
 from endo_pipeline.settings.flow_field_3d import SAMPLER_RANDOM_SEED
+from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -189,6 +194,7 @@ def get_fixed_points_within_bounds(
     lower_percentile: float,
     upper_percentile: float,
     polar_angle_range: tuple[float, float],
+    stability_label_column_name: str = STABILITY_COLUMN_NAME,
 ) -> pd.DataFrame:
     """
     Get fixed points of a given estimated vector field with high confidence.
@@ -204,8 +210,8 @@ def get_fixed_points_within_bounds(
     Parameters
     ----------
     vector_field_function
-        Callable function that takes in a point in 3D space and outputs a
-        3D vector at that point.
+        Callable function that takes in a point in 3D space and outputs a 3D
+        vector at that point.
     dataframe
         Dataframe containing the feature data for the dataset, which is used to
         filter the fixed points to only keep those within a certain percentile
@@ -219,6 +225,12 @@ def get_fixed_points_within_bounds(
         Lower percentile for filtering fixed points.
     upper_percentile
         Upper percentile for filtering fixed points.
+    polar_angle_range
+        The range of the polar angle variable for handling wraparound when
+        computing percentiles for circular variables.
+    stability_label_column_name
+        Column name to use for fixed point stability classification labels in the
+        output dataframe.
 
     Returns
     -------
@@ -265,10 +277,12 @@ def get_fixed_points_within_bounds(
             # get stability/type of the fixed point
             fpt_type = get_fpt_type(vector_field_jacobian(fpt))
             logger.debug("[ %s ] at [ (%.2f, %.2f, %.2f) ]", fpt_type, fpt[0], fpt[1], fpt[2])
+            fpt_stability_label = get_stability_label_from_fpt_type(fpt_type)
             fpts_high_confidence_list.append(
                 pd.DataFrame(
                     {
                         ColumnName.DATASET: [dataset_name],
+                        stability_label_column_name: [fpt_stability_label],
                         column_names[0]: [fpt[0]],
                         column_names[1]: [fpt[1]],
                         column_names[2]: [fpt[2]],
@@ -284,7 +298,9 @@ def get_fixed_points_within_bounds(
             "Consider adjusting percentile thresholds or number of initial conditions for root solver.",
             dataset_name,
         )
-        return pd.DataFrame(columns=[ColumnName.DATASET, *column_names])
+        return pd.DataFrame(
+            columns=[ColumnName.DATASET, stability_label_column_name, *column_names]
+        )
 
     # else, concatenate the list of dataframes for each fixed point into a
     # single dataframe and return it
