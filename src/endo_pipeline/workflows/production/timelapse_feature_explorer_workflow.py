@@ -47,7 +47,7 @@ def main(
         Select segmenation. Currently we only support "CDH5".
         In the future we can add the nuclei segmentation.
 
-    --no_backdrops : flag
+    --skip_backdrops : flag
        By default, the script generates backdrops. Use this flag to skip that
        step.
     """
