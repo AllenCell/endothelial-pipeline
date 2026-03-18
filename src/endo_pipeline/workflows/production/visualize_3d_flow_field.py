@@ -137,6 +137,8 @@ def main(
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_DRIFT,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        STABILITY_COLUMN_NAME,
+        StabilityLabel,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -151,6 +153,7 @@ def main(
     column_names = list(DYNAMICS_COLUMN_NAMES)
     ndim = len(column_names)
     drift_column_names = [f"{name}_drift" for name in column_names]
+    stability_label_column_name = STABILITY_COLUMN_NAME
 
     # load model manifest and get corresponding dataframe manifest name
     model_manifest = load_model_manifest(model_manifest_name)
@@ -275,7 +278,7 @@ def main(
     # next, loop through each dataset to visualize the flow field and
     # trajectories in the feature space for that dataset, with fixed points (if
     # they are provided) and KDE of the data for that dataset overlaid
-    fixed_point_dataframe_list = []
+    stable_fixed_point_dataframe_list = []
 
     for dataset_name in dataset_names:
         logger.info(f"Visualizing flow field for dataset [ {dataset_name} ]")
@@ -302,8 +305,8 @@ def main(
 
         # load fixed point dataframe if it exists, and check that required
         # columns are present turn fixed point dataframe into list of arrays of
-        # fixed point coordinates for each dataset to use for plotting
-        fixed_points_list: list[np.ndarray] = []
+        # stable fixed point coordinates for each dataset to use for plotting
+        stable_fixed_points_list: list[np.ndarray] = []
         try:
             fixed_points_dataframe_location = get_dataframe_location_for_dataset(
                 fixed_points_dataframe_manifest, dataset_name
@@ -311,11 +314,21 @@ def main(
             fixed_points_dataframe = load_dataframe(fixed_points_dataframe_location, delay=False)
             check_required_columns_in_dataframe(
                 fixed_points_dataframe,
-                required_columns=[*column_names, ColumnName.DATASET],
+                required_columns=[*column_names, ColumnName.DATASET, stability_label_column_name],
             )
-            fixed_point_dataframe_list.append(fixed_points_dataframe)
-            for _, row in fixed_points_dataframe.iterrows():
-                fixed_points_list.append(row[column_names].to_numpy())
+            stable_fixed_point_subset = fixed_points_dataframe[
+                fixed_points_dataframe[stability_label_column_name] == StabilityLabel.STABLE
+            ]
+            if not stable_fixed_point_subset.empty:
+                stable_fixed_point_dataframe_list.append(stable_fixed_point_subset)
+                for _, row in stable_fixed_point_subset.iterrows():
+                    stable_fixed_points_list.append(row[column_names].to_numpy())
+            else:
+                logger.warning(
+                    "No stable fixed points found for dataset [ %s ] in fixed point dataframe [ %s ].",
+                    dataset_name,
+                    fixed_points_dataframe_manifest.name,
+                )
         except KeyError:
             logger.warning(
                 "No fixed point dataframe found for dataset [ %s ] in dataframe manifest [ %s ]. "
@@ -419,7 +432,7 @@ def main(
             feature_data,
             column_names,
             traj,
-            fixed_points_list,
+            stable_fixed_points_list,
             prob_kde,
             bounds_for_plots,
             plot_stack,
@@ -429,10 +442,12 @@ def main(
     # finally, if fixed point data is available for at least two datasets, then
     # plot the fixed points together across datasets on a common set of axes to
     # compare their locations
-    if len(fixed_point_dataframe_list) > 1:
-        fixed_points_dataframe = pd.concat(fixed_point_dataframe_list, ignore_index=True)
+    if len(stable_fixed_point_dataframe_list) > 1:
+        stable_fixed_points_dataframe = pd.concat(
+            stable_fixed_point_dataframe_list, ignore_index=True
+        )
         plot_stable_fixed_points_together(
-            fixed_points_dataframe, bounds_for_plots, fig_savedir, column_names
+            stable_fixed_points_dataframe, bounds_for_plots, fig_savedir, column_names
         )
     else:
         logger.warning(
