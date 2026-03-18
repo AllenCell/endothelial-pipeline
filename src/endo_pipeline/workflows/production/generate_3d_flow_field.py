@@ -84,7 +84,7 @@ def main(
     from endo_pipeline.library.analyze.data_driven_flow_field import (
         compute_extrapolated_vector_field,
         get_callable_vector_field,
-        get_stable_fixed_points,
+        get_fixed_points_within_bounds,
     )
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
@@ -350,8 +350,8 @@ def main(
             extrapolated_flow_field_dict_reg, for_solve_ivp=False, method="linear"
         )
 
-        stable_fixed_points_dataset = get_stable_fixed_points(
-            drift_function=drift_function,
+        stable_fixed_points_dataset = get_fixed_points_within_bounds(
+            vector_field_function=drift_function,
             dataframe=df,
             column_names=column_names,
             num_inits_for_root_solver=NUM_INIT_SAMPLES,

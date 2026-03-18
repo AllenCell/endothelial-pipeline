@@ -182,8 +182,8 @@ def is_point_within_percentile_bounds(
     return np.all(is_within_bounds)
 
 
-def get_stable_fixed_points(
-    drift_function: Callable[[np.ndarray], np.ndarray],
+def get_fixed_points_within_bounds(
+    vector_field_function: Callable[[np.ndarray], np.ndarray],
     dataframe: pd.DataFrame,
     column_names: list[str],
     num_inits_for_root_solver: int,
@@ -192,24 +192,21 @@ def get_stable_fixed_points(
     polar_angle_range: tuple[float, float],
 ) -> pd.DataFrame:
     """
-    Get stable fixed points with high confidence from a data-driven flow field
-    analysis.
+    Get fixed points of a given estimated vector field with high confidence.
 
     For a single dataset, this workflow:
 
-    1. Extrapolates the drift and diffusion coefficients to get a flow field
-       over the entire 3D space as specified by the input bins and centers.
-    2. Finds fixed points of the flow field by finding roots of the drift
-         function.
+    1. Finds fixed points of the vector field by finding roots of the input
+       function using multiple initial conditions sampled from the density of
+       the given data.
+    2. Filters the fixed points to only keep those that are within a specified
+       percentile range of the data along each dimension.
 
     Parameters
     ----------
-    drift_function
-        Callable function that takes in a point in 3D space and outputs the drift
-        vector at that point.
-    centers
-        List of 1D numpy arrays with the grid points in each dimension
-        corresponding to the drift coefficients.
+    vector_field_function
+        Callable function that takes in a point in 3D space and outputs a
+        3D vector at that point.
     dataframe
         Dataframe containing the feature data for the dataset, which is used to
         filter the fixed points to only keep those within a certain percentile
@@ -237,13 +234,13 @@ def get_stable_fixed_points(
     dataset_name = dataframe[ColumnName.DATASET].iloc[0]  # get dataset name from dataframe
 
     # create Jacobian function for finding stability of fixed points
-    drift_function_jacobian = Jacobian(drift_function)
+    vector_field_jacobian = Jacobian(vector_field_function)
 
     # sample initial conditions for root solver from data density
     sampled_inits_for_root_solver = sample_from_density(feature_data, num_inits_for_root_solver)
 
     # pass into helper function to get fixed points
-    fpts = get_fps(drift_function, sampled_inits_for_root_solver)
+    fpts = get_fps(vector_field_function, sampled_inits_for_root_solver)
 
     # filter fixed points to only keep stable ones within a given range of
     # percentiles of data (e.g., 2 to 98) to get high confidence fixed points
@@ -267,7 +264,7 @@ def get_stable_fixed_points(
         )
         if within_percentile:
             # get stability and type of the fixed point
-            fpt_type = find_fpt_type(drift_function_jacobian(fpt))
+            fpt_type = find_fpt_type(vector_field_jacobian(fpt))
             # stability of the fixed point is the
             # first word in the fpt_type string
             # if verbose, print the point and its stability
