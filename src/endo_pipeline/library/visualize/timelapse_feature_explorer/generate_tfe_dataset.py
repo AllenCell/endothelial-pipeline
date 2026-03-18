@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 import pandas as pd
 from colorizer_data import convert_colorizer_data
@@ -191,11 +191,15 @@ def get_df_and_label_map_cdh5seg(
         for key in diffae_keys:
             del label_map[key]
 
-    cols_to_compute = list(
+    cols_to_compute: list[str] = list(
         set(
-            DATASET_INFO_COLUMNS
-            + [item for sublist in SEGMENTATION_FEATURE_COLUMNS.values() for item in sublist]
-            + list(label_map.keys())
+            *DATASET_INFO_COLUMNS,
+            *[
+                item
+                for sublist in cast(list[str], SEGMENTATION_FEATURE_COLUMNS.values())
+                for item in sublist
+            ],
+            *list(label_map.keys()),
         )
         & set(df_tracks.columns)
     )

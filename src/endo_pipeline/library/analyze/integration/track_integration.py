@@ -1000,13 +1000,13 @@ def get_preprocessed_manifests_and_km_bounds(
     # This way we avoid passing NaN values to the PCA but still return the
     # full dataframe with all timepoints which is required by the TFE workflow.
     merged_feats_df_subset = merged_feats_df[
-        [Column.DiffAEData.MODEL_MANIFEST] + diffae_feature_column_names
+        [Column.DiffAEData.MODEL_MANIFEST, *diffae_feature_column_names]
     ].dropna(axis="index", how="any", subset=Column.DiffAEData.MODEL_MANIFEST)
     tracked_diffae_feats_df = project_features_to_pcs(
         merged_feats_df_subset, pca, diffae_feature_column_names
     )
     tracked_diffae_feats_df = tracked_diffae_feats_df.drop(
-        columns=[Column.DiffAEData.MODEL_MANIFEST] + diffae_feature_column_names
+        columns=[Column.DiffAEData.MODEL_MANIFEST, *diffae_feature_column_names]
     )
     tracked_diffae_feats_df = tracked_diffae_feats_df.assign(
         collection_name_for_pca=collection_name_for_pca

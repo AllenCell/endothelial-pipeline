@@ -9,8 +9,8 @@ from pydantic.dataclasses import dataclass
 from endo_pipeline.configs import load_model_config
 from endo_pipeline.io import get_output_path, get_repository_root_dir
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.column_names import CytoDLSaveDataKeys
 from endo_pipeline.settings.diffae_configs import DIFFAE_MODEL_EVAL_CONFIG
+from endo_pipeline.settings.diffae_feature_dataframes import CytoDLSaveDataKeys
 
 logger = logging.getLogger(__name__)
 

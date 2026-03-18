@@ -10,7 +10,7 @@ Creates an n_features X n_features grid of plots with:
 
 import logging
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -461,20 +461,22 @@ def get_df_for_feature_correlation_viz(
 
         # compute only the required columns to save space and time
         # (using a loop instead  of just sets to determine columns to load to preserve column order)
-        dynamics_columns = SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
-        supplementary_columns = SEGMENTATION_FEATURE_COLUMNS["supp"]
+        dynamics_columns = cast(
+            list[str], SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
+        )
+        supplementary_columns = cast(list[str], SEGMENTATION_FEATURE_COLUMNS["supp"])
         diffae_nondiffae_columns = [
             col.value
             for col in Column.DiffAEData
             if "PREFIX" not in col.name and "SUFFIX" not in col.name
         ]
         cols_to_load = (
-            dataset_info_columns
-            + dynamics_columns
-            + supplementary_columns
-            + diffae_nondiffae_columns
-            + diffae_feature_columns
-            + pc_columns
+            *dataset_info_columns,
+            *dynamics_columns,
+            *supplementary_columns,
+            *diffae_nondiffae_columns,
+            *diffae_feature_columns,
+            *pc_columns,
         )
         cols_to_load_overlap = sorted(set(cols_to_load) & set(merged_feats_df_delayed.columns))
         cols_to_load_unique = []

@@ -59,10 +59,11 @@ def update_manifest_for_tfe(
 
     # Add backdrop filenames to the manifest
     df = add_backdrop_fname_to_manifest(
-        df,
-        dataset,
-        position,
-        ["bf_slice", "bf_std_dev", "gfp_max_proj"],
+        df=df,
+        dataset=dataset,
+        position=position,
+        timeframe_column_name=Column.TIMEPOINT,
+        backdrops=["bf_slice", "bf_std_dev", "gfp_max_proj"],
         output_dir=output_dir / "backdrops",
     )
 

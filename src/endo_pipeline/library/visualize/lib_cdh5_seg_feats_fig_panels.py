@@ -275,15 +275,19 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
         time_col = Column.SegData.TIME_HRS_SINCE_FLOW
 
         # filtering features:
-        filter_cols = SEGMENTATION_FEATURE_COLUMNS["filters"]
+        filter_cols = cast(list[str], SEGMENTATION_FEATURE_COLUMNS["filters"])
 
         # columns for calculating dynamic features
-        dynamics_cols = SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
+        dynamics_cols = cast(list[str], SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"])
 
         # figure out which columns to compute:
-        cols_to_compute = set(
-            [time_col] + periodic_feats + feats_to_plot + filter_cols + dynamics_cols
-        ) & set(live_seg_feats_df_delayed.columns)
+        cols_to_compute = {
+            time_col,
+            *periodic_feats,
+            *feats_to_plot,
+            *filter_cols,
+            *dynamics_cols,
+        } & set(live_seg_feats_df_delayed.columns)
 
         # compute the columns you need
         live_seg_feats_df = live_seg_feats_df_delayed[list(cols_to_compute)].compute()
