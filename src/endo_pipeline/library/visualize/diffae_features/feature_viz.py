@@ -410,7 +410,7 @@ def make_pc_scatter_fig4a(
     df: pd.DataFrame,
     pc_col_for_xaxis: str,
     pc_col_for_yaxis: str,
-    hue: str | Column = Column.TIMEPOINT,
+    hue: str | Column.DiffAEData = Column.TIMEPOINT,
     figsize=(2.5, 2.5),
     color_palette="viridis",
     marker=".",

@@ -76,7 +76,7 @@ def make_crop_index_to_slice_mapping(grid_df: pd.DataFrame) -> dict[int, tuple[s
     """
     crop_index_slices = dict(
         zip(
-            grid_df[Column.DiffAEData.CROP_INDEX].values,
+            grid_df[Column.CROP_INDEX].values,
             zip(
                 map(
                     slice,

@@ -27,10 +27,9 @@ from endo_pipeline.settings import (
     DIFFAE_ZARR_RESOLUTION_LEVEL,
     NATIVE_ZARR_RESOLUTION_CROP_SIZE,
     ZARR_BRIGHTFIELD_CHANNEL,
-    CytoDLLoadDataKeys,
-    CytoDLSaveDataKeys,
 )
 from endo_pipeline.settings import ColumnName as Column
+from endo_pipeline.settings.column_names import CytoDLLoadDataKeys, CytoDLSaveDataKeys
 
 logger = logging.getLogger(__name__)
 
