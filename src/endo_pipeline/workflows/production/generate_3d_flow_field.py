@@ -117,11 +117,9 @@ def main(
     from endo_pipeline.settings.flow_field_3d import (
         DATAFRAME_MANIFEST_PREFIX_DRIFT,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
-        DATAFRAME_MANIFEST_PREFIX_GRID,
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         FMS_ANNOTATION_NOTES_DRIFT,
         FMS_ANNOTATION_NOTES_FIXED_POINTS,
-        FMS_ANNOTATION_NOTES_GRID,
         LOWER_PERCENTILE_FOR_STABLE_FP,
         NUM_INIT_SAMPLES,
         PAD_BINS_FLOAT,
@@ -163,17 +161,11 @@ def main(
     drift_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataframe_manifest_name}{demo_suffix}"
     )
-    grid_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{dataframe_manifest_name}{demo_suffix}"
-    )
     fixed_points_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataframe_manifest_name}{demo_suffix}"
     )
     drift_dataframe_manifest = create_dataframe_manifest(
         drift_dataframe_manifest_name, workflow_name=__file__
-    )
-    grid_dataframe_manifest = create_dataframe_manifest(
-        grid_dataframe_manifest_name, workflow_name=__file__
     )
     fixed_points_dataframe_manifest = create_dataframe_manifest(
         fixed_points_dataframe_manifest_name, workflow_name=__file__
@@ -236,7 +228,6 @@ def main(
     # add parameters to dataframe manifests for traceability
     for output_dataframe_manifest in [
         drift_dataframe_manifest,
-        grid_dataframe_manifest,
         fixed_points_dataframe_manifest,
     ]:
         output_dataframe_manifest.parameters = {
@@ -293,51 +284,28 @@ def main(
         drift_coeffs = get_kramers_moyal_coeffs(
             traj_list, d_traj_list, bins=bins, dt=TIME_STEP_IN_MINUTES / 60, kernel=kernels
         )[0]
+        feature_grid = np.meshgrid(*centers, indexing="ij")
+        drift_dict = {
+            drift_column_names[index]: drift_coeffs[..., index].flatten().tolist()
+            for index in range(len(drift_column_names))
+        }
+        grid_dict = {
+            column_names[index]: feature_grid[index].flatten().tolist()
+            for index in range(len(column_names))
+        }
 
         # build dataframe with columns for bin centers in each of the three dimensions and
         # the corresponding drift coefficients, to be used for visualization workflow
-        drift_coeffs_df = pd.DataFrame(
-            {
-                ColumnName.DATASET: dataset_name,
-                **{
-                    drift_column_name: drift_coeffs[..., index].flatten().tolist()
-                    for index, drift_column_name in enumerate(drift_column_names)
-                },
-            }
-        )
-
-        # To store as datframe, the grid points are padded with NaN values to
-        # ensure that each column has the same number of rows. The grid
-        # points will be un-padded in the visualization workflow.
-        max_grid_size = max(len(centers[0]), len(centers[1]), len(centers[2]))
-        centers_padded = [
-            np.pad(
-                centers[index],
-                (0, max_grid_size - len(centers[index])),
-                mode="constant",
-                constant_values=np.nan,
-            )
-            for index in range(len(centers))
-        ]
-        grid_points_df = pd.DataFrame(
-            {
-                ColumnName.DATASET: dataset_name,
-                **{
-                    column_name: centers_padded[index].tolist()
-                    for index, column_name in enumerate(column_names)
-                },
-            }
+        vector_field_df = pd.DataFrame(
+            {ColumnName.DATASET: dataset_name, **drift_dict, **grid_dict}
         )
 
         # save drift coefficients and grid points dataframes to parquet files,
         # with names that include the input dataframe manifest name for
         # traceability and to avoid naming conflicts with other runs
         drift_coeffs_file_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataset_name}.parquet"
-        grid_points_file_name = f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{dataset_name}.parquet"
         drift_coeffs_save_path = make_name_unique(dataframe_savedir / drift_coeffs_file_name)
-        grid_points_save_path = make_name_unique(dataframe_savedir / grid_points_file_name)
-        drift_coeffs_df.to_parquet(drift_coeffs_save_path)
-        grid_points_df.to_parquet(grid_points_save_path)
+        vector_field_df.to_parquet(drift_coeffs_save_path)
 
         # Upload dataframes to FMS and update manifests
         if upload_to_fms:
@@ -348,22 +316,11 @@ def main(
                 run_name=run_name,
                 additional_notes=FMS_ANNOTATION_NOTES_DRIFT,
             )
-            grid_annotations = build_fms_annotations(
-                dataset_config,
-                model_manifest=model_manifest,
-                run_name=run_name,
-                additional_notes=FMS_ANNOTATION_NOTES_GRID,
-            )
             drift_fmsid = upload_file_to_fms(
                 drift_coeffs_save_path, annotations=drift_annotations, file_type="parquet"
             )
-            grid_fmsid = upload_file_to_fms(
-                grid_points_save_path, annotations=grid_annotations, file_type="parquet"
-            )
             drift_dataframe_manifest.locations[dataset_name] = DataframeLocation(fmsid=drift_fmsid)
-            grid_dataframe_manifest.locations[dataset_name] = DataframeLocation(fmsid=grid_fmsid)
             save_dataframe_manifest(drift_dataframe_manifest)
-            save_dataframe_manifest(grid_dataframe_manifest)
         # If not uploading to FMS, depends on if we're in "demo mode" or
         # not. If in demo mode, update "demo" dataframe manifests with
         # locations built from local save paths, so that the dataframes can
@@ -374,14 +331,9 @@ def main(
             drift_dataframe_manifest.locations[dataset_name] = build_dataframe_location_from_path(
                 drift_coeffs_save_path
             )
-            grid_dataframe_manifest.locations[dataset_name] = build_dataframe_location_from_path(
-                grid_points_save_path
-            )
             save_dataframe_manifest(drift_dataframe_manifest)
-            save_dataframe_manifest(grid_dataframe_manifest)
         else:
             logger.info("Saving drift dataframe locally to [ %s ]", drift_coeffs_save_path)
-            logger.info("Saving grid points dataframe locally to [ %s ]", grid_points_save_path)
 
         ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
         extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
