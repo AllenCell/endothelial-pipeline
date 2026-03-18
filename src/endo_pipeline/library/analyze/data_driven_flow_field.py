@@ -1,5 +1,4 @@
 import logging
-import re
 from collections.abc import Callable
 from time import time
 from typing import Literal, overload
@@ -242,9 +241,9 @@ def get_fixed_points_within_bounds(
     # pass into helper function to get fixed points
     fpts = get_fps(vector_field_function, sampled_inits_for_root_solver)
 
-    # filter fixed points to only keep stable ones within a given range of
-    # percentiles of data (e.g., 2 to 98) to get high confidence fixed points
-    # that are within the region of state space supported by the data
+    # filter fixed points to only keep ones within a given range of percentiles
+    # of data (e.g., 2 to 98) to get high confidence fixed points that are
+    # within the region of state space supported by the data
     lower_percentile_bounds = _compute_percentile_values(
         dataframe, column_names, q=lower_percentile, polar_angle_range=polar_angle_range
     )
@@ -257,49 +256,40 @@ def get_fixed_points_within_bounds(
     logger.debug(
         "Upper percentile bounds for filtering fixed points: [ %s ]", upper_percentile_bounds
     )
-    stable_fpts_high_confidence_list = []
+    fpts_high_confidence_list = []
     for fpt in fpts:
         within_percentile = is_point_within_percentile_bounds(
             fpt, column_names, lower_percentile_bounds, upper_percentile_bounds, polar_angle_range
         )
         if within_percentile:
-            # get stability and type of the fixed point
+            # get stability/type of the fixed point
             fpt_type = find_fpt_type(vector_field_jacobian(fpt))
-            # stability of the fixed point is the
-            # first word in the fpt_type string
-            # if verbose, print the point and its stability
             logger.debug("[ %s ] at [ (%.2f, %.2f, %.2f) ]", fpt_type, fpt[0], fpt[1], fpt[2])
-            # if "Stable" or "stable" in the fpt_type, save the point
-            if re.search(r"stable", fpt_type, re.IGNORECASE) and not re.search(
-                r"unstable", fpt_type, re.IGNORECASE
-            ):
-                stable_fpts_high_confidence_list.append(
-                    pd.DataFrame(
-                        {
-                            ColumnName.DATASET: [dataset_name],
-                            column_names[0]: [fpt[0]],
-                            column_names[1]: [fpt[1]],
-                            column_names[2]: [fpt[2]],
-                        }
-                    )
+            fpts_high_confidence_list.append(
+                pd.DataFrame(
+                    {
+                        ColumnName.DATASET: [dataset_name],
+                        column_names[0]: [fpt[0]],
+                        column_names[1]: [fpt[1]],
+                        column_names[2]: [fpt[2]],
+                    }
                 )
+            )
 
-    # check if any stable fixed points with high confidence were found, and if
-    # not, log a warning and return an empty dataframe with the correct columns
-    if len(stable_fpts_high_confidence_list) == 0:
+    # check if any fixed points with high confidence were found, and if not, log
+    # a warning and return an empty dataframe with the correct columns
+    if len(fpts_high_confidence_list) == 0:
         logger.warning(
-            "No stable fixed points with high confidence found for dataset [ %s ]."
+            "No fixed points with high confidence found for dataset [ %s ]."
             "Consider adjusting percentile thresholds or number of initial conditions for root solver.",
             dataset_name,
         )
-        return pd.DataFrame(
-            columns=[ColumnName.DATASET, *column_names]
-        )  # return empty dataframe with correct columns
+        return pd.DataFrame(columns=[ColumnName.DATASET, *column_names])
 
     # else, concatenate the list of dataframes for each fixed point into a
     # single dataframe and return it
-    stable_fpts_high_confidence = pd.concat(stable_fpts_high_confidence_list, ignore_index=True)
-    return stable_fpts_high_confidence
+    fpts_high_confidence = pd.concat(fpts_high_confidence_list, ignore_index=True)
+    return fpts_high_confidence
 
 
 def fill_nan_for_vtk(data: np.ndarray, method: str = "nearest") -> np.ndarray:
