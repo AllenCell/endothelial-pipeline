@@ -130,8 +130,9 @@ def get_fpts(my_flow: Callable, inits: list[tuple] | list[np.ndarray]) -> list[n
         if not np.isnan(r).any():
             fpts.append(r)
     # get unique elements of list by converting to set of tuples and back to
-    # list of numpy arrays
-    return list(map(np.array, set(map(tuple, fpts))))
+    # list of numpy arrays (uniqueness up to 4 decimal places due to numerical
+    # precision)
+    return list(map(np.array, set(map(tuple, np.round(fpts, 4)))))
 
 
 def get_fpt_type(jacobian: np.ndarray) -> str:
