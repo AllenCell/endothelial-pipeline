@@ -96,21 +96,28 @@ def findroot(func: Callable, init: float | Sized) -> np.ndarray:
         return np.array([np.nan] * len(init))
 
 
-def get_fpts(
-    my_flow: Callable, inits: list[tuple] | list[np.ndarray]
-) -> list[tuple] | list[np.ndarray]:
+def get_fpts(my_flow: Callable, inits: list[tuple] | list[np.ndarray]) -> list[np.ndarray]:
     """
-    Return the list of unique fixed points of
-    the system x' = my_flow(x) starting around
-    initial conditions inits.
+    Get a list of unique fixed points of the system of ODEs.
 
-    Inputs:
-    - my_flow: function that takes x as input
-    - inits: list of initial conditions
+    This function works by numerically finding roots of the function my_flow
+    starting from the initial conditions in inits, using the function findroot.
 
-    Outputs:
-    - fpts: list of unique fixed points
-        (tuples of floats)
+    **Method inputs**
+
+    The input my_flow should be a callable function that takes a state vector as
+    input and returns the flow vector at that point. The input inits should be a
+    list of initial conditions (tuples or numpy arrays) to use as starting
+    points for root finding, where each initial condition is a point in the
+    state space (i.e., a vector of the same dimension as the output of my_flow).
+
+
+    Parameters
+    ----------
+    my_flow
+        Callable function to find the fixed points of.
+    inits
+        List of initial conditions for root finding.
     """
     fpts = []
     # find each of the fixed points near the starting
@@ -122,8 +129,9 @@ def get_fpts(
         # check if the root is not nan
         if not np.isnan(r).any():
             fpts.append(r)
-    # round to 4 decimal places, get unique elements of list
-    return list(set(map(tuple, np.round(fpts, 4))))
+    # get unique elements of list by converting to set of tuples and back to
+    # list of numpy arrays
+    return list(map(np.array, set(map(tuple, fpts))))
 
 
 def get_fpt_type(jacobian: np.ndarray) -> str:
