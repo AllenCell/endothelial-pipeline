@@ -2,8 +2,6 @@ name: cdh5_seg_validations
 workflow: manual validations and figure generation
 parameters: {}
 locations:
-  20241120_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20241120_20X/P{{position}}/20241120_20X_P{{position}}_T{{timepoint}}.ome.tiff
   20250224_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20250224_20X/P{{position}}/20250224_20X_P{{position}}_T{{timepoint}}.ome.tiff
   20250319_20X:

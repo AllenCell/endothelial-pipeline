@@ -488,9 +488,12 @@ def get_test_of_metadata() -> tuple[dict, list]:
 
 
 def get_example_metadata() -> Any:
-    image_path = Path(
-        "//allen/aics/microscopy/Endo Timelapses/20241120/20241120_20X_timelapse_SLDY.dir"
-    )
+    for dataset_name in get_available_dataset_names():
+        dataset_config = load_dataset_config(dataset_name)
+        if dataset_config.microscope == "3i":
+            logger.info(f"Using dataset {dataset_name} as an example.")
+            break
+    image_path = dataset_config.original_path
     metadata = get_sldy_metadata(image_path)
     return metadata
 
