@@ -1,4 +1,5 @@
 import logging
+import re
 from collections.abc import Callable, Sequence, Sized
 from typing import Any
 
@@ -195,18 +196,18 @@ def get_stability_label_from_fpt_type(fpt_type: str) -> str:
     Parameters
     ----------
     fpt_type
-        String describing the type of fixed point, as returned by get_fpt_type.
+        String describing the type of fixed point, e.g., as returned by get_fpt_type.
 
     Returns
     -------
     :
-        String describing the stability of the fixed point, which is
-        typically the first word in the fpt_type string.
+        String describing just the stability of the fixed point.
     """
-    # loop over possible stability labels and check if they are in the given
-    # fpt_type string
+    # use re.match so matching is case-insensitive (re.IGNORECASE) and
+    # anchored to the start of the string; the word boundary (\b) prevents a
+    # label like "stable" from matching a hypothetical "stableish ..." input
     for stability in StabilityLabel:
-        if stability.value in fpt_type:
+        if re.match(rf"^{re.escape(stability.value)}\b", fpt_type, re.IGNORECASE):
             return stability.value
     # if no stability label is found, return "unknown"
     return "unknown"
