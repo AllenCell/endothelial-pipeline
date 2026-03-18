@@ -130,11 +130,13 @@ def main(
         RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_3d import (
-        DATAFRAME_MANIFEST_PREFIX_DRIFT,
-        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         INIT_POINT_3D,
         TRAJECTORY_TIME_SPAN,
+    )
+    from endo_pipeline.settings.flow_field_dataframes import (
+        DATAFRAME_MANIFEST_PREFIX_DRIFT,
+        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,

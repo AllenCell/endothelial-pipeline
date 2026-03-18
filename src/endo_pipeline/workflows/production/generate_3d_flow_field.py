@@ -115,16 +115,18 @@ def main(
         RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_3d import (
-        DATAFRAME_MANIFEST_PREFIX_DRIFT,
-        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
-        FMS_ANNOTATION_NOTES_DRIFT,
-        FMS_ANNOTATION_NOTES_FIXED_POINTS,
         LOWER_PERCENTILE_FOR_STABLE_FP,
         NUM_INIT_SAMPLES,
         PAD_BINS_FLOAT,
         TIME_STEP_IN_MINUTES,
         UPPER_PERCENTILE_FOR_STABLE_FP,
+    )
+    from endo_pipeline.settings.flow_field_dataframes import (
+        DATAFRAME_MANIFEST_PREFIX_DRIFT,
+        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        FMS_ANNOTATION_NOTES_DRIFT,
+        FMS_ANNOTATION_NOTES_FIXED_POINTS,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
