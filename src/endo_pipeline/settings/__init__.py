@@ -1,4 +1,4 @@
-from .column_names import ColumnName, CytoDLLoadDataKeys, CytoDLSaveDataKeys
+from .column_names import ColumnName
 from .diffae_configs import (
     DIFFAE_MODEL_EVAL_CONFIG,
     DIFFAE_MODEL_EVAL_FINETUNE_CONFIG,
@@ -10,6 +10,8 @@ from .diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_LATENT_FEATURES,
     NUM_PCS_TO_ANALYZE,
+    CytoDLLoadDataKeys,
+    CytoDLSaveDataKeys,
 )
 from .examples import (
     CDH5_SEG_FIG_EXAMPLE,
