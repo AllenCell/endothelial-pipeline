@@ -571,10 +571,10 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
         Column.IMAGE_SIZE_Y,
         Column.IMAGE_SIZE_X,
         Column.SegData.CROP_SIZE,
-        Column.SegData.START_Y,
-        Column.SegData.END_Y,
-        Column.SegData.START_X,
-        Column.SegData.END_X,
+        Column.SegData.START_Y_RES_0,
+        Column.SegData.END_Y_RES_0,
+        Column.SegData.START_X_RES_0,
+        Column.SegData.END_X_RES_0,
         Column.SegDataFilters.IS_VALID_BBOX,
     ]
     num_nuclei_in_crop_df = add_num_nuclei_in_crop_column(
@@ -1177,8 +1177,8 @@ def add_num_nuclei_in_crop_column(
         num_nuc_centroids = get_num_unique_values_in_bounds_from_df(
             nuclei_coords_Y=np.stack(list(df["coords_Y"])),
             nuclei_coords_X=np.stack(list(df["coords_X"])),
-            crop_bounds_Y=(df[Column.SegData.START_Y], df[Column.SegData.END_Y]),
-            crop_bounds_X=(df[Column.SegData.START_X], df[Column.SegData.END_X]),
+            crop_bounds_Y=(df[Column.SegData.START_Y_RES_0], df[Column.SegData.END_Y_RES_0]),
+            crop_bounds_X=(df[Column.SegData.START_X_RES_0], df[Column.SegData.END_X_RES_0]),
         )
         num_nuclei_in_crop.append(pd.Series(num_nuc_centroids, index=df.index))
 
@@ -1232,8 +1232,8 @@ def create_labels_in_crop_columns(df_sub: pd.DataFrame, out_dir: Path) -> None:
         lambda row: get_labels_in_crop(
             segmentation_image=img,
             region_of_interest=(
-                slice(row[Column.SegData.START_Y], row[Column.SegData.END_Y]),
-                slice(row[Column.SegData.START_X], row[Column.SegData.END_X]),
+                slice(row[Column.SegData.START_Y_RES_0], row[Column.SegData.END_Y_RES_0]),
+                slice(row[Column.SegData.START_X_RES_0], row[Column.SegData.END_X_RES_0]),
             ),
         ),
         axis=1,

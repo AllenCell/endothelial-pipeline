@@ -37,6 +37,9 @@ class ColumnName:
     TIME_RESOLUTION_MINUTES = "time_resolution_minutes"
     """The time resolution of the timelapse in minutes."""
 
+    DURATION = "duration_minutes"
+    """Timelapse duration in timeframes"""
+
     SHEAR_STRESS = "shear_stress"
     """The shear stress value in dyn/cm^2."""
 
@@ -117,16 +120,17 @@ class ColumnName:
         # DiffAE and crop-based feature columns
         NUM_NUCLEI_IN_CROP = "num_nuclei_in_crop"
         LABELS_IN_CROP = "all_labels_in_crop"
-        START_X = "start_x_resolution_0"
-        END_X = "end_x_resolution_0"
-        START_Y = "start_y_resolution_0"
-        END_Y = "end_y_resolution_0"
+        START_X_RES_0 = "start_x_resolution_0"
+        END_X_RES_0 = "end_x_resolution_0"
+        START_Y_RES_0 = "start_y_resolution_0"
+        END_Y_RES_0 = "end_y_resolution_0"
         CROP_SIZE = "crop_size"
         RESOLUTION_FOR_DIFFAE = "diffae_resolution_level_to_use"
 
         # temporal features: Time-related column names.
         TIME_HRS = "time_hours"
         TIME_MINS = "time_minutes"
+        NORMALIZED_TIME_PER_TRACK = "normalized_time"
         TIME_HRS_SINCE_FLOW = "time_hours_since_flow_start"
 
         # morphological features
@@ -236,53 +240,3 @@ class ColumnName:
         GFP_SCOPE_ERROR = "gfp_scope_error"
         CELL_PILING = "cell_piling"
         NOT_STEADY_STATE = "not_steady_state"
-
-
-class CytoDLLoadDataKeys(StrEnum):
-    """Metadata keys passed into MultiDimImageDataset for loading images."""
-
-    FILE_PATH = "path"
-    """Key for path to the source image file."""
-
-    TIMEPOINT = "T"
-    """Key for timepoint (frame number)."""
-
-    TIME_START = "frame_start"
-    """Key for starting timepoint (frame number)."""
-
-    TIME_END = "frame_stop"
-    """Key for ending timepoint (frame number)."""
-
-    TIME_STEP = "frame_step"
-    """Key for timepoint (frame number) step size."""
-
-    INCLUDE_TIMEPOINTS = "include_frames"
-    """Key for list of timepoints (frame numbers) to include."""
-
-    Z_START = "z_start"
-    """Key for starting z-slice index."""
-
-    Z_END = "z_stop"
-    """Key for ending z-slice index."""
-
-    Z_STEP = "z_step"
-    """Key for z-slice index step size."""
-
-    CHANNELS = "channel"
-    """Key for list of channels to load."""
-
-    RESOLUTION = "resolution_level"
-    """Key for resolution level of the image."""
-
-    SCENE = "scene"
-    """Key for scene identifier."""
-
-
-class CytoDLSaveDataKeys(StrEnum):
-    """Metadata keys passed to CytoDL callback object SaveTabularData."""
-
-    FILE_PATH = "filename_or_obj"
-    """Key for path to the source image file."""
-
-    TIMEPOINT = "T"
-    """Key for timepoint (frame number)."""

@@ -1,6 +1,71 @@
+from enum import StrEnum
+
 from endo_pipeline.settings.column_names import ColumnName as Column
 
 """Global constants and default settings for DiffAE feature dataframe creation and processing."""
+
+
+class CytoDLLoadDataKeys(StrEnum):
+    """Metadata keys passed into MultiDimImageDataset for loading images."""
+
+    FILE_PATH = "path"
+    """Key for path to the source image file."""
+
+    TIMEPOINT = "T"
+    """Key for timepoint (frame number)."""
+
+    TIME_START = "frame_start"
+    """Key for starting timepoint (frame number)."""
+
+    TIME_END = "frame_stop"
+    """Key for ending timepoint (frame number)."""
+
+    TIME_STEP = "frame_step"
+    """Key for timepoint (frame number) step size."""
+
+    INCLUDE_TIMEPOINTS = "include_frames"
+    """Key for list of timepoints (frame numbers) to include."""
+
+    Z_START = "z_start"
+    """Key for starting z-slice index."""
+
+    Z_END = "z_stop"
+    """Key for ending z-slice index."""
+
+    Z_STEP = "z_step"
+    """Key for z-slice index step size."""
+
+    CHANNELS = "channel"
+    """Key for list of channels to load."""
+
+    RESOLUTION = "resolution_level"
+    """Key for resolution level of the image."""
+
+    SCENE = "scene"
+    """Key for scene identifier."""
+
+    START_X = Column.DiffAEData.START_X
+    """Upper-left x-coordinate of the crop."""
+
+    START_Y = Column.DiffAEData.START_Y
+    """Upper-left y-coordinate of the crop."""
+
+    END_X = Column.DiffAEData.END_X
+    """Lower-right x-coordinate of the crop."""
+
+    END_Y = Column.DiffAEData.END_Y
+    """Lower-right y-coordinate of the crop."""
+
+
+class CytoDLSaveDataKeys(StrEnum):
+    """Metadata keys passed to CytoDL callback object SaveTabularData."""
+
+    FILE_PATH = "filename_or_obj"
+    """Key for path to the source image file."""
+
+    TIMEPOINT = "T"
+    """Key for timepoint (frame number)."""
+
 
 NUM_LATENT_FEATURES = 512
 """Number of latent features to extract from DiFFAE model."""

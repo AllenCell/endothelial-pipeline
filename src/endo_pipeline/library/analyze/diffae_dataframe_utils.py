@@ -872,12 +872,12 @@ def get_dataframe_for_dynamics_workflows(
         seg_feat_loc = get_dataframe_location_for_dataset(seg_feat_manifest, dataset_name)
         df_segmentations_delayed = load_dataframe(seg_feat_loc, delay=True)
         cols_to_compute = [
-            "dataset_name",
+            Column.DATASET,
             Column.POSITION,
-            "image_index",
+            Column.TIMEPOINT,
             Column.TRACK_ID,
             Column.TRACK_LENGTH,
-            "is_included",
+            Column.SegDataFilters.IS_INCLUDED,
         ]
         df_segmentations = df_segmentations_delayed[cols_to_compute].compute()
         # NOTE the 2 lines below are temporary until we update how we store position
@@ -885,8 +885,6 @@ def get_dataframe_for_dynamics_workflows(
         df_segmentations[Column.POSITION] = df_segmentations[Column.POSITION].transform(
             lambda pos: f"P{pos}"
         )
-        df_segmentations.rename(columns={"dataset_name": Column.DATASET}, inplace=True)
-        df_segmentations.rename(columns={"image_index": Column.TIMEPOINT}, inplace=True)
         original_df_length = len(df_filtered)
         df_filtered = df_filtered.merge(
             df_segmentations,
@@ -905,7 +903,7 @@ def get_dataframe_for_dynamics_workflows(
                 f"Original length: {original_df_length}, new length: {len(df_filtered)}. "
                 f"Check the merge keys and the dataframes to ensure that the merge is correct."
             )
-        df_filtered = df_filtered[df_filtered["is_included"]]
+        df_filtered = df_filtered[df_filtered[Column.SegDataFilters.IS_INCLUDED]]
 
     if minimum_track_length is not None:
         df_filtered = filter_dataframe_by_track_length(
@@ -914,7 +912,7 @@ def get_dataframe_for_dynamics_workflows(
 
     # add dataset duration description column
     dataset_config = load_dataset_config(dataset_name)
-    df_filtered["duration"] = dataset_config.duration
+    df_filtered[Column.DURATION] = dataset_config.duration
 
     if pca is None:
         # do not project feature data onto PCA axes
@@ -1057,7 +1055,7 @@ def add_crop_index(
     if crop_pattern == "tracked" and Column.TRACK_ID in df.columns:
         required_columns = [Column.POSITION, Column.TRACK_ID]
     elif crop_pattern == "grid":
-        required_columns = [Column.POSITION, Column.START_X, Column.START_Y]
+        required_columns = [Column.POSITION, Column.DiffAEData.START_X, Column.DiffAEData.START_Y]
 
     check_required_columns_in_dataframe(df, required_columns)
 
