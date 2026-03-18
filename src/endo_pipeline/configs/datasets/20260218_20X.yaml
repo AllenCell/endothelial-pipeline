@@ -35,7 +35,28 @@ include_scenes: null
 notes: Possible early piling FOVs 1-2, cells may be stressed from high SS and low
   density. Persistent hole in monolayer right side FOV 3. BF progressively darker
   TP 200-240.
-timepoint_annotations: null
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: []
+    1: []
+    2: []
+    3: [576]
+    4: []
+    5: []
+  auto_bf_temp_artifact:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
 position_annotations: null
 center_z_plane:
   0: 11

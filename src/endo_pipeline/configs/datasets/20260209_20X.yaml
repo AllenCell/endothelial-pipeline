@@ -28,13 +28,34 @@ zarr_channel_indices:
   channel_640: null
 channel_names: [EGFP, BF]
 flow_conditions:
-- start: -13
+- start: -25
   stop: 576
   shear_stress: 12.04
 include_scenes: null
 notes: 6-7 non-endos across tiles. Gaps in monolayer FOV 2 ~TP 336, FOV 5 ~TP 414
   (1-indexed). Slight global brightening TP 26.
-timepoint_annotations: null
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [56, 148, 152, 290, 525, 544, 561]
+    1: [95, 103, 138, 290, 525, 543, 544]
+    2: [95, 138, 355, 360, 525, 543]
+    3: [49, 95, 138, 148, 152, 484, 525, 543, 557, 560]
+    4: [95, 525, 557]
+    5: [95, 138, 525]
+  auto_bf_temp_artifact:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
 position_annotations: null
 center_z_plane:
   0: 11

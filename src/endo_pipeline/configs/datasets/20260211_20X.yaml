@@ -34,7 +34,28 @@ flow_conditions:
 include_scenes: null
 notes: Possible slight slide tilt FOV 1 to FOV 6, not too severe after QC. GFP and
   BF both look good.
-timepoint_annotations: null
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [246, 251, 521]
+    1: [233, 249]
+    2: [232, 249, 548]
+    3: [233, 254]
+    4: [232, 254]
+    5: [232, 281]
+  auto_bf_temp_artifact:
+    0: [521]
+    1: [232]
+    2: [246, 262, 521]
+    3: [246, 254, 521]
+    4: [254]
+    5: [232, 281]
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
 position_annotations: null
 center_z_plane:
   0: 12
