@@ -142,77 +142,15 @@ def plot_demo_summary(
     plt.style.use("endo_pipeline.figure")
     out_dir = Path(out_dir)
 
-    # Scan a subsample of crops x timepoints to find coherent/incoherent flow
     sorted_tp = sorted(cache.keys())
     if len(sorted_tp) < 2:
         logger.warning("Only %d cached frame(s) — skipping demo plot", len(sorted_tp))
         return
 
-    cids = crop_grid[ColumnName.CROP_INDEX].values
-    sx_arr = crop_grid[ColumnName.START_X].values.astype(int)
-    sy_arr = crop_grid[ColumnName.START_Y].values.astype(int)
-    ex_arr = crop_grid["end_x"].values.astype(int)
-    ey_arr = crop_grid["end_y"].values.astype(int)
-
-    crop_step = max(1, len(cids) // DEMO_SCAN_N_CROPS)
-    scan_cids = range(0, len(cids), crop_step)
-
-    all_pairs = [(sorted_tp[i], sorted_tp[i + 1]) for i in range(len(sorted_tp) - 1)]
-    pair_step = max(1, len(all_pairs) // DEMO_SCAN_N_PAIRS)
-    scan_pairs = all_pairs[::pair_step]
-
-    records: list[dict] = []
-    _image_flow_cache: dict[tuple[int, int], tuple[np.ndarray, np.ndarray]] = {}
-    for ci_idx in scan_cids:
-        _sx, _sy = int(sx_arr[ci_idx]), int(sy_arr[ci_idx])
-        _ex, _ey = int(ex_arr[ci_idx]), int(ey_arr[ci_idx])
-        _cidx = int(cids[ci_idx])
-        for t0, t1 in scan_pairs:
-            f0, f1 = cache[t0], cache[t1]
-            c0, c1 = f0[_sy:_ey, _sx:_ex], f1[_sy:_ey, _sx:_ex]
-            if flow_scope == "image":
-                if (t0, t1) not in _image_flow_cache:
-                    _image_flow_cache[(t0, t1)] = compute_tvl1(f0, f1, attachment=attachment)
-                uf_full, vf_full = _image_flow_cache[(t0, t1)]
-                uf, vf = uf_full[_sy:_ey, _sx:_ex], vf_full[_sy:_ey, _sx:_ex]
-            else:
-                uf, vf = compute_tvl1(c0, c1, attachment=attachment)
-            ang = np.arctan2(vf, uf)
-            sp_scan = np.sqrt(uf**2 + vf**2)
-            mask = (c0 > thresh) | (c1 > thresh)
-            cstd = float(sp_stats.circstd(ang[mask])) if mask.any() else float("nan")
-
-            # R-bar: mean resultant length of unit flow vectors (masked)
-            nz_mask = mask & (sp_scan > 0)
-            if nz_mask.any():
-                unit_u = uf[nz_mask] / sp_scan[nz_mask]
-                unit_v = vf[nz_mask] / sp_scan[nz_mask]
-                rbar = float(np.sqrt(unit_u.mean() ** 2 + unit_v.mean() ** 2))
-            else:
-                rbar = float("nan")
-
-            records.append(
-                {
-                    "ci_idx": ci_idx,
-                    "crop": _cidx,
-                    "t0": t0,
-                    "t1": t1,
-                    "sx": _sx,
-                    "sy": _sy,
-                    "ex": _ex,
-                    "ey": _ey,
-                    "circ_std": cstd,
-                    "rbar": rbar,
-                }
-            )
-
-    scan_df = pd.DataFrame(records).dropna(subset=["rbar"])
+    scan_df = _scan_crop_pairs(cache, crop_grid, thresh, flow_scope, attachment)
     if len(scan_df) < 2:
         logger.warning("Scan produced <2 valid records — skipping demo plot")
         return
-
-    # Sort by R̄ descending: high R̄ = coherent, low R̄ = incoherent
-    scan_df = scan_df.sort_values("rbar", ascending=False).reset_index(drop=True)
     n_scanned = len(scan_df)
 
     if n_scanned >= 3:

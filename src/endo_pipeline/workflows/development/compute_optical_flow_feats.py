@@ -16,7 +16,7 @@ _DEMO_MAX_POSITIONS: int = 1
 _DEMO_MAX_FRAMES: int = 5
 
 
-def main(
+def main(  # noqa: C901
     datasets: Datasets | None = None,
     positions: list[int] | None = None,
     channel: Sequence[str] = ("BF",),
