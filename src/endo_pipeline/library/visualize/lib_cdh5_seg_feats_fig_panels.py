@@ -33,8 +33,10 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     load_image_manifest,
 )
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.examples import CDH5_SEG_FIG_EXAMPLE
 from endo_pipeline.settings.figures import FONT_FAMILY, FONTSIZE_SMALL, PDF_FONT_TYPE
+from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
 
 IMAGE_PANEL_SIZE = (3, 3)
 PLOT_PANEL_SIZE = (1.1, 1.1)
@@ -226,8 +228,6 @@ def make_imaging_panels(
 
 def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
 
-    Path.mkdir(out_dir, exist_ok=True, parents=True)
-
     # Set some global plotting parameters to be consistent
     # with the other plots in the manuscript
     plt.style.use("default")
@@ -242,20 +242,56 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
     )
 
     for dataset_name in tqdm(datasets):
+
+        out_subdir = out_dir / dataset_name
+        out_subdir.mkdir(exist_ok=True, parents=True)
+
         # load dataset config
         dataset_config = load_dataset_config(dataset_name)
 
         # Load the tables with cdh5 segmentation measurements
         live_seg_manifest = load_dataframe_manifest("live_merged_seg_features")
         live_seg_location = get_dataframe_location_for_dataset(live_seg_manifest, dataset_name)
-        live_seg_feats_df = load_dataframe(live_seg_location)
+        live_seg_feats_df_delayed = load_dataframe(live_seg_location, delay=True)
+
+        # pick the features you need:
+        # features to plot:
+        periodic_feats = [
+            Column.SegData.NUCLEI_POSITION_ANGLE_DEG,
+            Column.SegData.CENTROID_VELOCITY_ANGLE_DEG,
+            Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
+        ]
+        feats_to_plot = periodic_feats + [
+            Column.SegData.ALIGNMENT_DEG,
+            Column.SegData.ORIENTATION_DEG,
+            Column.SegData.ASPECT_RATIO,
+            Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD,
+            Column.SegData.CELL_FLUOR_MEAN,
+            Column.SegData.EDGE_FLUOR_MEAN,
+            Column.SegData.NODE_FLUOR_MEAN,
+            Column.SegData.AREA_UM_SQ,
+        ]
+
+        time_col = Column.SegData.TIME_HRS_SINCE_FLOW
+
+        # filtering features:
+        filter_cols = SEGMENTATION_FEATURE_COLUMNS["filters"]
+
+        # columns for calculating dynamic features
+        dynamics_cols = SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
+
+        # figure out which columns to compute:
+        cols_to_compute = set(
+            [time_col] + periodic_feats + feats_to_plot + filter_cols + dynamics_cols
+        ) & set(live_seg_feats_df_delayed.columns)
+
+        # compute the columns you need
+        live_seg_feats_df = live_seg_feats_df_delayed[list(cols_to_compute)].compute()
 
         # filter out rows based on track-based features
-        live_seg_feats_df = live_seg_feats_df[live_seg_feats_df.is_included]
+        live_seg_feats_df = live_seg_feats_df[live_seg_feats_df[Column.SegDataFilters.IS_INCLUDED]]
 
         # filter out rows based on automatic and manual timepoint annotations
-        live_seg_feats_df["dataset"] = live_seg_feats_df["dataset_name"]
-        live_seg_feats_df["frame_number"] = live_seg_feats_df["image_index"]
         annotations_to_filter_out = [
             TimepointAnnotation.AUTO_GFP_SCOPE_ERROR,
             TimepointAnnotation.GFP_SCOPE_ERROR,
@@ -267,33 +303,6 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
         # calculate features that are sensitive to how the dataframe is filtered
         live_seg_feats_df = calculate_derived_data_dynamics_dependent(live_seg_feats_df)
 
-        # make another time column that uses the time since flow start as zero
-        # instead of time since the start of imaging
-        # 1. get the first flow conditions start time (this is in units of timeframes)
-        flow_change_times = [flow.start for flow in dataset_config.flow_conditions]
-        # 2. convert to hours
-        flow_change_times_hrs = [
-            flow_start_time * dataset_config.time_interval_in_minutes / 60.0  # type:ignore
-            for flow_start_time in flow_change_times
-        ]
-        flow_start_time_hrs = flow_change_times_hrs[0]
-        # 3. add the new time column
-        live_seg_feats_df["time_hours_since_flow_start"] = (
-            live_seg_feats_df["time_hours"] - flow_start_time_hrs
-        )
-
-        # It's plotting time!
-        # pick the features to plot
-        feats_to_plot = [
-            "alignment_deg_rel_to_flow",
-            "cell_nuc_orientation_deg",
-            "centroid_velocity_angle_deg",
-            "nuc_orientation_deg_rel_migration",
-            "nuc_pos_vs_cell_veloc_dotprod",
-            "aspect_ratio",
-            "cell_fluorescence_mean (a.u.)",
-            "area (um**2)",
-        ]
         # get the plotting arguments for the features
         # (e.g. axis limits, axis titles, bin widths, etc.)
         feats_plot_args = get_seg_feat_plot_args()
@@ -301,24 +310,29 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
         # update the y labels of the features being plotted to
         # accomodate these panels being very very small
         # (and/or to make them more informative)
-        time_col = "time_hrs_flow"
         feats_plot_args[time_col]["label"] = "Time (h)"
-        feats_plot_args["alignment_deg_rel_to_flow"]["label"] = "Cell Alignment (°)"
-        feats_plot_args["cell_nuc_orientation_deg"][
+        feats_plot_args[Column.SegData.ALIGNMENT_DEG]["label"] = "Cell Alignment (°)"
+        feats_plot_args[Column.SegData.NUCLEI_POSITION_ANGLE_DEG][
             "label"
         ] = "Cell-Nucleus Angle\nRel. to Flow (°)"
-        feats_plot_args["centroid_velocity_angle_deg"]["label"] = "Migration Angle (°)"
-        feats_plot_args["nuc_orientation_deg_rel_migration"][
+        feats_plot_args[Column.SegData.CENTROID_VELOCITY_ANGLE_DEG]["label"] = "Migration Angle (°)"
+        feats_plot_args[Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG][
             "label"
         ] = "Cell-Nucleus Angle\nRel. Migration (°)"
-        feats_plot_args["nuc_pos_vs_cell_veloc_dotprod"][
+        feats_plot_args[Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD][
             "label"
         ] = "Cell-Nucleus vs.\nMigration Dot Prod."
-        feats_plot_args["aspect_ratio"]["label"] = "Aspect ratio"
-        feats_plot_args["cell_fluorescence_mean (a.u.)"][
+        feats_plot_args[Column.SegData.ASPECT_RATIO]["label"] = "Aspect ratio"
+        feats_plot_args[Column.SegData.CELL_FLUOR_MEAN][
             "label"
-        ] = "Mean VE-Cad fluorescence (a.u.)"
-        feats_plot_args["area (um**2)"]["label"] = "Cell area (µm²)"
+        ] = "Mean VE-Cad Fluorescence\nin Cell (a.u.)"
+        feats_plot_args[Column.SegData.EDGE_FLUOR_MEAN][
+            "label"
+        ] = "Mean VE-Cad Fluorescence\nat Edges (a.u.)"
+        feats_plot_args[Column.SegData.NODE_FLUOR_MEAN][
+            "label"
+        ] = "Mean VE-Cad Fluorescence\nat Nodes (a.u.)"
+        feats_plot_args[Column.SegData.AREA_UM_SQ]["label"] = "Cell area (µm²)"
 
         # create and save the panels of each of the features
         for feat in feats_to_plot:
@@ -333,7 +347,7 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
                 y_label=feats_plot_args[feat]["label"].capitalize(),
                 x_lims=feats_plot_args[time_col]["lims"],
                 y_lims=feats_plot_args[feat]["lims"],
-                set_xticks=feats_plot_args["time_hrs"]["ticks"],
+                set_xticks=feats_plot_args[time_col]["ticks"],
                 set_yticks=feats_plot_args[feat]["ticks"],
                 discrete_xticks=feats_plot_args[time_col]["discrete_ticks"],
                 discrete_yticks=feats_plot_args[feat]["discrete_ticks"],
@@ -349,18 +363,29 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
 
             # perform some additional adjustments to the panel
             ax.set_title("")
-            if "orientation" in feat:
+            if feat in periodic_feats:
                 ax = mark_parallel(ax, color="lightgrey")
                 ax = mark_perpendicular(ax, color="lightgrey")
-            if feat == "nuc_pos_vs_cell_veloc_dotprod":
+            if feat == Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD:
                 ax.axhline(0, color="lightgrey", linestyle="--", linewidth=1)
             # draw a line at the time where imaging started (i.e. negative of flow start time)
+            # get the flow change times in hours (relative to imaging start time) and draw vertical lines at those times
+            flow_change_times = [flow.start for flow in dataset_config.flow_conditions]
+            flow_change_times_hrs = [
+                flow_start_time * dataset_config.time_interval_in_minutes / 60.0  # type:ignore
+                for flow_start_time in flow_change_times
+            ]
+            flow_start_time_hrs = flow_change_times_hrs[0]
+
+            # shift imaging start time (which is normally 0) to be relative to flow start time
             imaging_start_time = 0 - flow_start_time_hrs
             for i, flow_change_time in enumerate(flow_change_times_hrs):
                 if i == 0:
                     ax.axvline(imaging_start_time, color="lime", linestyle="--", linewidth=1)
                 else:
                     ax.axvline(
+                        # shift the flow change time (which is normally relative to imaging
+                        # start time) to be relative to flow start time
                         flow_change_time - flow_start_time_hrs,
                         color="cyan",
                         linestyle="--",
@@ -371,7 +396,7 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
             for fmt in [".pdf", ".png"]:
                 save_plot_to_path(
                     figure=fig,
-                    output_path=out_dir,
+                    output_path=out_subdir,
                     figure_name=figure_name,
                     file_format=cast(Literal[".pdf", ".png"], fmt),
                     pad_inches=0.05,
