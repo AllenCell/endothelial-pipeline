@@ -1,4 +1,5 @@
 import logging
+import re
 from collections.abc import Callable, Sequence, Sized
 from typing import Any
 
@@ -9,18 +10,20 @@ from matplotlib.lines import Line2D
 from scipy.integrate import solve_ivp
 from scipy.optimize import fsolve
 
+from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+
 # set global dictionaries for stability colors and markers
 STABILITY_COLOR_DICT: dict[str, str] = {
-    "stable": "g",
-    "saddle": "tab:purple",
-    "unstable": "r",
-    "indeterminate": "darkgoldenrod",
+    StabilityLabel.STABLE: "g",
+    StabilityLabel.SADDLE: "tab:purple",
+    StabilityLabel.UNSTABLE: "r",
+    StabilityLabel.INDETERMINATE: "darkgoldenrod",
 }
 STABILITY_MARKER_DICT: dict[str, str] = {
-    "stable": "o",
-    "saddle": "P",
-    "unstable": "s",
-    "indeterminate": "p",
+    StabilityLabel.STABLE: "o",
+    StabilityLabel.SADDLE: "P",
+    StabilityLabel.UNSTABLE: "s",
+    StabilityLabel.INDETERMINATE: "p",
 }
 
 logger = logging.getLogger(__name__)
@@ -94,21 +97,28 @@ def findroot(func: Callable, init: float | Sized) -> np.ndarray:
         return np.array([np.nan] * len(init))
 
 
-def get_fps(
-    my_flow: Callable, inits: list[tuple] | list[np.ndarray]
-) -> list[tuple] | list[np.ndarray]:
+def get_fpts(my_flow: Callable, inits: list[tuple] | list[np.ndarray]) -> list[np.ndarray]:
     """
-    Return the list of unique fixed points of
-    the system x' = my_flow(x) starting around
-    initial conditions inits.
+    Get a list of unique fixed points of the system of ODEs.
 
-    Inputs:
-    - my_flow: function that takes x as input
-    - inits: list of initial conditions
+    This function works by numerically finding roots of the function my_flow
+    starting from the initial conditions in inits, using the function findroot.
 
-    Outputs:
-    - fpts: list of unique fixed points
-        (tuples of floats)
+    **Method inputs**
+
+    The input my_flow should be a callable function that takes a state vector as
+    input and returns the flow vector at that point. The input inits should be a
+    list of initial conditions (tuples or numpy arrays) to use as starting
+    points for root finding, where each initial condition is a point in the
+    state space (i.e., a vector of the same dimension as the output of my_flow).
+
+
+    Parameters
+    ----------
+    my_flow
+        Callable function to find the fixed points of.
+    inits
+        List of initial conditions for root finding.
     """
     fpts = []
     # find each of the fixed points near the starting
@@ -120,24 +130,32 @@ def get_fps(
         # check if the root is not nan
         if not np.isnan(r).any():
             fpts.append(r)
-    # round to 4 decimal places, get unique elements of list
-    return list(set(map(tuple, np.round(fpts, 4))))
+    # get unique elements of list by converting to set of tuples and back to
+    # list of numpy arrays (uniqueness up to 4 decimal places due to numerical
+    # precision)
+    return list(map(np.array, set(map(tuple, np.round(fpts, 4)))))
 
 
-def find_fpt_type(jacobian: np.ndarray) -> str:
+def get_fpt_type(jacobian: np.ndarray) -> str:
     """
-    Determine stability and type of a fixed point
-    of the system of ODEs dx/dt = f(x).
+    Classify the type of a fixed point given the Jacobian matrix at that point.
 
-    Inputs:
-    - jacobian: Jacobian matrix at the fixed point
-        (can be a float or np.ndarray)
-    - ndim: dimensionality of the system (1 or 2)
+    The point is classified as follows:
+        - stable: all eigenvalues have negative real part
+            - Eigenvalues are real: classified as stable node
+            - Eigenvalues are complex conjugates: classified as stable spiral
+        - unstable: all eigenvalues have positive real part
+            - Eigenvalues are real: classified as unstable node
+            - Eigenvalues are complex conjugates: classified as unstable spiral
+        - saddle: eigenvalues have real parts of different signs
+        - indeterminate: all eigenvalues have real part close to zero (within
+          numerical precision)
 
-    Outputs:
-    - stability: string describing the stability and type
-        of the fixed point
-        (e.g. "stable spiral", "unstable node")
+    Parameters
+    ----------
+    jacobian
+        Square matrix representing the Jacobian of the system at the fixed
+        point.
     """
     # get eigenvalues of the Jacobian
     eigvals = np.linalg.eigvals(jacobian)
@@ -150,23 +168,49 @@ def find_fpt_type(jacobian: np.ndarray) -> str:
 
     # determine stability and type of fixed point
     if np.isclose(np.real(eigvals).max(), 0) and np.isclose(np.real(eigvals).min(), 0):
-        stability = "indeterminate stability"
+        stability = StabilityLabel.INDETERMINATE
+        fpt_type = f"{stability} stability"
     elif np.real(eigvals).min() < 0 < np.real(eigvals).max():
-        stability = "saddle point"
+        stability = StabilityLabel.SADDLE
+        fpt_type = f"{stability} point"
     else:
-        stability = "stable" if np.real(eigvals).max() < 0 else "unstable"
+        stability = StabilityLabel.STABLE if np.real(eigvals).max() < 0 else StabilityLabel.UNSTABLE
         if np.imag(eigvals).any():
-            stability += " spiral"
+            fpt_type = f"{stability} spiral"
         else:
-            stability += " node"
+            fpt_type = f"{stability} node"
 
-    logger.debug("Fixed point type: [ %s ]", stability)
+    logger.debug("Fixed point type: [ %s ]", fpt_type)
     logger.debug(
         "Eigenvalues: [ %s ]",
         eigval_str,
     )
 
-    return stability
+    return fpt_type
+
+
+def get_stability_label_from_fpt_type(fpt_type: str) -> str:
+    """
+    Get the stability label from the fixed point type string.
+
+    Parameters
+    ----------
+    fpt_type
+        String describing the type of fixed point, e.g., as returned by get_fpt_type.
+
+    Returns
+    -------
+    :
+        String describing just the stability of the fixed point.
+    """
+    # use re.match so matching is case-insensitive (re.IGNORECASE) and
+    # anchored to the start of the string; the word boundary (\b) prevents a
+    # label like "stable" from matching a hypothetical "stableish ..." input
+    for stability in StabilityLabel:
+        if re.match(rf"^{re.escape(stability.value)}\b", fpt_type, re.IGNORECASE):
+            return stability.value
+    # if no stability label is found, return "unknown"
+    return "unknown"
 
 
 def classify_fps(
@@ -235,10 +279,10 @@ def classify_fps(
         ):
             continue
         # get stability and type of the fixed point
-        fpt_type = find_fpt_type(flow_jacobian(fpt))
+        fpt_type = get_fpt_type(flow_jacobian(fpt))
         # stability of the fixed point is the
         # first word in the fpt_type string
-        fpt_stability = fpt_type.split(" ")[0].lower()
+        fpt_stability = get_stability_label_from_fpt_type(fpt_type)
         # if verbose, print the point and its stability
         if verbose:
             print(f"  • {fpt_type} at x = ({fpt[0]:.3f},{fpt[1]:.3f})")
@@ -451,7 +495,7 @@ def phase_portrait(
     x2_coarse = np.linspace(x2[0], x2[-1], n2_coarse)
     init_coarse = [(x1_coarse[i], x2_coarse[j]) for i in range(n1_coarse) for j in range(n2_coarse)]
     # get fixed points of the system
-    fpts = get_fps(_my_flow, init_coarse)
+    fpts = get_fpts(_my_flow, init_coarse)
 
     # if fixed points are found, classify them
     # and plot them
@@ -473,7 +517,7 @@ def phase_portrait(
     # this might be something
     # to write as a separate function
     my_handles = []
-    if "stable" in fpt_stabilities:
+    if StabilityLabel.STABLE in fpt_stabilities:
         my_handles.append(
             Line2D(
                 [],
@@ -485,7 +529,7 @@ def phase_portrait(
                 linestyle="",
             )
         )
-    if "unstable" in fpt_stabilities:
+    if StabilityLabel.UNSTABLE in fpt_stabilities:
         my_handles.append(
             Line2D(
                 [],
@@ -497,7 +541,7 @@ def phase_portrait(
                 linestyle="",
             )
         )
-    if "saddle" in fpt_stabilities:
+    if StabilityLabel.SADDLE in fpt_stabilities:
         my_handles.append(
             Line2D(
                 [],
@@ -509,7 +553,7 @@ def phase_portrait(
                 linestyle="",
             )
         )
-    if "indeterminate" in fpt_stabilities:
+    if StabilityLabel.INDETERMINATE in fpt_stabilities:
         my_handles.append(
             Line2D(
                 [],

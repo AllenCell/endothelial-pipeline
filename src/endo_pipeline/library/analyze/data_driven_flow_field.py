@@ -1,5 +1,4 @@
 import logging
-import re
 from collections.abc import Callable
 from time import time
 from typing import Literal, overload
@@ -13,10 +12,15 @@ from scipy.stats import gaussian_kde
 
 from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.numerics.binning import circpercentile
-from endo_pipeline.library.visualize.diffae_features.pplane import find_fpt_type, get_fps
+from endo_pipeline.library.visualize.diffae_features.pplane import (
+    get_fpt_type,
+    get_fpts,
+    get_stability_label_from_fpt_type,
+)
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED
 from endo_pipeline.settings.flow_field_3d import SAMPLER_RANDOM_SEED
+from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -182,34 +186,32 @@ def is_point_within_percentile_bounds(
     return np.all(is_within_bounds)
 
 
-def get_stable_fixed_points(
-    drift_function: Callable[[np.ndarray], np.ndarray],
+def get_fixed_points_within_bounds(
+    vector_field_function: Callable[[np.ndarray], np.ndarray],
     dataframe: pd.DataFrame,
     column_names: list[str],
     num_inits_for_root_solver: int,
     lower_percentile: float,
     upper_percentile: float,
     polar_angle_range: tuple[float, float],
+    stability_label_column_name: str = STABILITY_COLUMN_NAME,
 ) -> pd.DataFrame:
     """
-    Get stable fixed points with high confidence from a data-driven flow field
-    analysis.
+    Get fixed points of a given estimated vector field with high confidence.
 
     For a single dataset, this workflow:
 
-    1. Extrapolates the drift and diffusion coefficients to get a flow field
-       over the entire 3D space as specified by the input bins and centers.
-    2. Finds fixed points of the flow field by finding roots of the drift
-         function.
+    1. Finds fixed points of the vector field by finding roots of the input
+       function using multiple initial conditions sampled from the density of
+       the given data.
+    2. Filters the fixed points to only keep those that are within a specified
+       percentile range of the data along each dimension.
 
     Parameters
     ----------
-    drift_function
-        Callable function that takes in a point in 3D space and outputs the drift
+    vector_field_function
+        Callable function that takes in a point in 3D space and outputs a 3D
         vector at that point.
-    centers
-        List of 1D numpy arrays with the grid points in each dimension
-        corresponding to the drift coefficients.
     dataframe
         Dataframe containing the feature data for the dataset, which is used to
         filter the fixed points to only keep those within a certain percentile
@@ -223,6 +225,12 @@ def get_stable_fixed_points(
         Lower percentile for filtering fixed points.
     upper_percentile
         Upper percentile for filtering fixed points.
+    polar_angle_range
+        The range of the polar angle variable for handling wraparound when
+        computing percentiles for circular variables.
+    stability_label_column_name
+        Column name to use for fixed point stability classification labels in the
+        output dataframe.
 
     Returns
     -------
@@ -237,17 +245,17 @@ def get_stable_fixed_points(
     dataset_name = dataframe[ColumnName.DATASET].iloc[0]  # get dataset name from dataframe
 
     # create Jacobian function for finding stability of fixed points
-    drift_function_jacobian = Jacobian(drift_function)
+    vector_field_jacobian = Jacobian(vector_field_function)
 
     # sample initial conditions for root solver from data density
     sampled_inits_for_root_solver = sample_from_density(feature_data, num_inits_for_root_solver)
 
     # pass into helper function to get fixed points
-    fpts = get_fps(drift_function, sampled_inits_for_root_solver)
+    fpts = get_fpts(vector_field_function, sampled_inits_for_root_solver)
 
-    # filter fixed points to only keep stable ones within a given range of
-    # percentiles of data (e.g., 2 to 98) to get high confidence fixed points
-    # that are within the region of state space supported by the data
+    # filter fixed points to only keep ones within a given range of percentiles
+    # of data (e.g., 2 to 98) to get high confidence fixed points that are
+    # within the region of state space supported by the data
     lower_percentile_bounds = _compute_percentile_values(
         dataframe, column_names, q=lower_percentile, polar_angle_range=polar_angle_range
     )
@@ -260,49 +268,44 @@ def get_stable_fixed_points(
     logger.debug(
         "Upper percentile bounds for filtering fixed points: [ %s ]", upper_percentile_bounds
     )
-    stable_fpts_high_confidence_list = []
+    fpts_high_confidence_list = []
     for fpt in fpts:
         within_percentile = is_point_within_percentile_bounds(
             fpt, column_names, lower_percentile_bounds, upper_percentile_bounds, polar_angle_range
         )
         if within_percentile:
-            # get stability and type of the fixed point
-            fpt_type = find_fpt_type(drift_function_jacobian(fpt))
-            # stability of the fixed point is the
-            # first word in the fpt_type string
-            # if verbose, print the point and its stability
+            # get stability/type of the fixed point
+            fpt_type = get_fpt_type(vector_field_jacobian(fpt))
             logger.debug("[ %s ] at [ (%.2f, %.2f, %.2f) ]", fpt_type, fpt[0], fpt[1], fpt[2])
-            # if "Stable" or "stable" in the fpt_type, save the point
-            if re.search(r"stable", fpt_type, re.IGNORECASE) and not re.search(
-                r"unstable", fpt_type, re.IGNORECASE
-            ):
-                stable_fpts_high_confidence_list.append(
-                    pd.DataFrame(
-                        {
-                            ColumnName.DATASET: [dataset_name],
-                            column_names[0]: [fpt[0]],
-                            column_names[1]: [fpt[1]],
-                            column_names[2]: [fpt[2]],
-                        }
-                    )
+            fpt_stability_label = get_stability_label_from_fpt_type(fpt_type)
+            fpts_high_confidence_list.append(
+                pd.DataFrame(
+                    {
+                        ColumnName.DATASET: [dataset_name],
+                        stability_label_column_name: [fpt_stability_label],
+                        column_names[0]: [fpt[0]],
+                        column_names[1]: [fpt[1]],
+                        column_names[2]: [fpt[2]],
+                    }
                 )
+            )
 
-    # check if any stable fixed points with high confidence were found, and if
-    # not, log a warning and return an empty dataframe with the correct columns
-    if len(stable_fpts_high_confidence_list) == 0:
+    # check if any fixed points with high confidence were found, and if not, log
+    # a warning and return an empty dataframe with the correct columns
+    if len(fpts_high_confidence_list) == 0:
         logger.warning(
-            "No stable fixed points with high confidence found for dataset [ %s ]."
+            "No fixed points with high confidence found for dataset [ %s ]."
             "Consider adjusting percentile thresholds or number of initial conditions for root solver.",
             dataset_name,
         )
         return pd.DataFrame(
-            columns=[ColumnName.DATASET, *column_names]
-        )  # return empty dataframe with correct columns
+            columns=[ColumnName.DATASET, stability_label_column_name, *column_names]
+        )
 
     # else, concatenate the list of dataframes for each fixed point into a
     # single dataframe and return it
-    stable_fpts_high_confidence = pd.concat(stable_fpts_high_confidence_list, ignore_index=True)
-    return stable_fpts_high_confidence
+    fpts_high_confidence = pd.concat(fpts_high_confidence_list, ignore_index=True)
+    return fpts_high_confidence
 
 
 def fill_nan_for_vtk(data: np.ndarray, method: str = "nearest") -> np.ndarray:

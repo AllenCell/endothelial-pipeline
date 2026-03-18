@@ -84,7 +84,7 @@ def main(
     from endo_pipeline.library.analyze.data_driven_flow_field import (
         compute_extrapolated_vector_field,
         get_callable_vector_field,
-        get_stable_fixed_points,
+        get_fixed_points_within_bounds,
     )
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
@@ -115,16 +115,18 @@ def main(
         RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_3d import (
-        DATAFRAME_MANIFEST_PREFIX_DRIFT,
-        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
-        FMS_ANNOTATION_NOTES_DRIFT,
-        FMS_ANNOTATION_NOTES_FIXED_POINTS,
         LOWER_PERCENTILE_FOR_STABLE_FP,
         NUM_INIT_SAMPLES,
         PAD_BINS_FLOAT,
         TIME_STEP_IN_MINUTES,
         UPPER_PERCENTILE_FOR_STABLE_FP,
+    )
+    from endo_pipeline.settings.flow_field_dataframes import (
+        DATAFRAME_MANIFEST_PREFIX_DRIFT,
+        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        FMS_ANNOTATION_NOTES_DRIFT,
+        FMS_ANNOTATION_NOTES_FIXED_POINTS,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -337,7 +339,9 @@ def main(
             )
             save_dataframe_manifest(drift_dataframe_manifest)
         else:
-            logger.info("Saving drift dataframe locally to [ %s ]", drift_coeffs_save_path)
+            logger.info(
+                "Saving dataframe of drift coefficients locally to [ %s ]", drift_coeffs_save_path
+            )
 
         ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
         extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
@@ -350,8 +354,8 @@ def main(
             extrapolated_flow_field_dict_reg, for_solve_ivp=False, method="linear"
         )
 
-        stable_fixed_points_dataset = get_stable_fixed_points(
-            drift_function=drift_function,
+        fixed_points_for_dataset = get_fixed_points_within_bounds(
+            vector_field_function=drift_function,
             dataframe=df,
             column_names=column_names,
             num_inits_for_root_solver=NUM_INIT_SAMPLES,
@@ -363,19 +367,17 @@ def main(
         # add stable fixed points from this dataset to the overall dataframe
         # (checking first if returned dataframe is empty first to avoid issues
         # with concatenation and saving an empty dataframe)
-        if stable_fixed_points_dataset.empty:
+        if fixed_points_for_dataset.empty:
             continue
 
-        stable_fixed_points_all_datasets_list.append(stable_fixed_points_dataset)
+        stable_fixed_points_all_datasets_list.append(fixed_points_for_dataset)
 
         # save stable fixed points from this dataset to parquet file
-        stable_fixed_points_file_name = (
+        fixed_points_file_name = (
             f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataset_name}{demo_suffix}.parquet"
         )
-        stable_fixed_points_save_path = make_name_unique(
-            dataframe_savedir / stable_fixed_points_file_name
-        )
-        stable_fixed_points_dataset.to_parquet(stable_fixed_points_save_path)
+        fixed_points_save_path = make_name_unique(dataframe_savedir / fixed_points_file_name)
+        fixed_points_for_dataset.to_parquet(fixed_points_save_path)
         # if uploading to FMS, update the dataframe manifest
         if upload_to_fms:
             fixed_points_annotations = build_fms_annotations(
@@ -385,7 +387,7 @@ def main(
                 additional_notes=FMS_ANNOTATION_NOTES_FIXED_POINTS,
             )
             fixed_points_fmsid = upload_file_to_fms(
-                stable_fixed_points_save_path,
+                fixed_points_save_path,
                 annotations=fixed_points_annotations,
                 file_type="parquet",
             )
@@ -398,13 +400,13 @@ def main(
         # demo mode, just log the local save path
         elif DEMO_MODE:
             fixed_points_dataframe_manifest.locations[dataset_name] = (
-                build_dataframe_location_from_path(stable_fixed_points_save_path)
+                build_dataframe_location_from_path(fixed_points_save_path)
             )
             save_dataframe_manifest(fixed_points_dataframe_manifest)
         else:
             logger.info(
-                "Saving stable fixed points dataframe locally to [ %s ]",
-                stable_fixed_points_save_path,
+                "Saving dataframe of fixed points locally to [ %s ]",
+                fixed_points_save_path,
             )
 
 

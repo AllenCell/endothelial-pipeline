@@ -86,21 +86,3 @@ LOWER_PERCENTILE_FOR_STABLE_FP: float = 5.0
 
 DATASET_COLLECTION_FOR_3D_DYNAMICS: str = "3d_flow_field_analysis"
 """Default dataset collection name for 3D dynamics analysis."""
-
-DATAFRAME_MANIFEST_PREFIX_DRIFT: str = "drift_vector_field"
-"""Prefix for setting and getting dataframe manifest name for drift dataframes
-in 3D flow field analysis."""
-
-FMS_ANNOTATION_NOTES_DRIFT: str = (
-    "Drift vectors and corresponding grid points for 3D flow field estimation."
-)
-"""Annotation notes for drift coefficient dataframes uploaded to FMS in 3D flow field analysis."""
-
-DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS: str = "drift_fixed_points"
-"""Prefix for setting and getting dataframe manifest name for fixed point dataframes
-in 3D flow field analysis."""
-
-FMS_ANNOTATION_NOTES_FIXED_POINTS: str = (
-    "Stable fixed points identified from 3D flow field analysis."
-)
-"""Annotation notes for fixed point dataframes uploaded to FMS in 3D flow field analysis."""
