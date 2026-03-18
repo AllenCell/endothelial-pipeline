@@ -76,11 +76,12 @@ def main(gen_backdrops: bool = True) -> None:
             df["seg_image"] = seg_img_location.path
 
             df = add_backdrop_fname_to_manifest(
-                df,
-                dataset_name,
-                position,
-                IF_BACKDROP_IMAGES,
-                output_dir / "backdrops",
+                df=df,
+                dataset=dataset_name,
+                position=position,
+                timeframe_column_name="image_index",
+                backdrops=IF_BACKDROP_IMAGES,
+                output_dir=output_dir / "backdrops",
             )
 
             if gen_backdrops:

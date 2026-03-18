@@ -15,7 +15,8 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_datafram
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
-from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
+from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
 from endo_pipeline.settings.workflow_defaults import DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
@@ -71,12 +72,12 @@ def create_summary_dfs(
     datasets: Datasets,
     cols_to_compute: list[str],
     dataset_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame]:
 
     dataset_info_cols = [
-        ColumnName.DATASET.value,
-        ColumnName.POSITION.value,
-        ColumnName.TIMEPOINT.value,
+        ColNmSeg.DATASET,
+        ColNmSeg.POSITION,
+        ColNmSeg.TIMEPOINT,
     ]
 
     for col in dataset_info_cols[::-1]:
@@ -92,14 +93,13 @@ def create_summary_dfs(
             continue
         else:
             shear_stress = config.flow_conditions[0].shear_stress
-            shear_stress_regime = config.shear_stress_regime[0].value
 
         dataset_manifest = load_dataframe_manifest(dataset_manifest_name)
         dataset_location = get_dataframe_location_for_dataset(dataset_manifest, dataset_name)
         df_delayed = load_dataframe(dataset_location, delay=True)
 
         df = df_delayed[cols_to_compute].compute().reset_index()
-        df.dataset = dataset_name
+        df[ColNmSeg.DATASET] = dataset_name
         annotations_to_ignore: list = []
         timepoint_annotations = get_subset_of_timepoint_annotations(annotations_to_ignore)
         df_filtered = filter_dataframe_by_annotations(
@@ -108,32 +108,30 @@ def create_summary_dfs(
             timepoint_annotations=timepoint_annotations,
         )
 
-        df_filtered["shear_stress"] = shear_stress
-        df_filtered["shear_stress_regime"] = shear_stress_regime
+        df_filtered[ColNmSeg.SHEAR_STRESS] = shear_stress
+        shear_stress_regime = np.unique(df_filtered[ColNmSeg.SHEAR_STRESS_REGIME]).item()
 
         if df_subset.empty:
             df_subset = df_filtered
         else:
             df_subset = pd.concat([df_subset, df_filtered])
 
-        df = df.dropna(subset="total_nuclei_count_at_T")
-        first_t = df[ColumnName.TIMEPOINT].min()
-        df_first_t = df[df[ColumnName.TIMEPOINT] == first_t]
+        df = df.dropna(subset=ColNmSeg.NUM_NUCLEI_AT_TIMEPOINT)
+        first_t = df[ColNmSeg.TIMEPOINT].min()
+        df_first_t = df[df[ColNmSeg.TIMEPOINT] == first_t]
 
         groups = df_first_t.groupby(dataset_info_cols)
 
         for (ds, pos, tp), df_grp in groups:
-            pos_num_nuclei = sequence_to_scalar(df_grp["total_nuclei_count_at_T"])
-            pos_nuc_density = df_grp.num_nuclei_in_crop.mean()
-            pos_num_seg_unfilt = sequence_to_scalar(
-                df_grp["num_unique_tracks_before_filtering_at_T"]
-            )
-            pc3 = df_grp[DIFFAE_PC_COLUMN_NAMES[2]].mean()
+            pos_num_nuclei = sequence_to_scalar(df_grp[ColNmSeg.NUM_NUCLEI_AT_TIMEPOINT])
+            pos_nuc_density = df_grp[ColNmSeg.NUM_NUCLEI_IN_CROP].mean()
+            pos_num_seg_unfilt = sequence_to_scalar(df_grp[ColNmSeg.NUM_TRACKS_BEFORE_FILTERING])
+            rho = df_grp[ColumnName.PC3_FLIPPED].mean()
 
-            df_features = df_filtered[df_filtered[ColumnName.POSITION] == pos]
+            df_features = df_filtered[df_filtered[ColNmSeg.POSITION] == pos]
             vector_means: dict = {}
             vector_means_multipos: dict = {}
-            for feature in ["orientation", "polar_theta"]:
+            for feature in [ColNmSeg.ORIENTATION, ColumnName.POLAR_ANGLE]:
                 vec_mean_ang, vec_mean_mag = vector_mean_angle_and_mag(
                     df_features[feature].dropna() * 2
                 )
@@ -154,15 +152,15 @@ def create_summary_dfs(
 
             new_records = pd.DataFrame(
                 {
-                    ColumnName.DATASET.value: [ds],
-                    ColumnName.POSITION.value: [pos],
-                    ColumnName.TIMEPOINT.value: [tp],
-                    "shear_stress": [shear_stress],
-                    "shear_stress_regime": [shear_stress_regime],
-                    "total_nuclei_count_at_T": [pos_num_nuclei],
-                    "num_unique_tracks_before_filtering_at_T": [pos_num_seg_unfilt],
-                    DIFFAE_PC_COLUMN_NAMES[2]: [pc3],
-                    "num_nuclei_in_crop": [pos_nuc_density],
+                    ColNmSeg.DATASET: [ds],
+                    ColNmSeg.POSITION: [pos],
+                    ColNmSeg.TIMEPOINT: [tp],
+                    ColNmSeg.SHEAR_STRESS: [shear_stress],
+                    ColNmSeg.SHEAR_STRESS_REGIME: [shear_stress_regime],
+                    ColNmSeg.NUM_NUCLEI_AT_TIMEPOINT: [pos_num_nuclei],
+                    ColNmSeg.NUM_TRACKS_BEFORE_FILTERING: [pos_num_seg_unfilt],
+                    ColumnName.PC3_FLIPPED: [rho],
+                    ColNmSeg.NUM_NUCLEI_IN_CROP: [pos_nuc_density],
                     **vector_means,
                     **vector_means_multipos,
                 }
@@ -172,42 +170,44 @@ def create_summary_dfs(
             else:
                 summary_df = pd.concat([summary_df, new_records], ignore_index=True)
 
-    df_grpd = summary_df.groupby(ColumnName.DATASET)
-    df_grpd_for_means = df_subset.groupby(ColumnName.DATASET)
+    df_grpd = summary_df.groupby(ColNmSeg.DATASET)
+    df_grpd_for_means = df_subset.groupby(ColNmSeg.DATASET)
 
-    polar_theta_vec_mean_mag = df_grpd["polar_theta_vec_mean_multipos_magnitude"].apply(
+    polar_theta_vec_mean_mag = df_grpd[
+        f"{ColumnName.POLAR_ANGLE}_vec_mean_multipos_magnitude"
+    ].apply(lambda x: float(x.unique().item()))
+    orientation_vec_mean_mag = df_grpd[f"{ColNmSeg.ORIENTATION}_vec_mean_multipos_magnitude"].apply(
         lambda x: float(x.unique().item())
     )
-    orientation_vec_mean_mag = df_grpd["orientation_vec_mean_multipos_magnitude"].apply(
+    polar_theta_vec_mean_ang = df_grpd[f"{ColumnName.POLAR_ANGLE}_vec_mean_multipos_angle"].apply(
         lambda x: float(x.unique().item())
     )
-    polar_theta_vec_mean_ang = df_grpd["polar_theta_vec_mean_multipos_angle"].apply(
-        lambda x: float(x.unique().item())
-    )
-    orientation_vec_mean_ang = df_grpd["orientation_vec_mean_multipos_angle"].apply(
+    orientation_vec_mean_ang = df_grpd[f"{ColNmSeg.ORIENTATION}_vec_mean_multipos_angle"].apply(
         lambda x: float(x.unique().item())
     )
     summary_df_agg = pd.DataFrame(
         {
-            "dataset": df_grpd["dataset"].apply(lambda x: x.unique().item()),
-            "shear_stress_regime": df_grpd["shear_stress_regime"].apply(
+            ColNmSeg.DATASET: df_grpd[ColNmSeg.DATASET].apply(lambda x: x.unique().item()),
+            ColNmSeg.SHEAR_STRESS_REGIME: df_grpd[ColNmSeg.SHEAR_STRESS_REGIME].apply(
                 lambda x: x.unique().item()
             ),
-            "total_nuclei_count_at_T": df_grpd["total_nuclei_count_at_T"].sum(),
-            "num_unique_tracks_before_filtering_at_T": df_grpd[
-                "num_unique_tracks_before_filtering_at_T"
+            ColNmSeg.NUM_NUCLEI_AT_TIMEPOINT: df_grpd[ColNmSeg.NUM_NUCLEI_AT_TIMEPOINT].sum(),
+            ColNmSeg.NUM_TRACKS_BEFORE_FILTERING: df_grpd[
+                ColNmSeg.NUM_TRACKS_BEFORE_FILTERING
             ].sum(),
-            DIFFAE_PC_COLUMN_NAMES[2]: df_grpd_for_means[DIFFAE_PC_COLUMN_NAMES[2]].mean(),
-            "num_nuclei_in_crop": df_grpd_for_means["num_nuclei_in_crop"].mean(),
-            "shear_stress": df_grpd["shear_stress"].apply(lambda x: float(x.unique().item())),
-            "polar_theta_vec_mean_multipos_magnitude": polar_theta_vec_mean_mag,
-            "orientation_vec_mean_multipos_magnitude": orientation_vec_mean_mag,
-            "polar_theta_vec_mean_multipos_angle": polar_theta_vec_mean_ang,
-            "orientation_vec_mean_multipos_angle": orientation_vec_mean_ang,
+            ColumnName.PC3_FLIPPED: df_grpd_for_means[ColumnName.PC3_FLIPPED].mean(),
+            ColNmSeg.NUM_NUCLEI_IN_CROP: df_grpd_for_means[ColNmSeg.NUM_NUCLEI_IN_CROP].mean(),
+            ColNmSeg.SHEAR_STRESS: df_grpd[ColNmSeg.SHEAR_STRESS].apply(
+                lambda x: float(x.unique().item())
+            ),
+            f"{ColumnName.POLAR_ANGLE}_vec_mean_multipos_magnitude": polar_theta_vec_mean_mag,
+            f"{ColNmSeg.ORIENTATION}_vec_mean_multipos_magnitude": orientation_vec_mean_mag,
+            f"{ColumnName.POLAR_ANGLE}_vec_mean_multipos_angle": polar_theta_vec_mean_ang,
+            f"{ColNmSeg.ORIENTATION}_vec_mean_multipos_angle": orientation_vec_mean_ang,
         }
     )
 
-    return summary_df_agg, summary_df, df_subset
+    return summary_df_agg, summary_df
 
 
 def make_summary_plots(
