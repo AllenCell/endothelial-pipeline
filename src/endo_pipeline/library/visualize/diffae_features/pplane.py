@@ -96,7 +96,7 @@ def findroot(func: Callable, init: float | Sized) -> np.ndarray:
         return np.array([np.nan] * len(init))
 
 
-def get_fps(
+def get_fpts(
     my_flow: Callable, inits: list[tuple] | list[np.ndarray]
 ) -> list[tuple] | list[np.ndarray]:
     """
@@ -126,7 +126,7 @@ def get_fps(
     return list(set(map(tuple, np.round(fpts, 4))))
 
 
-def find_fpt_type(jacobian: np.ndarray) -> str:
+def get_fpt_type(jacobian: np.ndarray) -> str:
     """
     Classify the type of a fixed point given the Jacobian matrix at that point.
 
@@ -245,7 +245,7 @@ def classify_fps(
         ):
             continue
         # get stability and type of the fixed point
-        fpt_type = find_fpt_type(flow_jacobian(fpt))
+        fpt_type = get_fpt_type(flow_jacobian(fpt))
         # stability of the fixed point is the
         # first word in the fpt_type string
         fpt_stability = fpt_type.split(" ")[0].lower()
@@ -461,7 +461,7 @@ def phase_portrait(
     x2_coarse = np.linspace(x2[0], x2[-1], n2_coarse)
     init_coarse = [(x1_coarse[i], x2_coarse[j]) for i in range(n1_coarse) for j in range(n2_coarse)]
     # get fixed points of the system
-    fpts = get_fps(_my_flow, init_coarse)
+    fpts = get_fpts(_my_flow, init_coarse)
 
     # if fixed points are found, classify them
     # and plot them

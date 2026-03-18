@@ -12,7 +12,7 @@ from scipy.stats import gaussian_kde
 
 from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.numerics.binning import circpercentile
-from endo_pipeline.library.visualize.diffae_features.pplane import find_fpt_type, get_fps
+from endo_pipeline.library.visualize.diffae_features.pplane import get_fpt_type, get_fpts
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED
 from endo_pipeline.settings.flow_field_3d import SAMPLER_RANDOM_SEED
@@ -239,7 +239,7 @@ def get_fixed_points_within_bounds(
     sampled_inits_for_root_solver = sample_from_density(feature_data, num_inits_for_root_solver)
 
     # pass into helper function to get fixed points
-    fpts = get_fps(vector_field_function, sampled_inits_for_root_solver)
+    fpts = get_fpts(vector_field_function, sampled_inits_for_root_solver)
 
     # filter fixed points to only keep ones within a given range of percentiles
     # of data (e.g., 2 to 98) to get high confidence fixed points that are
@@ -263,7 +263,7 @@ def get_fixed_points_within_bounds(
         )
         if within_percentile:
             # get stability/type of the fixed point
-            fpt_type = find_fpt_type(vector_field_jacobian(fpt))
+            fpt_type = get_fpt_type(vector_field_jacobian(fpt))
             logger.debug("[ %s ] at [ (%.2f, %.2f, %.2f) ]", fpt_type, fpt[0], fpt[1], fpt[2])
             fpts_high_confidence_list.append(
                 pd.DataFrame(
