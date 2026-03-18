@@ -179,6 +179,30 @@ def get_fpt_type(jacobian: np.ndarray) -> str:
     return fpt_type
 
 
+def get_stability_label_from_fpt_type(fpt_type: str) -> str:
+    """
+    Get the stability label from the fixed point type string.
+
+    Parameters
+    ----------
+    fpt_type
+        String describing the type of fixed point, as returned by get_fpt_type.
+
+    Returns
+    -------
+    :
+        String describing the stability of the fixed point, which is
+        typically the first word in the fpt_type string.
+    """
+    # loop over possible stability labels and check if they are in the given
+    # fpt_type string
+    for stability in StabilityLabel:
+        if stability.value in fpt_type:
+            return stability.value
+    # if no stability label is found, return "unknown"
+    return "unknown"
+
+
 def classify_fps(
     my_flow: Callable,
     fpts: list[tuple] | list[np.ndarray],
@@ -248,7 +272,7 @@ def classify_fps(
         fpt_type = get_fpt_type(flow_jacobian(fpt))
         # stability of the fixed point is the
         # first word in the fpt_type string
-        fpt_stability = fpt_type.split(" ")[0].lower()
+        fpt_stability = get_stability_label_from_fpt_type(fpt_type)
         # if verbose, print the point and its stability
         if verbose:
             print(f"  • {fpt_type} at x = ({fpt[0]:.3f},{fpt[1]:.3f})")
