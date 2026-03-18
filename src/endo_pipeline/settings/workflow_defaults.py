@@ -75,6 +75,7 @@ SEGMENTATION_FEATURE_COLUMNS = {
         Column.SegData.ORIENTATION_DEG,
         Column.SegData.ORIENTATION,
         Column.SegData.ASPECT_RATIO,
+        Column.SegData.NEMATIC_ORDER,
         Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
         Column.SegData.NUCLEI_POSITION_ANGLE_DEG,
         Column.SegData.CENTROID_VELOCITY_ANGLE_DEG,
