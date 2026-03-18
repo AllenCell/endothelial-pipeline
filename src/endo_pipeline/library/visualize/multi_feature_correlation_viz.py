@@ -483,15 +483,17 @@ def get_df_for_feature_correlation_viz(
                 cols_to_load_unique.append(col)
         merged_feats_df = merged_feats_df_delayed[cols_to_load_unique].compute()  # type: ignore
         # filter the dataframe to only include rows with DiffAE features
-        merged_feats_df = merged_feats_df.dropna(subset="model_manifest_name")
+        merged_feats_df = merged_feats_df.dropna(subset=[Column.DiffAEData.MODEL_MANIFEST])
 
         # "unwrap" the angle features to avoid issues with periodic data when plotting correlations
         angle_period = np.pi
-        angle_cols = ["orientation", Column.DiffAEData.POLAR_ANGLE.value]
+        angle_cols = [Column.SegData.ORIENTATION, Column.DiffAEData.POLAR_ANGLE]
         for ang_col in angle_cols:
             merged_feats_df[ang_col] = np.unwrap(merged_feats_df[ang_col], period=angle_period)
 
-        merged_feats_df["orientation_deg"] = np.rad2deg(merged_feats_df["orientation"])
+        merged_feats_df[Column.SegData.ORIENTATION_DEG] = np.rad2deg(
+            merged_feats_df[Column.SegData.ORIENTATION]
+        )
 
         # filter data table to only include the steady state timepoints that are
         # used when projecting the DiffAE features onto PCA axes

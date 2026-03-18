@@ -580,15 +580,8 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     num_nuclei_in_crop_df = add_num_nuclei_in_crop_column(
         big_table[required_columns], use_precomputed=False
     )
-    crops = [
-        str(col.value)
-        for col in [
-            Column.DATASET,
-            Column.POSITION,
-            Column.TIMEPOINT,
-            Column.TRACK_ID,
-        ]
-    ]  # this is needed to avoid a mypy error about the type of the columns when merging
+    crops = [Column.DATASET, Column.POSITION, Column.TIMEPOINT, Column.TRACK_ID]
+
     added_cols = list(set(num_nuclei_in_crop_df.columns) - set(big_table.columns))
     big_table = pd.merge(
         left=big_table,

@@ -2,6 +2,7 @@ from typing import Literal
 
 from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import TimepointAnnotation
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.workflow_defaults import (
     DATASET_INFO_COLUMNS,
     DEFAULT_MODEL_MANIFEST_NAME,
@@ -164,7 +165,7 @@ def main(
         if dataset_name == "aggregate":
             df_dataset = df
         else:
-            df_dataset = df.query("dataset_name==@dataset_name").copy()
+            df_dataset = df[df[Column.DATASET] == dataset_name].copy()
 
         # Pre-compute full correlation matrix once per dataset
         all_feature_columns = []
@@ -190,9 +191,9 @@ def main(
 
         # Pre-compute dataset color mapping once per dataset
         dataset_color_mapping = {
-            ds_nm: get_dataset_color(ds_nm) for ds_nm in df_dataset["dataset_name"].unique()
+            ds_nm: get_dataset_color(ds_nm) for ds_nm in df_dataset[Column.DATASET].unique()
         }
-        colors = df_dataset["dataset_name"].map(dataset_color_mapping).to_list()
+        colors = df_dataset[Column.DATASET].map(dataset_color_mapping).to_list()
 
         for (x_axis_label, x_cols), (
             y_axis_label,

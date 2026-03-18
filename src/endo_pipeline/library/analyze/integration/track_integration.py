@@ -470,7 +470,7 @@ def merge_diffae_feats_liveseg_feats_tables(
     logging.debug("processing the diffae tracking data...")
     # process the diffae tracking data
     track_is_unique = diffae_tracking_df.groupby(
-        [Column.DATASET, Column.POSITION, Column.TIMEPOINT, "track_id"]
+        [Column.DATASET, Column.POSITION, Column.TIMEPOINT, Column.TRACK_ID]
     )[Column.TIMEPOINT].transform(lambda t: t.nunique() == t.size)
     if not track_is_unique.all():
         raise ValueError(
