@@ -9,18 +9,20 @@ from matplotlib.lines import Line2D
 from scipy.integrate import solve_ivp
 from scipy.optimize import fsolve
 
+from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+
 # set global dictionaries for stability colors and markers
 STABILITY_COLOR_DICT: dict[str, str] = {
-    "stable": "g",
-    "saddle": "tab:purple",
-    "unstable": "r",
-    "indeterminate": "darkgoldenrod",
+    StabilityLabel.STABLE: "g",
+    StabilityLabel.SADDLE: "tab:purple",
+    StabilityLabel.UNSTABLE: "r",
+    StabilityLabel.INDETERMINATE: "darkgoldenrod",
 }
 STABILITY_MARKER_DICT: dict[str, str] = {
-    "stable": "o",
-    "saddle": "P",
-    "unstable": "s",
-    "indeterminate": "p",
+    StabilityLabel.STABLE: "o",
+    StabilityLabel.SADDLE: "P",
+    StabilityLabel.UNSTABLE: "s",
+    StabilityLabel.INDETERMINATE: "p",
 }
 
 logger = logging.getLogger(__name__)
@@ -126,18 +128,24 @@ def get_fps(
 
 def find_fpt_type(jacobian: np.ndarray) -> str:
     """
-    Determine stability and type of a fixed point
-    of the system of ODEs dx/dt = f(x).
+    Classify the type of a fixed point given the Jacobian matrix at that point.
 
-    Inputs:
-    - jacobian: Jacobian matrix at the fixed point
-        (can be a float or np.ndarray)
-    - ndim: dimensionality of the system (1 or 2)
+    The point is classified as follows:
+        - stable: all eigenvalues have negative real part
+            - Eigenvalues are real: classified as stable node
+            - Eigenvalues are complex conjugates: classified as stable spiral
+        - unstable: all eigenvalues have positive real part
+            - Eigenvalues are real: classified as unstable node
+            - Eigenvalues are complex conjugates: classified as unstable spiral
+        - saddle: eigenvalues have real parts of different signs
+        - indeterminate: all eigenvalues have real part close to zero (within
+          numerical precision)
 
-    Outputs:
-    - stability: string describing the stability and type
-        of the fixed point
-        (e.g. "stable spiral", "unstable node")
+    Parameters
+    ----------
+    jacobian
+        Square matrix representing the Jacobian of the system at the fixed
+        point.
     """
     # get eigenvalues of the Jacobian
     eigvals = np.linalg.eigvals(jacobian)
@@ -150,23 +158,25 @@ def find_fpt_type(jacobian: np.ndarray) -> str:
 
     # determine stability and type of fixed point
     if np.isclose(np.real(eigvals).max(), 0) and np.isclose(np.real(eigvals).min(), 0):
-        stability = "indeterminate stability"
+        stability = StabilityLabel.INDETERMINATE
+        fpt_type = f"{stability} stability"
     elif np.real(eigvals).min() < 0 < np.real(eigvals).max():
-        stability = "saddle point"
+        stability = StabilityLabel.SADDLE
+        fpt_type = f"{stability} point"
     else:
-        stability = "stable" if np.real(eigvals).max() < 0 else "unstable"
+        stability = StabilityLabel.STABLE if np.real(eigvals).max() < 0 else StabilityLabel.UNSTABLE
         if np.imag(eigvals).any():
-            stability += " spiral"
+            fpt_type = f"{stability} spiral"
         else:
-            stability += " node"
+            fpt_type = f"{stability} node"
 
-    logger.debug("Fixed point type: [ %s ]", stability)
+    logger.debug("Fixed point type: [ %s ]", fpt_type)
     logger.debug(
         "Eigenvalues: [ %s ]",
         eigval_str,
     )
 
-    return stability
+    return fpt_type
 
 
 def classify_fps(
@@ -473,7 +483,7 @@ def phase_portrait(
     # this might be something
     # to write as a separate function
     my_handles = []
-    if "stable" in fpt_stabilities:
+    if StabilityLabel.STABLE in fpt_stabilities:
         my_handles.append(
             Line2D(
                 [],
@@ -485,7 +495,7 @@ def phase_portrait(
                 linestyle="",
             )
         )
-    if "unstable" in fpt_stabilities:
+    if StabilityLabel.UNSTABLE in fpt_stabilities:
         my_handles.append(
             Line2D(
                 [],
@@ -497,7 +507,7 @@ def phase_portrait(
                 linestyle="",
             )
         )
-    if "saddle" in fpt_stabilities:
+    if StabilityLabel.SADDLE in fpt_stabilities:
         my_handles.append(
             Line2D(
                 [],
@@ -509,7 +519,7 @@ def phase_portrait(
                 linestyle="",
             )
         )
-    if "indeterminate" in fpt_stabilities:
+    if StabilityLabel.INDETERMINATE in fpt_stabilities:
         my_handles.append(
             Line2D(
                 [],
