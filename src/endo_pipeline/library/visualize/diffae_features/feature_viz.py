@@ -26,6 +26,7 @@ from endo_pipeline.library.visualize.seg_features.general_standard_plots import 
     get_seg_feat_plot_args,
 )
 from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.density_comparison_plots import (
     DENSITY_PLOT_KDE_BANDWIDTH,
     DENSITY_PLOT_KWARGS_GRID_CROPS,
@@ -35,7 +36,6 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
-    ColumnName,
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
@@ -252,14 +252,14 @@ def plot_pc_scatter(
             pca,
             include_cell_piling=include_cell_piling,
             crop_pattern=crop_pattern,
-        )[[*pc_column_names, ColumnName.TIMEPOINT]]
+        )[[*pc_column_names, Column.TIMEPOINT]]
         df["dataset_name"] = dataset_name
         if color_by_time:
-            num_timepoints = df[ColumnName.TIMEPOINT].nunique()
+            num_timepoints = df[Column.TIMEPOINT].nunique()
             cmap = plt.get_cmap("viridis")
             colors = cmap(np.linspace(0, 1, num_timepoints))
-            df["color"] = df[ColumnName.TIMEPOINT].map(
-                dict(zip(sorted(df[ColumnName.TIMEPOINT].unique()), colors, strict=False))
+            df["color"] = df[Column.TIMEPOINT].map(
+                dict(zip(sorted(df[Column.TIMEPOINT].unique()), colors, strict=False))
             )
             patch_dict_for_legend[dataset_name] = mpatches.Patch(color=cmap(0), label=dataset_name)
         else:
@@ -312,7 +312,7 @@ def plot_pc_scatter(
 
         # add colorbar
         if color_by_time:
-            num_timepoints = df_foreground[ColumnName.TIMEPOINT].nunique()
+            num_timepoints = df_foreground[Column.TIMEPOINT].nunique()
             sm = plt.cm.ScalarMappable(
                 cmap="viridis", norm=plt.Normalize(vmin=0, vmax=num_timepoints)
             )
@@ -410,7 +410,7 @@ def make_pc_scatter_fig4a(
     df: pd.DataFrame,
     pc_col_for_xaxis: str,
     pc_col_for_yaxis: str,
-    hue: str | ColumnName = ColumnName.TIMEPOINT,
+    hue: str | Column = Column.TIMEPOINT,
     figsize=(2.5, 2.5),
     color_palette="viridis",
     marker=".",
@@ -423,8 +423,8 @@ def make_pc_scatter_fig4a(
         raise ValueError(f"pc_col_for_xaxis must be one of: {DIFFAE_PC_COLUMN_NAMES}")
     if pc_col_for_yaxis not in DIFFAE_PC_COLUMN_NAMES:
         raise ValueError(f"pc_col_for_yaxis must be one of: {DIFFAE_PC_COLUMN_NAMES}")
-    if hue not in [x.value for x in ColumnName]:
-        raise ValueError(f"hue must be one of: {[x.value for x in ColumnName]}")
+    if hue not in [x.value for x in Column.DiffAEData]:
+        raise ValueError(f"hue must be one of: {[x.value for x in Column.DiffAEData]}")
 
     fig, ax = plt.subplots(figsize=figsize)
     sns.scatterplot(
@@ -560,7 +560,7 @@ def plot_per_position_average_over_time(
         Tuple specifying the range of polar angle values in the dataframe.
     """
     # confirm required columns are in dataframe
-    required_columns = [ColumnName.POSITION, ColumnName.TIMEPOINT] + column_names
+    required_columns = [Column.POSITION, Column.TIMEPOINT] + column_names
     check_required_columns_in_dataframe(df, required_columns)
 
     # get column labels if not provided
@@ -573,16 +573,16 @@ def plot_per_position_average_over_time(
 
     for i, column_name in enumerate(column_names):
         ax: plt.Axes = axs[i]
-        for pos, df_pos in df.groupby(ColumnName.POSITION):
+        for pos, df_pos in df.groupby(Column.POSITION):
             # array of unique timepoints
-            timepoints = df_pos[ColumnName.TIMEPOINT].sort_values().unique()
+            timepoints = df_pos[Column.TIMEPOINT].sort_values().unique()
 
             # if dealing with polar angle column, need to use
             # angle unwrapping to compute mean correctly
-            if column_name == ColumnName.POLAR_ANGLE.value:
+            if column_name == Column.DiffAEData.POLAR_ANGLE.value:
                 unwrap_period = polar_angle_range[1] - polar_angle_range[0]
                 mean_over_crops = np.zeros_like(timepoints, dtype=float)
-                for frame, df_frame in df_pos.groupby(ColumnName.TIMEPOINT):
+                for frame, df_frame in df_pos.groupby(Column.TIMEPOINT):
                     # unwrap angles for this frame and position
                     unwrapped_angles = unwrap_nonsequential_array(
                         df_frame[column_name].to_numpy(), unwrap_period
@@ -595,9 +595,7 @@ def plot_per_position_average_over_time(
                     frame_index = np.where(timepoints == frame)[0][0]
                     mean_over_crops[frame_index] = rewrapped_mean
             else:  # else, calculate mean directly
-                mean_over_crops = (
-                    df_pos.groupby(ColumnName.TIMEPOINT)[column_name].mean().to_numpy()
-                )
+                mean_over_crops = df_pos.groupby(Column.TIMEPOINT)[column_name].mean().to_numpy()
 
             ax.scatter(timepoints, mean_over_crops, label=pos, s=2, marker="o")
 
@@ -605,7 +603,7 @@ def plot_per_position_average_over_time(
             ax.set_xlabel("frame number")
         column_label = get_label_for_column(column_name, capitalize=False)
         ax.set_ylabel(f"average of {column_label} over crops")
-        ax.legend(title=f"{ColumnName.POSITION.value}:")
+        ax.legend(title=f"{Column.POSITION}:")
 
     return fig, axs
 
@@ -872,17 +870,17 @@ def get_label_for_column(
     # check for other specific patterns, overriding default label
     label = None
 
-    if column_name.startswith(f"{ColumnName.LATENT_FEATURE_PREFIX}"):
+    if column_name.startswith(f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}"):
         feature_number = column_name.split("_")[1]
         label = f"feature {feature_number}"
-    elif column_name.startswith(f"{ColumnName.PCA_FEATURE_PREFIX}"):
+    elif column_name.startswith(f"{Column.DiffAEData.PCA_FEATURE_PREFIX}"):
         pc_number = column_name.split("_")[1]
         label = f"PC {pc_number}"
-    elif column_name == ColumnName.POLAR_RADIUS:
+    elif column_name == Column.DiffAEData.POLAR_RADIUS:
         label = "polar $r$"
-    elif column_name == ColumnName.POLAR_ANGLE:
+    elif column_name == Column.DiffAEData.POLAR_ANGLE:
         label = "polar $\\theta$"
-    elif column_name == ColumnName.PC3_FLIPPED:
+    elif column_name == Column.DiffAEData.PC3_FLIPPED:
         label = "$\\rho$"
 
     # check mapping dict for label override

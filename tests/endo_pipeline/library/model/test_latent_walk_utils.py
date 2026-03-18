@@ -4,7 +4,7 @@ from endo_pipeline.library.model.latent_walk_utils import (
     get_max_dim_in_column_names,
     get_num_pcs_from_column_names,
 )
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.column_names import ColumnName as Column
 
 
 @pytest.mark.parametrize(
@@ -35,8 +35,8 @@ def test_get_num_pcs_from_column_names_no_pc_columns():
     [
         (["pc_1", "pc_2", "feat_1"], 2),
         (["pc_5", "feat_1", "feat_2"], 5),
-        ([ColumnName.POLAR_ANGLE.value, ColumnName.POLAR_RADIUS.value], 2),
-        ([ColumnName.POLAR_ANGLE.value, ColumnName.PC3_FLIPPED], 3),
+        ([Column.DiffAEData.POLAR_ANGLE.value, Column.DiffAEData.POLAR_RADIUS.value], 2),
+        ([Column.DiffAEData.POLAR_ANGLE.value, Column.DiffAEData.PC3_FLIPPED.value], 3),
     ],
 )
 def test_get_num_pcs_from_column_names_with_pc_columns(column_names, expected_num_pcs):

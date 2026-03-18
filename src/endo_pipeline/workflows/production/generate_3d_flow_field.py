@@ -80,7 +80,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_THETA_RESCALED,
         BIN_WIDTHS_DYNAMICS,
@@ -170,7 +170,7 @@ def main(
 
     # initialize dataframe to hold stable fixed points from all datasets
     # with columns for dataset name and 3D PC space coordinates
-    stable_fixed_points_df = pd.DataFrame(columns=[ColumnName.DATASET, *column_names])
+    stable_fixed_points_df = pd.DataFrame(columns=[Column.DATASET, *column_names])
 
     # initialize kernels and bin widths for each of the three variables for flow
     # field estimation
@@ -181,7 +181,7 @@ def main(
     for index, column_name in enumerate(column_names):
         name = KERNEL_NAMES_DYNAMICS.get(column_name, KERNEL_FUNCTION_NAME)
         bandwidth = KERNEL_BANDWIDTHS_DYNAMICS.get(column_name, KERNEL_BANDWIDTH)
-        period = rescaled_theta if column_name == ColumnName.POLAR_ANGLE else None
+        period = rescaled_theta if column_name == Column.DiffAEData.POLAR_ANGLE else None
         bin_width = BIN_WIDTHS_DYNAMICS.get(column_name, BIN_WIDTH_DEFAULTS[index])
 
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
@@ -227,7 +227,7 @@ def main(
                     stable_fixed_points_df,
                     pd.DataFrame(
                         {
-                            ColumnName.DATASET: [dataset_name],
+                            Column.DATASET: [dataset_name],
                             column_names[0]: [stable_fp[0]],
                             column_names[1]: [stable_fp[1]],
                             column_names[2]: [stable_fp[2]],

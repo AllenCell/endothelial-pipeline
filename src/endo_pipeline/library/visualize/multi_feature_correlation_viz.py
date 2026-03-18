@@ -32,7 +32,7 @@ from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifes
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings import RANDOM_SEED
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
@@ -464,7 +464,9 @@ def get_df_for_feature_correlation_viz(
         dynamics_columns = SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
         supplementary_columns = SEGMENTATION_FEATURE_COLUMNS["supp"]
         diffae_nondiffae_columns = [
-            col.value for col in ColumnName if "PREFIX" not in col.name and "SUFFIX" not in col.name
+            col.value
+            for col in Column.DiffAEData
+            if "PREFIX" not in col.name and "SUFFIX" not in col.name
         ]
         cols_to_load = (
             dataset_info_columns
@@ -485,7 +487,7 @@ def get_df_for_feature_correlation_viz(
 
         # "unwrap" the angle features to avoid issues with periodic data when plotting correlations
         angle_period = np.pi
-        angle_cols = ["orientation", ColumnName.POLAR_ANGLE.value]
+        angle_cols = ["orientation", Column.DiffAEData.POLAR_ANGLE.value]
         for ang_col in angle_cols:
             merged_feats_df[ang_col] = np.unwrap(merged_feats_df[ang_col], period=angle_period)
 

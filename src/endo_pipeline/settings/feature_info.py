@@ -1,5 +1,6 @@
 from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE
-from endo_pipeline.settings.diffae_feature_dataframes import MAX_PCS_TO_COMPUTE, ColumnName
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.diffae_feature_dataframes import MAX_PCS_TO_COMPUTE
 
 LABEL_MAP = {
     "alignment_deg_rel_to_flow": "Alignment Relative to Flow (degrees)",
@@ -15,7 +16,7 @@ LABEL_MAP = {
     "cell_solidity": "Cell Solidity",
     "time_hours": "Time (hours)",
     "time_minutes": "Time (minutes)",
-    ColumnName.TRACK_ID: "Track ID",
+    Column.TRACK_ID: "Track ID",
     "smoothed_area_normd_diff": "Smoothed Area Difference (Normalized)",
     "track_duration": "Track Duration",
     "num_valid_tp_per_track": "Number of Valid Timepoints",
@@ -31,8 +32,8 @@ LABEL_MAP = {
         f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}"
         for pc_col in DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
     },
-    ColumnName.POLAR_ANGLE.value: "PC Polar Angle",
-    ColumnName.POLAR_RADIUS.value: "PC Polar Radius",
+    Column.DiffAEData.POLAR_ANGLE: "PC Polar Angle",
+    Column.DiffAEData.POLAR_RADIUS: "PC Polar Radius",
 }
 
 LABEL_MAP_GRID = {
@@ -43,9 +44,9 @@ LABEL_MAP_GRID = {
         f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}"
         for pc_col in DIFFAE_PC_COLUMN_NAMES[:MAX_PCS_TO_COMPUTE]
     },
-    ColumnName.POLAR_ANGLE.value: "PC Polar Angle",
-    ColumnName.POLAR_RADIUS.value: "PC Polar Radius",
-    ColumnName.PC3_FLIPPED.value: "PC Rho",
+    Column.DiffAEData.POLAR_ANGLE: "PC Polar Angle",
+    Column.DiffAEData.POLAR_RADIUS: "PC Polar Radius",
+    Column.DiffAEData.PC3_FLIPPED: "PC Rho",
     # filters
     "auto_bf_scope_error": "Filter: Auto-detected Brightfield Microscope Error",
     "auto_bf_temp_artifact": "Filter: Auto-detected Temporary Artifact",

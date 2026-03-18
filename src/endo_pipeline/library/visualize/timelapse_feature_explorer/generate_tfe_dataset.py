@@ -27,11 +27,11 @@ from endo_pipeline.manifests import (
     load_image_manifest,
     load_model_manifest,
 )
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
     MAX_PCS_TO_COMPUTE,
-    ColumnName,
 )
 from endo_pipeline.settings.feature_info import LABEL_MAP, LABEL_MAP_GRID
 from endo_pipeline.settings.workflow_defaults import (
@@ -215,7 +215,7 @@ def get_df_and_label_map_grid(
     grid_df = get_dataframe_for_dynamics_workflows(
         dataset, dataframe_manifest, pca=pca, filter_by_annotations=False
     )
-    feat_cols = [col for col in grid_df.columns if ColumnName.LATENT_FEATURE_PREFIX in col]
+    feat_cols = [col for col in grid_df.columns if Column.DiffAEData.LATENT_FEATURE_PREFIX in col]
     grid_df = grid_df.drop(columns=feat_cols)
 
     dataset_config = load_dataset_config(dataset)

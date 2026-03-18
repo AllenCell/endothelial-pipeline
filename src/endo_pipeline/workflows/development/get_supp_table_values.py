@@ -22,7 +22,7 @@ def main():
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_SEG_FEATURE_MANIFEST_NAME,
@@ -100,17 +100,17 @@ def main():
             # to do a groubpy on both image_index and position before summing the
             # totals in each dataset across all timepoints and positions
             num_nuc_pred = (
-                live_seg_feats_df.groupby(["image_index", ColumnName.POSITION])
+                live_seg_feats_df.groupby(["image_index", Column.POSITION])
                 .total_nuclei_count_at_T.apply(sequence_to_scalar)
                 .sum()
             )
             num_cell_seg_before_filt = (
-                live_seg_feats_df.groupby(["image_index", ColumnName.POSITION])
+                live_seg_feats_df.groupby(["image_index", Column.POSITION])
                 .num_unique_tracks_before_filtering_at_T.apply(sequence_to_scalar)
                 .sum()
             )
             num_tracks_before_filt = (
-                live_seg_feats_df.groupby(ColumnName.POSITION)["track_id"].nunique().sum()
+                live_seg_feats_df.groupby(Column.POSITION)["track_id"].nunique().sum()
             )
 
             # filter out rows based on automatic and manual timepoint annotations
@@ -131,7 +131,7 @@ def main():
                 live_seg_feats_df.dropna(
                     axis="index", subset=["num_unique_tracks_after_filtering_at_T"]
                 )
-                .groupby(["image_index", ColumnName.POSITION])
+                .groupby(["image_index", Column.POSITION])
                 .num_unique_tracks_after_filtering_at_T.apply(sequence_to_scalar)
                 .sum()
             )
@@ -152,7 +152,7 @@ def main():
             )
             num_tracks_left_after_filter = (
                 live_seg_feats_df[live_seg_feats_df["is_included"]]
-                .groupby(ColumnName.POSITION)["track_id"]
+                .groupby(Column.POSITION)["track_id"]
                 .nunique()
                 .sum()
             )

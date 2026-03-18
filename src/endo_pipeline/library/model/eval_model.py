@@ -27,11 +27,10 @@ from endo_pipeline.settings import (
     DIFFAE_ZARR_RESOLUTION_LEVEL,
     NATIVE_ZARR_RESOLUTION_CROP_SIZE,
     ZARR_BRIGHTFIELD_CHANNEL,
-    ColumnName,
     CytoDLLoadDataKeys,
     CytoDLSaveDataKeys,
 )
-from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
+from endo_pipeline.settings import ColumnName as Column
 
 logger = logging.getLogger(__name__)
 
@@ -128,8 +127,8 @@ def generate_overrides_for_model_eval(
             "save_dir": save_path,
             "meta_keys": [
                 CytoDLSaveDataKeys.TIMEPOINT,
-                ColumnName.START_Y,
-                ColumnName.START_X,
+                Column.DiffAEData.START_Y,
+                Column.DiffAEData.START_X,
                 CytoDLSaveDataKeys.FILE_PATH,
             ],
             "save_suffix": save_suffix,
@@ -215,24 +214,32 @@ def add_diffae_model_eval_crop_columns(
         Dataframe with additional columns for DiffAE model evaluation crops.
     """
     # add the size of the crop used to get DiffAE features at full res
-    df[ColNmSeg.CROP_SIZE] = crop_size
+    df[Column.SegData.CROP_SIZE] = crop_size
 
     # convert centroids to bounding box coordinates and add them as columns
-    df[ColNmSeg.START_X] = (df[ColNmSeg.CENTROID_X] - df[ColNmSeg.CROP_SIZE] / 2).astype(int)
-    df[ColNmSeg.START_Y] = (df[ColNmSeg.CENTROID_Y] - df[ColNmSeg.CROP_SIZE] / 2).astype(int)
-    df[ColNmSeg.END_X] = (df[ColNmSeg.CENTROID_X] + df[ColNmSeg.CROP_SIZE] / 2).astype(int)
-    df[ColNmSeg.END_Y] = (df[ColNmSeg.CENTROID_Y] + df[ColNmSeg.CROP_SIZE] / 2).astype(int)
+    df[Column.SegData.START_X] = (
+        df[Column.SegData.CENTROID_X] - df[Column.SegData.CROP_SIZE] / 2
+    ).astype(int)
+    df[Column.SegData.START_Y] = (
+        df[Column.SegData.CENTROID_Y] - df[Column.SegData.CROP_SIZE] / 2
+    ).astype(int)
+    df[Column.SegData.END_X] = (
+        df[Column.SegData.CENTROID_X] + df[Column.SegData.CROP_SIZE] / 2
+    ).astype(int)
+    df[Column.SegData.END_Y] = (
+        df[Column.SegData.CENTROID_Y] + df[Column.SegData.CROP_SIZE] / 2
+    ).astype(int)
 
     # add a column indicating if the size of the bounding box does
     # not match the downsampled crop size (because the model expects
     # identically sized square crops)
     # check if bounding boxes fit in image bounds without being clipped
-    df[ColNmSeg.IS_VALID_BBOX] = bbox_in_image_bounds(df, diffae_resolution_level)
+    df[Column.SegDataFilters.IS_VALID_BBOX] = bbox_in_image_bounds(df, diffae_resolution_level)
 
     # Add column for the resolution level to load images at for DiffAE model:
     # Note from Erin 8/21/25: this has updated now that we have resolution level 1
     # zarr files, removed downsample transform from the model config
-    df[ColNmSeg.RESOLUTION_FOR_DIFFAE] = diffae_resolution_level
+    df[Column.SegData.RESOLUTION_FOR_DIFFAE] = diffae_resolution_level
 
     return df
 
@@ -250,25 +257,25 @@ def preprocess_tracking_manifest_for_model_eval(
     df = load_dataframe(location)
 
     # keep only rows that were not filtered out
-    df = df[df["is_included"]]
+    df = df[df[Column.SegDataFilters.IS_INCLUDED]]
 
     # filter the dataframe in-place to remove clipped bounding boxes
-    df = df[df["bbox_is_in_bounds"]]
+    df = df[df[Column.SegDataFilters.IS_VALID_BBOX]]
 
     # filter the dataframe to include only the relevant columns
     columns_to_keep = [
-        ColumnName.ZARR_PATH,
-        "image_index",
-        "track_id",
-        "label",
-        ColumnName.START_X,
-        ColumnName.START_Y,
-        ColumnName.END_X,
-        ColumnName.END_Y,
-        "image_size_x",
-        "image_size_y",
-        "crop_size",
-        "diffae_resolution_level_to_use",
+        Column.ZARR_PATH,
+        Column.TIMEPOINT,
+        Column.TRACK_ID,
+        Column.SegData.LABEL,
+        Column.DiffAEData.START_X,
+        Column.DiffAEData.START_Y,
+        Column.DiffAEData.END_X,
+        Column.DiffAEData.END_Y,
+        Column.IMAGE_SIZE_X,
+        Column.IMAGE_SIZE_Y,
+        Column.SegData.CROP_SIZE,
+        Column.SegData.RESOLUTION_FOR_DIFFAE,
     ]
     df = df[columns_to_keep]
 
@@ -279,38 +286,38 @@ def preprocess_tracking_manifest_for_model_eval(
     # If I understand correctly, gets set by add_diffae_model_eval_crop_columns
     logger.debug("Loading images at resolution level: [ %d ]", resolution)
     columns_to_downsample = [
-        ColumnName.START_X,
-        ColumnName.START_Y,
-        ColumnName.END_X,
-        ColumnName.END_Y,
+        Column.DiffAEData.START_X,
+        Column.DiffAEData.START_Y,
+        Column.DiffAEData.END_X,
+        Column.DiffAEData.END_Y,
     ]
     for col in columns_to_downsample:
         df[col] = df[col] // (2**resolution)
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = (
-        df.groupby([ColumnName.ZARR_PATH, "image_index"])
+        df.groupby([Column.ZARR_PATH, "image_index"])
         .agg(
             {
-                ColumnName.START_Y: lambda x: list(x),
-                ColumnName.START_X: lambda x: list(x),
-                ColumnName.END_Y: lambda x: list(x),
-                ColumnName.END_X: lambda x: list(x),
-                "track_id": lambda x: list(x),
+                Column.DiffAEData.START_Y: lambda x: list(x),
+                Column.DiffAEData.START_X: lambda x: list(x),
+                Column.DiffAEData.END_Y: lambda x: list(x),
+                Column.DiffAEData.END_X: lambda x: list(x),
+                Column.TRACK_ID: lambda x: list(x),
             }
         )
         .reset_index()
     )
     # Add which channel to load and what resolution to load it at
     grouped_df[CytoDLLoadDataKeys.CHANNELS] = ZARR_BRIGHTFIELD_CHANNEL
-    grouped_df[ColumnName.RESOLUTION] = resolution
+    grouped_df[Column.DiffAEData.RESOLUTION] = resolution
 
     # only run a single timepoint from zarr
     grouped_df[CytoDLLoadDataKeys.TIME_START] = grouped_df["image_index"]
     grouped_df[CytoDLLoadDataKeys.TIME_END] = grouped_df["image_index"]
     grouped_df = grouped_df.rename(
         {
-            ColumnName.ZARR_PATH: CytoDLLoadDataKeys.FILE_PATH,
-            "image_index": CytoDLLoadDataKeys.TIMEPOINT,
+            Column.ZARR_PATH: CytoDLLoadDataKeys.FILE_PATH,
+            Column.TIMEPOINT: CytoDLLoadDataKeys.TIMEPOINT,
         },
         axis=1,
     )
@@ -362,32 +369,32 @@ def bbox_in_image_bounds(
     # adjust the image size according to the desired downsample factor
     downsample_factor = 2**resolution_level
     cols_to_downsample = [
-        ColNmSeg.IMAGE_SIZE_X,
-        ColNmSeg.IMAGE_SIZE_Y,
-        ColNmSeg.START_X,
-        ColNmSeg.START_Y,
-        ColNmSeg.END_X,
-        ColNmSeg.END_Y,
-        ColNmSeg.CROP_SIZE,
+        Column.IMAGE_SIZE_X,
+        Column.IMAGE_SIZE_Y,
+        Column.SegData.START_X,
+        Column.SegData.START_Y,
+        Column.SegData.END_X,
+        Column.SegData.END_Y,
+        Column.SegData.CROP_SIZE,
     ]
     df_temp = df[cols_to_downsample].copy(deep=True)
     for col in cols_to_downsample:
         df_temp[col] = df[col] // downsample_factor
 
     # limit start and end of x and y bboxes to be within image size limits
-    df_temp[ColNmSeg.START_X] = df_temp[ColNmSeg.START_X].transform(lambda x: max(0, x))
-    df_temp[ColNmSeg.START_Y] = df_temp[ColNmSeg.START_Y].transform(lambda y: max(0, y))
-    df_temp[ColNmSeg.END_X] = df_temp[[ColNmSeg.END_X, ColNmSeg.IMAGE_SIZE_X]].min(axis=1)
-    df_temp[ColNmSeg.END_Y] = df_temp[[ColNmSeg.END_Y, ColNmSeg.IMAGE_SIZE_Y]].min(axis=1)
+    df_temp[Column.SegData.START_X] = df_temp[Column.SegData.START_X].transform(lambda x: max(0, x))
+    df_temp[Column.SegData.START_Y] = df_temp[Column.SegData.START_Y].transform(lambda y: max(0, y))
+    df_temp[Column.SegData.END_X] = df_temp[[Column.SegData.END_X, Column.IMAGE_SIZE_X]].min(axis=1)
+    df_temp[Column.SegData.END_Y] = df_temp[[Column.SegData.END_Y, Column.IMAGE_SIZE_Y]].min(axis=1)
 
     # filter the dataframe to exclude anything where the size of
     # the bounding box does not match the downsampled crop size
     # (because the model expects identically sized square crops)
-    bbox_size_y = df_temp[ColNmSeg.END_Y] - df_temp[ColNmSeg.START_Y]
-    bbox_size_x = df_temp[ColNmSeg.END_X] - df_temp[ColNmSeg.START_X]
+    bbox_size_y = df_temp[Column.SegData.END_Y] - df_temp[Column.SegData.START_Y]
+    bbox_size_x = df_temp[Column.SegData.END_X] - df_temp[Column.SegData.START_X]
     # ask if both x and y bbox dimensions equal downsampled crop size
-    bbox_size_is_correct = (bbox_size_y == df_temp[ColNmSeg.CROP_SIZE]) & (
-        bbox_size_x == df_temp[ColNmSeg.CROP_SIZE]
+    bbox_size_is_correct = (bbox_size_y == df_temp[Column.SegData.CROP_SIZE]) & (
+        bbox_size_x == df_temp[Column.SegData.CROP_SIZE]
     )
     return bbox_size_is_correct
 
@@ -405,26 +412,26 @@ def update_prediction_from_crops_with_metadata(
     """
     # add model and dataset information to prediction file
     pred_df = pd.read_parquet(prediction_path)
-    pred_df[ColumnName.DATASET] = dataset_name
-    pred_df[ColumnName.MODEL_MANIFEST] = model_manifest_name
-    pred_df[ColumnName.MODEL_RUN] = run_name
+    pred_df[Column.DATASET] = dataset_name
+    pred_df[Column.DiffAEData.MODEL_MANIFEST] = model_manifest_name
+    pred_df[Column.DiffAEData.MODEL_RUN] = run_name
 
     # note: the current model loads images at resolution
     # level 0 and downsamples in the transforms.
-    pred_df[ColumnName.RESOLUTION] = 1
+    pred_df[Column.DiffAEData.RESOLUTION] = 1
 
-    pred_df[ColumnName.END_Y] = pred_df[ColumnName.START_Y] + crop_size[0]
-    pred_df[ColumnName.END_X] = pred_df[ColumnName.START_X] + crop_size[1]
-    pred_df[ColumnName.CROP_SIZE_Y] = crop_size[0]
-    pred_df[ColumnName.CROP_SIZE_X] = crop_size[1]
+    pred_df[Column.DiffAEData.END_Y] = pred_df[Column.DiffAEData.START_Y] + crop_size[0]
+    pred_df[Column.DiffAEData.END_X] = pred_df[Column.DiffAEData.START_X] + crop_size[1]
+    pred_df[Column.DiffAEData.CROP_SIZE_Y] = crop_size[0]
+    pred_df[Column.DiffAEData.CROP_SIZE_X] = crop_size[1]
 
-    pred_df[ColumnName.POSITION] = pred_df[CytoDLSaveDataKeys.FILE_PATH].apply(
+    pred_df[Column.POSITION] = pred_df[CytoDLSaveDataKeys.FILE_PATH].apply(
         lambda s: get_position_string_from_zarr_file_path(s)
     )
     pred_df.rename(
         columns={
-            CytoDLSaveDataKeys.FILE_PATH: ColumnName.ZARR_PATH,
-            CytoDLSaveDataKeys.TIMEPOINT: ColumnName.TIMEPOINT,
+            CytoDLSaveDataKeys.FILE_PATH: Column.ZARR_PATH,
+            CytoDLSaveDataKeys.TIMEPOINT: Column.TIMEPOINT,
         },
         inplace=True,
     )
@@ -437,25 +444,25 @@ def update_prediction_from_tracks_with_metadata(
     """Update the prediction file with metadata."""
     # add model and dataset information to prediction file
     pred_df = pd.read_parquet(prediction_path)
-    pred_df[ColumnName.DATASET] = dataset_name
-    pred_df[ColumnName.MODEL_MANIFEST] = model_manifest_name
-    pred_df[ColumnName.MODEL_RUN] = run_name
+    pred_df[Column.DATASET] = dataset_name
+    pred_df[Column.DiffAEData.MODEL_MANIFEST] = model_manifest_name
+    pred_df[Column.DiffAEData.MODEL_RUN] = run_name
 
-    pred_df[ColumnName.RESOLUTION] = 1
+    pred_df[Column.DiffAEData.RESOLUTION] = 1
 
     crop_size = (
-        pred_df[ColumnName.END_Y].iloc[0] - pred_df[ColumnName.START_Y].iloc[0],
-        pred_df[ColumnName.END_X].iloc[0] - pred_df[ColumnName.START_X].iloc[0],
+        pred_df[Column.DiffAEData.END_Y].iloc[0] - pred_df[Column.DiffAEData.START_Y].iloc[0],
+        pred_df[Column.DiffAEData.END_X].iloc[0] - pred_df[Column.DiffAEData.START_X].iloc[0],
     )
-    pred_df[ColumnName.CROP_SIZE_Y] = crop_size[0]
-    pred_df[ColumnName.CROP_SIZE_X] = crop_size[1]
-    pred_df[ColumnName.POSITION] = pred_df[CytoDLSaveDataKeys.FILE_PATH].apply(
+    pred_df[Column.DiffAEData.CROP_SIZE_Y] = crop_size[0]
+    pred_df[Column.DiffAEData.CROP_SIZE_X] = crop_size[1]
+    pred_df[Column.POSITION] = pred_df[CytoDLSaveDataKeys.FILE_PATH].apply(
         lambda s: get_position_string_from_zarr_file_path(s)
     )
     pred_df.rename(
         columns={
-            CytoDLSaveDataKeys.FILE_PATH: ColumnName.ZARR_PATH,
-            CytoDLSaveDataKeys.TIMEPOINT: ColumnName.TIMEPOINT,
+            CytoDLSaveDataKeys.FILE_PATH: Column.ZARR_PATH,
+            CytoDLSaveDataKeys.TIMEPOINT: Column.TIMEPOINT,
         },
         inplace=True,
     )
