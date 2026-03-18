@@ -1,8 +1,7 @@
-from __future__ import annotations
-
 import logging
 import os
 from collections.abc import Sequence
+from pathlib import Path
 
 from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import TimepointAnnotation
@@ -19,18 +18,20 @@ _DEMO_MAX_FRAMES: int = 5
 
 def main(
     datasets: Datasets | None = None,
-    positions: list[str] | None = None,
+    positions: list[int] | None = None,
     channel: Sequence[str] = ("BF",),
     level: int | None = None,
     annotations_to_exclude: list[TimepointAnnotation] | None = None,
     max_dt: int | None = None,
     intensity_percentile: int | None = None,
-    n_jobs: int = os.cpu_count() // 2,
+    n_jobs: int = os.cpu_count() // 6,
     flow_scope: str = "image",
     upload: bool = True,
     visualize: bool = False,
     include_cell_piling: bool = False,
     include_pre_steady_state: bool = False,
+    include_all: bool = False,
+    compute_block_coherence: bool = False,
 ) -> None:
     """Optical-flow feature extraction with multi-scale temporal coherence.
 
@@ -74,17 +75,19 @@ def main(
         Dataset names to process.  None -> all datasets in the default
         optical-flow collection.
     positions
-        Position identifiers to process (e.g. ["P0", "P1"]).
-        None -> all positions in each dataset.
+        Position indices to process (e.g. ``[0, 1]``).
+        ``None`` processes all positions in each dataset.
     channel
         Imaging channel(s) to load (e.g. ("EGFP",) or ("BF",)).
     level
         Zarr resolution level.  None -> use DIFFAE_ZARR_RESOLUTION_LEVEL.
     annotations_to_exclude
-        Explicit list of timepoint annotations to exclude.  When None
-        (default), the list is built from include_cell_piling and
-        include_pre_steady_state.  Passing an explicit list overrides
-        both boolean flags.
+        Explicit list of timepoint annotations to exclude.  When ``None``
+        (default), the list is built from *include_cell_piling* and
+        *include_pre_steady_state*.  Pass an empty list ``[]`` to
+        bypass **all** annotation filtering (including quality
+        annotations).  Passing a non-empty list overrides both boolean
+        flags.
     max_dt
         Maximum temporal gap (inclusive).  None -> DEFAULT_OPTICAL_FLOW_MAX_DT.
     intensity_percentile
@@ -108,6 +111,14 @@ def main(
     include_pre_steady_state
         If True, retain timepoints before visual steady state.
         Default False (they are excluded).
+    include_all
+        If True, bypass **all** annotation filtering — including quality
+        annotations (scope errors, temp artifacts, XY/Z shifts, unfed).
+        Overrides both *include_cell_piling* and *include_pre_steady_state*.
+    compute_block_coherence
+        If True, compute multi-scale block-averaged coherence statistics
+        (``optical_flow_angle_std_box{N}``) for each box size.  Off by
+        default to save time.
     """
     import time
     from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -170,9 +181,9 @@ def main(
     if max_dt is None:
         max_dt = DEFAULT_OPTICAL_FLOW_MAX_DT
 
-    columns_to_drop = list(DIFFAE_FEATURE_COLUMN_NAMES)
+    diffae_columns_to_drop = list(DIFFAE_FEATURE_COLUMN_NAMES)
 
-    t0_all = time.time()
+    workflow_start = time.time()
     if datasets is None:
         datasets = get_datasets_in_collection(DEFAULT_OPTICAL_FLOW_COLLECTION)
 
@@ -189,122 +200,139 @@ def main(
     results_dir = get_output_path("optical_flow") / "plots"
     results_dir.mkdir(parents=True, exist_ok=True)
     if annotations_to_exclude is None:
-        annotations_to_exclude = default_annotations_to_exclude(
-            include_cell_piling, include_pre_steady_state
-        )
+        if include_all:
+            annotations_to_exclude = []
+        else:
+            annotations_to_exclude = default_annotations_to_exclude(
+                include_cell_piling, include_pre_steady_state
+            )
+
+    logger.info(
+        "annotations_to_exclude (%d): %s",
+        len(annotations_to_exclude),
+        [a.value for a in annotations_to_exclude] if annotations_to_exclude else "[] (no filtering)",
+    )
     assert flow_scope in ("image", "crop")
 
     channel = list(channel)
-    pct = resolve_percentile(channel, intensity_percentile)
+    intensity_pctl = resolve_percentile(channel, intensity_percentile)
     attachment = resolve_attachment(channel)
-    flow_cols = build_optical_flow_feature_cols(max_dt)
+    flow_columns = build_optical_flow_feature_cols(max_dt, compute_block_coherence)
     is_bf = channel == ["BF"]
 
     logger.info(
-        "Optical-flow extraction scope=%s dt=1..%d pct=%d attachment=%.1f channel=%s",
+        "Optical-flow extraction --> scope = %s | dt = 1 .. %d | percentile = %d | attachment = %.1f | channel = %s | block_coherence = %s",
         flow_scope,
         max_dt,
-        pct,
+        intensity_pctl,
         attachment,
         channel,
+        compute_block_coherence,
     )
 
     # Shared manifests
-    mm = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
-    dm_name = get_feature_dataframe_manifest_name(mm, DEFAULT_MODEL_RUN_NAME, crop_pattern="grid")
-    dm = load_dataframe_manifest(dm_name)
+    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
+    dataframe_name = get_feature_dataframe_manifest_name(model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern="grid")
+    dataframe_manifest = load_dataframe_manifest(dataframe_name)
 
-    all_parts: list[pd.DataFrame] = []
+    all_dataset_parts: list[pd.DataFrame] = []
 
-    for ds_i, ds_name in enumerate(datasets, 1):
-        ds_t = time.time()
-        logger.info("Dataset %d/%d: %s", ds_i, len(datasets), ds_name)
+    for dataset_idx, dataset_name in enumerate(datasets, 1):
+        dataset_start = time.time()
+        logger.info("Dataset %d/%d: %s", dataset_idx, len(datasets), dataset_name)
 
-        ds_cfg = load_dataset_config(ds_name)
-        df_ds = get_dataframe_for_dynamics_workflows(ds_name, dm, pca=None, filter_dataframe=True)
-        pos_list = sorted(df_ds[ColumnName.POSITION].unique())
+        dataset_config = load_dataset_config(dataset_name)
+        df_dataset = get_dataframe_for_dynamics_workflows(
+            dataset_name, dataframe_manifest, pca=None, filter_by_annotations=False,
+        )
+
+        position_list = sorted(df_dataset[ColumnName.POSITION].unique().tolist())
         if positions:
-            pos_list = [p for p in pos_list if p in positions]
+            position_list = [p for p in position_list if p in positions]
         if DEMO_MODE:
-            pos_list = pos_list[:_DEMO_MAX_POSITIONS]
-            logger.info("DEMO_MODE: limiting to position(s) %s", pos_list)
+            position_list = position_list[:_DEMO_MAX_POSITIONS]
+            logger.info("DEMO_MODE: limiting to position(s) %s", position_list)
 
-        ds_parts: list[pd.DataFrame] = []
+        dataset_parts: list[pd.DataFrame] = []
 
-        for pos_str in pos_list:
-            pos_t = time.time()
-            pos_idx = int(pos_str.lstrip("P"))
-            valid_tp = get_unannotated_timepoints_for_position(
-                ds_cfg, pos_idx, annotations_to_exclude
+        for position in position_list:
+            position_start = time.time()
+            valid_timepoints = get_unannotated_timepoints_for_position(
+                dataset_config, position, annotations_to_exclude
             )
             if DEMO_MODE:
-                valid_tp = valid_tp[:_DEMO_MAX_FRAMES]
-                logger.info("DEMO_MODE: limiting to %d frame(s)", len(valid_tp))
-            valid_set = set(valid_tp)
-            logger.info("%s valid_tp=%d/%d", pos_str, len(valid_tp), ds_cfg.duration)
+                valid_timepoints = valid_timepoints[:_DEMO_MAX_FRAMES]
+                logger.info("DEMO_MODE: limiting to %d frame(s)", len(valid_timepoints))
+            valid_timepoint_set = set(valid_timepoints)
+            logger.info(
+                "Position %d, valid_timepoints = %d/%d", position, len(valid_timepoints), dataset_config.duration,
+            )
 
-            df_pos = df_ds[
-                (df_ds[ColumnName.POSITION] == pos_str)
-                & (df_ds[ColumnName.TIMEPOINT].isin(valid_tp))
+            df_position = df_dataset[
+                (df_dataset[ColumnName.POSITION] == position)
+                & (df_dataset[ColumnName.TIMEPOINT].isin(valid_timepoints))
             ].copy()
-            if df_pos.empty:
+            if df_position.empty:
                 continue
-            df_pos["dataset"] = ds_name
+            df_position["dataset"] = dataset_name
 
             # Crop grid
-            cg = build_crop_grid(df_pos)
-            sx, sy = cg[ColumnName.START_X].values.astype(int), cg[
-                ColumnName.START_Y
-            ].values.astype(int)
-            ex, ey = cg["end_x"].values.astype(int), cg["end_y"].values.astype(int)
-            cids = cg[ColumnName.CROP_INDEX].values
-            n_crops = len(cg)
+            crop_grid = build_crop_grid(df_position)
+            start_x = crop_grid[ColumnName.START_X].values.astype(int)
+            start_y = crop_grid[ColumnName.START_Y].values.astype(int)
+            end_x = crop_grid["end_x"].values.astype(int)
+            end_y = crop_grid["end_y"].values.astype(int)
+            crop_ids = crop_grid[ColumnName.CROP_INDEX].values
+            num_crops = len(crop_grid)
 
             # Z-project
-            zarr_loc = get_zarr_location_for_position(ds_cfg, pos_idx)
-            img = load_image(zarr_loc, channels=channel, level=level, compute=False)
-            z_ax = DIMENSION_ORDER.index("Z")
-            proj = da.log(img.std(axis=z_ax) + 1e-12) if is_bf else img.max(axis=z_ax)
+            zarr_path = get_zarr_location_for_position(
+                dataset_config, position,
+            )
+            image_dask = load_image(zarr_path, channels=channel, level=level, compute=False)
+            z_axis = DIMENSION_ORDER.index("Z")
+            z_projection = da.log(image_dask.std(axis=z_axis) + 1e-12) if is_bf else image_dask.max(axis=z_axis)
 
             # Frame pairs
-            pairs = [
+            frame_pairs = [
                 (t, t + d, d)
                 for d in range(1, max_dt + 1)
-                for t in valid_tp
-                if (t + d) in valid_set
+                for t in valid_timepoints
+                if (t + d) in valid_timepoint_set
             ]
-            needed = sorted({t for p in pairs for t in p[:2]})
+            needed_timepoints = sorted({t for pair in frame_pairs for t in pair[:2]})
 
             # Cache frames
-            cache_t = time.time()
-            needed_idxs = sorted(needed)
-            needed_arr = proj[needed_idxs, 0].compute(
+            cache_start = time.time()
+            needed_indices = sorted(needed_timepoints)
+            needed_frames = z_projection[needed_indices, 0].compute(
                 scheduler="threads", num_workers=16
             )
-            cache: dict[int, np.ndarray] = {}
-            for j, t in enumerate(needed_idxs):
-                frame = needed_arr[j].astype(np.float32, copy=False)
+            frame_cache: dict[int, np.ndarray] = {}
+            for j, t in enumerate(needed_indices):
+                frame = needed_frames[j].astype(np.float32, copy=False)
                 if is_bf:
-                    lo, hi = np.percentile(frame, [0.1, 99.9])
-                    frame = np.clip(frame, lo, hi)
+                    clip_low, clip_high = np.percentile(frame, [0.1, 99.9])
+                    frame = np.clip(frame, clip_low, clip_high)
                     std = frame.std()
                     frame = (frame - frame.mean()) / (std if std > 0 else 1.0)
                 else:
-                    lo, hi = np.percentile(frame, [10, 98])
-                    frame = np.clip(frame, lo, hi)
-                    frame = (frame - lo) / (hi - lo + 1e-8) * 2.0 - 1.0
-                cache[t] = frame
-            del needed_arr
-            logger.info("Cached %d frames in %.1fs", len(cache), time.time() - cache_t)
+                    clip_low, clip_high = np.percentile(frame, [10, 98])
+                    frame = np.clip(frame, clip_low, clip_high)
+                    frame = (frame - clip_low) / (clip_high - clip_low + 1e-8) * 2.0 - 1.0
+                frame_cache[t] = frame
+            del needed_frames
+            logger.info("Cached %d frames in %.1fs", len(frame_cache), time.time() - cache_start)
 
             # Intensity threshold
-            thresh = (
-                float(np.percentile(np.concatenate([f.ravel()[::10] for f in cache.values()]), pct))
-                if pct > 0
+            intensity_threshold = (
+                float(np.percentile(np.concatenate([f.ravel()[::10] for f in frame_cache.values()]), intensity_pctl))
+                if intensity_pctl > 0
                 else -float("inf")
             )
             logger.info(
-                "thresh(%d-pct)=%.6f pairs=%d crops=%d", pct, thresh, len(pairs), n_crops
+                "threshold(%d-pctl)=%.6f pairs=%d crops=%d",
+                intensity_pctl, intensity_threshold, len(frame_pairs), num_crops,
             )
 
             # Compute flow
@@ -315,86 +343,96 @@ def main(
                     t0,
                     t1,
                     dt,
-                    _cache=cache,
-                    _sy=sy,
-                    _ey=ey,
-                    _sx=sx,
-                    _ex=ex,
-                    _cids=cids,
-                    _thresh=thresh,
+                    _cache=frame_cache,
+                    _start_y=start_y,
+                    _end_y=end_y,
+                    _start_x=start_x,
+                    _end_x=end_x,
+                    _crop_ids=crop_ids,
+                    _threshold=intensity_threshold,
                     _attachment=attachment,
+                    _compute_block=compute_block_coherence,
                 ):
-                    f0, f1 = _cache[t0], _cache[t1]
+                    frame_0, frame_1 = _cache[t0], _cache[t1]
                     return compute_image_pair_flow(
-                        f0, f1, _sy, _ey, _sx, _ex, _cids, t0, dt, _thresh, _attachment,
+                        frame_0, frame_1,
+                        _start_y, _end_y, _start_x, _end_x,
+                        _crop_ids, t0, dt, _threshold, _attachment, _compute_block,
                     )
 
                 with ThreadPoolExecutor(max_workers=16) as pool:
                     futures = {
-                        pool.submit(_image_pair, t0, t1, dt): (t0, dt) for t0, t1, dt in pairs
+                        pool.submit(_image_pair, t0, t1, dt): (t0, dt)
+                        for t0, t1, dt in frame_pairs
                     }
-                    for fut in tqdm(
-                        as_completed(futures), total=len(futures), desc=f"{ds_name} {pos_str}"
+                    for future in tqdm(
+                        as_completed(futures), total=len(futures),
+                        desc=f"{dataset_name} pos={position}",
                     ):
-                        records.extend(fut.result())
+                        records.extend(future.result())
             else:
-                args = [
+                crop_flow_args = [
                     (
-                        cache[t0][sy[i] : ey[i], sx[i] : ex[i]].copy(),
-                        cache[t1][sy[i] : ey[i], sx[i] : ex[i]].copy(),
-                        cids[i],
+                        frame_cache[t0][start_y[i] : end_y[i], start_x[i] : end_x[i]].copy(),
+                        frame_cache[t1][start_y[i] : end_y[i], start_x[i] : end_x[i]].copy(),
+                        crop_ids[i],
                         t0,
                         dt,
-                        thresh,
+                        intensity_threshold,
                         attachment,
+                        compute_block_coherence,
                     )
-                    for t0, t1, dt in pairs
-                    for i in range(n_crops)
+                    for t0, t1, dt in frame_pairs
+                    for i in range(num_crops)
                 ]
                 records = Parallel(n_jobs=n_jobs, backend="loky")(
                     delayed(compute_crop_flow)(*a)
-                    for a in tqdm(args, desc=f"{ds_name} {pos_str}")
+                    for a in tqdm(crop_flow_args, desc=f"{dataset_name} pos={position}")
                 )
 
             if visualize:
                 plot_demo_summary(
-                    cache, cg, ds_name, pos_str, thresh, results_dir, channel, flow_scope,
-                    attachment,
+                    frame_cache, crop_grid, dataset_name, position,
+                    intensity_threshold, results_dir, channel, flow_scope,
+                    attachment, compute_block_coherence,
                 )
 
-            cache.clear()
+            frame_cache.clear()
 
             # Pivot & merge
-            df_pivot = pivot_flow_records(records)
-            df_pos = df_pos.merge(
-                df_pivot,
+            df_flow_pivoted = pivot_flow_records(records)
+            df_position = df_position.merge(
+                df_flow_pivoted,
                 left_on=[ColumnName.CROP_INDEX, ColumnName.TIMEPOINT],
                 right_on=["crop_index", "timepoint"],
                 how="left",
             ).drop(columns=["crop_index", "timepoint"], errors="ignore")
 
-            for c in flow_cols:
-                if c not in df_pos.columns:
-                    df_pos[c] = np.nan
-            df_pos.drop(
-                columns=[c for c in columns_to_drop if c in df_pos.columns], inplace=True
+            for col in flow_columns:
+                if col not in df_position.columns:
+                    df_position[col] = np.nan
+            df_position.drop(
+                columns=[c for c in diffae_columns_to_drop if c in df_position.columns],
+                inplace=True,
             )
 
             logger.info(
-                "%s done %.1fs records=%d", pos_str, time.time() - pos_t, len(records)
+                "Position %d done in %.1fs for %d records",
+                position, time.time() - position_start, len(records),
             )
-            ds_parts.append(df_pos)
+            dataset_parts.append(df_position)
 
-        if ds_parts:
-            df_ds_out = pd.concat(ds_parts, ignore_index=True)
-            all_parts.append(df_ds_out)
+        if dataset_parts:
+            df_dataset_out = pd.concat(dataset_parts, ignore_index=True)
+            all_dataset_parts.append(df_dataset_out)
             if upload:
-                save_and_upload(ds_name, df_ds_out)
-        logger.info("Dataset done %.1fs", time.time() - ds_t)
+                save_and_upload(dataset_name, df_dataset_out, workflow=Path(__file__).stem)
+        logger.info("Dataset done in %.1fs", time.time() - dataset_start)
 
-    df_out = pd.concat(all_parts, ignore_index=True)
+    df_final = pd.concat(all_dataset_parts, ignore_index=True)
     logger.info(
-        "DONE %d rows x %d cols %.1fs", len(df_out), len(df_out.columns), time.time() - t0_all
+        "DONE %d rows x %d cols in %.1fs",
+        len(df_final), len(df_final.columns), time.time() - workflow_start,
     )
 
 
