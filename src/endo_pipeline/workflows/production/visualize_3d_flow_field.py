@@ -158,19 +158,40 @@ def main(
     )
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    demo_suffix = "_demo" if DEMO_MODE else ""
     drift_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{feature_dataframe_manifest_name}{demo_suffix}"
+        f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{feature_dataframe_manifest_name}"
     )
     grid_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{feature_dataframe_manifest_name}{demo_suffix}"
+        f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{feature_dataframe_manifest_name}"
     )
     fixed_points_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{feature_dataframe_manifest_name}{demo_suffix}"
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{feature_dataframe_manifest_name}"
     )
-    drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
-    grid_dataframe_manifest = load_dataframe_manifest(grid_dataframe_manifest_name)
-    fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
+    # Flexible DEMO_MODE loading pattern: first try to load the manifests with
+    # the expected names, but if any of them are not found, then try to load the
+    # corresponding demo manifests with the "_demo." This allows for both
+    # running the full pipeline in DEMO_MODE with the demo manifests, and also
+    # for running this workflow in DEMO_MODE with the full manifests if the user
+    # has them available (i.e., just "demo" the visualization step without
+    # needing to also "demo" the flow field estimation step).
+    try:
+        drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
+        grid_dataframe_manifest = load_dataframe_manifest(grid_dataframe_manifest_name)
+        fixed_points_dataframe_manifest = load_dataframe_manifest(
+            fixed_points_dataframe_manifest_name
+        )
+    except FileNotFoundError:
+        if DEMO_MODE:
+            demo_suffix = "_demo"
+            drift_dataframe_manifest = load_dataframe_manifest(
+                f"{drift_dataframe_manifest_name}{demo_suffix}"
+            )
+            grid_dataframe_manifest = load_dataframe_manifest(
+                f"{grid_dataframe_manifest_name}{demo_suffix}"
+            )
+            fixed_points_dataframe_manifest = load_dataframe_manifest(
+                f"{fixed_points_dataframe_manifest_name}{demo_suffix}"
+            )
 
     if list_datasets_with_dataframes(drift_dataframe_manifest) != list_datasets_with_dataframes(
         grid_dataframe_manifest
