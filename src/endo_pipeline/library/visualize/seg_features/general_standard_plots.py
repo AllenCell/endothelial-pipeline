@@ -7,7 +7,6 @@ from matplotlib import pyplot as plt
 from matplotlib.colorbar import ColorbarBase
 
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
-from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
 
 # set the plot shape to the golden ratio
 AX_WIDTH = 4.5
@@ -94,11 +93,11 @@ def lineplot_of_feats(
     """
 
     assert (
-        len(df_group[ColNmSeg.DATASET].unique()) == 1
-    ), f"Only a single dataset allowed in df_group, datasets found: {df_group[ColNmSeg.DATASET].unique()}"
-    dataset_name = df_group[ColNmSeg.DATASET].unique()[0]
+        len(df_group["dataset_name"].unique()) == 1
+    ), f'Only a single dataset allowed in df_group, datasets found: {df_group["dataset_name"].unique()}'
+    dataset_name = df_group["dataset_name"].unique()[0]
 
-    positions = tuple(pos for pos in df_group[ColNmSeg.POSITION].unique())
+    positions = tuple(pos for pos in df_group.position.unique())
     if len(positions) == 1:
         positions = positions[0]
     fig_title = f"{dataset_name} P{positions}"
@@ -202,11 +201,11 @@ def hist_2d_of_feats(
     """
 
     assert (
-        len(df_group[ColNmSeg.DATASET].unique()) == 1
-    ), f"Only a single dataset allowed in df_group, datasets found: {df_group[ColNmSeg.DATASET].unique()}"
-    dataset_name = df_group[ColNmSeg.DATASET].unique()[0]
+        len(df_group["dataset_name"].unique()) == 1
+    ), f'Only a single dataset allowed in df_group, datasets found: {df_group["dataset_name"].unique()}'
+    dataset_name = df_group["dataset_name"].unique()[0]
 
-    positions = tuple(pos for pos in df_group[ColNmSeg.POSITION].unique())
+    positions = tuple(pos for pos in df_group.position.unique())
     if len(positions) == 1:
         positions = positions[0]
     fig_title = f"{dataset_name} P{positions}"
@@ -323,175 +322,167 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         A dictionary containing the plotting arguments for each feature.
     """
     feat_args: dict[str, dict[str, Any]] = {
-        ColNmSeg.TIME_HRS: {
-            "column_name": ColNmSeg.TIME_HRS,
+        "time_hrs": {
+            "column_name": "time_hours",
             "label": "Time (h)",
             "lims": (0, "max"),
             "bin_width": 0.5,
             "ticks": range(0, 49, 12),
             "discrete_ticks": False,
         },
-        ColNmSeg.TIME_HRS_SINCE_FLOW: {
-            "column_name": ColNmSeg.TIME_HRS_SINCE_FLOW,
+        "time_hrs_flow": {
+            "column_name": "time_hours_since_flow_start",
             "label": "Time Under Flow (h)",
             "lims": ("min", "max"),
             "bin_width": 0.5,
-            "ticks": range(0, 49, 12),
+            "ticks": None,  # range(0, 49, 12),
             "discrete_ticks": False,
         },
-        ColNmSeg.ALIGNMENT_DEG: {
-            "column_name": ColNmSeg.ALIGNMENT_DEG,
+        "alignment_deg_rel_to_flow": {
+            "column_name": "alignment_deg_rel_to_flow",
             "label": "Alignment (deg)",
             "lims": (0, 90),
             "bin_width": 1,
             "ticks": range(0, 91, 15),
             "discrete_ticks": False,
         },
-        ColNmSeg.ORIENTATION_DEG: {
-            "column_name": ColNmSeg.ORIENTATION_DEG,
+        "orientation_deg": {
+            "column_name": "orientation_deg",
             "label": "Orientation (deg)",
             "lims": (0, 180),
             "bin_width": 5,
             "ticks": range(0, 181, 90),
             "discrete_ticks": False,
         },
-        ColNmSeg.NEMATIC_ORDER: {
-            "column_name": ColNmSeg.NEMATIC_ORDER,
+        "nematic_order": {
+            "column_name": "nematic_order",
             "label": "Nematic Order",
             "lims": (-1, 1),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,
         },
-        ColNmSeg.ECCENTRICITY: {
-            "column_name": ColNmSeg.ECCENTRICITY,
+        "eccentricity": {
+            "column_name": "eccentricity",
             "label": "Eccentricity",
             "lims": (0, 1),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,
         },
-        ColNmSeg.ASPECT_RATIO: {
-            "column_name": ColNmSeg.ASPECT_RATIO,
+        "aspect_ratio": {
+            "column_name": "aspect_ratio",
             "label": "Aspect Ratio",
             "lims": (1, 10),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,
         },
-        ColNmSeg.AREA_UM_SQ: {
-            "column_name": ColNmSeg.AREA_UM_SQ,
+        "area (um**2)": {
+            "column_name": "area (um**2)",
             "label": "Area (μm²)",
             "lims": (350, 2000),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,
         },
-        ColNmSeg.NUM_NEIGHBORS: {
-            "column_name": ColNmSeg.NUM_NEIGHBORS,
+        "num_neighbors": {
+            "column_name": "number_of_neighbors",
             "label": "Number of\nNeighbors",
             "lims": (0, "max"),
             "bin_width": 1,
             "ticks": None,
             "discrete_ticks": True,
         },
-        ColNmSeg.CENTROID_VELOCITY_UM_PER_MIN: {
-            "column_name": ColNmSeg.CENTROID_VELOCITY_UM_PER_MIN,
+        "centroid_velocity_magnitude": {
+            "column_name": "centroid_velocity_magnitude",
             "label": "Centroid Velocity\nMagnitude (μm/min)",
             "lims": (0, "max"),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,
         },
-        ColNmSeg.CENTROID_VELOCITY_ANGLE_DEG: {
-            "column_name": ColNmSeg.CENTROID_VELOCITY_ANGLE_DEG,
+        "centroid_velocity_angle_deg": {
+            "column_name": "centroid_velocity_angle_deg",
             "label": "Centroid Velocity\nOrientation (deg)",
             "lims": (-180, 181),
             "bin_width": 5,
             "ticks": range(-180, 181, 90),
             "discrete_ticks": False,
         },
-        ColNmSeg.NUCLEI_POSITION_ANGLE_DEG: {
-            "column_name": ColNmSeg.NUCLEI_POSITION_ANGLE_DEG,
+        "cell_nuc_orientation_deg": {
+            "column_name": "nuc_pos_rel_cell_angle_deg",
             "label": "Nuclei Orientation\nRel. to Flow (deg)",
             "lims": (-180, 180),
             "bin_width": 5,
             "ticks": range(-180, 181, 90),
             "discrete_ticks": False,
         },
-        ColNmSeg.NUCLEI_POSITION_DISTANCE: {
-            "column_name": ColNmSeg.NUCLEI_POSITION_DISTANCE,
+        "cell_nuc_dist": {
+            "column_name": "nuc_pos_rel_cell_magnitude",
             "label": "Nuclei-Cell Centroid Distance (px)",
             "lims": (0, "max"),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,
         },
-        ColNmSeg.NUM_NUCLEI_AT_TIMEPOINT: {
-            "column_name": ColNmSeg.NUM_NUCLEI_AT_TIMEPOINT,
+        "total_nuclei_count_at_T": {
+            "column_name": "total_nuclei_count_at_T",
             "label": "Number of Nuclei",
             "lims": (0, None),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": True,
         },
-        ColNmSeg.NUM_NUCLEI_IN_CROP: {
-            "column_name": ColNmSeg.NUM_NUCLEI_IN_CROP,
+        "num_tracks": {
+            "column_name": "num_tracks_at_T",
+            "label": "Number of Tracks",
+            "lims": (0, None),
+            "bin_width": None,
+            "ticks": None,
+            "discrete_ticks": True,
+        },
+        "num_nuclei_in_crop": {
+            "column_name": "num_nuclei_in_crop",
             "label": "Number of Nuclei\nin Crop",
             "lims": (0, None),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": True,
         },
-        ColNmSeg.CELL_FLUOR_MEAN: {
-            "column_name": ColNmSeg.CELL_FLUOR_MEAN,
+        "cell_fluorescence_mean (a.u.)": {
+            "column_name": "cell_fluorescence_mean (a.u.)",
             "label": "Mean Cell Fluorescence",
-            "lims": (100, 200),
+            "lims": (120, 150),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,
         },
-        ColNmSeg.EDGE_FLUOR_MEAN: {
-            "column_name": ColNmSeg.EDGE_FLUOR_MEAN,
-            "label": "Mean Edge Fluorescence",
-            "lims": (100, 200),
-            "bin_width": None,
-            "ticks": None,
-            "discrete_ticks": False,
-        },
-        ColNmSeg.NODE_FLUOR_MEAN: {
-            "column_name": ColNmSeg.NODE_FLUOR_MEAN,
-            "label": "Mean Node Fluorescence",
-            "lims": (100, 200),
-            "bin_width": None,
-            "ticks": None,
-            "discrete_ticks": False,
-        },
-        ColNmSeg.SOLIDITY: {
-            "column_name": ColNmSeg.SOLIDITY,
+        "cell_solidity": {
+            "column_name": "cell_solidity",
             "label": "Cell Solidity",
             "lims": (0, 1),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,
         },
-        ColNmSeg.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG: {
-            "column_name": ColNmSeg.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
+        "nuc_orientation_deg_rel_migration": {
+            "column_name": "cell_nuc_orientation_deg_rel_to_migration",
             "label": "Nuclei Orientation\nRel. to Migration (deg)",
             "lims": (-180, 180),
             "bin_width": 5,
             "ticks": range(-180, 181, 90),
             "discrete_ticks": False,
         },
-        ColNmSeg.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD: {
-            "column_name": ColNmSeg.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD,
+        "nuc_pos_vs_cell_veloc_dotprod": {
+            "column_name": "nuc_pos_vs_cell_veloc_dotprod",
             "label": "Cell-Nucleus vs.\nMigration Dot Product",
             "lims": (None, None),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": False,
         },
-        ColumnName.POLAR_RADIUS: {
+        "polar_radius": {
             "column_name": ColumnName.POLAR_RADIUS,
             "label": r"$r$",
             "lims": (0, None),
@@ -499,7 +490,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "ticks": None,
             "discrete_ticks": False,
         },
-        ColumnName.POLAR_ANGLE: {
+        "polar_angle": {
             "column_name": ColumnName.POLAR_ANGLE,
             "label": r"$\theta$",
             "lims": None,
@@ -507,24 +498,16 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "ticks": None,
             "discrete_ticks": False,
         },
-        ColumnName.PC3_FLIPPED: {
-            "column_name": ColumnName.PC3_FLIPPED,
-            "label": r"$\rho$",
-            "lims": None,
-            "bin_width": None,
-            "ticks": None,
-            "discrete_ticks": False,
-        },
-        ColNmSeg.NUM_TRACKS_BEFORE_FILTERING: {
-            "column_name": ColNmSeg.NUM_TRACKS_BEFORE_FILTERING,
+        "num_unique_tracks_before_filtering_at_T": {
+            "column_name": "num_unique_tracks_before_filtering_at_T",
             "label": "Num. Segmentations\nBefore Filtering",
             "lims": (0, None),
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": True,
         },
-        ColNmSeg.NUM_TRACKS_AFTER_FILTERING: {
-            "column_name": ColNmSeg.NUM_TRACKS_AFTER_FILTERING,
+        "num_unique_tracks_after_filtering_at_T": {
+            "column_name": "num_unique_tracks_after_filtering_at_T",
             "label": "Num. Segmentations\nAfter Filtering",
             "lims": (0, None),
             "bin_width": None,

@@ -17,8 +17,7 @@ def main():
         create_summary_dfs,
         make_summary_plots,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
-    from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
 
     outdir = get_output_path(__file__)
 
@@ -27,24 +26,24 @@ def main():
 
     # make a list of the columns we need to compute
     dataset_info_cols = [
-        ColNmSeg.DATASET,
-        ColNmSeg.POSITION,
-        ColNmSeg.TIMEPOINT,
+        ColumnName.DATASET.value,
+        ColumnName.POSITION.value,
+        ColumnName.TIMEPOINT.value,
     ]
     density_cols = [
-        ColNmSeg.NUM_TRACKS_BEFORE_FILTERING,
-        ColumnName.PC3_FLIPPED,
-        ColNmSeg.NUM_NUCLEI_IN_CROP,
-        ColNmSeg.NUM_NUCLEI_AT_TIMEPOINT,
+        "num_unique_tracks_before_filtering_at_T",
+        DIFFAE_PC_COLUMN_NAMES[2],
+        "num_nuclei_in_crop",
+        "total_nuclei_count_at_T",
     ]
-    filter_cols = [ColNmSeg.IS_INCLUDED]
-    feature_cols = [ColNmSeg.ALIGNMENT, ColNmSeg.ORIENTATION, ColumnName.POLAR_ANGLE]
-    other_cols = [ColNmSeg.TRACK_ID, ColNmSeg.SHEAR_STRESS_REGIME]
+    filter_cols = ["is_included"]
+    feature_cols = ["alignment_rel_to_flow", "orientation", "polar_theta"]
+    other_cols = ["track_id", "shear_stress_regime"]
 
     cols_to_compute = dataset_info_cols + density_cols + filter_cols + feature_cols + other_cols
 
     # create dataframes summarizing some of the columns we are computing
-    summary_df_agg, summary_df = create_summary_dfs(datasets, cols_to_compute)
+    summary_df_agg, summary_df = create_summary_dfs(datasets, cols_to_compute)[:2]
 
     # define some plotting parameters that will be reused as we plot the data
     # in different ways
@@ -59,43 +58,19 @@ def main():
     # these hue groups are the different things that we want to color
     # the datapoints by (along with corresponding parameter values)
     hue_groups_multiposition = [
-        (ColumnName.DATASET, "tab20", None, None, True),
-        (ColNmSeg.SHEAR_STRESS_REGIME, "tab10", None, None, True),
-        (
-            f"{ColNmSeg.ORIENTATION}_vec_mean_multipos_magnitude",
-            cmap_mag,
-            hue_norm_mag,
-            sm_mag,
-            False,
-        ),
-        (
-            f"{ColumnName.POLAR_ANGLE}_vec_mean_multipos_magnitude",
-            cmap_mag,
-            hue_norm_mag,
-            sm_mag,
-            False,
-        ),
-        (
-            f"{ColNmSeg.ORIENTATION}_vec_mean_multipos_angle",
-            cmap_ang,
-            hue_norm_angle,
-            sm_angle,
-            False,
-        ),
-        (
-            f"{ColumnName.POLAR_ANGLE}_vec_mean_multipos_angle",
-            cmap_ang,
-            hue_norm_angle,
-            sm_angle,
-            False,
-        ),
+        (ColumnName.DATASET.value, "tab20", None, None, True),
+        ("shear_stress_regime", "tab10", None, None, True),
+        ("orientation_vec_mean_multipos_magnitude", cmap_mag, hue_norm_mag, sm_mag, False),
+        ("polar_theta_vec_mean_multipos_magnitude", cmap_mag, hue_norm_mag, sm_mag, False),
+        ("orientation_vec_mean_multipos_angle", cmap_ang, hue_norm_angle, sm_angle, False),
+        ("polar_theta_vec_mean_multipos_angle", cmap_ang, hue_norm_angle, sm_angle, False),
     ]
 
     hue_groups_single_position = [
-        (f"{ColNmSeg.ORIENTATION}_vec_mean_magnitude", cmap_mag, hue_norm_mag, sm_mag, False),
-        (f"{ColumnName.POLAR_ANGLE}_vec_mean_magnitude", cmap_mag, hue_norm_mag, sm_mag, False),
-        (f"{ColNmSeg.ORIENTATION}_vec_mean_angle", cmap_ang, hue_norm_angle, sm_angle, False),
-        (f"{ColumnName.POLAR_ANGLE}_vec_mean_angle", cmap_ang, hue_norm_angle, sm_angle, False),
+        ("orientation_vec_mean_magnitude", cmap_mag, hue_norm_mag, sm_mag, False),
+        ("polar_theta_vec_mean_magnitude", cmap_mag, hue_norm_mag, sm_mag, False),
+        ("orientation_vec_mean_angle", cmap_ang, hue_norm_angle, sm_angle, False),
+        ("polar_theta_vec_mean_angle", cmap_ang, hue_norm_angle, sm_angle, False),
     ]
 
     # make a bunch of plots for each of our different density metrics to
@@ -147,7 +122,7 @@ def main():
         out_subdir = outdir / "quiver_plots"
         out_subdir.mkdir(parents=True, exist_ok=True)
 
-        for col_prefix in [ColNmSeg.ORIENTATION, ColumnName.POLAR_ANGLE]:
+        for col_prefix in ["orientation", "polar_theta"]:
             fig, ax = plt.subplots(figsize=(6, 6), dpi=300)
 
             hue_mag_col = f"{col_prefix}_vec_mean_multipos_magnitude"

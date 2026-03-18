@@ -34,7 +34,6 @@ from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dat
 from endo_pipeline.settings import RANDOM_SEED
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
-from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
     SEGMENTATION_FEATURE_COLUMNS,
@@ -482,17 +481,15 @@ def get_df_for_feature_correlation_viz(
                 cols_to_load_unique.append(col)
         merged_feats_df = merged_feats_df_delayed[cols_to_load_unique].compute()  # type: ignore
         # filter the dataframe to only include rows with DiffAE features
-        merged_feats_df = merged_feats_df.dropna(subset=ColumnName.MODEL_MANIFEST)
+        merged_feats_df = merged_feats_df.dropna(subset="model_manifest_name")
 
         # "unwrap" the angle features to avoid issues with periodic data when plotting correlations
         angle_period = np.pi
-        angle_cols = [ColNmSeg.ORIENTATION, ColumnName.POLAR_ANGLE.value]
+        angle_cols = ["orientation", ColumnName.POLAR_ANGLE.value]
         for ang_col in angle_cols:
             merged_feats_df[ang_col] = np.unwrap(merged_feats_df[ang_col], period=angle_period)
 
-        merged_feats_df[ColNmSeg.ORIENTATION_DEG] = np.rad2deg(
-            merged_feats_df[ColNmSeg.ORIENTATION]
-        )
+        merged_feats_df["orientation_deg"] = np.rad2deg(merged_feats_df["orientation"])
 
         # filter data table to only include the steady state timepoints that are
         # used when projecting the DiffAE features onto PCA axes

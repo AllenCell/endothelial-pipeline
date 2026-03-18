@@ -1,6 +1,5 @@
 import logging
 from pathlib import Path
-from typing import Literal
 
 import pandas as pd
 from colorizer_data import convert_colorizer_data
@@ -18,6 +17,7 @@ from endo_pipeline.library.visualize.timelapse_feature_explorer.tfe_manifest_for
     add_dynamic_features_with_filtering,
     add_feature_metadata,
     update_manifest_for_tfe,
+    update_manifest_for_tfe_grid,
 )
 from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
@@ -34,8 +34,6 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
     ColumnName,
 )
 from endo_pipeline.settings.feature_info import LABEL_MAP, LABEL_MAP_GRID
-from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
-from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameTFE as ColNmTFE
 from endo_pipeline.settings.workflow_defaults import (
     DATASET_INFO_COLUMNS,
     DEFAULT_MODEL_MANIFEST_NAME,
@@ -52,10 +50,11 @@ def generate_tfe_dataset(
     dataset: str,
     position: int,
     output_dir: Path,
-    segmentation: Literal["CDH5", "grid"],
+    segmentation: str,
     backdrops: bool,
     output_dir_suffix: str = "",
     include_diffae_features: bool = True,
+    cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
 ) -> None:
     """
     Create timelapse feature explorer manifest and generate backdrop images.
@@ -94,6 +93,7 @@ def generate_tfe_dataset(
                 label_map=LABEL_MAP,
                 include_diffae_features=include_diffae_features,
             )
+            df_position = update_manifest_for_tfe(df_position, dataset, position, output_dir)
 
         case "grid":
             manifest = load_image_manifest("grid_seg")
@@ -107,19 +107,12 @@ def generate_tfe_dataset(
             df_position, feature_column_names, feature_info = get_df_and_label_map_grid(
                 dataset=dataset, position=position, label_map=LABEL_MAP_GRID
             )
+            df_position = update_manifest_for_tfe_grid(df_position, dataset, position, output_dir)
 
         case _:
             raise ValueError(
                 f"crop_pattern must one of {available_segmentations}, got '{segmentation}'."
             )
-
-    df_position = update_manifest_for_tfe(
-        df=df_position,
-        dataset=dataset,
-        position=position,
-        output_dir=output_dir,
-        segmentation=segmentation,
-    )
 
     if backdrops:
         generate_backdrops(
@@ -133,12 +126,12 @@ def generate_tfe_dataset(
         data=df_position,
         output_dir=output_dir,
         source_dir=location.path.parent,
-        object_id_column=ColNmSeg.LABEL,
-        times_column=ColNmSeg.TIMEPOINT,
-        track_column=ColNmSeg.TRACK_ID,
-        image_column=ColNmTFE.SEGMENTATION_IMAGE_FILENAME,
-        centroid_x_column=ColNmSeg.CENTROID_X,
-        centroid_y_column=ColNmSeg.CENTROID_Y,
+        object_id_column="label",
+        times_column="image_index",
+        track_column="track_id",
+        image_column="seg_image",
+        centroid_x_column="centroid_X",
+        centroid_y_column="centroid_Y",
         backdrop_column_names=[
             "bf_slice_backdrop",
             "bf_std_dev_backdrop",
@@ -176,12 +169,7 @@ def get_df_and_label_map_cdh5seg(
         df_tracks = load_dataframe(segprops_location, delay=True)
         # remove the DiffAE-related entries from label_map before constructing the TFE dataset
         diffae_keys = [
-            key
-            for key in label_map
-            if key
-            in DIFFAE_FEATURE_COLUMN_NAMES
-            + DIFFAE_PC_COLUMN_NAMES
-            + [ColumnName.POLAR_ANGLE, ColumnName.POLAR_RADIUS, ColumnName.PC3_FLIPPED]
+            key for key in label_map if key in DIFFAE_FEATURE_COLUMN_NAMES + DIFFAE_PC_COLUMN_NAMES
         ]
         for key in diffae_keys:
             del label_map[key]
@@ -198,7 +186,7 @@ def get_df_and_label_map_cdh5seg(
 
     df = add_dynamic_features_with_filtering(df_tracks_subset)
 
-    df = df[df[ColNmSeg.POSITION] == position]
+    df = df[df["position"] == position]
 
     feature_column_names = list(label_map.keys())
     feature_info = add_feature_metadata(label_map)
@@ -235,32 +223,31 @@ def get_df_and_label_map_grid(
         raise ValueError(f"No time interval found for dataset {dataset}")
     dt_mins = dataset_config.time_interval_in_minutes
 
-    # TFE was designed for use with segmentations so we are just going to use
-    # the segmentation column naming scheme (which should be the same as the
-    # grid one now anyways; but we're just being extra explicit here)
-    grid_df[ColNmSeg.TIMEPOINT] = grid_df[ColumnName.TIMEPOINT]
-    grid_df[ColNmSeg.TIME_MINS] = grid_df[ColNmSeg.TIMEPOINT] * dt_mins
-    grid_df[ColNmSeg.TIME_HRS] = grid_df[ColNmSeg.TIME_MINS] / 60
-    grid_df[ColNmSeg.CENTROID_X] = grid_df[[ColumnName.START_X, ColumnName.END_X]].mean(axis=1)
-    grid_df[ColNmSeg.CENTROID_Y] = grid_df[[ColumnName.START_Y, ColumnName.END_Y]].mean(axis=1)
+    grid_df["time_minutes"] = grid_df.frame_number * dt_mins
+    grid_df["time_hours"] = grid_df.time_minutes / 60
+    grid_df["centroid_X"] = grid_df[["start_x", "end_x"]].mean(axis=1)
+    grid_df["centroid_Y"] = grid_df[["start_y", "end_y"]].mean(axis=1)
 
-    grid_df[ColNmSeg.LABEL] = grid_df[ColumnName.CROP_INDEX] + 1
-    grid_df[ColNmSeg.TRACK_ID] = grid_df[ColumnName.CROP_INDEX] + 1
-    grid_df[ColNmSeg.POSITION] = grid_df[ColumnName.POSITION].transform(lambda x: int(x.strip("P")))
+    grid_df["label"] = grid_df["crop_index"] + 1
+    grid_df["track_id"] = grid_df["crop_index"] + 1
+    grid_df["image_index"] = grid_df["frame_number"]
+    grid_df["position"] = grid_df["position"].transform(lambda x: int(x.strip("P")))
 
-    grid_df = grid_df[grid_df[ColNmSeg.POSITION] == position]
+    grid_df = grid_df.query("position == @position")
 
     # add the timepoint annotations as filter columns
     if dataset_config.timepoint_annotations is not None:
         filters_for_dataset = list(dataset_config.timepoint_annotations.keys())
         for filt in filters_for_dataset:
+            # timepoint_annotations = dataset_config.timepoint_annotations[filt].get(position, [])
+            # invalid_tps: set = set()
             if position in dataset_config.timepoint_annotations[filt]:
                 invalid_tps = get_annotated_timepoints_for_position(
                     dataset_config, position, [filt]
                 )
                 if not dataset_config.timepoint_annotations[filt][position]:
                     continue
-                grid_df[filt] = grid_df[ColNmSeg.TIMEPOINT].isin(invalid_tps)
+                grid_df[filt] = grid_df["image_index"].isin(invalid_tps)
     else:
         filters_for_dataset = []
     # clean up the label_map to remove filters not used in this dataset
