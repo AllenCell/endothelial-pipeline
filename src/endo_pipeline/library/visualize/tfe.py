@@ -2,7 +2,7 @@ import logging
 from functools import partial
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Protocol
+from typing import Literal, Protocol
 
 import imageio.v3 as iio
 import numpy as np
@@ -70,7 +70,7 @@ def generate_tfe_backdrop(
     """Generate a single TFE backdrop image using given image loader method."""
 
     backdrop = image_loader(timepoints=timepoint).squeeze().compute()
-    method = "min-max" if "std_dev" in save_key else "percentile"
+    method: Literal["min-max", "percentile"] = "min-max" if "std_dev" in save_key else "percentile"
     backdrop = contrast_stretching(backdrop, method=method)
     iio.imwrite(output_dir / f"{save_key}_T{timepoint}.png", backdrop)
 
