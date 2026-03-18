@@ -239,9 +239,13 @@ def main(
 
     if DEMO_MODE:
         logger.warning(
-            "DEMO MODE: Using only the first dataset from the manifest for quick visualization."
+            "DEMO MODE: Processing no more than two of the provided datasets for quick visualization."
         )
-        dataset_names = dataset_names[:1]
+        # take min of the number of datasets provided and 2, to limit to at most
+        # 2 datasets in DEMO_MODE for quick visualization (i.e., avoid error if
+        # only 1 dataset is provided)
+        num_datasets = min(len(dataset_names), 2)
+        dataset_names = dataset_names[:num_datasets]
 
     # fit PCA using the features from the given dataframe manifest PCA always
     # fit on the grid-based features, even if the features for flow field
