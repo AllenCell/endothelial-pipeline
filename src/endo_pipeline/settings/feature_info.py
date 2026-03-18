@@ -59,4 +59,15 @@ LABEL_MAP_GRID = {
     "unfed": "Filter: Unfed (More Than 3 Hours Since Fresh Media Introduced)",
     "xy_shift": "Filter: Significant Change in XY position of FOV",
     "z_shift": "Filter: Significant Change in Z position of FOV",
+    "optical_flow_mean_unit_vector_dt1": "Coherent Migration (Optical Flow Mean Unit Vector)",
+    "optical_flow_angle_std_dt1": "Coherent Migration (Optical Flow Angle Std Dev)",
+    "optical_flow_mean_speed_dt1": "Optical Flow Mean Speed",
+    "optical_flow_std_speed_dt1": "Optical Flow Speed Std Dev",
+}
+
+RANGE_MAP = {
+    "optical_flow_mean_unit_vector_dt1": (0, 1),
+    "optical_flow_angle_std_dt1": (0, 4),
+    "optical_flow_mean_speed_dt1": (0, 8),
+    "optical_flow_std_speed_dt1": (0, 10),
 }
