@@ -55,8 +55,6 @@ for manifest_name, channel_name in image_channel_pairs:
     data = []
 
     for dataset_name in datasets:
-        if dataset_name in ["20241217_20X"]:
-            continue
 
         dataset_config = load_dataset_config(dataset_name)
 

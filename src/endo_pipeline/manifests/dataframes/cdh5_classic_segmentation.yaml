@@ -2,10 +2,6 @@ name: cdh5_classic_segmentation
 workflow: live_feat_workflows_to_fms
 parameters: {}
 locations:
-  20241217_20X:
-    fmsid: 79dd6c4a941c420fbb0c910a63a09b24
-    path: null
-    s3uri: null
   20250224_20X:
     fmsid: 7275986eb28a4c808e86ba2c8f018e38
     path: null
