@@ -100,22 +100,24 @@ def main():
             # to do a groubpy on both image_index and position before summing the
             # totals in each dataset across all timepoints and positions
             num_nuc_pred = (
-                live_seg_feats_df.groupby(["image_index", Column.POSITION])
-                .total_nuclei_count_at_T.apply(sequence_to_scalar)
+                live_seg_feats_df.groupby([Column.TIMEPOINT, Column.POSITION])[
+                    Column.SegData.NUM_NUCLEI_AT_TIMEPOINT
+                ]
+                .apply(sequence_to_scalar)
                 .sum()
             )
             num_cell_seg_before_filt = (
-                live_seg_feats_df.groupby(["image_index", Column.POSITION])
-                .num_unique_tracks_before_filtering_at_T.apply(sequence_to_scalar)
+                live_seg_feats_df.groupby([Column.TIMEPOINT, Column.POSITION])[
+                    Column.SegData.NUM_TRACKS_BEFORE_FILTERING
+                ]
+                .apply(sequence_to_scalar)
                 .sum()
             )
             num_tracks_before_filt = (
-                live_seg_feats_df.groupby(Column.POSITION)["track_id"].nunique().sum()
+                live_seg_feats_df.groupby(Column.POSITION)[Column.TRACK_ID].nunique().sum()
             )
 
             # filter out rows based on automatic and manual timepoint annotations
-            live_seg_feats_df["dataset"] = live_seg_feats_df["dataset_name"]
-            live_seg_feats_df["frame_number"] = live_seg_feats_df["image_index"]
             annotations_to_filter_out = [
                 TimepointAnnotation.AUTO_GFP_SCOPE_ERROR,
                 TimepointAnnotation.GFP_SCOPE_ERROR,
@@ -129,47 +131,48 @@ def main():
             # using the `sequence_to_scalar` function
             num_cell_seg_after_filt = int(
                 live_seg_feats_df.dropna(
-                    axis="index", subset=["num_unique_tracks_after_filtering_at_T"]
+                    axis="index", subset=[Column.SegData.NUM_TRACKS_AFTER_FILTERING]
                 )
-                .groupby(["image_index", Column.POSITION])
-                .num_unique_tracks_after_filtering_at_T.apply(sequence_to_scalar)
+                .groupby([Column.TIMEPOINT, Column.POSITION])[
+                    Column.SegData.NUM_TRACKS_AFTER_FILTERING
+                ]
+                .apply(sequence_to_scalar)
                 .sum()
             )
-            # NOTE that num_cell_seg_before_filt can also be calculated with
-            # live_seg_feats_df.groupby(["image_index", ColumnName.POSITION]).label.nunique().sum()
-            # and num_cell_seg_after_filt with
-            # live_seg_feats_df.query("is_included==True").groupby(["image_index", ColumnName.POSITION]).label.nunique().sum()
 
             # add number of timepoints left after filtering to the dataset
             # the "is_included" column in the dataframe is defined when the dataframe is constructed
             # based on whether the track at that timepoint passed all filtering steps or not
             # (see endo_pipeline\library\analyze\live_data_manifest\lib_make_seg_feats_manifest.add_filter_columns for details)
             num_timepoints_left_after_filter = (
-                live_seg_feats_df[live_seg_feats_df["is_included"]]
-                .groupby(["position"])["image_index"]
+                live_seg_feats_df[live_seg_feats_df[Column.SegDataFilters.IS_INCLUDED]]
+                .groupby([Column.POSITION])[Column.TIMEPOINT]
                 .nunique()
                 .sum()
             )
             num_tracks_left_after_filter = (
-                live_seg_feats_df[live_seg_feats_df["is_included"]]
-                .groupby(Column.POSITION)["track_id"]
+                live_seg_feats_df[live_seg_feats_df[Column.SegDataFilters.IS_INCLUDED]]
+                .groupby(Column.POSITION)[Column.TRACK_ID]
                 .nunique()
                 .sum()
             )
 
             # add some descriptive statistics about cell lengths to the dataset
             # (this is approximated by reporting the major axis of an ellipse fit to a segmentation)
-            seg_lengths_px_mean = live_seg_feats_df["major_axis_length"].mean()
-            seg_lengths_px_std = live_seg_feats_df["major_axis_length"].std()
-            seg_lengths_px_median = live_seg_feats_df["major_axis_length"].median()
+            seg_lengths_px_mean = live_seg_feats_df[Column.SegData.MAJOR_AXIS].mean()
+            seg_lengths_px_std = live_seg_feats_df[Column.SegData.MAJOR_AXIS].std()
+            seg_lengths_px_median = live_seg_feats_df[Column.SegData.MAJOR_AXIS].median()
             seg_lengths_um_mean = (
-                live_seg_feats_df["major_axis_length"].mean() * dataset_config.pixel_size_xy_in_um
+                live_seg_feats_df[Column.SegData.MAJOR_AXIS].mean()
+                * dataset_config.pixel_size_xy_in_um
             )
             seg_lengths_um_std = (
-                live_seg_feats_df["major_axis_length"].std() * dataset_config.pixel_size_xy_in_um
+                live_seg_feats_df[Column.SegData.MAJOR_AXIS].std()
+                * dataset_config.pixel_size_xy_in_um
             )
             seg_lengths_um_median = (
-                live_seg_feats_df["major_axis_length"].median() * dataset_config.pixel_size_xy_in_um
+                live_seg_feats_df[Column.SegData.MAJOR_AXIS].median()
+                * dataset_config.pixel_size_xy_in_um
             )
 
             # delete the segmentation features dataframe to keep memory usage down
