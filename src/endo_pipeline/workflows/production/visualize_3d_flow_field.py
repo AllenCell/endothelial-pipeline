@@ -163,6 +163,10 @@ def main(
     fixed_points_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{feature_dataframe_manifest_name}"
     )
+    # Flexible DEMO_MODE loading pattern: first try to load the manifests with
+    # the expected names, but if any of them are not found, then try to load the
+    # corresponding demo manifests with the "_demo." This allows for both
+    # running the full pipeline in DEMO_MODE with the demo manifests, and also
     # for running this workflow in DEMO_MODE with the full manifests if the user
     # has them available (i.e., just "demo" the visualization step without
     # needing to also "demo" the flow field estimation step).
@@ -189,6 +193,7 @@ def main(
 
     # either run on specified datasets or all datasets in the manifest if no
     # specific datasets are provided restrict to datasets that are present in
+    # both the drift and feature dataframe manifests to avoid errors later on
     # when loading dataframes for specific datasets, and log an error if no
     # valid dataset names are provided after this filtering step
     valid_dataset_options = list(
