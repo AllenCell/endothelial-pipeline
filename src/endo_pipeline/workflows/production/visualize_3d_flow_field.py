@@ -132,7 +132,6 @@ def main(
     from endo_pipeline.settings.flow_field_3d import (
         DATAFRAME_MANIFEST_PREFIX_DRIFT,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
-        DATAFRAME_MANIFEST_PREFIX_GRID,
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         INIT_POINT_3D,
         TRAJECTORY_TIME_SPAN,
@@ -161,9 +160,6 @@ def main(
     drift_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{feature_dataframe_manifest_name}"
     )
-    grid_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_GRID}_{feature_dataframe_manifest_name}"
-    )
     fixed_points_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{feature_dataframe_manifest_name}"
     )
@@ -179,7 +175,6 @@ def main(
         # allow for just "demoing" the visualization step if the full manifests
         # are available.
         drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
-        grid_dataframe_manifest = load_dataframe_manifest(grid_dataframe_manifest_name)
         fixed_points_dataframe_manifest = load_dataframe_manifest(
             fixed_points_dataframe_manifest_name
         )
@@ -192,22 +187,9 @@ def main(
             drift_dataframe_manifest = load_dataframe_manifest(
                 f"{drift_dataframe_manifest_name}{demo_suffix}"
             )
-            grid_dataframe_manifest = load_dataframe_manifest(
-                f"{grid_dataframe_manifest_name}{demo_suffix}"
-            )
             fixed_points_dataframe_manifest = load_dataframe_manifest(
                 f"{fixed_points_dataframe_manifest_name}{demo_suffix}"
             )
-
-    if list_datasets_with_dataframes(drift_dataframe_manifest) != list_datasets_with_dataframes(
-        grid_dataframe_manifest
-    ):
-        logger.error(
-            "Datasets in drift dataframe manifest [ %s ] do not match datasets in grid points dataframe manifest [ %s ].",
-            drift_dataframe_manifest_name,
-            grid_dataframe_manifest_name,
-        )
-        raise ValueError("Datasets in drift and grid point dataframe manifests do not match.")
 
     # either run on specified datasets or all datasets in the manifest if no
     # specific datasets are provided restrict to datasets that are present in
@@ -305,22 +287,15 @@ def main(
             crop_pattern=crop_pattern,
         )[columns_plus_metadata_to_keep]
 
-        # load flow field dataframes and check that required columns are present
+        # load drift vector field dataframe and check that required columns are
+        # present
         drift_dataframe_location = get_dataframe_location_for_dataset(
             drift_dataframe_manifest, dataset_name
         )
         drift_dataframe = load_dataframe(drift_dataframe_location, delay=False)
         check_required_columns_in_dataframe(
             drift_dataframe,
-            required_columns=[*drift_column_names, ColumnName.DATASET],
-        )
-        grid_points_dataframe_location = get_dataframe_location_for_dataset(
-            grid_dataframe_manifest, dataset_name
-        )
-        grid_points_dataframe = load_dataframe(grid_points_dataframe_location, delay=False)
-        check_required_columns_in_dataframe(
-            grid_points_dataframe,
-            required_columns=[*column_names, ColumnName.DATASET],
+            required_columns=[*column_names, *drift_column_names, ColumnName.DATASET],
         )
 
         # load fixed point dataframe if it exists, and check that required
@@ -347,26 +322,29 @@ def main(
                 fixed_points_dataframe_manifest.name,
             )
 
-        # to store as datframe, the grid points were padded with NaN values to
-        # ensure that each column has the same number of rows, so here we remove
-        # the NaN values to get back the original grid points
-        grid_points_padded = [
-            grid_points_dataframe[column_name].to_numpy() for column_name in column_names
+        # To store as dataframe, the grid points were stored as a flattened
+        # meshgrid in the grid dataframe, so to get the grid points back into
+        # the shape of the original meshgrid, easiest to get the unique values
+        # for each column and remake the meshgrid from there.
+        #
+        # Also, downstream methods expect the grid to be specified as a list of
+        # 1D arrays of the grid points along each dimension.
+        grid_points_1d = [
+            np.sort(drift_dataframe[column_name].unique()) for column_name in column_names
         ]
-        grid_points_as_list = [points[~np.isnan(points)] for points in grid_points_padded]
-        grid_shape = tuple(len(points) for points in grid_points_as_list)
-        grid = np.meshgrid(*grid_points_as_list, indexing="ij")
+        grid_shape = tuple(len(points) for points in grid_points_1d)
+        grid = np.meshgrid(*grid_points_1d, indexing="ij")
 
         # get bins for vtk file extent and for estimating KDE
         # of data for plotting
         bin_limits = [
             (
-                grid_points_as_list[i][0] - bin_widths[i] / 2,
-                grid_points_as_list[i][-1] + bin_widths[i] / 2,
+                grid_points_1d[i][0] - bin_widths[i] / 2,
+                grid_points_1d[i][-1] + bin_widths[i] / 2,
             )
             for i in range(ndim)
         ]
-        num_bins = [len(points) for points in grid_points_as_list]
+        num_bins = [len(points) for points in grid_points_1d]
         bin_edges = [
             np.linspace(bin_limit[0], bin_limit[1], num_bin + 1)
             for bin_limit, num_bin in zip(bin_limits, num_bins, strict=True)
@@ -392,7 +370,7 @@ def main(
         # if compute vtk files, extrapolate and save out the flow field as vtk
         if compute_vtk:
             extrapolated_flow_field_dict_vtk = compute_extrapolated_vector_field(
-                drift_values, grid_points_as_list, method="nearest", for_vtk_files=True
+                drift_values, grid_points_1d, method="nearest", for_vtk_files=True
             )
             # save out the flow field as vtk image data volume extent for vtk
             # file is determined by the min and max of the feature values in
@@ -414,7 +392,7 @@ def main(
         ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
         # with initial conditions given by init solve IVP, get back trajectory
         extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
-            drift_values, grid_points_as_list, method="linear", for_vtk_files=False
+            drift_values, grid_points_1d, method="linear", for_vtk_files=False
         )
 
         traj = solve_ddff_ode(
