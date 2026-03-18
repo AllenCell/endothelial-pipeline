@@ -46,11 +46,11 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     load_model_manifest,
 )
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     MAX_PCS_TO_COMPUTE,
     NUM_PCS_TO_ANALYZE,
-    ColumnName,
 )
 from endo_pipeline.settings.flow_field_3d import (
     BIN_WIDTH_DEFAULTS,
@@ -60,7 +60,6 @@ from endo_pipeline.settings.flow_field_3d import (
     TIME_STEP_IN_MINUTES,
     TRAJECTORY_TIME_SPAN,
 )
-from endo_pipeline.settings.segmentation_feature_dataframes import ColumnNameSeg as ColNmSeg
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -95,16 +94,16 @@ def process_dataset_for_track_integration(
 
     # keep only the columns that are needed for the analysis to reduce memory usage
     cols_to_keep = [
-        ColNmSeg.DATASET,
-        ColNmSeg.POSITION,
-        ColNmSeg.TIMEPOINT,
-        ColNmSeg.TRACK_ID,
-        ColNmSeg.LABEL,
-        ColumnName.CROP_INDEX,
-        ColumnName.MODEL_MANIFEST,
-        ColNmSeg.TIME_HRS,
-        ColNmSeg.TIME_MINS,
-        ColNmSeg.TRACK_LENGTH,
+        Column.DATASET,
+        Column.POSITION,
+        Column.TIMEPOINT,
+        Column.TRACK_ID,
+        Column.SegData.LABEL,
+        Column.CROP_INDEX,
+        Column.DiffAEData.MODEL_MANIFEST,
+        Column.SegData.TIME_HRS,
+        Column.SegData.TIME_MINS,
+        Column.TRACK_LENGTH,
     ] + [col for col in merged_feats_df.columns if "feat" in col or "pc" in col]
     merged_feats_df = merged_feats_df[cols_to_keep]
 
@@ -230,10 +229,10 @@ def process_dataset_for_track_integration(
 
     # Compare the angles between grid crop PC vectors
     # and the PC vectors of a single track
-    merged_feats_df["dpc1"] = merged_feats_df.groupby(ColumnName.CROP_INDEX)["pc_1"].diff()
-    merged_feats_df["dpc2"] = merged_feats_df.groupby(ColumnName.CROP_INDEX)["pc_2"].diff()
-    merged_feats_df["dt"] = merged_feats_df.groupby(ColumnName.CROP_INDEX)[
-        ColNmSeg.TIME_MINS
+    merged_feats_df["dpc1"] = merged_feats_df.groupby(Column.CROP_INDEX)["pc_1"].diff()
+    merged_feats_df["dpc2"] = merged_feats_df.groupby(Column.CROP_INDEX)["pc_2"].diff()
+    merged_feats_df["dt"] = merged_feats_df.groupby(Column.CROP_INDEX)[
+        Column.SegData.TIME_MINS
     ].diff()
 
     # create partial functions from get_approx_point_from_grid to pass
@@ -265,12 +264,12 @@ def process_dataset_for_track_integration(
     # Apply the partial functions to the DataFrame to get the approximate grid bin
     # and vector associated with each cell-centric PC1 and PC2 value
     merged_feats_df[["approx_bin_pc1", "approx_bin_pc2"]] = (
-        merged_feats_df.groupby(ColumnName.CROP_INDEX, as_index=False)
+        merged_feats_df.groupby(Column.CROP_INDEX, as_index=False)
         .apply(lambda df: get_approx_grid_bin_from_df(df[["pc_1", "pc_2"]]))
         .droplevel(level=0)
     )
     merged_feats_df[["approx_vec_pc1", "approx_vec_pc2"]] = (
-        merged_feats_df.groupby(ColumnName.CROP_INDEX, as_index=False)
+        merged_feats_df.groupby(Column.CROP_INDEX, as_index=False)
         .apply(lambda df: get_approx_grid_vec_from_df(df[["pc_1", "pc_2"]]))
         .droplevel(level=0)
     )
@@ -347,9 +346,7 @@ def process_dataset_for_track_integration(
         # then expect the workflow to require a lot more memory or crash if you
         # don't have enough
         merged_feats_df = merged_feats_df.query("track_duration > 180")
-        groups = merged_feats_df.groupby(
-            [ColumnName.DATASET, ColumnName.POSITION, ColumnName.CROP_INDEX]
-        )
+        groups = merged_feats_df.groupby([Column.DATASET, Column.POSITION, Column.CROP_INDEX])
 
         i = 0
         for nm, df in tqdm(groups, desc=dataset_name):
@@ -405,7 +402,7 @@ def process_dataset_for_track_integration(
 
 def add_normalized_time(
     df_all_positions: pd.DataFrame,
-    time_col: str = ColNmSeg.TIME_HRS,
+    time_col: str = Column.SegData.TIME_HRS,
 ) -> pd.DataFrame:
     """
     Add a column to the dataframe with normalized time values
@@ -425,8 +422,8 @@ def add_normalized_time(
         "normalized_time" containing the normalized time values between 0 and 1.
     """
 
-    for _, df_pos in df_all_positions.groupby([ColNmSeg.POSITION]):
-        for _, df_track in df_pos.groupby(ColNmSeg.TRACK_ID):
+    for _, df_pos in df_all_positions.groupby([Column.POSITION]):
+        for _, df_track in df_pos.groupby(Column.TRACK_ID):
 
             time_values = df_track[time_col].values.astype(np.float64)
             sorted_inds = np.argsort(time_values)
@@ -447,7 +444,7 @@ def add_normalized_time(
 
             df_all_positions.loc[
                 df_track.index,
-                ColNmSeg.NORMALIZED_TIME_PER_TRACK,
+                Column.SegData.NORMALIZED_TIME_PER_TRACK,
             ] = normalized_time_values
 
     return df_all_positions
@@ -469,12 +466,12 @@ def merge_diffae_feats_liveseg_feats_tables(
     -------
         pd.DataFrame: Merged DataFrame with DiffAE and live segmentation features.
     """
-    dataset_name = sequence_to_scalar(diffae_tracking_df[ColumnName.DATASET])
+    dataset_name = sequence_to_scalar(diffae_tracking_df[Column.DATASET])
     logging.debug("processing the diffae tracking data...")
     # process the diffae tracking data
     track_is_unique = diffae_tracking_df.groupby(
-        [ColumnName.DATASET, ColumnName.POSITION, ColumnName.TIMEPOINT, ColumnName.TRACK_ID]
-    )[ColumnName.TIMEPOINT].transform(lambda t: t.nunique() == t.size)
+        [Column.DATASET, Column.POSITION, Column.TIMEPOINT, Column.TRACK_ID]
+    )[Column.TIMEPOINT].transform(lambda t: t.nunique() == t.size)
     if not track_is_unique.all():
         raise ValueError(
             "Found non-unique track_id and timepoint combinations in the diffae tracking data. "
@@ -486,17 +483,17 @@ def merge_diffae_feats_liveseg_feats_tables(
     # add description column (e.g., 48hr_High)
     diffae_tracking_df = add_description_column(diffae_tracking_df, dataset_name, simple=True)
     # diffae_tracking_df.rename(columns={ColumnName.POSITION: "position_as_str"}, inplace=True)
-    diffae_tracking_df[ColumnName.POSITION] = diffae_tracking_df[ColumnName.POSITION].transform(
+    diffae_tracking_df[Column.POSITION] = diffae_tracking_df[Column.POSITION].transform(
         lambda x: int(x.strip("P"))
     )
 
     logging.debug("merging segmentation properties and track-based DiffAE data...")
     merging_cols = [
-        ColNmSeg.DATASET,
-        ColNmSeg.POSITION,
-        ColNmSeg.TIMEPOINT,
-        ColNmSeg.TRACK_ID,
-        ColNmSeg.TIMELAPSE_PATH,
+        Column.DATASET,
+        Column.POSITION,
+        Column.TIMEPOINT,
+        Column.TRACK_ID,
+        Column.ZARR_PATH,
     ]
 
     merged_feats_df = pd.merge(
@@ -560,11 +557,11 @@ def get_diffae_feats_liveseg_feats_merged_table(
 
     if filtered:
         # filter the merged table
-        merged_feats_df = merged_feats_df[merged_feats_df[ColNmSeg.IS_INCLUDED]]
+        merged_feats_df = merged_feats_df[merged_feats_df[Column.SegDataFilters.IS_INCLUDED]]
 
         # remove any rows that were not evaluated by the model and thus have no model_manifest_name
         merged_feats_df.dropna(
-            axis="index", how="any", subset=ColumnName.MODEL_MANIFEST, inplace=True
+            axis="index", how="any", subset=Column.DiffAEData.MODEL_MANIFEST, inplace=True
         )
 
     return merged_feats_df
@@ -962,10 +959,10 @@ def get_preprocessed_manifests_and_km_bounds(
 
     # check the model information matches the default values and what will be used for the PCA
     model_manifest_name_used_for_latent_feats = sequence_to_scalar(
-        merged_feats_df[ColumnName.MODEL_MANIFEST].dropna()
+        merged_feats_df[Column.DiffAEData.MODEL_MANIFEST].dropna()
     )
     model_run_name_used_for_latent_feats = sequence_to_scalar(
-        merged_feats_df[ColumnName.MODEL_RUN].dropna()
+        merged_feats_df[Column.DiffAEData.MODEL_RUN].dropna()
     )
 
     if (DEFAULT_MODEL_MANIFEST_NAME != model_manifest_name_used_for_latent_feats) or (
@@ -1003,13 +1000,13 @@ def get_preprocessed_manifests_and_km_bounds(
     # This way we avoid passing NaN values to the PCA but still return the
     # full dataframe with all timepoints which is required by the TFE workflow.
     merged_feats_df_subset = merged_feats_df[
-        [ColumnName.MODEL_MANIFEST.value] + diffae_feature_column_names
-    ].dropna(axis="index", how="any", subset=ColumnName.MODEL_MANIFEST)
+        [Column.DiffAEData.MODEL_MANIFEST.value] + diffae_feature_column_names
+    ].dropna(axis="index", how="any", subset=Column.DiffAEData.MODEL_MANIFEST)
     tracked_diffae_feats_df = project_features_to_pcs(
         merged_feats_df_subset, pca, diffae_feature_column_names
     )
     tracked_diffae_feats_df = tracked_diffae_feats_df.drop(
-        columns=[ColumnName.MODEL_MANIFEST.value] + diffae_feature_column_names
+        columns=[Column.DiffAEData.MODEL_MANIFEST.value] + diffae_feature_column_names
     )
     tracked_diffae_feats_df = tracked_diffae_feats_df.assign(
         collection_name_for_pca=collection_name_for_pca

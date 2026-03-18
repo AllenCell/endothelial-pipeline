@@ -8,8 +8,9 @@ from pydantic.dataclasses import dataclass
 
 from endo_pipeline.configs import load_model_config
 from endo_pipeline.io import get_output_path, get_repository_root_dir
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import CytoDLSaveDataKeys
 from endo_pipeline.settings.diffae_configs import DIFFAE_MODEL_EVAL_CONFIG
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName, CytoDLSaveDataKeys
 
 logger = logging.getLogger(__name__)
 
@@ -119,8 +120,8 @@ class ModelConfigOverrideEval:
                 "save_dir": output_path.as_posix(),
                 "meta_keys": [
                     CytoDLSaveDataKeys.TIMEPOINT.value,
-                    ColumnName.START_Y.value,
-                    ColumnName.START_X.value,
+                    Column.DiffAEData.START_Y.value,
+                    Column.DiffAEData.START_X.value,
                     CytoDLSaveDataKeys.FILE_PATH.value,
                 ],
                 "save_suffix": save_suffix,
@@ -143,10 +144,10 @@ class ModelConfigOverrideEval:
                         "save_dir": output_path.as_posix(),
                         "meta_keys": [
                             CytoDLSaveDataKeys.TIMEPOINT.value,
-                            ColumnName.START_Y.value,
-                            ColumnName.START_X.value,
-                            ColumnName.END_Y.value,
-                            ColumnName.END_X.value,
+                            Column.DiffAEData.START_Y.value,
+                            Column.DiffAEData.START_X.value,
+                            Column.DiffAEData.END_Y.value,
+                            Column.DiffAEData.END_X.value,
                             CytoDLSaveDataKeys.FILE_PATH.value,
                             "track_id",
                         ],
@@ -156,16 +157,19 @@ class ModelConfigOverrideEval:
                     "data.predict_dataloaders.dataset.transform.transforms[6]": {
                         "_target_": "cyto_dl.image.transforms.coordinate_crop.CropToCoordsd",
                         "keys": ["raw_bf"],
-                        "start_keys": [ColumnName.START_Y.value, ColumnName.START_X.value],
-                        "end_keys": [ColumnName.END_Y.value, ColumnName.END_X.value],
+                        "start_keys": [
+                            Column.DiffAEData.START_Y.value,
+                            Column.DiffAEData.START_X.value,
+                        ],
+                        "end_keys": [Column.DiffAEData.END_Y.value, Column.DiffAEData.END_X.value],
                         "meta_keys": ["track_id"],
                     },
                     # persist coordinate data through MultiDimImageDataset
                     "data.predict_dataloaders.dataset.extra_columns": [
-                        ColumnName.START_Y.value,
-                        ColumnName.START_X.value,
-                        ColumnName.END_Y.value,
-                        ColumnName.END_X.value,
+                        Column.DiffAEData.START_Y.value,
+                        Column.DiffAEData.START_X.value,
+                        Column.DiffAEData.END_Y.value,
+                        Column.DiffAEData.END_X.value,
                         "track_id",
                     ],
                     # no spatial inferer needed

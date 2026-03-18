@@ -19,10 +19,10 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     parse_dataset_description,
 )
 from endo_pipeline.library.visualize.diffae_features import feature_viz
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
-    ColumnName,
 )
 from endo_pipeline.settings.figures import (
     FONT_FAMILY,
@@ -593,7 +593,7 @@ def plot_flow_field_slices(
     ax[1].set_title(f"{column_labels[1]} = {feature_y_val:.2f}")
     plt.tight_layout()
 
-    dataset_name = df[ColumnName.DATASET].unique()[0]
+    dataset_name = df[Column.DATASET].unique()[0]
     dataset_description_simple = get_dataset_descriptions(
         [dataset_name], include_duration=False, include_shear_stress=True
     )[dataset_name]
@@ -646,7 +646,7 @@ def plot_stable_fixed_points_together(
     """
 
     # check that required columns are present
-    required_columns = [ColumnName.DATASET, *column_names]
+    required_columns = [Column.DATASET, *column_names]
     check_required_columns_in_dataframe(stable_fixed_points_df, required_columns)
 
     column_labels = [feature_viz.get_label_for_column(col) for col in column_names]
@@ -656,7 +656,7 @@ def plot_stable_fixed_points_together(
 
     # loop over datasets and plot their stable fixed points
     patch_list_for_legend = []
-    for dataset_name, dataset_df in stable_fixed_points_df.groupby(ColumnName.DATASET):
+    for dataset_name, dataset_df in stable_fixed_points_df.groupby(Column.DATASET):
         dataset_name_ = cast(str, dataset_name)
         scatter_color = feature_viz.get_dataset_color(dataset_name_)
         patch_list_for_legend.append(Patch(color=scatter_color, label=dataset_name_))
@@ -720,7 +720,7 @@ def flow_field_viz_main(
         Directory to save the figures.
     """
     # dataset flow condition for saving the figures
-    name = df[ColumnName.DATASET].unique()[0]
+    name = df[Column.DATASET].unique()[0]
 
     ###### additional plots for visualization of flow field #######
     # 1) plot stacks of flow field slices
@@ -773,9 +773,9 @@ def flow_field_viz_main(
             name,
         )
         # plot slices at mean of data at last time point
-        mean_at_last_timepoint = df[
-            df[ColumnName.TIMEPOINT] == df[ColumnName.TIMEPOINT].max()
-        ].mean(numeric_only=True)
+        mean_at_last_timepoint = df[df[Column.TIMEPOINT] == df[Column.TIMEPOINT].max()].mean(
+            numeric_only=True
+        )
         feature_vals = (
             mean_at_last_timepoint[column_names[2]],
             mean_at_last_timepoint[column_names[1]],

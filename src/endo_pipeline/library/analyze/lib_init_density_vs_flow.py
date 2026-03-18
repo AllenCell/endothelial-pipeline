@@ -15,7 +15,8 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_datafram
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
-from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
 from endo_pipeline.settings.workflow_defaults import DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
@@ -74,9 +75,9 @@ def create_summary_dfs(
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 
     dataset_info_cols = [
-        ColumnName.DATASET.value,
-        ColumnName.POSITION.value,
-        ColumnName.TIMEPOINT.value,
+        Column.DATASET.value,
+        Column.POSITION.value,
+        Column.TIMEPOINT.value,
     ]
 
     for col in dataset_info_cols[::-1]:
@@ -117,8 +118,8 @@ def create_summary_dfs(
             df_subset = pd.concat([df_subset, df_filtered])
 
         df = df.dropna(subset="total_nuclei_count_at_T")
-        first_t = df[ColumnName.TIMEPOINT].min()
-        df_first_t = df[df[ColumnName.TIMEPOINT] == first_t]
+        first_t = df[Column.TIMEPOINT].min()
+        df_first_t = df[df[Column.TIMEPOINT] == first_t]
 
         groups = df_first_t.groupby(dataset_info_cols)
 
@@ -130,7 +131,7 @@ def create_summary_dfs(
             )
             pc3 = df_grp[DIFFAE_PC_COLUMN_NAMES[2]].mean()
 
-            df_features = df_filtered[df_filtered[ColumnName.POSITION] == pos]
+            df_features = df_filtered[df_filtered[Column.POSITION] == pos]
             vector_means: dict = {}
             vector_means_multipos: dict = {}
             for feature in ["orientation", "polar_theta"]:
@@ -154,9 +155,9 @@ def create_summary_dfs(
 
             new_records = pd.DataFrame(
                 {
-                    ColumnName.DATASET.value: [ds],
-                    ColumnName.POSITION.value: [pos],
-                    ColumnName.TIMEPOINT.value: [tp],
+                    Column.DATASET.value: [ds],
+                    Column.POSITION.value: [pos],
+                    Column.TIMEPOINT.value: [tp],
                     "shear_stress": [shear_stress],
                     "shear_stress_regime": [shear_stress_regime],
                     "total_nuclei_count_at_T": [pos_num_nuclei],
@@ -172,8 +173,8 @@ def create_summary_dfs(
             else:
                 summary_df = pd.concat([summary_df, new_records], ignore_index=True)
 
-    df_grpd = summary_df.groupby(ColumnName.DATASET)
-    df_grpd_for_means = df_subset.groupby(ColumnName.DATASET)
+    df_grpd = summary_df.groupby(Column.DATASET)
+    df_grpd_for_means = df_subset.groupby(Column.DATASET)
 
     polar_theta_vec_mean_mag = df_grpd["polar_theta_vec_mean_multipos_magnitude"].apply(
         lambda x: float(x.unique().item())

@@ -24,7 +24,7 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_viz import flow_
 from endo_pipeline.library.visualize.diffae_features.pplane import find_fpt_type, get_fps
 from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED
 from endo_pipeline.settings.flow_field_3d import SAMPLER_RANDOM_SEED
 
@@ -97,7 +97,7 @@ def _compute_percentile_values(
     """
     percentile_values: dict[str, float] = {}
     for column_name in column_names:
-        if column_name == ColumnName.POLAR_ANGLE:
+        if column_name == Column.DiffAEData.POLAR_ANGLE:
             percentile_value = circpercentile(data[column_name], q=q, polar_range=polar_angle_range)
         else:
             percentile_value = np.percentile(data[column_name], q=q)
@@ -172,7 +172,7 @@ def is_point_within_percentile_bounds(
     for point_component, column_name in zip(point, column_names, strict=True):
         lower_bound = lower_percentile_bounds[column_name]
         upper_bound = upper_percentile_bounds[column_name]
-        if column_name == ColumnName.POLAR_ANGLE:
+        if column_name == Column.DiffAEData.POLAR_ANGLE:
             # for circular variables, need to account for bounds wrapping around
             if lower_bound <= upper_bound:
                 is_within_bounds.append(

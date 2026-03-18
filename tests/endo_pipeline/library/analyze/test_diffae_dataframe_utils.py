@@ -17,7 +17,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     rewrap_polar_angle,
     unwrap_nonsequential_array,
 )
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.column_names import ColumnName as Column
 
 
 @pytest.fixture()
@@ -60,9 +60,9 @@ def dataframe():
     num_rows = len(positions_tiled)
     return pd.DataFrame(
         {
-            ColumnName.DATASET: ["unique_dataset_name"] * num_rows,
-            ColumnName.POSITION: positions_tiled,
-            ColumnName.TIMEPOINT: timepoints * len(positions),
+            Column.DATASET: ["unique_dataset_name"] * num_rows,
+            Column.POSITION: positions_tiled,
+            Column.TIMEPOINT: timepoints * len(positions),
         }
     )
 
@@ -116,14 +116,14 @@ def test_filter_dataframe_by_annotations_with_annotations(
     filtered_df = filter_dataframe_by_annotations(
         dataframe, dataset, position_annotations, timepoint_annotations
     )
-    assert filtered_df[ColumnName.POSITION].tolist() == expected_positions
-    assert filtered_df[ColumnName.TIMEPOINT].tolist() == expected_timepoints
+    assert filtered_df[Column.POSITION].tolist() == expected_positions
+    assert filtered_df[Column.TIMEPOINT].tolist() == expected_timepoints
 
 
 def test_filter_dataframe_by_annotations_without_annotations(dataframe, dataset):
     filtered_df = filter_dataframe_by_annotations(dataframe, dataset, [], [])
-    assert filtered_df[ColumnName.POSITION].tolist() == dataframe[ColumnName.POSITION].tolist()
-    assert filtered_df[ColumnName.TIMEPOINT].tolist() == dataframe[ColumnName.TIMEPOINT].tolist()
+    assert filtered_df[Column.POSITION].tolist() == dataframe[Column.POSITION].tolist()
+    assert filtered_df[Column.TIMEPOINT].tolist() == dataframe[Column.TIMEPOINT].tolist()
 
 
 @pytest.mark.parametrize(
@@ -131,13 +131,16 @@ def test_filter_dataframe_by_annotations_without_annotations(dataframe, dataset)
     [
         (
             pd.DataFrame(
-                {f"{ColumnName.LATENT_FEATURE_PREFIX}{i}": [0.1 * i] * 5 for i in range(10)}
+                {f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{i}": [0.1 * i] * 5 for i in range(10)}
             ),
-            [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(10)],
+            [f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{i}" for i in range(10)],
         ),
         (
             pd.DataFrame(
-                {f"{ColumnName.LATENT_FEATURE_PREFIX}{i}_suffix": [0.2 * i] * 3 for i in range(10)}
+                {
+                    f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{i}_suffix": [0.2 * i] * 3
+                    for i in range(10)
+                }
             ),
             [],
         ),
@@ -145,13 +148,16 @@ def test_filter_dataframe_by_annotations_without_annotations(dataframe, dataset)
             pd.DataFrame(
                 {
                     "other_column": [1, 2, 3],
-                    f"{ColumnName.LATENT_FEATURE_PREFIX}0": [0.0, 0.0, 0.0],
-                    f"{ColumnName.LATENT_FEATURE_PREFIX}1": [0.1, 0.1, 0.1],
-                    f"{ColumnName.LATENT_FEATURE_PREFIX}0_extra": [0.2, 0.2, 0.2],
-                    f"{ColumnName.LATENT_FEATURE_PREFIX}one": [0.2, 0.2, 0.2],
+                    f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}0": [0.0, 0.0, 0.0],
+                    f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}1": [0.1, 0.1, 0.1],
+                    f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}0_extra": [0.2, 0.2, 0.2],
+                    f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}one": [0.2, 0.2, 0.2],
                 }
             ),
-            [f"{ColumnName.LATENT_FEATURE_PREFIX}0", f"{ColumnName.LATENT_FEATURE_PREFIX}1"],
+            [
+                f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}0",
+                f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}1",
+            ],
         ),
     ],
 )
@@ -166,17 +172,17 @@ def test_get_latent_feature_column_names_from_dataframe(dataframe, expected_colu
         (
             pd.DataFrame(
                 {
-                    f"{ColumnName.TIMEPOINT}": [0, 1, 2] * 3,
-                    f"{ColumnName.CROP_INDEX}": [0, 0, 0] + [1, 1, 1] + [2, 2, 2],
-                    f"{ColumnName.POLAR_ANGLE}": [np.pi, np.pi - 0.05, -np.pi + 0.05]
+                    f"{Column.TIMEPOINT}": [0, 1, 2] * 3,
+                    f"{Column.CROP_INDEX}": [0, 0, 0] + [1, 1, 1] + [2, 2, 2],
+                    f"{Column.DiffAEData.POLAR_ANGLE}": [np.pi, np.pi - 0.05, -np.pi + 0.05]
                     + [0.1, -0.4, 0.3]
                     + [1.0, 1.1, 1.2],
-                    f"{ColumnName.PCA_FEATURE_PREFIX}{3}": [2.5, 2.6, 2.7]
+                    f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{3}": [2.5, 2.6, 2.7]
                     + [0.1, 0.55, 0.2]
                     + [1.5, 1.6, 1.7],
                 }
             ),
-            [f"{ColumnName.POLAR_ANGLE}", f"{ColumnName.PCA_FEATURE_PREFIX}{3}"],
+            [f"{Column.DiffAEData.POLAR_ANGLE}", f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{3}"],
             [
                 np.array(
                     [
@@ -224,17 +230,17 @@ def test_get_latent_feature_column_names_from_dataframe(dataframe, expected_colu
         (  # test dropping non-consecutive timepoints
             pd.DataFrame(
                 {
-                    f"{ColumnName.TIMEPOINT}": [0, 2, 3] * 3,
-                    f"{ColumnName.CROP_INDEX}": [0, 0, 0] + [1, 1, 1] + [2, 2, 2],
-                    f"{ColumnName.POLAR_RADIUS}": [0.1, 0.75, 0.6]
+                    f"{Column.TIMEPOINT}": [0, 2, 3] * 3,
+                    f"{Column.CROP_INDEX}": [0, 0, 0] + [1, 1, 1] + [2, 2, 2],
+                    f"{Column.DiffAEData.POLAR_RADIUS}": [0.1, 0.75, 0.6]
                     + [1.0, 1.5, 1.24]
                     + [2.5, 3.0, 3.2],
-                    f"{ColumnName.PCA_FEATURE_PREFIX}{3}": [2.5, 2.7, 2.5]
+                    f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{3}": [2.5, 2.7, 2.5]
                     + [0.1, 0.2, 0.3]
                     + [1.5, 1.7, 1.95],
                 }
             ),
-            [f"{ColumnName.POLAR_RADIUS}", f"{ColumnName.PCA_FEATURE_PREFIX}{3}"],
+            [f"{Column.DiffAEData.POLAR_RADIUS}", f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{3}"],
             [
                 np.array(
                     [
@@ -285,12 +291,12 @@ def test_get_traj_and_diff(dataframe, column_names, expected_trajectories, expec
 
     # make sure returned trajectory and difference arrays have expected shapes
     n_dim = len(column_names)
-    timepoint_diff_column = f"{ColumnName.TIMEPOINT}{ColumnName.DIFFERENCE_SUFFIX}"
-    for crop_index, df_crop in dataframe.groupby(ColumnName.CROP_INDEX):
+    timepoint_diff_column = f"{Column.TIMEPOINT}{Column.DiffAEData.DIFFERENCE_SUFFIX}"
+    for crop_index, df_crop in dataframe.groupby(Column.CROP_INDEX):
         traj: np.ndarray = trajectories[crop_index]
         diff: np.ndarray = differences[crop_index]
         # check that timepoint differences > 1 are dropped
-        df_crop[timepoint_diff_column] = df_crop[ColumnName.TIMEPOINT].diff().shift(-1).fillna(0)
+        df_crop[timepoint_diff_column] = df_crop[Column.TIMEPOINT].diff().shift(-1).fillna(0)
         valid_timepoints = df_crop[timepoint_diff_column] <= 1
         n_valid_frames = len(df_crop[valid_timepoints])
         assert traj.shape == (n_valid_frames, n_dim)
@@ -393,14 +399,14 @@ def test_project_features_to_pcs(
     # create a simple test dataframe with 3 latent feature columns
     df = pd.DataFrame(
         {
-            f"{ColumnName.LATENT_FEATURE_PREFIX}0": [1.0, 2.0, 3.0],
-            f"{ColumnName.LATENT_FEATURE_PREFIX}1": [4.0, 5.0, 6.0],
-            f"{ColumnName.LATENT_FEATURE_PREFIX}2": [7.0, 8.0, 9.0],
+            f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}0": [1.0, 2.0, 3.0],
+            f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}1": [4.0, 5.0, 6.0],
+            f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}2": [7.0, 8.0, 9.0],
         }
     )
 
     if provide_feature_columns:
-        feature_columns = [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(3)]
+        feature_columns = [f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{i}" for i in range(3)]
     else:
         feature_columns = None
 
@@ -424,15 +430,15 @@ def test_project_features_to_pcs(
         # (convention is to name them with PCA_FEATURE_PREFIX followed
         # by the PC number starting from 1, not 0)
         expected_projected_df_columns.extend(
-            [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(num_components)]
+            [f"{Column.DiffAEData.PCA_FEATURE_PREFIX}{i+1}" for i in range(num_components)]
         )
         # if computing polar angle, should have new columns for polar angle and radius
         if compute_polar:
-            expected_projected_df_columns.append(ColumnName.POLAR_ANGLE)
-            expected_projected_df_columns.append(ColumnName.POLAR_RADIUS)
+            expected_projected_df_columns.append(Column.DiffAEData.POLAR_ANGLE)
+            expected_projected_df_columns.append(Column.DiffAEData.POLAR_RADIUS)
         # if flipping PC3 sign, should have new column for flipped PC3 value
         if flip_pc3_sign:
-            expected_projected_df_columns.append(f"{ColumnName.PC3_FLIPPED}")
+            expected_projected_df_columns.append(f"{Column.DiffAEData.PC3_FLIPPED}")
         assert set(projected_df.columns) == set(expected_projected_df_columns)
 
         # check that the PCA model has the expected number of components
@@ -447,15 +453,15 @@ def test_project_features_to_pcs(
         (
             pd.DataFrame(
                 {
-                    ColumnName.TRACK_LENGTH: [1, 2, 3, 4, 5],
+                    Column.TRACK_LENGTH: [1, 2, 3, 4, 5],
                     "other_column": [10, 20, 30, 40, 50],
                 }
             ),
-            ColumnName.TRACK_LENGTH,
+            Column.TRACK_LENGTH,
             3,
             pd.DataFrame(
                 {
-                    ColumnName.TRACK_LENGTH: [3, 4, 5],
+                    Column.TRACK_LENGTH: [3, 4, 5],
                     "other_column": [30, 40, 50],
                 }
             ),
@@ -463,15 +469,15 @@ def test_project_features_to_pcs(
         (
             pd.DataFrame(
                 {
-                    ColumnName.TRACK_LENGTH: [0, 1, 2],
+                    Column.TRACK_LENGTH: [0, 1, 2],
                     "other_column": [10, 20, 30],
                 }
             ),
-            ColumnName.TRACK_LENGTH,
+            Column.TRACK_LENGTH,
             1,
             pd.DataFrame(
                 {
-                    ColumnName.TRACK_LENGTH: [1, 2],
+                    Column.TRACK_LENGTH: [1, 2],
                     "other_column": [20, 30],
                 }
             ),
@@ -496,13 +502,13 @@ def test_filter_dataframe_by_track_length_valid_column(
                     "some_other_column": [1, 2, 3],
                 }
             ),
-            ColumnName.TRACK_LENGTH,
+            Column.TRACK_LENGTH,
             3,
         ),
         (
             pd.DataFrame(
                 {
-                    ColumnName.TRACK_LENGTH: [1, 2, 3],
+                    Column.TRACK_LENGTH: [1, 2, 3],
                 }
             ),
             "non_existent_column",
@@ -521,9 +527,9 @@ def test_filter_dataframe_by_track_length_all_filtered_out():
     # if all tracks are shorter than minimum_track_length, should return empty dataframe with same columns
     dataframe = pd.DataFrame(
         {
-            ColumnName.TRACK_LENGTH: [1, 2, 3],
+            Column.TRACK_LENGTH: [1, 2, 3],
             "other_column": [10, 20, 30],
         }
     )
     with pytest.raises(ValueError):
-        filter_dataframe_by_track_length(dataframe, ColumnName.TRACK_LENGTH, 4)
+        filter_dataframe_by_track_length(dataframe, Column.TRACK_LENGTH, 4)
