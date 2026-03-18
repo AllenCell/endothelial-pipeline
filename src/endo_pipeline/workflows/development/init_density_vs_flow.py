@@ -17,7 +17,8 @@ def main():
         create_summary_dfs,
         make_summary_plots,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
+    from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
 
     outdir = get_output_path(__file__)
 
@@ -26,9 +27,9 @@ def main():
 
     # make a list of the columns we need to compute
     dataset_info_cols = [
-        ColumnName.DATASET.value,
-        ColumnName.POSITION.value,
-        ColumnName.TIMEPOINT.value,
+        Column.DATASET,
+        Column.POSITION,
+        Column.TIMEPOINT,
     ]
     density_cols = [
         "num_unique_tracks_before_filtering_at_T",
@@ -58,7 +59,7 @@ def main():
     # these hue groups are the different things that we want to color
     # the datapoints by (along with corresponding parameter values)
     hue_groups_multiposition = [
-        (ColumnName.DATASET.value, "tab20", None, None, True),
+        (Column.DATASET, "tab20", None, None, True),
         ("shear_stress_regime", "tab10", None, None, True),
         ("orientation_vec_mean_multipos_magnitude", cmap_mag, hue_norm_mag, sm_mag, False),
         ("polar_theta_vec_mean_multipos_magnitude", cmap_mag, hue_norm_mag, sm_mag, False),

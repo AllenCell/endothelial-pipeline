@@ -46,11 +46,11 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     load_model_manifest,
 )
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     MAX_PCS_TO_COMPUTE,
     NUM_PCS_TO_ANALYZE,
-    ColumnName,
 )
 from endo_pipeline.settings.flow_field_3d import (
     BIN_WIDTH_DEFAULTS,
@@ -466,12 +466,12 @@ def merge_diffae_feats_liveseg_feats_tables(
     -------
         pd.DataFrame: Merged DataFrame with DiffAE and live segmentation features.
     """
-    dataset_name = sequence_to_scalar(diffae_tracking_df[ColumnName.DATASET])
+    dataset_name = sequence_to_scalar(diffae_tracking_df[Column.DATASET])
     logging.debug("processing the diffae tracking data...")
     # process the diffae tracking data
     track_is_unique = diffae_tracking_df.groupby(
-        [ColumnName.DATASET, ColumnName.POSITION, ColumnName.TIMEPOINT, "track_id"]
-    )[ColumnName.TIMEPOINT].transform(lambda t: t.nunique() == t.size)
+        [Column.DATASET, Column.POSITION, Column.TIMEPOINT, "track_id"]
+    )[Column.TIMEPOINT].transform(lambda t: t.nunique() == t.size)
     if not track_is_unique.all():
         raise ValueError(
             "Found non-unique track_id and timepoint combinations in the diffae tracking data. "
@@ -482,16 +482,16 @@ def merge_diffae_feats_liveseg_feats_tables(
     diffae_tracking_df = add_crop_index(df=diffae_tracking_df, crop_pattern="tracked")
     # add description column (e.g., 48hr_High)
     diffae_tracking_df = add_description_column(diffae_tracking_df, dataset_name, simple=True)
-    diffae_tracking_df.rename(columns={ColumnName.POSITION: "position_as_str"}, inplace=True)
+    diffae_tracking_df.rename(columns={Column.POSITION: "position_as_str"}, inplace=True)
 
     logging.debug("processing the live segmentation features data...")
-    live_seg_feats_df["position_as_str"] = live_seg_feats_df[ColumnName.POSITION].transform(
+    live_seg_feats_df["position_as_str"] = live_seg_feats_df[Column.POSITION].transform(
         lambda x: "P" + str(x)
     )
 
     logging.debug("merging segmentation properties and track-based DiffAE data...")
     unique_cell_seg_id_group = ["dataset_name", "position_as_str", "image_index", "track_id"]
-    unique_crop_id_group = [ColumnName.DATASET, "position_as_str", ColumnName.TIMEPOINT, "track_id"]
+    unique_crop_id_group = [Column.DATASET, "position_as_str", Column.TIMEPOINT, "track_id"]
     common_columns = ["zarr_path"]
 
     merged_feats_df = pd.merge(

@@ -72,7 +72,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED, RESCALE_THETA
     from endo_pipeline.settings.histogram_1d_vis import (
         BIN_LIMITS_HISTOGRAMS,
@@ -110,7 +110,7 @@ def main(
     # compute bins for polar coordinates
     bin_limits_dict = BIN_LIMITS_HISTOGRAMS.copy()
     if RESCALE_THETA:
-        bin_limits_dict[ColumnName.POLAR_ANGLE.value] = BIN_LIMITS_THETA_RESCALED
+        bin_limits_dict[Column.DiffAEData.POLAR_ANGLE.value] = BIN_LIMITS_THETA_RESCALED
 
     bin_widths = [BIN_WIDTHS_HISTOGRAMS[col] for col in column_names]
     bin_limits = [bin_limits_dict[col] for col in column_names]
@@ -153,7 +153,7 @@ def main(
                 df_,
                 column_names=column_names,
                 column_labels=variable_names,
-                polar_angle_range=bin_limits_dict[ColumnName.POLAR_ANGLE.value],
+                polar_angle_range=bin_limits_dict[Column.DiffAEData.POLAR_ANGLE.value],
             )
             if global_axes_limits:
                 for i, ax_ in enumerate(ax):
@@ -167,12 +167,12 @@ def main(
             for i, column_name in enumerate(column_names):
                 # plot histogram heatmap over time
                 num_bins = len(bins[i]) - 1
-                frame_min = df_[ColumnName.TIMEPOINT].min()
-                frame_max = df_[ColumnName.TIMEPOINT].max()
+                frame_min = df_[Column.TIMEPOINT].min()
+                frame_max = df_[Column.TIMEPOINT].max()
                 num_frames = frame_max - frame_min + 1
                 hist_array = np.zeros((num_bins, num_frames))
 
-                for t, df_frame in df_.groupby(ColumnName.TIMEPOINT):
+                for t, df_frame in df_.groupby(Column.TIMEPOINT):
                     timepoint_idx = int(t - frame_min)
                     values = df_frame[column_name].values
                     hist = np.histogram(values, bins=bins[i], density=True)[0]

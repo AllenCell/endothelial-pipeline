@@ -6,7 +6,7 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from matplotlib.colorbar import ColorbarBase
 
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.column_names import ColumnName as Column
 
 # set the plot shape to the golden ratio
 AX_WIDTH = 4.5
@@ -483,7 +483,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "discrete_ticks": False,
         },
         "polar_radius": {
-            "column_name": ColumnName.POLAR_RADIUS,
+            "column_name": Column.DiffAEData.POLAR_RADIUS,
             "label": r"$r$",
             "lims": (0, None),
             "bin_width": None,
@@ -491,7 +491,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "discrete_ticks": False,
         },
         "polar_angle": {
-            "column_name": ColumnName.POLAR_ANGLE,
+            "column_name": Column.DiffAEData.POLAR_ANGLE,
             "label": r"$\theta$",
             "lims": None,
             "bin_width": None,
