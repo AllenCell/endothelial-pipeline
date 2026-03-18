@@ -74,7 +74,7 @@ logger = logging.getLogger(__name__)
 def process_dataset_for_track_integration(
     dataset_name: str,
     collection_name_for_pca: str,
-    model_manifest_name: str = "diffae_04_10",
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = None,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     make_integrated_plots: bool = True,
@@ -1119,7 +1119,7 @@ def load_preprocessed_dataframes_and_km_bounds(
     diffae_grid_crops = get_dataframe_for_dynamics_workflows(
         dataset_name,
         grid_diffae_manifest,
-        pca,
+        pca=pca,
         include_cell_piling=False,
         include_not_steady_state=False,
     )

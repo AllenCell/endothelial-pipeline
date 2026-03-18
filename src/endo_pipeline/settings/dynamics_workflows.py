@@ -10,6 +10,8 @@ METADATA_COLUMNS_TO_KEEP: tuple[str, ...] = (
     ColumnName.TIMEPOINT.value,
     ColumnName.START_X.value,
     ColumnName.START_Y.value,
+    ColumnName.END_X.value,
+    ColumnName.END_Y.value,
 )
 
 DYNAMICS_COLUMN_NAMES: tuple[str, ...] = (
@@ -63,3 +65,6 @@ BIN_LIMIT_PERCENTILE_CUTOFF: float = 2.5
 
 NUM_PCS_TO_FIT_FOR_DYNAMICS: int = 3
 """Number of principal components to fit for dynamics analysis and visualization."""
+
+HISTOGRAM_THRESHOLD_FOR_MASKING: float = 0.05
+"""Histogram threshold for masking in dynamics visualization workflows."""

@@ -8,8 +8,6 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_NUM_LATENT_DIMENSIONS,
 )
 
-TAGS = ["diffae", "model_training"]
-
 
 def main(
     model_manifest_name: str | None = None,
@@ -22,51 +20,58 @@ def main(
     """
     Build config for training a DiffAE model.
 
-    **Training run naming**
+    #diffae #model-training
+
+    This workflow builds model training configs starting with the base model
+    training config and overriding with training run-specific configuration.
+    These configurations are saved locally, and then be used by the
+    `train-diffae` workflow to train models.
+
+    ## Training run naming
 
     If a model manifest name is not given, it will be automatically constructed
-    based on the resolution level of the zarr files, the crop size, the latent
-    dimension size, and whether cell piling exclusion is enabled or not.
+    based on the crop size, conditioning key, latent dimension size, and whether
+    cell piling exclusion is enabled or not.
 
     The training run instantiated from this workflow will be saved in the
     corresponding model manifest, with run name either provided by the user or
-    automatically generated to be unique (``run_name = "diffae_TIMESTAMP"``).
+    automatically generated to be unique (`run_name = "diffae_TIMESTAMP"`).
 
     If the user provides a run name that already exists in the manifest, a
     unique name will be generated and a warning will be logged.
 
-    **Conditioning image type**
+    ## Conditioning image type
 
-    The model can be conditioned on either brightfield (``bf``) or CDH5
-    fluorescence (``cdh5``) image channels. The conditioning channel is set
-    using the ``condition_on`` parameter via overriding the training config.
-    The default is brightfield.
+    The model can be conditioned on either brightfield (`bf`) or CDH5
+    fluorescence (`cdh5`) image channels. The conditioning channel is set using
+    the `condition_on` parameter via overriding the training config. The default
+    is brightfield.
 
-    **Latent dimension size**
+    ## Latent dimension size
 
     The number of latent dimensions for the DiffAE model can be specified with
-    the ``latent_dim`` parameter. The default for this number is set via the
-    constant ``DEFAULT_NUM_LATENT_DIMENSIONS`` in ``endo_pipeline.settings.workflow_defaults.``
+    the `latent_dim` parameter. The default is `DEFAULT_NUM_LATENT_DIMENSIONS`
+    from `endo_pipeline.settings.workflow_defaults.`
 
     **Cell piling exclusion**
 
     By default, timepoints with cell piling annotations are excluded in the
-    training and validation datasets from ``create-diffae-training-dataframe``,
-    unless ``include_cell_piling`` is True. This means that by default, the
-    model will be trained on data that does not include cell piling. To train a
-    model that does "see" cell piling,  run ``create-diffae-training-dataframe``
-    with the flag ``--include-cell-piling`` and then run this training script
-    with the same flag.
+    training and validation datasets from `create-diffae-training-dataframe`,
+    unless `include_cell_piling` is True. This means that by default, the model
+    will be trained on data that does not include cell piling. To train a model
+    that does "see" cell piling,  run `create-diffae-training-dataframe` with
+    the flag `--include-cell-piling` and then run this training script with the
+    same flag.
 
-    When ``include_cell_piling`` is True, the workflow will use the "standard"
-    dataframe manifest ``diffae_training_dataframe`` for training with the suffix
-    ``_include_cell_piling``. When False, the suffix will be ``_exclude_cell_piling``.
+    When `include_cell_piling` is True, the workflow will use the "standard"
+    dataframe manifest `diffae_training_dataframe` for training with the suffix
+    `_include_cell_piling`. When False, the suffix is `_exclude_cell_piling`.
 
-    **Workflow demo**
+    ## Workflow demo
 
     If demo mode is enabled, this workflow will set up the training config with
     reduced epochs and modified cache and replaces rates. The config will have
-    the suffix ``_test_workflow``.
+    the suffix `_demo`.
 
     Parameters
     ----------
@@ -81,7 +86,8 @@ def main(
     latent_dim
         The number of latent dimensions for the DiffAE model.
     include_cell_piling
-        True to include timepoints with cell piling in data used for training, False to exclude.
+        True to include timepoints with cell piling in data used for training,
+        False to exclude.
     """
 
     import logging
@@ -93,7 +99,7 @@ def main(
     from endo_pipeline.configs import load_model_config
     from endo_pipeline.io import get_output_path, make_name_unique, resolve_dataframe_location
     from endo_pipeline.library.model import get_dataset_names_used_for_training
-    from endo_pipeline.library.model.model_config_overrides import ModelConfigOverride
+    from endo_pipeline.library.model.config_overrides import ModelConfigOverrideTrain
     from endo_pipeline.manifests import (
         ModelLocation,
         create_model_manifest,
@@ -154,7 +160,7 @@ def main(
     val_dataframe_path = resolve_dataframe_location(val_dataframe_location)
 
     # Load template training config.
-    template_training_config = load_model_config(DIFFAE_MODEL_TRAIN_CONFIG)
+    template_config = load_model_config(DIFFAE_MODEL_TRAIN_CONFIG)
 
     # Build the model manifest name, if not provided.
     if model_manifest_name is None:
@@ -180,10 +186,9 @@ def main(
     config_file = config_path / "train.yaml"
 
     # Build the training config overrides.
-    overrides = ModelConfigOverride(
+    overrides = ModelConfigOverrideTrain(
         model_manifest_name=model_manifest_name,
         run_name=run_name,
-        task_name="train",
         crop_size=crop_size,
         condition_key=f"{DIFFAE_IMAGE_LOADING_KEY_PREFIX}{condition_on}",
         latent_dim=latent_dim,
@@ -196,9 +201,9 @@ def main(
         num_gpus=NUM_GPUS,
     )
 
-    # Initialize the model with training template and overrides and save config.
+    # # Initialize the model with training template and overrides and save config.
     cytodl_model = CytoDLModel()
-    cytodl_model.load_config_from_dict(template_training_config)
+    cytodl_model.load_config_from_dict(template_config)
     cytodl_model.override_config(overrides.to_dict())
     cytodl_model.save_config(config_file)
     logger.info("Training config saved to [ %s ]", config_file)

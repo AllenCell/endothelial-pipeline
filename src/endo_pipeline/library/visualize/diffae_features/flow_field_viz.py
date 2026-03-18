@@ -210,6 +210,7 @@ def plot_flow_field_stack(
     colormap_name: str = QUIVER_COLORMAP,
     clip_metric: bool = CLIP_MAGNITUDES,
     log_normalize: bool = LOG_NORM_MAGNITUDES,
+    feature_labels: list[str] | None = None,
 ) -> None:
     """
     Plot flow field PC{i} vs PC{j} over a stack of slices in the 3rd variable.
@@ -234,7 +235,15 @@ def plot_flow_field_stack(
         Whether to clip the color metric to avoid outliers.
     log_normalize
         Whether to log normalize the color mapping.
+    feature_labels
+        List of labels for each feature variable in the plot. If None, default labels are used.
     """
+    if feature_labels is None:
+        feature_labels = [
+            feature_viz.get_label_for_column(DIFFAE_PC_COLUMN_NAMES[idx])
+            for idx in range(NUM_PCS_TO_ANALYZE)
+        ]
+
     # unpack plot axes
     i, j = plot_axes_indicies
 
@@ -277,8 +286,8 @@ def plot_flow_field_stack(
         ax = set_slice_plot_bounds_and_labels(
             np.array([ax]),
             plot_bounds,
-            x_label=f"PC{i+1}",
-            y_labels=(f"PC{j+1}",),
+            x_label=feature_labels[i],
+            y_labels=(feature_labels[j],),
         )[0]
         # add colorbar
         sm = plt.cm.ScalarMappable(
@@ -288,7 +297,7 @@ def plot_flow_field_stack(
         cbar = fig.colorbar(sm, ax=ax)
         cbar.set_label("Flow Field Magnitude", fontsize=FONTSIZE_SMALL)
         # set title with slice value
-        ax.set_title(f"PC{slice_axis_index+1} = {slice_value:.4f}")
+        ax.set_title(f"{feature_labels[slice_axis_index]} = {slice_value:.4f}")
         plt.tight_layout()
         ax_list.append(ax)
         save_plot_to_path(
@@ -459,20 +468,23 @@ def plot_flow_field_slices(
     df: pd.DataFrame,
     plot_bounds: list[np.ndarray],
     fig_savedir: Path | None,
-    pc_vals: tuple[Any, Any],
+    feature_vals: tuple[Any, Any],
     colormap_name: str = QUIVER_COLORMAP,
     norm: bool = NORMALIZE_QUIVER_VECTORS,
     log_norm_colormap: bool = True,
     plot_density: bool = True,
+    column_names: list[str] | None = None,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
     Plot 2D slices of the 3D flow field for the specified 2D slices.
 
-    Also overlays a KDE contour plot of the data in the PC1-PC2 and PC1-PC3 planes.
+    Also overlays a KDE contour plot of the data in the 2D slice if plot_density
+    is True.
 
     **Input dictionary flow_field_dict:**
 
-    The method input ``flow_field_dict`` should have the following key/value pairs:
+    The method input ``flow_field_dict`` should have the following key/value
+    pairs:
         - "vectors": tuple of 3D arrays (v1,v2,v3)
         - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid)
 
@@ -481,59 +493,68 @@ def plot_flow_field_slices(
     flow_field_dict
         Dictionary containing the flow field data.
     df
-        DataFrame containing the data to be plotted (from one dataset/experimental condition).
+        DataFrame containing the data to be plotted (from one
+        dataset/experimental condition).
     plot_bounds
         List of arrays specifying the plot bounds for each principal component.
     fig_savedir
         Optional, directory to save the figure.
-    pc_vals
-        Values of the 2nd and 3rd principal components (2nd and 3rd variables) at which to slice the data.
+    feature_vals
+        Values at which to slice the data of the variables that make up the 3rd
+        and 2nd axes of the 3D space (e.g., PC3 and PC2) for plotting the 2D slices.
     colormap_name
         Name of the colormap to use for the quiver plot arrows.
     norm
         Whether to normalize the quiver plot arrows.
     plot_density
-        Whether to plot the KDE contour of the data in the PC1-PC2 and PC1-PC3 planes.
+        Whether to plot the KDE contour of the data in the 2D sliced planes.
+    column_names
+        Optional, list of column names corresponding to features being used for
+        the analysis (e.g. the top 3 PCs). Used for labeling the slice values in
+        the plot titles and logging.
     """
+    column_names_ = column_names or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+
+    column_labels = [feature_viz.get_label_for_column(col) for col in column_names_]
     # get grid and grid spacing
     xgrid, ygrid, zgrid = flow_field_dict["grid"]
 
-    # for plotting in 2D, we need to slice
-    # the data in PC3 and PC2 to get PC1 v. PC2
-    # and PC1 v. PC3 plots, respectively
-    pc3_val = pc_vals[0]
-    pc2_val = pc_vals[1]
+    # for plotting in 2D, we need to slice the data in feature space at the
+    # specified values of the 2nd and 3rd variables (e.g., PC2 and PC3)
+    feature_z_val = feature_vals[0]
+    feature_y_val = feature_vals[1]
 
-    # get z-slice closest to PC3 = pc3_val
-    zvalids = get_slice_indexes(zgrid, pc3_val)
-    # get y-slice closest to PC2 = pc2_val
-    yvalids = get_slice_indexes(ygrid, pc2_val)
+    # get z-slice closest to z = feature_z_val
+    zvalids = get_slice_indexes(zgrid, feature_z_val)
+    # get y-slice closest to y = feature_y_val
+    yvalids = get_slice_indexes(ygrid, feature_y_val)
 
-    # plot quiver plots of these PC2 and PC3 slices
+    # plot quiver plots of these y and z slices, with optional KDE contours of
+    # the data in these slices
     fig, ax = plt.subplots(NROWS_2D_FLOW_FIELD, NCOLS_2D_FLOW_FIELD, figsize=FIGSIZE_2D_FLOW_FIELD)
 
-    # plot KDE contours of data in PC1-PC2 and PC1-PC3 planes, if specified
+    # plot KDE contours of data in x-y and x-z planes, if specified
     if plot_density:
-        for i, (pc_x, pc_y) in enumerate(
+        for i, (feature_x, feature_y) in enumerate(
             [
-                (DIFFAE_PC_COLUMN_NAMES[0], DIFFAE_PC_COLUMN_NAMES[1]),
-                (DIFFAE_PC_COLUMN_NAMES[0], DIFFAE_PC_COLUMN_NAMES[2]),
+                (column_names_[0], column_names_[1]),
+                (column_names_[0], column_names_[2]),
             ]
         ):
             # get a 2D meshgrid for the current slice
-            if i == 0:  # PC1-PC2 plane
+            if i == 0:  # x-y plane
                 x = xgrid[:, :, 0]
                 y = ygrid[:, :, 0]
-            else:  # PC1-PC3 plane
+            else:  # x-z plane
                 x = xgrid[:, 0, :]
                 y = zgrid[:, 0, :]
 
             positions = np.vstack([x.ravel(), y.ravel()])
             grid_shape = x.shape
 
-            # get the data in the current PC1-PC2 or PC1-PC3 plane
-            data_x = cast(np.ndarray, df[pc_x].values)
-            data_y = cast(np.ndarray, df[pc_y].values)
+            # get the data in the current 2D plane (x-y or x-z)
+            data_x = cast(np.ndarray, df[feature_x].values)
+            data_y = cast(np.ndarray, df[feature_y].values)
             # calculate the point density (KDE)
             values = np.vstack([data_x, data_y])
             z = gaussian_kde(values)(positions).T.reshape(grid_shape)
@@ -564,10 +585,12 @@ def plot_flow_field_slices(
     )
 
     # set the axis limits and labels
-    ax = set_slice_plot_bounds_and_labels(ax, plot_bounds)
+    ax = set_slice_plot_bounds_and_labels(
+        ax, plot_bounds, x_label=column_labels[0], y_labels=(column_labels[1], column_labels[2])
+    )
     # set titles with slice values
-    ax[0].set_title(f"PC3 = {pc3_val:.2f}")
-    ax[1].set_title(f"PC2 = {pc2_val:.2f}")
+    ax[0].set_title(f"{column_labels[2]} = {feature_z_val:.2f}")
+    ax[1].set_title(f"{column_labels[1]} = {feature_y_val:.2f}")
     plt.tight_layout()
 
     dataset_name = df[ColumnName.DATASET].unique()[0]
@@ -595,18 +618,19 @@ def plot_stable_fixed_points_together(
     stable_fixed_points_df: pd.DataFrame,
     plot_bounds: list[np.ndarray],
     fig_savedir: Path,
-    pc_column_names: list[str] | None = None,
+    column_names: list[str],
 ) -> None:
     """
     Generate plot of stable fixed points from multiple datasets together.
 
     **Input DataFrame stable_fixed_points_df:**
 
-    The method input ``stable_fixed_points_df`` should have the following columns:
+    The method input ``stable_fixed_points_df`` should have the following
+    columns:
         - ColumnName.DATASET
-        - pc_column_names[0] (e.g., "pc_1")
-        - pc_column_names[1] (e.g., "pc_2")
-        - pc_column_names[2] (e.g., "pc_3")
+        - column_names[0] (e.g., "pc_1")
+        - column_names[1] (e.g., "pc_2")
+        - column_names[2] (e.g., "pc_3")
 
     Parameters
     ----------
@@ -616,12 +640,16 @@ def plot_stable_fixed_points_together(
         List of arrays specifying the plot bounds for each principal component.
     fig_savedir
         Directory to save the figure.
+    column_names
+        List of column names corresponding to features being used for the
+        analysis (e.g. the top 3 PCs). Used for indexing the columns in the DataFrame.
     """
-    if pc_column_names is None:
-        pc_column_names = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+
     # check that required columns are present
-    required_columns = [ColumnName.DATASET, *pc_column_names]
+    required_columns = [ColumnName.DATASET, *column_names]
     check_required_columns_in_dataframe(stable_fixed_points_df, required_columns)
+
+    column_labels = [feature_viz.get_label_for_column(col) for col in column_names]
 
     # initialize plots
     fig, ax = plt.subplots(NROWS_2D_FLOW_FIELD, NCOLS_2D_FLOW_FIELD, figsize=FIGSIZE_2D_FLOW_FIELD)
@@ -632,15 +660,17 @@ def plot_stable_fixed_points_together(
         dataset_name_ = cast(str, dataset_name)
         scatter_color = feature_viz.get_dataset_color(dataset_name_)
         patch_list_for_legend.append(Patch(color=scatter_color, label=dataset_name_))
-        fpts = dataset_df[pc_column_names].values
+        fpts = dataset_df[column_names].values
         for fpt in fpts:
             # plot fixed point
-            # PC1 vs PC2, PC1 vs PC3
+            # x-y, x-z
             ax[0].scatter(fpt[0], fpt[1], s=100, color=scatter_color, edgecolor="black")
             ax[1].scatter(fpt[0], fpt[2], s=100, color=scatter_color, edgecolor="black")
 
     # set the axis limits and labels
-    ax = set_slice_plot_bounds_and_labels(ax, plot_bounds)
+    ax = set_slice_plot_bounds_and_labels(
+        ax, plot_bounds, x_label=column_labels[0], y_labels=(column_labels[1], column_labels[2])
+    )
 
     # add legend
     ax[0].legend(bbox_to_anchor=(1.02, 1.02), title="Datasets", handles=patch_list_for_legend)
@@ -654,6 +684,7 @@ def plot_stable_fixed_points_together(
 def flow_field_viz_main(
     flow_field_dict: dict,
     df: pd.DataFrame,
+    column_names: list[str],
     traj: np.ndarray,
     stable_fixed_points: list[np.ndarray],
     plot_bounds: list[np.ndarray],
@@ -675,6 +706,8 @@ def flow_field_viz_main(
         Dictionary containing the flow field data.
     df
         DataFrame containing the data to be plotted (from one dataset/experimental condition).
+    column_names
+        List of column names corresponding to features being used for the analysis (e.g. the top 3 PCs).
     traj
         Trajectory of the system in the flow field.
     stable_fixed_points
@@ -696,22 +729,25 @@ def flow_field_viz_main(
     # 4) trajectory with equally spaced interpolated points
 
     # 1) plot stacks of flow field slices
-    # get PC1, PC2, and PC3 slices from meshgrid (ijk indexing)
+    # get feature axis slices from the
+    # meshgrid in the flow field dictionary
     if plot_stack:
         plot_axes_indicies = [
-            (0, 1),  # PC1 vs PC2 over PC3 slices
-            (0, 2),  # PC1 vs PC3 over PC2 slices
-            (1, 2),  # PC2 vs PC3 over PC1 slices
+            (0, 1),  # feature 1 vs feature 2 over feature 3 slices
+            (0, 2),  # feature 1 vs feature 3 over feature 2 slices
+            (1, 2),  # feature 2 vs feature 3 over feature 1 slices
         ]
-        slice_axis_indices = [2, 1, 0]  # PC3, PC2, PC1
+        slice_axis_indices = [2, 1, 0]  # feature 3, feature 2, feature 1
         pc_slices = [
-            flow_field_dict["grid"][0][:, 0, 0],  # PC1
-            flow_field_dict["grid"][1][0, :, 0],  # PC2
-            flow_field_dict["grid"][2][0, 0, :],  # PC3
+            flow_field_dict["grid"][0][:, 0, 0],  # feature 1
+            flow_field_dict["grid"][1][0, :, 0],  # feature 2
+            flow_field_dict["grid"][2][0, 0, :],  # feature 3
         ]
+        column_labels = [feature_viz.get_label_for_column(col) for col in column_names]
 
         for i, slice_axis in enumerate(slice_axis_indices):
-            logger.info("Plotting flow field stack for slice axis PC%s.", slice_axis + 1)
+            column_name = column_names[slice_axis]
+            logger.info("Plotting flow field stack for slice axis [ %s ].", column_name)
             plot_axes = plot_axes_indicies[i]
             slice_steps = pc_slices[slice_axis]
             plot_bounds_2d = [
@@ -719,7 +755,7 @@ def flow_field_viz_main(
                 plot_bounds[plot_axes[1]],
             ]
             # save to subdirectory of fig_savedir
-            stack_savedir = fig_savedir / f"{name}_pc{slice_axis + 1}_stack"
+            stack_savedir = fig_savedir / f"{name}_{column_name}_stack"
             stack_savedir.mkdir(parents=True, exist_ok=True)
             plot_flow_field_stack(
                 flow_field_dict,
@@ -728,6 +764,7 @@ def flow_field_viz_main(
                 plot_bounds=plot_bounds_2d,
                 slice_steps=slice_steps,
                 fig_savedir=stack_savedir,
+                feature_labels=column_labels,
             )
 
     if len(stable_fixed_points) == 0:
@@ -739,26 +776,38 @@ def flow_field_viz_main(
         mean_at_last_timepoint = df[
             df[ColumnName.TIMEPOINT] == df[ColumnName.TIMEPOINT].max()
         ].mean(numeric_only=True)
-        pc_vals = (
-            mean_at_last_timepoint[DIFFAE_PC_COLUMN_NAMES[2]],
-            mean_at_last_timepoint[DIFFAE_PC_COLUMN_NAMES[1]],
-        )  # PC3, PC2
-        fig, ax = plot_flow_field_slices(flow_field_dict, df, plot_bounds, None, pc_vals=pc_vals)
+        feature_vals = (
+            mean_at_last_timepoint[column_names[2]],
+            mean_at_last_timepoint[column_names[1]],
+        )  # feature 3, feature 2
+        fig, ax = plot_flow_field_slices(
+            flow_field_dict,
+            df,
+            plot_bounds,
+            None,
+            feature_vals=feature_vals,
+            column_names=column_names,
+        )
     else:
         for k, fpt in enumerate(stable_fixed_points):
             # plot flow field slices at this stable fixed point
-            pc_vals = (fpt[2], fpt[1])  # PC3, PC2
+            feature_vals = (fpt[2], fpt[1])  # feature 3, feature 2
             fig, ax = plot_flow_field_slices(
-                flow_field_dict, df, plot_bounds, None, pc_vals=pc_vals
+                flow_field_dict,
+                df,
+                plot_bounds,
+                None,
+                feature_vals=feature_vals,
+                column_names=column_names,
             )
 
-            for j, ax_ in enumerate(ax):  # PC1 v s PC2, PC1 vs PC3
+            for j, ax_ in enumerate(ax):  # feature 1 vs feature 2, feature 1 vs feature 3
                 ax_.scatter(fpt[0], fpt[j + 1], s=75, color="black")
             # save the figure
             save_plot_to_path(fig, fig_savedir, f"flow_field_{name}_fpt_{k}")
 
     # 2) plot entire trajectory over flow field
-    # PC1 v s PC2, PC1 vs PC3
+    # feature 1 vs feature 2, feature 1 vs feature 3
     for j, ax_ in enumerate(ax):
         ax_.plot(traj[:, 0], traj[:, j + 1], linewidth=2.5, color="navy")
 

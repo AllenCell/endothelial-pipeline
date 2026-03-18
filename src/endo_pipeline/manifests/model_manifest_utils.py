@@ -50,16 +50,9 @@ def get_feature_dataframe_manifest_name(
         logger.error("Crop pattern must be 'grid' or 'tracked'")
         raise ValueError(f"Crop pattern '{crop_pattern}' is not supported")
 
-    # need to have this case for the legacy model, for now
-    if model_manifest.name == "diffae_04_10":
-        if crop_pattern == "grid":
-            feature_manifest_name = "diffae_04_10"
-        elif crop_pattern == "tracked":
-            feature_manifest_name = "diffae_tracking_integration"
-    else:
-        # default naming pattern is {model_manifest}_{run_name}_{crop_pattern}
-        run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
-        feature_manifest_name = f"{model_manifest.name}_{run_name_}_{crop_pattern}"
+    # Default naming pattern is {model_manifest}_{run_name}_{crop_pattern}
+    run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
+    feature_manifest_name = f"{model_manifest.name}_{run_name_}_{crop_pattern}"
 
     return feature_manifest_name
 
