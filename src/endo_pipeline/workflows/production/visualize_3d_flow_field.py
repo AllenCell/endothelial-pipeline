@@ -175,12 +175,18 @@ def main(
     # has them available (i.e., just "demo" the visualization step without
     # needing to also "demo" the flow field estimation step).
     try:
+        # Default is to load the "production" manifests, even in DEMO_MODE, to
+        # allow for just "demoing" the visualization step if the full manifests
+        # are available.
         drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
         grid_dataframe_manifest = load_dataframe_manifest(grid_dataframe_manifest_name)
         fixed_points_dataframe_manifest = load_dataframe_manifest(
             fixed_points_dataframe_manifest_name
         )
     except FileNotFoundError:
+        # If the production manifests are not found, then in DEMO_MODE will try
+        # to load the demo manifests with the "_demo" suffix. Else, if not in
+        # DEMO_MODE, will raise the original FileNotFoundError.
         if DEMO_MODE:
             demo_suffix = "_demo"
             drift_dataframe_manifest = load_dataframe_manifest(
