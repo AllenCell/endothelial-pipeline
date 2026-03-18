@@ -21,23 +21,27 @@ from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
 logger = logging.getLogger(__name__)
 
 
-def load_egfp_image(config: DatasetConfig, position: int, timepoints: int | list[int]) -> da.Array:
+def load_egfp_image(
+    config: DatasetConfig, position: int, timepoints: int | list[int], level: int = 0
+) -> da.Array:
     """Load EGFP max projection image for given timepoint(s)."""
 
     location = get_zarr_location_for_position(config, position=position)
-    image = load_image(location, channels=["EGFP"], timepoints=timepoints, level=0)
+    image = load_image(location, channels=["EGFP"], timepoints=timepoints, level=level)
 
     return image.max(axis=2)
 
 
-def load_bf_image(config: DatasetConfig, position: int, timepoints: int | list[int]) -> da.Array:
+def load_bf_image(
+    config: DatasetConfig, position: int, timepoints: int | list[int], level: int = 0
+) -> da.Array:
     """Load BF single focal plane image for given timepoint(s)."""
 
     if config.center_z_plane is None:
         raise ValueError("'center_z_plane' is None, cannot load single focal plane for BF channel")
 
     location = get_zarr_location_for_position(config, position=position)
-    image = load_image(location, channels=["BF"], timepoints=timepoints, level=0)
+    image = load_image(location, channels=["BF"], timepoints=timepoints, level=level)
 
     focal_plane = config.center_z_plane[position]
     visualize_plane = focal_plane + 5
@@ -45,12 +49,12 @@ def load_bf_image(config: DatasetConfig, position: int, timepoints: int | list[i
 
 
 def load_bf_std_dev_image(
-    config: DatasetConfig, position: int, timepoints: int | list[int]
+    config: DatasetConfig, position: int, timepoints: int | list[int], level: int = 0
 ) -> da.Array:
     """Load BF log standard deviation projection image for given timepoint(s)."""
 
     location = get_zarr_location_for_position(config, position=position)
-    image = load_image(location, channels=["BF"], timepoints=timepoints, level=0)
+    image = load_image(location, channels=["BF"], timepoints=timepoints, level=level)
 
     # Compute std projection along z axis and apply log transform
     image = image.std(axis=2)
