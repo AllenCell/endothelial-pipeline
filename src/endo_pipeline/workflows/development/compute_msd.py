@@ -75,6 +75,9 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+    from endo_pipeline.library.visualize.diffae_features.vis_msd import (
+        plot_msd_with_exponential_fit,
+    )
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
         load_dataframe_manifest,
@@ -248,26 +251,14 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
 
                 # plot msd vs dt on log-log scale
                 # along with fit to msd ~ dt^alpha
-                where_finite = np.isfinite(msd_vals)
-                linear_fit, res, _, _, _ = np.polyfit(
-                    np.log(dt_array[where_finite]),
-                    np.log(msd_vals[where_finite]),
-                    1,
-                    full=True,
+                fig = plot_msd_with_exponential_fit(
+                    msd_vals=msd_vals,
+                    lags=dt_array * 5,
+                    xlabel="Time lag $\\Delta t$ (minutes)",
+                    ylabel=f"MSD in {variable_labels_dict[column_name]}",
+                    fig_title=fig_title,
+                    ylim=MSD_Y_AXIS_LIMITS,
                 )
-                fig, ax = plt.subplots(figsize=(6, 4))
-                ax.loglog(dt_array * 5, msd_vals, "k-", marker="o")
-                ax.loglog(
-                    dt_array * 5,
-                    np.exp(linear_fit[1]) * (dt_array ** linear_fit[0]),
-                    "b--",
-                    label=f"MSD ~ $\\Delta t^{{{linear_fit[0]:.2f}}}$ (R$^2$ = {1-res[0]:.2f}):",
-                )
-                ax.set_xlabel("Time lag $\\Delta t$ (minutes)")
-                ax.set_ylabel(f"MSD in {variable_labels_dict[column_name]}")
-                ax.set_ylim(MSD_Y_AXIS_LIMITS)
-                ax.set_title(fig_title)
-                ax.legend()
                 save_plot_to_path(
                     fig,
                     fig_savedir,
