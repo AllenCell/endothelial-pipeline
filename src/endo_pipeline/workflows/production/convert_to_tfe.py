@@ -90,13 +90,18 @@ def main(
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.tfe import generate_tfe_backdrops, generate_tfe_frames
     from endo_pipeline.manifests import load_image_manifest
-    from endo_pipeline.settings.tfe import TFE_BACKDROP_TYPES, TFE_IMAGE_MANIFEST_NAME_MAP
+    from endo_pipeline.settings.tfe import (
+        TFE_BACKDROP_TYPES,
+        TFE_DEFAULT_DATASETS,
+        TFE_DEFAULT_POSITIONS,
+        TFE_IMAGE_MANIFEST_NAME_MAP,
+    )
 
     logger = logging.getLogger(__name__)
 
     # Set default values for dataset, position, and output directory if not provided
-    datasets = datasets or ["20250618_20X"]
-    positions = positions or [0]
+    datasets = datasets or TFE_DEFAULT_DATASETS
+    positions = positions or TFE_DEFAULT_POSITIONS
     output_dir = output_dir or get_output_path(f"timelapse_feature_explorer_{segmentation}")
 
     # Limit dataset and positions for demo mode and apply directory suffix.
