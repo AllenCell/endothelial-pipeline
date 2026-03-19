@@ -47,7 +47,10 @@ def main(
         STABILITY_COLUMN_NAME,
         STABILITY_MARKER_DICT,
     )
-    from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
+    from endo_pipeline.settings.migration_coherence import (
+        MIGRATION_COHERENCE_CROP_PATTERN,
+        MIGRATION_COHERENCE_HIST_FIGSIZE,
+    )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -92,6 +95,11 @@ def main(
             dataset_names[0],
         )
 
+    # initialize a single figure and axis for plotting the distribution of
+    # optical flow features across datasets, which will be saved at the end of
+    # the loop after plotting all datasets on the same axis
+    fig_hist, ax_hist = plt.subplots(figsize=MIGRATION_COHERENCE_HIST_FIGSIZE)
+
     # Load optical flow features and plot against diffae features
     for dataset_name in dataset_names:
         output_dir = get_output_path(__file__, dataset_name)
@@ -118,16 +126,13 @@ def main(
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
             plot_label = f"{dataset_name}, ({shear_stress} dyn/cm$^2$)"
             hist_color = get_dataset_color(dataset_name)
-            fig_dist, _ = plot_optical_flow_feature_distribution(
+            fig_hist, ax_hist = plot_optical_flow_feature_distribution(
                 df=df_flow,
                 optical_flow_feature=optical_flow_feature,
                 hist_color=hist_color,
                 plot_label=plot_label,
+                fig_ax=(fig_hist, ax_hist),
             )
-            save_plot_to_path(
-                fig_dist, output_dir, f"{optical_flow_feature}_dist_{dataset_name_flow}"
-            )
-            plt.close(fig_dist)
 
             # initialize fixed_points_dataframe to None in case we aren't plotting
             # fixed points or if loading the fixed points dataframe fails for any
@@ -230,6 +235,14 @@ def main(
                         f"{figure_filename}_with_fixed_points",
                     )
                     plt.close(fig)
+
+    # after plotting all datasets on the same axis, save the optical flow feature distribution plot
+    save_plot_to_path(
+        fig_hist,
+        get_output_path(__file__),
+        f"{optical_flow_feature}_{'_'.join(dataset_names)}_distribution",
+    )
+    plt.close(fig_hist)
 
 
 if __name__ == "__main__":
