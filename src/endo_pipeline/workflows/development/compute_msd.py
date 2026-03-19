@@ -1,8 +1,12 @@
 from endo_pipeline.cli import CropPattern, Datasets
-from endo_pipeline.library.analyze.diffae_dataframe_utils import get_traj_and_diff
+from endo_pipeline.settings.dynamics_workflows import MAX_MSD_LAG
 
 
-def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -> None:
+def main(
+    datasets: Datasets | None = None,
+    crop_pattern: CropPattern = "grid",
+    max_lag: float = MAX_MSD_LAG,
+) -> None:
     """
     Run MSD analysis workflow for datasets in the specified collection, using
     the specified crop pattern for selecting features.
@@ -53,6 +57,9 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
         Optional list of datasets to run the workflow on.
     crop_pattern
         Crop pattern to use for selecting features.
+    max_lag
+        Maximum time lag (in number of frames) to consider for mean squared
+        displacement calculation.
     """
     import logging
     from pathlib import Path
@@ -66,6 +73,7 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
         get_dataframe_for_dynamics_workflows,
+        get_traj_and_diff,
         split_dataset_by_flow,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
@@ -92,7 +100,6 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
-        MAX_MSD_LAG,
         MINIMUM_MSD_TRACK_LENGTH,
         MSD_Y_AXIS_LIMITS,
         RESCALE_THETA,
@@ -177,7 +184,7 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
         df_by_flow, shear_stress_list = split_dataset_by_flow(df, dataset_config)
 
         for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
-            dt_array = np.arange(1, MAX_MSD_LAG + 1)
+            dt_array = np.arange(1, max_lag + 1)
             msd_vals = np.nan * np.ones_like(dt_array, dtype=float)
 
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
