@@ -1222,7 +1222,7 @@ def compute_forward_differences_along_trajectory(
 
     # if one of the column names is `polar_theta`, need to replace with the
     # circular difference for angular data instead of simple difference
-    if ColumnName.POLAR_ANGLE.value in column_names:
+    if ColumnName.POLAR_ANGLE in column_names:
         angle_diff_column = f"{ColumnName.POLAR_ANGLE}{ColumnName.DIFFERENCE_SUFFIX}"
         df_traj[f"{ColumnName.POLAR_ANGLE}_unwrapped"] = np.unwrap(
             df_traj[ColumnName.POLAR_ANGLE].values, period=polar_angle_period
