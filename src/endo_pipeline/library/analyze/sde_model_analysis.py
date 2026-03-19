@@ -259,7 +259,7 @@ def get_fixed_points_by_shear(
             for j in range(len(x2_coarse))
         ]
         # get fixed points and classify them
-        fpts = pplane.get_fps(my_flow, init_coarse)
+        fpts = pplane.get_fpts(my_flow, init_coarse)
         fpt_stabilities, fpts_, _ = pplane.classify_fps(
             my_flow, fpts, [x1, x2], unique=False, verbose=False
         )

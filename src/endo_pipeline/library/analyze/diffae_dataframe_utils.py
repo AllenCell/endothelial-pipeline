@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Literal, cast
+from typing import Literal, cast, overload
 
 import numpy as np
 import pandas as pd
@@ -230,7 +230,19 @@ def polar_to_pcs(
     return pc1_values, pc2_values
 
 
-def rewrap_polar_angle(unwrapped_angle: float, original_range: tuple[float, float]) -> float:
+@overload
+def rewrap_polar_angle(unwrapped_angle: float, original_range: tuple[float, float]) -> float: ...
+
+
+@overload
+def rewrap_polar_angle(
+    unwrapped_angle: np.ndarray, original_range: tuple[float, float]
+) -> np.ndarray: ...
+
+
+def rewrap_polar_angle(
+    unwrapped_angle: float | np.ndarray, original_range: tuple[float, float]
+) -> float | np.ndarray:
     """
     Rewrap unwrapped polar angle value to be within original range.
 

@@ -15,7 +15,7 @@ def main(dataframe_manifest_name: str) -> None:
     logger.info("Starting validation of dataframe manifest [ %s ]", dataframe_manifest_name)
 
     for dataset_name, location in dataframe_manifest.locations.items():
-        if location.fmsid is None and location.s3uri is None:
+        if location.fmsid is None and location.s3uri is None and location.path is None:
             logger.error(
                 "Dataset [ %s ] in dataframe manifest [ %s ] does not have a location supplied.",
                 dataset_name,
