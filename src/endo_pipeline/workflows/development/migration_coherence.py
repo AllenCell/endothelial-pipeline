@@ -284,7 +284,6 @@ def main(
             y_col=ColumnName.POLAR_RADIUS,
             z_col=ColumnName.PC3_FLIPPED,
             color_col=optical_flow_feature,
-            dataset_name=dataset_name,
             df_fp=fixed_points_dataframe,
             binned=True,
         )
