@@ -14,8 +14,8 @@ OPTICAL_FLOW_BASE_FEATURES: list = [
 OPTICAL_FLOW_DATFRAME_MANIFEST_NAME = "optical_flow_bf"
 """Name of dataframe manifest containing optical flow features."""
 
-MINIMUM_TRACK_LENGTH_FOR_MIGRATION_COHERENCE = 200
-"""Minimum track length (number of timepoints) for inclusion in migration coherence analyses."""
+MIGRATION_COHERENCE_CROP_PATTERN = "grid"
+"""Crop pattern to use for migration coherence analyses."""
 
 DEFAULT_MIGRATION_COHERENCE_FEATURE: str = "optical_flow_mean_unit_vector_dt1"
 """Default optical flow feature to use for migration coherence analyses and plotting."""

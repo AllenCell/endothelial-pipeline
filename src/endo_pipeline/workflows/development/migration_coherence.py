@@ -1,10 +1,9 @@
-from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.cli import Datasets
 from endo_pipeline.settings.migration_coherence import DEFAULT_MIGRATION_COHERENCE_FEATURE
 
 
 def main(
     datasets: Datasets | None = None,
-    crop_pattern: CropPattern = "grid",
     optical_flow_feature: str = DEFAULT_MIGRATION_COHERENCE_FEATURE,
     plot_fixed_points: bool = False,
 ) -> None:
@@ -43,9 +42,7 @@ def main(
         STABILITY_COLUMN_NAME,
         STABILITY_MARKER_DICT,
     )
-    from endo_pipeline.settings.migration_coherence import (
-        MINIMUM_TRACK_LENGTH_FOR_MIGRATION_COHERENCE,
-    )
+    from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -54,6 +51,7 @@ def main(
     logger = logging.getLogger(__name__)
 
     # Load diffae features
+    crop_pattern = MIGRATION_COHERENCE_CROP_PATTERN
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
     feature_dataframe_manifest_name = get_feature_dataframe_manifest_name(
         model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern=crop_pattern
@@ -89,13 +87,6 @@ def main(
             dataset_names[0],
         )
 
-    # If using tracked crops, pass in minimum track length to filter for tracks
-    # of sufficient length for migration coherence analyses. If using grid
-    # crops, this parameter will be ignored.
-    minimum_track_length = (
-        MINIMUM_TRACK_LENGTH_FOR_MIGRATION_COHERENCE if crop_pattern == "tracked" else None
-    )
-
     # Load optical flow features and plot against diffae features
     for dataset_name in dataset_names:
         output_dir = get_output_path(__file__, dataset_name)
@@ -107,7 +98,6 @@ def main(
             include_cell_piling=False,
             include_not_steady_state=False,
             crop_pattern=crop_pattern,
-            minimum_track_length=minimum_track_length,
         )
         df_of = add_optical_flow_features(
             df_dataset,
