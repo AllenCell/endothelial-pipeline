@@ -185,7 +185,6 @@ def main(
 
         for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
             dt_array = np.arange(1, max_lag + 1)
-            msd_vals = np.nan * np.ones_like(dt_array, dtype=float)
 
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
             crop_pattern_title = f"features from crops using pattern: {crop_pattern}"
@@ -216,8 +215,11 @@ def main(
                     bins.extend(bins_col)
                     centers.extend(centers_col)
 
-            # compute Kramers-Moyal coefficients
+            # compute MSD for each feature via Kramers-Moyal coefficient
+            # estimation method
             for i, column_name in enumerate(column_names):
+                msd_vals = np.nan * np.ones_like(dt_array, dtype=float)
+
                 kernel = KramersMoyalKernel(
                     name=KERNEL_NAMES_DYNAMICS[column_name],
                     bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
