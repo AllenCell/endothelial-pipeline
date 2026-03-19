@@ -11,6 +11,7 @@ def main(
 
     import matplotlib.pyplot as plt
     import pandas as pd
+    import seaborn as sns
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
@@ -28,10 +29,7 @@ def main(
     from endo_pipeline.library.visualize.diffae_features.pplane import (
         make_legend_handles_for_fixed_pts,
     )
-    from endo_pipeline.library.visualize.migration_coherence import (
-        plot_optical_flow_feature_distribution,
-        plot_scatter_and_binned_heatmap,
-    )
+    from endo_pipeline.library.visualize.migration_coherence import plot_scatter_and_binned_heatmap
     from endo_pipeline.manifests import (
         get_dataframe_location_for_dataset,
         get_feature_dataframe_manifest_name,
@@ -49,7 +47,10 @@ def main(
     )
     from endo_pipeline.settings.migration_coherence import (
         MIGRATION_COHERENCE_CROP_PATTERN,
+        MIGRATION_COHERENCE_HIST_BINWIDTH,
         MIGRATION_COHERENCE_HIST_FIGSIZE,
+        MIGRATION_COHERENCE_HIST_NUM_BINS,
+        MIGRATION_COHERENCE_HIST_PLOT_KDE,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -125,13 +126,20 @@ def main(
         for df_flow, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
             plot_label = f"{dataset_name}, ({shear_stress} dyn/cm$^2$)"
+
+            # add to running plot of optical flow feature distribution across
+            # datasets by plotting the distribution for this dataset and flow
+            # condition on the shared axis (ax_hist), using a different color
+            # for each dataset and flow condition combination
             hist_color = get_dataset_color(dataset_name)
-            fig_hist, ax_hist = plot_optical_flow_feature_distribution(
-                df=df_flow,
-                optical_flow_feature=optical_flow_feature,
-                hist_color=hist_color,
-                plot_label=plot_label,
-                fig_ax=(fig_hist, ax_hist),
+            sns.histplot(
+                df_flow[optical_flow_feature],
+                bins=MIGRATION_COHERENCE_HIST_NUM_BINS,
+                kde=MIGRATION_COHERENCE_HIST_PLOT_KDE,
+                label=plot_label,
+                binwidth=MIGRATION_COHERENCE_HIST_BINWIDTH,
+                ax=ax_hist,
+                color=hist_color,
             )
 
             # initialize fixed_points_dataframe to None in case we aren't plotting
@@ -234,6 +242,15 @@ def main(
                     plt.close(fig)
 
     # after plotting all datasets on the same axis, save the optical flow feature distribution plot
+    ax_hist.set_xlabel(optical_flow_feature)
+    ax_hist.set_ylabel("Count")
+    ax_hist.legend(
+        loc="lower center",
+        bbox_to_anchor=(0.5, 1.02),
+        frameon=False,
+        fontsize=8,
+    )
+    fig_hist.tight_layout()
     save_plot_to_path(
         fig_hist,
         get_output_path(__file__),

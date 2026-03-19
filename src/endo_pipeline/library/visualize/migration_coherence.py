@@ -4,7 +4,6 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from scipy.stats import binned_statistic_2d
 
 from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
@@ -14,83 +13,10 @@ from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP_FIGSIZE,
     MIGRATION_COHERENCE_COLORMAP_VMAX,
     MIGRATION_COHERENCE_COLORMAP_VMIN,
-    MIGRATION_COHERENCE_HIST_BINWIDTH,
-    MIGRATION_COHERENCE_HIST_FIGSIZE,
-    MIGRATION_COHERENCE_HIST_NUM_BINS,
-    MIGRATION_COHERENCE_HIST_PLOT_KDE,
     MIGRATION_COHERENCE_SCATTER_POINT_SIZE,
 )
 
 logger = logging.getLogger(__name__)
-
-
-def plot_optical_flow_feature_distribution(
-    df: pd.DataFrame,
-    optical_flow_feature: str,
-    hist_color: str,
-    plot_label: str,
-    fig_ax: tuple[plt.Figure, plt.Axes] | None = None,
-    binwidth: float = MIGRATION_COHERENCE_HIST_BINWIDTH,
-    bins: int = MIGRATION_COHERENCE_HIST_NUM_BINS,
-    kde: bool = MIGRATION_COHERENCE_HIST_PLOT_KDE,
-    figsize: tuple[float, float] = MIGRATION_COHERENCE_HIST_FIGSIZE,
-) -> tuple[plt.Figure, plt.Axes]:
-    """
-    Plot an optical-flow feature histogram per dataset on a shared axis.
-
-    Parameters
-    ----------
-    df
-        Dataframe containing the optical flow feature column to plot.
-    optical_flow_feature
-        Column name of the optical flow feature to plot.
-    hist_color
-        Color for the histogram bars, passed to the :func:`seaborn.histplot`
-        parameter `color`.
-    plot_label
-        Label for the plot legend.
-    fig_ax
-        Optional tuple of (figure, axis) to plot on. If ``None``, a new figure
-        and axis will be created with the specified *figsize*.
-    binwidth
-        Width of each histogram bin passed to :func:`seaborn.histplot`.
-    bins
-        Number of histogram bins passed to :func:`seaborn.histplot`.
-    kde
-        Whether to overlay a kernel-density estimate on the histogram.
-    figsize
-        Width and height of the figure in inches.
-    """
-    if fig_ax is not None:
-        fig, ax = fig_ax
-    else:
-        fig, ax = plt.subplots(figsize=figsize)
-
-    check_required_columns_in_dataframe(
-        df,
-        required_columns=[optical_flow_feature],
-    )
-
-    sns.histplot(
-        df[optical_flow_feature],
-        bins=bins,
-        kde=kde,
-        label=plot_label,
-        binwidth=binwidth,
-        ax=ax,
-        color=hist_color,
-    )
-
-    ax.set_xlabel(optical_flow_feature)
-    ax.set_ylabel("Count")
-    ax.legend(
-        loc="lower center",
-        bbox_to_anchor=(0.5, 1.02),
-        frameon=False,
-        fontsize=8,
-    )
-    fig.tight_layout()
-    return fig, ax
 
 
 def plot_scatter_and_binned_heatmap(
