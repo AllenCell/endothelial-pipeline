@@ -62,7 +62,7 @@ def main(
 
     # if in demo mode, only process the first dataset and log a warning
     if DEMO_MODE:
-        datasets = datasets[:1]
+        dataset_names = dataset_names[:1]
         logger.warning(
             "Running in demo mode, only processing first dataset [ %s ]",
             dataset_names[0],
@@ -76,7 +76,7 @@ def main(
     )
 
     # Load optical flow features and plot against diffae features
-    for dataset_name in datasets:
+    for dataset_name in dataset_names:
         output_dir = get_output_path(__file__, dataset_name)
 
         df_dataset = get_dataframe_for_dynamics_workflows(
