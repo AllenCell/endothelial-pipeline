@@ -6,13 +6,15 @@ def main(
     datasets: Datasets | None = None,
     crop_pattern: CropPattern = "grid",
     optical_flow_feature: str = DEFAULT_MIGRATION_COHERENCE_FEATURE,
+    plot_fixed_points: bool = False,
 ) -> None:
     import logging
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
-    from endo_pipeline.io import get_output_path
+    from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+        check_required_columns_in_dataframe,
         fit_pca,
         get_dataframe_for_dynamics_workflows,
     )
@@ -24,12 +26,18 @@ def main(
         plot_scatter_and_binned_heatmap,
     )
     from endo_pipeline.manifests import (
+        get_dataframe_location_for_dataset,
         get_feature_dataframe_manifest_name,
         list_datasets_with_dataframes,
         load_dataframe_manifest,
         load_model_manifest,
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+    from endo_pipeline.settings.flow_field_dataframes import (
+        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        STABILITY_COLUMN_NAME,
+    )
     from endo_pipeline.settings.migration_coherence import (
         MINIMUM_TRACK_LENGTH_FOR_MIGRATION_COHERENCE,
     )
@@ -42,15 +50,23 @@ def main(
 
     # Load diffae features
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
-    dataframe_manifest_name = get_feature_dataframe_manifest_name(
+    feature_dataframe_manifest_name = get_feature_dataframe_manifest_name(
         model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern=crop_pattern
     )
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
+
+    # get fit PCA object to apply PCA transformation to diffae features before
+    # plotting against optical flow features.
     pca = fit_pca(num_pcs=3)
+
+    fixed_points_dataframe_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{feature_dataframe_manifest_name}"
+    )
+    fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
 
     # Default list of datasets if not provided, only include datasets available
     # in the provided dataframe manifest
-    valid_dataset_options = list_datasets_with_dataframes(dataframe_manifest)
+    valid_dataset_options = list_datasets_with_dataframes(feature_dataframe_manifest)
     if datasets is None:
         # these collections are mutually exclusive, so we don't have to worry
         # about duplicates when concatenating
@@ -81,7 +97,7 @@ def main(
 
         df_dataset = get_dataframe_for_dynamics_workflows(
             dataset_name,
-            dataframe_manifest,
+            feature_dataframe_manifest,
             pca=pca,
             include_cell_piling=False,
             include_not_steady_state=False,
@@ -92,6 +108,31 @@ def main(
             df_dataset,
             datasets=[dataset_name],
         )
+
+        if plot_fixed_points:
+            try:
+                fixed_points_dataframe_location = get_dataframe_location_for_dataset(
+                    fixed_points_dataframe_manifest, dataset_name
+                )
+                fixed_points_dataframe = load_dataframe(
+                    fixed_points_dataframe_location, delay=False
+                )
+                check_required_columns_in_dataframe(
+                    fixed_points_dataframe,
+                    required_columns=[
+                        *DYNAMICS_COLUMN_NAMES,
+                        ColumnName.DATASET,
+                        STABILITY_COLUMN_NAME,
+                    ],
+                )
+            except KeyError:
+                logger.warning(
+                    "No fixed point dataframe found for dataset [ %s ] in dataframe manifest [ %s ]. "
+                    "Fixed points will not be overlaid on the migration coherence plots for this dataset.",
+                    dataset_name,
+                    fixed_points_dataframe_manifest.name,
+                )
+
         plot_optical_flow_feature_distribution(
             df=df_of,
             optical_flow_feature=optical_flow_feature,
