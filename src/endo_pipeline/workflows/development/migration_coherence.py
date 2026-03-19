@@ -33,7 +33,6 @@ def main(
     from endo_pipeline.manifests import (
         get_dataframe_location_for_dataset,
         get_feature_dataframe_manifest_name,
-        list_datasets_with_dataframes,
         load_dataframe_manifest,
         load_model_manifest,
     )
@@ -76,17 +75,11 @@ def main(
     )
     fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
 
-    # Default list of datasets if not provided, only include datasets available
-    # in the provided dataframe manifest
-    valid_dataset_options = list_datasets_with_dataframes(feature_dataframe_manifest)
-    if datasets is None:
-        # these collections are mutually exclusive, so we don't have to worry
-        # about duplicates when concatenating
-        dataset_names = get_datasets_in_collection(
-            "diffae_model_training", valid_dataset_options
-        ) + get_datasets_in_collection("replicate_2_datasets", valid_dataset_options)
-    else:
-        dataset_names = [name for name in datasets if name in valid_dataset_options]
+    # If datasets aren't provided, default to processing a default list of
+    # datasets
+    dataset_names = datasets or get_datasets_in_collection(
+        "diffae_model_training"
+    ) + get_datasets_in_collection("replicate_2_datasets")
 
     # if in demo mode, only process the first dataset and log a warning
     if DEMO_MODE:
@@ -103,6 +96,13 @@ def main(
 
     # Load optical flow features and plot against diffae features
     for dataset_name in dataset_names:
+        if dataset_name not in feature_dataframe_manifest.locations:
+            logger.warning(
+                "No feature dataframe found for dataset [ %s ] in dataframe manifest [ %s ]. Skipping this dataset.",
+                dataset_name,
+                feature_dataframe_manifest.name,
+            )
+            continue
         output_dir = get_output_path(__file__, dataset_name)
 
         df_dataset = get_dataframe_for_dynamics_workflows(
