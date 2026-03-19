@@ -9,7 +9,6 @@ from matplotlib.lines import Line2D
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.stats import binned_statistic_2d, binned_statistic_dd
 
-from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
 from endo_pipeline.settings.flow_field_dataframes import (
@@ -139,16 +138,15 @@ def plot_3d_scatter_or_binned(
     y_col: str,
     z_col: str,
     color_col: str,
-    dataset_name: str,
-    output_dir: Path,
     df_fp: pd.DataFrame | None = None,
     binned: bool = False,
-    bin_size_xyz: tuple[float, float, float] = (0.25, 0.25, 0.25),
-    cmap: str = "cool",
+    bin_size_xyz: tuple[float, float, float] = (MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,) * 3,
+    cmap: str = MIGRATION_COHERENCE_COLORMAP,
     vmin: float = 0,
     vmax: float = 1,
-) -> None:
-    """Plot a 3D scatter or 3D binned heatmap with optional fixed-point overlay.
+) -> tuple[plt.Figure, Axes3D]:
+    """
+    Plot a 3D scatter or 3D binned heatmap with optional fixed-point overlay.
 
     Parameters
     ----------
@@ -158,8 +156,6 @@ def plot_3d_scatter_or_binned(
         Column names for the three spatial axes.
     color_col
         Column name whose values are mapped to color.
-    dataset_name
-        Dataset identifier for the title.
     df_fp
         Fixed-points dataframe. If provided, fixed points are overlaid with
         stability-specific markers and colors. If ``None``, no overlay is drawn.
@@ -282,19 +278,10 @@ def plot_3d_scatter_or_binned(
     ax.set_xlabel(x_col, labelpad=2)
     ax.set_ylabel(y_col, labelpad=2)
     ax.set_zlabel(z_col, rotation=90, labelpad=2)
-    dataset_config = load_dataset_config(dataset_name)
-    shear_stress_values = [fc.shear_stress for fc in dataset_config.flow_conditions]
-    shear_stress_label = "-".join(f"{v:g}" for v in shear_stress_values)
-    ax.set_title(f"{dataset_name}, {shear_stress_label} dyn/cm²", loc="left")
+
     fig.colorbar(sc, ax=ax, label=cbar_label, shrink=0.6)
     fig.subplots_adjust(left=0.05, right=0.95)
-    plt.show()
-    save_plot_to_path(
-        fig,
-        output_dir,
-        f"{dataset_name}_3D_{'binned' if binned else 'scatter'}_{color_col}",
-    )
-    plt.close(fig)
+    return fig, ax
 
 
 def plot_fixed_points_vs_shear_stress(

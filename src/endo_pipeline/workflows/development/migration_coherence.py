@@ -263,21 +263,26 @@ def main(
             )
 
         # 3D Scatter
-        plot_3d_scatter_or_binned(
+        fig, ax = plot_3d_scatter_or_binned(
             df_of_no_nan,
             x_col=ColumnName.POLAR_ANGLE,
             y_col=ColumnName.POLAR_RADIUS,
             z_col=ColumnName.PC3_FLIPPED,
             color_col=optical_flow_feature,
-            dataset_name=dataset_name,
             df_fp=fixed_points_dataframe,
             binned=False,
-            bin_size_xyz=(0.25, 0.25, 0.25),
-            output_dir=output_dir,
         )
+        ax.set_title(plot_label, loc="left")
+        plt.show()
+        save_plot_to_path(
+            fig,
+            output_dir,
+            f"{dataset_name_flow}_3D_scatter_{optical_flow_feature}",
+        )
+        plt.close(fig)
 
         # 3D Binned Heatmap
-        plot_3d_scatter_or_binned(
+        fig, ax = plot_3d_scatter_or_binned(
             df_of_no_nan,
             x_col=ColumnName.POLAR_ANGLE,
             y_col=ColumnName.POLAR_RADIUS,
@@ -286,9 +291,15 @@ def main(
             dataset_name=dataset_name,
             df_fp=fixed_points_dataframe,
             binned=True,
-            bin_size_xyz=(0.25, 0.25, 0.25),
-            output_dir=output_dir,
         )
+        ax.set_title(plot_label, loc="left")
+        plt.show()
+        save_plot_to_path(
+            fig,
+            output_dir,
+            f"{dataset_name_flow}_3D_binned_heatmap_{optical_flow_feature}",
+        )
+        plt.close(fig)
 
         if fixed_points_dataframe is not None:
             df_fp_all_list.append(fixed_points_dataframe)
