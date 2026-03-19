@@ -115,10 +115,12 @@ def main(
 
         for df_flow, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
+            plot_label = f"{dataset_name}, ({shear_stress} dyn/cm$^2$)"
             plot_optical_flow_feature_distribution(
                 df=df_flow,
                 optical_flow_feature=optical_flow_feature,
                 datasets=[dataset_name],
+                plot_label=plot_label,
                 output_dir=output_dir,
                 binwidth=0.02,
                 bins=50,

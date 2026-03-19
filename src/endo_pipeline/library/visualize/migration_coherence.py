@@ -22,13 +22,15 @@ def plot_optical_flow_feature_distribution(
     df: pd.DataFrame,
     optical_flow_feature: str,
     datasets: list[str],
+    plot_label: str,
     output_dir: Path,
     binwidth: float = 0.02,
     bins: int = 50,
     kde: bool = True,
     figsize: tuple[float, float] = (4, 2.5),
 ) -> None:
-    """Plot an optical-flow feature histogram per dataset on a shared axis.
+    """
+    Plot an optical-flow feature histogram per dataset on a shared axis.
 
     Parameters
     ----------
@@ -55,16 +57,12 @@ def plot_optical_flow_feature_distribution(
     for dataset in datasets:
         color = get_dataset_color(dataset)
 
-        dataset_config = load_dataset_config(dataset)
-        flow_conditions = dataset_config.flow_conditions
-        shear_stress_values = [flow_condition.shear_stress for flow_condition in flow_conditions]
-        shear_stress_label = "-".join(f"{value:g}" for value in shear_stress_values)
         df_of_subset = df[df["dataset"] == dataset]
         sns.histplot(
             df_of_subset[optical_flow_feature],
             bins=bins,
             kde=kde,
-            label=f"{dataset}, shear={shear_stress_label}",
+            label=plot_label,
             binwidth=binwidth,
             ax=ax,
             color=color,
