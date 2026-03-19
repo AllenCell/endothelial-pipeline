@@ -20,6 +20,7 @@ def plot_optical_flow_feature_distribution(
     optical_flow_feature: str,
     hist_color: str,
     plot_label: str,
+    fig_ax: tuple[plt.Figure, plt.Axes] | None = None,
     binwidth: float = 0.02,
     bins: int = 50,
     kde: bool = True,
@@ -30,25 +31,31 @@ def plot_optical_flow_feature_distribution(
 
     Parameters
     ----------
-    df : pandas.DataFrame
-        Dataframe containing a ``"dataset"`` column and the column named by
-        *optical_flow_feature*.
-    optical_flow_feature : str
-        Column name of the optical-flow feature to plot.
-    hist_color : str
-        Color for the histogram bars, passed to the Seaborn histplot `color` parameter.
-    plot_label : str
+    df
+        Dataframe containing the optical flow feature column to plot.
+    optical_flow_feature
+        Column name of the optical flow feature to plot.
+    hist_color
+        Color for the histogram bars, passed to the :func:`seaborn.histplot`
+        parameter `color`.
+    plot_label
         Label for the plot legend.
-    binwidth : float, default=0.02
+    fig_ax
+        Optional tuple of (figure, axis) to plot on. If ``None``, a new figure
+        and axis will be created with the specified *figsize*.
+    binwidth
         Width of each histogram bin passed to :func:`seaborn.histplot`.
-    bins : int, default=50
+    bins
         Number of histogram bins passed to :func:`seaborn.histplot`.
-    kde : bool, default=True
+    kde
         Whether to overlay a kernel-density estimate on the histogram.
-    figsize : tuple[float, float], default=(4, 2.5)
+    figsize
         Width and height of the figure in inches.
     """
-    fig, ax = plt.subplots(figsize=figsize)
+    if fig_ax is not None:
+        fig, ax = fig_ax
+    else:
+        fig, ax = plt.subplots(figsize=figsize)
 
     check_required_columns_in_dataframe(
         df,
