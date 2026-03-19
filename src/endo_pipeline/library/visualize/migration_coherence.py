@@ -208,7 +208,7 @@ def plot_3d_scatter_or_binned(
     cmap: str = "cool",
     vmin: float = 0,
     vmax: float = 1,
-) -> tuple[plt.Figure, plt.Axes]:
+) -> None:
     """Plot a 3D scatter or 3D binned heatmap with optional fixed-point overlay.
 
     Parameters
@@ -249,9 +249,9 @@ def plot_3d_scatter_or_binned(
 
     if not binned:
         sc = ax.scatter(
-            x,
-            y,
-            z,
+            xs=x,
+            ys=y,
+            zs=z,
             c=c,
             cmap=cmap,
             s=5,
@@ -281,9 +281,9 @@ def plot_3d_scatter_or_binned(
 
         mask = ~np.isnan(stat.ravel())
         sc = ax.scatter(
-            gx.ravel()[mask],
-            gy.ravel()[mask],
-            gz.ravel()[mask],
+            xs=gx.ravel()[mask],
+            ys=gy.ravel()[mask],
+            zs=gz.ravel()[mask],
             c=stat.ravel()[mask],
             cmap=cmap,
             s=80,
@@ -307,9 +307,9 @@ def plot_3d_scatter_or_binned(
             theta, r, rho = row[x_col], row[y_col], row[z_col]
             mean_val = row.get(f"mean_{color_col}", float("nan"))
             ax.scatter(
-                [theta],
-                [r],
-                [rho],
+                xs=[theta],
+                ys=[r],
+                zs=[rho],
                 marker=mk,
                 color=clr,
                 edgecolor="black",
@@ -356,7 +356,6 @@ def plot_3d_scatter_or_binned(
         f"{dataset_name}_3D_{'binned' if binned else 'scatter'}_{color_col}",
     )
     plt.close(fig)
-    return fig, ax
 
 
 def plot_fixed_points_vs_shear_stress(
@@ -442,7 +441,7 @@ def plot_fixed_points_vs_shear_stress(
         fontsize=8,
         title="stability",
     )
-    fig.tight_layout(rect=[0, 0, 0.85, 1])
+    fig.tight_layout(rect=(0, 0, 0.85, 1))
     plt.show()
     save_plot_to_path(fig, output_dir, f"fixed_points_{variable}_vs_shear_stress")
     plt.close(fig)
