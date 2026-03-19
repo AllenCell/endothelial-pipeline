@@ -57,7 +57,6 @@ def generate_tfe_dataset(
     backdrops: bool,
     output_dir_suffix: str = "",
     include_diffae_features: bool = True,
-    cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
 ) -> None:
     """
     Create timelapse feature explorer manifest and generate backdrop images.
@@ -96,6 +95,7 @@ def generate_tfe_dataset(
                 label_map=LABEL_MAP,
                 include_diffae_features=include_diffae_features,
             )
+            df_position = add_dynamic_features_with_filtering(df_position)
             df_position = update_manifest_for_tfe(df_position, dataset, position, output_dir)
 
         case "grid":
@@ -190,6 +190,21 @@ def get_df_and_label_map_cdh5seg(
     df = add_dynamic_features_with_filtering(df_tracks_subset)
 
     df = df[df["position"] == position]
+
+    # add the timepoint annotations as filter columns
+    dataset_config = load_dataset_config(dataset)
+    if dataset_config.timepoint_annotations is not None:
+        filters_for_dataset = list(dataset_config.timepoint_annotations.keys())
+        for filt in filters_for_dataset:
+            if position in dataset_config.timepoint_annotations[filt]:
+                invalid_tps = get_annotated_timepoints_for_position(
+                    dataset_config, position, [filt]
+                )
+                df[filt] = df["image_index"].isin(invalid_tps)
+    else:
+        filters_for_dataset = []
+    # clean up the label_map to remove filters not used in this dataset
+    label_map = {col: label_map[col] for col in label_map if col in df.columns}
 
     feature_column_names = list(label_map.keys())
     feature_info = add_feature_metadata(label_map)
