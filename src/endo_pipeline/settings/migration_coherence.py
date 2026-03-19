@@ -25,11 +25,11 @@ OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS: tuple[str, ...] = (
 )
 """Column names to merge on when adding optical flow features to another dataframe."""
 
-MIGRATION_COHERENCE_CROP_PATTERN = "grid"
+MIGRATION_COHERENCE_CROP_PATTERN: str = "grid"
 """Crop pattern to use for migration coherence analyses."""
 
 DEFAULT_MIGRATION_COHERENCE_FEATURE: str = "optical_flow_mean_unit_vector_dt1"
 """Default optical flow feature to use for migration coherence analyses and plotting."""
 
-MIGRATION_COHERENCE_COLORMAP = "cool"
+MIGRATION_COHERENCE_COLORMAP: str = "cool"
 """Colormap to use for visualizing migration coherence features."""
