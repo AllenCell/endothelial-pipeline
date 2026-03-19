@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib.lines import Line2D
+from mpl_toolkits.mplot3d import Axes3D
 from scipy.stats import binned_statistic_2d, binned_statistic_dd
 
 from endo_pipeline.configs import load_dataset_config
@@ -243,8 +244,8 @@ def plot_3d_scatter_or_binned(
 
     x_bin_size, y_bin_size, z_bin_size = bin_size_xyz
 
-    fig = plt.figure(figsize=(8, 8))
-    ax = fig.add_subplot(111, projection="3d")
+    ax: Axes3D
+    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={"projection": "3d"})
     ax.computed_zorder = False
 
     if not binned:

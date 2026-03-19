@@ -222,27 +222,27 @@ def main(
                 plt.close(fig)
 
         # --- 3D plots ---
-        df_of_clean = df_of.dropna(subset=[optical_flow_feature])
+        df_of_no_nan = df_of.dropna(subset=[optical_flow_feature])
 
         if fixed_points_dataframe is not None:
             fixed_points_dataframe = add_binned_mean_to_fixed_points(
                 fixed_points_dataframe,
-                df_of_clean,
-                ColumnName.POLAR_ANGLE,
-                ColumnName.POLAR_RADIUS,
-                ColumnName.PC3_FLIPPED,
-                optical_flow_feature,
+                df_of_no_nan,
+                x_col=ColumnName.POLAR_ANGLE,
+                y_col=ColumnName.POLAR_RADIUS,
+                z_col=ColumnName.PC3_FLIPPED,
+                binned_col=optical_flow_feature,
                 bin_size_xyz=(0.25, 0.25, 0.25),
             )
 
         # 3D Scatter
         plot_3d_scatter_or_binned(
-            df_of_clean,
-            ColumnName.POLAR_ANGLE,
-            ColumnName.POLAR_RADIUS,
-            ColumnName.PC3_FLIPPED,
-            optical_flow_feature,
-            dataset_name,
+            df_of_no_nan,
+            x_col=ColumnName.POLAR_ANGLE,
+            y_col=ColumnName.POLAR_RADIUS,
+            z_col=ColumnName.PC3_FLIPPED,
+            color_col=optical_flow_feature,
+            dataset_name=dataset_name,
             df_fp=fixed_points_dataframe,
             binned=False,
             bin_size_xyz=(0.25, 0.25, 0.25),
@@ -251,12 +251,12 @@ def main(
 
         # 3D Binned Heatmap
         plot_3d_scatter_or_binned(
-            df_of_clean,
-            ColumnName.POLAR_ANGLE,
-            ColumnName.POLAR_RADIUS,
-            ColumnName.PC3_FLIPPED,
-            optical_flow_feature,
-            dataset_name,
+            df_of_no_nan,
+            x_col=ColumnName.POLAR_ANGLE,
+            y_col=ColumnName.POLAR_RADIUS,
+            z_col=ColumnName.PC3_FLIPPED,
+            color_col=optical_flow_feature,
+            dataset_name=dataset_name,
             df_fp=fixed_points_dataframe,
             binned=True,
             bin_size_xyz=(0.25, 0.25, 0.25),
