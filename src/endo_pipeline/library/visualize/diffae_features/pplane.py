@@ -390,19 +390,39 @@ def plot_flow(ax: plt.Axes, my_flow: Callable, x: list[np.ndarray], num_grid: in
     return ax
 
 
-def make_legend_handles_for_fixed_pts(fpt_stabilities: list[str]) -> list[Line2D]:
+def make_legend_handles_for_fixed_pts(
+    fpt_stabilities: list[str],
+    face_color_dict: dict[str, str] = STABILITY_COLOR_DICT,
+    marker_dict: dict[str, str] = STABILITY_MARKER_DICT,
+    marker_size: int = 10,
+    edge_color: str | None = "black",
+) -> list[Line2D]:
     """
     Make a custom legend for the fixed point types, nullclines and trajectories.
+
+    Purpose of this method is to create a legend that only includes the fixed
+    point types that are present in the plot, since the number and type of fixed
+    points can vary across parameter space. That is, we want to avoid having
+    duplicate labels where we have multiple fixed points of the same type, but
+    we also want to avoid having labels for types that are not present.
 
     Parameters
     ----------
     fpt_stabilities
         List of stability labels for the fixed points.
+    face_color_dict
+        Dictionary mapping stability labels to face colors.
+    marker_dict
+        Dictionary mapping stability labels to marker styles.
+    edge_color
+        Optional, color of the marker edges. If None, assumes same color as face
+        color.
 
     Returns
     -------
     :
-        List of Line2D objects representing the legend handles for the fixed point types.
+        List of Line2D objects representing the legend handles for the fixed
+        point types.
     """
     my_handles = []
     if StabilityLabel.STABLE in fpt_stabilities:
@@ -411,9 +431,12 @@ def make_legend_handles_for_fixed_pts(fpt_stabilities: list[str]) -> list[Line2D
                 [],
                 [],
                 label=StabilityLabel.STABLE,
-                marker=STABILITY_MARKER_DICT[StabilityLabel.STABLE],
-                markerfacecolor=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
-                markeredgecolor=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
+                marker=marker_dict[StabilityLabel.STABLE],
+                markerfacecolor=face_color_dict[StabilityLabel.STABLE],
+                markersize=marker_size,
+                markeredgecolor=(
+                    edge_color if edge_color is not None else face_color_dict[StabilityLabel.STABLE]
+                ),
                 linestyle="",
             )
         )
@@ -423,9 +446,14 @@ def make_legend_handles_for_fixed_pts(fpt_stabilities: list[str]) -> list[Line2D
                 [],
                 [],
                 label=StabilityLabel.UNSTABLE,
-                marker=STABILITY_MARKER_DICT[StabilityLabel.UNSTABLE],
-                markerfacecolor=STABILITY_COLOR_DICT[StabilityLabel.UNSTABLE],
-                markeredgecolor=STABILITY_COLOR_DICT[StabilityLabel.UNSTABLE],
+                marker=marker_dict[StabilityLabel.UNSTABLE],
+                markerfacecolor=face_color_dict[StabilityLabel.UNSTABLE],
+                markersize=marker_size,
+                markeredgecolor=(
+                    edge_color
+                    if edge_color is not None
+                    else face_color_dict[StabilityLabel.UNSTABLE]
+                ),
                 linestyle="",
             )
         )
@@ -435,9 +463,12 @@ def make_legend_handles_for_fixed_pts(fpt_stabilities: list[str]) -> list[Line2D
                 [],
                 [],
                 label=StabilityLabel.SADDLE,
-                marker=STABILITY_MARKER_DICT[StabilityLabel.SADDLE],
-                markerfacecolor=STABILITY_COLOR_DICT[StabilityLabel.SADDLE],
-                markeredgecolor=STABILITY_COLOR_DICT[StabilityLabel.SADDLE],
+                marker=marker_dict[StabilityLabel.SADDLE],
+                markerfacecolor=face_color_dict[StabilityLabel.SADDLE],
+                markersize=marker_size,
+                markeredgecolor=(
+                    edge_color if edge_color is not None else face_color_dict[StabilityLabel.SADDLE]
+                ),
                 linestyle="",
             )
         )
@@ -447,9 +478,14 @@ def make_legend_handles_for_fixed_pts(fpt_stabilities: list[str]) -> list[Line2D
                 [],
                 [],
                 label=StabilityLabel.INDETERMINATE,
-                marker=STABILITY_MARKER_DICT[StabilityLabel.INDETERMINATE],
-                markerfacecolor=STABILITY_COLOR_DICT[StabilityLabel.INDETERMINATE],
-                markeredgecolor=STABILITY_COLOR_DICT[StabilityLabel.INDETERMINATE],
+                marker=marker_dict[StabilityLabel.INDETERMINATE],
+                markerfacecolor=face_color_dict[StabilityLabel.INDETERMINATE],
+                markersize=marker_size,
+                markeredgecolor=(
+                    edge_color
+                    if edge_color is not None
+                    else face_color_dict[StabilityLabel.INDETERMINATE]
+                ),
                 linestyle="",
             )
         )
