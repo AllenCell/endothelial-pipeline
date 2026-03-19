@@ -1,4 +1,6 @@
-OPTICAL_FLOW_BASE_FEATURES: list = [
+from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+
+OPTICAL_FLOW_BASE_FEATURES: tuple[str, ...] = (
     "optical_flow_mean_speed_dt1",
     "optical_flow_mean_unit_vector_dt1",
     "optical_flow_std_speed_dt1",
@@ -8,11 +10,20 @@ OPTICAL_FLOW_BASE_FEATURES: list = [
     "optical_flow_mean_v_dt1",
     "optical_flow_std_u_dt1",
     "optical_flow_std_v_dt1",
-]
+)
 """Base feature names computed per (crop, timepoint, dt) by optical-flow extraction."""
 
-OPTICAL_FLOW_DATFRAME_MANIFEST_NAME = "optical_flow_bf"
+OPTICAL_FLOW_DATFRAME_MANIFEST_NAME: str = "optical_flow_bf"
 """Name of dataframe manifest containing optical flow features."""
+
+OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS: tuple[str, ...] = (
+    ColumnName.DATASET,
+    ColumnName.POSITION,
+    ColumnName.TIMEPOINT,
+    ColumnName.START_X,
+    ColumnName.START_Y,
+)
+"""Column names to merge on when adding optical flow features to another dataframe."""
 
 MIGRATION_COHERENCE_CROP_PATTERN = "grid"
 """Crop pattern to use for migration coherence analyses."""

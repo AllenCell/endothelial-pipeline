@@ -9,6 +9,7 @@ from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dat
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.migration_coherence import (
     OPTICAL_FLOW_BASE_FEATURES,
+    OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS,
     OPTICAL_FLOW_DATFRAME_MANIFEST_NAME,
 )
 
@@ -19,11 +20,20 @@ def add_optical_flow_features(
     df: pd.DataFrame,
     datasets: list[str],
     optical_flow_manifest_name: str = OPTICAL_FLOW_DATFRAME_MANIFEST_NAME,
-    optical_flow_feature_columns: list[str] = OPTICAL_FLOW_BASE_FEATURES,
+    optical_flow_feature_columns: list[str] | None = None,
     merge_columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """
     Load optical-flow features and merge them with an existing dataframe.
+
+    **Dataframe column requirements**
+
+    The input dataframe must contain the columns specified in `merge_columns`
+    and the optical flow dataframe(s) must contain the columns specified in both
+    `merge_columns` and `optical_flow_feature_columns`. If not provided, these
+    parameters will default to `OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS` and
+    `OPTICAL_FLOW_BASE_FEATURES`, respectively.
+
 
     Parameters
     ----------
@@ -34,11 +44,10 @@ def add_optical_flow_features(
     optical_flow_manifest_name
         Name of the dataframe manifest containing optical-flow feature tables.
     optical_flow_feature_columns
-        List of optical-flow feature column names to merge into the input
-        dataframe.
+        Optional, list of optical flow feature column names to merge into the
+        input dataframe.
     merge_columns
-        List of column names to merge on. If None, defaults to a set of common
-        identifier columns.
+        Optional, list of column names to merge on.
 
     Returns
     -------
@@ -46,13 +55,9 @@ def add_optical_flow_features(
         Concatenated dataframe with optical-flow features merged in.
     """
 
-    merge_columns_ = merge_columns or [
-        ColumnName.DATASET.value,
-        ColumnName.POSITION.value,
-        ColumnName.TIMEPOINT.value,
-        ColumnName.START_X.value,
-        ColumnName.START_Y.value,
-    ]
+    merge_columns_ = merge_columns or list(OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS)
+    optical_flow_feature_columns_ = optical_flow_feature_columns or list(OPTICAL_FLOW_BASE_FEATURES)
+    required_columns = merge_columns_ + optical_flow_feature_columns_
     check_required_columns_in_dataframe(df, merge_columns_)
     dataframe_manifest_optical_flow = load_dataframe_manifest(optical_flow_manifest_name)
 
@@ -66,22 +71,16 @@ def add_optical_flow_features(
             dataframe_manifest_optical_flow, dataset_name
         )
         df_optical_flow = load_dataframe(optical_flow_location)
-        check_required_columns_in_dataframe(
-            df_optical_flow, merge_columns_ + optical_flow_feature_columns
-        )
+        check_required_columns_in_dataframe(df_optical_flow, required_columns)
         # if dtype of position is str, convert to int for merging
         # take [1:] and convert to int (e.g. "P1" -> 1)
         if not isinstance(df_optical_flow[ColumnName.POSITION].dtype, np.int64):
             df_optical_flow[ColumnName.POSITION] = (
                 df_optical_flow[ColumnName.POSITION].str[1:].astype(np.int64)
             )
-        df_optical_flow = df_optical_flow[merge_columns_ + optical_flow_feature_columns]
+        df_optical_flow = df_optical_flow[required_columns]
 
-        df_merged = df_dataset.merge(
-            df_optical_flow,
-            on=merge_columns_,
-            how="left",
-        )
+        df_merged = df_dataset.merge(df_optical_flow, on=merge_columns_, how="left")
         merged_dfs.append(df_merged)
 
     return pd.concat(merged_dfs, ignore_index=True)
