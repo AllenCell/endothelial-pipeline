@@ -1,7 +1,4 @@
-# %%
 import logging
-
-import pandas as pd
 
 from endo_pipeline.cli import DEMO_MODE
 from endo_pipeline.configs import get_datasets_in_collection
@@ -33,6 +30,10 @@ DESCRIPTION = "Migration coherence overlayed on phase portrait"
 
 OPTICAL_FLOW_FEATURE = "optical_flow_mean_unit_vector_dt1"
 
+OPTICAL_FLOW_MANIFEST_NAME = "optical_flow_bf"
+
+CROP_PATTERN = "grid"
+
 datasets = get_datasets_in_collection("diffae_model_training") + get_datasets_in_collection(
     "replicate_2_datasets"
 )
@@ -44,26 +45,26 @@ output_dir = get_output_path("migration_coherence")
 # %% Load diffae features
 model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
 dataframe_manifest_name = get_feature_dataframe_manifest_name(
-    model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern="grid"
+    model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern=CROP_PATTERN
 )
 dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
-pca = fit_pca(num_pcs=80)
+pca = fit_pca(num_pcs=3)
 
-# %% Load optical flow features
-df_pca_datasets = []
+# %% Load optical flow features and plot against diffae features
 for dataset_name in datasets:
-    df_dataset = get_dataframe_for_dynamics_workflows(dataset_name, dataframe_manifest, pca=pca)
-    df_pca_datasets.append(df_dataset)
-
-df_pca_all = pd.concat(df_pca_datasets, ignore_index=True)
-# %%
-df_of = add_optical_flow_features(
-    df_pca_all,
-    datasets=datasets,
-    optical_flow_manifest_name="optical_flow_bf",
-)
-# %%
-for dataset_name in datasets:
+    df_dataset = get_dataframe_for_dynamics_workflows(
+        dataset_name,
+        dataframe_manifest,
+        pca=pca,
+        include_cell_piling=False,
+        include_not_steady_state=False,
+        crop_pattern=CROP_PATTERN,
+    )
+    df_of = add_optical_flow_features(
+        df_dataset,
+        datasets=[dataset_name],
+        optical_flow_manifest_name=OPTICAL_FLOW_MANIFEST_NAME,
+    )
     plot_optical_flow_feature_distribution(
         df=df_of,
         optical_flow_feature=OPTICAL_FLOW_FEATURE,
@@ -73,10 +74,6 @@ for dataset_name in datasets:
         bins=50,
         kde=True,
     )
-
-# %%
-for dataset_name in datasets:
-    print(dataset_name)
     plot_scatter_and_binned_heatmap(
         df=df_of,
         dataset_name=dataset_name,
