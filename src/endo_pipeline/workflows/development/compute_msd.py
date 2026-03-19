@@ -120,7 +120,7 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
     )
     bin_widths = [BIN_WIDTHS_DYNAMICS[col] for col in column_names]
 
-    # get dataframe manifest for grid-based crop features
+    # get dataframe manifest for feature of selected crop pattern
     model_manifest = load_model_manifest(model_manifest_name)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
         model_manifest, model_run_name, crop_pattern=crop_pattern
