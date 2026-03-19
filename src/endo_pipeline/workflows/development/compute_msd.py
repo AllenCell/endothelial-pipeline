@@ -190,34 +190,9 @@ def main(
             crop_pattern_title = f"features from crops using pattern: {crop_pattern}"
             fig_title = f"{dataset_name} ({shear_stress} dyn/cm$^2$) \n {crop_pattern_title}"
 
-            # for computing drift and diffusion coefficients, need to
-            # adjust bin limits if polar angle range is shifted
-
-            # set bin limits  based on percentiles of data, but use
-            # default limits for theta (since it's periodic)
-            bins: list[np.ndarray] = []
-            centers: list[np.ndarray] = []
-            for col_name in column_names:
-                if col_name == ColumnName.POLAR_ANGLE:
-                    bins_col, centers_col = get_bins(
-                        bin_widths=(BIN_WIDTHS_DYNAMICS[col_name],),
-                        bin_limits=[global_bin_limits_dict[col_name]],
-                    )
-                    bins.extend(bins_col)
-                    centers.extend(centers_col)
-                else:
-                    bins_col, centers_col = get_bins(
-                        bin_widths=(BIN_WIDTHS_DYNAMICS[col_name],),
-                        data=df_[col_name].to_numpy(),
-                        lower_percentile=BIN_LIMIT_PERCENTILE_CUTOFF,
-                        upper_percentile=100 - BIN_LIMIT_PERCENTILE_CUTOFF,
-                    )
-                    bins.extend(bins_col)
-                    centers.extend(centers_col)
-
             # compute MSD for each feature via Kramers-Moyal coefficient
             # estimation method
-            for i, column_name in enumerate(column_names):
+            for column_name in column_names:
                 msd_vals = np.nan * np.ones_like(dt_array, dtype=float)
 
                 kernel = KramersMoyalKernel(
@@ -225,6 +200,24 @@ def main(
                     bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
                     period=polar_angle_period if column_name == ColumnName.POLAR_ANGLE else None,
                 )
+                # get bins and centers for this feature, using percentile-based
+                # limits for non-polar angle features and fixed limits for polar
+                # angle feature
+                if column_name == ColumnName.POLAR_ANGLE:
+                    bins, centers = get_bins(
+                        bin_widths=(BIN_WIDTHS_DYNAMICS[column_name],),
+                        bin_limits=[global_bin_limits_dict[column_name]],
+                    )
+                else:
+                    bins, centers = get_bins(
+                        bin_widths=(BIN_WIDTHS_DYNAMICS[column_name],),
+                        data=df_[column_name].to_numpy(),
+                        lower_percentile=BIN_LIMIT_PERCENTILE_CUTOFF,
+                        upper_percentile=100 - BIN_LIMIT_PERCENTILE_CUTOFF,
+                    )
+
+                # loop over time lags and compute the MSD for each time lag
+                # using the Kramers-Moyal coefficient estimation method
                 for j, time_lag in enumerate(dt_array):
                     traj_list, d_traj_list = get_traj_and_diff(
                         df_,
@@ -241,7 +234,7 @@ def main(
                     diffusion = get_kramers_moyal_coeffs(
                         traj_list,
                         d_traj_list,
-                        bins=[bins[i]],
+                        bins=bins,
                         dt=1,
                         kernel=kernel,
                     )[-1]
@@ -254,10 +247,10 @@ def main(
                     # (weighing by the probability density of points in each bin)
                     prob_density = get_kernel_density_estimate(
                         traj_list,
-                        bins=[bins[i]],
+                        bins=bins,
                         kernel=kernel,
                     )
-                    msd_weighted_mean = np.trapz(msd_all * prob_density, x=centers[i])
+                    msd_weighted_mean = np.trapz(msd_all * prob_density, x=centers[0])
                     msd_vals[j] = msd_weighted_mean
 
                 # plot msd vs dt on log-log scale
