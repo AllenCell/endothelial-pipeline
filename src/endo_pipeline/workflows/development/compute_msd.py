@@ -77,7 +77,6 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
-        list_datasets_with_dataframes,
         load_dataframe_manifest,
         load_model_manifest,
     )
@@ -133,13 +132,8 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
     )
     pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_for_pca, num_pcs=3)
 
-    # Default list of datasets if not provided, only include datasets available in
-    # the provided dataframe manifest
-    valid_dataset_options = list_datasets_with_dataframes(dataframe_manifest)
-    if datasets is not None:
-        dataset_names = [ds for ds in datasets if ds in valid_dataset_options]
-    else:
-        dataset_names = get_datasets_in_collection("timelapse", valid_dataset_options)
+    # Load default list of datasets if not provided
+    dataset_names = datasets or get_datasets_in_collection("timelapse")
 
     if DEMO_MODE:
         dataset_names = dataset_names[:1]
@@ -155,6 +149,13 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
     # plot summary plots
     # compute drift and diffusion coefficients in polar coordinates
     for dataset_name in dataset_names:
+        if dataset_name not in dataframe_manifest.locations:
+            logger.warning(
+                "Dataset [ %s ] does not have dataframe for crop pattern [ %s ], skipping.",
+                dataset_name,
+                crop_pattern,
+            )
+            continue
         dataset_config = load_dataset_config(dataset_name)
         fig_savedir = get_output_path(workflow_savedir_name, crop_pattern, dataset_name)
 
