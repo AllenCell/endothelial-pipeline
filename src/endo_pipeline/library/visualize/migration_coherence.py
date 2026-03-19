@@ -10,10 +10,15 @@ from scipy.stats import binned_statistic_2d
 from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
 from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP,
+    MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
+    MIGRATION_COHERENCE_COLORMAP_FIGSIZE,
+    MIGRATION_COHERENCE_COLORMAP_VMAX,
+    MIGRATION_COHERENCE_COLORMAP_VMIN,
     MIGRATION_COHERENCE_HIST_BINWIDTH,
     MIGRATION_COHERENCE_HIST_FIGSIZE,
     MIGRATION_COHERENCE_HIST_NUM_BINS,
     MIGRATION_COHERENCE_HIST_PLOT_KDE,
+    MIGRATION_COHERENCE_SCATTER_POINT_SIZE,
 )
 
 logger = logging.getLogger(__name__)
@@ -94,10 +99,12 @@ def plot_scatter_and_binned_heatmap(
     y_col: str,
     color_col: str,
     colormap: str = MIGRATION_COHERENCE_COLORMAP,
-    vmin: float | None = None,
-    vmax: float | None = None,
-    x_bin_size: float = 0.25,
-    y_bin_size: float = 0.25,
+    vmin: float | None = MIGRATION_COHERENCE_COLORMAP_VMIN,
+    vmax: float | None = MIGRATION_COHERENCE_COLORMAP_VMAX,
+    x_bin_size: float = MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
+    y_bin_size: float = MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
+    figsize: tuple[float, float] = MIGRATION_COHERENCE_COLORMAP_FIGSIZE,
+    scatter_point_size: float = MIGRATION_COHERENCE_SCATTER_POINT_SIZE,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
     Plot scatter and binned mean heatmap over the same x and y columns, colored
@@ -157,10 +164,10 @@ def plot_scatter_and_binned_heatmap(
     if vmax is None:
         vmax = np.nanmax(z)
 
-    fig, axs = plt.subplots(1, 2, figsize=(10, 5))
+    fig, axs = plt.subplots(1, 2, figsize=figsize)
 
     # Left: scatter plot
-    axs[0].scatter(x, y, c=z, cmap=cmap, s=5, vmin=vmin, vmax=vmax)
+    axs[0].scatter(x, y, c=z, cmap=cmap, s=scatter_point_size, vmin=vmin, vmax=vmax)
     axs[0].set_xlabel(x_col)
     axs[0].set_ylabel(y_col)
 

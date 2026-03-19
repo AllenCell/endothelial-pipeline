@@ -185,10 +185,6 @@ def main(
                     x_col=x_col,
                     y_col=y_col,
                     color_col=optical_flow_feature,
-                    vmax=1,
-                    vmin=0,
-                    x_bin_size=0.25,
-                    y_bin_size=0.25,
                 )
                 plt.suptitle(plot_label)
                 plt.tight_layout()

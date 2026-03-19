@@ -43,5 +43,20 @@ MIGRATION_COHERENCE_HIST_BINWIDTH: float = 0.02
 MIGRATION_COHERENCE_HIST_PLOT_KDE: bool = True
 """Whether to plot a kernel density estimate on migration coherence histogram plots."""
 
+MIGRATION_COHERENCE_COLORMAP_FIGSIZE: tuple[float, float] = (10, 5)
+"""Figure size (width, height) in inches for migration coherence colormap plots."""
+
+MIGRATION_COHERENCE_SCATTER_POINT_SIZE: float = 5
+"""Point size for scatter points in migration coherence colormap plots."""
+
+MIGRATION_COHERENCE_COLORMAP_BIN_SIZE: float = 0.25
+"""Bin size for binned mean colormap in migration coherence analyses."""
+
+MIGRATION_COHERENCE_COLORMAP_VMIN: float = 0
+"""Minimum value to use for migration coherence colormap plots."""
+
+MIGRATION_COHERENCE_COLORMAP_VMAX: float = 1
+"""Maximum value to use for migration coherence colormap plots."""
+
 MIGRATION_COHERENCE_COLORMAP: str = "cool"
 """Colormap to use for visualizing migration coherence features."""
