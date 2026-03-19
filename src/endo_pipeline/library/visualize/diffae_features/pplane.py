@@ -396,7 +396,7 @@ def make_legend_handles_for_fixed_pts(
     face_color_dict: dict[str, str] = STABILITY_COLOR_DICT,
     marker_dict: dict[str, str] = STABILITY_MARKER_DICT,
     marker_size: int = 10,
-    edge_color: str | None = "black",
+    edge_color: str = "black",
 ) -> list[StabilityLegendHandle]:
     """
     Make a custom legend for the fixed point types, nullclines and trajectories.
@@ -416,8 +416,7 @@ def make_legend_handles_for_fixed_pts(
     marker_dict
         Dictionary mapping stability labels to marker styles.
     edge_color
-        Optional, color of the marker edges. If None, assumes same color as face
-        color.
+        Color of the marker edges.
 
     Returns
     -------
@@ -586,15 +585,20 @@ def phase_portrait(
     # as reported by classify_fps
     # this might be something
     # to write as a separate function
-    my_handles = make_legend_handles_for_fixed_pts(fpt_stabilities)
+    fpt_handles = make_legend_handles_for_fixed_pts(fpt_stabilities)
 
+    additional_handles = []
     if nullclines:
-        my_handles.append(Line2D([], [], label="nullclines", color="black", linestyle="dashed"))
+        additional_handles.append(
+            Line2D([], [], label="nullclines", color="black", linestyle="dashed")
+        )
 
     if inits is not None:
-        my_handles.append(Line2D([], [], label="trajectories", color="blue", linestyle="-"))
+        additional_handles.append(Line2D([], [], label="trajectories", color="blue", linestyle="-"))
 
-    if len(my_handles) > 0:
-        ax.legend(handles=my_handles, bbox_to_anchor=(1.02, 1.01), loc="upper left")
+    if len(fpt_handles) > 0 or len(additional_handles) > 0:
+        ax.legend(
+            handles=fpt_handles + additional_handles, bbox_to_anchor=(1.02, 1.01), loc="upper left"
+        )
 
     return fig, ax
