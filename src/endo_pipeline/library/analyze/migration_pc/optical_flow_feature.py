@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from endo_pipeline.io import load_dataframe
+from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.migration_coherence import (
@@ -52,6 +53,7 @@ def add_optical_flow_features(
         ColumnName.START_X.value,
         ColumnName.START_Y.value,
     ]
+    check_required_columns_in_dataframe(df, merge_columns_)
     dataframe_manifest_optical_flow = load_dataframe_manifest(optical_flow_manifest_name)
 
     merged_dfs = []
@@ -64,6 +66,9 @@ def add_optical_flow_features(
             dataframe_manifest_optical_flow, dataset_name
         )
         df_optical_flow = load_dataframe(optical_flow_location)
+        check_required_columns_in_dataframe(
+            df_optical_flow, merge_columns_ + optical_flow_feature_columns
+        )
         # if dtype of position is str, convert to int for merging
         # take [1:] and convert to int (e.g. "P1" -> 1)
         if not isinstance(df_optical_flow[ColumnName.POSITION].dtype, np.int64):
