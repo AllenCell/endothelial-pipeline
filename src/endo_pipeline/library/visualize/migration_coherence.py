@@ -9,7 +9,6 @@ from scipy.stats import binned_statistic_2d
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
-from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP
 
@@ -19,6 +18,7 @@ logger = logging.getLogger(__name__)
 def plot_optical_flow_feature_distribution(
     df: pd.DataFrame,
     optical_flow_feature: str,
+    hist_color: str,
     plot_label: str,
     binwidth: float = 0.02,
     bins: int = 50,
@@ -35,6 +35,8 @@ def plot_optical_flow_feature_distribution(
         *optical_flow_feature*.
     optical_flow_feature : str
         Column name of the optical-flow feature to plot.
+    hist_color : str
+        Color for the histogram bars, passed to the Seaborn histplot `color` parameter.
     plot_label : str
         Label for the plot legend.
     binwidth : float, default=0.02
@@ -50,10 +52,8 @@ def plot_optical_flow_feature_distribution(
 
     check_required_columns_in_dataframe(
         df,
-        required_columns=[ColumnName.DATASET, optical_flow_feature],
+        required_columns=[optical_flow_feature],
     )
-    dataset_name = df[ColumnName.DATASET].iloc[0]
-    color = get_dataset_color(dataset_name)
 
     sns.histplot(
         df[optical_flow_feature],
@@ -62,7 +62,7 @@ def plot_optical_flow_feature_distribution(
         label=plot_label,
         binwidth=binwidth,
         ax=ax,
-        color=color,
+        color=hist_color,
     )
 
     ax.set_xlabel(optical_flow_feature)

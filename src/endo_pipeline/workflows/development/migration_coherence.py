@@ -24,6 +24,7 @@ def main(
     from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
         add_optical_flow_features,
     )
+    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
     from endo_pipeline.library.visualize.diffae_features.pplane import (
         make_legend_handles_for_fixed_pts,
     )
@@ -116,9 +117,11 @@ def main(
         for df_flow, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
             plot_label = f"{dataset_name}, ({shear_stress} dyn/cm$^2$)"
+            hist_color = get_dataset_color(dataset_name)
             fig_dist, _ = plot_optical_flow_feature_distribution(
                 df=df_flow,
                 optical_flow_feature=optical_flow_feature,
+                hist_color=hist_color,
                 plot_label=plot_label,
             )
             save_plot_to_path(
