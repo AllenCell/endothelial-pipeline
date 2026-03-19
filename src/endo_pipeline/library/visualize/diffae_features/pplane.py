@@ -441,11 +441,11 @@ def make_legend_handles_for_fixed_pts(
     for stability in fpt_stabilities_sorted:
         my_handles.append(
             StabilityLegendHandle(
-                label=stability,
+                legend_label=stability,
                 marker=marker_dict[stability],
-                facecolor=face_color_dict[stability],
-                edgecolor=edge_color,
-                markersize=marker_size,
+                face_color=face_color_dict[stability],
+                edge_color=edge_color,
+                marker_size=marker_size,
             )
         )
 
