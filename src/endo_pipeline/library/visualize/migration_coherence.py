@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib.lines import Line2D
 from scipy.stats import binned_statistic_2d, binned_statistic_dd
 
 from endo_pipeline.configs import load_dataset_config
@@ -296,7 +297,6 @@ def plot_3d_scatter_or_binned(
         cbar_label = f"mean {color_col}"
 
     # Overlay fixed points
-    from matplotlib.lines import Line2D
 
     legend_handles = []
     for _, row in df_fp.iterrows():
