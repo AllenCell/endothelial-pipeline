@@ -171,10 +171,7 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
             minimum_track_length=MINIMUM_MSD_TRACK_LENGTH if crop_pattern == "tracked" else None,
         )
 
-        df_by_flow, shear_stress_list = split_dataset_by_flow(
-            df,
-            dataset_config,
-        )
+        df_by_flow, shear_stress_list = split_dataset_by_flow(df, dataset_config)
 
         for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
             dt_array = np.arange(1, MAX_MSD_LAG + 1)
