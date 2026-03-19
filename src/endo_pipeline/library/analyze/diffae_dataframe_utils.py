@@ -1159,6 +1159,33 @@ def split_dataset_by_flow(
     return data_all, shear_list
 
 
+def _take_dataframe_column_diff(
+    dataframe_column: pd.Series | pd.DataFrame, diff_step: int, fillna_value: float | None = None
+) -> pd.Series | pd.DataFrame:
+    """
+    Helper function to take the difference along a columns of a DataFrame, given
+    a specified step size.
+
+    The returned Series or DataFrame will contain the differences along the
+    input column(s), with NaN values at the end where the difference could not
+    be computed due to shifting. If a fillna_value is provided, NaN values will
+    be replaced with the fillna_value.
+
+    Parameters
+    ----------
+    dataframe_column
+        A column of a DataFrame.
+    diff_step
+        The number of rows ahead to take the difference with.
+    fillna_value
+        Optional, value to fill NaN values with after taking the difference.
+    """
+    diffed_column = dataframe_column.diff(periods=diff_step).shift(-diff_step)
+    if fillna_value is not None:
+        diffed_column = diffed_column.fillna(fillna_value)
+    return diffed_column
+
+
 def compute_forward_differences_along_trajectory(
     df_traj: pd.DataFrame,
     column_names: list,
@@ -1212,13 +1239,15 @@ def compute_forward_differences_along_trajectory(
 
     # add column giving difference in timepoint between rows separated by
     # time_lag convert NaN to 0 -- occurs at end of trajectory
-    df_traj[timepoint_diff_column] = (
-        df_traj[ColumnName.TIMEPOINT].diff(periods=time_lag).shift(-time_lag).fillna(0)
+    df_traj[timepoint_diff_column] = _take_dataframe_column_diff(
+        df_traj[ColumnName.TIMEPOINT], time_lag, fillna_value=0
     )
 
     # add columns giving difference in feature values between consecutive
     # dataframe rows
-    df_traj[diff_column_names] = df_traj[column_names].diff(periods=time_lag).shift(-time_lag)
+    df_traj[diff_column_names] = _take_dataframe_column_diff(
+        df_traj[column_names], time_lag, fillna_value=0
+    )
 
     # if one of the column names is `polar_theta`, need to replace with the
     # circular difference for angular data instead of simple difference
@@ -1227,8 +1256,8 @@ def compute_forward_differences_along_trajectory(
         df_traj[f"{ColumnName.POLAR_ANGLE}_unwrapped"] = np.unwrap(
             df_traj[ColumnName.POLAR_ANGLE].values, period=polar_angle_period
         )
-        df_traj[angle_diff_column] = (
-            df_traj[f"{ColumnName.POLAR_ANGLE}_unwrapped"].diff(periods=time_lag).shift(-time_lag)
+        df_traj[angle_diff_column] = _take_dataframe_column_diff(
+            df_traj[f"{ColumnName.POLAR_ANGLE}_unwrapped"], time_lag, fillna_value=0
         )
         df_traj.drop(columns=[f"{ColumnName.POLAR_ANGLE}_unwrapped"], inplace=True)
 
