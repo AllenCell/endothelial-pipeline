@@ -7,9 +7,7 @@ import pandas as pd
 import seaborn as sns
 from scipy.stats import binned_statistic_2d
 
-from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP,
     MIGRATION_COHERENCE_HIST_BINWIDTH,
@@ -92,7 +90,6 @@ def plot_optical_flow_feature_distribution(
 
 def plot_scatter_and_binned_heatmap(
     df: pd.DataFrame,
-    dataset_name: str,
     x_col: str,
     y_col: str,
     color_col: str,
@@ -102,19 +99,30 @@ def plot_scatter_and_binned_heatmap(
     x_bin_size: float = 0.25,
     y_bin_size: float = 0.25,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
-    """Plot scatter (left) and binned mean heatmap (right) side by side.
+    """
+    Plot scatter and binned mean heatmap over the same x and y columns, colored
+    by a specified feature column.
 
-    The left panel shows a per-point scatter colored by *color_col* and the
-    right panel shows the mean of *color_col* within 2-D bins.
+    **Dataframe columns and plot description**
+
+    The input dataframe must contain the columns specified in `x_col`, `y_col`,
+    and `color_col`.
+
+    The left panel of the plot is a per-point scatter of `x_col` vs `y_col`
+    colored by `color_col`. The right panel shows the mean of `color_col` within
+    2-D bins of `x_col` and `y_col`, where the bin sizes are specified by
+    `x_bin_size` and `y_bin_size`.
+
+    Both panels share the same x and y limits, which are determined by the range
+    of the data in `x_col` and `y_col`.
+
+    The color scale for both panels is determined by the range of values in
+    `color_col`.
 
     Parameters
     ----------
     df
-        Dataframe containing columns *x_col*, *y_col*, *color_col*, and
-        ``"dataset"``.
-    dataset_name
-        Dataset identifier used to filter rows and label the figure title with
-        the corresponding shear-stress condition.
+        Dataframe containing columns for plotting.
     x_col
         Column name for the x-axis of both panels.
     y_col
@@ -137,13 +145,12 @@ def plot_scatter_and_binned_heatmap(
 
     check_required_columns_in_dataframe(
         df,
-        required_columns=[x_col, y_col, color_col, ColumnName.DATASET],
+        required_columns=[x_col, y_col, color_col],
     )
     cmap = plt.get_cmap(colormap)
-    df_plot = df[(df[ColumnName.DATASET] == dataset_name) & df[color_col].notna()]
-    x = df_plot[x_col].to_numpy()
-    y = df_plot[y_col].to_numpy()
-    z = df_plot[color_col].to_numpy()
+    x = df[x_col].to_numpy()
+    y = df[y_col].to_numpy()
+    z = df[color_col].to_numpy()
 
     if vmin is None:
         vmin = np.nanmin(z)
@@ -183,12 +190,4 @@ def plot_scatter_and_binned_heatmap(
     cax = axs[1].inset_axes([1.05, 0, 0.05, 1])
     fig.colorbar(im, cax=cax, label=color_col)
 
-    dataset_config = load_dataset_config(dataset_name)
-    flow_conditions = dataset_config.flow_conditions
-    shear_stress_values = [fc.shear_stress for fc in flow_conditions]
-    shear_stress_label = "-".join(f"{v:g}" for v in shear_stress_values)
-    title = f"{dataset_name}, {shear_stress_label} dyn/cm^2"
-
-    plt.suptitle(title)
-    plt.tight_layout()
     return fig, axs

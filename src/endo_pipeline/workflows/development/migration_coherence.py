@@ -182,7 +182,6 @@ def main(
                 )
                 fig, axs = plot_scatter_and_binned_heatmap(
                     df=df_flow,
-                    dataset_name=dataset_name,
                     x_col=x_col,
                     y_col=y_col,
                     color_col=optical_flow_feature,
@@ -191,6 +190,8 @@ def main(
                     x_bin_size=0.25,
                     y_bin_size=0.25,
                 )
+                plt.suptitle(plot_label)
+                plt.tight_layout()
                 save_plot_to_path(
                     fig,
                     output_dir,
