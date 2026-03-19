@@ -390,6 +390,73 @@ def plot_flow(ax: plt.Axes, my_flow: Callable, x: list[np.ndarray], num_grid: in
     return ax
 
 
+def make_legend_handles_for_fixed_pts(fpt_stabilities: list[str]) -> list[Line2D]:
+    """
+    Make a custom legend for the fixed point types, nullclines and trajectories.
+
+    Parameters
+    ----------
+    fpt_stabilities
+        List of stability labels for the fixed points.
+
+    Returns
+    -------
+    :
+        List of Line2D objects representing the legend handles for the fixed point types.
+    """
+    my_handles = []
+    if StabilityLabel.STABLE in fpt_stabilities:
+        my_handles.append(
+            Line2D(
+                [],
+                [],
+                label=StabilityLabel.STABLE,
+                marker=STABILITY_MARKER_DICT[StabilityLabel.STABLE],
+                markerfacecolor=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
+                markeredgecolor=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
+                linestyle="",
+            )
+        )
+    if StabilityLabel.UNSTABLE in fpt_stabilities:
+        my_handles.append(
+            Line2D(
+                [],
+                [],
+                label=StabilityLabel.UNSTABLE,
+                marker=STABILITY_MARKER_DICT[StabilityLabel.UNSTABLE],
+                markerfacecolor=STABILITY_COLOR_DICT[StabilityLabel.UNSTABLE],
+                markeredgecolor=STABILITY_COLOR_DICT[StabilityLabel.UNSTABLE],
+                linestyle="",
+            )
+        )
+    if StabilityLabel.SADDLE in fpt_stabilities:
+        my_handles.append(
+            Line2D(
+                [],
+                [],
+                label=StabilityLabel.SADDLE,
+                marker=STABILITY_MARKER_DICT[StabilityLabel.SADDLE],
+                markerfacecolor=STABILITY_COLOR_DICT[StabilityLabel.SADDLE],
+                markeredgecolor=STABILITY_COLOR_DICT[StabilityLabel.SADDLE],
+                linestyle="",
+            )
+        )
+    if StabilityLabel.INDETERMINATE in fpt_stabilities:
+        my_handles.append(
+            Line2D(
+                [],
+                [],
+                label=StabilityLabel.INDETERMINATE,
+                marker=STABILITY_MARKER_DICT[StabilityLabel.INDETERMINATE],
+                markerfacecolor=STABILITY_COLOR_DICT[StabilityLabel.INDETERMINATE],
+                markeredgecolor=STABILITY_COLOR_DICT[StabilityLabel.INDETERMINATE],
+                linestyle="",
+            )
+        )
+
+    return my_handles
+
+
 def phase_portrait(
     f1: Callable,
     f2: Callable,
@@ -506,55 +573,7 @@ def phase_portrait(
     # as reported by classify_fps
     # this might be something
     # to write as a separate function
-    my_handles = []
-    if StabilityLabel.STABLE in fpt_stabilities:
-        my_handles.append(
-            Line2D(
-                [],
-                [],
-                label="stable",
-                marker="o",
-                markerfacecolor="g",
-                markeredgecolor="g",
-                linestyle="",
-            )
-        )
-    if StabilityLabel.UNSTABLE in fpt_stabilities:
-        my_handles.append(
-            Line2D(
-                [],
-                [],
-                label="unstable",
-                marker="s",
-                markerfacecolor="r",
-                markeredgecolor="r",
-                linestyle="",
-            )
-        )
-    if StabilityLabel.SADDLE in fpt_stabilities:
-        my_handles.append(
-            Line2D(
-                [],
-                [],
-                label="saddle",
-                marker="P",
-                markerfacecolor="tab:purple",
-                markeredgecolor="tab:purple",
-                linestyle="",
-            )
-        )
-    if StabilityLabel.INDETERMINATE in fpt_stabilities:
-        my_handles.append(
-            Line2D(
-                [],
-                [],
-                label="indet.",
-                marker="p",
-                markerfacecolor="darkgoldenrod",
-                markeredgecolor="darkgoldenrod",
-                linestyle="",
-            )
-        )
+    my_handles = make_legend_handles_for_fixed_pts(fpt_stabilities)
 
     if nullclines:
         my_handles.append(Line2D([], [], label="nullclines", color="black", linestyle="dashed"))
