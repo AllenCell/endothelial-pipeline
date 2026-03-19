@@ -4,9 +4,7 @@ import numpy as np
 from scipy import stats
 from skimage.registration import optical_flow_tvl1
 
-from endo_pipeline.settings.workflow_defaults import OPTICAL_FLOW_BASE_FEATURES
-
-from .config import COHERENCE_BOX_SIZES
+from endo_pipeline.settings.optical_flow import COHERENCE_BOX_SIZES, OPTICAL_FLOW_BASE_FEATURES
 
 logger = logging.getLogger(__name__)
 
@@ -42,34 +40,6 @@ def _block_average_flow(
     u_b = u[:Ht, :Wt].reshape(Ht // box, box, Wt // box, box).mean(axis=(1, 3))
     v_b = v[:Ht, :Wt].reshape(Ht // box, box, Wt // box, box).mean(axis=(1, 3))
     return u_b, v_b
-
-
-def _speed_weighted_circ_std(
-    angles: np.ndarray,
-    speeds: np.ndarray,
-) -> float:
-    """Compute speed-weighted circular standard deviation.
-
-    Parameters
-    ----------
-    angles
-        1-D array of angles in radians.
-    speeds
-        1-D array of speeds (used as weights).  Must be non-negative.
-
-    Returns
-    -------
-    float
-        Speed-weighted circular standard deviation (radians).  Returns
-        ``nan`` if total weight is zero.
-    """
-    total_w = speeds.sum()
-    if total_w == 0:
-        return np.nan
-    C = np.sum(speeds * np.cos(angles)) / total_w
-    S = np.sum(speeds * np.sin(angles)) / total_w
-    R_bar = min(np.sqrt(C**2 + S**2), 1.0)
-    return float(np.sqrt(-2.0 * np.log(R_bar)))
 
 
 # ---------------------------------------------------------------------------
@@ -280,7 +250,7 @@ def compute_image_pair_flow(
     This is the *image-scope* strategy: TVL1 runs once on the full image
     and the resulting flow field is sliced per crop.  Compared to the
     crop-scope approach (:func:`compute_crop_flow`), this avoids
-    boundary artefacts and is faster when many crops share one image.
+    boundary artifacts and is faster when many crops share one image.
 
     Parameters
     ----------

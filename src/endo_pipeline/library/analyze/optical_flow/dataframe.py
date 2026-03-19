@@ -1,11 +1,11 @@
 """DataFrame wrangling — crop grids, pivoting, column names."""
 
+from collections.abc import Sequence
+
 import pandas as pd
 
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
-from endo_pipeline.settings.workflow_defaults import OPTICAL_FLOW_BASE_FEATURES
-
-from .config import COHERENCE_BOX_SIZES
+from endo_pipeline.settings.optical_flow import COHERENCE_BOX_SIZES, OPTICAL_FLOW_BASE_FEATURES
 
 
 # ---------------------------------------------------------------------------
@@ -14,14 +14,15 @@ from .config import COHERENCE_BOX_SIZES
 def build_optical_flow_feature_cols(
     max_dt: int,
     compute_block_coherence: bool = False,
+    base_features: Sequence[str] = OPTICAL_FLOW_BASE_FEATURES,
+    coherence_box_sizes: Sequence[int] = COHERENCE_BOX_SIZES,
 ) -> list[str]:
     """Return all optical-flow column names for dt = 1..max_dt.
 
-    Generates the Cartesian product of base feature names (from
-    ``OPTICAL_FLOW_BASE_FEATURES``) and temporal strides 1..max_dt,
-    yielding names like ``optical_flow_mean_speed_dt1``.  When
-    *compute_block_coherence* is True, also includes
-    ``optical_flow_angle_std_box{N}_dt{d}`` columns.
+    Generates the Cartesian product of *base_features* and temporal
+    strides 1..max_dt, yielding names like
+    ``optical_flow_mean_speed_dt1``.  When *compute_block_coherence* is
+    True, also includes ``optical_flow_angle_std_box{N}_dt{d}`` columns.
 
     Parameters
     ----------
@@ -29,14 +30,20 @@ def build_optical_flow_feature_cols(
         Maximum temporal gap (inclusive).
     compute_block_coherence
         If True, include block-averaged coherence column names.
+    base_features
+        Base feature names.  Defaults to
+        :data:`~endo_pipeline.settings.optical_flow.OPTICAL_FLOW_BASE_FEATURES`.
+    coherence_box_sizes
+        Box sizes for multi-scale coherence columns.  Defaults to
+        :data:`~endo_pipeline.settings.optical_flow.COHERENCE_BOX_SIZES`.
 
     Returns
     -------
         List of ``{feature}_dt{d}`` column names.
     """
-    features = list(OPTICAL_FLOW_BASE_FEATURES)
+    features = list(base_features)
     if compute_block_coherence:
-        features += [f"optical_flow_angle_std_box{box}" for box in COHERENCE_BOX_SIZES]
+        features += [f"optical_flow_angle_std_box{box}" for box in coherence_box_sizes]
     return [f"{f}_dt{d}" for d in range(1, max_dt + 1) for f in features]
 
 

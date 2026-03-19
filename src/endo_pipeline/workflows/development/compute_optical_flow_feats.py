@@ -1,10 +1,12 @@
 import logging
 import os
-from collections.abc import Sequence
 from pathlib import Path
+from typing import Literal
 
 from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import TimepointAnnotation
+from endo_pipeline.settings import DIFFAE_ZARR_RESOLUTION_LEVEL
+from endo_pipeline.settings.optical_flow import DEFAULT_OPTICAL_FLOW_MAX_DT
 
 logger = logging.getLogger(__name__)
 
@@ -12,25 +14,46 @@ logger = logging.getLogger(__name__)
 # Demo-mode limits
 # ---------------------------------------------------------------------------
 _DEMO_MAX_DATASETS: int = 2
+"""Maximum number of datasets processed in demo mode."""
+
 _DEMO_MAX_POSITIONS: int = 1
+"""Maximum number of positions per dataset in demo mode."""
+
 _DEMO_MAX_FRAMES: int = 5
+"""Maximum number of timepoints cached per position in demo mode."""
+
+# ---------------------------------------------------------------------------
+# Concurrency
+# ---------------------------------------------------------------------------
+_IO_WORKERS: int = 16
+"""Concurrent I/O workers for dask compute and ThreadPoolExecutor.
+
+Determined empirically on compute nodes (512 GB RAM, 128 physical /
+256 logical CPU cores, 4x A100 80 GB GPUs).  TVL1 is pinned to one
+thread per call (OMP_NUM_THREADS=1), so the bottleneck is NFS read
+throughput rather than CPU.  At 16 concurrent workers, each holding
+~0.5 GB per frame, peak memory is ~8 GB — well within budget — while
+NFS throughput is fully saturated; beyond 16 workers wall-clock time
+plateaus but memory grows linearly with no additional speedup.
+"""
 
 
 def main(  # noqa: C901
     datasets: Datasets | None = None,
     positions: list[int] | None = None,
-    channel: Sequence[str] = ("BF",),
-    level: int | None = None,
+    channel: Literal["BF", "EGFP"] = "BF",
+    level: int = DIFFAE_ZARR_RESOLUTION_LEVEL,
     annotations_to_exclude: list[TimepointAnnotation] | None = None,
-    max_dt: int | None = None,
+    max_dt: int = DEFAULT_OPTICAL_FLOW_MAX_DT,
     intensity_percentile: int | None = None,
     n_jobs: int = os.cpu_count() // 6,
-    flow_scope: str = "image",
-    upload: bool = True,
-    visualize: bool = False,
+    n_io_workers: int = _IO_WORKERS,
+    flow_scope: Literal["image", "crop"] = "image",
+    upload_to_fms: bool = False,
+    visualize_optical_flow: bool = False,
     include_cell_piling: bool = False,
     include_pre_steady_state: bool = False,
-    include_all: bool = False,
+    include_all_conditions: bool = False,
     compute_block_coherence: bool = False,
 ) -> None:
     """Optical-flow feature extraction with multi-scale temporal coherence.
@@ -78,9 +101,9 @@ def main(  # noqa: C901
         Position indices to process (e.g. ``[0, 1]``).
         ``None`` processes all positions in each dataset.
     channel
-        Imaging channel(s) to load (e.g. ("EGFP",) or ("BF",)).
+        Imaging channel to load (``"BF"`` or ``"EGFP"``).
     level
-        Zarr resolution level.  None -> use DIFFAE_ZARR_RESOLUTION_LEVEL.
+        Zarr resolution level.  Defaults to ``DIFFAE_ZARR_RESOLUTION_LEVEL``.
     annotations_to_exclude
         Explicit list of timepoint annotations to exclude.  When ``None``
         (default), the list is built from *include_cell_piling* and
@@ -89,19 +112,23 @@ def main(  # noqa: C901
         annotations).  Passing a non-empty list overrides both boolean
         flags.
     max_dt
-        Maximum temporal gap (inclusive).  None -> DEFAULT_OPTICAL_FLOW_MAX_DT.
+        Maximum temporal gap (inclusive).  Defaults to ``DEFAULT_OPTICAL_FLOW_MAX_DT``.
     intensity_percentile
         Pixels below this percentile (computed across all cached frames)
         are masked out.  None -> auto-select based on channel
         (EGFP -> 95, BF -> 0).
     n_jobs
         Parallel workers used in "crop" flow scope (joblib/loky).
+    n_io_workers
+        Concurrent I/O workers for dask frame loading and
+        ``ThreadPoolExecutor`` in image-scope flow.  Default ``_IO_WORKERS`` (16).
     flow_scope
         "image" or "crop" (see Flow scopes above).
-    upload
+    upload_to_fms
         If True, save parquet, upload to FMS, and register in the
-        dataframe manifest.
-    visualize
+        dataframe manifest.  Default False to prevent accidental
+        uploads during development or external use.
+    visualize_optical_flow
         If True, produce diagnostic plots (R/G composite, quiver,
         speed & angle histograms) for one randomly chosen crop per
         (dataset, position) pair.  Saved to results/optical_flow/.
@@ -111,7 +138,7 @@ def main(  # noqa: C901
     include_pre_steady_state
         If True, retain timepoints before visual steady state.
         Default False (they are excluded).
-    include_all
+    include_all_conditions
         If True, bypass **all** annotation filtering — including quality
         annotations (scope errors, temp artifacts, XY/Z shifts, unfed).
         Overrides both *include_cell_piling* and *include_pre_steady_state*.
@@ -149,7 +176,7 @@ def main(  # noqa: C901
         plot_demo_summary,
         resolve_attachment,
         resolve_percentile,
-        save_and_upload,
+        save_and_upload_optical_flow_df,
     )
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
@@ -157,29 +184,24 @@ def main(  # noqa: C901
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings import DIFFAE_ZARR_RESOLUTION_LEVEL, DIMENSION_ORDER
+    from endo_pipeline.settings import DIMENSION_ORDER
     from endo_pipeline.settings.diffae_feature_dataframes import (
         DIFFAE_FEATURE_COLUMN_NAMES,
         ColumnName,
     )
-    from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_MANIFEST_NAME,
-        DEFAULT_MODEL_RUN_NAME,
+    from endo_pipeline.settings.optical_flow import (
         DEFAULT_OMP_NUM_THREADS,
         DEFAULT_OPENBLAS_NUM_THREADS,
         DEFAULT_OPTICAL_FLOW_COLLECTION,
-        DEFAULT_OPTICAL_FLOW_MAX_DT,
+    )
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
     )
 
     # Pin OpenMP to 1 thread per worker
     os.environ.setdefault("OMP_NUM_THREADS", DEFAULT_OMP_NUM_THREADS)
     os.environ.setdefault("OPENBLAS_NUM_THREADS", DEFAULT_OPENBLAS_NUM_THREADS)
-
-    # Resolve defaults that depend on settings imports
-    if level is None:
-        level = DIFFAE_ZARR_RESOLUTION_LEVEL
-    if max_dt is None:
-        max_dt = DEFAULT_OPTICAL_FLOW_MAX_DT
 
     diffae_columns_to_drop = list(DIFFAE_FEATURE_COLUMN_NAMES)
 
@@ -189,18 +211,17 @@ def main(  # noqa: C901
 
     if DEMO_MODE:
         datasets = datasets[:_DEMO_MAX_DATASETS]
-        upload = False
-        visualize = True
+        upload_to_fms = False
+        visualize_optical_flow = True
         logger.info(
             "DEMO_MODE is ON. Processing %d dataset(s), %d position(s) each, upload disabled.",
             _DEMO_MAX_DATASETS,
             _DEMO_MAX_POSITIONS,
         )
 
-    results_dir = get_output_path("optical_flow") / "plots"
-    results_dir.mkdir(parents=True, exist_ok=True)
+    results_dir = get_output_path("optical_flow", "plots")
     if annotations_to_exclude is None:
-        if include_all:
+        if include_all_conditions:
             annotations_to_exclude = []
         else:
             annotations_to_exclude = default_annotations_to_exclude(
@@ -216,13 +237,22 @@ def main(  # noqa: C901
             else "[] (no filtering)"
         ),
     )
-    assert flow_scope in ("image", "crop")
-
-    channel = list(channel)
     intensity_pctl = resolve_percentile(channel, intensity_percentile)
     attachment = resolve_attachment(channel)
     flow_columns = build_optical_flow_feature_cols(max_dt, compute_block_coherence)
-    is_bf = channel == ["BF"]
+    is_bf = channel == "BF"
+
+    # Parameters saved to the manifest for reproducibility
+    workflow_parameters: dict = {
+        "channel": channel,
+        "level": level,
+        "max_dt": max_dt,
+        "flow_scope": flow_scope,
+        "intensity_percentile": intensity_pctl,
+        "attachment": attachment,
+        "compute_block_coherence": compute_block_coherence,
+        "annotations_excluded": [a.value for a in annotations_to_exclude],
+    }
 
     logger.info(
         "Optical-flow extraction --> scope = %s | dt = 1 .. %d | percentile = %d | attachment = %.1f | channel = %s | block_coherence = %s",
@@ -302,7 +332,7 @@ def main(  # noqa: C901
                 dataset_config,
                 position,
             )
-            image_dask = load_image(zarr_path, channels=channel, level=level, compute=False)
+            image_dask = load_image(zarr_path, channels=[channel], level=level, compute=False)
             z_axis = DIMENSION_ORDER.index("Z")
             z_projection = (
                 da.log(image_dask.std(axis=z_axis) + 1e-12)
@@ -323,7 +353,7 @@ def main(  # noqa: C901
             cache_start = time.time()
             needed_indices = sorted(needed_timepoints)
             needed_frames = z_projection[needed_indices, 0].compute(
-                scheduler="threads", num_workers=16
+                scheduler="threads", num_workers=n_io_workers
             )
             frame_cache: dict[int, np.ndarray] = {}
             for j, t in enumerate(needed_indices):
@@ -394,7 +424,7 @@ def main(  # noqa: C901
                         _compute_block,
                     )
 
-                with ThreadPoolExecutor(max_workers=16) as pool:
+                with ThreadPoolExecutor(max_workers=n_io_workers) as pool:
                     futures = {
                         pool.submit(_image_pair, t0, t1, dt): (t0, dt) for t0, t1, dt in frame_pairs
                     }
@@ -424,7 +454,7 @@ def main(  # noqa: C901
                     for a in tqdm(crop_flow_args, desc=f"{dataset_name} pos={position}")
                 )
 
-            if visualize:
+            if visualize_optical_flow:
                 plot_demo_summary(
                     frame_cache,
                     crop_grid,
@@ -432,7 +462,7 @@ def main(  # noqa: C901
                     position,
                     intensity_threshold,
                     results_dir,
-                    channel,
+                    [channel],
                     flow_scope,
                     attachment,
                     compute_block_coherence,
@@ -468,8 +498,13 @@ def main(  # noqa: C901
         if dataset_parts:
             df_dataset_out = pd.concat(dataset_parts, ignore_index=True)
             all_dataset_parts.append(df_dataset_out)
-            if upload:
-                save_and_upload(dataset_name, df_dataset_out, workflow=Path(__file__).stem)
+            if upload_to_fms:
+                save_and_upload_optical_flow_df(
+                    dataset_name,
+                    df_dataset_out,
+                    workflow=Path(__file__).stem,
+                    parameters=workflow_parameters,
+                )
         logger.info("Dataset done in %.1fs", time.time() - dataset_start)
 
     df_final = pd.concat(all_dataset_parts, ignore_index=True)

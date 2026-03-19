@@ -5,9 +5,14 @@ import pandas as pd
 from scipy import stats as sp_stats
 
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.optical_flow import (
+    COHERENCE_BOX_SIZES,
+    DEMO_SCAN_N_CROPS,
+    DEMO_SCAN_N_PAIRS,
+    QUIVER_GRID_DIVISIONS,
+)
 
 from .compute import _block_average_flow, compute_tvl1
-from .config import COHERENCE_BOX_SIZES, DEMO_SCAN_N_CROPS, DEMO_SCAN_N_PAIRS, QUIVER_GRID_DIVISIONS
 
 logger = logging.getLogger(__name__)
 

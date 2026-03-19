@@ -1,48 +1,18 @@
 import logging
 
-from endo_pipeline.configs import TimepointAnnotation
-from endo_pipeline.settings.workflow_defaults import (
+from endo_pipeline.configs import TimepointAnnotation, get_subset_of_timepoint_annotations
+from endo_pipeline.settings.optical_flow import (
     OPTICAL_FLOW_CHANNEL_ATTACHMENT,
     OPTICAL_FLOW_CHANNEL_PERCENTILE,
 )
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-COHERENCE_BOX_SIZES: tuple[int, ...] = (
-    1,
-    2,
-    3,
-    5,
-    6,
-    7,
-    8,
-    9,
-    10,
-    11,
-    12,
-    13,
-    14,
-    15,
-    16,
-    17,
-    18,
-    19,
-    20,
-)
-"""Non-overlapping box sizes (in pixels) for multi-scale coherence."""
-
-DEMO_SCAN_N_CROPS: int = 6
-DEMO_SCAN_N_PAIRS: int = 10
-QUIVER_GRID_DIVISIONS: int = 8
-
 
 # ---------------------------------------------------------------------------
 # Channel-aware parameter resolution
 # ---------------------------------------------------------------------------
-def resolve_percentile(channel: list, explicit: int | None = None) -> int:
+def resolve_percentile(channel: str, explicit: int | None = None) -> int:
     """Return the intensity percentile for thresholding.
 
     If *explicit* is ``None``, look up the channel in the built-in table
@@ -51,7 +21,7 @@ def resolve_percentile(channel: list, explicit: int | None = None) -> int:
     Parameters
     ----------
     channel
-        Single-element list containing the channel name (e.g. ``["BF"]``).
+        Channel name (e.g. ``"BF"``).
     explicit
         Override value.  When provided, the channel table is ignored.
 
@@ -60,30 +30,27 @@ def resolve_percentile(channel: list, explicit: int | None = None) -> int:
         Percentile used to compute the intensity threshold.
 
     """
-    if len(channel) != 1:
-        raise ValueError(f"Optical flow operates on a single channel, got {channel}.")
     if explicit is not None:
         return explicit
-    ch = channel[0]
-    if ch not in OPTICAL_FLOW_CHANNEL_PERCENTILE:
+    if channel not in OPTICAL_FLOW_CHANNEL_PERCENTILE:
         raise ValueError(
-            f"Unknown channel {ch!r}. "
+            f"Unknown channel {channel!r}. "
             f"Supported channels: {sorted(OPTICAL_FLOW_CHANNEL_PERCENTILE)}. "
             "Pass an explicit percentile to override."
         )
-    return OPTICAL_FLOW_CHANNEL_PERCENTILE[ch]
+    return OPTICAL_FLOW_CHANNEL_PERCENTILE[channel]
 
 
-def resolve_attachment(channel: list, explicit: float | None = None) -> float:
+def resolve_attachment(channel: str, explicit: float | None = None) -> float:
     """Return the TVL1 attachment (lambda) for a given channel.
 
     If *explicit* is None, look up the channel in the built-in table
-    (EGFP -> 7.5, BF -> 25.0), else use the given value.
+    (EGFP -> 7.5, BF -> 2.5), else use the given value.
 
     Parameters
     ----------
     channel
-        Single-element list with channel name.
+        Channel name (e.g. ``"BF"``).
     explicit
         Override value.  When provided, the channel table is ignored.
 
@@ -91,18 +58,15 @@ def resolve_attachment(channel: list, explicit: float | None = None) -> float:
     -------
         Attachment value to pass to :func:`compute_tvl1`.
     """
-    if len(channel) != 1:
-        raise ValueError(f"Optical flow operates on a single channel, got {channel}.")
     if explicit is not None:
         return float(explicit)
-    ch = channel[0]
-    if ch not in OPTICAL_FLOW_CHANNEL_ATTACHMENT:
+    if channel not in OPTICAL_FLOW_CHANNEL_ATTACHMENT:
         raise ValueError(
-            f"Unknown channel {ch!r}. "
+            f"Unknown channel {channel!r}. "
             f"Supported channels: {sorted(OPTICAL_FLOW_CHANNEL_ATTACHMENT)}. "
             "Pass an explicit attachment to override."
         )
-    return OPTICAL_FLOW_CHANNEL_ATTACHMENT[ch]
+    return OPTICAL_FLOW_CHANNEL_ATTACHMENT[channel]
 
 
 # ---------------------------------------------------------------------------
@@ -114,11 +78,13 @@ def default_annotations_to_exclude(
 ) -> list[TimepointAnnotation]:
     """Build the default timepoint-annotation exclusion list.
 
-    Returns nine quality annotations (scope errors, temporary artifacts,
-    XY/Z shifts, unfed) and, depending on the boolean flags, up to two
-    lifecycle annotations (``CELL_PILING``, ``NOT_STEADY_STATE``).
+    Delegates to :func:`get_subset_of_timepoint_annotations` and passes
+    the annotations that should be *kept* (ignored from exclusion).
+    By default every annotation is excluded; the two boolean flags
+    optionally preserve ``CELL_PILING`` and ``NOT_STEADY_STATE``
+    timepoints.
 
-    Note: the caller can set ``include_all=True`` to skip this function
+    Note: the caller can set ``include_all_conditions=True`` to skip this function
     and disable all annotation filtering.
 
     Parameters
@@ -136,19 +102,9 @@ def default_annotations_to_exclude(
     -------
         Annotations whose timepoints should be filtered out.
     """
-    excl: list[TimepointAnnotation] = [
-        TimepointAnnotation.AUTO_BF_SCOPE_ERROR,
-        TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT,
-        TimepointAnnotation.AUTO_GFP_SCOPE_ERROR,
-        TimepointAnnotation.BF_SCOPE_ERROR,
-        TimepointAnnotation.BF_TEMP_ARTIFACT,
-        TimepointAnnotation.GFP_SCOPE_ERROR,
-        TimepointAnnotation.UNFED,
-        TimepointAnnotation.XY_SHIFT,
-        TimepointAnnotation.Z_SHIFT,
-    ]
-    if not include_pre_steady_state:
-        excl.append(TimepointAnnotation.NOT_STEADY_STATE)
-    if not include_cell_piling:
-        excl.append(TimepointAnnotation.CELL_PILING)
-    return excl
+    annotations_to_ignore: list[TimepointAnnotation] = []
+    if include_cell_piling:
+        annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
+    if include_pre_steady_state:
+        annotations_to_ignore.append(TimepointAnnotation.NOT_STEADY_STATE)
+    return get_subset_of_timepoint_annotations(annotations_to_ignore)
