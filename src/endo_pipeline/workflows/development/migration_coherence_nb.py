@@ -19,6 +19,7 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     load_model_manifest,
 )
+from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -74,39 +75,26 @@ for dataset_name in datasets:
         bins=50,
         kde=True,
     )
-    plot_scatter_and_binned_heatmap(
-        df=df_of,
-        dataset_name=dataset_name,
-        x_col="polar_r",
-        y_col="rho",
-        color_col=OPTICAL_FLOW_FEATURE,
-        output_dir=output_dir,
-        vmax=1,
-        vmin=0,
-        x_bin_size=0.25,
-        y_bin_size=0.25,
-    )
-    plot_scatter_and_binned_heatmap(
-        df=df_of,
-        dataset_name=dataset_name,
-        x_col="polar_r",
-        y_col="polar_theta",
-        color_col=OPTICAL_FLOW_FEATURE,
-        output_dir=output_dir,
-        vmax=1,
-        vmin=0,
-        x_bin_size=0.25,
-        y_bin_size=0.25,
-    )
-    plot_scatter_and_binned_heatmap(
-        df=df_of,
-        dataset_name=dataset_name,
-        x_col="rho",
-        y_col="polar_theta",
-        color_col=OPTICAL_FLOW_FEATURE,
-        output_dir=output_dir,
-        vmax=1,
-        vmin=0,
-        x_bin_size=0.25,
-        y_bin_size=0.25,
-    )
+    for x_col, y_col in [
+        (DYNAMICS_COLUMN_NAMES[0], DYNAMICS_COLUMN_NAMES[1]),
+        (DYNAMICS_COLUMN_NAMES[0], DYNAMICS_COLUMN_NAMES[2]),
+        (DYNAMICS_COLUMN_NAMES[1], DYNAMICS_COLUMN_NAMES[2]),
+    ]:
+        logger.info(
+            "Plotting optical flow feature over [ %s ] vs [ %s ] for dataset [ %s ]",
+            x_col,
+            y_col,
+            dataset_name,
+        )
+        plot_scatter_and_binned_heatmap(
+            df=df_of,
+            dataset_name=dataset_name,
+            x_col=x_col,
+            y_col=y_col,
+            color_col=OPTICAL_FLOW_FEATURE,
+            output_dir=output_dir,
+            vmax=1,
+            vmin=0,
+            x_bin_size=0.25,
+            y_bin_size=0.25,
+        )
