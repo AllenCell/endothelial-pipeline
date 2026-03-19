@@ -10,8 +10,6 @@ from .diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_LATENT_FEATURES,
     NUM_PCS_TO_ANALYZE,
-    CytoDLLoadDataKeys,
-    CytoDLSaveDataKeys,
 )
 from .examples import (
     CDH5_SEG_FIG_EXAMPLE,
@@ -106,8 +104,6 @@ __all__ = [
     "Z_SLICE_OFFSETS",
     "AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x",
     "ColumnName",
-    "CytoDLLoadDataKeys",
-    "CytoDLSaveDataKeys",
     "IMG_SHAPE_RESOLUTION_0_3i_X",
     "IMG_SHAPE_RESOLUTION_0_3i_Y",
     "IMG_SHAPE_RESOLUTION_1_3i_X",

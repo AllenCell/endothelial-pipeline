@@ -483,10 +483,6 @@ def merge_diffae_feats_liveseg_feats_tables(
     # add description column (e.g., 48hr_High)
     diffae_tracking_df = add_description_column(diffae_tracking_df, dataset_name, simple=True)
 
-    diffae_tracking_df[Column.POSITION] = diffae_tracking_df[Column.POSITION].transform(
-        lambda x: int(x.strip("P"))
-    )
-
     logging.debug("merging segmentation properties and track-based DiffAE data...")
     merging_cols = [
         Column.DATASET,

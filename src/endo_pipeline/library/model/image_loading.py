@@ -21,12 +21,8 @@ from endo_pipeline.configs import DatasetConfig, get_position_integer_from_zarr_
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.process.z_stack_selection import get_plane_indices
 from endo_pipeline.manifests import build_dataframe_location_from_path, get_available_zarr_locations
-from endo_pipeline.settings import (
-    DIFFAE_ZARR_RESOLUTION_LEVEL,
-    LOG_EPSILON,
-    NUM_ZSLICES,
-    CytoDLLoadDataKeys,
-)
+from endo_pipeline.settings.diffae_feature_dataframes import CytoDLLoadDataKeys
+from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL, LOG_EPSILON, NUM_ZSLICES
 
 logger = logging.getLogger(__name__)
 

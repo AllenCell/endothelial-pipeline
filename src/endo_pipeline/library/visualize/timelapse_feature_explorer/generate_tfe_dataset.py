@@ -192,7 +192,7 @@ def get_df_and_label_map_cdh5seg(
             del label_map[key]
 
     cols_to_compute: list[str] = list(
-        set(
+        {
             *DATASET_INFO_COLUMNS,
             *[
                 item
@@ -200,7 +200,7 @@ def get_df_and_label_map_cdh5seg(
                 for item in sublist
             ],
             *list(label_map.keys()),
-        )
+        }
         & set(df_tracks.columns)
     )
     df_tracks_subset: pd.DataFrame = df_tracks[cols_to_compute].compute().reset_index(drop=True)

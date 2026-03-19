@@ -47,8 +47,10 @@ class ColumnName:
     """Experimentalist categorization of the shear stress response (e.g. "low flow")."""
 
     CDH5_CHANNEL_INDEX_ZARR = "cdh5_channel_index_in_zarr"
+    """Column name for the index of the CDH5 channel in the Zarr file."""
 
     BF_CHANNEL_INDEX_ZARR = "brightfield_channel_index_zarr"
+    """Column name for the index of the brightfield channel in the Zarr file."""
 
     class DiffAEData(StrEnum):
         """Dataframe column names used in DiFFAE feature dataframes."""
@@ -116,38 +118,96 @@ class ColumnName:
         """
 
         NUM_NUCLEI_AT_TIMEPOINT = "total_nuclei_count_at_T"
+        """The total number of nuclei present at the timepoint of interest."""
 
         # DiffAE and crop-based feature columns
         NUM_NUCLEI_IN_CROP = "num_nuclei_in_crop"
+        """Number of label-free predicted nuclei in a crop at a particular timepoint."""
+
         LABELS_IN_CROP = "all_labels_in_crop"
+        """List of all cell segmentation labels present in a crop at a particular timepoint."""
+
         START_X_RES_0 = "start_x_resolution_0"
+        """x-coordinate defining the beginning of the crop at resolution level 0 (the native resolution)."""
+
         END_X_RES_0 = "end_x_resolution_0"
+        """x-coordinate defining the end of the crop at resolution level 0 (the native resolution)."""
+
         START_Y_RES_0 = "start_y_resolution_0"
+        """y-coordinate defining the beginning of the crop at resolution level 0 (the native resolution)."""
+
         END_Y_RES_0 = "end_y_resolution_0"
+        """y-coordinate defining the end of the crop at resolution level 0 (the native resolution)."""
+
         CROP_SIZE = "crop_size"
+        """Size of the crop in pixels at resolution level 0 (the native resolution)."""
+
         RESOLUTION_FOR_DIFFAE = "diffae_resolution_level_to_use"
+        """Resolution level to use for DiffAE features.
+        This is used to downsample the resolution 0 x and y coordinates and crop sizes
+        when constructing the dataframe used to extract DiffAE features from track-based
+        crops."""
 
         # temporal features: Time-related column names.
         TIME_HRS = "time_hours"
+        """The time in hours since the start of the timelapse."""
+
         TIME_MINS = "time_minutes"
+        """The time in minutes since the start of the timelapse."""
+
         NORMALIZED_TIME_PER_TRACK = "normalized_time"
+        """The time normalized to the track duration (from 0 to 1)."""
+
         TIME_HRS_SINCE_FLOW = "time_hours_since_flow_start"
+        """The time in hours since cells first start experiencing a shear stress."""
 
         # morphological features
         ORIENTATION = "orientation"
+        """Orientation of the cell in radians ranging from 0 to π, where 0
+        corresponds to the cell being oriented along the positive x-axis
+        and π means the cell is oriented along the negative x-axis.
+        """
+
         ORIENTATION_DEG = "orientation_deg"
+        """Orientation of the cell in degrees ranging from 0 to 180, where 0
+        corresponds to the cell being oriented along the positive x-axis
+        and 180 means the cell is oriented along the negative x-axis.
+        """
+
         ALIGNMENT = "alignment"
+        """Alignment of the cell orientation relative to the flow direction,
+        where 0 means the cell is aligned parallel to flow and 90 means the cell
+        is aligned perpendicular to flow."""
+
         ALIGNMENT_DEG = "alignment_deg"
+        """Alignment of the cell orientation relative to the flow direction in degrees,
+        where 0 means the cell is aligned parallel to flow and 90 means the cell
+        is aligned perpendicular to flow."""
+
         NEMATIC_ORDER = "nematic_order"
         ECCENTRICITY = "eccentricity"
         ASPECT_RATIO = "aspect_ratio"
         MAJOR_AXIS = "major_axis_length"
+        """The length of the major axis of an ellipse fitted to the cell segmentation."""
+
         MINOR_AXIS = "minor_axis_length"
+        """The length of the minor axis of an ellipse fitted to the cell segmentation."""
+
         SOLIDITY = "solidity"
+        """Solidity of the cell, defined as the ratio of the cell area to the area of its convex hull."""
+
         AREA_UM_SQ = "area_um_squared"
+        """Area of the cell segmentation in microns squared (um²)."""
+
         PERIMETER_UM = "perimeter_um"
+        """Perimeter of the cell segmentation in microns."""
+
         AREA_PX_SQ = "area_px_squared"
+        """Area of the cell segmentation in pixels squared."""
+
         PERIMETER_PX = "perimeter_px"
+        """Perimeter of the cell segmentation in pixels."""
+
         NUCLEI_POSITION_X = "nuclei_position_x"
         NUCLEI_POSITION_Y = "nuclei_position_y"
         NUCLEI_POSITION_X_UM = "nuclei_position_x_um"
@@ -161,7 +221,12 @@ class ColumnName:
 
         # fluorescence features
         EDGE_FLUOR = "edge_fluorescence_au"
+        """List of the fluorescence values along the boundary between 2 cell
+        segmentations in arbitrary units (au) (excluding pixels at nodes)."""
+
         NODE_FLUOR = "node_fluorescence_au"
+        """List of the fluorescence values at the junctions between 3 or more
+        cell segmentations (i.e. nodes) in arbitrary units (au)."""
 
         CELL_FLUOR_MEAN = "cell_fluorescence_mean_au"
         CELL_FLUOR_STD = "cell_fluorescence_std_au"
