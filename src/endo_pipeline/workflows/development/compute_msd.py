@@ -52,8 +52,7 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
     datasets
         Optional list of datasets to run the workflow on.
     crop_pattern
-        Crop pattern to use for selecting features. Must be one of the values
-        defined in the CropPattern enum.
+        Crop pattern to use for selecting features.
     """
     import logging
     from pathlib import Path
