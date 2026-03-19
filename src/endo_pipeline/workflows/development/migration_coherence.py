@@ -20,7 +20,7 @@ def main():
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -75,9 +75,9 @@ def main():
             kde=True,
         )
         for x_col, y_col in [
-            (DYNAMICS_COLUMN_NAMES[1], DYNAMICS_COLUMN_NAMES[0]),
-            (DYNAMICS_COLUMN_NAMES[2], DYNAMICS_COLUMN_NAMES[0]),
-            (DYNAMICS_COLUMN_NAMES[1], DYNAMICS_COLUMN_NAMES[2]),
+            (ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE),
+            (ColumnName.PC3_FLIPPED, ColumnName.POLAR_ANGLE),
+            (ColumnName.POLAR_RADIUS, ColumnName.PC3_FLIPPED),
         ]:
             logger.info(
                 "Plotting optical flow feature over [ %s ] vs [ %s ] for dataset [ %s ]",
