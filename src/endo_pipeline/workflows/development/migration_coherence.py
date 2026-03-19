@@ -5,7 +5,7 @@ from endo_pipeline.settings.migration_coherence import DEFAULT_MIGRATION_COHEREN
 def main(
     datasets: Datasets | None = None,
     optical_flow_feature: str = DEFAULT_MIGRATION_COHERENCE_FEATURE,
-    plot_fixed_points: bool = False,
+    plot_fixed_points: bool = True,
 ) -> None:
     import logging
 
@@ -21,12 +21,16 @@ def main(
         get_dataframe_for_dynamics_workflows,
     )
     from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
+        add_binned_mean_to_fixed_points,
         add_optical_flow_features,
+        add_shear_stress_to_df,
     )
     from endo_pipeline.library.visualize.diffae_features.pplane import (
         make_legend_handles_for_fixed_pts,
     )
     from endo_pipeline.library.visualize.migration_coherence import (
+        plot_3d_scatter_or_binned,
+        plot_fixed_points_vs_shear_stress,
         plot_optical_flow_feature_distribution,
         plot_scatter_and_binned_heatmap,
     )
@@ -91,6 +95,7 @@ def main(
         )
 
     # Load optical flow features and plot against diffae features
+    df_fp_all_list: list[pd.DataFrame] = []
     for dataset_name in dataset_names:
         output_dir = get_output_path(__file__, dataset_name)
 
@@ -215,6 +220,75 @@ def main(
                     f"{figure_filename}_with_fixed_points",
                 )
                 plt.close(fig)
+
+        # --- 3D plots ---
+        df_of_clean = df_of.dropna(subset=[optical_flow_feature])
+
+        if fixed_points_dataframe is not None:
+            fixed_points_dataframe = add_binned_mean_to_fixed_points(
+                fixed_points_dataframe,
+                df_of_clean,
+                ColumnName.POLAR_ANGLE,
+                ColumnName.POLAR_RADIUS,
+                ColumnName.PC3_FLIPPED,
+                optical_flow_feature,
+                bin_size_xyz=(0.25, 0.25, 0.25),
+            )
+
+        # 3D Scatter
+        plot_3d_scatter_or_binned(
+            df_of_clean,
+            ColumnName.POLAR_ANGLE,
+            ColumnName.POLAR_RADIUS,
+            ColumnName.PC3_FLIPPED,
+            optical_flow_feature,
+            dataset_name,
+            df_fp=fixed_points_dataframe,
+            binned=False,
+            bin_size_xyz=(0.25, 0.25, 0.25),
+            output_dir=output_dir,
+        )
+
+        # 3D Binned Heatmap
+        plot_3d_scatter_or_binned(
+            df_of_clean,
+            ColumnName.POLAR_ANGLE,
+            ColumnName.POLAR_RADIUS,
+            ColumnName.PC3_FLIPPED,
+            optical_flow_feature,
+            dataset_name,
+            df_fp=fixed_points_dataframe,
+            binned=True,
+            bin_size_xyz=(0.25, 0.25, 0.25),
+            output_dir=output_dir,
+        )
+
+        if fixed_points_dataframe is not None:
+            df_fp_all_list.append(fixed_points_dataframe)
+
+    # --- Cross-dataset: fixed point variables vs shear stress ---
+    if df_fp_all_list:
+        df_fp_all = pd.concat(df_fp_all_list, ignore_index=True)
+        df_fp_all = add_shear_stress_to_df(df_fp_all)
+        cross_dataset_output_dir = get_output_path(__file__)
+
+        variables = [
+            ColumnName.POLAR_ANGLE,
+            ColumnName.POLAR_RADIUS,
+            ColumnName.PC3_FLIPPED,
+            f"mean_{optical_flow_feature}",
+        ]
+        labels = ["\u03b8", "r", "\u03c1", "migration coherence"]
+
+        for var, label in zip(variables, labels, strict=False):
+            ylim = (0, 1) if var == f"mean_{optical_flow_feature}" else None
+            plot_fixed_points_vs_shear_stress(
+                df_fp_all,
+                var,
+                label,
+                output_dir=cross_dataset_output_dir,
+                ylim=ylim,
+            )
 
 
 if __name__ == "__main__":

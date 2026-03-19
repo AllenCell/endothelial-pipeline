@@ -201,8 +201,8 @@ def plot_3d_scatter_or_binned(
     z_col: str,
     color_col: str,
     dataset_name: str,
-    df_fp: pd.DataFrame,
     output_dir: Path,
+    df_fp: pd.DataFrame | None = None,
     binned: bool = False,
     bin_size_xyz: tuple[float, float, float] = (0.25, 0.25, 0.25),
     cmap: str = "cool",
@@ -222,7 +222,8 @@ def plot_3d_scatter_or_binned(
     dataset_name
         Dataset identifier for the title.
     df_fp
-        Fixed-points dataframe. Fixed points are overlaid with stability-specific markers and colors.
+        Fixed-points dataframe. If provided, fixed points are overlaid with
+        stability-specific markers and colors. If ``None``, no overlay is drawn.
     binned
         If ``False`` (default), plot every point as a scatter.
         If ``True``, bin the data in 3D and show the mean of
@@ -297,46 +298,47 @@ def plot_3d_scatter_or_binned(
         cbar_label = f"mean {color_col}"
 
     # Overlay fixed points
-
     legend_handles = []
-    for _, row in df_fp.iterrows():
-        stability = row[STABILITY_COLUMN_NAME]
-        mk = STABILITY_MARKER_DICT.get(stability, "o")
-        clr = STABILITY_COLOR_DICT.get(stability, "gray")
-        theta, r, rho = row[x_col], row[y_col], row[z_col]
-        mean_val = row.get(f"mean_{color_col}", float("nan"))
-        ax.scatter(
-            [theta],
-            [r],
-            [rho],
-            marker=mk,
-            color=clr,
-            edgecolor="black",
-            linewidths=1.5,
-            s=200,
-            depthshade=False,
-            zorder=10,
-        )
-        label = f"{stability} ({theta:.2f}, {r:.2f}, {rho:.2f}, {mean_val:.2f})"
-        legend_handles.append(
-            Line2D(
-                [],
-                [],
-                label=label,
+    if df_fp is not None:
+        for _, row in df_fp.iterrows():
+            stability = row[STABILITY_COLUMN_NAME]
+            mk = STABILITY_MARKER_DICT.get(stability, "o")
+            clr = STABILITY_COLOR_DICT.get(stability, "gray")
+            theta, r, rho = row[x_col], row[y_col], row[z_col]
+            mean_val = row.get(f"mean_{color_col}", float("nan"))
+            ax.scatter(
+                [theta],
+                [r],
+                [rho],
                 marker=mk,
-                markerfacecolor=clr,
-                markeredgecolor="black",
-                markersize=10,
-                linestyle="",
+                color=clr,
+                edgecolor="black",
+                linewidths=1.5,
+                s=200,
+                depthshade=False,
+                zorder=10,
             )
+            label = f"{stability} ({theta:.2f}, {r:.2f}, {rho:.2f}, {mean_val:.2f})"
+            legend_handles.append(
+                Line2D(
+                    [],
+                    [],
+                    label=label,
+                    marker=mk,
+                    markerfacecolor=clr,
+                    markeredgecolor="black",
+                    markersize=10,
+                    linestyle="",
+                )
+            )
+    if legend_handles:
+        ax.legend(
+            handles=legend_handles,
+            title="stability (\u03b8, r, \u03c1, migration coherence)",
+            loc="upper right",
+            bbox_to_anchor=(1.0, 1.05),
+            fontsize=8,
         )
-    ax.legend(
-        handles=legend_handles,
-        title="stability (\u03b8, r, \u03c1, migration coherence)",
-        loc="upper right",
-        bbox_to_anchor=(1.0, 1.05),
-        fontsize=8,
-    )
 
     ax.set_xlabel(x_col, labelpad=2)
     ax.set_ylabel(y_col, labelpad=2)
