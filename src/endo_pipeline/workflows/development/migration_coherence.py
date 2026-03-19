@@ -1,4 +1,7 @@
-def main():
+from endo_pipeline.cli import Datasets
+
+
+def main(datasets: Datasets | None = None):
     import logging
 
     from endo_pipeline.cli import DEMO_MODE
@@ -17,6 +20,7 @@ def main():
     )
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
+        list_datasets_with_dataframes,
         load_dataframe_manifest,
         load_model_manifest,
     )
@@ -34,12 +38,6 @@ def main():
 
     CROP_PATTERN = "grid"
 
-    datasets = get_datasets_in_collection("diffae_model_training") + get_datasets_in_collection(
-        "replicate_2_datasets"
-    )
-    if DEMO_MODE:
-        datasets = datasets[:1]
-
     # Load diffae features
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
@@ -47,6 +45,26 @@ def main():
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     pca = fit_pca(num_pcs=3)
+
+    # Default list of datasets if not provided, only include datasets available
+    # in the provided dataframe manifest
+    valid_dataset_options = list_datasets_with_dataframes(dataframe_manifest)
+    if datasets is None:
+        # these collections are mutually exclusive, so we don't have to worry
+        # about duplicates when concatenating
+        dataset_names = get_datasets_in_collection(
+            "diffae_model_training", valid_dataset_options
+        ) + get_datasets_in_collection("replicate_2_datasets", valid_dataset_options)
+    else:
+        dataset_names = [name for name in datasets if name in valid_dataset_options]
+
+    # if in demo mode, only process the first dataset and log a warning
+    if DEMO_MODE:
+        datasets = datasets[:1]
+        logger.warning(
+            "Running in demo mode, only processing first dataset [ %s ]",
+            dataset_names[0],
+        )
 
     # Load optical flow features and plot against diffae features
     for dataset_name in datasets:
