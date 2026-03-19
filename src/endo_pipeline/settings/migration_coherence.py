@@ -16,3 +16,6 @@ OPTICAL_FLOW_DATFRAME_MANIFEST_NAME = "optical_flow_bf"
 
 MINIMUM_TRACK_LENGTH_FOR_MIGRATION_COHERENCE = 200
 """Minimum track length (number of timepoints) for inclusion in migration coherence analyses."""
+
+DEFAULT_MIGRATION_COHERENCE_FEATURE: str = "optical_flow_mean_unit_vector_dt1"
+"""Default optical flow feature to use for migration coherence analyses and plotting."""

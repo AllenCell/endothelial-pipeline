@@ -1,10 +1,11 @@
 from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.settings.migration_coherence import DEFAULT_MIGRATION_COHERENCE_FEATURE
 
 
 def main(
     datasets: Datasets | None = None,
     crop_pattern: CropPattern = "grid",
-    optical_flow_feature: str = "optical_flow_mean_unit_vector_dt1",
+    optical_flow_feature: str = DEFAULT_MIGRATION_COHERENCE_FEATURE,
 ) -> None:
     import logging
 
