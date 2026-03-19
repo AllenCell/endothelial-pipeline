@@ -236,7 +236,9 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
                         dt=1,
                         kernel=kernel,
                     )[-1]
-                    # want msd, which is 2 * diffusion
+                    # diffusion coefficient is the second Kramers-Moyal
+                    # coefficient, which gets computed as  MSD / (2 * dt), so
+                    # multiply by 2 to get MSD (already set dt = 1 above)
                     msd_all = 2 * diffusion
 
                     # compute the weighted average of the msd over the bins
