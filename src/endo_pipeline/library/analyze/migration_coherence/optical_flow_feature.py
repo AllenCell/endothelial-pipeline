@@ -9,6 +9,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.migration_coherence import (
+    MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
     OPTICAL_FLOW_BASE_FEATURES,
     OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS,
     OPTICAL_FLOW_DATFRAME_MANIFEST_NAME,
@@ -94,7 +95,7 @@ def add_binned_mean_to_fixed_points(
     y_col: str,
     z_col: str,
     binned_col: str,
-    bin_size_xyz: tuple[float, float, float] = (0.25, 0.25, 0.25),
+    bin_size_xyz: tuple[float, float, float] = (MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,) * 3,
 ) -> pd.DataFrame:
     """Compute the mean of *binned_col* in the 3D bin surrounding each fixed point.
 
