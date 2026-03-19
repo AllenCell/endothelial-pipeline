@@ -127,7 +127,7 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
-    # only need first two PCs
+    # only need first three PCs
     dataframe_manifest_name_for_pca = get_feature_dataframe_manifest_name(
         model_manifest, model_run_name, crop_pattern="grid"
     )
