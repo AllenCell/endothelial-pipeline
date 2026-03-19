@@ -182,7 +182,7 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
 
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
             crop_pattern_title = f"features from crops using pattern: {crop_pattern}"
-            fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$) \n {crop_pattern_title}"
+            fig_title = f"{dataset_name} ({shear_stress} dyn/cm$^2$) \n {crop_pattern_title}"
 
             # for computing drift and diffusion coefficients, need to
             # adjust bin limits if polar angle range is shifted
