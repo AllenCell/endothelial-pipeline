@@ -172,12 +172,10 @@ def test_get_latent_feature_column_names_from_dataframe(dataframe, expected_colu
                     f"{ColumnName.POLAR_ANGLE}": [np.pi, np.pi - 0.05, -np.pi + 0.05]
                     + [0.1, -0.4, 0.3]
                     + [1.0, 1.1, 1.2],
-                    f"{ColumnName.PCA_FEATURE_PREFIX}{3}": [2.5, 2.6, 2.7]
-                    + [0.1, 0.55, 0.2]
-                    + [1.5, 1.6, 1.7],
+                    "pc_3": [2.5, 2.6, 2.7] + [0.1, 0.55, 0.2] + [1.5, 1.6, 1.7],
                 }
             ),
-            [f"{ColumnName.POLAR_ANGLE}", f"{ColumnName.PCA_FEATURE_PREFIX}{3}"],
+            [f"{ColumnName.POLAR_ANGLE}", "pc_3"],
             [
                 np.array(
                     [
@@ -199,7 +197,7 @@ def test_get_latent_feature_column_names_from_dataframe(dataframe, expected_colu
                         [1.1, 1.6],
                         [1.2, 1.7],
                     ]
-                ),  # crop 3
+                ),  # crop 2
             ],
             [
                 np.array(
@@ -219,7 +217,7 @@ def test_get_latent_feature_column_names_from_dataframe(dataframe, expected_colu
                         [0.1, 0.1],
                         [0.1, 0.1],
                     ]
-                ),  # crop 3
+                ),  # crop 2
             ],
         ),
         (  # test dropping non-consecutive timepoints
@@ -230,12 +228,10 @@ def test_get_latent_feature_column_names_from_dataframe(dataframe, expected_colu
                     f"{ColumnName.POLAR_RADIUS}": [0.1, 0.75, 0.6]
                     + [1.0, 1.5, 1.24]
                     + [2.5, 3.0, 3.2],
-                    f"{ColumnName.PCA_FEATURE_PREFIX}{3}": [2.5, 2.7, 2.5]
-                    + [0.1, 0.2, 0.3]
-                    + [1.5, 1.7, 1.95],
+                    "pc_3": [2.5, 2.7, 2.5] + [0.1, 0.2, 0.3] + [1.5, 1.7, 1.95],
                 }
             ),
-            [f"{ColumnName.POLAR_RADIUS}", f"{ColumnName.PCA_FEATURE_PREFIX}{3}"],
+            [f"{ColumnName.POLAR_RADIUS}", "pc_3"],
             [
                 np.array(
                     [
@@ -394,14 +390,14 @@ def test_project_features_to_pcs(
     # create a simple test dataframe with 3 latent feature columns
     df = pd.DataFrame(
         {
-            f"{ColumnName.LATENT_FEATURE_PREFIX}0": [1.0, 2.0, 3.0],
-            f"{ColumnName.LATENT_FEATURE_PREFIX}1": [4.0, 5.0, 6.0],
-            f"{ColumnName.LATENT_FEATURE_PREFIX}2": [7.0, 8.0, 9.0],
+            "feat_0": [1.0, 2.0, 3.0],
+            "feat_1": [4.0, 5.0, 6.0],
+            "feat_2": [7.0, 8.0, 9.0],
         }
     )
 
     if provide_feature_columns:
-        feature_columns = [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(3)]
+        feature_columns = [f"feat_{i}" for i in range(3)]
     else:
         feature_columns = None
 
@@ -424,9 +420,7 @@ def test_project_features_to_pcs(
         # should have new columns for each projected PC
         # (convention is to name them with PCA_FEATURE_PREFIX followed
         # by the PC number starting from 1, not 0)
-        expected_projected_df_columns.extend(
-            [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(num_components)]
-        )
+        expected_projected_df_columns.extend([f"pc_{i+1}" for i in range(num_components)])
         # if computing polar angle, should have new columns for polar angle and radius
         if compute_polar:
             expected_projected_df_columns.append(ColumnName.POLAR_ANGLE)
@@ -582,7 +576,7 @@ def test_filter_dataframe_by_track_length_all_filtered_out():
 def test_compute_forward_differences_along_trajectory_scalar_feature(
     timepoints, feature_values, time_lag, expected_traj, expected_d_traj
 ):
-    col = f"{ColumnName.PCA_FEATURE_PREFIX}0"
+    col = "column_0"
     df_traj = pd.DataFrame(
         {
             ColumnName.TIMEPOINT: timepoints,
@@ -596,7 +590,7 @@ def test_compute_forward_differences_along_trajectory_scalar_feature(
 
 def test_compute_forward_differences_along_trajectory_multiple_features():
     """Multiple features are all returned in the correct column order."""
-    cols = [f"{ColumnName.PCA_FEATURE_PREFIX}{i}" for i in range(3)]
+    cols = [f"column_{i}" for i in range(3)]
     df_traj = pd.DataFrame(
         {
             ColumnName.TIMEPOINT: [0, 1, 2],
@@ -659,7 +653,7 @@ def test_compute_forward_differences_along_trajectory_polar_angle_unwrapping():
 
 def test_compute_forward_differences_along_trajectory_single_timepoint():
     """A single-row trajectory produces an empty differences array."""
-    col = f"{ColumnName.PCA_FEATURE_PREFIX}0"
+    col = "column_0"
     df_traj = pd.DataFrame(
         {
             ColumnName.TIMEPOINT: [0],
