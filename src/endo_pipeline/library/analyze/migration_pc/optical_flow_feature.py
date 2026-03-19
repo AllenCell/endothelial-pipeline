@@ -6,7 +6,10 @@ import pandas as pd
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
-from endo_pipeline.settings.workflow_defaults import OPTICAL_FLOW_BASE_FEATURES
+from endo_pipeline.settings.migration_coherence import (
+    OPTICAL_FLOW_BASE_FEATURES,
+    OPTICAL_FLOW_DATFRAME_MANIFEST_NAME,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +17,7 @@ logger = logging.getLogger(__name__)
 def add_optical_flow_features(
     df: pd.DataFrame,
     datasets: list[str],
-    optical_flow_manifest_name: str = "optical_flow_bf",
+    optical_flow_manifest_name: str = OPTICAL_FLOW_DATFRAME_MANIFEST_NAME,
     optical_flow_feature_columns: list[str] = OPTICAL_FLOW_BASE_FEATURES,
     merge_columns: list[str] | None = None,
 ) -> pd.DataFrame:

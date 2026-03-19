@@ -29,14 +29,15 @@ def main(
         load_model_manifest,
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.migration_coherence import (
+        MINIMUM_TRACK_LENGTH_FOR_MIGRATION_COHERENCE,
+    )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
     )
 
     logger = logging.getLogger(__name__)
-
-    OPTICAL_FLOW_MANIFEST_NAME = "optical_flow_bf"
 
     # Load diffae features
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
@@ -66,6 +67,13 @@ def main(
             dataset_names[0],
         )
 
+    # If using tracked crops, pass in minimum track length to filter for tracks
+    # of sufficient length for migration coherence analyses. If using grid
+    # crops, this parameter will be ignored.
+    minimum_track_length = (
+        MINIMUM_TRACK_LENGTH_FOR_MIGRATION_COHERENCE if crop_pattern == "tracked" else None
+    )
+
     # Load optical flow features and plot against diffae features
     for dataset_name in datasets:
         output_dir = get_output_path(__file__, dataset_name)
@@ -77,11 +85,11 @@ def main(
             include_cell_piling=False,
             include_not_steady_state=False,
             crop_pattern=crop_pattern,
+            minimum_track_length=minimum_track_length,
         )
         df_of = add_optical_flow_features(
             df_dataset,
             datasets=[dataset_name],
-            optical_flow_manifest_name=OPTICAL_FLOW_MANIFEST_NAME,
         )
         plot_optical_flow_feature_distribution(
             df=df_of,
