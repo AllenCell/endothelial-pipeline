@@ -119,15 +119,10 @@ def main(
             fig_dist, _ = plot_optical_flow_feature_distribution(
                 df=df_flow,
                 optical_flow_feature=optical_flow_feature,
-                datasets=[dataset_name],
                 plot_label=plot_label,
-                binwidth=0.02,
-                bins=50,
-                kde=True,
             )
-            plt.show()
             save_plot_to_path(
-                fig_dist, output_dir, f"{optical_flow_feature}_dist_{dataset_name_flow}.png"
+                fig_dist, output_dir, f"{optical_flow_feature}_dist_{dataset_name_flow}"
             )
             plt.close(fig_dist)
 
@@ -188,7 +183,6 @@ def main(
                     x_bin_size=0.25,
                     y_bin_size=0.25,
                 )
-                plt.show()
                 save_plot_to_path(
                     fig,
                     output_dir,

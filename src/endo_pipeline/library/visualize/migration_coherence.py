@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 def plot_optical_flow_feature_distribution(
     df: pd.DataFrame,
     optical_flow_feature: str,
-    datasets: list[str],
     plot_label: str,
     binwidth: float = 0.02,
     bins: int = 50,
@@ -36,11 +35,8 @@ def plot_optical_flow_feature_distribution(
         *optical_flow_feature*.
     optical_flow_feature : str
         Column name of the optical-flow feature to plot.
-    datasets : list[str]
-        Dataset identifiers to include. Each dataset is plotted as a separate
-        histogram with its own colour and shear-stress label.
-    output_dir : Path
-        Directory where the figure is saved.
+    plot_label : str
+        Label for the plot legend.
     binwidth : float, default=0.02
         Width of each histogram bin passed to :func:`seaborn.histplot`.
     bins : int, default=50
@@ -51,19 +47,19 @@ def plot_optical_flow_feature_distribution(
         Width and height of the figure in inches.
     """
     fig, ax = plt.subplots(figsize=figsize)
-    for dataset in datasets:
-        color = get_dataset_color(dataset)
 
-        df_of_subset = df[df["dataset"] == dataset]
-        sns.histplot(
-            df_of_subset[optical_flow_feature],
-            bins=bins,
-            kde=kde,
-            label=plot_label,
-            binwidth=binwidth,
-            ax=ax,
-            color=color,
-        )
+    dataset_name = df[ColumnName.DATASET].iloc[0]
+    color = get_dataset_color(dataset_name)
+
+    sns.histplot(
+        df[optical_flow_feature],
+        bins=bins,
+        kde=kde,
+        label=plot_label,
+        binwidth=binwidth,
+        ax=ax,
+        color=color,
+    )
 
     ax.set_xlabel(optical_flow_feature)
     ax.set_ylabel("Count")
