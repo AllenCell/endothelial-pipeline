@@ -181,8 +181,6 @@ def main(
             # if fixed points are available, overlay them on the scatter plot
             if fixed_points_dataframe is not None:
                 for _, row in fixed_points_dataframe.iterrows():
-                    if row[ColumnName.DATASET] != dataset_name:
-                        continue
                     stability = row[STABILITY_COLUMN_NAME]
                     marker = STABILITY_MARKER_DICT.get(stability, "o")
                     color = STABILITY_COLOR_DICT.get(stability, "gray")
@@ -197,9 +195,19 @@ def main(
                     )
                 # add legend for fixed points
                 legend_handles = make_legend_handles_for_fixed_pts(
-                    fixed_points_dataframe[STABILITY_COLUMN_NAME].unique().tolist()
+                    fixed_points_dataframe[STABILITY_COLUMN_NAME].unique().tolist(),
+                    face_color_dict=STABILITY_COLOR_DICT,
+                    marker_dict=STABILITY_MARKER_DICT,
+                    marker_size=10,
+                    edge_color="black",
                 )
-                axs[1].legend(handles=legend_handles, bbox_to_anchor=(1.02, 1.01), loc="upper left")
+                axs[1].legend(
+                    handles=legend_handles,
+                    bbox_to_anchor=(2.00, 1.05),
+                    title="fixed point stability",
+                    loc="upper right",
+                    fontsize=10,
+                )
                 fig.tight_layout()
                 save_plot_to_path(
                     fig,
