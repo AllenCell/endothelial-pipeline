@@ -40,8 +40,6 @@ def main():
     if DEMO_MODE:
         datasets = datasets[:1]
 
-    output_dir = get_output_path("migration_coherence")
-
     # Load diffae features
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
@@ -52,6 +50,8 @@ def main():
 
     # Load optical flow features and plot against diffae features
     for dataset_name in datasets:
+        output_dir = get_output_path(__file__, dataset_name)
+
         df_dataset = get_dataframe_for_dynamics_workflows(
             dataset_name,
             dataframe_manifest,
