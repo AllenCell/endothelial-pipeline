@@ -117,7 +117,6 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
         global_bin_limits_dict[ColumnName.POLAR_ANGLE][1]
         - global_bin_limits_dict[ColumnName.POLAR_ANGLE][0]
     )
-    bin_widths = [BIN_WIDTHS_DYNAMICS[col] for col in column_names]
 
     # get dataframe manifest for feature of selected crop pattern
     model_manifest = load_model_manifest(model_manifest_name)
@@ -184,23 +183,28 @@ def main(datasets: Datasets | None = None, crop_pattern: CropPattern = "grid") -
 
             # for computing drift and diffusion coefficients, need to
             # adjust bin limits if polar angle range is shifted
-            bin_limits_dict = global_bin_limits_dict.copy()
 
-            # set bin limits for r and rho based on percentiles of data
+            # set bin limits  based on percentiles of data, but use
+            # default limits for theta (since it's periodic)
+            bins: list[np.ndarray] = []
+            centers: list[np.ndarray] = []
             for col_name in column_names:
                 if col_name == ColumnName.POLAR_ANGLE:
-                    continue
-                bin_min = np.percentile(df_[col_name].to_numpy(), BIN_LIMIT_PERCENTILE_CUTOFF)
-                bin_max = np.percentile(df_[col_name].to_numpy(), 100 - BIN_LIMIT_PERCENTILE_CUTOFF)
-                bin_limits_dict[col_name] = (bin_min, bin_max)
-
-            bin_limits = [bin_limits_dict[col] for col in column_names]
-
-            # get bins and centers for each variable based on bin widths and limits
-            bins, centers = get_bins(
-                bin_widths=bin_widths,
-                bin_limits=bin_limits,
-            )
+                    bins_col, centers_col = get_bins(
+                        bin_widths=(BIN_WIDTHS_DYNAMICS[col_name],),
+                        bin_limits=[global_bin_limits_dict[col_name]],
+                    )
+                    bins.extend(bins_col)
+                    centers.extend(centers_col)
+                else:
+                    bins_col, centers_col = get_bins(
+                        bin_widths=(BIN_WIDTHS_DYNAMICS[col_name],),
+                        data=df_[col_name].to_numpy(),
+                        lower_percentile=BIN_LIMIT_PERCENTILE_CUTOFF,
+                        upper_percentile=100 - BIN_LIMIT_PERCENTILE_CUTOFF,
+                    )
+                    bins.extend(bins_col)
+                    centers.extend(centers_col)
 
             # compute Kramers-Moyal coefficients
             for i, column_name in enumerate(column_names):
