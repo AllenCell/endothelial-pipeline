@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -9,7 +8,6 @@ import seaborn as sns
 from scipy.stats import binned_statistic_2d
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
@@ -23,12 +21,11 @@ def plot_optical_flow_feature_distribution(
     optical_flow_feature: str,
     datasets: list[str],
     plot_label: str,
-    output_dir: Path,
     binwidth: float = 0.02,
     bins: int = 50,
     kde: bool = True,
     figsize: tuple[float, float] = (4, 2.5),
-) -> None:
+) -> tuple[plt.Figure, plt.Axes]:
     """
     Plot an optical-flow feature histogram per dataset on a shared axis.
 
@@ -77,9 +74,7 @@ def plot_optical_flow_feature_distribution(
         fontsize=8,
     )
     fig.tight_layout()
-    plt.show()
-    save_plot_to_path(fig, output_dir, f"{optical_flow_feature}_dist_{'_'.join(datasets)}.png")
-    plt.close(fig)
+    return fig, ax
 
 
 def plot_scatter_and_binned_heatmap(
