@@ -109,7 +109,9 @@ def add_dynamic_features_with_filtering(df: pd.DataFrame) -> pd.DataFrame:
     """
     df_filtered_rows = df[~df[Column.SegDataFilters.IS_INCLUDED]]
     df_keep = df[df[Column.SegDataFilters.IS_INCLUDED]]
-    df_calc = calculate_derived_data_dynamics_dependent(df_keep)
+    df_calc = calculate_derived_data_dynamics_dependent(
+        df_keep, compute_per_crop_metrics=False, max_timeframes_to_average_for_velocity=1
+    )
 
     df_result = pd.concat([df_calc, df_filtered_rows], ignore_index=True)
 

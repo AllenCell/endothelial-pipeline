@@ -2,14 +2,6 @@ name: nuclei_label_free_segmentation
 workflow: live_feat_workflows_to_fms
 parameters: {}
 locations:
-  20241120_20X:
-    fmsid: f53b6c761ab94095951984743cd216fb
-    path: null
-    s3uri: null
-  20241217_20X:
-    fmsid: 3aea13fcc4e549e1aa55299f2a3909d9
-    path: null
-    s3uri: null
   20250224_20X:
     fmsid: d701cfbf6c244b37a17be88616a49fe7
     path: null

@@ -1,0 +1,80 @@
+name: 20260216_20X
+date: '20260216'
+original_path: //allen/programs/allencell/data/proj0/9bd/ebb/0e3/af9/6f5/b09/c4c/ee4/3a1/374/ed/20260216_GE00010322_SLDY/20260216_GE00010322_20X_SLDY.sldy
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: ed3743a1ee4c4cb096f5af90e3ebb9bd
+barcode: GE00010322
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: medium
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+channel_names: [EGFP, BF]
+flow_conditions:
+- start: -20
+  stop: 576
+  shear_stress: 12.06
+include_scenes: null
+notes: Cell piling from right side ~TP 288. Hole fills by TP 50 FOV 4. BF darkening
+  FOVs 5-6 TP 67-68, TP 279-294, TP 314. Non-endos FOVs 2-4. Debris bottom FOV 2.
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [67, 278, 279, 282, 285, 289, 294, 297, 312]
+    1: [67, 279, 285, 286, 289, 291]
+    2: [73, 285, 289, 294, 295, 313]
+    3: [59, 67, 279, 282, 290, 312, 484]
+    4: [24, 71, 73, 74, 279, 282, 568]
+    5: [66, 71, 73, 74, 278, 282, 286, 479]
+  auto_bf_temp_artifact:
+    0: [67]
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  not_steady_state:
+    0: [[0, 96]]
+    1: [[0, 108]]
+    2: [[0, 120]]
+    3: [[0, 120]]
+    4: [[0, 84]]
+    5: [[0, 96]]
+  cell_piling:
+    0: [[360, 576]]
+    1: [[240, 576]]
+    2: [[384, 576]]
+    3: [[240, 576]]
+    4: [[240, 576]]
+    5: [[240, 576]]
+position_annotations: null
+center_z_plane:
+  0: 10
+  1: 10
+  2: 9
+  3: 9
+  4: 9
+  5: 9

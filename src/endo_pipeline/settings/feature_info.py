@@ -1,4 +1,4 @@
-from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES, NUM_PCS_TO_ANALYZE
+from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import MAX_PCS_TO_COMPUTE
 
@@ -6,6 +6,7 @@ LABEL_MAP = {
     Column.SegData.ALIGNMENT_DEG: "Alignment Relative to Flow (degrees)",
     Column.SegData.ALIGNMENT: "Alignment Relative to Flow (rad)",
     Column.SegData.ORIENTATION: "Cell Orientation (rad)",
+    Column.SegData.ORIENTATION_DEG: "Cell Orientation (degrees)",
     Column.SegData.AREA_UM_SQ: "Cell Area (µm²)",
     Column.SegData.ASPECT_RATIO: "Aspect Ratio",
     Column.SegData.PERIMETER_UM: "Cell Perimeter (µm)",
@@ -23,16 +24,29 @@ LABEL_MAP = {
     Column.TRACK_LENGTH: "Track Duration",
     Column.SegDataFilters.NUM_VALID_TIMEPOINTS_IN_TRACK: "Number of Valid Timepoints",
     Column.SegData.NUM_NEIGHBORS: "Number of Neighbors",
+    Column.SegData.NUM_NUCLEI_IN_CROP: "Number of Nuclei in Crop",
+    # dynamics features
+    Column.SegData.CENTROID_VELOCITY_ANGLE_DEG: "Cell Migration Angle (deg)",
+    Column.SegData.CENTROID_VELOCITY_UM_PER_MIN: "Cell Migration Speed (µm/min)",
+    Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG: "Nucleus Orientation Relative to Migration (deg)",
+    Column.SegData.NUCLEI_POSITION_ANGLE_DEG: "Nucleus Orientation Relative to Flow Angle (deg)",
     # filters
     Column.SegDataFilters.IS_EDGE_SEGMENTATION: "Filter: Touches Edge of Field of View",
     Column.SegDataFilters.IS_LESS_THAN_MAX_SMOOTHED_AREA_NORMD_CHANGE: "Filter: Smoothed Area Change Below Threshold",
     Column.SegDataFilters.IS_GREATER_THAN_MIN_TRACK_DURATION: "Filter: Exceeds Min Track Duration",
     Column.SegDataFilters.HAS_MORE_THAN_MIN_NUM_VALID_POINTS_PER_TRACK: "Filter: Num Valid Points Exceeds Threshold",
     Column.SegDataFilters.IS_INCLUDED: "Filter: Passed All Filters",
+    Column.SegDataFilters.IS_VALID_BBOX: "Annotation: Crop Box Limits are Within FOV",
+    # annotation-based filters
+    Column.Annotations.NOT_STEADY_STATE: "Annotation: Cell Population Not At Steady State",
+    Column.Annotations.CELL_PILING: "Annotation: Significant Cell Piling in FOV",
+    Column.Annotations.UNFED: "Annotation: Unfed Cells (More Than 3 Hours Since Fresh Media Introduced)",
+    Column.Annotations.XY_SHIFT: "Annotation: Significant Change in XY position of FOV",
+    Column.Annotations.Z_SHIFT: "Annotation: Significant Change in Z position of FOV",
     # Cell-centric DiffAE features and PCs
     **{
         f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}"
-        for pc_col in DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+        for pc_col in DIFFAE_PC_COLUMN_NAMES[:MAX_PCS_TO_COMPUTE]
     },
     Column.DiffAEData.POLAR_ANGLE: "PC Polar Angle",
     Column.DiffAEData.POLAR_RADIUS: "PC Polar Radius",
