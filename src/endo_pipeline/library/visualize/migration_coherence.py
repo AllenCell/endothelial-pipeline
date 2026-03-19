@@ -10,10 +10,6 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_
 from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP,
     MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
-    MIGRATION_COHERENCE_COLORMAP_FIGSIZE,
-    MIGRATION_COHERENCE_COLORMAP_VMAX,
-    MIGRATION_COHERENCE_COLORMAP_VMIN,
-    MIGRATION_COHERENCE_SCATTER_POINT_SIZE,
 )
 
 logger = logging.getLogger(__name__)
@@ -25,12 +21,12 @@ def plot_scatter_and_binned_heatmap(
     y_col: str,
     color_col: str,
     colormap: str = MIGRATION_COHERENCE_COLORMAP,
-    vmin: float | None = MIGRATION_COHERENCE_COLORMAP_VMIN,
-    vmax: float | None = MIGRATION_COHERENCE_COLORMAP_VMAX,
+    vmin: float | None = 0,
+    vmax: float | None = 1,
     x_bin_size: float = MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
     y_bin_size: float = MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
-    figsize: tuple[float, float] = MIGRATION_COHERENCE_COLORMAP_FIGSIZE,
-    scatter_point_size: float = MIGRATION_COHERENCE_SCATTER_POINT_SIZE,
+    figsize: tuple[float, float] = (10, 5),
+    scatter_point_size: float = 5,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
     Plot scatter and binned mean heatmap over the same x and y columns, colored
