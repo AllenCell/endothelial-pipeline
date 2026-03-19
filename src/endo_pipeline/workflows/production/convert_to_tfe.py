@@ -5,13 +5,6 @@ from cyclopts import Parameter
 
 from endo_pipeline.cli import Datasets, UniqueIntList
 
-TFE_IMAGE_MANIFEST_NAME_MAP: dict[str, str] = {
-    "CDH5": "cdh5_classic_seg_zarr",
-    "grid": "grid_seg_zarr",
-}
-
-TFE_BACKDROP_TYPES: list[str] = ["bf_slice", "bf_std_dev", "gfp_max_proj"]
-
 
 def main(
     datasets: Datasets | None = None,
@@ -97,6 +90,7 @@ def main(
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.tfe import generate_tfe_backdrops, generate_tfe_frames
     from endo_pipeline.manifests import load_image_manifest
+    from endo_pipeline.settings.tfe import TFE_BACKDROP_TYPES, TFE_IMAGE_MANIFEST_NAME_MAP
 
     logger = logging.getLogger(__name__)
 
