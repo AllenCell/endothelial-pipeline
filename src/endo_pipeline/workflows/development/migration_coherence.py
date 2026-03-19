@@ -10,9 +10,11 @@ def main(
 ) -> None:
     import logging
 
+    import matplotlib.pyplot as plt
+
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
-    from endo_pipeline.io import get_output_path, load_dataframe
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         check_required_columns_in_dataframe,
         fit_pca,
@@ -153,18 +155,24 @@ def main(
                 y_col,
                 dataset_name,
             )
-            plot_scatter_and_binned_heatmap(
+            fig, axs = plot_scatter_and_binned_heatmap(
                 df=df_of,
                 dataset_name=dataset_name,
                 x_col=x_col,
                 y_col=y_col,
                 color_col=optical_flow_feature,
-                output_dir=output_dir,
                 vmax=1,
                 vmin=0,
                 x_bin_size=0.25,
                 y_bin_size=0.25,
             )
+            plt.show()
+            save_plot_to_path(
+                fig,
+                output_dir,
+                f"{dataset_name}_{x_col}_vs_{y_col}_colored_by_{optical_flow_feature}",
+            )
+            plt.close(fig)
 
 
 if __name__ == "__main__":

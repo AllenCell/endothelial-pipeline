@@ -19,3 +19,6 @@ MINIMUM_TRACK_LENGTH_FOR_MIGRATION_COHERENCE = 200
 
 DEFAULT_MIGRATION_COHERENCE_FEATURE: str = "optical_flow_mean_unit_vector_dt1"
 """Default optical flow feature to use for migration coherence analyses and plotting."""
+
+MIGRATION_COHERENCE_COLORMAP = "cool"
+"""Colormap to use for visualizing migration coherence features."""

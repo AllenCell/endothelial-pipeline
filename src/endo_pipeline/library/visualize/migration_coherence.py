@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,7 +10,10 @@ from scipy.stats import binned_statistic_2d
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
+from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP
 
 logger = logging.getLogger(__name__)
 
@@ -86,45 +90,51 @@ def plot_scatter_and_binned_heatmap(
     x_col: str,
     y_col: str,
     color_col: str,
-    output_dir: Path,
+    colormap: str = MIGRATION_COHERENCE_COLORMAP,
     vmin: float | None = None,
     vmax: float | None = None,
     x_bin_size: float = 0.25,
     y_bin_size: float = 0.25,
-) -> None:
+) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """Plot scatter (left) and binned mean heatmap (right) side by side.
 
-    The left panel shows a per-point scatter coloured by *color_col* and the
+    The left panel shows a per-point scatter colored by *color_col* and the
     right panel shows the mean of *color_col* within 2-D bins.
 
     Parameters
     ----------
-    df : pandas.DataFrame
+    df
         Dataframe containing columns *x_col*, *y_col*, *color_col*, and
         ``"dataset"``.
-    dataset_name : str
-        Dataset identifier used to filter rows and label the figure title
-        with the corresponding shear-stress condition.
-    x_col : str
+    dataset_name
+        Dataset identifier used to filter rows and label the figure title with
+        the corresponding shear-stress condition.
+    x_col
         Column name for the x-axis of both panels.
-    y_col : str
+    y_col
         Column name for the y-axis of both panels.
-    color_col : str
-        Column name whose values are mapped to colour in the scatter and
-        averaged per bin in the heatmap.
-    output_dir : Path
-        Directory where the figure will be saved.
-    vmin : float or None, default=None
-        Lower bound of the colour scale. If ``None``, derived from the data.
-    vmax : float or None, default=None
-        Upper bound of the colour scale. If ``None``, derived from the data.
-    x_bin_size : float, default=0.25
+    color_col
+        Column name whose values are mapped to color in the scatter and averaged
+        per bin in the heatmap.
+    colormap
+        Name of the matplotlib colormap to use for coloring points and bins
+        based on *color_col* values.
+    vmin
+        Lower bound of the color scale. If ``None``, derived from the data.
+    vmax
+        Upper bound of the color scale. If ``None``, derived from the data.
+    x_bin_size
         Bin width along the x-axis for the heatmap.
-    y_bin_size : float, default=0.25
+    y_bin_size
         Bin width along the y-axis for the heatmap.
     """
-    cmap = plt.get_cmap("cool")
-    df_plot = df[(df["dataset"] == dataset_name) & df[color_col].notna()]
+
+    check_required_columns_in_dataframe(
+        df,
+        required_columns=[x_col, y_col, color_col, ColumnName.DATASET],
+    )
+    cmap = plt.get_cmap(colormap)
+    df_plot = df[(df[ColumnName.DATASET] == dataset_name) & df[color_col].notna()]
     x = df_plot[x_col].to_numpy()
     y = df_plot[y_col].to_numpy()
     z = df_plot[color_col].to_numpy()
@@ -134,12 +144,12 @@ def plot_scatter_and_binned_heatmap(
     if vmax is None:
         vmax = np.nanmax(z)
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+    fig, axs = plt.subplots(1, 2, figsize=(10, 5))
 
     # Left: scatter plot
-    ax1.scatter(x, y, c=z, cmap=cmap, s=5, vmin=vmin, vmax=vmax)
-    ax1.set_xlabel(x_col)
-    ax1.set_ylabel(y_col)
+    axs[0].scatter(x, y, c=z, cmap=cmap, s=5, vmin=vmin, vmax=vmax)
+    axs[0].set_xlabel(x_col)
+    axs[0].set_ylabel(y_col)
 
     # Right: binned heatmap
     x_bins = np.arange(x.min(), x.max() + x_bin_size, x_bin_size)
@@ -151,7 +161,7 @@ def plot_scatter_and_binned_heatmap(
         statistic="mean",
         bins=[x_bins, y_bins],
     )
-    im = ax2.pcolormesh(
+    im = axs[1].pcolormesh(
         x_edges,
         y_edges,
         stat.T,
@@ -159,11 +169,11 @@ def plot_scatter_and_binned_heatmap(
         vmin=vmin,
         vmax=vmax,
     )
-    ax2.set_xlim(ax1.get_xlim())
-    ax2.set_ylim(ax1.get_ylim())
-    fig.colorbar(im, ax=ax2, label=color_col)
-    ax2.set_xlabel(x_col)
-    ax2.set_ylabel(y_col)
+    axs[1].set_xlim(axs[0].get_xlim())
+    axs[1].set_ylim(axs[0].get_ylim())
+    fig.colorbar(im, ax=axs[1], label=color_col)
+    axs[1].set_xlabel(x_col)
+    axs[1].set_ylabel(y_col)
 
     dataset_config = load_dataset_config(dataset_name)
     flow_conditions = dataset_config.flow_conditions
@@ -173,6 +183,4 @@ def plot_scatter_and_binned_heatmap(
 
     plt.suptitle(title)
     plt.tight_layout()
-    plt.show()
-    save_plot_to_path(fig, output_dir, f"{dataset_name}_{x_col}_vs_{y_col}_colored_by_{color_col}")
-    plt.close(fig)
+    return fig, axs
