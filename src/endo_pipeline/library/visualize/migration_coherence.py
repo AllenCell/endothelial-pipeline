@@ -10,7 +10,13 @@ from scipy.stats import binned_statistic_2d
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
-from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP
+from endo_pipeline.settings.migration_coherence import (
+    MIGRATION_COHERENCE_COLORMAP,
+    MIGRATION_COHERENCE_HIST_BINWIDTH,
+    MIGRATION_COHERENCE_HIST_FIGSIZE,
+    MIGRATION_COHERENCE_HIST_NUM_BINS,
+    MIGRATION_COHERENCE_HIST_PLOT_KDE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +27,10 @@ def plot_optical_flow_feature_distribution(
     hist_color: str,
     plot_label: str,
     fig_ax: tuple[plt.Figure, plt.Axes] | None = None,
-    binwidth: float = 0.02,
-    bins: int = 50,
-    kde: bool = True,
-    figsize: tuple[float, float] = (4, 2.5),
+    binwidth: float = MIGRATION_COHERENCE_HIST_BINWIDTH,
+    bins: int = MIGRATION_COHERENCE_HIST_NUM_BINS,
+    kde: bool = MIGRATION_COHERENCE_HIST_PLOT_KDE,
+    figsize: tuple[float, float] = MIGRATION_COHERENCE_HIST_FIGSIZE,
 ) -> tuple[plt.Figure, plt.Axes]:
     """
     Plot an optical-flow feature histogram per dataset on a shared axis.
