@@ -171,9 +171,11 @@ def plot_scatter_and_binned_heatmap(
     )
     axs[1].set_xlim(axs[0].get_xlim())
     axs[1].set_ylim(axs[0].get_ylim())
-    fig.colorbar(im, ax=axs[1], label=color_col)
     axs[1].set_xlabel(x_col)
     axs[1].set_ylabel(y_col)
+    # add colorbar for the heatmap without resizing the main axes
+    cax = axs[1].inset_axes([1.05, 0, 0.05, 1])
+    fig.colorbar(im, cax=cax, label=color_col)
 
     dataset_config = load_dataset_config(dataset_name)
     flow_conditions = dataset_config.flow_conditions

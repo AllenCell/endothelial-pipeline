@@ -203,7 +203,7 @@ def main(
                 )
                 fig.legend(
                     handles=legend_handles,
-                    bbox_to_anchor=(1.05, 0.95),
+                    bbox_to_anchor=(1.00, 0.90),
                     title="fixed point stability",
                     loc="upper left",
                     fontsize=10,
