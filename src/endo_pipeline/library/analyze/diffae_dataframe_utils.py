@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Literal, cast
+from typing import Literal, cast, overload
 
 import numpy as np
 import pandas as pd
@@ -1157,6 +1157,18 @@ def split_dataset_by_flow(
         data_all = [df_proj.copy()]
 
     return data_all, shear_list
+
+
+@overload
+def _take_dataframe_column_diff(
+    dataframe_column: pd.Series, diff_step: int, fillna_value: float | None = None
+) -> pd.Series: ...
+
+
+@overload
+def _take_dataframe_column_diff(
+    dataframe_column: pd.DataFrame, diff_step: int, fillna_value: float | None = None
+) -> pd.DataFrame: ...
 
 
 def _take_dataframe_column_diff(
