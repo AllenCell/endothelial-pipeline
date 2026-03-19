@@ -201,11 +201,11 @@ def main(
                     marker_size=10,
                     edge_color="black",
                 )
-                axs[1].legend(
+                fig.legend(
                     handles=legend_handles,
-                    bbox_to_anchor=(2.00, 1.05),
+                    bbox_to_anchor=(1.05, 0.95),
                     title="fixed point stability",
-                    loc="upper right",
+                    loc="upper left",
                     fontsize=10,
                 )
                 fig.tight_layout()
