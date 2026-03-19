@@ -5,7 +5,6 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from matplotlib.lines import Line2D
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.stats import binned_statistic_2d, binned_statistic_dd
@@ -13,109 +12,56 @@ from scipy.stats import binned_statistic_2d, binned_statistic_dd
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
-from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.flow_field_dataframes import (
     STABILITY_COLOR_DICT,
     STABILITY_COLUMN_NAME,
     STABILITY_MARKER_DICT,
 )
-from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP
+from endo_pipeline.settings.migration_coherence import (
+    MIGRATION_COHERENCE_COLORMAP,
+    MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def plot_optical_flow_feature_distribution(
-    df: pd.DataFrame,
-    optical_flow_feature: str,
-    datasets: list[str],
-    output_dir: Path,
-    binwidth: float = 0.02,
-    bins: int = 50,
-    kde: bool = True,
-    figsize: tuple[float, float] = (4, 2.5),
-) -> None:
-    """Plot an optical-flow feature histogram per dataset on a shared axis.
-
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        Dataframe containing a ``"dataset"`` column and the column named by
-        *optical_flow_feature*.
-    optical_flow_feature : str
-        Column name of the optical-flow feature to plot.
-    datasets : list[str]
-        Dataset identifiers to include. Each dataset is plotted as a separate
-        histogram with its own colour and shear-stress label.
-    output_dir : Path
-        Directory where the figure is saved.
-    binwidth : float, default=0.02
-        Width of each histogram bin passed to :func:`seaborn.histplot`.
-    bins : int, default=50
-        Number of histogram bins passed to :func:`seaborn.histplot`.
-    kde : bool, default=True
-        Whether to overlay a kernel-density estimate on the histogram.
-    figsize : tuple[float, float], default=(4, 2.5)
-        Width and height of the figure in inches.
-    """
-    fig, ax = plt.subplots(figsize=figsize)
-    for dataset in datasets:
-        color = get_dataset_color(dataset)
-
-        dataset_config = load_dataset_config(dataset)
-        flow_conditions = dataset_config.flow_conditions
-        shear_stress_values = [flow_condition.shear_stress for flow_condition in flow_conditions]
-        shear_stress_label = "-".join(f"{value:g}" for value in shear_stress_values)
-        df_of_subset = df[df["dataset"] == dataset]
-        sns.histplot(
-            df_of_subset[optical_flow_feature],
-            bins=bins,
-            kde=kde,
-            label=f"{dataset}, shear={shear_stress_label}",
-            binwidth=binwidth,
-            ax=ax,
-            color=color,
-        )
-
-    ax.set_xlabel(optical_flow_feature)
-    ax.set_ylabel("Count")
-    ax.legend(
-        loc="lower center",
-        bbox_to_anchor=(0.5, 1.02),
-        frameon=False,
-        fontsize=8,
-    )
-    fig.tight_layout()
-    plt.show()
-    save_plot_to_path(fig, output_dir, f"{optical_flow_feature}_dist_{'_'.join(datasets)}.png")
-    plt.close(fig)
-
-
 def plot_scatter_and_binned_heatmap(
     df: pd.DataFrame,
-    dataset_name: str,
     x_col: str,
     y_col: str,
     color_col: str,
     colormap: str = MIGRATION_COHERENCE_COLORMAP,
-    vmin: float | None = None,
-    vmax: float | None = None,
-    x_bin_size: float = 0.25,
-    y_bin_size: float = 0.25,
+    vmin: float | None = 0,
+    vmax: float | None = 1,
+    x_bin_size: float = MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
+    y_bin_size: float = MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
+    figsize: tuple[float, float] = (10, 5),
+    scatter_point_size: float = 5,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
-    """Plot scatter (left) and binned mean heatmap (right) side by side.
+    """
+    Plot scatter and binned mean heatmap over the same x and y columns, colored
+    by a specified feature column.
 
-    The left panel shows a per-point scatter colored by *color_col* and the
-    right panel shows the mean of *color_col* within 2-D bins.
+    **Dataframe columns and plot description**
+
+    The input dataframe must contain the columns specified in `x_col`, `y_col`,
+    and `color_col`.
+
+    The left panel of the plot is a per-point scatter of `x_col` vs `y_col`
+    colored by `color_col`. The right panel shows the mean of `color_col` within
+    2-D bins of `x_col` and `y_col`, where the bin sizes are specified by
+    `x_bin_size` and `y_bin_size`.
+
+    Both panels share the same x and y limits, which are determined by the range
+    of the data in `x_col` and `y_col`.
+
+    The color scale for both panels is determined by the range of values in
+    `color_col`.
 
     Parameters
     ----------
     df
-        Dataframe containing columns *x_col*, *y_col*, *color_col*, and
-        ``"dataset"``.
-    dataset_name
-        Dataset identifier used to filter rows and label the figure title with
-        the corresponding shear-stress condition.
+        Dataframe containing columns for plotting.
     x_col
         Column name for the x-axis of both panels.
     y_col
@@ -138,10 +84,10 @@ def plot_scatter_and_binned_heatmap(
 
     check_required_columns_in_dataframe(
         df,
-        required_columns=[x_col, y_col, color_col, ColumnName.DATASET],
+        required_columns=[x_col, y_col, color_col],
     )
     cmap = plt.get_cmap(colormap)
-    df_plot = df[(df[ColumnName.DATASET] == dataset_name) & df[color_col].notna()]
+    df_plot = df[df[color_col].notna()]
     x = df_plot[x_col].to_numpy()
     y = df_plot[y_col].to_numpy()
     z = df_plot[color_col].to_numpy()
@@ -151,10 +97,10 @@ def plot_scatter_and_binned_heatmap(
     if vmax is None:
         vmax = np.nanmax(z)
 
-    fig, axs = plt.subplots(1, 2, figsize=(10, 5))
+    fig, axs = plt.subplots(1, 2, figsize=figsize)
 
     # Left: scatter plot
-    axs[0].scatter(x, y, c=z, cmap=cmap, s=5, vmin=vmin, vmax=vmax)
+    axs[0].scatter(x, y, c=z, cmap=cmap, s=scatter_point_size, vmin=vmin, vmax=vmax)
     axs[0].set_xlabel(x_col)
     axs[0].set_ylabel(y_col)
 
@@ -184,14 +130,6 @@ def plot_scatter_and_binned_heatmap(
     cax = axs[1].inset_axes([1.05, 0, 0.05, 1])
     fig.colorbar(im, cax=cax, label=color_col)
 
-    dataset_config = load_dataset_config(dataset_name)
-    flow_conditions = dataset_config.flow_conditions
-    shear_stress_values = [fc.shear_stress for fc in flow_conditions]
-    shear_stress_label = "-".join(f"{v:g}" for v in shear_stress_values)
-    title = f"{dataset_name}, {shear_stress_label} dyn/cm^2"
-
-    plt.suptitle(title)
-    plt.tight_layout()
     return fig, axs
 
 
