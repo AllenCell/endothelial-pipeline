@@ -425,44 +425,27 @@ def make_legend_handles_for_fixed_pts(
         for the fixed point types.
     """
     my_handles = []
-    if StabilityLabel.STABLE in fpt_stabilities:
+    # get unique stabilities of the fixed points to determine which legend
+    # handles to include; have sorted in order of:
+    # stable, unstable, saddle, indeterminate (this is the order in the StabilityLabel enum)
+    fpt_stabilities_unique = list(set(fpt_stabilities))
+    fpt_stabilities_sorted = sorted(
+        fpt_stabilities_unique,
+        key=lambda x: [
+            StabilityLabel.STABLE,
+            StabilityLabel.UNSTABLE,
+            StabilityLabel.SADDLE,
+            StabilityLabel.INDETERMINATE,
+        ].index(x),
+    )
+    for stability in fpt_stabilities_sorted:
         my_handles.append(
             StabilityLegendHandle(
-                stability_label=StabilityLabel.STABLE,
-                marker=marker_dict[StabilityLabel.STABLE],
-                face_color=face_color_dict[StabilityLabel.STABLE],
-                marker_size=marker_size,
-                edge_color=edge_color,
-            )
-        )
-    if StabilityLabel.UNSTABLE in fpt_stabilities:
-        my_handles.append(
-            StabilityLegendHandle(
-                stability_label=StabilityLabel.UNSTABLE,
-                marker=marker_dict[StabilityLabel.UNSTABLE],
-                face_color=face_color_dict[StabilityLabel.UNSTABLE],
-                marker_size=marker_size,
-                edge_color=edge_color,
-            )
-        )
-    if StabilityLabel.SADDLE in fpt_stabilities:
-        my_handles.append(
-            StabilityLegendHandle(
-                stability_label=StabilityLabel.SADDLE,
-                marker=marker_dict[StabilityLabel.SADDLE],
-                face_color=face_color_dict[StabilityLabel.SADDLE],
-                marker_size=marker_size,
-                edge_color=edge_color,
-            )
-        )
-    if StabilityLabel.INDETERMINATE in fpt_stabilities:
-        my_handles.append(
-            StabilityLegendHandle(
-                stability_label=StabilityLabel.INDETERMINATE,
-                marker=marker_dict[StabilityLabel.INDETERMINATE],
-                face_color=face_color_dict[StabilityLabel.INDETERMINATE],
-                marker_size=marker_size,
-                edge_color=edge_color,
+                label=stability,
+                marker=marker_dict[stability],
+                facecolor=face_color_dict[stability],
+                edgecolor=edge_color,
+                markersize=marker_size,
             )
         )
 
