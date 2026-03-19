@@ -11,6 +11,7 @@ def main(
     import logging
 
     import matplotlib.pyplot as plt
+    import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
@@ -38,7 +39,9 @@ def main(
     from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        STABILITY_COLOR_DICT,
         STABILITY_COLUMN_NAME,
+        STABILITY_MARKER_DICT,
     )
     from endo_pipeline.settings.migration_coherence import (
         MINIMUM_TRACK_LENGTH_FOR_MIGRATION_COHERENCE,
@@ -111,6 +114,10 @@ def main(
             datasets=[dataset_name],
         )
 
+        # initialize fixed_points_dataframe to None in case we aren't plotting
+        # fixed points or if loading the fixed points dataframe fails for any
+        # reason, then try to load the fixed points dataframe if we're plotting fixed points
+        fixed_points_dataframe: pd.DataFrame | None = None
         if plot_fixed_points:
             try:
                 fixed_points_dataframe_location = get_dataframe_location_for_dataset(
@@ -128,6 +135,9 @@ def main(
                     ],
                 )
             except KeyError:
+                # if the fixed points dataframe for this dataset isn't found in
+                # the manifest, log a warning and continue without loading fixed
+                # points (i.e., fixed_points_dataframe will remain None)
                 logger.warning(
                     "No fixed point dataframe found for dataset [ %s ] in dataframe manifest [ %s ]. "
                     "Fixed points will not be overlaid on the migration coherence plots for this dataset.",
@@ -149,6 +159,7 @@ def main(
             (ColumnName.PC3_FLIPPED, ColumnName.POLAR_ANGLE),
             (ColumnName.POLAR_RADIUS, ColumnName.PC3_FLIPPED),
         ]:
+            figure_filename = f"{dataset_name}_{x_col}_vs_{y_col}_colored_by_{optical_flow_feature}"
             logger.info(
                 "Plotting optical flow feature over [ %s ] vs [ %s ] for dataset [ %s ]",
                 x_col,
@@ -170,9 +181,38 @@ def main(
             save_plot_to_path(
                 fig,
                 output_dir,
-                f"{dataset_name}_{x_col}_vs_{y_col}_colored_by_{optical_flow_feature}",
+                figure_filename,
             )
             plt.close(fig)
+
+            # if fixed points are available, overlay them on the scatter plot
+            if fixed_points_dataframe is not None:
+                for _, row in fixed_points_dataframe.iterrows():
+                    if row[ColumnName.DATASET] != dataset_name:
+                        continue
+                    stability = row[STABILITY_COLUMN_NAME]
+                    marker = STABILITY_MARKER_DICT.get(stability, "o")
+                    color = STABILITY_COLOR_DICT.get(stability, "gray")
+                    axs[1].scatter(
+                        row[x_col],
+                        row[y_col],
+                        marker=marker,
+                        color=color,
+                        edgecolor="black",
+                        s=100,
+                        label=f"Fixed Point ({stability})",
+                    )
+                # add legend for fixed points
+                axs[1].legend(
+                    loc=(1.25, 0.85),
+                )
+                fig.tight_layout()
+                save_plot_to_path(
+                    fig,
+                    output_dir,
+                    f"{figure_filename}_with_fixed_points",
+                )
+                plt.close(fig)
 
 
 if __name__ == "__main__":
