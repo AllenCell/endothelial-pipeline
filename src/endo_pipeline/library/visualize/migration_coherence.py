@@ -48,6 +48,10 @@ def plot_optical_flow_feature_distribution(
     """
     fig, ax = plt.subplots(figsize=figsize)
 
+    check_required_columns_in_dataframe(
+        df,
+        required_columns=[ColumnName.DATASET, optical_flow_feature],
+    )
     dataset_name = df[ColumnName.DATASET].iloc[0]
     color = get_dataset_color(dataset_name)
 
