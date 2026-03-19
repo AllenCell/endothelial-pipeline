@@ -227,11 +227,7 @@ def main(
                         )
                     # add legend for fixed points
                     legend_handles = make_legend_handles_for_fixed_pts(
-                        fixed_points_dataframe[STABILITY_COLUMN_NAME].unique().tolist(),
-                        face_color_dict=STABILITY_COLOR_DICT,
-                        marker_dict=STABILITY_MARKER_DICT,
-                        marker_size=10,
-                        edge_color="black",
+                        fixed_points_dataframe[STABILITY_COLUMN_NAME].unique().tolist()
                     )
                     fig.legend(
                         handles=legend_handles,

@@ -5,16 +5,17 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.lines import Line2D
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.stats import binned_statistic_2d, binned_statistic_dd
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
+from endo_pipeline.library.visualize.diffae_features.pplane import make_legend_handles_for_fixed_pts
 from endo_pipeline.settings.flow_field_dataframes import (
     STABILITY_COLOR_DICT,
     STABILITY_COLUMN_NAME,
     STABILITY_MARKER_DICT,
+    StabilityLegendHandle,
 )
 from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP,
@@ -255,15 +256,9 @@ def plot_3d_scatter_or_binned(
             )
             label = f"{stability} ({theta:.2f}, {r:.2f}, {rho:.2f}, {mean_val:.2f})"
             legend_handles.append(
-                Line2D(
-                    [],
-                    [],
-                    label=label,
-                    marker=mk,
-                    markerfacecolor=clr,
-                    markeredgecolor="black",
-                    markersize=10,
-                    linestyle="",
+                StabilityLegendHandle(
+                    stability_label=stability,
+                    legend_label=label,
                 )
             )
     if legend_handles:
@@ -290,6 +285,8 @@ def plot_fixed_points_vs_shear_stress(
     label: str,
     output_dir: Path,
     ylim: tuple[float, float] | None = None,
+    marker_size_scatter: int = 80,
+    marker_size_legend: int = 8,
 ) -> None:
     """Plot a single fixed-point variable vs shear stress.
 
@@ -307,7 +304,6 @@ def plot_fixed_points_vs_shear_stress(
     ylim
         Optional ``(ymin, ymax)`` limits for the y-axis.
     """
-    from matplotlib.lines import Line2D
 
     # Sort shear stress categories from lowest to highest
     shear_order = sorted(
@@ -322,22 +318,10 @@ def plot_fixed_points_vs_shear_stress(
     df_fp = df_fp.sort_values("shear_stress")
 
     # Build legend handles
-    legend_handles = []
-    for stability in df_fp[STABILITY_COLUMN_NAME].unique():
-        mk = STABILITY_MARKER_DICT.get(stability, "o")
-        clr = STABILITY_COLOR_DICT.get(stability, "gray")
-        legend_handles.append(
-            Line2D(
-                [],
-                [],
-                marker=mk,
-                markerfacecolor=clr,
-                markeredgecolor="black",
-                markersize=8,
-                linestyle="",
-                label=stability,
-            )
-        )
+    legend_handles = make_legend_handles_for_fixed_pts(
+        fpt_stabilities=df_fp[STABILITY_COLUMN_NAME].unique().tolist(),
+        marker_size=marker_size_legend,
+    )
 
     fig, ax = plt.subplots(figsize=(8, 3.5))
     for _, row in df_fp.iterrows():
@@ -351,7 +335,7 @@ def plot_fixed_points_vs_shear_stress(
             color=clr,
             edgecolor="black",
             linewidths=0.8,
-            s=80,
+            s=marker_size_scatter,
             zorder=3,
         )
     if ylim is not None:

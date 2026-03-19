@@ -14,6 +14,7 @@ from endo_pipeline.settings.flow_field_dataframes import (
     STABILITY_COLOR_DICT,
     STABILITY_MARKER_DICT,
     StabilityLabel,
+    StabilityLegendHandle,
 )
 
 logger = logging.getLogger(__name__)
@@ -396,7 +397,7 @@ def make_legend_handles_for_fixed_pts(
     marker_dict: dict[str, str] = STABILITY_MARKER_DICT,
     marker_size: int = 10,
     edge_color: str | None = "black",
-) -> list[Line2D]:
+) -> list[StabilityLegendHandle]:
     """
     Make a custom legend for the fixed point types, nullclines and trajectories.
 
@@ -421,72 +422,48 @@ def make_legend_handles_for_fixed_pts(
     Returns
     -------
     :
-        List of Line2D objects representing the legend handles for the fixed
-        point types.
+        List of StabilityLegendHandle objects representing the legend handles
+        for the fixed point types.
     """
     my_handles = []
     if StabilityLabel.STABLE in fpt_stabilities:
         my_handles.append(
-            Line2D(
-                [],
-                [],
-                label=StabilityLabel.STABLE,
+            StabilityLegendHandle(
+                stability_label=StabilityLabel.STABLE,
                 marker=marker_dict[StabilityLabel.STABLE],
-                markerfacecolor=face_color_dict[StabilityLabel.STABLE],
-                markersize=marker_size,
-                markeredgecolor=(
-                    edge_color if edge_color is not None else face_color_dict[StabilityLabel.STABLE]
-                ),
-                linestyle="",
+                face_color=face_color_dict[StabilityLabel.STABLE],
+                marker_size=marker_size,
+                edge_color=edge_color,
             )
         )
     if StabilityLabel.UNSTABLE in fpt_stabilities:
         my_handles.append(
-            Line2D(
-                [],
-                [],
-                label=StabilityLabel.UNSTABLE,
+            StabilityLegendHandle(
+                stability_label=StabilityLabel.UNSTABLE,
                 marker=marker_dict[StabilityLabel.UNSTABLE],
-                markerfacecolor=face_color_dict[StabilityLabel.UNSTABLE],
-                markersize=marker_size,
-                markeredgecolor=(
-                    edge_color
-                    if edge_color is not None
-                    else face_color_dict[StabilityLabel.UNSTABLE]
-                ),
-                linestyle="",
+                face_color=face_color_dict[StabilityLabel.UNSTABLE],
+                marker_size=marker_size,
+                edge_color=edge_color,
             )
         )
     if StabilityLabel.SADDLE in fpt_stabilities:
         my_handles.append(
-            Line2D(
-                [],
-                [],
-                label=StabilityLabel.SADDLE,
+            StabilityLegendHandle(
+                stability_label=StabilityLabel.SADDLE,
                 marker=marker_dict[StabilityLabel.SADDLE],
-                markerfacecolor=face_color_dict[StabilityLabel.SADDLE],
-                markersize=marker_size,
-                markeredgecolor=(
-                    edge_color if edge_color is not None else face_color_dict[StabilityLabel.SADDLE]
-                ),
-                linestyle="",
+                face_color=face_color_dict[StabilityLabel.SADDLE],
+                marker_size=marker_size,
+                edge_color=edge_color,
             )
         )
     if StabilityLabel.INDETERMINATE in fpt_stabilities:
         my_handles.append(
-            Line2D(
-                [],
-                [],
-                label=StabilityLabel.INDETERMINATE,
+            StabilityLegendHandle(
+                stability_label=StabilityLabel.INDETERMINATE,
                 marker=marker_dict[StabilityLabel.INDETERMINATE],
-                markerfacecolor=face_color_dict[StabilityLabel.INDETERMINATE],
-                markersize=marker_size,
-                markeredgecolor=(
-                    edge_color
-                    if edge_color is not None
-                    else face_color_dict[StabilityLabel.INDETERMINATE]
-                ),
-                linestyle="",
+                face_color=face_color_dict[StabilityLabel.INDETERMINATE],
+                marker_size=marker_size,
+                edge_color=edge_color,
             )
         )
 
