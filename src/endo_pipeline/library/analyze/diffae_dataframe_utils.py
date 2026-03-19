@@ -1212,7 +1212,7 @@ def compute_forward_differences_along_trajectory(
 
     # add column giving difference in timepoint between rows separated by
     # time_lag convert NaN to 0 -- occurs at end of trajectory
-    df_traj[f"{ColumnName.TIMEPOINT}{ColumnName.DIFFERENCE_SUFFIX}"] = (
+    df_traj[timepoint_diff_column] = (
         df_traj[ColumnName.TIMEPOINT].diff(periods=time_lag).shift(-time_lag).fillna(0)
     )
 
