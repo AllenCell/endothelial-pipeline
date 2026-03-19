@@ -75,8 +75,8 @@ def main():
             kde=True,
         )
         for x_col, y_col in [
-            (DYNAMICS_COLUMN_NAMES[0], DYNAMICS_COLUMN_NAMES[1]),
-            (DYNAMICS_COLUMN_NAMES[0], DYNAMICS_COLUMN_NAMES[2]),
+            (DYNAMICS_COLUMN_NAMES[1], DYNAMICS_COLUMN_NAMES[0]),
+            (DYNAMICS_COLUMN_NAMES[2], DYNAMICS_COLUMN_NAMES[0]),
             (DYNAMICS_COLUMN_NAMES[1], DYNAMICS_COLUMN_NAMES[2]),
         ]:
             logger.info(
