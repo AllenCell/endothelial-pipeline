@@ -47,3 +47,20 @@ class StabilityLabel(StrEnum):
     SPIRAL = "spiral"
     """Label for fixed points classified as spirals (i.e., complex conjugate
     eigenvalues with nonzero imaginary part)."""
+
+
+STABILITY_COLOR_DICT: dict[str, str] = {
+    StabilityLabel.STABLE: "blue",
+    StabilityLabel.SADDLE: "grey",
+    StabilityLabel.UNSTABLE: "red",
+    StabilityLabel.INDETERMINATE: "khaki",
+}
+"""Dictionary mapping fixed point stability classification labels to colors for visualization."""
+
+STABILITY_MARKER_DICT: dict[str, str] = {
+    StabilityLabel.STABLE: "o",
+    StabilityLabel.SADDLE: "^",
+    StabilityLabel.UNSTABLE: "s",
+    StabilityLabel.INDETERMINATE: "P",
+}
+"""Dictionary mapping fixed point stability classification labels to marker styles for visualization."""

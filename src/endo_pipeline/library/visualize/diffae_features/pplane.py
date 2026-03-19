@@ -10,21 +10,11 @@ from matplotlib.lines import Line2D
 from scipy.integrate import solve_ivp
 from scipy.optimize import fsolve
 
-from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
-
-# set global dictionaries for stability colors and markers
-STABILITY_COLOR_DICT: dict[str, str] = {
-    StabilityLabel.STABLE: "g",
-    StabilityLabel.SADDLE: "tab:purple",
-    StabilityLabel.UNSTABLE: "r",
-    StabilityLabel.INDETERMINATE: "darkgoldenrod",
-}
-STABILITY_MARKER_DICT: dict[str, str] = {
-    StabilityLabel.STABLE: "o",
-    StabilityLabel.SADDLE: "P",
-    StabilityLabel.UNSTABLE: "s",
-    StabilityLabel.INDETERMINATE: "p",
-}
+from endo_pipeline.settings.flow_field_dataframes import (
+    STABILITY_COLOR_DICT,
+    STABILITY_MARKER_DICT,
+    StabilityLabel,
+)
 
 logger = logging.getLogger(__name__)
 
