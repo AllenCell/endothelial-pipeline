@@ -11,7 +11,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
 )
-from endo_pipeline.library.analyze.migration_pc.optical_flow_feature import (
+from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_optical_flow_features,
 )
 from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
