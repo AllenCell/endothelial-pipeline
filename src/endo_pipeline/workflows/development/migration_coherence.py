@@ -1,7 +1,11 @@
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import CropPattern, Datasets
 
 
-def main(datasets: Datasets | None = None):
+def main(
+    datasets: Datasets | None = None,
+    crop_pattern: CropPattern = "grid",
+    optical_flow_feature: str = "optical_flow_mean_unit_vector_dt1",
+) -> None:
     import logging
 
     from endo_pipeline.cli import DEMO_MODE
@@ -32,16 +36,12 @@ def main(datasets: Datasets | None = None):
 
     logger = logging.getLogger(__name__)
 
-    OPTICAL_FLOW_FEATURE = "optical_flow_mean_unit_vector_dt1"
-
     OPTICAL_FLOW_MANIFEST_NAME = "optical_flow_bf"
-
-    CROP_PATTERN = "grid"
 
     # Load diffae features
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern=CROP_PATTERN
+        model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern=crop_pattern
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     pca = fit_pca(num_pcs=3)
@@ -76,7 +76,7 @@ def main(datasets: Datasets | None = None):
             pca=pca,
             include_cell_piling=False,
             include_not_steady_state=False,
-            crop_pattern=CROP_PATTERN,
+            crop_pattern=crop_pattern,
         )
         df_of = add_optical_flow_features(
             df_dataset,
@@ -85,7 +85,7 @@ def main(datasets: Datasets | None = None):
         )
         plot_optical_flow_feature_distribution(
             df=df_of,
-            optical_flow_feature=OPTICAL_FLOW_FEATURE,
+            optical_flow_feature=optical_flow_feature,
             datasets=[dataset_name],
             output_dir=output_dir,
             binwidth=0.02,
@@ -108,7 +108,7 @@ def main(datasets: Datasets | None = None):
                 dataset_name=dataset_name,
                 x_col=x_col,
                 y_col=y_col,
-                color_col=OPTICAL_FLOW_FEATURE,
+                color_col=optical_flow_feature,
                 output_dir=output_dir,
                 vmax=1,
                 vmin=0,
