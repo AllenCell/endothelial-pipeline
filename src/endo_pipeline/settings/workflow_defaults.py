@@ -171,16 +171,3 @@ DEFAULT_MODEL_QC_LABELS = [
 Order: 8 BF, 16 BF, 32 BF, 64 BF, 128 BF, 256 BF, 512 BF, 1024 BF,
 512 CDH5, 1024 CDH5.
 """
-
-OPTICAL_FLOW_BASE_FEATURES: list = [
-    "optical_flow_mean_speed_dt1",
-    "optical_flow_mean_unit_vector_dt1",
-    "optical_flow_std_speed_dt1",
-    "optical_flow_mean_angle_dt1",
-    "optical_flow_angle_std_dt1",
-    "optical_flow_mean_u_dt1",
-    "optical_flow_mean_v_dt1",
-    "optical_flow_std_u_dt1",
-    "optical_flow_std_v_dt1",
-]
-"""Base feature names computed per (crop, timepoint, dt) by optical-flow extraction."""
