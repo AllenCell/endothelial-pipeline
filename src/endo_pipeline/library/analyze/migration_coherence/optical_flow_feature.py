@@ -1,6 +1,5 @@
 import logging
 
-import numpy as np
 import pandas as pd
 
 from endo_pipeline.configs import load_dataset_config
@@ -10,6 +9,7 @@ from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dat
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
+    MIGRATION_COHERENCE_STRIDE_INTERVAL,
     OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS,
     OPTICAL_FLOW_DATFRAME_MANIFEST_NAME,
 )
@@ -58,7 +58,10 @@ def add_optical_flow_features(
     """
 
     merge_columns_ = merge_columns or list(OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS)
-    optical_flow_feature_columns_ = optical_flow_feature_columns or list(OPTICAL_FLOW_BASE_FEATURES)
+    optical_flow_feature_columns_ = optical_flow_feature_columns or [
+        f"{feature}_dt{MIGRATION_COHERENCE_STRIDE_INTERVAL}"
+        for feature in OPTICAL_FLOW_BASE_FEATURES
+    ]
     required_columns = merge_columns_ + optical_flow_feature_columns_
     check_required_columns_in_dataframe(df, merge_columns_)
     dataframe_manifest_optical_flow = load_dataframe_manifest(optical_flow_manifest_name)
@@ -74,12 +77,6 @@ def add_optical_flow_features(
         )
         df_optical_flow = load_dataframe(optical_flow_location)
         check_required_columns_in_dataframe(df_optical_flow, required_columns)
-        # if dtype of position is str, convert to int for merging
-        # take [1:] and convert to int (e.g. "P1" -> 1)
-        if not isinstance(df_optical_flow[ColumnName.POSITION].dtype, np.int64):
-            df_optical_flow[ColumnName.POSITION] = (
-                df_optical_flow[ColumnName.POSITION].str[1:].astype(np.int64)
-            )
         df_optical_flow = df_optical_flow[required_columns]
 
         df_merged = df_dataset.merge(df_optical_flow, on=merge_columns_, how="left")
