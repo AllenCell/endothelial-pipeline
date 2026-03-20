@@ -2,12 +2,15 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
 )
 
-min_data_size = 72  # 120
+min_data_size = 144  # 72  # 120
+# a track duration of 144 is equivalent to 12 hours
 
 
 # def main_experimental(
@@ -180,10 +183,13 @@ def main():
     import logging
 
     import numpy as np
+    import seaborn as sns
+    from matplotlib import pyplot as plt
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path
+
+    # from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.data_driven_flow_field import (
         compute_extrapolated_vector_field,
         get_callable_vector_field,
@@ -202,7 +208,6 @@ def main():
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_THETA_RESCALED,
         BIN_WIDTHS_DYNAMICS,
-        DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
         PERIOD_THETA_RESCALED,
@@ -220,13 +225,14 @@ def main():
     logger = logging.getLogger(__name__)
 
     crop_pattern = "tracked"
+    # crop_pattern = "grid"
     datasets = ["20250618_20X"]
 
     # set workflow defaults
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
     column_names = list(DYNAMICS_COLUMN_NAMES)
-    drift_column_names = [f"{name}_drift" for name in column_names]
+    # drift_column_names = [f"{name}_drift" for name in column_names]
 
     # Load default model manifest and get corresponding feature dataframe
     # manifest name for default run name and specified crop pattern.
@@ -235,18 +241,19 @@ def main():
         model_manifest, run_name, crop_pattern=crop_pattern
     )
 
-    # Create/set output folder for dataframes, save in local directory without
-    # timestamp for intermediate level of "static-ness" (ensure they don't get
-    # periodically deleted).
-    #
-    # Also build dataframe manifests for the outputs of this workflow (drift
-    # coefficients, grid points, and stable fixed points) with names that
-    # include the input dataframe manifest name for traceability and to avoid
-    # naming conflicts with other runs. The dataframe manifests get saved to the
-    # dataframe manifest directory, and the dataframes themselves get saved to
-    # the output directory specified in settings.
-    dataframe_savedir = get_output_path(__file__, dataframe_manifest_name)
-    demo_suffix = "_demo" if DEMO_MODE else ""
+    # # Create/set output folder for dataframes, save in local directory without
+    # # timestamp for intermediate level of "static-ness" (ensure they don't get
+    # # periodically deleted).
+    # #
+    # # Also build dataframe manifests for the outputs of this workflow (drift
+    # # coefficients, grid points, and stable fixed points) with names that
+    # # include the input dataframe manifest name for traceability and to avoid
+    # # naming conflicts with other runs. The dataframe manifests get saved to the
+    # # dataframe manifest directory, and the dataframes themselves get saved to
+    # # the output directory specified in settings.
+    # dataframe_savedir = get_output_path(__file__, dataframe_manifest_name)
+    # demo_suffix = "_demo" if DEMO_MODE else ""
+
     # drift_dataframe_manifest_name = (
     #     f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataframe_manifest_name}{demo_suffix}"
     # )
@@ -296,9 +303,9 @@ def main():
     )
     pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_pca)
 
-    # initialize list to hold dataframes of stable fixed points from all
-    # datasets with columns for dataset name and 3D PC space coordinates
-    stable_fixed_points_all_datasets_list = []
+    # # initialize list to hold dataframes of stable fixed points from all
+    # # datasets with columns for dataset name and 3D PC space coordinates
+    # stable_fixed_points_all_datasets_list = []
 
     # initialize kernels and bin widths for each of the three variables for flow
     # field estimation
@@ -369,23 +376,23 @@ def main():
         )
 
         # test for getting drift_function when angle wraps
-        df["polar_theta_backup"] = df[Column.DiffAEData.POLAR_ANGLE].copy()
+        # df["polar_theta_backup"] = df[Column.DiffAEData.POLAR_ANGLE].copy()
 
-        polar_range = (0, np.pi)
+        # polar_range = (0, np.pi)
 
-        angles = df[Column.DiffAEData.POLAR_ANGLE]
-        sorted_angles = np.sort(angles)
+        # angles = df[Column.DiffAEData.POLAR_ANGLE]
+        # sorted_angles = np.sort(angles)
 
-        # Find largest gap (including wrap-around gap)
-        period = polar_range[1] - polar_range[0]
-        angle_diffs = np.diff(sorted_angles, append=sorted_angles[0] + period)
-        where_largest_diff = np.argmax(angle_diffs)
+        # # Find largest gap (including wrap-around gap)
+        # period = polar_range[1] - polar_range[0]
+        # angle_diffs = np.diff(sorted_angles, append=sorted_angles[0] + period)
+        # where_largest_diff = np.argmax(angle_diffs)
 
-        # Cut at end of largest gap; shift so data are contiguous on line
-        angle_cut = (sorted_angles[where_largest_diff] + angle_diffs[where_largest_diff]) % period
-        contiguous_angles = np.mod(angles - angle_cut, period)
+        # # Cut at end of largest gap; shift so data are contiguous on line
+        # angle_cut = (sorted_angles[where_largest_diff] + angle_diffs[where_largest_diff]) % period
+        # contiguous_angles = np.mod(angles - angle_cut, period)
 
-        df[Column.DiffAEData.POLAR_ANGLE] = contiguous_angles
+        # df[Column.DiffAEData.POLAR_ANGLE] = contiguous_angles
         # end of test code
 
         # get list of per-crop trajectories, the corresponding
@@ -483,3 +490,58 @@ def main():
         # )
         # fixed_points_save_path = make_name_unique(dataframe_savedir / fixed_points_file_name)
         # # fixed_points_for_dataset.to_parquet(fixed_points_save_path)
+
+        df = get_dataframe_for_dynamics_workflows(
+            dataset_name,
+            dataframe_manifest,
+            pca=pca,
+            include_cell_piling=True,
+            include_not_steady_state=True,
+            crop_pattern=crop_pattern,
+        )
+
+        for i in fixed_points_for_dataset.index:
+            fpt = fixed_points_for_dataset.iloc[i]
+            # print(
+            #     f"Dataset: {fpt[Column.DATASET]}, Stability: {fpt[STABILITY_COLUMN_NAME]}, Coordinates: {[fpt[col] for col in column_names]}"
+            # )
+
+            # diff_func = lambda x: get_smallest_angle_difference(reference_angle=fpt[col], period=rescaled_theta)(x)
+
+            for col in DYNAMICS_COLUMN_NAMES:
+                diff_func = lambda x, fpt=fpt, col=col: (
+                    np.mod(x - fpt[col] + rescaled_theta / 2, rescaled_theta) - rescaled_theta / 2
+                    if col == Column.DiffAEData.POLAR_ANGLE.value
+                    else (x - fpt[col])
+                )
+                df[f"diff_from_fp_{col}_{i}"] = diff_func(df[col])
+
+                # if col == Column.DiffAEData.POLAR_ANGLE:
+                #     diff_func = get_smallest_angle_difference
+                #     )
+                # else:
+                #     diff_func = np.subtract
+
+            dynamics_diff_columns = [f"diff_from_fp_{col}_{i}" for col in DYNAMICS_COLUMN_NAMES]
+            df[f"dist_from_fp_{i}"] = np.linalg.norm(df[dynamics_diff_columns], axis=1)
+            # break
+
+        df = df[df[Column.TRACK_LENGTH] > min_data_size]
+
+        df[df[Column.TRACK_LENGTH] > min_data_size][Column.TRACK_ID].nunique()
+
+        shear = dataset_config.flow_conditions[0].shear_stress
+
+        fig, ax = plt.subplots()
+        ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²")
+        for i in fixed_points_for_dataset.index:
+            stability = fixed_points_for_dataset.iloc[i][STABILITY_COLUMN_NAME]
+            sns.lineplot(
+                df, x=Column.TIMEPOINT, y=f"dist_from_fp_{i}", ax=ax, label=f"FP {i} ({stability})"
+            )
+        ax.set_ylabel("Distance from fixed point")
+        ax.set_xlabel("Timepoint")
+        ax.legend(title="Fixed Point Index")
+        plt.show()
+
+        sns.histplot(df, x="track_duration")
