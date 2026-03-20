@@ -631,15 +631,16 @@ def calculate_derived_data_dynamics_dependent(
     be used after filtering out incorrect segmentations from
     the data table.
     """
-    # recalculate the centroid speeds of each track
-    # after filtering
-    logger.info("Calculating centroid velocities...")
-    big_table[Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN] = (
+    # recalculate the centroid speeds of each track after filtering
+    logger.info("Calculating centroid positions in microns...")
+    big_table[Column.SegData.CENTROID_X_UM] = (
         big_table[Column.SegData.CENTROID_X] * big_table[Column.PIXEL_SIZE_XY_IN_UM]
     )
-    big_table[Column.SegData.CENTROID_VELOCITY_Y_UM_PER_MIN] = (
+    big_table[Column.SegData.CENTROID_Y_UM] = (
         big_table[Column.SegData.CENTROID_Y] * big_table[Column.PIXEL_SIZE_XY_IN_UM]
     )
+
+    logger.info("Calculating centroid velocities...")
     big_table[
         [
             Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN,
@@ -648,8 +649,8 @@ def calculate_derived_data_dynamics_dependent(
     ] = (
         big_table.groupby([Column.DATASET, Column.POSITION, Column.TRACK_ID], as_index=True)[
             [
-                Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN,
-                Column.SegData.CENTROID_VELOCITY_Y_UM_PER_MIN,
+                Column.SegData.CENTROID_X_UM,
+                Column.SegData.CENTROID_Y_UM,
                 Column.SegData.TIME_MINS,
             ]
         ]
