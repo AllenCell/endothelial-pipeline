@@ -29,7 +29,7 @@ def main() -> None:
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.column_names import ColumnName as Column
 
     plt.style.use("endo_pipeline.figure")
 
@@ -64,7 +64,7 @@ def main() -> None:
         include_cell_piling=include_cell_piling,
         num_pcs=n_dims,
     )
-    column_names = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(n_dims)]
+    column_names = [f"{Column.DiffAEData.PCA_FEATURE_PREFIX}{i+1}" for i in range(n_dims)]
     dataframe_all_datasets = pd.concat(
         [
             get_dataframe_for_dynamics_workflows(

@@ -1,6 +1,6 @@
 # from endo_pipeline.cli import tags
 
-TAGS = ["immunoflourescence"]
+TAGS = ["immunofluorescence"]
 
 
 def main(gen_backdrops: bool = True) -> None:
@@ -30,6 +30,7 @@ def main(gen_backdrops: bool = True) -> None:
         load_dataframe_manifest,
         load_image_manifest,
     )
+    from endo_pipeline.settings.column_names import ColumnName as Column
 
     logger = logging.getLogger(__name__)
 
@@ -76,11 +77,12 @@ def main(gen_backdrops: bool = True) -> None:
             df["seg_image"] = seg_img_location.path
 
             df = add_backdrop_fname_to_manifest(
-                df,
-                dataset_name,
-                position,
-                IF_BACKDROP_IMAGES,
-                output_dir / "backdrops",
+                df=df,
+                dataset=dataset_name,
+                position=position,
+                timeframe_column_name=Column.TIMEPOINT,
+                backdrops=IF_BACKDROP_IMAGES,
+                output_dir=output_dir / "backdrops",
             )
 
             if gen_backdrops:

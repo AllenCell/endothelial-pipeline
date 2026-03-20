@@ -10,10 +10,10 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     rewrap_polar_angle,
 )
 from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
-    ColumnName,
 )
 from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
 
@@ -265,20 +265,20 @@ def _get_histogram_by_component_one_dataset(
         feat_cols = [col for col in feat_cols_all if col in df.columns]
 
     num_feats = len(feat_cols)
-    num_frames = df[ColumnName.TIMEPOINT].nunique()
+    num_frames = df[Column.TIMEPOINT].nunique()
 
     hist_array_list: list[np.ndarray] = [
         np.zeros((len(bin_edges[dim]) - 1, num_frames)) for dim in range(num_feats)
     ]  # histogram values for each component as a function of time
 
     # sort by timepoint
-    df = df.sort_values(by=ColumnName.TIMEPOINT).reset_index(drop=True)
-    for t, df_frame in df.groupby(ColumnName.TIMEPOINT):
+    df = df.sort_values(by=Column.TIMEPOINT).reset_index(drop=True)
+    for t, df_frame in df.groupby(Column.TIMEPOINT):
         # loop over latent components
         for dim in range(num_feats):
             feats = df_frame[feat_cols[dim]].to_numpy()
             # compute histogram of feature data along each component
-            t_index = df[ColumnName.TIMEPOINT].unique().tolist().index(t)
+            t_index = df[Column.TIMEPOINT].unique().tolist().index(t)
             hist = np.histogram(feats, bins=bin_edges[dim], density=True)[0]
             hist_array_list[dim][:, t_index] = hist
 
@@ -289,7 +289,7 @@ def _get_histogram_by_component_one_dataset(
             bin_idx = np.digitize(feats, bin_edges[dim]) - 1
             # add the bin index to the dataframe (astype int)
             # restrict to crops at frame number t
-            df.loc[df[ColumnName.TIMEPOINT] == t, f"bin_{dim}"] = bin_idx
+            df.loc[df[Column.TIMEPOINT] == t, f"bin_{dim}"] = bin_idx
 
     # enforce that bin indices are integers
     # this is important for indexing later
@@ -339,7 +339,7 @@ def get_histogram_by_component(
     # get histogram / bin indices for each dataset
     hist_array_list_all_datasets = []
     df_list = []
-    for _, df_group in df.groupby(ColumnName.DATASET):
+    for _, df_group in df.groupby(Column.DATASET):
         hist_array_list_one_dataset, df_group_ = _get_histogram_by_component_one_dataset(
             df_group, bin_edges, feat_cols
         )

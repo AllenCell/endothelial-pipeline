@@ -90,7 +90,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMIT_PERCENTILE_CUTOFF,
         BIN_LIMITS_DYNAMICS,
@@ -116,10 +116,10 @@ def main(
     # unpack default bin widths and limits for each column, adjusting limits if rescaling theta
     global_bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
     if RESCALE_THETA:
-        global_bin_limits_dict[ColumnName.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
+        global_bin_limits_dict[Column.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
     polar_angle_period = (
-        global_bin_limits_dict[ColumnName.POLAR_ANGLE][1]
-        - global_bin_limits_dict[ColumnName.POLAR_ANGLE][0]
+        global_bin_limits_dict[Column.DiffAEData.POLAR_ANGLE][1]
+        - global_bin_limits_dict[Column.DiffAEData.POLAR_ANGLE][0]
     )
 
     # get dataframe manifest for grid-based crop features
@@ -184,9 +184,9 @@ def main(
 
             # loop over pairwise combinations of columns and plot drift contours
             for column_name_pair in [
-                (ColumnName.POLAR_RADIUS, ColumnName.PC3_FLIPPED),  # r and rho
-                (ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE),  # r and theta
-                (ColumnName.PC3_FLIPPED, ColumnName.POLAR_ANGLE),  # rho and theta
+                (Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED),  # r and rho
+                (Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.POLAR_ANGLE),  # r and theta
+                (Column.DiffAEData.PC3_FLIPPED, Column.DiffAEData.POLAR_ANGLE),  # rho and theta
             ]:
                 # build kernels for each variable in the pair based on settings,
                 # adjusting for periodicity if needed, and get bin edges and
@@ -205,13 +205,13 @@ def main(
                             bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
                             period=(
                                 polar_angle_period
-                                if column_name == ColumnName.POLAR_ANGLE
+                                if column_name == Column.DiffAEData.POLAR_ANGLE
                                 else None
                             ),
                         )
                     )
                     column_labels_2d.append(variable_labels_dict[column_name])
-                    if column_name == ColumnName.POLAR_ANGLE:
+                    if column_name == Column.DiffAEData.POLAR_ANGLE:
                         bins_, centers_ = get_bins(
                             bin_widths=(BIN_WIDTHS_DYNAMICS[column_name],),
                             bin_limits=[global_bin_limits_dict[column_name]],

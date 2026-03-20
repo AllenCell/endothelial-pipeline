@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 import pandas as pd
 from colorizer_data import FeatureInfo
@@ -10,69 +11,62 @@ from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifes
 from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     add_backdrop_fname_to_manifest,
 )
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.feature_info import RANGE_MAP
 
 
 def update_manifest_for_tfe(
-    df: pd.DataFrame, dataset: str, position: int, output_dir: Path
+    df: pd.DataFrame,
+    dataset: str,
+    position: int,
+    output_dir: Path,
+    segmentation: Literal["CDH5", "grid"],
 ) -> pd.DataFrame:
     """
     Update the manifest DataFrame for TFE by adding necessary columns.
 
     Args:
-        df (pd.DataFrame): The input manifest DataFrame.
-        dataset (str): The dataset name.
-        position (int): The position identifier.
-        output_dir (Path): The output directory for backdrops.
+        df:
+            The input manifest DataFrame.
+        dataset:
+            The dataset name.
+        position:
+            The position identifier.
+        output_dir:
+            The output directory for backdrops.
+        segmentation:
+            Whether "CDH5" or "grid" segmentations are being converted to a TFE dataset.
 
     Returns:
         pd.DataFrame: The updated manifest DataFrame.
     """
     # Add dataset and position columns
-    df["dataset"] = dataset
-    df["position"] = position
+    if segmentation == "CDH5":
+        construct_segmentation_image_filename = (
+            lambda timepoint: f"{dataset}_P{position}_T{timepoint}.ome.tiff"
+        )
+    elif segmentation == "grid":
+        construct_segmentation_image_filename = (
+            lambda timepoint: f"P{position}_T{timepoint}_grid_segmentation.ome.tiff"
+        )
+    else:
+        raise ValueError(f"Invalid segmentation type: {segmentation} (must be 'CDH5' or 'grid').")
 
     # Generate segmentation image filenames
-    df["seg_image"] = (
-        df["dataset"]
-        + "_P"
-        + df["position"].astype(str)
-        + "_T"
-        + df["image_index"].astype(str)
-        + ".ome.tiff"
+    df[Column.TFE.SEGMENTATION_IMAGE_FILENAME] = df[Column.TIMEPOINT].transform(
+        construct_segmentation_image_filename
     )
 
     # Add backdrop filenames to the manifest
     df = add_backdrop_fname_to_manifest(
-        df,
-        dataset,
-        position,
-        ["bf_slice", "bf_std_dev", "gfp_max_proj"],
+        df=df,
+        dataset=dataset,
+        position=position,
+        timeframe_column_name=Column.TIMEPOINT,
+        backdrops=["bf_slice", "bf_std_dev", "gfp_max_proj"],
         output_dir=output_dir / "backdrops",
     )
 
-    # Add track ID as a feature
-    df["tid"] = df["track_id"]
-
-    return df
-
-
-def update_manifest_for_tfe_grid(
-    df: pd.DataFrame, dataset: str, position: int, output_dir: Path
-) -> pd.DataFrame:
-    """Update DataFrame for TFE with grid-based features by adding necessary columns.
-    This is a wrapper for update_manifest_for_tfe that updates the seg_image column entries
-    to have the pattern "PX_TX_grid_segmentation.ome.tiff".
-    """
-    df = update_manifest_for_tfe(df, dataset, position, output_dir)
-    df["seg_image"] = (
-        "P"
-        + df["position"].astype(str)
-        + "_T"
-        + df["image_index"].astype(str)
-        + "_grid_segmentation"
-        + ".ome.tiff"
-    )
     return df
 
 
@@ -113,8 +107,8 @@ def add_dynamic_features_with_filtering(df: pd.DataFrame) -> pd.DataFrame:
     For TFE we need to preserve the rows that are filtered out, so we filter them
     and then calculate the features and then merge them back in.
     """
-    df_filtered_rows = df[~df["is_included"]]
-    df_keep = df[df["is_included"]]
+    df_filtered_rows = df[~df[Column.SegDataFilters.IS_INCLUDED]]
+    df_keep = df[df[Column.SegDataFilters.IS_INCLUDED]]
     df_calc = calculate_derived_data_dynamics_dependent(
         df_keep, compute_per_crop_metrics=False, max_timeframes_to_average_for_velocity=1
     )

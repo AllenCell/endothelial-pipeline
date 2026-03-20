@@ -73,7 +73,8 @@ def main(
         get_most_recent_run_name,
         load_model_manifest,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
+    from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
 
     logger = logging.getLogger(__name__)
 
@@ -104,9 +105,7 @@ def main(
     pc_column_names_ = (
         DIFFAE_PC_COLUMN_NAMES[:num_pcs] if pc_column_names is None else pc_column_names
     )
-    required_columns = (
-        [ColumnName.DATASET, *pc_column_names_] if dataset_labels else pc_column_names_
-    )
+    required_columns = [Column.DATASET, *pc_column_names_] if dataset_labels else pc_column_names_
     check_required_columns_in_dataframe(dataframe, required_columns)  # validate required columns
     pc_coords = dataframe[pc_column_names_].values  # extract coordinate values
 
@@ -141,7 +140,7 @@ def main(
         plt.tight_layout()
         file_name = "pc_coordinate_"
         if dataset_labels:
-            dataset_name = dataframe.iloc[i][ColumnName.DATASET]
+            dataset_name = dataframe.iloc[i][Column.DATASET]
             file_name = f"{dataset_name}_{file_name}"
         pc_coord_as_str = "_".join([f"{coord:.2f}" for coord in pc_coords[i]])
         save_plot_to_path(fig, crop_savedir, f"{file_name}{pc_coord_as_str}.png")

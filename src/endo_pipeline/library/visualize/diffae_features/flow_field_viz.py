@@ -22,10 +22,10 @@ from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     get_dataset_color,
     get_label_for_column,
 )
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
-    ColumnName,
 )
 from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED, RESCALE_THETA
 from endo_pipeline.settings.figures import (
@@ -648,7 +648,7 @@ def plot_stable_fixed_points_together(
     """
 
     # check that required columns are present
-    required_columns = [ColumnName.DATASET, *column_names]
+    required_columns = [Column.DATASET, *column_names]
     check_required_columns_in_dataframe(stable_fixed_points_df, required_columns)
 
     column_labels = [get_label_for_column(col) for col in column_names]
@@ -658,7 +658,7 @@ def plot_stable_fixed_points_together(
 
     # loop over datasets and plot their stable fixed points
     patch_list_for_legend = []
-    for dataset_name, dataset_df in stable_fixed_points_df.groupby(ColumnName.DATASET):
+    for dataset_name, dataset_df in stable_fixed_points_df.groupby(Column.DATASET):
         dataset_name_ = cast(str, dataset_name)
         scatter_color = get_dataset_color(dataset_name_)
         patch_list_for_legend.append(Patch(color=scatter_color, label=dataset_name_))
@@ -729,7 +729,7 @@ def flow_field_viz_main(
         Directory to save the figures.
     """
     # dataset flow condition for saving the figures
-    dataset_name = df[ColumnName.DATASET].unique()[0]
+    dataset_name = df[Column.DATASET].unique()[0]
 
     ###### additional plots for visualization of flow field #######
     # 1) plot stacks of flow field slices
@@ -782,9 +782,9 @@ def flow_field_viz_main(
             dataset_name,
         )
         # plot slices at mean of data at last time point
-        mean_at_last_timepoint = df[
-            df[ColumnName.TIMEPOINT] == df[ColumnName.TIMEPOINT].max()
-        ].mean(numeric_only=True)
+        mean_at_last_timepoint = df[df[Column.TIMEPOINT] == df[Column.TIMEPOINT].max()].mean(
+            numeric_only=True
+        )
         feature_vals = (
             mean_at_last_timepoint[column_names[2]],
             mean_at_last_timepoint[column_names[1]],
@@ -826,8 +826,8 @@ def flow_field_viz_main(
     # need to account for possible wrap-around in the trajectory due
     # to periodic boundary conditions along circular features (e.g., PC angles)
     # when plotting the trajectory over the flow field slices
-    if ColumnName.POLAR_ANGLE in column_names:
-        polar_angle_index = column_names.index(ColumnName.POLAR_ANGLE)
+    if Column.DiffAEData.POLAR_ANGLE in column_names:
+        polar_angle_index = column_names.index(Column.DiffAEData.POLAR_ANGLE)
         polar_angle_range = BIN_LIMITS_THETA_RESCALED if RESCALE_THETA else (-np.pi, np.pi)
         traj[:, polar_angle_index] = rewrap_polar_angle(
             traj[:, polar_angle_index], polar_angle_range
@@ -837,7 +837,7 @@ def flow_field_viz_main(
         )
 
     for j, ax_ in enumerate(ax):
-        if ColumnName.POLAR_ANGLE in column_names:
+        if Column.DiffAEData.POLAR_ANGLE in column_names:
             # identify where the trajectory wraps around by looking for large
             # jumps in the circular feature (large enough that they exceed the
             # threshold for half the range of the circular feature)
