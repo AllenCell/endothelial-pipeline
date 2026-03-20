@@ -56,10 +56,10 @@ def test_get_bins_from_data_applies_pad():
     bin_widths = (0.1, 0.1)
     bin_edges, _ = get_bins(bin_widths=bin_widths, data=data, pad=pad)
 
-    assert bin_edges[0][0] <= 0.0 - pad
-    assert bin_edges[0][-1] >= 1.0 + pad
-    assert bin_edges[1][0] <= 0.0 - pad
-    assert bin_edges[1][-1] >= 2.0 + pad
+    assert bin_edges[0][0] == 0.0 - pad
+    assert bin_edges[0][-1] == 1.0 + pad
+    assert bin_edges[1][0] == 0.0 - pad
+    assert bin_edges[1][-1] == 2.0 + pad
 
 
 def test_get_bins_from_data_uses_percentile_limits():
