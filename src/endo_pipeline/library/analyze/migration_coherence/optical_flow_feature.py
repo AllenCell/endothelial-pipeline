@@ -1,6 +1,5 @@
 import logging
 
-import numpy as np
 import pandas as pd
 
 from endo_pipeline.configs import load_dataset_config
@@ -74,12 +73,6 @@ def add_optical_flow_features(
         )
         df_optical_flow = load_dataframe(optical_flow_location)
         check_required_columns_in_dataframe(df_optical_flow, required_columns)
-        # if dtype of position is str, convert to int for merging
-        # take [1:] and convert to int (e.g. "P1" -> 1)
-        if not isinstance(df_optical_flow[ColumnName.POSITION].dtype, np.int64):
-            df_optical_flow[ColumnName.POSITION] = (
-                df_optical_flow[ColumnName.POSITION].str[1:].astype(np.int64)
-            )
         df_optical_flow = df_optical_flow[required_columns]
 
         df_merged = df_dataset.merge(df_optical_flow, on=merge_columns_, how="left")
