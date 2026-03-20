@@ -38,8 +38,7 @@ def test_get_bins_num_bins_matches_ceil():
 
 def test_get_bins_from_data_covers_data_range():
     """When binning from data, all data points should fall within the bin edges."""
-    rng = np.random.default_rng(0)
-    data = rng.standard_normal((50, 2))
+    data = np.array([[0.0, 0.0], [1.0, 2.0], [0.5, 1.0], [1.5, 2.5]])
     bin_widths = (0.1, 0.1)
     bin_edges, _ = get_bins(bin_widths=bin_widths, data=data)
 
@@ -56,17 +55,15 @@ def test_get_bins_from_data_applies_pad():
     bin_widths = (0.1, 0.1)
     bin_edges, _ = get_bins(bin_widths=bin_widths, data=data, pad=pad)
 
-    assert bin_edges[0][0] <= 0.0 - pad
-    assert bin_edges[0][-1] >= 1.0 + pad
-    assert bin_edges[1][0] <= 0.0 - pad
-    assert bin_edges[1][-1] >= 2.0 + pad
+    assert bin_edges[0][0] == 0.0 - pad
+    assert bin_edges[0][-1] == 1.0 + pad
+    assert bin_edges[1][0] == 0.0 - pad
+    assert bin_edges[1][-1] == 2.0 + pad
 
 
 def test_get_bins_from_data_uses_percentile_limits():
     """When percentiles are given, bin limits should be set by the percentile values."""
-    rng = np.random.default_rng(42)
-    data = rng.standard_normal((200, 1))
-    values = data[:, 0]
+    data = np.array([[0.0], [3.0], [4.0], [6.0], [8.0]])  # 1D data with values from 0 to 8
     lower_p, upper_p = 5.0, 95.0
     bin_widths = (0.1,)
     bin_edges, _ = get_bins(
@@ -76,8 +73,8 @@ def test_get_bins_from_data_uses_percentile_limits():
         upper_percentile=upper_p,
     )
 
-    expected_min = np.percentile(values, lower_p)
-    expected_max = np.percentile(values, upper_p)
+    expected_min = np.percentile(data, lower_p)
+    expected_max = np.percentile(data, upper_p)
     assert np.isclose(bin_edges[0][0], expected_min)
     assert np.isclose(bin_edges[0][-1], expected_max)
 

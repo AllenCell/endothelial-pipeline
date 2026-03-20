@@ -35,10 +35,10 @@ def main(datasets: Datasets | None = None) -> None:
         NATIVE_ZARR_RESOLUTION_CROP_SIZE,
         UPPER_Z_SLICE_OFFSET,
         ColumnName,
-        CytoDLLoadDataKeys,
         IMG_SHAPE_RESOLUTION_0_3i_X,
         IMG_SHAPE_RESOLUTION_0_3i_Y,
     )
+    from endo_pipeline.settings.diffae_feature_dataframes import CytoDLLoadDataKeys
 
     logger = logging.getLogger(__name__)
 
