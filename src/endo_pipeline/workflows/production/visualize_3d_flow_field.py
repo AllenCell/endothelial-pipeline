@@ -107,7 +107,6 @@ def main(
         get_kernel_density_estimate,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
-    from endo_pipeline.library.analyze.numerics.binning import get_bounds_from_data
     from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
         flow_field_viz_main,
         plot_stable_fixed_points_together,
@@ -122,6 +121,7 @@ def main(
     )
     from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
+        BIN_LIMITS_DYNAMICS,
         BIN_WIDTHS_DYNAMICS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
@@ -243,29 +243,27 @@ def main(
     )
     pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_pca)
 
-    # get common bounds for all datasets
-    # will be used for flow field plots if use_common_axis_limits is True
-    # regardless, gets used below when plotting stable fixed points together
-    bounds_for_plots = get_bounds_from_data(
-        dataset_names, feature_dataframe_manifest, pca, column_names=column_names
-    )
-
-    # initialize kernels and bins to be used for KDE estimation of the data histogram
-    kernels = []
-    bin_widths = []
-    rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
-
     # Get the corresponding kernels and bin widths for each variable. For the
     # polar angle variable, also specify the period for the kernel based on the
     # rescaled theta range, to ensure that the periodicity of the polar angle is
     # taken into account in the flow field estimation.
+    #
+    # Also initialize the plot bounds via the global bin limits dict, which will
+    # be used if use_same_axes is True, and will be updated to dataset-specific
+    # bin limits if use_same_axes is False
+    kernels = []
+    bin_widths = []
+    rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
+    bounds_for_plots = []
     for column_name in column_names:
         name = KERNEL_NAMES_DYNAMICS[column_name]
         bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
         period = rescaled_theta if column_name == ColumnName.POLAR_ANGLE else None
         bin_width = BIN_WIDTHS_DYNAMICS[column_name]
+        bin_limits_col = BIN_LIMITS_DYNAMICS[column_name]
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
         bin_widths.append(bin_width)
+        bounds_for_plots.append(bin_limits_col)
 
     # set list of column names to keep from the loaded feature dataframes
     columns_plus_metadata_to_keep = [
@@ -420,11 +418,11 @@ def main(
         fig_savedir_dataset: Path = fig_savedir / dataset_name
         fig_savedir_dataset.mkdir(parents=True, exist_ok=True)
 
-        # get per-dataset bounds for plotting, if not using same axes for all datasets
+        # if not using same axes for all datasets, use bin limits for this
+        # specific dataset, to ensure that the flow field visualizations are
+        # zoomed in enough to see the details of the flow field and trajectories
         if not use_same_axes:
-            bounds_for_plots = get_bounds_from_data(
-                [dataset_name], feature_dataframe_manifest, pca, column_names=column_names
-            )
+            bounds_for_plots = bin_limits.copy()
 
         # call main visualization function
         flow_field_viz_main(
