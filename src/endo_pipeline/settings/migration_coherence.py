@@ -12,18 +12,8 @@ OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS: tuple[str, ...] = (
 )
 """Column names to merge on when adding optical flow features to another dataframe."""
 
-OPTICAL_FLOW_DT1_FEATURES: tuple[str, ...] = (
-    "optical_flow_mean_speed_dt1",
-    "optical_flow_mean_unit_vector_dt1",
-    "optical_flow_std_speed_dt1",
-    "optical_flow_mean_angle_dt1",
-    "optical_flow_angle_std_dt1",
-    "optical_flow_mean_u_dt1",
-    "optical_flow_mean_v_dt1",
-    "optical_flow_std_u_dt1",
-    "optical_flow_std_v_dt1",
-)
-"""Optical flow feature columns for temporal stride dt=1; used in migration coherence analyses."""
+MIGRATION_COHERENCE_STRIDE_INTERVAL: int = 1
+"""Interval (in frames) at which tracked optical flow features are computed."""
 
 MIGRATION_COHERENCE_CROP_PATTERN: str = "grid"
 """Crop pattern to use for migration coherence analyses."""

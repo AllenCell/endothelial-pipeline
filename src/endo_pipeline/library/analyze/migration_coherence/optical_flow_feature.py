@@ -9,10 +9,11 @@ from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dat
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
+    MIGRATION_COHERENCE_STRIDE_INTERVAL,
     OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS,
     OPTICAL_FLOW_DATFRAME_MANIFEST_NAME,
-    OPTICAL_FLOW_DT1_FEATURES,
 )
+from endo_pipeline.settings.optical_flow import OPTICAL_FLOW_BASE_FEATURES
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,10 @@ def add_optical_flow_features(
     """
 
     merge_columns_ = merge_columns or list(OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS)
-    optical_flow_feature_columns_ = optical_flow_feature_columns or list(OPTICAL_FLOW_DT1_FEATURES)
+    optical_flow_feature_columns_ = optical_flow_feature_columns or [
+        f"{feature}_dt{MIGRATION_COHERENCE_STRIDE_INTERVAL}"
+        for feature in OPTICAL_FLOW_BASE_FEATURES
+    ]
     required_columns = merge_columns_ + optical_flow_feature_columns_
     check_required_columns_in_dataframe(df, merge_columns_)
     dataframe_manifest_optical_flow = load_dataframe_manifest(optical_flow_manifest_name)
