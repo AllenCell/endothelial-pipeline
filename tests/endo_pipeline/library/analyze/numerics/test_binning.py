@@ -119,7 +119,7 @@ def test_get_bins_negative_range():
 
 def test_get_bins_raises_when_no_data_or_limits():
     """Should raise an error when neither data nor bin_limits is provided."""
-    with pytest.raises((ValueError, TypeError)):
+    with pytest.raises(ValueError):
         get_bins(bin_widths=(0.1, 0.1))
 
 

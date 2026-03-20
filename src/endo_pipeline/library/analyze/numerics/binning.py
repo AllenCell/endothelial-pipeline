@@ -112,6 +112,8 @@ def get_bins(
     If the dimension is 1, bins and centers are still lists (of length 1),
     containing the bin edges and centers for the single dimension.
     """
+    if bin_limits is None and data is None:
+        raise ValueError("Please provide data or or upper and lower bounds for bins.")
     data = np.atleast_2d(data) if data is not None else None
     ndim = data.shape[1] if data is not None else len(bin_limits)
     if ndim != len(bin_widths):
@@ -120,8 +122,6 @@ def get_bins(
 
     # Automatically determine bins based on data if bin limits are not provided
     if bin_limits is None:
-        if data is None:
-            raise ValueError("Please provide data or or upper and lower bounds for bins.")
         for i in range(ndim):
             # Get bin limits for this dimension across all trajectories either
             # based on absolute min and max (plus padding) or based on specified
