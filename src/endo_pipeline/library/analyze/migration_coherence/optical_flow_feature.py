@@ -4,7 +4,7 @@ import pandas as pd
 
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
-from endo_pipeline.settings.workflow_defaults import OPTICAL_FLOW_BASE_FEATURES
+from endo_pipeline.settings.optical_flow import OPTICAL_FLOW_BASE_FEATURES
 
 logger = logging.getLogger(__name__)
 
