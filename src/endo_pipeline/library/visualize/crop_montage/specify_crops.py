@@ -19,10 +19,10 @@ from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     plot_component_histograms_over_time,
 )
 from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
-    ColumnName,
 )
 from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH
 
@@ -144,8 +144,8 @@ def filter_dataframe(
 
     if frame_range is not None:
         df_filtered = df_filtered[
-            (df_filtered[ColumnName.TIMEPOINT] >= frame_range[0])
-            & (df_filtered[ColumnName.TIMEPOINT] <= frame_range[1])
+            (df_filtered[Column.TIMEPOINT] >= frame_range[0])
+            & (df_filtered[Column.TIMEPOINT] <= frame_range[1])
         ]
 
     return df_filtered

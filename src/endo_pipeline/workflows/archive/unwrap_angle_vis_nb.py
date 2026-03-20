@@ -16,11 +16,8 @@ from endo_pipeline.library.visualize.diffae_features.feature_viz import get_labe
 from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
     get_df_for_feature_correlation_viz,
 )
-from endo_pipeline.settings.diffae_feature_dataframes import (
-    NUM_LATENT_FEATURES,
-    NUM_PCS_TO_ANALYZE,
-    ColumnName,
-)
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.diffae_feature_dataframes import NUM_LATENT_FEATURES, NUM_PCS_TO_ANALYZE
 from endo_pipeline.settings.workflow_defaults import (
     DATASET_INFO_COLUMNS,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
@@ -32,7 +29,7 @@ silence_external_loggers()
 
 fig_savedir = get_output_path(__file__)
 
-ANGLE_COLUMN_NAMES = ["Orientation (deg)", f"{ColumnName.POLAR_ANGLE}"]
+ANGLE_COLUMN_NAMES = ["Orientation (deg)", f"{Column.DiffAEData.POLAR_ANGLE}"]
 ANGLE_PERIOD = np.pi
 
 # %%
