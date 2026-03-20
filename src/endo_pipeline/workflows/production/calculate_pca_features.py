@@ -155,7 +155,9 @@ def main(
                 timepoint_annotations=timepoint_annotations,
             )
 
-            filtered_pca_df_path = output_path / f"{dataset_name}_{crop_pattern}_pca.parquet"
+            filtered_pca_df_path = (
+                output_path / f"{dataset_name}_{crop_pattern}_pca_filtered.parquet"
+            )
             filtered_pca_manifest_name = f"{feature_dataframe_manifest_name}_pca_filtered"
             filtered_pca_manifest = create_dataframe_manifest(filtered_pca_manifest_name, __name__)
 
