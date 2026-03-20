@@ -26,7 +26,10 @@ from endo_pipeline.manifests import (
     load_model_manifest,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAME_GROUPS
+from endo_pipeline.settings.diffae_feature_dataframes import (
+    DIFFAE_PC_COLUMN_NAME_GROUPS,
+    NUM_LATENT_FEATURES,
+)
 from endo_pipeline.settings.dynamics_workflows import (
     METADATA_COLUMNS_TO_KEEP,
     PERIOD_THETA_RESCALED,
@@ -512,7 +515,7 @@ def fit_pca(
     dataframe_manifest_name: str | None = None,
     filter_by_annotations: bool = True,
     include_cell_piling: bool = False,
-    num_pcs: int = 8,
+    num_pcs: int = NUM_LATENT_FEATURES,
 ) -> PCA:
     """
     Fit PCA model using given datasets in given dataset collection.
