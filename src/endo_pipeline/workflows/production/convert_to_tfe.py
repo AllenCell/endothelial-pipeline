@@ -100,15 +100,14 @@ def main(
     logger = logging.getLogger(__name__)
 
     # Set default values for dataset, position, and output directory if not provided
+    suffix = "_demo" if DEMO_MODE else ""
     datasets = datasets or TFE_DEFAULT_DATASETS
     positions = positions or TFE_DEFAULT_POSITIONS
-    output_dir = output_dir or get_output_path(f"timelapse_feature_explorer_{segmentation}")
+    output_dir = output_dir or get_output_path(f"timelapse_feature_explorer_{segmentation}{suffix}")
 
     # Limit dataset and positions for demo mode and apply directory suffix.
     if DEMO_MODE:
         datasets = datasets[:1]
-        positions = positions[:1]
-        output_dir = output_dir.with_name(output_dir.name + "_demo")
 
     # Load image manifest based on segmentation type
     image_manifest = load_image_manifest(TFE_IMAGE_MANIFEST_NAME_MAP[segmentation])
