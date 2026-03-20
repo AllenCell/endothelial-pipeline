@@ -113,6 +113,7 @@ def main(
     # Limit dataset and positions for demo mode and apply directory suffix.
     if DEMO_MODE:
         datasets = datasets[:1]
+        positions = positions[:1]
 
     # Load image manifest based on segmentation type
     image_manifest = load_image_manifest(TFE_IMAGE_MANIFEST_NAME_MAP[segmentation])
