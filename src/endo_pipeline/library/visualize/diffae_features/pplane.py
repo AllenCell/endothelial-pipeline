@@ -425,29 +425,20 @@ def make_legend_handles_for_fixed_pts(
         for the fixed point types.
     """
     my_handles = []
-    # get unique stabilities of the fixed points to determine which legend
-    # handles to include; have sorted in order of:
-    # stable, unstable, saddle, indeterminate (this is the order in the StabilityLabel enum)
-    fpt_stabilities_unique = list(set(fpt_stabilities))
-    fpt_stabilities_sorted = sorted(
-        fpt_stabilities_unique,
-        key=lambda x: [
-            StabilityLabel.STABLE,
-            StabilityLabel.UNSTABLE,
-            StabilityLabel.SADDLE,
-            StabilityLabel.INDETERMINATE,
-        ].index(x),
-    )
-    for stability in fpt_stabilities_sorted:
-        my_handles.append(
-            StabilityLegendHandle(
-                legend_label=stability,
-                marker=marker_dict[stability],
-                face_color=face_color_dict[stability],
-                edge_color=edge_color,
-                marker_size=marker_size,
+    # get legend handles for the fixed point types that are present in given
+    # list of fixed point stabilities, in the order given by StabilityLabel enum
+    for stability_type in StabilityLabel:
+        if stability_type in fpt_stabilities:
+            my_handles.append(
+                StabilityLegendHandle(
+                    stability_label=stability_type,
+                    legend_label=stability_type,
+                    marker=marker_dict[stability_type],
+                    face_color=face_color_dict[stability_type],
+                    edge_color=edge_color,
+                    marker_size=marker_size,
+                )
             )
-        )
 
     return my_handles
 
