@@ -269,15 +269,11 @@ def preprocess_tracking_manifest_for_model_eval(
     ]
 
     columns_for_filtering = [
-        Column.SegDataFilters.IS_INCLUDED,
         Column.SegDataFilters.IS_VALID_BBOX,
     ]
 
     # compute the required and filtering columns
     df = df[columns_to_keep + columns_for_filtering].compute()
-
-    # keep only rows that were not filtered out
-    df = df[df[Column.SegDataFilters.IS_INCLUDED]]
 
     # filter the dataframe in-place to remove clipped bounding boxes
     df = df[df[Column.SegDataFilters.IS_VALID_BBOX]]
