@@ -99,6 +99,13 @@ def main(
     pca = fit_pca()
 
     for dataset_name in dataset_names:
+        if dataset_name not in feature_manifest.locations:
+            logger.warning(
+                "No location found in dataframe manifest '%s' for dataset '%s', skipping PCA feature calculation for this dataset.",
+                feature_dataframe_manifest_name,
+                dataset_name,
+            )
+            continue
         logger.info("Calculating PCA features for dataset '%s'", dataset_name)
 
         dataset_config = load_dataset_config(dataset_name)
