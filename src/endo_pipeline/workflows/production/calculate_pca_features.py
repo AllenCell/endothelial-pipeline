@@ -1,7 +1,11 @@
 from endo_pipeline.cli import CropPattern, Datasets
 
 
-def main(datasets: Datasets, crop_pattern: CropPattern, upload_to_fms: bool = False) -> None:
+def main(
+    datasets: Datasets | None = None,
+    crop_pattern: CropPattern = "grid",
+    upload_to_fms: bool = False,
+) -> None:
     """
     Calculate PCA features from DiffAE latent features.
 
