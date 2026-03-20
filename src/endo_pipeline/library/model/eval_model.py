@@ -296,7 +296,7 @@ def preprocess_tracking_manifest_for_model_eval(
         df[col] = df[col] // (2**resolution)
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = (
-        df.groupby([Column.ZARR_PATH, Column.TIMEPOINT])
+        df.groupby([Column.ZARR_PATH, Column.POSITION, Column.TIMEPOINT])
         .agg(
             {
                 Column.SegData.START_Y_RES_0: lambda x: list(x),
