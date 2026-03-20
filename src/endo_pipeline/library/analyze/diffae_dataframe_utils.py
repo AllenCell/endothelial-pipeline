@@ -548,16 +548,6 @@ def fit_pca(
     pca = PCA(n_components=num_pcs, svd_solver="full")
     pca.fit(pca_input_dataframe.values)
 
-    # Log info about explained variance ratio
-    logger.info(
-        "Explained variance ratios: %s",
-        np.round(pca.explained_variance_ratio_, 4).tolist(),
-    )
-    logger.info(
-        "Cumulative explained variance: %s",
-        np.round(np.cumsum(pca.explained_variance_ratio_), 4).tolist(),
-    )
-
     return pca
 
 
