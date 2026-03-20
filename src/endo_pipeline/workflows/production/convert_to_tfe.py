@@ -31,7 +31,8 @@ def main(
     ```
 
     For an existing TFE dataset where you just want to add a feature, you may
-    want to skip regenerating the frames and/or backdrops:
+    want to skip regenerating the frames (the CDH5 or grid segmentation images)
+    and/or backdrops:
 
     ```bash
     uv run endopipe convert-to-tfe --skip-frames --skip-backdrops
@@ -44,20 +45,24 @@ def main(
         --output-dir //allen/aics/endothelial/morphological_features/timelapse_feature_explorer
     ```
 
-    ## Generating frames
+    ## Generating segmentation image frames
 
-    Frames are image textures that store the object IDs for each time step in
-    the time series. Each pixel encodes a single object ID in its RGB value. For
-    a given segmentation (i.e. individual object IDs are not changed), frames
-    only need to be generated once. When adding new features to a TFE dataset,
-    you can skip re-generating frames using the `--skip-frames` flag.
+    TFE frames are image textures that store the object IDs for each time step
+    in the time series. Each pixel encodes a single object ID in its RGB value.
+    For a given segmentation (i.e. individual object IDs are not changed), these
+    frames only need to be generated once. When adding new features to a TFE
+    dataset, you can skip re-generating frames using the `--skip-frames` flag.
 
-    ## Generating backdrops
+    ## Generating raw image backdrops
 
     Backdrops are images shown behind the colored objects in each frame. For a
     given dataset, backdrops only need to be generated once. When adding new
     features to a TFE dataset, you can skip re-generating backdrops using the
-    `--skip-backdrops` flag.
+    `--skip-backdrops` flag. The following backdrops are generated:
+
+    - `bf_slice` = single slice of the brightfield image at the focal plane
+    - `bf_std_dev` = standard deviation project of the brightfield image
+    - `gfp_max_proj`= max project of the GFP image
 
     ## Workflow demo
 
@@ -76,9 +81,9 @@ def main(
     segmentation
         Segmentation type to convert.
     generate_frames
-        True to generate frames, False otherwise.
+        True to generate frames from selected segmentation type, False otherwise.
     generate_backdrops
-        True to generate backdrops, False otherwise.
+        True to generate backdrops from images, False otherwise.
     """
 
     import logging
