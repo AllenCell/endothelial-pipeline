@@ -10,10 +10,10 @@ from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dat
 from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
 from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
-    OPTICAL_FLOW_BASE_FEATURES,
     OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS,
     OPTICAL_FLOW_DATFRAME_MANIFEST_NAME,
 )
+from endo_pipeline.settings.optical_flow import OPTICAL_FLOW_BASE_FEATURES
 
 logger = logging.getLogger(__name__)
 

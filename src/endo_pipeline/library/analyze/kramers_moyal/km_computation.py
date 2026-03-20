@@ -364,7 +364,6 @@ def get_kramers_moyal_coeffs(
 
     # get weighted histogram for convolution with kernel function
     hist = _get_weighted_histogram_for_convolution(trajectories, displacements, bins, powers)
-    logger.debug("Histogram shape: %s", hist.shape)
 
     # Generate centered kernel on larger grid
     edges_extended = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in bins]
