@@ -39,19 +39,19 @@ def test_get_bins_num_bins_matches_ceil():
 def test_get_bins_from_data_covers_data_range():
     """When binning from data, all data points should fall within the bin edges."""
     rng = np.random.default_rng(0)
-    data = [rng.standard_normal((50, 2)) for _ in range(5)]
+    data = rng.standard_normal((50, 2))
     bin_widths = (0.1, 0.1)
     bin_edges, _ = get_bins(bin_widths=bin_widths, data=data)
 
     for dim, edges in enumerate(bin_edges):
-        all_values = np.concatenate([traj[:, dim] for traj in data])
+        all_values = data[:, dim]
         assert edges[0] <= all_values.min()
         assert edges[-1] >= all_values.max()
 
 
 def test_get_bins_from_data_applies_pad():
     """Auto-determined bin limits should extend by `pad` beyond the data extrema."""
-    data = [np.array([[0.0, 0.0], [1.0, 2.0]])]
+    data = np.array([[0.0, 0.0], [1.0, 2.0]])
     pad = 0.5
     bin_widths = (0.1, 0.1)
     bin_edges, _ = get_bins(bin_widths=bin_widths, data=data, pad=pad)
@@ -65,8 +65,8 @@ def test_get_bins_from_data_applies_pad():
 def test_get_bins_from_data_uses_percentile_limits():
     """When percentiles are given, bin limits should be set by the percentile values."""
     rng = np.random.default_rng(42)
-    data = [rng.standard_normal((200, 1))]
-    values = data[0][:, 0]
+    data = rng.standard_normal((200, 1))
+    values = data[:, 0]
     lower_p, upper_p = 5.0, 95.0
     bin_widths = (0.1,)
     bin_edges, _ = get_bins(
@@ -85,7 +85,7 @@ def test_get_bins_from_data_uses_percentile_limits():
 def test_get_bins_bin_limits_overrides_data():
     """Explicit bin_limits should be used even when data is also provided."""
     # Data spans [0, 10] but bin_limits restricts to [2, 8]; the latter should win.
-    data = [np.array([[0.0], [10.0]])]  # shape (2, 1) — 1 dimension
+    data = np.array([[0.0], [10.0]])  # shape (2, 1) — 1 dimension
     bin_limits = [(2.0, 8.0)]
     bin_widths = (0.5,)
     bin_edges, _ = get_bins(bin_widths=bin_widths, data=data, bin_limits=bin_limits)
