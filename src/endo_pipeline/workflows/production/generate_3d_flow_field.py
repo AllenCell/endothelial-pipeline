@@ -93,7 +93,7 @@ def main(
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
-    from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
+    from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.manifests import (
         DataframeLocation,
         build_dataframe_location_from_path,
@@ -260,16 +260,6 @@ def main(
                 dataset_config.shear_stress_regime,
             )
             continue
-        # get bins for KMCs
-        bounds_for_km = get_bounds_from_data(
-            dataset_names=[dataset_name],
-            manifest=dataframe_manifest,
-            pca=pca,
-            pad=PAD_BINS_FLOAT,
-            column_names=column_names,
-        )
-        bins, centers = get_bins(bin_widths, bin_limits=bounds_for_km)
-        logger.debug("Bins and centers for dataset [ %s ]: %s, %s", dataset_name, bins, centers)
 
         # load dataframe and filter / preprocess it for dynamics workflows (PCA,
         # filter annotated timepoints, transform angular variables),
@@ -286,15 +276,15 @@ def main(
         # displacement vectors, and time differences
         traj_list, d_traj_list = get_traj_and_diff(df, column_names)
 
-        bins_, centers_ = get_bins(
+        # get bins for flow field estimation based on the trajectories, to be
+        # used for kernel-convolution-based estimation of the Kramers-Moyal
+        # coefficients. The bins are determined by the specified bin widths and
+        # the range of the data.
+        bins, centers = get_bins(
             bin_widths,
             data=traj_list,
             pad=PAD_BINS_FLOAT,
         )
-        assert all(
-            np.allclose(bins_[index], bins[index]) and np.allclose(centers_[index], centers[index])
-            for index in range(len(column_names))
-        ), "Bins and centers from data do not match those from bounds for km computation"
 
         # get drift estimates in units hours^-1 for each bin in 3D space
         # (Kramers-Moyal coefficient estimation)
