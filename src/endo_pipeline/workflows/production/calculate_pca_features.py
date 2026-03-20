@@ -168,7 +168,7 @@ def main(
                 )
                 filtered_pca_location = DataframeLocation(fmsid=fmsid)
             else:
-                filtered_pca_location = DataframeLocation(path=full_pca_df_path)
+                filtered_pca_location = DataframeLocation(path=filtered_pca_df_path)
 
             filtered_pca_manifest.locations[dataset_name] = filtered_pca_location
             save_dataframe_manifest(filtered_pca_manifest)
