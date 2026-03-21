@@ -269,7 +269,6 @@ def main(
                 binned=False,
             )
             ax.set_title(plot_label, loc="left")
-            plt.show()
             save_plot_to_path(
                 fig,
                 output_dir,
@@ -288,7 +287,6 @@ def main(
                 binned=True,
             )
             ax.set_title(plot_label, loc="left")
-            plt.show()
             save_plot_to_path(
                 fig,
                 output_dir,
