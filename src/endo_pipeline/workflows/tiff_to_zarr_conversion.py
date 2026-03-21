@@ -65,7 +65,7 @@ def collected_individual_timepoint_paths(root: str) -> list[tuple[int, str]]:
     timepoint_paths: list[tuple[int, str]] = []
 
     for path in Path(root).glob("*.ome.tif*"):
-        match = re.search(r"_T(\d+)\.ome\.tif", path.name)
+        match = re.search(r"_T(\d+)(_grid_segmentation)?\.ome\.tif", path.name)
 
         if match:
             timepoint_paths.append((int(match.group(1)), str(path)))
@@ -115,11 +115,16 @@ def convert_tiff_to_zarr_for_row(row):
 
     total_timepoints = row["duration"]
 
-    level_shapes = [
-        (total_timepoints, 1, 1, 1712, 1744),
-        (total_timepoints, 1, 1, 856, 872),
-        (total_timepoints, 1, 1, 428, 436),
-    ]
+    if "grid_seg_zarr" in row["save_zarr_path"]:
+        level_shapes = [
+            (total_timepoints, 1, 1, 856, 872),
+        ]
+    else:
+        level_shapes = [
+            (total_timepoints, 1, 1, 1712, 1744),
+            (total_timepoints, 1, 1, 856, 872),
+            (total_timepoints, 1, 1, 428, 436),
+        ]
 
     write_timelapse_from_dir_explicit_levels_single(
         src_dir=row["tiff_seg_dir"],
@@ -137,8 +142,9 @@ def convert_tiff_to_zarr_for_row(row):
 if __name__ == "__main__":
     image_manifest_name = sys.argv[2]
 
-    if image_manifest_name not in ("nuclear_labelfree_seg", "cdh5_classic_seg"):
-        print("Image manifest name must be 'nuclear_labelfree_seg' or 'cdh5_classic_seg'")
+    valid_image_manifests = ("nuclear_labelfree_seg", "cdh5_classic_seg", "grid_seg")
+    if image_manifest_name not in valid_image_manifests:
+        print(f"Image manifest name must be one of: {valid_image_manifests}")
         exit()
 
     results_path = Path(sys.argv[1])

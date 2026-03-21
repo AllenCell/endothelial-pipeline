@@ -134,7 +134,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.column_names import ColumnName as Column
 
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(model_manifest_name)
@@ -165,7 +165,11 @@ def main(
     # default column names if none provided
     # default column names for walk if none provided
     walk_column_names = (
-        [ColumnName.POLAR_ANGLE.value, ColumnName.POLAR_RADIUS.value, ColumnName.PC3_FLIPPED.value]
+        [
+            Column.DiffAEData.POLAR_ANGLE.value,
+            Column.DiffAEData.POLAR_RADIUS.value,
+            Column.DiffAEData.PC3_FLIPPED.value,
+        ]
         if walk_on_columns is None
         else walk_on_columns
     )
@@ -181,13 +185,13 @@ def main(
 
     compute_polar = False
     if (
-        ColumnName.POLAR_ANGLE.value in column_names
-        or ColumnName.POLAR_RADIUS.value in column_names
+        Column.DiffAEData.POLAR_ANGLE.value in column_names
+        or Column.DiffAEData.POLAR_RADIUS.value in column_names
     ):
         compute_polar = True
 
     flip_pc3_sign = False
-    if ColumnName.PC3_FLIPPED.value in column_names:
+    if Column.DiffAEData.PC3_FLIPPED.value in column_names:
         flip_pc3_sign = True
 
     # initialize pca variable to None in case use_pcs is False, so that it can
@@ -240,22 +244,22 @@ def main(
     # transformation cannot be performed with polar coordinates)
     if use_pcs:
         if (
-            ColumnName.POLAR_ANGLE.value in column_names
-            and ColumnName.POLAR_RADIUS.value in column_names
+            Column.DiffAEData.POLAR_ANGLE.value in column_names
+            and Column.DiffAEData.POLAR_RADIUS.value in column_names
         ):
-            pc1_column_name = f"{ColumnName.PCA_FEATURE_PREFIX}1"
-            pc2_column_name = f"{ColumnName.PCA_FEATURE_PREFIX}2"
-            angle = walk[ColumnName.POLAR_ANGLE.value].to_numpy()
-            radius = walk[ColumnName.POLAR_RADIUS.value].to_numpy()
+            pc1_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}1"
+            pc2_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}2"
+            angle = walk[Column.DiffAEData.POLAR_ANGLE.value].to_numpy()
+            radius = walk[Column.DiffAEData.POLAR_RADIUS.value].to_numpy()
             pc1_values, pc2_values = polar_to_pcs(angle, radius)
             walk[pc1_column_name] = pc1_values
             walk[pc2_column_name] = pc2_values
 
         # if flipped pc3 is included in the column names, convert it to regular pc3
         # before performing inverse PCA transformation for image generation (inverse PCA
-        if ColumnName.PC3_FLIPPED.value in column_names:
-            pc3_column_name = f"{ColumnName.PCA_FEATURE_PREFIX}3"
-            walk[pc3_column_name] = -walk[ColumnName.PC3_FLIPPED.value].to_numpy()
+        if Column.DiffAEData.PC3_FLIPPED.value in column_names:
+            pc3_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}3"
+            walk[pc3_column_name] = -walk[Column.DiffAEData.PC3_FLIPPED.value].to_numpy()
 
         pc_column_names = get_pc_column_names(num_pcs)
         walk = pca.inverse_transform(walk[pc_column_names].to_numpy())

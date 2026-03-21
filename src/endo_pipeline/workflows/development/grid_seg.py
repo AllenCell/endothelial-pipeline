@@ -31,7 +31,7 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
         create_grid_segmentation_images,
         load_grid_diffae_df_for_tfe,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.column_names import ColumnName as Column
 
     logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
     for dataset_name in datasets:
         grid_df = load_grid_diffae_df_for_tfe(dataset_name)
 
-        nm, df = zip(*grid_df.groupby([ColumnName.POSITION, ColumnName.TIMEPOINT]), strict=True)
+        nm, df = zip(*grid_df.groupby([Column.POSITION, Column.TIMEPOINT]), strict=True)
         num_seg_files = len(nm)
         with ProcessPoolExecutor(max_workers=n_cores) as worker_pool:
             list(

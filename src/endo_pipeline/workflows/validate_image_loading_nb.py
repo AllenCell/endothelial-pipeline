@@ -15,7 +15,7 @@ from endo_pipeline.library.model import (
     get_z_slice_bounds_per_position,
 )
 from endo_pipeline.settings import Z_SLICE_OFFSETS
-from endo_pipeline.settings.diffae_feature_dataframes import CytoDLLoadDataKeys
+from endo_pipeline.settings.column_names import CytoDLLoadDataKeys
 
 # %%
 dataset_config = load_dataset_config("20250319_20X")
