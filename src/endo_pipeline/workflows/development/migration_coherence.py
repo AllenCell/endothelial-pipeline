@@ -334,7 +334,7 @@ def main(
     save_plot_to_path(
         fig_hist,
         get_output_path(__file__),
-        f"{optical_flow_feature}_{'_'.join(dataset_names)}_distribution",
+        f"{optical_flow_feature}_all_datasets_distribution",
     )
     plt.close(fig_hist)
 
