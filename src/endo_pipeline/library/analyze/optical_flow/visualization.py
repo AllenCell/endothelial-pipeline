@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats as sp_stats
 
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.optical_flow import (
     COHERENCE_BOX_SIZES,
     DEMO_SCAN_N_CROPS,
@@ -31,8 +31,8 @@ def _scan_crop_pairs(
     """
     sorted_tp = sorted(cache.keys())
     cids = crop_grid[ColumnName.CROP_INDEX].values
-    sx_arr = crop_grid[ColumnName.START_X].values.astype(int)
-    sy_arr = crop_grid[ColumnName.START_Y].values.astype(int)
+    sx_arr = crop_grid[ColumnName.DiffAEData.START_X].values.astype(int)
+    sy_arr = crop_grid[ColumnName.DiffAEData.START_Y].values.astype(int)
     ex_arr = crop_grid["end_x"].values.astype(int)
     ey_arr = crop_grid["end_y"].values.astype(int)
 

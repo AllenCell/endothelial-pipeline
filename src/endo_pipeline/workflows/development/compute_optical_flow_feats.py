@@ -185,10 +185,8 @@ def main(  # noqa: C901
         load_model_manifest,
     )
     from endo_pipeline.settings import DIMENSION_ORDER
-    from endo_pipeline.settings.diffae_feature_dataframes import (
-        DIFFAE_FEATURE_COLUMN_NAMES,
-        ColumnName,
-    )
+    from endo_pipeline.settings.column_names import ColumnName
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_FEATURE_COLUMN_NAMES
     from endo_pipeline.settings.optical_flow import (
         DEFAULT_OMP_NUM_THREADS,
         DEFAULT_OPENBLAS_NUM_THREADS,
@@ -320,10 +318,10 @@ def main(  # noqa: C901
 
             # Crop grid
             crop_grid = build_crop_grid(df_position)
-            start_x = crop_grid[ColumnName.START_X].values.astype(int)
-            start_y = crop_grid[ColumnName.START_Y].values.astype(int)
-            end_x = crop_grid["end_x"].values.astype(int)
-            end_y = crop_grid["end_y"].values.astype(int)
+            start_x = crop_grid[ColumnName.DiffAEData.START_X].values.astype(int)
+            start_y = crop_grid[ColumnName.DiffAEData.START_Y].values.astype(int)
+            end_x = crop_grid[ColumnName.DiffAEData.END_X].values.astype(int)
+            end_y = crop_grid[ColumnName.DiffAEData.END_Y].values.astype(int)
             crop_ids = crop_grid[ColumnName.CROP_INDEX].values
             num_crops = len(crop_grid)
 
