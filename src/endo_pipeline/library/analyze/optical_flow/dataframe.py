@@ -75,10 +75,10 @@ def build_crop_grid(df: pd.DataFrame) -> pd.DataFrame:
             [
                 ColumnName.DiffAEData.START_X,
                 ColumnName.DiffAEData.START_Y,
-                ColumnName.DiffAEData.CROP_INDEX,
+                ColumnName.CROP_INDEX,
             ]
         ]
-        .drop_duplicates(subset=[ColumnName.DiffAEData.CROP_INDEX])
+        .drop_duplicates(subset=[ColumnName.CROP_INDEX])
         .sort_values(by=[ColumnName.DiffAEData.START_Y, ColumnName.DiffAEData.START_X])
         .reset_index(drop=True)
     )
