@@ -3,118 +3,118 @@ workflow: endo_pipeline.workflows.production
 parameters: {}
 locations:
   20250224_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20250224_20X_grid_pca.parquet
+    fmsid: 9da8296c74bf45e38a1f164fb79aff6f
+    path: null
     s3uri: null
   20250319_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20250319_20X_grid_pca.parquet
+    fmsid: 95b18de00f8e4095874f5bf39795e238
+    path: null
     s3uri: null
   20250326_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20250326_20X_grid_pca.parquet
+    fmsid: 2a2f299835af4d71b68d2cc63b105f58
+    path: null
     s3uri: null
   20250402_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20250402_20X_grid_pca.parquet
+    fmsid: 270a116de0c44a03aacde94d1e0acacb
+    path: null
     s3uri: null
   20250409_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20250409_20X_grid_pca.parquet
+    fmsid: 2b1176f2e15844188d79a78ac3d98207
+    path: null
     s3uri: null
   20250428_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20250428_20X_grid_pca.parquet
+    fmsid: 2ac20331e48641ea8cae9767786711ba
+    path: null
     s3uri: null
   20250604_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20250604_20X_grid_pca.parquet
+    fmsid: 499624dff91e4b4b9f2ea556f2195d33
+    path: null
     s3uri: null
   20250611_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20250611_20X_grid_pca.parquet
+    fmsid: 230ca94164744bf0a5440b901b7d82c5
+    path: null
     s3uri: null
   20250618_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20250618_20X_grid_pca.parquet
+    fmsid: 9b929ddbf63c4ec395025d90d3be19d5
+    path: null
     s3uri: null
   20250714_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20250714_20X_grid_pca.parquet
+    fmsid: abaaae69308d4ea584719854cb45b134
+    path: null
     s3uri: null
   20250716_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20250716_20X_grid_pca.parquet
+    fmsid: 47d1f74b2c734fb49fd3e0172bfcb0db
+    path: null
     s3uri: null
   20250728_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20250728_20X_grid_pca.parquet
+    fmsid: 6fdebba02f7d4aff9c368e876caf7a2a
+    path: null
     s3uri: null
   20250806_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20250806_20X_grid_pca.parquet
+    fmsid: 7f015bf417084cb6ae35501a95aa0301
+    path: null
     s3uri: null
   20250813_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20250813_20X_grid_pca.parquet
+    fmsid: 184146d1c85840828e58bc7b21218540
+    path: null
     s3uri: null
   20250818_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20250818_20X_grid_pca.parquet
+    fmsid: ac6bc845839d4a5584819700bf89fe0b
+    path: null
     s3uri: null
   20250825_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20250825_20X_grid_pca.parquet
+    fmsid: f610e214e8254954a0aa64bb4c3b0df3
+    path: null
     s3uri: null
   20250827_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20250827_20X_grid_pca.parquet
+    fmsid: 55c95468f764456b8d42943af5ec6305
+    path: null
     s3uri: null
   20250908_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20250908_20X_grid_pca.parquet
+    fmsid: ece6f4d0e1cd41739bcd00a0a307fccd
+    path: null
     s3uri: null
   20251001_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20251001_20X_grid_pca.parquet
+    fmsid: 13075c55f6ef4933a4b90f773ac5e8a8
+    path: null
     s3uri: null
   20251022_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20251022_20X_grid_pca.parquet
+    fmsid: 2e7c158c23564c91a7300e2e382766aa
+    path: null
     s3uri: null
   20251029_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20251029_20X_grid_pca.parquet
+    fmsid: 0046d91b952c4df09681189275a5f909
+    path: null
     s3uri: null
   20251105_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20251105_20X_grid_pca.parquet
+    fmsid: c24a82a3001640f889e82e82f0f620e0
+    path: null
     s3uri: null
   20251119_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20251119_20X_grid_pca.parquet
+    fmsid: b6a31006b170454ea7314fcd7cdc4258
+    path: null
     s3uri: null
   20260114_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20260114_20X_grid_pca.parquet
+    fmsid: 9cbf99b476484f808e9d94e53ea945dd
+    path: null
     s3uri: null
   20260121_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20260121_20X_grid_pca.parquet
+    fmsid: 08f2d15d37fe47a8a09fba5474642b13
+    path: null
     s3uri: null
   20260126_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20260126_20X_grid_pca.parquet
+    fmsid: 3b4edb5ebde64b24913510b63fef5f01
+    path: null
     s3uri: null
   20260128_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20260128_20X_grid_pca.parquet
+    fmsid: 68407052a6ca4a7380e3f02f3f9b3d73
+    path: null
     s3uri: null
   20260202_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20260202_20X_grid_pca.parquet
+    fmsid: 89aa791972e44c1fbc4d7ee11bc32584
+    path: null
     s3uri: null
   20260204_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-20/calculate_pca_features/20260204_20X_grid_pca.parquet
+    fmsid: 8cac45d2dbb8423c81d79e3c14ea1000
+    path: null
     s3uri: null
