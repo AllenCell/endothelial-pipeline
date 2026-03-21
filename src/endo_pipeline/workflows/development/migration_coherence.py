@@ -42,7 +42,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
@@ -182,9 +182,9 @@ def main(
 
             # --- 2D plots ---
             for x_col, y_col in [
-                (ColumnName.POLAR_RADIUS, ColumnName.POLAR_ANGLE),
-                (ColumnName.PC3_FLIPPED, ColumnName.POLAR_ANGLE),
-                (ColumnName.POLAR_RADIUS, ColumnName.PC3_FLIPPED),
+                (ColumnName.DiffAEData.POLAR_RADIUS, ColumnName.DiffAEData.POLAR_ANGLE),
+                (ColumnName.DiffAEData.PC3_FLIPPED, ColumnName.DiffAEData.POLAR_ANGLE),
+                (ColumnName.DiffAEData.POLAR_RADIUS, ColumnName.DiffAEData.PC3_FLIPPED),
             ]:
                 figure_filename = (
                     f"{dataset_name_flow}_{x_col}_vs_{y_col}_colored_by_{optical_flow_feature}"
@@ -252,18 +252,18 @@ def main(
                 fixed_points_dataframe = add_binned_mean_to_fixed_points(
                     fixed_points_dataframe,
                     df_flow_no_nan,
-                    x_col=ColumnName.POLAR_ANGLE,
-                    y_col=ColumnName.POLAR_RADIUS,
-                    z_col=ColumnName.PC3_FLIPPED,
+                    x_col=ColumnName.DiffAEData.POLAR_ANGLE,
+                    y_col=ColumnName.DiffAEData.POLAR_RADIUS,
+                    z_col=ColumnName.DiffAEData.PC3_FLIPPED,
                     binned_col=optical_flow_feature,
                 )
 
             # 3D Scatter
             fig, ax = plot_3d_scatter_or_binned(
                 df_flow_no_nan,
-                x_col=ColumnName.POLAR_ANGLE,
-                y_col=ColumnName.POLAR_RADIUS,
-                z_col=ColumnName.PC3_FLIPPED,
+                x_col=ColumnName.DiffAEData.POLAR_ANGLE,
+                y_col=ColumnName.DiffAEData.POLAR_RADIUS,
+                z_col=ColumnName.DiffAEData.PC3_FLIPPED,
                 color_col=optical_flow_feature,
                 df_fp=fixed_points_dataframe,
                 binned=False,
@@ -279,9 +279,9 @@ def main(
             # 3D Binned Heatmap
             fig, ax = plot_3d_scatter_or_binned(
                 df_flow_no_nan,
-                x_col=ColumnName.POLAR_ANGLE,
-                y_col=ColumnName.POLAR_RADIUS,
-                z_col=ColumnName.PC3_FLIPPED,
+                x_col=ColumnName.DiffAEData.POLAR_ANGLE,
+                y_col=ColumnName.DiffAEData.POLAR_RADIUS,
+                z_col=ColumnName.DiffAEData.PC3_FLIPPED,
                 color_col=optical_flow_feature,
                 df_fp=fixed_points_dataframe,
                 binned=True,
@@ -304,9 +304,9 @@ def main(
         cross_dataset_output_dir = get_output_path(__file__)
 
         variables = [
-            ColumnName.POLAR_ANGLE,
-            ColumnName.POLAR_RADIUS,
-            ColumnName.PC3_FLIPPED,
+            ColumnName.DiffAEData.POLAR_ANGLE,
+            ColumnName.DiffAEData.POLAR_RADIUS,
+            ColumnName.DiffAEData.PC3_FLIPPED,
             f"mean_{optical_flow_feature}",
         ]
         labels = ["\u03b8", "r", "\u03c1", "migration coherence"]
