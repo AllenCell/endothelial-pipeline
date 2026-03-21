@@ -10,7 +10,7 @@ Creates an n_features X n_features grid of plots with:
 
 import logging
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -32,7 +32,7 @@ from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifes
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings import RANDOM_SEED
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
@@ -461,18 +461,22 @@ def get_df_for_feature_correlation_viz(
 
         # compute only the required columns to save space and time
         # (using a loop instead  of just sets to determine columns to load to preserve column order)
-        dynamics_columns = SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
-        supplementary_columns = SEGMENTATION_FEATURE_COLUMNS["supp"]
+        dynamics_columns = cast(
+            list[str], SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
+        )
+        supplementary_columns = cast(list[str], SEGMENTATION_FEATURE_COLUMNS["supp"])
         diffae_nondiffae_columns = [
-            col.value for col in ColumnName if "PREFIX" not in col.name and "SUFFIX" not in col.name
+            col.value
+            for col in Column.DiffAEData
+            if "PREFIX" not in col.name and "SUFFIX" not in col.name
         ]
         cols_to_load = (
-            dataset_info_columns
-            + dynamics_columns
-            + supplementary_columns
-            + diffae_nondiffae_columns
-            + diffae_feature_columns
-            + pc_columns
+            *dataset_info_columns,
+            *dynamics_columns,
+            *supplementary_columns,
+            *diffae_nondiffae_columns,
+            *diffae_feature_columns,
+            *pc_columns,
         )
         cols_to_load_overlap = sorted(set(cols_to_load) & set(merged_feats_df_delayed.columns))
         cols_to_load_unique = []
@@ -481,15 +485,17 @@ def get_df_for_feature_correlation_viz(
                 cols_to_load_unique.append(col)
         merged_feats_df = merged_feats_df_delayed[cols_to_load_unique].compute()  # type: ignore
         # filter the dataframe to only include rows with DiffAE features
-        merged_feats_df = merged_feats_df.dropna(subset="model_manifest_name")
+        merged_feats_df = merged_feats_df.dropna(subset=[Column.DiffAEData.MODEL_MANIFEST])
 
         # "unwrap" the angle features to avoid issues with periodic data when plotting correlations
         angle_period = np.pi
-        angle_cols = ["orientation", ColumnName.POLAR_ANGLE.value]
+        angle_cols = [Column.SegData.ORIENTATION, Column.DiffAEData.POLAR_ANGLE]
         for ang_col in angle_cols:
             merged_feats_df[ang_col] = np.unwrap(merged_feats_df[ang_col], period=angle_period)
 
-        merged_feats_df["orientation_deg"] = np.rad2deg(merged_feats_df["orientation"])
+        merged_feats_df[Column.SegData.ORIENTATION_DEG] = np.rad2deg(
+            merged_feats_df[Column.SegData.ORIENTATION]
+        )
 
         # filter data table to only include the steady state timepoints that are
         # used when projecting the DiffAE features onto PCA axes

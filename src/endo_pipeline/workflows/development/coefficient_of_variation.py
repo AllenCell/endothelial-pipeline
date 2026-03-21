@@ -96,7 +96,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
         BIN_LIMITS_THETA_RESCALED,
@@ -123,7 +123,7 @@ def main(
     # unpack default bin limits for each column, adjusting limits if rescaling theta
     global_bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
     if RESCALE_THETA:
-        global_bin_limits_dict[ColumnName.POLAR_ANGLE.value] = BIN_LIMITS_THETA_RESCALED
+        global_bin_limits_dict[Column.DiffAEData.POLAR_ANGLE.value] = BIN_LIMITS_THETA_RESCALED
 
     # get dataframe manifest for grid-based crop features
     model_manifest = load_model_manifest(model_manifest_name)
@@ -181,7 +181,7 @@ def main(
         df = df.dropna(subset=column_names)
 
         # polar angle periodicity settings
-        theta_col = ColumnName.POLAR_ANGLE.value
+        theta_col = Column.DiffAEData.POLAR_ANGLE.value
         theta_range = BIN_LIMITS_THETA_RESCALED if RESCALE_THETA else (-np.pi, np.pi)
         theta_period = PERIOD_THETA_RESCALED if RESCALE_THETA else 2 * np.pi
 
@@ -195,9 +195,7 @@ def main(
             color = SHEAR_COLOR_DICT[(shear_stress_regime,)]
             label = f"{dataset_name} ({int(shear_stress)} dyn/cm$^2$)"
 
-            t_vals = (
-                df_flow[ColumnName.TIMEPOINT.value].sort_values().unique() * time_conversion_factor
-            )
+            t_vals = df_flow[Column.TIMEPOINT].sort_values().unique() * time_conversion_factor
             df_flow_scaled = df_flow.copy()
             # compute mean ± std for each column at each timepoint; for theta,
             # use circular stats to account for periodicity
@@ -207,8 +205,8 @@ def main(
                 lo, hi = global_bin_limits_dict[col]
                 df_flow_scaled[col] = (df_flow[col] - lo) / (hi - lo)
 
-                grouped_df_unscaled = df_flow.groupby(ColumnName.TIMEPOINT.value)
-                grouped_df_scaled = df_flow_scaled.groupby(ColumnName.TIMEPOINT.value)
+                grouped_df_unscaled = df_flow.groupby(Column.TIMEPOINT)
+                grouped_df_scaled = df_flow_scaled.groupby(Column.TIMEPOINT)
 
                 # compute mean ± std in original units and in scaled units for
                 # plotting, using circular stats for theta in both cases
@@ -274,7 +272,7 @@ def main(
                 # crops at each timepoint).  This gives one CoV value per crop
                 # which can be compared to the mean population CoV in an
                 # ergodicity test.
-                df_scaled_crop_grouped = df_flow_scaled.groupby(ColumnName.CROP_INDEX)
+                df_scaled_crop_grouped = df_flow_scaled.groupby(Column.CROP_INDEX)
                 per_crop_cov = df_scaled_crop_grouped[col].apply(
                     std_function, **scaled_function_kwargs
                 ).to_numpy() / np.absolute(
