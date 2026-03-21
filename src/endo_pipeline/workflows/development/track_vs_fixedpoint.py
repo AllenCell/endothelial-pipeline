@@ -1,18 +1,3 @@
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    get_dataframe_for_dynamics_workflows,
-)
-from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
-from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
-from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-)
-
-min_data_size = 144  # 72  # 120
-# a track duration of 144 is equivalent to 12 hours
-
-
 # def main_experimental(
 #     datasets: Datasets,
 #     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
@@ -188,14 +173,17 @@ def main():
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-
-    # from endo_pipeline.io import get_output_path
+    from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.data_driven_flow_field import (
         compute_extrapolated_vector_field,
         get_callable_vector_field,
         get_fixed_points_within_bounds,
     )
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca, get_traj_and_diff
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+        fit_pca,
+        get_dataframe_for_dynamics_workflows,
+        get_traj_and_diff,
+    )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
@@ -205,9 +193,11 @@ def main():
         load_dataframe_manifest,
         load_model_manifest,
     )
+    from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_THETA_RESCALED,
         BIN_WIDTHS_DYNAMICS,
+        DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
         PERIOD_THETA_RESCALED,
@@ -221,8 +211,16 @@ def main():
         TIME_STEP_IN_MINUTES,
         UPPER_PERCENTILE_FOR_STABLE_FP,
     )
+    from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+    )
 
     logger = logging.getLogger(__name__)
+
+    min_data_size = 216  # 144  # 72  # 120
+    # a track duration of 144 is equivalent to 12 hours
 
     crop_pattern = "tracked"
     # crop_pattern = "grid"
@@ -345,6 +343,9 @@ def main():
     #     save_dataframe_manifest(output_dataframe_manifest)
 
     for dataset_name in dataset_names:
+
+        out_dir = get_output_path(__file__, dataset_name, include_timestamp=True)
+
         dataset_config = load_dataset_config(dataset_name)
         if len(dataset_config.shear_stress_regime) > 1:
             logger.warning(
@@ -526,6 +527,10 @@ def main():
             df[f"dist_from_fp_{i}"] = np.linalg.norm(df[dynamics_diff_columns], axis=1)
             # break
 
+            dd = df[f"dist_from_fp_{i}"].groupby(df[Column.CROP_INDEX]).diff()
+            dt = df[Column.TIMEPOINT].groupby(df[Column.CROP_INDEX]).diff()
+            df[f"dist_from_fp_{i}_veloc"] = dd / dt
+
         df = df[df[Column.TRACK_LENGTH] > min_data_size]
 
         df[df[Column.TRACK_LENGTH] > min_data_size][Column.TRACK_ID].nunique()
@@ -533,15 +538,106 @@ def main():
         shear = dataset_config.flow_conditions[0].shear_stress
 
         fig, ax = plt.subplots()
-        ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²")
+        ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
         for i in fixed_points_for_dataset.index:
             stability = fixed_points_for_dataset.iloc[i][STABILITY_COLUMN_NAME]
             sns.lineplot(
                 df, x=Column.TIMEPOINT, y=f"dist_from_fp_{i}", ax=ax, label=f"FP {i} ({stability})"
             )
-        ax.set_ylabel("Distance from fixed point")
-        ax.set_xlabel("Timepoint")
-        ax.legend(title="Fixed Point Index")
-        plt.show()
+        ax.axhline(0, color="red", linestyle="--", alpha=0.7)
+        ax.set_ylabel("distance from fixed point".title())
+        ax.set_xlabel("timepoint".title())
+        ax.legend(title="fixed point index".title())
+        save_plot_to_path(fig, out_dir, f"{dataset_name}_dist_from_fp")
+        plt.close(fig)
 
-        sns.histplot(df, x="track_duration")
+        for i in fixed_points_for_dataset.index:
+            stability = fixed_points_for_dataset.iloc[i][STABILITY_COLUMN_NAME]
+
+            fig, ax = plt.subplots()
+            ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
+            for col in DYNAMICS_COLUMN_NAMES:
+                sns.lineplot(
+                    df,
+                    x=Column.TIMEPOINT,
+                    y=f"diff_from_fp_{col}_{i}",
+                    alpha=0.5,
+                    ax=ax,
+                    label=f"FP {i} ({stability}): {col}",
+                )
+            ax.axhline(0, color="red", linestyle="--", alpha=0.7)
+            ax.set_ylabel("position relative to fixed point along axis".title())
+            ax.set_xlabel("timepoint".title())
+            ax.legend(title="fixed point index".title())
+            save_plot_to_path(fig, out_dir, f"{dataset_name}_signed_dist_from_fp_components")
+            plt.close(fig)
+
+        for i in fixed_points_for_dataset.index:
+            lo, hi = np.percentile(df[f"dist_from_fp_{i}_veloc"].dropna(), [1, 99])
+
+            fig, ax = plt.subplots()
+            ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
+            sns.histplot(df, x=f"dist_from_fp_{i}", y=f"dist_from_fp_{i}_veloc", ax=ax)
+            ax.axhline(0, color="red", linestyle="--", alpha=0.7)
+            ax.axvline(0, color="grey", linestyle="--", alpha=0.7)
+            ax.set_ylim(-max(abs(lo), abs(hi)), max(abs(lo), abs(hi)))
+
+            save_plot_to_path(fig, out_dir, f"{dataset_name}_dist_from_fp_veloc")
+            plt.close(fig)
+
+        # for i in fixed_points_for_dataset.index:
+        #     lo, hi = np.percentile(df[f"dist_from_fp_{i}_veloc"].dropna(), [1, 99])
+
+        #     fig, ax = plt.subplots()
+        #     ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
+        #     sns.scatterplot(
+        #         df,
+        #         x=f"dist_from_fp_{i}",
+        #         y=f"dist_from_fp_{i}_veloc",
+        #         hue=Column.TIMEPOINT,
+        #         marker=".",
+        #         alpha=0.5,
+        #         ax=ax,
+        #     )
+        #     ax.axhline(0, color="red", linestyle="--", alpha=0.7)
+        #     ax.set_ylim(-max(abs(lo), abs(hi)), max(abs(lo), abs(hi)))
+
+        #     save_plot_to_path(fig, out_dir, f"{dataset_name}_dist_from_fp_scatter")
+        #     plt.close(fig)
+
+        for i in fixed_points_for_dataset.index:
+            lo, hi = np.percentile(df[f"dist_from_fp_{i}_veloc"].dropna(), [1, 99])
+
+            fig, ax = plt.subplots()
+            ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
+            sns.histplot(df, x=f"dist_from_fp_{i}_veloc", ax=ax)
+            ax.axvline(0, color="red", linestyle="--", alpha=0.7)
+            ax.set_xlim(-max(abs(lo), abs(hi)), max(abs(lo), abs(hi)))
+            # ax.semilogy()
+            save_plot_to_path(fig, out_dir, f"{dataset_name}_dist_from_fp_veloc_hist")
+            plt.close(fig)
+
+        # for i in fixed_points_for_dataset.index:
+        #     lo, hi = np.percentile(df[f"dist_from_fp_{i}_veloc"].dropna(), [1, 99])
+
+        #     fig, ax = plt.subplots()
+        #     ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
+        #     sns.kdeplot(
+        #         df,
+        #         x=f"dist_from_fp_{i}_veloc",
+        #         hue=Column.TIMEPOINT,
+        #         legend=False,
+        #         alpha=0.1,
+        #         ax=ax,
+        #     )
+        #     ax.axvline(0, color="red", linestyle="--", alpha=0.7)
+        #     ax.set_xlim(-max(abs(lo), abs(hi)), max(abs(lo), abs(hi)))
+        #     # ax.semilogy()
+        #     save_plot_to_path(fig, out_dir, f"{dataset_name}_dist_from_fp_kde")
+        #     plt.close(fig)
+
+
+if __name__ == "__main__":
+    from endo_pipeline.cli import workflow_cli
+
+    workflow_cli(main)
