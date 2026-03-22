@@ -958,7 +958,7 @@ def get_preprocessed_manifests_and_km_bounds(
         merged_feats_df[Column.DiffAEData.MODEL_MANIFEST].dropna()
     )
     model_run_name_used_for_latent_feats = sequence_to_scalar(
-        merged_feats_df[Column.DiffAEData.RUN_NAME].dropna()
+        merged_feats_df[Column.DiffAEData.MODEL_RUN].dropna()
     )
 
     if (DEFAULT_MODEL_MANIFEST_NAME != model_manifest_name_used_for_latent_feats) or (

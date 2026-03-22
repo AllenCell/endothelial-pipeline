@@ -268,6 +268,7 @@ class ColumnName:
         VELOCITY_UM_PER_MIN_IN_CROP = "all_velocity_um_per_min_in_crop"
         VECTOR_MEAN_FOR_CROP_ANGLE = "vector_mean_for_crop_angle"
         VECTOR_MEAN_FOR_CROP_MAGNITUDE = "vector_mean_for_crop_magnitude"
+        CENTROID_VELOCITY_UM_PER_MIN_SMOOTHED = "centroid_velocity_um_per_min_rolling_mean_5min"
         CHANGE_IN_FLUOR_PER_MIN_CELL = "dmean_fluor_intensity_dt_cell"
         CHANGE_IN_FLUOR_PER_MIN_EDGE = "dmean_fluor_intensity_dt_edge"
         CHANGE_IN_FLUOR_PER_MIN_NODE = "dmean_fluor_intensity_dt_node"
