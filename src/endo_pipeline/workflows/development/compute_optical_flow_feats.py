@@ -1,40 +1,12 @@
 import logging
-import os
 from typing import Literal
 
 from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import TimepointAnnotation
 from endo_pipeline.settings import DIFFAE_ZARR_RESOLUTION_LEVEL
-from endo_pipeline.settings.optical_flow import DEFAULT_OPTICAL_FLOW_MAX_DT
+from endo_pipeline.settings.optical_flow import DEFAULT_OPTICAL_FLOW_MAX_DT, NUM_IO_WORKERS
 
 logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# Demo-mode limits
-# ---------------------------------------------------------------------------
-_DEMO_MAX_DATASETS: int = 2
-"""Maximum number of datasets processed in demo mode."""
-
-_DEMO_MAX_POSITIONS: int = 1
-"""Maximum number of positions per dataset in demo mode."""
-
-_DEMO_MAX_FRAMES: int = 5
-"""Maximum number of timepoints cached per position in demo mode."""
-
-# ---------------------------------------------------------------------------
-# Concurrency
-# ---------------------------------------------------------------------------
-_IO_WORKERS: int = 16
-"""Concurrent I/O workers for dask compute and ThreadPoolExecutor.
-
-Determined empirically on compute nodes (512 GB RAM, 128 physical /
-256 logical CPU cores, 4x A100 80 GB GPUs).  TVL1 is pinned to one
-thread per call (OMP_NUM_THREADS=1), so the bottleneck is NFS read
-throughput rather than CPU.  At 16 concurrent workers, each holding
-~0.5 GB per frame, peak memory is ~8 GB — well within budget — while
-NFS throughput is fully saturated; beyond 16 workers wall-clock time
-plateaus but memory grows linearly with no additional speedup.
-"""
 
 
 def main(  # noqa: C901
@@ -45,8 +17,8 @@ def main(  # noqa: C901
     annotations_to_exclude: list[TimepointAnnotation] | None = None,
     max_dt: int = DEFAULT_OPTICAL_FLOW_MAX_DT,
     intensity_percentile: int | None = None,
-    n_jobs: int = os.cpu_count() // 6,
-    n_io_workers: int = _IO_WORKERS,
+    n_jobs: int | None = None,
+    n_io_workers: int = NUM_IO_WORKERS,
     flow_scope: Literal["image", "crop"] = "image",
     upload_to_fms: bool = False,
     visualize_optical_flow: bool = False,
@@ -146,6 +118,7 @@ def main(  # noqa: C901
         (``optical_flow_angle_std_box{N}``) for each box size.  Off by
         default to save time.
     """
+    import os
     import time
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -198,6 +171,9 @@ def main(  # noqa: C901
         DEFAULT_OPENBLAS_NUM_THREADS,
         DEFAULT_OPTICAL_FLOW_COLLECTION,
         DEFAULT_OPTICAL_FLOW_MANIFEST_NAME,
+        DEMO_MAX_DATASETS,
+        DEMO_MAX_FRAMES,
+        DEMO_MAX_POSITIONS,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -214,13 +190,13 @@ def main(  # noqa: C901
         datasets = get_datasets_in_collection(DEFAULT_OPTICAL_FLOW_COLLECTION)
 
     if DEMO_MODE:
-        datasets = datasets[:_DEMO_MAX_DATASETS]
+        datasets = datasets[:DEMO_MAX_DATASETS]
         upload_to_fms = False
         visualize_optical_flow = True
         logger.info(
             "DEMO_MODE is ON. Processing %d dataset(s), %d position(s) each, upload disabled.",
-            _DEMO_MAX_DATASETS,
-            _DEMO_MAX_POSITIONS,
+            DEMO_MAX_DATASETS,
+            DEMO_MAX_POSITIONS,
         )
 
     results_dir = get_output_path("optical_flow", "plots")
@@ -300,7 +276,7 @@ def main(  # noqa: C901
         if positions:
             position_list = [p for p in position_list if p in positions]
         if DEMO_MODE:
-            position_list = position_list[:_DEMO_MAX_POSITIONS]
+            position_list = position_list[:DEMO_MAX_POSITIONS]
             logger.info("DEMO_MODE: limiting to position(s) %s", position_list)
 
         dataset_parts: list[pd.DataFrame] = []
@@ -311,7 +287,7 @@ def main(  # noqa: C901
                 dataset_config, position, annotations_to_exclude
             )
             if DEMO_MODE:
-                valid_timepoints = valid_timepoints[:_DEMO_MAX_FRAMES]
+                valid_timepoints = valid_timepoints[:DEMO_MAX_FRAMES]
                 logger.info("DEMO_MODE: limiting to %d frame(s)", len(valid_timepoints))
             valid_timepoint_set = set(valid_timepoints)
             logger.info(
@@ -460,7 +436,8 @@ def main(  # noqa: C901
                     for t0, t1, dt in frame_pairs
                     for i in range(num_crops)
                 ]
-                records = Parallel(n_jobs=n_jobs, backend="loky")(
+                num_jobs = n_jobs or os.cpu_count() // 6
+                records = Parallel(n_jobs=num_jobs, backend="loky")(
                     delayed(compute_crop_flow)(*a)
                     for a in tqdm(crop_flow_args, desc=f"{dataset_name} pos={position}")
                 )
