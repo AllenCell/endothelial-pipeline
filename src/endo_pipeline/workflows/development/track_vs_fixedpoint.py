@@ -1,166 +1,6 @@
-# def main_experimental(
-#     datasets: Datasets,
-#     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-#     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-#     segmentation_feature_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
-# ) -> None:
-#     """Compares the autocorrelation functions between cell-centric and grid-based PCs"""
-
-#     import logging
-
-#     import numpy as np
-#     import pandas as pd
-#     from statsmodels.tsa.stattools import adfuller
-#     from tqdm import tqdm
-
-#     from endo_pipeline.io import get_output_path, load_dataframe
-#     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-#         fit_pca,
-#         get_dataframe_for_dynamics_workflows,
-#         get_pc_column_names,
-#     )
-#     from endo_pipeline.library.analyze.integration.track_integration import (
-#         # get_fixedpoints_and_flowfields,
-#         load_preprocessed_dataframes_and_km_bounds,
-#     )
-#     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
-#     from endo_pipeline.manifests import (
-#         get_dataframe_location_for_dataset,
-#         get_feature_dataframe_manifest_name,
-#         load_dataframe_manifest,
-#         load_model_manifest,
-#     )
-#     from endo_pipeline.settings.diffae_feature_dataframes import NUM_PCS_TO_ANALYZE
-#     from endo_pipeline.settings.dynamics_workflows import (
-#         BIN_WIDTHS_DYNAMICS,
-#         DYNAMICS_COLUMN_NAMES,
-#         KERNEL_BANDWIDTHS_DYNAMICS,
-#         KERNEL_NAMES_DYNAMICS,
-#         PERIOD_THETA_RESCALED,
-#         RESCALE_THETA,
-#     )
-#     from endo_pipeline.settings.flow_field_3d import (
-#         BIN_WIDTH_DEFAULTS,
-#         KERNEL_BANDWIDTH,
-#         KERNEL_FUNCTION_NAME,
-#         PAD_BINS_FLOAT,
-#     )
-#     from endo_pipeline.settings.workflow_defaults import (
-#         DATASET_INFO_COLUMNS,
-#         SEGMENTATION_FEATURE_COLUMNS,
-#     )
-
-#     logger = logging.getLogger(__name__)
-
-#     dynamics_col_names = list(DYNAMICS_COLUMN_NAMES)
-
-#     km_kernel = [
-#         KramersMoyalKernel(
-#             name=(
-#                 KERNEL_NAMES_DYNAMICS[col] if col in KERNEL_NAMES_DYNAMICS else KERNEL_FUNCTION_NAME
-#             ),
-#             bandwidth=(
-#                 KERNEL_BANDWIDTHS_DYNAMICS[col]
-#                 if col in KERNEL_BANDWIDTHS_DYNAMICS
-#                 else KERNEL_BANDWIDTH
-#             ),
-#             period=(
-#                 PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
-#                 if col == Column.DiffAEData.POLAR_ANGLE.value
-#                 else None
-#             ),
-#         )
-#         for col in dynamics_col_names
-#     ]
-#     bin_widths_for_km = []
-#     for i, col in enumerate(dynamics_col_names):
-#         bin_widths_for_km.append(
-#             BIN_WIDTHS_DYNAMICS[col] if col in BIN_WIDTHS_DYNAMICS else BIN_WIDTH_DEFAULTS[i]
-#         )
-
-#     # get the required DiffAE feature and segmentation-based feature manifests
-#     model_manifest = load_model_manifest(model_manifest_name)
-#     diffae_grid_manifest_name = get_feature_dataframe_manifest_name(
-#         model_manifest, run_name, crop_pattern="grid"
-#     )
-#     diffae_grid_manifest = load_dataframe_manifest(diffae_grid_manifest_name)
-#     diffae_tracked_manifest_name = get_feature_dataframe_manifest_name(
-#         model_manifest, run_name, crop_pattern="tracked"
-#     )
-#     diffae_tracked_manifest = load_dataframe_manifest(diffae_tracked_manifest_name)
-#     seg_feat_manifest = load_dataframe_manifest(segmentation_feature_manifest_name)
-
-#     # fit PCA using the features from the given dataframe manifest PCA always
-#     # fit on the grid-based features, even if the features for flow field
-#     # analysis are from tracked-based crops, to ensure that the PCA space is the
-#     # same across analyses
-#     pca = fit_pca(dataframe_manifest_name=diffae_grid_manifest_name)
-
-#     datasets = ["20250618_20X"]
-
-#     for dataset_name in tqdm(datasets):
-
-#         # create output subdirectory for this dataset
-#         out_subdir = get_output_path(__file__, dataset_name, include_timestamp=False)
-
-#         # get the stable fixed points and flow fields for both the grid-based
-#         # and cell-centric crops for this dataset
-#         stable_fixed_points_grid, flow_field_dict_grids = get_fixedpoints_and_flowfields(
-#             dataset_name=dataset_name,
-#             pc_column_names=dynamics_col_names,
-#             bin_widths_for_km=bin_widths_for_km,
-#             km_kernel=km_kernel,
-#             pca=pca,
-#             crop_pattern="grid",
-#             model_manifest_name=model_manifest_name,
-#             run_name=run_name,
-#             km_bounds_pad=PAD_BINS_FLOAT,
-#         )
-
-#         stable_fixed_points_tracked, flow_field_dict_tracked = get_fixedpoints_and_flowfields(
-#             dataset_name=dataset_name,
-#             pc_column_names=dynamics_col_names,
-#             bin_widths_for_km=bin_widths_for_km,
-#             km_kernel=km_kernel,
-#             pca=pca,
-#             crop_pattern="tracked",
-#             model_manifest_name=model_manifest_name,
-#             run_name=run_name,
-#             km_bounds_pad=PAD_BINS_FLOAT,
-#         )
-
-#         # load dataframe and get top 3 PCs
-#         diffae_dynamics_grid_df = get_dataframe_for_dynamics_workflows(
-#             dataset_name,
-#             diffae_grid_manifest,
-#             pca=pca,
-#             include_cell_piling=False,
-#             include_not_steady_state=False,
-#             crop_pattern="grid",
-#         )
-
-#         diffae_dynamics_tracked_df = get_dataframe_for_dynamics_workflows(
-#             dataset_name,
-#             diffae_tracked_manifest,
-#             pca=pca,
-#             include_cell_piling=False,
-#             include_not_steady_state=False,
-#             crop_pattern="tracked",
-#         )
-
-#         seg_feat_loc = get_dataframe_location_for_dataset(seg_feat_manifest, dataset_name)
-#         df_seg_delayed = load_dataframe(seg_feat_loc, delay=True)
-#         cols_to_compute = (
-#             DATASET_INFO_COLUMNS
-#             # + SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
-#             + SEGMENTATION_FEATURE_COLUMNS["filters"]
-#         )
-#         segmentations_df = df_seg_delayed[cols_to_compute].compute()
-
-#         cellcentric_df = segmentations_df.merge(
-#             diffae_dynamics_tracked_df,
-#             on=[ColNmSeg.DATASET, ColNmSeg.POSITION, ColNmSeg.TIMEPOINT, ColNmSeg.TRACK_ID],
-#         )
+"""Plots cell-centric PC features "polar angle", "polar radius", and "rho" against fixed points.
+If a dataset has already been processed on a certain day, the workflow will skip it.
+"""
 
 
 def main():
@@ -223,9 +63,9 @@ def main():
     min_data_size = 216  # 144  # 72  # 120
     # a track duration of 144 is equivalent to 12 hours
 
+    # this workflow requires the "tracked" crop pattern
     crop_pattern = "tracked"
-    # crop_pattern = "grid"
-    # datasets = ["20250618_20X"]
+
     datasets = [
         *get_datasets_in_collection("diffae_model_training"),
         *get_datasets_in_collection("replicate_2_datasets"),
@@ -234,8 +74,7 @@ def main():
     # set workflow defaults
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
-    column_names = list(DYNAMICS_COLUMN_NAMES)
-    # drift_column_names = [f"{name}_drift" for name in column_names]
+    column_names = list(DYNAMICS_COLUMN_NAMES)  # dynamics_column_names = theta, r, rho
 
     # Load default model manifest and get corresponding feature dataframe
     # manifest name for default run name and specified crop pattern.
@@ -243,36 +82,6 @@ def main():
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
         model_manifest, run_name, crop_pattern=crop_pattern
     )
-
-    # # Create/set output folder for dataframes, save in local directory without
-    # # timestamp for intermediate level of "static-ness" (ensure they don't get
-    # # periodically deleted).
-    # #
-    # # Also build dataframe manifests for the outputs of this workflow (drift
-    # # coefficients, grid points, and stable fixed points) with names that
-    # # include the input dataframe manifest name for traceability and to avoid
-    # # naming conflicts with other runs. The dataframe manifests get saved to the
-    # # dataframe manifest directory, and the dataframes themselves get saved to
-    # # the output directory specified in settings.
-    # dataframe_savedir = get_output_path(__file__, dataframe_manifest_name)
-    # demo_suffix = "_demo" if DEMO_MODE else ""
-
-    # drift_dataframe_manifest_name = (
-    #     f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataframe_manifest_name}{demo_suffix}"
-    # )
-    # fixed_points_dataframe_manifest_name = (
-    #     f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataframe_manifest_name}{demo_suffix}"
-    # )
-    # drift_dataframe_manifest = create_dataframe_manifest(
-    #     drift_dataframe_manifest_name, workflow_name=__file__
-    # )
-    # fixed_points_dataframe_manifest = create_dataframe_manifest(
-    #     fixed_points_dataframe_manifest_name, workflow_name=__file__
-    # )
-    # logger.info(
-    #     "Dataframes with 3D flow field estimation results will be saved to: [ %s ]",
-    #     dataframe_savedir,
-    # )
 
     # load dataframe manifest with model feature for the given model run
     # and model manifest
@@ -306,10 +115,6 @@ def main():
     )
     pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_pca)
 
-    # # initialize list to hold dataframes of stable fixed points from all
-    # # datasets with columns for dataset name and 3D PC space coordinates
-    # stable_fixed_points_all_datasets_list = []
-
     # initialize kernels and bin widths for each of the three variables for flow
     # field estimation
     kernels: list[KramersMoyalKernel] = []
@@ -328,28 +133,21 @@ def main():
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
         bin_widths.append(bin_width)
 
-    # add parameters to dataframe manifests for traceability
-    # for output_dataframe_manifest in [
-    #     drift_dataframe_manifest,
-    #     fixed_points_dataframe_manifest,
-    # ]:
-    #     output_dataframe_manifest.parameters = {
-    #         "model_manifest_name": model_manifest_name,
-    #         "run_name": run_name,
-    #         "crop_pattern": crop_pattern,
-    #         "columns": column_names,
-    #         "kernel_names": [kernel.name for kernel in kernels],
-    #         "kernel_bandwidths": [kernel.bandwidth for kernel in kernels],
-    #         "bin_widths": bin_widths,
-    #         "num_init_samples_for_root_solver": NUM_INIT_SAMPLES,
-    #         "lower_percentile_for_stable_fp": LOWER_PERCENTILE_FOR_STABLE_FP,
-    #         "upper_percentile_for_stable_fp": UPPER_PERCENTILE_FOR_STABLE_FP,
-    #     }
-    #     save_dataframe_manifest(output_dataframe_manifest)
-
+    # process datasets now that we have the PCA and flow field estimate parameters
     for dataset_name in tqdm(dataset_names, desc="Processing datasets"):
+        # get the output directory for this dataset but don't create it
+        # yet in case the dataset has multiple flow conditions
+        out_dir = get_output_path(
+            __file__, dataset_name, include_timestamp=True, create_directories=False
+        )
 
-        out_dir = get_output_path(__file__, dataset_name, include_timestamp=True)
+        if any(out_dir.glob("*")):
+            logger.warning(
+                "Dataset [ %s ]: skipping processing, non-empty output directory [ %s ].",
+                dataset_name,
+                out_dir,
+            )
+            continue
 
         dataset_config = load_dataset_config(dataset_name)
         if len(dataset_config.shear_stress_regime) > 1:
@@ -360,6 +158,11 @@ def main():
                 dataset_config.shear_stress_regime,
             )
             continue
+
+        # If dataset hasn't been processed yet and it has only one
+        # flow then make a new output directory for this dataset
+        out_dir.mkdir(parents=True, exist_ok=True)
+
         # get bins for KMCs
         bounds_for_km = get_bounds_from_data(
             dataset_names=[dataset_name],
@@ -371,7 +174,9 @@ def main():
         bins, centers = get_bins(bin_widths, bin_limits=bounds_for_km)
 
         # load dataframe and filter / preprocess it for dynamics workflows (PCA,
-        # filter annotated timepoints, transform angular variables),
+        # filter annotated timepoints, transform angular variables)
+        # use only the steady state and unpiled data for flow field and
+        # fixed point estimation
         df = get_dataframe_for_dynamics_workflows(
             dataset_name,
             dataframe_manifest,
@@ -380,26 +185,6 @@ def main():
             include_not_steady_state=False,
             crop_pattern=crop_pattern,
         )
-
-        # test for getting drift_function when angle wraps
-        # df["polar_theta_backup"] = df[Column.DiffAEData.POLAR_ANGLE].copy()
-
-        # polar_range = (0, np.pi)
-
-        # angles = df[Column.DiffAEData.POLAR_ANGLE]
-        # sorted_angles = np.sort(angles)
-
-        # # Find largest gap (including wrap-around gap)
-        # period = polar_range[1] - polar_range[0]
-        # angle_diffs = np.diff(sorted_angles, append=sorted_angles[0] + period)
-        # where_largest_diff = np.argmax(angle_diffs)
-
-        # # Cut at end of largest gap; shift so data are contiguous on line
-        # angle_cut = (sorted_angles[where_largest_diff] + angle_diffs[where_largest_diff]) % period
-        # contiguous_angles = np.mod(angles - angle_cut, period)
-
-        # df[Column.DiffAEData.POLAR_ANGLE] = contiguous_angles
-        # end of test code
 
         # get list of per-crop trajectories, the corresponding
         # displacement vectors, and time differences
@@ -410,56 +195,6 @@ def main():
         drift_coeffs = get_kramers_moyal_coeffs(
             traj_list, d_traj_list, bins=bins, dt=TIME_STEP_IN_MINUTES / 60, kernel=kernels
         )[0]
-        # feature_grid = np.meshgrid(*centers, indexing="ij")
-        # drift_dict = {
-        #     drift_column_names[index]: drift_coeffs[..., index].flatten().tolist()
-        #     for index in range(len(drift_column_names))
-        # }
-        # grid_dict = {
-        #     column_names[index]: feature_grid[index].flatten().tolist()
-        #     for index in range(len(column_names))
-        # }
-
-        # # build dataframe with columns for bin centers in each of the three dimensions and
-        # # the corresponding drift coefficients, to be used for visualization workflow
-        # vector_field_df = pd.DataFrame({Column.DATASET: dataset_name, **drift_dict, **grid_dict})
-
-        # # save drift coefficients and grid points dataframes to parquet files,
-        # # with names that include the input dataframe manifest name for
-        # # traceability and to avoid naming conflicts with other runs
-        # drift_coeffs_file_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataset_name}.parquet"
-        # drift_coeffs_save_path = make_name_unique(dataframe_savedir / drift_coeffs_file_name)
-        # # vector_field_df.to_parquet(drift_coeffs_save_path)
-
-        # # Upload dataframes to FMS and update manifests
-        # if upload_to_fms:
-        #     dataset_config = load_dataset_config(dataset_name)
-        #     drift_annotations = build_fms_annotations(
-        #         dataset_config,
-        #         model_manifest=model_manifest,
-        #         run_name=run_name,
-        #         additional_notes=FMS_ANNOTATION_NOTES_DRIFT,
-        #     )
-        #     drift_fmsid = upload_file_to_fms(
-        #         drift_coeffs_save_path, annotations=drift_annotations, file_type="parquet"
-        #     )
-        #     drift_dataframe_manifest.locations[dataset_name] = DataframeLocation(fmsid=drift_fmsid)
-        #     save_dataframe_manifest(drift_dataframe_manifest)
-        # # If not uploading to FMS, depends on if we're in "demo mode" or
-        # # not. If in demo mode, update "demo" dataframe manifests with
-        # # locations built from local save paths, so that the dataframes can
-        # # be loaded from the local paths in the visualization workflow. If
-        # # not in demo mode, just log the local save paths for traceability
-        # # since the dataframe manifests won't be updated with locations
-        # elif DEMO_MODE:
-        #     drift_dataframe_manifest.locations[dataset_name] = build_dataframe_location_from_path(
-        #         drift_coeffs_save_path
-        #     )
-        #     save_dataframe_manifest(drift_dataframe_manifest)
-        # else:
-        #     logger.info(
-        #         "Saving dataframe of drift coefficients locally to [ %s ]", drift_coeffs_save_path
-        #     )
 
         ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
         extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
@@ -472,6 +207,7 @@ def main():
             extrapolated_flow_field_dict_reg, for_solve_ivp=False, method="linear"
         )
 
+        # get fixed points and their stability
         fixed_points_for_dataset = get_fixed_points_within_bounds(
             vector_field_function=drift_function,
             dataframe=df,
@@ -482,21 +218,18 @@ def main():
             polar_angle_range=BIN_LIMITS_THETA_RESCALED if RESCALE_THETA else (-np.pi, np.pi),
         )
 
-        # add stable fixed points from this dataset to the overall dataframe
-        # (checking first if returned dataframe is empty first to avoid issues
-        # with concatenation and saving an empty dataframe)
+        # if there are no fixed points then move to the next dataset
         if fixed_points_for_dataset.empty:
+            logger.warning(
+                "No stable fixed points found for dataset [ %s ]."
+                "Nothing to plot for this dataset.",
+                dataset_name,
+            )
             continue
 
-        # stable_fixed_points_all_datasets_list.append(fixed_points_for_dataset)
-
-        # # save stable fixed points from this dataset to parquet file
-        # fixed_points_file_name = (
-        #     f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataset_name}{demo_suffix}.parquet"
-        # )
-        # fixed_points_save_path = make_name_unique(dataframe_savedir / fixed_points_file_name)
-        # # fixed_points_for_dataset.to_parquet(fixed_points_save_path)
-
+        # load the full set of timepoints for the cell-centric data now
+        # and do track-specific filtering so that we can see how tracks
+        # move in relation to the fixed points over time
         df = get_dataframe_for_dynamics_workflows(
             dataset_name,
             dataframe_manifest,
@@ -506,13 +239,10 @@ def main():
             crop_pattern=crop_pattern,
         )
 
+        # determine distance from each fixed point over time and add to the dataframe, along
+        # with the signed difference along each axis (e.g. theta, r, rho) from each fixed point
         for i in fixed_points_for_dataset.index:
             fpt = fixed_points_for_dataset.iloc[i]
-            # print(
-            #     f"Dataset: {fpt[Column.DATASET]}, Stability: {fpt[STABILITY_COLUMN_NAME]}, Coordinates: {[fpt[col] for col in column_names]}"
-            # )
-
-            # diff_func = lambda x: get_smallest_angle_difference(reference_angle=fpt[col], period=rescaled_theta)(x)
 
             for col in DYNAMICS_COLUMN_NAMES:
                 diff_func = lambda x, fpt=fpt, col=col: (
@@ -522,24 +252,28 @@ def main():
                 )
                 df[f"diff_from_fp_{col}_{i}"] = diff_func(df[col])
 
-                # if col == Column.DiffAEData.POLAR_ANGLE:
-                #     diff_func = get_smallest_angle_difference
-                #     )
-                # else:
-                #     diff_func = np.subtract
-
             dynamics_diff_columns = [f"diff_from_fp_{col}_{i}" for col in DYNAMICS_COLUMN_NAMES]
             df[f"dist_from_fp_{i}"] = np.linalg.norm(df[dynamics_diff_columns], axis=1)
-            # break
 
             dd = df[f"dist_from_fp_{i}"].groupby(df[Column.CROP_INDEX]).diff()
             dt = df[Column.TIMEPOINT].groupby(df[Column.CROP_INDEX]).diff()
             df[f"dist_from_fp_{i}_veloc"] = dd / dt
 
+        # filter the data to only include very long tracks
         df = df[df[Column.TRACK_LENGTH] > min_data_size]
 
-        df[df[Column.TRACK_LENGTH] > min_data_size][Column.TRACK_ID].nunique()
+        # record how many tracks are included after filtering for long tracks
+        num_very_long_tracks = df[df[Column.TRACK_LENGTH] > min_data_size][
+            Column.TRACK_ID
+        ].nunique()
+        logger.info(
+            "Dataset [ %s ]: %d tracks with duration > %d timepoints.",
+            dataset_name,
+            num_very_long_tracks,
+            min_data_size,
+        )
 
+        # plot and save some distances to fixed points
         shear = dataset_config.flow_conditions[0].shear_stress
 
         fig, ax = plt.subplots()
