@@ -1,24 +1,9 @@
 import logging
-from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import pandas as pd
-from matplotlib import pyplot as plt
-from tqdm import tqdm
 
 from endo_pipeline.cli import Datasets
-from endo_pipeline.io import get_output_path, load_dataframe
-from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
-    calculate_derived_data_dynamics_dependent,
-)
-from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
-    get_seg_feat_plot_args,
-    hist_2d_of_feats,
-    lineplot_of_feats,
-    mark_parallel,
-    mark_perpendicular,
-)
-from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
@@ -50,32 +35,45 @@ def plot_seg_manifest_data(
     - number of nuclei (line plot only)
     - number of tracks (line plot only)
     """
+    from matplotlib import pyplot as plt
+
+    from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
+        get_seg_feat_plot_args,
+        hist_2d_of_feats,
+        lineplot_of_feats,
+        mark_parallel,
+        mark_perpendicular,
+    )
+    from endo_pipeline.settings.column_names import ColumnName as Column
 
     # choose which features to put on the y-axis
     # (we will put time on the x-axis)
+    angular_feats = [
+        Column.SegData.ALIGNMENT_DEG,
+        Column.SegData.ORIENTATION_DEG,
+        Column.SegData.CENTROID_VELOCITY_ANGLE_DEG,
+        Column.SegData.NUCLEI_POSITION_ANGLE_DEG,
+        Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
+    ]
     feats_to_plot_y = [
-        "alignment_deg_rel_to_flow",
-        "nematic_order",
-        "eccentricity",
-        "aspect_ratio",
-        "area (um**2)",
-        "num_neighbors",
-        "centroid_velocity_magnitude",
-        "centroid_velocity_angle_deg",
-        "cell_nuc_dist",
-        "cell_nuc_orientation_deg",
-        "cell_nuc_orientation_deg_rel_to_migration",
+        Column.SegData.NEMATIC_ORDER,
+        Column.SegData.ECCENTRICITY,
+        Column.SegData.ASPECT_RATIO,
+        Column.SegData.AREA_UM_SQ,
+        Column.SegData.NUM_NEIGHBORS,
+        Column.SegData.CENTROID_VELOCITY_UM_PER_MIN,
+        Column.SegData.NUCLEI_POSITION_DISTANCE,
     ]
     feats_to_plot_y_lineplot_only = [
-        "total_nuclei_count_at_T",
-        "num_tracks",
+        Column.SegData.NUM_NUCLEI_AT_TIMEPOINT,
+        Column.SegData.NUM_TRACKS_AFTER_FILTERING,
     ]
 
     # get the plotting arguments for the features
     # (e.g. axis limits, axis titles, bin widths, etc.)
     feats_plot_args = get_seg_feat_plot_args()
 
-    for feat in feats_to_plot_y + feats_to_plot_y_lineplot_only:
+    for feat in angular_feats + feats_to_plot_y + feats_to_plot_y_lineplot_only:
         filename_out = f"{dataset_name}_P{position}_{feat}.png"
 
         # plot alignment vs time as line plots
@@ -84,14 +82,14 @@ def plot_seg_manifest_data(
 
         fig, ax = lineplot_of_feats(
             df_group=seg_feats_df_subset,
-            x_column_name=feats_plot_args["time_hrs"]["column_name"],
+            x_column_name=feats_plot_args[Column.SegData.TIME_HRS]["column_name"],
             y_column_name=feats_plot_args[feat]["column_name"],
-            x_label=feats_plot_args["time_hrs"]["label"],
+            x_label=feats_plot_args[Column.SegData.TIME_HRS]["label"],
             y_label=feats_plot_args[feat]["label"],
             y_lims=feats_plot_args[feat]["lims"],
-            set_xticks=feats_plot_args["time_hrs"]["ticks"],
+            set_xticks=feats_plot_args[Column.SegData.TIME_HRS]["ticks"],
             set_yticks=feats_plot_args[feat]["ticks"],
-            discrete_xticks=feats_plot_args["time_hrs"]["discrete_ticks"],
+            discrete_xticks=feats_plot_args[Column.SegData.TIME_HRS]["discrete_ticks"],
             discrete_yticks=feats_plot_args[feat]["discrete_ticks"],
             minor_ticks="xy",
         )
@@ -108,23 +106,23 @@ def plot_seg_manifest_data(
 
             fig, ax = hist_2d_of_feats(
                 seg_feats_df_subset,
-                x_column_name=feats_plot_args["time_hrs"]["column_name"],
+                x_column_name=feats_plot_args[Column.SegData.TIME_HRS]["column_name"],
                 y_column_name=feats_plot_args[feat]["column_name"],
-                x_label=feats_plot_args["time_hrs"]["label"],
+                x_label=feats_plot_args[Column.SegData.TIME_HRS]["label"],
                 y_label=feats_plot_args[feat]["label"],
-                x_lims=feats_plot_args["time_hrs"]["lims"],
+                x_lims=feats_plot_args[Column.SegData.TIME_HRS]["lims"],
                 y_lims=feats_plot_args[feat]["lims"],
-                set_xticks=feats_plot_args["time_hrs"]["ticks"],
+                set_xticks=feats_plot_args[Column.SegData.TIME_HRS]["ticks"],
                 set_yticks=feats_plot_args[feat]["ticks"],
-                discrete_xticks=feats_plot_args["time_hrs"]["discrete_ticks"],
+                discrete_xticks=feats_plot_args[Column.SegData.TIME_HRS]["discrete_ticks"],
                 discrete_yticks=feats_plot_args[feat]["discrete_ticks"],
                 minor_ticks="xy",
                 bin_width=(
-                    feats_plot_args["time_hrs"]["bin_width"],
+                    feats_plot_args[Column.SegData.TIME_HRS]["bin_width"],
                     feats_plot_args[feat]["bin_width"],
                 ),
             )
-            if "orientation" in feat:
+            if feat in angular_feats:
                 ax = mark_parallel(ax)
                 ax = mark_perpendicular(ax)
             fig.savefig(out_subdir_histplots / filename_out, bbox_inches="tight")
@@ -143,23 +141,39 @@ def process_dataset(
     calculates dynamic features, and generates and saves plots for
     each position.
     """
+    from tqdm import tqdm
+
+    from endo_pipeline.io import load_dataframe
+    from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+        calculate_derived_data_dynamics_dependent,
+    )
+    from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+    from endo_pipeline.settings import SEGMENTATION_FEATURE_COLUMNS
+    from endo_pipeline.settings.column_names import ColumnName as Column
 
     # load the segmentation features table
     segprops_manifest = load_dataframe_manifest(seg_feature_manifest_name)
     segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset_name)
-    segprops_dataframe = load_dataframe(segprops_location)
+    segprops_dataframe = load_dataframe(segprops_location, delay=True)
+
+    # choose which features to plot (not all columns correspond to features for plotting)
+    cols_to_compute: list = []
+    for group in ["default", "supp", "dynamics_calculation_prereq", "filters"]:
+        cols_to_compute.extend(SEGMENTATION_FEATURE_COLUMNS[group])
+    cols_to_compute = list(set(cols_to_compute) & set(segprops_dataframe.columns))
+    segprops_dataframe = segprops_dataframe[cols_to_compute].compute().reset_index()
 
     # get the FMS ID for the live merged segmentation features
     # and add it to the log
     logger.info(f"Dataset {dataset_name} FMS ID: {segprops_location.fmsid}")
 
     # apply the data filter
-    segprops_dataframe = segprops_dataframe[segprops_dataframe["is_included"]]
+    segprops_dataframe = segprops_dataframe[segprops_dataframe[Column.SegData.IS_INCLUDED]]
 
     # iterate over each position in each dataset
     for (dataset_nm, pos), df_group in tqdm(
-        segprops_dataframe.groupby(["dataset_name", "position"]),
-        total=len(segprops_dataframe.groupby(["dataset_name", "position"])),
+        segprops_dataframe.groupby([Column.DATASET, Column.POSITION]),
+        total=len(segprops_dataframe.groupby([Column.DATASET, Column.POSITION])),
         desc=f"Plotting features: {dataset_name}",
         unit="position",
     ):
@@ -175,10 +189,21 @@ def process_dataset(
         )
 
 
-def main(datasets: Datasets, n_proc: int = 1, is_test: bool = False) -> None:
+def main(datasets: Datasets, n_proc: int = 1) -> None:
+    from concurrent.futures import ProcessPoolExecutor
+
+    from tqdm import tqdm
+
+    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.io import get_output_path
+
     logger.debug(f"Processing: {datasets}")
 
     out_dir = get_output_path(__file__)
+
+    if DEMO_MODE:
+        logger.info(f"Running in demo mode. Only processing first dataset {datasets[0]}.")
+        datasets = datasets[:1]
 
     if n_proc > 1:
         with ProcessPoolExecutor(max_workers=n_proc) as executor:
@@ -200,5 +225,9 @@ def main(datasets: Datasets, n_proc: int = 1, is_test: bool = False) -> None:
         ):
             # process dataset below will both load and plot the data
             process_dataset(dataset, out_dir)
-            if is_test:
-                break
+
+
+if __name__ == "__main__":
+    from endo_pipeline.cli import workflow_cli
+
+    workflow_cli(main)
