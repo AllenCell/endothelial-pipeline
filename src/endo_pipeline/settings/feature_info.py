@@ -28,6 +28,7 @@ LABEL_MAP = {
     # dynamics features
     Column.SegData.CENTROID_VELOCITY_ANGLE_DEG: "Cell Migration Angle (deg)",
     Column.SegData.CENTROID_VELOCITY_UM_PER_MIN: "Cell Migration Speed (µm/min)",
+    Column.SegData.CENTROID_VELOCITY_UM_PER_MIN_SMOOTHED: "Cell Migration Speed (µm/min, Smoothed)",
     Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG: "Nucleus Orientation Relative to Migration (deg)",
     Column.SegData.NUCLEI_POSITION_ANGLE_DEG: "Nucleus Orientation Relative to Flow Angle (deg)",
     Column.SegData.VECTOR_MEAN_FOR_CROP_MAGNITUDE: "Migration Coherence in Crop (Vector Mean Magnitude)",
