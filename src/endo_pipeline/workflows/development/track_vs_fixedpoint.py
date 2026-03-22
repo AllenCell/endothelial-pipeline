@@ -224,7 +224,11 @@ def main():
 
     crop_pattern = "tracked"
     # crop_pattern = "grid"
-    datasets = ["20250618_20X"]
+    # datasets = ["20250618_20X"]
+    datasets = [
+        *get_datasets_in_collection("diffae_model_training"),
+        *get_datasets_in_collection("replicate_2_datasets"),
+    ]
 
     # set workflow defaults
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
