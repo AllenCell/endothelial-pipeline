@@ -1,5 +1,5 @@
 """Plots cell-centric PC features "polar angle", "polar radius", and "rho" against fixed points.
-If a dataset has already been processed on a certain day, the workflow will skip it.
+If a dataset has already been processed on the current day already, the workflow will skip it.
 """
 
 
