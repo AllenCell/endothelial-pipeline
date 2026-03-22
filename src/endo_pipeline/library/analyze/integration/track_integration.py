@@ -25,7 +25,7 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
-from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
+from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.visualize.integration.track_integration_viz import (
@@ -47,16 +47,17 @@ from endo_pipeline.manifests import (
     load_model_manifest,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.diffae_feature_dataframes import (
-    DIFFAE_PC_COLUMN_NAMES,
-    MAX_PCS_TO_COMPUTE,
-    NUM_PCS_TO_ANALYZE,
+from endo_pipeline.settings.diffae_feature_dataframes import MAX_PCS_TO_COMPUTE, NUM_PCS_TO_ANALYZE
+from endo_pipeline.settings.dynamics_workflows import (
+    BIN_WIDTHS_DYNAMICS,
+    DYNAMICS_COLUMN_NAMES,
+    KERNEL_BANDWIDTHS_DYNAMICS,
+    KERNEL_NAMES_DYNAMICS,
+    PERIOD_THETA_RESCALED,
+    RESCALE_THETA,
 )
 from endo_pipeline.settings.flow_field_3d import (
-    BIN_WIDTH_DEFAULTS,
     INIT_POINT_3D,
-    KERNEL_BANDWIDTH,
-    KERNEL_FUNCTION_NAME,
     TIME_STEP_IN_MINUTES,
     TRAJECTORY_TIME_SPAN,
 )
@@ -71,26 +72,80 @@ from endo_pipeline.settings.workflow_defaults import (
 logger = logging.getLogger(__name__)
 
 
+def get_flow_field_estimation_params(
+    column_names: list[str],
+    rescale_theta: bool = RESCALE_THETA,
+    period_theta_rescaled: float = PERIOD_THETA_RESCALED,
+    kernel_names_dynamics: dict[str, str] = KERNEL_NAMES_DYNAMICS,
+    kernel_bandwidths_dynamics: dict[str, float] = KERNEL_BANDWIDTHS_DYNAMICS,
+    bin_widths_dynamics: dict[str, float] = BIN_WIDTHS_DYNAMICS,
+) -> tuple[list[KramersMoyalKernel], list[float]]:
+    # initialize kernels and bin widths for each of the three variables for flow
+    # field estimation
+    kernels: list[KramersMoyalKernel] = []
+    bin_widths: list[float] = []
+    rescaled_theta = period_theta_rescaled + np.pi * (1 - rescale_theta)
+
+    # Get the corresponding kernels and bin widths for each variable. For the
+    # polar angle variable, also specify the period for the kernel based on the
+    # rescaled theta range, to ensure that the periodicity of the polar angle is
+    # taken into account in the flow field estimation.
+    for column_name in column_names:
+        name = kernel_names_dynamics[column_name]
+        bandwidth = kernel_bandwidths_dynamics[column_name]
+        period = rescaled_theta if column_name == Column.DiffAEData.POLAR_ANGLE else None
+        bin_width = bin_widths_dynamics[column_name]
+        kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
+        bin_widths.append(bin_width)
+    return kernels, bin_widths
+
+
 def process_dataset_for_track_integration(
     dataset_name: str,
-    collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    run_name: str = DEFAULT_MODEL_RUN_NAME,
     make_integrated_plots: bool = True,
 ) -> None:
     logger.info("Processing dataset: [ %s ]", dataset_name)
 
+    # set workflow defaults
     out_subdir = get_output_path(__file__, dataset_name)
+    # column_names = list(DYNAMICS_COLUMN_NAMES)  # dynamics_column_names = theta, r, rho
+
+    # Load default model manifest and get corresponding feature dataframe
+    # manifest name for default run name and specified crop pattern.
+    model_manifest = load_model_manifest(model_manifest_name)
+    dataframe_manifest_name_grid = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="grid"
+    )
+    dataframe_manifest_name_tracked = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern="tracked"
+    )
+
+    # load dataframe manifest with model feature for the given model run
+    # and model manifest
+    dataframe_manifest_grid = load_dataframe_manifest(dataframe_manifest_name_grid)
+    dataframe_manifest_tracked = load_dataframe_manifest(dataframe_manifest_name_tracked)
+
+    diffae_grid_df_for_flow_field = get_dataframe_for_dynamics_workflows(
+        dataset_name=dataset_name, manifest=dataframe_manifest_grid
+    )
+    diffae_tracked_df_for_flow_field = get_dataframe_for_dynamics_workflows(
+        dataset_name=dataset_name, manifest=dataframe_manifest_tracked
+    )
 
     # load and preprocess the different diffae manifests and PCA pipeline
-    merged_feats_df, diffae_grid_crops, bounds = get_preprocessed_manifests_and_km_bounds(
-        dataset_name=dataset_name,
-        model_manifest_name=model_manifest_name,
-        run_name=run_name,
-        seg_feature_manifest_name=seg_feature_manifest_name,
-        collection_name_for_pca=collection_name_for_pca,
+    diffae_tracked_df_delayed, diffae_grid_df = load_cellcentric_and_grid_diffae_features(
+        dataset_name
     )
+    # load the pc-diffae-seg-merged parquet file
+    cell_centric_feats_manifest = load_dataframe_manifest(cell_centric_manifest_name)
+    cell_centric_feats_location = get_dataframe_location_for_dataset(
+        cell_centric_feats_manifest, dataset_name
+    )
+    cell_centric_feats_df = load_dataframe(cell_centric_feats_location, delay=True)
+    cell_centric_feats_df = cell_centric_feats_df.reset_index(drop=True)
 
     # keep only the columns that are needed for the analysis to reduce memory usage
     cols_to_keep = [
@@ -104,24 +159,24 @@ def process_dataset_for_track_integration(
         Column.SegData.TIME_HRS,
         Column.SegData.TIME_MINS,
         Column.TRACK_LENGTH,
-    ] + [col for col in merged_feats_df.columns if "feat" in col or "pc" in col]
-    merged_feats_df = merged_feats_df[cols_to_keep]
+    ] + list(DYNAMICS_COLUMN_NAMES)
+    diffae_tracked_df = diffae_tracked_df_delayed[cols_to_keep].compute()
 
     # load or compute the trajectories and flow fields for the grid-based
     # and cell-centric crops
     traj_grids, flow_field_dict_grids, traj_tracks, flow_field_dict_tracks = (
         get_gridcrop_and_cellcentric_trajectories_and_flow_fields(
-            dataset_name=dataset_name,
-            merged_feats_df=merged_feats_df,
-            diffae_grid_crops=diffae_grid_crops,
-            bounds=bounds,
+            diffae_tracked_df=diffae_tracked_df_for_flow_field,
+            diffae_grid_df=diffae_grid_df_for_flow_field,
             trajectory_dir=out_subdir,
         )
     )
 
     # get the slice indexes to use for plotting the flow fields
     # (we will be setting PC3 to a constant, i.e. the z-axis here)
-    _, slice_indexes = get_valid_slice_indexes(diffae_grid_crops, traj_grids, flow_field_dict_grids)
+    _, slice_indexes = get_valid_slice_indexes(
+        diffae_grid_df_for_flow_field, traj_grids, flow_field_dict_grids
+    )
 
     # get flow field vectors and grid points to plot
     v1_grids, v2_grids, v3_grids = flow_field_dict_grids["vectors"]
@@ -229,9 +284,9 @@ def process_dataset_for_track_integration(
 
     # Compare the angles between grid crop PC vectors
     # and the PC vectors of a single track
-    merged_feats_df["dpc1"] = merged_feats_df.groupby(Column.CROP_INDEX)["pc_1"].diff()
-    merged_feats_df["dpc2"] = merged_feats_df.groupby(Column.CROP_INDEX)["pc_2"].diff()
-    merged_feats_df["dt"] = merged_feats_df.groupby(Column.CROP_INDEX)[
+    diffae_tracked_df["dpc1"] = diffae_tracked_df.groupby(Column.CROP_INDEX)["pc_1"].diff()
+    diffae_tracked_df["dpc2"] = diffae_tracked_df.groupby(Column.CROP_INDEX)["pc_2"].diff()
+    diffae_tracked_df["dt"] = diffae_tracked_df.groupby(Column.CROP_INDEX)[
         Column.SegData.TIME_MINS
     ].diff()
 
@@ -263,13 +318,13 @@ def process_dataset_for_track_integration(
 
     # Apply the partial functions to the DataFrame to get the approximate grid bin
     # and vector associated with each cell-centric PC1 and PC2 value
-    merged_feats_df[["approx_bin_pc1", "approx_bin_pc2"]] = (
-        merged_feats_df.groupby(Column.DATASET, as_index=False)
+    diffae_tracked_df[["approx_bin_pc1", "approx_bin_pc2"]] = (
+        diffae_tracked_df.groupby(Column.DATASET, as_index=False)
         .apply(lambda df: get_approx_grid_bin_from_df(df[["pc_1", "pc_2"]]))
         .droplevel(level=0)
     )
-    merged_feats_df[["approx_vec_pc1", "approx_vec_pc2"]] = (
-        merged_feats_df.groupby(Column.CROP_INDEX, as_index=False)
+    diffae_tracked_df[["approx_vec_pc1", "approx_vec_pc2"]] = (
+        diffae_tracked_df.groupby(Column.CROP_INDEX, as_index=False)
         .apply(lambda df: get_approx_grid_vec_from_df(df[["pc_1", "pc_2"]]))
         .droplevel(level=0)
     )
@@ -277,16 +332,16 @@ def process_dataset_for_track_integration(
     # Compute the angle between the approximate grid vector
     # and the the vector from the cell-centric PC1 and PC2
     # both in radians and degrees
-    merged_feats_df["track_angle_deviation_rad"] = get_vector_vector_angle_fast(
-        merged_feats_df[["approx_vec_pc1", "approx_vec_pc2"]].values,
-        merged_feats_df[["dpc1", "dpc2"]].values,
+    diffae_tracked_df["track_angle_deviation_rad"] = get_vector_vector_angle_fast(
+        diffae_tracked_df[["approx_vec_pc1", "approx_vec_pc2"]].values,
+        diffae_tracked_df[["dpc1", "dpc2"]].values,
     )
-    merged_feats_df["track_angular_deviation_deg"] = merged_feats_df[
+    diffae_tracked_df["track_angular_deviation_deg"] = diffae_tracked_df[
         "track_angle_deviation_rad"
     ].transform(np.rad2deg)
 
-    merged_feats_df["pc1_pc2_vec_mag"] = np.linalg.norm(
-        merged_feats_df[["dpc1", "dpc2"]].values, axis=1
+    diffae_tracked_df["pc1_pc2_vec_mag"] = np.linalg.norm(
+        diffae_tracked_df[["dpc1", "dpc2"]].values, axis=1
     )
 
     # group dataframe by a combination of dataset, position, and crop index
@@ -294,7 +349,7 @@ def process_dataset_for_track_integration(
     # case because the crop index is unique throughout all 6 positions,
     # whereas the track id is only unique within a single position
     mean_track_deviation_dfs = (
-        merged_feats_df.groupby(["dataset_name", "position_as_str", "crop_index"])[
+        diffae_tracked_df.groupby(["dataset_name", "position_as_str", "crop_index"])[
             ["track_angular_deviation_deg", "pc1_pc2_vec_mag"]
         ]
         .agg("mean")
@@ -308,14 +363,14 @@ def process_dataset_for_track_integration(
     )
 
     # get the dot products
-    merged_feats_df["dot_product_grid_vs_cell"] = np.einsum(
+    diffae_tracked_df["dot_product_grid_vs_cell"] = np.einsum(
         "ij,ij->i",
-        merged_feats_df[["approx_vec_pc1", "approx_vec_pc2"]],
-        merged_feats_df[["dpc1", "dpc2"]],
+        diffae_tracked_df[["approx_vec_pc1", "approx_vec_pc2"]],
+        diffae_tracked_df[["dpc1", "dpc2"]],
     )
     # also aggregate the dot products by crop index (i.e. unique track id across all positions)
-    merged_feats_dot_prod_agg = (
-        merged_feats_df.groupby("crop_index")["dot_product_grid_vs_cell"]
+    diffae_tracked_dot_prod_agg = (
+        diffae_tracked_df.groupby("crop_index")["dot_product_grid_vs_cell"]
         .agg(["mean", "median"])
         .reset_index()
     )
@@ -323,7 +378,7 @@ def process_dataset_for_track_integration(
     plot_title = "Mean per track"
     col_name = "mean"
     plot_and_save_track_flow_field_dot_product_histogram(
-        features_dataframe=merged_feats_dot_prod_agg,
+        features_dataframe=diffae_tracked_dot_prod_agg,
         feature_column_name=col_name,
         out_dir=out_subdir,
         filename=f"{dataset_name}_dot_product_grid_vs_cell_{col_name}",
@@ -333,7 +388,7 @@ def process_dataset_for_track_integration(
     plot_title = "Non-aggregated dot products"
     col_name = "dot_product_grid_vs_cell"
     plot_and_save_track_flow_field_dot_product_histogram(
-        features_dataframe=merged_feats_df,
+        features_dataframe=diffae_tracked_df,
         feature_column_name=col_name,
         out_dir=out_subdir,
         filename=f"{dataset_name}_dot_product_grid_vs_cell_{col_name}",
@@ -345,8 +400,8 @@ def process_dataset_for_track_integration(
         # reduce memory needs here, so if you change the minimum track duration
         # then expect the workflow to require a lot more memory or crash if you
         # don't have enough
-        merged_feats_df = merged_feats_df.query("track_duration > 180")
-        groups = merged_feats_df.groupby([Column.DATASET, Column.POSITION, Column.CROP_INDEX])
+        diffae_tracked_df = diffae_tracked_df.query("track_duration > 180")
+        groups = diffae_tracked_df.groupby([Column.DATASET, Column.POSITION, Column.CROP_INDEX])
 
         i = 0
         for nm, df in tqdm(groups, desc=dataset_name):
@@ -354,8 +409,8 @@ def process_dataset_for_track_integration(
             assert (
                 tid % 1
             ) == 0, f"Track ID should be an integer or convertible to an integer. Got {tid}."
-            hue_min = -1 * np.nanmax(merged_feats_df["dot_product_grid_vs_cell"].abs())
-            hue_max = 1 * np.nanmax(merged_feats_df["dot_product_grid_vs_cell"].abs())
+            hue_min = -1 * np.nanmax(diffae_tracked_df["dot_product_grid_vs_cell"].abs())
+            hue_max = 1 * np.nanmax(diffae_tracked_df["dot_product_grid_vs_cell"].abs())
             hue_center = 0.0
             plot_pc_integrated_track_as_arrows(
                 dataset_name=str(ds_nm),
@@ -386,8 +441,8 @@ def process_dataset_for_track_integration(
     overlay_flow_fields_on_histograms(
         dataset_name,
         out_subdir,
-        diffae_grid_crops,
-        merged_feats_df,
+        diffae_grid_df,
+        diffae_tracked_df,
         v1_grids,
         v2_grids,
         g1_grids,
@@ -565,13 +620,12 @@ def get_diffae_feats_liveseg_feats_merged_table(
 
 def get_traj_and_flowfield(
     df: pd.DataFrame,
-    bounds: list,
-    load_precomputed_trajectories: Path | None,
+    column_names: list[str] = list(DYNAMICS_COLUMN_NAMES),
+    load_precomputed_trajectories: Path | None = None,
 ) -> tuple[np.ndarray, dict]:
 
-    # set kernel params
-    kernel_name = KERNEL_FUNCTION_NAME
-    kernel_bw = KERNEL_BANDWIDTH
+    # set kernel and binwidth params
+    kernels, bin_widths = get_flow_field_estimation_params(column_names)
 
     # set time between frames in minutes
     dt = TIME_STEP_IN_MINUTES
@@ -587,20 +641,16 @@ def get_traj_and_flowfield(
     # shear stress conditions
     init = np.array(INIT_POINT_3D)
 
-    bins, centers = get_bins(BIN_WIDTH_DEFAULTS, bin_limits=bounds)
-
-    # get the columns to use for calculating trajectories
-    # and flow fields.
-    cols = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+    bins, centers = get_bins(bin_widths=bin_widths, data=df[list(column_names)].to_numpy())
 
     # get list of per-crop trajectories and the corresponding
     # single-timepoint displacement vectors
-    traj_list, d_traj_list = get_traj_and_diff(df, cols)
+    traj_list, d_traj_list = get_traj_and_diff(df, list(column_names))
 
     # get drift and diffusion estimates
     # (Kramers-Moyal coefficients)
     drift_km, diff_km = get_kramers_moyal_coeffs(
-        traj_list, d_traj_list, bins=bins, dt=dt, kernel=KramersMoyalKernel(kernel_name, kernel_bw)
+        traj_list, d_traj_list, bins=bins, dt=dt, kernel=kernels
     )
 
     # get the vector field components from
@@ -622,10 +672,8 @@ def get_traj_and_flowfield(
 
 
 def get_gridcrop_and_cellcentric_trajectories_and_flow_fields(
-    dataset_name: str,
-    merged_feats_df: pd.DataFrame,
-    diffae_grid_crops: pd.DataFrame,
-    bounds: list[float],
+    diffae_tracked_df: pd.DataFrame,
+    diffae_grid_df: pd.DataFrame,
     trajectory_dir: Path,
 ) -> tuple[np.ndarray, dict, np.ndarray, dict]:
     """
@@ -639,6 +687,15 @@ def get_gridcrop_and_cellcentric_trajectories_and_flow_fields(
     """
     logger.info("Getting trajectories and flow fields for grid-based and cell-centric crops...")
 
+    dataset_name_tracked = sequence_to_scalar(diffae_tracked_df[Column.DATASET])
+    dataset_name_grid = sequence_to_scalar(diffae_grid_df[Column.DATASET])
+    if dataset_name_tracked != dataset_name_grid:
+        raise ValueError(
+            f"Dataset name mismatch between the tracked crops and grid crops. "
+            f"Got {dataset_name_tracked} for tracked crops and {dataset_name_grid} for grid crops."
+        )
+    dataset_name = dataset_name_tracked
+
     # try to load the grid crop-based  data for the cell-centric
     #  crops or, if needed, compute and save them
     precomputed_trajectories_path = trajectory_dir / f"{dataset_name}_traj_grids.npy"
@@ -651,8 +708,8 @@ def get_gridcrop_and_cellcentric_trajectories_and_flow_fields(
     logger.debug("getting trajectory and flow field for grid-based crops...")
     # This takes about 2 minutes to compute if not loading precomputed
     traj_grids, flow_field_dict_grids = get_traj_and_flowfield(
-        df=diffae_grid_crops,
-        bounds=bounds,
+        df=diffae_grid_df,
+        column_names=list(DYNAMICS_COLUMN_NAMES),
         load_precomputed_trajectories=load_precomputed_trajectories,
     )
 
@@ -672,8 +729,8 @@ def get_gridcrop_and_cellcentric_trajectories_and_flow_fields(
     logger.debug("getting trajectory and flow field for tracks-based crops...")
     # This takes about 5 minutes to compute if not loading precomputed
     traj_tracks, flow_field_dict_tracks = get_traj_and_flowfield(
-        df=merged_feats_df,
-        bounds=bounds,
+        df=diffae_tracked_df,
+        column_names=list(DYNAMICS_COLUMN_NAMES),
         load_precomputed_trajectories=load_precomputed_trajectories,
     )
 
@@ -901,14 +958,14 @@ def make_angular_deviation_test(out_dir: Path) -> None:
     return
 
 
-def get_preprocessed_manifests_and_km_bounds(
+def get_cellcentric_and_grid_diffae_features(
     dataset_name: str,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
     seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     num_pcs: int = MAX_PCS_TO_COMPUTE,
-) -> tuple[pd.DataFrame, pd.DataFrame, list]:
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Load and process the DiffAE and live segmentation feature manifests for a given dataset.
     If no `datasets_for_bounds` are provided, it uses the reference datasets plus dataset_name
@@ -938,7 +995,7 @@ def get_preprocessed_manifests_and_km_bounds(
     -------
     :
         A tuple containing the merged DiffAE and live segmentation features DataFrame,
-        the grid crop-based DiffAE features DataFrame, and the PCA bounds.
+        the grid crop-based DiffAE features DataFrame.
     """
     logger.info(f"Loading and processing manifests for dataset: {dataset_name}")
 
@@ -1033,14 +1090,10 @@ def get_preprocessed_manifests_and_km_bounds(
         include_not_steady_state=False,
     )
 
-    # get bounds for plotting and flow field estimation
-    # based on this dataset only
-    bounds = get_bounds_from_data([dataset_name], grid_diffae_manifest, pca)
-
     # lastly, add a normalized version of the "time_hours" column
     merged_feats_df = add_normalized_time(merged_feats_df)
 
-    return merged_feats_df, diffae_grid_crops, bounds
+    return merged_feats_df, diffae_grid_crops
 
 
 def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -> None:
@@ -1050,19 +1103,19 @@ def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -
 
     out_dir = get_output_path(__file__)
 
-    merged_feats_df = get_preprocessed_manifests_and_km_bounds(dataset_name=dataset_name)[0]
+    merged_feats_df = get_cellcentric_and_grid_diffae_features(dataset_name=dataset_name)[0]
 
     filename = f"{dataset_name}_pc_diffae_seg_feats_merged.parquet"
 
     merged_feats_df.to_parquet(out_dir / filename)
 
 
-def load_preprocessed_dataframes_and_km_bounds(
+def load_cellcentric_and_grid_diffae_features(
     dataset_name: str,
     cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
     num_pcs: int = MAX_PCS_TO_COMPUTE,
     delay: bool = True,
-) -> tuple[pd.DataFrame | dd.DataFrame, pd.DataFrame | dd.DataFrame, list]:
+) -> tuple[pd.DataFrame | dd.DataFrame, pd.DataFrame | dd.DataFrame]:
     """
     Load the preprocessed pc-diffae-seg-merged parquet file for a given dataset.
 
@@ -1125,10 +1178,7 @@ def load_preprocessed_dataframes_and_km_bounds(
         include_not_steady_state=False,
     )
 
-    # get bounds for plotting and flow field estimation
-    bounds = get_bounds_from_data([dataset_name], grid_diffae_manifest, pca)
-
     if delay is False:
         cell_centric_feats_df = cell_centric_feats_df.compute()  # type: ignore
 
-    return cell_centric_feats_df, diffae_grid_crops, bounds
+    return cell_centric_feats_df, diffae_grid_crops
