@@ -1,6 +1,5 @@
 import logging
 import os
-from pathlib import Path
 from typing import Literal
 
 from endo_pipeline.cli import Datasets
@@ -162,7 +161,12 @@ def main(  # noqa: C901
         get_unannotated_timepoints_for_position,
         load_dataset_config,
     )
-    from endo_pipeline.io import get_output_path, load_image
+    from endo_pipeline.io import (
+        build_fms_annotations,
+        get_output_path,
+        load_image,
+        upload_file_to_fms,
+    )
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         get_dataframe_for_dynamics_workflows,
     )
@@ -176,13 +180,15 @@ def main(  # noqa: C901
         plot_demo_summary,
         resolve_attachment,
         resolve_percentile,
-        save_and_upload_optical_flow_df,
     )
     from endo_pipeline.manifests import (
+        DataframeLocation,
+        create_dataframe_manifest,
         get_feature_dataframe_manifest_name,
         get_zarr_location_for_position,
         load_dataframe_manifest,
         load_model_manifest,
+        save_dataframe_manifest,
     )
     from endo_pipeline.settings import DIMENSION_ORDER
     from endo_pipeline.settings.column_names import ColumnName
@@ -191,6 +197,7 @@ def main(  # noqa: C901
         DEFAULT_OMP_NUM_THREADS,
         DEFAULT_OPENBLAS_NUM_THREADS,
         DEFAULT_OPTICAL_FLOW_COLLECTION,
+        DEFAULT_OPTICAL_FLOW_MANIFEST_NAME,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -203,7 +210,6 @@ def main(  # noqa: C901
 
     diffae_columns_to_drop = list(DIFFAE_FEATURE_COLUMN_NAMES)
 
-    workflow_start = time.time()
     if datasets is None:
         datasets = get_datasets_in_collection(DEFAULT_OPTICAL_FLOW_COLLECTION)
 
@@ -240,18 +246,6 @@ def main(  # noqa: C901
     flow_columns = build_optical_flow_feature_cols(max_dt, compute_block_coherence)
     is_bf = channel == "BF"
 
-    # Parameters saved to the manifest for reproducibility
-    workflow_parameters: dict = {
-        "channel": channel,
-        "level": level,
-        "max_dt": max_dt,
-        "flow_scope": flow_scope,
-        "intensity_percentile": intensity_pctl,
-        "attachment": attachment,
-        "compute_block_coherence": compute_block_coherence,
-        "annotations_excluded": [a.value for a in annotations_to_exclude],
-    }
-
     logger.info(
         "Optical-flow extraction --> scope = %s | dt = 1 .. %d | percentile = %d | attachment = %.1f | channel = %s | block_coherence = %s",
         flow_scope,
@@ -269,7 +263,26 @@ def main(  # noqa: C901
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_name)
 
-    all_dataset_parts: list[pd.DataFrame] = []
+    # Load or create optical flow manifest and set parameters before the loop so
+    # that it is available even if the workflow fails partway through. Add
+    # suffix to manifest name in demo mode to avoid overwriting real results
+    # with partial demo results.
+    demo_suffix = "_demo" if DEMO_MODE else ""
+    optical_flow_manifest = create_dataframe_manifest(
+        f"{DEFAULT_OPTICAL_FLOW_MANIFEST_NAME}{demo_suffix}",
+        workflow_name=__file__,
+    )
+    optical_flow_manifest.parameters = {
+        "channel": channel,
+        "level": level,
+        "max_dt": max_dt,
+        "flow_scope": flow_scope,
+        "intensity_percentile": intensity_pctl,
+        "attachment": attachment,
+        "compute_block_coherence": compute_block_coherence,
+        "annotations_excluded": [a.value for a in annotations_to_exclude],
+    }
+    save_dataframe_manifest(optical_flow_manifest)
 
     for dataset_idx, dataset_name in enumerate(datasets, 1):
         dataset_start = time.time()
@@ -493,25 +506,30 @@ def main(  # noqa: C901
             )
             dataset_parts.append(df_position)
 
+        # if list is not empty, concat, save, and optionally upload before
+        # moving to the next dataset
         if dataset_parts:
             df_dataset_out = pd.concat(dataset_parts, ignore_index=True)
-            all_dataset_parts.append(df_dataset_out)
+            output_dir = get_output_path("optical_flow", "manifests")
+            parquet_path = output_dir / f"{dataset_name}_optical_flow_manifest.parquet"
+            df_dataset_out.to_parquet(parquet_path, index=False)
+            logger.info("Saved parquet locally to [ %s ]", parquet_path)
+            # If upload_to_fms is True, upload the parquet file to FMS and
+            # register the FMS ID in the manifest; otherwise, register the local
+            # path in the manifest
             if upload_to_fms:
-                save_and_upload_optical_flow_df(
-                    dataset_name,
-                    df_dataset_out,
-                    workflow=Path(__file__).stem,
-                    parameters=workflow_parameters,
+                dataset_config = load_dataset_config(dataset_name)
+                fms_annotations = build_fms_annotations(
+                    dataset_config,
+                    additional_notes=f"Optical flow features computed with {__file__}",
                 )
-        logger.info("Dataset done in %.1fs", time.time() - dataset_start)
-
-    df_final = pd.concat(all_dataset_parts, ignore_index=True)
-    logger.info(
-        "DONE %d rows x %d cols in %.1fs",
-        len(df_final),
-        len(df_final.columns),
-        time.time() - workflow_start,
-    )
+                fms_id = upload_file_to_fms(parquet_path, fms_annotations, "parquet")
+                logger.info("Uploaded optical flow features to FMS with ID [ %s ]", fms_id)
+                optical_flow_manifest.locations[dataset_name] = DataframeLocation(fmsid=fms_id)
+            else:
+                optical_flow_manifest.locations[dataset_name] = DataframeLocation(path=parquet_path)
+            save_dataframe_manifest(optical_flow_manifest)
+        logger.info("Dataset done in [ %.1fs ]", time.time() - dataset_start)
 
 
 if __name__ == "__main__":
