@@ -503,8 +503,25 @@ def main(  # noqa: C901
                 fms_id = upload_file_to_fms(parquet_path, fms_annotations, "parquet")
                 logger.info("Uploaded optical flow features to FMS with ID [ %s ]", fms_id)
                 optical_flow_manifest.locations[dataset_name] = DataframeLocation(fmsid=fms_id)
-            else:
+            elif (
+                optical_flow_manifest.locations.get(dataset_name) is None
+                or optical_flow_manifest.locations[dataset_name].fmsid is None
+            ):
+                # if dataset is not in manifest or has no FMS ID, register local
+                # path (even if upload_to_fms is False) so that results are
+                # accessible for downstream workflows
                 optical_flow_manifest.locations[dataset_name] = DataframeLocation(path=parquet_path)
+            elif optical_flow_manifest.locations[dataset_name].path != str(parquet_path):
+                # if local path has changed (e.g. due to new output_dir), update
+                # manifest; this is important to ensure that the manifest points
+                # to the correct location even if upload_to_fms is False
+                logger.warning(
+                    "Local path for dataset %s has changed from [ %s ] to [ %s ]",
+                    dataset_name,
+                    optical_flow_manifest.locations[dataset_name].path,
+                    parquet_path,
+                )
+                optical_flow_manifest.locations[dataset_name].path = str(parquet_path)
             save_dataframe_manifest(optical_flow_manifest)
         logger.info("Dataset done in [ %.1fs ]", time.time() - dataset_start)
 
