@@ -30,6 +30,7 @@ LABEL_MAP = {
     Column.SegData.CENTROID_VELOCITY_UM_PER_MIN: "Cell Migration Speed (µm/min)",
     Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG: "Nucleus Orientation Relative to Migration (deg)",
     Column.SegData.NUCLEI_POSITION_ANGLE_DEG: "Nucleus Orientation Relative to Flow Angle (deg)",
+    Column.SegData.VECTOR_MEAN_FOR_CROP_MAGNITUDE: "Migration Coherence in Crop (Vector Mean Magnitude)",
     # filters
     Column.SegDataFilters.IS_EDGE_SEGMENTATION: "Filter: Touches Edge of Field of View",
     Column.SegDataFilters.IS_LESS_THAN_MAX_SMOOTHED_AREA_NORMD_CHANGE: "Filter: Smoothed Area Change Below Threshold",

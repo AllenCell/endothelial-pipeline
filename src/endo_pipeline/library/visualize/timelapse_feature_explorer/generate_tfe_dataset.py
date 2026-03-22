@@ -219,7 +219,7 @@ def get_df_and_label_map_cdh5seg(
                 invalid_tps = get_annotated_timepoints_for_position(
                     dataset_config, position, [filt]
                 )
-                df[filt] = df["image_index"].isin(invalid_tps)
+                df[filt] = df[Column.TIMEPOINT].isin(invalid_tps)
     else:
         filters_for_dataset = []
     # clean up the label_map to remove filters not used in this dataset
