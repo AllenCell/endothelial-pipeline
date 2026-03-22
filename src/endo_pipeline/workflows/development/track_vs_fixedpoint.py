@@ -170,6 +170,7 @@ def main():
     import numpy as np
     import seaborn as sns
     from matplotlib import pyplot as plt
+    from tqdm import tqdm
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
@@ -346,7 +347,7 @@ def main():
     #     }
     #     save_dataframe_manifest(output_dataframe_manifest)
 
-    for dataset_name in dataset_names:
+    for dataset_name in tqdm(dataset_names, desc="Processing datasets"):
 
         out_dir = get_output_path(__file__, dataset_name, include_timestamp=True)
 
@@ -573,7 +574,7 @@ def main():
             ax.set_ylabel("position relative to fixed point along axis".title())
             ax.set_xlabel("timepoint".title())
             ax.legend(title="fixed point index".title())
-            save_plot_to_path(fig, out_dir, f"{dataset_name}_signed_dist_from_fp_components")
+            save_plot_to_path(fig, out_dir, f"{dataset_name}_signed_dist_from_fp_{i}_components")
             plt.close(fig)
 
         for i in fixed_points_for_dataset.index:
@@ -586,7 +587,7 @@ def main():
             ax.axvline(0, color="grey", linestyle="--", alpha=0.7)
             ax.set_ylim(-max(abs(lo), abs(hi)), max(abs(lo), abs(hi)))
 
-            save_plot_to_path(fig, out_dir, f"{dataset_name}_dist_from_fp_veloc")
+            save_plot_to_path(fig, out_dir, f"{dataset_name}_dist_from_fp_{i}_veloc")
             plt.close(fig)
 
         # for i in fixed_points_for_dataset.index:
@@ -618,7 +619,7 @@ def main():
             ax.axvline(0, color="red", linestyle="--", alpha=0.7)
             ax.set_xlim(-max(abs(lo), abs(hi)), max(abs(lo), abs(hi)))
             # ax.semilogy()
-            save_plot_to_path(fig, out_dir, f"{dataset_name}_dist_from_fp_veloc_hist")
+            save_plot_to_path(fig, out_dir, f"{dataset_name}_dist_from_fp_{i}_veloc_hist")
             plt.close(fig)
 
         # for i in fixed_points_for_dataset.index:
