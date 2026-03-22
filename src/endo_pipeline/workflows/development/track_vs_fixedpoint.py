@@ -4,7 +4,6 @@ If a dataset has already been processed on a certain day, the workflow will skip
 
 
 def main():
-
     import logging
 
     import numpy as np
@@ -324,26 +323,6 @@ def main():
             save_plot_to_path(fig, out_dir, f"{dataset_name}_dist_from_fp_{i}_veloc")
             plt.close(fig)
 
-        # for i in fixed_points_for_dataset.index:
-        #     lo, hi = np.percentile(df[f"dist_from_fp_{i}_veloc"].dropna(), [1, 99])
-
-        #     fig, ax = plt.subplots()
-        #     ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
-        #     sns.scatterplot(
-        #         df,
-        #         x=f"dist_from_fp_{i}",
-        #         y=f"dist_from_fp_{i}_veloc",
-        #         hue=Column.TIMEPOINT,
-        #         marker=".",
-        #         alpha=0.5,
-        #         ax=ax,
-        #     )
-        #     ax.axhline(0, color="red", linestyle="--", alpha=0.7)
-        #     ax.set_ylim(-max(abs(lo), abs(hi)), max(abs(lo), abs(hi)))
-
-        #     save_plot_to_path(fig, out_dir, f"{dataset_name}_dist_from_fp_scatter")
-        #     plt.close(fig)
-
         for i in fixed_points_for_dataset.index:
             lo, hi = np.percentile(df[f"dist_from_fp_{i}_veloc"].dropna(), [1, 99])
 
@@ -352,28 +331,8 @@ def main():
             sns.histplot(df, x=f"dist_from_fp_{i}_veloc", ax=ax)
             ax.axvline(0, color="red", linestyle="--", alpha=0.7)
             ax.set_xlim(-max(abs(lo), abs(hi)), max(abs(lo), abs(hi)))
-            # ax.semilogy()
             save_plot_to_path(fig, out_dir, f"{dataset_name}_dist_from_fp_{i}_veloc_hist")
             plt.close(fig)
-
-        # for i in fixed_points_for_dataset.index:
-        #     lo, hi = np.percentile(df[f"dist_from_fp_{i}_veloc"].dropna(), [1, 99])
-
-        #     fig, ax = plt.subplots()
-        #     ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
-        #     sns.kdeplot(
-        #         df,
-        #         x=f"dist_from_fp_{i}_veloc",
-        #         hue=Column.TIMEPOINT,
-        #         legend=False,
-        #         alpha=0.1,
-        #         ax=ax,
-        #     )
-        #     ax.axvline(0, color="red", linestyle="--", alpha=0.7)
-        #     ax.set_xlim(-max(abs(lo), abs(hi)), max(abs(lo), abs(hi)))
-        #     # ax.semilogy()
-        #     save_plot_to_path(fig, out_dir, f"{dataset_name}_dist_from_fp_kde")
-        #     plt.close(fig)
 
 
 if __name__ == "__main__":
