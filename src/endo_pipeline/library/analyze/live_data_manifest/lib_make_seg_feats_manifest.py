@@ -1408,6 +1408,9 @@ def map_label_to_column(df_sub: pd.DataFrame, column_name_to_map: str) -> list:
     label_velocity_dict = dict(
         zip(df_sub[Column.SegData.LABEL], df_sub[column_name_to_map], strict=True)
     )
+    df_sub[Column.SegData.LABELS_IN_CROP] = df_sub[Column.SegData.LABELS_IN_CROP].transform(
+        lambda ls: [] if isinstance(ls, type(None)) else ls
+    )
     return df_sub[Column.SegData.LABELS_IN_CROP].map(lambda ls: [*map(label_velocity_dict.get, ls)])
 
 

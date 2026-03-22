@@ -44,6 +44,12 @@ LABEL_MAP = {
     Column.Annotations.UNFED: "Annotation: Unfed Cells (More Than 3 Hours Since Fresh Media Introduced)",
     Column.Annotations.XY_SHIFT: "Annotation: Significant Change in XY position of FOV",
     Column.Annotations.Z_SHIFT: "Annotation: Significant Change in Z position of FOV",
+    Column.Annotations.BF_SCOPE_ERROR: "Annotation: Brightfield Microscope Error",
+    Column.Annotations.BF_TEMP_ARTIFACT: "Annotation: Temporary Artifact in Brightfield",
+    Column.Annotations.GFP_SCOPE_ERROR: "Annotation: GFP Channel Microscope Error",
+    Column.Annotations.AUTO_BF_SCOPE_ERROR: "Annotation: Auto-detected Brightfield Microscope Error",
+    Column.Annotations.AUTO_BF_TEMP_ARTIFACT: "Annotation: Auto-detected Temporary Artifact in Brightfield",
+    Column.Annotations.AUTO_GFP_SCOPE_ERROR: "Annotation: Auto-detected GFP Channel Microscope Error",
     # Cell-centric DiffAE features and PCs
     **{
         f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}"
