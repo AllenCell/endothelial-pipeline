@@ -196,6 +196,7 @@ def plot_pc_scatter(
     dataset_names: list[str],
     dataframe_manifest: DataframeManifest,
     crop_pattern: Literal["grid", "tracked"] = "grid",
+    include_cell_piling: bool = False,
     alpha: float = 0.2,
     scatter_size: float = 1,
     pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
@@ -213,6 +214,8 @@ def plot_pc_scatter(
         Manifest containing paths to dataframes for each dataset.
     crop_pattern
         Crop pattern used in the dataframes; either 'grid' or 'tracked'.
+    include_cell_piling
+        If true, includes timepoints with cell piling in the plot; if false, excludes them.
     alpha
         Alpha (opacity) value for scatter plot points.
     scatter_size
@@ -243,6 +246,8 @@ def plot_pc_scatter(
             dataset_name,
             dataframe_manifest,
             crop_pattern=crop_pattern,
+            include_cell_piling=include_cell_piling,
+            include_not_steady_state=True,
         )[[*pc_column_names, Column.TIMEPOINT]]
         df["dataset_name"] = dataset_name
         if color_by_time:
