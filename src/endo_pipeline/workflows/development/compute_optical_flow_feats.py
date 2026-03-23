@@ -142,6 +142,7 @@ def main(  # noqa: C901
         upload_file_to_fms,
     )
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+        filter_dataframe_by_annotations,
         get_dataframe_for_dynamics_workflows,
     )
     from endo_pipeline.library.analyze.optical_flow import (
@@ -236,7 +237,11 @@ def main(  # noqa: C901
     # Shared manifests
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
     dataframe_name = get_feature_dataframe_manifest_name(
-        model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern="grid"
+        model_manifest,
+        DEFAULT_MODEL_RUN_NAME,
+        crop_pattern="grid",
+        feature_type="pca",
+        is_filtered=False,
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_name)
 
@@ -269,12 +274,16 @@ def main(  # noqa: C901
         logger.info("Dataset %d/%d: %s", dataset_idx, len(datasets), dataset_name)
 
         dataset_config = load_dataset_config(dataset_name)
-        # NOTE: this is expecting the non-filtered dataframe
+        # load diffae feature dataframe to get the crop locations
         df_dataset = get_dataframe_for_dynamics_workflows(
             dataset_name,
             dataframe_manifest,
-            filter_by_annotations=False,
+            include_not_steady_state=True,
+            crop_pattern="grid",
         )
+        # filter out annotate timepoints, if args specify
+        if len(annotations_to_exclude) > 0:
+            df_dataset = filter_dataframe_by_annotations(df_dataset, annotations_to_exclude)
 
         position_list = sorted(df_dataset[ColumnName.POSITION].unique().tolist())
         if positions:
