@@ -35,6 +35,7 @@ def main(
         plot_new_traj_overlay_on_grid_traj_and_flowfield,
         plot_quiver_slices_from_diffae_table,
     )
+    from endo_pipeline.settings.column_names import ColumnName as Column
 
     out_dir = get_output_path(__file__)
     if datasets is None:
@@ -116,16 +117,16 @@ def main(
                 use_global_pc_lims=use_global_pc_lims,
             )
 
-            time_start = df_all_positions["time_hours"].min()
-            time_stop = df_all_positions["time_hours"].max()
+            time_start = df_all_positions[Column.SegData.TIME_HRS].min()
+            time_stop = df_all_positions[Column.SegData.TIME_HRS].max()
 
             FeatureLimitsPair = namedtuple(
                 "FeatureLimitsPair", ["feature_name", "feature_hue_limits"]
             )
             measured_feats_to_plot = (
-                FeatureLimitsPair("time_hours", (time_start, time_stop)),
-                FeatureLimitsPair("alignment_deg_rel_to_flow", (0, 90)),
-                FeatureLimitsPair("eccentricity", (0.0, 1.0)),
+                FeatureLimitsPair(Column.SegData.TIME_HRS, (time_start, time_stop)),
+                FeatureLimitsPair(Column.SegData.ALIGNMENT_DEG, (0, 90)),
+                FeatureLimitsPair(Column.SegData.ECCENTRICITY, (0.0, 1.0)),
             )
             for feature_name, feature_hue_lims in measured_feats_to_plot:
                 plot_measured_feat_overlay_on_flowfield(
@@ -161,18 +162,18 @@ def main(
 
         # plot single track examples
         for pos in positions:
-            df_one_position = df_all_positions.query("position == @pos")
+            df_one_position = df_all_positions[df_all_positions[Column.POSITION] == pos]
             # for pos, df_one_position in df_all_positions.groupby("position_as_str"):
             out_subdir_indiv_pos = out_subdir_indiv / str(pos)
             out_subdir_indiv_pos.mkdir(parents=True, exist_ok=True)
 
             # decide on the feature to color code by and the min and max
             # of that color coding
-            measured_feature = "alignment_deg_rel_to_flow"
+            measured_feature = Column.SegData.ALIGNMENT_DEG
             hue_norm = (0, 90)
 
             if track_ids is None:
-                track_ids = sorted(df_one_position["track_id"].unique().tolist())
+                track_ids = sorted(df_one_position[Column.TRACK_ID].unique().tolist())
                 # only overlay every 10th track id if there are a lot
                 # of tracks to save time + space
                 track_ids = track_ids[::10] if len(track_ids[::10]) > 10 else track_ids

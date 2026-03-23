@@ -35,7 +35,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.figures import FIGURE_SAVE_DPI, FONTSIZE_SMALL
     from endo_pipeline.settings.image_data import DIMENSION_ORDER
     from endo_pipeline.settings.workflow_defaults import (
@@ -71,7 +71,7 @@ def main(
         diffae_grid_crops, radius=2.2, origin_pc1pc2=(0, 0), pc3_target=0.0
     )
 
-    hue = ColumnName.TIMEPOINT
+    hue = Column.TIMEPOINT
     color_palette = "inferno_r"
     example_point_color = "deepskyblue"
 
@@ -164,13 +164,13 @@ def main(
     dataset_config = load_dataset_config(dataset_name)
 
     for i, row in tqdm(diffae_grid_crops_examples.iterrows(), desc="Saving closest real examples"):
-        position = int(row[ColumnName.POSITION].replace("P", ""))
-        timepoint = int(row[ColumnName.TIMEPOINT])
-        start_x = int(row[ColumnName.START_X])
-        start_y = int(row[ColumnName.START_Y])
-        end_x = int(row[ColumnName.END_X])
-        end_y = int(row[ColumnName.END_Y])
-        resolution = int(row[ColumnName.RESOLUTION])
+        position = int(row[Column.POSITION].replace("P", ""))
+        timepoint = int(row[Column.TIMEPOINT])
+        start_x = int(row[Column.DiffAEData.START_X])
+        start_y = int(row[Column.DiffAEData.START_Y])
+        end_x = int(row[Column.DiffAEData.END_X])
+        end_y = int(row[Column.DiffAEData.END_Y])
+        resolution = int(row[Column.DiffAEData.RESOLUTION])
         channel_name = ["EGFP"]
 
         location = get_zarr_location_for_position(dataset_config, position=position)

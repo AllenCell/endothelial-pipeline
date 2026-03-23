@@ -10,10 +10,10 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
 )
 from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
-    ColumnName,
 )
 from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RESCALE_THETA
 
@@ -360,18 +360,18 @@ def _compute_correlations_for_one_dataset(
     feat_cols = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
     # add polar coordinate features to the list of features for correlation analysis
     polar_column_names = [
-        ColumnName.POLAR_ANGLE,
-        ColumnName.POLAR_RADIUS,
-        ColumnName.PC3_FLIPPED,
+        Column.DiffAEData.POLAR_ANGLE,
+        Column.DiffAEData.POLAR_RADIUS,
+        Column.DiffAEData.PC3_FLIPPED,
     ]
     feat_cols.extend(polar_column_names)
 
     # unwrap angles if polar_angle is in feat_cols
-    if ColumnName.POLAR_ANGLE in feat_cols:
+    if Column.DiffAEData.POLAR_ANGLE in feat_cols:
         polar_angle_period = PERIOD_THETA_RESCALED if rescale_polar_angle else 2 * np.pi
-        for _, df_crop in df.groupby(ColumnName.CROP_INDEX):
-            df.loc[df_crop.index, ColumnName.POLAR_ANGLE] = np.unwrap(
-                df_crop[ColumnName.POLAR_ANGLE], period=polar_angle_period
+        for _, df_crop in df.groupby(Column.CROP_INDEX):
+            df.loc[df_crop.index, Column.DiffAEData.POLAR_ANGLE] = np.unwrap(
+                df_crop[Column.DiffAEData.POLAR_ANGLE], period=polar_angle_period
             )
 
     # get feature data
