@@ -1,6 +1,14 @@
 name: optical_flow_bf
 workflow: optical_flow
-parameters: {}
+parameters:
+  channel: BF
+  level: 1
+  max_dt: 1
+  flow_scope: image
+  intensity_percentile: 0
+  attachment: 2.5
+  compute_block_coherence: false
+  annotations_excluded: []
 locations:
   20250224_20X:
     fmsid: 960c8100d08743a09817c9e8c20a4574

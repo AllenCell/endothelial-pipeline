@@ -10,10 +10,10 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     rewrap_polar_angle,
 )
 from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
-    ColumnName,
 )
 from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
 
@@ -57,7 +57,7 @@ def circpercentile(
 
 def get_bins(
     bin_widths: tuple[float, ...],
-    data: list[np.ndarray] | None = None,
+    data: np.ndarray | None = None,
     bin_limits: list[tuple[float, float]] | None = None,
     pad: float = PAD_BINS_FLOAT,
     lower_percentile: float | None = None,
@@ -92,8 +92,7 @@ def get_bins(
     bin_widths
         Tuple specifying the (approximate) bin width for each dimension.
     data
-        List of numpy arrays, each array is a trajectory with shape
-        (num_timepoints, num_dimensions).
+        Numpy array with shape (num_points, num_dimensions).
     bin_limits
         List of [min, max] pairs for each dimension specifying the bin limits.
     pad
@@ -113,28 +112,28 @@ def get_bins(
     If the dimension is 1, bins and centers are still lists (of length 1),
     containing the bin edges and centers for the single dimension.
     """
-    ndim = data[0].shape[1] if data is not None else len(bin_limits)
+    if bin_limits is None and data is None:
+        raise ValueError("Please provide data or upper and lower bounds for bins.")
+    data = np.atleast_2d(data) if data is not None else None
+    ndim = data.shape[1] if data is not None else len(bin_limits)
     if ndim != len(bin_widths):
         raise ValueError("Mismatch between expected number of dimensions and length of bin_widths.")
     bin_limits_: list[tuple[float, float]] = [] if bin_limits is None else bin_limits.copy()
 
     # Automatically determine bins based on data if bin limits are not provided
     if bin_limits is None:
-        if data is None:
-            raise ValueError("Please provide data or or upper and lower bounds for bins.")
         for i in range(ndim):
             # Get bin limits for this dimension across all trajectories either
             # based on absolute min and max (plus padding) or based on specified
             # percentiles
-            traj_concat = np.concatenate([traj[:, i] for traj in data])
             if lower_percentile is not None:
-                bin_min = np.percentile(traj_concat, lower_percentile)
+                bin_min = np.percentile(data[:, i], lower_percentile)
             else:
-                bin_min = traj_concat.min() - pad
+                bin_min = data[:, i].min() - pad
             if upper_percentile is not None:
-                bin_max = np.percentile(traj_concat, upper_percentile)
+                bin_max = np.percentile(data[:, i], upper_percentile)
             else:
-                bin_max = traj_concat.max() + pad
+                bin_max = data[:, i].max() + pad
             bin_limits_.append((bin_min, bin_max))
 
     # Generate bins based on bin limits
@@ -265,20 +264,20 @@ def _get_histogram_by_component_one_dataset(
         feat_cols = [col for col in feat_cols_all if col in df.columns]
 
     num_feats = len(feat_cols)
-    num_frames = df[ColumnName.TIMEPOINT].nunique()
+    num_frames = df[Column.TIMEPOINT].nunique()
 
     hist_array_list: list[np.ndarray] = [
         np.zeros((len(bin_edges[dim]) - 1, num_frames)) for dim in range(num_feats)
     ]  # histogram values for each component as a function of time
 
     # sort by timepoint
-    df = df.sort_values(by=ColumnName.TIMEPOINT).reset_index(drop=True)
-    for t, df_frame in df.groupby(ColumnName.TIMEPOINT):
+    df = df.sort_values(by=Column.TIMEPOINT).reset_index(drop=True)
+    for t, df_frame in df.groupby(Column.TIMEPOINT):
         # loop over latent components
         for dim in range(num_feats):
             feats = df_frame[feat_cols[dim]].to_numpy()
             # compute histogram of feature data along each component
-            t_index = df[ColumnName.TIMEPOINT].unique().tolist().index(t)
+            t_index = df[Column.TIMEPOINT].unique().tolist().index(t)
             hist = np.histogram(feats, bins=bin_edges[dim], density=True)[0]
             hist_array_list[dim][:, t_index] = hist
 
@@ -289,7 +288,7 @@ def _get_histogram_by_component_one_dataset(
             bin_idx = np.digitize(feats, bin_edges[dim]) - 1
             # add the bin index to the dataframe (astype int)
             # restrict to crops at frame number t
-            df.loc[df[ColumnName.TIMEPOINT] == t, f"bin_{dim}"] = bin_idx
+            df.loc[df[Column.TIMEPOINT] == t, f"bin_{dim}"] = bin_idx
 
     # enforce that bin indices are integers
     # this is important for indexing later
@@ -339,7 +338,7 @@ def get_histogram_by_component(
     # get histogram / bin indices for each dataset
     hist_array_list_all_datasets = []
     df_list = []
-    for _, df_group in df.groupby(ColumnName.DATASET):
+    for _, df_group in df.groupby(Column.DATASET):
         hist_array_list_one_dataset, df_group_ = _get_histogram_by_component_one_dataset(
             df_group, bin_edges, feat_cols
         )

@@ -8,6 +8,7 @@ segmentations and compiles a CSV containing paths to the original Zarr.
 
 - nuclear label free segmentation (`nuclear_labelfree_seg`)
 - CDH5 classic segmentation (`cdh5_classic_seg`)
+- grid segmentation (`grid_seg`)
 
 The output CSV contains the following columns:
 
@@ -40,7 +41,11 @@ from endo_pipeline.manifests import (
 logger = logging.getLogger(__name__)
 
 zarr_seg_dir = Path("//allen/aics/endothelial/morphological_features/segmentations/")
-image_channel_pairs = [("nuclear_labelfree_seg", "NUC_SEG"), ("cdh5_classic_seg", "CDH5_SEG")]
+image_channel_pairs = [
+    ("nuclear_labelfree_seg", "NUC_SEG"),
+    ("cdh5_classic_seg", "CDH5_SEG"),
+    ("grid_seg", "GRID_SEG"),
+]
 
 # %%
 for manifest_name, channel_name in image_channel_pairs:
@@ -51,6 +56,11 @@ for manifest_name, channel_name in image_channel_pairs:
 
     image_manifest = load_image_manifest(manifest_name)
     datasets = list_datasets_with_images(image_manifest)
+
+    # Grid segmentations are the same for all datasets, so limit the dataset
+    # list to just the first dataset for the following loop.
+    if manifest_name == "grid_seg":
+        datasets = datasets[:1]
 
     data = []
 
@@ -72,7 +82,10 @@ for manifest_name, channel_name in image_channel_pairs:
             original_zarr_path = original_zarr_loc.path
 
             # Create output path for Zarr segmentations
-            save_path = zarr_seg_path / Path(*original_zarr_path.parts[-2:])
+            if manifest_name == "grid_seg":
+                save_path = zarr_seg_path / f"P{position}.ome.zarr"
+            else:
+                save_path = zarr_seg_path / Path(*original_zarr_path.parts[-2:])
 
             # Check if the output path already exists
             if save_path.exists():

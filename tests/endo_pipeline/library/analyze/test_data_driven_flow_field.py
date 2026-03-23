@@ -2,13 +2,14 @@ import numpy as np
 import pytest
 
 from endo_pipeline.library.analyze.data_driven_flow_field import is_point_within_percentile_bounds
-from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
 from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED
 
 # Simple non-circular column names used in tests
 PC1 = DIFFAE_PC_COLUMN_NAMES[0]
 PC3 = DIFFAE_PC_COLUMN_NAMES[2]
-THETA = ColumnName.POLAR_ANGLE
+THETA = Column.DiffAEData.POLAR_ANGLE
 
 # The polar angle range for wraparound tests, using the default range from the
 # codebase.

@@ -93,7 +93,7 @@ def main(
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
-    from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
+    from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.manifests import (
         DataframeLocation,
         build_dataframe_location_from_path,
@@ -104,7 +104,7 @@ def main(
         load_model_manifest,
         save_dataframe_manifest,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_THETA_RESCALED,
         BIN_WIDTHS_DYNAMICS,
@@ -226,7 +226,7 @@ def main(
     for column_name in column_names:
         name = KERNEL_NAMES_DYNAMICS[column_name]
         bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
-        period = rescaled_theta if column_name == ColumnName.POLAR_ANGLE else None
+        period = rescaled_theta if column_name == Column.DiffAEData.POLAR_ANGLE else None
         bin_width = BIN_WIDTHS_DYNAMICS[column_name]
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
         bin_widths.append(bin_width)
@@ -260,15 +260,6 @@ def main(
                 dataset_config.shear_stress_regime,
             )
             continue
-        # get bins for KMCs
-        bounds_for_km = get_bounds_from_data(
-            dataset_names=[dataset_name],
-            manifest=dataframe_manifest,
-            pca=pca,
-            pad=PAD_BINS_FLOAT,
-            column_names=column_names,
-        )
-        bins, centers = get_bins(bin_widths, bin_limits=bounds_for_km)
 
         # load dataframe and filter / preprocess it for dynamics workflows (PCA,
         # filter annotated timepoints, transform angular variables),
@@ -279,6 +270,16 @@ def main(
             include_cell_piling=False,
             include_not_steady_state=False,
             crop_pattern=crop_pattern,
+        )
+
+        # get bins for flow field estimation based on the trajectories, to be
+        # used for kernel-convolution-based estimation of the Kramers-Moyal
+        # coefficients. The bins are determined by the specified bin widths and
+        # the range of the data.
+        bins, centers = get_bins(
+            bin_widths,
+            data=df[column_names].to_numpy(),
+            pad=PAD_BINS_FLOAT,
         )
 
         # get list of per-crop trajectories, the corresponding
@@ -302,9 +303,7 @@ def main(
 
         # build dataframe with columns for bin centers in each of the three dimensions and
         # the corresponding drift coefficients, to be used for visualization workflow
-        vector_field_df = pd.DataFrame(
-            {ColumnName.DATASET: dataset_name, **drift_dict, **grid_dict}
-        )
+        vector_field_df = pd.DataFrame({Column.DATASET: dataset_name, **drift_dict, **grid_dict})
 
         # save drift coefficients and grid points dataframes to parquet files,
         # with names that include the input dataframe manifest name for
