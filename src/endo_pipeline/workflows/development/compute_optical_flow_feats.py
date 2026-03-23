@@ -138,6 +138,7 @@ def main(  # noqa: C901
         build_fms_annotations,
         get_output_path,
         load_image,
+        make_name_unique,
         upload_file_to_fms,
     )
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
@@ -259,6 +260,9 @@ def main(  # noqa: C901
         "annotations_excluded": [a.value for a in annotations_to_exclude],
     }
     save_dataframe_manifest(optical_flow_manifest)
+
+    # set output directory for dataframes
+    output_dir = get_output_path("optical_flow", "dataframes")
 
     for dataset_idx, dataset_name in enumerate(datasets, 1):
         dataset_start = time.time()
@@ -487,8 +491,9 @@ def main(  # noqa: C901
         # moving to the next dataset
         if dataset_parts:
             df_dataset_out = pd.concat(dataset_parts, ignore_index=True)
-            output_dir = get_output_path("optical_flow", "manifests")
-            parquet_path = output_dir / f"{dataset_name}_optical_flow_manifest.parquet"
+            parquet_path = make_name_unique(
+                output_dir / f"{dataset_name}_optical_flow_dataframe.parquet"
+            )
             df_dataset_out.to_parquet(parquet_path, index=False)
             logger.info("Saved parquet locally to [ %s ]", parquet_path)
             # If upload_to_fms is True, upload the parquet file to FMS and
