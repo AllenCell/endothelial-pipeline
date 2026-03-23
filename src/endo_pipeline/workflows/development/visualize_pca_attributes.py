@@ -85,7 +85,11 @@ def main(
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name_, crop_pattern=crop_pattern
+        model_manifest,
+        run_name_,
+        crop_pattern=crop_pattern,
+        feature_type="latent",
+        is_filtered=False,
     )
     # get latent dimension from model config
     model_location = get_model_location_for_run(model_manifest, run_name_)
