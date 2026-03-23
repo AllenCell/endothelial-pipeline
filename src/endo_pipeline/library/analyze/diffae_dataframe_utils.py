@@ -28,9 +28,11 @@ from endo_pipeline.manifests import (
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAME_GROUPS,
+    DIFFAE_PC_COLUMN_NAMES,
     NUM_LATENT_FEATURES,
 )
 from endo_pipeline.settings.dynamics_workflows import (
+    DYNAMICS_COLUMN_NAMES,
     METADATA_COLUMNS_TO_KEEP,
     PERIOD_THETA_RESCALED,
     RESCALE_THETA,
@@ -744,14 +746,10 @@ def get_dataframe_for_dynamics_workflows(
     dataset_name: str,
     manifest: DataframeManifest,
     columns_to_keep: list[str] | None = None,
-    pca: PCA | None = None,
     filter_by_annotations: bool = True,
     include_cell_piling: bool = True,
     include_not_steady_state: bool = True,
     crop_pattern: Literal["grid", "tracked"] = "grid",
-    compute_polar: bool = True,
-    rescale_theta: bool = True,
-    flip_pc3_sign: bool = True,
     minimum_track_length: int | None = None,
     segmentation_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 ) -> pd.DataFrame:
@@ -826,27 +824,21 @@ def get_dataframe_for_dynamics_workflows(
 
     location = get_dataframe_location_for_dataset(manifest, dataset_name)
     df = load_dataframe(location, delay=True)
-    feat_cols = get_latent_feature_column_names_from_dataframe(df)
 
-    # start with default metadata columns to keep
-    columns_to_keep_ = list(METADATA_COLUMNS_TO_KEEP)
+    # start with default columns to keep
+    columns_to_keep_ = (
+        list(METADATA_COLUMNS_TO_KEEP) + list(DYNAMICS_COLUMN_NAMES) + list(DIFFAE_PC_COLUMN_NAMES)
+    )
     if columns_to_keep is not None:
         columns_to_keep_.extend(columns_to_keep)  # add any additional specified columns to keep
-    columns_to_keep_.extend(feat_cols)  # also keep feature columns for PCA projection
     if crop_pattern == "tracked":
         columns_to_keep_.extend(
-            [Column.TRACK_ID]
+            [Column.TRACK_ID, Column.TRACK_LENGTH]
         )  # also keep track ID and track length columns for tracked crops
     columns_to_keep_ = list(set(columns_to_keep_))  # remove duplicates, if any
 
     # keep only necessary columns to save memory
     df_ = df[columns_to_keep_].compute()
-
-    # the crop indices have to be added before any filtering
-    # so that they are consistently assigned across datasets
-    # for the grid crop pattern, which is critical for the
-    # grid-based TFE workflow to run correctly
-    df_ = add_crop_index(df_, crop_pattern)
 
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
@@ -917,24 +909,7 @@ def get_dataframe_for_dynamics_workflows(
     dataset_config = load_dataset_config(dataset_name)
     df_filtered[Column.DURATION] = dataset_config.duration
 
-    if pca is None:
-        # do not project feature data onto PCA axes
-        return df_filtered
-
-    else:
-        # project feature data onto PC axes
-        df_with_pcs = project_features_to_pcs(
-            df_filtered,
-            pca,
-            feat_cols=feat_cols,
-            compute_polar=compute_polar,
-            rescale_theta=rescale_theta,
-            flip_pc3_sign=flip_pc3_sign,
-        )
-        df_drop_original_feats = df_with_pcs.drop(
-            columns=feat_cols
-        )  # drop original feature columns to save memory
-        return df_drop_original_feats
+    return df_filtered
 
 
 def get_dataset_descriptions(
