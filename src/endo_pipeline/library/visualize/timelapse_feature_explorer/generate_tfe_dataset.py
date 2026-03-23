@@ -241,15 +241,28 @@ def get_df_and_label_map_grid(
 
     model_manifest = load_model_manifest(model_manifest_name)
 
+    # load precomputed PCA features for the grid-based crops for the given
+    # dataset and position (specifically the un-filtered dataframe to get the
+    # full set of features; filtering happens downstream on TFE)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, model_run_name, crop_pattern="grid"
+        model_manifest, model_run_name, crop_pattern="grid", feature_type="pca", is_filtered=False
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     # NOTE: this is expecting the non-filtered dataframe
-    grid_df = get_dataframe_for_dynamics_workflows(dataset, dataframe_manifest)
-    feat_cols = [col for col in grid_df.columns if Column.DiffAEData.LATENT_FEATURE_PREFIX in col]
-    grid_df = grid_df.drop(columns=feat_cols)
+    grid_df = get_dataframe_for_dynamics_workflows(
+        dataset,
+        dataframe_manifest,
+    )
+    # drop PC feature columns "pc_i" where i > num_pcs_for_pca to reduce the
+    # number of features in the TFE dataset
+    pc_cols_to_drop = [
+        col
+        for col in grid_df.columns
+        if col.startswith(f"{Column.DiffAEData.PCA_FEATURE_PREFIX}_")
+        and int(col.split("_")[1]) >= num_pcs_for_pca
+    ]
+    grid_df = grid_df.drop(columns=pc_cols_to_drop)
 
     manifest_of = load_dataframe_manifest("optical_flow_bf")
     if dataset in manifest_of.locations:
