@@ -41,7 +41,6 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 )
 
 logger = logging.getLogger(__name__)
@@ -749,7 +748,6 @@ def get_dataframe_for_dynamics_workflows(
     include_not_steady_state: bool = True,
     crop_pattern: Literal["grid", "tracked"] = "grid",
     minimum_track_length: int | None = None,
-    segmentation_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 ) -> pd.DataFrame:
     """
     Load DiffAE dataframe data projected onto given PC axes for downstream
@@ -787,26 +785,12 @@ def get_dataframe_for_dynamics_workflows(
         Dataframe manifest for loading model features.
     columns_to_keep
         List of additional column names to keep in the output DataFrame.
-    pca
-        PCA model to fit to feature data. If None, do not project feature data.
-    filter_by_annotations
-        Whether to filter out annotated timepoints and positions from the
-        dataframe.
-    include_cell_piling
-        True keep timepoints annotated as "cell_piling", False to remove them.
     include_not_steady_state
         True to keep timepoints annotated as "not_steady_state", False to remove
         them.
     crop_pattern
         Crop pattern used to generate the feature dataframe. Either 'grid' or
         'tracked'.
-    compute_polar
-        Whether to compute polar coordinates (r, theta) from the first two PCs.
-    rescale_theta
-        Whether to rescale the polar angle theta to be in the range [0, pi].
-    flip_pc3_sign
-        True to add an additional column with the sign of PC3 flipped for
-        consistency, False otherwise.
     minimum_track_length
         If crop_pattern is 'tracked', minimum track length (in number of
         timepoints) of tracks to keep in the dataframe. If None, do not filter
