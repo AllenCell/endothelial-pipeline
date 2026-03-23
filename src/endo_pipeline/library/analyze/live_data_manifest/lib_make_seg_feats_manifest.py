@@ -730,6 +730,19 @@ def calculate_derived_data_dynamics_dependent(
                 ],
                 axis=0,
             )
+            big_table[
+                f"{Column.SegData.CENTROID_VELOCITY_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
+            ] = np.linalg.norm(
+                [
+                    big_table[
+                        f"{Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
+                    ],
+                    big_table[
+                        f"{Column.SegData.CENTROID_VELOCITY_Y_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
+                    ],
+                ],
+                axis=0,
+            )
 
         # the timedelta version of time_minutes is redundant with "time_hrs" and only
         # used to compute the rolling window means of velocities to smooth them out
