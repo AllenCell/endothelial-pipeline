@@ -32,7 +32,35 @@ flow_conditions:
   stop: 565
   shear_stress: 12.22
 include_scenes: null
-notes: TP 565-566 empty (no slide), timelapse ended ~1.5h early. High density, very parallel alignment. Debris top FOV 3 washes away TP 25. FOV 1 dark flicker TP 315.
-timepoint_annotations: null
+notes: TP 565-566 empty (no slide), timelapse ended ~1.5h early. High density, very
+  parallel alignment. Debris top FOV 3 washes away TP 25. FOV 1 dark flicker TP 315.
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [11, 86, 233, 314]
+    1: [40, 148, 284]
+    2: [105]
+    3: []
+    4: [305]
+    5: [305, 314]
+  auto_bf_temp_artifact:
+    0: [314, 564]
+    1: [284, 314, 564]
+    2: [314, 564]
+    3: [564, 565]
+    4: [564, 565]
+    5: [564, 565]
+  auto_gfp_scope_error:
+    0: [564, 565, 566]
+    1: [564, 565, 566]
+    2: [564, 565, 566]
+    3: [564, 565]
+    4: [564, 565]
+    5: [564, 565]
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 12
+  1: 11
+  2: 11
+  3: 11
+  4: 11
+  5: 12
