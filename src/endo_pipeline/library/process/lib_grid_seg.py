@@ -9,7 +9,6 @@ from tqdm import tqdm
 from endo_pipeline.io import load_image_from_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
-    get_latent_feature_column_names_from_dataframe,
 )
 from endo_pipeline.library.process.general_image_preprocessing import save_image_output
 from endo_pipeline.manifests import (
@@ -37,7 +36,7 @@ def load_grid_diffae_df_for_tfe(
     model_manifest = load_model_manifest(model_manifest_name)
 
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, model_run_name, crop_pattern="grid"
+        model_manifest, model_run_name, crop_pattern="grid", feature_type="pca", is_filtered=False
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
@@ -51,9 +50,6 @@ def load_grid_diffae_df_for_tfe(
         crop_pattern="grid",
     )
 
-    # we don't need the latent feature columns for this workflow
-    feat_cols = get_latent_feature_column_names_from_dataframe(grid_df)
-    grid_df = grid_df.drop(columns=feat_cols)
     return grid_df
 
 
