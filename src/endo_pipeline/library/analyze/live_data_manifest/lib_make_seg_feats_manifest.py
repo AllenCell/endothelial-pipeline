@@ -612,7 +612,7 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
 def calculate_derived_data_dynamics_dependent(
     big_table: pd.DataFrame,
     compute_per_crop_metrics: bool = False,
-    timeframes_to_average_for_velocity: list[int] = [],
+    timeframes_to_average_for_velocity: list[int] | None = None,
     min_periods_for_averaging: int = 3,
 ) -> pd.DataFrame:
     """
@@ -676,63 +676,66 @@ def calculate_derived_data_dynamics_dependent(
     )
 
     # get the windowed mean of the centroid velocities to smooth out noise
-    for window in timeframes_to_average_for_velocity:
-        big_table["time_minutes_timedelta"] = pd.to_timedelta(
-            big_table[Column.SegData.TIME_MINS], unit="m"
-        )
-        window_in_minutes = window * sequence_to_scalar(big_table[Column.TIME_RESOLUTION_MINUTES])
-
-        big_table[
-            f"{Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
-        ] = (
-            big_table.groupby([Column.DATASET, Column.POSITION, Column.TRACK_ID], as_index=True)[
-                [Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN, "time_minutes_timedelta"]
-            ].apply(
-                lambda df, window_in_minutes=window_in_minutes: df.rolling(
-                    f"{window_in_minutes}min",
-                    min_periods=min_periods_for_averaging,
-                    on="time_minutes_timedelta",
-                )[Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN].mean()
+    if timeframes_to_average_for_velocity is not None:
+        for window in timeframes_to_average_for_velocity:
+            big_table["time_minutes_timedelta"] = pd.to_timedelta(
+                big_table[Column.SegData.TIME_MINS], unit="m"
             )
-        ).droplevel(
-            [0, 1, 2]
-        )
-
-        big_table[
-            f"{Column.SegData.CENTROID_VELOCITY_Y_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
-        ] = (
-            big_table.groupby([Column.DATASET, Column.POSITION, Column.TRACK_ID], as_index=True)[
-                [Column.SegData.CENTROID_VELOCITY_Y_UM_PER_MIN, "time_minutes_timedelta"]
-            ].apply(
-                lambda df, window_in_minutes=window_in_minutes: df.rolling(
-                    f"{window_in_minutes}min",
-                    min_periods=min_periods_for_averaging,
-                    on="time_minutes_timedelta",
-                )[Column.SegData.CENTROID_VELOCITY_Y_UM_PER_MIN].mean()
+            window_in_minutes = window * sequence_to_scalar(
+                big_table[Column.TIME_RESOLUTION_MINUTES]
             )
-        ).droplevel(
-            [0, 1, 2]
-        )
 
-        big_table[
-            f"{Column.SegData.CENTROID_VELOCITY_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
-        ] = np.linalg.norm(
-            [
-                big_table[
-                    f"{Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
-                ],
-                big_table[
-                    f"{Column.SegData.CENTROID_VELOCITY_Y_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
-                ],
-            ],
-            axis=0,
-        )
+            big_table[
+                f"{Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
+            ] = (
+                big_table.groupby(
+                    [Column.DATASET, Column.POSITION, Column.TRACK_ID], as_index=True
+                )[[Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN, "time_minutes_timedelta"]].apply(
+                    lambda df, window_in_minutes=window_in_minutes: df.rolling(
+                        f"{window_in_minutes}min",
+                        min_periods=min_periods_for_averaging,
+                        on="time_minutes_timedelta",
+                    )[Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN].mean()
+                )
+            ).droplevel(
+                [0, 1, 2]
+            )
 
-    # the timedelta version of time_minutes is redundant with "time_hrs" and only
-    # used to compute the rolling window means of velocities to smooth them out
-    # so we drop this timedelta column now that we're done with it
-    if "time_minutes_timedelta" in big_table.columns:
-        big_table = big_table.drop(columns=["time_minutes_timedelta"])
+            big_table[
+                f"{Column.SegData.CENTROID_VELOCITY_Y_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
+            ] = (
+                big_table.groupby(
+                    [Column.DATASET, Column.POSITION, Column.TRACK_ID], as_index=True
+                )[[Column.SegData.CENTROID_VELOCITY_Y_UM_PER_MIN, "time_minutes_timedelta"]].apply(
+                    lambda df, window_in_minutes=window_in_minutes: df.rolling(
+                        f"{window_in_minutes}min",
+                        min_periods=min_periods_for_averaging,
+                        on="time_minutes_timedelta",
+                    )[Column.SegData.CENTROID_VELOCITY_Y_UM_PER_MIN].mean()
+                )
+            ).droplevel(
+                [0, 1, 2]
+            )
+
+            big_table[
+                f"{Column.SegData.CENTROID_VELOCITY_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
+            ] = np.linalg.norm(
+                [
+                    big_table[
+                        f"{Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
+                    ],
+                    big_table[
+                        f"{Column.SegData.CENTROID_VELOCITY_Y_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
+                    ],
+                ],
+                axis=0,
+            )
+
+        # the timedelta version of time_minutes is redundant with "time_hrs" and only
+        # used to compute the rolling window means of velocities to smooth them out
+        # so we drop this timedelta column now that we're done with it
+        if "time_minutes_timedelta" in big_table.columns:
+            big_table = big_table.drop(columns=["time_minutes_timedelta"])
 
     logger.info("Calculating centroid velocity magnitude and angle...")
     big_table[Column.SegData.CENTROID_VELOCITY_UM_PER_MIN] = np.linalg.norm(
