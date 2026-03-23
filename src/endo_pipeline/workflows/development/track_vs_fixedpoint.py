@@ -176,13 +176,14 @@ def main():
         # filter annotated timepoints, transform angular variables)
         # use only the steady state and unpiled data for flow field and
         # fixed point estimation
+        # NOTE use the grid-based dataframe to estimate the flow field
         df = get_dataframe_for_dynamics_workflows(
             dataset_name,
             dataframe_manifest,
             pca=pca,
             include_cell_piling=False,
             include_not_steady_state=False,
-            crop_pattern=crop_pattern,
+            crop_pattern="grid",
         )
 
         # get list of per-crop trajectories, the corresponding
