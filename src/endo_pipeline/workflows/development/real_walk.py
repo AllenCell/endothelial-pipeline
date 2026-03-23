@@ -92,7 +92,10 @@ def main(
     from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
     from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH
-    from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_NUM_LATENT_DIMENSIONS,
+        DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -104,7 +107,7 @@ def main(
     model_manifest = load_model_manifest(model_manifest_name)
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name_, crop_pattern="grid"
+        model_manifest, run_name_, crop_pattern="grid", feature_type="pca", is_filtered=False
     )
     fig_savedir = get_output_path(
         "crop_visualization",
@@ -115,14 +118,13 @@ def main(
 
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
-    df, pca = load_data_for_montage(
+    df = load_data_for_montage(
         datasets, dataframe_manifest, include_cell_piling=include_cell_piling
     )
 
     bin_limits = get_bounds_from_data(
         datasets,
         dataframe_manifest,
-        pca,
         filter_to_valid=False,
         column_names=DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze],
     )
@@ -153,7 +155,7 @@ def main(
 
             logger.info("%d crops for PC %s around value %s", len(df_filtered), pc_axis, pc_val)
 
-            for i in range(pca.n_components_):
+            for i in range(DEFAULT_NUM_LATENT_DIMENSIONS):
                 if i != pc_axis:
                     pc_col = DIFFAE_PC_COLUMN_NAMES[i]
                     df_filtered = df_filtered[

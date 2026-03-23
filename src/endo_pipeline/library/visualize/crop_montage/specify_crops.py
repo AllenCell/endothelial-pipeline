@@ -4,8 +4,10 @@ from pathlib import Path
 import pandas as pd
 from sklearn.decomposition import PCA
 
+from endo_pipeline.configs import TimepointAnnotation, get_subset_of_timepoint_annotations
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    filter_dataframe_by_annotations,
     get_dataframe_for_dynamics_workflows,
 )
 from endo_pipeline.library.analyze.numerics.binning import (
@@ -31,6 +33,7 @@ logger = logging.getLogger(__name__)
 def load_data_for_montage(
     dataset_name_list: list[str],
     dataframe_manifest: DataframeManifest,
+    include_cell_piling: bool = False,
 ) -> pd.DataFrame:
     """
     Load Diff AE feature DataFrames for one or more datasets and optionally apply PCA.
@@ -52,17 +55,21 @@ def load_data_for_montage(
         Fit PCA object for the model.
     """
 
-    df_all = pd.concat(
-        [
-            get_dataframe_for_dynamics_workflows(
-                name,
-                dataframe_manifest,
-                include_not_steady_state=True,
-            )
-            for name in dataset_name_list
-        ],
-        ignore_index=True,
-    )
+    df_all: list[pd.DataFrame] = []
+    for name in dataset_name_list:
+        df = get_dataframe_for_dynamics_workflows(
+            name,
+            dataframe_manifest,
+            include_not_steady_state=True,
+        )
+        annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
+        if include_cell_piling:
+            annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
+        annotations_for_filter = get_subset_of_timepoint_annotations(annotations_to_ignore)
+        df = filter_dataframe_by_annotations(df, timepoint_annotations=annotations_for_filter)
+        df_all.append(df)
+
+    df_all = pd.concat(df_all, ignore_index=True)
 
     return df_all
 
