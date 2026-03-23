@@ -28,8 +28,10 @@ LABEL_MAP = {
     # dynamics features
     Column.SegData.CENTROID_VELOCITY_ANGLE_DEG: "Cell Migration Angle (deg)",
     Column.SegData.CENTROID_VELOCITY_UM_PER_MIN: "Cell Migration Speed (µm/min)",
+    Column.SegData.CENTROID_VELOCITY_UM_PER_MIN_SMOOTHED: "Cell Migration Speed (µm/min, Smoothed)",
     Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG: "Nucleus Orientation Relative to Migration (deg)",
     Column.SegData.NUCLEI_POSITION_ANGLE_DEG: "Nucleus Orientation Relative to Flow Angle (deg)",
+    Column.SegData.VECTOR_MEAN_FOR_CROP_MAGNITUDE: "Migration Coherence in Crop (Vector Mean Magnitude)",
     # filters
     Column.SegDataFilters.IS_EDGE_SEGMENTATION: "Filter: Touches Edge of Field of View",
     Column.SegDataFilters.IS_LESS_THAN_MAX_SMOOTHED_AREA_NORMD_CHANGE: "Filter: Smoothed Area Change Below Threshold",
@@ -43,6 +45,12 @@ LABEL_MAP = {
     Column.Annotations.UNFED: "Annotation: Unfed Cells (More Than 3 Hours Since Fresh Media Introduced)",
     Column.Annotations.XY_SHIFT: "Annotation: Significant Change in XY position of FOV",
     Column.Annotations.Z_SHIFT: "Annotation: Significant Change in Z position of FOV",
+    Column.Annotations.BF_SCOPE_ERROR: "Annotation: Brightfield Microscope Error",
+    Column.Annotations.BF_TEMP_ARTIFACT: "Annotation: Temporary Artifact in Brightfield",
+    Column.Annotations.GFP_SCOPE_ERROR: "Annotation: GFP Channel Microscope Error",
+    Column.Annotations.AUTO_BF_SCOPE_ERROR: "Annotation: Auto-detected Brightfield Microscope Error",
+    Column.Annotations.AUTO_BF_TEMP_ARTIFACT: "Annotation: Auto-detected Temporary Artifact in Brightfield",
+    Column.Annotations.AUTO_GFP_SCOPE_ERROR: "Annotation: Auto-detected GFP Channel Microscope Error",
     # Cell-centric DiffAE features and PCs
     **{
         f"{pc_col}": f"{pc_col.replace('pc_', 'PC ')}"
