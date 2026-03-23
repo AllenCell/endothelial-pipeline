@@ -45,10 +45,18 @@ def main(
         datasets_to_analyze = datasets
 
     dataframe_manifest_name_tracked = get_feature_dataframe_manifest_name(
-        load_model_manifest(model_manifest_name), run_name, crop_pattern="tracked"
+        load_model_manifest(model_manifest_name),
+        run_name,
+        crop_pattern="tracked",
+        feature_type="pca",
+        is_filtered=True,
     )
     dataframe_manifest_name_grid = get_feature_dataframe_manifest_name(
-        load_model_manifest(model_manifest_name), run_name, crop_pattern="grid"
+        load_model_manifest(model_manifest_name),
+        run_name,
+        crop_pattern="grid",
+        feature_type="pca",
+        is_filtered=True,
     )
 
     fig_savedir = get_output_path(__file__)
