@@ -744,11 +744,11 @@ def calculate_derived_data_dynamics_dependent(
                 axis=0,
             )
 
-    # the timedelta version of time_minutes is redundant with "time_hrs" and only
-    # used to compute the rolling window means of velocities to smooth them out
-    # so we drop this timedelta column now that we're done with it
-    if "time_minutes_timedelta" in big_table.columns:
-        big_table = big_table.drop(columns=["time_minutes_timedelta"])
+        # the timedelta version of time_minutes is redundant with "time_hrs" and only
+        # used to compute the rolling window means of velocities to smooth them out
+        # so we drop this timedelta column now that we're done with it
+        if "time_minutes_timedelta" in big_table.columns:
+            big_table = big_table.drop(columns=["time_minutes_timedelta"])
 
     logger.info("Calculating centroid velocity magnitude and angle...")
     big_table[Column.SegData.CENTROID_VELOCITY_UM_PER_MIN] = np.linalg.norm(
