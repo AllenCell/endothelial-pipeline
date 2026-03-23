@@ -477,6 +477,9 @@ def build_pca_input_dataframe(
         dataframe_manifest_name = get_feature_dataframe_manifest_name(
             load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
             DEFAULT_MODEL_RUN_NAME,
+            crop_pattern="grid",
+            feature_type="latent",
+            is_filtered=filter_by_annotations,
         )
 
     # Load dataframe manifest
@@ -491,11 +494,10 @@ def build_pca_input_dataframe(
     for dataset_name in dataset_names:
         location = get_dataframe_location_for_dataset(manifest, dataset_name)
         dataframe = load_dataframe(location)
-        if filter_by_annotations:
-            annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
-            if include_cell_piling:
-                annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
-            timepoint_annotations = get_subset_of_timepoint_annotations(annotations_to_ignore)
+        if not filter_by_annotations and not include_cell_piling:
+            timepoint_annotations = get_subset_of_timepoint_annotations(
+                [TimepointAnnotation.NOT_STEADY_STATE]
+            )
             dataframe_filtered = filter_dataframe_by_annotations(
                 dataframe,
                 load_dataset_config(dataset_name),
