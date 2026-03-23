@@ -43,22 +43,34 @@ def main(
         DEFAULT_MODEL_RUN_NAME,
     )
 
+    # load the precomputed PCA features for the grid crops
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
-    grid_diffae_feat_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern="grid"
+    grid_diffae_pca_feat_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest,
+        DEFAULT_MODEL_RUN_NAME,
+        crop_pattern="grid",
+        feature_type="pca",
+        is_filtered=True,
     )
 
     outdir = get_output_path(__file__)
 
-    # fit the PCA
+    # fit the PCA (used for crop reconstruction from PC space later in the workflow)
+    grid_diffae_latent_feat_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest,
+        DEFAULT_MODEL_RUN_NAME,
+        crop_pattern="grid",
+        feature_type="latent",
+        is_filtered=True,
+    )
     pca = fit_pca(
         dataset_collection_name=collection_name_for_pca,
-        dataframe_manifest_name=grid_diffae_feat_manifest_name,
+        dataframe_manifest_name=grid_diffae_latent_feat_manifest_name,
         num_pcs=num_pcs,
     )
 
     # read in the grid crop-based diffae features
-    grid_diffae_manifest = load_dataframe_manifest(grid_diffae_feat_manifest_name)
+    grid_diffae_manifest = load_dataframe_manifest(grid_diffae_pca_feat_manifest_name)
     diffae_grid_crops = get_dataframe_for_dynamics_workflows(
         dataset_name,
         grid_diffae_manifest,
