@@ -90,7 +90,7 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+    from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMIT_PERCENTILE_CUTOFF,
         BIN_LIMITS_DYNAMICS,
@@ -121,10 +121,10 @@ def main(
     # unpack default bin widths and limits for each column, adjusting limits if rescaling theta
     global_bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
     if RESCALE_THETA:
-        global_bin_limits_dict[ColumnName.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
+        global_bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
     polar_angle_period = (
-        global_bin_limits_dict[ColumnName.POLAR_ANGLE][1]
-        - global_bin_limits_dict[ColumnName.POLAR_ANGLE][0]
+        global_bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][1]
+        - global_bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0]
     )
 
     # get dataframe manifest for feature of selected crop pattern
@@ -186,12 +186,16 @@ def main(
                 kernel = KramersMoyalKernel(
                     name=KERNEL_NAMES_DYNAMICS[column_name],
                     bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
-                    period=polar_angle_period if column_name == ColumnName.POLAR_ANGLE else None,
+                    period=(
+                        polar_angle_period
+                        if column_name == ColumnName.DiffAEData.POLAR_ANGLE
+                        else None
+                    ),
                 )
                 # get bins and centers for this feature, using percentile-based
                 # limits for non-polar angle features and fixed limits for polar
                 # angle feature
-                if column_name == ColumnName.POLAR_ANGLE:
+                if column_name == ColumnName.DiffAEData.POLAR_ANGLE:
                     bins, centers = get_bins(
                         bin_widths=(BIN_WIDTHS_DYNAMICS[column_name],),
                         bin_limits=[global_bin_limits_dict[column_name]],
@@ -199,7 +203,7 @@ def main(
                 else:
                     bins, centers = get_bins(
                         bin_widths=(BIN_WIDTHS_DYNAMICS[column_name],),
-                        data=[df_[column_name].to_numpy().reshape(-1, 1)],
+                        data=df_[column_name].to_numpy(),
                         lower_percentile=BIN_LIMIT_PERCENTILE_CUTOFF,
                         upper_percentile=100 - BIN_LIMIT_PERCENTILE_CUTOFF,
                     )

@@ -120,7 +120,7 @@ def get_latent_feature_column_names_from_dataframe(dataframe: pd.DataFrame) -> l
     Get list of latent feature column names for given number of latent dimensions.
 
     Matches columns that start with the latent feature column name prefix
-    as defined in ColumnName.LATENT_FEATURE_PREFIX.
+    as defined in ColumnName.DiffAEData.LATENT_FEATURE_PREFIX.
 
     Parameters
     ----------
