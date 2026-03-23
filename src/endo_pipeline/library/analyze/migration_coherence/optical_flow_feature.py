@@ -11,9 +11,11 @@ from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
     MIGRATION_COHERENCE_STRIDE_INTERVAL,
     OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS,
-    OPTICAL_FLOW_DATFRAME_MANIFEST_NAME,
 )
-from endo_pipeline.settings.optical_flow import OPTICAL_FLOW_BASE_FEATURES
+from endo_pipeline.settings.optical_flow import (
+    DEFAULT_OPTICAL_FLOW_MANIFEST_NAME,
+    OPTICAL_FLOW_BASE_FEATURES,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +23,7 @@ logger = logging.getLogger(__name__)
 def add_optical_flow_features(
     df: pd.DataFrame,
     datasets: list[str],
-    optical_flow_manifest_name: str = OPTICAL_FLOW_DATFRAME_MANIFEST_NAME,
+    optical_flow_manifest_name: str = DEFAULT_OPTICAL_FLOW_MANIFEST_NAME,
     optical_flow_feature_columns: list[str] | None = None,
     merge_columns: list[str] | None = None,
 ) -> pd.DataFrame:

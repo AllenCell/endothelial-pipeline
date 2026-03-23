@@ -57,7 +57,7 @@ def circpercentile(
 
 def get_bins(
     bin_widths: tuple[float, ...],
-    data: list[np.ndarray] | None = None,
+    data: np.ndarray | None = None,
     bin_limits: list[tuple[float, float]] | None = None,
     pad: float = PAD_BINS_FLOAT,
     lower_percentile: float | None = None,
@@ -92,8 +92,7 @@ def get_bins(
     bin_widths
         Tuple specifying the (approximate) bin width for each dimension.
     data
-        List of numpy arrays, each array is a trajectory with shape
-        (num_timepoints, num_dimensions).
+        Numpy array with shape (num_points, num_dimensions).
     bin_limits
         List of [min, max] pairs for each dimension specifying the bin limits.
     pad
@@ -113,28 +112,28 @@ def get_bins(
     If the dimension is 1, bins and centers are still lists (of length 1),
     containing the bin edges and centers for the single dimension.
     """
-    ndim = data[0].shape[1] if data is not None else len(bin_limits)
+    if bin_limits is None and data is None:
+        raise ValueError("Please provide data or upper and lower bounds for bins.")
+    data = np.atleast_2d(data) if data is not None else None
+    ndim = data.shape[1] if data is not None else len(bin_limits)
     if ndim != len(bin_widths):
         raise ValueError("Mismatch between expected number of dimensions and length of bin_widths.")
     bin_limits_: list[tuple[float, float]] = [] if bin_limits is None else bin_limits.copy()
 
     # Automatically determine bins based on data if bin limits are not provided
     if bin_limits is None:
-        if data is None:
-            raise ValueError("Please provide data or or upper and lower bounds for bins.")
         for i in range(ndim):
             # Get bin limits for this dimension across all trajectories either
             # based on absolute min and max (plus padding) or based on specified
             # percentiles
-            traj_concat = np.concatenate([traj[:, i] for traj in data])
             if lower_percentile is not None:
-                bin_min = np.percentile(traj_concat, lower_percentile)
+                bin_min = np.percentile(data[:, i], lower_percentile)
             else:
-                bin_min = traj_concat.min() - pad
+                bin_min = data[:, i].min() - pad
             if upper_percentile is not None:
-                bin_max = np.percentile(traj_concat, upper_percentile)
+                bin_max = np.percentile(data[:, i], upper_percentile)
             else:
-                bin_max = traj_concat.max() + pad
+                bin_max = data[:, i].max() + pad
             bin_limits_.append((bin_min, bin_max))
 
     # Generate bins based on bin limits

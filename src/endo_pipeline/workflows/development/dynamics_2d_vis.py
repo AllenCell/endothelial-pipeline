@@ -121,7 +121,6 @@ def main(
         global_bin_limits_dict[Column.DiffAEData.POLAR_ANGLE][1]
         - global_bin_limits_dict[Column.DiffAEData.POLAR_ANGLE][0]
     )
-    bin_widths = [BIN_WIDTHS_DYNAMICS[col] for col in column_names]
 
     # get dataframe manifest for grid-based crop features
     model_manifest = load_model_manifest(model_manifest_name)
@@ -183,32 +182,6 @@ def main(
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
             fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$)"
 
-            # for computing drift and diffusion coefficients, need to
-            # adjust bin limits if polar angle range is shifted
-            bin_limits_dict = global_bin_limits_dict.copy()
-
-            # set bin limits for r and rho based on percentiles of data
-            for col_name in column_names:
-                if col_name == Column.DiffAEData.POLAR_ANGLE:
-                    continue
-                bin_min = np.percentile(df_[col_name].to_numpy(), BIN_LIMIT_PERCENTILE_CUTOFF)
-                bin_max = np.percentile(df_[col_name].to_numpy(), 100 - BIN_LIMIT_PERCENTILE_CUTOFF)
-                bin_limits_dict[col_name] = (bin_min, bin_max)
-
-            bin_limits = [bin_limits_dict[col] for col in column_names]
-
-            # get bins and centers for each variable based on bin widths and limits
-            bins, centers = get_bins(
-                bin_widths=bin_widths,
-                bin_limits=bin_limits,
-            )
-
-            # get trajectories and differences for each variable, adjusting
-            # polar angle differences for periodicity if needed
-            trajectories, differences = get_traj_and_diff(
-                df_, column_names=column_names, polar_angle_period=polar_angle_period
-            )
-
             # loop over pairwise combinations of columns and plot drift contours
             for column_name_pair in [
                 (Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED),  # r and rho
@@ -224,11 +197,8 @@ def main(
                 bins_2d = []
                 centers_2d = []
                 column_labels_2d = []
-                column_indexes = []
                 axes_limits_2d = []
                 for column_name in column_name_pair:
-                    column_index = column_names.index(column_name)
-                    column_indexes.append(column_index)
                     kernels.append(
                         KramersMoyalKernel(
                             name=KERNEL_NAMES_DYNAMICS[column_name],
@@ -240,17 +210,38 @@ def main(
                             ),
                         )
                     )
-                    bins_2d.append(bins[column_index])
-                    centers_2d.append(centers[column_index])
                     column_labels_2d.append(variable_labels_dict[column_name])
+                    if column_name == Column.DiffAEData.POLAR_ANGLE:
+                        bins_, centers_ = get_bins(
+                            bin_widths=(BIN_WIDTHS_DYNAMICS[column_name],),
+                            bin_limits=[global_bin_limits_dict[column_name]],
+                        )
+                    else:
+                        bins_, centers_ = get_bins(
+                            bin_widths=(BIN_WIDTHS_DYNAMICS[column_name],),
+                            data=df_[column_name].to_numpy(),
+                            lower_percentile=BIN_LIMIT_PERCENTILE_CUTOFF,
+                            upper_percentile=100 - BIN_LIMIT_PERCENTILE_CUTOFF,
+                        )
+                    # returned 1d bins are lists of length 1, so extract arrays
+                    # from lists and append
+                    bins_1d = bins_[0]
+                    centers_1d = centers_[0]
+                    bins_2d.append(bins_1d)
+                    centers_2d.append(centers_1d)
+                    # set axis limits to bin limits for each variable if not
+                    # using global limits, otherwise use global limits from
+                    # settings
                     axes_limits_2d.append(
-                        bin_limits_dict[column_name]
+                        (bins_1d[0], bins_1d[-1])
                         if not global_limits
                         else global_bin_limits_dict[column_name]
                     )
+
                 # get 2D trajectories and differences for the pair of variables
-                traj_2d = [traj[:, column_indexes] for traj in trajectories]
-                diff_2d = [diff[:, column_indexes] for diff in differences]
+                traj_2d, diff_2d = get_traj_and_diff(
+                    df_, column_names=list(column_name_pair), polar_angle_period=polar_angle_period
+                )
 
                 drift, _ = get_kramers_moyal_coeffs(
                     traj_2d,
