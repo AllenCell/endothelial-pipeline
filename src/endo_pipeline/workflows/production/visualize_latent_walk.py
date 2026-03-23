@@ -156,8 +156,10 @@ def main(
     )
 
     # load model configuration and reference dataset manifests
+    feature_type = "pca" if use_pcs else "latent"
+    is_filtered = False if include_cell_piling else True
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name_, crop_pattern
+        model_manifest, run_name_, crop_pattern, feature_type=feature_type, is_filtered=is_filtered
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     dataset_names = get_datasets_in_collection(dataset_collection)
@@ -196,9 +198,12 @@ def main(
                 f"Column names indicate use_pcs=True but no PC-related column names found in {column_names}."
             )
         # get fit pca object and data for latent walk
+        latent_feats_dataframe_manifest_name = get_feature_dataframe_manifest_name(
+            model_manifest, run_name_, crop_pattern, feature_type="latent", is_filtered=False
+        )
         pca = fit_pca(
             dataset_collection_name=dataset_collection,
-            dataframe_manifest_name=dataframe_manifest_name,
+            dataframe_manifest_name=latent_feats_dataframe_manifest_name,
             include_cell_piling=include_cell_piling,
             num_pcs=num_pcs,
         )
