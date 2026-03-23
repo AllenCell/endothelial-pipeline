@@ -746,8 +746,6 @@ def get_dataframe_for_dynamics_workflows(
     dataset_name: str,
     manifest: DataframeManifest,
     columns_to_keep: list[str] | None = None,
-    filter_by_annotations: bool = True,
-    include_cell_piling: bool = True,
     include_not_steady_state: bool = True,
     crop_pattern: Literal["grid", "tracked"] = "grid",
     minimum_track_length: int | None = None,
@@ -842,14 +840,9 @@ def get_dataframe_for_dynamics_workflows(
 
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
-    if filter_by_annotations:
-        annotations_to_ignore = []
-        if include_cell_piling:
-            annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
-        if include_not_steady_state:
-            annotations_to_ignore.append(TimepointAnnotation.NOT_STEADY_STATE)
+    if include_not_steady_state:
         timepoint_annotations = get_subset_of_timepoint_annotations(
-            annotations_to_ignore=annotations_to_ignore
+            annotations_to_ignore=[TimepointAnnotation.NOT_STEADY_STATE]
         )
         df_filtered = filter_dataframe_by_annotations(
             df_,
@@ -858,47 +851,6 @@ def get_dataframe_for_dynamics_workflows(
         )
     else:
         df_filtered = df_
-
-    if crop_pattern == "tracked":
-        # some additional filtering with the "is_included" column from the
-        # segmentation features dataframe is needed to remove some of the
-        # incorrect segmentations that are present in the tracked crops data
-        seg_feat_manifest = load_dataframe_manifest(segmentation_feature_manifest_name)
-        seg_feat_loc = get_dataframe_location_for_dataset(seg_feat_manifest, dataset_name)
-        df_segmentations_delayed = load_dataframe(seg_feat_loc, delay=True)
-        cols_to_compute = [
-            Column.DATASET,
-            Column.POSITION,
-            Column.TIMEPOINT,
-            Column.TRACK_ID,
-            Column.TRACK_LENGTH,
-            Column.SegDataFilters.IS_INCLUDED,
-        ]
-        df_segmentations = df_segmentations_delayed[cols_to_compute].compute()
-        # NOTE the 2 lines below are temporary until we update how we store position
-        # and change the column names to be consistent across dataframes
-        df_segmentations[Column.POSITION] = df_segmentations[Column.POSITION].transform(
-            lambda pos: f"P{pos}"
-        )
-        original_df_length = len(df_filtered)
-        df_filtered = df_filtered.merge(
-            df_segmentations,
-            on=[
-                Column.DATASET,
-                Column.POSITION,
-                Column.TIMEPOINT,
-                Column.TRACK_ID,
-            ],
-            how="left",
-            validate="one_to_one",
-        )
-        if original_df_length != len(df_filtered):
-            raise ValueError(
-                f"Length of df_diffae_dynamics changed after merging with segmentation features dataframe. "
-                f"Original length: {original_df_length}, new length: {len(df_filtered)}. "
-                f"Check the merge keys and the dataframes to ensure that the merge is correct."
-            )
-        df_filtered = df_filtered[df_filtered[Column.SegDataFilters.IS_INCLUDED]]
 
     if minimum_track_length is not None:
         df_filtered = filter_dataframe_by_track_length(
