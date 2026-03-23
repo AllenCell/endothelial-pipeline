@@ -105,6 +105,8 @@ def process_dataset_for_track_integration(
     cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
+    collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    num_pcs: int = MAX_PCS_TO_COMPUTE,
     make_integrated_plots: bool = True,
 ) -> None:
     logger.info("Processing dataset: [ %s ]", dataset_name)
@@ -123,22 +125,25 @@ def process_dataset_for_track_integration(
         model_manifest, run_name, crop_pattern="tracked"
     )
 
+    # get the fitted PCA
+    pca = fit_pca(
+        dataset_collection_name=collection_name_for_pca,
+        dataframe_manifest_name=dataframe_manifest_name_grid,
+        num_pcs=num_pcs,
+    )
+
     # load dataframe manifest with model feature for the given model run
     # and model manifest
     dataframe_manifest_grid = load_dataframe_manifest(dataframe_manifest_name_grid)
     dataframe_manifest_tracked = load_dataframe_manifest(dataframe_manifest_name_tracked)
 
     diffae_grid_df_for_flow_field = get_dataframe_for_dynamics_workflows(
-        dataset_name=dataset_name, manifest=dataframe_manifest_grid
+        dataset_name=dataset_name, manifest=dataframe_manifest_grid, pca=pca
     )
     diffae_tracked_df_for_flow_field = get_dataframe_for_dynamics_workflows(
-        dataset_name=dataset_name, manifest=dataframe_manifest_tracked
+        dataset_name=dataset_name, manifest=dataframe_manifest_tracked, pca=pca
     )
 
-    # load and preprocess the different diffae manifests and PCA pipeline
-    diffae_tracked_df_delayed, diffae_grid_df = load_cellcentric_and_grid_diffae_features(
-        dataset_name
-    )
     # load the pc-diffae-seg-merged parquet file
     cell_centric_feats_manifest = load_dataframe_manifest(cell_centric_manifest_name)
     cell_centric_feats_location = get_dataframe_location_for_dataset(
