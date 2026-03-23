@@ -50,17 +50,21 @@ def main() -> None:
     model_manifest = load_model_manifest(model_manifest_name)
     model: DiffusionAutoEncoder = load_model(model_manifest.locations[run_name], instantiate=True)
 
-    # Load model configuration and reference dataset manifests
+    # Load model configuration and reference dataset manifests (with precomputed PC features)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern
+        model_manifest, run_name, crop_pattern, feature_type="pca", is_filtered=True
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     dataset_names = get_datasets_in_collection(dataset_collection)
 
-    # Perform latent walk along the principal components
+    # Perform latent walk along the principal components; need to fit PCA to have
+    # object for inverse transform from PC space back to latent space for image generation.
+    dataframe_manifest_name_latent_features = get_feature_dataframe_manifest_name(
+        model_manifest, run_name, crop_pattern, feature_type="latent", is_filtered=True
+    )
     pca = fit_pca(
         dataset_collection_name=dataset_collection,
-        dataframe_manifest_name=dataframe_manifest_name,
+        dataframe_manifest_name=dataframe_manifest_name_latent_features,
         num_pcs=n_dims,
     )
     column_names = [f"{Column.DiffAEData.PCA_FEATURE_PREFIX}{i+1}" for i in range(n_dims)]
