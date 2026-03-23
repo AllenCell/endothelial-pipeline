@@ -38,7 +38,7 @@ def main() -> None:
     run_name = DEFAULT_MODEL_RUN_NAME
     dataset_collection = DEFAULT_PCA_DATASET_COLLECTION_NAME
     crop_pattern = "grid"
-    include_cell_piling = False
+    # expects filtered dataframe: include_cell_piling = False
     n_dims = 11
     n_steps = 7
     sigma = 3.0
@@ -61,7 +61,6 @@ def main() -> None:
     pca = fit_pca(
         dataset_collection_name=dataset_collection,
         dataframe_manifest_name=dataframe_manifest_name,
-        include_cell_piling=include_cell_piling,
         num_pcs=n_dims,
     )
     column_names = [f"{Column.DiffAEData.PCA_FEATURE_PREFIX}{i+1}" for i in range(n_dims)]
@@ -70,8 +69,6 @@ def main() -> None:
             get_dataframe_for_dynamics_workflows(
                 dataset_name,
                 dataframe_manifest,
-                pca=pca,
-                include_cell_piling=include_cell_piling,
                 crop_pattern=crop_pattern,
             )
             for dataset_name in dataset_names

@@ -100,7 +100,6 @@ def main(
     )
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         check_required_columns_in_dataframe,
-        fit_pca,
         get_dataframe_for_dynamics_workflows,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
@@ -234,20 +233,11 @@ def main(
         num_datasets = min(len(dataset_names), 2)
         dataset_names = dataset_names[:num_datasets]
 
-    # fit PCA using the features from the given dataframe manifest PCA always
-    # fit on the grid-based features, even if the features for flow field
-    # analysis are from tracked-based crops, to ensure that the PCA space is the
-    # same across analyses
-    dataframe_manifest_name_pca = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
-    )
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_pca)
-
     # get common bounds for all datasets
     # will be used for flow field plots if use_common_axis_limits is True
     # regardless, gets used below when plotting stable fixed points together
     bounds_for_plots = get_bounds_from_data(
-        dataset_names, feature_dataframe_manifest, pca, column_names=column_names
+        dataset_names, feature_dataframe_manifest, column_names=column_names
     )
 
     # initialize kernels and bins to be used for KDE estimation of the data histogram
@@ -286,8 +276,6 @@ def main(
         feature_data = get_dataframe_for_dynamics_workflows(
             dataset_name,
             feature_dataframe_manifest,
-            pca=pca,
-            include_cell_piling=False,
             include_not_steady_state=False,
             crop_pattern=crop_pattern,
         )[columns_plus_metadata_to_keep]
@@ -423,7 +411,7 @@ def main(
         # get per-dataset bounds for plotting, if not using same axes for all datasets
         if not use_same_axes:
             bounds_for_plots = get_bounds_from_data(
-                [dataset_name], feature_dataframe_manifest, pca, column_names=column_names
+                [dataset_name], feature_dataframe_manifest, column_names=column_names
             )
 
         # call main visualization function

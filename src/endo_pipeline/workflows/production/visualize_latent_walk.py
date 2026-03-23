@@ -183,17 +183,6 @@ def main(
     # process input column names and add any additional ones needed for the walk / image generation
     column_names = get_column_names_for_latent_walk_dataframe(input_column_names)
 
-    compute_polar = False
-    if (
-        Column.DiffAEData.POLAR_ANGLE.value in column_names
-        or Column.DiffAEData.POLAR_RADIUS.value in column_names
-    ):
-        compute_polar = True
-
-    flip_pc3_sign = False
-    if Column.DiffAEData.PC3_FLIPPED.value in column_names:
-        flip_pc3_sign = True
-
     # initialize pca variable to None in case use_pcs is False, so that it can
     # be passed to get_dataframe_for_dynamics_workflows without error
     pca = None
@@ -219,11 +208,8 @@ def main(
             get_dataframe_for_dynamics_workflows(
                 dataset_name,
                 dataframe_manifest,
-                pca=pca,
-                include_cell_piling=include_cell_piling,
                 crop_pattern=crop_pattern,
-                compute_polar=compute_polar,
-                flip_pc3_sign=flip_pc3_sign,
+                columns_to_keep=column_names,
             )
             for dataset_name in dataset_names
         ]

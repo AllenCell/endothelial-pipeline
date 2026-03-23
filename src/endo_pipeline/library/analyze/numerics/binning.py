@@ -3,7 +3,6 @@ from typing import cast
 
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import PCA
 
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
@@ -158,7 +157,6 @@ def get_bins(
 def get_bounds_from_data(
     dataset_names: list[str],
     manifest: DataframeManifest,
-    pca: PCA,
     filter_to_valid: bool = True,
     pad: float = 0.0,
     column_names: list[str] | None = None,
@@ -179,8 +177,6 @@ def get_bounds_from_data(
         List of dataset names to get common bounds from.
     manifest
         Dataframe manifest object with feature data locations.
-    pca
-        PCA object used to transform the data.
     filter_to_valid
         Whether to filter the dataframes to only include "valid" crops.
     pad
@@ -206,19 +202,12 @@ def get_bounds_from_data(
     # loop over each dataset and update bin mins and maxs
     for dataset_name in dataset_names:
         if filter_to_valid:
-            filter_by_annotations = True
-            include_cell_piling = False
             include_not_steady_state = False
         else:
-            filter_by_annotations = False
-            include_cell_piling = True
             include_not_steady_state = True
         df = get_dataframe_for_dynamics_workflows(
             dataset_name,
             manifest,
-            pca=pca,
-            filter_by_annotations=filter_by_annotations,
-            include_cell_piling=include_cell_piling,
             include_not_steady_state=include_not_steady_state,
         )
         # get column names for features

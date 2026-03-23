@@ -8,7 +8,6 @@ from colorizer_data import convert_colorizer_data
 from endo_pipeline.configs import get_annotated_timepoints_for_position, load_dataset_config
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    fit_pca,
     get_dataframe_for_dynamics_workflows,
 )
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
@@ -247,11 +246,8 @@ def get_df_and_label_map_grid(
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=num_pcs_for_pca)
-
-    grid_df = get_dataframe_for_dynamics_workflows(
-        dataset, dataframe_manifest, pca=pca, filter_by_annotations=False
-    )
+    # NOTE: this is expecting the non-filtered dataframe
+    grid_df = get_dataframe_for_dynamics_workflows(dataset, dataframe_manifest)
     feat_cols = [col for col in grid_df.columns if Column.DiffAEData.LATENT_FEATURE_PREFIX in col]
     grid_df = grid_df.drop(columns=feat_cols)
 

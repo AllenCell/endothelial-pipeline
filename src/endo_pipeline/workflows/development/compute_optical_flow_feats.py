@@ -278,10 +278,10 @@ def main(  # noqa: C901
         logger.info("Dataset %d/%d: %s", dataset_idx, len(datasets), dataset_name)
 
         dataset_config = load_dataset_config(dataset_name)
+        # NOTE: this is expecting the non-filtered dataframe
         df_dataset = get_dataframe_for_dynamics_workflows(
             dataset_name,
             dataframe_manifest,
-            pca=None,
             filter_by_annotations=False,
         )
 

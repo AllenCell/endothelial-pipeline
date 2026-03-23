@@ -69,7 +69,6 @@ def main(
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        fit_pca,
         get_dataframe_for_dynamics_workflows,
         get_traj_and_diff,
         split_dataset_by_flow,
@@ -100,7 +99,6 @@ def main(
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
-        NUM_PCS_TO_FIT_FOR_DYNAMICS,
         RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
@@ -130,14 +128,6 @@ def main(
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
-    # fit PCA - ALWAYS on grid-based crop features
-    dataframe_manifest_name_for_pca = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
-    )
-    pca = fit_pca(
-        dataframe_manifest_name=dataframe_manifest_name_for_pca, num_pcs=NUM_PCS_TO_FIT_FOR_DYNAMICS
-    )
-
     # Default list of datasets if not provided, only include datasets available in
     # the provided dataframe manifest
     valid_dataset_options = list(dataframe_manifest.locations.keys())
@@ -165,12 +155,8 @@ def main(
         df = get_dataframe_for_dynamics_workflows(
             dataset_name,
             dataframe_manifest,
-            pca=pca,
-            include_cell_piling=False,
             include_not_steady_state=False,
             crop_pattern=crop_pattern,
-            compute_polar=True,
-            rescale_theta=RESCALE_THETA,
         )
 
         df_by_flow, shear_stress_list = split_dataset_by_flow(

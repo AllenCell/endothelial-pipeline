@@ -1028,9 +1028,6 @@ def get_preprocessed_manifests_and_km_bounds(
     diffae_grid_crops = get_dataframe_for_dynamics_workflows(
         dataset_name=dataset_name,
         manifest=grid_diffae_manifest,
-        pca=pca,
-        include_cell_piling=False,
-        include_not_steady_state=False,
     )
 
     # get bounds for plotting and flow field estimation
@@ -1120,9 +1117,6 @@ def load_preprocessed_dataframes_and_km_bounds(
     diffae_grid_crops = get_dataframe_for_dynamics_workflows(
         dataset_name,
         grid_diffae_manifest,
-        pca=pca,
-        include_cell_piling=False,
-        include_not_steady_state=False,
     )
 
     # get bounds for plotting and flow field estimation

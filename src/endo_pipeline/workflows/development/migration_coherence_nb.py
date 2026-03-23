@@ -52,7 +52,7 @@ pca = fit_pca(num_pcs=80)
 # %% Load optical flow features
 df_pca_datasets = []
 for dataset_name in datasets:
-    df_dataset = get_dataframe_for_dynamics_workflows(dataset_name, dataframe_manifest, pca=pca)
+    df_dataset = get_dataframe_for_dynamics_workflows(dataset_name, dataframe_manifest)
     df_pca_datasets.append(df_dataset)
 
 df_pca_all = pd.concat(df_pca_datasets, ignore_index=True)

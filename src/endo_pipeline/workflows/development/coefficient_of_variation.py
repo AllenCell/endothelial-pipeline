@@ -75,7 +75,6 @@ def main(
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         df_to_array,
-        fit_pca,
         get_dataframe_for_dynamics_workflows,
         split_dataset_by_flow,
     )
@@ -83,7 +82,6 @@ def main(
         compute_binned_variance_ratio_vs_time,
         compute_cumulative_variance_over_time,
     )
-    from endo_pipeline.library.model.latent_walk_utils import get_num_pcs_from_column_names
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features.variation_analysis import (
         plot_ergodicity_test,
@@ -115,7 +113,6 @@ def main(
 
     # get labels for provided set of feature columns
     column_names = columns or list(DEFAULT_COV_ANALYSIS_COLUMNS)
-    num_pcs = get_num_pcs_from_column_names(column_names)
     variable_labels_dict = {
         col: get_label_for_column(col).replace("polar ", "") for col in column_names
     }
@@ -131,12 +128,6 @@ def main(
         model_manifest, run_name, crop_pattern=crop_pattern
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
-
-    # fit PCA - ALWAYS on grid-based crop features
-    dataframe_manifest_name_for_pca = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
-    )
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_for_pca, num_pcs=num_pcs)
 
     # plotting timepoints in unit hours: conversion factor
     time_conversion_factor = TIME_STEP_IN_MINUTES / 60
@@ -171,12 +162,8 @@ def main(
         df = get_dataframe_for_dynamics_workflows(
             dataset_name,
             dataframe_manifest,
-            pca=pca,
-            include_cell_piling=False,
             include_not_steady_state=not just_steady_state,
             crop_pattern=crop_pattern,
-            compute_polar=True,
-            rescale_theta=RESCALE_THETA,
         )
         df = df.dropna(subset=column_names)
 

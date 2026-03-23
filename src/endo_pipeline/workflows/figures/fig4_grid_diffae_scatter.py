@@ -62,8 +62,6 @@ def main(
     diffae_grid_crops = get_dataframe_for_dynamics_workflows(
         dataset_name,
         grid_diffae_manifest,
-        pca,
-        include_cell_piling=False,
         include_not_steady_state=False,
     )
 

@@ -12,7 +12,6 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 from mpl_toolkits.mplot3d import Axes3D
 from seaborn import kdeplot
-from sklearn.decomposition import PCA
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io.output import save_plot_to_path
@@ -196,8 +195,6 @@ def get_dataset_color(dataset_name: str) -> str:
 def plot_pc_scatter(
     dataset_names: list[str],
     dataframe_manifest: DataframeManifest,
-    pca: PCA,
-    include_cell_piling: bool = False,
     crop_pattern: Literal["grid", "tracked"] = "grid",
     alpha: float = 0.2,
     scatter_size: float = 1,
@@ -214,10 +211,6 @@ def plot_pc_scatter(
         List of dataset names to plot.
     dataframe_manifest
         Manifest containing paths to dataframes for each dataset.
-    pca
-        Fit PCA model used to transform the data.
-    include_cell_piling
-        Include cell piling timepoings from the plot if True, exclude if False.
     crop_pattern
         Crop pattern used in the dataframes; either 'grid' or 'tracked'.
     alpha
@@ -249,8 +242,6 @@ def plot_pc_scatter(
         df = get_dataframe_for_dynamics_workflows(
             dataset_name,
             dataframe_manifest,
-            pca,
-            include_cell_piling=include_cell_piling,
             crop_pattern=crop_pattern,
         )[[*pc_column_names, Column.TIMEPOINT]]
         df["dataset_name"] = dataset_name

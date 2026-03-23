@@ -57,7 +57,6 @@ def main(
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        fit_pca,
         get_dataframe_for_dynamics_workflows,
         split_dataset_by_flow,
     )
@@ -79,7 +78,6 @@ def main(
         BIN_WIDTHS_HISTOGRAMS,
         DEFAULT_DATASET_COLLECTION_HISTOGRAM_VIS,
         FEATURES_FOR_HISTOGRAM_VIS,
-        NUM_PCS_TO_FIT,
         TICK_STEP_NUM,
     )
 
@@ -93,9 +91,6 @@ def main(
         model_manifest, run_name, crop_pattern=crop_pattern
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
-
-    # fit PCA
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=NUM_PCS_TO_FIT)
 
     # Default list of datasets if not provided, only include datasets available in
     # the provided dataframe manifest
@@ -133,11 +128,7 @@ def main(
         df = get_dataframe_for_dynamics_workflows(
             dataset_name,
             dataframe_manifest,
-            pca=pca,
-            include_cell_piling=False,
             include_not_steady_state=not just_steady_state,
-            compute_polar=True,
-            rescale_theta=RESCALE_THETA,
         )
 
         df_by_flow, shear_stress_list = split_dataset_by_flow(

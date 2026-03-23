@@ -6,7 +6,6 @@ from sklearn.decomposition import PCA
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    fit_pca,
     get_dataframe_for_dynamics_workflows,
 )
 from endo_pipeline.library.analyze.numerics.binning import (
@@ -32,8 +31,7 @@ logger = logging.getLogger(__name__)
 def load_data_for_montage(
     dataset_name_list: list[str],
     dataframe_manifest: DataframeManifest,
-    include_cell_piling: bool = True,
-) -> tuple[pd.DataFrame, PCA]:
+) -> pd.DataFrame:
     """
     Load Diff AE feature DataFrames for one or more datasets and optionally apply PCA.
 
@@ -54,18 +52,11 @@ def load_data_for_montage(
         Fit PCA object for the model.
     """
 
-    pca = fit_pca(
-        dataframe_manifest_name=dataframe_manifest.name,
-        include_cell_piling=include_cell_piling,
-    )
-
     df_all = pd.concat(
         [
             get_dataframe_for_dynamics_workflows(
                 name,
                 dataframe_manifest,
-                pca=pca,
-                include_cell_piling=include_cell_piling,
                 include_not_steady_state=True,
             )
             for name in dataset_name_list
@@ -73,7 +64,7 @@ def load_data_for_montage(
         ignore_index=True,
     )
 
-    return df_all, pca
+    return df_all
 
 
 def filter_dataframe(

@@ -20,7 +20,6 @@ def main(
 
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        fit_pca,
         get_dataframe_for_dynamics_workflows,
     )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import plot_kde_comparison
@@ -56,8 +55,6 @@ def main(
 
     feature_column_names = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
-    pca = fit_pca(num_pcs=NUM_PCS_TO_ANALYZE)
-
     # if pooling, prepare lists to collect dataframes
     if pool_datasets:
         dataframe_list_grid = []
@@ -67,9 +64,7 @@ def main(
         df_grid = get_dataframe_for_dynamics_workflows(
             dataset_name,
             load_dataframe_manifest(dataframe_manifest_name_grid),
-            pca=pca,
             crop_pattern="grid",
-            include_cell_piling=False,
             include_not_steady_state=False,
         )
 
@@ -83,9 +78,7 @@ def main(
         df_tracked = get_dataframe_for_dynamics_workflows(
             dataset_name,
             load_dataframe_manifest(dataframe_manifest_name_tracked),
-            pca=pca,
             crop_pattern="tracked",
-            include_cell_piling=False,
             include_not_steady_state=False,
         )
         n_total_crops_tracked = df_tracked.shape[0]

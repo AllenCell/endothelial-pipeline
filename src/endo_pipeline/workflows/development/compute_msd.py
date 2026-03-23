@@ -71,7 +71,6 @@ def main(
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        fit_pca,
         get_dataframe_for_dynamics_workflows,
         get_traj_and_diff,
         split_dataset_by_flow,
@@ -135,12 +134,6 @@ def main(
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
-    # only need first three PCs
-    dataframe_manifest_name_for_pca = get_feature_dataframe_manifest_name(
-        model_manifest, model_run_name, crop_pattern="grid"
-    )
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_for_pca, num_pcs=3)
-
     # Load default list of datasets if not provided
     dataset_names = datasets or get_datasets_in_collection("timelapse")
 
@@ -171,13 +164,8 @@ def main(
         df = get_dataframe_for_dynamics_workflows(
             dataset_name,
             dataframe_manifest,
-            pca=pca,
-            include_cell_piling=False,
             include_not_steady_state=False,
             crop_pattern=crop_pattern,
-            compute_polar=True,
-            rescale_theta=RESCALE_THETA,
-            flip_pc3_sign=True,
             minimum_track_length=MINIMUM_MSD_TRACK_LENGTH if crop_pattern == "tracked" else None,
         )
 

@@ -330,7 +330,6 @@ def bootstrap_cross_correlation_confidence_intervals(
 def _compute_correlations_for_one_dataset(
     dataset_name: str,
     dataframe_manifest: DataframeManifest,
-    pca: PCA,
     correlation_dict: dict,
     bootstrap_samples: int | None = None,
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
@@ -344,12 +343,6 @@ def _compute_correlations_for_one_dataset(
         df = get_dataframe_for_dynamics_workflows(
             dataset_name,
             dataframe_manifest,
-            pca=pca,
-            filter_by_annotations=True,
-            include_cell_piling=False,
-            include_not_steady_state=False,
-            compute_polar=True,
-            rescale_theta=rescale_polar_angle,
         )
     except KeyError:
         logger.warning(

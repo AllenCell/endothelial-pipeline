@@ -87,7 +87,6 @@ def main(
         get_fixed_points_within_bounds,
     )
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        fit_pca,
         get_dataframe_for_dynamics_workflows,
         get_traj_and_diff,
     )
@@ -200,15 +199,6 @@ def main(
         num_datasets = min(len(dataset_names), 2)
         dataset_names = dataset_names[:num_datasets]
 
-    # fit PCA using the features from the given dataframe manifest PCA always
-    # fit on the grid-based features, even if the features for flow field
-    # analysis are from tracked-based crops, to ensure that the PCA space is the
-    # same across analyses
-    dataframe_manifest_name_pca = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
-    )
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_pca)
-
     # initialize list to hold dataframes of stable fixed points from all
     # datasets with columns for dataset name and 3D PC space coordinates
     stable_fixed_points_all_datasets_list = []
@@ -264,7 +254,6 @@ def main(
         bounds_for_km = get_bounds_from_data(
             dataset_names=[dataset_name],
             manifest=dataframe_manifest,
-            pca=pca,
             pad=PAD_BINS_FLOAT,
             column_names=column_names,
         )
@@ -275,8 +264,6 @@ def main(
         df = get_dataframe_for_dynamics_workflows(
             dataset_name,
             dataframe_manifest,
-            pca=pca,
-            include_cell_piling=False,
             include_not_steady_state=False,
             crop_pattern=crop_pattern,
         )

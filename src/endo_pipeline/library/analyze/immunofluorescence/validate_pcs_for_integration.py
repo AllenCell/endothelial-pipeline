@@ -180,7 +180,7 @@ def create_reference_timelapse_datasets(
 
     # Load the PC data for reference no flow timelapse dataset
     manifest = load_dataframe_manifest(model)
-    reference_features = get_dataframe_for_dynamics_workflows(reference_dataset_name, manifest, pca)
+    reference_features = get_dataframe_for_dynamics_workflows(reference_dataset_name, manifest)
 
     # Create and return lagged and truncated datasets
     reference_features = reference_features.sort_values(by=ColumnName.TIMEPOINT)
