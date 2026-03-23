@@ -500,7 +500,6 @@ def main(  # noqa: C901
             # register the FMS ID in the manifest; otherwise, register the local
             # path in the manifest
             if upload_to_fms:
-                dataset_config = load_dataset_config(dataset_name)
                 fms_annotations = build_fms_annotations(
                     dataset_config,
                     additional_notes=f"Optical flow features computed with {__file__}",
