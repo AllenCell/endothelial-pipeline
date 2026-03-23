@@ -130,7 +130,11 @@ def main(
     # get dataframe manifest for feature of selected crop pattern
     model_manifest = load_model_manifest(model_manifest_name)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, model_run_name, crop_pattern=crop_pattern
+        model_manifest,
+        model_run_name,
+        crop_pattern=crop_pattern,
+        feature_type="pca",
+        is_filtered=True,
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
