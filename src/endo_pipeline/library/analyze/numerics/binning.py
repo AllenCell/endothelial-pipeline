@@ -113,7 +113,7 @@ def get_bins(
     containing the bin edges and centers for the single dimension.
     """
     if bin_limits is None and data is None:
-        raise ValueError("Please provide data or or upper and lower bounds for bins.")
+        raise ValueError("Please provide data or upper and lower bounds for bins.")
     data = np.atleast_2d(data) if data is not None else None
     ndim = data.shape[1] if data is not None else len(bin_limits)
     if ndim != len(bin_widths):
