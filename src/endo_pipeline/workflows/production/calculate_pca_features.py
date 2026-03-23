@@ -86,7 +86,7 @@ def main(
     run_name = DEFAULT_MODEL_RUN_NAME
     model_manifest = load_model_manifest(model_manifest_name)
     feature_dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern
+        model_manifest, run_name, crop_pattern, feature_type="latent", is_filtered=False
     )
     feature_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
