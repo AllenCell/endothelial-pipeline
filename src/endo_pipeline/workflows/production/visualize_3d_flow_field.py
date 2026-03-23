@@ -157,7 +157,7 @@ def main(
     # load model manifest and get corresponding dataframe manifest name
     model_manifest = load_model_manifest(model_manifest_name)
     feature_dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern=crop_pattern
+        model_manifest, run_name, crop_pattern=crop_pattern, feature_type="pca", is_filtered=True
     )
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 

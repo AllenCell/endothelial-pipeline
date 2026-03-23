@@ -144,7 +144,7 @@ def main(
     # manifest name for default run name and specified crop pattern.
     model_manifest = load_model_manifest(model_manifest_name)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern=crop_pattern
+        model_manifest, run_name, crop_pattern=crop_pattern, feature_type="pca", is_filtered=True
     )
 
     # Create/set output folder for dataframes, save in local directory without
