@@ -18,7 +18,6 @@ def main(
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         check_required_columns_in_dataframe,
-        fit_pca,
         get_dataframe_for_dynamics_workflows,
         split_dataset_by_flow,
     )
@@ -68,13 +67,13 @@ def main(
     crop_pattern = MIGRATION_COHERENCE_CROP_PATTERN
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
     feature_dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern=crop_pattern
+        model_manifest,
+        DEFAULT_MODEL_RUN_NAME,
+        crop_pattern=crop_pattern,
+        feature_type="pca",
+        is_filtered=True,
     )
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
-
-    # get fit PCA object to apply PCA transformation to diffae features before
-    # plotting against optical flow features.
-    pca = fit_pca(num_pcs=3)
 
     fixed_points_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{feature_dataframe_manifest_name}"
@@ -115,8 +114,6 @@ def main(
         df_dataset = get_dataframe_for_dynamics_workflows(
             dataset_name,
             feature_dataframe_manifest,
-            pca=pca,
-            include_cell_piling=False,
             include_not_steady_state=False,
             crop_pattern=crop_pattern,
         )
