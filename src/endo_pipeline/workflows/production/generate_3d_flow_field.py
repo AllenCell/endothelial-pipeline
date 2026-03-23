@@ -272,19 +272,19 @@ def main(
             crop_pattern=crop_pattern,
         )
 
-        # get list of per-crop trajectories, the corresponding
-        # displacement vectors, and time differences
-        traj_list, d_traj_list = get_traj_and_diff(df, column_names)
-
         # get bins for flow field estimation based on the trajectories, to be
         # used for kernel-convolution-based estimation of the Kramers-Moyal
         # coefficients. The bins are determined by the specified bin widths and
         # the range of the data.
         bins, centers = get_bins(
             bin_widths,
-            data=traj_list,
+            data=df[column_names].to_numpy(),
             pad=PAD_BINS_FLOAT,
         )
+
+        # get list of per-crop trajectories, the corresponding
+        # displacement vectors, and time differences
+        traj_list, d_traj_list = get_traj_and_diff(df, column_names)
 
         # get drift estimates in units hours^-1 for each bin in 3D space
         # (Kramers-Moyal coefficient estimation)

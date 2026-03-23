@@ -38,19 +38,19 @@ def test_get_bins_num_bins_matches_ceil():
 
 def test_get_bins_from_data_covers_data_range():
     """When binning from data, all data points should fall within the bin edges."""
-    data = [np.array([[0.0, 0.0], [1.0, 2.0]]), np.array([[0.5, 1.0], [1.5, 2.5]])]
+    data = np.array([[0.0, 0.0], [1.0, 2.0], [0.5, 1.0], [1.5, 2.5]])
     bin_widths = (0.1, 0.1)
     bin_edges, _ = get_bins(bin_widths=bin_widths, data=data)
 
     for dim, edges in enumerate(bin_edges):
-        all_values = np.concatenate([traj[:, dim] for traj in data])
+        all_values = data[:, dim]
         assert edges[0] <= all_values.min()
         assert edges[-1] >= all_values.max()
 
 
 def test_get_bins_from_data_applies_pad():
     """Auto-determined bin limits should extend by `pad` beyond the data extrema."""
-    data = [np.array([[0.0, 0.0], [1.0, 2.0]])]
+    data = np.array([[0.0, 0.0], [1.0, 2.0]])
     pad = 0.5
     bin_widths = (0.1, 0.1)
     bin_edges, _ = get_bins(bin_widths=bin_widths, data=data, pad=pad)
@@ -63,7 +63,7 @@ def test_get_bins_from_data_applies_pad():
 
 def test_get_bins_from_data_uses_percentile_limits():
     """When percentiles are given, bin limits should be set by the percentile values."""
-    data = [np.array([[0.0], [3.0], [4.0], [6.0], [8.0]])]  # 1D data with values from 0 to 8
+    data = np.array([[0.0], [3.0], [4.0], [6.0], [8.0]])  # 1D data with values from 0 to 8
     lower_p, upper_p = 5.0, 95.0
     bin_widths = (0.1,)
     bin_edges, _ = get_bins(
@@ -73,8 +73,8 @@ def test_get_bins_from_data_uses_percentile_limits():
         upper_percentile=upper_p,
     )
 
-    expected_min = np.percentile(data[0][:, 0], lower_p)
-    expected_max = np.percentile(data[0][:, 0], upper_p)
+    expected_min = np.percentile(data, lower_p)
+    expected_max = np.percentile(data, upper_p)
     assert np.isclose(bin_edges[0][0], expected_min)
     assert np.isclose(bin_edges[0][-1], expected_max)
 
@@ -82,7 +82,7 @@ def test_get_bins_from_data_uses_percentile_limits():
 def test_get_bins_bin_limits_overrides_data():
     """Explicit bin_limits should be used even when data is also provided."""
     # Data spans [0, 10] but bin_limits restricts to [2, 8]; the latter should win.
-    data = [np.array([[0.0], [10.0]])]  # shape (2, 1) — 1 dimension
+    data = np.array([[0.0], [10.0]])  # shape (2, 1) — 1 dimension
     bin_limits = [(2.0, 8.0)]
     bin_widths = (0.5,)
     bin_edges, _ = get_bins(bin_widths=bin_widths, data=data, bin_limits=bin_limits)
@@ -116,7 +116,7 @@ def test_get_bins_negative_range():
 
 def test_get_bins_raises_when_no_data_or_limits():
     """Should raise an error when neither data nor bin_limits is provided."""
-    with pytest.raises((ValueError, TypeError)):
+    with pytest.raises(ValueError):
         get_bins(bin_widths=(0.1, 0.1))
 
 
