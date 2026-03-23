@@ -28,7 +28,6 @@ def main(
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
     from endo_pipeline.library.analyze.numerics.correlations import compute_correlation_dict
     from endo_pipeline.library.visualize.diffae_features.correlations import (
         plot_correlation_workflow_outputs,
@@ -63,13 +62,10 @@ def main(
     # load dataframe manifest corresponding to the model that generated the features
     model_manifest = load_model_manifest(model_manifest_name)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
+        model_manifest, run_name, crop_pattern="grid", feature_type="pca", is_filtered=True
     )
 
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
-
-    # fit PCA object for the given model that generates the model manifests
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name)
 
     # if demo mode, limit bootstrap samples to 50 if > 50
     if DEMO_MODE and bootstrap_samples is not None:
@@ -83,7 +79,7 @@ def main(
     # get cross and autocorrelation for pc features for each dataset
     # in the list of model manifests
     correlation_dict = compute_correlation_dict(
-        dataset_names, dataframe_manifest, pca, bootstrap_samples
+        dataset_names, dataframe_manifest, bootstrap_samples
     )
 
     plot_correlation_workflow_outputs(correlation_dict, bootstrap_samples)
