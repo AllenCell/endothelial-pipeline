@@ -89,7 +89,7 @@ def main(
     model = load_model(model_manifest.locations[run_name_], instantiate=True)
 
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name_, crop_pattern="grid"
+        model_manifest, run_name_, crop_pattern="grid", feature_type="latent", is_filtered=False
     )
 
     # Get fit (3D) PCA object from manifest
