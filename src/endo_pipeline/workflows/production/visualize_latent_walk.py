@@ -2,7 +2,6 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from endo_pipeline.cli import CropPattern
 from endo_pipeline.settings import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -15,9 +14,7 @@ TAGS = ["diffae_image_generation", "pc_interpretation"]
 def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    crop_pattern: CropPattern = "grid",
     dataset_collection: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     walk_on_columns: Annotated[
         list[str] | None, Parameter(name="--along", consume_multiple=True, negative_iterable=[])
     ] = None,
@@ -85,12 +82,6 @@ def main(
     run_name
         Run name corresponding to the model to load. If None, uses the most
         recent run.
-    crop_pattern
-        Crop pattern used to generate the feature dataframe. Either 'grid' or
-        'tracked'.
-    include_cell_piling
-        True to include timepoints with cell piling to fit the PCA model, False
-        to exclude them.
     walk_on_columns
         List of column names corresponding to the dimensions to perform the
         latent walk along.
@@ -110,10 +101,9 @@ def main(
 
     from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import get_datasets_in_collection
-    from endo_pipeline.io import get_output_path, load_model
+    from endo_pipeline.io import get_output_path, load_dataframe, load_model
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
-        get_dataframe_for_dynamics_workflows,
         get_pc_column_names,
         polar_to_pcs,
     )
@@ -126,7 +116,7 @@ def main(
     )
     from endo_pipeline.library.visualize.latent_walk import plot_latent_walk_as_grid
     from endo_pipeline.manifests import (
-        get_feature_dataframe_manifest_name,
+        get_dataframe_location_for_dataset,
         get_most_recent_run_name,
         load_dataframe_manifest,
         load_model_manifest,
@@ -143,19 +133,10 @@ def main(
         )
 
     # set up output directory
-    save_path = get_output_path(
-        "latent_walks",
-        model_manifest_name,
-        run_name_,
-        crop_pattern,
-        dataset_collection,
-        "include_cell_piling" if include_cell_piling else "exclude_cell_piling",
-    )
+    save_path = get_output_path("latent_walks", model_manifest_name, run_name_)
 
     # load model configuration and reference dataset manifests
-    dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name_, crop_pattern
-    )
+    dataframe_manifest_name = f"{model_manifest.name}_{run_name_}_grid_pca_filtered"
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     dataset_names = get_datasets_in_collection(dataset_collection)
 
@@ -180,17 +161,6 @@ def main(
     # process input column names and add any additional ones needed for the walk / image generation
     column_names = get_column_names_for_latent_walk_dataframe(input_column_names)
 
-    compute_polar = False
-    if (
-        Column.DiffAEData.POLAR_ANGLE.value in column_names
-        or Column.DiffAEData.POLAR_RADIUS.value in column_names
-    ):
-        compute_polar = True
-
-    flip_pc3_sign = False
-    if Column.DiffAEData.PC3_FLIPPED.value in column_names:
-        flip_pc3_sign = True
-
     # get minimum number of pcs needed for the fit pca object based on the
     # column names provided; for example, if "pc_11" is in the column names,
     # then the fit pca object needs to be fit with at least 11 pcs
@@ -199,27 +169,15 @@ def main(
         raise ValueError(f"No PC-related column names found in {column_names}.")
 
     # get fit pca object and data for latent walk
-    pca = fit_pca(
-        dataset_collection_name=dataset_collection,
-        dataframe_manifest_name=dataframe_manifest_name,
-        include_cell_piling=include_cell_piling,
-        num_pcs=num_pcs,
-    )
+    pca = fit_pca(num_pcs=num_pcs)
 
     dataframe_all_datasets = pd.concat(
         [
-            get_dataframe_for_dynamics_workflows(
-                dataset_name,
-                dataframe_manifest,
-                pca=pca,
-                include_cell_piling=include_cell_piling,
-                crop_pattern=crop_pattern,
-                compute_polar=compute_polar,
-                flip_pc3_sign=flip_pc3_sign,
-            )
+            load_dataframe(get_dataframe_location_for_dataset(dataframe_manifest, dataset_name))
             for dataset_name in dataset_names
         ]
     )
+
     data_for_walk = dataframe_all_datasets[column_names]
 
     # get coordinate values for latent walk and the ranges of the walk for each
