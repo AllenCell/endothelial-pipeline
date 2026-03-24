@@ -142,7 +142,7 @@ def main(
     # set workflow defaults
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
-    column_names = list(DYNAMICS_COLUMN_NAMES)
+    column_names: list[Column.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
     drift_column_names = [f"{name}_drift" for name in column_names]
 
     # Load default model manifest and get corresponding feature dataframe
@@ -232,7 +232,7 @@ def main(
             "model_manifest_name": model_manifest_name,
             "run_name": run_name,
             "crop_pattern": crop_pattern,
-            "columns": column_names,
+            "columns": [col.value for col in column_names],
             "kernel_names": [kernel.name for kernel in kernels],
             "kernel_bandwidths": [kernel.bandwidth for kernel in kernels],
             "bin_widths": bin_widths,
