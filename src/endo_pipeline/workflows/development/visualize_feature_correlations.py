@@ -138,7 +138,6 @@ def main(
         ("Measurement", [get_label_for_column(col) for col in segmentation_feature_columns]),
         ("PC", [get_label_for_column(col) for col in pc_columns]),
     ]
-    out_dir = get_output_path(__file__)
 
     if plot_migration_coherence_correlations:
         # get the crop pattern for the migration coherence data (this is the grid crop pattern)
@@ -151,7 +150,7 @@ def main(
 
         # get fit PCA object to apply PCA transformation to diffae features before
         # plotting against optical flow features.
-        pca = fit_pca(num_pcs=3)
+        pca = fit_pca(num_pcs=20)
 
         # load the grid-based DiffAE features upon which the migration coherence measurements
         # were based and add the optical flow features to this dataframe
@@ -161,7 +160,6 @@ def main(
                 df_grid = get_dataframe_for_dynamics_workflows(
                     dataset_name,
                     feature_dataframe_manifest,
-                    columns_to_keep=pc_columns,
                     pca=pca,
                     include_cell_piling=False,
                     include_not_steady_state=False,
@@ -171,7 +169,6 @@ def main(
                 df_grid_new = get_dataframe_for_dynamics_workflows(
                     dataset_name,
                     feature_dataframe_manifest,
-                    columns_to_keep=pc_columns,
                     pca=pca,
                     include_cell_piling=False,
                     include_not_steady_state=False,
@@ -212,7 +209,7 @@ def main(
         else:
             df_dataset = df[df[Column.DATASET] == dataset_name].copy()
 
-        out_dir = get_output_path(__file__, dataset_name)
+        out_dir = get_output_path(__file__, "tracked", dataset_name)
 
         visualize_correlation_heatmaps(
             dataset_name=dataset_name,
@@ -228,7 +225,7 @@ def main(
             else:
                 df_grid_dataset = df_grid[df_grid[Column.DATASET] == dataset_name].copy()
 
-            # out_dir = get_output_path(__file__, dataset_name)
+            out_dir = get_output_path(__file__, "grid", dataset_name)
 
             visualize_correlation_heatmaps(
                 dataset_name=dataset_name,
