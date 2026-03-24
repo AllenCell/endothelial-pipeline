@@ -14,6 +14,11 @@ METADATA_COLUMNS_TO_KEEP: tuple[str, ...] = (
     Column.DiffAEData.END_Y.value,
 )
 
+TRACK_METADATA_COLUMNS_TO_KEEP: tuple[str, ...] = (
+    Column.TRACK_ID,
+    Column.TRACK_LENGTH,
+)
+
 DYNAMICS_COLUMN_NAMES: tuple[str, ...] = (
     Column.DiffAEData.POLAR_ANGLE.value,
     Column.DiffAEData.POLAR_RADIUS.value,

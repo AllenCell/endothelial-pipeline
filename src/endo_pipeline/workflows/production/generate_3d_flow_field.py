@@ -1,4 +1,5 @@
 from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
 
 
 def main(
@@ -74,10 +75,15 @@ def main(
     import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.configs import (
+        TimepointAnnotation,
+        get_datasets_in_collection,
+        load_dataset_config,
+    )
     from endo_pipeline.io import (
         build_fms_annotations,
         get_output_path,
+        load_dataframe,
         make_name_unique,
         upload_file_to_fms,
     )
@@ -86,11 +92,7 @@ def main(
         get_callable_vector_field,
         get_fixed_points_within_bounds,
     )
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        fit_pca,
-        get_dataframe_for_dynamics_workflows,
-        get_traj_and_diff,
-    )
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import get_traj_and_diff
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
@@ -98,7 +100,6 @@ def main(
         DataframeLocation,
         build_dataframe_location_from_path,
         create_dataframe_manifest,
-        get_feature_dataframe_manifest_name,
         list_datasets_with_dataframes,
         load_dataframe_manifest,
         load_model_manifest,
@@ -111,8 +112,10 @@ def main(
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
+        METADATA_COLUMNS_TO_KEEP,
         PERIOD_THETA_RESCALED,
         RESCALE_THETA,
+        TRACK_METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.flow_field_3d import (
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
@@ -144,9 +147,14 @@ def main(
     # Load default model manifest and get corresponding feature dataframe
     # manifest name for default run name and specified crop pattern.
     model_manifest = load_model_manifest(model_manifest_name)
-    dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern=crop_pattern
-    )
+    if crop_pattern == "tracked":
+        logger.warning(
+            "Using features from track-based crops temporarilty unsupported."
+            "Proceeding with grid-based crops for flow field estimation and analysis."
+        )
+        crop_pattern = "grid"
+
+    dataframe_manifest_name = f"{model_manifest_name}_{run_name}_{crop_pattern}_pca_filtered"
 
     # Create/set output folder for dataframes, save in local directory without
     # timestamp for intermediate level of "static-ness" (ensure they don't get
@@ -160,12 +168,8 @@ def main(
     # the output directory specified in settings.
     dataframe_savedir = get_output_path(__file__, dataframe_manifest_name)
     demo_suffix = "_demo" if DEMO_MODE else ""
-    drift_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataframe_manifest_name}{demo_suffix}"
-    )
-    fixed_points_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataframe_manifest_name}{demo_suffix}"
-    )
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{model_manifest_name}_{run_name}_{crop_pattern}{demo_suffix}"
+    fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{model_manifest_name}_{run_name}_{crop_pattern}{demo_suffix}"
     drift_dataframe_manifest = create_dataframe_manifest(
         drift_dataframe_manifest_name, workflow_name=__file__
     )
@@ -199,15 +203,6 @@ def main(
         # only 1 dataset is provided)
         num_datasets = min(len(dataset_names), 2)
         dataset_names = dataset_names[:num_datasets]
-
-    # fit PCA using the features from the given dataframe manifest PCA always
-    # fit on the grid-based features, even if the features for flow field
-    # analysis are from tracked-based crops, to ensure that the PCA space is the
-    # same across analyses
-    dataframe_manifest_name_pca = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
-    )
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_pca)
 
     # initialize list to hold dataframes of stable fixed points from all
     # datasets with columns for dataset name and 3D PC space coordinates
@@ -261,15 +256,20 @@ def main(
             )
             continue
 
-        # load dataframe and filter / preprocess it for dynamics workflows (PCA,
-        # filter annotated timepoints, transform angular variables),
-        df = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            dataframe_manifest,
-            pca=pca,
-            include_cell_piling=False,
-            include_not_steady_state=False,
-            crop_pattern=crop_pattern,
+        # load dataframe and perform additional filtering (remove
+        # non-steady-state timepoints based on annotations), computing
+        # only the columns needed for flow field estimation and analysis to save memory.
+        df = load_dataframe(dataframe_manifest.locations[dataset_name], delay=True)
+        # start with default metadata columns to keep
+        columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *column_names]
+        if crop_pattern == "tracked":
+            # also keep track ID and track length columns for tracked crops
+            columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
+        df_ = df[columns_to_compute].compute()
+        df_steady_state = filter_dataframe_by_annotations(
+            df_,
+            load_dataset_config(dataset_name),
+            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
         )
 
         # get bins for flow field estimation based on the trajectories, to be
@@ -278,13 +278,13 @@ def main(
         # the range of the data.
         bins, centers = get_bins(
             bin_widths,
-            data=df[column_names].to_numpy(),
+            data=df_steady_state[column_names].to_numpy(),
             pad=PAD_BINS_FLOAT,
         )
 
         # get list of per-crop trajectories, the corresponding
         # displacement vectors, and time differences
-        traj_list, d_traj_list = get_traj_and_diff(df, column_names)
+        traj_list, d_traj_list = get_traj_and_diff(df_steady_state, column_names)
 
         # get drift estimates in units hours^-1 for each bin in 3D space
         # (Kramers-Moyal coefficient estimation)
@@ -355,7 +355,7 @@ def main(
 
         fixed_points_for_dataset = get_fixed_points_within_bounds(
             vector_field_function=drift_function,
-            dataframe=df,
+            dataframe=df_steady_state,
             column_names=column_names,
             num_inits_for_root_solver=NUM_INIT_SAMPLES,
             lower_percentile=LOWER_PERCENTILE_FOR_STABLE_FP,
