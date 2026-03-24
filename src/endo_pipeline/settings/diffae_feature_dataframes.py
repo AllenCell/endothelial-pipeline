@@ -88,7 +88,6 @@ DIFFAE_PC_COLUMN_NAMES = [
 
 DIFFAE_PC_COLUMN_NAME_GROUPS: dict[str, list[str]] = {
     "default": DIFFAE_PC_COLUMN_NAMES[:3]
-    + DIFFAE_PC_COLUMN_NAMES[17:18]
     + [
         Column.DiffAEData.POLAR_RADIUS,
         Column.DiffAEData.POLAR_ANGLE,
