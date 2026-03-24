@@ -162,17 +162,12 @@ def main(
         )
         crop_pattern = "grid"
 
-    feature_dataframe_manifest_name = (
-        f"{model_manifest_name}_{run_name}_{crop_pattern}_pca_filtered"
-    )
+    base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
+    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    drift_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{model_manifest_name}_{run_name}_{crop_pattern}"
-    )
-    fixed_points_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{model_manifest_name}_{run_name}_{crop_pattern}"
-    )
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{base_name}"
+    fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
     # Flexible DEMO_MODE loading pattern: first try to load the manifests with
     # the expected names, but if any of them are not found, then try to load the
     # corresponding demo manifests with the "_demo." This allows for both

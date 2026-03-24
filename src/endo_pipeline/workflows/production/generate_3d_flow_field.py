@@ -153,7 +153,11 @@ def main(
         )
         crop_pattern = "grid"
 
-    dataframe_manifest_name = f"{model_manifest_name}_{run_name}_{crop_pattern}_pca_filtered"
+    # Load dataframe manifest for the features to be used in flow field
+    # estimation and analysis.
+    base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
+    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
+    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # Create/set output folder for dataframes, save in local directory without
     # timestamp for intermediate level of "static-ness" (ensure they don't get
@@ -167,8 +171,10 @@ def main(
     # the output directory specified in settings.
     dataframe_savedir = get_output_path(__file__, crop_pattern)
     demo_suffix = "_demo" if DEMO_MODE else ""
-    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{model_manifest_name}_{run_name}_{crop_pattern}{demo_suffix}"
-    fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{model_manifest_name}_{run_name}_{crop_pattern}{demo_suffix}"
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{base_name}{demo_suffix}"
+    fixed_points_dataframe_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}{demo_suffix}"
+    )
     drift_dataframe_manifest = create_dataframe_manifest(
         drift_dataframe_manifest_name, workflow_name=__file__
     )
@@ -179,10 +185,6 @@ def main(
         "Dataframes with 3D flow field estimation results will be saved to: [ %s ]",
         dataframe_savedir,
     )
-
-    # load dataframe manifest with model feature for the given model run
-    # and model manifest
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     # Default list of datasets if not provided. Filter by datasets available in
     # the manifest.
@@ -239,10 +241,10 @@ def main(
         save_dataframe_manifest(output_dataframe_manifest)
 
     for dataset_name in dataset_names:
-        if dataset_name not in dataframe_manifest.locations:
+        if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
-                "No dataframe found in manifest [ %s ] for dataset [ %s ]. Skipping this dataset.",
-                dataframe_manifest_name,
+                "No feature dataframe found in manifest [ %s ] for dataset [ %s ]. Skipping this dataset.",
+                feature_dataframe_manifest_name,
                 dataset_name,
             )
             continue
@@ -260,7 +262,7 @@ def main(
         # load dataframe and perform additional filtering (remove
         # non-steady-state timepoints based on annotations), computing
         # only the columns needed for flow field estimation and analysis to save memory.
-        df = load_dataframe(dataframe_manifest.locations[dataset_name], delay=True)
+        df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
         # start with default metadata columns to keep
         columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *column_names]
         if crop_pattern == "tracked":
