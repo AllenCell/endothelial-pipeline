@@ -1,5 +1,4 @@
 from endo_pipeline.cli import CropPattern, Datasets
-from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
 
 
 def main(
@@ -92,7 +91,10 @@ def main(
         get_callable_vector_field,
         get_fixed_points_within_bounds,
     )
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import get_traj_and_diff
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+        filter_dataframe_by_annotations,
+        get_traj_and_diff,
+    )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
