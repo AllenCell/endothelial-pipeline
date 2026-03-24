@@ -209,7 +209,7 @@ def main(
         else:
             df_dataset = df[df[Column.DATASET] == dataset_name].copy()
 
-        out_dir = get_output_path(__file__, "tracked", dataset_name)
+        out_dir = get_output_path(__file__, dataset_name, model_manifest_name, run_name, "tracked")
 
         visualize_correlation_heatmaps(
             dataset_name=dataset_name,
@@ -225,7 +225,7 @@ def main(
             else:
                 df_grid_dataset = df_grid[df_grid[Column.DATASET] == dataset_name].copy()
 
-            out_dir = get_output_path(__file__, "grid", dataset_name)
+            out_dir = get_output_path(__file__, dataset_name, model_manifest_name, run_name, "grid")
 
             visualize_correlation_heatmaps(
                 dataset_name=dataset_name,
