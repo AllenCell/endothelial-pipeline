@@ -323,6 +323,9 @@ def get_latent_walk(
     walk_dataframe = pd.concat(walks, ignore_index=True)
 
     ranges_array = np.concatenate(ranges, axis=0)
+    # reshape to be (1, num_steps) in the case of num_dims = 1
+    if ranges_array.ndim == 1:
+        ranges_array = ranges_array.reshape((1, -1))
 
     return walk_dataframe, ranges_array
 
