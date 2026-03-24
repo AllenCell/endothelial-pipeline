@@ -166,7 +166,7 @@ def main(
     # naming conflicts with other runs. The dataframe manifests get saved to the
     # dataframe manifest directory, and the dataframes themselves get saved to
     # the output directory specified in settings.
-    dataframe_savedir = get_output_path(__file__, dataframe_manifest_name)
+    dataframe_savedir = get_output_path(__file__, crop_pattern)
     demo_suffix = "_demo" if DEMO_MODE else ""
     drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{model_manifest_name}_{run_name}_{crop_pattern}{demo_suffix}"
     fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{model_manifest_name}_{run_name}_{crop_pattern}{demo_suffix}"

@@ -229,9 +229,9 @@ def main(
         raise ValueError("No valid dataset names provided.")
 
     # Create output folders if they do not exist yet
-    fig_savedir = get_output_path(__file__, feature_dataframe_manifest_name, "figs")
+    fig_savedir = get_output_path(__file__, crop_pattern, "figs")
     if compute_vtk:
-        vtk_savedir = get_output_path(__file__, feature_dataframe_manifest_name, "vtk")
+        vtk_savedir = get_output_path(__file__, crop_pattern, "vtk")
 
     if DEMO_MODE:
         logger.warning(
