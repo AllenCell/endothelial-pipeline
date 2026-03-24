@@ -413,7 +413,7 @@ def get_df_for_feature_correlation_viz(
     pc_columns: list[str],
     timepoint_annotations: list[TimepointAnnotation] | None = None,
     cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
-    diffae_dynamics_columns: list[str] = DYNAMICS_COLUMN_NAMES,
+    diffae_dynamics_columns: list[str] | tuple[str, ...] = DYNAMICS_COLUMN_NAMES,
 ) -> pd.DataFrame:
     """
     Load and preprocess the manifests for the given dataset names,
@@ -576,13 +576,13 @@ def check_if_heatmap_should_be_annotated(
 def visualize_correlation_heatmaps(
     dataset_name: str,
     df_dataset: pd.DataFrame,
-    label_column_tuples: tuple[str, list[str]],
+    label_column_tuples: list[tuple[str, list[str]]],
     out_dir: Path,
     skip_multi_feature_scatterplots: bool = False,
 ) -> None:
 
     # Pre-compute full correlation matrix once per dataset
-    all_feature_columns = []
+    all_feature_columns: list = []
     for _, cols in label_column_tuples:
         all_feature_columns.extend(cols)
     # Remove duplicates while preserving order
