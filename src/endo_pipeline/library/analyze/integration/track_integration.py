@@ -14,7 +14,12 @@ from tqdm import tqdm
 
 from endo_pipeline.configs import get_latent_dim_from_config
 from endo_pipeline.configs.dataset_config_io import load_dataset_config
-from endo_pipeline.io import get_config_dict_from_mlflow, get_output_path, load_dataframe
+from endo_pipeline.io import (
+    get_config_dict_from_mlflow,
+    get_output_path,
+    load_dataframe,
+    save_plot_to_path,
+)
 from endo_pipeline.library.analyze.data_driven_flow_field import (
     compute_extrapolated_vector_field,
     get_callable_vector_field,
@@ -62,7 +67,11 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
 )
 from endo_pipeline.settings.dynamics_workflows import (
     BIN_LIMITS_THETA_RESCALED,
+    BIN_WIDTHS_DYNAMICS,
     DYNAMICS_COLUMN_NAMES,
+    KERNEL_BANDWIDTHS_DYNAMICS,
+    KERNEL_NAMES_DYNAMICS,
+    PERIOD_THETA_RESCALED,
     RESCALE_THETA,
 )
 from endo_pipeline.settings.flow_field_3d import (
@@ -76,6 +85,7 @@ from endo_pipeline.settings.flow_field_3d import (
     TRAJECTORY_TIME_SPAN,
     UPPER_PERCENTILE_FOR_STABLE_FP,
 )
+from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -1153,14 +1163,13 @@ def load_preprocessed_dataframes_and_km_bounds(
 def plot_distances_to_fixed_points_for_dataset(
     dataset_name: str,
     pca: PCA,
-    kernels: list[KramersMoyalKernel],
-    bin_widths: list[float],
     min_track_length: int = 216,  # a track duration of 144 is equivalent to 12 hours
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
-    column_names: list[str] = DYNAMICS_COLUMN_NAMES,
+    column_names: list[str] = DYNAMICS_COLUMN_NAMES,  # dynamics_column_names = theta, r, rho
     out_dir=None,
 ):
+    column_names = list(column_names)
 
     dataset_config = load_dataset_config(dataset_name)
     if len(dataset_config.shear_stress_regime) > 1:
@@ -1201,6 +1210,24 @@ def plot_distances_to_fixed_points_for_dataset(
         include_not_steady_state=False,
         crop_pattern="grid",
     )
+
+    # initialize kernels and bin widths for each of the three variables for flow
+    # field estimation
+    kernels: list[KramersMoyalKernel] = []
+    bin_widths: list[float] = []
+    rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
+
+    # Get the corresponding kernels and bin widths for each variable. For the
+    # polar angle variable, also specify the period for the kernel based on the
+    # rescaled theta range, to ensure that the periodicity of the polar angle is
+    # taken into account in the flow field estimation.
+    for column_name in column_names:
+        name = KERNEL_NAMES_DYNAMICS[column_name]
+        bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
+        period = rescaled_theta if column_name == Column.DiffAEData.POLAR_ANGLE else None
+        bin_width = BIN_WIDTHS_DYNAMICS[column_name]
+        kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
+        bin_widths.append(bin_width)
 
     # # get bins for KMCs
     # bounds_for_km = get_bounds_from_data(
@@ -1318,7 +1345,7 @@ def plot_distances_to_fixed_points_for_dataset(
 
         fig, ax = plt.subplots()
         ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
-        for col in DYNAMICS_COLUMN_NAMES:
+        for col in column_names:
             sns.lineplot(
                 df,
                 x=Column.TIMEPOINT,
