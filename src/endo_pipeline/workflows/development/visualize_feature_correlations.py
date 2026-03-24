@@ -1,11 +1,7 @@
 from typing import Literal
 
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import DEMO_MODE, Datasets
 from endo_pipeline.configs import TimepointAnnotation
-from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
-from endo_pipeline.manifests.model_manifest_utils import get_feature_dataframe_manifest_name
-from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
 from endo_pipeline.settings.workflow_defaults import (
     DATASET_INFO_COLUMNS,
     DEFAULT_MODEL_MANIFEST_NAME,
@@ -93,6 +89,10 @@ def main(
         visualize_correlation_heatmaps,
     )
     from endo_pipeline.manifests import load_model_manifest
+    from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
+    from endo_pipeline.manifests.model_manifest_utils import get_feature_dataframe_manifest_name
+    from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
 
     logger = logging.getLogger(__name__)
 
@@ -101,6 +101,13 @@ def main(
     dataset_name_list = use_default_collection(
         datasets_to_plot, DEFAULT_PCA_DATASET_COLLECTION_NAME
     )
+
+    if DEMO_MODE:
+        logger.info(
+            "DEMO MODE: Using first dataset in default dataset collection '%s'",
+            DEFAULT_PCA_DATASET_COLLECTION_NAME[1:],
+        )
+        dataset_name_list = dataset_name_list[:1]
 
     model_manifest = load_model_manifest(model_manifest_name)
 
