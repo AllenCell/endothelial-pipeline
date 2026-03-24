@@ -66,11 +66,10 @@ def main(
     import numpy as np
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import load_dataset_config
-    from endo_pipeline.io import get_output_path
+    from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
+    from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        fit_pca,
-        get_dataframe_for_dynamics_workflows,
+        filter_dataframe_by_annotations,
         get_traj_and_diff,
         split_dataset_by_flow,
     )
@@ -85,11 +84,7 @@ def main(
         plot_and_save_drift_quiver,
     )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
-    from endo_pipeline.manifests import (
-        get_feature_dataframe_manifest_name,
-        load_dataframe_manifest,
-        load_model_manifest,
-    )
+    from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMIT_PERCENTILE_CUTOFF,
@@ -100,8 +95,9 @@ def main(
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
-        NUM_PCS_TO_FIT_FOR_DYNAMICS,
+        METADATA_COLUMNS_TO_KEEP,
         RESCALE_THETA,
+        TRACK_METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
 
@@ -123,32 +119,18 @@ def main(
     )
 
     # get dataframe manifest for grid-based crop features
-    model_manifest = load_model_manifest(model_manifest_name)
-    dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern=crop_pattern
-    )
+    if crop_pattern == "tracked":
+        logger.warning(
+            "Crop pattern [ tracked ] is temporarily not supported for this workflow. "
+            "Defaulting to [ grid ] crop pattern."
+        )
+        crop_pattern = "grid"
+
+    dataframe_manifest_name = f"{model_manifest_name}_{run_name}_{crop_pattern}_pca_filtered"
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
-    # fit PCA - ALWAYS on grid-based crop features
-    dataframe_manifest_name_for_pca = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
-    )
-    pca = fit_pca(
-        dataframe_manifest_name=dataframe_manifest_name_for_pca, num_pcs=NUM_PCS_TO_FIT_FOR_DYNAMICS
-    )
-
-    # Default list of datasets if not provided, only include datasets available in
-    # the provided dataframe manifest
-    valid_dataset_options = list(dataframe_manifest.locations.keys())
-    if datasets is None:
-        if DEFAULT_DATASET_DYNAMICS_VIS not in valid_dataset_options:
-            raise ValueError(
-                f"Default dataset [ {DEFAULT_DATASET_DYNAMICS_VIS} ] not found in dataframe manifest. "
-                f"Available datasets: {valid_dataset_options}"
-            )
-        dataset_names = [DEFAULT_DATASET_DYNAMICS_VIS]
-    else:
-        dataset_names = [name for name in datasets if name in valid_dataset_options]
+    # Use provided datasets or default if none provided.
+    dataset_names = datasets or [DEFAULT_DATASET_DYNAMICS_VIS]
 
     if DEMO_MODE:
         logger.warning("DEMO MODE: limiting to first dataset only")
@@ -157,25 +139,34 @@ def main(
     # loop over datasets in collection, compute 2D drift coefficients for each
     # pairwise combination of polar coordinates, and plot contours of drift coefficients
     for dataset_name in dataset_names:
+        if dataset_name not in dataframe_manifest.locations:
+            logger.warning(
+                "No location found in dataframe manifest [ %s ] for dataset [ %s ], skipping visualization.",
+                dataframe_manifest_name,
+                dataset_name,
+            )
+            continue
+
         fig_savedir = get_output_path(__file__, crop_pattern, dataset_name)
-        logger.debug("Saving summary plots to [ %s ]", fig_savedir)
         dataset_config = load_dataset_config(dataset_name)
 
-        df = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            dataframe_manifest,
-            pca=pca,
-            include_cell_piling=False,
-            include_not_steady_state=False,
-            crop_pattern=crop_pattern,
-            compute_polar=True,
-            rescale_theta=RESCALE_THETA,
+        # load dataframe and perform additional filtering (remove
+        # non-steady-state timepoints based on annotations), computing
+        # only the columns needed for flow field estimation and analysis to save memory.
+        df = load_dataframe(dataframe_manifest.locations[dataset_name], delay=True)
+        # start with default metadata columns to keep
+        columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *column_names]
+        if crop_pattern == "tracked":
+            # also keep track ID and track length columns for tracked crops
+            columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
+        df_ = df[columns_to_compute].compute()
+        df_steady_state = filter_dataframe_by_annotations(
+            df_,
+            load_dataset_config(dataset_name),
+            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
         )
 
-        df_by_flow, shear_stress_list = split_dataset_by_flow(
-            df,
-            dataset_config,
-        )
+        df_by_flow, shear_stress_list = split_dataset_by_flow(df_steady_state, dataset_config)
 
         # compute on a per-shear stress condition basis
         for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
