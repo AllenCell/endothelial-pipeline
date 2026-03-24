@@ -43,7 +43,7 @@ def main(
     import matplotlib.pyplot as plt
     import numpy as np
 
-    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
@@ -66,7 +66,7 @@ def main(
         BIN_LIMITS_DYNAMICS,
         BIN_LIMITS_THETA_RESCALED,
         BIN_WIDTHS_DYNAMICS,
-        DEFAULT_DATASET_DYNAMICS_VIS,
+        DEFAULT_DATASETS_DYNAMICS_VIS,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
         NUM_PCS_TO_FIT_FOR_DYNAMICS,
@@ -85,7 +85,7 @@ def main(
     run_name = DEFAULT_MODEL_RUN_NAME
 
     # unpack command line inputs, using defaults if not provided
-    dataset_names = datasets or [DEFAULT_DATASET_DYNAMICS_VIS]
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
     column_name = column or ColumnName.DiffAEData.POLAR_ANGLE
 
     # get dataframe manifest for features for given crop pattern
