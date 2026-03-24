@@ -198,12 +198,16 @@ def main(
                 kernel = KramersMoyalKernel(
                     name=KERNEL_NAMES_DYNAMICS[column_name],
                     bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
-                    period=polar_angle_period if column_name == ColumnName.POLAR_ANGLE else None,
+                    period=(
+                        polar_angle_period
+                        if column_name == ColumnName.DiffAEData.POLAR_ANGLE
+                        else None
+                    ),
                 )
                 # get bins and centers for this feature, using percentile-based
                 # limits for non-polar angle features and fixed limits for polar
                 # angle feature
-                if column_name == ColumnName.POLAR_ANGLE:
+                if column_name == ColumnName.DiffAEData.POLAR_ANGLE:
                     bins, centers = get_bins(
                         bin_widths=(BIN_WIDTHS_DYNAMICS[column_name],),
                         bin_limits=[global_bin_limits_dict[column_name]],
@@ -211,7 +215,7 @@ def main(
                 else:
                     bins, centers = get_bins(
                         bin_widths=(BIN_WIDTHS_DYNAMICS[column_name],),
-                        data=[df_[column_name].to_numpy().reshape(-1, 1)],
+                        data=df_[column_name].to_numpy(),
                         lower_percentile=BIN_LIMIT_PERCENTILE_CUTOFF,
                         upper_percentile=100 - BIN_LIMIT_PERCENTILE_CUTOFF,
                     )

@@ -500,7 +500,6 @@ def main(  # noqa: C901
             # register the FMS ID in the manifest; otherwise, register the local
             # path in the manifest
             if upload_to_fms:
-                dataset_config = load_dataset_config(dataset_name)
                 fms_annotations = build_fms_annotations(
                     dataset_config,
                     additional_notes=f"Optical flow features computed with {__file__}",
@@ -515,18 +514,17 @@ def main(  # noqa: C901
                 # if dataset is not in manifest or has no FMS ID, register local
                 # path (even if upload_to_fms is False) so that results are
                 # accessible for downstream workflows
+                if optical_flow_manifest.locations[dataset_name].path != str(parquet_path):
+                    # if local path has changed (e.g. due to new output_dir), update
+                    # manifest; this is important to ensure that the manifest points
+                    # to the correct location even if upload_to_fms is False
+                    logger.warning(
+                        "Local path for dataset %s has changed from [ %s ] to [ %s ]",
+                        dataset_name,
+                        optical_flow_manifest.locations[dataset_name].path,
+                        parquet_path,
+                    )
                 optical_flow_manifest.locations[dataset_name] = DataframeLocation(path=parquet_path)
-            elif optical_flow_manifest.locations[dataset_name].path != str(parquet_path):
-                # if local path has changed (e.g. due to new output_dir), update
-                # manifest; this is important to ensure that the manifest points
-                # to the correct location even if upload_to_fms is False
-                logger.warning(
-                    "Local path for dataset %s has changed from [ %s ] to [ %s ]",
-                    dataset_name,
-                    optical_flow_manifest.locations[dataset_name].path,
-                    parquet_path,
-                )
-                optical_flow_manifest.locations[dataset_name].path = str(parquet_path)
             save_dataframe_manifest(optical_flow_manifest)
         logger.info("Dataset done in [ %.1fs ]", time.time() - dataset_start)
 
