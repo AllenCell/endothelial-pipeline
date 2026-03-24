@@ -100,7 +100,6 @@ def main(
         DataframeLocation,
         build_dataframe_location_from_path,
         create_dataframe_manifest,
-        list_datasets_with_dataframes,
         load_dataframe_manifest,
         load_model_manifest,
         save_dataframe_manifest,
@@ -187,13 +186,7 @@ def main(
 
     # Default list of datasets if not provided. Filter by datasets available in
     # the manifest.
-    valid_dataset_options = list_datasets_with_dataframes(dataframe_manifest)
-    if datasets is None:
-        dataset_names = get_datasets_in_collection(
-            DATASET_COLLECTION_FOR_3D_DYNAMICS, valid_dataset_options
-        )
-    else:
-        dataset_names = [name for name in datasets if name in valid_dataset_options]
+    dataset_names = datasets or get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
     if DEMO_MODE:
         logger.warning(
             "DEMO MODE: Processing no more than two of the provided datasets for quick testing."
@@ -212,7 +205,7 @@ def main(
     # field estimation
     kernels: list[KramersMoyalKernel] = []
     bin_widths: list[float] = []
-    rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
+    rescaled_theta_period = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
 
     # Get the corresponding kernels and bin widths for each variable. For the
     # polar angle variable, also specify the period for the kernel based on the
@@ -221,7 +214,7 @@ def main(
     for column_name in column_names:
         name = KERNEL_NAMES_DYNAMICS[column_name]
         bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
-        period = rescaled_theta if column_name == Column.DiffAEData.POLAR_ANGLE else None
+        period = rescaled_theta_period if column_name == Column.DiffAEData.POLAR_ANGLE else None
         bin_width = BIN_WIDTHS_DYNAMICS[column_name]
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
         bin_widths.append(bin_width)
@@ -246,6 +239,14 @@ def main(
         save_dataframe_manifest(output_dataframe_manifest)
 
     for dataset_name in dataset_names:
+        if dataset_name not in dataframe_manifest.locations:
+            logger.warning(
+                "No dataframe found in manifest [ %s ] for dataset [ %s ]. Skipping this dataset.",
+                dataframe_manifest_name,
+                dataset_name,
+            )
+            continue
+
         dataset_config = load_dataset_config(dataset_name)
         if len(dataset_config.shear_stress_regime) > 1:
             logger.warning(

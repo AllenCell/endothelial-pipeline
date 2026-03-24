@@ -115,11 +115,7 @@ def main(
         plot_stable_fixed_points_together,
     )
     from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
-    from endo_pipeline.manifests import (
-        get_dataframe_location_for_dataset,
-        list_datasets_with_dataframes,
-        load_dataframe_manifest,
-    )
+    from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
@@ -210,28 +206,7 @@ def main(
     # both the drift and feature dataframe manifests to avoid errors later on
     # when loading dataframes for specific datasets, and log an error if no
     # valid dataset names are provided after this filtering step
-    valid_dataset_options = list(
-        set(list_datasets_with_dataframes(drift_dataframe_manifest))
-        & set(list_datasets_with_dataframes(feature_dataframe_manifest))
-    )
-    if datasets is None:
-        dataset_names = get_datasets_in_collection(
-            DATASET_COLLECTION_FOR_3D_DYNAMICS, valid_dataset_options
-        )
-    else:
-        dataset_names = [name for name in datasets if name in valid_dataset_options]
-    if len(dataset_names) == 0:
-        logger.error(
-            "No valid dataset names provided. Dataset names in the loaded flow field dataframe manifest [ %s ] are: [ %s ]",
-            drift_dataframe_manifest_name,
-            valid_dataset_options,
-        )
-        raise ValueError("No valid dataset names provided.")
-
-    # Create output folders if they do not exist yet
-    fig_savedir = get_output_path(__file__, crop_pattern, "figs")
-    if compute_vtk:
-        vtk_savedir = get_output_path(__file__, crop_pattern, "vtk")
+    dataset_names = datasets or get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
 
     if DEMO_MODE:
         logger.warning(
@@ -243,6 +218,11 @@ def main(
         num_datasets = min(len(dataset_names), 2)
         dataset_names = dataset_names[:num_datasets]
 
+    # Create output folders if they do not exist yet
+    fig_savedir = get_output_path(__file__, crop_pattern, "figs")
+    if compute_vtk:
+        vtk_savedir = get_output_path(__file__, crop_pattern, "vtk")
+
     # Get the corresponding kernels and bin widths for each variable. For the
     # polar angle variable, also specify the period for the kernel based on the
     # rescaled theta range, to ensure that the periodicity of the polar angle is
@@ -253,12 +233,12 @@ def main(
     # bin limits if use_same_axes is False
     kernels = []
     bin_widths = []
-    rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
+    rescaled_theta_period = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
     bounds_for_plots = []
     for column_name in column_names:
         name = KERNEL_NAMES_DYNAMICS[column_name]
         bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
-        period = rescaled_theta if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
+        period = rescaled_theta_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
         bin_width = BIN_WIDTHS_DYNAMICS[column_name]
         bin_limits_col = BIN_LIMITS_DYNAMICS[column_name]
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
@@ -271,6 +251,14 @@ def main(
     stable_fixed_point_dataframe_list = []
 
     for dataset_name in dataset_names:
+        if dataset_name not in drift_dataframe_manifest.locations:
+            logger.warning(
+                "No drift coefficient dataframe found in manifest [ %s ] for dataset [ %s ]. Skipping this dataset.",
+                drift_dataframe_manifest_name,
+                dataset_name,
+            )
+            continue
+
         logger.info(f"Visualizing flow field for dataset [ {dataset_name} ]")
         # load dataframe with feature data
         # load dataframe and perform additional filtering (remove
