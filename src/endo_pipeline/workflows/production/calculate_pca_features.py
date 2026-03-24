@@ -138,7 +138,7 @@ def main(
         if upload_to_fms:
             fms_annotations = build_fms_annotations(dataset_config)
             fmsid = upload_file_to_fms(
-                output_path, annotations=fms_annotations, file_type="parquet"
+                full_pca_df_path, annotations=fms_annotations, file_type="parquet"
             )
             full_pca_location = DataframeLocation(fmsid=fmsid)
         else:
