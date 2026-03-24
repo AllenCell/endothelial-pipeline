@@ -4,6 +4,40 @@ from endo_pipeline.cli import CropPattern, Datasets
 def main(
     crop_pattern: CropPattern = "grid", datasets: Datasets | None = None, column: str | None = None
 ) -> None:
+    """
+    Workflow to compute and visualize 1D drift in a given variable.
+
+    **Workflow defaults:**
+
+    The defaults for the command line inputs are set to visualize drift in polar
+    angle for the features extracted from the grid-based crop pattern for the
+    dataset as set by `DEFAULT_DATASET_DYNAMICS_VIS`.
+
+    The defaults for the model manifest name and run name are not exposed as
+    command line inputs for this workflow, and are set to
+    `DEFAULT_MODEL_MANIFEST_NAME` and `DEFAULT_MODEL_RUN_NAME`, respectively.
+
+    The default bin widths, limits, and kernel bandwidths for computing the
+    drift are set in the settings for dynamics workflows, and are determined
+    based on the column name (see `endo_pipeline.settings.dynamics_workflows`).
+
+    The default limits for polar angle are adjusted if `RESCALE_THETA` is set to
+    True, in which case the limits are set to `BIN_LIMITS_THETA_RESCALED` and
+    the period for computing differences and kernel density estimation is set to
+    the width of the rescaled limits. For non-polar angle columns, the limits
+    are determined based on the data and the `BIN_LIMIT_PERCENTILE_CUTOFF`
+    value, which sets the lower and upper percentiles to use for determining the limits.
+
+    Parameters
+    ----------
+    crop_pattern
+        The crop pattern for the features to visualize.
+    datasets
+        The dataset(s) to visualize.
+    column
+        The column name for the variable to compute drift for.
+    """
+
     import logging
 
     import matplotlib.pyplot as plt
@@ -103,6 +137,11 @@ def main(
             compute_polar=True,
             rescale_theta=RESCALE_THETA,
         )
+
+        if column_name not in df.columns:
+            raise ValueError(
+                f"Column {column_name} not found in dataframe for dataset {dataset_name}."
+            )
 
         df_by_flow, shear_stress_list = split_dataset_by_flow(
             df,
