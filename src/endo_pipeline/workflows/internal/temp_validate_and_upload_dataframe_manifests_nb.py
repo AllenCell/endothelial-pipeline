@@ -1,4 +1,5 @@
 # %%
+from endo_pipeline.cli import DEMO_MODE
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import build_fms_annotations, load_dataframe, upload_file_to_fms
 from endo_pipeline.manifests import (
@@ -73,6 +74,10 @@ for dataset_name in dataframe_manifest.locations:
 
         if dataset_location.fmsid is not None:
             print(f"Dataset {dataset_name} is already uploaded to FMS, skipping upload.")
+            continue
+
+        if DEMO_MODE:
+            print(f"DEMO MODE: Skipping upload of dataframe for {dataset_name} to FMS.")
             continue
 
         print(f"Uploading dataframe for {dataset_name} to FMS.")
