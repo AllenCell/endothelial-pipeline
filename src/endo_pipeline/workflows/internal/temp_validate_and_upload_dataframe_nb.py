@@ -57,6 +57,11 @@ for dataset_name in dataframe_manifest.locations:
         print(
             f"Dataframe for {dataset_name} has incorrect number of timepoints ({num_timepoints_in_dataframe} != {expected_num_timepoints})."
         )
+        missing_timepoints = set(range(expected_num_timepoints)) - set(
+            dataframe[ColumnName.TIMEPOINT].unique()
+        )
+        if missing_timepoints:
+            print(f"Missing timepoints for {dataset_name}: {missing_timepoints}")
         passes_validation = False
 
     # Check that the number of positions is consistent with the number of unique
@@ -67,6 +72,11 @@ for dataset_name in dataframe_manifest.locations:
         print(
             f"Dataframe for {dataset_name} has incorrect number of positions ({num_positions_in_dataframe} != {expected_num_positions})."
         )
+        missing_positions = set(range(expected_num_positions)) - set(
+            dataframe[ColumnName.POSITION].unique()
+        )
+        if missing_positions:
+            print(f"Missing positions for {dataset_name}: {missing_positions}")
         passes_validation = False
 
     if passes_validation:
