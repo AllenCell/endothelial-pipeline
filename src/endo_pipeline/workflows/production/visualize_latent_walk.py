@@ -2,38 +2,43 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from endo_pipeline.settings import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-    DEFAULT_PCA_DATASET_COLLECTION_NAME,
-)
-
 TAGS = ["diffae_image_generation", "pc_interpretation"]
 
 
 def main(
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    dataset_collection: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     walk_on_columns: Annotated[
         list[str] | None, Parameter(name="--along", consume_multiple=True, negative_iterable=[])
+    ] = None,
+    set_column_value: Annotated[
+        dict[str, float] | None, Parameter(name="--with", negative="")
     ] = None,
     sigma: float | None = None,
     n_steps: int = 7,
     n_noise_samples: int = 1,
-    set_column_value: Annotated[
-        dict[str, float] | None, Parameter(name="--with", negative="")
-    ] = None,
 ) -> None:
     """
     Create latent walk for a given model using PC axes.
 
+    **Workflow defaults**
+
+    This workflow performs a latent walk along features in the latent space of a
+    Diffusion Autoencoder (DiffAE) model. By default, the workflow uses the
+    model and data as defined by the global constants
+    `DEFAULT_MODEL_MANIFEST_NAME`, `DEFAULT_MODEL_RUN_NAME`, and
+    `DEFAULT_PCA_DATASET_COLLECTION_NAME`, which can be set in
+    `endo_pipeline.settings.workflow_defaults`.
+
+    The model manifest name and run name are used to load the model (for image
+    generation) and the dataframe manifest of feature data (for getting the data
+    to perform the walk on). The dataset collection name is used to get the list
+    of datasets to load and concatenate to get the data for performing the walk.
+
     **Input columns**
 
     The columns to perform the latent walk along can be specified with the
-    ``walk_on_columns`` argument. If not specified, defaults to polar angle, polar
-    radius, and flipped PC3, which are the most interpretable dimensions in the
-    latent space. The CLI flag for this argument is ``--along``, e.g.,
+    `walk_on_columns` argument. If not specified, defaults to polar angle,
+    polar radius, and flipped PC3, which are the most interpretable dimensions
+    in the latent space. The CLI flag for this argument is `--along`, e.g.,
 
     .. code-block:: bash
         endopipe visualize-latent-walk --along polar_theta
@@ -43,15 +48,6 @@ def main(
     original latent space dimensions can be selected by specifying the
     corresponding column name (e.g. "feat_1", "feat_2", etc.).
 
-    **Latent walk ranges**
-
-    The range of the latent walk can be specified with the ``sigma`` argument,
-    which indicates the number of standard deviations from the mean to traverse
-    for the latent walk. For example, if sigma=2, the latent walk will traverse
-    (-2, -1, 0, 1, 2) standard deviations along the selected dimensions. If not
-    specified, the latent walk will traverse the full range of the data in each
-    dimension.
-
     **Setting values of other columns when generating the latent walk**
 
     By default, when generating the latent walk, the values of all columns other
@@ -60,7 +56,7 @@ def main(
     values of certain columns to specific values instead of the mean when
     generating the latent walk.
 
-    The option ``set_column_value`` allows you to do this by providing a
+    The option `set_column_value` allows you to do this by providing a
     dictionary where the keys are the column names and the values are the
     specific values you want to set for those columns when generating the latent
     walk.
@@ -68,23 +64,30 @@ def main(
     For example, you may want to set the polar radius to be equal to 1.0 when
     traversing along the polar angle dimension to see how changing the polar
     angle affects the images at that specific radius. To do this, you would set
-    ``set_column_value`` to ``{"polar_r": 1.0}`` where "polar_r" is the name of
+    `set_column_value` to `{"polar_r": 1.0}` where "polar_r" is the name of
     the column corresponding to the polar radius in your data. This is done via
-    the command line flag ``--with`` as follows:
+    the command line flag `--with` as follows:
 
     .. code-block:: bash
         endopipe visualize-latent-walk --along polar_theta --with.polar_r 1.0
 
+    **Latent walk ranges**
+
+    The range of the latent walk can be specified with the `sigma` argument,
+    which indicates the number of standard deviations from the mean to traverse
+    for the latent walk. For example, if sigma=2, the latent walk will traverse
+    -2 to 2 standard deviations along the selected dimensions with `n_steps` steps. If not
+    specified, the latent walk will traverse the full range of the data in each
+    dimension.
+
     Parameters
     ----------
-    model_manifest_name
-        Name of the model manifest containing the specific run to load.
-    run_name
-        Run name corresponding to the model to load. If None, uses the most
-        recent run.
     walk_on_columns
         List of column names corresponding to the dimensions to perform the
         latent walk along.
+    set_column_value
+        Optional, dictionary mapping column names to values to set for those
+        columns when generating the latent walk.
     sigma
         Optional, number of standard deviations from the mean to traverse for
         the latent walk.
@@ -92,9 +95,6 @@ def main(
         Number of steps in the latent walk.
     n_noise_samples
         Number of noise samples to use for generating images.
-    set_column_value
-        Optional, dictionary mapping column names to values to set for those
-        columns when generating the latent walk.
     """
 
     import pandas as pd
@@ -117,28 +117,33 @@ def main(
     from endo_pipeline.library.visualize.latent_walk import plot_latent_walk_as_grid
     from endo_pipeline.manifests import (
         get_dataframe_location_for_dataset,
-        get_most_recent_run_name,
         load_dataframe_manifest,
         load_model_manifest,
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+        DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    )
 
     # load model manifest, get run name, and load model
+    model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
+    run_name = DEFAULT_MODEL_RUN_NAME
     model_manifest = load_model_manifest(model_manifest_name)
-    run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
-    model = load_model(model_manifest.locations[run_name_], instantiate=True)
+    model = load_model(model_manifest.locations[run_name], instantiate=True)
     if not isinstance(model, DiffusionAutoEncoder):
         raise ValueError(
-            f"Model loaded from {model_manifest_name} with run name {run_name_} is not a DiffusionAutoEncoder."
+            f"Model loaded from {model_manifest_name} with run name {run_name} is not a DiffusionAutoEncoder."
         )
 
     # set up output directory
-    save_path = get_output_path("latent_walks", model_manifest_name, run_name_)
+    save_path = get_output_path(__file__)
 
     # load model configuration and reference dataset manifests
-    dataframe_manifest_name = f"{model_manifest.name}_{run_name_}_grid_pca_filtered"
+    dataframe_manifest_name = f"{model_manifest.name}_{run_name}_grid_pca_filtered"
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
-    dataset_names = get_datasets_in_collection(dataset_collection)
+    dataset_names = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
     # default column names if none provided
     # default column names for walk if none provided
