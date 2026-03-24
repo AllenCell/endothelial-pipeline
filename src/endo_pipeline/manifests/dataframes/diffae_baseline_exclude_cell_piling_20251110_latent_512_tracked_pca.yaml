@@ -1,0 +1,124 @@
+name: diffae_baseline_exclude_cell_piling_20251110_latent_512_tracked_pca
+workflow: endo_pipeline.workflows.production
+parameters: {}
+locations:
+  20250224_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20250224_20X_tracked_pca.parquet
+    s3uri: null
+  20250319_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20250319_20X_tracked_pca.parquet
+    s3uri: null
+  20250326_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20250326_20X_tracked_pca.parquet
+    s3uri: null
+  20250402_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20250402_20X_tracked_pca.parquet
+    s3uri: null
+  20250409_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20250409_20X_tracked_pca.parquet
+    s3uri: null
+  20250428_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20250428_20X_tracked_pca.parquet
+    s3uri: null
+  20250604_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20250604_20X_tracked_pca.parquet
+    s3uri: null
+  20250611_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20250611_20X_tracked_pca.parquet
+    s3uri: null
+  20250618_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20250618_20X_tracked_pca.parquet
+    s3uri: null
+  20250714_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20250714_20X_tracked_pca.parquet
+    s3uri: null
+  20250716_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20250716_20X_tracked_pca.parquet
+    s3uri: null
+  20250728_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20250728_20X_tracked_pca.parquet
+    s3uri: null
+  20250806_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20250806_20X_tracked_pca.parquet
+    s3uri: null
+  20250813_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20250813_20X_tracked_pca.parquet
+    s3uri: null
+  20250818_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20250818_20X_tracked_pca.parquet
+    s3uri: null
+  20250825_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20250825_20X_tracked_pca.parquet
+    s3uri: null
+  20250827_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20250827_20X_tracked_pca.parquet
+    s3uri: null
+  20251001_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20251001_20X_tracked_pca.parquet
+    s3uri: null
+  20260114_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20260114_20X_tracked_pca.parquet
+    s3uri: null
+  20260121_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20260121_20X_tracked_pca.parquet
+    s3uri: null
+  20260126_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20260126_20X_tracked_pca.parquet
+    s3uri: null
+  20260128_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20260128_20X_tracked_pca.parquet
+    s3uri: null
+  20260202_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20260202_20X_tracked_pca.parquet
+    s3uri: null
+  20260204_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20260204_20X_tracked_pca.parquet
+    s3uri: null
+  20260209_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20260209_20X_tracked_pca.parquet
+    s3uri: null
+  20260211_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20260211_20X_tracked_pca.parquet
+    s3uri: null
+  20260216_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20260216_20X_tracked_pca.parquet
+    s3uri: null
+  20260218_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20260218_20X_tracked_pca.parquet
+    s3uri: null
+  20260225_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20260225_20X_tracked_pca.parquet
+    s3uri: null
+  20260302_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-23/calculate_pca_features/20260302_20X_tracked_pca.parquet
+    s3uri: null
