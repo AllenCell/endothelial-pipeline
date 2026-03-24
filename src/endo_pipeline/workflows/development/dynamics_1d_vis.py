@@ -43,6 +43,7 @@ def main(
     import matplotlib.pyplot as plt
     import numpy as np
 
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
@@ -196,6 +197,11 @@ def main(
             ax.set_ylabel(f"Drift in {variable_label}")
             ax.set_title(fig_title)
             save_plot_to_path(fig, fig_savedir, f"{dataset_name_flow}_drift_{column_name}.png")
+            plt.close(fig)
+
+        if DEMO_MODE:
+            logger.warning("DEMO MODE: only running workflow on first available dataset.")
+            break
 
 
 if __name__ == "__main__":
