@@ -175,7 +175,7 @@ def main(
                     crop_pattern=crop_pattern,
                 )
                 df_grid = pd.concat([df_grid, df_grid_new], ignore_index=True)
-            df_grid = df_grid.reset_index()
+            df_grid = df_grid.reset_index(drop=True)
 
         # add the optical flow features to the grid-based dataframe
         df_grid = add_optical_flow_features(
