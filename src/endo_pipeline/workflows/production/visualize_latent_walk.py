@@ -2,8 +2,6 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-TAGS = ["diffae_image_generation", "pc_interpretation"]
-
 
 def main(
     walk_on_columns: Annotated[
@@ -18,6 +16,8 @@ def main(
 ) -> None:
     """
     Create latent walk for a given model using PC axes.
+
+    #diffae_image_generation #pc_interpretation
 
     **Workflow defaults**
 
