@@ -20,6 +20,10 @@ from endo_pipeline.settings.flow_field_dataframes import (
 from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP,
     MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
+    MIGRATION_COHERENCE_HIST_BINWIDTH,
+    MIGRATION_COHERENCE_HIST_FIGSIZE,
+    MIGRATION_COHERENCE_HIST_NUM_BINS,
+    MIGRATION_COHERENCE_HIST_PLOT_KDE,
 )
 
 logger = logging.getLogger(__name__)
@@ -305,17 +309,12 @@ def plot_fixed_points_vs_shear_stress(
         Optional ``(ymin, ymax)`` limits for the y-axis.
     """
 
-    # Sort shear stress categories from lowest to highest
-    shear_order = sorted(
-        df_fp["shear_stress"].unique(),
-        key=lambda s: float(s.split("-")[0]),
+    # Convert shear stress to numeric values for proper axis scaling
+    df_fp = df_fp.copy()
+    df_fp["shear_stress_numeric"] = df_fp["shear_stress"].apply(
+        lambda s: float(s.split("-")[0]) if isinstance(s, str) else float(s)
     )
-    df_fp["shear_stress"] = pd.Categorical(
-        df_fp["shear_stress"],
-        categories=shear_order,
-        ordered=True,
-    )
-    df_fp = df_fp.sort_values("shear_stress")
+    df_fp = df_fp.sort_values("shear_stress_numeric")
 
     # Build legend handles
     legend_handles = make_legend_handles_for_fixed_pts(
@@ -329,7 +328,7 @@ def plot_fixed_points_vs_shear_stress(
         mk = STABILITY_MARKER_DICT.get(stability, "o")
         clr = STABILITY_COLOR_DICT.get(stability, "gray")
         ax.scatter(
-            row["shear_stress"],
+            row["shear_stress_numeric"],
             row[variable],
             marker=mk,
             color=clr,
@@ -354,4 +353,148 @@ def plot_fixed_points_vs_shear_stress(
     fig.tight_layout(rect=(0, 0, 0.85, 1))
     plt.show()
     save_plot_to_path(fig, output_dir, f"fixed_points_{variable}_vs_shear_stress")
+    plt.close(fig)
+
+
+def plot_optical_flow_histogram(
+    df: pd.DataFrame,
+    optical_flow_feature: str,
+    title: str,
+    color: str,
+    output_dir: Path,
+    filename: str,
+) -> None:
+    """Plot and save a histogram of an optical flow feature for a single dataset/flow condition.
+
+    Parameters
+    ----------
+    df
+        DataFrame containing the optical flow feature column.
+    optical_flow_feature
+        Name of the optical flow feature column to plot.
+    title
+        Plot title (e.g. dataset name and shear stress).
+    color
+        Color of the histogram bars.
+    output_dir
+        Directory where the figure is saved.
+    filename
+        Filename (without extension) for the saved figure.
+    """
+    import seaborn as sns
+
+    data = df[optical_flow_feature]
+    flow_mean = data.mean()
+    flow_std = data.std()
+
+    fig, ax = plt.subplots(figsize=MIGRATION_COHERENCE_HIST_FIGSIZE)
+    sns.histplot(
+        data,
+        bins=MIGRATION_COHERENCE_HIST_NUM_BINS,
+        kde=MIGRATION_COHERENCE_HIST_PLOT_KDE,
+        binwidth=MIGRATION_COHERENCE_HIST_BINWIDTH,
+        ax=ax,
+        color=color,
+    )
+    ax.axvline(flow_mean, color="black", linestyle="--", linewidth=1)
+    ax.text(
+        0.05,
+        0.95,
+        f"\u03bc = {flow_mean:.3f}\n\u03c3 = {flow_std:.3f}",
+        transform=ax.transAxes,
+        ha="left",
+        va="top",
+        fontsize=9,
+        bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.8},
+    )
+    ax.set_xlabel(optical_flow_feature)
+    ax.set_ylabel("Count")
+    ax.set_title(title)
+    fig.tight_layout()
+    save_plot_to_path(fig, output_dir, filename)
+    plt.close(fig)
+
+
+def plot_mean_vs_shear_stress_summary(
+    summary_stats: list[dict],
+    optical_flow_feature: str,
+    output_dir: Path,
+    df_fp_all: pd.DataFrame | None = None,
+) -> None:
+    """Plot mean optical flow feature vs shear stress across datasets.
+
+    Parameters
+    ----------
+    summary_stats
+        List of dicts with keys ``"shear_stress"``, ``"mean"``, ``"std"``,
+        ``"color"``, and ``"label"`` for each dataset/flow condition.
+    optical_flow_feature
+        Name of the optical flow feature being summarized.
+    output_dir
+        Directory where the figure is saved.
+    df_fp_all
+        Optional concatenated fixed-points dataframe (with ``"shear_stress"``
+        column from :func:`add_shear_stress_to_df`). If provided, fixed points
+        are overlaid on the plot.
+    """
+    summary_stats_sorted = sorted(summary_stats, key=lambda s: s["shear_stress"])
+    fig, ax = plt.subplots(figsize=(10, 5))
+    for stat in summary_stats_sorted:
+        ax.errorbar(
+            stat["shear_stress"],
+            stat["mean"],
+            yerr=stat["std"],
+            fmt="o",
+            color=stat["color"],
+            markersize=8,
+            capsize=4,
+            elinewidth=1.5,
+            label=stat["label"],
+        )
+    ax.set_xlabel("shear stress (dyn/cm\u00b2)", fontsize=10)
+    ax.set_ylabel(f"mean {optical_flow_feature}", fontsize=10)
+    if optical_flow_feature == "optical_flow_mean_unit_vector_dt1":
+        ax.set_ylim(0, 1)
+    ax.legend(
+        loc="lower center",
+        bbox_to_anchor=(0.5, 1.02),
+        frameon=False,
+        fontsize=8,
+    )
+
+    # overlay fixed points on the summary plot
+    if df_fp_all is not None:
+        mean_of_col = f"mean_{optical_flow_feature}"
+        df_fp_all = df_fp_all.copy()
+        df_fp_all["shear_stress_numeric"] = df_fp_all["shear_stress"].apply(
+            lambda s: float(s.split("-")[-1]) if isinstance(s, str) else float(s)
+        )
+        for _, row in df_fp_all.iterrows():
+            stability = row[STABILITY_COLUMN_NAME]
+            mk = STABILITY_MARKER_DICT.get(stability, "o")
+            clr = STABILITY_COLOR_DICT.get(stability, "gray")
+            ax.scatter(
+                row["shear_stress_numeric"],
+                row[mean_of_col],
+                marker=mk,
+                color=clr,
+                edgecolor="black",
+                s=100,
+                zorder=5,
+            )
+        legend_handles = make_legend_handles_for_fixed_pts(
+            df_fp_all[STABILITY_COLUMN_NAME].unique().tolist()
+        )
+        ax.legend(
+            handles=[*ax.get_legend_handles_labels()[0], *legend_handles],
+            loc="lower center",
+            bbox_to_anchor=(0.5, 1.02),
+            frameon=False,
+            fontsize=8,
+            ncol=3,
+        )
+
+    ax.grid(axis="y", alpha=0.3)
+    fig.tight_layout()
+    save_plot_to_path(fig, output_dir, f"{optical_flow_feature}_mean_vs_shear_stress")
     plt.close(fig)

@@ -11,7 +11,6 @@ def main(
 
     import matplotlib.pyplot as plt
     import pandas as pd
-    import seaborn as sns
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
@@ -34,6 +33,7 @@ def main(
     from endo_pipeline.library.visualize.migration_coherence import (
         plot_3d_scatter_or_binned,
         plot_fixed_points_vs_shear_stress,
+        plot_optical_flow_histogram,
         plot_scatter_and_binned_heatmap,
     )
     from endo_pipeline.manifests import (
@@ -50,13 +50,7 @@ def main(
         STABILITY_COLUMN_NAME,
         STABILITY_MARKER_DICT,
     )
-    from endo_pipeline.settings.migration_coherence import (
-        MIGRATION_COHERENCE_CROP_PATTERN,
-        MIGRATION_COHERENCE_HIST_BINWIDTH,
-        MIGRATION_COHERENCE_HIST_FIGSIZE,
-        MIGRATION_COHERENCE_HIST_NUM_BINS,
-        MIGRATION_COHERENCE_HIST_PLOT_KDE,
-    )
+    from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -83,9 +77,7 @@ def main(
 
     # If datasets aren't provided, default to processing a default list of
     # datasets
-    dataset_names = datasets or get_datasets_in_collection(
-        "diffae_model_training"
-    ) + get_datasets_in_collection("replicate_2_datasets")
+    dataset_names = datasets or get_datasets_in_collection("optical_flow_analysis")
 
     # if in demo mode, only process the first dataset and log a warning
     if DEMO_MODE:
@@ -95,13 +87,10 @@ def main(
             dataset_names[0],
         )
 
-    # initialize a single figure and axis for plotting the distribution of
-    # optical flow features across datasets, which will be saved at the end of
-    # the loop after plotting all datasets on the same axis
-    fig_hist, ax_hist = plt.subplots(figsize=MIGRATION_COHERENCE_HIST_FIGSIZE)
-
     # Load optical flow features and plot against diffae features
     df_fp_all_list: list[pd.DataFrame] = []
+    # collect per-dataset summary stats for the mean coherence summary plot
+    summary_stats: list[dict[str, float | str]] = []
     for dataset_name in dataset_names:
         if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
@@ -134,19 +123,29 @@ def main(
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
             plot_label = f"{dataset_name}, ({shear_stress} dyn/cm$^2$)"
 
-            # add to running plot of optical flow feature distribution across
-            # datasets by plotting the distribution for this dataset and flow
-            # condition on the shared axis (ax_hist), using a different color
-            # for each dataset and flow condition combination
             hist_color = get_dataset_color(dataset_name)
-            sns.histplot(
-                df_flow[optical_flow_feature],
-                bins=MIGRATION_COHERENCE_HIST_NUM_BINS,
-                kde=MIGRATION_COHERENCE_HIST_PLOT_KDE,
-                label=plot_label,
-                binwidth=MIGRATION_COHERENCE_HIST_BINWIDTH,
-                ax=ax_hist,
+
+            # compute mean and std for this dataset/flow condition
+            flow_mean = df_flow[optical_flow_feature].mean()
+            flow_std = df_flow[optical_flow_feature].std()
+            summary_stats.append(
+                {
+                    "label": plot_label,
+                    "shear_stress": shear_stress,
+                    "mean": flow_mean,
+                    "std": flow_std,
+                    "color": hist_color,
+                }
+            )
+
+            # save individual histogram for this dataset and flow condition
+            plot_optical_flow_histogram(
+                df=df_flow,
+                optical_flow_feature=optical_flow_feature,
+                title=plot_label,
                 color=hist_color,
+                output_dir=output_dir,
+                filename=f"{dataset_name_flow}_{optical_flow_feature}_distribution",
             )
 
             # initialize fixed_points_dataframe to None in case we aren't plotting
@@ -309,10 +308,13 @@ def main(
             ColumnName.DiffAEData.PC3_FLIPPED,
             f"mean_{optical_flow_feature}",
         ]
-        labels = ["\u03b8", "r", "\u03c1", "migration coherence"]
+        if optical_flow_feature == "optical_flow_mean_unit_vector_dt1":
+            labels = ["\u03b8", "r", "\u03c1", "migration coherence"]
+        if optical_flow_feature == "optical_flow_mean_speed_dt1":
+            labels = ["\u03b8", "r", "\u03c1", "migration speed"]
 
         for var, label in zip(variables, labels, strict=False):
-            ylim = (0, 1) if var == f"mean_{optical_flow_feature}" else None
+            ylim = (0, 1) if var == "mean_optical_flow_mean_unit_vector_dt1" else None
             plot_fixed_points_vs_shear_stress(
                 df_fp_all,
                 var,
@@ -321,22 +323,18 @@ def main(
                 ylim=ylim,
             )
 
-    # after plotting all datasets on the same axis, save the optical flow feature distribution plot
-    ax_hist.set_xlabel(optical_flow_feature)
-    ax_hist.set_ylabel("Count")
-    ax_hist.legend(
-        loc="lower center",
-        bbox_to_anchor=(0.5, 1.02),
-        frameon=False,
-        fontsize=8,
-    )
-    fig_hist.tight_layout()
-    save_plot_to_path(
-        fig_hist,
-        get_output_path(__file__),
-        f"{optical_flow_feature}_all_datasets_distribution",
-    )
-    plt.close(fig_hist)
+    # --- Summary plot: mean coherence metric per dataset vs shear stress ---
+    if summary_stats:
+        from endo_pipeline.library.visualize.migration_coherence import (
+            plot_mean_vs_shear_stress_summary,
+        )
+
+        plot_mean_vs_shear_stress_summary(
+            summary_stats=summary_stats,
+            optical_flow_feature=optical_flow_feature,
+            df_fp_all=df_fp_all if df_fp_all_list else None,
+            output_dir=get_output_path(__file__),
+        )
 
 
 if __name__ == "__main__":
