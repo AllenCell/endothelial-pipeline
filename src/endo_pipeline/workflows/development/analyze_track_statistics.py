@@ -21,7 +21,10 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
         filter_dataframe_by_annotations,
         filter_dataframe_by_track_length,
     )
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
+    from endo_pipeline.library.visualize.diffae_features.feature_viz import (
+        get_dataset_color,
+        get_label_for_column,
+    )
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
@@ -44,6 +47,9 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
     column_names: list[ColumnName.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
+    variable_labels_dict = {
+        col: get_label_for_column(col).replace("polar ", "") for col in column_names
+    }
 
     # Load dataframe manifest for the features to be used in flow field
     # estimation and analysis.
@@ -142,6 +148,7 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
         # plot histograms of the column averages and variances across trajectories
         # for each column
         for column_name in column_names:
+            variable_label = variable_labels_dict[column_name]
             fig, ax = plt.subplots(1, 2, figsize=(12, 5))
             sns.histplot(
                 column_avg_df[column_name],
@@ -151,26 +158,26 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
                 binwidth=0.1,
                 ax=ax[0],
             )
-            ax[0].set_title(f"Histogram of average {column_name} across trajectories")
-            ax[0].set_xlabel(f"$\\langle${column_name}$\\rangle$")
+            ax[0].set_title(f"Histogram of average {variable_label} across trajectories")
+            ax[0].set_xlabel(f"$\\langle${variable_label}$\\rangle$")
             ax[0].set_xlim(bin_limits_dict[column_name])
-            ax[0].set_ylabel(f"P($\\langle${column_name}$\\rangle$)")
+            ax[0].set_ylabel(f"P($\\langle${variable_label}$\\rangle$)")
 
             sns.histplot(
                 column_variance_df[column_name],
                 kde=True,
                 stat="density",
                 color=hist_color,
-                binwidth=0.005,
+                binwidth=0.02,
                 ax=ax[1],
             )
-            ax[1].set_title(f"Histogram of variance of {column_name} across trajectories")
+            ax[1].set_title(f"Histogram of variance of {variable_label} across trajectories")
             ax[1].set_xlabel(
-                f"$\\langle$({column_name} - $\\langle${column_name}$\\rangle$)$^2$$\\rangle$"
+                f"$\\langle$({variable_label} - $\\langle${variable_label}$\\rangle$)$^2$$\\rangle$"
             )
             ax[1].set_xlim((-0.01, 0.9))
             ax[1].set_ylabel(
-                f"P($\\langle$({column_name} - $\\langle${column_name}$\\rangle$)$^2$$\\rangle$)"
+                f"P($\\langle$({variable_label} - $\\langle${variable_label}$\\rangle$)$^2$$\\rangle$)"
             )
 
             plt.suptitle(plot_label)
