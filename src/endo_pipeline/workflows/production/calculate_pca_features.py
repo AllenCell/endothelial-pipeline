@@ -2,8 +2,8 @@ from endo_pipeline.cli import CropPattern, Datasets
 
 
 def main(
-    datasets: Datasets | None = None,
     crop_pattern: CropPattern = "grid",
+    datasets: Datasets | None = None,
     upload_to_fms: bool = False,
 ) -> None:
     """
@@ -33,10 +33,10 @@ def main(
 
     Parameters
     ----------
-    datasets
-        Dataset(s) or dataset collections(s) to process.
     crop_pattern
         Crop pattern used to generate the feature dataframe.
+    datasets
+        Dataset(s) or dataset collections(s) to process.
     upload_to_fms
         If true, upload dataframe(s) to FMS and track FMS ID via dataframe
         manifest. Else, save dataframe(s) locally.
