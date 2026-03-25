@@ -15,9 +15,10 @@ METADATA_COLUMNS_TO_KEEP: tuple[str, ...] = (
     Column.DiffAEData.END_Y,
 )
 
-TRACK_METADATA_COLUMNS_TO_KEEP: tuple[str, ...] = (
+TRACK_METADATA_COLUMNS_TO_KEEP: tuple[str | Column.SegDataFilters, ...] = (
     Column.TRACK_ID,
     Column.TRACK_LENGTH,
+    Column.SegDataFilters.IS_INCLUDED,
 )
 
 DYNAMICS_COLUMN_NAMES: tuple[str, ...] = (
