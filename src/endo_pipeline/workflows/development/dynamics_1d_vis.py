@@ -39,6 +39,7 @@ def main(
     """
 
     import logging
+    from typing import cast
 
     import matplotlib.pyplot as plt
     import numpy as np
@@ -101,7 +102,9 @@ def main(
 
     # unpack default bin widths and limits for each column, adjusting limits if
     # rescaling theta
-    global_bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
+    global_bin_limits_dict = cast(
+        dict[str | ColumnName.DiffAEData, tuple[float, float]], BIN_LIMITS_DYNAMICS.copy()
+    )
     if RESCALE_THETA:
         global_bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
     polar_angle_period = (
