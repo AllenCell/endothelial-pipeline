@@ -69,7 +69,6 @@ def main(
         save the output dataframes locally and log paths.
     """
     import logging
-    from typing import Any, cast
 
     import numpy as np
     import pandas as pd
@@ -298,21 +297,18 @@ def main(
             traj_list, d_traj_list, bins=bins, dt=TIME_STEP_IN_MINUTES / 60, kernel=kernels
         )[0]
         feature_grid = np.meshgrid(*centers, indexing="ij")
-        drift_dict = {
-            drift_column_names[index]: drift_coeffs[..., index].flatten().tolist()
-            for index in range(len(drift_column_names))
-        }
-        grid_dict = {
-            column_names[index]: feature_grid[index].flatten().tolist()
-            for index in range(len(column_names))
-        }
 
-        # build dataframe with columns for bin centers in each of the three dimensions and
-        # the corresponding drift coefficients, to be used for visualization workflow
-        df_cols = cast(
-            dict[str, Any], {ColumnName.DATASET: dataset_name, **drift_dict, **grid_dict}
+        # build dataframe with columns for bin centers in each of the three
+        # dimensions and the corresponding drift coefficients
+        vector_field_df = pd.DataFrame(
+            columns=[ColumnName.DATASET, *drift_column_names, *column_names]
         )
-        vector_field_df = pd.DataFrame(df_cols)
+        for index, column_name, drift_column_name in zip(
+            (0, 1, 2), column_names, drift_column_names, strict=True
+        ):
+            vector_field_df[column_name] = feature_grid[index].flatten()
+            vector_field_df[drift_column_name] = drift_coeffs[..., index].flatten()
+        vector_field_df[ColumnName.DATASET] = dataset_name
 
         # save drift coefficients and grid points dataframes to parquet files,
         # with names that include the input dataframe manifest name for

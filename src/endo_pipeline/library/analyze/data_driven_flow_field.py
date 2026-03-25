@@ -17,7 +17,7 @@ from endo_pipeline.library.visualize.diffae_features.pplane import (
     get_fpts,
     get_stability_label_from_fpt_type,
 )
-from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED
 from endo_pipeline.settings.flow_field_3d import SAMPLER_RANDOM_SEED
 from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
@@ -91,7 +91,7 @@ def _compute_percentile_values(
     """
     percentile_values: dict[str, float] = {}
     for column_name in column_names:
-        if column_name == Column.DiffAEData.POLAR_ANGLE:
+        if column_name == ColumnName.DiffAEData.POLAR_ANGLE:
             percentile_value = circpercentile(data[column_name], q=q, polar_range=polar_angle_range)
         else:
             percentile_value = np.percentile(data[column_name], q=q)
@@ -166,7 +166,7 @@ def is_point_within_percentile_bounds(
     for point_component, column_name in zip(point, column_names, strict=True):
         lower_bound = lower_percentile_bounds[column_name]
         upper_bound = upper_percentile_bounds[column_name]
-        if column_name == Column.DiffAEData.POLAR_ANGLE:
+        if column_name == ColumnName.DiffAEData.POLAR_ANGLE:
             # for circular variables, need to account for bounds wrapping around
             if lower_bound <= upper_bound:
                 is_within_bounds.append(
@@ -189,7 +189,7 @@ def is_point_within_percentile_bounds(
 def get_fixed_points_within_bounds(
     vector_field_function: Callable[[np.ndarray], np.ndarray],
     dataframe: pd.DataFrame,
-    column_names: list[str],
+    column_names: list[str | ColumnName.DiffAEData],
     num_inits_for_root_solver: int,
     lower_percentile: float,
     upper_percentile: float,
@@ -239,10 +239,10 @@ def get_fixed_points_within_bounds(
         points filtered by percentile range).
     """
     check_required_columns_in_dataframe(
-        dataframe, [*column_names, Column.DATASET]
+        dataframe, [*column_names, ColumnName.DATASET]
     )  # check required columns are in dataframe
     feature_data = dataframe[column_names].to_numpy()  # get feature data as numpy array
-    dataset_name = dataframe[Column.DATASET].iloc[0]  # get dataset name from dataframe
+    dataset_name = dataframe[ColumnName.DATASET].iloc[0]  # get dataset name from dataframe
 
     # create Jacobian function for finding stability of fixed points
     vector_field_jacobian = Jacobian(vector_field_function)
@@ -281,7 +281,7 @@ def get_fixed_points_within_bounds(
             fpts_high_confidence_list.append(
                 pd.DataFrame(
                     {
-                        Column.DATASET: [dataset_name],
+                        ColumnName.DATASET: [dataset_name],
                         stability_label_column_name: [fpt_stability_label],
                         column_names[0]: [fpt[0]],
                         column_names[1]: [fpt[1]],
@@ -298,7 +298,9 @@ def get_fixed_points_within_bounds(
             "Consider adjusting percentile thresholds or number of initial conditions for root solver.",
             dataset_name,
         )
-        return pd.DataFrame(columns=[Column.DATASET, stability_label_column_name, *column_names])
+        return pd.DataFrame(
+            columns=[ColumnName.DATASET, stability_label_column_name, *column_names]
+        )
 
     # else, concatenate the list of dataframes for each fixed point into a
     # single dataframe and return it

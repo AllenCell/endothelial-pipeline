@@ -87,6 +87,7 @@ def main(
     """
     import logging
     from pathlib import Path
+    from typing import cast
 
     import numpy as np
     import pandas as pd
@@ -301,8 +302,9 @@ def main(
             ]
             if not stable_fixed_point_subset.empty:
                 stable_fixed_point_dataframe_list.append(stable_fixed_point_subset)
+                column_names_ = cast(list[str], column_names)
                 for _, row in stable_fixed_point_subset.iterrows():
-                    stable_fixed_points_list.append(row[column_names].to_numpy())
+                    stable_fixed_points_list.append(row[column_names_].to_numpy())
             else:
                 logger.warning(
                     "No stable fixed points found for dataset [ %s ] in fixed point dataframe [ %s ].",
