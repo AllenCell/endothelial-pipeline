@@ -69,7 +69,7 @@ def main(
         save the output dataframes locally and log paths.
     """
     import logging
-    from typing import Any
+    from typing import Any, cast
 
     import numpy as np
     import pandas as pd
@@ -298,18 +298,20 @@ def main(
             traj_list, d_traj_list, bins=bins, dt=TIME_STEP_IN_MINUTES / 60, kernel=kernels
         )[0]
         feature_grid = np.meshgrid(*centers, indexing="ij")
-        drift_dict: dict[str, list[float]] = {
+        drift_dict = {
             drift_column_names[index]: drift_coeffs[..., index].flatten().tolist()
             for index in range(len(drift_column_names))
         }
-        grid_dict: dict[ColumnName.DiffAEData, list[float]] = {
+        grid_dict = {
             column_names[index]: feature_grid[index].flatten().tolist()
             for index in range(len(column_names))
         }
 
         # build dataframe with columns for bin centers in each of the three dimensions and
         # the corresponding drift coefficients, to be used for visualization workflow
-        df_cols: dict[str, Any] = {ColumnName.DATASET: dataset_name, **drift_dict, **grid_dict}
+        df_cols = cast(
+            dict[str, Any], {ColumnName.DATASET: dataset_name, **drift_dict, **grid_dict}
+        )
         vector_field_df = pd.DataFrame(df_cols)
 
         # save drift coefficients and grid points dataframes to parquet files,
