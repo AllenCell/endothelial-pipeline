@@ -136,6 +136,11 @@ def main(
         full_pca_df.to_parquet(full_pca_df_path, index=False)
 
         if upload_to_fms:
+            additional_notes = f"Dataframe with PCA features calculated from DiffAE latent features for {crop_pattern} crops."
+            filter_note = "No filtering has been applied."
+            fms_annotations = build_fms_annotations(
+                dataset_config, additional_notes=f"{additional_notes} {filter_note}"
+            )
             fms_annotations = build_fms_annotations(dataset_config)
             fmsid = upload_file_to_fms(
                 full_pca_df_path, annotations=fms_annotations, file_type="parquet"
@@ -171,7 +176,10 @@ def main(
             filtered_pca_df.to_parquet(filtered_pca_df_path, index=False)
 
             if upload_to_fms:
-                fms_annotations = build_fms_annotations(dataset_config)
+                filter_note = "Filtering by timepoint and position annotations has been applied."
+                fms_annotations = build_fms_annotations(
+                    dataset_config, additional_notes=f"{additional_notes} {filter_note}"
+                )
                 fmsid = upload_file_to_fms(
                     filtered_pca_df_path, annotations=fms_annotations, file_type="parquet"
                 )

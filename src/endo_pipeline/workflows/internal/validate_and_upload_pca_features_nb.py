@@ -21,7 +21,7 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
 )
 
 # %%
-crop_pattern = "tracked"  # can swap out for 'tracked'
+crop_pattern = "grid"  # can swap out for 'tracked'
 dataframe_manifest_name = (
     f"diffae_baseline_exclude_cell_piling_20251110_latent_512_{crop_pattern}_pca"
 )
@@ -114,13 +114,21 @@ for dataset_name in dataframe_manifest.locations:
                 continue
 
             print(f"Uploading dataframe for {dataset_name} to FMS.")
-            fms_annotations = build_fms_annotations(dataset_config)
+            filter_note = (
+                "Filtering by timepoint and position annotations has been applied."
+                if manifest == filtered_dataframe_manifest
+                else "No filtering has been applied."
+            )
+            additional_notes = f"Dataframe with PCA features calculated from DiffAE latent features for {crop_pattern} crops. {filter_note}"
+            fms_annotations = build_fms_annotations(
+                dataset_config, additional_notes=additional_notes
+            )
 
-            full_pca_fmsid = upload_file_to_fms(
+            pca_fmsid = upload_file_to_fms(
                 dataframe_location.path, annotations=fms_annotations, file_type="parquet"
             )
-            dataframe_manifest.locations[dataset_name] = DataframeLocation(fmsid=full_pca_fmsid)
-            save_dataframe_manifest(dataframe_manifest)
+            manifest.locations[dataset_name] = DataframeLocation(fmsid=pca_fmsid)
+            save_dataframe_manifest(manifest)
         else:
             print(f"Dataframe for {dataset_name} failed validation, skipping upload to FMS.")
 # %%
