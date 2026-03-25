@@ -36,11 +36,6 @@ LOG_EPSILON: float = 1e-12
 NUM_ZSLICES: int = 25
 """Number of z-slices per timepoint."""
 
-IF_INTEGRATION_SAVE_DIRECTORY: str = (
-    "//allen/aics/endothelial/morphological_features/IF_integration"
-)
-"""Default production directory to save IF integration results."""
-
 PIXEL_SIZE_3i_20x: float = 0.325
 """Pixel size for the 3i 20x objective in micrometers."""
 
