@@ -59,7 +59,11 @@ def main(
     import numpy as np
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
+    from endo_pipeline.configs import (
+        TimepointAnnotation,
+        get_datasets_in_collection,
+        load_dataset_config,
+    )
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         filter_dataframe_by_annotations,
@@ -84,7 +88,7 @@ def main(
         BIN_LIMITS_DYNAMICS,
         BIN_LIMITS_THETA_RESCALED,
         BIN_WIDTHS_DYNAMICS,
-        DEFAULT_DATASET_DYNAMICS_VIS,
+        DEFAULT_DATASETS_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
@@ -130,7 +134,7 @@ def main(
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     # Use provided datasets or default if none provided.
-    dataset_names = datasets or [DEFAULT_DATASET_DYNAMICS_VIS]
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
     if DEMO_MODE:
         logger.warning("DEMO MODE: limiting to first dataset only")

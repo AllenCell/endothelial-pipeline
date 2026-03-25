@@ -42,8 +42,8 @@ BIN_LIMITS_DYNAMICS: dict[str, tuple[float, float]] = {
 }
 """Bin limits for each coordinate in dynamics analysis and visualization."""
 
-DEFAULT_DATASET_DYNAMICS_VIS: str = "20250618_20X"
-"""Default dataset for dynamics visualization workflows."""
+DEFAULT_DATASETS_DYNAMICS_VIS: str = "diffae_model_training"
+"""Default dataset collection for dynamics visualization workflows."""
 
 RESCALE_THETA: bool = True
 """Whether to rescale polar angle coordinate to [0, pi] range for analysis and
