@@ -12,6 +12,7 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import (
+        PositionAnnotation,
         TimepointAnnotation,
         get_datasets_in_collection,
         load_dataset_config,
@@ -57,6 +58,8 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
         base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
         feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     else:
+        # NOTE: current tracked feature dataframe has no filtering applied, so needs additional
+        # timepoint + position + "is_included" track filtering applied before analysis
         feature_dataframe_manifest_name = "pc_diffae_tracked_seg_features"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
@@ -111,13 +114,24 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
         )
 
         if crop_pattern == "tracked":
+            # additional filtering currently necessary for loading pattern with
+            # tracked crops; this will be updated once the dataframe tracking
+            # structure is standardized
+            df_steady_state = df_steady_state[
+                df_steady_state[ColumnName.SegDataFilters.IS_INCLUDED]
+            ]
+            df_steady_state = filter_dataframe_by_annotations(
+                df_steady_state,
+                dataset_config,
+                timepoint_annotations=list(TimepointAnnotation),
+                position_annotations=list(PositionAnnotation),
+            )
             # also filter out tracks that are too short for reliable flow field estimation and analysis
             df_steady_state = filter_dataframe_by_track_length(
                 df_steady_state, ColumnName.TRACK_LENGTH, minimum_track_length=100
             )
 
         num_traj = df_steady_state[ColumnName.CROP_INDEX].nunique()
-        print(f"Dataset [ {dataset_name} ] has [ {num_traj} ] trajectories after filtering.")
 
         column_avg_df = pd.DataFrame(columns=[ColumnName.CROP_INDEX, *column_names])
         column_variance_df = pd.DataFrame(columns=[ColumnName.CROP_INDEX, *column_names])
@@ -180,7 +194,7 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
                 f"P($\\langle$({variable_label} - $\\langle${variable_label}$\\rangle$)$^2$$\\rangle$)"
             )
 
-            plt.suptitle(f"{plot_label}, {crop_pattern} crops")
+            plt.suptitle(f"{plot_label}, {crop_pattern} crops (n={num_traj} trajectories)")
             plt.tight_layout()
             save_plot_to_path(
                 fig,
