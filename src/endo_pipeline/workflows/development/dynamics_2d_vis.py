@@ -102,6 +102,7 @@ def main(
 
     # get labels for provided set of feature columns
     column_names = list(DYNAMICS_COLUMN_NAMES)
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *column_names]
     variable_labels_dict = {
         col: get_label_for_column(col).replace("polar ", "") for col in column_names
     }
@@ -154,7 +155,6 @@ def main(
         # only the columns needed for flow field estimation and analysis to save memory.
         df = load_dataframe(dataframe_manifest.locations[dataset_name], delay=True)
         # start with default metadata columns to keep
-        columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *column_names]
         if crop_pattern == "tracked":
             # also keep track ID and track length columns for tracked crops
             columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
