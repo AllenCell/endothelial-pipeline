@@ -84,8 +84,7 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
         dataset_config = load_dataset_config(dataset_name)
         if len(dataset_config.shear_stress_regime) > 1:
             logger.warning(
-                "Dataset [ %s ] has more than one shear stress condition: [ %s ]. "
-                "Skipping for 3D flow field analysis.",
+                "Dataset [ %s ] has more than one shear stress condition: [ %s ]. Skipping this dataset.",
                 dataset_name,
                 dataset_config.shear_stress_regime,
             )
