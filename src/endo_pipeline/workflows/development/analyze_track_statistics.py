@@ -91,7 +91,7 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
         hist_color = get_dataset_color(dataset_name)
         shear_stress = dataset_config.flow_conditions[0].shear_stress
         dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
-        plot_label = f"{dataset_name}, ({shear_stress} dyn/cm$^2$)"
+        plot_label = f"{dataset_name} ({shear_stress} dyn/cm$^2$)"
         fig_savedir = get_output_path(__file__, crop_pattern, dataset_name)
 
         # load dataframe and perform additional filtering (remove
@@ -180,10 +180,12 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
                 f"P($\\langle$({variable_label} - $\\langle${variable_label}$\\rangle$)$^2$$\\rangle$)"
             )
 
-            plt.suptitle(plot_label)
+            plt.suptitle(f"{plot_label}, {crop_pattern} crops")
             plt.tight_layout()
             save_plot_to_path(
-                fig, fig_savedir, f"{dataset_name_flow}_{column_name}_statistics_histograms"
+                fig,
+                fig_savedir,
+                f"{dataset_name_flow}_{column_name}_statistics_histograms_{crop_pattern}",
             )
 
         if DEMO_MODE:
