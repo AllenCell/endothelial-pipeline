@@ -87,16 +87,23 @@ def main(
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, column_name]
     variable_label = get_label_for_column(column_name).replace("polar ", "")
 
-    # unpack default bin widths and limits for each column, adjusting limits if
-    # rescaling theta
-    global_bin_limits_dict = cast(
+    # cast global constant dicts to avoid type errors
+    bin_limits_dict = cast(
         dict[str | ColumnName.DiffAEData, tuple[float, float]], BIN_LIMITS_DYNAMICS.copy()
     )
+    bin_widths_dict = cast(dict[str | ColumnName.DiffAEData, float], BIN_WIDTHS_DYNAMICS.copy())
+    kernel_names_dict = cast(dict[str | ColumnName.DiffAEData, str], KERNEL_NAMES_DYNAMICS.copy())
+    kernel_bandwidths_dict = cast(
+        dict[str | ColumnName.DiffAEData, float], KERNEL_BANDWIDTHS_DYNAMICS.copy()
+    )
+
+    # unpack default bin widths and limits for each column, adjusting limits if
+    # rescaling theta
     if RESCALE_THETA:
-        global_bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
+        bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
     polar_angle_period = (
-        global_bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][1]
-        - global_bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0]
+        bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][1]
+        - bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0]
     )
 
     # get dataframe manifest for grid-based crop features
@@ -151,12 +158,12 @@ def main(
             # get bins and centers for each variable based on bin widths and limits
             if column_name == ColumnName.DiffAEData.POLAR_ANGLE:
                 bins, centers = get_bins(
-                    bin_widths=(BIN_WIDTHS_DYNAMICS[column_name],),
-                    bin_limits=[global_bin_limits_dict[column_name]],
+                    bin_widths=(bin_widths_dict[column_name],),
+                    bin_limits=[bin_limits_dict[column_name]],
                 )
             else:
                 bins, centers = get_bins(
-                    bin_widths=(BIN_WIDTHS_DYNAMICS[column_name],),
+                    bin_widths=(bin_widths_dict[column_name],),
                     data=df_[column_name].to_numpy(),
                     lower_percentile=BIN_LIMIT_PERCENTILE_CUTOFF,
                     upper_percentile=100 - BIN_LIMIT_PERCENTILE_CUTOFF,
@@ -169,8 +176,8 @@ def main(
             )
 
             kernel = KramersMoyalKernel(
-                name=KERNEL_NAMES_DYNAMICS[column_name],
-                bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
+                name=kernel_names_dict[column_name],
+                bandwidth=kernel_bandwidths_dict[column_name],
                 period=(
                     polar_angle_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
                 ),
