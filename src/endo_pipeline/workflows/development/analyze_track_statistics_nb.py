@@ -7,7 +7,6 @@ import pandas as pd
 import seaborn as sns
 from scipy.stats import circmean, circvar
 
-from endo_pipeline.cli import DEMO_MODE
 from endo_pipeline.cli.apps import WorkflowOptions, apply_workflow_options
 from endo_pipeline.configs import (
     TimepointAnnotation,
@@ -19,23 +18,23 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     filter_dataframe_by_annotations,
     filter_dataframe_by_track_length,
 )
+from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.dynamics_workflows import (
+    BIN_LIMITS_DYNAMICS,
     BIN_LIMITS_THETA_RESCALED,
     DYNAMICS_COLUMN_NAMES,
     METADATA_COLUMNS_TO_KEEP,
     RESCALE_THETA,
     TRACK_METADATA_COLUMNS_TO_KEEP,
 )
-from endo_pipeline.settings.flow_field_3d import DATASET_COLLECTION_FOR_3D_DYNAMICS
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
 )
 
-demo_mode = True
-apply_workflow_options(WorkflowOptions(verbose=True, demo_mode=demo_mode))
+apply_workflow_options(WorkflowOptions(verbose=True))
 logger = logging.getLogger(__name__)
 # %%
 # set workflow defaults
@@ -56,19 +55,16 @@ feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_
 
 # Default list of datasets if not provided. Filter by datasets available in
 # the manifest.
-dataset_names = get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
-if DEMO_MODE:
-    logger.warning(
-        "DEMO MODE: Processing no more than two of the provided datasets for quick testing."
-    )
-    # take min of the number of datasets provided and 2, to limit to at most
-    # 2 datasets in DEMO_MODE for quick visualization (i.e., avoid error if
-    # only 1 dataset is provided)
-    num_datasets = min(len(dataset_names), 2)
-    dataset_names = dataset_names[:num_datasets]
+dataset_names = get_datasets_in_collection("timelapse")
 
-
-rescaled_theta_range = BIN_LIMITS_THETA_RESCALED if RESCALE_THETA else (-np.pi, np.pi)
+# unpack default bin widths and limits for each column, adjusting limits if rescaling theta
+bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
+if RESCALE_THETA:
+    bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
+polar_angle_period = (
+    bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][1]
+    - bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0]
+)
 
 # %%
 for dataset_name in dataset_names:
@@ -89,6 +85,11 @@ for dataset_name in dataset_names:
             dataset_config.shear_stress_regime,
         )
         continue
+
+    hist_color = get_dataset_color(dataset_name)
+    shear_stress = dataset_config.flow_conditions[0].shear_stress
+    dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
+    plot_label = f"{dataset_name}, ({shear_stress} dyn/cm$^2$)"
 
     # load dataframe and perform additional filtering (remove
     # non-steady-state timepoints based on annotations), computing
@@ -126,10 +127,14 @@ for dataset_name in dataset_names:
             if column_name == ColumnName.DiffAEData.POLAR_ANGLE:
                 # take circular mean for polar angle to account for periodicity
                 column_avg_df.loc[traj_index, column_name] = circmean(
-                    df_traj[column_name], high=rescaled_theta_range[1], low=rescaled_theta_range[0]
+                    df_traj[column_name],
+                    high=bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][1],
+                    low=bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0],
                 )
                 column_variance_df.loc[traj_index, column_name] = circvar(
-                    df_traj[column_name], high=rescaled_theta_range[1], low=rescaled_theta_range[0]
+                    df_traj[column_name],
+                    high=bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][1],
+                    low=bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0],
                 )
             else:
                 column_avg_df.loc[traj_index, column_name] = np.nanmean(df_traj[column_name])
@@ -140,17 +145,34 @@ for dataset_name in dataset_names:
     for column_name in column_names:
         plt.figure(figsize=(12, 5))
         plt.subplot(1, 2, 1)
-        sns.histplot(column_avg_df[column_name], kde=True)
+        sns.histplot(
+            column_avg_df[column_name],
+            kde=True,
+            stat="density",
+            color=hist_color,
+            binwidth=0.05,
+        )
         plt.title(f"Histogram of average {column_name} across trajectories")
-        plt.xlabel(f"Average {column_name}")
-        plt.ylabel("Count")
+        plt.xlabel(f"$\\langle${column_name}$\\rangle$")
+        plt.xlim(bin_limits_dict[column_name])
+        plt.ylabel(f"P($\\langle${column_name}$\\rangle$)")
 
         plt.subplot(1, 2, 2)
-        sns.histplot(column_variance_df[column_name], kde=True)
+        sns.histplot(
+            column_variance_df[column_name],
+            kde=True,
+            stat="density",
+            color=hist_color,
+            binwidth=0.05,
+        )
         plt.title(f"Histogram of variance of {column_name} across trajectories")
-        plt.xlabel(f"Variance of {column_name}")
-        plt.ylabel("Count")
+        plt.xlabel(f"$\\langle$({column_name} - $\\langle${column_name}$\\rangle$)$^2$$\\rangle$")
+        plt.xlim((-0.01, 0.9))
+        plt.ylabel(
+            f"P($\\langle$({column_name} - $\\langle${column_name}$\\rangle$)$^2$$\\rangle$)"
+        )
 
+        plt.suptitle(plot_label)
         plt.tight_layout()
         plt.show()
 # %%
