@@ -1,4 +1,3 @@
-from .diffae_finetune import DiffAEFinetune
 from .diffusion_autoencoder import DiffusionAutoEncoder, detach
 from .generate_image import (
     generate_from_coords,
@@ -11,7 +10,6 @@ from .mlflow import MLFlowLogger
 from .transforms import MinStdCropd, RotateRanged
 
 __all__ = [
-    "DiffAEFinetune",
     "DiffAELatentWalkRank0",
     "DiffusionAutoEncoder",
     "GradientLoggingCallback",
