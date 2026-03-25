@@ -256,16 +256,18 @@ def get_df_and_label_map_grid(
     grid_df[Column.SegData.TIME_MINS] = grid_df[Column.TIMEPOINT] * dt_mins
     grid_df[Column.SegData.TIME_HRS] = grid_df[Column.SegData.TIME_MINS] / 60
     grid_df[Column.SegData.CENTROID_X] = grid_df[
-        [Column.SegData.START_X_RES_0, Column.SegData.END_X_RES_0]
+        [Column.DiffAEData.START_X, Column.DiffAEData.END_X]
     ].mean(axis=1)
     grid_df[Column.SegData.CENTROID_Y] = grid_df[
-        [Column.SegData.START_Y_RES_0, Column.SegData.END_Y_RES_0]
+        [Column.DiffAEData.START_Y, Column.DiffAEData.END_Y]
     ].mean(axis=1)
 
     grid_df[Column.SegData.LABEL] = grid_df[Column.CROP_INDEX] + 1
     grid_df[Column.TRACK_ID] = grid_df[Column.CROP_INDEX] + 1
     grid_df[Column.TIMEPOINT] = grid_df[Column.TIMEPOINT]
-    grid_df[Column.POSITION] = grid_df[Column.POSITION].transform(lambda x: int(x.strip("P")))
+    grid_df[Column.POSITION] = grid_df[Column.POSITION].transform(
+        lambda x: int(x.strip("P")) if isinstance(x, str) else int(x)
+    )
 
     grid_df = grid_df[grid_df[Column.POSITION] == position]
 
