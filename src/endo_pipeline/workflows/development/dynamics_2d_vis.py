@@ -66,7 +66,7 @@ def main(
     import numpy as np
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
@@ -96,7 +96,7 @@ def main(
         BIN_LIMITS_DYNAMICS,
         BIN_LIMITS_THETA_RESCALED,
         BIN_WIDTHS_DYNAMICS,
-        DEFAULT_DATASET_DYNAMICS_VIS,
+        DEFAULT_DATASETS_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
@@ -141,12 +141,9 @@ def main(
     # the provided dataframe manifest
     valid_dataset_options = list(dataframe_manifest.locations.keys())
     if datasets is None:
-        if DEFAULT_DATASET_DYNAMICS_VIS not in valid_dataset_options:
-            raise ValueError(
-                f"Default dataset [ {DEFAULT_DATASET_DYNAMICS_VIS} ] not found in dataframe manifest. "
-                f"Available datasets: {valid_dataset_options}"
-            )
-        dataset_names = [DEFAULT_DATASET_DYNAMICS_VIS]
+        dataset_names = get_datasets_in_collection(
+            DEFAULT_DATASETS_DYNAMICS_VIS, valid_dataset_options
+        )
     else:
         dataset_names = [name for name in datasets if name in valid_dataset_options]
 
