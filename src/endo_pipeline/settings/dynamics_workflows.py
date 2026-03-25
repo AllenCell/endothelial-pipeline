@@ -42,8 +42,8 @@ BIN_LIMITS_DYNAMICS: dict[Column.DiffAEData, tuple[float, float]] = {
 }
 """Bin limits for each coordinate in dynamics analysis and visualization."""
 
-DEFAULT_DATASET_DYNAMICS_VIS: str = "20250618_20X"
-"""Default dataset for dynamics visualization workflows."""
+DEFAULT_DATASETS_DYNAMICS_VIS: str = "diffae_model_training"
+"""Default dataset collection for dynamics visualization workflows."""
 
 RESCALE_THETA: bool = True
 """Whether to rescale polar angle coordinate to [0, pi] range for analysis and
@@ -71,10 +71,6 @@ KERNEL_BANDWIDTHS_DYNAMICS: dict[Column.DiffAEData, float] = {
 BIN_LIMIT_PERCENTILE_CUTOFF: float = 2.5
 """Percentile cutoff for getting bin limits for computing Kramer-Moyal
 coefficients."""
-
-NUM_PCS_TO_FIT_FOR_DYNAMICS: int = 3
-"""Number of principal components to fit for dynamics analysis and
-visualization."""
 
 HISTOGRAM_THRESHOLD_FOR_MASKING: float = 0.05
 """Histogram threshold for masking in dynamics visualization workflows."""

@@ -337,3 +337,33 @@ class ColumnName:
 
         SEGMENTATION_IMAGE_FILENAME = "seg_image"
         """Column name for the segmentation image filename (filename and suffix only; not full path)."""
+
+    class OpticalFlow(StrEnum):
+        """Dataframe column names used in the optical-flow feature workflow."""
+
+        SPEED_MEAN = "optical_flow_mean_speed_dt1"
+        """Mean speed of the optical flow vectors in a crop."""
+
+        UNIT_VECTOR_MEAN = "optical_flow_mean_unit_vector_dt1"
+        """Mean unit vector of the optical flow vectors in a crop."""
+
+        SPEED_STD = "optical_flow_std_speed_dt1"
+        """Standard deviation of the speeds of the optical flow vectors in a crop."""
+
+        ANGLE_MEAN = "optical_flow_mean_angle_dt1"
+        """Mean angle of the optical flow vectors in a crop."""
+
+        ANGLE_STD = "optical_flow_angle_std_dt1"
+        """Standard deviation of the angles of the optical flow vectors in a crop."""
+
+        U_MEAN = "optical_flow_mean_u_dt1"
+        """Mean u (x) component of the optical flow vectors in a crop."""
+
+        V_MEAN = "optical_flow_mean_v_dt1"
+        """Mean v (y) component of the optical flow vectors in a crop."""
+
+        U_STD = "optical_flow_std_u_dt1"
+        """Standard deviation of the u (x) components of the optical flow vectors in a crop."""
+
+        V_STD = "optical_flow_std_v_dt1"
+        """Standard deviation of the v (y) components of the optical flow vectors in a crop."""

@@ -114,10 +114,15 @@ def get_bins(
     """
     if bin_limits is None and data is None:
         raise ValueError("Please provide data or upper and lower bounds for bins.")
-    data = np.atleast_2d(data) if data is not None else None
+    # need data to be shape (num_points, num_dimensions) for the rest of the
+    # code to work, so reshape in the 1D case if necessary
+    if data is not None and data.ndim == 1:
+        data = data.reshape(-1, 1)
     ndim = data.shape[1] if data is not None else len(bin_limits)
     if ndim != len(bin_widths):
-        raise ValueError("Mismatch between expected number of dimensions and length of bin_widths.")
+        raise ValueError(
+            f"Mismatch between expected number of dimensions {ndim} and length of bin_widths {len(bin_widths)}."
+        )
     bin_limits_: list[tuple[float, float]] = [] if bin_limits is None else bin_limits.copy()
 
     # Automatically determine bins based on data if bin limits are not provided
