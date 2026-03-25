@@ -123,6 +123,6 @@ locations:
     path: null
     s3uri: null
   20260304_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-25/calculate_pca_features/20260304_20X_tracked_pca.parquet
+    fmsid: 8871e6d785234099a788d44e83527b66
+    path: null
     s3uri: null
