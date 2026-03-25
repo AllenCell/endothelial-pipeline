@@ -127,30 +127,30 @@ locations:
     path: null
     s3uri: null
   20260209_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/optical-flow/results/2026-03-23/optical_flow/dataframes/20260209_20X_optical_flow_dataframe_20260323_192503.parquet
+    fmsid: 4326350f5bfd41318f064a3300cea7c8
+    path: null
     s3uri: null
   20260211_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/optical-flow/results/2026-03-23/optical_flow/dataframes/20260211_20X_optical_flow_dataframe_20260323_203035.parquet
+    fmsid: 72f0554887b241a69fce37a71261f677
+    path: null
     s3uri: null
   20260216_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/optical-flow/results/2026-03-23/optical_flow/dataframes/20260216_20X_optical_flow_dataframe_20260323_213554.parquet
+    fmsid: b8e7838062d1420e9adae3fb7b6a6504
+    path: null
     s3uri: null
   20260218_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/optical-flow/results/2026-03-23/optical_flow/dataframes/20260218_20X_optical_flow_dataframe_20260323_224111.parquet
+    fmsid: 8901c00473c74acdb3d95e629715df9b
+    path: null
     s3uri: null
   20260225_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/optical-flow/results/2026-03-23/optical_flow/dataframes/20260225_20X_optical_flow_dataframe_20260323_234600.parquet
+    fmsid: 1d05e8aece4c451aa28a18cc58d30df0
+    path: null
     s3uri: null
   20260302_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/optical-flow/results/2026-03-23/optical_flow/dataframes/20260302_20X_optical_flow_dataframe_20260324_004939.parquet
+    fmsid: f675bf00a03c4741bf7118c1b5c4196f
+    path: null
     s3uri: null
   20260304_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/optical-flow/results/2026-03-24/optical_flow/dataframes/20260304_20X_optical_flow_dataframe_20260324_025431.parquet
+    fmsid: 00ddf0724f4541af956e1f93e84fee0f
+    path: null
     s3uri: null
