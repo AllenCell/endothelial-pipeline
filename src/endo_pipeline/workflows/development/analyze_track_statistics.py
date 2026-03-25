@@ -1,7 +1,7 @@
 from endo_pipeline.cli import CropPattern, Datasets
 
 
-def main(crop_pattern: CropPattern, datasets: Datasets) -> None:
+def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -> None:
     import logging
 
     import matplotlib.pyplot as plt
@@ -10,6 +10,7 @@ def main(crop_pattern: CropPattern, datasets: Datasets) -> None:
     import seaborn as sns
     from scipy.stats import circmean, circvar
 
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import (
         TimepointAnnotation,
         get_datasets_in_collection,
@@ -147,7 +148,7 @@ def main(crop_pattern: CropPattern, datasets: Datasets) -> None:
                 kde=True,
                 stat="density",
                 color=hist_color,
-                binwidth=0.05,
+                binwidth=0.1,
                 ax=ax[0],
             )
             ax[0].set_title(f"Histogram of average {column_name} across trajectories")
@@ -160,7 +161,7 @@ def main(crop_pattern: CropPattern, datasets: Datasets) -> None:
                 kde=True,
                 stat="density",
                 color=hist_color,
-                binwidth=0.05,
+                binwidth=0.005,
                 ax=ax[1],
             )
             ax[1].set_title(f"Histogram of variance of {column_name} across trajectories")
@@ -177,6 +178,13 @@ def main(crop_pattern: CropPattern, datasets: Datasets) -> None:
             save_plot_to_path(
                 fig, fig_savedir, f"{dataset_name_flow}_{column_name}_statistics_histograms"
             )
+
+        if DEMO_MODE:
+            logger.warning(
+                "DEMO MODE: only processing one dataset for quick testing. Stopping after first dataset [ %s ].",
+                dataset_name,
+            )
+            break
 
 
 if __name__ == "__main__":
