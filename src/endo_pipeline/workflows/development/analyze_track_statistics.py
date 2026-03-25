@@ -107,7 +107,7 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
         if crop_pattern == "tracked":
             # also filter out tracks that are too short for reliable flow field estimation and analysis
             df_steady_state = filter_dataframe_by_track_length(
-                df_steady_state, ColumnName.TRACK_LENGTH, min_length=100
+                df_steady_state, ColumnName.TRACK_LENGTH, minimum_track_length=100
             )
 
         num_traj = df_steady_state[ColumnName.CROP_INDEX].nunique()
