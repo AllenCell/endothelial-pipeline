@@ -2,10 +2,6 @@
 If a dataset has already been processed on the current day already, the workflow will skip it.
 """
 
-from endo_pipeline.library.analyze.integration.track_integration import (
-    plot_distances_to_fixed_points_for_dataset_multiproc_wrapper,
-)
-
 
 def main():
     import logging
@@ -19,6 +15,7 @@ def main():
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
     from endo_pipeline.library.analyze.integration.track_integration import (
         plot_distances_to_fixed_points_for_dataset,
+        plot_distances_to_fixed_points_for_dataset_multiproc_wrapper,
     )
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,

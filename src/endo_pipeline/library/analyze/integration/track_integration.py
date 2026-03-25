@@ -1311,6 +1311,7 @@ def plot_distances_to_fixed_points_for_dataset(
 
     # determine distance from each fixed point over time and add to the dataframe, along
     # with the signed difference along each axis (e.g. theta, r, rho) from each fixed point
+    dist_from_fp_col_prefix = "dist_from_fp_"
     for i in fixed_points_for_dataset.index:
         fpt = fixed_points_for_dataset.iloc[i]
 
@@ -1323,19 +1324,31 @@ def plot_distances_to_fixed_points_for_dataset(
             df_tracked[f"diff_from_fp_{col}_{i}"] = diff_func(df_tracked[col])
 
         dynamics_diff_columns = [f"diff_from_fp_{col}_{i}" for col in column_names]
-        df_tracked[f"dist_from_fp_{i}"] = np.linalg.norm(df_tracked[dynamics_diff_columns], axis=1)
+        df_tracked[f"{dist_from_fp_col_prefix}{i}"] = np.linalg.norm(
+            df_tracked[dynamics_diff_columns], axis=1
+        )
 
-        dd = df_tracked[f"dist_from_fp_{i}"].groupby(df_tracked[Column.CROP_INDEX]).diff()
+        dd = (
+            df_tracked[f"{dist_from_fp_col_prefix}{i}"]
+            .groupby(df_tracked[Column.CROP_INDEX])
+            .diff()
+        )
         dt = df_tracked[Column.TIMEPOINT].groupby(df_tracked[Column.CROP_INDEX]).diff()
-        df_tracked[f"dist_from_fp_{i}_veloc"] = dd / dt
+        df_tracked[f"{dist_from_fp_col_prefix}{i}_veloc"] = dd / dt
 
-    # TODO ADD  COLUMN FOR "CLOSEST FIXED POINT" AND THEN CHECK HOW OFTEN
+    # TODO ADD COLUMN FOR "CLOSEST FIXED POINT" AND THEN CHECK HOW OFTEN
     # THIS CHANGES FOR EACH TRACK (MAYBE DO HISTPLOT OVER TIME TO SEE FREQUENCY
     # OF SWITCHING BETWEEN FIXED POINTS??)
     # pseudocode: for i in fixed_points_for_dataset.index:
     #   min(df_tracked[f"dist_from_fp_{i}"]) -> closest fixed point for each timepoint
     # then do a groupby on track id and count how many times the closest fixed
     # point changes for each track ???
+    dist_from_fp_columns = [f"{dist_from_fp_col_prefix}{i}" for i in fixed_points_for_dataset.index]
+    df_tracked["closest_fp"] = (
+        df_tracked[dist_from_fp_columns]
+        .idxmin(axis=1)
+        .transform(lambda s: int(s.strip(dist_from_fp_col_prefix)))
+    )
 
     # filter the data to only include very long tracks
     df_tracked = df_tracked[df_tracked[Column.TRACK_LENGTH] > min_track_length]
