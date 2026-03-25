@@ -13,7 +13,7 @@ from endo_pipeline.configs import (
     get_datasets_in_collection,
     load_dataset_config,
 )
-from endo_pipeline.io import load_dataframe
+from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     filter_dataframe_by_annotations,
     filter_dataframe_by_track_length,
@@ -90,6 +90,7 @@ for dataset_name in dataset_names:
     shear_stress = dataset_config.flow_conditions[0].shear_stress
     dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
     plot_label = f"{dataset_name}, ({shear_stress} dyn/cm$^2$)"
+    fig_savedir = get_output_path(__file__, crop_pattern, dataset_name)
 
     # load dataframe and perform additional filtering (remove
     # non-steady-state timepoints based on annotations), computing
@@ -143,36 +144,40 @@ for dataset_name in dataset_names:
     # plot histograms of the column averages and variances across trajectories
     # for each column
     for column_name in column_names:
-        plt.figure(figsize=(12, 5))
-        plt.subplot(1, 2, 1)
+        fig, ax = plt.subplots(1, 2, figsize=(12, 5))
         sns.histplot(
             column_avg_df[column_name],
             kde=True,
             stat="density",
             color=hist_color,
             binwidth=0.05,
+            ax=ax[0],
         )
-        plt.title(f"Histogram of average {column_name} across trajectories")
-        plt.xlabel(f"$\\langle${column_name}$\\rangle$")
-        plt.xlim(bin_limits_dict[column_name])
-        plt.ylabel(f"P($\\langle${column_name}$\\rangle$)")
+        ax[0].set_title(f"Histogram of average {column_name} across trajectories")
+        ax[0].set_xlabel(f"$\\langle${column_name}$\\rangle$")
+        ax[0].set_xlim(bin_limits_dict[column_name])
+        ax[0].set_ylabel(f"P($\\langle${column_name}$\\rangle$)")
 
-        plt.subplot(1, 2, 2)
         sns.histplot(
             column_variance_df[column_name],
             kde=True,
             stat="density",
             color=hist_color,
             binwidth=0.05,
+            ax=ax[1],
         )
-        plt.title(f"Histogram of variance of {column_name} across trajectories")
-        plt.xlabel(f"$\\langle$({column_name} - $\\langle${column_name}$\\rangle$)$^2$$\\rangle$")
-        plt.xlim((-0.01, 0.9))
-        plt.ylabel(
+        ax[1].set_title(f"Histogram of variance of {column_name} across trajectories")
+        ax[1].set_xlabel(
+            f"$\\langle$({column_name} - $\\langle${column_name}$\\rangle$)$^2$$\\rangle$"
+        )
+        ax[1].set_xlim((-0.01, 0.9))
+        ax[1].set_ylabel(
             f"P($\\langle$({column_name} - $\\langle${column_name}$\\rangle$)$^2$$\\rangle$)"
         )
 
         plt.suptitle(plot_label)
         plt.tight_layout()
-        plt.show()
+        save_plot_to_path(
+            fig, fig_savedir, f"{dataset_name_flow}_{column_name}_statistics_histograms"
+        )
 # %%
