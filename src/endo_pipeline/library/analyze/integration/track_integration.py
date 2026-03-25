@@ -41,6 +41,8 @@ from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalK
 from endo_pipeline.library.analyze.numerics.binning import get_bins, get_bounds_from_data
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
+from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+from endo_pipeline.library.visualize.diffae_features.pplane import STABILITY_COLOR_DICT
 from endo_pipeline.library.visualize.integration.track_integration_viz import (
     get_valid_slice_indexes,
     grid_vs_track_vec_angle_hist2d,
@@ -81,6 +83,7 @@ from endo_pipeline.settings.flow_field_3d import (
     KERNEL_FUNCTION_NAME,
     LOWER_PERCENTILE_FOR_STABLE_FP,
     NUM_INIT_SAMPLES,
+    PAD_BINS_FLOAT,
     TIME_STEP_IN_MINUTES,
     TRAJECTORY_TIME_SPAN,
     UPPER_PERCENTILE_FOR_STABLE_FP,
@@ -1160,13 +1163,17 @@ def load_preprocessed_dataframes_and_km_bounds(
     return cell_centric_feats_df, diffae_grid_crops, bounds
 
 
+def plot_distances_to_fixed_points_for_dataset_multiproc_wrapper(args):
+    return plot_distances_to_fixed_points_for_dataset(**args)
+
+
 def plot_distances_to_fixed_points_for_dataset(
     dataset_name: str,
     pca: PCA,
     min_track_length: int = 216,  # a track duration of 144 is equivalent to 12 hours
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
-    column_names: list[str] = DYNAMICS_COLUMN_NAMES,  # dynamics_column_names = theta, r, rho
+    column_names: list[str] | tuple[str, ...] = DYNAMICS_COLUMN_NAMES,
     out_dir=None,
 ):
     column_names = list(column_names)
@@ -1229,15 +1236,15 @@ def plot_distances_to_fixed_points_for_dataset(
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
         bin_widths.append(bin_width)
 
-    # # get bins for KMCs
-    # bounds_for_km = get_bounds_from_data(
-    #     dataset_names=[dataset_name],
-    #     manifest=dataframe_manifest,
-    #     pca=pca,
-    #     pad=PAD_BINS_FLOAT,
-    #     column_names=column_names,
-    # )
-    bins, centers = get_bins(bin_widths, data=df[column_names].to_numpy())
+    # get bins for KMCs
+    bounds_for_km = get_bounds_from_data(
+        dataset_names=[dataset_name],
+        manifest=dataframe_manifest,
+        pca=pca,
+        pad=PAD_BINS_FLOAT,
+        column_names=column_names,
+    )
+    bins, centers = get_bins(bin_widths, bin_limits=bounds_for_km)
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
@@ -1282,9 +1289,20 @@ def plot_distances_to_fixed_points_for_dataset(
     # load the full set of timepoints for the cell-centric data now
     # and do track-specific filtering so that we can see how tracks
     # move in relation to the fixed points over time
-    df = get_dataframe_for_dynamics_workflows(
+    # Load default model manifest and get corresponding feature dataframe
+    # manifest name for default run name and specified crop pattern.
+    model_manifest_tracked = load_model_manifest(model_manifest_name)
+    dataframe_manifest_name = get_feature_dataframe_manifest_name(
+        model_manifest_tracked, run_name, crop_pattern="tracked"
+    )
+
+    # load dataframe manifest with model feature for the given model run
+    # and model manifest
+    dataframe_manifest_tracked = load_dataframe_manifest(dataframe_manifest_name)
+
+    df_tracked = get_dataframe_for_dynamics_workflows(
         dataset_name,
-        dataframe_manifest,
+        dataframe_manifest_tracked,
         pca=pca,
         include_cell_piling=True,
         include_not_steady_state=True,
@@ -1302,20 +1320,30 @@ def plot_distances_to_fixed_points_for_dataset(
                 if col == Column.DiffAEData.POLAR_ANGLE.value
                 else (x - fpt[col])
             )
-            df[f"diff_from_fp_{col}_{i}"] = diff_func(df[col])
+            df_tracked[f"diff_from_fp_{col}_{i}"] = diff_func(df_tracked[col])
 
         dynamics_diff_columns = [f"diff_from_fp_{col}_{i}" for col in column_names]
-        df[f"dist_from_fp_{i}"] = np.linalg.norm(df[dynamics_diff_columns], axis=1)
+        df_tracked[f"dist_from_fp_{i}"] = np.linalg.norm(df_tracked[dynamics_diff_columns], axis=1)
 
-        dd = df[f"dist_from_fp_{i}"].groupby(df[Column.CROP_INDEX]).diff()
-        dt = df[Column.TIMEPOINT].groupby(df[Column.CROP_INDEX]).diff()
-        df[f"dist_from_fp_{i}_veloc"] = dd / dt
+        dd = df_tracked[f"dist_from_fp_{i}"].groupby(df_tracked[Column.CROP_INDEX]).diff()
+        dt = df_tracked[Column.TIMEPOINT].groupby(df_tracked[Column.CROP_INDEX]).diff()
+        df_tracked[f"dist_from_fp_{i}_veloc"] = dd / dt
+
+    # TODO ADD  COLUMN FOR "CLOSEST FIXED POINT" AND THEN CHECK HOW OFTEN
+    # THIS CHANGES FOR EACH TRACK (MAYBE DO HISTPLOT OVER TIME TO SEE FREQUENCY
+    # OF SWITCHING BETWEEN FIXED POINTS??)
+    # pseudocode: for i in fixed_points_for_dataset.index:
+    #   min(df_tracked[f"dist_from_fp_{i}"]) -> closest fixed point for each timepoint
+    # then do a groupby on track id and count how many times the closest fixed
+    # point changes for each track ???
 
     # filter the data to only include very long tracks
-    df = df[df[Column.TRACK_LENGTH] > min_track_length]
+    df_tracked = df_tracked[df_tracked[Column.TRACK_LENGTH] > min_track_length]
 
     # record how many tracks are included after filtering for long tracks
-    num_very_long_tracks = df[df[Column.TRACK_LENGTH] > min_track_length][Column.TRACK_ID].nunique()
+    num_very_long_tracks = df_tracked[df_tracked[Column.TRACK_LENGTH] > min_track_length][
+        Column.TRACK_ID
+    ].nunique()
     logger.info(
         "Dataset [ %s ]: %d tracks with duration > %d timepoints.",
         dataset_name,
@@ -1331,7 +1359,11 @@ def plot_distances_to_fixed_points_for_dataset(
     for i in fixed_points_for_dataset.index:
         stability = fixed_points_for_dataset.iloc[i][STABILITY_COLUMN_NAME]
         sns.lineplot(
-            df, x=Column.TIMEPOINT, y=f"dist_from_fp_{i}", ax=ax, label=f"FP {i} ({stability})"
+            df_tracked,
+            x=Column.TIMEPOINT,
+            y=f"dist_from_fp_{i}",
+            ax=ax,
+            label=f"FP {i} ({stability})",
         )
     ax.axhline(0, color="red", linestyle="--", alpha=0.7)
     ax.set_ylabel("distance from fixed point".title())
@@ -1384,3 +1416,29 @@ def plot_distances_to_fixed_points_for_dataset(
         ax.set_xlim(-max(abs(lo), abs(hi)), max(abs(lo), abs(hi)))
         save_plot_to_path(fig, out_dir, f"{dataset_name}_dist_from_fp_{i}_veloc_hist")
         plt.close(fig)
+
+    fig, ax = plt.subplots(figsize=(4, 4))
+    sns.histplot(
+        data=df_tracked,
+        x=Column.DiffAEData.POLAR_ANGLE,
+        y=Column.DiffAEData.POLAR_RADIUS,
+        color="grey",
+        ax=ax,
+    )
+    sns.scatterplot(
+        data=fixed_points_for_dataset,
+        x=Column.DiffAEData.POLAR_ANGLE,
+        y=Column.DiffAEData.POLAR_RADIUS,
+        hue=STABILITY_COLUMN_NAME,
+        marker="*",
+        palette=STABILITY_COLOR_DICT,
+        s=100,
+        ax=ax,
+    )
+    ax.set_xlim(0, np.pi)
+    ax.set_ylim(0, None)
+    ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
+    ax.set_xlabel(get_label_for_column(Column.DiffAEData.POLAR_ANGLE))
+    ax.set_ylabel(get_label_for_column(Column.DiffAEData.POLAR_RADIUS))
+    save_plot_to_path(fig, out_dir, f"{dataset_name}_fixed_points_in_polar_space")
+    plt.close(fig)

@@ -2,9 +2,14 @@
 If a dataset has already been processed on the current day already, the workflow will skip it.
 """
 
+from endo_pipeline.library.analyze.integration.track_integration import (
+    plot_distances_to_fixed_points_for_dataset_multiproc_wrapper,
+)
+
 
 def main():
     import logging
+    from concurrent.futures import ProcessPoolExecutor
 
     from tqdm import tqdm
 
@@ -77,18 +82,38 @@ def main():
     )
     pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_pca)
 
-    # process datasets now that we have the PCA and flow field estimate parameters
-    for dataset_name in tqdm(dataset_names, desc="Processing datasets"):
-        # get the output directory for this dataset but don't create it
-        # yet in case the dataset has multiple flow conditions
+    plot_distances_to_fixed_points_for_dataset_params: list = []
+    min_track_length = 216  # a track duration of 144 is equivalent to 12 hours
+    for dataset_name in dataset_names:
+        # get the output directory for all datasets, but don't create them yet
+        # because datasets with multiple shear stresses will be skipped
         out_dir = get_output_path(
             __file__, dataset_name, include_timestamp=True, create_directories=False
         )
+        plot_distances_to_fixed_points_for_dataset_params.append(
+            {
+                "dataset_name": dataset_name,
+                "pca": pca,
+                "min_track_length": min_track_length,
+                "out_dir": out_dir,
+            }
+        )
+        break
 
+    with ProcessPoolExecutor() as executor:
+        tqdm(
+            executor.map(
+                plot_distances_to_fixed_points_for_dataset_multiproc_wrapper,
+                plot_distances_to_fixed_points_for_dataset_params,
+            )
+        )
+
+    # process datasets now that we have the PCA and flow field estimate parameters
+    for dataset_name in tqdm(dataset_names, desc="Processing datasets"):
         plot_distances_to_fixed_points_for_dataset(
             dataset_name=dataset_name,
             pca=pca,
-            min_track_length=216,
+            min_track_length=min_track_length,
             out_dir=out_dir,
         )
 
