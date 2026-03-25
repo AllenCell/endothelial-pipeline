@@ -3,16 +3,16 @@ workflow: endo_pipeline.workflows.production
 parameters: {}
 locations:
   20250224_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-25/calculate_pca_features/20250224_20X_tracked_pca.parquet
+    fmsid: df494eef8a884aacaba028ed48b2571a
+    path: null
     s3uri: null
   20250319_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-25/calculate_pca_features/20250319_20X_tracked_pca.parquet
+    fmsid: 0e69201c4a4b4c2593c2c698f9180db8
+    path: null
     s3uri: null
   20250326_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/git-repos/endothelial-pipeline/results/2026-03-25/calculate_pca_features/20250326_20X_tracked_pca.parquet
+    fmsid: 4215ebfd7e9f495c897a505a645c8442
+    path: null
     s3uri: null
   20250402_20X:
     fmsid: null
