@@ -69,6 +69,7 @@ def main(
         save the output dataframes locally and log paths.
     """
     import logging
+    from typing import Any
 
     import numpy as np
     import pandas as pd
@@ -106,7 +107,7 @@ def main(
         load_model_manifest,
         save_dataframe_manifest,
     )
-    from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_THETA_RESCALED,
         BIN_WIDTHS_DYNAMICS,
@@ -142,8 +143,8 @@ def main(
     # set workflow defaults
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
-    column_names = list(DYNAMICS_COLUMN_NAMES)
-    drift_column_names = [f"{name}_drift" for name in column_names]
+    column_names: list[ColumnName.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
+    drift_column_names: list[str] = [f"{name}_drift" for name in column_names]
 
     # Load default model manifest and get corresponding feature dataframe
     # manifest name for default run name and specified crop pattern.
@@ -218,7 +219,7 @@ def main(
     for column_name in column_names:
         name = KERNEL_NAMES_DYNAMICS[column_name]
         bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
-        period = rescaled_theta_period if column_name == Column.DiffAEData.POLAR_ANGLE else None
+        period = rescaled_theta_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
         bin_width = BIN_WIDTHS_DYNAMICS[column_name]
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
         bin_widths.append(bin_width)
@@ -232,7 +233,7 @@ def main(
             "model_manifest_name": model_manifest_name,
             "run_name": run_name,
             "crop_pattern": crop_pattern,
-            "columns": column_names,
+            "columns": [column.value for column in column_names],
             "kernel_names": [kernel.name for kernel in kernels],
             "kernel_bandwidths": [kernel.bandwidth for kernel in kernels],
             "bin_widths": bin_widths,
@@ -297,23 +298,26 @@ def main(
             traj_list, d_traj_list, bins=bins, dt=TIME_STEP_IN_MINUTES / 60, kernel=kernels
         )[0]
         feature_grid = np.meshgrid(*centers, indexing="ij")
-        drift_dict = {
+        drift_dict: dict[str, list[float]] = {
             drift_column_names[index]: drift_coeffs[..., index].flatten().tolist()
             for index in range(len(drift_column_names))
         }
-        grid_dict = {
+        grid_dict: dict[ColumnName.DiffAEData, list[float]] = {
             column_names[index]: feature_grid[index].flatten().tolist()
             for index in range(len(column_names))
         }
 
         # build dataframe with columns for bin centers in each of the three dimensions and
         # the corresponding drift coefficients, to be used for visualization workflow
-        vector_field_df = pd.DataFrame({Column.DATASET: dataset_name, **drift_dict, **grid_dict})
+        df_cols: dict[str, Any] = {ColumnName.DATASET: dataset_name, **drift_dict, **grid_dict}
+        vector_field_df = pd.DataFrame(df_cols)
 
         # save drift coefficients and grid points dataframes to parquet files,
         # with names that include the input dataframe manifest name for
         # traceability and to avoid naming conflicts with other runs
-        drift_coeffs_file_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataset_name}{demo_suffix}.parquet"
+        drift_coeffs_file_name = (
+            f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataset_name}{demo_suffix}.parquet"
+        )
         drift_coeffs_save_path = make_name_unique(dataframe_savedir / drift_coeffs_file_name)
         vector_field_df.to_parquet(drift_coeffs_save_path)
         logger.info(
