@@ -87,7 +87,8 @@ def main(
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, column_name]
     variable_label = get_label_for_column(column_name).replace("polar ", "")
 
-    # unpack default bin widths and limits for each column, adjusting limits if rescaling theta
+    # unpack default bin widths and limits for each column, adjusting limits if
+    # rescaling theta
     global_bin_limits_dict = cast(
         dict[str | ColumnName.DiffAEData, tuple[float, float]], BIN_LIMITS_DYNAMICS.copy()
     )
