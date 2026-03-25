@@ -51,17 +51,16 @@ exptected_not_columns = DIFFAE_FEATURE_COLUMN_NAMES.copy()
 for dataset_name in dataframe_manifest.locations:
     dataset_config = load_dataset_config(dataset_name)
 
-    full_dataframe = load_dataframe(dataframe_manifest.locations[dataset_name])
-    dataframes = [full_dataframe]
-    dataframe_locations = [dataframe_manifest.locations[dataset_name]]
+    dataframe_manifests = [dataframe_manifest]
     if crop_pattern == "grid":
-        filtered_dataframe = load_dataframe(filtered_dataframe_manifest.locations[dataset_name])
-        dataframes.append(filtered_dataframe)
-        dataframe_locations.append(filtered_dataframe_manifest.locations[dataset_name])
+        dataframe_manifests.append(filtered_dataframe_manifest)
 
-    for dataframe, dataframe_location in zip(dataframes, dataframe_locations, strict=True):
+    for manifest in dataframe_manifests:
+        dataframe_location = manifest.locations[dataset_name]
+
+        dataframe = load_dataframe(dataframe_location)
+
         passes_validation = True
-
         # Check that expected columns are present and unexpected columns are not present in the original dataframe.
         if not set(expected_columns).issubset(dataframe.columns):
             print(f"Dataframe for {dataset_name} is missing expected columns.")
@@ -88,19 +87,20 @@ for dataset_name in dataframe_manifest.locations:
             )
             passes_validation = False
 
-    if crop_pattern == "grid":
-        # Check that expected filtering by annotations is correct in the filtered dataframe.
-        timepoint_annotations = get_subset_of_timepoint_annotations(
-            annotations_to_ignore=[TimepointAnnotation.NOT_STEADY_STATE]
-        )
-        dataframe_filtered = filter_dataframe_by_annotations(
-            full_dataframe,
-            dataset_config,
-            timepoint_annotations=timepoint_annotations,
-        )
-        if not dataframe_filtered.equals(filtered_dataframe):
-            print("Filtered dataframe does not match expected filtering by annotations.")
-            passes_validation = False
+        if crop_pattern == "grid" and manifest == filtered_dataframe_manifest:
+            # Check that expected filtering by annotations is correct in the filtered dataframe.
+            timepoint_annotations = get_subset_of_timepoint_annotations(
+                annotations_to_ignore=[TimepointAnnotation.NOT_STEADY_STATE]
+            )
+            full_dataframe = load_dataframe(dataframe_manifest.locations[dataset_name])
+            dataframe_filtered = filter_dataframe_by_annotations(
+                full_dataframe,
+                dataset_config,
+                timepoint_annotations=timepoint_annotations,
+            )
+            if not dataframe_filtered.equals(dataframe):
+                print("Filtered dataframe does not match expected filtering by annotations.")
+                passes_validation = False
 
         if passes_validation:
             print(f"Dataframe for {dataset_name} passed validation.")
