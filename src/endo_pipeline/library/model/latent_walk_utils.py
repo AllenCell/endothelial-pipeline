@@ -240,7 +240,7 @@ def get_latent_walk(
     sigma: float | None,
     n_steps: int,
     set_column_value: dict[str, float] | None = None,
-) -> tuple[pd.DataFrame, list[np.ndarray]]:
+) -> tuple[pd.DataFrame, np.ndarray]:
     """
     Generate a latent walk based on standard deviation or min/max of each
     dimension.
@@ -322,13 +322,15 @@ def get_latent_walk(
 
     walk_dataframe = pd.concat(walks, ignore_index=True)
 
-    return walk_dataframe, ranges
+    ranges_array = np.vstack(ranges)
+
+    return walk_dataframe, ranges_array
 
 
 def generate_latent_walk_images(
     model: "DiffusionAutoEncoder",
     walk: np.ndarray,
-    ranges: list[np.ndarray],
+    ranges: np.ndarray,
     n_noise_samples: int = 1,
     num_gpus: int | None = None,
     random_seed: int | None = None,
@@ -341,11 +343,12 @@ def generate_latent_walk_images(
     model
         Model to use for image generation.
     walk
-        Numpy array of shape (n_steps, n_dim) containing the latent walk
+        Array of shape (num_steps, num_dims) containing the latent walk
         coordinates.
     ranges
-        List of numpy arrays containing the ranges of values for each dimension
-        in the walk.
+        Array of shape (num_dims, num_steps) containing the coordinate values
+        for each dimension and step. Used to reshape the array of generated
+        images.
     n_noise_samples
         Number of noise samples to use for generating images.
     num_gpus
@@ -365,8 +368,8 @@ def generate_latent_walk_images(
     )
 
     # Reshape to (n_dim, n_steps, img_w, img_h)
-    n_dim = len(ranges)
-    n_steps_actual = ranges[0].shape[0]
+    n_dim = ranges.shape[0]
+    n_steps_actual = ranges.shape[1]
     image_width = walk_img.shape[-2]
     image_height = walk_img.shape[-1]
 
