@@ -313,7 +313,7 @@ def main(
         # save drift coefficients and grid points dataframes to parquet files,
         # with names that include the input dataframe manifest name for
         # traceability and to avoid naming conflicts with other runs
-        drift_coeffs_file_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataset_name}.parquet"
+        drift_coeffs_file_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataset_name}{demo_suffix}.parquet"
         drift_coeffs_save_path = make_name_unique(dataframe_savedir / drift_coeffs_file_name)
         vector_field_df.to_parquet(drift_coeffs_save_path)
         logger.info(
