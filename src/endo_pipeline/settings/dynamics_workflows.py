@@ -4,7 +4,7 @@ from numpy import pi
 
 from endo_pipeline.settings.column_names import ColumnName as Column
 
-METADATA_COLUMNS_TO_KEEP: tuple[Column | Column.DiffAEData, ...] = (
+METADATA_COLUMNS_TO_KEEP: tuple[str | Column.DiffAEData, ...] = (
     Column.DATASET,
     Column.POSITION,
     Column.TIMEPOINT,
@@ -15,7 +15,7 @@ METADATA_COLUMNS_TO_KEEP: tuple[Column | Column.DiffAEData, ...] = (
     Column.DiffAEData.END_Y,
 )
 
-TRACK_METADATA_COLUMNS_TO_KEEP: tuple[Column, ...] = (
+TRACK_METADATA_COLUMNS_TO_KEEP: tuple[str, ...] = (
     Column.TRACK_ID,
     Column.TRACK_LENGTH,
 )
