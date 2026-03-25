@@ -44,11 +44,14 @@ def main(
     import numpy as np
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, save_plot_to_path
+    from endo_pipeline.configs import (
+        TimepointAnnotation,
+        get_datasets_in_collection,
+        load_dataset_config,
+    )
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        fit_pca,
-        get_dataframe_for_dynamics_workflows,
+        filter_dataframe_by_annotations,
         get_traj_and_diff,
         split_dataset_by_flow,
     )
@@ -56,11 +59,7 @@ def main(
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
-    from endo_pipeline.manifests import (
-        get_feature_dataframe_manifest_name,
-        load_dataframe_manifest,
-        load_model_manifest,
-    )
+    from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMIT_PERCENTILE_CUTOFF,
@@ -70,8 +69,9 @@ def main(
         DEFAULT_DATASETS_DYNAMICS_VIS,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
-        NUM_PCS_TO_FIT_FOR_DYNAMICS,
+        METADATA_COLUMNS_TO_KEEP,
         RESCALE_THETA,
+        TRACK_METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
     from endo_pipeline.settings.workflow_defaults import (
@@ -81,26 +81,12 @@ def main(
 
     logger = logging.getLogger(__name__)
 
-    # always use defaults for model manifest and run name
-    model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
-    run_name = DEFAULT_MODEL_RUN_NAME
-
-    # unpack command line inputs, using defaults if not provided
-    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
+    # get label for provided feature column
     column_name = column or ColumnName.DiffAEData.POLAR_ANGLE
-
-    # get dataframe manifest for features for given crop pattern
-    model_manifest = load_model_manifest(model_manifest_name)
-    dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern=crop_pattern
-    )
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
-
-    # get plot labels for provided feature column name
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, column_name]
     variable_label = get_label_for_column(column_name).replace("polar ", "")
 
-    # unpack default bin widths and limits for each column, adjusting limits if
-    # rescaling theta
+    # unpack default bin widths and limits for each column, adjusting limits if rescaling theta
     global_bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
     if RESCALE_THETA:
         global_bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
@@ -109,13 +95,21 @@ def main(
         - global_bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0]
     )
 
-    # fit PCA - ALWAYS on grid-based crop features
-    dataframe_manifest_name_for_pca = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
+    # get dataframe manifest for grid-based crop features
+    if crop_pattern == "tracked":
+        logger.warning(
+            "Crop pattern [ tracked ] is temporarily not supported for this workflow. "
+            "Defaulting to [ grid ] crop pattern."
+        )
+        crop_pattern = "grid"
+
+    dataframe_manifest_name = (
+        f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}_pca_filtered"
     )
-    pca = fit_pca(
-        dataframe_manifest_name=dataframe_manifest_name_for_pca, num_pcs=NUM_PCS_TO_FIT_FOR_DYNAMICS
-    )
+    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+
+    # Use provided datasets or default if none provided.
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
     # loop over datasets in collection, compute 1D drift for given variable, and
     # plot results, skipping datasets not found in manifest
@@ -128,26 +122,22 @@ def main(
         fig_savedir = get_output_path(__file__, crop_pattern, dataset_name)
         dataset_config = load_dataset_config(dataset_name)
 
-        df = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            dataframe_manifest,
-            pca=pca,
-            include_cell_piling=False,
-            include_not_steady_state=False,
-            crop_pattern=crop_pattern,
-            compute_polar=True,
-            rescale_theta=RESCALE_THETA,
-        )
-
-        if column_name not in df.columns:
-            raise ValueError(
-                f"Column {column_name} not found in dataframe for dataset {dataset_name}."
-            )
-
-        df_by_flow, shear_stress_list = split_dataset_by_flow(
-            df,
+        # load dataframe and perform additional filtering (remove
+        # non-steady-state timepoints based on annotations), computing
+        # only the columns needed for flow field estimation and analysis to save memory.
+        df = load_dataframe(dataframe_manifest.locations[dataset_name], delay=True)
+        # start with default metadata columns to keep
+        if crop_pattern == "tracked":
+            # also keep track ID and track length columns for tracked crops
+            columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
+        df_ = df[columns_to_compute].compute()
+        df_steady_state = filter_dataframe_by_annotations(
+            df_,
             dataset_config,
+            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
         )
+
+        df_by_flow, shear_stress_list = split_dataset_by_flow(df_steady_state, dataset_config)
 
         # compute on a per-shear stress condition basis
         for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
