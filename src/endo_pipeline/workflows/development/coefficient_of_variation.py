@@ -3,17 +3,11 @@ from typing import Annotated
 from cyclopts import Parameter
 
 from endo_pipeline.cli import CropPattern, Datasets, StrList
-from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-)
 
 
 def main(
-    datasets: Datasets | None = None,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
+    datasets: Datasets | None = None,
     columns: StrList | None = None,
     just_steady_state: Annotated[bool, Parameter(negative="--include-transient")] = True,
 ) -> None:
@@ -50,14 +44,10 @@ def main(
 
     Parameters
     ----------
-    datasets
-        Specific datasets to run the workflow on.
-    model_manifest_name
-        The name of the model manifest to use.
-    run_name
-        The name of the model run to use.
     crop_pattern
-        The crop pattern to get features for, either "grid" or "tracked".
+        The crop pattern to use features from.
+    datasets
+        Optional, specific datasets to run the workflow on.
     column_names
         List of specific column names to include in the analysis.
     """
@@ -110,6 +100,10 @@ def main(
         DEFAULT_COV_ANALYSIS_COLUMNS,
         TIME_WINDOW_BIN_SIZE,
     )
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -128,15 +122,15 @@ def main(
         global_bin_limits_dict[Column.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
 
     # get dataframe manifest for grid-based crop features
-    model_manifest = load_model_manifest(model_manifest_name)
+    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
     dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern=crop_pattern
+        model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern=crop_pattern
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     # fit PCA - ALWAYS on grid-based crop features
     dataframe_manifest_name_for_pca = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
+        model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern="grid"
     )
     pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_for_pca, num_pcs=num_pcs)
 
