@@ -39,10 +39,15 @@ def main(
         If True, jobs will be drafted but not executed.
     positions_list: UniqueIntList | None
         List of position indices to upload. If None, all positions will be uploaded.
+    raw_zarr: bool
+        Whether to include raw image zarrs in the upload.
+    segmentation_zarr: bool
+        Whether to include segmentation zarrs in the upload. If True, both nuclear and
+        VE-cadherin segmentation zarrs will be included.
 
     Example add job:
-    endopipe add-s3-datasets --datasets 20250618_20X --positions-list 0 1
-    endopipe add-s3-datasets --datasets 20250618_20X --no-dry-run --positions-list 0 1
+    endopipe add-s3-datasets --positions-list 0 1 2 3 4 5 --segmentation-zarr
+    endopipe add-s3-datasets --datasets 20250618_20X --no-dry-run --positions-list 0 1 --raw-zarr --segmentation-zarr
     """
     import logging
 
@@ -82,6 +87,7 @@ def main(
             local=True,
             path=job_path,
             error_dir=log_dir_str,
+            slurm_args="",  # update to "--partition=aics" if on hpc cluster.
         )
 
     if dry_run:
