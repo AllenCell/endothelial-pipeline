@@ -50,7 +50,7 @@ def main(datasets: Datasets | None = None, n_cores: int = 1):
     # the manifest.
     valid_dataset_options = list_datasets_with_dataframes(dataframe_manifest)
     if datasets is None:
-        datasets = [
+        dataset_names = [
             *get_datasets_in_collection("diffae_model_training"),
             *get_datasets_in_collection("replicate_2_datasets"),
         ]
