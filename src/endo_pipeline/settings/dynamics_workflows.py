@@ -4,7 +4,7 @@ from numpy import pi
 
 from endo_pipeline.settings.column_names import ColumnName as Column
 
-METADATA_COLUMNS_TO_KEEP: tuple[str, ...] = (
+METADATA_COLUMNS_TO_KEEP: tuple[str | Column.DiffAEData, ...] = (
     Column.DATASET,
     Column.POSITION,
     Column.TIMEPOINT,
@@ -21,25 +21,25 @@ TRACK_METADATA_COLUMNS_TO_KEEP: tuple[str | Column.SegDataFilters, ...] = (
     Column.SegDataFilters.IS_INCLUDED,
 )
 
-DYNAMICS_COLUMN_NAMES: tuple[str, ...] = (
-    Column.DiffAEData.POLAR_ANGLE.value,
-    Column.DiffAEData.POLAR_RADIUS.value,
-    Column.DiffAEData.PC3_FLIPPED.value,
+DYNAMICS_COLUMN_NAMES: tuple[Column.DiffAEData, ...] = (
+    Column.DiffAEData.POLAR_ANGLE,
+    Column.DiffAEData.POLAR_RADIUS,
+    Column.DiffAEData.PC3_FLIPPED,
 )
 """Column names in the DiffAE feature dataframe to use for dynamics analysis and
 visualization."""
 
-BIN_WIDTHS_DYNAMICS: dict[str, float] = {
-    Column.DiffAEData.POLAR_ANGLE.value: 0.05,
-    Column.DiffAEData.POLAR_RADIUS.value: 0.05,
-    Column.DiffAEData.PC3_FLIPPED.value: 0.05,
+BIN_WIDTHS_DYNAMICS: dict[Column.DiffAEData, float] = {
+    Column.DiffAEData.POLAR_ANGLE: 0.05,
+    Column.DiffAEData.POLAR_RADIUS: 0.05,
+    Column.DiffAEData.PC3_FLIPPED: 0.05,
 }
 """Bin widths for each coordinate in dynamics analysis and visualization."""
 
-BIN_LIMITS_DYNAMICS: dict[str, tuple[float, float]] = {
-    Column.DiffAEData.POLAR_ANGLE.value: (-pi, pi),
-    Column.DiffAEData.POLAR_RADIUS.value: (0.0, 3.5),
-    Column.DiffAEData.PC3_FLIPPED.value: (-1.5, 2.5),
+BIN_LIMITS_DYNAMICS: dict[Column.DiffAEData, tuple[float, float]] = {
+    Column.DiffAEData.POLAR_ANGLE: (-pi, pi),
+    Column.DiffAEData.POLAR_RADIUS: (0.0, 3.5),
+    Column.DiffAEData.PC3_FLIPPED: (-1.5, 2.5),
 }
 """Bin limits for each coordinate in dynamics analysis and visualization."""
 
@@ -56,17 +56,17 @@ BIN_LIMITS_THETA_RESCALED: tuple[float, float] = (0.0, pi)
 PERIOD_THETA_RESCALED: float = pi
 """Period for rescaled polar angle coordinate."""
 
-KERNEL_NAMES_DYNAMICS: dict[str, str] = {
-    Column.DiffAEData.POLAR_ANGLE.value: "periodic",
-    Column.DiffAEData.POLAR_RADIUS.value: "gaussian",
-    Column.DiffAEData.PC3_FLIPPED.value: "gaussian",
+KERNEL_NAMES_DYNAMICS: dict[Column.DiffAEData, str] = {
+    Column.DiffAEData.POLAR_ANGLE: "periodic",
+    Column.DiffAEData.POLAR_RADIUS: "gaussian",
+    Column.DiffAEData.PC3_FLIPPED: "gaussian",
 }
 """Kernel names for each coordinate in dynamics analysis and visualization."""
 
-KERNEL_BANDWIDTHS_DYNAMICS: dict[str, float] = {
-    Column.DiffAEData.POLAR_ANGLE.value: 0.15,
-    Column.DiffAEData.POLAR_RADIUS.value: 0.15,
-    Column.DiffAEData.PC3_FLIPPED.value: 0.15,
+KERNEL_BANDWIDTHS_DYNAMICS: dict[Column.DiffAEData, float] = {
+    Column.DiffAEData.POLAR_ANGLE: 0.15,
+    Column.DiffAEData.POLAR_RADIUS: 0.15,
+    Column.DiffAEData.PC3_FLIPPED: 0.15,
 }
 
 BIN_LIMIT_PERCENTILE_CUTOFF: float = 2.5
