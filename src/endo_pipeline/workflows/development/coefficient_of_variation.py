@@ -64,7 +64,7 @@ def main(
 
     import logging
     from collections.abc import Callable
-    from typing import Any
+    from typing import Any, TypeAlias, cast
 
     import numpy as np
     from scipy.stats import circmean, circstd, circvar
@@ -121,9 +121,11 @@ def main(
     }
 
     # unpack default bin limits for each column, adjusting limits if rescaling theta
-    global_bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
+    global_bin_limits_dict = cast(
+        dict[str | Column.DiffAEData, tuple[float, float]], BIN_LIMITS_DYNAMICS.copy()
+    )
     if RESCALE_THETA:
-        global_bin_limits_dict[Column.DiffAEData.POLAR_ANGLE.value] = BIN_LIMITS_THETA_RESCALED
+        global_bin_limits_dict[Column.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
 
     # get dataframe manifest for grid-based crop features
     model_manifest = load_model_manifest(model_manifest_name)
@@ -158,12 +160,13 @@ def main(
     # Accumulators for multi-dataset plots.
     # Each entry is (time_values, cov_series, color, label) for population CoV, and
     # (crop_temporal_cov_array, mean_pop_cov, color, label) for the ergodicity test.
-    pop_cov_data: dict[str, list[tuple]] = {col: [] for col in column_names}
-    erg_data: dict[str, list[tuple]] = {col: [] for col in column_names}
-    var_ratio_data: dict[str, list[tuple]] = {col: [] for col in column_names}
-    binned_var_ratio_data: dict[str, list[tuple]] = {col: [] for col in column_names}
-    mean_std_unscaled: dict[str, list[tuple]] = {col: [] for col in column_names}
-    mean_std_scaled: dict[str, list[tuple]] = {col: [] for col in column_names}
+    DiffAEColumnDict: TypeAlias = dict[str | Column.DiffAEData, list[tuple]]
+    pop_cov_data: DiffAEColumnDict = {col: [] for col in column_names}
+    erg_data: DiffAEColumnDict = {col: [] for col in column_names}
+    var_ratio_data: DiffAEColumnDict = {col: [] for col in column_names}
+    binned_var_ratio_data: DiffAEColumnDict = {col: [] for col in column_names}
+    mean_std_unscaled: DiffAEColumnDict = {col: [] for col in column_names}
+    mean_std_scaled: DiffAEColumnDict = {col: [] for col in column_names}
 
     for dataset_name in dataset_names:
         dataset_config = load_dataset_config(dataset_name)
@@ -181,7 +184,7 @@ def main(
         df = df.dropna(subset=column_names)
 
         # polar angle periodicity settings
-        theta_col = Column.DiffAEData.POLAR_ANGLE.value
+        theta_col = Column.DiffAEData.POLAR_ANGLE
         theta_range = BIN_LIMITS_THETA_RESCALED if RESCALE_THETA else (-np.pi, np.pi)
         theta_period = PERIOD_THETA_RESCALED if RESCALE_THETA else 2 * np.pi
 
