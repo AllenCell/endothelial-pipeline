@@ -152,43 +152,42 @@ def main(
         full_pca_manifest.locations[dataset_name] = full_pca_location
         save_dataframe_manifest(full_pca_manifest)
 
-        # For grid-based crops, filter out annotated timepoints, except for
-        # timepoints flagged as "not steady state" (those can be filtered out
-        # dynamically as necessary in downstream workflows)
-        if crop_pattern == "grid":
-            logger.info("Filtering grid-based PCA features for dataset '%s'", dataset_name)
+        # Filter out annotated timepoints, except for timepoints flagged as "not
+        # steady state" (those can be filtered out dynamically as necessary in
+        # downstream workflows)
+        logger.info(
+            "Filtering %s crop-based PCA features for dataset '%s'", crop_pattern, dataset_name
+        )
 
-            timepoint_annotations = get_subset_of_timepoint_annotations(
-                annotations_to_ignore=[TimepointAnnotation.NOT_STEADY_STATE]
+        timepoint_annotations = get_subset_of_timepoint_annotations(
+            annotations_to_ignore=[TimepointAnnotation.NOT_STEADY_STATE]
+        )
+        filtered_pca_df = filter_dataframe_by_annotations(
+            full_pca_df,
+            dataset_config,
+            timepoint_annotations=timepoint_annotations,
+        )
+
+        filtered_pca_df_path = output_path / f"{dataset_name}_{crop_pattern}_pca_filtered.parquet"
+        filtered_pca_manifest_name = f"{feature_dataframe_manifest_name}_pca_filtered"
+        filtered_pca_manifest = create_dataframe_manifest(filtered_pca_manifest_name, __name__)
+
+        filtered_pca_df.to_parquet(filtered_pca_df_path, index=False)
+
+        if upload_to_fms:
+            filter_note = "Filtering by timepoint and position annotations has been applied."
+            fms_annotations = build_fms_annotations(
+                dataset_config, additional_notes=f"{additional_notes} {filter_note}"
             )
-            filtered_pca_df = filter_dataframe_by_annotations(
-                full_pca_df,
-                dataset_config,
-                timepoint_annotations=timepoint_annotations,
+            fmsid = upload_file_to_fms(
+                filtered_pca_df_path, annotations=fms_annotations, file_type="parquet"
             )
+            filtered_pca_location = DataframeLocation(fmsid=fmsid)
+        else:
+            filtered_pca_location = DataframeLocation(path=filtered_pca_df_path)
 
-            filtered_pca_df_path = (
-                output_path / f"{dataset_name}_{crop_pattern}_pca_filtered.parquet"
-            )
-            filtered_pca_manifest_name = f"{feature_dataframe_manifest_name}_pca_filtered"
-            filtered_pca_manifest = create_dataframe_manifest(filtered_pca_manifest_name, __name__)
-
-            filtered_pca_df.to_parquet(filtered_pca_df_path, index=False)
-
-            if upload_to_fms:
-                filter_note = "Filtering by timepoint and position annotations has been applied."
-                fms_annotations = build_fms_annotations(
-                    dataset_config, additional_notes=f"{additional_notes} {filter_note}"
-                )
-                fmsid = upload_file_to_fms(
-                    filtered_pca_df_path, annotations=fms_annotations, file_type="parquet"
-                )
-                filtered_pca_location = DataframeLocation(fmsid=fmsid)
-            else:
-                filtered_pca_location = DataframeLocation(path=filtered_pca_df_path)
-
-            filtered_pca_manifest.locations[dataset_name] = filtered_pca_location
-            save_dataframe_manifest(filtered_pca_manifest)
+        filtered_pca_manifest.locations[dataset_name] = filtered_pca_location
+        save_dataframe_manifest(filtered_pca_manifest)
 
         # For track-based crops, filtering happens downstream, where the output
         # dataframe of this workflow PC-transformed features is merged with the
