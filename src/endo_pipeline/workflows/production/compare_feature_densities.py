@@ -1,16 +1,10 @@
 from endo_pipeline.cli import Datasets
-from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-)
 
 TAGS = ["diffae_features", "track_integration"]
 
 
 def main(
     datasets: Datasets | None = None,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str = DEFAULT_MODEL_RUN_NAME,
     pool_datasets: bool = True,
 ):
     """Compare feature densities between cell-centric and grid-based crops."""
@@ -29,6 +23,10 @@ def main(
         DIFFAE_PC_COLUMN_NAMES,
         NUM_PCS_TO_ANALYZE,
     )
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -39,7 +37,7 @@ def main(
 
     # Load dataframe manifest for the features to be used in flow field
     # estimation and analysis.
-    base_name = f"{model_manifest_name}_{run_name}"
+    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}"
     feature_dataframe_manifest_name_tracked = f"{base_name}_tracked_pca_filtered"
     feature_dataframe_manifest_tracked = load_dataframe_manifest(
         feature_dataframe_manifest_name_tracked
