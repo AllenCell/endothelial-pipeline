@@ -12,7 +12,6 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import (
-        PositionAnnotation,
         TimepointAnnotation,
         get_datasets_in_collection,
         load_dataset_config,
@@ -54,13 +53,9 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
 
     # Load dataframe manifest for the features to be used in flow field
     # estimation and analysis.
-    if crop_pattern == "grid":
-        base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
-        feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
-    else:
-        # NOTE: current tracked feature dataframe has no filtering applied, so needs additional
-        # timepoint + position + "is_included" track filtering applied before analysis
-        feature_dataframe_manifest_name = "pc_diffae_tracked_seg_features"
+
+    base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
+    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # Default list of datasets if not provided. Filter by datasets available in
@@ -113,19 +108,7 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
         )
 
         if crop_pattern == "tracked":
-            # additional filtering currently necessary for loading pattern with
-            # tracked crops; this will be updated once the dataframe tracking
-            # structure is standardized
-            df_steady_state = df_steady_state[
-                df_steady_state[ColumnName.SegDataFilters.IS_INCLUDED]
-            ]
-            df_steady_state = filter_dataframe_by_annotations(
-                df_steady_state,
-                dataset_config,
-                timepoint_annotations=list(TimepointAnnotation),
-                position_annotations=list(PositionAnnotation),
-            )
-            # also filter out tracks that are too short for reliable flow field estimation and analysis
+            # Perform additional filtering by track length
             df_steady_state = filter_dataframe_by_track_length(
                 df_steady_state, ColumnName.TRACK_LENGTH, minimum_track_length=100
             )
