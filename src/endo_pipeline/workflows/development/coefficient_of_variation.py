@@ -121,13 +121,6 @@ def main(
     if RESCALE_THETA:
         global_bin_limits_dict[Column.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
 
-    # get dataframe manifest for {crop_pattern} crop-based features
-    if crop_pattern == "tracked":
-        logger.warning(
-            "Crop pattern [ tracked ] is temporarily not supported for this workflow. "
-            "Defaulting to [ grid ] crop pattern."
-        )
-        crop_pattern = "grid"
 
     base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
     feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
