@@ -230,8 +230,10 @@ def main(  # noqa: C901
         compute_block_coherence,
     )
 
-    # Load dataframe with diffae feature metadata ()
-    feature_dataframe_manifest_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
+    # Load dataframe with diffae feature metadata (no filtering yet) to get crop
+    # coordinates and timepoints for each dataset/position.
+    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
+    feature_dataframe_manifest_name = f"{base_name}_pca"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # Load or create optical flow manifest and set parameters before the loop so
