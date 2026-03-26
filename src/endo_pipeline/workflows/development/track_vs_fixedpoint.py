@@ -92,6 +92,7 @@ def main(datasets: list | None = None, n_cores: int = 1):
         # break # for testing with only one dataset
 
     with ProcessPoolExecutor(max_workers=n_cores) as executor:
+        logger.info(f"Processing datasets [{dataset_names}] with {n_cores} cores.")
         _ = list(
             tqdm(
                 executor.map(
