@@ -18,17 +18,9 @@ def main(
 
     import pandas as pd
 
-    from endo_pipeline.io import get_output_path, save_plot_to_path
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        fit_pca,
-        get_dataframe_for_dynamics_workflows,
-    )
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.visualize.diffae_features.feature_viz import plot_kde_comparison
-    from endo_pipeline.manifests import (
-        get_feature_dataframe_manifest_name,
-        load_dataframe_manifest,
-        load_model_manifest,
-    )
+    from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.density_comparison_plots import (
         DENSITY_PLOT_DEFAULT_DATASET,
         SAVE_FIG_FILE_FORMATS,
@@ -45,18 +37,19 @@ def main(
     else:
         datasets_to_analyze = datasets
 
-    dataframe_manifest_name_tracked = get_feature_dataframe_manifest_name(
-        load_model_manifest(model_manifest_name), run_name, crop_pattern="tracked"
+    # Load dataframe manifest for the features to be used in flow field
+    # estimation and analysis.
+    base_name = f"{model_manifest_name}_{run_name}"
+    feature_dataframe_manifest_name_tracked = f"{base_name}_tracked_pca_filtered"
+    feature_dataframe_manifest_tracked = load_dataframe_manifest(
+        feature_dataframe_manifest_name_tracked
     )
-    dataframe_manifest_name_grid = get_feature_dataframe_manifest_name(
-        load_model_manifest(model_manifest_name), run_name, crop_pattern="grid"
-    )
+    feature_dataframe_manifest_name_grid = f"{base_name}_grid_pca_filtered"
+    feature_dataframe_manifest_grid = load_dataframe_manifest(feature_dataframe_manifest_name_grid)
 
     fig_savedir = get_output_path(__file__)
 
     feature_column_names = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
-
-    pca = fit_pca(num_pcs=NUM_PCS_TO_ANALYZE)
 
     # if pooling, prepare lists to collect dataframes
     if pool_datasets:
@@ -64,14 +57,24 @@ def main(
         dataframe_list_tracked = []
 
     for dataset_name in datasets_to_analyze:
-        df_grid = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            load_dataframe_manifest(dataframe_manifest_name_grid),
-            pca=pca,
-            crop_pattern="grid",
-            include_cell_piling=False,
-            include_not_steady_state=False,
+        if (
+            dataset_name not in feature_dataframe_manifest_tracked.locations
+            or dataset_name not in feature_dataframe_manifest_grid.locations
+        ):
+            logger.warning(
+                "Dataset [ %s ] not found in one or both dataframe manifests. Skipping.",
+                dataset_name,
+            )
+            continue
+
+        df_grid_ = load_dataframe(
+            feature_dataframe_manifest_grid.locations[dataset_name], delay=True
         )
+        df_grid: pd.DataFrame = df_grid_[feature_column_names].compute()
+        df_tracked_ = load_dataframe(
+            feature_dataframe_manifest_tracked.locations[dataset_name], delay=True
+        )
+        df_tracked: pd.DataFrame = df_tracked_[feature_column_names].compute()
 
         n_total_crops_grid = df_grid.shape[0]
         logger.info(
@@ -80,14 +83,6 @@ def main(
             n_total_crops_grid,
         )
 
-        df_tracked = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            load_dataframe_manifest(dataframe_manifest_name_tracked),
-            pca=pca,
-            crop_pattern="tracked",
-            include_cell_piling=False,
-            include_not_steady_state=False,
-        )
         n_total_crops_tracked = df_tracked.shape[0]
         logger.info(
             "Total number of cell-centric crops from [ %s ] : [ %d ]",
