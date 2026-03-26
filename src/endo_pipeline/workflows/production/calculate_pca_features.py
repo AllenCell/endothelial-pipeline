@@ -211,13 +211,11 @@ def main(
             filtered_pca_df = merged_full_pca_df[
                 merged_full_pca_df[Column.SegDataFilters.IS_INCLUDED]
             ]
-            # Drop TRACK_ID column (not needed for downstream workflows, use
-            # unique CROP_INDEX identifier instead) and IS_INCLUDED column (no
-            # longer needed after filtering). Keep TRACK_LENGTH column for
-            # potential downstream filtering based on track length.
-            filtered_pca_df = filtered_pca_df.drop(
-                columns=[Column.TRACK_ID, Column.SegDataFilters.IS_INCLUDED]
-            )
+            # Drop IS_INCLUDED column (no longer needed after filtering). Keep
+            # TRACK_LENGTH column for potential downstream filtering based on
+            # track length. Keep TRACK_ID column for use in workflow that creates
+            # the merged segmentation-PCA dataframe.
+            filtered_pca_df = filtered_pca_df.drop(columns=[Column.SegDataFilters.IS_INCLUDED])
 
         # Save filtered PCA dataframe and upload to FMS if specified.
         filtered_pca_df_path = output_path / f"{dataset_name}_{crop_pattern}_pca_filtered.parquet"
