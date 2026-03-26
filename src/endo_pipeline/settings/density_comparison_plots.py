@@ -9,6 +9,13 @@ DENSITY_PLOT_FEATURES: tuple[str, ...] = (
 )
 """Column names of features to compare densities for."""
 
+DENSITY_PLOT_METADATA_COLUMNS_TO_COMPUTE: tuple[str, ...] = (
+    Column.DATASET,
+    Column.POSITION,
+    Column.TIMEPOINT,
+)
+"""Column names of metadata to include when filtering dataframes for density comparison plots."""
+
 DENSITY_PLOT_DEFAULT_DATASET: str = "20250818_20X"
 """Default dataset to use for density comparison plots."""
 

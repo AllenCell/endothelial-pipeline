@@ -34,6 +34,7 @@ def main(
     from endo_pipeline.settings.density_comparison_plots import (
         DENSITY_PLOT_DEFAULT_DATASET,
         DENSITY_PLOT_FEATURES,
+        DENSITY_PLOT_METADATA_COLUMNS_TO_COMPUTE,
         SAVE_FIG_FILE_FORMATS,
     )
     from endo_pipeline.settings.workflow_defaults import (
@@ -61,6 +62,7 @@ def main(
     fig_savedir = get_output_path(__file__)
 
     feature_column_names = list(DENSITY_PLOT_FEATURES)
+    columns_to_compute = [*feature_column_names, *DENSITY_PLOT_METADATA_COLUMNS_TO_COMPUTE]
 
     # if pooling, prepare lists to collect dataframes
     if pool_datasets:
@@ -83,7 +85,7 @@ def main(
         df_grid_ = load_dataframe(
             feature_dataframe_manifest_grid.locations[dataset_name], delay=True
         )
-        df_grid: pd.DataFrame = df_grid_[feature_column_names].compute()
+        df_grid: pd.DataFrame = df_grid_[columns_to_compute].compute()
         df_grid_steady_state = filter_dataframe_by_annotations(
             df_grid,
             dataset_config,
@@ -92,7 +94,7 @@ def main(
         df_tracked_ = load_dataframe(
             feature_dataframe_manifest_tracked.locations[dataset_name], delay=True
         )
-        df_tracked: pd.DataFrame = df_tracked_[feature_column_names].compute()
+        df_tracked: pd.DataFrame = df_tracked_[columns_to_compute].compute()
         df_tracked_steady_state = filter_dataframe_by_annotations(
             df_tracked,
             dataset_config,
