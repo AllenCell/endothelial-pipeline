@@ -161,8 +161,7 @@ def main(  # noqa: C901
         save_dataframe_manifest,
     )
     from endo_pipeline.settings import DIMENSION_ORDER
-    from endo_pipeline.settings.column_names import ColumnName
-    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_FEATURE_COLUMN_NAMES
+    from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.optical_flow import (
         DEFAULT_OMP_NUM_THREADS,
         DEFAULT_OPENBLAS_NUM_THREADS,
@@ -181,8 +180,6 @@ def main(  # noqa: C901
     # Pin OpenMP to 1 thread per worker
     os.environ.setdefault("OMP_NUM_THREADS", DEFAULT_OMP_NUM_THREADS)
     os.environ.setdefault("OPENBLAS_NUM_THREADS", DEFAULT_OPENBLAS_NUM_THREADS)
-
-    diffae_columns_to_drop = list(DIFFAE_FEATURE_COLUMN_NAMES)
 
     if datasets is None:
         datasets = get_datasets_in_collection(DEFAULT_OPTICAL_FLOW_COLLECTION)
@@ -269,7 +266,7 @@ def main(  # noqa: C901
         columns_to_compute = [*DIFFAE_DATAFRAME_METADATA_TO_COMPUTE]
         df_dataset: pd.DataFrame = df_dataset[columns_to_compute].compute()
 
-        position_list = sorted(df_dataset[ColumnName.POSITION].unique().tolist())
+        position_list = sorted(df_dataset[Column.POSITION].unique().tolist())
         if positions:
             position_list = [p for p in position_list if p in positions]
         if DEMO_MODE:
@@ -295,20 +292,20 @@ def main(  # noqa: C901
             )
 
             df_position = df_dataset[
-                (df_dataset[ColumnName.POSITION] == position)
-                & (df_dataset[ColumnName.TIMEPOINT].isin(valid_timepoints))
+                (df_dataset[Column.POSITION] == position)
+                & (df_dataset[Column.TIMEPOINT].isin(valid_timepoints))
             ].copy()
             if df_position.empty:
                 continue
-            df_position[ColumnName.DATASET] = dataset_name
+            df_position[Column.DATASET] = dataset_name
 
             # Crop grid
             crop_grid = build_crop_grid(df_position)
-            start_x = crop_grid[ColumnName.DiffAEData.START_X].values.astype(int)
-            start_y = crop_grid[ColumnName.DiffAEData.START_Y].values.astype(int)
-            end_x = crop_grid[ColumnName.DiffAEData.END_X].values.astype(int)
-            end_y = crop_grid[ColumnName.DiffAEData.END_Y].values.astype(int)
-            crop_ids = crop_grid[ColumnName.CROP_INDEX].values
+            start_x = crop_grid[Column.DiffAEData.START_X].values.astype(int)
+            start_y = crop_grid[Column.DiffAEData.START_Y].values.astype(int)
+            end_x = crop_grid[Column.DiffAEData.END_X].values.astype(int)
+            end_y = crop_grid[Column.DiffAEData.END_Y].values.astype(int)
+            crop_ids = crop_grid[Column.CROP_INDEX].values
             num_crops = len(crop_grid)
 
             # Z-project
@@ -459,7 +456,7 @@ def main(  # noqa: C901
             df_flow_pivoted = pivot_flow_records(records)
             df_position = df_position.merge(
                 df_flow_pivoted,
-                left_on=[ColumnName.CROP_INDEX, ColumnName.TIMEPOINT],
+                left_on=[Column.CROP_INDEX, Column.TIMEPOINT],
                 right_on=["crop_index", "timepoint"],
                 how="left",
             ).drop(columns=["crop_index", "timepoint"], errors="ignore")
@@ -467,10 +464,6 @@ def main(  # noqa: C901
             for col in flow_columns:
                 if col not in df_position.columns:
                     df_position[col] = np.nan
-            df_position.drop(
-                columns=[c for c in diffae_columns_to_drop if c in df_position.columns],
-                inplace=True,
-            )
 
             logger.info(
                 "Position %d done in %.1fs for %d records",
