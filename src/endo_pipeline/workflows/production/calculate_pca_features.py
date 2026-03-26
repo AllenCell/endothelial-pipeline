@@ -219,10 +219,11 @@ def main(
         filtered_pca_df.to_parquet(filtered_pca_df_path, index=False)
 
         if upload_to_fms:
-            filter_note = "Filtering by timepoint and position annotations has been applied."
-            fms_annotations = build_fms_annotations(
-                dataset_config, additional_notes=f"{additional_notes} {filter_note}"
+            notes = (
+                "Dataframe with PCA features calculated from DiffAE latent features "
+                f"for {crop_pattern} crops. Filtered by timepoint and position annotations."
             )
+            fms_annotations = build_fms_annotations(dataset_config, additional_notes=notes)
             fmsid = upload_file_to_fms(
                 filtered_pca_df_path, annotations=fms_annotations, file_type="parquet"
             )
