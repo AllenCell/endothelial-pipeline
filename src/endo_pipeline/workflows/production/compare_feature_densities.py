@@ -26,7 +26,9 @@ def main(
 
     import pandas as pd
 
+    from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
     from endo_pipeline.library.visualize.diffae_features.feature_viz import plot_kde_comparison
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.density_comparison_plots import (
@@ -79,23 +81,35 @@ def main(
             )
             continue
 
+        # load dataframes and filter to just steady-state timepoints
+        dataset_config = load_dataset_config(dataset_name)
         df_grid_ = load_dataframe(
             feature_dataframe_manifest_grid.locations[dataset_name], delay=True
         )
         df_grid: pd.DataFrame = df_grid_[feature_column_names].compute()
+        df_grid_steady_state = filter_dataframe_by_annotations(
+            df_grid,
+            dataset_config,
+            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
+        )
         df_tracked_ = load_dataframe(
             feature_dataframe_manifest_tracked.locations[dataset_name], delay=True
         )
         df_tracked: pd.DataFrame = df_tracked_[feature_column_names].compute()
+        df_tracked_steady_state = filter_dataframe_by_annotations(
+            df_tracked,
+            dataset_config,
+            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
+        )
 
-        n_total_crops_grid = df_grid.shape[0]
+        n_total_crops_grid = df_grid_steady_state.shape[0]
         logger.info(
             "Total number of grid-based crops from [ %s ] : [ %d ]",
             dataset_name,
             n_total_crops_grid,
         )
 
-        n_total_crops_tracked = df_tracked.shape[0]
+        n_total_crops_tracked = df_tracked_steady_state.shape[0]
         logger.info(
             "Total number of cell-centric crops from [ %s ] : [ %d ]",
             dataset_name,
@@ -104,14 +118,14 @@ def main(
 
         # if pooling, just collect dataframes
         if pool_datasets:
-            dataframe_list_grid.append(df_grid)
-            dataframe_list_tracked.append(df_tracked)
+            dataframe_list_grid.append(df_grid_steady_state)
+            dataframe_list_tracked.append(df_tracked_steady_state)
             continue
 
         # else, plot per-dataset
         fig, _ = plot_kde_comparison(
-            df_tracked,
-            df_grid,
+            df_tracked_steady_state,
+            df_grid_steady_state,
             feature_column_names,
         )
 
