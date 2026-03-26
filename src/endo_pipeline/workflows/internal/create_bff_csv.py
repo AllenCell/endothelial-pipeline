@@ -114,15 +114,17 @@ def main():
                     "Live or Fixed Cell Sample": dataset_config.live_or_fixed_sample,
                     "Timelapse Duration (frames)": dataset_config.duration,
                     "Time Interval (min)": dataset_config.time_interval_in_minutes,
-                    "Shear Stress Regime": dataset_config.shear_stress_regime,
-                    "Shear Stress 1 (dynes/cm²)": ss_1,
+                    "Shear Stress Regime": " to ".join(
+                        r.value for r in dataset_config.shear_stress_regime
+                    ),
+                    "Shear Stress 1 (dynes/cm²)": round(ss_1),
                     "Shear Stress 1 Duration Prior to Imaging (min)": abs(ss_1_start)
                     * dataset_config.time_interval_in_minutes,
                     "Shear Stress 1 Frame Start": 0,
                     "Shear Stress 1 Frame Stop": ss_1_stop,
                     "Shear Stress 2 Frame Start": ss_2_start,
                     "Shear Stress 2 Frame Stop": ss_2_stop,
-                    "Shear Stress 2 (dynes/cm²)": ss_2,
+                    "Shear Stress 2 (dynes/cm²)": round(ss_2) if not np.isnan(ss_2) else np.NaN,
                     "Image Format": "ome.zarr",
                     "Raw Image Shape (TCZYX)": (
                         dataset_config.duration,
