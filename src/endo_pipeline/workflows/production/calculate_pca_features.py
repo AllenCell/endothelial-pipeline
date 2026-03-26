@@ -180,33 +180,38 @@ def main(
             seg_feat_manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
             seg_feat_loc = get_dataframe_location_for_dataset(seg_feat_manifest, dataset_name)
             df_segmentations_delayed = load_dataframe(seg_feat_loc, delay=True)
-            cols_to_compute = [
+            # Columns to merge segmentation dataframe onto PCA dataframe. These
+            # columns uniquely identify each crop/track in both dataframes,
+            # allowing us to merge the relevant information for filtering.
+            columns_to_merge_on = [
                 Column.DATASET,
                 Column.POSITION,
                 Column.TIMEPOINT,
                 Column.TRACK_ID,
+            ]
+            # Columns to compute from the delayed segmentation dataframe for
+            # merging (merge columns + columns needed for filtering)
+            columns_to_compute = [
+                *columns_to_merge_on,
                 Column.TRACK_LENGTH,
                 Column.SegDataFilters.IS_INCLUDED,
             ]
-            df_segmentations = df_segmentations_delayed[cols_to_compute].compute()
+            df_segmentations = df_segmentations_delayed[columns_to_compute].compute()
             merged_full_pca_df = filtered_pca_df.merge(
                 df_segmentations,
-                on=[
-                    Column.DATASET,
-                    Column.POSITION,
-                    Column.TIMEPOINT,
-                    Column.TRACK_ID,
-                ],
+                on=columns_to_merge_on,
                 how="left",
                 validate="one_to_one",
             )
-            # drop rows where "is_included" is False (i.e. segmentation didn't pass QC filters).
+            # Drop rows where "is_included" is False (i.e. segmentation didn't
+            # pass QC filters).
             filtered_pca_df = merged_full_pca_df[
                 merged_full_pca_df[Column.SegDataFilters.IS_INCLUDED]
             ]
-            # drop TRACK_ID column (not needed for downstream workflows, use
+            # Drop TRACK_ID column (not needed for downstream workflows, use
             # unique CROP_INDEX identifier instead) and IS_INCLUDED column (no
-            # longer needed after filtering)
+            # longer needed after filtering). Keep TRACK_LENGTH column for
+            # potential downstream filtering based on track length.
             filtered_pca_df = filtered_pca_df.drop(
                 columns=[Column.TRACK_ID, Column.SegDataFilters.IS_INCLUDED]
             )
