@@ -2,8 +2,10 @@
 If a dataset has already been processed on the current day already, the workflow will skip it.
 """
 
+from endo_pipeline.cli import Datasets
 
-def main(datasets: list | None = None, n_cores: int = 1):
+
+def main(datasets: Datasets | None = None, n_cores: int = 1):
     import logging
     from concurrent.futures import ProcessPoolExecutor
 
@@ -89,7 +91,6 @@ def main(datasets: list | None = None, n_cores: int = 1):
                 "out_dir": out_dir,
             }
         )
-        # break # for testing with only one dataset
 
     with ProcessPoolExecutor(max_workers=n_cores) as executor:
         logger.info(f"Processing datasets [{dataset_names}] with {n_cores} cores.")
