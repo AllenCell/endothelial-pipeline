@@ -72,10 +72,12 @@ def main(
         load_model_manifest,
         save_dataframe_manifest,
     )
+    from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_FEATURE_COLUMN_NAMES
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
+        DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     )
 
     logger = logging.getLogger(__name__)
@@ -168,6 +170,45 @@ def main(
             timepoint_annotations=timepoint_annotations,
         )
 
+        # For track-based crops, do additional filtering using the "is_included"
+        # column from the segmentation features dataframe to remove the segmentations
+        # that don't pass the segmentation quality control filters.
+        if crop_pattern == "tracked":
+            # Load and merge segmentation features dataframe to get
+            # "is_included" column for filtering. Also add a track length column
+            # for downstream filtering based on track length, if necessary.
+            seg_feat_manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
+            seg_feat_loc = get_dataframe_location_for_dataset(seg_feat_manifest, dataset_name)
+            df_segmentations_delayed = load_dataframe(seg_feat_loc, delay=True)
+            cols_to_compute = [
+                Column.DATASET,
+                Column.POSITION,
+                Column.TIMEPOINT,
+                Column.TRACK_ID,
+                Column.TRACK_LENGTH,
+                Column.SegDataFilters.IS_INCLUDED,
+            ]
+            df_segmentations = df_segmentations_delayed[cols_to_compute].compute()
+            merged_full_pca_df = filtered_pca_df.merge(
+                df_segmentations,
+                on=[
+                    Column.DATASET,
+                    Column.POSITION,
+                    Column.TIMEPOINT,
+                    Column.TRACK_ID,
+                ],
+                how="left",
+                validate="one_to_one",
+            )
+            # drop rows where "is_included" is False (i.e. segmentation didn't pass QC filters).
+            filtered_pca_df = merged_full_pca_df[
+                merged_full_pca_df[Column.SegDataFilters.IS_INCLUDED]
+            ]
+            # drop TRACK_ID column (not needed for downstream workflows, use
+            # unique CROP_INDEX identifier instead)
+            filtered_pca_df = filtered_pca_df.drop(columns=[Column.TRACK_ID])
+
+        # Save filtered PCA dataframe and upload to FMS if specified.
         filtered_pca_df_path = output_path / f"{dataset_name}_{crop_pattern}_pca_filtered.parquet"
         filtered_pca_manifest_name = f"{feature_dataframe_manifest_name}_pca_filtered"
         filtered_pca_manifest = create_dataframe_manifest(filtered_pca_manifest_name, __name__)
@@ -188,10 +229,6 @@ def main(
 
         filtered_pca_manifest.locations[dataset_name] = filtered_pca_location
         save_dataframe_manifest(filtered_pca_manifest)
-
-        # For track-based crops, filtering happens downstream, where the output
-        # dataframe of this workflow PC-transformed features is merged with the
-        # segmentation + tracking dataframes
 
 
 if __name__ == "__main__":
