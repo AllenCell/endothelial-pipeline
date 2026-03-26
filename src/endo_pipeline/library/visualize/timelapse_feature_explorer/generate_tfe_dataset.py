@@ -264,10 +264,6 @@ def get_df_and_label_map_grid(
 
     grid_df[Column.SegData.LABEL] = grid_df[Column.CROP_INDEX] + 1
     grid_df[Column.TRACK_ID] = grid_df[Column.CROP_INDEX] + 1
-    grid_df[Column.TIMEPOINT] = grid_df[Column.TIMEPOINT]
-    grid_df[Column.POSITION] = grid_df[Column.POSITION].transform(
-        lambda x: int(x.strip("P")) if isinstance(x, str) else int(x)
-    )
 
     grid_df = grid_df[grid_df[Column.POSITION] == position]
 
