@@ -1180,6 +1180,7 @@ def plot_distances_to_fixed_points_for_dataset(
     column_names: list[str] | tuple[str, ...] = DYNAMICS_COLUMN_NAMES,
     out_dir=None,
 ):
+    logger.info("Processing dataset [ %s ]...", dataset_name)
     column_names = list(column_names)
 
     dataset_config = load_dataset_config(dataset_name)
@@ -1286,7 +1287,7 @@ def plot_distances_to_fixed_points_for_dataset(
     # if there are no fixed points then move to the next dataset
     if fixed_points_for_dataset.empty:
         logger.warning(
-            "No stable fixed points found for dataset [ %s ]." "Nothing to plot for this dataset.",
+            "No stable fixed points found for dataset [ %s ]. Nothing to plot for this dataset.",
             dataset_name,
         )
         return
