@@ -83,6 +83,10 @@ OPTICAL_FLOW_BASE_FEATURES: list[str] = [
     "optical_flow_mean_v",
     "optical_flow_std_u",
     "optical_flow_std_v",
+    "optical_flow_mean_unit_vector_fast",
+    "speed_above_1_count",
+    "ema_optical_flow_mean_unit_vector",
+    "ema_optical_flow_mean_unit_vector_fast",
 ]
 """Base feature names computed per (crop, timepoint, dt) by optical-flow extraction."""
 

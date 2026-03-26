@@ -19,8 +19,8 @@ locations:
     path: null
     s3uri: null
   20250326_20X:
-    fmsid: 7b887281c86740e4a6f1eeb1d5d105ed
-    path: null
+    fmsid: null
+    path: //allen/aics/users/fatwir.mohammed/rough/endo_project/results_ab/20250326_20X_coherence.parquet
     s3uri: null
   20250402_20X:
     fmsid: 25f7787543ec4b93945bad18101d2ef7

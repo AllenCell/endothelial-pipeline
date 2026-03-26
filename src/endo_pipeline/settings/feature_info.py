@@ -88,6 +88,10 @@ LABEL_MAP_GRID = {
     "optical_flow_angle_std_dt1": "Coherent Migration (Optical Flow Angle Std Dev)",
     "optical_flow_mean_speed_dt1": "Optical Flow Mean Speed",
     "optical_flow_std_speed_dt1": "Optical Flow Speed Std Dev",
+    "optical_flow_mean_unit_vector_fast": "Coherent Migration Fast (Optical flow unit vectors greater than 1 speed)",
+    "speed_above_1_count": "N vectors with Speed Above 1",
+    "ema_optical_flow_mean_unit_vector": "EMA Optical Flow Mean Unit Vector",
+    "ema_optical_flow_mean_unit_vector_fast": "EMA Optical Flow Mean Unit Vector Fast",
 }
 
 RANGE_MAP = {
