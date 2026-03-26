@@ -3,7 +3,7 @@ If a dataset has already been processed on the current day already, the workflow
 """
 
 
-def main(n_cores: int = 1):
+def main(datasets: list | None = None, n_cores: int = 1):
     import logging
     from concurrent.futures import ProcessPoolExecutor
 
@@ -14,7 +14,6 @@ def main(n_cores: int = 1):
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
     from endo_pipeline.library.analyze.integration.track_integration import (
-        plot_distances_to_fixed_points_for_dataset,
         plot_distances_to_fixed_points_for_dataset_multiproc_wrapper,
     )
     from endo_pipeline.manifests import (
@@ -23,18 +22,12 @@ def main(n_cores: int = 1):
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.flow_field_3d import DATASET_COLLECTION_FOR_3D_DYNAMICS
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
     )
 
     logger = logging.getLogger(__name__)
-
-    datasets = [
-        *get_datasets_in_collection("diffae_model_training"),
-        *get_datasets_in_collection("replicate_2_datasets"),
-    ]
 
     # set workflow defaults
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
@@ -55,9 +48,10 @@ def main(n_cores: int = 1):
     # the manifest.
     valid_dataset_options = list_datasets_with_dataframes(dataframe_manifest)
     if datasets is None:
-        dataset_names = get_datasets_in_collection(
-            DATASET_COLLECTION_FOR_3D_DYNAMICS, valid_dataset_options
-        )
+        datasets = [
+            *get_datasets_in_collection("diffae_model_training"),
+            *get_datasets_in_collection("replicate_2_datasets"),
+        ]
     else:
         dataset_names = [name for name in datasets if name in valid_dataset_options]
     if DEMO_MODE:
@@ -95,7 +89,7 @@ def main(n_cores: int = 1):
                 "out_dir": out_dir,
             }
         )
-        break
+        # break # for testing with only one dataset
 
     with ProcessPoolExecutor(max_workers=n_cores) as executor:
         tqdm(
@@ -103,15 +97,6 @@ def main(n_cores: int = 1):
                 plot_distances_to_fixed_points_for_dataset_multiproc_wrapper,
                 plot_distances_to_fixed_points_for_dataset_params,
             )
-        )
-
-    # process datasets now that we have the PCA and flow field estimate parameters
-    for dataset_name in tqdm(dataset_names, desc="Processing datasets"):
-        plot_distances_to_fixed_points_for_dataset(
-            dataset_name=dataset_name,
-            pca=pca,
-            min_track_length=min_track_length,
-            out_dir=out_dir,
         )
 
 
