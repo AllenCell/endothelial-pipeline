@@ -92,10 +92,14 @@ def main(datasets: list | None = None, n_cores: int = 1):
         # break # for testing with only one dataset
 
     with ProcessPoolExecutor(max_workers=n_cores) as executor:
-        tqdm(
-            executor.map(
-                plot_distances_to_fixed_points_for_dataset_multiproc_wrapper,
-                plot_distances_to_fixed_points_for_dataset_params,
+        _ = list(
+            tqdm(
+                executor.map(
+                    plot_distances_to_fixed_points_for_dataset_multiproc_wrapper,
+                    plot_distances_to_fixed_points_for_dataset_params,
+                ),
+                total=len(plot_distances_to_fixed_points_for_dataset_params),
+                desc="Processing datasets",
             )
         )
 

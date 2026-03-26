@@ -1164,6 +1164,9 @@ def load_preprocessed_dataframes_and_km_bounds(
 
 
 def plot_distances_to_fixed_points_for_dataset_multiproc_wrapper(args):
+    logger.info(
+        f"Multiprocessing: plotting distances to fixed points for [{args['dataset_name']}]..."
+    )
     return plot_distances_to_fixed_points_for_dataset(**args)
 
 
@@ -1190,13 +1193,14 @@ def plot_distances_to_fixed_points_for_dataset(
 
     # If dataset hasn't been processed yet and it has only one
     # flow then make a new output directory for this dataset
+    logger.info(f"Making output directory for dataset [{dataset_name}]...", dataset_name)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # load dataframe and filter / preprocess it for dynamics workflows (PCA,
     # filter annotated timepoints, transform angular variables)
     # use only the steady state and unpiled data for flow field and
     # fixed point estimation
-    # NOTE use the grid-based dataframe to estimate the flow field
+    # NOTE we use the grid-based dataframe to estimate the flow field
 
     # Load default model manifest and get corresponding feature dataframe
     # manifest name for default run name and specified crop pattern.
@@ -1414,7 +1418,7 @@ def plot_distances_to_fixed_points_for_dataset(
         ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
         for col in column_names:
             sns.lineplot(
-                df,
+                df_tracked,
                 x=Column.TIMEPOINT,
                 y=f"diff_from_fp_{col}_{i}",
                 alpha=0.5,
@@ -1429,11 +1433,11 @@ def plot_distances_to_fixed_points_for_dataset(
         plt.close(fig)
 
     for i in fixed_points_for_dataset.index:
-        lo, hi = np.percentile(df[f"dist_from_fp_{i}_veloc"].dropna(), [1, 99])
+        lo, hi = np.percentile(df_tracked[f"dist_from_fp_{i}_veloc"].dropna(), [1, 99])
 
         fig, ax = plt.subplots()
         ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
-        sns.histplot(df, x=f"dist_from_fp_{i}", y=f"dist_from_fp_{i}_veloc", ax=ax)
+        sns.histplot(df_tracked, x=f"dist_from_fp_{i}", y=f"dist_from_fp_{i}_veloc", ax=ax)
         ax.axhline(0, color="red", linestyle="--", alpha=0.7)
         ax.axvline(0, color="grey", linestyle="--", alpha=0.7)
         ax.set_ylim(-max(abs(lo), abs(hi)), max(abs(lo), abs(hi)))
@@ -1442,11 +1446,11 @@ def plot_distances_to_fixed_points_for_dataset(
         plt.close(fig)
 
     for i in fixed_points_for_dataset.index:
-        lo, hi = np.percentile(df[f"dist_from_fp_{i}_veloc"].dropna(), [1, 99])
+        lo, hi = np.percentile(df_tracked[f"dist_from_fp_{i}_veloc"].dropna(), [1, 99])
 
         fig, ax = plt.subplots()
         ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
-        sns.histplot(df, x=f"dist_from_fp_{i}_veloc", ax=ax)
+        sns.histplot(df_tracked, x=f"dist_from_fp_{i}_veloc", ax=ax)
         ax.axvline(0, color="red", linestyle="--", alpha=0.7)
         ax.set_xlim(-max(abs(lo), abs(hi)), max(abs(lo), abs(hi)))
         save_plot_to_path(fig, out_dir, f"{dataset_name}_dist_from_fp_{i}_veloc_hist")
@@ -1478,57 +1482,58 @@ def plot_distances_to_fixed_points_for_dataset(
     save_plot_to_path(fig, out_dir, f"{dataset_name}_fixed_points_in_polar_space")
     plt.close(fig)
 
-    fig, ax = plt.subplots(figsize=(4, 4))
-    ax2 = ax.twinx()
-    sns.histplot(
-        data=df_track_fp_switches,
-        x="number_of_fp_switches",
-        stat="percent",
-        cumulative=True,
-        binwidth=1,
-        ax=ax,
-        color="grey",
-        element="step",
-        fill=False,
-    )
-    sns.histplot(
-        data=df_track_fp_switches,
-        x="number_of_fp_switches",
-        stat="percent",
-        binwidth=1,
-        ax=ax2,
-        color="tab:blue",
-    )
-    ax.set_ylim(0, 100)
-    ax.set_xlabel("number of fixed point switches per track".title())
-    ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
-    ax2.set_ylim(0, None)
-    ax2.set_ylabel("")
-    ax2.spines["right"].set_color("tab:blue")
-    ax2.tick_params(axis="y", colors="tab:blue")
-    save_plot_to_path(fig, out_dir, f"{dataset_name}_num_fp_switches_hist")
-    plt.close(fig)
+    if df_track_fp_switches["number_of_fp_switches"].any():
+        fig, ax = plt.subplots(figsize=(4, 4))
+        ax2 = ax.twinx()
+        sns.histplot(
+            data=df_track_fp_switches,
+            x="number_of_fp_switches",
+            stat="percent",
+            cumulative=True,
+            binwidth=1,
+            ax=ax,
+            color="grey",
+            element="step",
+            fill=False,
+        )
+        sns.histplot(
+            data=df_track_fp_switches,
+            x="number_of_fp_switches",
+            stat="percent",
+            binwidth=1,
+            ax=ax2,
+            color="tab:blue",
+        )
+        ax.set_ylim(0, 100)
+        ax.set_xlabel("number of fixed point switches per track".title())
+        ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
+        ax2.set_ylim(0, None)
+        ax2.set_ylabel("")
+        ax2.spines["right"].set_color("tab:blue")
+        ax2.tick_params(axis="y", colors="tab:blue")
+        save_plot_to_path(fig, out_dir, f"{dataset_name}_num_fp_switches_hist")
+        plt.close(fig)
 
-    sns.histplot(
-        data=df_tracked,
-        x=Column.TIMEPOINT,
-        y="closest_fp_changed",
-        # hue=STABILITY_COLUMN_NAME,
-        # palette=STABILITY_COLOR_DICT,
-    )
+        sns.histplot(
+            data=df_tracked,
+            x=Column.TIMEPOINT,
+            y="closest_fp_changed",
+            # hue=STABILITY_COLUMN_NAME,
+            # palette=STABILITY_COLOR_DICT,
+        )
 
-    fig, ax = plt.subplots(figsize=(4, 4))
-    sns.barplot(
-        data=final_fp_counts,
-        x="final_closest_fp",
-        y="percentage",
-        hue=STABILITY_COLUMN_NAME,
-        ax=ax,
-        palette=STABILITY_COLOR_DICT,
-    )
-    ax.set_ylim(0, 100)
-    ax.set_ylabel("percentage of long tracks".title())
-    ax.set_xlabel("final fixed point".title())
-    ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
-    save_plot_to_path(fig, out_dir, f"{dataset_name}_final_fp_stability")
-    plt.close(fig)
+        fig, ax = plt.subplots(figsize=(4, 4))
+        sns.barplot(
+            data=final_fp_counts,
+            x="final_closest_fp",
+            y="percentage",
+            hue=STABILITY_COLUMN_NAME,
+            ax=ax,
+            palette=STABILITY_COLOR_DICT,
+        )
+        ax.set_ylim(0, 100)
+        ax.set_ylabel("percentage of long tracks".title())
+        ax.set_xlabel("final fixed point".title())
+        ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
+        save_plot_to_path(fig, out_dir, f"{dataset_name}_final_fp_stability")
+        plt.close(fig)
