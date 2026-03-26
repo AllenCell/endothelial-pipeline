@@ -4,7 +4,7 @@ original_path: //allen/programs/allencell/data/proj0/269/7fb/469/95b/849/efa/440
 zarr_positions: [0, 1, 2, 3, 4, 5]
 fmsid: 90e37b7d8f1440efa84995b4697fb269
 barcode: GE00007594
-cell_lines: [AICS-126]
+cell_lines: [AICS-126 cl. 41]
 live_or_fixed_sample: live
 is_timelapse: true
 microscope: 3i
