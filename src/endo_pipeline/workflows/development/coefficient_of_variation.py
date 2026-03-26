@@ -129,10 +129,9 @@ def main(
         )
         crop_pattern = "grid"
 
-    dataframe_manifest_name = (
-        f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}_pca_filtered"
-    )
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
+    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
+    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # plotting timepoints in unit hours: conversion factor
     time_conversion_factor = TIME_STEP_IN_MINUTES / 60
@@ -157,9 +156,9 @@ def main(
     mean_std_scaled: DiffAEColumnDict = {col: [] for col in column_names}
 
     for dataset_name in dataset_names:
-        if dataset_name not in dataframe_manifest.locations:
+        if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
-                f"Dataset {dataset_name} not found in manifest {dataframe_manifest_name}. Skipping."
+                f"Dataset {dataset_name} not found in manifest {feature_dataframe_manifest_name}. Skipping."
             )
             continue
         fig_savedir = get_output_path(__file__, crop_pattern, dataset_name)
@@ -168,7 +167,7 @@ def main(
         # load dataframe and perform additional filtering (remove
         # non-steady-state timepoints based on annotations), computing
         # only the columns needed for flow field estimation and analysis to save memory.
-        df = load_dataframe(dataframe_manifest.locations[dataset_name], delay=True)
+        df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
         # start with default metadata columns to keep
         if crop_pattern == "tracked":
             # also keep track ID and track length columns for tracked crops
@@ -299,9 +298,7 @@ def main(
                     scaled_crop_array, var_function, **scaled_function_kwargs
                 )
                 # compute sem for the cumulative variance across crops at each timepoint
-                num_valid_crops = np.sum(
-                    np.isfinite(scaled_crop_array), axis=0
-                )  # count crops with data at each timepoint
+                num_valid_crops = np.sum(np.isfinite(scaled_crop_array), axis=0)
                 cumulative_var_mean = np.nanmean(cumulative_var_per_crop, axis=0)
                 cumulative_var_sem = np.nanstd(cumulative_var_per_crop, axis=0) / np.sqrt(
                     num_valid_crops
