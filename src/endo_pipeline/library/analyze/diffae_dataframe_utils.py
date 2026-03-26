@@ -1091,14 +1091,18 @@ def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
         - shape is num_crops x num_timepoints x num_features
     """
     # check that required columns are present in dataframe
-    required_columns = [Column.CROP_INDEX, Column.TIMEPOINT, *column_names]
+    required_columns = [Column.CROP_INDEX, Column.TIMEPOINT, Column.DATASET, *column_names]
     check_required_columns_in_dataframe(df, required_columns)
+
+    dataset_name = df[Column.DATASET].unique()[-1]
+    dataset_config = load_dataset_config(dataset_name)
+    dataset_duration = dataset_config.duration
 
     # get array of num crops x valid timepoints x num PCs, padding with NaNs where timepoints are missing
     feats = []
     for _, data_crop in df.groupby(Column.CROP_INDEX):
         data_crop = data_crop.sort_values(by=Column.TIMEPOINT)
-        data_crop_filled = fill_missing_timepoints(data_crop)
+        data_crop_filled = fill_missing_timepoints(data_crop, dataset_duration)
         feats.append(data_crop_filled[column_names].values)
 
     return np.array(feats)
@@ -1382,7 +1386,10 @@ def get_traj_and_diff(
     return traj_list, d_traj_list
 
 
-def fill_missing_timepoints(data_crop: pd.DataFrame) -> pd.DataFrame:
+def fill_missing_timepoints(
+    data_crop: pd.DataFrame,
+    dataset_duration: int,
+) -> pd.DataFrame:
     """
     Fill missing timepoints in dataframe for a single crop using NaN padding.
     Note: this function resets the index of the input crop-based dataframe.
@@ -1391,15 +1398,17 @@ def fill_missing_timepoints(data_crop: pd.DataFrame) -> pd.DataFrame:
     ----------
     data_crop
         DataFrame for a single crop.
+    dataset_duration
+        Duration of the dataset in number of timepoints (frames).
 
     Returns
     -------
-    data_crop_filled
+    :
         DataFrame with missing timepoints filled with NaNs.
     """
 
     # get full range of timepoints for this crop
-    full_timepoint_range = np.arange(0, data_crop["duration"].iloc[0])
+    full_timepoint_range = np.arange(0, dataset_duration)
 
     # reindex dataframe to include all timepoints in full range
     data_crop_filled = data_crop.set_index(Column.TIMEPOINT).reindex(full_timepoint_range)
