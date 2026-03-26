@@ -95,7 +95,6 @@ def generate_tfe_dataset(
                 label_map=LABEL_MAP,
                 include_diffae_features=include_diffae_features,
             )
-            df_position = add_dynamic_features_with_filtering(df_position)
 
         case "grid":
             manifest = load_image_manifest("grid_seg")
@@ -204,24 +203,14 @@ def get_df_and_label_map_cdh5seg(
         }
         & set(df_tracks.columns)
     )
-    df_tracks_subset: pd.DataFrame = df_tracks[cols_to_compute].compute().reset_index(drop=True)
+    df: pd.DataFrame = df_tracks[cols_to_compute].compute().reset_index(drop=True)
 
-    df = add_dynamic_features_with_filtering(df_tracks_subset)
-
+    # filter to a single position
     df = df[df[Column.POSITION] == position]
 
-    # add the timepoint annotations as filter columns
-    dataset_config = load_dataset_config(dataset)
-    if dataset_config.timepoint_annotations is not None:
-        filters_for_dataset = list(dataset_config.timepoint_annotations.keys())
-        for filt in filters_for_dataset:
-            if position in dataset_config.timepoint_annotations[filt]:
-                invalid_tps = get_annotated_timepoints_for_position(
-                    dataset_config, position, [filt]
-                )
-                df[filt] = df["image_index"].isin(invalid_tps)
-    else:
-        filters_for_dataset = []
+    # add dynamics features
+    df = add_dynamic_features_with_filtering(df)
+
     # clean up the label_map to remove filters not used in this dataset
     label_map = {col: label_map[col] for col in label_map if col in df.columns}
 

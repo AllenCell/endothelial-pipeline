@@ -8,10 +8,17 @@ METADATA_COLUMNS_TO_KEEP: tuple[str, ...] = (
     Column.DATASET,
     Column.POSITION,
     Column.TIMEPOINT,
-    Column.DiffAEData.START_X.value,
-    Column.DiffAEData.START_Y.value,
-    Column.DiffAEData.END_X.value,
-    Column.DiffAEData.END_Y.value,
+    Column.CROP_INDEX,
+    Column.DiffAEData.START_X,
+    Column.DiffAEData.START_Y,
+    Column.DiffAEData.END_X,
+    Column.DiffAEData.END_Y,
+)
+
+TRACK_METADATA_COLUMNS_TO_KEEP: tuple[str | Column.SegDataFilters, ...] = (
+    Column.TRACK_ID,
+    Column.TRACK_LENGTH,
+    Column.SegDataFilters.IS_INCLUDED,
 )
 
 DYNAMICS_COLUMN_NAMES: tuple[str, ...] = (
@@ -36,8 +43,8 @@ BIN_LIMITS_DYNAMICS: dict[str, tuple[float, float]] = {
 }
 """Bin limits for each coordinate in dynamics analysis and visualization."""
 
-DEFAULT_DATASET_DYNAMICS_VIS: str = "20250618_20X"
-"""Default dataset for dynamics visualization workflows."""
+DEFAULT_DATASETS_DYNAMICS_VIS: str = "diffae_model_training"
+"""Default dataset collection for dynamics visualization workflows."""
 
 RESCALE_THETA: bool = True
 """Whether to rescale polar angle coordinate to [0, pi] range for analysis and
@@ -65,10 +72,6 @@ KERNEL_BANDWIDTHS_DYNAMICS: dict[str, float] = {
 BIN_LIMIT_PERCENTILE_CUTOFF: float = 2.5
 """Percentile cutoff for getting bin limits for computing Kramer-Moyal
 coefficients."""
-
-NUM_PCS_TO_FIT_FOR_DYNAMICS: int = 3
-"""Number of principal components to fit for dynamics analysis and
-visualization."""
 
 HISTOGRAM_THRESHOLD_FOR_MASKING: float = 0.05
 """Histogram threshold for masking in dynamics visualization workflows."""
