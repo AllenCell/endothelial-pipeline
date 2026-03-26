@@ -186,7 +186,7 @@ def get_grid_seg_data_for_tfe(
     # Add timepoint annotations as filter columns. Note that the annotations are
     # mapped to 0 = False and 1 = True because of how TFE handles categorical
     # features.
-    for annotation in list(TimepointAnnotation):
+    for annotation in TimepointAnnotation:
         timepoints = get_annotated_timepoints_for_position(dataset, position, [annotation])
         if timepoints:
             df[annotation] = df[Column.TIMEPOINT].isin(timepoints).astype(int)
