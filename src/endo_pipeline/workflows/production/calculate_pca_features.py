@@ -22,7 +22,10 @@ def main(
         of the fit PCA model (see above)
     - Calculates additional features as transforms of the PC-projected
         features (e.g., polar coordinates, see `project_features_to_pcs`)
-    - Performs additional timepoint filtering, if using grid-based crops
+    - Performs additional timepoint- and position-based filtering.
+        - For track-based crops, also performs filtering based on the
+          "is_included" column in the segmentation features dataframe to remove
+          crops/tracks that don't pass segmentation QC filters.
 
     **Dataframe output and tracking**
 
