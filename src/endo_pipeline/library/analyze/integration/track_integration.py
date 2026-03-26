@@ -1165,7 +1165,8 @@ def load_preprocessed_dataframes_and_km_bounds(
 
 def plot_distances_to_fixed_points_for_dataset_multiproc_wrapper(args):
     logger.info(
-        f"Multiprocessing: plotting distances to fixed points for [{args['dataset_name']}]..."
+        "Multiprocessing: plotting distances to fixed points for [ %s ]...",
+        args["dataset_name"],
     )
     return plot_distances_to_fixed_points_for_dataset(**args)
 
@@ -1193,7 +1194,7 @@ def plot_distances_to_fixed_points_for_dataset(
 
     # If dataset hasn't been processed yet and it has only one
     # flow then make a new output directory for this dataset
-    logger.info(f"Making output directory for dataset [{dataset_name}]...", dataset_name)
+    logger.info("Making output directory for dataset [ %s ]...", dataset_name)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # load dataframe and filter / preprocess it for dynamics workflows (PCA,
