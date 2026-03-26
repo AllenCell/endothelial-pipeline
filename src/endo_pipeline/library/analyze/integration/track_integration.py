@@ -1455,3 +1455,85 @@ def plot_distances_to_fixed_points_for_dataset(
     ax.set_ylabel(get_label_for_column(Column.DiffAEData.POLAR_RADIUS))
     save_plot_to_path(fig, out_dir, f"{dataset_name}_fixed_points_in_polar_space")
     plt.close(fig)
+
+    df_tracked["closest_fp_changed"] = df_tracked.groupby(["position", "track_id"], as_index=True)[
+        "closest_fp"
+    ].transform(lambda x: x.diff().fillna(0) != 0)
+
+    df_track_fp_switches = (
+        df_tracked.groupby(["position", "track_id"], as_index=True)
+        .agg(number_of_fp_switches=("closest_fp_changed", "sum"))
+        .reset_index()
+    )
+
+    fig, ax = plt.subplots(figsize=(4, 4))
+    ax2 = ax.twinx()
+    sns.histplot(
+        data=df_track_fp_switches,
+        x="number_of_fp_switches",
+        stat="percent",
+        cumulative=True,
+        binwidth=1,
+        ax=ax,
+        color="grey",
+        element="step",
+        fill=False,
+    )
+    sns.histplot(
+        data=df_track_fp_switches,
+        x="number_of_fp_switches",
+        stat="percent",
+        binwidth=1,
+        ax=ax2,
+        color="tab:blue",
+    )
+    ax.set_ylim(0, 100)
+    ax.set_xlabel("number of fixed point switches per track".title())
+    ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
+    ax2.set_ylim(0, None)
+    ax2.set_ylabel("")
+    ax2.spines["right"].set_color("tab:blue")
+    ax2.tick_params(axis="y", colors="tab:blue")
+    save_plot_to_path(fig, out_dir, f"{dataset_name}_num_fp_switches_hist")
+    plt.close(fig)
+
+    sns.histplot(
+        data=df_tracked,
+        x=Column.TIMEPOINT,
+        y="closest_fp_changed",
+        # hue=STABILITY_COLUMN_NAME,
+        # palette=STABILITY_COLOR_DICT,
+    )
+
+    # what is the closest fixed point that each track ends at?
+    df_tracked["final_closest_fp"] = df_tracked.groupby(["position", "track_id"], as_index=True)[
+        "closest_fp"
+    ].transform("last")
+    final_fp_counts = (
+        df_tracked["final_closest_fp"].value_counts(normalize=True) * 100
+    ).reset_index(name="percentage")
+    fp_stability_map = dict(
+        zip(
+            fixed_points_for_dataset.index,
+            fixed_points_for_dataset[STABILITY_COLUMN_NAME],
+            strict=True,
+        )
+    )
+    final_fp_counts[STABILITY_COLUMN_NAME] = final_fp_counts["final_closest_fp"].map(
+        fp_stability_map
+    )
+    fig, ax = plt.subplots(figsize=(4, 4))
+    sns.barplot(
+        data=final_fp_counts,
+        x="final_closest_fp",
+        y="percentage",
+        hue=STABILITY_COLUMN_NAME,
+        ax=ax,
+        palette=STABILITY_COLOR_DICT,
+    )
+    ax.set_ylim(0, 100)
+    ax.set_ylabel("percentage of long tracks".title())
+    ax.set_xlabel("final fixed point".title())
+    ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
+    save_plot_to_path(fig, out_dir, f"{dataset_name}_final_fp_stability")
+    plt.close(fig)
