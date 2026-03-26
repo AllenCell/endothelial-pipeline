@@ -173,15 +173,16 @@ def main(
             # also keep track ID and track length columns for tracked crops
             columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
         df_ = df[columns_to_compute].compute()
-        df_steady_state = filter_dataframe_by_annotations(
-            df_,
-            dataset_config,
-            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
-        )
+        if just_steady_state:
+            df_ = filter_dataframe_by_annotations(
+                df_,
+                dataset_config,
+                timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
+            )
         if crop_pattern == "tracked":
             logger.debug("Will filter by track length once implemented.")
 
-        df_steady_state = df_steady_state.dropna(subset=column_names)
+        df_ = df_.dropna(subset=column_names)
 
         # polar angle periodicity settings
         theta_col = Column.DiffAEData.POLAR_ANGLE
@@ -189,7 +190,7 @@ def main(
         theta_period = PERIOD_THETA_RESCALED if RESCALE_THETA else 2 * np.pi
 
         # split by flow conditions (shared by unscaled and scaled paths)
-        df_by_flow, shear_stress_list = split_dataset_by_flow(df_steady_state, dataset_config)
+        df_by_flow, shear_stress_list = split_dataset_by_flow(df_, dataset_config)
 
         # collect unscaled mean ± std per flow condition
         for df_flow, shear_stress, shear_stress_regime in zip(
