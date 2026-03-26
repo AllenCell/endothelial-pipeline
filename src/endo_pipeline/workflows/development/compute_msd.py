@@ -3,8 +3,8 @@ from endo_pipeline.settings.dynamics_workflows import MAX_MSD_LAG
 
 
 def main(
-    datasets: Datasets | None = None,
     crop_pattern: CropPattern = "grid",
+    datasets: Datasets | None = None,
     max_lag: float = MAX_MSD_LAG,
 ) -> None:
     """
@@ -53,10 +53,10 @@ def main(
 
     Parameters
     ----------
-    datasets
-        Optional list of datasets to run the workflow on.
     crop_pattern
         Crop pattern to use for selecting features.
+    datasets
+        Optional, specific dataset(s) to run the workflow on.
     max_lag
         Maximum time lag (in number of frames) to consider for mean squared
         displacement calculation.
@@ -68,11 +68,14 @@ def main(
     import numpy as np
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, save_plot_to_path
+    from endo_pipeline.configs import (
+        TimepointAnnotation,
+        get_datasets_in_collection,
+        load_dataset_config,
+    )
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        fit_pca,
-        get_dataframe_for_dynamics_workflows,
+        filter_dataframe_by_annotations,
         get_traj_and_diff,
         split_dataset_by_flow,
     )
@@ -86,11 +89,7 @@ def main(
     from endo_pipeline.library.visualize.diffae_features.vis_msd import (
         plot_msd_with_exponential_fit,
     )
-    from endo_pipeline.manifests import (
-        get_feature_dataframe_manifest_name,
-        load_dataframe_manifest,
-        load_model_manifest,
-    )
+    from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMIT_PERCENTILE_CUTOFF,
@@ -100,9 +99,10 @@ def main(
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
-        MINIMUM_MSD_TRACK_LENGTH,
+        METADATA_COLUMNS_TO_KEEP,
         MSD_Y_AXIS_LIMITS,
         RESCALE_THETA,
+        TRACK_METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -110,11 +110,10 @@ def main(
     )
 
     logger = logging.getLogger(__name__)
-    model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
-    model_run_name = DEFAULT_MODEL_RUN_NAME
 
     # get labels for provided set of feature columns
     column_names = list(DYNAMICS_COLUMN_NAMES)
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *column_names]
     variable_labels_dict = {
         col: get_label_for_column(col).replace("polar ", "") for col in column_names
     }
@@ -128,18 +127,21 @@ def main(
         - global_bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0]
     )
 
-    # get dataframe manifest for feature of selected crop pattern
-    model_manifest = load_model_manifest(model_manifest_name)
-    dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, model_run_name, crop_pattern=crop_pattern
+    demo_suffix = "_demo" if DEMO_MODE else ""
+    workflow_savedir_name = f"{Path(__file__).stem}{demo_suffix}"
+
+    # get dataframe manifest for grid-based crop features
+    if crop_pattern == "tracked":
+        logger.warning(
+            "Crop pattern [ tracked ] is temporarily not supported for this workflow. "
+            "Defaulting to [ grid ] crop pattern."
+        )
+        crop_pattern = "grid"
+
+    dataframe_manifest_name = (
+        f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}_pca_filtered"
     )
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
-
-    # only need first three PCs
-    dataframe_manifest_name_for_pca = get_feature_dataframe_manifest_name(
-        model_manifest, model_run_name, crop_pattern="grid"
-    )
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_for_pca, num_pcs=3)
 
     # Load default list of datasets if not provided
     dataset_names = datasets or get_datasets_in_collection("timelapse")
@@ -151,44 +153,40 @@ def main(
             dataset_names[0],
         )
 
-    demo_suffix = "_demo" if DEMO_MODE else ""
-    workflow_savedir_name = f"{Path(__file__).stem}{demo_suffix}"
-
-    # loop over datasets in collection
-    # plot summary plots
-    # compute drift and diffusion coefficients in polar coordinates
+    # loop over datasets in collection, compute MSD for given variable, and
+    # plot results, skipping datasets not found in manifest
     for dataset_name in dataset_names:
         if dataset_name not in dataframe_manifest.locations:
             logger.warning(
-                "Dataset [ %s ] does not have dataframe for crop pattern [ %s ], skipping.",
-                dataset_name,
-                crop_pattern,
+                f"Dataset {dataset_name} not found in manifest {dataframe_manifest_name}. Skipping."
             )
             continue
-        dataset_config = load_dataset_config(dataset_name)
         fig_savedir = get_output_path(workflow_savedir_name, crop_pattern, dataset_name)
+        dataset_config = load_dataset_config(dataset_name)
 
-        df = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            dataframe_manifest,
-            pca=pca,
-            include_cell_piling=False,
-            include_not_steady_state=False,
-            crop_pattern=crop_pattern,
-            compute_polar=True,
-            rescale_theta=RESCALE_THETA,
-            flip_pc3_sign=True,
-            minimum_track_length=MINIMUM_MSD_TRACK_LENGTH if crop_pattern == "tracked" else None,
+        # load dataframe and perform additional filtering (remove
+        # non-steady-state timepoints based on annotations), computing
+        # only the columns needed for flow field estimation and analysis to save memory.
+        df = load_dataframe(dataframe_manifest.locations[dataset_name], delay=True)
+        # start with default metadata columns to keep
+        if crop_pattern == "tracked":
+            # also keep track ID and track length columns for tracked crops
+            columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
+
+        df_ = df[columns_to_compute].compute()
+        df_steady_state = filter_dataframe_by_annotations(
+            df_,
+            dataset_config,
+            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
         )
 
-        df_by_flow, shear_stress_list = split_dataset_by_flow(df, dataset_config)
+        df_by_flow, shear_stress_list = split_dataset_by_flow(df_steady_state, dataset_config)
 
         for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
             dt_array = np.arange(1, max_lag + 1)
 
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
-            crop_pattern_title = f"features from crops using pattern: {crop_pattern}"
-            fig_title = f"{dataset_name} ({shear_stress} dyn/cm$^2$) \n {crop_pattern_title}"
+            fig_title = f"{dataset_name} ({shear_stress} dyn/cm$^2$), {crop_pattern} crops"
 
             # compute MSD for each feature via Kramers-Moyal coefficient
             # estimation method
