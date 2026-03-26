@@ -62,3 +62,5 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20260225_20X/P{{position}}/20260225_20X_P{{position}}_T{{timepoint}}.ome.tiff
   20260302_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20260302_20X/P{{position}}/20260302_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260304_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20260304_20X/P{{position}}/20260304_20X_P{{position}}_T{{timepoint}}.ome.tiff

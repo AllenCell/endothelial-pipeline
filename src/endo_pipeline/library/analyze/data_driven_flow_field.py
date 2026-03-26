@@ -119,7 +119,7 @@ def is_point_within_percentile_bounds(
     value of the lower percentile for the data in column column_names[i], not
     the specified percentile (e.g. 2) itself.
 
-    **Handling circular variables*
+    **Handling circular variables**
 
     For circular variables (e.g. angles), the function checks if the point is
     within the bounds accounting for wraparound. For example, if the lower
@@ -189,7 +189,7 @@ def is_point_within_percentile_bounds(
 def get_fixed_points_within_bounds(
     vector_field_function: Callable[[np.ndarray], np.ndarray],
     dataframe: pd.DataFrame,
-    column_names: list[str],
+    column_names: list[str | Column.DiffAEData],
     num_inits_for_root_solver: int,
     lower_percentile: float,
     upper_percentile: float,
