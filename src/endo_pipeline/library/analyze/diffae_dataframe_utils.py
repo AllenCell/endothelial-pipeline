@@ -838,6 +838,9 @@ def get_dataframe_for_dynamics_workflows(
             [Column.TRACK_ID]
         )  # also keep track ID and track length columns for tracked crops
     columns_to_keep_ = list(set(columns_to_keep_))  # remove duplicates, if any
+    columns_to_keep_ = list(
+        set(columns_to_keep_) & set(df.columns)
+    )  # keep only columns that are in the dataframe
 
     # keep only necessary columns to save memory
     df_ = df[columns_to_keep_].compute()
@@ -883,11 +886,7 @@ def get_dataframe_for_dynamics_workflows(
             Column.SegDataFilters.IS_INCLUDED,
         ]
         df_segmentations = df_segmentations_delayed[cols_to_compute].compute()
-        # NOTE the 2 lines below are temporary until we update how we store position
-        # and change the column names to be consistent across dataframes
-        df_segmentations[Column.POSITION] = df_segmentations[Column.POSITION].transform(
-            lambda pos: f"P{pos}"
-        )
+
         original_df_length = len(df_filtered)
         df_filtered = df_filtered.merge(
             df_segmentations,

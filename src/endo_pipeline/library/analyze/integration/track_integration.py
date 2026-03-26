@@ -1302,7 +1302,7 @@ def plot_distances_to_fixed_points_for_dataset(
 
     df_tracked = get_dataframe_for_dynamics_workflows(
         dataset_name,
-        dataframe_manifest_tracked,
+        manifest=dataframe_manifest_tracked,
         pca=pca,
         include_cell_piling=True,
         include_not_steady_state=True,
@@ -1336,13 +1336,7 @@ def plot_distances_to_fixed_points_for_dataset(
         dt = df_tracked[Column.TIMEPOINT].groupby(df_tracked[Column.CROP_INDEX]).diff()
         df_tracked[f"{dist_from_fp_col_prefix}{i}_veloc"] = dd / dt
 
-    # TODO ADD COLUMN FOR "CLOSEST FIXED POINT" AND THEN CHECK HOW OFTEN
-    # THIS CHANGES FOR EACH TRACK (MAYBE DO HISTPLOT OVER TIME TO SEE FREQUENCY
-    # OF SWITCHING BETWEEN FIXED POINTS??)
-    # pseudocode: for i in fixed_points_for_dataset.index:
-    #   min(df_tracked[f"dist_from_fp_{i}"]) -> closest fixed point for each timepoint
-    # then do a groupby on track id and count how many times the closest fixed
-    # point changes for each track ???
+    # TODO ADD COMMENTS AND DOCUMENTATION FOR THE EXPLORATION BELOW
     dist_from_fp_columns = [f"{dist_from_fp_col_prefix}{i}" for i in fixed_points_for_dataset.index]
     df_tracked["closest_fp"] = (
         df_tracked[dist_from_fp_columns]
@@ -1366,6 +1360,34 @@ def plot_distances_to_fixed_points_for_dataset(
 
     # plot and save some distances to fixed points
     shear = dataset_config.flow_conditions[0].shear_stress
+
+    df_tracked["closest_fp_changed"] = df_tracked.groupby(["position", "track_id"], as_index=True)[
+        "closest_fp"
+    ].transform(lambda x: x.diff().fillna(0) != 0)
+
+    df_track_fp_switches = (
+        df_tracked.groupby(["position", "track_id"], as_index=True)
+        .agg(number_of_fp_switches=("closest_fp_changed", "sum"))
+        .reset_index()
+    )
+
+    # what is the closest fixed point that each track ends at?
+    df_tracked["final_closest_fp"] = df_tracked.groupby(["position", "track_id"], as_index=True)[
+        "closest_fp"
+    ].transform("last")
+    final_fp_counts = (
+        df_tracked["final_closest_fp"].value_counts(normalize=True) * 100
+    ).reset_index(name="percentage")
+    fp_stability_map = dict(
+        zip(
+            fixed_points_for_dataset.index,
+            fixed_points_for_dataset[STABILITY_COLUMN_NAME],
+            strict=True,
+        )
+    )
+    final_fp_counts[STABILITY_COLUMN_NAME] = final_fp_counts["final_closest_fp"].map(
+        fp_stability_map
+    )
 
     fig, ax = plt.subplots()
     ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
@@ -1456,16 +1478,6 @@ def plot_distances_to_fixed_points_for_dataset(
     save_plot_to_path(fig, out_dir, f"{dataset_name}_fixed_points_in_polar_space")
     plt.close(fig)
 
-    df_tracked["closest_fp_changed"] = df_tracked.groupby(["position", "track_id"], as_index=True)[
-        "closest_fp"
-    ].transform(lambda x: x.diff().fillna(0) != 0)
-
-    df_track_fp_switches = (
-        df_tracked.groupby(["position", "track_id"], as_index=True)
-        .agg(number_of_fp_switches=("closest_fp_changed", "sum"))
-        .reset_index()
-    )
-
     fig, ax = plt.subplots(figsize=(4, 4))
     ax2 = ax.twinx()
     sns.histplot(
@@ -1505,23 +1517,6 @@ def plot_distances_to_fixed_points_for_dataset(
         # palette=STABILITY_COLOR_DICT,
     )
 
-    # what is the closest fixed point that each track ends at?
-    df_tracked["final_closest_fp"] = df_tracked.groupby(["position", "track_id"], as_index=True)[
-        "closest_fp"
-    ].transform("last")
-    final_fp_counts = (
-        df_tracked["final_closest_fp"].value_counts(normalize=True) * 100
-    ).reset_index(name="percentage")
-    fp_stability_map = dict(
-        zip(
-            fixed_points_for_dataset.index,
-            fixed_points_for_dataset[STABILITY_COLUMN_NAME],
-            strict=True,
-        )
-    )
-    final_fp_counts[STABILITY_COLUMN_NAME] = final_fp_counts["final_closest_fp"].map(
-        fp_stability_map
-    )
     fig, ax = plt.subplots(figsize=(4, 4))
     sns.barplot(
         data=final_fp_counts,
