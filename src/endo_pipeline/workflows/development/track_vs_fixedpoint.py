@@ -3,7 +3,7 @@ If a dataset has already been processed on the current day already, the workflow
 """
 
 
-def main():
+def main(n_cores: int = 1):
     import logging
     from concurrent.futures import ProcessPoolExecutor
 
@@ -97,7 +97,7 @@ def main():
         )
         break
 
-    with ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor(max_workers=n_cores) as executor:
         tqdm(
             executor.map(
                 plot_distances_to_fixed_points_for_dataset_multiproc_wrapper,
