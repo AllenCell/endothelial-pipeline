@@ -137,12 +137,10 @@ def main(  # noqa: C901
     from endo_pipeline.io import (
         build_fms_annotations,
         get_output_path,
+        load_dataframe,
         load_image,
         make_name_unique,
         upload_file_to_fms,
-    )
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        get_dataframe_for_dynamics_workflows,
     )
     from endo_pipeline.library.analyze.optical_flow import (
         build_crop_grid,
@@ -158,10 +156,8 @@ def main(  # noqa: C901
     from endo_pipeline.manifests import (
         DataframeLocation,
         create_dataframe_manifest,
-        get_feature_dataframe_manifest_name,
         get_zarr_location_for_position,
         load_dataframe_manifest,
-        load_model_manifest,
         save_dataframe_manifest,
     )
     from endo_pipeline.settings import DIMENSION_ORDER
@@ -175,6 +171,7 @@ def main(  # noqa: C901
         DEMO_MAX_DATASETS,
         DEMO_MAX_FRAMES,
         DEMO_MAX_POSITIONS,
+        DIFFAE_DATAFRAME_METADATA_TO_COMPUTE,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -233,12 +230,9 @@ def main(  # noqa: C901
         compute_block_coherence,
     )
 
-    # Shared manifests
-    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
-    dataframe_name = get_feature_dataframe_manifest_name(
-        model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern="grid"
-    )
-    dataframe_manifest = load_dataframe_manifest(dataframe_name)
+    # Load dataframe with diffae feature metadata ()
+    feature_dataframe_manifest_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
+    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # Load or create optical flow manifest and set parameters before the loop so
     # that it is available even if the workflow fails partway through. Add
@@ -269,12 +263,9 @@ def main(  # noqa: C901
         logger.info("Dataset %d/%d: %s", dataset_idx, len(datasets), dataset_name)
 
         dataset_config = load_dataset_config(dataset_name)
-        df_dataset = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            dataframe_manifest,
-            pca=None,
-            filter_by_annotations=False,
-        )
+        df_dataset = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
+        columns_to_compute = [*DIFFAE_DATAFRAME_METADATA_TO_COMPUTE]
+        df_dataset: pd.DataFrame = df_dataset[columns_to_compute].compute()
 
         position_list = sorted(df_dataset[ColumnName.POSITION].unique().tolist())
         if positions:
@@ -307,7 +298,7 @@ def main(  # noqa: C901
             ].copy()
             if df_position.empty:
                 continue
-            df_position["dataset"] = dataset_name
+            df_position[ColumnName.DATASET] = dataset_name
 
             # Crop grid
             crop_grid = build_crop_grid(df_position)
