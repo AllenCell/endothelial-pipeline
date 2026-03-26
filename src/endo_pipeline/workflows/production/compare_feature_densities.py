@@ -1,13 +1,27 @@
 from endo_pipeline.cli import Datasets
 
-TAGS = ["diffae_features", "track_integration"]
-
 
 def main(
     datasets: Datasets | None = None,
     pool_datasets: bool = True,
 ):
-    """Compare feature densities between cell-centric and grid-based crops."""
+    """
+    Compare feature densities between cell-centric and grid-based crops.
+
+    #diffae_features #track_integration
+
+    **Workflow defaults**
+    - `datasets`: `DENSITY_PLOT_DEFAULT_DATASET` from `settings.density_comparison_plots`
+    - `pool_datasets`: True (pool data across datasets for a single combined comparison)
+
+    Parameters
+    ----------
+    datasets
+        Optional, specific datasets to analyze.
+    pool_datasets
+        Whether to pool data across datasets for a single combined comparison,
+        or to plot each dataset separately.
+    """
     import logging
 
     import pandas as pd
