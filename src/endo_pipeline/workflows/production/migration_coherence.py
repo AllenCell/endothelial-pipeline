@@ -14,12 +14,15 @@ def main(
     import seaborn as sns
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.configs import (
+        TimepointAnnotation,
+        get_datasets_in_collection,
+        load_dataset_config,
+    )
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         check_required_columns_in_dataframe,
-        fit_pca,
-        get_dataframe_for_dynamics_workflows,
+        filter_dataframe_by_annotations,
         split_dataset_by_flow,
     )
     from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
@@ -36,14 +39,12 @@ def main(
         plot_fixed_points_vs_shear_stress,
         plot_scatter_and_binned_heatmap,
     )
-    from endo_pipeline.manifests import (
-        get_dataframe_location_for_dataset,
-        get_feature_dataframe_manifest_name,
-        load_dataframe_manifest,
-        load_model_manifest,
-    )
+    from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName
-    from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+    from endo_pipeline.settings.dynamics_workflows import (
+        DYNAMICS_COLUMN_NAMES,
+        METADATA_COLUMNS_TO_KEEP,
+    )
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         STABILITY_COLOR_DICT,
@@ -66,19 +67,13 @@ def main(
 
     # Load diffae features
     crop_pattern = MIGRATION_COHERENCE_CROP_PATTERN
-    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
-    feature_dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern=crop_pattern
-    )
+    # Load dataframe manifest for the features to be used in flow field
+    # estimation and analysis.
+    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
+    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    # get fit PCA object to apply PCA transformation to diffae features before
-    # plotting against optical flow features.
-    pca = fit_pca(num_pcs=3)
-
-    fixed_points_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{feature_dataframe_manifest_name}"
-    )
+    fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
     fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
 
     # If datasets aren't provided, default to processing a default list of
@@ -112,16 +107,22 @@ def main(
             continue
         output_dir = get_output_path(__file__, dataset_name)
 
-        df_dataset = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            feature_dataframe_manifest,
-            pca=pca,
-            include_cell_piling=False,
-            include_not_steady_state=False,
-            crop_pattern=crop_pattern,
+        # load dataframe and perform additional filtering (remove
+        # non-steady-state timepoints based on annotations), computing
+        # only the columns needed for visualization/analysis
+        df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
+        columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *DYNAMICS_COLUMN_NAMES]
+        df_ = df[columns_to_compute].compute()
+        df_steady_state = filter_dataframe_by_annotations(
+            df_,
+            load_dataset_config(dataset_name),
+            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
         )
+
+        # add optical flow features to the dataframe by merging on the appropriate
+        # columns (e.g., dataset, position, timepoint, and crop coords.)
         df_of = add_optical_flow_features(
-            df_dataset,
+            df_steady_state,
             datasets=[dataset_name],
         )
 
@@ -132,7 +133,7 @@ def main(
 
         for df_flow, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
-            plot_label = f"{dataset_name}, ({shear_stress} dyn/cm$^2$)"
+            plot_label = f"{dataset_name} ({shear_stress} dyn/cm$^2$)"
 
             # add to running plot of optical flow feature distribution across
             # datasets by plotting the distribution for this dataset and flow
