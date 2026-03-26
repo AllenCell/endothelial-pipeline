@@ -141,7 +141,6 @@ def main(
             fms_annotations = build_fms_annotations(
                 dataset_config, additional_notes=f"{additional_notes} {filter_note}"
             )
-            fms_annotations = build_fms_annotations(dataset_config)
             fmsid = upload_file_to_fms(
                 full_pca_df_path, annotations=fms_annotations, file_type="parquet"
             )
