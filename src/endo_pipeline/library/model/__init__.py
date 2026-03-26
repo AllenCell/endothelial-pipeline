@@ -1,10 +1,4 @@
-from .diffae import (
-    DiffAEFinetune,
-    MinStdCropd,
-    RotateRanged,
-    generate_from_coords,
-    generate_from_coords_batch,
-)
+from .diffae import MinStdCropd, RotateRanged, generate_from_coords, generate_from_coords_batch
 from .eval_model import (
     generate_overrides_for_model_eval,
     load_model_for_inference,
@@ -21,12 +15,10 @@ from .image_loading import (
 from .train_model import (
     build_and_save_dataframe_manifest_for_training,
     get_dataset_names_used_for_training,
-    initialize_diffae_model_for_finetuning,
 )
 
 __all__ = [
     "BioIOImageLoaderd",
-    "DiffAEFinetune",
     "MinStdCropd",
     "MultiDimImageDataset",
     "RotateRanged",
@@ -37,7 +29,6 @@ __all__ = [
     "generate_overrides_for_model_eval",
     "get_dataset_names_used_for_training",
     "get_z_slice_bounds_per_position",
-    "initialize_diffae_model_for_finetuning",
     "load_model_for_inference",
     "preprocess_tracking_manifest_for_model_eval",
     "update_prediction_from_crops_with_metadata",

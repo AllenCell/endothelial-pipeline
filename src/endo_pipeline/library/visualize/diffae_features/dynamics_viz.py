@@ -13,7 +13,7 @@ def plot_and_save_drift_contours(
     meshgrid: tuple[np.ndarray, np.ndarray],
     drift: np.ndarray,
     variable_labels: list[str],
-    bin_limits: list[tuple[float, float]],
+    axes_limits: list[tuple[float, float]],
     fig_title: str,
     fig_savedir: Path,
     filename_prefix: str,
@@ -36,7 +36,7 @@ def plot_and_save_drift_contours(
     variable_labels
         Labels for axes corresponding to the state space variables, e.g.,
         ["$x_1$", "$x_2$"].
-    bin_limits
+    axes_limits
         Limits for the axes, specified as a list of tuples.
     fig_title
         Title for the figure.
@@ -67,8 +67,8 @@ def plot_and_save_drift_contours(
         fig.colorbar(contour, ax=ax, label=f"d{var_name}/dt")
         ax.set_xlabel(variable_labels[0])
         ax.set_ylabel(variable_labels[1])
-        ax.set_xlim(bin_limits[0])
-        ax.set_ylim(bin_limits[1])
+        ax.set_xlim(axes_limits[0])
+        ax.set_ylim(axes_limits[1])
         fig.suptitle(
             f"{fig_title} \n d{var_name}/dt vs ({variable_labels[0]}, {variable_labels[1]})", y=1.05
         )
@@ -80,7 +80,7 @@ def plot_and_save_drift_quiver(
     meshgrid: tuple[np.ndarray, np.ndarray],
     drift: np.ndarray,
     variable_labels: list[str],
-    bin_limits: list[tuple[float, float]],
+    axes_limits: list[tuple[float, float]],
     fig_title: str,
     fig_savedir: Path,
     filename_prefix: str,
@@ -105,7 +105,7 @@ def plot_and_save_drift_quiver(
     variable_labels
         Labels for axes corresponding to the state space variables, e.g.,
         ["$x_1$", "$x_2$"].
-    bin_limits
+    axes_limits
         Limits for the axes, specified as a list of tuples.
     fig_title
         Title for the figure.
@@ -163,8 +163,8 @@ def plot_and_save_drift_quiver(
 
     ax.set_xlabel(variable_labels[0])
     ax.set_ylabel(variable_labels[1])
-    ax.set_xlim(bin_limits[0])
-    ax.set_ylim(bin_limits[1])
+    ax.set_xlim(axes_limits[0])
+    ax.set_ylim(axes_limits[1])
     fig.suptitle(f"{fig_title} \n drift in ({variable_labels[0]}, {variable_labels[1]})", y=1.05)
     save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_drift_quiver")
 

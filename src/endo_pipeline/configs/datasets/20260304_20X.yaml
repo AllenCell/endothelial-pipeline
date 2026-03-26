@@ -1,0 +1,80 @@
+name: 20260304_20X
+date: '20260304'
+original_path: //allen/programs/allencell/data/proj0/f49/b85/147/cc2/d74/eab/e46/9d8/f45/c81/56/20260304_GE00010457_20X_SLDY/20260304_GE00010457_20X_SLDY.sldy
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: 56c81f459d8e46eabd74cc2147b85f49
+barcode: GE00010457
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: medium
+pixel_size_xy_in_um: 0.382
+duration: 566
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+channel_names: [EGFP, BF]
+flow_conditions:
+- start: -18
+  stop: 565
+  shear_stress: 12.22
+include_scenes: null
+notes: TP 565-566 empty (no slide), timelapse ended ~1.5h early. High density, very
+  parallel alignment. Debris top FOV 3 washes away TP 25. FOV 1 dark flicker TP 315.
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [11, 86, 233, 314]
+    1: [40, 148, 284]
+    2: [105]
+    3: []
+    4: [305]
+    5: [305, 314]
+  auto_bf_temp_artifact:
+    0: [314, 564]
+    1: [284, 314, 564]
+    2: [314, 564]
+    3: [564, 565]
+    4: [564, 565]
+    5: [564, 565]
+  auto_gfp_scope_error:
+    0: [564, 565, 566]
+    1: [564, 565, 566]
+    2: [564, 565, 566]
+    3: [564, 565]
+    4: [564, 565]
+    5: [564, 565]
+  not_steady_state:
+    0: [[0, 152]]
+    1: [[0, 152]]
+    2: [[0, 152]]
+    3: [[0, 152]]
+    4: [[0, 152]]
+    5: [[0, 152]]
+  cell_piling:
+    0: [[384, 576]]
+    1: [[432, 576]]
+    2: [[384, 576]]
+    3: [[384, 576]]
+    4: [[432, 576]]
+    5: [[384, 576]]
+position_annotations: null
+center_z_plane:
+  0: 12
+  1: 11
+  2: 11
+  3: 11
+  4: 11
+  5: 12

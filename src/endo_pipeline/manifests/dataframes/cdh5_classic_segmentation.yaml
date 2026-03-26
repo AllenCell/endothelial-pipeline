@@ -2,14 +2,6 @@ name: cdh5_classic_segmentation
 workflow: live_feat_workflows_to_fms
 parameters: {}
 locations:
-  20241120_20X:
-    fmsid: 17d68f53ccab482796149deb63e062ff
-    path: null
-    s3uri: null
-  20241217_20X:
-    fmsid: 79dd6c4a941c420fbb0c910a63a09b24
-    path: null
-    s3uri: null
   20250224_20X:
     fmsid: 7275986eb28a4c808e86ba2c8f018e38
     path: null
@@ -272,5 +264,33 @@ locations:
     s3uri: null
   20260204_20X:
     fmsid: 81937ccd6a284797ad5c5f2354aac6ff
+    path: null
+    s3uri: null
+  20260209_20X:
+    fmsid: 6292df7f2f2943759c71740260fca86c
+    path: null
+    s3uri: null
+  20260211_20X:
+    fmsid: 07553a30ed954def8a060b2c24a42ede
+    path: null
+    s3uri: null
+  20260216_20X:
+    fmsid: 1f7912347fba43c1be1ba7f44a3b794a
+    path: null
+    s3uri: null
+  20260218_20X:
+    fmsid: ce563182d2bb402cb813de030deb354f
+    path: null
+    s3uri: null
+  20260225_20X:
+    fmsid: 30397d212b1748b4b86afb59e8deaa02
+    path: null
+    s3uri: null
+  20260302_20X:
+    fmsid: db6a57c5c25248e7b7fad243f050bf44
+    path: null
+    s3uri: null
+  20260304_20X:
+    fmsid: a7436d53aded4c8fab4cd7346738709e
     path: null
     s3uri: null

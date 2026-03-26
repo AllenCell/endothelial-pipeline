@@ -1,12 +1,12 @@
 from pathlib import Path
 from typing import Literal
 
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import Datasets, IntList
 
 
 def main(
     datasets: Datasets | None = None,
-    positions: list[int] = [0],
+    positions: IntList | None = None,
     output_dir: Path | None = None,
     segmentation: Literal["CDH5", "grid"] = "CDH5",
     skip_backdrops: bool = False,
@@ -22,7 +22,7 @@ def main(
 
     To overwrite the shared copy use:
     python src/endo_pipeline/workflows/timelapse_feature_explorer_workflow.py
-    --datasets ["20241120_20X", "20241217_20X", "20250409_20X", "20250319_20X"]
+    --datasets ["20250409_20X", "20250319_20X"]
     --positions [0, 3, 5]
     --output_dir (
         "//allen/aics/endothelial/morphological_features/timelapse_feature_explorer"
@@ -47,7 +47,7 @@ def main(
         Select segmenation. Currently we only support "CDH5".
         In the future we can add the nuclei segmentation.
 
-    --no_backdrops : flag
+    --skip_backdrops : flag
        By default, the script generates backdrops. Use this flag to skip that
        step.
     """
@@ -61,6 +61,9 @@ def main(
 
     if datasets is None:
         datasets = ["20250618_20X"]
+
+    if positions is None:
+        positions = [0]
 
     output_dir = (
         get_output_path(f"timelapse_feature_explorer_{segmentation}")

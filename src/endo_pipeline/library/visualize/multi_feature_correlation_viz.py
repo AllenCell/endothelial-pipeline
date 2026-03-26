@@ -8,9 +8,10 @@ Creates an n_features X n_features grid of plots with:
 3) Correlation values on the upper triangle
 """
 
+import itertools
 import logging
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -29,10 +30,14 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_datafram
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
-from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+from endo_pipeline.library.visualize.diffae_features.feature_viz import (
+    get_dataset_color,
+    get_label_for_column,
+)
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings import RANDOM_SEED
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
@@ -406,9 +411,9 @@ def get_df_for_feature_correlation_viz(
     dataset_info_columns: list[str],
     segmentation_feature_columns: list[str],
     pc_columns: list[str],
-    diffae_feature_columns: list[str],
     timepoint_annotations: list[TimepointAnnotation] | None = None,
     cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+    diffae_dynamics_columns: list[str] | tuple[str, ...] = DYNAMICS_COLUMN_NAMES,
 ) -> pd.DataFrame:
     """
     Load and preprocess the manifests for the given dataset names,
@@ -461,18 +466,24 @@ def get_df_for_feature_correlation_viz(
 
         # compute only the required columns to save space and time
         # (using a loop instead  of just sets to determine columns to load to preserve column order)
-        dynamics_columns = SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
-        supplementary_columns = SEGMENTATION_FEATURE_COLUMNS["supp"]
+        dynamics_columns = cast(
+            list[str], SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
+        )
+        diffae_dynamics_columns = cast(list[str], diffae_dynamics_columns)
+        supplementary_columns = cast(list[str], SEGMENTATION_FEATURE_COLUMNS["supp"])
         diffae_nondiffae_columns = [
-            col.value for col in ColumnName if "PREFIX" not in col.name and "SUFFIX" not in col.name
+            col.value
+            for col in Column.DiffAEData
+            if "PREFIX" not in col.name
+            and "SUFFIX" not in col.name
+            and col not in diffae_dynamics_columns
         ]
         cols_to_load = (
-            dataset_info_columns
-            + dynamics_columns
-            + supplementary_columns
-            + diffae_nondiffae_columns
-            + diffae_feature_columns
-            + pc_columns
+            *dataset_info_columns,
+            *dynamics_columns,
+            *supplementary_columns,
+            *diffae_nondiffae_columns,
+            *pc_columns,
         )
         cols_to_load_overlap = sorted(set(cols_to_load) & set(merged_feats_df_delayed.columns))
         cols_to_load_unique = []
@@ -481,15 +492,17 @@ def get_df_for_feature_correlation_viz(
                 cols_to_load_unique.append(col)
         merged_feats_df = merged_feats_df_delayed[cols_to_load_unique].compute()  # type: ignore
         # filter the dataframe to only include rows with DiffAE features
-        merged_feats_df = merged_feats_df.dropna(subset="model_manifest_name")
+        merged_feats_df = merged_feats_df.dropna(subset=[Column.DiffAEData.MODEL_MANIFEST])
 
         # "unwrap" the angle features to avoid issues with periodic data when plotting correlations
         angle_period = np.pi
-        angle_cols = ["orientation", ColumnName.POLAR_ANGLE.value]
+        angle_cols = [Column.SegData.ORIENTATION, Column.DiffAEData.POLAR_ANGLE]
         for ang_col in angle_cols:
             merged_feats_df[ang_col] = np.unwrap(merged_feats_df[ang_col], period=angle_period)
 
-        merged_feats_df["orientation_deg"] = np.rad2deg(merged_feats_df["orientation"])
+        merged_feats_df[Column.SegData.ORIENTATION_DEG] = np.rad2deg(
+            merged_feats_df[Column.SegData.ORIENTATION]
+        )
 
         # filter data table to only include the steady state timepoints that are
         # used when projecting the DiffAE features onto PCA axes
@@ -511,7 +524,6 @@ def get_df_for_feature_correlation_viz(
         cols_to_keep = [
             *dataset_info_columns,
             *segmentation_feature_columns,
-            *diffae_feature_columns,
             *pc_columns,
         ]
         if not all(np.isin(cols_to_keep, merged_feats_df.columns)):
@@ -559,3 +571,102 @@ def check_if_heatmap_should_be_annotated(
         )
         return False
     return True
+
+
+def visualize_correlation_heatmaps(
+    dataset_name: str,
+    df_dataset: pd.DataFrame,
+    label_column_tuples: list[tuple[str, list[str]]],
+    out_dir: Path,
+    skip_multi_feature_scatterplots: bool = False,
+) -> None:
+
+    # Pre-compute full correlation matrix once per dataset
+    all_feature_columns: list = []
+    for _, cols in label_column_tuples:
+        all_feature_columns.extend(cols)
+    # Remove duplicates while preserving order
+    unique_feature_columns = []
+    seen = set()
+    for col in all_feature_columns:
+        if col not in seen:
+            unique_feature_columns.append(col)
+            seen.add(col)
+
+    logger.info("Computing full correlation matrix for dataset %s", dataset_name)
+    values_for_corr = df_dataset[unique_feature_columns].dropna().to_numpy()
+    # Use numpy to compute correlation matrix faster
+    corr_matrix = np.corrcoef(values_for_corr, rowvar=False)
+    corr_df = pd.DataFrame(
+        corr_matrix,
+        index=unique_feature_columns,
+        columns=unique_feature_columns,
+    )
+
+    # Pre-compute dataset color mapping once per dataset
+    dataset_color_mapping = {
+        ds_nm: get_dataset_color(ds_nm) for ds_nm in df_dataset[Column.DATASET].unique()
+    }
+    colors = df_dataset[Column.DATASET].map(dataset_color_mapping).to_list()
+
+    for (x_axis_label, x_cols), (
+        y_axis_label,
+        y_cols,
+    ) in itertools.combinations_with_replacement(label_column_tuples, 2):
+        logger.debug(
+            "Processing correlation between %s and %s for dataset %s",
+            x_axis_label,
+            y_axis_label,
+            dataset_name,
+        )
+
+        # Ensure the figure is in landscape orientation
+        if len(y_cols) > len(x_cols):
+            x_cols, y_cols = y_cols, x_cols
+            x_axis_label, y_axis_label = y_axis_label, x_axis_label
+
+        x_filename = x_axis_label.replace(" ", "_").lower()
+        y_filename = y_axis_label.replace(" ", "_").lower()
+        base_filename = f"correlation_{x_filename}_vs_{y_filename}"
+
+        # Extract correlation submatrix from pre-computed correlation matrix
+        correlation_df = corr_df.loc[y_cols, x_cols].copy()
+        correlation_df.columns.name = x_axis_label  # columns go on the x axis
+        correlation_df.index.name = y_axis_label  # index goes on the y axis
+        correlation_df.to_csv(out_dir / f"{base_filename}_correlation_matrix.csv")
+
+        # make correlation clustermap
+        plot_and_save_clustermap(
+            df=correlation_df,
+            output_folder=out_dir,
+            filename=base_filename,
+            metric="cosine",
+            data_type="correlation",
+        )
+
+        if skip_multi_feature_scatterplots:
+            continue
+
+        if len(x_cols) > 16 or len(y_cols) > 16:
+            logger.info(
+                "Skipping scatter plot for %s vs %s for dataset %s "
+                "due to large number of features (%s x %s).",
+                x_axis_label,
+                y_axis_label,
+                dataset_name,
+                len(x_cols),
+                len(y_cols),
+            )
+            continue
+
+        column_list = []
+        for col in x_cols + y_cols:
+            if col not in column_list:
+                column_list.append(col)  # this preserves column order
+
+        plot_multi_feature_correlations(
+            df=df_dataset[column_list],
+            output_folder=out_dir,
+            filename=f"{base_filename}_scatter",
+            color=colors,
+        )

@@ -1,28 +1,26 @@
 import logging
-import re
 from collections.abc import Callable
-from pathlib import Path
 from time import time
-from typing import Literal
+from typing import Literal, overload
 
 import numpy as np
+import pandas as pd
 from numdifftools import Jacobian
 from scipy.integrate import solve_ivp
 from scipy.interpolate import RegularGridInterpolator, griddata
 from scipy.stats import gaussian_kde
-from sklearn.decomposition import PCA
 
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    get_dataframe_for_dynamics_workflows,
-    get_traj_and_diff,
+from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.numerics.binning import circpercentile
+from endo_pipeline.library.visualize.diffae_features.pplane import (
+    get_fpt_type,
+    get_fpts,
+    get_stability_label_from_fpt_type,
 )
-from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
-from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
-from endo_pipeline.library.visualize.diffae_features.flow_field_viz import flow_field_viz_main
-from endo_pipeline.library.visualize.diffae_features.pplane import find_fpt_type, get_fps
-from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
-from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED
 from endo_pipeline.settings.flow_field_3d import SAMPLER_RANDOM_SEED
+from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -65,230 +63,247 @@ def sample_from_density(
     return np.array(samples)
 
 
-def _is_point_within_percentile(point, data, lower=5, upper=95):
+def _compute_percentile_values(
+    data: pd.DataFrame,
+    column_names: list[str],
+    q: float,
+    polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
+) -> dict[str, float]:
     """
-    Check if a point is within the given percentile range of the data along each axis.
+    Compute the lower and upper percentile bounds for each column in the data.
+
+    Parameters
+    ----------
+    data
+        DataFrame containing the data.
+    column_names
+        List of column names to compute percentiles for.
+    q
+        Percentile to compute (e.g. 2 for the 2nd percentile).
+    polar_angle_range
+        The range of the polar angle variable (e.g. [0, 2pi] or [-pi, pi]) for
+        handling wraparound when computing percentiles for circular variables.
+
+    Returns
+    -------
+    :
+        Dictionary mapping column names to their percentile values.
+    """
+    percentile_values: dict[str, float] = {}
+    for column_name in column_names:
+        if column_name == Column.DiffAEData.POLAR_ANGLE:
+            percentile_value = circpercentile(data[column_name], q=q, polar_range=polar_angle_range)
+        else:
+            percentile_value = np.percentile(data[column_name], q=q)
+        percentile_values[column_name] = percentile_value
+    return percentile_values
+
+
+def is_point_within_percentile_bounds(
+    point: np.ndarray | tuple[float, ...],
+    column_names: list[str],
+    lower_percentile_bounds: dict[str, float],
+    upper_percentile_bounds: dict[str, float],
+    polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
+):
+    """
+    Check if a point is within a specified percentile range along each dimension
+    of a dataset, accounting for circular variables.
+
+    **Percentile bound specification**
+
+    The inputs lower_percentile_bounds and upper_percentile_bounds should be
+    lists of floats specifying the lower and upper percentiles of the data as
+    computed by, e.g., numpy.percentile or the circpercentile function for
+    circular variables. That is to say, lower_percentile_bounds[i] should be the
+    value of the lower percentile for the data in column column_names[i], not
+    the specified percentile (e.g. 2) itself.
+
+    **Handling circular variables*
+
+    For circular variables (e.g. angles), the function checks if the point is
+    within the bounds accounting for wraparound. For example, if the lower
+    percentile bound is 350 degrees and the upper percentile bound is 10
+    degrees, then a point at 355 degrees would be considered within bounds,
+    while a point at 20 degrees would not be.
+
+    Furthermore, we do not want to return multiple equivalent points that are
+    separated by the wraparound boundary for circular variables. Thus, we also
+    specify the polar angle range (e.g. [0, 360] or [-pi, pi]) to ensure that
+    the point is only considered within bounds if it is within the bounds in the
+    specified polar angle range. For example, if the polar angle range is [0,
+    360], then a point at -5 degrees would not be considered "within bounds"
+    even if the lower percentile bound is 350 and the upper percentile bound is
+    10, degrees.
 
     Parameters
     ----------
     point
         The point to check.
-    data
-        The data to compute percentiles from.
-    lower
-        Lower percentile.
-    upper
-        Upper percentile.
+    column_names
+        List of column names corresponding to the dimensions of the point and
+        data.
+    lower_percentile_bounds
+        Dictionary mapping column names to pre-computed lower percentile bounds.
+    upper_percentile_bounds
+        Dictionary mapping column names to pre-computed upper percentile bounds.
+    polar_angle_range
+        The range of the polar angle variable (e.g. [0, 2pi] or [-pi, pi]) for
+        handling wraparound when checking if the point is within bounds for
+        circular variables.
 
     Returns
     -------
     :
         True if point is within the percentile bounds on all axes, else False.
     """
-    lower_bounds = np.percentile(data, lower, axis=0)
-    upper_bounds = np.percentile(data, upper, axis=0)
-    point = np.asarray(point)
-    return np.all((point >= lower_bounds) & (point <= upper_bounds))
+    if len(point) != len(column_names):
+        raise ValueError(
+            f"Length of point ({len(point)}) does not match number of column names ({len(column_names)})."
+        )
+
+    is_within_bounds = []
+    for point_component, column_name in zip(point, column_names, strict=True):
+        lower_bound = lower_percentile_bounds[column_name]
+        upper_bound = upper_percentile_bounds[column_name]
+        if column_name == Column.DiffAEData.POLAR_ANGLE:
+            # for circular variables, need to account for bounds wrapping around
+            if lower_bound <= upper_bound:
+                is_within_bounds.append(
+                    (lower_bound <= point_component) & (point_component <= upper_bound)
+                )
+            else:
+                # check if point is within bounds accounting for wraparound
+                # and given polar range (e.g. [0, 2pi] or [-pi, pi])
+                is_within_bounds.append(
+                    (polar_angle_range[1] >= point_component >= lower_bound)
+                    | (polar_angle_range[0] <= point_component <= upper_bound)
+                )
+        else:
+            is_within_bounds.append(
+                (lower_bound <= point_component) & (point_component <= upper_bound)
+            )
+    return np.all(is_within_bounds)
 
 
-def ddff_model_analysis(
-    dataset_name: str,
-    dataframe_manifest: DataframeManifest,
-    crop_pattern: Literal["grid", "tracked"],
-    pca: PCA,
-    kernel: KramersMoyalKernel,
-    dt: float,
-    bins: list[np.ndarray],
-    centers: list[np.ndarray],
-    time_span: tuple[float, float],
-    init_for_traj: np.ndarray,
-    num_inits_for_root_solver: int,
-    plot_bounds: list[tuple[float, float]],
-    plot_stack: bool,
-    compute_vtk_files: bool,
-    fig_savedir: Path,
-    vtk_savedir: Path,
+def get_fixed_points_within_bounds(
+    vector_field_function: Callable[[np.ndarray], np.ndarray],
+    dataframe: pd.DataFrame,
     column_names: list[str],
+    num_inits_for_root_solver: int,
     lower_percentile: float,
     upper_percentile: float,
-) -> list[np.ndarray]:
+    polar_angle_range: tuple[float, float],
+    stability_label_column_name: str = STABILITY_COLUMN_NAME,
+) -> pd.DataFrame:
     """
-    Get 3d flow field (drift coefficient) from principal component features from
-    a given dataset.
+    Get fixed points of a given estimated vector field with high confidence.
 
     For a single dataset, this workflow:
 
-    1. Loads the dataframe for the given dataset and gets the top 3 PCs.
-    2. Computes the drift and diffusion coefficients (first and second
-       Kramers-Moyal coefficients)
-        using a kernel-based method.
-    3. Extrapolates the drift and diffusion coefficients to get a flow field
-       over the entire 3D
-        space as specified by the input bins and centers.
-    4. Saves out these vector fields as .npy files and as .vtk files for
-       visualization.
-    5. Solves the ODE dx/dt = f(x) using scipy.integrate.solve_ivp, where f(x)
-       is the flow field
-        (drift coefficient) and x is the 3D state space.
-    6. Visualizes the flow field and the trajectory using the main function in
-       flow_field_viz.py.
+    1. Finds fixed points of the vector field by finding roots of the input
+       function using multiple initial conditions sampled from the density of
+       the given data.
+    2. Filters the fixed points to only keep those that are within a specified
+       percentile range of the data along each dimension.
 
     Parameters
     ----------
-    dataset_name
-        Name of dataset for which to compute the flow field.
-    dataframe_manifest
-        Dataframe manifest with the dataframe locations for each dataset.
-    pca
-        PCA model to use for transforming the data (projecting onto the top 3
-        PCs).
-    kernel
-        Kernel to use for Kramers-Moyal coefficient estimation.
-    dt
-        Time step between frames.
-    bins
-        List of the bin edges for histogramming along each dimension in the 3D
-        state space.
-    centers
-        List of centers of the bins in each dimension.
-    time_span
-        Time span for the ODE solver.
-    init_for_traj
-        Initial condition for the trajectory.
+    vector_field_function
+        Callable function that takes in a point in 3D space and outputs a 3D
+        vector at that point.
+    dataframe
+        Dataframe containing the feature data for the dataset, which is used to
+        filter the fixed points to only keep those within a certain percentile
+        range of the data.
+    column_names
+        List of column names corresponding to the features used in the analysis,
+        in the same order as the columns in feature_data.
     num_inits_for_root_solver
         Number of initial conditions to use for finding fixed points.
-    plot_bounds
-        Bounds for plotting the flow field.
-    plot_stack
-        Whether to plot the flow field as a stack of 2D slices in each
-        dimension.
-    compute_vtk_files
-        Whether to compute and save .vtk files for the flow field and diffusion
-        field.
-    fig_savedir
-        Directory to save figures.
-    vtk_savedir
-        Directory to save .vtk files.
-    output_savedir
-        Directory to save output files (.npy files with drift field and
-        diffusion field).
-    column_names
-        List of column names corresponding to features to use for the analysis
-        (e.g. the top 3 PCs).
     lower_percentile
         Lower percentile for filtering fixed points.
     upper_percentile
         Upper percentile for filtering fixed points.
+    polar_angle_range
+        The range of the polar angle variable for handling wraparound when
+        computing percentiles for circular variables.
+    stability_label_column_name
+        Column name to use for fixed point stability classification labels in the
+        output dataframe.
 
     Returns
     -------
     :
-        List of stable fixed points with high confidence (filtered by percentile
-        range).
+        Dataframe containing of stable fixed points with high confidence (i.e.,
+        points filtered by percentile range).
     """
-    # load dataframe and get top 3 PCs
-    df = get_dataframe_for_dynamics_workflows(
-        dataset_name,
-        dataframe_manifest,
-        pca=pca,
-        include_cell_piling=False,
-        include_not_steady_state=False,
-        crop_pattern=crop_pattern,
-    )
+    check_required_columns_in_dataframe(
+        dataframe, [*column_names, Column.DATASET]
+    )  # check required columns are in dataframe
+    feature_data = dataframe[column_names].to_numpy()  # get feature data as numpy array
+    dataset_name = dataframe[Column.DATASET].iloc[0]  # get dataset name from dataframe
 
-    # get list of per-crop trajectories, the corresponding
-    # displacement vectors, and time differences
-    traj_list, d_traj_list = get_traj_and_diff(df, column_names)
-    # get drift estimates
-    # (Kramers-Moyal coefficients)
-    drift_km, _ = get_kramers_moyal_coeffs(traj_list, d_traj_list, bins=bins, dt=dt, kernel=kernel)
-
-    # compute flow field on the grid defined by centers
-    ndim = len(centers)  # number of dimensions
-    # generate a mesh grid of points in the state space
-    grid = np.meshgrid(*centers, indexing="ij")  # make meshgrid
-
-    # get the vector field components from
-    # the Kramers-Moyal coefficients
-    drift_vector_field = [drift_km[..., i] for i in range(ndim)]
-    flow_field_dict = {"vectors": drift_vector_field, "grid": grid}
-
-    # if compute vtk files, extrapolate and save out the flow field as vtk
-    if compute_vtk_files:
-        extrapolated_flow_field_dict_vtk = compute_extrapolated_vector_field(
-            drift_km, centers, method="nearest", for_vtk_files=True
-        )
-        # save out the flow field as vtk image data
-        volume_extent = {
-            "xmin": bins[0][0],
-            "xmax": bins[0][-1],
-            "ymin": bins[1][0],
-            "ymax": bins[1][-1],
-            "zmin": bins[2][0],
-            "zmax": bins[2][-1],
-        }
-        save_vector_field_as_vtk(
-            extrapolated_flow_field_dict_vtk,
-            vtk_savedir / f"flow_field_{dataset_name}.vtk",
-            volume_extent,
-        )
-
-    ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
-    # with initial conditions given by init solve IVP, get back trajectory
-    extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
-        drift_km, centers, method="linear", for_vtk_files=False
-    )
-    traj = solve_ddff_ode(extrapolated_flow_field_dict_reg, init_for_traj, time_span)
-
-    # get callable drift function and its Jacobian
-    drift_function = get_callable_vector_field(
-        extrapolated_flow_field_dict_reg, for_solve_ivp=False, method="linear"
-    )
-    drift_function_jacobian = Jacobian(drift_function)
+    # create Jacobian function for finding stability of fixed points
+    vector_field_jacobian = Jacobian(vector_field_function)
 
     # sample initial conditions for root solver from data density
-    feature_data = df[column_names].values  # get feature data as numpy array
     sampled_inits_for_root_solver = sample_from_density(feature_data, num_inits_for_root_solver)
 
     # pass into helper function to get fixed points
-    fpts = get_fps(drift_function, sampled_inits_for_root_solver)
+    fpts = get_fpts(vector_field_function, sampled_inits_for_root_solver)
 
-    # filter fixed points to only keep stable ones within 2nd-98th percentiles of data
-    stable_fpts_high_confidence = []
+    # filter fixed points to only keep ones within a given range of percentiles
+    # of data (e.g., 2 to 98) to get high confidence fixed points that are
+    # within the region of state space supported by the data
+    lower_percentile_bounds = _compute_percentile_values(
+        dataframe, column_names, q=lower_percentile, polar_angle_range=polar_angle_range
+    )
+    logger.debug(
+        "Lower percentile bounds for filtering fixed points: [ %s ]", lower_percentile_bounds
+    )
+    upper_percentile_bounds = _compute_percentile_values(
+        dataframe, column_names, q=upper_percentile, polar_angle_range=polar_angle_range
+    )
+    logger.debug(
+        "Upper percentile bounds for filtering fixed points: [ %s ]", upper_percentile_bounds
+    )
+    fpts_high_confidence_list = []
     for fpt in fpts:
-        within_percentile = _is_point_within_percentile(
-            fpt, feature_data, lower_percentile, upper_percentile
+        within_percentile = is_point_within_percentile_bounds(
+            fpt, column_names, lower_percentile_bounds, upper_percentile_bounds, polar_angle_range
         )
         if within_percentile:
-            # get stability and type of the fixed point
-            fpt_type = find_fpt_type(drift_function_jacobian(fpt))
-            # stability of the fixed point is the
-            # first word in the fpt_type string
-            # if verbose, print the point and its stability
+            # get stability/type of the fixed point
+            fpt_type = get_fpt_type(vector_field_jacobian(fpt))
             logger.debug("[ %s ] at [ (%.2f, %.2f, %.2f) ]", fpt_type, fpt[0], fpt[1], fpt[2])
-            # if "Stable" or "stable" in the fpt_type, save the point
-            if re.search(r"stable", fpt_type, re.IGNORECASE) and not re.search(
-                r"unstable", fpt_type, re.IGNORECASE
-            ):
-                stable_fpts_high_confidence.append(fpt)
+            fpt_stability_label = get_stability_label_from_fpt_type(fpt_type)
+            fpts_high_confidence_list.append(
+                pd.DataFrame(
+                    {
+                        Column.DATASET: [dataset_name],
+                        stability_label_column_name: [fpt_stability_label],
+                        column_names[0]: [fpt[0]],
+                        column_names[1]: [fpt[1]],
+                        column_names[2]: [fpt[2]],
+                    }
+                )
+            )
 
-    # subfolder for each dataset
-    fig_savedir_dataset = fig_savedir / dataset_name
-    fig_savedir_dataset.mkdir(parents=True, exist_ok=True)
+    # check if any fixed points with high confidence were found, and if not, log
+    # a warning and return an empty dataframe with the correct columns
+    if len(fpts_high_confidence_list) == 0:
+        logger.warning(
+            "No fixed points with high confidence found for dataset [ %s ]."
+            "Consider adjusting percentile thresholds or number of initial conditions for root solver.",
+            dataset_name,
+        )
+        return pd.DataFrame(columns=[Column.DATASET, stability_label_column_name, *column_names])
 
-    # call main visualization function
-    flow_field_viz_main(
-        flow_field_dict,
-        df,
-        column_names,
-        traj,
-        stable_fpts_high_confidence,
-        plot_bounds,
-        plot_stack,
-        fig_savedir_dataset,
-    )
-
-    return stable_fpts_high_confidence
+    # else, concatenate the list of dataframes for each fixed point into a
+    # single dataframe and return it
+    fpts_high_confidence = pd.concat(fpts_high_confidence_list, ignore_index=True)
+    return fpts_high_confidence
 
 
 def fill_nan_for_vtk(data: np.ndarray, method: str = "nearest") -> np.ndarray:
@@ -425,9 +440,21 @@ def compute_extrapolated_vector_field(
     return {"vectors": vectors, "grid": (x, y, z)}
 
 
+@overload
+def get_callable_vector_field(
+    vector_field_dict: dict, for_solve_ivp: Literal[True], method: str = "linear"
+) -> Callable[[float, np.ndarray], np.ndarray]: ...
+
+
+@overload
+def get_callable_vector_field(
+    vector_field_dict: dict, for_solve_ivp: Literal[False], method: str = "linear"
+) -> Callable[[np.ndarray], np.ndarray]: ...
+
+
 def get_callable_vector_field(
     vector_field_dict: dict, for_solve_ivp: bool = True, method: str = "linear"
-) -> Callable:
+) -> Callable[[float, np.ndarray], np.ndarray] | Callable[[np.ndarray], np.ndarray]:
     """
     Get a callable vector field from a numpy array via linear interpolation.
 
