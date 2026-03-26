@@ -3,17 +3,11 @@ from typing import Annotated
 from cyclopts import Parameter
 
 from endo_pipeline.cli import CropPattern, Datasets, StrList
-from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-)
 
 
 def main(
-    datasets: Datasets | None = None,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
+    datasets: Datasets | None = None,
     columns: StrList | None = None,
     just_steady_state: Annotated[bool, Parameter(negative="--include-transient")] = True,
 ) -> None:
@@ -50,14 +44,10 @@ def main(
 
     Parameters
     ----------
-    datasets
-        Specific datasets to run the workflow on.
-    model_manifest_name
-        The name of the model manifest to use.
-    run_name
-        The name of the model run to use.
     crop_pattern
-        The crop pattern to get features for, either "grid" or "tracked".
+        The crop pattern to use features from.
+    datasets
+        Optional, specific datasets to run the workflow on.
     column_names
         List of specific column names to include in the analysis.
     """
@@ -70,20 +60,21 @@ def main(
     from scipy.stats import circmean, circstd, circvar
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import load_dataset_config
-    from endo_pipeline.configs.dataset_config_io import get_datasets_in_collection
-    from endo_pipeline.io import get_output_path, save_plot_to_path
+    from endo_pipeline.configs import (
+        TimepointAnnotation,
+        get_datasets_in_collection,
+        load_dataset_config,
+    )
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         df_to_array,
-        fit_pca,
-        get_dataframe_for_dynamics_workflows,
+        filter_dataframe_by_annotations,
         split_dataset_by_flow,
     )
     from endo_pipeline.library.analyze.numerics.temporal_stats import (
         compute_binned_variance_ratio_vs_time,
         compute_cumulative_variance_over_time,
     )
-    from endo_pipeline.library.model.latent_walk_utils import get_num_pcs_from_column_names
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features.variation_analysis import (
         plot_ergodicity_test,
@@ -91,17 +82,16 @@ def main(
         plot_population_cov_vs_time,
         plot_variance_ratio_vs_time,
     )
-    from endo_pipeline.manifests import (
-        get_feature_dataframe_manifest_name,
-        load_dataframe_manifest,
-        load_model_manifest,
-    )
+    from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
         BIN_LIMITS_THETA_RESCALED,
+        DEFAULT_DATASETS_DYNAMICS_VIS,
+        METADATA_COLUMNS_TO_KEEP,
         PERIOD_THETA_RESCALED,
         RESCALE_THETA,
+        TRACK_METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
     from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
@@ -110,12 +100,16 @@ def main(
         DEFAULT_COV_ANALYSIS_COLUMNS,
         TIME_WINDOW_BIN_SIZE,
     )
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+    )
 
     logger = logging.getLogger(__name__)
 
     # get labels for provided set of feature columns
     column_names = columns or list(DEFAULT_COV_ANALYSIS_COLUMNS)
-    num_pcs = get_num_pcs_from_column_names(column_names)
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *column_names]
     variable_labels_dict = {
         col: get_label_for_column(col).replace("polar ", "") for col in column_names
     }
@@ -127,35 +121,28 @@ def main(
     if RESCALE_THETA:
         global_bin_limits_dict[Column.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
 
-    # get dataframe manifest for grid-based crop features
-    model_manifest = load_model_manifest(model_manifest_name)
-    dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern=crop_pattern
-    )
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+    # get dataframe manifest for {crop_pattern} crop-based features
+    if crop_pattern == "tracked":
+        logger.warning(
+            "Crop pattern [ tracked ] is temporarily not supported for this workflow. "
+            "Defaulting to [ grid ] crop pattern."
+        )
+        crop_pattern = "grid"
 
-    # fit PCA - ALWAYS on grid-based crop features
-    dataframe_manifest_name_for_pca = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
-    )
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_for_pca, num_pcs=num_pcs)
+    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
+    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
+    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # plotting timepoints in unit hours: conversion factor
     time_conversion_factor = TIME_STEP_IN_MINUTES / 60
 
     # dataset list from specified collection
-    if datasets is None:
-        dataset_names = get_datasets_in_collection("3d_flow_field_analysis")
-    else:
-        dataset_names = datasets.copy()
+    # Use provided datasets or default if none provided.
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
     if DEMO_MODE:
-        logger.warning("DEMO MODE: limiting to first dataset only")
+        logger.warning("DEMO MODE: limiting to first dataset only.")
         dataset_names = dataset_names[:1]
-
-    # output directory for summary figures (keyed by collection, not individual dataset)
-    fig_savedir = get_output_path(__file__, crop_pattern)
-    logger.debug("Saving summary plots to [ %s ]", fig_savedir)
 
     # Accumulators for multi-dataset plots.
     # Each entry is (time_values, cov_series, color, label) for population CoV, and
@@ -169,19 +156,33 @@ def main(
     mean_std_scaled: DiffAEColumnDict = {col: [] for col in column_names}
 
     for dataset_name in dataset_names:
+        if dataset_name not in feature_dataframe_manifest.locations:
+            logger.warning(
+                f"Dataset {dataset_name} not found in manifest {feature_dataframe_manifest_name}. Skipping."
+            )
+            continue
+        fig_savedir = get_output_path(__file__, crop_pattern, dataset_name)
         dataset_config = load_dataset_config(dataset_name)
 
-        df = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            dataframe_manifest,
-            pca=pca,
-            include_cell_piling=False,
-            include_not_steady_state=not just_steady_state,
-            crop_pattern=crop_pattern,
-            compute_polar=True,
-            rescale_theta=RESCALE_THETA,
-        )
-        df = df.dropna(subset=column_names)
+        # load dataframe and perform additional filtering (remove
+        # non-steady-state timepoints based on annotations), computing
+        # only the columns needed for flow field estimation and analysis to save memory.
+        df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
+        # start with default metadata columns to keep
+        if crop_pattern == "tracked":
+            # also keep track ID and track length columns for tracked crops
+            columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
+        df_ = df[columns_to_compute].compute()
+        if just_steady_state:
+            df_ = filter_dataframe_by_annotations(
+                df_,
+                dataset_config,
+                timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
+            )
+        if crop_pattern == "tracked":
+            logger.debug("Will filter by track length once implemented.")
+
+        df_ = df_.dropna(subset=column_names)
 
         # polar angle periodicity settings
         theta_col = Column.DiffAEData.POLAR_ANGLE
@@ -189,7 +190,7 @@ def main(
         theta_period = PERIOD_THETA_RESCALED if RESCALE_THETA else 2 * np.pi
 
         # split by flow conditions (shared by unscaled and scaled paths)
-        df_by_flow, shear_stress_list = split_dataset_by_flow(df, dataset_config)
+        df_by_flow, shear_stress_list = split_dataset_by_flow(df_, dataset_config)
 
         # collect unscaled mean ± std per flow condition
         for df_flow, shear_stress, shear_stress_regime in zip(
@@ -298,9 +299,7 @@ def main(
                     scaled_crop_array, var_function, **scaled_function_kwargs
                 )
                 # compute sem for the cumulative variance across crops at each timepoint
-                num_valid_crops = np.sum(
-                    np.isfinite(scaled_crop_array), axis=0
-                )  # count crops with data at each timepoint
+                num_valid_crops = np.sum(np.isfinite(scaled_crop_array), axis=0)
                 cumulative_var_mean = np.nanmean(cumulative_var_per_crop, axis=0)
                 cumulative_var_sem = np.nanstd(cumulative_var_per_crop, axis=0) / np.sqrt(
                     num_valid_crops
