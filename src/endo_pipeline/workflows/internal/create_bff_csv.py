@@ -107,7 +107,7 @@ def main():
                     "Study Title": "placeholder",
                     "Publication": "doi: placeholder",
                     "Imaging Method": f"{dataset_config.microscope} spinning disk confocal microscope",
-                    "Image acquisition settings": "See method description in publication",
+                    "Image Acquisition Settings": "See method description in publication",
                     "Objective": dataset_config.objective,
                     "Objective immersion medium refraction index": "air, RI=1.0",
                     **channel_data,
