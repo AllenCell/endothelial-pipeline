@@ -1180,7 +1180,6 @@ def plot_distances_to_fixed_points_for_dataset(
     column_names: list[str] | tuple[str, ...] = DYNAMICS_COLUMN_NAMES,
     out_dir=None,
 ):
-    logger.info("Processing dataset [ %s ]...", dataset_name)
     column_names = list(column_names)
 
     dataset_config = load_dataset_config(dataset_name)
@@ -1190,6 +1189,15 @@ def plot_distances_to_fixed_points_for_dataset(
             "Skipping for 3D flow field analysis.",
             dataset_name,
             dataset_config.shear_stress_regime,
+        )
+        return
+
+    if dataset_config.flow_conditions[0].shear_stress == 0:
+        logger.warning(
+            "Dataset [ %s ] has a shear stress of 0: [ %s ]. "
+            "Skipping for 3D flow field analysis.",
+            dataset_name,
+            dataset_config.flow_conditions[0].shear_stress,
         )
         return
 
@@ -1243,15 +1251,11 @@ def plot_distances_to_fixed_points_for_dataset(
         bin_widths.append(bin_width)
 
     # get bins for KMCs
-    bounds_for_km = get_bounds_from_data(
-        dataset_names=[dataset_name],
-        manifest=dataframe_manifest,
-        pca=pca,
+    bins, centers = get_bins(
+        bin_widths,
+        data=df[column_names].to_numpy(),
         pad=PAD_BINS_FLOAT,
-        column_names=column_names,
     )
-    bins, centers = get_bins(bin_widths, bin_limits=bounds_for_km)
-
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
     traj_list, d_traj_list = get_traj_and_diff(df, column_names)
