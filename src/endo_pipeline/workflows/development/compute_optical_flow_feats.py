@@ -264,9 +264,9 @@ def main(  # noqa: C901
         dataset_config = load_dataset_config(dataset_name)
         df_dataset = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
         columns_to_compute = [*DIFFAE_DATAFRAME_METADATA_TO_COMPUTE]
-        df_dataset: pd.DataFrame = df_dataset[columns_to_compute].compute()
+        df_dataset_: pd.DataFrame = df_dataset[columns_to_compute].compute()
 
-        position_list = sorted(df_dataset[Column.POSITION].unique().tolist())
+        position_list = sorted(df_dataset_[Column.POSITION].unique().tolist())
         if positions:
             position_list = [p for p in position_list if p in positions]
         if DEMO_MODE:
@@ -291,9 +291,9 @@ def main(  # noqa: C901
                 dataset_config.duration,
             )
 
-            df_position = df_dataset[
-                (df_dataset[Column.POSITION] == position)
-                & (df_dataset[Column.TIMEPOINT].isin(valid_timepoints))
+            df_position = df_dataset_[
+                (df_dataset_[Column.POSITION] == position)
+                & (df_dataset_[Column.TIMEPOINT].isin(valid_timepoints))
             ].copy()
             if df_position.empty:
                 continue
