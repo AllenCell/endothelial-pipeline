@@ -20,15 +20,11 @@ from endo_pipeline.io import (
     load_dataframe,
     save_plot_to_path,
 )
-from endo_pipeline.library.analyze.data_driven_flow_field import (
-    compute_extrapolated_vector_field,
-    get_callable_vector_field,
-    get_fixed_points_within_bounds,
-    solve_ddff_ode,
-)
+from endo_pipeline.library.analyze.data_driven_flow_field import solve_ddff_ode
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     add_crop_index,
     add_description_column,
+    check_required_columns_in_dataframe,
     fit_pca,
     get_dataframe_for_dynamics_workflows,
     get_datasets_in_collection,
@@ -68,11 +64,7 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
     NUM_PCS_TO_ANALYZE,
 )
 from endo_pipeline.settings.dynamics_workflows import (
-    BIN_LIMITS_THETA_RESCALED,
-    BIN_WIDTHS_DYNAMICS,
     DYNAMICS_COLUMN_NAMES,
-    KERNEL_BANDWIDTHS_DYNAMICS,
-    KERNEL_NAMES_DYNAMICS,
     PERIOD_THETA_RESCALED,
     RESCALE_THETA,
 )
@@ -81,14 +73,13 @@ from endo_pipeline.settings.flow_field_3d import (
     INIT_POINT_3D,
     KERNEL_BANDWIDTH,
     KERNEL_FUNCTION_NAME,
-    LOWER_PERCENTILE_FOR_STABLE_FP,
-    NUM_INIT_SAMPLES,
-    PAD_BINS_FLOAT,
     TIME_STEP_IN_MINUTES,
     TRAJECTORY_TIME_SPAN,
-    UPPER_PERCENTILE_FOR_STABLE_FP,
 )
-from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
+from endo_pipeline.settings.flow_field_dataframes import (
+    DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+    STABILITY_COLUMN_NAME,
+)
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -1183,6 +1174,7 @@ def plot_distances_to_fixed_points_for_dataset(
     column_names = list(column_names)
 
     dataset_config = load_dataset_config(dataset_name)
+
     if len(dataset_config.shear_stress_regime) > 1:
         logger.warning(
             "Dataset [ %s ] has more than one shear stress condition: [ %s ]. "
@@ -1206,86 +1198,22 @@ def plot_distances_to_fixed_points_for_dataset(
     logger.info("Making output directory for dataset [ %s ]...", dataset_name)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # load dataframe and filter / preprocess it for dynamics workflows (PCA,
-    # filter annotated timepoints, transform angular variables)
-    # use only the steady state and unpiled data for flow field and
-    # fixed point estimation
-    # NOTE we use the grid-based dataframe to estimate the flow field
+    # load the fixed point dataframe manifest for the given model manifest, run name, and dataset
+    base_name = f"{model_manifest_name}_{run_name}_grid"
 
-    # Load default model manifest and get corresponding feature dataframe
-    # manifest name for default run name and specified crop pattern.
-    model_manifest = load_model_manifest(model_manifest_name)
-    dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
+    fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
+    fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
+
+    # load fixed point dataframe if it exists, and check that required
+    # columns are present turn fixed point dataframe into list of arrays of
+    # stable fixed point coordinates for each dataset to use for plotting
+    fixed_points_dataframe_location = get_dataframe_location_for_dataset(
+        fixed_points_dataframe_manifest, dataset_name
     )
-
-    # load dataframe manifest with model feature for the given model run
-    # and model manifest
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
-
-    df = get_dataframe_for_dynamics_workflows(
-        dataset_name,
-        dataframe_manifest,
-        pca=pca,
-        include_cell_piling=False,
-        include_not_steady_state=False,
-        crop_pattern="grid",
-    )
-
-    # initialize kernels and bin widths for each of the three variables for flow
-    # field estimation
-    kernels: list[KramersMoyalKernel] = []
-    bin_widths: list[float] = []
-    rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
-
-    # Get the corresponding kernels and bin widths for each variable. For the
-    # polar angle variable, also specify the period for the kernel based on the
-    # rescaled theta range, to ensure that the periodicity of the polar angle is
-    # taken into account in the flow field estimation.
-    for column_name in column_names:
-        name = KERNEL_NAMES_DYNAMICS[column_name]
-        bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
-        period = rescaled_theta if column_name == Column.DiffAEData.POLAR_ANGLE else None
-        bin_width = BIN_WIDTHS_DYNAMICS[column_name]
-        kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
-        bin_widths.append(bin_width)
-
-    # get bins for KMCs
-    bins, centers = get_bins(
-        bin_widths,
-        data=df[column_names].to_numpy(),
-        pad=PAD_BINS_FLOAT,
-    )
-    # get list of per-crop trajectories, the corresponding
-    # displacement vectors, and time differences
-    traj_list, d_traj_list = get_traj_and_diff(df, column_names)
-
-    # get drift estimates in units hours^-1 for each bin in 3D space
-    # (Kramers-Moyal coefficient estimation)
-    drift_coeffs = get_kramers_moyal_coeffs(
-        traj_list, d_traj_list, bins=bins, dt=TIME_STEP_IN_MINUTES / 60, kernel=kernels
-    )[0]
-
-    ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
-    extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
-        drift_coeffs, centers, method="linear", for_vtk_files=False
-    )
-
-    # get callable drift function to be used for root finding to identify
-    # fixed points
-    drift_function = get_callable_vector_field(
-        extrapolated_flow_field_dict_reg, for_solve_ivp=False, method="linear"
-    )
-
-    # get fixed points and their stability
-    fixed_points_for_dataset = get_fixed_points_within_bounds(
-        vector_field_function=drift_function,
-        dataframe=df,
-        column_names=column_names,
-        num_inits_for_root_solver=NUM_INIT_SAMPLES,
-        lower_percentile=LOWER_PERCENTILE_FOR_STABLE_FP,
-        upper_percentile=UPPER_PERCENTILE_FOR_STABLE_FP,
-        polar_angle_range=BIN_LIMITS_THETA_RESCALED if RESCALE_THETA else (-np.pi, np.pi),
+    fixed_points_for_dataset = load_dataframe(fixed_points_dataframe_location, delay=False)
+    check_required_columns_in_dataframe(
+        fixed_points_for_dataset,
+        required_columns=[*column_names, Column.DATASET, STABILITY_COLUMN_NAME],
     )
 
     # if there are no fixed points then move to the next dataset
@@ -1306,10 +1234,8 @@ def plot_distances_to_fixed_points_for_dataset(
         model_manifest_tracked, run_name, crop_pattern="tracked"
     )
 
-    # load dataframe manifest with model feature for the given model run
-    # and model manifest
+    # load dataframe for the tracked dynamics data
     dataframe_manifest_tracked = load_dataframe_manifest(dataframe_manifest_name)
-
     df_tracked = get_dataframe_for_dynamics_workflows(
         dataset_name,
         manifest=dataframe_manifest_tracked,
@@ -1322,6 +1248,8 @@ def plot_distances_to_fixed_points_for_dataset(
     # determine distance from each fixed point over time and add to the dataframe, along
     # with the signed difference along each axis (e.g. theta, r, rho) from each fixed point
     dist_from_fp_col_prefix = "dist_from_fp_"
+    rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
+
     for i in fixed_points_for_dataset.index:
         fpt = fixed_points_for_dataset.iloc[i]
 
@@ -1346,7 +1274,7 @@ def plot_distances_to_fixed_points_for_dataset(
         dt = df_tracked[Column.TIMEPOINT].groupby(df_tracked[Column.CROP_INDEX]).diff()
         df_tracked[f"{dist_from_fp_col_prefix}{i}_veloc"] = dd / dt
 
-    # TODO ADD COMMENTS AND DOCUMENTATION FOR THE EXPLORATION BELOW
+    # determine which fixed point is closest at each timepoint for each track
     dist_from_fp_columns = [f"{dist_from_fp_col_prefix}{i}" for i in fixed_points_for_dataset.index]
     df_tracked["closest_fp"] = (
         df_tracked[dist_from_fp_columns]
@@ -1371,17 +1299,19 @@ def plot_distances_to_fixed_points_for_dataset(
     # plot and save some distances to fixed points
     shear = dataset_config.flow_conditions[0].shear_stress
 
+    # determine if the closest fixed point changes at any timepoint for each track
     df_tracked["closest_fp_changed"] = df_tracked.groupby(["position", "track_id"], as_index=True)[
         "closest_fp"
     ].transform(lambda x: x.diff().fillna(0) != 0)
 
+    # count the number of times the closest fixed point changes for each track
     df_track_fp_switches = (
         df_tracked.groupby(["position", "track_id"], as_index=True)
         .agg(number_of_fp_switches=("closest_fp_changed", "sum"))
         .reset_index()
     )
 
-    # what is the closest fixed point that each track ends at?
+    # record which closest fixed point each track ends at
     df_tracked["final_closest_fp"] = df_tracked.groupby(["position", "track_id"], as_index=True)[
         "closest_fp"
     ].transform("last")
@@ -1399,6 +1329,13 @@ def plot_distances_to_fixed_points_for_dataset(
         fp_stability_map
     )
 
+    # start plotting desired metrics
+    # - distance from fixed point
+    # - distance from fixed point along each axis (e.g. theta, r, rho)
+    # - velocity towards/away from fixed point
+    # - location of fixed points relative to rest of data
+    # - how many tracks switch which fixed point is closest at any time
+    # - what proportion of tracks finish closest to which fixed points
     fig, ax = plt.subplots()
     ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
     for i in fixed_points_for_dataset.index:

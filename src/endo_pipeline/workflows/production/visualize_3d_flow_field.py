@@ -158,7 +158,7 @@ def main(
     # load model manifest and get corresponding dataframe manifest name
     if crop_pattern == "tracked":
         logger.warning(
-            "Using features from track-based crops temporarilty unsupported."
+            "Using features from track-based crops temporarily unsupported."
             "Proceeding with grid-based crops for flow field estimation and analysis."
         )
         crop_pattern = "grid"
