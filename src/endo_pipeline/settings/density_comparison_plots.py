@@ -1,5 +1,14 @@
 """Global settings for workflow comparing feature densities between cell-centric and grid-based crops."""
 
+from endo_pipeline.settings.column_names import ColumnName as Column
+
+DENSITY_PLOT_FEATURES: tuple[str, ...] = (
+    Column.DiffAEData.POLAR_ANGLE,
+    Column.DiffAEData.POLAR_RADIUS,
+    Column.DiffAEData.PC3_FLIPPED,
+)
+"""Column names of features to compare densities for."""
+
 DENSITY_PLOT_DEFAULT_DATASET: str = "20250818_20X"
 """Default dataset to use for density comparison plots."""
 

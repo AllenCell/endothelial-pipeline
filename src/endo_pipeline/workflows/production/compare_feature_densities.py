@@ -33,11 +33,8 @@ def main(
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.density_comparison_plots import (
         DENSITY_PLOT_DEFAULT_DATASET,
+        DENSITY_PLOT_FEATURES,
         SAVE_FIG_FILE_FORMATS,
-    )
-    from endo_pipeline.settings.diffae_feature_dataframes import (
-        DIFFAE_PC_COLUMN_NAMES,
-        NUM_PCS_TO_ANALYZE,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -63,7 +60,7 @@ def main(
 
     fig_savedir = get_output_path(__file__)
 
-    feature_column_names = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+    feature_column_names = list(DENSITY_PLOT_FEATURES)
 
     # if pooling, prepare lists to collect dataframes
     if pool_datasets:
