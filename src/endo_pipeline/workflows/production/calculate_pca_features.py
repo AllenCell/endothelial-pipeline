@@ -70,9 +70,7 @@ def main(
         DataframeLocation,
         create_dataframe_manifest,
         get_dataframe_location_for_dataset,
-        get_feature_dataframe_manifest_name,
         load_dataframe_manifest,
-        load_model_manifest,
         save_dataframe_manifest,
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
@@ -87,11 +85,8 @@ def main(
 
     dataset_names = datasets or get_datasets_in_collection("timelapse")
 
-    model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
-    run_name = DEFAULT_MODEL_RUN_NAME
-    model_manifest = load_model_manifest(model_manifest_name)
-    feature_dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern
+    feature_dataframe_manifest_name = (
+        f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
     )
     feature_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
