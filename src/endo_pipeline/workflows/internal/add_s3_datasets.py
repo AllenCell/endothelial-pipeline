@@ -5,6 +5,8 @@ def main(
     datasets: Datasets | None = None,
     dry_run: bool = True,
     positions_list: UniqueIntList | None = None,
+    raw_zarr: bool = False,
+    segmentation_zarr: bool = False,
 ) -> None:
     """
     Upload datasets to S3.
@@ -60,7 +62,13 @@ def main(
     log_dir_str = str(get_output_path("s3_dataset", "add_datasets", "status"))
     save_dir_str = str(save_dir)
 
-    csv_path = create_s3_upload_csv(datasets, save_dir, positions_list=positions_list)
+    csv_path = create_s3_upload_csv(
+        datasets,
+        save_dir,
+        positions_list=positions_list,
+        raw_zarr=raw_zarr,
+        segmentation_zarr=segmentation_zarr,
+    )
 
     jobs_paths = create_upload_job(
         csv_path=csv_path,
