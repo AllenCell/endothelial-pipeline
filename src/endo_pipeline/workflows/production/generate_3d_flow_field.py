@@ -2,8 +2,8 @@ from endo_pipeline.cli import CropPattern, Datasets
 
 
 def main(
-    datasets: Datasets | None = None,
     crop_pattern: CropPattern = "grid",
+    datasets: Datasets | None = None,
     upload_to_fms: bool = False,
 ) -> None:
     """
@@ -58,11 +58,10 @@ def main(
 
     Parameters
     ----------
-    datasets
-        Optional list of datasets or dataset collections to use for
-        visualization.
     crop_pattern
-        The crop pattern to get features for, either "grid" or "tracked".
+        The crop pattern to use features from.
+    datasets
+        Optional, specific dataset(s) to run the workflow on.
     upload_to_fms
         If True, upload the output dataframes to FMS and update the
         corresponding dataframe manifests with the FMS locations. If False,
@@ -144,16 +143,15 @@ def main(
     run_name = DEFAULT_MODEL_RUN_NAME
     column_names: list[ColumnName.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
     drift_column_names: list[str] = [f"{name}_drift" for name in column_names]
+    # columns to keep when loading dataframes
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *column_names]
+    if crop_pattern == "tracked":
+        # also keep track ID and track length columns for tracked crops
+        columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
 
     # Load default model manifest and get corresponding feature dataframe
     # manifest name for default run name and specified crop pattern.
     model_manifest = load_model_manifest(model_manifest_name)
-    if crop_pattern == "tracked":
-        logger.warning(
-            "Using features from track-based crops temporarilty unsupported."
-            "Proceeding with grid-based crops for flow field estimation and analysis."
-        )
-        crop_pattern = "grid"
 
     # Load dataframe manifest for the features to be used in flow field
     # estimation and analysis.
@@ -265,11 +263,6 @@ def main(
         # non-steady-state timepoints based on annotations), computing
         # only the columns needed for flow field estimation and analysis to save memory.
         df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
-        # start with default metadata columns to keep
-        columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *column_names]
-        if crop_pattern == "tracked":
-            # also keep track ID and track length columns for tracked crops
-            columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
         df_ = df[columns_to_compute].compute()
         df_steady_state = filter_dataframe_by_annotations(
             df_,
