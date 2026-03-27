@@ -2,8 +2,8 @@ from endo_pipeline.cli import CropPattern, Datasets
 
 
 def main(
-    datasets: Datasets | None = None,
     crop_pattern: CropPattern = "grid",
+    datasets: Datasets | None = None,
     plot_stack: bool = False,
     compute_vtk: bool = False,
     use_same_axes: bool = False,
@@ -68,13 +68,10 @@ def main(
 
     Parameters
     ----------
-    datasets
-        Optional list of dataset names to visualize. If not provided, will
-        visualize all datasets in the dataframe manifest corresponding to the
-        given model manifest and run name.
     crop_pattern
-        Crop pattern to use for loading the feature dataframes. If not provided,
-        will use the default crop pattern of "grid".
+        The crop pattern for the features to visualize.
+    datasets
+        Optional list of dataset names to visualize.
     plot_stack
         If true, plot 3D stacks of the flow field visualizations in each of the
         three variables.
