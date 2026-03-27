@@ -171,16 +171,16 @@ def fms_upload_merge_pc_diffae_seg_features(
     # info along with the FMS upload here.
     dataset_config = load_dataset_config(dataset_name)
     # Get the DiffAE model annotations
-    if "_pc_diffae_seg_feats_merged_filtered.parquet" in path_to_file.name:
-        path_to_full_file = path_to_file.parent / path_to_file.name.replace("_filtered", "")
+    if "_pc_diffae_seg_feats_merged_filtered" in path_to_file.name:
+        run_name = None
+        model_manifest = None
     else:
-        path_to_full_file = path_to_file
-    df = dd.read_parquet(path_to_full_file)
-    model_manifest_name = sequence_to_scalar(
-        df[Column.DiffAEData.MODEL_MANIFEST].compute().dropna()
-    )
-    run_name = sequence_to_scalar(df[Column.DiffAEData.MODEL_RUN].compute().dropna())
-    model_manifest = load_model_manifest(model_manifest_name)
+        df = dd.read_parquet(path_to_file)
+        model_manifest_name = sequence_to_scalar(
+            df[Column.DiffAEData.MODEL_MANIFEST].compute().dropna()
+        )
+        run_name = sequence_to_scalar(df[Column.DiffAEData.MODEL_RUN].compute().dropna())
+        model_manifest = load_model_manifest(model_manifest_name)
     # Prepare the annotations for FMS upload
     annotations = build_fms_annotations(
         dataset_config,
@@ -193,7 +193,7 @@ def fms_upload_merge_pc_diffae_seg_features(
     )
 
     # Store FMS ID in dataframe manifest
-    if "_pc_diffae_seg_feats_merged_filtered.parquet" in path_to_file.name:
+    if "_pc_diffae_seg_feats_merged_filtered" in path_to_file.name:
         manifest_name = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
     else:
         manifest_name = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
