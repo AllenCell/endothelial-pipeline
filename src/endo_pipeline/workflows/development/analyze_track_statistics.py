@@ -198,6 +198,9 @@ def main(
                 ),
             )
             hist_kde = get_kernel_density_estimate_from_histogram(hist, bins=bins, kernel=kernel)
+            # interpolate between histogram centers for smoother KDE plot
+            interp_centers = np.linspace(centers[0][0], centers[0][-1], 500)
+            hist_kde = np.interp(interp_centers, centers[0], hist_kde)
 
             # plot histogram of the column variance with KDE overlaid
             fig, ax = plt.subplots(1, 2, figsize=(12, 5))
@@ -206,10 +209,11 @@ def main(
                 hist,
                 width=np.diff(bins[0]),
                 color=hist_color,
+                edgecolor="k",
                 alpha=0.7,
                 align="edge",
             )
-            ax[0].plot(centers[0], hist_kde, color=hist_color, linewidth=2)
+            ax[0].plot(interp_centers, hist_kde, color=hist_color, linewidth=1.5)
             ax[0].set_title(f"Histogram of average {variable_label} across trajectories")
             ax[0].set_xlabel(f"$\\langle${variable_label}$\\rangle$")
             ax[0].set_xlim(bin_limits_dict[column_name])
