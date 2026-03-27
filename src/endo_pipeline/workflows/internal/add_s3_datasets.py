@@ -47,7 +47,7 @@ def main(
 
     Example add job:
     endopipe add-s3-datasets --positions-list 0 1 2 3 4 5 --segmentation-zarr
-    endopipe add-s3-datasets --datasets 20250618_20X --no-dry-run --positions-list 0 1 --raw-zarr --segmentation-zarr
+    endopipe add-s3-datasets --no-dry-run --positions-list 0 1 2 3 4 5 --segmentation-zarr
     """
     import logging
 
