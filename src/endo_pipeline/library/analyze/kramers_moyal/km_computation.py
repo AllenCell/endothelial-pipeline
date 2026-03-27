@@ -415,6 +415,7 @@ def get_kernel_density_estimate_from_histogram(
     # get powers for first two Kramers-Moyal coefficients (drift and diffusion)
     # based on dimensionality of data, power for 0th order coefficient (density) is all zeros
     ndim = len(bins)
+    histogram = np.atleast_2d(histogram)  # make sure histogram is at least 2D for convolution
     powers = np.zeros((1, ndim), dtype=int)
 
     # Generate centered kernel on larger grid
