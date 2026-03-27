@@ -72,7 +72,6 @@ def main(
         KERNEL_NAMES_DYNAMICS,
         METADATA_COLUMNS_TO_KEEP,
         RESCALE_THETA,
-        TRACK_METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
     from endo_pipeline.settings.workflow_defaults import (
@@ -85,10 +84,7 @@ def main(
     # get label for provided feature column
     column_name = column or ColumnName.DiffAEData.POLAR_ANGLE
     variable_label = get_label_for_column(column_name).replace("polar ", "")
-    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, column_name]
-    if crop_pattern == "tracked":
-        # also keep track ID and track length columns for tracked crops
-        columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], column_name]
 
     # cast global constant dicts to avoid type errors
     bin_limits_dict = cast(

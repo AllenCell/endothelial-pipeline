@@ -4,21 +4,30 @@ from numpy import pi
 
 from endo_pipeline.settings.column_names import ColumnName as Column
 
-METADATA_COLUMNS_TO_KEEP: tuple[str | Column.DiffAEData, ...] = (
-    Column.DATASET,
-    Column.POSITION,
-    Column.TIMEPOINT,
-    Column.CROP_INDEX,
-    Column.DiffAEData.START_X,
-    Column.DiffAEData.START_Y,
-    Column.DiffAEData.END_X,
-    Column.DiffAEData.END_Y,
-)
-
-TRACK_METADATA_COLUMNS_TO_KEEP: tuple[str | Column.SegDataFilters, ...] = (
-    Column.TRACK_ID,
-    Column.TRACK_LENGTH,
-)
+METADATA_COLUMNS_TO_KEEP: dict[str, tuple[str | Column.DiffAEData, ...]] = {
+    "grid": (
+        Column.DATASET,
+        Column.POSITION,
+        Column.TIMEPOINT,
+        Column.CROP_INDEX,
+        Column.DiffAEData.START_X,
+        Column.DiffAEData.START_Y,
+        Column.DiffAEData.END_X,
+        Column.DiffAEData.END_Y,
+    ),
+    "tracked": (
+        Column.DATASET,
+        Column.POSITION,
+        Column.TIMEPOINT,
+        Column.CROP_INDEX,
+        Column.DiffAEData.START_X,
+        Column.DiffAEData.START_Y,
+        Column.DiffAEData.END_X,
+        Column.DiffAEData.END_Y,
+        Column.TRACK_ID,
+        Column.TRACK_LENGTH,
+    ),
+}
 
 DYNAMICS_COLUMN_NAMES: tuple[Column.DiffAEData, ...] = (
     Column.DiffAEData.POLAR_ANGLE,

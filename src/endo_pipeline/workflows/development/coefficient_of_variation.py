@@ -93,7 +93,6 @@ def main(
         METADATA_COLUMNS_TO_KEEP,
         PERIOD_THETA_RESCALED,
         RESCALE_THETA,
-        TRACK_METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
     from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
@@ -114,10 +113,7 @@ def main(
     variable_labels_dict = {
         col: get_label_for_column(col).replace("polar ", "") for col in column_names
     }
-    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *column_names]
-    if crop_pattern == "tracked":
-        # also keep track ID and track length columns for tracked crops
-        columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
     # unpack default bin limits for each column, adjusting limits if rescaling theta
     global_bin_limits_dict = cast(

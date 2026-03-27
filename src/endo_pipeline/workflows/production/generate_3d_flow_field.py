@@ -115,7 +115,6 @@ def main(
         METADATA_COLUMNS_TO_KEEP,
         PERIOD_THETA_RESCALED,
         RESCALE_THETA,
-        TRACK_METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.flow_field_3d import (
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
@@ -144,10 +143,7 @@ def main(
     column_names: list[ColumnName.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
     drift_column_names: list[str] = [f"{name}_drift" for name in column_names]
     # columns to keep when loading dataframes
-    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *column_names]
-    if crop_pattern == "tracked":
-        # also keep track ID and track length columns for tracked crops
-        columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
     # Load default model manifest and get corresponding feature dataframe
     # manifest name for default run name and specified crop pattern.
