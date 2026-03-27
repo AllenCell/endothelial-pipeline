@@ -13,7 +13,6 @@ def main(
     import matplotlib.pyplot as plt
     import numpy as np
     import pandas as pd
-    import seaborn as sns
     from matplotlib.colors import to_rgb
     from scipy.interpolate import make_interp_spline
     from scipy.stats import circmean, circvar
@@ -45,7 +44,6 @@ def main(
         BIN_LIMITS_THETA_RESCALED,
         DEFAULT_DATASETS_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
-        KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
         METADATA_COLUMNS_TO_KEEP,
         RESCALE_THETA,
@@ -73,13 +71,8 @@ def main(
         columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
 
     kernel_names_dict = cast(dict[str | ColumnName.DiffAEData, str], KERNEL_NAMES_DYNAMICS.copy())
-    kernel_bandwidths_dict = cast(
-        dict[str | ColumnName.DiffAEData, float], KERNEL_BANDWIDTHS_DYNAMICS.copy()
-    )
 
-    # Load dataframe manifest for the features to be used in flow field
-    # estimation and analysis.
-
+    # Get dataframe manifest for crop-based features
     base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
     feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
@@ -190,14 +183,15 @@ def main(
         # for each column
         for column_name in column_names:
             variable_label = variable_labels_dict[column_name]
-            # get histogram of the column average using bin widths of 0.1 for
-            # the average and 0.02 for the variance, adjusting x-axis limits
-            # based on bin limits for the column
+            fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+
+            # get histogram of the column average using bin widths of 0.1,
+            # adjusting x-axis limits based on bin limits for the column
             bins, centers = get_bins(bin_widths=(0.1,), data=column_avg_df[column_name].to_numpy())
             hist = np.histogram(column_avg_df[column_name], bins=bins[0], density=True)[0]
             kernel = KramersMoyalKernel(
                 name=kernel_names_dict[column_name],
-                bandwidth=kernel_bandwidths_dict[column_name],
+                bandwidth=0.15,
                 period=(
                     polar_angle_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
                 ),
@@ -209,7 +203,6 @@ def main(
             hist_kde_smooth = spline(interp_centers)
 
             # plot histogram of the column variance with KDE overlaid
-            fig, ax = plt.subplots(1, 2, figsize=(12, 5))
             ax[0].bar(
                 bins[0][:-1],
                 hist,
@@ -224,19 +217,29 @@ def main(
             ax[0].set_xlim(bin_limits_dict[column_name])
             ax[0].set_ylabel(f"P($\\langle${variable_label}$\\rangle$)")
 
-            # same but for variance of the column across trajectories, using a
-            # KDE plot from seaborn with a histogram underneath for better
-            # visualization, and adjusting x-axis limits to focus on the range
-            # where most of the variance values lie (e.g. 0 to 0.9 for polar
-            # angle variance)
-            sns.histplot(
-                column_variance_df[column_name],
-                kde=True,
-                stat="density",
-                color=hist_color,
-                binwidth=0.02,
-                ax=ax[1],
+            # same but for variance of the column across trajectories, using bin
+            # widths of 0.02, adjusting x-axis limits independently of the column
+            bins, centers = get_bins(
+                bin_widths=(0.02,), data=column_variance_df[column_name].to_numpy()
             )
+            hist = np.histogram(column_variance_df[column_name], bins=bins[0], density=True)[0]
+            kernel = KramersMoyalKernel(name="gaussian", bandwidth=0.03)
+            hist_kde = get_kernel_density_estimate_from_histogram(hist, bins=bins, kernel=kernel)
+            # interpolate between histogram centers for smoother KDE plot
+            interp_centers = np.linspace(centers[0][0], centers[0][-1], 2000)
+            spline = make_interp_spline(centers[0], hist_kde, k=3)  # k=3 for cubic spline
+            hist_kde_smooth = spline(interp_centers)
+
+            # plot histogram of the column variance with KDE overlaid
+            ax[1].bar(
+                bins[0][:-1],
+                hist,
+                width=np.diff(bins[0]),
+                color=(*to_rgb(hist_color), 0.5),
+                edgecolor=(*to_rgb("k"), 1.0),
+                align="edge",
+            )
+            ax[1].plot(interp_centers, hist_kde_smooth, color=hist_color, linewidth=1.5)
             ax[1].set_title(f"Histogram of variance of {variable_label} across trajectories")
             ax[1].set_xlabel(
                 f"$\\langle$({variable_label} - $\\langle${variable_label}$\\rangle$)$^2$$\\rangle$"
