@@ -14,6 +14,7 @@ from endo_pipeline.manifests import (
 )
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     FIXED_SEG_FEATURE_MANIFEST_NAME,
     Column,
@@ -192,7 +193,10 @@ def fms_upload_merge_pc_diffae_seg_features(
     )
 
     # Store FMS ID in dataframe manifest
-    manifest_name = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
+    if "_pc_diffae_seg_feats_merged_filtered.parquet" in path_to_file.name:
+        manifest_name = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
+    else:
+        manifest_name = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
     workflow_name = "merge_pc_diffae_seg_features"
     manifest = create_dataframe_manifest(manifest_name, workflow_name)
     manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)

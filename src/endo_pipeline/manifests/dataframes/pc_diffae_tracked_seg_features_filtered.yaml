@@ -1,0 +1,8 @@
+name: pc_diffae_tracked_seg_features
+workflow: live_feat_workflows_to_fms
+parameters: {}
+locations:
+  20250319_20X:
+    fmsid: null
+    path: null
+    s3uri: null
