@@ -150,9 +150,9 @@ def main(
 
         # subsample trajectories if num_subsample is specified and there are
         # more than num_subsample trajectories
-        if num_trajectories_grid > num_trajectories_tracked:
+        if num_trajectories_grid < num_trajectories_tracked:
             logger.info(
-                "Dataset [ %s ] has %d grid trajectories and %d tracked trajectories. Subsampling grid trajectories to match number of tracked trajectories for comparison.",
+                "Dataset [ %s ] has %d grid trajectories and %d tracked trajectories. Subsampling tracked trajectories to match number of grid trajectories for comparison.",
                 dataset_name,
                 num_trajectories_grid,
                 num_trajectories_tracked,
@@ -165,9 +165,9 @@ def main(
             df_steady_state_tracked = df_steady_state_tracked[
                 df_steady_state_tracked[ColumnName.CROP_INDEX].isin(sampled_traj_indices)
             ]
-        elif num_trajectories_tracked > num_trajectories_grid:
+        elif num_trajectories_tracked < num_trajectories_grid:
             logger.warning(
-                "Dataset [ %s ] has more tracked trajectories than grid trajectories. Not subsampling tracked trajectories, but this may affect comparison between grid and tracked statistics.",
+                "Dataset [ %s ] has more grid trajectories than tracked trajectories. Not subsampling tracked trajectories, but this may affect comparison between grid and tracked statistics.",
                 dataset_name,
             )
 
@@ -298,7 +298,7 @@ def main(
                     ax[ax_index].set_ylabel(
                         f"P({label_wrapper.replace('{{label}}', variable_label)})"
                     )
-                    ax.legend(loc="upper right")
+                    ax[ax_index].legend(loc="upper right")
 
             plt.suptitle(f"{plot_label}, {crop_pattern} crops (n={num_traj} trajectories)")
             plt.tight_layout()
