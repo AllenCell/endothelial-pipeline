@@ -29,7 +29,7 @@ def main(
         filter_dataframe_by_track_length,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
-        get_kernel_density_estimate,
+        get_kernel_density_estimate_from_trajectories,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
@@ -194,7 +194,7 @@ def main(
             )
             hist = np.histogram(
                 column_avg_df[column_name],
-                bins=bins,
+                bins=bins[0],
                 density=True,
             )
             kernel = KramersMoyalKernel(
@@ -204,18 +204,27 @@ def main(
                     polar_angle_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
                 ),
             )
-            hist_kde = get_kernel_density_estimate(
-                [column_avg_df[column_name].to_numpy()],
-                bins=[bins],
+            hist_kde = get_kernel_density_estimate_from_trajectories(
+                [
+                    np.array([val])
+                    for val in column_avg_df[column_name].to_numpy()
+                    if not np.isnan(val)
+                ],
+                bins=bins,
                 kernel=[kernel],
             )
 
             # plot histogram of the column variance with KDE overlaid
             fig, ax = plt.subplots(1, 2, figsize=(12, 5))
             ax[0].bar(
-                bins[:-1], hist, width=np.diff(bins), color=hist_color, alpha=0.7, align="edge"
+                bins[0][:-1],
+                hist,
+                width=np.diff(bins[0]),
+                color=hist_color,
+                alpha=0.7,
+                align="edge",
             )
-            ax[0].plot(centers, hist_kde, color=hist_color, linewidth=2)
+            ax[0].plot(centers[0], hist_kde, color=hist_color, linewidth=2)
             ax[0].set_title(f"Histogram of average {variable_label} across trajectories")
             ax[0].set_xlabel(f"$\\langle${variable_label}$\\rangle$")
             ax[0].set_xlim(bin_limits_dict[column_name])
