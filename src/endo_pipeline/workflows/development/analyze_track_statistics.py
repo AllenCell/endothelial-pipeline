@@ -29,7 +29,7 @@ def main(
         filter_dataframe_by_track_length,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
-        get_kernel_density_estimate_from_trajectories,
+        get_kernel_density_estimate_from_histogram,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
@@ -204,12 +204,8 @@ def main(
                     polar_angle_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
                 ),
             )
-            hist_kde = get_kernel_density_estimate_from_trajectories(
-                [
-                    np.array([val])
-                    for val in column_avg_df[column_name].to_numpy()
-                    if not np.isnan(val)
-                ],
+            hist_kde = get_kernel_density_estimate_from_histogram(
+                hist,
                 bins=bins,
                 kernel=[kernel],
             )
