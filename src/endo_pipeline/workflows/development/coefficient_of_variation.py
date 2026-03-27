@@ -10,6 +10,7 @@ def main(
     datasets: Datasets | None = None,
     columns: StrList | None = None,
     just_steady_state: Annotated[bool, Parameter(negative="--include-transient")] = True,
+    min_track_length: int = 100,
 ) -> None:
     """
     Compute and visualize coefficient of variation (CoV) statistics over time.
@@ -69,6 +70,7 @@ def main(
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         df_to_array,
         filter_dataframe_by_annotations,
+        filter_dataframe_by_track_length,
         split_dataset_by_flow,
     )
     from endo_pipeline.library.analyze.numerics.temporal_stats import (
@@ -109,10 +111,13 @@ def main(
 
     # get labels for provided set of feature columns
     column_names = columns or list(DEFAULT_COV_ANALYSIS_COLUMNS)
-    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *column_names]
     variable_labels_dict = {
         col: get_label_for_column(col).replace("polar ", "") for col in column_names
     }
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *column_names]
+    if crop_pattern == "tracked":
+        # also keep track ID and track length columns for tracked crops
+        columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
 
     # unpack default bin limits for each column, adjusting limits if rescaling theta
     global_bin_limits_dict = cast(
@@ -121,6 +126,7 @@ def main(
     if RESCALE_THETA:
         global_bin_limits_dict[Column.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
 
+    # get manifest for crop-based features
     base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
     feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
@@ -158,12 +164,9 @@ def main(
 
         # load dataframe and perform additional filtering (remove
         # non-steady-state timepoints based on annotations), computing
-        # only the columns needed for flow field estimation and analysis to save memory.
+        # only the columns needed for analysis
         df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
         # start with default metadata columns to keep
-        if crop_pattern == "tracked":
-            # also keep track ID and track length columns for tracked crops
-            columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
         df_ = df[columns_to_compute].compute()
         if just_steady_state:
             df_ = filter_dataframe_by_annotations(
@@ -172,8 +175,9 @@ def main(
                 timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
             )
         if crop_pattern == "tracked":
-            logger.debug("Will filter by track length once implemented.")
-
+            df_ = filter_dataframe_by_track_length(
+                df_, Column.TRACK_LENGTH, minimum_track_length=min_track_length
+            )
         df_ = df_.dropna(subset=column_names)
 
         # polar angle periodicity settings
