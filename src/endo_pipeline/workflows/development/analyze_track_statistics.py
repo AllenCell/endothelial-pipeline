@@ -216,6 +216,8 @@ def main(
 
         # plot histograms of the column averages and variances across
         # trajectories for each column
+        axes_base_label = ["$\\langle${{label}}$\\rangle$", "Var({{label}})"]
+        histogram_bin_widths = [0.1, 0.02]
         for column_name in column_names:
             variable_label = variable_labels_dict[column_name]
             fig, ax = plt.subplots(1, 2, figsize=(12, 5))
@@ -231,7 +233,7 @@ def main(
             ):
                 # loop over axes and other associated args for plotting average
                 # and variance histograms in the same loop
-                data_list = [
+                data_list: list[pd.DataFrame] = [
                     column_avg_df_dict[crop_pattern][column_name],
                     column_variance_df_dict[crop_pattern][column_name],
                 ]
@@ -246,15 +248,13 @@ def main(
                 ) in zip(
                     [0, 1],
                     data_list,
-                    ["$\\langle${{label}}$\\rangle$", "Var({{label}})"],
-                    [0.1, 0.02],
+                    axes_base_label,
+                    histogram_bin_widths,
                     [kernel_names_dict[column_name], "gaussian"],
                     [period, None],
                     [bin_limits_dict[column_name], (-0.01, 0.8)],
                     strict=True,
                 ):
-                    label_wrapper: str
-                    data: pd.DataFrame
                     # get histogram of the column average using bin widths of 0.1,
                     # adjusting x-axis limits based on bin limits for the column
                     bins, centers = get_bins(bin_widths=(bin_width,), data=data.to_numpy(), pad=0)
