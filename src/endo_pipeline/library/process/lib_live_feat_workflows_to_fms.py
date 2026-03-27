@@ -16,6 +16,7 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     FIXED_SEG_FEATURE_MANIFEST_NAME,
+    Column,
 )
 
 logger = logging.getLogger(__name__)
@@ -169,9 +170,15 @@ def fms_upload_merge_pc_diffae_seg_features(
     # info along with the FMS upload here.
     dataset_config = load_dataset_config(dataset_name)
     # Get the DiffAE model annotations
-    df = dd.read_parquet(path_to_file)
-    model_manifest_name = sequence_to_scalar(df["model_manifest_name"].compute().dropna())
-    run_name = sequence_to_scalar(df["run_name"].compute().dropna())
+    if "_pc_diffae_seg_feats_merged_filtered.parquet" in path_to_file.name:
+        path_to_full_file = path_to_file.parent / path_to_file.name.replace("_filtered", "")
+    else:
+        path_to_full_file = path_to_file
+    df = dd.read_parquet(path_to_full_file)
+    model_manifest_name = sequence_to_scalar(
+        df[Column.DiffAEData.MODEL_MANIFEST].compute().dropna()
+    )
+    run_name = sequence_to_scalar(df[Column.DiffAEData.MODEL_RUN].compute().dropna())
     model_manifest = load_model_manifest(model_manifest_name)
     # Prepare the annotations for FMS upload
     annotations = build_fms_annotations(
