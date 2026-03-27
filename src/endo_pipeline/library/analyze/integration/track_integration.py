@@ -12,8 +12,6 @@ from tqdm import tqdm
 from endo_pipeline.io import get_output_path, load_dataframe
 from endo_pipeline.library.analyze.data_driven_flow_field import solve_ddff_ode
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    add_crop_index,
-    add_description_column,
     get_pc_column_names,
     get_traj_and_diff,
 )
@@ -21,7 +19,6 @@ from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_krame
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
-from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.visualize.integration.track_integration_viz import (
     get_valid_slice_indexes,
     grid_vs_track_vec_angle_hist2d,
@@ -400,7 +397,6 @@ def merge_diffae_feats_liveseg_feats_tables(
     -------
         pd.DataFrame: Merged DataFrame with DiffAE and live segmentation features.
     """
-    dataset_name = sequence_to_scalar(diffae_tracking_df[Column.DATASET])
     logging.debug("processing the diffae tracking data...")
     # process the diffae tracking data
     track_is_unique = diffae_tracking_df.groupby(
@@ -494,8 +490,14 @@ def get_diffae_feats_liveseg_feats_merged_table(
         )
 
         # remove columns that were kept for workflow validations
-        nuclei_intens_cols = [col for col in merged_feats_df.columns if Column.SegDataWorkflowVerification.NUCLEI_INTENSITY_COLUMN_PREFIX in col]
-        verification_cols_to_drop = list(set(Column.SegDataWorkflowVerification) & set(merged_feats_df.columns))
+        nuclei_intens_cols = [
+            col
+            for col in merged_feats_df.columns
+            if Column.SegDataWorkflowVerification.NUCLEI_INTENSITY_COLUMN_PREFIX in col
+        ]
+        verification_cols_to_drop = list(
+            set(Column.SegDataWorkflowVerification) & set(merged_feats_df.columns)
+        )
         cols_to_drop = [
             Column.SegData.EDGE_FLUOR,
             Column.SegData.NODE_FLUOR,
