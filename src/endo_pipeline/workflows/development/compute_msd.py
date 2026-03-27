@@ -1,12 +1,12 @@
 from endo_pipeline.cli import CropPattern, Datasets
-from endo_pipeline.settings.dynamics_workflows import MAX_MSD_LAG
+from endo_pipeline.settings.dynamics_workflows import LONG_TRACK_THRESHOLD_LENGTH, MAX_MSD_LAG
 
 
 def main(
     crop_pattern: CropPattern = "grid",
     datasets: Datasets | None = None,
     max_lag: float = MAX_MSD_LAG,
-    min_track_length: int = 100,
+    min_track_length: int = LONG_TRACK_THRESHOLD_LENGTH,
 ) -> None:
     """
     Run MSD analysis workflow for datasets in the specified collection, using
@@ -43,7 +43,7 @@ def main(
     The maximum time lag to consider for MSD calculation is specified by the
     global constant MAX_MSD_LAG. If `crop_pattern` is "tracked," only tracks
     with length greater than or equal to the global constant
-    MINIMUM_MSD_TRACK_LENGTH will be included in the MSD calculation.
+    LONG_TRACK_THRESHOLD_LENGTH will be included in the MSD calculation.
 
     The y-axis limits for the MSD plots are specified by the global constant
     MSD_Y_AXIS_LIMITS.

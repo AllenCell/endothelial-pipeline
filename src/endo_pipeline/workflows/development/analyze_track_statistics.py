@@ -1,10 +1,11 @@
 from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.settings.dynamics_workflows import LONG_TRACK_THRESHOLD_LENGTH
 
 
 def main(
     crop_pattern: CropPattern = "grid",
     datasets: Datasets | None = None,
-    min_track_length: int = 100,
+    min_track_length: int = LONG_TRACK_THRESHOLD_LENGTH,
 ) -> None:
     import logging
 

@@ -3,6 +3,7 @@ from typing import Annotated
 from cyclopts import Parameter
 
 from endo_pipeline.cli import CropPattern, Datasets, StrList
+from endo_pipeline.settings.dynamics_workflows import LONG_TRACK_THRESHOLD_LENGTH
 
 
 def main(
@@ -10,7 +11,7 @@ def main(
     datasets: Datasets | None = None,
     columns: StrList | None = None,
     just_steady_state: Annotated[bool, Parameter(negative="--include-transient")] = True,
-    min_track_length: int = 100,
+    min_track_length: int = LONG_TRACK_THRESHOLD_LENGTH,
 ) -> None:
     """
     Compute and visualize coefficient of variation (CoV) statistics over time.
