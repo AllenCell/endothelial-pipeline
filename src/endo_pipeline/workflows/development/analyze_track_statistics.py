@@ -191,15 +191,8 @@ def main(
             # get histogram of the column average using bin widths of 0.1 for
             # the average and 0.02 for the variance, adjusting x-axis limits
             # based on bin limits for the column
-            bins, centers = get_bins(
-                bin_widths=(0.1,),
-                data=column_avg_df[column_name].to_numpy(),
-            )
-            hist = np.histogram(
-                column_avg_df[column_name],
-                bins=bins[0],
-                density=True,
-            )
+            bins, centers = get_bins(bin_widths=(0.1,), data=column_avg_df[column_name].to_numpy())
+            hist = np.histogram(column_avg_df[column_name], bins=bins[0], density=True)[0]
             kernel = KramersMoyalKernel(
                 name=kernel_names_dict[column_name],
                 bandwidth=kernel_bandwidths_dict[column_name],
@@ -207,11 +200,7 @@ def main(
                     polar_angle_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
                 ),
             )
-            hist_kde = get_kernel_density_estimate_from_histogram(
-                hist,
-                bins=bins,
-                kernel=[kernel],
-            )
+            hist_kde = get_kernel_density_estimate_from_histogram(hist, bins=bins, kernel=kernel)
 
             # plot histogram of the column variance with KDE overlaid
             fig, ax = plt.subplots(1, 2, figsize=(12, 5))
