@@ -412,11 +412,6 @@ def merge_diffae_feats_liveseg_feats_tables(
             "Tracking data needs to be curated so that each position has unique Track IDs."
         )
 
-    # add crop_index column (track_ids are not unique across positions but crop_index is)
-    diffae_tracking_df = add_crop_index(df=diffae_tracking_df, crop_pattern="tracked")
-    # add description column (e.g., 48hr_High)
-    diffae_tracking_df = add_description_column(diffae_tracking_df, dataset_name, simple=True)
-
     logging.debug("merging segmentation properties and track-based DiffAE data...")
     merging_cols = [
         Column.DATASET,
@@ -425,6 +420,8 @@ def merge_diffae_feats_liveseg_feats_tables(
         Column.TRACK_ID,
         Column.ZARR_PATH,
     ]
+    if Column.TRACK_LENGTH in diffae_tracking_df.columns:
+        merging_cols.append(Column.TRACK_LENGTH)
 
     merged_feats_df = pd.merge(
         left=live_seg_feats_df,
@@ -497,13 +494,34 @@ def get_diffae_feats_liveseg_feats_merged_table(
         )
 
         # remove columns that were kept for workflow validations
+        nuclei_intens_cols = [col for col in merged_feats_df.columns if Column.SegDataWorkflowVerification.NUCLEI_INTENSITY_COLUMN_PREFIX in col]
+        verification_cols_to_drop = list(set(Column.SegDataWorkflowVerification) & set(merged_feats_df.columns))
         cols_to_drop = [
             Column.SegData.EDGE_FLUOR,
             Column.SegData.NODE_FLUOR,
-            *list(Column.SegDataWorkflowVerification),
+            Column.SegData.CELL_FLUOR_MEDIAN,
+            Column.SegData.CELL_FLUOR_MAX,
+            Column.SegData.CELL_FLUOR_MIN,
+            Column.SegData.CELL_FLUOR_PCT25,
+            Column.SegData.CELL_FLUOR_PCT75,
+            Column.SegDataFilters.SMOOTHED_AREA_NORMD_DIFF,
+            Column.CDH5_CHANNEL_INDEX_ZARR,
+            Column.BF_CHANNEL_INDEX_ZARR,
+            Column.DiffAEData.RESOLUTION,
+            Column.SegData.RESOLUTION_FOR_DIFFAE,
+            Column.SegDataFilters.MIN_TRACK_DURATION,
+            Column.SegDataFilters.MAX_SMOOTHED_AREA_NORMALIZED_CHANGE,
+            Column.SegDataFilters.NUM_VALID_TIMEPOINTS_IN_TRACK,
+            Column.SegDataFilters.MIN_NUM_VALID_TIMEPOINTS_PER_TRACK,
+            Column.DiffAEData.MODEL_MANIFEST,
+            Column.DiffAEData.MODEL_RUN,
+            Column.DiffAEData.CROP_SIZE_X,
+            Column.DiffAEData.CROP_SIZE_Y,
+            *verification_cols_to_drop,
+            *nuclei_intens_cols,
         ]
         merged_feats_df.drop(columns=cols_to_drop, inplace=True)
-    return merged_feats_df.reset_index(drop=True, inplace=True)
+    return merged_feats_df.reset_index(drop=True)
 
 
 def get_traj_and_flowfield(
