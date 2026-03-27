@@ -1,10 +1,13 @@
 from endo_pipeline.cli import Datasets
-from endo_pipeline.settings.migration_coherence import DEFAULT_MIGRATION_COHERENCE_FEATURE
 
 
 def main(
     datasets: Datasets | None = None,
-    optical_flow_feature: str = DEFAULT_MIGRATION_COHERENCE_FEATURE,
+    optical_flow_features: list[str] = [
+        "ema005_optical_flow_mean_unit_vector_dt1",
+        "ema01_optical_flow_mean_unit_vector_dt1",
+        "ema02_optical_flow_mean_unit_vector_dt1",
+    ],
     plot_fixed_points: bool = True,
 ) -> None:
     import logging
@@ -59,6 +62,10 @@ def main(
 
     logger = logging.getLogger(__name__)
 
+    # default to a single feature if none provided
+    if optical_flow_features is None:
+        optical_flow_features = ["ema005_optical_flow_mean_unit_vector_dt1"]
+
     # Load diffae features
     crop_pattern = MIGRATION_COHERENCE_CROP_PATTERN
     # Load dataframe manifest for the features to be used in flow field
@@ -83,9 +90,9 @@ def main(
         )
 
     # Load optical flow features and plot against diffae features
-    df_fp_all_list: list[pd.DataFrame] = []
+    df_fp_all_list: dict[str, list[pd.DataFrame]] = {f: [] for f in optical_flow_features}
     # collect per-dataset summary stats for the mean coherence summary plot
-    summary_stats: list[dict[str, float | str]] = []
+    summary_stats: dict[str, list[dict[str, float | str]]] = {f: [] for f in optical_flow_features}
     for dataset_name in dataset_names:
         if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
@@ -126,32 +133,7 @@ def main(
 
             hist_color = get_dataset_color(dataset_name)
 
-            # compute mean and std for this dataset/flow condition
-            flow_mean = df_flow[optical_flow_feature].mean()
-            flow_std = df_flow[optical_flow_feature].std()
-            summary_stats.append(
-                {
-                    "label": plot_label,
-                    "shear_stress": shear_stress,
-                    "mean": flow_mean,
-                    "std": flow_std,
-                    "color": hist_color,
-                }
-            )
-
-            # save individual histogram for this dataset and flow condition
-            plot_optical_flow_histogram(
-                df=df_flow,
-                optical_flow_feature=optical_flow_feature,
-                title=plot_label,
-                color=hist_color,
-                output_dir=output_dir,
-                filename=f"{dataset_name_flow}_{optical_flow_feature}_distribution",
-            )
-
-            # initialize fixed_points_dataframe to None in case we aren't plotting
-            # fixed points or if loading the fixed points dataframe fails for any
-            # reason, then try to load the fixed points dataframe if we're plotting fixed points
+            # load fixed points once per dataset (shared across features)
             fixed_points_dataframe: pd.DataFrame | None = None
             if plot_fixed_points:
                 try:
@@ -170,9 +152,6 @@ def main(
                         ],
                     )
                 except KeyError:
-                    # if the fixed points dataframe for this dataset isn't found in
-                    # the manifest, log a warning and continue without loading fixed
-                    # points (i.e., fixed_points_dataframe will remain None)
                     logger.warning(
                         "No fixed point dataframe found for dataset [ %s ] in dataframe manifest [ %s ]. "
                         "Fixed points will not be overlaid on the migration coherence plots for this dataset.",
@@ -180,162 +159,197 @@ def main(
                         fixed_points_dataframe_manifest.name,
                     )
 
-            # --- 2D plots ---
-            for x_col, y_col in [
-                (ColumnName.DiffAEData.POLAR_RADIUS, ColumnName.DiffAEData.POLAR_ANGLE),
-                (ColumnName.DiffAEData.PC3_FLIPPED, ColumnName.DiffAEData.POLAR_ANGLE),
-                (ColumnName.DiffAEData.POLAR_RADIUS, ColumnName.DiffAEData.PC3_FLIPPED),
-            ]:
-                figure_filename = (
-                    f"{dataset_name_flow}_{x_col}_vs_{y_col}_colored_by_{optical_flow_feature}"
-                )
+            # --- iterate over each optical flow feature ---
+            for optical_flow_feature in optical_flow_features:
                 logger.info(
-                    "Plotting optical flow feature over [ %s ] vs [ %s ] for dataset [ %s ], shear stress [ %s ]",
-                    x_col,
-                    y_col,
+                    "Processing feature [ %s ] for dataset [ %s ], shear stress [ %s ]",
+                    optical_flow_feature,
                     dataset_name,
                     shear_stress,
                 )
-                fig, axs = plot_scatter_and_binned_heatmap(
-                    df=df_flow,
-                    x_col=x_col,
-                    y_col=y_col,
-                    color_col=optical_flow_feature,
-                )
-                plt.suptitle(plot_label)
-                plt.tight_layout()
-                save_plot_to_path(
-                    fig,
-                    output_dir,
-                    figure_filename,
-                )
-                plt.close(fig)
 
-                # if fixed points are available, overlay them on the scatter plot
-                if fixed_points_dataframe is not None:
-                    for _, row in fixed_points_dataframe.iterrows():
-                        stability = row[STABILITY_COLUMN_NAME]
-                        marker = STABILITY_MARKER_DICT.get(stability, "o")
-                        color = STABILITY_COLOR_DICT.get(stability, "gray")
-                        axs[1].scatter(
-                            row[x_col],
-                            row[y_col],
-                            marker=marker,
-                            color=color,
-                            edgecolor="black",
-                            s=100,
-                            label=f"Fixed Point ({stability})",
-                        )
-                    # add legend for fixed points
-                    legend_handles = make_legend_handles_for_fixed_pts(
-                        fixed_points_dataframe[STABILITY_COLUMN_NAME].unique().tolist()
+                # compute mean and std for this dataset/flow condition
+                flow_mean = df_flow[optical_flow_feature].mean()
+                flow_std = df_flow[optical_flow_feature].std()
+                summary_stats[optical_flow_feature].append(
+                    {
+                        "label": plot_label,
+                        "shear_stress": shear_stress,
+                        "mean": flow_mean,
+                        "std": flow_std,
+                        "color": hist_color,
+                    }
+                )
+
+                # save individual histogram for this dataset and flow condition
+                plot_optical_flow_histogram(
+                    df=df_flow,
+                    optical_flow_feature=optical_flow_feature,
+                    title=plot_label,
+                    color=hist_color,
+                    output_dir=output_dir,
+                    filename=f"{dataset_name_flow}_{optical_flow_feature}_distribution",
+                )
+
+                # --- 2D plots ---
+                for x_col, y_col in [
+                    (ColumnName.DiffAEData.POLAR_RADIUS, ColumnName.DiffAEData.POLAR_ANGLE),
+                    (ColumnName.DiffAEData.PC3_FLIPPED, ColumnName.DiffAEData.POLAR_ANGLE),
+                    (ColumnName.DiffAEData.POLAR_RADIUS, ColumnName.DiffAEData.PC3_FLIPPED),
+                ]:
+                    figure_filename = (
+                        f"{dataset_name_flow}_{x_col}_vs_{y_col}_colored_by_{optical_flow_feature}"
                     )
-                    fig.legend(
-                        handles=legend_handles,
-                        bbox_to_anchor=(1.00, 0.90),
-                        title="fixed point stability",
-                        loc="upper left",
-                        fontsize=10,
+                    logger.info(
+                        "Plotting optical flow feature over [ %s ] vs [ %s ] for dataset [ %s ], shear stress [ %s ]",
+                        x_col,
+                        y_col,
+                        dataset_name,
+                        shear_stress,
                     )
-                    fig.tight_layout()
+                    fig, axs = plot_scatter_and_binned_heatmap(
+                        df=df_flow,
+                        x_col=x_col,
+                        y_col=y_col,
+                        color_col=optical_flow_feature,
+                    )
+                    plt.suptitle(plot_label)
+                    plt.tight_layout()
                     save_plot_to_path(
                         fig,
                         output_dir,
-                        f"{figure_filename}_with_fixed_points",
+                        figure_filename,
                     )
                     plt.close(fig)
 
-            # --- 3D plots ---
-            df_flow_no_nan = df_flow.dropna(subset=[optical_flow_feature])
+                    # if fixed points are available, overlay them on the scatter plot
+                    if fixed_points_dataframe is not None:
+                        for _, row in fixed_points_dataframe.iterrows():
+                            stability = row[STABILITY_COLUMN_NAME]
+                            marker = STABILITY_MARKER_DICT.get(stability, "o")
+                            color = STABILITY_COLOR_DICT.get(stability, "gray")
+                            axs[1].scatter(
+                                row[x_col],
+                                row[y_col],
+                                marker=marker,
+                                color=color,
+                                edgecolor="black",
+                                s=100,
+                                label=f"Fixed Point ({stability})",
+                            )
+                        # add legend for fixed points
+                        legend_handles = make_legend_handles_for_fixed_pts(
+                            fixed_points_dataframe[STABILITY_COLUMN_NAME].unique().tolist()
+                        )
+                        fig.legend(
+                            handles=legend_handles,
+                            bbox_to_anchor=(1.00, 0.90),
+                            title="fixed point stability",
+                            loc="upper left",
+                            fontsize=10,
+                        )
+                        fig.tight_layout()
+                        save_plot_to_path(
+                            fig,
+                            output_dir,
+                            f"{figure_filename}_with_fixed_points",
+                        )
+                        plt.close(fig)
 
-            if fixed_points_dataframe is not None:
-                fixed_points_dataframe = add_binned_mean_to_fixed_points(
-                    fixed_points_dataframe,
+                # --- 3D plots ---
+                df_flow_no_nan = df_flow.dropna(subset=[optical_flow_feature])
+
+                fp_for_feature = fixed_points_dataframe
+                if fp_for_feature is not None:
+                    fp_for_feature = add_binned_mean_to_fixed_points(
+                        fp_for_feature,
+                        df_flow_no_nan,
+                        x_col=ColumnName.DiffAEData.POLAR_ANGLE,
+                        y_col=ColumnName.DiffAEData.POLAR_RADIUS,
+                        z_col=ColumnName.DiffAEData.PC3_FLIPPED,
+                        binned_col=optical_flow_feature,
+                    )
+
+                # 3D Scatter
+                fig, ax = plot_3d_scatter_or_binned(
                     df_flow_no_nan,
                     x_col=ColumnName.DiffAEData.POLAR_ANGLE,
                     y_col=ColumnName.DiffAEData.POLAR_RADIUS,
                     z_col=ColumnName.DiffAEData.PC3_FLIPPED,
-                    binned_col=optical_flow_feature,
+                    color_col=optical_flow_feature,
+                    df_fp=fp_for_feature,
+                    binned=False,
                 )
+                ax.set_title(plot_label, loc="left")
+                save_plot_to_path(
+                    fig,
+                    output_dir,
+                    f"{dataset_name_flow}_3D_scatter_{optical_flow_feature}",
+                )
+                plt.close(fig)
 
-            # 3D Scatter
-            fig, ax = plot_3d_scatter_or_binned(
-                df_flow_no_nan,
-                x_col=ColumnName.DiffAEData.POLAR_ANGLE,
-                y_col=ColumnName.DiffAEData.POLAR_RADIUS,
-                z_col=ColumnName.DiffAEData.PC3_FLIPPED,
-                color_col=optical_flow_feature,
-                df_fp=fixed_points_dataframe,
-                binned=False,
-            )
-            ax.set_title(plot_label, loc="left")
-            save_plot_to_path(
-                fig,
-                output_dir,
-                f"{dataset_name_flow}_3D_scatter_{optical_flow_feature}",
-            )
-            plt.close(fig)
+                # 3D Binned Heatmap
+                fig, ax = plot_3d_scatter_or_binned(
+                    df_flow_no_nan,
+                    x_col=ColumnName.DiffAEData.POLAR_ANGLE,
+                    y_col=ColumnName.DiffAEData.POLAR_RADIUS,
+                    z_col=ColumnName.DiffAEData.PC3_FLIPPED,
+                    color_col=optical_flow_feature,
+                    df_fp=fp_for_feature,
+                    binned=True,
+                )
+                ax.set_title(plot_label, loc="left")
+                save_plot_to_path(
+                    fig,
+                    output_dir,
+                    f"{dataset_name_flow}_3D_binned_heatmap_{optical_flow_feature}",
+                )
+                plt.close(fig)
 
-            # 3D Binned Heatmap
-            fig, ax = plot_3d_scatter_or_binned(
-                df_flow_no_nan,
-                x_col=ColumnName.DiffAEData.POLAR_ANGLE,
-                y_col=ColumnName.DiffAEData.POLAR_RADIUS,
-                z_col=ColumnName.DiffAEData.PC3_FLIPPED,
-                color_col=optical_flow_feature,
-                df_fp=fixed_points_dataframe,
-                binned=True,
-            )
-            ax.set_title(plot_label, loc="left")
-            save_plot_to_path(
-                fig,
-                output_dir,
-                f"{dataset_name_flow}_3D_binned_heatmap_{optical_flow_feature}",
-            )
-            plt.close(fig)
+                if fp_for_feature is not None:
+                    df_fp_all_list[optical_flow_feature].append(fp_for_feature)
 
-            if fixed_points_dataframe is not None:
-                df_fp_all_list.append(fixed_points_dataframe)
+    # --- Per-feature cross-dataset summaries ---
+    for optical_flow_feature in optical_flow_features:
+        # --- Cross-dataset: fixed point variables vs shear stress ---
+        if df_fp_all_list[optical_flow_feature]:
+            df_fp_all = pd.concat(df_fp_all_list[optical_flow_feature], ignore_index=True)
+            df_fp_all = add_shear_stress_to_df(df_fp_all)
+            cross_dataset_output_dir = get_output_path(__file__)
 
-    # --- Cross-dataset: fixed point variables vs shear stress ---
-    if df_fp_all_list:
-        df_fp_all = pd.concat(df_fp_all_list, ignore_index=True)
-        df_fp_all = add_shear_stress_to_df(df_fp_all)
-        cross_dataset_output_dir = get_output_path(__file__)
+            variables = [
+                ColumnName.DiffAEData.POLAR_ANGLE,
+                ColumnName.DiffAEData.POLAR_RADIUS,
+                ColumnName.DiffAEData.PC3_FLIPPED,
+                f"mean_{optical_flow_feature}",
+            ]
 
-        variables = [
-            ColumnName.DiffAEData.POLAR_ANGLE,
-            ColumnName.DiffAEData.POLAR_RADIUS,
-            ColumnName.DiffAEData.PC3_FLIPPED,
-            f"mean_{optical_flow_feature}",
-        ]
-        if optical_flow_feature == "optical_flow_mean_unit_vector_dt1":
-            labels = ["\u03b8", "r", "\u03c1", "migration coherence"]
-        if optical_flow_feature == "optical_flow_mean_speed_dt1":
-            labels = ["\u03b8", "r", "\u03c1", "migration speed"]
+            labels = ["\u03b8", "r", "\u03c1", f"mean_{optical_flow_feature}"]
 
-        for var, label in zip(variables, labels, strict=False):
-            ylim = (0, 1) if var == "mean_optical_flow_mean_unit_vector_dt1" else None
-            plot_fixed_points_vs_shear_stress(
-                df_fp_all,
-                var,
-                label,
-                output_dir=cross_dataset_output_dir,
-                ylim=ylim,
+            for var, label in zip(variables, labels, strict=False):
+                ylim = (0, 1) if "unit_vector" in var else None
+                plot_fixed_points_vs_shear_stress(
+                    df_fp_all,
+                    var,
+                    label,
+                    output_dir=cross_dataset_output_dir,
+                    ylim=ylim,
+                )
+        else:
+            df_fp_all = None
+
+        # --- Summary plot: mean coherence metric per dataset vs shear stress ---
+        if summary_stats[optical_flow_feature]:
+            from endo_pipeline.library.visualize.migration_coherence import (
+                plot_mean_vs_shear_stress_summary,
             )
 
-    # --- Summary plot: mean coherence metric per dataset vs shear stress ---
-    if summary_stats:
-        from endo_pipeline.library.visualize.migration_coherence import (
-            plot_mean_vs_shear_stress_summary,
-        )
-
-        plot_mean_vs_shear_stress_summary(
-            summary_stats=summary_stats,
-            optical_flow_feature=optical_flow_feature,
-            df_fp_all=df_fp_all if df_fp_all_list else None,
-            output_dir=get_output_path(__file__),
-        )
+            plot_mean_vs_shear_stress_summary(
+                summary_stats=summary_stats[optical_flow_feature],
+                optical_flow_feature=optical_flow_feature,
+                df_fp_all=df_fp_all,
+                output_dir=get_output_path(__file__),
+            )
 
 
 if __name__ == "__main__":
