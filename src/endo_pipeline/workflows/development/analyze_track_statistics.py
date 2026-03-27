@@ -15,6 +15,8 @@ def main(
     import numpy as np
     import pandas as pd
     import seaborn as sns
+    from matplotlib.colors import to_rgb
+    from scipy.interpolate import make_interp_spline
     from scipy.stats import circmean, circvar
 
     from endo_pipeline.cli import DEMO_MODE
@@ -199,8 +201,9 @@ def main(
             )
             hist_kde = get_kernel_density_estimate_from_histogram(hist, bins=bins, kernel=kernel)
             # interpolate between histogram centers for smoother KDE plot
-            interp_centers = np.linspace(centers[0][0], centers[0][-1], 500)
-            hist_kde = np.interp(interp_centers, centers[0], hist_kde)
+            interp_centers = np.linspace(centers[0][0], centers[0][-1], 2000)
+            spline = make_interp_spline(centers[0], hist_kde, k=3)  # k=3 for cubic spline
+            hist_kde_smooth = spline(interp_centers)
 
             # plot histogram of the column variance with KDE overlaid
             fig, ax = plt.subplots(1, 2, figsize=(12, 5))
@@ -208,12 +211,11 @@ def main(
                 bins[0][:-1],
                 hist,
                 width=np.diff(bins[0]),
-                color=hist_color,
-                edgecolor="k",
-                alpha=0.7,
+                color=(*to_rgb(hist_color), 0.5),
+                edgecolor=(*to_rgb("k"), 1.0),
                 align="edge",
             )
-            ax[0].plot(interp_centers, hist_kde, color=hist_color, linewidth=1.5)
+            ax[0].plot(interp_centers, hist_kde_smooth, color=hist_color, linewidth=1.5)
             ax[0].set_title(f"Histogram of average {variable_label} across trajectories")
             ax[0].set_xlabel(f"$\\langle${variable_label}$\\rangle$")
             ax[0].set_xlim(bin_limits_dict[column_name])
