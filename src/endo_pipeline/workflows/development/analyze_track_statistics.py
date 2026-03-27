@@ -233,9 +233,9 @@ def main(
             ):
                 # loop over axes and other associated args for plotting average
                 # and variance histograms in the same loop
-                data_list: list[pd.DataFrame] = [
-                    column_avg_df_dict[crop_pattern][column_name],
-                    column_variance_df_dict[crop_pattern][column_name],
+                data_list = [
+                    column_avg_df_dict[crop_pattern][column_name].to_numpy(),
+                    column_variance_df_dict[crop_pattern][column_name].to_numpy(),
                 ]
                 for (
                     ax_index,
@@ -257,7 +257,7 @@ def main(
                 ):
                     # get histogram of the column average using bin widths of 0.1,
                     # adjusting x-axis limits based on bin limits for the column
-                    bins, centers = get_bins(bin_widths=(bin_width,), data=data.to_numpy(), pad=0)
+                    bins, centers = get_bins(bin_widths=(bin_width,), data=data, pad=0)
                     hist = np.histogram(data, bins=bins[0], density=True)[0]
                     kernel = KramersMoyalKernel(
                         name=kernel_name,
