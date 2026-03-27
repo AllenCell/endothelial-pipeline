@@ -22,7 +22,10 @@ def main(
         of the fit PCA model (see above)
     - Calculates additional features as transforms of the PC-projected
         features (e.g., polar coordinates, see `project_features_to_pcs`)
-    - Performs additional timepoint filtering, if using grid-based crops
+    - Performs additional timepoint- and position-based filtering.
+        - For track-based crops, also performs filtering based on the
+          "is_included" column in the segmentation features dataframe to remove
+          crops/tracks that don't pass segmentation QC filters.
 
     **Dataframe output and tracking**
 
@@ -67,26 +70,23 @@ def main(
         DataframeLocation,
         create_dataframe_manifest,
         get_dataframe_location_for_dataset,
-        get_feature_dataframe_manifest_name,
         load_dataframe_manifest,
-        load_model_manifest,
         save_dataframe_manifest,
     )
+    from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_FEATURE_COLUMN_NAMES
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
+        DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     )
 
     logger = logging.getLogger(__name__)
 
     dataset_names = datasets or get_datasets_in_collection("timelapse")
 
-    model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
-    run_name = DEFAULT_MODEL_RUN_NAME
-    model_manifest = load_model_manifest(model_manifest_name)
-    feature_dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern
+    feature_dataframe_manifest_name = (
+        f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
     )
     feature_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
@@ -141,7 +141,6 @@ def main(
             fms_annotations = build_fms_annotations(
                 dataset_config, additional_notes=f"{additional_notes} {filter_note}"
             )
-            fms_annotations = build_fms_annotations(dataset_config)
             fmsid = upload_file_to_fms(
                 full_pca_df_path, annotations=fms_annotations, file_type="parquet"
             )
@@ -152,47 +151,88 @@ def main(
         full_pca_manifest.locations[dataset_name] = full_pca_location
         save_dataframe_manifest(full_pca_manifest)
 
-        # For grid-based crops, filter out annotated timepoints, except for
-        # timepoints flagged as "not steady state" (those can be filtered out
-        # dynamically as necessary in downstream workflows)
-        if crop_pattern == "grid":
-            logger.info("Filtering grid-based PCA features for dataset '%s'", dataset_name)
+        # Filter out annotated timepoints, except for timepoints flagged as "not
+        # steady state" (those can be filtered out dynamically as necessary in
+        # downstream workflows)
+        logger.info(
+            "Filtering %s crop-based PCA features for dataset '%s'", crop_pattern, dataset_name
+        )
 
-            timepoint_annotations = get_subset_of_timepoint_annotations(
-                annotations_to_ignore=[TimepointAnnotation.NOT_STEADY_STATE]
+        timepoint_annotations = get_subset_of_timepoint_annotations(
+            annotations_to_ignore=[TimepointAnnotation.NOT_STEADY_STATE]
+        )
+        filtered_pca_df = filter_dataframe_by_annotations(
+            full_pca_df,
+            dataset_config,
+            timepoint_annotations=timepoint_annotations,
+        )
+
+        # For track-based crops, do additional filtering using the "is_included"
+        # column from the segmentation features dataframe to remove the segmentations
+        # that don't pass the segmentation quality control filters.
+        if crop_pattern == "tracked":
+            # Load and merge segmentation features dataframe to get
+            # "is_included" column for filtering. Also add a track length column
+            # for downstream filtering based on track length, if necessary.
+            seg_feat_manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
+            seg_feat_loc = get_dataframe_location_for_dataset(seg_feat_manifest, dataset_name)
+            df_segmentations_delayed = load_dataframe(seg_feat_loc, delay=True)
+            # Columns to merge segmentation dataframe onto PCA dataframe. These
+            # columns uniquely identify each crop/track in both dataframes,
+            # allowing us to merge the relevant information for filtering.
+            columns_to_merge_on = [
+                Column.DATASET,
+                Column.POSITION,
+                Column.TIMEPOINT,
+                Column.TRACK_ID,
+            ]
+            # Columns to compute from the delayed segmentation dataframe for
+            # merging (merge columns + columns needed for filtering)
+            columns_to_compute = [
+                *columns_to_merge_on,
+                Column.TRACK_LENGTH,
+                Column.SegDataFilters.IS_INCLUDED,
+            ]
+            df_segmentations = df_segmentations_delayed[columns_to_compute].compute()
+            merged_full_pca_df = filtered_pca_df.merge(
+                df_segmentations,
+                on=columns_to_merge_on,
+                how="left",
+                validate="one_to_one",
             )
-            filtered_pca_df = filter_dataframe_by_annotations(
-                full_pca_df,
-                dataset_config,
-                timepoint_annotations=timepoint_annotations,
+            # Drop rows where "is_included" is False (i.e. segmentation didn't
+            # pass QC filters).
+            filtered_pca_df = merged_full_pca_df[
+                merged_full_pca_df[Column.SegDataFilters.IS_INCLUDED]
+            ]
+            # Drop IS_INCLUDED column (no longer needed after filtering). Keep
+            # TRACK_LENGTH column for potential downstream filtering based on
+            # track length. Keep TRACK_ID column for use in workflow that creates
+            # the merged segmentation-PCA dataframe.
+            filtered_pca_df = filtered_pca_df.drop(columns=[Column.SegDataFilters.IS_INCLUDED])
+
+        # Save filtered PCA dataframe and upload to FMS if specified.
+        filtered_pca_df_path = output_path / f"{dataset_name}_{crop_pattern}_pca_filtered.parquet"
+        filtered_pca_manifest_name = f"{feature_dataframe_manifest_name}_pca_filtered"
+        filtered_pca_manifest = create_dataframe_manifest(filtered_pca_manifest_name, __name__)
+
+        filtered_pca_df.to_parquet(filtered_pca_df_path, index=False)
+
+        if upload_to_fms:
+            notes = (
+                "Dataframe with PCA features calculated from DiffAE latent features "
+                f"for {crop_pattern} crops. Filtered by timepoint and position annotations."
             )
-
-            filtered_pca_df_path = (
-                output_path / f"{dataset_name}_{crop_pattern}_pca_filtered.parquet"
+            fms_annotations = build_fms_annotations(dataset_config, additional_notes=notes)
+            fmsid = upload_file_to_fms(
+                filtered_pca_df_path, annotations=fms_annotations, file_type="parquet"
             )
-            filtered_pca_manifest_name = f"{feature_dataframe_manifest_name}_pca_filtered"
-            filtered_pca_manifest = create_dataframe_manifest(filtered_pca_manifest_name, __name__)
+            filtered_pca_location = DataframeLocation(fmsid=fmsid)
+        else:
+            filtered_pca_location = DataframeLocation(path=filtered_pca_df_path)
 
-            filtered_pca_df.to_parquet(filtered_pca_df_path, index=False)
-
-            if upload_to_fms:
-                filter_note = "Filtering by timepoint and position annotations has been applied."
-                fms_annotations = build_fms_annotations(
-                    dataset_config, additional_notes=f"{additional_notes} {filter_note}"
-                )
-                fmsid = upload_file_to_fms(
-                    filtered_pca_df_path, annotations=fms_annotations, file_type="parquet"
-                )
-                filtered_pca_location = DataframeLocation(fmsid=fmsid)
-            else:
-                filtered_pca_location = DataframeLocation(path=filtered_pca_df_path)
-
-            filtered_pca_manifest.locations[dataset_name] = filtered_pca_location
-            save_dataframe_manifest(filtered_pca_manifest)
-
-        # For track-based crops, filtering happens downstream, where the output
-        # dataframe of this workflow PC-transformed features is merged with the
-        # segmentation + tracking dataframes
+        filtered_pca_manifest.locations[dataset_name] = filtered_pca_location
+        save_dataframe_manifest(filtered_pca_manifest)
 
 
 if __name__ == "__main__":

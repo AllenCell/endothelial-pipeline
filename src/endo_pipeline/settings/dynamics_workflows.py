@@ -18,7 +18,6 @@ METADATA_COLUMNS_TO_KEEP: tuple[str | Column.DiffAEData, ...] = (
 TRACK_METADATA_COLUMNS_TO_KEEP: tuple[str | Column.SegDataFilters, ...] = (
     Column.TRACK_ID,
     Column.TRACK_LENGTH,
-    Column.SegDataFilters.IS_INCLUDED,
 )
 
 DYNAMICS_COLUMN_NAMES: tuple[Column.DiffAEData, ...] = (
