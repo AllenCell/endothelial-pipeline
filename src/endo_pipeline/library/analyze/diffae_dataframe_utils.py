@@ -831,14 +831,12 @@ def get_dataframe_for_dynamics_workflows(
     # start with default metadata columns to keep
     # temporarily drop the "crop_index" column while workflows that use this
     # method are being refactored
-    columns_to_keep_ = [column for column in METADATA_COLUMNS_TO_KEEP if column != "crop_index"]
+    columns_to_keep_ = [
+        column for column in METADATA_COLUMNS_TO_KEEP[crop_pattern] if column != "crop_index"
+    ]
     if columns_to_keep is not None:
         columns_to_keep_.extend(columns_to_keep)  # add any additional specified columns to keep
     columns_to_keep_.extend(feat_cols)  # also keep feature columns for PCA projection
-    if crop_pattern == "tracked":
-        columns_to_keep_.extend(
-            [Column.TRACK_ID]
-        )  # also keep track ID and track length columns for tracked crops
     columns_to_keep_ = list(set(columns_to_keep_))  # remove duplicates, if any
 
     # keep only necessary columns to save memory
