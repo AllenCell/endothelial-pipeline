@@ -5,6 +5,7 @@ def main(
     crop_pattern: CropPattern = "grid",
     datasets: Datasets | None = None,
     min_track_length: int = 100,
+    num_subsample: int | None = None,
 ) -> None:
     import logging
 
@@ -43,9 +44,11 @@ def main(
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
+        RANDOM_SEED,
     )
 
     logger = logging.getLogger(__name__)
+    rng = np.random.default_rng(RANDOM_SEED)
 
     # set workflow defaults
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
@@ -115,6 +118,26 @@ def main(
             df_steady_state = filter_dataframe_by_track_length(
                 df_steady_state, ColumnName.TRACK_LENGTH, minimum_track_length=min_track_length
             )
+
+        # subsample trajectories if num_subsample is specified and there are
+        # more than num_subsample trajectories
+        if num_subsample is not None:
+            num_trajectories = df_steady_state[ColumnName.CROP_INDEX].nunique()
+            if num_trajectories > num_subsample:
+                sampled_traj_indices = rng.choice(
+                    df_steady_state[ColumnName.CROP_INDEX].unique(),
+                    size=num_subsample,
+                    replace=False,
+                )
+                df_steady_state = df_steady_state[
+                    df_steady_state[ColumnName.CROP_INDEX].isin(sampled_traj_indices)
+                ]
+                logger.info(
+                    "Subsampled %d trajectories from %d total trajectories for dataset [ %s ]",
+                    num_subsample,
+                    num_trajectories,
+                    dataset_name,
+                )
 
         num_traj = df_steady_state[ColumnName.CROP_INDEX].nunique()
 
