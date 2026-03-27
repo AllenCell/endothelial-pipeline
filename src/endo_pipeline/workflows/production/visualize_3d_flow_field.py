@@ -154,15 +154,13 @@ def main(
     ndim = len(column_names)
     drift_column_names = [f"{name}_drift" for name in column_names]
     stability_label_column_name = STABILITY_COLUMN_NAME
-
-    # load model manifest and get corresponding dataframe manifest name
+    # columns to keep when loading feature dataframes
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *column_names]
     if crop_pattern == "tracked":
-        logger.warning(
-            "Using features from track-based crops temporarilty unsupported."
-            "Proceeding with grid-based crops for flow field estimation and analysis."
-        )
-        crop_pattern = "grid"
+        # also keep track ID and track length columns for tracked crops
+        columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
 
+    # get dataframe manifest for crop-based features
     base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
     feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
@@ -261,11 +259,6 @@ def main(
         # non-steady-state timepoints based on annotations), computing
         # only the columns needed for flow field estimation and analysis to save memory.
         df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
-        # start with default metadata columns to keep
-        columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *column_names]
-        if crop_pattern == "tracked":
-            # also keep track ID and track length columns for tracked crops
-            columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
         df_ = df[columns_to_compute].compute()
         feature_data = filter_dataframe_by_annotations(
             df_,
