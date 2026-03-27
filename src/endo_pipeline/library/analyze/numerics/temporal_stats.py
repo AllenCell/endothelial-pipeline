@@ -43,8 +43,15 @@ def compute_cumulative_variance_over_time(
                 # if all values are NaN, skip variance calculation and set to NaN
                 cumulative_var_per_crop[:, i] = np.nan
                 continue
-            # for each crop, compute variance of the feature from time 0 to i
-            cumulative_var_per_crop[:, i] = variance_function(data_to_t, **var_func_kwargs, axis=1)
+            # for each crop, compute variance of the feature from time 0 to i;
+            # only apply to rows that are not entirely NaN to avoid RuntimeWarnings
+            result = np.full(data_to_t.shape[0], np.nan)
+            valid_rows = ~np.isnan(data_to_t).all(axis=1)
+            if valid_rows.any():
+                result[valid_rows] = variance_function(
+                    data_to_t[valid_rows], **var_func_kwargs, axis=1
+                )
+            cumulative_var_per_crop[:, i] = result
 
     # where data are missing, set to NaN
     cumulative_var_per_crop[~np.isfinite(crop_array)] = np.nan
@@ -138,11 +145,16 @@ def compute_binned_variance_ratio_vs_time(
         # population variance: flatten all crops x timepoints in this bin
         pop_var = np.nanvar(bin_data)
 
-        # per-crop variance within this bin
-        ind_var = np.nanvar(bin_data, axis=1)  # (n_crops,)
+        # per-crop variance within this bin; mask all-NaN crop rows first
+        valid_crop_rows = ~np.isnan(bin_data).all(axis=1)
+        ind_var = np.full(bin_data.shape[0], np.nan)
+        if valid_crop_rows.any():
+            ind_var[valid_crop_rows] = np.nanvar(bin_data[valid_crop_rows], axis=1)  # (n_crops,)
 
-        mean_ind_var = np.nanmean(ind_var)
         n_valid = np.sum(np.isfinite(ind_var))
+        if n_valid == 0:
+            continue
+        mean_ind_var = np.nanmean(ind_var)
         sem_ind_var = np.nanstd(ind_var) / np.sqrt(n_valid) if n_valid > 1 else 0.0
 
         if pop_var > 0:

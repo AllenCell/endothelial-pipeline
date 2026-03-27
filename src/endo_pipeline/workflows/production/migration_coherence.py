@@ -111,7 +111,7 @@ def main(
         # non-steady-state timepoints based on annotations), computing
         # only the columns needed for visualization/analysis
         df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
-        columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *DYNAMICS_COLUMN_NAMES]
+        columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *DYNAMICS_COLUMN_NAMES]
         df_ = df[columns_to_compute].compute()
         df_steady_state = filter_dataframe_by_annotations(
             df_,

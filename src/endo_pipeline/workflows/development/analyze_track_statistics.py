@@ -1,7 +1,12 @@
 from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.settings.dynamics_workflows import LONG_TRACK_THRESHOLD_LENGTH
 
 
-def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -> None:
+def main(
+    crop_pattern: CropPattern = "grid",
+    datasets: Datasets | None = None,
+    min_track_length: int = LONG_TRACK_THRESHOLD_LENGTH,
+) -> None:
     import logging
 
     import matplotlib.pyplot as plt
@@ -12,7 +17,6 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import (
-        PositionAnnotation,
         TimepointAnnotation,
         get_datasets_in_collection,
         load_dataset_config,
@@ -35,7 +39,6 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
         DYNAMICS_COLUMN_NAMES,
         METADATA_COLUMNS_TO_KEEP,
         RESCALE_THETA,
-        TRACK_METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -51,16 +54,13 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
     variable_labels_dict = {
         col: get_label_for_column(col).replace("polar ", "") for col in column_names
     }
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
     # Load dataframe manifest for the features to be used in flow field
     # estimation and analysis.
-    if crop_pattern == "grid":
-        base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
-        feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
-    else:
-        # NOTE: current tracked feature dataframe has no filtering applied, so needs additional
-        # timepoint + position + "is_included" track filtering applied before analysis
-        feature_dataframe_manifest_name = "pc_diffae_tracked_seg_features"
+
+    base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
+    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # Default list of datasets if not provided. Filter by datasets available in
@@ -98,13 +98,8 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
 
         # load dataframe and perform additional filtering (remove
         # non-steady-state timepoints based on annotations), computing
-        # only the columns needed for flow field estimation and analysis to save memory.
+        # only the columns needed for analysis
         df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
-        # start with default metadata columns to keep
-        columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *column_names]
-        if crop_pattern == "tracked":
-            # also keep track ID and track length columns for tracked crops
-            columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
         df_: pd.DataFrame = df[columns_to_compute].compute()
         df_steady_state = filter_dataframe_by_annotations(
             df_,
@@ -113,21 +108,9 @@ def main(crop_pattern: CropPattern = "grid", datasets: Datasets | None = None) -
         )
 
         if crop_pattern == "tracked":
-            # additional filtering currently necessary for loading pattern with
-            # tracked crops; this will be updated once the dataframe tracking
-            # structure is standardized
-            df_steady_state = df_steady_state[
-                df_steady_state[ColumnName.SegDataFilters.IS_INCLUDED]
-            ]
-            df_steady_state = filter_dataframe_by_annotations(
-                df_steady_state,
-                dataset_config,
-                timepoint_annotations=list(TimepointAnnotation),
-                position_annotations=list(PositionAnnotation),
-            )
-            # also filter out tracks that are too short for reliable flow field estimation and analysis
+            # Perform additional filtering by track length
             df_steady_state = filter_dataframe_by_track_length(
-                df_steady_state, ColumnName.TRACK_LENGTH, minimum_track_length=100
+                df_steady_state, ColumnName.TRACK_LENGTH, minimum_track_length=min_track_length
             )
 
         num_traj = df_steady_state[ColumnName.CROP_INDEX].nunique()
