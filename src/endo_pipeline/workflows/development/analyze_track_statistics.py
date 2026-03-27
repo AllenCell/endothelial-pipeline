@@ -287,6 +287,7 @@ def main(
                         color=hist_color,
                         linewidth=1.5,
                         linestyle=line_style,
+                        label=f"{crop_pattern} (n={num_traj})",
                     )
                     ax[ax_index].set_title(
                         f"Histogram of average {variable_label} across trajectories"
@@ -297,6 +298,7 @@ def main(
                     ax[ax_index].set_ylabel(
                         f"P({label_wrapper.replace('{{label}}', variable_label)})"
                     )
+                    ax.legend(loc="upper right")
 
             plt.suptitle(f"{plot_label}, {crop_pattern} crops (n={num_traj} trajectories)")
             plt.tight_layout()
