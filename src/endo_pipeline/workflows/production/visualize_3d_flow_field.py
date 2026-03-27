@@ -105,7 +105,7 @@ def main(
         filter_dataframe_by_annotations,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
-        get_kernel_density_estimate,
+        get_kernel_density_estimate_from_trajectories,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
@@ -343,7 +343,7 @@ def main(
         trajs = []
         for _, traj_df in feature_data.groupby(ColumnName.CROP_INDEX):
             trajs.append(traj_df.sort_values(by=ColumnName.TIMEPOINT)[column_names].to_numpy())
-        prob_kde = get_kernel_density_estimate(trajs, bin_edges, kernels)
+        prob_kde = get_kernel_density_estimate_from_trajectories(trajs, bin_edges, kernels)
 
         # unpack drift values from dataframe and reshape to grid shape for flow
         # field visualization and ODE solving,
