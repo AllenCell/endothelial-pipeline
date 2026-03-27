@@ -186,7 +186,7 @@ def fms_upload_merge_pc_diffae_seg_features(
 
     # Store FMS ID in dataframe manifest
     manifest_name = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
-    workflow_name = "live_feat_workflows_to_fms"
+    workflow_name = "merge_pc_diffae_seg_features"
     manifest = create_dataframe_manifest(manifest_name, workflow_name)
     manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
     save_dataframe_manifest(manifest)
