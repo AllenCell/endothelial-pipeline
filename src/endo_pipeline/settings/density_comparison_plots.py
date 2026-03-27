@@ -2,7 +2,7 @@
 
 from endo_pipeline.settings.column_names import ColumnName as Column
 
-DENSITY_PLOT_FEATURES: tuple[str, ...] = (
+DENSITY_PLOT_FEATURES: tuple[Column.DiffAEData, ...] = (
     Column.DiffAEData.POLAR_ANGLE,
     Column.DiffAEData.POLAR_RADIUS,
     Column.DiffAEData.PC3_FLIPPED,
