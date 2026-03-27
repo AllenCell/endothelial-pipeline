@@ -184,70 +184,61 @@ def main(
         for column_name in column_names:
             variable_label = variable_labels_dict[column_name]
             fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+            period = (
+                polar_angle_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
+            )
+            label_wrapper: str
+            data: pd.DataFrame
+            for (
+                ax_index,
+                data,
+                label_wrapper,
+                bin_width,
+                kernel_name,
+                kernel_period,
+                axes_xlim,
+            ) in zip(
+                [0, 1],
+                [column_avg_df[column_name], column_variance_df[column_name]],
+                ["$\\langle${{label}}$\\rangle$", "Var({{label}})"],
+                [0.1, 0.02],
+                [kernel_names_dict[column_name], "gaussian"],
+                [period, None],
+                [bin_limits_dict[column_name], (-0.01, 0.8)],
+                strict=True,
+            ):
+                # get histogram of the column average using bin widths of 0.1,
+                # adjusting x-axis limits based on bin limits for the column
+                bins, centers = get_bins(bin_widths=(bin_width,), data=data.to_numpy(), pad=0)
+                hist = np.histogram(data, bins=bins[0], density=True)[0]
+                kernel = KramersMoyalKernel(
+                    name=kernel_name,
+                    bandwidth=1.5 * bin_width,
+                    period=kernel_period,
+                )
+                hist_kde = get_kernel_density_estimate_from_histogram(
+                    hist, bins=bins, kernel=kernel
+                )
+                # interpolate between histogram centers for smoother KDE plot
+                interp_centers = np.linspace(bins[0][0], bins[0][-1], 2000)
+                spline = make_interp_spline(centers[0], hist_kde, k=3)  # k=3 for cubic spline
+                hist_kde_smooth = spline(interp_centers)
 
-            # get histogram of the column average using bin widths of 0.1,
-            # adjusting x-axis limits based on bin limits for the column
-            bins, centers = get_bins(bin_widths=(0.1,), data=column_avg_df[column_name].to_numpy())
-            hist = np.histogram(column_avg_df[column_name], bins=bins[0], density=True)[0]
-            kernel = KramersMoyalKernel(
-                name=kernel_names_dict[column_name],
-                bandwidth=0.15,
-                period=(
-                    polar_angle_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
-                ),
-            )
-            hist_kde = get_kernel_density_estimate_from_histogram(hist, bins=bins, kernel=kernel)
-            # interpolate between histogram centers for smoother KDE plot
-            interp_centers = np.linspace(centers[0][0], centers[0][-1], 2000)
-            spline = make_interp_spline(centers[0], hist_kde, k=3)  # k=3 for cubic spline
-            hist_kde_smooth = spline(interp_centers)
-
-            # plot histogram of the column variance with KDE overlaid
-            ax[0].bar(
-                bins[0][:-1],
-                hist,
-                width=np.diff(bins[0]),
-                color=(*to_rgb(hist_color), 0.5),
-                edgecolor=(*to_rgb("k"), 1.0),
-                align="edge",
-            )
-            ax[0].plot(interp_centers, hist_kde_smooth, color=hist_color, linewidth=1.5)
-            ax[0].set_title(f"Histogram of average {variable_label} across trajectories")
-            ax[0].set_xlabel(f"$\\langle${variable_label}$\\rangle$")
-            ax[0].set_xlim(bin_limits_dict[column_name])
-            ax[0].set_ylabel(f"P($\\langle${variable_label}$\\rangle$)")
-
-            # same but for variance of the column across trajectories, using bin
-            # widths of 0.02, adjusting x-axis limits independently of the column
-            bins, centers = get_bins(
-                bin_widths=(0.02,), data=column_variance_df[column_name].to_numpy()
-            )
-            hist = np.histogram(column_variance_df[column_name], bins=bins[0], density=True)[0]
-            kernel = KramersMoyalKernel(name="gaussian", bandwidth=0.03)
-            hist_kde = get_kernel_density_estimate_from_histogram(hist, bins=bins, kernel=kernel)
-            # interpolate between histogram centers for smoother KDE plot
-            interp_centers = np.linspace(centers[0][0], centers[0][-1], 2000)
-            spline = make_interp_spline(centers[0], hist_kde, k=3)  # k=3 for cubic spline
-            hist_kde_smooth = spline(interp_centers)
-
-            # plot histogram of the column variance with KDE overlaid
-            ax[1].bar(
-                bins[0][:-1],
-                hist,
-                width=np.diff(bins[0]),
-                color=(*to_rgb(hist_color), 0.5),
-                edgecolor=(*to_rgb("k"), 1.0),
-                align="edge",
-            )
-            ax[1].plot(interp_centers, hist_kde_smooth, color=hist_color, linewidth=1.5)
-            ax[1].set_title(f"Histogram of variance of {variable_label} across trajectories")
-            ax[1].set_xlabel(
-                f"$\\langle$({variable_label} - $\\langle${variable_label}$\\rangle$)$^2$$\\rangle$"
-            )
-            ax[1].set_xlim((-0.01, 0.9))
-            ax[1].set_ylabel(
-                f"P($\\langle$({variable_label} - $\\langle${variable_label}$\\rangle$)$^2$$\\rangle$)"
-            )
+                # plot histogram of the column variance with KDE overlaid
+                ax[ax_index].bar(
+                    bins[0][:-1],
+                    hist,
+                    width=np.diff(bins[0]),
+                    color=(*to_rgb(hist_color), 0.5),
+                    edgecolor=(*to_rgb("k"), 1.0),
+                    align="edge",
+                )
+                ax[ax_index].plot(interp_centers, hist_kde_smooth, color=hist_color, linewidth=1.5)
+                ax[ax_index].set_title(f"Histogram of average {variable_label} across trajectories")
+                ax[ax_index].set_xlim(axes_xlim)
+                # plot labels: dynamically replace {{label}} in label wrapper with variable label
+                ax[ax_index].set_xlabel(label_wrapper.replace("{{label}}", variable_label))
+                ax[ax_index].set_ylabel(f"P({label_wrapper.replace('{{label}}', variable_label)})")
 
             plt.suptitle(f"{plot_label}, {crop_pattern} crops (n={num_traj} trajectories)")
             plt.tight_layout()
