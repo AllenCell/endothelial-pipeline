@@ -9,7 +9,6 @@ import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 from seaborn import color_palette
-from sklearn.decomposition import PCA
 from tqdm import tqdm
 
 from endo_pipeline.configs import get_latent_dim_from_config
@@ -1164,7 +1163,6 @@ def plot_distances_to_fixed_points_for_dataset_multiproc_wrapper(args):
 
 def plot_distances_to_fixed_points_for_dataset(
     dataset_name: str,
-    pca: PCA,
     min_track_length: int = 216,  # a track duration of 144 is equivalent to 12 hours
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
@@ -1224,26 +1222,38 @@ def plot_distances_to_fixed_points_for_dataset(
         )
         return
 
+    # create a dictionary mapping a fixed point index to its stability
+    fp_stability_map = dict(
+        zip(
+            fixed_points_for_dataset.index,
+            fixed_points_for_dataset[STABILITY_COLUMN_NAME],
+            strict=True,
+        )
+    )
+
     # load the full set of timepoints for the cell-centric data now
     # and do track-specific filtering so that we can see how tracks
     # move in relation to the fixed points over time
     # Load default model manifest and get corresponding feature dataframe
     # manifest name for default run name and specified crop pattern.
-    model_manifest_tracked = load_model_manifest(model_manifest_name)
-    dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest_tracked, run_name, crop_pattern="tracked"
+    dataframe_manifest_name = (
+        "diffae_baseline_exclude_cell_piling_20251110_latent_512_tracked_pca_filtered"
     )
-
     # load dataframe for the tracked dynamics data
     dataframe_manifest_tracked = load_dataframe_manifest(dataframe_manifest_name)
-    df_tracked = get_dataframe_for_dynamics_workflows(
-        dataset_name,
-        manifest=dataframe_manifest_tracked,
-        pca=pca,
-        include_cell_piling=True,
-        include_not_steady_state=True,
-        crop_pattern="tracked",
+    df_tracked_delayed = load_dataframe(
+        dataframe_manifest_tracked.locations[dataset_name], delay=True
     )
+    columns_to_compute = [
+        Column.DATASET,
+        Column.POSITION,
+        Column.TIMEPOINT,
+        Column.TRACK_ID,
+        Column.CROP_INDEX,
+        Column.TRACK_LENGTH,
+        *column_names,
+    ]
+    df_tracked = df_tracked_delayed[columns_to_compute].compute().reset_index(drop=True)
 
     # determine distance from each fixed point over time and add to the dataframe, along
     # with the signed difference along each axis (e.g. theta, r, rho) from each fixed point
@@ -1282,6 +1292,9 @@ def plot_distances_to_fixed_points_for_dataset(
         .transform(lambda s: int(s.strip(dist_from_fp_col_prefix)))
     )
 
+    # add the stability as a colum name for the closest fixed point at each timepoint
+    df_tracked["closest_fp_stability"] = df_tracked["closest_fp"].map(fp_stability_map)
+
     # filter the data to only include very long tracks
     df_tracked = df_tracked[df_tracked[Column.TRACK_LENGTH] > min_track_length]
 
@@ -1318,13 +1331,6 @@ def plot_distances_to_fixed_points_for_dataset(
     final_fp_counts = (
         df_tracked["final_closest_fp"].value_counts(normalize=True) * 100
     ).reset_index(name="percentage")
-    fp_stability_map = dict(
-        zip(
-            fixed_points_for_dataset.index,
-            fixed_points_for_dataset[STABILITY_COLUMN_NAME],
-            strict=True,
-        )
-    )
     final_fp_counts[STABILITY_COLUMN_NAME] = final_fp_counts["final_closest_fp"].map(
         fp_stability_map
     )
@@ -1417,6 +1423,17 @@ def plot_distances_to_fixed_points_for_dataset(
         s=100,
         ax=ax,
     )
+    for i, row in fixed_points_for_dataset.iterrows():
+        ax.text(
+            row[Column.DiffAEData.POLAR_ANGLE],
+            row[Column.DiffAEData.POLAR_RADIUS],
+            f"FP {i}",
+            color=STABILITY_COLOR_DICT.get(row[STABILITY_COLUMN_NAME], "black"),
+            fontsize=8,
+            ha="right",
+            va="bottom",
+        )
+
     ax.set_xlim(0, np.pi)
     ax.set_ylim(0, None)
     ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
@@ -1480,3 +1497,54 @@ def plot_distances_to_fixed_points_for_dataset(
         ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
         save_plot_to_path(fig, out_dir, f"{dataset_name}_final_fp_stability")
         plt.close(fig)
+
+        # example:
+        # dataset 20260302_20X
+        # position: 0
+        # track id: 585
+        # example = df_tracked.query("position==0 and track_id==585")
+        # steady_state_start = max(dataset_config.timepoint_annotations["not_steady_state"][0][0])
+
+        # fig, ax = plt.subplots()
+        # sns.lineplot(data=example, x="frame_number", y="closest_fp", color="grey", ax=ax, zorder=0)
+        # sns.scatterplot(data=example, x="frame_number", y="closest_fp", hue="closest_fp_stability", marker="o", ax=ax)
+        # ax.axvline(steady_state_start, c='r', ls=':')
+        # ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm², track id: {example['track_id'].iloc[0]}".title())
+        # ax.set_xlabel("frame number".title())
+        # ax.set_ylabel("closest fixed point".title())
+        # save_plot_to_path(fig, out_dir, f"{dataset_name}_track_{example['track_id'].iloc[0]}_closest_fp_over_time")
+        # plt.close(fig)
+
+        # fig, ax = plt.subplots()
+        # sns.lineplot(data=df_tracked, x="frame_number", y="distance_to_closest_fp", color="grey", ax=ax, zorder=0)
+        # sns.scatterplot(data=df_tracked, x="frame_number", y="distance_to_closest_fp", hue="closest_fp", palette="tab20", marker="o", ax=ax)
+        # ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
+        # ax.set_xlabel("frame number".title())
+        # ax.set_ylabel("distance to closest fixed point".title())
+        # save_plot_to_path(fig, out_dir, f"{dataset_name}_distance_to_closest_fp_over_time")
+        # plt.close(fig)
+
+        # fig, ax = plt.subplots()
+        # for i in fixed_points_for_dataset.index:
+        #     stability = fixed_points_for_dataset.iloc[i][STABILITY_COLUMN_NAME]
+        #     if stability == "stable":
+        #         # line_style = "-"
+        #         pass
+        #     else:
+        #         # line_style = "--"
+        #         continue
+
+        #     sns.lineplot(
+        #         example,
+        #         x=Column.TIMEPOINT,
+        #         y=f"dist_from_fp_{i}",
+        #         # ls=line_style,
+        #         ax=ax,
+        #         label=f"FP {i} ({stability})",
+        #     )
+        # ax.set_ylim(0)
+        # ax.set_title(f"{dataset_name}, shear stress: {shear} dyn/cm²".title())
+        # ax.set_xlabel("frame number".title())
+        # ax.set_ylabel("distance from fixed point".title())
+        # save_plot_to_path(fig, out_dir, f"{dataset_name}_distance_from_fp_over_time")
+        # plt.close(fig)

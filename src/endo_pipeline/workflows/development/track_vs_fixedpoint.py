@@ -14,7 +14,6 @@ def main(datasets: Datasets | None = None, n_cores: int = 1):
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
     from endo_pipeline.library.analyze.integration.track_integration import (
         plot_distances_to_fixed_points_for_dataset_multiproc_wrapper,
     )
@@ -66,15 +65,6 @@ def main(datasets: Datasets | None = None, n_cores: int = 1):
         num_datasets = min(len(dataset_names), 2)
         dataset_names = dataset_names[:num_datasets]
 
-    # fit PCA using the features from the given dataframe manifest PCA always
-    # fit on the grid-based features, even if the features for flow field
-    # analysis are from tracked-based crops, to ensure that the PCA space is the
-    # same across analyses
-    dataframe_manifest_name_pca = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
-    )
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_pca)
-
     plot_distances_to_fixed_points_for_dataset_params: list = []
     min_track_length = 216  # a track duration of 144 is equivalent to 12 hours
     for dataset_name in dataset_names:
@@ -86,7 +76,6 @@ def main(datasets: Datasets | None = None, n_cores: int = 1):
         plot_distances_to_fixed_points_for_dataset_params.append(
             {
                 "dataset_name": dataset_name,
-                "pca": pca,
                 "min_track_length": min_track_length,
                 "out_dir": out_dir,
             }
