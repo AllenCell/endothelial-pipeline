@@ -107,6 +107,16 @@ def plot_scatter_and_binned_heatmap(
     axs[0].scatter(x, y, c=z, cmap=cmap, s=scatter_point_size, vmin=vmin, vmax=vmax)
     axs[0].set_xlabel(x_col)
     axs[0].set_ylabel(y_col)
+    axs[0].text(
+        0.05,
+        0.95,
+        f"N = {len(x)}",
+        transform=axs[0].transAxes,
+        ha="left",
+        va="top",
+        fontsize=9,
+        bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.8},
+    )
 
     # Right: binned heatmap
     x_bins = np.arange(x.min(), x.max() + x_bin_size, x_bin_size)
@@ -309,12 +319,16 @@ def plot_fixed_points_vs_shear_stress(
         Optional ``(ymin, ymax)`` limits for the y-axis.
     """
 
-    # Convert shear stress to numeric values for proper axis scaling
+    # Convert shear stress to numeric values for sorting, then use categorical x-axis
     df_fp = df_fp.copy()
     df_fp["shear_stress_numeric"] = df_fp["shear_stress"].apply(
         lambda s: float(s.split("-")[0]) if isinstance(s, str) else float(s)
     )
     df_fp = df_fp.sort_values("shear_stress_numeric")
+
+    # Build categorical x positions from unique shear stress values
+    unique_shear = df_fp["shear_stress"].unique()
+    shear_to_x = {s: i for i, s in enumerate(unique_shear)}
 
     # Build legend handles
     legend_handles = make_legend_handles_for_fixed_pts(
@@ -322,13 +336,13 @@ def plot_fixed_points_vs_shear_stress(
         marker_size=marker_size_legend,
     )
 
-    fig, ax = plt.subplots(figsize=(8, 3.5))
+    fig, ax = plt.subplots(figsize=(max(8, len(unique_shear) * 1.2), 3.5))
     for _, row in df_fp.iterrows():
         stability = row[STABILITY_COLUMN_NAME]
         mk = STABILITY_MARKER_DICT.get(stability, "o")
         clr = STABILITY_COLOR_DICT.get(stability, "gray")
         ax.scatter(
-            row["shear_stress_numeric"],
+            shear_to_x[row["shear_stress"]],
             row[variable],
             marker=mk,
             color=clr,
@@ -337,6 +351,10 @@ def plot_fixed_points_vs_shear_stress(
             s=marker_size_scatter,
             zorder=3,
         )
+    ax.set_xticks(list(range(len(unique_shear))))
+    ax.set_xticklabels(
+        [f"{s} dyn/cm\u00b2" for s in unique_shear], rotation=45, ha="right", fontsize=8
+    )
     if ylim is not None:
         ax.set_ylim(*ylim)
 
@@ -383,7 +401,7 @@ def plot_optical_flow_histogram(
     """
     import seaborn as sns
 
-    data = df[optical_flow_feature]
+    data = df[optical_flow_feature].dropna()
     flow_mean = data.mean()
     flow_std = data.std()
 
@@ -400,7 +418,7 @@ def plot_optical_flow_histogram(
     ax.text(
         0.05,
         0.95,
-        f"\u03bc = {flow_mean:.3f}\n\u03c3 = {flow_std:.3f}",
+        f"N = {len(data)}\n\u03bc = {flow_mean:.3f}\n\u03c3 = {flow_std:.3f}",
         transform=ax.transAxes,
         ha="left",
         va="top",
@@ -438,10 +456,13 @@ def plot_mean_vs_shear_stress_summary(
         are overlaid on the plot.
     """
     summary_stats_sorted = sorted(summary_stats, key=lambda s: s["shear_stress"])
-    fig, ax = plt.subplots(figsize=(10, 5))
-    for stat in summary_stats_sorted:
+    labels = [s["label"] for s in summary_stats_sorted]
+    x_positions = list(range(len(labels)))
+
+    fig, ax = plt.subplots(figsize=(max(10, len(labels) * 0.8), 5))
+    for i, stat in enumerate(summary_stats_sorted):
         ax.errorbar(
-            stat["shear_stress"],
+            i,
             stat["mean"],
             yerr=stat["std"],
             fmt="o",
@@ -451,7 +472,9 @@ def plot_mean_vs_shear_stress_summary(
             elinewidth=1.5,
             label=stat["label"],
         )
-    ax.set_xlabel("shear stress (dyn/cm\u00b2)", fontsize=10)
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=8)
+    ax.set_xlabel("dataset (shear stress)", fontsize=10)
     ax.set_ylabel(f"mean {optical_flow_feature}", fontsize=10)
     if optical_flow_feature == "optical_flow_mean_unit_vector_dt1":
         ax.set_ylim(0, 1)
@@ -466,15 +489,24 @@ def plot_mean_vs_shear_stress_summary(
     if df_fp_all is not None:
         mean_of_col = f"mean_{optical_flow_feature}"
         df_fp_all = df_fp_all.copy()
-        df_fp_all["shear_stress_numeric"] = df_fp_all["shear_stress"].apply(
-            lambda s: float(s.split("-")[-1]) if isinstance(s, str) else float(s)
-        )
+        # Map each fixed point to the nearest categorical x position by shear stress
+        shear_to_x = {}
+        for i, stat in enumerate(summary_stats_sorted):
+            shear_to_x.setdefault(stat["shear_stress"], []).append(i)
         for _, row in df_fp_all.iterrows():
             stability = row[STABILITY_COLUMN_NAME]
             mk = STABILITY_MARKER_DICT.get(stability, "o")
             clr = STABILITY_COLOR_DICT.get(stability, "gray")
+            shear_val = (
+                float(row["shear_stress"].split("-")[-1])
+                if isinstance(row["shear_stress"], str)
+                else float(row["shear_stress"])
+            )
+            # place at the mean x position of all datasets with this shear stress
+            matching_xs = shear_to_x.get(shear_val, [])
+            x_pos = np.mean(matching_xs) if matching_xs else 0
             ax.scatter(
-                row["shear_stress_numeric"],
+                x_pos,
                 row[mean_of_col],
                 marker=mk,
                 color=clr,

@@ -115,11 +115,34 @@ def main(
             timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
         )
 
-        # add optical flow features to the dataframe by merging on the appropriate
-        # columns (e.g., dataset, position, timepoint, and crop coords.)
+        logger.info(
+            "Loaded dataframe for dataset [ %s ] with [ %d ] rows after filtering to steady state timepoints.",
+            dataset_name,
+            len(df_steady_state),
+        )
+
         df_of = add_optical_flow_features(
             df_steady_state,
             datasets=[dataset_name],
+        )
+
+        # Check for NaN optical flow values after merge
+        n_total = len(df_of)
+        n_nan = int(df_of[optical_flow_features[0]].isna().sum())
+        if n_nan > 0:
+            logger.warning(
+                "Dataset [ %s ]: %d / %d rows (%.1f%%) have NaN optical flow values after merge. "
+                "These rows will be excluded from scatter/heatmap plots.",
+                dataset_name,
+                n_nan,
+                n_total,
+                n_nan / n_total * 100,
+            )
+
+        logger.info(
+            "Computed optical flow features for dataset [ %s ] with [ %d ] rows.",
+            dataset_name,
+            len(df_of),
         )
 
         # split the dataframe by flow condition so we can plot the distribution

@@ -112,6 +112,10 @@ OPTICAL_FLOW_FEATURE_COLUMNS_DT1: list[str] = [
     "ema01_optical_flow_mean_unit_vector_fast_dt1",
     "ema02_optical_flow_mean_unit_vector_dt1",
     "ema02_optical_flow_mean_unit_vector_fast_dt1",
+    "ema01_optical_flow_radial_coherence_dt1",
+    "ema01_optical_flow_radial_coherence_weighted_dt1",
+    "optical_flow_radial_coherence_dt1",
+    "optical_flow_radial_coherence_weighted_dt1",
 ]
 """Optical-flow feature column names with dt=1 stride, as stored in dataframes."""
 

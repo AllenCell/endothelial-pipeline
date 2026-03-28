@@ -79,6 +79,9 @@ def add_optical_flow_features(
         check_required_columns_in_dataframe(df_optical_flow, required_columns)
         df_optical_flow = df_optical_flow[required_columns]
 
+        # TODO: fix duplicate rows at the source (optical flow workflow)
+        df_optical_flow = df_optical_flow.drop_duplicates(subset=merge_columns_)
+
         df_merged = df_dataset.merge(df_optical_flow, on=merge_columns_, how="left")
         merged_dfs.append(df_merged)
 
