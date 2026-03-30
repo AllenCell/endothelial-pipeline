@@ -13,7 +13,7 @@ def main(
     confidence_level: float = TRACK_BOOTSRAP_CONFIDENCE_LEVEL,
 ) -> None:
     import logging
-    from typing import cast
+    from typing import TypeAlias, cast
 
     import matplotlib.pyplot as plt
     import numpy as np
@@ -165,13 +165,12 @@ def main(
         )
         # get histogram of the column average using bin widths of 0.1,
         # adjusting x-axis limits based on bin limits for the column
-        base_dict: dict[str, dict[ColumnName.DiffAEData, dict[str, np.ndarray]]] = {
-            column_name: {} for column_name in column_names
-        }
-        hist_dict_grid = base_dict.copy()
-        kde_dict_grid = base_dict.copy()
-        hist_bins_dict = base_dict.copy()
-        kde_points_dict = base_dict.copy()
+        BaseResultsDict: TypeAlias = dict[ColumnName.DiffAEData, dict[str, np.ndarray]]
+        hist_dict_grid: BaseResultsDict = {col: {} for col in column_names}
+        kde_dict_grid: BaseResultsDict = {col: {} for col in column_names}
+        hist_bins_dict: BaseResultsDict = {col: {} for col in column_names}
+        hist_centers_dict: BaseResultsDict = {col: {} for col in column_names}
+        kde_points_dict: BaseResultsDict = {col: {} for col in column_names}
         for column_name in column_names:
             # init plot and plot labels for the column
             variable_label = variable_labels_dict[column_name]
@@ -335,6 +334,7 @@ def main(
                         data = df_with_stats_subsampled[f"{column_name}_{stat_name}"].to_numpy()
 
                         bins = hist_bins_dict[column_name][stat_name]
+                        centers = hist_centers_dict[column_name][stat_name]
                         hist = np.histogram(data, bins=bins, density=True)[0]
                         kernel = KramersMoyalKernel(
                             name=kernel_name,
@@ -345,11 +345,9 @@ def main(
                             hist, bins=[bins], kernel=kernel
                         )
                         # interpolate between histogram centers for smoother KDE plot
-                        interp_centers = kde_points_dict[column_name][stat_name]
-                        spline = make_interp_spline(
-                            interp_centers, hist_kde, k=3
-                        )  # k=3 for cubic spline
-                        hist_kde_smooth = spline(interp_centers)
+                        kde_points = kde_points_dict[column_name][stat_name]
+                        spline = make_interp_spline(centers, hist_kde, k=3)
+                        hist_kde_smooth = spline(kde_points)
 
                         # add histogram and KDE to list for averaging across
                         # bootstrap samples for comparison with grid data later
