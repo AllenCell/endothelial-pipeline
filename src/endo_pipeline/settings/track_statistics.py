@@ -13,3 +13,17 @@ Minimum track length (in number of timepoints) to include in analyses of
 long-timescale statistics (e.g., mean squared displacement) in dynamics
 workflows.
 """
+
+NUM_TRACK_BOOTSTRAP_SAMPLES: int = 1000
+"""
+Number of bootstrap samples to use when estimating confidence intervals for
+subsampling-based statistics of tracked-crop features to compare with
+grid-based features.
+"""
+
+TRACK_BOOTSRAP_CONFIDENCE_LEVEL: float = 0.95
+"""
+Confidence level to use when estimating confidence intervals for
+subsampling-based statistics of tracked-crop features to compare with
+grid-based features.
+"""
