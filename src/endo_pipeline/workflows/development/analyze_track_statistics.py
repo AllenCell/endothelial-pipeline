@@ -228,7 +228,9 @@ def main(
                     kde_points=interp_centers,
                     histogram_color=hist_color,
                 )
-                ax[ax_index].set_title(f"Histogram of average {variable_label} across trajectories")
+                ax[ax_index].set_title(
+                    f"Histogram of {stat_name} {variable_label} across trajectories"
+                )
                 ax[ax_index].set_xlim(ax_xlim)
                 # plot labels: dynamically replace {{label}} in label wrapper with variable label
                 label_wrapper = axes_base_labels[stat_name]
@@ -239,7 +241,7 @@ def main(
             save_plot_to_path(
                 fig,
                 fig_savedir,
-                f"{dataset_name_flow}_{column_name}_statistics_histograms_grid",
+                f"{dataset_name_flow}_{column_name}_{stat_name}_histograms_grid",
             )
             plt.close(fig)
 
@@ -424,7 +426,7 @@ def main(
                         histogram_color=hist_color,
                     )
                     ax[ax_index].set_title(
-                        f"Histogram of average {variable_label} across trajectories"
+                        f"Histogram of {stat_name} {variable_label} across trajectories"
                     )
                     ax[ax_index].set_xlim(ax_xlim)
                     # plot labels: dynamically replace {{label}} in label wrapper with variable label
@@ -440,7 +442,7 @@ def main(
                 save_plot_to_path(
                     fig,
                     fig_savedir,
-                    f"{dataset_name_flow}_{column_name}_statistics_histograms_tracked",
+                    f"{dataset_name_flow}_{column_name}_{stat_name}_histograms_tracked",
                 )
                 plt.close(fig)
 
