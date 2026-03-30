@@ -486,7 +486,48 @@ def main(
                 save_plot_to_path(
                     fig,
                     fig_savedir,
-                    f"{dataset_name_flow}_{column_name}_{stat_name}_histograms_tracked",
+                    f"{dataset_name_flow}_{column_name}_statistics_histograms_tracked",
+                )
+                plt.close(fig)
+
+                # finally, plot grid and tracked KDEs on the same plot for
+                # direct comparison
+                fig, ax = plt.subplots(figsize=(6, 5))
+                ax.plot(
+                    kde_points_dict[column_name][stat_name],
+                    kde_dict_grid[column_name][stat_name],
+                    color=hist_color,
+                    linewidth=1.5,
+                    linestyle="-",
+                    label="grid",
+                )
+                ax.plot(
+                    kde_points,
+                    kde_tracked_means[column_name][stat_name],
+                    color="k",
+                    linewidth=1.5,
+                    linestyle="--",
+                    label="tracked",
+                )
+                ax.fill_between(
+                    kde_points,
+                    kde_tracked_ci_lower[column_name][stat_name],
+                    kde_tracked_ci_upper[column_name][stat_name],
+                    color="k",
+                    alpha=0.3,
+                    label=f"{int(confidence_level * 100)}% CI (tracked)",
+                )
+                ax.set_title(f"KDE of {stat_name} {variable_label} across trajectories")
+                ax.set_xlim(ax_xlim)
+                ax.set_xlabel(label_wrapper.replace("{{label}}", variable_label))
+                ax.set_ylabel(f"P({label_wrapper.replace('{{label}}', variable_label)})")
+                ax.legend()
+                plt.suptitle(f"{plot_label}, grid vs tracked comparison")
+                plt.tight_layout()
+                save_plot_to_path(
+                    fig,
+                    fig_savedir,
+                    f"{dataset_name_flow}_{column_name}_statistics_kde_comparison",
                 )
                 plt.close(fig)
 
