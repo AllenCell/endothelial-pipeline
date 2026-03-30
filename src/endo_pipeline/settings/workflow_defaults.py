@@ -144,6 +144,53 @@ SEGMENTATION_FEATURE_COLUMNS = {
 }
 """Name of segmentation features to include in analyses."""
 
+DEFAULT_COLUMNS_TO_DROP = {
+    "segmentation_features": [
+        Column.SegData.EDGE_FLUOR,
+        Column.SegData.NODE_FLUOR,
+        Column.SegData.CELL_FLUOR_MEDIAN,
+        Column.SegData.CELL_FLUOR_MAX,
+        Column.SegData.CELL_FLUOR_MIN,
+        Column.SegData.CELL_FLUOR_PCT25,
+        Column.SegData.CELL_FLUOR_PCT75,
+        Column.SegData.RESOLUTION_FOR_DIFFAE,
+    ],
+    "segmentation_filters": [
+        Column.SegDataFilters.SMOOTHED_AREA_NORMD_DIFF,
+        Column.SegDataFilters.MIN_TRACK_DURATION,
+        Column.SegDataFilters.MAX_SMOOTHED_AREA_NORMALIZED_CHANGE,
+        Column.SegDataFilters.NUM_VALID_TIMEPOINTS_IN_TRACK,
+        Column.SegDataFilters.MIN_NUM_VALID_TIMEPOINTS_PER_TRACK,
+    ],
+    "verification_columns": [
+        Column.SegDataWorkflowVerification.SEGMENTATION_PATH,
+        Column.SegDataWorkflowVerification.TRACKING_REF_IDX,
+        Column.SegDataWorkflowVerification.TRACKING_MATCHED_QUERY_LABEL,
+        Column.SegDataWorkflowVerification.TRACKING_OPTIMIZED_METRIC_VAL,
+        Column.SegDataWorkflowVerification.TRACKING_MATCHING_METHOD,
+        Column.SegDataWorkflowVerification.NUM_NUC_WITH_MOST_OVERLAP,
+        Column.SegDataWorkflowVerification.SMOOTHED_AREA_NORMALIZED,
+        Column.SegDataWorkflowVerification.SIGMA_FOR_AREA_SMOOTHING,
+        Column.SegDataWorkflowVerification.NUM_UNIQUE_TRACKS_PER_TIMEPOINT,
+        Column.SegDataWorkflowVerification.NODE_LABELS,
+        Column.SegDataWorkflowVerification.EDGE_LABELS,
+        Column.SegDataWorkflowVerification.NODE_PAIR_LABELS,
+        Column.SegDataWorkflowVerification.NUCLEI_LABELS_IN_CDH5_SEGMENTATION,
+        Column.SegDataWorkflowVerification.NUCLEI_FRACTION_IN_CDH5_SEGMENTATION,
+    ],
+    "diffae_columns": [
+        Column.DiffAEData.MODEL_MANIFEST,
+        Column.DiffAEData.MODEL_RUN,
+        Column.DiffAEData.CROP_SIZE_X,
+        Column.DiffAEData.CROP_SIZE_Y,
+        Column.DiffAEData.RESOLUTION,
+    ],
+    "base_columns": [
+        Column.CDH5_CHANNEL_INDEX_ZARR,
+        Column.BF_CHANNEL_INDEX_ZARR,
+    ],
+}
+
 DATASET_INFO_COLUMNS = [
     Column.DATASET,
     Column.POSITION,

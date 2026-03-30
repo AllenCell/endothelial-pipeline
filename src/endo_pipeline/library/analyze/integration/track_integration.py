@@ -44,6 +44,7 @@ from endo_pipeline.settings.flow_field_3d import (
     TRAJECTORY_TIME_SPAN,
 )
 from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_COLUMNS_TO_DROP,
     DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
     DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_FILTERED,
     DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_UNFILTERED,
@@ -436,6 +437,7 @@ def get_diffae_feats_liveseg_feats_merged_table(
     classic_segmentation_feature_manifest_name: str,
     diffae_tracked_feature_manifest_name: str,
     filter_columns: bool = False,
+    additional_columns_to_drop: list[str] | None = None,
 ) -> pd.DataFrame:
     """
     Get a merged dataframe with cell-centric DiffAE features and classical
@@ -490,39 +492,24 @@ def get_diffae_feats_liveseg_feats_merged_table(
         )
 
         # remove columns that were kept for workflow validations
+        default_cols_to_drop = [
+            col for col_grp in DEFAULT_COLUMNS_TO_DROP.values() for col in col_grp
+        ]
         nuclei_intens_cols = [
             col
             for col in merged_feats_df.columns
             if Column.SegDataWorkflowVerification.NUCLEI_INTENSITY_COLUMN_PREFIX in col
         ]
-        verification_cols_to_drop = list(
-            set(Column.SegDataWorkflowVerification) & set(merged_feats_df.columns)
-        )
+        additional_cols_to_drop = additional_columns_to_drop or []
+
         cols_to_drop = [
-            Column.SegData.EDGE_FLUOR,
-            Column.SegData.NODE_FLUOR,
-            Column.SegData.CELL_FLUOR_MEDIAN,
-            Column.SegData.CELL_FLUOR_MAX,
-            Column.SegData.CELL_FLUOR_MIN,
-            Column.SegData.CELL_FLUOR_PCT25,
-            Column.SegData.CELL_FLUOR_PCT75,
-            Column.SegDataFilters.SMOOTHED_AREA_NORMD_DIFF,
-            Column.CDH5_CHANNEL_INDEX_ZARR,
-            Column.BF_CHANNEL_INDEX_ZARR,
-            Column.DiffAEData.RESOLUTION,
-            Column.SegData.RESOLUTION_FOR_DIFFAE,
-            Column.SegDataFilters.MIN_TRACK_DURATION,
-            Column.SegDataFilters.MAX_SMOOTHED_AREA_NORMALIZED_CHANGE,
-            Column.SegDataFilters.NUM_VALID_TIMEPOINTS_IN_TRACK,
-            Column.SegDataFilters.MIN_NUM_VALID_TIMEPOINTS_PER_TRACK,
-            Column.DiffAEData.MODEL_MANIFEST,
-            Column.DiffAEData.MODEL_RUN,
-            Column.DiffAEData.CROP_SIZE_X,
-            Column.DiffAEData.CROP_SIZE_Y,
-            *verification_cols_to_drop,
+            *default_cols_to_drop,
             *nuclei_intens_cols,
+            *additional_cols_to_drop,
         ]
+
         merged_feats_df.drop(columns=cols_to_drop, inplace=True)
+
     return merged_feats_df.reset_index(drop=True)
 
 
