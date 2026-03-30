@@ -284,6 +284,12 @@ def main(
                 "Beginning bootstrap sampling of tracked trajectories for dataset [ %s ]",
                 dataset_name,
             )
+            if DEMO_MODE:
+                num_bootstrap = 10
+                logger.warning(
+                    "DEMO MODE: reducing number of bootstrap samples to %d for quick testing.",
+                    num_bootstrap,
+                )
             for _ in range(num_bootstrap):
                 sampled_traj_indices = rng.choice(
                     df_steady_state_tracked[ColumnName.CROP_INDEX].unique(),
