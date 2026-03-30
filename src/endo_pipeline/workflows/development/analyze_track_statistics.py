@@ -191,13 +191,6 @@ def main(
             variance_col_suffix=column_variance_suffix,
         )
 
-        # put together grid and tracked dataframes for easier processing, adding
-        # a column to indicate crop pattern
-        df_steady_state_dict: dict[str, pd.DataFrame] = {
-            "grid": df_steady_state_grid,
-            "tracked": df_steady_state_tracked,
-        }
-
         # plot histograms of the column averages and variances across
         # trajectories for each column
         axes_base_label = ["$\\langle${{label}}$\\rangle$", "Var({{label}})"]
