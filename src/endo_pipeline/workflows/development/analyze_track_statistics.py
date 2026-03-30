@@ -14,7 +14,6 @@ def main(
     import pandas as pd
     from matplotlib.colors import to_rgb
     from scipy.interpolate import make_interp_spline
-    from scipy.stats import circmean, circvar
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import (
@@ -32,6 +31,7 @@ def main(
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
+    from endo_pipeline.library.analyze.track_statistics import compute_track_statistics
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
         get_dataset_color,
         get_label_for_column,
@@ -65,6 +65,8 @@ def main(
     }
     columns_to_compute_grid = [*METADATA_COLUMNS_TO_KEEP["grid"], *column_names]
     columns_to_compute_tracked = [*METADATA_COLUMNS_TO_KEEP["tracked"], *column_names]
+    column_average_suffix = "_average"
+    column_variance_suffix = "_variance"
 
     kernel_names_dict = cast(dict[str | ColumnName.DiffAEData, str], KERNEL_NAMES_DYNAMICS.copy())
 
@@ -132,6 +134,14 @@ def main(
             timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
         )
         num_trajectories_grid = df_steady_state_grid[ColumnName.CROP_INDEX].nunique()
+        df_with_stats_grid = compute_track_statistics(
+            df_steady_state_grid.copy(),
+            column_names,
+            trajectory_id_col=ColumnName.CROP_INDEX,
+            polar_angle_range=bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE],
+            average_col_suffix=column_average_suffix,
+            variance_col_suffix=column_variance_suffix,
+        )
 
         df_tracked_ = load_dataframe(
             tracked_feature_dataframe_manifest.locations[dataset_name], delay=True
@@ -152,7 +162,8 @@ def main(
         # more than num_subsample trajectories
         if num_trajectories_grid < num_trajectories_tracked:
             logger.info(
-                "Dataset [ %s ] has %d grid trajectories and %d tracked trajectories. Subsampling tracked trajectories to match number of grid trajectories for comparison.",
+                "Dataset [ %s ] has %d grid trajectories and %d tracked trajectories. "
+                "Subsampling tracked trajectories to match number of grid trajectories for comparison.",
                 dataset_name,
                 num_trajectories_grid,
                 num_trajectories_tracked,
@@ -167,9 +178,18 @@ def main(
             ]
         elif num_trajectories_tracked < num_trajectories_grid:
             logger.warning(
-                "Dataset [ %s ] has more grid trajectories than tracked trajectories. Not subsampling tracked trajectories, but this may affect comparison between grid and tracked statistics.",
+                "Dataset [ %s ] has more grid trajectories than tracked trajectories. "
+                "Not subsampling tracked trajectories, but this may affect comparison between grid and tracked statistics.",
                 dataset_name,
             )
+        df_with_stats_tracked = compute_track_statistics(
+            df_steady_state_tracked.copy(),
+            column_names,
+            trajectory_id_col=ColumnName.CROP_INDEX,
+            polar_angle_range=bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE],
+            average_col_suffix=column_average_suffix,
+            variance_col_suffix=column_variance_suffix,
+        )
 
         # put together grid and tracked dataframes for easier processing, adding
         # a column to indicate crop pattern
@@ -177,42 +197,6 @@ def main(
             "grid": df_steady_state_grid,
             "tracked": df_steady_state_tracked,
         }
-
-        base_df = pd.DataFrame(columns=[ColumnName.CROP_INDEX, *column_names])
-        column_avg_df_dict: dict[str, pd.DataFrame] = {
-            "grid": base_df.copy(),
-            "tracked": base_df.copy(),
-        }
-        column_variance_df_dict: dict[str, pd.DataFrame] = {
-            "grid": base_df.copy(),
-            "tracked": base_df.copy(),
-        }
-        for crop_pattern in ["grid", "tracked"]:
-            for traj_index, df_traj in df_steady_state_dict[crop_pattern].groupby(
-                ColumnName.CROP_INDEX
-            ):
-                for column_name in column_names:
-                    if column_name == ColumnName.DiffAEData.POLAR_ANGLE:
-                        # take circular mean for polar angle to account for periodicity
-                        column_avg_df_dict[crop_pattern].loc[traj_index, column_name] = circmean(
-                            df_traj[column_name],
-                            high=bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][1],
-                            low=bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0],
-                        )
-                        column_variance_df_dict[crop_pattern].loc[traj_index, column_name] = (
-                            circvar(
-                                df_traj[column_name],
-                                high=bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][1],
-                                low=bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0],
-                            )
-                        )
-                    else:
-                        column_avg_df_dict[crop_pattern].loc[traj_index, column_name] = np.nanmean(
-                            df_traj[column_name]
-                        )
-                        column_variance_df_dict[crop_pattern].loc[traj_index, column_name] = (
-                            np.nanvar(df_traj[column_name])
-                        )
 
         # plot histograms of the column averages and variances across
         # trajectories for each column
@@ -233,9 +217,12 @@ def main(
             ):
                 # loop over axes and other associated args for plotting average
                 # and variance histograms in the same loop
+                df_with_stats = (
+                    df_with_stats_grid if crop_pattern == "grid" else df_with_stats_tracked
+                )
                 data_list = [
-                    column_avg_df_dict[crop_pattern][column_name].to_numpy(),
-                    column_variance_df_dict[crop_pattern][column_name].to_numpy(),
+                    df_with_stats[f"{column_name}{column_average_suffix}"].to_numpy(),
+                    df_with_stats[f"{column_name}{column_variance_suffix}"].to_numpy(),
                 ]
                 for (
                     ax_index,
