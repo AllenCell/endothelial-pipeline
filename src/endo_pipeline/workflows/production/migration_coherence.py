@@ -64,7 +64,7 @@ def main(
 
     # default to a single feature if none provided
     if optical_flow_features is None:
-        optical_flow_features = ["ema005_optical_flow_mean_unit_vector_dt1"]
+        optical_flow_features = ["ema01_optical_flow_mean_unit_vector_dt1"]
 
     # Load diffae features
     crop_pattern = MIGRATION_COHERENCE_CROP_PATTERN
