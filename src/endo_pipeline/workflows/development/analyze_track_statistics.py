@@ -65,10 +65,22 @@ def main(
     }
     columns_to_compute_grid = [*METADATA_COLUMNS_TO_KEEP["grid"], *column_names]
     columns_to_compute_tracked = [*METADATA_COLUMNS_TO_KEEP["tracked"], *column_names]
-    column_average_suffix = "_average"
-    column_variance_suffix = "_variance"
-
     kernel_names_dict = cast(dict[str | ColumnName.DiffAEData, str], KERNEL_NAMES_DYNAMICS.copy())
+
+    # settings for histogram plotting of trajectory statistics
+    column_average_str = "average"
+    column_variance_str = "variance"
+    bin_width_average = 0.1
+    bin_width_variance = 0.02
+    axes_base_labels = {
+        column_average_str: "$\\langle${{label}}$\\rangle$",
+        column_variance_str: "Var({{label}})",
+    }
+    # use Gaussian kernel for variance histograms regardless of variable since
+    # variance is non-periodic
+    kernel_name_for_variance = "gaussian"
+    kernel_period_for_variance = None
+    x_limits_for_variance = (-0.01, 0.8)
 
     # Get dataframe manifest for filtered crop-based features
     base_name_grid = f"{model_manifest_name}_{run_name}_grid"
@@ -121,9 +133,9 @@ def main(
         plot_label = f"{dataset_name} ({shear_stress} dyn/cm$^2$)"
         fig_savedir = get_output_path(__file__, dataset_name)
 
-        # load dataframe and perform additional filtering (remove
-        # non-steady-state timepoints based on annotations), computing
-        # only the columns needed for analysis
+        # First: get stats and histograms for grid based trajectories, which are
+        # not affected by track length filtering, to determine how many tracked
+        # trajectories to sample for comparison.
         df_grid_ = load_dataframe(
             grid_feature_dataframe_manifest.locations[dataset_name], delay=True
         )
@@ -139,10 +151,96 @@ def main(
             column_names,
             trajectory_id_col=ColumnName.CROP_INDEX,
             polar_angle_range=bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE],
-            average_col_suffix=column_average_suffix,
-            variance_col_suffix=column_variance_suffix,
+            average_col_suffix=f"_{column_average_str}",
+            variance_col_suffix=f"_{column_variance_str}",
         )
+        # get histogram of the column average using bin widths of 0.1,
+        # adjusting x-axis limits based on bin limits for the column
+        hist_dict_grid: dict[ColumnName.DiffAEData, dict[str, np.ndarray]] = {
+            column_name: {} for column_name in column_names
+        }
+        kde_dict_grid: dict[ColumnName.DiffAEData, dict[str, np.ndarray]] = {
+            column_name: {} for column_name in column_names
+        }
+        hist_points_dict: dict[ColumnName.DiffAEData, np.ndarray] = {}
+        kde_points_dict: dict[ColumnName.DiffAEData, np.ndarray] = {}
+        for column_name in column_names:
+            # init plot and plot labels for the column
+            variable_label = variable_labels_dict[column_name]
+            fig, ax = plt.subplots(1, 2, figsize=(12, 5))
 
+            # periodic kernel for polar angle average, non-periodic for variance
+            # (all variables) and average for non-polar angle variables
+            kernel_period_for_average = (
+                polar_angle_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
+            )
+
+            # loop over average and variance for the column to compute
+            # histograms and KDEs for both in the same loop
+            for stat_name, hist_bin_width, kernel_name, kernel_period, ax_index, ax_xlim in zip(
+                [column_average_str, column_variance_str],
+                [bin_width_average, bin_width_variance],
+                [kernel_names_dict[column_name], kernel_name_for_variance],
+                [kernel_period_for_average, kernel_period_for_variance],
+                [0, 1],
+                [bin_limits_dict[column_name], x_limits_for_variance],
+                strict=True,
+            ):
+                data = df_with_stats_grid[f"{column_name}_{stat_name}"].to_numpy()
+
+                bins, centers = get_bins(bin_widths=(hist_bin_width,), data=data, pad=0)
+                hist = np.histogram(data, bins=bins[0], density=True)[0]
+                kernel = KramersMoyalKernel(
+                    name=kernel_name,
+                    bandwidth=1.5 * hist_bin_width,
+                    period=kernel_period,
+                )
+                hist_kde = get_kernel_density_estimate_from_histogram(
+                    hist, bins=bins, kernel=kernel
+                )
+                # interpolate between histogram centers for smoother KDE plot
+                interp_centers = np.linspace(bins[0][0], bins[0][-1], 2000)
+                spline = make_interp_spline(centers[0], hist_kde, k=3)  # k=3 for cubic spline
+                hist_kde_smooth = spline(interp_centers)
+
+                # add histogram and KDE to dict for grid data to compare with tracked data later
+                hist_dict_grid[column_name][stat_name] = hist
+                hist_points_dict[column_name] = bins[0]
+                kde_dict_grid[column_name][stat_name] = hist_kde_smooth
+                kde_points_dict[column_name] = interp_centers
+
+                # plot histogram of the column variance with KDE overlaid
+                ax[ax_index].bar(
+                    bins[0][:-1],
+                    hist,
+                    width=np.diff(bins[0]),
+                    color=(*to_rgb(hist_color), 0.5),
+                    edgecolor=(*to_rgb("k"), 1.0),
+                    align="edge",
+                )
+                ax[ax_index].plot(
+                    interp_centers,
+                    hist_kde_smooth,
+                    color=hist_color,
+                    linewidth=1.5,
+                )
+                ax[ax_index].set_title(f"Histogram of average {variable_label} across trajectories")
+                ax[ax_index].set_xlim(ax_xlim)
+                # plot labels: dynamically replace {{label}} in label wrapper with variable label
+                label_wrapper = axes_base_labels[stat_name]
+                ax[ax_index].set_xlabel(label_wrapper.replace("{{label}}", variable_label))
+                ax[ax_index].set_ylabel(f"P({label_wrapper.replace('{{label}}', variable_label)})")
+            plt.suptitle(f"{plot_label}, tracked crops (n={num_trajectories_grid} trajectories)")
+            plt.tight_layout()
+            save_plot_to_path(
+                fig,
+                fig_savedir,
+                f"{dataset_name_flow}_{column_name}_statistics_histograms_grid",
+            )
+
+        # Next: get stats and histograms for tracked trajectories, filtering by
+        # track length and subsampling to match number of grid trajectories for
+        # comparison if specified.
         df_tracked_ = load_dataframe(
             tracked_feature_dataframe_manifest.locations[dataset_name], delay=True
         )
@@ -187,105 +285,77 @@ def main(
             column_names,
             trajectory_id_col=ColumnName.CROP_INDEX,
             polar_angle_range=bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE],
-            average_col_suffix=column_average_suffix,
-            variance_col_suffix=column_variance_suffix,
+            average_col_suffix=f"_{column_average_str}",
+            variance_col_suffix=f"_{column_variance_str}",
         )
 
-        # plot histograms of the column averages and variances across
-        # trajectories for each column
-        axes_base_label = ["$\\langle${{label}}$\\rangle$", "Var({{label}})"]
-        histogram_bin_widths = [0.1, 0.02]
+        # make histograms and KDEs for tracked data
         for column_name in column_names:
+            # init plot and plot labels for the column
             variable_label = variable_labels_dict[column_name]
             fig, ax = plt.subplots(1, 2, figsize=(12, 5))
-            period = (
+
+            # periodic kernel for polar angle average, non-periodic for variance
+            # (all variables) and average for non-polar angle variables
+            kernel_period_for_average = (
                 polar_angle_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
             )
-            # plot histograms for grid and tracked data overlaid for comparison
-            for crop_pattern, num_traj, line_style in zip(
-                ["grid", "tracked"],
-                [num_trajectories_grid, num_trajectories_tracked],
-                ["-", "--"],
+
+            # loop over average and variance for the column to compute
+            # histograms and KDEs for both in the same loop
+            for stat_name, hist_bin_width, kernel_name, kernel_period, ax_index, ax_xlim in zip(
+                [column_average_str, column_variance_str],
+                [bin_width_average, bin_width_variance],
+                [kernel_names_dict[column_name], kernel_name_for_variance],
+                [kernel_period_for_average, kernel_period_for_variance],
+                [0, 1],
+                [bin_limits_dict[column_name], x_limits_for_variance],
                 strict=True,
             ):
-                # loop over axes and other associated args for plotting average
-                # and variance histograms in the same loop
-                df_with_stats = (
-                    df_with_stats_grid if crop_pattern == "grid" else df_with_stats_tracked
+                data = df_with_stats_tracked[f"{column_name}_{stat_name}"].to_numpy()
+
+                bins, centers = get_bins(bin_widths=(hist_bin_width,), data=data, pad=0)
+                hist = np.histogram(data, bins=bins[0], density=True)[0]
+                kernel = KramersMoyalKernel(
+                    name=kernel_name,
+                    bandwidth=1.5 * hist_bin_width,
+                    period=kernel_period,
                 )
-                data_list = [
-                    df_with_stats[f"{column_name}{column_average_suffix}"].to_numpy(),
-                    df_with_stats[f"{column_name}{column_variance_suffix}"].to_numpy(),
-                ]
-                for (
-                    ax_index,
-                    data,
-                    label_wrapper,
-                    bin_width,
-                    kernel_name,
-                    kernel_period,
-                    axes_xlim,
-                ) in zip(
-                    [0, 1],
-                    data_list,
-                    axes_base_label,
-                    histogram_bin_widths,
-                    [kernel_names_dict[column_name], "gaussian"],
-                    [period, None],
-                    [bin_limits_dict[column_name], (-0.01, 0.8)],
-                    strict=True,
-                ):
-                    # get histogram of the column average using bin widths of 0.1,
-                    # adjusting x-axis limits based on bin limits for the column
-                    bins, centers = get_bins(bin_widths=(bin_width,), data=data, pad=0)
-                    hist = np.histogram(data, bins=bins[0], density=True)[0]
-                    kernel = KramersMoyalKernel(
-                        name=kernel_name,
-                        bandwidth=1.5 * bin_width,
-                        period=kernel_period,
-                    )
-                    hist_kde = get_kernel_density_estimate_from_histogram(
-                        hist, bins=bins, kernel=kernel
-                    )
-                    # interpolate between histogram centers for smoother KDE plot
-                    interp_centers = np.linspace(bins[0][0], bins[0][-1], 2000)
-                    spline = make_interp_spline(centers[0], hist_kde, k=3)  # k=3 for cubic spline
-                    hist_kde_smooth = spline(interp_centers)
+                hist_kde = get_kernel_density_estimate_from_histogram(
+                    hist, bins=bins, kernel=kernel
+                )
+                # interpolate between histogram centers for smoother KDE plot
+                interp_centers = np.linspace(bins[0][0], bins[0][-1], 2000)
+                spline = make_interp_spline(centers[0], hist_kde, k=3)  # k=3 for cubic spline
+                hist_kde_smooth = spline(interp_centers)
 
-                    # plot histogram of the column variance with KDE overlaid
-                    ax[ax_index].bar(
-                        bins[0][:-1],
-                        hist,
-                        width=np.diff(bins[0]),
-                        color=(*to_rgb(hist_color), 0.5),
-                        edgecolor=(*to_rgb("k"), 1.0),
-                        align="edge",
-                    )
-                    ax[ax_index].plot(
-                        interp_centers,
-                        hist_kde_smooth,
-                        color=hist_color,
-                        linewidth=1.5,
-                        linestyle=line_style,
-                        label=f"{crop_pattern} (n={num_traj})",
-                    )
-                    ax[ax_index].set_title(
-                        f"Histogram of average {variable_label} across trajectories"
-                    )
-                    ax[ax_index].set_xlim(axes_xlim)
-                    # plot labels: dynamically replace {{label}} in label wrapper with variable label
-                    ax[ax_index].set_xlabel(label_wrapper.replace("{{label}}", variable_label))
-                    ax[ax_index].set_ylabel(
-                        f"P({label_wrapper.replace('{{label}}', variable_label)})"
-                    )
-                    ax[ax_index].legend(loc="upper right")
-
-            plt.suptitle(f"{plot_label}, {crop_pattern} crops (n={num_traj} trajectories)")
+                # plot histogram of the column variance with KDE overlaid
+                ax[ax_index].bar(
+                    bins[0][:-1],
+                    hist,
+                    width=np.diff(bins[0]),
+                    color=(*to_rgb(hist_color), 0.5),
+                    edgecolor=(*to_rgb("k"), 1.0),
+                    align="edge",
+                )
+                ax[ax_index].plot(
+                    interp_centers,
+                    hist_kde_smooth,
+                    color=hist_color,
+                    linewidth=1.5,
+                )
+                ax[ax_index].set_title(f"Histogram of average {variable_label} across trajectories")
+                ax[ax_index].set_xlim(ax_xlim)
+                # plot labels: dynamically replace {{label}} in label wrapper with variable label
+                label_wrapper = axes_base_labels[stat_name]
+                ax[ax_index].set_xlabel(label_wrapper.replace("{{label}}", variable_label))
+                ax[ax_index].set_ylabel(f"P({label_wrapper.replace('{{label}}', variable_label)})")
+            plt.suptitle(f"{plot_label}, tracked crops (n={num_trajectories_tracked} trajectories)")
             plt.tight_layout()
             save_plot_to_path(
                 fig,
                 fig_savedir,
-                f"{dataset_name_flow}_{column_name}_statistics_histograms_{crop_pattern}",
+                f"{dataset_name_flow}_{column_name}_statistics_histograms_tracked",
             )
 
         if DEMO_MODE:
