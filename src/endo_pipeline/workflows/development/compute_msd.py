@@ -82,7 +82,7 @@ def main(
         split_dataset_by_flow,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
-        get_kernel_density_estimate,
+        get_kernel_density_estimate_from_trajectories,
         get_kramers_moyal_coeffs,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
@@ -239,7 +239,7 @@ def main(
 
                     # compute the weighted average of the msd over the bins
                     # (weighing by the probability density of points in each bin)
-                    prob_density = get_kernel_density_estimate(
+                    prob_density = get_kernel_density_estimate_from_trajectories(
                         traj_list,
                         bins=bins,
                         kernel=kernel,
