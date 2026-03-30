@@ -280,8 +280,17 @@ def main(
                 num_trajectories_grid,
                 num_trajectories_tracked,
             )
-            hist_tracked_list = []
-            kde_tracked_list = []
+            BootstrapResultsDict: TypeAlias = dict[
+                ColumnName.DiffAEData, dict[str, list[np.ndarray]]
+            ]
+            hist_tracked_list_dict: BootstrapResultsDict = {
+                col: {stat: [] for stat in [column_average_str, column_variance_str]}
+                for col in column_names
+            }
+            kde_tracked_list_dict: BootstrapResultsDict = {
+                col: {stat: [] for stat in [column_average_str, column_variance_str]}
+                for col in column_names
+            }
             logger.debug(
                 "Beginning bootstrap sampling of tracked trajectories for dataset [ %s ]",
                 dataset_name,
@@ -365,27 +374,63 @@ def main(
 
                         # add histogram and KDE to list for averaging across
                         # bootstrap samples for comparison with grid data later
-                        hist_tracked_list.append(hist)
-                        kde_tracked_list.append(hist_kde_smooth)
+                        hist_tracked_list_dict[column_name][stat_name].append(hist)
+                        kde_tracked_list_dict[column_name][stat_name].append(hist_kde_smooth)
             logger.debug(
                 "Completed bootstrap sampling of tracked trajectories for dataset [ %s ]",
                 dataset_name,
             )
             # get mean and confidence intervals across bootstrap samples for histogram and KDE
-            hist_tracked_mean = np.mean(hist_tracked_list, axis=0)
-            hist_tracked_ci_lower = np.percentile(
-                hist_tracked_list, (1 - confidence_level) / 2 * 100, axis=0
-            )
-            hist_tracked_ci_upper = np.percentile(
-                hist_tracked_list, (1 + confidence_level) / 2 * 100, axis=0
-            )
-            kde_tracked_mean = np.mean(kde_tracked_list, axis=0)
-            kde_tracked_ci_lower = np.percentile(
-                kde_tracked_list, (1 - confidence_level) / 2 * 100, axis=0
-            )
-            kde_tracked_ci_upper = np.percentile(
-                kde_tracked_list, (1 + confidence_level) / 2 * 100, axis=0
-            )
+            hist_tracked_means = {
+                col: {
+                    stat: np.mean(hist_tracked_list_dict[col][stat], axis=0)
+                    for stat in hist_tracked_list_dict[col]
+                }
+                for col in column_names
+            }
+            hist_tracked_ci_lower = {
+                col: {
+                    stat: np.percentile(
+                        hist_tracked_list_dict[col][stat], (1 - confidence_level) / 2 * 100, axis=0
+                    )
+                    for stat in hist_tracked_list_dict[col]
+                }
+                for col in column_names
+            }
+            hist_tracked_ci_upper = {
+                col: {
+                    stat: np.percentile(
+                        hist_tracked_list_dict[col][stat], (1 + confidence_level) / 2 * 100, axis=0
+                    )
+                    for stat in hist_tracked_list_dict[col]
+                }
+                for col in column_names
+            }
+            kde_tracked_means = {
+                col: {
+                    stat: np.mean(kde_tracked_list_dict[col][stat], axis=0)
+                    for stat in kde_tracked_list_dict[col]
+                }
+                for col in column_names
+            }
+            kde_tracked_ci_lower = {
+                col: {
+                    stat: np.percentile(
+                        kde_tracked_list_dict[col][stat], (1 - confidence_level) / 2 * 100, axis=0
+                    )
+                    for stat in kde_tracked_list_dict[col]
+                }
+                for col in column_names
+            }
+            kde_tracked_ci_upper = {
+                col: {
+                    stat: np.percentile(
+                        kde_tracked_list_dict[col][stat], (1 + confidence_level) / 2 * 100, axis=0
+                    )
+                    for stat in kde_tracked_list_dict[col]
+                }
+                for col in column_names
+            }
             for column_name in column_names:
                 # init plot and plot labels for the column
                 variable_label = variable_labels_dict[column_name]
@@ -414,15 +459,18 @@ def main(
                     # plot histogram of the column variance with KDE overlaid
                     plot_histogram_and_kde_with_confidence_interval(
                         ax[ax_index],
-                        histogram=hist_tracked_mean,
+                        histogram=hist_tracked_means[column_name][stat_name],
                         histogram_bins=histogram_bins,
                         histogram_confidence_interval=(
-                            hist_tracked_ci_lower,
-                            hist_tracked_ci_upper,
+                            hist_tracked_ci_lower[column_name][stat_name],
+                            hist_tracked_ci_upper[column_name][stat_name],
                         ),
-                        histogram_kde=kde_tracked_mean,
+                        histogram_kde=kde_tracked_means[column_name][stat_name],
                         kde_points=kde_points,
-                        kde_confidence_interval=(kde_tracked_ci_lower, kde_tracked_ci_upper),
+                        kde_confidence_interval=(
+                            kde_tracked_ci_lower[column_name][stat_name],
+                            kde_tracked_ci_upper[column_name][stat_name],
+                        ),
                         histogram_color=hist_color,
                     )
                     ax[ax_index].set_title(
