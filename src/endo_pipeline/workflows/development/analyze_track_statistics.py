@@ -218,7 +218,7 @@ def main(
                 kde_points_dict[column_name][stat_name] = interp_centers
 
                 # plot histogram of the column variance with KDE overlaid
-                ax[ax_index] = plot_histogram_with_kde(
+                plot_histogram_with_kde(
                     ax[ax_index],
                     histogram=hist,
                     histogram_bins=bins[0],
@@ -400,7 +400,7 @@ def main(
                     kde_points = kde_points_dict[column_name][stat_name]
 
                     # plot histogram of the column variance with KDE overlaid
-                    ax[ax_index] = plot_histogram_and_kde_with_confidence_interval(
+                    plot_histogram_and_kde_with_confidence_interval(
                         ax[ax_index],
                         histogram=hist_tracked_mean,
                         histogram_bins=histogram_bins,

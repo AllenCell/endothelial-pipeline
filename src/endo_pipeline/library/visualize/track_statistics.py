@@ -64,8 +64,6 @@ def plot_histogram_with_kde(
         linestyle=kde_linestyle,
     )
 
-    return ax
-
 
 def plot_histogram_and_kde_with_confidence_interval(
     ax: plt.Axes,
@@ -123,7 +121,7 @@ def plot_histogram_and_kde_with_confidence_interval(
         Alpha (transparency) for confidence interval shading on KDE plot.
     """
     # plot histogram and kde as usual
-    ax = plot_histogram_with_kde(
+    plot_histogram_with_kde(
         ax,
         histogram=histogram,
         histogram_bins=histogram_bins,
@@ -171,5 +169,3 @@ def plot_histogram_and_kde_with_confidence_interval(
         color=kde_color,
         alpha=kde_confidence_interval_alpha,
     )
-
-    return ax
