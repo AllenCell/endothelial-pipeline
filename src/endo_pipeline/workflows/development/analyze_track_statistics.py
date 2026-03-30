@@ -197,6 +197,7 @@ def main(
 
                 bins, centers = get_bins(bin_widths=(hist_bin_width,), data=data, pad=0)
                 hist = np.histogram(data, bins=bins[0], density=True)[0]
+                hist = np.nan_to_num(hist)
                 kernel = KramersMoyalKernel(
                     name=kernel_name,
                     bandwidth=1.5 * hist_bin_width,
@@ -205,6 +206,7 @@ def main(
                 hist_kde = get_kernel_density_estimate_from_histogram(
                     hist, bins=bins, kernel=kernel
                 )
+                hist_kde = np.nan_to_num(hist_kde)
                 # interpolate between histogram centers for smoother KDE plot
                 interp_centers = np.linspace(bins[0][0], bins[0][-1], 2000)
                 spline = make_interp_spline(centers[0], hist_kde, k=3)  # k=3 for cubic spline
@@ -213,6 +215,7 @@ def main(
                 # add histogram and KDE to dict for grid data to compare with tracked data later
                 hist_dict_grid[column_name][stat_name] = hist
                 hist_bins_dict[column_name][stat_name] = bins[0]
+                hist_centers_dict[column_name][stat_name] = centers[0]
                 kde_dict_grid[column_name][stat_name] = hist_kde_smooth
                 kde_points_dict[column_name][stat_name] = interp_centers
 
@@ -336,6 +339,7 @@ def main(
                         bins = hist_bins_dict[column_name][stat_name]
                         centers = hist_centers_dict[column_name][stat_name]
                         hist = np.histogram(data, bins=bins, density=True)[0]
+                        hist = np.nan_to_num(hist)
                         kernel = KramersMoyalKernel(
                             name=kernel_name,
                             bandwidth=1.5 * hist_bin_width,
@@ -344,6 +348,7 @@ def main(
                         hist_kde = get_kernel_density_estimate_from_histogram(
                             hist, bins=[bins], kernel=kernel
                         )
+                        hist_kde = np.nan_to_num(hist_kde)
                         # interpolate between histogram centers for smoother KDE plot
                         kde_points = kde_points_dict[column_name][stat_name]
                         spline = make_interp_spline(centers, hist_kde, k=3)
