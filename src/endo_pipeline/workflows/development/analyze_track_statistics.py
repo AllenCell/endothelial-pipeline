@@ -225,12 +225,10 @@ def main(
                 polar_angle_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
             )
             # plot histograms for grid and tracked data overlaid for comparison
-            for crop_pattern, num_traj, line_style in zip(
-                ["grid", "tracked"],
-                [num_trajectories_grid, num_trajectories_tracked],
-                ["-", "--"],
-                strict=True,
-            ):
+            for crop_pattern, num_traj, line_style in [
+                ("grid", num_trajectories_grid, "-"),
+                ("tracked", num_trajectories_tracked, "--"),
+            ]:
                 # loop over axes and other associated args for plotting average
                 # and variance histograms in the same loop
                 data_list = [
