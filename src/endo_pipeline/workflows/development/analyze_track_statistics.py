@@ -431,7 +431,8 @@ def main(
             for column_name in column_names:
                 # init plot and plot labels for the column
                 variable_label = variable_labels_dict[column_name]
-                fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+                fig1, ax1 = plt.subplots(1, 2, figsize=(12, 5))
+                fig2, ax2 = plt.subplots(1, 2, figsize=(12, 5))
 
                 # periodic kernel for polar angle average, non-periodic for variance
                 # (all variables) and average for non-polar angle variables
@@ -455,7 +456,7 @@ def main(
 
                     # plot histogram of the column variance with KDE overlaid
                     plot_histogram_and_kde_with_confidence_interval(
-                        ax[ax_index],
+                        ax1[ax_index],
                         histogram=hist_tracked_means[column_name][stat_name],
                         histogram_bins=histogram_bins,
                         histogram_confidence_interval=(
@@ -470,67 +471,72 @@ def main(
                         ),
                         histogram_color=hist_color,
                     )
-                    ax[ax_index].set_title(
+                    ax1[ax_index].set_title(
                         f"Histogram of {stat_name} {variable_label} across trajectories"
                     )
-                    ax[ax_index].set_xlim(ax_xlim)
+                    ax1[ax_index].set_xlim(ax_xlim)
                     # plot labels: dynamically replace {{label}} in label wrapper with variable label
                     label_wrapper = axes_base_labels[stat_name]
-                    ax[ax_index].set_xlabel(label_wrapper.replace("{{label}}", variable_label))
-                    ax[ax_index].set_ylabel(
+                    ax1[ax_index].set_xlabel(label_wrapper.replace("{{label}}", variable_label))
+                    ax1[ax_index].set_ylabel(
                         f"P({label_wrapper.replace('{{label}}', variable_label)})"
                     )
-                plt.suptitle(
+
+                    # finally, plot grid and tracked KDEs on the same plot for
+                    # direct comparison
+                    ax2[ax_index].plot(
+                        kde_points_dict[column_name][stat_name],
+                        kde_dict_grid[column_name][stat_name],
+                        color=hist_color,
+                        linewidth=1.5,
+                        linestyle="-",
+                        label="grid",
+                    )
+                    ax2[ax_index].plot(
+                        kde_points,
+                        kde_tracked_means[column_name][stat_name],
+                        color="k",
+                        linewidth=1.5,
+                        linestyle="--",
+                        label="tracked",
+                    )
+                    ax2[ax_index].fill_between(
+                        kde_points,
+                        kde_tracked_ci_lower[column_name][stat_name],
+                        kde_tracked_ci_upper[column_name][stat_name],
+                        color="k",
+                        alpha=0.3,
+                        label=f"{int(confidence_level * 100)}% CI (tracked)",
+                    )
+                    ax2[ax_index].set_title(
+                        f"KDE of {stat_name} {variable_label} across trajectories"
+                    )
+                    ax2[ax_index].set_xlim(ax_xlim)
+                    ax2[ax_index].set_xlabel(label_wrapper.replace("{{label}}", variable_label))
+                    ax2[ax_index].set_ylabel(
+                        f"P({label_wrapper.replace('{{label}}', variable_label)})"
+                    )
+                    ax2[ax_index].legend()
+
+                fig1.suptitle(
                     f"{plot_label}, tracked crops (subsampled {num_bootstrap} times to n={num_trajectories_grid} trajectories)"
                 )
-                plt.tight_layout()
+                fig1.tight_layout()
                 save_plot_to_path(
-                    fig,
+                    fig1,
                     fig_savedir,
                     f"{dataset_name_flow}_{column_name}_statistics_histograms_tracked",
                 )
-                plt.close(fig)
+                plt.close(fig1)
 
-                # finally, plot grid and tracked KDEs on the same plot for
-                # direct comparison
-                fig, ax = plt.subplots(figsize=(6, 5))
-                ax.plot(
-                    kde_points_dict[column_name][stat_name],
-                    kde_dict_grid[column_name][stat_name],
-                    color=hist_color,
-                    linewidth=1.5,
-                    linestyle="-",
-                    label="grid",
-                )
-                ax.plot(
-                    kde_points,
-                    kde_tracked_means[column_name][stat_name],
-                    color="k",
-                    linewidth=1.5,
-                    linestyle="--",
-                    label="tracked",
-                )
-                ax.fill_between(
-                    kde_points,
-                    kde_tracked_ci_lower[column_name][stat_name],
-                    kde_tracked_ci_upper[column_name][stat_name],
-                    color="k",
-                    alpha=0.3,
-                    label=f"{int(confidence_level * 100)}% CI (tracked)",
-                )
-                ax.set_title(f"KDE of {stat_name} {variable_label} across trajectories")
-                ax.set_xlim(ax_xlim)
-                ax.set_xlabel(label_wrapper.replace("{{label}}", variable_label))
-                ax.set_ylabel(f"P({label_wrapper.replace('{{label}}', variable_label)})")
-                ax.legend()
-                plt.suptitle(f"{plot_label}, grid vs tracked comparison")
-                plt.tight_layout()
+                fig2.suptitle(f"{plot_label}, grid vs tracked comparison")
+                fig2.tight_layout()
                 save_plot_to_path(
-                    fig,
+                    fig2,
                     fig_savedir,
                     f"{dataset_name_flow}_{column_name}_statistics_kde_comparison",
                 )
-                plt.close(fig)
+                plt.close(fig2)
 
         if DEMO_MODE:
             logger.warning(
