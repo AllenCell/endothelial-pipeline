@@ -56,6 +56,7 @@ def main(
         METADATA_COLUMNS_TO_KEEP,
         RESCALE_THETA,
     )
+    from endo_pipeline.settings.track_statistics import NUM_TRACK_BOOTSTRAP_SAMPLES_DEMO_MODE
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -296,7 +297,7 @@ def main(
                 dataset_name,
             )
             if DEMO_MODE:
-                num_bootstrap = 10
+                num_bootstrap = NUM_TRACK_BOOTSTRAP_SAMPLES_DEMO_MODE
                 logger.warning(
                     "DEMO MODE: reducing number of bootstrap samples to %d for quick testing.",
                     num_bootstrap,

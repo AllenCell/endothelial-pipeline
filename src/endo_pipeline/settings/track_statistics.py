@@ -21,6 +21,14 @@ subsampling-based statistics of tracked-crop features to compare with
 grid-based features.
 """
 
+NUM_TRACK_BOOTSTRAP_SAMPLES_DEMO_MODE: int = 100
+"""
+Number of bootstrap samples to use when estimating confidence intervals for
+subsampling-based statistics of tracked-crop features to compare with grid-based
+features in demo mode (e.g., for faster execution during testing or
+development).
+"""
+
 TRACK_BOOTSRAP_CONFIDENCE_LEVEL: float = 0.95
 """
 Confidence level to use when estimating confidence intervals for
