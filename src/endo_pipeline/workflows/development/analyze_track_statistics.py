@@ -241,7 +241,7 @@ def main(
             save_plot_to_path(
                 fig,
                 fig_savedir,
-                f"{dataset_name_flow}_{column_name}_{stat_name}_histograms_grid",
+                f"{dataset_name_flow}_{column_name}_statistics_histograms_grid",
             )
             plt.close(fig)
 
@@ -322,10 +322,6 @@ def main(
                 # compute histogram and KDE for each bootstrap sample and
                 # average across samples for comparison with grid data
                 for column_name in column_names:
-                    # init plot and plot labels for the column
-                    variable_label = variable_labels_dict[column_name]
-                    fig, ax = plt.subplots(1, 2, figsize=(12, 5))
-
                     # periodic kernel for polar angle average, non-periodic for variance
                     # (all variables) and average for non-polar angle variables
                     kernel_period_for_average = (
@@ -484,7 +480,7 @@ def main(
                         f"P({label_wrapper.replace('{{label}}', variable_label)})"
                     )
                 plt.suptitle(
-                    f"{plot_label}, tracked crops (n={num_trajectories_grid} trajectories subsampled {num_bootstrap} times)"
+                    f"{plot_label}, tracked crops (subsampled {num_bootstrap} times to n={num_trajectories_grid} trajectories)"
                 )
                 plt.tight_layout()
                 save_plot_to_path(
