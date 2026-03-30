@@ -238,7 +238,8 @@ def main(
                     kernel_bandwidth=1.5 * bin_width_averages,
                     kernel_period=period,
                     hist_color=hist_color,
-                    line_style=line_style,
+                    kde_line_style=line_style,
+                    kde_label=crop_pattern,
                     axes_title=axes_title,
                     axes_xlabel=axes_xlabel,
                     axes_ylabel=axes_ylabel,
@@ -257,20 +258,21 @@ def main(
                     kernel_bandwidth=1.5 * bin_width_variances,
                     kernel_period=None,
                     hist_color=hist_color,
-                    line_style=line_style,
+                    kde_line_style=line_style,
+                    kde_label=crop_pattern,
                     axes_title=axes_title,
                     axes_xlabel=axes_xlabel,
                     axes_ylabel=axes_ylabel,
                     axes_xlimits=(-0.01, 0.8),
                 )
 
-                plt.suptitle(f"{plot_label}, {crop_pattern} crops (n={num_traj} trajectories)")
-                plt.tight_layout()
-                save_plot_to_path(
-                    fig,
-                    fig_savedir,
-                    f"{dataset_name_flow}_{column_name}_statistics_histograms_{crop_pattern}",
-                )
+            plt.suptitle(f"{plot_label}, grid vs. tracked crops (n={num_traj} trajectories)")
+            plt.tight_layout()
+            save_plot_to_path(
+                fig,
+                fig_savedir,
+                f"{dataset_name_flow}_{column_name}_statistics_histograms",
+            )
 
         if DEMO_MODE:
             logger.warning(

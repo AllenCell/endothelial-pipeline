@@ -18,7 +18,10 @@ def plot_histogram_and_kde(
     kernel_bandwidth: float,
     kernel_period: float | None,
     hist_color: str = "blue",
-    line_style: str = "-",
+    hist_alpha: float = 0.5,
+    kde_line_style: str = "-",
+    kde_color: str = "k",
+    kde_label: str | None = None,
     pad_bins: float = 0.0,
     axes_title: str | None = None,
     axes_xlimits: tuple[float, float] | None = None,
@@ -45,16 +48,17 @@ def plot_histogram_and_kde(
         bins[0][:-1],
         hist,
         width=np.diff(bins[0]),
-        color=(*to_rgb(hist_color), 0.5),
+        color=(*to_rgb(hist_color), hist_alpha),
         edgecolor=(*to_rgb("k"), 1.0),
         align="edge",
     )
     axes.plot(
         interp_centers,
         hist_kde_smooth,
-        color=hist_color,
+        color=kde_color,
         linewidth=1.5,
-        linestyle=line_style,
+        linestyle=kde_line_style,
+        label=kde_label,
     )
     if axes_title is not None:
         axes.set_title(axes_title)
@@ -64,3 +68,5 @@ def plot_histogram_and_kde(
         axes.set_xlabel(axes_xlabel)
     if axes_ylabel is not None:
         axes.set_ylabel(axes_ylabel)
+    if kde_label is not None:
+        axes.legend(loc="upper right")
