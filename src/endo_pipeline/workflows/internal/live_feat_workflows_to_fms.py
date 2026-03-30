@@ -17,6 +17,7 @@ def main(
         "nuclei_labelfree",
         "merged_live_data_manifests",
         "merge_pc_diffae_seg_features",
+        "merge_pc_diffae_seg_features_filtered",
         "nuclei_stain",
         "merged_fixed_data_manifests",
     ],
@@ -46,6 +47,10 @@ def main(
     - "merge_pc_diffae_seg_features"
         - merged PCA-reduced DiffAE features and live segmentation features found in
         `manifests/dataframes/pc_diffae_tracked_seg_features.yaml` produced by the workflow
+        `merge_pc_diffae_seg_features.py`
+    - "merge_pc_diffae_seg_features_filtered"
+        - merged and filtered PCA-reduced DiffAE features and live segmentation features found in
+        `manifests/dataframes/pc_diffae_tracked_seg_features_filtered.yaml` produced by the workflow
         `merge_pc_diffae_seg_features.py`
     - "nuclei_stain"
         - nuclei stain measured features table found in
@@ -100,6 +105,7 @@ def main(
         "nuclei_labelfree": fms_upload_nuc_get_measured_features,
         "merged_live_data_manifests": fms_upload_make_seg_feats_manifest,
         "merge_pc_diffae_seg_features": fms_upload_merge_pc_diffae_seg_features,
+        "merge_pc_diffae_seg_features_filtered": fms_upload_merge_pc_diffae_seg_features,
         "nuclei_stain": fms_upload_nuc_get_measured_features,
         "merged_fixed_data_manifests": fms_upload_make_seg_feats_manifest,
     }
@@ -131,6 +137,10 @@ def main(
         "merge_pc_diffae_seg_features": {
             "subdir": "pc_diffae_seg_features",
             "suffix": "_pc_diffae_seg_feats_merged.parquet",
+        },
+        "merge_pc_diffae_seg_features_filtered": {
+            "subdir": "pc_diffae_seg_features",
+            "suffix": "_pc_diffae_seg_feats_merged_filtered.parquet",
         },
         "nuclei_stain": {
             "subdir": "nuc_stain_get_measured_features",

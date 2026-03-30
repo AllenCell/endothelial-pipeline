@@ -14,8 +14,10 @@ from endo_pipeline.manifests import (
 )
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     FIXED_SEG_FEATURE_MANIFEST_NAME,
+    Column,
 )
 
 logger = logging.getLogger(__name__)
@@ -169,10 +171,16 @@ def fms_upload_merge_pc_diffae_seg_features(
     # info along with the FMS upload here.
     dataset_config = load_dataset_config(dataset_name)
     # Get the DiffAE model annotations
-    df = dd.read_parquet(path_to_file)
-    model_manifest_name = sequence_to_scalar(df["model_manifest_name"].compute().dropna())
-    run_name = sequence_to_scalar(df["run_name"].compute().dropna())
-    model_manifest = load_model_manifest(model_manifest_name)
+    if "_pc_diffae_seg_feats_merged_filtered" in path_to_file.name:
+        run_name = None
+        model_manifest = None
+    else:
+        df = dd.read_parquet(path_to_file)
+        model_manifest_name = sequence_to_scalar(
+            df[Column.DiffAEData.MODEL_MANIFEST].compute().dropna()
+        )
+        run_name = sequence_to_scalar(df[Column.DiffAEData.MODEL_RUN].compute().dropna())
+        model_manifest = load_model_manifest(model_manifest_name)
     # Prepare the annotations for FMS upload
     annotations = build_fms_annotations(
         dataset_config,
@@ -185,8 +193,11 @@ def fms_upload_merge_pc_diffae_seg_features(
     )
 
     # Store FMS ID in dataframe manifest
-    manifest_name = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
-    workflow_name = "live_feat_workflows_to_fms"
+    if "_pc_diffae_seg_feats_merged_filtered" in path_to_file.name:
+        manifest_name = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
+    else:
+        manifest_name = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
+    workflow_name = "merge_pc_diffae_seg_features"
     manifest = create_dataframe_manifest(manifest_name, workflow_name)
     manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
     save_dataframe_manifest(manifest)

@@ -61,7 +61,6 @@ def main(
                 dataset_name=dataset_name,
                 merged_feats_df=df_all_positions,
                 diffae_grid_crops=diffae_grid_crops,
-                bounds=bounds,
                 trajectory_dir=out_subdir_traj,
             )
         )
