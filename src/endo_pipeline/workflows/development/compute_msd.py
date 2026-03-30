@@ -1,5 +1,5 @@
 from endo_pipeline.cli import CropPattern, Datasets
-from endo_pipeline.settings.dynamics_workflows import LONG_TRACK_THRESHOLD_LENGTH, MAX_MSD_LAG
+from endo_pipeline.settings.track_statistics import LONG_TRACK_THRESHOLD_LENGTH, MAX_MSD_LAG
 
 
 def main(
@@ -102,9 +102,9 @@ def main(
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
         METADATA_COLUMNS_TO_KEEP,
-        MSD_Y_AXIS_LIMITS,
         RESCALE_THETA,
     )
+    from endo_pipeline.settings.track_statistics import MSD_Y_AXIS_LIMITS
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,

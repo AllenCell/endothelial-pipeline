@@ -1,5 +1,5 @@
 from endo_pipeline.cli import Datasets
-from endo_pipeline.settings.dynamics_workflows import LONG_TRACK_THRESHOLD_LENGTH
+from endo_pipeline.settings.track_statistics import LONG_TRACK_THRESHOLD_LENGTH
 
 
 def main(

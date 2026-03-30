@@ -83,17 +83,3 @@ coefficients."""
 
 HISTOGRAM_THRESHOLD_FOR_MASKING: float = 0.05
 """Histogram threshold for masking in dynamics visualization workflows."""
-
-MAX_MSD_LAG: int = 24
-"""Maximum time lag (in number of frames) to consider for mean squared
-displacement calculation."""
-
-MSD_Y_AXIS_LIMITS: tuple[float, float] = (2e-3, 1e0)
-"""Axes limits for mean squared displacement plots."""
-
-LONG_TRACK_THRESHOLD_LENGTH: int = 150
-"""
-Minimum track length (in number of timepoints) to include in analyses of
-long-timescale statistics (e.g., mean squared displacement) in dynamics
-workflows.
-"""

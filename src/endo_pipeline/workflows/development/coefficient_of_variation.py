@@ -3,7 +3,7 @@ from typing import Annotated
 from cyclopts import Parameter
 
 from endo_pipeline.cli import CropPattern, Datasets, StrList
-from endo_pipeline.settings.dynamics_workflows import LONG_TRACK_THRESHOLD_LENGTH
+from endo_pipeline.settings.track_statistics import LONG_TRACK_THRESHOLD_LENGTH
 
 
 def main(
