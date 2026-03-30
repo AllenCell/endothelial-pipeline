@@ -241,6 +241,7 @@ def main(
                 fig_savedir,
                 f"{dataset_name_flow}_{column_name}_statistics_histograms_grid",
             )
+            plt.close(fig)
 
         # Next: get stats and histograms for tracked trajectories, filtering by
         # track length and subsampling to match number of grid trajectories for
@@ -435,6 +436,7 @@ def main(
                     fig_savedir,
                     f"{dataset_name_flow}_{column_name}_statistics_histograms_tracked",
                 )
+                plt.close(fig)
 
         if DEMO_MODE:
             logger.warning(
