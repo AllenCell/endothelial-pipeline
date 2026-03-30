@@ -1,3 +1,5 @@
+from typing import Literal
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import to_rgb
@@ -14,7 +16,7 @@ def plot_histogram_and_kde(
     axes: plt.Axes,
     data: np.ndarray,
     bin_width: float,
-    kernel_name: str,
+    kernel_name: Literal["gaussian", "epanechnikov", "periodic"],
     kernel_bandwidth: float,
     kernel_period: float | None,
     hist_color: str = "blue",
