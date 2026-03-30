@@ -529,7 +529,9 @@ def main(
                 )
                 plt.close(fig1)
 
-                fig2.suptitle(f"{plot_label}, grid vs tracked comparison")
+                fig2.suptitle(
+                    f"{plot_label}, grid vs tracked (tracked crops subsampled {num_bootstrap} times to n={num_trajectories_grid} trajectories)"
+                )
                 fig2.tight_layout()
                 save_plot_to_path(
                     fig2,
