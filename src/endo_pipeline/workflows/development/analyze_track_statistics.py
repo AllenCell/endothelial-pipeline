@@ -12,7 +12,6 @@ def main(
     import matplotlib.pyplot as plt
     import numpy as np
     import pandas as pd
-    from matplotlib.colors import to_rgb
     from scipy.interpolate import make_interp_spline
 
     from endo_pipeline.cli import DEMO_MODE
@@ -36,6 +35,7 @@ def main(
         get_dataset_color,
         get_label_for_column,
     )
+    from endo_pipeline.library.visualize.track_statistics import plot_histogram_with_kde
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
@@ -210,19 +210,13 @@ def main(
                 kde_points_dict[column_name] = interp_centers
 
                 # plot histogram of the column variance with KDE overlaid
-                ax[ax_index].bar(
-                    bins[0][:-1],
-                    hist,
-                    width=np.diff(bins[0]),
-                    color=(*to_rgb(hist_color), 0.5),
-                    edgecolor=(*to_rgb("k"), 1.0),
-                    align="edge",
-                )
-                ax[ax_index].plot(
-                    interp_centers,
-                    hist_kde_smooth,
-                    color=hist_color,
-                    linewidth=1.5,
+                ax[ax_index] = plot_histogram_with_kde(
+                    ax[ax_index],
+                    histogram=hist,
+                    histogram_bins=bins[0],
+                    histogram_kde=hist_kde_smooth,
+                    kde_points=interp_centers,
+                    histogram_color=hist_color,
                 )
                 ax[ax_index].set_title(f"Histogram of average {variable_label} across trajectories")
                 ax[ax_index].set_xlim(ax_xlim)
@@ -330,19 +324,13 @@ def main(
                 hist_kde_smooth = spline(interp_centers)
 
                 # plot histogram of the column variance with KDE overlaid
-                ax[ax_index].bar(
-                    bins[0][:-1],
-                    hist,
-                    width=np.diff(bins[0]),
-                    color=(*to_rgb(hist_color), 0.5),
-                    edgecolor=(*to_rgb("k"), 1.0),
-                    align="edge",
-                )
-                ax[ax_index].plot(
-                    interp_centers,
-                    hist_kde_smooth,
-                    color=hist_color,
-                    linewidth=1.5,
+                ax[ax_index] = plot_histogram_with_kde(
+                    ax[ax_index],
+                    histogram=hist,
+                    histogram_bins=bins[0],
+                    histogram_kde=hist_kde_smooth,
+                    kde_points=interp_centers,
+                    histogram_color=hist_color,
                 )
                 ax[ax_index].set_title(f"Histogram of average {variable_label} across trajectories")
                 ax[ax_index].set_xlim(ax_xlim)
