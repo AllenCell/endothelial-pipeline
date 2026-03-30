@@ -549,11 +549,11 @@ def get_traj_and_flowfield(
     # shear stress conditions
     init = np.array(INIT_POINT_3D)
 
-    bins, centers = get_bins(BIN_WIDTH_DEFAULTS)
-
     # get the columns to use for calculating trajectories
     # and flow fields.
     cols = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
+
+    bins, centers = get_bins(BIN_WIDTH_DEFAULTS, data=df[cols].to_numpy())
 
     # get list of per-crop trajectories and the corresponding
     # single-timepoint displacement vectors

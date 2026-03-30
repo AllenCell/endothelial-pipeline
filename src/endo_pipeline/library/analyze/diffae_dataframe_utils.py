@@ -1007,7 +1007,6 @@ def parse_dataset_description(dataset_description: str) -> str:
     return description_parsed
 
 
-# NOTE Is this function deprecated? It looks like it might be.
 def add_description_column(
     df: pd.DataFrame, dataset_name: str, simple: bool = False
 ) -> pd.DataFrame:
