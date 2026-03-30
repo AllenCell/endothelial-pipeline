@@ -140,8 +140,8 @@ def plot_histogram_and_kde_with_confidence_interval(
     histogram_bin_centers = (histogram_bins[:-1] + histogram_bins[1:]) / 2
     histogram_error = np.array(
         [
-            histogram_confidence_interval[1] - histogram,
             histogram - histogram_confidence_interval[0],
+            histogram_confidence_interval[1] - histogram,
         ]
     )
     ax.errorbar(
