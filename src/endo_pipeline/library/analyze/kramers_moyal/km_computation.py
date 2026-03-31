@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Callable
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import numpy as np
 from scipy.signal import convolve
@@ -489,3 +490,395 @@ def get_kernel_density_estimate_from_trajectories(
     prob_kde = get_kernel_density_estimate_from_histogram(hist, bins, kernel)
 
     return prob_kde
+
+
+def _get_bin_indices(points: np.ndarray, bins: list[np.ndarray]) -> np.ndarray | None:
+    """
+    Map an array of points to their bin indices using the provided bin edges.
+
+    Parameters
+    ----------
+    points
+        Array of shape ``(n_points, ndim)`` containing the coordinates of the
+        points to look up.
+    bins
+        List of monotonically increasing bin-edge arrays for each dimension,
+        matching the convention used throughout this module (i.e., N bins are
+        defined by N+1 edges).
+
+    Returns
+    -------
+    :
+        Integer array of shape ``(n_valid_points, ndim)`` containing the
+        0-indexed bin index for each in-range point, or ``None`` if no points
+        fall within the bin range.
+    """
+    if points.ndim == 1:
+        points = points.reshape(-1, 1)
+
+    ndim = points.shape[1]
+    n_points = points.shape[0]
+    bin_indices = np.zeros((n_points, ndim), dtype=int)
+    in_range = np.ones(n_points, dtype=bool)
+
+    for d in range(ndim):
+        edges = bins[d]
+        coords = points[:, d]
+
+        # np.digitize returns 1-indexed positions; values below edges[0] get
+        # index 0, values >= edges[-1] get index len(edges).
+        idx = np.digitize(coords, edges) - 1  # convert to 0-indexed
+
+        # Valid bin indices are 0 .. len(edges)-2 (N bins for N+1 edges)
+        out_of_range = (idx < 0) | (idx >= len(edges) - 1)
+        in_range &= ~out_of_range
+        bin_indices[:, d] = np.clip(idx, 0, len(edges) - 2)
+
+    if in_range.sum() == 0:
+        return None
+
+    return bin_indices[in_range]
+
+
+def _score_fold(
+    k_idx: int,
+    kernel: KramersMoyalKernel | list[KramersMoyalKernel],
+    fold: np.ndarray,
+    shuffled_indices: np.ndarray,
+    trajectories: list[np.ndarray],
+    bins: list[np.ndarray],
+    displacements: list[np.ndarray] | None,
+    dt: float | None,
+) -> tuple[int, float]:
+    """
+    Score a single (kernel candidate, fold) pair.
+
+    This is a module-level function so it can be pickled by
+    :class:`concurrent.futures.ProcessPoolExecutor`.
+
+    Returns
+    -------
+    k_idx :
+        Index of the kernel candidate (passed through for result aggregation).
+    log_lik :
+        Mean log-likelihood of held-out observations under the model fitted on
+        the training split, or ``-inf`` if the fold could not be scored.
+    """
+    km_mode = displacements is not None
+    train_indices = np.setdiff1d(shuffled_indices, fold)
+    if len(train_indices) == 0:
+        return k_idx, -np.inf
+
+    train_trajectories = [trajectories[i] for i in train_indices]
+
+    if km_mode:
+        assert displacements is not None and dt is not None  # type narrowing
+        train_displacements = [displacements[i] for i in train_indices]
+
+        drift, diffusion = get_kramers_moyal_coeffs(
+            train_trajectories, train_displacements, bins, dt, kernel
+        )
+
+        held_out_positions = np.concatenate(
+            [
+                (
+                    trajectories[i][:-1]
+                    if trajectories[i].ndim > 1
+                    else trajectories[i][:-1].reshape(-1, 1)
+                )
+                for i in fold
+            ],
+            axis=0,
+        )
+        held_out_displacements = np.concatenate(
+            [
+                (displacements[i] if displacements[i].ndim > 1 else displacements[i].reshape(-1, 1))
+                for i in fold
+            ],
+            axis=0,
+        )
+
+        valid_bin_indices = _get_bin_indices(held_out_positions, bins)
+        if valid_bin_indices is None:
+            return k_idx, -np.inf
+
+        ndim = len(bins)
+        idx_tuple = tuple(valid_bin_indices[:, d] for d in range(ndim))
+
+        if ndim == 1:
+            f_vals = drift[idx_tuple[0], np.newaxis]  # (n_valid, 1)
+            D_vals = diffusion[idx_tuple[0], np.newaxis]
+        else:
+            f_vals = drift[idx_tuple]  # (n_valid, ndim)
+            D_vals = diffusion[idx_tuple]
+
+        dx_vals = held_out_displacements[
+            np.all(
+                (held_out_positions >= np.array([b[0] for b in bins]))
+                & (held_out_positions < np.array([b[-1] for b in bins])),
+                axis=1,
+            )
+        ]
+
+        valid_mask = ~(np.isnan(f_vals).any(axis=1) | np.isnan(D_vals).any(axis=1))
+        valid_mask &= (D_vals > 0).all(axis=1)
+
+        if not valid_mask.any():
+            return k_idx, -np.inf
+
+        f_v = f_vals[valid_mask]
+        D_v = D_vals[valid_mask]
+        dx_v = dx_vals[valid_mask]
+
+        log_liks_per_dim = -0.5 * np.log(4.0 * np.pi * D_v * dt) - (dx_v - f_v * dt) ** 2 / (
+            4.0 * D_v * dt
+        )
+        return k_idx, float(np.mean(log_liks_per_dim.sum(axis=1)))
+
+    else:
+        kde = get_kernel_density_estimate_from_trajectories(train_trajectories, bins, kernel)
+
+        held_out_points = np.concatenate(
+            [
+                (trajectories[i] if trajectories[i].ndim > 1 else trajectories[i].reshape(-1, 1))
+                for i in fold
+            ],
+            axis=0,
+        )
+
+        valid_bin_indices = _get_bin_indices(held_out_points, bins)
+        if valid_bin_indices is None:
+            return k_idx, -np.inf
+
+        kde_vals = kde[tuple(valid_bin_indices[:, d] for d in range(valid_bin_indices.shape[1]))]
+
+        positive = kde_vals > 0
+        if not positive.any():
+            return k_idx, -np.inf
+        return k_idx, float(np.mean(np.log(kde_vals[positive])))
+
+
+def select_bandwidth_cross_validation(
+    trajectories: list[np.ndarray],
+    bins: list[np.ndarray],
+    kernel_candidates: list[KramersMoyalKernel | list[KramersMoyalKernel]],
+    n_splits: int = 5,
+    random_state: int | None = None,
+    displacements: list[np.ndarray] | None = None,
+    dt: float | None = None,
+    n_jobs: int = 1,
+) -> tuple[KramersMoyalKernel | list[KramersMoyalKernel], np.ndarray]:
+    r"""
+    Select the kernel specification by k-fold cross-validation.
+
+    Trajectories are divided into ``n_splits`` folds at the trajectory level.
+    For each candidate kernel specification, a model is fitted on the training
+    folds and scored on the held-out fold. The candidate that maximises the
+    cross-validated log-likelihood is returned.
+
+    **Kernel specification**
+
+    Each element of ``kernel_candidates`` follows the same convention as the
+    ``kernel`` argument to :func:`get_kramers_moyal_coeffs` and
+    :func:`get_kernel_density_estimate_from_trajectories`:
+
+    * A single :class:`KramersMoyalKernel` — the same kernel (name, bandwidth,
+      and period) is applied isotropically across all dimensions.
+    * A list of :class:`KramersMoyalKernel` — one kernel per dimension,
+      allowing different kernel types, bandwidths, or periods for each
+      coordinate (e.g., a ``"periodic"`` kernel for polar angle and a
+      ``"gaussian"`` kernel for radial distance).
+
+    **Scoring mode**
+
+    The scoring mode is determined by whether ``displacements`` and ``dt`` are
+    provided:
+
+    * **KDE mode** (default — ``displacements`` and ``dt`` omitted): fits a
+      kernel density estimate on training trajectories and evaluates the mean
+      log-likelihood of held-out observations under that density.
+
+    * **Kramers-Moyal mode** (``displacements`` and ``dt`` supplied): fits the
+      Kramers-Moyal drift and diffusion coefficients on training data and scores
+      each held-out displacement :math:`dx_t` at position :math:`x_t` using the
+      Gaussian Langevin log-likelihood
+
+      .. math::
+
+          \\log p(dx_t \\mid x_t) = \\sum_d \\left[
+              -\\tfrac{1}{2}\\log(4\\pi D_d(x_t)\\,dt)
+              - \\frac{(dx_{t,d} - f_d(x_t)\\,dt)^2}{4\\,D_d(x_t)\\,dt}
+          \\right]
+
+      where :math:`f_d` and :math:`D_d` are the estimated drift and diffusion
+      along dimension :math:`d`. Observations falling in bins where either
+      coefficient is NaN (low-density regions) are excluded from the score.
+
+    Parameters
+    ----------
+    trajectories
+        List of individual trajectories.  Each trajectory is an array of shape
+        ``(T,)`` (1-D) or ``(T, ndim)`` (multi-D).
+    bins
+        List of monotonically increasing bin-edge arrays in each dimension,
+        matching the convention used by
+        :func:`get_kernel_density_estimate_from_trajectories` and
+        :func:`get_kramers_moyal_coeffs`.
+    kernel_candidates
+        List of candidate kernel specifications to evaluate.  Each element is
+        either a single :class:`KramersMoyalKernel` (isotropic) or a list of
+        :class:`KramersMoyalKernel` objects with one entry per dimension
+        (anisotropic / mixed-kernel).
+    n_splits
+        Number of cross-validation folds (capped at the number of
+        trajectories). Defaults to ``5``.
+    random_state
+        Seed for the random number generator used to shuffle trajectories
+        before splitting, enabling reproducible results.
+    displacements
+        List of displacement arrays, one per trajectory, matching the
+        convention used by :func:`get_kramers_moyal_coeffs`.  Providing this
+        argument (together with ``dt``) switches to **Kramers-Moyal mode**.
+    dt
+        Time step between consecutive observations.  Required when
+        ``displacements`` is provided.
+    n_jobs
+        Number of worker processes to use for parallelising over
+        ``(kernel_candidate, fold)`` pairs.
+
+        * ``1`` (default) — run sequentially, no extra processes.
+        * ``-1`` — use all available CPUs (``os.cpu_count()``).
+        * Any positive integer — use that many worker processes.
+
+        Each worker receives a copy of the full trajectory data via pickle,
+        so very large datasets may see diminishing returns.  Profile before
+        setting ``n_jobs`` to a large value.
+
+    Returns
+    -------
+    best_kernel :
+        The element of ``kernel_candidates`` with the highest cross-validated
+        log-likelihood.
+    cv_scores :
+        Array of mean cross-validated log-likelihoods, one entry per candidate
+        in ``kernel_candidates``, in the same order.
+
+    Raises
+    ------
+    ValueError
+        If fewer than 2 trajectories are provided, or if exactly one of
+        ``displacements`` / ``dt`` is supplied without the other.
+
+    Examples
+    --------
+    KDE mode — isotropic Gaussian kernel, varying bandwidth:
+
+    >>> import numpy as np
+    >>> from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
+    ...     select_bandwidth_cross_validation,
+    ... )
+    >>> from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+    >>> rng = np.random.default_rng(0)
+    >>> trajectories = [rng.standard_normal((50, 1)) for _ in range(20)]
+    >>> bins = [np.linspace(-4, 4, 41)]
+    >>> candidates = [KramersMoyalKernel("gaussian", bw) for bw in [0.05, 0.1, 0.2, 0.4]]
+    >>> best_kernel, scores = select_bandwidth_cross_validation(
+    ...     trajectories, bins, candidates, n_splits=5
+    ... )
+
+    KM mode — per-dimension kernels (periodic angle + Gaussian radius):
+
+    >>> from numpy import pi
+    >>> bins_2d = [np.linspace(0, pi, 51), np.linspace(0, 3.5, 36)]
+    >>> displacements = [np.diff(traj, axis=0) for traj in trajectories]
+    >>> candidates_2d = [
+    ...     [KramersMoyalKernel("periodic", bw, period=pi), KramersMoyalKernel("gaussian", bw)]
+    ...     for bw in [0.05, 0.1, 0.2, 0.4]
+    ... ]
+    >>> best_kernel, scores = select_bandwidth_cross_validation(
+    ...     trajectories, bins_2d, candidates_2d,
+    ...     displacements=displacements, dt=1.0, n_splits=5,
+    ... )
+    """
+    # --- input validation ---
+    if (displacements is None) != (dt is None):
+        raise ValueError(
+            "Both ``displacements`` and ``dt`` must be provided together to use "
+            "Kramers-Moyal mode, or neither should be provided for KDE mode."
+        )
+    km_mode = displacements is not None
+
+    rng = np.random.default_rng(random_state)
+    n_trajectories = len(trajectories)
+    if n_trajectories < 2:
+        raise ValueError("At least 2 trajectories are required for cross-validation.")
+
+    n_splits = min(n_splits, n_trajectories)
+
+    # Shuffle trajectory indices and split into folds
+    shuffled_indices = rng.permutation(n_trajectories)
+    folds: list[np.ndarray] = np.array_split(shuffled_indices, n_splits)
+
+    # Common keyword arguments forwarded to every _score_fold call
+    _fold_kwargs = {
+        "shuffled_indices": shuffled_indices,
+        "trajectories": trajectories,
+        "bins": bins,
+        "displacements": displacements,
+        "dt": dt,
+    }
+
+    # Build the flat list of (k_idx, kernel, fold) jobs
+    jobs = [
+        (k_idx, kernel, fold) for k_idx, kernel in enumerate(kernel_candidates) for fold in folds
+    ]
+
+    # Accumulate per-fold log-likelihoods keyed by k_idx
+    fold_log_liks_by_k: dict[int, list[float]] = {k: [] for k in range(len(kernel_candidates))}
+
+    max_workers = None if n_jobs == -1 else (n_jobs if n_jobs > 1 else None)
+
+    if n_jobs == 1:
+        # --- sequential ---
+        for k_idx, kernel, fold in jobs:
+            _, log_lik = _score_fold(k_idx, kernel, fold, **_fold_kwargs)
+            if np.isfinite(log_lik):
+                fold_log_liks_by_k[k_idx].append(log_lik)
+            else:
+                logger.warning(
+                    "Fold could not be scored for kernel candidate %d; fold skipped.", k_idx
+                )
+    else:
+        # --- parallel ---
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            future_to_k = {
+                executor.submit(_score_fold, k_idx, kernel, fold, **_fold_kwargs): k_idx
+                for k_idx, kernel, fold in jobs
+            }
+            for future in as_completed(future_to_k):
+                k_idx_result, log_lik = future.result()
+                if np.isfinite(log_lik):
+                    fold_log_liks_by_k[k_idx_result].append(log_lik)
+                else:
+                    logger.warning(
+                        "Fold could not be scored for kernel candidate %d; fold skipped.",
+                        k_idx_result,
+                    )
+
+    cv_scores = np.array(
+        [
+            np.mean(fold_log_liks_by_k[k]) if fold_log_liks_by_k[k] else -np.inf
+            for k in range(len(kernel_candidates))
+        ]
+    )
+
+    best_idx = np.argmax(cv_scores)
+    best_kernel = kernel_candidates[best_idx]
+    mode_label = "KM" if km_mode else "KDE"
+    logger.info(
+        "[%s] Cross-validation selected kernel candidate %d (CV log-likelihood: %.4g).",
+        mode_label,
+        best_idx,
+        cv_scores[best_idx],
+    )
+    return best_kernel, cv_scores
