@@ -106,6 +106,51 @@ def compute_flow_statistics(
         if nz.any()
         else 0.0
     )
+
+    # --- Thresholded coherence: pixels with speed > 1 ---
+    fast = sp > 1.0
+    n_fast = int(fast.sum())
+    if fast.any():
+        muv_fast = float(
+            np.sqrt(
+                np.mean(um[fast] / sp[fast]) ** 2 + np.mean(vm[fast] / sp[fast]) ** 2
+            )
+        )
+    else:
+        muv_fast = np.nan
+
+    # --- Radial coherence: dot(unit_flow, unit_radial) ---
+    # Measures whether flow is divergent (+1), convergent (-1), or
+    # unstructured (0).  Disambiguates R≈0 from genuine incoherence
+    # vs. spatially organized opposing flows.
+    H, W = u.shape
+    cy, cx = H / 2.0, W / 2.0
+    yy, xx = np.mgrid[:H, :W]
+    ry = (yy - cy).astype(np.float32)
+    rx = (xx - cx).astype(np.float32)
+    r_mag = np.sqrt(rx ** 2 + ry ** 2)
+    # Only foreground pixels with nonzero speed AND nonzero distance
+    radial_mask = mask & (r_mag > 0)
+    sp_full = np.sqrt(u ** 2 + v ** 2)
+    radial_mask = radial_mask & (sp_full > 0)
+    if radial_mask.any():
+        rm = r_mag[radial_mask]
+        # Unit radial vectors
+        rx_hat = rx[radial_mask] / rm
+        ry_hat = ry[radial_mask] / rm
+        # Unit flow vectors
+        sp_rm = sp_full[radial_mask]
+        ux_hat = u[radial_mask] / sp_rm
+        uy_hat = v[radial_mask] / sp_rm
+        # dot(unit_flow, unit_radial) per pixel
+        dot_products = ux_hat * rx_hat + uy_hat * ry_hat
+        radial_coh = float(dot_products.mean())
+        # Distance-weighted: upweight edges where pattern is strongest
+        radial_coh_w = float(np.average(dot_products, weights=rm))
+    else:
+        radial_coh = np.nan
+        radial_coh_w = np.nan
+
     base.update(
         {
             "optical_flow_mean_speed": float(sp.mean()),
@@ -117,6 +162,10 @@ def compute_flow_statistics(
             "optical_flow_mean_v": float(vm.mean()),
             "optical_flow_std_u": float(um.std()),
             "optical_flow_std_v": float(vm.std()),
+            "speed_above_1_count": n_fast,
+            "optical_flow_mean_unit_vector_fast": muv_fast,
+            "optical_flow_radial_coherence": radial_coh,
+            "optical_flow_radial_coherence_weighted": radial_coh_w,
         }
     )
 
