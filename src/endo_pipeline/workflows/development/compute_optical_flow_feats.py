@@ -9,6 +9,10 @@ from endo_pipeline.settings.optical_flow import DEFAULT_OPTICAL_FLOW_MAX_DT, NUM
 logger = logging.getLogger(__name__)
 
 
+#SAVE OUT THE OPTICAL FLOW!
+#SAVE OUT THE IMAGE FLOW MAPS - will help!
+#Disk space-endo
+
 def main(  # noqa: C901
     datasets: Datasets | None = None,
     positions: list[int] | None = None,
@@ -469,7 +473,12 @@ def main(  # noqa: C901
                 left_on=[ColumnName.CROP_INDEX, ColumnName.TIMEPOINT],
                 right_on=["crop_index", "timepoint"],
                 how="left",
-            ).drop(columns=["crop_index", "timepoint"], errors="ignore")
+            ).drop(columns=["crop_index_y", "timepoint_y"], errors="ignore")
+            # rename back if pandas suffixed them
+            if "crop_index_x" in df_position.columns:
+                df_position.rename(columns={"crop_index_x": ColumnName.CROP_INDEX}, inplace=True)
+            if "timepoint_x" in df_position.columns:
+                df_position.rename(columns={"timepoint_x": ColumnName.TIMEPOINT}, inplace=True)
 
             for col in flow_columns:
                 if col not in df_position.columns:
@@ -478,6 +487,41 @@ def main(  # noqa: C901
                 columns=[c for c in diffae_columns_to_drop if c in df_position.columns],
                 inplace=True,
             )
+
+            # --- EMA smoothing of coherence metrics per crop ---
+            df_position = df_position.sort_values(
+                [ColumnName.CROP_INDEX, ColumnName.TIMEPOINT]
+            )
+            for alpha in (0.05, 0.1, 0.2):
+                alpha_tag = str(alpha).replace(".", "")
+                for d in range(1, max_dt + 1):
+                    r_org_col = f"optical_flow_mean_unit_vector_dt{d}"
+                    r_fast_col = f"optical_flow_mean_unit_vector_fast_dt{d}"
+                    if r_org_col in df_position.columns:
+                        df_position[f"ema{alpha_tag}_optical_flow_mean_unit_vector_dt{d}"] = (
+                            df_position.groupby(ColumnName.CROP_INDEX)[r_org_col]
+                            .transform(lambda s, a=alpha: s.ewm(alpha=a, adjust=False).mean())
+                        )
+                    if r_fast_col in df_position.columns:
+                        df_position[f"ema{alpha_tag}_optical_flow_mean_unit_vector_fast_dt{d}"] = (
+                            df_position.groupby(ColumnName.CROP_INDEX)[r_fast_col]
+                            .transform(lambda s, a=alpha: s.ewm(alpha=a, adjust=False).mean())
+                        )
+
+            # --- EMA smoothing of radial coherence metrics (alpha=0.1) ---
+            for d in range(1, max_dt + 1):
+                rc_col = f"optical_flow_radial_coherence_dt{d}"
+                rcw_col = f"optical_flow_radial_coherence_weighted_dt{d}"
+                if rc_col in df_position.columns:
+                    df_position[f"ema01_optical_flow_radial_coherence_dt{d}"] = (
+                        df_position.groupby(ColumnName.CROP_INDEX)[rc_col]
+                        .transform(lambda s: s.ewm(alpha=0.1, adjust=False).mean())
+                    )
+                if rcw_col in df_position.columns:
+                    df_position[f"ema01_optical_flow_radial_coherence_weighted_dt{d}"] = (
+                        df_position.groupby(ColumnName.CROP_INDEX)[rcw_col]
+                        .transform(lambda s: s.ewm(alpha=0.1, adjust=False).mean())
+                    )
 
             logger.info(
                 "Position %d done in %.1fs for %d records",
