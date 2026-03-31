@@ -1026,7 +1026,7 @@ def plot_distances_to_fixed_points_for_dataset(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
     column_names: list[str] | tuple[str, ...] = DYNAMICS_COLUMN_NAMES,
-    out_dir=None,
+    out_dir=Path,
 ):
     column_names = list(column_names)
 
@@ -1095,9 +1095,7 @@ def plot_distances_to_fixed_points_for_dataset(
     # move in relation to the fixed points over time
     # Load default model manifest and get corresponding feature dataframe
     # manifest name for default run name and specified crop pattern.
-    dataframe_manifest_name = (
-        "diffae_baseline_exclude_cell_piling_20251110_latent_512_tracked_pca_filtered"
-    )
+    dataframe_manifest_name = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
     # load dataframe for the tracked dynamics data
     dataframe_manifest_tracked = load_dataframe_manifest(dataframe_manifest_name)
     df_tracked_delayed = load_dataframe(
@@ -1113,6 +1111,7 @@ def plot_distances_to_fixed_points_for_dataset(
         *column_names,
     ]
     df_tracked = df_tracked_delayed[columns_to_compute].compute().reset_index(drop=True)
+    df_tracked.dropna(subset=column_names, inplace=True)
 
     # determine distance from each fixed point over time and add to the dataframe, along
     # with the signed difference along each axis (e.g. theta, r, rho) from each fixed point
