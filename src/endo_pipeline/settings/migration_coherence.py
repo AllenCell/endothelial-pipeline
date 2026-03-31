@@ -1,8 +1,5 @@
 from endo_pipeline.settings.column_names import ColumnName
 
-OPTICAL_FLOW_DATFRAME_MANIFEST_NAME: str = "optical_flow_bf"
-"""Name of dataframe manifest containing optical flow features."""
-
 OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS: tuple[str, ...] = (
     ColumnName.DATASET,
     ColumnName.POSITION,

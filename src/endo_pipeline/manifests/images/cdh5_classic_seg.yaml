@@ -50,6 +50,20 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20260202_20X/P{{position}}/20260202_20X_P{{position}}_T{{timepoint}}.ome.tiff
   20260204_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20260204_20X/P{{position}}/20260204_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260209_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20260209_20X/P{{position}}/20260209_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260211_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20260211_20X/P{{position}}/20260211_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260216_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20260216_20X/P{{position}}/20260216_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260218_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20260218_20X/P{{position}}/20260218_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260225_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20260225_20X/P{{position}}/20260225_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260302_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20260302_20X/P{{position}}/20260302_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260304_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20260304_20X/P{{position}}/20260304_20X_P{{position}}_T{{timepoint}}.ome.tiff
 
   20250509_20X_IF1:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_cdh5_seg/20250509_20X_IF1/P{{position}}/20250509_20X_IF1_P{{position}}_T{{timepoint}}.ome.tiff

@@ -612,7 +612,8 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
 def calculate_derived_data_dynamics_dependent(
     big_table: pd.DataFrame,
     compute_per_crop_metrics: bool = False,
-    max_timeframes_to_average_for_velocity: int = 5,
+    timeframes_to_average_for_velocity: list[int] | None = None,
+    min_periods_for_averaging: int = 3,
 ) -> pd.DataFrame:
     """
     This function calculates dynamics-dependent features and
@@ -675,39 +676,79 @@ def calculate_derived_data_dynamics_dependent(
     )
 
     # get the windowed mean of the centroid velocities to smooth out noise
-    for window in range(2, max_timeframes_to_average_for_velocity + 1):
-        big_table["time_minutes_timedelta"] = pd.to_timedelta(
-            big_table[Column.SegData.TIME_MINS], unit="m"
-        )
-        window_in_minutes = window * sequence_to_scalar(big_table[Column.TIME_RESOLUTION_MINUTES])
-
-        big_table[
-            f"{Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN}_rolling_mean_window_{window_in_minutes}min"
-        ] = (
-            big_table.groupby([Column.DATASET, Column.POSITION, Column.TRACK_ID], as_index=True)[
-                [Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN, "time_minutes_timedelta"]
-            ].apply(
-                lambda df, window_in_minutes=window_in_minutes: df.rolling(
-                    f"{window_in_minutes}min", min_periods=1, on="time_minutes_timedelta"
-                )[Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN].mean()
+    if timeframes_to_average_for_velocity is not None:
+        for window in timeframes_to_average_for_velocity:
+            big_table["time_minutes_timedelta"] = pd.to_timedelta(
+                big_table[Column.SegData.TIME_MINS], unit="m"
             )
-        ).droplevel(
-            [0, 1, 2]
-        )
-
-        big_table[
-            f"{Column.SegData.CENTROID_VELOCITY_Y_UM_PER_MIN}_rolling_mean_window_{window_in_minutes}min"
-        ] = (
-            big_table.groupby([Column.DATASET, Column.POSITION, Column.TRACK_ID], as_index=True)[
-                [Column.SegData.CENTROID_VELOCITY_Y_UM_PER_MIN, "time_minutes_timedelta"]
-            ].apply(
-                lambda df, window_in_minutes=window_in_minutes: df.rolling(
-                    f"{window_in_minutes}min", min_periods=1, on="time_minutes_timedelta"
-                )[Column.SegData.CENTROID_VELOCITY_Y_UM_PER_MIN].mean()
+            window_in_minutes = window * sequence_to_scalar(
+                big_table[Column.TIME_RESOLUTION_MINUTES]
             )
-        ).droplevel(
-            [0, 1, 2]
-        )
+
+            big_table[
+                f"{Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
+            ] = (
+                big_table.groupby(
+                    [Column.DATASET, Column.POSITION, Column.TRACK_ID], as_index=True
+                )[[Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN, "time_minutes_timedelta"]].apply(
+                    lambda df, window_in_minutes=window_in_minutes: df.rolling(
+                        f"{window_in_minutes}min",
+                        min_periods=min_periods_for_averaging,
+                        on="time_minutes_timedelta",
+                    )[Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN].mean()
+                )
+            ).droplevel(
+                [0, 1, 2]
+            )
+
+            big_table[
+                f"{Column.SegData.CENTROID_VELOCITY_Y_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
+            ] = (
+                big_table.groupby(
+                    [Column.DATASET, Column.POSITION, Column.TRACK_ID], as_index=True
+                )[[Column.SegData.CENTROID_VELOCITY_Y_UM_PER_MIN, "time_minutes_timedelta"]].apply(
+                    lambda df, window_in_minutes=window_in_minutes: df.rolling(
+                        f"{window_in_minutes}min",
+                        min_periods=min_periods_for_averaging,
+                        on="time_minutes_timedelta",
+                    )[Column.SegData.CENTROID_VELOCITY_Y_UM_PER_MIN].mean()
+                )
+            ).droplevel(
+                [0, 1, 2]
+            )
+
+            big_table[
+                f"{Column.SegData.CENTROID_VELOCITY_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
+            ] = np.linalg.norm(
+                [
+                    big_table[
+                        f"{Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
+                    ],
+                    big_table[
+                        f"{Column.SegData.CENTROID_VELOCITY_Y_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
+                    ],
+                ],
+                axis=0,
+            )
+            big_table[
+                f"{Column.SegData.CENTROID_VELOCITY_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
+            ] = np.linalg.norm(
+                [
+                    big_table[
+                        f"{Column.SegData.CENTROID_VELOCITY_X_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
+                    ],
+                    big_table[
+                        f"{Column.SegData.CENTROID_VELOCITY_Y_UM_PER_MIN}_rolling_mean_{window_in_minutes}min"
+                    ],
+                ],
+                axis=0,
+            )
+
+        # the timedelta version of time_minutes is redundant with "time_hrs" and only
+        # used to compute the rolling window means of velocities to smooth them out
+        # so we drop this timedelta column now that we're done with it
+        if "time_minutes_timedelta" in big_table.columns:
+            big_table = big_table.drop(columns=["time_minutes_timedelta"])
 
     logger.info("Calculating centroid velocity magnitude and angle...")
     big_table[Column.SegData.CENTROID_VELOCITY_UM_PER_MIN] = np.linalg.norm(
@@ -734,11 +775,6 @@ def calculate_derived_data_dynamics_dependent(
         )
         .droplevel([0, 1, 2])
     )
-
-    # the timedelta version of time_minutes is redundant with "time_hrs" and only
-    # used to compute the rolling window means of velocities to smooth them out
-    # so we drop this timedelta column now that we're done with it
-    big_table = big_table.drop(columns=["time_minutes_timedelta"])
 
     big_table[Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG] = (
         get_smallest_angle_difference(
@@ -797,6 +833,9 @@ def calculate_derived_data_dynamics_dependent(
         .droplevel([0, 1, 2])
     )
 
+    # add a normalized version of the "time_hours" column
+    big_table = add_normalized_time(big_table)
+
     # add approximate cell density dynamics column
     logger.info("Calculating approximate cell density dynamics...")
     big_table[Column.SegData.CHANGE_IN_NUM_NUCLEI_IN_CROP_PER_MIN] = (
@@ -813,7 +852,9 @@ def calculate_derived_data_dynamics_dependent(
     if compute_per_crop_metrics:
         # find the migration vectors for all cells in a crop
         logger.info("Calculating vector mean of migration per crop...")
-        big_table = add_vector_mean_of_migration_in_crop_column(big_table)
+        big_table = add_vector_mean_of_migration_in_crop_column(
+            big_table, velocity_column_name=Column.SegData.CENTROID_VELOCITY_UM_PER_MIN
+        )
 
     return big_table
 
@@ -977,7 +1018,9 @@ def get_nuclei_coords(
                 coords = np.pad(coords, pad_width, mode="constant", constant_values=np.nan)
         for dim in props_dim_order:
             nuclei_coords[f"coords_{dim}"].append(coords[..., props_dim_order.index(dim)])
-    nuclei_coords_arrs = {dim: np.stack(coords).squeeze() for dim, coords in nuclei_coords.items()}
+    nuclei_coords_arrs = {
+        dim: np.array(np.stack(coords).squeeze(), ndmin=1) for dim, coords in nuclei_coords.items()
+    }
 
     return nuclei_coords_arrs
 
@@ -1407,6 +1450,9 @@ def map_label_to_column(df_sub: pd.DataFrame, column_name_to_map: str) -> list:
     label_velocity_dict = dict(
         zip(df_sub[Column.SegData.LABEL], df_sub[column_name_to_map], strict=True)
     )
+    df_sub[Column.SegData.LABELS_IN_CROP] = df_sub[Column.SegData.LABELS_IN_CROP].transform(
+        lambda ls: [] if isinstance(ls, type(None)) else ls
+    )
     return df_sub[Column.SegData.LABELS_IN_CROP].map(lambda ls: [*map(label_velocity_dict.get, ls)])
 
 
@@ -1415,7 +1461,9 @@ def sanitize_list_to_numbers(ls: list) -> list:
     return [x for x in ls if x and np.isfinite(x)]
 
 
-def add_vector_mean_of_migration_in_crop_column(df: pd.DataFrame) -> pd.DataFrame:
+def add_vector_mean_of_migration_in_crop_column(
+    df: pd.DataFrame, velocity_column_name: str
+) -> pd.DataFrame:
     """
     Returns the provided dataframe with two new columns:
     - "vec_mean_angle_in_crop": the vector mean of the migration angles of all cells in the crop
@@ -1424,11 +1472,7 @@ def add_vector_mean_of_migration_in_crop_column(df: pd.DataFrame) -> pd.DataFram
 
     df[Column.SegData.VELOCITY_ANGLES_IN_CROP] = (
         df.groupby([Column.DATASET, Column.POSITION, Column.TIMEPOINT])
-        .apply(
-            lambda df_sub: pd.DataFrame(
-                map_label_to_column(df_sub, Column.SegData.CENTROID_VELOCITY_ANGLE)
-            )
-        )
+        .apply(lambda df_sub: pd.DataFrame(map_label_to_column(df_sub, velocity_column_name)))
         .droplevel([0, 1, 2])
     )
 
@@ -1451,3 +1495,53 @@ def add_vector_mean_of_migration_in_crop_column(df: pd.DataFrame) -> pd.DataFram
     )
 
     return df
+
+
+def add_normalized_time(
+    df_all_positions: pd.DataFrame,
+    time_col: str = Column.SegData.TIME_HRS,
+) -> pd.DataFrame:
+    """
+    Add a column to the dataframe with normalized time values
+    between 0 and 1 for each track_id in each position.
+
+    Parameters
+    ----------
+    df_all_positions
+        DataFrame containing all positions and tracks.
+    time_col
+        The name of the column containing time values.
+
+    Returns
+    -------
+    :
+        DataFrame with an additional column
+        "normalized_time" containing the normalized time values between 0 and 1.
+    """
+
+    for _, df_pos in df_all_positions.groupby(Column.POSITION):
+        for _, df_track in df_pos.groupby(Column.TRACK_ID):
+
+            time_values = df_track[time_col].values.astype(np.float64)
+            sorted_inds = np.argsort(time_values)
+            time_values = time_values[sorted_inds]
+            df_track = df_track.iloc[sorted_inds]
+
+            start_time = np.min(time_values)
+            end_time = np.max(time_values)
+
+            normalized_time_values = np.divide(
+                time_values - start_time,
+                end_time - start_time,
+                out=np.zeros_like(time_values, dtype=np.float64),
+                where=(end_time - start_time) != 0,
+            )
+
+            normalized_time_values = np.clip(normalized_time_values, 0, 1)
+
+            df_all_positions.loc[
+                df_track.index,
+                Column.SegData.NORMALIZED_TIME_PER_TRACK,
+            ] = normalized_time_values
+
+    return df_all_positions

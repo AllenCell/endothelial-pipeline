@@ -26,7 +26,10 @@ from endo_pipeline.manifests import (
     load_model_manifest,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAME_GROUPS
+from endo_pipeline.settings.diffae_feature_dataframes import (
+    DIFFAE_PC_COLUMN_NAME_GROUPS,
+    NUM_LATENT_FEATURES,
+)
 from endo_pipeline.settings.dynamics_workflows import (
     METADATA_COLUMNS_TO_KEEP,
     PERIOD_THETA_RESCALED,
@@ -116,7 +119,7 @@ def get_latent_feature_column_names_from_dataframe(dataframe: pd.DataFrame) -> l
     Get list of latent feature column names for given number of latent dimensions.
 
     Matches columns that start with the latent feature column name prefix
-    as defined in ColumnName.LATENT_FEATURE_PREFIX.
+    as defined in ColumnName.DiffAEData.LATENT_FEATURE_PREFIX.
 
     Parameters
     ----------
@@ -512,7 +515,7 @@ def fit_pca(
     dataframe_manifest_name: str | None = None,
     filter_by_annotations: bool = True,
     include_cell_piling: bool = False,
-    num_pcs: int = 8,
+    num_pcs: int = NUM_LATENT_FEATURES,
 ) -> PCA:
     """
     Fit PCA model using given datasets in given dataset collection.
@@ -544,16 +547,6 @@ def fit_pca(
     # Fit PCA
     pca = PCA(n_components=num_pcs, svd_solver="full")
     pca.fit(pca_input_dataframe.values)
-
-    # Log info about explained variance ratio
-    logger.info(
-        "Explained variance ratios: %s",
-        np.round(pca.explained_variance_ratio_, 4).tolist(),
-    )
-    logger.info(
-        "Cumulative explained variance: %s",
-        np.round(np.cumsum(pca.explained_variance_ratio_), 4).tolist(),
-    )
 
     return pca
 
@@ -836,14 +829,14 @@ def get_dataframe_for_dynamics_workflows(
     feat_cols = get_latent_feature_column_names_from_dataframe(df)
 
     # start with default metadata columns to keep
-    columns_to_keep_ = list(METADATA_COLUMNS_TO_KEEP)
+    # temporarily drop the "crop_index" column while workflows that use this
+    # method are being refactored
+    columns_to_keep_ = [
+        column for column in METADATA_COLUMNS_TO_KEEP[crop_pattern] if column != "crop_index"
+    ]
     if columns_to_keep is not None:
         columns_to_keep_.extend(columns_to_keep)  # add any additional specified columns to keep
     columns_to_keep_.extend(feat_cols)  # also keep feature columns for PCA projection
-    if crop_pattern == "tracked":
-        columns_to_keep_.extend(
-            [Column.TRACK_ID]
-        )  # also keep track ID and track length columns for tracked crops
     columns_to_keep_ = list(set(columns_to_keep_))  # remove duplicates, if any
 
     # keep only necessary columns to save memory
@@ -1099,11 +1092,14 @@ def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
     required_columns = [Column.CROP_INDEX, Column.TIMEPOINT, *column_names]
     check_required_columns_in_dataframe(df, required_columns)
 
-    # get array of num crops x valid timepoints x num PCs, padding with NaNs where timepoints are missing
+    # get array of num crops x valid timepoints x num PCs, padding with NaNs
+    # where timepoints are missing
+    full_timepoint_range = (df[Column.TIMEPOINT].min(), df[Column.TIMEPOINT].max())
+
     feats = []
     for _, data_crop in df.groupby(Column.CROP_INDEX):
         data_crop = data_crop.sort_values(by=Column.TIMEPOINT)
-        data_crop_filled = fill_missing_timepoints(data_crop)
+        data_crop_filled = fill_missing_timepoints(data_crop, full_timepoint_range)
         feats.append(data_crop_filled[column_names].values)
 
     return np.array(feats)
@@ -1387,7 +1383,10 @@ def get_traj_and_diff(
     return traj_list, d_traj_list
 
 
-def fill_missing_timepoints(data_crop: pd.DataFrame) -> pd.DataFrame:
+def fill_missing_timepoints(
+    data_crop: pd.DataFrame,
+    full_timepoint_range: tuple[float, float],
+) -> pd.DataFrame:
     """
     Fill missing timepoints in dataframe for a single crop using NaN padding.
     Note: this function resets the index of the input crop-based dataframe.
@@ -1396,18 +1395,21 @@ def fill_missing_timepoints(data_crop: pd.DataFrame) -> pd.DataFrame:
     ----------
     data_crop
         DataFrame for a single crop.
+    full_timepoint_range
+        Tuple specifying the full range of timepoints (start, end) for the dataset.
 
     Returns
     -------
-    data_crop_filled
+    :
         DataFrame with missing timepoints filled with NaNs.
     """
 
-    # get full range of timepoints for this crop
-    full_timepoint_range = np.arange(0, data_crop["duration"].iloc[0])
+    # use full timepoint range for the dataset to ensure that all timepoints are
+    # included
+    all_timepoints = np.arange(full_timepoint_range[0], full_timepoint_range[1] + 1)
 
     # reindex dataframe to include all timepoints in full range
-    data_crop_filled = data_crop.set_index(Column.TIMEPOINT).reindex(full_timepoint_range)
+    data_crop_filled = data_crop.set_index(Column.TIMEPOINT).reindex(all_timepoints)
 
     # reset index to restore timepoint column
     data_crop_filled = data_crop_filled.reset_index()

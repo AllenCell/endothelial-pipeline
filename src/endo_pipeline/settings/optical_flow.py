@@ -5,6 +5,8 @@ live here so that they can be adjusted in one place without touching
 compute, I/O, or visualisation code.
 """
 
+from endo_pipeline.settings.column_names import ColumnName
+
 # ---------------------------------------------------------------------------
 # Multi-scale coherence
 # ---------------------------------------------------------------------------
@@ -41,6 +43,15 @@ DEMO_SCAN_N_CROPS: int = 6
 DEMO_SCAN_N_PAIRS: int = 10
 """Number of frame pairs to visualize in demo/scan mode diagnostic plots."""
 
+DEMO_MAX_DATASETS: int = 2
+"""Maximum number of datasets processed in demo mode."""
+
+DEMO_MAX_POSITIONS: int = 1
+"""Maximum number of positions per dataset in demo mode."""
+
+DEMO_MAX_FRAMES: int = 5
+"""Maximum number of timepoints cached per position in demo mode."""
+
 # ---------------------------------------------------------------------------
 # Quiver plot
 # ---------------------------------------------------------------------------
@@ -60,6 +71,18 @@ DEFAULT_OPTICAL_FLOW_COLLECTION: str = "diffae_model_training"
 
 DEFAULT_OPTICAL_FLOW_MANIFEST_NAME: str = "optical_flow_bf"
 """Default dataframe manifest name for optical-flow features."""
+
+DIFFAE_DATAFRAME_METADATA_TO_COMPUTE: tuple[str, ...] = (
+    ColumnName.DATASET,
+    ColumnName.POSITION,
+    ColumnName.TIMEPOINT,
+    ColumnName.CROP_INDEX,
+    ColumnName.DiffAEData.START_X,
+    ColumnName.DiffAEData.START_Y,
+    ColumnName.DiffAEData.END_X,
+    ColumnName.DiffAEData.END_Y,
+)
+"""Metadata columns from Diff AE feature dataframe needed for optical flow computations."""
 
 # ---------------------------------------------------------------------------
 # Feature names
@@ -110,3 +133,15 @@ DEFAULT_OMP_NUM_THREADS: str = "1"
 
 DEFAULT_OPENBLAS_NUM_THREADS: str = "1"
 """Default OPENBLAS_NUM_THREADS for optical-flow workers."""
+
+NUM_IO_WORKERS: int = 16
+"""Concurrent I/O workers for dask compute and ThreadPoolExecutor.
+
+Determined empirically on compute nodes (512 GB RAM, 128 physical /
+256 logical CPU cores, 4x A100 80 GB GPUs).  TVL1 is pinned to one
+thread per call (OMP_NUM_THREADS=1), so the bottleneck is NFS read
+throughput rather than CPU.  At 16 concurrent workers, each holding
+~0.5 GB per frame, peak memory is ~8 GB — well within budget — while
+NFS throughput is fully saturated; beyond 16 workers wall-clock time
+plateaus but memory grows linearly with no additional speedup.
+"""

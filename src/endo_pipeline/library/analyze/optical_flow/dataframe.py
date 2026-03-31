@@ -4,7 +4,7 @@ from collections.abc import Sequence
 
 import pandas as pd
 
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.optical_flow import COHERENCE_BOX_SIZES, OPTICAL_FLOW_BASE_FEATURES
 
 
@@ -71,14 +71,24 @@ def build_crop_grid(df: pd.DataFrame) -> pd.DataFrame:
         ``CROP_INDEX``, ``end_x``, and ``end_y``.
     """
     crop_df = (
-        df[[ColumnName.START_X, ColumnName.START_Y, ColumnName.CROP_INDEX]]
+        df[
+            [
+                ColumnName.DiffAEData.START_X,
+                ColumnName.DiffAEData.START_Y,
+                ColumnName.CROP_INDEX,
+            ]
+        ]
         .drop_duplicates(subset=[ColumnName.CROP_INDEX])
-        .sort_values(by=[ColumnName.START_Y, ColumnName.START_X])
+        .sort_values(by=[ColumnName.DiffAEData.START_Y, ColumnName.DiffAEData.START_X])
         .reset_index(drop=True)
     )
-    sz = int(df[ColumnName.CROP_SIZE_X].iloc[0]) if ColumnName.CROP_SIZE_X in df.columns else 128
-    crop_df["end_x"] = crop_df[ColumnName.START_X] + sz
-    crop_df["end_y"] = crop_df[ColumnName.START_Y] + sz
+    sz = (
+        int(df[ColumnName.DiffAEData.CROP_SIZE_X].iloc[0])
+        if ColumnName.DiffAEData.CROP_SIZE_X in df.columns
+        else 128
+    )
+    crop_df["end_x"] = crop_df[ColumnName.DiffAEData.START_X] + sz
+    crop_df["end_y"] = crop_df[ColumnName.DiffAEData.START_Y] + sz
     return crop_df
 
 
