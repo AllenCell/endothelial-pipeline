@@ -3,12 +3,9 @@ from endo_pipeline.cli import Datasets
 
 def main(
     datasets: Datasets | None = None,
-    optical_flow_features: list[str] = [
-        "ema005_optical_flow_mean_unit_vector_dt1",
-        "ema01_optical_flow_mean_unit_vector_dt1",
-        "ema02_optical_flow_mean_unit_vector_dt1",
-    ],
+    optical_flow_feature: str = "ema01_optical_flow_mean_unit_vector_dt1",
     plot_fixed_points: bool = True,
+    skip_individual_plots: bool = False,
 ) -> None:
     import logging
 
@@ -30,7 +27,6 @@ def main(
     from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
         add_binned_mean_to_fixed_points,
         add_optical_flow_features,
-        add_shear_stress_to_df,
     )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
     from endo_pipeline.library.visualize.diffae_features.pplane import (
@@ -38,7 +34,7 @@ def main(
     )
     from endo_pipeline.library.visualize.migration_coherence import (
         plot_3d_scatter_or_binned,
-        plot_fixed_points_vs_shear_stress,
+        plot_cross_dataset_summaries,
         plot_optical_flow_histogram,
         plot_scatter_and_binned_heatmap,
     )
@@ -62,147 +58,98 @@ def main(
 
     logger = logging.getLogger(__name__)
 
-    # default to a single feature if none provided
-    if optical_flow_features is None:
-        optical_flow_features = ["ema01_optical_flow_mean_unit_vector_dt1"]
-
     # Load diffae features
-    crop_pattern = MIGRATION_COHERENCE_CROP_PATTERN
-    # Load dataframe manifest for the features to be used in flow field
-    # estimation and analysis.
-    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
+    base_name = (
+        f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{MIGRATION_COHERENCE_CROP_PATTERN}"
+    )
     feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
     fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
 
-    # If datasets aren't provided, default to processing a default list of
-    # datasets
+    # If datasets aren't provided, default to processing a default list of datasets
     dataset_names = datasets or get_datasets_in_collection("optical_flow_analysis")
 
-    # if in demo mode, only process the first dataset and log a warning
     if DEMO_MODE:
         dataset_names = dataset_names[:1]
-        logger.warning(
-            "Running in demo mode, only processing first dataset [ %s ]",
-            dataset_names[0],
-        )
+        logger.info("DEMO MODE, only processing first dataset [ %s ]", dataset_names[0])
 
-    # Load optical flow features and plot against diffae features
-    df_fp_all_list: dict[str, list[pd.DataFrame]] = {f: [] for f in optical_flow_features}
-    # collect per-dataset summary stats for the mean coherence summary plot
-    summary_stats: dict[str, list[dict[str, float | str]]] = {f: [] for f in optical_flow_features}
-    for dataset_name in dataset_names:
-        if dataset_name not in feature_dataframe_manifest.locations:
-            logger.warning(
-                "No feature dataframe found for dataset [ %s ] in dataframe manifest [ %s ]. Skipping this dataset.",
-                dataset_name,
-                feature_dataframe_manifest.name,
-            )
-            continue
-        output_dir = get_output_path(__file__, dataset_name)
+    # --- Cross-dataset summary plots ---
+    plot_cross_dataset_summaries(
+        dataset_names=dataset_names,
+        optical_flow_feature=optical_flow_feature,
+        feature_dataframe_manifest=feature_dataframe_manifest,
+        fixed_points_dataframe_manifest=fixed_points_dataframe_manifest,
+        output_dir=get_output_path(__file__),
+        plot_fixed_points=plot_fixed_points,
+    )
 
-        # load dataframe and perform additional filtering (remove
-        # non-steady-state timepoints based on annotations), computing
-        # only the columns needed for visualization/analysis
-        df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
-        columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *DYNAMICS_COLUMN_NAMES]
-        df_ = df[columns_to_compute].compute()
-        df_steady_state = filter_dataframe_by_annotations(
-            df_,
-            load_dataset_config(dataset_name),
-            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
-        )
-
-        logger.info(
-            "Loaded dataframe for dataset [ %s ] with [ %d ] rows after filtering to steady state timepoints.",
-            dataset_name,
-            len(df_steady_state),
-        )
-
-        df_of = add_optical_flow_features(
-            df_steady_state,
-            datasets=[dataset_name],
-        )
-
-        # Check for NaN optical flow values after merge
-        n_total = len(df_of)
-        n_nan = int(df_of[optical_flow_features[0]].isna().sum())
-        if n_nan > 0:
-            logger.warning(
-                "Dataset [ %s ]: %d / %d rows (%.1f%%) have NaN optical flow values after merge. "
-                "These rows will be excluded from scatter/heatmap plots.",
-                dataset_name,
-                n_nan,
-                n_total,
-                n_nan / n_total * 100,
-            )
-
-        logger.info(
-            "Computed optical flow features for dataset [ %s ] with [ %d ] rows.",
-            dataset_name,
-            len(df_of),
-        )
-
-        # split the dataframe by flow condition so we can plot the distribution
-        # of optical flow features for each flow condition separately
-        dataset_config = load_dataset_config(dataset_name)
-        df_by_flow, shear_stress_list = split_dataset_by_flow(df_of, dataset_config)
-
-        for df_flow, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
-            dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
-            plot_label = f"{dataset_name} ({shear_stress} dyn/cm$^2$)"
-
-            hist_color = get_dataset_color(dataset_name)
-
-            # load fixed points once per dataset (shared across features)
-            fixed_points_dataframe: pd.DataFrame | None = None
-            if plot_fixed_points:
-                try:
-                    fixed_points_dataframe_location = get_dataframe_location_for_dataset(
-                        fixed_points_dataframe_manifest, dataset_name
-                    )
-                    fixed_points_dataframe = load_dataframe(
-                        fixed_points_dataframe_location, delay=False
-                    )
-                    check_required_columns_in_dataframe(
-                        fixed_points_dataframe,
-                        required_columns=[
-                            *DYNAMICS_COLUMN_NAMES,
-                            ColumnName.DATASET,
-                            STABILITY_COLUMN_NAME,
-                        ],
-                    )
-                except KeyError:
-                    logger.warning(
-                        "No fixed point dataframe found for dataset [ %s ] in dataframe manifest [ %s ]. "
-                        "Fixed points will not be overlaid on the migration coherence plots for this dataset.",
-                        dataset_name,
-                        fixed_points_dataframe_manifest.name,
-                    )
-
-            # --- iterate over each optical flow feature ---
-            for optical_flow_feature in optical_flow_features:
-                logger.info(
-                    "Processing feature [ %s ] for dataset [ %s ], shear stress [ %s ]",
-                    optical_flow_feature,
+    if not skip_individual_plots:
+        for dataset_name in dataset_names:
+            if dataset_name not in feature_dataframe_manifest.locations:
+                logger.warning(
+                    "No feature dataframe found for dataset [ %s ] in dataframe manifest [ %s ]. Skipping this dataset.",
                     dataset_name,
-                    shear_stress,
+                    feature_dataframe_manifest.name,
                 )
+                continue
+            output_dir = get_output_path(__file__, dataset_name)
+            dataset_config = load_dataset_config(dataset_name)
 
-                # compute mean and std for this dataset/flow condition
-                flow_mean = df_flow[optical_flow_feature].mean()
-                flow_std = df_flow[optical_flow_feature].std()
-                summary_stats[optical_flow_feature].append(
-                    {
-                        "label": plot_label,
-                        "shear_stress": shear_stress,
-                        "mean": flow_mean,
-                        "std": flow_std,
-                        "color": hist_color,
-                    }
-                )
+            # load dataframe and perform additional filtering (remove
+            # non-steady-state timepoints based on annotations), computing
+            # only the columns needed for visualization/analysis
+            df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
+            columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *DYNAMICS_COLUMN_NAMES]
+            df_ = df[columns_to_compute].compute()
+            df_steady_state = filter_dataframe_by_annotations(
+                df_,
+                dataset_config,
+                timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
+            )
+
+            df_of = add_optical_flow_features(
+                df_steady_state,
+                datasets=[dataset_name],
+            )
+
+            # split the dataframe by flow condition so we can plot the distribution
+            # of optical flow features for each flow condition separately
+
+            df_by_flow, shear_stress_list = split_dataset_by_flow(df_of, dataset_config)
+
+            for df_flow, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
+                dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
+                plot_label = f"{dataset_name} ({shear_stress} dyn/cm$^2$)"
+
+                hist_color = get_dataset_color(dataset_name)
+
+                # load fixed points once per dataset
+                fixed_points_dataframe: pd.DataFrame | None = None
+                if plot_fixed_points:
+                    try:
+                        fixed_points_dataframe_location = get_dataframe_location_for_dataset(
+                            fixed_points_dataframe_manifest, dataset_name
+                        )
+                        fixed_points_dataframe = load_dataframe(
+                            fixed_points_dataframe_location, delay=False
+                        )
+                        check_required_columns_in_dataframe(
+                            fixed_points_dataframe,
+                            required_columns=[
+                                *DYNAMICS_COLUMN_NAMES,
+                                ColumnName.DATASET,
+                                STABILITY_COLUMN_NAME,
+                            ],
+                        )
+                    except KeyError:
+                        logger.warning(
+                            "No fixed point dataframe found for dataset [ %s ] in dataframe manifest [ %s ]. "
+                            "Fixed points will not be overlaid on the migration coherence plots for this dataset.",
+                            dataset_name,
+                            fixed_points_dataframe_manifest.name,
+                        )
 
                 # save individual histogram for this dataset and flow condition
                 plot_optical_flow_histogram(
@@ -328,51 +275,6 @@ def main(
                     f"{dataset_name_flow}_3D_binned_heatmap_{optical_flow_feature}",
                 )
                 plt.close(fig)
-
-                if fp_for_feature is not None:
-                    df_fp_all_list[optical_flow_feature].append(fp_for_feature)
-
-    # --- Per-feature cross-dataset summaries ---
-    for optical_flow_feature in optical_flow_features:
-        # --- Cross-dataset: fixed point variables vs shear stress ---
-        if df_fp_all_list[optical_flow_feature]:
-            df_fp_all = pd.concat(df_fp_all_list[optical_flow_feature], ignore_index=True)
-            df_fp_all = add_shear_stress_to_df(df_fp_all)
-            cross_dataset_output_dir = get_output_path(__file__)
-
-            variables = [
-                ColumnName.DiffAEData.POLAR_ANGLE,
-                ColumnName.DiffAEData.POLAR_RADIUS,
-                ColumnName.DiffAEData.PC3_FLIPPED,
-                f"mean_{optical_flow_feature}",
-            ]
-
-            labels = ["\u03b8", "r", "\u03c1", f"mean_{optical_flow_feature}"]
-
-            for var, label in zip(variables, labels, strict=False):
-                ylim = (0, 1) if "unit_vector" in var else None
-                plot_fixed_points_vs_shear_stress(
-                    df_fp_all,
-                    var,
-                    label,
-                    output_dir=cross_dataset_output_dir,
-                    ylim=ylim,
-                )
-        else:
-            df_fp_all = None
-
-        # --- Summary plot: mean coherence metric per dataset vs shear stress ---
-        if summary_stats[optical_flow_feature]:
-            from endo_pipeline.library.visualize.migration_coherence import (
-                plot_mean_vs_shear_stress_summary,
-            )
-
-            plot_mean_vs_shear_stress_summary(
-                summary_stats=summary_stats[optical_flow_feature],
-                optical_flow_feature=optical_flow_feature,
-                df_fp_all=df_fp_all,
-                output_dir=get_output_path(__file__),
-            )
 
 
 if __name__ == "__main__":

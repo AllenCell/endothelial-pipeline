@@ -11,6 +11,7 @@ from scipy.stats import binned_statistic_2d, binned_statistic_dd
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
 from endo_pipeline.library.visualize.diffae_features.pplane import make_legend_handles_for_fixed_pts
+from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.flow_field_dataframes import (
     STABILITY_COLOR_DICT,
     STABILITY_COLUMN_NAME,
@@ -299,10 +300,14 @@ def plot_fixed_points_vs_shear_stress(
     label: str,
     output_dir: Path,
     ylim: tuple[float, float] | None = None,
+    summary_stats: list[dict] | None = None,
     marker_size_scatter: int = 80,
     marker_size_legend: int = 8,
 ) -> None:
-    """Plot a single fixed-point variable vs shear stress.
+    """Plot a single fixed-point variable vs shear stress, per dataset.
+
+    Optionally overlays per-dataset mean \u00b1 std error bars when
+    *summary_stats* is provided.
 
     Parameters
     ----------
@@ -317,6 +322,10 @@ def plot_fixed_points_vs_shear_stress(
         Directory where the figure is saved.
     ylim
         Optional ``(ymin, ymax)`` limits for the y-axis.
+    summary_stats
+        Optional list of dicts with keys ``"shear_stress"``, ``"mean"``,
+        ``"std"``, ``"color"``, and ``"label"`` for each dataset/flow
+        condition.  When provided, mean \u00b1 std error bars are overlaid.
     """
 
     # Convert shear stress to numeric values for sorting, then use categorical x-axis
@@ -326,41 +335,72 @@ def plot_fixed_points_vs_shear_stress(
     )
     df_fp = df_fp.sort_values("shear_stress_numeric")
 
-    # Build categorical x positions from unique shear stress values
-    unique_shear = df_fp["shear_stress"].unique()
-    shear_to_x = {s: i for i, s in enumerate(unique_shear)}
+    # Build categorical x positions from unique datasets (sorted by shear stress)
+    unique_datasets = df_fp["dataset"].unique()
+    dataset_to_x = {d: i for i, d in enumerate(unique_datasets)}
+    # Build tick labels showing dataset name and shear stress
+    dataset_shear = (
+        df_fp.drop_duplicates("dataset")[["dataset", "shear_stress"]]
+        .set_index("dataset")
+        .loc[unique_datasets]
+    )
+    tick_labels = [f"{d} ({dataset_shear.loc[d, 'shear_stress']})" for d in unique_datasets]
 
-    # Build legend handles
+    # Build legend handles for fixed-point stability markers
     legend_handles = make_legend_handles_for_fixed_pts(
         fpt_stabilities=df_fp[STABILITY_COLUMN_NAME].unique().tolist(),
         marker_size=marker_size_legend,
     )
 
-    fig, ax = plt.subplots(figsize=(max(8, len(unique_shear) * 1.2), 3.5))
+    fig, ax = plt.subplots(figsize=((len(unique_datasets) * 0.5), 3.5))
+
+    # Overlay mean \u00b1 std error bars when summary stats are provided
+    if summary_stats is not None:
+        summary_sorted = sorted(summary_stats, key=lambda s: s["shear_stress"])
+        # Map summary entries to dataset x positions by shear stress
+        shear_to_xs: dict[float, list[int]] = {}
+        for i, stat in enumerate(summary_sorted):
+            shear_to_xs.setdefault(stat["shear_stress"], []).append(i)
+        for i, stat in enumerate(summary_sorted):
+            ax.errorbar(
+                i,
+                stat["mean"],
+                yerr=stat["std"],
+                fmt="o",
+                color=stat["color"],
+                markersize=8,
+                capsize=4,
+                elinewidth=1.5,
+                label=stat["label"],
+                zorder=2,
+            )
+
+    # Plot fixed points — draw gray (unknown stability) behind others, with transparency
     for _, row in df_fp.iterrows():
         stability = row[STABILITY_COLUMN_NAME]
         mk = STABILITY_MARKER_DICT.get(stability, "o")
         clr = STABILITY_COLOR_DICT.get(stability, "gray")
+        is_gray = stability not in STABILITY_COLOR_DICT
         ax.scatter(
-            shear_to_x[row["shear_stress"]],
+            dataset_to_x[row["dataset"]],
             row[variable],
             marker=mk,
             color=clr,
             edgecolor="black",
             linewidths=0.8,
             s=marker_size_scatter,
-            zorder=3,
+            alpha=0.35 if is_gray else 1.0,
+            zorder=1 if is_gray else 3,
         )
-    ax.set_xticks(list(range(len(unique_shear))))
-    ax.set_xticklabels(
-        [f"{s} dyn/cm\u00b2" for s in unique_shear], rotation=45, ha="right", fontsize=8
-    )
+    ax.set_xticks(list(range(len(unique_datasets))))
+    ax.set_xticklabels(tick_labels, rotation=45, ha="right", fontsize=8)
     if ylim is not None:
         ax.set_ylim(*ylim)
 
     ax.set_ylabel(label, fontsize=10)
     ax.set_xlabel("shear stress (dyn/cm\u00b2)", fontsize=10)
     ax.grid(axis="y", alpha=0.3)
+
     ax.legend(
         handles=legend_handles,
         loc="center left",
@@ -433,100 +473,155 @@ def plot_optical_flow_histogram(
     plt.close(fig)
 
 
-def plot_mean_vs_shear_stress_summary(
-    summary_stats: list[dict],
+def plot_cross_dataset_summaries(
+    dataset_names: list[str],
     optical_flow_feature: str,
+    feature_dataframe_manifest: DataframeManifest,
+    fixed_points_dataframe_manifest: DataframeManifest,
     output_dir: Path,
-    df_fp_all: pd.DataFrame | None = None,
+    plot_fixed_points: bool = True,
 ) -> None:
-    """Plot mean optical flow feature vs shear stress across datasets.
+    """Compute and plot cross-dataset summary visualizations.
+
+    This function loads all necessary data from the provided manifests and
+    produces:
+
+    - Fixed-point variable vs shear-stress plots (polar angle, polar radius,
+      PC3, and mean optical-flow feature).
+    - A mean-coherence vs shear-stress summary plot.
 
     Parameters
     ----------
-    summary_stats
-        List of dicts with keys ``"shear_stress"``, ``"mean"``, ``"std"``,
-        ``"color"``, and ``"label"`` for each dataset/flow condition.
+    dataset_names
+        List of dataset names to include in the summaries.
     optical_flow_feature
-        Name of the optical flow feature being summarized.
+        Name of the optical-flow feature column to summarise.
+    feature_dataframe_manifest
+        Manifest containing per-dataset feature dataframe locations.
+    fixed_points_dataframe_manifest
+        Manifest containing per-dataset fixed-point dataframe locations.
     output_dir
-        Directory where the figure is saved.
-    df_fp_all
-        Optional concatenated fixed-points dataframe (with ``"shear_stress"``
-        column from :func:`add_shear_stress_to_df`). If provided, fixed points
-        are overlaid on the plot.
+        Directory where the figures are saved.
+    plot_fixed_points
+        Whether to compute and overlay fixed-point data on the summaries.
     """
-    summary_stats_sorted = sorted(summary_stats, key=lambda s: s["shear_stress"])
-    labels = [s["label"] for s in summary_stats_sorted]
-    x_positions = list(range(len(labels)))
-
-    fig, ax = plt.subplots(figsize=(max(10, len(labels) * 0.8), 5))
-    for i, stat in enumerate(summary_stats_sorted):
-        ax.errorbar(
-            i,
-            stat["mean"],
-            yerr=stat["std"],
-            fmt="o",
-            color=stat["color"],
-            markersize=8,
-            capsize=4,
-            elinewidth=1.5,
-            label=stat["label"],
-        )
-    ax.set_xticks(x_positions)
-    ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=8)
-    ax.set_xlabel("dataset (shear stress)", fontsize=10)
-    ax.set_ylabel(f"mean {optical_flow_feature}", fontsize=10)
-    if optical_flow_feature == "optical_flow_mean_unit_vector_dt1":
-        ax.set_ylim(0, 1)
-    ax.legend(
-        loc="lower center",
-        bbox_to_anchor=(0.5, 1.02),
-        frameon=False,
-        fontsize=8,
+    from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
+    from endo_pipeline.io import load_dataframe
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+        check_required_columns_in_dataframe,
+        filter_dataframe_by_annotations,
+        split_dataset_by_flow,
     )
+    from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
+        add_binned_mean_to_fixed_points,
+        add_optical_flow_features,
+        add_shear_stress_to_df,
+    )
+    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
+    from endo_pipeline.manifests import get_dataframe_location_for_dataset
+    from endo_pipeline.settings.column_names import ColumnName
+    from endo_pipeline.settings.dynamics_workflows import (
+        DYNAMICS_COLUMN_NAMES,
+        METADATA_COLUMNS_TO_KEEP,
+    )
+    from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
 
-    # overlay fixed points on the summary plot
-    if df_fp_all is not None:
+    summary_stats: list[dict[str, float | str]] = []
+    df_fp_all_list: list[pd.DataFrame] = []
+
+    for dataset_name in dataset_names:
+        if dataset_name not in feature_dataframe_manifest.locations:
+            logger.warning(
+                "No feature dataframe found for dataset [ %s ]. Skipping.",
+                dataset_name,
+            )
+            continue
+
+        # Load, filter, and enrich the feature dataframe
+        df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
+        columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *DYNAMICS_COLUMN_NAMES]
+        df_ = df[columns_to_compute].compute()
+        df_steady_state = filter_dataframe_by_annotations(
+            df_,
+            load_dataset_config(dataset_name),
+            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
+        )
+        df_of = add_optical_flow_features(df_steady_state, datasets=[dataset_name])
+
+        dataset_config = load_dataset_config(dataset_name)
+        df_by_flow, shear_stress_list = split_dataset_by_flow(df_of, dataset_config)
+        hist_color = get_dataset_color(dataset_name)
+
+        for df_flow, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
+            plot_label = f"{dataset_name} ({shear_stress} dyn/cm$^2$)"
+
+            # Summary stats for the mean-coherence plot
+            flow_mean = df_flow[optical_flow_feature].mean()
+            flow_std = df_flow[optical_flow_feature].std()
+            summary_stats.append(
+                {
+                    "label": plot_label,
+                    "shear_stress": shear_stress,
+                    "mean": flow_mean,
+                    "std": flow_std,
+                    "color": hist_color,
+                }
+            )
+
+            # Fixed points with binned means
+            if plot_fixed_points:
+                try:
+                    fp_location = get_dataframe_location_for_dataset(
+                        fixed_points_dataframe_manifest, dataset_name
+                    )
+                    fp_df = load_dataframe(fp_location, delay=False)
+                    check_required_columns_in_dataframe(
+                        fp_df,
+                        required_columns=[
+                            *DYNAMICS_COLUMN_NAMES,
+                            ColumnName.DATASET,
+                            STABILITY_COLUMN_NAME,
+                        ],
+                    )
+                    df_flow_no_nan = df_flow.dropna(subset=[optical_flow_feature])
+                    fp_df = add_binned_mean_to_fixed_points(
+                        fp_df,
+                        df_flow_no_nan,
+                        x_col=ColumnName.DiffAEData.POLAR_ANGLE,
+                        y_col=ColumnName.DiffAEData.POLAR_RADIUS,
+                        z_col=ColumnName.DiffAEData.PC3_FLIPPED,
+                        binned_col=optical_flow_feature,
+                    )
+                    df_fp_all_list.append(fp_df)
+                except KeyError:
+                    logger.warning(
+                        "No fixed point dataframe found for dataset [ %s ]. "
+                        "Skipping fixed points.",
+                        dataset_name,
+                    )
+
+    # --- Fixed-points vs shear stress ---
+    if df_fp_all_list:
+        df_fp_all = pd.concat(df_fp_all_list, ignore_index=True)
+        df_fp_all = add_shear_stress_to_df(df_fp_all)
+
         mean_of_col = f"mean_{optical_flow_feature}"
-        df_fp_all = df_fp_all.copy()
-        # Map each fixed point to the nearest categorical x position by shear stress
-        shear_to_x = {}
-        for i, stat in enumerate(summary_stats_sorted):
-            shear_to_x.setdefault(stat["shear_stress"], []).append(i)
-        for _, row in df_fp_all.iterrows():
-            stability = row[STABILITY_COLUMN_NAME]
-            mk = STABILITY_MARKER_DICT.get(stability, "o")
-            clr = STABILITY_COLOR_DICT.get(stability, "gray")
-            shear_val = (
-                float(row["shear_stress"].split("-")[-1])
-                if isinstance(row["shear_stress"], str)
-                else float(row["shear_stress"])
-            )
-            # place at the mean x position of all datasets with this shear stress
-            matching_xs = shear_to_x.get(shear_val, [])
-            x_pos = np.mean(matching_xs) if matching_xs else 0
-            ax.scatter(
-                x_pos,
-                row[mean_of_col],
-                marker=mk,
-                color=clr,
-                edgecolor="black",
-                s=100,
-                zorder=5,
-            )
-        legend_handles = make_legend_handles_for_fixed_pts(
-            df_fp_all[STABILITY_COLUMN_NAME].unique().tolist()
-        )
-        ax.legend(
-            handles=[*ax.get_legend_handles_labels()[0], *legend_handles],
-            loc="lower center",
-            bbox_to_anchor=(0.5, 1.02),
-            frameon=False,
-            fontsize=8,
-            ncol=3,
-        )
+        variables = [
+            ColumnName.DiffAEData.POLAR_ANGLE,
+            ColumnName.DiffAEData.POLAR_RADIUS,
+            ColumnName.DiffAEData.PC3_FLIPPED,
+            mean_of_col,
+        ]
+        labels = ["\u03b8", "r", "\u03c1", f"mean_{optical_flow_feature}"]
 
-    ax.grid(axis="y", alpha=0.3)
-    fig.tight_layout()
-    save_plot_to_path(fig, output_dir, f"{optical_flow_feature}_mean_vs_shear_stress")
-    plt.close(fig)
+        for var, label in zip(variables, labels, strict=False):
+            # For the mean-optical-flow variable, overlay per-dataset mean ± std
+            # stats = summary_stats if var == mean_of_col and summary_stats else None
+            plot_fixed_points_vs_shear_stress(
+                df_fp_all,
+                var,
+                label,
+                output_dir=output_dir,
+                ylim=None,
+                summary_stats=None,
+            )

@@ -407,7 +407,10 @@ def filter_dataframe_by_annotations(
     only_include_positions_str = [f"P{pos}" for pos in only_include_positions]
     only_include_frames = get_all_unannotated_timepoints(dataset_config, timepoint_annotations)
     if dataframe[Column.POSITION].nunique() != len(dataset_config.zarr_positions):
-        logger.warning("Expected dataframe to contain all positions in dataset, but it does not.")
+        logger.warning(
+            f"Expected dataframe to contain all positions in dataset '{dataset_config.name}', "
+            "but it does not."
+        )
 
     # filter dataframe to only include non-annotated positions
     # NOTE: temporary if-else until we update how we store position: replace 'P[int]' with int
