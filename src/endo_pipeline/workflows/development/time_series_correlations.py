@@ -1,8 +1,6 @@
 from endo_pipeline.cli import Datasets
 from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
-TAGS = ["diffae_features"]
-
 
 def main(
     datasets: Datasets | None = None,
@@ -12,6 +10,8 @@ def main(
 ) -> None:
     """
     Run auto and cross correlation analysis on DiffAE feature time series data.
+
+    #diffae #correlation-analysis
 
     Parameters
     ----------
@@ -32,11 +32,7 @@ def main(
     from endo_pipeline.library.visualize.diffae_features.correlations import (
         plot_correlation_workflow_outputs,
     )
-    from endo_pipeline.manifests import (
-        get_feature_dataframe_manifest_name,
-        load_dataframe_manifest,
-        load_model_manifest,
-    )
+    from endo_pipeline.manifests import load_dataframe_manifest
 
     # initialize logger
     logger = logging.getLogger(__name__)
@@ -59,19 +55,17 @@ def main(
             )
             dataset_names.remove(dataset_name)
 
-    # load dataframe manifest corresponding to the model that generated the features
-    model_manifest = load_model_manifest(model_manifest_name)
-    dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
-    )
-
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+    # Load dataframe manifest for the features to be used in correlation analysis.
+    crop_pattern = "grid"  # only runs on grid based crops for now
+    base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
+    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
+    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # if demo mode, limit bootstrap samples to 50 if > 50
     if DEMO_MODE and bootstrap_samples is not None:
         if bootstrap_samples > 50:
             logger.warning(
-                "Running workflow in demo mode, reducing bootstrap samples" " from [ %s ] to 50.",
+                "Running workflow in demo mode, reducing bootstrap samples from [ %s ] to 50.",
                 bootstrap_samples,
             )
             bootstrap_samples = 50
@@ -79,7 +73,7 @@ def main(
     # get cross and autocorrelation for pc features for each dataset
     # in the list of model manifests
     correlation_dict = compute_correlation_dict(
-        dataset_names, dataframe_manifest, bootstrap_samples
+        dataset_names, feature_dataframe_manifest, bootstrap_samples
     )
 
     plot_correlation_workflow_outputs(correlation_dict, bootstrap_samples)
