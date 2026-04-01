@@ -30,7 +30,13 @@ def main(
     import numpy as np
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.configs import (
+        TimepointAnnotation,
+        get_datasets_in_collection,
+        load_dataset_config,
+    )
+    from endo_pipeline.io import load_dataframe
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
     from endo_pipeline.library.analyze.numerics.correlations import (
         compute_correlations_for_one_dataset,
     )
@@ -102,8 +108,23 @@ def main(
         "relaxation_timescales": {},
     }
     for dataset_name in dataset_names:
+        # try to get dataframe for the given dataset
+        # if it does not exist, skip this dataset, return dict as is
+        if dataset_name not in feature_dataframe_manifest:
+            logger.warning(
+                "Dataset [ %s ] not found in the manifest, skipping for this workflow.",
+                dataset_name,
+            )
+            return correlation_dict
+
+        # load dataframe and filter to just steady state timepoints
+        df = load_dataframe(feature_dataframe_manifest.locations[dataset_name])
+        dataset_config = load_dataset_config(dataset_name)
+        df_steady_state = filter_dataframe_by_annotations(
+            df, dataset_config, timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE]
+        )
         correlation_dict = compute_correlations_for_one_dataset(
-            dataset_name, feature_dataframe_manifest, correlation_dict, bootstrap_samples
+            df_steady_state, correlation_dict, bootstrap_samples
         )
 
     # visualize results of correlation analysis across datasets

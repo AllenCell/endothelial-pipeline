@@ -2,15 +2,13 @@ import logging
 from typing import Any, Literal
 
 import numpy as np
+import pandas as pd
 from scipy.optimize import curve_fit
 
-from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
-from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    check_required_columns_in_dataframe,
     df_to_array,
-    filter_dataframe_by_annotations,
 )
-from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
@@ -329,50 +327,45 @@ def bootstrap_cross_correlation_confidence_intervals(
 
 
 def compute_correlations_for_one_dataset(
-    dataset_name: str,
-    dataframe_manifest: DataframeManifest,
+    dataframe: pd.DataFrame,
     correlation_dict: dict,
     bootstrap_samples: int | None = None,
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
     rescale_polar_angle: bool = RESCALE_THETA,
 ) -> dict[str, dict[str, Any]]:
     """Compute cross-correlation and autocorrelation for features from one dataset."""
+    # check that required columns are present in the dataframe
+    required_columns = [
+        *DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
+        Column.DiffAEData.POLAR_ANGLE,
+        Column.DiffAEData.POLAR_RADIUS,
+        Column.DiffAEData.PC3_FLIPPED,
+        Column.CROP_INDEX,
+        Column.DATASET,
+    ]
+    check_required_columns_in_dataframe(dataframe, required_columns)
 
-    # try to get dataframe for the given dataset
-    # if it does not exist, skip this dataset, return dict as is
-    if dataset_name not in dataframe_manifest:
-        logger.warning(
-            "Dataset [ %s ] not found in the manifest, skipping for this workflow.", dataset_name
-        )
-        return correlation_dict
+    # get dataset name from dataframe
+    dataset_name = dataframe[Column.DATASET].iloc[0]
 
-    # load dataframe and filter to just steady state timepoints
-    dataframe_location = dataframe_manifest.locations[dataset_name]
-    df = load_dataframe(dataframe_location)
-    dataset_config = load_dataset_config(dataset_name)
-    df_steady_state = filter_dataframe_by_annotations(
-        df, dataset_config, timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE]
-    )
-
-    feat_cols = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
-    # add polar coordinate features to the list of features for correlation analysis
-    polar_column_names = [
+    # feature columns to use for correlation analysis
+    feat_cols = [
+        *DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
         Column.DiffAEData.POLAR_ANGLE,
         Column.DiffAEData.POLAR_RADIUS,
         Column.DiffAEData.PC3_FLIPPED,
     ]
-    feat_cols.extend(polar_column_names)
 
     # unwrap angles if polar_angle is in feat_cols
     if Column.DiffAEData.POLAR_ANGLE in feat_cols:
         polar_angle_period = PERIOD_THETA_RESCALED if rescale_polar_angle else 2 * np.pi
-        for _, df_crop in df_steady_state.groupby(Column.CROP_INDEX):
-            df_steady_state.loc[df_crop.index, Column.DiffAEData.POLAR_ANGLE] = np.unwrap(
+        for _, df_crop in dataframe.groupby(Column.CROP_INDEX):
+            dataframe.loc[df_crop.index, Column.DiffAEData.POLAR_ANGLE] = np.unwrap(
                 df_crop[Column.DiffAEData.POLAR_ANGLE], period=polar_angle_period
             )
 
     # get feature data
-    feats = df_to_array(df_steady_state, feat_cols)
+    feats = df_to_array(dataframe, feat_cols)
     num_feats = len(feat_cols)
 
     num_timepoints = feats.shape[1]
