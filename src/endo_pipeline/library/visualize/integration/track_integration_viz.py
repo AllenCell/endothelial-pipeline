@@ -14,16 +14,18 @@ from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+    add_normalized_time,
+)
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     get_slice_indexes,
     plot_flow_field_slices,
     plot_one_slice_quiver,
-    set_slice_plot_bounds_and_labels,
 )
-from endo_pipeline.settings import ColumnName
+from endo_pipeline.settings import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
-from endo_pipeline.settings.flow_field_3d import BIN_WIDTH_DEFAULTS, QUIVER_COLORMAP
+from endo_pipeline.settings.flow_field_3d import QUIVER_COLORMAP
 
 
 def set_global_pc_lims(axs: Sequence[plt.Axes], lim: int = 3) -> None:
@@ -51,8 +53,8 @@ def get_coarse_grained_trajectory_heatmap_data(
     df_all_positions: pd.DataFrame,
     bounds: np.ndarray | list,
     num_bins: list[int] = [150, 150, 150],
-    pc_cols: list[str] = ["pc_1", "pc_2", "pc_3"],
-    feature_to_use: str = "normalized_time",
+    pc_cols: list[str] = list(DYNAMICS_COLUMN_NAMES),
+    feature_to_use: str = Column.SegData.NORMALIZED_TIME_PER_TRACK,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Get a coarse-grained trajectory heatmap data from the DataFrame.
@@ -79,19 +81,19 @@ def get_coarse_grained_trajectory_heatmap_data(
     bin_data = np.zeros(num_bins)
     bin_counts = np.zeros(num_bins, dtype=int)
     ndim = len(pc_cols)
-    bins_array = np.array(
-        [np.linspace(bounds[i][0], bounds[i][1], num_bins[i]) for i in range(ndim)]
-    ).T
-    for _, df_one_position in df_all_positions.groupby("position_as_str"):
-        for _, df_track in df_one_position.groupby("track_id"):
+    bins_list = [np.linspace(bounds[i][0], bounds[i][1], num_bins[i]) for i in range(ndim)]
+
+    for _, df_one_position in df_all_positions.groupby(Column.POSITION):
+        for _, df_track in df_one_position.groupby(Column.TRACK_ID):
             trajectory = df_track[pc_cols].values
             feature_values = df_track[feature_to_use].values
             bin_indices = np.zeros((trajectory.shape[0], ndim), dtype=int)
-            for dim in range(len(pc_cols)):
+            for dim in range(ndim):
                 # get the bin index in which each timepoint lies
-                bin_indices[:, dim] = np.digitize(trajectory[:, dim], bins_array[:, dim]) - 1
+                bin_indices_one_dim = np.digitize(trajectory[:, dim], bins_list[dim]) - 1
                 # clip the bin indices to be within the valid range
-                bin_indices[:, dim] = np.clip(bin_indices[:, dim], 0, num_bins[dim] - 1)
+                bin_indices_one_dim = np.clip(bin_indices_one_dim, 0, num_bins[dim] - 1)
+                bin_indices[:, dim] = bin_indices_one_dim
             # increment the bin data and count
             for i in range(trajectory.shape[0]):
                 bin_data[tuple(bin_indices[i])] += feature_values[i]
@@ -123,7 +125,7 @@ def get_valid_slice_indexes(
             pc2_val = 0
         else:
             # get mean at all time points over crops
-            mean_over_crops = df.groupby(ColumnName.TIMEPOINT).mean(numeric_only=True)
+            mean_over_crops = df.groupby(Column.TIMEPOINT).mean(numeric_only=True)
             # get last time point
             mean_over_crops = mean_over_crops.iloc[-1]
             pc3_val = mean_over_crops["pc_3"].mean()
@@ -223,7 +225,7 @@ def plot_measured_feat_pcs(
     for j, ax in enumerate(axs):  # PC1 vs PC2, PC1 vs PC3
         if track_id == "mean":
             measured_feat_df = (
-                measured_feat_df.groupby(ColumnName.TIMEPOINT)
+                measured_feat_df.groupby(Column.TIMEPOINT)
                 .mean(numeric_only=True)[pc_cols + [meas_feat_col]]
                 .reset_index()
             )
@@ -264,7 +266,7 @@ def plot_measured_feat_pcs(
         )
         if indicate_track_start:
             first_timepoint_record = measured_feat_df.loc[
-                measured_feat_df[ColumnName.TIMEPOINT].idxmin()
+                measured_feat_df[Column.TIMEPOINT].idxmin()
             ]
             ax.scatter(
                 first_timepoint_record[pc_cols_for_xaxis[j]],
@@ -278,7 +280,7 @@ def plot_measured_feat_pcs(
             )
         if indicate_track_end:
             last_timepoint_record = measured_feat_df.loc[
-                measured_feat_df[ColumnName.TIMEPOINT].idxmax()
+                measured_feat_df[Column.TIMEPOINT].idxmax()
             ]
             ax.scatter(
                 last_timepoint_record[pc_cols_for_xaxis[j]],
@@ -286,7 +288,7 @@ def plot_measured_feat_pcs(
                 s=100,
                 edgecolor=(0, 0, 0, alpha),
                 facecolor=(0, 0, 0, 0),
-                lw=1,
+                lw=2,
                 marker="*",
                 zorder=zorder + 3,
             )
@@ -294,35 +296,25 @@ def plot_measured_feat_pcs(
     return fig, axs  # type: ignore[return-value]
 
 
-def plot_measured_feat_overlay_on_flowfield(
-    out_dir: Path,
-    dataset_name: str,
-    flow_field_dict_grids: dict,
+def overlay_feature_on_flowfield(
+    flowfield_fig_and_axs: tuple[plt.Figure, np.ndarray],
     cellcentric_df: pd.DataFrame,
-    meas_feat_col_name_for_color_coding: str,
-    flow_field_slices: tuple,
-    fixed_points_df: pd.DataFrame | None = None,
+    column_names: list[str],
+    column_name_for_color_coding: str,
     indicate_track_start: bool = True,
     indicate_track_end: bool = True,
     track_id_to_plot: Literal["mean"] | int | None = "mean",
     hue_norm: tuple[float, float] | None = None,
     legend: Literal["auto", "brief", "full", False] = "auto",
     alpha: float = 0.7,
-    show_plot: bool = False,
-    figure_format: Literal[".png", ".svg", ".pdf"] = ".png",
     use_global_pc_lims: bool = False,
-) -> None:
-    fig, axs = plot_quiver_slices_from_flow_field_dict(
-        dataset_name=dataset_name,
-        flow_field_dict_grids=flow_field_dict_grids,
-        feature_vals=flow_field_slices,
-        column_names=dynamics_columns,
-    )
+) -> tuple[plt.Figure, np.ndarray]:
+    fig, axs = flowfield_fig_and_axs
     fig, axs = plot_measured_feat_pcs(
         measured_feat_df=cellcentric_df,
-        meas_feat_col=meas_feat_col_name_for_color_coding,
-        pc_cols_for_xaxis=["pc_1", "pc_1"],
-        pc_cols_for_yaxis=["pc_2", "pc_3"],
+        meas_feat_col=column_name_for_color_coding,
+        pc_cols_for_xaxis=[column_names[0], column_names[0]],
+        pc_cols_for_yaxis=[column_names[1], column_names[2]],
         track_id=track_id_to_plot,
         indicate_track_start=indicate_track_start,
         indicate_track_end=indicate_track_end,
@@ -334,17 +326,6 @@ def plot_measured_feat_overlay_on_flowfield(
         alpha=alpha,
     )
     plt.tight_layout()
-    if track_id_to_plot == "mean":
-        data_subset = "_timeAvgTracks"
-    elif isinstance(track_id_to_plot, int):
-        data_subset = f"_tid{track_id_to_plot}"
-    elif track_id_to_plot is None:
-        data_subset = ""
-    else:
-        raise ValueError(
-            "track_ids must be 'mean', an integer, or None. "
-            f"Got {track_id_to_plot} (type: {type(track_id_to_plot)}) instead."
-        )
 
     # change the data aspect so that X and Y have the same scaling (e.g. distances along PC1 and PC2
     # axes will be the same and directly comparable).
@@ -359,57 +340,81 @@ def plot_measured_feat_overlay_on_flowfield(
     if use_global_pc_lims:
         set_global_pc_lims(axs, lim=3)  # type:ignore[arg-type]
 
+    return fig, axs
+
+
+def save_feature_flowfield_overlay(
+    out_dir: Path,
+    flow_field_figure: plt.Figure,
+    dataset_name: str,
+    column_name_for_color_coding: str,
+    track_id_to_plot: Literal["mean"] | int | None = "mean",
+    show_plot: bool = False,
+    figure_format: Literal[".png", ".svg", ".pdf"] = ".png",
+) -> None:
+    if track_id_to_plot == "mean":
+        data_subset = "_timeAvgTracks"
+    elif isinstance(track_id_to_plot, int):
+        data_subset = f"_tid{track_id_to_plot}"
+    elif track_id_to_plot is None:
+        data_subset = ""
+    else:
+        raise ValueError(
+            "track_ids must be 'mean', an integer, or None. "
+            f"Got {track_id_to_plot} (type: {type(track_id_to_plot)}) instead."
+        )
+
     save_plot_to_path(
-        figure=fig,
+        figure=flow_field_figure,
         output_path=out_dir,
-        figure_name=f"{dataset_name}{data_subset}_{meas_feat_col_name_for_color_coding}Hue",
+        figure_name=f"{dataset_name}{data_subset}_{column_name_for_color_coding}Hue",
         file_format=figure_format,
     )
     if not show_plot:
-        plt.close(fig)
+        plt.close(flow_field_figure)
 
 
-def plot_new_traj_overlay_on_grid_traj_and_flowfield(
-    out_dir: Path,
-    dataset_name: str,
-    fixed_points_df: pd.DataFrame | None,
-    flow_field_dict_grids: dict,
-    traj_tracks: np.ndarray,
-    figure_format: Literal[".png", ".svg", ".pdf"] = ".png",
-    use_global_pc_lims: bool = False,
-) -> None:
-    fig, axs = plot_quiver_slices_from_flow_field_dict(dataset_name, flow_field_dict_grids)
-    for j, ax in enumerate(axs):  # PC1 vs PC2, PC1 vs PC3
-        ax.plot(traj_tracks[:, 0], traj_tracks[:, j + 1], lw=2, color="crimson")
-        ax.scatter(
-            traj_tracks[-1, 0],
-            traj_tracks[-1, j + 1],
-            s=50,
-            color="black",
-            marker="*",
-            zorder=10,
-        )
-    if use_global_pc_lims:
-        [ax.set_xlim(-3, 3) for ax in axs]
-        [ax.set_ylim(-3, 3) for ax in axs]
+# def plot_new_traj_overlay_on_grid_traj_and_flowfield(
+#     out_dir: Path,
+#     dataset_name: str,
+#     # fixed_points_df: pd.DataFrame | None,
+#     flow_field_dict_grids: dict,
+#     traj_tracks: np.ndarray,
+#     figure_format: Literal[".png", ".svg", ".pdf"] = ".png",
+#     use_global_pc_lims: bool = False,
+# ) -> None:
+#     fig, axs = plot_quiver_slices_from_flow_field_dict(dataset_name, flow_field_dict_grids)
+#     for j, ax in enumerate(axs):  # PC1 vs PC2, PC1 vs PC3
+#         ax.plot(traj_tracks[:, 0], traj_tracks[:, j + 1], lw=2, color="crimson")
+#         ax.scatter(
+#             traj_tracks[-1, 0],
+#             traj_tracks[-1, j + 1],
+#             s=50,
+#             color="black",
+#             marker="*",
+#             zorder=10,
+#         )
+#     if use_global_pc_lims:
+#         [ax.set_xlim(-3, 3) for ax in axs]
+#         [ax.set_ylim(-3, 3) for ax in axs]
 
-    save_plot_to_path(
-        figure=fig,
-        output_path=out_dir,
-        figure_name=f"{dataset_name}_trajectory_grids_vs_tracks",
-        file_format=figure_format,
-    )
-    plt.close(fig)
+#     save_plot_to_path(
+#         figure=fig,
+#         output_path=out_dir,
+#         figure_name=f"{dataset_name}_trajectory_grids_vs_tracks",
+#         file_format=figure_format,
+#     )
+#     plt.close(fig)
 
 
 def overlay_trajectory_heatmap_on_flowfield(
     out_dir: Path,
     dataset_name: str,
-    diffae_grid_df: pd.DataFrame,
-    fixed_points_df: pd.DataFrame | None,
     flow_field_dict_grids: dict,
-    diffae_tracked_df: pd.DataFrame,
-    bin_widths: tuple[float, float, float] = BIN_WIDTH_DEFAULTS,
+    feature_vals: tuple[float, float],
+    dynamics_columns: list[str],
+    cellcentric_df: pd.DataFrame,
+    bin_widths: tuple[float, float, float],
 ) -> None:
     """
     Overlay a coarse-grained trajectory heatmap on the flow field.
@@ -420,28 +425,29 @@ def overlay_trajectory_heatmap_on_flowfield(
         Directory to save the plot to.
     dataset_name
         Name of the dataset to use for the plot.
-    diffae_grid_df
-        DataFrame containing the diffae grid data.
-    traj_grids
-        Numpy array containing the trajectory grids.
     flow_field_dict_grids
         Dictionary containing the flow field data for the grids.
-    diffae_tracked_df
+    cellcentric_df
         DataFrame containing all positions and tracks.
     num_bins
         Number of bins to use for the heatmap in each dimension.
     """
     # plot flow field
-    fig, axs = plot_quiver_slices_from_flow_field_dict(diffae_grid_df, flow_field_dict_grids)
-
+    fig, axs = plot_quiver_slices_from_flow_field_dict(
+        dataset_name=dataset_name,
+        flow_field_dict_grids=flow_field_dict_grids,
+        feature_vals=feature_vals,
+        column_names=dynamics_columns,
+    )
     bounds = get_grid_bounds(flow_field_dict_grids)
     bins, _ = get_bins(bin_widths, bin_limits=bounds)
 
     project_axis = [2, 1]  # this is axis for projecting binned data for each plot
     plot_dim = [1, 2]  # this is the PC dimension plotted on the y-axis against PC1
 
+    cellcentric_df = add_normalized_time(cellcentric_df)
     bin_data, bin_counts = get_coarse_grained_trajectory_heatmap_data(
-        diffae_tracked_df=diffae_tracked_df,
+        df_all_positions=cellcentric_df,
         bounds=bounds,
         num_bins=[len(b) - 1 for b in bins],
         pc_cols=list(DYNAMICS_COLUMN_NAMES),
@@ -478,13 +484,14 @@ def overlay_trajectory_heatmap_on_flowfield(
 PlotMeasFeatAndFlowFieldOverlayArgs = namedtuple(
     "PlotMeasFeatAndFlowFieldOverlayArgs",
     [
-        "out_subir_single_position",
+        "out_subdir_single_position",
         "dataset_name",
-        "diffae_grid_df",
         "flow_field_dict_grids",
         "flow_field_slices",
+        "fixed_points_at_slices",
         "df_one_position",
         "measured_feature",
+        "dynamics_columns",
         "track_id",
         "hue_norm",
         "legend",
@@ -500,38 +507,48 @@ def multiproc_plot_measured_feat_overlay_on_flowfield(
     (
         out_subdir_indiv_pos,
         dataset_name,
-        diffae_grid_crops,
-        traj_grids,
         flow_field_dict_grids,
+        flow_field_slices,
+        fixed_points_at_slices,
         df_one_position,
         measured_feature,
-        tid,
+        dynamics_columns,
+        track_id,
         hue_norm,
         legend,
         figure_format,
         use_global_pc_lims,
     ) = args
 
-    plot_measured_feat_overlay_on_flowfield(
-        out_subdir_indiv_pos,
-        dataset_name,
-        diffae_grid_crops,
-        traj_grids,
-        flow_field_dict_grids,
+    fig, axs = plot_quiver_slices_from_flow_field_dict(
+        dataset_name=dataset_name,
+        flow_field_dict_grids=flow_field_dict_grids,
+        feature_vals=flow_field_slices,
+        column_names=dynamics_columns,
+    )
+    for j, ax in enumerate(axs):
+        ax.scatter(*fixed_points_at_slices[j], c="k", s=50)
+    fig, axs = overlay_feature_on_flowfield(
+        flowfield_fig_and_axs=(fig, axs),
         cellcentric_df=df_one_position,
-        meas_feat_col_name_for_color_coding=measured_feature,
-        flow_field_slices=flow_field_slices,
-        plot_trajectory=False,
-        plot_fixed_points=True,
+        column_names=dynamics_columns,
+        column_name_for_color_coding=measured_feature,
         indicate_track_start=False,
         indicate_track_end=True,
-        track_id_to_plot=tid,
+        track_id_to_plot=track_id,
         hue_norm=hue_norm,
         legend=legend,
         alpha=0.8,
+        use_global_pc_lims=use_global_pc_lims,
+    )
+    save_feature_flowfield_overlay(
+        out_dir=out_subdir_indiv_pos,
+        flow_field_figure=fig,
+        dataset_name=dataset_name,
+        column_name_for_color_coding=measured_feature,
+        track_id_to_plot=track_id,
         show_plot=False,
         figure_format=figure_format,
-        use_global_pc_lims=use_global_pc_lims,
     )
 
 

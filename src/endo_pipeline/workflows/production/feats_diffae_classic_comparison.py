@@ -1,6 +1,5 @@
-from endo_pipeline.cli import Datasets, UniqueIntList
-from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
-from endo_pipeline.settings.workflow_defaults import (  # DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+from endo_pipeline.cli import DEMO_MODE, Datasets, UniqueIntList
+from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
     DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
 )
@@ -16,10 +15,10 @@ def main(
     n_cores: int = 30,
     diffae_grid_manifest_name_for_flowfield: str = DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
     cellcentric_features_manifest_name_for_flowfield: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
-    # cellcentric_features_manifest_name_for_integration: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
 ) -> None:
     """This workflow outputs plots of track-based cell trajectories integrated with grid-based DiffAE flow fields."""
 
+    import logging
     from collections import namedtuple
     from multiprocessing import Pool
     from typing import Literal
@@ -31,23 +30,31 @@ def main(
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.integration.track_integration import (
         get_flow_field_and_fixed_points,
+        get_flow_field_estimation_params,
     )
     from endo_pipeline.library.visualize.integration.track_integration_viz import (  # plot_new_traj_overlay_on_grid_traj_and_flowfield,
         PlotMeasFeatAndFlowFieldOverlayArgs,
         multiproc_plot_measured_feat_overlay_on_flowfield,
+        overlay_feature_on_flowfield,
         overlay_trajectory_heatmap_on_flowfield,
-        plot_measured_feat_overlay_on_flowfield,
         plot_quiver_slices_from_flow_field_dict,
+        save_feature_flowfield_overlay,
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset
+    from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+    from endo_pipeline.settings.dynamics_workflows import (
+        DYNAMICS_COLUMN_NAMES,
+        LONG_TRACK_THRESHOLD_LENGTH,
+    )
     from endo_pipeline.settings.workflow_defaults import (  # DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,; DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,; DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
         DATASET_INFO_COLUMNS,
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
         DEFAULT_PCA_DATASET_COLLECTION_NAME,
     )
+
+    logger = logging.getLogger(__name__)
 
     out_dir = get_output_path(__file__)
     if datasets is None:
@@ -67,10 +74,20 @@ def main(
         Column.SegData.ECCENTRICITY,
     ]
 
+    if DEMO_MODE:
+        datasets = datasets[:1]
+        positions = positions[:1]
+        n_cores = 1
+
     for dataset_name in datasets:
 
         # define the columns to compute
-        compute_cols = [*DATASET_INFO_COLUMNS, *dynamics_columns, *seg_feat_columns]
+        compute_cols = [
+            *DATASET_INFO_COLUMNS,
+            *dynamics_columns,
+            *seg_feat_columns,
+            Column.TRACK_LENGTH,
+        ]
 
         # load and preprocess the different diffae manifests and PCA pipeline
         cellcentric_manifest = load_dataframe_manifest(
@@ -163,8 +180,8 @@ def main(
                     feature_vals=flow_field_slices,
                     column_names=dynamics_columns,
                 )
-                for i, ax in enumerate(axs):
-                    ax.scatter(*fixed_points_at_slices[i], c="k", s=50)
+                for j, ax in enumerate(axs):
+                    ax.scatter(*fixed_points_at_slices[j], c="k", s=50)
                 plt.tight_layout()
                 save_plot_to_path(
                     figure=fig,
@@ -174,53 +191,67 @@ def main(
                 )
                 plt.close(fig)
 
-                # plot the flow field and the trajectories for the average behavior of
-                # tracked cells over time
-                # plot_new_traj_overlay_on_grid_traj_and_flowfield(
-                #     out_subdir,
-                #     dataset_name,
-                #     fixed_points_df,
-                #     flow_field_dict_grids,
-                #     traj_tracks,
-                #     figure_format=figure_format,
-                #     use_global_pc_lims=use_global_pc_lims,
-                # )
-
+                # plot the flow field and the mean behavior of the tracked cells over time
                 for feature_name, feature_hue_lims in measured_feats_to_plot:
-                    plot_measured_feat_overlay_on_flowfield(
-                        out_subdir,
-                        dataset_name,
-                        flow_field_dict_grids,
+                    fig, axs = plot_quiver_slices_from_flow_field_dict(
+                        dataset_name=dataset_name,
+                        flow_field_dict_grids=flow_field_dict_grids,
+                        feature_vals=flow_field_slices,
+                        column_names=dynamics_columns,
+                    )
+                    for j, ax in enumerate(axs):
+                        ax.scatter(*fixed_points_at_slices[j], c="k", s=50)
+                    fig, axs = overlay_feature_on_flowfield(
+                        flowfield_fig_and_axs=(fig, axs),
                         cellcentric_df=cellcentric_df,
-                        meas_feat_col_name_for_color_coding=feature_name,
-                        track_id_to_plot="mean",
-                        plot_trajectory=False,
-                        fixed_points_df=fixed_points_df,
-                        flow_field_slices=flow_field_slices,
+                        column_names=dynamics_columns,
+                        column_name_for_color_coding=feature_name,
                         indicate_track_start=False,
                         indicate_track_end=True,
+                        track_id_to_plot="mean",
                         hue_norm=feature_hue_lims,
                         legend=legend,
                         alpha=0.8,
-                        show_plot=False,
-                        figure_format=figure_format,
                         use_global_pc_lims=use_global_pc_lims,
                     )
+                    save_feature_flowfield_overlay(
+                        out_dir=out_subdir,
+                        flow_field_figure=fig,
+                        dataset_name=dataset_name,
+                        column_name_for_color_coding=feature_name,
+                        track_id_to_plot="mean",
+                        show_plot=False,
+                        figure_format=figure_format,
+                    )
+                # plot trajectory heatmap (indicates where most of the data is in PC-space)
+                _, bin_widths = get_flow_field_estimation_params(column_names=dynamics_columns)
 
-            # plot trajectory heatmap (indicates where most of the data is in PC-space)
-            overlay_trajectory_heatmap_on_flowfield(
-                out_dir=out_subdir_heatmap,
-                dataset_name=dataset_name,
-                cellcentric_df=cellcentric_df,
-                flow_field_dict_grids=flow_field_dict_grids,
-            )
+                overlay_trajectory_heatmap_on_flowfield(
+                    out_dir=out_subdir_heatmap,
+                    dataset_name=dataset_name,
+                    flow_field_dict_grids=flow_field_dict_grids,
+                    feature_vals=flow_field_slices,
+                    dynamics_columns=dynamics_columns,
+                    cellcentric_df=cellcentric_df,
+                    bin_widths=bin_widths,
+                )
 
         # plot single track examples
         for pos in positions:
-            df_one_position = cellcentric_df[cellcentric_df[Column.POSITION] == pos]
-            # for pos, df_one_position in diffae_tracked_df.groupby("position_as_str"):
             out_subdir_indiv_pos = out_subdir_indiv / str(pos)
             out_subdir_indiv_pos.mkdir(parents=True, exist_ok=True)
+
+            df_one_position = cellcentric_df[cellcentric_df[Column.POSITION] == pos]
+
+            df_one_position = df_one_position[
+                df_one_position[Column.TRACK_LENGTH] > LONG_TRACK_THRESHOLD_LENGTH
+            ]
+
+            if df_one_position.empty:
+                logger.warning(
+                    f"No tracks longer than {LONG_TRACK_THRESHOLD_LENGTH} for position {pos}, skipping..."
+                )
+                continue
 
             # decide on the feature to color code by and the min and max
             # of that color coding
@@ -229,44 +260,61 @@ def main(
 
             if track_ids is None:
                 track_ids = sorted(df_one_position[Column.TRACK_ID].unique().tolist())
-                # only overlay every 10th track id if there are a lot
-                # of tracks to save time + space
+                # overlay every 10th track ID if there are a lot of tracks to save time + space
                 track_ids = track_ids[::10] if len(track_ids[::10]) > 10 else track_ids
 
-            arg_list = []
-            for tid in track_ids:
-                arg_list.append(
-                    PlotMeasFeatAndFlowFieldOverlayArgs(
-                        out_subdir_indiv_pos,
-                        dataset_name,
-                        diffae_grid_df,
-                        flow_field_dict_grids,
-                        flow_field_slices,
-                        df_one_position,
-                        measured_feature,
-                        tid,
-                        hue_norm,
-                        legend,
-                        figure_format,
-                        use_global_pc_lims,
-                    )
+            if DEMO_MODE:
+                track_ids = track_ids[:10]
+
+            for i, fp_row in fixed_points_df.iterrows():
+                flow_field_slices = (
+                    fp_row[dynamics_columns[2]],
+                    fp_row[dynamics_columns[1]],
+                )  # feature 3, feature 2
+                fixed_points_at_slices = (
+                    fp_row[list(map(str, dynamics_columns))].drop(index=[dynamics_columns[2]]),
+                    fp_row[list(map(str, dynamics_columns))].drop(index=[dynamics_columns[1]]),
                 )
 
-            # make the plots
-            with Pool(processes=n_cores) as pool:
-                print(f"Starting multiprocessing pool for plotting (using {n_cores} cores)...")
-                list(
-                    tqdm(
-                        pool.imap(
-                            multiproc_plot_measured_feat_overlay_on_flowfield, arg_list, chunksize=5
-                        ),
-                        total=len(arg_list),
-                        desc=f"Plotting tracks at {dataset_name} {pos}",
+                arg_list = []
+                for tid in track_ids:
+                    arg_list.append(
+                        PlotMeasFeatAndFlowFieldOverlayArgs(
+                            out_subdir_single_position=out_subdir_indiv_pos,
+                            dataset_name=dataset_name,
+                            flow_field_dict_grids=flow_field_dict_grids,
+                            flow_field_slices=flow_field_slices,
+                            fixed_points_at_slices=fixed_points_at_slices,
+                            df_one_position=df_one_position,
+                            measured_feature=measured_feature,
+                            dynamics_columns=dynamics_columns,
+                            track_id=tid,
+                            hue_norm=hue_norm,
+                            legend=legend,
+                            figure_format=figure_format,
+                            use_global_pc_lims=use_global_pc_lims,
+                        )
                     )
-                )
-                pool.close()
-                pool.join()
-                print("Multiprocessing pool for plotting complete.")
+
+                # make the plots
+                with Pool(processes=n_cores) as pool:
+                    logger.info(
+                        f"Plotting track overlays for fixed point {i} (using {n_cores} cores)..."
+                    )
+                    list(
+                        tqdm(
+                            pool.imap(
+                                multiproc_plot_measured_feat_overlay_on_flowfield,
+                                arg_list,
+                                chunksize=5,
+                            ),
+                            total=len(arg_list),
+                            desc=f"Plotting tracks at {dataset_name} {pos}",
+                        )
+                    )
+                    pool.close()
+                    pool.join()
+                    logger.info("Plotting track overlays complete.")
 
 
 if __name__ == "__main__":

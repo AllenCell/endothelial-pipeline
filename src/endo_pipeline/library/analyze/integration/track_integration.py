@@ -70,12 +70,12 @@ logger = logging.getLogger(__name__)
 
 
 def get_flow_field_estimation_params(
-    column_names: list[str],
+    column_names: list[str] = list(DYNAMICS_COLUMN_NAMES),
     rescale_theta: bool = RESCALE_THETA,
     period_theta_rescaled: float = PERIOD_THETA_RESCALED,
-    kernel_names_dynamics: dict[str, str] = KERNEL_NAMES_DYNAMICS,
-    kernel_bandwidths_dynamics: dict[str, float] = KERNEL_BANDWIDTHS_DYNAMICS,
-    bin_widths_dynamics: dict[str, float] = BIN_WIDTHS_DYNAMICS,
+    kernel_names_dynamics: dict[Column.DiffAEData, str] = KERNEL_NAMES_DYNAMICS,
+    kernel_bandwidths_dynamics: dict[Column.DiffAEData, float] = KERNEL_BANDWIDTHS_DYNAMICS,
+    bin_widths_dynamics: dict[Column.DiffAEData, float] = BIN_WIDTHS_DYNAMICS,
 ) -> tuple[list[KramersMoyalKernel], list[float]]:
     # initialize kernels and bin widths for each of the three variables for flow
     # field estimation
