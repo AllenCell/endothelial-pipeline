@@ -124,7 +124,7 @@ def main(
                 "Dataset [ %s ] not found in the manifest, skipping for this workflow.",
                 dataset_name,
             )
-            return correlation_dict
+            continue
 
         # load dataframe and filter to just steady state timepoints
         df = load_dataframe(feature_dataframe_manifest.locations[dataset_name])
