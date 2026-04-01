@@ -7,7 +7,7 @@ def main() -> None:
     from skimage.exposure import rescale_intensity
     from tqdm import tqdm
 
-    from endo_pipeline import NUM_GPUS
+    from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import get_output_path, load_image, load_model, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
