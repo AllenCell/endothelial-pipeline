@@ -168,7 +168,7 @@ def main() -> None:
     dataset_config = load_dataset_config(dataset_name)
 
     for i, row in tqdm(diffae_grid_crops_examples.iterrows(), desc="Saving closest real examples"):
-        position = int(row[Column.POSITION].replace("P", ""))
+        position = int(row[Column.POSITION])
         timepoint = int(row[Column.TIMEPOINT])
         start_x = int(row[Column.DiffAEData.START_X])
         start_y = int(row[Column.DiffAEData.START_Y])
