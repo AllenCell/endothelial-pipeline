@@ -16,12 +16,9 @@ def main(
     ----------
     datasets
         Datasets and / or dataset collection(s) to visualize.
-    model_manifest_name
-        Name of the model manifest to get DiffAE features for.
-    run_name
-        Name of the model run within the model manifest. If None, uses the most recent run.
-    include_cell_piling
-        Whether to include cell piling timepoints in the visualization.
+    include_not_steady_state
+        If true, include timepoints annotated as "not_steady_state" in the
+        scatter plots. If false, only exclude these timepoints.
 
     """
     from endo_pipeline.configs import get_datasets_in_collection

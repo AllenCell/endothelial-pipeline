@@ -15,31 +15,30 @@ def main(
 
     #diffae_features #visualization #pca
 
+    **Workflow defaults**
+    - model_manifest_name: DEFAULT_MODEL_MANIFEST_NAME
+    - run_name: DEFAULT_MODEL_RUN_NAME
+    - datasets: DEFAULT_PCA_DATASET_COLLECTION_NAME
+    - crop_pattern: "grid"
+    - num_pcs: NUM_PCS_TO_ANALYZE
+    - num_features: NUM_LATENT_FEATURES
+
     Parameters
     ----------
-    model_manifest_name : str
-        Name of the model manifest to load the DiffAE model from.
-    run_name : str | None
-        Name of the model run within the model manifest. If None, uses the most recent run.
-    dataset_collection_name_to_fit_pca : str
-        Name of the dataset collection to use for fitting the PCA model.
-    dataset_collection_name_to_viz : str
-        Name of the dataset collection to use for visualization.
-    crop_pattern : Literal["grid", "tracked"]
-        Crop pattern used for training the DiffAE model. Must be either 'grid' or 'tracked'.
-    include_cell_piling : bool
-        Whether to include cell piling features in the PCA fitting and visualization.
-    num_pcs : int | None
+    datasets
+        Datasets and / or dataset collection(s) to visualize in the PCA scatter plot.
+    crop_pattern
+        Crop pattern for the features to visualize.
+    num_pcs
         Number of principal components to analyze and visualize.
-        If None, uses NUM_PCS_TO_ANALYZE or the number of latent features, whichever is smaller.
-    num_features : int | None
-        Number of features to analyze and visualize.
-        If None, uses NUM_LATENT_FEATURES or the number of features in the dataset,
-        whichever is smaller.
-    include_loadings_legend : bool
-        Whether to include a legend in the PCA loadings plots.
-    annotate : bool
-        Whether to annotate the heatmap and clustermap of PCA loadings.
+    num_features
+        Number of latent features to include in the PCA loading visualizations.
+    include_loadings_legend
+        If true, include a legend in the PCA loadings plots.
+    annotate
+        If true, annotate the heatmap and clustermap of PCA loadings.
+    color_by_time
+        If true, color points in the PCA scatter plot by timepoint. If false, color by dataset.
     """
     import logging
 
