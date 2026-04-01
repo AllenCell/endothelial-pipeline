@@ -72,7 +72,6 @@ def main(
         KERNEL_NAMES_DYNAMICS,
         METADATA_COLUMNS_TO_KEEP,
         RESCALE_THETA,
-        TRACK_METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
     from endo_pipeline.settings.workflow_defaults import (
@@ -84,8 +83,8 @@ def main(
 
     # get label for provided feature column
     column_name = column or ColumnName.DiffAEData.POLAR_ANGLE
-    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, column_name]
     variable_label = get_label_for_column(column_name).replace("polar ", "")
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], column_name]
 
     # cast global constant dicts to avoid type errors
     bin_limits_dict = cast(
@@ -106,18 +105,10 @@ def main(
         - bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0]
     )
 
-    # get dataframe manifest for grid-based crop features
-    if crop_pattern == "tracked":
-        logger.warning(
-            "Crop pattern [ tracked ] is temporarily not supported for this workflow. "
-            "Defaulting to [ grid ] crop pattern."
-        )
-        crop_pattern = "grid"
-
-    dataframe_manifest_name = (
-        f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}_pca_filtered"
-    )
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+    # get dataframe manifest for crop-based features
+    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
+    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
+    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # Use provided datasets or default if none provided.
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
@@ -125,9 +116,9 @@ def main(
     # loop over datasets in collection, compute 1D drift for given variable, and
     # plot results, skipping datasets not found in manifest
     for dataset_name in dataset_names:
-        if dataset_name not in dataframe_manifest.locations:
+        if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
-                f"Dataset {dataset_name} not found in manifest {dataframe_manifest_name}. Skipping."
+                f"Dataset {dataset_name} not found in manifest {feature_dataframe_manifest_name}. Skipping."
             )
             continue
         fig_savedir = get_output_path(__file__, crop_pattern, dataset_name)
@@ -136,11 +127,7 @@ def main(
         # load dataframe and perform additional filtering (remove
         # non-steady-state timepoints based on annotations), computing
         # only the columns needed for flow field estimation and analysis to save memory.
-        df = load_dataframe(dataframe_manifest.locations[dataset_name], delay=True)
-        # start with default metadata columns to keep
-        if crop_pattern == "tracked":
-            # also keep track ID and track length columns for tracked crops
-            columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
+        df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
         df_ = df[columns_to_compute].compute()
         df_steady_state = filter_dataframe_by_annotations(
             df_,
