@@ -83,6 +83,7 @@ def main(
         fixed_points_dataframe_manifest=fixed_points_dataframe_manifest,
         output_dir=get_output_path(__file__),
         plot_fixed_points=plot_fixed_points,
+        by_dataset=False,
     )
 
     if not skip_individual_plots:
@@ -116,13 +117,11 @@ def main(
 
             # split the dataframe by flow condition so we can plot the distribution
             # of optical flow features for each flow condition separately
-
             df_by_flow, shear_stress_list = split_dataset_by_flow(df_of, dataset_config)
 
             for df_flow, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
                 dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
-                plot_label = f"{dataset_name} ({shear_stress} dyn/cm$^2$)"
-
+                plot_label = f"{dataset_name} ({int(shear_stress)} dyn/cm$^2$)"
                 hist_color = get_dataset_color(dataset_name)
 
                 # load fixed points once per dataset
@@ -169,13 +168,6 @@ def main(
                 ]:
                     figure_filename = (
                         f"{dataset_name_flow}_{x_col}_vs_{y_col}_colored_by_{optical_flow_feature}"
-                    )
-                    logger.info(
-                        "Plotting optical flow feature over [ %s ] vs [ %s ] for dataset [ %s ], shear stress [ %s ]",
-                        x_col,
-                        y_col,
-                        dataset_name,
-                        shear_stress,
                     )
                     fig, axs = plot_scatter_and_binned_heatmap(
                         df=df_flow,

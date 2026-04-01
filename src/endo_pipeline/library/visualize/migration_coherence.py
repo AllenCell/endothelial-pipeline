@@ -301,6 +301,7 @@ def plot_fixed_points_vs_shear_stress(
     output_dir: Path,
     ylim: tuple[float, float] | None = None,
     summary_stats: list[dict] | None = None,
+    by_dataset: bool = True,
     marker_size_scatter: int = 80,
     marker_size_legend: int = 8,
 ) -> None:
@@ -326,25 +327,20 @@ def plot_fixed_points_vs_shear_stress(
         Optional list of dicts with keys ``"shear_stress"``, ``"mean"``,
         ``"std"``, ``"color"``, and ``"label"`` for each dataset/flow
         condition.  When provided, mean \u00b1 std error bars are overlaid.
+    by_dataset
+        If ``True`` (default), each dataset gets its own categorical x
+        position, sorted by shear stress. Tick labels show
+        ``"dataset_name (shear_stress)"``.
+        If ``False``, x positions are the numeric shear-stress values and
+        datasets with the same shear stress overlap.
     """
 
-    # Convert shear stress to numeric values for sorting, then use categorical x-axis
+    # Convert shear stress to numeric values for sorting
     df_fp = df_fp.copy()
     df_fp["shear_stress_numeric"] = df_fp["shear_stress"].apply(
-        lambda s: float(s.split("-")[0]) if isinstance(s, str) else float(s)
+        lambda s: round(float(s.split("-")[0])) if isinstance(s, str) else round(float(s))
     )
     df_fp = df_fp.sort_values("shear_stress_numeric")
-
-    # Build categorical x positions from unique datasets (sorted by shear stress)
-    unique_datasets = df_fp["dataset"].unique()
-    dataset_to_x = {d: i for i, d in enumerate(unique_datasets)}
-    # Build tick labels showing dataset name and shear stress
-    dataset_shear = (
-        df_fp.drop_duplicates("dataset")[["dataset", "shear_stress"]]
-        .set_index("dataset")
-        .loc[unique_datasets]
-    )
-    tick_labels = [f"{d} ({dataset_shear.loc[d, 'shear_stress']})" for d in unique_datasets]
 
     # Build legend handles for fixed-point stability markers
     legend_handles = make_legend_handles_for_fixed_pts(
@@ -352,18 +348,35 @@ def plot_fixed_points_vs_shear_stress(
         marker_size=marker_size_legend,
     )
 
-    fig, ax = plt.subplots(figsize=((len(unique_datasets) * 0.5), 3.5))
+    if by_dataset:
+        # Categorical x-axis: one tick per dataset
+        unique_datasets = df_fp["dataset"].unique()
+        row_to_x = lambda row: {d: i for i, d in enumerate(unique_datasets)}[
+            row["dataset"]
+        ]  # noqa: E731
+        tick_positions = list(range(len(unique_datasets)))
+        tick_labels = [
+            f"{d} ({df_fp.loc[df_fp['dataset'] == d, 'shear_stress_numeric'].iloc[0]})"
+            for d in unique_datasets
+        ]
+        fig_width = len(unique_datasets) * 0.5
+    else:
+        # Numeric x-axis: position by shear stress value
+        row_to_x = lambda row: row["shear_stress_numeric"]  # noqa: E731
+        unique_shear = sorted(df_fp["shear_stress_numeric"].unique())
+        tick_positions = unique_shear
+        tick_labels = [str(int(s)) for s in unique_shear]
+        fig_width = max(8, len(unique_shear) * 1.2)
 
-    # Overlay mean \u00b1 std error bars when summary stats are provided
+    fig, ax = plt.subplots(figsize=(fig_width, 3.5))
+
+    # Overlay mean ± std error bars when summary stats are provided
     if summary_stats is not None:
         summary_sorted = sorted(summary_stats, key=lambda s: s["shear_stress"])
-        # Map summary entries to dataset x positions by shear stress
-        shear_to_xs: dict[float, list[int]] = {}
         for i, stat in enumerate(summary_sorted):
-            shear_to_xs.setdefault(stat["shear_stress"], []).append(i)
-        for i, stat in enumerate(summary_sorted):
+            x_pos = i if by_dataset else stat["shear_stress"]
             ax.errorbar(
-                i,
+                x_pos,
                 stat["mean"],
                 yerr=stat["std"],
                 fmt="o",
@@ -375,14 +388,14 @@ def plot_fixed_points_vs_shear_stress(
                 zorder=2,
             )
 
-    # Plot fixed points — draw gray (unknown stability) behind others, with transparency
+    # Plot fixed points — draw gray (unknown stability) behind others
     for _, row in df_fp.iterrows():
         stability = row[STABILITY_COLUMN_NAME]
         mk = STABILITY_MARKER_DICT.get(stability, "o")
         clr = STABILITY_COLOR_DICT.get(stability, "gray")
         is_gray = stability not in STABILITY_COLOR_DICT
         ax.scatter(
-            dataset_to_x[row["dataset"]],
+            row_to_x(row),
             row[variable],
             marker=mk,
             color=clr,
@@ -392,7 +405,8 @@ def plot_fixed_points_vs_shear_stress(
             alpha=0.35 if is_gray else 1.0,
             zorder=1 if is_gray else 3,
         )
-    ax.set_xticks(list(range(len(unique_datasets))))
+
+    ax.set_xticks(tick_positions)
     ax.set_xticklabels(tick_labels, rotation=45, ha="right", fontsize=8)
     if ylim is not None:
         ax.set_ylim(*ylim)
@@ -442,8 +456,10 @@ def plot_optical_flow_histogram(
     import seaborn as sns
 
     data = df[optical_flow_feature].dropna()
-    flow_mean = data.mean()
-    flow_std = data.std()
+    mean = data.mean()
+    median = data.median()
+    std = data.std()
+    cov = std / mean
 
     fig, ax = plt.subplots(figsize=MIGRATION_COHERENCE_HIST_FIGSIZE)
     sns.histplot(
@@ -454,11 +470,12 @@ def plot_optical_flow_histogram(
         ax=ax,
         color=color,
     )
-    ax.axvline(flow_mean, color="black", linestyle="--", linewidth=1)
+    ax.axvline(median, color="black", linestyle="--", linewidth=1)
+    ax.axvline(mean, color="red", linestyle="-", linewidth=1)
     ax.text(
         0.05,
         0.95,
-        f"N = {len(data)}\n\u03bc = {flow_mean:.3f}\n\u03c3 = {flow_std:.3f}",
+        f"N = {len(data)}\n\u03bc = {mean:.3f}\n\u03c3 = {std:.3f} \nCOV = {cov:.3f} \nmedian = {median:.3f}",
         transform=ax.transAxes,
         ha="left",
         va="top",
@@ -480,6 +497,7 @@ def plot_cross_dataset_summaries(
     fixed_points_dataframe_manifest: DataframeManifest,
     output_dir: Path,
     plot_fixed_points: bool = True,
+    by_dataset: bool = True,
 ) -> None:
     """Compute and plot cross-dataset summary visualizations.
 
@@ -504,6 +522,11 @@ def plot_cross_dataset_summaries(
         Directory where the figures are saved.
     plot_fixed_points
         Whether to compute and overlay fixed-point data on the summaries.
+    by_dataset
+        If ``True`` (default), each dataset gets its own categorical x position in the fixed
+        point vs shear stress plot, with tick labels showing dataset name and shear stress.
+        If ``False``, x positions are the numeric shear-stress values and datasets with the
+        same shear stress overlap.
     """
     from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
     from endo_pipeline.io import load_dataframe
@@ -553,17 +576,19 @@ def plot_cross_dataset_summaries(
         hist_color = get_dataset_color(dataset_name)
 
         for df_flow, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
-            plot_label = f"{dataset_name} ({shear_stress} dyn/cm$^2$)"
+            plot_label = f"{dataset_name} ({int(shear_stress)} dyn/cm$^2$)"
 
             # Summary stats for the mean-coherence plot
             flow_mean = df_flow[optical_flow_feature].mean()
             flow_std = df_flow[optical_flow_feature].std()
+            flow_cov = flow_std / flow_mean if flow_mean != 0 else float("nan")
             summary_stats.append(
                 {
                     "label": plot_label,
-                    "shear_stress": shear_stress,
+                    "shear_stress": int(shear_stress),
                     "mean": flow_mean,
                     "std": flow_std,
+                    "cov": flow_cov,
                     "color": hist_color,
                 }
             )
@@ -624,4 +649,17 @@ def plot_cross_dataset_summaries(
                 output_dir=output_dir,
                 ylim=None,
                 summary_stats=None,
+                by_dataset=by_dataset,
             )
+
+    # --- COV vs shear stress ---
+    x = [s["shear_stress"] for s in summary_stats]
+    y = [s["cov"] for s in summary_stats]
+    colors = [s["color"] for s in summary_stats]
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.scatter(x, y, color=colors, s=80)
+    ax.set_xlabel("shear stress (dyn/cm$^2$)")
+    ax.set_ylabel("COV of migration coherence")
+    plt.tight_layout()
+    plt.show()
+    save_plot_to_path(fig, output_dir, "migration_coherence_cov_vs_shear_stress")
