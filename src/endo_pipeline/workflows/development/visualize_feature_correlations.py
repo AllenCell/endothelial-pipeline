@@ -67,12 +67,8 @@ def main(
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
-    from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        fit_pca,
-        get_dataframe_for_dynamics_workflows,
-        get_pc_column_names,
-    )
+    from endo_pipeline.io import get_output_path, load_dataframe
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import get_pc_column_names
     from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
         add_optical_flow_features,
     )
@@ -81,11 +77,9 @@ def main(
         get_df_for_feature_correlation_viz,
         visualize_correlation_heatmaps,
     )
-    from endo_pipeline.manifests import load_model_manifest
+    from endo_pipeline.manifests import get_dataframe_location_for_dataset
     from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
-    from endo_pipeline.manifests.model_manifest_utils import get_feature_dataframe_manifest_name
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_PCA_DATASET_COLLECTION_NAME,
         SEGMENTATION_FEATURE_COLUMNS,
@@ -105,8 +99,6 @@ def main(
             DEFAULT_PCA_DATASET_COLLECTION_NAME[1:],
         )
         dataset_name_list = dataset_name_list[:1]
-
-    model_manifest = load_model_manifest(model_manifest_name)
 
     pc_columns = get_pc_column_names(pc_group)
 
@@ -139,48 +131,22 @@ def main(
     ]
 
     if plot_migration_coherence_correlations:
-        # get the crop pattern for the migration coherence data (this is the grid crop pattern)
-        crop_pattern = MIGRATION_COHERENCE_CROP_PATTERN
-        model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
-        feature_dataframe_manifest_name = get_feature_dataframe_manifest_name(
-            model_manifest, run_name, crop_pattern=crop_pattern
+        # Get dataframe manifest for filtered crop-based features so we can add
+        # the optical flow features for correlation analysis and plotting.
+        base_name_grid = f"{model_manifest_name}_{run_name}_grid"
+        grid_feature_dataframe_manifest_name = f"{base_name_grid}_pca_filtered"
+        grid_feature_dataframe_manifest = load_dataframe_manifest(
+            grid_feature_dataframe_manifest_name
         )
-        feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
-
-        # get fit PCA object to apply PCA transformation to diffae features before
-        # plotting against optical flow features.
-        pca = fit_pca(num_pcs=20)
-
-        # load the grid-based DiffAE features upon which the migration coherence measurements
-        # were based and add the optical flow features to this dataframe
-        df_grid = pd.DataFrame()
+        df_grid_list = []
         for dataset_name in dataset_name_list:
-            if df_grid.empty:
-                df_grid = get_dataframe_for_dynamics_workflows(
-                    dataset_name,
-                    feature_dataframe_manifest,
-                    pca=pca,
-                    include_cell_piling=False,
-                    include_not_steady_state=False,
-                    crop_pattern=crop_pattern,
-                )
-            else:
-                df_grid_new = get_dataframe_for_dynamics_workflows(
-                    dataset_name,
-                    feature_dataframe_manifest,
-                    pca=pca,
-                    include_cell_piling=False,
-                    include_not_steady_state=False,
-                    crop_pattern=crop_pattern,
-                )
-                df_grid = pd.concat([df_grid, df_grid_new], ignore_index=True)
-            df_grid = df_grid.reset_index(drop=True)
-
-        # add the optical flow features to the grid-based dataframe
-        df_grid = add_optical_flow_features(
-            df_grid,
-            datasets=dataset_name_list,
-        )
+            df_location = get_dataframe_location_for_dataset(
+                grid_feature_dataframe_manifest, dataset_name
+            )
+            df_grid = load_dataframe(df_location)
+            df_grid = add_optical_flow_features(df_grid, datasets=[dataset_name])
+            df_grid_list.append(df_grid)
+        df_grid = pd.concat(df_grid_list, ignore_index=True)
 
         optical_flow_features = [
             Column.OpticalFlow.UNIT_VECTOR_MEAN,
