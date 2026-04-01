@@ -415,9 +415,6 @@ def get_df_for_feature_correlation_viz(
     Load, preprocess, and concatenate the merged DiffAE and segmentation
     features for the given dataset names.
 
-    The returned DataFrame may be optionally filtered based on timepoint
-    annotations.
-
     Parameters
     ----------
     dataset_name_list
@@ -435,8 +432,7 @@ def get_df_for_feature_correlation_viz(
     Returns
     -------
     :
-        A DataFrame containing the merged features from the specified datasets,
-        filtered based on the provided timepoint annotations.
+        A DataFrame containing the merged features from the specified datasets.
     """
 
     df_list: list = []

@@ -33,15 +33,10 @@ def main(
     ----------
     dataset_collection_to_plot
         The name of the dataset collection to analyze.
-    dataset_collection_name_for_pca
-        The name of the dataset collection to use for PCA fitting.
     model_manifest_name
         The name of the model manifest to use for DiffAE features.
     run_name
         The name of the run to use from the model manifest.
-    seg_feature_manifest_name
-        The name of the segmentation feature manifest to use for measured
-        features.
     dataset_info_columns
         List of dataset metadata column names.
     segmentation_feature_group
@@ -50,14 +45,13 @@ def main(
     num_pcs
         Number of principal components to include. If None, uses
         NUM_PCS_TO_ANALYZE.
-    timepoint_annotations
-        List of timepoint annotations to exclude from the analysis. If
-        "default", excludes NOT_STEADY_STATE and CELL_PILING timepoints. If
-        None, includes all timepoints.
     aggregate_only
         If True, only uses the aggregated dataset in the analysis.
     skip_multi_feature_scatterplots
         If True, skips generating multi-feature scatterplots.
+    plot_migration_coherence_correlations
+        If True, includes migration coherence features in the correlation
+        analysis and plots.
     """
 
     import logging
