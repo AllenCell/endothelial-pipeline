@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
@@ -12,20 +12,18 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 from mpl_toolkits.mplot3d import Axes3D
 from seaborn import kdeplot
-from sklearn.decomposition import PCA
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io.output import save_plot_to_path
+from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     check_required_columns_in_dataframe,
-    get_dataframe_for_dynamics_workflows,
     rewrap_polar_angle,
     unwrap_nonsequential_array,
 )
 from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
     get_seg_feat_plot_args,
 )
-from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.density_comparison_plots import (
     DENSITY_PLOT_KDE_BANDWIDTH,
@@ -196,9 +194,6 @@ def get_dataset_color(dataset_name: str) -> str:
 def plot_pc_scatter(
     dataset_names: list[str],
     dataframe_manifest: DataframeManifest,
-    pca: PCA,
-    include_cell_piling: bool = False,
-    crop_pattern: Literal["grid", "tracked"] = "grid",
     alpha: float = 0.2,
     scatter_size: float = 1,
     pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
@@ -243,17 +238,10 @@ def plot_pc_scatter(
     df_list = []
 
     for dataset_name in dataset_names:
-        # load dataframe and get top 3 PCs
-        # plot or don't plot cell piling timepoints based on
-        # value of include_cell_piling
-        df = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            dataframe_manifest,
-            pca,
-            include_cell_piling=include_cell_piling,
-            crop_pattern=crop_pattern,
-        )[[*pc_column_names, Column.TIMEPOINT]]
-        df["dataset_name"] = dataset_name
+        # load dataframe and get feature columns and timepoint column
+        dataframe_location = get_dataframe_location_for_dataset(dataframe_manifest, dataset_name)
+        df = load_dataframe(dataframe_location, delay=True)
+        df = df[[*pc_column_names, Column.TIMEPOINT]].compute()
         if color_by_time:
             num_timepoints = df[Column.TIMEPOINT].nunique()
             cmap = plt.get_cmap("viridis")
@@ -275,7 +263,7 @@ def plot_pc_scatter(
         # copy combined dataframe to modify for highlighting
         df_highlighted = df_combined.copy()
         # Separate highlighted and background data
-        mask_highlighted = df_highlighted["dataset_name"] == highlighted_dataset
+        mask_highlighted = df_highlighted[Column.DATASET] == highlighted_dataset
         df_background = df_highlighted[~mask_highlighted].copy()
         df_foreground = df_highlighted[mask_highlighted].copy()
 
