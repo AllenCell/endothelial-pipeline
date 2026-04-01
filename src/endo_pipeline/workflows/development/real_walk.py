@@ -72,7 +72,6 @@ def main(
         plot_component_histograms_over_time,
     )
     from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
-    from endo_pipeline.library.visualize.real_walk import sample_dataframe
     from endo_pipeline.manifests import get_zarr_location_for_position, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.diffae_feature_dataframes import (
@@ -160,7 +159,10 @@ def main(
                 continue
 
             # one example selected at random
-            df_sample = sample_dataframe(df_filtered, n_num_crops=1, random_seed=random_seed)
+            num_crop_samples = 1
+            df_sample = df_filtered.sample(
+                n=num_crop_samples, random_state=random_seed, replace=False
+            )
             samples.append((pc_axis, pc_val, df_sample))
 
     crops_bf_std_deviation = []
