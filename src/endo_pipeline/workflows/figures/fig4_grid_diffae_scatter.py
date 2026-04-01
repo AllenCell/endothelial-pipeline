@@ -8,7 +8,7 @@ def main() -> None:
     from tqdm import tqdm
 
     from endo_pipeline.cli import NUM_GPUS
-    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
     from endo_pipeline.io import (
         get_output_path,
         load_dataframe,
@@ -16,7 +16,10 @@ def main() -> None:
         load_model,
         save_plot_to_path,
     )
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+        filter_dataframe_by_annotations,
+        fit_pca,
+    )
     from endo_pipeline.library.model import generate_from_coords_batch
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
         get_no_flow_pc_space_example_points_fig4,
@@ -54,15 +57,22 @@ def main() -> None:
     # from PC-space coordinates
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
 
-    # load dataframe for the no flow dataset
+    # load dataframe for the no flow dataset and filter to only include the
+    # steady state timepoints (exclude the timepoints annotated as "not steady
+    # state" in the dataset config)
     dataset_name = "20250818_20X"
     dataframe_location = get_dataframe_location_for_dataset(
         feature_dataframe_manifest, dataset_name
     )
     diffae_grid_crops = load_dataframe(dataframe_location)
+    diffae_grid_crops_steady_state = filter_dataframe_by_annotations(
+        diffae_grid_crops,
+        load_dataset_config(dataset_name),
+        timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
+    )
 
     example_and_target_points = get_no_flow_pc_space_example_points_fig4(
-        diffae_grid_crops, radius=2.2, origin_pc1pc2=(0, 0), pc3_target=0.0
+        diffae_grid_crops_steady_state, radius=2.2, origin_pc1pc2=(0, 0), pc3_target=0.0
     )
 
     hue = Column.TIMEPOINT
@@ -70,7 +80,7 @@ def main() -> None:
     example_point_color = "deepskyblue"
 
     fig1 = make_pc_scatter_fig4a(
-        df=diffae_grid_crops,
+        df=diffae_grid_crops_steady_state,
         pc_col_for_xaxis="pc_1",
         pc_col_for_yaxis="pc_2",
         hue=hue,
@@ -97,7 +107,7 @@ def main() -> None:
             path_effects=[pe.withStroke(linewidth=1, foreground="black")],
         )
     fig2 = make_pc_scatter_fig4a(
-        df=diffae_grid_crops,
+        df=diffae_grid_crops_steady_state,
         pc_col_for_xaxis="pc_1",
         pc_col_for_yaxis="pc_3",
         hue=hue,
@@ -151,7 +161,7 @@ def main() -> None:
 
     # retrieve the DiffAE grid crop rows containing the example points
     diffae_grid_crops_examples = example_and_target_points.merge(
-        diffae_grid_crops, how="left", left_on="pc_1_example", right_on="pc_1"
+        diffae_grid_crops_steady_state, how="left", left_on="pc_1_example", right_on="pc_1"
     )
 
     # load the timelapse and extract crops at the example points
