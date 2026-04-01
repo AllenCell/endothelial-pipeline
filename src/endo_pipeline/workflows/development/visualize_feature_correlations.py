@@ -1,16 +1,12 @@
 from typing import Literal
 
-from endo_pipeline.cli import DEMO_MODE, Datasets
+from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import TimepointAnnotation
 from endo_pipeline.settings.workflow_defaults import (
     DATASET_INFO_COLUMNS,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
-    DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    SEGMENTATION_FEATURE_COLUMNS,
 )
-
-TAGS = ["diffae_features", "visualization", "pc_interpretation"]
 
 
 def main(
@@ -26,8 +22,16 @@ def main(
     plot_migration_coherence_correlations: bool = True,
 ) -> None:
     """
-    Visualize correlation heatmaps and clustermaps for DiffAE features, PCs,
-    and measured quantitites.
+    Visualize correlation heatmaps and clustermaps for DiffAE features, PCs, and
+    measured quantitites.
+
+    #diffae_features #visualization #pc_interpretation
+
+    **Workflow runtime**
+
+    This workflow may take several minutes to run, depending on the number of
+    datasets and features being analyzed. For a faster testing of the workflow,
+    run in demo mode, which uses a single dataset for the analysis.
 
     Parameters
     ----------
@@ -40,31 +44,24 @@ def main(
     run_name
         The name of the run to use from the model manifest.
     seg_feature_manifest_name
-        The name of the segmentation feature manifest to use for measured features.
+        The name of the segmentation feature manifest to use for measured
+        features.
     dataset_info_columns
         List of dataset metadata column names.
     segmentation_feature_group
-        Preset name for selecting segmentation feature columns.
-        If None, uses the default preset.
-        Presets are defined in SEGMENTATION_FEATURE_COLUMNS.
+        Preset name for selecting segmentation feature columns. If None, uses
+        the default preset. Presets are defined in SEGMENTATION_FEATURE_COLUMNS.
     num_pcs
-        Number of principal components to include. If None, uses NUM_PCS_TO_ANALYZE.
+        Number of principal components to include. If None, uses
+        NUM_PCS_TO_ANALYZE.
     timepoint_annotations
-        List of timepoint annotations to exclude from the analysis. If "default",
-        excludes NOT_STEADY_STATE and CELL_PILING timepoints. If None, includes all timepoints.
+        List of timepoint annotations to exclude from the analysis. If
+        "default", excludes NOT_STEADY_STATE and CELL_PILING timepoints. If
+        None, includes all timepoints.
     aggregate_only
         If True, only uses the aggregated dataset in the analysis.
     skip_multi_feature_scatterplots
         If True, skips generating multi-feature scatterplots.
-
-    NOTE
-    ----
-    This workflow may take several minutes to run, depending on the number of datasets
-    and features being analyzed.
-    Currently the datasets used to fit the PCA model (`diffae_training`) are also used
-    to generate the correlation visualizations.
-    Future versions may allow specifying separate dataset collections for PCA fitting
-    and visualization.
     """
 
     import logging
@@ -72,6 +69,7 @@ def main(
     import pandas as pd
     from tqdm import tqdm
 
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.configs.dataset_config_utils import get_subset_of_timepoint_annotations
     from endo_pipeline.io import get_output_path
@@ -93,6 +91,10 @@ def main(
     from endo_pipeline.manifests.model_manifest_utils import get_feature_dataframe_manifest_name
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_PCA_DATASET_COLLECTION_NAME,
+        SEGMENTATION_FEATURE_COLUMNS,
+    )
 
     logger = logging.getLogger(__name__)
 
