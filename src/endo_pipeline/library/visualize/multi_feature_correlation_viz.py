@@ -464,11 +464,9 @@ def get_df_for_feature_correlation_viz(
         # compute only the required columns to save space and time (using a loop
         # instead  of just sets to determine columns to load to preserve column
         # order)
-        dynamics_seg_columns: list[str | Column.SegData] = SEGMENTATION_FEATURE_COLUMNS[
-            "dynamics_calculation_prereq"
-        ]
-        supplementary_columns: list[Column.SegData] = SEGMENTATION_FEATURE_COLUMNS["supp"]
-        diffae_columns_not_dynamics: list[Column.DiffAEData] = [
+        dynamics_seg_columns = SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
+        supplementary_columns = SEGMENTATION_FEATURE_COLUMNS["supp"]
+        diffae_columns_not_dynamics = [
             col
             for col in Column.DiffAEData
             if "PREFIX" not in col.name
