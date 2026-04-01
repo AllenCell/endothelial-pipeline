@@ -5,9 +5,11 @@ import numpy as np
 from scipy.optimize import curve_fit
 from sklearn.decomposition import PCA
 
+from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
+from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     df_to_array,
-    get_dataframe_for_dynamics_workflows,
+    filter_dataframe_by_annotations,
 )
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -340,22 +342,19 @@ def _compute_correlations_for_one_dataset(
 
     # try to get dataframe for the given dataset
     # if it does not exist, skip this dataset, return dict as is
-    try:
-        df = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            dataframe_manifest,
-            pca=pca,
-            filter_by_annotations=True,
-            include_cell_piling=False,
-            include_not_steady_state=False,
-            compute_polar=True,
-            rescale_theta=rescale_polar_angle,
-        )
-    except KeyError:
+    if dataset_name not in dataframe_manifest:
         logger.warning(
             "Dataset [ %s ] not found in the manifest, skipping for this workflow.", dataset_name
         )
         return correlation_dict
+
+    # load dataframe and filter to just steady state timepoints
+    dataframe_location = dataframe_manifest.locations[dataset_name]
+    df = load_dataframe(dataframe_location)
+    dataset_config = load_dataset_config(dataset_name)
+    df_steady_state = filter_dataframe_by_annotations(
+        df, dataset_config, timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE]
+    )
 
     feat_cols = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
     # add polar coordinate features to the list of features for correlation analysis
@@ -369,13 +368,13 @@ def _compute_correlations_for_one_dataset(
     # unwrap angles if polar_angle is in feat_cols
     if Column.DiffAEData.POLAR_ANGLE in feat_cols:
         polar_angle_period = PERIOD_THETA_RESCALED if rescale_polar_angle else 2 * np.pi
-        for _, df_crop in df.groupby(Column.CROP_INDEX):
-            df.loc[df_crop.index, Column.DiffAEData.POLAR_ANGLE] = np.unwrap(
+        for _, df_crop in df_steady_state.groupby(Column.CROP_INDEX):
+            df_steady_state.loc[df_crop.index, Column.DiffAEData.POLAR_ANGLE] = np.unwrap(
                 df_crop[Column.DiffAEData.POLAR_ANGLE], period=polar_angle_period
             )
 
     # get feature data
-    feats = df_to_array(df, feat_cols)
+    feats = df_to_array(df_steady_state, feat_cols)
     num_feats = len(feat_cols)
 
     num_timepoints = feats.shape[1]
