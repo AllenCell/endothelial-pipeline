@@ -1,6 +1,5 @@
-from endo_pipeline.cli import DEMO_MODE, Datasets, UniqueIntList
+from endo_pipeline.cli import Datasets, UniqueIntList
 from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
     DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
 )
 
@@ -8,12 +7,11 @@ from endo_pipeline.settings.workflow_defaults import (
 def main(
     datasets: Datasets | None = None,
     positions: list[int] | None = None,
-    track_ids: UniqueIntList | None = None,
+    track_ids_to_overlay: UniqueIntList | None = None,
     track_integrations_only: bool = False,
     use_global_pc_lims: bool = False,
     for_figures: bool = False,
     n_cores: int = 30,
-    diffae_grid_manifest_name_for_flowfield: str = DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
     cellcentric_features_manifest_name_for_flowfield: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
 ) -> None:
     """This workflow outputs plots of track-based cell trajectories integrated with grid-based DiffAE flow fields."""
@@ -26,6 +24,7 @@ def main(
     from matplotlib import pyplot as plt
     from tqdm import tqdm
 
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.integration.track_integration import (
@@ -47,18 +46,18 @@ def main(
         DYNAMICS_COLUMN_NAMES,
         LONG_TRACK_THRESHOLD_LENGTH,
     )
-    from endo_pipeline.settings.workflow_defaults import (  # DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,; DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,; DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
+    from endo_pipeline.settings.flow_field_3d import DATASET_COLLECTION_FOR_3D_DYNAMICS
+    from endo_pipeline.settings.workflow_defaults import (
         DATASET_INFO_COLUMNS,
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
-        DEFAULT_PCA_DATASET_COLLECTION_NAME,
     )
 
     logger = logging.getLogger(__name__)
 
     out_dir = get_output_path(__file__)
     if datasets is None:
-        datasets = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
+        datasets = get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
 
     # create subdirectory to save track-based trajectories to
     out_subdir_traj = out_dir / "trajectories_track_based"
@@ -103,26 +102,6 @@ def main(
             .reset_index(drop=True)
         )
 
-        diffae_grid_manifest = load_dataframe_manifest(diffae_grid_manifest_name_for_flowfield)
-        diffae_grid_location = get_dataframe_location_for_dataset(
-            diffae_grid_manifest, dataset_name
-        )
-        diffae_grid_df_delayed = load_dataframe(diffae_grid_location, delay=True)
-        diffae_grid_df = (
-            diffae_grid_df_delayed[list(set(compute_cols) & set(diffae_grid_df_delayed.columns))]
-            .compute()
-            .reset_index(drop=True)
-        )
-
-        # # load or compute the trajectories and flow fields for the grid-based
-        # # and cell-centric crops
-        # traj_grids, flow_field_dict_grids, traj_tracks, _ = (
-        #     get_gridcrop_and_cellcentric_flow_fields(
-        #         diffae_tracked_df=diffae_tracked_df,
-        #         diffae_grid_df=diffae_grid_df,
-        #         trajectory_dir=out_subdir_traj,
-        #     )
-        # )
         flow_field_dict_grids, fixed_points_df = get_flow_field_and_fixed_points(
             dataset_name=dataset_name,
             column_names=dynamics_columns,
@@ -238,9 +217,6 @@ def main(
 
         # plot single track examples
         for pos in positions:
-            out_subdir_indiv_pos = out_subdir_indiv / str(pos)
-            out_subdir_indiv_pos.mkdir(parents=True, exist_ok=True)
-
             df_one_position = cellcentric_df[cellcentric_df[Column.POSITION] == pos]
 
             df_one_position = df_one_position[
@@ -258,15 +234,23 @@ def main(
             measured_feature = Column.SegData.ALIGNMENT_DEG
             hue_norm = (0, 90)
 
-            if track_ids is None:
+            if track_ids_to_overlay is None:
                 track_ids = sorted(df_one_position[Column.TRACK_ID].unique().tolist())
                 # overlay every 10th track ID if there are a lot of tracks to save time + space
                 track_ids = track_ids[::10] if len(track_ids[::10]) > 10 else track_ids
+            else:
+                track_ids = track_ids_to_overlay
 
             if DEMO_MODE:
                 track_ids = track_ids[:10]
 
             for i, fp_row in fixed_points_df.iterrows():
+
+                out_subdir_indiv_pos_one_fixedpoint = (
+                    out_subdir_indiv / str(pos) / f"fixed_point_{i}"
+                )
+                out_subdir_indiv_pos_one_fixedpoint.mkdir(parents=True, exist_ok=True)
+
                 flow_field_slices = (
                     fp_row[dynamics_columns[2]],
                     fp_row[dynamics_columns[1]],
@@ -280,7 +264,7 @@ def main(
                 for tid in track_ids:
                     arg_list.append(
                         PlotMeasFeatAndFlowFieldOverlayArgs(
-                            out_subdir_single_position=out_subdir_indiv_pos,
+                            out_subdir_single_position=out_subdir_indiv_pos_one_fixedpoint,
                             dataset_name=dataset_name,
                             flow_field_dict_grids=flow_field_dict_grids,
                             flow_field_slices=flow_field_slices,
@@ -309,7 +293,7 @@ def main(
                                 chunksize=5,
                             ),
                             total=len(arg_list),
-                            desc=f"Plotting tracks at {dataset_name} {pos}",
+                            desc=f"Plotting tracks at {dataset_name} P{pos} - fixed point {i}",
                         )
                     )
                     pool.close()

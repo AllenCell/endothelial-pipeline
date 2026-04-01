@@ -21,7 +21,6 @@ from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalK
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.visualize.integration.track_integration_viz import (
-    get_valid_slice_indexes,
     grid_vs_track_vec_angle_hist2d,
     grid_vs_track_vec_dot_prod_hist2d,
     overlay_flow_fields_on_histograms,
@@ -102,6 +101,7 @@ def process_dataset_for_track_integration(
     merged_cellcentric_features_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
     diffae_grid_manifest_name: str = DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
     make_integrated_plots: bool = True,
+    dynamics_columns: list[Column.DiffAEData] = list(DYNAMICS_COLUMN_NAMES),
 ) -> None:
     logger.info("Processing dataset: [ %s ]", dataset_name)
 
@@ -133,17 +133,31 @@ def process_dataset_for_track_integration(
         Column.SegData.TIME_HRS,
         Column.SegData.TIME_MINS,
         Column.TRACK_LENGTH,
-    ] + list(DYNAMICS_COLUMN_NAMES)
+    ] + list(dynamics_columns)
     diffae_tracked_df = diffae_tracked_df_delayed[cols_to_keep].compute()
     diffae_grid_df = diffae_grid_df_delayed[cols_to_keep].compute()
 
     # load or compute the trajectories and flow fields for the grid-based
     # and cell-centric crops
-    flow_field_dict_grids, fixed_points_df = get_flow_field_and_fixed_points(dataset_name)
+    flow_field_dict_grids, fixed_points_df = get_flow_field_and_fixed_points(
+        dataset_name=dataset_name,
+        column_names=dynamics_columns,
+        model_manifest_name=DEFAULT_MODEL_MANIFEST_NAME,
+        run_name=DEFAULT_MODEL_RUN_NAME,
+    )
 
-    # get the slice indexes to use for plotting the flow fields
-    # (we will be setting PC3 to a constant, i.e. the z-axis here)
-    _, slice_indexes = get_valid_slice_indexes(diffae_grid_df, traj_grids, flow_field_dict_grids)
+    for i, fp_row in fixed_points_df.iterrows():
+        flow_field_slices = (
+            fp_row[dynamics_columns[2]],
+            fp_row[dynamics_columns[1]],
+        )  # feature 3, feature 2
+        fixed_points_at_slices = (
+            fp_row[list(map(str, dynamics_columns))].drop(index=[dynamics_columns[2]]),
+            fp_row[list(map(str, dynamics_columns))].drop(index=[dynamics_columns[1]]),
+        )
+    # # get the slice indexes to use for plotting the flow fields
+    # # (we will be setting PC3 to a constant, i.e. the z-axis here)
+    # _, slice_indexes = get_valid_slice_indexes(diffae_grid_df, traj_grids, flow_field_dict_grids)
 
     # get flow field vectors and grid points to plot
     v1_grids, v2_grids, v3_grids = flow_field_dict_grids["vectors"]
@@ -625,11 +639,30 @@ def get_flow_field_and_fixed_points(
     - {dataset_name}_traj_grids.npy for grid-based crops
     - {dataset_name}_traj_tracks.npy for cell-centric crops
     """
-    logger.info("Getting trajectories and flow fields for grid-based and cell-centric crops...")
 
     base_name = f"{model_manifest_name}_{run_name}_grid"
     fixed_points_df_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
     fixed_points_df_manifest = load_dataframe_manifest(fixed_points_df_manifest_name)
+
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{base_name}"
+    drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
+
+    if dataset_name not in fixed_points_df_manifest.locations:
+        logger.warning(
+            "Dataset [ %s ] not found in fixed points dataframe manifest [ %s ]!",
+            dataset_name,
+            fixed_points_df_manifest_name,
+        )
+        return {}, pd.DataFrame()
+    if dataset_name not in drift_dataframe_manifest.locations:
+        logger.warning(
+            "Dataset [ %s ] not found in drift dataframe manifest [ %s ]!",
+            dataset_name,
+            drift_dataframe_manifest_name,
+        )
+        return {}, pd.DataFrame()
+
+    logger.info("Getting trajectories and flow fields for grid-based and cell-centric crops...")
 
     # load fixed point dataframe if it exists, and check that required
     # columns are present turn fixed point dataframe into list of arrays of
@@ -650,8 +683,6 @@ def get_flow_field_and_fixed_points(
             dataset_name,
         )
 
-    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{base_name}"
-    drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
     drift_dataframe_location = get_dataframe_location_for_dataset(
         drift_dataframe_manifest, dataset_name
     )

@@ -1,16 +1,14 @@
 from endo_pipeline.cli import Datasets
 from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
+    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
 )
 
 
 def main(
     datasets: Datasets | None = None,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    merged_features_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
+    diffae_grid_manifest_name: str | None = DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
 ) -> None:
     """
     Make plots comparing cell-centric and grid-based flow fields.
@@ -19,12 +17,10 @@ def main(
     ----------
     datasets
         List of datasets or dataset collections to use for visualization.
-    model_manifest_name
-        Name of the model manifest containing the run to load features from.
-    run_name
-        Name of the specific model run to load features for. If None, uses the most recent run.
-    seg_feature_manifest_name
-        Name of the segmentation feature manifest to use for segmentation features.
+    merged_features_manifest_name
+        Name of the merged features manifest containing the run to load features from.
+    diffae_grid_manifest_name
+        Name of the DiffAE PCA feature grid manifest to use for loading grid-based flow fields.
     """
     import matplotlib
     from matplotlib import pyplot as plt
@@ -50,6 +46,8 @@ def main(
     for dataset_name in dataset_name_list:
         process_dataset_for_track_integration(
             dataset_name=dataset_name,
+            merged_cellcentric_features_manifest_name=merged_features_manifest_name,
+            diffae_grid_manifest_name=diffae_grid_manifest_name,
             make_integrated_plots=True,
         )
 

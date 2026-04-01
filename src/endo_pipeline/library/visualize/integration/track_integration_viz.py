@@ -230,7 +230,7 @@ def plot_measured_feat_pcs(
                 .reset_index()
             )
         elif isinstance(track_id, int):
-            measured_feat_df = measured_feat_df.query("track_id == @track_id")
+            measured_feat_df = measured_feat_df[measured_feat_df[Column.TRACK_ID] == track_id]
         elif track_id is None:
             pass  # do not subset or aggregate the data in any way
         else:
