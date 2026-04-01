@@ -12,7 +12,7 @@ from endo_pipeline.manifests import DataframeManifest
 logger = logging.getLogger(__name__)
 
 
-def load_data_for_montage(
+def load_data_for_real_walk(
     dataset_name_list: list[str],
     dataframe_manifest: DataframeManifest,
     include_cell_piling: bool = True,

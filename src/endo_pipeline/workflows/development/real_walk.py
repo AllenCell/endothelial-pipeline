@@ -79,7 +79,7 @@ def main(
         plot_component_histograms_over_time,
     )
     from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
-    from endo_pipeline.library.visualize.real_walk import load_data_for_montage, sample_dataframe
+    from endo_pipeline.library.visualize.real_walk import load_data_for_real_walk, sample_dataframe
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
         get_most_recent_run_name,
@@ -115,7 +115,7 @@ def main(
 
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
-    df, pca = load_data_for_montage(
+    df, pca = load_data_for_real_walk(
         datasets, dataframe_manifest, include_cell_piling=include_cell_piling
     )
 
