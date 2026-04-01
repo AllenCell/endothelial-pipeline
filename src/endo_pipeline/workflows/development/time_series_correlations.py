@@ -1,8 +1,9 @@
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import Datasets, StrList
 
 
 def main(
     datasets: Datasets | None = None,
+    columns: StrList | None = None,
     bootstrap_samples: int | None = 1000,
 ) -> None:
     """
@@ -44,6 +45,11 @@ def main(
         plot_correlation_workflow_outputs,
     )
     from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.settings.diffae_feature_dataframes import (
+        DIFFAE_PC_COLUMN_NAMES,
+        NUM_PCS_TO_ANALYZE,
+    )
+    from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -52,11 +58,12 @@ def main(
     # initialize logger
     logger = logging.getLogger(__name__)
 
+    # Default list of feature column names to use for correlation analysis if
+    # not provided. Otherwise, use provided list.
+    column_names = columns or [*DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE], *DYNAMICS_COLUMN_NAMES]
+
     # Default list of datasets if not provided. Otherwise, use provided list.
-    if datasets is None:
-        dataset_names = get_datasets_in_collection("3d_flow_field_analysis")
-    else:
-        dataset_names = datasets
+    dataset_names = datasets or get_datasets_in_collection("3d_flow_field_analysis")
 
     # drop any no flow datasets from the list of datasets
     for dataset_name in dataset_names:
@@ -124,7 +131,7 @@ def main(
             df, dataset_config, timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE]
         )
         correlation_dict = compute_correlations_for_one_dataset(
-            df_steady_state, correlation_dict, bootstrap_samples
+            df_steady_state, column_names, correlation_dict, bootstrap_samples
         )
 
     # visualize results of correlation analysis across datasets

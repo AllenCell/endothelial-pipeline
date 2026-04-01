@@ -10,10 +10,6 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     df_to_array,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.diffae_feature_dataframes import (
-    DIFFAE_PC_COLUMN_NAMES,
-    NUM_PCS_TO_ANALYZE,
-)
 from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RESCALE_THETA
 
 logger = logging.getLogger(__name__)
@@ -328,6 +324,7 @@ def bootstrap_cross_correlation_confidence_intervals(
 
 def compute_correlations_for_one_dataset(
     dataframe: pd.DataFrame,
+    column_names: list[str | Column.DiffAEData],
     correlation_dict: dict,
     bootstrap_samples: int | None = None,
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
@@ -336,10 +333,7 @@ def compute_correlations_for_one_dataset(
     """Compute cross-correlation and autocorrelation for features from one dataset."""
     # check that required columns are present in the dataframe
     required_columns = [
-        *DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
-        Column.DiffAEData.POLAR_ANGLE,
-        Column.DiffAEData.POLAR_RADIUS,
-        Column.DiffAEData.PC3_FLIPPED,
+        *column_names,
         Column.CROP_INDEX,
         Column.DATASET,
     ]
@@ -348,16 +342,8 @@ def compute_correlations_for_one_dataset(
     # get dataset name from dataframe
     dataset_name = dataframe[Column.DATASET].iloc[0]
 
-    # feature columns to use for correlation analysis
-    feat_cols = [
-        *DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
-        Column.DiffAEData.POLAR_ANGLE,
-        Column.DiffAEData.POLAR_RADIUS,
-        Column.DiffAEData.PC3_FLIPPED,
-    ]
-
     # unwrap angles if polar_angle is in feat_cols
-    if Column.DiffAEData.POLAR_ANGLE in feat_cols:
+    if Column.DiffAEData.POLAR_ANGLE in column_names:
         polar_angle_period = PERIOD_THETA_RESCALED if rescale_polar_angle else 2 * np.pi
         for _, df_crop in dataframe.groupby(Column.CROP_INDEX):
             dataframe.loc[df_crop.index, Column.DiffAEData.POLAR_ANGLE] = np.unwrap(
@@ -365,8 +351,8 @@ def compute_correlations_for_one_dataset(
             )
 
     # get feature data
-    feats = df_to_array(dataframe, feat_cols)
-    num_feats = len(feat_cols)
+    feats = df_to_array(dataframe, column_names)
+    num_feats = len(column_names)
 
     num_timepoints = feats.shape[1]
     # make sure lags are symmetric around zero
@@ -435,7 +421,7 @@ def compute_correlations_for_one_dataset(
     delta_ccf_integral = cross_correlation_difference_norm(delta_ccf)
 
     # store results in dict of dicts and return updated dict
-    correlation_dict["features"][dataset_name] = feat_cols
+    correlation_dict["features"][dataset_name] = column_names
     correlation_dict["lags"][dataset_name] = lags
     correlation_dict["acf"][dataset_name] = acf
     correlation_dict["acf_ci_lower"][dataset_name] = acf_lb
