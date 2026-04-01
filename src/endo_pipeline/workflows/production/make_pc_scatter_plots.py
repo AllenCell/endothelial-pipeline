@@ -3,14 +3,10 @@ from typing import Annotated
 from cyclopts import Parameter
 
 from endo_pipeline.cli import Datasets
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 
 def main(
     datasets: Datasets | None = None,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     include_not_steady_state: Annotated[bool, Parameter(negative="--steady-state-only")] = True,
 ) -> None:
     """
@@ -30,54 +26,30 @@ def main(
     """
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
     from endo_pipeline.library.visualize.diffae_features import feature_viz
-    from endo_pipeline.manifests import (
-        get_feature_dataframe_manifest_name,
-        get_most_recent_run_name,
-        load_dataframe_manifest,
-        load_model_manifest,
+    from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+        DEFAULT_PCA_DATASET_COLLECTION_NAME,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import NUM_PCS_TO_ANALYZE
-    from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
 
-    # get model and dataframe manifests
-    model_manifest = load_model_manifest(model_manifest_name)
-    run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
-    dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name_, crop_pattern="grid"
-    )
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+    # get dataframe manifest for grid crop-based features
+    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
+    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
+    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    # set up output directory for figures
-    include_cell_piling_str = "with_cell_piling" if include_cell_piling else "no_cell_piling"
-    include_not_steady_state_str = (
-        "including_not_steady_state" if include_not_steady_state else "steady_state_only"
-    )
     fig_savedir = get_output_path(
-        __file__,
-        f"{include_cell_piling_str}_{include_not_steady_state_str}",
-    )
-
-    # fit PCA model (using method defaults)
-    pca = fit_pca(
-        dataset_collection_name=DEFAULT_PCA_DATASET_COLLECTION_NAME,
-        dataframe_manifest_name=dataframe_manifest_name,
-        num_pcs=NUM_PCS_TO_ANALYZE,
+        __file__, "including_not_steady_state" if include_not_steady_state else "steady_state_only"
     )
 
     # get list of dataset names to visualize
-    if datasets is None:
-        dataset_names = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
-    else:
-        dataset_names = datasets.copy()
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
     # scatter plot of pca reference datasets
     fig, _ = feature_viz.plot_pc_scatter(
         dataset_names,
-        dataframe_manifest,
-        pca,
-        include_cell_piling=include_cell_piling,
+        feature_dataframe_manifest,
         scatter_size=1,
         alpha=0.2,
         save_dir=fig_savedir,
