@@ -54,7 +54,6 @@ def main(
         Saves the contact sheet of cropped images to the output directory.
     """
     import logging
-    from typing import cast
 
     import matplotlib.pyplot as plt
     import numpy as np
@@ -134,7 +133,6 @@ def main(
     samples = []
     for pc_axis in pc_axis_list:
         for pc_val in pc_val_list:
-
             df_filtered = get_df_by_bin_value(df_with_bins, pc_axis, pc_val, bin_edges)
 
             logger.info("%d crops for PC %s around value %s", len(df_filtered), pc_axis, pc_val)
@@ -167,15 +165,12 @@ def main(
 
     for pc_axis, pc_val, df_sample in samples:
         logger.info(f"Processing sample for PC {pc_axis} value {pc_val}")
-        dataset = df_sample[Column.DATASET].iloc[0]
-        dataset = cast(str, dataset)  # Ensure dataset is a string
-        dataset_config = load_dataset_config(dataset)
+        dataset_name = df_sample[Column.DATASET].iloc[0]
+        dataset_config = load_dataset_config(dataset_name)
         position = df_sample[Column.POSITION].iloc[0]
-        position = cast(str, position)  # Ensure position is a string
-        position_integer = int(position[-1])  # Extract the position number from the string
         timepoint = df_sample[Column.TIMEPOINT].iloc[0]
 
-        img_loc = get_zarr_location_for_position(dataset_config, position_integer)
+        img_loc = get_zarr_location_for_position(dataset_config, position)
         img = load_image(img_loc, timepoints=[timepoint], level=1, squeeze=True)
         # crop
         start_x = df_sample["start_x"].iloc[0]
