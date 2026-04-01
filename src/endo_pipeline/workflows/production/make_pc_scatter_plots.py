@@ -53,6 +53,7 @@ def main(
         scatter_size=1,
         alpha=0.2,
         save_dir=fig_savedir,
+        include_not_steady_state=include_not_steady_state,
     )
 
 

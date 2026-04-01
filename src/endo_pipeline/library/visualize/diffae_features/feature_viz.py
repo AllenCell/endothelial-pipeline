@@ -13,10 +13,11 @@ from matplotlib.ticker import MultipleLocator
 from mpl_toolkits.mplot3d import Axes3D
 from seaborn import kdeplot
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
 from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     check_required_columns_in_dataframe,
+    filter_dataframe_by_annotations,
     rewrap_polar_angle,
     unwrap_nonsequential_array,
 )
@@ -199,6 +200,7 @@ def plot_pc_scatter(
     pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
     color_by_time: bool = False,
     save_dir: Path | None = None,
+    include_not_steady_state: bool = True,
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
     """
     Plot scatter plot of PCA components for a list of datasets.
@@ -242,6 +244,16 @@ def plot_pc_scatter(
         dataframe_location = get_dataframe_location_for_dataset(dataframe_manifest, dataset_name)
         df = load_dataframe(dataframe_location, delay=True)
         df = df[[*pc_column_names, Column.TIMEPOINT]].compute()
+
+        # if excluding the "not steady state" timepoints, do additional filtering:
+        if not include_not_steady_state:
+            dataset_config = load_dataset_config(dataset_name)
+            df = filter_dataframe_by_annotations(
+                df,
+                dataset_config,
+                timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
+            )
+
         if color_by_time:
             num_timepoints = df[Column.TIMEPOINT].nunique()
             cmap = plt.get_cmap("viridis")
