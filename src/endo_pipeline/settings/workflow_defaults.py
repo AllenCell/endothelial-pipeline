@@ -1,6 +1,6 @@
 """Workflow default settings."""
 
-from typing import Literal
+from typing import Literal, TypeAlias
 
 from endo_pipeline.settings.column_names import ColumnName as Column
 
@@ -84,7 +84,11 @@ IMAGE_METRIC_DATASET_COLORS = {
 }
 """Color palette for image metric bar plots, keyed by dataset split name."""
 
-SEGMENTATION_FEATURE_COLUMNS = {
+SegFeatureColumnDict: TypeAlias = dict[
+    str, list[Column.SegData] | list[str | Column.SegData] | list[Column.SegDataFilters]
+]
+
+SEGMENTATION_FEATURE_COLUMNS: SegFeatureColumnDict = {
     "default": [
         Column.SegData.ALIGNMENT_DEG,
         Column.SegData.ORIENTATION_DEG,
@@ -144,7 +148,15 @@ SEGMENTATION_FEATURE_COLUMNS = {
 }
 """Name of segmentation features to include in analyses."""
 
-DEFAULT_COLUMNS_TO_DROP = {
+SegColumnsDropDict: TypeAlias = dict[
+    str,
+    list[str]
+    | list[Column.SegData]
+    | list[Column.SegDataFilters]
+    | list[Column.DiffAEData]
+    | list[Column.SegDataWorkflowVerification],
+]
+DEFAULT_COLUMNS_TO_DROP: SegColumnsDropDict = {
     "segmentation_features": [
         Column.SegData.EDGE_FLUOR,
         Column.SegData.NODE_FLUOR,
@@ -191,7 +203,7 @@ DEFAULT_COLUMNS_TO_DROP = {
     ],
 }
 
-DATASET_INFO_COLUMNS = [
+DATASET_INFO_COLUMNS: list[str | Column.SegData] = [
     Column.DATASET,
     Column.POSITION,
     Column.TIMEPOINT,
@@ -205,7 +217,7 @@ DATASET_INFO_COLUMNS = [
 # Default model configurations for model qc
 # =========================================
 
-DEFAULT_MODEL_QC_MANIFEST_NAMES = [
+DEFAULT_MODEL_QC_MANIFEST_NAMES: list[str] = [
     "diffae_baseline_exclude_cell_piling",  # 8 BF
     "diffae_baseline_exclude_cell_piling",  # 16 BF
     "diffae_baseline_exclude_cell_piling",  # 32 BF
@@ -223,7 +235,7 @@ Covers 8 brightfield-conditioned latent dimensions (8--1024) and 2 CDH5-
 conditioned models (512, 1024).
 """
 
-DEFAULT_MODEL_QC_RUN_NAMES = [
+DEFAULT_MODEL_QC_RUN_NAMES: list[str] = [
     "20260207_latent_8",
     "20260205_latent_16",
     "20260203_latent_32",
@@ -236,7 +248,7 @@ DEFAULT_MODEL_QC_RUN_NAMES = [
     "20251110_latent_1024",
 ]
 """Run names corresponding to each entry in :data:`DEFAULT_MODEL_QC_MANIFEST_NAMES`."""
-DEFAULT_MODEL_QC_LABELS = [
+DEFAULT_MODEL_QC_LABELS: list[str] = [
     "8 BF",
     "16 BF",
     "32 BF",
