@@ -27,9 +27,13 @@ def main(
     """
     import logging
 
+    import numpy as np
+
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.library.analyze.numerics.correlations import compute_correlation_dict
+    from endo_pipeline.library.analyze.numerics.correlations import (
+        compute_correlations_for_one_dataset,
+    )
     from endo_pipeline.library.visualize.diffae_features.correlations import (
         plot_correlation_workflow_outputs,
     )
@@ -75,12 +79,34 @@ def main(
             )
             bootstrap_samples = 50
 
-    # get cross and autocorrelation for pc features for each dataset
-    # in the list of model manifests
-    correlation_dict = compute_correlation_dict(
-        dataset_names, feature_dataframe_manifest, bootstrap_samples
-    )
+    # get cross and autocorrelation for pc features for each dataset and store
+    # results in a dict, updating main dict with results in a loop over datasets
+    correlation_dict: dict[str, dict[str, np.ndarray]] = {
+        "features": {},
+        "lags": {},
+        "acf": {},
+        "acf_ci_lower": {},
+        "acf_ci_upper": {},
+        "relaxation_timescales_ci_lower": {},
+        "relaxation_timescales_ci_upper": {},
+        "ccf": {},
+        "ccf_ci_lower": {},
+        "ccf_ci_upper": {},
+        "delta_ccf": {},
+        "delta_ccf_ci_lower": {},
+        "delta_ccf_ci_upper": {},
+        "delta_ccf_integral": {},
+        "delta_ccf_integral_ci_lower": {},
+        "delta_ccf_integral_ci_upper": {},
+        "max_lag_integrate": {},
+        "relaxation_timescales": {},
+    }
+    for dataset_name in dataset_names:
+        correlation_dict = compute_correlations_for_one_dataset(
+            dataset_name, feature_dataframe_manifest, correlation_dict, bootstrap_samples
+        )
 
+    # visualize results of correlation analysis across datasets
     plot_correlation_workflow_outputs(correlation_dict, bootstrap_samples)
 
 

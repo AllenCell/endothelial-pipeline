@@ -328,7 +328,7 @@ def bootstrap_cross_correlation_confidence_intervals(
     return confidence_interval_bounds
 
 
-def _compute_correlations_for_one_dataset(
+def compute_correlations_for_one_dataset(
     dataset_name: str,
     dataframe_manifest: DataframeManifest,
     correlation_dict: dict,
@@ -459,40 +459,6 @@ def _compute_correlations_for_one_dataset(
     correlation_dict["delta_ccf_integral_ci_lower"][dataset_name] = delta_ccf_integral_lb
     correlation_dict["delta_ccf_integral_ci_upper"][dataset_name] = delta_ccf_integral_ub
     correlation_dict["max_lag_integrate"][dataset_name] = max_lag_integrate
-    return correlation_dict
-
-
-def compute_correlation_dict(
-    dataset_names: list[str],
-    dataframe_manifest: DataframeManifest,
-    bootstrap_samples: int | None = None,
-) -> dict[str, dict]:
-    """Compute cross-correlation and autocorrelation for features from each dataset."""
-    correlation_dict: dict[str, dict[str, np.ndarray]] = {
-        "features": {},
-        "lags": {},
-        "acf": {},
-        "acf_ci_lower": {},
-        "acf_ci_upper": {},
-        "relaxation_timescales_ci_lower": {},
-        "relaxation_timescales_ci_upper": {},
-        "ccf": {},
-        "ccf_ci_lower": {},
-        "ccf_ci_upper": {},
-        "delta_ccf": {},
-        "delta_ccf_ci_lower": {},
-        "delta_ccf_ci_upper": {},
-        "delta_ccf_integral": {},
-        "delta_ccf_integral_ci_lower": {},
-        "delta_ccf_integral_ci_upper": {},
-        "max_lag_integrate": {},
-        "relaxation_timescales": {},
-    }
-    # update dict with correlation functions for each dataset in a loop
-    for dataset_name in dataset_names:
-        correlation_dict = _compute_correlations_for_one_dataset(
-            dataset_name, dataframe_manifest, correlation_dict, bootstrap_samples
-        )
     return correlation_dict
 
 
