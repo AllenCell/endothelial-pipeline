@@ -74,12 +74,15 @@ def main(
         get_histogram_by_component,
     )
     from endo_pipeline.library.process.image_processing import max_proj, std_dev
-    from endo_pipeline.library.visualize.crop_montage import load_data_for_montage, sample_dataframe
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
         get_label_for_column,
         plot_component_histograms_over_time,
     )
     from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
+    from endo_pipeline.library.visualize.specify_crops import (
+        load_data_for_montage,
+        sample_dataframe,
+    )
     from endo_pipeline.manifests import (
         get_feature_dataframe_manifest_name,
         get_most_recent_run_name,
