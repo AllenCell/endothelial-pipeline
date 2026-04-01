@@ -479,10 +479,6 @@ def get_df_for_feature_correlation_viz(
         for ang_col in angle_cols:
             merged_feats_df[ang_col] = np.unwrap(merged_feats_df[ang_col], period=angle_period)
 
-        merged_feats_df[Column.SegData.ORIENTATION_DEG] = np.rad2deg(
-            merged_feats_df[Column.SegData.ORIENTATION]
-        )
-
         # get dynamics dependent features
         merged_feats_df = calculate_derived_data_dynamics_dependent(merged_feats_df)
 
