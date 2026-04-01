@@ -1,11 +1,8 @@
 from endo_pipeline.cli import Datasets
-from endo_pipeline.settings import DEFAULT_MODEL_MANIFEST_NAME, DEFAULT_MODEL_RUN_NAME
 
 
 def main(
     datasets: Datasets | None = None,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     bootstrap_samples: int | None = 1000,
 ) -> None:
     """
@@ -13,14 +10,18 @@ def main(
 
     #diffae #correlation-analysis
 
+    **Workflow defaults**
+        - model_manifest_name: DEFAULT_MODEL_MANIFEST_NAME
+        - run_name: DEFAULT_MODEL_RUN_NAME
+        - crop_pattern: "grid"
+        - datasets: all datasets in "3d_flow_field_analysis" collection except
+          for no-flow datasets (shear stress = 0)
+
     Parameters
     ----------
     datasets
-        Optional, list of datasets or dataset collections to use in workflow.
-    model_manifest_name
-        Name of the model manifest to load the model from.
-    run_name
-        Name of the model run to apply. If None, uses the most recent run.
+        Optional, specific list of datasets or dataset collections to use in
+        workflow.
     bootstrap_samples
         Optional, number of bootstrap samples to use for correlation analysis..
     """
@@ -33,6 +34,10 @@ def main(
         plot_correlation_workflow_outputs,
     )
     from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+    )
 
     # initialize logger
     logger = logging.getLogger(__name__)
@@ -57,7 +62,7 @@ def main(
 
     # Load dataframe manifest for the features to be used in correlation analysis.
     crop_pattern = "grid"  # only runs on grid based crops for now
-    base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
+    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
     feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
