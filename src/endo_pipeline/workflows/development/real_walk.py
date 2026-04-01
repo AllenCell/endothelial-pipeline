@@ -74,10 +74,7 @@ def main(
     from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
     from endo_pipeline.manifests import get_zarr_location_for_position, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.diffae_feature_dataframes import (
-        DIFFAE_PC_COLUMN_NAMES,
-        NUM_LATENT_FEATURES,
-    )
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
     from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
     from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH
@@ -142,7 +139,7 @@ def main(
 
             logger.info("%d crops for PC %s around value %s", len(df_filtered), pc_axis, pc_val)
 
-            for i in range(NUM_LATENT_FEATURES):
+            for i in range(NUM_PCS_TO_ANALYZE):
                 if i != pc_axis:
                     pc_col = DIFFAE_PC_COLUMN_NAMES[i]
                     df_filtered = df_filtered[
