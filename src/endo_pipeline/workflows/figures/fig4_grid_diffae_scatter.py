@@ -9,7 +9,13 @@ def main() -> None:
 
     from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import load_dataset_config
-    from endo_pipeline.io import get_output_path, load_image, load_model, save_plot_to_path
+    from endo_pipeline.io import (
+        get_output_path,
+        load_dataframe,
+        load_image,
+        load_model,
+        save_plot_to_path,
+    )
     from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
     from endo_pipeline.library.model import generate_from_coords_batch
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
@@ -53,7 +59,7 @@ def main() -> None:
     dataframe_location = get_dataframe_location_for_dataset(
         feature_dataframe_manifest, dataset_name
     )
-    diffae_grid_crops = load_dataframe_manifest(dataframe_location)
+    diffae_grid_crops = load_dataframe(dataframe_location)
 
     example_and_target_points = get_no_flow_pc_space_example_points_fig4(
         diffae_grid_crops, radius=2.2, origin_pc1pc2=(0, 0), pc3_target=0.0
