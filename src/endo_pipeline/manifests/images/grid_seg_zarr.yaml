@@ -72,3 +72,5 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
   20260302_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
+  20260304_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
