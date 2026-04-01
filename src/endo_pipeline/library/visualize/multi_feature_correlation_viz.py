@@ -507,6 +507,13 @@ def get_df_for_feature_correlation_viz(
     # merge the DataFrames from all datasets
     df = pd.concat(df_list, ignore_index=True)
 
+    # if any nans or infs, log a warning and filter out
+    if df.isna().any().any() or np.isinf(df.to_numpy()).any():
+        logger.warning(
+            "DataFrame contains NaN or infinite values. These will be filtered out for correlation visualization."
+        )
+        df = df.replace([np.inf, -np.inf], np.nan).dropna()
+
     return df
 
 
