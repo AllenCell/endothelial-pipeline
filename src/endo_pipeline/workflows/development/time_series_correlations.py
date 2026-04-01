@@ -17,6 +17,8 @@ def main(
         - crop_pattern: "grid"
         - datasets: all datasets in "3d_flow_field_analysis" collection except
           for no-flow datasets (shear stress = 0)
+        - columns: first NUM_PCS_TO_ANALYZE DiffAE PC features and all "dynamics
+          analyses" features (DYNAMICS_COLUMN_NAMES)
 
     Parameters
     ----------
@@ -117,7 +119,7 @@ def main(
     for dataset_name in dataset_names:
         # try to get dataframe for the given dataset
         # if it does not exist, skip this dataset, return dict as is
-        if dataset_name not in feature_dataframe_manifest:
+        if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
                 "Dataset [ %s ] not found in the manifest, skipping for this workflow.",
                 dataset_name,
