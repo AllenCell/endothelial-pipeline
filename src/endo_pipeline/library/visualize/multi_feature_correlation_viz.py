@@ -473,9 +473,9 @@ def get_df_for_feature_correlation_viz(
         for col in cols_to_load:
             if col not in cols_to_load_unique and col in cols_to_load_overlap:
                 cols_to_load_unique.append(col)
+        # compute with only the required columns to save memory and speed up
+        # loading
         merged_feats_df = merged_feats_df_delayed[cols_to_load_unique].compute()
-        # filter the dataframe to only include rows with DiffAE features
-        merged_feats_df = merged_feats_df.dropna(subset=[Column.DiffAEData.MODEL_MANIFEST])
 
         # "unwrap" the angle features to avoid issues with periodic data when plotting correlations
         angle_period = np.pi
@@ -507,11 +507,9 @@ def get_df_for_feature_correlation_viz(
         merged_feats_df = merged_feats_df[cols_to_keep].copy()
         merged_feats_df.rename(columns=get_label_for_column, inplace=True)
         df_list.append(merged_feats_df)
+
     # merge the DataFrames from all datasets
     df = pd.concat(df_list, ignore_index=True)
-
-    # drop rows with NaN or inf values
-    df = df.replace([np.inf, -np.inf], np.nan).dropna()
 
     return df
 
