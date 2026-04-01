@@ -3,7 +3,6 @@ from typing import Any, Literal
 
 import numpy as np
 from scipy.optimize import curve_fit
-from sklearn.decomposition import PCA
 
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
 from endo_pipeline.io import load_dataframe
@@ -332,7 +331,6 @@ def bootstrap_cross_correlation_confidence_intervals(
 def _compute_correlations_for_one_dataset(
     dataset_name: str,
     dataframe_manifest: DataframeManifest,
-    pca: PCA,
     correlation_dict: dict,
     bootstrap_samples: int | None = None,
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
@@ -467,7 +465,6 @@ def _compute_correlations_for_one_dataset(
 def compute_correlation_dict(
     dataset_names: list[str],
     dataframe_manifest: DataframeManifest,
-    pca: PCA,
     bootstrap_samples: int | None = None,
 ) -> dict[str, dict]:
     """Compute cross-correlation and autocorrelation for features from each dataset."""
@@ -494,7 +491,7 @@ def compute_correlation_dict(
     # update dict with correlation functions for each dataset in a loop
     for dataset_name in dataset_names:
         correlation_dict = _compute_correlations_for_one_dataset(
-            dataset_name, dataframe_manifest, pca, correlation_dict, bootstrap_samples
+            dataset_name, dataframe_manifest, correlation_dict, bootstrap_samples
         )
     return correlation_dict
 
