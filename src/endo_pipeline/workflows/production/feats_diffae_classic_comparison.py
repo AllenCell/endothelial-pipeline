@@ -1,16 +1,22 @@
 from endo_pipeline.cli import Datasets, UniqueIntList
-from endo_pipeline.settings import DEFAULT_PCA_DATASET_COLLECTION_NAME
+from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
+from endo_pipeline.settings.workflow_defaults import (  # DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+    DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
+    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
+)
 
 
 def main(
     datasets: Datasets | None = None,
     positions: list[int] | None = None,
     track_ids: UniqueIntList | None = None,
-    datasets_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     track_integrations_only: bool = False,
     use_global_pc_lims: bool = False,
     for_figures: bool = False,
     n_cores: int = 30,
+    diffae_grid_manifest_name_for_flowfield: str = DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
+    cellcentric_features_manifest_name_for_flowfield: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
+    # cellcentric_features_manifest_name_for_integration: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
 ) -> None:
     """This workflow outputs plots of track-based cell trajectories integrated with grid-based DiffAE flow fields."""
 
@@ -22,20 +28,26 @@ def main(
     from tqdm import tqdm
 
     from endo_pipeline.configs import get_datasets_in_collection
-    from endo_pipeline.io import get_output_path, save_plot_to_path
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.integration.track_integration import (
-        get_gridcrop_and_cellcentric_trajectories_and_flow_fields,
-        load_cellcentric_and_grid_diffae_features,
+        get_flow_field_and_fixed_points,
     )
-    from endo_pipeline.library.visualize.integration.track_integration_viz import (
+    from endo_pipeline.library.visualize.integration.track_integration_viz import (  # plot_new_traj_overlay_on_grid_traj_and_flowfield,
         PlotMeasFeatAndFlowFieldOverlayArgs,
         multiproc_plot_measured_feat_overlay_on_flowfield,
         overlay_trajectory_heatmap_on_flowfield,
         plot_measured_feat_overlay_on_flowfield,
-        plot_new_traj_overlay_on_grid_traj_and_flowfield,
-        plot_quiver_slices_from_diffae_table,
+        plot_quiver_slices_from_flow_field_dict,
     )
+    from endo_pipeline.manifests import get_dataframe_location_for_dataset
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+    from endo_pipeline.settings.workflow_defaults import (  # DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,; DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,; DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
+        DATASET_INFO_COLUMNS,
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+        DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    )
 
     out_dir = get_output_path(__file__)
     if datasets is None:
@@ -47,21 +59,58 @@ def main(
 
     positions = list(range(6)) if positions is None else positions
 
+    dynamics_columns = list(DYNAMICS_COLUMN_NAMES)
+    seg_feat_columns = [
+        Column.SegData.TIME_HRS,
+        Column.SegData.ALIGNMENT_DEG,
+        Column.SegData.ORIENTATION_DEG,
+        Column.SegData.ECCENTRICITY,
+    ]
+
     for dataset_name in datasets:
 
+        # define the columns to compute
+        compute_cols = [*DATASET_INFO_COLUMNS, *dynamics_columns, *seg_feat_columns]
+
         # load and preprocess the different diffae manifests and PCA pipeline
-        df_all_positions, diffae_grid_crops = load_cellcentric_and_grid_diffae_features(
-            dataset_name=dataset_name,
+        cellcentric_manifest = load_dataframe_manifest(
+            cellcentric_features_manifest_name_for_flowfield
+        )
+        cellcentric_df_location = get_dataframe_location_for_dataset(
+            cellcentric_manifest, dataset_name
+        )
+        cellcentric_df_delayed = load_dataframe(cellcentric_df_location, delay=True)
+        cellcentric_df = (
+            cellcentric_df_delayed[list(set(compute_cols) & set(cellcentric_df_delayed.columns))]
+            .compute()
+            .reset_index(drop=True)
         )
 
-        # load or compute the trajectories and flow fields for the grid-based
-        # and cell-centric crops
-        traj_grids, flow_field_dict_grids, traj_tracks, _ = (
-            get_gridcrop_and_cellcentric_trajectories_and_flow_fields(
-                merged_feats_df=df_all_positions,
-                diffae_grid_crops=diffae_grid_crops,
-                trajectory_dir=out_subdir_traj,
-            )
+        diffae_grid_manifest = load_dataframe_manifest(diffae_grid_manifest_name_for_flowfield)
+        diffae_grid_location = get_dataframe_location_for_dataset(
+            diffae_grid_manifest, dataset_name
+        )
+        diffae_grid_df_delayed = load_dataframe(diffae_grid_location, delay=True)
+        diffae_grid_df = (
+            diffae_grid_df_delayed[list(set(compute_cols) & set(diffae_grid_df_delayed.columns))]
+            .compute()
+            .reset_index(drop=True)
+        )
+
+        # # load or compute the trajectories and flow fields for the grid-based
+        # # and cell-centric crops
+        # traj_grids, flow_field_dict_grids, traj_tracks, _ = (
+        #     get_gridcrop_and_cellcentric_flow_fields(
+        #         diffae_tracked_df=diffae_tracked_df,
+        #         diffae_grid_df=diffae_grid_df,
+        #         trajectory_dir=out_subdir_traj,
+        #     )
+        # )
+        flow_field_dict_grids, fixed_points_df = get_flow_field_and_fixed_points(
+            dataset_name=dataset_name,
+            column_names=dynamics_columns,
+            model_manifest_name=DEFAULT_MODEL_MANIFEST_NAME,
+            run_name=DEFAULT_MODEL_RUN_NAME,
         )
 
         # save plots of the track-based crop trajectories and PCs overlaid
@@ -83,85 +132,93 @@ def main(
         # first decide if the colormap should be shown in the plot as a legend
         legend: Literal["auto", "brief", "full", False] = "auto"
 
+        # get some parameters for plotting integrated measured features over the flow field
+        time_start = 0  # cellcentric_df[Column.SegData.TIME_HRS].min()
+        time_stop = 48  # cellcentric_df[Column.SegData.TIME_HRS].max()
+
+        FeatureLimitsPair = namedtuple("FeatureLimitsPair", ["feature_name", "feature_hue_limits"])
+        measured_feats_to_plot = (
+            FeatureLimitsPair(Column.SegData.TIME_HRS, (time_start, time_stop)),
+            FeatureLimitsPair(Column.SegData.ALIGNMENT_DEG, (0, 90)),
+            FeatureLimitsPair(Column.SegData.ECCENTRICITY, (0.0, 1.0)),
+        )
+
         if not track_integrations_only:
             # plot just the flow field (used for validation with the workflow
-            # generate_3d_flow_field.py that this one is based on)
-            fig, axs = plot_quiver_slices_from_diffae_table(
-                diffae_grid_crops,
-                traj_grids,
-                flow_field_dict_grids,
-                plot_trajectory=False,
-                plot_fixed_points=True,
-            )
-            plt.tight_layout()
-            save_plot_to_path(
-                figure=fig,
-                output_path=out_subdir,
-                figure_name=f"{dataset_name}_flow_field",
-                file_format=figure_format,
-            )
-            plt.close(fig)
-
-            # plot the flow field and the trajectories for the average behavior of
-            # tracked cells over time
-            plot_new_traj_overlay_on_grid_traj_and_flowfield(
-                out_subdir,
-                dataset_name,
-                diffae_grid_crops,
-                traj_grids,
-                flow_field_dict_grids,
-                traj_tracks,
-                figure_format=figure_format,
-                use_global_pc_lims=use_global_pc_lims,
-            )
-
-            time_start = df_all_positions[Column.SegData.TIME_HRS].min()
-            time_stop = df_all_positions[Column.SegData.TIME_HRS].max()
-
-            FeatureLimitsPair = namedtuple(
-                "FeatureLimitsPair", ["feature_name", "feature_hue_limits"]
-            )
-            measured_feats_to_plot = (
-                FeatureLimitsPair(Column.SegData.TIME_HRS, (time_start, time_stop)),
-                FeatureLimitsPair(Column.SegData.ALIGNMENT_DEG, (0, 90)),
-                FeatureLimitsPair(Column.SegData.ECCENTRICITY, (0.0, 1.0)),
-            )
-            for feature_name, feature_hue_lims in measured_feats_to_plot:
-                plot_measured_feat_overlay_on_flowfield(
-                    out_subdir,
-                    dataset_name,
-                    diffae_grid_crops,
-                    traj_grids,
-                    flow_field_dict_grids,
-                    diffae_measured_feat_df=df_all_positions,
-                    meas_feat_col_name_for_color_coding=feature_name,
-                    track_id_to_plot="mean",
-                    plot_trajectory=False,
-                    plot_fixed_points=True,
-                    indicate_track_start=False,
-                    indicate_track_end=True,
-                    hue_norm=feature_hue_lims,
-                    legend=legend,
-                    alpha=0.8,
-                    show_plot=False,
-                    figure_format=figure_format,
-                    use_global_pc_lims=use_global_pc_lims,
+            # visualize_3d_flow_field.py that this one is based on)
+            # plot slices at mean of data at last time point
+            for i, fp_row in fixed_points_df.iterrows():
+                flow_field_slices = (
+                    fp_row[dynamics_columns[2]],
+                    fp_row[dynamics_columns[1]],
+                )  # feature 3, feature 2
+                fixed_points_at_slices = (
+                    fp_row[list(map(str, dynamics_columns))].drop(index=[dynamics_columns[2]]),
+                    fp_row[list(map(str, dynamics_columns))].drop(index=[dynamics_columns[1]]),
                 )
+
+                fig, axs = plot_quiver_slices_from_flow_field_dict(
+                    dataset_name=dataset_name,
+                    flow_field_dict_grids=flow_field_dict_grids,
+                    feature_vals=flow_field_slices,
+                    column_names=dynamics_columns,
+                )
+                for i, ax in enumerate(axs):
+                    ax.scatter(*fixed_points_at_slices[i], c="k", s=50)
+                plt.tight_layout()
+                save_plot_to_path(
+                    figure=fig,
+                    output_path=out_subdir,
+                    figure_name=f"{dataset_name}_flow_field_fp{i}",
+                    file_format=figure_format,
+                )
+                plt.close(fig)
+
+                # plot the flow field and the trajectories for the average behavior of
+                # tracked cells over time
+                # plot_new_traj_overlay_on_grid_traj_and_flowfield(
+                #     out_subdir,
+                #     dataset_name,
+                #     fixed_points_df,
+                #     flow_field_dict_grids,
+                #     traj_tracks,
+                #     figure_format=figure_format,
+                #     use_global_pc_lims=use_global_pc_lims,
+                # )
+
+                for feature_name, feature_hue_lims in measured_feats_to_plot:
+                    plot_measured_feat_overlay_on_flowfield(
+                        out_subdir,
+                        dataset_name,
+                        flow_field_dict_grids,
+                        cellcentric_df=cellcentric_df,
+                        meas_feat_col_name_for_color_coding=feature_name,
+                        track_id_to_plot="mean",
+                        plot_trajectory=False,
+                        fixed_points_df=fixed_points_df,
+                        flow_field_slices=flow_field_slices,
+                        indicate_track_start=False,
+                        indicate_track_end=True,
+                        hue_norm=feature_hue_lims,
+                        legend=legend,
+                        alpha=0.8,
+                        show_plot=False,
+                        figure_format=figure_format,
+                        use_global_pc_lims=use_global_pc_lims,
+                    )
 
             # plot trajectory heatmap (indicates where most of the data is in PC-space)
             overlay_trajectory_heatmap_on_flowfield(
                 out_dir=out_subdir_heatmap,
                 dataset_name=dataset_name,
-                diffae_grid_crops=diffae_grid_crops,
-                traj_grids=traj_grids,
+                cellcentric_df=cellcentric_df,
                 flow_field_dict_grids=flow_field_dict_grids,
-                df_all_positions=df_all_positions,
             )
 
         # plot single track examples
         for pos in positions:
-            df_one_position = df_all_positions[df_all_positions[Column.POSITION] == pos]
-            # for pos, df_one_position in df_all_positions.groupby("position_as_str"):
+            df_one_position = cellcentric_df[cellcentric_df[Column.POSITION] == pos]
+            # for pos, df_one_position in diffae_tracked_df.groupby("position_as_str"):
             out_subdir_indiv_pos = out_subdir_indiv / str(pos)
             out_subdir_indiv_pos.mkdir(parents=True, exist_ok=True)
 
@@ -182,9 +239,9 @@ def main(
                     PlotMeasFeatAndFlowFieldOverlayArgs(
                         out_subdir_indiv_pos,
                         dataset_name,
-                        diffae_grid_crops,
-                        traj_grids,
+                        diffae_grid_df,
                         flow_field_dict_grids,
+                        flow_field_slices,
                         df_one_position,
                         measured_feature,
                         tid,

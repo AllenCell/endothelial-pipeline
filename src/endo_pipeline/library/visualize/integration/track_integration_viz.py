@@ -22,6 +22,7 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     set_slice_plot_bounds_and_labels,
 )
 from endo_pipeline.settings import ColumnName
+from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.flow_field_3d import BIN_WIDTH_DEFAULTS, QUIVER_COLORMAP
 
 
@@ -157,42 +158,31 @@ def get_grid_bounds(flow_field_dict: dict) -> list:
     return bounds
 
 
-def plot_quiver_slices_from_diffae_table(
-    diffae_df: pd.DataFrame,
-    traj_grids: np.ndarray,
+def plot_quiver_slices_from_flow_field_dict(
+    dataset_name: str,
     flow_field_dict_grids: dict,
-    plot_trajectory: bool = True,
-    plot_fixed_points: bool = True,
+    feature_vals: tuple[float, float],
     flow_field_colormap: str = QUIVER_COLORMAP,
+    column_names: list[str] = list(DYNAMICS_COLUMN_NAMES),
 ) -> tuple[Figure, np.ndarray]:
 
     # get limits of grid from the grid crops flow fields
     bounds = get_grid_bounds(flow_field_dict_grids)
 
-    # plot 2D slices at PC2 and PC3 values given by
-    # the last point of the input trajectory
-    pc_vals = (traj_grids[-1, 2], traj_grids[-1, 1])
-
     # baseline visualization: plot flow field slices
     fig, axs = plot_flow_field_slices(
         flow_field_dict=flow_field_dict_grids,
-        dataset_name=diffae_df[ColumnName.DATASET].unique()[0],
+        dataset_name=dataset_name,
         plot_bounds=bounds,
         fig_savedir=None,
-        feature_vals=pc_vals,
+        feature_vals=feature_vals,
         colormap_name=flow_field_colormap,
         log_norm_colormap=True,
+        column_names=column_names,
     )
-    [ax.set_aspect("equal") for ax in axs]
-    [ax.set_zorder(0) for ax in axs]
-    axs = set_slice_plot_bounds_and_labels(axs, bounds)
-
-    # plot the trajectories
-    for j, ax in enumerate(axs):  # PC1 vs PC2, PC1 vs PC3
-        if plot_trajectory:
-            ax.plot(traj_grids[:, 0], traj_grids[:, j + 1], lw=2, color="navy", zorder=1)
-        if plot_fixed_points:
-            ax.scatter(traj_grids[-1, 0], traj_grids[-1, j + 1], s=50, color="black", zorder=2)
+    for ax in axs:
+        ax.set_aspect("equal")
+        ax.set_zorder(0)
 
     return fig, axs
 
@@ -307,13 +297,11 @@ def plot_measured_feat_pcs(
 def plot_measured_feat_overlay_on_flowfield(
     out_dir: Path,
     dataset_name: str,
-    diffae_grid_crops: pd.DataFrame,
-    traj_grids: np.ndarray,
     flow_field_dict_grids: dict,
-    diffae_measured_feat_df: pd.DataFrame,
+    cellcentric_df: pd.DataFrame,
     meas_feat_col_name_for_color_coding: str,
-    plot_trajectory: bool = False,
-    plot_fixed_points: bool = True,
+    flow_field_slices: tuple,
+    fixed_points_df: pd.DataFrame | None = None,
     indicate_track_start: bool = True,
     indicate_track_end: bool = True,
     track_id_to_plot: Literal["mean"] | int | None = "mean",
@@ -324,15 +312,14 @@ def plot_measured_feat_overlay_on_flowfield(
     figure_format: Literal[".png", ".svg", ".pdf"] = ".png",
     use_global_pc_lims: bool = False,
 ) -> None:
-    fig, axs = plot_quiver_slices_from_diffae_table(
-        diffae_grid_crops,
-        traj_grids,
-        flow_field_dict_grids,
-        plot_trajectory=plot_trajectory,
-        plot_fixed_points=plot_fixed_points,
+    fig, axs = plot_quiver_slices_from_flow_field_dict(
+        dataset_name=dataset_name,
+        flow_field_dict_grids=flow_field_dict_grids,
+        feature_vals=flow_field_slices,
+        column_names=dynamics_columns,
     )
     fig, axs = plot_measured_feat_pcs(
-        measured_feat_df=diffae_measured_feat_df,
+        measured_feat_df=cellcentric_df,
         meas_feat_col=meas_feat_col_name_for_color_coding,
         pc_cols_for_xaxis=["pc_1", "pc_1"],
         pc_cols_for_yaxis=["pc_2", "pc_3"],
@@ -385,16 +372,13 @@ def plot_measured_feat_overlay_on_flowfield(
 def plot_new_traj_overlay_on_grid_traj_and_flowfield(
     out_dir: Path,
     dataset_name: str,
-    diffae_grid_crops: pd.DataFrame,
-    traj_grids: np.ndarray,
+    fixed_points_df: pd.DataFrame | None,
     flow_field_dict_grids: dict,
     traj_tracks: np.ndarray,
     figure_format: Literal[".png", ".svg", ".pdf"] = ".png",
     use_global_pc_lims: bool = False,
 ) -> None:
-    fig, axs = plot_quiver_slices_from_diffae_table(
-        diffae_grid_crops, traj_grids, flow_field_dict_grids
-    )
+    fig, axs = plot_quiver_slices_from_flow_field_dict(dataset_name, flow_field_dict_grids)
     for j, ax in enumerate(axs):  # PC1 vs PC2, PC1 vs PC3
         ax.plot(traj_tracks[:, 0], traj_tracks[:, j + 1], lw=2, color="crimson")
         ax.scatter(
@@ -421,10 +405,10 @@ def plot_new_traj_overlay_on_grid_traj_and_flowfield(
 def overlay_trajectory_heatmap_on_flowfield(
     out_dir: Path,
     dataset_name: str,
-    diffae_grid_crops: pd.DataFrame,
-    traj_grids: np.ndarray,
+    diffae_grid_df: pd.DataFrame,
+    fixed_points_df: pd.DataFrame | None,
     flow_field_dict_grids: dict,
-    df_all_positions: pd.DataFrame,
+    diffae_tracked_df: pd.DataFrame,
     bin_widths: tuple[float, float, float] = BIN_WIDTH_DEFAULTS,
 ) -> None:
     """
@@ -436,24 +420,19 @@ def overlay_trajectory_heatmap_on_flowfield(
         Directory to save the plot to.
     dataset_name
         Name of the dataset to use for the plot.
-    diffae_grid_crops
-        DataFrame containing the diffae grid crops.
+    diffae_grid_df
+        DataFrame containing the diffae grid data.
     traj_grids
         Numpy array containing the trajectory grids.
     flow_field_dict_grids
         Dictionary containing the flow field data for the grids.
-    df_all_positions
+    diffae_tracked_df
         DataFrame containing all positions and tracks.
     num_bins
         Number of bins to use for the heatmap in each dimension.
     """
     # plot flow field
-    fig, axs = plot_quiver_slices_from_diffae_table(
-        diffae_grid_crops,
-        traj_grids,
-        flow_field_dict_grids,
-        plot_trajectory=False,
-    )
+    fig, axs = plot_quiver_slices_from_flow_field_dict(diffae_grid_df, flow_field_dict_grids)
 
     bounds = get_grid_bounds(flow_field_dict_grids)
     bins, _ = get_bins(bin_widths, bin_limits=bounds)
@@ -462,9 +441,10 @@ def overlay_trajectory_heatmap_on_flowfield(
     plot_dim = [1, 2]  # this is the PC dimension plotted on the y-axis against PC1
 
     bin_data, bin_counts = get_coarse_grained_trajectory_heatmap_data(
-        df_all_positions=df_all_positions,
+        diffae_tracked_df=diffae_tracked_df,
         bounds=bounds,
         num_bins=[len(b) - 1 for b in bins],
+        pc_cols=list(DYNAMICS_COLUMN_NAMES),
     )
 
     for j, ax in enumerate(axs):
@@ -500,9 +480,9 @@ PlotMeasFeatAndFlowFieldOverlayArgs = namedtuple(
     [
         "out_subir_single_position",
         "dataset_name",
-        "diffae_grid_crops",
-        "traj_grids",
+        "diffae_grid_df",
         "flow_field_dict_grids",
+        "flow_field_slices",
         "df_one_position",
         "measured_feature",
         "track_id",
@@ -538,8 +518,9 @@ def multiproc_plot_measured_feat_overlay_on_flowfield(
         diffae_grid_crops,
         traj_grids,
         flow_field_dict_grids,
-        diffae_measured_feat_df=df_one_position,
+        cellcentric_df=df_one_position,
         meas_feat_col_name_for_color_coding=measured_feature,
+        flow_field_slices=flow_field_slices,
         plot_trajectory=False,
         plot_fixed_points=True,
         indicate_track_start=False,

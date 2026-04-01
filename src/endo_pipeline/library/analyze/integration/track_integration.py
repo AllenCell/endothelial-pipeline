@@ -12,6 +12,7 @@ from tqdm import tqdm
 from endo_pipeline.io import get_output_path, load_dataframe
 from endo_pipeline.library.analyze.data_driven_flow_field import solve_ddff_ode
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    check_required_columns_in_dataframe,
     get_pc_column_names,
     get_traj_and_diff,
 )
@@ -19,7 +20,6 @@ from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_krame
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
-from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.visualize.integration.track_integration_viz import (
     get_valid_slice_indexes,
     grid_vs_track_vec_angle_hist2d,
@@ -50,11 +50,18 @@ from endo_pipeline.settings.flow_field_3d import (
     TIME_STEP_IN_MINUTES,
     TRAJECTORY_TIME_SPAN,
 )
+from endo_pipeline.settings.flow_field_dataframes import (
+    DATAFRAME_MANIFEST_PREFIX_DRIFT,
+    DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+    STABILITY_COLUMN_NAME,
+)
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_COLUMNS_TO_DROP,
     DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
     DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_FILTERED,
     DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_UNFILTERED,
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 )
@@ -132,14 +139,7 @@ def process_dataset_for_track_integration(
 
     # load or compute the trajectories and flow fields for the grid-based
     # and cell-centric crops
-    traj_grids, flow_field_dict_grids, traj_tracks, flow_field_dict_tracks = (
-        get_gridcrop_and_cellcentric_trajectories_and_flow_fields(
-            dataset_name=dataset_name,
-            diffae_tracked_df=diffae_tracked_df,
-            diffae_grid_crops=diffae_grid_df,
-            trajectory_dir=out_subdir,
-        )
-    )
+    flow_field_dict_grids, fixed_points_df = get_flow_field_and_fixed_points(dataset_name)
 
     # get the slice indexes to use for plotting the flow fields
     # (we will be setting PC3 to a constant, i.e. the z-axis here)
@@ -610,12 +610,12 @@ def get_traj_and_flowfield(
     return traj, flow_field_dict
 
 
-def get_gridcrop_and_cellcentric_trajectories_and_flow_fields(
+def get_flow_field_and_fixed_points(
     dataset_name: str,
-    diffae_tracked_df: pd.DataFrame,
-    diffae_grid_df: pd.DataFrame,
-    trajectory_dir: Path,
-) -> tuple[np.ndarray, dict, np.ndarray, dict]:
+    column_names: list[str] = list(DYNAMICS_COLUMN_NAMES),
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str = DEFAULT_MODEL_RUN_NAME,
+) -> tuple[dict, pd.DataFrame]:
     """
     Get the trajectories and flow fields for the grid-based and cell-centric crops.
     This function is called after loading and preprocessing the manifests.
@@ -627,56 +627,49 @@ def get_gridcrop_and_cellcentric_trajectories_and_flow_fields(
     """
     logger.info("Getting trajectories and flow fields for grid-based and cell-centric crops...")
 
-    dataset_name_tracked = sequence_to_scalar(diffae_tracked_df[Column.DATASET])
-    dataset_name_grid = sequence_to_scalar(diffae_grid_df[Column.DATASET])
-    if dataset_name_tracked != dataset_name_grid:
-        raise ValueError(
-            f"Dataset name mismatch between the tracked crops and grid crops. "
-            f"Got {dataset_name_tracked} for tracked crops and {dataset_name_grid} for grid crops."
+    base_name = f"{model_manifest_name}_{run_name}_grid"
+    fixed_points_df_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
+    fixed_points_df_manifest = load_dataframe_manifest(fixed_points_df_manifest_name)
+
+    # load fixed point dataframe if it exists, and check that required
+    # columns are present turn fixed point dataframe into list of arrays of
+    # stable fixed point coordinates for each dataset to use for plotting
+    fixed_points_df_location = get_dataframe_location_for_dataset(
+        fixed_points_df_manifest, dataset_name
+    )
+    fixed_points_df = load_dataframe(fixed_points_df_location, delay=False)
+    check_required_columns_in_dataframe(
+        fixed_points_df,
+        required_columns=[*column_names, Column.DATASET, STABILITY_COLUMN_NAME],
+    )
+
+    # if there are no fixed points then move to the next dataset
+    if fixed_points_df.empty:
+        logger.warning(
+            "No stable fixed points found for dataset [ %s ]. Nothing to plot for this dataset.",
+            dataset_name,
         )
-    dataset_name = dataset_name_tracked
 
-    # try to load the grid crop-based  data for the cell-centric
-    #  crops or, if needed, compute and save them
-    precomputed_trajectories_path = trajectory_dir / f"{dataset_name}_traj_grids.npy"
-    if not precomputed_trajectories_path.exists():
-        logger.debug("Precomputed trajectories not found, will compute them...")
-        load_precomputed_trajectories = None
-    else:
-        load_precomputed_trajectories = precomputed_trajectories_path
-
-    logger.debug("getting trajectory and flow field for grid-based crops...")
-    # This takes about 2 minutes to compute if not loading precomputed
-    traj_grids, flow_field_dict_grids = get_traj_and_flowfield(
-        df=diffae_grid_df,
-        load_precomputed_trajectories=load_precomputed_trajectories,
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{base_name}"
+    drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
+    drift_dataframe_location = get_dataframe_location_for_dataset(
+        drift_dataframe_manifest, dataset_name
     )
+    drift_df = load_dataframe(drift_dataframe_location, delay=False)
 
-    if load_precomputed_trajectories is None:
-        logger.debug("saving the trajectory data from the grid-based crops...")
-        np.save(precomputed_trajectories_path, traj_grids)
+    # restructure the drift dataframe into a flow field dictionary
+    ndim = len(column_names)
+    drift_column_names = [f"{name}_drift" for name in column_names]
 
-    # try to load the trajectory data for the cell-centric crops or,
-    # if needed, compute and save them
-    precomputed_trajectories_path = trajectory_dir / f"{dataset_name}_traj_tracks.npy"
-    if not precomputed_trajectories_path.exists():
-        logger.debug("Precomputed trajectories not found, will compute them...")
-        load_precomputed_trajectories = None
-    else:
-        load_precomputed_trajectories = precomputed_trajectories_path
+    grid_points_1d = [np.sort(drift_df[column_name].unique()) for column_name in column_names]
+    grid_shape = tuple(len(points) for points in grid_points_1d)
+    grid = np.meshgrid(*grid_points_1d, indexing="ij")
 
-    logger.debug("getting trajectory and flow field for tracks-based crops...")
-    # This takes about 5 minutes to compute if not loading precomputed
-    traj_tracks, flow_field_dict_tracks = get_traj_and_flowfield(
-        df=diffae_tracked_df,
-        load_precomputed_trajectories=load_precomputed_trajectories,
-    )
+    drift_values = drift_df[drift_column_names].to_numpy().reshape(*grid_shape, ndim)
+    drift_vector_field = [drift_values[..., i] for i in range(ndim)]
+    flow_field_dict = {"vectors": drift_vector_field, "grid": grid}
 
-    if load_precomputed_trajectories is None:
-        logger.debug("saving the trajectory data from the track-based crops...")
-        np.save(precomputed_trajectories_path, traj_tracks)
-
-    return traj_grids, flow_field_dict_grids, traj_tracks, flow_field_dict_tracks
+    return flow_field_dict, fixed_points_df
 
 
 def get_vector_vector_angle(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
