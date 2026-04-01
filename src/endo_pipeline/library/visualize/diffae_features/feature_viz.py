@@ -237,13 +237,17 @@ def plot_pc_scatter(
 
     # initialize color list for legend
     patch_dict_for_legend = {}
+
+    # initialize list to hold dataframes for each dataset, which will be
+    # combined for plotting
     df_list = []
+    columns_to_compute = [*pc_column_names, Column.TIMEPOINT, Column.DATASET]
 
     for dataset_name in dataset_names:
         # load dataframe and get feature columns and timepoint column
         dataframe_location = get_dataframe_location_for_dataset(dataframe_manifest, dataset_name)
-        df = load_dataframe(dataframe_location, delay=True)
-        df = df[[*pc_column_names, Column.TIMEPOINT]].compute()
+        df_ = load_dataframe(dataframe_location, delay=True)
+        df = df_[columns_to_compute].compute()
 
         # if excluding the "not steady state" timepoints, do additional filtering:
         if not include_not_steady_state:
