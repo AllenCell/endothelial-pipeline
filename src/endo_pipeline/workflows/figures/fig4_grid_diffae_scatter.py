@@ -49,7 +49,7 @@ def main() -> None:
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
 
     # load dataframe for the no flow dataset
-    dataset_name: str = ("20250818_20X",)
+    dataset_name = "20250818_20X"
     dataframe_location = get_dataframe_location_for_dataset(
         feature_dataframe_manifest, dataset_name
     )
