@@ -11,7 +11,7 @@ Creates an n_features X n_features grid of plots with:
 import itertools
 import logging
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -412,13 +412,15 @@ def get_df_for_feature_correlation_viz(
     segmentation_feature_columns: list[str],
     pc_columns: list[str],
     timepoint_annotations: list[TimepointAnnotation] | None = None,
-    cell_centric_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
-    diffae_dynamics_columns: list[str] | tuple[str, ...] = DYNAMICS_COLUMN_NAMES,
+    merged_dataframe_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+    diffae_dynamics_columns: list[str | Column.DiffAEData] | None = None,
 ) -> pd.DataFrame:
     """
-    Load and preprocess the manifests for the given dataset names,
-    and return a DataFrame containing the merged features.
-    The returned DataFrame may be optionally filtered based on timepoint annotations.
+    Load, preprocess, and concatenate the merged DiffAE and segmentation
+    features for the given dataset names.
+
+    The returned DataFrame may be optionally filtered based on timepoint
+    annotations.
 
     Parameters
     ----------
@@ -428,25 +430,16 @@ def get_df_for_feature_correlation_viz(
         List of columns containing dataset information.
     segmentation_feature_columns
         List of segmentation feature column names.
-    num_pcs
-        Number of principal components to include. If None, uses NUM_PCS_TO_ANALYZE.
     pc_columns
         List of PCA component column names.
-    diffae_feature_columns
-        List of DiffAE feature column names.
-    dataset_collection_name_for_pca
-        The name of the dataset collection used for PCA.
-    model_manifest
-        The model manifest containing information about the DiffAE model.
-    run_name
-        The name of the run to use for loading the manifests.
-        If None, the latest run will be used.
-    seg_feature_manifest_name
-        The name of the segmentation feature manifest to use.
-        Default is "live_merged_seg_features".
     timepoint_annotations
-        List of timepoint annotations used to filter the DataFrame.
-        If None, no filtering will be applied.
+        Optional, list of timepoint annotations used to filter the DataFrame.
+    merged_dataframe_manifest_name
+        The manifest name for the merged DiffAE and segmentation features
+        DataFrame.
+    diffae_dynamics_columns
+        List of column names for DiffAE features that are used in dynamics
+        calculations.
 
     Returns
     -------
@@ -454,43 +447,47 @@ def get_df_for_feature_correlation_viz(
         A DataFrame containing the merged features from the specified datasets,
         filtered based on the provided timepoint annotations.
     """
+    # init default value for diffae_dynamics_columns if not provided to avoid
+    # mutable default argument
+    diffae_dynamics_columns_ = diffae_dynamics_columns or list(DYNAMICS_COLUMN_NAMES)
+
     df_list: list = []
     for dataset_name in tqdm(dataset_name_list):
         # load the pc-diffae-seg-merged parquet file
-        cell_centric_feats_manifest = load_dataframe_manifest(cell_centric_manifest_name)
-        cell_centric_feats_location = get_dataframe_location_for_dataset(
-            cell_centric_feats_manifest, dataset_name
+        merged_feats_manifest = load_dataframe_manifest(merged_dataframe_manifest_name)
+        merged_feats_location = get_dataframe_location_for_dataset(
+            merged_feats_manifest, dataset_name
         )
-        merged_feats_df_delayed = load_dataframe(cell_centric_feats_location, delay=True)
+        merged_feats_df_delayed = load_dataframe(merged_feats_location, delay=True)
         merged_feats_df_delayed = merged_feats_df_delayed.reset_index(drop=True)
 
-        # compute only the required columns to save space and time
-        # (using a loop instead  of just sets to determine columns to load to preserve column order)
-        dynamics_columns = cast(
-            list[str], SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
-        )
-        diffae_dynamics_columns = cast(list[str], diffae_dynamics_columns)
-        supplementary_columns = cast(list[str], SEGMENTATION_FEATURE_COLUMNS["supp"])
-        diffae_nondiffae_columns = [
-            col.value
+        # compute only the required columns to save space and time (using a loop
+        # instead  of just sets to determine columns to load to preserve column
+        # order)
+        dynamics_seg_columns: list[str | Column.SegData] = SEGMENTATION_FEATURE_COLUMNS[
+            "dynamics_calculation_prereq"
+        ]
+        supplementary_columns: list[Column.SegData] = SEGMENTATION_FEATURE_COLUMNS["supp"]
+        diffae_columns_not_dynamics: list[Column.DiffAEData] = [
+            col
             for col in Column.DiffAEData
             if "PREFIX" not in col.name
             and "SUFFIX" not in col.name
-            and col not in diffae_dynamics_columns
+            and col not in diffae_dynamics_columns_
         ]
-        cols_to_load = (
+        cols_to_load = [
             *dataset_info_columns,
-            *dynamics_columns,
+            *dynamics_seg_columns,
             *supplementary_columns,
-            *diffae_nondiffae_columns,
+            *diffae_columns_not_dynamics,
             *pc_columns,
-        )
+        ]
         cols_to_load_overlap = sorted(set(cols_to_load) & set(merged_feats_df_delayed.columns))
         cols_to_load_unique = []
         for col in cols_to_load:
             if col not in cols_to_load_unique and col in cols_to_load_overlap:
                 cols_to_load_unique.append(col)
-        merged_feats_df = merged_feats_df_delayed[cols_to_load_unique].compute()  # type: ignore
+        merged_feats_df = merged_feats_df_delayed[cols_to_load_unique].compute()
         # filter the dataframe to only include rows with DiffAE features
         merged_feats_df = merged_feats_df.dropna(subset=[Column.DiffAEData.MODEL_MANIFEST])
 
@@ -580,7 +577,6 @@ def visualize_correlation_heatmaps(
     out_dir: Path,
     skip_multi_feature_scatterplots: bool = False,
 ) -> None:
-
     # Pre-compute full correlation matrix once per dataset
     all_feature_columns: list = []
     for _, cols in label_column_tuples:
