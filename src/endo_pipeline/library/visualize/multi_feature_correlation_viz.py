@@ -24,9 +24,7 @@ from scipy import stats as spstats
 from scipy.cluster.hierarchy import linkage
 from tqdm import tqdm
 
-from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
 from endo_pipeline.io import load_dataframe, save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
@@ -40,7 +38,7 @@ from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
     SEGMENTATION_FEATURE_COLUMNS,
 )
 
@@ -411,9 +409,7 @@ def get_df_for_feature_correlation_viz(
     dataset_info_columns: list[str],
     segmentation_feature_columns: list[str],
     pc_columns: list[str],
-    timepoint_annotations: list[TimepointAnnotation] | None = None,
-    merged_dataframe_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
-    diffae_dynamics_columns: list[str | Column.DiffAEData] | None = None,
+    merged_dataframe_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
 ) -> pd.DataFrame:
     """
     Load, preprocess, and concatenate the merged DiffAE and segmentation
@@ -432,14 +428,9 @@ def get_df_for_feature_correlation_viz(
         List of segmentation feature column names.
     pc_columns
         List of PCA component column names.
-    timepoint_annotations
-        Optional, list of timepoint annotations used to filter the DataFrame.
     merged_dataframe_manifest_name
         The manifest name for the merged DiffAE and segmentation features
         DataFrame.
-    diffae_dynamics_columns
-        List of column names for DiffAE features that are used in dynamics
-        calculations.
 
     Returns
     -------
@@ -447,9 +438,6 @@ def get_df_for_feature_correlation_viz(
         A DataFrame containing the merged features from the specified datasets,
         filtered based on the provided timepoint annotations.
     """
-    # init default value for diffae_dynamics_columns if not provided to avoid
-    # mutable default argument
-    diffae_dynamics_columns_ = diffae_dynamics_columns or list(DYNAMICS_COLUMN_NAMES)
 
     df_list: list = []
     for dataset_name in tqdm(dataset_name_list):
@@ -471,7 +459,7 @@ def get_df_for_feature_correlation_viz(
             for col in Column.DiffAEData
             if "PREFIX" not in col.name
             and "SUFFIX" not in col.name
-            and col not in diffae_dynamics_columns_
+            and col not in list(DYNAMICS_COLUMN_NAMES)
         ]
         cols_to_load = [
             *dataset_info_columns,
@@ -497,17 +485,6 @@ def get_df_for_feature_correlation_viz(
 
         merged_feats_df[Column.SegData.ORIENTATION_DEG] = np.rad2deg(
             merged_feats_df[Column.SegData.ORIENTATION]
-        )
-
-        # filter data table to only include the steady state timepoints that are
-        # used when projecting the DiffAE features onto PCA axes
-        # in the segmentation-free dynamics workflow
-        # only if timepoint annotations are provided
-        dataset_config = load_dataset_config(dataset_name)
-        merged_feats_df = filter_dataframe_by_annotations(
-            dataframe=merged_feats_df,
-            dataset_config=dataset_config,
-            timepoint_annotations=timepoint_annotations,
         )
 
         # get dynamics dependent features

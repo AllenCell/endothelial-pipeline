@@ -1,7 +1,4 @@
-from typing import Literal
-
 from endo_pipeline.cli import Datasets
-from endo_pipeline.configs import TimepointAnnotation
 from endo_pipeline.settings.workflow_defaults import (
     DATASET_INFO_COLUMNS,
     DEFAULT_MODEL_MANIFEST_NAME,
@@ -16,7 +13,6 @@ def main(
     dataset_info_columns: list[str] = DATASET_INFO_COLUMNS,
     segmentation_feature_group: str = "default",
     pc_group: str = "default",
-    timepoint_annotations: list[TimepointAnnotation] | Literal["default"] | None = "default",
     aggregate_only: bool = True,
     skip_multi_feature_scatterplots: bool = True,
     plot_migration_coherence_correlations: bool = True,
@@ -71,7 +67,6 @@ def main(
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
-    from endo_pipeline.configs.dataset_config_utils import get_subset_of_timepoint_annotations
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
@@ -115,10 +110,6 @@ def main(
 
     pc_columns = get_pc_column_names(pc_group)
 
-    if timepoint_annotations == "default":
-        annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
-        timepoint_annotations = get_subset_of_timepoint_annotations(annotations_to_ignore)
-
     if isinstance(segmentation_feature_group, str):
         if segmentation_feature_group not in SEGMENTATION_FEATURE_COLUMNS:
             raise ValueError(
@@ -140,7 +131,6 @@ def main(
         dataset_info_columns=dataset_info_columns,
         segmentation_feature_columns=segmentation_feature_columns,
         pc_columns=pc_columns,
-        timepoint_annotations=timepoint_annotations,
     )
 
     label_column_tuples = [
