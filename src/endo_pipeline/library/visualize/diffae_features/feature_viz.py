@@ -423,7 +423,7 @@ def make_pc_scatter_fig4a(
         raise ValueError(f"pc_col_for_xaxis must be one of: {DIFFAE_PC_COLUMN_NAMES}")
     if pc_col_for_yaxis not in DIFFAE_PC_COLUMN_NAMES:
         raise ValueError(f"pc_col_for_yaxis must be one of: {DIFFAE_PC_COLUMN_NAMES}")
-    if hue not in [x.value for x in Column.DiffAEData]:
+    if hue not in [*list(Column.DiffAEData), Column.TIMEPOINT]:
         raise ValueError(f"hue must be one of: {[x.value for x in Column.DiffAEData]}")
 
     fig, ax = plt.subplots(figsize=figsize)
