@@ -27,6 +27,7 @@ from endo_pipeline.manifests import (
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
+    DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAME_GROUPS,
     NUM_LATENT_FEATURES,
 )
@@ -633,7 +634,7 @@ def get_pca_loadings_as_df(
     loading_matrix = get_pca_loadings(pca, scaled, magnitude, squared_norm)
 
     num_features, num_pcs = loading_matrix.shape
-    feat_col_names = get_latent_feature_column_names(num_features)
+    feat_col_names = DIFFAE_FEATURE_COLUMN_NAMES[:num_features]
     pc_col_names = get_pc_column_names(num_pcs)
 
     loading_matrix_df = pd.DataFrame(loading_matrix, columns=pc_col_names, index=feat_col_names)

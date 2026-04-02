@@ -5,12 +5,10 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    get_latent_feature_column_names,
-    get_pc_column_names,
-)
+from endo_pipeline.library.analyze.diffae_dataframe_utils import get_pc_column_names
 from endo_pipeline.library.model.diffae import generate_from_coords
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_FEATURE_COLUMN_NAMES
 
 if TYPE_CHECKING:
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
@@ -99,7 +97,7 @@ def _add_preceding_dims_to_column_names(column_names: list[str], feature_prefix:
         if feature_prefix == Column.DiffAEData.PCA_FEATURE_PREFIX:
             all_dim_columns = get_pc_column_names(num_pcs=max_dim)
         elif feature_prefix == Column.DiffAEData.LATENT_FEATURE_PREFIX:
-            all_dim_columns = get_latent_feature_column_names(num_latent_dims=max_dim)
+            all_dim_columns = DIFFAE_FEATURE_COLUMN_NAMES[:max_dim]
         else:
             raise ValueError(f"Invalid feature prefix: {feature_prefix}")
         # combine the original column names with the preceding dimension column
