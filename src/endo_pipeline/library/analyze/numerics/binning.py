@@ -7,8 +7,8 @@ from sklearn.decomposition import PCA
 
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataframe_for_dynamics_workflows,
-    rewrap_polar_angle,
 )
+from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (

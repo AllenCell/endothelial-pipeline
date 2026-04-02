@@ -18,6 +18,8 @@ from endo_pipeline.configs import (
     load_dataset_config,
 )
 from endo_pipeline.io import load_dataframe
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.polar_coords import pcs_to_polar_r, pcs_to_polar_theta
 from endo_pipeline.manifests import (
     DataframeManifest,
     get_dataframe_location_for_dataset,
@@ -43,27 +45,6 @@ from endo_pipeline.settings.workflow_defaults import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-def check_required_columns_in_dataframe(
-    df: pd.DataFrame,
-    required_columns: list[str],
-) -> None:
-    """
-    Check that required columns are present in a given dataframe.
-
-    Parameters
-    ----------
-    df
-        DataFrame to check.
-    required_columns
-        List of required column names to check for.
-    """
-
-    for col in required_columns:
-        if col not in df.columns:
-            logger.error("DataFrame must contain column [ %s ]", col)
-            raise ValueError(f"DataFrame must contain column [ {col} ]")
 
 
 def get_latent_feature_column_names(num_latent_dims: int) -> list[str]:
@@ -138,169 +119,6 @@ def get_latent_feature_column_names_from_dataframe(dataframe: pd.DataFrame) -> l
     ]
     feat_cols = [col.group() for col in feat_cols_match if col is not None]
     return feat_cols
-
-
-def pcs_to_polar_r(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.ndarray:
-    """
-    Convert Cartesian coordinates (pc1, pc2) to polar coordinate r.
-
-    The polar coordinate r is given by the formula:
-        r = sqrt(pc1^2 + pc2^2)
-
-    Parameters
-    ----------
-    pc1_values
-        Values along the first principal component axis.
-    pc2_values
-        Values along the second principal component axis.
-
-    Returns
-    -------
-    :
-        Polar coordinate r values.
-    """
-    return np.sqrt(pc1_values**2 + pc2_values**2)
-
-
-def pcs_to_polar_theta(
-    pc1_values: np.ndarray,
-    pc2_values: np.ndarray,
-    rescale: bool = True,
-) -> np.ndarray:
-    """
-    Convert Cartesian coordinates (pc1, pc2) to polar coordinate theta.
-
-    The polar coordinate theta is given by the formula:
-        theta = arctan2(pc2, pc1)
-
-    Parameters
-    ----------
-    pc1_values
-        Values along the first principal component axis.
-    pc2_values
-        Values along the second principal component axis.
-    rescale
-        Whether to rescale the angle to be in the range [0, pi] instead of [-pi, pi].
-
-    Returns
-    -------
-    :
-        Polar coordinate theta values.
-    """
-    # angle in range [-pi, pi]
-    theta = np.arctan2(pc2_values, pc1_values)
-
-    if rescale:
-        # rescale angle to range [0, pi]
-        # by adding pi and dividing by 2
-        # (values now have period pi instead of 2pi)
-        theta = (theta + np.pi) / 2
-
-    return theta
-
-
-def polar_to_pcs(
-    theta_values: np.ndarray, r_values: np.ndarray, is_theta_rescaled: bool = RESCALE_THETA
-) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Convert polar coordinates (theta, r) back to Cartesian coordinates (pc1, pc2).
-
-    The conversion from polar to Cartesian coordinates is given by the formulas:
-        pc1 = r * cos(theta)
-        pc2 = r * sin(theta)
-
-    If the input theta values are rescaled to be in the range [0, pi], they will be
-    unrescaled back to the range [-pi, pi] before conversion.
-
-    Parameters
-    ----------
-    theta_values
-        Polar coordinate theta values.
-    r_values
-        Polar coordinate r values.
-    is_theta_rescaled
-        Whether the input theta values were rescaled to be in the range [0, pi].
-    """
-
-    if is_theta_rescaled:
-        # unrescale theta back to range [-pi, pi]
-        theta_values = (theta_values * 2) - np.pi
-
-    pc1_values = r_values * np.cos(theta_values)
-    pc2_values = r_values * np.sin(theta_values)
-
-    return pc1_values, pc2_values
-
-
-@overload
-def rewrap_polar_angle(unwrapped_angle: float, original_range: tuple[float, float]) -> float: ...
-
-
-@overload
-def rewrap_polar_angle(
-    unwrapped_angle: np.ndarray, original_range: tuple[float, float]
-) -> np.ndarray: ...
-
-
-def rewrap_polar_angle(
-    unwrapped_angle: float | np.ndarray, original_range: tuple[float, float]
-) -> float | np.ndarray:
-    """
-    Rewrap unwrapped polar angle value to be within original range.
-
-    Unwrapped angles computed, e.g., using numpy.unwrap can extend beyond the original
-    periodic range of polar angle values. This function rewraps the unwrapped angle back
-    to be within the original range.
-
-    Example:
-        original_range = (0, pi)
-        unwrapped_angle = pi + 0.5
-        rewrapped_angle = 0.5
-
-    Parameters
-    ----------
-    unwrapped_angle
-        Unwrapped polar angle value.
-    original_range
-        Original range of polar angle values.
-    """
-    angle_period = original_range[1] - original_range[0]
-    rewrapped_angle = ((unwrapped_angle - original_range[0]) % angle_period) + original_range[0]
-    return rewrapped_angle
-
-
-def unwrap_nonsequential_array(
-    wrapped_array: np.ndarray,
-    period: float,
-    reference_angle: float | None = None,
-) -> np.ndarray:
-    """
-    Unwrap array of periodic values that may have non-sequential entries.
-
-    Unlike numpy.unwrap, which assumes sequential entries, this function handles
-    non-sequential entries by unwrapping each entry relative to a fixed reference point.
-    If no reference point is provided, the function uses the first entry in the array
-    as the (arbitrary) reference point.
-
-    When applying numpy.unwrap to periodic data with non-sequential entries, the
-    resulting unwrapped values may still have large jumps between entries that are not
-    next to each other in the original sequence.
-
-    Parameters
-    ----------
-    wrapped_array
-        Array of periodic values to unwrap.
-    period
-        Period of the values.
-    """
-    reference_angle_ = wrapped_array[0] if reference_angle is None else reference_angle
-    unwrapped_array = np.array(
-        [
-            np.unwrap(np.array([reference_angle_, wrapped_angle]), period=period)[-1]
-            for wrapped_angle in wrapped_array
-        ]
-    )
-    return unwrapped_array
 
 
 def filter_dataframe_by_track_length(

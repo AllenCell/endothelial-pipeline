@@ -2,19 +2,12 @@ import logging
 from typing import Any, Literal
 
 import numpy as np
+import pandas as pd
 from scipy.optimize import curve_fit
-from sklearn.decomposition import PCA
 
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    df_to_array,
-    get_dataframe_for_dynamics_workflows,
-)
-from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.diffae_dataframe_utils import df_to_array
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.diffae_feature_dataframes import (
-    DIFFAE_PC_COLUMN_NAMES,
-    NUM_PCS_TO_ANALYZE,
-)
 from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RESCALE_THETA
 
 logger = logging.getLogger(__name__)
@@ -39,7 +32,6 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
     num_pad = 2 ** int(np.ceil(np.log2(2 * num_timepoints - 1)))
 
     for traj_index in range(num_traj):
-
         # Center data by subtracting mean, get standard deviation
         # for normalization of CCF.
         # fft cannot handle NaNs, so we replace them with zeros after
@@ -327,56 +319,37 @@ def bootstrap_cross_correlation_confidence_intervals(
     return confidence_interval_bounds
 
 
-def _compute_correlations_for_one_dataset(
-    dataset_name: str,
-    dataframe_manifest: DataframeManifest,
-    pca: PCA,
+def compute_correlations_for_one_dataset(
+    dataframe: pd.DataFrame,
+    column_names: list[str | Column.DiffAEData],
     correlation_dict: dict,
     bootstrap_samples: int | None = None,
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
     rescale_polar_angle: bool = RESCALE_THETA,
 ) -> dict[str, dict[str, Any]]:
     """Compute cross-correlation and autocorrelation for features from one dataset."""
-
-    # try to get dataframe for the given dataset
-    # if it does not exist, skip this dataset, return dict as is
-    try:
-        df = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            dataframe_manifest,
-            pca=pca,
-            filter_by_annotations=True,
-            include_cell_piling=False,
-            include_not_steady_state=False,
-            compute_polar=True,
-            rescale_theta=rescale_polar_angle,
-        )
-    except KeyError:
-        logger.warning(
-            "Dataset [ %s ] not found in the manifest, skipping for this workflow.", dataset_name
-        )
-        return correlation_dict
-
-    feat_cols = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
-    # add polar coordinate features to the list of features for correlation analysis
-    polar_column_names = [
-        Column.DiffAEData.POLAR_ANGLE,
-        Column.DiffAEData.POLAR_RADIUS,
-        Column.DiffAEData.PC3_FLIPPED,
+    # check that required columns are present in the dataframe
+    required_columns = [
+        *column_names,
+        Column.CROP_INDEX,
+        Column.DATASET,
     ]
-    feat_cols.extend(polar_column_names)
+    check_required_columns_in_dataframe(dataframe, required_columns)
+
+    # get dataset name from dataframe
+    dataset_name = dataframe[Column.DATASET].iloc[0]
 
     # unwrap angles if polar_angle is in feat_cols
-    if Column.DiffAEData.POLAR_ANGLE in feat_cols:
+    if Column.DiffAEData.POLAR_ANGLE in column_names:
         polar_angle_period = PERIOD_THETA_RESCALED if rescale_polar_angle else 2 * np.pi
-        for _, df_crop in df.groupby(Column.CROP_INDEX):
-            df.loc[df_crop.index, Column.DiffAEData.POLAR_ANGLE] = np.unwrap(
+        for _, df_crop in dataframe.groupby(Column.CROP_INDEX):
+            dataframe.loc[df_crop.index, Column.DiffAEData.POLAR_ANGLE] = np.unwrap(
                 df_crop[Column.DiffAEData.POLAR_ANGLE], period=polar_angle_period
             )
 
     # get feature data
-    feats = df_to_array(df, feat_cols)
-    num_feats = len(feat_cols)
+    feats = df_to_array(dataframe, column_names)
+    num_feats = len(column_names)
 
     num_timepoints = feats.shape[1]
     # make sure lags are symmetric around zero
@@ -445,7 +418,7 @@ def _compute_correlations_for_one_dataset(
     delta_ccf_integral = cross_correlation_difference_norm(delta_ccf)
 
     # store results in dict of dicts and return updated dict
-    correlation_dict["features"][dataset_name] = feat_cols
+    correlation_dict["features"][dataset_name] = column_names
     correlation_dict["lags"][dataset_name] = lags
     correlation_dict["acf"][dataset_name] = acf
     correlation_dict["acf_ci_lower"][dataset_name] = acf_lb
@@ -462,41 +435,6 @@ def _compute_correlations_for_one_dataset(
     correlation_dict["delta_ccf_integral_ci_lower"][dataset_name] = delta_ccf_integral_lb
     correlation_dict["delta_ccf_integral_ci_upper"][dataset_name] = delta_ccf_integral_ub
     correlation_dict["max_lag_integrate"][dataset_name] = max_lag_integrate
-    return correlation_dict
-
-
-def compute_correlation_dict(
-    dataset_names: list[str],
-    dataframe_manifest: DataframeManifest,
-    pca: PCA,
-    bootstrap_samples: int | None = None,
-) -> dict[str, dict]:
-    """Compute cross-correlation and autocorrelation for features from each dataset."""
-    correlation_dict: dict[str, dict[str, np.ndarray]] = {
-        "features": {},
-        "lags": {},
-        "acf": {},
-        "acf_ci_lower": {},
-        "acf_ci_upper": {},
-        "relaxation_timescales_ci_lower": {},
-        "relaxation_timescales_ci_upper": {},
-        "ccf": {},
-        "ccf_ci_lower": {},
-        "ccf_ci_upper": {},
-        "delta_ccf": {},
-        "delta_ccf_ci_lower": {},
-        "delta_ccf_ci_upper": {},
-        "delta_ccf_integral": {},
-        "delta_ccf_integral_ci_lower": {},
-        "delta_ccf_integral_ci_upper": {},
-        "max_lag_integrate": {},
-        "relaxation_timescales": {},
-    }
-    # update dict with correlation functions for each dataset in a loop
-    for dataset_name in dataset_names:
-        correlation_dict = _compute_correlations_for_one_dataset(
-            dataset_name, dataframe_manifest, pca, correlation_dict, bootstrap_samples
-        )
     return correlation_dict
 
 

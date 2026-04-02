@@ -12,12 +12,12 @@ from matplotlib.ticker import MaxNLocator
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.data_driven_flow_field import interpolate_on_curve
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    check_required_columns_in_dataframe,
     get_dataset_descriptions,
     parse_dataset_description,
-    rewrap_polar_angle,
 )
+from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
 from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     get_dataset_color,
     get_label_for_column,

@@ -283,6 +283,7 @@ def _make_all_acf_plots(
         output_path,
         f"autocorrelation_{dataset_name}",
     )
+    plt.close(fig)
 
     # fit single exponential decay to ACF
     fig, ax = _plot_acf_curves_together(
@@ -305,6 +306,7 @@ def _make_all_acf_plots(
         output_path,
         f"autocorrelation_exp_fit_{dataset_name}",
     )
+    plt.close(fig)
 
     if fit_double_exp:
         # fit double exponential decay to ACF
@@ -330,6 +332,7 @@ def _make_all_acf_plots(
             output_path,
             f"autocorrelation_double_exp_fit_{dataset_name}",
         )
+        plt.close(fig)
 
     return correlation_dict
 
@@ -378,6 +381,7 @@ def _make_all_ccf_plots(
         output_path,
         f"cross_correlation_{dataset_name}",
     )
+    plt.close(fig)
 
     # plot delta ccf: difference between positive and negative lags
     fig, ax = plt.subplots(figsize=(12, 6))
@@ -419,6 +423,7 @@ def _make_all_ccf_plots(
         output_path,
         f"cross_correlation_diff_{dataset_name}",
     )
+    plt.close(fig)
 
 
 def _plot_full_correlation_curves(
@@ -576,6 +581,7 @@ def _plot_correlation_metrics_vs_shear_stress(
         output_path,
         "delta_ccf_integral_vs_shear_stress",
     )
+    plt.close(fig)
 
     fig, ax = _plot_single_correlation_metric_vs_shear_stress(
         mean_delta_ccf_integral,
@@ -591,6 +597,7 @@ def _plot_correlation_metrics_vs_shear_stress(
         output_path,
         "mean_delta_ccf_integral_vs_shear_stress",
     )
+    plt.close(fig)
 
     fig, ax = _plot_single_correlation_metric_vs_shear_stress(
         relaxation_timescale_values,
@@ -607,6 +614,7 @@ def _plot_correlation_metrics_vs_shear_stress(
         output_path,
         "relaxation_time_vs_shear_stress",
     )
+    plt.close(fig)
 
 
 def plot_correlation_workflow_outputs(
