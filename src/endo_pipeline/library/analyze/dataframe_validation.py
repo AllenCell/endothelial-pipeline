@@ -1,3 +1,5 @@
+"""Methods for validating dataframe contents before further analysis."""
+
 import logging
 
 import pandas as pd
