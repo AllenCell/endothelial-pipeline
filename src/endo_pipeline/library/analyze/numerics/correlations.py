@@ -6,7 +6,6 @@ import pandas as pd
 from scipy.optimize import curve_fit
 
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
-from endo_pipeline.library.analyze.diffae_dataframe_utils import fill_missing_timepoints
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RESCALE_THETA
 
@@ -359,8 +358,16 @@ def compute_correlations_for_one_dataset(
     # array of shape (num_crops, num_timepoints)
     data_filled_list = []
     for _, data_crop in dataframe.groupby(Column.CROP_INDEX):
+        # sort by timepoint to ensure correct order before reindexing
         data_crop = data_crop.sort_values(by=Column.TIMEPOINT)
-        data_crop_filled = fill_missing_timepoints(data_crop, (t_min, t_max))
+
+        # reindex dataframe to include all timepoints in full range
+        data_crop_filled = data_crop.set_index(Column.TIMEPOINT).reindex(all_timepoints)
+
+        # reset index to restore timepoint column
+        data_crop_filled = data_crop_filled.reset_index()
+
+        # append to list
         data_filled_list.append(data_crop_filled)
 
     dataframe_filled = pd.concat(data_filled_list, ignore_index=True)
