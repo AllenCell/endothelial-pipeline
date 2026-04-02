@@ -193,15 +193,13 @@ def test_filter_dataframe_by_track_length_all_filtered_out():
         filter_dataframe_by_track_length(dataframe, 4)
 
 
-# --- filter_dataframe_to_steady_state ---
-
-
 def test_filter_dataframe_to_steady_state_removes_not_steady_state_timepoints(dataframe, dataset):
-    # position_annotations=None (default) → all annotated positions removed (pos 1 has DUST_ARTIFACT)
-    # timepoint_annotations=[NOT_STEADY_STATE] → removes timepoints 0,1 from pos 3 and timepoint 0 from pos 5
+    # position_annotations=[] → no position filtering, all positions (1, 3, 5) are kept
+    # timepoint_annotations=[NOT_STEADY_STATE] → removes timepoints 0,1 from pos 1 and pos 3,
+    #   and timepoint 0 from pos 5
     filtered_df = filter_dataframe_to_steady_state(dataframe, dataset)
-    assert filtered_df[Column.POSITION].tolist() == [3, 3, 5, 5, 5]
-    assert filtered_df[Column.TIMEPOINT].tolist() == [2, 3, 1, 2, 3]
+    assert filtered_df[Column.POSITION].tolist() == [1, 1, 3, 3, 5, 5, 5]
+    assert filtered_df[Column.TIMEPOINT].tolist() == [2, 3, 2, 3, 1, 2, 3]
 
 
 def test_filter_dataframe_to_steady_state_keeps_all_timepoints_when_no_not_steady_state_annotations(
