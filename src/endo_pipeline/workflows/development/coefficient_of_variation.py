@@ -288,7 +288,9 @@ def main(
                 all_timepoints = np.arange(t_min, t_max + 1)
 
                 # reindex dataframe to include all timepoints in full range
-                data_crop_filled = df_flow_scaled.copy()
+                data_crop_filled = df_flow_scaled.copy().sort_values(
+                    by=[Column.CROP_INDEX, Column.TIMEPOINT]
+                )
                 data_crop_filled.set_index(Column.TIMEPOINT).reindex(all_timepoints)
 
                 # reset index to restore timepoint column

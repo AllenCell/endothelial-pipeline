@@ -6,7 +6,6 @@ import pandas as pd
 from scipy.optimize import curve_fit
 
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
-from endo_pipeline.library.analyze.diffae_dataframe_utils import df_to_array
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RESCALE_THETA
 
@@ -347,11 +346,21 @@ def compute_correlations_for_one_dataset(
                 df_crop[Column.DiffAEData.POLAR_ANGLE], period=polar_angle_period
             )
 
-    # get feature data
-    feats = df_to_array(dataframe, column_names)
+    # get feature data, filling missing timepoints with NaNs to ensure proper
+    # alignment for correlation calculations
+    t_min = dataframe[Column.TIMEPOINT].min()
+    t_max = dataframe[Column.TIMEPOINT].max()
+    all_timepoints = np.arange(t_min, t_max + 1)
+
+    # reindex dataframe to include all timepoints in full range
+    dataframe_filled = dataframe.copy().sort_values(by=[Column.CROP_INDEX, Column.TIMEPOINT])
+    dataframe_filled.set_index(Column.TIMEPOINT).reindex(all_timepoints)
+
+    # reset index to restore timepoint column
+    dataframe_filled = dataframe_filled.reset_index()
     num_feats = len(column_names)
 
-    num_timepoints = feats.shape[1]
+    num_timepoints = len(all_timepoints)
     # make sure lags are symmetric around zero
     max_lags = num_timepoints // NUM_TIMEPOINT_FRAC
     lags = np.arange(-max_lags, max_lags + 1)
@@ -364,6 +373,7 @@ def compute_correlations_for_one_dataset(
     relaxation_timescale_lb = np.zeros(num_feats)
     relaxation_timescale_ub = np.zeros(num_feats)
     for i in range(num_feats):
+        feats = dataframe_filled[column_names[i]].to_numpy()
         acf[:, i] = autocorrelation_function(feats, i)
         if bootstrap_samples is not None:
             # calculate bootstrap confidence intervals for ACF and relaxation timescale
@@ -395,8 +405,8 @@ def compute_correlations_for_one_dataset(
     delta_ccf_integral_ub = np.zeros(num_feats)
 
     for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
-        data_feat1 = feats[..., j]
-        data_feat2 = feats[..., k]
+        data_feat1 = dataframe_filled[column_names[j]].to_numpy()
+        data_feat2 = dataframe_filled[column_names[k]].to_numpy()
         ccf[:, i] = cross_correlation_function(data_feat1, data_feat2)
         # get delta CCF = CCF(tau>0) - CCF(tau<0)
         delta_ccf[:, i] = ccf[1 + num_lags // 2 :, i] - ccf[: num_lags // 2, i]
