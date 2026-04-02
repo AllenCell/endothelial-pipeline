@@ -1,4 +1,3 @@
-import gc
 import logging
 from pathlib import Path
 from typing import Any
@@ -7,7 +6,6 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from seaborn import color_palette
-from tqdm import tqdm
 
 from endo_pipeline.io import get_output_path, load_dataframe
 from endo_pipeline.library.analyze.data_driven_flow_field import solve_ddff_ode
@@ -20,15 +18,6 @@ from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_krame
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
-from endo_pipeline.library.visualize.integration.track_integration_viz import (
-    grid_vs_track_vec_angle_hist2d,
-    grid_vs_track_vec_dot_prod_hist2d,
-    overlay_flow_fields_on_histograms,
-    plot_and_save_track_flow_field_deviations,
-    plot_and_save_track_flow_field_dot_product_histogram,
-    plot_grid_vs_tracks_flow_field,
-    plot_pc_integrated_track_as_arrows,
-)
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
@@ -56,12 +45,10 @@ from endo_pipeline.settings.flow_field_dataframes import (
 )
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_COLUMNS_TO_DROP,
-    DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
     DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_FILTERED,
     DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_UNFILTERED,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
-    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 )
 
@@ -96,344 +83,344 @@ def get_flow_field_estimation_params(
     return kernels, bin_widths
 
 
-def process_dataset_for_track_integration(
-    dataset_name: str,
-    merged_cellcentric_features_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
-    diffae_grid_manifest_name: str = DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
-    make_integrated_plots: bool = True,
-    dynamics_columns: list[Column.DiffAEData] = list(DYNAMICS_COLUMN_NAMES),
-) -> None:
-    logger.info("Processing dataset: [ %s ]", dataset_name)
+# def process_dataset_for_track_integration(
+#     dataset_name: str,
+#     merged_cellcentric_features_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
+#     diffae_grid_manifest_name: str = DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
+#     make_integrated_plots: bool = True,
+#     dynamics_columns: list[Column.DiffAEData] = list(DYNAMICS_COLUMN_NAMES),
+# ) -> None:
+#     logger.info("Processing dataset: [ %s ]", dataset_name)
 
-    # set workflow defaults
-    out_subdir = get_output_path(__file__, dataset_name)
-    # column_names = list(DYNAMICS_COLUMN_NAMES)  # dynamics_column_names = theta, r, rho
+#     # set workflow defaults
+#     out_subdir = get_output_path(__file__, dataset_name)
+#     # column_names = list(DYNAMICS_COLUMN_NAMES)  # dynamics_column_names = theta, r, rho
 
-    # load the track-based diffae + segmentation feature merged manifest
-    # and the grid-based diffae manifest
-    diffae_tracked_manifest = load_dataframe_manifest(merged_cellcentric_features_manifest_name)
-    diffae_tracked_location = get_dataframe_location_for_dataset(
-        diffae_tracked_manifest, dataset_name
-    )
-    diffae_tracked_df_delayed = load_dataframe(diffae_tracked_location, delay=True)
+#     # load the track-based diffae + segmentation feature merged manifest
+#     # and the grid-based diffae manifest
+#     diffae_tracked_manifest = load_dataframe_manifest(merged_cellcentric_features_manifest_name)
+#     diffae_tracked_location = get_dataframe_location_for_dataset(
+#         diffae_tracked_manifest, dataset_name
+#     )
+#     diffae_tracked_df_delayed = load_dataframe(diffae_tracked_location, delay=True)
 
-    diffae_grid_manifest = load_dataframe_manifest(diffae_grid_manifest_name)
-    diffae_grid_location = get_dataframe_location_for_dataset(diffae_grid_manifest, dataset_name)
-    diffae_grid_df_delayed = load_dataframe(diffae_grid_location, delay=True)
+#     diffae_grid_manifest = load_dataframe_manifest(diffae_grid_manifest_name)
+#     diffae_grid_location = get_dataframe_location_for_dataset(diffae_grid_manifest, dataset_name)
+#     diffae_grid_df_delayed = load_dataframe(diffae_grid_location, delay=True)
 
-    # keep only the columns that are needed for the analysis to reduce memory usage
-    cols_to_keep = [
-        Column.DATASET,
-        Column.POSITION,
-        Column.TIMEPOINT,
-        Column.TRACK_ID,
-        Column.SegData.LABEL,
-        Column.CROP_INDEX,
-        Column.DiffAEData.MODEL_MANIFEST,
-        Column.SegData.TIME_HRS,
-        Column.SegData.TIME_MINS,
-        Column.TRACK_LENGTH,
-    ] + list(dynamics_columns)
-    diffae_tracked_df = diffae_tracked_df_delayed[cols_to_keep].compute()
-    diffae_grid_df = diffae_grid_df_delayed[cols_to_keep].compute()
+#     # keep only the columns that are needed for the analysis to reduce memory usage
+#     cols_to_keep = [
+#         Column.DATASET,
+#         Column.POSITION,
+#         Column.TIMEPOINT,
+#         Column.TRACK_ID,
+#         Column.SegData.LABEL,
+#         Column.CROP_INDEX,
+#         Column.DiffAEData.MODEL_MANIFEST,
+#         Column.SegData.TIME_HRS,
+#         Column.SegData.TIME_MINS,
+#         Column.TRACK_LENGTH,
+#     ] + list(dynamics_columns)
+#     diffae_tracked_df = diffae_tracked_df_delayed[cols_to_keep].compute()
+#     diffae_grid_df = diffae_grid_df_delayed[cols_to_keep].compute()
 
-    # load or compute the trajectories and flow fields for the grid-based
-    # and cell-centric crops
-    flow_field_dict_grids, fixed_points_df = get_flow_field_and_fixed_points(
-        dataset_name=dataset_name,
-        column_names=dynamics_columns,
-        model_manifest_name=DEFAULT_MODEL_MANIFEST_NAME,
-        run_name=DEFAULT_MODEL_RUN_NAME,
-    )
+#     # load or compute the trajectories and flow fields for the grid-based
+#     # and cell-centric crops
+#     flow_field_dict_grids, fixed_points_df = get_flow_field_and_fixed_points(
+#         dataset_name=dataset_name,
+#         column_names=dynamics_columns,
+#         model_manifest_name=DEFAULT_MODEL_MANIFEST_NAME,
+#         run_name=DEFAULT_MODEL_RUN_NAME,
+#     )
 
-    for i, fp_row in fixed_points_df.iterrows():
-        flow_field_slices = (
-            fp_row[dynamics_columns[2]],
-            fp_row[dynamics_columns[1]],
-        )  # feature 3, feature 2
-        fixed_points_at_slices = (
-            fp_row[list(map(str, dynamics_columns))].drop(index=[dynamics_columns[2]]),
-            fp_row[list(map(str, dynamics_columns))].drop(index=[dynamics_columns[1]]),
-        )
-    # # get the slice indexes to use for plotting the flow fields
-    # # (we will be setting PC3 to a constant, i.e. the z-axis here)
-    # _, slice_indexes = get_valid_slice_indexes(diffae_grid_df, traj_grids, flow_field_dict_grids)
+#     for i, fp_row in fixed_points_df.iterrows():
+#         flow_field_slices = (
+#             fp_row[dynamics_columns[2]],
+#             fp_row[dynamics_columns[1]],
+#         )  # feature 3, feature 2
+#         fixed_points_at_slices = (
+#             fp_row[list(map(str, dynamics_columns))].drop(index=[dynamics_columns[2]]),
+#             fp_row[list(map(str, dynamics_columns))].drop(index=[dynamics_columns[1]]),
+#         )
+#     # # get the slice indexes to use for plotting the flow fields
+#     # # (we will be setting PC3 to a constant, i.e. the z-axis here)
+#     # _, slice_indexes = get_valid_slice_indexes(diffae_grid_df, traj_grids, flow_field_dict_grids)
 
-    # get flow field vectors and grid points to plot
-    v1_grids, v2_grids, v3_grids = flow_field_dict_grids["vectors"]
-    g1_grids, g2_grids, g3_grids = flow_field_dict_grids["grid"]
-    v1_tracks, v2_tracks, v3_tracks = flow_field_dict_tracks["vectors"]
-    g1_tracks, g2_tracks, g3_tracks = flow_field_dict_tracks["grid"]
+#     # get flow field vectors and grid points to plot
+#     v1_grids, v2_grids, v3_grids = flow_field_dict_grids["vectors"]
+#     g1_grids, g2_grids, g3_grids = flow_field_dict_grids["grid"]
+#     v1_tracks, v2_tracks, v3_tracks = flow_field_dict_tracks["vectors"]
+#     g1_tracks, g2_tracks, g3_tracks = flow_field_dict_tracks["grid"]
 
-    # Plot the quiver slices for the grid-based and cell-centric crops
-    # at the full resolution:
-    out_path = out_subdir / f"{dataset_name}_quiver_slice_comparison_full_quiver.png"
-    fig, ax = plot_grid_vs_tracks_flow_field(
-        v1_grids,
-        v2_grids,
-        g1_grids,
-        g2_grids,
-        v1_tracks,
-        v2_tracks,
-        g1_tracks,
-        g2_tracks,
-        slice_indexes=slice_indexes,
-        ds=1,
-        scale=60,
-    )
-    ax.set_xlabel("PC1")
-    ax.set_ylabel("PC2")
-    fig.savefig(out_path, dpi=300, bbox_inches="tight")
-    plt.close(fig)
+#     # Plot the quiver slices for the grid-based and cell-centric crops
+#     # at the full resolution:
+#     out_path = out_subdir / f"{dataset_name}_quiver_slice_comparison_full_quiver.png"
+#     fig, ax = plot_grid_vs_tracks_flow_field(
+#         v1_grids,
+#         v2_grids,
+#         g1_grids,
+#         g2_grids,
+#         v1_tracks,
+#         v2_tracks,
+#         g1_tracks,
+#         g2_tracks,
+#         slice_indexes=slice_indexes,
+#         ds=1,
+#         scale=60,
+#     )
+#     ax.set_xlabel("PC1")
+#     ax.set_ylabel("PC2")
+#     fig.savefig(out_path, dpi=300, bbox_inches="tight")
+#     plt.close(fig)
 
-    # Plot the quiver slices for the grid-based and cell-centric crops
-    # at the standard/default resolution and include the fixed points
-    # for both the grid and cell-centric crops:
-    out_path = out_subdir / f"{dataset_name}_quiver_slice_comparison_partial_quiver.png"
-    fig, ax = plot_grid_vs_tracks_flow_field(
-        v1_grids,
-        v2_grids,
-        g1_grids,
-        g2_grids,
-        v1_tracks,
-        v2_tracks,
-        g1_tracks,
-        g2_tracks,
-        slice_indexes=slice_indexes,
-    )
-    # add the grid crop based fixed point from the trajectory:
-    ax.scatter(
-        traj_grids[-1, 0],
-        traj_grids[-1, 1],
-        s=250,
-        color="cyan",
-        marker="*",
-        lw=1,
-        edgecolor="darkblue",
-        zorder=10,
-    )
-    # add the cell-centric crop based fixed point from the trajectory:
-    ax.scatter(
-        traj_tracks[-1, 0],
-        traj_tracks[-1, 1],
-        s=250,
-        color="yellow",
-        marker="*",
-        lw=1,
-        edgecolor="darkred",
-        zorder=10,
-    )
-    ax.set_xlabel("PC1")
-    ax.set_ylabel("PC2")
-    fig.savefig(out_path, dpi=300, bbox_inches="tight")
-    plt.close(fig)
+#     # Plot the quiver slices for the grid-based and cell-centric crops
+#     # at the standard/default resolution and include the fixed points
+#     # for both the grid and cell-centric crops:
+#     out_path = out_subdir / f"{dataset_name}_quiver_slice_comparison_partial_quiver.png"
+#     fig, ax = plot_grid_vs_tracks_flow_field(
+#         v1_grids,
+#         v2_grids,
+#         g1_grids,
+#         g2_grids,
+#         v1_tracks,
+#         v2_tracks,
+#         g1_tracks,
+#         g2_tracks,
+#         slice_indexes=slice_indexes,
+#     )
+#     # add the grid crop based fixed point from the trajectory:
+#     ax.scatter(
+#         traj_grids[-1, 0],
+#         traj_grids[-1, 1],
+#         s=250,
+#         color="cyan",
+#         marker="*",
+#         lw=1,
+#         edgecolor="darkblue",
+#         zorder=10,
+#     )
+#     # add the cell-centric crop based fixed point from the trajectory:
+#     ax.scatter(
+#         traj_tracks[-1, 0],
+#         traj_tracks[-1, 1],
+#         s=250,
+#         color="yellow",
+#         marker="*",
+#         lw=1,
+#         edgecolor="darkred",
+#         zorder=10,
+#     )
+#     ax.set_xlabel("PC1")
+#     ax.set_ylabel("PC2")
+#     fig.savefig(out_path, dpi=300, bbox_inches="tight")
+#     plt.close(fig)
 
-    # Plot the angular deviation between the grid and cell-centric crop-based
-    # flow field vectors:
-    angles = get_vector_angles_as_grid(
-        v1_grids,
-        v2_grids,
-        v3_grids,
-        v1_tracks,
-        v2_tracks,
-        v3_tracks,
-        slice_indexes,
-    )
-    grid_vs_track_vec_angle_hist2d(
-        angles,
-        out_subdir,
-        filename=f"{dataset_name}_vecvec_angles",
-        extent=(*ax.get_xlim(), *ax.get_ylim()),
-    )
+#     # Plot the angular deviation between the grid and cell-centric crop-based
+#     # flow field vectors:
+#     angles = get_vector_angles_as_grid(
+#         v1_grids,
+#         v2_grids,
+#         v3_grids,
+#         v1_tracks,
+#         v2_tracks,
+#         v3_tracks,
+#         slice_indexes,
+#     )
+#     grid_vs_track_vec_angle_hist2d(
+#         angles,
+#         out_subdir,
+#         filename=f"{dataset_name}_vecvec_angles",
+#         extent=(*ax.get_xlim(), *ax.get_ylim()),
+#     )
 
-    # Plot the dot product between the grid and cell-centric crop-based
-    dot_prod = get_vector_dot_products_as_grid(
-        v1_grids,
-        v2_grids,
-        v3_grids,
-        v1_tracks,
-        v2_tracks,
-        v3_tracks,
-        slice_indexes,
-    )
-    grid_vs_track_vec_dot_prod_hist2d(
-        dot_prod,
-        out_subdir,
-        filename=f"{dataset_name}_vecvec_dot_products",
-        extent=(*ax.get_xlim(), *ax.get_ylim()),
-    )
+#     # Plot the dot product between the grid and cell-centric crop-based
+#     dot_prod = get_vector_dot_products_as_grid(
+#         v1_grids,
+#         v2_grids,
+#         v3_grids,
+#         v1_tracks,
+#         v2_tracks,
+#         v3_tracks,
+#         slice_indexes,
+#     )
+#     grid_vs_track_vec_dot_prod_hist2d(
+#         dot_prod,
+#         out_subdir,
+#         filename=f"{dataset_name}_vecvec_dot_products",
+#         extent=(*ax.get_xlim(), *ax.get_ylim()),
+#     )
 
-    # Compare the angles between grid crop PC vectors
-    # and the PC vectors of a single track
-    diffae_tracked_df["dpc1"] = diffae_tracked_df.groupby(Column.CROP_INDEX)["pc_1"].diff()
-    diffae_tracked_df["dpc2"] = diffae_tracked_df.groupby(Column.CROP_INDEX)["pc_2"].diff()
-    diffae_tracked_df["dt"] = diffae_tracked_df.groupby(Column.CROP_INDEX)[
-        Column.SegData.TIME_MINS
-    ].diff()
+#     # Compare the angles between grid crop PC vectors
+#     # and the PC vectors of a single track
+#     diffae_tracked_df["dpc1"] = diffae_tracked_df.groupby(Column.CROP_INDEX)["pc_1"].diff()
+#     diffae_tracked_df["dpc2"] = diffae_tracked_df.groupby(Column.CROP_INDEX)["pc_2"].diff()
+#     diffae_tracked_df["dt"] = diffae_tracked_df.groupby(Column.CROP_INDEX)[
+#         Column.SegData.TIME_MINS
+#     ].diff()
 
-    # create partial functions from get_approx_point_from_grid to pass
-    # along to the groupby.apply() method
-    get_approx_grid_bin = lambda pc1_pc2_arr: get_approx_point_from_grid(
-        pc1_pc2_arr,
-        g1_grids,
-        g2_grids,
-        v1_grids,
-        v2_grids,
-        slice_indexes,
-    )
-    get_approx_grid_bin_from_df = lambda df: pd.DataFrame(
-        columns=[["pc_1", "pc_2"]], data=get_approx_grid_bin(df.to_numpy()), index=df.index
-    )
+#     # create partial functions from get_approx_point_from_grid to pass
+#     # along to the groupby.apply() method
+#     get_approx_grid_bin = lambda pc1_pc2_arr: get_approx_point_from_grid(
+#         pc1_pc2_arr,
+#         g1_grids,
+#         g2_grids,
+#         v1_grids,
+#         v2_grids,
+#         slice_indexes,
+#     )
+#     get_approx_grid_bin_from_df = lambda df: pd.DataFrame(
+#         columns=[["pc_1", "pc_2"]], data=get_approx_grid_bin(df.to_numpy()), index=df.index
+#     )
 
-    get_approx_grid_vec = lambda pc1_pc2_arr: get_approx_vec_from_grid(
-        pc1_pc2_arr,
-        g1_grids,
-        g2_grids,
-        v1_grids,
-        v2_grids,
-        slice_indexes,
-    )
-    get_approx_grid_vec_from_df = lambda df: pd.DataFrame(
-        columns=[["pc_1", "pc_2"]], data=get_approx_grid_vec(df.to_numpy()), index=df.index
-    )
+#     get_approx_grid_vec = lambda pc1_pc2_arr: get_approx_vec_from_grid(
+#         pc1_pc2_arr,
+#         g1_grids,
+#         g2_grids,
+#         v1_grids,
+#         v2_grids,
+#         slice_indexes,
+#     )
+#     get_approx_grid_vec_from_df = lambda df: pd.DataFrame(
+#         columns=[["pc_1", "pc_2"]], data=get_approx_grid_vec(df.to_numpy()), index=df.index
+#     )
 
-    # Apply the partial functions to the DataFrame to get the approximate grid bin
-    # and vector associated with each cell-centric PC1 and PC2 value
-    diffae_tracked_df[["approx_bin_pc1", "approx_bin_pc2"]] = (
-        diffae_tracked_df.groupby(Column.DATASET, as_index=False)
-        .apply(lambda df: get_approx_grid_bin_from_df(df[["pc_1", "pc_2"]]))
-        .droplevel(level=0)
-    )
-    diffae_tracked_df[["approx_vec_pc1", "approx_vec_pc2"]] = (
-        diffae_tracked_df.groupby(Column.CROP_INDEX, as_index=False)
-        .apply(lambda df: get_approx_grid_vec_from_df(df[["pc_1", "pc_2"]]))
-        .droplevel(level=0)
-    )
+#     # Apply the partial functions to the DataFrame to get the approximate grid bin
+#     # and vector associated with each cell-centric PC1 and PC2 value
+#     diffae_tracked_df[["approx_bin_pc1", "approx_bin_pc2"]] = (
+#         diffae_tracked_df.groupby(Column.DATASET, as_index=False)
+#         .apply(lambda df: get_approx_grid_bin_from_df(df[["pc_1", "pc_2"]]))
+#         .droplevel(level=0)
+#     )
+#     diffae_tracked_df[["approx_vec_pc1", "approx_vec_pc2"]] = (
+#         diffae_tracked_df.groupby(Column.CROP_INDEX, as_index=False)
+#         .apply(lambda df: get_approx_grid_vec_from_df(df[["pc_1", "pc_2"]]))
+#         .droplevel(level=0)
+#     )
 
-    # Compute the angle between the approximate grid vector
-    # and the the vector from the cell-centric PC1 and PC2
-    # both in radians and degrees
-    diffae_tracked_df["track_angle_deviation_rad"] = get_vector_vector_angle_fast(
-        diffae_tracked_df[["approx_vec_pc1", "approx_vec_pc2"]].values,
-        diffae_tracked_df[["dpc1", "dpc2"]].values,
-    )
-    diffae_tracked_df["track_angular_deviation_deg"] = diffae_tracked_df[
-        "track_angle_deviation_rad"
-    ].transform(np.rad2deg)
+#     # Compute the angle between the approximate grid vector
+#     # and the the vector from the cell-centric PC1 and PC2
+#     # both in radians and degrees
+#     diffae_tracked_df["track_angle_deviation_rad"] = get_vector_vector_angle_fast(
+#         diffae_tracked_df[["approx_vec_pc1", "approx_vec_pc2"]].values,
+#         diffae_tracked_df[["dpc1", "dpc2"]].values,
+#     )
+#     diffae_tracked_df["track_angular_deviation_deg"] = diffae_tracked_df[
+#         "track_angle_deviation_rad"
+#     ].transform(np.rad2deg)
 
-    diffae_tracked_df["pc1_pc2_vec_mag"] = np.linalg.norm(
-        diffae_tracked_df[["dpc1", "dpc2"]].values, axis=1
-    )
+#     diffae_tracked_df["pc1_pc2_vec_mag"] = np.linalg.norm(
+#         diffae_tracked_df[["dpc1", "dpc2"]].values, axis=1
+#     )
 
-    # group dataframe by a combination of dataset, position, and crop index
-    # note that we have replaced the track id with the crop index in this
-    # case because the crop index is unique throughout all 6 positions,
-    # whereas the track id is only unique within a single position
-    mean_track_deviation_dfs = (
-        diffae_tracked_df.groupby(["dataset_name", "position_as_str", "crop_index"])[
-            ["track_angular_deviation_deg", "pc1_pc2_vec_mag"]
-        ]
-        .agg("mean")
-        .reset_index()
-    )
+#     # group dataframe by a combination of dataset, position, and crop index
+#     # note that we have replaced the track id with the crop index in this
+#     # case because the crop index is unique throughout all 6 positions,
+#     # whereas the track id is only unique within a single position
+#     mean_track_deviation_dfs = (
+#         diffae_tracked_df.groupby(["dataset_name", "position_as_str", "crop_index"])[
+#             ["track_angular_deviation_deg", "pc1_pc2_vec_mag"]
+#         ]
+#         .agg("mean")
+#         .reset_index()
+#     )
 
-    plot_and_save_track_flow_field_deviations(
-        mean_track_deviation_dfs=mean_track_deviation_dfs,
-        out_subdir=out_subdir,
-        dataset_name=dataset_name,
-    )
+#     plot_and_save_track_flow_field_deviations(
+#         mean_track_deviation_dfs=mean_track_deviation_dfs,
+#         out_subdir=out_subdir,
+#         dataset_name=dataset_name,
+#     )
 
-    # get the dot products
-    diffae_tracked_df["dot_product_grid_vs_cell"] = np.einsum(
-        "ij,ij->i",
-        diffae_tracked_df[["approx_vec_pc1", "approx_vec_pc2"]],
-        diffae_tracked_df[["dpc1", "dpc2"]],
-    )
-    # also aggregate the dot products by crop index (i.e. unique track id across all positions)
-    diffae_tracked_dot_prod_agg = (
-        diffae_tracked_df.groupby("crop_index")["dot_product_grid_vs_cell"]
-        .agg(["mean", "median"])
-        .reset_index()
-    )
+#     # get the dot products
+#     diffae_tracked_df["dot_product_grid_vs_cell"] = np.einsum(
+#         "ij,ij->i",
+#         diffae_tracked_df[["approx_vec_pc1", "approx_vec_pc2"]],
+#         diffae_tracked_df[["dpc1", "dpc2"]],
+#     )
+#     # also aggregate the dot products by crop index (i.e. unique track id across all positions)
+#     diffae_tracked_dot_prod_agg = (
+#         diffae_tracked_df.groupby("crop_index")["dot_product_grid_vs_cell"]
+#         .agg(["mean", "median"])
+#         .reset_index()
+#     )
 
-    plot_title = "Mean per track"
-    col_name = "mean"
-    plot_and_save_track_flow_field_dot_product_histogram(
-        features_dataframe=diffae_tracked_dot_prod_agg,
-        feature_column_name=col_name,
-        out_dir=out_subdir,
-        filename=f"{dataset_name}_dot_product_grid_vs_cell_{col_name}",
-        plot_title=plot_title,
-    )
+#     plot_title = "Mean per track"
+#     col_name = "mean"
+#     plot_and_save_track_flow_field_dot_product_histogram(
+#         features_dataframe=diffae_tracked_dot_prod_agg,
+#         feature_column_name=col_name,
+#         out_dir=out_subdir,
+#         filename=f"{dataset_name}_dot_product_grid_vs_cell_{col_name}",
+#         plot_title=plot_title,
+#     )
 
-    plot_title = "Non-aggregated dot products"
-    col_name = "dot_product_grid_vs_cell"
-    plot_and_save_track_flow_field_dot_product_histogram(
-        features_dataframe=diffae_tracked_df,
-        feature_column_name=col_name,
-        out_dir=out_subdir,
-        filename=f"{dataset_name}_dot_product_grid_vs_cell_{col_name}",
-        plot_title=plot_title,
-    )
+#     plot_title = "Non-aggregated dot products"
+#     col_name = "dot_product_grid_vs_cell"
+#     plot_and_save_track_flow_field_dot_product_histogram(
+#         features_dataframe=diffae_tracked_df,
+#         feature_column_name=col_name,
+#         out_dir=out_subdir,
+#         filename=f"{dataset_name}_dot_product_grid_vs_cell_{col_name}",
+#         plot_title=plot_title,
+#     )
 
-    if make_integrated_plots:
-        # NOTE: this is a very memory-intensive operation despite my attempts to
-        # reduce memory needs here, so if you change the minimum track duration
-        # then expect the workflow to require a lot more memory or crash if you
-        # don't have enough
-        diffae_tracked_df = diffae_tracked_df.query("track_duration > 180")
-        groups = diffae_tracked_df.groupby([Column.DATASET, Column.POSITION, Column.CROP_INDEX])
+#     if make_integrated_plots:
+#         # NOTE: this is a very memory-intensive operation despite my attempts to
+#         # reduce memory needs here, so if you change the minimum track duration
+#         # then expect the workflow to require a lot more memory or crash if you
+#         # don't have enough
+#         diffae_tracked_df = diffae_tracked_df.query("track_duration > 180")
+#         groups = diffae_tracked_df.groupby([Column.DATASET, Column.POSITION, Column.CROP_INDEX])
 
-        i = 0
-        for nm, df in tqdm(groups, desc=dataset_name):
-            ds_nm, pos, tid = nm
-            assert (
-                tid % 1
-            ) == 0, f"Track ID should be an integer or convertible to an integer. Got {tid}."
-            hue_min = -1 * np.nanmax(diffae_tracked_df["dot_product_grid_vs_cell"].abs())
-            hue_max = 1 * np.nanmax(diffae_tracked_df["dot_product_grid_vs_cell"].abs())
-            hue_center = 0.0
-            plot_pc_integrated_track_as_arrows(
-                dataset_name=str(ds_nm),
-                position_name=str(pos),
-                track_id=int(tid),
-                df=df,
-                v1_grids=v1_grids,
-                v2_grids=v2_grids,
-                g1_grids=g1_grids,
-                g2_grids=g2_grids,
-                slice_indexes=slice_indexes,
-                out_subdir=out_subdir,
-                hue_min=hue_min,
-                hue_max=hue_max,
-                hue_center=hue_center,
-                cmap_name="managua",
-                hued_feat_name="dot_product_grid_vs_cell",
-                track_alpha=0.5,
-            )
-            i += 1
-            if i % 100 == 0:
-                # force garbage collection to keep memory free when
-                # creating plots from a loop every 100th iteration
-                gc.collect()
+#         i = 0
+#         for nm, df in tqdm(groups, desc=dataset_name):
+#             ds_nm, pos, tid = nm
+#             assert (
+#                 tid % 1
+#             ) == 0, f"Track ID should be an integer or convertible to an integer. Got {tid}."
+#             hue_min = -1 * np.nanmax(diffae_tracked_df["dot_product_grid_vs_cell"].abs())
+#             hue_max = 1 * np.nanmax(diffae_tracked_df["dot_product_grid_vs_cell"].abs())
+#             hue_center = 0.0
+#             plot_pc_integrated_track_as_arrows(
+#                 dataset_name=str(ds_nm),
+#                 position_name=str(pos),
+#                 track_id=int(tid),
+#                 df=df,
+#                 v1_grids=v1_grids,
+#                 v2_grids=v2_grids,
+#                 g1_grids=g1_grids,
+#                 g2_grids=g2_grids,
+#                 slice_indexes=slice_indexes,
+#                 out_subdir=out_subdir,
+#                 hue_min=hue_min,
+#                 hue_max=hue_max,
+#                 hue_center=hue_center,
+#                 cmap_name="managua",
+#                 hued_feat_name="dot_product_grid_vs_cell",
+#                 track_alpha=0.5,
+#             )
+#             i += 1
+#             if i % 100 == 0:
+#                 # force garbage collection to keep memory free when
+#                 # creating plots from a loop every 100th iteration
+#                 gc.collect()
 
-    # overlay flow fields on the histograms of the data to see where
-    # most of the data being used to extrapolate flow fields is
-    overlay_flow_fields_on_histograms(
-        dataset_name,
-        out_subdir,
-        diffae_grid_df,
-        diffae_tracked_df,
-        v1_grids,
-        v2_grids,
-        g1_grids,
-        g2_grids,
-        v1_tracks,
-        v2_tracks,
-        g1_tracks,
-        g2_tracks,
-        slice_indexes,
-    )
+#     # overlay flow fields on the histograms of the data to see where
+#     # most of the data being used to extrapolate flow fields is
+#     overlay_flow_fields_on_histograms(
+#         dataset_name,
+#         out_subdir,
+#         diffae_grid_df,
+#         diffae_tracked_df,
+#         v1_grids,
+#         v2_grids,
+#         g1_grids,
+#         g2_grids,
+#         v1_tracks,
+#         v2_tracks,
+#         g1_tracks,
+#         g2_tracks,
+#         slice_indexes,
+#     )
 
 
 def merge_diffae_feats_liveseg_feats_tables(
