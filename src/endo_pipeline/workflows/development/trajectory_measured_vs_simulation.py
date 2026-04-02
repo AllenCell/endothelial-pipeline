@@ -44,7 +44,7 @@ def main(
         dataset_names = dataset_names[:1]
 
     for dataset_name in dataset_names:
-        outdir = get_output_path(dataset_name)
+        outdir = get_output_path(__file__, dataset_name)
 
         # load the dynamics features from the grid-based dataframe
         dynamics_manifest_grid = load_dataframe_manifest(
@@ -132,6 +132,9 @@ def main(
         )
 
         for i, fp_row in fixed_points_df.iterrows():
+            out_subdir = outdir / f"fixed_point_{i}"
+            out_subdir.mkdir(parents=True, exist_ok=True)
+
             flow_field_slices = (
                 fp_row[DYNAMICS_COLUMN_NAMES[2]],
                 fp_row[DYNAMICS_COLUMN_NAMES[1]],
@@ -211,8 +214,8 @@ def main(
                     )
                 save_plot_to_path(
                     figure=fig,
-                    output_path=outdir,
-                    figure_name=f"{dataset_name}_cropindex{crop_i}_traj_meas_vs_sim.png",
+                    output_path=out_subdir,
+                    figure_name=f"{dataset_name}_fp{i}_crop{crop_i}_traj_meas_vs_sim.png",
                 )
                 plt.close(fig)
 
