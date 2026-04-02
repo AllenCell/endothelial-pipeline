@@ -50,7 +50,7 @@ def dataset():
 def dataframe():
     timepoints = list(range(4))
     positions = [1, 3, 5]
-    positions_tiled = [f"P{i}" for i in positions for _ in timepoints]
+    positions_tiled = [i for i in positions for _ in timepoints]
     num_rows = len(positions_tiled)
     return pd.DataFrame(
         {
@@ -67,36 +67,36 @@ def dataframe():
         (
             PositionAnnotation.DUST_ARTIFACT,
             [TimepointAnnotation.NOT_STEADY_STATE],
-            ["P3"] * 2 + ["P5"] * 3,
+            [3] * 2 + [5] * 3,
             [2, 3, 1, 2, 3],
         ),
         (
             PositionAnnotation.DUST_ARTIFACT,
             [TimepointAnnotation.CELL_PILING],
-            ["P3"] * 2 + ["P5"] * 3,
+            [3] * 2 + [5] * 3,
             [0, 1, 0, 1, 2],
         ),
         (
             [],
             [TimepointAnnotation.CELL_PILING],
-            ["P1"] * 4 + ["P3"] * 2 + ["P5"] * 3,
+            [1] * 4 + [3] * 2 + [5] * 3,
             [0, 1, 2, 3, 0, 1, 0, 1, 2],
         ),
         (
             [],
             [TimepointAnnotation.NOT_STEADY_STATE],
-            ["P1"] * 2 + ["P3"] * 2 + ["P5"] * 3,
+            [1] * 2 + [3] * 2 + [5] * 3,
             [2, 3, 2, 3, 1, 2, 3],
         ),
         (
             [],
             [TimepointAnnotation.AUTO_BF_SCOPE_ERROR],
-            ["P1"] * 3 + ["P3"] * 4 + ["P5"] * 4,
+            [1] * 3 + [3] * 4 + [5] * 4,
             [0, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3],
         ),
-        ([], None, ["P1"] * 2 + ["P5"] * 2, [2, 3, 1, 2]),
-        ([PositionAnnotation.DUST_ARTIFACT], [], ["P3"] * 4 + ["P5"] * 4, [0, 1, 2, 3] * 2),
-        (None, None, ["P5", "P5"], [1, 2]),
+        ([], None, [1] * 2 + [5] * 2, [2, 3, 1, 2]),
+        ([PositionAnnotation.DUST_ARTIFACT], [], [3] * 4 + [5] * 4, [0, 1, 2, 3] * 2),
+        (None, None, [5, 5], [1, 2]),
     ],
 )
 def test_filter_dataframe_by_annotations_with_annotations(
