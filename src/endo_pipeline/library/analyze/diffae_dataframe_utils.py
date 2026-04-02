@@ -28,7 +28,6 @@ from endo_pipeline.manifests import (
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_FEATURE_COLUMN_NAMES,
-    DIFFAE_PC_COLUMN_NAME_GROUPS,
     DIFFAE_PC_COLUMN_NAMES,
     NUM_LATENT_FEATURES,
 )
@@ -66,36 +65,6 @@ def check_required_columns_in_dataframe(
         if col not in df.columns:
             logger.error("DataFrame must contain column [ %s ]", col)
             raise ValueError(f"DataFrame must contain column [ {col} ]")
-
-
-def get_pc_column_names(num_pcs: str | int) -> list[str]:
-    """
-    Get list of PCA feature column names for given number of principal components.
-
-    Parameters
-    ----------
-    num_pcs
-        Either number of principal components (if an integer is provided) or a
-        group of principal components to include (if a string is provided,
-        e.g., "default" or "polar_coords").
-
-    Returns
-    -------
-    :
-        List of PCA feature column names.
-    """
-    if isinstance(num_pcs, int):
-        pc_cols = [f"{Column.DiffAEData.PCA_FEATURE_PREFIX}{i+1}" for i in range(int(num_pcs))]
-    elif isinstance(num_pcs, str):
-        pc_cols = DIFFAE_PC_COLUMN_NAME_GROUPS.get(num_pcs, [])
-        if not pc_cols:
-            raise ValueError(
-                f"Invalid num_pcs string [ {num_pcs} ]. Must be either an integer or\
-                one of the following strings: {list(DIFFAE_PC_COLUMN_NAME_GROUPS.keys())}"
-            )
-    else:
-        raise ValueError("num_pcs must be either an integer or a string.")
-    return pc_cols
 
 
 def get_latent_feature_column_names_from_dataframe(dataframe: pd.DataFrame) -> list[str]:
