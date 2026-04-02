@@ -1,5 +1,7 @@
 import logging
+from typing import Literal
 
+import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
@@ -12,8 +14,10 @@ from endo_pipeline.configs import (
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_FEATURE_COLUMN_NAMES,
+    DIFFAE_PC_COLUMN_NAMES,
     NUM_LATENT_FEATURES,
 )
 from endo_pipeline.settings.workflow_defaults import (
@@ -38,10 +42,6 @@ def build_pca_input_dataframe(
         Name of the dataset collection to load reference datasets from.
     dataframe_manifest_name
         Name of the dataframe manifest to load the model features from.
-    filter_by_annotations
-        Whether to remove annotated timepoints and positions from the dataframes before fitting PCA.
-    include_cell_piling
-        True to include cell piling timepoints, False otherwise.
 
     Returns
     -------
@@ -114,3 +114,104 @@ def fit_pca(
     pca.fit(pca_input_dataframe.values)
 
     return pca
+
+
+def get_pca_loadings(
+    pca: PCA, scaled: bool = False, magnitude: bool = False, squared_norm: bool = False
+) -> np.ndarray:
+    """
+    Get the PCA loading matrix, which contains the contribution of each feature to each
+    principal component.
+    The loading matrix is the transpose of the PCA components matrix.
+
+    Parameters
+    ----------
+    pca : PCA
+        The fitted PCA object.
+    scaled : bool, optional
+        Whether to return the loading matrix unscaled or scaled by the square root of the
+        explained variance.
+        Default is False (i.e. return unscaled loadings).
+    magnitude : bool, optional
+        Whether to return the absolute values of the loadings. Default is False.
+    squared_norm : bool, optional
+        Whether to return the squared norm of the loadings. Default is False.
+        If True, the loading matrix will be squared element-wise.
+
+    Returns
+    -------
+    loading_matrix : np.ndarray
+        The PCA loading matrix. Has shape (n_features, n_components).
+    """
+
+    loading_matrix = pca.components_.T  # create unscaled loading matrix
+
+    if scaled:  # create scaled loading matrix
+        loading_matrix = pca.components_.T * np.sqrt(pca.explained_variance_)
+
+    if magnitude:
+        loading_matrix = np.abs(loading_matrix)
+
+    if squared_norm:
+        loading_matrix = loading_matrix**2
+
+    return loading_matrix
+
+
+def get_pca_loadings_as_df(
+    pca: PCA,
+    scaled: bool = False,
+    magnitude: bool = False,
+    squared_norm: bool = False,
+    df_format: Literal["long", "wide"] = "long",
+) -> pd.DataFrame:
+    """
+    Get the PCA loading matrix as a DataFrame.
+
+    This is a wrapper around `get_pca_loadings` that formats the output as a DataFrame.
+
+    **DataFrame format options**
+
+    The DataFrame can be returned in either "long" or "wide" format. The "long" format
+    has three columns: 'feature', 'PC', and 'loading_value'. The "wide" format has one
+    column per PC, indexed by feature.
+
+    Parameters
+    ----------
+    pca
+        The fit PCA object.
+    scaled
+        Whether to return the scaled loading matrix or unscaled.
+    magnitude
+        Whether to return the absolute values of the loadings
+    squared_norm
+        Whether to return the squared norm of the loadings.
+    df_format
+        The format of the DataFrame to return, either "long" or "wide".
+
+    Returns
+    -------
+    :
+        The PCA loading matrix as a DataFrame.
+
+    """
+    loading_matrix = get_pca_loadings(pca, scaled, magnitude, squared_norm)
+
+    num_features, num_pcs = loading_matrix.shape
+    feat_col_names = DIFFAE_FEATURE_COLUMN_NAMES[:num_features]
+    pc_col_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
+
+    loading_matrix_df = pd.DataFrame(loading_matrix, columns=pc_col_names, index=feat_col_names)
+    if df_format == "long":
+        loading_matrix_df = loading_matrix_df.reset_index().melt(
+            id_vars="index",
+            var_name=Column.DiffAEData.PCA_FEATURE_PREFIX,
+            value_name="loading_value",
+        )
+        loading_matrix_df = loading_matrix_df.rename(columns={"index": "feature"})
+    elif df_format == "wide":
+        pass
+    else:
+        raise ValueError("df_format must be either 'long' or 'wide'.")
+
+    return loading_matrix_df
