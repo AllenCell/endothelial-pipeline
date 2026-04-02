@@ -227,7 +227,9 @@ def plot_pc_scatter(
     dataset_names = dataframe[Column.DATASET].unique().tolist()
 
     # add "color" as a column in the dataframe for plotting, based on dataset name
-    dataframe["color"] = dataframe[Column.DATASET].apply(get_dataset_color)
+    for dataset_name in dataset_names:
+        dataset_color = get_dataset_color(dataset_name)
+        dataframe.loc[dataframe[Column.DATASET] == dataset_name, "color"] = dataset_color
 
     # input feature column names to plot (use PC column names by default)
     column_names_ = column_names or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
