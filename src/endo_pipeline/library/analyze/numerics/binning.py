@@ -4,7 +4,7 @@ from typing import cast
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.library.analyze.diffae_dataframe_utils import rewrap_polar_angle
+from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
 from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
