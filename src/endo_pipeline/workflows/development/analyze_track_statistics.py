@@ -15,15 +15,11 @@ def main(
     from scipy.stats import circmean, circvar
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import (
-        TimepointAnnotation,
-        get_datasets_in_collection,
-        load_dataset_config,
-    )
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.dataframe_filtering import (
-        filter_dataframe_by_annotations,
         filter_dataframe_by_track_length,
+        filter_dataframe_to_steady_state,
     )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
         get_dataset_color,
@@ -119,29 +115,22 @@ def main(
         plot_label = f"{dataset_name} ({shear_stress} dyn/cm$^2$)"
         fig_savedir = get_output_path(__file__, dataset_name)
 
-        # load dataframe and perform additional filtering (remove
-        # non-steady-state timepoints based on annotations), computing
-        # only the columns needed for analysis
+        # load dataframe and perform additional filtering (e.g., remove
+        # non-steady-state timepoints based on annotations), computing only the
+        # columns needed for analysis
+        dataset_config = load_dataset_config(dataset_name)
         df_grid_ = load_dataframe(
             grid_feature_dataframe_manifest.locations[dataset_name], delay=True
         )
         df_grid: pd.DataFrame = df_grid_[columns_to_compute_grid].compute()
-        df_steady_state_grid = filter_dataframe_by_annotations(
-            df_grid,
-            load_dataset_config(dataset_name),
-            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
-        )
+        df_steady_state_grid = filter_dataframe_to_steady_state(df_grid, dataset_config)
         num_trajectories_grid = df_steady_state_grid[ColumnName.CROP_INDEX].nunique()
 
         df_tracked_ = load_dataframe(
             tracked_feature_dataframe_manifest.locations[dataset_name], delay=True
         )
         df_tracked: pd.DataFrame = df_tracked_[columns_to_compute_tracked].compute()
-        df_steady_state_tracked = filter_dataframe_by_annotations(
-            df_tracked,
-            load_dataset_config(dataset_name),
-            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
-        )
+        df_steady_state_tracked = filter_dataframe_to_steady_state(df_tracked, dataset_config)
         # Perform additional filtering by track length
         df_steady_state_tracked = filter_dataframe_by_track_length(
             df_steady_state_tracked, min_track_length
@@ -152,7 +141,8 @@ def main(
         # more than num_subsample trajectories
         if num_trajectories_grid < num_trajectories_tracked:
             logger.info(
-                "Dataset [ %s ] has %d grid trajectories and %d tracked trajectories. Subsampling tracked trajectories to match number of grid trajectories for comparison.",
+                "Dataset [ %s ] has %d grid trajectories and %d tracked trajectories. "
+                "Subsampling tracked trajectories to match number of grid trajectories for comparison.",
                 dataset_name,
                 num_trajectories_grid,
                 num_trajectories_tracked,
@@ -167,7 +157,8 @@ def main(
             ]
         elif num_trajectories_tracked < num_trajectories_grid:
             logger.warning(
-                "Dataset [ %s ] has more grid trajectories than tracked trajectories. Not subsampling tracked trajectories, but this may affect comparison between grid and tracked statistics.",
+                "Dataset [ %s ] has more grid trajectories than tracked trajectories. "
+                "Not subsampling tracked trajectories, but this may affect comparison between grid and tracked statistics.",
                 dataset_name,
             )
 

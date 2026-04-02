@@ -62,15 +62,11 @@ def main(
     from scipy.stats import circmean, circstd, circvar
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import (
-        TimepointAnnotation,
-        get_datasets_in_collection,
-        load_dataset_config,
-    )
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.dataframe_filtering import (
-        filter_dataframe_by_annotations,
         filter_dataframe_by_track_length,
+        filter_dataframe_to_steady_state,
         split_dataframe_by_flow,
     )
     from endo_pipeline.library.analyze.diffae_dataframe_utils import df_to_array
@@ -162,18 +158,14 @@ def main(
         # load dataframe and perform additional filtering (remove
         # non-steady-state timepoints based on annotations), computing
         # only the columns needed for analysis
-        df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
+        df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
         # start with default metadata columns to keep
-        df_ = df[columns_to_compute].compute()
+        df = df_[columns_to_compute].compute()
         if just_steady_state:
-            df_ = filter_dataframe_by_annotations(
-                df_,
-                dataset_config,
-                timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
-            )
+            df = filter_dataframe_to_steady_state(df, dataset_config)
         if crop_pattern == "tracked":
-            df_ = filter_dataframe_by_track_length(df_, min_track_length)
-        df_ = df_.dropna(subset=column_names)
+            df = filter_dataframe_by_track_length(df, min_track_length)
+        df = df.dropna(subset=column_names)
 
         # polar angle periodicity settings
         theta_col = Column.DiffAEData.POLAR_ANGLE
@@ -181,7 +173,7 @@ def main(
         theta_period = PERIOD_THETA_RESCALED if RESCALE_THETA else 2 * np.pi
 
         # split by flow conditions (shared by unscaled and scaled paths)
-        df_by_flow, shear_stress_list = split_dataframe_by_flow(df_, dataset_config)
+        df_by_flow, shear_stress_list = split_dataframe_by_flow(df, dataset_config)
 
         # collect unscaled mean ± std per flow condition
         for df_flow, shear_stress, shear_stress_regime in zip(

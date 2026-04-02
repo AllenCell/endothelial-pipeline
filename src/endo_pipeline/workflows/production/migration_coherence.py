@@ -14,14 +14,10 @@ def main(
     import seaborn as sns
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import (
-        TimepointAnnotation,
-        get_datasets_in_collection,
-        load_dataset_config,
-    )
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.dataframe_filtering import (
-        filter_dataframe_by_annotations,
+        filter_dataframe_to_steady_state,
         split_dataframe_by_flow,
     )
     from endo_pipeline.library.analyze.dataframe_validation import (
@@ -112,22 +108,15 @@ def main(
         # load dataframe and perform additional filtering (remove
         # non-steady-state timepoints based on annotations), computing
         # only the columns needed for visualization/analysis
-        df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
+        df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
         columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *DYNAMICS_COLUMN_NAMES]
-        df_ = df[columns_to_compute].compute()
+        df = df_[columns_to_compute].compute()
         dataset_config = load_dataset_config(dataset_name)
-        df_steady_state = filter_dataframe_by_annotations(
-            df_,
-            dataset_config,
-            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
-        )
+        df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
 
         # add optical flow features to the dataframe by merging on the appropriate
         # columns (e.g., dataset, position, timepoint, and crop coords.)
-        df_of = add_optical_flow_features(
-            df_steady_state,
-            datasets=[dataset_name],
-        )
+        df_of = add_optical_flow_features(df_steady_state, datasets=[dataset_name])
 
         # split the dataframe by flow condition so we can plot the distribution
         # of optical flow features for each flow condition separately

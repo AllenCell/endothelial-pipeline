@@ -33,13 +33,9 @@ def main(
     import numpy as np
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import (
-        TimepointAnnotation,
-        get_datasets_in_collection,
-        load_dataset_config,
-    )
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import load_dataframe
-    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
     from endo_pipeline.library.analyze.numerics.correlations import (
         compute_correlations_for_one_dataset,
     )
@@ -129,9 +125,7 @@ def main(
         # load dataframe and filter to just steady state timepoints
         df = load_dataframe(feature_dataframe_manifest.locations[dataset_name])
         dataset_config = load_dataset_config(dataset_name)
-        df_steady_state = filter_dataframe_by_annotations(
-            df, dataset_config, timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE]
-        )
+        df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
         correlation_dict = compute_correlations_for_one_dataset(
             df_steady_state, column_names, correlation_dict, bootstrap_samples
         )
