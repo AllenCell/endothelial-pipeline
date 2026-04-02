@@ -631,21 +631,11 @@ def get_flow_field_and_fixed_points(
     fixed_points_df_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
     fixed_points_df_manifest = load_dataframe_manifest(fixed_points_df_manifest_name)
 
-    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{base_name}"
-    drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
-
     if dataset_name not in fixed_points_df_manifest.locations:
         logger.warning(
             "Dataset [ %s ] not found in fixed points dataframe manifest [ %s ]!",
             dataset_name,
             fixed_points_df_manifest_name,
-        )
-        return {}, pd.DataFrame()
-    if dataset_name not in drift_dataframe_manifest.locations:
-        logger.warning(
-            "Dataset [ %s ] not found in drift dataframe manifest [ %s ]!",
-            dataset_name,
-            drift_dataframe_manifest_name,
         )
         return {}, pd.DataFrame()
 
@@ -670,6 +660,42 @@ def get_flow_field_and_fixed_points(
             dataset_name,
         )
 
+    drift_values, grid_points_1d = get_drift_values_and_grid(
+        dataset_name=dataset_name,
+        column_names=column_names,
+        model_manifest_name=model_manifest_name,
+        run_name=run_name,
+    )
+    ndim = len(column_names)
+    grid = np.meshgrid(*grid_points_1d, indexing="ij")
+    drift_vector_field = [drift_values[..., i] for i in range(ndim)]
+
+    flow_field_dict = {"vectors": drift_vector_field, "grid": grid}
+
+    return flow_field_dict, fixed_points_df
+
+
+def get_drift_values_and_grid(
+    dataset_name: str,
+    column_names: list[str] = list(DYNAMICS_COLUMN_NAMES),
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str = DEFAULT_MODEL_RUN_NAME,
+) -> tuple[np.ndarray, np.ndarray]:
+
+    base_name = f"{model_manifest_name}_{run_name}_grid"
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{base_name}"
+    drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
+
+    if dataset_name not in drift_dataframe_manifest.locations:
+        logger.warning(
+            "Dataset [ %s ] not found in drift dataframe manifest [ %s ]!",
+            dataset_name,
+            drift_dataframe_manifest_name,
+        )
+        return np.array([]), np.array([])
+
+    logger.info("Getting trajectories and flow fields for grid-based and cell-centric crops...")
+
     drift_dataframe_location = get_dataframe_location_for_dataset(
         drift_dataframe_manifest, dataset_name
     )
@@ -681,13 +707,9 @@ def get_flow_field_and_fixed_points(
 
     grid_points_1d = [np.sort(drift_df[column_name].unique()) for column_name in column_names]
     grid_shape = tuple(len(points) for points in grid_points_1d)
-    grid = np.meshgrid(*grid_points_1d, indexing="ij")
 
     drift_values = drift_df[drift_column_names].to_numpy().reshape(*grid_shape, ndim)
-    drift_vector_field = [drift_values[..., i] for i in range(ndim)]
-    flow_field_dict = {"vectors": drift_vector_field, "grid": grid}
-
-    return flow_field_dict, fixed_points_df
+    return drift_values, grid_points_1d
 
 
 def get_vector_vector_angle(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
