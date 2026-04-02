@@ -13,7 +13,7 @@ from endo_pipeline.configs import (
     get_unannotated_positions,
 )
 from endo_pipeline.library.analyze.dataframe_validation import (
-    check_dataframe_has_single_dataset,
+    check_dataframe_dataset_matches_dataset_config,
     check_required_columns_in_dataframe,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -115,13 +115,10 @@ def filter_dataframe_by_annotations(
     required_columns = [Column.DATASET, Column.POSITION, Column.TIMEPOINT]
     check_required_columns_in_dataframe(dataframe, required_columns)
 
-    # check that dataframe is restricted to a single dataset
-    check_dataframe_has_single_dataset(dataframe)
-
-    # check that dataset name in dataframe matches dataset name in dataset config
-    if dataframe[Column.DATASET].unique()[0] != dataset_config.name:
-        logger.error("Dataset name in dataframe does not match dataset name in dataset config.")
-        raise ValueError("Dataset name in dataframe does not match dataset name in dataset config.")
+    # check that dataframe is restricted to a single dataset, and that the
+    # dataset name in the dataframe matches the dataset name for the provided
+    # dataset config
+    check_dataframe_dataset_matches_dataset_config(dataframe, dataset_config)
 
     # get positions and timepoints to include based on annotations
     only_include_positions = get_unannotated_positions(dataset_config, position_annotations)
@@ -176,13 +173,10 @@ def split_dataframe_by_flow(
     required_columns = [Column.DATASET, Column.TIMEPOINT]
     check_required_columns_in_dataframe(dataframe, required_columns)
 
-    # check that dataframe is restricted to one dataset only
-    check_dataframe_has_single_dataset(dataframe)
-
-    # check that dataset name in dataframe matches dataset name in dataset config
-    if dataframe[Column.DATASET].unique()[0] != dataset_config.name:
-        logger.error("Dataset name in dataframe does not match dataset name in dataset config.")
-        raise ValueError("Dataset name in dataframe does not match dataset name in dataset config.")
+    # check that dataframe is restricted to a single dataset, and that the
+    # dataset name in the dataframe matches the dataset name for the provided
+    # dataset config
+    check_dataframe_dataset_matches_dataset_config(dataframe, dataset_config)
 
     # get flow condition information from dataset config
     flow_conditions = dataset_config.flow_conditions
