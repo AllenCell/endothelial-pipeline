@@ -312,28 +312,18 @@ def test_unwrap_nonsequential_array(wrapped_array, period, expected_unwrapped_ar
     [
         (  # fit PCA with 3 components, project to 3 PCs, don't compute polar angle, don't flip PC3 sign
             3,
-            True,
             False,
             False,
             False,  # should not raise error since not computing polar angle or flipping PC3 sign
         ),
-        (  # confirm that passing None for feature_columns runs as expected (i.e., gets them from the dataframe)
-            3,
-            False,
-            False,
-            False,
-            False,
-        ),
         (  # fit PCA with 2 components, project to 2 PCs, compute polar angle, don't flip PC3 sign
             2,
-            True,
             True,
             False,
             False,  # should not raise error since using 2 PCs to compute polar angle and not flipping PC3 sign
         ),
         (  # check that error is raised if trying to compute polar angle with only 1 PC
             1,
-            True,
             True,
             False,
             True,
@@ -343,13 +333,10 @@ def test_unwrap_nonsequential_array(wrapped_array, period, expected_unwrapped_ar
             True,
             True,
             True,
-            True,
         ),
     ],
 )
-def test_project_features_to_pcs(
-    num_components, provide_feature_columns, compute_polar, flip_pc3_sign, raises_error
-):
+def test_project_features_to_pcs(num_components, compute_polar, flip_pc3_sign, raises_error):
     from sklearn.decomposition import PCA
 
     # create a simple test dataframe with 3 latent feature columns
@@ -361,10 +348,7 @@ def test_project_features_to_pcs(
         }
     )
 
-    if provide_feature_columns:
-        feature_columns = [f"feat_{i}" for i in range(3)]
-    else:
-        feature_columns = None
+    feature_columns = [f"feat_{i}" for i in range(3)]
 
     pca_model = PCA(n_components=num_components).fit(df.values)
 

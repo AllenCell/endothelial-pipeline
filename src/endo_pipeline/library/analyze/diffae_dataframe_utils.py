@@ -582,7 +582,7 @@ def get_pca_loadings_as_df(
 def project_features_to_pcs(
     df: pd.DataFrame,
     pca: PCA,
-    feat_cols: list[str] | None = None,
+    feat_cols: list[str],
     compute_polar: bool = True,
     rescale_theta: bool = RESCALE_THETA,
     flip_pc3_sign: bool = True,
@@ -628,15 +628,14 @@ def project_features_to_pcs(
         DataFrame with added columns for each principal component.
     """
     # check that required columns are present in dataframe
-    feat_cols_ = feat_cols or DIFFAE_FEATURE_COLUMN_NAMES
-    check_required_columns_in_dataframe(df, feat_cols_)
+    check_required_columns_in_dataframe(df, feat_cols)
 
     df_ = df.copy()  # make copy of DataFrame to avoid modifying original DataFrame
 
     # project feature data onto PCA axes, add new columns for each PC
     num_pcs = pca.components_.shape[0]  # number of principal components
     pc_cols = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
-    df_.loc[:, pc_cols] = pca.transform(df_[feat_cols_].values)
+    df_.loc[:, pc_cols] = pca.transform(df_[feat_cols].values)
 
     # optionally, compute polar coordinates (r, theta) from first two PCs
     if compute_polar:
