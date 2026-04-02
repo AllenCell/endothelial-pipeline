@@ -2,10 +2,6 @@ name: nuclear_labelfree_seg
 workflow: generate_label_free_nuc_pred (manifest updated manually)
 parameters: {}
 locations:
-  20241120_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20241120_20X/P{{position}}/20241120_20X_P{{position}}_T{{timepoint}}.ome.tiff
-  20241217_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20241217_20X/P{{position}}/20241217_20X_P{{position}}_T{{timepoint}}.ome.tiff
   20250224_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250224_20X/P{{position}}/20250224_20X_P{{position}}_T{{timepoint}}.ome.tiff
   20250319_20X:
@@ -42,3 +38,29 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250827_20X/P{{position}}/20250827_20X_P{{position}}_T{{timepoint}}.ome.tiff
   20251001_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20251001_20X/P{{position}}/20251001_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260114_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20260114_20X/P{{position}}/20260114_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260121_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20260121_20X/P{{position}}/20260121_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260126_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20260126_20X/P{{position}}/20260126_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260128_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20260128_20X/P{{position}}/20260128_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260202_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20260202_20X/P{{position}}/20260202_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260204_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20260204_20X/P{{position}}/20260204_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260209_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20260209_20X/P{{position}}/20260209_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260211_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20260211_20X/P{{position}}/20260211_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260216_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20260216_20X/P{{position}}/20260216_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260218_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20260218_20X/P{{position}}/20260218_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260225_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20260225_20X/P{{position}}/20260225_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260302_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20260302_20X/P{{position}}/20260302_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260304_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20260304_20X/P{{position}}/20260304_20X_P{{position}}_T{{timepoint}}.ome.tiff

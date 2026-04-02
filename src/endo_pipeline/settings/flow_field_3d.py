@@ -1,3 +1,5 @@
+"""Settings for 3D flow field estimation and visualization."""
+
 KERNEL_FUNCTION_NAME: str = "gaussian"
 """Default kernel function name for 3D flow field estimation."""
 
@@ -64,7 +66,7 @@ FIGSIZE_FLOW_FIELD_STACK: tuple[int, int] = (7, 5)
 TIME_STEP_IN_MINUTES: int = 5
 """Time step in minutes between consecutive time points for flow field estimation."""
 
-INIT_POINT_3D: tuple[float, float, float] = (0.5, 0.0, 0.5)
+INIT_POINT_3D: tuple[float, float, float] = (1.5, 0.2, -0.5)
 """Default initial point for 3D flow field trajectory visualization."""
 
 TRAJECTORY_TIME_SPAN: tuple[float, float] = (0.0, 5000.0)
@@ -84,6 +86,3 @@ LOWER_PERCENTILE_FOR_STABLE_FP: float = 5.0
 
 DATASET_COLLECTION_FOR_3D_DYNAMICS: str = "3d_flow_field_analysis"
 """Default dataset collection name for 3D dynamics analysis."""
-
-OUTPUT_FOLDER_NAME_FOR_3D_DYNAMICS: str = "flow_field_3d"
-"""Default output folder name for 3D dynamics analysis."""

@@ -17,6 +17,7 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     load_model_manifest,
 )
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.image_data import (
     IMG_SHAPE_RESOLUTION_1_3i_X,
     IMG_SHAPE_RESOLUTION_1_3i_Y,
@@ -43,7 +44,17 @@ def load_grid_diffae_df_for_tfe(
     # load the grid-based diffae features dataframe to get the crop locations and
     # crop labels for a given dataset
     grid_df = get_dataframe_for_dynamics_workflows(
-        dataset_name, dataframe_manifest, filter_dataframe=False
+        dataset_name=dataset_name,
+        manifest=dataframe_manifest,
+        columns_to_keep=[Column.DiffAEData.RESOLUTION],
+        pca=None,
+        filter_by_annotations=False,
+        include_cell_piling=True,
+        include_not_steady_state=True,
+        crop_pattern="grid",
+        compute_polar=True,
+        rescale_theta=True,
+        flip_pc3_sign=True,
     )
 
     # we don't need the latent feature columns for this workflow
@@ -65,10 +76,18 @@ def make_crop_index_to_slice_mapping(grid_df: pd.DataFrame) -> dict[int, tuple[s
     """
     crop_index_slices = dict(
         zip(
-            grid_df.crop_index.values,
+            grid_df[Column.CROP_INDEX].values,
             zip(
-                map(slice, grid_df.start_y.values, grid_df.end_y.values),
-                map(slice, grid_df.start_x.values, grid_df.end_x.values),
+                map(
+                    slice,
+                    grid_df[Column.DiffAEData.START_Y].values,
+                    grid_df[Column.DiffAEData.END_Y].values,
+                ),
+                map(
+                    slice,
+                    grid_df[Column.DiffAEData.START_X].values,
+                    grid_df[Column.DiffAEData.END_X].values,
+                ),
                 strict=True,
             ),
             strict=True,
@@ -94,21 +113,24 @@ def create_grid_segmentation_images(
     # when creating the segmentation image assign the crop_index from grid_df
     # to be the "segmentation" label. We will use the crop index as the
     # segmentation ID.
-    dataset_name = grid_df.dataset.unique().item()
+    dataset_name = np.unique(grid_df[Column.DATASET]).item()
 
     crop_index_slices = make_crop_index_to_slice_mapping(grid_df)
 
     # check that the crops will fit in an initialized image
     grid_seg = np.zeros((img_shape_y, img_shape_x), dtype=np.uint16)
 
-    if grid_df.end_x.max() > img_shape_x or grid_df.end_y.max() > img_shape_y:
+    if (
+        grid_df[Column.DiffAEData.END_X].max() > img_shape_x
+        or grid_df[Column.DiffAEData.END_Y].max() > img_shape_y
+    ):
         raise ValueError(
             f"Grid crop locations exceed expected image shape of\
             {(img_shape_y, img_shape_x)}"
         )
 
     # we can probably do the multiprocessing at the position level
-    for pos, df in grid_df.groupby("position"):
+    for pos, df in grid_df.groupby(Column.POSITION):
         out_subdir = out_dir / str(pos)
         out_subdir.mkdir(exist_ok=True)
 
@@ -116,19 +138,19 @@ def create_grid_segmentation_images(
         # intialize an empty image to hold the segmentation labels
         grid_seg = np.zeros((img_shape_y, img_shape_x), dtype=np.uint16)
 
-        for crop_i in df.crop_index.unique():
+        for crop_i in df[Column.CROP_INDEX].unique():
             grid_seg[crop_index_slices[crop_i]] = (
                 crop_i + 1
             )  # add 1 so that background is 0 and first crop is label 1
 
         # save the grid segmentation image for this position and timepoint
         for tp in tqdm(
-            range(df.duration.unique().item()),
+            range(np.unique(df["duration"]).item()),
             desc=f"Saving grid segmentation for {dataset_name} {pos}",
         ):
             fname = make_grid_seg_filename(pos, tp)
 
-            resolution_level = df.resolution_level.unique().item()
+            resolution_level = np.unique(df[Column.DiffAEData.RESOLUTION]).item()
             px_res_xy = pixel_size * 2**resolution_level
             px_res = PhysicalPixelSizes(Z=None, Y=px_res_xy, X=px_res_xy)
 
@@ -149,8 +171,8 @@ def create_grid_segmentation_images(
 
 def check_crop_indices_against_existing_segmentations(df: pd.DataFrame, out_dir: Path) -> None:
 
-    pos = df.position.unique().item()
-    tp = df.frame_number.unique().item()
+    pos = np.unique(df[Column.POSITION]).item()
+    tp = np.unique(df[Column.TIMEPOINT]).item()
     fp = out_dir / pos / make_grid_seg_filename(pos, tp)
 
     segmentation = load_image_from_path(fp)
@@ -158,9 +180,14 @@ def check_crop_indices_against_existing_segmentations(df: pd.DataFrame, out_dir:
     segprops = regionprops(label_image=segmentation.squeeze())
     for prop in segprops:
         crop_index_from_seg = prop.label - 1
-        bbox_cols = ["start_y", "start_x", "end_y", "end_x"]
+        bbox_cols = [
+            Column.DiffAEData.START_Y,
+            Column.DiffAEData.START_X,
+            Column.DiffAEData.END_Y,
+            Column.DiffAEData.END_X,
+        ]
 
-        crop_loc_matched = df[df.crop_index == crop_index_from_seg][bbox_cols] == prop.bbox
+        crop_loc_matched = df[df[Column.CROP_INDEX] == crop_index_from_seg][bbox_cols] == prop.bbox
         if crop_loc_matched is False:
             raise ValueError(
                 f"Crop index {crop_index_from_seg} in segmentation does not\

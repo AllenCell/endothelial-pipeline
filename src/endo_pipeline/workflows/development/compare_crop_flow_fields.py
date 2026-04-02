@@ -50,10 +50,6 @@ def main(
     for dataset_name in dataset_name_list:
         process_dataset_for_track_integration(
             dataset_name=dataset_name,
-            model_manifest_name=model_manifest_name,
-            run_name=run_name,
-            seg_feature_manifest_name=seg_feature_manifest_name,
-            collection_name_for_pca=DEFAULT_PCA_DATASET_COLLECTION_NAME,
             make_integrated_plots=True,
         )
 

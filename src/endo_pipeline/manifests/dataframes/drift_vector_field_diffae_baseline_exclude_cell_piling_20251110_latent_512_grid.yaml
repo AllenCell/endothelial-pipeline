@@ -1,0 +1,138 @@
+name: drift_vector_field_diffae_baseline_exclude_cell_piling_20251110_latent_512_grid
+workflow: generate_3d_flow_field
+parameters:
+  model_manifest_name: diffae_baseline_exclude_cell_piling
+  run_name: 20251110_latent_512
+  crop_pattern: grid
+  columns: [polar_theta, polar_r, rho]
+  kernel_names: [periodic, gaussian, gaussian]
+  kernel_bandwidths: [0.15, 0.15, 0.15]
+  bin_widths: [0.05, 0.05, 0.05]
+  num_init_samples_for_root_solver: 250
+  lower_percentile_for_stable_fp: 5.0
+  upper_percentile_for_stable_fp: 95.0
+locations:
+  20250319_20X:
+    fmsid: 0ed328fbdfd94414a4ae01e62dff67e2
+    path: null
+    s3uri: null
+  20250326_20X:
+    fmsid: f7087e98828943fca9afb0e3f0929b9b
+    path: null
+    s3uri: null
+  20250402_20X:
+    fmsid: 23f8532596284de0a6f15f4d997e1b61
+    path: null
+    s3uri: null
+  20250409_20X:
+    fmsid: be9a42ab2c544b9c8d14861438203e49
+    path: null
+    s3uri: null
+  20250428_20X:
+    fmsid: 3365e365c24e4f219abc317604095573
+    path: null
+    s3uri: null
+  20250604_20X:
+    fmsid: dce13becd45a4fa9b669d15317b881be
+    path: null
+    s3uri: null
+  20250611_20X:
+    fmsid: 31d90c31c580406ea087a9e3909a1dad
+    path: null
+    s3uri: null
+  20250618_20X:
+    fmsid: fbe748bf165c4e04ba440d548f32fcf4
+    path: null
+    s3uri: null
+  20250716_20X:
+    fmsid: e05d23f3f0b74461a3f3cf4ada541dc4
+    path: null
+    s3uri: null
+  20250728_20X:
+    fmsid: bce9dba9e0b145779b5966ffe48381d6
+    path: null
+    s3uri: null
+  20250813_20X:
+    fmsid: 48f1d69bacb24b73a5e5956e0a8eb662
+    path: null
+    s3uri: null
+  20250818_20X:
+    fmsid: 1254a756acba4fd396fb2d545a51f025
+    path: null
+    s3uri: null
+  20250908_20X:
+    fmsid: fa0fc5599387488bbf118b8eb6e75637
+    path: null
+    s3uri: null
+  20251001_20X:
+    fmsid: af7bd8168a534c5dad53dc55a75e37c1
+    path: null
+    s3uri: null
+  20251022_20X:
+    fmsid: 29d2f59483e44c9693cb1bff1f246cd0
+    path: null
+    s3uri: null
+  20251029_20X:
+    fmsid: bf57706329164d4ab9abdec7122ae92b
+    path: null
+    s3uri: null
+  20251105_20X:
+    fmsid: e4830a67ff2540888804bd88c7846fff
+    path: null
+    s3uri: null
+  20251119_20X:
+    fmsid: a17a9e2379974fe88f31f78b9054fc49
+    path: null
+    s3uri: null
+  20260114_20X:
+    fmsid: 2e4d05065727466391056047b6da4518
+    path: null
+    s3uri: null
+  20260121_20X:
+    fmsid: 3d56525d40a64ee782ce1de6beb5da25
+    path: null
+    s3uri: null
+  20260126_20X:
+    fmsid: 44ea644048ec40d6bcf148972047757b
+    path: null
+    s3uri: null
+  20260128_20X:
+    fmsid: 2b587e044fba4e7db6f30de6a44aa394
+    path: null
+    s3uri: null
+  20260202_20X:
+    fmsid: 014006d9de2c4ffdaa3aeba4c888aa96
+    path: null
+    s3uri: null
+  20260204_20X:
+    fmsid: b74b8e69e18a475e8f0e9ed75d59df54
+    path: null
+    s3uri: null
+  20260209_20X:
+    fmsid: 7351e78e005d4bc68b5aa92eaa005f21
+    path: null
+    s3uri: null
+  20260211_20X:
+    fmsid: c49838ae464e46fb90f3848593906976
+    path: null
+    s3uri: null
+  20260216_20X:
+    fmsid: 9b0d1377b6d24c89a5712808a9614183
+    path: null
+    s3uri: null
+  20260218_20X:
+    fmsid: e32213efaad241038db5334362cee976
+    path: null
+    s3uri: null
+  20260225_20X:
+    fmsid: 69bade9c0f194fbb92f1666fde890c95
+    path: null
+    s3uri: null
+  20260302_20X:
+    fmsid: 647e9990f0944866b223adc2c135ec5d
+    path: null
+    s3uri: null
+  20260304_20X:
+    fmsid: dc444cd23a4348069916447e3c556763
+    path: null
+    s3uri: null

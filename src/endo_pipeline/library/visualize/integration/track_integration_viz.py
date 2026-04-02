@@ -176,10 +176,10 @@ def plot_quiver_slices_from_diffae_table(
     # baseline visualization: plot flow field slices
     fig, axs = plot_flow_field_slices(
         flow_field_dict=flow_field_dict_grids,
-        df=diffae_df,
+        dataset_name=diffae_df[ColumnName.DATASET].unique()[0],
         plot_bounds=bounds,
         fig_savedir=None,
-        pc_vals=pc_vals,
+        feature_vals=pc_vals,
         colormap_name=flow_field_colormap,
         log_norm_colormap=True,
     )

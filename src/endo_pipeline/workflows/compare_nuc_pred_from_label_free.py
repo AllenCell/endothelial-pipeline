@@ -1,3 +1,4 @@
+import logging
 import re
 from collections.abc import Generator
 from pathlib import Path
@@ -26,6 +27,8 @@ from endo_pipeline.manifests import (
     load_model_manifest,
 )
 from endo_pipeline.settings import DIMENSION_ORDER
+
+logger = logging.getLogger(__name__)
 
 # NOTE
 # because we don't have zarr files for the datasets in the
@@ -72,7 +75,7 @@ def get_image_data_from_original(dataset_name: str, scenes_to_use: list[str]) ->
         img.set_scene(scene)
         scene_index = img.current_scene_index
 
-        print(dataset_name, img.current_scene)
+        logger.info(dataset_name, img.current_scene)
         channel_names = sldmd.get_channel_name(img.metadata)
         channel_names = [chan.split("/")[0] for chan in channel_names]
         nuc_chan = channel_names.index("405")
@@ -230,7 +233,7 @@ for dataset_name in datasets_to_use:
         cytodl_nuc_pred = BioImage(cytodl_nuc_pred_path[0]).get_image_data().squeeze()
 
         # for timepoint in range(len(img_arr)):
-        print(f"Working on dataset {dataset_name}, {scene_index}...")
+        logger.debug(f"Working on dataset {dataset_name}, {scene_index}...")
 
         # Use the CellPose model to predict nuclei from the brightfield std dev channel:
         masks_bf_std = model_bf_stdproject.eval(

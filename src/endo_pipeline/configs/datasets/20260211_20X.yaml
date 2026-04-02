@@ -1,0 +1,80 @@
+name: 20260211_20X
+date: '20260211'
+original_path: //allen/programs/allencell/data/proj0/6ec/30f/938/167/888/8ba/a48/d0c/dc8/b76/20/20260211_GE00010289_20X_SLDY/20260211_GE00010289_20X_SLDY.sldy
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: 20b76dc8d0ca488ba88816793830f6ec
+barcode: GE00010289
+cell_lines: [AICS-126 cl. 41]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: high
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+channel_names: [EGFP, BF]
+flow_conditions:
+- start: -9
+  stop: 576
+  shear_stress: 15.79
+include_scenes: null
+notes: Possible slight slide tilt FOV 1 to FOV 6, not too severe after QC. GFP and
+  BF both look good.
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [246, 251, 521]
+    1: [233, 249]
+    2: [232, 249, 548]
+    3: [233, 254]
+    4: [232, 254]
+    5: [232, 281]
+  auto_bf_temp_artifact:
+    0: [521]
+    1: [232]
+    2: [246, 262, 521]
+    3: [246, 254, 521]
+    4: [254]
+    5: [232, 281]
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  not_steady_state:
+    0: [[0, 132]]
+    1: [[0, 96]]
+    2: [[0, 126]]
+    3: [[0, 96]]
+    4: [[0, 114]]
+    5: [[0, 96]]
+  cell_piling:
+    0: [[240, 576]]
+    1: [[240, 576]]
+    2: [[180, 576]]
+    3: [[276, 576]]
+    4: [[300, 576]]
+    5: [[360, 576]]
+position_annotations: null
+center_z_plane:
+  0: 12
+  1: 11
+  2: 11
+  3: 10
+  4: 10
+  5: 10

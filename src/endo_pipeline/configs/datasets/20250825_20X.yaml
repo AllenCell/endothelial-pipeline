@@ -4,7 +4,7 @@ original_path: //allen/programs/allencell/data/proj0/47b/5f3/d29/fbd/998/668/342
 zarr_positions: [0, 1, 2, 3, 4, 5]
 fmsid: c2a006900d0342668998fbdd295f347b
 barcode: GE00008794
-cell_lines: [AICS-126]
+cell_lines: [AICS-126 cl. 41]
 live_or_fixed_sample: live
 is_timelapse: true
 microscope: 3i
@@ -28,7 +28,7 @@ zarr_channel_indices:
   channel_640: null
 channel_names: [EGFP, BF]
 flow_conditions:
-- start: -16
+- start: -18
   stop: 273
   shear_stress: 24.77
 - start: 274

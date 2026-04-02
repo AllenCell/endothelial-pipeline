@@ -5,8 +5,12 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
+from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    get_latent_feature_column_names,
+    get_pc_column_names,
+)
 from endo_pipeline.library.model.diffae import generate_from_coords
-from endo_pipeline.settings.diffae_feature_dataframes import ColumnName
+from endo_pipeline.settings.column_names import ColumnName as Column
 
 if TYPE_CHECKING:
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
@@ -57,30 +61,140 @@ def get_num_pcs_from_column_names(column_names: list[str]) -> int:
     # get the maximum PC dimension number from the column names; if no PC
     # dimensions are included, set max_pc_dim to 0
     try:
-        max_pc_dim = get_max_dim_in_column_names(column_names, ColumnName.PCA_FEATURE_PREFIX.value)
+        max_pc_dim = get_max_dim_in_column_names(column_names, Column.DiffAEData.PCA_FEATURE_PREFIX)
     except ValueError:
         max_pc_dim = 0
 
     # check special case for polar coordinates, which at minimum need the first
     # two PC dimensions to be included
     if (
-        ColumnName.POLAR_ANGLE.value in column_names
-        or ColumnName.POLAR_RADIUS.value in column_names
+        Column.DiffAEData.POLAR_ANGLE in column_names
+        or Column.DiffAEData.POLAR_RADIUS in column_names
     ):
         max_pc_dim = max(max_pc_dim, 2)
 
     # check if PC3_FLIPPED is included, which also requires at minimum the first
     # three PC dimensions to be included
-    if ColumnName.PC3_FLIPPED.value in column_names:
+    if Column.DiffAEData.PC3_FLIPPED in column_names:
         max_pc_dim = max(max_pc_dim, 3)
 
     return max_pc_dim
 
 
+def _add_preceding_dims_to_column_names(column_names: list[str], feature_prefix: str) -> list[str]:
+    """
+    Add preceding dimension column names to the provided column names based on
+    the provided feature prefix.
+
+    For example, column_names = ["pc_3"] and feature_prefix = "pc_", this method
+    would add "pc_1" and "pc_2" to the output list of column names since they
+    are the preceding dimensions for "pc_3".
+    """
+    try:
+        # get max dimension number for the given feature prefix from the column names
+        max_dim = get_max_dim_in_column_names(column_names, feature_prefix)
+
+        # get all column names for the preceding dimensions based on the feature
+        # prefix and max dimension number
+        if feature_prefix == Column.DiffAEData.PCA_FEATURE_PREFIX:
+            all_dim_columns = get_pc_column_names(num_pcs=max_dim)
+        elif feature_prefix == Column.DiffAEData.LATENT_FEATURE_PREFIX:
+            all_dim_columns = get_latent_feature_column_names(num_latent_dims=max_dim)
+        else:
+            raise ValueError(f"Invalid feature prefix: {feature_prefix}")
+        # combine the original column names with the preceding dimension column
+        # names, ensuring no duplicates
+        column_names_with_preceding_dims = list(set(column_names + all_dim_columns))
+        return column_names_with_preceding_dims
+    except ValueError:
+        logger.warning(
+            "No column names found with prefix [ %s ] in [ %s ]. No preceding dimensions will be added.",
+            feature_prefix,
+            column_names,
+        )
+        return column_names
+
+
+def get_column_names_for_latent_walk_dataframe(input_column_names: list[str]) -> list[str]:
+    """
+    Set up column names for the latent walk based on the provided column names.
+
+    For example, if the provided columns include any of the PC features, the
+    preceding PC features must also be present in the dataframe so that their
+    values can be used as the baseline for the latent walk. So if the provided
+    column names include PC3, then the column names for the latent walk should
+    include PC1, PC2, and PC3.
+
+    In the case that PC3 is included but neither {PC1, PC2} nor {polar angle,
+    polar radius} are included, then the column names for the PC1 and PC2 are
+    added (as opposed to the polar angle and radius). Either are sufficient for
+    calculating the PC1, PC2, and PC3 coordinates for image generation, but the
+    PC1 and PC2 coordinates are used as the baseline for the latent walk in this
+    case since they are more commonly used as the baseline for latent walks in
+    general.
+
+    Similarly, if the provided column names include any of the latent features,
+    the preceding latent features must also be present in the dataframe so that
+    their values can be used as the baseline for the latent walk.
+
+    If either of the polar coordinate columns are included, both must be
+    included, so that the inverse transform can be applied to convert back to
+    Cartesian coordinates for image generation.
+    """
+    column_names = input_column_names.copy()
+    # special cases for transformed variables: polar coordinates and flipped pc3
+    polar_subset = {Column.DiffAEData.POLAR_ANGLE, Column.DiffAEData.POLAR_RADIUS.value}
+    pc1_pc2_subset = {
+        f"{Column.DiffAEData.PCA_FEATURE_PREFIX}1",
+        f"{Column.DiffAEData.PCA_FEATURE_PREFIX}2",
+    }
+    # first, check that columns do not have both the polar coordinates and the
+    # PC1 and PC2 coordinates, since this would be redundant and could cause
+    # issues with image generation since the polar coordinates would not be able
+    # to be used for the inverse PCA transformation to get the Cartesian
+    # coordinates for image generation
+    if polar_subset.issubset(column_names) and pc1_pc2_subset.issubset(column_names):
+        raise ValueError(
+            f"Column names cannot include both polar coordinates and PC1 and PC2 coordinates. Column names provided: {column_names}"
+        )
+    if (
+        Column.DiffAEData.POLAR_ANGLE in column_names
+        and Column.DiffAEData.POLAR_RADIUS not in column_names
+    ):
+        # if polar angle is included in the column names but polar radius is
+        # not, add polar radius to the column names
+        column_names.append(Column.DiffAEData.POLAR_RADIUS)
+    if (
+        Column.DiffAEData.POLAR_RADIUS in column_names
+        and Column.DiffAEData.POLAR_ANGLE not in column_names
+    ):
+        # if polar radius is included in the column names but polar angle is
+        # not, add polar angle to the column names
+        column_names.append(Column.DiffAEData.POLAR_ANGLE)
+    if Column.DiffAEData.PC3_FLIPPED in column_names:
+        # if PC3_FLIPPED is included in the column names, need to either
+        # have PC1 and PC2 OR polar angle and radius included in the column names
+        # so that the PC1, PC2, and PC3 coordinates can be calculated for image generation
+        if not polar_subset.issubset(column_names) and not pc1_pc2_subset.issubset(column_names):
+            # if neither the polar coordinate columns nor the PC1 and PC2 columns are included in the column names, add the PC1 and PC2 columns to the column names
+            column_names = _add_preceding_dims_to_column_names(
+                column_names, Column.DiffAEData.PCA_FEATURE_PREFIX
+            )
+
+    # add preceding latent feature columns if any latent feature columns are included in the column names
+    column_names = _add_preceding_dims_to_column_names(
+        column_names, Column.DiffAEData.LATENT_FEATURE_PREFIX
+    )
+    column_names = _add_preceding_dims_to_column_names(
+        column_names, Column.DiffAEData.PCA_FEATURE_PREFIX
+    )
+
+    return column_names
+
+
 def get_baseline_walk_values(
     dataframe: pd.DataFrame,
-    column_names: list[str],
-    replace_mean_with_val: list[float] | None = None,
+    set_column_value: dict[str, float] | None = None,
 ) -> list[float]:
     """
     Get baseline walk values for each dimension based on the mean of the data or
@@ -90,85 +204,117 @@ def get_baseline_walk_values(
     ----------
     dataframe
         DataFrame containing the data to calculate mean values from.
-    column_names
-        List of column names corresponding to each dimension.
-    replace_mean_with_val
-        Optional, list of values to replace the mean with for each dimension. If
-        None, uses the mean of the data for each dimension.
+    set_column_value
+        Optional, dictionary mapping column names to values to set for those
+        columns when generating the latent walk. If None, uses the mean of the
+        data for each dimension as the baseline walk values.
 
     Returns
     -------
     :
         List of baseline walk values for each dimension.
     """
-    n_dims = len(column_names)
-
-    # convert replace_mean_with_val to a list of length n_dims, filling with None if it is None
-    replace_values = [None] * n_dims if replace_mean_with_val is None else replace_mean_with_val
-
-    if len(replace_values) != n_dims:
-        raise ValueError(
-            f"Expected replace_mean_with_val of length {len(column_names)}, got {len(replace_values)}."
-        )
 
     baseline_values = []
-    for col_name, replace_value in zip(column_names, replace_values, strict=True):
-        if replace_value is None:
-            baseline_values.append(dataframe[col_name].mean())
+    for column_name in dataframe.columns:
+        if (set_column_value is None) or (column_name not in set_column_value.keys()):
+            baseline_values.append(dataframe[column_name].mean())
         else:
-            baseline_values.append(replace_value)
+            set_value = set_column_value[column_name]
+            if set_value < dataframe[column_name].min() or set_value > dataframe[column_name].max():
+                logger.warning(
+                    "Provided baseline value [ %.3f ] for [ %s ] is out of the range of the data: [ (%.3f, %.3f) ]. Using provided value anyway.",
+                    set_value,
+                    column_name,
+                    dataframe[column_name].min(),
+                    dataframe[column_name].max(),
+                )
+            baseline_values.append(set_column_value[column_name])
 
     return baseline_values
 
 
 def get_latent_walk(
     dataframe: pd.DataFrame,
-    column_names: list[str],
+    walk_column_names: list[str],
     sigma: float | None,
     n_steps: int,
-    replace_mean_with_val: list[float] | None = None,
-) -> tuple[pd.DataFrame, list[np.ndarray]]:
+    set_column_value: dict[str, float] | None = None,
+) -> tuple[pd.DataFrame, np.ndarray]:
     """
     Generate a latent walk based on standard deviation or min/max of each
     dimension.
 
+    **Specifying walk dimensions**
+
+    The ``walk_column_names`` parameter specifies the dimensions to traverse in
+    the latent walk. For example, if the column names for the PCA features are
+    "pc_1", "pc_2", and "pc_3", and the ``walk_column_names`` parameter is set
+    to ["pc_3"], then the latent walk will only traverse the "pc_3" dimension
+    while holding the "pc_1" and "pc_2" dimensions constant at the baseline walk
+    values.
+
+    **Baseline walk values**
+
+    For the dimensions that are not being traversed in the walk, the values for
+    those dimensions will be held constant at the baseline walk values. By
+    default, the baseline walk values are set to the mean of the data for each
+    dimension, but the user can also specify custom baseline walk values for any
+    dimensions using the ``set_column_value`` parameter. This method calls the
+    method ``get_baseline_walk_values`` to get the baseline walk values for each
+    dimension based on the provided data and the ``set_column_value`` parameter.
+
+    **Walk range**
+
+    The range of values to traverse for each dimension in the walk can be set
+    based on either the standard deviation of the data for that dimension or the
+    minimum and maximum values of the data for that dimension.
+
+    If the ``sigma``
+    parameter is set to a positive value, the walk range for each dimension will
+    be set to [-sigma * std, sigma * std], where std is the standard deviation of
+    the data for that dimension.
+
+    If the ``sigma`` parameter is set to None, the
+    walk range for each dimension will be set to [min, max], where min and max
+    are the minimum and maximum values of the data for that dimension.
+
     Parameters
     ----------
-    data
-        Numpy array containing the data to be traversed.
-    n_dims
-        Number of dimensions for the latent walk.
+    dataframe
+        Data to use for calculating baseline mean values and walk ranges.
+    walk_column_names
+        List of column names to actually traverse in the latent walk.
     sigma
-        Range of values for the latent walk. If None, use min/max of dimension.
+        Optional, number of standard deviations to use for the walk range.
     n_steps
         Number of steps in the latent walk.
-    replace_mean_with_val
-        Optional, list of values to replace the mean with for each dimension
-        when generating the latent walk. If None, uses the mean of the data.
+    set_column_value
+        Optional, dictionary mapping column names to set baseline values.
     """
     walks: list[pd.DataFrame] = []
     ranges: list[np.ndarray] = []
 
     # Get baseline values for all dimensions as either the mean value of the
     # dimension or the given replacement value for that dimension.
-    baseline_walk_values = get_baseline_walk_values(dataframe, column_names, replace_mean_with_val)
+    baseline_walk_values = get_baseline_walk_values(dataframe, set_column_value)
 
-    for column_name in column_names:
-        data = dataframe[column_name]
+    for column_name in walk_column_names:
+        walk_data = dataframe[column_name]
         if sigma is None:
-            data_min = data.min()
-            data_max = data.max()
+            data_min = walk_data.min()
+            data_max = walk_data.max()
             range_ = np.linspace(data_min, data_max, n_steps)
         else:
             if sigma <= 0:
                 raise ValueError(f"Input sigma must be positive, got {sigma}.")
-            std = data.std()
+            std = walk_data.std()
             range_ = np.arange(-sigma, sigma + 0.01) * std
 
         # Stack the baseline values for all steps and then replace only the current
         # dimension with the selected latent walk values.
         dim_traversal_array = np.stack([baseline_walk_values] * range_.shape[0])
-        dim_traversal_df = pd.DataFrame(dim_traversal_array, columns=column_names)
+        dim_traversal_df = pd.DataFrame(dim_traversal_array, columns=dataframe.columns)
         dim_traversal_df[column_name] = range_
 
         walks.append(dim_traversal_df)
@@ -176,13 +322,15 @@ def get_latent_walk(
 
     walk_dataframe = pd.concat(walks, ignore_index=True)
 
-    return walk_dataframe, ranges
+    ranges_array = np.vstack(ranges)
+
+    return walk_dataframe, ranges_array
 
 
 def generate_latent_walk_images(
     model: "DiffusionAutoEncoder",
     walk: np.ndarray,
-    ranges: list[np.ndarray],
+    ranges: np.ndarray,
     n_noise_samples: int = 1,
     num_gpus: int | None = None,
     random_seed: int | None = None,
@@ -195,11 +343,12 @@ def generate_latent_walk_images(
     model
         Model to use for image generation.
     walk
-        Numpy array of shape (n_steps, n_dim) containing the latent walk
+        Array of shape (num_steps, num_dims) containing the latent walk
         coordinates.
     ranges
-        List of numpy arrays containing the ranges of values for each dimension
-        in the walk.
+        Array of shape (num_dims, num_steps) containing the coordinate values
+        for each dimension and step. Used to reshape the array of generated
+        images.
     n_noise_samples
         Number of noise samples to use for generating images.
     num_gpus
@@ -219,8 +368,8 @@ def generate_latent_walk_images(
     )
 
     # Reshape to (n_dim, n_steps, img_w, img_h)
-    n_dim = len(ranges)
-    n_steps_actual = ranges[0].shape[0]
+    n_dim = ranges.shape[0]
+    n_steps_actual = ranges.shape[1]
     image_width = walk_img.shape[-2]
     image_height = walk_img.shape[-1]
 

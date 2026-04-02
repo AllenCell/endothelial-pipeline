@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
@@ -12,20 +12,18 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 from mpl_toolkits.mplot3d import Axes3D
 from seaborn import kdeplot
-from sklearn.decomposition import PCA
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io.output import save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    check_required_columns_in_dataframe,
-    get_dataframe_for_dynamics_workflows,
+from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.polar_coords import (
     rewrap_polar_angle,
     unwrap_nonsequential_array,
 )
 from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
     get_seg_feat_plot_args,
 )
-from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.density_comparison_plots import (
     DENSITY_PLOT_KDE_BANDWIDTH,
     DENSITY_PLOT_KWARGS_GRID_CROPS,
@@ -35,7 +33,6 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
-    ColumnName,
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
@@ -194,93 +191,65 @@ def get_dataset_color(dataset_name: str) -> str:
 
 
 def plot_pc_scatter(
-    dataset_names: list[str],
-    dataframe_manifest: DataframeManifest,
-    pca: PCA,
-    include_cell_piling: bool = False,
-    crop_pattern: Literal["grid", "tracked"] = "grid",
+    dataframe: pd.DataFrame,
+    savedir: Path,
+    column_names: list[str] | None = None,
     alpha: float = 0.2,
     scatter_size: float = 1,
-    pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
-    color_by_time: bool = False,
-    save_dir: Path | None = None,
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
     """
     Plot scatter plot of PCA components for a list of datasets.
 
     Parameters
     ----------
-    dataset_names
-        List of dataset names to plot.
-    dataframe_manifest
-        Manifest containing paths to dataframes for each dataset.
-    pca
-        Fit PCA model used to transform the data.
-    include_cell_piling
-        Include cell piling timepoings from the plot if True, exclude if False.
-    crop_pattern
-        Crop pattern used in the dataframes; either 'grid' or 'tracked'.
+    dataframe
+        DataFrame containing the PCA components for all datasets to plot.
+    savedir
+        Directory to save the plots to.
+    column_names
+        List of feature column names to plot.
     alpha
         Alpha (opacity) value for scatter plot points.
     scatter_size
         Size of scatter plot points.
-    pc_column_names
-        List of PCA column names to plot.
-    color_by_time
-        If True, color points by timepoint instead of dataset.
-    save_dir
-        Directory to save the plots to. If None, plots are not saved.
 
     Returns
     -------
     :
-        Figure object for the scatter plots.
-        Array of Axes objects for the scatter plots.
+        Figure object for the scatter plots. Array of Axes objects for the
+        scatter plots.
     """
 
     # initialize color list for legend
-    patch_dict_for_legend = {}
-    df_list = []
+    patch_list_for_legend_combined_plot = []
 
+    # get list of dataset names from dataframe
+    dataset_names = dataframe[Column.DATASET].unique().tolist()
+
+    # add "color" as a column in the dataframe for plotting, based on dataset name
     for dataset_name in dataset_names:
-        # load dataframe and get top 3 PCs
-        # plot or don't plot cell piling timepoints based on
-        # value of include_cell_piling
-        df = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            dataframe_manifest,
-            pca,
-            include_cell_piling=include_cell_piling,
-            crop_pattern=crop_pattern,
-        )[[*pc_column_names, ColumnName.TIMEPOINT]]
-        df["dataset_name"] = dataset_name
-        if color_by_time:
-            num_timepoints = df[ColumnName.TIMEPOINT].nunique()
-            cmap = plt.get_cmap("viridis")
-            colors = cmap(np.linspace(0, 1, num_timepoints))
-            df["color"] = df[ColumnName.TIMEPOINT].map(
-                dict(zip(sorted(df[ColumnName.TIMEPOINT].unique()), colors, strict=False))
-            )
-            patch_dict_for_legend[dataset_name] = mpatches.Patch(color=cmap(0), label=dataset_name)
-        else:
-            color = get_dataset_color(dataset_name)
-            df["color"] = color
-            patch_dict_for_legend[dataset_name] = mpatches.Patch(color=color, label=dataset_name)
-        df_list.append(df)
+        dataset_color = get_dataset_color(dataset_name)
+        dataframe.loc[dataframe[Column.DATASET] == dataset_name, "color"] = dataset_color
 
-    df_combined = pd.concat(df_list, ignore_index=True)
+    # input feature column names to plot (use PC column names by default)
+    column_names_ = column_names or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
-    # First plot individual datasets with others faded in background
     for highlighted_dataset in dataset_names:
         # copy combined dataframe to modify for highlighting
-        df_highlighted = df_combined.copy()
+        df_highlighted = dataframe.copy()
         # Separate highlighted and background data
-        mask_highlighted = df_highlighted["dataset_name"] == highlighted_dataset
+        mask_highlighted = df_highlighted[Column.DATASET] == highlighted_dataset
         df_background = df_highlighted[~mask_highlighted].copy()
         df_foreground = df_highlighted[mask_highlighted].copy()
 
         # Set background color
         df_background["color"] = "lightgray"
+
+        # Add color for highlighted dataset and add to patch list for legend
+        dataset_color = df_foreground["color"].iloc[0]
+        patch_list_for_legend_combined_plot.append(
+            mpatches.Patch(color=dataset_color, label=highlighted_dataset)
+        )
 
         # Concatenate with highlighted data last (so it plots on top)
         df_highlighted = pd.concat([df_background, df_foreground], ignore_index=True)
@@ -289,12 +258,13 @@ def plot_pc_scatter(
         fig, ax = plt.subplots(
             2, 1, figsize=(MAX_FIGURE_WIDTH // 2, MAX_FIGURE_HEIGHT // 2), sharex=True
         )
-        # Create patch list for legend
+        # Create patch list for legend with highlighted dataset colored and
+        # others light gray
         patch_list_for_legend = [
             (
-                mpatches.Patch(color="lightgray", label=dataset_name)
-                if dataset_name != highlighted_dataset
-                else patch_dict_for_legend[highlighted_dataset]
+                mpatches.Patch(color=dataset_color, label=highlighted_dataset)
+                if dataset_name == highlighted_dataset
+                else mpatches.Patch(color="lightgray", label=dataset_name)
             )
             for dataset_name in dataset_names
         ]
@@ -306,25 +276,14 @@ def plot_pc_scatter(
             ax,
             alpha,
             scatter_size,
-            pc_column_names,
+            column_names_,
             patch_list_for_legend,
         )
 
-        # add colorbar
-        if color_by_time:
-            num_timepoints = df_foreground[ColumnName.TIMEPOINT].nunique()
-            sm = plt.cm.ScalarMappable(
-                cmap="viridis", norm=plt.Normalize(vmin=0, vmax=num_timepoints)
-            )
-            sm.set_array([])
-            cax = fig.add_axes((0.98, 0.15, 0.05, 0.5))  # [left, bottom, width, height]
-            cbar = fig.colorbar(sm, cax=cax, orientation="vertical")
-            cbar.set_label("frame number")
-
-        if save_dir is not None:
+        if savedir is not None:
             save_plot_to_path(
                 fig,
-                save_dir,
+                savedir,
                 f"pca_scatter_highlight_{highlighted_dataset}",
             )
 
@@ -332,19 +291,20 @@ def plot_pc_scatter(
     fig_combined, ax_combined = plt.subplots(
         2, 1, figsize=(MAX_FIGURE_WIDTH // 2, MAX_FIGURE_HEIGHT // 2), sharex=True
     )
-    shuffled_indices = np.random.default_rng(RANDOM_SEED).permutation(len(df_combined))
-    df_combined = df_combined.iloc[shuffled_indices]
+    shuffled_indices = np.random.default_rng(RANDOM_SEED).permutation(len(dataframe))
+    dataframe_shuffled = dataframe.iloc[shuffled_indices]
     plot_pc_scatter_from_df(
-        df=df_combined,
+        df=dataframe_shuffled,
         dataset_name="reference",
         ax=ax_combined,
         alpha=alpha,
         scatter_size=scatter_size,
-        pc_column_names=pc_column_names,
-        patch_list_for_legend=list(patch_dict_for_legend.values()),
+        pc_column_names=column_names_,
+        patch_list_for_legend=patch_list_for_legend_combined_plot,
     )
-    if save_dir is not None:
-        save_plot_to_path(fig_combined, save_dir, "pca_scatter_ref")
+
+    if savedir is not None:
+        save_plot_to_path(fig_combined, savedir, "pca_scatter_ref")
 
     return fig, ax
 
@@ -410,7 +370,7 @@ def make_pc_scatter_fig4a(
     df: pd.DataFrame,
     pc_col_for_xaxis: str,
     pc_col_for_yaxis: str,
-    hue: str | ColumnName = ColumnName.TIMEPOINT,
+    hue: str | Column.DiffAEData = Column.TIMEPOINT,
     figsize=(2.5, 2.5),
     color_palette="viridis",
     marker=".",
@@ -423,8 +383,8 @@ def make_pc_scatter_fig4a(
         raise ValueError(f"pc_col_for_xaxis must be one of: {DIFFAE_PC_COLUMN_NAMES}")
     if pc_col_for_yaxis not in DIFFAE_PC_COLUMN_NAMES:
         raise ValueError(f"pc_col_for_yaxis must be one of: {DIFFAE_PC_COLUMN_NAMES}")
-    if hue not in [x.value for x in ColumnName]:
-        raise ValueError(f"hue must be one of: {[x.value for x in ColumnName]}")
+    if hue not in [*list(Column.DiffAEData), Column.TIMEPOINT]:
+        raise ValueError(f"hue must be one of: {[x.value for x in Column.DiffAEData]}")
 
     fig, ax = plt.subplots(figsize=figsize)
     sns.scatterplot(
@@ -560,7 +520,7 @@ def plot_per_position_average_over_time(
         Tuple specifying the range of polar angle values in the dataframe.
     """
     # confirm required columns are in dataframe
-    required_columns = [ColumnName.POSITION, ColumnName.TIMEPOINT] + column_names
+    required_columns = [Column.POSITION, Column.TIMEPOINT] + column_names
     check_required_columns_in_dataframe(df, required_columns)
 
     # get column labels if not provided
@@ -573,16 +533,16 @@ def plot_per_position_average_over_time(
 
     for i, column_name in enumerate(column_names):
         ax: plt.Axes = axs[i]
-        for pos, df_pos in df.groupby(ColumnName.POSITION):
+        for pos, df_pos in df.groupby(Column.POSITION):
             # array of unique timepoints
-            timepoints = df_pos[ColumnName.TIMEPOINT].sort_values().unique()
+            timepoints = df_pos[Column.TIMEPOINT].sort_values().unique()
 
             # if dealing with polar angle column, need to use
             # angle unwrapping to compute mean correctly
-            if column_name == ColumnName.POLAR_ANGLE.value:
+            if column_name == Column.DiffAEData.POLAR_ANGLE.value:
                 unwrap_period = polar_angle_range[1] - polar_angle_range[0]
                 mean_over_crops = np.zeros_like(timepoints, dtype=float)
-                for frame, df_frame in df_pos.groupby(ColumnName.TIMEPOINT):
+                for frame, df_frame in df_pos.groupby(Column.TIMEPOINT):
                     # unwrap angles for this frame and position
                     unwrapped_angles = unwrap_nonsequential_array(
                         df_frame[column_name].to_numpy(), unwrap_period
@@ -595,9 +555,7 @@ def plot_per_position_average_over_time(
                     frame_index = np.where(timepoints == frame)[0][0]
                     mean_over_crops[frame_index] = rewrapped_mean
             else:  # else, calculate mean directly
-                mean_over_crops = (
-                    df_pos.groupby(ColumnName.TIMEPOINT)[column_name].mean().to_numpy()
-                )
+                mean_over_crops = df_pos.groupby(Column.TIMEPOINT)[column_name].mean().to_numpy()
 
             ax.scatter(timepoints, mean_over_crops, label=pos, s=2, marker="o")
 
@@ -605,7 +563,7 @@ def plot_per_position_average_over_time(
             ax.set_xlabel("frame number")
         column_label = get_label_for_column(column_name, capitalize=False)
         ax.set_ylabel(f"average of {column_label} over crops")
-        ax.legend(title=f"{ColumnName.POSITION.value}:")
+        ax.legend(title=f"{Column.POSITION}:")
 
     return fig, axs
 
@@ -872,18 +830,24 @@ def get_label_for_column(
     # check for other specific patterns, overriding default label
     label = None
 
-    if column_name.startswith(f"{ColumnName.LATENT_FEATURE_PREFIX}"):
+    if column_name.startswith(f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}"):
         feature_number = column_name.split("_")[1]
         label = f"feature {feature_number}"
-    elif column_name.startswith(f"{ColumnName.PCA_FEATURE_PREFIX}"):
+    elif column_name.startswith(f"{Column.DiffAEData.PCA_FEATURE_PREFIX}"):
         pc_number = column_name.split("_")[1]
         label = f"PC {pc_number}"
-    elif column_name == ColumnName.POLAR_RADIUS:
+    elif column_name == Column.DiffAEData.POLAR_RADIUS:
         label = "polar $r$"
-    elif column_name == ColumnName.POLAR_ANGLE:
+    elif column_name == Column.DiffAEData.POLAR_ANGLE:
         label = "polar $\\theta$"
-    elif column_name == ColumnName.PC3_FLIPPED:
+    elif column_name == Column.DiffAEData.PC3_FLIPPED:
         label = "$\\rho$"
+    elif column_name == Column.OpticalFlow.UNIT_VECTOR_MEAN:
+        label = "Optical Flow Mean Unit Vector"
+    elif column_name == Column.OpticalFlow.SPEED_MEAN:
+        label = "Optical Flow Mean Speed"
+    elif column_name == Column.OpticalFlow.ANGLE_MEAN:
+        label = "Optical Flow Mean Angle"
 
     # check mapping dict for label override
     if mapping_dict is None:

@@ -18,6 +18,8 @@ from endo_pipeline.configs import (
     load_dataset_config,
 )
 from endo_pipeline.io import load_dataframe
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.polar_coords import pcs_to_polar_r, pcs_to_polar_theta
 from endo_pipeline.manifests import (
     DataframeManifest,
     get_dataframe_location_for_dataset,
@@ -25,43 +27,20 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     load_model_manifest,
 )
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAME_GROUPS,
-    ColumnName,
+    NUM_LATENT_FEATURES,
 )
-from endo_pipeline.settings.dynamics_workflows import (
-    METADATA_COLUMNS_TO_KEEP,
-    PERIOD_THETA_RESCALED,
-    RESCALE_THETA,
-)
+from endo_pipeline.settings.dynamics_workflows import METADATA_COLUMNS_TO_KEEP, RESCALE_THETA
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 )
 
 logger = logging.getLogger(__name__)
-
-
-def check_required_columns_in_dataframe(
-    df: pd.DataFrame,
-    required_columns: list[str],
-) -> None:
-    """
-    Check that required columns are present in a given dataframe.
-
-    Parameters
-    ----------
-    df
-        DataFrame to check.
-    required_columns
-        List of required column names to check for.
-    """
-
-    for col in required_columns:
-        if col not in df.columns:
-            logger.error("DataFrame must contain column [ %s ]", col)
-            raise ValueError(f"DataFrame must contain column [ {col} ]")
 
 
 def get_latent_feature_column_names(num_latent_dims: int) -> list[str]:
@@ -78,7 +57,7 @@ def get_latent_feature_column_names(num_latent_dims: int) -> list[str]:
     :
         List of latent feature column names.
     """
-    feat_cols = [f"{ColumnName.LATENT_FEATURE_PREFIX}{i}" for i in range(num_latent_dims)]
+    feat_cols = [f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{i}" for i in range(num_latent_dims)]
     return feat_cols
 
 
@@ -99,7 +78,7 @@ def get_pc_column_names(num_pcs: str | int) -> list[str]:
         List of PCA feature column names.
     """
     if isinstance(num_pcs, int):
-        pc_cols = [f"{ColumnName.PCA_FEATURE_PREFIX}{i+1}" for i in range(int(num_pcs))]
+        pc_cols = [f"{Column.DiffAEData.PCA_FEATURE_PREFIX}{i+1}" for i in range(int(num_pcs))]
     elif isinstance(num_pcs, str):
         pc_cols = DIFFAE_PC_COLUMN_NAME_GROUPS.get(num_pcs, [])
         if not pc_cols:
@@ -117,7 +96,7 @@ def get_latent_feature_column_names_from_dataframe(dataframe: pd.DataFrame) -> l
     Get list of latent feature column names for given number of latent dimensions.
 
     Matches columns that start with the latent feature column name prefix
-    as defined in ColumnName.LATENT_FEATURE_PREFIX.
+    as defined in ColumnName.DiffAEData.LATENT_FEATURE_PREFIX.
 
     Parameters
     ----------
@@ -131,161 +110,70 @@ def get_latent_feature_column_names_from_dataframe(dataframe: pd.DataFrame) -> l
     """
     # regular expression to match latent feature columns
     feat_cols_match = [
-        re.match(f"{ColumnName.LATENT_FEATURE_PREFIX}[0-9]+$", col) for col in dataframe.columns
+        re.match(f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}[0-9]+$", col)
+        for col in dataframe.columns
     ]
     feat_cols = [col.group() for col in feat_cols_match if col is not None]
     return feat_cols
 
 
-def pcs_to_polar_r(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.ndarray:
+def filter_dataframe_by_track_length(
+    dataframe: pd.DataFrame, track_length_column: str, minimum_track_length: int
+) -> pd.DataFrame:
     """
-    Convert Cartesian coordinates (pc1, pc2) to polar coordinate r.
+    Filter dataframe to only include tracks above a minimum track length.
 
-    The polar coordinate r is given by the formula:
-        r = sqrt(pc1^2 + pc2^2)
+    **Error handling**
+
+    If no tracks remain after filtering, a ValueError is raised with a message
+    indicating that no tracks with length >= minimum_track_length remain after
+    filtering, and suggesting to check the track length distribution and/or
+    adjust the minimum_track_length threshold.
 
     Parameters
     ----------
-    pc1_values
-        Values along the first principal component axis.
-    pc2_values
-        Values along the second principal component axis.
+    dataframe
+        DataFrame containing data of interest, which must include a column for
+        track length.
+    track_length_column
+        Name of the column containing track length values.
+    minimum_track_length
+        Minimum track length to filter tracks.
 
     Returns
     -------
-    :
-        Polar coordinate r values.
-    """
-    return np.sqrt(pc1_values**2 + pc2_values**2)
-
-
-def pcs_to_polar_theta(
-    pc1_values: np.ndarray,
-    pc2_values: np.ndarray,
-    rescale: bool = True,
-) -> np.ndarray:
-    """
-    Convert Cartesian coordinates (pc1, pc2) to polar coordinate theta.
-
-    The polar coordinate theta is given by the formula:
-        theta = arctan2(pc2, pc1)
-
-    Parameters
-    ----------
-    pc1_values
-        Values along the first principal component axis.
-    pc2_values
-        Values along the second principal component axis.
-    rescale
-        Whether to rescale the angle to be in the range [0, pi] instead of [-pi, pi].
-
-    Returns
-    -------
-    :
-        Polar coordinate theta values.
-    """
-    # angle in range [-pi, pi]
-    theta = np.arctan2(pc2_values, pc1_values)
-
-    if rescale:
-        # rescale angle to range [0, pi]
-        # by adding pi and dividing by 2
-        # (values now have period pi instead of 2pi)
-        theta = (theta + np.pi) / 2
-
-    return theta
-
-
-def polar_to_pcs(
-    theta_values: np.ndarray, r_values: np.ndarray, is_theta_rescaled: bool = RESCALE_THETA
-) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Convert polar coordinates (theta, r) back to Cartesian coordinates (pc1, pc2).
-
-    The conversion from polar to Cartesian coordinates is given by the formulas:
-        pc1 = r * cos(theta)
-        pc2 = r * sin(theta)
-
-    If the input theta values are rescaled to be in the range [0, pi], they will be
-    unrescaled back to the range [-pi, pi] before conversion.
-
-    Parameters
-    ----------
-    theta_values
-        Polar coordinate theta values.
-    r_values
-        Polar coordinate r values.
-    is_theta_rescaled
-        Whether the input theta values were rescaled to be in the range [0, pi].
+    pd.DataFrame
+        Filtered DataFrame containing only tracks with length >=
+        minimum_track_length.
     """
 
-    if is_theta_rescaled:
-        # unrescale theta back to range [-pi, pi]
-        theta_values = (theta_values * 2) - np.pi
-
-    pc1_values = r_values * np.cos(theta_values)
-    pc2_values = r_values * np.sin(theta_values)
-
-    return pc1_values, pc2_values
-
-
-def rewrap_polar_angle(unwrapped_angle: float, original_range: tuple[float, float]) -> float:
-    """
-    Rewrap unwrapped polar angle value to be within original range.
-
-    Unwrapped angles computed, e.g., using numpy.unwrap can extend beyond the original
-    periodic range of polar angle values. This function rewraps the unwrapped angle back
-    to be within the original range.
-
-    Example:
-        original_range = (0, pi)
-        unwrapped_angle = pi + 0.5
-        rewrapped_angle = 0.5
-
-    Parameters
-    ----------
-    unwrapped_angle
-        Unwrapped polar angle value.
-    original_range
-        Original range of polar angle values.
-    """
-    angle_period = original_range[1] - original_range[0]
-    rewrapped_angle = ((unwrapped_angle - original_range[0]) % angle_period) + original_range[0]
-    return rewrapped_angle
-
-
-def unwrap_nonsequential_array(
-    wrapped_array: np.ndarray,
-    period: float,
-    reference_angle: float | None = None,
-) -> np.ndarray:
-    """
-    Unwrap array of periodic values that may have non-sequential entries.
-
-    Unlike numpy.unwrap, which assumes sequential entries, this function handles
-    non-sequential entries by unwrapping each entry relative to a fixed reference point.
-    If no reference point is provided, the function uses the first entry in the array
-    as the (arbitrary) reference point.
-
-    When applying numpy.unwrap to periodic data with non-sequential entries, the
-    resulting unwrapped values may still have large jumps between entries that are not
-    next to each other in the original sequence.
-
-    Parameters
-    ----------
-    wrapped_array
-        Array of periodic values to unwrap.
-    period
-        Period of the values.
-    """
-    reference_angle_ = wrapped_array[0] if reference_angle is None else reference_angle
-    unwrapped_array = np.array(
-        [
-            np.unwrap(np.array([reference_angle_, wrapped_angle]), period=period)[-1]
-            for wrapped_angle in wrapped_array
-        ]
+    logger.debug(
+        "Filtering dataframe to only include tracks with length >= [ %s ] timepoints.",
+        minimum_track_length,
     )
-    return unwrapped_array
+    logger.debug("Dataframe length before filtering: [ %s ] rows.", len(dataframe))
+    # check that required columns are present in dataframe
+    check_required_columns_in_dataframe(dataframe, [track_length_column])
+    dataframe_filtered = dataframe[dataframe[track_length_column] >= minimum_track_length]
+
+    # if empty dataframe after filtering, raise error
+    if dataframe_filtered.empty:
+        logger.error(
+            "No tracks with length >= minimum_track_length [ %s ] after filtering. "
+            "Check track length distribution and/or adjust minimum_track_length.",
+            minimum_track_length,
+        )
+        raise ValueError(
+            f"No tracks with length >= minimum_track_length [ {minimum_track_length} ] after filtering. "
+            "Check track length distribution and/or adjust minimum_track_length."
+        )
+
+    # reset index of filtered dataframe
+    dataframe_filtered = dataframe_filtered.reset_index(drop=True)
+
+    logger.debug("Dataframe length after filtering: [ %s ] rows.", len(dataframe_filtered))
+
+    return dataframe_filtered
 
 
 def filter_dataframe_by_annotations(
@@ -317,14 +205,14 @@ def filter_dataframe_by_annotations(
     """
 
     # check that required columns are present in dataframe
-    required_columns = [ColumnName.DATASET, ColumnName.POSITION, ColumnName.TIMEPOINT]
+    required_columns = [Column.DATASET, Column.POSITION, Column.TIMEPOINT]
     check_required_columns_in_dataframe(dataframe, required_columns)
 
-    if dataframe[ColumnName.DATASET].nunique() != 1:
+    if dataframe[Column.DATASET].nunique() != 1:
         logger.error("Dataframe must be restricted to one dataset only.")
         raise ValueError("Dataframe must be restricted to one dataset only.")
 
-    if dataframe[ColumnName.DATASET].unique()[0] != dataset_config.name:
+    if dataframe[Column.DATASET].unique()[0] != dataset_config.name:
         logger.error("Dataset name in dataframe does not match dataset name in dataset config.")
         raise ValueError("Dataset name in dataframe does not match dataset name in dataset config.")
 
@@ -332,30 +220,30 @@ def filter_dataframe_by_annotations(
     only_include_positions = get_unannotated_positions(dataset_config, position_annotations)
     only_include_positions_str = [f"P{pos}" for pos in only_include_positions]
     only_include_frames = get_all_unannotated_timepoints(dataset_config, timepoint_annotations)
-    if dataframe[ColumnName.POSITION].nunique() != len(dataset_config.zarr_positions):
+    if dataframe[Column.POSITION].nunique() != len(dataset_config.zarr_positions):
         logger.warning("Expected dataframe to contain all positions in dataset, but it does not.")
 
     # filter dataframe to only include non-annotated positions
     # NOTE: temporary if-else until we update how we store position: replace 'P[int]' with int
     # this checks if all entries in the `.POSITION` column are strings that start with 'P'
     all_position_vals_start_with_P = (
-        dataframe[ColumnName.POSITION].transform(lambda pos: "P" in str(pos)).all()
+        dataframe[Column.POSITION].transform(lambda pos: "P" in str(pos)).all()
     )
     if all_position_vals_start_with_P:
         position_type = "str"
         dataframe_exclude_positions = dataframe[
-            dataframe[ColumnName.POSITION].isin(only_include_positions_str)
+            dataframe[Column.POSITION].isin(only_include_positions_str)
         ]
     # otherwise it is assumed that the position column can be cast to `int`
     # (and if it can't be cast to `int`, an error will be raised later)
     else:
         position_type = "int"
         dataframe_exclude_positions = dataframe[
-            dataframe[ColumnName.POSITION].isin(only_include_positions)
+            dataframe[Column.POSITION].isin(only_include_positions)
         ]
     # filter dataframe to only include non-annotated timepoints
     df_filtered_list = []
-    for position, df_position in dataframe_exclude_positions.groupby(ColumnName.POSITION):
+    for position, df_position in dataframe_exclude_positions.groupby(Column.POSITION):
         # NOTE: temporary if-else until we update how we store position: replace 'P[int]' with int
         if position_type == "str":
             position_as_int = int(cast(str, position)[1:])
@@ -363,7 +251,7 @@ def filter_dataframe_by_annotations(
             position_as_int = cast(int, position)
         include_frames_for_position = only_include_frames.get(position_as_int, [])
         df_position_filtered = df_position[
-            df_position[ColumnName.TIMEPOINT].isin(include_frames_for_position)
+            df_position[Column.TIMEPOINT].isin(include_frames_for_position)
         ]
         df_filtered_list.append(df_position_filtered)
     dataframe_filtered = pd.concat(df_filtered_list, ignore_index=True)
@@ -371,65 +259,56 @@ def filter_dataframe_by_annotations(
     return dataframe_filtered
 
 
-def fit_pca(
+def build_pca_input_dataframe(
     dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     dataframe_manifest_name: str | None = None,
-    filter_dataframe: bool = True,
+    filter_by_annotations: bool = True,
     include_cell_piling: bool = False,
-    num_pcs: int = 8,
-) -> PCA:
+) -> pd.DataFrame:
     """
-    Fit PCA model to fixed set of reference datasets, as defined in the given
-    dataset collection name.
+    Build input dataframe for fitting PCA model using given dataset collection.
 
     Parameters
     ----------
     dataset_collection_name
         Name of the dataset collection to load reference datasets from.
-        This is used to load the model manifests that contain the reference datasets.
     dataframe_manifest_name
         Name of the dataframe manifest to load the model features from.
-    filter_dataframe
+    filter_by_annotations
         Whether to remove annotated timepoints and positions from the dataframes before fitting PCA.
     include_cell_piling
-        True to include cell piling timepoints in the data used to fit PCA, False to exclude them.
-    num_pcs
-        Number of principal components to fit.
+        True to include cell piling timepoints, False otherwise.
 
     Returns
     -------
     :
-        Fit PCA object
+        Input dataframe for fitting PCA.
     """
+
     # Get dataframe manifest name if not provided based on default model manifest
     if dataframe_manifest_name is None:
         dataframe_manifest_name = get_feature_dataframe_manifest_name(
             load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
             DEFAULT_MODEL_RUN_NAME,
         )
+
     # Load dataframe manifest
     manifest = load_dataframe_manifest(dataframe_manifest_name)
 
-    # Get dataframe locations for manifest for all datasets in collection
+    # Get datasets in collection
     dataset_names = get_datasets_in_collection(dataset_collection_name)
-    locations = [
-        get_dataframe_location_for_dataset(manifest, dataset_name) for dataset_name in dataset_names
-    ]
     logger.info("Datasets being used to fit PCA: [ %s ]", ", ".join(dataset_names))
 
-    # Load all dataframes, filter out annotated timepoints, and concatenate.
-    # Filtering does or doesn't remove cell piling timepoints based on
-    # the input include_cell_piling.
+    # Load and filter out annotated timepoints (if requested) for each dataset
     dataframe_list = []
-    for location, dataset_name in zip(locations, dataset_names, strict=True):
+    for dataset_name in dataset_names:
+        location = get_dataframe_location_for_dataset(manifest, dataset_name)
         dataframe = load_dataframe(location)
-        if filter_dataframe:
+        if filter_by_annotations:
             annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
             if include_cell_piling:
                 annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
-            timepoint_annotations = get_subset_of_timepoint_annotations(
-                annotations_to_ignore=annotations_to_ignore
-            )
+            timepoint_annotations = get_subset_of_timepoint_annotations(annotations_to_ignore)
             dataframe_filtered = filter_dataframe_by_annotations(
                 dataframe,
                 load_dataset_config(dataset_name),
@@ -438,29 +317,51 @@ def fit_pca(
         else:
             dataframe_filtered = dataframe
         dataframe_list.append(dataframe_filtered)
+
+    # Merge dataframes for all datasets and filter for feature columns ("feat_" prefix)
     data_ref = pd.concat(dataframe_list, ignore_index=True)
-
-    # fit PCA
-    pca = PCA(n_components=num_pcs, svd_solver="full")
-
-    # get the feature columns from the data,
-    # these are the columns that start with 'feat_'
     diffae_feature_cols = get_latent_feature_column_names_from_dataframe(data_ref)
-    pca.fit(data_ref[diffae_feature_cols].values)  # fit PCA
+    return data_ref[diffae_feature_cols]
 
-    # log info about explained variance ratio
-    logger.info(
-        "Explained variance ratios: %s",
-        np.round(pca.explained_variance_ratio_, 4).tolist(),
+
+def fit_pca(
+    dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    dataframe_manifest_name: str | None = None,
+    filter_by_annotations: bool = True,
+    include_cell_piling: bool = False,
+    num_pcs: int = NUM_LATENT_FEATURES,
+) -> PCA:
+    """
+    Fit PCA model using given datasets in given dataset collection.
+
+    Parameters
+    ----------
+    dataset_collection_name
+        Name of the dataset collection to load reference datasets from.
+    dataframe_manifest_name
+        Name of the dataframe manifest to load the model features from.
+    filter_by_annotations
+        True to remove annotated timepoints and positions, False otherwise.
+    include_cell_piling
+        True to include cell piling timepoints, False otherwise.
+    num_pcs
+        Number of principal components to fit.
+
+    Returns
+    -------
+    :
+        Fit PCA object
+    """
+
+    # Build PCA input dataframe
+    pca_input_dataframe = build_pca_input_dataframe(
+        dataset_collection_name, dataframe_manifest_name, filter_by_annotations, include_cell_piling
     )
 
-    cumul_exp_var = np.cumsum(pca.explained_variance_ratio_)
-    logger.info(
-        "Cumulative explained variance: %s",
-        np.round(cumul_exp_var, 4).tolist(),
-    )
+    # Fit PCA
+    pca = PCA(n_components=num_pcs, svd_solver="full")
+    pca.fit(pca_input_dataframe.values)
 
-    # return the fit PCA pipeline
     return pca
 
 
@@ -552,7 +453,9 @@ def get_pca_loadings_as_df(
     loading_matrix_df = pd.DataFrame(loading_matrix, columns=pc_col_names, index=feat_col_names)
     if df_format == "long":
         loading_matrix_df = loading_matrix_df.reset_index().melt(
-            id_vars="index", var_name=ColumnName.PCA_FEATURE_PREFIX, value_name="loading_value"
+            id_vars="index",
+            var_name=Column.DiffAEData.PCA_FEATURE_PREFIX,
+            value_name="loading_value",
         )
         loading_matrix_df = loading_matrix_df.rename(columns={"index": "feature"})
     elif df_format == "wide":
@@ -576,17 +479,18 @@ def project_features_to_pcs(
 
     **Variable transformation**
 
-    The feature data in the input DataFrame is projected onto the principal component
-    axes defined by the input PCA model. New columns are added to the DataFrame for
-    each principal component (e.g., pc_1, pc_2, pc_3, ...).
+    The feature data in the input DataFrame is projected onto the principal
+    component axes defined by the input PCA model. New columns are added to the
+    DataFrame for each principal component (e.g., pc_1, pc_2, pc_3, ...).
 
-    Optionally, based on the input ``compute_polar`` flag, polar coordinates (r, theta)
-    are computed from the first two principal components and added as new columns.
+    Optionally, based on the input ``compute_polar`` flag, polar coordinates (r,
+    theta) are computed from the first two principal components and added as new
+    columns.
 
-    Also optionally, based on the input ``flip_pc3_sign`` flag, an additional column (rho)
-    that is equivalent to pc_3 but with the sign flipped is added. This sign flip is done
-    for consistency such that higher rho values correspond to higher cell density
-    in the original image crops.
+    Also optionally, based on the input ``flip_pc3_sign`` flag, an additional
+    column (rho) that is equivalent to pc_3 but with the sign flipped is added.
+    This sign flip is done for consistency such that higher rho values
+    correspond to higher cell density in the original image crops.
 
     Parameters
     ----------
@@ -602,7 +506,8 @@ def project_features_to_pcs(
     rescale_theta
         Whether to rescale the polar angle theta to be in the range [0, pi].
     flip_pc3_sign
-        Whether to add an addtional column with the sign of PC3 flipped for consistency.
+        True to add an addtional column with the sign of PC3 flipped for
+        consistency, False otherwise.
 
     Returns
     -------
@@ -631,16 +536,17 @@ def project_features_to_pcs(
             )
             raise ValueError("At least 2 PCs are required to compute polar coordinates.")
         else:
-            df_[ColumnName.POLAR_RADIUS] = pcs_to_polar_r(
-                df_[pc_cols[0]].values, df_[pc_cols[1]].values
-            )
-            df_[ColumnName.POLAR_ANGLE] = pcs_to_polar_theta(
-                df_[pc_cols[0]].values, df_[pc_cols[1]].values, rescale=rescale_theta
-            )
-
+            polar_radius_and_polar_angle_cols = {
+                Column.DiffAEData.POLAR_RADIUS: pcs_to_polar_r(df_[pc_cols[0]], df_[pc_cols[1]]),
+                Column.DiffAEData.POLAR_ANGLE: pcs_to_polar_theta(
+                    df_[pc_cols[0]], df_[pc_cols[1]], rescale=rescale_theta
+                ),
+            }
+            df_ = df_.assign(**polar_radius_and_polar_angle_cols)
     if flip_pc3_sign:
         if num_pcs >= 3:
-            df_[ColumnName.PC3_FLIPPED] = -df_[pc_cols[2]]
+            pc3_flipped_col = {Column.DiffAEData.PC3_FLIPPED: -df_[pc_cols[2]]}
+            df_ = df_.assign(**pc3_flipped_col)
         else:
             logger.error("Cannot add column for -(PC3) because number of PCs [ %s ] < 3", num_pcs)
             raise ValueError("At least 3 PCs are required to add column for -(PC3).")
@@ -653,29 +559,43 @@ def get_dataframe_for_dynamics_workflows(
     manifest: DataframeManifest,
     columns_to_keep: list[str] | None = None,
     pca: PCA | None = None,
-    filter_dataframe: bool = True,
+    filter_by_annotations: bool = True,
     include_cell_piling: bool = True,
     include_not_steady_state: bool = True,
     crop_pattern: Literal["grid", "tracked"] = "grid",
     compute_polar: bool = True,
     rescale_theta: bool = True,
+    flip_pc3_sign: bool = True,
+    minimum_track_length: int | None = None,
+    segmentation_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 ) -> pd.DataFrame:
     """
     Load DiffAE dataframe data projected onto given PC axes for downstream
     analysis in the stochastic dynamics workflow. Adds crop index column to
     DataFrame, and projects feature data onto PC axes.
 
-    **Column selection and filtering**
+    **Column selection and memory optimization**
 
-    The input DataFrame is filtered to keep only necessary columns to save
-    memory. At a minimum, the metadata columns defined in
-    METADATA_COLUMNS_TO_KEEP and the latent feature columns needed for PCA
+    The input DataFrame is filtered to keep only necessary columns when
+    initially loaded to save memory. At a minimum, the metadata columns defined
+    in METADATA_COLUMNS_TO_KEEP and the latent feature columns needed for PCA
     projection are kept. Additional columns can be specified to keep via the
     input ``columns_to_keep``.
 
     In the case that the input ``pca`` is not None, the feature data is
     projected onto the PC axes defined by the PCA model, and the original latent
     feature columns are dropped to save memory.
+
+    **Dataframe filtering**
+
+    The input ``filter_by_annotations`` flag determines whether to filter out
+    annotated timepoints and positions from the dataframe. If filtering is
+    applied, the input flags ``include_cell_piling`` and
+    ``include_not_steady_state`` determine whether to include or exclude
+    timepoints annotated as "cell piling" and "not steady state", respectively.
+
+    If ``minimum_track_length`` is specified and the crop pattern is 'tracked',
+    tracks below the minimum track length will be filtered out.
 
     Parameters
     ----------
@@ -687,7 +607,7 @@ def get_dataframe_for_dynamics_workflows(
         List of additional column names to keep in the output DataFrame.
     pca
         PCA model to fit to feature data. If None, do not project feature data.
-    filter_dataframe
+    filter_by_annotations
         Whether to filter out annotated timepoints and positions from the
         dataframe.
     include_cell_piling
@@ -702,26 +622,35 @@ def get_dataframe_for_dynamics_workflows(
         Whether to compute polar coordinates (r, theta) from the first two PCs.
     rescale_theta
         Whether to rescale the polar angle theta to be in the range [0, pi].
+    flip_pc3_sign
+        True to add an additional column with the sign of PC3 flipped for
+        consistency, False otherwise.
+    minimum_track_length
+        If crop_pattern is 'tracked', minimum track length (in number of
+        timepoints) of tracks to keep in the dataframe. If None, do not filter
+        by track length.
 
     Returns
     -------
     :
-        Dataframe of feature data.
+        DataFrame with specified feature columns (PC projected or not),
+        specified metadata columns, and crop index column for downstream
+        analysis in various "dynamics workflows".
     """
 
     location = get_dataframe_location_for_dataset(manifest, dataset_name)
     df = load_dataframe(location, delay=True)
     feat_cols = get_latent_feature_column_names_from_dataframe(df)
 
-    # start with default metadatac columns to keep
-    columns_to_keep_ = list(METADATA_COLUMNS_TO_KEEP)
+    # start with default metadata columns to keep
+    # temporarily drop the "crop_index" column while workflows that use this
+    # method are being refactored
+    columns_to_keep_ = [
+        column for column in METADATA_COLUMNS_TO_KEEP[crop_pattern] if column != "crop_index"
+    ]
     if columns_to_keep is not None:
         columns_to_keep_.extend(columns_to_keep)  # add any additional specified columns to keep
     columns_to_keep_.extend(feat_cols)  # also keep feature columns for PCA projection
-    if crop_pattern == "tracked":
-        columns_to_keep_.extend(
-            [ColumnName.TRACK_ID]
-        )  # also keep track ID column for tracked crops
     columns_to_keep_ = list(set(columns_to_keep_))  # remove duplicates, if any
 
     # keep only necessary columns to save memory
@@ -729,7 +658,7 @@ def get_dataframe_for_dynamics_workflows(
 
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
-    if filter_dataframe:
+    if filter_by_annotations:
         annotations_to_ignore = []
         if include_cell_piling:
             annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
@@ -746,24 +675,69 @@ def get_dataframe_for_dynamics_workflows(
     else:
         df_filtered = df_
 
-    df_with_crop = add_crop_index(df_filtered, crop_pattern)
+    if crop_pattern == "tracked":
+        # some additional filtering with the "is_included" column from the
+        # segmentation features dataframe is needed to remove some of the
+        # incorrect segmentations that are present in the tracked crops data
+        seg_feat_manifest = load_dataframe_manifest(segmentation_feature_manifest_name)
+        seg_feat_loc = get_dataframe_location_for_dataset(seg_feat_manifest, dataset_name)
+        df_segmentations_delayed = load_dataframe(seg_feat_loc, delay=True)
+        cols_to_compute = [
+            Column.DATASET,
+            Column.POSITION,
+            Column.TIMEPOINT,
+            Column.TRACK_ID,
+            Column.TRACK_LENGTH,
+            Column.SegDataFilters.IS_INCLUDED,
+        ]
+        df_segmentations = df_segmentations_delayed[cols_to_compute].compute()
+        # NOTE the 2 lines below are temporary until we update how we store position
+        # and change the column names to be consistent across dataframes
+        df_segmentations[Column.POSITION] = df_segmentations[Column.POSITION].transform(
+            lambda pos: f"P{pos}"
+        )
+        original_df_length = len(df_filtered)
+        df_filtered = df_filtered.merge(
+            df_segmentations,
+            on=[
+                Column.DATASET,
+                Column.POSITION,
+                Column.TIMEPOINT,
+                Column.TRACK_ID,
+            ],
+            how="left",
+            validate="one_to_one",
+        )
+        if original_df_length != len(df_filtered):
+            raise ValueError(
+                f"Length of df_diffae_dynamics changed after merging with segmentation features dataframe. "
+                f"Original length: {original_df_length}, new length: {len(df_filtered)}. "
+                f"Check the merge keys and the dataframes to ensure that the merge is correct."
+            )
+        df_filtered = df_filtered[df_filtered[Column.SegDataFilters.IS_INCLUDED]]
+
+    if minimum_track_length is not None:
+        df_filtered = filter_dataframe_by_track_length(
+            df_filtered, Column.TRACK_LENGTH, minimum_track_length
+        )
 
     # add dataset duration description column
     dataset_config = load_dataset_config(dataset_name)
-    df_with_crop["duration"] = dataset_config.duration
+    df_filtered[Column.DURATION] = dataset_config.duration
 
     if pca is None:
         # do not project feature data onto PCA axes
-        return df_with_crop
+        return df_filtered
 
     else:
         # project feature data onto PC axes
         df_with_pcs = project_features_to_pcs(
-            df_with_crop,
+            df_filtered,
             pca,
             feat_cols=feat_cols,
             compute_polar=compute_polar,
             rescale_theta=rescale_theta,
+            flip_pc3_sign=flip_pc3_sign,
         )
         df_drop_original_feats = df_with_pcs.drop(
             columns=feat_cols
@@ -867,42 +841,6 @@ def add_description_column(
     return df
 
 
-def add_crop_index(
-    df: pd.DataFrame,
-    crop_pattern: Literal["grid", "tracked"] = "grid",
-) -> pd.DataFrame:
-    """
-    Add crop index column to DataFrame df. (Crops are currently identified by
-        their starting position in x and y.).
-
-    Inputs:
-    - df: pd.DataFrame, DataFrame of feature data with metadata
-        columns for start_x, start_y, and FOV_ID
-        - IMPORTANT: DataFrame must be restricted to one dataset only,
-            as identified by the dataset_name column
-
-    Outputs:
-    - df: pd.DataFrame, DataFrame of feature data for one
-        dataset with added crop index column
-    """
-    if crop_pattern not in ["grid", "tracked"]:
-        logger.error("Crop pattern must be 'tracked' or 'grid', got [ %s ]", crop_pattern)
-        raise ValueError("Input crop_pattern must be 'grid' or 'tracked'")
-
-    if crop_pattern == "tracked" and ColumnName.TRACK_ID in df.columns:
-        required_columns = [ColumnName.POSITION, ColumnName.TRACK_ID]
-    elif crop_pattern == "grid":
-        required_columns = [ColumnName.POSITION, ColumnName.START_X, ColumnName.START_Y]
-
-    check_required_columns_in_dataframe(df, required_columns)
-
-    # group by the required columns and assign a unique integer (the crop_index)
-    # to each group based on the index of that group
-    df[ColumnName.CROP_INDEX] = df.groupby(required_columns, as_index=False).ngroup().astype(int)
-
-    return df
-
-
 def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
     """
     Convert DataFrame of features corresponding to one dataset to array
@@ -923,14 +861,17 @@ def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
         - shape is num_crops x num_timepoints x num_features
     """
     # check that required columns are present in dataframe
-    required_columns = [ColumnName.CROP_INDEX, ColumnName.TIMEPOINT, *column_names]
+    required_columns = [Column.CROP_INDEX, Column.TIMEPOINT, *column_names]
     check_required_columns_in_dataframe(df, required_columns)
 
-    # get array of num crops x valid timepoints x num PCs, padding with NaNs where timepoints are missing
+    # get array of num crops x valid timepoints x num PCs, padding with NaNs
+    # where timepoints are missing
+    full_timepoint_range = (df[Column.TIMEPOINT].min(), df[Column.TIMEPOINT].max())
+
     feats = []
-    for _, data_crop in df.groupby(ColumnName.CROP_INDEX):
-        data_crop = data_crop.sort_values(by=ColumnName.TIMEPOINT)
-        data_crop_filled = fill_missing_timepoints(data_crop)
+    for _, data_crop in df.groupby(Column.CROP_INDEX):
+        data_crop = data_crop.sort_values(by=Column.TIMEPOINT)
+        data_crop_filled = fill_missing_timepoints(data_crop, full_timepoint_range)
         feats.append(data_crop_filled[column_names].values)
 
     return np.array(feats)
@@ -960,7 +901,7 @@ def split_dataset_by_flow(
         List of shear stress values for each flow condition.
     """
     # check that required columns are present
-    check_required_columns_in_dataframe(df_proj, [ColumnName.TIMEPOINT])
+    check_required_columns_in_dataframe(df_proj, [Column.TIMEPOINT])
 
     # get flow condition information from dataset config
     flow_conditions = dataset_config.flow_conditions
@@ -981,8 +922,8 @@ def split_dataset_by_flow(
         logger.debug("Shear stress [ %s ] dyn/cm^2 after frame [ %s ]", second_shear, change_frame)
         # separate data into two dataframes based on
         # frame number where flow condition changes
-        data_flow1 = df_proj[df_proj[ColumnName.TIMEPOINT] < change_frame].copy()
-        data_flow2 = df_proj[df_proj[ColumnName.TIMEPOINT] >= change_frame].copy()
+        data_flow1 = df_proj[df_proj[Column.TIMEPOINT] < change_frame].copy()
+        data_flow2 = df_proj[df_proj[Column.TIMEPOINT] >= change_frame].copy()
         # return list of dataframes for each flow condition
         data_all = [data_flow1, data_flow2]
     # else, there is only one flow condition
@@ -995,97 +936,10 @@ def split_dataset_by_flow(
     return data_all, shear_list
 
 
-def get_traj_and_diff(
-    df: pd.DataFrame, column_names: list, polar_angle_period: float = PERIOD_THETA_RESCALED
-) -> tuple[list[np.ndarray], list[np.ndarray]]:
-    """
-    Get trajectories and single-timepoint displacement vectors for each crop in feature space.
-
-    **Input dataframe**
-
-    The input dataframe should have columns for:
-    - frame_number: timepoint of the crop
-    - crop_index: unique index for each crop
-    - columns for each feature (e.g., pc_0, pc_1, pc_2, ...) matching input ``column_names``
-
-    **Polar angle handling**
-
-    If one of the input ``column_names`` is 'polar_theta', the function will compute
-    circular differences for the polar angle feature using the given ``polar_angle_period``.
-    Specifically, it will unwrap the polar angle trajectory according to the given period
-    for each crop before computing differences.
-
-    Parameters
-    ----------
-    df
-        DataFrame with columns for each feature.
-    column_names
-        List of column names corresponding to the features of interest in the DataFrame.
-    polar_angle_period
-        Period of the polar angle feature, used to compute circular differences for angular data.
-
-    Returns
-    -------
-    :
-        List of individual crop trajectories in feature space.
-    :
-        List of displacement vectors along each trajectory in feature space.
-    """
-    # check that required columns are present
-    required_columns = [ColumnName.TIMEPOINT, ColumnName.CROP_INDEX, *column_names]
-    check_required_columns_in_dataframe(df, required_columns)
-
-    # initialize name for difference columns
-    diff_column_names = [f"{col}{ColumnName.DIFFERENCE_SUFFIX}" for col in column_names]
-    timepoint_diff_column = f"{ColumnName.TIMEPOINT}{ColumnName.DIFFERENCE_SUFFIX}"
-
-    # initialize lists for storing outputs
-    traj_list = []
-    d_traj_list = []
-
-    # loop over each crop in the dataset
-    for _, df_crop in df.groupby(ColumnName.CROP_INDEX):
-        # get data for each crop, sorted by time
-        df_crop_ = df_crop.sort_values(by=ColumnName.TIMEPOINT)
-
-        # add column giving difference in timepoint between consecutive dataframe rows
-        # convert NaN to 0 -- occurs at end of trajectory
-        df_crop_[timepoint_diff_column] = df_crop_[ColumnName.TIMEPOINT].diff().shift(-1).fillna(0)
-
-        # add columns giving difference in feature values between consecutive dataframe rows
-        df_crop_[diff_column_names] = df_crop_[column_names].diff().shift(-1)
-
-        # if one of the column names is `polar_theta`, need to replace with the
-        # circular difference for angular data instead of simple difference
-        if ColumnName.POLAR_ANGLE.value in column_names:
-            angle_diff_column = f"{ColumnName.POLAR_ANGLE}{ColumnName.DIFFERENCE_SUFFIX}"
-            unwrapped_angle_traj = np.unwrap(
-                df_crop_[ColumnName.POLAR_ANGLE].values, period=polar_angle_period
-            )
-            angle_diffs = np.diff(unwrapped_angle_traj)
-            df_crop_[angle_diff_column] = np.concatenate(
-                (
-                    angle_diffs,
-                    np.array([np.nan]),
-                )  # no valid difference at end of trajectory, will be dropped later
-            )
-
-        # trajectory values to keep -- only keep steps where time difference is 1 frame
-        # and also the last point in the trajectory (which has time difference 0)
-        traj_mask = df_crop_[timepoint_diff_column] <= 1
-
-        # for the gradient, only keep steps where time difference is exactly 1 frame
-        # i.e., no valid difference at the end of the trajectory (only forward differences)
-        gradient_mask = df_crop_[timepoint_diff_column] == 1
-
-        # append trajectory and displacement data to lists
-        traj_list.append(df_crop_[traj_mask][column_names].values)
-        d_traj_list.append(df_crop_[gradient_mask][diff_column_names].values)
-
-    return traj_list, d_traj_list
-
-
-def fill_missing_timepoints(data_crop: pd.DataFrame) -> pd.DataFrame:
+def fill_missing_timepoints(
+    data_crop: pd.DataFrame,
+    full_timepoint_range: tuple[float, float],
+) -> pd.DataFrame:
     """
     Fill missing timepoints in dataframe for a single crop using NaN padding.
     Note: this function resets the index of the input crop-based dataframe.
@@ -1094,18 +948,21 @@ def fill_missing_timepoints(data_crop: pd.DataFrame) -> pd.DataFrame:
     ----------
     data_crop
         DataFrame for a single crop.
+    full_timepoint_range
+        Tuple specifying the full range of timepoints (start, end) for the dataset.
 
     Returns
     -------
-    data_crop_filled
+    :
         DataFrame with missing timepoints filled with NaNs.
     """
 
-    # get full range of timepoints for this crop
-    full_timepoint_range = np.arange(0, data_crop["duration"].iloc[0])
+    # use full timepoint range for the dataset to ensure that all timepoints are
+    # included
+    all_timepoints = np.arange(full_timepoint_range[0], full_timepoint_range[1] + 1)
 
     # reindex dataframe to include all timepoints in full range
-    data_crop_filled = data_crop.set_index(ColumnName.TIMEPOINT).reindex(full_timepoint_range)
+    data_crop_filled = data_crop.set_index(Column.TIMEPOINT).reindex(all_timepoints)
 
     # reset index to restore timepoint column
     data_crop_filled = data_crop_filled.reset_index()

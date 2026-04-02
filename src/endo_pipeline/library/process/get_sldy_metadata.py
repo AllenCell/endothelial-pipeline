@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Generator
 from pathlib import Path
 from typing import Any, Literal
@@ -9,6 +10,8 @@ from tqdm import tqdm
 
 from endo_pipeline.configs import get_available_dataset_names, load_dataset_config
 from endo_pipeline.settings.image_data import AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
+
+logger = logging.getLogger(__name__)
 
 
 def get_nested_keys(
@@ -423,7 +426,7 @@ def sldy_metadata_to_df(
     return metadata_df
 
 
-def all_sldy_metadata_to_tsv(save_dir: str | Path | None = None, verbose: bool = True) -> None:
+def all_sldy_metadata_to_tsv(save_dir: str | Path | None = None) -> None:
     """
     This function will save the metadata for all of our .sldy files currently
     listed in the repos config_data.yaml file as a single tsv file. If no
@@ -438,9 +441,9 @@ def all_sldy_metadata_to_tsv(save_dir: str | Path | None = None, verbose: bool =
 
     # Get the name of all the datasets and then filter out datasets
     # that aren't from the 3i microscope
-    print("Available datasets:")
+    logger.debug("Available datasets:")
     dataset_name_list = get_available_dataset_names()
-    print("\n")
+    logger.debug("\n")
     datasets_3i = [
         name for name in dataset_name_list if load_dataset_config(name).microscope == "3i"
     ]
@@ -453,7 +456,7 @@ def all_sldy_metadata_to_tsv(save_dir: str | Path | None = None, verbose: bool =
     # Get the metadata for each dataset and put it in a list
     df_list = []
     for dataset_name in tqdm(datasets_3i):
-        print(f"Working on dataset: {dataset_name}") if verbose else None
+        logger.info(f"Working on dataset: {dataset_name}")
         sldy_filepath = Path(load_dataset_config(dataset_name).original_path)
         df_list.append(sldy_metadata_to_df(sldy_filepath))
 
@@ -485,9 +488,12 @@ def get_test_of_metadata() -> tuple[dict, list]:
 
 
 def get_example_metadata() -> Any:
-    image_path = Path(
-        "//allen/aics/microscopy/Endo Timelapses/20241120/20241120_20X_timelapse_SLDY.dir"
-    )
+    for dataset_name in get_available_dataset_names():
+        dataset_config = load_dataset_config(dataset_name)
+        if dataset_config.microscope == "3i":
+            logger.info(f"Using dataset {dataset_name} as an example.")
+            break
+    image_path = dataset_config.original_path
     metadata = get_sldy_metadata(image_path)
     return metadata
 

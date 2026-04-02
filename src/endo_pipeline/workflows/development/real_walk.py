@@ -6,8 +6,6 @@ from endo_pipeline.settings import (
     RANDOM_SEED,
 )
 
-TAGS = ["pc_interpretation", "diffae_image_generation"]
-
 
 def main(
     datasets: Datasets | None = None,
@@ -24,6 +22,8 @@ def main(
     """
     Generate a real walk of cropped images within a specified range of PC values. The crops are
     selected such that one principal component axis varies while the others remain near zero.
+
+    #pc-interpretation #diffae-image-generation
 
     Note if you want to do the top 8:
     set pc_axis_list to [0, 1, 2, 3, 4, 5, 6, 7]
@@ -87,7 +87,8 @@ def main(
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES, ColumnName
+    from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
     from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
     from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH
@@ -123,7 +124,7 @@ def main(
         dataframe_manifest,
         pca,
         filter_to_valid=False,
-        pc_column_names=DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze],
+        column_names=DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze],
     )
     feat_cols = DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze]
     hist_array_lists, bin_edges, df_with_bins = get_histogram_by_component(
@@ -177,13 +178,13 @@ def main(
 
     for pc_axis, pc_val, df_sample in samples:
         logger.info(f"Processing sample for PC {pc_axis} value {pc_val}")
-        dataset = df_sample[ColumnName.DATASET].iloc[0]
+        dataset = df_sample[Column.DATASET].iloc[0]
         dataset = cast(str, dataset)  # Ensure dataset is a string
         dataset_config = load_dataset_config(dataset)
-        position = df_sample[ColumnName.POSITION].iloc[0]
+        position = df_sample[Column.POSITION].iloc[0]
         position = cast(str, position)  # Ensure position is a string
         position_integer = int(position[-1])  # Extract the position number from the string
-        timepoint = df_sample[ColumnName.TIMEPOINT].iloc[0]
+        timepoint = df_sample[Column.TIMEPOINT].iloc[0]
 
         img_loc = get_zarr_location_for_position(dataset_config, position_integer)
         img = load_image(img_loc, timepoints=[timepoint], level=1, squeeze=True)

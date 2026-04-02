@@ -1,6 +1,8 @@
 """Workflow default settings."""
 
-from typing import Literal
+from typing import Literal, TypeAlias
+
+from endo_pipeline.settings.column_names import ColumnName as Column
 
 DEFAULT_MODEL_MANIFEST_NAME: str = "diffae_baseline_exclude_cell_piling"
 """Default model manifest for loading models and model features."""
@@ -15,9 +17,35 @@ DEFAULT_SEG_FEATURE_MANIFEST_NAME: str = "live_merged_seg_features"
 """Default manifest name for merged CDH5 segmentation, CDH5 tracking and
 label-free nuclei segmentation features."""
 
+DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_UNFILTERED: str = (
+    "diffae_baseline_exclude_cell_piling_20251110_latent_512_tracked_pca"
+)
+"""Default manifest names for PCA-reduced DiffAE features for track-based crops before filtering."""
+
+DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_FILTERED: str = (
+    "diffae_baseline_exclude_cell_piling_20251110_latent_512_tracked_pca_filtered"
+)
+"""Default manifest names for PCA-reduced DiffAE features for track-based crops after filtering."""
+
+DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_UNFILTERED: str = (
+    "diffae_baseline_exclude_cell_piling_20251110_latent_512_grid_pca"
+)
+"""Default manifest names for PCA-reduced DiffAE features for grid-based crops before filtering."""
+
+DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED: str = (
+    "diffae_baseline_exclude_cell_piling_20251110_latent_512_grid_pca_filtered"
+)
+"""Default manifest names for PCA-reduced DiffAE features for grid-based crops after filtering."""
+
 DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME: str = "pc_diffae_tracked_seg_features"
 """Default manifest name for PCA-reduced DiffAE tracked-cell features merged with
 DiffAE tracked-cell features and CDH5 segmentation features."""
+
+DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED: str = (
+    "pc_diffae_tracked_seg_features_filtered"
+)
+"""Default manifest name for PCA-reduced DiffAE tracked-cell features merged with
+DiffAE tracked-cell features and CDH5 segmentation features after filtering."""
 
 FIXED_SEG_FEATURE_MANIFEST_NAME: str = "fixed_merged_seg_features"
 """Default manifest name for merged CDH5 segmentation, CDH5 tracking and
@@ -47,65 +75,193 @@ RANDOM_SEED: int = 47
 MODEL_QC_NOISE_LEVELS: tuple = (0.25, 0.5, 0.75)
 """Default noise levels to add to ground truth for the model QC workflow."""
 
-SEGMENTATION_FEATURE_COLUMNS = {
+METRIC_TEXT_BOX_PROPS = {"boxstyle": "round", "facecolor": "wheat", "alpha": 0.3}
+"""Matplotlib text-box properties for metric annotations in QC plots."""
+
+IMAGE_METRIC_DATASET_COLORS = {
+    "validation_positions": "#2C6FAC",  # Medium blue
+    "rep_2_positions": "#7ABBE0",  # Light blue
+}
+"""Color palette for image metric bar plots, keyed by dataset split name."""
+
+SegFeatureColumnDict: TypeAlias = dict[
+    str, list[Column.SegData] | list[str | Column.SegData] | list[Column.SegDataFilters]
+]
+
+SEGMENTATION_FEATURE_COLUMNS: SegFeatureColumnDict = {
     "default": [
-        "alignment_deg_rel_to_flow",
-        "orientation_deg",
-        "aspect_ratio",
-        "centroid_velocity_angle_deg",
-        "cell_fluorescence_mean (a.u.)",
-        "num_nuclei_in_crop",
-        "area (um**2)",
+        Column.SegData.ALIGNMENT_DEG,
+        Column.SegData.ORIENTATION_DEG,
+        Column.SegData.ASPECT_RATIO,
+        Column.SegData.CENTROID_VELOCITY_ANGLE_DEG,
+        Column.SegData.CELL_FLUOR_MEAN,
+        Column.SegData.EDGE_FLUOR_MEAN,
+        Column.SegData.NODE_FLUOR_MEAN,
+        Column.SegData.NUM_NUCLEI_IN_CROP,
+        Column.SegData.AREA_UM_SQ,
     ],
     "supp": [
-        "alignment_deg_rel_to_flow",
-        "orientation_deg",
-        "orientation",
-        "aspect_ratio",
-        "cell_nuc_orientation_deg_rel_to_migration",
-        "nuc_pos_rel_cell_angle_deg",
-        "centroid_velocity_angle_deg",
-        "cell_fluorescence_mean (a.u.)",
-        "num_nuclei_in_crop",
-        "area (um**2)",
+        Column.SegData.ALIGNMENT_DEG,
+        Column.SegData.ORIENTATION_DEG,
+        Column.SegData.ORIENTATION,
+        Column.SegData.ASPECT_RATIO,
+        Column.SegData.NEMATIC_ORDER,
+        Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
+        Column.SegData.NUCLEI_POSITION_ANGLE_DEG,
+        Column.SegData.CENTROID_VELOCITY_ANGLE_DEG,
+        Column.SegData.CELL_FLUOR_MEAN,
+        Column.SegData.EDGE_FLUOR_MEAN,
+        Column.SegData.NODE_FLUOR_MEAN,
+        Column.SegData.NUM_NUCLEI_IN_CROP,
+        Column.SegData.AREA_UM_SQ,
     ],
     "dynamics_calculation_prereq": [
-        "dataset_name",
-        "position",
-        "track_id",
-        "label",
-        "time_minutes",
-        "T",
-        "centroid_X",
-        "centroid_Y",
-        "nuc_pos_rel_cell_X",
-        "nuc_pos_rel_cell_Y",
-        "pixel_size_xy_in_um",
-        "time_resolution_minutes",
-        "alignment_deg_rel_to_flow",
-        "nuc_pos_rel_cell_angle_deg",
-        "cell_fluorescence_mean (a.u.)",
-        "num_nuclei_in_crop",
-        "all_labels_in_crop",
+        Column.DATASET,
+        Column.POSITION,
+        Column.TIMEPOINT,
+        Column.TRACK_ID,
+        Column.PIXEL_SIZE_XY_IN_UM,
+        Column.TIME_RESOLUTION_MINUTES,
+        Column.SegData.LABEL,
+        Column.SegData.TIME_HRS,
+        Column.SegData.TIME_MINS,
+        Column.SegData.CENTROID_X,
+        Column.SegData.CENTROID_Y,
+        Column.SegData.NUCLEI_POSITION_X,
+        Column.SegData.NUCLEI_POSITION_Y,
+        Column.SegData.ALIGNMENT_DEG,
+        Column.SegData.NUCLEI_POSITION_ANGLE_DEG,
+        Column.SegData.CELL_FLUOR_MEAN,
+        Column.SegData.EDGE_FLUOR_MEAN,
+        Column.SegData.NODE_FLUOR_MEAN,
+        Column.SegData.NUM_NUCLEI_IN_CROP,
+        Column.SegData.LABELS_IN_CROP,
     ],
     "filters": [
-        "is_included",
-        "is_greater_than_min_track_duration",
-        "is_less_than_max_smoothed_area_normd_change",
-        "is_edge_segmentation",
-        "has_more_than_min_num_valid_points_per_track",
-        "bbox_is_in_bounds",
+        Column.SegDataFilters.IS_INCLUDED,
+        Column.SegDataFilters.IS_GREATER_THAN_MIN_TRACK_DURATION,
+        Column.SegDataFilters.IS_LESS_THAN_MAX_SMOOTHED_AREA_NORMD_CHANGE,
+        Column.SegDataFilters.IS_EDGE_SEGMENTATION,
+        Column.SegDataFilters.HAS_MORE_THAN_MIN_NUM_VALID_POINTS_PER_TRACK,
+        Column.SegDataFilters.IS_VALID_BBOX,
     ],
 }
 """Name of segmentation features to include in analyses."""
 
-DATASET_INFO_COLUMNS = [
-    "dataset_name",
-    "position",
-    "image_index",
-    "frame_number",
-    "track_id",
-    "crop_index",
-    "label",
+SegColumnsDropDict: TypeAlias = dict[
+    str,
+    list[str]
+    | list[Column.SegData]
+    | list[Column.SegDataFilters]
+    | list[Column.DiffAEData]
+    | list[Column.SegDataWorkflowVerification],
+]
+DEFAULT_COLUMNS_TO_DROP: SegColumnsDropDict = {
+    "segmentation_features": [
+        Column.SegData.EDGE_FLUOR,
+        Column.SegData.NODE_FLUOR,
+        Column.SegData.CELL_FLUOR_MEDIAN,
+        Column.SegData.CELL_FLUOR_MAX,
+        Column.SegData.CELL_FLUOR_MIN,
+        Column.SegData.CELL_FLUOR_PCT25,
+        Column.SegData.CELL_FLUOR_PCT75,
+        Column.SegData.RESOLUTION_FOR_DIFFAE,
+    ],
+    "segmentation_filters": [
+        Column.SegDataFilters.SMOOTHED_AREA_NORMD_DIFF,
+        Column.SegDataFilters.MIN_TRACK_DURATION,
+        Column.SegDataFilters.MAX_SMOOTHED_AREA_NORMALIZED_CHANGE,
+        Column.SegDataFilters.NUM_VALID_TIMEPOINTS_IN_TRACK,
+        Column.SegDataFilters.MIN_NUM_VALID_TIMEPOINTS_PER_TRACK,
+    ],
+    "verification_columns": [
+        Column.SegDataWorkflowVerification.SEGMENTATION_PATH,
+        Column.SegDataWorkflowVerification.TRACKING_REF_IDX,
+        Column.SegDataWorkflowVerification.TRACKING_MATCHED_QUERY_LABEL,
+        Column.SegDataWorkflowVerification.TRACKING_OPTIMIZED_METRIC_VAL,
+        Column.SegDataWorkflowVerification.TRACKING_MATCHING_METHOD,
+        Column.SegDataWorkflowVerification.NUM_NUC_WITH_MOST_OVERLAP,
+        Column.SegDataWorkflowVerification.SMOOTHED_AREA_NORMALIZED,
+        Column.SegDataWorkflowVerification.SIGMA_FOR_AREA_SMOOTHING,
+        Column.SegDataWorkflowVerification.NUM_UNIQUE_TRACKS_PER_TIMEPOINT,
+        Column.SegDataWorkflowVerification.NODE_LABELS,
+        Column.SegDataWorkflowVerification.EDGE_LABELS,
+        Column.SegDataWorkflowVerification.NODE_PAIR_LABELS,
+        Column.SegDataWorkflowVerification.NUCLEI_LABELS_IN_CDH5_SEGMENTATION,
+        Column.SegDataWorkflowVerification.NUCLEI_FRACTION_IN_CDH5_SEGMENTATION,
+    ],
+    "diffae_columns": [
+        Column.DiffAEData.MODEL_MANIFEST,
+        Column.DiffAEData.MODEL_RUN,
+        Column.DiffAEData.CROP_SIZE_X,
+        Column.DiffAEData.CROP_SIZE_Y,
+        Column.DiffAEData.RESOLUTION,
+    ],
+    "base_columns": [
+        Column.CDH5_CHANNEL_INDEX_ZARR,
+        Column.BF_CHANNEL_INDEX_ZARR,
+    ],
+}
+
+DATASET_INFO_COLUMNS: list[str | Column.SegData] = [
+    Column.DATASET,
+    Column.POSITION,
+    Column.TIMEPOINT,
+    Column.TRACK_ID,
+    Column.CROP_INDEX,
+    Column.SegData.LABEL,
 ]
 """Name of dataset metadata columns required for analysis."""
+
+# =========================================
+# Default model configurations for model qc
+# =========================================
+
+DEFAULT_MODEL_QC_MANIFEST_NAMES: list[str] = [
+    "diffae_baseline_exclude_cell_piling",  # 8 BF
+    "diffae_baseline_exclude_cell_piling",  # 16 BF
+    "diffae_baseline_exclude_cell_piling",  # 32 BF
+    "diffae_baseline_exclude_cell_piling",  # 64 BF
+    "diffae_baseline_exclude_cell_piling",  # 128 BF
+    "diffae_baseline_exclude_cell_piling",  # 256 BF
+    "diffae_baseline_exclude_cell_piling",  # 512 BF
+    "diffae_baseline_exclude_cell_piling",  # 1024 BF
+    "diffae_cdh5_conditioned",  # 512 CDH5
+    "diffae_cdh5_conditioned",  # 1024 CDH5
+]
+"""Default manifest names for the 10-model QC comparison study.
+
+Covers 8 brightfield-conditioned latent dimensions (8--1024) and 2 CDH5-
+conditioned models (512, 1024).
+"""
+
+DEFAULT_MODEL_QC_RUN_NAMES: list[str] = [
+    "20260207_latent_8",
+    "20260205_latent_16",
+    "20260203_latent_32",
+    "20260206_latent_64",
+    "20260127_latent_128",
+    "20260122_latent_256",
+    "20251110_latent_512",
+    "20251110_latent_1024",
+    "20260130_latent_512",
+    "20251110_latent_1024",
+]
+"""Run names corresponding to each entry in :data:`DEFAULT_MODEL_QC_MANIFEST_NAMES`."""
+DEFAULT_MODEL_QC_LABELS: list[str] = [
+    "8 BF",
+    "16 BF",
+    "32 BF",
+    "64 BF",
+    "128 BF",
+    "256 BF",
+    "512 BF",
+    "1024 BF",
+    "512 CDH5",
+    "1024 CDH5",
+]
+"""X-axis labels for the 10-model latent dimension comparison bar plots.
+
+Order: 8 BF, 16 BF, 32 BF, 64 BF, 128 BF, 256 BF, 512 BF, 1024 BF,
+512 CDH5, 1024 CDH5.
+"""

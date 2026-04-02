@@ -9,3 +9,9 @@ DEST_COL: str = "s3_zarr_path"
 
 BFF_FILE_PATH_COL: str = "File Path"
 """Name of the required column for file paths in the BFF CSV."""
+
+DEST_NUC_SEG_DIR: str = "nuclear_segmentation_zarrs/"
+"""S3 directory for nuclear segmentation zarrs."""
+
+DEST_CDH5_SEG_DIR: str = "vecadherin_segmentation_zarrs/"
+"""S3 directory for VE-cadherin segmentation zarrs."""

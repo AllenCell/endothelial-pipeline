@@ -212,6 +212,7 @@ module = [
     "numdifftools.*",
     "omegaconf.*",
     "scipy.*",
+    "sklearn",
     "sklearn.*",
     "s3_uploader.*",
     "torchmetrics.*",
