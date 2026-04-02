@@ -64,10 +64,7 @@ def main(
     from endo_pipeline.library.analyze.dataframe_validation import (
         check_required_columns_in_dataframe,
     )
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        fit_pca,
-        project_features_to_pcs,
-    )
+    from endo_pipeline.library.analyze.pca import fit_pca, project_features_to_pcs
     from endo_pipeline.manifests import (
         DataframeLocation,
         create_dataframe_manifest,

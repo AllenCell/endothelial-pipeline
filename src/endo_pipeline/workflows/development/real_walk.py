@@ -1,17 +1,10 @@
 from endo_pipeline.cli import Datasets
-from endo_pipeline.settings import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-    NUM_PCS_TO_ANALYZE,
-    RANDOM_SEED,
-)
+from endo_pipeline.settings.diffae_feature_dataframes import NUM_PCS_TO_ANALYZE
+from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 
 def main(
     datasets: Datasets | None = None,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    include_cell_piling: bool = False,
     pc_axis_list: list[int] = [0, 1, 2],
     pc_val_list: list[float] = [-1, -0.5, 0, 0.5, 1],
     random_seed: int = RANDOM_SEED,
@@ -61,72 +54,64 @@ def main(
         Saves the contact sheet of cropped images to the output directory.
     """
     import logging
-    from typing import cast
 
     import matplotlib.pyplot as plt
     import numpy as np
+    import pandas as pd
 
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, load_image, save_plot_to_path
+    from endo_pipeline.io import get_output_path, load_dataframe, load_image, save_plot_to_path
     from endo_pipeline.library.analyze.numerics.binning import (
-        get_bounds_from_data,
         get_df_by_bin_value,
         get_histogram_by_component,
     )
     from endo_pipeline.library.process.image_processing import max_proj, std_dev
-    from endo_pipeline.library.visualize.crop_montage import load_data_for_montage, sample_dataframe
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
         get_label_for_column,
         plot_component_histograms_over_time,
     )
     from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
-    from endo_pipeline.manifests import (
-        get_feature_dataframe_manifest_name,
-        get_most_recent_run_name,
-        get_zarr_location_for_position,
-        load_dataframe_manifest,
-        load_model_manifest,
-    )
+    from endo_pipeline.manifests import get_zarr_location_for_position, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
     from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
     from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH
-    from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+        DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    )
 
     logger = logging.getLogger(__name__)
 
     # Default list of datasets if not provided. Otherwise, use the provided list.
-    if datasets is None:
-        datasets = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
     # get dataframe manifest corresponding to the model that generated the features
-    model_manifest = load_model_manifest(model_manifest_name)
-    run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
-    dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name_, crop_pattern="grid"
-    )
-    fig_savedir = get_output_path(
-        "crop_visualization",
-        model_manifest_name,
-        run_name_,
-        "include_cell_piling" if include_cell_piling else "exclude_cell_piling",
-    )
+    # get dataframe manifest for crop-based features
+    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
+    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
+    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+    fig_savedir = get_output_path(__file__)
 
-    df, pca = load_data_for_montage(
-        datasets, dataframe_manifest, include_cell_piling=include_cell_piling
-    )
+    df_list = []
+    for dataset_name in dataset_names:
+        if dataset_name not in feature_dataframe_manifest.locations:
+            logger.warning(
+                "Dataset %s not found in dataframe manifest %s. Skipping this dataset.",
+                dataset_name,
+                feature_dataframe_manifest_name,
+            )
+            continue
+        dataframe_location = feature_dataframe_manifest.locations[dataset_name]
+        df_dataset = load_dataframe(dataframe_location)
+        df_list.append(df_dataset)
+    df = pd.concat(df_list, ignore_index=True)
 
-    bin_limits = get_bounds_from_data(
-        datasets,
-        dataframe_manifest,
-        pca,
-        filter_to_valid=False,
-        column_names=DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze],
-    )
     feat_cols = DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze]
+    bin_limits = [(df[feat_col].min(), df[feat_col].max()) for feat_col in feat_cols]
     hist_array_lists, bin_edges, df_with_bins = get_histogram_by_component(
         df,
         CROP_HIST_BIN_WIDTH,
@@ -148,12 +133,11 @@ def main(
     samples = []
     for pc_axis in pc_axis_list:
         for pc_val in pc_val_list:
-
             df_filtered = get_df_by_bin_value(df_with_bins, pc_axis, pc_val, bin_edges)
 
             logger.info("%d crops for PC %s around value %s", len(df_filtered), pc_axis, pc_val)
 
-            for i in range(pca.n_components_):
+            for i in range(NUM_PCS_TO_ANALYZE):
                 if i != pc_axis:
                     pc_col = DIFFAE_PC_COLUMN_NAMES[i]
                     df_filtered = df_filtered[
@@ -170,7 +154,10 @@ def main(
                 continue
 
             # one example selected at random
-            df_sample = sample_dataframe(df_filtered, n_num_crops=1, random_seed=random_seed)
+            num_crop_samples = 1
+            df_sample = df_filtered.sample(
+                n=num_crop_samples, random_state=random_seed, replace=False
+            )
             samples.append((pc_axis, pc_val, df_sample))
 
     crops_bf_std_deviation = []
@@ -178,15 +165,12 @@ def main(
 
     for pc_axis, pc_val, df_sample in samples:
         logger.info(f"Processing sample for PC {pc_axis} value {pc_val}")
-        dataset = df_sample[Column.DATASET].iloc[0]
-        dataset = cast(str, dataset)  # Ensure dataset is a string
-        dataset_config = load_dataset_config(dataset)
+        dataset_name = df_sample[Column.DATASET].iloc[0]
+        dataset_config = load_dataset_config(dataset_name)
         position = df_sample[Column.POSITION].iloc[0]
-        position = cast(str, position)  # Ensure position is a string
-        position_integer = int(position[-1])  # Extract the position number from the string
         timepoint = df_sample[Column.TIMEPOINT].iloc[0]
 
-        img_loc = get_zarr_location_for_position(dataset_config, position_integer)
+        img_loc = get_zarr_location_for_position(dataset_config, position)
         img = load_image(img_loc, timepoints=[timepoint], level=1, squeeze=True)
         # crop
         start_x = df_sample["start_x"].iloc[0]

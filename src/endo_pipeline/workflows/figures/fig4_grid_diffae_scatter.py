@@ -17,7 +17,7 @@ def main() -> None:
         save_plot_to_path,
     )
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca
+    from endo_pipeline.library.analyze.pca import fit_pca
     from endo_pipeline.library.model import generate_from_coords_batch
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
         get_no_flow_pc_space_example_points_fig4,

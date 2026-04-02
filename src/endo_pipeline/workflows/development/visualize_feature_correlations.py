@@ -62,7 +62,6 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.io import get_output_path, load_dataframe
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import get_pc_column_names
     from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
         add_optical_flow_features,
     )
@@ -74,6 +73,7 @@ def main(
     from endo_pipeline.manifests import get_dataframe_location_for_dataset
     from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAME_GROUPS
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_PCA_DATASET_COLLECTION_NAME,
         SEGMENTATION_FEATURE_COLUMNS,
@@ -94,7 +94,7 @@ def main(
         )
         dataset_name_list = dataset_name_list[:1]
 
-    pc_columns = get_pc_column_names(pc_group)
+    pc_columns = DIFFAE_PC_COLUMN_NAME_GROUPS[pc_group]
 
     if isinstance(segmentation_feature_group, str):
         if segmentation_feature_group not in SEGMENTATION_FEATURE_COLUMNS:
