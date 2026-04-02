@@ -1,7 +1,4 @@
-from matplotlib import pyplot as plt
-
 from endo_pipeline.cli import Datasets
-from endo_pipeline.io.output import get_output_path, save_plot_to_path
 
 
 def main(
@@ -14,11 +11,13 @@ def main(
     import numpy as np
     import pandas as pd
     import seaborn as sns
+    from matplotlib import pyplot as plt
     from tqdm import tqdm
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import load_dataframe
+    from endo_pipeline.io.output import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.data_driven_flow_field import (
         compute_extrapolated_vector_field,
     )
@@ -41,11 +40,8 @@ def main(
 
     dataset_names = datasets or get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
 
-    # DEMO_MODE = True
-
     if DEMO_MODE:
-        # dataset_names = dataset_names[:1]
-        dataset_names = ["20250618_20X"]
+        dataset_names = dataset_names[:1]
 
     for dataset_name in dataset_names:
         outdir = get_output_path(dataset_name)
@@ -92,9 +88,9 @@ def main(
         )
 
         if DEMO_MODE:
-            crop_index = crop_index[:1]
-            initial_conditions = initial_conditions[:1]
-            crop_indices_and_initial_conditions = crop_indices_and_initial_conditions[:1]
+            crop_index = crop_index[:10]
+            initial_conditions = initial_conditions[:10]
+            crop_indices_and_initial_conditions = crop_indices_and_initial_conditions[:10]
 
         ivp_args_mp: list[dict] = []
         for (crop_i, track_duration, timepoint), init_df in crop_indices_and_initial_conditions:
@@ -148,20 +144,35 @@ def main(
                     index=[DYNAMICS_COLUMN_NAMES[1]]
                 ),
             )
+            for crop_i, traj_df in tqdm(df_grid_sub.groupby(Column.CROP_INDEX)):
+                unwrapped_angle_diff = (
+                    traj_df[f"{Column.DiffAEData.POLAR_ANGLE}_simulated_unwrapped"]
+                    .diff()
+                    .replace(np.nan, True)
+                )
+                wrapped_angle_diff = (
+                    traj_df[f"{Column.DiffAEData.POLAR_ANGLE}_simulated"]
+                    .diff()
+                    .replace(np.nan, True)
+                )
+                wrap_discontinuity = np.logical_not(unwrapped_angle_diff == wrapped_angle_diff)
+                angle_segments_to_plot_indices = np.split(
+                    wrap_discontinuity,
+                    wrap_discontinuity.reset_index().index[wrap_discontinuity].tolist(),
+                )
+                fig, axs = plot_quiver_slices_from_flow_field_dict(
+                    dataset_name=dataset_name,
+                    flow_field_dict_grids=flow_field_dict_grid,
+                    feature_vals=flow_field_slices,
+                    column_names=DYNAMICS_COLUMN_NAMES,
+                )
+                for j, ax in enumerate(axs):
+                    # add the fixed points
+                    ax.scatter(*fixed_points_at_slices[j], c="k", s=50)
 
-            fig, axs = plot_quiver_slices_from_flow_field_dict(
-                dataset_name=dataset_name,
-                flow_field_dict_grids=flow_field_dict_grid,
-                feature_vals=flow_field_slices,
-                column_names=DYNAMICS_COLUMN_NAMES,
-            )
-            for j, ax in enumerate(axs):
-                # add the fixed points
-                ax.scatter(*fixed_points_at_slices[j], c="k", s=50)
+                    cols_measured: list[str] = fixed_points_at_slices[j].index.tolist()
+                    cols_simulated: list[str] = [f"{col}_simulated" for col in cols_measured]
 
-                cols_measured = fixed_points_at_slices[j].index.tolist()
-                cols_simulated = [f"{col}_simulated" for col in cols_measured]
-                for crop_i, traj_df in df_grid_sub.groupby(Column.CROP_INDEX):
                     sns.scatterplot(
                         data=traj_df,
                         x=cols_measured[0],
@@ -174,25 +185,11 @@ def main(
                         s=10,
                         ax=ax,
                     )
-                    unwrapped_angle_diff = (
-                        traj_df[f"{Column.DiffAEData.POLAR_ANGLE}_simulated_unwrapped"]
-                        .diff()
-                        .replace(np.nan, True)
-                    )
-                    wrapped_angle_diff = (
-                        traj_df[f"{Column.DiffAEData.POLAR_ANGLE}_simulated"]
-                        .diff()
-                        .replace(np.nan, True)
-                    )
-                    wrap_discontinuity = np.logical_not(unwrapped_angle_diff == wrapped_angle_diff)
-                    angle_segments_to_plot_indices = np.split(
-                        wrap_discontinuity, wrap_discontinuity.index[wrap_discontinuity]
-                    )
                     for segment_indices in angle_segments_to_plot_indices:
-                        data_segment = traj_df.iloc[segment_indices.index]
+                        data_segment = traj_df.loc[segment_indices.index]
                         ax.plot(
-                            data_segment[cols_simulated[0]].values,
-                            data_segment[cols_simulated[1]].values,
+                            data_segment[cols_simulated[0]],
+                            data_segment[cols_simulated[1]],
                             ls="--",
                             lw=1,
                             alpha=0.7,
@@ -212,12 +209,12 @@ def main(
                         zorder=9,
                         ax=ax,
                     )
-            save_plot_to_path(
-                figure=fig,
-                output_path=outdir,
-                figure_name=f"{dataset_name}_cropindex{crop_i}_traj_meas_vs_sim.png",
-            )
-            plt.close(fig)
+                save_plot_to_path(
+                    figure=fig,
+                    output_path=outdir,
+                    figure_name=f"{dataset_name}_cropindex{crop_i}_traj_meas_vs_sim.png",
+                )
+                plt.close(fig)
 
 
 if __name__ == "__main__":
