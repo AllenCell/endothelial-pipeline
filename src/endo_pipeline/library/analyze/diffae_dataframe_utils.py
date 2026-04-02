@@ -141,40 +141,6 @@ def get_latent_feature_column_names_from_dataframe(dataframe: pd.DataFrame) -> l
     return feat_cols
 
 
-def unwrap_nonsequential_array(
-    wrapped_array: np.ndarray,
-    period: float,
-    reference_angle: float | None = None,
-) -> np.ndarray:
-    """
-    Unwrap array of periodic values that may have non-sequential entries.
-
-    Unlike numpy.unwrap, which assumes sequential entries, this function handles
-    non-sequential entries by unwrapping each entry relative to a fixed reference point.
-    If no reference point is provided, the function uses the first entry in the array
-    as the (arbitrary) reference point.
-
-    When applying numpy.unwrap to periodic data with non-sequential entries, the
-    resulting unwrapped values may still have large jumps between entries that are not
-    next to each other in the original sequence.
-
-    Parameters
-    ----------
-    wrapped_array
-        Array of periodic values to unwrap.
-    period
-        Period of the values.
-    """
-    reference_angle_ = wrapped_array[0] if reference_angle is None else reference_angle
-    unwrapped_array = np.array(
-        [
-            np.unwrap(np.array([reference_angle_, wrapped_angle]), period=period)[-1]
-            for wrapped_angle in wrapped_array
-        ]
-    )
-    return unwrapped_array
-
-
 def filter_dataframe_by_track_length(
     dataframe: pd.DataFrame, track_length_column: str, minimum_track_length: int
 ) -> pd.DataFrame:
