@@ -13,18 +13,16 @@ from matplotlib.ticker import MultipleLocator
 from mpl_toolkits.mplot3d import Axes3D
 from seaborn import kdeplot
 
-from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
-from endo_pipeline.io import load_dataframe, save_plot_to_path
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     check_required_columns_in_dataframe,
-    filter_dataframe_by_annotations,
     rewrap_polar_angle,
     unwrap_nonsequential_array,
 )
 from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
     get_seg_feat_plot_args,
 )
-from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.density_comparison_plots import (
     DENSITY_PLOT_KDE_BANDWIDTH,
@@ -193,91 +191,47 @@ def get_dataset_color(dataset_name: str) -> str:
 
 
 def plot_pc_scatter(
-    dataset_names: list[str],
-    dataframe_manifest: DataframeManifest,
+    dataframe: pd.DataFrame,
+    savedir: Path,
+    column_names: list[str] | None = None,
     alpha: float = 0.2,
     scatter_size: float = 1,
-    pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
-    color_by_time: bool = False,
-    save_dir: Path | None = None,
-    include_not_steady_state: bool = True,
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
     """
     Plot scatter plot of PCA components for a list of datasets.
 
     Parameters
     ----------
-    dataset_names
-        List of dataset names to plot.
-    dataframe_manifest
-        Manifest containing paths to dataframes for each dataset.
-    pca
-        Fit PCA model used to transform the data.
-    include_cell_piling
-        Include cell piling timepoings from the plot if True, exclude if False.
-    crop_pattern
-        Crop pattern used in the dataframes; either 'grid' or 'tracked'.
+    dataframe
+        DataFrame containing the PCA components for all datasets to plot.
+    savedir
+        Directory to save the plots to.
+    column_names
+        List of feature column names to plot.
     alpha
         Alpha (opacity) value for scatter plot points.
     scatter_size
         Size of scatter plot points.
-    pc_column_names
-        List of PCA column names to plot.
-    color_by_time
-        If True, color points by timepoint instead of dataset.
-    save_dir
-        Directory to save the plots to. If None, plots are not saved.
 
     Returns
     -------
     :
-        Figure object for the scatter plots.
-        Array of Axes objects for the scatter plots.
+        Figure object for the scatter plots. Array of Axes objects for the
+        scatter plots.
     """
 
     # initialize color list for legend
-    patch_dict_for_legend = {}
+    patch_list_for_legend_combined_plot = []
 
-    # initialize list to hold dataframes for each dataset, which will be
-    # combined for plotting
-    df_list = []
-    columns_to_compute = [*pc_column_names, Column.TIMEPOINT, Column.DATASET]
+    # get list of dataset names from dataframe
+    dataset_names = dataframe[Column.DATASET].unique().tolist()
 
-    for dataset_name in dataset_names:
-        # load dataframe and get feature columns and timepoint column
-        dataframe_location = get_dataframe_location_for_dataset(dataframe_manifest, dataset_name)
-        df_ = load_dataframe(dataframe_location, delay=True)
-        df = df_[columns_to_compute].compute()
+    # input feature column names to plot (use PC column names by default)
+    column_names_ = column_names or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
-        # if excluding the "not steady state" timepoints, do additional filtering:
-        if not include_not_steady_state:
-            dataset_config = load_dataset_config(dataset_name)
-            df = filter_dataframe_by_annotations(
-                df,
-                dataset_config,
-                timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
-            )
-
-        if color_by_time:
-            num_timepoints = df[Column.TIMEPOINT].nunique()
-            cmap = plt.get_cmap("viridis")
-            colors = cmap(np.linspace(0, 1, num_timepoints))
-            df["color"] = df[Column.TIMEPOINT].map(
-                dict(zip(sorted(df[Column.TIMEPOINT].unique()), colors, strict=False))
-            )
-            patch_dict_for_legend[dataset_name] = mpatches.Patch(color=cmap(0), label=dataset_name)
-        else:
-            color = get_dataset_color(dataset_name)
-            df["color"] = color
-            patch_dict_for_legend[dataset_name] = mpatches.Patch(color=color, label=dataset_name)
-        df_list.append(df)
-
-    df_combined = pd.concat(df_list, ignore_index=True)
-
-    # First plot individual datasets with others faded in background
     for highlighted_dataset in dataset_names:
         # copy combined dataframe to modify for highlighting
-        df_highlighted = df_combined.copy()
+        df_highlighted = dataframe.copy()
         # Separate highlighted and background data
         mask_highlighted = df_highlighted[Column.DATASET] == highlighted_dataset
         df_background = df_highlighted[~mask_highlighted].copy()
@@ -286,6 +240,13 @@ def plot_pc_scatter(
         # Set background color
         df_background["color"] = "lightgray"
 
+        # Set foreground color based on dataset
+        dataset_color = get_dataset_color(highlighted_dataset)
+        df_foreground["color"] = dataset_color
+        patch_list_for_legend_combined_plot.append(
+            mpatches.Patch(color=dataset_color, label=highlighted_dataset)
+        )
+
         # Concatenate with highlighted data last (so it plots on top)
         df_highlighted = pd.concat([df_background, df_foreground], ignore_index=True)
 
@@ -293,12 +254,13 @@ def plot_pc_scatter(
         fig, ax = plt.subplots(
             2, 1, figsize=(MAX_FIGURE_WIDTH // 2, MAX_FIGURE_HEIGHT // 2), sharex=True
         )
-        # Create patch list for legend
+        # Create patch list for legend with highlighted dataset colored and
+        # others light gray
         patch_list_for_legend = [
             (
-                mpatches.Patch(color="lightgray", label=dataset_name)
-                if dataset_name != highlighted_dataset
-                else patch_dict_for_legend[highlighted_dataset]
+                mpatches.Patch(color=dataset_color, label=highlighted_dataset)
+                if dataset_name == highlighted_dataset
+                else mpatches.Patch(color="lightgray", label=dataset_name)
             )
             for dataset_name in dataset_names
         ]
@@ -310,25 +272,14 @@ def plot_pc_scatter(
             ax,
             alpha,
             scatter_size,
-            pc_column_names,
+            column_names_,
             patch_list_for_legend,
         )
 
-        # add colorbar
-        if color_by_time:
-            num_timepoints = df_foreground[Column.TIMEPOINT].nunique()
-            sm = plt.cm.ScalarMappable(
-                cmap="viridis", norm=plt.Normalize(vmin=0, vmax=num_timepoints)
-            )
-            sm.set_array([])
-            cax = fig.add_axes((0.98, 0.15, 0.05, 0.5))  # [left, bottom, width, height]
-            cbar = fig.colorbar(sm, cax=cax, orientation="vertical")
-            cbar.set_label("frame number")
-
-        if save_dir is not None:
+        if savedir is not None:
             save_plot_to_path(
                 fig,
-                save_dir,
+                savedir,
                 f"pca_scatter_highlight_{highlighted_dataset}",
             )
 
@@ -336,19 +287,20 @@ def plot_pc_scatter(
     fig_combined, ax_combined = plt.subplots(
         2, 1, figsize=(MAX_FIGURE_WIDTH // 2, MAX_FIGURE_HEIGHT // 2), sharex=True
     )
-    shuffled_indices = np.random.default_rng(RANDOM_SEED).permutation(len(df_combined))
-    df_combined = df_combined.iloc[shuffled_indices]
+    shuffled_indices = np.random.default_rng(RANDOM_SEED).permutation(len(dataframe))
+    dataframe_shuffled = dataframe.iloc[shuffled_indices]
     plot_pc_scatter_from_df(
-        df=df_combined,
+        df=dataframe_shuffled,
         dataset_name="reference",
         ax=ax_combined,
         alpha=alpha,
         scatter_size=scatter_size,
-        pc_column_names=pc_column_names,
-        patch_list_for_legend=list(patch_dict_for_legend.values()),
+        pc_column_names=column_names_,
+        patch_list_for_legend=patch_list_for_legend_combined_plot,
     )
-    if save_dir is not None:
-        save_plot_to_path(fig_combined, save_dir, "pca_scatter_ref")
+
+    if savedir is not None:
+        save_plot_to_path(fig_combined, savedir, "pca_scatter_ref")
 
     return fig, ax
 
