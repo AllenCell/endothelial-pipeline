@@ -30,8 +30,6 @@ def compute_cumulative_variance_over_time(
     **var_func_kwargs
         Additional keyword arguments to pass to the variance function.
     """
-    print(crop_array.shape)
-
     cumulative_var_per_crop = np.zeros_like(crop_array)  # shape: (n_crops, n_timepoints)
     for i in range(crop_array.shape[1]):
         if i == 0:
