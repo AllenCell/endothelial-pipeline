@@ -308,7 +308,7 @@ def test_unwrap_nonsequential_array(wrapped_array, period, expected_unwrapped_ar
 
 
 @pytest.mark.parametrize(
-    "num_components, provide_feature_columns, compute_polar, flip_pc3_sign, raises_error",
+    "num_components, compute_polar, flip_pc3_sign, raises_error",
     [
         (  # fit PCA with 3 components, project to 3 PCs, don't compute polar angle, don't flip PC3 sign
             3,
