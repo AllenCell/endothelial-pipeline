@@ -898,37 +898,3 @@ def split_dataset_by_flow(
         data_all = [df_proj.copy()]
 
     return data_all, shear_list
-
-
-def fill_missing_timepoints(
-    data_crop: pd.DataFrame,
-    full_timepoint_range: tuple[float, float],
-) -> pd.DataFrame:
-    """
-    Fill missing timepoints in dataframe for a single crop using NaN padding.
-    Note: this function resets the index of the input crop-based dataframe.
-
-    Parameters
-    ----------
-    data_crop
-        DataFrame for a single crop.
-    full_timepoint_range
-        Tuple specifying the full range of timepoints (start, end) for the dataset.
-
-    Returns
-    -------
-    :
-        DataFrame with missing timepoints filled with NaNs.
-    """
-
-    # use full timepoint range for the dataset to ensure that all timepoints are
-    # included
-    all_timepoints = np.arange(full_timepoint_range[0], full_timepoint_range[1] + 1)
-
-    # reindex dataframe to include all timepoints in full range
-    data_crop_filled = data_crop.set_index(Column.TIMEPOINT).reindex(all_timepoints)
-
-    # reset index to restore timepoint column
-    data_crop_filled = data_crop_filled.reset_index()
-
-    return data_crop_filled

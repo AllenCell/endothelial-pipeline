@@ -70,7 +70,6 @@ def main(
     )
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        fill_missing_timepoints,
         filter_dataframe_by_annotations,
         filter_dataframe_by_track_length,
         split_dataset_by_flow,
@@ -193,14 +192,9 @@ def main(
             color = SHEAR_COLOR_DICT[(shear_stress_regime,)]
             label = f"{dataset_name} ({int(shear_stress)} dyn/cm$^2$)"
 
-            full_timepoint_range = (
-                df_flow[Column.TIMEPOINT].min(),
-                df_flow[Column.TIMEPOINT].max(),
-            )
-            t_vals = (
-                np.arange(full_timepoint_range[0], full_timepoint_range[1] + 1)
-                * time_conversion_factor
-            )
+            t_min = df_flow[Column.TIMEPOINT].min()
+            t_max = df_flow[Column.TIMEPOINT].max()
+            all_timepoints = np.arange(t_min, t_max + 1)
             df_flow_scaled = df_flow.copy()
 
             # fill missing timepoints with NaN values for each crop to ensure
@@ -209,8 +203,16 @@ def main(
             # array of shape (num_crops, num_timepoints)
             data_filled_list = []
             for _, data_crop in df_flow_scaled.groupby(Column.CROP_INDEX):
+                # sort by timepoint to ensure correct order before reindexing
                 data_crop = data_crop.sort_values(by=Column.TIMEPOINT)
-                data_crop_filled = fill_missing_timepoints(data_crop, full_timepoint_range)
+
+                # reindex dataframe to include all timepoints in full range
+                data_crop_filled = data_crop.set_index(Column.TIMEPOINT).reindex(all_timepoints)
+
+                # reset index to restore timepoint column
+                data_crop_filled = data_crop_filled.reset_index()
+
+                # append to list
                 data_filled_list.append(data_crop_filled)
 
             data_filled = pd.concat(data_filled_list, ignore_index=True)
@@ -306,7 +308,7 @@ def main(
                 # population variance at each timepoint (across crops) for
                 # scaled feature to array in shape (num_crops, num_timepoints)
                 # for variance computations
-                data_filled_array = data_filled[col].to_numpy().reshape(-1, len(t_vals))
+                data_filled_array = data_filled[col].to_numpy().reshape(-1, len(all_timepoints))
                 scaled_population_var = var_function(
                     data_filled_array, **scaled_function_kwargs, axis=0
                 )
@@ -335,11 +337,16 @@ def main(
                 bvr_time = bvr_time * time_conversion_factor
 
                 # add to dicts for plotting
-                mean_std_unscaled[col].append((t_vals, unscaled_mean, unscaled_std, color, label))
-                mean_std_scaled[col].append((t_vals, scaled_mean, scaled_std, color, label))
-                pop_cov_data[col].append((t_vals, scaled_population_cov, color, label))
+                t_vals_scaled = all_timepoints * time_conversion_factor
+                mean_std_unscaled[col].append(
+                    (t_vals_scaled, unscaled_mean, unscaled_std, color, label)
+                )
+                mean_std_scaled[col].append((t_vals_scaled, scaled_mean, scaled_std, color, label))
+                pop_cov_data[col].append((t_vals_scaled, scaled_population_cov, color, label))
                 erg_data[col].append((per_crop_cov, mean_population_cov, color, label))
-                var_ratio_data[col].append((t_vals, cvr_mean, cvr_upper, cvr_lower, color, label))
+                var_ratio_data[col].append(
+                    (t_vals_scaled, cvr_mean, cvr_upper, cvr_lower, color, label)
+                )
                 binned_var_ratio_data[col].append(
                     (bvr_time, bvr_mean, bvr_upper, bvr_lower, color, label)
                 )
