@@ -67,24 +67,6 @@ def check_required_columns_in_dataframe(
             raise ValueError(f"DataFrame must contain column [ {col} ]")
 
 
-def get_latent_feature_column_names(num_latent_dims: int) -> list[str]:
-    """
-    Get list of latent feature column names for given number of latent dimensions.
-
-    Parameters
-    ----------
-    num_latent_dims
-        Number of latent dimensions.
-
-    Returns
-    -------
-    :
-        List of latent feature column names.
-    """
-    feat_cols = [f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{i}" for i in range(num_latent_dims)]
-    return feat_cols
-
-
 def get_pc_column_names(num_pcs: str | int) -> list[str]:
     """
     Get list of PCA feature column names for given number of principal components.
