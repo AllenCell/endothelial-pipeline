@@ -3,18 +3,10 @@ from typing import cast
 
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import PCA
 
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    get_dataframe_for_dynamics_workflows,
-)
 from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
-from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.diffae_feature_dataframes import (
-    DIFFAE_PC_COLUMN_NAMES,
-    NUM_PCS_TO_ANALYZE,
-)
+from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
 from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
 
 logger = logging.getLogger(__name__)
@@ -157,88 +149,6 @@ def get_bins(
         bin_width_str,
     )
     return bins, centers
-
-
-def get_bounds_from_data(
-    dataset_names: list[str],
-    manifest: DataframeManifest,
-    pca: PCA,
-    filter_to_valid: bool = True,
-    pad: float = 0.0,
-    column_names: list[str] | None = None,
-) -> list[tuple[float, float]]:
-    """
-    Set bounds for state space based on the bounds of the features in the
-    datasets.
-
-    **Dataframe filtering:**
-
-    By default, the function filters the dataframes to only include "valid"
-    crops, i.e., crops that are not labeled as "cell piling" or "not steady
-    state".
-
-    Parameters
-    ----------
-    dataset_names
-        List of dataset names to get common bounds from.
-    manifest
-        Dataframe manifest object with feature data locations.
-    pca
-        PCA object used to transform the data.
-    filter_to_valid
-        Whether to filter the dataframes to only include "valid" crops.
-    pad
-        Amount to pad the bounds by on each side.
-    column_names
-        List of column names for the features to use when determining the
-        bounds. If None, uses the default top PCA feature columns (PC1, PC2,
-        PC3) defined in DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE].
-
-    Returns
-    -------
-    :
-        List of tuples, each array contains the (min, max) bounds for a
-        dimension.
-    """
-    column_names_ = column_names or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
-
-    num_dims = len(column_names_)
-    # initialize bounds - set to extreme values
-    bin_mins = [np.inf] * num_dims
-    bin_maxs = [-np.inf] * num_dims
-
-    # loop over each dataset and update bin mins and maxs
-    for dataset_name in dataset_names:
-        if filter_to_valid:
-            filter_by_annotations = True
-            include_cell_piling = False
-            include_not_steady_state = False
-        else:
-            filter_by_annotations = False
-            include_cell_piling = True
-            include_not_steady_state = True
-        df = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            manifest,
-            pca=pca,
-            filter_by_annotations=filter_by_annotations,
-            include_cell_piling=include_cell_piling,
-            include_not_steady_state=include_not_steady_state,
-        )
-        # get column names for features
-        for j in range(num_dims):
-            candidate_min = df[column_names_[j]].min()
-            candidate_max = df[column_names_[j]].max()
-            if pad:
-                candidate_min = candidate_min - pad
-                candidate_max = candidate_max + pad
-            # update bounds for each dimension
-            bin_mins[j] = min(bin_mins[j], candidate_min)
-            bin_maxs[j] = max(bin_maxs[j], candidate_max)
-
-    bounds = [(bin_mins[i], bin_maxs[i]) for i in range(num_dims)]
-
-    return bounds
 
 
 def _get_histogram_by_component_one_dataset(
