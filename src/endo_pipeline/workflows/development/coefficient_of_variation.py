@@ -71,11 +71,9 @@ def main(
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_annotations,
         filter_dataframe_by_track_length,
-    )
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        df_to_array,
         split_dataset_by_flow,
     )
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import df_to_array
     from endo_pipeline.library.analyze.numerics.temporal_stats import (
         compute_binned_variance_ratio_vs_time,
         compute_cumulative_variance_over_time,
