@@ -79,7 +79,7 @@ def get_pc_column_names(num_pcs: str | int) -> list[str]:
         List of PCA feature column names.
     """
     if isinstance(num_pcs, int):
-        pc_cols = [f"{Column.DiffAEData.PCA_FEATURE_PREFIX}{i+1}" for i in range(int(num_pcs))]
+        pc_cols = [f"{Column.DiffAEData.PCA_FEATURE_PREFIX}{i + 1}" for i in range(int(num_pcs))]
     elif isinstance(num_pcs, str):
         pc_cols = DIFFAE_PC_COLUMN_NAME_GROUPS.get(num_pcs, [])
         if not pc_cols:
@@ -576,9 +576,7 @@ def get_dataframe_for_dynamics_workflows(
         df_filtered = df_filtered[df_filtered[Column.SegDataFilters.IS_INCLUDED]]
 
     if minimum_track_length is not None:
-        df_filtered = filter_dataframe_by_track_length(
-            df_filtered, Column.TRACK_LENGTH, minimum_track_length
-        )
+        df_filtered = filter_dataframe_by_track_length(df_filtered, minimum_track_length)
 
     # add dataset duration description column
     dataset_config = load_dataset_config(dataset_name)

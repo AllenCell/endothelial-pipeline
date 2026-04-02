@@ -121,7 +121,7 @@ def test_filter_dataframe_by_annotations_without_annotations(dataframe, dataset)
 
 
 @pytest.mark.parametrize(
-    "dataframe, track_length_column, minimum_track_length, expected_filtered_dataframe",
+    "dataframe, minimum_track_length, expected_filtered_dataframe",
     [
         (
             pd.DataFrame(
@@ -130,7 +130,6 @@ def test_filter_dataframe_by_annotations_without_annotations(dataframe, dataset)
                     "other_column": [10, 20, 30, 40, 50],
                 }
             ),
-            Column.TRACK_LENGTH,
             3,
             pd.DataFrame(
                 {
@@ -146,7 +145,6 @@ def test_filter_dataframe_by_annotations_without_annotations(dataframe, dataset)
                     "other_column": [10, 20, 30],
                 }
             ),
-            Column.TRACK_LENGTH,
             1,
             pd.DataFrame(
                 {
@@ -158,16 +156,14 @@ def test_filter_dataframe_by_annotations_without_annotations(dataframe, dataset)
     ],
 )
 def test_filter_dataframe_by_track_length_valid_column(
-    dataframe, track_length_column, minimum_track_length, expected_filtered_dataframe
+    dataframe, minimum_track_length, expected_filtered_dataframe
 ):
-    filtered_df = filter_dataframe_by_track_length(
-        dataframe, track_length_column, minimum_track_length
-    )
+    filtered_df = filter_dataframe_by_track_length(dataframe, minimum_track_length)
     pd.testing.assert_frame_equal(filtered_df, expected_filtered_dataframe, check_like=True)
 
 
 @pytest.mark.parametrize(
-    "dataframe, track_length_column, minimum_track_length",
+    "dataframe, minimum_track_length",
     [
         (
             pd.DataFrame(
@@ -175,25 +171,13 @@ def test_filter_dataframe_by_track_length_valid_column(
                     "some_other_column": [1, 2, 3],
                 }
             ),
-            Column.TRACK_LENGTH,
-            3,
-        ),
-        (
-            pd.DataFrame(
-                {
-                    Column.TRACK_LENGTH: [1, 2, 3],
-                }
-            ),
-            "non_existent_column",
             3,
         ),
     ],
 )
-def test_filter_dataframe_by_track_length_invalid_column(
-    dataframe, track_length_column, minimum_track_length
-):
+def test_filter_dataframe_by_track_length_invalid_column(dataframe, minimum_track_length):
     with pytest.raises(ValueError):
-        filter_dataframe_by_track_length(dataframe, track_length_column, minimum_track_length)
+        filter_dataframe_by_track_length(dataframe, minimum_track_length)
 
 
 def test_filter_dataframe_by_track_length_all_filtered_out():
@@ -205,4 +189,4 @@ def test_filter_dataframe_by_track_length_all_filtered_out():
         }
     )
     with pytest.raises(ValueError):
-        filter_dataframe_by_track_length(dataframe, Column.TRACK_LENGTH, 4)
+        filter_dataframe_by_track_length(dataframe, 4)

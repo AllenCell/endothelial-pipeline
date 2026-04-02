@@ -172,9 +172,7 @@ def main(
 
         for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
             if crop_pattern == "tracked":
-                df_ = filter_dataframe_by_track_length(
-                    df_, ColumnName.TRACK_LENGTH, minimum_track_length=min_track_length
-                )
+                df_ = filter_dataframe_by_track_length(df_, min_track_length)
             dt_array = np.arange(1, max_lag + 1)
 
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"

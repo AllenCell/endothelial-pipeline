@@ -174,9 +174,7 @@ def main(
                 timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
             )
         if crop_pattern == "tracked":
-            df_ = filter_dataframe_by_track_length(
-                df_, Column.TRACK_LENGTH, minimum_track_length=min_track_length
-            )
+            df_ = filter_dataframe_by_track_length(df_, min_track_length)
         df_ = df_.dropna(subset=column_names)
 
         # polar angle periodicity settings

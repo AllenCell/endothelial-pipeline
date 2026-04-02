@@ -144,7 +144,7 @@ def main(
         )
         # Perform additional filtering by track length
         df_steady_state_tracked = filter_dataframe_by_track_length(
-            df_steady_state_tracked, ColumnName.TRACK_LENGTH, minimum_track_length=min_track_length
+            df_steady_state_tracked, min_track_length
         )
         num_trajectories_tracked = df_steady_state_tracked[ColumnName.CROP_INDEX].nunique()
 

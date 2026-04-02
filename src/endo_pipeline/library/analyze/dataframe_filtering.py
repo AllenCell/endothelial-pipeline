@@ -19,10 +19,15 @@ logger = logging.getLogger(__name__)
 
 
 def filter_dataframe_by_track_length(
-    dataframe: pd.DataFrame, track_length_column: str, minimum_track_length: int
+    dataframe: pd.DataFrame, minimum_track_length: int
 ) -> pd.DataFrame:
     """
     Filter dataframe to only include tracks above a minimum track length.
+
+    The expected column name for track length is set as Column.TRACK_LENGTH.
+    There is a check to ensure that the specified track length column is present
+    in the dataframe, and if not, a ValueError is raised by the method
+    `check_required_columns_in_dataframe`.
 
     **Error handling**
 
@@ -36,8 +41,6 @@ def filter_dataframe_by_track_length(
     dataframe
         DataFrame containing data of interest, which must include a column for
         track length.
-    track_length_column
-        Name of the column containing track length values.
     minimum_track_length
         Minimum track length to filter tracks.
 
@@ -54,8 +57,8 @@ def filter_dataframe_by_track_length(
     )
     logger.debug("Dataframe length before filtering: [ %s ] rows.", len(dataframe))
     # check that required columns are present in dataframe
-    check_required_columns_in_dataframe(dataframe, [track_length_column])
-    dataframe_filtered = dataframe[dataframe[track_length_column] >= minimum_track_length]
+    check_required_columns_in_dataframe(dataframe, [Column.TRACK_LENGTH])
+    dataframe_filtered = dataframe[dataframe[Column.TRACK_LENGTH] >= minimum_track_length]
 
     # if empty dataframe after filtering, raise error
     if dataframe_filtered.empty:
