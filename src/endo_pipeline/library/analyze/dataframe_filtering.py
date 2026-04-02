@@ -9,9 +9,13 @@ from endo_pipeline.configs import (
     PositionAnnotation,
     TimepointAnnotation,
     get_all_unannotated_timepoints,
+    get_frame_after_flow_change,
     get_unannotated_positions,
 )
-from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.dataframe_validation import (
+    check_dataframe_dataset_matches_dataset_config,
+    check_required_columns_in_dataframe,
+)
 from endo_pipeline.settings.column_names import ColumnName as Column
 
 logger = logging.getLogger(__name__)
@@ -111,13 +115,10 @@ def filter_dataframe_by_annotations(
     required_columns = [Column.DATASET, Column.POSITION, Column.TIMEPOINT]
     check_required_columns_in_dataframe(dataframe, required_columns)
 
-    if dataframe[Column.DATASET].nunique() != 1:
-        logger.error("Dataframe must be restricted to one dataset only.")
-        raise ValueError("Dataframe must be restricted to one dataset only.")
-
-    if dataframe[Column.DATASET].unique()[0] != dataset_config.name:
-        logger.error("Dataset name in dataframe does not match dataset name in dataset config.")
-        raise ValueError("Dataset name in dataframe does not match dataset name in dataset config.")
+    # check that dataframe is restricted to a single dataset, and that the
+    # dataset name in the dataframe matches the dataset name for the provided
+    # dataset config
+    check_dataframe_dataset_matches_dataset_config(dataframe, dataset_config)
 
     # get positions and timepoints to include based on annotations
     only_include_positions = get_unannotated_positions(dataset_config, position_annotations)
@@ -136,3 +137,72 @@ def filter_dataframe_by_annotations(
     dataframe_filtered = pd.concat(df_filtered_list, ignore_index=True)
 
     return dataframe_filtered
+
+
+def split_dataframe_by_flow(
+    dataframe: pd.DataFrame, dataset_config: DatasetConfig
+) -> tuple[list[pd.DataFrame], list[float]]:
+    """
+    Parse a dataframe of features for one dataset into separate dataframes for
+    each flow condition based on the dataset config.
+
+    If there is only one flow condition, this method returns a lists of length 1
+    containing the original dataframe and single shear stress value.
+
+    The dataframe should have columns for:
+        - Column.DATASET: dataset name for each row of data, which should be the
+          same across all rows of the dataframe.
+        - Column.TIMEPOINT: timepoint/frame number for each row of data.
+
+    Parameters
+    ----------
+    dataframe
+        DataFrame containing feature data for one dataset.
+    dataset_config
+        DatasetConfig object for the given dataset.
+
+    Returns
+    -------
+    :
+        List of DataFrames, each containing the feature data for one flow
+        condition.
+    :
+        List of shear stress values for each flow condition.
+    """
+    # check that required columns are present
+    required_columns = [Column.DATASET, Column.TIMEPOINT]
+    check_required_columns_in_dataframe(dataframe, required_columns)
+
+    # check that dataframe is restricted to a single dataset, and that the
+    # dataset name in the dataframe matches the dataset name for the provided
+    # dataset config
+    check_dataframe_dataset_matches_dataset_config(dataframe, dataset_config)
+
+    # get flow condition information from dataset config
+    flow_conditions = dataset_config.flow_conditions
+
+    # split out data by flow condition,
+    # starting with first flow condition
+    first_shear = flow_conditions[0].shear_stress
+    # initialize list of shear stress conditions
+    shear_list = [first_shear]
+    # if there is a change in flow condition
+    if len(flow_conditions) > 1:
+        # get frame number where second flow condition starts
+        change_frame = get_frame_after_flow_change(dataset_config)
+        # get second shear stress condition
+        second_shear = flow_conditions[1].shear_stress
+        shear_list.append(second_shear)
+        # separate data into two dataframes based on
+        # frame number where flow condition changes
+        data_flow1 = dataframe[dataframe[Column.TIMEPOINT] < change_frame].copy()
+        data_flow2 = dataframe[dataframe[Column.TIMEPOINT] >= change_frame].copy()
+        # return list of dataframes for each flow condition
+        data_all = [data_flow1, data_flow2]
+    # else, there is only one flow condition
+    else:
+        # list of dataframes for one flow condition
+        # = list containing the original dataframe
+        data_all = [dataframe.copy()]
+
+    return data_all, shear_list

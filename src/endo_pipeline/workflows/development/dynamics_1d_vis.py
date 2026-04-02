@@ -51,8 +51,10 @@ def main(
         load_dataset_config,
     )
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
-    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import split_dataset_by_flow
+    from endo_pipeline.library.analyze.dataframe_filtering import (
+        filter_dataframe_by_annotations,
+        split_dataframe_by_flow,
+    )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
@@ -133,7 +135,7 @@ def main(
             timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
         )
 
-        df_by_flow, shear_stress_list = split_dataset_by_flow(df_steady_state, dataset_config)
+        df_by_flow, shear_stress_list = split_dataframe_by_flow(df_steady_state, dataset_config)
 
         # compute on a per-shear stress condition basis
         for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):

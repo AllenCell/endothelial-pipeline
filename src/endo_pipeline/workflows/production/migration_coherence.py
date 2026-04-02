@@ -20,11 +20,13 @@ def main(
         load_dataset_config,
     )
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
-    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
+    from endo_pipeline.library.analyze.dataframe_filtering import (
+        filter_dataframe_by_annotations,
+        split_dataframe_by_flow,
+    )
     from endo_pipeline.library.analyze.dataframe_validation import (
         check_required_columns_in_dataframe,
     )
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import split_dataset_by_flow
     from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
         add_binned_mean_to_fixed_points,
         add_optical_flow_features,
@@ -113,9 +115,10 @@ def main(
         df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
         columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *DYNAMICS_COLUMN_NAMES]
         df_ = df[columns_to_compute].compute()
+        dataset_config = load_dataset_config(dataset_name)
         df_steady_state = filter_dataframe_by_annotations(
             df_,
-            load_dataset_config(dataset_name),
+            dataset_config,
             timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
         )
 
@@ -128,8 +131,7 @@ def main(
 
         # split the dataframe by flow condition so we can plot the distribution
         # of optical flow features for each flow condition separately
-        dataset_config = load_dataset_config(dataset_name)
-        df_by_flow, shear_stress_list = split_dataset_by_flow(df_of, dataset_config)
+        df_by_flow, shear_stress_list = split_dataframe_by_flow(df_of, dataset_config)
 
         for df_flow, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"

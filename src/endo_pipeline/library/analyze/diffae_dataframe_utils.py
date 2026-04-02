@@ -7,10 +7,8 @@ import pandas as pd
 from sklearn.decomposition import PCA
 
 from endo_pipeline.configs import (
-    DatasetConfig,
     TimepointAnnotation,
     get_datasets_in_collection,
-    get_frame_after_flow_change,
     get_subset_of_timepoint_annotations,
     load_dataset_config,
 )
@@ -732,65 +730,6 @@ def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
         feats.append(data_crop_filled[column_names].values)
 
     return np.array(feats)
-
-
-def split_dataset_by_flow(
-    df_proj: pd.DataFrame, dataset_config: DatasetConfig
-) -> tuple[list[pd.DataFrame], list[float]]:
-    """
-    Get crop-based feature data (Diffusion AE output) for each flow condition present in a dataset.
-
-    If there is only one flow condition, this method returns a lists of length 1
-    containing the original dataframe and single shear stress value.
-
-    Parameters
-    ----------
-    df_proj
-        DataFrame containing the PCA-projected feature data for one dataset.
-    dataset_config
-        DatasetConfig object for the given dataset.
-
-    Returns
-    -------
-    :
-        List of DataFrames, each containing the feature data for one flow condition.
-    :
-        List of shear stress values for each flow condition.
-    """
-    # check that required columns are present
-    check_required_columns_in_dataframe(df_proj, [Column.TIMEPOINT])
-
-    # get flow condition information from dataset config
-    flow_conditions = dataset_config.flow_conditions
-
-    # split out data by flow condition,
-    # starting with first flow condition
-    first_shear = flow_conditions[0].shear_stress
-    # initialize list of shear stress conditions
-    shear_list = [first_shear]
-    # if there is a change in flow condition
-    if len(flow_conditions) > 1:
-        # get frame number where second flow condition starts
-        change_frame = get_frame_after_flow_change(dataset_config)
-        # get second shear stress condition
-        second_shear = flow_conditions[1].shear_stress
-        shear_list.append(second_shear)
-        logger.debug("Shear stress [ %s ] dyn/cm^2 until frame [ %s ]", first_shear, change_frame)
-        logger.debug("Shear stress [ %s ] dyn/cm^2 after frame [ %s ]", second_shear, change_frame)
-        # separate data into two dataframes based on
-        # frame number where flow condition changes
-        data_flow1 = df_proj[df_proj[Column.TIMEPOINT] < change_frame].copy()
-        data_flow2 = df_proj[df_proj[Column.TIMEPOINT] >= change_frame].copy()
-        # return list of dataframes for each flow condition
-        data_all = [data_flow1, data_flow2]
-    # else, there is only one flow condition
-    else:
-        logger.debug("Constant shear stress [ %s ] dyn/cm^2", first_shear)
-        # list of dataframes for one flow condition
-        # = list containing the original dataframe
-        data_all = [df_proj.copy()]
-
-    return data_all, shear_list
 
 
 def fill_missing_timepoints(
