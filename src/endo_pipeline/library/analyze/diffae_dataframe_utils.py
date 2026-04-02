@@ -845,42 +845,6 @@ def add_description_column(
     return df
 
 
-def add_crop_index(
-    df: pd.DataFrame,
-    crop_pattern: Literal["grid", "tracked"] = "grid",
-) -> pd.DataFrame:
-    """
-    Add crop index column to DataFrame df. (Crops are currently identified by
-        their starting position in x and y.).
-
-    Inputs:
-    - df: pd.DataFrame, DataFrame of feature data with metadata
-        columns for start_x, start_y, and FOV_ID
-        - IMPORTANT: DataFrame must be restricted to one dataset only,
-            as identified by the dataset_name column
-
-    Outputs:
-    - df: pd.DataFrame, DataFrame of feature data for one
-        dataset with added crop index column
-    """
-    if crop_pattern not in ["grid", "tracked"]:
-        logger.error("Crop pattern must be 'tracked' or 'grid', got [ %s ]", crop_pattern)
-        raise ValueError("Input crop_pattern must be 'grid' or 'tracked'")
-
-    if crop_pattern == "tracked" and Column.TRACK_ID in df.columns:
-        required_columns = [Column.POSITION, Column.TRACK_ID]
-    elif crop_pattern == "grid":
-        required_columns = [Column.POSITION, Column.DiffAEData.START_X, Column.DiffAEData.START_Y]
-
-    check_required_columns_in_dataframe(df, required_columns)
-
-    # group by the required columns and assign a unique integer (the crop_index)
-    # to each group based on the index of that group
-    df[Column.CROP_INDEX] = df.groupby(required_columns, as_index=False).ngroup().astype(int)
-
-    return df
-
-
 def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
     """
     Convert DataFrame of features corresponding to one dataset to array
