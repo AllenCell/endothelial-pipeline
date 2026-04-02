@@ -60,8 +60,10 @@ def main(
         load_dataframe,
         upload_file_to_fms,
     )
+    from endo_pipeline.library.analyze.dataframe_validation import (
+        check_required_columns_in_dataframe,
+    )
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        add_crop_index,
         filter_dataframe_by_annotations,
         fit_pca,
         project_features_to_pcs,
@@ -113,7 +115,23 @@ def main(
         df = load_dataframe(location)
 
         # Add unique crop indices for downstream workflows
-        df_with_crop_index = add_crop_index(df, crop_pattern)
+        if crop_pattern == "tracked" and Column.TRACK_ID in df.columns:
+            required_columns = [Column.POSITION, Column.TRACK_ID]
+        elif crop_pattern == "grid":
+            required_columns = [
+                Column.POSITION,
+                Column.DiffAEData.START_X,
+                Column.DiffAEData.START_Y,
+            ]
+
+        check_required_columns_in_dataframe(df, required_columns)
+
+        # group by the required columns and assign a unique integer (the crop_index)
+        # to each group based on the index of that group
+        df_with_crop_index = df.copy()
+        df_with_crop_index[Column.CROP_INDEX] = (
+            df_with_crop_index.groupby(required_columns, as_index=False).ngroup().astype(int)
+        )
 
         # Project feature data onto PC axes and compute additional transformed
         # features (e.g. polar coordinates) from the PC-projected features

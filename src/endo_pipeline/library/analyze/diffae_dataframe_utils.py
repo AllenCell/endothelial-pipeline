@@ -660,12 +660,6 @@ def get_dataframe_for_dynamics_workflows(
     # keep only necessary columns to save memory
     df_ = df[columns_to_keep_].compute()
 
-    # the crop indices have to be added before any filtering
-    # so that they are consistently assigned across datasets
-    # for the grid crop pattern, which is critical for the
-    # grid-based TFE workflow to run correctly
-    df_ = add_crop_index(df_, crop_pattern)
-
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
     if filter_by_annotations:
@@ -847,42 +841,6 @@ def add_description_column(
 
     # add description column to DataFrame
     df["description"] = description[dataset_name]  # add description to DataFrame
-
-    return df
-
-
-def add_crop_index(
-    df: pd.DataFrame,
-    crop_pattern: Literal["grid", "tracked"] = "grid",
-) -> pd.DataFrame:
-    """
-    Add crop index column to DataFrame df. (Crops are currently identified by
-        their starting position in x and y.).
-
-    Inputs:
-    - df: pd.DataFrame, DataFrame of feature data with metadata
-        columns for start_x, start_y, and FOV_ID
-        - IMPORTANT: DataFrame must be restricted to one dataset only,
-            as identified by the dataset_name column
-
-    Outputs:
-    - df: pd.DataFrame, DataFrame of feature data for one
-        dataset with added crop index column
-    """
-    if crop_pattern not in ["grid", "tracked"]:
-        logger.error("Crop pattern must be 'tracked' or 'grid', got [ %s ]", crop_pattern)
-        raise ValueError("Input crop_pattern must be 'grid' or 'tracked'")
-
-    if crop_pattern == "tracked" and Column.TRACK_ID in df.columns:
-        required_columns = [Column.POSITION, Column.TRACK_ID]
-    elif crop_pattern == "grid":
-        required_columns = [Column.POSITION, Column.DiffAEData.START_X, Column.DiffAEData.START_Y]
-
-    check_required_columns_in_dataframe(df, required_columns)
-
-    # group by the required columns and assign a unique integer (the crop_index)
-    # to each group based on the index of that group
-    df[Column.CROP_INDEX] = df.groupby(required_columns, as_index=False).ngroup().astype(int)
 
     return df
 
