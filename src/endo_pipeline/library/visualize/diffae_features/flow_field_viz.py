@@ -10,12 +10,11 @@ from matplotlib.colors import LogNorm, Normalize
 from matplotlib.patches import Patch
 from matplotlib.ticker import MaxNLocator
 
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.data_driven_flow_field import interpolate_on_curve
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     check_required_columns_in_dataframe,
-    get_dataset_descriptions,
-    parse_dataset_description,
     rewrap_polar_angle,
 )
 from endo_pipeline.library.visualize.diffae_features.feature_viz import (
@@ -596,15 +595,12 @@ def plot_flow_field_slices(
     ax[1].set_title(f"{column_labels[1]} = {feature_y_val:.2f}")
     plt.tight_layout()
 
-    dataset_description_simple = get_dataset_descriptions(
-        [dataset_name], include_duration=False, include_shear_stress=True
-    )[dataset_name]
-    dataset_description_full = parse_dataset_description(dataset_description_simple).replace(
-        ", ", ""
-    )
+    dataset_config = load_dataset_config(dataset_name)
+    shear_stress = dataset_config.flow_conditions[0].shear_stress
+    dataset_description = f"{dataset_name} ({shear_stress} dyn/cm$^2$)"
 
     fig.suptitle(
-        f"{dataset_name} ({dataset_description_full})",
+        dataset_description,
         fontsize=FONTSIZE_LARGE,
         y=1.02,
         fontfamily=FONT_FAMILY,
