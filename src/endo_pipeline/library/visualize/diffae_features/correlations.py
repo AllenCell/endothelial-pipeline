@@ -10,10 +10,6 @@ from matplotlib.figure import Figure
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    get_dataset_descriptions,
-    parse_dataset_description,
-)
 from endo_pipeline.library.analyze.numerics.correlations import (
     CROSS_CORR_INDEX_COMBINATIONS,
     double_exponential_decay,
@@ -252,7 +248,6 @@ def _add_exp_fit_to_plot(
 def _make_all_acf_plots(
     dataset_name: str,
     correlation_dict: dict[str, dict[str, Any]],
-    dataset_description: str,
     output_path: Path,
     fit_double_exp: bool = True,
     bootstrap_samples: int | None = None,
@@ -260,6 +255,16 @@ def _make_all_acf_plots(
     # unpack results
     lags: np.ndarray = correlation_dict["lags"][dataset_name]
     acf: np.ndarray = correlation_dict["acf"][dataset_name]
+
+    # get string for shear stress to include in plot title
+    dataset_config = load_dataset_config(dataset_name)
+    if len(dataset_config.flow_conditions) > 1:
+        logger.warning(
+            "Multiple flow conditions found for dataset [ %s ]. "
+            "Using shear stress from first flow condition for plot titles.",
+            dataset_name,
+        )
+    shear_stress = dataset_config.flow_conditions[0].shear_stress
 
     # plot acf for positive lags
     # (acf is symmetric around zero)
@@ -272,7 +277,7 @@ def _make_all_acf_plots(
         correlation_dict,
         bootstrap_samples=bootstrap_samples,
         component_labels=correlation_dict["features"][dataset_name],
-        plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
+        plot_title=f"Autocorrelation of PCA Components ({shear_stress} dyn/cm$^2$)",
         xlabel="Lag (hours)",
         linewidth=2.75,
     )
@@ -291,7 +296,7 @@ def _make_all_acf_plots(
         correlation_dict,
         bootstrap_samples=bootstrap_samples,
         component_labels=correlation_dict["features"][dataset_name],
-        plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
+        plot_title=f"Autocorrelation of PCA Components ({shear_stress} dyn/cm$^2$)",
         xlabel="Lag (hours)",
         linewidth=2.75,
     )
@@ -315,7 +320,7 @@ def _make_all_acf_plots(
             correlation_dict,
             bootstrap_samples=bootstrap_samples,
             component_labels=correlation_dict["features"][dataset_name],
-            plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
+            plot_title=f"Autocorrelation of PCA Components ({shear_stress} dyn/cm$^2$)",
             xlabel="Lag (hours)",
             linewidth=2.75,
             linestyle="-",
@@ -340,7 +345,6 @@ def _make_all_acf_plots(
 def _make_all_ccf_plots(
     dataset_name: str,
     correlation_dict: dict[str, dict[str, Any]],
-    dataset_description: str,
     output_path: Path,
     bootstrap_samples: int | None = None,
 ) -> None:
@@ -357,6 +361,10 @@ def _make_all_ccf_plots(
     max_lag_integrate: int = correlation_dict["max_lag_integrate"][dataset_name]
     feature_labels: list[str] = correlation_dict["features"][dataset_name]
 
+    # get string for shear stress to include in plot title
+    dataset_config = load_dataset_config(dataset_name)
+    shear_stress = dataset_config.flow_conditions[0].shear_stress
+
     # plot ccf with confidence intervals if available
     fig, ax = plt.subplots(figsize=(12, 6))
     for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
@@ -371,7 +379,7 @@ def _make_all_ccf_plots(
                 color=list(TABLEAU_COLORS.keys())[i],
                 label="95% CI",
             )
-    ax.set_title(f"Cross-Correlation of PCA Components ({dataset_description})")
+    ax.set_title(f"Cross-Correlation of PCA Components ({shear_stress} dyn/cm$^2$)")
     ax.set_xlabel("Lag (hours)")
     ax.set_ylabel("CCF")
     ax.legend()
@@ -403,7 +411,7 @@ def _make_all_ccf_plots(
                 color=list(TABLEAU_COLORS.keys())[i],
                 label="95% CI",
             )
-    ax.set_title(f"$C_{{ij}}(\\tau) - C_{{ij}}(-\\tau)$ ({dataset_description})")
+    ax.set_title(f"$C_{{ij}}(\\tau) - C_{{ij}}(-\\tau)$ ({shear_stress} dyn/cm$^2$)")
     ax.set_xlabel("Lag $\\tau$ (hours)")
     ax.set_ylabel("$\Delta C_{ij}(\\tau)$")
     ax.legend()
@@ -429,20 +437,15 @@ def _make_all_ccf_plots(
 def _plot_full_correlation_curves(
     dataset_name: str,
     correlation_dict: dict[str, dict[str, Any]],
-    dataset_descriptions: dict[str, str],
     output_path: Path,
     bootstrap_samples: int | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Plot full correlation curves for a single dataset."""
-    # get string for dataset description
-    dataset_description = parse_dataset_description(dataset_descriptions[dataset_name])
-
     # plot acf and fit exponential decay
     # adds relaxation timescales to correlation_dict
     correlation_dict = _make_all_acf_plots(
         dataset_name,
         correlation_dict,
-        dataset_description,
         output_path,
         bootstrap_samples=bootstrap_samples,
     )
@@ -451,7 +454,6 @@ def _plot_full_correlation_curves(
     _make_all_ccf_plots(
         dataset_name,
         correlation_dict,
-        dataset_description,
         output_path,
         bootstrap_samples=bootstrap_samples,
     )
@@ -643,9 +645,7 @@ def plot_correlation_workflow_outputs(
         Optional, number of bootstrap samples used to compute confidence intervals.
     """
     list_of_datasets = list(correlation_dict["lags"].keys())
-    dataset_descriptions = get_dataset_descriptions(
-        list_of_datasets, simple=True, include_duration=False, include_shear_stress=True
-    )
+
     output_path = get_output_path("correlations")
 
     # plot full correlation curves for each dataset
@@ -654,7 +654,6 @@ def plot_correlation_workflow_outputs(
         correlation_dict = _plot_full_correlation_curves(
             dataset_name,
             correlation_dict,
-            dataset_descriptions,
             output_path,
             bootstrap_samples=bootstrap_samples,
         )
