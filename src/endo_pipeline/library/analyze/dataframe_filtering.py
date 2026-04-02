@@ -12,7 +12,10 @@ from endo_pipeline.configs import (
     get_frame_after_flow_change,
     get_unannotated_positions,
 )
-from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.dataframe_validation import (
+    check_dataframe_has_single_dataset,
+    check_required_columns_in_dataframe,
+)
 from endo_pipeline.settings.column_names import ColumnName as Column
 
 logger = logging.getLogger(__name__)
@@ -112,10 +115,10 @@ def filter_dataframe_by_annotations(
     required_columns = [Column.DATASET, Column.POSITION, Column.TIMEPOINT]
     check_required_columns_in_dataframe(dataframe, required_columns)
 
-    if dataframe[Column.DATASET].nunique() != 1:
-        logger.error("Dataframe must be restricted to one dataset only.")
-        raise ValueError("Dataframe must be restricted to one dataset only.")
+    # check that dataframe is restricted to a single dataset
+    check_dataframe_has_single_dataset(dataframe)
 
+    # check that dataset name in dataframe matches dataset name in dataset config
     if dataframe[Column.DATASET].unique()[0] != dataset_config.name:
         logger.error("Dataset name in dataframe does not match dataset name in dataset config.")
         raise ValueError("Dataset name in dataframe does not match dataset name in dataset config.")
@@ -174,10 +177,9 @@ def split_dataframe_by_flow(
     check_required_columns_in_dataframe(dataframe, required_columns)
 
     # check that dataframe is restricted to one dataset only
-    if dataframe[Column.DATASET].nunique() != 1:
-        logger.error("Dataframe must be restricted to one dataset only.")
-        raise ValueError("Dataframe must be restricted to one dataset only.")
+    check_dataframe_has_single_dataset(dataframe)
 
+    # check that dataset name in dataframe matches dataset name in dataset config
     if dataframe[Column.DATASET].unique()[0] != dataset_config.name:
         logger.error("Dataset name in dataframe does not match dataset name in dataset config.")
         raise ValueError("Dataset name in dataframe does not match dataset name in dataset config.")
