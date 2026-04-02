@@ -1,3 +1,5 @@
+"""Methods for fitting and working with PCA models."""
+
 import logging
 from typing import Literal
 
