@@ -6,6 +6,7 @@ import pandas as pd
 from scipy.optimize import curve_fit
 
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.diffae_dataframe_utils import fill_missing_timepoints
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RESCALE_THETA
 
@@ -352,14 +353,19 @@ def compute_correlations_for_one_dataset(
     t_max = dataframe[Column.TIMEPOINT].max()
     all_timepoints = np.arange(t_min, t_max + 1)
 
-    # reindex dataframe to include all timepoints in full range
-    dataframe_filled = dataframe.copy().sort_values(by=[Column.CROP_INDEX, Column.TIMEPOINT])
-    dataframe_filled.set_index(Column.TIMEPOINT).reindex(all_timepoints)
+    # fill missing timepoints with NaN values for each crop to ensure
+    # consistent time axis across crops when computing population
+    # variance and cumulative variance per crop, which require a 2D
+    # array of shape (num_crops, num_timepoints)
+    data_filled_list = []
+    for _, data_crop in dataframe.groupby(Column.CROP_INDEX):
+        data_crop = data_crop.sort_values(by=Column.TIMEPOINT)
+        data_crop_filled = fill_missing_timepoints(data_crop, (t_min, t_max))
+        data_filled_list.append(data_crop_filled)
 
-    # reset index to restore timepoint column
-    dataframe_filled = dataframe_filled.reset_index()
+    dataframe_filled = pd.concat(data_filled_list, ignore_index=True)
+
     num_feats = len(column_names)
-
     num_timepoints = len(all_timepoints)
     # make sure lags are symmetric around zero
     max_lags = num_timepoints // NUM_TIMEPOINT_FRAC
@@ -372,8 +378,10 @@ def compute_correlations_for_one_dataset(
     acf_ub = np.zeros((num_lags, num_feats))
     relaxation_timescale_lb = np.zeros(num_feats)
     relaxation_timescale_ub = np.zeros(num_feats)
+    # dataframe as array of shape (num_crops, num_timepoints, num_feats) for the
+    # current feature, with missing timepoints filled with NaNs
+    feats = dataframe_filled[column_names].to_numpy().reshape(-1, num_timepoints, num_feats)
     for i in range(num_feats):
-        feats = dataframe_filled[column_names[i]].to_numpy()
         acf[:, i] = autocorrelation_function(feats, i)
         if bootstrap_samples is not None:
             # calculate bootstrap confidence intervals for ACF and relaxation timescale
@@ -405,8 +413,8 @@ def compute_correlations_for_one_dataset(
     delta_ccf_integral_ub = np.zeros(num_feats)
 
     for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
-        data_feat1 = dataframe_filled[column_names[j]].to_numpy()
-        data_feat2 = dataframe_filled[column_names[k]].to_numpy()
+        data_feat1 = feats[..., j]
+        data_feat2 = feats[..., k]
         ccf[:, i] = cross_correlation_function(data_feat1, data_feat2)
         # get delta CCF = CCF(tau>0) - CCF(tau<0)
         delta_ccf[:, i] = ccf[1 + num_lags // 2 :, i] - ccf[: num_lags // 2, i]
