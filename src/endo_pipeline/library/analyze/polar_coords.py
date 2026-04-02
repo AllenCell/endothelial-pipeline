@@ -1,3 +1,5 @@
+"""Methods for working with PCs converted to polar coordinates."""
+
 from typing import overload
 
 import numpy as np
