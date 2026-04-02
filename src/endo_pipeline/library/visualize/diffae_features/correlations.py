@@ -258,6 +258,12 @@ def _make_all_acf_plots(
 
     # get string for shear stress to include in plot title
     dataset_config = load_dataset_config(dataset_name)
+    if len(dataset_config.flow_conditions) > 1:
+        logger.warning(
+            "Multiple flow conditions found for dataset [ %s ]. "
+            "Using shear stress from first flow condition for plot titles.",
+            dataset_name,
+        )
     shear_stress = dataset_config.flow_conditions[0].shear_stress
 
     # plot acf for positive lags
