@@ -524,9 +524,7 @@ def get_dataframe_for_dynamics_workflows(
         df_filtered = df_filtered[df_filtered[Column.SegDataFilters.IS_INCLUDED]]
 
     if minimum_track_length is not None:
-        df_filtered = filter_dataframe_by_track_length(
-            df_filtered, Column.TRACK_LENGTH, minimum_track_length
-        )
+        df_filtered = filter_dataframe_by_track_length(df_filtered, minimum_track_length)
 
     # add dataset duration description column
     dataset_config = load_dataset_config(dataset_name)
