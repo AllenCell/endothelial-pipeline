@@ -43,7 +43,7 @@ def filter_dataframe_by_track_length(
 
     Returns
     -------
-    pd.DataFrame
+    :
         Filtered DataFrame containing only tracks with length >=
         minimum_track_length.
     """
