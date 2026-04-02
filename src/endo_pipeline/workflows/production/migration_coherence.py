@@ -152,6 +152,20 @@ def main(
                             fixed_points_dataframe_manifest.name,
                         )
 
+                # Enrich fixed points with binned mean of the optical flow
+                # feature so downstream plots (histogram, 3D) can use it.
+                df_flow_no_nan = df_flow.dropna(subset=[optical_flow_feature])
+                fp_for_feature = fixed_points_dataframe
+                if fp_for_feature is not None:
+                    fp_for_feature = add_binned_mean_to_fixed_points(
+                        fp_for_feature,
+                        df_flow_no_nan,
+                        x_col=ColumnName.DiffAEData.POLAR_ANGLE,
+                        y_col=ColumnName.DiffAEData.POLAR_RADIUS,
+                        z_col=ColumnName.DiffAEData.PC3_FLIPPED,
+                        binned_col=optical_flow_feature,
+                    )
+
                 # save individual histogram for this dataset and flow condition
                 plot_optical_flow_histogram(
                     df=df_flow,
@@ -160,6 +174,7 @@ def main(
                     color=hist_color,
                     output_dir=output_dir,
                     filename=f"{dataset_name_flow}_{optical_flow_feature}_distribution",
+                    df_fp=fp_for_feature,
                 )
 
                 # --- 2D plots ---
@@ -221,18 +236,6 @@ def main(
                         plt.close(fig)
 
                 # --- 3D plots ---
-                df_flow_no_nan = df_flow.dropna(subset=[optical_flow_feature])
-
-                fp_for_feature = fixed_points_dataframe
-                if fp_for_feature is not None:
-                    fp_for_feature = add_binned_mean_to_fixed_points(
-                        fp_for_feature,
-                        df_flow_no_nan,
-                        x_col=ColumnName.DiffAEData.POLAR_ANGLE,
-                        y_col=ColumnName.DiffAEData.POLAR_RADIUS,
-                        z_col=ColumnName.DiffAEData.PC3_FLIPPED,
-                        binned_col=optical_flow_feature,
-                    )
 
                 # 3D Scatter
                 fig, ax = plot_3d_scatter_or_binned(

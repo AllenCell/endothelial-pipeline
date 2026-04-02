@@ -452,6 +452,7 @@ def plot_optical_flow_histogram(
     color: str,
     output_dir: Path,
     filename: str,
+    df_fp: pd.DataFrame | None = None,
 ) -> None:
     """Plot and save a histogram of an optical flow feature for a single dataset/flow condition.
 
@@ -469,6 +470,10 @@ def plot_optical_flow_histogram(
         Directory where the figure is saved.
     filename
         Filename (without extension) for the saved figure.
+    df_fp
+        Optional fixed-points dataframe. If provided, each fixed point's
+        ``mean_{optical_flow_feature}`` value is overlaid as a marker on
+        the x-axis, colored and shaped by its stability classification.
     """
 
     data = df[optical_flow_feature].dropna()
@@ -486,8 +491,8 @@ def plot_optical_flow_histogram(
         ax=ax,
         color=color,
     )
-    ax.axvline(median, color="black", linestyle="--", linewidth=1)
-    ax.axvline(mean, color="red", linestyle="-", linewidth=1)
+    ax.axvline(mean, color="black", linestyle="--", linewidth=1)
+    ax.axvline(median, color="grey", linestyle="-", linewidth=1)
     ax.text(
         0.05,
         0.95,
@@ -495,9 +500,33 @@ def plot_optical_flow_histogram(
         transform=ax.transAxes,
         ha="left",
         va="top",
-        fontsize=9,
-        bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.8},
+        fontsize=8,
+        bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.75},
     )
+
+    # Overlay fixed points on x-axis
+    if df_fp is not None:
+        mean_col = f"mean_{optical_flow_feature}"
+        if mean_col in df_fp.columns:
+            for _, row in df_fp.iterrows():
+                stability = row[STABILITY_COLUMN_NAME]
+                mk = STABILITY_MARKER_DICT.get(stability, "o")
+                clr = STABILITY_COLOR_DICT.get(stability, "gray")
+                fp_val = row[mean_col]
+                if pd.notna(fp_val):
+                    ax.scatter(
+                        fp_val,
+                        0,
+                        marker=mk,
+                        color=clr,
+                        edgecolor="black",
+                        linewidths=1,
+                        s=120,
+                        zorder=5,
+                        clip_on=False,
+                    )
+        filename = f"{filename}_with_fixed_points" if df_fp is not None else filename
+
     ax.set_xlabel(optical_flow_feature)
     ax.set_ylabel("Count")
     ax.set_title(title)
