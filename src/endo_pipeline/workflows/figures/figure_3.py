@@ -61,7 +61,6 @@ def main() -> None:
     pca = fit_pca(
         dataset_collection_name=dataset_collection,
         dataframe_manifest_name=dataframe_manifest_name,
-        include_cell_piling=include_cell_piling,
         num_pcs=n_dims,
     )
     column_names = [f"{Column.DiffAEData.PCA_FEATURE_PREFIX}{i+1}" for i in range(n_dims)]

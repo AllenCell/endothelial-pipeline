@@ -56,7 +56,6 @@ def load_data_for_montage(
 
     pca = fit_pca(
         dataframe_manifest_name=dataframe_manifest.name,
-        include_cell_piling=include_cell_piling,
     )
 
     df_all = pd.concat(
