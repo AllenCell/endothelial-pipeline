@@ -17,7 +17,6 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     project_features_to_pcs,
     unwrap_nonsequential_array,
 )
-from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
 from endo_pipeline.settings.column_names import ColumnName as Column
 
 
@@ -304,23 +303,6 @@ def test_get_traj_and_diff(dataframe, column_names, expected_trajectories, expec
         np.testing.assert_array_almost_equal(traj, expected_traj)
     for diff, expected_diff in zip(differences, expected_differences, strict=True):
         np.testing.assert_array_almost_equal(diff, expected_diff)
-
-
-@pytest.mark.parametrize(
-    "angle, wrapped_range, expected_rewrapped_angle",
-    [
-        (3 * np.pi / 2, (0, 2 * np.pi), 3 * np.pi / 2),
-        (-np.pi / 2, (0, 2 * np.pi), 3 * np.pi / 2),
-        (5 * np.pi, (-np.pi, np.pi), -np.pi),
-        (-7 * np.pi / 2, (-np.pi, np.pi), np.pi / 2),
-        (np.pi / 4, (0, np.pi), np.pi / 4),
-        (9 * np.pi / 4, (0, np.pi), np.pi / 4),
-        (-3 * np.pi / 4, (0, np.pi), np.pi / 4),
-    ],
-)
-def test_rewrap_polar_angle(angle, wrapped_range, expected_rewrapped_angle):
-    rewrapped_angle = rewrap_polar_angle(angle, wrapped_range)
-    assert np.isclose(rewrapped_angle, expected_rewrapped_angle)
 
 
 @pytest.mark.parametrize(
