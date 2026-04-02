@@ -29,7 +29,7 @@ def main(
     derived from the DiffAE features via a 3D PCA transformation. For more
     details on the specific features used and how they are derived, see the
     methods `fit_pca` and `project_features_to_pcs` in the
-    `diffae_dataframe_utils` module.
+    `pca` module.
 
     The workflow runs on the datasets specified via the `datasets` parameter,
     which can be a list of dataset names or dataset collection names. By

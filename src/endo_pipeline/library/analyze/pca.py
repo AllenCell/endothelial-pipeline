@@ -1,5 +1,6 @@
+"""Methods for fitting and working with PCA models."""
+
 import logging
-import re
 from typing import Literal
 
 import numpy as np
@@ -22,13 +23,12 @@ from endo_pipeline.library.analyze.polar_coords import pcs_to_polar_r, pcs_to_po
 from endo_pipeline.manifests import (
     DataframeManifest,
     get_dataframe_location_for_dataset,
-    get_feature_dataframe_manifest_name,
     load_dataframe_manifest,
-    load_model_manifest,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
-    DIFFAE_PC_COLUMN_NAME_GROUPS,
+    DIFFAE_FEATURE_COLUMN_NAMES,
+    DIFFAE_PC_COLUMN_NAMES,
     NUM_LATENT_FEATURES,
 )
 from endo_pipeline.settings.dynamics_workflows import METADATA_COLUMNS_TO_KEEP, RESCALE_THETA
@@ -42,85 +42,9 @@ from endo_pipeline.settings.workflow_defaults import (
 logger = logging.getLogger(__name__)
 
 
-def get_latent_feature_column_names(num_latent_dims: int) -> list[str]:
-    """
-    Get list of latent feature column names for given number of latent dimensions.
-
-    Parameters
-    ----------
-    num_latent_dims
-        Number of latent dimensions.
-
-    Returns
-    -------
-    :
-        List of latent feature column names.
-    """
-    feat_cols = [f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{i}" for i in range(num_latent_dims)]
-    return feat_cols
-
-
-def get_pc_column_names(num_pcs: str | int) -> list[str]:
-    """
-    Get list of PCA feature column names for given number of principal components.
-
-    Parameters
-    ----------
-    num_pcs
-        Either number of principal components (if an integer is provided) or a
-        group of principal components to include (if a string is provided,
-        e.g., "default" or "polar_coords").
-
-    Returns
-    -------
-    :
-        List of PCA feature column names.
-    """
-    if isinstance(num_pcs, int):
-        pc_cols = [f"{Column.DiffAEData.PCA_FEATURE_PREFIX}{i + 1}" for i in range(int(num_pcs))]
-    elif isinstance(num_pcs, str):
-        pc_cols = DIFFAE_PC_COLUMN_NAME_GROUPS.get(num_pcs, [])
-        if not pc_cols:
-            raise ValueError(
-                f"Invalid num_pcs string [ {num_pcs} ]. Must be either an integer or\
-                one of the following strings: {list(DIFFAE_PC_COLUMN_NAME_GROUPS.keys())}"
-            )
-    else:
-        raise ValueError("num_pcs must be either an integer or a string.")
-    return pc_cols
-
-
-def get_latent_feature_column_names_from_dataframe(dataframe: pd.DataFrame) -> list[str]:
-    """
-    Get list of latent feature column names for given number of latent dimensions.
-
-    Matches columns that start with the latent feature column name prefix
-    as defined in ColumnName.DiffAEData.LATENT_FEATURE_PREFIX.
-
-    Parameters
-    ----------
-    dataframe
-        DataFrame containing latent feature columns.
-
-    Returns
-    -------
-    :
-        List of latent feature column names.
-    """
-    # regular expression to match latent feature columns
-    feat_cols_match = [
-        re.match(f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}[0-9]+$", col)
-        for col in dataframe.columns
-    ]
-    feat_cols = [col.group() for col in feat_cols_match if col is not None]
-    return feat_cols
-
-
 def build_pca_input_dataframe(
     dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     dataframe_manifest_name: str | None = None,
-    filter_by_annotations: bool = True,
-    include_cell_piling: bool = False,
 ) -> pd.DataFrame:
     """
     Build input dataframe for fitting PCA model using given dataset collection.
@@ -131,10 +55,6 @@ def build_pca_input_dataframe(
         Name of the dataset collection to load reference datasets from.
     dataframe_manifest_name
         Name of the dataframe manifest to load the model features from.
-    filter_by_annotations
-        Whether to remove annotated timepoints and positions from the dataframes before fitting PCA.
-    include_cell_piling
-        True to include cell piling timepoints, False otherwise.
 
     Returns
     -------
@@ -144,48 +64,43 @@ def build_pca_input_dataframe(
 
     # Get dataframe manifest name if not provided based on default model manifest
     if dataframe_manifest_name is None:
-        dataframe_manifest_name = get_feature_dataframe_manifest_name(
-            load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
-            DEFAULT_MODEL_RUN_NAME,
-        )
+        dataframe_manifest_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
 
     # Load dataframe manifest
     manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     # Get datasets in collection
     dataset_names = get_datasets_in_collection(dataset_collection_name)
-    logger.info("Datasets being used to fit PCA: [ %s ]", ", ".join(dataset_names))
 
     # Load and filter out annotated timepoints (if requested) for each dataset
     dataframe_list = []
     for dataset_name in dataset_names:
         location = get_dataframe_location_for_dataset(manifest, dataset_name)
         dataframe = load_dataframe(location)
-        if filter_by_annotations:
-            annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
-            if include_cell_piling:
-                annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
-            timepoint_annotations = get_subset_of_timepoint_annotations(annotations_to_ignore)
-            dataframe_filtered = filter_dataframe_by_annotations(
-                dataframe,
-                load_dataset_config(dataset_name),
-                timepoint_annotations=timepoint_annotations,
-            )
-        else:
-            dataframe_filtered = dataframe
+        # filter out annotate timepoints and positions except for timepoints
+        # annotate at "not steady state"
+        annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
+        timepoint_annotations = get_subset_of_timepoint_annotations(annotations_to_ignore)
+        dataframe_filtered = filter_dataframe_by_annotations(
+            dataframe,
+            load_dataset_config(dataset_name),
+            timepoint_annotations=timepoint_annotations,
+        )
         dataframe_list.append(dataframe_filtered)
 
-    # Merge dataframes for all datasets and filter for feature columns ("feat_" prefix)
+    # Merge dataframes for all datasets
     data_ref = pd.concat(dataframe_list, ignore_index=True)
-    diffae_feature_cols = get_latent_feature_column_names_from_dataframe(data_ref)
-    return data_ref[diffae_feature_cols]
+
+    # check required columns: DIFFAE_FEATURE_COLUMN_NAMES
+    check_required_columns_in_dataframe(data_ref, DIFFAE_FEATURE_COLUMN_NAMES)
+
+    # return just the feature columns for PCA input (i.e., no metadata)
+    return data_ref[DIFFAE_FEATURE_COLUMN_NAMES]
 
 
 def fit_pca(
     dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     dataframe_manifest_name: str | None = None,
-    filter_by_annotations: bool = True,
-    include_cell_piling: bool = False,
     num_pcs: int = NUM_LATENT_FEATURES,
 ) -> PCA:
     """
@@ -197,10 +112,6 @@ def fit_pca(
         Name of the dataset collection to load reference datasets from.
     dataframe_manifest_name
         Name of the dataframe manifest to load the model features from.
-    filter_by_annotations
-        True to remove annotated timepoints and positions, False otherwise.
-    include_cell_piling
-        True to include cell piling timepoints, False otherwise.
     num_pcs
         Number of principal components to fit.
 
@@ -212,7 +123,7 @@ def fit_pca(
 
     # Build PCA input dataframe
     pca_input_dataframe = build_pca_input_dataframe(
-        dataset_collection_name, dataframe_manifest_name, filter_by_annotations, include_cell_piling
+        dataset_collection_name, dataframe_manifest_name
     )
 
     # Fit PCA
@@ -304,8 +215,8 @@ def get_pca_loadings_as_df(
     loading_matrix = get_pca_loadings(pca, scaled, magnitude, squared_norm)
 
     num_features, num_pcs = loading_matrix.shape
-    feat_col_names = get_latent_feature_column_names(num_features)
-    pc_col_names = get_pc_column_names(num_pcs)
+    feat_col_names = DIFFAE_FEATURE_COLUMN_NAMES[:num_features]
+    pc_col_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
 
     loading_matrix_df = pd.DataFrame(loading_matrix, columns=pc_col_names, index=feat_col_names)
     if df_format == "long":
@@ -326,7 +237,7 @@ def get_pca_loadings_as_df(
 def project_features_to_pcs(
     df: pd.DataFrame,
     pca: PCA,
-    feat_cols: list[str] | None = None,
+    feat_cols: list[str],
     compute_polar: bool = True,
     rescale_theta: bool = RESCALE_THETA,
     flip_pc3_sign: bool = True,
@@ -372,16 +283,13 @@ def project_features_to_pcs(
         DataFrame with added columns for each principal component.
     """
     # check that required columns are present in dataframe
-    if feat_cols is None:
-        feat_cols = get_latent_feature_column_names_from_dataframe(df)
-    else:
-        check_required_columns_in_dataframe(df, feat_cols)
+    check_required_columns_in_dataframe(df, feat_cols)
 
     df_ = df.copy()  # make copy of DataFrame to avoid modifying original DataFrame
 
     # project feature data onto PCA axes, add new columns for each PC
     num_pcs = pca.components_.shape[0]  # number of principal components
-    pc_cols = get_pc_column_names(num_pcs)
+    pc_cols = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
     df_.loc[:, pc_cols] = pca.transform(df_[feat_cols].values)
 
     # optionally, compute polar coordinates (r, theta) from first two PCs
@@ -409,6 +317,42 @@ def project_features_to_pcs(
             raise ValueError("At least 3 PCs are required to add column for -(PC3).")
 
     return df_
+
+
+def add_crop_index(
+    df: pd.DataFrame,
+    crop_pattern: Literal["grid", "tracked"] = "grid",
+) -> pd.DataFrame:
+    """
+    Add crop index column to DataFrame df. (Crops are currently identified by
+        their starting position in x and y.).
+
+    Inputs:
+    - df: pd.DataFrame, DataFrame of feature data with metadata
+        columns for start_x, start_y, and FOV_ID
+        - IMPORTANT: DataFrame must be restricted to one dataset only,
+            as identified by the dataset_name column
+
+    Outputs:
+    - df: pd.DataFrame, DataFrame of feature data for one
+        dataset with added crop index column
+    """
+    if crop_pattern not in ["grid", "tracked"]:
+        logger.error("Crop pattern must be 'tracked' or 'grid', got [ %s ]", crop_pattern)
+        raise ValueError("Input crop_pattern must be 'grid' or 'tracked'")
+
+    if crop_pattern == "tracked" and Column.TRACK_ID in df.columns:
+        required_columns = [Column.POSITION, Column.TRACK_ID]
+    elif crop_pattern == "grid":
+        required_columns = [Column.POSITION, Column.DiffAEData.START_X, Column.DiffAEData.START_Y]
+
+    check_required_columns_in_dataframe(df, required_columns)
+
+    # group by the required columns and assign a unique integer (the crop_index)
+    # to each group based on the index of that group
+    df[Column.CROP_INDEX] = df.groupby(required_columns, as_index=False).ngroup().astype(int)
+
+    return df
 
 
 def get_dataframe_for_dynamics_workflows(
@@ -497,7 +441,7 @@ def get_dataframe_for_dynamics_workflows(
 
     location = get_dataframe_location_for_dataset(manifest, dataset_name)
     df = load_dataframe(location, delay=True)
-    feat_cols = get_latent_feature_column_names_from_dataframe(df)
+    feat_cols = DIFFAE_FEATURE_COLUMN_NAMES
 
     # start with default metadata columns to keep
     # temporarily drop the "crop_index" column while workflows that use this
@@ -512,6 +456,12 @@ def get_dataframe_for_dynamics_workflows(
 
     # keep only necessary columns to save memory
     df_ = df[columns_to_keep_].compute()
+
+    # the crop indices have to be added before any filtering
+    # so that they are consistently assigned across datasets
+    # for the grid crop pattern, which is critical for the
+    # grid-based TFE workflow to run correctly
+    df_ = add_crop_index(df_, crop_pattern)
 
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
@@ -574,7 +524,9 @@ def get_dataframe_for_dynamics_workflows(
         df_filtered = df_filtered[df_filtered[Column.SegDataFilters.IS_INCLUDED]]
 
     if minimum_track_length is not None:
-        df_filtered = filter_dataframe_by_track_length(df_filtered, minimum_track_length)
+        df_filtered = filter_dataframe_by_track_length(
+            df_filtered, Column.TRACK_LENGTH, minimum_track_length
+        )
 
     # add dataset duration description column
     dataset_config = load_dataset_config(dataset_name)
@@ -598,169 +550,3 @@ def get_dataframe_for_dynamics_workflows(
             columns=feat_cols
         )  # drop original feature columns to save memory
         return df_drop_original_feats
-
-
-def get_dataset_descriptions(
-    list_of_datasets: list[str],
-    include_duration: bool = True,
-    simple: bool = False,
-    include_shear_stress: bool = False,
-) -> dict[str, str]:
-    """
-    Get descriptive metadata for each dataset given in the list of datasets.
-
-    Describes the experimental conditions for each dataset,
-        e.g., "48hr_Maximum_Shear_Stress_30_dyncm2".
-
-    Parameters
-    ----------
-    list_of_datasets
-        List of dataset names for which to get descriptions
-    include_duration
-        Include duration of each flow condition in description if true.
-    simple
-        Include description of shear regime (e.g., "High_Shear_Stress") if true.
-    include_shear_stress
-        Include exact shear stress value (e.g., "30_dyncm2") in description if true.
-
-    Returns
-    -------
-    :
-        A dictionary where keys are dataset names and values are descriptions.
-    """
-
-    description_dict = {}
-
-    for dataset_name in list_of_datasets:
-        config = load_dataset_config(dataset_name)
-        description = []
-
-        for condition, regime in zip(
-            config.flow_conditions, config.shear_stress_regime, strict=True
-        ):
-            if include_duration:
-                duration_in_frames = condition.stop - condition.start
-                duration_in_hours = int(duration_in_frames * 5 / 60)
-                description.append(f"{duration_in_hours}hr")
-
-            if simple:
-                description.append(regime.value)
-
-            if not simple or include_shear_stress:
-                description.append(f"{int(condition.shear_stress)}dyncm2")
-
-        description_dict[dataset_name] = "_".join(description)
-
-    return description_dict
-
-
-def parse_dataset_description(dataset_description: str) -> str:
-    """Parse dataset description for better readability in plot titles."""
-    # replace underscores with spaces for better readability
-    description_parsed = dataset_description.replace("_", " ")
-    # find [0-9]dyncm2, put comma and space before, put a space between number and unit,
-    # and change dyncm2 to dyn/cm^2 for better readability
-    description_parsed = re.sub(r"(\d+)dyncm2", r", \1 dyn/cm$^2$", description_parsed)
-    # turn capital 'S' into lowercase 's' for shear stress
-    description_parsed = description_parsed.replace(" Shear Stress", " shear stress")
-    # remove unwanted space before comma
-    description_parsed = description_parsed.replace(" ,", ",")
-    return description_parsed
-
-
-def add_description_column(
-    df: pd.DataFrame, dataset_name: str, simple: bool = False
-) -> pd.DataFrame:
-    """
-    Add description column to DataFrame df.
-    (Descriptions are currently based on the dataset name.).
-
-    Inputs:
-    - df: pd.DataFrame, DataFrame of feature data for dataset dataset_name
-        - IMPORTANT: DataFrame must be restricted to one dataset only,
-            as identified by the dataset_name column
-    - dataset_name: str, name of dataset to add description for
-    - simple (optional): bool, whether to use simple description
-        (e.g., "48hr_High")
-
-    Outputs:
-    - df: pd.DataFrame, DataFrame of feature data for one
-        dataset with added description column
-    """
-    # get descriptions for each dataset name
-    description = get_dataset_descriptions([dataset_name], simple=simple)
-
-    # add description column to DataFrame
-    df["description"] = description[dataset_name]  # add description to DataFrame
-
-    return df
-
-
-def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
-    """
-    Convert DataFrame of features corresponding to one dataset to array
-    of shape num_crops x num_timepoints x num_features.
-    This function fills missing timepoints (for example filtered as outliers)
-    with NaNs such that there is a row for every timepoint within the dataset
-    duration for each crop.
-
-    Inputs:
-    - df: pd.DataFrame, DataFrame of feature data for one dataset
-        - DataFrame should have metadata columns for crop_index and T
-    - column_names: list[str], list of column names for features to include
-        in output array
-
-    Outputs:
-    - feats: np.ndarray, array of feature data for all crops
-        at all timepoints in one dataset
-        - shape is num_crops x num_timepoints x num_features
-    """
-    # check that required columns are present in dataframe
-    required_columns = [Column.CROP_INDEX, Column.TIMEPOINT, *column_names]
-    check_required_columns_in_dataframe(df, required_columns)
-
-    # get array of num crops x valid timepoints x num PCs, padding with NaNs
-    # where timepoints are missing
-    full_timepoint_range = (df[Column.TIMEPOINT].min(), df[Column.TIMEPOINT].max())
-
-    feats = []
-    for _, data_crop in df.groupby(Column.CROP_INDEX):
-        data_crop = data_crop.sort_values(by=Column.TIMEPOINT)
-        data_crop_filled = fill_missing_timepoints(data_crop, full_timepoint_range)
-        feats.append(data_crop_filled[column_names].values)
-
-    return np.array(feats)
-
-
-def fill_missing_timepoints(
-    data_crop: pd.DataFrame,
-    full_timepoint_range: tuple[float, float],
-) -> pd.DataFrame:
-    """
-    Fill missing timepoints in dataframe for a single crop using NaN padding.
-    Note: this function resets the index of the input crop-based dataframe.
-
-    Parameters
-    ----------
-    data_crop
-        DataFrame for a single crop.
-    full_timepoint_range
-        Tuple specifying the full range of timepoints (start, end) for the dataset.
-
-    Returns
-    -------
-    :
-        DataFrame with missing timepoints filled with NaNs.
-    """
-
-    # use full timepoint range for the dataset to ensure that all timepoints are
-    # included
-    all_timepoints = np.arange(full_timepoint_range[0], full_timepoint_range[1] + 1)
-
-    # reindex dataframe to include all timepoints in full range
-    data_crop_filled = data_crop.set_index(Column.TIMEPOINT).reindex(all_timepoints)
-
-    # reset index to restore timepoint column
-    data_crop_filled = data_crop_filled.reset_index()
-
-    return data_crop_filled

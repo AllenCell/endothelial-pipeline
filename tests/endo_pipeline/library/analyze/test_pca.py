@@ -1,80 +1,27 @@
 import pandas as pd
 import pytest
 
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    get_latent_feature_column_names_from_dataframe,
-    project_features_to_pcs,
-)
+from endo_pipeline.library.analyze.pca import project_features_to_pcs
 from endo_pipeline.settings.column_names import ColumnName as Column
 
 
 @pytest.mark.parametrize(
-    "dataframe, expected_column_names",
-    [
-        (
-            pd.DataFrame(
-                {f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{i}": [0.1 * i] * 5 for i in range(10)}
-            ),
-            [f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{i}" for i in range(10)],
-        ),
-        (
-            pd.DataFrame(
-                {
-                    f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{i}_suffix": [0.2 * i] * 3
-                    for i in range(10)
-                }
-            ),
-            [],
-        ),
-        (
-            pd.DataFrame(
-                {
-                    "other_column": [1, 2, 3],
-                    f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}0": [0.0, 0.0, 0.0],
-                    f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}1": [0.1, 0.1, 0.1],
-                    f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}0_extra": [0.2, 0.2, 0.2],
-                    f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}one": [0.2, 0.2, 0.2],
-                }
-            ),
-            [
-                f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}0",
-                f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}1",
-            ],
-        ),
-    ],
-)
-def test_get_latent_feature_column_names_from_dataframe(dataframe, expected_column_names):
-    latent_feature_columns = get_latent_feature_column_names_from_dataframe(dataframe)
-    assert latent_feature_columns == expected_column_names
-
-
-@pytest.mark.parametrize(
-    "num_components, provide_feature_columns, compute_polar, flip_pc3_sign, raises_error",
+    "num_components, compute_polar, flip_pc3_sign, raises_error",
     [
         (  # fit PCA with 3 components, project to 3 PCs, don't compute polar angle, don't flip PC3 sign
             3,
-            True,
             False,
             False,
             False,  # should not raise error since not computing polar angle or flipping PC3 sign
         ),
-        (  # confirm that passing None for feature_columns runs as expected (i.e., gets them from the dataframe)
-            3,
-            False,
-            False,
-            False,
-            False,
-        ),
         (  # fit PCA with 2 components, project to 2 PCs, compute polar angle, don't flip PC3 sign
             2,
-            True,
             True,
             False,
             False,  # should not raise error since using 2 PCs to compute polar angle and not flipping PC3 sign
         ),
         (  # check that error is raised if trying to compute polar angle with only 1 PC
             1,
-            True,
             True,
             False,
             True,
@@ -84,13 +31,10 @@ def test_get_latent_feature_column_names_from_dataframe(dataframe, expected_colu
             True,
             True,
             True,
-            True,
         ),
     ],
 )
-def test_project_features_to_pcs(
-    num_components, provide_feature_columns, compute_polar, flip_pc3_sign, raises_error
-):
+def test_project_features_to_pcs(num_components, compute_polar, flip_pc3_sign, raises_error):
     from sklearn.decomposition import PCA
 
     # create a simple test dataframe with 3 latent feature columns
@@ -102,10 +46,7 @@ def test_project_features_to_pcs(
         }
     )
 
-    if provide_feature_columns:
-        feature_columns = [f"feat_{i}" for i in range(3)]
-    else:
-        feature_columns = None
+    feature_columns = [f"feat_{i}" for i in range(3)]
 
     pca_model = PCA(n_components=num_components).fit(df.values)
 

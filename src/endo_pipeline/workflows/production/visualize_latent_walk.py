@@ -102,7 +102,7 @@ def main(
     from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_dataframe, load_model
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca, get_pc_column_names
+    from endo_pipeline.library.analyze.pca import fit_pca
     from endo_pipeline.library.analyze.polar_coords import polar_to_pcs
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
     from endo_pipeline.library.model.latent_walk_utils import (
@@ -118,6 +118,7 @@ def main(
         load_model_manifest,
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -212,7 +213,7 @@ def main(
         pc3_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}3"
         walk[pc3_column_name] = -walk[Column.DiffAEData.PC3_FLIPPED.value].to_numpy()
 
-    pc_column_names = get_pc_column_names(num_pcs)
+    pc_column_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
     walk = pca.inverse_transform(walk[pc_column_names].to_numpy())
 
     # generate images from the latent walk
