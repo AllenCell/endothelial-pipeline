@@ -5,13 +5,30 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.stats import binned_statistic_2d, binned_statistic_dd
 
-from endo_pipeline.io import save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
+from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
+from endo_pipeline.io import load_dataframe, save_plot_to_path
+from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    check_required_columns_in_dataframe,
+    filter_dataframe_by_annotations,
+    split_dataset_by_flow,
+)
+from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
+    add_binned_mean_to_fixed_points,
+    add_optical_flow_features,
+    add_shear_stress_to_df,
+)
+from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
 from endo_pipeline.library.visualize.diffae_features.pplane import make_legend_handles_for_fixed_pts
-from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
+from endo_pipeline.settings.column_names import ColumnName
+from endo_pipeline.settings.dynamics_workflows import (
+    DYNAMICS_COLUMN_NAMES,
+    METADATA_COLUMNS_TO_KEEP,
+)
 from endo_pipeline.settings.flow_field_dataframes import (
     STABILITY_COLOR_DICT,
     STABILITY_COLUMN_NAME,
@@ -453,7 +470,6 @@ def plot_optical_flow_histogram(
     filename
         Filename (without extension) for the saved figure.
     """
-    import seaborn as sns
 
     data = df[optical_flow_feature].dropna()
     mean = data.mean()
@@ -528,27 +544,6 @@ def plot_cross_dataset_summaries(
         If ``False``, x positions are the numeric shear-stress values and datasets with the
         same shear stress overlap.
     """
-    from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
-    from endo_pipeline.io import load_dataframe
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        check_required_columns_in_dataframe,
-        filter_dataframe_by_annotations,
-        split_dataset_by_flow,
-    )
-    from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
-        add_binned_mean_to_fixed_points,
-        add_optical_flow_features,
-        add_shear_stress_to_df,
-    )
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
-    from endo_pipeline.manifests import get_dataframe_location_for_dataset
-    from endo_pipeline.settings.column_names import ColumnName
-    from endo_pipeline.settings.dynamics_workflows import (
-        DYNAMICS_COLUMN_NAMES,
-        METADATA_COLUMNS_TO_KEEP,
-    )
-    from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
-
     summary_stats: list[dict[str, float | str]] = []
     df_fp_all_list: list[pd.DataFrame] = []
 
@@ -562,7 +557,7 @@ def plot_cross_dataset_summaries(
 
         # Load, filter, and enrich the feature dataframe
         df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
-        columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *DYNAMICS_COLUMN_NAMES]
+        columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *DYNAMICS_COLUMN_NAMES]
         df_ = df[columns_to_compute].compute()
         df_steady_state = filter_dataframe_by_annotations(
             df_,
