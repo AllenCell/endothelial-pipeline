@@ -18,9 +18,8 @@ from endo_pipeline.library.analyze.dataframe_validation import check_required_co
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     filter_dataframe_by_annotations,
     filter_dataframe_by_track_length,
-    pcs_to_polar_r,
-    pcs_to_polar_theta,
 )
+from endo_pipeline.library.analyze.polar_coords import pcs_to_polar_r, pcs_to_polar_theta
 from endo_pipeline.manifests import (
     DataframeManifest,
     get_dataframe_location_for_dataset,
