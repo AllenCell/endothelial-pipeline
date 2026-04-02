@@ -1,5 +1,6 @@
 import math
 import os
+import re
 import shutil
 import tempfile
 import warnings
@@ -134,14 +135,27 @@ class MLFlowLogger(_LightningMLFlowLogger):
         if best_path and Path(best_path).is_file():
             return best_path
 
-        # Scan dirpath for the most recently modified checkpoint
+        # Scan dirpath for the checkpoint with the highest epoch number
         dirpath = ckpt_callback.dirpath
         if dirpath and Path(dirpath).is_dir():
+            epoch_re = re.compile(r"epoch[=_](\d+)")
             ckpt_files = [
                 f
                 for f in Path(dirpath).iterdir()
-                if f.is_file() and f.suffix == ".ckpt" and f.name not in ("best.ckpt", "last.ckpt")
+                if f.is_file()
+                and f.suffix == ".ckpt"
+                and not f.name.startswith("best_")
+                and f.name != "last.ckpt"
             ]
+            # Pair each file with its parsed epoch number (if present)
+            parsed = []
+            for f in ckpt_files:
+                m = epoch_re.search(f.stem)
+                if m:
+                    parsed.append((int(m.group(1)), f))
+            if parsed:
+                return str(max(parsed, key=lambda t: t[0])[1])
+            # Fall back to most recently modified if no epoch number is found
             if ckpt_files:
                 return str(max(ckpt_files, key=lambda p: p.stat().st_mtime))
 
@@ -197,7 +211,8 @@ class MLFlowLogger(_LightningMLFlowLogger):
                 for a in self.experiment.list_artifacts(self.run_id, artifact_path)
             }
             top_k = {k.split("/")[-1] for k in ckpt_callback.best_k_models.keys()}
-            to_delete = existing - top_k - {"best.ckpt", "last.ckpt"}
+            best_name = f"best_{monitor}.ckpt"
+            to_delete = existing - top_k - {best_name, "last.ckpt"}
             to_upload = top_k - existing
 
             repo = get_artifact_repository(self.experiment.get_run(self.run_id).info.artifact_uri)
@@ -222,17 +237,20 @@ class MLFlowLogger(_LightningMLFlowLogger):
                 else:
                     raise ValueError("ckpt_callback.dirpath must not be None")
 
-            # Log best.ckpt when a metric is monitored
+            # Log best_{monitor}.ckpt when a metric is monitored
             best_src = ckpt_callback.best_model_path
             if best_src and Path(best_src).is_file():
-                self._log_named_checkpoint_as_artifact(best_src, "best.ckpt", artifact_path)
+                self._log_named_checkpoint_as_artifact(best_src, best_name, artifact_path)
             else:
                 self._warn(
                     f"best_model_path is empty or missing ({best_src!r}). "
-                    "Skipping best.ckpt logging."
+                    f"Skipping {best_name} logging."
                 )
 
         else:
+            # When monitor is None there is no metric to rank checkpoints by,
+            # so no "best" checkpoint is saved.  Only last.ckpt (below) is
+            # relevant in this mode.
             artifact_path = "checkpoints"
 
         # --- Log last.ckpt only when save_last is enabled in the callback config ---
