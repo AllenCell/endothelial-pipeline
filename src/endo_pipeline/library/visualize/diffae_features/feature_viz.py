@@ -226,6 +226,9 @@ def plot_pc_scatter(
     # get list of dataset names from dataframe
     dataset_names = dataframe[Column.DATASET].unique().tolist()
 
+    # add "color" as a column in the dataframe for plotting, based on dataset name
+    dataframe["color"] = dataframe[Column.DATASET].apply(get_dataset_color)
+
     # input feature column names to plot (use PC column names by default)
     column_names_ = column_names or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
@@ -240,9 +243,8 @@ def plot_pc_scatter(
         # Set background color
         df_background["color"] = "lightgray"
 
-        # Set foreground color based on dataset
-        dataset_color = get_dataset_color(highlighted_dataset)
-        df_foreground["color"] = dataset_color
+        # Add color for highlighted dataset and add to patch list for legend
+        dataset_color = df_foreground["color"].iloc[0]
         patch_list_for_legend_combined_plot.append(
             mpatches.Patch(color=dataset_color, label=highlighted_dataset)
         )
