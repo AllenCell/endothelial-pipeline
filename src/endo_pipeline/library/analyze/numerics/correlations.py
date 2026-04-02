@@ -6,7 +6,6 @@ import pandas as pd
 from scipy.optimize import curve_fit
 
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
-from endo_pipeline.library.analyze.diffae_dataframe_utils import df_to_array
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RESCALE_THETA
 
@@ -347,11 +346,34 @@ def compute_correlations_for_one_dataset(
                 df_crop[Column.DiffAEData.POLAR_ANGLE], period=polar_angle_period
             )
 
-    # get feature data
-    feats = df_to_array(dataframe, column_names)
-    num_feats = len(column_names)
+    # get feature data, filling missing timepoints with NaNs to ensure proper
+    # alignment for correlation calculations
+    t_min = dataframe[Column.TIMEPOINT].min()
+    t_max = dataframe[Column.TIMEPOINT].max()
+    all_timepoints = np.arange(t_min, t_max + 1)
 
-    num_timepoints = feats.shape[1]
+    # fill missing timepoints with NaN values for each crop to ensure
+    # consistent time axis across crops when computing population
+    # variance and cumulative variance per crop, which require a 2D
+    # array of shape (num_crops, num_timepoints)
+    data_filled_list = []
+    for _, data_crop in dataframe.groupby(Column.CROP_INDEX):
+        # sort by timepoint to ensure correct order before reindexing
+        data_crop = data_crop.sort_values(by=Column.TIMEPOINT)
+
+        # reindex dataframe to include all timepoints in full range
+        data_crop_filled = data_crop.set_index(Column.TIMEPOINT).reindex(all_timepoints)
+
+        # reset index to restore timepoint column
+        data_crop_filled = data_crop_filled.reset_index()
+
+        # append to list
+        data_filled_list.append(data_crop_filled)
+
+    dataframe_filled = pd.concat(data_filled_list, ignore_index=True)
+
+    num_feats = len(column_names)
+    num_timepoints = len(all_timepoints)
     # make sure lags are symmetric around zero
     max_lags = num_timepoints // NUM_TIMEPOINT_FRAC
     lags = np.arange(-max_lags, max_lags + 1)
@@ -363,6 +385,9 @@ def compute_correlations_for_one_dataset(
     acf_ub = np.zeros((num_lags, num_feats))
     relaxation_timescale_lb = np.zeros(num_feats)
     relaxation_timescale_ub = np.zeros(num_feats)
+    # dataframe as array of shape (num_crops, num_timepoints, num_feats) for the
+    # current feature, with missing timepoints filled with NaNs
+    feats = dataframe_filled[column_names].to_numpy().reshape(-1, num_timepoints, num_feats)
     for i in range(num_feats):
         acf[:, i] = autocorrelation_function(feats, i)
         if bootstrap_samples is not None:

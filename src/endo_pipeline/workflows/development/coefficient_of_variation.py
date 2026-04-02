@@ -59,6 +59,7 @@ def main(
     from typing import Any, TypeAlias, cast
 
     import numpy as np
+    import pandas as pd
     from scipy.stats import circmean, circstd, circvar
 
     from endo_pipeline.cli import DEMO_MODE
@@ -69,7 +70,6 @@ def main(
     )
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        df_to_array,
         filter_dataframe_by_annotations,
         filter_dataframe_by_track_length,
         split_dataset_by_flow,
@@ -192,8 +192,31 @@ def main(
             color = SHEAR_COLOR_DICT[(shear_stress_regime,)]
             label = f"{dataset_name} ({int(shear_stress)} dyn/cm$^2$)"
 
-            t_vals = df_flow[Column.TIMEPOINT].sort_values().unique() * time_conversion_factor
+            t_min = df_flow[Column.TIMEPOINT].min()
+            t_max = df_flow[Column.TIMEPOINT].max()
+            all_timepoints = np.arange(t_min, t_max + 1)
             df_flow_scaled = df_flow.copy()
+
+            # fill missing timepoints with NaN values for each crop to ensure
+            # consistent time axis across crops when computing population
+            # variance and cumulative variance per crop, which require a 2D
+            # array of shape (num_crops, num_timepoints)
+            data_filled_list = []
+            for _, data_crop in df_flow_scaled.groupby(Column.CROP_INDEX):
+                # sort by timepoint to ensure correct order before reindexing
+                data_crop = data_crop.sort_values(by=Column.TIMEPOINT)
+
+                # reindex dataframe to include all timepoints in full range
+                data_crop_filled = data_crop.set_index(Column.TIMEPOINT).reindex(all_timepoints)
+
+                # reset index to restore timepoint column
+                data_crop_filled = data_crop_filled.reset_index()
+
+                # append to list
+                data_filled_list.append(data_crop_filled)
+
+            data_filled = pd.concat(data_filled_list, ignore_index=True)
+
             # compute mean ± std for each column at each timepoint; for theta,
             # use circular stats to account for periodicity
             for col in column_names:
@@ -280,19 +303,21 @@ def main(
 
                 # compute ratio of cumulative covariance per crop versus
                 # population covariance at each timepoint, with SEM across
-                # crops; use (n_crops, n_timepoints) array of features for this calculation
-                scaled_crop_array = df_to_array(df_flow_scaled, [col]).squeeze()
-                t_vals_full = np.arange(scaled_crop_array.shape[1]) * time_conversion_factor
-                # population variance at each timepoint (across crops) for scaled feature
+                # crops
+
+                # population variance at each timepoint (across crops) for
+                # scaled feature to array in shape (num_crops, num_timepoints)
+                # for variance computations
+                data_filled_array = data_filled[col].to_numpy().reshape(-1, len(all_timepoints))
                 scaled_population_var = var_function(
-                    scaled_crop_array, **scaled_function_kwargs, axis=0
+                    data_filled_array, **scaled_function_kwargs, axis=0
                 )
                 # compute cumulative variance for each crop at each timepoint
                 cumulative_var_per_crop = compute_cumulative_variance_over_time(
-                    scaled_crop_array, var_function, **scaled_function_kwargs
+                    data_filled_array, var_function, **scaled_function_kwargs
                 )
                 # compute sem for the cumulative variance across crops at each timepoint
-                num_valid_crops = np.sum(np.isfinite(scaled_crop_array), axis=0)
+                num_valid_crops = np.sum(np.isfinite(data_filled_array), axis=0)
                 cumulative_var_mean = np.nanmean(cumulative_var_per_crop, axis=0)
                 cumulative_var_sem = np.nanstd(cumulative_var_per_crop, axis=0) / np.sqrt(
                     num_valid_crops
@@ -307,17 +332,20 @@ def main(
                 # computed within rolling time windows instead of
                 # cumulatively from t=0
                 bvr_time, bvr_mean, bvr_upper, bvr_lower = compute_binned_variance_ratio_vs_time(
-                    scaled_crop_array, bin_size=TIME_WINDOW_BIN_SIZE
+                    data_filled_array, bin_size=TIME_WINDOW_BIN_SIZE
                 )
                 bvr_time = bvr_time * time_conversion_factor
 
                 # add to dicts for plotting
-                mean_std_unscaled[col].append((t_vals, unscaled_mean, unscaled_std, color, label))
-                mean_std_scaled[col].append((t_vals, scaled_mean, scaled_std, color, label))
-                pop_cov_data[col].append((t_vals, scaled_population_cov, color, label))
+                t_vals_scaled = all_timepoints * time_conversion_factor
+                mean_std_unscaled[col].append(
+                    (t_vals_scaled, unscaled_mean, unscaled_std, color, label)
+                )
+                mean_std_scaled[col].append((t_vals_scaled, scaled_mean, scaled_std, color, label))
+                pop_cov_data[col].append((t_vals_scaled, scaled_population_cov, color, label))
                 erg_data[col].append((per_crop_cov, mean_population_cov, color, label))
                 var_ratio_data[col].append(
-                    (t_vals_full, cvr_mean, cvr_upper, cvr_lower, color, label)
+                    (t_vals_scaled, cvr_mean, cvr_upper, cvr_lower, color, label)
                 )
                 binned_var_ratio_data[col].append(
                     (bvr_time, bvr_mean, bvr_upper, bvr_lower, color, label)
