@@ -67,7 +67,6 @@ def main(
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         filter_dataframe_by_annotations,
-        get_traj_and_diff,
         split_dataset_by_flow,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
@@ -76,6 +75,7 @@ def main(
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
+    from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
     from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
         plot_and_save_drift_contours,
         plot_and_save_drift_quiver,

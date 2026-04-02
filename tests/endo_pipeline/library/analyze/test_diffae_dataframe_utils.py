@@ -9,12 +9,14 @@ from endo_pipeline.configs import (
     TimepointAnnotation,
 )
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    compute_forward_differences_along_trajectory,
     filter_dataframe_by_annotations,
     filter_dataframe_by_track_length,
     get_latent_feature_column_names_from_dataframe,
-    get_traj_and_diff,
     project_features_to_pcs,
+)
+from endo_pipeline.library.analyze.numerics.forward_difference import (
+    compute_forward_differences_along_trajectory,
+    get_traj_and_diff,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
 
