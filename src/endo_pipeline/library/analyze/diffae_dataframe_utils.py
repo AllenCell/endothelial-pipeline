@@ -457,10 +457,10 @@ def build_pca_input_dataframe(
             dataframe_filtered = dataframe
         dataframe_list.append(dataframe_filtered)
 
-    # Merge dataframes for all datasets and filter for feature columns ("feat_" prefix)
+    # Merge dataframes for all datasets and return just the feature columns for
+    # PCA input
     data_ref = pd.concat(dataframe_list, ignore_index=True)
-    diffae_feature_cols = get_latent_feature_column_names_from_dataframe(data_ref)
-    return data_ref[diffae_feature_cols]
+    return data_ref[DIFFAE_FEATURE_COLUMN_NAMES]
 
 
 def fit_pca(
@@ -654,17 +654,15 @@ def project_features_to_pcs(
         DataFrame with added columns for each principal component.
     """
     # check that required columns are present in dataframe
-    if feat_cols is None:
-        feat_cols = get_latent_feature_column_names_from_dataframe(df)
-    else:
-        check_required_columns_in_dataframe(df, feat_cols)
+    feat_cols_ = feat_cols or DIFFAE_FEATURE_COLUMN_NAMES
+    check_required_columns_in_dataframe(df, feat_cols_)
 
     df_ = df.copy()  # make copy of DataFrame to avoid modifying original DataFrame
 
     # project feature data onto PCA axes, add new columns for each PC
     num_pcs = pca.components_.shape[0]  # number of principal components
     pc_cols = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
-    df_.loc[:, pc_cols] = pca.transform(df_[feat_cols].values)
+    df_.loc[:, pc_cols] = pca.transform(df_[feat_cols_].values)
 
     # optionally, compute polar coordinates (r, theta) from first two PCs
     if compute_polar:
@@ -779,7 +777,7 @@ def get_dataframe_for_dynamics_workflows(
 
     location = get_dataframe_location_for_dataset(manifest, dataset_name)
     df = load_dataframe(location, delay=True)
-    feat_cols = get_latent_feature_column_names_from_dataframe(df)
+    feat_cols = DIFFAE_FEATURE_COLUMN_NAMES
 
     # start with default metadata columns to keep
     # temporarily drop the "crop_index" column while workflows that use this

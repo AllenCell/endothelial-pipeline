@@ -12,7 +12,6 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     compute_forward_differences_along_trajectory,
     filter_dataframe_by_annotations,
     filter_dataframe_by_track_length,
-    get_latent_feature_column_names_from_dataframe,
     get_traj_and_diff,
     project_features_to_pcs,
     rewrap_polar_angle,
@@ -125,46 +124,6 @@ def test_filter_dataframe_by_annotations_without_annotations(dataframe, dataset)
     filtered_df = filter_dataframe_by_annotations(dataframe, dataset, [], [])
     assert filtered_df[Column.POSITION].tolist() == dataframe[Column.POSITION].tolist()
     assert filtered_df[Column.TIMEPOINT].tolist() == dataframe[Column.TIMEPOINT].tolist()
-
-
-@pytest.mark.parametrize(
-    "dataframe, expected_column_names",
-    [
-        (
-            pd.DataFrame(
-                {f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{i}": [0.1 * i] * 5 for i in range(10)}
-            ),
-            [f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{i}" for i in range(10)],
-        ),
-        (
-            pd.DataFrame(
-                {
-                    f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{i}_suffix": [0.2 * i] * 3
-                    for i in range(10)
-                }
-            ),
-            [],
-        ),
-        (
-            pd.DataFrame(
-                {
-                    "other_column": [1, 2, 3],
-                    f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}0": [0.0, 0.0, 0.0],
-                    f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}1": [0.1, 0.1, 0.1],
-                    f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}0_extra": [0.2, 0.2, 0.2],
-                    f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}one": [0.2, 0.2, 0.2],
-                }
-            ),
-            [
-                f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}0",
-                f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}1",
-            ],
-        ),
-    ],
-)
-def test_get_latent_feature_column_names_from_dataframe(dataframe, expected_column_names):
-    latent_feature_columns = get_latent_feature_column_names_from_dataframe(dataframe)
-    assert latent_feature_columns == expected_column_names
 
 
 @pytest.mark.parametrize(
