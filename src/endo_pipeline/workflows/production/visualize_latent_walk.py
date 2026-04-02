@@ -102,7 +102,8 @@ def main(
     from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_dataframe, load_model
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import fit_pca, polar_to_pcs
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import polar_to_pcs
+    from endo_pipeline.library.analyze.pca import fit_pca
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
     from endo_pipeline.library.model.latent_walk_utils import (
         generate_latent_walk_images,

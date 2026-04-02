@@ -60,12 +60,8 @@ def main(
         load_dataframe,
         upload_file_to_fms,
     )
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        add_crop_index,
-        filter_dataframe_by_annotations,
-        fit_pca,
-        project_features_to_pcs,
-    )
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
+    from endo_pipeline.library.analyze.pca import add_crop_index, fit_pca, project_features_to_pcs
     from endo_pipeline.manifests import (
         DataframeLocation,
         create_dataframe_manifest,
