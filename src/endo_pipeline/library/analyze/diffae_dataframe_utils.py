@@ -1,5 +1,4 @@
 import logging
-import re
 from typing import cast
 
 import numpy as np
@@ -12,7 +11,6 @@ from endo_pipeline.configs import (
     get_all_unannotated_timepoints,
     get_frame_after_flow_change,
     get_unannotated_positions,
-    load_dataset_config,
 )
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -160,102 +158,6 @@ def filter_dataframe_by_annotations(
     dataframe_filtered = pd.concat(df_filtered_list, ignore_index=True)
 
     return dataframe_filtered
-
-
-def get_dataset_descriptions(
-    list_of_datasets: list[str],
-    include_duration: bool = True,
-    simple: bool = False,
-    include_shear_stress: bool = False,
-) -> dict[str, str]:
-    """
-    Get descriptive metadata for each dataset given in the list of datasets.
-
-    Describes the experimental conditions for each dataset,
-        e.g., "48hr_Maximum_Shear_Stress_30_dyncm2".
-
-    Parameters
-    ----------
-    list_of_datasets
-        List of dataset names for which to get descriptions
-    include_duration
-        Include duration of each flow condition in description if true.
-    simple
-        Include description of shear regime (e.g., "High_Shear_Stress") if true.
-    include_shear_stress
-        Include exact shear stress value (e.g., "30_dyncm2") in description if true.
-
-    Returns
-    -------
-    :
-        A dictionary where keys are dataset names and values are descriptions.
-    """
-
-    description_dict = {}
-
-    for dataset_name in list_of_datasets:
-        config = load_dataset_config(dataset_name)
-        description = []
-
-        for condition, regime in zip(
-            config.flow_conditions, config.shear_stress_regime, strict=True
-        ):
-            if include_duration:
-                duration_in_frames = condition.stop - condition.start
-                duration_in_hours = int(duration_in_frames * 5 / 60)
-                description.append(f"{duration_in_hours}hr")
-
-            if simple:
-                description.append(regime.value)
-
-            if not simple or include_shear_stress:
-                description.append(f"{int(condition.shear_stress)}dyncm2")
-
-        description_dict[dataset_name] = "_".join(description)
-
-    return description_dict
-
-
-def parse_dataset_description(dataset_description: str) -> str:
-    """Parse dataset description for better readability in plot titles."""
-    # replace underscores with spaces for better readability
-    description_parsed = dataset_description.replace("_", " ")
-    # find [0-9]dyncm2, put comma and space before, put a space between number and unit,
-    # and change dyncm2 to dyn/cm^2 for better readability
-    description_parsed = re.sub(r"(\d+)dyncm2", r", \1 dyn/cm$^2$", description_parsed)
-    # turn capital 'S' into lowercase 's' for shear stress
-    description_parsed = description_parsed.replace(" Shear Stress", " shear stress")
-    # remove unwanted space before comma
-    description_parsed = description_parsed.replace(" ,", ",")
-    return description_parsed
-
-
-def add_description_column(
-    df: pd.DataFrame, dataset_name: str, simple: bool = False
-) -> pd.DataFrame:
-    """
-    Add description column to DataFrame df.
-    (Descriptions are currently based on the dataset name.).
-
-    Inputs:
-    - df: pd.DataFrame, DataFrame of feature data for dataset dataset_name
-        - IMPORTANT: DataFrame must be restricted to one dataset only,
-            as identified by the dataset_name column
-    - dataset_name: str, name of dataset to add description for
-    - simple (optional): bool, whether to use simple description
-        (e.g., "48hr_High")
-
-    Outputs:
-    - df: pd.DataFrame, DataFrame of feature data for one
-        dataset with added description column
-    """
-    # get descriptions for each dataset name
-    description = get_dataset_descriptions([dataset_name], simple=simple)
-
-    # add description column to DataFrame
-    df["description"] = description[dataset_name]  # add description to DataFrame
-
-    return df
 
 
 def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
