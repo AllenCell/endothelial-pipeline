@@ -18,6 +18,7 @@ from endo_pipeline.configs import (
     load_dataset_config,
 )
 from endo_pipeline.io import load_dataframe
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.polar_coords import pcs_to_polar_r, pcs_to_polar_theta
 from endo_pipeline.manifests import (
     DataframeManifest,
@@ -44,27 +45,6 @@ from endo_pipeline.settings.workflow_defaults import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-def check_required_columns_in_dataframe(
-    df: pd.DataFrame,
-    required_columns: list[str],
-) -> None:
-    """
-    Check that required columns are present in a given dataframe.
-
-    Parameters
-    ----------
-    df
-        DataFrame to check.
-    required_columns
-        List of required column names to check for.
-    """
-
-    for col in required_columns:
-        if col not in df.columns:
-            logger.error("DataFrame must contain column [ %s ]", col)
-            raise ValueError(f"DataFrame must contain column [ {col} ]")
 
 
 def get_latent_feature_column_names(num_latent_dims: int) -> list[str]:
