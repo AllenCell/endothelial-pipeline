@@ -1,7 +1,6 @@
 """Module for methods that filter dataframes for analysis based on certain criteria."""
 
 import logging
-from typing import cast
 
 import pandas as pd
 
@@ -122,38 +121,16 @@ def filter_dataframe_by_annotations(
 
     # get positions and timepoints to include based on annotations
     only_include_positions = get_unannotated_positions(dataset_config, position_annotations)
-    only_include_positions_str = [f"P{pos}" for pos in only_include_positions]
     only_include_frames = get_all_unannotated_timepoints(dataset_config, timepoint_annotations)
     if dataframe[Column.POSITION].nunique() != len(dataset_config.zarr_positions):
         logger.warning("Expected dataframe to contain all positions in dataset, but it does not.")
 
     # filter dataframe to only include non-annotated positions
-    # NOTE: temporary if-else until we update how we store position: replace 'P[int]' with int
-    # this checks if all entries in the `.POSITION` column are strings that start with 'P'
-    all_position_vals_start_with_P = (
-        dataframe[Column.POSITION].transform(lambda pos: "P" in str(pos)).all()
-    )
-    if all_position_vals_start_with_P:
-        position_type = "str"
-        dataframe_exclude_positions = dataframe[
-            dataframe[Column.POSITION].isin(only_include_positions_str)
-        ]
-    # otherwise it is assumed that the position column can be cast to `int`
-    # (and if it can't be cast to `int`, an error will be raised later)
-    else:
-        position_type = "int"
-        dataframe_exclude_positions = dataframe[
-            dataframe[Column.POSITION].isin(only_include_positions)
-        ]
+    dataframe_exclude_positions = dataframe[dataframe[Column.POSITION].isin(only_include_positions)]
     # filter dataframe to only include non-annotated timepoints
     df_filtered_list = []
     for position, df_position in dataframe_exclude_positions.groupby(Column.POSITION):
-        # NOTE: temporary if-else until we update how we store position: replace 'P[int]' with int
-        if position_type == "str":
-            position_as_int = int(cast(str, position)[1:])
-        else:
-            position_as_int = cast(int, position)
-        include_frames_for_position = only_include_frames.get(position_as_int, [])
+        include_frames_for_position = only_include_frames.get(position, [])
         df_position_filtered = df_position[
             df_position[Column.TIMEPOINT].isin(include_frames_for_position)
         ]
