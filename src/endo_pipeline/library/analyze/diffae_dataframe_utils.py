@@ -17,16 +17,14 @@ from endo_pipeline.configs import (
     load_dataset_config,
 )
 from endo_pipeline.io import load_dataframe
+from endo_pipeline.library.analyze.pca import project_features_to_pcs
 from endo_pipeline.manifests import (
     DataframeManifest,
     get_dataframe_location_for_dataset,
     load_dataframe_manifest,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.diffae_feature_dataframes import (
-    DIFFAE_FEATURE_COLUMN_NAMES,
-    DIFFAE_PC_COLUMN_NAMES,
-)
+from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_FEATURE_COLUMN_NAMES
 from endo_pipeline.settings.dynamics_workflows import (
     METADATA_COLUMNS_TO_KEEP,
     PERIOD_THETA_RESCALED,
@@ -361,91 +359,6 @@ def filter_dataframe_by_annotations(
     dataframe_filtered = pd.concat(df_filtered_list, ignore_index=True)
 
     return dataframe_filtered
-
-
-def project_features_to_pcs(
-    df: pd.DataFrame,
-    pca: PCA,
-    feat_cols: list[str],
-    compute_polar: bool = True,
-    rescale_theta: bool = RESCALE_THETA,
-    flip_pc3_sign: bool = True,
-) -> pd.DataFrame:
-    """
-    Project feature data onto principal component axes of fit PCA model.
-
-    **Variable transformation**
-
-    The feature data in the input DataFrame is projected onto the principal
-    component axes defined by the input PCA model. New columns are added to the
-    DataFrame for each principal component (e.g., pc_1, pc_2, pc_3, ...).
-
-    Optionally, based on the input ``compute_polar`` flag, polar coordinates (r,
-    theta) are computed from the first two principal components and added as new
-    columns.
-
-    Also optionally, based on the input ``flip_pc3_sign`` flag, an additional
-    column (rho) that is equivalent to pc_3 but with the sign flipped is added.
-    This sign flip is done for consistency such that higher rho values
-    correspond to higher cell density in the original image crops.
-
-    Parameters
-    ----------
-    df
-        DataFrame of feature data.
-    pca
-        Fit PCA model.
-    feat_cols
-        List of feature column names to project. If None, will automatically
-        detect latent feature columns in the DataFrame.
-    compute_polar
-        Whether to compute polar coordinates (r, theta) from the first two PCs.
-    rescale_theta
-        Whether to rescale the polar angle theta to be in the range [0, pi].
-    flip_pc3_sign
-        True to add an addtional column with the sign of PC3 flipped for
-        consistency, False otherwise.
-
-    Returns
-    -------
-    :
-        DataFrame with added columns for each principal component.
-    """
-    # check that required columns are present in dataframe
-    check_required_columns_in_dataframe(df, feat_cols)
-
-    df_ = df.copy()  # make copy of DataFrame to avoid modifying original DataFrame
-
-    # project feature data onto PCA axes, add new columns for each PC
-    num_pcs = pca.components_.shape[0]  # number of principal components
-    pc_cols = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
-    df_.loc[:, pc_cols] = pca.transform(df_[feat_cols].values)
-
-    # optionally, compute polar coordinates (r, theta) from first two PCs
-    if compute_polar:
-        if num_pcs < 2:
-            logger.error(
-                "Cannot compute polar coordinates from PC1 and PC2 because number of PCs [ %s ] < 2",
-                num_pcs,
-            )
-            raise ValueError("At least 2 PCs are required to compute polar coordinates.")
-        else:
-            polar_radius_and_polar_angle_cols = {
-                Column.DiffAEData.POLAR_RADIUS: pcs_to_polar_r(df_[pc_cols[0]], df_[pc_cols[1]]),
-                Column.DiffAEData.POLAR_ANGLE: pcs_to_polar_theta(
-                    df_[pc_cols[0]], df_[pc_cols[1]], rescale=rescale_theta
-                ),
-            }
-            df_ = df_.assign(**polar_radius_and_polar_angle_cols)
-    if flip_pc3_sign:
-        if num_pcs >= 3:
-            pc3_flipped_col = {Column.DiffAEData.PC3_FLIPPED: -df_[pc_cols[2]]}
-            df_ = df_.assign(**pc3_flipped_col)
-        else:
-            logger.error("Cannot add column for -(PC3) because number of PCs [ %s ] < 3", num_pcs)
-            raise ValueError("At least 3 PCs are required to add column for -(PC3).")
-
-    return df_
 
 
 def get_dataframe_for_dynamics_workflows(
