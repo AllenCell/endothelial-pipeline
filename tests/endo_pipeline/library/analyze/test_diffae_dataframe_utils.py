@@ -15,9 +15,9 @@ from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_latent_feature_column_names_from_dataframe,
     get_traj_and_diff,
     project_features_to_pcs,
-    rewrap_polar_angle,
     unwrap_nonsequential_array,
 )
+from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
 from endo_pipeline.settings.column_names import ColumnName as Column
 
 

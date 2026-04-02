@@ -141,43 +141,6 @@ def get_latent_feature_column_names_from_dataframe(dataframe: pd.DataFrame) -> l
     return feat_cols
 
 
-@overload
-def rewrap_polar_angle(unwrapped_angle: float, original_range: tuple[float, float]) -> float: ...
-
-
-@overload
-def rewrap_polar_angle(
-    unwrapped_angle: np.ndarray, original_range: tuple[float, float]
-) -> np.ndarray: ...
-
-
-def rewrap_polar_angle(
-    unwrapped_angle: float | np.ndarray, original_range: tuple[float, float]
-) -> float | np.ndarray:
-    """
-    Rewrap unwrapped polar angle value to be within original range.
-
-    Unwrapped angles computed, e.g., using numpy.unwrap can extend beyond the original
-    periodic range of polar angle values. This function rewraps the unwrapped angle back
-    to be within the original range.
-
-    Example:
-        original_range = (0, pi)
-        unwrapped_angle = pi + 0.5
-        rewrapped_angle = 0.5
-
-    Parameters
-    ----------
-    unwrapped_angle
-        Unwrapped polar angle value.
-    original_range
-        Original range of polar angle values.
-    """
-    angle_period = original_range[1] - original_range[0]
-    rewrapped_angle = ((unwrapped_angle - original_range[0]) % angle_period) + original_range[0]
-    return rewrapped_angle
-
-
 def unwrap_nonsequential_array(
     wrapped_array: np.ndarray,
     period: float,

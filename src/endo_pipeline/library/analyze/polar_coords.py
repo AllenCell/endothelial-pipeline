@@ -1,3 +1,5 @@
+from typing import overload
+
 import numpy as np
 
 from endo_pipeline.settings.dynamics_workflows import RESCALE_THETA
@@ -93,3 +95,40 @@ def polar_to_pcs(
     pc2_values = r_values * np.sin(theta_values)
 
     return pc1_values, pc2_values
+
+
+@overload
+def rewrap_polar_angle(unwrapped_angle: float, original_range: tuple[float, float]) -> float: ...
+
+
+@overload
+def rewrap_polar_angle(
+    unwrapped_angle: np.ndarray, original_range: tuple[float, float]
+) -> np.ndarray: ...
+
+
+def rewrap_polar_angle(
+    unwrapped_angle: float | np.ndarray, original_range: tuple[float, float]
+) -> float | np.ndarray:
+    """
+    Rewrap unwrapped polar angle value to be within original range.
+
+    Unwrapped angles computed, e.g., using numpy.unwrap can extend beyond the original
+    periodic range of polar angle values. This function rewraps the unwrapped angle back
+    to be within the original range.
+
+    Example:
+        original_range = (0, pi)
+        unwrapped_angle = pi + 0.5
+        rewrapped_angle = 0.5
+
+    Parameters
+    ----------
+    unwrapped_angle
+        Unwrapped polar angle value.
+    original_range
+        Original range of polar angle values.
+    """
+    angle_period = original_range[1] - original_range[0]
+    rewrapped_angle = ((unwrapped_angle - original_range[0]) % angle_period) + original_range[0]
+    return rewrapped_angle
