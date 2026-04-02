@@ -4,8 +4,6 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_RUN_NAME,
 )
 
-TAGS = ["diffae_image_generation", "diffae_features"]
-
 
 def main(
     path: str,
@@ -19,6 +17,8 @@ def main(
     Reconstruct crops from PC space coordinates stored in a given CSV file.
 
     The reconstructed crops are saved as PNG files in a local directory.
+
+    #diffae_features #image_generation #pca
 
     **Dataframe file format**:
 
@@ -62,7 +62,7 @@ def main(
 
     from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.io import get_output_path, load_dataframe, load_model, save_plot_to_path
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    from endo_pipeline.library.analyze.dataframe_validation import (
         check_required_columns_in_dataframe,
     )
     from endo_pipeline.library.analyze.pca import fit_pca

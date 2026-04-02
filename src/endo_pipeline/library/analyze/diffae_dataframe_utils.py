@@ -14,31 +14,11 @@ from endo_pipeline.configs import (
     get_unannotated_positions,
     load_dataset_config,
 )
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RESCALE_THETA
 
 logger = logging.getLogger(__name__)
-
-
-def check_required_columns_in_dataframe(
-    df: pd.DataFrame,
-    required_columns: list[str],
-) -> None:
-    """
-    Check that required columns are present in a given dataframe.
-
-    Parameters
-    ----------
-    df
-        DataFrame to check.
-    required_columns
-        List of required column names to check for.
-    """
-
-    for col in required_columns:
-        if col not in df.columns:
-            logger.error("DataFrame must contain column [ %s ]", col)
-            raise ValueError(f"DataFrame must contain column [ {col} ]")
 
 
 def pcs_to_polar_r(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.ndarray:
