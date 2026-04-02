@@ -66,9 +66,9 @@ def main(
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.dataframe_filtering import (
+        filter_dataframe_by_flow_condition,
         filter_dataframe_by_track_length,
         filter_dataframe_to_steady_state,
-        split_dataframe_by_flow,
     )
     from endo_pipeline.library.analyze.numerics.temporal_stats import (
         compute_binned_variance_ratio_vs_time,
@@ -172,16 +172,15 @@ def main(
         theta_range = BIN_LIMITS_THETA_RESCALED if RESCALE_THETA else (-np.pi, np.pi)
         theta_period = PERIOD_THETA_RESCALED if RESCALE_THETA else 2 * np.pi
 
-        # split by flow conditions (shared by unscaled and scaled paths)
-        df_by_flow, shear_stress_list = split_dataframe_by_flow(df, dataset_config)
-
-        # collect unscaled mean ± std per flow condition
-        for df_flow, shear_stress, shear_stress_regime in zip(
-            df_by_flow, shear_stress_list, dataset_config.shear_stress_regime, strict=True
+        # split by flow conditions and collect unscaled mean ± std per flow
+        # condition
+        for flow_condition, shear_regime in zip(
+            dataset_config.flow_conditions, dataset_config.shear_stress_regime, strict=True
         ):
-            color = SHEAR_COLOR_DICT[(shear_stress_regime,)]
-            label = f"{dataset_name} ({int(shear_stress)} dyn/cm$^2$)"
+            color = SHEAR_COLOR_DICT[(shear_regime,)]
+            label = f"{dataset_name} ({int(flow_condition.shear_stress)} dyn/cm$^2$)"
 
+            df_flow = filter_dataframe_by_flow_condition(df, dataset_config, flow_condition)
             t_min = df_flow[Column.TIMEPOINT].min()
             t_max = df_flow[Column.TIMEPOINT].max()
             all_timepoints = np.arange(t_min, t_max + 1)
@@ -344,7 +343,7 @@ def main(
             logger.debug(
                 "Processed dataset [ %s ] at shear stress [ %s ] dyn/cm^2",
                 dataset_name,
-                int(shear_stress),
+                int(flow_condition.shear_stress),
             )
 
     # --- Plot 1: mean feature value (unscaled) ± std vs time ---
