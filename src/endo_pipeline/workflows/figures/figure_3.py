@@ -17,7 +17,7 @@ def main() -> None:
         load_dataframe_manifest,
         load_model_manifest,
     )
-    from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -55,7 +55,7 @@ def main() -> None:
 
     # Get dataframes for the datasets to use to determine the ranges of the
     # latent walk.
-    column_names = [f"{Column.DiffAEData.PCA_FEATURE_PREFIX}{i + 1}" for i in range(n_dims)]
+    column_names = DIFFAE_PC_COLUMN_NAMES[:n_dims]
     dataframe_list = []
     for dataset_name in dataset_names:
         # load dataframe, get relevant columns, and concatenate into one
