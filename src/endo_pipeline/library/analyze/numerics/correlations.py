@@ -5,10 +5,8 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import curve_fit
 
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    check_required_columns_in_dataframe,
-    df_to_array,
-)
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.diffae_dataframe_utils import df_to_array
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RESCALE_THETA
 
@@ -34,7 +32,6 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
     num_pad = 2 ** int(np.ceil(np.log2(2 * num_timepoints - 1)))
 
     for traj_index in range(num_traj):
-
         # Center data by subtracting mean, get standard deviation
         # for normalization of CCF.
         # fft cannot handle NaNs, so we replace them with zeros after
