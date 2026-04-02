@@ -189,9 +189,10 @@ def main(
                         wrap_discontinuity, wrap_discontinuity.index[wrap_discontinuity]
                     )
                     for segment_indices in angle_segments_to_plot_indices:
+                        data_segment = traj_df.iloc[segment_indices.index]
                         ax.plot(
-                            traj_df.iloc[segment_indices.index][str(cols_simulated[0])],
-                            traj_df.iloc[segment_indices.index][str(cols_simulated[1])],
+                            data_segment[cols_simulated[0]].values,
+                            data_segment[cols_simulated[1]].values,
                             ls="--",
                             lw=1,
                             alpha=0.7,
@@ -217,3 +218,9 @@ def main(
                 figure_name=f"{dataset_name}_cropindex{crop_i}_traj_meas_vs_sim.png",
             )
             plt.close(fig)
+
+
+if __name__ == "__main__":
+    from endo_pipeline.cli import workflow_cli
+
+    workflow_cli(main)
