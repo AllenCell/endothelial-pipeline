@@ -63,9 +63,9 @@ def main(
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         add_crop_index,
         filter_dataframe_by_annotations,
-        fit_pca,
         project_features_to_pcs,
     )
+    from endo_pipeline.library.analyze.pca import fit_pca
     from endo_pipeline.manifests import (
         DataframeLocation,
         create_dataframe_manifest,

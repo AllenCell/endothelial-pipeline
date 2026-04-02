@@ -1,6 +1,7 @@
 import logging
 
 import pandas as pd
+from sklearn.decomposition import PCA
 
 from endo_pipeline.configs import (
     TimepointAnnotation,
@@ -11,7 +12,10 @@ from endo_pipeline.configs import (
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
-from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_FEATURE_COLUMN_NAMES
+from endo_pipeline.settings.diffae_feature_dataframes import (
+    DIFFAE_FEATURE_COLUMN_NAMES,
+    NUM_LATENT_FEATURES,
+)
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -81,3 +85,44 @@ def build_pca_input_dataframe(
     # PCA input
     data_ref = pd.concat(dataframe_list, ignore_index=True)
     return data_ref[DIFFAE_FEATURE_COLUMN_NAMES]
+
+
+def fit_pca(
+    dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    dataframe_manifest_name: str | None = None,
+    filter_by_annotations: bool = True,
+    include_cell_piling: bool = False,
+    num_pcs: int = NUM_LATENT_FEATURES,
+) -> PCA:
+    """
+    Fit PCA model using given datasets in given dataset collection.
+
+    Parameters
+    ----------
+    dataset_collection_name
+        Name of the dataset collection to load reference datasets from.
+    dataframe_manifest_name
+        Name of the dataframe manifest to load the model features from.
+    filter_by_annotations
+        True to remove annotated timepoints and positions, False otherwise.
+    include_cell_piling
+        True to include cell piling timepoints, False otherwise.
+    num_pcs
+        Number of principal components to fit.
+
+    Returns
+    -------
+    :
+        Fit PCA object
+    """
+
+    # Build PCA input dataframe
+    pca_input_dataframe = build_pca_input_dataframe(
+        dataset_collection_name, dataframe_manifest_name, filter_by_annotations, include_cell_piling
+    )
+
+    # Fit PCA
+    pca = PCA(n_components=num_pcs, svd_solver="full")
+    pca.fit(pca_input_dataframe.values)
+
+    return pca

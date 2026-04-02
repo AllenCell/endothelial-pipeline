@@ -32,10 +32,10 @@ def main(
     from endo_pipeline.configs import get_latent_dim_from_config
     from endo_pipeline.io import get_config_dict_from_mlflow, get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        fit_pca,
         get_pca_loadings,
         get_pca_loadings_as_df,
     )
+    from endo_pipeline.library.analyze.pca import fit_pca
     from endo_pipeline.library.visualize.diffae_features import feature_viz
     from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
         plot_and_save_clustermap,

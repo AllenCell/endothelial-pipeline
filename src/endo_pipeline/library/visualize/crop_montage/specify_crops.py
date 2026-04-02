@@ -6,7 +6,6 @@ from sklearn.decomposition import PCA
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    fit_pca,
     get_dataframe_for_dynamics_workflows,
 )
 from endo_pipeline.library.analyze.numerics.binning import (
@@ -14,6 +13,7 @@ from endo_pipeline.library.analyze.numerics.binning import (
     get_df_by_bin_value,
     get_histogram_by_component,
 )
+from endo_pipeline.library.analyze.pca import fit_pca
 from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     get_label_for_column,
     plot_component_histograms_over_time,

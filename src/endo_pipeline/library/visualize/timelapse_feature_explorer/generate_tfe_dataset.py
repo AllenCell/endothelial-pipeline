@@ -8,12 +8,12 @@ from colorizer_data import convert_colorizer_data
 from endo_pipeline.configs import get_annotated_timepoints_for_position, load_dataset_config
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    fit_pca,
     get_dataframe_for_dynamics_workflows,
 )
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_optical_flow_features,
 )
+from endo_pipeline.library.analyze.pca import fit_pca
 from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     generate_backdrops,
 )

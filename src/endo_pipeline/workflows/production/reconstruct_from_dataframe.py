@@ -64,8 +64,8 @@ def main(
     from endo_pipeline.io import get_output_path, load_dataframe, load_model, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         check_required_columns_in_dataframe,
-        fit_pca,
     )
+    from endo_pipeline.library.analyze.pca import fit_pca
     from endo_pipeline.library.model import generate_from_coords_batch
     from endo_pipeline.manifests import (
         build_dataframe_location_from_path,
