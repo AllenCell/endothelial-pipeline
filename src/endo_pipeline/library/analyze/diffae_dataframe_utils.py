@@ -414,6 +414,11 @@ def build_pca_input_dataframe(
     # Merge dataframes for all datasets and return just the feature columns for
     # PCA input
     data_ref = pd.concat(dataframe_list, ignore_index=True)
+
+    # check required columns: DIFFAE_FEATURE_COLUMN_NAMES
+    check_required_columns_in_dataframe(data_ref, DIFFAE_FEATURE_COLUMN_NAMES)
+
+    # return just the feature columns for PCA input (i.e., no metadata)
     return data_ref[DIFFAE_FEATURE_COLUMN_NAMES]
 
 
