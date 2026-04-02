@@ -7,9 +7,11 @@ from endo_pipeline.configs import (
     PositionAnnotation,
     TimepointAnnotation,
 )
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_annotations,
     filter_dataframe_by_track_length,
+)
+from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_latent_feature_column_names_from_dataframe,
     project_features_to_pcs,
 )
