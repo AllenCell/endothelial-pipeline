@@ -887,42 +887,6 @@ def add_crop_index(
     return df
 
 
-def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
-    """
-    Convert DataFrame of features corresponding to one dataset to array
-    of shape num_crops x num_timepoints x num_features.
-    This function fills missing timepoints (for example filtered as outliers)
-    with NaNs such that there is a row for every timepoint within the dataset
-    duration for each crop.
-
-    Inputs:
-    - df: pd.DataFrame, DataFrame of feature data for one dataset
-        - DataFrame should have metadata columns for crop_index and T
-    - column_names: list[str], list of column names for features to include
-        in output array
-
-    Outputs:
-    - feats: np.ndarray, array of feature data for all crops
-        at all timepoints in one dataset
-        - shape is num_crops x num_timepoints x num_features
-    """
-    # check that required columns are present in dataframe
-    required_columns = [Column.CROP_INDEX, Column.TIMEPOINT, *column_names]
-    check_required_columns_in_dataframe(df, required_columns)
-
-    # get array of num crops x valid timepoints x num PCs, padding with NaNs
-    # where timepoints are missing
-    full_timepoint_range = (df[Column.TIMEPOINT].min(), df[Column.TIMEPOINT].max())
-
-    feats = []
-    for _, data_crop in df.groupby(Column.CROP_INDEX):
-        data_crop = data_crop.sort_values(by=Column.TIMEPOINT)
-        data_crop_filled = fill_missing_timepoints(data_crop, full_timepoint_range)
-        feats.append(data_crop_filled[column_names].values)
-
-    return np.array(feats)
-
-
 def split_dataset_by_flow(
     df_proj: pd.DataFrame, dataset_config: DatasetConfig
 ) -> tuple[list[pd.DataFrame], list[float]]:
