@@ -10,7 +10,7 @@ from scipy.integrate import solve_ivp
 from scipy.interpolate import RegularGridInterpolator, griddata
 from scipy.stats import gaussian_kde
 
-from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.numerics.binning import circpercentile
 from endo_pipeline.library.visualize.diffae_features.pplane import (
     get_fpt_type,
