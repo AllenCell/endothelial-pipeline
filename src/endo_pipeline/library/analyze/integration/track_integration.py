@@ -991,3 +991,39 @@ def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -
 
     filename_filtered = f"{dataset_name}_pc_diffae_seg_feats_merged_filtered.parquet"
     merged_df_filtered.to_parquet(out_dir / filename_filtered)
+
+
+def solve_ddff_from_trajectory_initial_condition_helper(args: dict) -> dict:
+    return solve_ddff_from_trajectory_initial_condition(**args)
+
+
+def solve_ddff_from_trajectory_initial_condition(
+    crop_index: int,
+    flow_field_dict: dict,
+    initial_condition: np.ndarray,
+    timepoint_initial: int,
+    trajectory_duration: int,
+    simulation_results_column_names: list[str | Column.DiffAEData],
+) -> dict:
+    trajectory_simulation = solve_ddff_ode(
+        flow_field_dict=flow_field_dict,
+        init=initial_condition,
+        t_span=(0, trajectory_duration + 1),
+        num_t=trajectory_duration + 1,
+    )
+    simulation_as_df_record = {
+        Column.CROP_INDEX: [crop_index] * len(trajectory_simulation),
+        Column.TRACK_LENGTH: [trajectory_duration] * len(trajectory_simulation),
+        Column.TIMEPOINT: list(
+            range(timepoint_initial, timepoint_initial + trajectory_duration + 1)
+        ),
+        **dict(
+            zip(
+                [f"{col_name}_simulated" for col_name in simulation_results_column_names],
+                trajectory_simulation.T,
+                strict=True,
+            )
+        ),
+    }
+
+    return simulation_as_df_record
