@@ -11,10 +11,10 @@ from tqdm import tqdm
 
 from endo_pipeline.io import get_output_path, load_dataframe
 from endo_pipeline.library.analyze.data_driven_flow_field import solve_ddff_ode
-from endo_pipeline.library.analyze.diffae_dataframe_utils import get_traj_and_diff
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins
+from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.visualize.integration.track_integration_viz import (
     get_valid_slice_indexes,
@@ -511,7 +511,6 @@ def get_traj_and_flowfield(
     df: pd.DataFrame,
     load_precomputed_trajectories: Path | None,
 ) -> tuple[np.ndarray, dict]:
-
     # set kernel params
     kernel_name = KERNEL_FUNCTION_NAME
     kernel_bw = KERNEL_BANDWIDTH
@@ -645,7 +644,6 @@ def get_approx_vec_from_grid(
     v2_grids: np.ndarray,
     slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
 ) -> np.ndarray:
-
     # create a distance mapping
     point_grids_pc1pc2 = np.asarray(
         list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes], strict=True))
@@ -670,7 +668,6 @@ def get_approx_point_from_grid(
     v2_grids: np.ndarray,
     slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
 ) -> np.ndarray:
-
     # create a distance mapping
     point_grids_pc1pc2 = np.asarray(
         list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes], strict=True))
