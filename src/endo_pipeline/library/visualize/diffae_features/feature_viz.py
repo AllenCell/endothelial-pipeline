@@ -15,8 +15,8 @@ from seaborn import kdeplot
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    check_required_columns_in_dataframe,
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.polar_coords import (
     rewrap_polar_angle,
     unwrap_nonsequential_array,
 )

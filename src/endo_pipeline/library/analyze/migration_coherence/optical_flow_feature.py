@@ -4,7 +4,7 @@ import pandas as pd
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe
-from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.migration_coherence import (

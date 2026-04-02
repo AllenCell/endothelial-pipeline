@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Literal, cast, overload
+from typing import Literal, cast
 
 import numpy as np
 import pandas as pd
@@ -18,6 +18,8 @@ from endo_pipeline.configs import (
     load_dataset_config,
 )
 from endo_pipeline.io import load_dataframe
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.polar_coords import pcs_to_polar_r, pcs_to_polar_theta
 from endo_pipeline.manifests import (
     DataframeManifest,
     get_dataframe_location_for_dataset,
@@ -30,11 +32,7 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAME_GROUPS,
     NUM_LATENT_FEATURES,
 )
-from endo_pipeline.settings.dynamics_workflows import (
-    METADATA_COLUMNS_TO_KEEP,
-    PERIOD_THETA_RESCALED,
-    RESCALE_THETA,
-)
+from endo_pipeline.settings.dynamics_workflows import METADATA_COLUMNS_TO_KEEP, RESCALE_THETA
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -43,27 +41,6 @@ from endo_pipeline.settings.workflow_defaults import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-def check_required_columns_in_dataframe(
-    df: pd.DataFrame,
-    required_columns: list[str],
-) -> None:
-    """
-    Check that required columns are present in a given dataframe.
-
-    Parameters
-    ----------
-    df
-        DataFrame to check.
-    required_columns
-        List of required column names to check for.
-    """
-
-    for col in required_columns:
-        if col not in df.columns:
-            logger.error("DataFrame must contain column [ %s ]", col)
-            raise ValueError(f"DataFrame must contain column [ {col} ]")
 
 
 def get_latent_feature_column_names(num_latent_dims: int) -> list[str]:
@@ -138,169 +115,6 @@ def get_latent_feature_column_names_from_dataframe(dataframe: pd.DataFrame) -> l
     ]
     feat_cols = [col.group() for col in feat_cols_match if col is not None]
     return feat_cols
-
-
-def pcs_to_polar_r(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.ndarray:
-    """
-    Convert Cartesian coordinates (pc1, pc2) to polar coordinate r.
-
-    The polar coordinate r is given by the formula:
-        r = sqrt(pc1^2 + pc2^2)
-
-    Parameters
-    ----------
-    pc1_values
-        Values along the first principal component axis.
-    pc2_values
-        Values along the second principal component axis.
-
-    Returns
-    -------
-    :
-        Polar coordinate r values.
-    """
-    return np.sqrt(pc1_values**2 + pc2_values**2)
-
-
-def pcs_to_polar_theta(
-    pc1_values: np.ndarray,
-    pc2_values: np.ndarray,
-    rescale: bool = True,
-) -> np.ndarray:
-    """
-    Convert Cartesian coordinates (pc1, pc2) to polar coordinate theta.
-
-    The polar coordinate theta is given by the formula:
-        theta = arctan2(pc2, pc1)
-
-    Parameters
-    ----------
-    pc1_values
-        Values along the first principal component axis.
-    pc2_values
-        Values along the second principal component axis.
-    rescale
-        Whether to rescale the angle to be in the range [0, pi] instead of [-pi, pi].
-
-    Returns
-    -------
-    :
-        Polar coordinate theta values.
-    """
-    # angle in range [-pi, pi]
-    theta = np.arctan2(pc2_values, pc1_values)
-
-    if rescale:
-        # rescale angle to range [0, pi]
-        # by adding pi and dividing by 2
-        # (values now have period pi instead of 2pi)
-        theta = (theta + np.pi) / 2
-
-    return theta
-
-
-def polar_to_pcs(
-    theta_values: np.ndarray, r_values: np.ndarray, is_theta_rescaled: bool = RESCALE_THETA
-) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Convert polar coordinates (theta, r) back to Cartesian coordinates (pc1, pc2).
-
-    The conversion from polar to Cartesian coordinates is given by the formulas:
-        pc1 = r * cos(theta)
-        pc2 = r * sin(theta)
-
-    If the input theta values are rescaled to be in the range [0, pi], they will be
-    unrescaled back to the range [-pi, pi] before conversion.
-
-    Parameters
-    ----------
-    theta_values
-        Polar coordinate theta values.
-    r_values
-        Polar coordinate r values.
-    is_theta_rescaled
-        Whether the input theta values were rescaled to be in the range [0, pi].
-    """
-
-    if is_theta_rescaled:
-        # unrescale theta back to range [-pi, pi]
-        theta_values = (theta_values * 2) - np.pi
-
-    pc1_values = r_values * np.cos(theta_values)
-    pc2_values = r_values * np.sin(theta_values)
-
-    return pc1_values, pc2_values
-
-
-@overload
-def rewrap_polar_angle(unwrapped_angle: float, original_range: tuple[float, float]) -> float: ...
-
-
-@overload
-def rewrap_polar_angle(
-    unwrapped_angle: np.ndarray, original_range: tuple[float, float]
-) -> np.ndarray: ...
-
-
-def rewrap_polar_angle(
-    unwrapped_angle: float | np.ndarray, original_range: tuple[float, float]
-) -> float | np.ndarray:
-    """
-    Rewrap unwrapped polar angle value to be within original range.
-
-    Unwrapped angles computed, e.g., using numpy.unwrap can extend beyond the original
-    periodic range of polar angle values. This function rewraps the unwrapped angle back
-    to be within the original range.
-
-    Example:
-        original_range = (0, pi)
-        unwrapped_angle = pi + 0.5
-        rewrapped_angle = 0.5
-
-    Parameters
-    ----------
-    unwrapped_angle
-        Unwrapped polar angle value.
-    original_range
-        Original range of polar angle values.
-    """
-    angle_period = original_range[1] - original_range[0]
-    rewrapped_angle = ((unwrapped_angle - original_range[0]) % angle_period) + original_range[0]
-    return rewrapped_angle
-
-
-def unwrap_nonsequential_array(
-    wrapped_array: np.ndarray,
-    period: float,
-    reference_angle: float | None = None,
-) -> np.ndarray:
-    """
-    Unwrap array of periodic values that may have non-sequential entries.
-
-    Unlike numpy.unwrap, which assumes sequential entries, this function handles
-    non-sequential entries by unwrapping each entry relative to a fixed reference point.
-    If no reference point is provided, the function uses the first entry in the array
-    as the (arbitrary) reference point.
-
-    When applying numpy.unwrap to periodic data with non-sequential entries, the
-    resulting unwrapped values may still have large jumps between entries that are not
-    next to each other in the original sequence.
-
-    Parameters
-    ----------
-    wrapped_array
-        Array of periodic values to unwrap.
-    period
-        Period of the values.
-    """
-    reference_angle_ = wrapped_array[0] if reference_angle is None else reference_angle
-    unwrapped_array = np.array(
-        [
-            np.unwrap(np.array([reference_angle_, wrapped_angle]), period=period)[-1]
-            for wrapped_angle in wrapped_array
-        ]
-    )
-    return unwrapped_array
 
 
 def filter_dataframe_by_track_length(
@@ -842,12 +656,6 @@ def get_dataframe_for_dynamics_workflows(
     # keep only necessary columns to save memory
     df_ = df[columns_to_keep_].compute()
 
-    # the crop indices have to be added before any filtering
-    # so that they are consistently assigned across datasets
-    # for the grid crop pattern, which is critical for the
-    # grid-based TFE workflow to run correctly
-    df_ = add_crop_index(df_, crop_pattern)
-
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
     if filter_by_annotations:
@@ -935,42 +743,6 @@ def get_dataframe_for_dynamics_workflows(
             columns=feat_cols
         )  # drop original feature columns to save memory
         return df_drop_original_feats
-
-
-def add_crop_index(
-    df: pd.DataFrame,
-    crop_pattern: Literal["grid", "tracked"] = "grid",
-) -> pd.DataFrame:
-    """
-    Add crop index column to DataFrame df. (Crops are currently identified by
-        their starting position in x and y.).
-
-    Inputs:
-    - df: pd.DataFrame, DataFrame of feature data with metadata
-        columns for start_x, start_y, and FOV_ID
-        - IMPORTANT: DataFrame must be restricted to one dataset only,
-            as identified by the dataset_name column
-
-    Outputs:
-    - df: pd.DataFrame, DataFrame of feature data for one
-        dataset with added crop index column
-    """
-    if crop_pattern not in ["grid", "tracked"]:
-        logger.error("Crop pattern must be 'tracked' or 'grid', got [ %s ]", crop_pattern)
-        raise ValueError("Input crop_pattern must be 'grid' or 'tracked'")
-
-    if crop_pattern == "tracked" and Column.TRACK_ID in df.columns:
-        required_columns = [Column.POSITION, Column.TRACK_ID]
-    elif crop_pattern == "grid":
-        required_columns = [Column.POSITION, Column.DiffAEData.START_X, Column.DiffAEData.START_Y]
-
-    check_required_columns_in_dataframe(df, required_columns)
-
-    # group by the required columns and assign a unique integer (the crop_index)
-    # to each group based on the index of that group
-    df[Column.CROP_INDEX] = df.groupby(required_columns, as_index=False).ngroup().astype(int)
-
-    return df
 
 
 def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
@@ -1066,225 +838,6 @@ def split_dataset_by_flow(
         data_all = [df_proj.copy()]
 
     return data_all, shear_list
-
-
-@overload
-def _take_dataframe_column_diff(
-    dataframe_column: pd.Series, diff_step: int, fillna_value: float | None = None
-) -> pd.Series: ...
-
-
-@overload
-def _take_dataframe_column_diff(
-    dataframe_column: pd.DataFrame, diff_step: int, fillna_value: float | None = None
-) -> pd.DataFrame: ...
-
-
-def _take_dataframe_column_diff(
-    dataframe_column: pd.Series | pd.DataFrame, diff_step: int, fillna_value: float | None = None
-) -> pd.Series | pd.DataFrame:
-    """
-    Helper function to take the difference along a columns of a DataFrame, given
-    a specified step size.
-
-    The returned Series or DataFrame will contain the differences along the
-    input column(s), with NaN values at the end where the difference could not
-    be computed due to shifting. If a fillna_value is provided, NaN values will
-    be replaced with the fillna_value.
-
-    Parameters
-    ----------
-    dataframe_column
-        A column of a DataFrame.
-    diff_step
-        The number of rows ahead to take the difference with.
-    fillna_value
-        Optional, value to fill NaN values with after taking the difference.
-    """
-    diffed_column = dataframe_column.diff(periods=diff_step).shift(-diff_step)
-    if fillna_value is not None:
-        diffed_column = diffed_column.fillna(fillna_value)
-    return diffed_column
-
-
-def compute_forward_differences_along_trajectory(
-    df_traj: pd.DataFrame,
-    column_names: list,
-    polar_angle_period: float = PERIOD_THETA_RESCALED,
-    time_lag: int = 1,
-) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Compute forward differences at a given time lag along a trajectory in
-    feature space.
-
-    **Polar angle handling**
-
-    If one of the input ``column_names`` is 'polar_theta', the function will
-    compute circular differences for the polar angle feature using the given
-    ``polar_angle_period``. Specifically, it will unwrap the polar angle
-    trajectory according to the given period for each crop before computing
-    differences.
-
-    **Time lag handling**
-
-    The input ``time_lag`` determines the time lag (in number of frames) to use
-    when computing forward differences. By default, it is set to 1, which
-    corresponds to forward differences between consecutive timepoints. If a
-    different time lag is specified, the function will compute differences
-    between timepoints that are separated by ``time_lag`` number of frames.
-
-    Parameters
-    ----------
-    df_traj
-        DataFrame containing the feature data for one crop trajectory.
-    column_names
-        List of column names corresponding to the features of interest in the
-        DataFrame.
-    polar_angle_period
-        Period of the polar angle feature, used to compute circular differences
-        for angular data.
-    time_lag
-        Time lag (in number of frames) for forward difference calculation.
-
-    Returns
-    -------
-    :
-        Array of feature values along the trajectory for the specified columns.
-    :
-        Array of forward differences in feature values along the trajectory for
-        the specified columns.
-    """
-    # initialize name for difference columns
-    diff_column_names = [f"{col}{Column.DiffAEData.DIFFERENCE_SUFFIX}" for col in column_names]
-    timepoint_diff_column = f"{Column.TIMEPOINT}{Column.DiffAEData.DIFFERENCE_SUFFIX}"
-
-    # add column giving difference in timepoint between rows separated by
-    # time_lag convert NaN to 0 -- occurs at end of trajectory
-    df_traj[timepoint_diff_column] = _take_dataframe_column_diff(
-        df_traj[Column.TIMEPOINT], time_lag, fillna_value=0
-    )
-
-    # add columns giving difference in feature values between consecutive
-    # dataframe rows
-    df_traj[diff_column_names] = _take_dataframe_column_diff(
-        df_traj[column_names], time_lag, fillna_value=0
-    )
-
-    # if one of the column names is `polar_theta`, need to replace with the
-    # circular difference for angular data instead of simple difference
-    if Column.DiffAEData.POLAR_ANGLE in column_names:
-        angle_diff_column = f"{Column.DiffAEData.POLAR_ANGLE}{Column.DiffAEData.DIFFERENCE_SUFFIX}"
-        df_traj[f"{Column.DiffAEData.POLAR_ANGLE}_unwrapped"] = np.unwrap(
-            df_traj[Column.DiffAEData.POLAR_ANGLE].values, period=polar_angle_period
-        )
-        df_traj[angle_diff_column] = _take_dataframe_column_diff(
-            df_traj[f"{Column.DiffAEData.POLAR_ANGLE}_unwrapped"], time_lag, fillna_value=0
-        )
-        df_traj.drop(columns=[f"{Column.DiffAEData.POLAR_ANGLE}_unwrapped"], inplace=True)
-
-    # trajectory values to keep -- only keep steps where time difference is <=
-    # time_lag which includes the last point in the trajectory (which has time
-    # difference set to 0)
-    traj_mask = df_traj[timepoint_diff_column] <= time_lag
-    filtered_traj_array = df_traj[traj_mask][column_names].to_numpy()
-    if time_lag > 1:
-        # drop last time_lag - 1 points, as there is no valid difference there
-        filtered_traj_array = filtered_traj_array[: -time_lag + 1]
-
-    # for the gradient, only keep steps where time difference is exactly
-    # time_lag frames i.e., no valid difference at the end of the trajectory
-    # (only forward differences)
-    gradient_mask = df_traj[timepoint_diff_column] == time_lag
-    filtered_d_traj_array = df_traj[gradient_mask][diff_column_names].to_numpy()
-
-    return filtered_traj_array, filtered_d_traj_array
-
-
-def get_traj_and_diff(
-    df: pd.DataFrame,
-    column_names: list,
-    polar_angle_period: float = PERIOD_THETA_RESCALED,
-    time_lag: int = 1,
-) -> tuple[list[np.ndarray], list[np.ndarray]]:
-    """
-    Get trajectories and single-timepoint displacement vectors (forward
-    differences) for each single-crop trajectory in feature space.
-
-    **Input dataframe**
-
-    The input dataframe should have columns for:
-        - frame_number: timepoint of the crop
-        - crop_index: unique index for each crop
-        - columns for each feature (e.g., pc_0, pc_1, pc_2, ...)
-           matching input ``column_names``
-
-    See documentation for `compute_forward_differences_along_trajectory` for
-    more details on the numerical calculation of the forward differences.
-
-    Parameters
-    ----------
-    df
-        DataFrame with columns for each feature.
-    column_names
-        List of column names corresponding to the features of interest in the
-        DataFrame.
-    polar_angle_period
-        Period of the polar angle feature, used to compute circular differences
-        for angular data.
-    time_lag
-        Time lag (in number of frames) for forward difference calculation.
-
-    Returns
-    -------
-    :
-        List of individual crop trajectories in feature space.
-    :
-        List of displacement vectors along each trajectory in feature space.
-    """
-    # check that required columns are present
-    required_columns = [Column.TIMEPOINT, Column.CROP_INDEX, *column_names]
-    check_required_columns_in_dataframe(df, required_columns)
-
-    # initialize lists for storing outputs
-    traj_list = []
-    d_traj_list = []
-
-    # loop over each crop in the dataset
-    for _, df_crop in df.groupby(Column.CROP_INDEX):
-        # skip if time_lag is larger than number of timepoints in this trajectory
-        if time_lag > df_crop[Column.TIMEPOINT].nunique():
-            continue
-
-        # sort by timepoint to ensure that trajectory is in correct order before
-        # computing differences
-        df_crop_ = df_crop.sort_values(by=Column.TIMEPOINT)
-
-        # compute forward differences along trajectory for this crop, and filter
-        # to keep only differences between timepoints that are separated by
-        # time_lag number of frames (accounts for any missing timepoints in the
-        # trajectory, for example due to outlier filtering)
-        filtered_traj, filtered_d_traj = compute_forward_differences_along_trajectory(
-            df_crop_, column_names, polar_angle_period, time_lag
-        )
-
-        # if either the returned trajectory or difference arrays are empty, skip
-        # this trajectory
-        if filtered_traj.size == 0 or filtered_d_traj.size == 0:
-            continue
-
-        # else, append and continue through the loop
-        traj_list.append(filtered_traj)
-        d_traj_list.append(filtered_d_traj)
-
-    # if lists are empty, log warning
-    if len(traj_list) == 0 or len(d_traj_list) == 0:
-        logger.warning(
-            "No valid trajectories found after computing forward differences with time lag [ %s ]. "
-            "Check that the input dataframe has the required columns and that the time lag is not "
-            "larger than the number of timepoints in the trajectories.",
-            time_lag,
-        )
-    return traj_list, d_traj_list
 
 
 def fill_missing_timepoints(

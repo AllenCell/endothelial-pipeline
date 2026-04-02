@@ -9,7 +9,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy.stats import binned_statistic_2d, binned_statistic_dd
 
 from endo_pipeline.io import save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.visualize.diffae_features.pplane import make_legend_handles_for_fixed_pts
 from endo_pipeline.settings.flow_field_dataframes import (
     STABILITY_COLOR_DICT,

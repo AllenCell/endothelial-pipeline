@@ -100,10 +100,10 @@ def main(
         compute_extrapolated_vector_field,
         solve_ddff_ode,
     )
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    from endo_pipeline.library.analyze.dataframe_validation import (
         check_required_columns_in_dataframe,
-        filter_dataframe_by_annotations,
     )
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
         get_kernel_density_estimate_from_trajectories,
     )
