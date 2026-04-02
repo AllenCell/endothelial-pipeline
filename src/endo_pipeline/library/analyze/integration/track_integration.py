@@ -11,10 +11,7 @@ from tqdm import tqdm
 
 from endo_pipeline.io import get_output_path, load_dataframe
 from endo_pipeline.library.analyze.data_driven_flow_field import solve_ddff_ode
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    get_pc_column_names,
-    get_traj_and_diff,
-)
+from endo_pipeline.library.analyze.diffae_dataframe_utils import get_traj_and_diff
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins
@@ -467,10 +464,7 @@ def get_diffae_feats_liveseg_feats_merged_table(
     diffae_tracking_df = load_dataframe(diffae_track_location, delay=False)
 
     # drop any pc columns after the 100th one
-    all_pc_col_names = get_pc_column_names("all")
-    first_100_pc_col_names = get_pc_column_names("first_100_pcs")
-    pc_cols_to_drop = sorted(set(all_pc_col_names) - set(first_100_pc_col_names))
-
+    pc_cols_to_drop = DIFFAE_PC_COLUMN_NAMES[100:]
     diffae_tracking_df = diffae_tracking_df.drop(columns=pc_cols_to_drop)
 
     # load the tracking data of the measured features and merge them

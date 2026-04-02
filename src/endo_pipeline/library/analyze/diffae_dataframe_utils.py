@@ -29,6 +29,7 @@ from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAME_GROUPS,
+    DIFFAE_PC_COLUMN_NAMES,
     NUM_LATENT_FEATURES,
 )
 from endo_pipeline.settings.dynamics_workflows import (
@@ -617,7 +618,7 @@ def get_pca_loadings_as_df(
 
     num_features, num_pcs = loading_matrix.shape
     feat_col_names = DIFFAE_FEATURE_COLUMN_NAMES[:num_features]
-    pc_col_names = get_pc_column_names(num_pcs)
+    pc_col_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
 
     loading_matrix_df = pd.DataFrame(loading_matrix, columns=pc_col_names, index=feat_col_names)
     if df_format == "long":
@@ -693,7 +694,7 @@ def project_features_to_pcs(
 
     # project feature data onto PCA axes, add new columns for each PC
     num_pcs = pca.components_.shape[0]  # number of principal components
-    pc_cols = get_pc_column_names(num_pcs)
+    pc_cols = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
     df_.loc[:, pc_cols] = pca.transform(df_[feat_cols].values)
 
     # optionally, compute polar coordinates (r, theta) from first two PCs

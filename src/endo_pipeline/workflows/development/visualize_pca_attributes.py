@@ -33,7 +33,6 @@ def main(
     from endo_pipeline.io import get_config_dict_from_mlflow, get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         fit_pca,
-        get_pc_column_names,
         get_pca_loadings,
         get_pca_loadings_as_df,
     )
@@ -44,6 +43,7 @@ def main(
     from endo_pipeline.manifests import get_model_location_for_run, load_model_manifest
     from endo_pipeline.settings.diffae_feature_dataframes import (
         DIFFAE_FEATURE_COLUMN_NAMES,
+        DIFFAE_PC_COLUMN_NAMES,
         NUM_LATENT_FEATURES,
         NUM_PCS_TO_ANALYZE,
     )
@@ -65,7 +65,7 @@ def main(
     )
     num_pc_dim = num_pcs or min(NUM_PCS_TO_ANALYZE, num_latent_dim)
     feat_col_names = DIFFAE_FEATURE_COLUMN_NAMES[:num_latent_dim]
-    pc_col_names = get_pc_column_names(num_pc_dim)
+    pc_col_names = DIFFAE_PC_COLUMN_NAMES[:num_pc_dim]
 
     # set up output directory for figures
     fig_savedir = get_output_path(__file__)
