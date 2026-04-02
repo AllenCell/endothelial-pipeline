@@ -12,8 +12,8 @@ from endo_pipeline.configs import (
     load_dataset_config,
 )
 from endo_pipeline.io import load_dataframe
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    check_required_columns_in_dataframe,
     filter_dataframe_by_annotations,
     filter_dataframe_by_track_length,
     pcs_to_polar_r,
@@ -87,9 +87,13 @@ def build_pca_input_dataframe(
         )
         dataframe_list.append(dataframe_filtered)
 
-    # Merge dataframes for all datasets and return just the feature columns for
-    # PCA input
+    # Merge dataframes for all datasets
     data_ref = pd.concat(dataframe_list, ignore_index=True)
+
+    # check required columns: DIFFAE_FEATURE_COLUMN_NAMES
+    check_required_columns_in_dataframe(data_ref, DIFFAE_FEATURE_COLUMN_NAMES)
+
+    # return just the feature columns for PCA input (i.e., no metadata)
     return data_ref[DIFFAE_FEATURE_COLUMN_NAMES]
 
 
