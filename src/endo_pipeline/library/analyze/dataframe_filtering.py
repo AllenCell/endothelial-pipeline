@@ -139,6 +139,35 @@ def filter_dataframe_by_annotations(
     return dataframe_filtered
 
 
+def filter_dataframe_to_steady_state(
+    dataframe: pd.DataFrame, dataset_config: DatasetConfig
+) -> pd.DataFrame:
+    """
+    Filter dataframe to only include timepoints "steady state" timepoints.
+
+    Filtering is done by removing timepoints that are annotated as
+    NOT_STEADY_STATE in the dataset config.
+
+    Parameters
+    ----------
+    dataframe
+        Dataframe of features for one dataset.
+    dataset_config
+        Dataset config for the dataset.
+    """
+
+    # note: don't need to do dataframe validation checks here since those will
+    # be done in the method `filter_dataframe_by_annotations` that is called
+    # within this method
+    timepoint_annotations = [TimepointAnnotation.NOT_STEADY_STATE]
+    dataframe_steady_state = filter_dataframe_by_annotations(
+        dataframe=dataframe,
+        dataset_config=dataset_config,
+        timepoint_annotations=timepoint_annotations,
+    )
+    return dataframe_steady_state
+
+
 def split_dataframe_by_flow(
     dataframe: pd.DataFrame, dataset_config: DatasetConfig
 ) -> tuple[list[pd.DataFrame], list[float]]:
