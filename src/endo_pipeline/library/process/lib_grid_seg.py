@@ -7,9 +7,7 @@ from skimage.measure import regionprops
 from tqdm import tqdm
 
 from endo_pipeline.io import load_image_from_path
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    get_dataframe_for_dynamics_workflows,
-)
+from endo_pipeline.library.analyze.pca import get_dataframe_for_dynamics_workflows
 from endo_pipeline.library.process.general_image_preprocessing import save_image_output
 from endo_pipeline.manifests import (
     get_feature_dataframe_manifest_name,
