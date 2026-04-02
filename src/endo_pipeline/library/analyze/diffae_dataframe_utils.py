@@ -660,12 +660,6 @@ def get_dataframe_for_dynamics_workflows(
     # keep only necessary columns to save memory
     df_ = df[columns_to_keep_].compute()
 
-    # the crop indices have to be added before any filtering
-    # so that they are consistently assigned across datasets
-    # for the grid crop pattern, which is critical for the
-    # grid-based TFE workflow to run correctly
-    df_ = add_crop_index(df_, crop_pattern)
-
     # filter out annotated timepoints, including or excluding
     # "cell piling" and "not steady state" annotations as specified
     if filter_by_annotations:
