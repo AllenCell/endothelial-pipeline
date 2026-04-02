@@ -16,8 +16,8 @@ from endo_pipeline.library.analyze.dataframe_validation import check_required_co
 from endo_pipeline.library.analyze.diffae_dataframe_utils import (
     get_dataset_descriptions,
     parse_dataset_description,
-    rewrap_polar_angle,
 )
+from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
 from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     get_dataset_color,
     get_label_for_column,
