@@ -27,8 +27,6 @@ def main(
         If true, include a legend in the PCA loadings plots.
     annotate
         If true, annotate the heatmap and clustermap of PCA loadings.
-    color_by_time
-        If true, color points in the PCA scatter plot by timepoint. If false, color by dataset.
     """
 
     from endo_pipeline.configs import get_latent_dim_from_config
