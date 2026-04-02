@@ -19,9 +19,6 @@ from endo_pipeline.configs import (
 )
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
-from endo_pipeline.library.analyze.numerics.forward_difference import (
-    compute_forward_differences_along_trajectory,
-)
 from endo_pipeline.library.analyze.polar_coords import pcs_to_polar_r, pcs_to_polar_theta
 from endo_pipeline.manifests import (
     DataframeManifest,
@@ -35,11 +32,7 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAME_GROUPS,
     NUM_LATENT_FEATURES,
 )
-from endo_pipeline.settings.dynamics_workflows import (
-    METADATA_COLUMNS_TO_KEEP,
-    PERIOD_THETA_RESCALED,
-    RESCALE_THETA,
-)
+from endo_pipeline.settings.dynamics_workflows import METADATA_COLUMNS_TO_KEEP, RESCALE_THETA
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -983,93 +976,6 @@ def split_dataset_by_flow(
         data_all = [df_proj.copy()]
 
     return data_all, shear_list
-
-
-def get_traj_and_diff(
-    df: pd.DataFrame,
-    column_names: list,
-    polar_angle_period: float = PERIOD_THETA_RESCALED,
-    time_lag: int = 1,
-) -> tuple[list[np.ndarray], list[np.ndarray]]:
-    """
-    Get trajectories and single-timepoint displacement vectors (forward
-    differences) for each single-crop trajectory in feature space.
-
-    **Input dataframe**
-
-    The input dataframe should have columns for:
-        - frame_number: timepoint of the crop
-        - crop_index: unique index for each crop
-        - columns for each feature (e.g., pc_0, pc_1, pc_2, ...)
-           matching input ``column_names``
-
-    See documentation for `compute_forward_differences_along_trajectory` for
-    more details on the numerical calculation of the forward differences.
-
-    Parameters
-    ----------
-    df
-        DataFrame with columns for each feature.
-    column_names
-        List of column names corresponding to the features of interest in the
-        DataFrame.
-    polar_angle_period
-        Period of the polar angle feature, used to compute circular differences
-        for angular data.
-    time_lag
-        Time lag (in number of frames) for forward difference calculation.
-
-    Returns
-    -------
-    :
-        List of individual crop trajectories in feature space.
-    :
-        List of displacement vectors along each trajectory in feature space.
-    """
-    # check that required columns are present
-    required_columns = [Column.TIMEPOINT, Column.CROP_INDEX, *column_names]
-    check_required_columns_in_dataframe(df, required_columns)
-
-    # initialize lists for storing outputs
-    traj_list = []
-    d_traj_list = []
-
-    # loop over each crop in the dataset
-    for _, df_crop in df.groupby(Column.CROP_INDEX):
-        # skip if time_lag is larger than number of timepoints in this trajectory
-        if time_lag > df_crop[Column.TIMEPOINT].nunique():
-            continue
-
-        # sort by timepoint to ensure that trajectory is in correct order before
-        # computing differences
-        df_crop_ = df_crop.sort_values(by=Column.TIMEPOINT)
-
-        # compute forward differences along trajectory for this crop, and filter
-        # to keep only differences between timepoints that are separated by
-        # time_lag number of frames (accounts for any missing timepoints in the
-        # trajectory, for example due to outlier filtering)
-        filtered_traj, filtered_d_traj = compute_forward_differences_along_trajectory(
-            df_crop_, column_names, polar_angle_period, time_lag
-        )
-
-        # if either the returned trajectory or difference arrays are empty, skip
-        # this trajectory
-        if filtered_traj.size == 0 or filtered_d_traj.size == 0:
-            continue
-
-        # else, append and continue through the loop
-        traj_list.append(filtered_traj)
-        d_traj_list.append(filtered_d_traj)
-
-    # if lists are empty, log warning
-    if len(traj_list) == 0 or len(d_traj_list) == 0:
-        logger.warning(
-            "No valid trajectories found after computing forward differences with time lag [ %s ]. "
-            "Check that the input dataframe has the required columns and that the time lag is not "
-            "larger than the number of timepoints in the trajectories.",
-            time_lag,
-        )
-    return traj_list, d_traj_list
 
 
 def fill_missing_timepoints(
