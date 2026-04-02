@@ -28,8 +28,6 @@ logger = logging.getLogger(__name__)
 def build_pca_input_dataframe(
     dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     dataframe_manifest_name: str | None = None,
-    filter_by_annotations: bool = True,
-    include_cell_piling: bool = False,
 ) -> pd.DataFrame:
     """
     Build input dataframe for fitting PCA model using given dataset collection.
@@ -60,25 +58,21 @@ def build_pca_input_dataframe(
 
     # Get datasets in collection
     dataset_names = get_datasets_in_collection(dataset_collection_name)
-    logger.info("Datasets being used to fit PCA: [ %s ]", ", ".join(dataset_names))
 
     # Load and filter out annotated timepoints (if requested) for each dataset
     dataframe_list = []
     for dataset_name in dataset_names:
         location = get_dataframe_location_for_dataset(manifest, dataset_name)
         dataframe = load_dataframe(location)
-        if filter_by_annotations:
-            annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
-            if include_cell_piling:
-                annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
-            timepoint_annotations = get_subset_of_timepoint_annotations(annotations_to_ignore)
-            dataframe_filtered = filter_dataframe_by_annotations(
-                dataframe,
-                load_dataset_config(dataset_name),
-                timepoint_annotations=timepoint_annotations,
-            )
-        else:
-            dataframe_filtered = dataframe
+        # filter out annotate timepoints and positions except for timepoints
+        # annotate at "not steady state"
+        annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
+        timepoint_annotations = get_subset_of_timepoint_annotations(annotations_to_ignore)
+        dataframe_filtered = filter_dataframe_by_annotations(
+            dataframe,
+            load_dataset_config(dataset_name),
+            timepoint_annotations=timepoint_annotations,
+        )
         dataframe_list.append(dataframe_filtered)
 
     # Merge dataframes for all datasets and return just the feature columns for
@@ -90,8 +84,6 @@ def build_pca_input_dataframe(
 def fit_pca(
     dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
     dataframe_manifest_name: str | None = None,
-    filter_by_annotations: bool = True,
-    include_cell_piling: bool = False,
     num_pcs: int = NUM_LATENT_FEATURES,
 ) -> PCA:
     """
@@ -103,10 +95,6 @@ def fit_pca(
         Name of the dataset collection to load reference datasets from.
     dataframe_manifest_name
         Name of the dataframe manifest to load the model features from.
-    filter_by_annotations
-        True to remove annotated timepoints and positions, False otherwise.
-    include_cell_piling
-        True to include cell piling timepoints, False otherwise.
     num_pcs
         Number of principal components to fit.
 
@@ -118,7 +106,7 @@ def fit_pca(
 
     # Build PCA input dataframe
     pca_input_dataframe = build_pca_input_dataframe(
-        dataset_collection_name, dataframe_manifest_name, filter_by_annotations, include_cell_piling
+        dataset_collection_name, dataframe_manifest_name
     )
 
     # Fit PCA
