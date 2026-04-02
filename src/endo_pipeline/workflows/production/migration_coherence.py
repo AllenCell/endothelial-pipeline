@@ -22,7 +22,7 @@ def main(
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_annotations,
-        split_dataset_by_flow,
+        split_dataframe_by_flow,
     )
     from endo_pipeline.library.analyze.dataframe_validation import (
         check_required_columns_in_dataframe,
@@ -131,7 +131,7 @@ def main(
         # split the dataframe by flow condition so we can plot the distribution
         # of optical flow features for each flow condition separately
         dataset_config = load_dataset_config(dataset_name)
-        df_by_flow, shear_stress_list = split_dataset_by_flow(df_of, dataset_config)
+        df_by_flow, shear_stress_list = split_dataframe_by_flow(df_of, dataset_config)
 
         for df_flow, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"

@@ -78,7 +78,7 @@ def main(
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_annotations,
         filter_dataframe_by_track_length,
-        split_dataset_by_flow,
+        split_dataframe_by_flow,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
         get_kernel_density_estimate_from_trajectories,
@@ -168,7 +168,7 @@ def main(
             timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
         )
 
-        df_by_flow, shear_stress_list = split_dataset_by_flow(df_steady_state, dataset_config)
+        df_by_flow, shear_stress_list = split_dataframe_by_flow(df_steady_state, dataset_config)
 
         for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
             if crop_pattern == "tracked":

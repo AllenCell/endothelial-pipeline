@@ -71,7 +71,7 @@ def main(
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_annotations,
         filter_dataframe_by_track_length,
-        split_dataset_by_flow,
+        split_dataframe_by_flow,
     )
     from endo_pipeline.library.analyze.diffae_dataframe_utils import df_to_array
     from endo_pipeline.library.analyze.numerics.temporal_stats import (
@@ -181,7 +181,7 @@ def main(
         theta_period = PERIOD_THETA_RESCALED if RESCALE_THETA else 2 * np.pi
 
         # split by flow conditions (shared by unscaled and scaled paths)
-        df_by_flow, shear_stress_list = split_dataset_by_flow(df_, dataset_config)
+        df_by_flow, shear_stress_list = split_dataframe_by_flow(df_, dataset_config)
 
         # collect unscaled mean ± std per flow condition
         for df_flow, shear_stress, shear_stress_regime in zip(

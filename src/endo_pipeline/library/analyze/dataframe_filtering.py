@@ -139,7 +139,7 @@ def filter_dataframe_by_annotations(
     return dataframe_filtered
 
 
-def split_dataset_by_flow(
+def split_dataframe_by_flow(
     dataframe: pd.DataFrame, dataset_config: DatasetConfig
 ) -> tuple[list[pd.DataFrame], list[float]]:
     """
