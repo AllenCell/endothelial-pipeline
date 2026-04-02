@@ -11,19 +11,17 @@ from endo_pipeline.configs import (
     PositionAnnotation,
     TimepointAnnotation,
     get_all_unannotated_timepoints,
-    get_datasets_in_collection,
     get_frame_after_flow_change,
     get_subset_of_timepoint_annotations,
     get_unannotated_positions,
     load_dataset_config,
 )
 from endo_pipeline.io import load_dataframe
+from endo_pipeline.library.analyze.pca import build_pca_input_dataframe
 from endo_pipeline.manifests import (
     DataframeManifest,
     get_dataframe_location_for_dataset,
-    get_feature_dataframe_manifest_name,
     load_dataframe_manifest,
-    load_model_manifest,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
@@ -37,8 +35,6 @@ from endo_pipeline.settings.dynamics_workflows import (
     RESCALE_THETA,
 )
 from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 )
@@ -370,71 +366,6 @@ def filter_dataframe_by_annotations(
     dataframe_filtered = pd.concat(df_filtered_list, ignore_index=True)
 
     return dataframe_filtered
-
-
-def build_pca_input_dataframe(
-    dataset_collection_name: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    dataframe_manifest_name: str | None = None,
-    filter_by_annotations: bool = True,
-    include_cell_piling: bool = False,
-) -> pd.DataFrame:
-    """
-    Build input dataframe for fitting PCA model using given dataset collection.
-
-    Parameters
-    ----------
-    dataset_collection_name
-        Name of the dataset collection to load reference datasets from.
-    dataframe_manifest_name
-        Name of the dataframe manifest to load the model features from.
-    filter_by_annotations
-        Whether to remove annotated timepoints and positions from the dataframes before fitting PCA.
-    include_cell_piling
-        True to include cell piling timepoints, False otherwise.
-
-    Returns
-    -------
-    :
-        Input dataframe for fitting PCA.
-    """
-
-    # Get dataframe manifest name if not provided based on default model manifest
-    if dataframe_manifest_name is None:
-        dataframe_manifest_name = get_feature_dataframe_manifest_name(
-            load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
-            DEFAULT_MODEL_RUN_NAME,
-        )
-
-    # Load dataframe manifest
-    manifest = load_dataframe_manifest(dataframe_manifest_name)
-
-    # Get datasets in collection
-    dataset_names = get_datasets_in_collection(dataset_collection_name)
-    logger.info("Datasets being used to fit PCA: [ %s ]", ", ".join(dataset_names))
-
-    # Load and filter out annotated timepoints (if requested) for each dataset
-    dataframe_list = []
-    for dataset_name in dataset_names:
-        location = get_dataframe_location_for_dataset(manifest, dataset_name)
-        dataframe = load_dataframe(location)
-        if filter_by_annotations:
-            annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
-            if include_cell_piling:
-                annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
-            timepoint_annotations = get_subset_of_timepoint_annotations(annotations_to_ignore)
-            dataframe_filtered = filter_dataframe_by_annotations(
-                dataframe,
-                load_dataset_config(dataset_name),
-                timepoint_annotations=timepoint_annotations,
-            )
-        else:
-            dataframe_filtered = dataframe
-        dataframe_list.append(dataframe_filtered)
-
-    # Merge dataframes for all datasets and return just the feature columns for
-    # PCA input
-    data_ref = pd.concat(dataframe_list, ignore_index=True)
-    return data_ref[DIFFAE_FEATURE_COLUMN_NAMES]
 
 
 def fit_pca(
