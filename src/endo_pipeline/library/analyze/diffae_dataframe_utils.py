@@ -67,32 +67,6 @@ def check_required_columns_in_dataframe(
             raise ValueError(f"DataFrame must contain column [ {col} ]")
 
 
-def get_latent_feature_column_names_from_dataframe(dataframe: pd.DataFrame) -> list[str]:
-    """
-    Get list of latent feature column names for given number of latent dimensions.
-
-    Matches columns that start with the latent feature column name prefix
-    as defined in ColumnName.DiffAEData.LATENT_FEATURE_PREFIX.
-
-    Parameters
-    ----------
-    dataframe
-        DataFrame containing latent feature columns.
-
-    Returns
-    -------
-    :
-        List of latent feature column names.
-    """
-    # regular expression to match latent feature columns
-    feat_cols_match = [
-        re.match(f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}[0-9]+$", col)
-        for col in dataframe.columns
-    ]
-    feat_cols = [col.group() for col in feat_cols_match if col is not None]
-    return feat_cols
-
-
 def pcs_to_polar_r(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.ndarray:
     """
     Convert Cartesian coordinates (pc1, pc2) to polar coordinate r.
