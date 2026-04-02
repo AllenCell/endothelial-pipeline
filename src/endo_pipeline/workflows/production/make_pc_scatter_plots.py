@@ -31,7 +31,7 @@ def main(
         load_dataset_config,
     )
     from endo_pipeline.io import get_output_path, load_dataframe
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
     from endo_pipeline.library.visualize.diffae_features.feature_viz import plot_pc_scatter
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column

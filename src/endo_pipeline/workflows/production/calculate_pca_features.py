@@ -60,11 +60,11 @@ def main(
         load_dataframe,
         upload_file_to_fms,
     )
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
     from endo_pipeline.library.analyze.dataframe_validation import (
         check_required_columns_in_dataframe,
     )
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        filter_dataframe_by_annotations,
         fit_pca,
         project_features_to_pcs,
     )

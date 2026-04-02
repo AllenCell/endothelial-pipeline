@@ -68,10 +68,12 @@ def main(
         load_dataset_config,
     )
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        df_to_array,
+    from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_annotations,
         filter_dataframe_by_track_length,
+    )
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+        df_to_array,
         split_dataset_by_flow,
     )
     from endo_pipeline.library.analyze.numerics.temporal_stats import (

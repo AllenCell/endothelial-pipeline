@@ -28,7 +28,7 @@ def main(
 
     from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
     from endo_pipeline.library.visualize.diffae_features.feature_viz import plot_kde_comparison
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.density_comparison_plots import (

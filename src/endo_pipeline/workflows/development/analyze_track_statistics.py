@@ -21,7 +21,7 @@ def main(
         load_dataset_config,
     )
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_annotations,
         filter_dataframe_by_track_length,
     )

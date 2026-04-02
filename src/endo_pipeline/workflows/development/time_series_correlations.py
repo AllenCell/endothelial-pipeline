@@ -39,7 +39,7 @@ def main(
         load_dataset_config,
     )
     from endo_pipeline.io import load_dataframe
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
     from endo_pipeline.library.analyze.numerics.correlations import (
         compute_correlations_for_one_dataset,
     )
