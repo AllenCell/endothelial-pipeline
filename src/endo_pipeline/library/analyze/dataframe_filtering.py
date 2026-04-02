@@ -6,6 +6,7 @@ import pandas as pd
 
 from endo_pipeline.configs import (
     DatasetConfig,
+    FlowCondition,
     PositionAnnotation,
     TimepointAnnotation,
     get_all_unannotated_timepoints,
@@ -171,6 +172,65 @@ def filter_dataframe_to_steady_state(
         timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
     )
     return dataframe_steady_state
+
+
+def filter_dataframe_by_flow_condition(
+    dataframe: pd.DataFrame, dataset_config: DatasetConfig, flow_condition: FlowCondition
+) -> pd.DataFrame:
+    """
+    Filter dataframe to only include timepoints corresponding to a specified flow condition.
+
+    Parameters
+    ----------
+    dataframe
+        Dataframe of features for one dataset.
+    dataset_config
+        Dataset config for the dataset.
+    flow_condition
+        Flow condition to filter by.
+
+    Returns
+    -------
+    :
+        Dataframe filtered to only include timepoints corresponding to the specified flow condition.
+    """
+
+    # check that required columns are present
+    required_columns = [Column.DATASET, Column.TIMEPOINT]
+    check_required_columns_in_dataframe(dataframe, required_columns)
+
+    # check that dataframe is restricted to a single dataset, and that the
+    # dataset name in the dataframe matches the dataset name for the provided
+    # dataset config
+    check_dataframe_dataset_matches_dataset_config(dataframe, dataset_config)
+
+    # get flow condition information from dataset config
+    flow_conditions_in_dataset = dataset_config.flow_conditions
+
+    # Check that provided flow condition actually in the dataset config. If not, raise an error.
+    if flow_condition not in flow_conditions_in_dataset:
+        raise ValueError(
+            f"Specified flow condition [ {flow_condition} ] does not match any of the flow conditions"
+            f" in the dataset config [ {flow_conditions_in_dataset} ] for dataset {dataset_config.name}."
+        )
+
+    if len(flow_conditions_in_dataset) == 1:
+        # If only one flow condition in dataset, return the original dataframe
+        # since all timepoints correspond to the specified flow condition (i.e.,
+        # the only flow condition in the dataset).
+        return dataframe.copy()
+    else:
+        # multi-flow condition dataset: need to filter to timepoints
+        # corresponding to specified flow condition
+        change_frame = get_frame_after_flow_change(dataset_config)
+        if flow_condition == flow_conditions_in_dataset[0]:
+            # if first flow condition specified, filter to timepoints before
+            # the flow change frame
+            return dataframe[dataframe[Column.TIMEPOINT] < change_frame].copy()
+        else:
+            # if second flow condition specified, filter to timepoints after
+            # the flow change frame
+            return dataframe[dataframe[Column.TIMEPOINT] >= change_frame].copy()
 
 
 def split_dataframe_by_flow(
