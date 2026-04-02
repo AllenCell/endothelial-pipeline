@@ -150,7 +150,9 @@ def split_dataframe_by_flow(
     containing the original dataframe and single shear stress value.
 
     The dataframe should have columns for:
-    - Column.TIMEPOINT: timepoint/frame number for each row of data.
+        - Column.DATASET: dataset name for each row of data, which should be the
+          same across all rows of the dataframe.
+        - Column.TIMEPOINT: timepoint/frame number for each row of data.
 
     Parameters
     ----------
@@ -168,7 +170,17 @@ def split_dataframe_by_flow(
         List of shear stress values for each flow condition.
     """
     # check that required columns are present
-    check_required_columns_in_dataframe(dataframe, [Column.TIMEPOINT])
+    required_columns = [Column.DATASET, Column.TIMEPOINT]
+    check_required_columns_in_dataframe(dataframe, required_columns)
+
+    # check that dataframe is restricted to one dataset only
+    if dataframe[Column.DATASET].nunique() != 1:
+        logger.error("Dataframe must be restricted to one dataset only.")
+        raise ValueError("Dataframe must be restricted to one dataset only.")
+
+    if dataframe[Column.DATASET].unique()[0] != dataset_config.name:
+        logger.error("Dataset name in dataframe does not match dataset name in dataset config.")
+        raise ValueError("Dataset name in dataframe does not match dataset name in dataset config.")
 
     # get flow condition information from dataset config
     flow_conditions = dataset_config.flow_conditions

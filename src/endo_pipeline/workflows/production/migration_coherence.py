@@ -115,9 +115,10 @@ def main(
         df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
         columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *DYNAMICS_COLUMN_NAMES]
         df_ = df[columns_to_compute].compute()
+        dataset_config = load_dataset_config(dataset_name)
         df_steady_state = filter_dataframe_by_annotations(
             df_,
-            load_dataset_config(dataset_name),
+            dataset_config,
             timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
         )
 
@@ -130,7 +131,6 @@ def main(
 
         # split the dataframe by flow condition so we can plot the distribution
         # of optical flow features for each flow condition separately
-        dataset_config = load_dataset_config(dataset_name)
         df_by_flow, shear_stress_list = split_dataframe_by_flow(df_of, dataset_config)
 
         for df_flow, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
