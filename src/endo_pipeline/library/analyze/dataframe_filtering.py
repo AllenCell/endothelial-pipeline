@@ -159,11 +159,16 @@ def filter_dataframe_to_steady_state(
     # note: don't need to do dataframe validation checks here since those will
     # be done in the method `filter_dataframe_by_annotations` that is called
     # within this method
-    timepoint_annotations = [TimepointAnnotation.NOT_STEADY_STATE]
+
+    # To just filter to steady state timepoints, we can use the more general
+    # method `filter_dataframe_by_annotations` with
+    # timepoint_annotations=[NOT_STEADY_STATE] and position_annotations=[]
+    # (i.e., don't do any additional filtering based on position annotations)
     dataframe_steady_state = filter_dataframe_by_annotations(
         dataframe=dataframe,
         dataset_config=dataset_config,
-        timepoint_annotations=timepoint_annotations,
+        position_annotations=[],
+        timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
     )
     return dataframe_steady_state
 

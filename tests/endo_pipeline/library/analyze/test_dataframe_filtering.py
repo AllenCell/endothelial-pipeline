@@ -10,6 +10,7 @@ from endo_pipeline.configs import (
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_annotations,
     filter_dataframe_by_track_length,
+    filter_dataframe_to_steady_state,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
 
@@ -190,3 +191,78 @@ def test_filter_dataframe_by_track_length_all_filtered_out():
     )
     with pytest.raises(ValueError):
         filter_dataframe_by_track_length(dataframe, 4)
+
+
+# --- filter_dataframe_to_steady_state ---
+
+
+def test_filter_dataframe_to_steady_state_removes_not_steady_state_timepoints(dataframe, dataset):
+    # position_annotations=None (default) → all annotated positions removed (pos 1 has DUST_ARTIFACT)
+    # timepoint_annotations=[NOT_STEADY_STATE] → removes timepoints 0,1 from pos 3 and timepoint 0 from pos 5
+    filtered_df = filter_dataframe_to_steady_state(dataframe, dataset)
+    assert filtered_df[Column.POSITION].tolist() == [3, 3, 5, 5, 5]
+    assert filtered_df[Column.TIMEPOINT].tolist() == [2, 3, 1, 2, 3]
+
+
+def test_filter_dataframe_to_steady_state_keeps_all_timepoints_when_no_not_steady_state_annotations(
+    dataframe,
+):
+    # Dataset with no NOT_STEADY_STATE annotations and no position annotations → full dataframe returned
+    dataset_no_annotations = DatasetConfig(
+        name="unique_dataset_name",
+        date="YYYYMMDD",
+        original_path="/path/to/original/dataset",
+        zarr_positions=[1, 3, 5],
+        fmsid="FMS ID",
+        barcode="Dataset LabKey barcode",
+        cell_lines=["AICS-111", "AICS-222"],
+        live_or_fixed_sample="live",
+        is_timelapse=True,
+        microscope="3i",
+        objective="20X",
+        shear_stress_regime=[],
+        pixel_size_xy_in_um=0.0,
+        duration=4,
+        time_interval_in_minutes=1.0,
+        channel_names=[],
+        flow_conditions=[],
+        n_total_positions=0,
+        original_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
+        zarr_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
+        position_annotations={},
+        timepoint_annotations={},
+    )
+    filtered_df = filter_dataframe_to_steady_state(dataframe, dataset_no_annotations)
+    assert filtered_df[Column.POSITION].tolist() == dataframe[Column.POSITION].tolist()
+    assert filtered_df[Column.TIMEPOINT].tolist() == dataframe[Column.TIMEPOINT].tolist()
+
+
+@pytest.mark.parametrize(
+    "dataframe",
+    [
+        pd.DataFrame(
+            {
+                Column.DATASET: ["unique_dataset_name"],
+                Column.TIMEPOINT: [0],
+                # Column.POSITION missing
+            }
+        ),
+        pd.DataFrame(
+            {
+                Column.POSITION: [1],
+                Column.TIMEPOINT: [0],
+                # Column.DATASET missing
+            }
+        ),
+        pd.DataFrame(
+            {
+                Column.DATASET: ["unique_dataset_name"],
+                Column.POSITION: [1],
+                # Column.TIMEPOINT missing
+            }
+        ),
+    ],
+)
+def test_filter_dataframe_to_steady_state_raises_with_missing_required_columns(dataframe, dataset):
+    with pytest.raises(ValueError, match="DataFrame must contain column"):
+        filter_dataframe_to_steady_state(dataframe, dataset)
