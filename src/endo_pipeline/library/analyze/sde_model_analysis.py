@@ -208,7 +208,6 @@ def model_data_comparison_one_dataset(
         lambda x1, x2: f2([x1, x2], shear),
         pplane_xvec,
         pplane_yvec,
-        verbose=False,
     )
 
     ax1.set_xlabel(f"PC{pc_axes[0] + 1}")
@@ -284,7 +283,6 @@ def get_fixed_points_by_shear(
     x2_coarse = np.linspace(x2_lims[0], x2_lims[1], 7)
 
     for u_val in shear_range:
-
         # define ODE "flow" function (drift function, u is fixed)
         my_flow = partial(drift_function, u=u_val)
 
@@ -297,9 +295,7 @@ def get_fixed_points_by_shear(
         ]
         # get fixed points and classify them
         fpts = pplane.get_fpts(my_flow, init_coarse)
-        fpt_stabilities, fpts_, _ = pplane.classify_fps(
-            my_flow, fpts, [x1, x2], unique=False, verbose=False
-        )
+        fpt_stabilities, fpts_, _ = pplane.classify_fps(my_flow, fpts, [x1, x2], unique=False)
 
         # store fixed points and their types in dictionary
         fpt_dict: dict[str, Any] = {}

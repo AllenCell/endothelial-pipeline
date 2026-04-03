@@ -1,6 +1,7 @@
+"""Methods for creating and saving VTK files from 3D vector field data."""
+
 from pathlib import Path
 
-import numpy as np
 import vtk
 from vtkmodules.util import numpy_support as vtknp
 
@@ -8,44 +9,69 @@ from vtkmodules.util import numpy_support as vtknp
 def save_vector_field_as_vtk(
     vector_field_dict: dict, output_path: Path, volume_extent: dict
 ) -> None:
-    """
-    Save 3D vector field data as a VTK file.
+    """Save 3D vector field data as a VTK file.
 
-    Inputs:
-    - vector_field_dict: Dictionary containing the vector field data.
-        - "vectors": Tuple of 3D arrays (vx, vy, vz) with the
-            vector values in each dimension.
-        - "grid": Tuple of 3D arrays (xgrid, ygrid, zgrid) with the
-            grid points in each dimension.
-    - output_path: Path to save the VTK file.
-    - volume_extent: Real dimensions of the 3D volume in PC units.
-        - Format: {xmin: x, xmax: x, ymin: x, ymax: x, zmin: x, zmax: x}
+    **Method input format**
 
-    Outputs:
-    - None (the file is saved to output_path)
+    The input vector field data should be provided as a dictionary with the
+    following keys:
+        - "vectors": A tuple of three 3D `numpy` arrays (vx, vy, vz) representing
+          the vector components in each dimension.
+        - "grid": A tuple of three 3D `numpy` arrays (xgrid, ygrid, zgrid)
+          representing the grid points in each dimension.
+
+    The `volume_extent` should be a dictionary specifying the real dimensions of
+    the 3D volume in PC units, with the following format:
+        - {xmin: x, xmax: x, ymin: x, ymax: x, zmin: x, zmax: x}
+
+    Parameters
+    ----------
+    vector_field_dict
+        A dictionary containing the vector field data.
+    output_path
+        The file path where the VTK file will be saved.
+    volume_extent
+        A dictionary specifying the real dimensions of the 3D volume in PC units.
+
     """
     image_data = get_vtk_image_data_from_vector_field(vector_field_dict, volume_extent)
-    save_vtk_image_data(image_data, output_path)
+    writer = vtk.vtkStructuredPointsWriter()
+    writer.SetInputData(image_data)
+    writer.SetFileName(str(output_path))
+    writer.Write()
     return
 
 
 def get_vtk_image_data_from_vector_field(
     vector_field_dict: dict, volume_extent: dict
 ) -> vtk.vtkImageData:
-    """
-    Convert 3D vector field to VTK image data format.
+    """Convert 3D vector field to VTK image data format.
 
-    Inputs:
-    - vector_field_dict: dictionary with the following keys:
-        - "vectors": tuple of 3D arrays (vx, vy, vz) with the
-            vector values in each dimension
-        - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid)
-            with the grid points in each dimension
-    - volume_extent: Real dimensions of the 3D volume in PC units.
-        - Format: {xmin: x, xmax: x, ymin: x, ymax: x, zmin: x, zmax: x}
+    **Method input format**
 
-    Outputs:
-    - imageData: vtkImageData object with the vector field data
+    The input vector field data should be provided as a dictionary with the
+    following keys:
+        - "vectors": A tuple of three 3D `numpy` arrays (vx, vy, vz)
+          representing the vector components in each dimension.
+        - "grid": A tuple of three 3D `numpy` arrays (xgrid, ygrid, zgrid)
+          representing the grid points in each dimension.
+
+    The `volume_extent` should be a dictionary specifying the real dimensions of
+    the 3D volume in PC units, with the following format:
+        - {xmin: x, xmax: x, ymin: x, ymax: x, zmin: x, zmax: x}
+
+    Parameters
+    ----------
+    vector_field_dict
+        A dictionary containing the vector field data.
+    volume_extent
+        A dictionary specifying the real dimensions of the 3D volume in PC units.
+
+    Returns
+    -------
+    :
+         A VTK image data object containing the vector field data.
+
     """
     vx = vector_field_dict["vectors"][0]
     vy = vector_field_dict["vectors"][1]
@@ -87,85 +113,3 @@ def get_vtk_image_data_from_vector_field(
     point_data.SetActiveVectors("Velocity")
 
     return image_data
-
-
-def save_vtk_image_data(img: vtk.vtkImageData, output_path: Path) -> None:
-    """
-    Save VTK image data to a file.
-
-    Inputs:
-    - img: vtkImageData object containing the data to save
-    - output_path: path to the VTK file to save
-
-    Outputs:
-    - None (the file is saved to output_path)
-    """
-    writer = vtk.vtkStructuredPointsWriter()
-    writer.SetInputData(img)
-    writer.SetFileName(str(output_path))
-    writer.Write()
-    return
-
-
-def save_points_as_polydata(coordinates: np.ndarray, file_name: str) -> None:
-    """
-    Save 3D coordinates as VTK polydata.
-
-    Inputs:
-    - coordinates: numpy array of shape (n_points, 3)
-        containing the 3D coordinates
-    - file_name: path to the VTK file to save
-
-    Outputs:
-    - None (the file is saved to file_name)
-    """
-    pts = vtk.vtkPoints()
-    pts.SetData(vtknp.numpy_to_vtk(coordinates))
-    poly = vtk.vtkPolyData()
-    poly.SetPoints(pts)
-    writer = vtk.vtkPolyDataWriter()
-    writer.SetInputData(poly)
-    writer.SetFileName(file_name)
-    writer.Write()
-    return
-
-
-def load_polydata(file_name: str) -> vtk.vtkPolyData:
-    """
-    Load a VTK polydata file.
-
-    Inputs:
-    - file_name: path to the VTK file
-
-    Outputs:
-    - polydata: vtkPolyData object containing
-        the data from the file
-    """
-    reader = vtk.vtkPolyDataReader()
-    reader.SetFileName(file_name)
-    reader.Update()
-    polydata = reader.GetOutput()
-    return polydata
-
-
-def convert_coordinates_from_pc_to_volume(
-    pc_coord: np.ndarray, origin: float, grid_spacing: float
-) -> np.ndarray:
-    """
-    Convert coordinates from 3D PC space to 3D volume space
-    (for saving as .vtk to view in ParaView).
-
-    Inputs:
-    - xpc: numpy array of 1 component of 3D coordinates in PC space
-        - i.e., this function is called for each of the 3
-            components of the coordinates
-    - grid_spacing: spacing between grid points in PC space
-    - origin: point in PC space that corresponds to the
-        origin in volume space (e.g., the minimum bound
-        for the bins over that dimension in PC space)
-
-    Outputs:
-    - xvol: numpy array of coordinates in volume space
-    """
-    vol_coord = (pc_coord - origin) / grid_spacing
-    return vol_coord
