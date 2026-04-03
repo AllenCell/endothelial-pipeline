@@ -1,3 +1,5 @@
+"""Methods related to computing long-time-scale statistics of time series data."""
+
 from collections.abc import Callable
 
 import numpy as np
@@ -6,8 +8,7 @@ import numpy as np
 def compute_cumulative_variance_over_time(
     crop_array: np.ndarray, variance_function: Callable[..., float], **var_func_kwargs
 ) -> np.ndarray:
-    """
-    Compute per-crop cumulative variance of a feature over time.
+    """Compute per-crop cumulative variance of a feature over time.
 
     **Handling of NaN values**
 
@@ -32,6 +33,13 @@ def compute_cumulative_variance_over_time(
         float.
     **var_func_kwargs
         Additional keyword arguments to pass to the variance function.
+
+    Returns
+    -------
+    :
+        2-D array of the same shape as ``crop_array``, where each element [i, t] contains
+        the variance of the feature for crop i computed from time 0 up to time t.
+
     """
     cumulative_var_per_crop = np.zeros_like(crop_array)  # shape: (n_crops, n_timepoints)
     for i in range(crop_array.shape[1]):
@@ -64,9 +72,7 @@ def compute_binned_variance_ratio_vs_time(
     crop_array: np.ndarray,
     bin_size: int,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Compute ratio of individual to population variance within non-overlapping
-    time bins.
+    """Compute ratio of individual to population variance within non-overlapping time bins.
 
     This is the *binned* (non-cumulative) counterpart of
     :func:`compute_variance_ratio_vs_time`.  Instead of accumulating variance
@@ -124,6 +130,7 @@ def compute_binned_variance_ratio_vs_time(
         1-D array of upper bound of mean ± SEM for the ratio in each bin.
     :
         1-D array of lower bound of mean ± SEM for the ratio in each bin.
+
     """
     # shape: (n_crops, n_timepoints, n_features)
     n_timepoints = crop_array.shape[1]
