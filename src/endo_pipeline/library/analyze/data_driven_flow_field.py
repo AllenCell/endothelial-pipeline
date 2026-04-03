@@ -1,3 +1,5 @@
+"""Methods related to flow field estimation and analysis."""
+
 import logging
 from collections.abc import Callable
 from time import time
@@ -28,8 +30,7 @@ logger = logging.getLogger(__name__)
 def sample_from_density(
     data: np.ndarray, n_samples: int, random_seed: int = SAMPLER_RANDOM_SEED
 ) -> np.ndarray:
-    """
-    Sample points from the density of a given dataset using KDE and rejection sampling.
+    """Sample points from the density of a given dataset using KDE and rejection sampling.
 
     Parameters
     ----------
@@ -44,6 +45,7 @@ def sample_from_density(
     -------
     :
         Sampled points of shape (n_samples, D).
+
     """
     rng = np.random.default_rng(seed=random_seed)
     kde = gaussian_kde(data.T)
@@ -69,8 +71,7 @@ def _compute_percentile_values(
     q: float,
     polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
 ) -> dict[str, float]:
-    """
-    Compute the lower and upper percentile bounds for each column in the data.
+    """Compute the lower and upper percentile bounds for each column in the data.
 
     Parameters
     ----------
@@ -88,6 +89,7 @@ def _compute_percentile_values(
     -------
     :
         Dictionary mapping column names to their percentile values.
+
     """
     percentile_values: dict[str, float] = {}
     for column_name in column_names:
@@ -106,9 +108,7 @@ def is_point_within_percentile_bounds(
     upper_percentile_bounds: dict[str, float],
     polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
 ):
-    """
-    Check if a point is within a specified percentile range along each dimension
-    of a dataset, accounting for circular variables.
+    """Check if a point is within a specified percentile range in each variable.
 
     **Percentile bound specification**
 
@@ -156,6 +156,7 @@ def is_point_within_percentile_bounds(
     -------
     :
         True if point is within the percentile bounds on all axes, else False.
+
     """
     if len(point) != len(column_names):
         raise ValueError(
@@ -196,8 +197,7 @@ def get_fixed_points_within_bounds(
     polar_angle_range: tuple[float, float],
     stability_label_column_name: str = STABILITY_COLUMN_NAME,
 ) -> pd.DataFrame:
-    """
-    Get fixed points of a given estimated vector field with high confidence.
+    """Get fixed points of a given estimated vector field with high confidence.
 
     For a single dataset, this workflow:
 
@@ -237,6 +237,7 @@ def get_fixed_points_within_bounds(
     :
         Dataframe containing of stable fixed points with high confidence (i.e.,
         points filtered by percentile range).
+
     """
     check_required_columns_in_dataframe(
         dataframe, [*column_names, Column.DATASET]
@@ -307,18 +308,20 @@ def get_fixed_points_within_bounds(
 
 
 def fill_nan_for_vtk(data: np.ndarray, method: str = "nearest") -> np.ndarray:
-    """
-    Replaces NaN values in a multi-dimensional NumPy array using scipy.interpolate.griddata.
+    """Replace NaN values in a multi-dimensional `numpy` array using `scipy.interpolate.griddata`.
 
     Parameters
     ----------
     data
-        Input NumPy array with NaN values to be imputed.
+        Input `numpy` array with NaN values to be imputed.
+    method
+        Interpolation method to use for imputation.
 
     Returns
     -------
     :
         A copy of the input array with NaNs imputed.
+
     """
     # Create a copy to avoid modifying the original data
     arr = data.copy()
@@ -358,8 +361,7 @@ def compute_extrapolated_vector_field(
     method: str = "linear",
     for_vtk_files: bool = False,
 ) -> dict:
-    """
-    Extrapolate a 3D vector field from Kramers-Moyal estimates over a specified grid.
+    """Extrapolate a 3D vector field from Kramers-Moyal estimates over a specified grid.
 
     **Method inputs**
 
@@ -401,8 +403,13 @@ def compute_extrapolated_vector_field(
         Method to use for extrapolating the vector field where there are NaNs.
     for_vtk_files
         Whether the output is intended for saving as .vtk files.
-    """
 
+    Returns
+    -------
+    :
+        Dictionary with extrapolated vector field and corresponding grid.
+
+    """
     filled_kmcs = kmcs.copy()
     n_components = filled_kmcs.shape[-1]
     x, y, z = np.meshgrid(*grid_coordinates, indexing="ij")
@@ -455,8 +462,7 @@ def get_callable_vector_field(
 def get_callable_vector_field(
     vector_field_dict: dict, for_solve_ivp: bool = True, method: str = "linear"
 ) -> Callable[[float, np.ndarray], np.ndarray] | Callable[[np.ndarray], np.ndarray]:
-    """
-    Get a callable vector field from a numpy array via linear interpolation.
+    """Get a callable vector field from a numpy array via linear interpolation.
 
     The input is a dictionary with the vector field values on a mesh grid, and this function
     creates a callable function that can be used to evaluate the vector field at any point
@@ -488,8 +494,8 @@ def get_callable_vector_field(
     -------
     :
         Callable function representing the vector field.
-    """
 
+    """
     grid = vector_field_dict["grid"]  # tuple of 3D arrays (xgrid, ygrid, zgrid)
 
     # Extract 1D axes from meshgrid
@@ -527,8 +533,7 @@ def solve_ddff_ode(
     t_span: tuple[float, float],
     num_t: int = 1750,
 ) -> np.ndarray:
-    """
-    Solve an autonomous ODE using ``scipy.integrate.solve_ivp``.
+    """Solve an autonomous ODE using ``scipy.integrate.solve_ivp``.
 
     **Method inputs**
 
@@ -563,6 +568,7 @@ def solve_ddff_ode(
     -------
     :
         Solution trajectory in 3D state space for the given initial condition and time span.
+
     """
     # turn flow field into callable function (works via interpolation)
     my_flow = get_callable_vector_field(flow_field_dict, for_solve_ivp=True)
@@ -574,8 +580,7 @@ def solve_ddff_ode(
 
 
 def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
-    """
-    Obtain points along a curve equally spaced by arc length.
+    """Obtain points along a curve equally spaced by arc length.
 
     Parameters
     ----------
@@ -588,6 +593,7 @@ def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
     -------
     :
         Interpolated points along the curve, shape (n_points, num_dimensions).
+
     """
     ndim = traj.shape[1]  # number of dimensions
 
@@ -623,8 +629,9 @@ def get_drift_flow_field_as_dict(
 
     Returns
     -------
-    dict[str, tuple[np.ndarray]]
+    :
         Dictionary containing the flow field vectors and the corresponding grid points.
+
     """
     # restructure the flow field dataframe into a flow field dictionary
     ndim = len(column_names)

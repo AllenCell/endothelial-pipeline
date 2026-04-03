@@ -28,9 +28,7 @@ def _take_dataframe_column_diff(
 def _take_dataframe_column_diff(
     dataframe_column: pd.Series | pd.DataFrame, diff_step: int, fillna_value: float | None = None
 ) -> pd.Series | pd.DataFrame:
-    """
-    Helper function to take the difference along a columns of a DataFrame, given
-    a specified step size.
+    """Take the difference along a columns of a DataFrame given a specified step size.
 
     The returned Series or DataFrame will contain the differences along the
     input column(s), with NaN values at the end where the difference could not
@@ -45,6 +43,12 @@ def _take_dataframe_column_diff(
         The number of rows ahead to take the difference with.
     fillna_value
         Optional, value to fill NaN values with after taking the difference.
+
+    Returns
+    -------
+    :
+        A Series or DataFrame containing the differences along the input column(s).
+
     """
     diffed_column = dataframe_column.diff(periods=diff_step).shift(-diff_step)
     if fillna_value is not None:
@@ -58,9 +62,7 @@ def compute_forward_differences_along_trajectory(
     polar_angle_period: float = PERIOD_THETA_RESCALED,
     time_lag: int = 1,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Compute forward differences at a given time lag along a trajectory in
-    feature space.
+    """Compute forward differences at a given time lag along a trajectory in feature space.
 
     **Polar angle handling**
 
@@ -98,6 +100,7 @@ def compute_forward_differences_along_trajectory(
     :
         Array of forward differences in feature values along the trajectory for
         the specified columns.
+
     """
     # initialize name for difference columns
     diff_column_names = [f"{col}{Column.DiffAEData.DIFFERENCE_SUFFIX}" for col in column_names]
@@ -151,9 +154,7 @@ def get_traj_and_diff(
     polar_angle_period: float = PERIOD_THETA_RESCALED,
     time_lag: int = 1,
 ) -> tuple[list[np.ndarray], list[np.ndarray]]:
-    """
-    Get trajectories and single-timepoint displacement vectors (forward
-    differences) for each single-crop trajectory in feature space.
+    """Get trajectories and single-timepoint forward differences from a dataframe of feature values.
 
     **Input dataframe**
 
@@ -185,6 +186,7 @@ def get_traj_and_diff(
         List of individual crop trajectories in feature space.
     :
         List of displacement vectors along each trajectory in feature space.
+
     """
     # check that required columns are present
     required_columns = [Column.TIMEPOINT, Column.CROP_INDEX, *column_names]
