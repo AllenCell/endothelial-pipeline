@@ -25,13 +25,9 @@ def main(
 
     import pandas as pd
 
-    from endo_pipeline.configs import (
-        TimepointAnnotation,
-        get_datasets_in_collection,
-        load_dataset_config,
-    )
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
     from endo_pipeline.library.visualize.diffae_features.feature_viz import plot_pc_scatter
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
@@ -81,11 +77,7 @@ def main(
         # if excluding the "not steady state" timepoints, do additional filtering:
         if not include_not_steady_state:
             dataset_config = load_dataset_config(dataset_name)
-            df = filter_dataframe_by_annotations(
-                df,
-                dataset_config,
-                timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
-            )
+            df = filter_dataframe_to_steady_state(df, dataset_config)
         df_list.append(df)
     df_combined = pd.concat(df_list, ignore_index=True)
 

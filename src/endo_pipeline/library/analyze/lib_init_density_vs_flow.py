@@ -11,7 +11,7 @@ from tqdm import tqdm
 from endo_pipeline.cli import Datasets
 from endo_pipeline.configs import get_subset_of_timepoint_annotations, load_dataset_config
 from endo_pipeline.io import load_dataframe, save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
+from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
