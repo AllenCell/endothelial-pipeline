@@ -17,8 +17,46 @@ from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RES
 logger = logging.getLogger(__name__)
 
 
-def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -> np.ndarray:
-    """Get the normalized cross-correlation function (CCF) between two features."""
+def cross_correlation_function(
+    data_feat1: np.ndarray, data_feat2: np.ndarray, lag_cutoff_fraction: int = NUM_TIMEPOINT_FRAC
+) -> np.ndarray:
+    """
+    Get the normalized cross-correlation function (CCF) between two features.
+
+    The input data arrays are expected to be of shape (num_samples,
+    num_timepoints). That is, the data are assumed to be {num_samples} iid
+    sample time series, each sampled at the same num_timepoints.
+
+    The cross correlation function for each sample is computed using the
+    convolution theorem, which states that the CCF is the inverse Fourier
+    transform (using the fast Fourier transform, or FFT) of the cross power
+    spectrum of the two signals. That is, it is equal to the inverse FFT of
+    `X1^{*}(f) * X2(f)` where `X1` and `X2` are the FFTs of the two signals.
+
+    The CCF is normalized by the product of the standard deviations of the two
+    signals to get the scaled CCF.
+
+    The resulting scaled CCF is then shifted so that zero lag is in the center
+    of the array, and only the middle portion of the CCF is returned
+    (corresponding to lags going from - to +
+    `num_timepoints//lag_cutoff_fraction`) to get the actual CCF of the unpadded
+    signal.
+
+    Finally, the CCF is averaged over the num_samples trajectories to get the
+    average CCF across the population of samples.
+
+    Parameters
+    ----------
+    data_feat1
+        Array of shape (num_samples, num_timepoints) containing time series data
+        for the first feature for the CCF.
+    data_feat2
+        Array of shape (num_samples, num_timepoints) containing time series data
+        for the second feature for the CCF.
+    lag_cutoff_fraction
+        Fraction of num_timepoints to use as cutoff for lags in the returned
+        CCF.
+    """
     num_traj = data_feat1.shape[0]
     num_timepoints = data_feat1.shape[1]
 
@@ -30,9 +68,8 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
     for traj_index in range(num_traj):
         # Center data by subtracting mean, get standard deviation
         # for normalization of CCF.
-        # fft cannot handle NaNs, so we replace them with zeros after
+        # FFT cannot handle NaNs, so we replace them with zeros after
         # centering/mean subtraction.
-        # Use ddof=1 for standard deviation of sample of the population.
         data_mean1 = np.nanmean(data_feat1[traj_index])
         data_stdev1 = np.nanstd(data_feat1[traj_index], ddof=1)
         x_t_i_ctr = data_feat1[traj_index] - data_mean1
@@ -41,10 +78,7 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
         data_mean2 = np.nanmean(data_feat2[traj_index])
         data_stdev2 = np.nanstd(data_feat2[traj_index], ddof=1)
         x_t_j_ctr = data_feat2[traj_index] - data_mean2
-        x_t_j_ctr = np.nan_to_num(x_t_i_ctr, nan=0.0)
-
-        # By the convolution theorem, the CCF is the inverse FFT of the cross power spectrum
-        # (i.e., X1^{*}(f) * X2(f) where X1 and X2 are the FFTs of the two signals).
+        x_t_j_ctr = np.nan_to_num(x_t_j_ctr, nan=0.0)
 
         # Get the FFT of the centered data, padding with zeros to length num_pad.
         cf_1 = np.fft.fft(x_t_i_ctr, n=num_pad)
@@ -56,11 +90,11 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
         # normalizing by product of standard deviations (definition of scaled CCF)
         corr_unshifted = np.fft.ifft(sf).real / (data_stdev1 * data_stdev2)
 
-        # Shift the CCF so that zero lag is in the center of the array.
+        # Shift the CCF so that zero lag is in the center of the array and
+        # extract the middle portion of the CCF corresponding to lags from - to
+        # + num_timepoints//lag_cutoff_fraction.
         corr_shifted = np.fft.fftshift(corr_unshifted)
-        # Extract the middle half of the CCF (corresponding to lags going from
-        # - to + num_timepoints//NUM_TIMEPOINT_FRAC) to get the actual CCF of the unpadded signal.
-        max_lag = num_timepoints // NUM_TIMEPOINT_FRAC
+        max_lag = num_timepoints // lag_cutoff_fraction
         index_lb = num_pad // 2 - max_lag
         index_ub = num_pad // 2 + max_lag + 1
         corr = corr_shifted[index_lb:index_ub]
@@ -76,7 +110,12 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
 
 
 def autocorrelation_function(data: np.ndarray, component_index: int) -> np.ndarray:
-    """Get the normalized autocorrelation function (ACF) for a specific component."""
+    """
+    Get the normalized autocorrelation function (ACF) for a specific component.
+
+    Wrapper for `cross_correlation_function`, using the fact that the ACF is just
+    the CCF of a signal with itself.
+    """
     # Extract the specified component from the data array.
     x_t_j = data[..., component_index]
 
@@ -323,7 +362,30 @@ def compute_correlations_for_one_dataset(
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
     rescale_polar_angle: bool = RESCALE_THETA,
 ) -> dict[str, dict[str, Any]]:
-    """Compute cross-correlation and autocorrelation for features from one dataset."""
+    """
+    Compute cross-correlation and autocorrelation for features from one dataset.
+
+    Parameters
+    ----------
+    dataframe
+        DataFrame containing the data for one dataset, with columns specified in
+        column_names.
+    column_names
+        List of column names corresponding to the features for which to compute
+        correlations.
+    correlation_dict
+        Dictionary to store the computed correlations, which will be updated and
+        returned.
+    bootstrap_samples
+        Number of bootstrap samples to use for calculating confidence intervals.
+        If None, no confidence intervals will be calculated.
+    max_lag_integrate
+        Maximum lag to integrate over for the forward minus backward CCF
+        integral calculation.
+    rescale_polar_angle
+        Whether the polar angle variable has been rescaled from [-pi,pi] to
+        [0,pi] (used to set the polar angle period for unwrapping).
+    """
     # check that required columns are present in the dataframe
     required_columns = [
         *column_names,
