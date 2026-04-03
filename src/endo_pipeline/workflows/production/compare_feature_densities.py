@@ -26,9 +26,9 @@ def main(
 
     import pandas as pd
 
-    from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
+    from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
     from endo_pipeline.library.visualize.diffae_features.feature_viz import plot_kde_comparison
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.density_comparison_plots import (
@@ -86,20 +86,12 @@ def main(
             feature_dataframe_manifest_grid.locations[dataset_name], delay=True
         )
         df_grid: pd.DataFrame = df_grid_[columns_to_compute].compute()
-        df_grid_steady_state = filter_dataframe_by_annotations(
-            df_grid,
-            dataset_config,
-            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
-        )
+        df_grid_steady_state = filter_dataframe_to_steady_state(df_grid, dataset_config)
         df_tracked_ = load_dataframe(
             feature_dataframe_manifest_tracked.locations[dataset_name], delay=True
         )
         df_tracked: pd.DataFrame = df_tracked_[columns_to_compute].compute()
-        df_tracked_steady_state = filter_dataframe_by_annotations(
-            df_tracked,
-            dataset_config,
-            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
-        )
+        df_tracked_steady_state = filter_dataframe_to_steady_state(df_tracked, dataset_config)
 
         n_total_crops_grid = df_grid_steady_state.shape[0]
         logger.info(

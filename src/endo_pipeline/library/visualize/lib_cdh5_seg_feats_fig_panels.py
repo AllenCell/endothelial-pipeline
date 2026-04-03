@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe, load_image, save_plot_to_path, slugify
-from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
+from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
